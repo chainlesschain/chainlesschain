@@ -1,0 +1,541 @@
+{
+  "schema": "chainlesschain.compaction-consumer-retry-closeout/v1",
+  "capturedAt": "2026-10-13T15:51:36.961Z",
+  "consumerValidation": {
+    "status": "passed",
+    "finalRun": "run-4J19C8",
+    "checks": [
+      {
+        "name": "git-head",
+        "status": 0,
+        "args": [
+          "rev-parse",
+          "HEAD"
+        ]
+      },
+      {
+        "name": "git-diff-check",
+        "status": 0,
+        "args": [
+          "diff",
+          "--check"
+        ]
+      },
+      {
+        "name": "git-diff",
+        "status": 0,
+        "args": [
+          "diff",
+          "--",
+          "CHANGELOG.md",
+          "packages/cli/src/data/changelog.json",
+          "packages/cli/src/lib/context-memory-kernel/live-compaction.js",
+          "packages/cli/src/runtime/agent-core.js",
+          "packages/cli/src/runtime/headless-stream.js",
+          "packages/context-memory-kernel/index.d.ts",
+          "packages/context-memory-kernel/index.mjs",
+          "packages/context-memory-kernel/lib/compaction.js",
+          "packages/context-memory-kernel/test/compaction.test.js"
+        ]
+      },
+      {
+        "name": "syntax-live-compaction",
+        "status": 0,
+        "args": [
+          "--check",
+          "packages/cli/src/lib/context-memory-kernel/live-compaction.js"
+        ]
+      },
+      {
+        "name": "syntax-agent-core",
+        "status": 0,
+        "args": [
+          "--check",
+          "packages/cli/src/runtime/agent-core.js"
+        ]
+      },
+      {
+        "name": "syntax-headless-stream",
+        "status": 0,
+        "args": [
+          "--check",
+          "packages/cli/src/runtime/headless-stream.js"
+        ]
+      }
+    ],
+    "head": "e6f39d9ce0d907a7d2fbd072d879fae18cca0878",
+    "node": "v22.12.0",
+    "source": [
+      {
+        "file": "packages/context-memory-kernel/lib/compaction.js",
+        "sha256": "c20037ed2d90d6aa62e8d642ffc65f48b27282b048896a40d840ff0b93c59a98",
+        "bytes": 18663
+      },
+      {
+        "file": "packages/context-memory-kernel/index.mjs",
+        "sha256": "ae5ab3a96002a2027772d3af8ee2ad341f3ec157b30f4815f291a1679f58df36",
+        "bytes": 1882
+      },
+      {
+        "file": "packages/context-memory-kernel/index.d.ts",
+        "sha256": "49320473e27f1b410c0fa54bcf5ef97982cf1e6b43e52c821a7b7ecb450ac182",
+        "bytes": 10559
+      },
+      {
+        "file": "packages/context-memory-kernel/test/compaction.test.js",
+        "sha256": "838b340f429e9345a8e76e3ec75b14439b2bb0967cdcd543781e01d51e5274f4",
+        "bytes": 11239
+      },
+      {
+        "file": "packages/cli/src/lib/context-memory-kernel/live-compaction.js",
+        "sha256": "98dcaaab42de35d2cf03fb284a30a60e051c5c5b8f869a1a9a04f7ae3dd911b0",
+        "bytes": 14630
+      },
+      {
+        "file": "packages/cli/src/runtime/agent-core.js",
+        "sha256": "98c4d1993667a15bd8b2af43dde3909cf7cf54a753f51e141b3b71e8c308b6f3",
+        "bytes": 642751
+      },
+      {
+        "file": "packages/cli/src/runtime/headless-stream.js",
+        "sha256": "4a0638081fe5ac92ca4376cf6093b6a430de008c8e616293cd73429021367cea",
+        "bytes": 207952
+      },
+      {
+        "file": "packages/cli/__tests__/unit/canonical-compaction-usage.test.js",
+        "sha256": "24bc32b0ee0f2b8e7c234292a9653b0f2cba2535838baa25a337bedc19f002f3",
+        "bytes": 18753
+      }
+    ],
+    "validation": {
+      "platform": "Linux under WSL Ubuntu",
+      "node": "v22.12.0",
+      "vitest": "4.1.10",
+      "suites": 5,
+      "tests": 104,
+      "newCanonicalTests": 23,
+      "failures": 0
+    },
+    "sourceIsolation": {
+      "repo": "/tmp/cc-compaction-consumers-aIGRds/repo",
+      "baseArchive": "../astra-release-prep-20261013/consumer-source.tar",
+      "thirdPartyCacheReadOnly": "/tmp/cc-linux-reliability-dNSZBk/repo",
+      "workspacePackages": "links point into isolated checkout; context-memory-kernel never uses shared cache",
+      "npmInstall": false
+    },
+    "notes": [
+      "Local synthetic provider tests only; no billable calls or publication.",
+      "Final Actions release gates remain mandatory.",
+      "Earlier dependency setup and development failures are retained under separate run directories; they are not the authoritative run.",
+      "No commit, push, publish or frozen evaluation fixture changes.",
+      "Known usage is private-provider-bound; only the kernel private error brand permits manual continuation on precommit rejection.",
+      "Ordinary nonpersistent runs retain not_metered kernel receipts without inventing durable ledger settlement."
+    ]
+  },
+  "independentFinalKernel": {
+    "schema": "chainlesschain.final-compaction-independent-regression/v1",
+    "capturedAt": "2026-10-13T15:50:14.197Z",
+    "root": "C:/code/chainlesschain/.work/verify01-acceptance-closeout-20261013/final-kernel-lAD770",
+    "node": "v22.12.0",
+    "sourceStable": true,
+    "files": [
+      {
+        "file": "packages/context-memory-kernel/lib/compaction.js",
+        "bytes": 18663,
+        "sha256": "c20037ed2d90d6aa62e8d642ffc65f48b27282b048896a40d840ff0b93c59a98"
+      },
+      {
+        "file": "packages/context-memory-kernel/index.mjs",
+        "bytes": 1882,
+        "sha256": "ae5ab3a96002a2027772d3af8ee2ad341f3ec157b30f4815f291a1679f58df36"
+      },
+      {
+        "file": "packages/context-memory-kernel/index.d.ts",
+        "bytes": 10559,
+        "sha256": "49320473e27f1b410c0fa54bcf5ef97982cf1e6b43e52c821a7b7ecb450ac182"
+      },
+      {
+        "file": "packages/context-memory-kernel/test/compaction.test.js",
+        "bytes": 11239,
+        "sha256": "838b340f429e9345a8e76e3ec75b14439b2bb0967cdcd543781e01d51e5274f4"
+      },
+      {
+        "file": "packages/cli/src/lib/context-memory-kernel/live-compaction.js",
+        "bytes": 14630,
+        "sha256": "98dcaaab42de35d2cf03fb284a30a60e051c5c5b8f869a1a9a04f7ae3dd911b0"
+      },
+      {
+        "file": "packages/cli/src/runtime/agent-core.js",
+        "bytes": 642751,
+        "sha256": "98c4d1993667a15bd8b2af43dde3909cf7cf54a753f51e141b3b71e8c308b6f3"
+      },
+      {
+        "file": "packages/cli/src/runtime/headless-stream.js",
+        "bytes": 207952,
+        "sha256": "4a0638081fe5ac92ca4376cf6093b6a430de008c8e616293cd73429021367cea"
+      },
+      {
+        "file": "packages/cli/__tests__/unit/canonical-compaction-usage.test.js",
+        "bytes": 18753,
+        "sha256": "24bc32b0ee0f2b8e7c234292a9653b0f2cba2535838baa25a337bedc19f002f3"
+      }
+    ],
+    "results": [
+      {
+        "platform": "windows",
+        "startedAt": "2026-10-13T15:50:12.990Z",
+        "completedAt": "2026-10-13T15:50:13.886Z",
+        "command": "C:\\code\\chainlesschain\\.tmp\\node-22.12\\node-v22.12.0-win-x64\\node.exe",
+        "args": [
+          "--test",
+          "C:/code/chainlesschain/.work/vj13/packages/context-memory-kernel/test/compaction.test.js",
+          "C:/code/chainlesschain/.work/vj13/packages/context-memory-kernel/test/conformance-fixture.test.js"
+        ],
+        "exitCode": 0,
+        "signal": null,
+        "error": null,
+        "stdoutSha256": "c77d68decb01bbd1c121495b3eeae393cda03a2ebf44c46263e283fa59d6687a",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "tapTotals": [
+          "# tests 29",
+          "# pass 29",
+          "# fail 0",
+          "# skipped 0"
+        ]
+      },
+      {
+        "platform": "linux",
+        "startedAt": "2026-10-13T15:50:13.010Z",
+        "completedAt": "2026-10-13T15:50:14.188Z",
+        "command": "wsl.exe",
+        "args": [
+          "-d",
+          "Ubuntu",
+          "--exec",
+          "/usr/bin/env",
+          "-i",
+          "PATH=/usr/bin:/bin",
+          "TMPDIR=/mnt/c/code/chainlesschain/.work/verify01-acceptance-closeout-20261013/temp",
+          "/mnt/c/code/chainlesschain/.tmp/linux-node2212/bin/node",
+          "--test",
+          "/mnt/c/code/chainlesschain/.work/vj13/packages/context-memory-kernel/test/compaction.test.js",
+          "/mnt/c/code/chainlesschain/.work/vj13/packages/context-memory-kernel/test/conformance-fixture.test.js"
+        ],
+        "exitCode": 0,
+        "signal": null,
+        "error": null,
+        "stdoutSha256": "91a61819449cb5b45ecbbb0acf8427876c581967184bd0aa3804a24b6b757df2",
+        "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "tapTotals": [
+          "# tests 29",
+          "# pass 29",
+          "# fail 0",
+          "# skipped 0"
+        ]
+      }
+    ],
+    "providerCalls": 0,
+    "formal": false
+  },
+  "publicRetryExhaustion": {
+    "schema": "chainlesschain.public-cli-retry-exhaustion-review/v1",
+    "formal": false,
+    "paidReady": false,
+    "osConfinementEstablished": false,
+    "formalTasksCompleted": 0,
+    "formalTaskTotal": 36,
+    "externalPrerequisites": "SKIPPED_BY_USER",
+    "publicVersion": "0.166.99",
+    "publicPackageModified": false,
+    "productionSourcesModified": false,
+    "authoritativeRun": "cc-retry-exhaustion-StUvJs",
+    "passed": 17,
+    "failed": 0,
+    "checks": [
+      {
+        "name": "signed-loader-negative-0-rejected-with-zero-calls",
+        "passed": true
+      },
+      {
+        "name": "signed-loader-negative-1-rejected-with-zero-calls",
+        "passed": true
+      },
+      {
+        "name": "one-cli-invocation",
+        "passed": true
+      },
+      {
+        "name": "terminal-process-failure-not-timeout",
+        "passed": true
+      },
+      {
+        "name": "terminal-stream-error",
+        "passed": true
+      },
+      {
+        "name": "no-success-result",
+        "passed": true
+      },
+      {
+        "name": "exactly-two-streaming-physical-attempts",
+        "passed": true
+      },
+      {
+        "name": "each-reserved-before-dispatch",
+        "passed": true
+      },
+      {
+        "name": "both-client-disconnects-followed-settlement",
+        "passed": true
+      },
+      {
+        "name": "terminal-exit-precedes-closed-snapshot",
+        "passed": true
+      },
+      {
+        "name": "all-three-servers-closed",
+        "passed": true
+      },
+      {
+        "name": "no-third-call-through-terminal-and-server-close",
+        "passed": true
+      },
+      {
+        "name": "two-unique-settlements-no-pending",
+        "passed": true
+      },
+      {
+        "name": "one-capability-run",
+        "passed": true
+      },
+      {
+        "name": "synthetic-history-preserved",
+        "passed": true
+      },
+      {
+        "name": "signed-secure-agent-composition-used",
+        "passed": true
+      },
+      {
+        "name": "all-1782-frozen-cli-files-unchanged",
+        "passed": true
+      }
+    ],
+    "configuredRetries": 1,
+    "environment": {
+      "CC_MAX_RETRIES": "1",
+      "CLAUDE_CODE_MAX_RETRIES": "1",
+      "node": "v22.12.0",
+      "platform": "linux",
+      "secure": true,
+      "filesystemShim": false
+    },
+    "result": {
+      "exitCode": 5,
+      "physicalRequests": 2,
+      "settlements": 2,
+      "observedRetries": 1,
+      "terminalEvent": {
+        "type": "result",
+        "subtype": "error",
+        "is_error": true,
+        "error": "fetch failed"
+      }
+    },
+    "observation": {
+      "start": "2026-10-13T15:20:10.415Z",
+      "terminalExit": "2026-10-13T15:20:28.188Z",
+      "closedSnapshot": "2026-10-13T15:20:28.198Z",
+      "boundary": "Observed the whole single CLI process through terminal exit, then awaited gateway, broker and provider closure and read the authority again. No sleep-based inference.",
+      "allServersClosed": true
+    },
+    "accounting": {
+      "brokerRunId": "fixture-retry-exhaustion",
+      "syntheticHistoryUsdMicros": 150000,
+      "syntheticFinalExposureUsdMicros": 150092,
+      "actualBilledUsd": null,
+      "originalLineageModified": false
+    },
+    "limits": [
+      "Synthetic literal loopback requests only, no real provider/account/FX/quota authority.",
+      "JS diagnostic network guard does not establish OS confinement.",
+      "This tests .99 retry exhaustion on the local Linux host; it is not a release matrix gate or formal36+9 evidence.",
+      "Original successful retry, Windows signed secure refusal and all existing manifests remain unchanged."
+    ]
+  },
+  "staticClosure": {
+    "schema": "chainlesschain.native-closure-completed-audit/v1",
+    "createdAt": "2026-10-13T15:34:18.774Z",
+    "status": "NOT_ADMITTED",
+    "durable": false,
+    "admissionEligible": false,
+    "formalSample": false,
+    "providerCalls": 0,
+    "fullClosureVerified": false,
+    "manifest": {
+      "path": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\closure-manifest.json",
+      "bytes": 8188534,
+      "digest": "sha256:1a4d700e77a27f952a811751917c7bdbaaef807533cf3210a8d185355c220784"
+    },
+    "validation": {
+      "path": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\closure-validation.json",
+      "bytes": 32706,
+      "digest": "sha256:affd5dfb13e3081fdd9fda18ecc554c202afecdfe6ccc9abf1774d337e3e9c19"
+    },
+    "archive": {
+      "path": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\archive-inventory.json",
+      "bytes": 21731,
+      "digest": "sha256:8ab9aa44b32e48e1dcba1300794ce25823a3d3a0f8eb2755ce9d6038599dbb98"
+    },
+    "apiSetAssessment": {
+      "path": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\api-set-assessment.json",
+      "bytes": 129631,
+      "digest": "sha256:a5cfa918d2f947371291c17ce560df3d6673bf012b21343eebd15d3d690b58c8"
+    },
+    "evidence": {
+      "wrapper": {
+        "path": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\x86_64-w64-mingw32-clang++.exe",
+        "bytes": 13824,
+        "digest": "sha256:ee85bef2c733e24a26c22be3df94bd631cf9528a048fce91241c182a936737fe"
+      },
+      "realFrontend": {
+        "path": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\clang-23.exe",
+        "bytes": 95744,
+        "digest": "sha256:6fb0b2960b4980f8b11bf8f11f530de6df5e4673605dae03fe1f07e2876edffa",
+        "roles": [
+          "driver-selected-frontend",
+          "static-pe-image"
+        ]
+      },
+      "realLinker": {
+        "path": "C:\\code\\chainlesschain\\.work\\toolchains\\llvm-mingw-20261006\\llvm-mingw-20261006-ucrt-x86_64\\bin\\ld.lld.exe",
+        "bytes": 5184512,
+        "digest": "sha256:2b75169112a886e55356b18209b66cc1e47f402b7ff36ba3c3bc899ad347cef8",
+        "roles": [
+          "driver-selected-linker",
+          "static-pe-image"
+        ]
+      },
+      "originalNode": {
+        "path": "C:\\code\\chainlesschain\\.tmp\\node-22.12\\node-v22.12.0-win-x64\\node.exe",
+        "bytes": 82818704,
+        "digest": "sha256:b3b117a08ee61efee09e6fd523ab33c0c018da1b570bde08e4fd914dc1170ed6"
+      },
+      "filesPinned": 1190,
+      "targets": 5,
+      "uniquePreprocessorInputs": 785,
+      "staticPeImages": 336,
+      "osDllFiles": 323,
+      "plannedLibraryFiles": 12,
+      "plannedExplicitInputFiles": 5,
+      "allPlannedLibraryNamesHaveStaticSearchMatch": true,
+      "dependencyReplaysIdentical": 5,
+      "independentPeImportCrossChecks": 10,
+      "negativeControlsPassed": 3,
+      "negativeControlsFailed": 0
+    },
+    "staticUnresolved": {
+      "edges": 5686,
+      "regularImportEdges": 4850,
+      "delayImportEdges": 810,
+      "exportForwarderEdges": 26,
+      "apiSetExactNameEdges": 5681,
+      "uniqueApiSetContracts": 305,
+      "apiSetContractsWithTextualVersionFamilyCandidates": 303,
+      "ambiguousEdges": 13,
+      "meaning": "Conservative static graph with intentionally incomplete API-set version resolution. Unresolved does not mean actual load failure; multiple candidates do not prove actual ambiguous loading."
+    },
+    "verifiedNow": [
+      "Fixed compiler -v/-### selected clang-23.exe frontend and ld.lld.exe; wrapper/config/frontend/linker and discovered DLL bytes pinned.",
+      "All5 exact-preprocessing -M outputs identify concrete source/header inputs; repeated with1190 inventory pins checked before/after and identical dependency outputs.",
+      "Static link search records all ordered -L/-l choices, first existing static-library candidates and explicit CRT/builtins objects with hashes.",
+      "Static regular/delay PE imports and export-forwarder names recursively inventoried;10 root PE regular imports independently matched llvm-readobj output.",
+      "System32 file hashes/version resources, KnownDLL registry and API-set-v6 bytes recorded; no registry or policy changes.",
+      "Negative controls reject changed same-size bytes under old pin, parent/sibling path escape, alternate data streams and relative paths; only synthetic fixture files mutated.",
+      "Existing build008 source/binary/compiler pins and SoVvzw report artifacts/copied/runtime pins unchanged."
+    ],
+    "notVerified": {
+      "originalBuildHeaderAndLibraryBytes": false,
+      "actualConsumedArchiveMembers": false,
+      "actualOriginalLinkerTrace": false,
+      "compilerDynamicLoaderClosure": false,
+      "runtimeDynamicLoaderClosure": false,
+      "systemDllSignatureChain": false,
+      "completeApiSetVersionAliasResolution": false,
+      "hermeticBuild": false
+    },
+    "developmentCorrections": [
+      "Initial5 dependency observations omitted -static/-municode/-shared; retained under raw but excluded. Corrected5 exact probes plus5 pinned replays preserve these flags.",
+      "Initial collector rejected legitimate libc++.dll basename because its conservative character class excluded +; failed source copies preserved and corrected parser allows + without permitting paths. First failed invocation was observed in tool transcript; it produced no closure manifest."
+    ],
+    "preservation": {
+      "oldSuccessfulRun": {
+        "path": "C:\\code\\chainlesschain\\.work\\astra-native-crash-restart-20261013\\crash-restart-SoVvzw-receipts\\report.json",
+        "bytes": 63493,
+        "digest": "sha256:721703bb43da2146c89b7dd9ceee3e336ba8cac2e298733dde90807b645c035f"
+      },
+      "oldBuild": {
+        "path": "C:\\code\\chainlesschain\\.work\\astra-native-crash-restart-20261013\\build-008\\build.json",
+        "bytes": 12443,
+        "digest": "sha256:e4cb27a5ba272edd016af1192ffe4946e9fc37653d01339d33507b453ff0432d"
+      },
+      "oldSourceAndBinariesUnchanged": true,
+      "oldCopiedAndRuntimePinsUnchanged": true,
+      "toolchainFilesCopied": 0,
+      "nativeCapsulesExecuted": 0,
+      "candidateCodeExecuted": false,
+      "candidateBuildOutputsCreated": 0,
+      "feesOrExternalAccess": false,
+      "systemPolicyChanges": false,
+      "frozenOrProductionChanges": false
+    },
+    "limitations": [
+      "Pins for newly discovered dependencies describe current files; original build008 never captured complete pre-build closure, so this cannot retrospectively prove original header/library bytes.",
+      "Dependency probes preserve preprocessing flags but run now in a documented sanitized environment; original build environment and dynamic loads were not traced.",
+      "-### identifies selected frontend/linker and ordered planned library searches, not actual consumed archives or selected archive members. No compilation/link execution occurred in this collector.",
+      "No candidate or native capsule was executed. Delay-load/GetProcAddress/LoadLibrary, SxS activation, package graph, loaded-module precedence and search-policy changes require runtime evidence.",
+      "System32 paths, API-set schema and KnownDLL registry are local source observations, not signature-chain verification or object-manager KnownDll section identity.",
+      "PE export-forwarder traversal may include unused exports; graph is conservative and unresolved entries remain visible.",
+      "Header22.22.2 versus actual Node22.12.0/ABI127 remains a reviewed compatibility question, not exact SDK equality.",
+      "No FULL_ADMITTED, durability, system policy or frozen-plan effect."
+    ]
+  },
+  "independentClosure": {
+    "schema": "chainlesschain.native-closure-root-audit/v1",
+    "auditedAt": "2026-10-13T15:37:21.413Z",
+    "verified": true,
+    "pins": 1290,
+    "totalBytes": 499337128,
+    "dependencyReplays": 5,
+    "peCrossChecks": 10,
+    "fullClosureVerified": false,
+    "originalBuildClosureRetroactivelyProven": false,
+    "nativeCapsulesExecuted": 0,
+    "systemPolicyChanged": false,
+    "status": "NOT_ADMITTED",
+    "durable": false
+  },
+  "release": {
+    "versions": {
+      "kernel": "0.1.10",
+      "cli": "0.166.101",
+      "vscode": "0.37.145",
+      "jetbrains": "0.4.163"
+    },
+    "status": "LOCAL_CANDIDATE_TESTED_ACTIONS_PENDING",
+    "published": false,
+    "userAuthorized": true
+  },
+  "formal": {
+    "status": "NOT_RUN",
+    "tasksObserved": 0,
+    "firstRunsObserved": 0,
+    "paidReady": false,
+    "originalLimitUsd": 99,
+    "remainingBudgetUsd": null,
+    "externalPrerequisites": "SKIPPED_BY_USER",
+    "newProviderCalls": 0
+  },
+  "fullNativeReviewComplete": false,
+  "formalLongAcceptanceComplete": false
+}

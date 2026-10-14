@@ -1,0 +1,748 @@
+{
+  "schema": "chainlesschain.verify01-native-journal-and-8h/v1",
+  "capturedAt": "2026-10-13T14:11:54.918Z",
+  "formal": {
+    "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+    "status": "NOT_RUN",
+    "tasksObserved": 0,
+    "firstRunsObserved": 0,
+    "sharedOriginalLimitUsd": 99,
+    "remainingBudgetUsd": null,
+    "paidReady": false,
+    "newProviderCalls": 0
+  },
+  "longObservation": {
+    "schema": "chainlesschain.verify01-milestone-and-exit/v1",
+    "capturedAt": "2026-10-13T13:56:37.305Z",
+    "formal": {
+      "tasksObserved": 0,
+      "firstRunsObserved": 0,
+      "paidReady": false,
+      "newProviderCalls": 0
+    },
+    "linux": {
+      "sourceCommit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "status": "running",
+      "observerStatus": "MONITORING",
+      "currentCheckpoint": "2026-10-13T13:56:26.169Z",
+      "currentDurationSeconds": 30946.827842,
+      "cycles": 8395,
+      "actualProcessIdentityVerified": true,
+      "milestones": [8],
+      "actual8hCheckpoint": {
+        "checkpoint": "2026-10-13T13:20:52.755Z",
+        "durationSeconds": 28813.414104800002,
+        "cycles": 7851,
+        "rawByteDigest": "sha256:6df0741868406ca2cd761b049ddce240c59f89ac45dbd0f3f8d1d54e1d1fa51f",
+        "evidenceDigest": "sha256:725465cdf78096acfb7ea79d4e70e7bc72c20c5494dca14335efe54186cd4a39",
+        "historicalIntegrityValidated": true,
+        "historicalProcessLivenessFromCurrentQuery": false
+      },
+      "completed24h": false,
+      "monitoringCompleteFromLaunch": false,
+      "unmonitoredPrefixSeconds": 809.555,
+      "gaps": [
+        {
+          "from": "2026-10-13T05:34:08.631Z",
+          "to": "2026-10-13T05:37:18.708Z",
+          "reason": "observer or workload checkpoint gap"
+        }
+      ],
+      "qualifyingEvidence": false,
+      "formalHostAcceptance": false
+    },
+    "windowsRepair": {
+      "sourceCommit": "b395af36991c048e7de2948e5a03eab6c0adde0b",
+      "workloadStatus": "EXITED_WITH_UNKNOWN_CAUSE",
+      "publishedRunningReportIsStale": true,
+      "lastCheckpoint": "2026-10-13T12:50:00.378Z",
+      "lastPublishedDurationSeconds": 426.4394658,
+      "observerStatus": "OBSERVATION_REJECTED",
+      "rejectedAt": "2026-10-13T12:51:05.061Z",
+      "actualExitCode": null,
+      "actualExitTime": null,
+      "reached8h": false,
+      "reached24h": false,
+      "formalHostAcceptance": false
+    },
+    "mappings": [
+      {
+        "label": "linux/binding-v2.json",
+        "source": "C:\\code\\chainlesschain\\.work\\verify01-linux-long-observation-20261013\\binding-v2.json",
+        "bytes": 1097,
+        "digest": "sha256:6d10d79409861c943cafa86c2ed2940c864ade322a4a6dc2c4f2f5b17f3b238c"
+      },
+      {
+        "label": "linux/raw-checkpoint-v2-8h.json",
+        "source": "C:\\code\\chainlesschain\\.work\\verify01-linux-long-observation-20261013\\raw-checkpoint-v2-8h.json",
+        "bytes": 3217,
+        "digest": "sha256:6df0741868406ca2cd761b049ddce240c59f89ac45dbd0f3f8d1d54e1d1fa51f"
+      },
+      {
+        "label": "linux/raw-checkpoint-v2-8h.metadata.json",
+        "source": "C:\\code\\chainlesschain\\.work\\verify01-linux-long-observation-20261013\\raw-checkpoint-v2-8h.metadata.json",
+        "bytes": 1043,
+        "digest": "sha256:616f9325a850da49a394b559282660a404c30effb199bdf1698801d2f16b8cf3"
+      },
+      {
+        "label": "linux/current-report.json",
+        "source": "C:\\code\\chainlesschain\\.work\\verify01-linux-long-observation-20261013\\live-report.json",
+        "bytes": 3211,
+        "digest": "sha256:7672649e1ac2e756b7c70453c60ce7f49099cb4ad80bb828ec28f224b7fa57ab"
+      },
+      {
+        "label": "linux/current-observer.json",
+        "source": "C:\\code\\chainlesschain\\.work\\verify01-linux-long-observation-20261013\\watch-v2-state.json",
+        "bytes": 911,
+        "digest": "sha256:7ff0829981addd73e8d60a71b2eed75dad20ef393adf28c5facfdc85418a1248"
+      },
+      {
+        "label": "windows/stale-report.json",
+        "source": "C:\\code\\chainlesschain\\.work\\verify01-windows-long-repair-20261013\\live-report.json",
+        "bytes": 3191,
+        "digest": "sha256:2904c09a1a7be1742915a3dce2ad1e31972d08d25e1738b5401e7c7bb19d9885"
+      },
+      {
+        "label": "windows/rejected-observer.json",
+        "source": "C:\\code\\chainlesschain\\.work\\verify01-windows-long-repair-20261013\\watch-v2-state.json",
+        "bytes": 2724,
+        "digest": "sha256:7d5fd4f22cc663102c45a3e92404c344ac3fad0e6f1538748763d872c41d16bc"
+      },
+      {
+        "label": "windows/launch.json",
+        "source": "C:\\code\\chainlesschain\\.work\\verify01-windows-long-repair-20261013\\launch.json",
+        "bytes": 1322,
+        "digest": "sha256:ae254e65662e12ac6b3e353f3c86e4e0138e28a7b3025d76fbb995b8144c3b82"
+      },
+      {
+        "label": "windows/binding-v2.json",
+        "source": "C:\\code\\chainlesschain\\.work\\verify01-windows-long-repair-20261013\\binding-v2.json",
+        "bytes": 1082,
+        "digest": "sha256:0e233dd3b3b2c5cd49e42d9d8f39b74b4d74064b7e0ae88f951b863dc1b01af2"
+      },
+      {
+        "label": "windows/watch-v2-launch.json",
+        "source": "C:\\code\\chainlesschain\\.work\\verify01-windows-long-repair-20261013\\watch-v2-launch.json",
+        "bytes": 2561,
+        "digest": "sha256:e28efdae3481721422adc72800905d1a307c3b32bd8c54106fb7fb343ce4d79d"
+      }
+    ]
+  },
+  "native": {
+    "schema": "chainlesschain.fixed-journal-cas-completed-audit/v1",
+    "status": "NOT_ADMITTED",
+    "durable": false,
+    "admissionEligible": false,
+    "formalSample": false,
+    "providerCalls": 0,
+    "build": {
+      "path": "C:\\code\\chainlesschain\\.work\\astra-native-journal-cas-20261013\\build-004\\build.json",
+      "bytes": 11175,
+      "digest": "sha256:b6288cc620dd1c6b852c49f3f8745e1bec1f7745b2eecc9a53ab36793be46e20"
+    },
+    "firstFailure": {
+      "path": "C:\\code\\chainlesschain\\.work\\astra-native-journal-cas-20261013\\first-clean-failure-audit.json",
+      "bytes": 1339,
+      "digest": "sha256:49c483dcba2ba58514d4fdc78467ae0a2088db9b7e0ade2dad721e8000a6b8dc"
+    },
+    "partialTailExactlyEqualsFirst84BytesOfSecondCleanRecord": true,
+    "sourceBinaryCopyArtifactHashesVerified": true,
+    "scenarios": [
+      {
+        "scenario": "clean",
+        "report": {
+          "path": "C:\\code\\chainlesschain\\.work\\astra-native-journal-cas-20261013\\clean-k6DGL4-receipts\\report.json",
+          "bytes": 86197,
+          "digest": "sha256:b3c9948dbae8ad1df93aa79f9964519e7baa560e9662ef70a720eca5b4c1b858"
+        },
+        "capsule": "C:\\code\\chainlesschain\\.work\\astra-native-journal-cas-20261013\\capsules\\clean-k6DGL4",
+        "startedAt": "2026-10-13T14:02:03.027Z",
+        "completedAt": "2026-10-13T14:02:10.241Z",
+        "brokerExit": 0,
+        "actorPid": 29660,
+        "actorExit": 0,
+        "flushApiSuccesses": 2,
+        "journal": {
+          "path": "C:\\code\\chainlesschain\\.work\\astra-native-journal-cas-20261013\\clean-k6DGL4-receipts\\journal.raw",
+          "bytes": 352,
+          "digest": "sha256:a140534bcd0cc423838591b8a0583d841547880f724af38799bd7a7699604022"
+        },
+        "recoveryExit": 0,
+        "recoveryReason": "valid-chain",
+        "cleanupConfirmed": true,
+        "jobActiveProcesses": 0,
+        "profileDeleted": true,
+        "loopbackExemptionAbsent": true,
+        "hostMapUnchanged": true,
+        "inspection": {
+          "schema": "chainlesschain.fixed-journal-cas-inspection/v1",
+          "status": "NOT_ADMITTED",
+          "durable": false,
+          "actualRequests": 17,
+          "commits": 2,
+          "idempotentReceipts": 3,
+          "rejected": 12,
+          "flushBeforeAckObserved": true,
+          "exactOwnerOnlyAclPreserved": true,
+          "actorDirectOperationsDenied": 6,
+          "readOnlyReopenAccepted": true,
+          "partialTailPreserved": false,
+          "actualCrashOrPowerLossTested": false,
+          "authorityAcrossRestartProven": false
+        }
+      },
+      {
+        "scenario": "partial",
+        "report": {
+          "path": "C:\\code\\chainlesschain\\.work\\astra-native-journal-cas-20261013\\partial-rW9k59-receipts\\report.json",
+          "bytes": 85988,
+          "digest": "sha256:dc78d41dcb9962c3fc03ac6547f2cce802ff9975c35cb93ae8991b053bbd035d"
+        },
+        "capsule": "C:\\code\\chainlesschain\\.work\\astra-native-journal-cas-20261013\\capsules\\partial-rW9k59",
+        "startedAt": "2026-10-13T14:02:32.271Z",
+        "completedAt": "2026-10-13T14:02:38.470Z",
+        "brokerExit": 0,
+        "actorPid": 404,
+        "actorExit": 0,
+        "flushApiSuccesses": 2,
+        "journal": {
+          "path": "C:\\code\\chainlesschain\\.work\\astra-native-journal-cas-20261013\\partial-rW9k59-receipts\\journal.raw",
+          "bytes": 268,
+          "digest": "sha256:0cb8b462b527c9bb3def913cb3aafcb5cb369a215c53da302610f571af53f186"
+        },
+        "recoveryExit": 2,
+        "recoveryReason": "incomplete-tail",
+        "cleanupConfirmed": true,
+        "jobActiveProcesses": 0,
+        "profileDeleted": true,
+        "loopbackExemptionAbsent": true,
+        "hostMapUnchanged": true,
+        "inspection": {
+          "schema": "chainlesschain.fixed-journal-cas-inspection/v1",
+          "status": "NOT_ADMITTED",
+          "durable": false,
+          "actualRequests": 17,
+          "commits": 1,
+          "idempotentReceipts": 1,
+          "rejected": 15,
+          "flushBeforeAckObserved": true,
+          "exactOwnerOnlyAclPreserved": true,
+          "actorDirectOperationsDenied": 6,
+          "readOnlyReopenAccepted": false,
+          "partialTailPreserved": true,
+          "actualCrashOrPowerLossTested": false,
+          "authorityAcrossRestartProven": false
+        }
+      }
+    ],
+    "limitations": [
+      "No actual crash, process-kill during append, or power-loss test; FlushFileBuffers success is API evidence only.",
+      "No continuous authority across restart, broker substitution, or runtime/adapter/compiler closure proof.",
+      "One actor and serialized requests only; no concurrent actor races or storage contention proof.",
+      "No native corruption-matrix, sequence overflow, maximum journal bound, flush-failure injection, or dropped-ack test.",
+      "EOF race fix preserves original HANDLE wait/exit settlement; branch-specific negative cases were not separately executed.",
+      "N-API headers are 22.22.2; actual Node 22.12.0 ABI 127 execution was observed, not a general compatibility proof.",
+      "Fixed-file diagnostic only; no production/frozen guard integration, macOS backend, formal 36+9 admission, or provider budget/egress authorization."
+    ]
+  },
+  "nativeIndependentAudit": {
+    "schema": "chainlesschain.native-journal-independent-audit/v1",
+    "capturedAt": "2026-10-13T14:03:53.112Z",
+    "reviewerKind": "AI",
+    "reviewer": "root Codex",
+    "independentHumanReview": false,
+    "actualProviderRequests": 0,
+    "formalObservationsCreated": false,
+    "fullNativeReviewComplete": false,
+    "summaries": [
+      {
+        "name": "clean-k6DGL4",
+        "reportDigest": "sha256:b3c9948dbae8ad1df93aa79f9964519e7baa560e9662ef70a720eca5b4c1b858",
+        "artifactsVerified": 14,
+        "sourceAndBinaryPinsVerified": 27,
+        "verified": {
+          "schema": "chainlesschain.fixed-journal-cas-inspection/v1",
+          "status": "NOT_ADMITTED",
+          "durable": false,
+          "actualRequests": 17,
+          "commits": 2,
+          "idempotentReceipts": 3,
+          "rejected": 12,
+          "flushBeforeAckObserved": true,
+          "exactOwnerOnlyAclPreserved": true,
+          "actorDirectOperationsDenied": 6,
+          "readOnlyReopenAccepted": true,
+          "partialTailPreserved": false,
+          "actualCrashOrPowerLossTested": false,
+          "authorityAcrossRestartProven": false
+        }
+      },
+      {
+        "name": "partial-rW9k59",
+        "reportDigest": "sha256:dc78d41dcb9962c3fc03ac6547f2cce802ff9975c35cb93ae8991b053bbd035d",
+        "artifactsVerified": 14,
+        "sourceAndBinaryPinsVerified": 27,
+        "verified": {
+          "schema": "chainlesschain.fixed-journal-cas-inspection/v1",
+          "status": "NOT_ADMITTED",
+          "durable": false,
+          "actualRequests": 17,
+          "commits": 1,
+          "idempotentReceipts": 1,
+          "rejected": 15,
+          "flushBeforeAckObserved": true,
+          "exactOwnerOnlyAclPreserved": true,
+          "actorDirectOperationsDenied": 6,
+          "readOnlyReopenAccepted": false,
+          "partialTailPreserved": true,
+          "actualCrashOrPowerLossTested": false,
+          "authorityAcrossRestartProven": false
+        }
+      }
+    ]
+  },
+  "budget": {
+    "schema": "chainlesschain.scratch-budget-activation-gap-review/v1",
+    "reviewedAt": "2026-10-13",
+    "formal": false,
+    "paidReady": false,
+    "providerRequestsIssued": 0,
+    "publicHttpRequestsIssued": 0,
+    "secretValuesRead": false,
+    "productionFilesModified": false,
+    "financialMutations": false,
+    "originalLineageRoot": "sha256:665a5254c32a9a267cec5e5c85ccb52f938cd0884470546a92f58fae5dcf87a0",
+    "frozenVolcengineV3Digest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+    "formalTaskObservations": 0,
+    "formalFirstRunObservations": 0,
+    "remainingBudgetUsd": null,
+    "windowChanged": false,
+    "mainFinding": "A provider hard quota is not a required production activation field. An actually OS-enforced credential-owning all-egress meter plus protected durable reservations is a legitimate substitute for local budget enforcement. The current prototype and available official receipts do not establish that substitute or all activation facts. An invoice is not intrinsically required, but unresolved historical liabilities currently halt the authority even when conservatively reserved.",
+    "minimumExternalFacts": [
+      {
+        "fact": "Account applicability and exhaustive charging ceiling",
+        "needed": "A trusted, account-bound order/contract/read-only account export or equivalent authoritative receipt showing the exact Ark endpoint/model, standard token regime, effective tariff upper bounds, all additional charges (or their absence), settlement currency, fees/tax/rounding, and validity interval.",
+        "existingEvidence": "Official price page supplies CNY 3 input / 0.10 cached / 9 output per million and says actual specifications/charges follow order. Exact recent response service_tier=default supports ordinary online inference for those responses. Neither establishes complete account charging terms.",
+        "invoiceRequired": false,
+        "providerQuotaChangeRequired": false,
+        "inferenceKeySufficient": false
+      },
+      {
+        "fact": "Binding settlement conversion ceiling",
+        "needed": "Trusted native-currency-to-USD ceiling with numerator, denominator, includesSettlementFees=true, validFrom and validUntil covering each admitted call. Existing prepaid settlement/account terms or another binding ceiling can supply this; a current invoice is not necessarily needed.",
+        "existingEvidence": "No such receipt found in the explicitly selected artifacts. Existing cost review leaves FX null. A public central-bank/market spot reference cannot by itself bound later card/provider settlement plus fees.",
+        "publicFxFetchPerformed": false,
+        "reasonNoPublicFetch": "Another spot quote would not resolve the missing binding settlement/fee rule and would not justify setting includesSettlementFees=true."
+      },
+      {
+        "fact": "Complete original-lineage historical attribution and reconciliation",
+        "needed": "Trusted complete mapping of prior physical calls, outstanding attempts, task/first-run allocation and remediation slots across original v1/v2/v3 lineage and all hosts/providers. Existing raw receipts can settle many calls once account terms are established. Missing usage requires an authoritative reconciliation result under current authority semantics.",
+        "existingEvidence": "The selected artifact inventory is useful but explicitly incomplete. A diagnostic being non-formal does not establish that its charges belong outside the original shared authorization; membership must be justified, not assumed.",
+        "fullInvoiceRequired": false,
+        "ownerAssertionOfZeroAllowed": false,
+        "currentRemainingBudget": null
+      }
+    ],
+    "engineeringFactsNotOwnerBillingQuestions": [
+      "Inclusive inputEnvelope must certify all billed messages/tools/provider framing and implicit system overhead under json-utf8-byte-ceiling/v1 and text-function-chat/v1. Public max-input context is a useful candidate bound, not a verified inclusive accounting attestation.",
+      "Preserve default thinking. Official reasoning 128k and answer 384k maxima support a candidate envelope; max_tokens bounds the answer rather than reasoning. Existing thinking-disabled diagnostics cannot establish the frozen default-thinking behavior.",
+      "Trusted verifier must authenticate subject digests for contract, FX, plan and history; merely writing receipt IDs and hashes or returning true is not evidence authentication.",
+      "Native protected non-resettable storage, anti-rollback/cross-host custody, child-tree network isolation, parent credential confinement, and admission of authentication/agent/chat/compaction/advisor/retries need real OS and frozen public CLI evidence.",
+      "The full prior runtime call graph could potentially establish a conservative finite physical-call ceiling without a provider invoice. max_turns=20, wall timeout and CLI USD stop alone do not establish that ceiling because hidden requests/retries/compaction must also be proven bounded.",
+      "Frozen per-task caps, run-slot allocation, lineage root and plan identity must remain intact. A new empty DB or a generic $99 available figure is invalid."
+    ],
+    "publicFactsAlreadyBacked": {
+      "model": "deepseek-v4-flash-ga-260731",
+      "endpoint": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
+      "publicPriceCurrency": "CNY",
+      "publicRatesPerMillion": {
+        "input": 3,
+        "cachedInput": 0.1,
+        "outputIncludingReasoning": 9
+      },
+      "priceSnapshotUpdatedAt": "2026-10-10 20:29:22",
+      "oldConfiguredUsdEstimateIsBilling": false,
+      "wireTierForOrdinaryOnlineInference": "default",
+      "implicitCacheStorageChargedAccordingToSnapshot": false,
+      "explicitResponsesCacheOutsideSelectedChatScope": true,
+      "candidateModelMaxima": {
+        "inputTokens": 1048576,
+        "answerTokens": 393216,
+        "reasoningTokens": 131072
+      },
+      "conditionalFullEnvelopeTokenEstimateCny": 7.86432,
+      "conditionalRoundedCandidateCny": 8,
+      "candidateIsAccountLiabilityBound": false,
+      "candidateAdoptedForHistoricalOrFutureCalls": false,
+      "caveat": "Published maxima and undiscounted reference prices become an actual conservative bound only after authentic applicability, inclusive billed dimensions, fixed/additional fees, effective interval and FX are established. CNY 8 is neither USD 8 nor an actual bill."
+    },
+    "historicalReservationSemantics": {
+      "contractFields": "history.tasks[].spentUsdMicros, reservedUsdMicros, runsUsed, unknown; history.complete=true and exact lineageId/planDigest; 45 task IDs; trusted history receipt",
+      "validatorPermitsUnknownReserved": true,
+      "validatorRequiresPositiveReserveToRemainUnknown": true,
+      "authorityInitialization": "formal-budget-authority.js:115 sets halted='unreconciled historical liability' if ANY task history.unknown is true.",
+      "dispatchAdmission": "formal-budget-authority.js #admissible requires no halt and no unsettled calls.",
+      "conservativeReserveAloneEnablesCurrentAuthority": false,
+      "doNotDo": "Do not move an estimated worst case into spentUsdMicros and set unknown=false while representing it as actual settled spend. Do not weaken the verifier or clear halt flags to make the prototype pass.",
+      "possibleFutureEngineering": "A separately reviewed contract can distinguish irrevocably charged budget debit for a proven conservative upper bound from actual billed spend, if compatible with original authorization and every task/shared cap. This is not implemented or authorized as a silent semantic change here."
+    },
+    "inventory": {
+      "selectedArtifactCount": 161,
+      "uniqueProviderIdentities": 40,
+      "literalProviderIds": 16,
+      "hashOnlyProviderIds": 24,
+      "conflictingReceiptIdentities": 0,
+      "unlinkedCliUsageEvents": 96,
+      "unlinkedEventsAreAdditionalUniqueCalls": false,
+      "latestBrokerDispatches": 13,
+      "latestBrokerDispatchesWithMatchingValidUsage": 13,
+      "latestBrokerConditionalTokenEstimateCny": 0.2478572,
+      "singleAuthorizedProbeConditionalTokenEstimateCny": 0.000384,
+      "twoStreamCallsConditionalTokenEstimateCny": 0.001716,
+      "combinedSixteenIdConditionalTokenEstimateCny": 0.2499572,
+      "combinedEstimateIsTotalLineageLiability": false,
+      "nativeAccountBill": null,
+      "convertedUsd": null,
+      "notes": [
+        "SSE terminal/usage repeated events collapse by provider ID; literal IDs also match hash-only IDs by SHA256.",
+        "Exact byte-identical copied stdout events deduplicate by raw artifact SHA256 plus event location; equal token values at different locations are never deduplicated.",
+        "Twenty-four Oct 6 calibration IDs retain known prompt/completion usage but lack response tier/reasoning details in the selected settled records. No modern price or USD conversion is silently assigned to them; original-lineage membership remains unverified.",
+        "Latest broker's thirteen normalized CLI usage events likely overlap its thirteen original response IDs, but are left unlinked rather than matched solely on identical token counts.",
+        "Stage process records are evidence references, not counted physical calls. Failing or timed-out stage does not prove zero liability."
+      ]
+    },
+    "specificHistoricalGaps": [
+      "Oct 11 task attempt1 refused CONFIG_HOME_UNSAFE before model execution, according to archived diagnostic review. This can justify a zero-provider-call conclusion only for that exact refused path, not the complete lineage.",
+      "Oct 11 task attempt2 verify-04 has sixteen normalized usage events then SIGKILL timeout; final outstanding request liability and total physical-call count are not established by normalized stdout. verify-22 fetch failed with no usage; no zero-cost assertion is permitted.",
+      "Oct 11 task attempt3 has twelve verify-04 and fourteen verify-22 normalized usage events, but no original provider IDs or response tiers in selected stdout; aggregate old USD estimates are not account billing.",
+      "Oct 11 first-run authentication passed with text 'Response: Hi' but usage=null. Tool stage supplies twenty usage events, failed without verified terminal acceptance. Authentication remains an unknown charge.",
+      "Oct 12 first-run authentication supplies input=89/output=58 normalized usage; tool supplies twenty usage events before timeout/SIGKILL. Authentication provider ID/tier and outstanding final-call reconciliation are absent in selected artifacts.",
+      "Oct 13 latest bounded attempt has thirteen dispatch/response/usage records and a diagnostic request-byte-limit stop. Its accounting estimate covers those thirteen recorded calls; this does not prove global all-egress confinement or full lineage completeness."
+    ],
+    "artifacts": {
+      "explicitInputs": "selected-artifacts.json",
+      "hashesAndReceiptInventory": "reconciliation.json",
+      "tool": "reconcile.mjs",
+      "tests": "reconcile.test.mjs",
+      "testCommand": "node .work/astra-budget-reconciliation-20261013/capture-tests.mjs",
+      "testResult": "10 passed, 0 failed, 0 skipped; Node v22.22.2",
+      "rawTestOutput": "tests.stdout.txt",
+      "rawTestHashesAndExit": "tests.process.json"
+    }
+  },
+  "budgetHost": {
+    "independentlyPassed": 14,
+    "independentlyFailed": 0,
+    "independentlySkipped": 0,
+    "nodeVersion": "22.12.0",
+    "physicalProvider": "synthetic loopback HTTP only",
+    "publicCliFullPathsProven": false,
+    "osAllEgressConfinementProven": false,
+    "paidReady": false
+  },
+  "windowsExit": {
+    "schema": "chainlesschain.windows-long-exit-diagnosis/v1",
+    "failedRun": ".work/verify01-windows-long-repair-20261013",
+    "commit": "b395af36991c048e7de2948e5a03eab6c0adde0b",
+    "workloadPid": 24616,
+    "observerPid": 5828,
+    "lastCheckpointUtc": "2026-10-13T12:50:00.378Z",
+    "durationSeconds": 426.4394658,
+    "completedCycles": 421,
+    "observerRejectedUtc": "2026-10-13T12:51:05.061Z",
+    "historicalExitCode": null,
+    "historicalNativeExitUtc": null,
+    "historicalCause": "UNKNOWN",
+    "resourceExhaustionCorrelation": {
+      "causationEstablished": false,
+      "eventUtc": "2026-10-13T12:50:15.7193326Z",
+      "provider": "Microsoft-Windows-Resource-Exhaustion-Detector",
+      "eventId": 2004,
+      "recordId": 86252,
+      "systemCommitChargeBytes": 68444643328,
+      "systemCommitLimitBytes": 68589752320,
+      "topProcess": "powershell.exe",
+      "topProcessPid": 23848,
+      "topProcessCreationUtc": "2026-10-13T05:51:57.7513858Z",
+      "topProcessCommitBytes": 43135160320,
+      "rawEvidence": ["events.json", "resource-exhaustion-86252.xml"]
+    },
+    "jobRisk": {
+      "currentManagedToolJobLimitFlags": "0x2800",
+      "currentKillOnJobClose": true,
+      "currentBreakawayPermitted": true,
+      "historicalCauseEstablished": false,
+      "qualification": "Current inherited Job context is a launcher risk. The observer survived long enough to detect the workload dead, so common Job teardown is not established as the cause."
+    },
+    "missingEvidence": [
+      "No retained HANDLE or historical actual native exit receipt for failed long workload",
+      "No Application 1000/1001/1026 match in inspected interval",
+      "Security 4689 audit inaccessible; absence cannot establish exit cause"
+    ],
+    "heartbeatPilotReview1": {
+      "status": "FAILED",
+      "processId": 23388,
+      "creationUtcTicks": "639274967084309846",
+      "bootstrapSuspendedInAnyJob": false,
+      "postExitInAnyJob": true,
+      "actualNativeExitCode": 1,
+      "actualNativeExitUtc": null,
+      "heartbeatCount": 0,
+      "cause": "UNKNOWN; first bootstrap did not redirect stderr",
+      "jobIdentity": null,
+      "jobTransitionCause": null,
+      "qualification": "Same creation identity, later native HANDLE query returned actual exit code 1. Membership alone does not identify the Job or prove the tool reassigned the process. No independent-session survival established.",
+      "evidence": [
+        "pilot-output-review1/bootstrap-admission.json",
+        "pilot-output-review1/post-exit-native-proof.json"
+      ]
+    },
+    "nextDiagnostic": {
+      "status": "SOURCE_READY_AWAITING_PARENT_REVIEW_NOT_EXECUTED",
+      "manifest": "heartbeat-pilot-diagnostic-manifest.json",
+      "hashes": "diagnostic-review2-hashes.json",
+      "scope": "Fixed 60-second no-network heartbeat, redirected fixed stdout/stderr, retained native HANDLE actual exit receipt",
+      "provesIndependentToolSessionSurvival": false
+    },
+    "newLongWorkloadsStarted": 0,
+    "scheduledTasksRegistered": 0,
+    "oldRunsModified": false,
+    "paidProviderRequests": 0,
+    "formalHostAcceptance": false
+  },
+  "pilotDiagnosis": {
+    "schema": "chainlesschain.pilot-libuv-job-finding/v1",
+    "status": "SOURCE_EXPLAINS_PILOT_ASSERTION_DESIGN_DEFECT",
+    "sourceUrl": "https://raw.githubusercontent.com/nodejs/node/v22.12.0/deps/uv/src/win/process.c",
+    "sourceVersion": "Node v22.12.0",
+    "sourceRanges": ["65-114", "1007-1025"],
+    "findings": [
+      "The first non-detached uv_spawn initializes the libuv global Job through uv_once.",
+      "Initialization calls AssignProcessToJobObject with GetCurrentProcess, enrolling the Node parent itself in that private Job.",
+      "Its flags include BREAKAWAY_OK, SILENT_BREAKAWAY_OK, DIE_ON_UNHANDLED_EXCEPTION, and KILL_ON_JOB_CLOSE.",
+      "The pilot calls spawnSync for its proof helper before asserting the Node parent is in no Job at all.",
+      "Therefore that assertion can fail due to the pilot's own proof operation. Membership=true does not establish external reassignment or managed-tool containment."
+    ],
+    "diagnosticReview2": {
+      "processId": 17476,
+      "creationUtcTicks": "639274971589760910",
+      "createdAt": "2026-10-13T14:05:58.9760910Z",
+      "nativeExitUtc": "2026-10-13T14:06:00.4143446Z",
+      "actualNativeExitCode": 1,
+      "postExitInAnyJob": true,
+      "timedOut": false,
+      "stderr": "Error: Pilot identity changed, is dead or still in a Job",
+      "evidenceRoot": "pilot-output-diagnostic-review2"
+    },
+    "limitations": [
+      "No successful heartbeat pilot or cross-tool-session survival yet.",
+      "The failed long workload's historical cause remains unknown.",
+      "Review2's grouped assertion did not persist its pre-assert helper snapshot; do not invent that missing snapshot."
+    ],
+    "recommendedCorrection": "A native monitor outside the inherited Job should query and retain the Node process HANDLE directly. The heartbeat child should never spawn its own proof helper. Continue to record any later Job membership without treating membership alone as proof of a specific Job identity.",
+    "automaticRetries": 0,
+    "longWorkloadsStarted": 0
+  },
+  "ci": {
+    "capturedAt": "2026-10-13T14:04:57.134Z",
+    "headSha": "46befbda9de2eeec816ae79657b46cfc39fcd1cc",
+    "scope": "Exact engineering head; no formal sample or release admission",
+    "allRequiredChecksPassed": false,
+    "runs": [
+      {
+        "conclusion": "",
+        "databaseId": 38401539771,
+        "event": "pull_request",
+        "headSha": "46befbda9de2eeec816ae79657b46cfc39fcd1cc",
+        "status": "queued",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38401539771",
+        "workflowName": "CLI CI",
+        "jobs": 65,
+        "counts": {
+          "success": 47,
+          "queued": 14,
+          "in_progress": 4
+        },
+        "pending": [
+          {
+            "name": "test-windows / unit (windows-latest, shard 12/16)",
+            "status": "queued"
+          },
+          {
+            "name": "test-windows / unit (windows-latest, shard 10/16)",
+            "status": "in_progress"
+          },
+          {
+            "name": "test-windows / unit (windows-latest, shard 11/16)",
+            "status": "queued"
+          },
+          {
+            "name": "test-windows / integration (windows-latest, shard 6/8)",
+            "status": "queued"
+          },
+          {
+            "name": "test-windows / unit (windows-latest, shard 13/16)",
+            "status": "queued"
+          },
+          {
+            "name": "test-windows / integration (windows-latest, shard 8/8)",
+            "status": "queued"
+          },
+          {
+            "name": "test-windows / unit (windows-latest, shard 14/16)",
+            "status": "queued"
+          },
+          {
+            "name": "test-macos / integration (macos-latest, shard 7/8)",
+            "status": "queued"
+          },
+          {
+            "name": "test-macos / unit (macos-latest, shard 4/4)",
+            "status": "in_progress"
+          },
+          {
+            "name": "test-windows / unit (windows-latest, shard 9/16)",
+            "status": "in_progress"
+          },
+          {
+            "name": "test-windows / integration (windows-latest, shard 7/8)",
+            "status": "queued"
+          },
+          {
+            "name": "test-ubuntu / integration (ubuntu-latest, shard 8/8)",
+            "status": "queued"
+          },
+          {
+            "name": "test-macos / integration (macos-latest, shard 6/8)",
+            "status": "queued"
+          },
+          {
+            "name": "test-macos / integration (macos-latest, shard 8/8)",
+            "status": "queued"
+          },
+          {
+            "name": "test-macos / integration (macos-latest, shard 5/8)",
+            "status": "queued"
+          },
+          {
+            "name": "test-ubuntu / integration (ubuntu-latest, shard 7/8)",
+            "status": "in_progress"
+          },
+          {
+            "name": "test-windows / unit (windows-latest, shard 16/16)",
+            "status": "queued"
+          },
+          {
+            "name": "test-windows / unit (windows-latest, shard 15/16)",
+            "status": "queued"
+          }
+        ],
+        "failures": [],
+        "observerSteps": []
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 38401539606,
+        "event": "pull_request",
+        "headSha": "46befbda9de2eeec816ae79657b46cfc39fcd1cc",
+        "status": "completed",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38401539606",
+        "workflowName": "VERIFY01 Host Diagnostics",
+        "jobs": 7,
+        "counts": {
+          "success": 7
+        },
+        "pending": [],
+        "failures": [],
+        "observerSteps": []
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 38401538974,
+        "event": "pull_request",
+        "headSha": "46befbda9de2eeec816ae79657b46cfc39fcd1cc",
+        "status": "completed",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38401538974",
+        "workflowName": "CLI Strict Sandbox",
+        "jobs": 5,
+        "counts": {
+          "success": 5
+        },
+        "pending": [],
+        "failures": [],
+        "observerSteps": []
+      },
+      {
+        "conclusion": "success",
+        "databaseId": 38401538939,
+        "event": "pull_request",
+        "headSha": "46befbda9de2eeec816ae79657b46cfc39fcd1cc",
+        "status": "completed",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38401538939",
+        "workflowName": "CLI Reliability Soak",
+        "jobs": 15,
+        "counts": {
+          "success": 15
+        },
+        "pending": [],
+        "failures": [],
+        "observerSteps": []
+      }
+    ],
+    "artifacts": [
+      {
+        "file": "runs.stdout",
+        "bytes": 4612,
+        "sha256": "d580a1cedf5a40c60410fd0112dfc1f18bf1c5d197f7a72ce8cf3ce86b2912fb"
+      },
+      {
+        "file": "runs.stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "file": "38401539771-jobs-1.stdout",
+        "bytes": 148483,
+        "sha256": "3434b4d26a46899c5f30e456108dde1cb9b49acb218d6d84441e00bb4ee6503d"
+      },
+      {
+        "file": "38401539771-jobs-1.stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "file": "38401539606-jobs-1.stdout",
+        "bytes": 28809,
+        "sha256": "c72e5e920ab1e68df1ea47371acb8e4a2135b8d4b8800fc98bb7cc151d0c7408"
+      },
+      {
+        "file": "38401539606-jobs-1.stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "file": "38401538974-jobs-1.stdout",
+        "bytes": 21600,
+        "sha256": "2e36be2ecd1aa8d8be7905961752fbbe30d67ceace4bf55bec80b10cfbd449be"
+      },
+      {
+        "file": "38401538974-jobs-1.stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "file": "38401538939-jobs-1.stdout",
+        "bytes": 48145,
+        "sha256": "ecf5f7fc0b6c1fc266549123c799ab449e7893684cbbe66723fb269df375811c"
+      },
+      {
+        "file": "38401538939-jobs-1.stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ]
+  },
+  "fullNativeReviewComplete": false,
+  "formalLongAcceptanceComplete": false,
+  "noReleaseOrMergePerformed": true
+}

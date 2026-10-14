@@ -1,5 +1,15 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.163] - Preserve compaction context pairing (2026-10-13)
+
+- Recommend CLI `0.166.101` and Context Memory Kernel `0.1.10` after child
+  publication, public CLI verification and the final commit's complete CLI,
+  IDE and ARM64 release gates.
+- Pair with compaction refusal when the selection plan would empty a nonempty
+  context or discard its newly derived summary. Rejection preserves the session
+  context and head while retaining settled provider usage.
+- Retain the bridge compatibility floor and separate formal/native acceptance.
+
 ## [0.4.162] - Bounded stream retry pairing (2026-10-13)
 
 - Recommend CLI `0.166.100` after its public npm release and this exact

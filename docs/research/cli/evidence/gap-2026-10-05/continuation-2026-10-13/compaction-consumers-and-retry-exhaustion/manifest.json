@@ -1,0 +1,3076 @@
+{
+  "schema": "chainlesschain.original-byte-archive/v1",
+  "capturedAt": "2026-10-13T15:51:37.869Z",
+  "artifactCount": 341,
+  "artifacts": [
+    {
+      "label": "public-retry-exhaustion/acl-allowlist.json",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/acl-allowlist.json",
+      "sourceSha256": "8176d4cd384b5f0aabe396180fbad004632011599f3f98621fa4de79f42247dd",
+      "sourceBytes": 22173,
+      "path": "objects/8176d4cd384b5f0aabe396180fbad004632011599f3f98621fa4de79f42247dd.gz",
+      "storedSha256": "371a5208934eba14ee32669d0ca021eb6075c92e4b6b0c53ae8423189e42f94f",
+      "storedBytes": 4320
+    },
+    {
+      "label": "public-retry-exhaustion/artifact-verification.json",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/artifact-verification.json",
+      "sourceSha256": "b94664f90857b4aa84ae0722e99dda6459e5653340d7285a828d713a51b9c1bb",
+      "sourceBytes": 517737,
+      "path": "objects/b94664f90857b4aa84ae0722e99dda6459e5653340d7285a828d713a51b9c1bb.gz",
+      "storedSha256": "6a8d00cd56f05f85dbed9eaefc98dd9d2fdc175b9f8cc18e3aa77d2d47811138",
+      "storedBytes": 104437
+    },
+    {
+      "label": "public-retry-exhaustion/boundary.json",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/boundary.json",
+      "sourceSha256": "4c7f663c923cac4272b2f1856003da7b66e4ba280e6a5db7931387607f0c76cd",
+      "sourceBytes": 1164,
+      "path": "objects/4c7f663c923cac4272b2f1856003da7b66e4ba280e6a5db7931387607f0c76cd.gz",
+      "storedSha256": "e637fd7cd99937d666e450879d53dabe3c6478c2c5a6e416f36a84a86b139c5f",
+      "storedBytes": 674
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/authority-final.json",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/authority-final.json",
+      "sourceSha256": "eb397c289e229a4f44a6918138e3b6a3ce6024bbe9ae109e6705f9d57f0e1498",
+      "sourceBytes": 222,
+      "path": "objects/eb397c289e229a4f44a6918138e3b6a3ce6024bbe9ae109e6705f9d57f0e1498.gz",
+      "storedSha256": "a936244dd1ff108c9b5a31ba8e6524589fae2f1f4cc91ed3be5f15a8c2994b3d",
+      "storedBytes": 187
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/authority.sqlite",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/authority.sqlite",
+      "sourceSha256": "8b199d4c41bb0defdf66322dc64284e7a36c990fe4aa32daaee43bb7de4122ef",
+      "sourceBytes": 102400,
+      "path": "objects/8b199d4c41bb0defdf66322dc64284e7a36c990fe4aa32daaee43bb7de4122ef.gz",
+      "storedSha256": "b7141e52e764b745a6e73b1ac10fe75e6ffb5ff62b546b9e0665dba35f97bff6",
+      "storedBytes": 11720
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/automatic-retry.guard.jsonl",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/automatic-retry.guard.jsonl",
+      "sourceSha256": "be6ad0be4de2994e75febd8938d145908771fbd85dee1160cf99c30751f4df81",
+      "sourceBytes": 768,
+      "path": "objects/be6ad0be4de2994e75febd8938d145908771fbd85dee1160cf99c30751f4df81.gz",
+      "storedSha256": "903d667b9279dda851cc6a1f653c2443067e69a76a00497bf2841e207627b700",
+      "storedBytes": 217
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/automatic-retry.process.json",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/automatic-retry.process.json",
+      "sourceSha256": "4ad5e97210e8b6b39350031630a3e4521b628ef57f706e31179a25acba236f89",
+      "sourceBytes": 1173,
+      "path": "objects/4ad5e97210e8b6b39350031630a3e4521b628ef57f706e31179a25acba236f89.gz",
+      "storedSha256": "5ac92c3ca592cc4652217167274832b9f6f66d077a10815359cce389be13f4f3",
+      "storedBytes": 661
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/automatic-retry.stderr",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/automatic-retry.stderr",
+      "sourceSha256": "984ce8809ba660c44d9ca532fb1296b8c99a0045c21554b039db11ab690cb2a6",
+      "sourceBytes": 466,
+      "path": "objects/984ce8809ba660c44d9ca532fb1296b8c99a0045c21554b039db11ab690cb2a6.gz",
+      "storedSha256": "02dc0eab47b68ab3f9630ad60809d87bb581f50a1357ef90f742a17d9619d070",
+      "storedBytes": 283
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/automatic-retry.stdout",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/automatic-retry.stdout",
+      "sourceSha256": "2a33c8822e559a7b198bccd30d7fcc689e6e22ae5ebebe083a8a0906d99f11af",
+      "sourceBytes": 15899,
+      "path": "objects/2a33c8822e559a7b198bccd30d7fcc689e6e22ae5ebebe083a8a0906d99f11af.gz",
+      "storedSha256": "d1c2066f46df01e74fc99a4dbfd3f0c0f168854eabb7a34a2ccdd804021dee86",
+      "storedBytes": 6478
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/broker-status.json",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/broker-status.json",
+      "sourceSha256": "cf092a258cc2d505e2651966bfa23c02cb43a5ec9ec07821b2a45793548d8a79",
+      "sourceBytes": 991,
+      "path": "objects/cf092a258cc2d505e2651966bfa23c02cb43a5ec9ec07821b2a45793548d8a79.gz",
+      "storedSha256": "4c4785cec18d416faa975d4772f86c21fa02b126abc86a7d7621e5c8bb746966",
+      "storedBytes": 416
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/composition-trace.jsonl",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/composition-trace.jsonl",
+      "sourceSha256": "abb9e833ff118fea02e40890be9342d3dbdb8c1884042b7519d7f1e2cc766820",
+      "sourceBytes": 116,
+      "path": "objects/abb9e833ff118fea02e40890be9342d3dbdb8c1884042b7519d7f1e2cc766820.gz",
+      "storedSha256": "c15fd25fd52988eb9904ed0680601fa3a8c33f21c9e78a3f64c028ff6f27710d",
+      "storedBytes": 119
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/config-advisor.budgetUsd.guard.jsonl",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/config-advisor.budgetUsd.guard.jsonl",
+      "sourceSha256": "e78c17977174e18020536e1ee6a6f2b7a617e84c6ad53be63693a44ded15a6fa",
+      "sourceBytes": 206,
+      "path": "objects/e78c17977174e18020536e1ee6a6f2b7a617e84c6ad53be63693a44ded15a6fa.gz",
+      "storedSha256": "10e02a731b06aa7d01f43fa935f506b3b4e02693605dd2eede4362a9d42bd3fe",
+      "storedBytes": 131
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/config-advisor.budgetUsd.process.json",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/config-advisor.budgetUsd.process.json",
+      "sourceSha256": "12120b0cbd37337b39e8f7019646e2b33b23d082c27eb3e9bc68cdb4734fe371",
+      "sourceBytes": 749,
+      "path": "objects/12120b0cbd37337b39e8f7019646e2b33b23d082c27eb3e9bc68cdb4734fe371.gz",
+      "storedSha256": "454fb5d2898f0df39607b92dd3d66b9670b98d6baef38293a08672f6ec9ab9fe",
+      "storedBytes": 466
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/config-advisor.budgetUsd.stderr",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/config-advisor.budgetUsd.stderr",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/config-advisor.budgetUsd.stdout",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/config-advisor.budgetUsd.stdout",
+      "sourceSha256": "0dade0055099be5d4ccdfb93d1144266cb3cdb55b9df3155518795452e00e3b4",
+      "sourceBytes": 26,
+      "path": "objects/0dade0055099be5d4ccdfb93d1144266cb3cdb55b9df3155518795452e00e3b4.gz",
+      "storedSha256": "57bf3d01aadebda0387c6f463e1af1c3a962afe727d20d2217497b161eaa9afb",
+      "storedBytes": 46
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/config-advisor.model.guard.jsonl",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/config-advisor.model.guard.jsonl",
+      "sourceSha256": "dae5a7cfc607e68cd232c036e2ad6528a30965c83e327cac247f9bf8bb0e140d",
+      "sourceBytes": 206,
+      "path": "objects/dae5a7cfc607e68cd232c036e2ad6528a30965c83e327cac247f9bf8bb0e140d.gz",
+      "storedSha256": "25f8383eeddc1b608bf03be712f3cd2536a85bde9f0971271e8bf5690f91bc22",
+      "storedBytes": 130
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/config-advisor.model.process.json",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/config-advisor.model.process.json",
+      "sourceSha256": "a109453caf41980246643f5b03dee850070e02dbafd8308bd6ee35764e3f42b6",
+      "sourceBytes": 767,
+      "path": "objects/a109453caf41980246643f5b03dee850070e02dbafd8308bd6ee35764e3f42b6.gz",
+      "storedSha256": "5d941dd7ff4a0bd383a5ae67e921e66423b7faae38e78c2448743a3177108379",
+      "storedBytes": 481
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/config-advisor.model.stderr",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/config-advisor.model.stderr",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/config-advisor.model.stdout",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/config-advisor.model.stdout",
+      "sourceSha256": "b1fac54934f3ca8a3f0f587ba6184f65b37939dfdb8e7b4ec443471fba14f9fa",
+      "sourceBytes": 22,
+      "path": "objects/b1fac54934f3ca8a3f0f587ba6184f65b37939dfdb8e7b4ec443471fba14f9fa.gz",
+      "storedSha256": "8bcc359a538792d0078dfbd830e77355ce194c8c066b33704c042e7bbc7cd4fb",
+      "storedBytes": 42
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/config-advisor.provider.guard.jsonl",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/config-advisor.provider.guard.jsonl",
+      "sourceSha256": "df45436b6377fa705add8b47f2936885729593df980c070e037ee56cd07aa6b2",
+      "sourceBytes": 206,
+      "path": "objects/df45436b6377fa705add8b47f2936885729593df980c070e037ee56cd07aa6b2.gz",
+      "storedSha256": "55f748a4f9a5175a542dad451af1a9a6167a70d652b9d1aeb3d9c61dd560a6f9",
+      "storedBytes": 132
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/config-advisor.provider.process.json",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/config-advisor.provider.process.json",
+      "sourceSha256": "1f2d2b8851a3ad396f46078e2f59af8ef2651bc3d8d95c5d016fe4be73e0fdce",
+      "sourceBytes": 756,
+      "path": "objects/1f2d2b8851a3ad396f46078e2f59af8ef2651bc3d8d95c5d016fe4be73e0fdce.gz",
+      "storedSha256": "9c486d1f2d24195b58680c5bca17d065c99208ef88d03c44e11bc668a8650c35",
+      "storedBytes": 472
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/config-advisor.provider.stderr",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/config-advisor.provider.stderr",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/config-advisor.provider.stdout",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/config-advisor.provider.stdout",
+      "sourceSha256": "dbe964c778329dd9325691268f7ec315797c4620ba1dfe40e30a310fa0699704",
+      "sourceBytes": 25,
+      "path": "objects/dbe964c778329dd9325691268f7ec315797c4620ba1dfe40e30a310fa0699704.gz",
+      "storedSha256": "09da5f8f91cb41d7b7d03af9fa586ab9543f44cbd47c97f7fe87e27aa2bff252",
+      "storedBytes": 45
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/config-llm.baseUrl.guard.jsonl",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/config-llm.baseUrl.guard.jsonl",
+      "sourceSha256": "9e107efb05775f441b908aa54c77fd5d49008efe1152829755dfb01acbbd244c",
+      "sourceBytes": 206,
+      "path": "objects/9e107efb05775f441b908aa54c77fd5d49008efe1152829755dfb01acbbd244c.gz",
+      "storedSha256": "10765d8feb06d98af12b95d18169585ab5a834e7ab4f2453f2c8cbaf4b776e30",
+      "storedBytes": 132
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/config-llm.baseUrl.process.json",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/config-llm.baseUrl.process.json",
+      "sourceSha256": "ec311caa7d990b551af868cdcf94cdef998c403b52bb17a2e539c7db8206149d",
+      "sourceBytes": 765,
+      "path": "objects/ec311caa7d990b551af868cdcf94cdef998c403b52bb17a2e539c7db8206149d.gz",
+      "storedSha256": "9ecac8f068f94911b12b1cc11857fb8d7692049020542edbdae2296f6e764d06",
+      "storedBytes": 481
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/config-llm.baseUrl.stderr",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/config-llm.baseUrl.stderr",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/config-llm.baseUrl.stdout",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/config-llm.baseUrl.stdout",
+      "sourceSha256": "fa38144845db2631509b158274f8d0698309c750dcd85ac76cac0eebec965699",
+      "sourceBytes": 20,
+      "path": "objects/fa38144845db2631509b158274f8d0698309c750dcd85ac76cac0eebec965699.gz",
+      "storedSha256": "069deb6d703860ef14e829bbe7df9e15998f4b5d7c25c0de5e8986202fa7c75b",
+      "storedBytes": 40
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/config-llm.model.guard.jsonl",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/config-llm.model.guard.jsonl",
+      "sourceSha256": "5b68fa469e8084df75823b650203e38622784d74f5880ab8816e6aaeedc79643",
+      "sourceBytes": 206,
+      "path": "objects/5b68fa469e8084df75823b650203e38622784d74f5880ab8816e6aaeedc79643.gz",
+      "storedSha256": "6260ac1c1f43af8e1c6f873a9013feb3f2b08531c8d374d1a0f48b4d59b3d16b",
+      "storedBytes": 131
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/config-llm.model.process.json",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/config-llm.model.process.json",
+      "sourceSha256": "f6821b0232c658b05bf89ae9bd083003b92b12fa1c979d528596605e5dc54498",
+      "sourceBytes": 759,
+      "path": "objects/f6821b0232c658b05bf89ae9bd083003b92b12fa1c979d528596605e5dc54498.gz",
+      "storedSha256": "8023afd900204cd7acfd88eb28cd27e6cfb1fc4f105efa5281fb9020bcb5b141",
+      "storedBytes": 477
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/config-llm.model.stderr",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/config-llm.model.stderr",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/config-llm.model.stdout",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/config-llm.model.stdout",
+      "sourceSha256": "9cdfc7519b952eacdd2b8c3e0cfc76b0e728d99cfaba6e2bcd8dae50a6a450fc",
+      "sourceBytes": 18,
+      "path": "objects/9cdfc7519b952eacdd2b8c3e0cfc76b0e728d99cfaba6e2bcd8dae50a6a450fc.gz",
+      "storedSha256": "5c449e7bb1e2e4dc8928a16a45da25f6e1d21f812cf660e9dedabc67d3eabb5f",
+      "storedBytes": 38
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/config-llm.provider.guard.jsonl",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/config-llm.provider.guard.jsonl",
+      "sourceSha256": "896d16abc27d2a915b8d1d1bad05bf6e93c5acdc99906866ae39e3fd1b2be90a",
+      "sourceBytes": 206,
+      "path": "objects/896d16abc27d2a915b8d1d1bad05bf6e93c5acdc99906866ae39e3fd1b2be90a.gz",
+      "storedSha256": "3cbe6cc8064623bd5c7fc41de87d9d4e27021136db87a09195a1a1b222a16b67",
+      "storedBytes": 131
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/config-llm.provider.process.json",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/config-llm.provider.process.json",
+      "sourceSha256": "de568dba776e3e31b0a9ef8a13d83b8ec085248f4d16d00d2459edbe6de7c8f7",
+      "sourceBytes": 748,
+      "path": "objects/de568dba776e3e31b0a9ef8a13d83b8ec085248f4d16d00d2459edbe6de7c8f7.gz",
+      "storedSha256": "c939c155f1c17eb7d6850dd64e390671ee07d5d9a51651d69f65bf6bfc0fa37a",
+      "storedBytes": 468
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/config-llm.provider.stderr",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/config-llm.provider.stderr",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/config-llm.provider.stdout",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/config-llm.provider.stdout",
+      "sourceSha256": "d36ec6c5c9e16a097bb13c0890347cedebed255882970b85e04a06d0258ac4d6",
+      "sourceBytes": 21,
+      "path": "objects/d36ec6c5c9e16a097bb13c0890347cedebed255882970b85e04a06d0258ac4d6.gz",
+      "storedSha256": "cd8ea0508e4cbc66875b8ea2f31f26686e3b319bea98e61b819fea7119216e21",
+      "storedBytes": 41
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/deployment-descriptor.json",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/deployment-descriptor.json",
+      "sourceSha256": "efc650fc25984735ade4a39d2530b5da4fdec01ff5bb6c9382efa3ab800f77e3",
+      "sourceBytes": 497,
+      "path": "objects/efc650fc25984735ade4a39d2530b5da4fdec01ff5bb6c9382efa3ab800f77e3.gz",
+      "storedSha256": "005b08c93a95206788584d12479a3f54fe54813237debc5535195689c4f21485",
+      "storedBytes": 385
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/deployment-host.mjs",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/deployment-host.mjs",
+      "sourceSha256": "cf5af501b91649faf11739e26c5eb9090e60cbee7ab75b2f8de45e65f38805ef",
+      "sourceBytes": 13510,
+      "path": "objects/cf5af501b91649faf11739e26c5eb9090e60cbee7ab75b2f8de45e65f38805ef.gz",
+      "storedSha256": "b25ed2f8640806b02fbdcf4e365ee3a389c02ca64e95d493351eaa929fcc9e53",
+      "storedBytes": 3421
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/deployment-metadata.json",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/deployment-metadata.json",
+      "sourceSha256": "d902e89386998eafdc7db5a1be30d92c45b73224847015d54189e9d681483534",
+      "sourceBytes": 133,
+      "path": "objects/d902e89386998eafdc7db5a1be30d92c45b73224847015d54189e9d681483534.gz",
+      "storedSha256": "db7fd00dd0520ed88bbc1b480809a4641258e45b5d2f2b53268a82866737f9e5",
+      "storedBytes": 132
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/deployment-public.pem",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/deployment-public.pem",
+      "sourceSha256": "09796b6f3467b43eba6b0944cbea3fec6fe68d3399fc7f0ab1007308858820bd",
+      "sourceBytes": 113,
+      "path": "objects/09796b6f3467b43eba6b0944cbea3fec6fe68d3399fc7f0ab1007308858820bd.gz",
+      "storedSha256": "58bd21d618bdb4545dc0a594e4a8d36ac55994d74fbabf6a2a60818c3d872b37",
+      "storedBytes": 113
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/gateway-events.json",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/gateway-events.json",
+      "sourceSha256": "b0c09e30f4ef42bacebe5c255a5ea3f0b6c83794a0667befbb3a153a11eb4e58",
+      "sourceBytes": 1641,
+      "path": "objects/b0c09e30f4ef42bacebe5c255a5ea3f0b6c83794a0667befbb3a153a11eb4e58.gz",
+      "storedSha256": "364a893691681d10ef176590c3c7bbaeb66866a49daffd6e767053cacd4cd15d",
+      "storedBytes": 402
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/negative-deployment-0.guard.jsonl",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/negative-deployment-0.guard.jsonl",
+      "sourceSha256": "d2131a3de638dd035e63402c772153f59544ebb85acad6b079f5892030779950",
+      "sourceBytes": 206,
+      "path": "objects/d2131a3de638dd035e63402c772153f59544ebb85acad6b079f5892030779950.gz",
+      "storedSha256": "8611ac6df064ce3746c4a895a623bc04d559e04f5a3356cb4640ba75bfe4d19d",
+      "storedBytes": 131
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/negative-deployment-0.process.json",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/negative-deployment-0.process.json",
+      "sourceSha256": "dba042ee17e3d9ff1b814395820a2dfd305f1271754153a016632b0994aad5e3",
+      "sourceBytes": 840,
+      "path": "objects/dba042ee17e3d9ff1b814395820a2dfd305f1271754153a016632b0994aad5e3.gz",
+      "storedSha256": "a30118141297af0c15100c77cb43e0e760ed5c42056ba38089bf9358f2fe4b7b",
+      "storedBytes": 530
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/negative-deployment-0.stderr",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/negative-deployment-0.stderr",
+      "sourceSha256": "60e33883aa37b307872a9a537fc1f4793f5fc30f06a9a2eda8f165193008c087",
+      "sourceBytes": 58,
+      "path": "objects/60e33883aa37b307872a9a537fc1f4793f5fc30f06a9a2eda8f165193008c087.gz",
+      "storedSha256": "1c82811c7d5403a6847ca38e01a2f1c2159fb8240e7a4a7e6ce9fe1364efc564",
+      "storedBytes": 74
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/negative-deployment-0.stdout",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/negative-deployment-0.stdout",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/negative-deployment-1.guard.jsonl",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/negative-deployment-1.guard.jsonl",
+      "sourceSha256": "474455e61a83dab98ce1b0d1375d8ca8889f67d2737a0345516c79c83ec844fb",
+      "sourceBytes": 206,
+      "path": "objects/474455e61a83dab98ce1b0d1375d8ca8889f67d2737a0345516c79c83ec844fb.gz",
+      "storedSha256": "8f0fd6dfa0a8b93ca7dbd532f5abe66dd4b287f49f922c109e3c941bc8d1c582",
+      "storedBytes": 130
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/negative-deployment-1.process.json",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/negative-deployment-1.process.json",
+      "sourceSha256": "c3aaea45a9069d62178fc5254bc3aa2f1faec231ed27c6f3ec17132327cb83d4",
+      "sourceBytes": 840,
+      "path": "objects/c3aaea45a9069d62178fc5254bc3aa2f1faec231ed27c6f3ec17132327cb83d4.gz",
+      "storedSha256": "51a201c237596e9c09f56ecfdb8cdf5b318dade5aed9375ad32abfd965a74094",
+      "storedBytes": 528
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/negative-deployment-1.stderr",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/negative-deployment-1.stderr",
+      "sourceSha256": "983b57bc08c4ea2ffbcd2f207b7a8b37299e52cb1cc190563f428a1a5aa8cc97",
+      "sourceBytes": 51,
+      "path": "objects/983b57bc08c4ea2ffbcd2f207b7a8b37299e52cb1cc190563f428a1a5aa8cc97.gz",
+      "storedSha256": "a7d02256ff7e5c4dae620e0695a0b2af4955b3ef737d6230ac61f481ee461886",
+      "storedBytes": 71
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/negative-deployment-1.stdout",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/negative-deployment-1.stdout",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/physical-requests.json",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/physical-requests.json",
+      "sourceSha256": "d5594f4d7bbd88b13aad4b815013a47403f23699b8957b387942a9a78c09bdc1",
+      "sourceBytes": 25281,
+      "path": "objects/d5594f4d7bbd88b13aad4b815013a47403f23699b8957b387942a9a78c09bdc1.gz",
+      "storedSha256": "2e38ed7001adbfa98f97092c057c09d741e97d7f45ff83de351fc06c714e1024",
+      "storedBytes": 5463
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/post-close-status.json",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/post-close-status.json",
+      "sourceSha256": "34a2761c76ced22614b5e6528367b829417c23e9796fb9c89511a551ca72c93a",
+      "sourceBytes": 1444,
+      "path": "objects/34a2761c76ced22614b5e6528367b829417c23e9796fb9c89511a551ca72c93a.gz",
+      "storedSha256": "b70fb69b6af6bafc0a848af6df753e9aba5a68adcdd859c3886199189b140fca",
+      "storedBytes": 505
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/source-acl-allowlist.json",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/source-acl-allowlist.json",
+      "sourceSha256": "8176d4cd384b5f0aabe396180fbad004632011599f3f98621fa4de79f42247dd",
+      "sourceBytes": 22173,
+      "path": "objects/8176d4cd384b5f0aabe396180fbad004632011599f3f98621fa4de79f42247dd.gz",
+      "storedSha256": "371a5208934eba14ee32669d0ca021eb6075c92e4b6b0c53ae8423189e42f94f",
+      "storedBytes": 4320
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/source-deployment-fixture.mjs",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/source-deployment-fixture.mjs",
+      "sourceSha256": "a47a997d8cdfa2e29fb5e454ba0fe41b683e88c79f4be4ab35c7ed797a950fff",
+      "sourceBytes": 7133,
+      "path": "objects/a47a997d8cdfa2e29fb5e454ba0fe41b683e88c79f4be4ab35c7ed797a950fff.gz",
+      "storedSha256": "d406b9eaf4464522a94402aca690af7cc9daf17f208a184e7df0484b6f4c4fa3",
+      "storedBytes": 2415
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/source-gateway-fixture.mjs",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/source-gateway-fixture.mjs",
+      "sourceSha256": "5fe14bfb229b1a75cffe796fd4b1b854ad051ecfc837fdd677deab885c7feee3",
+      "sourceBytes": 2089,
+      "path": "objects/5fe14bfb229b1a75cffe796fd4b1b854ad051ecfc837fdd677deab885c7feee3.gz",
+      "storedSha256": "7c2463c1725ab7022120da0edaa737084e154f4f552fe6f7cf1f566f990eb1f3",
+      "storedBytes": 929
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/source-journey-linux.mjs",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/source-journey-linux.mjs",
+      "sourceSha256": "776d07c5427050f953302f0a26f8d5230f9d2075e7042831bf96e2bdab7e35e6",
+      "sourceBytes": 11261,
+      "path": "objects/776d07c5427050f953302f0a26f8d5230f9d2075e7042831bf96e2bdab7e35e6.gz",
+      "storedSha256": "f605712ab0d8bd0eed5a2f421e2a71b947095ec5214d989c0888037f6778c78f",
+      "storedBytes": 4521
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/source-loopback-guard.mjs",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/source-loopback-guard.mjs",
+      "sourceSha256": "f15b0954a6aa570686bb62cf238a0faa13c625cf69d65c5559d1892f05fc95ca",
+      "sourceBytes": 3499,
+      "path": "objects/f15b0954a6aa570686bb62cf238a0faa13c625cf69d65c5559d1892f05fc95ca.gz",
+      "storedSha256": "6c6e7bfadd94f03d27a9dd40575fdfcda635eaecaed96b0d50a86968a1d893d2",
+      "storedBytes": 1647
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/summary.json",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/summary.json",
+      "sourceSha256": "7d081dd404bd0acaeacda371feb32db8f17cee2bd390ad07ad30517d067f227c",
+      "sourceBytes": 8621,
+      "path": "objects/7d081dd404bd0acaeacda371feb32db8f17cee2bd390ad07ad30517d067f227c.gz",
+      "storedSha256": "eea939bbbd004c489fafd0c2f89a26b5c4a7b0a6b0c96cbacf295ad1bbcb4d9b",
+      "storedBytes": 1516
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/synthetic-activation.json",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/synthetic-activation.json",
+      "sourceSha256": "55fd0f2ff69c1456dc723b8dc38226966cade78c75217de59d948c8fa08ed29c",
+      "sourceBytes": 93470,
+      "path": "objects/55fd0f2ff69c1456dc723b8dc38226966cade78c75217de59d948c8fa08ed29c.gz",
+      "storedSha256": "7c601f3cd4e4e0951abd44295177ad8291f9be9b4ccdda79d13f1ef11fcde505",
+      "storedBytes": 9341
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/tampered-descriptor.json",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/tampered-descriptor.json",
+      "sourceSha256": "3898596b668f83bad54f17506dac548df69d20e270efbbbdcbbdb5c2b330deba",
+      "sourceBytes": 497,
+      "path": "objects/3898596b668f83bad54f17506dac548df69d20e270efbbbdcbbdb5c2b330deba.gz",
+      "storedSha256": "ea5345cce21366848ec03457c51943e45f4741b8b38667c0557c714d93ea7eae",
+      "storedBytes": 385
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/tampered-host.mjs",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/tampered-host.mjs",
+      "sourceSha256": "46c0106f1b811f7854ce626609655368d39d52763ddbf7c0f452f530e65ca25e",
+      "sourceBytes": 13541,
+      "path": "objects/46c0106f1b811f7854ce626609655368d39d52763ddbf7c0f452f530e65ca25e.gz",
+      "storedSha256": "e8cb27e579063b4d969866f047676013ffbfbe67f0401329b2564a4e1e2a4bf2",
+      "storedBytes": 3442
+    },
+    {
+      "label": "public-retry-exhaustion/cc-retry-exhaustion-StUvJs/tampered-module-descriptor.json",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/cc-retry-exhaustion-StUvJs/tampered-module-descriptor.json",
+      "sourceSha256": "c03484e5b371a7d67205bfcc08c0ff021b839b2aa0b27183e7cbacdc2c7f5fdd",
+      "sourceBytes": 495,
+      "path": "objects/c03484e5b371a7d67205bfcc08c0ff021b839b2aa0b27183e7cbacdc2c7f5fdd.gz",
+      "storedSha256": "e563e5aa8693a6d673bc46c84eb4b74ed6e2f67ebe213cfb4b44114b819f9d69",
+      "storedBytes": 392
+    },
+    {
+      "label": "public-retry-exhaustion/deployment-fixture.mjs",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/deployment-fixture.mjs",
+      "sourceSha256": "a47a997d8cdfa2e29fb5e454ba0fe41b683e88c79f4be4ab35c7ed797a950fff",
+      "sourceBytes": 7133,
+      "path": "objects/a47a997d8cdfa2e29fb5e454ba0fe41b683e88c79f4be4ab35c7ed797a950fff.gz",
+      "storedSha256": "d406b9eaf4464522a94402aca690af7cc9daf17f208a184e7df0484b6f4c4fa3",
+      "storedBytes": 2415
+    },
+    {
+      "label": "public-retry-exhaustion/finalize.mjs",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/finalize.mjs",
+      "sourceSha256": "07340656b2f62f34794da1aebcfcc236cfc1818df492a0772f8712acb62071a3",
+      "sourceBytes": 6192,
+      "path": "objects/07340656b2f62f34794da1aebcfcc236cfc1818df492a0772f8712acb62071a3.gz",
+      "storedSha256": "19321f4ccc78a03362df2dfa79d6849e4416a262d52389f1624f58c6f1873502",
+      "storedBytes": 2619
+    },
+    {
+      "label": "public-retry-exhaustion/gateway-fixture.mjs",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/gateway-fixture.mjs",
+      "sourceSha256": "5fe14bfb229b1a75cffe796fd4b1b854ad051ecfc837fdd677deab885c7feee3",
+      "sourceBytes": 2089,
+      "path": "objects/5fe14bfb229b1a75cffe796fd4b1b854ad051ecfc837fdd677deab885c7feee3.gz",
+      "storedSha256": "7c2463c1725ab7022120da0edaa737084e154f4f552fe6f7cf1f566f990eb1f3",
+      "storedBytes": 929
+    },
+    {
+      "label": "public-retry-exhaustion/journey-linux.mjs",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/journey-linux.mjs",
+      "sourceSha256": "776d07c5427050f953302f0a26f8d5230f9d2075e7042831bf96e2bdab7e35e6",
+      "sourceBytes": 11261,
+      "path": "objects/776d07c5427050f953302f0a26f8d5230f9d2075e7042831bf96e2bdab7e35e6.gz",
+      "storedSha256": "f605712ab0d8bd0eed5a2f421e2a71b947095ec5214d989c0888037f6778c78f",
+      "storedBytes": 4521
+    },
+    {
+      "label": "public-retry-exhaustion/loopback-guard.mjs",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/loopback-guard.mjs",
+      "sourceSha256": "f15b0954a6aa570686bb62cf238a0faa13c625cf69d65c5559d1892f05fc95ca",
+      "sourceBytes": 3499,
+      "path": "objects/f15b0954a6aa570686bb62cf238a0faa13c625cf69d65c5559d1892f05fc95ca.gz",
+      "storedSha256": "6c6e7bfadd94f03d27a9dd40575fdfcda635eaecaed96b0d50a86968a1d893d2",
+      "storedBytes": 1647
+    },
+    {
+      "label": "public-retry-exhaustion/review.json",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/review.json",
+      "sourceSha256": "b8e34a0aab17f8ee41099c5a15b31c25325f87f3d76d594bd05e597410c89277",
+      "sourceBytes": 3365,
+      "path": "objects/b8e34a0aab17f8ee41099c5a15b31c25325f87f3d76d594bd05e597410c89277.gz",
+      "storedSha256": "4972f6776b56d0857c66232bf26773a927d77b6909164ef329fc7c2377221c66",
+      "storedBytes": 1263
+    },
+    {
+      "label": "public-retry-exhaustion/manifest.json",
+      "localSource": "C:/code/chainlesschain/.work/astra-retry-exhaustion-20261013/authenticated/manifest.json",
+      "sourceSha256": "bc7f8a36b3b2fd4571816a1b17404aed77c5e4010b55a7724d7eca2dac329467",
+      "sourceBytes": 12247,
+      "path": "objects/bc7f8a36b3b2fd4571816a1b17404aed77c5e4010b55a7724d7eca2dac329467.gz",
+      "storedSha256": "ae14fd41521a9284dcd3ac50cda0868e6487a163efe2c24ea833571e5d33fe11",
+      "storedBytes": 2972
+    },
+    {
+      "label": "native-static-closure/api-set-assessment.json",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\api-set-assessment.json",
+      "sourceSha256": "a5cfa918d2f947371291c17ce560df3d6673bf012b21343eebd15d3d690b58c8",
+      "sourceBytes": 129631,
+      "path": "objects/a5cfa918d2f947371291c17ce560df3d6673bf012b21343eebd15d3d690b58c8.gz",
+      "storedSha256": "f216a19bcfe78e7f11039835fb7f3b8bd1c4aabac52d868e5d9ae6c81525c514",
+      "storedBytes": 5067
+    },
+    {
+      "label": "native-static-closure/capture-os-source.ps1",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\capture-os-source.ps1",
+      "sourceSha256": "7e55892e80feaec2ecfa32b668b327801466de96e8887f6ffa8c2c04ce021537",
+      "sourceBytes": 1240,
+      "path": "objects/7e55892e80feaec2ecfa32b668b327801466de96e8887f6ffa8c2c04ce021537.gz",
+      "storedSha256": "92069888d6236a0bd37926c6d180a01fa25431982139c8815102f54051212f40",
+      "storedBytes": 676
+    },
+    {
+      "label": "native-static-closure/capture-system-dll-metadata.ps1",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\capture-system-dll-metadata.ps1",
+      "sourceSha256": "e2b4f836e62a1ffe419c8541f9bb8b6614d9f61039edb17c9cf6f69e44bd51af",
+      "sourceBytes": 1010,
+      "path": "objects/e2b4f836e62a1ffe419c8541f9bb8b6614d9f61039edb17c9cf6f69e44bd51af.gz",
+      "storedSha256": "fcfafa61c1e6191ede4b851ae4e3cc70b9f3d29c4fbc616b2655fd4e017dd538",
+      "storedBytes": 574
+    },
+    {
+      "label": "native-static-closure/closure-lib.failed001.mjs",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\closure-lib.failed001.mjs",
+      "sourceSha256": "72ed496ff1a428261c48ce1408c84d23d592e21e675769e172c7bf29287f3702",
+      "sourceBytes": 5769,
+      "path": "objects/72ed496ff1a428261c48ce1408c84d23d592e21e675769e172c7bf29287f3702.gz",
+      "storedSha256": "6eb2b33fe7349fa10eb41a72880d0e35eca64fd5f5b19bc7c2f9850f21b3d1ea",
+      "storedBytes": 2328
+    },
+    {
+      "label": "native-static-closure/closure-lib.mjs",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\closure-lib.mjs",
+      "sourceSha256": "d08b5528fa83c5cc615b7fb2b1e64e9046d515dc6a26a3e30346284c3f5a2fe4",
+      "sourceBytes": 5771,
+      "path": "objects/d08b5528fa83c5cc615b7fb2b1e64e9046d515dc6a26a3e30346284c3f5a2fe4.gz",
+      "storedSha256": "59d5d2b526e2d505ee41705f1b8c0077049cfe1d19a323d8dcfaad99bb06fabb",
+      "storedBytes": 2330
+    },
+    {
+      "label": "native-static-closure/closure-manifest.json",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\closure-manifest.json",
+      "sourceSha256": "1a4d700e77a27f952a811751917c7bdbaaef807533cf3210a8d185355c220784",
+      "sourceBytes": 8188534,
+      "path": "objects/1a4d700e77a27f952a811751917c7bdbaaef807533cf3210a8d185355c220784.gz",
+      "storedSha256": "1a267c6ee975fc8b626fa59a0329480bc76999b3ba3801574649a34b980bf045",
+      "storedBytes": 299383
+    },
+    {
+      "label": "native-static-closure/closure-negative.test.mjs",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\closure-negative.test.mjs",
+      "sourceSha256": "ac6d96f1c9b529764cf9416ce5f41ca74d050a2d60ddb9cf7727e3aae253a300",
+      "sourceBytes": 1362,
+      "path": "objects/ac6d96f1c9b529764cf9416ce5f41ca74d050a2d60ddb9cf7727e3aae253a300.gz",
+      "storedSha256": "8d6f3859424bbc1ab39f5d07c331abf09799f5482733b12a03a02450d3168c7b",
+      "storedBytes": 558
+    },
+    {
+      "label": "native-static-closure/closure-validation.json",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\closure-validation.json",
+      "sourceSha256": "affd5dfb13e3081fdd9fda18ecc554c202afecdfe6ccc9abf1774d337e3e9c19",
+      "sourceBytes": 32706,
+      "path": "objects/affd5dfb13e3081fdd9fda18ecc554c202afecdfe6ccc9abf1774d337e3e9c19.gz",
+      "storedSha256": "5e41cf0f71622b5cc4d9ca1e08b167964a5515107f72f93d32be7aabf2721fb5",
+      "storedBytes": 4319
+    },
+    {
+      "label": "native-static-closure/collect-closure.failed001.mjs",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\collect-closure.failed001.mjs",
+      "sourceSha256": "a7f87901c3b2eb8e02bfcad69e1806fece856cc3f2ce3aed3075775760ee3bda",
+      "sourceBytes": 11783,
+      "path": "objects/a7f87901c3b2eb8e02bfcad69e1806fece856cc3f2ce3aed3075775760ee3bda.gz",
+      "storedSha256": "6ea3a8439e1fbb36524b23b7e477a4f39682a18795813819f99597e927378f43",
+      "storedBytes": 4614
+    },
+    {
+      "label": "native-static-closure/collect-closure.mjs",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\collect-closure.mjs",
+      "sourceSha256": "87d388fd162fb9ae021b1b84340363d999e084da759bbe19e5a4961cc65e8a64",
+      "sourceBytes": 11785,
+      "path": "objects/87d388fd162fb9ae021b1b84340363d999e084da759bbe19e5a4961cc65e8a64.gz",
+      "storedSha256": "697db0b062fe09265397e1da706c5a602b3e4d5d019197d8830241ceba64632d",
+      "storedBytes": 4615
+    },
+    {
+      "label": "native-static-closure/collector-result.json",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\collector-result.json",
+      "sourceSha256": "3c97a3e12b1c0217b3ac9f94f6911e4ed595130b48a90d316bc88482dd620546",
+      "sourceBytes": 141,
+      "path": "objects/3c97a3e12b1c0217b3ac9f94f6911e4ed595130b48a90d316bc88482dd620546.gz",
+      "storedSha256": "66ce321cb20533ecde0606c043ee0ed53e6dff90b296734404396f1763370a6a",
+      "storedBytes": 119
+    },
+    {
+      "label": "native-static-closure/collector.stderr",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\collector.stderr",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "native-static-closure/collector.stdout",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\collector.stdout",
+      "sourceSha256": "045ffc096691eb929ea17fae974a6eddb0b552960f1ad30a69a65888f820a188",
+      "sourceBytes": 216,
+      "path": "objects/045ffc096691eb929ea17fae974a6eddb0b552960f1ad30a69a65888f820a188.gz",
+      "storedSha256": "d2ef66a5a10e6ec5bc9d346fcae9043258b916fb8b504c6a1b988a20f8bc0bf1",
+      "storedBytes": 183
+    },
+    {
+      "label": "native-static-closure/exact-dependencies.json",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\exact-dependencies.json",
+      "sourceSha256": "a0ba1a1b5319d5deeacfde281f5ab72769dd5c340c49696adff47410659ba7d6",
+      "sourceBytes": 7202,
+      "path": "objects/a0ba1a1b5319d5deeacfde281f5ab72769dd5c340c49696adff47410659ba7d6.gz",
+      "storedSha256": "71fec0126f6e085164fa8f7771c89d0d4813ec2f9095a5172f18062b3ebf8787",
+      "storedBytes": 1305
+    },
+    {
+      "label": "native-static-closure/inspect-api-set.mjs",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\inspect-api-set.mjs",
+      "sourceSha256": "67abdcb46bd575cf1451f55b16a7799e1656631b3fc0f8bd5a7d3f1c5fbcd8a9",
+      "sourceBytes": 392,
+      "path": "objects/67abdcb46bd575cf1451f55b16a7799e1656631b3fc0f8bd5a7d3f1c5fbcd8a9.gz",
+      "storedSha256": "8d03707b09c7722cb68a9f0722525b1cd601f3b26e5499e49b9deb31fc08e196",
+      "storedBytes": 281
+    },
+    {
+      "label": "native-static-closure/negative-fixtures-JM9EK7/allowed/input.txt",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\negative-fixtures-JM9EK7\\allowed\\input.txt",
+      "sourceSha256": "ae94da4c1a6fabab4512e07bd7f597adec85b16c801a4b69251f9c4165010495",
+      "sourceBytes": 8,
+      "path": "objects/ae94da4c1a6fabab4512e07bd7f597adec85b16c801a4b69251f9c4165010495.gz",
+      "storedSha256": "09ddafa3e4f31358ad50a10e77e685059714c3ea964ccc2a8ae333994cee321c",
+      "storedBytes": 28
+    },
+    {
+      "label": "native-static-closure/negative-fixtures-JM9EK7/allowed-shadow/outside.txt",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\negative-fixtures-JM9EK7\\allowed-shadow\\outside.txt",
+      "sourceSha256": "31207a2065f46a5b948fce6fe5c13e85abaf5631e2f894b47dcd4fce14f6c57b",
+      "sourceBytes": 7,
+      "path": "objects/31207a2065f46a5b948fce6fe5c13e85abaf5631e2f894b47dcd4fce14f6c57b.gz",
+      "storedSha256": "ff9a2348632b0e59715f1999c1b1a8310793a8e7c6acd172fb13f7812c0c7f58",
+      "storedBytes": 27
+    },
+    {
+      "label": "native-static-closure/os-source.json",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\os-source.json",
+      "sourceSha256": "dac1b11aeec5f3f1bc5b7b2e7b8d641205e1e37d7d2f29a499bf6d809bf95a3e",
+      "sourceBytes": 2137,
+      "path": "objects/dac1b11aeec5f3f1bc5b7b2e7b8d641205e1e37d7d2f29a499bf6d809bf95a3e.gz",
+      "storedSha256": "d89b3c2d819cd1d5327e69ffca87161060868fa6a24ed80fe829fb0c6932fb0e",
+      "storedBytes": 677
+    },
+    {
+      "label": "native-static-closure/probe-compiler.mjs",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\probe-compiler.mjs",
+      "sourceSha256": "bea654016d836edf2655cd626744bd2484f48fb28804f83c2215d5b85e950e38",
+      "sourceBytes": 3237,
+      "path": "objects/bea654016d836edf2655cd626744bd2484f48fb28804f83c2215d5b85e950e38.gz",
+      "storedSha256": "3d9684831d6fce0e68e4e6fe24cb3ae673bbe6b54399d4de2508069f7cb61074",
+      "storedBytes": 1490
+    },
+    {
+      "label": "native-static-closure/probe-exact-dependencies.mjs",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\probe-exact-dependencies.mjs",
+      "sourceSha256": "1dc86a8481e00989317b937df16913d7d5db1e27f65aa4812209193abcbfe720",
+      "sourceBytes": 2379,
+      "path": "objects/1dc86a8481e00989317b937df16913d7d5db1e27f65aa4812209193abcbfe720.gz",
+      "storedSha256": "d646994e16b2ceaa9a3bdb8ca9028e00d85419bb6d4648e62f81a94ca5bdfe25",
+      "storedBytes": 1113
+    },
+    {
+      "label": "native-static-closure/probes.json",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\probes.json",
+      "sourceSha256": "e063e0e9a9968c935d1ecf263fcc29fd3e100a0369e9622122a7708aba47a0d8",
+      "sourceBytes": 15492,
+      "path": "objects/e063e0e9a9968c935d1ecf263fcc29fd3e100a0369e9622122a7708aba47a0d8.gz",
+      "storedSha256": "e2fcd1a263abc886f404cd24e9a5e796957ad4d26e8710338d36d3aef9dfc414",
+      "storedBytes": 1930
+    },
+    {
+      "label": "native-static-closure/raw/compiler-version.stderr",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw\\compiler-version.stderr",
+      "sourceSha256": "7fc623a74fca5dc5f95a8d7cdb4db7a4b652e5334847f5c19cabe7e563b4bc41",
+      "sourceBytes": 414,
+      "path": "objects/7fc623a74fca5dc5f95a8d7cdb4db7a4b652e5334847f5c19cabe7e563b4bc41.gz",
+      "storedSha256": "87bf4d73b927b2af045f0b7adc3489a39b53281687082122540bba0397ebc028",
+      "storedBytes": 240
+    },
+    {
+      "label": "native-static-closure/raw/compiler-version.stdout",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw\\compiler-version.stdout",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "native-static-closure/raw/target-0-dependencies.stderr",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw\\target-0-dependencies.stderr",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "native-static-closure/raw/target-0-dependencies.stdout",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw\\target-0-dependencies.stdout",
+      "sourceSha256": "5e78c902179fc80be7629da6cad50079cd82b20082ddb4461bf60f7c31ccace8",
+      "sourceBytes": 101274,
+      "path": "objects/5e78c902179fc80be7629da6cad50079cd82b20082ddb4461bf60f7c31ccace8.gz",
+      "storedSha256": "5be58b28dcc4e300cbd092b89b9ad6dec8b25b80aa39c42a3287c4cef5812605",
+      "storedBytes": 5213
+    },
+    {
+      "label": "native-static-closure/raw/target-0-dryrun.stderr",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw\\target-0-dryrun.stderr",
+      "sourceSha256": "7f9379455a05bdf535ddcd7d00d12d8c4d3f10416fd52bf8302e8e76f2157a09",
+      "sourceBytes": 4317,
+      "path": "objects/7f9379455a05bdf535ddcd7d00d12d8c4d3f10416fd52bf8302e8e76f2157a09.gz",
+      "storedSha256": "272491013e4af00a672846c51115753c4c17df5f2deafcea9a5976ef9cbe608d",
+      "storedBytes": 1053
+    },
+    {
+      "label": "native-static-closure/raw/target-0-dryrun.stdout",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw\\target-0-dryrun.stdout",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "native-static-closure/raw/target-1-dependencies.stderr",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw\\target-1-dependencies.stderr",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "native-static-closure/raw/target-1-dependencies.stdout",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw\\target-1-dependencies.stdout",
+      "sourceSha256": "9d31285788312f931424c44973465c753f46d6931c1755bea09af157fb882871",
+      "sourceBytes": 96102,
+      "path": "objects/9d31285788312f931424c44973465c753f46d6931c1755bea09af157fb882871.gz",
+      "storedSha256": "986a0f252cf919ec3fd2282e8fcd81179e95b21870bf7860013a5a78a3ac9ff7",
+      "storedBytes": 4935
+    },
+    {
+      "label": "native-static-closure/raw/target-1-dryrun.stderr",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw\\target-1-dryrun.stderr",
+      "sourceSha256": "8535c6a9f2ecc01e986210745373f1e10f941ea10d406ff58caa558300b49cf7",
+      "sourceBytes": 4435,
+      "path": "objects/8535c6a9f2ecc01e986210745373f1e10f941ea10d406ff58caa558300b49cf7.gz",
+      "storedSha256": "f0c5d67006d1518e11f9a4340fceb34daee260165aeb9844611a7e5872f48ece",
+      "storedBytes": 1124
+    },
+    {
+      "label": "native-static-closure/raw/target-1-dryrun.stdout",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw\\target-1-dryrun.stdout",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "native-static-closure/raw/target-2-dependencies.stderr",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw\\target-2-dependencies.stderr",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "native-static-closure/raw/target-2-dependencies.stdout",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw\\target-2-dependencies.stdout",
+      "sourceSha256": "a6e807259d630c6cdbd2c5d8d54628f62ad850d55e544e75e3ceddcd5a770cba",
+      "sourceBytes": 39242,
+      "path": "objects/a6e807259d630c6cdbd2c5d8d54628f62ad850d55e544e75e3ceddcd5a770cba.gz",
+      "storedSha256": "8ac6749e92b526489f7e41e594a54afba4305a2fefdcd8b899b143cb728af333",
+      "storedBytes": 1912
+    },
+    {
+      "label": "native-static-closure/raw/target-2-dryrun.stderr",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw\\target-2-dryrun.stderr",
+      "sourceSha256": "0ed0828275197a26055307b527a4cb62864cc39bb5fdb492a527d7e7028cc134",
+      "sourceBytes": 4439,
+      "path": "objects/0ed0828275197a26055307b527a4cb62864cc39bb5fdb492a527d7e7028cc134.gz",
+      "storedSha256": "16209eb7d15ceb35ef799c88095dd7feba991113314f0aba71299a7dce3f8153",
+      "storedBytes": 1123
+    },
+    {
+      "label": "native-static-closure/raw/target-2-dryrun.stdout",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw\\target-2-dryrun.stdout",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "native-static-closure/raw/target-3-dependencies.stderr",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw\\target-3-dependencies.stderr",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "native-static-closure/raw/target-3-dependencies.stdout",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw\\target-3-dependencies.stdout",
+      "sourceSha256": "4beeba47ce536d0a9983395b49a3c6daf0cdb234833788b61bc7a616e8cd602f",
+      "sourceBytes": 101381,
+      "path": "objects/4beeba47ce536d0a9983395b49a3c6daf0cdb234833788b61bc7a616e8cd602f.gz",
+      "storedSha256": "ffad61aa153bba6c9b63add1360d300f0311b2c833173b1bfc1490f9c60dfeae",
+      "storedBytes": 5222
+    },
+    {
+      "label": "native-static-closure/raw/target-3-dryrun.stderr",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw\\target-3-dryrun.stderr",
+      "sourceSha256": "5fb9fcd8a7f3c2927e6a0a182615da6245d7f347dfa50947fb3d28f0ac73b7ef",
+      "sourceBytes": 4257,
+      "path": "objects/5fb9fcd8a7f3c2927e6a0a182615da6245d7f347dfa50947fb3d28f0ac73b7ef.gz",
+      "storedSha256": "56f805203bb13ac84fefcd26c5ce85831f02b1bdb44b0df4e6061f7b05edf8ba",
+      "storedBytes": 1042
+    },
+    {
+      "label": "native-static-closure/raw/target-3-dryrun.stdout",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw\\target-3-dryrun.stdout",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "native-static-closure/raw/target-4-dependencies.stderr",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw\\target-4-dependencies.stderr",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "native-static-closure/raw/target-4-dependencies.stdout",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw\\target-4-dependencies.stdout",
+      "sourceSha256": "ab0a0cbda37731e56482753c17c5e0bc0efb394d3c373b38f3d9700e35fe53e5",
+      "sourceBytes": 101594,
+      "path": "objects/ab0a0cbda37731e56482753c17c5e0bc0efb394d3c373b38f3d9700e35fe53e5.gz",
+      "storedSha256": "b521ccfcdb263ffffc3744921745320470757a6d6f617a42002e1f4172434332",
+      "storedBytes": 5238
+    },
+    {
+      "label": "native-static-closure/raw/target-4-dryrun.stderr",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw\\target-4-dryrun.stderr",
+      "sourceSha256": "7e72094c5271c4117db0b0f6bb01483d8251e5457baccfaff4267291b6b6fe57",
+      "sourceBytes": 4261,
+      "path": "objects/7e72094c5271c4117db0b0f6bb01483d8251e5457baccfaff4267291b6b6fe57.gz",
+      "storedSha256": "a8f080d0e5b910f0fa960d7a1f1a4ddc199d040022578cf14050c91b073db67f",
+      "storedBytes": 1044
+    },
+    {
+      "label": "native-static-closure/raw/target-4-dryrun.stdout",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw\\target-4-dryrun.stdout",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "native-static-closure/raw-exact-dependencies/target-0.stderr",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw-exact-dependencies\\target-0.stderr",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "native-static-closure/raw-exact-dependencies/target-0.stdout",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw-exact-dependencies\\target-0.stdout",
+      "sourceSha256": "5e78c902179fc80be7629da6cad50079cd82b20082ddb4461bf60f7c31ccace8",
+      "sourceBytes": 101274,
+      "path": "objects/5e78c902179fc80be7629da6cad50079cd82b20082ddb4461bf60f7c31ccace8.gz",
+      "storedSha256": "5be58b28dcc4e300cbd092b89b9ad6dec8b25b80aa39c42a3287c4cef5812605",
+      "storedBytes": 5213
+    },
+    {
+      "label": "native-static-closure/raw-exact-dependencies/target-1.stderr",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw-exact-dependencies\\target-1.stderr",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "native-static-closure/raw-exact-dependencies/target-1.stdout",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw-exact-dependencies\\target-1.stdout",
+      "sourceSha256": "9d31285788312f931424c44973465c753f46d6931c1755bea09af157fb882871",
+      "sourceBytes": 96102,
+      "path": "objects/9d31285788312f931424c44973465c753f46d6931c1755bea09af157fb882871.gz",
+      "storedSha256": "986a0f252cf919ec3fd2282e8fcd81179e95b21870bf7860013a5a78a3ac9ff7",
+      "storedBytes": 4935
+    },
+    {
+      "label": "native-static-closure/raw-exact-dependencies/target-2.stderr",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw-exact-dependencies\\target-2.stderr",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "native-static-closure/raw-exact-dependencies/target-2.stdout",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw-exact-dependencies\\target-2.stdout",
+      "sourceSha256": "a6e807259d630c6cdbd2c5d8d54628f62ad850d55e544e75e3ceddcd5a770cba",
+      "sourceBytes": 39242,
+      "path": "objects/a6e807259d630c6cdbd2c5d8d54628f62ad850d55e544e75e3ceddcd5a770cba.gz",
+      "storedSha256": "8ac6749e92b526489f7e41e594a54afba4305a2fefdcd8b899b143cb728af333",
+      "storedBytes": 1912
+    },
+    {
+      "label": "native-static-closure/raw-exact-dependencies/target-3.stderr",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw-exact-dependencies\\target-3.stderr",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "native-static-closure/raw-exact-dependencies/target-3.stdout",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw-exact-dependencies\\target-3.stdout",
+      "sourceSha256": "4beeba47ce536d0a9983395b49a3c6daf0cdb234833788b61bc7a616e8cd602f",
+      "sourceBytes": 101381,
+      "path": "objects/4beeba47ce536d0a9983395b49a3c6daf0cdb234833788b61bc7a616e8cd602f.gz",
+      "storedSha256": "ffad61aa153bba6c9b63add1360d300f0311b2c833173b1bfc1490f9c60dfeae",
+      "storedBytes": 5222
+    },
+    {
+      "label": "native-static-closure/raw-exact-dependencies/target-4.stderr",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw-exact-dependencies\\target-4.stderr",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "native-static-closure/raw-exact-dependencies/target-4.stdout",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw-exact-dependencies\\target-4.stdout",
+      "sourceSha256": "ab0a0cbda37731e56482753c17c5e0bc0efb394d3c373b38f3d9700e35fe53e5",
+      "sourceBytes": 101594,
+      "path": "objects/ab0a0cbda37731e56482753c17c5e0bc0efb394d3c373b38f3d9700e35fe53e5.gz",
+      "storedSha256": "b521ccfcdb263ffffc3744921745320470757a6d6f617a42002e1f4172434332",
+      "storedBytes": 5238
+    },
+    {
+      "label": "native-static-closure/raw-validation/negative-controls.stderr",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw-validation\\negative-controls.stderr",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "native-static-closure/raw-validation/negative-controls.stdout",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw-validation\\negative-controls.stdout",
+      "sourceSha256": "fd0887aa435e41463d2c2d8f0ec40595fa4ba6a9ab041fdc9ca581f45efe17a2",
+      "sourceBytes": 694,
+      "path": "objects/fd0887aa435e41463d2c2d8f0ec40595fa4ba6a9ab041fdc9ca581f45efe17a2.gz",
+      "storedSha256": "9268f4acf62390adf2f9507475a755d902e20a35f499b805fd03fe72dabdc5b3",
+      "storedBytes": 292
+    },
+    {
+      "label": "native-static-closure/raw-validation/pinned-dependencies-0.stderr",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw-validation\\pinned-dependencies-0.stderr",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "native-static-closure/raw-validation/pinned-dependencies-0.stdout",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw-validation\\pinned-dependencies-0.stdout",
+      "sourceSha256": "5e78c902179fc80be7629da6cad50079cd82b20082ddb4461bf60f7c31ccace8",
+      "sourceBytes": 101274,
+      "path": "objects/5e78c902179fc80be7629da6cad50079cd82b20082ddb4461bf60f7c31ccace8.gz",
+      "storedSha256": "5be58b28dcc4e300cbd092b89b9ad6dec8b25b80aa39c42a3287c4cef5812605",
+      "storedBytes": 5213
+    },
+    {
+      "label": "native-static-closure/raw-validation/pinned-dependencies-1.stderr",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw-validation\\pinned-dependencies-1.stderr",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "native-static-closure/raw-validation/pinned-dependencies-1.stdout",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw-validation\\pinned-dependencies-1.stdout",
+      "sourceSha256": "9d31285788312f931424c44973465c753f46d6931c1755bea09af157fb882871",
+      "sourceBytes": 96102,
+      "path": "objects/9d31285788312f931424c44973465c753f46d6931c1755bea09af157fb882871.gz",
+      "storedSha256": "986a0f252cf919ec3fd2282e8fcd81179e95b21870bf7860013a5a78a3ac9ff7",
+      "storedBytes": 4935
+    },
+    {
+      "label": "native-static-closure/raw-validation/pinned-dependencies-2.stderr",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw-validation\\pinned-dependencies-2.stderr",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "native-static-closure/raw-validation/pinned-dependencies-2.stdout",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw-validation\\pinned-dependencies-2.stdout",
+      "sourceSha256": "a6e807259d630c6cdbd2c5d8d54628f62ad850d55e544e75e3ceddcd5a770cba",
+      "sourceBytes": 39242,
+      "path": "objects/a6e807259d630c6cdbd2c5d8d54628f62ad850d55e544e75e3ceddcd5a770cba.gz",
+      "storedSha256": "8ac6749e92b526489f7e41e594a54afba4305a2fefdcd8b899b143cb728af333",
+      "storedBytes": 1912
+    },
+    {
+      "label": "native-static-closure/raw-validation/pinned-dependencies-3.stderr",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw-validation\\pinned-dependencies-3.stderr",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "native-static-closure/raw-validation/pinned-dependencies-3.stdout",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw-validation\\pinned-dependencies-3.stdout",
+      "sourceSha256": "4beeba47ce536d0a9983395b49a3c6daf0cdb234833788b61bc7a616e8cd602f",
+      "sourceBytes": 101381,
+      "path": "objects/4beeba47ce536d0a9983395b49a3c6daf0cdb234833788b61bc7a616e8cd602f.gz",
+      "storedSha256": "ffad61aa153bba6c9b63add1360d300f0311b2c833173b1bfc1490f9c60dfeae",
+      "storedBytes": 5222
+    },
+    {
+      "label": "native-static-closure/raw-validation/pinned-dependencies-4.stderr",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw-validation\\pinned-dependencies-4.stderr",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "native-static-closure/raw-validation/pinned-dependencies-4.stdout",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw-validation\\pinned-dependencies-4.stdout",
+      "sourceSha256": "ab0a0cbda37731e56482753c17c5e0bc0efb394d3c373b38f3d9700e35fe53e5",
+      "sourceBytes": 101594,
+      "path": "objects/ab0a0cbda37731e56482753c17c5e0bc0efb394d3c373b38f3d9700e35fe53e5.gz",
+      "storedSha256": "b521ccfcdb263ffffc3744921745320470757a6d6f617a42002e1f4172434332",
+      "storedBytes": 5238
+    },
+    {
+      "label": "native-static-closure/raw-validation/readobj-0.stderr",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw-validation\\readobj-0.stderr",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "native-static-closure/raw-validation/readobj-0.stdout",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw-validation\\readobj-0.stdout",
+      "sourceSha256": "c61028b3d75031437e5d201cc28d49ff09c49be0e9dc794d7b50c91cc6afe91e",
+      "sourceBytes": 5144,
+      "path": "objects/c61028b3d75031437e5d201cc28d49ff09c49be0e9dc794d7b50c91cc6afe91e.gz",
+      "storedSha256": "8ece03dfd6d128617128088f21447f351e5f8aea568814a2441b97087726b127",
+      "storedBytes": 1638
+    },
+    {
+      "label": "native-static-closure/raw-validation/readobj-1.stderr",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw-validation\\readobj-1.stderr",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "native-static-closure/raw-validation/readobj-1.stdout",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw-validation\\readobj-1.stdout",
+      "sourceSha256": "cea1df489519597ffe6aa7c61e49d6349924cb0480a34cb698f35cb650cb59ed",
+      "sourceBytes": 24665,
+      "path": "objects/cea1df489519597ffe6aa7c61e49d6349924cb0480a34cb698f35cb650cb59ed.gz",
+      "storedSha256": "8a35b9bfd858b1b7eb020c2558699d3a78c5c8aa88a01dcf8d19e7717f153dc3",
+      "storedBytes": 6023
+    },
+    {
+      "label": "native-static-closure/raw-validation/readobj-2.stderr",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw-validation\\readobj-2.stderr",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "native-static-closure/raw-validation/readobj-2.stdout",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw-validation\\readobj-2.stdout",
+      "sourceSha256": "da92e4c0b5ffb26f125e0be482cb9d37d49980277e060cbd0c7944c0dd803cc4",
+      "sourceBytes": 64737,
+      "path": "objects/da92e4c0b5ffb26f125e0be482cb9d37d49980277e060cbd0c7944c0dd803cc4.gz",
+      "storedSha256": "80e470e7ba93a272de5781e887df4107fe82e17c44dd7228f138de9fbdbe5669",
+      "storedBytes": 11786
+    },
+    {
+      "label": "native-static-closure/raw-validation/readobj-3.stderr",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw-validation\\readobj-3.stderr",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "native-static-closure/raw-validation/readobj-3.stdout",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw-validation\\readobj-3.stdout",
+      "sourceSha256": "915ef9dd39e56be69680bad75caf5d443d259f4ad87e9f8f03c658872b983804",
+      "sourceBytes": 17721,
+      "path": "objects/915ef9dd39e56be69680bad75caf5d443d259f4ad87e9f8f03c658872b983804.gz",
+      "storedSha256": "1193da6f13bf8b547b4a6957be0b4778f29b31d4665d09b1680519245e8fa776",
+      "storedBytes": 5294
+    },
+    {
+      "label": "native-static-closure/raw-validation/readobj-4.stderr",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw-validation\\readobj-4.stderr",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "native-static-closure/raw-validation/readobj-4.stdout",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw-validation\\readobj-4.stdout",
+      "sourceSha256": "b8265c471b623d08eeec2bb6d895e5a0d4fc431a2d0bf91ada526c34a7d2ca06",
+      "sourceBytes": 10322,
+      "path": "objects/b8265c471b623d08eeec2bb6d895e5a0d4fc431a2d0bf91ada526c34a7d2ca06.gz",
+      "storedSha256": "cab1f12bd35c47d93b7d6014aacab48a0d0b7949d3ee24b69144677e8ffca817",
+      "storedBytes": 2825
+    },
+    {
+      "label": "native-static-closure/raw-validation/readobj-5.stderr",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw-validation\\readobj-5.stderr",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "native-static-closure/raw-validation/readobj-5.stdout",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw-validation\\readobj-5.stdout",
+      "sourceSha256": "9e2c57f724d49fb3059a2471dec3a71f3763be53c5d44ae269cff9e6bcbbfafa",
+      "sourceBytes": 8336,
+      "path": "objects/9e2c57f724d49fb3059a2471dec3a71f3763be53c5d44ae269cff9e6bcbbfafa.gz",
+      "storedSha256": "438b1566cff6a02826cb397672418ac72624eeefb172cc0b05254bd19318929d",
+      "storedBytes": 2327
+    },
+    {
+      "label": "native-static-closure/raw-validation/readobj-6.stderr",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw-validation\\readobj-6.stderr",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "native-static-closure/raw-validation/readobj-6.stdout",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw-validation\\readobj-6.stdout",
+      "sourceSha256": "8568610712460dee7a6ddaf49e9e74e7895eb0cf3f7f011f9f8466a034b05c73",
+      "sourceBytes": 4358,
+      "path": "objects/8568610712460dee7a6ddaf49e9e74e7895eb0cf3f7f011f9f8466a034b05c73.gz",
+      "storedSha256": "98c31902f6c1b7ef3ad083aa6d85464d06a10d1fd56b038a8b51ea9a49aae73f",
+      "storedBytes": 1523
+    },
+    {
+      "label": "native-static-closure/raw-validation/readobj-7.stderr",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw-validation\\readobj-7.stderr",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "native-static-closure/raw-validation/readobj-7.stdout",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw-validation\\readobj-7.stdout",
+      "sourceSha256": "3e508ffd4b3c7a5ef2e9e1fa83517478b80fbc6dfe7d7c82867f74d721558957",
+      "sourceBytes": 10325,
+      "path": "objects/3e508ffd4b3c7a5ef2e9e1fa83517478b80fbc6dfe7d7c82867f74d721558957.gz",
+      "storedSha256": "2992583bcec90775b38015490756d087ace78485e9b22e32cb1f1e7438838da1",
+      "storedBytes": 2824
+    },
+    {
+      "label": "native-static-closure/raw-validation/readobj-8.stderr",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw-validation\\readobj-8.stderr",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "native-static-closure/raw-validation/readobj-8.stdout",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw-validation\\readobj-8.stdout",
+      "sourceSha256": "71e7ce1fa4178b08808d3d9ed8e591e794b57da6cf167f10060c94f7eb2d1ef2",
+      "sourceBytes": 10405,
+      "path": "objects/71e7ce1fa4178b08808d3d9ed8e591e794b57da6cf167f10060c94f7eb2d1ef2.gz",
+      "storedSha256": "7bf44f2466cc2712a15edadb2d8ff915ce6072384351c8b063f8bb23b76372c8",
+      "storedBytes": 2841
+    },
+    {
+      "label": "native-static-closure/raw-validation/readobj-9.stderr",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw-validation\\readobj-9.stderr",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "native-static-closure/raw-validation/readobj-9.stdout",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw-validation\\readobj-9.stdout",
+      "sourceSha256": "80f94d4454170ef1c75704bd0019df679ed1ba31c6a6ff5bf197b852efc21f34",
+      "sourceBytes": 4404,
+      "path": "objects/80f94d4454170ef1c75704bd0019df679ed1ba31c6a6ff5bf197b852efc21f34.gz",
+      "storedSha256": "fce16e67547be9bbf36c0e7e2e44ea3c119aab2684f0b19545816a2ef1c8c4ac",
+      "storedBytes": 1605
+    },
+    {
+      "label": "native-static-closure/raw-validation/system-dll-metadata.stderr",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw-validation\\system-dll-metadata.stderr",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "native-static-closure/raw-validation/system-dll-metadata.stdout",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\raw-validation\\system-dll-metadata.stdout",
+      "sourceSha256": "b0274dcfb2018dacdb543a8ad6a4a74d879e3fbd3036eae27b3499c6b3c4f1f9",
+      "sourceBytes": 157767,
+      "path": "objects/b0274dcfb2018dacdb543a8ad6a4a74d879e3fbd3036eae27b3499c6b3c4f1f9.gz",
+      "storedSha256": "be5aa21eab3a9b619124eb9ed8a539d75e2b7c269ff0ab582cc92411623bbe00",
+      "storedBytes": 5613
+    },
+    {
+      "label": "native-static-closure/run-collector.mjs",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\run-collector.mjs",
+      "sourceSha256": "b2fe6c027e6f4369e3109942e802b2a2014c66e29423aa3fef0d7c9335c4b3fa",
+      "sourceBytes": 897,
+      "path": "objects/b2fe6c027e6f4369e3109942e802b2a2014c66e29423aa3fef0d7c9335c4b3fa.gz",
+      "storedSha256": "d9e013338434fc581df581ea117a576c63655bfde31f8ac134e32a7053ff9936",
+      "storedBytes": 476
+    },
+    {
+      "label": "native-static-closure/summarize-closure.mjs",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\summarize-closure.mjs",
+      "sourceSha256": "0d70ded393069886da224c573cfe4f0ce269c22a7c7de239a1d3afc345b56a74",
+      "sourceBytes": 8628,
+      "path": "objects/0d70ded393069886da224c573cfe4f0ce269c22a7c7de239a1d3afc345b56a74.gz",
+      "storedSha256": "8fd804ad2f8f25a0980b5b1cb0bea45b6cbc802eb4367877188d1cdb3734ca50",
+      "storedBytes": 3479
+    },
+    {
+      "label": "native-static-closure/system-dll-paths.json",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\system-dll-paths.json",
+      "sourceSha256": "e1781fae864981890c1370232e9a0952697652789e283791be78a24069902e23",
+      "sourceBytes": 13422,
+      "path": "objects/e1781fae864981890c1370232e9a0952697652789e283791be78a24069902e23.gz",
+      "storedSha256": "8cafc89c034a485858a433cc9bb40a84b697ed67f2e7ec934e0f278804f6048f",
+      "storedBytes": 1936
+    },
+    {
+      "label": "native-static-closure/validate-closure.mjs",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-native-closure-20261013\\validate-closure.mjs",
+      "sourceSha256": "ddfce8a6c7b2b252d08ab3b938821ae14d5a668fa6eda273573fdb41076d69d9",
+      "sourceBytes": 5018,
+      "path": "objects/ddfce8a6c7b2b252d08ab3b938821ae14d5a668fa6eda273573fdb41076d69d9.gz",
+      "storedSha256": "e14f9ad42adc7eb225612db38466336cc1ea25c6c992e6fac29f92f2366d3f02",
+      "storedBytes": 1954
+    },
+    {
+      "label": "native-static-closure/archive-inventory.json",
+      "localSource": "C:/code/chainlesschain/.work/astra-native-closure-20261013/archive-inventory.json",
+      "sourceSha256": "8ab9aa44b32e48e1dcba1300794ce25823a3d3a0f8eb2755ce9d6038599dbb98",
+      "sourceBytes": 21731,
+      "path": "objects/8ab9aa44b32e48e1dcba1300794ce25823a3d3a0f8eb2755ce9d6038599dbb98.gz",
+      "storedSha256": "0aaf3822018b5316a208f612893445157300154d5d9f21607f4089bb8242dc71",
+      "storedBytes": 2903
+    },
+    {
+      "label": "independent-root/closure-independent-audit.json",
+      "localSource": "C:/code/chainlesschain/.work/verify01-acceptance-closeout-20261013/closure-independent-audit.json",
+      "sourceSha256": "218b2043514c033b66d39a3209f81e496950d83b92743e9e6501e8812ad8655c",
+      "sourceBytes": 412,
+      "path": "objects/218b2043514c033b66d39a3209f81e496950d83b92743e9e6501e8812ad8655c.gz",
+      "storedSha256": "fe3af0126c436377af223c7d94c61c895f9671af3e18f204231561e185a2ba00",
+      "storedBytes": 284
+    },
+    {
+      "label": "independent-root/audit-closure-readonly.mjs",
+      "localSource": "C:/code/chainlesschain/.work/verify01-acceptance-closeout-20261013/audit-closure-readonly.mjs",
+      "sourceSha256": "168a6d573a53757e1d2448ee086440dd7ca9ce5f757e7e4b7542b4a31ec39c95",
+      "sourceBytes": 1992,
+      "path": "objects/168a6d573a53757e1d2448ee086440dd7ca9ce5f757e7e4b7542b4a31ec39c95.gz",
+      "storedSha256": "434f9ad9249e6455b92b76f6e281f2b58fedf980874c62ba1941ce42b16cc712",
+      "storedBytes": 877
+    },
+    {
+      "label": "independent-root/validate-final-kernel.mjs",
+      "localSource": "C:/code/chainlesschain/.work/verify01-acceptance-closeout-20261013/validate-final-kernel.mjs",
+      "sourceSha256": "ca19a2363fc07bd2d142d270c02162b108da4dbac8714666f929ab7655e201d6",
+      "sourceBytes": 2963,
+      "path": "objects/ca19a2363fc07bd2d142d270c02162b108da4dbac8714666f929ab7655e201d6.gz",
+      "storedSha256": "b0ab51fb2fafbcad1910109cc908fadc8ba07c6db55da8df6560afddf561bd82",
+      "storedBytes": 1265
+    },
+    {
+      "label": "independent-root/archive-final-consumers.mjs",
+      "localSource": "C:/code/chainlesschain/.work/verify01-acceptance-closeout-20261013/archive-final-consumers.mjs",
+      "sourceSha256": "34c96325aa7cbc5d3ef1aa8719073716da6bda070f2623db4ac07d23af78c897",
+      "sourceBytes": 5978,
+      "path": "objects/34c96325aa7cbc5d3ef1aa8719073716da6bda070f2623db4ac07d23af78c897.gz",
+      "storedSha256": "e44f34f3bc7ac8f513b0356969f7a0efa153eb55c0b7523062bad31293c1356f",
+      "storedBytes": 2208
+    },
+    {
+      "label": "consumer-validation/format.mjs",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-compaction-consumers-20261013\\format.mjs",
+      "sourceSha256": "e1376e39c8f45daba8330cbf334784558980afa92fccc0b4fa6dc268155ef120",
+      "sourceBytes": 1127,
+      "path": "objects/e1376e39c8f45daba8330cbf334784558980afa92fccc0b4fa6dc268155ef120.gz",
+      "storedSha256": "c2e9a8b11d184f91b574486e7daadc90ee464ecb9cb5b74322bf3bb077e6dabe",
+      "storedBytes": 505
+    },
+    {
+      "label": "consumer-validation/git-diff-check.stderr.txt",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-compaction-consumers-20261013\\git-diff-check.stderr.txt",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "consumer-validation/git-diff-check.stdout.txt",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-compaction-consumers-20261013\\git-diff-check.stdout.txt",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "consumer-validation/git-diff.stderr.txt",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-compaction-consumers-20261013\\git-diff.stderr.txt",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "consumer-validation/git-diff.stdout.txt",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-compaction-consumers-20261013\\git-diff.stdout.txt",
+      "sourceSha256": "9f37f58bd61b3e2198109a3a2548e63f26332eb76c8e9fcc91fe2dcdcb1a723e",
+      "sourceBytes": 33383,
+      "path": "objects/9f37f58bd61b3e2198109a3a2548e63f26332eb76c8e9fcc91fe2dcdcb1a723e.gz",
+      "storedSha256": "db25fe3e200a53ececd3ddb877147121830283e22caced736bcca77532bf971b",
+      "storedBytes": 8348
+    },
+    {
+      "label": "consumer-validation/git-head.stderr.txt",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-compaction-consumers-20261013\\git-head.stderr.txt",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "consumer-validation/git-head.stdout.txt",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-compaction-consumers-20261013\\git-head.stdout.txt",
+      "sourceSha256": "d5b402750439563e496bacd463e495e9b2c38126c6f0171f763de7634cb3a68b",
+      "sourceBytes": 41,
+      "path": "objects/d5b402750439563e496bacd463e495e9b2c38126c6f0171f763de7634cb3a68b.gz",
+      "storedSha256": "0f7753be1bccd562e88256739b010cead7b59b5d464c66293270060932925837",
+      "storedBytes": 59
+    },
+    {
+      "label": "consumer-validation/latest.exit.txt",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-compaction-consumers-20261013\\latest.exit.txt",
+      "sourceSha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      "sourceBytes": 2,
+      "path": "objects/4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865.gz",
+      "storedSha256": "0a9f997d2770133f4b2e974708f7a19036a1bedaecbb1ca99cd88cf899e8a463",
+      "storedBytes": 22
+    },
+    {
+      "label": "consumer-validation/latest.stderr.txt",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-compaction-consumers-20261013\\latest.stderr.txt",
+      "sourceSha256": "a365173a12a2b984e82dcb277023a744bb19929c7658e4130bc450a60de979ae",
+      "sourceBytes": 1010,
+      "path": "objects/a365173a12a2b984e82dcb277023a744bb19929c7658e4130bc450a60de979ae.gz",
+      "storedSha256": "efc4737ec84e7769836f49eafe11dc897be4e99df13b6274ca8c795b30b1b6dd",
+      "storedBytes": 431
+    },
+    {
+      "label": "consumer-validation/latest.stdout.txt",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-compaction-consumers-20261013\\latest.stdout.txt",
+      "sourceSha256": "5b9b23b4788a2457b4ee76b9a48ce3da6bb212d00d46343f94c4f5931a52c341",
+      "sourceBytes": 467,
+      "path": "objects/5b9b23b4788a2457b4ee76b9a48ce3da6bb212d00d46343f94c4f5931a52c341.gz",
+      "storedSha256": "cddce62c8c7f70de1ad9c2d122195b80fac2bb7aa027fcc0102e5b7bddaa253b",
+      "storedBytes": 303
+    },
+    {
+      "label": "consumer-validation/link-cli-cache.sh",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-compaction-consumers-20261013\\link-cli-cache.sh",
+      "sourceSha256": "9f47de249dfa0b83148bb346563f053eb844fb0a02948600237b0bad0aab50fc",
+      "sourceBytes": 331,
+      "path": "objects/9f47de249dfa0b83148bb346563f053eb844fb0a02948600237b0bad0aab50fc.gz",
+      "storedSha256": "20179d197e9cf87fcd217ae519bf6a8014e2cdd3602997a016952320cb9aebbc",
+      "storedBytes": 217
+    },
+    {
+      "label": "consumer-validation/linux-root.txt",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-compaction-consumers-20261013\\linux-root.txt",
+      "sourceSha256": "0b2728ce238bea398b9de4aff862042d6b49a822cbb23f73a11f4e96051813fd",
+      "sourceBytes": 36,
+      "path": "objects/0b2728ce238bea398b9de4aff862042d6b49a822cbb23f73a11f4e96051813fd.gz",
+      "storedSha256": "de792d12bbef056c04890feb61939d031a75830a549201b48f968c974e3dced3",
+      "storedBytes": 56
+    },
+    {
+      "label": "consumer-validation/manifest.json",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-compaction-consumers-20261013\\manifest.json",
+      "sourceSha256": "f98e076b5b072652f24ecdfa8eeef228f245301c270c707dbef6031f52772c8c",
+      "sourceBytes": 7095,
+      "path": "objects/f98e076b5b072652f24ecdfa8eeef228f245301c270c707dbef6031f52772c8c.gz",
+      "storedSha256": "a6b36adf8a4bde44e5443e1c4126edb5de17b0f329604c972a981cf657438523",
+      "storedBytes": 1490
+    },
+    {
+      "label": "consumer-validation/restore-type-format.mjs",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-compaction-consumers-20261013\\restore-type-format.mjs",
+      "sourceSha256": "87d9f2b6beda2a24a9863b24587e64543c471dc3bd0e38ccd8b144660213d32f",
+      "sourceBytes": 710,
+      "path": "objects/87d9f2b6beda2a24a9863b24587e64543c471dc3bd0e38ccd8b144660213d32f.gz",
+      "storedSha256": "f09715a832b9318dc6ebf5598576e9881937adf161bbcc8aadb25bb59e578cdb",
+      "storedBytes": 432
+    },
+    {
+      "label": "consumer-validation/review.json",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-compaction-consumers-20261013\\review.json",
+      "sourceSha256": "a38e7e7d892fb722c654e917a09e73354337c6bd605ea9aae9e9008bd29aa68b",
+      "sourceBytes": 4151,
+      "path": "objects/a38e7e7d892fb722c654e917a09e73354337c6bd605ea9aae9e9008bd29aa68b.gz",
+      "storedSha256": "6c86bfd2a968f940094068c1890fef460c689c7013ba636defa991720095f62b",
+      "storedBytes": 1495
+    },
+    {
+      "label": "consumer-validation/review.mjs",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-compaction-consumers-20261013\\review.mjs",
+      "sourceSha256": "b20deab6cf03d8a5af8c2e34be3e51c647142d6550b0d99143c7c98c4a926454",
+      "sourceBytes": 4173,
+      "path": "objects/b20deab6cf03d8a5af8c2e34be3e51c647142d6550b0d99143c7c98c4a926454.gz",
+      "storedSha256": "59ceb425b177f68c1bf89b2d1039ae8df7a57f663524880ef9957cc40d2cc450",
+      "storedBytes": 1800
+    },
+    {
+      "label": "consumer-validation/run-4J19C8/latest.exit.txt",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-compaction-consumers-20261013\\run-4J19C8\\latest.exit.txt",
+      "sourceSha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "sourceBytes": 2,
+      "path": "objects/9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa.gz",
+      "storedSha256": "8afc61325213625995e1de8b0d2df70f01b1d5304993484a41cc9df249f00fad",
+      "storedBytes": 22
+    },
+    {
+      "label": "consumer-validation/run-4J19C8/latest.stderr.txt",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-compaction-consumers-20261013\\run-4J19C8\\latest.stderr.txt",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "consumer-validation/run-4J19C8/latest.stdout.txt",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-compaction-consumers-20261013\\run-4J19C8\\latest.stdout.txt",
+      "sourceSha256": "fef0b8630158dfdb43a2abb5369da3c10bd2f9cd11bd4857d3a28016917577fb",
+      "sourceBytes": 1371,
+      "path": "objects/fef0b8630158dfdb43a2abb5369da3c10bd2f9cd11bd4857d3a28016917577fb.gz",
+      "storedSha256": "55311476472f8e6f64e2e15b033a192f9de15dd785702b5b69ac6c76b84ba5f2",
+      "storedBytes": 546
+    },
+    {
+      "label": "consumer-validation/run-4J19C8/tested-source-sha256.txt",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-compaction-consumers-20261013\\run-4J19C8\\tested-source-sha256.txt",
+      "sourceSha256": "afbafd5694447e36d0fa89ffdecea683ec7e294fd1c5ba0cbaeddd13da60cb89",
+      "sourceBytes": 1251,
+      "path": "objects/afbafd5694447e36d0fa89ffdecea683ec7e294fd1c5ba0cbaeddd13da60cb89.gz",
+      "storedSha256": "ff48cc344d57662a99434eb43c64e8da912b09f5a53f308c7ce3e5e68a81c2a4",
+      "storedBytes": 517
+    },
+    {
+      "label": "consumer-validation/run-691HPa/latest.exit.txt",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-compaction-consumers-20261013\\run-691HPa\\latest.exit.txt",
+      "sourceSha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      "sourceBytes": 2,
+      "path": "objects/4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865.gz",
+      "storedSha256": "0a9f997d2770133f4b2e974708f7a19036a1bedaecbb1ca99cd88cf899e8a463",
+      "storedBytes": 22
+    },
+    {
+      "label": "consumer-validation/run-691HPa/latest.stderr.txt",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-compaction-consumers-20261013\\run-691HPa\\latest.stderr.txt",
+      "sourceSha256": "dc7e4d11b8cc0f2e28ab8016b0b5ace4397deb3cb0af6e690ebf843e1420a931",
+      "sourceBytes": 4191,
+      "path": "objects/dc7e4d11b8cc0f2e28ab8016b0b5ace4397deb3cb0af6e690ebf843e1420a931.gz",
+      "storedSha256": "dce5b2fd45b3d876aeb1d53f0500472e9d4811791df4f4b44d683b5a91c43f97",
+      "storedBytes": 1074
+    },
+    {
+      "label": "consumer-validation/run-691HPa/latest.stdout.txt",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-compaction-consumers-20261013\\run-691HPa\\latest.stdout.txt",
+      "sourceSha256": "6c11dee0464cbc8eee5f0ca0d7400343c564b93d40a01378ac3a1da2215f9693",
+      "sourceBytes": 2231,
+      "path": "objects/6c11dee0464cbc8eee5f0ca0d7400343c564b93d40a01378ac3a1da2215f9693.gz",
+      "storedSha256": "352d2a29e4997b5a802efe251abc5397eaec273c3ffcd847ef68f9fae5a5fc4c",
+      "storedBytes": 740
+    },
+    {
+      "label": "consumer-validation/run-8rPtMn/latest.exit.txt",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-compaction-consumers-20261013\\run-8rPtMn\\latest.exit.txt",
+      "sourceSha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "sourceBytes": 2,
+      "path": "objects/9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa.gz",
+      "storedSha256": "8afc61325213625995e1de8b0d2df70f01b1d5304993484a41cc9df249f00fad",
+      "storedBytes": 22
+    },
+    {
+      "label": "consumer-validation/run-8rPtMn/latest.stderr.txt",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-compaction-consumers-20261013\\run-8rPtMn\\latest.stderr.txt",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "consumer-validation/run-8rPtMn/latest.stdout.txt",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-compaction-consumers-20261013\\run-8rPtMn\\latest.stdout.txt",
+      "sourceSha256": "c61bf54b715f187a384ab036931afe01caea419d00823ede458c6d8583e3653e",
+      "sourceBytes": 1012,
+      "path": "objects/c61bf54b715f187a384ab036931afe01caea419d00823ede458c6d8583e3653e.gz",
+      "storedSha256": "d9f612ac503c27ff664fc9baebf47d5050f754c0a2090d8f00922d233943d46f",
+      "storedBytes": 484
+    },
+    {
+      "label": "consumer-validation/run-AJ9Kgy/latest.exit.txt",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-compaction-consumers-20261013\\run-AJ9Kgy\\latest.exit.txt",
+      "sourceSha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      "sourceBytes": 2,
+      "path": "objects/4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865.gz",
+      "storedSha256": "0a9f997d2770133f4b2e974708f7a19036a1bedaecbb1ca99cd88cf899e8a463",
+      "storedBytes": 22
+    },
+    {
+      "label": "consumer-validation/run-AJ9Kgy/latest.stderr.txt",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-compaction-consumers-20261013\\run-AJ9Kgy\\latest.stderr.txt",
+      "sourceSha256": "a365173a12a2b984e82dcb277023a744bb19929c7658e4130bc450a60de979ae",
+      "sourceBytes": 1010,
+      "path": "objects/a365173a12a2b984e82dcb277023a744bb19929c7658e4130bc450a60de979ae.gz",
+      "storedSha256": "efc4737ec84e7769836f49eafe11dc897be4e99df13b6274ca8c795b30b1b6dd",
+      "storedBytes": 431
+    },
+    {
+      "label": "consumer-validation/run-AJ9Kgy/latest.stdout.txt",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-compaction-consumers-20261013\\run-AJ9Kgy\\latest.stdout.txt",
+      "sourceSha256": "e76033a05ccb7d7010879c6ddcb0438801e78933e28cf23f079bebaa83b2784a",
+      "sourceBytes": 466,
+      "path": "objects/e76033a05ccb7d7010879c6ddcb0438801e78933e28cf23f079bebaa83b2784a.gz",
+      "storedSha256": "69f9fd381ae4279ea6dee8c8cd90c25984461f09f3e72eba9209ed4b08228108",
+      "storedBytes": 304
+    },
+    {
+      "label": "consumer-validation/run-gCASTx/latest.exit.txt",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-compaction-consumers-20261013\\run-gCASTx\\latest.exit.txt",
+      "sourceSha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      "sourceBytes": 2,
+      "path": "objects/4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865.gz",
+      "storedSha256": "0a9f997d2770133f4b2e974708f7a19036a1bedaecbb1ca99cd88cf899e8a463",
+      "storedBytes": 22
+    },
+    {
+      "label": "consumer-validation/run-gCASTx/latest.stderr.txt",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-compaction-consumers-20261013\\run-gCASTx\\latest.stderr.txt",
+      "sourceSha256": "f7c91a7e542a106fb542d1ccd9ca7cb89334b137dcd6ab9d7a9b9006c7471dae",
+      "sourceBytes": 2143,
+      "path": "objects/f7c91a7e542a106fb542d1ccd9ca7cb89334b137dcd6ab9d7a9b9006c7471dae.gz",
+      "storedSha256": "bfca2e59e7ae9bb13674c5fcb41805704dc30ae5331247952ea5f6c657a30bc5",
+      "storedBytes": 754
+    },
+    {
+      "label": "consumer-validation/run-gCASTx/latest.stdout.txt",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-compaction-consumers-20261013\\run-gCASTx\\latest.stdout.txt",
+      "sourceSha256": "0aeba21ce49da7903b28a4868ebf0fc2b1a6cea9c7866fe8dd058e31638d5880",
+      "sourceBytes": 6198,
+      "path": "objects/0aeba21ce49da7903b28a4868ebf0fc2b1a6cea9c7866fe8dd058e31638d5880.gz",
+      "storedSha256": "41b8c1d49ef4cece25c4aec990dfb563e649a0e915dd4097a7e7af87dac13f44",
+      "storedBytes": 1566
+    },
+    {
+      "label": "consumer-validation/run-hhjITA/latest.exit.txt",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-compaction-consumers-20261013\\run-hhjITA\\latest.exit.txt",
+      "sourceSha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "sourceBytes": 2,
+      "path": "objects/9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa.gz",
+      "storedSha256": "8afc61325213625995e1de8b0d2df70f01b1d5304993484a41cc9df249f00fad",
+      "storedBytes": 22
+    },
+    {
+      "label": "consumer-validation/run-hhjITA/latest.stderr.txt",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-compaction-consumers-20261013\\run-hhjITA\\latest.stderr.txt",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "consumer-validation/run-hhjITA/latest.stdout.txt",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-compaction-consumers-20261013\\run-hhjITA\\latest.stdout.txt",
+      "sourceSha256": "ba0164aad6ca0f62929e627a0ee31d4dad12654c2a138c0a75197823b3372114",
+      "sourceBytes": 769,
+      "path": "objects/ba0164aad6ca0f62929e627a0ee31d4dad12654c2a138c0a75197823b3372114.gz",
+      "storedSha256": "7736f02d73731bd1e8099b6d43104858d5d7ff29fcb95428338b67812472fd69",
+      "storedBytes": 417
+    },
+    {
+      "label": "consumer-validation/run-Q9m3fW/latest.exit.txt",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-compaction-consumers-20261013\\run-Q9m3fW\\latest.exit.txt",
+      "sourceSha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "sourceBytes": 2,
+      "path": "objects/9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa.gz",
+      "storedSha256": "8afc61325213625995e1de8b0d2df70f01b1d5304993484a41cc9df249f00fad",
+      "storedBytes": 22
+    },
+    {
+      "label": "consumer-validation/run-Q9m3fW/latest.stderr.txt",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-compaction-consumers-20261013\\run-Q9m3fW\\latest.stderr.txt",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "consumer-validation/run-Q9m3fW/latest.stdout.txt",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-compaction-consumers-20261013\\run-Q9m3fW\\latest.stdout.txt",
+      "sourceSha256": "827c90f894688ebc98c04e4f9cd1328d66fa8b7a6ba2479cb44425773f8b0ef9",
+      "sourceBytes": 1259,
+      "path": "objects/827c90f894688ebc98c04e4f9cd1328d66fa8b7a6ba2479cb44425773f8b0ef9.gz",
+      "storedSha256": "cbb830959752fa0d9accef068c55bf250d13848e66c1db2750271e126b2808b8",
+      "storedBytes": 518
+    },
+    {
+      "label": "consumer-validation/run.sh",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-compaction-consumers-20261013\\run.sh",
+      "sourceSha256": "02695e789aee9837703e8677cc696592022cd2d1ec8d2c23865c46c3c911896d",
+      "sourceBytes": 1215,
+      "path": "objects/02695e789aee9837703e8677cc696592022cd2d1ec8d2c23865c46c3c911896d.gz",
+      "storedSha256": "1e552b9d7385d5e19c93d112aea4e957c685dcd9d7c063026aa95a5abf0e9b50",
+      "storedBytes": 490
+    },
+    {
+      "label": "consumer-validation/setup.sh",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-compaction-consumers-20261013\\setup.sh",
+      "sourceSha256": "bc072dcbda0d66456e04b9bfcfd529a06fed5ef0e8de03fcd1204bf6635ae906",
+      "sourceBytes": 834,
+      "path": "objects/bc072dcbda0d66456e04b9bfcfd529a06fed5ef0e8de03fcd1204bf6635ae906.gz",
+      "storedSha256": "4fcec90846ac8b197b73e21f558740f6301a5f16dcec6839982ee530f717f2e6",
+      "storedBytes": 392
+    },
+    {
+      "label": "consumer-validation/syntax-agent-core.stderr.txt",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-compaction-consumers-20261013\\syntax-agent-core.stderr.txt",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "consumer-validation/syntax-agent-core.stdout.txt",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-compaction-consumers-20261013\\syntax-agent-core.stdout.txt",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "consumer-validation/syntax-headless-stream.stderr.txt",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-compaction-consumers-20261013\\syntax-headless-stream.stderr.txt",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "consumer-validation/syntax-headless-stream.stdout.txt",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-compaction-consumers-20261013\\syntax-headless-stream.stdout.txt",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "consumer-validation/syntax-live-compaction.stderr.txt",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-compaction-consumers-20261013\\syntax-live-compaction.stderr.txt",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "consumer-validation/syntax-live-compaction.stdout.txt",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-compaction-consumers-20261013\\syntax-live-compaction.stdout.txt",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "pinned-consumer-validation/format.mjs",
+      "localSource": "C:/code/chainlesschain/.work/astra-compaction-consumers-20261013/format.mjs",
+      "sourceSha256": "e1376e39c8f45daba8330cbf334784558980afa92fccc0b4fa6dc268155ef120",
+      "sourceBytes": 1127,
+      "path": "objects/e1376e39c8f45daba8330cbf334784558980afa92fccc0b4fa6dc268155ef120.gz",
+      "storedSha256": "c2e9a8b11d184f91b574486e7daadc90ee464ecb9cb5b74322bf3bb077e6dabe",
+      "storedBytes": 505
+    },
+    {
+      "label": "pinned-consumer-validation/git-diff-check.stderr.txt",
+      "localSource": "C:/code/chainlesschain/.work/astra-compaction-consumers-20261013/git-diff-check.stderr.txt",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "pinned-consumer-validation/git-diff-check.stdout.txt",
+      "localSource": "C:/code/chainlesschain/.work/astra-compaction-consumers-20261013/git-diff-check.stdout.txt",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "pinned-consumer-validation/git-diff.stderr.txt",
+      "localSource": "C:/code/chainlesschain/.work/astra-compaction-consumers-20261013/git-diff.stderr.txt",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "pinned-consumer-validation/git-diff.stdout.txt",
+      "localSource": "C:/code/chainlesschain/.work/astra-compaction-consumers-20261013/git-diff.stdout.txt",
+      "sourceSha256": "9f37f58bd61b3e2198109a3a2548e63f26332eb76c8e9fcc91fe2dcdcb1a723e",
+      "sourceBytes": 33383,
+      "path": "objects/9f37f58bd61b3e2198109a3a2548e63f26332eb76c8e9fcc91fe2dcdcb1a723e.gz",
+      "storedSha256": "db25fe3e200a53ececd3ddb877147121830283e22caced736bcca77532bf971b",
+      "storedBytes": 8348
+    },
+    {
+      "label": "pinned-consumer-validation/git-head.stderr.txt",
+      "localSource": "C:/code/chainlesschain/.work/astra-compaction-consumers-20261013/git-head.stderr.txt",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "pinned-consumer-validation/git-head.stdout.txt",
+      "localSource": "C:/code/chainlesschain/.work/astra-compaction-consumers-20261013/git-head.stdout.txt",
+      "sourceSha256": "d5b402750439563e496bacd463e495e9b2c38126c6f0171f763de7634cb3a68b",
+      "sourceBytes": 41,
+      "path": "objects/d5b402750439563e496bacd463e495e9b2c38126c6f0171f763de7634cb3a68b.gz",
+      "storedSha256": "0f7753be1bccd562e88256739b010cead7b59b5d464c66293270060932925837",
+      "storedBytes": 59
+    },
+    {
+      "label": "pinned-consumer-validation/latest.exit.txt",
+      "localSource": "C:/code/chainlesschain/.work/astra-compaction-consumers-20261013/latest.exit.txt",
+      "sourceSha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      "sourceBytes": 2,
+      "path": "objects/4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865.gz",
+      "storedSha256": "0a9f997d2770133f4b2e974708f7a19036a1bedaecbb1ca99cd88cf899e8a463",
+      "storedBytes": 22
+    },
+    {
+      "label": "pinned-consumer-validation/latest.stderr.txt",
+      "localSource": "C:/code/chainlesschain/.work/astra-compaction-consumers-20261013/latest.stderr.txt",
+      "sourceSha256": "a365173a12a2b984e82dcb277023a744bb19929c7658e4130bc450a60de979ae",
+      "sourceBytes": 1010,
+      "path": "objects/a365173a12a2b984e82dcb277023a744bb19929c7658e4130bc450a60de979ae.gz",
+      "storedSha256": "efc4737ec84e7769836f49eafe11dc897be4e99df13b6274ca8c795b30b1b6dd",
+      "storedBytes": 431
+    },
+    {
+      "label": "pinned-consumer-validation/latest.stdout.txt",
+      "localSource": "C:/code/chainlesschain/.work/astra-compaction-consumers-20261013/latest.stdout.txt",
+      "sourceSha256": "5b9b23b4788a2457b4ee76b9a48ce3da6bb212d00d46343f94c4f5931a52c341",
+      "sourceBytes": 467,
+      "path": "objects/5b9b23b4788a2457b4ee76b9a48ce3da6bb212d00d46343f94c4f5931a52c341.gz",
+      "storedSha256": "cddce62c8c7f70de1ad9c2d122195b80fac2bb7aa027fcc0102e5b7bddaa253b",
+      "storedBytes": 303
+    },
+    {
+      "label": "pinned-consumer-validation/link-cli-cache.sh",
+      "localSource": "C:/code/chainlesschain/.work/astra-compaction-consumers-20261013/link-cli-cache.sh",
+      "sourceSha256": "9f47de249dfa0b83148bb346563f053eb844fb0a02948600237b0bad0aab50fc",
+      "sourceBytes": 331,
+      "path": "objects/9f47de249dfa0b83148bb346563f053eb844fb0a02948600237b0bad0aab50fc.gz",
+      "storedSha256": "20179d197e9cf87fcd217ae519bf6a8014e2cdd3602997a016952320cb9aebbc",
+      "storedBytes": 217
+    },
+    {
+      "label": "pinned-consumer-validation/linux-root.txt",
+      "localSource": "C:/code/chainlesschain/.work/astra-compaction-consumers-20261013/linux-root.txt",
+      "sourceSha256": "0b2728ce238bea398b9de4aff862042d6b49a822cbb23f73a11f4e96051813fd",
+      "sourceBytes": 36,
+      "path": "objects/0b2728ce238bea398b9de4aff862042d6b49a822cbb23f73a11f4e96051813fd.gz",
+      "storedSha256": "de792d12bbef056c04890feb61939d031a75830a549201b48f968c974e3dced3",
+      "storedBytes": 56
+    },
+    {
+      "label": "pinned-consumer-validation/restore-type-format.mjs",
+      "localSource": "C:/code/chainlesschain/.work/astra-compaction-consumers-20261013/restore-type-format.mjs",
+      "sourceSha256": "87d9f2b6beda2a24a9863b24587e64543c471dc3bd0e38ccd8b144660213d32f",
+      "sourceBytes": 710,
+      "path": "objects/87d9f2b6beda2a24a9863b24587e64543c471dc3bd0e38ccd8b144660213d32f.gz",
+      "storedSha256": "f09715a832b9318dc6ebf5598576e9881937adf161bbcc8aadb25bb59e578cdb",
+      "storedBytes": 432
+    },
+    {
+      "label": "pinned-consumer-validation/review.json",
+      "localSource": "C:/code/chainlesschain/.work/astra-compaction-consumers-20261013/review.json",
+      "sourceSha256": "a38e7e7d892fb722c654e917a09e73354337c6bd605ea9aae9e9008bd29aa68b",
+      "sourceBytes": 4151,
+      "path": "objects/a38e7e7d892fb722c654e917a09e73354337c6bd605ea9aae9e9008bd29aa68b.gz",
+      "storedSha256": "6c86bfd2a968f940094068c1890fef460c689c7013ba636defa991720095f62b",
+      "storedBytes": 1495
+    },
+    {
+      "label": "pinned-consumer-validation/review.mjs",
+      "localSource": "C:/code/chainlesschain/.work/astra-compaction-consumers-20261013/review.mjs",
+      "sourceSha256": "b20deab6cf03d8a5af8c2e34be3e51c647142d6550b0d99143c7c98c4a926454",
+      "sourceBytes": 4173,
+      "path": "objects/b20deab6cf03d8a5af8c2e34be3e51c647142d6550b0d99143c7c98c4a926454.gz",
+      "storedSha256": "59ceb425b177f68c1bf89b2d1039ae8df7a57f663524880ef9957cc40d2cc450",
+      "storedBytes": 1800
+    },
+    {
+      "label": "pinned-consumer-validation/run-4J19C8/latest.exit.txt",
+      "localSource": "C:/code/chainlesschain/.work/astra-compaction-consumers-20261013/run-4J19C8/latest.exit.txt",
+      "sourceSha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "sourceBytes": 2,
+      "path": "objects/9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa.gz",
+      "storedSha256": "8afc61325213625995e1de8b0d2df70f01b1d5304993484a41cc9df249f00fad",
+      "storedBytes": 22
+    },
+    {
+      "label": "pinned-consumer-validation/run-4J19C8/latest.stderr.txt",
+      "localSource": "C:/code/chainlesschain/.work/astra-compaction-consumers-20261013/run-4J19C8/latest.stderr.txt",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "pinned-consumer-validation/run-4J19C8/latest.stdout.txt",
+      "localSource": "C:/code/chainlesschain/.work/astra-compaction-consumers-20261013/run-4J19C8/latest.stdout.txt",
+      "sourceSha256": "fef0b8630158dfdb43a2abb5369da3c10bd2f9cd11bd4857d3a28016917577fb",
+      "sourceBytes": 1371,
+      "path": "objects/fef0b8630158dfdb43a2abb5369da3c10bd2f9cd11bd4857d3a28016917577fb.gz",
+      "storedSha256": "55311476472f8e6f64e2e15b033a192f9de15dd785702b5b69ac6c76b84ba5f2",
+      "storedBytes": 546
+    },
+    {
+      "label": "pinned-consumer-validation/run-4J19C8/tested-source-sha256.txt",
+      "localSource": "C:/code/chainlesschain/.work/astra-compaction-consumers-20261013/run-4J19C8/tested-source-sha256.txt",
+      "sourceSha256": "afbafd5694447e36d0fa89ffdecea683ec7e294fd1c5ba0cbaeddd13da60cb89",
+      "sourceBytes": 1251,
+      "path": "objects/afbafd5694447e36d0fa89ffdecea683ec7e294fd1c5ba0cbaeddd13da60cb89.gz",
+      "storedSha256": "ff48cc344d57662a99434eb43c64e8da912b09f5a53f308c7ce3e5e68a81c2a4",
+      "storedBytes": 517
+    },
+    {
+      "label": "pinned-consumer-validation/run-691HPa/latest.exit.txt",
+      "localSource": "C:/code/chainlesschain/.work/astra-compaction-consumers-20261013/run-691HPa/latest.exit.txt",
+      "sourceSha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      "sourceBytes": 2,
+      "path": "objects/4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865.gz",
+      "storedSha256": "0a9f997d2770133f4b2e974708f7a19036a1bedaecbb1ca99cd88cf899e8a463",
+      "storedBytes": 22
+    },
+    {
+      "label": "pinned-consumer-validation/run-691HPa/latest.stderr.txt",
+      "localSource": "C:/code/chainlesschain/.work/astra-compaction-consumers-20261013/run-691HPa/latest.stderr.txt",
+      "sourceSha256": "dc7e4d11b8cc0f2e28ab8016b0b5ace4397deb3cb0af6e690ebf843e1420a931",
+      "sourceBytes": 4191,
+      "path": "objects/dc7e4d11b8cc0f2e28ab8016b0b5ace4397deb3cb0af6e690ebf843e1420a931.gz",
+      "storedSha256": "dce5b2fd45b3d876aeb1d53f0500472e9d4811791df4f4b44d683b5a91c43f97",
+      "storedBytes": 1074
+    },
+    {
+      "label": "pinned-consumer-validation/run-691HPa/latest.stdout.txt",
+      "localSource": "C:/code/chainlesschain/.work/astra-compaction-consumers-20261013/run-691HPa/latest.stdout.txt",
+      "sourceSha256": "6c11dee0464cbc8eee5f0ca0d7400343c564b93d40a01378ac3a1da2215f9693",
+      "sourceBytes": 2231,
+      "path": "objects/6c11dee0464cbc8eee5f0ca0d7400343c564b93d40a01378ac3a1da2215f9693.gz",
+      "storedSha256": "352d2a29e4997b5a802efe251abc5397eaec273c3ffcd847ef68f9fae5a5fc4c",
+      "storedBytes": 740
+    },
+    {
+      "label": "pinned-consumer-validation/run-8rPtMn/latest.exit.txt",
+      "localSource": "C:/code/chainlesschain/.work/astra-compaction-consumers-20261013/run-8rPtMn/latest.exit.txt",
+      "sourceSha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "sourceBytes": 2,
+      "path": "objects/9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa.gz",
+      "storedSha256": "8afc61325213625995e1de8b0d2df70f01b1d5304993484a41cc9df249f00fad",
+      "storedBytes": 22
+    },
+    {
+      "label": "pinned-consumer-validation/run-8rPtMn/latest.stderr.txt",
+      "localSource": "C:/code/chainlesschain/.work/astra-compaction-consumers-20261013/run-8rPtMn/latest.stderr.txt",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "pinned-consumer-validation/run-8rPtMn/latest.stdout.txt",
+      "localSource": "C:/code/chainlesschain/.work/astra-compaction-consumers-20261013/run-8rPtMn/latest.stdout.txt",
+      "sourceSha256": "c61bf54b715f187a384ab036931afe01caea419d00823ede458c6d8583e3653e",
+      "sourceBytes": 1012,
+      "path": "objects/c61bf54b715f187a384ab036931afe01caea419d00823ede458c6d8583e3653e.gz",
+      "storedSha256": "d9f612ac503c27ff664fc9baebf47d5050f754c0a2090d8f00922d233943d46f",
+      "storedBytes": 484
+    },
+    {
+      "label": "pinned-consumer-validation/run-AJ9Kgy/latest.exit.txt",
+      "localSource": "C:/code/chainlesschain/.work/astra-compaction-consumers-20261013/run-AJ9Kgy/latest.exit.txt",
+      "sourceSha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      "sourceBytes": 2,
+      "path": "objects/4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865.gz",
+      "storedSha256": "0a9f997d2770133f4b2e974708f7a19036a1bedaecbb1ca99cd88cf899e8a463",
+      "storedBytes": 22
+    },
+    {
+      "label": "pinned-consumer-validation/run-AJ9Kgy/latest.stderr.txt",
+      "localSource": "C:/code/chainlesschain/.work/astra-compaction-consumers-20261013/run-AJ9Kgy/latest.stderr.txt",
+      "sourceSha256": "a365173a12a2b984e82dcb277023a744bb19929c7658e4130bc450a60de979ae",
+      "sourceBytes": 1010,
+      "path": "objects/a365173a12a2b984e82dcb277023a744bb19929c7658e4130bc450a60de979ae.gz",
+      "storedSha256": "efc4737ec84e7769836f49eafe11dc897be4e99df13b6274ca8c795b30b1b6dd",
+      "storedBytes": 431
+    },
+    {
+      "label": "pinned-consumer-validation/run-AJ9Kgy/latest.stdout.txt",
+      "localSource": "C:/code/chainlesschain/.work/astra-compaction-consumers-20261013/run-AJ9Kgy/latest.stdout.txt",
+      "sourceSha256": "e76033a05ccb7d7010879c6ddcb0438801e78933e28cf23f079bebaa83b2784a",
+      "sourceBytes": 466,
+      "path": "objects/e76033a05ccb7d7010879c6ddcb0438801e78933e28cf23f079bebaa83b2784a.gz",
+      "storedSha256": "69f9fd381ae4279ea6dee8c8cd90c25984461f09f3e72eba9209ed4b08228108",
+      "storedBytes": 304
+    },
+    {
+      "label": "pinned-consumer-validation/run-gCASTx/latest.exit.txt",
+      "localSource": "C:/code/chainlesschain/.work/astra-compaction-consumers-20261013/run-gCASTx/latest.exit.txt",
+      "sourceSha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      "sourceBytes": 2,
+      "path": "objects/4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865.gz",
+      "storedSha256": "0a9f997d2770133f4b2e974708f7a19036a1bedaecbb1ca99cd88cf899e8a463",
+      "storedBytes": 22
+    },
+    {
+      "label": "pinned-consumer-validation/run-gCASTx/latest.stderr.txt",
+      "localSource": "C:/code/chainlesschain/.work/astra-compaction-consumers-20261013/run-gCASTx/latest.stderr.txt",
+      "sourceSha256": "f7c91a7e542a106fb542d1ccd9ca7cb89334b137dcd6ab9d7a9b9006c7471dae",
+      "sourceBytes": 2143,
+      "path": "objects/f7c91a7e542a106fb542d1ccd9ca7cb89334b137dcd6ab9d7a9b9006c7471dae.gz",
+      "storedSha256": "bfca2e59e7ae9bb13674c5fcb41805704dc30ae5331247952ea5f6c657a30bc5",
+      "storedBytes": 754
+    },
+    {
+      "label": "pinned-consumer-validation/run-gCASTx/latest.stdout.txt",
+      "localSource": "C:/code/chainlesschain/.work/astra-compaction-consumers-20261013/run-gCASTx/latest.stdout.txt",
+      "sourceSha256": "0aeba21ce49da7903b28a4868ebf0fc2b1a6cea9c7866fe8dd058e31638d5880",
+      "sourceBytes": 6198,
+      "path": "objects/0aeba21ce49da7903b28a4868ebf0fc2b1a6cea9c7866fe8dd058e31638d5880.gz",
+      "storedSha256": "41b8c1d49ef4cece25c4aec990dfb563e649a0e915dd4097a7e7af87dac13f44",
+      "storedBytes": 1566
+    },
+    {
+      "label": "pinned-consumer-validation/run-hhjITA/latest.exit.txt",
+      "localSource": "C:/code/chainlesschain/.work/astra-compaction-consumers-20261013/run-hhjITA/latest.exit.txt",
+      "sourceSha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "sourceBytes": 2,
+      "path": "objects/9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa.gz",
+      "storedSha256": "8afc61325213625995e1de8b0d2df70f01b1d5304993484a41cc9df249f00fad",
+      "storedBytes": 22
+    },
+    {
+      "label": "pinned-consumer-validation/run-hhjITA/latest.stderr.txt",
+      "localSource": "C:/code/chainlesschain/.work/astra-compaction-consumers-20261013/run-hhjITA/latest.stderr.txt",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "pinned-consumer-validation/run-hhjITA/latest.stdout.txt",
+      "localSource": "C:/code/chainlesschain/.work/astra-compaction-consumers-20261013/run-hhjITA/latest.stdout.txt",
+      "sourceSha256": "ba0164aad6ca0f62929e627a0ee31d4dad12654c2a138c0a75197823b3372114",
+      "sourceBytes": 769,
+      "path": "objects/ba0164aad6ca0f62929e627a0ee31d4dad12654c2a138c0a75197823b3372114.gz",
+      "storedSha256": "7736f02d73731bd1e8099b6d43104858d5d7ff29fcb95428338b67812472fd69",
+      "storedBytes": 417
+    },
+    {
+      "label": "pinned-consumer-validation/run-Q9m3fW/latest.exit.txt",
+      "localSource": "C:/code/chainlesschain/.work/astra-compaction-consumers-20261013/run-Q9m3fW/latest.exit.txt",
+      "sourceSha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "sourceBytes": 2,
+      "path": "objects/9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa.gz",
+      "storedSha256": "8afc61325213625995e1de8b0d2df70f01b1d5304993484a41cc9df249f00fad",
+      "storedBytes": 22
+    },
+    {
+      "label": "pinned-consumer-validation/run-Q9m3fW/latest.stderr.txt",
+      "localSource": "C:/code/chainlesschain/.work/astra-compaction-consumers-20261013/run-Q9m3fW/latest.stderr.txt",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "pinned-consumer-validation/run-Q9m3fW/latest.stdout.txt",
+      "localSource": "C:/code/chainlesschain/.work/astra-compaction-consumers-20261013/run-Q9m3fW/latest.stdout.txt",
+      "sourceSha256": "827c90f894688ebc98c04e4f9cd1328d66fa8b7a6ba2479cb44425773f8b0ef9",
+      "sourceBytes": 1259,
+      "path": "objects/827c90f894688ebc98c04e4f9cd1328d66fa8b7a6ba2479cb44425773f8b0ef9.gz",
+      "storedSha256": "cbb830959752fa0d9accef068c55bf250d13848e66c1db2750271e126b2808b8",
+      "storedBytes": 518
+    },
+    {
+      "label": "pinned-consumer-validation/run.sh",
+      "localSource": "C:/code/chainlesschain/.work/astra-compaction-consumers-20261013/run.sh",
+      "sourceSha256": "02695e789aee9837703e8677cc696592022cd2d1ec8d2c23865c46c3c911896d",
+      "sourceBytes": 1215,
+      "path": "objects/02695e789aee9837703e8677cc696592022cd2d1ec8d2c23865c46c3c911896d.gz",
+      "storedSha256": "1e552b9d7385d5e19c93d112aea4e957c685dcd9d7c063026aa95a5abf0e9b50",
+      "storedBytes": 490
+    },
+    {
+      "label": "pinned-consumer-validation/setup.sh",
+      "localSource": "C:/code/chainlesschain/.work/astra-compaction-consumers-20261013/setup.sh",
+      "sourceSha256": "bc072dcbda0d66456e04b9bfcfd529a06fed5ef0e8de03fcd1204bf6635ae906",
+      "sourceBytes": 834,
+      "path": "objects/bc072dcbda0d66456e04b9bfcfd529a06fed5ef0e8de03fcd1204bf6635ae906.gz",
+      "storedSha256": "4fcec90846ac8b197b73e21f558740f6301a5f16dcec6839982ee530f717f2e6",
+      "storedBytes": 392
+    },
+    {
+      "label": "pinned-consumer-validation/syntax-agent-core.stderr.txt",
+      "localSource": "C:/code/chainlesschain/.work/astra-compaction-consumers-20261013/syntax-agent-core.stderr.txt",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "pinned-consumer-validation/syntax-agent-core.stdout.txt",
+      "localSource": "C:/code/chainlesschain/.work/astra-compaction-consumers-20261013/syntax-agent-core.stdout.txt",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "pinned-consumer-validation/syntax-headless-stream.stderr.txt",
+      "localSource": "C:/code/chainlesschain/.work/astra-compaction-consumers-20261013/syntax-headless-stream.stderr.txt",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "pinned-consumer-validation/syntax-headless-stream.stdout.txt",
+      "localSource": "C:/code/chainlesschain/.work/astra-compaction-consumers-20261013/syntax-headless-stream.stdout.txt",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "pinned-consumer-validation/syntax-live-compaction.stderr.txt",
+      "localSource": "C:/code/chainlesschain/.work/astra-compaction-consumers-20261013/syntax-live-compaction.stderr.txt",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "pinned-consumer-validation/syntax-live-compaction.stdout.txt",
+      "localSource": "C:/code/chainlesschain/.work/astra-compaction-consumers-20261013/syntax-live-compaction.stdout.txt",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "prepared-ci-review/gates.json",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\gates.json",
+      "sourceSha256": "bcd4bad6ce70c8f994f3002e1e17557f7f7cc48961cb2f1ad021b6a7268bee22",
+      "sourceBytes": 1006,
+      "path": "objects/bcd4bad6ce70c8f994f3002e1e17557f7f7cc48961cb2f1ad021b6a7268bee22.gz",
+      "storedSha256": "8c2af119ac183f7495eaa648321f0089c199f0f652b4a46c1e6b0846bac40d53",
+      "storedBytes": 505
+    },
+    {
+      "label": "prepared-ci-review/handoff.json",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\handoff.json",
+      "sourceSha256": "4ee9c8056c4c34dddd180e1a30d994a6aaecee588d3d7cb83705ba971acce5a1",
+      "sourceBytes": 2589,
+      "path": "objects/4ee9c8056c4c34dddd180e1a30d994a6aaecee588d3d7cb83705ba971acce5a1.gz",
+      "storedSha256": "6967ad3591f69fb78b8e53488636fea7262d1446742bdbd01e97d28136a564a5",
+      "storedBytes": 1286
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-final/archive-manifest.json",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-final\\archive-manifest.json",
+      "sourceSha256": "73c2a39ee50a4a26f33c6bdc0cdb9c86ec1906952b1728f0b519717a08cda878",
+      "sourceBytes": 3351,
+      "path": "objects/73c2a39ee50a4a26f33c6bdc0cdb9c86ec1906952b1728f0b519717a08cda878.gz",
+      "storedSha256": "86149831eafb8c6e822e6f7b7d8876501420c00a409bc45fee44befe5b3345da",
+      "storedBytes": 1222
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-final/cli-background-interaction-e2e.yml.plan.json",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-final\\cli-background-interaction-e2e.yml.plan.json",
+      "sourceSha256": "d34b2ead7d72ee970431c63cce0494fd14313f42b776bfdd272dc9eccf4a627b",
+      "sourceBytes": 8424,
+      "path": "objects/d34b2ead7d72ee970431c63cce0494fd14313f42b776bfdd272dc9eccf4a627b.gz",
+      "storedSha256": "3c89d2f666d82c02256eb16a11a9e7f5f4ae5df0ab74f08b7369187b23258de7",
+      "storedBytes": 568
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-final/cli-ci.yml.plan.json",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-final\\cli-ci.yml.plan.json",
+      "sourceSha256": "1e50fd794283290cc0e3f3a465f6a54c494d4ebe9f287477e0cd825628ed3fdf",
+      "sourceBytes": 189012,
+      "path": "objects/1e50fd794283290cc0e3f3a465f6a54c494d4ebe9f287477e0cd825628ed3fdf.gz",
+      "storedSha256": "0c5e54647aa61b77f8a850d03f9062da7ba7e4001ce4f7d31c0e0e206627693e",
+      "storedBytes": 7185
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-final/cli-strict-sandbox.yml.plan.json",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-final\\cli-strict-sandbox.yml.plan.json",
+      "sourceSha256": "d4f9c5e4d62ac879c8eedefc3f3746ea7fd5ad3e42ec2f392d968ff4051d7a67",
+      "sourceBytes": 19929,
+      "path": "objects/d4f9c5e4d62ac879c8eedefc3f3746ea7fd5ad3e42ec2f392d968ff4051d7a67.gz",
+      "storedSha256": "c1be4318323f58676f05ed2271cc908e2a43e84590886f73496584a9d6390594",
+      "storedBytes": 1122
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-final/context-memory-kernel.yml.plan.json",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-final\\context-memory-kernel.yml.plan.json",
+      "sourceSha256": "e75e5fe2ce269865c9cd4690c99daf25edbe0e6af41772bb306c538bd29dee2f",
+      "sourceBytes": 14628,
+      "path": "objects/e75e5fe2ce269865c9cd4690c99daf25edbe0e6af41772bb306c538bd29dee2f.gz",
+      "storedSha256": "6151603e097fd9c3ee16a96c5cb3081e90984d2206723d75d1c1656aedd6705f",
+      "storedBytes": 876
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-final/gates.json",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-final\\gates.json",
+      "sourceSha256": "bcd4bad6ce70c8f994f3002e1e17557f7f7cc48961cb2f1ad021b6a7268bee22",
+      "sourceBytes": 1006,
+      "path": "objects/bcd4bad6ce70c8f994f3002e1e17557f7f7cc48961cb2f1ad021b6a7268bee22.gz",
+      "storedSha256": "8c2af119ac183f7495eaa648321f0089c199f0f652b4a46c1e6b0846bac40d53",
+      "storedBytes": 505
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-final/ide-arm64-validation.yml.plan.json",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-final\\ide-arm64-validation.yml.plan.json",
+      "sourceSha256": "d47c8e32549fca7e271953677cc3f82099e40c8b5fcf9a11590b24e71c610ca6",
+      "sourceBytes": 37290,
+      "path": "objects/d47c8e32549fca7e271953677cc3f82099e40c8b5fcf9a11590b24e71c610ca6.gz",
+      "storedSha256": "e86592dd17d1797f7d76366fecd5967a2107636fe98a1d1994405977af735d3d",
+      "storedBytes": 1403
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-final/ide-extensions.yml.plan.json",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-final\\ide-extensions.yml.plan.json",
+      "sourceSha256": "078c2614d87dd7f02432d1f1178027317b6767d647b6684e6e1c04e1644299ca",
+      "sourceBytes": 70548,
+      "path": "objects/078c2614d87dd7f02432d1f1178027317b6767d647b6684e6e1c04e1644299ca.gz",
+      "storedSha256": "fef1241556426e00b120b4c75e2dce2607f6aff764f775d6c1c51f85b4e503cd",
+      "storedBytes": 2822
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-final/memory-query-index.yml.plan.json",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-final\\memory-query-index.yml.plan.json",
+      "sourceSha256": "aec28b62c0d3e35080b0bf3864719f6f5cd3aa12da09dbad639af3d073518037",
+      "sourceBytes": 7551,
+      "path": "objects/aec28b62c0d3e35080b0bf3864719f6f5cd3aa12da09dbad639af3d073518037.gz",
+      "storedSha256": "81d90a66894ccff1cbcba77a3898505531c72401c0fa3ccba5db930ddecbf76b",
+      "storedBytes": 548
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-final/review_ci.py",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-final\\review_ci.py",
+      "sourceSha256": "50f57b8a58dfcff91e2ab49e026264f8826300605390f7f80a5f30de69420056",
+      "sourceBytes": 27601,
+      "path": "objects/50f57b8a58dfcff91e2ab49e026264f8826300605390f7f80a5f30de69420056.gz",
+      "storedSha256": "f8cb20bafd4344f99ddf586ba46b68de335f311e39cf70269f7afd5f9fb87449",
+      "storedBytes": 8253
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-final/source-manifest.json",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-final\\source-manifest.json",
+      "sourceSha256": "57e5cfc099b895f48024d0184c2991da0acd075157194d0aa323b2560815a292",
+      "sourceBytes": 2018,
+      "path": "objects/57e5cfc099b895f48024d0184c2991da0acd075157194d0aa323b2560815a292.gz",
+      "storedSha256": "fe85cc33e325c9c1227b842d654ac1ed199ac0f160e825ca813ef74255837481",
+      "storedBytes": 844
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-final/sources/cli-background-interaction-e2e.yml",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-final\\sources\\cli-background-interaction-e2e.yml",
+      "sourceSha256": "5913b62771b64111c318b13254d41a73e96b3c590598eee7c3b0f166ce9b6f00",
+      "sourceBytes": 5626,
+      "path": "objects/5913b62771b64111c318b13254d41a73e96b3c590598eee7c3b0f166ce9b6f00.gz",
+      "storedSha256": "2b37643ed0a209b61bbb463744edee44afbea205da517ac0e77c80b147d3d1e3",
+      "storedBytes": 1148
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-final/sources/cli-ci.yml",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-final\\sources\\cli-ci.yml",
+      "sourceSha256": "ae4a8ca7c2d5a562f3556a500eb8e8656bc549ace698d8cdb2792b139d2f00e8",
+      "sourceBytes": 24286,
+      "path": "objects/ae4a8ca7c2d5a562f3556a500eb8e8656bc549ace698d8cdb2792b139d2f00e8.gz",
+      "storedSha256": "38e2885220992b9e2ee8d612cf5c61c277ace05907ffafd48d7b11c0e46ddecc",
+      "storedBytes": 4694
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-final/sources/cli-strict-sandbox.yml",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-final\\sources\\cli-strict-sandbox.yml",
+      "sourceSha256": "9e83055cae1e4fa4303af8b2abe913eea682e286f650e1dbc07d2aaf73cf14af",
+      "sourceBytes": 45806,
+      "path": "objects/9e83055cae1e4fa4303af8b2abe913eea682e286f650e1dbc07d2aaf73cf14af.gz",
+      "storedSha256": "fca4ccedc54c2b657f117bdb0529791789b1c3d8fbd51153aabbc3383ddb6deb",
+      "storedBytes": 5631
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-final/sources/context-memory-kernel.yml",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-final\\sources\\context-memory-kernel.yml",
+      "sourceSha256": "400ced2f0249340dce5c498134c32a331eed1b529635f70e1d90a328c25d5a8b",
+      "sourceBytes": 7400,
+      "path": "objects/400ced2f0249340dce5c498134c32a331eed1b529635f70e1d90a328c25d5a8b.gz",
+      "storedSha256": "5489492b332dee1e7ac576d011cbeaeb9818c35f3a2755edca4f6e678509516b",
+      "storedBytes": 1787
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-final/sources/ide-arm64-validation.yml",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-final\\sources\\ide-arm64-validation.yml",
+      "sourceSha256": "d31e045d45d5dc0f24222b5bfeeff2de72c4cb54a987c1f4fec0b75014fc3f49",
+      "sourceBytes": 22894,
+      "path": "objects/d31e045d45d5dc0f24222b5bfeeff2de72c4cb54a987c1f4fec0b75014fc3f49.gz",
+      "storedSha256": "b346a63da4782aefd10a9f0319c5cbec3c6d8513b1b1497bc7eae8752edc4a62",
+      "storedBytes": 5746
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-final/sources/ide-extensions.yml",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-final\\sources\\ide-extensions.yml",
+      "sourceSha256": "c3aa38214e8853a9adddbe2290bb44e0d8d7fa08cf885ba66695e0c00d8ca712",
+      "sourceBytes": 50808,
+      "path": "objects/c3aa38214e8853a9adddbe2290bb44e0d8d7fa08cf885ba66695e0c00d8ca712.gz",
+      "storedSha256": "ca4c537024b2977e24641e7cc707e68717264dff58c962223784164542832e87",
+      "storedBytes": 8742
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-final/sources/memory-query-index.yml",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-final\\sources\\memory-query-index.yml",
+      "sourceSha256": "c057ed2d4ccda3508478019e40ed53a8a186581c03771d63640670f776ef5c68",
+      "sourceBytes": 2079,
+      "path": "objects/c057ed2d4ccda3508478019e40ed53a8a186581c03771d63640670f776ef5c68.gz",
+      "storedSha256": "6a9e86c4ed2ff504e8df8bba28185f5d10b41d5ced89167eb09325d8b09fdd90",
+      "storedBytes": 860
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-final/sources/_cli-linux-subreaper.yml",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-final\\sources\\_cli-linux-subreaper.yml",
+      "sourceSha256": "e6c5ff47f6c9a8f75d040a2149669188353a07798381affcfe226c19ae071581",
+      "sourceBytes": 3588,
+      "path": "objects/e6c5ff47f6c9a8f75d040a2149669188353a07798381affcfe226c19ae071581.gz",
+      "storedSha256": "757ac9079833edcbe9a5150733be0fcd23e98e751ba657d702f333a02387a5da",
+      "storedBytes": 1217
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-final/sources/_cli-test.yml",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-final\\sources\\_cli-test.yml",
+      "sourceSha256": "a645c7c93fbbfdbb36ff67564ca6cd23e34cd058a12ec1af10ce5704a2ce60a1",
+      "sourceBytes": 10669,
+      "path": "objects/a645c7c93fbbfdbb36ff67564ca6cd23e34cd058a12ec1af10ce5704a2ce60a1.gz",
+      "storedSha256": "2f5f6407a0bcae84e9796c1d29a2bba7da9836b50d59976de5b038ce32f542ca",
+      "storedBytes": 3396
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-final/summary.json",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-final\\summary.json",
+      "sourceSha256": "c44c48e6946cb2c1a7ed78ce69ce820c157cf370d95c0f41a65f84efefa9d666",
+      "sourceBytes": 7882,
+      "path": "objects/c44c48e6946cb2c1a7ed78ce69ce820c157cf370d95c0f41a65f84efefa9d666.gz",
+      "storedSha256": "e58014d6ff35e5a7aa1485c0e06be862b13559f84029423b6554c2cdefb76ca9",
+      "storedBytes": 1614
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-v1/archive-manifest.json",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-v1\\archive-manifest.json",
+      "sourceSha256": "46dca58373696697762e6cd65191ceb9d82d2feec50104c89701af5e1cab34fa",
+      "sourceBytes": 3349,
+      "path": "objects/46dca58373696697762e6cd65191ceb9d82d2feec50104c89701af5e1cab34fa.gz",
+      "storedSha256": "987f9588dc0977ca43d0c695df48c5cea06dbc2e59d95b4f193c5fd60a3b8ad1",
+      "storedBytes": 1221
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-v1/cli-background-interaction-e2e.yml.plan.json",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-v1\\cli-background-interaction-e2e.yml.plan.json",
+      "sourceSha256": "5d2830efd36809b380964e46ed91ae18712bd4e2f9c10a0af174b02ba446dbfc",
+      "sourceBytes": 5949,
+      "path": "objects/5d2830efd36809b380964e46ed91ae18712bd4e2f9c10a0af174b02ba446dbfc.gz",
+      "storedSha256": "a05a2674606e866af7117874c7aba4cc97ee2925c4c933de055328f80d7f1b43",
+      "storedBytes": 464
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-v1/cli-ci.yml.plan.json",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-v1\\cli-ci.yml.plan.json",
+      "sourceSha256": "f558100307cef3abc1972cf49ac5a177e605725ecbf04f6dd5b3bb87fc18a7fe",
+      "sourceBytes": 131370,
+      "path": "objects/f558100307cef3abc1972cf49ac5a177e605725ecbf04f6dd5b3bb87fc18a7fe.gz",
+      "storedSha256": "ede45789c2e824dcc8bb166c2a95b05aceb23e016273e4e44f06de88a2d380fa",
+      "storedBytes": 3517
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-v1/cli-strict-sandbox.yml.plan.json",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-v1\\cli-strict-sandbox.yml.plan.json",
+      "sourceSha256": "2cf741ff57701f6cbc1b3f79acd3f55df4c48cbc21d0ae25f0ea4f7381fcddd1",
+      "sourceBytes": 9402,
+      "path": "objects/2cf741ff57701f6cbc1b3f79acd3f55df4c48cbc21d0ae25f0ea4f7381fcddd1.gz",
+      "storedSha256": "f53a39cf25e1cbb1152b2a642bc2050d6f43ecb0115da133a0b8139f31102dce",
+      "storedBytes": 573
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-v1/context-memory-kernel.yml.plan.json",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-v1\\context-memory-kernel.yml.plan.json",
+      "sourceSha256": "00507af08d785aa0b6c08c3bbadf4d924d5b35139f9b292302c990228e2b8d29",
+      "sourceBytes": 6564,
+      "path": "objects/00507af08d785aa0b6c08c3bbadf4d924d5b35139f9b292302c990228e2b8d29.gz",
+      "storedSha256": "c70510397ef40270415ca7e3aa33ccfb08d372131f8522f98a65781b794aa5b6",
+      "storedBytes": 500
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-v1/gates.json",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-v1\\gates.json",
+      "sourceSha256": "bcd4bad6ce70c8f994f3002e1e17557f7f7cc48961cb2f1ad021b6a7268bee22",
+      "sourceBytes": 1006,
+      "path": "objects/bcd4bad6ce70c8f994f3002e1e17557f7f7cc48961cb2f1ad021b6a7268bee22.gz",
+      "storedSha256": "8c2af119ac183f7495eaa648321f0089c199f0f652b4a46c1e6b0846bac40d53",
+      "storedBytes": 505
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-v1/ide-arm64-validation.yml.plan.json",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-v1\\ide-arm64-validation.yml.plan.json",
+      "sourceSha256": "41fe10cc8e50e314885e14474016dafa9b12c1baa081a00993bbf23662cf1111",
+      "sourceBytes": 20400,
+      "path": "objects/41fe10cc8e50e314885e14474016dafa9b12c1baa081a00993bbf23662cf1111.gz",
+      "storedSha256": "f9206e8abe387ec800a4515bd962b8bf40f4c3ed76d922a4ba933a61cb21ca33",
+      "storedBytes": 825
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-v1/ide-extensions.yml.plan.json",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-v1\\ide-extensions.yml.plan.json",
+      "sourceSha256": "da4c910fe573400f6f5f5acb8d4a3cc127aaa63449f26cc006cbb1adf519e19a",
+      "sourceBytes": 40371,
+      "path": "objects/da4c910fe573400f6f5f5acb8d4a3cc127aaa63449f26cc006cbb1adf519e19a.gz",
+      "storedSha256": "f799a75471acefbb95966a8de5f0c57d3fae3f886e44d9cdb364623e78649471",
+      "storedBytes": 1384
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-v1/memory-query-index.yml.plan.json",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-v1\\memory-query-index.yml.plan.json",
+      "sourceSha256": "f145ca606def77d9caf7c29d09a3ac22bae2cddbc3e9815dc16a925447ddce64",
+      "sourceBytes": 5841,
+      "path": "objects/f145ca606def77d9caf7c29d09a3ac22bae2cddbc3e9815dc16a925447ddce64.gz",
+      "storedSha256": "e279d27bc74e20a8d9738f06e4882a22bc3b5d848ebfd7c42b136334658d668b",
+      "storedBytes": 448
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-v1/review_ci.py",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-v1\\review_ci.py",
+      "sourceSha256": "baa77420bb62bc8c5e6049d9457f569378706d23657db8fd647e0c54611c63da",
+      "sourceBytes": 26380,
+      "path": "objects/baa77420bb62bc8c5e6049d9457f569378706d23657db8fd647e0c54611c63da.gz",
+      "storedSha256": "e662d127aae80ea135aab7c4f134a523e4b656750e990f6e2b331485b9355acf",
+      "storedBytes": 8018
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-v1/source-manifest.json",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-v1\\source-manifest.json",
+      "sourceSha256": "57e5cfc099b895f48024d0184c2991da0acd075157194d0aa323b2560815a292",
+      "sourceBytes": 2018,
+      "path": "objects/57e5cfc099b895f48024d0184c2991da0acd075157194d0aa323b2560815a292.gz",
+      "storedSha256": "fe85cc33e325c9c1227b842d654ac1ed199ac0f160e825ca813ef74255837481",
+      "storedBytes": 844
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-v1/sources/cli-background-interaction-e2e.yml",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-v1\\sources\\cli-background-interaction-e2e.yml",
+      "sourceSha256": "5913b62771b64111c318b13254d41a73e96b3c590598eee7c3b0f166ce9b6f00",
+      "sourceBytes": 5626,
+      "path": "objects/5913b62771b64111c318b13254d41a73e96b3c590598eee7c3b0f166ce9b6f00.gz",
+      "storedSha256": "2b37643ed0a209b61bbb463744edee44afbea205da517ac0e77c80b147d3d1e3",
+      "storedBytes": 1148
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-v1/sources/cli-ci.yml",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-v1\\sources\\cli-ci.yml",
+      "sourceSha256": "ae4a8ca7c2d5a562f3556a500eb8e8656bc549ace698d8cdb2792b139d2f00e8",
+      "sourceBytes": 24286,
+      "path": "objects/ae4a8ca7c2d5a562f3556a500eb8e8656bc549ace698d8cdb2792b139d2f00e8.gz",
+      "storedSha256": "38e2885220992b9e2ee8d612cf5c61c277ace05907ffafd48d7b11c0e46ddecc",
+      "storedBytes": 4694
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-v1/sources/cli-strict-sandbox.yml",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-v1\\sources\\cli-strict-sandbox.yml",
+      "sourceSha256": "9e83055cae1e4fa4303af8b2abe913eea682e286f650e1dbc07d2aaf73cf14af",
+      "sourceBytes": 45806,
+      "path": "objects/9e83055cae1e4fa4303af8b2abe913eea682e286f650e1dbc07d2aaf73cf14af.gz",
+      "storedSha256": "fca4ccedc54c2b657f117bdb0529791789b1c3d8fbd51153aabbc3383ddb6deb",
+      "storedBytes": 5631
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-v1/sources/context-memory-kernel.yml",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-v1\\sources\\context-memory-kernel.yml",
+      "sourceSha256": "400ced2f0249340dce5c498134c32a331eed1b529635f70e1d90a328c25d5a8b",
+      "sourceBytes": 7400,
+      "path": "objects/400ced2f0249340dce5c498134c32a331eed1b529635f70e1d90a328c25d5a8b.gz",
+      "storedSha256": "5489492b332dee1e7ac576d011cbeaeb9818c35f3a2755edca4f6e678509516b",
+      "storedBytes": 1787
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-v1/sources/ide-arm64-validation.yml",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-v1\\sources\\ide-arm64-validation.yml",
+      "sourceSha256": "d31e045d45d5dc0f24222b5bfeeff2de72c4cb54a987c1f4fec0b75014fc3f49",
+      "sourceBytes": 22894,
+      "path": "objects/d31e045d45d5dc0f24222b5bfeeff2de72c4cb54a987c1f4fec0b75014fc3f49.gz",
+      "storedSha256": "b346a63da4782aefd10a9f0319c5cbec3c6d8513b1b1497bc7eae8752edc4a62",
+      "storedBytes": 5746
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-v1/sources/ide-extensions.yml",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-v1\\sources\\ide-extensions.yml",
+      "sourceSha256": "c3aa38214e8853a9adddbe2290bb44e0d8d7fa08cf885ba66695e0c00d8ca712",
+      "sourceBytes": 50808,
+      "path": "objects/c3aa38214e8853a9adddbe2290bb44e0d8d7fa08cf885ba66695e0c00d8ca712.gz",
+      "storedSha256": "ca4c537024b2977e24641e7cc707e68717264dff58c962223784164542832e87",
+      "storedBytes": 8742
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-v1/sources/memory-query-index.yml",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-v1\\sources\\memory-query-index.yml",
+      "sourceSha256": "c057ed2d4ccda3508478019e40ed53a8a186581c03771d63640670f776ef5c68",
+      "sourceBytes": 2079,
+      "path": "objects/c057ed2d4ccda3508478019e40ed53a8a186581c03771d63640670f776ef5c68.gz",
+      "storedSha256": "6a9e86c4ed2ff504e8df8bba28185f5d10b41d5ced89167eb09325d8b09fdd90",
+      "storedBytes": 860
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-v1/sources/_cli-linux-subreaper.yml",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-v1\\sources\\_cli-linux-subreaper.yml",
+      "sourceSha256": "e6c5ff47f6c9a8f75d040a2149669188353a07798381affcfe226c19ae071581",
+      "sourceBytes": 3588,
+      "path": "objects/e6c5ff47f6c9a8f75d040a2149669188353a07798381affcfe226c19ae071581.gz",
+      "storedSha256": "757ac9079833edcbe9a5150733be0fcd23e98e751ba657d702f333a02387a5da",
+      "storedBytes": 1217
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-v1/sources/_cli-test.yml",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-v1\\sources\\_cli-test.yml",
+      "sourceSha256": "a645c7c93fbbfdbb36ff67564ca6cd23e34cd058a12ec1af10ce5704a2ce60a1",
+      "sourceBytes": 10669,
+      "path": "objects/a645c7c93fbbfdbb36ff67564ca6cd23e34cd058a12ec1af10ce5704a2ce60a1.gz",
+      "storedSha256": "2f5f6407a0bcae84e9796c1d29a2bba7da9836b50d59976de5b038ce32f542ca",
+      "storedBytes": 3396
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-v1/summary.json",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-v1\\summary.json",
+      "sourceSha256": "690b80e095c2efbed196d6acf2f5d5c530d5c56d298a6320d97c177aede4e396",
+      "sourceBytes": 7882,
+      "path": "objects/690b80e095c2efbed196d6acf2f5d5c530d5c56d298a6320d97c177aede4e396.gz",
+      "storedSha256": "bac42e96d47bd342933aefb629df75ab559bbd991d631c87e374cf72cb8cdbd4",
+      "storedBytes": 1615
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-v2/archive-manifest.json",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-v2\\archive-manifest.json",
+      "sourceSha256": "a8433b728a3e9150e0707bc3612bfe8cc4317811c991f7a726d31763e8ba4cef",
+      "sourceBytes": 3349,
+      "path": "objects/a8433b728a3e9150e0707bc3612bfe8cc4317811c991f7a726d31763e8ba4cef.gz",
+      "storedSha256": "b9c1706dd63d31eb7e06fb3afa4f66b3dd1a676ec1dfcf3ed9af15946180864d",
+      "storedBytes": 1221
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-v2/cli-background-interaction-e2e.yml.plan.json",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-v2\\cli-background-interaction-e2e.yml.plan.json",
+      "sourceSha256": "5d2830efd36809b380964e46ed91ae18712bd4e2f9c10a0af174b02ba446dbfc",
+      "sourceBytes": 5949,
+      "path": "objects/5d2830efd36809b380964e46ed91ae18712bd4e2f9c10a0af174b02ba446dbfc.gz",
+      "storedSha256": "a05a2674606e866af7117874c7aba4cc97ee2925c4c933de055328f80d7f1b43",
+      "storedBytes": 464
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-v2/cli-ci.yml.plan.json",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-v2\\cli-ci.yml.plan.json",
+      "sourceSha256": "f558100307cef3abc1972cf49ac5a177e605725ecbf04f6dd5b3bb87fc18a7fe",
+      "sourceBytes": 131370,
+      "path": "objects/f558100307cef3abc1972cf49ac5a177e605725ecbf04f6dd5b3bb87fc18a7fe.gz",
+      "storedSha256": "ede45789c2e824dcc8bb166c2a95b05aceb23e016273e4e44f06de88a2d380fa",
+      "storedBytes": 3517
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-v2/cli-strict-sandbox.yml.plan.json",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-v2\\cli-strict-sandbox.yml.plan.json",
+      "sourceSha256": "2cf741ff57701f6cbc1b3f79acd3f55df4c48cbc21d0ae25f0ea4f7381fcddd1",
+      "sourceBytes": 9402,
+      "path": "objects/2cf741ff57701f6cbc1b3f79acd3f55df4c48cbc21d0ae25f0ea4f7381fcddd1.gz",
+      "storedSha256": "f53a39cf25e1cbb1152b2a642bc2050d6f43ecb0115da133a0b8139f31102dce",
+      "storedBytes": 573
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-v2/context-memory-kernel.yml.plan.json",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-v2\\context-memory-kernel.yml.plan.json",
+      "sourceSha256": "00507af08d785aa0b6c08c3bbadf4d924d5b35139f9b292302c990228e2b8d29",
+      "sourceBytes": 6564,
+      "path": "objects/00507af08d785aa0b6c08c3bbadf4d924d5b35139f9b292302c990228e2b8d29.gz",
+      "storedSha256": "c70510397ef40270415ca7e3aa33ccfb08d372131f8522f98a65781b794aa5b6",
+      "storedBytes": 500
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-v2/gates.json",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-v2\\gates.json",
+      "sourceSha256": "bcd4bad6ce70c8f994f3002e1e17557f7f7cc48961cb2f1ad021b6a7268bee22",
+      "sourceBytes": 1006,
+      "path": "objects/bcd4bad6ce70c8f994f3002e1e17557f7f7cc48961cb2f1ad021b6a7268bee22.gz",
+      "storedSha256": "8c2af119ac183f7495eaa648321f0089c199f0f652b4a46c1e6b0846bac40d53",
+      "storedBytes": 505
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-v2/ide-arm64-validation.yml.plan.json",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-v2\\ide-arm64-validation.yml.plan.json",
+      "sourceSha256": "41fe10cc8e50e314885e14474016dafa9b12c1baa081a00993bbf23662cf1111",
+      "sourceBytes": 20400,
+      "path": "objects/41fe10cc8e50e314885e14474016dafa9b12c1baa081a00993bbf23662cf1111.gz",
+      "storedSha256": "f9206e8abe387ec800a4515bd962b8bf40f4c3ed76d922a4ba933a61cb21ca33",
+      "storedBytes": 825
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-v2/ide-extensions.yml.plan.json",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-v2\\ide-extensions.yml.plan.json",
+      "sourceSha256": "da4c910fe573400f6f5f5acb8d4a3cc127aaa63449f26cc006cbb1adf519e19a",
+      "sourceBytes": 40371,
+      "path": "objects/da4c910fe573400f6f5f5acb8d4a3cc127aaa63449f26cc006cbb1adf519e19a.gz",
+      "storedSha256": "f799a75471acefbb95966a8de5f0c57d3fae3f886e44d9cdb364623e78649471",
+      "storedBytes": 1384
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-v2/memory-query-index.yml.plan.json",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-v2\\memory-query-index.yml.plan.json",
+      "sourceSha256": "f145ca606def77d9caf7c29d09a3ac22bae2cddbc3e9815dc16a925447ddce64",
+      "sourceBytes": 5841,
+      "path": "objects/f145ca606def77d9caf7c29d09a3ac22bae2cddbc3e9815dc16a925447ddce64.gz",
+      "storedSha256": "e279d27bc74e20a8d9738f06e4882a22bc3b5d848ebfd7c42b136334658d668b",
+      "storedBytes": 448
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-v2/review_ci.py",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-v2\\review_ci.py",
+      "sourceSha256": "11bf72a6e8a7014fe5bd54f475a3d9049e934f8a5bab713cbac042cf9c4e951d",
+      "sourceBytes": 26665,
+      "path": "objects/11bf72a6e8a7014fe5bd54f475a3d9049e934f8a5bab713cbac042cf9c4e951d.gz",
+      "storedSha256": "25bb1826038060358417ad99906b2ea7740e9973e6dd10ec3b5b09651790eeaa",
+      "storedBytes": 8084
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-v2/source-manifest.json",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-v2\\source-manifest.json",
+      "sourceSha256": "57e5cfc099b895f48024d0184c2991da0acd075157194d0aa323b2560815a292",
+      "sourceBytes": 2018,
+      "path": "objects/57e5cfc099b895f48024d0184c2991da0acd075157194d0aa323b2560815a292.gz",
+      "storedSha256": "fe85cc33e325c9c1227b842d654ac1ed199ac0f160e825ca813ef74255837481",
+      "storedBytes": 844
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-v2/sources/cli-background-interaction-e2e.yml",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-v2\\sources\\cli-background-interaction-e2e.yml",
+      "sourceSha256": "5913b62771b64111c318b13254d41a73e96b3c590598eee7c3b0f166ce9b6f00",
+      "sourceBytes": 5626,
+      "path": "objects/5913b62771b64111c318b13254d41a73e96b3c590598eee7c3b0f166ce9b6f00.gz",
+      "storedSha256": "2b37643ed0a209b61bbb463744edee44afbea205da517ac0e77c80b147d3d1e3",
+      "storedBytes": 1148
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-v2/sources/cli-ci.yml",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-v2\\sources\\cli-ci.yml",
+      "sourceSha256": "ae4a8ca7c2d5a562f3556a500eb8e8656bc549ace698d8cdb2792b139d2f00e8",
+      "sourceBytes": 24286,
+      "path": "objects/ae4a8ca7c2d5a562f3556a500eb8e8656bc549ace698d8cdb2792b139d2f00e8.gz",
+      "storedSha256": "38e2885220992b9e2ee8d612cf5c61c277ace05907ffafd48d7b11c0e46ddecc",
+      "storedBytes": 4694
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-v2/sources/cli-strict-sandbox.yml",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-v2\\sources\\cli-strict-sandbox.yml",
+      "sourceSha256": "9e83055cae1e4fa4303af8b2abe913eea682e286f650e1dbc07d2aaf73cf14af",
+      "sourceBytes": 45806,
+      "path": "objects/9e83055cae1e4fa4303af8b2abe913eea682e286f650e1dbc07d2aaf73cf14af.gz",
+      "storedSha256": "fca4ccedc54c2b657f117bdb0529791789b1c3d8fbd51153aabbc3383ddb6deb",
+      "storedBytes": 5631
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-v2/sources/context-memory-kernel.yml",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-v2\\sources\\context-memory-kernel.yml",
+      "sourceSha256": "400ced2f0249340dce5c498134c32a331eed1b529635f70e1d90a328c25d5a8b",
+      "sourceBytes": 7400,
+      "path": "objects/400ced2f0249340dce5c498134c32a331eed1b529635f70e1d90a328c25d5a8b.gz",
+      "storedSha256": "5489492b332dee1e7ac576d011cbeaeb9818c35f3a2755edca4f6e678509516b",
+      "storedBytes": 1787
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-v2/sources/ide-arm64-validation.yml",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-v2\\sources\\ide-arm64-validation.yml",
+      "sourceSha256": "d31e045d45d5dc0f24222b5bfeeff2de72c4cb54a987c1f4fec0b75014fc3f49",
+      "sourceBytes": 22894,
+      "path": "objects/d31e045d45d5dc0f24222b5bfeeff2de72c4cb54a987c1f4fec0b75014fc3f49.gz",
+      "storedSha256": "b346a63da4782aefd10a9f0319c5cbec3c6d8513b1b1497bc7eae8752edc4a62",
+      "storedBytes": 5746
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-v2/sources/ide-extensions.yml",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-v2\\sources\\ide-extensions.yml",
+      "sourceSha256": "c3aa38214e8853a9adddbe2290bb44e0d8d7fa08cf885ba66695e0c00d8ca712",
+      "sourceBytes": 50808,
+      "path": "objects/c3aa38214e8853a9adddbe2290bb44e0d8d7fa08cf885ba66695e0c00d8ca712.gz",
+      "storedSha256": "ca4c537024b2977e24641e7cc707e68717264dff58c962223784164542832e87",
+      "storedBytes": 8742
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-v2/sources/memory-query-index.yml",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-v2\\sources\\memory-query-index.yml",
+      "sourceSha256": "c057ed2d4ccda3508478019e40ed53a8a186581c03771d63640670f776ef5c68",
+      "sourceBytes": 2079,
+      "path": "objects/c057ed2d4ccda3508478019e40ed53a8a186581c03771d63640670f776ef5c68.gz",
+      "storedSha256": "6a9e86c4ed2ff504e8df8bba28185f5d10b41d5ced89167eb09325d8b09fdd90",
+      "storedBytes": 860
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-v2/sources/_cli-linux-subreaper.yml",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-v2\\sources\\_cli-linux-subreaper.yml",
+      "sourceSha256": "e6c5ff47f6c9a8f75d040a2149669188353a07798381affcfe226c19ae071581",
+      "sourceBytes": 3588,
+      "path": "objects/e6c5ff47f6c9a8f75d040a2149669188353a07798381affcfe226c19ae071581.gz",
+      "storedSha256": "757ac9079833edcbe9a5150733be0fcd23e98e751ba657d702f333a02387a5da",
+      "storedBytes": 1217
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-v2/sources/_cli-test.yml",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-v2\\sources\\_cli-test.yml",
+      "sourceSha256": "a645c7c93fbbfdbb36ff67564ca6cd23e34cd058a12ec1af10ce5704a2ce60a1",
+      "sourceBytes": 10669,
+      "path": "objects/a645c7c93fbbfdbb36ff67564ca6cd23e34cd058a12ec1af10ce5704a2ce60a1.gz",
+      "storedSha256": "2f5f6407a0bcae84e9796c1d29a2bba7da9836b50d59976de5b038ce32f542ca",
+      "storedBytes": 3396
+    },
+    {
+      "label": "prepared-ci-review/plan-local-f596-v2/summary.json",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\plan-local-f596-v2\\summary.json",
+      "sourceSha256": "454ec518e1bdc50c38add2e4b0dabe1304e8c02d0bdc594d4462e69759f1ac94",
+      "sourceBytes": 7882,
+      "path": "objects/454ec518e1bdc50c38add2e4b0dabe1304e8c02d0bdc594d4462e69759f1ac94.gz",
+      "storedSha256": "10e0629cef9b5ab55f94cb416e16539bdfbac6182012240849a967f25f5c7e58",
+      "storedBytes": 1616
+    },
+    {
+      "label": "prepared-ci-review/review_ci.py",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\review_ci.py",
+      "sourceSha256": "50f57b8a58dfcff91e2ab49e026264f8826300605390f7f80a5f30de69420056",
+      "sourceBytes": 27601,
+      "path": "objects/50f57b8a58dfcff91e2ab49e026264f8826300605390f7f80a5f30de69420056.gz",
+      "storedSha256": "f8cb20bafd4344f99ddf586ba46b68de335f311e39cf70269f7afd5f9fb87449",
+      "storedBytes": 8253
+    },
+    {
+      "label": "prepared-ci-review/self-test-final.json",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\self-test-final.json",
+      "sourceSha256": "191f771fa662f6f8ee45e292f07a46358f96509738af512831335d814496b0a8",
+      "sourceBytes": 509,
+      "path": "objects/191f771fa662f6f8ee45e292f07a46358f96509738af512831335d814496b0a8.gz",
+      "storedSha256": "29edeb82c4c46b6ac00a500710a0739c6471c47482afdca062fdf5a3795e6ff6",
+      "storedBytes": 297
+    },
+    {
+      "label": "prepared-ci-review/self-test-final.stderr",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\self-test-final.stderr",
+      "sourceSha256": "36745e7482afdda39f239ebccc17859fe05af897f20a9d45a9142c8338074d64",
+      "sourceBytes": 1268,
+      "path": "objects/36745e7482afdda39f239ebccc17859fe05af897f20a9d45a9142c8338074d64.gz",
+      "storedSha256": "d3b2ca653e6cf3145c6d5ed7742930d48baa521b9285902052b8cd16ce737584",
+      "storedBytes": 377
+    },
+    {
+      "label": "prepared-ci-review/self-test-final.stdout",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\self-test-final.stdout",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "prepared-ci-review/self-test-v2.log",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\self-test-v2.log",
+      "sourceSha256": "ec6c27daf530f115619dae9029e41020c31ca69e998056d27492dfed03d82eb2",
+      "sourceBytes": 1539,
+      "path": "objects/ec6c27daf530f115619dae9029e41020c31ca69e998056d27492dfed03d82eb2.gz",
+      "storedSha256": "e7706275280bac7acfd7459414c671af142a44d7798b301a70913903e8544fad",
+      "storedBytes": 579
+    },
+    {
+      "label": "prepared-ci-review/self-test-v3.json",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\self-test-v3.json",
+      "sourceSha256": "1287db5e05f772ca38906e678c735c7119844e15ce98fe4962bd0afb018f6718",
+      "sourceBytes": 116,
+      "path": "objects/1287db5e05f772ca38906e678c735c7119844e15ce98fe4962bd0afb018f6718.gz",
+      "storedSha256": "13ec9e0a0bdd7e9afd184d1d3584d60d068b0bddbede61614e50a23d19ec36ae",
+      "storedBytes": 118
+    },
+    {
+      "label": "prepared-ci-review/self-test-v3.stderr",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\self-test-v3.stderr",
+      "sourceSha256": "066655582630882ec3244d337f9f64a35809ee622624b34a4bf8073a4b1afde9",
+      "sourceBytes": 1268,
+      "path": "objects/066655582630882ec3244d337f9f64a35809ee622624b34a4bf8073a4b1afde9.gz",
+      "storedSha256": "fa91202e3ad13d0c640bbb2e24d8ae053fb2908333e2a7661f22e0573bb2524a",
+      "storedBytes": 376
+    },
+    {
+      "label": "prepared-ci-review/self-test-v3.stdout",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\self-test-v3.stdout",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "prepared-ci-review/test_review_ci.py",
+      "localSource": "C:\\code\\chainlesschain\\.work\\astra-release101-ci-review-20261013\\test_review_ci.py",
+      "sourceSha256": "badcefdad920dc1d6be031d4089af3008a87c6d929664855dcf67ee21f1fed94",
+      "sourceBytes": 6389,
+      "path": "objects/badcefdad920dc1d6be031d4089af3008a87c6d929664855dcf67ee21f1fed94.gz",
+      "storedSha256": "455a5e3596c6c1cda0917d91da2a4323a3958fd79031c1fda28272ecaa32a2da",
+      "storedBytes": 1991
+    },
+    {
+      "label": "independent-final-kernel/linux.stderr",
+      "localSource": "C:\\code\\chainlesschain\\.work\\verify01-acceptance-closeout-20261013\\final-kernel-lAD770\\linux.stderr",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "independent-final-kernel/linux.stdout",
+      "localSource": "C:\\code\\chainlesschain\\.work\\verify01-acceptance-closeout-20261013\\final-kernel-lAD770\\linux.stdout",
+      "sourceSha256": "91a61819449cb5b45ecbbb0acf8427876c581967184bd0aa3804a24b6b757df2",
+      "sourceBytes": 4718,
+      "path": "objects/91a61819449cb5b45ecbbb0acf8427876c581967184bd0aa3804a24b6b757df2.gz",
+      "storedSha256": "f310ffff4e17b1c436f31a60d1f2005a5335b9212aecc7a586da69a26bf35ed5",
+      "storedBytes": 1123
+    },
+    {
+      "label": "independent-final-kernel/receipt.json",
+      "localSource": "C:\\code\\chainlesschain\\.work\\verify01-acceptance-closeout-20261013\\final-kernel-lAD770\\receipt.json",
+      "sourceSha256": "d3293a97927e1e2c6d70e6c17a6098eaefa3eddb325583b75674211bdfbaa049",
+      "sourceBytes": 3722,
+      "path": "objects/d3293a97927e1e2c6d70e6c17a6098eaefa3eddb325583b75674211bdfbaa049.gz",
+      "storedSha256": "7b13b2be69ced5c718ab5dcce06e9596cb88dd6791720c5ac3a0d6e30fb0843a",
+      "storedBytes": 1246
+    },
+    {
+      "label": "independent-final-kernel/windows.stderr",
+      "localSource": "C:\\code\\chainlesschain\\.work\\verify01-acceptance-closeout-20261013\\final-kernel-lAD770\\windows.stderr",
+      "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceBytes": 0,
+      "path": "objects/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.gz",
+      "storedSha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e",
+      "storedBytes": 20
+    },
+    {
+      "label": "independent-final-kernel/windows.stdout",
+      "localSource": "C:\\code\\chainlesschain\\.work\\verify01-acceptance-closeout-20261013\\final-kernel-lAD770\\windows.stdout",
+      "sourceSha256": "c77d68decb01bbd1c121495b3eeae393cda03a2ebf44c46263e283fa59d6687a",
+      "sourceBytes": 4715,
+      "path": "objects/c77d68decb01bbd1c121495b3eeae393cda03a2ebf44c46263e283fa59d6687a.gz",
+      "storedSha256": "ca3df5e009ed7a465a676a318e0d64eccaa3a3fe82ca51e29ba23bc61a69bef4",
+      "storedBytes": 1115
+    },
+    {
+      "label": "final-reviewed-source/packages/context-memory-kernel/lib/compaction.js",
+      "localSource": "C:/code/chainlesschain/.work/vj13/packages/context-memory-kernel/lib/compaction.js",
+      "sourceSha256": "c20037ed2d90d6aa62e8d642ffc65f48b27282b048896a40d840ff0b93c59a98",
+      "sourceBytes": 18663,
+      "path": "objects/c20037ed2d90d6aa62e8d642ffc65f48b27282b048896a40d840ff0b93c59a98.gz",
+      "storedSha256": "c47c04220af85ff8a709878ed25f6def0830a1b1b4748d4cfbe2771bf1801f24",
+      "storedBytes": 4868
+    },
+    {
+      "label": "final-reviewed-source/packages/context-memory-kernel/index.mjs",
+      "localSource": "C:/code/chainlesschain/.work/vj13/packages/context-memory-kernel/index.mjs",
+      "sourceSha256": "ae5ab3a96002a2027772d3af8ee2ad341f3ec157b30f4815f291a1679f58df36",
+      "sourceBytes": 1882,
+      "path": "objects/ae5ab3a96002a2027772d3af8ee2ad341f3ec157b30f4815f291a1679f58df36.gz",
+      "storedSha256": "82bd51293f3973150dea8791843cd9dededd6a87a20ae37c1e600b26f4ef7ad2",
+      "storedBytes": 774
+    },
+    {
+      "label": "final-reviewed-source/packages/context-memory-kernel/index.d.ts",
+      "localSource": "C:/code/chainlesschain/.work/vj13/packages/context-memory-kernel/index.d.ts",
+      "sourceSha256": "49320473e27f1b410c0fa54bcf5ef97982cf1e6b43e52c821a7b7ecb450ac182",
+      "sourceBytes": 10559,
+      "path": "objects/49320473e27f1b410c0fa54bcf5ef97982cf1e6b43e52c821a7b7ecb450ac182.gz",
+      "storedSha256": "da614428c1ae701d78db2e41338250506a21a573df64fef7e88767f2d5cf30b0",
+      "storedBytes": 2792
+    },
+    {
+      "label": "final-reviewed-source/packages/context-memory-kernel/test/compaction.test.js",
+      "localSource": "C:/code/chainlesschain/.work/vj13/packages/context-memory-kernel/test/compaction.test.js",
+      "sourceSha256": "838b340f429e9345a8e76e3ec75b14439b2bb0967cdcd543781e01d51e5274f4",
+      "sourceBytes": 11239,
+      "path": "objects/838b340f429e9345a8e76e3ec75b14439b2bb0967cdcd543781e01d51e5274f4.gz",
+      "storedSha256": "10adfe5c9b01cf3f0cf009fb9a4d35a9779262a69abd19545121a427bafbd569",
+      "storedBytes": 2549
+    },
+    {
+      "label": "final-reviewed-source/packages/cli/src/lib/context-memory-kernel/live-compaction.js",
+      "localSource": "C:/code/chainlesschain/.work/vj13/packages/cli/src/lib/context-memory-kernel/live-compaction.js",
+      "sourceSha256": "98dcaaab42de35d2cf03fb284a30a60e051c5c5b8f869a1a9a04f7ae3dd911b0",
+      "sourceBytes": 14630,
+      "path": "objects/98dcaaab42de35d2cf03fb284a30a60e051c5c5b8f869a1a9a04f7ae3dd911b0.gz",
+      "storedSha256": "04e2a39e5dd8245bc88a3c34cf128b745ffe55033d6a50795c8b24d51f388464",
+      "storedBytes": 3881
+    },
+    {
+      "label": "final-reviewed-source/packages/cli/src/runtime/agent-core.js",
+      "localSource": "C:/code/chainlesschain/.work/vj13/packages/cli/src/runtime/agent-core.js",
+      "sourceSha256": "98c4d1993667a15bd8b2af43dde3909cf7cf54a753f51e141b3b71e8c308b6f3",
+      "sourceBytes": 642751,
+      "path": "objects/98c4d1993667a15bd8b2af43dde3909cf7cf54a753f51e141b3b71e8c308b6f3.gz",
+      "storedSha256": "91e6232a72f50fbf174bc9c6a84540463dcade58e3d99c5ac976a06b98dbfb7e",
+      "storedBytes": 162549
+    },
+    {
+      "label": "final-reviewed-source/packages/cli/src/runtime/headless-stream.js",
+      "localSource": "C:/code/chainlesschain/.work/vj13/packages/cli/src/runtime/headless-stream.js",
+      "sourceSha256": "4a0638081fe5ac92ca4376cf6093b6a430de008c8e616293cd73429021367cea",
+      "sourceBytes": 207952,
+      "path": "objects/4a0638081fe5ac92ca4376cf6093b6a430de008c8e616293cd73429021367cea.gz",
+      "storedSha256": "63e3d3c2374f54ac6fb54334cbe35abff3cf41208f3b3cb8c3b9ddcdc00d7ae4",
+      "storedBytes": 56199
+    },
+    {
+      "label": "final-reviewed-source/packages/cli/__tests__/unit/canonical-compaction-usage.test.js",
+      "localSource": "C:\\code\\chainlesschain\\.work\\vj13\\packages\\cli\\__tests__\\unit\\canonical-compaction-usage.test.js",
+      "sourceSha256": "24bc32b0ee0f2b8e7c234292a9653b0f2cba2535838baa25a337bedc19f002f3",
+      "sourceBytes": 18753,
+      "path": "objects/24bc32b0ee0f2b8e7c234292a9653b0f2cba2535838baa25a337bedc19f002f3.gz",
+      "storedSha256": "01c258b7a1b0c62f2e2f6815aaa8116862347d5a03a5be2e12945d1cc2a2e409",
+      "storedBytes": 4240
+    }
+  ]
+}

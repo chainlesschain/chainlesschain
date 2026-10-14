@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import {
   canonicalDigest,
   InMemorySessionContextPort,
+  getCompactionPlanRejection,
 } from "@chainlesschain/context-memory-kernel";
 import { sessionExists } from "../../harness/jsonl-session-store.js";
 import {
@@ -11,6 +12,17 @@ import {
 } from "./message-adapter.js";
 import { JsonlSessionContextPort } from "./jsonl-session-context-port.js";
 import { createCliContextMemoryRuntime } from "./runtime.js";
+import { projectRuntimeTokenUsage } from "../runtime-usage-ledger.js";
+
+const rejectedCompactionUsage = new WeakMap();
+
+// Only the owned canonical adapter can associate an error with its completed
+// summarizer. A caller-supplied error property is never a settlement authority.
+export function getRejectedCompactionUsage(error) {
+  return error && typeof error === "object"
+    ? rejectedCompactionUsage.get(error) || null
+    : null;
+}
 
 function estimatedTokens(messages) {
   return Math.max(
@@ -20,7 +32,9 @@ function estimatedTokens(messages) {
         typeof message?.content === "string"
           ? message.content
           : JSON.stringify(message?.content ?? "");
-      return total + Math.max(1, Math.ceil(Buffer.byteLength(content, "utf8") / 4));
+      return (
+        total + Math.max(1, Math.ceil(Buffer.byteLength(content, "utf8") / 4))
+      );
     }, 0),
   );
 }
@@ -125,13 +139,22 @@ class CallbackSessionContextPort extends InMemorySessionContextPort {
 }
 
 function kernelBudget(compressor) {
-  const inputBudget = Math.max(256, Math.trunc(Number(compressor?.maxTokens)) || 16_384);
-  const reservedOutputTokens = Math.max(1, Math.min(2048, Math.floor(inputBudget / 10)));
+  const inputBudget = Math.max(
+    256,
+    Math.trunc(Number(compressor?.maxTokens)) || 16_384,
+  );
+  const reservedOutputTokens = Math.max(
+    1,
+    Math.min(2048, Math.floor(inputBudget / 10)),
+  );
   return {
     modelWindowTokens: inputBudget + reservedOutputTokens,
     reservedOutputTokens,
     safetyMarginTokens: 0,
-    recoveryReserveTokens: Math.min(256, Math.max(1, Math.floor(inputBudget * 0.05))),
+    recoveryReserveTokens: Math.min(
+      256,
+      Math.max(1, Math.floor(inputBudget * 0.05)),
+    ),
   };
 }
 
@@ -175,7 +198,10 @@ function usageReceipt(stats, provider, model) {
  * summarizer for the Kernel-selected dropped partition; it cannot commit or
  * choose the authoritative output on its own.
  */
-export async function compactLiveMessagesCanonical(messagesInput, options = {}) {
+export async function compactLiveMessagesCanonical(
+  messagesInput,
+  options = {},
+) {
   const messages = Array.isArray(messagesInput) ? [...messagesInput] : [];
   const sessionId = String(options.sessionId || `live-${randomUUID()}`);
   const operationId = String(options.operationId || `compact-${randomUUID()}`);
@@ -185,10 +211,13 @@ export async function compactLiveMessagesCanonical(messagesInput, options = {}) 
     new Date(Number((options.clock || Date.now)())).toISOString();
   const compressor = options.compressor;
   if (!compressor || typeof compressor.compress !== "function") {
-    throw new TypeError("canonical live compaction requires a compatibility summarizer");
+    throw new TypeError(
+      "canonical live compaction requires a compatibility summarizer",
+    );
   }
 
   let summaryStats = null;
+  let summaryReceipt = null;
   let runtime;
   let verifiedAuthoritySnapshot = null;
   const persistentSession =
@@ -227,9 +256,7 @@ export async function compactLiveMessagesCanonical(messagesInput, options = {}) 
       memoryPort: bootstrapRuntime.memoryPort,
       sessionPort,
     });
-  } else if (
-    persistentSession
-  ) {
+  } else if (persistentSession) {
     runtime = createCliContextMemoryRuntime({
       sessionId,
       scopeKey: `cli:session:${sessionId}`,
@@ -265,13 +292,13 @@ export async function compactLiveMessagesCanonical(messagesInput, options = {}) 
     });
   }
   if (!runtime.decision.canonical) {
-    const error = new Error("canonical live compaction is not authoritative for this cohort");
+    const error = new Error(
+      "canonical live compaction is not authoritative for this cohort",
+    );
     error.code = "legacy_writer_fenced";
     throw error;
   }
-  if (
-    persistentSession
-  ) {
+  if (persistentSession) {
     const authority =
       verifiedAuthoritySnapshot ||
       (await runtime.sessionPort.readSnapshot(sessionId));
@@ -296,52 +323,102 @@ export async function compactLiveMessagesCanonical(messagesInput, options = {}) 
   const provider = options.provider || "provider.local";
   const model = options.model || "default";
   const memoryRevision = await runtime.memoryPort.getRevision();
-  const receipt = await runtime.kernel.compactContext({
-    operationId,
-    sessionId,
-    ...kernelBudget(compressor),
-    sink: provider,
-    scopeAdmissions: [{ scope: "session", scopeId: sessionId }],
-    policyVersion: "cli-context-policy-v1",
-    modelProfile: model,
-    memoryRevision,
-    allowFallback: false,
-    now: operationNow,
-    metadata: {
-      inputMessageCount: messages.length,
-      originalTokens: estimatedTokens(messages),
-      trigger,
-      provider,
-      model,
-    },
-    summarizer: async (droppedItems, context) => {
-      const droppedMessages = contextItemsToMessages(droppedItems);
-      const result = await compressor.compress(droppedMessages, {
-        preserveToolPairs: true,
-        ...(options.compressOptions || {}),
-      });
-      summaryStats = result.stats || {};
-      const reduced =
-        Number(summaryStats.saved || 0) > 0 ||
-        result.messages.length < droppedMessages.length;
-      const item = reduced
-        ? createSummaryContextItem({
-            messages: result.messages,
-            parents: droppedItems,
-            operationId: context.operationId,
-            now: operationNow,
-          })
-        : null;
-      return {
-        items: item ? [item] : [],
-        usageReceipt: usageReceipt(summaryStats, provider, model),
-        degraded: summaryStats.degraded === true,
-        ...(summaryStats.degradedReason
-          ? { degradedReason: String(summaryStats.degradedReason).slice(0, 160) }
-          : {}),
-      };
-    },
-  });
+  let receipt;
+  try {
+    receipt = await runtime.kernel.compactContext({
+      operationId,
+      sessionId,
+      ...kernelBudget(compressor),
+      sink: provider,
+      scopeAdmissions: [{ scope: "session", scopeId: sessionId }],
+      policyVersion: "cli-context-policy-v1",
+      modelProfile: model,
+      memoryRevision,
+      allowFallback: false,
+      now: operationNow,
+      metadata: {
+        inputMessageCount: messages.length,
+        originalTokens: estimatedTokens(messages),
+        trigger,
+        provider,
+        model,
+      },
+      summarizer: async (droppedItems, context) => {
+        const droppedMessages = contextItemsToMessages(droppedItems);
+        const result = await compressor.compress(droppedMessages, {
+          preserveToolPairs: true,
+          ...(options.compressOptions || {}),
+        });
+        summaryStats = result.stats || {};
+        summaryReceipt = usageReceipt(summaryStats, provider, model);
+        const reduced =
+          Number(summaryStats.saved || 0) > 0 ||
+          result.messages.length < droppedMessages.length;
+        const item = reduced
+          ? createSummaryContextItem({
+              messages: result.messages,
+              parents: droppedItems,
+              operationId: context.operationId,
+              now: operationNow,
+            })
+          : null;
+        return {
+          items: item ? [item] : [],
+          usageReceipt: summaryReceipt,
+          degraded: summaryStats.degraded === true,
+          ...(summaryStats.degradedReason
+            ? {
+                degradedReason: String(summaryStats.degradedReason).slice(
+                  0,
+                  160,
+                ),
+              }
+            : {}),
+        };
+      },
+    });
+  } catch (error) {
+    const rejection = getCompactionPlanRejection(error);
+    if (
+      rejection?.operationId === operationId &&
+      rejection.sessionId === sessionId &&
+      summaryReceipt !== null &&
+      rejection.usageReceipt &&
+      canonicalDigest(rejection.usageReceipt) ===
+        canonicalDigest(summaryReceipt) &&
+      summaryStats?.summaryUsageUnknown !== true
+    ) {
+      try {
+        const usage = projectRuntimeTokenUsage({
+          ...(summaryStats.summaryCallId
+            ? { callId: summaryStats.summaryCallId }
+            : {}),
+          provider: summaryStats.summaryProvider || provider,
+          model: summaryStats.summaryModel || model,
+          source: "semantic-compaction",
+          usage: {
+            input_tokens: summaryStats.summaryUsage?.inputTokens,
+            output_tokens: summaryStats.summaryUsage?.outputTokens,
+            cache_read_input_tokens:
+              summaryStats.summaryUsage?.cacheReadTokens ?? 0,
+            cache_creation_input_tokens:
+              summaryStats.summaryUsage?.cacheCreationTokens ?? 0,
+          },
+        });
+        rejectedCompactionUsage.set(
+          error,
+          Object.freeze({
+            ...usage,
+            usage: Object.freeze(usage.usage),
+            receipt: Object.freeze({ ...summaryReceipt }),
+          }),
+        );
+      } catch {
+        // Missing or invalid usage retains the caller's unknown outcome path.
+      }
+    }
+    throw error;
+  }
   if (!["committed", "degraded"].includes(receipt.status)) {
     return {
       messages,
@@ -361,12 +438,16 @@ export async function compactLiveMessagesCanonical(messagesInput, options = {}) 
     messages: outputMessages,
     stats: {
       ...(summaryStats || {}),
-      strategy: receipt.status === "degraded" ? "deterministic-fallback" : "canonical",
+      strategy:
+        receipt.status === "degraded" ? "deterministic-fallback" : "canonical",
       originalMessages: messages.length,
       compressedMessages: outputMessages.length,
       originalTokens: estimatedTokens(messages),
       compressedTokens: estimatedTokens(outputMessages),
-      saved: Math.max(0, estimatedTokens(messages) - estimatedTokens(outputMessages)),
+      saved: Math.max(
+        0,
+        estimatedTokens(messages) - estimatedTokens(outputMessages),
+      ),
       canonicalAlreadySettled: true,
       canonicalReceipt: receipt,
     },

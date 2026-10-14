@@ -60,6 +60,7 @@ export const {
   validateCompactionInvariants,
   validateDerivedSummaryItem,
   compactContextWithPorts,
+  getCompactionPlanRejection,
   AUTHORITY_MODES,
   CUTOVER_STAGES,
   STAGE_TRANSITIONS,

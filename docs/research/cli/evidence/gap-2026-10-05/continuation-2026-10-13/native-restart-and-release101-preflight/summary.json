@@ -1,0 +1,684 @@
+{
+  "schema": "chainlesschain.native-restart-and-release101-preflight/v1",
+  "capturedAt": "2026-10-13T15:21:05.248Z",
+  "formal": {
+    "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+    "reviewDigest": "sha256:70b1e2db16afe0664db90a76415bb6ffed528f89ef81e9134ca53b5d7ff626d9",
+    "publicSourceCommit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+    "versions": {
+      "cli": "0.166.99",
+      "vscode": "0.37.143",
+      "jetbrains": "0.4.161"
+    },
+    "status": "NOT_RUN",
+    "tasksObserved": 0,
+    "firstRunsObserved": 0,
+    "paidReady": false,
+    "sharedOriginalLimitUsd": 99,
+    "availableAmountUsd": null,
+    "newProviderCalls": 0,
+    "externalPrerequisites": "SKIPPED_BY_USER"
+  },
+  "compactionRepair": {
+    "implementationCommit": "aa13cb2451928ff0f7faa032271bf9c4fd45c8d1",
+    "independentRegression": {
+      "schema": "chainlesschain.compaction-repair-independent-regression/v1",
+      "capturedAt": "2026-10-13T14:52:10.171Z",
+      "root": "C:/code/chainlesschain/.work/verify01-acceptance-closeout-20261013/kernel-repair-LJhtBE",
+      "windowsNode": "v22.12.0",
+      "sourceHashesStable": true,
+      "files": [
+        {
+          "file": "C:/code/chainlesschain/.work/vj13/packages/context-memory-kernel/lib/compaction.js",
+          "sha256": "1d8f7289f9874d3b3de0bdd98166355232d01fc46641a2679bec16597c9e8167"
+        },
+        {
+          "file": "C:/code/chainlesschain/.work/vj13/packages/context-memory-kernel/test/compaction.test.js",
+          "sha256": "5d5e73193162fefbda9ceaba9518f3f010ad76630232f7af1bd72a5820051e0e"
+        }
+      ],
+      "results": [
+        {
+          "platform": "windows",
+          "startedAt": "2026-10-13T14:52:07.160Z",
+          "finishedAt": "2026-10-13T14:52:08.231Z",
+          "command": "C:\\code\\chainlesschain\\.tmp\\node-22.12\\node-v22.12.0-win-x64\\node.exe",
+          "args": [
+            "--test",
+            "C:/code/chainlesschain/.work/vj13/packages/context-memory-kernel/test/compaction.test.js",
+            "C:/code/chainlesschain/.work/vj13/packages/context-memory-kernel/test/conformance-fixture.test.js"
+          ],
+          "exitCode": 0,
+          "signal": null,
+          "error": null,
+          "stdoutSha256": "473c919872506d10da4f4dcf5111415147e0f3dc06284e490db170598c283a59",
+          "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tapTotals": [
+            "# tests 28",
+            "# pass 28",
+            "# fail 0",
+            "# skipped 0"
+          ]
+        },
+        {
+          "platform": "linux",
+          "startedAt": "2026-10-13T14:52:08.231Z",
+          "finishedAt": "2026-10-13T14:52:10.168Z",
+          "command": "wsl.exe",
+          "args": [
+            "-d",
+            "Ubuntu",
+            "--exec",
+            "/usr/bin/env",
+            "-i",
+            "PATH=/usr/bin:/bin",
+            "TMPDIR=/mnt/c/code/chainlesschain/.work/verify01-acceptance-closeout-20261013/temp",
+            "/mnt/c/code/chainlesschain/.tmp/linux-node2212/bin/node",
+            "--test",
+            "/mnt/c/code/chainlesschain/.work/vj13/packages/context-memory-kernel/test/compaction.test.js",
+            "/mnt/c/code/chainlesschain/.work/vj13/packages/context-memory-kernel/test/conformance-fixture.test.js"
+          ],
+          "exitCode": 0,
+          "signal": null,
+          "error": null,
+          "stdoutSha256": "7d6b799261ded6f5e7b63601cbb2cf7cff9e3d28a281a01c366882b89b50ade9",
+          "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tapTotals": [
+            "# tests 28",
+            "# pass 28",
+            "# fail 0",
+            "# skipped 0"
+          ]
+        }
+      ],
+      "providerCalls": 0,
+      "formalObservationsCreated": false
+    },
+    "behavior": "Reject empty output from nonempty input and any dropped newly derived summary before committing; preserve original context/head and settled usage."
+  },
+  "native": {
+    "status": "NOT_ADMITTED",
+    "durable": false,
+    "fullNativeReviewComplete": false,
+    "crashRestart": {
+      "status": "NOT_ADMITTED",
+      "durable": false,
+      "actualBrokerTerminateProcess": true,
+      "actualBrokerExit": 18945,
+      "preAckCheckpointVerified": true,
+      "actorReceivedCrashSuccess": false,
+      "originalHandlesAndJobsVerified": true,
+      "restartEpochChanged": true,
+      "staleEpochRequestsRejected": 3,
+      "restartIdempotentReceipts": 2,
+      "totalAppends": 2,
+      "totalFlushApiSuccesses": 2,
+      "samePinnedTargetObjects": true,
+      "ownerAclSetOnce": true,
+      "actorDirectOperationsDenied": 12,
+      "jobsEmptyAndProfileDeleted": true,
+      "actualPowerLossTested": false,
+      "authorityAcrossSupervisorRestartProven": false
+    },
+    "actualScope": "A fixed Windows owner-only journal and broker restart within one supervisor lifetime; no production SQLite WAL/SHM or full toolchain admission."
+  },
+  "osBoundary": {
+    "schema": "chainlesschain.synthetic-budget-os-boundary-independent-audit/v1",
+    "auditedAt": "2026-10-13T15:15:13.169Z",
+    "status": "ACTOR_NEGATIVE_ASSERTION_FAILURE_NOT_ADMITTED",
+    "run": {
+      "path": "C:\\code\\chainlesschain\\.work\\astra-budget-os-boundary-20261013\\receipts-review2\\report.json",
+      "bytes": 28038,
+      "digest": "sha256:48d904837e9de7338318e2f21c8e89818fe5a191f1c6cb8685a2df198e7c46dd"
+    },
+    "review": {
+      "path": "C:\\code\\chainlesschain\\.work\\astra-budget-os-boundary-20261013\\review2-pins.json",
+      "bytes": 2007,
+      "digest": "sha256:30ad020291633275c5c8121416528b4d39b7523904748eea0e7bf352d3373845"
+    },
+    "originalFailurePreserved": true,
+    "automaticRetries": 0,
+    "paidReady": false,
+    "formalSample": false,
+    "paidProviderCalls": 0,
+    "trustedIpv4PositiveControl": {
+      "at": "2026-10-13T15:11:59.659Z",
+      "host": "127.0.0.1",
+      "port": 39481,
+      "remoteAddress": "127.0.0.1",
+      "phase": "control"
+    },
+    "nativeIpv4Results": [
+      {
+        "case": "ipv4-loopback",
+        "address": "127.0.0.1",
+        "port": 39481,
+        "family": 2,
+        "stage": "select/SO_ERROR",
+        "socketCreateError": 0,
+        "initialConnectError": 10035,
+        "winsockError": 10060,
+        "connected": false,
+        "timedOut": true,
+        "osDenied": false
+      },
+      {
+        "case": "ipv4-documentation",
+        "address": "192.0.2.1",
+        "port": 9,
+        "family": 2,
+        "stage": "select/SO_ERROR",
+        "socketCreateError": 0,
+        "initialConnectError": 10035,
+        "winsockError": 10013,
+        "connected": false,
+        "timedOut": false,
+        "osDenied": true
+      }
+    ],
+    "directJsIpv4Results": [
+      {
+        "case": "ipv4-loopback",
+        "host": "127.0.0.1",
+        "port": 39481,
+        "family": 4,
+        "connected": false,
+        "timedOut": false,
+        "code": "ETIMEDOUT",
+        "errno": -4039,
+        "syscall": "connect",
+        "osDenied": false
+      },
+      {
+        "case": "ipv4-documentation",
+        "host": "192.0.2.1",
+        "port": 9,
+        "family": 4,
+        "connected": false,
+        "timedOut": false,
+        "code": "EACCES",
+        "errno": -4092,
+        "syscall": "connect",
+        "osDenied": true
+      }
+    ],
+    "ipv4BoundaryAcceptance": false,
+    "ipv6BoundaryStatus": "SKIPPED_EXTERNAL_HOST_POLICY",
+    "ipv6RawObservations": [
+      {
+        "case": "ipv6-loopback",
+        "address": "::1",
+        "port": 39482,
+        "family": 23,
+        "stage": "select/SO_ERROR",
+        "socketCreateError": 0,
+        "initialConnectError": 10035,
+        "winsockError": 10013,
+        "connected": false,
+        "timedOut": false,
+        "osDenied": true
+      },
+      {
+        "case": "ipv6-documentation",
+        "address": "2001:db8::1",
+        "port": 9,
+        "family": 23,
+        "stage": "select/SO_ERROR",
+        "socketCreateError": 0,
+        "initialConnectError": 10035,
+        "winsockError": 10051,
+        "connected": false,
+        "timedOut": false,
+        "osDenied": false
+      }
+    ],
+    "nativeFileAccessDenied": 6,
+    "parentProcessAccessDenied": 2,
+    "parentPid": 25596,
+    "actorPid": 23220,
+    "actorActualExit": 1,
+    "brokerExit": 2,
+    "inheritedHandles": 9,
+    "rawRpcVerified": {
+      "attempts": 17,
+      "writes": 2,
+      "flushes": 2,
+      "commits": 2,
+      "idempotent": 3,
+      "rejected": 12,
+      "actorObjectHandlesAdded": 0
+    },
+    "nativeCleanupReceipts": {
+      "cleanupConfirmed": true,
+      "jobActiveProcesses": 0,
+      "profileDeleted": true,
+      "hostMapUnchanged": true,
+      "loopbackExemptionAbsent": true
+    },
+    "syntheticCredentialIdentityAclDigestPreserved": true,
+    "baselineFinalAclReceiptPresent": false,
+    "postFailureReadOnlyReopen": {
+      "receipt": {
+        "path": "C:\\code\\chainlesschain\\.work\\astra-budget-os-boundary-20261013\\forensics-review2\\recovery.stdout",
+        "bytes": 1599,
+        "digest": "sha256:cb4371e63ce436c41da5a62f4fd3ab9574511879afc7ba87fcc4b9af8da46955"
+      },
+      "sameIdentityAndOwnerOnlyAcl": true,
+      "validTwoRecordChain": true,
+      "originalSuccessVerdictChanged": false
+    },
+    "oldArchiveEntriesVerifiedUnchanged": 81,
+    "baselineInputsVerifiedUnchanged": 27,
+    "limitations": [
+      "Run failed: native IPv4 loopback timed out10060 and JS ETIMEDOUT; neither qualifies as access denied",
+      "External host policy attribution for IPv4 timeout is UNPROVEN",
+      "Missing baseline final ACL receipt is retained as missing; separate post-failure read-only reopen does not make original run pass",
+      "IPv6 raw observations are uncredited, regardless of return codes",
+      "Cleanup facts are independently checked against native broker/RPC receipts, not reconstructed by PID-only polling",
+      "No universal egress, durable anti-rollback, frozen public CLI .99 closure, or paid admission claim"
+    ]
+  },
+  "authenticatedPublicCli": {
+    "review": {
+      "schema": "chainlesschain.authenticated-public-cli-loopback-review/v1",
+      "formal": false,
+      "paidReady": false,
+      "osConfinementEstablished": false,
+      "formalTasksCompleted": 0,
+      "formalTaskTotal": 36,
+      "externalPrerequisites": "SKIPPED_BY_USER",
+      "publicVersion": "0.166.99",
+      "publicPackageModified": false,
+      "productionSourcesModified": false,
+      "authoritativeRun": "cc-authenticated-linux-VkdUuJ",
+      "checks": [
+        {
+          "name": "tampered-0-nonzero-and-no-provider",
+          "passed": true
+        },
+        {
+          "name": "tampered-1-nonzero-and-no-provider",
+          "passed": true
+        },
+        {
+          "name": "signed-chat-terminal-completion",
+          "passed": true
+        },
+        {
+          "name": "chat-provider-response-rendered",
+          "passed": true
+        },
+        {
+          "name": "advisor-real-pty-four-actions",
+          "passed": true
+        },
+        {
+          "name": "advisor-zero-tools",
+          "passed": true
+        },
+        {
+          "name": "advisor-status-one-call",
+          "passed": true
+        },
+        {
+          "name": "single-cli-automatic-retry-completes",
+          "passed": true
+        },
+        {
+          "name": "two-physical-streaming-attempts",
+          "passed": true
+        },
+        {
+          "name": "first-connection-dropped-only-after-settlement",
+          "passed": true
+        },
+        {
+          "name": "second-response-forwarded",
+          "passed": true
+        },
+        {
+          "name": "cli-success-terminal-event",
+          "passed": true
+        },
+        {
+          "name": "all-four-reserved-before-provider",
+          "passed": true
+        },
+        {
+          "name": "all-four-settled",
+          "passed": true
+        },
+        {
+          "name": "one-broker-run",
+          "passed": true
+        },
+        {
+          "name": "synthetic-prior-spend-preserved",
+          "passed": true
+        },
+        {
+          "name": "authenticated-run-bound-compositions-used",
+          "passed": true
+        },
+        {
+          "name": "all-frozen-cli-files-unchanged",
+          "passed": true
+        }
+      ],
+      "passed": 18,
+      "failed": 0,
+      "host": {
+        "formal": false,
+        "node": "v22.12.0",
+        "platform": "linux",
+        "arch": "x64",
+        "modulesAbi": "127",
+        "uid": 0,
+        "gid": 0,
+        "root": "/tmp/cc-auth-native-probe-wLbR0q",
+        "rootUid": 0,
+        "rootMode": 448,
+        "rootDevice": 2,
+        "rootInode": 54606145487875070,
+        "directoryFsync": true,
+        "sqliteModule": "/tmp/cc-linux-reliability-dNSZBk/repo/node_modules/better-sqlite3/lib/index.js",
+        "sqliteVersion": "3.53.2",
+        "sqliteLoaded": true,
+        "passed": true
+      },
+      "results": {
+        "chat": {
+          "publicCli": true,
+          "authenticatedComposition": true,
+          "secure": true,
+          "realPty": true,
+          "exitCode": 0,
+          "physicalRequests": 1
+        },
+        "advisor": {
+          "publicCli": true,
+          "authenticatedComposition": true,
+          "secure": true,
+          "realPty": true,
+          "actions": [
+            "/advisor on",
+            "/advisor once",
+            "/advisor status",
+            "/exit"
+          ],
+          "exitCode": 0,
+          "physicalRequests": 1,
+          "tools": 0
+        },
+        "automaticRetry": {
+          "publicCli": true,
+          "authenticatedComposition": true,
+          "secure": true,
+          "singleCliInvocation": true,
+          "retryEnvironment": {
+            "CC_MAX_RETRIES": "1",
+            "CLAUDE_CODE_MAX_RETRIES": "1"
+          },
+          "requiredFlag": "--include-partial-messages",
+          "exitCode": 0,
+          "physicalRequests": 2,
+          "observedAutomaticRetries": 1,
+          "fault": "Client connection closed before any response bytes, after the first broker/provider settlement.",
+          "qualification": "Observed one configured retry recovering successfully; repeated-failure exhaustion was not tested."
+        }
+      },
+      "accounting": {
+        "singleBrokerRun": "fixture-full-public-cli-journey",
+        "singleActiveCapability": true,
+        "physicalRequests": 4,
+        "settled": 4,
+        "syntheticHistoryUsdMicros": 150000,
+        "syntheticExposureUsdMicros": 150184,
+        "actualBilledUsd": null,
+        "originalLineageModified": false
+      },
+      "preservedDiagnostics": [
+        {
+          "run": "run-DSDXOl",
+          "platform": "Windows",
+          "status": "SIGNED_SECURE_RUNTIME_REFUSED",
+          "physicalRequests": 0,
+          "reason": "Chat: the platform cannot durably publish ledger objects before witness CAS; agent: evolution ledger could not initialize its trusted stores.",
+          "qualification": "Not hidden by the Linux success. secure remained true; no filesystem shim. Parent ConPTY handle was terminated only after final report and broker/authority cleanup."
+        },
+        {
+          "run": "run-rSa2LV",
+          "platform": "Windows",
+          "status": "LEGACY_AGENT_ADVISOR_PASSED_NONSTREAM_RETRY_NOT_APPLICABLE",
+          "reason": "Real ConPTY Advisor completed one zero-tool call. Headless stream-json output alone did not enable streaming transport, so reset produced fetch failed without automatic retry."
+        },
+        {
+          "run": "run-4ocwSv",
+          "platform": "Windows",
+          "status": "LEGACY_AGENT_STREAMING_RETRY_PASSED",
+          "reason": "One real CLI invocation, streaming flag, two broker-settled attempts, exit 0."
+        },
+        {
+          "run": "cc-authenticated-linux-bgmEuZ",
+          "platform": "Linux",
+          "status": "CHAT_PASSED_ADVISOR_INPUT_RACE_NONSTREAM_RETRY",
+          "reason": "Advisor fixture sent /advisor on after banner, before the real prompt/listener was ready. Fixed only fixture synchronization in authoritative run. Nonstream retry case preserved."
+        }
+      ],
+      "sourceBindings": {
+        "publicLedgerSha256": "9eefccf21eaa66ea3c16ba09f6d5b51a0f55e01f6034dbfd80d5c2ef220bbc04",
+        "deploymentModuleDigest": "sha256:1a37d07a7d252fe47ffaad1615e48408653e0bc3c1223aa85c71a287c0d72c8e",
+        "traceSha256": "dc5ef6c0f09ed991264df3ba550ad21fb1a98b986d26dcfcf2f04764b0e00ad4"
+      },
+      "remaining": [
+        "Windows authenticated evolution ledger durable initialization remains unsupported/refused in this frozen public package on this host.",
+        "Public CLI database used sql.js fallback; native SQLite was probed for the synthetic budget host, not established for public CLI.",
+        "No real provider/account/FX/quota, OS-wide confinement, formal target host, or release matrix qualification is claimed.",
+        "Canonical compaction defect remains in frozen public .99; the separate development-source repair review is unchanged."
+      ]
+    },
+    "scope": "Unmodified public .99, real CLI/PTY and signed secure composition, synthetic literal loopback only; no OS-wide confinement or formal-host admission."
+  },
+  "longObservation": {
+    "capturedAt": "2026-10-13T15:19:45.394Z",
+    "rows": [
+      {
+        "name": "windows-native",
+        "capturedAt": "2026-10-13T15:19:44.624Z",
+        "sourceCommit": "b395af36991c048e7de2948e5a03eab6c0adde0b",
+        "workloadPid": 33380,
+        "status": "running",
+        "observerStatus": "MONITORING",
+        "startedAt": "2026-10-13T14:25:58.600Z",
+        "checkpointedAt": "2026-10-13T15:19:36.122Z",
+        "completedAt": null,
+        "durationSeconds": 3217.3119487,
+        "cycles": 1736,
+        "actualRunningProcessIdentityVerified": true,
+        "completedReportValidated": false,
+        "milestones": [],
+        "unmonitoredPrefixSeconds": 137.858,
+        "gaps": [],
+        "monitoringCompleteFromLaunch": false,
+        "qualifyingEvidence": false,
+        "formalHostAcceptance": false,
+        "mappings": [
+          {
+            "name": "binding-v2.json",
+            "bytes": 1144,
+            "digest": "sha256:d73cf2b95e380e74b9e41c1e31bfb7e922c96366aa5cecb29e7e2c310c52d3cc"
+          },
+          {
+            "name": "live-report.json",
+            "bytes": 3209,
+            "digest": "sha256:f4948a6b0f0b11b60e1dbb57db29b24b383864151f6fe122bff77e60075ed9b3"
+          },
+          {
+            "name": "watch-v2-state.json",
+            "bytes": 756,
+            "digest": "sha256:6db18fd787952c43185769acb7e2061aa6b0cba3c9c91d4548be4c9909810b4f"
+          },
+          {
+            "name": "observer-preparation.json",
+            "bytes": 2141,
+            "digest": "sha256:587888180d750b74a3600acab6c0809f6662fd2f6690882681aac6669c5e29fe"
+          },
+          {
+            "name": "launch.json",
+            "bytes": 1529,
+            "digest": "sha256:5fb9d2cff2ebfe33b8228a9c14d675bfa32db9300d23325850b2c402c8e4259c"
+          },
+          {
+            "name": "monitor-admission.json",
+            "bytes": 865,
+            "digest": "sha256:8a672b030970969ee12a0e3100a58d0726a66b9283a0e7567c5441291bdf04b1"
+          },
+          {
+            "name": "monitor-start.json",
+            "bytes": 691,
+            "digest": "sha256:de792e9c1716cbbf5aadddbf9a958e27ec37d2e333c5de045afabf5cbe258100"
+          },
+          {
+            "name": "supervisor-admission.json",
+            "bytes": 412,
+            "digest": "sha256:0b231678c38ddbdd062d7f1babccf58bdd2a8f6fbccd73697bb1b2aa037d3eda"
+          },
+          {
+            "name": "workload-admission.json",
+            "bytes": 1160,
+            "digest": "sha256:bce31dbfd13db0421773474b995a3557ae82084508a7abc1915c59b180b4a889"
+          },
+          {
+            "name": "workload-resumed.json",
+            "bytes": 162,
+            "digest": "sha256:ecc9d2ef6293defe32d3acfa28a42ca69fa4524847d400091fedf51de09738b7"
+          },
+          {
+            "name": "workload-handle-handoff.json",
+            "bytes": 236,
+            "digest": "sha256:e4c6a80ed49e82bccb7fb70ff1dec6fa23e1c740f532bf36c15ea51919e644db"
+          },
+          {
+            "name": "workload-handle-accepted.json",
+            "bytes": 365,
+            "digest": "sha256:8275c4b0e50f2afad351e809fb0e3f972f302295a463b8db8950f6e6e70e1518"
+          },
+          {
+            "name": "observer-native-admission.json",
+            "bytes": 1663,
+            "digest": "sha256:142f96443557fd2a233c2b40b79863ed952064c15a64e2ee45d6ced5f954e719"
+          },
+          {
+            "name": "observer-native-resumed.json",
+            "bytes": 120,
+            "digest": "sha256:d872a7e3a7f439539fa4dccd79e6e2dda9cbea91f92ae31eaa38549d3961a080"
+          },
+          {
+            "name": "observer-guardian-admission.json",
+            "bytes": 854,
+            "digest": "sha256:b5989b720afccb3cb740e8892b698a3e41d86173666fba11756bd7f397db5cc3"
+          },
+          {
+            "name": "observer-guardian-start.json",
+            "bytes": 540,
+            "digest": "sha256:df6f841dd2ea8c16d92513ec80fbb896a1dcd3d927ea69a4a95b0a31a141b5ca"
+          }
+        ]
+      },
+      {
+        "name": "linux-original",
+        "capturedAt": "2026-10-13T15:19:45.393Z",
+        "sourceCommit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+        "workloadPid": 8,
+        "status": "running",
+        "observerStatus": "MONITORING",
+        "startedAt": "2026-10-13T05:20:39.076Z",
+        "checkpointedAt": "2026-10-13T15:19:24.530Z",
+        "completedAt": null,
+        "durationSeconds": 35925.1882653,
+        "cycles": 9596,
+        "actualRunningProcessIdentityVerified": true,
+        "completedReportValidated": false,
+        "milestones": [
+          8
+        ],
+        "unmonitoredPrefixSeconds": 809.555,
+        "gaps": [
+          {
+            "from": "2026-10-13T05:34:08.631Z",
+            "to": "2026-10-13T05:37:18.708Z",
+            "reason": "observer or workload checkpoint gap"
+          }
+        ],
+        "monitoringCompleteFromLaunch": false,
+        "qualifyingEvidence": false,
+        "formalHostAcceptance": false,
+        "mappings": [
+          {
+            "name": "binding-v2.json",
+            "bytes": 1097,
+            "digest": "sha256:6d10d79409861c943cafa86c2ed2940c864ade322a4a6dc2c4f2f5b17f3b238c"
+          },
+          {
+            "name": "live-report.json",
+            "bytes": 3212,
+            "digest": "sha256:635808ac894cec77c1a98c39e22cd59a1cce153648088d79347fb19446803cb5"
+          },
+          {
+            "name": "watch-v2-state.json",
+            "bytes": 911,
+            "digest": "sha256:e0a620e563295046ecb2c2dcb45d88a310294b1d5d1176f9f54102e6e1e1b0e1"
+          }
+        ]
+      }
+    ],
+    "externalPrerequisites": "SKIPPED_BY_USER",
+    "formalTasksObserved": 0,
+    "formalFirstRunsObserved": 0,
+    "formalLongAcceptanceComplete": false
+  },
+  "formalLongAcceptanceComplete": false,
+  "release": {
+    "userAuthorized": true,
+    "versions": {
+      "kernel": "0.1.10",
+      "cli": "0.166.101",
+      "vscode": "0.37.145",
+      "jetbrains": "0.4.163"
+    },
+    "status": "PREPARED_NOT_PUBLISHED",
+    "authoritativeFinalShaChecksPassed": false,
+    "requiredWorkflows": [
+      "CLI CI",
+      "CLI Strict Sandbox",
+      "IDE Extensions",
+      "IDE ARM64 Host Validation",
+      "Memory Query Index Measurement",
+      "Context Memory Kernel CI",
+      "CLI Background Interaction E2E"
+    ],
+    "publicationOrder": [
+      "Changed child packages via GitHub Actions OIDC",
+      "CLI via same immutable exact-SHA release tag",
+      "Public registry install/readback",
+      "VS Code and JetBrains extensions"
+    ],
+    "originalFrozenFormalVersionsChanged": false
+  },
+  "remainingInternal": [
+    "Full frozen setup/check/baseline/candidate/mutant toolchain and process settlement",
+    "Durable authority across supervisor restart and protected SQLite WAL/SHM anti-rollback",
+    "OS all-egress boundary: IPv4 loopback rejection experiment failed, external cause unproven",
+    "Actual final 24h workload/observer/exit validation",
+    "Final release SHA complete GitHub Actions matrices and ordered publication"
+  ],
+  "externalSkipped": [
+    "Real provider account contract/FX/full historical shared-budget reconciliation",
+    "Exact formal Windows11 24H2/macOS15 arm64 target-host and human acceptance evidence"
+  ],
+  "reviewers": {
+    "astra": "AI",
+    "root": "AI",
+    "independentHumanReview": false
+  }
+}

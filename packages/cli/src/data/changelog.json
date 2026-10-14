@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.101",
+      "cliVersions": ["0.166.101"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.101: preserve context, usage and task outcomes during compaction",
+          "body": "- Upgrade Context Memory Kernel to 0.1.10. Abort compaction with\n  `context_over_budget` when planning would empty a nonempty context or discard\n  a newly derived summary, including when summarizer fallback is enabled.\n- Preserve the original session context and head on rejection while retaining\n  settled provider usage. Keep summary trust and selection budgets unchanged.\n- Propagate validated provider receipts before accounting. Mark rejected\n  workflow compaction as failed, uncertain commits as requiring reconciliation,\n  and interrupted ordinary tasks as incomplete.\n- Account for completed compaction usage once when canonical planning rejects\n  its summary; stop on unknown usage or failed settlement without a paid retry.\n- Pair VS Code 0.37.145 and JetBrains 0.4.163 with CLI 0.166.101 after child\n  package publication, public CLI verification and the final commit's complete\n  Actions release gates. Formal evaluation and native/durable acceptance retain\n  their separate evidence and unfinished status."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.100",
       "cliVersions": ["0.166.100"],
       "date": null,

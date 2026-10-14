@@ -94,6 +94,13 @@ function validateCompactionInvariants(originalInput, compactedInput) {
   return { ok: violations.length === 0, violations };
 }
 
+const planRejections = new WeakMap();
+
+function getCompactionPlanRejection(error) {
+  const record = error && typeof error === "object" ? planRejections.get(error) : null;
+  return record ? cloneCanonical(record) : null;
+}
+
 function normalizeUsageReceipt(input) {
   const value = objectValue(input, "usageReceipt");
   assertKnownFields(
@@ -403,6 +410,38 @@ async function compactContextWithPorts(input, ports, options = {}) {
 
   outputItems = outputItems.map(normalizeContextItem).sort(stableItemCompare);
   lifecycle.push(lifecycleEntry("verifying", nowIso(options)));
+  // Planning a prompt may omit conversation items; committing a replacement
+  // context must not discard the entire recovery context or its new handoff.
+  // Keep this outside the summarizer fallback catch: a settled provider call
+  // does not make an unusable replacement safe to commit.
+  if (
+    (originalItems.length > 0 && outputItems.length === 0) ||
+    summaryDropped.length > 0
+  ) {
+    const error = kernelError(
+      CONTEXT_ERROR_CODES.CONTEXT_OVER_BUDGET,
+      "compaction budget cannot retain the recovery context and generated summaries",
+      {
+        inputItemCount: originalItems.length,
+        outputItemCount: outputItems.length,
+        droppedSummaryItemIds: summaryDropped.map((item) => item.itemId),
+      },
+    );
+    error.compactionLifecycle = [
+      ...lifecycle,
+      lifecycleEntry("aborted", nowIso(options), { code: error.code }),
+    ];
+    // This is accounting evidence from the normalized summarizer result, not
+    // permission to apply the rejected replacement or replay the provider call.
+    error.compactionUsageReceipt = usageReceipt === null ? null : cloneCanonical(usageReceipt);
+    planRejections.set(error, {
+      operationId,
+      sessionId,
+      inputHead: snapshot.head,
+      usageReceipt: usageReceipt === null ? null : cloneCanonical(usageReceipt),
+    });
+    throw error;
+  }
   const verification = validateCompactionInvariants(originalItems, outputItems);
   if (!verification.ok) {
     throw kernelError(
@@ -486,6 +525,7 @@ async function compactContextWithPorts(input, ports, options = {}) {
 }
 
 module.exports = {
+  getCompactionPlanRejection,
   validateCompactionInvariants,
   validateDerivedSummaryItem,
   compactContextWithPorts,

@@ -3782,7 +3782,13 @@ async function runAgentHeadlessStreamInWorkspace(
     ? (event) => {
         try {
           if (event.type === "token-usage") {
-            store.appendTokenUsage(sessionId, projectRuntimeTokenUsage(event));
+            requireSynchronousRecoveryResult(
+              store.appendTokenUsage(
+                sessionId,
+                projectRuntimeTokenUsage(event),
+              ),
+              "appendTokenUsage",
+            );
             return;
           }
           const outcome =
@@ -4294,6 +4300,44 @@ async function runAgentHeadlessStreamInWorkspace(
       let usageUnknownEvent;
       const compactionCallId = `compact-${++slashRequestSeq}`;
       let compactionProviderStarted = false;
+      let compatibilityResult = null;
+      let settledCompactionUsage = null;
+      let costExceeded = false;
+      const settleCompactionUsage = (event) => {
+        if (settledCompactionUsage) return;
+        if (!compactionProviderStarted || event?.callId !== compactionCallId) {
+          throw new Error("compaction usage does not match its provider call");
+        }
+        const projected = projectRuntimeTokenUsage({
+          ...event,
+          source: "semantic-compaction",
+        });
+        try {
+          persistUsageEvent?.({ type: "token-usage", ...projected });
+          requireSynchronousRecoveryResult(
+            recordSessionBudgetUsage(
+              options.sessionBudget,
+              projected,
+              "headless semantic compaction usage settlement",
+            ),
+            "recordUsage",
+          );
+        } catch (error) {
+          // A completed provider call must not be reclassified or replayed
+          // when its accounting write fails.
+          throw markRuntimeLedgerPersistenceError(error);
+        }
+        settledCompactionUsage = Object.freeze({
+          ...projected,
+          usage: Object.freeze(projected.usage),
+          ledgerSettled: typeof persistUsageEvent === "function",
+        });
+        emit({ type: "token_usage", ...projected });
+        if (costBudget) {
+          costBudget.add(projected);
+          costExceeded = costBudget.exceeded();
+        }
+      };
       try {
         const providerCompactionOptions = {
           ...(evolutionIngress === null ? {} : { evolutionIngress }),
@@ -4340,7 +4384,6 @@ async function runAgentHeadlessStreamInWorkspace(
         if (cutover.canonical) {
           const { compactLiveMessagesCanonical } =
             await import("../lib/context-memory-kernel/live-compaction.js");
-          let compatibilityResult = null;
           const canonical = await compactLiveMessagesCanonical(messages, {
             compressor: {
               maxTokens: Math.max(
@@ -4352,6 +4395,23 @@ async function runAgentHeadlessStreamInWorkspace(
                   dropped,
                   providerCompactionOptions,
                 );
+                if (
+                  compatibilityResult.usageEvent &&
+                  !compatibilityResult.usageUnknownEvent
+                ) {
+                  settleCompactionUsage(compatibilityResult.usageEvent);
+                  const settledStats = { ...compatibilityResult.stats };
+                  if (settledCompactionUsage.ledgerSettled) {
+                    settledStats.summaryCallId = compactionCallId;
+                    settledStats.summaryUsageLedgerSettled = true;
+                  } else {
+                    // Ordinary nonpersistent runs have no durable ledger to
+                    // attest. Keep their known usage without inventing one.
+                    delete settledStats.summaryCallId;
+                    delete settledStats.summaryUsageLedgerSettled;
+                  }
+                  return { ...compatibilityResult, stats: settledStats };
+                }
                 return compatibilityResult;
               },
             },
@@ -4411,6 +4471,63 @@ async function runAgentHeadlessStreamInWorkspace(
       } catch (error) {
         if (isAbortError(error) || options.signal?.aborted) throw error;
         if (error?.runtimeLedgerPersistence === true) throw error;
+        const { getRejectedCompactionUsage } =
+          await import("../lib/context-memory-kernel/live-compaction.js");
+        const rejectedUsage = getRejectedCompactionUsage(error);
+        if (
+          rejectedUsage &&
+          settledCompactionUsage &&
+          settledCompactionUsage.callId === compactionCallId &&
+          (!rejectedUsage.callId ||
+            rejectedUsage.callId === compactionCallId) &&
+          (!rejectedUsage.receipt.callId ||
+            rejectedUsage.receipt.callId === compactionCallId) &&
+          rejectedUsage.provider === settledCompactionUsage.provider &&
+          rejectedUsage.model === settledCompactionUsage.model &&
+          JSON.stringify(rejectedUsage.usage) ===
+            JSON.stringify(settledCompactionUsage.usage)
+        ) {
+          emit({
+            type: "compaction-degraded",
+            code: error.code,
+            reason: "canonical_compaction_plan_rejected",
+            summaryMode: "none",
+          });
+          if (costExceeded) {
+            sawError = true;
+            emit({
+              type: "cost_budget_exhausted",
+              limit_usd: options.maxCostUsd,
+              spent_usd: costBudget.spentUsd,
+              session_id: sessionId,
+              turn: turns,
+            });
+            break;
+          }
+          continue;
+        }
+        if (settledCompactionUsage) {
+          // Only a kernel-owned precommit rejection permits continuing. A
+          // commit failure may have changed durable state, but cannot erase
+          // the provider usage that this host already settled.
+          emit({
+            type: "compaction-degraded",
+            code: error.code,
+            reason: "canonical_compaction_settlement_failed",
+            summaryMode: "none",
+          });
+          emit({
+            type: "result",
+            subtype: "error_compaction_settlement",
+            is_error: true,
+            code: error.code || "CC_COMPACTION_SETTLEMENT_FAILED",
+            error:
+              "Compaction settlement failed; the paid compaction is not retried",
+            session_id: sessionId,
+          });
+          sawError = true;
+          break;
+        }
         if (error?.code === AGENT_EVOLUTION_INGRESS_FAILED_CODE) {
           evolutionIngressFailed = true;
           sawError = true;
@@ -4431,6 +4548,22 @@ async function runAgentHeadlessStreamInWorkspace(
               "headless semantic compaction",
             );
           }
+          emit({
+            ...event,
+            type: "compaction_usage_unknown",
+            usage_outcome: "unknown",
+          });
+          emit({
+            type: "result",
+            subtype: "error_compaction_usage_unknown",
+            is_error: true,
+            code: "CC_COMPACTION_USAGE_UNKNOWN",
+            error:
+              "Compaction provider usage is unknown; the paid compaction is not retried",
+            session_id: sessionId,
+          });
+          sawError = true;
+          break;
         }
         if (error?.code === AGENT_EVOLUTION_INGRESS_FAILED_CODE) {
           emit({
@@ -4487,8 +4620,7 @@ async function runAgentHeadlessStreamInWorkspace(
         sawError = true;
         break;
       }
-      let costExceeded = false;
-      if (usageEvent) {
+      if (usageEvent && !settledCompactionUsage) {
         const event = {
           type: "token-usage",
           callId: compactionCallId,
