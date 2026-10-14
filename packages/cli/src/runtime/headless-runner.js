@@ -2623,6 +2623,7 @@ async function runAgentHeadlessInWorkspace(
     apiKey,
     cwd,
     skillLoader: _runtimeSkillLoader,
+    serviceTier: options.serviceTier,
     ...(skillDecisionRuntime === null ? {} : { skillDecisionRuntime }),
     ...captureSkillRuntimeDependencies(options, evolutionIngress?.tenantId),
     ...(skillOutcomeIndex === null ? {} : { skillOutcomeIndex }),

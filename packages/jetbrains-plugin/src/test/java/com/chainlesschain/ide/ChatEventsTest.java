@@ -14,6 +14,29 @@ import org.junit.jupiter.api.Test;
 /** Real JUnit 5 coverage for the pure {@link ChatEvents} layer. */
 class ChatEventsTest {
 
+    @Test
+    void goalChecksAndExhaustionDoNotClaimCompletion() {
+        ChatEvents.TurnState state = new ChatEvents.TurnState();
+        Map<String, Object> pending = ChatEvents.mapAgentEvent(Map.of("type", "goal_evaluated", "met", false, "reason", "tests failing"), state);
+        assertEquals("checking", pending.get("goalStatus"));
+        assertEquals(false, pending.get("verificationPassed"));
+        Map<String, Object> stopped = ChatEvents.mapAgentEvent(Map.of("type", "goal_exhausted"), state);
+        assertEquals("incomplete", stopped.get("goalStatus"));
+        assertEquals(false, stopped.get("verificationPassed"));
+        assertEquals("completed", ChatEvents.mapAgentEvent(Map.of("type", "goal_completed"), state).get("goalStatus"));
+    }
+
+    @Test
+    void liveUsageShowsActualTierAndUnconfirmedPrice() {
+        ChatEvents.TokenTally tally = new ChatEvents.TokenTally();
+        tally.add(null);
+        tally.add(Map.of("input_tokens", 100L, "output_tokens", 10L, "service_tier", "ultrafast", "pricingContextInvalid", true));
+        assertTrue(tally.statusLine().contains("ultrafast"));
+        assertTrue(tally.statusLine().contains("price unconfirmed"));
+        tally.add(Map.of("input_tokens", 1L, "output_tokens", 1L, "service_tier", "default"));
+        assertTrue(tally.statusLine().contains("price unconfirmed"));
+    }
+
     private static Map<String, Object> usage(long input, long output, long cached) {
         Map<String, Object> u = new LinkedHashMap<>();
         u.put("input_tokens", input);

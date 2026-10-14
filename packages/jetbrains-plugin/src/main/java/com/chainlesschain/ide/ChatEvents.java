@@ -43,10 +43,15 @@ public final class ChatEvents {
         public long input;
         public long output;
         public long cached;
+        public String serviceTier;
+        public boolean priceUnconfirmed;
 
         /** Fold one token_usage payload in (missing/non-numeric fields = 0). */
         public void add(Map<String, Object> usage) {
             if (usage == null) return;
+            String tier = str(usage, "service_tier", "");
+            serviceTier = List.of("standard", "default", "fast", "priority", "flex", "ultrafast").contains(tier) ? tier : null;
+            priceUnconfirmed |= isTrue(usage.get("pricingContextInvalid")) || "unknown".equals(tier);
             input += num(usage.get("input_tokens"));
             output += num(usage.get("output_tokens"));
             cached += num(usage.get("cache_read_input_tokens"));
@@ -56,7 +61,9 @@ public final class ChatEvents {
         public String statusLine() {
             return "thinking… · " + formatTokens(input) + "→" + formatTokens(output)
                     + " tokens"
-                    + (cached > 0 ? " (" + formatTokens(cached) + " cached)" : "");
+                    + (cached > 0 ? " (" + formatTokens(cached) + " cached)" : "")
+                    + (serviceTier == null ? "" : " · " + serviceTier)
+                    + (priceUnconfirmed ? " · price unconfirmed" : "");
         }
     }
 
@@ -188,6 +195,22 @@ public final class ChatEvents {
     public static Map<String, Object> mapAgentEvent(
             Map<String, Object> evt, TurnState state) {
         if (evt == null) return null;
+        String wireType = str(evt, "type", "");
+        if ("goal_started".equals(wireType) || "goal_evaluated".equals(wireType)
+                || "goal_completed".equals(wireType) || "goal_exhausted".equals(wireType)) {
+            boolean completed = "goal_completed".equals(wireType);
+            boolean exhausted = "goal_exhausted".equals(wireType);
+            boolean evaluated = "goal_evaluated".equals(wireType);
+            String label = evaluated ? (isTrue(evt.get("met")) ? "Goal check passed" : "Goal check pending")
+                    : completed ? "Goal completed" : exhausted ? "Goal incomplete: budget exhausted" : "Goal started";
+            String reason = str(evt, "reason", "");
+            if (reason.length() > 1000) reason = reason.substring(0, 1000);
+            Map<String, Object> m = ui("info");
+            m.put("text", reason.isEmpty() ? label : label + ": " + reason);
+            m.put("goalStatus", completed ? "completed" : exhausted ? "incomplete" : evaluated ? "checking" : "running");
+            m.put("verificationPassed", evaluated ? isTrue(evt.get("met")) : completed);
+            return m;
+        }
         AgentStreamEventType type = AgentStreamEventType.Companion.fromWireValue(
                 str(evt, "type", ""));
         // Additive future events remain accepted by the NDJSON transport but

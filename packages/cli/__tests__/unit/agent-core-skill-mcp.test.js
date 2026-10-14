@@ -131,8 +131,9 @@ vi.mock("../../src/lib/hook-manager.js", () => ({
   },
 }));
 
-const { agentLoop, executeTool } =
-  await import("../helpers/test-model-egress.js");
+const { agentLoop, executeTool } = await import(
+  "../helpers/test-model-egress.js"
+);
 
 describe("run_skill controlled execution boundary", () => {
   let tempDir;
@@ -1031,6 +1032,61 @@ describe("run_skill controlled execution boundary", () => {
       "alpha",
       "gamma",
     ]);
+  });
+
+  it.each([50, 200, 500])(
+    "pages a %i-skill directory and searches omitted descriptors",
+    async (size) => {
+      for (let i = 0; i < size; i++)
+        registerSkill({ id: `fixture-${i}`, description: `target${i}` });
+      const context = { cwd: tempDir };
+      const first = await executeTool("list_skills", {}, context);
+      expect(first).toMatchObject({
+        count: 20,
+        totalCount: size,
+        hasMore: true,
+        nextOffset: 20,
+      });
+      const ids = first.skills.map((skill) => skill.id);
+      let offset = first.nextOffset;
+      while (offset != null) {
+        const page = await executeTool("list_skills", { offset }, context);
+        ids.push(...page.skills.map((skill) => skill.id));
+        offset = page.nextOffset;
+      }
+      expect(new Set(ids).size).toBe(size);
+      expect(ids.length).toBe(size);
+      const searched = await executeTool(
+        "list_skills",
+        { query: `target${size - 1}` },
+        context,
+      );
+      expect(searched.skills.map((skill) => skill.id)).toEqual([
+        `fixture-${size - 1}`,
+      ]);
+      expect(mocks.childRuns).toHaveLength(0);
+    },
+  );
+
+  it("rejects invalid pages and explains the search result ceiling", async () => {
+    registerSkill({ id: "alpha" });
+    expect(
+      await executeTool("list_skills", { limit: 65 }, { cwd: tempDir }),
+    ).toMatchObject({ code: "CC_SKILL_DIRECTORY_PAGE_INVALID" });
+    for (let i = 0; i < 100; i++)
+      registerSkill({ id: `repair-${i}`, description: "repair tests" });
+    const page = await executeTool(
+      "list_skills",
+      { query: "repair", offset: 60 },
+      { cwd: tempDir },
+    );
+    expect(page).toMatchObject({
+      count: 4,
+      totalCount: 100,
+      nextOffset: null,
+      hasMore: true,
+    });
+    expect(page.hint).toContain("Refine query");
   });
 
   it("list_skills query returns ranked digest-bound routing evidence", async () => {

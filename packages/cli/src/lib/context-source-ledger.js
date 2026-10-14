@@ -40,7 +40,28 @@ class ContextSourceLedger {
    * @returns {string} entryId
    */
   record(entry) {
+    if (
+      entry.tokenCount != null &&
+      (!Number.isSafeInteger(entry.tokenCount) || entry.tokenCount < 0)
+    ) {
+      throw new TypeError(
+        "Context tokenCount must be a non-negative safe integer",
+      );
+    }
     const entryId = entry.entryId || crypto.randomUUID();
+    const previous = this._entries.get(entryId);
+    if (previous) {
+      for (const [index, key] of [
+        [this._byTurn, previous.turnId],
+        [this._bySession, previous.sessionId],
+      ]) {
+        const remaining = (index.get(key) || []).filter(
+          (item) => item.entryId !== entryId,
+        );
+        if (remaining.length) index.set(key, remaining);
+        else index.delete(key);
+      }
+    }
     const full = {
       entryId,
       traceId: entry.traceId || null,
@@ -53,6 +74,7 @@ class ContextSourceLedger {
       summary: entry.summary,
       metadata: entry.metadata,
       tokenCount: entry.tokenCount || 0,
+      tokenBasis: entry.tokenBasis === "observed" ? "observed" : "estimated",
       insertedAt: new Date(),
       tags: entry.tags || [],
     };
@@ -64,7 +86,8 @@ class ContextSourceLedger {
     this._byTurn.get(full.turnId).push(full);
 
     // Index by session
-    if (!this._bySession.has(full.sessionId)) this._bySession.set(full.sessionId, []);
+    if (!this._bySession.has(full.sessionId))
+      this._bySession.set(full.sessionId, []);
     this._bySession.get(full.sessionId).push(full);
 
     return entryId;
@@ -82,6 +105,7 @@ class ContextSourceLedger {
       summary: entry.summary || entry.content,
       metadata: entry.metadata,
       tokenCount: entry.tokenCount ?? entry.tokens ?? 0,
+      tokenBasis: entry.tokenBasis,
       traceId: entry.traceId,
     });
   }
@@ -95,14 +119,31 @@ class ContextSourceLedger {
   }
 
   /** Aggregate token usage by source type. */
-  getTokenBreakdown() {
-    const bySource = {};
+  getTokenBreakdown(options = {}) {
+    const sources = new Map();
     let total = 0;
-    for (const entry of this._entries.values()) {
+    for (const entry of this.getProvenance(options)) {
       total += entry.tokenCount;
-      bySource[entry.sourceType] = (bySource[entry.sourceType] || 0) + entry.tokenCount;
+      sources.set(
+        entry.sourceType,
+        (sources.get(entry.sourceType) || 0) + entry.tokenCount,
+      );
     }
-    return { total, bySource };
+    return { total, bySource: Object.fromEntries(sources) };
+  }
+
+  /** Source attribution is separate from provider request usage and billing. */
+  getTokenReport(options = {}) {
+    const entries = this.getProvenance(options);
+    const byBasis = { estimated: 0, observed: 0 };
+    for (const entry of entries) byBasis[entry.tokenBasis] += entry.tokenCount;
+    return {
+      ...this.getTokenBreakdown(options),
+      byBasis,
+      entries: entries.length,
+      currentRequestVerified: false,
+      billingVerified: false,
+    };
   }
 
   /** Clear the in-memory ledger (test/runtime lifecycle boundary). */
@@ -146,7 +187,8 @@ class ContextSourceLedger {
 
     for (const e of entries) {
       byType[e.sourceType] = (byType[e.sourceType] || 0) + 1;
-      byPermission[e.permissionMode] = (byPermission[e.permissionMode] || 0) + 1;
+      byPermission[e.permissionMode] =
+        (byPermission[e.permissionMode] || 0) + 1;
       bySource[e.sourceId] = (bySource[e.sourceId] || 0) + 1;
       totalTokens += e.tokenCount;
       avgConfidence += e.confidence;
@@ -162,7 +204,7 @@ class ContextSourceLedger {
       byType,
       byPermission,
       bySource,
-      entries: entries.map(e => ({
+      entries: entries.map((e) => ({
         sourceType: e.sourceType,
         sourceId: e.sourceId,
         permissionMode: e.permissionMode,
@@ -184,8 +226,9 @@ class ContextSourceLedger {
       this._entries.delete(e.entryId);
       const turnEntries = this._byTurn.get(e.turnId);
       if (turnEntries) {
-        const idx = turnEntries.findIndex(x => x.entryId === e.entryId);
+        const idx = turnEntries.findIndex((x) => x.entryId === e.entryId);
         if (idx >= 0) turnEntries.splice(idx, 1);
+        if (!turnEntries.length) this._byTurn.delete(e.turnId);
       }
     }
     this._bySession.delete(sessionId);

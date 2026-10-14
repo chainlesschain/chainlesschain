@@ -35,6 +35,85 @@ import {
 
 // ─── fixtures ───────────────────────────────────────────────────────────────
 
+describe("MCP catalog replacement and revocation", () => {
+  it("does not inherit prototype properties as instructions for specially named servers", () => {
+    const mcp = fakeMcp([mcpDef("constructor", "read")]);
+    const { registry } = applyToolSearchDeferral(mcp);
+    const result = executeToolSearch(registry, {
+      query: "select:mcp__constructor__read",
+    });
+    expect(result.count).toBe(1);
+    expect(result.tools[0]).not.toHaveProperty("serverInstructions");
+  });
+  it("does not reuse a previously loaded schema on a new connection without fresh discovery", () => {
+    const mcp = fakeMcp([mcpDef("srv", "stale")]);
+    const { registry } = applyToolSearchDeferral(mcp);
+    executeToolSearch(registry, { query: "select:mcp__srv__stale" });
+    mcp.externalToolExecutors.mcp__srv__stale = {
+      kind: "mcp",
+      serverName: "srv",
+      toolName: "stale",
+    };
+    applyToolSearchDeferral(mcp);
+    const result = executeToolSearch(registry, {
+      query: "select:mcp__srv__stale",
+    });
+    expect(result.count).toBe(0);
+    expect(result.available).not.toContain("mcp__srv__stale");
+    expect(
+      gateDeferredMcpCall(
+        "mcp__srv__stale",
+        mcp.externalToolExecutors.mcp__srv__stale,
+      ),
+    ).toMatchObject({ code: "CC_MCP_TOOL_CATALOG_STALE" });
+  });
+  it("requires the changed schema to be loaded again after replacing an executor", () => {
+    const definition = mcpDef("srv", "change");
+    const mcp = fakeMcp([definition]);
+    const { registry } = applyToolSearchDeferral(mcp);
+    executeToolSearch(registry, { query: "select:mcp__srv__change" });
+    const oldExecutor = mcp.externalToolExecutors.mcp__srv__change;
+    const replacement = mcpDef("srv", "change", {
+      schema: {
+        type: "object",
+        properties: { revision: { type: "integer" } },
+        required: ["revision"],
+      },
+    });
+    mcp.extraToolDefinitions = [replacement, buildToolSearchDefinition()];
+    mcp.externalToolExecutors.mcp__srv__change = {
+      kind: "mcp",
+      serverName: "srv",
+      toolName: "change",
+    };
+    applyToolSearchDeferral(mcp);
+    expect(registry.loaded.has("mcp__srv__change")).toBe(false);
+    expect(gateDeferredMcpCall("mcp__srv__change", oldExecutor)).toMatchObject({
+      code: "CC_MCP_TOOL_CATALOG_STALE",
+    });
+    const current = mcp.externalToolExecutors.mcp__srv__change;
+    expect(
+      gateDeferredMcpCall("mcp__srv__change", current).schema.required,
+    ).toEqual(["revision"]);
+    expect(gateDeferredMcpCall("mcp__srv__change", current)).toBeNull();
+  });
+  it("retires removed tools and refuses previously loaded executors", () => {
+    const mcp = fakeMcp([mcpDef("srv", "removed")]);
+    const { registry } = applyToolSearchDeferral(mcp);
+    executeToolSearch(registry, { query: "select:mcp__srv__removed" });
+    const executor = mcp.externalToolExecutors.mcp__srv__removed;
+    mcp.extraToolDefinitions = [buildToolSearchDefinition()];
+    delete mcp.externalToolExecutors.mcp__srv__removed;
+    applyToolSearchDeferral(mcp);
+    expect(
+      executeToolSearch(registry, { query: "select:mcp__srv__removed" }).count,
+    ).toBe(0);
+    expect(gateDeferredMcpCall("mcp__srv__removed", executor)).toMatchObject({
+      code: "CC_MCP_TOOL_CATALOG_STALE",
+    });
+  });
+});
+
 function bigSchema(n = 40) {
   const properties = {};
   for (let i = 0; i < n; i++) {

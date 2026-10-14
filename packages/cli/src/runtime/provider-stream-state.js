@@ -4,7 +4,10 @@
  * agent-core. Shared usage validation also serves non-streamed responses.
  */
 
-import { projectUsagePricingContext } from "../lib/usage-pricing-context.js";
+import {
+  projectUsagePricingContext,
+  projectEnvelopePricingContext,
+} from "../lib/usage-pricing-context.js";
 
 export function _isNonNegativeSafeInteger(value) {
   return Number.isSafeInteger(value) && value >= 0;
@@ -309,6 +312,15 @@ export function _openaiReduceLine(state, raw, onToken) {
     return state;
   }
   if (!state.responseId) state.responseId = _providerReceiptId(obj.id);
+  const pricing = projectEnvelopePricingContext(obj.usage || {}, obj);
+  for (const [key, value] of Object.entries(pricing)) {
+    if (
+      Object.hasOwn(state.pricingContext || {}, key) &&
+      state.pricingContext[key] !== value
+    )
+      pricing.pricingContextInvalid = true;
+  }
+  state.pricingContext = { ...state.pricingContext, ...pricing };
   const delta = obj.choices?.[0]?.delta;
   if (delta?.content) {
     state.text += delta.content;
@@ -373,6 +385,7 @@ export function _openaiFinalize(state) {
       input_tokens: state.inputTokens,
       output_tokens: state.outputTokens,
       cache_read_input_tokens: state.cacheReadTokens,
+      ...state.pricingContext,
     };
   }
   return out;

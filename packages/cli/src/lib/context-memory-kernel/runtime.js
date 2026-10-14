@@ -22,6 +22,10 @@ export function createCliContextMemoryRuntime(options = {}) {
   const memoryPort =
     options.memoryPort ||
     new SegmentedMemoryPort({
+      queryIndexCacheMode:
+        options.memoryQueryIndexCacheMode ||
+        (options.env || process.env).CC_CONTEXT_MEMORY_QUERY_CACHE ||
+        "validate-disk",
       readOnly: !decision.canonical,
       ...(options.memoryFilePath ? { filePath: options.memoryFilePath } : {}),
     });

@@ -80,9 +80,16 @@ async function measure(port, mode) {
   };
 }
 
-if (option("--worker", null)) {
+if (process.argv.includes("--help")) {
+  process.stdout.write(
+    "Usage: node memory-query-index-benchmark.mjs [--counts 1000,10000,100000] [--samples 11] [--cache-mode validate-disk|verified-memory] [--output file.json]\nLocal fixture measurement; no paid model requests.\n",
+  );
+} else if (option("--worker", null)) {
   const result = await measure(
-    new SegmentedMemoryPort({ filePath: option("--file", null) }),
+    new SegmentedMemoryPort({
+      filePath: option("--file", null),
+      queryIndexCacheMode: option("--cache-mode", "validate-disk"),
+    }),
     option("--worker", null),
   );
   process.stdout.write(JSON.stringify(result));
@@ -136,6 +143,7 @@ if (option("--worker", null)) {
     arch: process.arch,
     node: process.version,
     samples,
+    cacheMode: option("--cache-mode", "validate-disk"),
     counts,
     query: { category, limit },
     performanceThresholds: null,
@@ -146,7 +154,10 @@ if (option("--worker", null)) {
   try {
     for (const count of counts) {
       const filePath = join(root, `authority-${count}.json`);
-      const port = new SegmentedMemoryPort({ filePath });
+      const port = new SegmentedMemoryPort({
+        filePath,
+        queryIndexCacheMode: option("--cache-mode", "validate-disk"),
+      });
       const state = createDurableMemoryFixture(count);
       Object.entries(state.records).forEach(([id, record], index) => {
         state.records[id] = normalizeMemoryRecord({
@@ -178,7 +189,15 @@ if (option("--worker", null)) {
       const worker = (mode) => {
         const child = spawnSync(
           process.execPath,
-          [script, "--worker", mode, "--file", filePath],
+          [
+            script,
+            "--worker",
+            mode,
+            "--file",
+            filePath,
+            "--cache-mode",
+            option("--cache-mode", "validate-disk"),
+          ],
           {
             encoding: "utf8",
             cwd: process.cwd(),

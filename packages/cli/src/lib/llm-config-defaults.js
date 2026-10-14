@@ -38,16 +38,18 @@ export async function reconcileConfigLlmProvider(cfgLlm = {}) {
   if (!cfgLlm || !cfgLlm.provider || !cfgLlm.baseUrl) {
     return { llm: cfgLlm, changed: false };
   }
-  const { inferProviderFromBaseUrl, modelForeignToProvider } =
-    await import("./runnable-provider.js");
+  const { inferProviderFromBaseUrl, modelForeignToProvider } = await import(
+    "./runnable-provider.js"
+  );
   const inferred = inferProviderFromBaseUrl(cfgLlm.baseUrl);
   if (!inferred || inferred === cfgLlm.provider) {
     return { llm: cfgLlm, changed: false };
   }
   const corrected = { ...cfgLlm, provider: inferred };
   if (modelForeignToProvider(inferred, cfgLlm.model)) {
-    const { selectModelForTask, TaskType } =
-      await import("./task-model-selector.js");
+    const { selectModelForTask, TaskType } = await import(
+      "./task-model-selector.js"
+    );
     const def = selectModelForTask(inferred, TaskType.CHAT);
     if (def) corrected.model = def;
   }
@@ -88,6 +90,8 @@ export function applyConfigLlmDefaults(options = {}, cfgLlm = {}, opts = {}) {
     options.provider === cfgLlm.provider
   ) {
     if (!options.baseUrl && cfgLlm.baseUrl) options.baseUrl = cfgLlm.baseUrl;
+    if (options.serviceTier == null && cfgLlm.serviceTier != null)
+      options.serviceTier = cfgLlm.serviceTier;
     backfillApiKey(options, cfgLlm);
     if (!options.model && !opts.explicitModel && cfgLlm.model) {
       options.model = cfgLlm.model;
@@ -96,6 +100,8 @@ export function applyConfigLlmDefaults(options = {}, cfgLlm = {}, opts = {}) {
   }
   if (options.provider || !cfgLlm.provider) return options;
   options.provider = cfgLlm.provider;
+  if (options.serviceTier == null && cfgLlm.serviceTier != null)
+    options.serviceTier = cfgLlm.serviceTier;
   if (opts.explicitModel) {
     options.model = opts.explicitModel;
   } else if (cfgLlm.model) {

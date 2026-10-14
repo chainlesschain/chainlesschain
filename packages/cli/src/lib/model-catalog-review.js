@@ -65,8 +65,12 @@ export function reviewModelCatalog(review, snapshots = {}) {
       "runtimeProtocol",
       "contextWindowTokens",
       "advertisedMaxOutputTokens",
+      "reviewedAt",
     ]) {
-      if (Object.hasOwn(expected, field) && actual[field] !== expected[field])
+      if (
+        Object.hasOwn(expected, field) &&
+        !isDeepStrictEqual(actual[field], expected[field])
+      )
         mismatches.push({
           model: expected.model,
           field,
@@ -79,6 +83,19 @@ export function reviewModelCatalog(review, snapshots = {}) {
         model: expected.model,
         field: "official-source",
         actual: null,
+      });
+    if (
+      Object.hasOwn(expected, "supportedServiceTiers") &&
+      !isDeepStrictEqual(
+        actual.supportedServiceTiers,
+        expected.supportedServiceTiers,
+      )
+    )
+      mismatches.push({
+        model: expected.model,
+        field: "supportedServiceTiers",
+        expected: expected.supportedServiceTiers,
+        actual: actual.supportedServiceTiers,
       });
     for (const field of ["in", "out"]) {
       if (rate?.[field] !== expected.pricing[field])

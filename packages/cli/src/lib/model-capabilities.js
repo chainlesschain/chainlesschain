@@ -263,6 +263,10 @@ export function resolveModelCapabilityProfile({
   const profile = {
     schema: PROFILE_SCHEMA,
     catalogVersion: MODEL_CAPABILITY_CATALOG_VERSION,
+    reviewedAt: documented ? documented.reviewedAt || "2026-10-05" : null,
+    supportedServiceTiers: documented?.serviceTiers
+      ? [...documented.serviceTiers]
+      : ["standard"],
     profileId: `model-capability-v1:${identityDigest.slice(7, 39)}`,
     provider: selectedProvider || "unknown",
     model: selectedModel,
@@ -287,4 +291,26 @@ export function resolveModelCapabilityProfile({
   };
   profile.digest = canonicalDigest(profile, PROFILE_SCHEMA);
   return deepFreeze(profile);
+}
+
+/** Resolve a requested live tier without certifying account availability. */
+export function resolveModelServiceTier(profile, serviceTier) {
+  const requested = serviceTier ?? "standard";
+  if (
+    typeof requested !== "string" ||
+    !profile?.supportedServiceTiers?.includes(requested)
+  ) {
+    throw Object.assign(
+      new RangeError(
+        `Unsupported service tier ${String(requested)} for ${profile?.provider || "unknown"}/${profile?.model || "unknown"}`,
+      ),
+      { code: "CC_MODEL_SERVICE_TIER_UNSUPPORTED" },
+    );
+  }
+  return Object.freeze({
+    requestedServiceTier: requested,
+    requestServiceTier: requested === "standard" ? null : requested,
+    effectiveServiceTier: null,
+    accountVerified: false,
+  });
 }

@@ -248,6 +248,7 @@ export function routeSkillDescriptors({
     schema: SKILL_RETRIEVAL_RESULT_SCHEMA,
     query: query.trim(),
     selected: returned.length > 0 && !topConflict ? returned[0] : null,
+    matchedCount: candidates.length,
     candidates: Object.freeze(returned.map(Object.freeze)),
     conflicts: Object.freeze(conflicts.map(Object.freeze)),
     rejected: Object.freeze(rejected.map(Object.freeze)),

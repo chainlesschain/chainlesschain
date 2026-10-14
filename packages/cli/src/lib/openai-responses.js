@@ -1,3 +1,5 @@
+import { resolveModelServiceTier } from "./model-capabilities.js";
+
 const RESPONSES_FAILURE_CODE = "CC_OPENAI_RESPONSES_FAILED";
 const MAX_REASONING_ITEMS = 16;
 const MAX_REASONING_SUMMARY_CHARS = 8_192;
@@ -177,7 +179,12 @@ export function createOpenAIResponsesBody({
   reasoning = null,
   stream = false,
   modelProfile = null,
+  serviceTier = null,
 }) {
+  const tier =
+    serviceTier == null
+      ? null
+      : resolveModelServiceTier(modelProfile, serviceTier).requestServiceTier;
   if (
     modelProfile?.advertisedMaxOutputTokens != null &&
     maxOutputTokens > modelProfile.advertisedMaxOutputTokens
@@ -195,6 +202,7 @@ export function createOpenAIResponsesBody({
     ...(maxOutputTokens ? { max_output_tokens: maxOutputTokens } : {}),
     ...(reasoning ? { reasoning } : {}),
     ...(stream ? { stream: true } : {}),
+    ...(tier ? { service_tier: tier } : {}),
   };
 }
 

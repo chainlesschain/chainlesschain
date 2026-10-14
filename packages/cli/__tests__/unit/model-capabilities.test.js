@@ -22,7 +22,7 @@ describe("versioned model capability profiles", () => {
     });
     expect(profile).toMatchObject({
       schema: "chainlesschain.model-capability-profile/v1",
-      catalogVersion: "2026-10-05",
+      catalogVersion: "2026-10-15",
       provider: "openai",
       model: "gpt-4o",
       contextWindowTokens: 128000,

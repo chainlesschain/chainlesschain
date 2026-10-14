@@ -1,0 +1,113 @@
+{
+  "schema": "chainlesschain.implementation-plan-volcengine-diagnostic/v1",
+  "startedAt": "2026-10-14T17:09:55.203Z",
+  "provider": "volcengine",
+  "model": "deepseek-v4-flash-ga-260731",
+  "formalSample": false,
+  "billingVerified": false,
+  "requestLimit": 8,
+  "estimatedSpendStopUsd": 0.05,
+  "requests": [
+    {
+      "id": 1,
+      "requestDigest": "sha256:ee9f9dd2c3d32f696b06d13bbac2af1984bff84ce895edcd0db965eeabc0fced",
+      "startedAt": "2026-10-14T17:09:55.212Z",
+      "stream": true,
+      "accounting": "estimated",
+      "httpStatus": 200,
+      "usage": {
+        "input_tokens": 92,
+        "output_tokens": 27,
+        "cache_read_input_tokens": 0,
+        "service_tier": "default"
+      },
+      "estimatedCostUsd": 0.00002044,
+      "responseDigest": "sha256:e5aacd7f76fa029e5d1985b03fd1b0e698073b226880b87da1fafaef6cb9775e",
+      "finishedAt": "2026-10-14T17:09:56.171Z"
+    },
+    {
+      "id": 2,
+      "requestDigest": "sha256:0eabe75dbfe3b00210805d0ce14d735a177704a24826bf0a1f2e9fb6cfafb150",
+      "startedAt": "2026-10-14T17:09:56.174Z",
+      "stream": false,
+      "accounting": "estimated",
+      "httpStatus": 200,
+      "usage": {
+        "input_tokens": 642,
+        "output_tokens": 68,
+        "cache_read_input_tokens": 0,
+        "service_tier": "default"
+      },
+      "estimatedCostUsd": 0.00010892000000000001,
+      "responseDigest": "sha256:15db0b7f145a0b12f0a58467e15d086bce83f05c092993b128341540584780a4",
+      "finishedAt": "2026-10-14T17:09:57.533Z"
+    },
+    {
+      "id": 3,
+      "requestDigest": "sha256:f596983b495c4fb2300ef5d6d9906b1ce12726a2fad0916ae22f4bba29718070",
+      "startedAt": "2026-10-14T17:09:57.557Z",
+      "stream": false,
+      "accounting": "estimated",
+      "httpStatus": 200,
+      "usage": {
+        "input_tokens": 360,
+        "output_tokens": 159,
+        "cache_read_input_tokens": 0,
+        "service_tier": "default"
+      },
+      "estimatedCostUsd": 0.00009492,
+      "responseDigest": "sha256:1d53e915aba7939feea817b1f7ecb03ab26db5de94365f2ddbcc98dcd50d4873",
+      "finishedAt": "2026-10-14T17:09:59.584Z"
+    },
+    {
+      "id": 4,
+      "requestDigest": "sha256:a110473f27560364e14929bbe7df67ba32da4e4e48653c93e688418b2aa1dce4",
+      "startedAt": "2026-10-14T17:09:59.592Z",
+      "stream": false,
+      "accounting": "estimated",
+      "httpStatus": 200,
+      "usage": {
+        "input_tokens": 341,
+        "output_tokens": 4186,
+        "cache_read_input_tokens": 0,
+        "service_tier": "default"
+      },
+      "estimatedCostUsd": 0.0012198200000000001,
+      "responseDigest": "sha256:a632efb8ec77bd732960d0c5c41bbe077adeb26f918ac08a2bd30ae3629428ca",
+      "finishedAt": "2026-10-14T17:10:42.066Z"
+    },
+    {
+      "id": 5,
+      "requestDigest": "sha256:ba970b20b6b64a56cfbfb77648d2b91c92263d48e60f9b439580259daa66956d",
+      "startedAt": "2026-10-14T17:10:42.072Z",
+      "stream": true,
+      "accounting": "unknown",
+      "httpStatus": 200
+    }
+  ],
+  "checks": [
+    {
+      "name": "stream-and-usage",
+      "status": "passed",
+      "deltas": 4
+    },
+    {
+      "name": "read-only-tool-roundtrip",
+      "status": "passed"
+    },
+    {
+      "name": "provider-compaction-fact-retention",
+      "status": "passed",
+      "savedEstimatedTokens": 510
+    },
+    {
+      "name": "stream-stop-without-retry",
+      "status": "passed",
+      "usageUnknown": true
+    }
+  ],
+  "knownEstimatedCostUsd": 0.0014441000000000002,
+  "totalEstimatedCostUsd": null,
+  "finishedAt": "2026-10-14T17:10:59.275Z",
+  "passed": true
+}

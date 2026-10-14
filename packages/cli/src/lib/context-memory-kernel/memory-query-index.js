@@ -2,6 +2,9 @@ import { createHash } from "node:crypto";
 
 export const MEMORY_QUERY_INDEX_SCHEMA = "chainlesschain.memory-query-index/v1";
 const CURSOR_SCHEMA = "chainlesschain.memory-list-cursor/v1";
+// Preserve the existing English collation while avoiding constructing locale
+// options for every comparison during shard sorts, cursor search and merging.
+const memoryRowCollator = new Intl.Collator("en");
 
 export function queryDigest(bytes) {
   return `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
@@ -10,8 +13,8 @@ export function queryDigest(bytes) {
 export function compareMemoryRows(left, right) {
   return (
     right.importance - left.importance ||
-    right.updatedAt.localeCompare(left.updatedAt, "en") ||
-    left.memoryId.localeCompare(right.memoryId, "en")
+    memoryRowCollator.compare(right.updatedAt, left.updatedAt) ||
+    memoryRowCollator.compare(left.memoryId, right.memoryId)
   );
 }
 

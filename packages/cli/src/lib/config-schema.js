@@ -69,6 +69,19 @@ const DESCRIPTORS = [
     default: DEFAULT_CONFIG.llm.model,
     description: "Default model id",
   }),
+  descriptor("llm.serviceTier", "string", {
+    enum: [
+      "standard",
+      "default",
+      "auto",
+      "fast",
+      "priority",
+      "flex",
+      "ultrafast",
+    ],
+    description:
+      "Requested live service tier; model and endpoint support are checked before dispatch",
+  }),
   descriptor("llm.visionModel", ["string", "null"], {
     description: "Model used for image turns",
   }),
@@ -502,11 +515,11 @@ function valueIssue(key, code, message) {
 function isPersistedSecretRef(value) {
   return Boolean(
     value &&
-    typeof value === "object" &&
-    !Array.isArray(value) &&
-    Object.keys(value).length === 1 &&
-    typeof value.__cc_secret_ref === "string" &&
-    value.__cc_secret_ref.length > 0,
+      typeof value === "object" &&
+      !Array.isArray(value) &&
+      Object.keys(value).length === 1 &&
+      typeof value.__cc_secret_ref === "string" &&
+      value.__cc_secret_ref.length > 0,
   );
 }
 

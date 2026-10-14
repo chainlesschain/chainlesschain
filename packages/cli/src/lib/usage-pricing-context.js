@@ -4,6 +4,38 @@ import {
   GPT6_PRICING_TERMS,
 } from "./model-context-catalog.js";
 
+const KNOWN_SERVICE_TIERS = new Set([
+  ...Object.keys(GPT6_PRICING_TERMS.serviceMultipliers),
+  ...Object.values(DOCUMENTED_OPENAI_MODELS).flatMap((model) =>
+    Object.keys(model.serviceMultipliers || {}),
+  ),
+]);
+
+/** Preserve response-envelope pricing labels, rejecting conflicting evidence. */
+export function projectEnvelopePricingContext(usage = {}, envelope = {}) {
+  const input = { ...usage };
+  for (const key of ["service_tier", "regional_processing", "inference_geo"]) {
+    if (!Object.hasOwn(envelope, key)) continue;
+    if (Object.hasOwn(input, key) && input[key] !== envelope[key])
+      input.pricingContextInvalid = true;
+    input[key] = envelope[key];
+  }
+  return projectUsagePricingContext(input);
+}
+
+/** Requested paid tiers require actual response evidence for settlement. */
+export function preserveRequestedServiceTierEvidence(usage, requested) {
+  if (
+    usage &&
+    requested != null &&
+    requested !== "standard" &&
+    (!usage.service_tier || usage.service_tier === "auto")
+  ) {
+    return { ...usage, pricingContextInvalid: true };
+  }
+  return usage;
+}
+
 /** Keep TTL evidence distinct from the aggregate cache-write count. */
 export function projectCacheCreationUsage(usage = {}) {
   if (usage.cacheCreationInvalid === true)
@@ -62,8 +94,7 @@ export function projectUsagePricingContext(usage = {}) {
     const value = Object.hasOwn(usage, key) ? usage[key] : usage[alias];
     if (key === "service_tier") {
       projected[key] =
-        typeof value === "string" &&
-        Object.hasOwn(GPT6_PRICING_TERMS.serviceMultipliers, value)
+        typeof value === "string" && KNOWN_SERVICE_TIERS.has(value)
           ? value
           : "unknown";
     } else {

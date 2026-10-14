@@ -246,6 +246,16 @@ function whichLimitHit(state, budget, nowMs) {
  * the loop stops. Does NOT mutate `state` — returns the next one.
  */
 export function evaluateGoalStep(state, evaluation, budget, opts = {}) {
+  if (state.done === true) {
+    return {
+      state: { ...state },
+      decision:
+        state.outcome === "completed"
+          ? GOAL_DECISION.COMPLETE
+          : GOAL_DECISION.EXHAUSTED,
+      events: [],
+    };
+  }
   const nowMs = Number(opts.now ?? state.startedAtMs);
   const next = {
     ...state,
@@ -326,10 +336,23 @@ export class GoalConditionEngine {
 
   /** Accumulate a turn's usage before evaluating it. */
   recordTurnUsage({ tokens = 0, costUsd = 0 } = {}) {
+    if (
+      !Number.isSafeInteger(tokens) ||
+      tokens < 0 ||
+      typeof costUsd !== "number" ||
+      !Number.isFinite(costUsd) ||
+      costUsd < 0 ||
+      !Number.isSafeInteger(this.state.tokens + tokens) ||
+      !Number.isFinite(this.state.costUsd + costUsd)
+    ) {
+      throw new RangeError(
+        "Goal usage requires finite non-negative cost and safe token counts",
+      );
+    }
     this.state = {
       ...this.state,
-      tokens: this.state.tokens + (Number(tokens) || 0),
-      costUsd: this.state.costUsd + (Number(costUsd) || 0),
+      tokens: this.state.tokens + tokens,
+      costUsd: this.state.costUsd + costUsd,
     };
     return this.state;
   }

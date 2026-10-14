@@ -7,6 +7,7 @@
  * generated-HTML checks).
  */
 import { describe, it, expect } from "vitest";
+import { Window } from "happy-dom";
 import {
   mapAgentEvent,
   createTurnState,
@@ -70,6 +71,50 @@ describe("chat-events — iteration_warning mapping", () => {
 
 describe("chat webview — live usage tally wiring", () => {
   const html = buildChatHtml({ cspSource: "vscode-resource:", nonce: "n" });
+
+  it("retains unconfirmed pricing across later calls and completion, then clears it for the next turn", async () => {
+    const window = new Window({
+      settings: { enableJavaScriptEvaluation: true },
+    });
+    window.acquireVsCodeApi = () => ({
+      postMessage() {},
+      getState: () => ({}),
+      setState() {},
+    });
+    try {
+      window.document.write(html);
+      const receive = (data) =>
+        window.dispatchEvent(new window.MessageEvent("message", { data }));
+      const status = window.document.getElementById("status");
+      receive({
+        kind: "usage",
+        usage: {
+          input_tokens: 10,
+          output_tokens: 1,
+          service_tier: "ultrafast",
+          pricingContextInvalid: true,
+        },
+      });
+      expect(status.textContent).toContain("ultrafast");
+      receive({
+        kind: "usage",
+        usage: { input_tokens: 10, output_tokens: 1, service_tier: "default" },
+      });
+      expect(status.textContent).toContain("price unconfirmed");
+      receive({
+        kind: "turn_end",
+        usage: { input_tokens: 20, output_tokens: 2 },
+      });
+      expect(status.textContent).toContain("price unconfirmed");
+      receive({
+        kind: "usage",
+        usage: { input_tokens: 1, output_tokens: 1, service_tier: "default" },
+      });
+      expect(status.textContent).not.toContain("price unconfirmed");
+    } finally {
+      await window.happyDOM.abort();
+    }
+  });
 
   it("handles the usage message kind and accumulates a per-turn tally", () => {
     expect(html).toContain('case "usage"');

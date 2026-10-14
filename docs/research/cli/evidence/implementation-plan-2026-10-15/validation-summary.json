@@ -1,0 +1,463 @@
+{
+  "schema": "chainlesschain.implementation-plan-evidence-summary/v1",
+  "capturedAt": "2026-10-14T18:25:53.397Z",
+  "sourceCommit": "1126d385b25adacc1e8b8220ba6d95bd1bab2b1c",
+  "sourceBindingBasis": "Worktree snapshot captured after testing; per-run immutable source binding is only asserted where the original report recorded it.",
+  "worktreeBindings": [
+    {
+      "path": "packages/cli/__tests__/fixtures/model-catalog-review-2026-10-15.json",
+      "digest": "sha256:8b3c8a691caf6266d0c119941e160dfb465582ee3f7467a37554eafa4841007a"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/agent-core-skill-mcp.test.js",
+      "digest": "sha256:0b52f5646ac9b0ac996ab274772ba6df889a9d08cc5ceff6e3b02eaf6d53ec4d"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/agent-goal-binding.test.js",
+      "digest": "sha256:681c034163ed5a307c17884f8f49f1546a9b53c3d6cae800a2861fa80ab16f6d"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/context-source-ledger.test.js",
+      "digest": "sha256:341f21d84dcdba67bc88111c2a67ee26c85e871a03eb3fc7657d41d543c22bc9"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/goal-condition-engine.test.js",
+      "digest": "sha256:136ca6653a35521a80415879a418fc9e039ea8d99126cb102130c3cfd34a4343"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/headless-stream-llm-override.test.js",
+      "digest": "sha256:ba81e1f0115e9f0376e46939c2ed91a508899dda2c2df46220a1229419bcdccb"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/mcp-tool-search.test.js",
+      "digest": "sha256:b3eab4d7c2bc7a30f4a4d44b79092f790771a1719a9dcdb164d9f09b5d0d70c2"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/memory-query-index.test.js",
+      "digest": "sha256:fba9463729f3b36f1515316e697265f1acd53bd424d05bd661fa6270877023d8"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/model-capabilities.test.js",
+      "digest": "sha256:e8b7f0582d8af397121393cdd55caa30b57cfb6ffd1a19620e10a7a70e72ec20"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/model-catalog-review.test.js",
+      "digest": "sha256:e626384bac7f148aba25703ed6e389dbf19b727619eacb2a01b42a5faf8d2efc"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/model-service-tier.test.js",
+      "digest": "sha256:3fb34736c5162067f6cdf876de28d1c93be8318677f4f82bdd4376b17a746e3d"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/vscode-ext-chat-events-usage.test.js",
+      "digest": "sha256:1bc59b034883073d854c7a1be43d4e721ab15fb28aec340b9ac2e24d24a7179b"
+    },
+    {
+      "path": "packages/cli/scripts/implementation-plan-budget-egress.mjs",
+      "digest": "sha256:2962b2aae3d5231c30dde56a7684f76d9cd2bfa03b3c51427ba820ea8ac44541"
+    },
+    {
+      "path": "packages/cli/scripts/implementation-plan-context-benchmark.mjs",
+      "digest": "sha256:2aeb85cccc3c84e4ed00366f98bf8345ac2e50db730c128a7176b808b5595e14"
+    },
+    {
+      "path": "packages/cli/scripts/implementation-plan-evidence.mjs",
+      "digest": "sha256:e5716c8904845c214f796d1210ea905bb097bbff09da9cb13fef920b3277b063"
+    },
+    {
+      "path": "packages/cli/scripts/implementation-plan-status.mjs",
+      "digest": "sha256:abaeb9c33cb0896a5e0388a19540fd84e9502aa1fb269def6e546b8c9abbae47"
+    },
+    {
+      "path": "packages/cli/scripts/implementation-plan-volcengine-live.mjs",
+      "digest": "sha256:4fe4e96406b2a0062b390ec26f5421e250dcf9cba73245ee6ace508a2a338051"
+    },
+    {
+      "path": "packages/cli/scripts/memory-query-index-benchmark.mjs",
+      "digest": "sha256:449b84b0bea52958b4b94f1c83ae6c4ad1e8fa6d4ae88c6b7db523412b56cac8"
+    },
+    {
+      "path": "packages/cli/scripts/review-model-catalog.mjs",
+      "digest": "sha256:6706ba9739676b52e6a8cee7e2c60cc45e0ac69e9bf991eb5ee7b5895963c4c8"
+    },
+    {
+      "path": "packages/cli/src/command-help-index.json",
+      "digest": "sha256:b393ce1baf1197af9473e06999d70fbab63abc30585c42fc2f9212f3c8999ad8"
+    },
+    {
+      "path": "packages/cli/src/commands/agent.js",
+      "digest": "sha256:38cf177e73802a3a66c2f909fc0b1a47354dd8491c1ed9e1d50418a8496dd665"
+    },
+    {
+      "path": "packages/cli/src/lib/config-schema.js",
+      "digest": "sha256:d9d01e1d242479b9582be7c351a5b65ae338845b498941bdcb6bf0465fe9d4d5"
+    },
+    {
+      "path": "packages/cli/src/lib/context-memory-kernel/memory-query-index.js",
+      "digest": "sha256:3a6b2c267ac0773a9aefb35c4a0ffd9d03f2fc774916c44ae32c8fbe4332772f"
+    },
+    {
+      "path": "packages/cli/src/lib/context-memory-kernel/runtime.js",
+      "digest": "sha256:0226e07f70dbeddf1508d9841e6abfc938968f2cf0d7944f58917ca62d1c38ca"
+    },
+    {
+      "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+      "digest": "sha256:ea1dc3c0406209acc5ea7d606d4fbdf0c43a074a11f5442092e70551bfef63ca"
+    },
+    {
+      "path": "packages/cli/src/lib/context-source-ledger.js",
+      "digest": "sha256:2f18b7f6ce7650bcdeb6a72c3921eaa6262ecc648a9f57a36b54d5a1f28975a6"
+    },
+    {
+      "path": "packages/cli/src/lib/goal-condition-engine.js",
+      "digest": "sha256:5127addc50fa54a11bfee77661882fe3ad35617db611691aa344009323f40cb5"
+    },
+    {
+      "path": "packages/cli/src/lib/llm-config-defaults.js",
+      "digest": "sha256:2502660f9d8e9a136564e89ecc60ad564f5b203bc621c9ad392c0dbcf2fb2a5c"
+    },
+    {
+      "path": "packages/cli/src/lib/llm-pricing.js",
+      "digest": "sha256:79f19aab6ad84ce35c2ca25d00f2a24f532e710378b2080168f0d93e40381d0b"
+    },
+    {
+      "path": "packages/cli/src/lib/model-capabilities.js",
+      "digest": "sha256:955430286832da0646fee51d253295e8b9b5b6e1de8e198919abc58aeb0d3d89"
+    },
+    {
+      "path": "packages/cli/src/lib/model-catalog-review.js",
+      "digest": "sha256:c519955290026cb6865008f031d372975dff65be6a865f6dce1e5328002312a8"
+    },
+    {
+      "path": "packages/cli/src/lib/model-context-catalog.js",
+      "digest": "sha256:bc0fdbcbca819710ed38b5309cfa379ebaf96b963d9dcd463233c64000fae442"
+    },
+    {
+      "path": "packages/cli/src/lib/openai-responses.js",
+      "digest": "sha256:512954e309a3534770ed2a165b24630dcc5111b6e89ec4182553eabe7f2fe5c9"
+    },
+    {
+      "path": "packages/cli/src/lib/skill-retrieval-router.js",
+      "digest": "sha256:4245c19d9686aafd17243afe912821c087a7d7f482991906bf1ff11cd1600d5b"
+    },
+    {
+      "path": "packages/cli/src/lib/usage-pricing-context.js",
+      "digest": "sha256:659822713552fd377a56e6c345b32f86fbfcf555fda0288ff4728bfaa38bbd54"
+    },
+    {
+      "path": "packages/cli/src/repl/agent-repl.js",
+      "digest": "sha256:1132e195387dcec68479063ba55fcb816c93b7f97fbaf7724eb072d868e19c6d"
+    },
+    {
+      "path": "packages/cli/src/runtime/agent-core.js",
+      "digest": "sha256:9b2b19bf3f7604287d532f633db6aadba1292fc47b92740a58b40767b88602a2"
+    },
+    {
+      "path": "packages/cli/src/runtime/coding-agent-contract-shared.cjs",
+      "digest": "sha256:0f3dca91d62727d465e8da4c7aa1cb4bb7323e3d717047aca5c1f8f1260c8cf5"
+    },
+    {
+      "path": "packages/cli/src/runtime/headless-runner.js",
+      "digest": "sha256:931b8c0f388f3c4e75192df8200f3125a3b4303f1f896da8308634dcecde0efe"
+    },
+    {
+      "path": "packages/cli/src/runtime/headless-stream.js",
+      "digest": "sha256:3c78b73502ce70890e031d4bed248ea63029bc36bac897e848b738a4a735fb74"
+    },
+    {
+      "path": "packages/cli/src/runtime/mcp-tool-search.js",
+      "digest": "sha256:efe45d7391bfdf80a950f81a2ce8c4a8d8acf6344a2253cb1150c89d3f049363"
+    },
+    {
+      "path": "packages/cli/src/runtime/provider-stream-state.js",
+      "digest": "sha256:1482e3fe800ae4a22511dda8edd9bb1ba1122c1d04df0cf6ff7f7ae4bfa110d1"
+    },
+    {
+      "path": "packages/cli/test-node/model-catalog-review-evidence.node-test.mjs",
+      "digest": "sha256:8a225f96f30aeadf46db457a2c40b9d85f22553f0f7330b8a3b67c86f3354faf"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/ChatEvents.java",
+      "digest": "sha256:4e02f0ea07753320c14cd662fc11266bc85cca71f409f280049b35d886bc47e2"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/ChatEventsTest.java",
+      "digest": "sha256:eb2f49efcbe76cea1e5b9da49d75d3c4cd4a33d18e0eeda8feaf4097284bcb39"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/chat-events.js",
+      "digest": "sha256:3ae8dfc92f1196daee13e1406874e53eca89dcbca0795ecd049e3d2d123f06e7"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/chat-html.js",
+      "digest": "sha256:833d6c5aafa306b65564abf25e31dbb1bc474b9cdb35d4aab35c605453459414"
+    },
+    {
+      "path": "packages/vscode-extension/test/goal-events.test.cjs",
+      "digest": "sha256:f1daeaf4ada8fc27f286a4ac4d589de3b3b62358a332ff65989f6d57ddac1e54"
+    }
+  ],
+  "cli": {
+    "files": 31,
+    "assertions": 440,
+    "passed": true,
+    "reports": [
+      {
+        "path": "cli-tests-final.json",
+        "digest": "sha256:34c78d158023e5dc3be5407a374a2298965e2145c0a9cfcca48d445950000cd9",
+        "success": true
+      },
+      {
+        "path": "context-tier-tests.json",
+        "digest": "sha256:9fdcf81c62f5912bf82a9194d5661af106716eeacac267f7957fbcc4bb0047f9",
+        "success": true
+      },
+      {
+        "path": "usage-ui-tests.json",
+        "digest": "sha256:d6023638aa2066c5a914e93a8fedbb5cdc0fed1f80d5b67fe508bf634b5e6690",
+        "success": true
+      },
+      {
+        "path": "tier-entry-tests-final.json",
+        "digest": "sha256:b97902ad48402bbe9564e9bf498a9c397fde4c00e052ba11cdcdce57b0e70609",
+        "success": true
+      }
+    ],
+    "suites": [
+      {
+        "path": "packages/cli/__tests__/unit/agent-core-openai-responses.test.js",
+        "assertions": 20,
+        "status": "passed",
+        "report": "cli-tests-final.json"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/agent-goal-binding.test.js",
+        "assertions": 9,
+        "status": "passed",
+        "report": "tier-entry-tests-final.json"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/agent-stream.test.js",
+        "assertions": 6,
+        "status": "passed",
+        "report": "cli-tests-final.json"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/canonical-compaction-usage.test.js",
+        "assertions": 23,
+        "status": "passed",
+        "report": "cli-tests-final.json"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/canonical-compaction-workflow.test.js",
+        "assertions": 11,
+        "status": "passed",
+        "report": "cli-tests-final.json"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/config-keys.test.js",
+        "assertions": 5,
+        "status": "passed",
+        "report": "cli-tests-final.json"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/context-source-ledger.test.js",
+        "assertions": 3,
+        "status": "passed",
+        "report": "usage-ui-tests.json"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/cost-budget.test.js",
+        "assertions": 14,
+        "status": "passed",
+        "report": "cli-tests-final.json"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/goal-condition-engine.test.js",
+        "assertions": 22,
+        "status": "passed",
+        "report": "cli-tests-final.json"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/llm-config-defaults.test.js",
+        "assertions": 15,
+        "status": "passed",
+        "report": "tier-entry-tests-final.json"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/llm-pricing.test.js",
+        "assertions": 21,
+        "status": "passed",
+        "report": "cli-tests-final.json"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/mcp-client-dispatch-admission.test.js",
+        "assertions": 5,
+        "status": "passed",
+        "report": "cli-tests-final.json"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/mcp-client-http-response-timeout.test.js",
+        "assertions": 4,
+        "status": "passed",
+        "report": "cli-tests-final.json"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/mcp-client-list-changed.test.js",
+        "assertions": 3,
+        "status": "passed",
+        "report": "cli-tests-final.json"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/mcp-tool-search.test.js",
+        "assertions": 35,
+        "status": "passed",
+        "report": "cli-tests-final.json"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/memory-query-index.test.js",
+        "assertions": 14,
+        "status": "passed",
+        "report": "cli-tests-final.json"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/model-capabilities.test.js",
+        "assertions": 65,
+        "status": "passed",
+        "report": "cli-tests-final.json"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/model-catalog-review.test.js",
+        "assertions": 34,
+        "status": "passed",
+        "report": "cli-tests-final.json"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/model-service-tier.test.js",
+        "assertions": 12,
+        "status": "passed",
+        "report": "context-tier-tests.json"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/session-input-receipt.test.js",
+        "assertions": 5,
+        "status": "passed",
+        "report": "cli-tests-final.json"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/skill-host-budget.test.js",
+        "assertions": 19,
+        "status": "passed",
+        "report": "cli-tests-final.json"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/usage-pricing-context.test.js",
+        "assertions": 6,
+        "status": "passed",
+        "report": "cli-tests-final.json"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/agent-core-skill-decision.test.js",
+        "assertions": 2,
+        "status": "passed",
+        "report": "context-tier-tests.json"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/agent-core-skill-mcp.test.js",
+        "assertions": 32,
+        "status": "passed",
+        "report": "context-tier-tests.json"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/agent-core-skill-path-scope.test.js",
+        "assertions": 3,
+        "status": "passed",
+        "report": "context-tier-tests.json"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/coding-agent-contract.test.js",
+        "assertions": 9,
+        "status": "passed",
+        "report": "context-tier-tests.json"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/legacy-agent-tools.test.js",
+        "assertions": 3,
+        "status": "passed",
+        "report": "context-tier-tests.json"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/skill-retrieval-router.test.js",
+        "assertions": 6,
+        "status": "passed",
+        "report": "context-tier-tests.json"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/vscode-ext-chat-events-usage.test.js",
+        "assertions": 9,
+        "status": "passed",
+        "report": "usage-ui-tests.json"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/agent-repl-loop-wrapper.test.js",
+        "assertions": 16,
+        "status": "passed",
+        "report": "tier-entry-tests-final.json"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/headless-stream-llm-override.test.js",
+        "assertions": 9,
+        "status": "passed",
+        "report": "tier-entry-tests-final.json"
+      }
+    ]
+  },
+  "budgetAndCatalog": {
+    "report": "budget-and-review-final.xml",
+    "digest": "sha256:2a09814e341c7def9acadbe5d87e8ee96e6bcb7c8e5ec9f39a49f8eefb3c5ef7",
+    "tests": 84,
+    "passed": 84
+  },
+  "vscodeGoals": {
+    "report": "vscode-goal-tests.xml",
+    "digest": "sha256:f25fa529545f6cdde7f7eb87d2eb371e089540f0720eae467b45c7ef3285209c",
+    "tests": 2,
+    "passed": 2
+  },
+  "jetbrains": {
+    "report": "jetbrains-tests-final.xml",
+    "digest": "sha256:1d86c0d3ef795a1dddc491f490b98b85c4030c0816819a2bc1fb72e08478bcd7",
+    "tests": 33,
+    "passed": true,
+    "realCompilation": true
+  },
+  "volcengine": {
+    "report": "volcengine-live.json",
+    "digest": "sha256:952754446dea93a577e5cd2487801e6c8004a77e76e01324577f968b351b5364",
+    "functionalChecks": 4,
+    "functionalChecksPassed": 4,
+    "requests": 5,
+    "knownEstimatedCostUsd": 0.0014441000000000002,
+    "totalEstimatedCostUsd": null,
+    "billingVerified": false,
+    "outputUpperBoundVerified": false,
+    "originalSourceBindingRecorded": false,
+    "formalSample": false
+  },
+  "memory": {
+    "report": "memory-query-verified-cache-final.json",
+    "digest": "sha256:2e89252f7f593d2d46af63cf942f99d64738066b45420f4b29532252b40ff4c9",
+    "sourceBindingsMatchCurrent": true,
+    "approvedSlo": false
+  },
+  "formalEvaluation": {
+    "tasks": 36,
+    "executedTasks": 0,
+    "firstRuns": 9,
+    "executedFirstRuns": 0,
+    "executionStatus": "NOT_RUN",
+    "paidReady": false,
+    "nativeAdmission": "NOT_ADMITTED",
+    "promotion": "HOLD"
+  }
+}

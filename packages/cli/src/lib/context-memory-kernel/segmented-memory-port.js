@@ -170,6 +170,7 @@ export class SegmentedMemoryPort extends DurableJsonMemoryPort {
     maxTotalBytes = DEFAULT_MAX_TOTAL_BYTES,
     maxEvents = DEFAULT_SEGMENTED_MAX_EVENTS,
     readOnly = false,
+    queryIndexCacheMode = "validate-disk",
     ...options
   } = {}) {
     super({ ...options, maxEvents });
@@ -177,6 +178,9 @@ export class SegmentedMemoryPort extends DurableJsonMemoryPort {
       throw new TypeError("maxTotalBytes must be a positive safe integer");
     this.maxTotalBytes = maxTotalBytes;
     this.readOnly = Boolean(readOnly);
+    if (!["validate-disk", "verified-memory"].includes(queryIndexCacheMode))
+      throw new TypeError("Unknown query index cache mode");
+    this.queryIndexCacheMode = queryIndexCacheMode;
     this.filePath = resolve(this.filePath);
     this.shardDirectory = `${this.filePath}.shards`;
     this._queryIndexes = new Map();
@@ -656,6 +660,27 @@ export class SegmentedMemoryPort extends DurableJsonMemoryPort {
 
   _readQueryIndex(manifest, bucket) {
     const descriptor = manifest.shards[bucket];
+    const binding = JSON.stringify([
+      manifest.digest,
+      manifest.storeRevision,
+      descriptor.digest,
+      descriptor.queryDigest,
+      descriptor.queryBytes,
+      descriptor.recordCount,
+    ]);
+    const cached = this._queryIndexes.get(bucket);
+    // This is an already verified, host-owned decoded snapshot, never a trust
+    // decision based on filesystem timestamps. Re-read and verify the current
+    // manifest on every operation; any generation/authority change invalidates
+    // this binding. Selected authority shards are still read and verified.
+    // Disk repair remains eager in validate-disk mode; verified-memory repairs
+    // a derived index on the next cache miss, rather than every warm query.
+    if (
+      this.queryIndexCacheMode === "verified-memory" &&
+      descriptor.queryDigest &&
+      cached?.binding === binding
+    )
+      return cached.index;
     let bytes;
     if (descriptor.queryDigest) {
       const file = this._queryIndexPath(bucket, descriptor);
@@ -705,8 +730,8 @@ export class SegmentedMemoryPort extends DurableJsonMemoryPort {
       bytes = encodeQueryIndex(this._readShard(manifest, bucket));
     }
     const digest = descriptor.queryDigest || queryDigest(bytes);
-    const cached = this._queryIndexes.get(bucket);
-    if (cached?.digest === digest) return cached.index;
+    if (cached?.digest === digest && cached.binding === binding)
+      return cached.index;
     let index;
     try {
       index = compileQueryIndex(bytes, descriptor);
@@ -717,7 +742,7 @@ export class SegmentedMemoryPort extends DurableJsonMemoryPort {
         cause,
       );
     }
-    this._queryIndexes.set(bucket, { digest, index });
+    this._queryIndexes.set(bucket, { digest, binding, index });
     return index;
   }
 

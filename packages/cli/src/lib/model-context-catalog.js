@@ -45,7 +45,7 @@ export const CONTEXT_WINDOWS = Object.freeze({
   }),
 });
 
-export const MODEL_CAPABILITY_CATALOG_VERSION = "2026-10-05";
+export const MODEL_CAPABILITY_CATALOG_VERSION = "2026-10-15";
 
 // Explicit ownership prevents a model name served by an unrelated provider
 // from silently inheriting another provider's catalog window.
@@ -86,6 +86,26 @@ export const LEGACY_MODEL_PROVIDERS = Object.freeze({
 // named models, not endpoint access, account entitlement, or a live CLI run.
 export const DOCUMENTED_OPENAI_MODELS = Object.freeze({
   "gpt-6.1-sol": Object.freeze({
+    reviewedAt: "2026-10-15",
+    serviceTiers: Object.freeze([
+      "standard",
+      "default",
+      "auto",
+      "fast",
+      "priority",
+      "flex",
+      "ultrafast",
+    ]),
+    serviceMultipliers: Object.freeze({
+      standard: 1,
+      default: 1,
+      auto: 1,
+      batch: 0.5,
+      flex: 0.5,
+      fast: 2,
+      priority: 2,
+      ultrafast: 6,
+    }),
     contextWindowTokens: 1050000,
     advertisedMaxOutputTokens: 128000,
     requiresResponsesForTools: true,
@@ -106,6 +126,26 @@ export const DOCUMENTED_OPENAI_MODELS = Object.freeze({
     ]),
   }),
   "gpt-6-astra": Object.freeze({
+    reviewedAt: "2026-10-15",
+    serviceTiers: Object.freeze([
+      "standard",
+      "default",
+      "auto",
+      "fast",
+      "priority",
+      "flex",
+      "ultrafast",
+    ]),
+    serviceMultipliers: Object.freeze({
+      standard: 1,
+      default: 1,
+      auto: 1,
+      batch: 0.5,
+      flex: 0.5,
+      fast: 2,
+      priority: 2,
+      ultrafast: 6,
+    }),
     contextWindowTokens: 1050000,
     advertisedMaxOutputTokens: 128000,
     requiresResponsesForTools: true,

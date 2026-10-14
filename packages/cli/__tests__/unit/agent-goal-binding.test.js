@@ -24,8 +24,10 @@ function fakeGate() {
 function makeDeps({ goal } = {}) {
   const out = [];
   let seenMessages = null;
-  const chatFn = vi.fn(async (messages) => {
+  let seenOptions = null;
+  const chatFn = vi.fn(async (messages, options) => {
     seenMessages = messages;
+    seenOptions = options;
     return {
       message: { role: "assistant", content: "ok" },
       usage: { input_tokens: 1, output_tokens: 1 },
@@ -45,7 +47,13 @@ function makeDeps({ goal } = {}) {
   if (goal !== undefined) {
     deps.resolveActiveGoal = goal.fn;
   }
-  return { deps, out, getSeen: () => seenMessages, chatFn };
+  return {
+    deps,
+    out,
+    getSeen: () => seenMessages,
+    getOptions: () => seenOptions,
+    chatFn,
+  };
 }
 
 const GOAL = {
@@ -57,6 +65,22 @@ const GOAL = {
 };
 
 describe("headless goal binding (cc goal Phase 1)", () => {
+  it("preserves the explicitly configured service tier through the real headless loop", async () => {
+    const { deps, getOptions } = makeDeps();
+    const result = await runAgentHeadless(
+      {
+        prompt: "x",
+        outputFormat: "text",
+        provider: "openai",
+        model: "gpt-6.1-sol",
+        baseUrl: "https://api.openai.com/v1",
+        serviceTier: "ultrafast",
+      },
+      deps,
+    );
+    expect(result.exitCode).toBe(0);
+    expect(getOptions().serviceTier).toBe("ultrafast");
+  });
   it("injects goal context into the call when --goal <id> is given", async () => {
     const { deps, getSeen } = makeDeps({ goal: { fn: () => GOAL } });
     await runAgentHeadless(

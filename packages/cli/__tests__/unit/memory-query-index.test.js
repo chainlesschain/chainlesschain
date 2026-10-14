@@ -29,7 +29,84 @@ import {
 import { CliCanonicalMemoryService } from "../../src/lib/context-memory-kernel/memory-service.js";
 import { compareMemoryRows } from "../../src/lib/context-memory-kernel/memory-query-index.js";
 
+describe("cached memory row collation", () => {
+  it("preserves the existing sort and cursor order for Unicode IDs and timestamp ties", () => {
+    const identifiers = [
+      "a2",
+      "a10",
+      "A",
+      "á",
+      "é",
+      "e\u0301",
+      "中",
+      "🧪",
+      "a-1",
+      "a_1",
+    ];
+    const rows = identifiers.flatMap((memoryId) =>
+      [0, 1, 2].map((importance) => ({
+        memoryId,
+        importance,
+        updatedAt:
+          importance === 1
+            ? "2026-10-15T00:00:00.000Z"
+            : "2026-10-14T23:59:59.999Z",
+      })),
+    );
+    const original = (a, b) =>
+      b.importance - a.importance ||
+      b.updatedAt.localeCompare(a.updatedAt, "en") ||
+      a.memoryId.localeCompare(b.memoryId, "en");
+    expect([...rows].sort(compareMemoryRows)).toEqual([...rows].sort(original));
+    for (const a of rows)
+      for (const b of rows)
+        expect(Math.sign(compareMemoryRows(a, b))).toBe(
+          Math.sign(original(a, b)),
+        );
+  });
+});
+
 const roots = [];
+describe("verified host memory index snapshots", () => {
+  it("serves a verified generation and invalidates it on an authority commit without trusting damaged derived bytes", async () => {
+    const { filePath, state } = await setup(200);
+    const port = new SegmentedMemoryPort({
+      filePath,
+      queryIndexCacheMode: "verified-memory",
+    });
+    const first = await port.listPage({ limit: 5 });
+    for (const file of indexes(port))
+      writeFileSync(file, "corrupted derived bytes");
+    const warm = await port.listPage({ limit: 5 });
+    expect(warm.records).toEqual(first.records);
+    const transition = reinforce(first.records[0]);
+    await port.commit(transition, first.records[0].revision);
+    const changed = await port.listPage({ limit: 5 });
+    expect(changed.storeRevision).toBeGreaterThan(first.storeRevision);
+    expect(
+      changed.records.find((row) => row.memoryId === transition.record.memoryId)
+        ?.revision,
+    ).toBe(transition.record.revision);
+    expect(Object.keys(state.records)).toHaveLength(200);
+  });
+  it("still rejects corrupt authoritative shards after the decoded index is cached", async () => {
+    const { filePath } = await setup(100);
+    const port = new SegmentedMemoryPort({
+      filePath,
+      queryIndexCacheMode: "verified-memory",
+    });
+    await port.listPage({ limit: 100 });
+    const manifest = JSON.parse(readFileSync(filePath, "utf8"));
+    for (const name of readdirSync(port.shardDirectory).filter(
+      (name) => !name.startsWith("query-") && name.endsWith(".json"),
+    ))
+      writeFileSync(join(port.shardDirectory, name), "corrupt authority");
+    await expect(port.listPage({ limit: 100 })).rejects.toMatchObject({
+      code: "CONTEXT_MEMORY_STORE_CORRUPT",
+    });
+    expect(manifest.recordCount).toBe(100);
+  });
+});
 const portUrl = new URL(
   "../../src/lib/context-memory-kernel/segmented-memory-port.js",
   import.meta.url,

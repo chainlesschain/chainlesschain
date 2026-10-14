@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<testsuites>
+	<testcase name="goal verification remains distinct from completion and budget stops" time="0.002369" classname="test"/>
+	<testcase name="goal events preserve text-stream state and bound diagnostic text" time="0.000343" classname="test"/>
+	<!-- tests 2 -->
+	<!-- suites 0 -->
+	<!-- pass 2 -->
+	<!-- fail 0 -->
+	<!-- cancelled 0 -->
+	<!-- skipped 0 -->
+	<!-- todo 0 -->
+	<!-- duration_ms 160.4459 -->
+</testsuites>

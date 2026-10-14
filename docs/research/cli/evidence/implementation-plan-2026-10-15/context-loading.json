@@ -1,0 +1,92 @@
+{
+  "schema": "chainlesschain.implementation-plan-context-measurement/v1",
+  "measuredAt": "2026-10-14T17:26:50.094Z",
+  "scales": [
+    50,
+    200,
+    500
+  ],
+  "costBasis": "estimated",
+  "providerUsageMeasured": false,
+  "qualityEvaluationCompleted": false,
+  "tiers": [
+    {
+      "count": 50,
+      "skillDescriptors": 50,
+      "skillDescriptorEstimatedTokens": 790,
+      "bodiesBefore": 0,
+      "bodiesAfter": 1,
+      "lazyEstimatedTokensAvoided": 2,
+      "recordedSourceTokens": {
+        "total": 1469,
+        "bySource": {
+          "skill_descriptor": 650,
+          "skill": 819
+        },
+        "byBasis": {
+          "estimated": 1469,
+          "observed": 0
+        },
+        "entries": 51,
+        "currentRequestVerified": false,
+        "billingVerified": false
+      },
+      "mcpSentTokens": 2600,
+      "mcpFullTokens": 36400,
+      "mcpSavedTokens": 33800,
+      "exactSchemaSelection": true
+    },
+    {
+      "count": 200,
+      "skillDescriptors": 200,
+      "skillDescriptorEstimatedTokens": 3190,
+      "bodiesBefore": 0,
+      "bodiesAfter": 1,
+      "lazyEstimatedTokensAvoided": 2,
+      "recordedSourceTokens": {
+        "total": 3519,
+        "bySource": {
+          "skill_descriptor": 2700,
+          "skill": 819
+        },
+        "byBasis": {
+          "estimated": 3519,
+          "observed": 0
+        },
+        "entries": 201,
+        "currentRequestVerified": false,
+        "billingVerified": false
+      },
+      "mcpSentTokens": 9900,
+      "mcpFullTokens": 145100,
+      "mcpSavedTokens": 135200,
+      "exactSchemaSelection": true
+    },
+    {
+      "count": 500,
+      "skillDescriptors": 500,
+      "skillDescriptorEstimatedTokens": 7990,
+      "bodiesBefore": 0,
+      "bodiesAfter": 1,
+      "lazyEstimatedTokensAvoided": 2,
+      "recordedSourceTokens": {
+        "total": 7719,
+        "bySource": {
+          "skill_descriptor": 6900,
+          "skill": 819
+        },
+        "byBasis": {
+          "estimated": 7719,
+          "observed": 0
+        },
+        "entries": 501,
+        "currentRequestVerified": false,
+        "billingVerified": false
+      },
+      "mcpSentTokens": 24600,
+      "mcpFullTokens": 362600,
+      "mcpSavedTokens": 338000,
+      "exactSchemaSelection": true
+    }
+  ]
+}

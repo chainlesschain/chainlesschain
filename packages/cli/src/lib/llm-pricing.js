@@ -67,6 +67,9 @@ export const PRICE_TABLE = Object.freeze({
         exact: true,
         terms: Object.freeze({
           ...GPT6_PRICING_TERMS,
+          ...(model.serviceMultipliers
+            ? { serviceMultipliers: model.serviceMultipliers }
+            : {}),
           ...(model.cacheReadMultiplier == null
             ? {}
             : { cacheReadMultiplier: model.cacheReadMultiplier }),
@@ -378,7 +381,9 @@ export function estimateCost({
     ? Object.hasOwn(rate.terms.serviceMultipliers, serviceTier)
       ? rate.terms.serviceMultipliers[serviceTier]
       : null
-    : 1;
+    : ["standard", "default"].includes(serviceTier)
+      ? 1
+      : null;
   if (
     !rate ||
     tierMultiplier == null ||

@@ -1,0 +1,572 @@
+{
+  "schema": "chainlesschain.memory-query-index-measurement/v1",
+  "measuredAt": "2026-10-14T17:15:24.110Z",
+  "sourceHead": "1126d385b25adacc1e8b8220ba6d95bd1bab2b1c",
+  "workingTree": "includes-uncommitted-implementation",
+  "implementationSha256": {
+    "segmented-memory-port.js": "35322d76f8638bd82257160f31df8925909f9fccc2ded65d52b0300c051bfe3c",
+    "durable-memory-port.js": "bad9e207f9498a46e731d78158ad790e64f58910ca52679010cadb4b8bafa5b5",
+    "memory-query-index.js": "d2e6d0b02c21a342315ba1733d800905e43c1aa0e3c5ed160b35a8a076a13858",
+    "memory-service.js": "2552515f46fda805262e400f30be8ae58b4c387d5b888f4bde1d1a72d4568559"
+  },
+  "platform": "win32",
+  "arch": "x64",
+  "node": "v22.22.2",
+  "samples": 3,
+  "counts": [
+    1000,
+    10000,
+    100000
+  ],
+  "query": {
+    "category": "category-7",
+    "limit": 20
+  },
+  "performanceThresholds": null,
+  "boundary": "Local measurement, not approved SLO or release matrix. Cold means a fresh Node process; OS filesystem caches are not flushed. Fixture setup is excluded. Rebuild removes all derived indexes only.",
+  "tiers": [
+    {
+      "count": 1000,
+      "authorityBytes": 1238244,
+      "indexBytes": 277102,
+      "indexCount": 253,
+      "expectedDigest": "sha256:043260fd600a34ca3986a66773c61e99586faf11be4f3c480b5351f55e41e8f3",
+      "groups": {
+        "baseline": {
+          "latency": {
+            "samples": 3,
+            "minMs": 1026.308,
+            "p50Ms": 1032.282,
+            "p95Ms": 1108.216,
+            "p99Ms": 1108.216,
+            "maxMs": 1108.216
+          },
+          "authorityReads": [
+            253
+          ],
+          "authorityBytes": [
+            1238244
+          ],
+          "peakRssBytes": 91131904,
+          "samples": [
+            {
+              "durationMs": 1108.216,
+              "count": 20,
+              "rowsDigest": "sha256:043260fd600a34ca3986a66773c61e99586faf11be4f3c480b5351f55e41e8f3",
+              "authorityReads": 253,
+              "authorityBytes": 1238244,
+              "peakRssBytes": 90574848
+            },
+            {
+              "durationMs": 1032.2816,
+              "count": 20,
+              "rowsDigest": "sha256:043260fd600a34ca3986a66773c61e99586faf11be4f3c480b5351f55e41e8f3",
+              "authorityReads": 253,
+              "authorityBytes": 1238244,
+              "peakRssBytes": 91131904
+            },
+            {
+              "durationMs": 1026.3081,
+              "count": 20,
+              "rowsDigest": "sha256:043260fd600a34ca3986a66773c61e99586faf11be4f3c480b5351f55e41e8f3",
+              "authorityReads": 253,
+              "authorityBytes": 1238244,
+              "peakRssBytes": 90894336
+            }
+          ]
+        },
+        "cold": {
+          "latency": {
+            "samples": 3,
+            "minMs": 1002.547,
+            "p50Ms": 1034.669,
+            "p95Ms": 1035.04,
+            "p99Ms": 1035.04,
+            "maxMs": 1035.04
+          },
+          "authorityReads": [
+            20
+          ],
+          "authorityBytes": [
+            102516
+          ],
+          "peakRssBytes": 89239552,
+          "samples": [
+            {
+              "durationMs": 1002.547,
+              "count": 20,
+              "rowsDigest": "sha256:043260fd600a34ca3986a66773c61e99586faf11be4f3c480b5351f55e41e8f3",
+              "authorityReads": 20,
+              "authorityBytes": 102516,
+              "peakRssBytes": 88838144
+            },
+            {
+              "durationMs": 1035.0401000000002,
+              "count": 20,
+              "rowsDigest": "sha256:043260fd600a34ca3986a66773c61e99586faf11be4f3c480b5351f55e41e8f3",
+              "authorityReads": 20,
+              "authorityBytes": 102516,
+              "peakRssBytes": 89239552
+            },
+            {
+              "durationMs": 1034.6692,
+              "count": 20,
+              "rowsDigest": "sha256:043260fd600a34ca3986a66773c61e99586faf11be4f3c480b5351f55e41e8f3",
+              "authorityReads": 20,
+              "authorityBytes": 102516,
+              "peakRssBytes": 89190400
+            }
+          ]
+        },
+        "hot": {
+          "latency": {
+            "samples": 3,
+            "minMs": 909.654,
+            "p50Ms": 916.504,
+            "p95Ms": 920.856,
+            "p99Ms": 920.856,
+            "maxMs": 920.856
+          },
+          "authorityReads": [
+            20
+          ],
+          "authorityBytes": [
+            102516
+          ],
+          "peakRssBytes": 111149056,
+          "samples": [
+            {
+              "durationMs": 916.5038000000004,
+              "count": 20,
+              "rowsDigest": "sha256:043260fd600a34ca3986a66773c61e99586faf11be4f3c480b5351f55e41e8f3",
+              "authorityReads": 20,
+              "authorityBytes": 102516,
+              "peakRssBytes": 111149056
+            },
+            {
+              "durationMs": 920.8557000000001,
+              "count": 20,
+              "rowsDigest": "sha256:043260fd600a34ca3986a66773c61e99586faf11be4f3c480b5351f55e41e8f3",
+              "authorityReads": 20,
+              "authorityBytes": 102516,
+              "peakRssBytes": 111149056
+            },
+            {
+              "durationMs": 909.6538,
+              "count": 20,
+              "rowsDigest": "sha256:043260fd600a34ca3986a66773c61e99586faf11be4f3c480b5351f55e41e8f3",
+              "authorityReads": 20,
+              "authorityBytes": 102516,
+              "peakRssBytes": 111149056
+            }
+          ]
+        },
+        "rebuild": {
+          "latency": {
+            "samples": 3,
+            "minMs": 3278.676,
+            "p50Ms": 3354.211,
+            "p95Ms": 3373.599,
+            "p99Ms": 3373.599,
+            "maxMs": 3373.599
+          },
+          "authorityReads": [
+            273
+          ],
+          "authorityBytes": [
+            1340760
+          ],
+          "peakRssBytes": 88797184,
+          "samples": [
+            {
+              "durationMs": 3278.6762,
+              "count": 20,
+              "rowsDigest": "sha256:043260fd600a34ca3986a66773c61e99586faf11be4f3c480b5351f55e41e8f3",
+              "authorityReads": 273,
+              "authorityBytes": 1340760,
+              "peakRssBytes": 88735744
+            },
+            {
+              "durationMs": 3354.2110000000002,
+              "count": 20,
+              "rowsDigest": "sha256:043260fd600a34ca3986a66773c61e99586faf11be4f3c480b5351f55e41e8f3",
+              "authorityReads": 273,
+              "authorityBytes": 1340760,
+              "peakRssBytes": 88444928
+            },
+            {
+              "durationMs": 3373.5995,
+              "count": 20,
+              "rowsDigest": "sha256:043260fd600a34ca3986a66773c61e99586faf11be4f3c480b5351f55e41e8f3",
+              "authorityReads": 273,
+              "authorityBytes": 1340760,
+              "peakRssBytes": 88797184
+            }
+          ]
+        }
+      }
+    },
+    {
+      "count": 10000,
+      "authorityBytes": 11914478,
+      "indexBytes": 2439116,
+      "indexCount": 256,
+      "expectedDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+      "groups": {
+        "baseline": {
+          "latency": {
+            "samples": 3,
+            "minMs": 1962.372,
+            "p50Ms": 1992.583,
+            "p95Ms": 2012.923,
+            "p99Ms": 2012.923,
+            "maxMs": 2012.923
+          },
+          "authorityReads": [
+            256
+          ],
+          "authorityBytes": [
+            11914478
+          ],
+          "peakRssBytes": 131010560,
+          "samples": [
+            {
+              "durationMs": 1962.3716,
+              "count": 20,
+              "rowsDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+              "authorityReads": 256,
+              "authorityBytes": 11914478,
+              "peakRssBytes": 130801664
+            },
+            {
+              "durationMs": 1992.5832,
+              "count": 20,
+              "rowsDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+              "authorityReads": 256,
+              "authorityBytes": 11914478,
+              "peakRssBytes": 131010560
+            },
+            {
+              "durationMs": 2012.9231,
+              "count": 20,
+              "rowsDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+              "authorityReads": 256,
+              "authorityBytes": 11914478,
+              "peakRssBytes": 130809856
+            }
+          ]
+        },
+        "cold": {
+          "latency": {
+            "samples": 3,
+            "minMs": 1147.065,
+            "p50Ms": 1363.95,
+            "p95Ms": 1451.274,
+            "p99Ms": 1451.274,
+            "maxMs": 1451.274
+          },
+          "authorityReads": [
+            19
+          ],
+          "authorityBytes": [
+            875720
+          ],
+          "peakRssBytes": 112082944,
+          "samples": [
+            {
+              "durationMs": 1147.0655,
+              "count": 20,
+              "rowsDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+              "authorityReads": 19,
+              "authorityBytes": 875720,
+              "peakRssBytes": 112058368
+            },
+            {
+              "durationMs": 1451.2742,
+              "count": 20,
+              "rowsDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+              "authorityReads": 19,
+              "authorityBytes": 875720,
+              "peakRssBytes": 111226880
+            },
+            {
+              "durationMs": 1363.9499,
+              "count": 20,
+              "rowsDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+              "authorityReads": 19,
+              "authorityBytes": 875720,
+              "peakRssBytes": 112082944
+            }
+          ]
+        },
+        "hot": {
+          "latency": {
+            "samples": 3,
+            "minMs": 1060.048,
+            "p50Ms": 1087.846,
+            "p95Ms": 1138.177,
+            "p99Ms": 1138.177,
+            "maxMs": 1138.177
+          },
+          "authorityReads": [
+            19
+          ],
+          "authorityBytes": [
+            875720
+          ],
+          "peakRssBytes": 225087488,
+          "samples": [
+            {
+              "durationMs": 1087.8462,
+              "count": 20,
+              "rowsDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+              "authorityReads": 19,
+              "authorityBytes": 875720,
+              "peakRssBytes": 217780224
+            },
+            {
+              "durationMs": 1138.1772000000055,
+              "count": 20,
+              "rowsDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+              "authorityReads": 19,
+              "authorityBytes": 875720,
+              "peakRssBytes": 222945280
+            },
+            {
+              "durationMs": 1060.0483999999997,
+              "count": 20,
+              "rowsDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+              "authorityReads": 19,
+              "authorityBytes": 875720,
+              "peakRssBytes": 225087488
+            }
+          ]
+        },
+        "rebuild": {
+          "latency": {
+            "samples": 3,
+            "minMs": 4409.536,
+            "p50Ms": 4822.832,
+            "p95Ms": 5112.525,
+            "p99Ms": 5112.525,
+            "maxMs": 5112.525
+          },
+          "authorityReads": [
+            275
+          ],
+          "authorityBytes": [
+            12790198
+          ],
+          "peakRssBytes": 114753536,
+          "samples": [
+            {
+              "durationMs": 5112.5252,
+              "count": 20,
+              "rowsDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+              "authorityReads": 275,
+              "authorityBytes": 12790198,
+              "peakRssBytes": 114753536
+            },
+            {
+              "durationMs": 4822.831899999999,
+              "count": 20,
+              "rowsDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+              "authorityReads": 275,
+              "authorityBytes": 12790198,
+              "peakRssBytes": 114589696
+            },
+            {
+              "durationMs": 4409.536300000001,
+              "count": 20,
+              "rowsDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+              "authorityReads": 275,
+              "authorityBytes": 12790198,
+              "peakRssBytes": 114585600
+            }
+          ]
+        }
+      }
+    },
+    {
+      "count": 100000,
+      "authorityBytes": 118940239,
+      "indexBytes": 24054876,
+      "indexCount": 256,
+      "expectedDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+      "groups": {
+        "baseline": {
+          "latency": {
+            "samples": 3,
+            "minMs": 10982.958,
+            "p50Ms": 11290.557,
+            "p95Ms": 13899.651,
+            "p99Ms": 13899.651,
+            "maxMs": 13899.651
+          },
+          "authorityReads": [
+            256
+          ],
+          "authorityBytes": [
+            118940239
+          ],
+          "peakRssBytes": 448307200,
+          "samples": [
+            {
+              "durationMs": 10982.9577,
+              "count": 20,
+              "rowsDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+              "authorityReads": 256,
+              "authorityBytes": 118940239,
+              "peakRssBytes": 448307200
+            },
+            {
+              "durationMs": 11290.5572,
+              "count": 20,
+              "rowsDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+              "authorityReads": 256,
+              "authorityBytes": 118940239,
+              "peakRssBytes": 432992256
+            },
+            {
+              "durationMs": 13899.6512,
+              "count": 20,
+              "rowsDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+              "authorityReads": 256,
+              "authorityBytes": 118940239,
+              "peakRssBytes": 447283200
+            }
+          ]
+        },
+        "cold": {
+          "latency": {
+            "samples": 3,
+            "minMs": 2199.96,
+            "p50Ms": 2202.52,
+            "p95Ms": 2254.274,
+            "p99Ms": 2254.274,
+            "maxMs": 2254.274
+          },
+          "authorityReads": [
+            19
+          ],
+          "authorityBytes": [
+            8831462
+          ],
+          "peakRssBytes": 188194816,
+          "samples": [
+            {
+              "durationMs": 2254.2737,
+              "count": 20,
+              "rowsDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+              "authorityReads": 19,
+              "authorityBytes": 8831462,
+              "peakRssBytes": 185389056
+            },
+            {
+              "durationMs": 2202.5202999999997,
+              "count": 20,
+              "rowsDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+              "authorityReads": 19,
+              "authorityBytes": 8831462,
+              "peakRssBytes": 188194816
+            },
+            {
+              "durationMs": 2199.9599,
+              "count": 20,
+              "rowsDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+              "authorityReads": 19,
+              "authorityBytes": 8831462,
+              "peakRssBytes": 186982400
+            }
+          ]
+        },
+        "hot": {
+          "latency": {
+            "samples": 3,
+            "minMs": 1711.819,
+            "p50Ms": 1717.047,
+            "p95Ms": 1780.109,
+            "p99Ms": 1780.109,
+            "maxMs": 1780.109
+          },
+          "authorityReads": [
+            19
+          ],
+          "authorityBytes": [
+            8831462
+          ],
+          "peakRssBytes": 1137369088,
+          "samples": [
+            {
+              "durationMs": 1780.1088000000163,
+              "count": 20,
+              "rowsDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+              "authorityReads": 19,
+              "authorityBytes": 8831462,
+              "peakRssBytes": 1137369088
+            },
+            {
+              "durationMs": 1717.0466000000015,
+              "count": 20,
+              "rowsDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+              "authorityReads": 19,
+              "authorityBytes": 8831462,
+              "peakRssBytes": 1137369088
+            },
+            {
+              "durationMs": 1711.8194999999832,
+              "count": 20,
+              "rowsDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+              "authorityReads": 19,
+              "authorityBytes": 8831462,
+              "peakRssBytes": 1137369088
+            }
+          ]
+        },
+        "rebuild": {
+          "latency": {
+            "samples": 3,
+            "minMs": 14425.614,
+            "p50Ms": 14833.278,
+            "p95Ms": 14833.972,
+            "p99Ms": 14833.972,
+            "maxMs": 14833.972
+          },
+          "authorityReads": [
+            275
+          ],
+          "authorityBytes": [
+            127771701
+          ],
+          "peakRssBytes": 264478720,
+          "samples": [
+            {
+              "durationMs": 14425.6142,
+              "count": 20,
+              "rowsDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+              "authorityReads": 275,
+              "authorityBytes": 127771701,
+              "peakRssBytes": 254648320
+            },
+            {
+              "durationMs": 14833.9722,
+              "count": 20,
+              "rowsDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+              "authorityReads": 275,
+              "authorityBytes": 127771701,
+              "peakRssBytes": 260632576
+            },
+            {
+              "durationMs": 14833.2782,
+              "count": 20,
+              "rowsDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+              "authorityReads": 275,
+              "authorityBytes": 127771701,
+              "peakRssBytes": 264478720
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

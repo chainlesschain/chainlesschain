@@ -23,7 +23,7 @@ describe("reviewed model catalog drift", () => {
   it("checks the current Haiku contract while preserving the unclosed upstream baseline", () => {
     expect(currentReview.upstream).toEqual(review.upstream);
     expect(reviewModelCatalog(currentReview)).toMatchObject({
-      localContractPassed: true,
+      localContractPassed: false,
       automaticEnablement: false,
     });
     expect(
@@ -163,7 +163,7 @@ describe("reviewed model catalog drift", () => {
     expect(result.upstream[0].observedVersion).toBe("2.1.295");
   });
   it("keeps reviewed official model contracts in the ordinary CLI gate", () => {
-    expect(reviewModelCatalog(review)).toMatchObject({
+    expect(reviewModelCatalog(latestReview)).toMatchObject({
       localContractPassed: true,
       reviewRequired: false,
       automaticEnablement: false,
@@ -202,3 +202,13 @@ describe("reviewed model catalog drift", () => {
     });
   });
 });
+
+const latestReview = JSON.parse(
+  readFileSync(
+    new URL(
+      "../fixtures/model-catalog-review-2026-10-15.json",
+      import.meta.url,
+    ),
+    "utf8",
+  ),
+);

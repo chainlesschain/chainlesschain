@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.ChatEventsTest" tests="33" skipped="0" failures="0" errors="0" timestamp="2026-10-14T17:26:07" hostname="DESKTOP-MTMV2RE" time="0.092">
+  <properties/>
+  <testcase name="buildSessionArgsSkipsBlankAndNullValues()" classname="com.chainlesschain.ide.ChatEventsTest" time="0.017"/>
+  <testcase name="tokenTallyOmitsCachedWhenZero()" classname="com.chainlesschain.ide.ChatEventsTest" time="0.008"/>
+  <testcase name="urlElicitationCarriesSafeOpenMetadataAndBindingToTheUi()" classname="com.chainlesschain.ide.ChatEventsTest" time="0.004"/>
+  <testcase name="tokenUsageEventMapsToUsageKindCarryingTheSameUsageMap()" classname="com.chainlesschain.ide.ChatEventsTest" time="0.001"/>
+  <testcase name="summarizeToolArgsPicksFirstPresentKeyByPriority()" classname="com.chainlesschain.ide.ChatEventsTest" time="0.0"/>
+  <testcase name="tokenUsageEventWithoutUsageIsUiSilent()" classname="com.chainlesschain.ide.ChatEventsTest" time="0.002"/>
+  <testcase name="iterationWarningMapsToWarningInfoLine()" classname="com.chainlesschain.ide.ChatEventsTest" time="0.0"/>
+  <testcase name="approvalRequestPreservesBindingAndOnlyBoundedExactPermissions()" classname="com.chainlesschain.ide.ChatEventsTest" time="0.014"/>
+  <testcase name="buildSessionArgsEmitsProviderModelResumeTrimmed()" classname="com.chainlesschain.ide.ChatEventsTest" time="0.0"/>
+  <testcase name="tokenTallyAccumulatesAndShowsCached()" classname="com.chainlesschain.ide.ChatEventsTest" time="0.002"/>
+  <testcase name="liveUsageShowsActualTierAndUnconfirmedPrice()" classname="com.chainlesschain.ide.ChatEventsTest" time="0.001"/>
+  <testcase name="summarizeToolArgsForNonMapIsEmpty()" classname="com.chainlesschain.ide.ChatEventsTest" time="0.0"/>
+  <testcase name="iterationWarningWithoutMessageUsesDefaultText()" classname="com.chainlesschain.ide.ChatEventsTest" time="0.001"/>
+  <testcase name="budgetResultWithoutStreamedTextKeepsTheResultPlusReason()" classname="com.chainlesschain.ide.ChatEventsTest" time="0.002"/>
+  <testcase name="unknownFutureEventRemainsUiSilent()" classname="com.chainlesschain.ide.ChatEventsTest" time="0.001"/>
+  <testcase name="tokenTallyIgnoresNullPayload()" classname="com.chainlesschain.ide.ChatEventsTest" time="0.001"/>
+  <testcase name="streamRetryWithoutFieldsUsesDefaultWording()" classname="com.chainlesschain.ide.ChatEventsTest" time="0.001"/>
+  <testcase name="iterationBudgetExhaustedMapsToInfo()" classname="com.chainlesschain.ide.ChatEventsTest" time="0.001"/>
+  <testcase name="formatTokensAtOrAboveTenThousandDropsTheDecimal()" classname="com.chainlesschain.ide.ChatEventsTest" time="0.001"/>
+  <testcase name="goalChecksAndExhaustionDoNotClaimCompletion()" classname="com.chainlesschain.ide.ChatEventsTest" time="0.0"/>
+  <testcase name="summarizeToolArgsTruncatesBeyondEightyChars()" classname="com.chainlesschain.ide.ChatEventsTest" time="0.001"/>
+  <testcase name="readyLineWithoutUsageIsPlainReady()" classname="com.chainlesschain.ide.ChatEventsTest" time="0.001"/>
+  <testcase name="streamRetryMapsToInfoWithAttempt()" classname="com.chainlesschain.ide.ChatEventsTest" time="0.001"/>
+  <testcase name="budgetResultAfterStreamedTextShowsOnlyTheStopReason()" classname="com.chainlesschain.ide.ChatEventsTest" time="0.001"/>
+  <testcase name="nullEventMapsToNull()" classname="com.chainlesschain.ide.ChatEventsTest" time="0.001"/>
+  <testcase name="toolResultCarriesRuntimePermissionDecisionToTheUi()" classname="com.chainlesschain.ide.ChatEventsTest" time="0.001"/>
+  <testcase name="formatTokensExactlyOneThousandIsOneDecimalK()" classname="com.chainlesschain.ide.ChatEventsTest" time="0.002"/>
+  <testcase name="formatTokensUnderTenThousandKeepsOneDecimal()" classname="com.chainlesschain.ide.ChatEventsTest" time="0.001"/>
+  <testcase name="costBudgetExhaustedMapsToInfoWithTwoDecimalDollars()" classname="com.chainlesschain.ide.ChatEventsTest" time="0.001"/>
+  <testcase name="formatTokensUnderOneThousandIsVerbatim()" classname="com.chainlesschain.ide.ChatEventsTest" time="0.0"/>
+  <testcase name="failedSessionSlashResultMapsStructuredMessageToVisibleError()" classname="com.chainlesschain.ide.ChatEventsTest" time="0.0"/>
+  <testcase name="successfulSessionSlashResultMapsToPreformattedOutput()" classname="com.chainlesschain.ide.ChatEventsTest" time="0.001"/>
+  <testcase name="readyLineFromUsage()" classname="com.chainlesschain.ide.ChatEventsTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

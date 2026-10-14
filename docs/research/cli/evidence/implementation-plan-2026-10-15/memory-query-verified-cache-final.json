@@ -1,0 +1,273 @@
+{
+  "schema": "chainlesschain.memory-query-index-measurement/v1",
+  "measuredAt": "2026-10-14T17:54:23.983Z",
+  "sourceHead": "1126d385b25adacc1e8b8220ba6d95bd1bab2b1c",
+  "workingTree": "includes-uncommitted-implementation",
+  "implementationSha256": {
+    "segmented-memory-port.js": "ea1dc3c0406209acc5ea7d606d4fbdf0c43a074a11f5442092e70551bfef63ca",
+    "durable-memory-port.js": "bad9e207f9498a46e731d78158ad790e64f58910ca52679010cadb4b8bafa5b5",
+    "memory-query-index.js": "3a6b2c267ac0773a9aefb35c4a0ffd9d03f2fc774916c44ae32c8fbe4332772f",
+    "memory-service.js": "2552515f46fda805262e400f30be8ae58b4c387d5b888f4bde1d1a72d4568559"
+  },
+  "platform": "win32",
+  "arch": "x64",
+  "node": "v22.22.2",
+  "samples": 5,
+  "cacheMode": "verified-memory",
+  "counts": [
+    100000
+  ],
+  "query": {
+    "category": "category-7",
+    "limit": 20
+  },
+  "performanceThresholds": null,
+  "boundary": "Local measurement, not approved SLO or release matrix. Cold means a fresh Node process; OS filesystem caches are not flushed. Fixture setup is excluded. Rebuild removes all derived indexes only.",
+  "tiers": [
+    {
+      "count": 100000,
+      "authorityBytes": 118940239,
+      "indexBytes": 24054876,
+      "indexCount": 256,
+      "expectedDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+      "groups": {
+        "baseline": {
+          "latency": {
+            "samples": 5,
+            "minMs": 11069.748,
+            "p50Ms": 11228.285,
+            "p95Ms": 11350.133,
+            "p99Ms": 11350.133,
+            "maxMs": 11350.133
+          },
+          "authorityReads": [
+            256
+          ],
+          "authorityBytes": [
+            118940239
+          ],
+          "peakRssBytes": 449597440,
+          "samples": [
+            {
+              "durationMs": 11228.285100000001,
+              "count": 20,
+              "rowsDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+              "authorityReads": 256,
+              "authorityBytes": 118940239,
+              "peakRssBytes": 433205248
+            },
+            {
+              "durationMs": 11069.7481,
+              "count": 20,
+              "rowsDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+              "authorityReads": 256,
+              "authorityBytes": 118940239,
+              "peakRssBytes": 449597440
+            },
+            {
+              "durationMs": 11209.939499999999,
+              "count": 20,
+              "rowsDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+              "authorityReads": 256,
+              "authorityBytes": 118940239,
+              "peakRssBytes": 445104128
+            },
+            {
+              "durationMs": 11304.4573,
+              "count": 20,
+              "rowsDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+              "authorityReads": 256,
+              "authorityBytes": 118940239,
+              "peakRssBytes": 425730048
+            },
+            {
+              "durationMs": 11350.133,
+              "count": 20,
+              "rowsDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+              "authorityReads": 256,
+              "authorityBytes": 118940239,
+              "peakRssBytes": 425750528
+            }
+          ]
+        },
+        "cold": {
+          "latency": {
+            "samples": 5,
+            "minMs": 2191.827,
+            "p50Ms": 2203.665,
+            "p95Ms": 2215.784,
+            "p99Ms": 2215.784,
+            "maxMs": 2215.784
+          },
+          "authorityReads": [
+            19
+          ],
+          "authorityBytes": [
+            8831462
+          ],
+          "peakRssBytes": 188698624,
+          "samples": [
+            {
+              "durationMs": 2203.6647,
+              "count": 20,
+              "rowsDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+              "authorityReads": 19,
+              "authorityBytes": 8831462,
+              "peakRssBytes": 186724352
+            },
+            {
+              "durationMs": 2200.3558,
+              "count": 20,
+              "rowsDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+              "authorityReads": 19,
+              "authorityBytes": 8831462,
+              "peakRssBytes": 187408384
+            },
+            {
+              "durationMs": 2205.9754000000003,
+              "count": 20,
+              "rowsDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+              "authorityReads": 19,
+              "authorityBytes": 8831462,
+              "peakRssBytes": 188698624
+            },
+            {
+              "durationMs": 2215.7835,
+              "count": 20,
+              "rowsDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+              "authorityReads": 19,
+              "authorityBytes": 8831462,
+              "peakRssBytes": 185569280
+            },
+            {
+              "durationMs": 2191.8269999999998,
+              "count": 20,
+              "rowsDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+              "authorityReads": 19,
+              "authorityBytes": 8831462,
+              "peakRssBytes": 188407808
+            }
+          ]
+        },
+        "hot": {
+          "latency": {
+            "samples": 5,
+            "minMs": 795.021,
+            "p50Ms": 818.667,
+            "p95Ms": 854.3,
+            "p99Ms": 854.3,
+            "maxMs": 854.3
+          },
+          "authorityReads": [
+            19
+          ],
+          "authorityBytes": [
+            8831462
+          ],
+          "peakRssBytes": 985161728,
+          "samples": [
+            {
+              "durationMs": 854.2997999999934,
+              "count": 20,
+              "rowsDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+              "authorityReads": 19,
+              "authorityBytes": 8831462,
+              "peakRssBytes": 985161728
+            },
+            {
+              "durationMs": 795.0205999999889,
+              "count": 20,
+              "rowsDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+              "authorityReads": 19,
+              "authorityBytes": 8831462,
+              "peakRssBytes": 985161728
+            },
+            {
+              "durationMs": 800.8205999999918,
+              "count": 20,
+              "rowsDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+              "authorityReads": 19,
+              "authorityBytes": 8831462,
+              "peakRssBytes": 985161728
+            },
+            {
+              "durationMs": 825.2168999999994,
+              "count": 20,
+              "rowsDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+              "authorityReads": 19,
+              "authorityBytes": 8831462,
+              "peakRssBytes": 985161728
+            },
+            {
+              "durationMs": 818.6667999999918,
+              "count": 20,
+              "rowsDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+              "authorityReads": 19,
+              "authorityBytes": 8831462,
+              "peakRssBytes": 985161728
+            }
+          ]
+        },
+        "rebuild": {
+          "latency": {
+            "samples": 5,
+            "minMs": 14353.811,
+            "p50Ms": 14759.266,
+            "p95Ms": 15464.798,
+            "p99Ms": 15464.798,
+            "maxMs": 15464.798
+          },
+          "authorityReads": [
+            275
+          ],
+          "authorityBytes": [
+            127771701
+          ],
+          "peakRssBytes": 271343616,
+          "samples": [
+            {
+              "durationMs": 14353.8115,
+              "count": 20,
+              "rowsDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+              "authorityReads": 275,
+              "authorityBytes": 127771701,
+              "peakRssBytes": 258772992
+            },
+            {
+              "durationMs": 14408.949299999998,
+              "count": 20,
+              "rowsDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+              "authorityReads": 275,
+              "authorityBytes": 127771701,
+              "peakRssBytes": 253595648
+            },
+            {
+              "durationMs": 14833.9127,
+              "count": 20,
+              "rowsDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+              "authorityReads": 275,
+              "authorityBytes": 127771701,
+              "peakRssBytes": 258473984
+            },
+            {
+              "durationMs": 14759.266,
+              "count": 20,
+              "rowsDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+              "authorityReads": 275,
+              "authorityBytes": 127771701,
+              "peakRssBytes": 253521920
+            },
+            {
+              "durationMs": 15464.7981,
+              "count": 20,
+              "rowsDigest": "sha256:558d2b97f5c06571c28d30bf07b513d9eb56e56c4403d7a64a7a951886bc65bd",
+              "authorityReads": 275,
+              "authorityBytes": 127771701,
+              "peakRssBytes": 271343616
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

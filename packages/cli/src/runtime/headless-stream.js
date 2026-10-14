@@ -3632,6 +3632,7 @@ async function runAgentHeadlessStreamInWorkspace(
     apiKey,
     cwd,
     additionalDirectories,
+    serviceTier: options.serviceTier,
     sandbox: options.sandbox,
     shellPolicyOverrides: options.shellPolicyOverrides,
     ...(skillOutcomeIndex === null ? {} : { skillOutcomeIndex }),

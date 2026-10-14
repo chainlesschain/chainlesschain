@@ -1,0 +1,325 @@
+{
+  "schema": "chainlesschain.implementation-plan-baseline/v1",
+  "capturedAt": "2026-10-14T17:40:49.580Z",
+  "sourceCommit": "1126d385b25adacc1e8b8220ba6d95bd1bab2b1c",
+  "sourceDirty": true,
+  "packages": {
+    "cli": "0.166.101",
+    "context-memory-kernel": "0.1.10",
+    "vscode-extension": "0.37.145",
+    "jetbrains-plugin": "0.4.163"
+  },
+  "sourceVersionsOnly": true,
+  "publicReleaseVerified": false,
+  "modelCatalogVersion": "2026-10-15",
+  "environment": {
+    "platform": "win32",
+    "arch": "x64",
+    "node": "v22.22.2",
+    "osRelease": "10.0.19045",
+    "cpuModel": "Intel(R) Core(TM) i7-4770HQ CPU @ 2.20GHz",
+    "totalMemoryBytes": 17050144768
+  },
+  "workPackages": [
+    {
+      "id": "BASE-01",
+      "previousIds": [
+        "MODEL-03",
+        "MODEL-04",
+        "PERF-03",
+        "IDE-READY-02",
+        "IDE-ONBOARD-02",
+        "IDE-COLD-02"
+      ],
+      "sources": [
+        {
+          "path": "packages/cli/src/lib/model-capabilities.js",
+          "digest": "sha256:955430286832da0646fee51d253295e8b9b5b6e1de8e198919abc58aeb0d3d89"
+        },
+        {
+          "path": "packages/cli/src/lib/execution-location-contract.js",
+          "digest": "sha256:29fe955164f24d0d07cbe2b62283a26b7b9578d66337268737c827b278e591fb"
+        }
+      ],
+      "completionStatus": "NOT_ATTESTED"
+    },
+    {
+      "id": "MODEL-05",
+      "previousIds": [
+        "MODEL-03",
+        "MODEL-04"
+      ],
+      "sources": [
+        {
+          "path": "packages/cli/src/lib/model-context-catalog.js",
+          "digest": "sha256:bc0fdbcbca819710ed38b5309cfa379ebaf96b963d9dcd463233c64000fae442"
+        },
+        {
+          "path": "packages/cli/src/lib/model-capabilities.js",
+          "digest": "sha256:955430286832da0646fee51d253295e8b9b5b6e1de8e198919abc58aeb0d3d89"
+        },
+        {
+          "path": "packages/cli/src/lib/llm-pricing.js",
+          "digest": "sha256:5c6cdd0532c50fbf105b4b4f74b380894a6754b23587d41d86aeac78fc603d78"
+        },
+        {
+          "path": "packages/cli/src/lib/openai-responses.js",
+          "digest": "sha256:512954e309a3534770ed2a165b24630dcc5111b6e89ec4182553eabe7f2fe5c9"
+        },
+        {
+          "path": "packages/cli/src/lib/model-catalog-review.js",
+          "digest": "sha256:c519955290026cb6865008f031d372975dff65be6a865f6dce1e5328002312a8"
+        }
+      ],
+      "completionStatus": "NOT_ATTESTED"
+    },
+    {
+      "id": "RUN-03",
+      "previousIds": [],
+      "sources": [
+        {
+          "path": "packages/cli/src/lib/goal-condition-engine.js",
+          "digest": "sha256:5127addc50fa54a11bfee77661882fe3ad35617db611691aa344009323f40cb5"
+        },
+        {
+          "path": "packages/cli/src/lib/workflow-engine.js",
+          "digest": "sha256:b21330a7790edb656667fda260a91eb2c7b8e3fb85730dd33ef6b18769d7938f"
+        },
+        {
+          "path": "packages/cli/src/lib/session-input-receipt.js",
+          "digest": "sha256:b84036484c5b76e7d36f4a7e1fbe7bec7343a194f78f2b66ff31bef58c6cc004"
+        }
+      ],
+      "completionStatus": "NOT_ATTESTED"
+    },
+    {
+      "id": "IDE-03",
+      "previousIds": [
+        "IDE-READY-02",
+        "IDE-ONBOARD-02",
+        "IDE-COLD-02"
+      ],
+      "sources": [
+        {
+          "path": "packages/vscode-extension/src/chat/chat-events.js",
+          "digest": "sha256:3ae8dfc92f1196daee13e1406874e53eca89dcbca0795ecd049e3d2d123f06e7"
+        },
+        {
+          "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/ChatEvents.java",
+          "digest": "sha256:3d7687d2fc22bd6d0f89bf7649ed1900a7a0d5eb7425399aa4b8ff0a370a44a0"
+        }
+      ],
+      "completionStatus": "NOT_ATTESTED"
+    },
+    {
+      "id": "CTX-03",
+      "previousIds": [],
+      "sources": [
+        {
+          "path": "packages/cli/src/lib/skill-loader.js",
+          "digest": "sha256:280dcd745c36907e7601fc361e3f777ebec3a3941ff2fecdd0d5d3bafe6eb953"
+        },
+        {
+          "path": "packages/cli/src/lib/skill-budget.js",
+          "digest": "sha256:3a5e2d877a80a0cbabbba13da8f722877b8e97d1c0572613a331c8121c6253ce"
+        },
+        {
+          "path": "packages/cli/src/lib/context-source-ledger.js",
+          "digest": "sha256:0aa6278a705b3cf930590f45c2e3a03e1c96cdcd7198f6704439fee2c2b40854"
+        }
+      ],
+      "completionStatus": "NOT_ATTESTED"
+    },
+    {
+      "id": "MCP-03",
+      "previousIds": [
+        "MCP-02"
+      ],
+      "sources": [
+        {
+          "path": "packages/cli/src/runtime/mcp-tool-search.js",
+          "digest": "sha256:ebca02a7379a9451605fa3255b14eda3fb55d5d0e33742f1bd6a7680da1dca14"
+        },
+        {
+          "path": "packages/cli/src/harness/mcp-client.js",
+          "digest": "sha256:3368c0b6f855c715af8f2fa143765fdbcd118915cee85aae28c1d5a8a204937d"
+        },
+        {
+          "path": "packages/cli/src/lib/plugin-runtime/reload.js",
+          "digest": "sha256:632e17e933e3626892fe107c1ad1e63248dcfe2c77e63fc8ce0a9b563957e057"
+        }
+      ],
+      "completionStatus": "NOT_ATTESTED"
+    },
+    {
+      "id": "BUDGET-03",
+      "previousIds": [],
+      "sources": [
+        {
+          "path": "packages/cli/src/lib/formal-budget-authority.js",
+          "digest": "sha256:0aed4018396929b7eff707fb92bca998d7738fd58d130f9c28940bd766d536a1"
+        },
+        {
+          "path": "packages/cli/src/lib/formal-budget-transport.js",
+          "digest": "sha256:6db077cb74e7c41d17245a5280e2b2b78df0b692f0726376956fd42d4bf4cab6"
+        },
+        {
+          "path": "packages/cli/src/lib/formal-budget-contract.js",
+          "digest": "sha256:2dd3961978fc3ede80256ed3aedbbd7e6b7f0cd8a8233ea574f7fb65c04e43ef"
+        }
+      ],
+      "completionStatus": "NOT_ATTESTED"
+    },
+    {
+      "id": "PERF-04",
+      "previousIds": [
+        "PERF-03"
+      ],
+      "sources": [
+        {
+          "path": "packages/cli/src/lib/context-memory-kernel/memory-query-index.js",
+          "digest": "sha256:3a6b2c267ac0773a9aefb35c4a0ffd9d03f2fc774916c44ae32c8fbe4332772f"
+        },
+        {
+          "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+          "digest": "sha256:d6d4dbbcb06dbc0f86e4482f7eed23973726d76219712b066504e48c2f189dd4"
+        }
+      ],
+      "completionStatus": "NOT_ATTESTED"
+    },
+    {
+      "id": "VERIFY-03",
+      "previousIds": [
+        "VERIFY-02",
+        "VERIFY-IDE-02"
+      ],
+      "sources": [
+        {
+          "path": "packages/cli/src/lib/eval/verify01-contracts.js",
+          "digest": "sha256:07d7be9e1b6e8e4ec3ec4f25e53188ec7c8865ad6eaa922368ab69efaa8cbd89"
+        },
+        {
+          "path": "packages/cli/src/lib/eval/verify01-execution.js",
+          "digest": "sha256:21921e503d0393b5dd01d9689955085f8391d06396dec486ac4fd8af71bf955c"
+        }
+      ],
+      "completionStatus": "NOT_ATTESTED"
+    },
+    {
+      "id": "RELEASE-03",
+      "previousIds": [],
+      "sources": [
+        {
+          "path": ".github/workflows/cli-ci.yml",
+          "digest": "sha256:9914560b88ba4b72ad35384a55cedbaa07351171db052dfa5a931f7cf3cd8408"
+        },
+        {
+          "path": ".github/workflows/cli-strict-sandbox.yml",
+          "digest": "sha256:9e83055cae1e4fa4303af8b2abe913eea682e286f650e1dbc07d2aaf73cf14af"
+        }
+      ],
+      "completionStatus": "NOT_ATTESTED"
+    },
+    {
+      "id": "COMPAT-03",
+      "previousIds": [
+        "CODEX-02"
+      ],
+      "sources": [
+        {
+          "path": "packages/cli/src/lib/codex-app-server-adapter.js",
+          "digest": "sha256:2d71b65dd1a377d44e1fa8825a5388063b155b6721a3f61564fe5d50023a5ef1"
+        },
+        {
+          "path": ".github/workflows/codex-app-server-compatibility.yml",
+          "digest": "sha256:f2d1877a784e7d9a01542d954c69b2cb0160bc6905b230866c4d77bbc1069956"
+        }
+      ],
+      "completionStatus": "NOT_ATTESTED"
+    },
+    {
+      "id": "PLATFORM-03",
+      "previousIds": [
+        "PLATFORM-02"
+      ],
+      "sources": [
+        {
+          "path": "packages/cli/src/lib/execution-location-contract.js",
+          "digest": "sha256:29fe955164f24d0d07cbe2b62283a26b7b9578d66337268737c827b278e591fb"
+        }
+      ],
+      "completionStatus": "NOT_ATTESTED"
+    },
+    {
+      "id": "CLOUD-03",
+      "previousIds": [
+        "CLOUD-02"
+      ],
+      "sources": [
+        {
+          "path": "packages/cli/src/lib/execution-location-contract.js",
+          "digest": "sha256:29fe955164f24d0d07cbe2b62283a26b7b9578d66337268737c827b278e591fb"
+        }
+      ],
+      "completionStatus": "NOT_ATTESTED"
+    }
+  ],
+  "formalBudget": {
+    "paidReady": false,
+    "reason": "Agent, Chat, compaction, advisor, probes, retries and child-process egress are not yet all routed through this authority",
+    "originalSharedCapUsd": 99,
+    "historicalLiabilityReconciled": false,
+    "diagnosticAllowanceResetsFormalCap": false
+  },
+  "formalEvaluation": {
+    "tasks": 36,
+    "firstRuns": 9,
+    "executionStatus": "NOT_RUN",
+    "nativeAdmission": "NOT_ADMITTED",
+    "promotion": "HOLD"
+  },
+  "validationRequired": [
+    "exact-commit release matrix",
+    "historical budget reconciliation and every paid egress",
+    "target native and nine installation hosts",
+    "independent human checkers",
+    "account invoice",
+    "active 8h/24h run and accessibility users"
+  ],
+  "publicReadback": {
+    "capturedAt": "2026-10-14T17:40:52.679Z",
+    "packages": [
+      {
+        "id": "cli",
+        "endpoint": "https://registry.npmjs.org/chainlesschain/latest",
+        "version": "0.166.101",
+        "metadataDigest": "sha256:b45b89014d553eb907509bd3a11088432ac602edb25cb69a74e2325058726b4e",
+        "integrity": "sha512-e3ePREVtTxMwoAbkxb9L2CTilaJIdjV63y5jQz2O8nHiARGUT4RqsxPakveMLt604Vh3YjH0vCqtwSv4PA2O2A==",
+        "publicVersionVisible": true,
+        "downloadedArtifactVerified": false
+      },
+      {
+        "id": "context-memory-kernel",
+        "endpoint": "https://registry.npmjs.org/@chainlesschain%2fcontext-memory-kernel/latest",
+        "version": "0.1.10",
+        "metadataDigest": "sha256:3222a02afebff65ff6aa4378b4d6e8e73c3fdc7204b1c238f2cbde468ec96465",
+        "integrity": "sha512-7ZGy4N2x2jonrvjkLQ8AFT60hxzm2KTzM4GEoougj15b5itsm+ETvuXr19EHyr9R2XjCr3lCs2G4LbzbemXp5w==",
+        "publicVersionVisible": true,
+        "downloadedArtifactVerified": false
+      },
+      {
+        "id": "vscode-extension",
+        "endpoint": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/latest",
+        "version": "0.37.145",
+        "metadataDigest": "sha256:74972b4a9d1998a4c56d1a9d80a7df9d1efb2161c5290d9afcdf48ed417775c2",
+        "integrity": null,
+        "publicVersionVisible": true,
+        "downloadedArtifactVerified": false
+      }
+    ],
+    "jetbrains": {
+      "status": "NOT_CAPTURED"
+    },
+    "releaseMatrixVerified": false
+  }
+}

@@ -583,7 +583,7 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
     kind: "skill",
     tier: "extension",
     description:
-      "List available built-in skills, optionally filtered by category or keyword",
+      "Search available skills by query/category. Returns up to 20 descriptors by default (maximum 64); use nextOffset for more. Skill bodies are loaded only when selected.",
     inputSchema: {
       type: "object",
       properties: {
@@ -595,6 +595,19 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
         query: {
           type: "string",
           description: "Search keyword to filter skills",
+        },
+        limit: {
+          type: "integer",
+          minimum: 1,
+          maximum: 64,
+          description: "Descriptors per page; default 20",
+        },
+        offset: {
+          type: "integer",
+          minimum: 0,
+          maximum: 10000,
+          description:
+            "Use nextOffset from the previous page; default 0. Query results are bounded to the top 64 matches.",
         },
       },
     },

@@ -17,6 +17,40 @@ import {
   GoalConditionEngine,
 } from "../../src/lib/goal-condition-engine.js";
 
+describe("goal usage and terminal recovery", () => {
+  it("rejects negative, unknown or overflowing usage without mutating the existing budget", () => {
+    const engine = new GoalConditionEngine({
+      condition: "file-exists:done.txt",
+    });
+    engine.recordTurnUsage({ tokens: 10, costUsd: 0.01 });
+    const before = engine.snapshot();
+    for (const usage of [
+      { tokens: -1 },
+      { tokens: "5" },
+      { tokens: Infinity },
+      { costUsd: null },
+      { costUsd: -1 },
+      { costUsd: NaN },
+      { tokens: Number.MAX_SAFE_INTEGER },
+    ])
+      expect(() => engine.recordTurnUsage(usage)).toThrow(RangeError);
+    expect(engine.snapshot()).toEqual(before);
+  });
+  it("restores a terminal outcome without evaluating it again or re-emitting completion", () => {
+    const engine = new GoalConditionEngine({
+      condition: "file-exists:done.txt",
+    });
+    engine.evaluate({ met: true, reason: "artifact independently checked" });
+    const restored = GoalConditionEngine.fromSnapshot(engine.snapshot());
+    const before = restored.snapshot();
+    expect(restored.evaluate({ met: false })).toEqual({
+      decision: "complete",
+      events: [],
+    });
+    expect(restored.snapshot()).toEqual(before);
+  });
+});
+
 describe("parseGoalCondition", () => {
   it("parses each deterministic checker prefix", () => {
     expect(parseGoalCondition("exit-zero:npm test")).toMatchObject({

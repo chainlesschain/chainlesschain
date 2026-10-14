@@ -92,6 +92,20 @@ describe("parseInputEvent — llm hint", () => {
 });
 
 describe("stream per-turn llm override", () => {
+  it("preserves an explicit service tier in the stream loop options", async () => {
+    const h = harness({
+      runOptions: {
+        provider: "openai",
+        model: "gpt-6.1-sol",
+        baseUrl: "https://api.openai.com/v1",
+        serviceTier: "ultrafast",
+      },
+      inputObjs: [{ type: "user", text: "x" }],
+    });
+    await h.run();
+    expect(h.seenOpts).toHaveLength(1);
+    expect(h.seenOpts[0].serviceTier).toBe("ultrafast");
+  });
   it("overrides THIS turn's provider/model/baseUrl/apiKey; default turn unchanged", async () => {
     const h = harness({
       runOptions: {

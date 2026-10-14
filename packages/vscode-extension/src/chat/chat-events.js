@@ -21,6 +21,12 @@ const {
 } = require("../vendor/agent-sdk/generated/app-protocol.js");
 
 const KNOWN_AGENT_STREAM_EVENT_TYPES = new Set(CC_AGENT_STREAM_EVENT_TYPES);
+const GOAL_STATUS = {
+  goal_started: "running",
+  goal_evaluated: "checking",
+  goal_completed: "completed",
+  goal_exhausted: "incomplete",
+};
 
 /** One-line argument summary for the tool trace (mirrors the CLI's trace). */
 function summarizeToolArgs(args, tool) {
@@ -120,6 +126,30 @@ function requestedApprovalPermissions(evt) {
  * @returns {object|null} a UI message, or null when the event is UI-silent
  */
 function mapAgentEvent(evt, state) {
+  if (evt && Object.hasOwn(GOAL_STATUS, evt.type)) {
+    const status = GOAL_STATUS[evt.type];
+    const reason =
+      typeof evt.reason === "string" ? evt.reason.slice(0, 1000) : "";
+    const label =
+      evt.type === "goal_evaluated"
+        ? evt.met === true
+          ? "Goal check passed"
+          : "Goal check pending"
+        : status === "completed"
+          ? "Goal completed"
+          : status === "incomplete"
+            ? "Goal incomplete: budget exhausted"
+            : "Goal started";
+    return {
+      kind: "info",
+      text: reason ? `${label}: ${reason}` : label,
+      goalStatus: status,
+      verificationPassed:
+        evt.type === "goal_evaluated"
+          ? evt.met === true
+          : evt.type === "goal_completed",
+    };
+  }
   if (
     !evt ||
     typeof evt !== "object" ||

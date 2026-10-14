@@ -1870,6 +1870,8 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
             " (cache read " + tokfmt(m.usage.cache_read_input_tokens||0) +
             ", cache write " + tokfmt(m.usage.cache_creation_input_tokens||0) + ")"
           : "ready");
+        if (turnTokens?.priceUnconfirmed || m.usage?.pricingContextInvalid === true)
+          status.textContent += " · price unconfirmed";
         turnTokens = null;
         break;
       }
@@ -1882,10 +1884,13 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
         turnTokens.inp += u.input_tokens || 0;
         turnTokens.out += u.output_tokens || 0;
         turnTokens.cached += u.cache_read_input_tokens || 0;
+        turnTokens.priceUnconfirmed ||= u.pricingContextInvalid === true || u.service_tier === "unknown";
         status.textContent =
           "thinking… · " + tokfmt(turnTokens.inp) + "→" + tokfmt(turnTokens.out) +
           " tokens" +
-          (turnTokens.cached ? " (" + tokfmt(turnTokens.cached) + " cached)" : "");
+          (turnTokens.cached ? " (" + tokfmt(turnTokens.cached) + " cached)" : "") +
+          (["standard", "default", "fast", "priority", "flex", "ultrafast"].includes(u.service_tier) ? " · " + u.service_tier : "") +
+          (turnTokens.priceUnconfirmed ? " · price unconfirmed" : "");
         break;
       }
       case "ctxStatus": {
