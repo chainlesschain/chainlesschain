@@ -1,6 +1,6 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
-## [0.4.165] - Formal budget boundary pairing (2026-10-15)
+## [0.4.165] - Formal budget boundary pairing (2026-10-16)
 
 - Recommend CLI `0.166.103` after its exact-commit npm release and readback.
 - Keep formal paid evaluation unavailable until account, host and budget
