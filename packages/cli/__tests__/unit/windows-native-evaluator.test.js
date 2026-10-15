@@ -321,10 +321,10 @@ try {
         }
       },
       // This includes runtime capture, cold adapter probes, CLR startup and
-      // disposal. The target still has its independently attested 10s native
-      // watchdog. Hosted cold starts exceeded the old 30s test-only budget
-      // (30.5s); use the existing suite's 90s subprocess budget for both CLRs.
-      90000,
+      // disposal. The native helper allows 120s for an operation; hosted CLR
+      // startup has taken 104s while the target and cleanup both succeeded.
+      // Keep the independent 10s target watchdog and allow 180s for the host.
+      180_000,
     );
 
     it("preserves supervisor diagnostics when native settlement is missing", async () => {
