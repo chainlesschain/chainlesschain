@@ -1,6 +1,9 @@
+import { randomUUID } from "node:crypto";
+import { raceWithAbort } from "./abort-utils.js";
 import {
   budgetError,
   canonical,
+  label,
   requireBudget,
 } from "./formal-budget-contract.js";
 
@@ -124,36 +127,6 @@ export function formalBudgetTaskEnvironment(environment = process.env) {
   );
 }
 
-async function boundedText(response, maximumBytes) {
-  requireBudget(response.body?.getReader, "Response body unavailable");
-  const reader = response.body.getReader(),
-    chunks = [];
-  let size = 0;
-  try {
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      size += value.byteLength;
-      requireBudget(
-        size <= maximumBytes,
-        "Provider response exceeded bounded parser",
-      );
-      chunks.push(Buffer.from(value));
-    }
-  } catch (error) {
-    try {
-      await reader.cancel();
-    } catch {
-      /* keep original unknown outcome */
-    }
-    throw error;
-  } finally {
-    reader.releaseLock();
-  }
-  return new TextDecoder("utf-8", { fatal: true }).decode(
-    Buffer.concat(chunks),
-  );
-}
 function streamReceipt(text) {
   let terminal = false,
     receipt = null,
@@ -237,10 +210,32 @@ function streamReceipt(text) {
   return { ...receipt, usage };
 }
 
+function providerReceipt(text, streaming) {
+  if (streaming) return streamReceipt(text);
+  const receipt = parseBudgetJson(text);
+  requireBudget(
+    receipt && !Object.hasOwn(receipt, "error"),
+    "Provider error envelope cannot settle",
+  );
+  requireBudget(
+    Array.isArray(receipt.choices) &&
+      receipt.choices.length === 1 &&
+      receipt.choices[0].index === 0 &&
+      ["stop", "length", "tool_calls"].includes(
+        receipt.choices[0].finish_reason,
+      ),
+    "Incomplete or multiple completion response",
+  );
+  return receipt;
+}
+
 /**
  * Trusted-host JSON/SSE transport: credential stays in this closure, and every
  * physical request consumes a durable dispatch exactly once. No auto retries.
- * This is not the unrestricted Agent/Chat transport and is not auto-enabled.
+ * createFetch is for an explicitly scoped, in-process host. It delivers chunks
+ * as they arrive, but EOF is observable only after durable settlement. Missing
+ * usage, cancellation and abandoned bodies retain the full reservation.
+ * Neither API is auto-enabled or an OS/descendant isolation boundary.
  */
 export function createFormalBudgetTransport({
   authority,
@@ -265,81 +260,221 @@ export function createFormalBudgetTransport({
     Number.isSafeInteger(timeoutMs) && timeoutMs > 0 && timeoutMs <= 300_000,
     "Invalid timeout",
   );
-  return Object.freeze({
-    async dispatch({ runId, callId, body, signal }) {
-      // Snapshot before await so caller mutation cannot alter the reserved body.
-      const request = JSON.parse(canonical(body));
-      authority.reserve({ runId, callId, body: request });
-      let settled = false;
-      try {
-        const reserved = authority.reservedContract(callId);
-        const credential = await credentialProvider({
-          contractId: reserved.id,
-          provider: reserved.provider,
-          endpoint: reserved.endpoint,
-        });
-        requireBudget(
-          typeof credential === "string" &&
-            credential.length > 0 &&
-            !/[\r\n]/u.test(credential),
-          "Credential unavailable",
-        );
-        const deadline = AbortSignal.timeout(timeoutMs);
-        const options = {
-          method: "POST",
-          redirect: "error",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${credential}`,
-          },
-          body: JSON.stringify(request),
-          signal: signal ? AbortSignal.any([signal, deadline]) : deadline,
-        };
-        // Final expiry/request check is AFTER every awaited preparation. There
-        // must be no await between this durable admission and physical fetch.
-        const contract = authority.markDispatched(callId, request);
-        const response = await fetchImpl(contract.endpoint, options);
-        requireBudget(response.ok, "Provider HTTP response not successful");
-        const text = await boundedText(response, maximumResponseBytes);
-        let receipt;
-        if (request.stream === true) {
-          requireBudget(
-            response.headers.get("content-type")?.includes("text/event-stream"),
-            "Unexpected stream content type",
-          );
-          receipt = streamReceipt(text);
-        } else {
-          receipt = parseBudgetJson(text);
-          requireBudget(
-            receipt && !Object.hasOwn(receipt, "error"),
-            "Provider error envelope cannot settle",
-          );
-          requireBudget(
-            Array.isArray(receipt.choices) &&
-              receipt.choices.length === 1 &&
-              receipt.choices[0].index === 0 &&
-              ["stop", "length", "tool_calls"].includes(
-                receipt.choices[0].finish_reason,
-              ),
-            "Incomplete or multiple completion response",
-          );
-        }
-        const cost = authority.settle(callId, receipt);
-        settled = true;
-        return { body: text, streaming: request.stream === true, cost };
-      } catch {
-        if (!settled) {
-          // Do not persist provider errors which may contain credentials/content.
+  async function open({ runId, callId, body, endpoint, signal, traceId }) {
+    signal?.throwIfAborted();
+    // Snapshot before await so caller mutation cannot alter the reserved body.
+    const request = JSON.parse(canonical(body));
+    authority.reserve({ runId, callId, body: request, endpoint });
+    const controller = new AbortController();
+    const combined = AbortSignal.any([
+      controller.signal,
+      AbortSignal.timeout(timeoutMs),
+      ...(signal ? [signal] : []),
+    ]);
+    let finished = false,
+      reader,
+      responseBody,
+      output,
+      cost;
+    const cleanup = () => combined.removeEventListener("abort", onAbort);
+    const unknown = () => {
+      const error = budgetError(
+        "CC_BUDGET_TRANSPORT_UNKNOWN",
+        "Provider outcome unknown; reservation retained and further dispatch blocked",
+      );
+      if (!finished) {
+        finished = true;
+        cleanup();
+        // Never persist provider errors, content or credentials.
+        try {
           authority.markUnknown(
             callId,
             "transport or settlement outcome unknown",
           );
+        } catch {
+          // The durable held/dispatched row still blocks another reservation.
+          // An abort event must not throw an uncaught storage error.
+        } finally {
+          output?.error(error);
+          controller.abort();
+          // Do not let a peer that ignores cancellation block local shutdown.
+          if (reader)
+            void reader
+              .cancel()
+              .catch(() => {})
+              .finally(() => {
+                try {
+                  reader.releaseLock();
+                } catch {
+                  /* another read is unwinding */
+                }
+              });
+          else if (responseBody) void responseBody.cancel().catch(() => {});
         }
-        throw budgetError(
-          "CC_BUDGET_TRANSPORT_UNKNOWN",
-          "Provider outcome unknown; reservation retained and further dispatch blocked",
-        );
       }
+      return error;
+    };
+    function onAbort() {
+      unknown();
+    }
+    combined.addEventListener("abort", onAbort, { once: true });
+    try {
+      const reserved = authority.reservedContract(callId);
+      const credential = await raceWithAbort(
+        Promise.resolve().then(() =>
+          credentialProvider({
+            contractId: reserved.id,
+            provider: reserved.provider,
+            endpoint: reserved.endpoint,
+          }),
+        ),
+        combined,
+      );
+      combined.throwIfAborted();
+      requireBudget(
+        typeof credential === "string" &&
+          credential.length > 0 &&
+          !/[\r\n]/u.test(credential),
+        "Credential unavailable",
+      );
+      const options = {
+        method: "POST",
+        redirect: "error",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${credential}`,
+          ...(traceId ? { "X-Client-Request-Id": traceId } : {}),
+        },
+        body: JSON.stringify(request),
+        signal: combined,
+      };
+      // No await between durable admission and physical fetch.
+      const contract = authority.markDispatched(callId, request);
+      const pendingResponse = Promise.resolve(
+        fetchImpl(contract.endpoint, options),
+      );
+      // Dispose a late response even when the peer ignores AbortSignal.
+      void pendingResponse
+        .then((response) => {
+          responseBody = response.body;
+          if (finished && responseBody)
+            void responseBody.cancel().catch(() => {});
+        })
+        .catch(() => {});
+      const response = await raceWithAbort(pendingResponse, combined);
+      combined.throwIfAborted();
+      requireBudget(response.ok, "Provider HTTP response not successful");
+      requireBudget(response.body?.getReader, "Response body unavailable");
+      if (request.stream === true)
+        requireBudget(
+          response.headers.get("content-type")?.includes("text/event-stream"),
+          "Unexpected stream content type",
+        );
+      reader = response.body.getReader();
+      const chunks = [];
+      let size = 0;
+      const stream = new ReadableStream(
+        {
+          start(streamController) {
+            output = streamController;
+          },
+          async pull(streamController) {
+            try {
+              combined.throwIfAborted();
+              const { done, value } = await reader.read();
+              combined.throwIfAborted();
+              if (done) {
+                const text = new TextDecoder("utf-8", { fatal: true }).decode(
+                  Buffer.concat(chunks, size),
+                );
+                cost = authority.settle(
+                  callId,
+                  providerReceipt(text, request.stream === true),
+                );
+                finished = true;
+                cleanup();
+                reader.releaseLock();
+                streamController.close();
+                return;
+              }
+              size += value.byteLength;
+              requireBudget(
+                size <= maximumResponseBytes,
+                "Provider response exceeded bounded parser",
+              );
+              const chunk = Buffer.from(value);
+              chunks.push(chunk);
+              // Keep a private accounting snapshot; consumers may mutate bytes.
+              streamController.enqueue(new Uint8Array(chunk));
+            } catch {
+              unknown();
+            }
+          },
+          cancel() {
+            unknown();
+          },
+        },
+        { highWaterMark: 0 },
+      );
+      return {
+        response: new Response(stream, {
+          status: response.status,
+          headers: response.headers,
+        }),
+        cost: () => cost,
+        streaming: request.stream === true,
+      };
+    } catch {
+      throw unknown();
+    }
+  }
+
+  return Object.freeze({
+    async dispatch(options) {
+      const result = await open(options);
+      const body = await result.response.text();
+      return {
+        body,
+        streaming: result.streaming,
+        cost: result.cost(),
+      };
+    },
+    createFetch({ runId }) {
+      label(runId, "run ID");
+      return async (endpoint, init = {}) => {
+        requireBudget(
+          typeof endpoint === "string" &&
+            init.method === "POST" &&
+            typeof init.body === "string" &&
+            Object.keys(init).every((key) =>
+              ["method", "headers", "body", "signal", "redirect"].includes(key),
+            ),
+          "Budget fetch requires an explicit JSON POST without transport overrides",
+        );
+        const headers = new Headers(init.headers);
+        requireBudget(
+          /^application\/json(?:\s*;\s*charset=utf-8)?$/iu.test(
+            headers.get("content-type") || "",
+          ) &&
+            [...headers.keys()].every((key) =>
+              ["content-type", "authorization", "x-client-request-id"].includes(
+                key,
+              ),
+            ),
+          "Unsupported provider headers in budget scope",
+        );
+        const traceId = headers.get("x-client-request-id");
+        requireBudget(!traceId || traceId.length <= 512, "Invalid trace ID");
+        const result = await open({
+          runId,
+          callId: randomUUID(),
+          endpoint,
+          body: parseBudgetJson(init.body),
+          signal: init.signal,
+          traceId,
+        });
+        return result.response;
+      };
     },
   });
 }

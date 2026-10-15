@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
+import { FormalBudgetLineageRegistry } from "./formal-budget-lineage-registry.js";
 import {
   budgetError,
   requireBudget,
@@ -50,11 +51,29 @@ function checkFile(filename) {
   );
 }
 
+function stateDigest(db) {
+  return evidenceDigest({
+    schema: db
+      .prepare(
+        "SELECT type,name,sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' ORDER BY type,name",
+      )
+      .all(),
+    authority: db.prepare("SELECT * FROM authority ORDER BY id").all(),
+    tasks: db.prepare("SELECT * FROM task ORDER BY id").all(),
+    runs: db.prepare("SELECT * FROM run ORDER BY id").all(),
+    calls: db.prepare("SELECT * FROM call ORDER BY id").all(),
+    events: db.prepare("SELECT * FROM event ORDER BY sequence").all(),
+    guard: db.prepare("SELECT * FROM lineage_guard ORDER BY id").all(),
+  });
+}
+
 /** Trusted-host service. Task processes must never receive this object or DB access. */
 export class FormalBudgetAuthority {
   #db;
   #config;
   #now;
+  #registry;
+  #binding;
   constructor({
     filename,
     lineageId,
@@ -62,6 +81,10 @@ export class FormalBudgetAuthority {
     activationDigest,
     verifyEvidence,
     now = Date.now,
+    lineageRegistry,
+    lineageRegistryId,
+    lineageRegistryFilename,
+    lineageRegistryFileIdentity,
   }) {
     checkFile(filename);
     this.#db = database(filename);
@@ -89,89 +112,189 @@ export class FormalBudgetAuthority {
         this.#db.pragma("quick_check", { simple: true }) === "ok",
         "Corrupt budget database",
       );
+      const hasGuard = this.#db
+        .prepare(
+          "SELECT 1 FROM sqlite_master WHERE type='table' AND name='lineage_guard'",
+        )
+        .get();
+      const guard = hasGuard
+        ? this.#db.prepare("SELECT * FROM lineage_guard WHERE id=1").get()
+        : null;
+      requireBudget(
+        (!lineageRegistryId || guard?.registry_id === lineageRegistryId) &&
+          (!lineageRegistryFilename ||
+            guard?.registry_filename === lineageRegistryFilename) &&
+          (!lineageRegistryFileIdentity ||
+            guard?.registry_file_identity === lineageRegistryFileIdentity),
+        "Pinned lineage guard is missing or changed",
+        "CC_BUDGET_LINEAGE_IDENTITY",
+      );
+      if (hasGuard || lineageRegistry) {
+        requireBudget(
+          guard && lineageRegistry instanceof FormalBudgetLineageRegistry,
+          "Guarded authority requires its independent host-owned registry",
+          "CC_BUDGET_LINEAGE_REQUIRED",
+        );
+        requireBudget(
+          guard.registry_id === lineageRegistry.registryId &&
+            guard.registry_filename ===
+              lineageRegistry.bindingIdentity.filename &&
+            guard.registry_file_identity ===
+              lineageRegistry.bindingIdentity.fileIdentity &&
+            (guard.checkpoint_host_id ?? null) ===
+              lineageRegistry.checkpointHostId,
+          "Independent registry physical identity differs from the authority binding; no automatic migration",
+          "CC_BUDGET_LINEAGE_IDENTITY",
+        );
+        this.#registry = lineageRegistry;
+        this.#binding = {
+          filename,
+          lineageId,
+          planDigest,
+          activationDigest,
+          bindingId: guard.binding_id,
+        };
+        this.#transaction(() => {});
+      }
     } catch (error) {
       this.#db.close();
       throw error;
     }
   }
 
-  static initialize({ filename, config, verifyEvidence, now = Date.now }) {
+  static initialize({
+    filename,
+    config,
+    verifyEvidence,
+    now = Date.now,
+    lineageRegistry,
+  }) {
     const checked = validateActivation(config, verifyEvidence, now());
     requireBudget(
       path.isAbsolute(filename),
       "Authority database path must be absolute",
     );
-    // Explicit creation only. Opening a missing database never starts a fresh lineage.
-    const fd = fs.openSync(filename, "wx", 0o600);
-    fs.closeSync(fd);
-    const db = database(filename);
-    try {
-      db.exec(`BEGIN IMMEDIATE;
+    requireBudget(
+      !lineageRegistry ||
+        lineageRegistry instanceof FormalBudgetLineageRegistry,
+      "Trusted lineage registry required",
+      "CC_BUDGET_LINEAGE_REQUIRED",
+    );
+    const initialize = (guard) => {
+      // Explicit creation only. Opening a missing database never starts a fresh lineage.
+      const fd = fs.openSync(filename, "wx", 0o600);
+      fs.closeSync(fd);
+      const db = database(filename);
+      try {
+        db.exec(`BEGIN IMMEDIATE;
         CREATE TABLE authority(id INTEGER PRIMARY KEY CHECK(id=1),config TEXT NOT NULL,digest TEXT NOT NULL,halted TEXT);
         CREATE TABLE task(id TEXT PRIMARY KEY,cap INTEGER NOT NULL,historical_spent INTEGER NOT NULL,historical_reserved INTEGER NOT NULL,slots INTEGER NOT NULL);
         CREATE TABLE run(id TEXT PRIMARY KEY,task TEXT NOT NULL REFERENCES task(id),phase TEXT NOT NULL,status TEXT NOT NULL);
         CREATE TABLE call(id TEXT PRIMARY KEY,run TEXT NOT NULL REFERENCES run(id),contract TEXT NOT NULL,request_digest TEXT NOT NULL,state TEXT NOT NULL,reserved_usd INTEGER NOT NULL,reserved_native INTEGER NOT NULL,currency TEXT NOT NULL,cost_usd INTEGER,cost_native INTEGER,receipt_digest TEXT,receipt TEXT);
         CREATE TABLE event(sequence INTEGER PRIMARY KEY,kind TEXT NOT NULL,body TEXT NOT NULL);`);
-      const halted = checked.history.tasks.some((t) => t.unknown)
-        ? "unreconciled historical liability"
-        : null;
-      db.prepare("INSERT INTO authority VALUES (1,?,?,?)").run(
-        canonical(checked),
-        evidenceDigest(checked),
-        halted,
-      );
-      for (const task of checked.plan.tasks) {
-        const history = checked.history.tasks.find((t) => t.id === task.id);
-        db.prepare("INSERT INTO task VALUES (?,?,?,?,?)").run(
-          task.id,
-          task.capUsdMicros,
-          history.spentUsdMicros,
-          history.reservedUsdMicros,
-          history.runsUsed,
+        if (guard) {
+          db.exec(
+            "CREATE TABLE lineage_guard(id INTEGER PRIMARY KEY CHECK(id=1),registry_id TEXT NOT NULL,binding_id TEXT NOT NULL,registry_filename TEXT NOT NULL,registry_file_identity TEXT NOT NULL,checkpoint_host_id TEXT)",
+          );
+          db.prepare("INSERT INTO lineage_guard VALUES (1,?,?,?,?,?)").run(
+            guard.registryId,
+            guard.bindingId,
+            guard.registryFilename,
+            guard.registryFileIdentity,
+            guard.checkpointHostId,
+          );
+        }
+        const halted = checked.history.tasks.some((t) => t.unknown)
+          ? "unreconciled historical liability"
+          : null;
+        db.prepare("INSERT INTO authority VALUES (1,?,?,?)").run(
+          canonical(checked),
+          evidenceDigest(checked),
+          halted,
         );
+        for (const task of checked.plan.tasks) {
+          const history = checked.history.tasks.find((t) => t.id === task.id);
+          db.prepare("INSERT INTO task VALUES (?,?,?,?,?)").run(
+            task.id,
+            task.capUsdMicros,
+            history.spentUsdMicros,
+            history.reservedUsdMicros,
+            history.runsUsed,
+          );
+        }
+        db.prepare("INSERT INTO event(kind,body) VALUES (?,?)").run(
+          "initialized",
+          canonical({ activationDigest: evidenceDigest(checked), at: now() }),
+        );
+        db.exec("COMMIT");
+        return guard ? stateDigest(db) : null;
+      } catch (error) {
+        try {
+          db.exec("ROLLBACK");
+        } catch {
+          /* retain incomplete DB; never silently reset */
+        }
+        throw error;
+      } finally {
+        db.close();
       }
-      db.prepare("INSERT INTO event(kind,body) VALUES (?,?)").run(
-        "initialized",
-        canonical({ activationDigest: evidenceDigest(checked), at: now() }),
+    };
+    if (lineageRegistry) {
+      lineageRegistry.register(
+        {
+          filename,
+          lineageId: checked.plan.lineageId,
+          planDigest: checked.plan.digest,
+          activationDigest: evidenceDigest(checked),
+        },
+        initialize,
       );
-      db.exec("COMMIT");
-    } catch (error) {
-      try {
-        db.exec("ROLLBACK");
-      } catch {
-        /* retain incomplete DB; never silently reset */
-      }
-      throw error;
-    } finally {
-      db.close();
-    }
+    } else initialize(null);
     return {
       filename,
       lineageId: checked.plan.lineageId,
       planDigest: checked.plan.digest,
       activationDigest: evidenceDigest(checked),
+      ...(lineageRegistry
+        ? {
+            lineageRegistryId: lineageRegistry.registryId,
+            lineageRegistryFilename: lineageRegistry.bindingIdentity.filename,
+            lineageRegistryFileIdentity:
+              lineageRegistry.bindingIdentity.fileIdentity,
+          }
+        : {}),
     };
   }
 
   #transaction(action) {
-    this.#db.exec("BEGIN IMMEDIATE");
-    try {
-      const result = action();
-      this.#db.exec("COMMIT");
-      return result;
-    } catch (error) {
+    const transact = (lease) => {
+      this.#db.exec("BEGIN IMMEDIATE");
       try {
-        this.#db.exec("ROLLBACK");
-      } catch {
-        /* original error */
+        lease?.assertState(stateDigest(this.#db));
+        const result = action();
+        lease?.advance(stateDigest(this.#db));
+        this.#db.exec("COMMIT");
+        return result;
+      } catch (error) {
+        try {
+          this.#db.exec("ROLLBACK");
+        } catch {
+          /* original error */
+        }
+        throw error;
       }
-      throw error;
-    }
+    };
+    return this.#registry
+      ? this.#registry.coordinate(this.#binding, transact)
+      : transact(null);
   }
   #event(kind, body) {
     this.#db
       .prepare("INSERT INTO event(kind,body) VALUES (?,?)")
       .run(kind, canonical({ ...body, at: this.#now() }));
+  }
+  #read(action) {
+    return this.#registry ? this.#transaction(action) : action();
   }
   #admissible() {
     const { halted } = this.#db
@@ -286,7 +409,7 @@ export class FormalBudgetAuthority {
       this.#event("run-close", { runId });
     });
   }
-  reserve({ runId, callId, body }) {
+  reserve({ runId, callId, body, endpoint }) {
     label(runId, "run ID");
     label(callId, "physical call ID");
     const request = JSON.parse(canonical(body));
@@ -303,6 +426,11 @@ export class FormalBudgetAuthority {
       requireBudget(run, "Active run required");
       const task = this.#config.plan.tasks.find((t) => t.id === run.task);
       const { contract, fx } = this.#contract(task.contractId);
+      requireBudget(
+        endpoint === undefined || endpoint === contract.endpoint,
+        "Requested endpoint differs from the reserved account contract",
+        "CC_BUDGET_ENDPOINT_MISMATCH",
+      );
       const requestDigest = validateRequest(contract, request);
       const nativeMicros = quoteNative(contract),
         usdMicros = convertToUsd(nativeMicros, fx);
@@ -347,14 +475,18 @@ export class FormalBudgetAuthority {
     });
   }
   reservedContract(callId) {
-    const call = this.#db.prepare("SELECT * FROM call WHERE id=?").get(callId);
-    requireBudget(
-      call?.state === "held",
-      "Physical call is not reserved",
-      "CC_BUDGET_CALL_REPLAY",
-    );
-    const { contract } = this.#contract(call.contract);
-    return JSON.parse(canonical(contract));
+    return this.#read(() => {
+      const call = this.#db
+        .prepare("SELECT * FROM call WHERE id=?")
+        .get(callId);
+      requireBudget(
+        call?.state === "held",
+        "Physical call is not reserved",
+        "CC_BUDGET_CALL_REPLAY",
+      );
+      const { contract } = this.#contract(call.contract);
+      return JSON.parse(canonical(contract));
+    });
   }
   markDispatched(callId, body) {
     return this.#transaction(() => {
@@ -513,7 +645,7 @@ export class FormalBudgetAuthority {
     return result;
   }
   status() {
-    return {
+    return this.#read(() => ({
       lineageId: this.#config.plan.lineageId,
       planDigest: this.#config.plan.digest,
       capUsdMicros: this.#config.plan.limitUsdMicros,
@@ -525,7 +657,7 @@ export class FormalBudgetAuthority {
           "SELECT id,state,reserved_usd,reserved_native,currency FROM call WHERE state!='settled'",
         )
         .all(),
-    };
+    }));
   }
   close() {
     this.#db.close();
