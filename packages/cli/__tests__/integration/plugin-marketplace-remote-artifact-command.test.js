@@ -263,6 +263,9 @@ function send(response, body, contentType) {
   response.writeHead(200, {
     "Content-Type": contentType,
     "Content-Length": Buffer.byteLength(body),
+    // Each command may do synchronous filesystem work before its next fetch.
+    // Do not let the fixture hand a subsequent command an idle pooled socket.
+    Connection: "close",
   });
   response.end(body);
 }
