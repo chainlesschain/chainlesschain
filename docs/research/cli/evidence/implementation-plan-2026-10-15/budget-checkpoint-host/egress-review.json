@@ -1,0 +1,2002 @@
+{
+  "schema": "chainlesschain.implementation-plan-budget-egress-review/v2",
+  "capturedAt": "2026-10-15T09:13:06.230Z",
+  "sourceCommit": "62b407bbefee02a2ac14495fcef9e59b237c05a7",
+  "readiness": {
+    "paidReady": false,
+    "reason": "Agent, Chat, compaction, advisor, probes, retries and child-process egress are not yet all routed through this authority"
+  },
+  "scope": "AST call candidates with conservative alias tracking and source-bound review. Not an interprocedural analysis or proof of dynamic SDK/descendant containment.",
+  "auditRoots": [
+    "packages/cli/src",
+    "packages/cli/scripts"
+  ],
+  "exclusions": [
+    "__tests__",
+    "node_modules",
+    ".git",
+    "comments, strings and generated template bodies"
+  ],
+  "filesScanned": 1639,
+  "sourceTreeDigest": "sha256:9e258aaa309ceb1d7213a628fc27e43f8ffdae2cee45d4a755015442efa81758",
+  "parseErrors": [],
+  "skippedPaths": [],
+  "sourceReview": {
+    "catalogue": "packages/cli/scripts/budget-egress-reviewed-sources.json",
+    "digest": "sha256:1b5e5659b28d2c524d58bde26422159edc6bf0128aeaeed5919771dcc947cd94",
+    "sourceReviewPassed": true,
+    "runtimeCoverageVerified": false,
+    "outOfScopeReviewedPaths": [],
+    "issues": [],
+    "rows": [
+      {
+        "path": "packages/cli/src/commands/agenda.js",
+        "status": "REVIEWED",
+        "category": "TASK_CONTROLLED_NETWORK",
+        "rationale": "User-selected URL retrieval for agenda material; arbitrary endpoint behavior/cost is not a model-token contract.",
+        "digest": "sha256:50204bbb316cde4868755b15d0897fd8b811cc2b58a952e53f70d70df95eb695"
+      },
+      {
+        "path": "packages/cli/src/commands/ask.js",
+        "status": "REVIEWED",
+        "category": "MODEL_REQUEST",
+        "rationale": "Single-shot inference through providerFetch after evolution admission.",
+        "digest": "sha256:76db41dcd27b2c1b1a619775bf25877131d299b49cbabe158d8a20b013961e9b"
+      },
+      {
+        "path": "packages/cli/src/commands/llm.js",
+        "status": "REVIEWED",
+        "category": "LOCAL_DIAGNOSTIC",
+        "rationale": "Ollama /api/tags model-list GET, distinct from an inference probe.",
+        "digest": "sha256:68d5633ecd318ae0107cc137e26a1de0f40122cfc1766a032c868db9d2dcc961"
+      },
+      {
+        "path": "packages/cli/src/commands/mtc.js",
+        "status": "REVIEWED",
+        "category": "CONTENT_ADDRESSED_DATA",
+        "rationale": "transport.fetch(cid) retrieves an IPFS/content-addressed landmark, not a global HTTP fetch call.",
+        "digest": "sha256:b50e96a7b823ceec4e2c431284d2ae0dd718980e7c82dc21b7a7a9866a3c3592"
+      },
+      {
+        "path": "packages/cli/src/commands/notification.js",
+        "status": "REVIEWED",
+        "category": "REMOTE_EXECUTION_CONTROL",
+        "rationale": "WebSocket notification subscription; remote-session execution/cost requires its own host contract.",
+        "digest": "sha256:b7f6ce087167d852bdbbeb045f282679a51af6ee984a086382d57a4927f0cda9"
+      },
+      {
+        "path": "packages/cli/src/gateways/remote-session-relay.js",
+        "status": "REVIEWED",
+        "category": "REMOTE_EXECUTION_CONTROL",
+        "rationale": "Remote-session WebSocket relay may carry commands and work; remote budget/lease containment remains unverified.",
+        "digest": "sha256:a5825e10a7eaf9736e42c7abb5c674a4f1479389ffce8613cf2dc08bf931c08c"
+      },
+      {
+        "path": "packages/cli/src/harness/mcp-client.js",
+        "status": "REVIEWED",
+        "category": "TASK_CONTROLLED_NETWORK",
+        "rationale": "MCP HTTP/WebSocket/stdio transport can delegate arbitrary tools. Remote or tool costs and descendant containment remain unverified.",
+        "digest": "sha256:3368c0b6f855c715af8f2fa143765fdbcd118915cee85aae28c1d5a8a204937d"
+      },
+      {
+        "path": "packages/cli/src/harness/remote-session-push-fcm.js",
+        "status": "REVIEWED",
+        "category": "SERVICE_API",
+        "rationale": "FCM authentication and notification delivery; service charges, if any, are outside the Chat contract.",
+        "digest": "sha256:ddd58adb5d14112c72fbbcebeb0230076e40a66a900c2396821bf44810b29f8f"
+      },
+      {
+        "path": "packages/cli/src/harness/remote-session-push-huawei.js",
+        "status": "REVIEWED",
+        "category": "SERVICE_API",
+        "rationale": "Huawei authentication and notification delivery, not model inference.",
+        "digest": "sha256:013ccd45839ad134540f971ef6c47eb4f3a7d1cf803fccbd0ea3069930bfaa10"
+      },
+      {
+        "path": "packages/cli/src/harness/remote-session-push-oppo.js",
+        "status": "REVIEWED",
+        "category": "SERVICE_API",
+        "rationale": "OPPO authentication and notification delivery, not model inference.",
+        "digest": "sha256:97f045ab143f86053d6d5070d55a98cddf5af4fc85c32e111d815b511d61a171"
+      },
+      {
+        "path": "packages/cli/src/harness/remote-session-push-vivo.js",
+        "status": "REVIEWED",
+        "category": "SERVICE_API",
+        "rationale": "Vivo authentication and notification delivery, not model inference.",
+        "digest": "sha256:dc531b4590a132a115e32ace9bbca2dff6a381991b2cb5d79447f42f2a7eb2c3"
+      },
+      {
+        "path": "packages/cli/src/harness/remote-session-push-web.js",
+        "status": "REVIEWED",
+        "category": "SERVICE_API",
+        "rationale": "Encrypted Web Push delivery; classification is not a claim of zero service cost.",
+        "digest": "sha256:6d2bd789cc424995cdfb1abf2d4b9119d7566008689f53eba2fd936161e4edf9"
+      },
+      {
+        "path": "packages/cli/src/harness/remote-session-push-xiaomi.js",
+        "status": "REVIEWED",
+        "category": "SERVICE_API",
+        "rationale": "Xiaomi notification delivery, not model inference.",
+        "digest": "sha256:96eb1cc11e236c05bb670ee324609782e953a53ac058a33e527777d8b35cd204"
+      },
+      {
+        "path": "packages/cli/src/harness/session-mirror.js",
+        "status": "REVIEWED",
+        "category": "SERVICE_API",
+        "rationale": "Authenticated HTTP session persistence/mirroring, including doFetch aliases.",
+        "digest": "sha256:e64bc91e0e6759677cf80ee49128aee7a6625080bf889228f94965c2c8484133"
+      },
+      {
+        "path": "packages/cli/src/lib/agent-team/team-message-bridge.js",
+        "status": "REVIEWED",
+        "category": "LOCAL_IPC",
+        "rationale": "Team broker local socket IPC; peer authorization and descendant model calls are separate checks.",
+        "digest": "sha256:6ed63d0477162d4347f3236ed76fe76378b38e1fb7ac2e93f8894cc0339f0167"
+      },
+      {
+        "path": "packages/cli/src/lib/background-agent-keeper-client.js",
+        "status": "REVIEWED",
+        "category": "LOCAL_IPC",
+        "rationale": "Background keeper control IPC; does not attest model requests subsequently made by the keeper.",
+        "digest": "sha256:1eb2e1427556411eabe32802e0a993248f869b4b2175f52d4e1e519a59608f81"
+      },
+      {
+        "path": "packages/cli/src/lib/background-session-transport.js",
+        "status": "REVIEWED",
+        "category": "LOCAL_IPC",
+        "rationale": "Local session IPC transport; remote model requests require independent host coverage.",
+        "digest": "sha256:ce8bcbc5453407e0a288545f8b377901b0334786a30cd96bcee584bb24992ddb"
+      },
+      {
+        "path": "packages/cli/src/lib/browser-automation.js",
+        "status": "REVIEWED",
+        "category": "TASK_CONTROLLED_NETWORK",
+        "rationale": "User-controlled page retrieval and browser automation; target behavior and remote side effects need separate policy.",
+        "digest": "sha256:b4f05bcc40fbc2b33d7034d7dd70b2e2e86e87f0f7f4fe74547996c7bee07980"
+      },
+      {
+        "path": "packages/cli/src/lib/cc-android-bridge.js",
+        "status": "REVIEWED",
+        "category": "TASK_CONTROLLED_NETWORK",
+        "rationale": "Generic Android /invoke bridge; method-specific side effects or delegated work are not inferred to be free.",
+        "digest": "sha256:4546187530ace77b4fda3a3d0fd92944a40169cd4543635dec8c65b938668833"
+      },
+      {
+        "path": "packages/cli/src/lib/channels/telegram-channel.js",
+        "status": "REVIEWED",
+        "category": "SERVICE_API",
+        "rationale": "Telegram getUpdates/sendMessage transport, not model inference.",
+        "digest": "sha256:a490f648cf8b138fc583b29d1e2f072292b81b94eeb614255f79199a9bc8aab4"
+      },
+      {
+        "path": "packages/cli/src/lib/chat-core.js",
+        "status": "REVIEWED",
+        "category": "MODEL_REQUEST",
+        "rationale": "Streaming model inference; explicit provider scope mediates supported contracts.",
+        "digest": "sha256:75badcbad571c266cf7592a79d5ad77f2f0f6d318ee4594da1195c405811a4e2"
+      },
+      {
+        "path": "packages/cli/src/lib/chrome-connector.js",
+        "status": "REVIEWED",
+        "category": "LOCAL_DIAGNOSTIC",
+        "rationale": "Chrome DevTools HTTP discovery; browser/task operations need their own authority.",
+        "digest": "sha256:6c2fc2e0f36202eb737fe984dd2f3f411ba3b932e30e8438d057cb161cfd61e1"
+      },
+      {
+        "path": "packages/cli/src/lib/cloud/cloud-client.js",
+        "status": "REVIEWED",
+        "category": "REMOTE_EXECUTION_CONTROL",
+        "rationale": "Cloud runner job API can launch delegated work; job HTTP is not a governed model-token reservation.",
+        "digest": "sha256:048085dbdc1f52ec4603c631897c38ef03abbe6e9b46a6e26c55b22e92907ce2"
+      },
+      {
+        "path": "packages/cli/src/lib/cowork-adapter.js",
+        "status": "REVIEWED",
+        "category": "MODEL_REQUEST",
+        "rationale": "Cowork model requests through providerFetch; no OS descendant containment claim.",
+        "digest": "sha256:43e3e086af7bbd964df40f6f02488fd87ed43704d495ed6ce6e196db55f28b2d"
+      },
+      {
+        "path": "packages/cli/src/lib/decision-layer/providers.js",
+        "status": "REVIEWED",
+        "category": "MODEL_REQUEST",
+        "rationale": "Typed decision inference; incompatible Chat contracts reject inside provider scope.",
+        "digest": "sha256:e95da9f0327f90882a94f7e54dced15f814ddadbf6dac40e77c8dcccc61b4a39"
+      },
+      {
+        "path": "packages/cli/src/lib/downloader.js",
+        "status": "REVIEWED",
+        "category": "DISTRIBUTION",
+        "rationale": "GitHub release metadata and binary downloads with integrity checks.",
+        "digest": "sha256:89edfc6d7b222d552820031888493f15ef1e0606ef587fb2c3a93d8c121b9689"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/governed-hub-llm.js",
+        "status": "REVIEWED",
+        "category": "MODEL_REQUEST",
+        "rationale": "Governed Hub model inference; scoped Chat dispatch or opaque SDK rejection.",
+        "digest": "sha256:d252bbfcd50b6ffbca9a95893d9aee6b83afa1bbdb33a22da9ebdeec4fc9bfd5"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/governed-hub-resolver.js",
+        "status": "REVIEWED",
+        "category": "MODEL_REQUEST",
+        "rationale": "Embedding inference transport; provider scope rejects native/custom embeddings.",
+        "digest": "sha256:8b85c11c272c97a1db80d46c732a72a48dc6f2cbb20bafd123f9d8cda06bfd16"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/governed-skill-synthesis-attestor-trust-approval-client.js",
+        "status": "REVIEWED",
+        "category": "LOCAL_IPC",
+        "rationale": "Attestor trust approval IPC; not model inference or paid admission.",
+        "digest": "sha256:2e3aad304986ba0a6f1de0ef6a77b4910c78fdc98893b19c2a8f74741a67a9c6"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/governed-skill-synthesis-attestor-trust-operations-client.js",
+        "status": "REVIEWED",
+        "category": "LOCAL_IPC",
+        "rationale": "Attestor trust operations IPC; host/peer authority remains independently checked.",
+        "digest": "sha256:da7e869c8d1bf8829793728e6e2ed1e2887baa7f7b3d487c0faf78ec550ca68c"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/governed-skill-synthesis-external-attestor.js",
+        "status": "REVIEWED",
+        "category": "LOCAL_IPC",
+        "rationale": "External attestor broker IPC; classification does not grant a model budget.",
+        "digest": "sha256:06aafe46e1979831619c20257957568cf92620f4585c5b0ab1c3ae2fdf7b8c73"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/governed-skill-synthesis-process-grader-worker.mjs",
+        "status": "REVIEWED",
+        "category": "MODEL_REQUEST",
+        "rationale": "Raw independent worker inference. Parent grader entry rejects a provider scope; direct/descendant execution remains uncontained.",
+        "digest": "sha256:ef028b7eac527d93a929f440f9e025ccfc33c36d8ec6e7ec2863a0a681a9df47"
+      },
+      {
+        "path": "packages/cli/src/lib/evomap-client.js",
+        "status": "REVIEWED",
+        "category": "SERVICE_API",
+        "rationale": "EvoMap service API; server behavior and service fees are outside this model request review.",
+        "digest": "sha256:5b09c2f7ef15a6afd3715f6ece8d0bff95fcbe8efb3dc01dbc80d7a16a6a7d6b"
+      },
+      {
+        "path": "packages/cli/src/lib/formal-budget-provider-scope.js",
+        "status": "REVIEWED",
+        "category": "BUDGET_BOUNDARY",
+        "rationale": "Async-local routing boundary; ordinary fallback and scope.fetch calls are deliberately retained as candidates.",
+        "digest": "sha256:d8c6223216ee6df4a93a8d6bafc4b1c17e07b2795f78bb330ed5c418f9d7fe6d"
+      },
+      {
+        "path": "packages/cli/src/lib/formal-budget-transport.js",
+        "status": "REVIEWED",
+        "category": "BUDGET_BOUNDARY",
+        "rationale": "Host-owned physical dispatch after durable reservation; source review does not attest real account prices or OS isolation.",
+        "digest": "sha256:328ea2079d235015f47f910a15249f33561ceabd342ad1f30fa8c3db3b791413"
+      },
+      {
+        "path": "packages/cli/src/lib/gateway-client-resilience.js",
+        "status": "REVIEWED",
+        "category": "REMOTE_EXECUTION_CONTROL",
+        "rationale": "Remote gateway HTTP preflight/transport; subsequent remote execution needs separate budget/lease proof.",
+        "digest": "sha256:f03dc5519ca59273209544e468c99990233e8e6285c72f10a4e75950824dc1eb"
+      },
+      {
+        "path": "packages/cli/src/lib/hooks-v2-runtime.js",
+        "status": "REVIEWED",
+        "category": "TASK_CONTROLLED_NETWORK",
+        "rationale": "Configured HTTP hooks receive event/context; endpoint side effects/costs are not governed by a Chat reservation.",
+        "digest": "sha256:616f3b123ac2b7d367df8e622c0be0e83d44173ef765d5fba7b937ca4d5b8f2f"
+      },
+      {
+        "path": "packages/cli/src/lib/hub-llm-client.js",
+        "status": "REVIEWED",
+        "category": "MODEL_REQUEST",
+        "rationale": "Hub model inference through providerFetch, preserving unconfirmed pricing.",
+        "digest": "sha256:9e83456cdb0f55941b82f00fbc9d49e357edeafcc7c58677d0ffeac17cbc2828"
+      },
+      {
+        "path": "packages/cli/src/lib/llm-connection-probe.js",
+        "status": "REVIEWED",
+        "category": "MODEL_REQUEST",
+        "rationale": "A connectivity probe sends inference, not a free health GET; provider scope governs the physical request.",
+        "digest": "sha256:4910c204d06e3ed63618bc568dfff788f583b82f1c9fb6df16881b557f91fb4d"
+      },
+      {
+        "path": "packages/cli/src/lib/llm-providers.js",
+        "status": "REVIEWED",
+        "category": "MODEL_REQUEST",
+        "rationale": "Legacy connectivity tests send model inference through the scoped fetch wrapper.",
+        "digest": "sha256:372d1f65e64f5c96c9907c5f28b0d92f83f29f1bf91f70ae68c5629a056430c2"
+      },
+      {
+        "path": "packages/cli/src/lib/mcp-oauth.js",
+        "status": "REVIEWED",
+        "category": "SERVICE_API",
+        "rationale": "OAuth discovery/token calls; tool or model execution is a separate MCP path.",
+        "digest": "sha256:89efe4cf62e019f37f67aed65bf6bad2e2725c3a9efef6c536fe772c62f9977b"
+      },
+      {
+        "path": "packages/cli/src/lib/notifiers/_http.js",
+        "status": "REVIEWED",
+        "category": "SERVICE_API",
+        "rationale": "Shared notifier delivery HTTP; not a model-token request or a free-service attestation.",
+        "digest": "sha256:0e00a1faa793af266931a2b2da29e301d515e9f4260d650fdff6503b3ab34009"
+      },
+      {
+        "path": "packages/cli/src/lib/p2p-manager.js",
+        "status": "REVIEWED",
+        "category": "LOCAL_DIAGNOSTIC",
+        "rationale": "Configured bridge /health probe, not model inference.",
+        "digest": "sha256:a6b32fcf61983711b1d030944277df2cb4107f77f159eb2d38a5426a076a1af7"
+      },
+      {
+        "path": "packages/cli/src/lib/packer/pack-update-checker.js",
+        "status": "REVIEWED",
+        "category": "DISTRIBUTION",
+        "rationale": "Signed pack update manifest download.",
+        "digest": "sha256:4e63745e80595544f4a54a471cae07bcb15d58c9c8c20845cef43c5a29647858"
+      },
+      {
+        "path": "packages/cli/src/lib/packer/pack-update-downloader.js",
+        "status": "REVIEWED",
+        "category": "DISTRIBUTION",
+        "rationale": "Pack artifact download with deadline and integrity checks.",
+        "digest": "sha256:1e20df6eaac433c322412d39fd89691f4b6f00fa691080007fa13ee730c20f59"
+      },
+      {
+        "path": "packages/cli/src/lib/packer/smoke-runner.js",
+        "status": "REVIEWED",
+        "category": "LOCAL_DIAGNOSTIC",
+        "rationale": "TCP/HTTP smoke probes against configured packaged-service targets.",
+        "digest": "sha256:68cbc80b9adcf24a942d2aa6861f7b8d916c8560fdff9ec0849353a46dca8a80"
+      },
+      {
+        "path": "packages/cli/src/lib/plugin-runtime/marketplace-command-source.js",
+        "status": "REVIEWED",
+        "category": "DISTRIBUTION",
+        "rationale": "Marketplace artifact/source HTTP wrapper; downloaded code execution remains a separate boundary.",
+        "digest": "sha256:f608c89bba7ed949f89938915a18cc2b5fa6403dbcbaefd275bb39927aeed64b"
+      },
+      {
+        "path": "packages/cli/src/lib/plugin-runtime/marketplace-network.js",
+        "status": "REVIEWED",
+        "category": "DISTRIBUTION",
+        "rationale": "Undici fetch alias used by validated marketplace artifact downloads.",
+        "digest": "sha256:83a1f6f47e376932b1350004fdaf63e46694bdc7157fc6b8a9d3e29c8602c0b1"
+      },
+      {
+        "path": "packages/cli/src/lib/plugin-runtime/marketplace-remote-artifacts.js",
+        "status": "REVIEWED",
+        "category": "DISTRIBUTION",
+        "rationale": "Validated marketplace metadata/artifact GET with redirect handling.",
+        "digest": "sha256:4a4399846c6815f1937a1e5d3c8609a90958ef43940d35243c9b629c3b76ea5a"
+      },
+      {
+        "path": "packages/cli/src/lib/plugin-runtime/remote-source.js",
+        "status": "REVIEWED",
+        "category": "DISTRIBUTION",
+        "rationale": "Remote plugin manifests/sources; source download is not execution admission.",
+        "digest": "sha256:8c70bc096d22209895330143c428d58907947ef3b289d24dd2292de48e53555c"
+      },
+      {
+        "path": "packages/cli/src/lib/process-execution-broker/credential-transport.js",
+        "status": "REVIEWED",
+        "category": "LOCAL_IPC",
+        "rationale": "Single-use broker credential reference IPC; isolation/replay guarantees are outside static network classification.",
+        "digest": "sha256:6ff25dd126bfd9f263644e6b82f334d45a4cd948534d66846b32ffc6286dd74a"
+      },
+      {
+        "path": "packages/cli/src/lib/provider-stream.js",
+        "status": "REVIEWED",
+        "category": "MODEL_REQUEST",
+        "rationale": "Direct provider streaming adapter through providerFetch and verified EOF.",
+        "digest": "sha256:a3663c1c909840369df9774e95bb4e831a860df9e407bfb19bd25d52d4a7d633"
+      },
+      {
+        "path": "packages/cli/src/lib/sandbox-egress-proxy.js",
+        "status": "REVIEWED",
+        "category": "TASK_CONTROLLED_NETWORK",
+        "rationale": "HTTP and CONNECT proxy for task/descendant traffic; destination policy is not per-request billing authority.",
+        "digest": "sha256:387c397b540b0cdc4f0d70ff9fa583c6a48b9c8e7d374986815ea1155b673021"
+      },
+      {
+        "path": "packages/cli/src/lib/update-notice.js",
+        "status": "REVIEWED",
+        "category": "DISTRIBUTION",
+        "rationale": "npm package version metadata GET, not model inference.",
+        "digest": "sha256:dfb0ba6e22143fdf8cff6c2a071abf649f1469be97c4b64c49f38b7a876dad49"
+      },
+      {
+        "path": "packages/cli/src/lib/version-checker.js",
+        "status": "REVIEWED",
+        "category": "DISTRIBUTION",
+        "rationale": "Release/update version checks, not model inference.",
+        "digest": "sha256:c16453a890710e93eaee7c62999ea83cf9fcafd1105e494c359785919c89f236"
+      },
+      {
+        "path": "packages/cli/src/lib/web-fetch.js",
+        "status": "REVIEWED",
+        "category": "TASK_CONTROLLED_NETWORK",
+        "rationale": "SSRF-guarded arbitrary URL retrieval via selected http/https.request; task endpoints are not priced as model tokens.",
+        "digest": "sha256:0fb493384c14082b27af02c4eb8fb3a577fb44ba75daf1ef2e93073117bcd964"
+      },
+      {
+        "path": "packages/cli/src/lib/web-search.js",
+        "status": "REVIEWED",
+        "category": "PAID_SEARCH_SERVICE",
+        "rationale": "API search includes keyed services and configurable search hosts. Provider scope rejects before resolving keys; ordinary use is not a verified Chat billing contract.",
+        "digest": "sha256:5c6a016b82842f3832e777952c21637e7fd2fcb94fc17f4ba835fab206221832"
+      },
+      {
+        "path": "packages/cli/src/runtime/agent-core.js",
+        "status": "REVIEWED",
+        "category": "MODEL_REQUEST",
+        "rationale": "Canonical model requests including streaming, summaries and child paths; explicit scope required.",
+        "digest": "sha256:7628b8c31bff474ac9f9483a0dba61d910e30b1a3e78f9680119e61027a04f39"
+      },
+      {
+        "path": "packages/cli/src/runtime/diagnostics.js",
+        "status": "REVIEWED",
+        "category": "LOCAL_DIAGNOSTIC",
+        "rationale": "TCP reachability diagnostics; a connection probe is not an inference request.",
+        "digest": "sha256:31a7409e1b5a386bde23aa0040dfd26b01cc5aebb999d0c376580db4bdfc4dba"
+      },
+      {
+        "path": "packages/cli/scripts/app-server-overload-soak.mjs",
+        "status": "REVIEWED",
+        "category": "LOCAL_DIAGNOSTIC",
+        "rationale": "Loopback WebSocket load against locally constructed App Server synthetic handlers; does not send model inference or attest a paid 8h/24h run.",
+        "digest": "sha256:e3fffb666f9adb78f46e49d9b81e38838db158330f026dedadf1cb24f98c2545"
+      },
+      {
+        "path": "packages/cli/scripts/collect-graph-production-source-receipts.mjs",
+        "status": "REVIEWED",
+        "category": "REMOTE_EXECUTION_CONTROL",
+        "rationale": "Authenticated POST to registered production evidence collectors can trigger collector work. Operator authority and any remote costs are outside the Chat budget contract.",
+        "digest": "sha256:a865dbe0ee00d507dcf5fdd12130268e0702e1b33e3d3980a27242a259ad98a3"
+      },
+      {
+        "path": "packages/cli/scripts/context-token-volcengine-live-probe.mjs",
+        "status": "REVIEWED",
+        "category": "MODEL_REQUEST",
+        "rationale": "Standalone paid calibration probe uses injected/raw fetch. CLI and exported runner reject formal scope before config/options or dispatch; ordinary diagnostics require separate authorization and are not formal samples.",
+        "digest": "sha256:dff0b4dc9d0759f022f44d4052b5da7d749378a426cbaf08ec05731c9e06a6b1"
+      },
+      {
+        "path": "packages/cli/scripts/download-public-release-file.mjs",
+        "status": "REVIEWED",
+        "category": "DISTRIBUTION",
+        "rationale": "Bounded public artifact GET with validated redirects and integrity checks. Downloading a release does not publish it or admit model execution.",
+        "digest": "sha256:49ac671926c029466afba08e61a7947ad4278c98ff8e9c871e762921e3ee3a60"
+      },
+      {
+        "path": "packages/cli/scripts/ide-roadmap-marketplace-supply-chain.mjs",
+        "status": "REVIEWED",
+        "category": "TASK_CONTROLLED_NETWORK",
+        "rationale": "Marketplace fixture includes a generic CONNECT proxy and configured test destinations. Classification does not constrain arbitrary proxy destinations or confer a billing contract.",
+        "digest": "sha256:a4f19c483db1d5849cf4ad5562bfbffde54072335426bc77c412b80119596115"
+      },
+      {
+        "path": "packages/cli/scripts/implementation-plan-status.mjs",
+        "status": "REVIEWED",
+        "category": "DISTRIBUTION",
+        "rationale": "Opt-in public package metadata GET from npm/Open VSX. Default local snapshot also binds the independent lineage registry source and performs no public readback; visibility is not release qualification.",
+        "digest": "sha256:8309119432953907cfe39e325396e5b8bdfb0a5339e56b1dc161863ff0e421ea"
+      },
+      {
+        "path": "packages/cli/scripts/implementation-plan-volcengine-live.mjs",
+        "status": "REVIEWED",
+        "category": "MODEL_REQUEST",
+        "rationale": "Paid model/tool/compaction diagnostic intercepts global fetch and estimates usage. Formal scope rejects before config, receipts, environment or fetch mutation. Estimate stops are not hard limits.",
+        "digest": "sha256:550ca6ef647df58f4bbb1545725082182d75e90ec83ec9a2f5b86023ebdb539b"
+      },
+      {
+        "path": "packages/cli/scripts/mcp-lifecycle-profile.mjs",
+        "status": "REVIEWED",
+        "category": "LOCAL_DIAGNOSTIC",
+        "rationale": "Synthetic loopback MCP/OAuth/TLS fixtures with injected HTTP wrappers. Does not prove containment of production MCP servers, delegated tools or their costs.",
+        "digest": "sha256:0c45fcd71579578f658cac34aa89fc980b59e930c42bb86f0eb0e91d45869123"
+      },
+      {
+        "path": "packages/cli/scripts/mcp-reference-interop.mjs",
+        "status": "REVIEWED",
+        "category": "LOCAL_DIAGNOSTIC",
+        "rationale": "Local MCP reference fixture forwards to a loopback child server. Production tool delegation and descendant costs remain separate boundaries.",
+        "digest": "sha256:f5d4863f5ef957b3bef8f4177f817b540d24f9fde66cbb891f79ca314af348c5"
+      },
+      {
+        "path": "packages/cli/scripts/pm-exploration-volcengine-live-probe.mjs",
+        "status": "REVIEWED",
+        "category": "MODEL_REQUEST",
+        "rationale": "Paid connectivity probe; import is inert and runner rejects formal scope before CLI/config. Ordinary CLI requires explicit live confirmation; estimated cost is not a quota.",
+        "digest": "sha256:789857302d6f0ef7f30368103e345405ed6577180f29298417cddd2dfc1bdde1"
+      },
+      {
+        "path": "packages/cli/scripts/query-graph-production-jobs.mjs",
+        "status": "REVIEWED",
+        "category": "SERVICE_API",
+        "rationale": "Authenticated bounded GitHub Actions Jobs API GET for exact run/attempt evidence. Does not dispatch jobs or prove downstream billing coverage.",
+        "digest": "sha256:0b747efcdb003c37bb5767801d228859f321f18590aab8ccb90a92ef191de531"
+      },
+      {
+        "path": "packages/cli/scripts/verify-release-gates.mjs",
+        "status": "REVIEWED",
+        "category": "SERVICE_API",
+        "rationale": "GitHub checks/status readback. API responses are evidence inputs, not publication or financial admission.",
+        "digest": "sha256:8ef9b2db9420e4086d89bb569b3d36ddf2b40611e9a883aecbe9f9007b2c59df"
+      },
+      {
+        "path": "packages/cli/scripts/verify01-native-toolchain-prepare.mjs",
+        "status": "REVIEWED",
+        "category": "DISTRIBUTION",
+        "rationale": "Bounded registry artifact download and toolchain preparation; no provider inference. Artifact identity and native admission are independently checked.",
+        "digest": "sha256:7d1424de87da2609548287ce33a03fed2e2c5b10d095c0caadc97a96ea8aea4b"
+      },
+      {
+        "path": "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs",
+        "status": "REVIEWED",
+        "category": "MODEL_REQUEST",
+        "rationale": "HTTPS model diagnostic rewrites thinking/output policy and estimates CNY usage. Formal scope rejects creation, beginTask and direct dispatch. An externally running IPC/network broker is not contained by AsyncLocalStorage.",
+        "digest": "sha256:e7ccb8e8b73de6f34460435959db28ff760eb07425baa5439ec3f8a22b3e7fb4"
+      }
+    ]
+  },
+  "exhaustive": false,
+  "runtimeCoverageVerified": false,
+  "scopedTransport": {
+    "enabledByDefault": false,
+    "protocols": [
+      "openai-chat"
+    ],
+    "trustedHostSources": [
+      {
+        "path": "packages/cli/src/lib/formal-budget-provider-scope.js",
+        "digest": "sha256:d8c6223216ee6df4a93a8d6bafc4b1c17e07b2795f78bb330ed5c418f9d7fe6d"
+      },
+      {
+        "path": "packages/cli/src/lib/formal-budget-transport.js",
+        "digest": "sha256:328ea2079d235015f47f910a15249f33561ceabd342ad1f30fa8c3db3b791413"
+      },
+      {
+        "path": "packages/cli/src/lib/formal-budget-authority.js",
+        "digest": "sha256:9571a38026947f7455a88fc68fae09b272f6653406fc5f69ad548958a8588405"
+      },
+      {
+        "path": "packages/cli/src/lib/formal-budget-lineage-registry.js",
+        "digest": "sha256:fb585688c899d2a07c15fca9145f5e336d4d3207bef657669298f90031e4339e"
+      },
+      {
+        "path": "packages/cli/src/lib/formal-budget-contract.js",
+        "digest": "sha256:e9761080bdb181ac5861c2211e65c1c9713e8562b4247dcfe03a92b69ebeba45"
+      },
+      {
+        "path": "packages/cli/src/lib/formal-budget-errors.js",
+        "digest": "sha256:bdfffe5b1a689d57b962f04d4129938564fdd8fa67b5d335d6a5918b4173746a"
+      }
+    ],
+    "isolationBoundary": "Async-local in-process calls only; no OS, SDK, worker or subprocess containment",
+    "formalAdmission": "UNCHANGED_NOT_ADMITTED",
+    "lineageRegistry": {
+      "enabledByDefault": false,
+      "guardedAuthoritiesRequireRegistry": true,
+      "automaticallyMigratesLegacyAuthorities": false,
+      "independentStorageProtectionVerified": false,
+      "registryRollbackResistanceVerified": false,
+      "physicalRegistryBinding": true,
+      "liveObservedHeadChecks": true,
+      "trustedRestartCheckpointSupport": true,
+      "trustedCheckpointAuthenticationVerified": false,
+      "trustedCheckpointBeforeEveryDispatchVerified": false,
+      "restartCheckpointPolicyEnforced": false,
+      "pinnedCheckpointHostPolicyAvailable": true,
+      "checkpointHostMode": "EXPLICIT_INITIALIZATION_ONLY",
+      "checkpointHostDispatchOrdering": "REGISTRY_COMMIT_HOST_DURABLE_ACK_AUTHORITY_COMMIT_FETCH",
+      "checkpointHostDeploymentVerified": false,
+      "mismatchRecovery": "STOP_FOR_EXTERNAL_RECONCILIATION_WITHOUT_RESET"
+    },
+    "unsupportedAdapters": [
+      "opaque Hub SDK and Desktop callbacks",
+      "native and custom Hub embeddings",
+      "governed skill synthesis grader child process",
+      "external search services without a verified billing contract",
+      "standalone paid model diagnostics and native diagnostic broker launch"
+    ],
+    "unsupportedAdapterAction": "REJECT_BEFORE_ADAPTER_INVOCATION_OR_CHILD_LAUNCH",
+    "diagnosticBoundarySources": [
+      {
+        "path": "packages/cli/scripts/context-token-volcengine-live-probe.mjs",
+        "digest": "sha256:dff0b4dc9d0759f022f44d4052b5da7d749378a426cbaf08ec05731c9e06a6b1"
+      },
+      {
+        "path": "packages/cli/scripts/implementation-plan-volcengine-live.mjs",
+        "digest": "sha256:550ca6ef647df58f4bbb1545725082182d75e90ec83ec9a2f5b86023ebdb539b"
+      },
+      {
+        "path": "packages/cli/scripts/pm-exploration-volcengine-live-probe.mjs",
+        "digest": "sha256:789857302d6f0ef7f30368103e345405ed6577180f29298417cddd2dfc1bdde1"
+      },
+      {
+        "path": "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs",
+        "digest": "sha256:e7ccb8e8b73de6f34460435959db28ff760eb07425baa5439ec3f8a22b3e7fb4"
+      },
+      {
+        "path": "packages/cli/scripts/verify01-volcengine-task-diagnostic.mjs",
+        "digest": "sha256:fdc8d69ae86a03f4a9ae4fd6e4c32a93de284a69d5b1cab37b5d0da9a00dafc1"
+      }
+    ]
+  },
+  "historicalSharedCapUsd": 99,
+  "historicalLiabilityReconciled": false,
+  "outputUpperBoundVerified": false,
+  "categories": [
+    {
+      "id": "agent",
+      "callChain": [
+        "agentLoop",
+        "chatWithTools",
+        "provider fetch"
+      ],
+      "sources": [
+        {
+          "path": "packages/cli/src/runtime/headless-runner.js",
+          "digest": "sha256:931b8c0f388f3c4e75192df8200f3125a3b4303f1f896da8308634dcecde0efe"
+        },
+        {
+          "path": "packages/cli/src/runtime/agent-core.js",
+          "digest": "sha256:7628b8c31bff474ac9f9483a0dba61d910e30b1a3e78f9680119e61027a04f39"
+        }
+      ],
+      "formalCoverage": "NOT_ATTESTED",
+      "hostScopeIntegration": "CANONICAL_IN_PROCESS_ROUTES_ONLY",
+      "requiredIntegration": "Explicit host scope routes canonical in-process provider calls. Attest all launchers, fallbacks and host combinations before admission."
+    },
+    {
+      "id": "chat",
+      "callChain": [
+        "startChatRepl / chat gateway",
+        "streamOpenAI / streamAnthropic / streamOllama",
+        "provider fetch"
+      ],
+      "sources": [
+        {
+          "path": "packages/cli/src/repl/chat-repl.js",
+          "digest": "sha256:a53d7fdc0af6f98586d748e4488848d5d6abe42f11e7cf4347a3a2fb9b13207a"
+        },
+        {
+          "path": "packages/cli/src/lib/chat-core.js",
+          "digest": "sha256:75badcbad571c266cf7592a79d5ad77f2f0f6d318ee4594da1195c405811a4e2"
+        },
+        {
+          "path": "packages/cli/src/lib/provider-stream.js",
+          "digest": "sha256:a3663c1c909840369df9774e95bb4e831a860df9e407bfb19bd25d52d4a7d633"
+        }
+      ],
+      "formalCoverage": "NOT_ATTESTED",
+      "hostScopeIntegration": "CANONICAL_IN_PROCESS_ROUTES_ONLY",
+      "requiredIntegration": "Explicit host scope routes ordinary Chat. Verify all gateway/REPL host lifetimes before admission."
+    },
+    {
+      "id": "compaction",
+      "callChain": [
+        "compactConversationWithProvider / _getAutoCompactor",
+        "llmQuery",
+        "chatWithTools"
+      ],
+      "sources": [
+        {
+          "path": "packages/cli/src/harness/provider-backed-compaction.js",
+          "digest": "sha256:c17ac6556491e6f5959c44cc866543715ea445600979d0350c8d5367cf15e45f"
+        },
+        {
+          "path": "packages/cli/src/harness/prompt-compressor.js",
+          "digest": "sha256:072772e5838b1dfc30321cc46c31d7b6c95ef0d44142a1a08a3cb1c39d70a163"
+        },
+        {
+          "path": "packages/cli/src/runtime/agent-core.js",
+          "digest": "sha256:7628b8c31bff474ac9f9483a0dba61d910e30b1a3e78f9680119e61027a04f39"
+        }
+      ],
+      "formalCoverage": "NOT_ATTESTED",
+      "hostScopeIntegration": "CANONICAL_IN_PROCESS_ROUTES_ONLY",
+      "requiredIntegration": "Reserve semantic compaction independently and retain known usage when the context commit is rejected."
+    },
+    {
+      "id": "advisor",
+      "callChain": [
+        "AdvisorRuntime",
+        "chatWithTools"
+      ],
+      "sources": [
+        {
+          "path": "packages/cli/src/lib/advisor-runtime.js",
+          "digest": "sha256:041e6aea98fa372c7c454c4e553f72988d54f712fcb014915a7fcff21d915762"
+        }
+      ],
+      "formalCoverage": "NOT_ATTESTED",
+      "hostScopeIntegration": "CANONICAL_IN_PROCESS_ROUTES_ONLY",
+      "requiredIntegration": "Unify the Advisor CostBudget with the formal budget lineage."
+    },
+    {
+      "id": "probe",
+      "callChain": [
+        "probeLlmConnection",
+        "fetchImpl"
+      ],
+      "sources": [
+        {
+          "path": "packages/cli/src/lib/llm-connection-probe.js",
+          "digest": "sha256:4910c204d06e3ed63618bc568dfff788f583b82f1c9fb6df16881b557f91fb4d"
+        },
+        {
+          "path": "packages/cli/src/lib/llm-providers.js",
+          "digest": "sha256:372d1f65e64f5c96c9907c5f28b0d92f83f29f1bf91f70ae68c5629a056430c2"
+        }
+      ],
+      "formalCoverage": "NOT_ATTESTED",
+      "hostScopeIntegration": "CANONICAL_IN_PROCESS_ROUTES_ONLY",
+      "requiredIntegration": "Govern health probes and preserve missing or invalid usage as unresolved liability."
+    },
+    {
+      "id": "retry",
+      "callChain": [
+        "_retryStreamingChat / stream retry",
+        "fresh provider attempt"
+      ],
+      "sources": [
+        {
+          "path": "packages/cli/src/lib/stream-retry.js",
+          "digest": "sha256:c8ddf782e3fe16caab567c61934ff7adfa08e6d866e7ea8e0b66944ce755280e"
+        },
+        {
+          "path": "packages/cli/src/lib/model-failure-policy.js",
+          "digest": "sha256:6bf13a7fd586b6fdd2817721acbc2899032d5611b31e13ef93fd7b22f2383742"
+        },
+        {
+          "path": "packages/cli/src/runtime/agent-core.js",
+          "digest": "sha256:7628b8c31bff474ac9f9483a0dba61d910e30b1a3e78f9680119e61027a04f39"
+        }
+      ],
+      "formalCoverage": "NOT_ATTESTED",
+      "hostScopeIntegration": "CANONICAL_IN_PROCESS_ROUTES_ONLY",
+      "requiredIntegration": "Use a distinct reservation per attempt; do not retry unknown provider outcomes."
+    },
+    {
+      "id": "child",
+      "callChain": [
+        "SubAgentContext / cowork",
+        "createChatFn / child agentLoop",
+        "provider fetch"
+      ],
+      "sources": [
+        {
+          "path": "packages/cli/src/lib/sub-agent-context.js",
+          "digest": "sha256:5b3f3fd8bdc292eae539d6e191413d8c56d03146cb38badf4f3cc9a65d87f1eb"
+        },
+        {
+          "path": "packages/cli/src/lib/cowork-adapter.js",
+          "digest": "sha256:43e3e086af7bbd964df40f6f02488fd87ed43704d495ed6ce6e196db55f28b2d"
+        },
+        {
+          "path": "packages/cli/src/lib/process-execution-broker/index.js",
+          "digest": "sha256:ac713037cac588c8cf985bbbbacf61f34e7a345378ba9173691db17952e68a1a"
+        }
+      ],
+      "formalCoverage": "NOT_ATTESTED",
+      "hostScopeIntegration": "IN_PROCESS_ONLY_DESCENDANTS_UNCOVERED",
+      "requiredIntegration": "Keep credentials and authority outside task descendants; prove they cannot bypass the governed egress."
+    },
+    {
+      "id": "additional-model-adapters",
+      "callChain": [
+        "typed decision / hub model adapter",
+        "provider transport"
+      ],
+      "sources": [
+        {
+          "path": "packages/cli/src/lib/decision-layer/typesafe-provider.js",
+          "digest": "sha256:943440866d41688834ad8912adef695345d109127fb553411c469b4596418d2f"
+        },
+        {
+          "path": "packages/cli/src/lib/decision-layer/providers.js",
+          "digest": "sha256:e95da9f0327f90882a94f7e54dced15f814ddadbf6dac40e77c8dcccc61b4a39"
+        },
+        {
+          "path": "packages/cli/src/lib/hub-llm-client.js",
+          "digest": "sha256:9e83456cdb0f55941b82f00fbc9d49e357edeafcc7c58677d0ffeac17cbc2828"
+        },
+        {
+          "path": "packages/cli/src/commands/ask.js",
+          "digest": "sha256:76db41dcd27b2c1b1a619775bf25877131d299b49cbabe158d8a20b013961e9b"
+        },
+        {
+          "path": "packages/cli/src/lib/evolution/governed-hub-llm.js",
+          "digest": "sha256:d252bbfcd50b6ffbca9a95893d9aee6b83afa1bbdb33a22da9ebdeec4fc9bfd5"
+        },
+        {
+          "path": "packages/cli/src/lib/evolution/governed-hub-resolver.js",
+          "digest": "sha256:8b85c11c272c97a1db80d46c732a72a48dc6f2cbb20bafd123f9d8cda06bfd16"
+        },
+        {
+          "path": "packages/cli/src/lib/evolution/governed-skill-synthesis-process-grader.js",
+          "digest": "sha256:beeac624cb9932562117a99e1e8cad259ea5128a8d88b6d4557ca32b1f52662e"
+        }
+      ],
+      "formalCoverage": "NOT_ATTESTED",
+      "hostScopeIntegration": "ASK_HUB_ROUTED_OPAQUE_SDK_EMBEDDINGS_AND_GRADER_LAUNCH_DENIED",
+      "requiredIntegration": "Decide and attest formal scope for additional model adapters before admitting any paid task."
+    }
+  ],
+  "networkCandidates": [
+    {
+      "path": "packages/cli/src/commands/agenda.js",
+      "digest": "sha256:50204bbb316cde4868755b15d0897fd8b811cc2b58a952e53f70d70df95eb695",
+      "calls": [
+        {
+          "line": 874,
+          "column": 22,
+          "callee": "fetch",
+          "kind": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/commands/ask.js",
+      "digest": "sha256:76db41dcd27b2c1b1a619775bf25877131d299b49cbabe158d8a20b013961e9b",
+      "calls": [
+        {
+          "line": 145,
+          "column": 27,
+          "callee": "providerFetch",
+          "kind": "governed-fetch"
+        },
+        {
+          "line": 188,
+          "column": 25,
+          "callee": "providerFetch",
+          "kind": "governed-fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/commands/llm.js",
+      "digest": "sha256:68d5633ecd318ae0107cc137e26a1de0f40122cfc1766a032c868db9d2dcc961",
+      "calls": [
+        {
+          "line": 256,
+          "column": 33,
+          "callee": "fetch",
+          "kind": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/commands/mtc.js",
+      "digest": "sha256:b50e96a7b823ceec4e2c431284d2ae0dd718980e7c82dc21b7a7a9866a3c3592",
+      "calls": [
+        {
+          "line": 1243,
+          "column": 37,
+          "callee": "transport.fetch",
+          "kind": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/commands/notification.js",
+      "digest": "sha256:b7f6ce087167d852bdbbeb045f282679a51af6ee984a086382d57a4927f0cda9",
+      "calls": [
+        {
+          "line": 159,
+          "column": 15,
+          "callee": "wsDep",
+          "kind": "websocket"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/gateways/remote-session-relay.js",
+      "digest": "sha256:a5825e10a7eaf9736e42c7abb5c674a4f1479389ffce8613cf2dc08bf931c08c",
+      "calls": [
+        {
+          "line": 23,
+          "column": 58,
+          "callee": "WebSocket",
+          "kind": "websocket"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/harness/mcp-client.js",
+      "digest": "sha256:3368c0b6f855c715af8f2fa143765fdbcd118915cee85aae28c1d5a8a204937d",
+      "calls": [
+        {
+          "line": 67,
+          "column": 22,
+          "callee": "globalThis.fetch",
+          "kind": "fetch"
+        },
+        {
+          "line": 2494,
+          "column": 23,
+          "callee": "Socket",
+          "kind": "websocket"
+        },
+        {
+          "line": 4465,
+          "column": 14,
+          "callee": "_deps.fetch",
+          "kind": "fetch"
+        },
+        {
+          "line": 4723,
+          "column": 17,
+          "callee": "_deps.fetch",
+          "kind": "fetch"
+        },
+        {
+          "line": 5512,
+          "column": 27,
+          "callee": "_deps.fetch",
+          "kind": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/harness/remote-session-push-fcm.js",
+      "digest": "sha256:ddd58adb5d14112c72fbbcebeb0230076e40a66a900c2396821bf44810b29f8f",
+      "calls": [
+        {
+          "line": 85,
+          "column": 22,
+          "callee": "this.fetch",
+          "kind": "fetch"
+        },
+        {
+          "line": 166,
+          "column": 22,
+          "callee": "this.fetch",
+          "kind": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/harness/remote-session-push-huawei.js",
+      "digest": "sha256:013ccd45839ad134540f971ef6c47eb4f3a7d1cf803fccbd0ea3069930bfaa10",
+      "calls": [
+        {
+          "line": 64,
+          "column": 22,
+          "callee": "this.fetch",
+          "kind": "fetch"
+        },
+        {
+          "line": 123,
+          "column": 22,
+          "callee": "this.fetch",
+          "kind": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/harness/remote-session-push-oppo.js",
+      "digest": "sha256:97f045ab143f86053d6d5070d55a98cddf5af4fc85c32e111d815b511d61a171",
+      "calls": [
+        {
+          "line": 65,
+          "column": 22,
+          "callee": "this.fetch",
+          "kind": "fetch"
+        },
+        {
+          "line": 124,
+          "column": 22,
+          "callee": "this.fetch",
+          "kind": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/harness/remote-session-push-vivo.js",
+      "digest": "sha256:dc531b4590a132a115e32ace9bbca2dff6a381991b2cb5d79447f42f2a7eb2c3",
+      "calls": [
+        {
+          "line": 66,
+          "column": 22,
+          "callee": "this.fetch",
+          "kind": "fetch"
+        },
+        {
+          "line": 130,
+          "column": 22,
+          "callee": "this.fetch",
+          "kind": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/harness/remote-session-push-web.js",
+      "digest": "sha256:6d2bd789cc424995cdfb1abf2d4b9119d7566008689f53eba2fd936161e4edf9",
+      "calls": [
+        {
+          "line": 248,
+          "column": 22,
+          "callee": "this.fetch",
+          "kind": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/harness/remote-session-push-xiaomi.js",
+      "digest": "sha256:96eb1cc11e236c05bb670ee324609782e953a53ac058a33e527777d8b35cd204",
+      "calls": [
+        {
+          "line": 55,
+          "column": 22,
+          "callee": "this.fetch",
+          "kind": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/harness/session-mirror.js",
+      "digest": "sha256:e64bc91e0e6759677cf80ee49128aee7a6625080bf889228f94965c2c8484133",
+      "calls": [
+        {
+          "line": 297,
+          "column": 43,
+          "callee": "globalThis.fetch",
+          "kind": "fetch"
+        },
+        {
+          "line": 311,
+          "column": 24,
+          "callee": "doFetch",
+          "kind": "fetch"
+        },
+        {
+          "line": 320,
+          "column": 24,
+          "callee": "doFetch",
+          "kind": "fetch"
+        },
+        {
+          "line": 328,
+          "column": 24,
+          "callee": "doFetch",
+          "kind": "fetch"
+        },
+        {
+          "line": 337,
+          "column": 24,
+          "callee": "doFetch",
+          "kind": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/agent-team/team-message-bridge.js",
+      "digest": "sha256:6ed63d0477162d4347f3236ed76fe76378b38e1fb7ac2e93f8894cc0339f0167",
+      "calls": [
+        {
+          "line": 616,
+          "column": 19,
+          "callee": "net.createConnection",
+          "kind": "network-function"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/background-agent-keeper-client.js",
+      "digest": "sha256:1eb2e1427556411eabe32802e0a993248f869b4b2175f52d4e1e519a59608f81",
+      "calls": [
+        {
+          "line": 40,
+          "column": 19,
+          "callee": "net.createConnection",
+          "kind": "network-function"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/background-session-transport.js",
+      "digest": "sha256:ce8bcbc5453407e0a288545f8b377901b0334786a30cd96bcee584bb24992ddb",
+      "calls": [
+        {
+          "line": 467,
+          "column": 19,
+          "callee": "net.connect",
+          "kind": "network-function"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/browser-automation.js",
+      "digest": "sha256:b4f05bcc40fbc2b33d7034d7dd70b2e2e86e87f0f7f4fe74547996c7bee07980",
+      "calls": [
+        {
+          "line": 21,
+          "column": 27,
+          "callee": "fetch",
+          "kind": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/cc-android-bridge.js",
+      "digest": "sha256:4546187530ace77b4fda3a3d0fd92944a40169cd4543635dec8c65b938668833",
+      "calls": [
+        {
+          "line": 142,
+          "column": 17,
+          "callee": "_deps.fetch",
+          "kind": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/channels/telegram-channel.js",
+      "digest": "sha256:a490f648cf8b138fc583b29d1e2f072292b81b94eeb614255f79199a9bc8aab4",
+      "calls": [
+        {
+          "line": 57,
+          "column": 26,
+          "callee": "fetchImpl",
+          "kind": "fetch"
+        },
+        {
+          "line": 124,
+          "column": 24,
+          "callee": "fetchImpl",
+          "kind": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/chat-core.js",
+      "digest": "sha256:75badcbad571c266cf7592a79d5ad77f2f0f6d318ee4594da1195c405811a4e2",
+      "calls": [
+        {
+          "line": 137,
+          "column": 21,
+          "callee": "providerFetch",
+          "kind": "governed-fetch"
+        },
+        {
+          "line": 252,
+          "column": 21,
+          "callee": "providerFetch",
+          "kind": "governed-fetch"
+        },
+        {
+          "line": 397,
+          "column": 21,
+          "callee": "providerFetch",
+          "kind": "governed-fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/chrome-connector.js",
+      "digest": "sha256:6c2fc2e0f36202eb737fe984dd2f3f411ba3b932e30e8438d057cb161cfd61e1",
+      "calls": [
+        {
+          "line": 252,
+          "column": 16,
+          "callee": "http.get",
+          "kind": "network-function"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/cloud/cloud-client.js",
+      "digest": "sha256:048085dbdc1f52ec4603c631897c38ef03abbe6e9b46a6e26c55b22e92907ce2",
+      "calls": [
+        {
+          "line": 32,
+          "column": 40,
+          "callee": "globalThis.fetch",
+          "kind": "fetch"
+        },
+        {
+          "line": 112,
+          "column": 22,
+          "callee": "this.deps.fetch",
+          "kind": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/cowork-adapter.js",
+      "digest": "sha256:43e3e086af7bbd964df40f6f02488fd87ed43704d495ed6ce6e196db55f28b2d",
+      "calls": [
+        {
+          "line": 178,
+          "column": 28,
+          "callee": "providerFetch",
+          "kind": "governed-fetch"
+        },
+        {
+          "line": 218,
+          "column": 28,
+          "callee": "providerFetch",
+          "kind": "governed-fetch"
+        },
+        {
+          "line": 249,
+          "column": 26,
+          "callee": "providerFetch",
+          "kind": "governed-fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/decision-layer/providers.js",
+      "digest": "sha256:e95da9f0327f90882a94f7e54dced15f814ddadbf6dac40e77c8dcccc61b4a39",
+      "calls": [
+        {
+          "line": 199,
+          "column": 29,
+          "callee": "providerFetch",
+          "kind": "governed-fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/downloader.js",
+      "digest": "sha256:89edfc6d7b222d552820031888493f15ef1e0606ef587fb2c3a93d8c121b9689",
+      "calls": [
+        {
+          "line": 113,
+          "column": 27,
+          "callee": "fetch",
+          "kind": "fetch"
+        },
+        {
+          "line": 208,
+          "column": 25,
+          "callee": "fetch",
+          "kind": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/governed-hub-llm.js",
+      "digest": "sha256:d252bbfcd50b6ffbca9a95893d9aee6b83afa1bbdb33a22da9ebdeec4fc9bfd5",
+      "calls": [
+        {
+          "line": 104,
+          "column": 33,
+          "callee": "providerFetch",
+          "kind": "governed-fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/governed-hub-resolver.js",
+      "digest": "sha256:8b85c11c272c97a1db80d46c732a72a48dc6f2cbb20bafd123f9d8cda06bfd16",
+      "calls": [
+        {
+          "line": 58,
+          "column": 29,
+          "callee": "fetchImpl",
+          "kind": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/governed-skill-synthesis-attestor-trust-approval-client.js",
+      "digest": "sha256:2e3aad304986ba0a6f1de0ef6a77b4910c78fdc98893b19c2a8f74741a67a9c6",
+      "calls": [
+        {
+          "line": 285,
+          "column": 19,
+          "callee": "net.connect",
+          "kind": "network-function"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/governed-skill-synthesis-attestor-trust-operations-client.js",
+      "digest": "sha256:da7e869c8d1bf8829793728e6e2ed1e2887baa7f7b3d487c0faf78ec550ca68c",
+      "calls": [
+        {
+          "line": 244,
+          "column": 19,
+          "callee": "net.connect",
+          "kind": "network-function"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/governed-skill-synthesis-external-attestor.js",
+      "digest": "sha256:06aafe46e1979831619c20257957568cf92620f4585c5b0ab1c3ae2fdf7b8c73",
+      "calls": [
+        {
+          "line": 168,
+          "column": 19,
+          "callee": "net.connect",
+          "kind": "network-function"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/governed-skill-synthesis-process-grader-worker.mjs",
+      "digest": "sha256:ef028b7eac527d93a929f440f9e025ccfc33c36d8ec6e7ec2863a0a681a9df47",
+      "calls": [
+        {
+          "line": 118,
+          "column": 25,
+          "callee": "fetch",
+          "kind": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/evomap-client.js",
+      "digest": "sha256:5b09c2f7ef15a6afd3715f6ece8d0bff95fcbe8efb3dc01dbc80d7a16a6a7d6b",
+      "calls": [
+        {
+          "line": 111,
+          "column": 29,
+          "callee": "_deps.fetch",
+          "kind": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/formal-budget-provider-scope.js",
+      "digest": "sha256:d8c6223216ee6df4a93a8d6bafc4b1c17e07b2795f78bb330ed5c418f9d7fe6d",
+      "calls": [
+        {
+          "line": 76,
+          "column": 21,
+          "callee": "fetchImpl",
+          "kind": "fetch"
+        },
+        {
+          "line": 82,
+          "column": 9,
+          "callee": "scope.fetch",
+          "kind": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/formal-budget-transport.js",
+      "digest": "sha256:328ea2079d235015f47f910a15249f33561ceabd342ad1f30fa8c3db3b791413",
+      "calls": [
+        {
+          "line": 354,
+          "column": 8,
+          "callee": "fetchImpl",
+          "kind": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/gateway-client-resilience.js",
+      "digest": "sha256:f03dc5519ca59273209544e468c99990233e8e6285c72f10a4e75950824dc1eb",
+      "calls": [
+        {
+          "line": 509,
+          "column": 19,
+          "callee": "this.fetch",
+          "kind": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/hooks-v2-runtime.js",
+      "digest": "sha256:616f3b123ac2b7d367df8e622c0be0e83d44173ef765d5fba7b937ca4d5b8f2f",
+      "calls": [
+        {
+          "line": 1230,
+          "column": 24,
+          "callee": "this.fetchImpl",
+          "kind": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/hub-llm-client.js",
+      "digest": "sha256:9e83456cdb0f55941b82f00fbc9d49e357edeafcc7c58677d0ffeac17cbc2828",
+      "calls": [
+        {
+          "line": 206,
+          "column": 21,
+          "callee": "providerFetch",
+          "kind": "governed-fetch"
+        },
+        {
+          "line": 274,
+          "column": 21,
+          "callee": "providerFetch",
+          "kind": "governed-fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/llm-connection-probe.js",
+      "digest": "sha256:4910c204d06e3ed63618bc568dfff788f583b82f1c9fb6df16881b557f91fb4d",
+      "calls": [
+        {
+          "line": 185,
+          "column": 27,
+          "callee": "providerFetch",
+          "kind": "governed-fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/llm-providers.js",
+      "digest": "sha256:372d1f65e64f5c96c9907c5f28b0d92f83f29f1bf91f70ae68c5629a056430c2",
+      "calls": [
+        {
+          "line": 139,
+          "column": 17,
+          "callee": "providerFetch",
+          "kind": "governed-fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/mcp-oauth.js",
+      "digest": "sha256:89efe4cf62e019f37f67aed65bf6bad2e2725c3a9efef6c536fe772c62f9977b",
+      "calls": [
+        {
+          "line": 31,
+          "column": 19,
+          "callee": "globalThis.fetch",
+          "kind": "fetch"
+        },
+        {
+          "line": 213,
+          "column": 16,
+          "callee": "_deps.fetch",
+          "kind": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/notifiers/_http.js",
+      "digest": "sha256:0e00a1faa793af266931a2b2da29e301d515e9f4260d650fdff6503b3ab34009",
+      "calls": [
+        {
+          "line": 22,
+          "column": 17,
+          "callee": "fetch",
+          "kind": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/p2p-manager.js",
+      "digest": "sha256:a6b32fcf61983711b1d030944277df2cb4107f77f159eb2d38a5426a076a1af7",
+      "calls": [
+        {
+          "line": 389,
+          "column": 29,
+          "callee": "fetch",
+          "kind": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/packer/pack-update-checker.js",
+      "digest": "sha256:4e63745e80595544f4a54a471cae07bcb15d58c9c8c20845cef43c5a29647858",
+      "calls": [
+        {
+          "line": 82,
+          "column": 29,
+          "callee": "fetchImpl",
+          "kind": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/packer/pack-update-downloader.js",
+      "digest": "sha256:1e20df6eaac433c322412d39fd89691f4b6f00fa691080007fa13ee730c20f59",
+      "calls": [
+        {
+          "line": 104,
+          "column": 8,
+          "callee": "fetchImpl",
+          "kind": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/packer/smoke-runner.js",
+      "digest": "sha256:68cbc80b9adcf24a942d2aa6861f7b8d916c8560fdff9ec0849353a46dca8a80",
+      "calls": [
+        {
+          "line": 342,
+          "column": 17,
+          "callee": "createConnection",
+          "kind": "network-function"
+        },
+        {
+          "line": 363,
+          "column": 16,
+          "callee": "http.get",
+          "kind": "network-function"
+        },
+        {
+          "line": 387,
+          "column": 16,
+          "callee": "http.get",
+          "kind": "network-function"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/plugin-runtime/marketplace-command-source.js",
+      "digest": "sha256:f608c89bba7ed949f89938915a18cc2b5fa6403dbcbaefd275bb39927aeed64b",
+      "calls": [
+        {
+          "line": 556,
+          "column": 11,
+          "callee": "fetchImpl",
+          "kind": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/plugin-runtime/marketplace-network.js",
+      "digest": "sha256:83a1f6f47e376932b1350004fdaf63e46694bdc7157fc6b8a9d3e29c8602c0b1",
+      "calls": [
+        {
+          "line": 59,
+          "column": 13,
+          "callee": "undiciFetch",
+          "kind": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/plugin-runtime/marketplace-remote-artifacts.js",
+      "digest": "sha256:4a4399846c6815f1937a1e5d3c8609a90958ef43940d35243c9b629c3b76ea5a",
+      "calls": [
+        {
+          "line": 35,
+          "column": 22,
+          "callee": "globalThis.fetch",
+          "kind": "fetch"
+        },
+        {
+          "line": 502,
+          "column": 25,
+          "callee": "fetchImpl",
+          "kind": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/plugin-runtime/remote-source.js",
+      "digest": "sha256:8c70bc096d22209895330143c428d58907947ef3b289d24dd2292de48e53555c",
+      "calls": [
+        {
+          "line": 55,
+          "column": 22,
+          "callee": "globalThis.fetch",
+          "kind": "fetch"
+        },
+        {
+          "line": 251,
+          "column": 18,
+          "callee": "fetchImpl",
+          "kind": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/process-execution-broker/credential-transport.js",
+      "digest": "sha256:6ff25dd126bfd9f263644e6b82f334d45a4cd948534d66846b32ffc6286dd74a",
+      "calls": [
+        {
+          "line": 224,
+          "column": 19,
+          "callee": "net.connect",
+          "kind": "network-function"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/provider-stream.js",
+      "digest": "sha256:a3663c1c909840369df9774e95bb4e831a860df9e407bfb19bd25d52d4a7d633",
+      "calls": [
+        {
+          "line": 54,
+          "column": 20,
+          "callee": "providerFetch",
+          "kind": "governed-fetch"
+        },
+        {
+          "line": 99,
+          "column": 20,
+          "callee": "providerFetch",
+          "kind": "governed-fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/sandbox-egress-proxy.js",
+      "digest": "sha256:387c397b540b0cdc4f0d70ff9fa583c6a48b9c8e7d374986815ea1155b673021",
+      "calls": [
+        {
+          "line": 287,
+          "column": 23,
+          "callee": "http.request",
+          "kind": "network-function"
+        },
+        {
+          "line": 350,
+          "column": 23,
+          "callee": "net.connect",
+          "kind": "network-function"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/update-notice.js",
+      "digest": "sha256:dfb0ba6e22143fdf8cff6c2a071abf649f1469be97c4b64c49f38b7a876dad49",
+      "calls": [
+        {
+          "line": 122,
+          "column": 22,
+          "callee": "fetchImpl",
+          "kind": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/version-checker.js",
+      "digest": "sha256:c16453a890710e93eaee7c62999ea83cf9fcafd1105e494c359785919c89f236",
+      "calls": [
+        {
+          "line": 22,
+          "column": 17,
+          "callee": "fetch",
+          "kind": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/web-fetch.js",
+      "digest": "sha256:0fb493384c14082b27af02c4eb8fb3a577fb44ba75daf1ef2e93073117bcd964",
+      "calls": [
+        {
+          "line": 246,
+          "column": 16,
+          "callee": "lib.request",
+          "kind": "network-function"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/web-search.js",
+      "digest": "sha256:5c6a016b82842f3832e777952c21637e7fd2fcb94fc17f4ba835fab206221832",
+      "calls": [
+        {
+          "line": 111,
+          "column": 16,
+          "callee": "lib.request",
+          "kind": "network-function"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/runtime/agent-core.js",
+      "digest": "sha256:7628b8c31bff474ac9f9483a0dba61d910e30b1a3e78f9680119e61027a04f39",
+      "calls": [
+        {
+          "line": 12010,
+          "column": 27,
+          "callee": "providerFetch",
+          "kind": "governed-fetch"
+        },
+        {
+          "line": 12166,
+          "column": 27,
+          "callee": "providerFetch",
+          "kind": "governed-fetch"
+        },
+        {
+          "line": 12322,
+          "column": 27,
+          "callee": "providerFetch",
+          "kind": "governed-fetch"
+        },
+        {
+          "line": 12400,
+          "column": 25,
+          "callee": "providerFetch",
+          "kind": "governed-fetch"
+        },
+        {
+          "line": 12882,
+          "column": 25,
+          "callee": "providerFetch",
+          "kind": "governed-fetch"
+        },
+        {
+          "line": 12944,
+          "column": 25,
+          "callee": "providerFetch",
+          "kind": "governed-fetch"
+        },
+        {
+          "line": 13011,
+          "column": 25,
+          "callee": "providerFetch",
+          "kind": "governed-fetch"
+        },
+        {
+          "line": 13094,
+          "column": 25,
+          "callee": "providerFetch",
+          "kind": "governed-fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/runtime/diagnostics.js",
+      "digest": "sha256:31a7409e1b5a386bde23aa0040dfd26b01cc5aebb999d0c376580db4bdfc4dba",
+      "calls": [
+        {
+          "line": 52,
+          "column": 19,
+          "callee": "createConnection",
+          "kind": "network-function"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/scripts/app-server-overload-soak.mjs",
+      "digest": "sha256:e3fffb666f9adb78f46e49d9b81e38838db158330f026dedadf1cb24f98c2545",
+      "calls": [
+        {
+          "line": 60,
+          "column": 17,
+          "callee": "WebSocket",
+          "kind": "websocket"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/scripts/collect-graph-production-source-receipts.mjs",
+      "digest": "sha256:a865dbe0ee00d507dcf5fdd12130268e0702e1b33e3d3980a27242a259ad98a3",
+      "calls": [
+        {
+          "line": 213,
+          "column": 27,
+          "callee": "fetch",
+          "kind": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/scripts/context-token-volcengine-live-probe.mjs",
+      "digest": "sha256:dff0b4dc9d0759f022f44d4052b5da7d749378a426cbaf08ec05731c9e06a6b1",
+      "calls": [
+        {
+          "line": 306,
+          "column": 31,
+          "callee": "fetchImpl",
+          "kind": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/scripts/download-public-release-file.mjs",
+      "digest": "sha256:49ac671926c029466afba08e61a7947ad4278c98ff8e9c871e762921e3ee3a60",
+      "calls": [
+        {
+          "line": 81,
+          "column": 20,
+          "callee": "https.get",
+          "kind": "network-function"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/scripts/ide-roadmap-marketplace-supply-chain.mjs",
+      "digest": "sha256:a4f19c483db1d5849cf4ad5562bfbffde54072335426bc77c412b80119596115",
+      "calls": [
+        {
+          "line": 442,
+          "column": 21,
+          "callee": "net.connect",
+          "kind": "network-function"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/scripts/implementation-plan-status.mjs",
+      "digest": "sha256:8309119432953907cfe39e325396e5b8bdfb0a5339e56b1dc161863ff0e421ea",
+      "calls": [
+        {
+          "line": 259,
+          "column": 27,
+          "callee": "fetch",
+          "kind": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/scripts/implementation-plan-volcengine-live.mjs",
+      "digest": "sha256:550ca6ef647df58f4bbb1545725082182d75e90ec83ec9a2f5b86023ebdb539b",
+      "calls": [
+        {
+          "line": 136,
+          "column": 29,
+          "callee": "originalFetch",
+          "kind": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/scripts/mcp-lifecycle-profile.mjs",
+      "digest": "sha256:0c45fcd71579578f658cac34aa89fc980b59e930c42bb86f0eb0e91d45869123",
+      "calls": [
+        {
+          "line": 740,
+          "column": 35,
+          "callee": "globalThis.fetch",
+          "kind": "fetch"
+        },
+        {
+          "line": 981,
+          "column": 11,
+          "callee": "originalFetch",
+          "kind": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/scripts/mcp-reference-interop.mjs",
+      "digest": "sha256:f5d4863f5ef957b3bef8f4177f817b540d24f9fde66cbb891f79ca314af348c5",
+      "calls": [
+        {
+          "line": 166,
+          "column": 31,
+          "callee": "fetch",
+          "kind": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/scripts/pm-exploration-volcengine-live-probe.mjs",
+      "digest": "sha256:789857302d6f0ef7f30368103e345405ed6577180f29298417cddd2dfc1bdde1",
+      "calls": [
+        {
+          "line": 54,
+          "column": 21,
+          "callee": "fetch",
+          "kind": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/scripts/query-graph-production-jobs.mjs",
+      "digest": "sha256:0b747efcdb003c37bb5767801d228859f321f18590aab8ccb90a92ef191de531",
+      "calls": [
+        {
+          "line": 112,
+          "column": 14,
+          "callee": "fetchImpl",
+          "kind": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/scripts/verify-release-gates.mjs",
+      "digest": "sha256:8ef9b2db9420e4086d89bb569b3d36ddf2b40611e9a883aecbe9f9007b2c59df",
+      "calls": [
+        {
+          "line": 35,
+          "column": 25,
+          "callee": "fetchImpl",
+          "kind": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/scripts/verify01-native-toolchain-prepare.mjs",
+      "digest": "sha256:7d1424de87da2609548287ce33a03fed2e2c5b10d095c0caadc97a96ea8aea4b",
+      "calls": [
+        {
+          "line": 314,
+          "column": 25,
+          "callee": "fetch",
+          "kind": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs",
+      "digest": "sha256:e7ccb8e8b73de6f34460435959db28ff760eb07425baa5439ec3f8a22b3e7fb4",
+      "calls": [
+        {
+          "line": 322,
+          "column": 16,
+          "callee": "https.request",
+          "kind": "network-function"
+        }
+      ]
+    }
+  ],
+  "unclassifiedCandidatePaths": [],
+  "callChainUnmappedCandidatePaths": [
+    "packages/cli/src/commands/agenda.js",
+    "packages/cli/src/commands/llm.js",
+    "packages/cli/src/commands/mtc.js",
+    "packages/cli/src/commands/notification.js",
+    "packages/cli/src/gateways/remote-session-relay.js",
+    "packages/cli/src/harness/mcp-client.js",
+    "packages/cli/src/harness/remote-session-push-fcm.js",
+    "packages/cli/src/harness/remote-session-push-huawei.js",
+    "packages/cli/src/harness/remote-session-push-oppo.js",
+    "packages/cli/src/harness/remote-session-push-vivo.js",
+    "packages/cli/src/harness/remote-session-push-web.js",
+    "packages/cli/src/harness/remote-session-push-xiaomi.js",
+    "packages/cli/src/harness/session-mirror.js",
+    "packages/cli/src/lib/agent-team/team-message-bridge.js",
+    "packages/cli/src/lib/background-agent-keeper-client.js",
+    "packages/cli/src/lib/background-session-transport.js",
+    "packages/cli/src/lib/browser-automation.js",
+    "packages/cli/src/lib/cc-android-bridge.js",
+    "packages/cli/src/lib/channels/telegram-channel.js",
+    "packages/cli/src/lib/chrome-connector.js",
+    "packages/cli/src/lib/cloud/cloud-client.js",
+    "packages/cli/src/lib/downloader.js",
+    "packages/cli/src/lib/evolution/governed-skill-synthesis-attestor-trust-approval-client.js",
+    "packages/cli/src/lib/evolution/governed-skill-synthesis-attestor-trust-operations-client.js",
+    "packages/cli/src/lib/evolution/governed-skill-synthesis-external-attestor.js",
+    "packages/cli/src/lib/evolution/governed-skill-synthesis-process-grader-worker.mjs",
+    "packages/cli/src/lib/evomap-client.js",
+    "packages/cli/src/lib/formal-budget-provider-scope.js",
+    "packages/cli/src/lib/formal-budget-transport.js",
+    "packages/cli/src/lib/gateway-client-resilience.js",
+    "packages/cli/src/lib/hooks-v2-runtime.js",
+    "packages/cli/src/lib/mcp-oauth.js",
+    "packages/cli/src/lib/notifiers/_http.js",
+    "packages/cli/src/lib/p2p-manager.js",
+    "packages/cli/src/lib/packer/pack-update-checker.js",
+    "packages/cli/src/lib/packer/pack-update-downloader.js",
+    "packages/cli/src/lib/packer/smoke-runner.js",
+    "packages/cli/src/lib/plugin-runtime/marketplace-command-source.js",
+    "packages/cli/src/lib/plugin-runtime/marketplace-network.js",
+    "packages/cli/src/lib/plugin-runtime/marketplace-remote-artifacts.js",
+    "packages/cli/src/lib/plugin-runtime/remote-source.js",
+    "packages/cli/src/lib/process-execution-broker/credential-transport.js",
+    "packages/cli/src/lib/sandbox-egress-proxy.js",
+    "packages/cli/src/lib/update-notice.js",
+    "packages/cli/src/lib/version-checker.js",
+    "packages/cli/src/lib/web-fetch.js",
+    "packages/cli/src/lib/web-search.js",
+    "packages/cli/src/runtime/diagnostics.js",
+    "packages/cli/scripts/app-server-overload-soak.mjs",
+    "packages/cli/scripts/collect-graph-production-source-receipts.mjs",
+    "packages/cli/scripts/context-token-volcengine-live-probe.mjs",
+    "packages/cli/scripts/download-public-release-file.mjs",
+    "packages/cli/scripts/ide-roadmap-marketplace-supply-chain.mjs",
+    "packages/cli/scripts/implementation-plan-status.mjs",
+    "packages/cli/scripts/implementation-plan-volcengine-live.mjs",
+    "packages/cli/scripts/mcp-lifecycle-profile.mjs",
+    "packages/cli/scripts/mcp-reference-interop.mjs",
+    "packages/cli/scripts/pm-exploration-volcengine-live-probe.mjs",
+    "packages/cli/scripts/query-graph-production-jobs.mjs",
+    "packages/cli/scripts/verify-release-gates.mjs",
+    "packages/cli/scripts/verify01-native-toolchain-prepare.mjs",
+    "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs"
+  ],
+  "remainingAuthorityChecks": [
+    "host-enforced independent registry use, registry backup/rollback protection and recovery review",
+    "every physical provider attempt",
+    "cancellation and unknown usage reconciliation",
+    "trusted credential host and descendant isolation",
+    "account pricing, exchange rate and billing window"
+  ]
+}

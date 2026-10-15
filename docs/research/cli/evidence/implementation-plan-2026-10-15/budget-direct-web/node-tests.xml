@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="utf-8"?>
+<testsuites>
+	<testcase name="calibration probe rejects before resolving credentials, paths or injected transports" time="0.006394" classname="test"/>
+	<testcase name="implementation plan diagnostic rejects before resolving credentials, paths or injected transports" time="0.001479" classname="test"/>
+	<testcase name="native diagnostic broker rejects before resolving credentials, paths or injected transports" time="0.001166" classname="test"/>
+	<testcase name="native task diagnostic launcher rejects before resolving credentials, paths or injected transports" time="0.002175" classname="test"/>
+	<testcase name="PM exploration probe rejects the formal scope before CLI/config resolution" time="0.001645" classname="test"/>
+	<testcase name="importing the PM exploration diagnostic has no CLI execution side effect" time="0.830577" classname="test"/>
+	<testcase name="live CLI entry points still refuse execution without explicit live confirmation" time="3.944292" classname="test"/>
+	<testcase name="a previously created broker cannot begin a diagnostic task inside a formal scope" time="0.022778" classname="test"/>
+	<testcase name="AST ignores comments, declaration names, strings and generated template code" time="0.024165" classname="test"/>
+	<testcase name="HTTP selectors, imported/destructured aliases and bound fetch retain actual calls" time="0.005133" classname="test"/>
+	<testcase name="named socket helpers and inbound server constructors are not outbound calls" time="0.002607" classname="test"/>
+	<testcase name="CommonJS imports, undici fetch aliases and SDK construction are candidates" time="0.003159" classname="test"/>
+	<testcase name="member fetch is conservatively retained, including non-HTTP content-addressed retrieval" time="0.001012" classname="test"/>
+	<testcase name="literal dynamic imports and CommonJS named socket, WebSocket and SDK aliases are retained" time="0.005357" classname="test"/>
+	<testcase name="source-bound review passes only for exactly reviewed bytes and never admits paid runtime" time="0.066947" classname="test"/>
+	<testcase name="changed reviewed files lose classification until reviewed again" time="0.092692" classname="test"/>
+	<testcase name="new and removed candidate paths cannot silently reuse a prior review" time="0.037272" classname="test"/>
+	<testcase name="invalid syntax is visible and cannot yield a clean zero-candidate audit" time="0.023974" classname="test"/>
+	<testcase name="test sources are excluded and an explicit scripts scan exposes unreviewed probes" time="0.031045" classname="test"/>
+	<testcase name="symlink directories are not followed and make the audit incomplete" time="0.039117" classname="test"/>
+	<testcase name="a combined review preserves independent source and scripts audit roots" time="0.038386" classname="test"/>
+	<testcase name="explicit root symlinks remain incomplete and empty root sets are rejected" time="0.016254" classname="test"/>
+	<testcase name="review catalogue rejects duplicate paths, invalid categories and malformed digests" time="0.000844" classname="test"/>
+	<testcase name="audit help does not require a review or create an output artifact" time="0.512150" classname="test"/>
+	<testcase name="all search providers refuse unpriced service dispatch in a Chat-only budget scope" time="0.007616" classname="test"/>
+	<testcase name="search rejects before resolving configured credentials or acquiring a host tool lease" time="0.001004" classname="test"/>
+	<testcase name="the canonical web_search tool cannot turn a budget refusal into an ordinary tool result" time="0.005298" classname="test"/>
+	<testcase name="activation refuses missing contract, FX, history and untrusted evidence before creating storage" time="0.022297" classname="test"/>
+	<testcase name="activation binds exact original lineage and cannot reset existing database" time="0.141699" classname="test"/>
+	<testcase name="full output plus reasoning reserved with native currency; reasoning not billed twice" time="0.081338" classname="test"/>
+	<testcase name="max_tokens never reduces reasoning/full-contract reservation" time="0.043499" classname="test"/>
+	<testcase name="same task initial and only one remediation retain original spend across reopen" time="0.062480" classname="test"/>
+	<testcase name="remediation is not a second allowance; over-cap request is rejected before reserve" time="0.061683" classname="test"/>
+	<testcase name="historical unknown liability remains halted even if numeric amount is zero" time="0.042362" classname="test"/>
+	<testcase name="historical task allocations sum to original $99 and are never reset" time="0.047349" classname="test"/>
+	<testcase name="duplicate run resume does not consume remediation and active initial must close" time="0.047732" classname="test"/>
+	<testcase name="one physical call ID cannot be redispatched; repeated settlement is idempotent" time="0.045384" classname="test"/>
+	<testsuite name="invalid usage/model/tier/cache/reasoning permanently retains the whole reservation" time="0.639943" disabled="0" errors="0" tests="8" failures="0" skipped="0" hostname="DESKTOP-MTMV2RE">
+		<testcase name="0" time="0.139839" classname="test"/>
+		<testcase name="1" time="0.081026" classname="test"/>
+		<testcase name="2" time="0.069937" classname="test"/>
+		<testcase name="3" time="0.062696" classname="test"/>
+		<testcase name="4" time="0.082114" classname="test"/>
+		<testcase name="5" time="0.078613" classname="test"/>
+		<testcase name="6" time="0.059028" classname="test"/>
+		<testcase name="7" time="0.063853" classname="test"/>
+	</testsuite>
+	<testcase name="expired contract/FX cannot admit new dispatch" time="0.115889" classname="test"/>
+	<testcase name="reserved body mutation cannot consume dispatch authorization" time="0.181802" classname="test"/>
+	<testcase name="multi-completion, thinking override and paid hosted tools fail before reservation" time="0.054734" classname="test"/>
+	<testcase name="concurrent separate processes grant exactly one atomic reservation" time="1.027283" classname="test"/>
+	<testcase name="real process kill after reserved preserves durable accounting" time="0.589208" classname="test"/>
+	<testcase name="real process kill after dispatched preserves durable accounting" time="0.470216" classname="test"/>
+	<testcase name="real process kill after settled preserves durable accounting" time="0.693488" classname="test"/>
+	<testcase name="SQLite write failure admits no reservation and transport never calls provider" time="0.068069" classname="test"/>
+	<testcase name="credential-owning JSON transport reserves before fetch, preserves body, never exposes key" time="0.161748" classname="test"/>
+	<testcase name="successful SSE requires complete terminal usage and settles once" time="0.088143" classname="test"/>
+	<testsuite name="disconnect, missing usage, redirect/HTTP error never retry and halt next physical request" time="0.275570" disabled="0" errors="0" tests="4" failures="0" skipped="0" hostname="DESKTOP-MTMV2RE">
+		<testcase name="disconnect" time="0.091200" classname="test"/>
+		<testcase name="missing" time="0.067131" classname="test"/>
+		<testcase name="http" time="0.061399" classname="test"/>
+		<testcase name="stream-truncated" time="0.054360" classname="test"/>
+	</testsuite>
+	<testcase name="tool environment excludes provider keys, homes, runtime injection and ledger authority" time="0.000794" classname="test"/>
+	<testcase name="unknown billed usage dimensions halt rather than silently underprice" time="0.047545" classname="test"/>
+	<testcase name="rational FX uses upward integer rounding instead of floating point" time="0.050641" classname="test"/>
+	<testcase name="corrupt durable storage is not silently replaced or initialized" time="0.030735" classname="test"/>
+	<testcase name="verified receipts cannot silently substitute the frozen 18 plus 18 provider strata" time="0.005149" classname="test"/>
+	<testsuite name="final dispatch rechecks contract and FX after awaited credential preparation" time="0.084270" disabled="0" errors="0" tests="2" failures="0" skipped="0" hostname="DESKTOP-MTMV2RE">
+		<testcase name="contract" time="0.041802" classname="test"/>
+		<testcase name="fx" time="0.041832" classname="test"/>
+	</testsuite>
+	<testcase name="accounting JSON parser rejects duplicate/escaped keys and nonfinite numbers" time="0.001019" classname="test"/>
+	<testsuite name="ambiguous JSON, error envelopes and nonfinite usage never settle" time="0.280832" disabled="0" errors="0" tests="5" failures="0" skipped="0" hostname="DESKTOP-MTMV2RE">
+		<testcase name="duplicate" time="0.052676" classname="test"/>
+		<testcase name="escapedDuplicate" time="0.048709" classname="test"/>
+		<testcase name="errorAndUsage" time="0.063359" classname="test"/>
+		<testcase name="errorNull" time="0.055553" classname="test"/>
+		<testcase name="nonfinite" time="0.058929" classname="test"/>
+	</testsuite>
+	<testsuite name="SSE requires a completed choice and coherent terminal order" time="0.346944" disabled="0" errors="0" tests="7" failures="0" skipped="0" hostname="DESKTOP-MTMV2RE">
+		<testcase name="incomplete" time="0.047948" classname="test"/>
+		<testcase name="usageOnly" time="0.058456" classname="test"/>
+		<testcase name="contentAfterFinish" time="0.062187" classname="test"/>
+		<testcase name="duplicateFinish" time="0.047695" classname="test"/>
+		<testcase name="unsupportedFinish" time="0.043073" classname="test"/>
+		<testcase name="errorAndUsage" time="0.042039" classname="test"/>
+		<testcase name="duplicateUsageKey" time="0.043321" classname="test"/>
+	</testsuite>
+	<testcase name="noncanonical duplicate settlement restores full liability and halts durably" time="0.059520" classname="test"/>
+	<testcase name="unpriced input/output dimensions and oversized serialized input fail before fetch" time="0.041073" classname="test"/>
+	<testcase name="inclusive input envelope is mandatory verified contract evidence" time="0.005533" classname="test"/>
+	<testcase name="pinned host cannot be omitted or replaced even when descriptor host ID is omitted" time="0.196047" classname="test"/>
+	<testcase name="direct async and generator host ports are rejected before invocation" time="0.122249" classname="test"/>
+	<testcase name="promise-returning host reads are refused without executing thenables" time="0.128964" classname="test"/>
+	<testcase name="missing latest heads fail on open and before credential access" time="0.122136" classname="test"/>
+	<testcase name="malformed, duplicate and foreign host records are refused" time="0.185777" classname="test"/>
+	<testcase name="stale and future host revisions cannot silently seed or downgrade the registry" time="0.187126" classname="test"/>
+	<testcase name="host read exceptions keep all downstream sends and credentials at zero" time="0.135572" classname="test"/>
+	<testcase name="reservation publication failure commits only the registry and denies retries without resetting" time="0.148686" classname="test"/>
+	<testcase name="a missing publication receipt cannot authorize a reservation" time="0.196160" classname="test"/>
+	<testcase name="a non-durable publication receipt cannot authorize a reservation" time="0.132722" classname="test"/>
+	<testcase name="a wrong digest publication receipt cannot authorize a reservation" time="0.112375" classname="test"/>
+	<testcase name="a async publication receipt cannot authorize a reservation" time="0.224314" classname="test"/>
+	<testcase name="a matching acknowledgement without readback persistence cannot authorize sending" time="0.287446" classname="test"/>
+	<testcase name="host failures during markDispatched retain the held liability and prevent physical fetch" time="0.308610" classname="test"/>
+	<testcase name="every physical send follows a durable dispatched checkpoint and local commit" time="0.211878" classname="test"/>
+	<testcase name="publisher observes registry commit before authority commit and receives immutable exact state" time="0.140004" classname="test"/>
+	<testcase name="settlement publication failure withholds successful EOF and retains dispatched liability" time="0.142270" classname="test"/>
+	<testcase name="after host durability but before local commit failure cannot grant new credit" time="0.129001" classname="test"/>
+	<testcase name="deleting live host policy or opening a tampered policy cannot bypass authority guard" time="0.128727" classname="test"/>
+	<testcase name="host callback methods are pinned and registry reentry cannot publish through an active operation" time="0.109483" classname="test"/>
+	<testcase name="a fresh real process cannot omit a pinned host" time="0.742100" classname="test"/>
+	<testcase name="fresh processes reload latest host heads and do not consume a duplicate reservation" time="1.218177" classname="test"/>
+	<testcase name="matching old databases restored in place are refused on real process restart by mandatory latest host" time="0.500066" classname="test"/>
+	<testcase name="real process death after durable checkpoint but before authority commit stays closed on restart" time="0.607162" classname="test"/>
+	<testcase name="registration publication failure never silently initializes another authority" time="0.094651" classname="test"/>
+	<testcase name="existing legacy registries cannot acquire a host policy merely through constructor injection" time="0.077936" classname="test"/>
+	<testcase name="simultaneous real processes using the host never obtain two reservations" time="0.354143" classname="test"/>
+	<testcase name="rolling back the synthetic host together with both databases remains an explicit trust counterexample" time="0.125038" classname="test"/>
+	<testcase name="latest host heads are checked again after credential await and before physical send" time="0.090348" classname="test"/>
+	<testcase name="cancellation after a physical attempt checkpoints unknown liability without releasing it" time="0.111313" classname="test"/>
+	<testcase name="direct IPC spawn rejects before options or broker access" time="0.007268" classname="test"/>
+	<testcase name="direct keeper connect rejects before configuration or socket access" time="0.002182" classname="test"/>
+	<testcase name="preconnected keeper cannot arm from live or closed scope; retire remains available" time="0.031294" classname="test"/>
+	<testcase name="direct webFetch rejects before URL, options, HTTP or HTTPS" time="0.005319" classname="test"/>
+	<testcase name="direct browser fetch rejects before URL, options, timer or fetch" time="0.001346" classname="test"/>
+	<testcase name="direct screenshot rejects before Playwright import and caller options" time="0.000884" classname="test"/>
+	<testcase name="closed scope rejects detached direct web calls" time="0.001190" classname="test"/>
+	<testcase name="unscoped browser and web-fetch callers keep their ordinary contracts" time="0.016112" classname="test"/>
+	<testcase name="legacy dual-provider activation remains valid and single-provider unbound activation rejects" time="0.015629" classname="test"/>
+	<testcase name="v3 digest cannot enter legacy 18+18 activation by omitting its frozen bundle" time="0.004669" classname="test"/>
+	<testcase name="exact authorized v3 admits 36+9 assigned contracts without resetting history" time="0.106570" classname="test"/>
+	<testcase name="v3 rejects unrecognized plan digest even when offline receipts are refreshed" time="0.016284" classname="test"/>
+	<testcase name="v3 rejects changed provider even when offline receipts are refreshed" time="0.054687" classname="test"/>
+	<testcase name="v3 rejects changed model even when offline receipts are refreshed" time="0.049626" classname="test"/>
+	<testcase name="v3 rejects changed endpoint even when offline receipts are refreshed" time="0.085040" classname="test"/>
+	<testcase name="v3 rejects renamed task even when offline receipts are refreshed" time="0.047513" classname="test"/>
+	<testcase name="v3 rejects soak billed as task even when offline receipts are refreshed" time="0.007376" classname="test"/>
+	<testcase name="v3 rejects raised cap even when offline receipts are refreshed" time="0.010457" classname="test"/>
+	<testcase name="v3 rejects rewritten comparison even when offline receipts are refreshed" time="0.013063" classname="test"/>
+	<testcase name="v3 rejects rewritten prompt even when offline receipts are refreshed" time="0.010097" classname="test"/>
+	<testcase name="v3 rejects rehash of changed plan even when offline receipts are refreshed" time="0.007275" classname="test"/>
+	<testcase name="v3 rejects lineage changed even when offline receipts are refreshed" time="0.050422" classname="test"/>
+	<testcase name="new bundle cannot reuse legacy or omitted evidence receipts" time="0.102354" classname="test"/>
+	<testcase name="guarded authority retains the original cap and history across independent host reopen" time="0.319146" classname="test"/>
+	<testcase name="a registered lineage cannot initialize a second database or acquire new credit" time="0.100847" classname="test"/>
+	<testcase name="guard omission, a different registry and a missing registry cannot downgrade protection" time="0.183213" classname="test"/>
+	<testcase name="copying the current database to a new path cannot fork the same lineage" time="0.161632" classname="test"/>
+	<testcase name="restoring an older authority in place cannot release settled spend or pending credit" time="0.308460" classname="test"/>
+	<testcase name="same-event-count edits to accounting tables are detected on already-open handles" time="0.151613" classname="test"/>
+	<testcase name="the production transport cannot read a credential or send after state drift" time="0.190346" classname="test"/>
+	<testcase name="separate processes sharing the registry grant exactly one reservation" time="1.039818" classname="test"/>
+	<testcase name="real process termination before-head never creates a second allowance" time="0.666357" classname="test"/>
+	<testcase name="real process termination after-head never creates a second allowance" time="0.942408" classname="test"/>
+	<testcase name="a lineage mismatch does not poison another lineage using the same trusted registry" time="0.270398" classname="test"/>
+	<testcase name="replacing a closed authority file with identical bytes does not replace its registered file identity" time="0.121167" classname="test"/>
+	<testcase name="a real registry write failure rolls back reservation before credentials or HTTP" time="0.104350" classname="test"/>
+	<testcase name="a failure after the settlement head is durable retains full local liability and denies all further access" time="0.119642" classname="test"/>
+	<testcase name="registered historical spend and used run slots are never a new per-run allowance" time="0.248786" classname="test"/>
+	<testcase name="registering unresolved historical liability remains halted across registry reopen" time="0.120871" classname="test"/>
+	<testcase name="successful production dispatch settles through the independent head with one physical attempt" time="0.203935" classname="test"/>
+	<testcase name="scoped requests use host credentials, a fresh physical ID and durable settlement" time="0.194997" classname="test"/>
+	<testcase name="endpoint, schema, header, duplicate JSON and output bounds reject before reservation or credentials" time="0.069395" classname="test"/>
+	<testcase name="SSE reaches the consumer before completion and settles only at verified EOF" time="0.043284" classname="test"/>
+	<testcase name="consumer mutation cannot alter the private accounting snapshot" time="0.081368" classname="test"/>
+	<testcase name="Stop after visible output keeps liability across reopen and prevents any retry" time="0.115400" classname="test"/>
+	<testsuite name="body cancellation and returning an unread body both halt outstanding liability" time="0.123090" disabled="0" errors="0" tests="2" failures="0" skipped="0" hostname="DESKTOP-MTMV2RE">
+		<testcase name="true" time="0.067148" classname="test"/>
+		<testcase name="false" time="0.054463" classname="test"/>
+	</testsuite>
+	<testcase name="scope isolation preserves ordinary calls and independent concurrent host scopes" time="0.104404" classname="test"/>
+	<testcase name="nested scopes and detached async work cannot rebind or escape a closed budget scope" time="0.040796" classname="test"/>
+	<testcase name="a pre-aborted call creates no liability and no physical request" time="0.033174" classname="test"/>
+	<testsuite name="cancellation bounds credential preparation and a physical fetch that ignores AbortSignal" time="0.082830" disabled="0" errors="0" tests="2" failures="0" skipped="0" hostname="DESKTOP-MTMV2RE">
+		<testcase name="credential" time="0.042323" classname="test"/>
+		<testcase name="fetch" time="0.039442" classname="test"/>
+	</testsuite>
+	<testcase name="a deadline halts even an unread response" time="0.097520" classname="test"/>
+	<testcase name="a late physical response is cancelled after an abort without releasing liability" time="0.054753" classname="test"/>
+	<testcase name="a storage error during abort leaves the durable dispatch blocking another request" time="0.069967" classname="test"/>
+	<testcase name="the response byte ceiling errors the stream and retains the full reservation" time="0.073506" classname="test"/>
+	<testcase name="canonical Agent, compaction and Advisor requests settle in the same host lineage" time="0.123564" classname="test"/>
+	<testsuite name="Agent streaming preserves early tokens but propagates unresolved accounting after visible output" time="0.116045" disabled="0" errors="0" tests="2" failures="0" skipped="0" hostname="DESKTOP-MTMV2RE">
+		<testcase name="true" time="0.053812" classname="test"/>
+		<testcase name="false" time="0.061458" classname="test"/>
+	</testsuite>
+	<testcase name="Chat and stream provider consume verified EOF and share the same budget" time="0.049766" classname="test"/>
+	<testcase name="probe and Hub cannot bypass the scope through an injected fetch" time="0.048004" classname="test"/>
+	<testcase name="uncovered native protocols and typed decision endpoints cannot send in the scope" time="0.042155" classname="test"/>
+	<testcase name="budget errors cannot trigger stream replay even with misleading network error wording" time="0.000563" classname="test"/>
+	<testsuite name="compaction and Advisor do not hide unknown provider liability behind optional fallback" time="0.103445" disabled="0" errors="0" tests="2" failures="0" skipped="0" hostname="DESKTOP-MTMV2RE">
+		<testcase name="compaction" time="0.053398" classname="test"/>
+		<testcase name="advisor" time="0.049220" classname="test"/>
+	</testsuite>
+	<testcase name="ask and Cowork use the host budget after real evolution admission" time="6.987734" classname="test"/>
+	<testcase name="ask and Cowork reject unsupported protocols before an ordinary fetch can run" time="6.409174" classname="test"/>
+	<testcase name="the legacy provider connectivity probe uses the same durable authority" time="0.028629" classname="test"/>
+	<testcase name="opaque Hub SDK callbacks are rejected before invoking an ungoverned model" time="4.036332" classname="test"/>
+	<testcase name="a model grader process is rejected before child launch or credential provisioning" time="0.025956" classname="test"/>
+	<testcase name="returning a lazy model generator without consuming it fails at the host boundary" time="0.026307" classname="test"/>
+	<testcase name="model fallback and auth recovery never reinterpret nested budget errors" time="0.001041" classname="test"/>
+	<testcase name="in-process child agents retain unknown budget failures instead of returning a normal summary" time="11.283777" classname="test"/>
+	<testcase name="an optional prepareCall cannot hide budget failure and initiate the main model" time="3.907594" classname="test"/>
+	<testcase name="a captured Desktop SDK callback cannot bypass the budget authority" time="3.950789" classname="test"/>
+	<testsuite name="Hub resolver native and custom embeddings cannot send through an unmetered SDK" time="8.038564" disabled="0" errors="0" tests="2" failures="0" skipped="0" hostname="DESKTOP-MTMV2RE">
+		<testcase name="false" time="4.073416" classname="test"/>
+		<testcase name="true" time="3.963719" classname="test"/>
+	</testsuite>
+	<testcase name="registry descriptors require a pinned physical identity" time="0.250933" classname="test"/>
+	<testcase name="a copied registry UUID and a retargeted descriptor cannot substitute another physical registry" time="0.200120" classname="test"/>
+	<testcase name="replacement of a closed registry with identical bytes fails its pinned authority binding" time="0.137093" classname="test"/>
+	<testcase name="a live registry rejects in-place restoration of both matching old databases" time="0.230945" classname="test"/>
+	<testcase name="a same-revision head rewrite cannot replace an observed state digest" time="0.371623" classname="test"/>
+	<testcase name="a live handle cannot ignore changes to the pinned registry UUID" time="0.180945" classname="test"/>
+	<testcase name="removing an observed registration cannot create a new allowance in the live service" time="0.107343" classname="test"/>
+	<testcase name="a higher revision cannot change immutable lineage metadata" time="0.086246" classname="test"/>
+	<testcase name="serializable trusted checkpoints allow legitimate later heads and cannot be mutated through returned objects" time="0.166724" classname="test"/>
+	<testcase name="restart with a separately pinned checkpoint rejects old matching stores; omission remains an explicit boundary" time="0.229439" classname="test"/>
+	<testcase name="a fresh process enforces a trusted checkpoint before opening the restored authority" time="0.566209" classname="test"/>
+	<testcase name="malformed, duplicated or foreign checkpoints cannot silently become current state" time="0.131436" classname="test"/>
+	<testcase name="an old guard without registry physical binding is rejected without automatic schema migration" time="0.118829" classname="test"/>
+	<testcase name="a lease captured by a failed transaction cannot assert or publish after rollback" time="0.089354" classname="test"/>
+	<testcase name="an old lease stays expired even while another valid transaction is active" time="0.132597" classname="test"/>
+	<testcase name="async and generator callbacks are rejected before invocation or initializer side effects" time="0.151695" classname="test"/>
+	<testcase name="a promise returned by an ordinary callback expires its captured lease before deferred use" time="0.103132" classname="test"/>
+	<testcase name="canonical tools, MCP, skills and descendants reject before argument or context inspection" time="0.010628" classname="test"/>
+	<testcase name="tool refusal survives an asynchronous descendant in the same budget scope" time="0.011473" classname="test"/>
+	<testcase name="detached work cannot use the closed scope to execute a tool" time="0.001037" classname="test"/>
+	<testcase name="unscoped callers retain the normal tool result contract" time="0.646448" classname="test"/>
+	<testcase name="Agent parallel read batch propagates the budget refusal instead of continuing the model loop" time="0.055963" classname="test"/>
+	<testcase name="Agent sequential shell propagates the budget refusal instead of continuing the model loop" time="0.006376" classname="test"/>
+	<!-- tests 222 -->
+	<!-- suites 0 -->
+	<!-- pass 222 -->
+	<!-- fail 0 -->
+	<!-- cancelled 0 -->
+	<!-- skipped 0 -->
+	<!-- todo 0 -->
+	<!-- duration_ms 51006.1738 -->
+</testsuites>

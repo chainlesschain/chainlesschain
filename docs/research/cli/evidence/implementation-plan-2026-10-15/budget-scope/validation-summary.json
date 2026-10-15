@@ -1,0 +1,148 @@
+{
+  "schema": "chainlesschain.budget-scope-validation/v1",
+  "capturedAt": "2026-10-15T07:02:34.083Z",
+  "sourceBinding": {
+    "path": "source-binding.json",
+    "sourceDigest": "41c32c90528bc3832b4aacbe16434eb91651d96d2c715d49053013ccb7d829cd",
+    "unchangedAfterTests": true,
+    "baseCommit": "62b407bbefee02a2ac14495fcef9e59b237c05a7",
+    "workingTree": true
+  },
+  "node": {
+    "files": 3,
+    "tests": 104,
+    "passed": 104,
+    "failed": 0,
+    "scopeTests": 29
+  },
+  "vitest": {
+    "files": 15,
+    "tests": 269,
+    "passed": 269,
+    "failed": 0,
+    "suites": [
+      {
+        "path": "__tests__/unit/advisor-runtime.test.js",
+        "tests": 26
+      },
+      {
+        "path": "__tests__/unit/agent-core-autocompact.test.js",
+        "tests": 14
+      },
+      {
+        "path": "__tests__/unit/agent-core-compact-persist.test.js",
+        "tests": 7
+      },
+      {
+        "path": "__tests__/unit/agent-core-openai-responses.test.js",
+        "tests": 20
+      },
+      {
+        "path": "__tests__/unit/agent-core-stream-resilience.test.js",
+        "tests": 25
+      },
+      {
+        "path": "__tests__/unit/chat-core-retry.test.js",
+        "tests": 3
+      },
+      {
+        "path": "__tests__/unit/chat-core-usage.test.js",
+        "tests": 13
+      },
+      {
+        "path": "__tests__/unit/chat-core.test.js",
+        "tests": 10
+      },
+      {
+        "path": "__tests__/unit/decision-layer-providers.test.js",
+        "tests": 50
+      },
+      {
+        "path": "__tests__/unit/decision-layer-typesafe-provider.test.js",
+        "tests": 2
+      },
+      {
+        "path": "__tests__/unit/hub-llm-client.test.js",
+        "tests": 34
+      },
+      {
+        "path": "__tests__/unit/llm-connection-probe.test.js",
+        "tests": 28
+      },
+      {
+        "path": "__tests__/unit/provider-backed-compaction.test.js",
+        "tests": 17
+      },
+      {
+        "path": "__tests__/unit/stream-retry.test.js",
+        "tests": 9
+      },
+      {
+        "path": "src/lib/__tests__/provider-stream.test.js",
+        "tests": 11
+      }
+    ]
+  },
+  "syntax": {
+    "passed": true,
+    "files": 17
+  },
+  "formatting": {
+    "passed": true,
+    "files": 18
+  },
+  "generatedArtifacts": {
+    "status": "PASS",
+    "checks": [
+      "command-manifest",
+      "command-help-index",
+      "shell-completions",
+      "cli-reference",
+      "protocol-doc"
+    ]
+  },
+  "eslint": {
+    "status": "NOT_RUN",
+    "reason": "ESLint package is not installed in the current workspace; the local eslint entrypoint is missing"
+  },
+  "execution": {
+    "platform": "win32",
+    "architecture": "x64",
+    "node": "v22.22.2",
+    "providerRequests": 0,
+    "realAccountEvidence": false,
+    "nativeContainmentVerified": false,
+    "crossPlatformCiVerified": false
+  },
+  "formalEvaluation": {
+    "executionStatus": "NOT_RUN",
+    "tasks": "0/36",
+    "firstRuns": "0/9",
+    "paidReady": false,
+    "native": "NOT_ADMITTED",
+    "promotion": "HOLD",
+    "historicalSharedCapUsd": 99
+  },
+  "artifacts": [
+    {
+      "path": "source-binding.json",
+      "sha256": "c6e2c6c132ede85ba6d8baae80dd594ea1fadc69b3898b9b29081230e4f6b13f"
+    },
+    {
+      "path": "node-tests.xml",
+      "sha256": "643d00b1b58efb8cb28cd2507c439a8d5888965759adb1116e712c0f8b1439ab"
+    },
+    {
+      "path": "vitest-tests.json",
+      "sha256": "ef6c61642a9d76521902403404f454fb594e9c1bf5f6559ef74495f996c37b19"
+    },
+    {
+      "path": "baseline.json",
+      "sha256": "9df5bb0df04707d0f2946de103ae563755126c0d6440349ba6c5510d55f322ea"
+    },
+    {
+      "path": "egress-review.json",
+      "sha256": "7e343489a26bf8ade9d259fa6ca54ed4ec1f59c2efa84119922c3874461427f6"
+    }
+  ]
+}

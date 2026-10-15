@@ -1,0 +1,32 @@
+﻿{
+    "capturedAt":  "2026-10-15T12:19:57.4679811Z",
+    "baseCommit":  "62b407bbefee02a2ac14495fcef9e59b237c05a7",
+    "workingTree":  true,
+    "sourceTreeDigest":  "sha256:ccbd7fd3401f945b00929402ed2649c639e2995714d3b0a66a5b510c005d075f",
+    "files":  [
+                  {
+                      "path":  "packages/cli/src/lib/formal-budget-provider-scope.js",
+                      "sha256":  "fc311ab4eab9bc3507339505ee2ff0fed3f7aa5afc9bdc4a1759b87c2e537840"
+                  },
+                  {
+                      "path":  "packages/cli/src/lib/plugin-runtime/marketplace-network.js",
+                      "sha256":  "80fc843ffac1396cfd534363dd2015918ca15fc8a07c42dada6d8cba641b6c55"
+                  },
+                  {
+                      "path":  "packages/cli/src/lib/sandbox-egress-worker.js",
+                      "sha256":  "227d167c5d54744a7ba70ad2f5b5c772f6c8db3b8f7e2bfa823694864792e34e"
+                  },
+                  {
+                      "path":  "packages/cli/scripts/budget-egress-reviewed-sources.json",
+                      "sha256":  "3174d1ec31ddfcc474f5a3e1349f7632ab15fc11e9cc7b42d0794812da27a411"
+                  },
+                  {
+                      "path":  "packages/cli/test-node/formal-budget-worker-network-boundary.node-test.mjs",
+                      "sha256":  "0e7e16cdfa26ae91dcc2d17ab21eeddcb46bb4bac3c8fc2a3a59d2673e188b3b"
+                  },
+                  {
+                      "path":  ".github/workflows/cli-ci.yml",
+                      "sha256":  "f993e8c38b6a48ca2bd3fa6c1a6a42d767fc84639990bc6485901c53a4736996"
+                  }
+              ]
+}

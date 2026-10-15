@@ -1,0 +1,131 @@
+﻿{
+    "schema":  "chainlesschain.budget-android-team-validation/v1",
+    "capturedAt":  "2026-10-15T11:48:07.1327101Z",
+    "sourceBinding":  {
+                          "path":  "source-binding.json",
+                          "baseCommit":  "62b407bbefee02a2ac14495fcef9e59b237c05a7",
+                          "workingTree":  true,
+                          "files":  6,
+                          "changedPaths":  [
+
+                                           ],
+                          "sourceTreeDigest":  "sha256:ad4d43701e5d651e3386866971933d16763b35e3b50e3ad08fe010b9f4bc1ff4",
+                          "sourceTreeMatchesAudit":  true
+                      },
+    "node":  {
+                 "files":  12,
+                 "tests":  226,
+                 "passed":  226,
+                 "failed":  0,
+                 "addedTests":  4,
+                 "path":  "node-tests.xml",
+                 "exitCode":  0
+             },
+    "vitest":  {
+                   "files":  12,
+                   "tests":  51,
+                   "passed":  51,
+                   "failed":  0,
+                   "success":  true,
+                   "path":  "vitest-android-team.json",
+                   "preliminaryPath":  "vitest-preliminary.json",
+                   "notCumulative":  true
+               },
+    "audit":  {
+                  "path":  "egress-review.json",
+                  "exitCode":  0,
+                  "sourceReviewPassed":  true,
+                  "filesScanned":  1639,
+                  "candidateFiles":  73,
+                  "unclassifiedFiles":  0,
+                  "parseErrors":  0,
+                  "skippedPaths":  0
+              },
+    "checks":  {
+                   "syntax":  "PASS: 3 changed JS/MJS files",
+                   "prettier":  "PASS: 5 code/catalogue files and 3 Markdown files",
+                   "gitDiffCheck":  "PASS",
+                   "eslint":  "NOT_RUN: missing local dependency",
+                   "historicalArtifacts":  [
+                                               {
+                                                   "group":  "early",
+                                                   "files":  58,
+                                                   "changedPaths":  [
+
+                                                                    ]
+                                               },
+                                               {
+                                                   "group":  "ninth",
+                                                   "files":  13,
+                                                   "changedPaths":  [
+
+                                                                    ]
+                                               },
+                                               {
+                                                   "group":  "tenth",
+                                                   "files":  6,
+                                                   "changedPaths":  [
+
+                                                                    ]
+                                               },
+                                               {
+                                                   "group":  "eleventh",
+                                                   "files":  6,
+                                                   "changedPaths":  [
+
+                                                                    ]
+                                               }
+                                           ]
+               },
+    "boundary":  {
+                     "androidInvokeDeniedBeforeCredentials":  true,
+                     "androidCapsAndConfigDenied":  true,
+                     "teamShellAndAgentExecutionDenied":  true,
+                     "teamSpawnAgentDenied":  true,
+                     "scopeClosedCallsDenied":  true,
+                     "unscopedAndroidTestTransportPreserved":  true,
+                     "osIsolationVerified":  false,
+                     "allTeamBackendsCovered":  false
+                 },
+    "readiness":  {
+                      "formalEvaluation":  "NOT_RUN",
+                      "tasksCompleted":  0,
+                      "tasksTotal":  36,
+                      "firstRunsCompleted":  0,
+                      "firstRunsTotal":  9,
+                      "paidReady":  false,
+                      "nativeAdmission":  "NOT_ADMITTED",
+                      "promotion":  "HOLD",
+                      "historicalSharedCapUsd":  99,
+                      "paidCallsThisRound":  0,
+                      "remoteCi":  "NOT_RUN",
+                      "strictSandbox":  "NOT_RUN",
+                      "release":  "NOT_RUN"
+                  },
+    "artifacts":  [
+                      {
+                          "path":  "README.md",
+                          "sha256":  "4c255f01a909d37f13586c785da8b2e1be74efc0b5b810ceabdaefced88332c3"
+                      },
+                      {
+                          "path":  "source-binding.json",
+                          "sha256":  "aa57828ad4da38075b322562abbf87048e961f48da1646a02d290ec3d16cf06e"
+                      },
+                      {
+                          "path":  "egress-review.json",
+                          "sha256":  "d89c22ac288c71474e103e246877cb358b9bb67dab62aa68bd1c5e387a3e902f"
+                      },
+                      {
+                          "path":  "node-tests.xml",
+                          "sha256":  "dcb3c412ed6d52373294490522801d1e830180bbe5d020f749908c3d2f286952"
+                      },
+                      {
+                          "path":  "vitest-android-team.json",
+                          "sha256":  "9562b6b2da4e1fbcc4e49db8ca578f6c0720687b36e694e322cd7dead53f45ca"
+                      },
+                      {
+                          "path":  "vitest-preliminary.json",
+                          "sha256":  "ae14d0a16aec2eadd06d9b0694329a5a5b58fe7cf9d7f9222741cdbd9b8f8707"
+                      }
+                  ]
+}

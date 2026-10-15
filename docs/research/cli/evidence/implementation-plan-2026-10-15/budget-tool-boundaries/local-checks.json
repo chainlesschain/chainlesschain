@@ -1,0 +1,292 @@
+{
+  "schema": "chainlesschain.budget-tool-boundaries-local-checks/v1",
+  "capturedAt": "2026-10-15T09:26:41.937Z",
+  "environment": {
+    "node": "v22.22.2",
+    "platform": "win32",
+    "arch": "x64",
+    "acorn": "8.17.0"
+  },
+  "syntax": {
+    "files": 44,
+    "passed": true,
+    "results": [
+      {
+        "path": "packages/cli/__tests__/unit/agent-core-autocompact.test.js",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "path": "packages/cli/scripts/context-token-volcengine-live-probe.mjs",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "path": "packages/cli/scripts/implementation-plan-budget-egress.mjs",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "path": "packages/cli/scripts/implementation-plan-status.mjs",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "path": "packages/cli/scripts/implementation-plan-volcengine-live.mjs",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "path": "packages/cli/scripts/lib/budget-egress-inventory.mjs",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "path": "packages/cli/scripts/pm-exploration-volcengine-live-probe.mjs",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "path": "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "path": "packages/cli/scripts/verify01-volcengine-task-diagnostic.mjs",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "path": "packages/cli/src/commands/ask.js",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "path": "packages/cli/src/harness/prompt-compressor.js",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "path": "packages/cli/src/lib/advisor-runtime.js",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "path": "packages/cli/src/lib/chat-core.js",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "path": "packages/cli/src/lib/cowork-adapter.js",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "path": "packages/cli/src/lib/decision-layer/providers.js",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/governed-hub-llm.js",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/governed-hub-resolver.js",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/governed-skill-synthesis-process-grader.js",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "path": "packages/cli/src/lib/formal-budget-authority.js",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "path": "packages/cli/src/lib/formal-budget-contract.js",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "path": "packages/cli/src/lib/formal-budget-errors.js",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "path": "packages/cli/src/lib/formal-budget-lineage-registry.js",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "path": "packages/cli/src/lib/formal-budget-provider-scope.js",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "path": "packages/cli/src/lib/formal-budget-transport.js",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "path": "packages/cli/src/lib/hub-llm-client.js",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "path": "packages/cli/src/lib/llm-connection-probe.js",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "path": "packages/cli/src/lib/llm-providers.js",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "path": "packages/cli/src/lib/model-failure-policy.js",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "path": "packages/cli/src/lib/provider-stream.js",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "path": "packages/cli/src/lib/stream-retry.js",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "path": "packages/cli/src/lib/sub-agent-context.js",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "path": "packages/cli/src/lib/web-search.js",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "path": "packages/cli/src/runtime/agent-core.js",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "path": "packages/cli/test-node/budget-diagnostic-boundaries.node-test.mjs",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "path": "packages/cli/test-node/budget-egress-inventory.node-test.mjs",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "path": "packages/cli/test-node/formal-budget-authority.test.mjs",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "path": "packages/cli/test-node/formal-budget-checkpoint-host.node-test.mjs",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "path": "packages/cli/test-node/formal-budget-fixture.mjs",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "path": "packages/cli/test-node/formal-budget-frozen-plan.node-test.mjs",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "path": "packages/cli/test-node/formal-budget-lineage-worker.mjs",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "path": "packages/cli/test-node/formal-budget-lineage.node-test.mjs",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "path": "packages/cli/test-node/formal-budget-provider-scope.node-test.mjs",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "path": "packages/cli/test-node/formal-budget-registry-boundary.node-test.mjs",
+        "exitCode": 0,
+        "output": ""
+      },
+      {
+        "path": "packages/cli/test-node/formal-budget-tool-boundary.node-test.mjs",
+        "exitCode": 0,
+        "output": ""
+      }
+    ]
+  },
+  "prettier": {
+    "files": 43,
+    "paths": [
+      ".github/workflows/cli-ci.yml",
+      "packages/cli/__tests__/unit/agent-core-autocompact.test.js",
+      "packages/cli/scripts/budget-egress-reviewed-sources.json",
+      "packages/cli/scripts/context-token-volcengine-live-probe.mjs",
+      "packages/cli/scripts/implementation-plan-budget-egress.mjs",
+      "packages/cli/scripts/implementation-plan-status.mjs",
+      "packages/cli/scripts/implementation-plan-volcengine-live.mjs",
+      "packages/cli/scripts/lib/budget-egress-inventory.mjs",
+      "packages/cli/scripts/pm-exploration-volcengine-live-probe.mjs",
+      "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs",
+      "packages/cli/scripts/verify01-volcengine-task-diagnostic.mjs",
+      "packages/cli/src/commands/ask.js",
+      "packages/cli/src/harness/prompt-compressor.js",
+      "packages/cli/src/lib/advisor-runtime.js",
+      "packages/cli/src/lib/chat-core.js",
+      "packages/cli/src/lib/cowork-adapter.js",
+      "packages/cli/src/lib/decision-layer/providers.js",
+      "packages/cli/src/lib/evolution/governed-hub-llm.js",
+      "packages/cli/src/lib/evolution/governed-hub-resolver.js",
+      "packages/cli/src/lib/evolution/governed-skill-synthesis-process-grader.js",
+      "packages/cli/src/lib/formal-budget-authority.js",
+      "packages/cli/src/lib/formal-budget-contract.js",
+      "packages/cli/src/lib/formal-budget-errors.js",
+      "packages/cli/src/lib/formal-budget-lineage-registry.js",
+      "packages/cli/src/lib/formal-budget-provider-scope.js",
+      "packages/cli/src/lib/formal-budget-transport.js",
+      "packages/cli/src/lib/hub-llm-client.js",
+      "packages/cli/src/lib/llm-connection-probe.js",
+      "packages/cli/src/lib/llm-providers.js",
+      "packages/cli/src/lib/model-failure-policy.js",
+      "packages/cli/src/lib/provider-stream.js",
+      "packages/cli/src/lib/stream-retry.js",
+      "packages/cli/src/lib/sub-agent-context.js",
+      "packages/cli/src/lib/web-search.js",
+      "packages/cli/src/runtime/agent-core.js",
+      "packages/cli/test-node/budget-diagnostic-boundaries.node-test.mjs",
+      "packages/cli/test-node/budget-egress-inventory.node-test.mjs",
+      "packages/cli/test-node/formal-budget-lineage-worker.mjs",
+      "packages/cli/test-node/formal-budget-lineage.node-test.mjs",
+      "packages/cli/test-node/formal-budget-provider-scope.node-test.mjs",
+      "packages/cli/test-node/formal-budget-registry-boundary.node-test.mjs",
+      "packages/cli/test-node/formal-budget-checkpoint-host.node-test.mjs",
+      "packages/cli/test-node/formal-budget-tool-boundary.node-test.mjs"
+    ],
+    "exitCode": 0,
+    "output": "Checking formatting...\nAll matched files use Prettier code style!\n"
+  },
+  "eslint": {
+    "status": "NOT_RUN",
+    "installed": false,
+    "reason": "ESLint is not installed in this checkout"
+  },
+  "changedSources": []
+}

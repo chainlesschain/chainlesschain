@@ -1,0 +1,160 @@
+{
+  "schema": "chainlesschain.budget-diagnostics-script-review/v1",
+  "capturedAt": "2026-10-15T08:10:34.021Z",
+  "basis": "Implementation-side source inspection bound to bytes; not independent financial or OS admission.",
+  "catalogue": "packages/cli/scripts/budget-egress-reviewed-sources.json",
+  "catalogueDigest": "sha256:010f904f75f01f88987711c524147383a968a7ec3cf176197d5cc6076fb2b377",
+  "entries": [
+    {
+      "path": "packages/cli/scripts/app-server-overload-soak.mjs",
+      "status": "REVIEWED",
+      "category": "LOCAL_DIAGNOSTIC",
+      "rationale": "Loopback WebSocket load against locally constructed App Server synthetic handlers; does not send model inference or attest a paid 8h/24h run.",
+      "digest": "sha256:e3fffb666f9adb78f46e49d9b81e38838db158330f026dedadf1cb24f98c2545",
+      "formalAdmission": "NOT_ADMITTED",
+      "billingContractAttested": false,
+      "runtimeBoundary": "NOT_ATTESTED"
+    },
+    {
+      "path": "packages/cli/scripts/collect-graph-production-source-receipts.mjs",
+      "status": "REVIEWED",
+      "category": "REMOTE_EXECUTION_CONTROL",
+      "rationale": "Authenticated POST to registered production evidence collectors can trigger collector work. Operator authority and any remote costs are outside the Chat budget contract.",
+      "digest": "sha256:a865dbe0ee00d507dcf5fdd12130268e0702e1b33e3d3980a27242a259ad98a3",
+      "formalAdmission": "NOT_ADMITTED",
+      "billingContractAttested": false,
+      "runtimeBoundary": "NOT_ATTESTED"
+    },
+    {
+      "path": "packages/cli/scripts/context-token-volcengine-live-probe.mjs",
+      "status": "REVIEWED",
+      "category": "MODEL_REQUEST",
+      "rationale": "Standalone paid calibration probe uses injected/raw fetch. CLI and exported runner reject formal scope before config/options or dispatch; ordinary diagnostics require separate authorization and are not formal samples.",
+      "digest": "sha256:dff0b4dc9d0759f022f44d4052b5da7d749378a426cbaf08ec05731c9e06a6b1",
+      "formalAdmission": "NOT_ADMITTED",
+      "billingContractAttested": false,
+      "runtimeBoundary": "CANONICAL_IN_PROCESS_ENTRY_REJECTED"
+    },
+    {
+      "path": "packages/cli/scripts/download-public-release-file.mjs",
+      "status": "REVIEWED",
+      "category": "DISTRIBUTION",
+      "rationale": "Bounded public artifact GET with validated redirects and integrity checks. Downloading a release does not publish it or admit model execution.",
+      "digest": "sha256:49ac671926c029466afba08e61a7947ad4278c98ff8e9c871e762921e3ee3a60",
+      "formalAdmission": "NOT_ADMITTED",
+      "billingContractAttested": false,
+      "runtimeBoundary": "NOT_ATTESTED"
+    },
+    {
+      "path": "packages/cli/scripts/ide-roadmap-marketplace-supply-chain.mjs",
+      "status": "REVIEWED",
+      "category": "TASK_CONTROLLED_NETWORK",
+      "rationale": "Marketplace fixture includes a generic CONNECT proxy and configured test destinations. Classification does not constrain arbitrary proxy destinations or confer a billing contract.",
+      "digest": "sha256:a4f19c483db1d5849cf4ad5562bfbffde54072335426bc77c412b80119596115",
+      "formalAdmission": "NOT_ADMITTED",
+      "billingContractAttested": false,
+      "runtimeBoundary": "NOT_ATTESTED"
+    },
+    {
+      "path": "packages/cli/scripts/implementation-plan-status.mjs",
+      "status": "REVIEWED",
+      "category": "DISTRIBUTION",
+      "rationale": "Opt-in public package metadata GET from npm/Open VSX. Default local snapshot does not perform public readback; visibility is not release qualification.",
+      "digest": "sha256:2378fc2ce7b325c6949bc5215c044a91ebd19ab35a44593ddd529e90c48e7550",
+      "formalAdmission": "NOT_ADMITTED",
+      "billingContractAttested": false,
+      "runtimeBoundary": "NOT_ATTESTED"
+    },
+    {
+      "path": "packages/cli/scripts/implementation-plan-volcengine-live.mjs",
+      "status": "REVIEWED",
+      "category": "MODEL_REQUEST",
+      "rationale": "Paid model/tool/compaction diagnostic intercepts global fetch and estimates usage. Formal scope rejects before config, receipts, environment or fetch mutation. Estimate stops are not hard limits.",
+      "digest": "sha256:550ca6ef647df58f4bbb1545725082182d75e90ec83ec9a2f5b86023ebdb539b",
+      "formalAdmission": "NOT_ADMITTED",
+      "billingContractAttested": false,
+      "runtimeBoundary": "CANONICAL_IN_PROCESS_ENTRY_REJECTED"
+    },
+    {
+      "path": "packages/cli/scripts/mcp-lifecycle-profile.mjs",
+      "status": "REVIEWED",
+      "category": "LOCAL_DIAGNOSTIC",
+      "rationale": "Synthetic loopback MCP/OAuth/TLS fixtures with injected HTTP wrappers. Does not prove containment of production MCP servers, delegated tools or their costs.",
+      "digest": "sha256:0c45fcd71579578f658cac34aa89fc980b59e930c42bb86f0eb0e91d45869123",
+      "formalAdmission": "NOT_ADMITTED",
+      "billingContractAttested": false,
+      "runtimeBoundary": "NOT_ATTESTED"
+    },
+    {
+      "path": "packages/cli/scripts/mcp-reference-interop.mjs",
+      "status": "REVIEWED",
+      "category": "LOCAL_DIAGNOSTIC",
+      "rationale": "Local MCP reference fixture forwards to a loopback child server. Production tool delegation and descendant costs remain separate boundaries.",
+      "digest": "sha256:f5d4863f5ef957b3bef8f4177f817b540d24f9fde66cbb891f79ca314af348c5",
+      "formalAdmission": "NOT_ADMITTED",
+      "billingContractAttested": false,
+      "runtimeBoundary": "NOT_ATTESTED"
+    },
+    {
+      "path": "packages/cli/scripts/pm-exploration-volcengine-live-probe.mjs",
+      "status": "REVIEWED",
+      "category": "MODEL_REQUEST",
+      "rationale": "Paid connectivity probe; import is inert and runner rejects formal scope before CLI/config. Ordinary CLI requires explicit live confirmation; estimated cost is not a quota.",
+      "digest": "sha256:789857302d6f0ef7f30368103e345405ed6577180f29298417cddd2dfc1bdde1",
+      "formalAdmission": "NOT_ADMITTED",
+      "billingContractAttested": false,
+      "runtimeBoundary": "CANONICAL_IN_PROCESS_ENTRY_REJECTED"
+    },
+    {
+      "path": "packages/cli/scripts/query-graph-production-jobs.mjs",
+      "status": "REVIEWED",
+      "category": "SERVICE_API",
+      "rationale": "Authenticated bounded GitHub Actions Jobs API GET for exact run/attempt evidence. Does not dispatch jobs or prove downstream billing coverage.",
+      "digest": "sha256:0b747efcdb003c37bb5767801d228859f321f18590aab8ccb90a92ef191de531",
+      "formalAdmission": "NOT_ADMITTED",
+      "billingContractAttested": false,
+      "runtimeBoundary": "NOT_ATTESTED"
+    },
+    {
+      "path": "packages/cli/scripts/verify-release-gates.mjs",
+      "status": "REVIEWED",
+      "category": "SERVICE_API",
+      "rationale": "GitHub checks/status readback. API responses are evidence inputs, not publication or financial admission.",
+      "digest": "sha256:8ef9b2db9420e4086d89bb569b3d36ddf2b40611e9a883aecbe9f9007b2c59df",
+      "formalAdmission": "NOT_ADMITTED",
+      "billingContractAttested": false,
+      "runtimeBoundary": "NOT_ATTESTED"
+    },
+    {
+      "path": "packages/cli/scripts/verify01-native-toolchain-prepare.mjs",
+      "status": "REVIEWED",
+      "category": "DISTRIBUTION",
+      "rationale": "Bounded registry artifact download and toolchain preparation; no provider inference. Artifact identity and native admission are independently checked.",
+      "digest": "sha256:7d1424de87da2609548287ce33a03fed2e2c5b10d095c0caadc97a96ea8aea4b",
+      "formalAdmission": "NOT_ADMITTED",
+      "billingContractAttested": false,
+      "runtimeBoundary": "NOT_ATTESTED"
+    },
+    {
+      "path": "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs",
+      "status": "REVIEWED",
+      "category": "MODEL_REQUEST",
+      "rationale": "HTTPS model diagnostic rewrites thinking/output policy and estimates CNY usage. Formal scope rejects creation, beginTask and direct dispatch. An externally running IPC/network broker is not contained by AsyncLocalStorage.",
+      "digest": "sha256:e7ccb8e8b73de6f34460435959db28ff760eb07425baa5439ec3f8a22b3e7fb4",
+      "formalAdmission": "NOT_ADMITTED",
+      "billingContractAttested": false,
+      "runtimeBoundary": "CANONICAL_IN_PROCESS_ENTRY_REJECTED"
+    }
+  ],
+  "taskLauncherBoundary": {
+    "path": "packages/cli/scripts/verify01-volcengine-task-diagnostic.mjs",
+    "digest": "sha256:fdc8d69ae86a03f4a9ae4fd6e4c32a93de284a69d5b1cab37b5d0da9a00dafc1"
+  },
+  "additionalPaidCallsAuthorized": false,
+  "runtimeCoverageVerified": false,
+  "limitations": [
+    "Async-local scope cannot propagate across IPC/HTTP or arbitrary descendants.",
+    "A broker created and assigned outside the scope remains uncontained by the caller scope.",
+    "Static categories do not imply zero service cost or authorize remote collection work."
+  ]
+}

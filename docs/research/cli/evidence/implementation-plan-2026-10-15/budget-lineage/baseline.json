@@ -1,0 +1,392 @@
+{
+  "schema": "chainlesschain.implementation-plan-baseline/v1",
+  "capturedAt": "2026-10-15T08:29:24.616Z",
+  "sourceCommit": "62b407bbefee02a2ac14495fcef9e59b237c05a7",
+  "sourceDirty": true,
+  "packages": {
+    "cli": "0.166.102",
+    "context-memory-kernel": "0.1.10",
+    "vscode-extension": "0.37.146",
+    "jetbrains-plugin": "0.4.164"
+  },
+  "sourceVersionsOnly": true,
+  "publicReleaseVerified": false,
+  "modelCatalogVersion": "2026-10-15",
+  "environment": {
+    "platform": "win32",
+    "arch": "x64",
+    "node": "v22.22.2",
+    "osRelease": "10.0.19045",
+    "cpuModel": "Intel(R) Core(TM) i7-4770HQ CPU @ 2.20GHz",
+    "totalMemoryBytes": 17050144768
+  },
+  "workPackages": [
+    {
+      "id": "BASE-01",
+      "previousIds": [
+        "MODEL-03",
+        "MODEL-04",
+        "PERF-03",
+        "IDE-READY-02",
+        "IDE-ONBOARD-02",
+        "IDE-COLD-02"
+      ],
+      "previousImplementationStatus": "SOURCE_PRESENT_VALIDATION_OPEN",
+      "sources": [
+        {
+          "path": "packages/cli/src/lib/model-capabilities.js",
+          "digest": "sha256:955430286832da0646fee51d253295e8b9b5b6e1de8e198919abc58aeb0d3d89"
+        },
+        {
+          "path": "packages/cli/src/lib/execution-location-contract.js",
+          "digest": "sha256:29fe955164f24d0d07cbe2b62283a26b7b9578d66337268737c827b278e591fb"
+        }
+      ],
+      "completionStatus": "NOT_ATTESTED"
+    },
+    {
+      "id": "MODEL-05",
+      "previousIds": [
+        "MODEL-03",
+        "MODEL-04"
+      ],
+      "previousImplementationStatus": "SOURCE_PRESENT_VALIDATION_OPEN",
+      "sources": [
+        {
+          "path": "packages/cli/src/lib/model-context-catalog.js",
+          "digest": "sha256:bc0fdbcbca819710ed38b5309cfa379ebaf96b963d9dcd463233c64000fae442"
+        },
+        {
+          "path": "packages/cli/src/lib/model-capabilities.js",
+          "digest": "sha256:955430286832da0646fee51d253295e8b9b5b6e1de8e198919abc58aeb0d3d89"
+        },
+        {
+          "path": "packages/cli/src/lib/llm-pricing.js",
+          "digest": "sha256:5f6fad23d14672d033c5a4d92d00a7ab81f2c5ec8403e6f9ddbc0bf522cd0e2c"
+        },
+        {
+          "path": "packages/cli/src/lib/openai-responses.js",
+          "digest": "sha256:512954e309a3534770ed2a165b24630dcc5111b6e89ec4182553eabe7f2fe5c9"
+        },
+        {
+          "path": "packages/cli/src/lib/model-catalog-review.js",
+          "digest": "sha256:c519955290026cb6865008f031d372975dff65be6a865f6dce1e5328002312a8"
+        },
+        {
+          "path": "packages/cli/src/lib/llm-config-defaults.js",
+          "digest": "sha256:2502660f9d8e9a136564e89ecc60ad564f5b203bc621c9ad392c0dbcf2fb2a5c"
+        },
+        {
+          "path": "packages/cli/src/lib/usage-pricing-context.js",
+          "digest": "sha256:659822713552fd377a56e6c345b32f86fbfcf555fda0288ff4728bfaa38bbd54"
+        },
+        {
+          "path": "packages/cli/src/runtime/provider-stream-state.js",
+          "digest": "sha256:1482e3fe800ae4a22511dda8edd9bb1ba1122c1d04df0cf6ff7f7ae4bfa110d1"
+        },
+        {
+          "path": "packages/cli/src/runtime/agent-core.js",
+          "digest": "sha256:7628b8c31bff474ac9f9483a0dba61d910e30b1a3e78f9680119e61027a04f39"
+        },
+        {
+          "path": "packages/cli/src/runtime/headless-runner.js",
+          "digest": "sha256:931b8c0f388f3c4e75192df8200f3125a3b4303f1f896da8308634dcecde0efe"
+        },
+        {
+          "path": "packages/cli/src/runtime/headless-stream.js",
+          "digest": "sha256:3c78b73502ce70890e031d4bed248ea63029bc36bac897e848b738a4a735fb74"
+        },
+        {
+          "path": "packages/cli/src/repl/agent-repl.js",
+          "digest": "sha256:1132e195387dcec68479063ba55fcb816c93b7f97fbaf7724eb072d868e19c6d"
+        }
+      ],
+      "completionStatus": "NOT_ATTESTED"
+    },
+    {
+      "id": "RUN-03",
+      "previousIds": [],
+      "previousImplementationStatus": null,
+      "sources": [
+        {
+          "path": "packages/cli/src/lib/goal-condition-engine.js",
+          "digest": "sha256:5127addc50fa54a11bfee77661882fe3ad35617db611691aa344009323f40cb5"
+        },
+        {
+          "path": "packages/cli/src/lib/workflow-engine.js",
+          "digest": "sha256:b21330a7790edb656667fda260a91eb2c7b8e3fb85730dd33ef6b18769d7938f"
+        },
+        {
+          "path": "packages/cli/src/lib/session-input-receipt.js",
+          "digest": "sha256:b84036484c5b76e7d36f4a7e1fbe7bec7343a194f78f2b66ff31bef58c6cc004"
+        }
+      ],
+      "completionStatus": "NOT_ATTESTED"
+    },
+    {
+      "id": "IDE-03",
+      "previousIds": [
+        "IDE-READY-02",
+        "IDE-ONBOARD-02",
+        "IDE-COLD-02"
+      ],
+      "previousImplementationStatus": "SOURCE_PRESENT_VALIDATION_OPEN",
+      "sources": [
+        {
+          "path": "packages/vscode-extension/src/chat/chat-events.js",
+          "digest": "sha256:3ae8dfc92f1196daee13e1406874e53eca89dcbca0795ecd049e3d2d123f06e7"
+        },
+        {
+          "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/ChatEvents.java",
+          "digest": "sha256:4e02f0ea07753320c14cd662fc11266bc85cca71f409f280049b35d886bc47e2"
+        }
+      ],
+      "completionStatus": "NOT_ATTESTED"
+    },
+    {
+      "id": "CTX-03",
+      "previousIds": [],
+      "previousImplementationStatus": null,
+      "sources": [
+        {
+          "path": "packages/cli/src/lib/skill-loader.js",
+          "digest": "sha256:280dcd745c36907e7601fc361e3f777ebec3a3941ff2fecdd0d5d3bafe6eb953"
+        },
+        {
+          "path": "packages/cli/src/lib/skill-budget.js",
+          "digest": "sha256:3a5e2d877a80a0cbabbba13da8f722877b8e97d1c0572613a331c8121c6253ce"
+        },
+        {
+          "path": "packages/cli/src/lib/context-source-ledger.js",
+          "digest": "sha256:2f18b7f6ce7650bcdeb6a72c3921eaa6262ecc648a9f57a36b54d5a1f28975a6"
+        },
+        {
+          "path": "packages/cli/src/lib/skill-retrieval-router.js",
+          "digest": "sha256:4245c19d9686aafd17243afe912821c087a7d7f482991906bf1ff11cd1600d5b"
+        },
+        {
+          "path": "packages/cli/src/runtime/coding-agent-contract-shared.cjs",
+          "digest": "sha256:0f3dca91d62727d465e8da4c7aa1cb4bb7323e3d717047aca5c1f8f1260c8cf5"
+        },
+        {
+          "path": "packages/cli/src/runtime/agent-core.js",
+          "digest": "sha256:7628b8c31bff474ac9f9483a0dba61d910e30b1a3e78f9680119e61027a04f39"
+        }
+      ],
+      "completionStatus": "NOT_ATTESTED"
+    },
+    {
+      "id": "MCP-03",
+      "previousIds": [
+        "MCP-02"
+      ],
+      "previousImplementationStatus": "SOURCE_PRESENT_VALIDATION_OPEN",
+      "sources": [
+        {
+          "path": "packages/cli/src/runtime/mcp-tool-search.js",
+          "digest": "sha256:efe45d7391bfdf80a950f81a2ce8c4a8d8acf6344a2253cb1150c89d3f049363"
+        },
+        {
+          "path": "packages/cli/src/harness/mcp-client.js",
+          "digest": "sha256:3368c0b6f855c715af8f2fa143765fdbcd118915cee85aae28c1d5a8a204937d"
+        },
+        {
+          "path": "packages/cli/src/lib/plugin-runtime/reload.js",
+          "digest": "sha256:632e17e933e3626892fe107c1ad1e63248dcfe2c77e63fc8ce0a9b563957e057"
+        }
+      ],
+      "completionStatus": "NOT_ATTESTED"
+    },
+    {
+      "id": "BUDGET-03",
+      "previousIds": [],
+      "previousImplementationStatus": null,
+      "sources": [
+        {
+          "path": "packages/cli/src/lib/formal-budget-authority.js",
+          "digest": "sha256:71188e9b1e8eaf3813892080eff9df3048cb3a42073433987303ca2325ae2919"
+        },
+        {
+          "path": "packages/cli/src/lib/formal-budget-lineage-registry.js",
+          "digest": "sha256:4488fae005546946b2f92be48f9097e6bd235bece6e538430463ec1fba00e427"
+        },
+        {
+          "path": "packages/cli/src/lib/formal-budget-transport.js",
+          "digest": "sha256:328ea2079d235015f47f910a15249f33561ceabd342ad1f30fa8c3db3b791413"
+        },
+        {
+          "path": "packages/cli/src/lib/formal-budget-contract.js",
+          "digest": "sha256:e9761080bdb181ac5861c2211e65c1c9713e8562b4247dcfe03a92b69ebeba45"
+        },
+        {
+          "path": "packages/cli/src/lib/formal-budget-errors.js",
+          "digest": "sha256:bdfffe5b1a689d57b962f04d4129938564fdd8fa67b5d335d6a5918b4173746a"
+        },
+        {
+          "path": "packages/cli/src/lib/formal-budget-provider-scope.js",
+          "digest": "sha256:d8c6223216ee6df4a93a8d6bafc4b1c17e07b2795f78bb330ed5c418f9d7fe6d"
+        },
+        {
+          "path": "packages/cli/src/lib/web-search.js",
+          "digest": "sha256:5c6a016b82842f3832e777952c21637e7fd2fcb94fc17f4ba835fab206221832"
+        },
+        {
+          "path": "packages/cli/src/commands/ask.js",
+          "digest": "sha256:76db41dcd27b2c1b1a619775bf25877131d299b49cbabe158d8a20b013961e9b"
+        },
+        {
+          "path": "packages/cli/src/lib/cowork-adapter.js",
+          "digest": "sha256:43e3e086af7bbd964df40f6f02488fd87ed43704d495ed6ce6e196db55f28b2d"
+        },
+        {
+          "path": "packages/cli/src/lib/llm-providers.js",
+          "digest": "sha256:372d1f65e64f5c96c9907c5f28b0d92f83f29f1bf91f70ae68c5629a056430c2"
+        },
+        {
+          "path": "packages/cli/src/lib/model-failure-policy.js",
+          "digest": "sha256:6bf13a7fd586b6fdd2817721acbc2899032d5611b31e13ef93fd7b22f2383742"
+        },
+        {
+          "path": "packages/cli/src/lib/sub-agent-context.js",
+          "digest": "sha256:5b3f3fd8bdc292eae539d6e191413d8c56d03146cb38badf4f3cc9a65d87f1eb"
+        },
+        {
+          "path": "packages/cli/src/lib/evolution/governed-hub-llm.js",
+          "digest": "sha256:d252bbfcd50b6ffbca9a95893d9aee6b83afa1bbdb33a22da9ebdeec4fc9bfd5"
+        },
+        {
+          "path": "packages/cli/src/lib/evolution/governed-hub-resolver.js",
+          "digest": "sha256:8b85c11c272c97a1db80d46c732a72a48dc6f2cbb20bafd123f9d8cda06bfd16"
+        },
+        {
+          "path": "packages/cli/src/lib/evolution/governed-skill-synthesis-process-grader.js",
+          "digest": "sha256:beeac624cb9932562117a99e1e8cad259ea5128a8d88b6d4557ca32b1f52662e"
+        }
+      ],
+      "completionStatus": "NOT_ATTESTED"
+    },
+    {
+      "id": "PERF-04",
+      "previousIds": [
+        "PERF-03"
+      ],
+      "previousImplementationStatus": "SOURCE_PRESENT_VALIDATION_OPEN",
+      "sources": [
+        {
+          "path": "packages/cli/src/lib/context-memory-kernel/memory-query-index.js",
+          "digest": "sha256:3a6b2c267ac0773a9aefb35c4a0ffd9d03f2fc774916c44ae32c8fbe4332772f"
+        },
+        {
+          "path": "packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js",
+          "digest": "sha256:ea1dc3c0406209acc5ea7d606d4fbdf0c43a074a11f5442092e70551bfef63ca"
+        }
+      ],
+      "completionStatus": "NOT_ATTESTED"
+    },
+    {
+      "id": "VERIFY-03",
+      "previousIds": [
+        "VERIFY-02",
+        "VERIFY-IDE-02"
+      ],
+      "previousImplementationStatus": "SOURCE_PRESENT_VALIDATION_OPEN",
+      "sources": [
+        {
+          "path": "packages/cli/src/lib/eval/verify01-contracts.js",
+          "digest": "sha256:07d7be9e1b6e8e4ec3ec4f25e53188ec7c8865ad6eaa922368ab69efaa8cbd89"
+        },
+        {
+          "path": "packages/cli/src/lib/eval/verify01-execution.js",
+          "digest": "sha256:21921e503d0393b5dd01d9689955085f8391d06396dec486ac4fd8af71bf955c"
+        }
+      ],
+      "completionStatus": "NOT_ATTESTED"
+    },
+    {
+      "id": "RELEASE-03",
+      "previousIds": [],
+      "previousImplementationStatus": null,
+      "sources": [
+        {
+          "path": ".github/workflows/cli-ci.yml",
+          "digest": "sha256:fa9c88442b8fc6e45e8f681f96e85f1ce9e2dea2818c1e6d8f80376458c5ede8"
+        },
+        {
+          "path": ".github/workflows/cli-strict-sandbox.yml",
+          "digest": "sha256:9e83055cae1e4fa4303af8b2abe913eea682e286f650e1dbc07d2aaf73cf14af"
+        }
+      ],
+      "completionStatus": "NOT_ATTESTED"
+    },
+    {
+      "id": "COMPAT-03",
+      "previousIds": [
+        "CODEX-02"
+      ],
+      "previousImplementationStatus": "SOURCE_PRESENT_VALIDATION_OPEN",
+      "sources": [
+        {
+          "path": "packages/cli/src/lib/codex-app-server-adapter.js",
+          "digest": "sha256:2d71b65dd1a377d44e1fa8825a5388063b155b6721a3f61564fe5d50023a5ef1"
+        },
+        {
+          "path": ".github/workflows/codex-app-server-compatibility.yml",
+          "digest": "sha256:f2d1877a784e7d9a01542d954c69b2cb0160bc6905b230866c4d77bbc1069956"
+        }
+      ],
+      "completionStatus": "NOT_ATTESTED"
+    },
+    {
+      "id": "PLATFORM-03",
+      "previousIds": [
+        "PLATFORM-02"
+      ],
+      "previousImplementationStatus": "SOURCE_PRESENT_VALIDATION_OPEN",
+      "sources": [
+        {
+          "path": "packages/cli/src/lib/execution-location-contract.js",
+          "digest": "sha256:29fe955164f24d0d07cbe2b62283a26b7b9578d66337268737c827b278e591fb"
+        }
+      ],
+      "completionStatus": "NOT_ATTESTED"
+    },
+    {
+      "id": "CLOUD-03",
+      "previousIds": [
+        "CLOUD-02"
+      ],
+      "previousImplementationStatus": "SOURCE_PRESENT_VALIDATION_OPEN",
+      "sources": [
+        {
+          "path": "packages/cli/src/lib/execution-location-contract.js",
+          "digest": "sha256:29fe955164f24d0d07cbe2b62283a26b7b9578d66337268737c827b278e591fb"
+        }
+      ],
+      "completionStatus": "NOT_ATTESTED"
+    }
+  ],
+  "formalBudget": {
+    "paidReady": false,
+    "reason": "Agent, Chat, compaction, advisor, probes, retries and child-process egress are not yet all routed through this authority",
+    "originalSharedCapUsd": 99,
+    "historicalLiabilityReconciled": false,
+    "diagnosticAllowanceResetsFormalCap": false,
+    "outputUpperBoundVerified": false,
+    "unknownCancellationUsageReconciled": false
+  },
+  "formalEvaluation": {
+    "tasks": 36,
+    "firstRuns": 9,
+    "executionStatus": "NOT_RUN",
+    "nativeAdmission": "NOT_ADMITTED",
+    "promotion": "HOLD"
+  },
+  "validationRequired": [
+    "exact-commit release matrix",
+    "historical budget reconciliation and every paid egress",
+    "target native and nine installation hosts",
+    "independent human checkers",
+    "account invoice",
+    "active 8h/24h run and accessibility users"
+  ]
+}

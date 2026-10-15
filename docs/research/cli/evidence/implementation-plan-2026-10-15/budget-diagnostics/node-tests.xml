@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<testsuites>
+	<testcase name="calibration probe rejects before resolving credentials, paths or injected transports" time="0.007767" classname="test"/>
+	<testcase name="implementation plan diagnostic rejects before resolving credentials, paths or injected transports" time="0.001916" classname="test"/>
+	<testcase name="native diagnostic broker rejects before resolving credentials, paths or injected transports" time="0.001562" classname="test"/>
+	<testcase name="native task diagnostic launcher rejects before resolving credentials, paths or injected transports" time="0.004019" classname="test"/>
+	<testcase name="PM exploration probe rejects the formal scope before CLI/config resolution" time="0.007769" classname="test"/>
+	<testcase name="importing the PM exploration diagnostic has no CLI execution side effect" time="2.315894" classname="test"/>
+	<testcase name="live CLI entry points still refuse execution without explicit live confirmation" time="11.010162" classname="test"/>
+	<testcase name="a previously created broker cannot begin a diagnostic task inside a formal scope" time="0.046646" classname="test"/>
+	<testcase name="AST ignores comments, declaration names, strings and generated template code" time="0.040159" classname="test"/>
+	<testcase name="HTTP selectors, imported/destructured aliases and bound fetch retain actual calls" time="0.010347" classname="test"/>
+	<testcase name="named socket helpers and inbound server constructors are not outbound calls" time="0.004147" classname="test"/>
+	<testcase name="CommonJS imports, undici fetch aliases and SDK construction are candidates" time="0.009952" classname="test"/>
+	<testcase name="member fetch is conservatively retained, including non-HTTP content-addressed retrieval" time="0.001984" classname="test"/>
+	<testcase name="literal dynamic imports and CommonJS named socket, WebSocket and SDK aliases are retained" time="0.004135" classname="test"/>
+	<testcase name="source-bound review passes only for exactly reviewed bytes and never admits paid runtime" time="0.041945" classname="test"/>
+	<testcase name="changed reviewed files lose classification until reviewed again" time="0.037295" classname="test"/>
+	<testcase name="new and removed candidate paths cannot silently reuse a prior review" time="0.071478" classname="test"/>
+	<testcase name="invalid syntax is visible and cannot yield a clean zero-candidate audit" time="0.047892" classname="test"/>
+	<testcase name="test sources are excluded and an explicit scripts scan exposes unreviewed probes" time="0.046456" classname="test"/>
+	<testcase name="symlink directories are not followed and make the audit incomplete" time="0.034372" classname="test"/>
+	<testcase name="a combined review preserves independent source and scripts audit roots" time="0.077372" classname="test"/>
+	<testcase name="explicit root symlinks remain incomplete and empty root sets are rejected" time="0.028577" classname="test"/>
+	<testcase name="review catalogue rejects duplicate paths, invalid categories and malformed digests" time="0.002078" classname="test"/>
+	<testcase name="audit help does not require a review or create an output artifact" time="2.340272" classname="test"/>
+	<testcase name="all search providers refuse unpriced service dispatch in a Chat-only budget scope" time="0.008023" classname="test"/>
+	<testcase name="search rejects before resolving configured credentials or acquiring a host tool lease" time="0.001640" classname="test"/>
+	<testcase name="the canonical web_search tool cannot turn a budget refusal into an ordinary tool result" time="1.853180" classname="test"/>
+	<testcase name="live CLI retains old defaults and validates optional archive and matrix arguments" time="0.008005" classname="test"/>
+	<testcase name="capture metadata binds this script and estimator bytes to the actual host" time="3.397832" classname="test"/>
+	<testcase name="provider output above requested max_tokens remains accounted for and never claims a hard cap" time="2.969374" classname="test"/>
+	<testcase name="partial paid results and pending unknown costs survive a later transport failure" time="3.343037" classname="test"/>
+	<testcase name="real HTTP headers followed by a stalled body still hit the request deadline" time="2.405224" classname="test"/>
+	<testcase name="successful unpriced samples retain usage while total estimated cost stays unknown" time="1.427217" classname="test"/>
+	<testcase name="invalid usage and oversized responses remain failed attempts without private error text" time="4.512769" classname="test"/>
+	<testcase name="effective diagnostic request fixes model, thinking, service tier and token ceiling" time="0.007924" classname="test"/>
+	<testcase name="unknown usage, model, tier, partial output and reasoning cannot settle" time="0.006338" classname="test"/>
+	<testcase name="duplicate decoded members, overflow and incomplete JSON never become usage" time="0.001131" classname="test"/>
+	<testcase name="public CLI nonstreaming JSON request preserves all diagnostic bounds" time="0.016331" classname="test"/>
+	<testcase name="JSON response is persisted before forwarding and unknown JSON usage poisons the next call" time="0.476358" classname="test"/>
+	<testcase name="physical slots persist before dispatch; secret is absent; restart and 15th request reject" time="0.547620" classname="test"/>
+	<testcase name="usage unknown poisons allowance, stays null, and never silently retries" time="0.049736" classname="test"/>
+	<testcase name="last-call receipt failure prevents HTTP 200 and poisons task status" time="0.048498" classname="test"/>
+	<testcase name="literal and JSON-escaped credentials are redacted from saved requests and responses" time="0.044404" classname="test"/>
+	<testcase name="v3 preserves all 45 samples and the shared lineage while remapping exactly 18 tasks" time="0.320346" classname="test"/>
+	<testcase name="original bundle still passes the unchanged production contract" time="0.061331" classname="test"/>
+	<testcase name="previous bundle still passes the unchanged production contract" time="0.123310" classname="test"/>
+	<testcase name="reject provider reverted even with refreshed comparisons" time="0.416022" classname="test"/>
+	<testcase name="reject different endpoint" time="0.337634" classname="test"/>
+	<testcase name="reject different endpoint revision even after rehash" time="0.327872" classname="test"/>
+	<testcase name="reject different model" time="0.255258" classname="test"/>
+	<testcase name="reject thinking override" time="0.171335" classname="test"/>
+	<testcase name="reject fallback enabled" time="0.175886" classname="test"/>
+	<testcase name="reject OS downgraded" time="0.215862" classname="test"/>
+	<testcase name="reject task budget increased" time="0.250636" classname="test"/>
+	<testcase name="reject window extended" time="0.321615" classname="test"/>
+	<testcase name="reject task removed" time="0.174640" classname="test"/>
+	<testcase name="reject task duplicated" time="0.339466" classname="test"/>
+	<testcase name="reject first-run removed" time="0.363750" classname="test"/>
+	<testcase name="reject prompt rewritten" time="0.309916" classname="test"/>
+	<testcase name="reject catalog bytes reformatted" time="0.155191" classname="test"/>
+	<testcase name="reject budget lineage reset" time="0.382942" classname="test"/>
+	<testcase name="reject additional budget claimed" time="0.385789" classname="test"/>
+	<testcase name="reject unknown remaining budget treated as fresh 99" time="0.356081" classname="test"/>
+	<testcase name="reject stale v2 reviewer approval" time="0.418065" classname="test"/>
+	<testcase name="reject paid flag enabled" time="0.257575" classname="test"/>
+	<testcase name="reject observation fabricated" time="0.190559" classname="test"/>
+	<testcase name="reject per-host v2 approval carried forward" time="0.214284" classname="test"/>
+	<testcase name="reject historical preflight promoted" time="0.306335" classname="test"/>
+	<testcase name="reject endpoint receipt fabricated" time="0.312788" classname="test"/>
+	<testcase name="read-only production collection reports missing preparation and zero observations" time="1.997048" classname="test"/>
+	<testcase name="production outcome CLI preserves all missing denominators and unknown cost" time="1.746601" classname="test"/>
+	<testcase name="retains known estimates but never treats missing cost as zero" time="0.010822" classname="test"/>
+	<testcase name="iteration exhaustion preserves paid usage while remaining a failed trace" time="0.000937" classname="test"/>
+	<testcase name="rejects shell tools, out-of-scope writes, incorrect IDs and fallback identity" time="0.002672" classname="test"/>
+	<testcase name="rejects malformed or duplicate terminal output and preserves unknown cost" time="0.000720" classname="test"/>
+	<testcase name="identifies pre-execution scope denials without admitting result-only traces" time="0.003739" classname="test"/>
+	<testcase name="partial usage survives timeout or provider failure without a complete-cost claim" time="0.000804" classname="test"/>
+	<testcase name="the model child receives only its credential, fixed provider and exact write scope" time="0.001119" classname="test"/>
+	<testcase name="redacts literal and JSON-escaped key bytes and detects unexpected workspace changes" time="0.000750" classname="test"/>
+	<testcase name="prompt discloses constrained task and independent checker without injecting an answer" time="0.001103" classname="test"/>
+	<testcase name="workflow requires explicit dispatch or a branch-scoped paid-run marker, and always uploads" time="0.002718" classname="test"/>
+	<!-- tests 81 -->
+	<!-- suites 0 -->
+	<!-- pass 81 -->
+	<!-- fail 0 -->
+	<!-- cancelled 0 -->
+	<!-- skipped 0 -->
+	<!-- todo 0 -->
+	<!-- duration_ms 21286.1876 -->
+</testsuites>

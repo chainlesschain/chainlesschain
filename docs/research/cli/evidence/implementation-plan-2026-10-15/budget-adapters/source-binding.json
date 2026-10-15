@@ -1,0 +1,119 @@
+{
+  "schema": "chainlesschain.budget-adapters-source-binding/v1",
+  "capturedAt": "2026-10-15T07:19:38.338Z",
+  "baseCommit": "62b407bbefee02a2ac14495fcef9e59b237c05a7",
+  "branch": "feature/cli-budget-provider-scope-20261015",
+  "workingTree": true,
+  "sources": [
+    {
+      "path": ".github/workflows/cli-ci.yml",
+      "sha256": "9561cfa8ed624d4bde0536fa9138e6c90a152cd259b48205af0ec84079fe7291"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/agent-core-autocompact.test.js",
+      "sha256": "cdd5ba9bca50f7fdd4c7fbddb6a8e81f78a9527db6d93e70108a4e27e76522f3"
+    },
+    {
+      "path": "packages/cli/scripts/implementation-plan-budget-egress.mjs",
+      "sha256": "480d15e2ef1c65d755de26983b20c33f28db8a6add308537b46741b87ce396c4"
+    },
+    {
+      "path": "packages/cli/scripts/implementation-plan-status.mjs",
+      "sha256": "5e7dc36b33c7841e14a62b8c9235d64626d6d100b5fe757cf3853eab16534ec7"
+    },
+    {
+      "path": "packages/cli/src/commands/ask.js",
+      "sha256": "76db41dcd27b2c1b1a619775bf25877131d299b49cbabe158d8a20b013961e9b"
+    },
+    {
+      "path": "packages/cli/src/harness/prompt-compressor.js",
+      "sha256": "072772e5838b1dfc30321cc46c31d7b6c95ef0d44142a1a08a3cb1c39d70a163"
+    },
+    {
+      "path": "packages/cli/src/lib/advisor-runtime.js",
+      "sha256": "041e6aea98fa372c7c454c4e553f72988d54f712fcb014915a7fcff21d915762"
+    },
+    {
+      "path": "packages/cli/src/lib/chat-core.js",
+      "sha256": "75badcbad571c266cf7592a79d5ad77f2f0f6d318ee4594da1195c405811a4e2"
+    },
+    {
+      "path": "packages/cli/src/lib/cowork-adapter.js",
+      "sha256": "43e3e086af7bbd964df40f6f02488fd87ed43704d495ed6ce6e196db55f28b2d"
+    },
+    {
+      "path": "packages/cli/src/lib/decision-layer/providers.js",
+      "sha256": "e95da9f0327f90882a94f7e54dced15f814ddadbf6dac40e77c8dcccc61b4a39"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/governed-hub-llm.js",
+      "sha256": "d252bbfcd50b6ffbca9a95893d9aee6b83afa1bbdb33a22da9ebdeec4fc9bfd5"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/governed-hub-resolver.js",
+      "sha256": "8b85c11c272c97a1db80d46c732a72a48dc6f2cbb20bafd123f9d8cda06bfd16"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/governed-skill-synthesis-process-grader.js",
+      "sha256": "beeac624cb9932562117a99e1e8cad259ea5128a8d88b6d4557ca32b1f52662e"
+    },
+    {
+      "path": "packages/cli/src/lib/formal-budget-authority.js",
+      "sha256": "42062bc8dc0f4957abdf34226428290e9b06608e199a55c75251ee0cb1e2cd50"
+    },
+    {
+      "path": "packages/cli/src/lib/formal-budget-contract.js",
+      "sha256": "e9761080bdb181ac5861c2211e65c1c9713e8562b4247dcfe03a92b69ebeba45"
+    },
+    {
+      "path": "packages/cli/src/lib/formal-budget-errors.js",
+      "sha256": "bdfffe5b1a689d57b962f04d4129938564fdd8fa67b5d335d6a5918b4173746a"
+    },
+    {
+      "path": "packages/cli/src/lib/formal-budget-provider-scope.js",
+      "sha256": "0d26edef575c5514ecc6115da04c4e39428062313b49a955d21d888f912eae8a"
+    },
+    {
+      "path": "packages/cli/src/lib/formal-budget-transport.js",
+      "sha256": "328ea2079d235015f47f910a15249f33561ceabd342ad1f30fa8c3db3b791413"
+    },
+    {
+      "path": "packages/cli/src/lib/hub-llm-client.js",
+      "sha256": "9e83456cdb0f55941b82f00fbc9d49e357edeafcc7c58677d0ffeac17cbc2828"
+    },
+    {
+      "path": "packages/cli/src/lib/llm-connection-probe.js",
+      "sha256": "4910c204d06e3ed63618bc568dfff788f583b82f1c9fb6df16881b557f91fb4d"
+    },
+    {
+      "path": "packages/cli/src/lib/llm-providers.js",
+      "sha256": "372d1f65e64f5c96c9907c5f28b0d92f83f29f1bf91f70ae68c5629a056430c2"
+    },
+    {
+      "path": "packages/cli/src/lib/model-failure-policy.js",
+      "sha256": "6bf13a7fd586b6fdd2817721acbc2899032d5611b31e13ef93fd7b22f2383742"
+    },
+    {
+      "path": "packages/cli/src/lib/provider-stream.js",
+      "sha256": "a3663c1c909840369df9774e95bb4e831a860df9e407bfb19bd25d52d4a7d633"
+    },
+    {
+      "path": "packages/cli/src/lib/stream-retry.js",
+      "sha256": "c8ddf782e3fe16caab567c61934ff7adfa08e6d866e7ea8e0b66944ce755280e"
+    },
+    {
+      "path": "packages/cli/src/lib/sub-agent-context.js",
+      "sha256": "5b3f3fd8bdc292eae539d6e191413d8c56d03146cb38badf4f3cc9a65d87f1eb"
+    },
+    {
+      "path": "packages/cli/src/runtime/agent-core.js",
+      "sha256": "ac4865074c41f15443231b6896cff32cf3e65024b744f0ae6c7c4d3b91264d53"
+    },
+    {
+      "path": "packages/cli/test-node/formal-budget-provider-scope.node-test.mjs",
+      "sha256": "3cf893b0cfa5b15ee24c65cfd91fc553eef473d25d4fd58a313db2839ac9e028"
+    }
+  ],
+  "sourceDigest": "9862c11cebdafc66771e5be52e7946665a79625c85c3b3575bc1a06d5ac069ef",
+  "claim": "Pre-run working-tree binding including the previous uncommitted implementation; baseCommit alone is not the tested implementation"
+}

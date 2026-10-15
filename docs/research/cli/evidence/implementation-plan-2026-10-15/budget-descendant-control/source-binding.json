@@ -1,0 +1,32 @@
+﻿{
+    "capturedAt":  "2026-10-15T09:44:29.1885417Z",
+    "baseCommit":  "62b407bbefee02a2ac14495fcef9e59b237c05a7",
+    "workingTree":  true,
+    "sourceTreeDigest":  "sha256:313d2b308f295b6191bd34197c3a5c8fa0819b856544de80509647cd545ea62c",
+    "files":  [
+                  {
+                      "path":  "packages/cli/src/lib/formal-budget-provider-scope.js",
+                      "sha256":  "9e5a8ce24af924e39201485949cfcc72ccdf179ded14f3e7a1c544c89d05963e"
+                  },
+                  {
+                      "path":  "packages/cli/src/lib/agent-ipc-bus.js",
+                      "sha256":  "1f46b1f8ef475ebf5c045f81ec11e45c6a9d367723528a4d1389e72c887a1656"
+                  },
+                  {
+                      "path":  "packages/cli/src/lib/background-agent-keeper-client.js",
+                      "sha256":  "d6b9d5798368d648c90379d444e64db04d5ab533c893a55943f62a2f77c8783f"
+                  },
+                  {
+                      "path":  "packages/cli/test-node/formal-budget-descendant-control.node-test.mjs",
+                      "sha256":  "fa8e11ce7dcefa337318d39034e5470a4a7340be57057918cf0c3b59ce868ae3"
+                  },
+                  {
+                      "path":  "packages/cli/scripts/budget-egress-reviewed-sources.json",
+                      "sha256":  "205fd6a92586ec8eca6d727e7869377f8d7e6e8bf8150a0b2155fa05c6dea5bf"
+                  },
+                  {
+                      "path":  ".github/workflows/cli-ci.yml",
+                      "sha256":  "64d7286339f08979ef5ba37be6cb4dfa512a63568a5d3c49a6005e84f5f1e07a"
+                  }
+              ]
+}

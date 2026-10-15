@@ -2,7 +2,7 @@
 
 日期：2026-10-15。适用范围：CLI、共享 Agent Runtime、VS Code 和 JetBrains 插件。桌面端复用成熟后的共享能力；移动端、论坛和业务后端不纳入本轮改造。
 
-**实施状态：已交付首轮工程改动并完成火山引擎真实诊断；整份计划尚未验收完成。** 工作包实际状态、证据和剩余条件见[第 10 节](#10-首轮实施记录2026-10-15)及[证据目录](./cli/evidence/implementation-plan-2026-10-15/README.md)。正式评测保持 `NOT_RUN`，共享预算 `paidReady:false`，native `NOT_ADMITTED`，晋升 `HOLD`。
+**实施状态：已交付首轮工程改动、火山引擎真实诊断及后续预算接线、出口审计、独立谱系登记、物理身份、宿主检查点接线和 Agent 工具边界；整份计划尚未验收完成。** 首轮记录见[第 10 节](#10-首轮实施记录2026-10-15)，预算作用域、适配器及登记库见第 11～17 节，最新进展见[第 18 节](#18-第九轮实施记录agent-工具与并行错误传播2026-10-15)及[证据目录](./cli/evidence/implementation-plan-2026-10-15/budget-tool-boundaries/README.md)。正式评测保持 `NOT_RUN`，共享预算 `paidReady:false`，native `NOT_ADMITTED`，晋升 `HOLD`。
 
 建议未来八周优先投入六件事：**模型能力与费用同步更新、任务完成与恢复可靠、首次安装容易排障、上下文按需加载、扩展接入行为一致、真实任务有独立验收**。项目已经有较完整的 Agent、Skills、MCP、Memory 和 IDE 基础，下一阶段的收益主要来自把这些能力接成稳定的用户流程。
 
@@ -179,6 +179,8 @@ Skills 的正文延迟读取与预算已存在，本项重点是让加载决策�
 **优先级：P0 前置门，仅用于正式付费评测与相应支持声明；负责人：Runtime 和平台工程师；工作量：10～15 人日，宿主隔离另计。**
 
 当前 `formal-budget-transport.js` 明确列出 Agent、Chat、压缩、Advisor、探针、重试及子进程出口尚未全部覆盖。本项复用正式预算 authority，先明确覆盖范围，再逐出口接入。
+
+第二轮已为宿主显式启用的进程内调用加入预算作用域，接入 canonical Agent、Chat、压缩、Advisor、探针、Hub 及 stream 适配器，支持流式交付与 EOF 后持久结算。当前仅承接已核验的 OpenAI Chat 合同，未覆盖协议在作用域内拒绝发送。CLI 启动器、SDK、worker、后代出口与宿主隔离仍待验收，正式 gate 保持关闭；详见第 11 节。
 
 实施步骤：
 
@@ -363,3 +365,327 @@ ChainlessChain 可以在这一基础上发挥已有的多 provider、本地模�
 本机 Windows x64、Node 22.22.2 的 100K 固定 Memory 查询，显式缓存模式五次采样测得：全量扫描 p95 **11350.133ms**、冷查询 **2215.784ms**、热查询 **854.300ms**、重建 **15464.798ms**。相对初始热路径 **1780.109ms** 约改善 **52%**；原始基线仅三次采样，不能作为完整 SLO 验收。Collator 单改曾测得更慢的结果，也保留在证据目录。
 
 完整测试计数、复现命令、原始回执和下一步准入条件见[证据说明](./cli/evidence/implementation-plan-2026-10-15/README.md)。后续先完成预算全出口和目标宿主，再运行冻结正式样本；准确提交完整工作流通过后方可按子包 → CLI → IDE 顺序发布。
+
+## 11 第二轮实施记录：预算作用域与流式结算（2026-10-15）
+
+本轮承接 BUDGET-03 的逐出口接入及 RUN-03 的未知费用传播。在 `62b407bbefee02a2ac14495fcef9e59b237c05a7` 之上实施，工作分支为 `feature/cli-budget-provider-scope-20261015`。测试前冻结 18 个改动源码、测试、脚本及工作流文件的摘要，测试后重新核对一致；该父提交本身不代表新实现。[源码绑定](./cli/evidence/implementation-plan-2026-10-15/budget-scope/source-binding.json)与[验证汇总](./cli/evidence/implementation-plan-2026-10-15/budget-scope/validation-summary.json)保留独立证据，不覆盖首轮结果。
+
+### 11.1 已完成的工程接线
+
+| 范围       | 本轮行为与验证                                                                                                                                                                                                                             |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 宿主作用域 | `withFormalBudgetProviderScope` 通过 AsyncLocalStorage 绑定已有 run 和宿主持有的 transport；不从环境变量或任务 JSON 创建 authority，不自动开启正式评测。独立并发作用域互不串账；禁止嵌套替换，作用域结束后拒绝延迟调用并取消未收完的响应。 |
+| 请求预留   | 每次物理调用生成独立 call ID，核对精确 endpoint、模型、schema、输入及输出合同，再取宿主凭据并持久标记 dispatch。调用者注入的 fetch 在作用域内不能替换受控出口；实际发送仅使用宿主凭据。                                                    |
+| 流式结算   | 首段内容可立即交付；按字节上限保留私有核算副本，消费者修改返回字节不会改写费用证据。只有完整响应、可信 usage 和持久结算均成功后才交付 EOF。                                                                                                |
+| 取消与故障 | Stop、读取取消、未消费响应、超时、缺失 usage、解析错误或结算失败保留预留并阻止后续发送；迟到响应被回收。即使取消时写 unknown 失败，已有 dispatched 行仍阻止再次预留。                                                                      |
+| 调用链     | 真实 canonical Agent、Chat、stream、语义压缩、Advisor、连接探针及 Hub 函数通过离线 provider fixture 验证。Responses、原生 Anthropic/Gemini/Ollama、typed decision 等未覆盖协议在作用域内拒绝，未假造计费支持。                             |
+| 终态与重试 | 预算错误不能变成“保留部分回答后正常返回”、压缩提取降级或可忽略的 Advisor 失败；带网络错误措辞的预算异常也不能触发重放。失败压缩保持原历史。                                                                                                |
+
+### 11.2 验证与证据
+
+- Windows x64、Node 22.22.2：3 个 Node 测试文件共 **104 项通过**，其中新增作用域及真实调用链测试 **29 项**；原生 SQLite 并发、进程退出及冻结计划回归继续通过。
+- 15 个相关 Vitest 文件共 **269 项通过**，覆盖 Agent Responses/流式恢复、Chat、压缩提交与自动压缩、Advisor、探针、Hub、decision 和 provider stream。
+- 17 个 JS/MJS 文件语法检查、18 个文件 Prettier 检查通过；command manifest、help index、shell completions、CLI reference 及 protocol document 均无漂移。当前工作区缺 ESLint 依赖，该检查明确记为 `NOT_RUN`。
+- 新测试已加入 `CLI CI` 的 Linux、Windows、macOS 验证步骤；本轮仅有本机结果，尚无新准确提交的完整 CI / Strict Sandbox 矩阵。
+
+静态清单更新为 8 类调用链、48 个词法网络候选文件及 41 个待分类路径，同时记录作用域源码摘要；候选数变化不能代表付费出口覆盖率。完整命令、原始回执与宿主调用约束见[本轮证据说明](./cli/evidence/implementation-plan-2026-10-15/budget-scope/README.md)。本轮未发出真实 provider 请求，未重置历史共享 $99，也未升级或发布包。
+
+### 11.3 尚未完成的准入工作
+
+下一步仍需逐一验证启动器、SDK、动态加载代码、worker 和子进程出口，完成跨数据库复制/回滚的唯一谱系约束与可信宿主凭据隔离。账户价格、汇率、取消费用、历史未决账单及总计费输出上界需真实证据；此次离线合同不能替代。随后才能安排目标宿主、九入口安装、冻结 36+9、活跃长时负载与辅助技术真人验收。原有 `NOT_RUN` / `paidReady:false` / `NOT_ADMITTED` / `HOLD` 保持不变。
+
+## 12 第三轮实施记录：模型适配器与终止边界（2026-10-15）
+
+本轮继续 BUDGET-03 的出口审查，同时修复 RUN-03 中预算异常被降级处理的问题。沿用第二轮工作分支与父提交；测试前冻结 27 个改动源码、测试、脚本及工作流文件，[源码绑定](./cli/evidence/implementation-plan-2026-10-15/budget-adapters/source-binding.json)包含前轮尚未提交的实现，不能把父 SHA 单独作为本轮测试源码。
+
+### 12.1 调用链补齐
+
+| 范围               | 本轮改动                                                                                                                                      |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Ask / Cowork       | `queryLLM` 和 `createChatFn` 的模型请求经过 `providerFetch`；原有真实演进权限、输入投影与宿主逐次计量检查继续保留。                           |
+| 旧版连通性测试     | `LLMProviderRegistry.testProvider` 的共享 fetch 接入同一作用域；超时包装不能覆盖预算错误代码。                                                |
+| Hub SDK            | 内置 Ollama Chat 经过作用域；Desktop 和任意 SDK 回调、原生与自定义 embeddings 缺乏可核验计费合同，作用域内在原始调用前拒绝。                  |
+| 模型评测子进程     | learning synthesis grader 的宿主 port 在调用 broker 前拒绝作用域内执行，避免把异步作用域当作后代可继承的计费权限；不下发凭据，不启动 worker。 |
+| 模型降级与认证恢复 | 统一终止策略识别有界 cause 链中的预算错误；网络、401、模型不存在等措辞及自定义重试判定均不能将其转为备用模型调用。                            |
+| 父子与后台执行     | 子 Agent、隔离 skill、后台子任务和工具循环保留预算错误；不把未决费用改成普通失败摘要后交给父任务继续。                                        |
+| 压缩与 prepareCall | 自动压缩和可选 prepareCall 中的预算异常终止当前流程，阻止主模型继续调用；压缩失败不替换原历史。                                               |
+| 延迟生成器         | 宿主 callback 直接返回尚未消费的 AsyncIterable 时拒绝退出，提示在作用域内消费，减少误在作用域外启动模型请求。                                 |
+
+### 12.2 验证与后续
+
+本轮回归及原始结果保存在[证据说明](./cli/evidence/implementation-plan-2026-10-15/budget-adapters/README.md)和[验证汇总](./cli/evidence/implementation-plan-2026-10-15/budget-adapters/validation-summary.json)。新回归覆盖真实权限投影后的 Ask/Cowork、子 Agent、prepareCall、Desktop SDK、Hub embeddings 和 grader 启动边界；自动压缩另有“无主模型请求、原历史不变”的负例。
+
+Windows x64、Node 22.22.2 的 3 个 Node 文件 **117 项通过**（作用域与调用链共 42 项，比第二轮新增 13 项）；23 个 Vitest 文件 **540 项通过**。26 个 JS/MJS 语法和 27 个文件 Prettier 检查通过，测试后源码摘要保持一致。真实 SDK 证据链的本轮 Vitest 运行耗时约 370 秒，全部完成，没有以超时或部分结果替代；ESLint 缺依赖，仍记 `NOT_RUN`。这些计数不与前轮重复相加，也不代表三系统 CI 或正式任务通过。
+
+出口清单仍为 8 类、48 个词法网络候选文件，其中 37 个路径待分类。新增接线与拒绝规则只证明相应 canonical 路径，不能宣称任意 SDK、动态代码、worker 或工具后代均受隔离。整个正式预算、native 与发布准入保持关闭；跨库复制/回滚谱系、可信宿主、账号账单与取消费用、输出总上界、九入口、36+9 和长时真人验收仍按原计划执行。历史共享 $99 不重置，本轮不发真实模型请求、不升级版本、不发布。
+
+## 13 第四轮实施记录：源码出口审计与搜索预算边界（2026-10-15）
+
+本轮继续 BUDGET-03 的入口审查，将词法网络候选清单改为语法树调用扫描，并为人工源码分类绑定精确字节摘要。修复了搜索服务未经过 Chat 预算合同的问题；正式付费、native、发布和晋升准入均保持原状态。源码绑定、原始回执和复现命令见[第四轮证据](./cli/evidence/implementation-plan-2026-10-15/budget-inventory/README.md)。
+
+### 13.1 语法树候选与源码分类
+
+[扫描器](../../packages/cli/scripts/lib/budget-egress-inventory.mjs)使用仓库已声明的 Acorn 开发依赖，识别实际调用、已知模块导入、字面量动态导入、HTTP 选择器、解构及绑定别名。注释、声明名称和生成代码的字符串正文不计为实际调用；模板表达式内的调用仍扫描。`lib.request`、Undici 别名、socket 和 WebSocket 等路径纳入候选。
+
+默认扫描 `packages/cli/src` 的 **1,440 个 JS/MJS/CJS 文件**，共 **59 个候选文件**，无解析错误或跳过的软链接。[分类清单](../../packages/cli/scripts/budget-egress-reviewed-sources.json)按模型请求 12、预算边界 2、任务网络 7、服务 API 11、分发下载 9、诊断 5、本地 IPC 7、远端执行控制 4、内容寻址数据 1、搜索服务 1 记录用途与风险。全部候选摘要匹配，当前未审查源码候选为 **0**。
+
+新增候选、已审查文件的字节变化、候选删除、解析失败及跳过软链接均使 `--check` 失败，要求重新检查相应分类。`CLI CI` 三系统 `verify-cli` 已加入此检查和新增 Node 回归，但本轮尚无远端矩阵结果。
+
+第 11、12 节的 **48/37** 保留历史词法口径；当时的 37 是未关联八类调用链的候选，不能视为已经完成语义审查的分母。新报告区分 `unclassifiedCandidatePaths`（分类缺失或失效，本轮 0）与 `callChainUnmappedCandidatePaths`（未列入既有八类调用链，本轮 48）；10 类源码用途也不替代八类调用链的正式覆盖验收。
+
+扩展 `--include-scripts` 后扫描 **1,638 个文件、73 个候选**，新增 **14 个未审查脚本**，`--check` 按预期返回 1。[扩展报告](./cli/evidence/implementation-plan-2026-10-15/budget-inventory/scripts-audit.json)保留真实 provider 探针、诊断 broker、发布回读等路径；本轮仅分析源码，没有执行这些网络功能，也没有自动给予脚本付费准入。
+
+### 13.2 搜索服务在正式预算作用域内拒绝
+
+`webSearch` 的所选 `http/https.request` 曾被词法清单漏掉。搜索接口包括需要密钥的外部服务和可配置主机；无密钥不代表已有可信计费合同。宿主启用正式预算作用域时，所有搜索 provider 在读取配置或密钥、申请工具租约和发送网络请求之前抛出 `CC_BUDGET_SERVICE_NOT_COVERED`。Agent 的 `web_search` 保留并向上传播该错误，不能将它转换为普通工具结果后继续模型循环。
+
+普通作用域外搜索沿用原有行为，现有 24 项搜索测试通过。新增离线负例覆盖八种 provider 选择、零 HTTP 请求、零配置/密钥读取、零工具租约及真实 `executeTool` 入口。此拒绝仅覆盖该 canonical 搜索入口，任意工具、MCP、hooks、远端任务或后代请求仍需宿主级约束。
+
+### 13.3 本轮验证与剩余工作
+
+测试前冻结工作区中 40 个源码、测试、工作流和依赖身份文件；父提交仍为 `62b407bbefee02a2ac14495fcef9e59b237c05a7`，不能代替含未提交改动的测试源码身份。Windows x64、Node 22.22.2 的 4 个 Node 文件 **134 项通过**，其中新增审计及搜索测试 **17 项**；6 个 Vitest 文件 **236 项通过**。36 个 JS/MJS 语法和 31 个改动文件 Prettier 检查通过；测试后 40 个冻结文件和完整源码树摘要均保持一致。ESLint 未安装，保留 `NOT_RUN`；计数不与前轮重复累计。
+
+静态分析采用已知模块和最多八轮文件级别名传播，不能证明任意 SDK、计算属性、动态模块名、生成代码、worker、子进程或 OS 出口均受治理。源码用途分类通过不等于计费覆盖率或独立财务/平台验收。下一步继续检查 14 个脚本与任务可控出口，验证可信宿主、后代隔离、预算复制/回滚与并发谱系、历史账单和取消费用；正式评测继续 `NOT_RUN`、`0/36`、`0/9`，预算 `paidReady:false`，native `NOT_ADMITTED`，晋升 `HOLD`。历史共享 **$99** 不重置，本轮无真实付费调用、版本升级或发布。
+
+## 14 第五轮实施记录：诊断脚本审查与预算拒绝（2026-10-15）
+
+本轮完成上一轮留下的 14 个脚本候选源码审查，并修复独立诊断入口在正式预算作用域内未提前拒绝的问题。分类依据和精确源码摘要写入同一[审查清单](../../packages/cli/scripts/budget-egress-reviewed-sources.json)，原始回执见[第五轮证据](./cli/evidence/implementation-plan-2026-10-15/budget-diagnostics/README.md)。源码审查通过只证明当前扫描范围和记录有效，未开放实际诊断或正式评测。
+
+### 14.1 脚本分类与扩展 CI
+
+14 个脚本分为直接模型调用 4、本地协议测试 3、制品与元数据下载 3、GitHub 证据 API 2、生产证据收集控制 1、通用 CONNECT 代理测试 1。分类理由保留服务费用、远端工作、代理目的地和工具后代尚未取得预算合同的事实，没有把非模型接口一律当作免费。
+
+完整 `--check --include-scripts` 覆盖 **1,638 个 JS/MJS/CJS 文件、73 个候选文件**，全部分类摘要匹配，未分类、解析错误和跳过路径均为 **0**。默认源码检查仍为 1,440 个文件、59 个候选；清单中不属于本次扫描根的条目单列为 `outOfScopeReviewedPaths`，不作为本次已验证摘要。扩展检查仍会拒绝脚本改动、候选移除和新增未审查出口。
+
+`CLI CI` 三系统 `verify-cli` 已改为执行扩展检查，并加入诊断边界 Node 测试。扫描根本身是软链接或根集合为空时也不能取得干净审计结果。本轮没有准确提交的远端矩阵或 Strict Sandbox 回执。
+
+### 14.2 诊断调用与任务启动器
+
+| 入口                  | 正式预算作用域内的行为                                                                                                                     |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| 上下文 token 校准     | CLI 在读取配置前拒绝；程序接口在解构参数、创建回执目录或调用注入 fetch 前拒绝。                                                            |
+| 实施计划模型/压缩诊断 | 在读取参数及配置、写回执、修改全局 fetch 或重试环境变量前拒绝。                                                                            |
+| PM exploration 探针   | 模块导入不执行 CLI；调用探针时在 CLI/config 解析前拒绝，普通 CLI 仍要求 `--confirm-live`。                                                 |
+| native 诊断 broker    | 创建时在读取参数、创建目录、生成能力令牌或监听端口前拒绝；已有 broker 的 `beginTask` 也拒绝作用域内领取任务，直接 HTTPS 发送另设同一检查。 |
+| native 任务诊断启动器 | 在读取参数、创建工作目录、准备 Docker/任务子进程或启动 broker 前拒绝。                                                                     |
+
+以上入口抛出 `CC_BUDGET_TRANSPORT_NOT_COVERED`，不把诊断估算停线当成正式预留。作用域外原有诊断合同与确认要求继续保留；本轮仅执行注入桩、本地 HTTP 及拒绝用例，没有读取真实 provider 配置或发送真实模型请求。
+
+### 14.3 验证与未完成边界
+
+测试前固定 43 个源码、测试、工作流和依赖文件；6 个 Node 文件 **81 项全部通过**，其中本轮新增 8 项诊断边界及 2 项审计根测试。既有回归继续验证超出请求输出声明的 usage 仍保留、未知费用不变成零、诊断回执先持久化再交付，以及原共享 $99 和 36+9 分母不改变。39 个 JS/MJS 语法和 37 个改动文件 Prettier 检查通过；测试后 43 个冻结文件与源码、脚本完整树摘要均保持一致。ESLint 缺依赖仍为 `NOT_RUN`；本轮不重复累计前轮测试数，也未重跑未改动的 Vitest 旅程。
+
+异步作用域不能跨 HTTP/IPC 识别另一进程或已存在服务中的调用者。已有 broker 在作用域外领取任务后，其监听回调不会因客户端处于预算作用域而自动继承该作用域；本轮的创建与领取检查不能证明此类远端或后代不可绕过。后续仍需可信宿主持有凭据、真实出口隔离、逐物理请求治理、预算跨库复制/回滚与并发谱系、账单和取消费用核对。正式 36+9、native、长时真人验收与发布保持开放项：`NOT_RUN`、`paidReady:false`、`NOT_ADMITTED`、`HOLD`；历史共享 **$99** 不重置，本轮无新增付费调用或发布。
+
+## 15 第六轮实施记录：独立谱系登记与账本回滚拒绝（2026-10-15）
+
+本轮继续 BUDGET-03 的跨库复制、回滚及并发谱系工作。原 authority 的 `BEGIN IMMEDIATE` 只能串行同一个 SQLite 文件；复制整库后，两份账本仍可各自保留同一激活身份。新增[独立谱系登记库](../../packages/cli/src/lib/formal-budget-lineage-registry.js)，由可信宿主显式接入 [authority](../../packages/cli/src/lib/formal-budget-authority.js)，在登记库未回滚且不被任务修改的前提下拒绝副本及旧状态。正式付费准入没有改变。
+
+### 15.1 唯一数据库身份与完整状态摘要
+
+登记库为每个 lineage 固定唯一 binding、plan/activation digest、规范数据库路径和文件身份，以及账本完整逻辑状态摘要与递增版本。相同 lineage 再次初始化会在创建第二份账本之前拒绝；复制到新路径、替换文件或恢复旧状态不会取得额外额度。
+
+guarded authority 在构造、读状态、读预留合同及每次修改时校验独立登记记录。摘要覆盖 schema、激活记录、历史任务分配、run、call、event 和 guard 标识，同事件数下改金额也不能仅凭序号继续通过。省略登记库、使用其他登记库或丢失已固定的 guard 标识均拒绝访问；读取合同前的检查也覆盖凭据准备入口。
+
+宿主通过 `lineageRegistry` 显式注入此能力。旧 authority 不自动迁移，不自动新增登记或重新激活原预算；已有历史支出、未决预留与 run 次数仍须经过原有独立核对。离线 fixture 兼容模式继续存在，不能因此绕过正式宿主必须固定登记库的部署要求。
+
+### 15.2 两库提交顺序与中断行为
+
+```mermaid
+flowchart LR
+    R[锁定独立登记库] --> A[账本事务与旧摘要校验]
+    A --> W[修改账本但不提交]
+    W --> H[持久提交登记库新摘要]
+    H --> C[提交账本事务]
+    C --> D[返回成功或允许物理发送]
+    H -.账本未能提交.-> S[摘要不一致并停止后续访问]
+```
+
+两库没有伪装成原子提交。登记库先提交；本地账本提交失败或进程在两次提交之间退出时，后续打开或操作会因摘要不一致而停止，等待外部核对，不能自动把登记库降回旧摘要。登记库提交前失败时，两边事务回滚，且没有返回物理发送权限；结算阶段若只提交了独立摘要，本地原始预留仍保留。
+
+多个进程按登记库 → authority 的顺序加锁。两个真实进程共享同一登记库和账本只获得一次预留。登记库故障使用 `CC_BUDGET_LINEAGE_*` 预算错误传播，不能转为模型降级或普通成功；已有流式、取消、未知费用与重复回执语义继续保留。
+
+### 15.3 验证、审计回执与剩余工作
+
+本轮新增 17 项谱系测试，覆盖唯一登记、缺失/错配 guard、复制与文件替换、原位回滚、同序号金额变化、真实并发进程、登记库写失败、提交前后真实进程终止、结算中断、历史支出/未决费用/run 次数及实际 transport 接线。用量和网络响应均为离线桩；错误状态下验证了零凭据读取与零 HTTP 发送。
+
+扩展审计首次按预期发现 `implementation-plan-status.mjs` 新增 registry 来源绑定后摘要过期；原失败回执保留，单文件复核后更新对应分类，并重新冻结、执行最终回归。最终源码/脚本审计覆盖 **1,639 个文件、73 个候选**；新增 registry 不增加网络候选。最终测试计数、源码绑定、原始结果和本地检查见[本轮证据](./cli/evidence/implementation-plan-2026-10-15/budget-lineage/README.md)，不与清单刷新前的重复运行相加。
+
+Windows x64、Node 22.22.2 下，最终 6 个 Node 文件 **161 项全部通过**；40 个 JS/MJS 语法和 40 个改动文件 Prettier 检查通过。最终验证前冻结 44 个文件，父提交仍不能代替含未提交改动的源码身份。ESLint 缺依赖，继续记 `NOT_RUN`；本轮没有新增 Vitest 结果或三系统远端 CI 回执。
+
+登记库本身的复制/回滚、同时还原两库、宿主强制使用同一登记库、任务无权修改存储、OS 出口隔离和恢复审批仍未取得部署证明。本轮也没有上线自动迁移或自动修复；完整状态摘要的性能尚未成为 SLO 结论。正式评测保持 `NOT_RUN`、`0/36`、`0/9`，预算 `paidReady:false`，native `NOT_ADMITTED`，晋升 `HOLD`；历史共享 **$99** 不重置，本轮无真实付费调用、版本升级或发布。
+
+## 16 第七轮实施记录：登记库身份与检查点边界（2026-10-15）
+
+本轮继续 BUDGET-03，处理登记库副本可能保留同一 UUID、旧头记录在进程重启后丢失比较基线，以及事务租约被延迟使用的边界。实现位于 [registry](../../packages/cli/src/lib/formal-budget-lineage-registry.js) 与 [authority](../../packages/cli/src/lib/formal-budget-authority.js)，原始回归与限制反例见[第七轮证据](./cli/evidence/implementation-plan-2026-10-15/budget-registry-boundaries/README.md)。
+
+### 16.1 固定登记库物理身份
+
+登记库初始化回执新增 `registryFileIdentity`，打开时必须与实际文件身份匹配。guarded authority 同时固定登记库 UUID、规范路径和文件身份；将相同 UUID 的副本放到新路径，或修改 descriptor 重新指向副本，都不能替换该 authority 的原始绑定。每次登记库事务也重新核对文件身份和持久 UUID。
+
+新的 guard 记录持久化物理绑定字段。缺少这些字段的旧实验 guard 会拒绝打开，不自动补字段、重建登记或恢复额度；原有未接入 guard 的离线 authority 仍保留兼容路径，不能因此通过正式宿主准入。部署或迁移仍须独立核对原始历史和权限。
+
+### 16.2 活跃进程记录与重启检查点
+
+登记库实例记住已观察的每个 lineage：版本降低、同版本摘要变化、已知注册消失或固定元数据改变都会拒绝。该记录保存在实例内，不会伪称为跨重启的单调计数器。
+
+`checkpoint(lineageId)` 生成可序列化的 registry 身份及头记录；可信宿主可通过 `trustedCheckpoints` 在重启时提供已独立保存的下界。低于检查点的登记库或同版本不同摘要会在打开 authority 前拒绝；合法的更高版本仍可继续。检查点输入只进行形状、身份和下界比较，本轮没有提供签名认证、独立存储服务或每次物理发送前的持久化接线。
+
+保留明确反例：离线 fixture 已结算 46 微美元后，同时原位还原两份匹配旧库；活跃实例拒绝，重启后提供已固定检查点的实例和新进程也拒绝，但重启后省略全部检查点的实例仍能读到旧的 0 曝险。这是预期复现的未完成边界，不是正式费用或预算重置。本地数据库不能证明自己的新鲜度，过旧检查点也不能覆盖其后发生的消费。
+
+### 16.3 事务租约与验证
+
+`coordinate` 的租约在回调退出或失败后立即失效，即使另一事务已经开始，旧 `assertState` / `advance` 也不能继续使用。直接 async/生成器回调在调用前拒绝；普通回调返回 Promise 也拒绝，并使捕获的租约失效，避免延迟代码在事务外推进摘要。错误继续使用 `CC_BUDGET_LINEAGE_*` 并阻止模型重放。
+
+新增 17 项边界回归，包括登记库副本/替换/UUID 改动、活跃实例回滚、检查点序列化与跨进程拒绝、旧 guard 拒绝，以及租约和异步负例。`CLI CI` 三系统 Node 检查已接线。最终计数与源码摘要以本轮证据为准，不与第六轮重复累计。
+
+Windows x64、Node 22.22.2 的最终 7 个 Node 文件 **178 项全部通过**；41 个 JS/MJS 语法及 41 个改动文件 Prettier 检查通过。测试前冻结 45 个文件，扩展审计保持 1,639 个文件、73 个候选，无未分类、解析错误或跳过路径。ESLint 缺依赖，保留 `NOT_RUN`，本轮没有新增 Vitest 或远端矩阵结果。
+
+宿主仍须认证并独立保存检查点、在发送前持久推进它并强制重启策略、保护两库及任务后代出口。本轮不能防止有权限者伪造更高版本与数据，不能把省略检查点的匹配旧库判为新鲜，也未取得真实 native、账号账单、人工恢复或远端发布验收。正式状态继续 `NOT_RUN`、`paidReady:false`、`NOT_ADMITTED`、`HOLD`；原共享 **$99** 不重置，无真实付费调用、版本升级或发布。
+
+## 17 第八轮实施记录：宿主检查点策略与发送顺序（2026-10-15）
+
+本轮继续 BUDGET-03，把上一轮可选的检查点下界接入可信宿主的逐次读写合同。新登记库可在显式初始化时固定 `checkpointHostId`，此后打开或访问必须提供相同 ID 的宿主端口。实现位于 [registry](../../packages/cli/src/lib/formal-budget-lineage-registry.js) 和 [authority](../../packages/cli/src/lib/formal-budget-authority.js)，离线原始回执及复现命令见[第八轮证据](./cli/evidence/implementation-plan-2026-10-15/budget-checkpoint-host/README.md)。
+
+### 17.1 固定宿主策略并强制读回最新记录
+
+登记库持久保存宿主策略，authority guard 也固定宿主 ID；省略 constructor 参数、换宿主或删除活跃策略不能降级该 authority。旧登记库与未接入 guard 的兼容路径不自动启用、迁移或取得正式准入；不能仅向旧 constructor 注入端口就声称已经建立历史检查点。
+
+端口提供同步 `load(bindingIdentity)` 和 `publish(checkpoint, digest)`。每次登记库访问都要求 `load` 返回该登记库所有 lineage 的最新、已认证记录，并逐字段与当前头相等。缺失、多余、重复、错配、过旧或超前记录均停止，不能自动用当前数据库补种检查点或降回旧记录。宿主函数在实例创建时固定；直接 async/生成器在调用前拒绝，普通函数返回 Promise/thenable 也不能授权后续账本提交。
+
+### 17.2 持久化回执先于本地提交和物理请求
+
+```mermaid
+flowchart LR
+    V[登记库与宿主最新头相等] --> A[修改未提交账本]
+    A --> R[持久提交登记库头]
+    R --> P[宿主持久写入并回执精确摘要]
+    P --> L[从宿主读回相同最新头]
+    L --> C[提交 authority]
+    C --> F[markDispatched 返回后发送]
+    R -.后续任一步失败.-> S[保留状态并等待外部核对]
+```
+
+`publish` 必须返回 `{ durable: true, checkpointDigest }`，随后立即读回最新记录；只回显摘要而没有读回持久状态不能通过。预留阶段失败时尚未读取凭据；凭据准备的 await 之后仍重新检查宿主头。`markDispatched` 的回执或读回失败时不调用物理 fetch，原 `held` 预留保留；结算失败时不交付成功 EOF，原 `dispatched` 预留保留。取消后的未知费用也推进检查点，不能释放为零。
+
+三份状态没有被声明为原子提交。登记库已提交但宿主写入失败，或宿主已持久写入但账本尚未提交即退出，都会留下不一致并拒绝后续访问。注册失败也不删除已创建的 authority 或重新初始化额度。必须经外部核对恢复，不能以重试、丢弃检查点或自动修复重获信用。
+
+### 17.3 离线验证及生产边界
+
+新增 **30 项**检查点测试，涵盖端口缺失/替换、异步与错误回执、失败顺序、凭据 await 后读回、取消与结算、真实重启、并发及真实进程终止；`CLI CI` 三系统 Node 检查已接线。最初定向运行的两处错误码预期与既有重放/未决费用合同不同，已修正测试，观察记录保留在证据中，没有修改生产拒绝规则来迎合断言。
+
+Windows x64、Node 22.22.2 的最终 **8 个 Node 文件、208 项全部通过**。测试前冻结 **47 个文件**，包括本轮测试及共同 fixture；**43 个 JS/MJS 语法、42 个改动文件 Prettier** 检查通过，测试后文件摘要及源码/脚本完整树均保持一致。扩展审计仍为 **1,639 个文件、73 个候选**，未分类、解析错误及跳过路径均为 0。ESLint 缺依赖继续 `NOT_RUN`；本轮没有新增 Vitest 或远端矩阵回执。上述结果不与前轮或重复运行累计。
+
+真实重启测试确认，匹配旧的两库在最新宿主记录仍在时会拒绝。另保留明确反例：离线 fixture 结算 46 微美元后，连测试宿主文件一起还原到旧记录，新实例仍可读到 0 曝险。这证明同步端口、摘要回执和读回不能自行认证存储的新鲜度。测试文件仅是故障桩，不是独立保护的生产存储；宿主仍必须提供认证、单调且幂等的写入、独立恢复域和权限保护。第 16 节未固定宿主模式的反例也继续复现。
+
+本轮仅交付显式宿主模式的代码合同及离线顺序验证，没有实现或部署生产检查点服务，也未证明 OS 出口隔离、任意 SDK/后代覆盖、账号历史账单、取消费用、真实 native 或人工恢复。正式评测继续 `NOT_RUN`、`0/36`、`0/9`，预算 `paidReady:false`，native `NOT_ADMITTED`，晋升 `HOLD`；历史共享 **$99** 不重置，本轮无真实付费调用、版本升级或发布。
+
+## 18 第九轮实施记录：Agent 工具与并行错误传播（2026-10-15）
+
+本轮继续 BUDGET-03 的任务可控出口。正式预算作用域已接入模型请求，但 canonical `executeTool` 仍可能启动 shell、MCP、技能、浏览器、远端工作或子代理。普通工具的权限和会话预算不提供这些后代物理请求的计费合同；在正式作用域内继续执行会扩大未核算出口。[第九轮证据](./cli/evidence/implementation-plan-2026-10-15/budget-tool-boundaries/README.md)记录实现、离线回归和未覆盖边界。
+
+### 18.1 工具入口提前拒绝
+
+[预算作用域](../../packages/cli/src/lib/formal-budget-provider-scope.js)新增 `requireUnscopedToolExecution()`；[Agent 的 `executeTool`](../../packages/cli/src/runtime/agent-core.js) 在读取工具名称、参数、上下文、权限规则、hook 或进程 broker 之前调用它。正式作用域内所有 canonical 工具，包括本地只读工具，均抛出 `CC_BUDGET_TOOL_NOT_COVERED`，并携带不可重放标记。已关闭作用域的异步后代抛出 `CC_BUDGET_SCOPE_CLOSED`。作用域外的原有工具结果合同保持通过现有回归验证。
+
+这是一项保守停线；它使当前试验性作用域无法完成需要工具的正式任务。后续只有在逐个工具取得可信宿主授权、外部服务费用合同和真实出口隔离后，才能按具体能力重新放行。一次只读文件调用也未通过本轮获得正式验收。
+
+### 18.2 并行只读工具不吞预算错误
+
+Agent 对多项只读工具可并行调度。此前该分支把 `executeTool` 的任意异常转换成普通工具结果，模型可能继续下一轮。本轮在保留并行 promise 统一结算、避免未处理拒绝的同时，识别 `CC_BUDGET_*` 错误并在读取有序结果时原样抛出。顺序工具分支已有同类传播规则；两种路径现在都不会把预算拒绝变成可供模型重试的普通文本。
+
+离线测试对 shell、代码、网页、搜索、浏览器、技能、子代理、MCP、发布、只读和未知工具施加会抛错的参数/上下文代理，确认拒绝发生于读取它们之前。真实 `agentLoop` 的并行只读批次和顺序 shell 用注入模型桩验证只调用模型一次、零工具结果且预算错误上传；异步后代与作用域关闭也有负例。这里的“真实”指执行真实 Agent 控制流，不是付费 provider 或 OS 进程执行。
+
+### 18.3 审计和准入
+
+源码分类清单仅复核预算作用域与 `agent-core.js` 两个被改动的候选摘要，分类仍为原有的预算边界和模型请求。扩展审计覆盖 **1,639 个 JS/MJS/CJS 文件、73 个网络候选**，未分类、解析错误和跳过路径均为 0。`CLI CI` 三系统 `verify-cli` 已加入新 Node 文件，但没有准确提交的远端矩阵回执。
+
+最终验证前冻结 **48 个文件**；Windows x64、Node 22.22.2 下 **9 个 Node 文件、214 项通过**，其中新增工具边界 6 项；Agent 的一个 Vitest 文件 **139 项通过**。**44 个 JS/MJS 语法、43 个改动文件 Prettier** 检查通过。测试后冻结文件、完整源码/脚本树摘要和前七个预算证据目录原始回执均未变化。ESLint 缺依赖仍为 `NOT_RUN`。最终原始结果和摘要以本轮证据为准，不重复累计前轮和定向预跑。
+
+首轮完整 Node 回归的 214 项中，213 项通过、1 项因旧测试仍期待 `web_search` 的服务错误码而失败。共同工具入口现在更早抛出 `CC_BUDGET_TOOL_NOT_COVERED`；直接调用搜索服务仍抛出原 `CC_BUDGET_SERVICE_NOT_COVERED`。仅修正该断言后重新冻结和运行，失败的原始 JUnit 保留在本轮证据目录，不能将两次计数相加。
+
+AsyncLocalStorage 只能约束携带该作用域的进程内 canonical 入口。直接导出的工具实现、动态代码、已有服务、其他进程、worker、OS 网络以及宿主权限之外的后代仍需可信宿主与平台隔离。全工具拒绝不代表 36+9 任务可执行，也不证明生产检查点服务、账号账单或取消费用已验收。正式评测保持 `NOT_RUN`、`0/36`、`0/9`，共享预算 `paidReady:false`、历史 **$99** 不重置，native `NOT_ADMITTED`、晋升 `HOLD`；本轮无真实付费调用、版本升级或发布。
+
+## 19 第十轮实施记录：直接子进程与 keeper 控制边界（2026-10-15）
+
+本轮继续 BUDGET-03，收紧绕过 canonical `executeTool` 的两条进程内控制路径。[第十轮证据](./cli/evidence/implementation-plan-2026-10-15/budget-descendant-control/README.md)保存源码绑定、出口审计与离线回归。
+
+### 19.1 子进程和后台任务领取提前拒绝
+
+[预算作用域](../../packages/cli/src/lib/formal-budget-provider-scope.js)新增 `requireUnscopedDescendantControl()`。正式作用域内，[IPC 总线](../../packages/cli/src/lib/agent-ipc-bus.js)的 `spawnAgentProcess` 在读取 `options.agentId` 或调用进程 broker 前拒绝；[keeper 客户端](../../packages/cli/src/lib/background-agent-keeper-client.js)的 `connectBackgroundAgentKeeper` 在解析 hello、凭据和 pipe 路径前拒绝。作用域外已建立的客户端在调用 `arm` 时重新检查，不能通过旧连接领取新的后台任务。拒绝使用 `CC_BUDGET_DESCENDANT_NOT_COVERED` 且 `noReplay:true`；作用域结束后的异步调用使用 `CC_BUDGET_SCOPE_CLOSED`。
+
+`retire` 继续可用于释放已领取任务及清理进程。它仍会通过本地 IPC 发送清理请求，因此并非通用的网络出口封锁。本轮拒绝只覆盖这三个被实际接线的入口；直接 `child_process`、team 命令内其他 spawn、已有 keeper 自行执行的任务、worker、动态代码、任意网络 SDK 和 OS 出口仍需逐项接线或宿主隔离，不能声称子进程全覆盖。
+
+### 19.2 离线复现与准入
+
+新 Node 测试用不可读取的参数代理与注入 spawn/socket 桩，确认拒绝前没有读取参数、启动子进程或建连；真实本地 keeper 协议 fixture 验证已有连接在活跃及关闭作用域均不能 `arm`，作用域外 `arm` 和作用域内 `retire` 保持可用。`CLI CI` 的三系统 Node 清单已接入新文件，但本轮没有准确提交的远端矩阵回执。[源码分类清单](../../packages/cli/scripts/budget-egress-reviewed-sources.json)只更新改动后的 keeper `LOCAL_IPC` 和作用域 `BUDGET_BOUNDARY` 摘要；IPC 总线未被当前网络候选扫描器列为候选，不等于其子进程安全性已被审计证明。
+
+正式评测仍为 `NOT_RUN`、`0/36`、`0/9`，`paidReady:false`，native `NOT_ADMITTED`，晋升 `HOLD`。历史共享 **$99** 不重置；本轮无真实付费调用、生产部署、版本升级或发布。生产宿主的认证检查点、系统级出口隔离、远端准确提交矩阵和账单核对仍未取得。
+
+## 20 第十一轮实施记录：直接网页与浏览器出口（2026-10-15）
+
+本轮继续 BUDGET-03，处理绕过 `executeTool` 的网页实现导出。[第十一轮证据](./cli/evidence/implementation-plan-2026-10-15/budget-direct-web/README.md)保存源码绑定、离线回归及出口审计。
+
+### 20.1 三个直接入口提前拒绝
+
+[预算作用域](../../packages/cli/src/lib/formal-budget-provider-scope.js)增加 `requireUnscopedExternalToolAccess()`。[`webFetch`](../../packages/cli/src/lib/web-fetch.js)在 URL、选项、快照缓存或 HTTP(S) 操作前调用；[`fetchPage` 与 `takeScreenshot`](../../packages/cli/src/lib/browser-automation.js)在读取选项、设置定时器、调用 `fetch` 或加载 Playwright 前调用。正式作用域内均抛出 `CC_BUDGET_EXTERNAL_TOOL_NOT_COVERED` 且 `noReplay:true`；作用域已关闭的异步后代抛出 `CC_BUDGET_SCOPE_CLOSED`。
+
+这是保守停线：`webFetch` 的本地快照读取也经同一入口拒绝；纯 HTML 提取辅助函数和作用域外调用保留现有行为。请求目标的 SSRF 过滤与宿主资源配额不是外部服务计费合同，不能用它们替代可信物理请求授权。CLI `browse` 命令仍会在调用该函数前处理参数和 UI；本轮验证的是导出函数的进程内拒绝点，不声称命令层或任意全局 `fetch` 均已隔离。
+
+### 20.2 离线验证与剩余风险
+
+新 Node 回归向 URL、输出路径和选项传入会抛错的代理，使用 HTTP(S) 与 `fetch` 桩断言零发送；同时验证三个导出在作用域关闭后拒绝，以及作用域外网页获取和 SSRF 阻止行为。现有本地网页 Vitest 继续验证正常调用。扩展分类清单重新绑定网页抓取、浏览器与预算作用域三个改动候选的源码摘要；审计覆盖 `src` 与 `scripts`，不构成对动态 SDK、其他直接 API、worker、进程或 OS 网络的全覆盖证明。三系统 `CLI CI` 清单已纳入新 Node 文件，远端准确提交矩阵仍无回执。
+
+正式评测保持 `NOT_RUN`、`0/36`、`0/9`，`paidReady:false`，native `NOT_ADMITTED`，晋升 `HOLD`；历史共享 **$99** 不重置。本轮无真实付费请求、生产部署、版本升级或发布。下一步仍需梳理其他直接出口（例如 Android bridge、team 进程或网络 SDK）、可信宿主强制出口策略、认证检查点及账单核对。
+
+## 21 第十二轮实施记录：Android bridge 与 team 执行入口（2026-10-15）
+
+本轮继续 BUDGET-03，处理上一轮明确留下的两组直接出口。[第十二轮证据](./cli/evidence/implementation-plan-2026-10-15/budget-android-team/README.md)保存离线回归、源码摘要和剩余范围。
+
+### 21.1 Android bridge 及凭据读取边界
+
+[`cc-android-bridge`](../../packages/cli/src/lib/cc-android-bridge.js)的 `invoke` 在检查 method、测试 hook、Android 环境、bridge token/port 配置或 POST 前调用 `requireUnscopedExternalToolAccess()`。直接导出的 `caps` 和 `loadBridgeConfig` 也在读取环境与凭据前拒绝正式作用域，以免通过探测或配置读取绕过 `invoke` 的前置检查。活跃作用域抛 `CC_BUDGET_EXTERNAL_TOOL_NOT_COVERED`；已关闭作用域抛 `CC_BUDGET_SCOPE_CLOSED`，均为 `noReplay:true`。`detectAndroid` 仍是只读平台判断，并非 bridge 凭据或远端调用。
+
+### 21.2 team 子进程执行边界
+
+[`team`](../../packages/cli/src/commands/team.js)的 shell 任务执行函数、Agent 任务执行函数与公开 `spawnAgent` 在读取任务、选项、提示或调用进程 broker 前检查当前作用域。私有 `spawnAgentProcess` 在异步 message bridge 路径后再次检查，防止实际子进程启动点与公开入口分离。活跃作用域抛 `CC_BUDGET_DESCENDANT_NOT_COVERED`；已关闭作用域抛 `CC_BUDGET_SCOPE_CLOSED`，均为 `noReplay:true`。检查放在任务**执行**时，创建任务函数不授予后续执行权。此改动不声称 team 命令解析、分布式 team 后端或任意进程 broker 调用都被拦截。
+
+离线 Node 测试使用不可读取的 payload 和注入式 Android / spawn 桩，验证两组入口零配置读取、零 HTTP、零子进程；也验证关闭作用域的异步调用、作用域外 Android 测试传输的原有结果。既有 Android 与 team Vitest 覆盖正常路径。Android bridge 的源码候选摘要已重新审查为 `TASK_CONTROLLED_NETWORK`；team 执行文件不是当前 AST 网络候选，仍通过源码身份单独冻结。扩展审计不能替代进程或 OS 出口证明，三系统 `CLI CI` 仅接线了新 Node 文件，尚无准确提交的远端回执。
+
+正式评测继续 `NOT_RUN`（0/36、0/9）、`paidReady:false`、native `NOT_ADMITTED`、晋升 `HOLD`。历史共享 **$99** 不重置；本轮没有真实付费请求、生产部署、版本升级或发布。其他直接网络 SDK、team 旁路、worker/子进程和系统级出口仍须可信宿主强制策略与独立验收；认证检查点及账单核对也未完成。
+
+## 22 第十三轮实施记录：统一进程 broker 的预算边界（2026-10-15）
+
+本轮继续 BUDGET-03，将前几轮逐个补齐的子进程拒绝下沉到统一进程 broker 的公开执行入口。[第十三轮证据](./cli/evidence/implementation-plan-2026-10-15/budget-process-broker/README.md)记录源码绑定、离线回归及保留限制。
+
+[`ProcessExecutionBroker`](../../packages/cli/src/lib/process-execution-broker/index.js)的 `spawn`、`spawnSync`、`exec`、`execSync`、`execFile`、`execFileSync` 和 `fork` 都在处理调用者命令、选项、权限、工作区事务、凭据或写入审计前调用 `requireUnscopedDescendantControl()`。这样包装方法不会在汇入底层 spawn 之前先读取不可信参数。正式作用域内抛 `CC_BUDGET_DESCENDANT_NOT_COVERED`，关闭后的异步后代抛 `CC_BUDGET_SCOPE_CLOSED`，都带 `noReplay:true`。进程终止与清理方法未被拦截。
+
+新 Node 用例以不可读取的命令、参数和选项调用七个真实 broker 方法，向 `_native` 注入拒绝桩，并比较前后审计与统计，确认零参数读取、零原生启动和零审计副作用；同时验证异步后代与作用域关闭。现有 broker Vitest 检查作用域外同步、`execFile` 和上下文行为。此处的“真实 broker”只指执行了真实进程内 broker 方法，没有启动付费子进程或证明 OS 强制隔离。
+
+源码审计依旧覆盖 CLI `src` 与 `scripts` 的网络候选；broker 文件本身不是当前 AST 网络候选，仍以本轮源码摘要单独绑定。CLI 启动时的 `patch-child-process` 可将部分 `child_process` 调用转向 broker，但本轮没有证明它早于所有第三方导入、覆盖已经缓存的原生引用、`worker_threads`、原生插件、其他进程或 OS 出口。能绕过 broker 的路径仍须可信宿主或平台限制。三系统 `CLI CI` 清单已接线新 Node 文件，远端准确提交矩阵仍未运行。
+
+正式评测保持 `NOT_RUN`（0/36、0/9）、`paidReady:false`、native `NOT_ADMITTED`、晋升 `HOLD`；历史共享 **$99** 不重置。本轮无真实付费调用、生产部署、版本升级或发布，生产认证检查点、账单核对与系统级出口隔离仍待验收。
+
+## 23 第十四轮实施记录：网络相关 worker 与 Marketplace 传输边界（2026-10-15）
+
+本轮继续检查 broker 未覆盖的 `worker_threads` 路径。[第十四轮证据](./cli/evidence/implementation-plan-2026-10-15/budget-worker-network/README.md)保存测试前源码身份、原始离线回执和测试后完整性检查。
+
+[`startEgressProxyWorker`](../../packages/cli/src/lib/sandbox-egress-worker.js)现在在读取策略和选项、绑定本地端口或创建 worker 前拒绝正式预算作用域；作用域外已启动的代理，其 `updatePolicy` 也在读取新策略及发送 worker 消息前拒绝作用域内调用。`close`、`abort` 仍可清理已运行的代理。这只约束当前进程对该 worker 的创建和策略更新，不能阻止已有代理继续处理来自其他来源的请求。
+
+[`createMarketplaceNetworkTransport`](../../packages/cli/src/lib/plugin-runtime/marketplace-network.js)在读取代理 URL、PAC 文件和 CA 文件前拒绝正式作用域；作用域外已创建的 transport，其 `fetch` 在解析 URL、执行 PAC 或发出 Undici 请求前再次拒绝。直接导出的 `resolveMarketplacePac` 在读取脚本、URL、超时选项或创建 PAC worker 前拒绝。网络传输入口使用 `CC_BUDGET_EXTERNAL_TOOL_NOT_COVERED`，worker 与策略控制使用 `CC_BUDGET_DESCENDANT_NOT_COVERED`；关闭后的异步调用使用 `CC_BUDGET_SCOPE_CLOSED`，这些预算错误均带 `noReplay:true`。
+
+新增 3 项 Node 回归以不可读取的输入验证提前拒绝，并对作用域外创建的真实本地代理和 Marketplace transport 验证后续调用仍被拒绝、代理关闭仍可执行。完整预算 Node 回归 **14 个文件、231/231 项通过**；Marketplace/egress worker Vitest **2 个文件、8 项通过、1 项 Linux 专用用例在 Windows 跳过**。扩展出口审计前后均为 **1,639 文件、73 个候选、零未分类/解析错误/跳过**；本轮 6 个测试前冻结文件与先前 95 份回执摘要均匹配。Marketplace 候选的分类理由和精确源码摘要已更新，三系统 `CLI CI` 清单已接入新 Node 文件，但没有准确提交的远端矩阵回执。
+
+本轮没有覆盖 broker 内部凭据传输 worker、固定文本搜索 worker、能力探测脚本或其他进程的 worker；这两个受保护的入口也不能证明任意 SDK、全局 fetch 或 OS 出口隔离。正式评测继续 `NOT_RUN`（0/36、0/9）、`paidReady:false`、native `NOT_ADMITTED`、晋升 `HOLD`。历史共享 **$99** 不重置；没有真实付费请求、生产部署、版本升级或发布。生产认证检查点、账单与取消费用核对、真实宿主隔离以及准确提交的远端 CI 仍待完成。
+
+## 24 第十五轮实施记录：凭据 worker 与引用 IPC 边界（2026-10-15）
+
+本轮继续检查上一轮未覆盖的 broker 凭据传输 worker。[第十五轮证据](./cli/evidence/implementation-plan-2026-10-15/budget-credential-worker/README.md)保存测试前后源码摘要、原始回执和历史回执核对。
+
+[`CredentialTransport`](../../packages/cli/src/lib/process-execution-broker/credential-transport.js)构造时在读取 `agentId`、端点或 worker 工厂前拒绝正式预算作用域；作用域外已创建的传输在 `registerCredential` 前再次拒绝，不把凭据发送给 worker。直接的 `resolveCredentialRefOverTransport` 在读取引用、环境变量或建立本地 IPC 连接前拒绝。撤销引用与关闭传输仍可用于清理。
+
+[`CredentialAgent`](../../packages/cli/src/lib/process-execution-broker/credential-agent.js)的引用签发、解析、环境过滤和子进程参数准备也在读取调用者数据或写入审计前拒绝。这样直接调用不会先处理凭据，再将传输层预算错误包装成可重试的 `CC_CREDENTIAL_TRANSPORT_UNAVAILABLE`。活跃作用域抛 `CC_BUDGET_DESCENDANT_NOT_COVERED`，已关闭作用域抛 `CC_BUDGET_SCOPE_CLOSED`，均带 `noReplay:true`。作用域外原有的单次引用、目标绑定与本地 IPC 合同由现有测试验证。
+
+新增 4 项 Node 用例以不可读取的输入和注入式 worker 验证零输入读取、零凭据注册消息、零审计副作用，以及作用域内仍可撤销/关闭。完整预算 Node 回归 **15 个文件、235/235 项通过**；凭据 Agent/传输 Vitest **3 个文件、20/20 项通过**。扩展出口审计前后均为 **1,639 文件、73 候选、零未分类/解析错误/跳过**；本轮 6 个测试前冻结文件与先前 102 份回执摘要匹配。凭据传输候选的精确源码摘要及 `LOCAL_IPC` 理由已更新，`CLI CI` 三系统清单已接线新用例。
+
+固定文本搜索 worker 只执行有界的本地文件扫描，本轮未封禁；这不证明任意 worker、已存在的其他进程、原生插件或系统级网络出口受控。进程内异步作用域也不能跨本地 IPC 自动识别另一进程，已发给作用域外持有者的引用仍需宿主与 OS 隔离。正式评测保持 `NOT_RUN`（0/36、0/9）、`paidReady:false`、native `NOT_ADMITTED`、晋升 `HOLD`；历史共享 **$99** 不重置。本轮无付费请求、生产部署或发布，准确提交的远端 CI、生产认证检查点、账单与取消费用核对仍待完成。

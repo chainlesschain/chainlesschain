@@ -1,0 +1,114 @@
+﻿{
+    "schema":  "chainlesschain.budget-direct-web-validation/v1",
+    "capturedAt":  "2026-10-15T11:29:53.5310041Z",
+    "sourceBinding":  {
+                          "path":  "source-binding.json",
+                          "baseCommit":  "62b407bbefee02a2ac14495fcef9e59b237c05a7",
+                          "workingTree":  true,
+                          "files":  6,
+                          "changedPaths":  [
+
+                                           ],
+                          "sourceTreeDigest":  "sha256:50aac1f3683c9c58248a4b646c415c451611bac415819078ef8d815978228308",
+                          "sourceTreeMatchesAudit":  true
+                      },
+    "node":  {
+                 "files":  11,
+                 "tests":  222,
+                 "passed":  222,
+                 "failed":  0,
+                 "addedTests":  5,
+                 "path":  "node-tests.xml",
+                 "exitCode":  0
+             },
+    "vitest":  {
+                   "files":  15,
+                   "tests":  87,
+                   "passed":  87,
+                   "failed":  0,
+                   "success":  true,
+                   "path":  "vitest-web-browser.json",
+                   "preliminaryPath":  "vitest-preliminary.json",
+                   "notCumulative":  true
+               },
+    "audit":  {
+                  "path":  "egress-review.json",
+                  "exitCode":  0,
+                  "sourceReviewPassed":  true,
+                  "filesScanned":  1639,
+                  "candidateFiles":  73,
+                  "unclassifiedFiles":  0,
+                  "parseErrors":  0,
+                  "skippedPaths":  0
+              },
+    "checks":  {
+                   "syntax":  "PASS: 4 changed JS/MJS files",
+                   "prettier":  "PASS: 5 changed code/catalogue files and 3 Markdown files",
+                   "gitDiffCheck":  "PASS",
+                   "eslint":  "NOT_RUN: missing local dependency",
+                   "historicalArtifacts":  {
+                                               "earlyBudgetFiles":  58,
+                                               "earlyBudgetChanged":  [
+
+                                                                      ],
+                                               "ninthFiles":  13,
+                                               "ninthChanged":  [
+
+                                                                ],
+                                               "tenthFiles":  6,
+                                               "tenthChanged":  [
+
+                                                                ]
+                                           }
+               },
+    "boundary":  {
+                     "webFetchDeniedBeforeUrlOptionsAndIo":  true,
+                     "browserFetchDeniedBeforeOptionsAndIo":  true,
+                     "screenshotDeniedBeforePlaywrightImport":  true,
+                     "scopeClosedCallsDenied":  true,
+                     "unscopedBehaviorPreserved":  true,
+                     "osIsolationVerified":  false,
+                     "allNetworkExportsCovered":  false
+                 },
+    "readiness":  {
+                      "formalEvaluation":  "NOT_RUN",
+                      "tasksCompleted":  0,
+                      "tasksTotal":  36,
+                      "firstRunsCompleted":  0,
+                      "firstRunsTotal":  9,
+                      "paidReady":  false,
+                      "nativeAdmission":  "NOT_ADMITTED",
+                      "promotion":  "HOLD",
+                      "historicalSharedCapUsd":  99,
+                      "paidCallsThisRound":  0,
+                      "remoteCi":  "NOT_RUN",
+                      "strictSandbox":  "NOT_RUN",
+                      "release":  "NOT_RUN"
+                  },
+    "artifacts":  [
+                      {
+                          "path":  "README.md",
+                          "sha256":  "8ebe7bb3f82067d40c9a7a9026933f6b7472dca26724288fe07fc7ad57e46059"
+                      },
+                      {
+                          "path":  "source-binding.json",
+                          "sha256":  "31aea9d0bf86a463a3d6cf0e3e7764707726709e945e3f4f749eee6de9ee3862"
+                      },
+                      {
+                          "path":  "egress-review.json",
+                          "sha256":  "ebd2704da217c8323048e8da7abf703340de4aac6a0ae143426d498c5a1525d0"
+                      },
+                      {
+                          "path":  "node-tests.xml",
+                          "sha256":  "a7f223fb521786a26752ba73e3ba766e6c624fe589f58bb02416f4b0fb3b5e65"
+                      },
+                      {
+                          "path":  "vitest-web-browser.json",
+                          "sha256":  "a6cf5e754905ed0596d8cef2b95b084949e8c05ce8b17e6f7201fe8a111e906f"
+                      },
+                      {
+                          "path":  "vitest-preliminary.json",
+                          "sha256":  "ab3c5e9ce95641708654a2650744bedf837b57a88842a7a7eafe2b3304fbbc89"
+                      }
+                  ]
+}

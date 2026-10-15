@@ -1,0 +1,191 @@
+{
+  "schema": "chainlesschain.budget-checkpoint-host-validation/v1",
+  "capturedAt": "2026-10-15T09:16:32.564Z",
+  "sourceBinding": {
+    "path": "source-binding.json",
+    "baseCommit": "62b407bbefee02a2ac14495fcef9e59b237c05a7",
+    "workingTree": true,
+    "files": 47,
+    "sourceDigest": "a6cba69953ae9be551464d0a53c5710736a32882f636a30e1b7727d968c89137",
+    "unchangedAfterTests": true,
+    "changedSources": [],
+    "sourceDigestMatches": true,
+    "sourceTreeDigest": "sha256:9e258aaa309ceb1d7213a628fc27e43f8ffdae2cee45d4a755015442efa81758",
+    "sourceTreeUnchanged": true
+  },
+  "node": {
+    "files": 8,
+    "tests": 208,
+    "passed": 208,
+    "failed": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0,
+    "durationMs": 127387.7995,
+    "addedCheckpointHostTests": 30,
+    "exitCode": 0,
+    "suites": [
+      "packages/cli/test-node/formal-budget-authority.test.mjs",
+      "packages/cli/test-node/formal-budget-frozen-plan.node-test.mjs",
+      "packages/cli/test-node/formal-budget-provider-scope.node-test.mjs",
+      "packages/cli/test-node/formal-budget-lineage.node-test.mjs",
+      "packages/cli/test-node/formal-budget-registry-boundary.node-test.mjs",
+      "packages/cli/test-node/budget-egress-inventory.node-test.mjs",
+      "packages/cli/test-node/budget-diagnostic-boundaries.node-test.mjs",
+      "packages/cli/test-node/formal-budget-checkpoint-host.node-test.mjs"
+    ]
+  },
+  "sourceAudit": {
+    "path": "egress-review.json",
+    "exitCode": 0,
+    "sourceReviewPassed": true,
+    "filesScanned": 1639,
+    "candidateFiles": 73,
+    "unclassifiedFiles": 0,
+    "parseErrors": 0,
+    "skippedPaths": 0
+  },
+  "checkpointHost": {
+    "explicitInitializationOnly": true,
+    "hostPolicyPersisted": true,
+    "authorityPinsHostId": true,
+    "latestHeadsRequiredOnEveryOperation": true,
+    "publicationBeforeLocalCommit": true,
+    "exactDurableAcknowledgementRequired": true,
+    "readbackBeforeLocalCommit": true,
+    "credentialAwaitRecheck": true,
+    "failedDispatchPreventsFetch": true,
+    "settlementFailureRetainsDispatchedLiability": true,
+    "unknownCancellationCheckpointed": true,
+    "realProcessRestartAndTermination": true,
+    "asyncHostCallbacksRefused": true,
+    "automaticRecoveryOrSeeding": false,
+    "productionCheckpointHostImplemented": false,
+    "hostAuthenticationVerified": false,
+    "independentStorageProtectionVerified": false,
+    "registryRollbackResistanceVerified": false,
+    "globalRestartPolicyEnforced": false
+  },
+  "knownCounterexamples": [
+    {
+      "name": "Legacy registry restart without any external checkpoint",
+      "synthetic": true,
+      "formalSample": false,
+      "spentBeforeRestoreUsdMicros": 46,
+      "restoredExposureUsdMicros": 0,
+      "status": "REPRODUCED_BY_PASSING_ASSERTIONS",
+      "testFile": "packages/cli/test-node/formal-budget-registry-boundary.node-test.mjs"
+    },
+    {
+      "name": "Matching authority, registry and synthetic host rolled back together",
+      "synthetic": true,
+      "formalSample": false,
+      "spentBeforeRestoreUsdMicros": 46,
+      "restoredExposureUsdMicros": 0,
+      "status": "REPRODUCED_BY_PASSING_ASSERTIONS",
+      "testFile": "packages/cli/test-node/formal-budget-checkpoint-host.node-test.mjs",
+      "condition": "The test sink is not independent or protected; a real host must supply this trust root."
+    }
+  ],
+  "checks": {
+    "syntax": {
+      "files": 43,
+      "passed": true
+    },
+    "prettier": {
+      "files": 42,
+      "exitCode": 0
+    },
+    "eslint": {
+      "status": "NOT_RUN",
+      "installed": false,
+      "reason": "ESLint is not installed in this checkout"
+    },
+    "historicalArtifacts": {
+      "files": 49,
+      "changedPaths": []
+    },
+    "relativeLinks": {
+      "files": 3,
+      "missingLinks": []
+    },
+    "documentationPrettier": {
+      "files": 3,
+      "exitCode": 0,
+      "output": "Checking formatting...\nAll matched files use Prettier code style!\n"
+    },
+    "gitDiffCheck": {
+      "exitCode": 0,
+      "output": ""
+    },
+    "finalArtifactIntegrity": {
+      "invalidArtifacts": [],
+      "changedSources": [],
+      "changedHistoricalArtifacts": []
+    }
+  },
+  "vitest": {
+    "status": "NOT_RUN",
+    "reason": "Native Node/SQLite and process suites cover this change; no new Vitest result claimed."
+  },
+  "commands": {
+    "node": {
+      "cwd": "repository",
+      "command": "node --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=docs/research/cli/evidence/implementation-plan-2026-10-15/budget-checkpoint-host/node-tests.xml packages/cli/test-node/formal-budget-authority.test.mjs packages/cli/test-node/formal-budget-frozen-plan.node-test.mjs packages/cli/test-node/formal-budget-provider-scope.node-test.mjs packages/cli/test-node/formal-budget-lineage.node-test.mjs packages/cli/test-node/formal-budget-registry-boundary.node-test.mjs packages/cli/test-node/budget-egress-inventory.node-test.mjs packages/cli/test-node/budget-diagnostic-boundaries.node-test.mjs packages/cli/test-node/formal-budget-checkpoint-host.node-test.mjs"
+    },
+    "sourceAudit": {
+      "cwd": "repository",
+      "command": "node packages/cli/scripts/implementation-plan-budget-egress.mjs --check --include-scripts --output docs/research/cli/evidence/implementation-plan-2026-10-15/budget-checkpoint-host/egress-review.json"
+    }
+  },
+  "readiness": {
+    "formalEvaluation": "NOT_RUN",
+    "tasksCompleted": 0,
+    "tasksTotal": 36,
+    "firstRunsCompleted": 0,
+    "firstRunsTotal": 9,
+    "paidReady": false,
+    "nativeAdmission": "NOT_ADMITTED",
+    "promotion": "HOLD",
+    "historicalSharedCapUsd": 99,
+    "additionalPaidCallsAuthorized": false,
+    "paidCallsThisRound": 0,
+    "remoteCi": "NOT_RUN",
+    "strictSandbox": "NOT_RUN",
+    "release": "NOT_RUN"
+  },
+  "artifacts": [
+    {
+      "path": "source-binding.json",
+      "sha256": "bba87b07c54a8251902f919c32c085b6c2e65c7b697e180b1e6722b63e3c0b26"
+    },
+    {
+      "path": "prior-artifact-binding.json",
+      "sha256": "bc6309495ed5d7edcf5e22980e57c17f2e329efedee26374bbdfc39f3cd44aa9"
+    },
+    {
+      "path": "node-tests.xml",
+      "sha256": "d2a2478157d592c6f65fd68c1c276626d66057c60c3e332bc4d58056e2ccbaf5"
+    },
+    {
+      "path": "egress-review.json",
+      "sha256": "c4ede2c563153a8a764058388030ea1a5271007275b26d900939fcaa8cd71466"
+    },
+    {
+      "path": "local-checks.json",
+      "sha256": "382630d27005f9e1e4b7ca8094ac104e7ecdb547bfab81eff4fcbf541b75749d"
+    },
+    {
+      "path": "README.md",
+      "sha256": "e8056cf29b2985325f3270ab8b0d04b19832990f6dc75fa585d6a7edd1650ba2"
+    },
+    {
+      "path": "preliminary-failures.json",
+      "sha256": "edb467ac5959f1eb7e28e5a0b122f596a1b1adf60ea6b8b89012301c6ebb11a5"
+    },
+    {
+      "path": "egress-review-before-freeze.json",
+      "sha256": "d9cacdbdac8da14883839da7a1c916fc12e558bbae3805d0ca716b830a5d7f3b"
+    }
+  ]
+}
