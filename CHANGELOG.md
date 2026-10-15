@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.102: restore session pricing validation
+
+- Accept the reviewed Priority and Ultrafast pricing terms when validating the
+  built-in model catalog, restoring session observability, budget and Eval
+  projections while continuing to reject unknown tiers and invalid multipliers.
+- Make the model-switch warning regression insensitive to source formatting.
+- Publish Personal Data Hub 0.4.65 with source snapshots in answer citations
+  before CLI 0.166.102, then pair VS Code 0.37.146 and JetBrains 0.4.164 after
+  the exact release commit passes its complete Actions gates.
+
 ### Fixed - cc CLI 0.166.101: preserve context, usage and task outcomes during compaction
 
 - Restore VS Code composer drafts after reset, session resume and closing the

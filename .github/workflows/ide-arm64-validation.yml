@@ -41,6 +41,8 @@ jobs:
     name: VS Code architecture-neutral candidate
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    outputs:
+      artifact-id: ${{ steps.upload-candidate.outputs.artifact-id }}
     defaults:
       run:
         working-directory: packages/vscode-extension
@@ -68,6 +70,7 @@ jobs:
           node scripts/verify-vsix.mjs chainlesschain-ide.vsix
           node scripts/vsix-release-artifact.mjs create chainlesschain-ide.vsix manifest.json
       - name: Upload immutable VSIX candidate
+        id: upload-candidate
         uses: actions/upload-artifact@v6
         with:
           name: ide-arm64-vscode-candidate-${{ env.IDE_ARM64_RELEASE_COMMIT }}-${{ github.run_attempt }}
@@ -114,7 +117,9 @@ jobs:
       - name: Download immutable VSIX candidate
         uses: actions/download-artifact@v7
         with:
-          name: ide-arm64-vscode-candidate-${{ env.IDE_ARM64_RELEASE_COMMIT }}-${{ github.run_attempt }}
+          # Failed-host reruns reuse the successful producer's immutable
+          # artifact, whose upload attempt can differ from this job's attempt.
+          artifact-ids: ${{ needs.vscode-package.outputs.artifact-id }}
           path: packages/vscode-extension
       - name: Verify immutable VSIX candidate
         working-directory: packages/vscode-extension
