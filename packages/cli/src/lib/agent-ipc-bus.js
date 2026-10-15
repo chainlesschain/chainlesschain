@@ -13,6 +13,7 @@ import { EventEmitter } from "node:events";
 import crypto from "node:crypto";
 import { EventRuntimeProducer } from "./event-runtime-producer.js";
 import { EventRuntimeStore } from "./event-runtime-store.js";
+import { requireUnscopedDescendantControl } from "./formal-budget-provider-scope.js";
 import executionBroker from "./process-execution-broker/index.js";
 import {
   AGENT_IPC_DEFAULT_LIMITS,
@@ -284,6 +285,7 @@ class AgentIPCBus extends EventEmitter {
    * @returns {Promise<{process: ChildProcess, agentId: string}>}
    */
   async spawnAgentProcess(command, args = [], options = {}) {
+    requireUnscopedDescendantControl();
     const agentId = options.agentId || crypto.randomUUID();
     if (
       this._childTransports.has(agentId) ||

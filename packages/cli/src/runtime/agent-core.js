@@ -1,3 +1,8 @@
+import {
+  providerFetch,
+  requireUnscopedToolExecution,
+} from "../lib/formal-budget-provider-scope.js";
+import { isFormalBudgetError } from "../lib/formal-budget-errors.js";
 /**
  * Agent Core — transport-independent agentic logic
  *
@@ -2613,6 +2618,7 @@ function snapshotApprovalPolicyAuthority(approvalGate, sessionId) {
  * @returns {Promise<object>} tool result
  */
 export async function executeTool(name, args, context = {}) {
+  requireUnscopedToolExecution();
   const liveExecutionContext = context;
   try {
     const executionPolicy = captureAgentExecutionPolicy(context);
@@ -7851,6 +7857,7 @@ async function executeToolInner(
         });
         return attachDescriptor(result);
       } catch (err) {
+        if (isFormalBudgetError(err)) throw err;
         return attachDescriptor({ error: `web_search failed: ${err.message}` });
       }
     }
@@ -9172,6 +9179,7 @@ async function executeToolInner(
         } catch (err) {
           if (
             isEvolutionIngressFailure(err) ||
+            isFormalBudgetError(err) ||
             err?.runtimeLedgerPersistence === true ||
             err?.workflowEffectOutcomeUnknown === true
           ) {
@@ -10643,6 +10651,7 @@ function _throwBackgroundSubAgentUsageFailure(entry) {
   const error = entry?.outcome?.fatalError;
   if (
     isEvolutionIngressFailure(error) ||
+    isFormalBudgetError(error) ||
     error?.runtimeLedgerPersistence === true ||
     error?.workflowEffectOutcomeUnknown === true
   ) {
@@ -11621,6 +11630,7 @@ async function _executeSpawnSubAgent(args, ctx) {
             result: subCtx.result,
             error: err.message,
             ...(isEvolutionIngressFailure(err) ||
+            isFormalBudgetError(err) ||
             err?.runtimeLedgerPersistence === true ||
             err?.workflowEffectOutcomeUnknown === true
               ? { fatalError: err }
@@ -11757,6 +11767,7 @@ async function _executeSpawnSubAgent(args, ctx) {
 
     if (
       isEvolutionIngressFailure(err) ||
+      isFormalBudgetError(err) ||
       err?.runtimeLedgerPersistence === true ||
       err?.workflowEffectOutcomeUnknown === true
     ) {
@@ -12000,7 +12011,7 @@ export async function chatWithTools(rawMessages, options) {
         },
       );
     }
-    const response = await fetch(apiUrl, {
+    const response = await providerFetch(apiUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       signal,
@@ -12156,7 +12167,7 @@ export async function chatWithTools(rawMessages, options) {
       );
     }
 
-    const response = await fetch(`${url}/messages`, {
+    const response = await providerFetch(`${url}/messages`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -12312,7 +12323,7 @@ export async function chatWithTools(rawMessages, options) {
       );
     }
 
-    const response = await fetch(`${url}/responses`, {
+    const response = await providerFetch(`${url}/responses`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -12390,7 +12401,7 @@ export async function chatWithTools(rawMessages, options) {
     );
   }
 
-  const response = await fetch(`${url}/chat/completions`, {
+  const response = await providerFetch(`${url}/chat/completions`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -12627,6 +12638,7 @@ export function _streamErrorDisposition(
   partialText,
   visible = false,
 ) {
+  if (isFormalBudgetError(err)) return "rethrow";
   if (err?.isOutputBackpressureFailure === true) return "rethrow";
   if (isAbortError(err)) return "rethrow";
   if (signal && signal.aborted) return "rethrow";
@@ -12871,7 +12883,7 @@ async function _chatOllamaStreaming(
   stallMs,
   stallTimeoutMs,
 ) {
-  const response = await fetch(apiUrl, {
+  const response = await providerFetch(apiUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     signal,
@@ -12933,7 +12945,7 @@ async function _chatAnthropicStreaming(
   stallMs,
   stallTimeoutMs,
 ) {
-  const response = await fetch(apiUrl, {
+  const response = await providerFetch(apiUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...extraHeaders },
     signal,
@@ -13000,7 +13012,7 @@ async function _chatOpenAIStreaming(
   stallTimeoutMs,
   providerRequestId = null,
 ) {
-  const response = await fetch(apiUrl, {
+  const response = await providerFetch(apiUrl, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -13083,7 +13095,7 @@ async function _chatOpenAIResponsesStreaming(
   stallTimeoutMs,
   providerRequestId = null,
 ) {
-  const response = await fetch(apiUrl, {
+  const response = await providerFetch(apiUrl, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -15479,6 +15491,7 @@ export async function* agentLoop(messages, options) {
         }
       } catch (_e) {
         if (isAbortError(_e) || signal?.aborted) throw _e;
+        if (isFormalBudgetError(_e)) throw _e;
         if (_e?.runtimeLedgerPersistence === true) throw _e;
         if (_e?.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw _e;
         if (
@@ -15911,6 +15924,7 @@ export async function* agentLoop(messages, options) {
           ];
         }
       } catch (_e) {
+        if (isFormalBudgetError(_e)) throw _e;
         // prepareCall failures are non-critical — proceed with original messages
       }
     }
@@ -16511,6 +16525,7 @@ export async function* agentLoop(messages, options) {
                 : {}),
             },
             error: err.message,
+            fatalError: isFormalBudgetError(err) ? err : null,
           }),
         );
         return { call, toolArgs, workflowBinding, promise };
@@ -16518,7 +16533,12 @@ export async function* agentLoop(messages, options) {
       for (const { call, toolArgs, workflowBinding, promise } of inflight) {
         throwIfAborted(signal);
         _throwBackgroundUsageFailureState(backgroundUsageFailureState);
-        const { result: toolResult, error: toolError } = await promise;
+        const {
+          result: toolResult,
+          error: toolError,
+          fatalError,
+        } = await promise;
+        if (fatalError) throw fatalError;
         throwIfAborted(signal);
         const taskAdvanced = taskProgressTracker.record(
           call.function.name,
@@ -16961,6 +16981,7 @@ export async function* agentLoop(messages, options) {
           } catch (err) {
             if (
               isEvolutionIngressFailure(err) ||
+              isFormalBudgetError(err) ||
               err?.runtimeLedgerPersistence === true
             )
               throw err;

@@ -3,10 +3,13 @@
  * Uses built-in fetch for basic operations, optional playwright for screenshots.
  */
 
+import { requireUnscopedExternalToolAccess } from "./formal-budget-provider-scope.js";
+
 /**
  * Fetch a URL and return the raw HTML.
  */
 export async function fetchPage(url, options = {}) {
+  requireUnscopedExternalToolAccess();
   const timeout = options.timeout || 30000;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeout);
@@ -179,6 +182,7 @@ export function extractLinks(html, baseUrl) {
  * Returns null if playwright is not installed.
  */
 export async function takeScreenshot(url, outputPath, options = {}) {
+  requireUnscopedExternalToolAccess();
   try {
     const { chromium } = await import("playwright");
     const browser = await chromium.launch({ headless: true });

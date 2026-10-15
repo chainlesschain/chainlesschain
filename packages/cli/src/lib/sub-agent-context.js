@@ -21,6 +21,7 @@ import {
 } from "../runtime/agent-core.js";
 import { feature } from "./feature-flags.js";
 import { isEvolutionIngressFailure } from "./model-failure-policy.js";
+import { isFormalBudgetError } from "./formal-budget-errors.js";
 import { captureAgentEvolutionIngress } from "./evolution/agent-evolution-ingress.js";
 import {
   createWorktree,
@@ -609,6 +610,7 @@ export class SubAgentContext {
     } catch (err) {
       if (
         isEvolutionIngressFailure(err) ||
+        isFormalBudgetError(err) ||
         err?.runtimeLedgerPersistence === true ||
         this._workflowEffectId
       ) {
@@ -1212,6 +1214,7 @@ export class SubAgentContext {
     } catch (err) {
       if (
         isEvolutionIngressFailure(err) ||
+        isFormalBudgetError(err) ||
         err?.runtimeLedgerPersistence === true ||
         this._workflowEffectId
       ) {
@@ -1543,9 +1546,9 @@ export class SubAgentContext {
   isAborted() {
     return Boolean(
       this._signal?.aborted ||
-      this._abortController.signal.aborted ||
-      this._runAbortController?.signal.aborted ||
-      this.sessionBudget?.signal?.aborted,
+        this._abortController.signal.aborted ||
+        this._runAbortController?.signal.aborted ||
+        this.sessionBudget?.signal?.aborted,
     );
   }
 

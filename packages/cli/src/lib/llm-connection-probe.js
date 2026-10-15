@@ -1,5 +1,7 @@
 import { formatProviderResponseError } from "./provider-http-error.js";
 import { estimateCost } from "./llm-pricing.js";
+import { providerFetch } from "./formal-budget-provider-scope.js";
+import { isFormalBudgetError } from "./formal-budget-errors.js";
 
 // Reasoning models spend the same output allowance on thinking before the
 // final answer. A 16-token probe can therefore receive HTTP 200 with only
@@ -180,13 +182,17 @@ export async function probeLlmConnection(
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   let usage = null;
   try {
-    const response = await fetchImpl(url, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(body),
-      signal: controller.signal,
-      redirect: "error",
-    });
+    const response = await providerFetch(
+      url,
+      {
+        method: "POST",
+        headers,
+        body: JSON.stringify(body),
+        signal: controller.signal,
+        redirect: "error",
+      },
+      fetchImpl,
+    );
     if (!response.ok)
       throw new Error(
         await formatProviderResponseError(target.provider, response, {
@@ -232,9 +238,10 @@ export async function probeLlmConnection(
       ? llmProbeReceipt(target, { ok: true, reply, usage })
       : reply;
   } catch (error) {
-    const failure = controller.signal.aborted
-      ? new Error(`Connection test timed out after ${timeoutMs / 1000}s`)
-      : error;
+    const failure =
+      controller.signal.aborted && !isFormalBudgetError(error)
+        ? new Error(`Connection test timed out after ${timeoutMs / 1000}s`)
+        : error;
     if (includeUsage) failure.probe = llmProbeReceipt(target, { usage });
     throw failure;
   } finally {

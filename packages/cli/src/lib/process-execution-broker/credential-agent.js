@@ -14,6 +14,7 @@
 
 import crypto from "node:crypto";
 import { CredentialTransport } from "./credential-transport.js";
+import { requireUnscopedDescendantControl } from "../formal-budget-provider-scope.js";
 
 const REDACTED_VALUE = "***REDACTED***";
 const DEFAULT_TTL_MS = 60_000;
@@ -644,6 +645,7 @@ class CredentialAgent {
    * self-asserted approval metadata.
    */
   issueCredentialRef(request = {}) {
+    requireUnscopedDescendantControl();
     if (!this.isEnabled()) {
       this._recordAudit({
         event: "credential_ref_issue",
@@ -842,6 +844,7 @@ class CredentialAgent {
    * request object; child-provided claims are not sufficient attestation.
    */
   resolveCredentialRef(refId, request = {}) {
+    requireUnscopedDescendantControl();
     const refFingerprint = this._fingerprint(refId);
     if (!this.isEnabled()) {
       this._recordAudit({
@@ -1002,8 +1005,8 @@ class CredentialAgent {
   _canIssueForContext(context) {
     return Boolean(
       context?.approved === true &&
-      context.approvalId &&
-      normalizeProcessTarget(context.target?.process ?? context.process),
+        context.approvalId &&
+        normalizeProcessTarget(context.target?.process ?? context.process),
     );
   }
 
@@ -1025,6 +1028,7 @@ class CredentialAgent {
    * Strip sensitive and reserved environment variables from spawn options.
    */
   filterEnvironment(env = process.env, context = null) {
+    requireUnscopedDescendantControl();
     const safeEnv = {};
     const redacted = [];
     const reservedRemoved = [];
@@ -1232,6 +1236,7 @@ class CredentialAgent {
    * Apply filtering and issue references for a broker-approved spawn.
    */
   applyWithReport(spawnOptions) {
+    requireUnscopedDescendantControl();
     if (!spawnOptions || typeof spawnOptions !== "object") {
       throw credentialError(
         CREDENTIAL_ERROR_CODES.INVALID_REQUEST,

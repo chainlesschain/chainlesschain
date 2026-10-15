@@ -1,4 +1,5 @@
 import { isAbortError } from "./abort-utils.js";
+import { isFormalBudgetError } from "./formal-budget-errors.js";
 
 export function isEvolutionIngressFailure(error) {
   const visited = new Set();
@@ -21,6 +22,7 @@ export function isTerminalModelFailure(error) {
       current.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED" ||
       current.runtimeLedgerPersistence === true ||
       current.workflowEffectOutcomeUnknown === true ||
+      isFormalBudgetError(current) ||
       /^(?:CC|ERR)_SESSION_BUDGET_/u.test(current.code || "") ||
       isAbortError(current)
     ) {

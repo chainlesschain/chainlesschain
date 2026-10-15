@@ -1,3 +1,4 @@
+import { providerFetch } from "./formal-budget-provider-scope.js";
 /**
  * Chat Core — transport-independent streaming chat logic
  *
@@ -21,6 +22,7 @@ import {
   waitForStreamRetry,
 } from "./stream-retry.js";
 import { throwIfAborted } from "./abort-utils.js";
+import { isFormalBudgetError } from "./formal-budget-errors.js";
 
 // A streaming chat call must not hang forever if the API accepts the connection
 // but then goes silent (TCP up, no bytes). Abort the request if no data arrives
@@ -132,7 +134,7 @@ export async function streamOllama(
   guard.bump();
   let response;
   try {
-    response = await fetch(`${baseUrl}/api/chat`, {
+    response = await providerFetch(`${baseUrl}/api/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -146,7 +148,7 @@ export async function streamOllama(
     });
   } catch (e) {
     guard.stop();
-    throw guard.stalled()
+    throw guard.stalled() && !isFormalBudgetError(e)
       ? new Error(
           `Ollama request stalled (no response in ${STREAM_STALL_MS / 1000}s)`,
         )
@@ -213,7 +215,7 @@ export async function streamOllama(
     }
   } catch (e) {
     throw attachStreamRetryMetadata(
-      guard.stalled()
+      guard.stalled() && !isFormalBudgetError(e)
         ? new Error(
             `Ollama stream stalled (no data in ${STREAM_STALL_MS / 1000}s)`,
           )
@@ -247,7 +249,7 @@ export async function streamOpenAI(
   guard.bump();
   let response;
   try {
-    response = await fetch(`${baseUrl}/chat/completions`, {
+    response = await providerFetch(`${baseUrl}/chat/completions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -267,7 +269,7 @@ export async function streamOpenAI(
     });
   } catch (e) {
     guard.stop();
-    throw guard.stalled()
+    throw guard.stalled() && !isFormalBudgetError(e)
       ? new Error(
           `API request stalled (no response in ${STREAM_STALL_MS / 1000}s)`,
         )
@@ -344,7 +346,7 @@ export async function streamOpenAI(
     }
   } catch (e) {
     throw attachStreamRetryMetadata(
-      guard.stalled()
+      guard.stalled() && !isFormalBudgetError(e)
         ? new Error(
             `API stream stalled (no data in ${STREAM_STALL_MS / 1000}s)`,
           )
@@ -392,7 +394,7 @@ export async function streamAnthropic(
   guard.bump();
   let response;
   try {
-    response = await fetch(`${baseUrl}/messages`, {
+    response = await providerFetch(`${baseUrl}/messages`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -412,7 +414,7 @@ export async function streamAnthropic(
     });
   } catch (e) {
     guard.stop();
-    throw guard.stalled()
+    throw guard.stalled() && !isFormalBudgetError(e)
       ? new Error(
           `Anthropic request stalled (no response in ${STREAM_STALL_MS / 1000}s)`,
         )
@@ -486,7 +488,7 @@ export async function streamAnthropic(
     }
   } catch (e) {
     throw attachStreamRetryMetadata(
-      guard.stalled()
+      guard.stalled() && !isFormalBudgetError(e)
         ? new Error(
             `Anthropic stream stalled (no data in ${STREAM_STALL_MS / 1000}s)`,
           )

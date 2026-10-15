@@ -1,4 +1,5 @@
 import { openDecisionProviderAuthority } from "./provider-authority.js";
+import { providerFetch } from "../formal-budget-provider-scope.js";
 
 const PROVIDERS = Object.freeze({
   typesafe: {
@@ -195,18 +196,22 @@ export function createDecisionProvider({
       if (Buffer.byteLength(body, "utf8") > MAX_DECISION_REQUEST_BYTES) {
         throw bodyTooLarge("request", MAX_DECISION_REQUEST_BYTES);
       }
-      const response = await fetchImpl(endpoint, {
-        method: "POST",
-        headers: {
-          ...(secret === undefined
-            ? {}
-            : { authorization: `Bearer ${secret}` }),
-          "content-type": "application/json",
+      const response = await providerFetch(
+        endpoint,
+        {
+          method: "POST",
+          headers: {
+            ...(secret === undefined
+              ? {}
+              : { authorization: `Bearer ${secret}` }),
+            "content-type": "application/json",
+          },
+          body,
+          signal,
+          redirect: "error",
         },
-        body,
-        signal,
-        redirect: "error",
-      });
+        fetchImpl,
+      );
       if (!response?.ok) {
         throw providerError(response?.status ?? 0, options.provider);
       }

@@ -3,6 +3,10 @@ import fs from "node:fs";
 import tls from "node:tls";
 import { Worker } from "node:worker_threads";
 import { Agent, ProxyAgent, fetch as undiciFetch } from "undici";
+import {
+  requireUnscopedDescendantControl,
+  requireUnscopedExternalToolAccess,
+} from "../formal-budget-provider-scope.js";
 
 export const MAX_MARKETPLACE_CA_BUNDLE_BYTES = 1024 * 1024;
 export const MAX_MARKETPLACE_PROXY_URL_LENGTH = 4096;
@@ -15,6 +19,7 @@ export const DEFAULT_MARKETPLACE_PAC_TIMEOUT_MS = 2_000;
  * deliberately ignored: callers pass CLI flags or CC_PLUGIN_REGISTRY_* values.
  */
 export function createMarketplaceNetworkTransport(options = {}) {
+  requireUnscopedExternalToolAccess();
   const proxy = normalizeProxyUrl(options.proxyUrl);
   const pac = options.pacFile ? readMarketplacePacFile(options.pacFile) : null;
   if (proxy && pac) {
@@ -49,6 +54,7 @@ export function createMarketplaceNetworkTransport(options = {}) {
 
   return {
     fetch: async (url, fetchOptions = {}) => {
+      requireUnscopedExternalToolAccess();
       const route = pac
         ? parsePacResult(
             await resolveMarketplacePac(pac.script, url, {
@@ -99,11 +105,9 @@ export function readMarketplacePacFile(file) {
   };
 }
 
-export function resolveMarketplacePac(
-  script,
-  url,
-  { timeoutMs = DEFAULT_MARKETPLACE_PAC_TIMEOUT_MS } = {},
-) {
+export function resolveMarketplacePac(script, url, options = {}) {
+  requireUnscopedDescendantControl();
+  const { timeoutMs = DEFAULT_MARKETPLACE_PAC_TIMEOUT_MS } = options;
   const timeout = Number(timeoutMs);
   if (!Number.isInteger(timeout) || timeout < 100 || timeout > 10_000) {
     throw new Error("Marketplace PAC timeout must be between 100 and 10000 ms");

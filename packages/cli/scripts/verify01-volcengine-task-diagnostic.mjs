@@ -16,6 +16,7 @@ import { reviewEnvironment, REVIEW_IMAGE } from "./verify01-review-runtime.mjs";
 import { VERIFY01_REVIEW_SPECS } from "./verify01-review-specs.mjs";
 import { verifyAgentTerminal } from "../src/lib/eval/stream-terminal.js";
 import { createVolcengineDiagnosticBroker } from "./verify01-volcengine-diagnostic-broker.mjs";
+import { requireUnscopedModelTransport } from "../src/lib/formal-budget-provider-scope.js";
 
 export const DIAGNOSTIC = Object.freeze({
   tasks: ["verify-04", "verify-22"],
@@ -333,12 +334,9 @@ export function changedFiles(before, after) {
     );
 }
 
-export async function runTaskDiagnostic({
-  outputDir,
-  imageId,
-  sourceSha,
-  key,
-}) {
+export async function runTaskDiagnostic(options) {
+  requireUnscopedModelTransport();
+  const { outputDir, imageId, sourceSha, key } = options;
   const output = path.resolve(outputDir);
   const relativeOutput = path.relative(repository, output);
   assert.ok(

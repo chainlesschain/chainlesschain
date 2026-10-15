@@ -21,6 +21,7 @@
  *   used /api/generate, which broke against the Android server.
  */
 
+import { providerFetch } from "../lib/formal-budget-provider-scope.js";
 import ora from "ora";
 import { randomUUID } from "node:crypto";
 import { types as utilTypes } from "node:util";
@@ -128,8 +129,9 @@ export async function queryLLM(
   // under vitest so it never pollutes spawned-bin test stderr.
   if (!process.env.VITEST && !process.env.VITEST_WORKER_ID) {
     try {
-      const { maybeWarnDeprecatedModel } =
-        await import("../lib/model-deprecation.js");
+      const { maybeWarnDeprecatedModel } = await import(
+        "../lib/model-deprecation.js"
+      );
       maybeWarnDeprecatedModel({ model });
     } catch {
       /* fail-open: a deprecation notice must never affect the query */
@@ -140,7 +142,7 @@ export async function queryLLM(
     const baseUrl = options.baseUrl || "http://localhost:11434";
     // Use /api/chat (modern Ollama API + only endpoint Android LocalLlmServer
     // implements). Non-streaming mode keeps the response shape simple.
-    const response = await fetch(`${baseUrl}/api/chat`, {
+    const response = await providerFetch(`${baseUrl}/api/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -183,7 +185,7 @@ export async function queryLLM(
   }
 
   const apiBase = options.baseUrl || providerDef.baseUrl;
-  const response = await fetch(`${apiBase}/chat/completions`, {
+  const response = await providerFetch(`${apiBase}/chat/completions`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

@@ -5,6 +5,8 @@
 /**
  * Built-in provider definitions.
  */
+import { providerFetch } from "./formal-budget-provider-scope.js";
+import { isFormalBudgetError } from "./formal-budget-errors.js";
 export const BUILT_IN_PROVIDERS = {
   ollama: {
     name: "ollama",
@@ -134,8 +136,9 @@ async function _fetchWithTimeout(
   const timer = setTimeout(() => controller.abort(), ms);
   if (timer && typeof timer.unref === "function") timer.unref();
   try {
-    return await fetch(url, { ...opts, signal: controller.signal });
+    return await providerFetch(url, { ...opts, signal: controller.signal });
   } catch (e) {
+    if (isFormalBudgetError(e)) throw e;
     if (controller.signal.aborted) {
       throw new Error(`provider test timed out after ${ms / 1000}s`);
     }

@@ -42,6 +42,30 @@ async function drain(iterable) {
 }
 
 describe("agentLoop headless auto-compaction", () => {
+  it("propagates a budget refusal before trying the main model or replacing history", async () => {
+    const messages = seedLargeHistory();
+    const original = structuredClone(messages);
+    const failure = Object.assign(new Error("unresolved model liability"), {
+      code: "CC_BUDGET_TRANSPORT_UNKNOWN",
+    });
+    const chatFn = vi.fn(finalReplyChatFn());
+    await expect(
+      drain(
+        agentLoop(messages, {
+          chatFn,
+          _autoCompactor: {
+            shouldAutoCompact: () => true,
+            compress: async () => {
+              throw failure;
+            },
+          },
+        }),
+      ),
+    ).rejects.toBe(failure);
+    expect(chatFn).not.toHaveBeenCalled();
+    expect(messages).toEqual(original);
+  });
+
   const structuredSummary = () =>
     JSON.stringify({
       objective: "finish the requested change",

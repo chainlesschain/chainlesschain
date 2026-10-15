@@ -4,6 +4,8 @@ import { loadConfig } from "../src/lib/config-manager.js";
 import { applyConfigLlmDefaults } from "../src/lib/llm-config-defaults.js";
 import { BUILT_IN_PROVIDERS } from "../src/lib/llm-providers.js";
 import { estimateCost, mergePricing } from "../src/lib/llm-pricing.js";
+import { pathToFileURL } from "node:url";
+import { requireUnscopedModelTransport } from "../src/lib/formal-budget-provider-scope.js";
 
 const CONFIRM_FLAG = "--confirm-live";
 const TIMEOUT_MS = 20_000;
@@ -21,7 +23,8 @@ function nonNegativeInteger(value, label) {
   return result;
 }
 
-async function main() {
+export async function runPmExplorationLiveProbe() {
+  requireUnscopedModelTransport();
   if (!process.argv.slice(2).includes(CONFIRM_FLAG)) {
     fail(
       `Refusing a paid network call without ${CONFIRM_FLAG}; this probe never prints credentials or response content.`,
@@ -121,6 +124,11 @@ async function main() {
   );
 }
 
-main().catch((error) => {
-  fail(error?.message || String(error));
-});
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
+  runPmExplorationLiveProbe().catch((error) => {
+    fail(error?.message || String(error));
+  });
+}

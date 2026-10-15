@@ -1,4 +1,5 @@
 import { prepareGovernedModelTurn } from "./governed-model-turn.js";
+import { requireUnscopedModelTransport } from "../formal-budget-provider-scope.js";
 import {
   captureGovernedHubSdkPorts,
   createGovernedHubLlm,
@@ -48,6 +49,9 @@ function captureEmbeddingTransport(stage, sdk) {
         );
     },
     async embed(profile) {
+      // Neither arbitrary embedding callbacks nor the native embeddings
+      // protocol have a verified Chat billing contract in this scope.
+      requireUnscopedModelTransport();
       if (!defaultOllama) return await embed.call(stage, profile);
       // The raw SDK ollamaEmbed remains closed. This private transport is only
       // invoked below, after the scoped Run projected the profile.

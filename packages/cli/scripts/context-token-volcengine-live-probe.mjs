@@ -12,6 +12,7 @@ import { loadConfig } from "../src/lib/config-manager.js";
 import { applyConfigLlmDefaults } from "../src/lib/llm-config-defaults.js";
 import { BUILT_IN_PROVIDERS } from "../src/lib/llm-providers.js";
 import { estimateCost, mergePricing } from "../src/lib/llm-pricing.js";
+import { requireUnscopedModelTransport } from "../src/lib/formal-budget-provider-scope.js";
 import {
   assessCalibrationMatrix,
   compareContextTokenEstimates,
@@ -112,6 +113,7 @@ export function parseLiveProbeOptions(args) {
 }
 
 async function main() {
+  requireUnscopedModelTransport();
   const options = parseLiveProbeOptions(process.argv.slice(2));
   const config = loadConfig();
   const llm = config?.llm || {};
@@ -219,18 +221,20 @@ async function boundedResponseBytes(response) {
  * Only generated prompts are sent. Credentials, response text and raw IDs are
  * never persisted. A started attempt without settlement has unknown cost.
  */
-export async function runContextTokenLiveProbe({
-  repeats = 1,
-  apiKey,
-  model,
-  baseUrl = BUILT_IN_PROVIDERS.volcengine.baseUrl,
-  pricing,
-  matrix = null,
-  outputDir,
-  fetchImpl = fetch,
-  timeoutMs = TIMEOUT_MS,
-  onProgress = () => {},
-}) {
+export async function runContextTokenLiveProbe(options) {
+  requireUnscopedModelTransport();
+  const {
+    repeats = 1,
+    apiKey,
+    model,
+    baseUrl = BUILT_IN_PROVIDERS.volcengine.baseUrl,
+    pricing,
+    matrix = null,
+    outputDir,
+    fetchImpl = fetch,
+    timeoutMs = TIMEOUT_MS,
+    onProgress = () => {},
+  } = options;
   if (
     !Number.isInteger(repeats) ||
     repeats < 1 ||

@@ -1,3 +1,4 @@
+import { providerFetch } from "./formal-budget-provider-scope.js";
 /**
  * hub-llm-client — build a hub LLMClient from the user's cc config / env so
  * standalone `cc hub ask` can use a configured CLOUD provider instead of the
@@ -40,7 +41,7 @@
  * stitches system + user-with-facts and hands them off opaque).
  */
 
-"use strict";
+("use strict");
 
 import { BUILT_IN_PROVIDERS } from "./llm-providers.js";
 
@@ -202,14 +203,18 @@ export async function openAiCompatChat({
   const maxTokens = opts.maxTokens ?? opts.max_tokens;
   if (Number.isFinite(maxTokens)) body.max_tokens = maxTokens;
 
-  const resp = await fetchImpl(`${trimBase(base)}/chat/completions`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${key}`,
+  const resp = await providerFetch(
+    `${trimBase(base)}/chat/completions`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${key}`,
+      },
+      body: JSON.stringify(body),
     },
-    body: JSON.stringify(body),
-  });
+    fetchImpl,
+  );
   if (!resp.ok) {
     const t = await resp.text().catch(() => "");
     throw new Error(
@@ -266,15 +271,19 @@ export async function anthropicChat({
   if (system) body.system = system;
   if (typeof opts.temperature === "number") body.temperature = opts.temperature;
 
-  const resp = await fetchImpl(`${trimBase(base)}/messages`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": key,
-      "anthropic-version": "2023-06-01",
+  const resp = await providerFetch(
+    `${trimBase(base)}/messages`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": key,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify(body),
     },
-    body: JSON.stringify(body),
-  });
+    fetchImpl,
+  );
   if (!resp.ok) {
     const t = await resp.text().catch(() => "");
     throw new Error(

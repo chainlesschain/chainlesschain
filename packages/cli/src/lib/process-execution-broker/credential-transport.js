@@ -10,6 +10,7 @@ import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 import { Worker } from "node:worker_threads";
+import { requireUnscopedDescendantControl } from "../formal-budget-provider-scope.js";
 
 const TRANSPORT_VERSION = "local-ipc-v1";
 const DEFAULT_TIMEOUT_MS = 5000;
@@ -34,6 +35,7 @@ export function credentialTransportEndpoint(agentId, options = {}) {
 
 export class CredentialTransport {
   constructor(options = {}) {
+    requireUnscopedDescendantControl();
     if (!options.agentId) {
       throw transportError(
         "CC_CREDENTIAL_INVALID_REQUEST",
@@ -156,6 +158,7 @@ export class CredentialTransport {
   }
 
   registerCredential(record) {
+    requireUnscopedDescendantControl();
     if (!this.isAvailable()) {
       throw (
         this.error ||
@@ -265,6 +268,7 @@ async function connectWithRetry(endpoint, deadline) {
  * approved target process.
  */
 export async function resolveCredentialRefOverTransport(refId, options = {}) {
+  requireUnscopedDescendantControl();
   const env = options.env || process.env;
   const endpoint = options.endpoint || env.CC_CREDENTIAL_ENDPOINT;
   const capabilityToken =

@@ -8,6 +8,7 @@ import executionBroker, {
   SANDBOX_BOUNDARIES,
 } from "../process-execution-broker/index.js";
 import { BUILT_IN_PROVIDERS } from "../llm-providers.js";
+import { requireUnscopedModelTransport } from "../formal-budget-provider-scope.js";
 
 export const GOVERNED_SKILL_SYNTHESIS_PROCESS_GRADER_SCHEMA =
   "chainlesschain.governed-skill-synthesis-process-grader/v2";
@@ -399,6 +400,9 @@ export function createGovernedSkillSynthesisProcessGrader(options = {}) {
     persistentProcessAuditRequired: true,
   });
   const port = async (messages) => {
+    // This worker owns a separate credential reference and cannot inherit an
+    // async-local authority. Refuse before provisioning or launching it.
+    requireUnscopedModelTransport();
     const current = executionSnapshot();
     if (!executionSnapshotMatches(current, snapshot)) {
       throw new Error(

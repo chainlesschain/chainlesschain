@@ -40,6 +40,7 @@ import {
   normalizeTeamScopes,
 } from "../lib/agent-team/team-scope-lock.js";
 import { executionBroker } from "../lib/process-execution-broker/index.js";
+import { requireUnscopedDescendantControl } from "../lib/formal-budget-provider-scope.js";
 import {
   createCollaborationRun,
   createCollaborationRunId,
@@ -1025,7 +1026,9 @@ function planWaves(reg) {
 
 /** Real executor: run a task's shell `command`, success = exit 0. */
 export function makeShellRunTask() {
-  return function runTask({ task, signal = null }) {
+  return function runTask(payload) {
+    requireUnscopedDescendantControl();
+    const { task, signal = null } = payload;
     const command = task.metadata?.command || task?.command;
     if (!command) {
       throw new Error(`task "${task.key}" has no \`command\` to --exec`);
@@ -1128,6 +1131,7 @@ export function makeShellRunTask() {
 
 /** Spawn a headless `cc agent -p` for one prompt in `cwd`; resolve on exit 0. */
 function spawnAgentProcess(prompt, cwd, opts = {}) {
+  requireUnscopedDescendantControl();
   return new Promise((resolve, reject) => {
     const formalQualityHermetic = isFormalQualityHermeticRuntime(process.env);
     const parser = new TeamAgentStreamParser({
@@ -1445,6 +1449,7 @@ function spawnAgentProcess(prompt, cwd, opts = {}) {
 }
 
 export function spawnAgent(prompt, cwd, opts = {}) {
+  requireUnscopedDescendantControl();
   if (!opts.messageBridge || isFormalQualityHermeticRuntime(process.env)) {
     return spawnAgentProcess(prompt, cwd, opts);
   }
@@ -1492,20 +1497,22 @@ function applyBudgetReservation(contract, budgetReservation) {
 }
 
 export function makeAgentRunTask(opts = {}) {
-  return function runTask({
-    key,
-    task,
-    holder,
-    inbox = [],
-    sendMessage = null,
-    messageAuthority = null,
-    recipientState = null,
-    requestFollowupWake = null,
-    requestHandoff = null,
-    mailbox = null,
-    budgetReservation = null,
-    signal = null,
-  }) {
+  return function runTask(payload) {
+    requireUnscopedDescendantControl();
+    const {
+      key,
+      task,
+      holder,
+      inbox = [],
+      sendMessage = null,
+      messageAuthority = null,
+      recipientState = null,
+      requestFollowupWake = null,
+      requestHandoff = null,
+      mailbox = null,
+      budgetReservation = null,
+      signal = null,
+    } = payload;
     const prompt = task.metadata?.prompt || task?.prompt;
     if (!prompt) {
       throw new Error(`task "${key}" has no \`prompt\` to --agent`);
@@ -3087,8 +3094,9 @@ export function registerTeamCommand(program, { logger } = {}) {
         let recorder = null;
         let collectorEnabled = false;
         try {
-          const { isOtlpCollectorEnabled } =
-            await import("../lib/observability/index.js");
+          const { isOtlpCollectorEnabled } = await import(
+            "../lib/observability/index.js"
+          );
           collectorEnabled = isOtlpCollectorEnabled();
         } catch {
           collectorEnabled = false;
@@ -3096,8 +3104,9 @@ export function registerTeamCommand(program, { logger } = {}) {
         const workflowRunId = `team-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
         const workflowName = path.basename(options.tasks);
         if (options.otlp || collectorEnabled) {
-          const { TelemetryRecorder } =
-            await import("../lib/telemetry/span-recorder.js");
+          const { TelemetryRecorder } = await import(
+            "../lib/telemetry/span-recorder.js"
+          );
           recorder = new TelemetryRecorder({
             defaultAttributes: {
               "workflow.run_id": workflowRunId,
