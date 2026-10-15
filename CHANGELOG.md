@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.103: reject ungoverned formal budget exits
+
+- Keep formal paid evaluation closed while budgeted requests lack production
+  account, checkpoint and host isolation evidence.
+- Reject direct Agent tools, subprocess and worker launches, credential and
+  network paths when entered from the formal budget scope; propagate rejection
+  through parallel tool execution.
+- Bind the frozen all-Volcengine 36-task and 9-first-run plan to its exact
+  model, endpoint and shared historical $99 budget without counting diagnostic
+  calls as formal observations.
+- Pair VS Code 0.37.147 and JetBrains 0.4.165 with CLI 0.166.103 only after
+  the exact release commit passes its complete Actions gates and npm readback.
+
 ### Fixed - cc CLI 0.166.102: restore session pricing validation
 
 - Accept the reviewed Priority and Ultrafast pricing terms when validating the
