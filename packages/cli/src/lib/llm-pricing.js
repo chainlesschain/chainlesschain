@@ -262,9 +262,16 @@ export function normalizePricingTerms(value) {
       Reflect.ownKeys(tiers).length === 0 ||
       Reflect.ownKeys(tiers).some(
         (key) =>
-          !["standard", "default", "auto", "batch", "flex", "fast"].includes(
-            key,
-          ) || !finite(tiers[key]),
+          ![
+            "standard",
+            "default",
+            "auto",
+            "batch",
+            "flex",
+            "fast",
+            "priority",
+            "ultrafast",
+          ].includes(key) || !finite(tiers[key]),
       )
     )
       fail();

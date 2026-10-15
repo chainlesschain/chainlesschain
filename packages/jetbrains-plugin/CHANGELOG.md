@@ -1,5 +1,13 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.164] - Session pricing and runtime pairing (2026-10-15)
+
+- Recommend CLI `0.166.102` after its public npm release and the exact commit's
+  complete CLI, IDE and ARM64 release gates.
+- Pair with repaired session pricing validation and the reviewed model tiers,
+  runtime reliability improvements and citation source snapshots.
+- Display aggregate token usage when detailed input/output counts are absent.
+
 ## [0.4.163] - Preserve compaction context pairing (2026-10-13)
 
 - Recommend CLI `0.166.101` and Context Memory Kernel `0.1.10` after child

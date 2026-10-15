@@ -12,6 +12,32 @@ const repositoryRoot = path.resolve(__dirname, "../../..");
 const releaseCommit = "a".repeat(40);
 const operatingSystems = ["darwin", "linux", "win32"];
 
+test("ARM64 host reruns download the successful producer's immutable candidate", () => {
+  const workflow = fs.readFileSync(
+    path.join(repositoryRoot, ".github/workflows/ide-arm64-validation.yml"),
+    "utf8",
+  );
+  const producer = workflow.split("  vscode-arm64-host:")[0];
+  const download = workflow
+    .split("      - name: Download immutable VSIX candidate")[1]
+    .split("      - name:")[0];
+  assert.ok(
+    producer.includes(
+      "artifact-id: ${{ steps.upload-candidate.outputs.artifact-id }}",
+    ),
+  );
+  assert.match(
+    producer,
+    /id: upload-candidate\s+uses: actions\/upload-artifact@/,
+  );
+  assert.ok(
+    download.includes(
+      "artifact-ids: ${{ needs.vscode-package.outputs.artifact-id }}",
+    ),
+  );
+  assert.equal(download.includes("github.run_attempt"), false);
+});
+
 function sha256(value) {
   return `sha256:${createHash("sha256").update(value).digest("hex")}`;
 }

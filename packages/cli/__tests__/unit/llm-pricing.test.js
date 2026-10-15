@@ -5,7 +5,34 @@ import {
   priceRollup,
   mergePricing,
   FREE_PROVIDERS,
+  PRICE_TABLE,
+  normalizePricingTerms,
 } from "../../src/lib/llm-pricing.js";
+
+describe("llm-pricing — pricing term validation", () => {
+  it("accepts every built-in model's request pricing terms", () => {
+    for (const entries of Object.values(PRICE_TABLE)) {
+      for (const entry of entries) {
+        if (entry.terms) {
+          expect(normalizePricingTerms(entry.terms)).toEqual(entry.terms);
+        }
+      }
+    }
+  });
+
+  it("still rejects unknown tiers and invalid paid-tier multipliers", () => {
+    for (const serviceMultipliers of [
+      { unknown: 1 },
+      { priority: -1 },
+      { ultrafast: Infinity },
+      { ultrafast: "6" },
+    ]) {
+      expect(() => normalizePricingTerms({ serviceMultipliers })).toThrow(
+        /Invalid pricing terms/,
+      );
+    }
+  });
+});
 
 describe("llm-pricing — lookupRate", () => {
   it("treats local providers as free", () => {
