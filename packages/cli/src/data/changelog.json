@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.102",
+      "cliVersions": ["0.166.102"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.102: restore session pricing validation",
+          "body": "- Accept the reviewed Priority and Ultrafast pricing terms when validating the\n  built-in model catalog, restoring session observability, budget and Eval\n  projections while continuing to reject unknown tiers and invalid multipliers.\n- Make the model-switch warning regression insensitive to source formatting.\n- Publish Personal Data Hub 0.4.65 with source snapshots in answer citations\n  before CLI 0.166.102, then pair VS Code 0.37.146 and JetBrains 0.4.164 after\n  the exact release commit passes its complete Actions gates."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.101",
       "cliVersions": ["0.166.101"],
       "date": null,
