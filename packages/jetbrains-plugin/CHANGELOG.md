@@ -2,6 +2,8 @@
 
 ## [0.4.164] - Session pricing and runtime pairing (2026-10-15)
 
+- Keep runtime upgrade fallback, Doctor and installation guidance aligned with
+  the recommended CLI version.
 - Recommend CLI `0.166.102` after its public npm release and the exact commit's
   complete CLI, IDE and ARM64 release gates.
 - Pair with repaired session pricing validation and the reviewed model tiers,
