@@ -500,7 +500,10 @@ describe("ChatView question owner routing", () => {
         url: "https://attacker.test/",
       }),
     );
-    await vi.waitFor(() => expect(finish).toBeTypeOf("function"));
+    // URL opening follows a durable draft write (including fsync on Windows).
+    await vi.waitFor(() => expect(finish).toBeTypeOf("function"), {
+      timeout: 10_000,
+    });
     expect(h.provider.vscode.env.openExternal).toHaveBeenCalledWith(
       "https://example.test/",
     );
@@ -531,7 +534,9 @@ describe("ChatView question owner routing", () => {
     const sending = h.provider._handleMessage(
       payload(h.q, { type: "openElicitationUrl", fields: [] }),
     );
-    await vi.waitFor(() => expect(finish).toBeTypeOf("function"));
+    await vi.waitFor(() => expect(finish).toBeTypeOf("function"), {
+      timeout: 10_000,
+    });
     h.provider._stopSession(h.a);
     const replacement = { running: true, sendEvent: vi.fn(), stop() {} };
     h.a.session = replacement;
