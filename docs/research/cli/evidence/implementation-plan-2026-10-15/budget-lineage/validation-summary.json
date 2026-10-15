@@ -1,0 +1,193 @@
+{
+  "schema": "chainlesschain.budget-lineage-validation/v1",
+  "capturedAt": "2026-10-15T08:37:33.185Z",
+  "sourceBinding": {
+    "path": "source-binding-final.json",
+    "baseCommit": "62b407bbefee02a2ac14495fcef9e59b237c05a7",
+    "workingTree": true,
+    "sourceDigest": "a491ee1eb9f2be5cb36b41a6365bb296bf0f598336cf32d5048c050d6f55d737",
+    "files": 44,
+    "unchangedAfterTests": true,
+    "changedPaths": [],
+    "sourceTreeUnchanged": true,
+    "sourceTreeDigest": "sha256:5fb6561ae58efd5b76d2ebe0ef7383f2bc084b5d7be7008f38e17d7fdb86d281",
+    "changesAfterInitialFreeze": [
+      "packages/cli/scripts/budget-egress-reviewed-sources.json"
+    ]
+  },
+  "node": {
+    "files": 6,
+    "tests": 161,
+    "passed": 161,
+    "failed": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0,
+    "durationMs": 148662.9924,
+    "addedLineageTests": 17,
+    "exitCode": 0,
+    "suites": [
+      "packages/cli/test-node/formal-budget-authority.test.mjs",
+      "packages/cli/test-node/formal-budget-frozen-plan.node-test.mjs",
+      "packages/cli/test-node/formal-budget-provider-scope.node-test.mjs",
+      "packages/cli/test-node/formal-budget-lineage.node-test.mjs",
+      "packages/cli/test-node/budget-egress-inventory.node-test.mjs",
+      "packages/cli/test-node/budget-diagnostic-boundaries.node-test.mjs"
+    ]
+  },
+  "initialRun": {
+    "includedInFinalCount": false,
+    "node": {
+      "tests": 161,
+      "passed": 161,
+      "failed": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0,
+      "durationMs": 93743.8636,
+      "exitCode": 0
+    },
+    "audit": {
+      "path": "scripts-audit.json",
+      "exitCode": 1,
+      "status": "STALE_REVIEW_REJECTED",
+      "sourceReviewPassed": false,
+      "issues": [
+        {
+          "path": "packages/cli/scripts/implementation-plan-status.mjs",
+          "status": "STALE"
+        }
+      ]
+    },
+    "resolution": "Reviewed only implementation-plan-status.mjs changed provenance, refreshed its catalogue entry, froze final sources and reran all selected Node files and audit."
+  },
+  "vitest": {
+    "status": "NOT_RUN",
+    "reason": "Budget authority and process contracts verified with native Node/SQLite suites; no new Vitest result claimed."
+  },
+  "sourceAudit": {
+    "path": "egress-review-final.json",
+    "exitCode": 0,
+    "sourceReviewPassed": true,
+    "filesScanned": 1639,
+    "candidateFiles": 73,
+    "unclassifiedFiles": 0,
+    "parseErrors": 0,
+    "skippedPaths": 0
+  },
+  "lineageProtection": {
+    "optIn": true,
+    "originalSharedCapUsd": 99,
+    "uniqueAuthorityRegistration": true,
+    "authorityCopyAndLogicalRollbackTests": true,
+    "realConcurrentProcesses": true,
+    "realProcessTerminationBeforeAndAfterIndependentCommit": true,
+    "settlementFailureRetainsFullLocalReservation": true,
+    "independentRegistryProtection": "REQUIRED_NOT_ATTESTED",
+    "registryRollbackResistanceVerified": false,
+    "hostPolicyEnforced": "NOT_ATTESTED",
+    "legacyMigration": "NOT_IMPLEMENTED",
+    "mismatchRecovery": "STOP_FOR_EXTERNAL_RECONCILIATION_WITHOUT_RESET",
+    "runtimeCoverageVerified": false
+  },
+  "checks": {
+    "syntax": {
+      "files": 40,
+      "passed": true
+    },
+    "prettier": {
+      "files": 40,
+      "exitCode": 0
+    },
+    "eslint": {
+      "status": "NOT_RUN",
+      "installed": false,
+      "reason": "ESLint is not installed in this checkout"
+    },
+    "relativeLinks": {
+      "files": 3,
+      "missingLinks": []
+    },
+    "documentationPrettier": {
+      "files": 3,
+      "exitCode": 0,
+      "output": "Checking formatting...\nAll matched files use Prettier code style!"
+    },
+    "gitDiffCheck": {
+      "exitCode": 0,
+      "output": ""
+    },
+    "finalArtifactIntegrity": {
+      "invalidArtifacts": [],
+      "changedSources": [],
+      "changedHistoricalRound5Artifacts": []
+    }
+  },
+  "commands": {
+    "node": {
+      "cwd": "repository",
+      "command": "node --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=docs/research/cli/evidence/implementation-plan-2026-10-15/budget-lineage/node-tests-final.xml packages/cli/test-node/formal-budget-authority.test.mjs packages/cli/test-node/formal-budget-frozen-plan.node-test.mjs packages/cli/test-node/formal-budget-provider-scope.node-test.mjs packages/cli/test-node/formal-budget-lineage.node-test.mjs packages/cli/test-node/budget-egress-inventory.node-test.mjs packages/cli/test-node/budget-diagnostic-boundaries.node-test.mjs"
+    },
+    "sourceAudit": {
+      "cwd": "repository",
+      "command": "node packages/cli/scripts/implementation-plan-budget-egress.mjs --check --include-scripts --output docs/research/cli/evidence/implementation-plan-2026-10-15/budget-lineage/egress-review-final.json"
+    }
+  },
+  "readiness": {
+    "formalEvaluation": "NOT_RUN",
+    "tasksCompleted": 0,
+    "tasksTotal": 36,
+    "firstRunsCompleted": 0,
+    "firstRunsTotal": 9,
+    "paidReady": false,
+    "nativeAdmission": "NOT_ADMITTED",
+    "promotion": "HOLD",
+    "historicalSharedCapUsd": 99,
+    "additionalPaidCallsAuthorized": false,
+    "paidCallsThisRound": 0,
+    "remoteCi": "NOT_RUN",
+    "release": "NOT_RUN"
+  },
+  "artifacts": [
+    {
+      "path": "source-binding-final.json",
+      "sha256": "c79d781f67d816dff3f3dd1ded2a58957e4faae9c925ef795dff10c4d43371c8"
+    },
+    {
+      "path": "node-tests-final.xml",
+      "sha256": "9f032b28d30d8184dc65bcaa92cfb5c8afe3259c77070c7717ded36c0f51bf04"
+    },
+    {
+      "path": "egress-review-final.json",
+      "sha256": "645b0b7e5b39d4b680bbd83055382ac1ca2ac08932ec72edb663b1574d5f9a20"
+    },
+    {
+      "path": "local-checks-final.json",
+      "sha256": "56ecca8672114d1b9dc3658f8a8957a4cf393464cc0fcdc08c937f37fed8c98f"
+    },
+    {
+      "path": "baseline.json",
+      "sha256": "f2b79bce05f088ee1ce1ca65bd02b868a70ebd3188512918824e1fd6792aabe0"
+    },
+    {
+      "path": "README.md",
+      "sha256": "5d919ffd32d4957152e80216e40cb95e32ddeca3f96d52c6525a5ec7129e3789"
+    },
+    {
+      "path": "source-binding.json",
+      "sha256": "d1ad78f096818bda2e4284bbe9eb9517ade7f42912eb4cbdfc615362b51c4246"
+    },
+    {
+      "path": "node-tests.xml",
+      "sha256": "07f926de4878fe373b5a422b1a3e57cb445c921e49717dcb8a486b1459fd7d6b"
+    },
+    {
+      "path": "scripts-audit.json",
+      "sha256": "7cb59ae90c7206945803fc56e3b50486083547ecb34f7bbc95f2f679b8ac5e05"
+    },
+    {
+      "path": "local-checks.json",
+      "sha256": "415296e90dc0983339027db8a19d66f61a321a8ab48cfd64b15dbb680380ef80"
+    }
+  ]
+}

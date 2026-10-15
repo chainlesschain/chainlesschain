@@ -34,14 +34,13 @@ const servicePath = fileURLToPath(
 const roots = [];
 const children = [];
 // Hosted Windows runners compile the secure-pipe broker's C# peer-identity
-// helper while another Vitest fork is active. Cold starts have exceeded 75s
-// without emitting stderr even though the same real service starts in ~10s
-// when isolated. Keep this bounded, but leave enough headroom for that
-// runner-level contention; none of the production ACL or identity checks are
-// relaxed.
+// helper on first use. A cold start exceeded 120s even with Vitest files
+// serialized, while the next real service started in 38s. Keep readiness
+// bounded and leave 30s between its deadline and capability expiry; none of
+// the production ACL or identity checks are relaxed.
 const SERVICE_READY_TIMEOUT_MS =
-  process.platform === "win32" ? 120_000 : 15_000;
-const EXPIRY_DELAY_MS = process.platform === "win32" ? 150_000 : 1_000;
+  process.platform === "win32" ? 180_000 : 15_000;
+const EXPIRY_DELAY_MS = process.platform === "win32" ? 210_000 : 1_000;
 const SERVICE_TEST_TIMEOUT_MS =
   process.platform === "win32" ? 240_000 : 120_000;
 const EXPIRY_TEST_TIMEOUT_MS =

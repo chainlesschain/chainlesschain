@@ -12,16 +12,16 @@ import { applyConfigLlmDefaults } from "../src/lib/llm-config-defaults.js";
 import { estimateCost, mergePricing } from "../src/lib/llm-pricing.js";
 import { chatWithTools, executeTool } from "../src/runtime/agent-core.js";
 import { compactConversationWithProvider } from "../src/harness/provider-backed-compaction.js";
+import { requireUnscopedModelTransport } from "../src/lib/formal-budget-provider-scope.js";
 
 const ENDPOINT = "https://ark.cn-beijing.volces.com/api/v3";
 const hash = (value) =>
   "sha256:" + createHash("sha256").update(value).digest("hex");
 
 /** Bounded diagnostic on the production transport; never imports formal observations. */
-export async function runVolcenginePlanDiagnostic({
-  output,
-  confirmLive = false,
-} = {}) {
+export async function runVolcenginePlanDiagnostic(diagnosticOptions = {}) {
+  requireUnscopedModelTransport();
+  const { output, confirmLive = false } = diagnosticOptions;
   assert.equal(confirmLive, true, "--confirm-live is required for paid calls");
   assert.ok(output, "--output is required for request receipts");
   assert.equal(

@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<testsuites>
+	<testcase name="activation refuses missing contract, FX, history and untrusted evidence before creating storage" time="0.039579" classname="test"/>
+	<testcase name="activation binds exact original lineage and cannot reset existing database" time="0.153829" classname="test"/>
+	<testcase name="full output plus reasoning reserved with native currency; reasoning not billed twice" time="0.046889" classname="test"/>
+	<testcase name="max_tokens never reduces reasoning/full-contract reservation" time="0.043437" classname="test"/>
+	<testcase name="same task initial and only one remediation retain original spend across reopen" time="0.072305" classname="test"/>
+	<testcase name="remediation is not a second allowance; over-cap request is rejected before reserve" time="0.051888" classname="test"/>
+	<testcase name="historical unknown liability remains halted even if numeric amount is zero" time="0.054994" classname="test"/>
+	<testcase name="historical task allocations sum to original $99 and are never reset" time="0.055742" classname="test"/>
+	<testcase name="duplicate run resume does not consume remediation and active initial must close" time="0.062509" classname="test"/>
+	<testcase name="one physical call ID cannot be redispatched; repeated settlement is idempotent" time="0.074250" classname="test"/>
+	<testsuite name="invalid usage/model/tier/cache/reasoning permanently retains the whole reservation" time="0.563842" disabled="0" errors="0" tests="8" failures="0" skipped="0" hostname="DESKTOP-MTMV2RE">
+		<testcase name="0" time="0.070600" classname="test"/>
+		<testcase name="1" time="0.070331" classname="test"/>
+		<testcase name="2" time="0.071930" classname="test"/>
+		<testcase name="3" time="0.078869" classname="test"/>
+		<testcase name="4" time="0.064437" classname="test"/>
+		<testcase name="5" time="0.063877" classname="test"/>
+		<testcase name="6" time="0.070660" classname="test"/>
+		<testcase name="7" time="0.070013" classname="test"/>
+	</testsuite>
+	<testcase name="expired contract/FX cannot admit new dispatch" time="0.058294" classname="test"/>
+	<testcase name="reserved body mutation cannot consume dispatch authorization" time="0.060678" classname="test"/>
+	<testcase name="multi-completion, thinking override and paid hosted tools fail before reservation" time="0.058521" classname="test"/>
+	<testcase name="concurrent separate processes grant exactly one atomic reservation" time="0.889698" classname="test"/>
+	<testcase name="real process kill after reserved preserves durable accounting" time="0.542733" classname="test"/>
+	<testcase name="real process kill after dispatched preserves durable accounting" time="0.468120" classname="test"/>
+	<testcase name="real process kill after settled preserves durable accounting" time="0.526903" classname="test"/>
+	<testcase name="SQLite write failure admits no reservation and transport never calls provider" time="0.060942" classname="test"/>
+	<testcase name="credential-owning JSON transport reserves before fetch, preserves body, never exposes key" time="0.137487" classname="test"/>
+	<testcase name="successful SSE requires complete terminal usage and settles once" time="0.061533" classname="test"/>
+	<testsuite name="disconnect, missing usage, redirect/HTTP error never retry and halt next physical request" time="0.291538" disabled="0" errors="0" tests="4" failures="0" skipped="0" hostname="DESKTOP-MTMV2RE">
+		<testcase name="disconnect" time="0.071316" classname="test"/>
+		<testcase name="missing" time="0.066616" classname="test"/>
+		<testcase name="http" time="0.060834" classname="test"/>
+		<testcase name="stream-truncated" time="0.091023" classname="test"/>
+	</testsuite>
+	<testcase name="tool environment excludes provider keys, homes, runtime injection and ledger authority" time="0.001034" classname="test"/>
+	<testcase name="unknown billed usage dimensions halt rather than silently underprice" time="0.059596" classname="test"/>
+	<testcase name="rational FX uses upward integer rounding instead of floating point" time="0.067351" classname="test"/>
+	<testcase name="corrupt durable storage is not silently replaced or initialized" time="0.058685" classname="test"/>
+	<testcase name="verified receipts cannot silently substitute the frozen 18 plus 18 provider strata" time="0.005282" classname="test"/>
+	<testsuite name="final dispatch rechecks contract and FX after awaited credential preparation" time="0.147075" disabled="0" errors="0" tests="2" failures="0" skipped="0" hostname="DESKTOP-MTMV2RE">
+		<testcase name="contract" time="0.067271" classname="test"/>
+		<testcase name="fx" time="0.078937" classname="test"/>
+	</testsuite>
+	<testcase name="accounting JSON parser rejects duplicate/escaped keys and nonfinite numbers" time="0.001425" classname="test"/>
+	<testsuite name="ambiguous JSON, error envelopes and nonfinite usage never settle" time="0.319791" disabled="0" errors="0" tests="5" failures="0" skipped="0" hostname="DESKTOP-MTMV2RE">
+		<testcase name="duplicate" time="0.070955" classname="test"/>
+		<testcase name="escapedDuplicate" time="0.073371" classname="test"/>
+		<testcase name="errorAndUsage" time="0.067375" classname="test"/>
+		<testcase name="errorNull" time="0.047610" classname="test"/>
+		<testcase name="nonfinite" time="0.058761" classname="test"/>
+	</testsuite>
+	<testsuite name="SSE requires a completed choice and coherent terminal order" time="0.444372" disabled="0" errors="0" tests="7" failures="0" skipped="0" hostname="DESKTOP-MTMV2RE">
+		<testcase name="incomplete" time="0.068304" classname="test"/>
+		<testcase name="usageOnly" time="0.057608" classname="test"/>
+		<testcase name="contentAfterFinish" time="0.059931" classname="test"/>
+		<testcase name="duplicateFinish" time="0.068711" classname="test"/>
+		<testcase name="unsupportedFinish" time="0.057445" classname="test"/>
+		<testcase name="errorAndUsage" time="0.077722" classname="test"/>
+		<testcase name="duplicateUsageKey" time="0.051941" classname="test"/>
+	</testsuite>
+	<testcase name="noncanonical duplicate settlement restores full liability and halts durably" time="0.056526" classname="test"/>
+	<testcase name="unpriced input/output dimensions and oversized serialized input fail before fetch" time="0.047987" classname="test"/>
+	<testcase name="inclusive input envelope is mandatory verified contract evidence" time="0.010754" classname="test"/>
+	<testcase name="legacy dual-provider activation remains valid and single-provider unbound activation rejects" time="0.034113" classname="test"/>
+	<testcase name="v3 digest cannot enter legacy 18+18 activation by omitting its frozen bundle" time="0.006553" classname="test"/>
+	<testcase name="exact authorized v3 admits 36+9 assigned contracts without resetting history" time="0.115775" classname="test"/>
+	<testcase name="v3 rejects unrecognized plan digest even when offline receipts are refreshed" time="0.009598" classname="test"/>
+	<testcase name="v3 rejects changed provider even when offline receipts are refreshed" time="0.049386" classname="test"/>
+	<testcase name="v3 rejects changed model even when offline receipts are refreshed" time="0.054936" classname="test"/>
+	<testcase name="v3 rejects changed endpoint even when offline receipts are refreshed" time="0.076192" classname="test"/>
+	<testcase name="v3 rejects renamed task even when offline receipts are refreshed" time="0.112866" classname="test"/>
+	<testcase name="v3 rejects soak billed as task even when offline receipts are refreshed" time="0.013829" classname="test"/>
+	<testcase name="v3 rejects raised cap even when offline receipts are refreshed" time="0.014062" classname="test"/>
+	<testcase name="v3 rejects rewritten comparison even when offline receipts are refreshed" time="0.021650" classname="test"/>
+	<testcase name="v3 rejects rewritten prompt even when offline receipts are refreshed" time="0.026195" classname="test"/>
+	<testcase name="v3 rejects rehash of changed plan even when offline receipts are refreshed" time="0.023055" classname="test"/>
+	<testcase name="v3 rejects lineage changed even when offline receipts are refreshed" time="0.094287" classname="test"/>
+	<testcase name="new bundle cannot reuse legacy or omitted evidence receipts" time="0.127171" classname="test"/>
+	<testcase name="scoped requests use host credentials, a fresh physical ID and durable settlement" time="0.190435" classname="test"/>
+	<testcase name="endpoint, schema, header, duplicate JSON and output bounds reject before reservation or credentials" time="0.080666" classname="test"/>
+	<testcase name="SSE reaches the consumer before completion and settles only at verified EOF" time="0.054312" classname="test"/>
+	<testcase name="consumer mutation cannot alter the private accounting snapshot" time="0.049280" classname="test"/>
+	<testcase name="Stop after visible output keeps liability across reopen and prevents any retry" time="0.071536" classname="test"/>
+	<testsuite name="body cancellation and returning an unread body both halt outstanding liability" time="0.148333" disabled="0" errors="0" tests="2" failures="0" skipped="0" hostname="DESKTOP-MTMV2RE">
+		<testcase name="true" time="0.074227" classname="test"/>
+		<testcase name="false" time="0.071793" classname="test"/>
+	</testsuite>
+	<testcase name="scope isolation preserves ordinary calls and independent concurrent host scopes" time="0.127258" classname="test"/>
+	<testcase name="nested scopes and detached async work cannot rebind or escape a closed budget scope" time="0.049377" classname="test"/>
+	<testcase name="a pre-aborted call creates no liability and no physical request" time="0.050569" classname="test"/>
+	<testsuite name="cancellation bounds credential preparation and a physical fetch that ignores AbortSignal" time="0.137312" disabled="0" errors="0" tests="2" failures="0" skipped="0" hostname="DESKTOP-MTMV2RE">
+		<testcase name="credential" time="0.065948" classname="test"/>
+		<testcase name="fetch" time="0.070021" classname="test"/>
+	</testsuite>
+	<testcase name="a deadline halts even an unread response" time="0.100136" classname="test"/>
+	<testcase name="a late physical response is cancelled after an abort without releasing liability" time="0.068664" classname="test"/>
+	<testcase name="a storage error during abort leaves the durable dispatch blocking another request" time="0.062357" classname="test"/>
+	<testcase name="the response byte ceiling errors the stream and retains the full reservation" time="0.069886" classname="test"/>
+	<testcase name="canonical Agent, compaction and Advisor requests settle in the same host lineage" time="0.161224" classname="test"/>
+	<testsuite name="Agent streaming preserves early tokens but propagates unresolved accounting after visible output" time="0.119021" disabled="0" errors="0" tests="2" failures="0" skipped="0" hostname="DESKTOP-MTMV2RE">
+		<testcase name="true" time="0.072594" classname="test"/>
+		<testcase name="false" time="0.045651" classname="test"/>
+	</testsuite>
+	<testcase name="Chat and stream provider consume verified EOF and share the same budget" time="0.073311" classname="test"/>
+	<testcase name="probe and Hub cannot bypass the scope through an injected fetch" time="0.075339" classname="test"/>
+	<testcase name="uncovered native protocols and typed decision endpoints cannot send in the scope" time="0.063370" classname="test"/>
+	<testcase name="budget errors cannot trigger stream replay even with misleading network error wording" time="0.000876" classname="test"/>
+	<testsuite name="compaction and Advisor do not hide unknown provider liability behind optional fallback" time="0.160364" disabled="0" errors="0" tests="2" failures="0" skipped="0" hostname="DESKTOP-MTMV2RE">
+		<testcase name="compaction" time="0.080320" classname="test"/>
+		<testcase name="advisor" time="0.078305" classname="test"/>
+	</testsuite>
+	<!-- tests 104 -->
+	<!-- suites 0 -->
+	<!-- pass 104 -->
+	<!-- fail 0 -->
+	<!-- cancelled 0 -->
+	<!-- skipped 0 -->
+	<!-- todo 0 -->
+	<!-- duration_ms 6105.5354 -->
+</testsuites>

@@ -1,0 +1,200 @@
+{
+  "schema": "chainlesschain.budget-lineage-source-binding/v1",
+  "capturedAt": "2026-10-15T08:28:51.695Z",
+  "baseCommit": "62b407bbefee02a2ac14495fcef9e59b237c05a7",
+  "branch": "feature/cli-budget-provider-scope-20261015",
+  "workingTree": true,
+  "sources": [
+    {
+      "path": ".github/workflows/cli-ci.yml",
+      "sha256": "fa9c88442b8fc6e45e8f681f96e85f1ce9e2dea2818c1e6d8f80376458c5ede8"
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "9b30fb7b3fa24308964e39044fe1d6608efc7056e6df1d1faeff79a31e0affaf"
+    },
+    {
+      "path": "package.json",
+      "sha256": "088da4ce5d709bafac13a535cafaeff7e8e9416c7508665d8374862b3bb49c5a"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/agent-core-autocompact.test.js",
+      "sha256": "cdd5ba9bca50f7fdd4c7fbddb6a8e81f78a9527db6d93e70108a4e27e76522f3"
+    },
+    {
+      "path": "packages/cli/scripts/budget-egress-reviewed-sources.json",
+      "sha256": "010f904f75f01f88987711c524147383a968a7ec3cf176197d5cc6076fb2b377"
+    },
+    {
+      "path": "packages/cli/scripts/context-token-volcengine-live-probe.mjs",
+      "sha256": "dff0b4dc9d0759f022f44d4052b5da7d749378a426cbaf08ec05731c9e06a6b1"
+    },
+    {
+      "path": "packages/cli/scripts/implementation-plan-budget-egress.mjs",
+      "sha256": "fa6eef04b87c77b6e80d134d86ae956aaee3014c780f607ccdf6ed2a0faf2b3d"
+    },
+    {
+      "path": "packages/cli/scripts/implementation-plan-status.mjs",
+      "sha256": "8309119432953907cfe39e325396e5b8bdfb0a5339e56b1dc161863ff0e421ea"
+    },
+    {
+      "path": "packages/cli/scripts/implementation-plan-volcengine-live.mjs",
+      "sha256": "550ca6ef647df58f4bbb1545725082182d75e90ec83ec9a2f5b86023ebdb539b"
+    },
+    {
+      "path": "packages/cli/scripts/lib/budget-egress-inventory.mjs",
+      "sha256": "daa8fba09080397e842f78d472bc811341928d48eebbff36eb7f10911d47c882"
+    },
+    {
+      "path": "packages/cli/scripts/pm-exploration-volcengine-live-probe.mjs",
+      "sha256": "789857302d6f0ef7f30368103e345405ed6577180f29298417cddd2dfc1bdde1"
+    },
+    {
+      "path": "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs",
+      "sha256": "e7ccb8e8b73de6f34460435959db28ff760eb07425baa5439ec3f8a22b3e7fb4"
+    },
+    {
+      "path": "packages/cli/scripts/verify01-volcengine-task-diagnostic.mjs",
+      "sha256": "fdc8d69ae86a03f4a9ae4fd6e4c32a93de284a69d5b1cab37b5d0da9a00dafc1"
+    },
+    {
+      "path": "packages/cli/src/commands/ask.js",
+      "sha256": "76db41dcd27b2c1b1a619775bf25877131d299b49cbabe158d8a20b013961e9b"
+    },
+    {
+      "path": "packages/cli/src/harness/prompt-compressor.js",
+      "sha256": "072772e5838b1dfc30321cc46c31d7b6c95ef0d44142a1a08a3cb1c39d70a163"
+    },
+    {
+      "path": "packages/cli/src/lib/advisor-runtime.js",
+      "sha256": "041e6aea98fa372c7c454c4e553f72988d54f712fcb014915a7fcff21d915762"
+    },
+    {
+      "path": "packages/cli/src/lib/chat-core.js",
+      "sha256": "75badcbad571c266cf7592a79d5ad77f2f0f6d318ee4594da1195c405811a4e2"
+    },
+    {
+      "path": "packages/cli/src/lib/cowork-adapter.js",
+      "sha256": "43e3e086af7bbd964df40f6f02488fd87ed43704d495ed6ce6e196db55f28b2d"
+    },
+    {
+      "path": "packages/cli/src/lib/decision-layer/providers.js",
+      "sha256": "e95da9f0327f90882a94f7e54dced15f814ddadbf6dac40e77c8dcccc61b4a39"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/governed-hub-llm.js",
+      "sha256": "d252bbfcd50b6ffbca9a95893d9aee6b83afa1bbdb33a22da9ebdeec4fc9bfd5"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/governed-hub-resolver.js",
+      "sha256": "8b85c11c272c97a1db80d46c732a72a48dc6f2cbb20bafd123f9d8cda06bfd16"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/governed-skill-synthesis-process-grader.js",
+      "sha256": "beeac624cb9932562117a99e1e8cad259ea5128a8d88b6d4557ca32b1f52662e"
+    },
+    {
+      "path": "packages/cli/src/lib/formal-budget-authority.js",
+      "sha256": "71188e9b1e8eaf3813892080eff9df3048cb3a42073433987303ca2325ae2919"
+    },
+    {
+      "path": "packages/cli/src/lib/formal-budget-contract.js",
+      "sha256": "e9761080bdb181ac5861c2211e65c1c9713e8562b4247dcfe03a92b69ebeba45"
+    },
+    {
+      "path": "packages/cli/src/lib/formal-budget-errors.js",
+      "sha256": "bdfffe5b1a689d57b962f04d4129938564fdd8fa67b5d335d6a5918b4173746a"
+    },
+    {
+      "path": "packages/cli/src/lib/formal-budget-lineage-registry.js",
+      "sha256": "4488fae005546946b2f92be48f9097e6bd235bece6e538430463ec1fba00e427"
+    },
+    {
+      "path": "packages/cli/src/lib/formal-budget-provider-scope.js",
+      "sha256": "d8c6223216ee6df4a93a8d6bafc4b1c17e07b2795f78bb330ed5c418f9d7fe6d"
+    },
+    {
+      "path": "packages/cli/src/lib/formal-budget-transport.js",
+      "sha256": "328ea2079d235015f47f910a15249f33561ceabd342ad1f30fa8c3db3b791413"
+    },
+    {
+      "path": "packages/cli/src/lib/hub-llm-client.js",
+      "sha256": "9e83456cdb0f55941b82f00fbc9d49e357edeafcc7c58677d0ffeac17cbc2828"
+    },
+    {
+      "path": "packages/cli/src/lib/llm-connection-probe.js",
+      "sha256": "4910c204d06e3ed63618bc568dfff788f583b82f1c9fb6df16881b557f91fb4d"
+    },
+    {
+      "path": "packages/cli/src/lib/llm-providers.js",
+      "sha256": "372d1f65e64f5c96c9907c5f28b0d92f83f29f1bf91f70ae68c5629a056430c2"
+    },
+    {
+      "path": "packages/cli/src/lib/model-failure-policy.js",
+      "sha256": "6bf13a7fd586b6fdd2817721acbc2899032d5611b31e13ef93fd7b22f2383742"
+    },
+    {
+      "path": "packages/cli/src/lib/provider-stream.js",
+      "sha256": "a3663c1c909840369df9774e95bb4e831a860df9e407bfb19bd25d52d4a7d633"
+    },
+    {
+      "path": "packages/cli/src/lib/stream-retry.js",
+      "sha256": "c8ddf782e3fe16caab567c61934ff7adfa08e6d866e7ea8e0b66944ce755280e"
+    },
+    {
+      "path": "packages/cli/src/lib/sub-agent-context.js",
+      "sha256": "5b3f3fd8bdc292eae539d6e191413d8c56d03146cb38badf4f3cc9a65d87f1eb"
+    },
+    {
+      "path": "packages/cli/src/lib/web-search.js",
+      "sha256": "5c6a016b82842f3832e777952c21637e7fd2fcb94fc17f4ba835fab206221832"
+    },
+    {
+      "path": "packages/cli/src/runtime/agent-core.js",
+      "sha256": "7628b8c31bff474ac9f9483a0dba61d910e30b1a3e78f9680119e61027a04f39"
+    },
+    {
+      "path": "packages/cli/test-node/budget-diagnostic-boundaries.node-test.mjs",
+      "sha256": "c99400ced2288a57ab3463911641f9ae8d62f4b3a55e97a7cc02e3d590e862a0"
+    },
+    {
+      "path": "packages/cli/test-node/budget-egress-inventory.node-test.mjs",
+      "sha256": "92a5837de70327e5b7b1bdcf882f8ed33b3026bf8fad3641104fc09135effc6f"
+    },
+    {
+      "path": "packages/cli/test-node/formal-budget-authority.test.mjs",
+      "sha256": "bf09c49ad73c63f70a47d8caca6c6cd16f34236e5cbabd103f761e331b0cbb0b"
+    },
+    {
+      "path": "packages/cli/test-node/formal-budget-frozen-plan.node-test.mjs",
+      "sha256": "aef47fb514873c96cc7abbe1d4ca67bd75f0a14e3d404f58d8b31ff280fd8ba0"
+    },
+    {
+      "path": "packages/cli/test-node/formal-budget-lineage-worker.mjs",
+      "sha256": "c8877fd0084080048b87dada1549f44676c7178e454e39966ff4fc815b508c18"
+    },
+    {
+      "path": "packages/cli/test-node/formal-budget-lineage.node-test.mjs",
+      "sha256": "1f4814b4fdee3ab67d07cc0537728b7e454f51c7b0230550c12f56a4aec3d10f"
+    },
+    {
+      "path": "packages/cli/test-node/formal-budget-provider-scope.node-test.mjs",
+      "sha256": "3cf893b0cfa5b15ee24c65cfd91fc553eef473d25d4fd58a313db2839ac9e028"
+    }
+  ],
+  "sourceDigest": "14e4dbcea0ef0dba58e07bce0c3b3ba8ecf9a36738c7beef76dd181bb4aa79d9",
+  "environment": {
+    "node": "v22.22.2",
+    "platform": "win32",
+    "arch": "x64",
+    "acorn": "8.17.0"
+  },
+  "nodeSuites": [
+    "packages/cli/test-node/formal-budget-authority.test.mjs",
+    "packages/cli/test-node/formal-budget-frozen-plan.node-test.mjs",
+    "packages/cli/test-node/formal-budget-provider-scope.node-test.mjs",
+    "packages/cli/test-node/formal-budget-lineage.node-test.mjs",
+    "packages/cli/test-node/budget-egress-inventory.node-test.mjs",
+    "packages/cli/test-node/budget-diagnostic-boundaries.node-test.mjs"
+  ]
+}

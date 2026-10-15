@@ -1,0 +1,24 @@
+{
+  "schema": "chainlesschain.budget-checkpoint-host-preliminary-failures/v1",
+  "kind": "TOOL_OUTPUT_OBSERVATIONS_NOT_A_RAW_REPORT",
+  "stage": "First focused run, before correcting test expectations and adding remaining cases",
+  "command": "node --test packages/cli/test-node/formal-budget-checkpoint-host.node-test.mjs packages/cli/test-node/formal-budget-lineage.node-test.mjs packages/cli/test-node/formal-budget-registry-boundary.node-test.mjs",
+  "exitCode": 1,
+  "tests": 58,
+  "passed": 56,
+  "failed": 2,
+  "failures": [
+    {
+      "case": "every physical send follows a durable dispatched checkpoint and local commit",
+      "incorrectExpectedCode": "CC_BUDGET_DUPLICATE_CALL",
+      "actualCode": "CC_BUDGET_CALL_REPLAY"
+    },
+    {
+      "case": "fresh processes reload latest host heads and do not consume a duplicate reservation",
+      "incorrectExpectedCode": "CC_BUDGET_DUPLICATE_CALL",
+      "actualCode": "CC_BUDGET_PENDING"
+    }
+  ],
+  "resolution": "Corrected assertions to the existing settled-call replay and unresolved-liability contracts. Production rejection semantics were not changed to satisfy the tests.",
+  "paidProviderRequests": 0
+}

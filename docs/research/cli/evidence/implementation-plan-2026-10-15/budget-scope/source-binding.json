@@ -1,0 +1,83 @@
+{
+  "schema": "chainlesschain.budget-scope-source-binding/v1",
+  "capturedAt": "2026-10-15T06:59:45.424Z",
+  "baseCommit": "62b407bbefee02a2ac14495fcef9e59b237c05a7",
+  "branch": "feature/cli-budget-provider-scope-20261015",
+  "workingTree": true,
+  "sources": [
+    {
+      "path": ".github/workflows/cli-ci.yml",
+      "sha256": "9561cfa8ed624d4bde0536fa9138e6c90a152cd259b48205af0ec84079fe7291"
+    },
+    {
+      "path": "packages/cli/scripts/implementation-plan-budget-egress.mjs",
+      "sha256": "6bc1652878275e81bd1275a7b47b79e3727f6f56a0176406861ae8643f53ba95"
+    },
+    {
+      "path": "packages/cli/scripts/implementation-plan-status.mjs",
+      "sha256": "ab711850be0d7cb715f0e868efa007258000f625371cabf4dc64bc6c63062764"
+    },
+    {
+      "path": "packages/cli/src/harness/prompt-compressor.js",
+      "sha256": "072772e5838b1dfc30321cc46c31d7b6c95ef0d44142a1a08a3cb1c39d70a163"
+    },
+    {
+      "path": "packages/cli/src/lib/advisor-runtime.js",
+      "sha256": "041e6aea98fa372c7c454c4e553f72988d54f712fcb014915a7fcff21d915762"
+    },
+    {
+      "path": "packages/cli/src/lib/chat-core.js",
+      "sha256": "83964765f84721c0972125a1c877110f96a473fb824028ed92ed34e31139b30f"
+    },
+    {
+      "path": "packages/cli/src/lib/decision-layer/providers.js",
+      "sha256": "e95da9f0327f90882a94f7e54dced15f814ddadbf6dac40e77c8dcccc61b4a39"
+    },
+    {
+      "path": "packages/cli/src/lib/formal-budget-authority.js",
+      "sha256": "42062bc8dc0f4957abdf34226428290e9b06608e199a55c75251ee0cb1e2cd50"
+    },
+    {
+      "path": "packages/cli/src/lib/formal-budget-contract.js",
+      "sha256": "e9761080bdb181ac5861c2211e65c1c9713e8562b4247dcfe03a92b69ebeba45"
+    },
+    {
+      "path": "packages/cli/src/lib/formal-budget-errors.js",
+      "sha256": "afaa0ba88d581ff5db362b771737ed948b3e7285627ec1efcc41cb4a273a17c0"
+    },
+    {
+      "path": "packages/cli/src/lib/formal-budget-provider-scope.js",
+      "sha256": "eafafd00ff165af882a952ae1321b534dfcdbf81945f68ce286092cc6bcc5543"
+    },
+    {
+      "path": "packages/cli/src/lib/formal-budget-transport.js",
+      "sha256": "328ea2079d235015f47f910a15249f33561ceabd342ad1f30fa8c3db3b791413"
+    },
+    {
+      "path": "packages/cli/src/lib/hub-llm-client.js",
+      "sha256": "9e83456cdb0f55941b82f00fbc9d49e357edeafcc7c58677d0ffeac17cbc2828"
+    },
+    {
+      "path": "packages/cli/src/lib/llm-connection-probe.js",
+      "sha256": "aa93cc2fc454471ee2b2e56d2a3f78b1cc2d522f9aceae2caaeb52cb94f5e8bd"
+    },
+    {
+      "path": "packages/cli/src/lib/provider-stream.js",
+      "sha256": "a3663c1c909840369df9774e95bb4e831a860df9e407bfb19bd25d52d4a7d633"
+    },
+    {
+      "path": "packages/cli/src/lib/stream-retry.js",
+      "sha256": "8456c95d60519efd1325ef07e3177ee8e4fe1eace2772dd44c0780bc0d145827"
+    },
+    {
+      "path": "packages/cli/src/runtime/agent-core.js",
+      "sha256": "73dd4b2c5585ed7b29368c5685dc508330c721288151ea4fc23c1efc7dc72fa4"
+    },
+    {
+      "path": "packages/cli/test-node/formal-budget-provider-scope.node-test.mjs",
+      "sha256": "782b2ef84ed6377e3b188dbefa21f3de842ad9cfc8154cd2c020670914690f61"
+    }
+  ],
+  "sourceDigest": "41c32c90528bc3832b4aacbe16434eb91651d96d2c715d49053013ccb7d829cd",
+  "claim": "Pre-run working-tree binding; baseCommit alone does not identify these changes"
+}

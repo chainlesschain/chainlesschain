@@ -1,0 +1,111 @@
+﻿{
+    "schema":  "chainlesschain.budget-descendant-control-validation/v1",
+    "capturedAt":  "2026-10-15T09:48:08.5127289Z",
+    "sourceBinding":  {
+                          "path":  "source-binding.json",
+                          "baseCommit":  "62b407bbefee02a2ac14495fcef9e59b237c05a7",
+                          "workingTree":  true,
+                          "files":  6,
+                          "changedPaths":  [
+
+                                           ],
+                          "sourceTreeDigest":  "sha256:313d2b308f295b6191bd34197c3a5c8fa0819b856544de80509647cd545ea62c",
+                          "sourceTreeMatchesAudit":  true
+                      },
+    "node":  {
+                 "files":  10,
+                 "tests":  217,
+                 "passed":  217,
+                 "failed":  0,
+                 "addedTests":  3,
+                 "path":  "node-tests.xml",
+                 "exitCode":  0
+             },
+    "vitest":  {
+                   "files":  6,
+                   "tests":  25,
+                   "passed":  25,
+                   "failed":  0,
+                   "success":  true,
+                   "path":  "vitest-ipc-keeper.json",
+                   "preliminaryPath":  "vitest-preliminary.json",
+                   "notCumulative":  true
+               },
+    "audit":  {
+                  "path":  "egress-review.json",
+                  "exitCode":  0,
+                  "sourceReviewPassed":  true,
+                  "filesScanned":  1639,
+                  "candidateFiles":  73,
+                  "unclassifiedFiles":  0,
+                  "parseErrors":  0,
+                  "skippedPaths":  0
+              },
+    "checks":  {
+                   "syntax":  "PASS: 4 changed JS/MJS files",
+                   "prettier":  "PASS: 5 changed code/catalogue files and 3 Markdown files",
+                   "gitDiffCheck":  "PASS",
+                   "eslint":  "NOT_RUN: missing local dependency",
+                   "historicalArtifacts":  {
+                                               "firstEightFiles":  58,
+                                               "firstEightChanged":  [
+
+                                                                     ],
+                                               "ninthFiles":  13,
+                                               "ninthChanged":  [
+
+                                                                ]
+                                           }
+               },
+    "boundary":  {
+                     "directIpcSpawnDenied":  true,
+                     "directKeeperConnectDenied":  true,
+                     "preconnectedKeeperArmDenied":  true,
+                     "scopeClosedArmDenied":  true,
+                     "retireCleanupPreserved":  true,
+                     "unscopedArmPreserved":  true,
+                     "osIsolationVerified":  false,
+                     "allDescendantsCovered":  false
+                 },
+    "readiness":  {
+                      "formalEvaluation":  "NOT_RUN",
+                      "tasksCompleted":  0,
+                      "tasksTotal":  36,
+                      "firstRunsCompleted":  0,
+                      "firstRunsTotal":  9,
+                      "paidReady":  false,
+                      "nativeAdmission":  "NOT_ADMITTED",
+                      "promotion":  "HOLD",
+                      "historicalSharedCapUsd":  99,
+                      "paidCallsThisRound":  0,
+                      "remoteCi":  "NOT_RUN",
+                      "strictSandbox":  "NOT_RUN",
+                      "release":  "NOT_RUN"
+                  },
+    "artifacts":  [
+                      {
+                          "path":  "README.md",
+                          "sha256":  "8d79a0e872d55695e71f89a1812be702802127f3fcd91152e46dd0c97411467d"
+                      },
+                      {
+                          "path":  "source-binding.json",
+                          "sha256":  "41a467b02139644a2f07d0f4eb5c066a4a917c6c6e97b34e7c0813068b1e2674"
+                      },
+                      {
+                          "path":  "egress-review.json",
+                          "sha256":  "76e5ae18c0bb72e5e03e8eda081d09cd34b578325794f20f83059a14292ff63e"
+                      },
+                      {
+                          "path":  "node-tests.xml",
+                          "sha256":  "c2700ef2edb072e89108733a6176c5fa7a6ee3f4d3653ffe783bee1eb2d76477"
+                      },
+                      {
+                          "path":  "vitest-ipc-keeper.json",
+                          "sha256":  "dbca76ed8f984636924948bc7c9799fbac59b8229b717aa7c9da99152e957c73"
+                      },
+                      {
+                          "path":  "vitest-preliminary.json",
+                          "sha256":  "9228b7578e1ed01dfdbfb61622279320936a50ae5cab8e756331e79cce8686ae"
+                      }
+                  ]
+}

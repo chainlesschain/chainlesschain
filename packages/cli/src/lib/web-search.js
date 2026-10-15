@@ -14,6 +14,7 @@
 import http from "http";
 import https from "https";
 import { URL } from "url";
+import { requireUnscopedPaidService } from "./formal-budget-provider-scope.js";
 
 const DEFAULT_MAX_BYTES = 10_000_000;
 const DEFAULT_TIMEOUT_MS = 15_000;
@@ -509,6 +510,10 @@ async function _searchSearxng(
 export async function webSearch(query, options = {}) {
   const q = String(query || "").trim();
   if (!q) return { error: "web_search: empty query" };
+
+  // A model-token reservation does not price API search or configured proxy
+  // services. Reject before resolving keys or opening an HTTP request.
+  requireUnscopedPaidService();
 
   const config = options.config || {};
   const provider = resolveProvider(options, config);

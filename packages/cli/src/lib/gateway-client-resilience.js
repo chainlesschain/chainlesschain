@@ -6,6 +6,8 @@
  * can use a managed credential source that is refreshed before every connect.
  */
 
+import { requireUnscopedDescendantControl } from "./formal-budget-provider-scope.js";
+
 const MAX_RECONNECT_ATTEMPTS = 8;
 const MAX_IDLE_TIMEOUT_MS = 10 * 60_000;
 const MIN_IDLE_TIMEOUT_MS = 100;
@@ -424,6 +426,7 @@ function transportDispatcher(value) {
  */
 export class ResilientGatewayClient {
   constructor(options = {}) {
+    requireUnscopedDescendantControl();
     this.baseUrl = validateBaseUrl(options.baseUrl);
     if (typeof options.fetch !== "function") {
       throw gatewayError(
@@ -456,6 +459,7 @@ export class ResilientGatewayClient {
   }
 
   async _request(path, options = {}) {
+    requireUnscopedDescendantControl();
     const relativePath = safeRelativePath(path);
     const prefix = this.baseUrl.pathname.replace(/\/+$/u, "");
     const endpoint = new URL(`${prefix}${relativePath}`, this.baseUrl.origin);
@@ -520,6 +524,7 @@ export class ResilientGatewayClient {
   }
 
   async stream(path, options = {}) {
+    requireUnscopedDescendantControl();
     const idleTimeoutMs = positiveInteger(
       options.idleTimeoutMs,
       30_000,

@@ -1,0 +1,32 @@
+﻿{
+    "capturedAt":  "2026-10-15T11:43:28.7719308Z",
+    "baseCommit":  "62b407bbefee02a2ac14495fcef9e59b237c05a7",
+    "workingTree":  true,
+    "sourceTreeDigest":  "sha256:ad4d43701e5d651e3386866971933d16763b35e3b50e3ad08fe010b9f4bc1ff4",
+    "files":  [
+                  {
+                      "path":  "packages/cli/src/lib/formal-budget-provider-scope.js",
+                      "sha256":  "fc311ab4eab9bc3507339505ee2ff0fed3f7aa5afc9bdc4a1759b87c2e537840"
+                  },
+                  {
+                      "path":  "packages/cli/src/lib/cc-android-bridge.js",
+                      "sha256":  "272ec0c1db9d2c3b79518457ccfdd3c60b0422b5fbc0275cdf7ad12e3d91aaf6"
+                  },
+                  {
+                      "path":  "packages/cli/src/commands/team.js",
+                      "sha256":  "c3af706788000aeb5ee0f5a46b39c7f430ca5d984feb9272ffeb3f87695b6fa4"
+                  },
+                  {
+                      "path":  "packages/cli/test-node/formal-budget-android-team-boundary.node-test.mjs",
+                      "sha256":  "b6d24283379b56f0a3cba8b40de824a8751e8f552e981a8aecf68e817f7e0952"
+                  },
+                  {
+                      "path":  "packages/cli/scripts/budget-egress-reviewed-sources.json",
+                      "sha256":  "231d1098dd6eb6e70c41fec8e701e3b033844b1bacb098c720b7d9e108f4b0e2"
+                  },
+                  {
+                      "path":  ".github/workflows/cli-ci.yml",
+                      "sha256":  "869a363a908c6b465337f17ba24190112d4fab273b12e62e3e5045a53772ec9d"
+                  }
+              ]
+}

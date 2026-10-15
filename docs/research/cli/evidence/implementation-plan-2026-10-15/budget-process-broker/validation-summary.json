@@ -1,0 +1,136 @@
+﻿{
+    "schema":  "chainlesschain.budget-process-broker-validation/v1",
+    "capturedAt":  "2026-10-15T12:13:48.7214112Z",
+    "sourceBinding":  {
+                          "path":  "source-binding.json",
+                          "baseCommit":  "62b407bbefee02a2ac14495fcef9e59b237c05a7",
+                          "workingTree":  true,
+                          "files":  4,
+                          "changedPaths":  [
+
+                                           ],
+                          "sourceTreeDigest":  "sha256:24ece2e6894d85d24fd9481328892f8e80dcbc41112deb46e3820db140cd169f",
+                          "sourceTreeMatchesAudit":  true
+                      },
+    "node":  {
+                 "files":  13,
+                 "tests":  228,
+                 "passed":  228,
+                 "failed":  0,
+                 "addedTests":  2,
+                 "path":  "node-tests.xml",
+                 "exitCode":  0
+             },
+    "vitest":  {
+                   "files":  6,
+                   "tests":  17,
+                   "passed":  17,
+                   "failed":  0,
+                   "success":  true,
+                   "path":  "vitest-process-broker.json",
+                   "preliminaryPath":  "vitest-preliminary.json",
+                   "notCumulative":  true
+               },
+    "audit":  {
+                  "path":  "egress-review.json",
+                  "exitCode":  0,
+                  "sourceReviewPassed":  true,
+                  "filesScanned":  1639,
+                  "candidateFiles":  73,
+                  "unclassifiedFiles":  0,
+                  "parseErrors":  0,
+                  "skippedPaths":  0
+              },
+    "checks":  {
+                   "syntax":  "PASS: 2 changed JS/MJS files",
+                   "prettier":  "PASS: 3 code files and 3 Markdown files",
+                   "gitDiffCheck":  "PASS",
+                   "eslint":  "NOT_RUN: missing local dependency",
+                   "historicalArtifacts":  [
+                                               {
+                                                   "group":  "early",
+                                                   "files":  58,
+                                                   "changedPaths":  [
+
+                                                                    ]
+                                               },
+                                               {
+                                                   "group":  "budget-tool-boundaries",
+                                                   "files":  13,
+                                                   "changedPaths":  [
+
+                                                                    ]
+                                               },
+                                               {
+                                                   "group":  "budget-descendant-control",
+                                                   "files":  6,
+                                                   "changedPaths":  [
+
+                                                                    ]
+                                               },
+                                               {
+                                                   "group":  "budget-direct-web",
+                                                   "files":  6,
+                                                   "changedPaths":  [
+
+                                                                    ]
+                                               },
+                                               {
+                                                   "group":  "budget-android-team",
+                                                   "files":  6,
+                                                   "changedPaths":  [
+
+                                                                    ]
+                                               }
+                                           ]
+               },
+    "boundary":  {
+                     "sevenBrokerEntrypointsDeniedBeforePayload":  true,
+                     "noAuditOrNativeLaunchOnRefusal":  true,
+                     "scopeClosedCallsDenied":  true,
+                     "unscopedBrokerContractsPreserved":  true,
+                     "osIsolationVerified":  false,
+                     "allNativeReferencesCovered":  false
+                 },
+    "readiness":  {
+                      "formalEvaluation":  "NOT_RUN",
+                      "tasksCompleted":  0,
+                      "tasksTotal":  36,
+                      "firstRunsCompleted":  0,
+                      "firstRunsTotal":  9,
+                      "paidReady":  false,
+                      "nativeAdmission":  "NOT_ADMITTED",
+                      "promotion":  "HOLD",
+                      "historicalSharedCapUsd":  99,
+                      "paidCallsThisRound":  0,
+                      "remoteCi":  "NOT_RUN",
+                      "strictSandbox":  "NOT_RUN",
+                      "release":  "NOT_RUN"
+                  },
+    "artifacts":  [
+                      {
+                          "path":  "README.md",
+                          "sha256":  "d89d477cea4b1346f6d0fdfa9c519322b1d944cb40413443dd11cd4e749040ba"
+                      },
+                      {
+                          "path":  "source-binding.json",
+                          "sha256":  "62a37934105d8258ccc270316831c686c8eeab8bbcda2165c39751875d0d340e"
+                      },
+                      {
+                          "path":  "egress-review.json",
+                          "sha256":  "1abbfcc4800421177fb15926a60d98caf6c62a96c87849f102c9ca829c90fd51"
+                      },
+                      {
+                          "path":  "node-tests.xml",
+                          "sha256":  "d60710d2b44dba5c6ac74073f889af06f8da5ae5205f59dbfb82fa5259433ce6"
+                      },
+                      {
+                          "path":  "vitest-process-broker.json",
+                          "sha256":  "9e4823b567bfd1c0e6a7f6297b57dddd0e81b602099fc1bc4d49afc252933808"
+                      },
+                      {
+                          "path":  "vitest-preliminary.json",
+                          "sha256":  "089f707dfe960357f764e1ca62f92de1a8bef3aa497c9d1b7b6f4f4fd08de6fd"
+                      }
+                  ]
+}

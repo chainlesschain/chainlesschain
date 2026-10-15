@@ -1,0 +1,237 @@
+{
+  "capturedAt": "2026-10-15T09:23:03.579Z",
+  "artifacts": [
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-scope/baseline.json",
+      "sha256": "9df5bb0df04707d0f2946de103ae563755126c0d6440349ba6c5510d55f322ea"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-scope/egress-review.json",
+      "sha256": "7e343489a26bf8ade9d259fa6ca54ed4ec1f59c2efa84119922c3874461427f6"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-scope/node-tests.xml",
+      "sha256": "643d00b1b58efb8cb28cd2507c439a8d5888965759adb1116e712c0f8b1439ab"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-scope/README.md",
+      "sha256": "54a1ad3d4313ea1e15af179adb66b7c37673c8cfddacdec226b924e1bfed2e78"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-scope/source-binding.json",
+      "sha256": "c6e2c6c132ede85ba6d8baae80dd594ea1fadc69b3898b9b29081230e4f6b13f"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-scope/validation-summary.json",
+      "sha256": "bc2e462021b92200220e7328413b379971a170c424b94325ce71aa1f21b4494e"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-scope/vitest-tests.json",
+      "sha256": "ef6c61642a9d76521902403404f454fb594e9c1bf5f6559ef74495f996c37b19"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-adapters/baseline.json",
+      "sha256": "48af1bcd96e1796abc923719782954860bfc9033066710a167e57345a7d9305c"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-adapters/egress-review.json",
+      "sha256": "e257d6ccc045261b0ca370c799e84a8ee70c509f57110848324ed6ace04fca28"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-adapters/local-checks.json",
+      "sha256": "c6a4325917cb56a5260f20506f9ba1faada510fbe46b7667395f6798d5860fe7"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-adapters/node-tests.xml",
+      "sha256": "97bce8613f800aa3c73c894855fa03f4df30b9ccdc11aaf8e073a90ed65926d8"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-adapters/README.md",
+      "sha256": "6e68f49228f6c26f763587dd56defb1c0084264f21608c5b023f15043f5f9736"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-adapters/source-binding.json",
+      "sha256": "468724ebeb622572bf38e321540ff8bf4ca915a00fc384946f1b02b18eafac75"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-adapters/validation-summary.json",
+      "sha256": "5947e7dc99550fe7fbdbe7c5293cf5aec4a94cff8b3f6b6a8ed7af93c05884ae"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-adapters/vitest-tests.json",
+      "sha256": "54d05eb564f50eb1f0f4b19c3a3d7bc187d680dc9697c88e7444bc1fb9924b6a"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-inventory/baseline.json",
+      "sha256": "8161f4183f9c710e6636527232d3300cafeb22cf3d0b90255f95d8780a394946"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-inventory/local-checks.json",
+      "sha256": "3926fe1c5c2994322db0e70e96ffd10d1cb3f1bcfe107740bbdb98f4d71ccb2c"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-inventory/node-tests.xml",
+      "sha256": "9cb02f076052ce8fba0e25b06a5770c6c4190abcd968c063c786dda031c9f065"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-inventory/README.md",
+      "sha256": "23138046dac68f7a4078bf919b9c3231b49de8449f0bb074ffee42d90ce7a3ca"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-inventory/scripts-audit.json",
+      "sha256": "61f7e075ce8be7087a23510e7cb268360a3243f6190fbcb7f4d21ba80999ae1d"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-inventory/source-audit.json",
+      "sha256": "22f1fadee3bb6b816df97424b2fb97093544a67acf5966d32bf72b8ac929b9cd"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-inventory/source-binding.json",
+      "sha256": "9d9c35fc9a6f1a2c5819c9969319234bb240a2498d81a335552949db9668d5bf"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-inventory/validation-summary.json",
+      "sha256": "41712f07b1ab9892ae2e8d6cca1077f79616efd5c338518a9c6f6a91a9d9f3c8"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-inventory/vitest-tests.json",
+      "sha256": "2b53ab9a952904c65cca5dbc3fc7579f1e22d7c58a693f160ce3f2fec42eb693"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-diagnostics/local-checks.json",
+      "sha256": "856ed9ccb67a20b65975d59266c82e2a765ddc9c4a002e44e3fe56dc10d7692c"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-diagnostics/node-tests.xml",
+      "sha256": "e7bb548a45f68b8c3b671186083c9452d1d6d2ecaf5ecb4cb615a8f487522e73"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-diagnostics/README.md",
+      "sha256": "2d323d566d1c6ddb9c66de009e4d001fa4444c313eeeffc4100410b42e9b2aa8"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-diagnostics/script-review.json",
+      "sha256": "9dbc69bc51898096c0c8bcff800a3f8d24f8e19db4548f7986e971b76dcc0758"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-diagnostics/scripts-audit.json",
+      "sha256": "8a503cd0dc1c79e99030b0fc5f4d1190abea3c978e398f3c2ad9f4e5a567873b"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-diagnostics/source-audit.json",
+      "sha256": "a099c52684fd833cd253c3b4b924275378dbbb6c4366f2305a13957306a381cd"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-diagnostics/source-binding.json",
+      "sha256": "5a748eea82def94240fc86bff6a37841aabd6eafc7e90ac9a2b8666cfcc3c1e6"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-diagnostics/validation-summary.json",
+      "sha256": "19f8927d5655eb4c5c087fcdb6ea913a0b6b6fc9a4bb4bd3efa826ab3fcaf595"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-lineage/baseline.json",
+      "sha256": "f2b79bce05f088ee1ce1ca65bd02b868a70ebd3188512918824e1fd6792aabe0"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-lineage/egress-review-final.json",
+      "sha256": "645b0b7e5b39d4b680bbd83055382ac1ca2ac08932ec72edb663b1574d5f9a20"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-lineage/local-checks-final.json",
+      "sha256": "56ecca8672114d1b9dc3658f8a8957a4cf393464cc0fcdc08c937f37fed8c98f"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-lineage/local-checks.json",
+      "sha256": "415296e90dc0983339027db8a19d66f61a321a8ab48cfd64b15dbb680380ef80"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-lineage/node-tests-final.xml",
+      "sha256": "9f032b28d30d8184dc65bcaa92cfb5c8afe3259c77070c7717ded36c0f51bf04"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-lineage/node-tests.xml",
+      "sha256": "07f926de4878fe373b5a422b1a3e57cb445c921e49717dcb8a486b1459fd7d6b"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-lineage/README.md",
+      "sha256": "5d919ffd32d4957152e80216e40cb95e32ddeca3f96d52c6525a5ec7129e3789"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-lineage/scripts-audit.json",
+      "sha256": "7cb59ae90c7206945803fc56e3b50486083547ecb34f7bbc95f2f679b8ac5e05"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-lineage/source-binding-final.json",
+      "sha256": "c79d781f67d816dff3f3dd1ded2a58957e4faae9c925ef795dff10c4d43371c8"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-lineage/source-binding.json",
+      "sha256": "d1ad78f096818bda2e4284bbe9eb9517ade7f42912eb4cbdfc615362b51c4246"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-lineage/validation-summary.json",
+      "sha256": "a9e13c5e213d77037362be98a2e9417b3c439f1ec24d0e6c845594dba30b2217"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-registry-boundaries/egress-review.json",
+      "sha256": "82d3013b40dac9cb6c1ef1a1d97d460f074cc72737602061e8ee1a8a01f48046"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-registry-boundaries/local-checks.json",
+      "sha256": "71cbd37f9cf5db510cfbf1801e0a0b22a8942bf8c3a0adc58e25b65b24a9e702"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-registry-boundaries/node-tests.xml",
+      "sha256": "b45778629b9d083b3119d471b3c7eba509a675e67faf77cd62bd52402dda706a"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-registry-boundaries/README.md",
+      "sha256": "2f2cced8e43317ee49366399eb816a4634f064abac2c06d465548b894f010b06"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-registry-boundaries/source-binding.json",
+      "sha256": "999bdac7e0a081261da848f67612aa0a52e6dd5f223262d0010ba537408b9e1f"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-registry-boundaries/validation-summary.json",
+      "sha256": "73785d49a1788d4b7a803788beed64f22ccb4b845a9af9b42a7a41a47f0ea00e"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-checkpoint-host/egress-review-before-freeze.json",
+      "sha256": "d9cacdbdac8da14883839da7a1c916fc12e558bbae3805d0ca716b830a5d7f3b"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-checkpoint-host/egress-review.json",
+      "sha256": "c4ede2c563153a8a764058388030ea1a5271007275b26d900939fcaa8cd71466"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-checkpoint-host/local-checks.json",
+      "sha256": "382630d27005f9e1e4b7ca8094ac104e7ecdb547bfab81eff4fcbf541b75749d"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-checkpoint-host/node-tests.xml",
+      "sha256": "d2a2478157d592c6f65fd68c1c276626d66057c60c3e332bc4d58056e2ccbaf5"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-checkpoint-host/preliminary-failures.json",
+      "sha256": "edb467ac5959f1eb7e28e5a0b122f596a1b1adf60ea6b8b89012301c6ebb11a5"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-checkpoint-host/prior-artifact-binding.json",
+      "sha256": "bc6309495ed5d7edcf5e22980e57c17f2e329efedee26374bbdfc39f3cd44aa9"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-checkpoint-host/README.md",
+      "sha256": "e8056cf29b2985325f3270ab8b0d04b19832990f6dc75fa585d6a7edd1650ba2"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-checkpoint-host/source-binding.json",
+      "sha256": "bba87b07c54a8251902f919c32c085b6c2e65c7b697e180b1e6722b63e3c0b26"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/budget-checkpoint-host/validation-summary.json",
+      "sha256": "1fad40e45e006b6b4a28ee10470cb483d53a0c1fdda7db38115c59de033df0fc"
+    }
+  ]
+}

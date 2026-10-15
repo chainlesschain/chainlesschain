@@ -1,0 +1,105 @@
+﻿{
+    "schema":  "chainlesschain.budget-worker-network-validation/v1",
+    "capturedAt":  "2026-10-15T12:26:16.9907010Z",
+    "sourceBinding":  {
+                          "path":  "source-binding.json",
+                          "baseCommit":  "62b407bbefee02a2ac14495fcef9e59b237c05a7",
+                          "files":  6,
+                          "changedPaths":  [
+
+                                           ],
+                          "sourceTreeDigest":  "sha256:ccbd7fd3401f945b00929402ed2649c639e2995714d3b0a66a5b510c005d075f",
+                          "sourceTreeMatchesAuditBeforeAndAfter":  true
+                      },
+    "node":  {
+                 "files":  14,
+                 "tests":  231,
+                 "passed":  231,
+                 "failed":  0,
+                 "addedTests":  3,
+                 "path":  "node-tests.xml",
+                 "exitCode":  0
+             },
+    "vitest":  {
+                   "files":  2,
+                   "tests":  9,
+                   "passed":  8,
+                   "skipped":  1,
+                   "failed":  0,
+                   "success":  true,
+                   "path":  "vitest-worker-network.json"
+               },
+    "audit":  {
+                  "filesScanned":  1639,
+                  "candidateFiles":  73,
+                  "unclassifiedFiles":  0,
+                  "parseErrors":  0,
+                  "skippedPaths":  0,
+                  "sourceReviewPassed":  true,
+                  "sourceTreeUnchangedAfterTests":  true
+              },
+    "checks":  {
+                   "syntax":  "PASS: 3 changed JS/MJS files",
+                   "prettier":  "PASS: 4 code files and 4 Markdown/YAML files",
+                   "gitDiffCheck":  "PASS",
+                   "historicalArtifactCount":  95,
+                   "changedHistoricalArtifacts":  [
+
+                                                  ],
+                   "eslint":  "NOT_RUN: missing local dependency"
+               },
+    "boundary":  {
+                     "egressWorkerLaunchDenied":  true,
+                     "egressPolicyUpdateDenied":  true,
+                     "egressCleanupPermitted":  true,
+                     "marketplaceTransportCreationAndFetchDenied":  true,
+                     "pacWorkerLaunchDenied":  true,
+                     "osIsolationVerified":  false,
+                     "allWorkersCovered":  false
+                 },
+    "readiness":  {
+                      "formalEvaluation":  "NOT_RUN",
+                      "tasksCompleted":  0,
+                      "tasksTotal":  36,
+                      "firstRunsCompleted":  0,
+                      "firstRunsTotal":  9,
+                      "paidReady":  false,
+                      "nativeAdmission":  "NOT_ADMITTED",
+                      "promotion":  "HOLD",
+                      "historicalSharedCapUsd":  99,
+                      "paidCallsThisRound":  0,
+                      "remoteCi":  "NOT_RUN",
+                      "strictSandbox":  "NOT_RUN",
+                      "release":  "NOT_RUN"
+                  },
+    "artifacts":  [
+                      {
+                          "path":  "README.md",
+                          "sha256":  "8207f0d810a0971cba76b3a0a593b067bfa47873f0060c7e504f29f15fcec9c7"
+                      },
+                      {
+                          "path":  "source-binding.json",
+                          "sha256":  "2cf449110b1929103d41fcacd9a6385bdbc0863faa59be6f7b8fa8b132ac4bee"
+                      },
+                      {
+                          "path":  "integrity-check.json",
+                          "sha256":  "647995e7bb7d8597e40045febf7d454a9416bc5a2d07f6851da633fc0c46dfb9"
+                      },
+                      {
+                          "path":  "egress-review.json",
+                          "sha256":  "43ea6b3cec35e2a2194b25d7d6c73f7cee8433f08c2cffe97825424c450acd82"
+                      },
+                      {
+                          "path":  "egress-review-post-test.json",
+                          "sha256":  "124733d920f0356926b8e5e3df8c2caeffc22fd73c9abcd0d23754b72c714c64"
+                      },
+                      {
+                          "path":  "node-tests.xml",
+                          "sha256":  "3dd72913957484cc07b4f64e80123222c8de664d00843b22ae6df4e1cb10f736"
+                      },
+                      {
+                          "path":  "vitest-worker-network.json",
+                          "sha256":  "42e736062840dd0096deeeff7cafcd4ae7b3014b411b293890ad7ee53dd5b1ce"
+                      }
+                  ]
+}

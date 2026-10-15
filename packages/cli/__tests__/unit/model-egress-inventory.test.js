@@ -116,10 +116,12 @@ describe("CLI model egress inventory", () => {
     const actual = sourceFiles
       .filter((filePath) => {
         const source = readFileSync(filePath, "utf8");
+        // The scoped provider transport still reaches a physical model endpoint.
         const fetches =
           source.includes("fetch(") ||
           source.includes("fetchImpl(") ||
-          source.includes("_fetchWithTimeout(");
+          source.includes("_fetchWithTimeout(") ||
+          source.includes("providerFetch(");
         return (
           fetches && endpoints.some((endpoint) => source.includes(endpoint))
         );

@@ -9,6 +9,7 @@
 
 import { createHash, randomUUID } from "node:crypto";
 import { CostBudget } from "./cost-budget.js";
+import { isFormalBudgetError } from "./formal-budget-errors.js";
 import { FREE_PROVIDERS, mergePricing } from "./llm-pricing.js";
 import { redactSecrets } from "./secret-scan.js";
 import { firstBalancedJson } from "./json-schema-output.js";
@@ -179,8 +180,8 @@ export function resolveAdvisorConfig({
   );
   const hasManagedAdvisorPolicy = Boolean(
     Object.keys(managedAdvisor).length > 0 ||
-    managed?.advisorAllowedProviders !== undefined ||
-    managed?.advisorAllowedModels !== undefined,
+      managed?.advisorAllowedProviders !== undefined ||
+      managed?.advisorAllowedModels !== undefined,
   );
   let policyReason = null;
   if (managedAdvisor.enabled === false) {
@@ -937,6 +938,7 @@ export class AdvisorRuntime {
       };
     } catch (error) {
       if (error?.runtimeLedgerPersistence === true) throw error;
+      if (isFormalBudgetError(error)) throw error;
       if (error?.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
       const failure = {
         callId,

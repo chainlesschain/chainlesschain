@@ -2,6 +2,34 @@
 
 对应[实施计划](../../../cli-ide-codex-claude-implementation-plan-2026-10-15.md)。本目录保存工程回归、fixture 测量、真实火山诊断和公开元数据，不构成正式 36+9 或发布验收通过证明。时间戳采用 UTC；本机为 Windows x64、Node 22.22.2、i7-4770HQ、约 16GiB 内存。
 
+后续预算作用域、流式结算及真实调用链的离线验证单独保存在[第二轮证据](./budget-scope/README.md)。本页以下计数保留首轮口径，不与第二轮重复累计。
+
+Ask / Cowork、旧版探针、SDK/embedding 与 grader 拒绝边界、父子预算异常传播见[第三轮证据](./budget-adapters/README.md)，同样独立计数。
+
+语法树网络候选审计、源码摘要分类、搜索预算拒绝和 CI 检查见[第四轮证据](./budget-inventory/README.md)。该轮源码目录的 59 个候选已分类，扩展扫描留下 14 个待审查脚本。
+
+[第五轮证据](./budget-diagnostics/README.md)补齐这 14 个脚本的分类，增加诊断入口及任务启动器的预算拒绝，并将 CI 扩展到源码和脚本两个目录。73 个候选的源码分类通过不等于付费执行准入。
+
+[第六轮证据](./budget-lineage/README.md)增加由可信宿主持有的独立谱系登记库，校验唯一数据库身份及完整逻辑状态，覆盖跨库副本、旧状态、并发与两库提交中断。
+
+[第七轮证据](./budget-registry-boundaries/README.md)固定登记库物理身份、检查活跃实例观察记录、支持可信重启检查点，并使离开事务的租约失效。同时保留“重启后无检查点、匹配旧库仍能恢复旧曝险”的反例。
+
+[第八轮证据](./budget-checkpoint-host/README.md)固定显式宿主检查点策略，并在每次账本提交前取得宿主持久化回执及读回；覆盖写入失败、取消、重启与进程中断。
+
+[第九轮证据](./budget-tool-boundaries/README.md)在正式预算作用域内提前拒绝 canonical Agent 工具，并使并行工具批次向上传播预算错误。生产存储认证、防回滚及宿主隔离仍待验收，正式 gate 保持关闭。
+
+[第十轮证据](./budget-descendant-control/README.md)补上直接 IPC 子进程启动与 keeper 后台任务领取的作用域拒绝，并保留清理请求；它只覆盖接线入口，正式 gate 继续关闭。
+
+[第十一轮证据](./budget-direct-web/README.md)收紧网页抓取与浏览器导航的三个直接导出入口；正式作用域内提前拒绝，系统级出口隔离与账单验收仍待完成。
+
+[第十二轮证据](./budget-android-team/README.md)收紧 Android bridge 的调用与凭据读取，以及 team 的 shell/Agent 子进程执行入口；正式 gate 保持关闭。
+
+[第十三轮证据](./budget-process-broker/README.md)在统一进程 broker 的七个公开执行入口拒绝正式作用域内的进程启动，仍需宿主和平台验证所有 broker 旁路。
+
+[第十四轮证据](./budget-worker-network/README.md)限制网络相关 worker 启动、既有 egress worker 策略更新和 Marketplace 自定义传输复用；其余 worker 与系统级出口仍须单独验证。
+
+[第十五轮证据](./budget-credential-worker/README.md)限制凭据传输 worker 的创建、凭据注册和直接引用解析，并提前拒绝凭据 Agent 的子进程引用准备；正式付费 gate 保持关闭。
+
 JSON / XML 保留原始字节，避免 Git 换行转换导致摘要失配；Windows JUnit XML 的 CRLF 通过局部属性声明为合法行尾，其他空白检查保留。
 
 ## 1 实际结果

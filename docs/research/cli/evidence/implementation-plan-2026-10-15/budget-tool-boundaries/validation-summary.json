@@ -1,0 +1,196 @@
+{
+  "schema": "chainlesschain.budget-tool-boundaries-validation/v1",
+  "capturedAt": "2026-10-15T09:28:10.533Z",
+  "sourceBinding": {
+    "path": "source-binding.json",
+    "baseCommit": "62b407bbefee02a2ac14495fcef9e59b237c05a7",
+    "workingTree": true,
+    "files": 48,
+    "sourceDigest": "cb7d3dd17f5260784756b0ef075441acda053eb7a520c87381fc960e6637a666",
+    "sourceDigestMatches": true,
+    "unchangedAfterTests": true,
+    "changedSources": [],
+    "sourceTreeDigest": "sha256:629da9200adff0b89bb5e9cb1d9541a6fb8721180de199ed04e141ec6b0aac14",
+    "sourceTreeUnchanged": true
+  },
+  "node": {
+    "files": 9,
+    "tests": 214,
+    "passed": 214,
+    "failed": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0,
+    "durationMs": 91606.8002,
+    "addedToolBoundaryTests": 6,
+    "exitCode": 0,
+    "suites": [
+      "packages/cli/test-node/formal-budget-authority.test.mjs",
+      "packages/cli/test-node/formal-budget-frozen-plan.node-test.mjs",
+      "packages/cli/test-node/formal-budget-provider-scope.node-test.mjs",
+      "packages/cli/test-node/formal-budget-lineage.node-test.mjs",
+      "packages/cli/test-node/formal-budget-registry-boundary.node-test.mjs",
+      "packages/cli/test-node/budget-egress-inventory.node-test.mjs",
+      "packages/cli/test-node/budget-diagnostic-boundaries.node-test.mjs",
+      "packages/cli/test-node/formal-budget-checkpoint-host.node-test.mjs",
+      "packages/cli/test-node/formal-budget-tool-boundary.node-test.mjs"
+    ]
+  },
+  "vitest": {
+    "files": 1,
+    "tests": 139,
+    "passed": 139,
+    "failed": 0,
+    "success": true,
+    "path": "vitest-agent-core.json"
+  },
+  "sourceAudit": {
+    "path": "egress-review.json",
+    "exitCode": 0,
+    "sourceReviewPassed": true,
+    "filesScanned": 1639,
+    "candidateFiles": 73,
+    "unclassifiedFiles": 0,
+    "parseErrors": 0,
+    "skippedPaths": 0
+  },
+  "toolBoundary": {
+    "canonicalExecuteToolDeniedBeforeArguments": true,
+    "parallelReadBudgetErrorPropagation": true,
+    "sequentialBudgetErrorPropagation": true,
+    "scopeClosedDescendantsDenied": true,
+    "directToolExportsContained": false,
+    "osNetworkOrWorkerIsolationVerified": false,
+    "formalTaskExecutionAdmitted": false
+  },
+  "preliminaryFailure": {
+    "rawNodePath": "node-tests-before-assertion-fix.xml",
+    "tests": 214,
+    "passed": 213,
+    "failed": 1,
+    "reason": "Existing canonical web_search assertion expected the service-level code after a new earlier tool-level rejection; only the assertion changed.",
+    "changedSource": "packages/cli/test-node/budget-egress-inventory.node-test.mjs",
+    "notAddedToFinalCounts": true
+  },
+  "checks": {
+    "syntax": {
+      "files": 44,
+      "passed": true
+    },
+    "prettier": {
+      "files": 43,
+      "exitCode": 0
+    },
+    "eslint": {
+      "status": "NOT_RUN",
+      "installed": false,
+      "reason": "ESLint is not installed in this checkout"
+    },
+    "historicalArtifacts": {
+      "files": 58,
+      "changedPaths": []
+    },
+    "relativeLinks": {
+      "files": 3,
+      "missingLinks": []
+    },
+    "documentationPrettier": {
+      "files": 3,
+      "exitCode": 0,
+      "output": "Checking formatting...\nAll matched files use Prettier code style!\n"
+    },
+    "gitDiffCheck": {
+      "exitCode": 0,
+      "output": ""
+    },
+    "finalArtifactIntegrity": {
+      "invalidArtifacts": [],
+      "changedSources": [],
+      "changedHistoricalArtifacts": []
+    }
+  },
+  "commands": {
+    "node": {
+      "cwd": "repository",
+      "command": "node --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=docs/research/cli/evidence/implementation-plan-2026-10-15/budget-tool-boundaries/node-tests.xml packages/cli/test-node/formal-budget-authority.test.mjs packages/cli/test-node/formal-budget-frozen-plan.node-test.mjs packages/cli/test-node/formal-budget-provider-scope.node-test.mjs packages/cli/test-node/formal-budget-lineage.node-test.mjs packages/cli/test-node/formal-budget-registry-boundary.node-test.mjs packages/cli/test-node/budget-egress-inventory.node-test.mjs packages/cli/test-node/budget-diagnostic-boundaries.node-test.mjs packages/cli/test-node/formal-budget-checkpoint-host.node-test.mjs packages/cli/test-node/formal-budget-tool-boundary.node-test.mjs"
+    },
+    "vitest": {
+      "cwd": "packages/cli",
+      "command": "node ../../node_modules/vitest/vitest.mjs run __tests__/unit/agent-core.test.js --reporter=json --outputFile=C:/code/chainlesschain/docs/research/cli/evidence/implementation-plan-2026-10-15/budget-tool-boundaries/vitest-agent-core.json"
+    },
+    "sourceAudit": {
+      "cwd": "repository",
+      "command": "node packages/cli/scripts/implementation-plan-budget-egress.mjs --check --include-scripts --output docs/research/cli/evidence/implementation-plan-2026-10-15/budget-tool-boundaries/egress-review.json"
+    }
+  },
+  "readiness": {
+    "formalEvaluation": "NOT_RUN",
+    "tasksCompleted": 0,
+    "tasksTotal": 36,
+    "firstRunsCompleted": 0,
+    "firstRunsTotal": 9,
+    "paidReady": false,
+    "nativeAdmission": "NOT_ADMITTED",
+    "promotion": "HOLD",
+    "historicalSharedCapUsd": 99,
+    "additionalPaidCallsAuthorized": false,
+    "paidCallsThisRound": 0,
+    "remoteCi": "NOT_RUN",
+    "strictSandbox": "NOT_RUN",
+    "release": "NOT_RUN"
+  },
+  "artifacts": [
+    {
+      "path": "egress-review-before-assertion-fix.json",
+      "sha256": "65cbb35055863a350e8f4a41d7c095a1c643d2f33f68a0a350d0a1717e4eeddf"
+    },
+    {
+      "path": "egress-review-before-freeze.json",
+      "sha256": "1e6cdbe6145baed16aa5d18d394b8eb052ca6196c887e289085248c691f90d02"
+    },
+    {
+      "path": "egress-review.json",
+      "sha256": "850854e8254cbf19840c4728ab21a6b9a0b0359dd1290ef0b37ed6d3c50effd1"
+    },
+    {
+      "path": "local-checks-before-assertion-fix.json",
+      "sha256": "8e31ac32b43baf46dcccb1daf213a2e2dcc0392142dc7c617012aa506125c654"
+    },
+    {
+      "path": "local-checks.json",
+      "sha256": "2af860f471d8d5dbe353e7ee364a0418c348452ecedfefbb7151020400e0665e"
+    },
+    {
+      "path": "node-tests-before-assertion-fix.xml",
+      "sha256": "09f82a6930ac4be037a1316f2e81e4a11594c9fa585d779759b841cc9ee909da"
+    },
+    {
+      "path": "node-tests.xml",
+      "sha256": "00d7faeacfd6bc45633079238b69ecccd2c01102d438a71ec135bdcdc9cb3500"
+    },
+    {
+      "path": "prior-artifact-binding.json",
+      "sha256": "17f3c3e82df38fb7686240f2ac08154e220bde714058abaa3078c9a071450115"
+    },
+    {
+      "path": "README.md",
+      "sha256": "fa9352eab0a74fc24f5abb594db417ba8f9b5e69e52614200b615b4d4715ecba"
+    },
+    {
+      "path": "source-binding-before-assertion-fix.json",
+      "sha256": "eef880c4fc8152cc6e0ce271dd86c51e68c9bb48064571b8fcf9a8509ce61c7f"
+    },
+    {
+      "path": "source-binding.json",
+      "sha256": "3f5c9715e1ee69cd6f6337da6b6bec72b4787225deef4a5bf07b243e7bff2bac"
+    },
+    {
+      "path": "vitest-agent-core-before-assertion-fix.json",
+      "sha256": "0ffdd2a645a76693a46cb5e88e0e76f4cd6c5538fbedb68dddc50b81106ee8f2"
+    },
+    {
+      "path": "vitest-agent-core.json",
+      "sha256": "dfde128ad70e299044bb305923ab0a1bf0ee1a964289ca7f5f61077756230101"
+    }
+  ]
+}

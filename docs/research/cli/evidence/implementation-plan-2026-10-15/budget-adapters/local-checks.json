@@ -1,0 +1,18 @@
+{
+  "schema": "chainlesschain.budget-adapters-local-checks/v1",
+  "capturedAt": "2026-10-15T07:22:37.994Z",
+  "sourceDigest": "9862c11cebdafc66771e5be52e7946665a79625c85c3b3575bc1a06d5ac069ef",
+  "syntax": {
+    "passed": true,
+    "files": 26
+  },
+  "formatting": {
+    "passed": true,
+    "files": 27
+  },
+  "eslint": {
+    "status": "NOT_RUN",
+    "reason": "The declared ESLint dependency is absent from this workspace"
+  },
+  "sourceDigestsMatch": true
+}

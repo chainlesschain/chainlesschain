@@ -1,0 +1,909 @@
+{
+  "schema": "chainlesschain.implementation-plan-budget-egress-review/v1",
+  "capturedAt": "2026-10-15T07:20:12.250Z",
+  "sourceCommit": "62b407bbefee02a2ac14495fcef9e59b237c05a7",
+  "readiness": {
+    "paidReady": false,
+    "reason": "Agent, Chat, compaction, advisor, probes, retries and child-process egress are not yet all routed through this authority"
+  },
+  "scope": "Static call-chain review and lexical network candidates in packages/cli/src; aliases, SDKs, dynamically loaded code, scripts and descendant egress still require runtime review.",
+  "exhaustive": false,
+  "runtimeCoverageVerified": false,
+  "scopedTransport": {
+    "enabledByDefault": false,
+    "protocols": [
+      "openai-chat"
+    ],
+    "trustedHostSources": [
+      {
+        "path": "packages/cli/src/lib/formal-budget-provider-scope.js",
+        "digest": "sha256:0d26edef575c5514ecc6115da04c4e39428062313b49a955d21d888f912eae8a"
+      },
+      {
+        "path": "packages/cli/src/lib/formal-budget-transport.js",
+        "digest": "sha256:328ea2079d235015f47f910a15249f33561ceabd342ad1f30fa8c3db3b791413"
+      },
+      {
+        "path": "packages/cli/src/lib/formal-budget-authority.js",
+        "digest": "sha256:42062bc8dc0f4957abdf34226428290e9b06608e199a55c75251ee0cb1e2cd50"
+      },
+      {
+        "path": "packages/cli/src/lib/formal-budget-contract.js",
+        "digest": "sha256:e9761080bdb181ac5861c2211e65c1c9713e8562b4247dcfe03a92b69ebeba45"
+      },
+      {
+        "path": "packages/cli/src/lib/formal-budget-errors.js",
+        "digest": "sha256:bdfffe5b1a689d57b962f04d4129938564fdd8fa67b5d335d6a5918b4173746a"
+      }
+    ],
+    "isolationBoundary": "Async-local in-process calls only; no OS, SDK, worker or subprocess containment",
+    "formalAdmission": "UNCHANGED_NOT_ADMITTED",
+    "unsupportedAdapters": [
+      "opaque Hub SDK and Desktop callbacks",
+      "native and custom Hub embeddings",
+      "governed skill synthesis grader child process"
+    ],
+    "unsupportedAdapterAction": "REJECT_BEFORE_ADAPTER_INVOCATION_OR_CHILD_LAUNCH"
+  },
+  "historicalSharedCapUsd": 99,
+  "historicalLiabilityReconciled": false,
+  "outputUpperBoundVerified": false,
+  "categories": [
+    {
+      "id": "agent",
+      "callChain": [
+        "agentLoop",
+        "chatWithTools",
+        "provider fetch"
+      ],
+      "sources": [
+        {
+          "path": "packages/cli/src/runtime/headless-runner.js",
+          "digest": "sha256:931b8c0f388f3c4e75192df8200f3125a3b4303f1f896da8308634dcecde0efe"
+        },
+        {
+          "path": "packages/cli/src/runtime/agent-core.js",
+          "digest": "sha256:ac4865074c41f15443231b6896cff32cf3e65024b744f0ae6c7c4d3b91264d53"
+        }
+      ],
+      "formalCoverage": "NOT_ATTESTED",
+      "hostScopeIntegration": "CANONICAL_IN_PROCESS_ROUTES_ONLY",
+      "requiredIntegration": "Explicit host scope routes canonical in-process provider calls. Attest all launchers, fallbacks and host combinations before admission."
+    },
+    {
+      "id": "chat",
+      "callChain": [
+        "startChatRepl / chat gateway",
+        "streamOpenAI / streamAnthropic / streamOllama",
+        "provider fetch"
+      ],
+      "sources": [
+        {
+          "path": "packages/cli/src/repl/chat-repl.js",
+          "digest": "sha256:a53d7fdc0af6f98586d748e4488848d5d6abe42f11e7cf4347a3a2fb9b13207a"
+        },
+        {
+          "path": "packages/cli/src/lib/chat-core.js",
+          "digest": "sha256:75badcbad571c266cf7592a79d5ad77f2f0f6d318ee4594da1195c405811a4e2"
+        },
+        {
+          "path": "packages/cli/src/lib/provider-stream.js",
+          "digest": "sha256:a3663c1c909840369df9774e95bb4e831a860df9e407bfb19bd25d52d4a7d633"
+        }
+      ],
+      "formalCoverage": "NOT_ATTESTED",
+      "hostScopeIntegration": "CANONICAL_IN_PROCESS_ROUTES_ONLY",
+      "requiredIntegration": "Explicit host scope routes ordinary Chat. Verify all gateway/REPL host lifetimes before admission."
+    },
+    {
+      "id": "compaction",
+      "callChain": [
+        "compactConversationWithProvider / _getAutoCompactor",
+        "llmQuery",
+        "chatWithTools"
+      ],
+      "sources": [
+        {
+          "path": "packages/cli/src/harness/provider-backed-compaction.js",
+          "digest": "sha256:c17ac6556491e6f5959c44cc866543715ea445600979d0350c8d5367cf15e45f"
+        },
+        {
+          "path": "packages/cli/src/harness/prompt-compressor.js",
+          "digest": "sha256:072772e5838b1dfc30321cc46c31d7b6c95ef0d44142a1a08a3cb1c39d70a163"
+        },
+        {
+          "path": "packages/cli/src/runtime/agent-core.js",
+          "digest": "sha256:ac4865074c41f15443231b6896cff32cf3e65024b744f0ae6c7c4d3b91264d53"
+        }
+      ],
+      "formalCoverage": "NOT_ATTESTED",
+      "hostScopeIntegration": "CANONICAL_IN_PROCESS_ROUTES_ONLY",
+      "requiredIntegration": "Reserve semantic compaction independently and retain known usage when the context commit is rejected."
+    },
+    {
+      "id": "advisor",
+      "callChain": [
+        "AdvisorRuntime",
+        "chatWithTools"
+      ],
+      "sources": [
+        {
+          "path": "packages/cli/src/lib/advisor-runtime.js",
+          "digest": "sha256:041e6aea98fa372c7c454c4e553f72988d54f712fcb014915a7fcff21d915762"
+        }
+      ],
+      "formalCoverage": "NOT_ATTESTED",
+      "hostScopeIntegration": "CANONICAL_IN_PROCESS_ROUTES_ONLY",
+      "requiredIntegration": "Unify the Advisor CostBudget with the formal budget lineage."
+    },
+    {
+      "id": "probe",
+      "callChain": [
+        "probeLlmConnection",
+        "fetchImpl"
+      ],
+      "sources": [
+        {
+          "path": "packages/cli/src/lib/llm-connection-probe.js",
+          "digest": "sha256:4910c204d06e3ed63618bc568dfff788f583b82f1c9fb6df16881b557f91fb4d"
+        },
+        {
+          "path": "packages/cli/src/lib/llm-providers.js",
+          "digest": "sha256:372d1f65e64f5c96c9907c5f28b0d92f83f29f1bf91f70ae68c5629a056430c2"
+        }
+      ],
+      "formalCoverage": "NOT_ATTESTED",
+      "hostScopeIntegration": "CANONICAL_IN_PROCESS_ROUTES_ONLY",
+      "requiredIntegration": "Govern health probes and preserve missing or invalid usage as unresolved liability."
+    },
+    {
+      "id": "retry",
+      "callChain": [
+        "_retryStreamingChat / stream retry",
+        "fresh provider attempt"
+      ],
+      "sources": [
+        {
+          "path": "packages/cli/src/lib/stream-retry.js",
+          "digest": "sha256:c8ddf782e3fe16caab567c61934ff7adfa08e6d866e7ea8e0b66944ce755280e"
+        },
+        {
+          "path": "packages/cli/src/lib/model-failure-policy.js",
+          "digest": "sha256:6bf13a7fd586b6fdd2817721acbc2899032d5611b31e13ef93fd7b22f2383742"
+        },
+        {
+          "path": "packages/cli/src/runtime/agent-core.js",
+          "digest": "sha256:ac4865074c41f15443231b6896cff32cf3e65024b744f0ae6c7c4d3b91264d53"
+        }
+      ],
+      "formalCoverage": "NOT_ATTESTED",
+      "hostScopeIntegration": "CANONICAL_IN_PROCESS_ROUTES_ONLY",
+      "requiredIntegration": "Use a distinct reservation per attempt; do not retry unknown provider outcomes."
+    },
+    {
+      "id": "child",
+      "callChain": [
+        "SubAgentContext / cowork",
+        "createChatFn / child agentLoop",
+        "provider fetch"
+      ],
+      "sources": [
+        {
+          "path": "packages/cli/src/lib/sub-agent-context.js",
+          "digest": "sha256:5b3f3fd8bdc292eae539d6e191413d8c56d03146cb38badf4f3cc9a65d87f1eb"
+        },
+        {
+          "path": "packages/cli/src/lib/cowork-adapter.js",
+          "digest": "sha256:43e3e086af7bbd964df40f6f02488fd87ed43704d495ed6ce6e196db55f28b2d"
+        },
+        {
+          "path": "packages/cli/src/lib/process-execution-broker/index.js",
+          "digest": "sha256:ac713037cac588c8cf985bbbbacf61f34e7a345378ba9173691db17952e68a1a"
+        }
+      ],
+      "formalCoverage": "NOT_ATTESTED",
+      "hostScopeIntegration": "IN_PROCESS_ONLY_DESCENDANTS_UNCOVERED",
+      "requiredIntegration": "Keep credentials and authority outside task descendants; prove they cannot bypass the governed egress."
+    },
+    {
+      "id": "additional-model-adapters",
+      "callChain": [
+        "typed decision / hub model adapter",
+        "provider transport"
+      ],
+      "sources": [
+        {
+          "path": "packages/cli/src/lib/decision-layer/typesafe-provider.js",
+          "digest": "sha256:943440866d41688834ad8912adef695345d109127fb553411c469b4596418d2f"
+        },
+        {
+          "path": "packages/cli/src/lib/decision-layer/providers.js",
+          "digest": "sha256:e95da9f0327f90882a94f7e54dced15f814ddadbf6dac40e77c8dcccc61b4a39"
+        },
+        {
+          "path": "packages/cli/src/lib/hub-llm-client.js",
+          "digest": "sha256:9e83456cdb0f55941b82f00fbc9d49e357edeafcc7c58677d0ffeac17cbc2828"
+        },
+        {
+          "path": "packages/cli/src/commands/ask.js",
+          "digest": "sha256:76db41dcd27b2c1b1a619775bf25877131d299b49cbabe158d8a20b013961e9b"
+        },
+        {
+          "path": "packages/cli/src/lib/evolution/governed-hub-llm.js",
+          "digest": "sha256:d252bbfcd50b6ffbca9a95893d9aee6b83afa1bbdb33a22da9ebdeec4fc9bfd5"
+        },
+        {
+          "path": "packages/cli/src/lib/evolution/governed-hub-resolver.js",
+          "digest": "sha256:8b85c11c272c97a1db80d46c732a72a48dc6f2cbb20bafd123f9d8cda06bfd16"
+        },
+        {
+          "path": "packages/cli/src/lib/evolution/governed-skill-synthesis-process-grader.js",
+          "digest": "sha256:beeac624cb9932562117a99e1e8cad259ea5128a8d88b6d4557ca32b1f52662e"
+        }
+      ],
+      "formalCoverage": "NOT_ATTESTED",
+      "hostScopeIntegration": "ASK_HUB_ROUTED_OPAQUE_SDK_EMBEDDINGS_AND_GRADER_LAUNCH_DENIED",
+      "requiredIntegration": "Decide and attest formal scope for additional model adapters before admitting any paid task."
+    }
+  ],
+  "networkCandidates": [
+    {
+      "path": "packages/cli/src/commands/agenda.js",
+      "digest": "sha256:50204bbb316cde4868755b15d0897fd8b811cc2b58a952e53f70d70df95eb695",
+      "calls": [
+        {
+          "line": 874,
+          "callee": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/commands/ask.js",
+      "digest": "sha256:76db41dcd27b2c1b1a619775bf25877131d299b49cbabe158d8a20b013961e9b",
+      "calls": [
+        {
+          "line": 145,
+          "callee": "providerFetch"
+        },
+        {
+          "line": 188,
+          "callee": "providerFetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/commands/init.js",
+      "digest": "sha256:931d3fb6907f26c1c5cfb6741452fa142692f711ac517a385eb81ddb5f73587c",
+      "calls": [
+        {
+          "line": 671,
+          "callee": "https.request"
+        },
+        {
+          "line": 702,
+          "callee": "https.request"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/commands/llm.js",
+      "digest": "sha256:68d5633ecd318ae0107cc137e26a1de0f40122cfc1766a032c868db9d2dcc961",
+      "calls": [
+        {
+          "line": 256,
+          "callee": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/commands/mtc.js",
+      "digest": "sha256:b50e96a7b823ceec4e2c431284d2ae0dd718980e7c82dc21b7a7a9866a3c3592",
+      "calls": [
+        {
+          "line": 1243,
+          "callee": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/harness/mcp-client.js",
+      "digest": "sha256:3368c0b6f855c715af8f2fa143765fdbcd118915cee85aae28c1d5a8a204937d",
+      "calls": [
+        {
+          "line": 63,
+          "callee": "fetch"
+        },
+        {
+          "line": 67,
+          "callee": "fetch"
+        },
+        {
+          "line": 4465,
+          "callee": "fetch"
+        },
+        {
+          "line": 4723,
+          "callee": "fetch"
+        },
+        {
+          "line": 5512,
+          "callee": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/harness/remote-session-push-fcm.js",
+      "digest": "sha256:ddd58adb5d14112c72fbbcebeb0230076e40a66a900c2396821bf44810b29f8f",
+      "calls": [
+        {
+          "line": 85,
+          "callee": "fetch"
+        },
+        {
+          "line": 166,
+          "callee": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/harness/remote-session-push-huawei.js",
+      "digest": "sha256:013ccd45839ad134540f971ef6c47eb4f3a7d1cf803fccbd0ea3069930bfaa10",
+      "calls": [
+        {
+          "line": 64,
+          "callee": "fetch"
+        },
+        {
+          "line": 123,
+          "callee": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/harness/remote-session-push-oppo.js",
+      "digest": "sha256:97f045ab143f86053d6d5070d55a98cddf5af4fc85c32e111d815b511d61a171",
+      "calls": [
+        {
+          "line": 65,
+          "callee": "fetch"
+        },
+        {
+          "line": 124,
+          "callee": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/harness/remote-session-push-vivo.js",
+      "digest": "sha256:dc531b4590a132a115e32ace9bbca2dff6a381991b2cb5d79447f42f2a7eb2c3",
+      "calls": [
+        {
+          "line": 66,
+          "callee": "fetch"
+        },
+        {
+          "line": 130,
+          "callee": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/harness/remote-session-push-web.js",
+      "digest": "sha256:6d2bd789cc424995cdfb1abf2d4b9119d7566008689f53eba2fd936161e4edf9",
+      "calls": [
+        {
+          "line": 248,
+          "callee": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/harness/remote-session-push-xiaomi.js",
+      "digest": "sha256:96eb1cc11e236c05bb670ee324609782e953a53ac058a33e527777d8b35cd204",
+      "calls": [
+        {
+          "line": 55,
+          "callee": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/harness/session-mirror.js",
+      "digest": "sha256:e64bc91e0e6759677cf80ee49128aee7a6625080bf889228f94965c2c8484133",
+      "calls": [
+        {
+          "line": 297,
+          "callee": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/browser-automation.js",
+      "digest": "sha256:b4f05bcc40fbc2b33d7034d7dd70b2e2e86e87f0f7f4fe74547996c7bee07980",
+      "calls": [
+        {
+          "line": 21,
+          "callee": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/cc-android-bridge.js",
+      "digest": "sha256:4546187530ace77b4fda3a3d0fd92944a40169cd4543635dec8c65b938668833",
+      "calls": [
+        {
+          "line": 142,
+          "callee": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/channels/telegram-channel.js",
+      "digest": "sha256:a490f648cf8b138fc583b29d1e2f072292b81b94eeb614255f79199a9bc8aab4",
+      "calls": [
+        {
+          "line": 27,
+          "callee": "fetch"
+        },
+        {
+          "line": 57,
+          "callee": "fetchImpl"
+        },
+        {
+          "line": 124,
+          "callee": "fetchImpl"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/chat-core.js",
+      "digest": "sha256:75badcbad571c266cf7592a79d5ad77f2f0f6d318ee4594da1195c405811a4e2",
+      "calls": [
+        {
+          "line": 137,
+          "callee": "providerFetch"
+        },
+        {
+          "line": 252,
+          "callee": "providerFetch"
+        },
+        {
+          "line": 397,
+          "callee": "providerFetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/chrome-connector.js",
+      "digest": "sha256:6c2fc2e0f36202eb737fe984dd2f3f411ba3b932e30e8438d057cb161cfd61e1",
+      "calls": [
+        {
+          "line": 252,
+          "callee": "http.get"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/cloud/cloud-client.js",
+      "digest": "sha256:048085dbdc1f52ec4603c631897c38ef03abbe6e9b46a6e26c55b22e92907ce2",
+      "calls": [
+        {
+          "line": 32,
+          "callee": "fetch"
+        },
+        {
+          "line": 112,
+          "callee": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/cowork-adapter.js",
+      "digest": "sha256:43e3e086af7bbd964df40f6f02488fd87ed43704d495ed6ce6e196db55f28b2d",
+      "calls": [
+        {
+          "line": 178,
+          "callee": "providerFetch"
+        },
+        {
+          "line": 218,
+          "callee": "providerFetch"
+        },
+        {
+          "line": 249,
+          "callee": "providerFetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/decision-layer/providers.js",
+      "digest": "sha256:e95da9f0327f90882a94f7e54dced15f814ddadbf6dac40e77c8dcccc61b4a39",
+      "calls": [
+        {
+          "line": 199,
+          "callee": "providerFetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/downloader.js",
+      "digest": "sha256:89edfc6d7b222d552820031888493f15ef1e0606ef587fb2c3a93d8c121b9689",
+      "calls": [
+        {
+          "line": 113,
+          "callee": "fetch"
+        },
+        {
+          "line": 208,
+          "callee": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/governed-hub-llm.js",
+      "digest": "sha256:d252bbfcd50b6ffbca9a95893d9aee6b83afa1bbdb33a22da9ebdeec4fc9bfd5",
+      "calls": [
+        {
+          "line": 104,
+          "callee": "providerFetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/governed-hub-resolver.js",
+      "digest": "sha256:8b85c11c272c97a1db80d46c732a72a48dc6f2cbb20bafd123f9d8cda06bfd16",
+      "calls": [
+        {
+          "line": 58,
+          "callee": "fetchImpl"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/governed-skill-synthesis-process-grader-worker.mjs",
+      "digest": "sha256:ef028b7eac527d93a929f440f9e025ccfc33c36d8ec6e7ec2863a0a681a9df47",
+      "calls": [
+        {
+          "line": 118,
+          "callee": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/evomap-client.js",
+      "digest": "sha256:5b09c2f7ef15a6afd3715f6ece8d0bff95fcbe8efb3dc01dbc80d7a16a6a7d6b",
+      "calls": [
+        {
+          "line": 111,
+          "callee": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/formal-budget-provider-scope.js",
+      "digest": "sha256:0d26edef575c5514ecc6115da04c4e39428062313b49a955d21d888f912eae8a",
+      "calls": [
+        {
+          "line": 65,
+          "callee": "providerFetch"
+        },
+        {
+          "line": 67,
+          "callee": "fetchImpl"
+        },
+        {
+          "line": 73,
+          "callee": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/formal-budget-transport.js",
+      "digest": "sha256:328ea2079d235015f47f910a15249f33561ceabd342ad1f30fa8c3db3b791413",
+      "calls": [
+        {
+          "line": 354,
+          "callee": "fetchImpl"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/gateway-client-resilience.js",
+      "digest": "sha256:f03dc5519ca59273209544e468c99990233e8e6285c72f10a4e75950824dc1eb",
+      "calls": [
+        {
+          "line": 509,
+          "callee": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/hooks-v2-runtime.js",
+      "digest": "sha256:616f3b123ac2b7d367df8e622c0be0e83d44173ef765d5fba7b937ca4d5b8f2f",
+      "calls": [
+        {
+          "line": 1230,
+          "callee": "fetchImpl"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/hub-llm-client.js",
+      "digest": "sha256:9e83456cdb0f55941b82f00fbc9d49e357edeafcc7c58677d0ffeac17cbc2828",
+      "calls": [
+        {
+          "line": 206,
+          "callee": "providerFetch"
+        },
+        {
+          "line": 274,
+          "callee": "providerFetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/llm-connection-probe.js",
+      "digest": "sha256:4910c204d06e3ed63618bc568dfff788f583b82f1c9fb6df16881b557f91fb4d",
+      "calls": [
+        {
+          "line": 185,
+          "callee": "providerFetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/llm-providers.js",
+      "digest": "sha256:372d1f65e64f5c96c9907c5f28b0d92f83f29f1bf91f70ae68c5629a056430c2",
+      "calls": [
+        {
+          "line": 139,
+          "callee": "providerFetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/mcp-oauth.js",
+      "digest": "sha256:89efe4cf62e019f37f67aed65bf6bad2e2725c3a9efef6c536fe772c62f9977b",
+      "calls": [
+        {
+          "line": 31,
+          "callee": "fetch"
+        },
+        {
+          "line": 213,
+          "callee": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/notifiers/_http.js",
+      "digest": "sha256:0e00a1faa793af266931a2b2da29e301d515e9f4260d650fdff6503b3ab34009",
+      "calls": [
+        {
+          "line": 22,
+          "callee": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/p2p-manager.js",
+      "digest": "sha256:a6b32fcf61983711b1d030944277df2cb4107f77f159eb2d38a5426a076a1af7",
+      "calls": [
+        {
+          "line": 389,
+          "callee": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/packer/pack-update-checker.js",
+      "digest": "sha256:4e63745e80595544f4a54a471cae07bcb15d58c9c8c20845cef43c5a29647858",
+      "calls": [
+        {
+          "line": 82,
+          "callee": "fetchImpl"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/packer/pack-update-downloader.js",
+      "digest": "sha256:1e20df6eaac433c322412d39fd89691f4b6f00fa691080007fa13ee730c20f59",
+      "calls": [
+        {
+          "line": 104,
+          "callee": "fetchImpl"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/packer/smoke-runner.js",
+      "digest": "sha256:68cbc80b9adcf24a942d2aa6861f7b8d916c8560fdff9ec0849353a46dca8a80",
+      "calls": [
+        {
+          "line": 363,
+          "callee": "http.get"
+        },
+        {
+          "line": 387,
+          "callee": "http.get"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/personal-data-hub-wiring.js",
+      "digest": "sha256:c048cbf8e96373eb286e5dd213714e68023ba01e1166f834937f2855c6677ce3",
+      "calls": [
+        {
+          "line": 1039,
+          "callee": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/plugin-runtime/marketplace-command-source.js",
+      "digest": "sha256:f608c89bba7ed949f89938915a18cc2b5fa6403dbcbaefd275bb39927aeed64b",
+      "calls": [
+        {
+          "line": 556,
+          "callee": "fetchImpl"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/plugin-runtime/marketplace-remote-artifacts.js",
+      "digest": "sha256:4a4399846c6815f1937a1e5d3c8609a90958ef43940d35243c9b629c3b76ea5a",
+      "calls": [
+        {
+          "line": 35,
+          "callee": "fetch"
+        },
+        {
+          "line": 502,
+          "callee": "fetchImpl"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/plugin-runtime/remote-source.js",
+      "digest": "sha256:8c70bc096d22209895330143c428d58907947ef3b289d24dd2292de48e53555c",
+      "calls": [
+        {
+          "line": 55,
+          "callee": "fetch"
+        },
+        {
+          "line": 251,
+          "callee": "fetchImpl"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/provider-stream.js",
+      "digest": "sha256:a3663c1c909840369df9774e95bb4e831a860df9e407bfb19bd25d52d4a7d633",
+      "calls": [
+        {
+          "line": 54,
+          "callee": "providerFetch"
+        },
+        {
+          "line": 99,
+          "callee": "providerFetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/sandbox-egress-proxy.js",
+      "digest": "sha256:387c397b540b0cdc4f0d70ff9fa583c6a48b9c8e7d374986815ea1155b673021",
+      "calls": [
+        {
+          "line": 287,
+          "callee": "http.request"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/update-notice.js",
+      "digest": "sha256:dfb0ba6e22143fdf8cff6c2a071abf649f1469be97c4b64c49f38b7a876dad49",
+      "calls": [
+        {
+          "line": 122,
+          "callee": "fetchImpl"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/lib/version-checker.js",
+      "digest": "sha256:c16453a890710e93eaee7c62999ea83cf9fcafd1105e494c359785919c89f236",
+      "calls": [
+        {
+          "line": 22,
+          "callee": "fetch"
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/runtime/agent-core.js",
+      "digest": "sha256:ac4865074c41f15443231b6896cff32cf3e65024b744f0ae6c7c4d3b91264d53",
+      "calls": [
+        {
+          "line": 12009,
+          "callee": "providerFetch"
+        },
+        {
+          "line": 12165,
+          "callee": "providerFetch"
+        },
+        {
+          "line": 12321,
+          "callee": "providerFetch"
+        },
+        {
+          "line": 12399,
+          "callee": "providerFetch"
+        },
+        {
+          "line": 12881,
+          "callee": "providerFetch"
+        },
+        {
+          "line": 12943,
+          "callee": "providerFetch"
+        },
+        {
+          "line": 13010,
+          "callee": "providerFetch"
+        },
+        {
+          "line": 13093,
+          "callee": "providerFetch"
+        }
+      ]
+    }
+  ],
+  "unclassifiedCandidatePaths": [
+    "packages/cli/src/commands/agenda.js",
+    "packages/cli/src/commands/init.js",
+    "packages/cli/src/commands/llm.js",
+    "packages/cli/src/commands/mtc.js",
+    "packages/cli/src/harness/mcp-client.js",
+    "packages/cli/src/harness/remote-session-push-fcm.js",
+    "packages/cli/src/harness/remote-session-push-huawei.js",
+    "packages/cli/src/harness/remote-session-push-oppo.js",
+    "packages/cli/src/harness/remote-session-push-vivo.js",
+    "packages/cli/src/harness/remote-session-push-web.js",
+    "packages/cli/src/harness/remote-session-push-xiaomi.js",
+    "packages/cli/src/harness/session-mirror.js",
+    "packages/cli/src/lib/browser-automation.js",
+    "packages/cli/src/lib/cc-android-bridge.js",
+    "packages/cli/src/lib/channels/telegram-channel.js",
+    "packages/cli/src/lib/chrome-connector.js",
+    "packages/cli/src/lib/cloud/cloud-client.js",
+    "packages/cli/src/lib/downloader.js",
+    "packages/cli/src/lib/evolution/governed-skill-synthesis-process-grader-worker.mjs",
+    "packages/cli/src/lib/evomap-client.js",
+    "packages/cli/src/lib/formal-budget-provider-scope.js",
+    "packages/cli/src/lib/formal-budget-transport.js",
+    "packages/cli/src/lib/gateway-client-resilience.js",
+    "packages/cli/src/lib/hooks-v2-runtime.js",
+    "packages/cli/src/lib/mcp-oauth.js",
+    "packages/cli/src/lib/notifiers/_http.js",
+    "packages/cli/src/lib/p2p-manager.js",
+    "packages/cli/src/lib/packer/pack-update-checker.js",
+    "packages/cli/src/lib/packer/pack-update-downloader.js",
+    "packages/cli/src/lib/packer/smoke-runner.js",
+    "packages/cli/src/lib/personal-data-hub-wiring.js",
+    "packages/cli/src/lib/plugin-runtime/marketplace-command-source.js",
+    "packages/cli/src/lib/plugin-runtime/marketplace-remote-artifacts.js",
+    "packages/cli/src/lib/plugin-runtime/remote-source.js",
+    "packages/cli/src/lib/sandbox-egress-proxy.js",
+    "packages/cli/src/lib/update-notice.js",
+    "packages/cli/src/lib/version-checker.js"
+  ],
+  "remainingAuthorityChecks": [
+    "database copy/rollback and concurrent lineage",
+    "every physical provider attempt",
+    "cancellation and unknown usage reconciliation",
+    "trusted credential host and descendant isolation",
+    "account pricing, exchange rate and billing window"
+  ]
+}

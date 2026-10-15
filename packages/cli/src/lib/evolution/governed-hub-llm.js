@@ -1,6 +1,10 @@
 import { createRequire } from "node:module";
 import { types } from "node:util";
 import { prepareGovernedModelTurn } from "./governed-model-turn.js";
+import {
+  providerFetch,
+  requireUnscopedModelTransport,
+} from "../formal-budget-provider-scope.js";
 
 const { createAuthenticatedEvolutionModelClient } = createRequire(
   import.meta.url,
@@ -97,21 +101,25 @@ function captureHubTransport(llm, sdk) {
           const signal = options.signal
             ? AbortSignal.any([controller.signal, options.signal])
             : controller.signal;
-          const response = await fetchImpl(`${baseUrl}/api/chat`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            redirect: "error",
-            signal,
-            body: JSON.stringify({
-              model,
-              messages,
-              stream: false,
-              options: {
-                temperature: options.temperature ?? 0.2,
-                ...(options.numCtx ? { num_ctx: options.numCtx } : {}),
-              },
-            }),
-          });
+          const response = await providerFetch(
+            `${baseUrl}/api/chat`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              redirect: "error",
+              signal,
+              body: JSON.stringify({
+                model,
+                messages,
+                stream: false,
+                options: {
+                  temperature: options.temperature ?? 0.2,
+                  ...(options.numCtx ? { num_ctx: options.numCtx } : {}),
+                },
+              }),
+            },
+            fetchImpl,
+          );
           if (!response.ok)
             throw new Error(
               `Hub Ollama request failed: HTTP ${response.status}`,
@@ -202,6 +210,7 @@ function captureHubTransport(llm, sdk) {
           );
       },
       async chat(messages, options) {
+        requireUnscopedModelTransport();
         const result = await chat(messages, options);
         const text =
           result?.content ??
@@ -233,7 +242,13 @@ function captureHubTransport(llm, sdk) {
       },
     };
   }
-  return { assertIdentity() {}, chat: llm.chat.bind(llm) };
+  return {
+    assertIdentity() {},
+    chat(messages, options) {
+      requireUnscopedModelTransport();
+      return llm.chat(messages, options);
+    },
+  };
 }
 
 // A scoped wrapper preserves the Hub's independent local/cloud consent check.

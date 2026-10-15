@@ -1,3 +1,7 @@
+import {
+  hasFormalBudgetProviderScope,
+  providerFetch,
+} from "./formal-budget-provider-scope.js";
 /**
  * Provider streaming adapters — shared by `cc stream` and the Hosted Session
  * API `stream.run` WS route. Each builder returns an AsyncIterable<string>
@@ -47,16 +51,19 @@ export async function* ollamaTokenStream({
   signal,
   requireCompletion = false,
 }) {
-  const res = await fetch(`${baseUrl}/api/${messages ? "chat" : "generate"}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(
-      messages
-        ? { model, messages, stream: true }
-        : { model, prompt, stream: true },
-    ),
-    signal,
-  });
+  const res = await providerFetch(
+    `${baseUrl}/api/${messages ? "chat" : "generate"}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(
+        messages
+          ? { model, messages, stream: true }
+          : { model, prompt, stream: true },
+      ),
+      signal,
+    },
+  );
   if (!res.ok || !res.body) {
     throw new Error(`Ollama ${res.status} ${res.statusText}`);
   }
@@ -88,7 +95,8 @@ export async function* openAIStream({
   signal,
   requireCompletion = false,
 }) {
-  const res = await fetch(`${baseUrl}/chat/completions`, {
+  const governed = hasFormalBudgetProviderScope();
+  const res = await providerFetch(`${baseUrl}/chat/completions`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -98,17 +106,24 @@ export async function* openAIStream({
       model,
       messages: messages ?? [{ role: "user", content: prompt }],
       stream: true,
+      ...(governed ? { stream_options: { include_usage: true } } : {}),
     }),
     signal,
   });
   if (!res.ok || !res.body) {
     throw new Error(`${res.status} ${res.statusText}`);
   }
+  let completed = false;
   for await (const raw of responseLines(res.body)) {
     const line = raw.trim();
     if (!line || !line.startsWith("data:")) continue;
     const payload = line.slice(5).trim();
-    if (payload === "[DONE]") return;
+    if (payload === "[DONE]") {
+      completed = true;
+      if (!governed) return;
+      // A governed stream must reach EOF so durable accounting can settle.
+      continue;
+    }
     try {
       const obj = JSON.parse(payload);
       if (requireCompletion && obj.error)
@@ -120,7 +135,7 @@ export async function* openAIStream({
       /* skip */
     }
   }
-  if (requireCompletion)
+  if (requireCompletion && !completed)
     throw new Error("OpenAI stream ended before its completion marker");
 }
 

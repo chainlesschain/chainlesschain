@@ -1,6 +1,7 @@
 import net from "node:net";
 import { randomBytes } from "node:crypto";
 import { createNdjsonReader } from "./background-session-transport.js";
+import { requireUnscopedDescendantControl } from "./formal-budget-provider-scope.js";
 import {
   BACKGROUND_AGENT_KEEPER_ARM,
   BACKGROUND_AGENT_KEEPER_ARMED,
@@ -67,6 +68,7 @@ async function connectWithDeadline(pipePath, timeoutMs) {
 }
 
 export async function connectBackgroundAgentKeeper(options = {}) {
+  requireUnscopedDescendantControl();
   const hello = normalizeBackgroundAgentKeeperHello(options);
   const connectTimeoutMs = Math.max(
     1,
@@ -234,6 +236,7 @@ export async function connectBackgroundAgentKeeper(options = {}) {
 
   return Object.freeze({
     async arm(turn) {
+      requireUnscopedDescendantControl();
       const normalized = normalizeBackgroundAgentKeeperTurn(turn);
       if (activeTurn) {
         throw keeperError(

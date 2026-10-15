@@ -1,0 +1,188 @@
+{
+  "schema": "chainlesschain.budget-adapters-validation/v1",
+  "capturedAt": "2026-10-15T07:27:29.976Z",
+  "sourceBinding": {
+    "path": "source-binding.json",
+    "baseCommit": "62b407bbefee02a2ac14495fcef9e59b237c05a7",
+    "sourceDigest": "9862c11cebdafc66771e5be52e7946665a79625c85c3b3575bc1a06d5ac069ef",
+    "workingTree": true,
+    "unchangedAfterTests": true,
+    "files": 27
+  },
+  "node": {
+    "files": 3,
+    "tests": 117,
+    "passed": 117,
+    "failed": 0,
+    "scopeTests": 42,
+    "addedSincePreviousRound": 13,
+    "durationMs": 156825.5548
+  },
+  "vitest": {
+    "files": 23,
+    "tests": 540,
+    "passed": 540,
+    "failed": 0,
+    "suites": [
+      {
+        "path": "__tests__/unit/advisor-runtime.test.js",
+        "tests": 26
+      },
+      {
+        "path": "__tests__/unit/agent-core-autocompact.test.js",
+        "tests": 15
+      },
+      {
+        "path": "__tests__/unit/agent-core-prepare-call.test.js",
+        "tests": 5
+      },
+      {
+        "path": "__tests__/unit/agent-core-stream-resilience.test.js",
+        "tests": 25
+      },
+      {
+        "path": "__tests__/unit/agent-core-usage-boundary.test.js",
+        "tests": 28
+      },
+      {
+        "path": "__tests__/unit/agent-router.test.js",
+        "tests": 42
+      },
+      {
+        "path": "__tests__/unit/ask-command.test.js",
+        "tests": 15
+      },
+      {
+        "path": "__tests__/unit/chat-core-stall.test.js",
+        "tests": 5
+      },
+      {
+        "path": "__tests__/unit/chat-core.test.js",
+        "tests": 10
+      },
+      {
+        "path": "__tests__/unit/cowork-adapter.test.js",
+        "tests": 24
+      },
+      {
+        "path": "__tests__/unit/decision-layer-runtime.test.js",
+        "tests": 11
+      },
+      {
+        "path": "__tests__/unit/fallback-model.test.js",
+        "tests": 46
+      },
+      {
+        "path": "__tests__/unit/governed-hub-default-adapters.test.js",
+        "tests": 48
+      },
+      {
+        "path": "__tests__/unit/governed-hub-llm.test.js",
+        "tests": 3
+      },
+      {
+        "path": "__tests__/unit/governed-hub-sdk-copy.test.js",
+        "tests": 9
+      },
+      {
+        "path": "__tests__/unit/governed-skill-synthesis-process-grader.test.js",
+        "tests": 3
+      },
+      {
+        "path": "__tests__/unit/llm-connection-probe.test.js",
+        "tests": 28
+      },
+      {
+        "path": "__tests__/unit/llm-providers-test-timeout.test.js",
+        "tests": 3
+      },
+      {
+        "path": "__tests__/unit/llm-providers.test.js",
+        "tests": 87
+      },
+      {
+        "path": "__tests__/unit/provider-backed-compaction.test.js",
+        "tests": 17
+      },
+      {
+        "path": "__tests__/unit/runnable-provider.test.js",
+        "tests": 33
+      },
+      {
+        "path": "__tests__/unit/stream-retry.test.js",
+        "tests": 9
+      },
+      {
+        "path": "__tests__/unit/sub-agent-context.test.js",
+        "tests": 48
+      }
+    ]
+  },
+  "syntax": {
+    "passed": true,
+    "files": 26
+  },
+  "formatting": {
+    "passed": true,
+    "files": 27
+  },
+  "eslint": {
+    "status": "NOT_RUN",
+    "reason": "The declared ESLint dependency is absent from this workspace"
+  },
+  "execution": {
+    "platform": "win32",
+    "architecture": "x64",
+    "node": "v22.22.2",
+    "livePaidProviderRequests": 0,
+    "fixtures": "Offline transports, local HTTP SDK fixtures, real SQLite and signed test-only evolution authority",
+    "osContainmentVerified": false,
+    "crossPlatformCiVerified": false
+  },
+  "commands": {
+    "node": "node --test packages/cli/test-node/formal-budget-authority.test.mjs packages/cli/test-node/formal-budget-frozen-plan.node-test.mjs packages/cli/test-node/formal-budget-provider-scope.node-test.mjs",
+    "vitestCwd": "packages/cli",
+    "vitest": "node ../../node_modules/vitest/vitest.mjs run __tests__/unit/advisor-runtime.test.js __tests__/unit/agent-core-autocompact.test.js __tests__/unit/agent-core-prepare-call.test.js __tests__/unit/agent-core-stream-resilience.test.js __tests__/unit/agent-core-usage-boundary.test.js __tests__/unit/agent-router.test.js __tests__/unit/ask-command.test.js __tests__/unit/chat-core-stall.test.js __tests__/unit/chat-core.test.js __tests__/unit/cowork-adapter.test.js __tests__/unit/decision-layer-runtime.test.js __tests__/unit/fallback-model.test.js __tests__/unit/governed-hub-default-adapters.test.js __tests__/unit/governed-hub-llm.test.js __tests__/unit/governed-hub-sdk-copy.test.js __tests__/unit/governed-skill-synthesis-process-grader.test.js __tests__/unit/llm-connection-probe.test.js __tests__/unit/llm-providers-test-timeout.test.js __tests__/unit/llm-providers.test.js __tests__/unit/provider-backed-compaction.test.js __tests__/unit/runnable-provider.test.js __tests__/unit/stream-retry.test.js __tests__/unit/sub-agent-context.test.js"
+  },
+  "formalEvaluation": {
+    "executionStatus": "NOT_RUN",
+    "tasks": "0/36",
+    "firstRuns": "0/9",
+    "paidReady": false,
+    "nativeAdmission": "NOT_ADMITTED",
+    "promotion": "HOLD",
+    "historicalSharedCapUsd": 99
+  },
+  "remainingChecks": [
+    "Unreviewed lexical network candidates, SDKs, dynamic code, workers and descendant egress",
+    "Database copy/rollback lineage uniqueness and trusted credential host isolation",
+    "Real account pricing, FX, historical/cancellation liability and total billed output bound",
+    "Exact-commit OS workflow matrices, nine public installs, frozen 36+9 and human/long-duration acceptance"
+  ],
+  "artifacts": [
+    {
+      "path": "source-binding.json",
+      "sha256": "468724ebeb622572bf38e321540ff8bf4ca915a00fc384946f1b02b18eafac75"
+    },
+    {
+      "path": "node-tests.xml",
+      "sha256": "97bce8613f800aa3c73c894855fa03f4df30b9ccdc11aaf8e073a90ed65926d8"
+    },
+    {
+      "path": "vitest-tests.json",
+      "sha256": "54d05eb564f50eb1f0f4b19c3a3d7bc187d680dc9697c88e7444bc1fb9924b6a"
+    },
+    {
+      "path": "local-checks.json",
+      "sha256": "c6a4325917cb56a5260f20506f9ba1faada510fbe46b7667395f6798d5860fe7"
+    },
+    {
+      "path": "egress-review.json",
+      "sha256": "e257d6ccc045261b0ca370c799e84a8ee70c509f57110848324ed6ace04fca28"
+    },
+    {
+      "path": "baseline.json",
+      "sha256": "48af1bcd96e1796abc923719782954860bfc9033066710a167e57345a7d9305c"
+    }
+  ]
+}

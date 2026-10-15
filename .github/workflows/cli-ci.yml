@@ -204,6 +204,22 @@ jobs:
           node --test
           packages/cli/test-node/formal-budget-authority.test.mjs
           packages/cli/test-node/formal-budget-frozen-plan.node-test.mjs
+          packages/cli/test-node/formal-budget-provider-scope.node-test.mjs
+          packages/cli/test-node/budget-egress-inventory.node-test.mjs
+          packages/cli/test-node/budget-diagnostic-boundaries.node-test.mjs
+          packages/cli/test-node/formal-budget-lineage.node-test.mjs
+          packages/cli/test-node/formal-budget-registry-boundary.node-test.mjs
+          packages/cli/test-node/formal-budget-checkpoint-host.node-test.mjs
+          packages/cli/test-node/formal-budget-tool-boundary.node-test.mjs
+          packages/cli/test-node/formal-budget-descendant-control.node-test.mjs
+          packages/cli/test-node/formal-budget-direct-web-boundary.node-test.mjs
+          packages/cli/test-node/formal-budget-android-team-boundary.node-test.mjs
+          packages/cli/test-node/formal-budget-process-broker-boundary.node-test.mjs
+          packages/cli/test-node/formal-budget-worker-network-boundary.node-test.mjs
+          packages/cli/test-node/formal-budget-credential-worker-boundary.node-test.mjs
+          packages/cli/test-node/formal-budget-service-cloud-boundary.node-test.mjs
+      - name: Audit reviewed runtime and diagnostic script identities without paid admission
+        run: node packages/cli/scripts/implementation-plan-budget-egress.mjs --check --include-scripts
       - name: Verify native review preparation and receipt contracts without provider execution
         run: >-
           node --test

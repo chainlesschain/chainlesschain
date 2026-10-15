@@ -18,6 +18,7 @@ import {
   raceWithAbort,
   throwIfAborted,
 } from "./abort-utils.js";
+import { isFormalBudgetError } from "./formal-budget-errors.js";
 
 /** Bounded auto-retry budget for streaming connection drops (Claude-Code 2.1.181). */
 export const STREAM_RETRY_MAX = 2;
@@ -243,6 +244,7 @@ export function resolveStreamRetryMax(env = process.env) {
  * @returns {boolean}
  */
 export function isRetryableStreamError(err, signal) {
+  if (isFormalBudgetError(err)) return false;
   if (isAbortError(err)) return false;
   if (signal && signal.aborted) return false;
   if (!err) return false;

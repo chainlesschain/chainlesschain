@@ -5,6 +5,7 @@
  */
 import { Worker } from "node:worker_threads";
 import path from "node:path";
+import { requireUnscopedDescendantControl } from "./formal-budget-provider-scope.js";
 
 const RESPONSE_TIMEOUT_MS = 10_000;
 
@@ -15,6 +16,7 @@ function workerError(code) {
 }
 
 export async function startEgressProxyWorker(policy, options = {}) {
+  requireUnscopedDescendantControl();
   const bindHost = options.bindHost || "127.0.0.1";
   const socketPath = options.socketPath || null;
   if (socketPath) {
@@ -156,6 +158,7 @@ export async function startEgressProxyWorker(policy, options = {}) {
       return revision;
     },
     async updatePolicy(nextPolicy, expectedRevision) {
+      requireUnscopedDescendantControl();
       const response = await request("update", {
         policy: nextPolicy,
         expectedRevision,

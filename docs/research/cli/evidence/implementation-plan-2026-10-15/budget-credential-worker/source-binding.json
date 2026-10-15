@@ -1,0 +1,32 @@
+﻿{
+    "capturedAt":  "2026-10-15T13:24:10.6634121Z",
+    "baseCommit":  "62b407bbefee02a2ac14495fcef9e59b237c05a7",
+    "workingTree":  true,
+    "sourceTreeDigest":  "sha256:de43d6633a6c21fe3fcbee5c7918a5f75faaf6b409aa1f0afecb7e975548d54a",
+    "files":  [
+                  {
+                      "path":  "packages/cli/src/lib/formal-budget-provider-scope.js",
+                      "sha256":  "fc311ab4eab9bc3507339505ee2ff0fed3f7aa5afc9bdc4a1759b87c2e537840"
+                  },
+                  {
+                      "path":  "packages/cli/src/lib/process-execution-broker/credential-agent.js",
+                      "sha256":  "a43c3abfcc06ea406b085da2af3679e96ac953ecae88997cd956ccf2800416cf"
+                  },
+                  {
+                      "path":  "packages/cli/src/lib/process-execution-broker/credential-transport.js",
+                      "sha256":  "f57ef3324d78fbfdca4f9396ce05f3fdfb3479c2d4561984db4c686837290f0a"
+                  },
+                  {
+                      "path":  "packages/cli/scripts/budget-egress-reviewed-sources.json",
+                      "sha256":  "268d4bbbaa58597f2c51fbf08ab567adddf86496c6cdd91603fff39a8aa56da7"
+                  },
+                  {
+                      "path":  "packages/cli/test-node/formal-budget-credential-worker-boundary.node-test.mjs",
+                      "sha256":  "c3381b52c60b3186b416c037dd6566f0b1e786442c2c30b22e53711aab337d4b"
+                  },
+                  {
+                      "path":  ".github/workflows/cli-ci.yml",
+                      "sha256":  "790496498d5da4b2ceeb831ebf570203cfe411abf1784c4d93b9429e544f63db"
+                  }
+              ]
+}

@@ -79,6 +79,15 @@ vi.mock("./packages/cli/src/lib/paths.js", () => ({
       "abort-utils.js",
     ])
       copySource(root, `packages/cli/src/lib/${file}`);
+    // Newer failure policy versions import the shared budget error classifier.
+    // Historical source commits used by the frozen audit may predate it.
+    if (
+      sourceBytes("packages/cli/src/lib/model-failure-policy.js").includes(
+        '"./formal-budget-errors.js"',
+      )
+    ) {
+      copySource(root, "packages/cli/src/lib/formal-budget-errors.js");
+    }
     write(
       root,
       "node_modules/@chainlesschain/session-core/package.json",

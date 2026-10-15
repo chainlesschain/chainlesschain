@@ -1,0 +1,32 @@
+﻿{
+    "capturedAt":  "2026-10-15T11:26:11.4809407Z",
+    "baseCommit":  "62b407bbefee02a2ac14495fcef9e59b237c05a7",
+    "workingTree":  true,
+    "sourceTreeDigest":  "sha256:50aac1f3683c9c58248a4b646c415c451611bac415819078ef8d815978228308",
+    "files":  [
+                  {
+                      "path":  "packages/cli/src/lib/formal-budget-provider-scope.js",
+                      "sha256":  "fc311ab4eab9bc3507339505ee2ff0fed3f7aa5afc9bdc4a1759b87c2e537840"
+                  },
+                  {
+                      "path":  "packages/cli/src/lib/web-fetch.js",
+                      "sha256":  "8eb3bb589b29a7ce9ce1c9300962110be9a66419ff1ca3de097f62b66663f4c6"
+                  },
+                  {
+                      "path":  "packages/cli/src/lib/browser-automation.js",
+                      "sha256":  "0e0b9313961a97d5efeab6ba8a9a21ae4d1e551284bd7c72354ccd038c172377"
+                  },
+                  {
+                      "path":  "packages/cli/test-node/formal-budget-direct-web-boundary.node-test.mjs",
+                      "sha256":  "a19e74d4c362e4689cd14f51f41cee2cb8699e71071ebcb6d3bd4fabc4fb9f09"
+                  },
+                  {
+                      "path":  "packages/cli/scripts/budget-egress-reviewed-sources.json",
+                      "sha256":  "de7d3cacdf37d00eeabe2fb219e9f4bb9c55edf2cb8718f857bfbe6b34e56036"
+                  },
+                  {
+                      "path":  ".github/workflows/cli-ci.yml",
+                      "sha256":  "922cd2835094c3fd2fc7e313a6c6f0fca91b3e49a020245651587bb1da29d4ba"
+                  }
+              ]
+}

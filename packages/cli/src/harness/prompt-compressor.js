@@ -17,6 +17,7 @@ import {
 } from "../lib/read-file-page.js";
 import { feature, featureVariant } from "../lib/feature-flags.js";
 import { isAbortError } from "../lib/abort-utils.js";
+import { isFormalBudgetError } from "../lib/formal-budget-errors.js";
 import {
   CONTEXT_WINDOWS,
   getContextWindow,
@@ -680,6 +681,7 @@ export class PromptCompressor {
       // A durable-ledger write failure is authoritative too. Falling back here
       // would let the host continue after losing the model-call boundary.
       if (error?.runtimeLedgerPersistence === true) throw error;
+      if (isFormalBudgetError(error)) throw error;
       if (error?.code === "CC_AGENT_EVOLUTION_INGRESS_FAILED") throw error;
       // A workflow-bound query may already have reached the provider. An
       // extractive fallback would make the outer durable effect look completed

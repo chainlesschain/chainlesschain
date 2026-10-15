@@ -1,0 +1,213 @@
+{
+  "schema": "chainlesschain.budget-inventory-validation/v1",
+  "capturedAt": "2026-10-15T07:54:48.573Z",
+  "sourceBinding": {
+    "path": "source-binding.json",
+    "baseCommit": "62b407bbefee02a2ac14495fcef9e59b237c05a7",
+    "workingTree": true,
+    "sourceDigest": "3cf9b913c19de3ba399e021819ec1ad269f82bfe2cedbd5f1d3c2b8470109ee3",
+    "files": 40,
+    "unchangedAfterTests": true,
+    "changedPaths": [],
+    "sourceTreeUnchanged": true,
+    "sourceTreeDigest": "sha256:52b08d70bc4a032e7ab8ade3399ea630655b1b276c8e6c0cc0343ca00c9121aa"
+  },
+  "node": {
+    "files": 4,
+    "tests": 134,
+    "passed": 134,
+    "failed": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0,
+    "durationMs": 132237.5788,
+    "addedAuditAndSearchTests": 17,
+    "exitCode": 0,
+    "suites": [
+      "packages/cli/test-node/formal-budget-authority.test.mjs",
+      "packages/cli/test-node/formal-budget-frozen-plan.node-test.mjs",
+      "packages/cli/test-node/formal-budget-provider-scope.node-test.mjs",
+      "packages/cli/test-node/budget-egress-inventory.node-test.mjs"
+    ]
+  },
+  "vitest": {
+    "files": 6,
+    "tests": 236,
+    "passed": 236,
+    "failed": 0,
+    "pending": 0,
+    "todo": 0,
+    "success": true,
+    "exitCode": 0,
+    "suites": [
+      {
+        "path": "__tests__/unit/agent-core-autocompact.test.js",
+        "tests": 15,
+        "failed": 0
+      },
+      {
+        "path": "__tests__/unit/agent-core-prepare-call.test.js",
+        "tests": 5,
+        "failed": 0
+      },
+      {
+        "path": "__tests__/unit/agent-core-stream-resilience.test.js",
+        "tests": 25,
+        "failed": 0
+      },
+      {
+        "path": "__tests__/unit/agent-core-usage-boundary.test.js",
+        "tests": 28,
+        "failed": 0
+      },
+      {
+        "path": "__tests__/unit/agent-core.test.js",
+        "tests": 139,
+        "failed": 0
+      },
+      {
+        "path": "__tests__/unit/web-search.test.js",
+        "tests": 24,
+        "failed": 0
+      }
+    ]
+  },
+  "sourceAudit": {
+    "exitCode": 0,
+    "expectedExitCode": 0,
+    "sourceReviewPassed": true,
+    "filesScanned": 1440,
+    "candidateFiles": 59,
+    "unclassifiedFiles": 0,
+    "callChainUnmappedFiles": 48,
+    "parseErrors": 0,
+    "skippedPaths": 0,
+    "runtimeCoverageVerified": false
+  },
+  "expandedScriptsAudit": {
+    "status": "EXPECTED_REJECTION",
+    "exitCode": 1,
+    "expectedExitCode": 1,
+    "sourceReviewPassed": false,
+    "filesScanned": 1638,
+    "candidateFiles": 73,
+    "unclassifiedFiles": 14,
+    "unclassifiedPaths": [
+      "packages/cli/scripts/app-server-overload-soak.mjs",
+      "packages/cli/scripts/collect-graph-production-source-receipts.mjs",
+      "packages/cli/scripts/context-token-volcengine-live-probe.mjs",
+      "packages/cli/scripts/download-public-release-file.mjs",
+      "packages/cli/scripts/ide-roadmap-marketplace-supply-chain.mjs",
+      "packages/cli/scripts/implementation-plan-status.mjs",
+      "packages/cli/scripts/implementation-plan-volcengine-live.mjs",
+      "packages/cli/scripts/mcp-lifecycle-profile.mjs",
+      "packages/cli/scripts/mcp-reference-interop.mjs",
+      "packages/cli/scripts/pm-exploration-volcengine-live-probe.mjs",
+      "packages/cli/scripts/query-graph-production-jobs.mjs",
+      "packages/cli/scripts/verify-release-gates.mjs",
+      "packages/cli/scripts/verify01-native-toolchain-prepare.mjs",
+      "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs"
+    ],
+    "parseErrors": 0,
+    "skippedPaths": 0,
+    "liveScriptsExecuted": false
+  },
+  "checks": {
+    "syntax": {
+      "files": 36,
+      "passed": true
+    },
+    "prettier": {
+      "files": 31,
+      "exitCode": 0
+    },
+    "eslint": {
+      "status": "NOT_RUN",
+      "reason": "ESLint is not installed in this checkout"
+    },
+    "gitDiffCheck": {
+      "exitCode": 0,
+      "output": ""
+    },
+    "relativeLinks": {
+      "files": 3,
+      "missingLinks": []
+    },
+    "documentationPrettier": {
+      "files": 3,
+      "exitCode": 0,
+      "output": "Checking formatting...\nAll matched files use Prettier code style!"
+    },
+    "finalArtifactIntegrity": {
+      "invalidArtifacts": [],
+      "changedSources": []
+    }
+  },
+  "commands": {
+    "node": {
+      "cwd": "repository",
+      "command": "node --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=docs/research/cli/evidence/implementation-plan-2026-10-15/budget-inventory/node-tests.xml packages/cli/test-node/formal-budget-authority.test.mjs packages/cli/test-node/formal-budget-frozen-plan.node-test.mjs packages/cli/test-node/formal-budget-provider-scope.node-test.mjs packages/cli/test-node/budget-egress-inventory.node-test.mjs"
+    },
+    "vitest": {
+      "cwd": "packages/cli",
+      "command": "node ../../node_modules/vitest/vitest.mjs run __tests__/unit/web-search.test.js __tests__/unit/agent-core.test.js __tests__/unit/agent-core-usage-boundary.test.js __tests__/unit/agent-core-stream-resilience.test.js __tests__/unit/agent-core-autocompact.test.js __tests__/unit/agent-core-prepare-call.test.js --reporter=default --reporter=json --outputFile.json=../../docs/research/cli/evidence/implementation-plan-2026-10-15/budget-inventory/vitest-tests.json"
+    },
+    "sourceAudit": {
+      "cwd": "repository",
+      "command": "node packages/cli/scripts/implementation-plan-budget-egress.mjs --check --output docs/research/cli/evidence/implementation-plan-2026-10-15/budget-inventory/source-audit.json"
+    },
+    "expandedScriptsAudit": {
+      "cwd": "repository",
+      "command": "node packages/cli/scripts/implementation-plan-budget-egress.mjs --check --include-scripts --output docs/research/cli/evidence/implementation-plan-2026-10-15/budget-inventory/scripts-audit.json"
+    }
+  },
+  "readiness": {
+    "formalEvaluation": "NOT_RUN",
+    "tasksCompleted": 0,
+    "tasksTotal": 36,
+    "firstRunsCompleted": 0,
+    "firstRunsTotal": 9,
+    "paidReady": false,
+    "nativeAdmission": "NOT_ADMITTED",
+    "promotion": "HOLD",
+    "historicalSharedCapUsd": 99,
+    "additionalPaidCallsAuthorized": false,
+    "paidCallsThisRound": 0,
+    "remoteCi": "NOT_RUN",
+    "release": "NOT_RUN"
+  },
+  "artifacts": [
+    {
+      "path": "source-binding.json",
+      "sha256": "9d9c35fc9a6f1a2c5819c9969319234bb240a2498d81a335552949db9668d5bf"
+    },
+    {
+      "path": "node-tests.xml",
+      "sha256": "9cb02f076052ce8fba0e25b06a5770c6c4190abcd968c063c786dda031c9f065"
+    },
+    {
+      "path": "vitest-tests.json",
+      "sha256": "2b53ab9a952904c65cca5dbc3fc7579f1e22d7c58a693f160ce3f2fec42eb693"
+    },
+    {
+      "path": "source-audit.json",
+      "sha256": "22f1fadee3bb6b816df97424b2fb97093544a67acf5966d32bf72b8ac929b9cd"
+    },
+    {
+      "path": "scripts-audit.json",
+      "sha256": "61f7e075ce8be7087a23510e7cb268360a3243f6190fbcb7f4d21ba80999ae1d"
+    },
+    {
+      "path": "local-checks.json",
+      "sha256": "3926fe1c5c2994322db0e70e96ffd10d1cb3f1bcfe107740bbdb98f4d71ccb2c"
+    },
+    {
+      "path": "baseline.json",
+      "sha256": "8161f4183f9c710e6636527232d3300cafeb22cf3d0b90255f95d8780a394946"
+    },
+    {
+      "path": "README.md",
+      "sha256": "23138046dac68f7a4078bf919b9c3231b49de8449f0bb074ffee42d90ce7a3ca"
+    }
+  ]
+}

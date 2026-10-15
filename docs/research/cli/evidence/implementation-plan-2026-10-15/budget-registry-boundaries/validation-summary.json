@@ -1,0 +1,156 @@
+{
+  "schema": "chainlesschain.budget-registry-boundaries-validation/v1",
+  "capturedAt": "2026-10-15T08:57:18.831Z",
+  "sourceBinding": {
+    "path": "source-binding.json",
+    "baseCommit": "62b407bbefee02a2ac14495fcef9e59b237c05a7",
+    "workingTree": true,
+    "sourceDigest": "d7448c6cabfca5b6d6fc6241057d60c93e5b2412fab11538325f472d5e460b47",
+    "files": 45,
+    "unchangedAfterTests": true,
+    "changedPaths": [],
+    "sourceTreeUnchanged": true,
+    "sourceTreeDigest": "sha256:a16313d1a7761b0e8f6545aeba0de881528e690cd911e9dc050fb448b65c1d65"
+  },
+  "node": {
+    "files": 7,
+    "tests": 178,
+    "passed": 178,
+    "failed": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0,
+    "durationMs": 106913.7473,
+    "addedRegistryBoundaryTests": 17,
+    "exitCode": 0,
+    "suites": [
+      "packages/cli/test-node/formal-budget-authority.test.mjs",
+      "packages/cli/test-node/formal-budget-frozen-plan.node-test.mjs",
+      "packages/cli/test-node/formal-budget-provider-scope.node-test.mjs",
+      "packages/cli/test-node/formal-budget-lineage.node-test.mjs",
+      "packages/cli/test-node/formal-budget-registry-boundary.node-test.mjs",
+      "packages/cli/test-node/budget-egress-inventory.node-test.mjs",
+      "packages/cli/test-node/budget-diagnostic-boundaries.node-test.mjs"
+    ]
+  },
+  "vitest": {
+    "status": "NOT_RUN",
+    "reason": "Native Node/SQLite and process suites cover this boundary change; no new Vitest result claimed."
+  },
+  "sourceAudit": {
+    "path": "egress-review.json",
+    "exitCode": 0,
+    "sourceReviewPassed": true,
+    "filesScanned": 1639,
+    "candidateFiles": 73,
+    "unclassifiedFiles": 0,
+    "parseErrors": 0,
+    "skippedPaths": 0
+  },
+  "registryBoundaries": {
+    "physicalRegistryIdentityPinned": true,
+    "liveObservedHeadChecks": true,
+    "serializableTrustedCheckpointSupport": true,
+    "realProcessCheckpointRefusal": true,
+    "escapedLeasesExpire": true,
+    "asyncCallbacksRefused": true,
+    "legacyGuardAutomaticMigration": false,
+    "trustedCheckpointAuthenticationVerified": false,
+    "trustedCheckpointBeforeEveryDispatchVerified": false,
+    "restartCheckpointPolicyEnforced": false,
+    "registryRollbackResistanceVerified": false
+  },
+  "knownCounterexample": {
+    "status": "REPRODUCED_BY_PASSING_ASSERTIONS",
+    "synthetic": true,
+    "formalSample": false,
+    "testFile": "packages/cli/test-node/formal-budget-registry-boundary.node-test.mjs",
+    "caseName": "restart with a separately pinned checkpoint rejects old matching stores; omission remains an explicit boundary",
+    "spentBeforeRestoreUsdMicros": 46,
+    "restoredExposureWithoutCheckpointUsdMicros": 0,
+    "condition": "Both stores restored in place to a matching old snapshot and restarted without any independent checkpoint.",
+    "withTrustedCheckpoint": "CC_BUDGET_LINEAGE_ROLLBACK",
+    "liveObservedRegistry": "CC_BUDGET_LINEAGE_ROLLBACK",
+    "actualPaidProviderRequests": 0
+  },
+  "checks": {
+    "syntax": {
+      "files": 41,
+      "passed": true
+    },
+    "prettier": {
+      "files": 41,
+      "exitCode": 0
+    },
+    "eslint": {
+      "status": "NOT_RUN",
+      "installed": false,
+      "reason": "ESLint is not installed in this checkout"
+    },
+    "relativeLinks": {
+      "files": 3,
+      "missingLinks": []
+    },
+    "documentationPrettier": {
+      "files": 3,
+      "exitCode": 0,
+      "output": "Checking formatting...\nAll matched files use Prettier code style!"
+    },
+    "gitDiffCheck": {
+      "exitCode": 0,
+      "output": ""
+    },
+    "finalArtifactIntegrity": {
+      "invalidArtifacts": [],
+      "changedSources": [],
+      "changedHistoricalRound6Artifacts": []
+    }
+  },
+  "commands": {
+    "node": {
+      "cwd": "repository",
+      "command": "node --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=docs/research/cli/evidence/implementation-plan-2026-10-15/budget-registry-boundaries/node-tests.xml packages/cli/test-node/formal-budget-authority.test.mjs packages/cli/test-node/formal-budget-frozen-plan.node-test.mjs packages/cli/test-node/formal-budget-provider-scope.node-test.mjs packages/cli/test-node/formal-budget-lineage.node-test.mjs packages/cli/test-node/formal-budget-registry-boundary.node-test.mjs packages/cli/test-node/budget-egress-inventory.node-test.mjs packages/cli/test-node/budget-diagnostic-boundaries.node-test.mjs"
+    },
+    "sourceAudit": {
+      "cwd": "repository",
+      "command": "node packages/cli/scripts/implementation-plan-budget-egress.mjs --check --include-scripts --output docs/research/cli/evidence/implementation-plan-2026-10-15/budget-registry-boundaries/egress-review.json"
+    }
+  },
+  "readiness": {
+    "formalEvaluation": "NOT_RUN",
+    "tasksCompleted": 0,
+    "tasksTotal": 36,
+    "firstRunsCompleted": 0,
+    "firstRunsTotal": 9,
+    "paidReady": false,
+    "nativeAdmission": "NOT_ADMITTED",
+    "promotion": "HOLD",
+    "historicalSharedCapUsd": 99,
+    "additionalPaidCallsAuthorized": false,
+    "paidCallsThisRound": 0,
+    "remoteCi": "NOT_RUN",
+    "release": "NOT_RUN"
+  },
+  "artifacts": [
+    {
+      "path": "source-binding.json",
+      "sha256": "999bdac7e0a081261da848f67612aa0a52e6dd5f223262d0010ba537408b9e1f"
+    },
+    {
+      "path": "node-tests.xml",
+      "sha256": "b45778629b9d083b3119d471b3c7eba509a675e67faf77cd62bd52402dda706a"
+    },
+    {
+      "path": "egress-review.json",
+      "sha256": "82d3013b40dac9cb6c1ef1a1d97d460f074cc72737602061e8ee1a8a01f48046"
+    },
+    {
+      "path": "local-checks.json",
+      "sha256": "71cbd37f9cf5db510cfbf1801e0a0b22a8942bf8c3a0adc58e25b65b24a9e702"
+    },
+    {
+      "path": "README.md",
+      "sha256": "2f2cced8e43317ee49366399eb816a4634f064abac2c06d465548b894f010b06"
+    }
+  ]
+}

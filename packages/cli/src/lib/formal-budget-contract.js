@@ -1,15 +1,16 @@
 import { createHash } from "node:crypto";
 import { validateVerify01Bundle } from "./eval/verify01-contracts.js";
+import { requireBudget, label } from "./formal-budget-errors.js";
+export {
+  budgetError,
+  isFormalBudgetError,
+  requireBudget,
+  label,
+} from "./formal-budget-errors.js";
 
 const VOLCENGINE_V3_PLAN_DIGEST =
   "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13";
 
-export function budgetError(code, message) {
-  return Object.assign(new Error(message), { code });
-}
-export function requireBudget(condition, message, code = "CC_BUDGET_INVALID") {
-  if (!condition) throw budgetError(code, message);
-}
 export function integer(value, name, minimum = 0) {
   requireBudget(
     Number.isSafeInteger(value) && value >= minimum,
@@ -33,13 +34,6 @@ export function canonical(value) {
 }
 export const evidenceDigest = (value) =>
   createHash("sha256").update(canonical(value)).digest("hex");
-export function label(value, name) {
-  requireBudget(
-    typeof value === "string" && /^[A-Za-z0-9._:-]{1,160}$/u.test(value),
-    `Invalid ${name}`,
-  );
-  return value;
-}
 function digest(value, name) {
   requireBudget(
     typeof value === "string" && /^[a-f0-9]{64}$/u.test(value),

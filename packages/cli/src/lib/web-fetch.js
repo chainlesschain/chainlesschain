@@ -12,6 +12,7 @@ import { URL } from "node:url";
 import { createHash } from "node:crypto";
 import { StringDecoder } from "node:string_decoder";
 import { webFetchSnapshots } from "./web-fetch-snapshots.js";
+import { requireUnscopedExternalToolAccess } from "./formal-budget-provider-scope.js";
 
 const DEFAULT_MAX_BYTES = 10_000_000;
 const DEFAULT_MAX_CHARS = 20_000;
@@ -343,6 +344,7 @@ async function _doRequest(
 }
 
 export async function webFetch(url, options = {}) {
+  requireUnscopedExternalToolAccess();
   const {
     format = "markdown",
     maxBytes = DEFAULT_MAX_BYTES,

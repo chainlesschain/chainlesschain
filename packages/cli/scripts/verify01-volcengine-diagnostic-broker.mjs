@@ -5,6 +5,7 @@ import path from "node:path";
 import http from "node:http";
 import https from "node:https";
 import { createHash, randomBytes } from "node:crypto";
+import { requireUnscopedModelTransport } from "../src/lib/formal-budget-provider-scope.js";
 
 export const BROKER = Object.freeze({
   endpoint: "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
@@ -311,6 +312,7 @@ export function diagnosticUsage(raw) {
 }
 
 function requestArk(body, key) {
+  requireUnscopedModelTransport();
   return new Promise((resolve, reject) => {
     const payload = JSON.stringify(body),
       chunks = [];
@@ -365,11 +367,9 @@ function requestArk(body, key) {
   });
 }
 
-export async function createVolcengineDiagnosticBroker({
-  outputDir,
-  key,
-  requestImpl = requestArk,
-}) {
+export async function createVolcengineDiagnosticBroker(options) {
+  requireUnscopedModelTransport();
+  const { outputDir, key, requestImpl = requestArk } = options;
   check(typeof key === "string" && key.length > 0, "DIAGNOSTIC_KEY_REQUIRED");
   // A restarted broker cannot reuse this request allowance.
   fs.mkdirSync(outputDir, { mode: 0o700 });
@@ -538,6 +538,7 @@ export async function createVolcengineDiagnosticBroker({
     baseUrl: `http://127.0.0.1:${server.address().port}/api/v3`,
     childKey: token,
     beginTask(taskId) {
+      requireUnscopedModelTransport();
       check(
         !pending &&
           !poisoned &&

@@ -7,6 +7,8 @@
  * Lightweight: uses native fetch, no heavy dependencies.
  */
 
+import { requireUnscopedPaidService } from "./formal-budget-provider-scope.js";
+
 // Exported for test injection
 export const _deps = {
   fetch: globalThis.fetch,
@@ -21,7 +23,9 @@ export class EvoMapClient {
    * @param {string} [options.apiKey] - Optional API key for authenticated endpoints
    * @param {number} [options.timeout] - Request timeout in ms
    */
-  constructor({ hubUrl, apiKey, timeout } = {}) {
+  constructor(options = {}) {
+    requireUnscopedPaidService();
+    const { hubUrl, apiKey, timeout } = options;
     this.hubUrl = hubUrl || process.env.EVOMAP_HUB_URL || DEFAULT_HUB;
     this.apiKey = apiKey || process.env.EVOMAP_API_KEY || "";
     this.timeout = timeout || 10000;
@@ -35,7 +39,9 @@ export class EvoMapClient {
    * @param {number} [options.limit] - Max results
    * @returns {Promise<Array<{ id, name, description, author, version, downloads, rating }>>}
    */
-  async search(query, { category, limit = 20 } = {}) {
+  async search(query, options = {}) {
+    requireUnscopedPaidService();
+    const { category, limit = 20 } = options;
     const params = new URLSearchParams({ q: query, limit: String(limit) });
     if (category) params.set("category", category);
 
@@ -47,6 +53,7 @@ export class EvoMapClient {
    * Get gene details by ID.
    */
   async getGene(geneId) {
+    requireUnscopedPaidService();
     return this._request(`/genes/${encodeURIComponent(geneId)}`);
   }
 
@@ -55,6 +62,7 @@ export class EvoMapClient {
    * @returns {{ gene: object, content: string }}
    */
   async download(geneId) {
+    requireUnscopedPaidService();
     const data = await this._request(
       `/genes/${encodeURIComponent(geneId)}/download`,
     );
@@ -66,6 +74,7 @@ export class EvoMapClient {
    * @param {object} gene - Gene metadata + content
    */
   async publish(gene) {
+    requireUnscopedPaidService();
     if (!this.apiKey) throw new Error("API key required for publishing");
     return this._request("/genes", {
       method: "POST",
@@ -77,6 +86,7 @@ export class EvoMapClient {
    * List hub information.
    */
   async getHubInfo() {
+    requireUnscopedPaidService();
     return this._request("/info");
   }
 
@@ -84,6 +94,7 @@ export class EvoMapClient {
    * List available hubs (returns current hub info).
    */
   async listHubs() {
+    requireUnscopedPaidService();
     try {
       const info = await this.getHubInfo();
       return [{ url: this.hubUrl, ...info }];
@@ -95,6 +106,7 @@ export class EvoMapClient {
   // ─── Internal ───
 
   async _request(path, options = {}) {
+    requireUnscopedPaidService();
     const url = `${this.hubUrl}${path}`;
     const headers = {
       "Content-Type": "application/json",

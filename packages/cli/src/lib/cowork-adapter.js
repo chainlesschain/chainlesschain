@@ -7,6 +7,7 @@
  *  - Module initialization helper
  */
 
+import { providerFetch } from "./formal-budget-provider-scope.js";
 import { LLMProviderRegistry, BUILT_IN_PROVIDERS } from "./llm-providers.js";
 import { loadConfig } from "./config-manager.js";
 import { applyConfigLlmDefaults } from "./llm-config-defaults.js";
@@ -174,7 +175,7 @@ export function createChatFn(options = {}) {
         currentModel,
         async ({ signal = opts.signal || resolved.signal } = {}) => {
           const modelMessages = await prepareMessages();
-          const res = await fetch(`${baseUrl}/api/chat`, {
+          const res = await providerFetch(`${baseUrl}/api/chat`, {
             method: "POST",
             signal: requestSignal(signal),
             headers: { "Content-Type": "application/json" },
@@ -214,7 +215,7 @@ export function createChatFn(options = {}) {
               ? { system: systemMsgs.map((m) => m.content).join("\n") }
               : {}),
           };
-          const res = await fetch(`${baseUrl}/messages`, {
+          const res = await providerFetch(`${baseUrl}/messages`, {
             method: "POST",
             signal: requestSignal(signal),
             headers: {
@@ -245,7 +246,7 @@ export function createChatFn(options = {}) {
       currentModel,
       async ({ signal = opts.signal || resolved.signal } = {}) => {
         const modelMessages = await prepareMessages();
-        const res = await fetch(`${baseUrl}/chat/completions`, {
+        const res = await providerFetch(`${baseUrl}/chat/completions`, {
           method: "POST",
           signal: requestSignal(signal),
           headers: {

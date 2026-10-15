@@ -32,6 +32,7 @@
 
 import { readFileSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
+import { requireUnscopedExternalToolAccess } from "./formal-budget-provider-scope.js";
 
 const ANDROID_PREFIX = "/data/data/com.chainlesschain.android/";
 
@@ -72,6 +73,7 @@ function resolveBridgeConfigDir() {
  * (server not started yet, or running off-device without override).
  */
 export function loadBridgeConfig() {
+  requireUnscopedExternalToolAccess();
   const dir = resolveBridgeConfigDir();
   if (!dir) return null;
   try {
@@ -109,6 +111,7 @@ export class AndroidBridgeUnavailableError extends Error {
  *  - Method name unknown (server returns {"error": "UNKNOWN_METHOD"})
  */
 export async function invoke(method, params = {}) {
+  requireUnscopedExternalToolAccess();
   if (typeof method !== "string" || method.length === 0) {
     throw new TypeError(
       "cc-android-bridge.invoke: method must be non-empty string",
@@ -170,6 +173,7 @@ export async function invoke(method, params = {}) {
  * Returns `{ available: boolean, reason?: string, port?: number }`.
  */
 export function caps() {
+  requireUnscopedExternalToolAccess();
   if (process.env.CC_ANDROID_BRIDGE_OVERRIDE === "1") {
     return { available: true, reason: "test-override" };
   }

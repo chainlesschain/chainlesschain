@@ -28,6 +28,7 @@ import {
 import { join } from "node:path";
 import { getHomeDir } from "../paths.js";
 import { ResilientGatewayClient } from "../gateway-client-resilience.js";
+import { requireUnscopedDescendantControl } from "../formal-budget-provider-scope.js";
 
 export const _deps = { fetch: (...a) => globalThis.fetch(...a) };
 
@@ -78,6 +79,7 @@ export class CloudClient {
    * @param {object} opts { baseUrl, token, deps? }
    */
   constructor(opts = {}) {
+    requireUnscopedDescendantControl();
     this.baseUrl = String(opts.baseUrl || "").replace(/\/+$/, "");
     if (!this.baseUrl) {
       throw new Error(
@@ -109,6 +111,7 @@ export class CloudClient {
   }
 
   async _json(method, path, body) {
+    requireUnscopedDescendantControl();
     const res = await this.deps.fetch(`${this.baseUrl}${path}`, {
       method,
       headers: this._headers(),
@@ -121,7 +124,9 @@ export class CloudClient {
   }
 
   /** Submit a job. `bundle` is a base64 git bundle of the branch. */
-  async submit({ task, bundle, branch, baseSha }) {
+  async submit(payload) {
+    requireUnscopedDescendantControl();
+    const { task, bundle, branch, baseSha } = payload;
     const data = await this._json("POST", "/v1/jobs", {
       task,
       bundle,
@@ -133,10 +138,12 @@ export class CloudClient {
   }
 
   async status(jobId) {
+    requireUnscopedDescendantControl();
     return this._json("GET", `/v1/jobs/${encodeURIComponent(jobId)}`);
   }
 
   async result(jobId) {
+    requireUnscopedDescendantControl();
     return this._json("GET", `/v1/jobs/${encodeURIComponent(jobId)}/result`);
   }
 
@@ -146,6 +153,7 @@ export class CloudClient {
    * runners remain compatible with status()/result().
    */
   async events(jobId, options = {}) {
+    requireUnscopedDescendantControl();
     if (!/^[\w.-]+$/.test(String(jobId || ""))) {
       throw new Error(`invalid job id: ${jobId}`);
     }
@@ -175,6 +183,7 @@ export const TERMINAL_CLOUD_STATUS = new Set(["done", "failed"]);
  * `sleep`/`now` injected for tests.
  */
 export async function pollUntilDone(client, jobId, opts = {}) {
+  requireUnscopedDescendantControl();
   const intervalMs = opts.intervalMs ?? 3000;
   const timeoutMs = opts.timeoutMs ?? 30 * 60_000;
   const sleep = opts.sleep || ((ms) => new Promise((r) => setTimeout(r, ms)));

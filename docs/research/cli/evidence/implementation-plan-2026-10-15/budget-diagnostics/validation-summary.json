@@ -1,0 +1,157 @@
+{
+  "schema": "chainlesschain.budget-diagnostics-validation/v1",
+  "capturedAt": "2026-10-15T08:11:20.607Z",
+  "sourceBinding": {
+    "path": "source-binding.json",
+    "baseCommit": "62b407bbefee02a2ac14495fcef9e59b237c05a7",
+    "workingTree": true,
+    "sourceDigest": "4fea63bbb7579c4e935bdd4f692bbea8df3fec8bf2f4b65cd0388323dffd4d0b",
+    "files": 43,
+    "unchangedAfterTests": true,
+    "changedPaths": [],
+    "sourceTreeUnchanged": true,
+    "expandedTreeUnchanged": true,
+    "sourceTreeDigest": "sha256:52b08d70bc4a032e7ab8ade3399ea630655b1b276c8e6c0cc0343ca00c9121aa",
+    "expandedTreeDigest": "sha256:9eae76a72b4711587a6f9edf3c0cf352d5eb5cef1780023714e5a92bbda27ac2"
+  },
+  "node": {
+    "files": 6,
+    "tests": 81,
+    "passed": 81,
+    "failed": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0,
+    "durationMs": 21286.1876,
+    "addedThisRound": 10,
+    "newDiagnosticBoundaryTests": 8,
+    "newAuditRootTests": 2,
+    "exitCode": 0,
+    "suites": [
+      "packages/cli/test-node/budget-egress-inventory.node-test.mjs",
+      "packages/cli/test-node/budget-diagnostic-boundaries.node-test.mjs",
+      "packages/cli/test-node/context-token-volcengine-live-probe.node-test.mjs",
+      "packages/cli/test-node/verify01-volcengine-diagnostic-broker.node-test.mjs",
+      "packages/cli/test-node/verify01-volcengine-task-diagnostic.node-test.mjs",
+      "packages/cli/test-node/verify01-volcengine-plan.node-test.mjs"
+    ]
+  },
+  "vitest": {
+    "status": "NOT_RUN",
+    "reason": "No Vitest-covered production code changed in this round; prior results remain historical."
+  },
+  "sourceAudit": {
+    "exitCode": 0,
+    "sourceReviewPassed": true,
+    "filesScanned": 1440,
+    "candidateFiles": 59,
+    "unclassifiedFiles": 0,
+    "outOfScopeReviewedEntries": 14,
+    "parseErrors": 0,
+    "skippedPaths": 0
+  },
+  "expandedScriptsAudit": {
+    "exitCode": 0,
+    "sourceReviewPassed": true,
+    "filesScanned": 1638,
+    "candidateFiles": 73,
+    "unclassifiedFiles": 0,
+    "reviewedScriptFiles": 14,
+    "parseErrors": 0,
+    "skippedPaths": 0,
+    "liveScriptsExecuted": false
+  },
+  "checks": {
+    "syntax": {
+      "files": 39,
+      "passed": true
+    },
+    "prettier": {
+      "files": 37,
+      "exitCode": 0
+    },
+    "eslint": {
+      "status": "NOT_RUN",
+      "installed": false,
+      "reason": "ESLint is not installed in this checkout"
+    },
+    "relativeLinks": {
+      "files": 3,
+      "missingLinks": []
+    },
+    "documentationPrettier": {
+      "files": 3,
+      "exitCode": 0,
+      "output": "Checking formatting...\nAll matched files use Prettier code style!"
+    },
+    "gitDiffCheck": {
+      "exitCode": 0,
+      "output": ""
+    },
+    "finalArtifactIntegrity": {
+      "invalidArtifacts": [],
+      "changedSources": [],
+      "changedHistoricalRound4Artifacts": []
+    }
+  },
+  "commands": {
+    "node": {
+      "cwd": "repository",
+      "command": "node --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=docs/research/cli/evidence/implementation-plan-2026-10-15/budget-diagnostics/node-tests.xml packages/cli/test-node/budget-egress-inventory.node-test.mjs packages/cli/test-node/budget-diagnostic-boundaries.node-test.mjs packages/cli/test-node/context-token-volcengine-live-probe.node-test.mjs packages/cli/test-node/verify01-volcengine-diagnostic-broker.node-test.mjs packages/cli/test-node/verify01-volcengine-task-diagnostic.node-test.mjs packages/cli/test-node/verify01-volcengine-plan.node-test.mjs"
+    },
+    "sourceAudit": {
+      "cwd": "repository",
+      "command": "node packages/cli/scripts/implementation-plan-budget-egress.mjs --check --output docs/research/cli/evidence/implementation-plan-2026-10-15/budget-diagnostics/source-audit.json"
+    },
+    "expandedScriptsAudit": {
+      "cwd": "repository",
+      "command": "node packages/cli/scripts/implementation-plan-budget-egress.mjs --check --include-scripts --output docs/research/cli/evidence/implementation-plan-2026-10-15/budget-diagnostics/scripts-audit.json"
+    }
+  },
+  "readiness": {
+    "formalEvaluation": "NOT_RUN",
+    "tasksCompleted": 0,
+    "tasksTotal": 36,
+    "firstRunsCompleted": 0,
+    "firstRunsTotal": 9,
+    "paidReady": false,
+    "nativeAdmission": "NOT_ADMITTED",
+    "promotion": "HOLD",
+    "historicalSharedCapUsd": 99,
+    "additionalPaidCallsAuthorized": false,
+    "paidCallsThisRound": 0,
+    "runtimeCoverageVerified": false,
+    "remoteCi": "NOT_RUN",
+    "release": "NOT_RUN"
+  },
+  "artifacts": [
+    {
+      "path": "source-binding.json",
+      "sha256": "5a748eea82def94240fc86bff6a37841aabd6eafc7e90ac9a2b8666cfcc3c1e6"
+    },
+    {
+      "path": "node-tests.xml",
+      "sha256": "e7bb548a45f68b8c3b671186083c9452d1d6d2ecaf5ecb4cb615a8f487522e73"
+    },
+    {
+      "path": "source-audit.json",
+      "sha256": "a099c52684fd833cd253c3b4b924275378dbbb6c4366f2305a13957306a381cd"
+    },
+    {
+      "path": "scripts-audit.json",
+      "sha256": "8a503cd0dc1c79e99030b0fc5f4d1190abea3c978e398f3c2ad9f4e5a567873b"
+    },
+    {
+      "path": "script-review.json",
+      "sha256": "9dbc69bc51898096c0c8bcff800a3f8d24f8e19db4548f7986e971b76dcc0758"
+    },
+    {
+      "path": "local-checks.json",
+      "sha256": "856ed9ccb67a20b65975d59266c82e2a765ddc9c4a002e44e3fe56dc10d7692c"
+    },
+    {
+      "path": "README.md",
+      "sha256": "2d323d566d1c6ddb9c66de009e4d001fa4444c313eeeffc4100410b42e9b2aa8"
+    }
+  ]
+}

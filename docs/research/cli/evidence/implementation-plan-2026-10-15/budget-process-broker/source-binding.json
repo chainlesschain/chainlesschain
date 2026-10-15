@@ -1,0 +1,24 @@
+﻿{
+    "capturedAt":  "2026-10-15T12:10:19.9164805Z",
+    "baseCommit":  "62b407bbefee02a2ac14495fcef9e59b237c05a7",
+    "workingTree":  true,
+    "sourceTreeDigest":  "sha256:24ece2e6894d85d24fd9481328892f8e80dcbc41112deb46e3820db140cd169f",
+    "files":  [
+                  {
+                      "path":  "packages/cli/src/lib/formal-budget-provider-scope.js",
+                      "sha256":  "fc311ab4eab9bc3507339505ee2ff0fed3f7aa5afc9bdc4a1759b87c2e537840"
+                  },
+                  {
+                      "path":  "packages/cli/src/lib/process-execution-broker/index.js",
+                      "sha256":  "92d5418d557cc2d7528d242ee42e150871609514cfb65f0fdc2d472dc38c21a7"
+                  },
+                  {
+                      "path":  "packages/cli/test-node/formal-budget-process-broker-boundary.node-test.mjs",
+                      "sha256":  "6d3221839f3d1c756de19717facc94c8ef683788c985b82d80fa20c496f367e4"
+                  },
+                  {
+                      "path":  ".github/workflows/cli-ci.yml",
+                      "sha256":  "093dcde93bd2e65093c45d374499302fd5352b1fd9070b1ca93d152afc919e0a"
+                  }
+              ]
+}

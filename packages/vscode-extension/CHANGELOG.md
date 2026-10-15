@@ -2,6 +2,12 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.147] - Formal budget boundary pairing (2026-10-16)
+
+- Recommend CLI `0.166.103` after its exact-commit npm release and readback.
+- Keep formal paid evaluation unavailable until account, host and budget
+  evidence is accepted; the extension does not claim a completed 36+9 run.
+
 ## [0.37.146] - Session pricing and runtime pairing (2026-10-15)
 
 - Recommend CLI `0.166.102` after its public npm release and the exact commit's

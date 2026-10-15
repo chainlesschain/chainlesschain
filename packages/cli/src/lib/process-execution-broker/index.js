@@ -30,6 +30,7 @@ import * as fs from "node:fs";
 import * as tty from "node:tty";
 import { createRequire } from "node:module";
 import { AsyncLocalStorage } from "node:async_hooks";
+import { requireUnscopedDescendantControl } from "../formal-budget-provider-scope.js";
 
 const require = createRequire(import.meta.url);
 
@@ -4692,6 +4693,7 @@ class ProcessExecutionBroker extends EventEmitter {
   }
 
   spawn(command, args, options = {}) {
+    requireUnscopedDescendantControl();
     assertProcessOwnershipAvailable();
     options = this._withAmbientProcessContext(command, options);
     const executionId = crypto.randomUUID();
@@ -5156,6 +5158,7 @@ class ProcessExecutionBroker extends EventEmitter {
   }
 
   spawnSync(command, args, options = {}) {
+    requireUnscopedDescendantControl();
     assertProcessOwnershipAvailable();
     options = this._withAmbientProcessContext(command, options);
     const executionId = crypto.randomUUID();
@@ -5745,6 +5748,7 @@ class ProcessExecutionBroker extends EventEmitter {
   }
 
   exec(command, options, callback) {
+    requireUnscopedDescendantControl();
     const opts = typeof options === "function" ? {} : options;
     const cb = typeof options === "function" ? options : callback;
     if (this._requiresExplicitLinuxWorkspaceShell(opts.cwd || process.cwd())) {
@@ -5763,6 +5767,7 @@ class ProcessExecutionBroker extends EventEmitter {
   }
 
   execSync(command, options = {}) {
+    requireUnscopedDescendantControl();
     if (
       this._requiresExplicitLinuxWorkspaceShell(options.cwd || process.cwd())
     ) {
@@ -5804,6 +5809,7 @@ class ProcessExecutionBroker extends EventEmitter {
   }
 
   execFile(file, args, options, callback) {
+    requireUnscopedDescendantControl();
     if (typeof args === "function") {
       callback = args;
       args = [];
@@ -5897,6 +5903,7 @@ class ProcessExecutionBroker extends EventEmitter {
   }
 
   execFileSync(file, args, options = {}) {
+    requireUnscopedDescendantControl();
     if (!Array.isArray(args)) {
       options = args || {};
       args = [];
@@ -5917,6 +5924,7 @@ class ProcessExecutionBroker extends EventEmitter {
   }
 
   fork(modulePath, args, options = {}) {
+    requireUnscopedDescendantControl();
     return this.spawn(process.execPath, [modulePath, ...(args || [])], {
       ...options,
       origin: options.origin || "fork",
