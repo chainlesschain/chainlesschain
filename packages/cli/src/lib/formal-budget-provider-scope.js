@@ -18,10 +18,16 @@ export function requireUnscopedModelTransport() {
 
 /** Search/service charges need their own verified contract, not a Chat quote. */
 export function requireUnscopedPaidService() {
+  const scope = providerScope.getStore();
+  if (!scope) return;
   requireBudget(
-    !providerScope.getStore(),
-    "This external service has no verified billing contract for the active budget scope",
+    !scope.closed,
+    "Provider budget scope closed",
+    "CC_BUDGET_SCOPE_CLOSED",
+  );
+  throw budgetError(
     "CC_BUDGET_SERVICE_NOT_COVERED",
+    "This external service has no verified billing contract for the active budget scope",
   );
 }
 

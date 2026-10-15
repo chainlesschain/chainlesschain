@@ -2,7 +2,7 @@
 
 日期：2026-10-15。适用范围：CLI、共享 Agent Runtime、VS Code 和 JetBrains 插件。桌面端复用成熟后的共享能力；移动端、论坛和业务后端不纳入本轮改造。
 
-**实施状态：已交付首轮工程改动、火山引擎真实诊断及后续预算接线、出口审计、独立谱系登记、物理身份、宿主检查点接线和 Agent 工具边界；整份计划尚未验收完成。** 首轮记录见[第 10 节](#10-首轮实施记录2026-10-15)，预算作用域、适配器及登记库见第 11～17 节，最新进展见[第 18 节](#18-第九轮实施记录agent-工具与并行错误传播2026-10-15)及[证据目录](./cli/evidence/implementation-plan-2026-10-15/budget-tool-boundaries/README.md)。正式评测保持 `NOT_RUN`，共享预算 `paidReady:false`，native `NOT_ADMITTED`，晋升 `HOLD`。
+**实施状态：已交付首轮工程改动、火山引擎真实诊断及后续预算接线、出口审计、独立谱系登记、物理身份、宿主检查点接线和部分任务可控出口边界；整份计划尚未验收完成。** 首轮记录见[第 10 节](#10-首轮实施记录2026-10-15)，预算作用域、适配器及登记库见第 11～17 节，最新进展见[第 26 节](#26-第十六轮实施记录服务-api-与云端任务出口2026-10-15)及[证据目录](./cli/evidence/implementation-plan-2026-10-15/budget-service-cloud/README.md)。正式评测保持 `NOT_RUN`，共享预算 `paidReady:false`，native `NOT_ADMITTED`，晋升 `HOLD`。
 
 建议未来八周优先投入六件事：**模型能力与费用同步更新、任务完成与恢复可靠、首次安装容易排障、上下文按需加载、扩展接入行为一致、真实任务有独立验收**。项目已经有较完整的 Agent、Skills、MCP、Memory 和 IDE 基础，下一阶段的收益主要来自把这些能力接成稳定的用户流程。
 
@@ -697,3 +697,15 @@ AsyncLocalStorage 只能约束携带该作用域的进程内 canonical 入口。
 本轮将准入逐项整理为[正式付费与发布记录](./cli/evidence/implementation-plan-2026-10-15/formal-paid-release-gate/README.md)。账户价格/汇率、包含默认 thinking 的总计费上界、历史及取消费用、生产认证检查点、可信宿主的系统出口隔离与九入口真实身份仍缺。`paidReady:false` 与正式 0/36、0/9 保持不变；本轮没有把已有诊断重命名为正式样本，也没有发起新的付费调用。
 
 `chainlesschain@0.166.102` 已公开，原 IDE `0.37.146` / `0.4.164` 标签指向旧提交。新源码候选采用 CLI `0.166.103`、VS Code `0.37.147`、JetBrains `0.4.165`，两 IDE 推荐 `.103`。版本变更后的最终提交必须重新取得 `CLI CI` 与 `CLI Strict Sandbox` 全系统成功，再经 GitHub Actions OIDC 依子包 → CLI → IDE 顺序发布和公开制品回读；在此之前不推发布标签，不宣称正式评测完成。
+
+## 26 第十六轮实施记录：服务 API 与云端任务出口（2026-10-15）
+
+本轮继续 BUDGET-03 的进程内直接出口检查。[本轮证据](./cli/evidence/implementation-plan-2026-10-15/budget-service-cloud/README.md)记录源文件、离线验证与剩余边界。
+
+[`EvoMapClient`](../../packages/cli/src/lib/evomap-client.js)构造和每个远端方法现在于读取调用者选项、凭据或执行 fetch 前拒绝正式预算作用域；作用域外已创建的客户端及直接 `_request` 也被检查。活跃作用域使用 `CC_BUDGET_SERVICE_NOT_COVERED`。`listHubs` 的可用性回退不再把该预算拒绝吞成普通的“不可达”。
+
+[`CloudClient`](../../packages/cli/src/lib/cloud/cloud-client.js)与其底层 [`ResilientGatewayClient`](../../packages/cli/src/lib/gateway-client-resilience.js)在构造、提交、查询、结果、事件流、轮询和物理请求入口拒绝正式作用域；拒绝发生在任务包、URL、TLS、代理回调和注入的 fetch 之前。活跃作用域使用 `CC_BUDGET_DESCENDANT_NOT_COVERED`。两类出口在作用域关闭后的异步调用均返回 `CC_BUDGET_SCOPE_CLOSED`；预算错误带 `noReplay:true`。既有作用域外调用仍由原有客户端测试覆盖。
+
+新增 4 项 Node 离线边界用例并接入 `CLI CI` 三系统清单；原有 Cloud、EvoMap、Gateway Vitest **3 文件、43 项通过**，预算作用域 Node 回归 **42 项通过**。改动 JS/MJS 语法检查和 Prettier 检查通过。源码审计的服务、云端和 Gateway 分类已按当前摘要更新，审计仍为 **73 个候选、零未分类、零解析错误**；这些是源码与离线合同结果，不是目标宿主、账户账单或正式任务回执。
+
+本轮只约束携带 AsyncLocalStorage 作用域的当前进程入口。独立进程、已有远端 Runner、其他 SDK、直接 `globalThis.fetch`、原生插件及系统网络出口仍须可信宿主隔离与生产认证检查点证明；EvoMap 的服务费用和云端任务费用也没有账户级合同。正式评测继续 `NOT_RUN`（0/36、0/9）、共享预算 `paidReady:false`、native `NOT_ADMITTED`、晋升 `HOLD`；历史共享 **$99** 不重置。本轮无新的付费调用、生产部署、版本升级或发布。

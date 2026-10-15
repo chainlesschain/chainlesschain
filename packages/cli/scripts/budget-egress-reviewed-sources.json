@@ -222,9 +222,9 @@
     },
     {
       "path": "packages/cli/src/lib/cloud/cloud-client.js",
-      "digest": "sha256:048085dbdc1f52ec4603c631897c38ef03abbe6e9b46a6e26c55b22e92907ce2",
+      "digest": "sha256:df3969e974082684887646e98ee635164b012f553e882b27ec8fd29b268c1e41",
       "category": "REMOTE_EXECUTION_CONTROL",
-      "rationale": "Cloud runner job API can launch delegated work; job HTTP is not a governed model-token reservation."
+      "rationale": "Cloud runner job API can launch delegated work; constructor and request entry points now reject a formal process scope before input or credential access. Job HTTP is not a governed model-token reservation."
     },
     {
       "path": "packages/cli/src/lib/cowork-adapter.js",
@@ -282,15 +282,15 @@
     },
     {
       "path": "packages/cli/src/lib/evomap-client.js",
-      "digest": "sha256:5b09c2f7ef15a6afd3715f6ece8d0bff95fcbe8efb3dc01dbc80d7a16a6a7d6b",
+      "digest": "sha256:4742edc8706702437b0a12657522b9ddf2eb7eedc6fcabfbe4906edae49cb0e6",
       "category": "SERVICE_API",
-      "rationale": "EvoMap service API; server behavior and service fees are outside this model request review."
+      "rationale": "EvoMap service API now rejects a formal process scope before input or credential access; server behavior and service fees are outside this model request review."
     },
     {
       "path": "packages/cli/src/lib/formal-budget-provider-scope.js",
-      "digest": "sha256:fc311ab4eab9bc3507339505ee2ff0fed3f7aa5afc9bdc4a1759b87c2e537840",
+      "digest": "sha256:d09c5004a35ac251e9a8ba6ea792c96bc2a3f17f62c80edf5c7595c3943eb79d",
       "category": "BUDGET_BOUNDARY",
-      "rationale": "Async-local routing boundary; ordinary fallback and scope.fetch calls are retained as candidates. Canonical Agent tools, direct IPC descendant controls and direct web/browser tools reject under formal scope before argument/context inspection."
+      "rationale": "Async-local routing boundary; ordinary fallback and scope.fetch calls are retained as candidates. Canonical Agent tools, direct IPC descendant controls, external service and direct web/browser tools reject under formal scope before argument/context inspection."
     },
     {
       "path": "packages/cli/src/lib/formal-budget-transport.js",
@@ -300,9 +300,9 @@
     },
     {
       "path": "packages/cli/src/lib/gateway-client-resilience.js",
-      "digest": "sha256:f03dc5519ca59273209544e468c99990233e8e6285c72f10a4e75950824dc1eb",
+      "digest": "sha256:538ee7a4cc1ec64133702574fb9ad498ccd82f0c39fd24d2079d2e87a4a82c80",
       "category": "REMOTE_EXECUTION_CONTROL",
-      "rationale": "Remote gateway HTTP preflight/transport; subsequent remote execution needs separate budget/lease proof."
+      "rationale": "Remote gateway HTTP preflight/transport now rejects formal process scope before URL, TLS or proxy handling; subsequent remote execution needs separate budget/lease proof."
     },
     {
       "path": "packages/cli/src/lib/hooks-v2-runtime.js",

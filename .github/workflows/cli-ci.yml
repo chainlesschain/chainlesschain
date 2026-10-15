@@ -217,6 +217,7 @@ jobs:
           packages/cli/test-node/formal-budget-process-broker-boundary.node-test.mjs
           packages/cli/test-node/formal-budget-worker-network-boundary.node-test.mjs
           packages/cli/test-node/formal-budget-credential-worker-boundary.node-test.mjs
+          packages/cli/test-node/formal-budget-service-cloud-boundary.node-test.mjs
       - name: Audit reviewed runtime and diagnostic script identities without paid admission
         run: node packages/cli/scripts/implementation-plan-budget-egress.mjs --check --include-scripts
       - name: Verify native review preparation and receipt contracts without provider execution
