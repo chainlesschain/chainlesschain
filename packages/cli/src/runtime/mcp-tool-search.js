@@ -416,7 +416,10 @@ export function maybeApplyToolSearch(mcp, opts = {}) {
   if (config.enabled === false) return null;
 
   const estimate = opts.estimate || defaultEstimateTokens;
-  if (config.enabled === "auto") {
+  // Once a session has a deferred catalog, later connections must keep using
+  // it even when the compact stubs bring the current request below threshold.
+  // Rechecking only the shrunken request would expose late schemas in full.
+  if (config.enabled === "auto" && !mcp.toolSearchRegistry) {
     const window = getContextWindow(opts.model, opts.provider);
     let mcpTokens = 0;
     for (const def of mcp.extraToolDefinitions) {

@@ -465,6 +465,51 @@ describe("maybeApplyToolSearch", () => {
     expect(mcp.toolSearchRegistry.deferred.size).toBe(30);
   });
 
+  it("keeps deferring late MCP schemas after auto activation shrinks the request", () => {
+    const mcp = fakeMcp([mcpDef("large", "initial")]);
+    const config = {
+      enabled: "auto",
+      thresholdRatio: 0.01,
+      maxResults: 5,
+      alwaysLoad: [],
+    };
+    const options = {
+      model: "qwen2.5:7b",
+      provider: "ollama",
+      config,
+      estimate: (value) => Math.ceil(value.length / 4),
+    };
+    expect(maybeApplyToolSearch(mcp, options)?.deferredCount).toBe(1);
+    const prefix = mcp.extraToolDefinitions.map((def) => def.function.name);
+
+    const late = mcpDef("late", "lookup", {
+      schema: { type: "object", properties: { id: { type: "string" } } },
+    });
+    mcp.extraToolDefinitions.push(late);
+    mcp.externalToolExecutors[late.function.name] = {
+      kind: "mcp",
+      serverName: "late",
+      toolName: "lookup",
+    };
+    const applied = maybeApplyToolSearch(mcp, options);
+    expect(applied?.deferredCount).toBe(1);
+    expect(
+      mcp.extraToolDefinitions
+        .slice(0, prefix.length)
+        .map((def) => def.function.name),
+    ).toEqual(prefix);
+    expect(mcp.extraToolDefinitions.at(-1).function.description).toMatch(
+      /^\[deferred\]/,
+    );
+    expect(mcp.toolSearchRegistry.loaded.has(late.function.name)).toBe(false);
+    expect(
+      gateDeferredMcpCall(
+        late.function.name,
+        mcp.externalToolExecutors[late.function.name],
+      )?.schema,
+    ).toEqual(late.function.parameters);
+  });
+
   it("fails closed to byte accounting when the token estimator throws", () => {
     const mcp = fakeMcp([mcpDef("w", "get")]);
     const out = maybeApplyToolSearch(mcp, {
