@@ -34,6 +34,7 @@ export function createNdjsonDecoder<T = unknown>(
   const maxLineLength = options.maxLineLength ?? DEFAULT_MAX_LINE;
   const onError = options.onError ?? (() => {});
   let carry = "";
+  let droppingOversizedLine = false;
   let decoder: TextDecoder | null = null;
 
   const emitLine = (line: string): void => {
@@ -48,38 +49,60 @@ export function createNdjsonDecoder<T = unknown>(
     onMessage(message);
   };
 
+  const lineTooLong = (): void => {
+    onError(new Error("NDJSON line exceeds maximum length"));
+  };
+
+  const append = (text: string): void => {
+    if (droppingOversizedLine) {
+      const end = text.indexOf("\n");
+      if (end < 0) return;
+      droppingOversizedLine = false;
+      text = text.slice(end + 1);
+    }
+    let offset = 0;
+    let end: number;
+    while ((end = text.indexOf("\n", offset)) >= 0) {
+      const segment = text.slice(offset, end);
+      if (carry.length + segment.length > maxLineLength) {
+        lineTooLong();
+      } else {
+        emitLine((carry + segment).replace(/\r$/, ""));
+      }
+      carry = "";
+      offset = end + 1;
+    }
+    const tail = text.slice(offset);
+    if (carry.length + tail.length > maxLineLength) {
+      carry = "";
+      droppingOversizedLine = true;
+      lineTooLong();
+    } else {
+      carry += tail;
+    }
+  };
+
   const decode = ((chunk: string | Uint8Array): void => {
     if (typeof chunk === "string") {
-      carry += chunk;
+      append(chunk);
     } else {
       decoder ??= new TextDecoder("utf-8");
-      carry += decoder.decode(chunk, { stream: true });
-    }
-    if (carry.length > maxLineLength) {
-      carry = "";
-      onError(new Error("NDJSON line exceeds maximum length"));
-      return;
-    }
-    let index: number;
-    while ((index = carry.indexOf("\n")) !== -1) {
-      const line = carry.slice(0, index).replace(/\r$/, "");
-      carry = carry.slice(index + 1);
-      emitLine(line);
+      append(decoder.decode(chunk, { stream: true }));
     }
   }) as NdjsonDecode<T>;
 
   decode.flush = (): void => {
-    const rest = carry.replace(/\r$/, "");
-    carry = "";
-    if (decoder) {
-      // Finalize any dangling multi-byte sequence.
-      const tail = decoder.decode();
-      if (tail) emitLine(rest + tail);
-      else emitLine(rest);
-      decoder = null;
+    const tail = decoder?.decode() ?? "";
+    decoder = null;
+    if (droppingOversizedLine) {
+      carry = "";
+      droppingOversizedLine = false;
       return;
     }
-    emitLine(rest);
+    const rest = (carry + tail).replace(/\r$/, "");
+    carry = "";
+    if (rest.length > maxLineLength) lineTooLong();
+    else emitLine(rest);
   };
 
   return decode;

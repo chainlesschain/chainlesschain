@@ -37,7 +37,7 @@ describe("createNdjsonDecoder", () => {
     expect(errors).toEqual(["not-json"]);
   });
 
-  it("resets and errors when a line exceeds maxLineLength", () => {
+  it("discards an oversized line until newline and then recovers", () => {
     const onError = vi.fn();
     const seen: unknown[] = [];
     const decode = createNdjsonDecoder((m) => seen.push(m), {
@@ -45,6 +45,33 @@ describe("createNdjsonDecoder", () => {
       onError,
     });
     decode('"aaaaaaaaaaaaaaaaaaaaaaaaaaaa"');
+    expect(onError).toHaveBeenCalledTimes(1);
+    decode('{"sameLine":1}\n{"ok":1}\n');
+    expect(seen).toEqual([{ ok: 1 }]);
+  });
+
+  it("accepts multiple bounded lines in one large chunk", () => {
+    const seen: unknown[] = [];
+    const onError = vi.fn();
+    const decode = createNdjsonDecoder((message) => seen.push(message), {
+      maxLineLength: 8,
+      onError,
+    });
+    decode('{"a":1}\n{"b":2}\n');
+    expect(seen).toEqual([{ a: 1 }, { b: 2 }]);
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it("does not emit an oversized unterminated line on flush", () => {
+    const seen: unknown[] = [];
+    const onError = vi.fn();
+    const decode = createNdjsonDecoder((message) => seen.push(message), {
+      maxLineLength: 8,
+      onError,
+    });
+    decode('"aaaaaaaaaaaa');
+    decode.flush();
+    expect(seen).toEqual([]);
     expect(onError).toHaveBeenCalledTimes(1);
     decode('{"ok":1}\n');
     expect(seen).toEqual([{ ok: 1 }]);
