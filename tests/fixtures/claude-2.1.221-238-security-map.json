@@ -295,7 +295,7 @@
       "testId": "rejects pre-positioned POSIX socket paths and authenticates Windows named pipes",
       "producer": {
         "path": "packages/cli/__tests__/unit/background-session-transport.test.js",
-        "sha256": "sha256:8f99757ba181920ccf28f67d69564454bca3fb7eb3cbfa29394a77914f1e58c5"
+        "sha256": "sha256:cb65f93cfed7fb597284688cb82219957fc7cd942e6a0f9d2ef4e7a07e538b50"
       },
       "gates": ["CLI CI", "CLI Strict Sandbox", "IDE Roadmap Safety Matrix"],
       "operatingSystems": ["linux", "macos", "windows"]
