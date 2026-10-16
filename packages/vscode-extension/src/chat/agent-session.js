@@ -44,6 +44,7 @@ class AgentChatSession {
     this.child = null;
     this._decode = null;
     this._stderrBuf = "";
+    this._stderrDecoder = null;
     this._stopPromise = null;
     this._protocolGeneration = randomUUID();
     this._protocolSequence = 0;
@@ -74,6 +75,7 @@ class AgentChatSession {
       shell: process.platform === "win32",
     });
     this._stderrBuf = "";
+    this._stderrDecoder = new TextDecoder("utf-8");
     // SDK carry-buffer framing: a chunk boundary can split a line. Non-JSON
     // stdout surfaces as {type:"raw"} exactly as before.
     this._decode = createNdjsonDecoder((evt) => this._emit(evt), {
@@ -82,10 +84,13 @@ class AgentChatSession {
       },
     });
     this.child.stdout.on("data", (chunk) => {
-      this._decode(chunk.toString("utf8"));
+      this._decode(chunk);
     });
     this.child.stderr.on("data", (chunk) => {
-      this._stderrBuf += chunk.toString("utf8");
+      this._stderrBuf +=
+        typeof chunk === "string"
+          ? chunk
+          : this._stderrDecoder.decode(chunk, { stream: true });
       let idx;
       while ((idx = this._stderrBuf.indexOf("\n")) >= 0) {
         const line = this._stderrBuf.slice(0, idx).trimEnd();
@@ -107,6 +112,7 @@ class AgentChatSession {
       } catch {
         /* best-effort */
       }
+      this._stderrBuf += this._stderrDecoder.decode();
       const errRest = this._stderrBuf.trimEnd();
       this._stderrBuf = "";
       if (errRest && typeof this.opts.onStderr === "function") {
