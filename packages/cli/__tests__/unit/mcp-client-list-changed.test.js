@@ -10,7 +10,7 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import { EventEmitter } from "events";
-import { MCPClient, _deps } from "../../src/lib/mcp-client.js";
+import { MCPClient, ServerState, _deps } from "../../src/lib/mcp-client.js";
 
 beforeEach(() => {
   _deps.consumeMcpStdioExecutionAuthority = () => ({
@@ -214,5 +214,107 @@ describe("MCPClient list_changed refresh", () => {
     ]);
     expect(client._toolMetadataBytes).toBe(currentBudget);
     expect(changed).toEqual([]);
+  });
+
+  it("blocks old tool calls during refresh and after removal before dispatch", async () => {
+    const client = new MCPClient();
+    const entry = {
+      config: {},
+      state: ServerState.CONNECTED,
+      transportKind: "stdio",
+      tools: [{ name: "old", inputSchema: { type: "object" } }],
+      _toolMetadataBytes: 0,
+    };
+    client.servers.set("srv", entry);
+    let resolveList;
+    const calls = [];
+    client._sendRequest = (_server, method, params) => {
+      calls.push({ method, params });
+      if (method === "tools/list") {
+        return new Promise((resolve) => {
+          resolveList = resolve;
+        });
+      }
+      return Promise.resolve({ content: [{ type: "text", text: "ok" }] });
+    };
+
+    const refresh = client._refreshServerList("srv", "tools");
+    await expect(client.callTool("srv", "old", {})).rejects.toMatchObject({
+      code: "CC_MCP_TOOL_CATALOG_STALE",
+      dispatched: false,
+    });
+    expect(calls.map((call) => call.method)).toEqual(["tools/list"]);
+
+    resolveList({ tools: [{ name: "new", inputSchema: { type: "object" } }] });
+    await refresh;
+    await expect(client.callTool("srv", "old", {})).rejects.toMatchObject({
+      code: "CC_MCP_TOOL_NOT_ADVERTISED",
+      dispatched: false,
+    });
+    expect(calls.map((call) => call.method)).toEqual(["tools/list"]);
+    await expect(client.callTool("srv", "new", {})).resolves.toMatchObject({
+      content: [{ type: "text", text: "ok" }],
+    });
+    expect(calls.map((call) => call.method)).toEqual([
+      "tools/list",
+      "tools/call",
+    ]);
+  });
+
+  it("keeps tool calls blocked across a trailing refresh and a failed refresh", async () => {
+    const client = new MCPClient();
+    client.servers.set("srv", {
+      config: {},
+      state: ServerState.CONNECTED,
+      transportKind: "stdio",
+      tools: [{ name: "old", inputSchema: { type: "object" } }],
+      _toolMetadataBytes: 0,
+    });
+    const pendingLists = [];
+    const methods = [];
+    client._sendRequest = (_server, method) => {
+      methods.push(method);
+      if (method === "tools/list") {
+        return new Promise((resolve, reject) => {
+          pendingLists.push({ resolve, reject });
+        });
+      }
+      return Promise.resolve({ content: [] });
+    };
+
+    const firstRefresh = client._refreshServerList("srv", "tools");
+    await client._refreshServerList("srv", "tools");
+    pendingLists[0].resolve({ tools: [{ name: "old" }] });
+    await Promise.resolve();
+    expect(methods).toEqual(["tools/list", "tools/list"]);
+    await expect(client.callTool("srv", "old")).rejects.toMatchObject({
+      code: "CC_MCP_TOOL_CATALOG_STALE",
+      dispatched: false,
+    });
+
+    pendingLists[1].reject(new Error("list unavailable"));
+    await firstRefresh;
+    await expect(client.callTool("srv", "old")).rejects.toMatchObject({
+      code: "CC_MCP_TOOL_CATALOG_STALE",
+      dispatched: false,
+    });
+    expect(methods).toEqual(["tools/list", "tools/list"]);
+
+    const retry = client._refreshServerList("srv", "tools");
+    pendingLists[2].resolve({ tools: [{ name: "new" }] });
+    await retry;
+    await expect(client.callTool("srv", "old")).rejects.toMatchObject({
+      code: "CC_MCP_TOOL_NOT_ADVERTISED",
+      dispatched: false,
+    });
+    await expect(client.callTool("srv", "new")).resolves.toMatchObject({
+      content: [],
+    });
+    expect(methods).toEqual([
+      "tools/list",
+      "tools/list",
+      "tools/list",
+      "tools/call",
+    ]);
   });
 });

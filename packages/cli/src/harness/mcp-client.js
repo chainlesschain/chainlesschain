@@ -1064,6 +1064,8 @@ const MCP_NON_RETRYABLE_PROTOCOL_ERROR_CODES = new Set([
   "CC_MCP_RPC_ERROR_INVALID",
   "CC_MCP_RPC_RESPONSE_INVALID",
   "CC_MCP_RPC_MESSAGE_INVALID",
+  "CC_MCP_TOOL_CATALOG_STALE",
+  "CC_MCP_TOOL_NOT_ADVERTISED",
 ]);
 
 function isMcpNonRetryableProtocolError(error) {
@@ -3759,6 +3761,22 @@ export class MCPClient extends EventEmitter {
     if (entry.state !== ServerState.CONNECTED) {
       throw new Error(`Server "${serverName}" is not connected`);
     }
+    if (entry._toolInventoryVersioned) {
+      if (entry._toolInventoryDirty) {
+        throw mcpTransportError(
+          "CC_MCP_TOOL_CATALOG_STALE",
+          `MCP tool catalog for server "${serverName}" is refreshing; retry after it settles`,
+          { transport: entry.transportKind, dispatched: false },
+        );
+      }
+      if (!entry.tools?.some((tool) => tool.name === toolName)) {
+        throw mcpTransportError(
+          "CC_MCP_TOOL_NOT_ADVERTISED",
+          `MCP tool "${toolName}" is no longer advertised by server "${serverName}"`,
+          { transport: entry.transportKind, dispatched: false },
+        );
+      }
+    }
 
     const timeoutMs = mcpToolIdleTimeoutMs(entry.config, options);
     const progressToken = `cc:${randomUUID()}`;
@@ -5338,16 +5356,22 @@ export class MCPClient extends EventEmitter {
   async _refreshServerList(serverName, kind) {
     const entry = this.servers.get(serverName);
     if (!entry) return;
+    if (kind === "tools") {
+      entry._toolInventoryVersioned = true;
+      entry._toolInventoryDirty = true;
+    }
     const flags = (entry._listRefresh = entry._listRefresh || {});
     if (flags[`${kind}Running`]) {
       flags[`${kind}Dirty`] = true;
       return;
     }
     flags[`${kind}Running`] = true;
+    let refreshed = false;
     try {
       do {
         if (this.servers.get(serverName) !== entry) return;
         flags[`${kind}Dirty`] = false;
+        refreshed = false;
         try {
           const method =
             kind === "tools"
@@ -5376,6 +5400,7 @@ export class MCPClient extends EventEmitter {
             server: serverName,
             count: list.length,
           });
+          refreshed = true;
         } catch (error) {
           if (this.servers.get(serverName) !== entry) return;
           if (kind === "tools" && isMcpToolMetadataError(error)) {
@@ -5403,6 +5428,8 @@ export class MCPClient extends EventEmitter {
       } while (flags[`${kind}Dirty`]);
     } finally {
       flags[`${kind}Running`] = false;
+      if (kind === "tools" && refreshed && this.servers.get(serverName) === entry)
+        entry._toolInventoryDirty = false;
     }
   }
 
