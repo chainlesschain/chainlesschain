@@ -171,12 +171,18 @@ class AgentSession {
                 this.emit("stderr", text);
         });
         child.on("error", (error) => this.emit("error", error));
-        child.on("exit", (code) => {
-            if (this.exited)
+        child.on("exit", () => {
+            this.exited = true;
+        });
+        let drained = false;
+        child.on("close", (code) => {
+            if (drained)
                 return;
+            drained = true;
             this.exited = true;
             // A final unterminated line (error output often lacks the trailing
-            // \n) must not be dropped silently.
+            // \n) must not be dropped silently. Node can emit exit before stdout
+            // is drained, so finalize the decoder only after stdio closes.
             try {
                 decode.flush();
             }
