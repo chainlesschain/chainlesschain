@@ -26,7 +26,11 @@ replaced or explicitly discarded.
 starting its CLI process. This also finds drafts from closed or reset tabs.
 The reopen-closed shortcut preserves the same draft identity. Discarding saved
 input releases its unreferenced images; clearing an empty record releases its
-storage directory.
+storage directory. At the conversation limit, empty records and recovery copies
+containing only accepted inputs are reclaimed automatically. Unsent composer
+text/images, saved questions and prepared, unknown or rejected submissions are
+never evicted. Unreadable records remain intact. Existing drafts can still be
+updated or discarded when a legacy store is over the conversation limit.
 
 Limits: 100,000 characters per text; four images, 20 MiB total, 40MP per image
 and 40 million compositing canvas pixels across all frames and attachments;

@@ -7,6 +7,7 @@ const { readImageSnapshot } = require("./image-file-snapshot");
 const MAX_TEXT = 100000;
 const MAX_RECORD_BYTES = 2 * 1024 * 1024;
 const MAX_STORAGE_BYTES = 100 * 1024 * 1024;
+const MAX_CONVERSATIONS = 128;
 const IMAGE_NAME = /^cc-chat-img-[a-f0-9-]{36}\.(png|jpg|gif|webp)$/;
 const KEY = /^[a-f0-9-]{36}$/;
 const CLIENT_ID = /^[a-zA-Z0-9_-]{1,80}$/;
@@ -153,16 +154,41 @@ class DraftStore {
   }
   async _quota(extra = 0, creatingKey = null) {
     await fs.mkdir(this.root, { recursive: true, mode: 0o700 });
-    const dirs = (await fs.readdir(this.root, { withFileTypes: true })).filter(
-      (e) => e.isDirectory() && KEY.test(e.name),
-    );
+    const directories = async () =>
+      (await fs.readdir(this.root, { withFileTypes: true })).filter(
+        (e) => e.isDirectory() && KEY.test(e.name),
+      );
+    let dirs = await directories();
+    if (dirs.length >= MAX_CONVERSATIONS) {
+      for (const dir of dirs) {
+        // The caller may already have staged attachments or read its manifest.
+        if (dir.name === creatingKey) continue;
+        try {
+          const record = await this._read(dir.name);
+          if (
+            record.composer.text ||
+            record.composer.images.length ||
+            record.questions.length ||
+            record.pending.some((p) => p.status !== "accepted")
+          )
+            continue;
+          // Accepted input already lives in the conversation. Its recovery
+          // copy, empty records and owned orphan images need not consume slots.
+          await this._write({ ...record, pending: [] });
+        } catch {
+          // Unreadable or unremovable records must never cause draft data loss.
+        }
+      }
+      dirs = await directories();
+    }
     if (
-      dirs.length > 128 ||
-      (dirs.length === 128 &&
-        creatingKey &&
-        !dirs.some((d) => d.name === creatingKey))
+      dirs.length >= MAX_CONVERSATIONS &&
+      creatingKey &&
+      !dirs.some((d) => d.name === creatingKey)
     )
-      throw new Error("Draft storage has reached its 128 conversation limit");
+      throw new Error(
+        "Draft storage has reached its 128 conversation limit; use Recover saved drafts to discard saved inputs or clear old drafts",
+      );
     let bytes = extra;
     for (const dir of dirs) {
       for (const entry of await fs.readdir(path.join(this.root, dir.name), {
@@ -180,6 +206,8 @@ class DraftStore {
   }
   async _images(key, images) {
     checkImageEnvelope(images);
+    // Clearing attachments must work even when all conversation slots are used.
+    if (!images.length) return [];
     await this._quota(
       images.reduce((n, i) => n + i.data.length * 0.75, 0),
       key,
