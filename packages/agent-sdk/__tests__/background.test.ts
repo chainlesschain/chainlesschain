@@ -43,6 +43,12 @@ describe("readBackgroundAgentState", () => {
   });
 });
 
+it("rejects an invalid attach id through its Promise API", async () => {
+  await expect(
+    attachBackgroundSession({ id: "../outside" }),
+  ).rejects.toThrow("Invalid background agent id");
+});
+
 function pipePath(name: string): string {
   if (process.platform === "win32") {
     return `\\\\.\\pipe\\cc-sdk-test-${name}-${process.pid}`;
@@ -119,18 +125,19 @@ describe("attachBackgroundSession", () => {
     );
 
     handle.prompt("continue the task");
-    await new Promise((r) => setTimeout(r, 150));
-    expect(received).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ type: "prompt", text: "continue the task" }),
-      ]),
-    );
-    expect(events).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ type: "accepted", queued: 1 }),
-        expect.objectContaining({ type: "turn-started", turn: 2 }),
-      ]),
-    );
+    await vi.waitFor(() => {
+      expect(received).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ type: "prompt", text: "continue the task" }),
+        ]),
+      );
+      expect(events).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ type: "accepted", queued: 1 }),
+          expect.objectContaining({ type: "turn-started", turn: 2 }),
+        ]),
+      );
+    });
 
     const binding = {
       backgroundAgentId: "bg-1",
@@ -140,17 +147,18 @@ describe("attachBackgroundSession", () => {
       sequence: 1,
     };
     handle.answerInteraction("question-1", binding, "yes");
-    await new Promise((r) => setTimeout(r, 50));
-    expect(received).toEqual(
-      expect.arrayContaining([
-        {
-          type: "interaction_response",
-          requestId: "question-1",
-          binding,
-          answer: "yes",
-        },
-      ]),
-    );
+    await vi.waitFor(() => {
+      expect(received).toEqual(
+        expect.arrayContaining([
+          {
+            type: "interaction_response",
+            requestId: "question-1",
+            binding,
+            answer: "yes",
+          },
+        ]),
+      );
+    });
     handle.detach();
   });
 
@@ -166,6 +174,62 @@ describe("attachBackgroundSession", () => {
         timeoutMs: 2000,
       }),
     ).rejects.toThrow(/closed during handshake|timed out/);
+  });
+
+  it("rejects a hello for a different background agent", async () => {
+    const path = pipePath("wrong-id");
+    const sockets = new Set<net.Socket>();
+    const server = net.createServer((socket) => {
+      sockets.add(socket);
+      socket.on("close", () => sockets.delete(socket));
+      socket.write(encodeNdjson({ type: "hello", id: "bg-other" }));
+    });
+    servers.push(server);
+    await new Promise<void>((resolve) => server.listen(path, resolve));
+
+    try {
+      await expect(
+        attachBackgroundSession({
+          id: "bg-expected",
+          pipePath: path,
+          token: TOKEN,
+          timeoutMs: 2000,
+        }),
+      ).rejects.toThrow("session transport hello has a different agent id");
+    } finally {
+      for (const socket of sockets) socket.destroy();
+    }
+  });
+
+  it.each([
+    [
+      "status",
+      encodeNdjson({ type: "status", phase: "running" }),
+      "frame before hello",
+    ],
+    ["null", "null\n", "invalid frame"],
+  ])("rejects a %s frame before hello", async (name, frame, error) => {
+    const path = pipePath(`unexpected-${name}`);
+    const sockets = new Set<net.Socket>();
+    const server = net.createServer((socket) => {
+      sockets.add(socket);
+      socket.on("close", () => sockets.delete(socket));
+      socket.write(`${frame}${encodeNdjson({ type: "hello", id: "bg-1" })}`);
+    });
+    servers.push(server);
+    await new Promise<void>((resolve) => server.listen(path, resolve));
+
+    try {
+      await expect(
+        attachBackgroundSession({
+          pipePath: path,
+          token: TOKEN,
+          timeoutMs: 2000,
+        }),
+      ).rejects.toThrow(error);
+    } finally {
+      for (const socket of sockets) socket.destroy();
+    }
   });
 
   it("rejects a malformed frame before a later hello in the same write", async () => {

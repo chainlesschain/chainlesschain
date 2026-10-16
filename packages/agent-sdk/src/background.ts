@@ -86,7 +86,12 @@ export function attachBackgroundSession(
         new Error("attachBackgroundSession requires id, or pipePath + token"),
       );
     }
-    const state = readBackgroundAgentState(options.id, options.dir);
+    let state: BackgroundAgentState;
+    try {
+      state = readBackgroundAgentState(options.id, options.dir);
+    } catch (error) {
+      return Promise.reject(error);
+    }
     pipePath = pipePath || state.transport?.pipe;
     token = token || state.transport?.token;
     if (!pipePath || !token) {
@@ -122,12 +127,36 @@ export function attachBackgroundSession(
       }
     };
 
+    const failProtocol = (reason: string): void => {
+      if (protocolFailed) return;
+      protocolFailed = true;
+      if (!settled) {
+        settled = true;
+        clearTimeout(timer);
+        reject(new Error(reason));
+      }
+      socket.destroy();
+    };
+
     socket.on(
       "data",
       createNdjsonDecoder<BgServerMessage>((message) => {
         if (protocolFailed) return;
+        if (
+          typeof message !== "object" ||
+          message === null ||
+          Array.isArray(message) ||
+          typeof message.type !== "string"
+        ) {
+          failProtocol("session transport sent an invalid frame");
+          return;
+        }
         if (!settled) {
           if (message.type === "hello") {
+            if (options.id && message.id !== options.id) {
+              failProtocol("session transport hello has a different agent id");
+              return;
+            }
             settled = true;
             attached = true;
             clearTimeout(timer);
@@ -149,7 +178,9 @@ export function attachBackgroundSession(
                 socket.end();
               },
             });
+            return;
           }
+          failProtocol("session transport sent a frame before hello");
           return;
         }
         try {
@@ -158,16 +189,7 @@ export function attachBackgroundSession(
           /* observer errors never kill the connection */
         }
       }, {
-        onError: () => {
-          if (protocolFailed) return;
-          protocolFailed = true;
-          if (!settled) {
-            settled = true;
-            clearTimeout(timer);
-            reject(new Error("session transport sent invalid NDJSON"));
-          }
-          socket.destroy();
-        },
+        onError: () => failProtocol("session transport sent invalid NDJSON"),
       }),
     );
     socket.on("connect", () => {
