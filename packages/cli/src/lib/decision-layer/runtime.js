@@ -167,6 +167,7 @@ export function createSkillDecisionRuntime({
   let ingress = null;
   let unknownUsageSeen = initialUsageUnknown === true;
   const unsettledUsageCalls = new Set();
+  let usageCallInFlight = false;
   let usagePersistenceFailure = null;
   let observationPersistenceFailure = null;
   if (normalizedMode !== "off") {
@@ -287,12 +288,17 @@ export function createSkillDecisionRuntime({
             admission === null
               ? request
               : Object.freeze({ payload: admission.payload });
-          if (unknownUsageSeen || unsettledUsageCalls.size > 0) {
+          if (
+            unknownUsageSeen ||
+            unsettledUsageCalls.size > 0 ||
+            usageCallInFlight
+          ) {
             const error = new Error("decision usage recovery is required");
             error.code = "CC_DECISION_USAGE_UNKNOWN_BLOCKED";
             throw error;
           }
-          const { result: raw, settlement } = await runMeteredDirectModelCall({
+          usageCallInFlight = true;
+          const meteredCall = runMeteredDirectModelCall({
             sessionId: boundSessionId,
             persist: persistDecisionUsage,
             provider: providerAuthority.provider,
@@ -320,6 +326,13 @@ export function createSkillDecisionRuntime({
               );
             },
           });
+          let meteredResult;
+          try {
+            meteredResult = await meteredCall;
+          } finally {
+            usageCallInFlight = false;
+          }
+          const { result: raw, settlement } = meteredResult;
           // A provider may resolve successfully after ignoring cancellation or
           // its deadline. Usage is settled above; the late answer is unusable.
           signal?.throwIfAborted();

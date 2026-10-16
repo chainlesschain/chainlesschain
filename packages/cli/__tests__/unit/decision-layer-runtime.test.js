@@ -291,6 +291,56 @@ describe("Skill decision runtime", () => {
     await expect(first).resolves.toMatchObject({ status: "suggestion" });
   });
 
+  it("blocks a concurrent decision while the first start receipt is pending", async () => {
+    let acknowledgeStart;
+    let startEntered;
+    const startPending = new Promise((resolve) => {
+      startEntered = resolve;
+    });
+    const persist = vi.fn((type) => {
+      if (type !== "model_usage_started") return Promise.resolve();
+      startEntered();
+      return new Promise((resolve) => {
+        acknowledgeStart = resolve;
+      });
+    });
+    const decide = vi
+      .fn()
+      .mockImplementation(() => successfulProvider().decide());
+    let sequence = 0;
+    const options = runtimeOptions({
+      provider: successfulProvider(decide),
+      persist,
+      idGenerator: () => `decision-${++sequence}`,
+    });
+    const runtime = createSkillDecisionRuntime(options);
+    const first = runtime.suggest({
+      query: "repair tests",
+      candidates: candidates(),
+      turnId: "turn-a",
+    });
+    await startPending;
+
+    await expect(
+      runtime.suggest({
+        query: "repair tests",
+        candidates: candidates(),
+        turnId: "turn-b",
+      }),
+    ).resolves.toMatchObject({
+      status: "unavailable",
+      reasonCode: "provider-usage-unknown-blocked",
+    });
+    expect(persist.mock.calls.map(([type]) => type)).toEqual([
+      "model_usage_started",
+    ]);
+    expect(decide).not.toHaveBeenCalled();
+
+    acknowledgeStart();
+    await expect(first).resolves.toMatchObject({ status: "suggestion" });
+    expect(decide).toHaveBeenCalledOnce();
+  });
+
   it("records its own deadline as an unavailable provider timeout", async () => {
     const options = runtimeOptions({
       timeoutMs: 50,
