@@ -9289,24 +9289,105 @@ async function executeToolInner(
             ? null
             : captureSkillDecisionRuntime(skillDecisionRuntime);
         if (decisionRuntime !== null && routing.candidates.length > 0) {
+          const decisionInputsFor = (result, descriptors) => {
+            const descriptorsByDigest = new Map(
+              descriptors.map((skill) => [
+                skill.executionIdentity?.contentDigest,
+                skill,
+              ]),
+            );
+            return result.candidates.slice(0, 5).map((candidate) => {
+              const descriptor = descriptorsByDigest.get(candidate.digest);
+              return {
+                candidate: {
+                  id: candidate.id,
+                  displayName: candidate.displayName,
+                  description: descriptor?.description || candidate.displayName,
+                  category: candidate.category,
+                  digest: candidate.digest,
+                  tags: Array.isArray(descriptor?.tags)
+                    ? [...descriptor.tags]
+                    : [],
+                },
+                // Scope and compatibility are local routing inputs. They never
+                // leave the process, but changes invalidate the old advice.
+                identity: {
+                  namespace: candidate.namespace,
+                  version: candidate.version,
+                  paths: descriptor?.paths ?? null,
+                  os: descriptor?.os ?? null,
+                  capabilities: descriptor?.capabilities ?? null,
+                },
+              };
+            });
+          };
+          const decisionInputs = decisionInputsFor(routing, skills);
+          const snapshotFor = (result, inputs) =>
+            JSON.stringify({
+              candidates: inputs,
+              selectedDigest: result.selected?.digest ?? null,
+              conflicts: result.conflicts,
+            });
+          const decisionSnapshot = snapshotFor(routing, decisionInputs);
+          const contextRevision = `routing-${createHash("sha256")
+            .update(
+              JSON.stringify({
+                query: args.query,
+                category: args.category ?? null,
+                cwd,
+                turnId: turnId || toolCallId || "list-skills",
+                toolCallId: toolCallId ?? null,
+                decisionSnapshot,
+              }),
+            )
+            .digest("hex")}`;
           const decision = await decisionRuntime.suggest({
             query: args.query,
-            candidates: routing.candidates.slice(0, 5).map((candidate) => {
-              const descriptor = byDigest.get(candidate.digest);
-              return {
-                id: candidate.id,
-                displayName: candidate.displayName,
-                description: descriptor?.description || candidate.displayName,
-                category: candidate.category,
-                digest: candidate.digest,
-                tags: Array.isArray(descriptor?.tags) ? descriptor.tags : [],
-              };
-            }),
+            candidates: decisionInputs.map(({ candidate }) => candidate),
             turnId: turnId || toolCallId || "list-skills",
-            contextRevision: "skill-routing-v1",
+            contextRevision,
             signal,
           });
-          if (decision.visible) {
+          signal?.throwIfAborted();
+          // The provider result belongs to the captured candidate set. Recheck
+          // the live loader and revocation reader before exposing any advice.
+          let currentSkills = await filterSkillsByCwd(
+            skillLoader.getResolvedSkills().filter(skillAllowed),
+            cwd,
+          );
+          if (args.category) {
+            currentSkills = currentSkills.filter(
+              (s) => s.category.toLowerCase() === args.category.toLowerCase(),
+            );
+          }
+          const currentRouting = routeSkillDescriptors({
+            skills: currentSkills,
+            query: args.query,
+            target: { os: process.platform },
+            vectorScores: vector?.scores ?? null,
+            outcomeMetrics: outcomeAuthority.metrics,
+            revocationReader: skillRetrievalRevocationReader ?? null,
+            topK: Math.min(64, Math.max(1, currentSkills.length)),
+          });
+          const currentByDigest = new Map(
+            currentSkills.map((skill) => [
+              skill.executionIdentity?.contentDigest,
+              skill,
+            ]),
+          );
+          const currentDecisionSnapshot = snapshotFor(
+            currentRouting,
+            decisionInputsFor(currentRouting, currentSkills),
+          );
+          routing = currentRouting;
+          skills = routing.candidates
+            .map(({ digest }) => currentByDigest.get(digest))
+            .filter(Boolean);
+          signal?.throwIfAborted();
+          if (
+            decision.visible &&
+            currentDecisionSnapshot === decisionSnapshot
+          ) {
             routing = Object.freeze({
               ...routing,
               decisionSuggestion: Object.freeze({

@@ -259,6 +259,90 @@ describe("Skill decision runtime", () => {
     expect(options.observe).not.toHaveBeenCalled();
   });
 
+  it("discards a successful late answer after caller cancellation while keeping known usage", async () => {
+    const controller = new AbortController();
+    const reason = new DOMException("user canceled", "AbortError");
+    const valid = await successfulProvider().decide();
+    let release;
+    let started;
+    const entered = new Promise((resolve) => {
+      started = resolve;
+    });
+    const pending = new Promise((resolve) => {
+      release = resolve;
+    });
+    const options = runtimeOptions({
+      provider: successfulProvider(async () => {
+        started();
+        await pending;
+        return valid;
+      }),
+    });
+    const result = createSkillDecisionRuntime(options).suggest({
+      query: "repair tests",
+      candidates: candidates(),
+      turnId: "turn-a",
+      signal: controller.signal,
+    });
+    await entered;
+    controller.abort(reason);
+    release();
+    await expect(result).rejects.toBe(reason);
+    expect(options.persist.mock.calls.map(([type]) => type)).toEqual([
+      "model_usage_started",
+      "token_usage",
+    ]);
+    expect(options.observe).not.toHaveBeenCalled();
+  });
+
+  it("discards an answer returned after the provider deadline with known usage", async () => {
+    const valid = await successfulProvider().decide();
+    const options = runtimeOptions({
+      timeoutMs: 50,
+      provider: successfulProvider(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 90));
+        return valid;
+      }),
+    });
+    const result = await createSkillDecisionRuntime(options).suggest({
+      query: "repair tests",
+      candidates: candidates(),
+      turnId: "turn-a",
+    });
+    expect(result).toMatchObject({
+      status: "unavailable",
+      reasonCode: "provider-timeout",
+      selectedDigest: null,
+    });
+    expect(options.persist.mock.calls.map(([type]) => type)).toEqual([
+      "model_usage_started",
+      "token_usage",
+    ]);
+  });
+
+  it("does not expose an observed suggestion canceled during observation persistence", async () => {
+    const controller = new AbortController();
+    const reason = new DOMException("user canceled", "AbortError");
+    const options = runtimeOptions({
+      observe: vi.fn(async () => {
+        controller.abort(reason);
+      }),
+    });
+    await expect(
+      createSkillDecisionRuntime(options).suggest({
+        query: "repair tests",
+        candidates: candidates(),
+        turnId: "turn-a",
+        signal: controller.signal,
+      }),
+    ).rejects.toBe(reason);
+    expect(options.observe).toHaveBeenCalledOnce();
+    expect(options.persist.mock.calls.map(([type]) => type)).toEqual([
+      "model_usage_started",
+      "token_usage",
+    ]);
+  });
+
   it("fails closed when usage persistence cannot establish the started boundary", async () => {
     const options = runtimeOptions({
       persist: vi.fn(async () => {

@@ -3,6 +3,11 @@ import { describe, expect, it, vi } from "vitest";
 
 import { openDecisionProviderAuthority } from "../../src/lib/decision-layer/provider-authority.js";
 import { createSkillDecisionRuntime } from "../../src/lib/decision-layer/runtime.js";
+import { openSkillRetrievalRevocationAuthority } from "../../src/lib/evolution/skill-retrieval-revocation-authority.js";
+import {
+  SKILL_REVOCATION_DEPENDENCY_REQUEST_SCHEMA,
+  digestSkillRevocationDependencyRequest,
+} from "../../src/lib/evolution/skill-revocation-propagation.js";
 import { executeTool } from "../../src/runtime/agent-core.js";
 
 const D = (value) =>
@@ -25,22 +30,24 @@ function skill(id, description) {
   };
 }
 
-function loader() {
-  const skills = [
+function loader(
+  skills = [
     skill("repair-tests", "repair failing vitest unit tests"),
     skill("write-docs", "write product documentation"),
-  ];
+  ],
+) {
   return {
     getResolvedSkills: () => skills,
     recordDescriptorUse: vi.fn(),
   };
 }
 
-function decisionRuntime(mode, observe) {
+function decisionRuntime(mode, observe, onDecide = null) {
   const provider = openDecisionProviderAuthority({
     provider: "typesafe",
     model: "jev-test",
     decide: async (request) => {
+      if (onDecide) await onDecide(request);
       const candidateIds = request.candidates.map(
         ({ candidateId }) => candidateId,
       );
@@ -133,5 +140,127 @@ describe("CLI list_skills decision suggestion", () => {
         selectedDigest: D("repair-tests"),
       }),
     );
+  });
+
+  it("drops advice when a nonselected decision candidate changes during provider work", async () => {
+    const descriptors = [
+      skill("repair-tests", "repair failing vitest unit tests"),
+      skill("backup-tests", "repair vitest backup tests"),
+    ];
+    let release;
+    let entered;
+    const waiting = new Promise((resolve) => {
+      release = resolve;
+    });
+    const started = new Promise((resolve) => {
+      entered = resolve;
+    });
+    const resultPromise = executeTool(
+      "list_skills",
+      { query: "repair vitest tests" },
+      {
+        cwd: process.cwd(),
+        sessionId: "session-a",
+        turnId: "turn-a",
+        skillLoader: loader(descriptors),
+        skillDecisionRuntime: decisionRuntime(
+          "suggest",
+          vi.fn(async () => {}),
+          async () => {
+            entered();
+            await waiting;
+          },
+        ),
+      },
+    );
+    await started;
+    descriptors[1].description = "repair vitest backup tests, revised";
+    release();
+    const result = await resultPromise;
+    expect(result.routing).not.toHaveProperty("decisionSuggestion");
+    expect(result.skills).toHaveLength(2);
+  });
+
+  it("removes a candidate revoked while its advice is pending", async () => {
+    let stored = null;
+    const revocations = await openSkillRetrievalRevocationAuthority({
+      tenantId: "tenant-a",
+      ports: {
+        async load() {
+          return {
+            authenticated: true,
+            durable: true,
+            found: stored !== null,
+            state: stored,
+            receiptDigest: D(stored?.stateDigest ?? "empty"),
+          };
+        },
+        async commit({ state }) {
+          stored = structuredClone(state);
+          return {
+            authenticated: true,
+            durable: true,
+            committed: true,
+            stateDigest: state.stateDigest,
+            receiptDigest: D("commit"),
+          };
+        },
+      },
+    });
+    let release;
+    let entered;
+    const waiting = new Promise((resolve) => {
+      release = resolve;
+    });
+    const started = new Promise((resolve) => {
+      entered = resolve;
+    });
+    const resultPromise = executeTool(
+      "list_skills",
+      { query: "repair vitest tests" },
+      {
+        cwd: process.cwd(),
+        sessionId: "session-a",
+        turnId: "turn-a",
+        skillLoader: loader(),
+        skillRetrievalRevocationReader: revocations,
+        skillDecisionRuntime: decisionRuntime(
+          "suggest",
+          vi.fn(async () => {}),
+          async () => {
+            entered();
+            await waiting;
+          },
+        ),
+      },
+    );
+    await started;
+    const requestCore = {
+      schema: SKILL_REVOCATION_DEPENDENCY_REQUEST_SCHEMA,
+      tenantId: "tenant-a",
+      streamId: "pilot-stream",
+      operationId: "skill-revocation:repair-tests",
+      transitionDigest: D("transition"),
+      candidateId: D("candidate"),
+      skillName: "repair-tests",
+      occurredAt: "2026-10-16T00:00:00.000Z",
+      sourceReceiptDigest: D("source"),
+      resolutionDigest: D("resolution"),
+      dependency: {
+        kind: "retrieval-index",
+        ref: "skill-content:tenant-a:repair-tests",
+        digest: D("repair-tests"),
+        disposition: "invalidate",
+      },
+    };
+    await revocations.invalidateRetrieval({
+      ...requestCore,
+      requestDigest: digestSkillRevocationDependencyRequest(requestCore),
+    });
+    release();
+    const result = await resultPromise;
+    expect(result.routing).not.toHaveProperty("decisionSuggestion");
+    expect(result.skills.map(({ id }) => id)).not.toContain("repair-tests");
+    expect(result.routing.rejectedCount).toBeGreaterThan(0);
   });
 });

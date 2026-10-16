@@ -218,6 +218,10 @@ export function createSkillDecisionRuntime({
               });
             },
           });
+          // A provider may resolve successfully after ignoring cancellation or
+          // its deadline. Usage is settled above; the late answer is unusable.
+          signal?.throwIfAborted();
+          requestSignal?.throwIfAborted();
           if (settlement !== "known") {
             // The metered call already persisted model_usage_unknown. Without a
             // budget root it may return the answer; never expose that answer.
@@ -293,6 +297,7 @@ export function createSkillDecisionRuntime({
         ),
       });
       await writeObservation(observation);
+      signal?.throwIfAborted();
       return Object.freeze({
         schema: SKILL_DECISION_OBSERVATION_SCHEMA,
         decisionId,
