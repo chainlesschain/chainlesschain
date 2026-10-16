@@ -61,6 +61,19 @@ describe("createNdjsonReader", () => {
     expect(seen).toEqual([{ type: "a", n: 1 }, { type: "b" }, { type: "c" }]);
   });
 
+  it("preserves UTF-8 characters split across byte chunks", () => {
+    const seen = [];
+    const feed = createNdjsonReader((message) => seen.push(message));
+    const wire = Buffer.from(
+      `${JSON.stringify({ type: "prompt", text: "中文🙂" })}\n`,
+      "utf8",
+    );
+    const boundary = wire.indexOf(Buffer.from("中", "utf8")) + 1;
+    feed(wire.subarray(0, boundary));
+    feed(wire.subarray(boundary));
+    expect(seen).toEqual([{ type: "prompt", text: "中文🙂" }]);
+  });
+
   it("tolerates CRLF and blank lines, reports bad JSON without dying", () => {
     const seen = [];
     const errors = [];

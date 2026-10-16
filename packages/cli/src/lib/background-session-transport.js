@@ -50,8 +50,12 @@ export function transportPipePath(id, dir, options = {}) {
  */
 export function createNdjsonReader(onMessage, onError = () => {}) {
   let carry = "";
+  const decoder = new TextDecoder("utf-8");
   return (chunk) => {
-    carry += chunk.toString("utf8");
+    carry +=
+      typeof chunk === "string"
+        ? chunk
+        : decoder.decode(chunk, { stream: true });
     if (carry.length > MAX_LINE_BYTES) {
       carry = "";
       onError(new Error("line too long"));
