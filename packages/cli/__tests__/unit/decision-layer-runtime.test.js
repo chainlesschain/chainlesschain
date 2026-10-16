@@ -468,4 +468,62 @@ describe("Skill decision runtime", () => {
       }),
     ).rejects.toMatchObject({ runtimeLedgerPersistence: true });
   });
+
+  it("bounds a hung started write and blocks later calls on the same runtime", async () => {
+    const decide = vi.fn();
+    const options = runtimeOptions({
+      boundaryTimeoutMs: 50,
+      provider: successfulProvider(decide),
+      persist: vi.fn(() => new Promise(() => {})),
+    });
+    const runtime = createSkillDecisionRuntime(options);
+    const input = {
+      query: "repair tests",
+      candidates: candidates(),
+      turnId: "turn-a",
+    };
+    await expect(runtime.suggest(input)).rejects.toMatchObject({
+      runtimeLedgerPersistence: true,
+    });
+    await expect(
+      runtime.suggest({ ...input, turnId: "turn-b" }),
+    ).rejects.toMatchObject({
+      runtimeLedgerPersistence: true,
+    });
+    expect(options.persist).toHaveBeenCalledOnce();
+    expect(decide).not.toHaveBeenCalled();
+    expect(options.observe).not.toHaveBeenCalled();
+  });
+
+  it("bounds a hung known-usage settlement and keeps its runtime terminal", async () => {
+    const valid = await successfulProvider().decide();
+    const decide = vi.fn(async () => valid);
+    const options = runtimeOptions({
+      boundaryTimeoutMs: 50,
+      provider: successfulProvider(decide),
+      persist: vi.fn((type) =>
+        type === "token_usage" ? new Promise(() => {}) : Promise.resolve(),
+      ),
+    });
+    const runtime = createSkillDecisionRuntime(options);
+    const input = {
+      query: "repair tests",
+      candidates: candidates(),
+      turnId: "turn-a",
+    };
+    await expect(runtime.suggest(input)).rejects.toMatchObject({
+      runtimeLedgerPersistence: true,
+    });
+    await expect(
+      runtime.suggest({ ...input, turnId: "turn-b" }),
+    ).rejects.toMatchObject({
+      runtimeLedgerPersistence: true,
+    });
+    expect(options.persist.mock.calls.map(([type]) => type)).toEqual([
+      "model_usage_started",
+      "token_usage",
+    ]);
+    expect(decide).toHaveBeenCalledOnce();
+    expect(options.observe).not.toHaveBeenCalled();
+  });
 });

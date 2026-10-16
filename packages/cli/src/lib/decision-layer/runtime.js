@@ -118,7 +118,7 @@ function asPersistenceError(error) {
     return markRuntimeLedgerPersistenceError(error);
   } catch {
     return markRuntimeLedgerPersistenceError(
-      new Error("decision observation persistence failed", { cause: error }),
+      new Error("decision persistence failed", { cause: error }),
     );
   }
 }
@@ -166,6 +166,7 @@ export function createSkillDecisionRuntime({
   let boundSessionId = null;
   let ingress = null;
   let unknownUsageSeen = initialUsageUnknown === true;
+  let usagePersistenceFailure = null;
   if (normalizedMode !== "off") {
     providerAuthority = captureDecisionProviderAuthority(provider);
     boundTenantId = requiredText(tenantId, "tenantId");
@@ -192,7 +193,19 @@ export function createSkillDecisionRuntime({
   };
 
   const persistDecisionUsage = async (type, event) => {
-    await persist(type, event);
+    if (usagePersistenceFailure !== null) throw usagePersistenceFailure;
+    try {
+      await waitForGovernedPhase(
+        persist(type, event),
+        null,
+        boundaryTimeoutMs,
+        (cause) =>
+          new Error("Skill decision usage persistence timed out", { cause }),
+      );
+    } catch (error) {
+      usagePersistenceFailure ??= asPersistenceError(error);
+      throw usagePersistenceFailure;
+    }
     if (type === "model_usage_unknown") unknownUsageSeen = true;
   };
 
@@ -217,6 +230,7 @@ export function createSkillDecisionRuntime({
         });
       }
       if (signal?.aborted) throw signal.reason;
+      if (usagePersistenceFailure !== null) throw usagePersistenceFailure;
       const decisionId = `skill-${requiredText(idGenerator(), "decisionId")}`;
       const request = createSkillDecisionRequest({
         decisionId,
