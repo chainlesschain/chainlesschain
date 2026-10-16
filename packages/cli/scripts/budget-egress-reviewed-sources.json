@@ -126,7 +126,7 @@
     },
     {
       "path": "packages/cli/src/harness/mcp-client.js",
-      "digest": "sha256:3368c0b6f855c715af8f2fa143765fdbcd118915cee85aae28c1d5a8a204937d",
+      "digest": "sha256:3b17a1d189c81078465b8b0e81f8dbde92a78e4089c69bffea2375c31deec201",
       "category": "TASK_CONTROLLED_NETWORK",
       "rationale": "MCP HTTP/WebSocket/stdio transport can delegate arbitrary tools. Remote or tool costs and descendant containment remain unverified."
     },
@@ -186,7 +186,7 @@
     },
     {
       "path": "packages/cli/src/lib/background-session-transport.js",
-      "digest": "sha256:ce8bcbc5453407e0a288545f8b377901b0334786a30cd96bcee584bb24992ddb",
+      "digest": "sha256:7ef032b643153f1caa3c05f13dc09e12b11d2e77b2ff60cefeb868a0af59aa6f",
       "category": "LOCAL_IPC",
       "rationale": "Local session IPC transport; remote model requests require independent host coverage."
     },
@@ -432,7 +432,7 @@
     },
     {
       "path": "packages/cli/src/runtime/agent-core.js",
-      "digest": "sha256:ad69f78b840dba94717e838640e7e4eabab93f40b391d51b4393cf6f3d1b8ccc",
+      "digest": "sha256:5d027f85d7bb78f12e69bdf41f9794a2a1592539007faf6363dd8362f1f144ba",
       "category": "MODEL_REQUEST",
       "rationale": "Canonical model requests including streaming, summaries and child paths; explicit scope required. Formal-scope tools reject centrally, and parallel read batches propagate budget failures."
     },

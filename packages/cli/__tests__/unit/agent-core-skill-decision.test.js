@@ -12,6 +12,12 @@ import {
   digestSkillRevocationDependencyRequest,
 } from "../../src/lib/evolution/skill-revocation-propagation.js";
 import { CLISkillLoader } from "../../src/lib/skill-loader.js";
+import {
+  SKILL_VECTOR_ATTESTATION_SCHEMA,
+  SKILL_VECTOR_RESULT_SCHEMA,
+  createSkillVectorAuthority,
+  digestSkillVectorResult,
+} from "../../src/lib/skill-vector-authority.js";
 import { executeTool } from "../../src/runtime/agent-core.js";
 
 const D = (value) =>
@@ -183,6 +189,88 @@ describe("CLI list_skills decision suggestion", () => {
     const result = await resultPromise;
     expect(result.routing).not.toHaveProperty("decisionSuggestion");
     expect(result.skills).toHaveLength(2);
+  });
+
+  it("refreshes vector scores before exposing advice after the index changes", async () => {
+    let scoreCount = 0;
+    const score = vi.fn(async (request) => {
+      scoreCount += 1;
+      const result = {
+        schema: SKILL_VECTOR_RESULT_SCHEMA,
+        tenantId: "tenant-a",
+        requestDigest: request.requestDigest,
+        corpusDigest: request.corpusDigest,
+        modelId: "embedding:test",
+        modelRevision: `revision:${scoreCount}`,
+        indexDigest: D(`index:${scoreCount}`),
+        scores: request.corpus.map(({ digest }) => ({
+          digest,
+          score: digest === D(scoreCount === 1 ? "alpha" : "beta") ? 1 : 0,
+        })),
+        attestation: {
+          schema: SKILL_VECTOR_ATTESTATION_SCHEMA,
+          algorithm: "test-signature",
+          keyId: "key:test-vector",
+          value: "A".repeat(32),
+        },
+      };
+      return { ...result, resultDigest: digestSkillVectorResult(result) };
+    });
+    const vectorAuthority = createSkillVectorAuthority({
+      tenantId: "tenant-a",
+      provider: { score },
+      verifier: {
+        verify: async (request) => ({
+          authenticated: true,
+          durable: true,
+          tenantId: "tenant-a",
+          requestDigest: request.requestDigest,
+          resultDigest: request.resultDigest,
+          receiptDigest: D(`receipt:${request.resultDigest}`),
+        }),
+      },
+    });
+    let release;
+    let entered;
+    const waiting = new Promise((resolve) => {
+      release = resolve;
+    });
+    const started = new Promise((resolve) => {
+      entered = resolve;
+    });
+    const resultPromise = executeTool(
+      "list_skills",
+      { query: "repair vitest tests" },
+      {
+        cwd: process.cwd(),
+        sessionId: "session-a",
+        turnId: "turn-a",
+        skillLoader: loader([
+          skill("alpha", "repair vitest tests"),
+          skill("beta", "repair vitest tests"),
+        ]),
+        skillVectorAuthority: vectorAuthority,
+        skillDecisionRuntime: decisionRuntime(
+          "suggest",
+          vi.fn(async () => {}),
+          async () => {
+            entered();
+            await waiting;
+          },
+        ),
+      },
+    );
+    await started;
+    release();
+    const result = await resultPromise;
+    expect(score).toHaveBeenCalledTimes(2);
+    expect(result.routing.selectedDigest).toBe(D("beta"));
+    expect(result.routing.vectorAuthority).toMatchObject({
+      modelRevision: "revision:2",
+      indexDigest: D("index:2"),
+    });
+    expect(result.routing).not.toHaveProperty("decisionSuggestion");
+    expect(result.skills[0].id).toBe("beta");
   });
 
   it("rescans an edited SKILL.md before showing advice", async () => {

@@ -9367,6 +9367,16 @@ async function executeToolInner(
               (s) => s.category.toLowerCase() === args.category.toLowerCase(),
             );
           }
+          // The vector index can change while the decision provider is in
+          // flight. Score the refreshed corpus again before comparing routing.
+          vector =
+            vectorAuthority === null
+              ? null
+              : await vectorAuthority.score({
+                  query: args.query,
+                  skills: currentSkills,
+                });
+          signal?.throwIfAborted();
           const currentRouting = routeSkillDescriptors({
             skills: currentSkills,
             query: args.query,
