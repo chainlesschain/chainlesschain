@@ -586,6 +586,19 @@ describe("searchDeferredTools", () => {
     });
     expect(results).toHaveLength(1);
   });
+
+  it("caps select results and does not count duplicate names as omitted", () => {
+    const mcp = deferredMcp();
+    const result = searchDeferredTools(
+      mcp.toolSearchRegistry,
+      "select:create_issue,mcp__github__create_issue,list_issues,send_message",
+      { maxResults: 1 },
+    );
+    expect(result.results.map((item) => item.name)).toEqual([
+      "mcp__github__create_issue",
+    ]);
+    expect(result.omittedCount).toBe(2);
+  });
 });
 
 describe("executeToolSearch", () => {
@@ -614,6 +627,34 @@ describe("executeToolSearch", () => {
     });
     expect(none.count).toBe(0);
     expect(none.available).toContain("mcp__github__create_issue");
+  });
+
+  it("loads only selected schemas within max_results and reports omitted tools", () => {
+    const mcp = deferredMcp();
+    const registry = mcp.toolSearchRegistry;
+    const out = executeToolSearch(registry, {
+      query: "select:create_issue,list_issues,send_message",
+      max_results: 1,
+    });
+    expect(out.count).toBe(1);
+    expect(out.omittedCount).toBe(2);
+    expect(out.note).toMatch(/separate search/);
+    expect([...registry.loaded]).toEqual(["mcp__github__create_issue"]);
+    expect(
+      gateDeferredMcpCall(
+        "mcp__github__list_issues",
+        mcp.externalToolExecutors.mcp__github__list_issues,
+      )?.error,
+    ).toMatch(/schema was not loaded/);
+  });
+
+  it("rejects oversized queries without loading any schema", () => {
+    const mcp = deferredMcp();
+    const out = executeToolSearch(mcp.toolSearchRegistry, {
+      query: `select:${"x".repeat(8192)}`,
+    });
+    expect(out.error).toMatch(/too long/);
+    expect(mcp.toolSearchRegistry.loaded.size).toBe(0);
   });
 });
 

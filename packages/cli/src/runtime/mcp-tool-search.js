@@ -472,10 +472,13 @@ function normalizeTerms(query) {
  */
 export function searchDeferredTools(registry, query, opts = {}) {
   const q = String(query || "").trim();
+  const configuredMaxResults = registry?.maxResults;
   const maxResults =
     Number.isInteger(opts.maxResults) && opts.maxResults > 0
       ? Math.min(opts.maxResults, 50)
-      : registry?.maxResults || TOOL_SEARCH_DEFAULTS.maxResults;
+      : Number.isInteger(configuredMaxResults) && configuredMaxResults > 0
+        ? Math.min(configuredMaxResults, 50)
+        : TOOL_SEARCH_DEFAULTS.maxResults;
   const entries = new Map(
     [...(registry?.deferred || [])].filter(([, entry]) => entry.stale !== true),
   );
@@ -488,22 +491,31 @@ export function searchDeferredTools(registry, query, opts = {}) {
       .filter(Boolean);
     const results = [];
     const notFound = [];
+    const seen = new Set();
+    let omittedCount = 0;
     for (const w of wanted) {
+      let match = null;
       if (entries.has(w)) {
-        results.push({ name: w, entry: entries.get(w) });
-        continue;
-      }
-      // bare tool name → unique suffix match
-      const matches = [...entries.keys()].filter(
-        (k) => k.endsWith(`__${w}`) || entries.get(k).toolName === w,
-      );
-      if (matches.length === 1) {
-        results.push({ name: matches[0], entry: entries.get(matches[0]) });
+        match = w;
       } else {
+        // bare tool name → unique suffix match
+        const matches = [...entries.keys()].filter(
+          (k) => k.endsWith(`__${w}`) || entries.get(k).toolName === w,
+        );
+        if (matches.length === 1) match = matches[0];
+      }
+      if (!match) {
         notFound.push(w);
+      } else if (!seen.has(match)) {
+        seen.add(match);
+        if (results.length < maxResults) {
+          results.push({ name: match, entry: entries.get(match) });
+        } else {
+          omittedCount += 1;
+        }
       }
     }
-    return { mode: "select", results, notFound };
+    return { mode: "select", results, notFound, omittedCount };
   }
 
   const terms = normalizeTerms(q);
@@ -549,7 +561,18 @@ export function executeToolSearch(registry, args = {}) {
         'tool_search requires a "query" argument — use "select:<tool_name>" or keywords.',
     };
   }
-  const { mode, results, notFound } = searchDeferredTools(registry, query, {
+  if (query.length > 8192) {
+    return {
+      error:
+        "tool_search query is too long; select fewer tool names or use shorter keywords.",
+    };
+  }
+  const {
+    mode,
+    results,
+    notFound,
+    omittedCount = 0,
+  } = searchDeferredTools(registry, query, {
     maxResults:
       typeof args.max_results === "number"
         ? Math.floor(args.max_results)
@@ -579,6 +602,7 @@ export function executeToolSearch(registry, args = {}) {
     tools,
   };
   if (notFound.length > 0) payload.notFound = notFound;
+  if (omittedCount > 0) payload.omittedCount = omittedCount;
   if (tools.length === 0) {
     payload.note =
       mode === "select"
@@ -590,7 +614,10 @@ export function executeToolSearch(registry, args = {}) {
       .slice(0, 100);
   } else {
     payload.note =
-      "Schemas loaded — call these tools directly with arguments matching `parameters`.";
+      "Schemas loaded — call these tools directly with arguments matching `parameters`." +
+      (omittedCount > 0
+        ? " Some selected tools were omitted by max_results; select those tools in a separate search before calling them."
+        : "");
   }
   return payload;
 }
