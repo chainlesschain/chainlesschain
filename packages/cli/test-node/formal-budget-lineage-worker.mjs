@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { randomUUID } from "node:crypto";
 import { FormalBudgetAuthority } from "../src/lib/formal-budget-authority.js";
 import { FormalBudgetLineageRegistry } from "../src/lib/formal-budget-lineage-registry.js";
 import { NOW, body, verifyFixtureEvidence } from "./formal-budget-fixture.mjs";
@@ -17,13 +18,16 @@ if (input.checkpointFile) {
         (c) => c.head.lineage_id !== checkpoint.head.lineage_id,
       );
       heads.push(checkpoint);
-      const fd = fs.openSync(input.checkpointFile, "w");
+      // Readers in a second process must see a whole synthetic checkpoint.
+      const temporary = `${input.checkpointFile}.${process.pid}.${randomUUID()}.tmp`;
+      const fd = fs.openSync(temporary, "wx");
       try {
         fs.writeFileSync(fd, JSON.stringify(heads));
         fs.fsyncSync(fd);
       } finally {
         fs.closeSync(fd);
       }
+      fs.renameSync(temporary, input.checkpointFile);
       return { durable: true, checkpointDigest };
     },
   };
