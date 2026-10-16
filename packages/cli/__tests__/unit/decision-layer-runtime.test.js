@@ -407,6 +407,52 @@ describe("Skill decision runtime", () => {
     ]);
   });
 
+  it("fails closed when observation persistence exceeds its boundary deadline", async () => {
+    const options = runtimeOptions({
+      boundaryTimeoutMs: 50,
+      observe: vi.fn(() => new Promise(() => {})),
+    });
+    await expect(
+      createSkillDecisionRuntime(options).suggest({
+        query: "repair tests",
+        candidates: candidates(),
+        turnId: "turn-a",
+      }),
+    ).rejects.toMatchObject({ runtimeLedgerPersistence: true });
+    expect(options.persist.mock.calls.map(([type]) => type)).toEqual([
+      "model_usage_started",
+      "token_usage",
+    ]);
+  });
+
+  it("ends cancellation during a hung observation after settling known usage", async () => {
+    const controller = new AbortController();
+    const reason = new DOMException("user canceled", "AbortError");
+    let enter;
+    const entered = new Promise((resolve) => {
+      enter = resolve;
+    });
+    const options = runtimeOptions({
+      observe: vi.fn(() => {
+        enter();
+        return new Promise(() => {});
+      }),
+    });
+    const pending = createSkillDecisionRuntime(options).suggest({
+      query: "repair tests",
+      candidates: candidates(),
+      turnId: "turn-a",
+      signal: controller.signal,
+    });
+    await entered;
+    controller.abort(reason);
+    await expect(pending).rejects.toBe(reason);
+    expect(options.persist.mock.calls.map(([type]) => type)).toEqual([
+      "model_usage_started",
+      "token_usage",
+    ]);
+  });
+
   it("fails closed when usage persistence cannot establish the started boundary", async () => {
     const options = runtimeOptions({
       persist: vi.fn(async () => {

@@ -12,13 +12,17 @@ import {
   SKILL_DECISION_OBSERVATION_SCHEMA,
 } from "./contracts.js";
 import { captureDecisionProviderAuthority } from "./provider-authority.js";
-import { captureAgentEvolutionIngress } from "../evolution/agent-evolution-ingress.js";
+import {
+  AGENT_EVOLUTION_INGRESS_FAILED_CODE,
+  captureAgentEvolutionIngress,
+} from "../evolution/agent-evolution-ingress.js";
 
 export const SKILL_DECISION_RUNTIME_SCHEMA =
   "chainlesschain.skill-decision-runtime/v1";
 
 const RUNTIMES = new WeakSet();
 const DEFAULT_TIMEOUT_MS = 800;
+const DEFAULT_BOUNDARY_TIMEOUT_MS = 30_000;
 
 function requiredText(value, label, maximum = 256) {
   if (
@@ -59,6 +63,29 @@ function settleBeforeAbort(value, signal) {
     }
     signal.addEventListener("abort", onAbort, { once: true });
   });
+}
+
+async function waitForGovernedPhase(value, signal, timeoutMs, onTimeout) {
+  const phaseSignal = timeoutSignal(signal, timeoutMs);
+  try {
+    return await settleBeforeAbort(value, phaseSignal);
+  } catch (error) {
+    if (signal?.aborted) throw signal.reason;
+    if (
+      phaseSignal.aborted &&
+      phaseSignal.reason === error &&
+      error?.name === "TimeoutError"
+    ) {
+      throw onTimeout(error);
+    }
+    throw error;
+  }
+}
+
+function admissionTimeoutError(cause) {
+  const error = new Error("Skill decision admission timed out", { cause });
+  error.code = AGENT_EVOLUTION_INGRESS_FAILED_CODE;
+  return error;
 }
 
 function projectUnavailable(error) {
@@ -108,6 +135,7 @@ export function createSkillDecisionRuntime({
   initialUsageUnknown = false,
   thresholds = {},
   timeoutMs = DEFAULT_TIMEOUT_MS,
+  boundaryTimeoutMs = DEFAULT_BOUNDARY_TIMEOUT_MS,
   idGenerator = () => randomUUID(),
   now = () => new Date(),
 } = {}) {
@@ -119,6 +147,15 @@ export function createSkillDecisionRuntime({
   ) {
     throw new TypeError(
       "decision timeout must be an integer from 50 to 30000 ms",
+    );
+  }
+  if (
+    !Number.isSafeInteger(boundaryTimeoutMs) ||
+    boundaryTimeoutMs < 50 ||
+    boundaryTimeoutMs > 30_000
+  ) {
+    throw new TypeError(
+      "decision boundary timeout must be an integer from 50 to 30000 ms",
     );
   }
   if (typeof idGenerator !== "function" || typeof now !== "function") {
@@ -209,9 +246,11 @@ export function createSkillDecisionRuntime({
           const admission =
             ingress === null
               ? null
-              : await settleBeforeAbort(
+              : await waitForGovernedPhase(
                   ingress.prepareSkillDecisionRequest(request),
                   signal,
+                  boundaryTimeoutMs,
+                  admissionTimeoutError,
                 );
           signal?.throwIfAborted();
           admissionReceipt = admission?.receipt ?? null;
@@ -326,7 +365,15 @@ export function createSkillDecisionRuntime({
           observationCore,
         ),
       });
-      await writeObservation(observation);
+      await waitForGovernedPhase(
+        writeObservation(observation),
+        signal,
+        boundaryTimeoutMs,
+        (cause) =>
+          asPersistenceError(
+            new Error("Skill decision observation timed out", { cause }),
+          ),
+      );
       signal?.throwIfAborted();
       return Object.freeze({
         schema: SKILL_DECISION_OBSERVATION_SCHEMA,

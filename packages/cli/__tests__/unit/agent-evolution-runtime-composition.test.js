@@ -3649,6 +3649,23 @@ describe("Agent evolution runtime production composition", () => {
     expect(f.observations).toEqual([]);
   }, 60_000);
 
+  it("fails closed when typed admission exceeds its boundary deadline", async () => {
+    const f = skillDecisionFixture();
+    f.config.authorities.sourceEnvelope.issue.mockImplementation(
+      () => new Promise(() => {}),
+    );
+    const runtime = createSkillDecisionRuntime({
+      ...f.runtimeOptions,
+      boundaryTimeoutMs: 50,
+    });
+    await expect(runtime.suggest(f.input)).rejects.toMatchObject({
+      code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+    });
+    expect(f.fetchImpl).not.toHaveBeenCalled();
+    expect(f.events).toEqual([]);
+    expect(f.observations).toEqual([]);
+  }, 60_000);
+
   it("captures typed evidence before awaits and latches a concurrent malformed admission", async () => {
     const f = skillDecisionFixture();
     const request = structuredClone(
