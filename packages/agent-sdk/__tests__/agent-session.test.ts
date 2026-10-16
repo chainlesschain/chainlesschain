@@ -209,6 +209,30 @@ describe("AgentSession", () => {
     );
   });
 
+  it("preserves UTF-8 characters split across stdout and stderr chunks", async () => {
+    const { session, child } = startSession();
+    const events = vi.fn();
+    const stderr = vi.fn();
+    session.on("event", events);
+    session.on("stderr", stderr);
+    const line = Buffer.from(
+      `${JSON.stringify({ type: "tool_use", tool: "读取🙂" })}\n`,
+      "utf8",
+    );
+    const split = line.indexOf(Buffer.from("读", "utf8")) + 1;
+    child.stdout.emit("data", line.subarray(0, split));
+    child.stdout.emit("data", line.subarray(split));
+    const diagnostic = Buffer.from("诊断🙂", "utf8");
+    child.stderr.emit("data", diagnostic.subarray(0, 1));
+    child.stderr.emit("data", diagnostic.subarray(1));
+    child.stderr.emit("end");
+    await flush();
+    expect(events).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "tool_use", tool: "读取🙂" }),
+    );
+    expect(stderr.mock.calls.map(([text]) => text).join("")).toBe("诊断🙂");
+  });
+
   it("writes protocol input events for send/interrupt/compact", () => {
     const { session, writtenEvents } = startSession();
     session.send("hello", { images: ["/tmp/a.png"] });

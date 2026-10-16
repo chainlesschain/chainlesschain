@@ -158,8 +158,18 @@ class AgentSession {
         const child = spawnImpl(command, fullArgs, spawnOptions);
         this.child = child;
         const decode = (0, ndjson_js_1.createNdjsonDecoder)((message) => this.dispatch(message), { onError: () => { } });
-        child.stdout?.on("data", (chunk) => decode(chunk.toString("utf8")));
-        child.stderr?.on("data", (chunk) => this.emit("stderr", chunk.toString("utf8")));
+        child.stdout?.on("data", (chunk) => decode(chunk));
+        const stderrDecoder = new TextDecoder("utf-8");
+        child.stderr?.on("data", (chunk) => {
+            const text = stderrDecoder.decode(chunk, { stream: true });
+            if (text)
+                this.emit("stderr", text);
+        });
+        child.stderr?.on("end", () => {
+            const text = stderrDecoder.decode();
+            if (text)
+                this.emit("stderr", text);
+        });
         child.on("error", (error) => this.emit("error", error));
         child.on("exit", (code) => {
             if (this.exited)
