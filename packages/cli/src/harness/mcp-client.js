@@ -5369,6 +5369,7 @@ export class MCPClient extends EventEmitter {
     }
     flags[`${kind}Running`] = true;
     let refreshed = false;
+    let toolCount = 0;
     try {
       do {
         if (this.servers.get(serverName) !== entry) return;
@@ -5395,13 +5396,14 @@ export class MCPClient extends EventEmitter {
           if (kind === "tools") {
             this._replaceToolInventory(serverName, entry, list);
             entry.toolsError = null;
+            toolCount = list.length;
           } else {
             entry[kind] = list;
+            this.emit(`${kind}-changed`, {
+              server: serverName,
+              count: list.length,
+            });
           }
-          this.emit(`${kind}-changed`, {
-            server: serverName,
-            count: list.length,
-          });
           refreshed = true;
         } catch (error) {
           if (this.servers.get(serverName) !== entry) return;
@@ -5430,8 +5432,15 @@ export class MCPClient extends EventEmitter {
       } while (flags[`${kind}Dirty`]);
     } finally {
       flags[`${kind}Running`] = false;
-      if (kind === "tools" && refreshed && this.servers.get(serverName) === entry)
+      if (kind === "tools" && refreshed && this.servers.get(serverName) === entry) {
+        // Event listeners may call a newly advertised tool immediately.
         entry._toolInventoryDirty = false;
+        try {
+          this.emit("tools-changed", { server: serverName, count: toolCount });
+        } catch {
+          // An observer cannot make a successfully refreshed catalog stale.
+        }
+      }
     }
   }
 

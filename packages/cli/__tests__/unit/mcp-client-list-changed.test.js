@@ -272,6 +272,8 @@ describe("MCPClient list_changed refresh", () => {
     });
     const pendingLists = [];
     const methods = [];
+    const changed = [];
+    client.on("tools-changed", (event) => changed.push(event));
     client._sendRequest = (_server, method) => {
       methods.push(method);
       if (method === "tools/list") {
@@ -287,6 +289,7 @@ describe("MCPClient list_changed refresh", () => {
     pendingLists[0].resolve({ tools: [{ name: "old" }] });
     await Promise.resolve();
     expect(methods).toEqual(["tools/list", "tools/list"]);
+    expect(changed).toEqual([]);
     await expect(client.callTool("srv", "old")).rejects.toMatchObject({
       code: "CC_MCP_TOOL_CATALOG_STALE",
       dispatched: false,
@@ -294,6 +297,7 @@ describe("MCPClient list_changed refresh", () => {
 
     pendingLists[1].reject(new Error("list unavailable"));
     await firstRefresh;
+    expect(changed).toEqual([]);
     await expect(client.callTool("srv", "old")).rejects.toMatchObject({
       code: "CC_MCP_TOOL_CATALOG_STALE",
       dispatched: false,
@@ -303,6 +307,7 @@ describe("MCPClient list_changed refresh", () => {
     const retry = client._refreshServerList("srv", "tools");
     pendingLists[2].resolve({ tools: [{ name: "new" }] });
     await retry;
+    expect(changed).toEqual([{ server: "srv", count: 1 }]);
     await expect(client.callTool("srv", "old")).rejects.toMatchObject({
       code: "CC_MCP_TOOL_NOT_ADVERTISED",
       dispatched: false,
@@ -353,5 +358,36 @@ describe("MCPClient list_changed refresh", () => {
       content: [],
     });
     expect(calls).toEqual(["tools/call"]);
+  });
+
+  it("allows a newly advertised tool when tools-changed is emitted", async () => {
+    const client = new MCPClient();
+    client.servers.set("srv", {
+      config: {},
+      state: ServerState.CONNECTED,
+      transportKind: "stdio",
+      tools: [],
+      _toolMetadataBytes: 0,
+    });
+    const methods = [];
+    client._sendRequest = (_server, method) => {
+      methods.push(method);
+      return Promise.resolve(
+        method === "tools/list"
+          ? { tools: [{ name: "new", inputSchema: { type: "object" } }] }
+          : { content: [] },
+      );
+    };
+    let eventCall;
+    client.on("tools-changed", () => {
+      eventCall = client.callTool("srv", "new").then(
+        () => "called",
+        (error) => error.code,
+      );
+    });
+
+    await client._refreshServerList("srv", "tools");
+    expect(await eventCall).toBe("called");
+    expect(methods).toEqual(["tools/list", "tools/call"]);
   });
 });
