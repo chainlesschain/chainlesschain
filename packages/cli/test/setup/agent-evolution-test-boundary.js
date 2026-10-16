@@ -19,6 +19,12 @@ export const TEST_AGENT_EVOLUTION_INGRESS = Object.freeze({
   ingestAgentEvent: async () => undefined,
   complete: async () => undefined,
   prepareModelRequest: async ({ messages, tools }) => ({ messages, tools }),
+  // Usage-only tests opt into this sentinel; durable typed admission is tested
+  // separately with the real production composition and authenticated artifacts.
+  prepareSkillDecisionRequest: async ({ payload }) => ({
+    payload,
+    receipt: null,
+  }),
 });
 testIngresses.add(TEST_AGENT_EVOLUTION_INGRESS);
 
@@ -68,21 +74,26 @@ globalThis[compositionFactoryKey] = async ({ runId }) => {
   return composition;
 };
 
-vi.mock("../../src/lib/evolution/agent-evolution-ingress.js", async (importOriginal) => {
-  const actual = await importOriginal();
-  return {
-    ...actual,
-    captureAgentEvolutionIngress(value, options = {}) {
-      if (testIngresses.has(value)) {
-        if (options.tenantId && options.tenantId !== value.tenantId) {
-          throw new TypeError("Agent evolution ingress belongs to another tenant");
+vi.mock(
+  "../../src/lib/evolution/agent-evolution-ingress.js",
+  async (importOriginal) => {
+    const actual = await importOriginal();
+    return {
+      ...actual,
+      captureAgentEvolutionIngress(value, options = {}) {
+        if (testIngresses.has(value)) {
+          if (options.tenantId && options.tenantId !== value.tenantId) {
+            throw new TypeError(
+              "Agent evolution ingress belongs to another tenant",
+            );
+          }
+          return value;
         }
-        return value;
-      }
-      return actual.captureAgentEvolutionIngress(value, options);
-    },
-  };
-});
+        return actual.captureAgentEvolutionIngress(value, options);
+      },
+    };
+  },
+);
 
 vi.mock(
   "../../src/lib/evolution/agent-evolution-runtime-composition-brand.js",
@@ -139,18 +150,21 @@ vi.mock("../../src/lib/cowork-adapter.js", async (importOriginal) => {
   };
 });
 
-vi.mock("../../src/lib/evolution/governed-model-turn.js", async (importOriginal) => {
-  const actual = await importOriginal();
-  return {
-    ...actual,
-    prepareGovernedModelTurn: (factory, input) => {
-      if (factory !== null || !supportsImplicitTestIngress()) {
-        return actual.prepareGovernedModelTurn(factory, input);
-      }
-      return actual.prepareGovernedModelTurn(
-        globalThis[compositionFactoryKey],
-        input,
-      );
-    },
-  };
-});
+vi.mock(
+  "../../src/lib/evolution/governed-model-turn.js",
+  async (importOriginal) => {
+    const actual = await importOriginal();
+    return {
+      ...actual,
+      prepareGovernedModelTurn: (factory, input) => {
+        if (factory !== null || !supportsImplicitTestIngress()) {
+          return actual.prepareGovernedModelTurn(factory, input);
+        }
+        return actual.prepareGovernedModelTurn(
+          globalThis[compositionFactoryKey],
+          input,
+        );
+      },
+    };
+  },
+);

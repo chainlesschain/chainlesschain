@@ -39,7 +39,7 @@ function handshakeResult(method) {
         capabilities: {},
       };
     case "tools/list":
-      return { tools: [] };
+      return { tools: [{ name: "doit", inputSchema: { type: "object" } }] };
     case "resources/list":
       return { resources: [] };
     case "prompts/list":

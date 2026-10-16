@@ -97,6 +97,10 @@ import {
 import { SESSION_CORE_STREAMING_HANDLERS } from "../../src/gateways/ws/session-core-protocol.js";
 import { registerCompleteCommand } from "../../src/commands/complete.js";
 import { startChatRepl } from "../../src/repl/chat-repl.js";
+import { createSkillDecisionRequest } from "../../src/lib/decision-layer/contracts.js";
+import { createSkillDecisionRuntime } from "../../src/lib/decision-layer/runtime.js";
+import { createDecisionProvider } from "../../src/lib/decision-layer/providers.js";
+import { EVOLUTION_SKILL_DECISION_PROJECTION_RULESET_DIGEST } from "../../src/lib/evolution/evolution-evidence-projector.js";
 
 const NOW = "2026-09-03T04:00:00.000Z";
 const roots = [];
@@ -3434,6 +3438,306 @@ describe("Agent evolution runtime production composition", () => {
       },
     };
   }
+
+  function skillDecisionFixture(sensitivity = "internal") {
+    const f = modelFixture(sensitivity);
+    const events = [];
+    const observations = [];
+    const input = {
+      query: "Repair tests",
+      candidates: [
+        {
+          id: "repair-tests",
+          displayName: "Repair tests",
+          description: "Repair failing tests",
+          digest: digest("repair-tests"),
+          tags: ["tests"],
+        },
+      ],
+      turnId: "turn-1",
+    };
+    const fetchImpl = vi.fn(async (_url, init) => {
+      const body = JSON.parse(init.body);
+      f.seen.push(body);
+      expect(f.composition.loadRun().events.at(-1).data.evidenceKind).toBe(
+        "skill-decision-input",
+      );
+      expect(events.at(-1).type).toBe("model_usage_started");
+      return {
+        ok: true,
+        json: async () => ({
+          answers: {
+            needs_skill: { noul: 0.9 },
+            best_skill: {
+              choice: "c1",
+              confidence: 0.9,
+              probabilities: { c1: 0.9, none: 0.1 },
+            },
+            fits_c1: { noul: 0.9 },
+          },
+          usage: { input_tokens: 10, output_tokens: 3 },
+        }),
+      };
+    });
+    const runtimeOptions = {
+      mode: "suggest",
+      tenantId: f.config.tenantId,
+      sessionId: "decision-session",
+      evolutionIngress: f.composition.evolutionIngress,
+      provider: createDecisionProvider({ provider: "laya", fetchImpl }),
+      persist: async (type, data) => {
+        events.push({ type, data });
+      },
+      observe: async (value) => {
+        observations.push(value);
+      },
+      timeoutMs: 30_000,
+    };
+    return {
+      ...f,
+      input,
+      events,
+      observations,
+      fetchImpl,
+      runtimeOptions,
+      runtime: createSkillDecisionRuntime(runtimeOptions),
+    };
+  }
+
+  it("admits typed Skill decisions before dispatch and sends only projected state and questions", async () => {
+    const f = skillDecisionFixture();
+    const canary = "sk-abcdefghijklmnopqrstuvwxyz1234567890";
+    f.input.query = `Repair tests for alice@example.com using ${canary}`;
+    f.input.candidates[0].description = `${"x".repeat(9000)} ${canary}`;
+    const result = await f.runtime.suggest(f.input);
+    expect(result).toMatchObject({
+      status: "suggestion",
+      selectedDigest: digest("repair-tests"),
+    });
+    expect(f.fetchImpl).toHaveBeenCalledOnce();
+    expect(JSON.stringify(f.seen)).not.toContain(canary);
+    expect(JSON.stringify(f.seen)).not.toContain("alice@example.com");
+    expect(f.seen[0].state.candidates[0].description).toContain("REDACTED");
+    expect(f.seen[0].questions.best_skill.criteria.c1).toContain("REDACTED");
+    expect(f.seen[0].questions.best_skill.criteria.none).toBe(
+      "None of the listed skills is suitable for this task",
+    );
+    expect(
+      f.config.authorities.rawEncryptor.encrypt.mock.calls[0][0].plaintext.toString(),
+    ).toContain(canary);
+    const event = f.composition.loadRun().events.at(-1);
+    expect(event.data.requestDigest).toBe(f.observations[0].requestDigest);
+    expect(f.observations[0].admissionReceipt).toMatchObject({
+      eventId: event.eventId,
+      manifestDigest: event.payloadDigest,
+      rulesetDigest: EVOLUTION_SKILL_DECISION_PROJECTION_RULESET_DIGEST,
+    });
+    expect(f.events.map(({ type }) => type)).toEqual([
+      "model_usage_started",
+      "token_usage",
+    ]);
+    expect(createAgentEvolutionRuntimeComposition(f.config).loadRun()).toEqual(
+      f.composition.loadRun(),
+    );
+  }, 60_000);
+
+  it.each(["source", "readback", "restricted"])(
+    "refuses typed Skill %s admission without provider usage or successful completion",
+    async (mode) => {
+      const f = skillDecisionFixture(mode === "restricted" ? mode : "internal");
+      if (mode === "source")
+        f.config.authorities.sourceEnvelope.issue.mockRejectedValue(
+          new Error("source denied"),
+        );
+      if (mode === "readback") {
+        const verifier = f.config.authorities.attestationVerifier.verify;
+        const verify = verifier.getMockImplementation();
+        verifier.mockImplementation(async (...args) => {
+          if (
+            f.composition.loadRun().events.at(-1)?.data.evidenceKind ===
+            "skill-decision-input"
+          )
+            throw new Error("readback revoked");
+          return verify(...args);
+        });
+      }
+      await expect(f.runtime.suggest(f.input)).rejects.toMatchObject({
+        code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+      });
+      expect(f.fetchImpl).not.toHaveBeenCalled();
+      expect(f.events).toEqual([]);
+      expect(f.observations).toEqual([]);
+      await expect(
+        f.composition.evolutionIngress.complete(),
+      ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+    },
+    60_000,
+  );
+
+  it("rejects copied and cross-tenant Skill ingress capabilities while keeping off mode inert", async () => {
+    const f = skillDecisionFixture();
+    expect(() =>
+      createSkillDecisionRuntime({
+        ...f.runtimeOptions,
+        tenantId: "other-tenant",
+      }),
+    ).toThrow(/another tenant/);
+    expect(() =>
+      createSkillDecisionRuntime({
+        ...f.runtimeOptions,
+        evolutionIngress: { ...f.composition.evolutionIngress },
+      }),
+    ).toThrow(/branded/);
+    await expect(
+      createSkillDecisionRuntime({
+        mode: "off",
+        evolutionIngress: {},
+      }).suggest(),
+    ).resolves.toMatchObject({ status: "disabled" });
+    const request = createSkillDecisionRequest({
+      ...f.input,
+      decisionId: "decision-1",
+      sessionId: "session-1",
+      tenantId: "other-tenant",
+    });
+    await expect(
+      f.composition.evolutionIngress.prepareSkillDecisionRequest(request),
+    ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+    expect(f.fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("honors cancellation after typed admission without opening a usage boundary", async () => {
+    const f = skillDecisionFixture();
+    const controller = new AbortController();
+    const reason = new DOMException("cancelled", "AbortError");
+    const issue =
+      f.config.authorities.sourceEnvelope.issue.getMockImplementation();
+    f.config.authorities.sourceEnvelope.issue.mockImplementation(
+      async (...args) => {
+        controller.abort(reason);
+        return issue(...args);
+      },
+    );
+    await expect(
+      f.runtime.suggest({ ...f.input, signal: controller.signal }),
+    ).rejects.toBe(reason);
+    expect(f.fetchImpl).not.toHaveBeenCalled();
+    expect(f.events).toEqual([]);
+  }, 60_000);
+
+  it("captures typed evidence before awaits and latches a concurrent malformed admission", async () => {
+    const f = skillDecisionFixture();
+    const request = structuredClone(
+      createSkillDecisionRequest({
+        ...f.input,
+        decisionId: "decision-1",
+        sessionId: "session-1",
+        tenantId: f.config.tenantId,
+      }),
+    );
+    let enter;
+    let release;
+    const entered = new Promise((resolve) => {
+      enter = resolve;
+    });
+    const gate = new Promise((resolve) => {
+      release = resolve;
+    });
+    f.config.authorities.sourceEnvelope.issue.mockImplementation(
+      async ({ evidence }) => {
+        enter();
+        await gate;
+        expect(evidence.state.task).toBe("Repair tests");
+        return "signed-source:skill-decision-input";
+      },
+    );
+    const first =
+      f.composition.evolutionIngress.prepareSkillDecisionRequest(request);
+    await entered;
+    request.payload.state.task = "changed after capture";
+    const outcomes = Promise.allSettled([
+      first,
+      f.composition.evolutionIngress.prepareSkillDecisionRequest(request),
+      f.composition.evolutionIngress.complete(),
+    ]);
+    release();
+    expect((await outcomes).map(({ status }) => status)).toEqual([
+      "rejected",
+      "rejected",
+      "rejected",
+    ]);
+    expect(f.fetchImpl).not.toHaveBeenCalled();
+  }, 60_000);
+
+  it("keeps typed decisions separate from chat response-cache admission", async () => {
+    const f = skillDecisionFixture();
+    const ingress = f.composition.evolutionIngress;
+    await ingress.prepareModelRequest({
+      messages: [{ role: "user", content: "hello" }],
+      tools: [],
+    });
+    await ingress.ingestAgentEvent({
+      type: "response-complete",
+      content: "done",
+    });
+    await f.runtime.suggest(f.input);
+    await expect(
+      ingress.createResponseCacheReceipt({ requestKey: "a".repeat(64) }),
+    ).resolves.toMatchObject({
+      schema: "chainlesschain.model-response-cache-receipt/v1",
+    });
+  }, 60_000);
+
+  it("wires typed Skill ingress through the actual headless host", async () => {
+    const f = skillDecisionFixture();
+    const result = await runAgentHeadless(
+      {
+        prompt: "Repair tests",
+        resume: "decision-session",
+        decisionMode: "suggest",
+        decisionProvider: "laya",
+        decisionTimeoutMs: 30_000,
+        evolutionIngress: f.composition.evolutionIngress,
+        hermeticExecution: true,
+        cwd: f.root,
+      },
+      {
+        bootstrap: async () => ({ db: null }),
+        getApprovalGate: async () => null,
+        writeOut: vi.fn(),
+        writeErr: vi.fn(),
+        sessionExists: () => false,
+        rebuildMessages: () => [],
+        startSession: () => true,
+        appendUserMessage: () => true,
+        appendAssistantMessage: () => true,
+        appendTokenUsage: () => true,
+        appendToolCallCompact: () => true,
+        appendLlmRetryCompact: () => true,
+        appendCompactEvent: () => true,
+        readEvents: () => f.events,
+        appendEvent: (_sessionId, type, data) => {
+          f.events.push({ type, data });
+          return true;
+        },
+        appendAuthorityEvent: () => true,
+        decisionProvider: f.runtimeOptions.provider,
+        agentLoop: async function* (_messages, options) {
+          const decision = await options.skillDecisionRuntime.suggest(f.input);
+          expect(decision.status).toBe("suggestion");
+          yield { type: "response-complete", content: "done" };
+          yield { type: "run-ended", reason: "complete" };
+        },
+      },
+    );
+    expect(result).toMatchObject({ exitCode: 0, isError: false });
+    expect(f.fetchImpl).toHaveBeenCalledOnce();
+    expect(f.composition.loadRun().projection.status).toBe("completed");
+    expect(
+      f.events.find(({ type }) => type === "skill_decision_observation").data
+        .admissionReceipt.tenantId,
+    ).toBe(f.config.tenantId);
+  }, 60_000);
 
   it("binds chat and chat --agent to separate deployment-created Runs", async () => {
     const f = modelFixture();

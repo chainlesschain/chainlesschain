@@ -340,6 +340,7 @@ export class EvolutionEvidenceArtifactAdapter {
   #ttlMs;
   #project;
   #projectAgentModel;
+  #projectSkillDecision;
   #verify;
   #ports;
   #resolveManifestRef;
@@ -385,6 +386,11 @@ export class EvolutionEvidenceArtifactAdapter {
       "projectAgentModelRequest",
       "projector",
     );
+    this.#projectSkillDecision = captureMethod(
+      projector,
+      "projectSkillDecisionRequest",
+      "projector",
+    );
     this.#verify = captureMethod(bundleVerifier, "verify", "bundleVerifier");
     this.#ports = artifactPorts;
     this.#resolveManifestRef =
@@ -409,6 +415,10 @@ export class EvolutionEvidenceArtifactAdapter {
 
   async projectAndPersistAgentModelRequest(input) {
     return this.#persist(await this.#projectAgentModel(input));
+  }
+
+  async projectAndPersistSkillDecisionRequest(input) {
+    return this.#persist(await this.#projectSkillDecision(input));
   }
 
   async #persist(bundle) {

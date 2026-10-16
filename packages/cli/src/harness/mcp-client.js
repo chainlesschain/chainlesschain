@@ -3114,6 +3114,7 @@ export class MCPClient extends EventEmitter {
           this._replaceToolInventory(name, entry, toolsResult?.tools || []);
         } catch (err) {
           if (isMcpFatalDiscoveryError(err)) throw err;
+          entry._toolInventoryReady = true;
           if (advertisesTools) {
             toolsDiscoveryFailed = true;
             entry.toolsError = err?.message || String(err);
@@ -3521,6 +3522,7 @@ export class MCPClient extends EventEmitter {
       clientBytesUsed,
     });
     entry.tools = admitted.tools;
+    entry._toolInventoryReady = true;
     entry._toolMetadataBytes = admitted.metadataBytes;
     this._toolMetadataBytes = clientBytesUsed + admitted.metadataBytes;
     return entry.tools;
@@ -3761,21 +3763,22 @@ export class MCPClient extends EventEmitter {
     if (entry.state !== ServerState.CONNECTED) {
       throw new Error(`Server "${serverName}" is not connected`);
     }
-    if (entry._toolInventoryVersioned) {
-      if (entry._toolInventoryDirty) {
-        throw mcpTransportError(
-          "CC_MCP_TOOL_CATALOG_STALE",
-          `MCP tool catalog for server "${serverName}" is refreshing; retry after it settles`,
-          { transport: entry.transportKind, dispatched: false },
-        );
-      }
-      if (!entry.tools?.some((tool) => tool.name === toolName)) {
-        throw mcpTransportError(
-          "CC_MCP_TOOL_NOT_ADVERTISED",
-          `MCP tool "${toolName}" is no longer advertised by server "${serverName}"`,
-          { transport: entry.transportKind, dispatched: false },
-        );
-      }
+    if (entry._toolInventoryDirty) {
+      throw mcpTransportError(
+        "CC_MCP_TOOL_CATALOG_STALE",
+        `MCP tool catalog for server "${serverName}" is refreshing; retry after it settles`,
+        { transport: entry.transportKind, dispatched: false },
+      );
+    }
+    if (
+      entry._toolInventoryReady &&
+      !entry.tools.some((tool) => tool.name === toolName)
+    ) {
+      throw mcpTransportError(
+        "CC_MCP_TOOL_NOT_ADVERTISED",
+        `MCP tool "${toolName}" is not advertised by server "${serverName}"`,
+        { transport: entry.transportKind, dispatched: false },
+      );
     }
 
     const timeoutMs = mcpToolIdleTimeoutMs(entry.config, options);
@@ -5357,7 +5360,6 @@ export class MCPClient extends EventEmitter {
     const entry = this.servers.get(serverName);
     if (!entry) return;
     if (kind === "tools") {
-      entry._toolInventoryVersioned = true;
       entry._toolInventoryDirty = true;
     }
     const flags = (entry._listRefresh = entry._listRefresh || {});

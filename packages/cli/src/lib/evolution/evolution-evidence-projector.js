@@ -14,6 +14,7 @@ import {
   projectAgentOpaqueTransportBlock,
   snapshotAgentModelRequest,
 } from "./agent-model-projection.js";
+import { snapshotSkillDecisionPayload } from "./skill-decision-projection.js";
 import {
   createEvidenceJsonTextBoundary,
   EVIDENCE_JSON_POLICY,
@@ -523,7 +524,24 @@ export const EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_DIGEST = `sha256:${createH
     "utf8",
   )
   .digest("hex")}`;
+const SKILL_DECISION_RULESET = Object.freeze({
+  ...AGENT_MODEL_RULESET_V2,
+  schema: "chainlesschain.evolution-skill-decision-projection-rules/v1",
+  version: 1,
+  protocol: "skill-routing-state-and-questions/v1",
+  maxInputBytes: 256 * 1024,
+});
+export const EVOLUTION_SKILL_DECISION_PROJECTION_RULESET_DIGEST = `sha256:${createHash(
+  "sha256",
+)
+  .update(
+    `${SKILL_DECISION_RULESET.schema}\0${JSON.stringify(SKILL_DECISION_RULESET)}`,
+    "utf8",
+  )
+  .digest("hex")}`;
+
 const SUPPORTED_RULESETS = new Map([
+  [EVOLUTION_SKILL_DECISION_PROJECTION_RULESET_DIGEST, SKILL_DECISION_RULESET],
   [RULESET_DIGEST, RULESET],
   [RAW_RULESET_V3_DIGEST, RAW_RULESET_V3],
   [AGENT_MODEL_RULESET_V1_DIGEST, AGENT_MODEL_RULESET_V1],
@@ -601,7 +619,8 @@ const AGENT_VALUE_PATTERNS = Object.freeze([
 ]);
 
 function valuePatterns(ruleset) {
-  return ruleset === AGENT_MODEL_RULESET ||
+  return ruleset === SKILL_DECISION_RULESET ||
+    ruleset === AGENT_MODEL_RULESET ||
     ruleset === AGENT_MODEL_RULESET_V2 ||
     ruleset === AGENT_MODEL_RULESET_V1
     ? AGENT_VALUE_PATTERNS
@@ -3101,6 +3120,18 @@ function validateBundleIntegrity(bundle) {
     );
   }
   if (model.content !== null) {
+    if (ruleset === SKILL_DECISION_RULESET) {
+      snapshotSkillDecisionPayload(model.content);
+      if (
+        model.truncated ||
+        (model.redactionSummary.byType["content-truncation"] ?? 0) > 0
+      ) {
+        throw projectionError(
+          EVOLUTION_PROJECTION_INVALID_CODE,
+          "Skill decision projection cannot be truncated",
+        );
+      }
+    }
     if (
       ruleset === AGENT_MODEL_RULESET ||
       ruleset === AGENT_MODEL_RULESET_V2 ||
@@ -3368,6 +3399,10 @@ export class EvolutionEvidenceProjector {
     return this.#project(input, AGENT_MODEL_RULESET);
   }
 
+  projectSkillDecisionRequest(input) {
+    return this.#project(input, SKILL_DECISION_RULESET);
+  }
+
   async #project(input, ruleset) {
     assertExactRecord(input, INPUT_KEYS, "evidence projection input");
     if (
@@ -3381,9 +3416,11 @@ export class EvolutionEvidenceProjector {
       );
     }
     const payload =
-      ruleset === AGENT_MODEL_RULESET
-        ? snapshotAgentModelRequest(input.payload)
-        : cloneCanonical(input.payload);
+      ruleset === SKILL_DECISION_RULESET
+        ? snapshotSkillDecisionPayload(input.payload)
+        : ruleset === AGENT_MODEL_RULESET
+          ? snapshotAgentModelRequest(input.payload)
+          : cloneCanonical(input.payload);
     const sourceInputDigest = digest(
       payload,
       "chainlesschain.evolution-raw-plaintext/v2",
@@ -3627,9 +3664,11 @@ export class EvolutionEvidenceProjector {
     const modelProjection = buildModelProjection(
       rawRecord,
       sanitized,
-      ruleset === AGENT_MODEL_RULESET
-        ? EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_DIGEST
-        : RAW_RULESET_V3_DIGEST,
+      ruleset === SKILL_DECISION_RULESET
+        ? EVOLUTION_SKILL_DECISION_PROJECTION_RULESET_DIGEST
+        : ruleset === AGENT_MODEL_RULESET
+          ? EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_DIGEST
+          : RAW_RULESET_V3_DIGEST,
     );
     const trustedSanitized = source.compilable
       ? sanitizePayload(

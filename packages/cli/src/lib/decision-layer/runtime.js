@@ -12,6 +12,7 @@ import {
   SKILL_DECISION_OBSERVATION_SCHEMA,
 } from "./contracts.js";
 import { captureDecisionProviderAuthority } from "./provider-authority.js";
+import { captureAgentEvolutionIngress } from "../evolution/agent-evolution-ingress.js";
 
 export const SKILL_DECISION_RUNTIME_SCHEMA =
   "chainlesschain.skill-decision-runtime/v1";
@@ -76,6 +77,7 @@ export function createSkillDecisionRuntime({
   tenantId = null,
   sessionId = null,
   provider = null,
+  evolutionIngress = null,
   persist = null,
   observe = null,
   sessionBudget = null,
@@ -101,11 +103,17 @@ export function createSkillDecisionRuntime({
   let providerAuthority = null;
   let boundTenantId = null;
   let boundSessionId = null;
+  let ingress = null;
   let unknownUsageSeen = initialUsageUnknown === true;
   if (normalizedMode !== "off") {
     providerAuthority = captureDecisionProviderAuthority(provider);
     boundTenantId = requiredText(tenantId, "tenantId");
     boundSessionId = requiredText(sessionId, "sessionId");
+    if (evolutionIngress !== null) {
+      ingress = captureAgentEvolutionIngress(evolutionIngress, {
+        tenantId: boundTenantId,
+      });
+    }
     if (typeof persist !== "function" || typeof observe !== "function") {
       throw new TypeError(
         "enabled decision runtime requires usage and observation persistence",
@@ -167,10 +175,25 @@ export function createSkillDecisionRuntime({
       }
       let outcome;
       let requestSignal = null;
+      let admissionReceipt = null;
       if (unknownUsageSeen) {
         outcome = unavailableOutcome("provider-usage-unknown-blocked");
       } else {
         try {
+          // Admission is not provider work: a refusal must not create an
+          // unknown-charge ledger row or consume the provider's budget turn.
+          const admission =
+            ingress === null
+              ? null
+              : await ingress.prepareSkillDecisionRequest(request);
+          signal?.throwIfAborted();
+          admissionReceipt = admission?.receipt ?? null;
+          // Keep local content identities out of the provider capability. Only
+          // the authenticated projection is available for governed dispatch.
+          const providerRequest =
+            admission === null
+              ? request
+              : Object.freeze({ payload: admission.payload });
           const { result: raw, settlement } = await runMeteredDirectModelCall({
             sessionId: boundSessionId,
             persist: persistDecisionUsage,
@@ -186,8 +209,11 @@ export function createSkillDecisionRuntime({
                 error.code = "CC_DECISION_USAGE_UNKNOWN_BLOCKED";
                 throw error;
               }
+              // timeoutMs remains the provider-call deadline. Admission uses
+              // its own authority lifecycle and checks caller cancellation.
               requestSignal = timeoutSignal(signal, timeoutMs);
-              return providerAuthority.decide(request, {
+              requestSignal.throwIfAborted();
+              return providerAuthority.decide(providerRequest, {
                 signal: requestSignal,
               });
             },
@@ -254,6 +280,7 @@ export function createSkillDecisionRuntime({
         reasonCode: outcome.reasonCode,
         selectedDigest: outcome.selectedDigest,
         resultDigest: outcome.resultDigest,
+        ...(admissionReceipt === null ? {} : { admissionReceipt }),
         startedAt: startedAt.toISOString(),
         finishedAt: finishedAt.toISOString(),
         latencyMs: Math.max(0, finishedAt.getTime() - startedAt.getTime()),

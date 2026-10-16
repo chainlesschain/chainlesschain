@@ -2487,6 +2487,7 @@ async function runAgentHeadlessInWorkspace(
         options.decisionTenantId || evolutionIngress?.tenantId || "cli-local",
       sessionId,
       provider: decisionProvider,
+      evolutionIngress,
       persist: persistDecisionEvent,
       observe: (observation) =>
         persistDecisionEvent("skill_decision_observation", observation),

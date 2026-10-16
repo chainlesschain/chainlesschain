@@ -317,4 +317,41 @@ describe("MCPClient list_changed refresh", () => {
       "tools/call",
     ]);
   });
+
+  it("rejects an old tool name after the connection entry is replaced", async () => {
+    const client = new MCPClient();
+    const makeEntry = () => ({
+      config: {},
+      state: ServerState.CONNECTED,
+      transportKind: "stdio",
+      tools: [],
+      _toolMetadataBytes: 0,
+    });
+    const oldEntry = makeEntry();
+    client.servers.set("srv", oldEntry);
+    client._replaceToolInventory("srv", oldEntry, [
+      { name: "old", inputSchema: { type: "object" } },
+    ]);
+    client._releaseToolInventory(oldEntry);
+    const newEntry = makeEntry();
+    client.servers.set("srv", newEntry);
+    client._replaceToolInventory("srv", newEntry, [
+      { name: "new", inputSchema: { type: "object" } },
+    ]);
+    const calls = [];
+    client._sendRequest = (_server, method) => {
+      calls.push(method);
+      return Promise.resolve({ content: [] });
+    };
+
+    await expect(client.callTool("srv", "old")).rejects.toMatchObject({
+      code: "CC_MCP_TOOL_NOT_ADVERTISED",
+      dispatched: false,
+    });
+    expect(calls).toEqual([]);
+    await expect(client.callTool("srv", "new")).resolves.toMatchObject({
+      content: [],
+    });
+    expect(calls).toEqual(["tools/call"]);
+  });
 });
