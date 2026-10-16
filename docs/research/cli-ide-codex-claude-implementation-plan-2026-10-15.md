@@ -709,3 +709,11 @@ AsyncLocalStorage 只能约束携带该作用域的进程内 canonical 入口。
 新增 4 项 Node 离线边界用例并接入 `CLI CI` 三系统清单；原有 Cloud、EvoMap、Gateway Vitest **3 文件、43 项通过**，预算作用域 Node 回归 **42 项通过**。改动 JS/MJS 语法检查和 Prettier 检查通过。源码审计的服务、云端和 Gateway 分类已按当前摘要更新，审计仍为 **73 个候选、零未分类、零解析错误**；这些是源码与离线合同结果，不是目标宿主、账户账单或正式任务回执。
 
 本轮只约束携带 AsyncLocalStorage 作用域的当前进程入口。独立进程、已有远端 Runner、其他 SDK、直接 `globalThis.fetch`、原生插件及系统网络出口仍须可信宿主隔离与生产认证检查点证明；EvoMap 的服务费用和云端任务费用也没有账户级合同。正式评测继续 `NOT_RUN`（0/36、0/9）、共享预算 `paidReady:false`、native `NOT_ADMITTED`、晋升 `HOLD`；历史共享 **$99** 不重置。本轮无新的付费调用、生产部署、版本升级或发布。
+
+## 27 CLI 与 IDE 发布回读（2026-10-16）
+
+CLI `chainlesschain@0.166.103` 已通过准确提交 `b235ac80687fe31a45db18388ffc0f2424a26fb2` 的三系统门禁，经 GitHub Actions OIDC 发布并完成公共 npm 制品字节及签名来源回读。IDE 修复在 CLI 发布和回读后合并为 `fa6484021670a09afb46aa46f0e17e2c707ec539`；该提交的 IDE 主线宿主门禁完整成功。
+
+VS Code `0.37.147` 已在 Open VSX 公开列出、可下载，且标签工作流完成 VSIX 字节回读；官方 Microsoft Marketplace 因尚无 `VSCE_PAT` 未回填。JetBrains `0.4.165` 的标签工作流和 Marketplace 上传成功；独立公共 API 已返回 `ready`、批准且公开列出，公开 ZIP 下载与完整性检查通过，现已可安装。准确提交、工作流与市场回读见[正式付费与发布记录](./cli/evidence/implementation-plan-2026-10-15/formal-paid-release-gate/README.md)。
+
+按用户要求，正式付费评测暂时跳过；本次无付费模型调用，36 项任务与 9 次首次安装仍为 `NOT_RUN`（0/36、0/9），`paidReady:false`、native `NOT_ADMITTED`，历史共享 **$99** 不重置。

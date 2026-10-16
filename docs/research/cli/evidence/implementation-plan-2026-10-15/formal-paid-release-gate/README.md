@@ -25,3 +25,12 @@
 先前 PR #449 的 `7963e1c9ef6780af8d092545060eb808126845a8` 上，[CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/38743931054)与[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/38743930140)在本记录开始时未完成。版本改动产生新的提交后，这两次运行即使全绿也不能为新提交背书。正式发布须在最终提交上完成 Linux、Windows、macOS 的全部配置矩阵及相关 IDE 门；任一失败修复均重新开始准确提交验证。
 
 发布顺序固定为：核对并公开获取全部所需子包 → 以最终提交推送不可变 `v-npm-0-166-103` 标签，让 GitHub Actions OIDC Trusted Publishing 发布 CLI 并回读 npm 制品与 provenance → 核对 CLI 可获取后再分别发布 IDE 新标签，并区分市场上传与公开可安装。不得本地 npm 发布、复用旧 SHA 的检查，或以部分/超时矩阵替代成功。正式评测保持 `NOT_RUN` 与发布候选并不矛盾；新包不得声称完成正式付费评测。
+
+## 2026-10-16 发布回读
+
+- CLI `chainlesschain@0.166.103` 的发布提交为 `b235ac80687fe31a45db18388ffc0f2424a26fb2`，标签为 `v-npm-0-166-103`。[OIDC 发布工作流](https://github.com/chainlesschain/chainlesschain/actions/runs/38854237037)成功；该提交的 `CLI CI` 与 `CLI Strict Sandbox` 三系统门禁通过。指定子包与 CLI 已从公共 npm 获取，[独立回读](https://github.com/chainlesschain/chainlesschain/actions/runs/38855697795)验证了注册表字节、不可变制品及签名来源。
+- IDE 修复 [PR #450](https://github.com/chainlesschain/chainlesschain/pull/450) 在 CLI 发布及回读后合并为 `fa6484021670a09afb46aa46f0e17e2c707ec539`。[IDE Extensions 主线门禁](https://github.com/chainlesschain/chainlesschain/actions/runs/38855882905)完整成功，包含 VS Code 三系统宿主与 JetBrains 六项真实宿主检查。
+- `ide-vscode-v0.37.147` 指向该 IDE 提交。[标签工作流](https://github.com/chainlesschain/chainlesschain/actions/runs/38859114569)通过 Open VSX 上传和公开 VSIX 字节回读；独立查询返回 `ready`、`listed:true`、`downloadable:true`，公开最新版为 `0.37.147`。仓库尚无官方 Microsoft VS Code Marketplace 所需的 `VSCE_PAT`，因此精确标签回填未执行；Open VSX 是本轮已验证的公开渠道。
+- `ide-jetbrains-v0.4.165` 指向同一 IDE 提交。[标签工作流](https://github.com/chainlesschain/chainlesschain/actions/runs/38860748741)的六项宿主检查、`publishPlugin` 上传与市场回读作业均成功。最终独立公共 API 回读为 `status:ready`、`approve:true`、`listed:true`、`hidden:false`；从公开文件端点下载的 `chainlesschain-ide-bridge-0.4.165.zip` 为 1,531,110 字节，ZIP 完整性检查通过，SHA-256 为 `dab99dca016dcc156a954a823aa39bb1188a381c4d76084f9bd831f3dcb56c98`。该版本已公开可安装。
+
+用户要求先跳过正式付费评测。本轮没有付费模型请求；冻结的 36 项任务与 9 次首次安装继续为 `NOT_RUN`（0/36、0/9），`paidReady:false`、native `NOT_ADMITTED`，历史共享 **$99** 不重置。发布门禁成功不改变这些评测结论.
