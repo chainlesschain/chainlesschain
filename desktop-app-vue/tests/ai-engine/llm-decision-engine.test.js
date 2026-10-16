@@ -672,6 +672,36 @@ describe("LLMDecisionEngine", () => {
       assert.ok(recordCalled, "应该调用数据库记录");
     });
 
+    it("应该保留显式零成功率，缺失成功率保持未知", async () => {
+      const recordedRates = [];
+      mockDatabase.run = async (_query, params) => {
+        recordedRates.push(params[4]);
+        return { changes: 1 };
+      };
+
+      await engine.recordExecutionResult({
+        task_type: "test",
+        success_rate: 0,
+      });
+      await engine.recordExecutionResult({ task_type: "test" });
+
+      assert.deepStrictEqual(recordedRates, [0, null]);
+    });
+
+    it("不把无效成功率写入历史", async () => {
+      let writes = 0;
+      mockDatabase.run = async () => {
+        writes++;
+        return { changes: 1 };
+      };
+
+      for (const success_rate of [-1, 1.1, NaN, Infinity, "0.9"]) {
+        await engine.recordExecutionResult({ task_type: "test", success_rate });
+      }
+
+      assert.strictEqual(writes, 0);
+    });
+
     it("应该处理数据库错误", async () => {
       mockDatabase.run = async () => {
         throw new Error("Database error");

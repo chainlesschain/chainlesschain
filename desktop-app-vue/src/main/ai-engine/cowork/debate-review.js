@@ -274,8 +274,6 @@ class DebateReview {
           },
           agents: perspectives,
           source: "voting",
-          successRate:
-            verdict === "APPROVE" ? 1.0 : verdict === "NEEDS_WORK" ? 0.5 : 0.0,
         });
       } catch (e) {
         logger.warn("[DebateReview] DecisionKB record error:", e.message);

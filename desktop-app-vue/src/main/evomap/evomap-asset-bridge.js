@@ -313,6 +313,20 @@ class EvoMapAssetBridge extends EventEmitter {
       return { success: false, error: "Decision not found" };
     }
 
+    if (
+      decision.source === "voting" ||
+      decision.source === "orchestrate" ||
+      typeof decision.success_rate !== "number" ||
+      !Number.isFinite(decision.success_rate) ||
+      decision.success_rate < 0 ||
+      decision.success_rate > 1
+    ) {
+      return {
+        success: false,
+        error: "Decision has no usable task outcome for publication",
+      };
+    }
+
     if (!this.synthesizer) {
       return { success: false, error: "Synthesizer not available" };
     }
@@ -386,7 +400,9 @@ class EvoMapAssetBridge extends EventEmitter {
     // Scan eligible decisions
     try {
       const decisions = this.db
-        .prepare("SELECT * FROM decision_records WHERE success_rate >= ?")
+        .prepare(
+          "SELECT * FROM decision_records WHERE source NOT IN ('voting', 'orchestrate') AND success_rate >= ?",
+        )
         .all(minSuccessRate);
 
       for (const decision of decisions) {

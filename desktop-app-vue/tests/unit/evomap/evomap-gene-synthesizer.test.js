@@ -16,8 +16,9 @@ describe("EvoMapGeneSynthesizer", () => {
       ipcMain: { handle: vi.fn(), removeHandler: vi.fn() },
     }));
 
-    const mod =
-      await import("../../../src/main/evomap/evomap-gene-synthesizer.js");
+    const mod = await import(
+      "../../../src/main/evomap/evomap-gene-synthesizer.js"
+    );
     EvoMapGeneSynthesizer = mod.EvoMapGeneSynthesizer;
     getEvoMapGeneSynthesizer = mod.getEvoMapGeneSynthesizer;
   });
@@ -154,6 +155,16 @@ describe("EvoMapGeneSynthesizer", () => {
     it("should throw on null decision", () => {
       const synth = new EvoMapGeneSynthesizer();
       expect(() => synth.synthesizeFromDecision(null)).toThrow();
+    });
+
+    it("preserves an explicit zero outcome instead of inventing confidence", () => {
+      const synth = new EvoMapGeneSynthesizer();
+      const { capsule } = synth.synthesizeFromDecision({
+        context: "Attempt failed",
+        success_rate: 0,
+      });
+      expect(capsule.confidence).toBe(0);
+      expect(capsule.result_summary).toContain("0% success");
     });
 
     it("should handle decision with chosen_option field", () => {

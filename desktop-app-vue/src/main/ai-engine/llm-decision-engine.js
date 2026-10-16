@@ -439,9 +439,10 @@ ${subtaskInfo}
           use_multi_agent,
           AVG(execution_time) as avg_time,
           AVG(success_rate) as avg_success,
-          COUNT(*) as count
+          COUNT(success_rate) as count
         FROM task_execution_history
         WHERE task_type = ? AND subtask_count BETWEEN ? AND ?
+          AND success_rate IS NOT NULL
         GROUP BY use_multi_agent
       `;
 
@@ -600,6 +601,19 @@ ${subtaskInfo}
       return;
     }
 
+    const successRate = taskResult.success_rate;
+    if (
+      successRate !== undefined &&
+      successRate !== null &&
+      (typeof successRate !== "number" ||
+        !Number.isFinite(successRate) ||
+        successRate < 0 ||
+        successRate > 1)
+    ) {
+      logger.warn("[LLMDecisionEngine] 忽略无效的任务成功率");
+      return;
+    }
+
     try {
       const query = `
         INSERT INTO task_execution_history (
@@ -617,7 +631,7 @@ ${subtaskInfo}
         taskResult.subtask_count || 0,
         taskResult.use_multi_agent ? 1 : 0,
         taskResult.execution_time || 0,
-        taskResult.success_rate || 1.0,
+        successRate ?? null,
       ];
 
       await this.database.run(query, params);

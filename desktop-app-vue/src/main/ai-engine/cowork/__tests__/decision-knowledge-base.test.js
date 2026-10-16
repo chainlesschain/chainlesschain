@@ -7,6 +7,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import Database from "better-sqlite3";
 
 // ─── Mock logger ─────────────────────────────────────────────────────────────
 vi.mock("../../../utils/logger.js", () => ({
@@ -117,7 +118,9 @@ describe("DecisionKnowledgeBase", () => {
     });
 
     it("should throw when problem is missing", () => {
-      expect(() => dkb.recordDecision({})).toThrow("Problem description is required");
+      expect(() => dkb.recordDecision({})).toThrow(
+        "Problem description is required",
+      );
     });
 
     it("should return a record with UUID id", () => {
@@ -154,7 +157,7 @@ describe("DecisionKnowledgeBase", () => {
         outcome: "decided",
         context: { env: "production" },
         agents: ["planner"],
-        source: DECISION_SOURCES.VOTING,
+        source: DECISION_SOURCES.MANUAL,
         successRate: 0.9,
       });
 
@@ -180,6 +183,21 @@ describe("DecisionKnowledgeBase", () => {
         consensusScore: 0.75,
       });
       expect(record.source).toBe(DECISION_SOURCES.VOTING);
+      expect(record.successRate).toBeNull();
+      expect(record.feedbackKind).toBe("legacy-opinion");
+      expect(record.context.consensusScore).toBe(0.75);
+    });
+
+    it("keeps a directly submitted vote score separate from task success", () => {
+      const record = dkb.recordDecision({
+        problem: "Compare plans",
+        source: DECISION_SOURCES.VOTING,
+        successRate: 1,
+      });
+
+      expect(record.successRate).toBeNull();
+      expect(record.opinionScore).toBe(1);
+      expect(db.run.mock.calls[0][1][9]).toBeNull();
     });
   });
 
@@ -191,23 +209,25 @@ describe("DecisionKnowledgeBase", () => {
       await dkb.initialize(db);
     });
 
-    it("should set successRate=1 for SHIP verdict", () => {
+    it("keeps a SHIP verdict separate from verified success", () => {
       const record = dkb.recordWorkflowVerdict({
         description: "Add login feature",
         template: "feature",
         verdict: "SHIP",
       });
-      expect(record.successRate).toBe(1.0);
+      expect(record.successRate).toBeNull();
+      expect(record.outcome).toBe("SHIP");
       expect(record.source).toBe(DECISION_SOURCES.ORCHESTRATE);
     });
 
-    it("should set successRate=0 for non-SHIP verdict", () => {
+    it("keeps a blocked verdict separate from verified failure", () => {
       const record = dkb.recordWorkflowVerdict({
         description: "Bugfix",
         template: "bugfix",
         verdict: "BLOCKED",
       });
-      expect(record.successRate).toBe(0.0);
+      expect(record.successRate).toBeNull();
+      expect(record.outcome).toBe("BLOCKED");
     });
   });
 
@@ -232,9 +252,21 @@ describe("DecisionKnowledgeBase", () => {
 
     it("should return matching records ranked by score", () => {
       const rows = [
-        makeRow({ id: "r1", problem: "JWT authentication strategy", success_rate: 0.8 }),
-        makeRow({ id: "r2", problem: "Database connection pooling", success_rate: 0.5 }),
-        makeRow({ id: "r3", problem: "JWT token refresh strategy", success_rate: 0.9 }),
+        makeRow({
+          id: "r1",
+          problem: "JWT authentication strategy",
+          success_rate: 0.8,
+        }),
+        makeRow({
+          id: "r2",
+          problem: "Database connection pooling",
+          success_rate: 0.5,
+        }),
+        makeRow({
+          id: "r3",
+          problem: "JWT token refresh strategy",
+          success_rate: 0.9,
+        }),
       ];
       db._prep.all.mockReturnValueOnce(rows);
 
@@ -258,8 +290,16 @@ describe("DecisionKnowledgeBase", () => {
     });
 
     it("should boost records with high success_rate", () => {
-      const lowSuccess = makeRow({ id: "low", problem: "caching strategy", success_rate: 0.1 });
-      const highSuccess = makeRow({ id: "high", problem: "caching strategy", success_rate: 0.9 });
+      const lowSuccess = makeRow({
+        id: "low",
+        problem: "caching strategy",
+        success_rate: 0.1,
+      });
+      const highSuccess = makeRow({
+        id: "high",
+        problem: "caching strategy",
+        success_rate: 0.9,
+      });
       db._prep.all.mockReturnValueOnce([lowSuccess, highSuccess]);
 
       const results = dkb.findSimilarDecisions("caching strategy");
@@ -267,6 +307,30 @@ describe("DecisionKnowledgeBase", () => {
       if (results.length > 1) {
         expect(results[0].id).toBe("high");
       }
+    });
+
+    it("does not boost a historical opinion score", () => {
+      db._prep.all.mockReturnValueOnce([
+        makeRow({
+          id: "outcome",
+          problem: "caching strategy",
+          success_rate: 0.1,
+        }),
+        makeRow({
+          id: "vote",
+          source: "voting",
+          problem: "caching strategy",
+          success_rate: 1,
+        }),
+      ]);
+
+      const results = dkb.findSimilarDecisions("caching strategy");
+      expect(results.map((record) => record.id)).toEqual(["outcome", "vote"]);
+      expect(results[1]).toMatchObject({
+        successRate: null,
+        opinionScore: 1,
+        feedbackKind: "legacy-opinion",
+      });
     });
   });
 
@@ -371,10 +435,10 @@ describe("DecisionKnowledgeBase", () => {
       await dkb.initialize(db);
     });
 
-    it("should return default zeros when DB is empty", () => {
+    it("keeps the average unknown when DB is empty", () => {
       db._prep.get
         .mockReturnValueOnce({ count: 0 }) // _getCount
-        .mockReturnValueOnce({ avg: 0 }); // avgSuccess
+        .mockReturnValueOnce({ avg: null }); // avgSuccess
       db._prep.all
         .mockReturnValueOnce([]) // bySource
         .mockReturnValueOnce([]); // byCategory
@@ -385,7 +449,7 @@ describe("DecisionKnowledgeBase", () => {
         totalDecisions: expect.any(Number),
         bySource: expect.any(Object),
         byCategory: expect.any(Object),
-        avgSuccessRate: expect.any(Number),
+        avgSuccessRate: null,
       });
     });
 
@@ -409,6 +473,46 @@ describe("DecisionKnowledgeBase", () => {
     });
   });
 
+  it("excludes historical opinions but includes zero failures in real SQLite statistics", async () => {
+    const sqlite = new Database(":memory:");
+    const realDb = {
+      exec: (sql) => sqlite.exec(sql),
+      run: (sql, params) => sqlite.prepare(sql).run(...params),
+      prepare: (sql) => sqlite.prepare(sql),
+    };
+    const realKb = new DecisionKnowledgeBase();
+    try {
+      await realKb.initialize(realDb);
+      const insert = sqlite.prepare(
+        `INSERT INTO decision_records (id, problem, problem_category, source, success_rate, context)
+         VALUES (?, ?, 'testing', ?, ?, '{}')`,
+      );
+      insert.run("vote", "test plan", "voting", 1);
+      insert.run("verdict", "test plan", "orchestrate", 1);
+      insert.run("pass", "test plan", "manual", 1);
+      insert.run("fail", "test plan", "manual", 0);
+
+      expect(realKb.getBestPractice("testing").id).toBe("pass");
+      expect(realKb.getSuccessRateByCategory().testing).toEqual({
+        count: 2,
+        avgSuccessRate: 0.5,
+      });
+      expect(realKb.getStats()).toMatchObject({
+        totalDecisions: 4,
+        avgSuccessRate: 0.5,
+      });
+      expect(
+        realKb.getDecisionHistory().find((record) => record.id === "vote"),
+      ).toMatchObject({
+        successRate: null,
+        opinionScore: 1,
+        feedbackKind: "legacy-opinion",
+      });
+    } finally {
+      sqlite.close();
+    }
+  });
+
   // ─────────────────────────────────────────────────────────────────────────
   // Hook integration
   // ─────────────────────────────────────────────────────────────────────────
@@ -426,7 +530,9 @@ describe("DecisionKnowledgeBase", () => {
       await dkb.initialize(db, hookSystem);
 
       // Spy on recordVotingResult
-      const spy = vi.spyOn(dkb, "recordVotingResult").mockReturnValue({ id: "x" });
+      const spy = vi
+        .spyOn(dkb, "recordVotingResult")
+        .mockReturnValue({ id: "x" });
 
       // Fire the hook
       await hookHandler({
@@ -450,7 +556,9 @@ describe("DecisionKnowledgeBase", () => {
       };
 
       await dkb.initialize(db, hookSystem);
-      const spy = vi.spyOn(dkb, "recordWorkflowVerdict").mockReturnValue({ id: "y" });
+      const spy = vi
+        .spyOn(dkb, "recordWorkflowVerdict")
+        .mockReturnValue({ id: "y" });
 
       await hookHandler({
         data: {
