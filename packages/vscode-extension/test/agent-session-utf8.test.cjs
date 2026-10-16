@@ -46,3 +46,22 @@ test("agent session preserves UTF-8 split across stdout and stderr chunks", () =
   assert.deepEqual(events, [{ type: "assistant", text: "中文🙂" }]);
   assert.deepEqual(stderr, ["失败🙂"]);
 });
+
+test("agent session discards an oversized stderr line through its newline", () => {
+  const child = fakeChild();
+  const stderr = [];
+  const session = new AgentChatSession({
+    deps: { spawn: () => child },
+    onStderr: (line) => stderr.push(line),
+  }).start();
+
+  child.stderr.emit("data", Buffer.from("x".repeat(1024 * 1024 + 1)));
+  assert.equal(session._stderrBuf.length, 0);
+  child.stderr.emit("data", Buffer.from("same-line\nnext-line\n"));
+  child.emit("close", 0, null);
+
+  assert.deepEqual(stderr, [
+    "[stderr line exceeded 1 MiB and was discarded]",
+    "next-line",
+  ]);
+});
