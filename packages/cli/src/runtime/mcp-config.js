@@ -712,8 +712,9 @@ export async function setupMcpFromConfig(servers, deps = {}) {
           if (typeof mcpClient.setReconnector === "function") {
             const baseCfg = cfg;
             mcpClient.setReconnector(name, async () => {
-              const { ensureValidToken: reauth } =
-                await import("../lib/mcp-oauth.js");
+              const { ensureValidToken: reauth } = await import(
+                "../lib/mcp-oauth.js"
+              );
               const fresh = await reauth(baseCfg.url, { forceRefresh: true });
               if (!fresh) return null;
               return {
@@ -1224,20 +1225,24 @@ export async function loadIdeMcp(opts = {}, deps = {}) {
   const out = await setupMcpFromConfig({ ide: cfg }, deps);
   // Hot reconnect: a window reload / extension update restarts the editor's
   // MCP server on a NEW port with a NEW token. Register a reconnector so a
-  // failed mcp__ide__* call re-scans the lockfiles mid-session and retries,
-  // instead of the IDE tools (and selection/diagnostics injection) silently
-  // dying for the rest of the run. Note the stale CHAINLESSCHAIN_IDE_PORT in
+  // connection failure re-scans the lockfiles mid-session. An unknown tool
+  // outcome is returned without replay; the next explicit call can use the
+  // recovered bridge. Note the stale CHAINLESSCHAIN_IDE_PORT in
   // our env no longer matches any live lock, so discovery falls through to
   // the workspace scan — exactly the path that finds the restarted instance.
   if (out?.mcpClient?.setReconnector) {
-    out.mcpClient.setReconnector("ide", () => {
-      const fresh = discover({
-        cwd: opts.cwd,
-        env: opts.env,
-        force: opts.force === true,
-      });
-      return fresh ? toCfg(fresh) : null;
-    });
+    out.mcpClient.setReconnector(
+      "ide",
+      () => {
+        const fresh = discover({
+          cwd: opts.cwd,
+          env: opts.env,
+          force: opts.force === true,
+        });
+        return fresh ? toCfg(fresh) : null;
+      },
+      { recoverUnknownOutcome: true },
+    );
   }
   return out;
 }
@@ -1323,10 +1328,14 @@ export async function loadJetbrainsMcp(opts = {}, deps = {}) {
   // re-injects a fresh CHAINLESSCHAIN_JETBRAINS_MCP_URL into the next spawn —
   // though within one run the env is fixed, so this just re-validates it).
   if (out?.mcpClient?.setReconnector) {
-    out.mcpClient.setReconnector("idea", () => {
-      const fresh = discover({ env: opts.env });
-      return fresh ? toCfg(fresh) : null;
-    });
+    out.mcpClient.setReconnector(
+      "idea",
+      () => {
+        const fresh = discover({ env: opts.env });
+        return fresh ? toCfg(fresh) : null;
+      },
+      { recoverUnknownOutcome: true },
+    );
   }
   return out;
 }
