@@ -142,8 +142,10 @@ if (process.platform === "win32")
     { timeout: 60_000 },
     async (t) => {
       const f = fixture(t);
+      const releaseRequest = path.join(f.root, "release-reader");
+      const released = path.join(f.root, "reader-released");
       const command =
-        '$file=[System.IO.File]::Open($env:CC_ATOMIC_TEST_TARGET,[System.IO.FileMode]::Open,[System.IO.FileAccess]::Read,[System.IO.FileShare]::Read); try { [Console]::WriteLine("locked"); [Console]::Out.Flush(); [System.Threading.Thread]::Sleep(200) } finally { $file.Dispose() }';
+        '$file=[System.IO.File]::Open($env:CC_ATOMIC_TEST_TARGET,[System.IO.FileMode]::Open,[System.IO.FileAccess]::Read,[System.IO.FileShare]::Read); try { [Console]::WriteLine("locked"); [Console]::Out.Flush(); while (-not [System.IO.File]::Exists($env:CC_ATOMIC_TEST_RELEASE_REQUEST)) { [System.Threading.Thread]::Sleep(10) } } finally { $file.Dispose(); [System.IO.File]::WriteAllText($env:CC_ATOMIC_TEST_RELEASED,"released") }';
       const executable = path.join(
         process.env.SystemRoot || "C:\\Windows",
         "System32/WindowsPowerShell/v1.0/powershell.exe",
@@ -157,6 +159,8 @@ if (process.platform === "win32")
           env: {
             SystemRoot: process.env.SystemRoot,
             CC_ATOMIC_TEST_TARGET: f.destination,
+            CC_ATOMIC_TEST_RELEASE_REQUEST: releaseRequest,
+            CC_ATOMIC_TEST_RELEASED: released,
           },
         },
       );
@@ -175,7 +179,17 @@ if (process.platform === "win32")
       const receipt = atomicWriteJson(
         f.destination,
         { afterLock: true },
-        { onRetry: (event) => events.push(event) },
+        {
+          onRetry: (event) => {
+            events.push(event);
+            if (events.length !== 1) return;
+            fs.writeFileSync(releaseRequest, "release");
+            const deadline = Date.now() + 15_000;
+            while (!fs.existsSync(released) && Date.now() < deadline)
+              Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 10);
+            assert.ok(fs.existsSync(released), "reader did not release the file");
+          },
+        },
       );
       assert.ok(receipt.attempts > 1 && receipt.attempts <= 6);
       assert.ok(events.length > 0);
