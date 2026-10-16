@@ -104,6 +104,42 @@ test("an initialization failure before waiter registration rejects saved input i
   assert.equal(conv.inputInitWaiters?.size || 0, 0);
 });
 
+for (const { label, event, expected } of [
+  {
+    label: "missing CLI process",
+    event: { type: "session_error", error: "spawn cc ENOENT" },
+    expected: /process could not start; check the CLI installation and Doctor/,
+  },
+  {
+    label: "rejected provider credentials",
+    event: { type: "result", is_error: true, error: "HTTP 401 unauthorized" },
+    expected: /provider credentials were rejected/,
+  },
+  {
+    label: "unsupported provider endpoint",
+    event: {
+      type: "result",
+      is_error: true,
+      error: "provider endpoint not supported",
+    },
+    expected: /provider endpoint or model is unavailable/,
+  },
+]) {
+  test(`startup reports ${label} without dispatching the saved input`, async () => {
+    const { onEvent, posts, provider, send, writes } = makeSubmission();
+    onEvent(event);
+    assert.equal(provider.runtimeDiagnostics().state, "failed");
+    assert.equal(await send(), false);
+    assert.deepEqual(writes, []);
+    assert.ok(
+      posts.some(
+        (message) =>
+          message.kind === "submissionFailed" && expected.test(message.text),
+      ),
+    );
+  });
+}
+
 test("init timeout keeps the draft and a late init never dispatches it", async (t) => {
   t.mock.timers.enable({ apis: ["setTimeout"] });
   const { conv, onEvent, posts, send, settlements, stops, writes } =

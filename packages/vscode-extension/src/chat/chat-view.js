@@ -89,6 +89,26 @@ const HOST_DOM_STREAM_PROFILE_TIMEOUT_MS = 90_000;
 // through a cold start; a failed child still rejects its waiter immediately.
 const AGENT_INIT_TIMEOUT_MS = 120_000;
 
+function agentInitFailure(event) {
+  const reason = String(event?.error || event?.result || "");
+  if (event?.type === "session_error") {
+    return /input delivery failed|\bEPIPE\b/i.test(reason)
+      ? "Agent failed to initialize: process input closed; input was not dispatched"
+      : "Agent failed to initialize: process could not start; check the CLI installation and Doctor. Input was not dispatched";
+  }
+  if (looksLikeLlmConfigError(reason)) {
+    return "Agent failed to initialize: provider credentials were rejected; check provider settings. Input was not dispatched";
+  }
+  if (
+    /(?:endpoint|model).*(?:unsupported|not supported|not found)|unsupported.*(?:endpoint|model)|\bHTTP\s*404\b/i.test(
+      reason,
+    )
+  ) {
+    return "Agent failed to initialize: provider endpoint or model is unavailable; check the configured endpoint and model. Input was not dispatched";
+  }
+  return "Agent failed to initialize; input was not dispatched";
+}
+
 function projectWebviewMessage(message) {
   if (message?.kind !== "approval") return message;
   const { permissions, ...publicMessage } = message;
@@ -657,9 +677,11 @@ class ChatViewProvider {
     return {
       state: !running
         ? "not-started"
-        : conv.inputReceiptVersion === undefined
-          ? "initializing"
-          : "running",
+        : conv.inputInitError
+          ? "failed"
+          : conv.inputReceiptVersion === undefined
+            ? "initializing"
+            : "running",
       inputReceipts:
         running && conv.inputReceiptVersion !== undefined
           ? conv.inputReceiptVersion === 1
@@ -1315,9 +1337,7 @@ class ChatViewProvider {
         (evt?.type === "session_error" ||
           (evt?.type === "result" && evt.is_error))
       ) {
-        conv.inputInitError = new Error(
-          "Agent failed to initialize; input was not dispatched",
-        );
+        conv.inputInitError = new Error(agentInitFailure(evt));
         for (const waiter of conv.inputInitWaiters || [])
           waiter.reject(conv.inputInitError);
       }
