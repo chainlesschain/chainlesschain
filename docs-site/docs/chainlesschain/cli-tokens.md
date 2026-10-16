@@ -2,6 +2,10 @@
 
 > Headless 命令 — 不依赖桌面 GUI，直接使用核心包运行。适用于服务器、CI/CD、容器化等无桌面环境。
 
+## 2026-10-16：来源统计与计费边界
+
+CLI `0.166.103` 的上下文来源报告区分 `estimated` 与 `observed`，按会话或轮次统计，明确保留 `currentRequestVerified:false` 与 `billingVerified:false`。来源 token 不等于模型本次真实输入，也不是 provider 账单。两个 IDE 在 provider 仅返回 aggregate token 时展示总数，不推算缺失的 input/output 明细。正式预算仍 `paidReady:false`；普通用量估算不能解除付费评测准入。见[升级与用量排查](./cli-ide-update-2026-10-16)。
+
 ## 核心特性
 
 - 💰 **成本追踪**: 自动计算每次 API 调用的费用

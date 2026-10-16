@@ -1,6 +1,6 @@
 # IDE 桥接（IDE Bridge）
 
-> 2026-10-15 当前版本：公开 CLI **0.166.101** 与 Open VSX **0.37.145**；JetBrains Marketplace 列出 **0.4.162**，源码候选 `.163` 尚待公开核验。草稿与连接诊断见[最新指南](./cli-ide-update-2026-10-15)。以下带日期的早期记录保留历史范围。
+> 2026-10-16 当前公开版本：CLI **0.166.103**、Open VSX **0.37.148**、JetBrains **0.4.165**；两个 IDE 均推荐 CLI `.103`。Session Core **0.3.19**、Kernel **0.1.10**、PDH **0.4.65**，原生产品 **v5.0.3.140** 独立发行。正式预算 **NOT_PAID_READY**，36+9 **NOT_RUN（0/36、0/9）**。 见[升级与故障排查](./cli-ide-update-2026-10-16)。以下带日期的早期记录保留历史范围。
 
 > 2026-10-13：CLI **0.166.100** 与 Open VSX **0.37.144** 已公开，发行源码 `6a8db627c8`，文档核对主线 `283634169a`。JetBrains **0.4.162** 已上传，公开上架与下载待核验；已核验公开 **0.4.161** 推荐 CLI `.99`。Session Core **0.3.19**、Kernel **0.1.9**、SDK **0.2.14**、PDH **0.4.64** 与产品 **v5.0.3.140** 保持独立版本。 参见[本轮升级与诊断](./cli-ide-update-2026-10-13)。正式 36+9 保持 **NOT_RUN**，完整 native review 为 **NOT_ADMITTED**，自动晋升 **HOLD**；预算 PR #436 未进入本次发行，仍为 **NOT_PAID_READY**。
 
@@ -147,7 +147,7 @@ cc ide --help         # 确认有 ide 子命令
 
 - **已发布到 [Open VSX Registry](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide)**。在用 Open VSX 的编辑器里,扩展面板搜 **ChainlessChain IDE** 一键装。
   > 官方 VS Code Marketplace 暂未上架(发布受 Azure 订阅限制),所以**官方版 VS Code 里搜不到**——用上面那些兼容编辑器,或本地 `.vsix` 装(见下)。
-- _（官方 VS Code）_ 不要使用 Open VSX 页面的通用 **Install** 链接（它会跳到未上架的 Microsoft Marketplace）。请直接下载 [0.37.126 VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.126/file/chainlesschain.chainlesschain-ide-0.37.126.vsix)，再运行 **Extensions: Install from VSIX...**。
+- _（官方 VS Code）_ 不要使用 Open VSX 页面的通用 **Install** 链接（它会跳到未上架的 Microsoft Marketplace）。请直接下载 [0.37.148 VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.148/file/chainlesschain.chainlesschain-ide-0.37.148.vsix)，再运行 **Extensions: Install from VSIX...**。
 - _（源码 / 离线）_ 从源码打本地 `.vsix` 安装：
   ```bash
   cd packages/vscode-extension
@@ -157,7 +157,7 @@ cc ide --help         # 确认有 ide 子命令
 
 **JetBrains（IDEA / PyCharm / WebStorm …）**
 
-- **已过审上架 JetBrains Marketplace**（`com.chainlesschain.ide`，当前 v0.4.149）：IDE 的 _Settings → Plugins → Marketplace_ 搜 **ChainlessChain IDE** 一键装（2024.2+），或访问 [plugin 32208](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge)。
+- **已过审上架 JetBrains Marketplace**（`com.chainlesschain.ide`，当前 v0.4.165）：IDE 的 _Settings → Plugins → Marketplace_ 搜 **ChainlessChain IDE** 一键装（2024.2+），或访问 [plugin 32208](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge)。
 - 离线/源码装:`./gradlew buildPlugin` 出 `build/distributions/*.zip` → _Settings → Plugins → ⚙ → Install Plugin from Disk_。
 
 **3. 配置大模型(首次)**:VS Code 系用**命令面板**跑 **ChainlessChain: Configure LLM**
@@ -285,17 +285,17 @@ VS Code 扩展同理：`mcp-http-server.js` / `lockfile.js` / `ide-tools.js` 纯
 
 IDE 桥接共 **58+ 专项测试**，全部可在**无编辑器宿主**下运行：
 
-| 测试文件                          | 数量 | 覆盖                                                                                                                                            |
-| --------------------------------- | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ide-bridge.test.js`              | 26   | env/扫描发现、localhost·transport·stale 过滤、多根最长前缀匹配、config 生成、`diagnoseIde`                                                      |
-| `mcp-config-ide.test.js`          | 8    | `resolveAgentMcp` IDE 门控、`loadIdeMcp` 连接 + 保留名让位                                                                                      |
-| `ide-command.test.js`             | 6    | `cc ide list/status/doctor`（含 token 脱敏不泄）                                                                                                |
+| 测试文件                          | 数量 | 覆盖                                                                                                                                             |
+| --------------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ide-bridge.test.js`              | 26   | env/扫描发现、localhost·transport·stale 过滤、多根最长前缀匹配、config 生成、`diagnoseIde`                                                       |
+| `mcp-config-ide.test.js`          | 8    | `resolveAgentMcp` IDE 门控、`loadIdeMcp` 连接 + 保留名让位                                                                                       |
+| `ide-command.test.js`             | 6    | `cc ide list/status/doctor`（含 token 脱敏不泄）                                                                                                 |
 | `vscode-ext-ide-bridge.test.js`   | 13   | **真 CLI MCPClient 驱动扩展 server**（initialize→tools/list→tools/call 全 4 工具 + 鉴权拒绝 + openDiff 阻塞回传）+ lockfile↔Phase-0 reader 往返 |
-| `ide-bridge-jetbrains.test.js`    | 4    | `ide:"jetbrains"` lock 与 vscode 发现/映射一致（CLI 零改动证明）                                                                                |
-| `agent-policy-mcp-config.test.js` | +1   | `--ide`/`--no-ide` 三态经 policy 白名单到达 REPL                                                                                                |
-| `ide-context.test.js`             | 31   | 实时上下文模块（收集/格式化/截断/超时/kill-switch）+ headless/stream 接线 + `executeTool` 诊断回喂接线                                          |
-| `ide-context-interop.test.js`     | 4    | **真扩展 MCP server ⇆ 真 MCPClient** 全链路：`<ide-context>` 渲染、write_file→诊断回传、kill-switch、死 server 降级                             |
-| `ide-context-e2e.test.js`         | 2    | **真 spawn 的 `cc agent -p`**：lockfile/env 发现→Bearer 连接→捕获式假 LLM 证明选区进了模型请求                                                  |
+| `ide-bridge-jetbrains.test.js`    | 4    | `ide:"jetbrains"` lock 与 vscode 发现/映射一致（CLI 零改动证明）                                                                                 |
+| `agent-policy-mcp-config.test.js` | +1   | `--ide`/`--no-ide` 三态经 policy 白名单到达 REPL                                                                                                 |
+| `ide-context.test.js`             | 31   | 实时上下文模块（收集/格式化/截断/超时/kill-switch）+ headless/stream 接线 + `executeTool` 诊断回喂接线                                           |
+| `ide-context-interop.test.js`     | 4    | **真扩展 MCP server ⇆ 真 MCPClient** 全链路：`<ide-context>` 渲染、write_file→诊断回传、kill-switch、死 server 降级                              |
+| `ide-context-e2e.test.js`         | 2    | **真 spawn 的 `cc agent -p`**：lockfile/env 发现→Bearer 连接→捕获式假 LLM 证明选区进了模型请求                                                   |
 
 ### 跨语言 interop 实证（JetBrains）
 

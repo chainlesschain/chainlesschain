@@ -1,0 +1,142 @@
+{
+  "schema": "chainlesschain.public-release-documentation-evidence/v3",
+  "checkedAt": "2026-10-16T07:39:12.206Z",
+  "documentationCodeHead": "920f263e3fea628eb2036e93243c02fcb384777e",
+  "cli": {
+    "version": "0.166.103",
+    "releaseCommit": "b235ac80687fe31a45db18388ffc0f2424a26fb2",
+    "tag": "v-npm-0-166-103",
+    "registryIntegrity": "sha512-IHswSIYwdGn+aLMBVSG7vQSmwTcdgi7xtUQfAtOrTVtw26D9PubcDmY//lavww96/GjWYk67ofCSAxOxUwjgTA=="
+  },
+  "vscode": {
+    "version": "0.37.148",
+    "pairedCliVersion": "0.166.103",
+    "releaseCommit": "c8a64caa928ff0d46007bf594cd92808b707abba",
+    "channel": "Open VSX",
+    "publiclyDownloadable": true,
+    "publicPackage": {
+      "url": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.148/file/chainlesschain.chainlesschain-ide-0.37.148.vsix",
+      "httpStatus": 200,
+      "bytes": 718465,
+      "sha256": "a6fb1fcc9e7dec381d63e02aba6f96dc8d93eb54f6c571f9dd217dc2bcd4c2ca"
+    }
+  },
+  "jetbrains": {
+    "version": "0.4.165",
+    "pairedCliVersion": "0.166.103",
+    "releaseCommit": "fa6484021670a09afb46aa46f0e17e2c707ec539",
+    "approved": true,
+    "listed": true,
+    "hidden": false,
+    "publicPackage": {
+      "url": "https://plugins.jetbrains.com/files/32208/1195689/chainlesschain-ide-bridge-0.4.165.zip",
+      "httpStatus": 200,
+      "bytes": 1531110,
+      "sha256": "dab99dca016dcc156a954a823aa39bb1188a381c4d76084f9bd831f3dcb56c98"
+    }
+  },
+  "children": {
+    "sessionCore": "0.3.19",
+    "contextMemoryKernel": "0.1.10",
+    "personalDataHub": "0.4.65",
+    "agentSdk": "0.2.14"
+  },
+  "product": {
+    "version": "v5.0.3.140",
+    "releaseCommit": "f733f92cb953fffaafea9f91024bbf1c8846406d"
+  },
+  "boundaries": {
+    "microsoftMarketplace": "UNPUBLISHED",
+    "formalEvaluation": "NOT_RUN",
+    "tasks": "0/36",
+    "firstInstallations": "0/9",
+    "paidReady": false,
+    "nativeAdmission": "NOT_ADMITTED",
+    "automaticPromotion": "HOLD",
+    "historicalSharedBudgetUsd": 99,
+    "remainingBudgetUsd": null
+  },
+  "observations": {
+    "npm-latest": {
+      "url": "https://registry.npmjs.org/chainlesschain/latest",
+      "httpStatus": 200,
+      "bytes": 7679,
+      "sha256": "bc4a976e981bf92d1a9fb7d890d61df3d01231a8b8e52f6f6c7a31fdd6a41fd6"
+    },
+    "openvsx-latest": {
+      "url": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/latest",
+      "httpStatus": 200,
+      "bytes": 10901,
+      "sha256": "3f368045995332bcce7bad99f2fe3c1a3a024235d0e64d59258e6a32d0aa0188"
+    },
+    "openvsx-manifest": {
+      "url": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.148/file/package.json",
+      "httpStatus": 200,
+      "bytes": 24575,
+      "sha256": "f7a26ddc80b00f293260df98ad4e7ccc6fc2d11dcfbf74daf778efdf0649f16d"
+    },
+    "openvsx-vsix": {
+      "url": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.148/file/chainlesschain.chainlesschain-ide-0.37.148.vsix",
+      "httpStatus": 200,
+      "bytes": 718465,
+      "sha256": "a6fb1fcc9e7dec381d63e02aba6f96dc8d93eb54f6c571f9dd217dc2bcd4c2ca"
+    },
+    "jetbrains-updates": {
+      "url": "https://plugins.jetbrains.com/api/plugins/32208/updates?size=5",
+      "httpStatus": 200,
+      "bytes": 19917,
+      "sha256": "39b3b47772f312fd38fb9a970cd533e4c49f5bcbdbb7bd2794221954c2a54ccc"
+    },
+    "jetbrains-zip": {
+      "url": "https://plugins.jetbrains.com/files/32208/1195689/chainlesschain-ide-bridge-0.4.165.zip",
+      "httpStatus": 200,
+      "bytes": 1531110,
+      "sha256": "dab99dca016dcc156a954a823aa39bb1188a381c4d76084f9bd831f3dcb56c98"
+    }
+  },
+  "workflowRuns": {
+    "38840402567": {
+      "name": "CLI CI",
+      "conclusion": "success",
+      "headSha": "b235ac80687fe31a45db18388ffc0f2424a26fb2",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38840402567",
+      "receiptSha256": "c09116e7ac6089f586c15b677ca802b3f3553ec8719caa5cda29f1b4f1737e1e"
+    },
+    "38840442605": {
+      "name": "CLI Strict Sandbox",
+      "conclusion": "success",
+      "headSha": "b235ac80687fe31a45db18388ffc0f2424a26fb2",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38840442605",
+      "receiptSha256": "de3be23f2034ce1ff9fa83c8713a429ea16adf7db2fc068ef5d9c53df47b25a8"
+    },
+    "38854237037": {
+      "name": "Publish CLI release to npm",
+      "conclusion": "success",
+      "headSha": "b235ac80687fe31a45db18388ffc0f2424a26fb2",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38854237037",
+      "receiptSha256": "49d935a004a1200b4903ebf3020b02abad024414f6010e4cd696c4a7590c18e7"
+    },
+    "38855697795": {
+      "name": "CLI npm release readback",
+      "conclusion": "success",
+      "headSha": "b235ac80687fe31a45db18388ffc0f2424a26fb2",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38855697795",
+      "receiptSha256": "d23044464eeca06762c499cda1c06d534f86c1eaa7a565ddde645f3a0a7a92a7"
+    },
+    "38861905795": {
+      "name": "IDE Extensions",
+      "conclusion": "success",
+      "headSha": "c8a64caa928ff0d46007bf594cd92808b707abba",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38861905795",
+      "receiptSha256": "52f48a591da6ea0a27ba3852030eb2fec8783feb2c968ee9625a5874f7fcb78d"
+    },
+    "38860748741": {
+      "name": "IDE Extensions",
+      "conclusion": "success",
+      "headSha": "fa6484021670a09afb46aa46f0e17e2c707ec539",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/38860748741",
+      "receiptSha256": "836369c1e71dc8723322fe01b6688d23f2d986df20e9e1342cf14b60ae04b7cc"
+    }
+  },
+  "evidenceScope": "Public versions, manifests and downloaded IDE archive hashes verified live. CLI matrix/publication conclusions reuse exact-release workflow records; no new release, paid evaluation or native business acceptance was performed."
+}

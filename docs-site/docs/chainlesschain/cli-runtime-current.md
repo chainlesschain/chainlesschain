@@ -1,5 +1,7 @@
 # CLI Runtime 当前实现与源码候选
 
+> 2026-10-16：公开 CLI **0.166.103**、Open VSX **0.37.148** 与 JetBrains **0.4.165**，两个 IDE 均推荐 CLI `.103`。CLI 发行提交 `b235ac8068`，VS Code `c8a64caa92`，JetBrains `fa64840216`；主线核对至 `920f263e3f`。Session Core **0.3.19**、Kernel **0.1.10**、PDH **0.4.65**；原生产品 **v5.0.3.140** 独立发行。正式预算保持 **NOT_PAID_READY**，36+9 **NOT_RUN（0/36、0/9）**、native **NOT_ADMITTED**、自动晋升 **HOLD**。 详见[本轮升级指南](./cli-ide-update-2026-10-16)。下方日期段落为历史快照。
+
 > 2026-10-15：公开 CLI **0.166.101**、Kernel **0.1.10** 与 Open VSX **0.37.145** 对应 `6752b49e1e`。压缩拒绝保留上下文及 head，已产生的 provider 用量仍结算；草稿恢复与连接诊断见[本轮指南](./cli-ide-update-2026-10-15)。JetBrains Marketplace 列出 `.162`，`.163` 仍为源码候选。耐久正式预算 authority 已纳入源码，但保持 **NOT_PAID_READY**；正式 36+9 **NOT_RUN**、native review **NOT_ADMITTED**、自动晋升 **HOLD**。
 
 > 2026-10-13 历史快照：CLI **0.166.100** 与 Open VSX **0.37.144** 已公开，发行源码 `6a8db627c8`，文档当时核对主线 `283634169a`。JetBrains **0.4.162** 当时已上传，公开上架与下载待核验；已核验公开 **0.4.161** 推荐 CLI `.99`。Session Core **0.3.19**、Kernel **0.1.9**、SDK **0.2.14**、PDH **0.4.64** 与产品 **v5.0.3.140** 保持独立版本。参见[历史升级与诊断](./cli-ide-update-2026-10-13)。
@@ -64,20 +66,20 @@ git merge-base --is-ancestor 退出码 1 是合法的 predicateResult:false，�
 
 ## 安装版本怎么选
 
-| 用途                               | 版本                                                   | 来源与范围                                       |
-| ---------------------------------- | ------------------------------------------------------ | ------------------------------------------------ |
-| 日常使用 / npm latest              | CLI 0.166.93                                           | 65e8c21d3a，准确三平台 CI / Strict 已通过        |
-| IDE 工作台                         | Open VSX 0.37.138 / JetBrains 0.4.156                  | 均推荐 CLI 0.166.93                              |
-| 共享服务                           | Session Core 0.3.18 / Memory Kernel 0.1.8 / PDH 0.4.64 | 独立公开子包，CLI 精确依赖已核对                 |
-| Desktop / Android / iOS            | v5.0.3.140                                             | f733f92cb9，独立公开产品；iOS 仅授权 ad hoc 设备 |
-| Windows 工具链 / Node runtime 胶囊 | 1e5477aebe 源码实验                                    | admissionEligible=false，正式目标宿主验收未完成  |
+| 用途                               | 版本                                                    | 来源与范围                                                |
+| ---------------------------------- | ------------------------------------------------------- | --------------------------------------------------------- |
+| 日常使用 / npm latest              | CLI 0.166.103                                           | b235ac8068，三系统 CLI CI / Strict、OIDC 与公开回读已通过 |
+| IDE 工作台                         | Open VSX 0.37.148 / JetBrains 0.4.165                   | 均推荐 CLI 0.166.103；分别来自 c8a64caa92 / fa64840216    |
+| 共享服务                           | Session Core 0.3.19 / Memory Kernel 0.1.10 / PDH 0.4.65 | 独立公开子包，CLI 保持精确依赖                            |
+| Desktop / Android / iOS            | v5.0.3.140                                              | f733f92cb9，独立公开产品；iOS 仅授权 ad hoc 设备          |
+| Windows 工具链 / Node runtime 胶囊 | 1e5477aebe 源码实验                                     | admissionEligible=false，正式目标宿主验收未完成           |
 
 ```bash
-npm i -g chainlesschain@0.166.93 --registry https://registry.npmjs.org
+npm i -g chainlesschain@0.166.103 --registry https://registry.npmjs.org
 cc --version
 ```
 
-升级后重启 IDE 聊天宿主并通过 Doctor 核对实际路径与能力。实验胶囊不用于解除生产严格模式阻塞；详细准入与限制见[最新设计](/design/release-runtime-update-2026-10-08-latest)。
+升级后重启 IDE 聊天宿主并通过 Doctor 核对实际路径与能力。实验胶囊不用于解除生产严格模式阻塞；详细准入与限制见[最新设计](/design/release-runtime-update-2026-10-16)。
 
 ## 核心特性
 

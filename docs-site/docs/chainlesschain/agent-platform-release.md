@@ -1,6 +1,12 @@
 # Agent Platform 发布与升级指南
 
-## 2026-10-15 最新发布与升级
+## 2026-10-16 最新发布与升级
+
+2026-10-16：公开 CLI **0.166.103**、Open VSX **0.37.148** 与 JetBrains **0.4.165**，两个 IDE 均推荐 CLI `.103`。CLI 发行提交 `b235ac8068`，VS Code `c8a64caa92`，JetBrains `fa64840216`；主线核对至 `920f263e3f`。Session Core **0.3.19**、Kernel **0.1.10**、PDH **0.4.65**；原生产品 **v5.0.3.140** 独立发行。正式预算保持 **NOT_PAID_READY**，36+9 **NOT_RUN（0/36、0/9）**、native **NOT_ADMITTED**、自动晋升 **HOLD**。
+
+安装 CLI .103，升级 Open VSX .148 或 JetBrains .165，重启聊天宿主后运行 Doctor。两条 IDE 发行分别使用独立准确提交，Microsoft Marketplace 尚未发行。128 会话草稿容量回收已在公开 .148；模型层级、引用快照、预算错误与草稿处理见[本轮指南](./cli-ide-update-2026-10-16)及[增量设计](/design/release-runtime-update-2026-10-16)。
+
+## 2026-10-15 发布与升级（历史快照）
 
 公开 CLI **0.166.101**、Open VSX **0.37.145** 与 Context/Memory Kernel **0.1.10**；标签 `v-npm-0-166-101` 指向 `6752b49e1e`，该提交的 CLI CI 和 Strict Sandbox 成功。JetBrains Marketplace API 已列出 **0.4.162**，源码候选 **0.4.163** 的公开状态仍待核验。原生产品继续为独立 **v5.0.3.140**。安装、压缩错误和草稿恢复步骤见[本轮指南](./cli-ide-update-2026-10-15)。
 

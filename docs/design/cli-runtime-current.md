@@ -1,5 +1,7 @@
 # CLI Runtime 当前架构与实现
 
+> 2026-10-16：公开 CLI **0.166.103**、Open VSX **0.37.148** 与 JetBrains **0.4.165**，两个 IDE 均推荐 CLI `.103`。CLI 发行提交 `b235ac8068`，VS Code `c8a64caa92`，JetBrains `fa64840216`；主线核对至 `920f263e3f`。Session Core **0.3.19**、Kernel **0.1.10**、PDH **0.4.65**；原生产品 **v5.0.3.140** 独立发行。正式预算保持 **NOT_PAID_READY**，36+9 **NOT_RUN（0/36、0/9）**、native **NOT_ADMITTED**、自动晋升 **HOLD**。 详见[本轮设计](release-runtime-update-2026-10-16.md)。下方日期段落为历史快照。
+
 > 2026-10-15：公开 CLI **0.166.101**、Kernel **0.1.10** 与 Open VSX **0.37.145** 对应 `6752b49e1e`；压缩拒绝与 provider 用量结算见[最新增量设计](release-runtime-update-2026-10-15.md)。JetBrains `.163` 仍为源码候选，Marketplace API 列出 `.162`。耐久预算代码已包含，但状态 **NOT_PAID_READY**；正式 36+9 **NOT_RUN**，native review **NOT_ADMITTED**，自动晋升 **HOLD**。
 
 > 2026-10-13 历史核对：CLI **0.166.100** 与 Open VSX **0.37.144** 已公开并完成回读，发行源码为 `6a8db627c87f33ce4f8e5d3db704868957aa685e`，推荐 CLI `0.166.100`。JetBrains **0.4.162** 当时六宿主验证与上传通过，公开上架待核验。设计源码当时核对至 `main@283634169a`（PR #435）。产品 **v5.0.3.140** 保持独立发行；Agent SDK **0.2.14**、Session Core **0.3.19**、Context/Memory Kernel **0.1.9**、PDH **0.4.64** 保持各自版本。预算 PR #436 当时不在 `.100` 发行内。详见[历史增量设计](release-runtime-update-2026-10-13.md)。

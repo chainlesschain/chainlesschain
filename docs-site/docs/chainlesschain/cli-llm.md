@@ -2,7 +2,11 @@
 
 > Headless 命令 — 不依赖桌面 GUI，直接使用核心包运行。适用于服务器、CI/CD、容器化等无桌面环境。
 >
-> 当前公开版本：CLI `0.166.30`。本版新增原子连接配置与 OpenAI-compatible / Anthropic / Gemini / Ollama 原生协议探测。
+> 历史版本 CLI `0.166.30` 新增原子连接配置与 OpenAI-compatible / Anthropic / Gemini / Ollama 原生协议探测。
+
+## 2026-10-16：模型服务层级
+
+公开 CLI `0.166.103` 支持持久配置 `llm.serviceTier` 与 Agent 的 `--service-tier`。默认 `standard`；其他层级只有当前 provider、精确 model 和 endpoint 的能力合同支持时才发送。未知或不支持组合在发送前拒绝；目录支持不等于实际账号已开通，也不构成速度或费用保证。已审阅 Priority / Ultrafast 价格条款的校验修复随 `.102` 纳入。查看 `cc agent --help`，按账号合同配置；出现层级错误时恢复 `standard`。更多见[本轮升级指南](./cli-ide-update-2026-10-16)。
 
 ## 概述
 
@@ -34,14 +38,14 @@ Remove-Variable apiKey
 cc llm test
 ```
 
-| 字段 | 必填 | 说明 |
-| --- | --- | --- |
-| `provider` | 是 | 同时选择协议；使用 `openai`、`anthropic`、`gemini`、`ollama` 等内置标识 |
-| `model` | 是 | 可使用中转站提供的自定义模型别名 |
-| `baseUrl` | 是 | API 基础路径；不要填写 `/chat/completions`、`/messages` 或 `/api/generate` |
-| `visionModel` | 否 | 图片输入使用的模型；留空复用文本模型/默认值 |
-| `apiKey` | 云端模型是 | 切换 endpoint 时必须提供新 key；Ollama 可省略 |
-| `allowHttp` | 远程 HTTP 是 | 只有明确为 `true` 才允许非 loopback HTTP；生产建议 HTTPS |
+| 字段          | 必填         | 说明                                                                       |
+| ------------- | ------------ | -------------------------------------------------------------------------- |
+| `provider`    | 是           | 同时选择协议；使用 `openai`、`anthropic`、`gemini`、`ollama` 等内置标识    |
+| `model`       | 是           | 可使用中转站提供的自定义模型别名                                           |
+| `baseUrl`     | 是           | API 基础路径；不要填写 `/chat/completions`、`/messages` 或 `/api/generate` |
+| `visionModel` | 否           | 图片输入使用的模型；留空复用文本模型/默认值                                |
+| `apiKey`      | 云端模型是   | 切换 endpoint 时必须提供新 key；Ollama 可省略                              |
+| `allowHttp`   | 远程 HTTP 是 | 只有明确为 `true` 才允许非 loopback HTTP；生产建议 HTTPS                   |
 
 `--storage auto|keychain|file` 控制秘密存储方式，默认 `auto`。URL 不允许内嵌用户名/密码、query 或 fragment。
 
@@ -287,15 +291,15 @@ chainlesschain llm test
 
 ## 故障排查
 
-| 问题                | 解决方案                                                     |
-| ------------------- | ------------------------------------------------------------ |
-| `models` 返回空列表 | 确认 Ollama 已启动且已拉取模型：`ollama list`                |
-| `test` 连接超时     | 检查 `OLLAMA_HOST` 环境变量（默认 `http://localhost:11434`） |
-| 自定义提供商报错    | 检查协议与 `baseUrl`；填写 API 基础路径，不要填写完整调用端点 |
-| 切换地址提示需要 Key | 新 endpoint 不复用旧密钥；重新输入该站点自己的 API Key       |
-| HTTP 地址被拒绝     | 改用 HTTPS；仅受信远程环境可显式设置 `allowHttp: true`         |
-| 火山引擎认证失败    | 检查 `VOLCENGINE_API_KEY` 是否正确设置                       |
-| 模型自动选择不生效  | 仅在 Agent 模式 (`chainlesschain agent`) 下生效              |
+| 问题                 | 解决方案                                                      |
+| -------------------- | ------------------------------------------------------------- |
+| `models` 返回空列表  | 确认 Ollama 已启动且已拉取模型：`ollama list`                 |
+| `test` 连接超时      | 检查 `OLLAMA_HOST` 环境变量（默认 `http://localhost:11434`）  |
+| 自定义提供商报错     | 检查协议与 `baseUrl`；填写 API 基础路径，不要填写完整调用端点 |
+| 切换地址提示需要 Key | 新 endpoint 不复用旧密钥；重新输入该站点自己的 API Key        |
+| HTTP 地址被拒绝      | 改用 HTTPS；仅受信远程环境可显式设置 `allowHttp: true`        |
+| 火山引擎认证失败     | 检查 `VOLCENGINE_API_KEY` 是否正确设置                        |
+| 模型自动选择不生效   | 仅在 Agent 模式 (`chainlesschain agent`) 下生效               |
 
 ## 相关文档
 
