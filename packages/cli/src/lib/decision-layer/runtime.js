@@ -397,6 +397,14 @@ export function createSkillDecisionRuntime({
       } catch (error) {
         if (error?.runtimeLedgerPersistence === true) {
           observationPersistenceFailure ??= error;
+        } else if (signal?.aborted) {
+          // The caller stops waiting before the durable observer acknowledges
+          // the write. Its eventual outcome is unknown to this runtime.
+          observationPersistenceFailure ??= asPersistenceError(
+            new Error("Skill decision observation completion is unknown", {
+              cause: error,
+            }),
+          );
         }
         throw error;
       }

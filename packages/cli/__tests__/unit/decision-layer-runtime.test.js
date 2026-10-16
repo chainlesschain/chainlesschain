@@ -458,7 +458,7 @@ describe("Skill decision runtime", () => {
     expect(options.observe).toHaveBeenCalledOnce();
   });
 
-  it("ends cancellation during a hung observation after settling known usage", async () => {
+  it("keeps a canceled observation terminal until its write is reconciled", async () => {
     const controller = new AbortController();
     const reason = new DOMException("user canceled", "AbortError");
     let enter;
@@ -471,7 +471,8 @@ describe("Skill decision runtime", () => {
         return new Promise(() => {});
       }),
     });
-    const pending = createSkillDecisionRuntime(options).suggest({
+    const runtime = createSkillDecisionRuntime(options);
+    const pending = runtime.suggest({
       query: "repair tests",
       candidates: candidates(),
       turnId: "turn-a",
@@ -480,10 +481,18 @@ describe("Skill decision runtime", () => {
     await entered;
     controller.abort(reason);
     await expect(pending).rejects.toBe(reason);
+    await expect(
+      runtime.suggest({
+        query: "repair tests",
+        candidates: candidates(),
+        turnId: "turn-b",
+      }),
+    ).rejects.toMatchObject({ runtimeLedgerPersistence: true });
     expect(options.persist.mock.calls.map(([type]) => type)).toEqual([
       "model_usage_started",
       "token_usage",
     ]);
+    expect(options.observe).toHaveBeenCalledOnce();
   });
 
   it("fails closed when usage persistence cannot establish the started boundary", async () => {
