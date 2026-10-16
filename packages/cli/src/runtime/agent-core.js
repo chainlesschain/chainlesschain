@@ -9353,8 +9353,13 @@ async function executeToolInner(
           // the persisted revocations and live loader before exposing advice.
           await skillRetrievalRevocationReader?.refresh();
           signal?.throwIfAborted();
+          const refreshedSkills =
+            typeof skillLoader.refreshResolvedSkills === "function"
+              ? await skillLoader.refreshResolvedSkills()
+              : skillLoader.getResolvedSkills();
+          signal?.throwIfAborted();
           let currentSkills = await filterSkillsByCwd(
-            skillLoader.getResolvedSkills().filter(skillAllowed),
+            refreshedSkills.filter(skillAllowed),
             cwd,
           );
           if (args.category) {

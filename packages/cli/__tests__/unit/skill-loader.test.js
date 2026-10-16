@@ -382,6 +382,58 @@ tags:
         const second = loader.getResolvedSkills();
         expect(first).toBe(second); // Same reference (cached)
       });
+
+      it("refreshes changed files and preserves explicit layer policy", () => {
+        const root = mkdtempSync(join(tmpdir(), "cc-skill-refresh-"));
+        const writeSkill = (layer, name, description) => {
+          const dir = join(root, layer, name);
+          mkdirSync(dir, { recursive: true });
+          writeFileSync(
+            join(dir, "SKILL.md"),
+            `---\nname: ${name}\ndescription: ${description}\n---\n\n# Skill\n`,
+            "utf-8",
+          );
+        };
+        try {
+          writeSkill("bundled", "hidden", "hidden bundled skill");
+          writeSkill("workspace", "repair-tests", "repair vitest tests");
+          const loader = new CLISkillLoader({ contextLedger: null });
+          loader.getLayerPaths = () => [
+            { layer: "bundled", path: join(root, "bundled"), exists: true },
+            { layer: "workspace", path: join(root, "workspace"), exists: true },
+          ];
+          const first = loader.loadAll({ disableBundledSkills: true });
+          expect(first.map(({ id }) => id)).toEqual(["repair-tests"]);
+          const oldDigest = first[0].executionIdentity.contentDigest;
+          writeSkill(
+            "workspace",
+            "repair-tests",
+            "repair vitest tests updated",
+          );
+          writeSkill("workspace", "new-skill", "repair vitest new tests");
+          const refreshed = loader.refreshResolvedSkills();
+          expect(refreshed.map(({ id }) => id).sort()).toEqual([
+            "new-skill",
+            "repair-tests",
+          ]);
+          expect(
+            refreshed.find(({ id }) => id === "repair-tests"),
+          ).toMatchObject({
+            description: "repair vitest tests updated",
+          });
+          expect(
+            refreshed.find(({ id }) => id === "repair-tests").executionIdentity
+              .contentDigest,
+          ).not.toBe(oldDigest);
+
+          const env = { CC_SKILLS: "0" };
+          expect(loader.loadAll({ env })).toEqual([]);
+          env.CC_SKILLS = "1";
+          expect(loader.refreshResolvedSkills()).toEqual([]);
+        } finally {
+          rmSync(root, { recursive: true, force: true });
+        }
+      });
     });
 
     describe("clearCache", () => {

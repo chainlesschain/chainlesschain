@@ -1,4 +1,7 @@
 import { createHash } from "node:crypto";
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
 import { openDecisionProviderAuthority } from "../../src/lib/decision-layer/provider-authority.js";
@@ -8,6 +11,7 @@ import {
   SKILL_REVOCATION_DEPENDENCY_REQUEST_SCHEMA,
   digestSkillRevocationDependencyRequest,
 } from "../../src/lib/evolution/skill-revocation-propagation.js";
+import { CLISkillLoader } from "../../src/lib/skill-loader.js";
 import { executeTool } from "../../src/runtime/agent-core.js";
 
 const D = (value) =>
@@ -179,6 +183,66 @@ describe("CLI list_skills decision suggestion", () => {
     const result = await resultPromise;
     expect(result.routing).not.toHaveProperty("decisionSuggestion");
     expect(result.skills).toHaveLength(2);
+  });
+
+  it("rescans an edited SKILL.md before showing advice", async () => {
+    const root = mkdtempSync(join(tmpdir(), "cc-decision-skill-refresh-"));
+    const skillDir = join(root, "repair-tests");
+    const skillFile = join(skillDir, "SKILL.md");
+    const writeSkill = (description) =>
+      writeFileSync(
+        skillFile,
+        `---\nname: repair-tests\ndescription: ${description}\n---\n\n# Repair\n`,
+        "utf-8",
+      );
+    mkdirSync(skillDir);
+    writeSkill("repair failing vitest tests");
+    try {
+      const skillLoader = new CLISkillLoader({ contextLedger: null });
+      skillLoader.getLayerPaths = () => [
+        { layer: "workspace", path: root, exists: true },
+      ];
+      let release;
+      let entered;
+      const waiting = new Promise((resolve) => {
+        release = resolve;
+      });
+      const started = new Promise((resolve) => {
+        entered = resolve;
+      });
+      const resultPromise = executeTool(
+        "list_skills",
+        { query: "repair vitest tests" },
+        {
+          cwd: process.cwd(),
+          sessionId: "session-a",
+          turnId: "turn-a",
+          skillLoader,
+          skillDecisionRuntime: decisionRuntime(
+            "suggest",
+            vi.fn(async () => {}),
+            async () => {
+              entered();
+              await waiting;
+            },
+          ),
+        },
+      );
+      await started;
+      const oldDigest =
+        skillLoader.getResolvedSkills()[0].executionIdentity.contentDigest;
+      writeSkill("repair failing vitest tests updated");
+      release();
+      const result = await resultPromise;
+      expect(result.routing).not.toHaveProperty("decisionSuggestion");
+      expect(result.skills[0]).toMatchObject({
+        id: "repair-tests",
+        description: "repair failing vitest tests updated",
+      });
+      expect(result.skills[0].digest).not.toBe(oldDigest);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 
   it("refreshes a revocation committed by another authority while advice is pending", async () => {
