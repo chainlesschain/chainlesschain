@@ -43,6 +43,14 @@ public final class NdjsonLineBuffer {
         return null;
     }
 
+    /** Byte length of the next line, or of the unfinished tail. */
+    public int nextLineByteLength() {
+        for (int i = 0; i < data.length; i++) {
+            if (data[i] == (byte) '\n') return i;
+        }
+        return data.length;
+    }
+
     /** Bytes buffered without a terminating newline yet (diagnostics/tests). */
     public int pendingBytes() {
         return data.length;
