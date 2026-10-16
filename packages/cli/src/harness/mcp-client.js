@@ -1001,6 +1001,15 @@ function mcpSseEventTimeoutError(timeoutMs) {
   return error;
 }
 
+function mcpSseHeaderTimeoutError(timeoutMs) {
+  const error = new Error(
+    `MCP HTTP message stream headers exceeded the ${timeoutMs}ms host deadline`,
+  );
+  error.code = "CC_MCP_SSE_HEADER_TIMEOUT";
+  error.timeoutMs = timeoutMs;
+  return error;
+}
+
 function mcpHttpResponseTimeoutError(
   serverName,
   entry,
@@ -1044,6 +1053,7 @@ const MCP_NON_RETRYABLE_PROTOCOL_ERROR_CODES = new Set([
   "CC_MCP_HTTP_RESPONSE_TIMEOUT",
   "CC_MCP_HTTP_DISCARD_TIMEOUT",
   "CC_MCP_SSE_EVENT_TIMEOUT",
+  "CC_MCP_SSE_HEADER_TIMEOUT",
   "CC_MCP_INBOUND_RATE_EXCEEDED",
   "CC_MCP_INBOUND_TRAFFIC_EXCEEDED",
   "CC_MCP_JSON_DEPTH_EXCEEDED",
@@ -4519,7 +4529,10 @@ export class MCPClient extends EventEmitter {
                   ? { dispatcher: entry._httpDispatcher }
                   : {}),
               }),
-              stream.controller?.signal,
+              {
+                controller: stream.controller,
+                timeoutMs: _sseEventTimeout(entry.config?.requestTimeoutMs),
+              },
             );
             if (response.status === 405) {
               _cancelHttpResponseBody(response);
@@ -4594,6 +4607,7 @@ export class MCPClient extends EventEmitter {
               return;
             }
             if (error?.code === "CC_MCP_SSE_EVENT_TIMEOUT") return;
+            if (error?.code === "CC_MCP_SSE_HEADER_TIMEOUT") return;
             if (error?.code === "CC_MCP_INBOUND_RATE_EXCEEDED") return;
             if (error?.code === "CC_MCP_INBOUND_TRAFFIC_EXCEEDED") return;
             if (error?.code === "CC_MCP_JSON_DEPTH_EXCEEDED") return;
@@ -5653,9 +5667,12 @@ function _readHttpReaderChunk(reader, signal) {
   });
 }
 
-function _waitForHttpMessageStreamResponse(responsePromise, signal) {
-  if (!signal?.addEventListener) return Promise.resolve(responsePromise);
-  if (signal.aborted) {
+function _waitForHttpMessageStreamResponse(
+  responsePromise,
+  { controller, timeoutMs } = {},
+) {
+  const signal = controller?.signal;
+  if (signal?.aborted) {
     Promise.resolve(responsePromise).then(
       (response) => _cancelHttpResponseBody(response),
       () => {},
@@ -5665,7 +5682,11 @@ function _waitForHttpMessageStreamResponse(responsePromise, signal) {
   return new Promise((resolve, reject) => {
     let settled = false;
     let aborted = false;
-    const cleanup = () => signal.removeEventListener?.("abort", onAbort);
+    let timer;
+    const cleanup = () => {
+      clearTimeout(timer);
+      signal?.removeEventListener?.("abort", onAbort);
+    };
     const finish = (settler, value) => {
       if (settled) return false;
       settled = true;
@@ -5677,7 +5698,15 @@ function _waitForHttpMessageStreamResponse(responsePromise, signal) {
       aborted = true;
       finish(reject, _httpReadAbortedError());
     };
-    signal.addEventListener("abort", onAbort, { once: true });
+    if (Number.isFinite(timeoutMs) && timeoutMs > 0) {
+      timer = setTimeout(() => {
+        aborted = true;
+        if (finish(reject, mcpSseHeaderTimeoutError(timeoutMs))) {
+          controller?.abort();
+        }
+      }, timeoutMs);
+    }
+    signal?.addEventListener?.("abort", onAbort, { once: true });
     Promise.resolve(responsePromise).then(
       (response) => {
         if (!finish(resolve, response) && aborted) {

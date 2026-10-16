@@ -109,6 +109,51 @@ describe("MCPClient background SSE lifecycle", () => {
     expect(_deps.fetch).toHaveBeenCalledOnce();
   });
 
+  it.each([
+    [7, 7],
+    [0, 30_000],
+  ])(
+    "bounds a peer that never sends SSE response headers for requestTimeoutMs=%s",
+    async (configuredTimeout, expectedTimeout) => {
+      vi.useFakeTimers();
+      let resolveFetch;
+      const cancel = vi.fn();
+      _deps.fetch = vi.fn(
+        () =>
+          new Promise((resolve) => {
+            resolveFetch = resolve;
+          }),
+      );
+      const client = new MCPClient();
+      const entry = addHttpEntry(client, "no-headers", {
+        requestTimeoutMs: configuredTimeout,
+      });
+      const streamError = new Promise((resolve) =>
+        client.once("server-stream-error", resolve),
+      );
+
+      client.setElicitationHandler(vi.fn());
+      const stream = entry._httpMessageStream;
+      const signal = _deps.fetch.mock.calls[0][1].signal;
+      await vi.advanceTimersByTimeAsync(expectedTimeout);
+      expect(await streamError).toEqual({
+        name: "no-headers",
+        code: "CC_MCP_SSE_HEADER_TIMEOUT",
+        error: `MCP HTTP message stream headers exceeded the ${expectedTimeout}ms host deadline`,
+        timeoutMs: expectedTimeout,
+      });
+      await stream.promise;
+      expect(signal.aborted).toBe(true);
+      expect(entry._httpMessageStream).toBeNull();
+      expect(_deps.fetch).toHaveBeenCalledOnce();
+
+      resolveFetch({ body: { cancel } });
+      await Promise.resolve();
+      expect(cancel).toHaveBeenCalledOnce();
+      client.setElicitationHandler(null);
+    },
+  );
+
   it("does not time out an idle stream after a complete event", async () => {
     vi.useFakeTimers();
     let readCalls = 0;
