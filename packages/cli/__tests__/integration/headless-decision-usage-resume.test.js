@@ -103,6 +103,95 @@ const validAnswer = {
 };
 
 describe("headless decision usage recovery with real JSONL", () => {
+  it("blocks a resumed decision when a durable start has no settlement", async () => {
+    const sessionId = "decision-usage-started-only";
+    startSession(sessionId);
+    appendEvent(sessionId, "model_usage_started", {
+      callId: "direct-crash-before-settlement",
+      provider: "typesafe",
+      model: "jev-test",
+      source: "model",
+      operationId: "decision:crashed",
+    });
+
+    const decide = vi.fn().mockResolvedValue(validAnswer);
+    const resumed = makeRun(decide, sessionId, true);
+    expect(await runAgentHeadless(resumed.options, resumed.deps)).toMatchObject(
+      {
+        exitCode: 0,
+        isError: false,
+      },
+    );
+    expect(resumed.decisions[0]).toMatchObject({
+      status: "unavailable",
+      reasonCode: "provider-usage-unknown-blocked",
+      selectedDigest: null,
+    });
+    expect(decide).not.toHaveBeenCalled();
+  });
+
+  it("does not settle a decision start with another operation's token row", async () => {
+    const sessionId = "decision-usage-wrong-settlement";
+    startSession(sessionId);
+    appendEvent(sessionId, "model_usage_started", {
+      callId: "direct-same-call-id",
+      provider: "typesafe",
+      model: "jev-test",
+      source: "model",
+      operationId: "decision:crashed",
+    });
+    appendEvent(sessionId, "token_usage", {
+      callId: "direct-same-call-id",
+      provider: "typesafe",
+      model: "jev-test",
+      source: "model",
+      operationId: "agent:other",
+      usage: { input_tokens: 1, output_tokens: 1 },
+    });
+
+    const decide = vi.fn().mockResolvedValue(validAnswer);
+    const resumed = makeRun(decide, sessionId, true);
+    expect(await runAgentHeadless(resumed.options, resumed.deps)).toMatchObject(
+      {
+        exitCode: 0,
+        isError: false,
+      },
+    );
+    expect(resumed.decisions[0]).toMatchObject({
+      status: "unavailable",
+      reasonCode: "provider-usage-unknown-blocked",
+    });
+    expect(decide).not.toHaveBeenCalled();
+  });
+
+  it("does not treat a malformed token row as a decision settlement", async () => {
+    const sessionId = "decision-usage-malformed-settlement";
+    startSession(sessionId);
+    const identity = {
+      callId: "direct-malformed-settlement",
+      provider: "typesafe",
+      model: "jev-test",
+      source: "model",
+      operationId: "decision:crashed",
+    };
+    appendEvent(sessionId, "model_usage_started", identity);
+    appendEvent(sessionId, "token_usage", identity);
+
+    const decide = vi.fn().mockResolvedValue(validAnswer);
+    const resumed = makeRun(decide, sessionId, true);
+    expect(await runAgentHeadless(resumed.options, resumed.deps)).toMatchObject(
+      {
+        exitCode: 0,
+        isError: false,
+      },
+    );
+    expect(resumed.decisions[0]).toMatchObject({
+      status: "unavailable",
+      reasonCode: "provider-usage-unknown-blocked",
+    });
+    expect(decide).not.toHaveBeenCalled();
+  });
+
   it("resumes after a durably canceled pre-dispatch decision without unknown usage", async () => {
     const sessionId = "decision-usage-not-dispatched";
     startSession(sessionId);

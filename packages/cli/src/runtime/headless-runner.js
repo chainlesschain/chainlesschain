@@ -57,6 +57,7 @@ import {
   appendAuthorityEvent as jsonlAppendAuthorityEvent,
   readEvents as jsonlReadEvents,
   readVerifiedEvents as jsonlReadVerifiedEvents,
+  readVerifiedProjection as jsonlReadVerifiedProjection,
   findLatestEvent as jsonlFindLatestEvent,
   rebuildMessages as jsonlRebuildMessages,
   sessionExists as jsonlSessionExists,
@@ -286,6 +287,74 @@ export function resolveHeadlessSkillDecisionOptions(options = {}) {
     ...resolveDecisionProviderOptions(options),
     timeoutMs,
   });
+}
+
+function createDecisionUsageRecoveryProjection() {
+  const started = new Map();
+  const seenCallIds = new Set();
+  let blocked = false;
+  return {
+    accept(event) {
+      if (blocked) return;
+      const data = event?.data;
+      const callId = data?.callId;
+      const isDecision =
+        typeof data?.operationId === "string" &&
+        data.operationId.startsWith("decision:");
+      if (event?.type === "model_usage_started" && isDecision) {
+        if (typeof callId !== "string" || !callId || seenCallIds.has(callId)) {
+          blocked = true;
+          return;
+        }
+        let boundary;
+        try {
+          boundary = projectRuntimeUsageBoundary(data, "started");
+        } catch {
+          blocked = true;
+          return;
+        }
+        seenCallIds.add(callId);
+        started.set(callId, boundary);
+      } else if (
+        event?.type === "model_usage_unknown" &&
+        (isDecision || started.has(callId))
+      ) {
+        blocked = true;
+      } else if (event?.type === "token_usage" && started.has(callId)) {
+        let settlement;
+        try {
+          settlement = projectRuntimeTokenUsage(data);
+        } catch {
+          blocked = true;
+          return;
+        }
+        const boundary = started.get(callId);
+        if (
+          settlement.callId !== boundary.callId ||
+          settlement.operationId !== boundary.operationId ||
+          settlement.provider !== boundary.provider ||
+          settlement.model !== boundary.model ||
+          settlement.source !== boundary.source
+        ) {
+          blocked = true;
+          return;
+        }
+        started.delete(callId);
+      }
+    },
+    finish() {
+      return blocked || started.size > 0;
+    },
+  };
+}
+
+function hasUnreconciledDecisionUsage(events) {
+  if (!Array.isArray(events)) return true;
+  const projection = createDecisionUsageRecoveryProjection();
+  for (const event of events) {
+    projection.accept(event);
+  }
+  return projection.finish();
 }
 
 /**
@@ -2458,13 +2527,35 @@ async function runAgentHeadlessInWorkspace(
   const skillDecisionOptions = resolveHeadlessSkillDecisionOptions(options);
   let skillDecisionRuntime = null;
   if (skillDecisionOptions.mode !== "off") {
-    const previousUnknownDecisionUsage = store.findLatestEvent(
-      sessionId,
-      "model_usage_unknown",
-      (event) =>
-        typeof event?.data?.operationId === "string" &&
-        event.data.operationId.startsWith("decision:"),
-    );
+    let previousUnreconciledDecisionUsage;
+    if (
+      !hasInjectedSessionStore ||
+      typeof deps.readVerifiedEvents === "function"
+    ) {
+      try {
+        previousUnreconciledDecisionUsage = hasInjectedSessionStore
+          ? hasUnreconciledDecisionUsage(store.readVerifiedEvents(sessionId))
+          : jsonlReadVerifiedProjection(
+              sessionId,
+              createDecisionUsageRecoveryProjection,
+            );
+      } catch {
+        // Without a verified settlement, a resumed provider call could be paid twice.
+        previousUnreconciledDecisionUsage = true;
+      }
+    } else {
+      // Legacy injected stores cannot prove a prior call was settled. Their
+      // explicit no-session answer still permits a fresh test/embedding run.
+      previousUnreconciledDecisionUsage =
+        store.sessionExists(sessionId) ||
+        store.findLatestEvent(
+          sessionId,
+          "model_usage_unknown",
+          (event) =>
+            typeof event?.data?.operationId === "string" &&
+            event.data.operationId.startsWith("decision:"),
+        ) != null;
+    }
     const decisionProvider =
       deps.decisionProvider ||
       createDecisionProvider({
@@ -2492,7 +2583,7 @@ async function runAgentHeadlessInWorkspace(
       observe: (observation) =>
         persistDecisionEvent("skill_decision_observation", observation),
       sessionBudget: options.sessionBudget || null,
-      initialUsageUnknown: previousUnknownDecisionUsage != null,
+      initialUsageUnknown: previousUnreconciledDecisionUsage,
       timeoutMs: skillDecisionOptions.timeoutMs,
     });
   }

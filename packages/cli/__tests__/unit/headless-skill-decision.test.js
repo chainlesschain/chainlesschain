@@ -266,6 +266,21 @@ describe("headless Skill decision wiring", () => {
     ).toHaveLength(2);
   });
 
+  it("blocks a resumed injected store that cannot verify prior decision usage", async () => {
+    const harness = makeHarness({ mode: "suggest" });
+    const decide = vi.fn();
+    harness.deps.sessionExists = () => true;
+    harness.deps.decisionProvider = provider(decide);
+
+    const result = await runAgentHeadless(harness.options, harness.deps);
+    expect(result).toMatchObject({ exitCode: 0, isError: false });
+    expect(harness.observed.result).toMatchObject({
+      status: "unavailable",
+      reasonCode: "provider-usage-unknown-blocked",
+    });
+    expect(decide).not.toHaveBeenCalled();
+  });
+
   it("rejects enabled decisions without durable persistence", async () => {
     const harness = makeHarness({ mode: "shadow" });
 
