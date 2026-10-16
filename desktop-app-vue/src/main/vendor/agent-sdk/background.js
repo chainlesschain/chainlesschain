@@ -49,6 +49,8 @@ function attachBackgroundSession(options) {
     const timeoutMs = options.timeoutMs ?? 5000;
     return new Promise((resolve, reject) => {
         let settled = false;
+        let attached = false;
+        let protocolFailed = false;
         const socket = node_net_1.default.connect(pipePath);
         const timer = setTimeout(() => {
             if (!settled) {
@@ -69,9 +71,12 @@ function attachBackgroundSession(options) {
             }
         };
         socket.on("data", (0, ndjson_js_1.createNdjsonDecoder)((message) => {
+            if (protocolFailed)
+                return;
             if (!settled) {
                 if (message.type === "hello") {
                     settled = true;
+                    attached = true;
                     clearTimeout(timer);
                     resolve({
                         hello: message,
@@ -99,6 +104,18 @@ function attachBackgroundSession(options) {
             catch {
                 /* observer errors never kill the connection */
             }
+        }, {
+            onError: () => {
+                if (protocolFailed)
+                    return;
+                protocolFailed = true;
+                if (!settled) {
+                    settled = true;
+                    clearTimeout(timer);
+                    reject(new Error("session transport sent invalid NDJSON"));
+                }
+                socket.destroy();
+            },
         }));
         socket.on("connect", () => {
             write({ type: "hello", token: token });
@@ -116,7 +133,7 @@ function attachBackgroundSession(options) {
                 clearTimeout(timer);
                 reject(new Error("session transport closed during handshake"));
             }
-            else {
+            else if (attached) {
                 try {
                     options.onClose?.();
                 }

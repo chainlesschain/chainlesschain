@@ -5,7 +5,7 @@
 import net from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { attachBackgroundSession } from "../src/background.js";
 import { createNdjsonDecoder, encodeNdjson } from "../src/ndjson.js";
@@ -135,6 +135,79 @@ describe("attachBackgroundSession", () => {
         timeoutMs: 2000,
       }),
     ).rejects.toThrow(/closed during handshake|timed out/);
+  });
+
+  it("rejects a malformed frame before a later hello in the same write", async () => {
+    const path = pipePath("malformed");
+    const sockets = new Set<net.Socket>();
+    const server = net.createServer((socket) => {
+      sockets.add(socket);
+      socket.on("close", () => sockets.delete(socket));
+      socket.write(
+        `not-json\n${encodeNdjson({ type: "hello", id: "bg-1" })}`,
+      );
+    });
+    servers.push(server);
+    await new Promise<void>((resolve) => server.listen(path, resolve));
+
+    const onClose = vi.fn();
+    try {
+      await expect(
+        attachBackgroundSession({
+          pipePath: path,
+          token: TOKEN,
+          timeoutMs: 2000,
+          onClose,
+        }),
+      ).rejects.toThrow("session transport sent invalid NDJSON");
+    } finally {
+      for (const socket of sockets) socket.destroy();
+    }
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("closes an attached connection on a malformed frame", async () => {
+    const path = pipePath("malformed-attached");
+    const sockets = new Set<net.Socket>();
+    const server = net.createServer((socket) => {
+      sockets.add(socket);
+      socket.on("close", () => sockets.delete(socket));
+      socket.write(
+        `${encodeNdjson({ type: "hello", id: "bg-1" })}not-json\n${encodeNdjson({ type: "status", phase: "running" })}`,
+      );
+    });
+    servers.push(server);
+    await new Promise<void>((resolve) => server.listen(path, resolve));
+
+    const events: unknown[] = [];
+    let notifyClose: (() => void) | undefined;
+    const closed = new Promise<void>((resolve) => {
+      notifyClose = resolve;
+    });
+    try {
+      const handle = await attachBackgroundSession({
+        pipePath: path,
+        token: TOKEN,
+        timeoutMs: 2000,
+        onEvent: (event) => events.push(event),
+        onClose: () => notifyClose?.(),
+      });
+      expect(handle.hello).toMatchObject({ type: "hello", id: "bg-1" });
+      await new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(
+          () => reject(new Error("attached transport did not close")),
+          2000,
+        );
+        closed.then(() => {
+          clearTimeout(timer);
+          resolve();
+        });
+      });
+      expect(events).toEqual([]);
+    } finally {
+      for (const socket of sockets) socket.destroy();
+    }
   });
 
   it("times out when the server never answers hello", async () => {
