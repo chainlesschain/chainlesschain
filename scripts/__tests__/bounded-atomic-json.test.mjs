@@ -187,7 +187,10 @@ if (process.platform === "win32")
             const deadline = Date.now() + 15_000;
             while (!fs.existsSync(released) && Date.now() < deadline)
               Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 10);
-            assert.ok(fs.existsSync(released), "reader did not release the file");
+            assert.ok(
+              fs.existsSync(released),
+              "reader did not release the file",
+            );
           },
         },
       );
