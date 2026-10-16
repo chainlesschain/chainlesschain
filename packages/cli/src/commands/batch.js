@@ -44,6 +44,15 @@ export const _processDeps = {
   execFileSync: executionBroker.execFileSync.bind(executionBroker),
 };
 
+function collectUtf8(stream) {
+  const decoder = new TextDecoder("utf-8");
+  let output = "";
+  stream?.on("data", (chunk) => {
+    output += decoder.decode(chunk, { stream: true });
+  });
+  return () => output + decoder.decode();
+}
+
 const BIN = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "..",
@@ -382,8 +391,7 @@ function spawnAgent(prompt, cwd, opts = {}) {
       },
       "batch:agent-run",
     );
-    let err = "";
-    child.stderr?.on("data", (d) => (err += d.toString("utf8")));
+    const readErr = collectUtf8(child.stderr);
     if (child.stdin) {
       child.stdin.on("error", () => {});
       child.stdin.end(String(prompt || ""));
@@ -392,7 +400,7 @@ function spawnAgent(prompt, cwd, opts = {}) {
     child.on("close", (code) =>
       code === 0
         ? resolve({ code })
-        : reject(new Error(err.trim() || `agent exited ${code}`)),
+        : reject(new Error(readErr().trim() || `agent exited ${code}`)),
     );
   });
 }
@@ -410,13 +418,12 @@ function runTestCommand(command, cwd) {
       },
       "batch:test-command",
     );
-    let err = "";
-    child.stderr?.on("data", (d) => (err += d.toString("utf8")));
+    const readErr = collectUtf8(child.stderr);
     child.on("error", (e) => reject(new Error(e.message)));
     child.on("close", (code) =>
       code === 0
         ? resolve({ code })
-        : reject(new Error(err.trim() || `test exited ${code}`)),
+        : reject(new Error(readErr().trim() || `test exited ${code}`)),
     );
   });
 }
@@ -494,18 +501,16 @@ async function decomposeGoal(goal, parts, opts = {}) {
       },
       "batch:decompose",
     );
-    let out = "";
-    let err = "";
-    child.stdout?.on("data", (d) => (out += d.toString("utf8")));
-    child.stderr?.on("data", (d) => (err += d.toString("utf8")));
+    const readOut = collectUtf8(child.stdout);
+    const readErr = collectUtf8(child.stderr);
     child.on("error", (e) => reject(new Error(e.message)));
     child.on("close", (code) => {
       if (code !== 0) {
-        reject(new Error(err.trim() || `decompose agent exited ${code}`));
+        reject(new Error(readErr().trim() || `decompose agent exited ${code}`));
         return;
       }
       try {
-        const parsed = JSON.parse(out.trim());
+        const parsed = JSON.parse(readOut().trim());
         resolve(parsed.units);
       } catch (e) {
         reject(new Error(`could not parse decomposition output: ${e.message}`));
