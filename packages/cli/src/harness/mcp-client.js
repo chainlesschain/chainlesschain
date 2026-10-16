@@ -744,6 +744,51 @@ function mcpTransportError(code, message, details = {}) {
   return error;
 }
 
+function pendingToolFailure(error, entry, method, dispatched) {
+  const httpStatus = safeRpcProperty(error, "status");
+  if (
+    method !== "tools/call" ||
+    !dispatched ||
+    isMcpRpcError(error) ||
+    safeRpcProperty(error, "outcomeUnknown") != null ||
+    (safeRpcProperty(error, "code") === "CC_MCP_HTTP_STATUS" &&
+      (httpStatus === 401 || httpStatus === 403 || httpStatus === 404))
+  ) {
+    return error;
+  }
+  const originalCode = safeRpcProperty(error, "code");
+  if (
+    typeof originalCode === "string" &&
+    originalCode.startsWith("CC_MCP_") &&
+    !isProxy(error) &&
+    error instanceof Error
+  ) {
+    try {
+      error.dispatched = true;
+      error.outcomeUnknown = true;
+      return error;
+    } catch {
+      // A frozen host error still needs a public uncertainty marker.
+    }
+  }
+  const message = safeRpcErrorText(error) || "MCP tool request failed";
+  return mcpTransportError(
+    typeof originalCode === "string" && originalCode.startsWith("CC_MCP_")
+      ? originalCode
+      : "CC_MCP_TOOL_OUTCOME_UNKNOWN",
+    `${message}; tool outcome is unknown and was not replayed`,
+    {
+      transport: entry?.transportKind,
+      url: entry?.config?.url,
+      status: httpStatus,
+      closeCode: safeRpcProperty(error, "closeCode"),
+      limitBytes: safeRpcProperty(error, "limitBytes"),
+      dispatched: true,
+      outcomeUnknown: true,
+    },
+  );
+}
+
 function dispatchMcpToolRequest(options, metadata, dispatch) {
   const admission = options?.dispatchAdmission ?? null;
   if (metadata.method !== "tools/call" || admission === null) {
@@ -916,8 +961,8 @@ function mcpInboundBudgetError(serverName, entry, budget) {
 function mcpJsonBudgetError(serverName, entry, budget) {
   const dispatched = Boolean(
     (entry?._pending instanceof Map && entry._pending.size > 0) ||
-    (entry?._httpRequestControllers instanceof Set &&
-      entry._httpRequestControllers.size > 0),
+      (entry?._httpRequestControllers instanceof Set &&
+        entry._httpRequestControllers.size > 0),
   );
   if (budget === "depth") {
     const limitDepth = mcpJsonDepthLimit(entry?.config?.maxJsonDepth);
@@ -4137,7 +4182,8 @@ export class MCPClient extends EventEmitter {
       };
       const pending = {
         resolve: (value) => settle(resolve, value),
-        reject: (error) => settle(reject, error),
+        reject: (error) =>
+          settle(reject, pendingToolFailure(error, entry, method, dispatched)),
       };
       entry._pending.set(id, pending);
 
@@ -4184,7 +4230,7 @@ export class MCPClient extends EventEmitter {
       if (!longRunning && timeoutMs > 0) {
         timeout = setTimeout(() => {
           const timeoutError = new Error(`Request timeout: ${method}`);
-          if (!settle(reject, timeoutError)) return;
+          if (!pending.reject(timeoutError)) return;
           this._sendRequestCancellation(
             serverName,
             method,
@@ -4276,7 +4322,8 @@ export class MCPClient extends EventEmitter {
       };
       const pending = {
         resolve: (value) => settle(resolve, value),
-        reject: (error) => settle(reject, error),
+        reject: (error) =>
+          settle(reject, pendingToolFailure(error, entry, method, dispatched)),
       };
       entry._pending.set(id, pending);
 
@@ -4314,7 +4361,7 @@ export class MCPClient extends EventEmitter {
             `Request timeout: ${method} (WebSocket, no response in ${timeoutMs}ms)`,
             { transport: entry.transportKind, url: entry.config?.url },
           );
-          if (!settle(reject, timeoutError)) return;
+          if (!pending.reject(timeoutError)) return;
           this._sendRequestCancellation(
             serverName,
             method,
@@ -4853,10 +4900,15 @@ export class MCPClient extends EventEmitter {
         throwIfAborted();
       } catch (abortError) {
         settleLifecycle("failed-closed");
-        throw abortError;
+        throw pendingToolFailure(
+          abortError,
+          entry,
+          method,
+          request?.dispatched,
+        );
       }
       settleLifecycle("failed-closed");
-      throw err;
+      throw pendingToolFailure(err, entry, method, request?.dispatched);
     } finally {
       if (timer) clearTimeout(timer);
       if (responseTimer) clearTimeout(responseTimer);

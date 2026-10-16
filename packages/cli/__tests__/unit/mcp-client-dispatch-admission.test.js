@@ -161,7 +161,7 @@ describe("MCP tool dispatch admission", () => {
     expect(_deps.fetch).toHaveBeenCalledOnce();
   });
 
-  it("rechecks the same host admission for a reconnect retry", async () => {
+  it("does not replay an admitted HTTP tool after a connection reset", async () => {
     const client = new MCPClient();
     const probe = admissionProbe("https");
     let attempt = 0;
@@ -192,6 +192,56 @@ describe("MCP tool dispatch admission", () => {
     await expect(
       client.callTool(
         "retry",
+        "mutate",
+        {},
+        {
+          dispatchAdmission: probe.admission,
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: "CC_MCP_TOOL_OUTCOME_UNKNOWN",
+      dispatched: true,
+      outcomeUnknown: true,
+    });
+    expect(probe.admission).toHaveBeenCalledOnce();
+    expect(_deps.fetch).toHaveBeenCalledOnce();
+    expect(client._tryReconnect).not.toHaveBeenCalled();
+  });
+
+  it("rechecks host admission when a confirmed HTTP 401 is retried", async () => {
+    const client = new MCPClient();
+    const probe = admissionProbe("https");
+    let attempt = 0;
+    _deps.fetch = vi.fn((_url, options) => {
+      probe.assertInside();
+      attempt += 1;
+      if (attempt === 1) {
+        return Promise.resolve({
+          ok: false,
+          status: 401,
+          headers: { get: () => null },
+          body: { cancel: () => Promise.resolve() },
+        });
+      }
+      const request = JSON.parse(options.body);
+      return Promise.resolve(jsonResponse(request.id, { content: [] }));
+    });
+    client.servers.set(
+      "retry-auth",
+      connectedEntry({
+        transportKind: "https",
+        httpUrl: "https://fixture.test/mcp",
+        httpHeaders: {},
+        protocolVersion: "2025-11-25",
+        _httpRequestControllers: new Set(),
+      }),
+    );
+    client._reconnectors.set("retry-auth", vi.fn());
+    client._tryReconnect = vi.fn(async () => true);
+
+    await expect(
+      client.callTool(
+        "retry-auth",
         "mutate",
         {},
         {

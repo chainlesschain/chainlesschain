@@ -357,6 +357,8 @@ describe("MCPClient WebSocket transport contract", () => {
       code: "CC_MCP_WS_REQUEST_TIMEOUT",
       transport: "ws",
       url,
+      dispatched: true,
+      outcomeUnknown: true,
     });
     expect(client.servers.get("silent")._pending.size).toBe(0);
     const cancellation = await Promise.race([
