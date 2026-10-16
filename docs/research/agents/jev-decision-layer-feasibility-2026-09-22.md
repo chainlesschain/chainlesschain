@@ -12,7 +12,7 @@
 
 ## 当前任务完成情况（2026-10-16）
 
-下表按 `main@65de8151cd01ee9c7b153b166734d52022a63f15`、[模块 114 的实现与验收边界](../../design/modules/114-jev-decision-layer-design.md)、[Laya 本地真实权重记录](./jev-laya-local-probe-2026-09-23.md)和[当前 CLI 发行记录](../../design/release-runtime-update-2026-10-16.md)整理；本次未重新运行模型或产品评测。当前公开 CLI 为 `0.166.103`，Jev P0 的首次公开接线及后续修复属于历史发行范围；新 CLI 版本不自动证明 Jev 效果。
+下表按当前源码（向量刷新改动为 `fcc3378bf5`）、[模块 114 的实现与验收边界](../../design/modules/114-jev-decision-layer-design.md)、[Laya 本地真实权重记录](./jev-laya-local-probe-2026-09-23.md)和[当前 CLI 发行记录](../../design/release-runtime-update-2026-10-16.md)整理；本次未重新运行模型或产品评测。当前公开 CLI 为 `0.166.103`，Jev P0 的首次公开接线及后续修复属于历史发行范围；新 CLI 版本不自动证明 Jev 效果。
 
 | 阶段/任务 | 当前状态 | 已完成范围 | 仍需完成 |
 | --- | --- | --- | --- |
