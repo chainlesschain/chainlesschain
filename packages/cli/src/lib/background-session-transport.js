@@ -50,12 +50,20 @@ export function transportPipePath(id, dir, options = {}) {
  */
 export function createNdjsonReader(onMessage, onError = () => {}) {
   let carry = "";
+  let droppingOversizedLine = false;
   const decoder = new TextDecoder("utf-8");
   return (chunk) => {
-    carry +=
+    let text =
       typeof chunk === "string"
         ? chunk
         : decoder.decode(chunk, { stream: true });
+    if (droppingOversizedLine) {
+      const end = text.indexOf("\n");
+      if (end < 0) return;
+      droppingOversizedLine = false;
+      text = text.slice(end + 1);
+    }
+    carry += text;
     let index;
     while ((index = carry.indexOf("\n")) !== -1) {
       const line = carry.slice(0, index).replace(/\r$/, "");
@@ -76,6 +84,7 @@ export function createNdjsonReader(onMessage, onError = () => {}) {
     }
     if (Buffer.byteLength(carry, "utf8") > MAX_LINE_BYTES) {
       carry = "";
+      droppingOversizedLine = true;
       onError(new Error("line too long"));
     }
   };

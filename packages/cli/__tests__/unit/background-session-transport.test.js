@@ -103,6 +103,20 @@ describe("createNdjsonReader", () => {
     expect(errors).toEqual([]);
   });
 
+  it("discards the remainder of an oversized line until its newline", () => {
+    const seen = [];
+    const errors = [];
+    const feed = createNdjsonReader(
+      (message) => seen.push(message),
+      (error) => errors.push(error),
+    );
+    feed("x".repeat(1024 * 1024 + 1));
+    feed('{"type":"same-line"}\n{"type":"next-line"}\n');
+    expect(seen).toEqual([{ type: "next-line" }]);
+    expect(errors).toHaveLength(1);
+    expect(errors[0].message).toBe("line too long");
+  });
+
   it("tolerates CRLF and blank lines, reports bad JSON without dying", () => {
     const seen = [];
     const errors = [];
