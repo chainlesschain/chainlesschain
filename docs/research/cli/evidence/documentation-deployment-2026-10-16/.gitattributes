@@ -1,0 +1,3 @@
+*.log -text -diff
+*-deployment-source.json -text
+docs-build-gate.json -text
