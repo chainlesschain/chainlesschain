@@ -104,6 +104,116 @@ test("an initialization failure before waiter registration rejects saved input i
   assert.equal(conv.inputInitWaiters?.size || 0, 0);
 });
 
+test("a failed live child is stopped before a retry starts a new child", async () => {
+  let stops = 0;
+  let starts = 0;
+  const oldSession = {
+    running: true,
+    stopAndWait: () => {
+      stops++;
+      oldSession.running = false;
+      return Promise.resolve();
+    },
+  };
+  const replacement = { running: true, sendEvent: () => true };
+  const provider = new ChatViewProvider(
+    {
+      workspace: {
+        getConfiguration: () => ({ get: () => undefined }),
+        workspaceFolders: [],
+      },
+    },
+    {
+      deps: {
+        createSession: () => {
+          starts++;
+          return replacement;
+        },
+        resolveChatLlm: () => ({}),
+      },
+    },
+  );
+  provider._cliCommand = () => "cc";
+  provider._indexConversation = () => {};
+  provider._post = () => {};
+  provider._postFrom = () => {};
+  provider._updateModeStatus = () => {};
+  const conv = provider._activeConv();
+  conv.sessionId = "panel-retry";
+  conv.inputInitError = new Error("provider credentials were rejected");
+  conv.inputInitErrorReported = true;
+  provider._convs.setSession(conv.id, oldSession);
+
+  assert.equal(provider._ensureSession(conv).running, false);
+  assert.equal(stops, 1);
+  assert.equal(starts, 0);
+  await Promise.resolve();
+  assert.equal(provider._ensureSession(conv), replacement);
+  assert.equal(starts, 1);
+  assert.equal(conv.inputInitError, null);
+});
+
+test("one explicit resend waits for failed child exit and replacement init", async () => {
+  const { conv, onEvent, provider, send, writes } = makeSubmission();
+  const failed = conv.session;
+  let stops = 0;
+  failed.stopAndWait = () => {
+    stops++;
+    failed.running = false;
+    return Promise.resolve();
+  };
+  onEvent({ type: "result", is_error: true, error: "HTTP 401 unauthorized" });
+  assert.equal(await send(), false);
+  assert.equal(stops, 0);
+  assert.deepEqual(writes, []);
+  let replacementEvent;
+  provider._ensureSession = () => {
+    const token = {};
+    const replacement = {
+      running: true,
+      sendEvent: (event) => {
+        writes.push(event);
+        return true;
+      },
+    };
+    conv._sessionToken = token;
+    conv.inputReceiptVersion = undefined;
+    conv.inputInitError = null;
+    provider._convs.setSession(conv.id, replacement);
+    replacementEvent = provider._makeOnEvent(conv.id, token);
+    return replacement;
+  };
+
+  const retry = send();
+  await waitForInitWaiter(conv);
+  assert.equal(stops, 1);
+  assert.deepEqual(writes, []);
+  replacementEvent({
+    type: "system",
+    subtype: "init",
+    input_receipts: { version: 1 },
+  });
+  assert.equal(await retry, true);
+  assert.equal(writes.length, 1);
+});
+
+test("a retry keeps its draft when failed child termination is unconfirmed", async () => {
+  const { conv, onEvent, provider, send, writes } = makeSubmission();
+  onEvent({ type: "result", is_error: true, error: "HTTP 401 unauthorized" });
+  assert.equal(await send(), false);
+  conv.session.stopAndWait = () => Promise.reject(new Error("kill failed"));
+  let starts = 0;
+  provider._ensureSession = () => {
+    starts++;
+    return { running: true, sendEvent: () => true };
+  };
+
+  assert.equal(await send(), false);
+  assert.equal(starts, 0);
+  assert.deepEqual(writes, []);
+  assert.equal(conv.stoppingSession.status, "failed");
+});
+
 for (const { label, event, expected } of [
   {
     label: "missing CLI process",

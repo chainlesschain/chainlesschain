@@ -483,7 +483,7 @@ class ChatViewProvider {
     const id = /^[a-zA-Z0-9_-]{1,80}$/.test(message.clientMessageId || "")
       ? message.clientMessageId
       : crypto.randomUUID();
-    const inputCancelRevision = conv.inputCancelRevision || 0;
+    let inputCancelRevision = conv.inputCancelRevision || 0;
     const assertInputNotCancelled = () => {
       if ((conv.inputCancelRevision || 0) !== inputCancelRevision) {
         throw new Error(
@@ -494,6 +494,22 @@ class ChatViewProvider {
     let prepared = false;
     let dispatched = false;
     try {
+      if (
+        conv.inputInitError &&
+        conv.inputInitErrorReported &&
+        conv.session?.running
+      ) {
+        // Stop a failed initializer before this explicit retry prepares its
+        // draft. A later Stop still cancels this retry during termination.
+        this._stopSession(conv, { requireConfirmation: true });
+        inputCancelRevision = conv.inputCancelRevision || 0;
+        await conv.stoppingSession?.completion;
+        assertInputNotCancelled();
+        if (conv.stoppingSession)
+          throw new Error(
+            "The previous agent has not confirmed termination; input was not dispatched",
+          );
+      }
       if (!conv.sessionId) conv.sessionId = `panel-${crypto.randomUUID()}`;
       await this._persistTabs();
       const input = await this._draftStore.prepare(key, conv.sessionId, id, {
@@ -541,6 +557,7 @@ class ChatViewProvider {
       await this._restoreDraft(conv, { composer: false });
       return true;
     } catch (error) {
+      if (error === conv.inputInitError) conv.inputInitErrorReported = true;
       if (prepared && !dispatched)
         await this._draftStore.settle(key, id, "rejected").catch(() => {});
       this._post({
@@ -1199,6 +1216,7 @@ class ChatViewProvider {
       waiter.reject(new Error("Agent stopped; input was not dispatched"));
     conv.inputReceiptVersion = undefined;
     conv.inputInitError = null;
+    conv.inputInitErrorReported = false;
     if (conv.worklogHandoff) {
       clearTimeout(conv.worklogHandoff.timer);
       conv.worklogHandoff = null;
@@ -1223,7 +1241,7 @@ class ChatViewProvider {
       conv.modeStatus = "pending";
       // Reserve the barrier before invoking stop: a child can close synchronously.
       try {
-        Promise.resolve(session.stopAndWait()).then(
+        stopping.completion = Promise.resolve(session.stopAndWait()).then(
           () => {
             if (conv.stoppingSession !== stopping) return;
             conv.stoppingSession = null;
@@ -1338,6 +1356,7 @@ class ChatViewProvider {
           (evt?.type === "result" && evt.is_error))
       ) {
         conv.inputInitError = new Error(agentInitFailure(evt));
+        conv.inputInitErrorReported = false;
         for (const waiter of conv.inputInitWaiters || [])
           waiter.reject(conv.inputInitError);
       }
@@ -2225,6 +2244,12 @@ class ChatViewProvider {
         ? configuredMaxTurns
         : null;
     if (conv.session?.running) {
+      // An initialization error can arrive while the child remains alive.
+      // A retry must retire that child before starting a fresh initialization.
+      if (conv.inputInitError && conv.inputInitErrorReported) {
+        this._stopSession(conv, { requireConfirmation: true });
+        return { running: false, send: () => false, sendEvent: () => false };
+      }
       // Apply a changed cap on the next idle turn, preserving the resume id.
       // A setting edit must never interrupt work or a pending approval.
       if (conv.turnActive || conv.maxTurns === maxTurns) return conv.session;
@@ -2260,6 +2285,7 @@ class ChatViewProvider {
     conv._sessionToken = sessionToken;
     conv.inputReceiptVersion = undefined;
     conv.inputInitError = null;
+    conv.inputInitErrorReported = false;
     conv.modeRequestId = crypto.randomUUID();
     conv.modeStatus = "pending";
     conv.modeError = "";
