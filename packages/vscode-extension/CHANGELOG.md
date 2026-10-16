@@ -2,6 +2,14 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.149] - Session recovery and CLI 0.166.104 pairing (2026-10-17)
+
+- Recommend CLI `0.166.104` after its exact-commit npm release and readback.
+- Restart a failed Agent process before resending saved input, and preserve
+  split UTF-8 output and bounded diagnostics through the shared SDK vendor.
+- Keep formal paid evaluation unavailable; this release does not claim a
+  completed 36-task or nine-install result.
+
 ## [0.37.148] - Recover draft storage capacity (2026-10-16)
 
 - Reclaim empty records and recovery copies containing only accepted inputs

@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.104: recover governed sessions safely
+
+- Verify Jev model usage starts and settlements before resuming a durable
+  session; stop further provider calls when usage or persistence is unresolved.
+- Bind session budget roots to verified JSONL for single-prompt, stream-json and
+  REPL entry points, retaining the original limits across resume.
+- Preserve UTF-8 in background, batch and SDK process streams; reject malformed
+  background frames and stale MCP tool catalogs before dispatch.
+- Publish Agent SDK 0.2.15 before this CLI release, then pair VS Code 0.37.149
+  and JetBrains 0.4.166 with CLI 0.166.104 after exact-commit gates and public
+  npm readback. Formal paid evaluation remains NOT_RUN.
+
 ### Fixed - cc CLI 0.166.103: reject ungoverned formal budget exits
 
 - Keep formal paid evaluation closed while budgeted requests lack production

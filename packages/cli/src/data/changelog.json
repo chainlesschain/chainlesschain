@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.104",
+      "cliVersions": ["0.166.104"],
+      "date": null,
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.104: recover governed sessions safely",
+          "body": "- Verify Jev model usage starts and settlements before resuming a durable\n  session; stop further provider calls when usage or persistence is unresolved.\n- Bind session budget roots to verified JSONL for single-prompt, stream-json and\n  REPL entry points, retaining the original limits across resume.\n- Preserve UTF-8 in background, batch and SDK process streams; reject malformed\n  background frames and stale MCP tool catalogs before dispatch.\n- Publish Agent SDK 0.2.15 before this CLI release, then pair VS Code 0.37.149\n  and JetBrains 0.4.166 with CLI 0.166.104 after exact-commit gates and public\n  npm readback. Formal paid evaluation remains NOT_RUN."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.103",
       "cliVersions": ["0.166.103"],
       "date": null,

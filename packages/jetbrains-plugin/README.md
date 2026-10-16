@@ -5,9 +5,9 @@ JetBrains counterpart of the [VS Code extension](../vscode-extension/): it lets
 the ChainlessChain **`cc` agent CLI** read editor context and propose native
 diffs inside IntelliJ-platform IDEs (IDEA, PyCharm, WebStorm, …).
 
-Candidate **0.4.165** recommends CLI **0.166.103** after public CLI availability and the final commit's CLI, IDE, and ARM64 release gates pass. This pairing is not published yet; Marketplace approval and public download must be verified separately. A system C compiler named `cc` is not a ChainlessChain CLI installation; configure an explicit CLI path or use the install/repair flow when identity checks fail. [Upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-10.html).
+Candidate **0.4.166** recommends CLI **0.166.104** after public CLI availability and the final commit's CLI, IDE, and ARM64 release gates pass. This pairing is not published yet; Marketplace approval and public download must be verified separately. A system C compiler named `cc` is not a ChainlessChain CLI installation; configure an explicit CLI path or use the install/repair flow when identity checks fail. [Upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-10.html).
 
-This candidate recommends CLI 0.166.103 with Context Memory Kernel 0.1.10, which rejects compaction that would empty a nonempty context or drop its newly derived summary. Rejection preserves the session context and head while retaining settled provider usage. Restart the chat host and run Doctor after upgrading. Formal evaluation and full native review require separate acceptance.
+This candidate recommends CLI 0.166.104 with Context Memory Kernel 0.1.10, which rejects compaction that would empty a nonempty context or drop its newly derived summary. Rejection preserves the session context and head while retaining settled provider usage. Restart the chat host and run Doctor after upgrading. Formal evaluation and full native review require separate acceptance.
 
 [Task notes and fresh-conversation handoff](../../docs/features/ide-task-worklog-user-guide.md) explains automatic Markdown checkpoints and `Continue in new chat`, introduced in `0.4.126`.
 
@@ -26,19 +26,19 @@ the corresponding exact-gated CLI command, as documented below.
 
 ## Release compatibility
 
-Candidate 0.4.165 pairs with CLI 0.166.103 for task scope, finite-budget delivery
+Candidate 0.4.166 pairs with CLI 0.166.104 for task scope, finite-budget delivery
 guidance, authentication usage and first-run diagnostics. Experimental native review and durable
 Windows/macOS recovery require separate acceptance.
 
 The new pairing remains unpublished and requires its exact-commit release gates.
-CLI `0.166.103` pairs with Session Core `0.3.19` and Context/Memory Kernel
+CLI `0.166.104` pairs with Session Core `0.3.19` and Context/Memory Kernel
 `0.1.10`, including scheduler initialization before Windows sidecar ACL protection
 and canonical record/replay digest handling that retains captured-content
 secret and PII checks.
 
-After CLI `0.166.103` is published, install it with
-`npm i -g chainlesschain@0.166.103`, check `cc --version`, and upgrade to plugin
-`0.4.165` when available. Restart the IDE and check Doctor for the actual CLI
+After CLI `0.166.104` is published, install it with
+`npm i -g chainlesschain@0.166.104`, check `cc --version`, and upgrade to plugin
+`0.4.166` when available. Restart the IDE and check Doctor for the actual CLI
 identity and capabilities; the existing compatibility floor still applies.
 
 The Windows 2025.2 installed-ZIP test host disables development automatic plugin
@@ -153,7 +153,7 @@ after this exact IDE commit passes its gates.
   settlement. Trust, approval, and publication authority stay in the CLI host;
   the plugin receives bounded projections only.
 
-Plugin **0.4.165** is the current release candidate that re-certifies the read-only
+Plugin **0.4.165** was the previous release that re-certified the read-only
 Context Center, canonical Context/Memory projection, and runtime
 permission/side-effect evidence while carrying
 forward governed automatic ghost-text completion and the Automation Center for
