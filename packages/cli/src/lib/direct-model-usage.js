@@ -54,6 +54,8 @@ function unknownUsageEvent({
  * Meter one direct provider call that runs outside agentLoop. The started row is
  * durable before the callback resumes into provider work; every outcome then
  * settles known or unknown without persisting prompts, responses, or errors.
+ * A dispatch signal closes an acknowledged, canceled pre-dispatch intent with
+ * locally proven zero usage; cancellation after dispatch remains unknown.
  * Opt-in includeSettlement returns that persisted status with the raw result.
  */
 export async function runMeteredDirectModelCall({
@@ -65,11 +67,20 @@ export async function runMeteredDirectModelCall({
   operationId = undefined,
   sessionBudget = null,
   includeSettlement = false,
+  dispatchSignal = null,
   call,
 }) {
   if (typeof call !== "function") {
     throw new TypeError("metered direct model call requires a callback");
   }
+  if (
+    dispatchSignal !== null &&
+    (typeof dispatchSignal.aborted !== "boolean" ||
+      typeof dispatchSignal.throwIfAborted !== "function")
+  ) {
+    throw new TypeError("metered direct model dispatch signal is invalid");
+  }
+  dispatchSignal?.throwIfAborted();
   const callId = `direct-${randomUUID()}`;
   if (typeof sessionBudget?.consumeTurn === "function") {
     const admission = sessionBudget.consumeTurn({ id: callId });
@@ -84,6 +95,7 @@ export async function runMeteredDirectModelCall({
     if (includeSettlement) {
       throw new TypeError("direct model settlement requires a session");
     }
+    dispatchSignal?.throwIfAborted();
     return call();
   }
   if (typeof persist !== "function") {
@@ -102,6 +114,28 @@ export async function runMeteredDirectModelCall({
     { callId, provider, model, source, operationId },
     `direct model call ${source}`,
   );
+  if (dispatchSignal?.aborted) {
+    // A durable intent exists, but no provider callback has run. Close it as
+    // a locally proven zero-charge call instead of inventing unknown usage.
+    const notDispatched = {
+      ...projectRuntimeTokenUsage({
+        callId,
+        provider,
+        model,
+        source,
+        operationId,
+        usage: { input_tokens: 0, output_tokens: 0 },
+      }),
+      settlementOrigin: "local-no-dispatch",
+    };
+    await persistUsageEvent(persist, "token_usage", notDispatched);
+    recordSessionBudgetUsage(
+      sessionBudget,
+      { callId, usage: null },
+      `direct model call ${source} canceled before dispatch`,
+    );
+    throw dispatchSignal.reason;
+  }
   let result;
   let settlement = "unknown";
   const returnSettled = (status) =>

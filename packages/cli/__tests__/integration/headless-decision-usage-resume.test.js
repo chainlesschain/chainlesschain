@@ -103,6 +103,45 @@ const validAnswer = {
 };
 
 describe("headless decision usage recovery with real JSONL", () => {
+  it("resumes after a durably canceled pre-dispatch decision without unknown usage", async () => {
+    const sessionId = "decision-usage-not-dispatched";
+    startSession(sessionId);
+    const controller = new AbortController();
+    const reason = new DOMException("user canceled", "AbortError");
+    const call = vi.fn();
+    await expect(
+      runMeteredDirectModelCall({
+        sessionId,
+        persist: (type, data) => {
+          appendEvent(sessionId, type, data);
+          if (type === "model_usage_started") controller.abort(reason);
+        },
+        provider: "typesafe",
+        model: "jev-test",
+        operationId: "decision:pre-dispatch",
+        dispatchSignal: controller.signal,
+        call,
+      }),
+    ).rejects.toBe(reason);
+    expect(call).not.toHaveBeenCalled();
+    expect(findLatestEvent(sessionId, "model_usage_unknown")).toBeNull();
+    expect(findLatestEvent(sessionId, "token_usage")?.data).toMatchObject({
+      settlementOrigin: "local-no-dispatch",
+      usage: { input_tokens: 0, output_tokens: 0 },
+    });
+
+    const decide = vi.fn().mockResolvedValue(validAnswer);
+    const resumed = makeRun(decide, sessionId, true);
+    expect(await runAgentHeadless(resumed.options, resumed.deps)).toMatchObject(
+      {
+        exitCode: 0,
+        isError: false,
+      },
+    );
+    expect(resumed.decisions[0]).toMatchObject({ status: "suggestion" });
+    expect(decide).toHaveBeenCalledOnce();
+  });
+
   it("does not confuse an unrelated model usage event with decision usage", async () => {
     const sessionId = "decision-usage-unrelated";
     startSession(sessionId);

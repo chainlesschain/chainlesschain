@@ -288,6 +288,7 @@ export function createSkillDecisionRuntime({
             operationId: `decision:${decisionId}`,
             sessionBudget,
             includeSettlement: true,
+            dispatchSignal: signal ?? null,
             call: () => {
               if (unknownUsageSeen) {
                 const error = new Error("decision usage recovery is required");

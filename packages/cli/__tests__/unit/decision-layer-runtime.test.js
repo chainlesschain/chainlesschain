@@ -323,6 +323,50 @@ describe("Skill decision runtime", () => {
     expect(options.observe).not.toHaveBeenCalled();
   });
 
+  it("does not invent unknown provider usage when canceled during started persistence", async () => {
+    const controller = new AbortController();
+    const reason = new DOMException("user canceled", "AbortError");
+    let entered;
+    let release;
+    const started = new Promise((resolve) => {
+      entered = resolve;
+    });
+    const pendingWrite = new Promise((resolve) => {
+      release = resolve;
+    });
+    const decide = vi.fn(async () => successfulProvider().decide());
+    const options = runtimeOptions({
+      provider: successfulProvider(decide),
+      persist: vi.fn(async (type) => {
+        if (type === "model_usage_started") {
+          entered();
+          await pendingWrite;
+        }
+      }),
+    });
+    const runtime = createSkillDecisionRuntime(options);
+    const input = {
+      query: "repair tests",
+      candidates: candidates(),
+      turnId: "turn-a",
+    };
+    const pending = runtime.suggest({ ...input, signal: controller.signal });
+    await started;
+    controller.abort(reason);
+    release();
+    await expect(pending).rejects.toBe(reason);
+    expect(decide).not.toHaveBeenCalled();
+    expect(options.persist.mock.calls.map(([type]) => type)).toEqual([
+      "model_usage_started",
+      "token_usage",
+    ]);
+    expect(options.observe).not.toHaveBeenCalled();
+    await expect(
+      runtime.suggest({ ...input, turnId: "turn-b" }),
+    ).resolves.toMatchObject({ status: "suggestion" });
+    expect(decide).toHaveBeenCalledOnce();
+  });
+
   it("discards a successful late answer after caller cancellation and records unknown usage", async () => {
     const controller = new AbortController();
     const reason = new DOMException("user canceled", "AbortError");

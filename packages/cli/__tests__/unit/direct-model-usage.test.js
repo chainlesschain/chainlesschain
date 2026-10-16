@@ -10,6 +10,28 @@ const BASE = {
 };
 
 describe("direct model usage ledger", () => {
+  it("does not reserve a turn or start usage for an already canceled dispatch", async () => {
+    const controller = new AbortController();
+    const reason = new DOMException("user canceled", "AbortError");
+    controller.abort(reason);
+    const budget = new SessionResourceBudget({ maxTurns: 2 });
+    const persist = vi.fn();
+    const call = vi.fn();
+    await expect(
+      runMeteredDirectModelCall({
+        ...BASE,
+        sessionBudget: budget,
+        dispatchSignal: controller.signal,
+        persist,
+        call,
+      }),
+    ).rejects.toBe(reason);
+    expect(budget.status().turns).toBe(0);
+    expect(persist).not.toHaveBeenCalled();
+    expect(call).not.toHaveBeenCalled();
+    budget.dispose();
+  });
+
   it("settles the durable provider ledger before charging the session budget", async () => {
     const order = [];
     const budget = new SessionResourceBudget({
@@ -39,6 +61,78 @@ describe("direct model usage ledger", () => {
     );
     expect(budget.status()).toMatchObject({ turns: 1, tokens: 3 });
     budget.dispose();
+  });
+
+  it("closes a canceled started intent with proven zero usage before dispatch", async () => {
+    const controller = new AbortController();
+    const reason = new DOMException("user canceled", "AbortError");
+    const budget = new SessionResourceBudget({ maxTurns: 2, maxTokens: 10 });
+    const records = [];
+    let entered;
+    let release;
+    const started = new Promise((resolve) => {
+      entered = resolve;
+    });
+    const pendingWrite = new Promise((resolve) => {
+      release = resolve;
+    });
+    const call = vi.fn();
+    const pending = runMeteredDirectModelCall({
+      ...BASE,
+      sessionBudget: budget,
+      dispatchSignal: controller.signal,
+      persist: async (type, event) => {
+        records.push({ type, event });
+        if (type === "model_usage_started") {
+          entered();
+          await pendingWrite;
+        }
+      },
+      call,
+    });
+    await started;
+    controller.abort(reason);
+    release();
+    await expect(pending).rejects.toBe(reason);
+    expect(call).not.toHaveBeenCalled();
+    expect(records.map(({ type }) => type)).toEqual([
+      "model_usage_started",
+      "token_usage",
+    ]);
+    expect(records[1].event).toMatchObject({
+      callId: records[0].event.callId,
+      settlementOrigin: "local-no-dispatch",
+      usage: { input_tokens: 0, output_tokens: 0 },
+    });
+    expect(budget.status()).toMatchObject({
+      turns: 1,
+      tokens: 0,
+      pendingUsage: 0,
+      recoveryRequired: false,
+    });
+    budget.dispose();
+  });
+
+  it("keeps a failed no-dispatch settlement terminal without calling the provider", async () => {
+    const controller = new AbortController();
+    const call = vi.fn();
+    const persist = vi.fn(async (type) => {
+      if (type === "model_usage_started") controller.abort();
+      if (type === "token_usage") throw new Error("ledger unavailable");
+    });
+    await expect(
+      runMeteredDirectModelCall({
+        ...BASE,
+        dispatchSignal: controller.signal,
+        persist,
+        call,
+      }),
+    ).rejects.toMatchObject({ runtimeLedgerPersistence: true });
+    expect(persist.mock.calls.map(([type]) => type)).toEqual([
+      "model_usage_started",
+      "token_usage",
+    ]);
+    expect(call).not.toHaveBeenCalled();
   });
 
   it("leaves exact recovery authority when provider usage is missing", async () => {
