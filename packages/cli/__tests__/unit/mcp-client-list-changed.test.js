@@ -175,4 +175,44 @@ describe("MCPClient list_changed refresh", () => {
     expect(refetches).toBeGreaterThanOrEqual(1);
     expect(refetches).toBeLessThanOrEqual(2); // never 5
   });
+
+  it("discards a late list result after the server entry is replaced", async () => {
+    const client = new MCPClient();
+    const oldEntry = { config: {}, tools: [], _toolMetadataBytes: 0 };
+    client.servers.set("srv", oldEntry);
+    client._replaceToolInventory("srv", oldEntry, [
+      { name: "old", inputSchema: { type: "object" } },
+    ]);
+    let resolveList;
+    let calls = 0;
+    client._sendRequest = () => {
+      calls++;
+      return new Promise((resolve) => {
+        resolveList = resolve;
+      });
+    };
+    const changed = [];
+    client.on("tools-changed", (event) => changed.push(event));
+
+    const pending = client._refreshServerList("srv", "tools");
+    await client._refreshServerList("srv", "tools"); // mark a trailing pass
+    client._releaseToolInventory(oldEntry);
+    const newEntry = { config: {}, tools: [], _toolMetadataBytes: 0 };
+    client.servers.set("srv", newEntry);
+    client._replaceToolInventory("srv", newEntry, [
+      { name: "current", inputSchema: { type: "object" } },
+    ]);
+    const currentBudget = client._toolMetadataBytes;
+
+    resolveList({ tools: [{ name: "stale", inputSchema: { type: "object" } }] });
+    await pending;
+
+    expect(calls).toBe(1);
+    expect(oldEntry.tools).toEqual([]);
+    expect(client.listTools("srv").map((tool) => tool.name)).toEqual([
+      "current",
+    ]);
+    expect(client._toolMetadataBytes).toBe(currentBudget);
+    expect(changed).toEqual([]);
+  });
 });

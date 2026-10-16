@@ -5346,6 +5346,7 @@ export class MCPClient extends EventEmitter {
     flags[`${kind}Running`] = true;
     try {
       do {
+        if (this.servers.get(serverName) !== entry) return;
         flags[`${kind}Dirty`] = false;
         try {
           const method =
@@ -5355,6 +5356,10 @@ export class MCPClient extends EventEmitter {
                 ? "resources/templates/list"
                 : "resources/list";
           const result = await this._sendRequest(serverName, method, {});
+          // A reconnect can replace this entry while the old list request is
+          // pending. Never let its late result mutate the replacement's global
+          // metadata budget or publish a stale inventory event.
+          if (this.servers.get(serverName) !== entry) return;
           const list =
             (kind === "tools"
               ? result?.tools
@@ -5372,6 +5377,7 @@ export class MCPClient extends EventEmitter {
             count: list.length,
           });
         } catch (error) {
+          if (this.servers.get(serverName) !== entry) return;
           if (kind === "tools" && isMcpToolMetadataError(error)) {
             entry.toolsError = error.message;
             this.emit("server-error", {
