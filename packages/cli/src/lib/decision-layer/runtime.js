@@ -39,6 +39,7 @@ function timeoutSignal(signal, timeoutMs) {
 
 function settleBeforeAbort(value, signal) {
   const pending = Promise.resolve(value);
+  if (!signal) return pending;
   return new Promise((resolve, reject) => {
     let settled = false;
     const finish = (settle, result) => {
@@ -208,7 +209,10 @@ export function createSkillDecisionRuntime({
           const admission =
             ingress === null
               ? null
-              : await ingress.prepareSkillDecisionRequest(request);
+              : await settleBeforeAbort(
+                  ingress.prepareSkillDecisionRequest(request),
+                  signal,
+                );
           signal?.throwIfAborted();
           admissionReceipt = admission?.receipt ?? null;
           // Keep local content identities out of the provider capability. Only

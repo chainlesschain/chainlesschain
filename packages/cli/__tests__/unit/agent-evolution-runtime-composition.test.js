@@ -3625,6 +3625,30 @@ describe("Agent evolution runtime production composition", () => {
     expect(f.events).toEqual([]);
   }, 60_000);
 
+  it("ends a canceled typed admission even when its evidence authority never returns", async () => {
+    const f = skillDecisionFixture();
+    const controller = new AbortController();
+    const reason = new DOMException("cancelled", "AbortError");
+    let enter;
+    const entered = new Promise((resolve) => {
+      enter = resolve;
+    });
+    f.config.authorities.sourceEnvelope.issue.mockImplementation(async () => {
+      enter();
+      return new Promise(() => {});
+    });
+    const pending = f.runtime.suggest({
+      ...f.input,
+      signal: controller.signal,
+    });
+    await entered;
+    controller.abort(reason);
+    await expect(pending).rejects.toBe(reason);
+    expect(f.fetchImpl).not.toHaveBeenCalled();
+    expect(f.events).toEqual([]);
+    expect(f.observations).toEqual([]);
+  }, 60_000);
+
   it("captures typed evidence before awaits and latches a concurrent malformed admission", async () => {
     const f = skillDecisionFixture();
     const request = structuredClone(
