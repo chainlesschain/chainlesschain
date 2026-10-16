@@ -239,6 +239,41 @@ describe("Skill decision runtime", () => {
     );
   });
 
+  it("bounds a provider that ignores its deadline and blocks later unknown usage", async () => {
+    const decide = vi.fn(() => new Promise(() => {}));
+    let sequence = 0;
+    const options = runtimeOptions({
+      timeoutMs: 50,
+      provider: successfulProvider(decide),
+      idGenerator: () => `decision-${++sequence}`,
+    });
+    const runtime = createSkillDecisionRuntime(options);
+    const first = await runtime.suggest({
+      query: "repair tests",
+      candidates: candidates(),
+      turnId: "turn-a",
+    });
+    expect(first).toMatchObject({
+      status: "unavailable",
+      reasonCode: "provider-timeout",
+      selectedDigest: null,
+    });
+    expect(options.persist.mock.calls.map(([type]) => type)).toEqual([
+      "model_usage_started",
+      "model_usage_unknown",
+    ]);
+    const second = await runtime.suggest({
+      query: "repair tests",
+      candidates: candidates(),
+      turnId: "turn-b",
+    });
+    expect(second).toMatchObject({
+      status: "unavailable",
+      reasonCode: "provider-usage-unknown-blocked",
+    });
+    expect(decide).toHaveBeenCalledOnce();
+  });
+
   it("keeps user cancellation terminal even when the provider aborts", async () => {
     const controller = new AbortController();
     const reason = new DOMException("user canceled", "AbortError");
@@ -259,7 +294,36 @@ describe("Skill decision runtime", () => {
     expect(options.observe).not.toHaveBeenCalled();
   });
 
-  it("discards a successful late answer after caller cancellation while keeping known usage", async () => {
+  it("ends a canceled wait when the provider ignores its signal", async () => {
+    const controller = new AbortController();
+    const reason = new DOMException("user canceled", "AbortError");
+    let entered;
+    const started = new Promise((resolve) => {
+      entered = resolve;
+    });
+    const options = runtimeOptions({
+      provider: successfulProvider(() => {
+        entered();
+        return new Promise(() => {});
+      }),
+    });
+    const result = createSkillDecisionRuntime(options).suggest({
+      query: "repair tests",
+      candidates: candidates(),
+      turnId: "turn-a",
+      signal: controller.signal,
+    });
+    await started;
+    controller.abort(reason);
+    await expect(result).rejects.toBe(reason);
+    expect(options.persist.mock.calls.map(([type]) => type)).toEqual([
+      "model_usage_started",
+      "model_usage_unknown",
+    ]);
+    expect(options.observe).not.toHaveBeenCalled();
+  });
+
+  it("discards a successful late answer after caller cancellation and records unknown usage", async () => {
     const controller = new AbortController();
     const reason = new DOMException("user canceled", "AbortError");
     const valid = await successfulProvider().decide();
@@ -290,12 +354,12 @@ describe("Skill decision runtime", () => {
     await expect(result).rejects.toBe(reason);
     expect(options.persist.mock.calls.map(([type]) => type)).toEqual([
       "model_usage_started",
-      "token_usage",
+      "model_usage_unknown",
     ]);
     expect(options.observe).not.toHaveBeenCalled();
   });
 
-  it("discards an answer returned after the provider deadline with known usage", async () => {
+  it("discards an answer returned after the provider deadline with unknown usage", async () => {
     const valid = await successfulProvider().decide();
     const options = runtimeOptions({
       timeoutMs: 50,
@@ -316,7 +380,7 @@ describe("Skill decision runtime", () => {
     });
     expect(options.persist.mock.calls.map(([type]) => type)).toEqual([
       "model_usage_started",
-      "token_usage",
+      "model_usage_unknown",
     ]);
   });
 

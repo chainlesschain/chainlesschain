@@ -37,6 +37,29 @@ function timeoutSignal(signal, timeoutMs) {
   return signal ? AbortSignal.any([signal, deadline]) : deadline;
 }
 
+function settleBeforeAbort(value, signal) {
+  const pending = Promise.resolve(value);
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const finish = (settle, result) => {
+      if (settled) return;
+      settled = true;
+      signal.removeEventListener("abort", onAbort);
+      settle(result);
+    };
+    const onAbort = () => finish(reject, signal.reason);
+    pending.then(
+      (result) => finish(resolve, result),
+      (error) => finish(reject, error),
+    );
+    if (signal.aborted) {
+      onAbort();
+      return;
+    }
+    signal.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
 function projectUnavailable(error) {
   if (error?.name === "TimeoutError") return "provider-timeout";
   if (error?.code === "CC_DECISION_USAGE_UNKNOWN_BLOCKED") {
@@ -213,9 +236,12 @@ export function createSkillDecisionRuntime({
               // its own authority lifecycle and checks caller cancellation.
               requestSignal = timeoutSignal(signal, timeoutMs);
               requestSignal.throwIfAborted();
-              return providerAuthority.decide(providerRequest, {
-                signal: requestSignal,
-              });
+              return settleBeforeAbort(
+                providerAuthority.decide(providerRequest, {
+                  signal: requestSignal,
+                }),
+                requestSignal,
+              );
             },
           });
           // A provider may resolve successfully after ignoring cancellation or
