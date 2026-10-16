@@ -32,7 +32,185 @@ function receipt(sessionId, clientMessageId) {
   };
 }
 
+async function seedDrafts(root, count, overrides = {}) {
+  const keys = [];
+  for (let i = 0; i < count; i++) {
+    const key = randomUUID();
+    const directory = path.join(root, key);
+    await fs.mkdir(directory);
+    await fs.writeFile(
+      path.join(directory, "draft.json"),
+      JSON.stringify({
+        version: 1,
+        key,
+        composer: { text: "", images: [] },
+        pending: [
+          {
+            id: "old-input",
+            sessionId: "session",
+            text: "already sent",
+            images: [],
+            status: "accepted",
+            receipt: receipt("session", "old-input"),
+          },
+        ],
+        questions: [],
+        ...overrides,
+      }),
+    );
+    keys.push(key);
+  }
+  return keys;
+}
+
 describe("durable composer storage", () => {
+  it.each(["text", "image", "submission"])(
+    "reclaims accepted-only legacy records at the conversation limit for a new %s",
+    async (kind) => {
+      const root = await storage();
+      await seedDrafts(root, 128);
+      const store = new DraftStore(root);
+      const key = randomUUID();
+      if (kind === "submission") {
+        await store.prepare(key, "session", "new-input", {
+          text: "new input",
+          images: [],
+        });
+        expect((await store.view(key)).pending[0].status).toBe("prepared");
+      } else {
+        await store.save(key, {
+          text: "new input",
+          ...(kind === "image" ? { images: [image] } : {}),
+        });
+        const saved = await new DraftStore(root).view(key);
+        expect(saved.composer.text).toBe("new input");
+        expect(saved.composer.images).toHaveLength(kind === "image" ? 1 : 0);
+      }
+      expect((await fs.readdir(root)).length).toBeLessThanOrEqual(128);
+    },
+  );
+
+  it("preserves editable, unconfirmed, rejected, question and unreadable drafts during reclamation", async () => {
+    const root = await storage();
+    const [textKey] = await seedDrafts(root, 1, {
+      composer: { text: "unsent 中文", images: [] },
+    });
+    const store = new DraftStore(root);
+    const imageKey = randomUUID();
+    await store.save(imageKey, { text: "", images: [image] });
+    const pendingKeys = [];
+    for (const status of ["prepared", "unknown", "rejected"]) {
+      const key = randomUUID();
+      await store.prepare(key, "session", status, {
+        text: status,
+        images: [image],
+      });
+      if (status !== "prepared") await store.settle(key, status, status);
+      pendingKeys.push(key);
+    }
+    const questionKey = randomUUID();
+    await store.saveQuestion(questionKey, {
+      id: randomUUID(),
+      digest: "a".repeat(64),
+      sessionId: "session",
+      requestId: "question",
+      title: "Saved answer",
+      text: "keep answer",
+      fields: [],
+      status: "archived",
+    });
+    const [invalidKey] = await seedDrafts(root, 1);
+    await fs.writeFile(path.join(root, invalidKey, "draft.json"), "broken");
+    const protectedKeys = [
+      textKey,
+      imageKey,
+      ...pendingKeys,
+      questionKey,
+      invalidKey,
+    ];
+    const before = await Promise.all(
+      protectedKeys.map((key) =>
+        fs.readFile(path.join(root, key, "draft.json")),
+      ),
+    );
+    await seedDrafts(root, 128 - protectedKeys.length);
+    await store.save(randomUUID(), { text: "new draft" });
+    expect(
+      await Promise.all(
+        protectedKeys.map((key) =>
+          fs.readFile(path.join(root, key, "draft.json")),
+        ),
+      ),
+    ).toEqual(before);
+    expect((await store.view(imageKey)).composer.images[0].data).toBe(
+      image.data,
+    );
+    for (const key of pendingKeys)
+      expect(
+        (await store.recover(key, (await store.view(key)).pending[0].id))
+          .images[0].data,
+      ).toBe(image.data);
+  });
+
+  it("keeps the current accepted record while preparing its next submission at capacity", async () => {
+    const root = await storage();
+    const [key] = await seedDrafts(root, 128);
+    const store = new DraftStore(root);
+    await store.prepare(key, "session", "next-input", {
+      text: "next input",
+      images: [image],
+    });
+    expect((await store.recover(key, "next-input")).images[0].data).toBe(
+      image.data,
+    );
+  });
+
+  it("reclaims empty directories and owned orphan images without deleting unrelated files", async () => {
+    const root = await storage();
+    const keys = await seedDrafts(root, 127, { pending: [] });
+    await fs.unlink(path.join(root, keys[0], "draft.json"));
+    const orphan = path.join(root, keys[0], `cc-chat-img-${randomUUID()}.png`);
+    await fs.writeFile(orphan, "orphan");
+    const unrelatedKey = randomUUID();
+    await fs.mkdir(path.join(root, unrelatedKey));
+    const unrelated = path.join(root, unrelatedKey, "keep.txt");
+    await fs.writeFile(unrelated, "keep");
+    const store = new DraftStore(root);
+    await store.save(randomUUID(), { text: "new draft" });
+    await expect(fs.stat(orphan)).rejects.toMatchObject({ code: "ENOENT" });
+    expect(await fs.readFile(unrelated, "utf8")).toBe("keep");
+  });
+
+  it("does not consume a conversation slot when clearing an unsaved composer at capacity", async () => {
+    const root = await storage();
+    await seedDrafts(root, 128, {
+      composer: { text: "keep", images: [] },
+      pending: [],
+    });
+    const store = new DraftStore(root);
+    await store.save(randomUUID(), { text: "", images: [] });
+    expect(await fs.readdir(root)).toHaveLength(128);
+    await expect(store.save(randomUUID(), { text: "new" })).rejects.toThrow(
+      "Recover saved drafts",
+    );
+  });
+
+  it("allows updating and discarding existing records when legacy storage is over capacity", async () => {
+    const root = await storage();
+    const [key] = await seedDrafts(root, 129, {
+      composer: { text: "keep", images: [] },
+      pending: [],
+    });
+    const store = new DraftStore(root);
+    await store.prepare(key, "session", "input-1", { text: "saved input" });
+    await store.prepare(key, "session", "input-2", { text: "second input" });
+    await store.discard(key, "input-1");
+    expect((await store.view(key)).pending.map((p) => p.id)).toEqual([
+      "input-2",
+    ]);
+    expect((await store.recover(key, "input-2")).text).toBe("second input");
+  });
+
   it("commits an empty manifest before image cleanup and completes cleanup after page replacement", async () => {
     const root = await storage();
     const key = randomUUID();

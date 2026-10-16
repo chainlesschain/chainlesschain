@@ -6,7 +6,7 @@ MCP bridge.
 
 ## Current release
 
-Candidate **0.37.147** recommends CLI **0.166.103** after public CLI
+Candidate **0.37.148** recommends CLI **0.166.103** after public CLI
 availability and the final commit's CLI, IDE, and ARM64 release gates pass.
 This pairing is not published yet. Open VSX is the primary extension channel;
 stock VS Code can install its versioned VSIX after publication. Microsoft
@@ -18,14 +18,18 @@ Formal evaluation and full native review retain their separate acceptance status
 
 | Component                 | Current status                                            |
 | ------------------------- | --------------------------------------------------------- |
-| VS Code extension         | **0.37.147**; unpublished paired candidate                |
+| VS Code extension         | **0.37.148**; unpublished paired candidate                |
 | Recommended CLI           | **`chainlesschain@0.166.103`**                            |
 | Base bridge compatibility | `cc >= 0.162.190`; newer features can require a newer CLI |
 | Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors       |
 | Distribution              | Open VSX; versioned VSIX for stock Microsoft VS Code      |
 
-### What's new in 0.37.147
+### What's new in 0.37.148
 
+- Automatically recover draft capacity by reclaiming empty records and copies
+  of accepted inputs. Preserve unsent drafts, attachments, saved question answers
+  and submissions whose acceptance is unconfirmed.
+- Clear empty composers and manage existing drafts even when storage is full.
 - Recommend CLI 0.166.103 with repaired session pricing validation, reviewed
   model tiers, runtime reliability improvements and PDH 0.4.65 citation snapshots.
 - Show aggregate usage when detailed input/output token counts are absent.
@@ -303,7 +307,7 @@ Formal evaluation and full native review retain their separate acceptance status
 > Stock Microsoft VS Code does not query Open VSX. The Microsoft Marketplace
 > backfill stopped before upload because its publishing credential was not
 > configured, so no Microsoft listing is claimed. Download
-> the [0.37.147 VSIX directly](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.147/file/chainlesschain.chainlesschain-ide-0.37.147.vsix)
+> the [0.37.148 VSIX directly](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.148/file/chainlesschain.chainlesschain-ide-0.37.148.vsix)
 > after that version is listed,
 > and run **Extensions: Install from VSIX...** instead. VSCodium and other Open
 > VSX editors can install by extension ID.
@@ -328,7 +332,7 @@ identities, artifacts, and authority digests never enter the Webview.
 
 CLI `0.166.34` includes the governed Automation/Routine commands, the
 Automation Center v3 projection, scoped permission and side-effect authority,
-and shared permission/budget enforcement. Version `0.37.147` accepts only the
+and shared permission/budget enforcement. Version `0.37.148` accepts only the
 exact v2/schemaVersion 2 or v3/schemaVersion 3 pair; unknown and cross-paired
 versions fail closed. With v3 it shows sanitized run incidents and bounded live
 scheduler occurrences. Incident retry/cancel and cooperative occurrence
@@ -336,7 +340,7 @@ pause/resume appear only when the CLI supplies an exact revision/fence-gated
 action preview. The extension refreshes the projection and rechecks that
 preview before execution; it never derives argv from display data.
 
-Version `0.37.147` also consumes only strict, CLI-issued multi-agent merge-review
+Version `0.37.148` also consumes only strict, CLI-issued multi-agent merge-review
 evidence. It displays stable file/hunk choices, persistent conflict explanations,
 and exact apply/rollback previews, then refreshes the evidence before executing
 the exact argv. It never runs or derives `git merge`, `merge-tree`, or
@@ -345,7 +349,7 @@ corresponding governed `team merge-review` command and exact evidence contract.
 
 CLI `0.166.34` contains the audited Artifact access, managed-copy
 deletion settlement, orphan recovery, and durable workflow authorities used by
-`0.37.147`. The extension continues to fail closed when an older CLI cannot
+`0.37.148`. The extension continues to fail closed when an older CLI cannot
 provide the exact projection or refreshed action evidence.
 
 CLI `0.166.34` also bounds durable-session event backlogs and sidecars, routes
@@ -380,7 +384,7 @@ under `build/`; those files remain CI artifacts and are not installed on user
 machines.
 
 The planned immutable publication tag for this Open VSX extension is
-[`ide-vscode-v0.37.147`](https://github.com/chainlesschain/chainlesschain/releases/tag/ide-vscode-v0.37.147).
+[`ide-vscode-v0.37.148`](https://github.com/chainlesschain/chainlesschain/releases/tag/ide-vscode-v0.37.148).
 The tag workflow validates the exact packaged VSIX in stable and minimum VS Code
 hosts on Windows, Linux, and macOS before publishing it to Open VSX and reading
 the public registry artifact back. A tag-bound manual backfill can publish the
@@ -473,8 +477,8 @@ It is not currently published on the Microsoft VS Code Marketplace.
 
 - In VSCodium and other Open VSX-compatible editors, search for
   **ChainlessChain IDE** (`chainlesschain.chainlesschain-ide`).
-- In stock Microsoft VS Code, after `0.37.147` is listed, download the
-  [versioned `.vsix`](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.147/file/chainlesschain.chainlesschain-ide-0.37.147.vsix)
+- In stock Microsoft VS Code, after `0.37.148` is listed, download the
+  [versioned `.vsix`](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.148/file/chainlesschain.chainlesschain-ide-0.37.148.vsix)
   and run **Extensions: Install from VSIX...**.
 - JetBrains users can install the sibling plugin from the
   [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge).
@@ -630,7 +634,7 @@ npm --prefix packages/vscode-extension run test:unit
 # Package the extension
 cd packages/vscode-extension
 npx @vscode/vsce package --no-dependencies
-node scripts/verify-vsix.mjs chainlesschain-ide-0.37.147.vsix
+node scripts/verify-vsix.mjs chainlesschain-ide-0.37.148.vsix
 ```
 
 The extension has no runtime npm dependencies; it uses Node.js and the VS Code

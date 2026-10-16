@@ -2,6 +2,17 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.148] - Recover draft storage capacity (2026-10-16)
+
+- Reclaim empty records and recovery copies containing only accepted inputs
+  when the 128-conversation limit is reached, including existing installations.
+- Preserve unsent text, attachments, saved question answers and submissions
+  whose acceptance is unknown or rejected. Keep unreadable records intact.
+- Allow clearing empty composers at capacity and updating or discarding existing
+  drafts in legacy stores over the limit. Explain how to recover space when all
+  remaining records contain saved input.
+- Retain the published CLI `0.166.103` recommendation.
+
 ## [0.37.147] - Formal budget boundary pairing (2026-10-16)
 
 - Recommend CLI `0.166.103` after its exact-commit npm release and readback.
