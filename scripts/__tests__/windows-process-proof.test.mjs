@@ -176,7 +176,7 @@ if (process.platform === "win32")
       const identity = { platform: "win32", processId: child.pid };
       const proof = readWindowsNativeProcessProof(identity, pin);
       assert.equal(proof.processId, child.pid);
-      assert.equal(proof.executable, process.execPath);
+      assert.equal(proof.executable, fs.realpathSync.native(process.execPath));
       assert.match(proof.startIdentity, /^\d+$/u);
       const second = readWindowsNativeProcessProof(identity, pin);
       validateProcessProof(proof, second);

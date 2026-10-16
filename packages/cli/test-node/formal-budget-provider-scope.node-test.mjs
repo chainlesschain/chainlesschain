@@ -99,7 +99,11 @@ function fixture(
   fetchImpl = async () => Response.json(response()),
   transportOptions = {},
 ) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-budget-scope-"));
+  // ArtifactStore requires physical paths; macOS exposes its temp directory
+  // through /var, a symlink to /private/var. Resolve only the test-owned root.
+  const root = (fs.realpathSync.native || fs.realpathSync)(
+    fs.mkdtempSync(path.join(os.tmpdir(), "cc-budget-scope-")),
+  );
   t.mock.method(globalThis, "fetch", () => {
     throw new Error("Offline test refused an ungoverned fetch");
   });
