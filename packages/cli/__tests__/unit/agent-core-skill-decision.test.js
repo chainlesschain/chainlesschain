@@ -181,31 +181,36 @@ describe("CLI list_skills decision suggestion", () => {
     expect(result.skills).toHaveLength(2);
   });
 
-  it("removes a candidate revoked while its advice is pending", async () => {
+  it("refreshes a revocation committed by another authority while advice is pending", async () => {
     let stored = null;
+    const ports = {
+      async load() {
+        return {
+          authenticated: true,
+          durable: true,
+          found: stored !== null,
+          state: stored,
+          receiptDigest: D(stored?.stateDigest ?? "empty"),
+        };
+      },
+      async commit({ state }) {
+        stored = structuredClone(state);
+        return {
+          authenticated: true,
+          durable: true,
+          committed: true,
+          stateDigest: state.stateDigest,
+          receiptDigest: D("commit"),
+        };
+      },
+    };
     const revocations = await openSkillRetrievalRevocationAuthority({
       tenantId: "tenant-a",
-      ports: {
-        async load() {
-          return {
-            authenticated: true,
-            durable: true,
-            found: stored !== null,
-            state: stored,
-            receiptDigest: D(stored?.stateDigest ?? "empty"),
-          };
-        },
-        async commit({ state }) {
-          stored = structuredClone(state);
-          return {
-            authenticated: true,
-            durable: true,
-            committed: true,
-            stateDigest: state.stateDigest,
-            receiptDigest: D("commit"),
-          };
-        },
-      },
+      ports,
+    });
+    const writer = await openSkillRetrievalRevocationAuthority({
+      tenantId: "tenant-a",
+      ports,
     });
     let release;
     let entered;
@@ -253,10 +258,16 @@ describe("CLI list_skills decision suggestion", () => {
         disposition: "invalidate",
       },
     };
-    await revocations.invalidateRetrieval({
+    await writer.invalidateRetrieval({
       ...requestCore,
       requestDigest: digestSkillRevocationDependencyRequest(requestCore),
     });
+    expect(
+      revocations.inspect({
+        skillName: "repair-tests",
+        contentDigest: D("repair-tests"),
+      }).invalidated,
+    ).toBe(false);
     release();
     const result = await resultPromise;
     expect(result.routing).not.toHaveProperty("decisionSuggestion");

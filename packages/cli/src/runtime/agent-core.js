@@ -9350,7 +9350,9 @@ async function executeToolInner(
           });
           signal?.throwIfAborted();
           // The provider result belongs to the captured candidate set. Recheck
-          // the live loader and revocation reader before exposing any advice.
+          // the persisted revocations and live loader before exposing advice.
+          await skillRetrievalRevocationReader?.refresh();
+          signal?.throwIfAborted();
           let currentSkills = await filterSkillsByCwd(
             skillLoader.getResolvedSkills().filter(skillAllowed),
             cwd,

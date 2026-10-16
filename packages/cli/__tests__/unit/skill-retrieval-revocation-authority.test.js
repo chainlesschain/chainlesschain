@@ -131,6 +131,44 @@ describe("Skill retrieval revocation authority", () => {
     expect(ports.commits).toBe(1);
   });
 
+  it("refreshes another authority's commit and rejects a regressed read", async () => {
+    const ports = durablePorts();
+    const originalLoad = ports.load.bind(ports);
+    const stale = await originalLoad();
+    let serveStale = false;
+    ports.load = async () => (serveStale ? stale : originalLoad());
+    const reader = await openSkillRetrievalRevocationAuthority({
+      tenantId: "tenant-a",
+      ports,
+    });
+    const writer = await openSkillRetrievalRevocationAuthority({
+      tenantId: "tenant-a",
+      ports,
+    });
+    await writer.invalidateRetrieval(request());
+    expect(
+      reader.inspect({
+        skillName: "repair-tests",
+        contentDigest: D("skill-content"),
+      }).invalidated,
+    ).toBe(false);
+    await expect(reader.refresh()).resolves.toMatch(/^sha256:/u);
+    expect(
+      reader.inspect({
+        skillName: "repair-tests",
+        contentDigest: D("skill-content"),
+      }).invalidated,
+    ).toBe(true);
+    serveStale = true;
+    await expect(reader.refresh()).rejects.toThrow("regressed");
+    expect(
+      reader.inspect({
+        skillName: "repair-tests",
+        contentDigest: D("skill-content"),
+      }).invalidated,
+    ).toBe(true);
+  });
+
   it("rejects tenant drift, tampering, and unbranded readers", async () => {
     const ports = durablePorts();
     const authority = await openSkillRetrievalRevocationAuthority({
