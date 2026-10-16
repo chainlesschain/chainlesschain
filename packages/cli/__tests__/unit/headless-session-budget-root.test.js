@@ -55,6 +55,30 @@ afterEach(() => {
 });
 
 describe("headless production session budget root", () => {
+  it("rejects an injected budgeted resume without verified session events", async () => {
+    const store = makeStore();
+    const loop = vi.fn(async function* () {
+      yield { type: "response-complete", content: "must not run" };
+    });
+    const deps = makeDeps(store, loop);
+    deps.sessionExists = () => true;
+
+    await expect(
+      runAgentHeadless(
+        {
+          prompt: "go",
+          resume: "injected-budget-resume",
+          sessionBudgetRoot: { enabled: true, limits: {} },
+        },
+        deps,
+      ),
+    ).rejects.toMatchObject({ code: "CC_SESSION_BUDGET_JSONL_REQUIRED" });
+    expect(loop).not.toHaveBeenCalled();
+    expect(
+      readProductionSessionBudget("injected-budget-resume", { store }),
+    ).toBeNull();
+  });
+
   it("opens one root, threads it into the loop, and charges only direct usage", async () => {
     const store = makeStore();
     let observedBudget = null;

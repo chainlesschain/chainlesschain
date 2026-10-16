@@ -138,7 +138,9 @@ import executionBroker from "../lib/process-execution-broker/index.js";
 import { extractPluginUsageAttribution } from "../lib/plugin-usage-attribution.js";
 import { formatManagedCheckpointEvent } from "../lib/managed-checkpoint-render.js";
 import {
+  normalizeSessionBudgetRootConfig,
   openProductionSessionBudgetRoot,
+  readProductionSessionBudget,
   sessionBudgetAdmissionError,
 } from "../lib/session-budget-production-root.js";
 import {
@@ -569,6 +571,7 @@ export function applyForkSession(opts = {}, store = {}) {
  */
 const HEADLESS_SESSION_RESOLUTION = Symbol("headlessSessionResolution");
 const HEADLESS_SESSION_HOST_LEASE = Symbol("headlessSessionHostLease");
+const HEADLESS_CANONICAL_ADMISSION = Symbol("headlessCanonicalAdmission");
 const HEADLESS_HOOK_EVENT_CLEANUP = Symbol("headlessHookEventCleanup");
 const HOST_EVENT_BACKLOG_CODE = "CC_HOST_EVENT_BACKLOG_EXHAUSTED";
 const HOST_EVENT_BACKLOG_ERROR =
@@ -597,6 +600,7 @@ async function withHeadlessSessionHostLease(options, deps, task) {
   let lease = null;
   let budgetRoot = null;
   let scopedOptions = options;
+  let preflightAdmission;
   try {
     // Session authority/lease/budget setup can lazily initialize AppConfig and
     // DatabaseManager. Those legacy diagnostics use console.info (stdout), and
@@ -658,13 +662,101 @@ async function withHeadlessSessionHostLease(options, deps, task) {
               : lease.signal,
           }
         : options;
+      const canReadCanonical =
+        !hasInjectedSessionStore ||
+        typeof deps.readVerifiedEvents === "function";
+      if (
+        authoritySessionId &&
+        !canReadCanonical &&
+        (deps.sessionBudgetStore || options.sessionBudgetRoot?.enabled) &&
+        (resolution.resumeId ||
+          deps.sessionExists?.(authoritySessionId) !== false)
+      ) {
+        throw Object.assign(
+          new Error("budgeted resume requires verified session events"),
+          { code: "CC_SESSION_BUDGET_JSONL_REQUIRED" },
+        );
+      }
+      if (authoritySessionId && canReadCanonical) {
+        preflightAdmission = readSessionHostResumeState(authoritySessionId, {
+          sessionHasPersistedEvidence:
+            deps.sessionHasPersistedEvidence ||
+            (!hasInjectedSessionStore
+              ? jsonlSessionHasPersistedEvidence
+              : undefined),
+          sessionExists: deps.sessionExists || jsonlSessionExists,
+          readVerifiedEvents:
+            deps.readVerifiedEvents || jsonlReadVerifiedEvents,
+        });
+      }
+      if (preflightAdmission && !preflightAdmission.snapshot.verified) {
+        // The inner runner reports the canonical failure without opening or
+        // mutating a budget sidecar for an unverified transcript.
+        return;
+      }
+      const sidecar =
+        authoritySessionId &&
+        (process.platform === "linux" || deps.sessionBudgetStore)
+          ? readProductionSessionBudget(authoritySessionId, {
+              store: deps.sessionBudgetStore,
+            })
+          : null;
+      if (!preflightAdmission && !hasInjectedSessionStore && sidecar) {
+        throw Object.assign(
+          new Error("budget sidecar has no canonical JSONL session"),
+          { code: "CC_SESSION_BUDGET_JSONL_REQUIRED" },
+        );
+      }
+      let effectiveBudgetConfig = options.sessionBudgetRoot;
+      if (preflightAdmission) {
+        const canonicalConfig = preflightAdmission.sessionBudgetRoot;
+        const requestedConfig = options.sessionBudgetRoot?.enabled
+          ? normalizeSessionBudgetRootConfig(options.sessionBudgetRoot)
+          : null;
+        if (canonicalConfig?.enabled) {
+          if (!sidecar) {
+            throw Object.assign(
+              new Error(
+                "budgeted session is missing its durable budget sidecar",
+              ),
+              { code: "CC_SESSION_BUDGET_SIDECAR_REQUIRED" },
+            );
+          }
+          if (requestedConfig) {
+            if (
+              JSON.stringify(requestedConfig) !==
+              JSON.stringify(canonicalConfig)
+            ) {
+              throw Object.assign(
+                new Error(
+                  "session budget does not match its JSONL declaration",
+                ),
+                { code: "CC_SESSION_BUDGET_CONFIG_MISMATCH" },
+              );
+            }
+          } else {
+            effectiveBudgetConfig = canonicalConfig;
+          }
+        } else if (requestedConfig || sidecar) {
+          throw Object.assign(
+            new Error(
+              "existing session has no canonical JSONL budget declaration",
+            ),
+            { code: "CC_SESSION_BUDGET_JSONL_REQUIRED" },
+          );
+        }
+      }
+      scopedOptions = {
+        ...scopedOptions,
+        sessionBudgetRoot: effectiveBudgetConfig,
+      };
       budgetRoot = openProductionSessionBudgetRoot(
         authoritySessionId,
-        options.sessionBudgetRoot,
+        effectiveBudgetConfig,
         {
           persist: resolution.persist,
           signal: scopedOptions.signal || null,
-          table: options.sessionBudgetRoot?.table,
+          table: effectiveBudgetConfig?.table || options.priceTable,
           open: deps.openSessionBudget,
           store: deps.sessionBudgetStore,
           registry: deps.sessionBudgetRegistry,
@@ -678,6 +770,7 @@ async function withHeadlessSessionHostLease(options, deps, task) {
       ...deps,
       [HEADLESS_SESSION_RESOLUTION]: resolution,
       [HEADLESS_SESSION_HOST_LEASE]: lease,
+      [HEADLESS_CANONICAL_ADMISSION]: preflightAdmission,
     });
   } finally {
     // Cleanup can touch the same lazy stores. Keep late diagnostics out of a
@@ -1008,18 +1101,20 @@ async function runAgentHeadlessInWorkspace(
     !hasInjectedSessionStore || typeof deps.readVerifiedEvents === "function";
   const canonicalAdmissionId = resumeId || (persist ? sessionId : null);
   const canonicalAdmission =
-    canonicalAdmissionId && canReadCanonicalResume
-      ? readSessionHostResumeState(canonicalAdmissionId, {
-          sessionHasPersistedEvidence:
-            deps.sessionHasPersistedEvidence ||
-            (!hasInjectedSessionStore
-              ? jsonlSessionHasPersistedEvidence
-              : undefined),
-          sessionExists: deps.sessionExists || jsonlSessionExists,
-          readVerifiedEvents:
-            deps.readVerifiedEvents || jsonlReadVerifiedEvents,
-        })
-      : null;
+    deps[HEADLESS_CANONICAL_ADMISSION] !== undefined
+      ? deps[HEADLESS_CANONICAL_ADMISSION]
+      : canonicalAdmissionId && canReadCanonicalResume
+        ? readSessionHostResumeState(canonicalAdmissionId, {
+            sessionHasPersistedEvidence:
+              deps.sessionHasPersistedEvidence ||
+              (!hasInjectedSessionStore
+                ? jsonlSessionHasPersistedEvidence
+                : undefined),
+            sessionExists: deps.sessionExists || jsonlSessionExists,
+            readVerifiedEvents:
+              deps.readVerifiedEvents || jsonlReadVerifiedEvents,
+          })
+        : null;
   if (canonicalAdmission && !canonicalAdmission.snapshot.verified) {
     const message =
       "CC_SESSION_HOST_SNAPSHOT_UNVERIFIED: canonical JSONL session is not " +
@@ -2081,6 +2176,9 @@ async function runAgentHeadlessInWorkspace(
           provider,
           model,
           observabilityScope: options.observabilityScope,
+          ...(options.sessionBudgetRoot?.enabled === true
+            ? { sessionBudgetRoot: options.sessionBudgetRoot }
+            : {}),
           executionLocation: captureAmbientExecutionLocation({
             provider,
             model,
