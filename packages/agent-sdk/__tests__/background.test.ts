@@ -2,15 +2,46 @@
  * Integration test: real net server on a local pipe speaking the
  * background-session protocol, exercised through attachBackgroundSession.
  */
+import { mkdtempSync, rmdirSync, unlinkSync, writeFileSync } from "node:fs";
 import net from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { attachBackgroundSession } from "../src/background.js";
+import {
+  attachBackgroundSession,
+  readBackgroundAgentState,
+} from "../src/background.js";
 import { createNdjsonDecoder, encodeNdjson } from "../src/ndjson.js";
 
 const TOKEN = "test-token-123";
+
+describe("readBackgroundAgentState", () => {
+  it("reads a valid background agent id and rejects path traversal", () => {
+    const dir = mkdtempSync(join(tmpdir(), "cc-sdk-state-"));
+    const file = join(dir, "bg-1.json");
+    writeFileSync(file, JSON.stringify({ id: "bg-1", status: "running" }));
+    try {
+      expect(readBackgroundAgentState("bg-1", dir)).toMatchObject({
+        id: "bg-1",
+        status: "running",
+      });
+      for (const id of [
+        "../outside",
+        "..\\outside",
+        "bg-1/../../outside",
+        "other",
+      ]) {
+        expect(() => readBackgroundAgentState(id, dir)).toThrow(
+          "Invalid background agent id",
+        );
+      }
+    } finally {
+      unlinkSync(file);
+      rmdirSync(dir);
+    }
+  });
+});
 
 function pipePath(name: string): string {
   if (process.platform === "win32") {

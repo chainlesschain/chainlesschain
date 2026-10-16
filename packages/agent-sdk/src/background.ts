@@ -39,6 +39,9 @@ export function readBackgroundAgentState(
   id: string,
   dir: string = backgroundAgentsDir(),
 ): BackgroundAgentState {
+  if (typeof id !== "string" || !/^bg-[a-zA-Z0-9-]+$/.test(id)) {
+    throw new Error(`Invalid background agent id: ${id}`);
+  }
   const raw = readFileSync(join(dir, `${id}.json`), "utf8");
   return JSON.parse(raw) as BackgroundAgentState;
 }

@@ -25,6 +25,9 @@ function backgroundAgentsDir() {
 }
 /** Read a background agent's state file (`<dir>/<id>.json`). */
 function readBackgroundAgentState(id, dir = backgroundAgentsDir()) {
+    if (typeof id !== "string" || !/^bg-[a-zA-Z0-9-]+$/.test(id)) {
+        throw new Error(`Invalid background agent id: ${id}`);
+    }
     const raw = (0, node_fs_1.readFileSync)((0, node_path_1.join)(dir, `${id}.json`), "utf8");
     return JSON.parse(raw);
 }
