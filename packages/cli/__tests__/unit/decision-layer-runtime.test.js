@@ -412,17 +412,50 @@ describe("Skill decision runtime", () => {
       boundaryTimeoutMs: 50,
       observe: vi.fn(() => new Promise(() => {})),
     });
+    const runtime = createSkillDecisionRuntime(options);
     await expect(
-      createSkillDecisionRuntime(options).suggest({
+      runtime.suggest({
         query: "repair tests",
         candidates: candidates(),
         turnId: "turn-a",
+      }),
+    ).rejects.toMatchObject({ runtimeLedgerPersistence: true });
+    await expect(
+      runtime.suggest({
+        query: "repair tests",
+        candidates: candidates(),
+        turnId: "turn-b",
       }),
     ).rejects.toMatchObject({ runtimeLedgerPersistence: true });
     expect(options.persist.mock.calls.map(([type]) => type)).toEqual([
       "model_usage_started",
       "token_usage",
     ]);
+    expect(options.observe).toHaveBeenCalledOnce();
+  });
+
+  it("blocks later provider calls after observation persistence rejects", async () => {
+    const decide = vi.fn(async () => successfulProvider().decide());
+    const options = runtimeOptions({
+      provider: successfulProvider(decide),
+      observe: vi.fn(async () => {
+        throw new Error("observation store down");
+      }),
+    });
+    const runtime = createSkillDecisionRuntime(options);
+    const input = {
+      query: "repair tests",
+      candidates: candidates(),
+      turnId: "turn-a",
+    };
+    await expect(runtime.suggest(input)).rejects.toMatchObject({
+      runtimeLedgerPersistence: true,
+    });
+    await expect(
+      runtime.suggest({ ...input, turnId: "turn-b" }),
+    ).rejects.toMatchObject({ runtimeLedgerPersistence: true });
+    expect(decide).toHaveBeenCalledOnce();
+    expect(options.observe).toHaveBeenCalledOnce();
   });
 
   it("ends cancellation during a hung observation after settling known usage", async () => {

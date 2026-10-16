@@ -167,6 +167,7 @@ export function createSkillDecisionRuntime({
   let ingress = null;
   let unknownUsageSeen = initialUsageUnknown === true;
   let usagePersistenceFailure = null;
+  let observationPersistenceFailure = null;
   if (normalizedMode !== "off") {
     providerAuthority = captureDecisionProviderAuthority(provider);
     boundTenantId = requiredText(tenantId, "tenantId");
@@ -188,7 +189,8 @@ export function createSkillDecisionRuntime({
     try {
       await observe(observation);
     } catch (error) {
-      throw asPersistenceError(error);
+      observationPersistenceFailure ??= asPersistenceError(error);
+      throw observationPersistenceFailure;
     }
   };
 
@@ -231,6 +233,9 @@ export function createSkillDecisionRuntime({
       }
       if (signal?.aborted) throw signal.reason;
       if (usagePersistenceFailure !== null) throw usagePersistenceFailure;
+      if (observationPersistenceFailure !== null) {
+        throw observationPersistenceFailure;
+      }
       const decisionId = `skill-${requiredText(idGenerator(), "decisionId")}`;
       const request = createSkillDecisionRequest({
         decisionId,
@@ -379,15 +384,22 @@ export function createSkillDecisionRuntime({
           observationCore,
         ),
       });
-      await waitForGovernedPhase(
-        writeObservation(observation),
-        signal,
-        boundaryTimeoutMs,
-        (cause) =>
-          asPersistenceError(
-            new Error("Skill decision observation timed out", { cause }),
-          ),
-      );
+      try {
+        await waitForGovernedPhase(
+          writeObservation(observation),
+          signal,
+          boundaryTimeoutMs,
+          (cause) =>
+            asPersistenceError(
+              new Error("Skill decision observation timed out", { cause }),
+            ),
+        );
+      } catch (error) {
+        if (error?.runtimeLedgerPersistence === true) {
+          observationPersistenceFailure ??= error;
+        }
+        throw error;
+      }
       signal?.throwIfAborted();
       return Object.freeze({
         schema: SKILL_DECISION_OBSERVATION_SCHEMA,
