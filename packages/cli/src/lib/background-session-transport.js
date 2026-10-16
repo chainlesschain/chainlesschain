@@ -56,15 +56,14 @@ export function createNdjsonReader(onMessage, onError = () => {}) {
       typeof chunk === "string"
         ? chunk
         : decoder.decode(chunk, { stream: true });
-    if (carry.length > MAX_LINE_BYTES) {
-      carry = "";
-      onError(new Error("line too long"));
-      return;
-    }
     let index;
     while ((index = carry.indexOf("\n")) !== -1) {
       const line = carry.slice(0, index).replace(/\r$/, "");
       carry = carry.slice(index + 1);
+      if (Buffer.byteLength(line, "utf8") > MAX_LINE_BYTES) {
+        onError(new Error("line too long"));
+        continue;
+      }
       if (!line.trim()) continue;
       let message;
       try {
@@ -74,6 +73,10 @@ export function createNdjsonReader(onMessage, onError = () => {}) {
         continue;
       }
       onMessage(message);
+    }
+    if (Buffer.byteLength(carry, "utf8") > MAX_LINE_BYTES) {
+      carry = "";
+      onError(new Error("line too long"));
     }
   };
 }
