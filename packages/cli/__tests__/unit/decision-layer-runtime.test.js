@@ -210,6 +210,87 @@ describe("Skill decision runtime", () => {
     },
   );
 
+  it("blocks another decision after budget admission leaves a durable start unsettled", async () => {
+    const decide = vi.fn();
+    let sequence = 0;
+    const sessionBudget = {
+      consumeTurn: vi.fn(() => ({ ok: true })),
+      beginUsageSettlement: vi.fn(() => ({ ok: false, reason: "blocked" })),
+    };
+    const options = runtimeOptions({
+      provider: successfulProvider(decide),
+      sessionBudget,
+      idGenerator: () => `decision-${++sequence}`,
+    });
+    const runtime = createSkillDecisionRuntime(options);
+
+    await expect(
+      runtime.suggest({
+        query: "repair tests",
+        candidates: candidates(),
+        turnId: "turn-a",
+      }),
+    ).rejects.toMatchObject({ code: "CC_SESSION_BUDGET_EXHAUSTED" });
+    expect(options.persist.mock.calls.map(([type]) => type)).toEqual([
+      "model_usage_started",
+    ]);
+    expect(decide).not.toHaveBeenCalled();
+
+    const second = await runtime.suggest({
+      query: "repair tests",
+      candidates: candidates(),
+      turnId: "turn-b",
+    });
+    expect(second).toMatchObject({
+      status: "unavailable",
+      reasonCode: "provider-usage-unknown-blocked",
+    });
+    expect(sessionBudget.consumeTurn).toHaveBeenCalledOnce();
+    expect(options.persist).toHaveBeenCalledOnce();
+    expect(decide).not.toHaveBeenCalled();
+  });
+
+  it("does not start a second provider while the first call awaits settlement", async () => {
+    const answer = await successfulProvider().decide();
+    let release;
+    let entered;
+    const providerEntered = new Promise((resolve) => {
+      entered = resolve;
+    });
+    const decide = vi.fn(() => {
+      entered();
+      return new Promise((resolve) => {
+        release = () => resolve(answer);
+      });
+    });
+    let sequence = 0;
+    const options = runtimeOptions({
+      provider: successfulProvider(decide),
+      idGenerator: () => `decision-${++sequence}`,
+    });
+    const runtime = createSkillDecisionRuntime(options);
+    const first = runtime.suggest({
+      query: "repair tests",
+      candidates: candidates(),
+      turnId: "turn-a",
+    });
+    await providerEntered;
+
+    await expect(
+      runtime.suggest({
+        query: "repair tests",
+        candidates: candidates(),
+        turnId: "turn-b",
+      }),
+    ).resolves.toMatchObject({
+      status: "unavailable",
+      reasonCode: "provider-usage-unknown-blocked",
+    });
+    expect(decide).toHaveBeenCalledOnce();
+    release();
+    await expect(first).resolves.toMatchObject({ status: "suggestion" });
+  });
+
   it("records its own deadline as an unavailable provider timeout", async () => {
     const options = runtimeOptions({
       timeoutMs: 50,

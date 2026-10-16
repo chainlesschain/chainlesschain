@@ -166,6 +166,7 @@ export function createSkillDecisionRuntime({
   let boundSessionId = null;
   let ingress = null;
   let unknownUsageSeen = initialUsageUnknown === true;
+  const unsettledUsageCalls = new Set();
   let usagePersistenceFailure = null;
   let observationPersistenceFailure = null;
   if (normalizedMode !== "off") {
@@ -208,7 +209,14 @@ export function createSkillDecisionRuntime({
       usagePersistenceFailure ??= asPersistenceError(error);
       throw usagePersistenceFailure;
     }
-    if (type === "model_usage_unknown") unknownUsageSeen = true;
+    if (type === "model_usage_started") {
+      unsettledUsageCalls.add(event.callId);
+    } else if (type === "model_usage_unknown") {
+      unknownUsageSeen = true;
+      unsettledUsageCalls.delete(event.callId);
+    } else if (type === "token_usage") {
+      unsettledUsageCalls.delete(event.callId);
+    }
   };
 
   const runtime = Object.freeze({
@@ -256,7 +264,7 @@ export function createSkillDecisionRuntime({
       let outcome;
       let requestSignal = null;
       let admissionReceipt = null;
-      if (unknownUsageSeen) {
+      if (unknownUsageSeen || unsettledUsageCalls.size > 0) {
         outcome = unavailableOutcome("provider-usage-unknown-blocked");
       } else {
         try {
@@ -279,6 +287,11 @@ export function createSkillDecisionRuntime({
             admission === null
               ? request
               : Object.freeze({ payload: admission.payload });
+          if (unknownUsageSeen || unsettledUsageCalls.size > 0) {
+            const error = new Error("decision usage recovery is required");
+            error.code = "CC_DECISION_USAGE_UNKNOWN_BLOCKED";
+            throw error;
+          }
           const { result: raw, settlement } = await runMeteredDirectModelCall({
             sessionId: boundSessionId,
             persist: persistDecisionUsage,
