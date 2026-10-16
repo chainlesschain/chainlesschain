@@ -6,6 +6,7 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 server="${DOCS_DEPLOY_SERVER:-root@47.111.5.128}"
 source_head="$(git -C "$repo_root" rev-parse HEAD)"
+test -z "$(git -C "$repo_root" status --porcelain)" || { echo "Commit documentation changes before deploying" >&2; exit 1; }
 stamp="$(date -u +%Y%m%d-%H%M%S)-${source_head:0:10}-docs"
 work_dir="$(mktemp -d "${TMPDIR:-/tmp}/chainlesschain-docs-$stamp.XXXXXX")"
 manifest="$work_dir/manifest.tsv"
@@ -17,8 +18,8 @@ printf 'Deployment stamp: %s\nLocal evidence: %s\n' "$stamp" "$work_dir"
 
 for site in docs design www; do
   case "$site" in
-    docs) dist="$repo_root/docs-site/docs/.vitepress/dist"; minimum=600; required="chainlesschain/cli-ide-update-2026-10-15.html" ;;
-    design) dist="$repo_root/docs-site-design/docs/.vitepress/dist"; minimum=250; required="release-runtime-update-2026-10-15.html" ;;
+    docs) dist="$repo_root/docs-site/docs/.vitepress/dist"; minimum=600; required="chainlesschain/cli-ide-update-2026-10-16.html" ;;
+    design) dist="$repo_root/docs-site-design/docs/.vitepress/dist"; minimum=250; required="release-runtime-update-2026-10-16.html" ;;
     www) dist="$repo_root/docs-website-v2/dist"; minimum=18; required="index.html" ;;
   esac
   test -f "$dist/index.html" && test -f "$dist/$required"
@@ -26,7 +27,8 @@ for site in docs design www; do
   file_count="$(find "$dist" -type f | wc -l | tr -d ' ')"
   test "$html_count" -ge "$minimum"
   if [ "$site" = www ]; then
-    grep -Fq '0.166.101' "$dist/index.html"
+    grep -Fq '0.166.103' "$dist/index.html"
+    grep -Fq '0.37.148' "$dist/index.html"
     grep -Fq '6 万+' "$dist/index.html"
   fi
   tar -czf "$work_dir/$site.tar.gz" -C "$dist" .
@@ -113,14 +115,14 @@ while IFS=$'\t' read -r site sha html files; do
   test "$(find "$stage" -type f -name '*.html' | wc -l)" -eq "$html"
   test "$(find "$stage" -type f | wc -l)" -eq "$files"
   case "$site" in
-    docs) test -f "$stage/chainlesschain/cli-ide-update-2026-10-15.html" ;;
-    design) test -f "$stage/release-runtime-update-2026-10-15.html" ;;
-    www) grep -Fq '0.166.101' "$stage/index.html"; grep -Fq '6 万+' "$stage/index.html" ;;
+    docs) test -f "$stage/chainlesschain/cli-ide-update-2026-10-16.html" ;;
+    design) test -f "$stage/release-runtime-update-2026-10-16.html" ;;
+    www) grep -Fq '0.166.103' "$stage/index.html"; grep -Fq '0.37.148' "$stage/index.html"; grep -Fq '6 万+' "$stage/index.html" ;;
   esac
   # Keep operational files, old pages, and hashed assets still used by cached HTML.
   # New build files win where the paths are identical.
   rsync -a --ignore-existing --exclude='/deployment-files.sha256' --exclude='/deployment-source.json' "$live/" "$stage/"
-  printf '{"schema":"chainlesschain.site-deployment/v1","stamp":"%s","sourceHeadCommit":"%s","sourceStatus":"working-tree-changes","site":"%s","archiveSha256":"%s","newHtmlPages":%s,"newFiles":%s}\n' "$stamp" "$source_head" "$site" "$sha" "$html" "$files" > "$stage/deployment-source.json"
+  printf '{"schema":"chainlesschain.site-deployment/v1","stamp":"%s","sourceHeadCommit":"%s","sourceStatus":"clean-commit","site":"%s","archiveSha256":"%s","newHtmlPages":%s,"newFiles":%s}\n' "$stamp" "$source_head" "$site" "$sha" "$html" "$files" > "$stage/deployment-source.json"
   (cd "$stage" && find . -type f ! -name deployment-files.sha256 -print0 | LC_ALL=C sort -z | xargs -0 sha256sum > deployment-files.sha256)
   (cd "$stage" && sha256sum -c deployment-files.sha256 >/dev/null)
   chown -R www:www "$stage"
@@ -142,11 +144,12 @@ for site in "${staged[@]}"; do
   test -f "$live/index.html"
   echo "LIVE $site; rollback directory: $backup"
 done
-curl --resolve docs.chainlesschain.com:443:127.0.0.1 -fsSL --max-time 30 https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-15.html -o "$prefix-origin-docs.html"
-curl --resolve design.chainlesschain.com:443:127.0.0.1 -fsSL --max-time 30 https://design.chainlesschain.com/release-runtime-update-2026-10-15.html -o "$prefix-origin-design.html"
+curl --resolve docs.chainlesschain.com:443:127.0.0.1 -fsSL --max-time 30 https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-16.html -o "$prefix-origin-docs.html"
+curl --resolve design.chainlesschain.com:443:127.0.0.1 -fsSL --max-time 30 https://design.chainlesschain.com/release-runtime-update-2026-10-16.html -o "$prefix-origin-design.html"
 curl --resolve www.chainlesschain.com:443:127.0.0.1 -fsSL --max-time 30 https://www.chainlesschain.com/ -o "$prefix-origin-www.html"
-grep -Fq '0.166.101' "$prefix-origin-docs.html"
-grep -Fq '0.166.101' "$prefix-origin-design.html"
+grep -Fq '0.166.103' "$prefix-origin-docs.html"
+grep -Fq '0.166.103' "$prefix-origin-design.html"
+grep -Fq '0.37.148' "$prefix-origin-www.html"
 grep -Fq '6 万+' "$prefix-origin-www.html"
 trap - EXIT
 echo "DEPLOYED_ALL $stamp"

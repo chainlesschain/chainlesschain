@@ -1,5 +1,7 @@
 # ChainlessChain 文档网站
 
+> 2026-10-16：公开 CLI **0.166.103**、Open VSX **0.37.148** 与 JetBrains **0.4.165**，两个 IDE 均推荐 CLI `.103`。CLI 发行提交 `b235ac8068`，VS Code `c8a64caa92`，JetBrains `fa64840216`；主线核对至 `920f263e3f`。Session Core **0.3.19**、Kernel **0.1.10**、PDH **0.4.65**；原生产品 **v5.0.3.140** 独立发行。正式预算保持 **NOT_PAID_READY**，36+9 **NOT_RUN（0/36、0/9）**、native **NOT_ADMITTED**、自动晋升 **HOLD**。 参见[本轮升级指南](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-16.html)。较早日期的记录保留历史范围。
+
 这是ChainlessChain项目的官方文档网站，使用VitePress构建。
 
 > 当前文档快照（2026-10-15）：公开 CLI `0.166.101@6752b49e1e`、Context/Memory Kernel `0.1.10`、Open VSX `0.37.145`；JetBrains Marketplace API 列出 `0.4.162`，源码候选 `.163` 待公开核验。产品仍为独立 `v5.0.3.140`。详见[最新升级指南](docs/chainlesschain/cli-ide-update-2026-10-15.md)。

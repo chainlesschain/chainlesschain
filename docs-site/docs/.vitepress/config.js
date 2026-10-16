@@ -196,6 +196,14 @@ export default defineConfig({
               link: "/chainlesschain/rrsi-current",
             },
             {
+              text: "CLI .103 / IDE 升级与草稿容量",
+              link: "/chainlesschain/cli-ide-update-2026-10-16",
+            },
+            {
+              text: "2026-10-16 预算边界与模型分层",
+              link: "/design/release-runtime-update-2026-10-16",
+            },
+            {
               text: "CLI .101 升级与草稿恢复",
               link: "/chainlesschain/cli-ide-update-2026-10-15",
             },

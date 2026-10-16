@@ -152,6 +152,10 @@ export default defineConfig({
             link: "/modules/110-agent-platform-release-boundaries",
           },
           {
+            text: "2026-10-16 预算边界与模型分层",
+            link: "/release-runtime-update-2026-10-16",
+          },
+          {
             text: "2026-10-15 上下文压缩与发行",
             link: "/release-runtime-update-2026-10-15",
           },
