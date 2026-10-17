@@ -136,6 +136,21 @@ An independent operator will execute baseline tests, your candidate tests, and b
 Read back your completed deliverable. Finish with a concise explanation of the assertions and any limitations. You have at most ${DIAGNOSTIC.maxTurns} model turns; use focused reads and leave time to write the file.`;
 }
 
+export function originalTaskPrompt(task, spec, maxTurns = 20) {
+  return `${task.prompt}\n\nThis is the first attempt for this task in the original-task campaign. No prior candidate or repair feedback has been supplied.
+This is a real-provider Linux CLI execution with independent Docker acceptance. It is not a frozen cross-platform/IDE sample.
+Read the frozen source and relevant existing tests before writing the deliverable. Use exact API names and bounded reads. Do not list the entire repository or repeatedly reread unchanged files.
+Frozen source files: ${task.sourcePaths.join(", ")}
+Related existing tests: ${spec.baselineTests.join(", ")}
+Only these deliverables may be changed: ${task.expectedFiles.join(", ")}
+Use repository-relative paths for every mutation. Each deliverable starts with a non-answer placeholder.
+${spec.doc ? "Write the requested substantive Markdown operating runbook. Check command options against the frozen implementation, include runnable examples and honest interpretation of insufficient evidence. Do not create a test file." : "Replace the placeholder with complete independent runnable Vitest regression tests, including positive and negative controls. Keep the suite focused on the requested behavior, with at most six cases. Confirm argument names, return fields, imports and relative paths from the frozen source. Do not copy/import an existing test suite or use source-text assertions."}
+The source implementation and existing tests are read-only for this campaign. Describe any implementation defect in the final response.
+Use only the exposed file tools. Do not run shell commands, code, MCP or network tools. Do not inspect node_modules or paths outside this project.
+An independent checker executes the baseline, candidate and behavioral mutants in network-disabled Linux Docker after you finish. You cannot execute tests yourself; do not claim tests passed.
+Write the deliverable early enough to read it back and finish. You have at most ${maxTurns} model turns. Finish with a concise account of the behavior covered and limitations.`;
+}
+
 export function inspectModelTrace(stdout, expectedFiles, workspace) {
   const terminal = verifyAgentTerminal(stdout);
   let events;
@@ -372,7 +387,27 @@ export function selectDiagnosticTasks(selection = "both") {
 export async function runTaskDiagnostic(options) {
   requireUnscopedModelTransport();
   const { outputDir, imageId, sourceSha, key } = options;
-  const selectedTasks = selectDiagnosticTasks(options.task);
+  const original = options.mode === "original";
+  assert.ok(options.mode === undefined || original, "unsupported task mode");
+  const selectedTasks = original
+    ? options.originalTasks
+    : selectDiagnosticTasks(options.task);
+  if (original) {
+    assert.ok(
+      Array.isArray(selectedTasks) &&
+        selectedTasks.length > 0 &&
+        selectedTasks.length <= 36,
+    );
+    assert.equal(new Set(selectedTasks).size, selectedTasks.length);
+    assert.ok(
+      selectedTasks.every((id) =>
+        /^verify-(?:0[1-9]|[12][0-9]|3[0-6])$/u.test(id),
+      ),
+    );
+  }
+  const maxTurns = original ? 20 : DIAGNOSTIC.maxTurns;
+  const maximumRequestsPerTask = original ? 24 : BROKER.maximumRequestsPerTask;
+  const repairSeeds = original ? {} : DIAGNOSTIC.repairSeeds;
   const output = path.resolve(outputDir);
   const relativeOutput = path.relative(repository, output);
   assert.ok(
@@ -401,6 +436,12 @@ export async function runTaskDiagnostic(options) {
     startedAt: stamp(),
     executionSourceCommit: sourceSha,
     ...DIAGNOSTIC,
+    maxTurns,
+    repairSeeds,
+    inputMode: original ? "original-first-attempt" : "diagnostic-repair",
+    actualEntry: "linux-cli",
+    designatedStrata: options.designatedStrata || null,
+    estimatedSpendStopUSD: original ? null : DIAGNOSTIC.estimatedSpendStopUSD,
     tasks: [],
     selectedTasks,
     imageId,
@@ -416,8 +457,10 @@ export async function runTaskDiagnostic(options) {
       "Public CLI .99 is executed, with transport-only diagnostic overrides recorded separately from the frozen default-thinking comparisons.",
       "Public .99 exposes a six-file-tool ceiling; this run requests all six explicitly and records the actual schemas and calls. It does not attest a narrower two-tool ceiling.",
       "Only expected test deliverables may change; implementation edits in the original task are deliberately excluded.",
-      "The $0.25 per-task CLI stop uses returned usage estimates; an in-flight call may exceed it and unpriced/unknown usage is not a hard quota.",
-      `The diagnostic broker disables thinking, requests at most ${BROKER.maximumAnswerTokens} answer tokens, admits at most ${BROKER.maximumRequestsPerTask} physical attempts per selected task, and rejects unknown usage before another call. These are diagnostic bounds, not formal budget activation or a provider invoice.`,
+      original
+        ? "The original-task campaign has no estimated-cost acceptance criterion; billing is not assessed."
+        : "The $0.25 per-task CLI stop uses returned usage estimates; an in-flight call may exceed it and unpriced/unknown usage is not a hard quota.",
+      `The diagnostic broker disables thinking, requests at most ${BROKER.maximumAnswerTokens} answer tokens, admits at most ${maximumRequestsPerTask} physical attempts per selected task, and rejects unknown usage before another call. These are diagnostic bounds, not formal budget activation or a provider invoice.`,
       "Acceptance is an AI-reviewed independent Docker checker, not independent human review or frozen sample admission.",
       "Setup, model and checker share each task's 20-minute deadline; no automatic model retries or fallback models.",
     ],
@@ -562,7 +605,12 @@ export async function runTaskDiagnostic(options) {
       "packages/cli/scripts/verify01-review-specs.mjs",
       "packages/cli/src/lib/eval/stream-terminal.js",
       ".github/workflows/verify01-volcengine-task-diagnostic.yml",
-      ...Object.values(DIAGNOSTIC.repairSeeds).map((seed) => seed.file),
+      ...(original
+        ? [
+            "packages/cli/scripts/verify01-volcengine-campaign.mjs",
+            ".github/workflows/verify01-volcengine-campaign.yml",
+          ]
+        : Object.values(repairSeeds).map((seed) => seed.file)),
     ]) {
       const bytes = fs.readFileSync(path.join(repository, file));
       const committed = command(
@@ -693,6 +741,8 @@ export async function runTaskDiagnostic(options) {
     broker = await createVolcengineDiagnosticBroker({
       outputDir: path.join(output, "broker"),
       key,
+      allowedTaskIds: selectedTasks,
+      maximumRequestsPerTask,
     });
 
     for (const taskId of selectedTasks) {
@@ -776,7 +826,7 @@ export async function runTaskDiagnostic(options) {
             "frozen task already contains a deliverable",
           );
           fs.mkdirSync(path.dirname(absolute), { recursive: true });
-          const seed = DIAGNOSTIC.repairSeeds[taskId];
+          const seed = repairSeeds[taskId];
           const initial = seed
             ? fs.readFileSync(path.join(repository, seed.file))
             : Buffer.from(
@@ -818,10 +868,12 @@ export async function runTaskDiagnostic(options) {
           configPreflight.ok,
           "installed config directory preflight failed",
         );
-        const prompt = taskPrompt(task, spec);
+        const prompt = original
+          ? originalTaskPrompt(task, spec, maxTurns)
+          : taskPrompt(task, spec);
         save(`${taskId}/prompt.txt`, prompt);
         const modelTimeout = Math.min(
-          8 * 60 * 1000,
+          (original ? 13 : 8) * 60 * 1000,
           deadline - Date.now() - 4 * 60 * 1000,
         );
         assert.ok(
@@ -844,9 +896,10 @@ export async function runTaskDiagnostic(options) {
           "--output-format",
           "stream-json",
           "--max-turns",
-          String(DIAGNOSTIC.maxTurns),
-          "--max-budget-usd",
-          String(DIAGNOSTIC.estimatedSpendStopUSD),
+          String(maxTurns),
+          ...(original
+            ? []
+            : ["--max-budget-usd", String(DIAGNOSTIC.estimatedSpendStopUSD)]),
           "--allowed-tools",
           "read_file,search_files,list_dir,write_file,edit_file,edit_file_hashed",
           "--ephemeral",

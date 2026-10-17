@@ -1,0 +1,86 @@
+name: VERIFY01 Original 36 Task Campaign
+
+# Explicit paid invocation only. Never changes frozen observations.
+on:
+  push:
+    branches: [feature/verify01-task-completion-20261017]
+    paths:
+      - "packages/cli/scripts/verify01-volcengine-campaign.mjs"
+      - ".github/workflows/verify01-volcengine-campaign.yml"
+  workflow_dispatch:
+    inputs:
+      confirm_live:
+        description: "Run all 36 original tasks using real Volcengine on Linux CLI; not the frozen cross-platform matrix"
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify01-original-36-campaign
+  cancel-in-progress: false
+
+jobs:
+  campaign:
+    if: >-
+      (github.event_name == 'workflow_dispatch' && inputs.confirm_live == true) ||
+      (github.event_name == 'push' && contains(github.event.head_commit.message, '[volcengine-original36]'))
+    name: Original tasks designated ${{ matrix.group }} (actual Linux CLI)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 100
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        group:
+          [
+            win32-cli,
+            win32-vscode,
+            win32-jetbrains,
+            linux-cli,
+            linux-vscode,
+            linux-jetbrains,
+            darwin-cli,
+            darwin-vscode,
+            darwin-jetbrains,
+          ]
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+      - name: Validate campaign input isolation and broker policy without paid calls
+        run: >-
+          node --test
+          packages/cli/test-node/verify01-volcengine-campaign.node-test.mjs
+          packages/cli/test-node/verify01-volcengine-task-diagnostic.node-test.mjs
+          packages/cli/test-node/verify01-volcengine-diagnostic-broker.node-test.mjs
+      - name: Pin checker image
+        run: |
+          docker pull node:22.12.0-bookworm
+          echo "REVIEW_IMAGE_ID=$(docker image inspect node:22.12.0-bookworm --format '{{.Id}}')" >> "$GITHUB_ENV"
+      - name: Execute original tasks and preserve all failures
+        env:
+          VOLCENGINE_API_KEY: ${{ secrets.CC_LLM_API_KEY }}
+          EXECUTION_SOURCE_SHA: ${{ github.sha }}
+          CAMPAIGN_GROUP: ${{ matrix.group }}
+        run: >-
+          node packages/cli/scripts/verify01-volcengine-campaign.mjs
+          --confirm-live --group "$CAMPAIGN_GROUP"
+          --source-sha "$EXECUTION_SOURCE_SHA" --image-id "$REVIEW_IMAGE_ID"
+          --output-dir "$RUNNER_TEMP/verify01-original36"
+      - name: Preserve candidates, model events, raw receipts and independent checker output
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: verify01-original36-${{ matrix.group }}-${{ github.sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/verify01-original36/
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14

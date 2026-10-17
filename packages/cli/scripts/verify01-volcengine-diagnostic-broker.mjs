@@ -457,6 +457,24 @@ export function requestArk(body, key, options = {}) {
 export async function createVolcengineDiagnosticBroker(options) {
   requireUnscopedModelTransport();
   const { outputDir, key, requestImpl = requestArk } = options;
+  const allowedTaskIds = options.allowedTaskIds || ["verify-04", "verify-22"];
+  const maximumRequestsPerTask =
+    options.maximumRequestsPerTask ?? BROKER.maximumRequestsPerTask;
+  check(
+    Array.isArray(allowedTaskIds) &&
+      allowedTaskIds.length > 0 &&
+      allowedTaskIds.length <= 45 &&
+      new Set(allowedTaskIds).size === allowedTaskIds.length &&
+      allowedTaskIds.every((id) =>
+        /^(?:verify-(?:0[1-9]|[12][0-9]|3[0-6])|first-run-(?:win32|linux|darwin)-(?:cli|vscode|jetbrains))$/u.test(
+          id,
+        ),
+      ) &&
+      Number.isSafeInteger(maximumRequestsPerTask) &&
+      maximumRequestsPerTask > 0 &&
+      maximumRequestsPerTask <= 32,
+    "DIAGNOSTIC_TASK_POLICY_INVALID",
+  );
   check(typeof key === "string" && key.length > 0, "DIAGNOSTIC_KEY_REQUIRED");
   // A restarted broker cannot reuse this request allowance.
   fs.mkdirSync(outputDir, { mode: 0o700 });
@@ -514,7 +532,7 @@ export async function createVolcengineDiagnosticBroker(options) {
       poisoned ||
       active?.errorCode ||
       !active ||
-      active.requests >= BROKER.maximumRequestsPerTask
+      active.requests >= maximumRequestsPerTask
     ) {
       rejectLocal(
         poisoned ||
@@ -646,6 +664,8 @@ export async function createVolcengineDiagnosticBroker(options) {
   });
   save("policy.json", {
     ...BROKER,
+    allowedTaskIds,
+    maximumRequestsPerTask,
     retries: 0,
     redirects: false,
     fallback: false,
@@ -663,7 +683,7 @@ export async function createVolcengineDiagnosticBroker(options) {
       check(
         !pending &&
           !poisoned &&
-          ["verify-04", "verify-22"].includes(taskId) &&
+          allowedTaskIds.includes(taskId) &&
           !tasks.some((t) => t.taskId === taskId),
         "DIAGNOSTIC_TASK_ALLOWANCE_INVALID",
       );
