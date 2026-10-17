@@ -1,0 +1,172 @@
+// Independent diagnostic regression for post-publish failure semantics of the
+// segmented memory authority (see SegmentedMemoryPort.commit / _publish).
+//
+// Acceptance: after the manifest has been published, a failure during
+// post-commit maintenance must be surfaced as CONTEXT_MEMORY_COMMIT_PUBLISHED
+// with committed:true; the new state must remain readable after a reopen, and a
+// later retry with the stale record revision must report a store-revision
+// conflict (ok:false, currentRevision + storeRevision) without losing state.
+//
+// During a single commit _collect runs exactly three times: once from
+// _loadManifest (pre-publish), once at the head of _publish before any shard is
+// written (pre-publish), and once AFTER renameSync has made the new manifest
+// authoritative (post-publish). The third call is the one that lands inside the
+// "published" branch of _publish, so throwing there must be rethrown as
+// CONTEXT_MEMORY_COMMIT_PUBLISHED. All record / store revisions are derived
+// from the imported fixture rather than hardcoded.
+import { describe, expect, it, vi } from "vitest";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { applyMemoryCommand } from "@chainlesschain/context-memory-kernel";
+import { createDurableMemoryFixture } from "../scripts/persistent-capacity-benchmark.mjs";
+import { SegmentedMemoryPort } from "../src/lib/context-memory-kernel/segmented-memory-port.js";
+
+const roots = [];
+function location() {
+  const root = mkdtempSync(join(tmpdir(), "cc-verify22-"));
+  roots.push(root);
+  return join(root, "kernel-v1.json");
+}
+function reinforce(record) {
+  return applyMemoryCommand(record, {
+    type: "reinforce",
+    expectedRevision: record.revision,
+    confidenceDelta: 0.01,
+    authority: "test",
+    at: "2026-10-04T00:00:00.000Z",
+  });
+}
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  while (roots.length) rmSync(roots.pop(), { recursive: true, force: true });
+});
+
+describe("verify-22: post-publish maintenance failure semantics", () => {
+  it("commits the manifest, reports committed:true, and keeps the new state readable", async () => {
+    const filePath = location();
+    const port = new SegmentedMemoryPort({ filePath });
+    const state = createDurableMemoryFixture(2);
+    await port.importSnapshot(state);
+
+    const original = Object.values(state.records)[0];
+    const transition = reinforce(original);
+    const baseRevision = original.revision;
+    const initialStoreRevision = await port.getRevision();
+
+    const collect = port._collect.bind(port);
+    let collectCalls = 0;
+    let boundaryReached = false;
+    // The third _collect is the post-publish maintenance that runs only after
+    // renameSync has made the new manifest authoritative. Throw only there so
+    // the manifest is already published when the error escapes _publish.
+    vi.spyOn(port, "_collect").mockImplementation((manifest) => {
+      collectCalls += 1;
+      if (collectCalls === 3) {
+        boundaryReached = true;
+        throw new Error("injected post-publish maintenance failure");
+      }
+      return collect(manifest);
+    });
+
+    const error = await port
+      .commit(transition, baseRevision)
+      .then(() => null, (e) => e);
+    expect(error).toMatchObject({
+      code: "CONTEXT_MEMORY_COMMIT_PUBLISHED",
+      committed: true,
+      cleanupComplete: false,
+    });
+    expect(boundaryReached).toBe(true);
+    const publishedStoreRevision = error.storeRevision;
+    expect(publishedStoreRevision).toBe(initialStoreRevision + 1);
+
+    // Restore instrumentation before recovery checks.
+    vi.restoreAllMocks();
+
+    // The new record is durable despite the maintenance failure.
+    expect(
+      await new SegmentedMemoryPort({ filePath }).read(transition.record.memoryId),
+    ).toEqual(transition.record);
+
+    // A reopened authority sees the advanced store revision.
+    expect(await new SegmentedMemoryPort({ filePath }).getRevision()).toBe(
+      publishedStoreRevision,
+    );
+  });
+
+  it("rejects a stale retry against the published revision without losing state", async () => {
+    const filePath = location();
+    const port = new SegmentedMemoryPort({ filePath });
+    const state = createDurableMemoryFixture(2);
+    await port.importSnapshot(state);
+
+    const original = Object.values(state.records)[0];
+    const transition = reinforce(original);
+    const baseRevision = original.revision;
+
+    const collect = port._collect.bind(port);
+    let collectCalls = 0;
+    vi.spyOn(port, "_collect").mockImplementation((manifest) => {
+      collectCalls += 1;
+      if (collectCalls === 3) throw new Error("injected post-publish failure");
+      return collect(manifest);
+    });
+
+    const error = await port
+      .commit(transition, baseRevision)
+      .then(() => null, (e) => e);
+    expect(error).toMatchObject({
+      code: "CONTEXT_MEMORY_COMMIT_PUBLISHED",
+      committed: true,
+    });
+
+    vi.restoreAllMocks();
+
+    // A caller that still believes the stale baseRevision is now rejected: the
+    // conflict must name the advanced record revision and the store revision
+    // from the published manifest.
+    const conflict = await port.commit(transition, baseRevision);
+    expect(conflict).toMatchObject({
+      ok: false,
+      currentRevision: transition.record.revision,
+      storeRevision: error.storeRevision,
+    });
+
+    // The published state is unchanged after the stale retry.
+    expect(
+      await new SegmentedMemoryPort({ filePath }).read(transition.record.memoryId),
+    ).toEqual(transition.record);
+  });
+
+  it("succeeds with full cleanup when no post-publish failure is injected (control)", async () => {
+    const filePath = location();
+    const port = new SegmentedMemoryPort({ filePath });
+    const state = createDurableMemoryFixture(2);
+    await port.importSnapshot(state);
+
+    const original = Object.values(state.records)[0];
+    const transition = reinforce(original);
+    const baseRevision = original.revision;
+
+    const collect = port._collect.bind(port);
+    let collectCalls = 0;
+    vi.spyOn(port, "_collect").mockImplementation((manifest) => {
+      collectCalls += 1;
+      return collect(manifest);
+    });
+
+    const result = await port.commit(transition, baseRevision);
+    expect(result).toMatchObject({ ok: true });
+    // The maintenance path runs exactly three times: manifest load, pre-publish
+    // collect, and the post-publish collect — matching the fault cases.
+    expect(collectCalls).toBe(3);
+
+    vi.restoreAllMocks();
+
+    expect(
+      await new SegmentedMemoryPort({ filePath }).read(transition.record.memoryId),
+    ).toEqual(transition.record);
+  });
+});

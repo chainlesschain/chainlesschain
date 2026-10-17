@@ -1,0 +1,211 @@
+import { describe, expect, it } from "vitest";
+import { mergeUsagePricingBucket } from "../src/lib/usage-pricing-context.js";
+import { priceRollup } from "../src/lib/llm-pricing.js";
+
+/**
+ * Request-level cache / long-context pricing contract.
+ *
+ * The pricing buckets preserve each request's own input size (requestInputTokens
+ * holds the first request's prompt tokens, not an aggregate) and bucket grouping
+ * keyed by serviceTier + regionalProcessing + long-context boolean class. Cache
+ * presence alone does not split buckets; only the long-context classification
+ * (prompt tokens > 272000) does. The same total token count priced through
+ * different cache / long-context request distributions must be billed per
+ * request contract rather than as one pooled sum.
+ *
+ * API facts relied on (verified from source):
+ *  - mergeUsagePricingBucket only accumulates into entry.pricingBuckets; the
+ *    top-level inputTokens/cacheReadTokens/... counters are left untouched.
+ *  - Each bucket's totalTokens accumulates only a supplied totalTokens field
+ *    (omitted by these fixtures), so conservation is checked by summing the
+ *    bucket component counters instead.
+ *  - priceRollup exposes each byModel row's cost as `.cost` (a number) plus
+ *    `.cacheReadCost` and `.matched`; the OUTER result exposes `.cost.totalCost`.
+ */
+
+const MODEL = "gpt-6-sol"; // DOCUMENTED_OPENAI_MODELS with pricing {in:2, out:10}
+const LONG_THRESHOLD = 272000;
+
+/** Build a fresh byModel row and merge one or more usage records into it. */
+function aggregateRequests(usages) {
+  const entry = {
+    provider: "openai",
+    model: MODEL,
+    inputTokens: 0,
+    outputTokens: 0,
+    cacheReadTokens: 0,
+    cacheCreationTokens: 0,
+    totalTokens: 0,
+    calls: 0,
+  };
+  for (const usage of usages) mergeUsagePricingBucket(entry, usage);
+  return entry;
+}
+
+/** Sum every component counter across the merged price buckets. */
+function bucketTotal(entry) {
+  return (entry.pricingBuckets || []).reduce(
+    (sum, b) =>
+      sum +
+      b.inputTokens +
+      b.cacheReadTokens +
+      b.cacheCreationTokens +
+      b.outputTokens,
+    0,
+  );
+}
+
+describe("request-level cache & long-context pricing buckets", () => {
+  it("groups cached and non-cached short requests into one bucket, preserving each cache total", () => {
+    const entry = aggregateRequests([
+      // promptTokens = input + cacheRead = 160000 (short class)
+      { inputTokens: 150000, cacheReadTokens: 10000, outputTokens: 1000 },
+      // promptTokens = input + cacheRead = 140000 (short class, cached)
+      { inputTokens: 120000, cacheReadTokens: 20000, outputTokens: 1000 },
+    ]);
+    // Cache presence alone does not split buckets: both are short-class, so a
+    // single bucket is produced with the first request's prompt tokens.
+    expect(entry.pricingBuckets).toHaveLength(1);
+    const bucket = entry.pricingBuckets[0];
+    expect(bucket.requestInputTokens).toBe(160000);
+    expect(bucket.serviceTier).toBe("standard");
+    expect(bucket.regionalProcessing).toBe(false);
+    expect(bucket.inputTokens).toBe(270000);
+    expect(bucket.cacheReadTokens).toBe(30000);
+    expect(bucket.outputTokens).toBe(2000);
+    expect(bucket.calls).toBe(2);
+  });
+
+  it("bills the same total tokens differently when cache is distributed per request", () => {
+    // Same total token count (302000), but S1 routes 20000 of them through the
+    // GPT6 cache-read multiplier (0.1x) while S2 bills them all as fresh input.
+    const cached = aggregateRequests([
+      { inputTokens: 150000, cacheReadTokens: 10000, outputTokens: 1000 },
+      { inputTokens: 130000, cacheReadTokens: 10000, outputTokens: 1000 },
+    ]);
+    const uncached = aggregateRequests([
+      { inputTokens: 160000, outputTokens: 1000 },
+      { inputTokens: 140000, outputTokens: 1000 },
+    ]);
+    // mergeUsagePricingBucket leaves top-level counters untouched, so total
+    // conservation must be read from the accumulated bucket components.
+    expect(bucketTotal(cached)).toBe(302000);
+    expect(bucketTotal(uncached)).toBe(302000);
+
+    const cachedCost = priceRollup({ byModel: [cached] }).byModel[0];
+    const uncachedCost = priceRollup({ byModel: [uncached] }).byModel[0];
+    expect(cachedCost.matched).toBe(true);
+    expect(uncachedCost.matched).toBe(true);
+    expect(cachedCost.cost).toBeCloseTo(0.584, 9);
+    expect(uncachedCost.cost).toBeCloseTo(0.62, 9);
+    expect(cachedCost.cost).not.toBeCloseTo(uncachedCost.cost, 9);
+    expect(cachedCost.cacheReadCost).toBeCloseTo(0.004, 9);
+    expect(uncachedCost.cacheReadCost).toBe(0);
+  });
+
+  it("prices a long-context request by its own bucket instead of pooling totals", () => {
+    // Same total (402000 tokens) in both cases.
+    const mixed = aggregateRequests([
+      { inputTokens: 300000, outputTokens: 1000 }, // long class (> threshold)
+      { inputTokens: 100000, outputTokens: 1000 }, // short class
+    ]);
+    const allShort = aggregateRequests([
+      { inputTokens: 200000, outputTokens: 1000 },
+      { inputTokens: 200000, outputTokens: 1000 },
+    ]);
+    expect(bucketTotal(mixed)).toBe(402000);
+    expect(bucketTotal(allShort)).toBe(402000);
+
+    expect(mixed.pricingBuckets).toHaveLength(2);
+    expect(allShort.pricingBuckets).toHaveLength(1);
+
+    const mixedCost = priceRollup({ byModel: [mixed] }).byModel[0];
+    const shortCost = priceRollup({ byModel: [allShort] }).byModel[0];
+    expect(mixedCost.cost).toBeCloseTo(1.425, 9);
+    expect(shortCost.cost).toBeCloseTo(0.82, 9);
+    expect(mixedCost.cost).toBeGreaterThan(shortCost.cost);
+  });
+
+  it("keeps long/short and distinct service tiers in separate buckets with their own rates", () => {
+    const entry = aggregateRequests([
+      { inputTokens: 300000, outputTokens: 1000, serviceTier: "fast" },
+      { inputTokens: 300000, outputTokens: 1000 },
+      { inputTokens: 100000, outputTokens: 1000 },
+    ]);
+    const longFast = entry.pricingBuckets.find(
+      (b) => b.requestInputTokens > LONG_THRESHOLD && b.serviceTier === "fast",
+    );
+    const longStandard = entry.pricingBuckets.find(
+      (b) => b.requestInputTokens > LONG_THRESHOLD && b.serviceTier === "standard",
+    );
+    const shortStandard = entry.pricingBuckets.find(
+      (b) => b.requestInputTokens <= LONG_THRESHOLD && b.serviceTier === "standard",
+    );
+    expect(longFast).toBeDefined();
+    expect(longStandard).toBeDefined();
+    expect(shortStandard).toBeDefined();
+    expect(entry.pricingBuckets).toHaveLength(3);
+
+    // Long-context bucket carries the 2x input / 1.5x output multipliers and the
+    // fast tier a 2x service multiplier, all applied per bucket by priceRollup.
+    const rollup = priceRollup({ byModel: [entry] }).byModel[0];
+    expect(rollup.cost).toBeCloseTo(3.855, 9);
+    expect(rollup.matched).toBe(true);
+  });
+
+  it("lets cache-read tokens alone push a short input across the long-context threshold", () => {
+    // No explicit requestInputTokens, so classification falls back to
+    // input + cacheRead + cacheCreation. A 1-token cache difference flips the
+    // otherwise-identical 270000-input request across the 272000 threshold.
+    const justShort = aggregateRequests([
+      { inputTokens: 270000, cacheReadTokens: 2000, outputTokens: 1000 },
+    ]);
+    const justLong = aggregateRequests([
+      { inputTokens: 270000, cacheReadTokens: 2001, outputTokens: 1000 },
+    ]);
+    // 272000 is not > threshold, so the equality control stays short-class.
+    expect(justShort.pricingBuckets).toHaveLength(1);
+    expect(justShort.pricingBuckets[0].requestInputTokens).toBe(272000);
+    expect(justShort.pricingBuckets[0].requestInputTokens > LONG_THRESHOLD).toBe(
+      false,
+    );
+    expect(justLong.pricingBuckets).toHaveLength(1);
+    expect(justLong.pricingBuckets[0].requestInputTokens).toBe(272001);
+    expect(justLong.pricingBuckets[0].requestInputTokens > LONG_THRESHOLD).toBe(
+      true,
+    );
+
+    const shortCost = priceRollup({ byModel: [justShort] }).byModel[0];
+    const longCost = priceRollup({ byModel: [justLong] }).byModel[0];
+    expect(shortCost.matched).toBe(true);
+    expect(longCost.matched).toBe(true);
+    expect(shortCost.cost).toBeCloseTo(0.5504, 9);
+    expect(longCost.cost).toBeGreaterThan(shortCost.cost);
+  });
+
+  it("lets cache-creation tokens alone push a short input across the long-context threshold", () => {
+    const ccShort = aggregateRequests([
+      { inputTokens: 270000, cacheCreationTokens: 2000, outputTokens: 1000 },
+    ]);
+    const ccLong = aggregateRequests([
+      { inputTokens: 270000, cacheCreationTokens: 2001, outputTokens: 1000 },
+    ]);
+    expect(ccShort.pricingBuckets).toHaveLength(1);
+    expect(
+      ccShort.pricingBuckets[0].requestInputTokens > LONG_THRESHOLD,
+    ).toBe(false);
+    expect(ccLong.pricingBuckets).toHaveLength(1);
+    expect(ccLong.pricingBuckets[0].requestInputTokens).toBe(272001);
+    expect(
+      ccLong.pricingBuckets[0].requestInputTokens > LONG_THRESHOLD,
+    ).toBe(true);
+
+    const shortCost = priceRollup({ byModel: [ccShort] }).byModel[0];
+    const longCost = priceRollup({ byModel: [ccLong] }).byModel[0];
+    expect(shortCost.matched).toBe(true);
+    expect(longCost.matched).toBe(true);
+    // The long-class request applies the input multiplier to the cache-creation
+    // tokens too, so it must cost strictly more than the short-class control.
+    expect(longCost.cost).toBeGreaterThan(shortCost.cost);
+  });
+});
