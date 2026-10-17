@@ -1,0 +1,177 @@
+name: VERIFY01 Native 36 Plus 9 Task Campaign
+
+on:
+  push:
+    branches: [feature/verify01-task-completion-20261017]
+    paths:
+      - .github/workflows/verify01-native-task-campaign.yml
+  workflow_dispatch:
+    inputs:
+      confirm_live:
+        description: "Run original 36 project tasks plus nine independent first runs through public native CLI and IDEs"
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify01-native-36-plus-9
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    if: github.event_name == 'workflow_dispatch' && inputs.confirm_live == true
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+      - name: Validate exact sample selection, candidate binding and host controls
+        run: >-
+          node --test
+          packages/cli/test-node/verify01-native-task-campaign.node-test.mjs
+          packages/cli/test-node/verify01-native-task-checker.node-test.mjs
+          packages/cli/test-node/verify01-volcengine-diagnostic-broker.node-test.mjs
+
+  generate:
+    needs: validate
+    name: Native ${{ matrix.group }} (five independent samples)
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 145
+    strategy:
+      fail-fast: false
+      max-parallel: 9
+      matrix:
+        include:
+          - { group: win32-cli, os: windows-latest, entry: cli }
+          - { group: win32-vscode, os: windows-latest, entry: vscode }
+          - { group: win32-jetbrains, os: windows-latest, entry: jetbrains }
+          - { group: linux-cli, os: ubuntu-24.04, entry: cli }
+          - { group: linux-vscode, os: ubuntu-24.04, entry: vscode }
+          - { group: linux-jetbrains, os: ubuntu-24.04, entry: jetbrains }
+          - { group: darwin-cli, os: macos-15, entry: cli }
+          - { group: darwin-vscode, os: macos-15, entry: vscode }
+          - { group: darwin-jetbrains, os: macos-15, entry: jetbrains }
+    env:
+      GRADLE_USER_HOME: ${{ github.workspace }}/.gradle-native-tasks
+    steps:
+      - name: Preserve source byte identity on Windows
+        run: git config --global core.autocrlf false
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+      - uses: actions/setup-java@v5
+        if: matrix.entry == 'jetbrains'
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Prepare exact VS Code host and local UI driver dependencies
+        if: matrix.entry == 'vscode'
+        working-directory: packages/vscode-extension
+        run: |
+          npm install --no-save --no-package-lock --ignore-scripts @vscode/test-electron@3.1.0 ws@8.21.2
+          node -e "require('@vscode/test-electron').downloadAndUnzipVSCode({version:'1.132.0',cachePath:require('node:path').resolve('.vscode-test')}).catch(e=>{console.error(e);process.exitCode=1})"
+      - name: Install Linux virtual display
+        if: runner.os == 'Linux' && matrix.entry != 'cli'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+      - name: Prepare JetBrains Gradle wrapper
+        if: matrix.entry == 'jetbrains' && runner.os != 'Windows'
+        run: chmod +x packages/jetbrains-plugin/gradlew
+      - name: Bootstrap exact Gradle
+        if: matrix.entry == 'jetbrains'
+        run: >-
+          node scripts/lib/verify01-gradle-bootstrap.mjs
+          --project-dir packages/jetbrains-plugin
+          --artifact-dir "${{ runner.temp }}/verify01-native-gradle"
+      - name: Run original project tasks through public native entry
+        shell: bash
+        env:
+          VOLCENGINE_API_KEY: ${{ secrets.CC_LLM_API_KEY }}
+          NATIVE_ENTRY: ${{ matrix.entry }}
+          EXECUTION_SOURCE_SHA: ${{ github.sha }}
+        run: |
+          display=()
+          if [[ "$RUNNER_OS" == "Linux" && "$NATIVE_ENTRY" != "cli" ]]; then
+            display=(xvfb-run --auto-servernum '--server-args=-screen 0 1920x1080x24')
+          fi
+          "${display[@]}" node packages/cli/scripts/verify01-native-task-campaign.mjs \
+            --entry "$NATIVE_ENTRY" --source-sha "$EXECUTION_SOURCE_SHA" \
+            --confirm-live --output-dir "$RUNNER_TEMP/verify01-native-tasks"
+      - name: Preserve all candidates, native traces, UI and broker failures
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: verify01-native-delivery-${{ matrix.group }}-${{ github.sha }}
+          path: ${{ runner.temp }}/verify01-native-tasks/
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14
+
+  accept:
+    needs: [validate, generate]
+    if: always() && needs.validate.result == 'success'
+    name: Linux acceptance of ${{ matrix.group }} deliveries
+    runs-on: ubuntu-24.04
+    timeout-minutes: 115
+    strategy:
+      fail-fast: false
+      max-parallel: 9
+      matrix:
+        group:
+          [
+            win32-cli,
+            win32-vscode,
+            win32-jetbrains,
+            linux-cli,
+            linux-vscode,
+            linux-jetbrains,
+            darwin-cli,
+            darwin-vscode,
+            darwin-jetbrains,
+          ]
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+      - uses: actions/download-artifact@v7
+        with:
+          name: verify01-native-delivery-${{ matrix.group }}-${{ github.sha }}
+          path: ${{ runner.temp }}/native-delivery
+      - name: Pin independent Linux checker image
+        run: |
+          docker pull node:22.12.0-bookworm
+          echo "REVIEW_IMAGE_ID=$(docker image inspect node:22.12.0-bookworm --format '{{.Id}}')" >> "$GITHUB_ENV"
+      - name: Check source and candidate binding then execute baseline and behavioral controls
+        env:
+          EXECUTION_SOURCE_SHA: ${{ github.sha }}
+        run: >-
+          node packages/cli/scripts/verify01-native-task-checker.mjs
+          --input-dir "$RUNNER_TEMP/native-delivery"
+          --output-dir "$RUNNER_TEMP/native-acceptance"
+          --source-sha "$EXECUTION_SOURCE_SHA" --image-id "$REVIEW_IMAGE_ID"
+      - name: Preserve independent checker receipts including failures
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: verify01-native-acceptance-${{ matrix.group }}-${{ github.sha }}
+          path: ${{ runner.temp }}/native-acceptance/
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14

@@ -60,7 +60,7 @@ function validateConfig(config) {
   assert.ok(
     typeof config.prompt === "string" &&
       config.prompt.length > 0 &&
-      config.prompt.length <= 512,
+      Buffer.byteLength(config.prompt, "utf8") <= 1024 * 1024,
   );
   assert.match(config.hostVersion || "", /^\d+\.\d+\.\d+$/u);
   assert.match(config.extensionVersion || "", /^\d+\.\d+\.\d+$/u);
@@ -78,7 +78,7 @@ function validateConfig(config) {
   assert.ok(
     Number.isSafeInteger(config.deadline) &&
       config.deadline > Date.now() &&
-      config.deadline - Date.now() <= 1200000,
+      config.deadline - Date.now() <= 1800000,
   );
   for (const key of [
     "workspace",
