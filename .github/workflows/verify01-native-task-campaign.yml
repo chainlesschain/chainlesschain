@@ -1,5 +1,7 @@
 name: VERIFY01 Native 36 Plus 9 Task Campaign
 
+# Register on the evaluation branch; paid execution requires workflow_dispatch.
+
 on:
   push:
     branches: [feature/verify01-task-completion-20261017]
