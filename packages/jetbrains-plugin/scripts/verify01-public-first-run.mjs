@@ -421,7 +421,10 @@ export async function runPublicFirstRun({ outputDir, key }) {
           await delay(500);
         }
         await requireSuccess(
-          launch(["uiSmokeTest", `-Dui.journey.phase=${phase}`, ...params]),
+          launch(
+            ["uiSmokeTest", `-Dui.journey.phase=${phase}`, ...params],
+            `test-${phase}`,
+          ),
           deadline,
           `${phase} real UI capture`,
         );
