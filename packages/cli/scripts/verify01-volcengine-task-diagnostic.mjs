@@ -93,7 +93,7 @@ export function modelEnvironment({
 }
 
 export function taskPrompt(task, spec) {
-  const priorFeedback = task.taskId === "verify-04"
+  const priorFeedback = task.id === "verify-04"
     ? `Historical diagnostic feedback for this task (a previous candidate failed independent checking): verify cache and non-cache request buckets are separated, confirm the meaning of requestInputTokens from source, and check whether ignored providers/models leave an empty array or an undefined field. This feedback is supplied to aid repair; this run is not a first-attempt or formal sample.\n`
     : "";
   return `${task.prompt}\n\nThis is an independent diagnostic, not a formal VERIFY01 sample.

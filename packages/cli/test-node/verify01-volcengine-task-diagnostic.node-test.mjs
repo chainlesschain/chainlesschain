@@ -277,7 +277,7 @@ test("prompt discloses constrained task and independent checker without injectin
   assert.match(prompt, /at most 14 model turns/u);
   const retryPrompt = taskPrompt(
     {
-      taskId: "verify-04",
+      id: "verify-04",
       prompt: "Frozen task",
       sourcePaths: ["source.js"],
       expectedFiles,
