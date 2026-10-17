@@ -499,7 +499,7 @@ export async function runNativeCampaign({
     formalSample: false,
     limitations: [
       "Native generation; independent Linux acceptance pending",
-      "Broker thinking disabled, six file tools only, 20 model turns, 24 requests, 180 second request timeout",
+      "Broker thinking disabled, six file tools only, 20 model turns, 24 requests, 180 second request timeout, 8192 output tokens, 16 MiB response transport limit",
       "IDE context bridges and optional task worklog disabled; real UI and restart retained",
       "No prior candidates or repair seeds supplied",
     ],
@@ -722,6 +722,7 @@ export async function runNativeCampaign({
         allowedTaskIds: [sample.id],
         maximumRequestsPerTask: 24,
         requestTimeoutMs: 180000,
+        maximumResponseBytes: 16 * 1024 * 1024,
         allowTextOnlyRequests: true,
       });
       capability = broker.childKey;

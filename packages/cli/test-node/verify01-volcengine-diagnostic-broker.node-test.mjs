@@ -4,6 +4,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { EventEmitter } from "node:events";
+import { IncomingMessage } from "node:http";
+import { PassThrough } from "node:stream";
 import {
   BROKER,
   diagnosticBody,
@@ -761,5 +763,113 @@ test("literal and JSON-escaped credentials are redacted from saved requests and 
     const text = fs.readFileSync(path.join(root, "broker", file), "utf8");
     assert.ok(!text.includes(secret));
     assert.ok(!text.includes(JSON.stringify(secret).slice(1, -1)));
+  }
+});
+
+function incomingResponseFactory(chunks) {
+  return () => {
+    const req = new EventEmitter();
+    req.destroy = () => {};
+    req.end = () => {
+      const res = new IncomingMessage(new PassThrough());
+      res.statusCode = 200;
+      req.emit("response", res);
+      for (const chunk of chunks) {
+        res.emit("data", chunk);
+        if (res.destroyed) return;
+      }
+      res.complete = true;
+      res.emit("end");
+    };
+    queueMicrotask(() => {
+      const socket = new EventEmitter();
+      req.emit("socket", socket);
+      socket.emit("secureConnect");
+    });
+    return req;
+  };
+}
+
+test("real IncomingMessage abort on limit teardown preserves the limit failure", async () => {
+  await assert.rejects(
+    requestArk(request(), "OFFLINE", {
+      requestFactory: incomingResponseFactory([
+        Buffer.alloc(1047946),
+        Buffer.alloc(2048),
+      ]),
+    }),
+    (error) => {
+      assert.equal(error.message, "DIAGNOSTIC_RESPONSE_LIMIT_USAGE_UNKNOWN");
+      assert.equal(error.captured.raw.length, 1047946);
+      assert.equal(error.captured.transport.dispatchStarted, true);
+      return true;
+    },
+  );
+});
+
+test("explicit bounded transport capacity accepts over 1 MiB without changing token limits", async (t) => {
+  const limit = 16 * 1024 * 1024;
+  const raw = await requestArk(request(), "OFFLINE", {
+    maximumResponseBytes: limit,
+    requestFactory: incomingResponseFactory([
+      Buffer.alloc(1024 * 1024),
+      Buffer.alloc(2048),
+    ]),
+  });
+  assert.equal(raw.raw.length, 1024 * 1024 + 2048);
+  assert.equal(BROKER.maximumResponseBytes, 1024 * 1024);
+  let observed;
+  const { broker, send, root } = await fixture(
+    t,
+    async (_body, _key, options) => {
+      observed = options;
+      return { status: 200, raw: response() };
+    },
+    { maximumResponseBytes: limit },
+  );
+  try {
+    assert.equal((await send()).status, 200);
+    assert.equal(observed.maximumResponseBytes, limit);
+    const policy = JSON.parse(
+      fs.readFileSync(path.join(root, "broker", "policy.json")),
+    );
+    assert.equal(policy.maximumResponseBytes, limit);
+    assert.equal(policy.maximumAnswerTokens, 8192);
+  } finally {
+    await broker.close();
+  }
+  for (const maximumResponseBytes of [
+    0,
+    1.5,
+    16 * 1024 * 1024 + 1,
+    Infinity,
+    "16777216",
+  ])
+    assert.throws(
+      () => requestArk(request(), "OFFLINE", { maximumResponseBytes }),
+      /RESPONSE_LIMIT_POLICY_INVALID/,
+    );
+});
+
+test("response limit remains unknown usage and poisons further dispatch", async (t) => {
+  const { broker, send } = await fixture(t, async () =>
+    requestArk(request(), "OFFLINE", {
+      requestFactory: incomingResponseFactory([
+        Buffer.alloc(1024 * 1024),
+        Buffer.alloc(1),
+      ]),
+    }),
+  );
+  try {
+    assert.equal((await send()).status, 403);
+    assert.equal(
+      broker.taskStatus("verify-04").poisoned,
+      "DIAGNOSTIC_RESPONSE_LIMIT_USAGE_UNKNOWN",
+    );
+    assert.throws(() => broker.beginTask("verify-22"));
+  } finally {
+    const summary = await broker.close();
+    assert.equal(summary.usageCompleteRequests, 0);
+    assert.equal(summary.actualBilledCostCny, null);
   }
 });

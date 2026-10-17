@@ -313,10 +313,20 @@ export function diagnosticUsage(raw) {
   };
 }
 
+function responseByteLimit(options) {
+  const limit = options.maximumResponseBytes ?? BROKER.maximumResponseBytes;
+  check(
+    Number.isSafeInteger(limit) && limit >= 1024 && limit <= 16 * 1024 * 1024,
+    "DIAGNOSTIC_RESPONSE_LIMIT_POLICY_INVALID",
+  );
+  return limit;
+}
+
 export function requestArk(body, key, options = {}) {
   requireUnscopedModelTransport();
   const requestFactory = options.requestFactory || https.request;
   const timeoutMs = options.timeoutMs ?? BROKER.timeoutMs;
+  const maximumResponseBytes = responseByteLimit(options);
   return new Promise((resolve, reject) => {
     const payload = JSON.stringify(body),
       chunks = [];
@@ -435,10 +445,12 @@ export function requestArk(body, key, options = {}) {
       status = res.statusCode;
       res.on("data", (chunk) => {
         bytes += chunk.length;
-        if (bytes > BROKER.maximumResponseBytes) {
+        if (bytes > maximumResponseBytes) {
+          // IncomingMessage.destroy emits aborted synchronously. Settle the
+          // actual limit failure first so teardown cannot replace its cause.
+          finish("DIAGNOSTIC_RESPONSE_LIMIT_USAGE_UNKNOWN");
           res.destroy();
           req.destroy();
-          finish("DIAGNOSTIC_RESPONSE_LIMIT_USAGE_UNKNOWN");
           return;
         }
         chunks.push(chunk);
@@ -462,6 +474,7 @@ export async function createVolcengineDiagnosticBroker(options) {
   const maximumRequestsPerTask =
     options.maximumRequestsPerTask ?? BROKER.maximumRequestsPerTask;
   const requestTimeoutMs = options.requestTimeoutMs ?? BROKER.timeoutMs;
+  const maximumResponseBytes = responseByteLimit(options);
   const allowTextOnlyRequests = options.allowTextOnlyRequests === true;
   check(
     Array.isArray(allowedTaskIds) &&
@@ -587,6 +600,7 @@ export async function createVolcengineDiagnosticBroker(options) {
       receipts.push(row);
       captured = await requestImpl(effective, key, {
         timeoutMs: requestTimeoutMs,
+        maximumResponseBytes,
       });
       check(captured.status === 200, "DIAGNOSTIC_NON_200_NO_RETRY");
       Object.assign(
@@ -678,6 +692,7 @@ export async function createVolcengineDiagnosticBroker(options) {
     allowedTaskIds,
     maximumRequestsPerTask,
     timeoutMs: requestTimeoutMs,
+    maximumResponseBytes,
     allowTextOnlyRequests,
     retries: 0,
     redirects: false,
