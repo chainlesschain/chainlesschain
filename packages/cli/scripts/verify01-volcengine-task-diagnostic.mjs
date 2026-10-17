@@ -94,12 +94,14 @@ export function modelEnvironment({
 
 export function taskPrompt(task, spec) {
   const priorFeedback = task.id === "verify-04"
-    ? `Historical diagnostic feedback for this task (a previous candidate failed independent checking): verify cache and non-cache request buckets are separated, confirm the meaning of requestInputTokens from source, and check whether ignored providers/models leave an empty array or an undefined field. This feedback is supplied to aid repair; this run is not a first-attempt or formal sample.\n`
-    : "";
+    ? `Historical diagnostic feedback for this task (a previous candidate failed independent checking): derive bucket grouping and request-level token semantics from the implementation; do not assume cache presence alone changes grouping. Trace each proposed fixture through the relevant source branch, and check fixture initialization before asserting absent fields. This feedback is supplied to aid repair; this run is not a first-attempt or formal sample.\n`
+    : task.id === "verify-22"
+      ? `For fault-injection tests, verify the intended fault boundary was reached, restore instrumentation before recovery checks, and include a successful control.\n`
+      : "";
   return `${task.prompt}\n\nThis is an independent diagnostic, not a formal VERIFY01 sample.
 ${priorFeedback}Read the frozen source and existing tests before writing your own regression tests.
 Use the named files as your starting points; avoid listing the entire test directory. Search for exact API names, then read bounded slices rather than repeatedly reading whole unchanged files.
-Keep the patch focused: at most six behavioral cases and roughly 150 lines. Confirm argument names and result fields from source before asserting them. Spend the first six turns reading, then write, read back the deliverable once, and finish. Do not add unrelated validation cases.
+Keep the patch focused: at most six behavioral cases and roughly 150 lines. Confirm argument names and result fields from source before asserting them. Use up to six turns for focused investigation; write once the necessary API contracts are understood, reserving turns for readback and correction. Do not add unrelated validation cases.
 Frozen source files: ${task.sourcePaths.join(", ")}
 Related existing tests: ${spec.baselineTests.join(", ")}
 Only these deliverables may be changed: ${task.expectedFiles.join(", ")}

@@ -286,7 +286,18 @@ test("prompt discloses constrained task and independent checker without injectin
   );
   assert.match(retryPrompt, /Historical diagnostic feedback/u);
   assert.match(retryPrompt, /not a first-attempt or formal sample/u);
-  assert.match(retryPrompt, /requestInputTokens/u);
+  assert.match(retryPrompt, /do not assume cache presence alone changes grouping/u);
+  const faultPrompt = taskPrompt(
+    {
+      id: "verify-22",
+      prompt: "Frozen fault task",
+      sourcePaths: ["source.js"],
+      expectedFiles,
+    },
+    { baselineTests: ["baseline.test.js"] },
+  );
+  assert.match(faultPrompt, /verify the intended fault boundary was reached/u);
+  assert.match(faultPrompt, /include a successful control/u);
 });
 
 test("workflow requires explicit dispatch or a branch-scoped paid-run marker, and always uploads", () => {
