@@ -44,6 +44,14 @@
 | 子 npm 包 → CLI `0.166.104` | `93792f65204aec3d25aa3b5abda83013f290d4ca`；[OIDC 工作流第 2 次运行](https://github.com/chainlesschain/chainlesschain/actions/runs/39012587904/attempts/2) | GitHub Actions 发布成功；公共 npm 可获取 `chainlesschain@0.166.104`，子包先于 CLI 发布。 | 生产宿主与正式效果验收仍按各自工作包判定。 |
 | VS Code `0.37.149` | 同一发布提交；[Open VSX 标签工作流第 2 次运行](https://github.com/chainlesschain/chainlesschain/actions/runs/39014016230/attempts/2) | Open VSX API 返回 `ready`、`listed:true`、`downloadable:true`；推荐 CLI `0.166.104`。 | Microsoft Marketplace 尚无 `VSCE_PAT`，官方渠道未发布。 |
 | JetBrains `0.4.166` | `4c3e5cfd56f9afa947aa2383428fdcd883d4e4b8`；[标签工作流](https://github.com/chainlesschain/chainlesschain/actions/runs/39020301946) | 六组真实宿主矩阵、插件构建、CLI 前置核验及 `publishPlugin` 上传成功；公共 API 已返回 `ready`、`approve:true`、`listed:true`、`hidden:false`。公开 ZIP 为 1,532,930 字节，完整性检查通过，SHA-256 为 `0aa37f3c34f5e02e66812826629ae0a7e7cb5d1fe1479700900005b02505dc5b`。 | 后续版本须重新走完整宿主与公开制品回读门禁。 |
-| PR #458 | 已合并 | CLI、Open VSX 与 JetBrains 的本轮公开发行完成后合并，合并提交为 `1a5ff6fb426ae247c1e4a23a528b933f73323d09`。 | 后续测试契约修复跟踪 [PR #459](https://github.com/chainlesschain/chainlesschain/pull/459)。 |
+| PR #458 | 已合并 | CLI、Open VSX 与 JetBrains 的本轮公开发行完成后合并，合并提交为 `1a5ff6fb426ae247c1e4a23a528b933f73323d09`。 | 后续测试契约修复 [PR #459](https://github.com/chainlesschain/chainlesschain/pull/459) 也已合并为 `ef26f20b288ac89c188977c92209e47445c2ff70`。 |
 
 上述发行不改变正式付费评测 `NOT_RUN`（任务 0/36、首次安装 0/9）、`paidReady:false` 或 native `NOT_ADMITTED`。
+
+## 2026-10-17 正式评测授权后的预检
+
+用户现已授权使用火山引擎进行冻结的 36 项任务和 9 次首次安装；先前“暂跳正式付费评测”的决定不再适用。授权不重置 v1/v2/v3 共用的 $99，也不改变冻结窗口（截至 2026-10-19T14:46:52.556Z）、模型、默认 thinking、样本或目标宿主。
+
+在主线 `ef26f20b288ac89c188977c92209e47445c2ff70` 上重新运行 v3 计划校验成功，28/28 项 v3 Node 合同测试和 75/75 项正式预算 authority/冻结计划测试通过。只读 collection 按预期退出 2，仍返回 `NOT_RUN`、0/36、0/9、`INSUFFICIENT_EVIDENCE`；静态出口审查通过分类，但仍明确返回 `paidReady:false`、`runtimeCoverageVerified:false`。环境中可见火山凭据变量名，未读取或记录密钥值，也未发出本轮付费请求。
+
+正式执行仍缺账户级合同及账单（包含默认 thinking 的完整输出责任上界、输入开销、汇率、历史及取消调用）、同一预算谱系的实际剩余额度、生产认证检查点、可信宿主的物理出口隔离，以及九个冻结宿主的公开安装身份与 native 准入。正式 transport 的 `requireFormalBudgetRuntime()` 仍无条件拒绝；本轮不能通过诊断入口、修改 `paidReady` 或将已有诊断改名来生成正式样本。首批 Linux CLI 4+1 的 $11 上限只有在上述预算和宿主条件落实后才可启用。
