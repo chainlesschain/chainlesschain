@@ -313,7 +313,13 @@ export async function runVSCodeNativeTask({
   return {
     ok,
     captureDir,
-    failure: ok ? null : "VSCode initial/UI/restart validation failed",
+    failure: ok
+      ? null
+      : ["initial", "restart"]
+          .map((phase) => path.join(captureDir, `driver-${phase}.failure.json`))
+          .filter((file) => fs.existsSync(file))
+          .map((file) => json(file).error.message)
+          .join("; ") || "VSCode initial/UI/restart validation failed",
   };
 }
 
@@ -328,7 +334,12 @@ export function protocolStream(captureDir) {
     );
   const files = fs
     .readdirSync(captureDir)
-    .filter((f) => f.endsWith(".ndjson") && f !== "ui.ndjson");
+    .filter(
+      (f) =>
+        f.endsWith(".ndjson") &&
+        f !== "ui.ndjson" &&
+        f !== "cdp-discovery.ndjson",
+    );
   assert.equal(files.length, 1, "exactly one raw protocol generation required");
   return (
     fs
@@ -403,6 +414,11 @@ export async function runNativeCampaign({
     bindingFiles.push(
       "packages/vscode-extension/test/extension-host/verify01-run.cjs",
       "packages/vscode-extension/test/extension-host/driver/verify01.cjs",
+      "packages/vscode-extension/test/extension-host/driver/verify01-composer.cjs",
+      "packages/vscode-extension/test/extension-host/driver/noop.cjs",
+      "packages/vscode-extension/test/extension-host/driver/failure-receipt.cjs",
+      "packages/vscode-extension/test/extension-host/cdp-journey.cjs",
+      "packages/vscode-extension/test/extension-host/run.cjs",
     );
   if (entry === "jetbrains")
     bindingFiles.push(
@@ -818,7 +834,11 @@ export async function runNativeCampaign({
       row.generationPassed =
         result.ok && row.model.pass && row.brokerStatus.passed;
     } catch (error) {
-      row.failure = redact(error.stack || error.message);
+      row.failure = redact(
+        [row.host?.failure, error.stack || error.message]
+          .filter(Boolean)
+          .join("\n"),
+      );
     } finally {
       if (broker) {
         try {
@@ -871,6 +891,16 @@ export async function runNativeCampaign({
         JSON.parse(redact(JSON.stringify(row))),
       );
       save("summary.json", JSON.parse(redact(JSON.stringify(summary))));
+      console.log(
+        JSON.stringify({
+          sampleId: row.sampleId,
+          taskId: row.taskId,
+          generationPassed: row.generationPassed,
+          hostPassed: row.host?.passed ?? false,
+          sourceScopePassed: row.sourceScopePassed,
+          acceptancePending: true,
+        }),
+      );
     }
   }
   summary.generationPassed =

@@ -20,12 +20,18 @@ on:
         required: true
         default: all
         options: [all, windows, linux, macos]
+      entries:
+        description: "Run all entries or repeat a corrected native adapter"
+        type: choice
+        required: true
+        default: all
+        options: [all, cli, vscode, jetbrains]
 
 permissions:
   contents: read
 
 concurrency:
-  group: verify01-native-36-plus-9-${{ inputs.hosts || 'all' }}
+  group: verify01-native-36-plus-9-${{ inputs.hosts || 'all' }}-${{ inputs.entries || 'all' }}
   cancel-in-progress: false
 
 jobs:
@@ -47,19 +53,23 @@ jobs:
           node --test
           packages/cli/test-node/verify01-native-task-campaign.node-test.mjs
           packages/cli/test-node/verify01-native-task-checker.node-test.mjs
+          packages/cli/test-node/verify01-vscode-composer.node-test.mjs
           packages/cli/test-node/verify01-volcengine-diagnostic-broker.node-test.mjs
       - name: Select requested native hosts
         id: select
         shell: bash
         env:
           HOST_SELECTION: ${{ inputs.hosts || 'all' }}
+          ENTRY_SELECTION: ${{ inputs.entries || 'all' }}
         run: |
           node --input-type=module -e '
             import fs from "node:fs";
             const hosts = {windows: ["win32", "windows-latest"], linux: ["linux", "ubuntu-24.04"], macos: ["darwin", "macos-15"]};
             const selected = process.env.HOST_SELECTION;
             if (selected !== "all" && !Object.hasOwn(hosts, selected)) throw new Error("unknown host");
-            const rows = Object.entries(hosts).filter(([name]) => selected === "all" || name === selected).flatMap(([, [platform, os]]) => ["cli", "vscode", "jetbrains"].map(entry => ({group: `${platform}-${entry}`, os, entry})));
+            const entries = ["cli", "vscode", "jetbrains"].filter(entry => process.env.ENTRY_SELECTION === "all" || process.env.ENTRY_SELECTION === entry);
+            if (!entries.length) throw new Error("unknown entry");
+            const rows = Object.entries(hosts).filter(([name]) => selected === "all" || name === selected).flatMap(([, [platform, os]]) => entries.map(entry => ({group: `${platform}-${entry}`, os, entry})));
             fs.appendFileSync(process.env.GITHUB_OUTPUT, `matrix=${JSON.stringify({include: rows})}\ngroups=${JSON.stringify(rows.map(row => row.group))}\n`);
           '
 
