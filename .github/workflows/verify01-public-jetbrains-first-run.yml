@@ -1,0 +1,77 @@
+name: VERIFY01 Public JetBrains Native First Run
+
+on:
+  push:
+    branches: [feature/verify01-task-completion-20261017]
+    paths:
+      - "packages/jetbrains-plugin/scripts/verify01-public-first-run.mjs"
+      - ".github/workflows/verify01-public-jetbrains-first-run.yml"
+  workflow_dispatch:
+    inputs:
+      confirm_live:
+        description: "Run public JetBrains plugin and public CLI with real paid file-tool task and IDE recovery"
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  first-run:
+    if: >-
+      (github.event_name == 'workflow_dispatch' && inputs.confirm_live == true) ||
+      (github.event_name == 'push' && contains(github.event.head_commit.message, '[volcengine-jetbrains-first-run]'))
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 100
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-latest, macos-15]
+    env:
+      GRADLE_USER_HOME: ${{ github.workspace }}/.gradle-public-first-run
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Validate archive selection and real CLI forwarding without paid calls
+        run: node --test packages/cli/test-node/verify01-public-jetbrains-first-run.node-test.mjs
+      - name: Install Linux virtual display
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+      - name: Prepare Gradle wrapper
+        if: runner.os != 'Windows'
+        run: chmod +x packages/jetbrains-plugin/gradlew
+      - name: Bootstrap exact Gradle
+        run: node scripts/lib/verify01-gradle-bootstrap.mjs --project-dir packages/jetbrains-plugin
+      - name: Install public artifacts and run real IntelliJ 2025.2 task
+        shell: bash
+        env:
+          VOLCENGINE_API_KEY: ${{ secrets.CC_LLM_API_KEY }}
+        run: |
+          display=()
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            display=(xvfb-run --auto-servernum '--server-args=-screen 0 1920x1080x24')
+          fi
+          "${display[@]}" node packages/jetbrains-plugin/scripts/verify01-public-first-run.mjs \
+            --confirm-live --output-dir "$RUNNER_TEMP/verify01-public-jetbrains-first-run"
+      - name: Preserve failures and real public-host evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: public-jetbrains-first-run-${{ matrix.os }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/verify01-public-jetbrains-first-run/
+            packages/jetbrains-plugin/build/reports/tests/uiSmokeTest/
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14

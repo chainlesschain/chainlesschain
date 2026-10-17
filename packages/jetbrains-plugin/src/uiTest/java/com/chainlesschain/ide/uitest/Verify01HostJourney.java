@@ -58,6 +58,17 @@ final class Verify01HostJourney {
         String project = String.valueOf((Object) frame.callJs("String(component.getProject().getBasePath());", true));
         assertEquals(Path.of(System.getProperty("ui.verify01.workspace")).toRealPath(), Path.of(project).toRealPath(),
                 "actual IDE project differs from prepared task workspace");
+        String expectedPluginVersion = System.getProperty("ui.verify01.pluginVersion", "");
+        if (!expectedPluginVersion.isBlank()) {
+            String installedVersion = String.valueOf((Object) frame.callJs(
+                    "String(Packages.com.intellij.ide.plugins.PluginManagerCore.getPlugin("
+                            + "Packages.com.intellij.openapi.extensions.PluginId.getId('com.chainlesschain.ide')).getVersion());", true));
+            assertEquals(expectedPluginVersion, installedVersion, "actual installed public plugin version differs");
+            JsonObject installed = new JsonObject();
+            installed.addProperty("pluginId", "com.chainlesschain.ide");
+            installed.addProperty("version", installedVersion);
+            writeNew("installed-plugin.json", installed);
+        }
         try (var files = Files.list(root)) {
             assertTrue(files.noneMatch(p -> p.getFileName().toString().startsWith("protocol-")), "raw protocol directory must be fresh");
         }
