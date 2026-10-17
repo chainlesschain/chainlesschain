@@ -21,6 +21,7 @@ import {
 } from "./verify01-native-task-campaign.mjs";
 import { runCaptured } from "./verify01-first-run-cli-diagnostic.mjs";
 import { verifyAgentTerminal } from "../src/lib/eval/stream-terminal.js";
+import { deriveLegacyWindowsTarTree } from "./verify01-legacy-windows-tar.mjs";
 
 const repository = fileURLToPath(new URL("../../../", import.meta.url));
 const planDir = path.join(
@@ -118,6 +119,38 @@ export function assertFrozenBefore(expected, captured) {
       assert.equal(actual.bytes, item.bytes);
     }
     if (item.type === "link") assert.equal(actual.target, item.target);
+  }
+}
+
+/** Archive-header-derived full-tree assessment for candidate-only checks. */
+export function assessFrozenBefore(expected, captured, platform, legacy) {
+  try {
+    assertFrozenBefore(expected, captured);
+    return { exact: true, contentVerified: true, filenameEncoding: "utf8" };
+  } catch (original) {
+    if (platform !== "win32" || !legacy) throw original;
+    const reconstructed = deriveLegacyWindowsTarTree(
+      legacy.archiveBytes,
+      legacy.canonicalSnapshot,
+      legacy.expectedFiles,
+    );
+    // Encoding follows raw header/PAX metadata, never observed-path guessing.
+    assertFrozenBefore(reconstructed.snapshot, captured);
+    return {
+      exact: false,
+      contentVerified: true,
+      filenameEncoding: reconstructed.receipt.encoding,
+      archiveDigest: reconstructed.receipt.archiveDigest,
+      mappingDigest: hash(
+        Buffer.from(JSON.stringify(reconstructed.receipt.mapping)),
+      ),
+      archiveEntriesVerified: reconstructed.receipt.mapping.length,
+      changedPathCount: reconstructed.receipt.mapping.filter(
+        (entry) => entry.canonicalPath !== entry.observedPath,
+      ).length,
+      nativeGenerationIdentityPassed: false,
+      scope: "Independent candidate acceptance on canonical frozen source only",
+    };
   }
 }
 
@@ -268,6 +301,7 @@ export async function checkNativeCampaign({
       execFileSync("tar", ["-xf", archive, "-C", workspace], {
         timeout: 120000,
       });
+      const canonicalSnapshot = snapshotNativeTree(workspace);
       for (const file of task.expectedFiles) {
         assert.ok(!fs.existsSync(path.join(workspace, file)));
         fs.mkdirSync(path.dirname(path.join(workspace, file)), {
@@ -280,7 +314,33 @@ export async function checkNativeCampaign({
             : "// Non-answer placeholder.\n",
         );
       }
-      assertFrozenBefore(snapshotNativeTree(workspace), before);
+      try {
+        row.frozenSourceAssessment = assessFrozenBefore(
+          snapshotNativeTree(workspace),
+          before,
+          source.platform,
+          {
+            archiveBytes: fs.readFileSync(archive),
+            canonicalSnapshot,
+            expectedFiles: task.expectedFiles,
+          },
+        );
+      } catch (error) {
+        row.frozenSourceAssessment = {
+          exact: false,
+          contentVerified: false,
+          failure: "native initial tree does not match canonical frozen source",
+        };
+        row.generationPassed = false;
+        row.generationAssessment.passed = false;
+        throw error;
+      }
+      if (!row.frozenSourceAssessment.exact) {
+        row.generationPassed = false;
+        row.generationAssessment.passed = false;
+        row.generationAssessment.initialSourceIdentityPassed = false;
+        row.generationFailure = "native-initial-filename-encoding-mismatch";
+      }
       for (const file of task.expectedFiles)
         fs.unlinkSync(path.join(workspace, file));
       async function stage(name) {

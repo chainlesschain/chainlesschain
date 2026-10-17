@@ -8,6 +8,7 @@ import {
   artifactFile,
   validateNativeCandidate,
   assertFrozenBefore,
+  assessFrozenBefore,
 } from "../scripts/verify01-native-task-checker.mjs";
 
 test("accepts only exact bounded candidate bytes at the catalog path", (t) => {
@@ -56,6 +57,24 @@ test("accepts only exact bounded candidate bytes at the catalog path", (t) => {
       { ...row, candidates: [{ ...row.candidates[0], path: "other.txt" }] },
       { expectedFiles: [file] },
     ),
+  );
+});
+
+test("canonical source stays exact and Windows mismatches require archive-derived evidence", () => {
+  const frozen = { docs: { type: "directory" } };
+  assert.deepEqual(assessFrozenBefore(frozen, frozen, "win32"), {
+    exact: true,
+    contentVerified: true,
+    filenameEncoding: "utf8",
+  });
+  const extra = { ...frozen, injected: { type: "directory" } };
+  assert.throws(() => assessFrozenBefore(frozen, extra, "win32"));
+  assert.throws(() =>
+    assessFrozenBefore(frozen, extra, "linux", {
+      archiveBytes: Buffer.alloc(1024),
+      canonicalSnapshot: frozen,
+      expectedFiles: [],
+    }),
   );
 });
 

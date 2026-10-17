@@ -16,6 +16,7 @@ import {
   inspectionStream,
   VERSIONS,
   archiveExtractor,
+  extractNativeArchive,
 } from "../scripts/verify01-native-task-campaign.mjs";
 import { VERIFY01_REVIEW_SPECS } from "../scripts/verify01-review-specs.mjs";
 const require = createRequire(import.meta.url);
@@ -59,6 +60,54 @@ test("native archive extraction accepts absolute drive paths even under Git Bash
     "frozen bytes\n",
   );
   if (process.platform === "win32") assert.ok(path.isAbsolute(executable));
+});
+test("native extraction preserves git archive UTF-8 paths and frozen bytes", (t) => {
+  const root = temporary(t),
+    source = path.join(root, "source"),
+    destination = path.join(root, "destination"),
+    archive = path.join(root, "frozen.tar");
+  fs.mkdirSync(source);
+  fs.mkdirSync(destination);
+  const files = [
+    "fixture.txt",
+    "后端测试.txt",
+    "文档/café-结果.md",
+    `文档/${"长文件名".repeat(10)}.txt`,
+  ];
+  for (const file of files) {
+    fs.mkdirSync(path.dirname(path.join(source, file)), { recursive: true });
+    fs.writeFileSync(path.join(source, file), `frozen bytes: ${file}\n`);
+  }
+  execFileSync("git", ["init", "--quiet", source]);
+  execFileSync("git", ["-C", source, "-c", "core.autocrlf=false", "add", "."]);
+  const tree = execFileSync("git", ["-C", source, "write-tree"], {
+    encoding: "utf8",
+  }).trim();
+  execFileSync("git", [
+    "-C",
+    source,
+    "-c",
+    "core.autocrlf=false",
+    "archive",
+    "--format=tar",
+    "--output",
+    archive,
+    tree,
+  ]);
+  extractNativeArchive(archive, destination);
+  const actual = snapshotNativeTree(destination);
+  assert.deepEqual(
+    Object.keys(actual)
+      .filter((file) => actual[file].type === "file")
+      .sort(),
+    [...files].sort(),
+  );
+  for (const file of files) {
+    assert.deepEqual(
+      fs.readFileSync(path.join(destination, file)),
+      fs.readFileSync(path.join(source, file)),
+    );
+  }
 });
 test("nine native strata select exactly 36 ordinary and nine independent first samples", () => {
   const all = ["win32", "linux", "darwin"].flatMap((platform) =>

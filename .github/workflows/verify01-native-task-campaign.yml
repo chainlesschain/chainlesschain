@@ -62,6 +62,7 @@ jobs:
           node --test
           packages/cli/test-node/verify01-native-task-campaign.node-test.mjs
           packages/cli/test-node/verify01-native-task-checker.node-test.mjs
+          packages/cli/test-node/verify01-legacy-windows-tar.node-test.mjs
           packages/cli/test-node/verify01-vscode-composer.node-test.mjs
           packages/cli/test-node/verify01-ide-terminal.node-test.mjs
           packages/cli/test-node/verify01-volcengine-diagnostic-broker.node-test.mjs

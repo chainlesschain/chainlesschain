@@ -55,6 +55,18 @@ export function archiveExtractor(
   return executable;
 }
 
+export function extractNativeArchive(archive, workspace) {
+  // git archive stores UTF-8 paths; Windows bsdtar otherwise uses the active
+  // code page for ordinary tar headers (silently corrupting non-ASCII names).
+  const options =
+    process.platform === "win32" ? ["--options", "hdrcharset=UTF-8"] : [];
+  execFileSync(
+    archiveExtractor(),
+    [...options, "-xf", archive, "-C", workspace],
+    { timeout: 120000 },
+  );
+}
+
 export function selectNativeSamples(plan, platform, entry) {
   assert.ok(["linux", "win32", "darwin"].includes(platform));
   assert.ok(["cli", "vscode", "jetbrains"].includes(entry));
@@ -599,9 +611,7 @@ export async function runNativeCampaign({
         outputPrefix: path.join(sampleOutput, "commands", name),
       });
     try {
-      execFileSync(archiveExtractor(), ["-xf", archive, "-C", workspace], {
-        timeout: 120000,
-      });
+      extractNativeArchive(archive, workspace);
       for (const file of task.expectedFiles) {
         assert.ok(!path.isAbsolute(file) && !file.split("/").includes(".."));
         mkdir(path.dirname(path.join(workspace, file)));
