@@ -62,6 +62,12 @@ test("effective diagnostic request fixes model, thinking, service tier and token
     () => diagnosticBody({ ...request(), thinking: { type: "enabled" } }),
     /UNEXPECTED_FIELD/,
   );
+  assert.doesNotThrow(() =>
+    diagnosticBody({
+      ...request(),
+      messages: [{ role: "user", content: "x".repeat(82 * 1024) }],
+    }),
+  );
   assert.throws(
     () =>
       diagnosticBody({
@@ -72,6 +78,46 @@ test("effective diagnostic request fixes model, thinking, service tier and token
       }),
     /REQUEST_BYTES_LIMIT/,
   );
+});
+test("pre-dispatch request size rejection fails only its own task", async (t) => {
+  let calls = 0;
+  const { broker, send } = await fixture(t, async () => {
+    calls += 1;
+    return { status: 200, raw: response() };
+  });
+  try {
+    assert.equal((await send()).status, 200);
+    const oversized = {
+      ...request(),
+      messages: [
+        { role: "user", content: "x".repeat(BROKER.maximumRequestBytes) },
+      ],
+    };
+    const rejected = await fetch(`${broker.baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${broker.childKey}` },
+      body: JSON.stringify(oversized),
+    });
+    assert.equal(rejected.status, 403);
+    assert.match(await rejected.text(), /DIAGNOSTIC_REQUEST_BYTES_LIMIT/u);
+    assert.equal(calls, 1);
+    assert.deepEqual(broker.taskStatus("verify-04"), {
+      physicalRequestsStarted: 1,
+      usageCompleteRequests: 1,
+      passed: false,
+      poisoned: null,
+      errorCode: "DIAGNOSTIC_REQUEST_BYTES_LIMIT",
+    });
+    broker.beginTask("verify-22");
+    assert.equal((await send()).status, 200);
+    assert.equal(broker.taskStatus("verify-22").passed, true);
+    assert.equal(calls, 2);
+  } finally {
+    const result = await broker.close();
+    assert.equal(result.poisoned, null);
+    assert.equal(result.physicalRequestsStarted, 2);
+    assert.equal(result.usageCompleteRequests, 2);
+  }
 });
 test("unknown usage, model, tier, partial output and reasoning cannot settle", () => {
   assert.equal(

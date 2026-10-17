@@ -275,6 +275,18 @@ test("prompt discloses constrained task and independent checker without injectin
   assert.match(prompt, /implementation defect/u);
   assert.match(prompt, /repository-relative paths for every mutation/u);
   assert.match(prompt, /at most 14 model turns/u);
+  const retryPrompt = taskPrompt(
+    {
+      taskId: "verify-04",
+      prompt: "Frozen task",
+      sourcePaths: ["source.js"],
+      expectedFiles,
+    },
+    { baselineTests: ["baseline.test.js"] },
+  );
+  assert.match(retryPrompt, /Historical diagnostic feedback/u);
+  assert.match(retryPrompt, /not a first-attempt or formal sample/u);
+  assert.match(retryPrompt, /requestInputTokens/u);
 });
 
 test("workflow requires explicit dispatch or a branch-scoped paid-run marker, and always uploads", () => {

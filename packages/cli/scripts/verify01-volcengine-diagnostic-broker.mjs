@@ -11,7 +11,7 @@ export const BROKER = Object.freeze({
   endpoint: "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
   model: "deepseek-v4-flash-ga-260731",
   maximumRequestsPerTask: 14,
-  maximumRequestBytes: 80 * 1024,
+  maximumRequestBytes: 256 * 1024,
   maximumResponseBytes: 1024 * 1024,
   maximumAnswerTokens: 4096,
   timeoutMs: 45000,
@@ -475,9 +475,15 @@ export async function createVolcengineDiagnosticBroker(options) {
         ),
       );
     } catch (error) {
-      poisoned = error.message.startsWith("DIAGNOSTIC_")
-        ? error.message
-        : "DIAGNOSTIC_INVALID_RESPONSE_USAGE_UNKNOWN";
+      // An oversized request is rejected before dispatch. It invalidates this
+      // task, but no provider usage or response is left unknown for the next.
+      if (error.message === "DIAGNOSTIC_REQUEST_BYTES_LIMIT" && !row) {
+        active.errorCode = error.message;
+      } else {
+        poisoned = error.message.startsWith("DIAGNOSTIC_")
+          ? error.message
+          : "DIAGNOSTIC_INVALID_RESPONSE_USAGE_UNKNOWN";
+      }
       captured ||= error.captured || null;
       if (row) row.errorCode = poisoned;
     } finally {
@@ -507,7 +513,8 @@ export async function createVolcengineDiagnosticBroker(options) {
       pending = false;
       // Never expose a successful terminal to the product until both raw
       // response and complete receipt have been durably written.
-      if (poisoned) rejectLocal(poisoned);
+      if (poisoned || active?.errorCode)
+        rejectLocal(poisoned || active.errorCode);
       else if (!res.destroyed) {
         res.writeHead(200, {
           "Content-Type":
@@ -546,20 +553,23 @@ export async function createVolcengineDiagnosticBroker(options) {
           !tasks.some((t) => t.taskId === taskId),
         "DIAGNOSTIC_TASK_ALLOWANCE_INVALID",
       );
-      active = { taskId, requests: 0 };
+      active = { taskId, requests: 0, errorCode: null };
       tasks.push(active);
     },
     taskStatus(taskId) {
       const rows = receipts.filter((r) => r.taskId === taskId);
+      const task = tasks.find((item) => item.taskId === taskId);
       return {
         physicalRequestsStarted: rows.length,
         usageCompleteRequests: rows.filter((r) => r.usage !== null).length,
         passed:
           !pending &&
           !poisoned &&
+          !task?.errorCode &&
           rows.length > 0 &&
           rows.every((r) => r.usage !== null && r.errorCode === null),
         poisoned,
+        errorCode: task?.errorCode || null,
       };
     },
     async close() {
