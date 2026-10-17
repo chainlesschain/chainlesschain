@@ -39,6 +39,7 @@ public final class BackgroundSessionPipeClient {
     private static final Set<String> HELLO_REPLIES = Set.of("hello");
     private static final Set<String> ACTION_REPLIES =
             Set.of("accepted", "stopping", "status", "received", "error");
+    private static final int MAX_LINE_BYTES = 1024 * 1024;
 
     /**
      * Send one control message and return the worker's settling reply
@@ -132,7 +133,7 @@ public final class BackgroundSessionPipeClient {
         /** Next line (without \n), or null on EOF/closed handle. */
         String readLine() throws IOException {
             while (true) {
-                String line = carry.poll();
+                String line = pollBoundedLine(carry, MAX_LINE_BYTES);
                 if (line != null) return line;
                 int n;
                 try {
@@ -144,6 +145,14 @@ public final class BackgroundSessionPipeClient {
                 carry.feed(buf, n);
             }
         }
+    }
+
+    static String pollBoundedLine(NdjsonLineBuffer carry, int maxLineBytes)
+            throws IOException {
+        if (carry.nextLineByteLength() > maxLineBytes) {
+            throw new IOException("background session NDJSON line exceeds maximum length");
+        }
+        return carry.poll();
     }
 
     // ── transport: named pipe (Windows) / unix socket (POSIX) ──────────────

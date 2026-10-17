@@ -141,6 +141,7 @@ on:
       - "packages/cli/__tests__/unit/event-runtime-host.test.js"
       - "packages/cli/__tests__/unit/headless-runner.test.js"
       - "packages/cli/__tests__/unit/headless-stream.test.js"
+      - "packages/cli/__tests__/unit/headless-stream-session-budget-root.test.js"
       - "packages/cli/__tests__/unit/remote-control-lib.test.js"
       - "packages/cli/__tests__/unit/remote-approval-start.test.js"
       - "packages/cli/__tests__/integration/remote-control-start.test.js"
@@ -359,6 +360,7 @@ on:
       - "packages/cli/__tests__/unit/event-runtime-host.test.js"
       - "packages/cli/__tests__/unit/headless-runner.test.js"
       - "packages/cli/__tests__/unit/headless-stream.test.js"
+      - "packages/cli/__tests__/unit/headless-stream-session-budget-root.test.js"
       - "packages/cli/__tests__/unit/remote-control-lib.test.js"
       - "packages/cli/__tests__/unit/remote-approval-start.test.js"
       - "packages/cli/__tests__/integration/remote-control-start.test.js"
@@ -563,6 +565,7 @@ jobs:
           __tests__/unit/event-runtime-host.test.js
           __tests__/unit/headless-runner.test.js
           __tests__/unit/headless-stream.test.js
+          __tests__/unit/headless-stream-session-budget-root.test.js
           __tests__/unit/headless-hook-events.test.js
           __tests__/unit/remote-control-lib.test.js
           __tests__/unit/remote-approval-start.test.js

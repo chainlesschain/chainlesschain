@@ -61,6 +61,62 @@ describe("createNdjsonReader", () => {
     expect(seen).toEqual([{ type: "a", n: 1 }, { type: "b" }, { type: "c" }]);
   });
 
+  it("preserves UTF-8 characters split across byte chunks", () => {
+    const seen = [];
+    const feed = createNdjsonReader((message) => seen.push(message));
+    const wire = Buffer.from(
+      `${JSON.stringify({ type: "prompt", text: "中文🙂" })}\n`,
+      "utf8",
+    );
+    const boundary = wire.indexOf(Buffer.from("中", "utf8")) + 1;
+    feed(wire.subarray(0, boundary));
+    feed(wire.subarray(boundary));
+    expect(seen).toEqual([{ type: "prompt", text: "中文🙂" }]);
+  });
+
+  it("enforces the line limit in UTF-8 bytes", () => {
+    const seen = [];
+    const errors = [];
+    const feed = createNdjsonReader(
+      (message) => seen.push(message),
+      (error) => errors.push(error),
+    );
+    feed(`${JSON.stringify({ text: "中".repeat(400_000) })}\n`);
+    expect(seen).toEqual([]);
+    expect(errors).toHaveLength(1);
+    expect(errors[0].message).toBe("line too long");
+  });
+
+  it("accepts multiple bounded lines in one large chunk", () => {
+    const seen = [];
+    const errors = [];
+    const feed = createNdjsonReader(
+      (message) => seen.push(message),
+      (error) => errors.push(error),
+    );
+    const line = `${JSON.stringify({ text: "a".repeat(600_000) })}\n`;
+    feed(line + line);
+    expect(seen.map((message) => message.text.length)).toEqual([
+      600_000,
+      600_000,
+    ]);
+    expect(errors).toEqual([]);
+  });
+
+  it("discards the remainder of an oversized line until its newline", () => {
+    const seen = [];
+    const errors = [];
+    const feed = createNdjsonReader(
+      (message) => seen.push(message),
+      (error) => errors.push(error),
+    );
+    feed("x".repeat(1024 * 1024 + 1));
+    feed('{"type":"same-line"}\n{"type":"next-line"}\n');
+    expect(seen).toEqual([{ type: "next-line" }]);
+    expect(errors).toHaveLength(1);
+    expect(errors[0].message).toBe("line too long");
+  });
+
   it("tolerates CRLF and blank lines, reports bad JSON without dying", () => {
     const seen = [];
     const errors = [];

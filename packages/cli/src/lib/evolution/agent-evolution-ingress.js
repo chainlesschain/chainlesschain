@@ -5,6 +5,7 @@ import evolutionRun from "@chainlesschain/session-core/evolution-run";
 import { EvolutionEvidenceArtifactAdapter } from "./evolution-evidence-artifact-adapter.js";
 import {
   EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_DIGEST,
+  EVOLUTION_SKILL_DECISION_PROJECTION_RULESET_DIGEST,
   EVOLUTION_PROJECTION_RULESET_DIGEST,
 } from "./evolution-evidence-projector.js";
 import { EvolutionRunLedgerAdapter } from "./evolution-run-ledger-adapter.js";
@@ -15,6 +16,10 @@ import {
   snapshotAgentModelRequest,
   buildAgentModelRequest,
 } from "./agent-model-projection.js";
+import {
+  snapshotSkillDecisionRequest,
+  buildSkillDecisionPayload,
+} from "./skill-decision-projection.js";
 
 const { EVOLUTION_RUN_EVENT_SCHEMA, EVENT_TYPES } = evolutionRun;
 
@@ -265,6 +270,7 @@ export function createAgentEvolutionIngress({
     options = {},
     modelRequest = null,
     cacheRecord = false,
+    skillDecisionRequest = null,
   ) =>
     guardIngress(
       serialize(async () => {
@@ -304,7 +310,7 @@ export function createAgentEvolutionIngress({
               ),
               responseEvent: clone(lastModelResponse.event),
             }
-          : (modelRequest ?? clone(evidence));
+          : (skillDecisionRequest?.payload ?? modelRequest ?? clone(evidence));
         const sourceEnvelope = await issueSourceEnvelope(
           Object.freeze({
             schema: AGENT_EVOLUTION_INGRESS_SCHEMA,
@@ -321,12 +327,17 @@ export function createAgentEvolutionIngress({
           payload,
         };
         const persisted =
-          modelRequest === null
-            ? await evidenceAdapter.projectAndPersist(projectionInput)
-            : await EvolutionEvidenceArtifactAdapter.prototype.projectAndPersistAgentModelRequest.call(
+          skillDecisionRequest !== null
+            ? await EvolutionEvidenceArtifactAdapter.prototype.projectAndPersistSkillDecisionRequest.call(
                 evidenceAdapter,
                 projectionInput,
-              );
+              )
+            : modelRequest === null
+              ? await evidenceAdapter.projectAndPersist(projectionInput)
+              : await EvolutionEvidenceArtifactAdapter.prototype.projectAndPersistAgentModelRequest.call(
+                  evidenceAdapter,
+                  projectionInput,
+                );
         if (
           persisted?.tenantId !== descriptor.tenantId ||
           persisted.evidenceId == null ||
@@ -353,6 +364,13 @@ export function createAgentEvolutionIngress({
             evidenceKind: kind,
             occurredAt,
             derivationManifestDigest: persisted.manifest.digest,
+            ...(skillDecisionRequest === null
+              ? {}
+              : {
+                  decisionId: skillDecisionRequest.decisionId,
+                  requestDigest: skillDecisionRequest.requestDigest,
+                  candidateSetDigest: skillDecisionRequest.candidateSetDigest,
+                }),
           },
         });
         if (kind === "model-input") {
@@ -370,7 +388,8 @@ export function createAgentEvolutionIngress({
             eventId,
             artifact: persisted,
           });
-        if (modelRequest === null) return appended;
+        if (modelRequest === null && skillDecisionRequest === null)
+          return appended;
         // Resolve the published manifest and every attested component afresh.
         // The prototype call requires the real adapter's private state; an
         // instance-shaped facade cannot mint model-visible input.
@@ -383,7 +402,9 @@ export function createAgentEvolutionIngress({
           resolved.verification.verified !== true ||
           resolved.verification.tenantId !== descriptor.tenantId ||
           resolved.bundle.modelProjection.rulesetDigest !==
-            EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_DIGEST ||
+            (skillDecisionRequest === null
+              ? EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_DIGEST
+              : EVOLUTION_SKILL_DECISION_PROJECTION_RULESET_DIGEST) ||
           resolved.bundle.modelProjection.evidenceId !== persisted.evidenceId
         ) {
           throw new Error("Agent model projection readback is unbound");
@@ -396,6 +417,26 @@ export function createAgentEvolutionIngress({
           throw new Error("Agent model projection Run frontier changed");
         }
         if (admissionFailure !== null) throw admissionFailure;
+        if (skillDecisionRequest !== null) {
+          return Object.freeze({
+            payload: buildSkillDecisionPayload(
+              skillDecisionRequest.payload,
+              resolved.bundle.modelProjection,
+            ),
+            receipt: Object.freeze({
+              tenantId: descriptor.tenantId,
+              runId: descriptor.runId,
+              eventId,
+              evidenceId: persisted.evidenceId,
+              requestDigest: skillDecisionRequest.requestDigest,
+              candidateSetDigest: skillDecisionRequest.candidateSetDigest,
+              manifestDigest: persisted.manifest.digest,
+              projectionDigest:
+                resolved.bundle.modelProjection.projectionDigest,
+              rulesetDigest: resolved.bundle.modelProjection.rulesetDigest,
+            }),
+          });
+        }
         return buildAgentModelRequest(
           modelRequest,
           resolved.bundle.modelProjection,
@@ -522,6 +563,21 @@ export function createAgentEvolutionIngress({
       return response;
     },
     start: () => guardIngress(serialize(() => appendStarted())),
+    prepareSkillDecisionRequest: (request) => {
+      if (admissionFailure !== null) return Promise.reject(admissionFailure);
+      let snapshot;
+      try {
+        snapshot = snapshotSkillDecisionRequest(request);
+        if (snapshot.binding.tenantId !== descriptor.tenantId)
+          throw new TypeError(
+            "Skill decision request belongs to another tenant",
+          );
+      } catch (error) {
+        admissionFailure = ingressFailure(error);
+        return Promise.reject(admissionFailure);
+      }
+      return ingest("skill-decision-input", null, {}, null, false, snapshot);
+    },
     prepareModelRequest: (request) => {
       if (admissionFailure !== null) return Promise.reject(admissionFailure);
       let snapshot;

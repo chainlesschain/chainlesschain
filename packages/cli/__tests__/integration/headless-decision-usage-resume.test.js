@@ -7,6 +7,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { runAgentHeadless } from "../helpers/test-model-egress.js";
 import { openDecisionProviderAuthority } from "../../src/lib/decision-layer/provider-authority.js";
 import { runMeteredDirectModelCall } from "../../src/lib/direct-model-usage.js";
+import {
+  openSessionBudget,
+  SessionBudgetSidecarStore,
+} from "../../src/lib/session-budget-runtime.js";
+import {
+  readProductionSessionBudget,
+  resolveSessionBudgetRootOptions,
+} from "../../src/lib/session-budget-production-root.js";
 import { _registerTestScopedSessionAntiRollbackDirectory } from "../../src/lib/session-anti-rollback-anchor.js";
 import {
   appendEvent,
@@ -17,6 +25,13 @@ import {
 
 const digest = (value) =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
+
+function makeBudgetStore() {
+  return new SessionBudgetSidecarStore({
+    resolvePath: (sessionId) => path.join(home, `${sessionId}.budget.json`),
+    allowUnsupportedPlatformForTests: true,
+  });
+}
 
 let home;
 let previousHome;
@@ -103,6 +118,349 @@ const validAnswer = {
 };
 
 describe("headless decision usage recovery with real JSONL", () => {
+  it("charges known decision usage to the production session budget root", async () => {
+    const sessionId = "decision-production-budget-known";
+    const budgetStore = makeBudgetStore();
+    const decide = vi.fn().mockResolvedValue(validAnswer);
+    const run = makeRun(decide, sessionId);
+    run.options.sessionBudgetRoot = resolveSessionBudgetRootOptions({
+      sessionMaxTurns: 2,
+      sessionMaxTokens: 40,
+    });
+    run.deps.sessionBudgetStore = budgetStore;
+    run.deps.sessionBudgetRegistry = new Map();
+
+    expect(await runAgentHeadless(run.options, run.deps)).toMatchObject({
+      exitCode: 0,
+      isError: false,
+    });
+    expect(run.decisions[0]).toMatchObject({ status: "suggestion" });
+    expect(decide).toHaveBeenCalledOnce();
+    expect(
+      findLatestEvent(sessionId, "session_start")?.data.sessionBudgetRoot,
+    ).toMatchObject({
+      enabled: true,
+      limits: { maxTurns: 2, maxTokens: 40 },
+    });
+    expect(
+      readProductionSessionBudget(sessionId, { store: budgetStore }),
+    ).toMatchObject({
+      usageUnknown: false,
+      totals: { turns: 1, tokens: 16 },
+      recoveryRequired: false,
+    });
+
+    const resumed = makeRun(decide, sessionId, true);
+    resumed.deps.sessionBudgetStore = budgetStore;
+    resumed.deps.sessionBudgetRegistry = new Map();
+    expect(await runAgentHeadless(resumed.options, resumed.deps)).toMatchObject(
+      {
+        exitCode: 0,
+        isError: false,
+      },
+    );
+    expect(resumed.decisions[0]).toMatchObject({ status: "suggestion" });
+    expect(decide).toHaveBeenCalledTimes(2);
+    expect(
+      readProductionSessionBudget(sessionId, { store: budgetStore }),
+    ).toMatchObject({
+      totals: { turns: 2, tokens: 32 },
+      recoveryRequired: false,
+    });
+
+    const exhausted = makeRun(decide, sessionId, true);
+    exhausted.deps.sessionBudgetStore = budgetStore;
+    exhausted.deps.sessionBudgetRegistry = new Map();
+    expect(
+      await runAgentHeadless(exhausted.options, exhausted.deps),
+    ).toMatchObject({
+      exitCode: 1,
+      isError: true,
+    });
+    expect(exhausted.decisions).toHaveLength(0);
+    expect(decide).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps the production budget root in recovery when decision usage is unknown", async () => {
+    const sessionId = "decision-production-budget-unknown";
+    const budgetStore = makeBudgetStore();
+    const decide = vi
+      .fn()
+      .mockResolvedValue({ ...validAnswer, usage: undefined });
+    const run = makeRun(decide, sessionId);
+    run.options.sessionBudgetRoot = resolveSessionBudgetRootOptions({
+      sessionMaxTurns: 2,
+      sessionMaxTokens: 40,
+    });
+    run.deps.sessionBudgetStore = budgetStore;
+    run.deps.sessionBudgetRegistry = new Map();
+
+    expect(await runAgentHeadless(run.options, run.deps)).toMatchObject({
+      exitCode: 1,
+      isError: true,
+    });
+    expect(decide).toHaveBeenCalledOnce();
+    expect(
+      readProductionSessionBudget(sessionId, { store: budgetStore }),
+    ).toMatchObject({
+      usageUnknown: true,
+      recoveryRequired: true,
+      pendingRecovery: [expect.objectContaining({ kind: "usage-settlement" })],
+    });
+
+    const resumed = makeRun(decide, sessionId, true);
+    resumed.deps.sessionBudgetStore = budgetStore;
+    resumed.deps.sessionBudgetRegistry = new Map();
+    await expect(
+      runAgentHeadless(resumed.options, resumed.deps),
+    ).rejects.toMatchObject({
+      code: "CC_SESSION_BUDGET_RECOVERY_REQUIRED",
+    });
+    expect(resumed.decisions).toHaveLength(0);
+    expect(decide).toHaveBeenCalledOnce();
+  });
+
+  it("refuses a changed budget declaration before another decision", async () => {
+    const sessionId = "decision-production-budget-mismatch";
+    const budgetStore = makeBudgetStore();
+    const decide = vi.fn().mockResolvedValue(validAnswer);
+    const first = makeRun(decide, sessionId);
+    first.options.sessionBudgetRoot = resolveSessionBudgetRootOptions({
+      sessionMaxTurns: 2,
+      sessionMaxTokens: 40,
+    });
+    first.deps.sessionBudgetStore = budgetStore;
+    first.deps.sessionBudgetRegistry = new Map();
+    expect(await runAgentHeadless(first.options, first.deps)).toMatchObject({
+      exitCode: 0,
+      isError: false,
+    });
+    const before = readProductionSessionBudget(sessionId, {
+      store: budgetStore,
+    });
+
+    const resumed = makeRun(decide, sessionId, true);
+    resumed.options.sessionBudgetRoot = resolveSessionBudgetRootOptions({
+      sessionMaxTurns: 3,
+      sessionMaxTokens: 40,
+    });
+    resumed.deps.sessionBudgetStore = budgetStore;
+    resumed.deps.sessionBudgetRegistry = new Map();
+    await expect(
+      runAgentHeadless(resumed.options, resumed.deps),
+    ).rejects.toMatchObject({
+      code: "CC_SESSION_BUDGET_CONFIG_MISMATCH",
+    });
+    expect(resumed.decisions).toHaveLength(0);
+    expect(decide).toHaveBeenCalledOnce();
+    expect(
+      readProductionSessionBudget(sessionId, { store: budgetStore }).revision,
+    ).toBe(before.revision);
+  });
+
+  it("refuses a budgeted session whose sidecar disappeared", async () => {
+    const sessionId = "decision-production-budget-missing-sidecar";
+    const budgetStore = makeBudgetStore();
+    const decide = vi.fn().mockResolvedValue(validAnswer);
+    const first = makeRun(decide, sessionId);
+    first.options.sessionBudgetRoot = resolveSessionBudgetRootOptions({
+      sessionMaxTurns: 2,
+      sessionMaxTokens: 40,
+    });
+    first.deps.sessionBudgetStore = budgetStore;
+    first.deps.sessionBudgetRegistry = new Map();
+    expect(await runAgentHeadless(first.options, first.deps)).toMatchObject({
+      exitCode: 0,
+      isError: false,
+    });
+    fs.rmSync(budgetStore.pathForSession(sessionId));
+
+    const resumed = makeRun(decide, sessionId, true);
+    resumed.deps.sessionBudgetStore = budgetStore;
+    resumed.deps.sessionBudgetRegistry = new Map();
+    await expect(
+      runAgentHeadless(resumed.options, resumed.deps),
+    ).rejects.toMatchObject({
+      code: "CC_SESSION_BUDGET_SIDECAR_REQUIRED",
+    });
+    expect(resumed.decisions).toHaveLength(0);
+    expect(decide).toHaveBeenCalledOnce();
+  });
+
+  it("refuses to add a budget root to an existing unbudgeted transcript", async () => {
+    const sessionId = "decision-budget-late-declaration";
+    startSession(sessionId);
+    const budgetStore = makeBudgetStore();
+    const decide = vi.fn();
+    const resumed = makeRun(decide, sessionId, true);
+    resumed.options.sessionBudgetRoot = resolveSessionBudgetRootOptions({
+      sessionMaxTurns: 2,
+    });
+    resumed.deps.sessionBudgetStore = budgetStore;
+    resumed.deps.sessionBudgetRegistry = new Map();
+
+    await expect(
+      runAgentHeadless(resumed.options, resumed.deps),
+    ).rejects.toMatchObject({
+      code: "CC_SESSION_BUDGET_JSONL_REQUIRED",
+    });
+    expect(decide).not.toHaveBeenCalled();
+    expect(
+      readProductionSessionBudget(sessionId, { store: budgetStore }),
+    ).toBeNull();
+  });
+
+  it("refuses an orphan budget sidecar without a canonical transcript", async () => {
+    const sessionId = "decision-budget-orphan-sidecar";
+    const budgetStore = makeBudgetStore();
+    const orphan = openSessionBudget(sessionId, {
+      store: budgetStore,
+      registry: new Map(),
+      limits: { maxTurns: 1 },
+    });
+    orphan.close();
+    const decide = vi.fn();
+    const run = makeRun(decide, sessionId);
+    run.deps.sessionBudgetStore = budgetStore;
+    run.deps.sessionBudgetRegistry = new Map();
+
+    await expect(runAgentHeadless(run.options, run.deps)).rejects.toMatchObject(
+      {
+        code: "CC_SESSION_BUDGET_JSONL_REQUIRED",
+      },
+    );
+    expect(decide).not.toHaveBeenCalled();
+    expect(findLatestEvent(sessionId, "session_start")).toBeNull();
+  });
+
+  it("blocks a resumed decision when a durable start has no settlement", async () => {
+    const sessionId = "decision-usage-started-only";
+    startSession(sessionId);
+    appendEvent(sessionId, "model_usage_started", {
+      callId: "direct-crash-before-settlement",
+      provider: "typesafe",
+      model: "jev-test",
+      source: "model",
+      operationId: "decision:crashed",
+    });
+
+    const decide = vi.fn().mockResolvedValue(validAnswer);
+    const resumed = makeRun(decide, sessionId, true);
+    expect(await runAgentHeadless(resumed.options, resumed.deps)).toMatchObject(
+      {
+        exitCode: 0,
+        isError: false,
+      },
+    );
+    expect(resumed.decisions[0]).toMatchObject({
+      status: "unavailable",
+      reasonCode: "provider-usage-unknown-blocked",
+      selectedDigest: null,
+    });
+    expect(decide).not.toHaveBeenCalled();
+  });
+
+  it("does not settle a decision start with another operation's token row", async () => {
+    const sessionId = "decision-usage-wrong-settlement";
+    startSession(sessionId);
+    appendEvent(sessionId, "model_usage_started", {
+      callId: "direct-same-call-id",
+      provider: "typesafe",
+      model: "jev-test",
+      source: "model",
+      operationId: "decision:crashed",
+    });
+    appendEvent(sessionId, "token_usage", {
+      callId: "direct-same-call-id",
+      provider: "typesafe",
+      model: "jev-test",
+      source: "model",
+      operationId: "agent:other",
+      usage: { input_tokens: 1, output_tokens: 1 },
+    });
+
+    const decide = vi.fn().mockResolvedValue(validAnswer);
+    const resumed = makeRun(decide, sessionId, true);
+    expect(await runAgentHeadless(resumed.options, resumed.deps)).toMatchObject(
+      {
+        exitCode: 0,
+        isError: false,
+      },
+    );
+    expect(resumed.decisions[0]).toMatchObject({
+      status: "unavailable",
+      reasonCode: "provider-usage-unknown-blocked",
+    });
+    expect(decide).not.toHaveBeenCalled();
+  });
+
+  it("does not treat a malformed token row as a decision settlement", async () => {
+    const sessionId = "decision-usage-malformed-settlement";
+    startSession(sessionId);
+    const identity = {
+      callId: "direct-malformed-settlement",
+      provider: "typesafe",
+      model: "jev-test",
+      source: "model",
+      operationId: "decision:crashed",
+    };
+    appendEvent(sessionId, "model_usage_started", identity);
+    appendEvent(sessionId, "token_usage", identity);
+
+    const decide = vi.fn().mockResolvedValue(validAnswer);
+    const resumed = makeRun(decide, sessionId, true);
+    expect(await runAgentHeadless(resumed.options, resumed.deps)).toMatchObject(
+      {
+        exitCode: 0,
+        isError: false,
+      },
+    );
+    expect(resumed.decisions[0]).toMatchObject({
+      status: "unavailable",
+      reasonCode: "provider-usage-unknown-blocked",
+    });
+    expect(decide).not.toHaveBeenCalled();
+  });
+
+  it("resumes after a durably canceled pre-dispatch decision without unknown usage", async () => {
+    const sessionId = "decision-usage-not-dispatched";
+    startSession(sessionId);
+    const controller = new AbortController();
+    const reason = new DOMException("user canceled", "AbortError");
+    const call = vi.fn();
+    await expect(
+      runMeteredDirectModelCall({
+        sessionId,
+        persist: (type, data) => {
+          appendEvent(sessionId, type, data);
+          if (type === "model_usage_started") controller.abort(reason);
+        },
+        provider: "typesafe",
+        model: "jev-test",
+        operationId: "decision:pre-dispatch",
+        dispatchSignal: controller.signal,
+        call,
+      }),
+    ).rejects.toBe(reason);
+    expect(call).not.toHaveBeenCalled();
+    expect(findLatestEvent(sessionId, "model_usage_unknown")).toBeNull();
+    expect(findLatestEvent(sessionId, "token_usage")?.data).toMatchObject({
+      settlementOrigin: "local-no-dispatch",
+      usage: { input_tokens: 0, output_tokens: 0 },
+    });
+
+    const decide = vi.fn().mockResolvedValue(validAnswer);
+    const resumed = makeRun(decide, sessionId, true);
+    expect(await runAgentHeadless(resumed.options, resumed.deps)).toMatchObject(
+      {
+        exitCode: 0,
+        isError: false,
+      },
+    );
+    expect(resumed.decisions[0]).toMatchObject({ status: "suggestion" });
+    expect(decide).toHaveBeenCalledOnce();
+  });
+
   it("does not confuse an unrelated model usage event with decision usage", async () => {
     const sessionId = "decision-usage-unrelated";
     startSession(sessionId);

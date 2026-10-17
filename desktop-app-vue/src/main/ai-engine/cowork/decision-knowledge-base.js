@@ -25,6 +25,13 @@ const DECISION_SOURCES = {
   INSTINCT: "instinct",
 };
 
+// These sources record a preference or a workflow verdict, not an independently
+// checked task outcome. Older rows stored those opinions in success_rate.
+const OPINION_SOURCES = new Set([
+  DECISION_SOURCES.VOTING,
+  DECISION_SOURCES.ORCHESTRATE,
+]);
+
 const PROBLEM_CATEGORIES = [
   "architecture",
   "implementation",
@@ -118,6 +125,11 @@ class DecisionKnowledgeBase {
 
     const id = uuidv4();
     const now = new Date().toISOString();
+    const source = data.source || DECISION_SOURCES.MANUAL;
+    const isOpinion = OPINION_SOURCES.has(source);
+    const opinionScore = isOpinion
+      ? (data.opinionScore ?? data.successRate ?? null)
+      : null;
     const record = {
       id,
       problem: data.problem,
@@ -125,10 +137,19 @@ class DecisionKnowledgeBase {
       solutions: data.solutions || [],
       chosenSolution: data.chosenSolution || null,
       outcome: data.outcome || null,
-      context: data.context || {},
+      context: {
+        ...(data.context || {}),
+        ...(opinionScore === null ? {} : { opinionScore }),
+      },
       agents: data.agents || [],
-      source: data.source || DECISION_SOURCES.MANUAL,
-      successRate: data.successRate || 0,
+      source,
+      feedbackKind: isOpinion
+        ? "legacy-opinion"
+        : data.successRate == null
+          ? "unknown"
+          : "reported-outcome",
+      opinionScore,
+      successRate: isOpinion ? null : (data.successRate ?? null),
       createdAt: now,
     };
 
@@ -176,10 +197,12 @@ class DecisionKnowledgeBase {
       solutions: votingData.options || [],
       chosenSolution: votingData.winner || null,
       outcome: votingData.outcome || "decided",
-      context: { votes: votingData.votes || {} },
+      context: {
+        votes: votingData.votes || {},
+        consensusScore: votingData.consensusScore ?? null,
+      },
       agents: votingData.agents || [],
       source: DECISION_SOURCES.VOTING,
-      successRate: votingData.consensusScore || 0,
     });
   }
 
@@ -189,8 +212,6 @@ class DecisionKnowledgeBase {
    * @returns {Object} Created record
    */
   recordWorkflowVerdict(workflowData) {
-    const isSuccess =
-      workflowData.verdict === "SHIP" || workflowData.verdict === "success";
     return this.recordDecision({
       problem: workflowData.description || "Workflow execution",
       problemCategory: workflowData.template || "general",
@@ -203,7 +224,6 @@ class DecisionKnowledgeBase {
       },
       agents: (workflowData.steps || []).map((s) => s.agent || s.role),
       source: DECISION_SOURCES.ORCHESTRATE,
-      successRate: isSuccess ? 1.0 : 0.0,
     });
   }
 
@@ -248,7 +268,7 @@ class DecisionKnowledgeBase {
         }
 
         // Boost successful decisions
-        if (record.successRate > 0.5) {
+        if (record.successRate !== null && record.successRate > 0.5) {
           score *= 1.2;
         }
 
@@ -310,7 +330,8 @@ class DecisionKnowledgeBase {
     try {
       const row = this.db
         .prepare(
-          `SELECT * FROM decision_records WHERE problem_category = ? AND success_rate > 0
+          `SELECT * FROM decision_records WHERE problem_category = ?
+             AND source NOT IN ('voting', 'orchestrate') AND success_rate > 0
            ORDER BY success_rate DESC, created_at DESC LIMIT 1`,
         )
         .get(category);
@@ -330,7 +351,9 @@ class DecisionKnowledgeBase {
       const rows = this.db
         .prepare(
           `SELECT problem_category, COUNT(*) as count, AVG(success_rate) as avg_rate
-           FROM decision_records GROUP BY problem_category`,
+           FROM decision_records
+           WHERE source NOT IN ('voting', 'orchestrate') AND success_rate IS NOT NULL
+           GROUP BY problem_category`,
         )
         .all();
 
@@ -338,7 +361,7 @@ class DecisionKnowledgeBase {
       for (const row of rows) {
         result[row.problem_category] = {
           count: row.count,
-          avgSuccessRate: parseFloat((row.avg_rate || 0).toFixed(3)),
+          avgSuccessRate: parseFloat(row.avg_rate.toFixed(3)),
         };
       }
       return result;
@@ -367,7 +390,7 @@ class DecisionKnowledgeBase {
         .all();
       const avgSuccess = this.db
         .prepare(
-          "SELECT AVG(success_rate) as avg FROM decision_records WHERE success_rate > 0",
+          "SELECT AVG(success_rate) as avg FROM decision_records WHERE source NOT IN ('voting', 'orchestrate') AND success_rate IS NOT NULL",
         )
         .get();
 
@@ -381,9 +404,10 @@ class DecisionKnowledgeBase {
           acc[r.problem_category] = r.count;
           return acc;
         }, {}),
-        avgSuccessRate: avgSuccess?.avg
-          ? parseFloat(avgSuccess.avg.toFixed(3))
-          : 0,
+        avgSuccessRate:
+          avgSuccess?.avg !== null && avgSuccess?.avg !== undefined
+            ? parseFloat(avgSuccess.avg.toFixed(3))
+            : null,
       };
     } catch (e) {
       logger.error("[DecisionKB] stats error:", e.message);
@@ -391,7 +415,7 @@ class DecisionKnowledgeBase {
         totalDecisions: 0,
         bySource: {},
         byCategory: {},
-        avgSuccessRate: 0,
+        avgSuccessRate: null,
       };
     }
   }
@@ -449,6 +473,8 @@ class DecisionKnowledgeBase {
   }
 
   _rowToRecord(row) {
+    const isOpinion = OPINION_SOURCES.has(row.source);
+    const context = safeParseJSON(row.context);
     return {
       id: row.id,
       problem: row.problem,
@@ -456,10 +482,18 @@ class DecisionKnowledgeBase {
       solutions: safeParseJSON(row.solutions),
       chosenSolution: row.chosen_solution,
       outcome: row.outcome,
-      context: safeParseJSON(row.context),
+      context,
       agents: safeParseJSON(row.agents),
       source: row.source,
-      successRate: row.success_rate,
+      feedbackKind: isOpinion
+        ? "legacy-opinion"
+        : row.success_rate == null
+          ? "unknown"
+          : "reported-outcome",
+      opinionScore: isOpinion
+        ? (context.opinionScore ?? row.success_rate ?? null)
+        : null,
+      successRate: isOpinion ? null : row.success_rate,
       createdAt: row.created_at,
     };
   }

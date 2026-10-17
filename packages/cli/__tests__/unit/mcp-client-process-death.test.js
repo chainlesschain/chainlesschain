@@ -12,7 +12,7 @@
  * but never answers tools/call, so the call stays pending until we kill it.
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { EventEmitter } from "events";
 import { MCPClient, _deps } from "../../src/lib/mcp-client.js";
 
@@ -101,12 +101,20 @@ describe("MCPClient stdio — fail fast on process death", () => {
   it("rejects an in-flight request when the process closes (no 30s hang)", async () => {
     const connectResult = await client.connect("srv", { command: "fake-mcp" });
     expect(connectResult.tools).toEqual([{ name: "doit" }]);
+    const reconnect = vi.fn();
+    client.setReconnector("srv", reconnect);
 
     const callPromise = client.callTool("srv", "doit", {});
     // Server crashes before answering tools/call.
     proc.emit("close", 1);
 
-    await expect(callPromise).rejects.toThrow(/process exited/i);
+    await expect(callPromise).rejects.toMatchObject({
+      code: "CC_MCP_TOOL_OUTCOME_UNKNOWN",
+      dispatched: true,
+      outcomeUnknown: true,
+      message: expect.stringMatching(/process exited/i),
+    });
+    expect(reconnect).not.toHaveBeenCalled();
   });
 
   it("rejects an in-flight request when the process errors", async () => {

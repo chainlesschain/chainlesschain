@@ -27,6 +27,30 @@ afterEach(() => {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 describe("eval process Broker contract", () => {
+  it("preserves UTF-8 output and failure text split across process chunks", async () => {
+    const child = new EventEmitter();
+    child.stdout = new EventEmitter();
+    child.stderr = new EventEmitter();
+    child.kill = vi.fn();
+    _deps.spawn = vi.fn(() => child);
+    const pending = makeHeadlessRunAgent({ _argv: ["-e", ""] })({
+      prompt: "fixture",
+      cwd: dir,
+    });
+    const output = Buffer.from("结果🙂", "utf8");
+    const diagnostic = Buffer.from("失败🙂", "utf8");
+    child.stdout.emit("data", output.subarray(0, 1));
+    child.stdout.emit("data", output.subarray(1));
+    child.stderr.emit("data", diagnostic.subarray(0, 1));
+    child.stderr.emit("data", diagnostic.subarray(1));
+    child.emit("close", 1);
+    await expect(pending).resolves.toMatchObject({
+      ok: false,
+      output: "结果🙂",
+      error: "失败🙂",
+    });
+  });
+
   it("forwards frozen task isolation and cost limits without inventing a terminal", async () => {
     const child = new EventEmitter();
     child.pid = 42;

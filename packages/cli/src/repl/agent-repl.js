@@ -86,7 +86,9 @@ import {
 } from "../lib/session-host-snapshot.js";
 import { acquireSessionHostLease } from "../lib/session-host-lease.js";
 import {
+  normalizeSessionBudgetRootConfig,
   openProductionSessionBudgetRoot,
+  readProductionSessionBudget,
   sessionBudgetAdmissionError,
 } from "../lib/session-budget-production-root.js";
 import {
@@ -2265,9 +2267,25 @@ export function prepareReplJsonlResumeCandidate(sessionId, dependencies = {}) {
       error.code = "CC_REPL_SESSION_AUTHORITY_MISMATCH";
       throw error;
     }
+    const declaredBudget = dataDescriptorValue(
+      stateDescriptors,
+      "sessionBudgetRoot",
+      "REPL session host resume state",
+      { required: false },
+    );
+    const sessionBudgetRoot =
+      declaredBudget == null
+        ? null
+        : normalizeSessionBudgetRootConfig(
+            snapshotReplMessageValue(
+              declaredBudget,
+              "REPL session budget declaration",
+            ),
+          );
     return brandedFrozenCandidate(REPL_JSONL_RESUME_CANDIDATES, {
       ok: true,
       sessionId,
+      sessionBudgetRoot,
       rebuiltMessages,
       replayMessages: normalizedReplay.replayMessages,
       canonicalSystemMessages: normalizedReplay.canonicalSystemMessages,
@@ -2786,8 +2804,60 @@ export async function runReplStartupBoundary(options, startupDependencies) {
   ) {
     leaseScope.lease = acquireHostLease(leaseSessionId, { hostKind: "repl" });
   }
-  let workspaceOptions = options;
-  if (options.sessionBudgetRoot?.enabled === true) {
+  const injectedBudgetReader = dependencyDataFunction(
+    startupDependencies,
+    "readProductionSessionBudget",
+    null,
+  );
+  const sidecar =
+    leaseSessionId &&
+    (process.platform === "linux" || injectedBudgetReader !== null)
+      ? synchronousReplRecoveryValue(
+          (injectedBudgetReader || readProductionSessionBudget)(leaseSessionId),
+          "REPL budget sidecar",
+        )
+      : null;
+  let effectiveBudgetConfig = options.sessionBudgetRoot;
+  const declaredBudgetConfig = startupCandidate?.sessionBudgetRoot;
+  const requestedBudgetConfig = options.sessionBudgetRoot?.enabled
+    ? normalizeSessionBudgetRootConfig(options.sessionBudgetRoot)
+    : null;
+  if (startupCandidate?.ok === true) {
+    if (declaredBudgetConfig?.enabled) {
+      if (!sidecar) {
+        throw Object.assign(
+          new Error("budgeted REPL session is missing its budget sidecar"),
+          { code: "CC_SESSION_BUDGET_SIDECAR_REQUIRED" },
+        );
+      }
+      if (
+        requestedBudgetConfig &&
+        JSON.stringify(requestedBudgetConfig) !==
+          JSON.stringify(declaredBudgetConfig)
+      ) {
+        throw Object.assign(
+          new Error("REPL budget does not match its JSONL declaration"),
+          { code: "CC_SESSION_BUDGET_CONFIG_MISMATCH" },
+        );
+      }
+      effectiveBudgetConfig = declaredBudgetConfig;
+    } else if (requestedBudgetConfig || sidecar) {
+      throw Object.assign(
+        new Error("existing REPL session has no canonical budget declaration"),
+        { code: "CC_SESSION_BUDGET_JSONL_REQUIRED" },
+      );
+    }
+  } else if (sidecar) {
+    throw Object.assign(
+      new Error("budget sidecar has no canonical REPL session"),
+      { code: "CC_SESSION_BUDGET_JSONL_REQUIRED" },
+    );
+  }
+  let workspaceOptions = {
+    ...options,
+    sessionBudgetRoot: effectiveBudgetConfig,
+  };
+  if (effectiveBudgetConfig?.enabled === true) {
     if (!leaseSessionId || !leaseScope?.lease) {
       throw Object.assign(
         new Error(
@@ -2813,10 +2883,10 @@ export async function runReplStartupBoundary(options, startupDependencies) {
         "CC_REPL_STARTUP_DEPENDENCY_INVALID",
       );
     }
-    const root = openBudgetRoot(leaseSessionId, options.sessionBudgetRoot, {
+    const root = openBudgetRoot(leaseSessionId, effectiveBudgetConfig, {
       persist: true,
       signal: combineReplSignals(options.signal, leaseScope.lease.signal),
-      table: options.sessionBudgetRoot.table,
+      table: effectiveBudgetConfig.table,
     });
     if (
       root?.enabled !== true ||
@@ -2850,7 +2920,7 @@ export async function runReplStartupBoundary(options, startupDependencies) {
       throw admissionError;
     }
     budgetScope.root = root;
-    workspaceOptions = { ...options, ...root.options };
+    workspaceOptions = { ...workspaceOptions, ...root.options };
   }
   const trustedWorkspaceRoot = readCwd();
   return enterWorkspace(trustedWorkspaceRoot, () =>
@@ -2867,11 +2937,17 @@ export function startReplJsonlSession(
   options = {},
 ) {
   const requireDurable =
-    observabilityScope != null || options.requireDurable === true;
+    observabilityScope != null ||
+    options.requireDurable === true ||
+    options.sessionBudgetRoot?.enabled === true;
   try {
+    const budgetDeclaration = options.sessionBudgetRoot?.enabled
+      ? normalizeSessionBudgetRootConfig(options.sessionBudgetRoot)
+      : null;
     const sessionId = startSession(requestedId, {
       ...meta,
       ...(observabilityScope != null ? { observabilityScope } : {}),
+      ...(budgetDeclaration ? { sessionBudgetRoot: budgetDeclaration } : {}),
     });
     if (requireDurable && (typeof sessionId !== "string" || !sessionId)) {
       throw new Error("JSONL session creation returned no durable session id");
@@ -3966,7 +4042,10 @@ async function startAgentReplInWorkspaceOwned(
         options.sessionId || null,
         meta,
         options.observabilityScope,
-        { requireDurable: Boolean(_sessionBudget) },
+        {
+          requireDurable: Boolean(_sessionBudget),
+          sessionBudgetRoot: options.sessionBudgetRoot,
+        },
       );
       if (
         sessionId &&

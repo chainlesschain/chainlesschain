@@ -113,7 +113,12 @@ describe("MCPClient stdio per-call timeout (config parity with HTTP)", () => {
     });
 
     const callPromise = client.callTool("srv", "doit", {});
-    await expect(callPromise).rejects.toThrow(/Request timeout/i);
+    await expect(callPromise).rejects.toMatchObject({
+      code: "CC_MCP_TOOL_OUTCOME_UNKNOWN",
+      dispatched: true,
+      outcomeUnknown: true,
+      message: expect.stringMatching(/Request timeout/i),
+    });
 
     const request = proc.messages.find((msg) => msg.method === "tools/call");
     const cancellations = proc.messages.filter(

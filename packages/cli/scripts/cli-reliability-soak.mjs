@@ -618,6 +618,53 @@ function diagnosticClasses(...values) {
     .map(([name]) => name);
 }
 
+// Retain only allowlisted labels, never raw exception messages, stack traces,
+// paths, or arbitrary error codes from the child process.
+export function diskFailureDiagnostics(stderr) {
+  const value = String(stderr).slice(0, 64 * 1024);
+  const fsCodes = [
+    "EROFS",
+    "ENOSPC",
+    "EIO",
+    "EACCES",
+    "EPERM",
+    "ENOENT",
+    "ENOTDIR",
+    "EEXIST",
+  ];
+  const operations = [
+    "mkdir",
+    "open",
+    "write",
+    "chmod",
+    "rename",
+    "read",
+    "stat",
+    "unlink",
+  ];
+  return {
+    fsCodes: fsCodes.filter((code) =>
+      new RegExp(`\\b${code}\\b`, "u").test(value),
+    ),
+    operations: operations.filter((op) =>
+      new RegExp(`\\b${op}\\b`, "u").test(value),
+    ),
+    classes: [
+      ["bootstrap-failed", /Bootstrap failed:/u],
+      ["database-initialized", /Database initialized:/u],
+      ["sandbox-configured", /sandbox mode is explicitly off/u],
+      ["fatal-json", /"error"\s*:\s*\{\s*"message"/u],
+      ["command-error", /(?:^|\n)Error:/u],
+      ["owner-only-storage", /owner-only|Could not secure/u],
+      ["symbolic-link", /symbolic link|reparse point/u],
+      ["module-missing", /Cannot find (?:module|package)/u],
+      ["sqlite-error", /SQLITE_|SqliteError/u],
+    ]
+      .filter(([, pattern]) => pattern.test(value))
+      .map(([name]) => name),
+  };
+}
+
 async function pipeScenario(baseUrl, home, profile) {
   const brokenConsumers = [];
   for (let index = 0; index < profile.pipeCases; index += 1) {
@@ -836,6 +883,7 @@ async function runDiskFailureCase(
       callsAfter === callsBefore,
     expectedFsCode,
     observedHostCode,
+    startupDiagnostics: diskFailureDiagnostics(stderr),
     sessionId,
     modelCalls: callsAfter - callsBefore,
     durationMs: performance.now() - started,

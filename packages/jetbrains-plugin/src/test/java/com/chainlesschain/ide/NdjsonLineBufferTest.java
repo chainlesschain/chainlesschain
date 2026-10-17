@@ -2,12 +2,14 @@ package com.chainlesschain.ide;
 
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * {@link NdjsonLineBuffer} — the byte-level line assembler behind the
@@ -79,5 +81,30 @@ final class NdjsonLineBufferTest {
         b.feed(new byte[4], 0);
         assertNull(b.poll());
         assertEquals(0, b.pendingBytes());
+    }
+
+    @Test
+    void boundedReaderChecksEachLineInsteadOfTheWholeChunk() throws IOException {
+        NdjsonLineBuffer b = new NdjsonLineBuffer();
+        byte[] bytes = "12345678\nabcdefgh\n".getBytes(StandardCharsets.UTF_8);
+        b.feed(bytes, bytes.length);
+        assertEquals("12345678", BackgroundSessionPipeClient.pollBoundedLine(b, 8));
+        assertEquals("abcdefgh", BackgroundSessionPipeClient.pollBoundedLine(b, 8));
+        assertNull(BackgroundSessionPipeClient.pollBoundedLine(b, 8));
+    }
+
+    @Test
+    void boundedReaderRejectsAnOversizedUnterminatedLine() {
+        NdjsonLineBuffer b = new NdjsonLineBuffer();
+        byte[] bytes = "123456789".getBytes(StandardCharsets.UTF_8);
+        b.feed(bytes, bytes.length);
+        assertThrows(IOException.class,
+                () -> BackgroundSessionPipeClient.pollBoundedLine(b, 8));
+
+        NdjsonLineBuffer complete = new NdjsonLineBuffer();
+        byte[] multibyte = "中\n".getBytes(StandardCharsets.UTF_8);
+        complete.feed(multibyte, multibyte.length);
+        assertThrows(IOException.class,
+                () -> BackgroundSessionPipeClient.pollBoundedLine(complete, 2));
     }
 }

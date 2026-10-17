@@ -34,3 +34,16 @@
 - `ide-jetbrains-v0.4.165` 指向同一 IDE 提交。[标签工作流](https://github.com/chainlesschain/chainlesschain/actions/runs/38860748741)的六项宿主检查、`publishPlugin` 上传与市场回读作业均成功。最终独立公共 API 回读为 `status:ready`、`approve:true`、`listed:true`、`hidden:false`；从公开文件端点下载的 `chainlesschain-ide-bridge-0.4.165.zip` 为 1,531,110 字节，ZIP 完整性检查通过，SHA-256 为 `dab99dca016dcc156a954a823aa39bb1188a381c4d76084f9bd831f3dcb56c98`。该版本已公开可安装。
 
 用户要求先跳过正式付费评测。本轮没有付费模型请求；冻结的 36 项任务与 9 次首次安装继续为 `NOT_RUN`（0/36、0/9），`paidReady:false`、native `NOT_ADMITTED`，历史共享 **$99** 不重置。发布门禁成功不改变这些评测结论.
+
+## 2026-10-17 发布与公开状态
+
+以下记录对应 [PR #458](https://github.com/chainlesschain/chainlesschain/pull/458)。按用户要求，先完成子 npm 包、CLI、VS Code 和 JetBrains 的发布与公开回读，再合并 PR。旧版本的 2026-10-16 记录保留为历史证据。
+
+| 阶段 | 准确提交与工作流 | 当前结果 | 下一步 |
+| --- | --- | --- | --- |
+| 子 npm 包 → CLI `0.166.104` | `93792f65204aec3d25aa3b5abda83013f290d4ca`；[OIDC 工作流第 2 次运行](https://github.com/chainlesschain/chainlesschain/actions/runs/39012587904/attempts/2) | GitHub Actions 发布成功；公共 npm 可获取 `chainlesschain@0.166.104`，子包先于 CLI 发布。 | 生产宿主与正式效果验收仍按各自工作包判定。 |
+| VS Code `0.37.149` | 同一发布提交；[Open VSX 标签工作流第 2 次运行](https://github.com/chainlesschain/chainlesschain/actions/runs/39014016230/attempts/2) | Open VSX API 返回 `ready`、`listed:true`、`downloadable:true`；推荐 CLI `0.166.104`。 | Microsoft Marketplace 尚无 `VSCE_PAT`，官方渠道未发布。 |
+| JetBrains `0.4.166` | `4c3e5cfd56f9afa947aa2383428fdcd883d4e4b8`；[标签工作流](https://github.com/chainlesschain/chainlesschain/actions/runs/39020301946) | 六组真实宿主矩阵、插件构建、CLI 前置核验及 `publishPlugin` 上传成功；公共 API 已返回 `ready`、`approve:true`、`listed:true`、`hidden:false`。公开 ZIP 为 1,532,930 字节，完整性检查通过，SHA-256 为 `0aa37f3c34f5e02e66812826629ae0a7e7cb5d1fe1479700900005b02505dc5b`。 | 后续版本须重新走完整宿主与公开制品回读门禁。 |
+| PR #458 | 当前仍开放 | CLI、Open VSX 与 JetBrains 的本轮公开发行均已完成，遵守先发布后合并顺序。 | 检查最终文档提交的必需门禁，再合并。 |
+
+上述发行不改变正式付费评测 `NOT_RUN`（任务 0/36、首次安装 0/9）、`paidReady:false` 或 native `NOT_ADMITTED`。

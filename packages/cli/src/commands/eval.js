@@ -206,6 +206,16 @@ function makeHeadlessRunAgent(opts = {}) {
       });
       let out = "";
       let err = "";
+      const stdoutDecoder = new TextDecoder("utf-8");
+      const stderrDecoder = new TextDecoder("utf-8");
+      const readOutput = () => {
+        out += stdoutDecoder.decode();
+        return out;
+      };
+      const readError = () => {
+        err += stderrDecoder.decode();
+        return err;
+      };
       let settled = false;
       let timedOut = false;
       let graceTimer = null;
@@ -235,25 +245,31 @@ function makeHeadlessRunAgent(opts = {}) {
         graceTimer = setTimeout(() => {
           done({
             ok: false,
-            output: out,
+            output: readOutput(),
             error: `timed out after ${timeoutMs || 120000}ms (process did not exit after kill)`,
           });
         }, 10000);
         if (typeof graceTimer.unref === "function") graceTimer.unref();
       }, timeoutMs || 120000);
       if (typeof timer.unref === "function") timer.unref();
-      child.stdout?.on("data", (d) => (out += d.toString("utf8")));
-      child.stderr?.on("data", (d) => (err += d.toString("utf8")));
+      child.stdout?.on("data", (d) => {
+        out += stdoutDecoder.decode(d, { stream: true });
+      });
+      child.stderr?.on("data", (d) => {
+        err += stderrDecoder.decode(d, { stream: true });
+      });
       child.on("error", (e) => {
         clearTimeout(timer);
-        done({ ok: false, output: out, error: e.message });
+        done({ ok: false, output: readOutput(), error: e.message });
       });
       child.on("close", (code, signal) => {
         clearTimeout(timer);
+        const output = readOutput();
+        const errorOutput = readError();
         if (timedOut) {
           done({
             ok: false,
-            output: out,
+            output,
             exitCode: code,
             signal: signal || null,
             error: `timed out after ${timeoutMs || 120000}ms`,
@@ -268,11 +284,11 @@ function makeHeadlessRunAgent(opts = {}) {
                 usage: null,
                 totalCostUsd: null,
               }
-            : verifyAgentTerminal(out);
+            : verifyAgentTerminal(output);
         const ok = code === 0 && !signal && (opts._argv || terminalVerified);
         done({
           ok: Boolean(ok),
-          output: out,
+          output,
           exitCode: code,
           signal: signal || null,
           terminalVerified,
@@ -283,7 +299,7 @@ function makeHeadlessRunAgent(opts = {}) {
             ? null
             : code === 0 && !signal
               ? "agent stream lacks a valid success terminal"
-              : err || `agent process exited with ${signal || code}`,
+              : errorOutput || `agent process exited with ${signal || code}`,
         });
       });
     });

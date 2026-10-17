@@ -32,6 +32,11 @@ final class UiFailureDiagnostics {
                     readOnly:true, nodeLimit:6000, depthLimit:50, truncated:false,
                     windows:[], conversations:[], errors:[]};
                   var count=0, owners=[];
+                  var focus=java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager();
+                  report.focusOwner=focus.getFocusOwner() == null ? null : String(focus.getFocusOwner().getClass().getName());
+                  report.focusedWindow=focus.getFocusedWindow() == null ? null : String(focus.getFocusedWindow().getClass().getName());
+                  report.activeWindow=focus.getActiveWindow() == null ? null : String(focus.getActiveWindow().getClass().getName());
+                  report.modality=String(Packages.com.intellij.openapi.application.ModalityState.current());
                   function shortText(value) {
                     return value == null ? null : String(value).substring(0,256);
                   }
@@ -103,6 +108,16 @@ final class UiFailureDiagnostics {
                       var accessible=component.getAccessibleContext();
                       node.accessibleName=accessible == null ? null : shortText(accessible.getAccessibleName());
                       if(component instanceof javax.swing.AbstractButton) node.buttonText=shortText(component.getText());
+                      if(component instanceof java.awt.Window) {
+                        node.focused=Boolean(component.isFocused());
+                        node.active=Boolean(component.isActive());
+                        node.ownerClass=component.getOwner() == null ? null : String(component.getOwner().getClass().getName());
+                      }
+                      if(component instanceof java.awt.Dialog) {
+                        node.title=shortText(component.getTitle());
+                        node.modal=Boolean(component.isModal());
+                        node.modalityType=String(component.getModalityType());
+                      }
                       if(component instanceof javax.swing.JComponent) {
                         node.validateRoot=Boolean(component.isValidateRoot());
                         node.visibleRect={x:Number(component.getVisibleRect().x),y:Number(component.getVisibleRect().y),

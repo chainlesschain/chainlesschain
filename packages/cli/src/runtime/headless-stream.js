@@ -151,7 +151,9 @@ import {
 } from "../lib/session-host-snapshot.js";
 import { acquireSessionHostLease } from "../lib/session-host-lease.js";
 import {
+  normalizeSessionBudgetRootConfig,
   openProductionSessionBudgetRoot,
+  readProductionSessionBudget,
   sessionBudgetAdmissionError,
 } from "../lib/session-budget-production-root.js";
 import {
@@ -1441,6 +1443,7 @@ async function withStreamSessionHostLease(options, deps, streamCleanup, task) {
   let lease = null;
   let budgetRoot = null;
   let onLeaseAbort = null;
+  let taskStarted = false;
   try {
     if (persist && typeof acquireHostLease === "function") {
       lease = acquireHostLease(sessionId, { hostKind: "headless-stream" });
@@ -1461,13 +1464,109 @@ async function withStreamSessionHostLease(options, deps, streamCleanup, task) {
             : lease.signal,
         }
       : options;
+    const canReadCanonical =
+      !hasInjectedSessionStore ||
+      typeof deps.readVerifiedEvents === "function" ||
+      typeof deps.readVerifiedProjection === "function";
+    const budgetStore = deps.sessionBudgetStore;
+    const sidecar =
+      persist && (process.platform === "linux" || budgetStore)
+        ? readProductionSessionBudget(sessionId, { store: budgetStore })
+        : null;
+    const needsBudgetAdmission =
+      persist &&
+      (!hasInjectedSessionStore ||
+        options.sessionBudgetRoot?.enabled === true ||
+        Boolean(budgetStore) ||
+        Boolean(deps.openSessionBudget) ||
+        Boolean(sidecar));
+    let effectiveBudgetConfig = options.sessionBudgetRoot;
+    if (needsBudgetAdmission) {
+      const existing = (
+        deps.sessionHasPersistedEvidence ||
+        deps.sessionExists ||
+        jsonlSessionHasPersistedEvidence
+      )(sessionId);
+      if (typeof existing !== "boolean") {
+        throw Object.assign(
+          new Error("stream session existence must be checked synchronously"),
+          { code: "CC_SESSION_BUDGET_JSONL_REQUIRED" },
+        );
+      }
+      if (existing && !canReadCanonical) {
+        throw Object.assign(
+          new Error("budgeted stream resume requires verified session events"),
+          { code: "CC_SESSION_BUDGET_JSONL_REQUIRED" },
+        );
+      }
+      const canonical = existing
+        ? readSessionHostResumeState(sessionId, {
+            sessionExists: () => true,
+            readVerifiedEvents:
+              deps.readVerifiedEvents || jsonlReadVerifiedEvents,
+            ...(!hasInjectedSessionStore || deps.readVerifiedProjection
+              ? {
+                  readVerifiedProjection:
+                    deps.readVerifiedProjection || jsonlReadVerifiedProjection,
+                }
+              : {}),
+          })
+        : null;
+      if (canonical && !isVerifiedSessionHostSnapshot(canonical.snapshot)) {
+        throw Object.assign(
+          new Error("canonical stream session could not be verified"),
+          { code: "CC_SESSION_HOST_SNAPSHOT_UNVERIFIED" },
+        );
+      }
+      if (!canonical && sidecar) {
+        throw Object.assign(
+          new Error("budget sidecar has no canonical JSONL session"),
+          { code: "CC_SESSION_BUDGET_JSONL_REQUIRED" },
+        );
+      }
+      if (canonical) {
+        const declared = canonical.sessionBudgetRoot;
+        const requested = options.sessionBudgetRoot?.enabled
+          ? normalizeSessionBudgetRootConfig(options.sessionBudgetRoot)
+          : null;
+        if (declared?.enabled) {
+          if (!sidecar) {
+            throw Object.assign(
+              new Error(
+                "budgeted stream session is missing its budget sidecar",
+              ),
+              { code: "CC_SESSION_BUDGET_SIDECAR_REQUIRED" },
+            );
+          }
+          if (
+            requested &&
+            JSON.stringify(requested) !== JSON.stringify(declared)
+          ) {
+            throw Object.assign(
+              new Error("stream budget does not match its JSONL declaration"),
+              { code: "CC_SESSION_BUDGET_CONFIG_MISMATCH" },
+            );
+          }
+          effectiveBudgetConfig = declared;
+        } else if (requested || sidecar) {
+          throw Object.assign(
+            new Error("existing stream has no canonical budget declaration"),
+            { code: "CC_SESSION_BUDGET_JSONL_REQUIRED" },
+          );
+        }
+      }
+    }
+    scopedOptions = {
+      ...scopedOptions,
+      sessionBudgetRoot: effectiveBudgetConfig,
+    };
     budgetRoot = openProductionSessionBudgetRoot(
       persist ? sessionId : null,
-      options.sessionBudgetRoot,
+      effectiveBudgetConfig,
       {
         persist,
         signal: scopedOptions.signal || null,
-        table: options.sessionBudgetRoot?.table,
+        table: effectiveBudgetConfig?.table,
         open: deps.openSessionBudget,
         store: deps.sessionBudgetStore,
         registry: deps.sessionBudgetRegistry,
@@ -1476,11 +1575,40 @@ async function withStreamSessionHostLease(options, deps, streamCleanup, task) {
     if (budgetRoot.enabled) {
       scopedOptions = { ...scopedOptions, ...budgetRoot.options };
     }
+    taskStarted = true;
     return await task(scopedOptions, {
       ...deps,
       [STREAM_SESSION_ID]: sessionId,
       [STREAM_SESSION_HOST_LEASE]: lease,
     });
+  } catch (error) {
+    // Admission can write a lease or take the Linux budget-sidecar read lock
+    // before the workspace runner installs its persistence boundary. Preserve
+    // the lock's filesystem cause, but never reclassify an executing task.
+    if (taskStarted) throw error;
+    const persistence = projectSessionPersistenceFailure(
+      createSessionPersistenceFailure(error, {
+        sessionId,
+        operation: "session-start",
+      }),
+      { phase: "before-model" },
+    );
+    if (!persistence) throw error;
+    deps.writeOut(
+      `${JSON.stringify({
+        type: "result",
+        subtype: "error_persistence",
+        is_error: true,
+        code: persistence.code,
+        error: "Canonical stream admission failed",
+        session_id: sessionId,
+        persistence,
+      })}\n`,
+    );
+    deps.writeErr(
+      `${persistence.code}: canonical stream admission was refused\n`,
+    );
+    return { exitCode: 1, turns: 0, persistence };
   } finally {
     budgetRoot?.close?.();
     if (lease?.signal && onLeaseAbort) {
@@ -1914,7 +2042,29 @@ async function runAgentHeadlessStreamInWorkspace(
           };
         }
       }
-    } catch {
+    } catch (error) {
+      const persistence = projectSessionPersistenceFailure(
+        createSessionPersistenceFailure(error, {
+          sessionId,
+          operation: "session-start",
+        }),
+        { phase: "before-model" },
+      );
+      if (persistence) {
+        emit({
+          type: "result",
+          subtype: "error_persistence",
+          is_error: true,
+          code: persistence.code,
+          error: "Canonical stream session preparation failed",
+          session_id: sessionId,
+          persistence,
+        });
+        writeErr(
+          `${persistence.code}: canonical stream preparation was refused\n`,
+        );
+        return { exitCode: 1, turns: 0, persistence };
+      }
       const code = "CC_SESSION_HOST_SNAPSHOT_UNVERIFIED";
       emit({
         type: "result",
@@ -1986,8 +2136,9 @@ async function runAgentHeadlessStreamInWorkspace(
       const { loadHooks, projectHookTrustNotice, attachAuthorityErrors } =
         await import("../lib/settings-hooks.cjs");
       const loaded = loadHooks({ cwd, settingsFile: options.settingsFile });
-      const { mergePluginHooks } =
-        await import("../lib/plugin-runtime/hooks.js");
+      const { mergePluginHooks } = await import(
+        "../lib/plugin-runtime/hooks.js"
+      );
       const effectiveHooks = mergePluginHooks(
         attachAuthorityErrors(loaded.hooks, loaded.authorityErrors),
         { cwd },
@@ -2069,8 +2220,9 @@ async function runAgentHeadlessStreamInWorkspace(
     });
 
   if (managedSettings) {
-    const { assertManagedPermissionMode } =
-      await import("../lib/settings-loader.cjs");
+    const { assertManagedPermissionMode } = await import(
+      "../lib/settings-loader.cjs"
+    );
     assertManagedPermissionMode(options.permissionMode, managedSettings);
   }
   const perm = resolvePermissionMode(options.permissionMode);
@@ -2909,8 +3061,9 @@ async function runAgentHeadlessStreamInWorkspace(
     : null;
   if (!instructionExcludes) {
     try {
-      const { readStringArraySetting } =
-        await import("../lib/settings-loader.cjs");
+      const { readStringArraySetting } = await import(
+        "../lib/settings-loader.cjs"
+      );
       const fromSettings = readStringArraySetting("instructionExcludes", {
         cwd,
         settingsFile: options.settingsFile,
@@ -2975,8 +3128,9 @@ async function runAgentHeadlessStreamInWorkspace(
   // Best-effort; no-op when project memory is off or no hook is registered.
   if (settingsHooks && _loadedInstructions) {
     try {
-      const { runInstructionsLoadedHooks } =
-        await import("../lib/settings-hook-events.js");
+      const { runInstructionsLoadedHooks } = await import(
+        "../lib/settings-hook-events.js"
+      );
       const ctx = (
         await runInstructionsLoadedHooks(settingsHooks, {
           files: _loadedInstructions.files,
@@ -3018,8 +3172,9 @@ async function runAgentHeadlessStreamInWorkspace(
   // settings.json SessionStart hooks → inject session context once (observe-only).
   if (settingsHooks) {
     try {
-      const { runSessionStartHooks } =
-        await import("../lib/settings-hook-events.js");
+      const { runSessionStartHooks } = await import(
+        "../lib/settings-hook-events.js"
+      );
       const ctx = (
         await runSessionStartHooks(settingsHooks, {
           source: "startup",
@@ -3069,6 +3224,9 @@ async function runAgentHeadlessStreamInWorkspace(
             provider,
             model,
             observabilityScope: options.observabilityScope,
+            ...(options.sessionBudgetRoot?.enabled === true
+              ? { sessionBudgetRoot: options.sessionBudgetRoot }
+              : {}),
             executionLocation: captureAmbientExecutionLocation({
               provider,
               model,
@@ -3453,8 +3611,9 @@ async function runAgentHeadlessStreamInWorkspace(
   // the single-prompt runner + the REPL /add-dir path. Best-effort.
   if (hostMcp?.mcpClient && additionalDirectories.length > 0) {
     try {
-      const { notifyMcpRootsChanged, workspaceRootDirs } =
-        await import("../repl/add-dir.js");
+      const { notifyMcpRootsChanged, workspaceRootDirs } = await import(
+        "../repl/add-dir.js"
+      );
       notifyMcpRootsChanged(
         [hostMcp.mcpClient],
         workspaceRootDirs(options.cwd || process.cwd(), additionalDirectories),
@@ -4376,15 +4535,17 @@ async function runAgentHeadlessStreamInWorkspace(
             return compactionCallId;
           },
         };
-        const { resolveCliContextMemoryCutover } =
-          await import("../lib/context-memory-kernel/authority.js");
+        const { resolveCliContextMemoryCutover } = await import(
+          "../lib/context-memory-kernel/authority.js"
+        );
         const cutover = resolveCliContextMemoryCutover({
           env: options.contextMemoryEnv || process.env,
           scopeKey: `cli:session:${sessionId}`,
         });
         if (cutover.canonical) {
-          const { compactLiveMessagesCanonical } =
-            await import("../lib/context-memory-kernel/live-compaction.js");
+          const { compactLiveMessagesCanonical } = await import(
+            "../lib/context-memory-kernel/live-compaction.js"
+          );
           const canonical = await compactLiveMessagesCanonical(messages, {
             compressor: {
               maxTokens: Math.max(
@@ -4472,8 +4633,9 @@ async function runAgentHeadlessStreamInWorkspace(
       } catch (error) {
         if (isAbortError(error) || options.signal?.aborted) throw error;
         if (error?.runtimeLedgerPersistence === true) throw error;
-        const { getRejectedCompactionUsage } =
-          await import("../lib/context-memory-kernel/live-compaction.js");
+        const { getRejectedCompactionUsage } = await import(
+          "../lib/context-memory-kernel/live-compaction.js"
+        );
         const rejectedUsage = getRejectedCompactionUsage(error);
         if (
           rejectedUsage &&
@@ -4901,8 +5063,9 @@ async function runAgentHeadlessStreamInWorkspace(
       // session can honour the user's standing preferences ("越用越聪明"
       // flywheel). Best-effort — a learning ledger must never break the chat.
       try {
-        const { appendFeedback } =
-          await import("../lib/pdh-feedback-ledger.js");
+        const { appendFeedback } = await import(
+          "../lib/pdh-feedback-ledger.js"
+        );
         appendFeedback({ sessionId, turnId, kind, comment });
       } catch {
         /* persistence is best-effort */
@@ -5074,8 +5237,9 @@ async function runAgentHeadlessStreamInWorkspace(
     // settings.json UserPromptSubmit hooks. block → skip this turn; context → inject.
     if (settingsHooks) {
       try {
-        const { runUserPromptSubmitHooks } =
-          await import("../lib/settings-hook-events.js");
+        const { runUserPromptSubmitHooks } = await import(
+          "../lib/settings-hook-events.js"
+        );
         const ups = await runUserPromptSubmitHooks(settingsHooks, {
           prompt: userContent,
           cwd,

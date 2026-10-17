@@ -200,7 +200,7 @@ class EvoMapGeneSynthesizer {
       type: "Capsule",
       parent_gene_id: gene.asset_id,
       executor_node_id: null,
-      confidence: decision.success_rate || 0.7,
+      confidence: decision.success_rate ?? 0.7,
       success_streak: decision.apply_count || 0,
       result_summary: `Decision applied ${decision.apply_count || 0} times with ${(decision.success_rate || 0) * 100}% success`,
       signals_observed: this._extractSignals(sanitizedContext),

@@ -345,7 +345,8 @@ export function verifyColdBoundaries(observations, trace) {
     } else {
       requireThat(
         held.childRunning === false &&
-          held.text?.includes("Agent exited before input acknowledgement") &&
+          held.text?.includes("Agent exited before initialization") &&
+          held.text?.includes("Input was not dispatched") &&
           held.text?.includes("agent exited (86)") &&
           old.some(
             (r) => r.command === "init-gate-exit-before-init" && r.code === 86,

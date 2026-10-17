@@ -12,12 +12,17 @@ import {
   SKILL_DECISION_OBSERVATION_SCHEMA,
 } from "./contracts.js";
 import { captureDecisionProviderAuthority } from "./provider-authority.js";
+import {
+  AGENT_EVOLUTION_INGRESS_FAILED_CODE,
+  captureAgentEvolutionIngress,
+} from "../evolution/agent-evolution-ingress.js";
 
 export const SKILL_DECISION_RUNTIME_SCHEMA =
   "chainlesschain.skill-decision-runtime/v1";
 
 const RUNTIMES = new WeakSet();
 const DEFAULT_TIMEOUT_MS = 800;
+const DEFAULT_BOUNDARY_TIMEOUT_MS = 30_000;
 
 function requiredText(value, label, maximum = 256) {
   if (
@@ -34,6 +39,53 @@ function requiredText(value, label, maximum = 256) {
 function timeoutSignal(signal, timeoutMs) {
   const deadline = AbortSignal.timeout(timeoutMs);
   return signal ? AbortSignal.any([signal, deadline]) : deadline;
+}
+
+function settleBeforeAbort(value, signal) {
+  const pending = Promise.resolve(value);
+  if (!signal) return pending;
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const finish = (settle, result) => {
+      if (settled) return;
+      settled = true;
+      signal.removeEventListener("abort", onAbort);
+      settle(result);
+    };
+    const onAbort = () => finish(reject, signal.reason);
+    pending.then(
+      (result) => finish(resolve, result),
+      (error) => finish(reject, error),
+    );
+    if (signal.aborted) {
+      onAbort();
+      return;
+    }
+    signal.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
+async function waitForGovernedPhase(value, signal, timeoutMs, onTimeout) {
+  const phaseSignal = timeoutSignal(signal, timeoutMs);
+  try {
+    return await settleBeforeAbort(value, phaseSignal);
+  } catch (error) {
+    if (signal?.aborted) throw signal.reason;
+    if (
+      phaseSignal.aborted &&
+      phaseSignal.reason === error &&
+      error?.name === "TimeoutError"
+    ) {
+      throw onTimeout(error);
+    }
+    throw error;
+  }
+}
+
+function admissionTimeoutError(cause) {
+  const error = new Error("Skill decision admission timed out", { cause });
+  error.code = AGENT_EVOLUTION_INGRESS_FAILED_CODE;
+  return error;
 }
 
 function projectUnavailable(error) {
@@ -66,7 +118,7 @@ function asPersistenceError(error) {
     return markRuntimeLedgerPersistenceError(error);
   } catch {
     return markRuntimeLedgerPersistenceError(
-      new Error("decision observation persistence failed", { cause: error }),
+      new Error("decision persistence failed", { cause: error }),
     );
   }
 }
@@ -76,12 +128,14 @@ export function createSkillDecisionRuntime({
   tenantId = null,
   sessionId = null,
   provider = null,
+  evolutionIngress = null,
   persist = null,
   observe = null,
   sessionBudget = null,
   initialUsageUnknown = false,
   thresholds = {},
   timeoutMs = DEFAULT_TIMEOUT_MS,
+  boundaryTimeoutMs = DEFAULT_BOUNDARY_TIMEOUT_MS,
   idGenerator = () => randomUUID(),
   now = () => new Date(),
 } = {}) {
@@ -95,17 +149,36 @@ export function createSkillDecisionRuntime({
       "decision timeout must be an integer from 50 to 30000 ms",
     );
   }
+  if (
+    !Number.isSafeInteger(boundaryTimeoutMs) ||
+    boundaryTimeoutMs < 50 ||
+    boundaryTimeoutMs > 30_000
+  ) {
+    throw new TypeError(
+      "decision boundary timeout must be an integer from 50 to 30000 ms",
+    );
+  }
   if (typeof idGenerator !== "function" || typeof now !== "function") {
     throw new TypeError("decision runtime generators must be functions");
   }
   let providerAuthority = null;
   let boundTenantId = null;
   let boundSessionId = null;
+  let ingress = null;
   let unknownUsageSeen = initialUsageUnknown === true;
+  const unsettledUsageCalls = new Set();
+  let usageCallInFlight = false;
+  let usagePersistenceFailure = null;
+  let observationPersistenceFailure = null;
   if (normalizedMode !== "off") {
     providerAuthority = captureDecisionProviderAuthority(provider);
     boundTenantId = requiredText(tenantId, "tenantId");
     boundSessionId = requiredText(sessionId, "sessionId");
+    if (evolutionIngress !== null) {
+      ingress = captureAgentEvolutionIngress(evolutionIngress, {
+        tenantId: boundTenantId,
+      });
+    }
     if (typeof persist !== "function" || typeof observe !== "function") {
       throw new TypeError(
         "enabled decision runtime requires usage and observation persistence",
@@ -118,13 +191,33 @@ export function createSkillDecisionRuntime({
     try {
       await observe(observation);
     } catch (error) {
-      throw asPersistenceError(error);
+      observationPersistenceFailure ??= asPersistenceError(error);
+      throw observationPersistenceFailure;
     }
   };
 
   const persistDecisionUsage = async (type, event) => {
-    await persist(type, event);
-    if (type === "model_usage_unknown") unknownUsageSeen = true;
+    if (usagePersistenceFailure !== null) throw usagePersistenceFailure;
+    try {
+      await waitForGovernedPhase(
+        persist(type, event),
+        null,
+        boundaryTimeoutMs,
+        (cause) =>
+          new Error("Skill decision usage persistence timed out", { cause }),
+      );
+    } catch (error) {
+      usagePersistenceFailure ??= asPersistenceError(error);
+      throw usagePersistenceFailure;
+    }
+    if (type === "model_usage_started") {
+      unsettledUsageCalls.add(event.callId);
+    } else if (type === "model_usage_unknown") {
+      unknownUsageSeen = true;
+      unsettledUsageCalls.delete(event.callId);
+    } else if (type === "token_usage") {
+      unsettledUsageCalls.delete(event.callId);
+    }
   };
 
   const runtime = Object.freeze({
@@ -148,6 +241,10 @@ export function createSkillDecisionRuntime({
         });
       }
       if (signal?.aborted) throw signal.reason;
+      if (usagePersistenceFailure !== null) throw usagePersistenceFailure;
+      if (observationPersistenceFailure !== null) {
+        throw observationPersistenceFailure;
+      }
       const decisionId = `skill-${requiredText(idGenerator(), "decisionId")}`;
       const request = createSkillDecisionRequest({
         decisionId,
@@ -167,11 +264,41 @@ export function createSkillDecisionRuntime({
       }
       let outcome;
       let requestSignal = null;
-      if (unknownUsageSeen) {
+      let admissionReceipt = null;
+      if (unknownUsageSeen || unsettledUsageCalls.size > 0) {
         outcome = unavailableOutcome("provider-usage-unknown-blocked");
       } else {
         try {
-          const { result: raw, settlement } = await runMeteredDirectModelCall({
+          // Admission is not provider work: a refusal must not create an
+          // unknown-charge ledger row or consume the provider's budget turn.
+          const admission =
+            ingress === null
+              ? null
+              : await waitForGovernedPhase(
+                  ingress.prepareSkillDecisionRequest(request),
+                  signal,
+                  boundaryTimeoutMs,
+                  admissionTimeoutError,
+                );
+          signal?.throwIfAborted();
+          admissionReceipt = admission?.receipt ?? null;
+          // Keep local content identities out of the provider capability. Only
+          // the authenticated projection is available for governed dispatch.
+          const providerRequest =
+            admission === null
+              ? request
+              : Object.freeze({ payload: admission.payload });
+          if (
+            unknownUsageSeen ||
+            unsettledUsageCalls.size > 0 ||
+            usageCallInFlight
+          ) {
+            const error = new Error("decision usage recovery is required");
+            error.code = "CC_DECISION_USAGE_UNKNOWN_BLOCKED";
+            throw error;
+          }
+          usageCallInFlight = true;
+          const meteredCall = runMeteredDirectModelCall({
             sessionId: boundSessionId,
             persist: persistDecisionUsage,
             provider: providerAuthority.provider,
@@ -180,18 +307,36 @@ export function createSkillDecisionRuntime({
             operationId: `decision:${decisionId}`,
             sessionBudget,
             includeSettlement: true,
+            dispatchSignal: signal ?? null,
             call: () => {
               if (unknownUsageSeen) {
                 const error = new Error("decision usage recovery is required");
                 error.code = "CC_DECISION_USAGE_UNKNOWN_BLOCKED";
                 throw error;
               }
+              // timeoutMs remains the provider-call deadline. Admission uses
+              // its own authority lifecycle and checks caller cancellation.
               requestSignal = timeoutSignal(signal, timeoutMs);
-              return providerAuthority.decide(request, {
-                signal: requestSignal,
-              });
+              requestSignal.throwIfAborted();
+              return settleBeforeAbort(
+                providerAuthority.decide(providerRequest, {
+                  signal: requestSignal,
+                }),
+                requestSignal,
+              );
             },
           });
+          let meteredResult;
+          try {
+            meteredResult = await meteredCall;
+          } finally {
+            usageCallInFlight = false;
+          }
+          const { result: raw, settlement } = meteredResult;
+          // A provider may resolve successfully after ignoring cancellation or
+          // its deadline. Usage is settled above; the late answer is unusable.
+          signal?.throwIfAborted();
+          requestSignal?.throwIfAborted();
           if (settlement !== "known") {
             // The metered call already persisted model_usage_unknown. Without a
             // budget root it may return the answer; never expose that answer.
@@ -254,6 +399,7 @@ export function createSkillDecisionRuntime({
         reasonCode: outcome.reasonCode,
         selectedDigest: outcome.selectedDigest,
         resultDigest: outcome.resultDigest,
+        ...(admissionReceipt === null ? {} : { admissionReceipt }),
         startedAt: startedAt.toISOString(),
         finishedAt: finishedAt.toISOString(),
         latencyMs: Math.max(0, finishedAt.getTime() - startedAt.getTime()),
@@ -265,7 +411,31 @@ export function createSkillDecisionRuntime({
           observationCore,
         ),
       });
-      await writeObservation(observation);
+      try {
+        await waitForGovernedPhase(
+          writeObservation(observation),
+          signal,
+          boundaryTimeoutMs,
+          (cause) =>
+            asPersistenceError(
+              new Error("Skill decision observation timed out", { cause }),
+            ),
+        );
+      } catch (error) {
+        if (error?.runtimeLedgerPersistence === true) {
+          observationPersistenceFailure ??= error;
+        } else if (signal?.aborted) {
+          // The caller stops waiting before the durable observer acknowledges
+          // the write. Its eventual outcome is unknown to this runtime.
+          observationPersistenceFailure ??= asPersistenceError(
+            new Error("Skill decision observation completion is unknown", {
+              cause: error,
+            }),
+          );
+        }
+        throw error;
+      }
+      signal?.throwIfAborted();
       return Object.freeze({
         schema: SKILL_DECISION_OBSERVATION_SCHEMA,
         decisionId,

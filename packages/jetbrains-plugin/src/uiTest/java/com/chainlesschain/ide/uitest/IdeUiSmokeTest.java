@@ -1240,24 +1240,32 @@ final class IdeUiSmokeTest {
             throws InterruptedException {
         long deadline = System.nanoTime() + budget.toNanos();
         String last = "";
+        boolean vendorClosePending = false;
         while (System.nanoTime() < deadline) {
             // JTextPane.getText() serializes through its EditorKit and returns
             // null if serialization fails, including a concurrent document
             // edit. Remote Robot cannot serialize that null.
             // Snapshot the actual document on the EDT, alongside its writers,
             // and let document errors fail instead of hiding them as no text.
+            // On fresh 2026.2 profiles the vendor tour can arrive after startup
+            // admission and hold the IDE's non-modal rendering queue. Dismiss
+            // only that identified surface; keep the original response deadline
+            // and never resend the user request or relax the rendering assertion.
+            vendorClosePending = Boolean.TRUE.equals(
+                    transcript.callJs(VendorOnboarding.dismissThemeTourScript(), true));
             last = transcript.callJs("""
                     if (!javax.swing.SwingUtilities.isEventDispatchThread())
                         throw new Error('Transcript snapshot requires EDT');
                     var document = component.getDocument();
                     document.getText(0, document.getLength());
                     """, true);
-            if (last.contains(expected)) return;
+            if (!vendorClosePending && last.contains(expected)) return;
             Thread.sleep(250);
         }
         throw new AssertionError(
                 "transcript did not contain '" + expected + "' within "
-                        + budget.toSeconds() + "s; tail=" + tail(last, 1200));
+                        + budget.toSeconds() + "s; vendorThemeClosePending=" + vendorClosePending
+                        + "; tail=" + tail(last, 1200));
     }
 
     private static String jsString(String value) {

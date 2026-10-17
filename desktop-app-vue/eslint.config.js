@@ -148,7 +148,7 @@ module.exports = [
 
   // 主进程文件特殊配置（在 tseslint 之后覆盖，确保优先级）
   {
-    files: ["src/main/**/*.js"],
+    files: ["src/main/**/*.{js,cjs}"],
     languageOptions: {
       sourceType: "commonjs",
       globals: {

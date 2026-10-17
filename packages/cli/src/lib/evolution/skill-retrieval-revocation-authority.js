@@ -239,9 +239,19 @@ export async function openSkillRetrievalRevocationAuthority({
     ) {
       throw new Error("Retrieval revocation load is not authoritative");
     }
-    state = loaded.found
+    const loadedState = loaded.found
       ? verifySkillRetrievalRevocationState(loaded.state, tenantId)
       : null;
+    if (
+      state !== null &&
+      (loadedState === null ||
+        loadedState.revision < state.revision ||
+        (loadedState.revision === state.revision &&
+          loadedState.stateDigest !== state.stateDigest))
+    ) {
+      throw new Error("Retrieval revocation state regressed");
+    }
+    state = loadedState;
     return state;
   }
 
@@ -264,6 +274,10 @@ export async function openSkillRetrievalRevocationAuthority({
         stateDigest: state?.stateDigest ?? null,
         receiptDigest: entry?.propagationRequestDigest ?? null,
       });
+    },
+    async refresh() {
+      const current = await reload();
+      return current?.stateDigest ?? null;
     },
     async invalidateRetrieval(input) {
       const request = normalizeRequest(input, tenantId);
@@ -351,7 +365,8 @@ export function captureSkillRetrievalRevocationReader(reader) {
   if (
     !readerBrand.has(reader) ||
     reader.schema !== SKILL_RETRIEVAL_REVOCATION_READER_SCHEMA ||
-    typeof reader.inspect !== "function"
+    typeof reader.inspect !== "function" ||
+    typeof reader.refresh !== "function"
   ) {
     throw new TypeError(
       "A branded Skill retrieval revocation reader is required",

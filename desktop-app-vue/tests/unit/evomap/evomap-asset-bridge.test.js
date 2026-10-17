@@ -428,6 +428,47 @@ describe("EvoMapAssetBridge", () => {
       const result = await bridge.publishDecision("dec_1");
       expect(result.success).toBe(true);
     });
+
+    it.each([
+      { source: "voting", success_rate: 0.99 },
+      { source: "orchestrate", success_rate: 1 },
+      { source: "manual", success_rate: null },
+    ])("does not publish an opinion or unknown outcome: %j", async (row) => {
+      mockDb.prepare.mockReturnValue({
+        get: vi.fn(() => ({ id: "dec_1", ...row })),
+        all: vi.fn(() => []),
+      });
+      const bridge = new EvoMapAssetBridge();
+      await bridge.initialize({
+        database: mockDb,
+        client: mockClient,
+        nodeManager: mockNodeManager,
+        synthesizer: mockSynthesizer,
+      });
+
+      const result = await bridge.publishDecision("dec_1");
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/no usable task outcome/);
+      expect(mockSynthesizer.synthesizeFromDecision).not.toHaveBeenCalled();
+      expect(mockClient.publish).not.toHaveBeenCalled();
+    });
+  });
+
+  it("auto publication filters historical opinion scores before publishing", async () => {
+    const bridge = new EvoMapAssetBridge();
+    await bridge.initialize({
+      database: mockDb,
+      client: mockClient,
+      nodeManager: mockNodeManager,
+      synthesizer: mockSynthesizer,
+    });
+
+    await bridge.autoPublishEligible();
+
+    expect(mockDb.prepare).toHaveBeenCalledWith(
+      expect.stringContaining("source NOT IN ('voting', 'orchestrate')"),
+    );
+    expect(mockClient.publish).not.toHaveBeenCalled();
   });
 
   // ============================================================

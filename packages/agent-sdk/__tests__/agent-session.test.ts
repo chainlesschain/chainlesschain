@@ -209,6 +209,49 @@ describe("AgentSession", () => {
     );
   });
 
+  it("waits for stdout to drain after process exit before finalizing the line", async () => {
+    const { session, child } = startSession();
+    const events = vi.fn();
+    const exit = vi.fn();
+    session.on("event", events);
+    session.on("exit", exit);
+    const line = `${JSON.stringify({ type: "tool_use", tool: "read_file" })}\n`;
+    child.stdout.emit("data", Buffer.from(line.slice(0, 12), "utf8"));
+    child.emit("exit", 0);
+    expect(session.running).toBe(false);
+    expect(exit).not.toHaveBeenCalled();
+    child.stdout.emit("data", Buffer.from(line.slice(12), "utf8"));
+    child.emit("close", 0);
+    expect(events).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "tool_use", tool: "read_file" }),
+    );
+    expect(exit).toHaveBeenCalledTimes(1);
+  });
+
+  it("preserves UTF-8 characters split across stdout and stderr chunks", async () => {
+    const { session, child } = startSession();
+    const events = vi.fn();
+    const stderr = vi.fn();
+    session.on("event", events);
+    session.on("stderr", stderr);
+    const line = Buffer.from(
+      `${JSON.stringify({ type: "tool_use", tool: "读取🙂" })}\n`,
+      "utf8",
+    );
+    const split = line.indexOf(Buffer.from("读", "utf8")) + 1;
+    child.stdout.emit("data", line.subarray(0, split));
+    child.stdout.emit("data", line.subarray(split));
+    const diagnostic = Buffer.from("诊断🙂", "utf8");
+    child.stderr.emit("data", diagnostic.subarray(0, 1));
+    child.stderr.emit("data", diagnostic.subarray(1));
+    child.stderr.emit("end");
+    await flush();
+    expect(events).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "tool_use", tool: "读取🙂" }),
+    );
+    expect(stderr.mock.calls.map(([text]) => text).join("")).toBe("诊断🙂");
+  });
+
   it("writes protocol input events for send/interrupt/compact", () => {
     const { session, writtenEvents } = startSession();
     session.send("hello", { images: ["/tmp/a.png"] });
@@ -461,6 +504,7 @@ describe("AgentSession", () => {
     const again = startSession();
     const rejected = again.session.nextResult();
     again.child.emit("exit", 1);
+    again.child.emit("close", 1);
     await expect(rejected).rejects.toThrow("agent exited");
   });
 
@@ -472,7 +516,8 @@ describe("AgentSession", () => {
     session.on("exit", exit);
     child.stderr.emit("data", Buffer.from("trace line\n", "utf8"));
     child.emit("exit", 0);
-    child.emit("exit", 0);
+    child.emit("close", 0);
+    child.emit("close", 0);
     await flush();
     expect(stderr).toHaveBeenCalledWith("trace line\n");
     expect(exit).toHaveBeenCalledTimes(1);

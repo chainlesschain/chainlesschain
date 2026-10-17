@@ -72,6 +72,20 @@ async function initialize(value: ReturnType<typeof createClient>) {
 }
 
 describe("AppServerClient", () => {
+  it("decodes stderr characters split across chunks", async () => {
+    const value = createClient();
+    await initialize(value);
+    const received: string[] = [];
+    value.client.on("stderr", (text: string) => received.push(text));
+    const bytes = Buffer.from("诊断🙂", "utf8");
+    value.child.stderr.emit("data", bytes.subarray(0, 1));
+    expect(received).toEqual([]);
+    value.child.stderr.emit("data", bytes.subarray(1, 7));
+    value.child.stderr.emit("data", bytes.subarray(7));
+    value.child.stderr.emit("end");
+    expect(received.join("")).toBe("诊断🙂");
+  });
+
   it("settles initialization timeout even when stdin never drains", async () => {
     vi.useFakeTimers();
     try {

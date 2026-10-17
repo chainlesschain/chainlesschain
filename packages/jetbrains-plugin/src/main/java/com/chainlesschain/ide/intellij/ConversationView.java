@@ -626,9 +626,10 @@ final class ConversationView {
         java.util.concurrent.CompletableFuture<Boolean> capability = receiptSupport;
         Boolean receipts = running && capability != null && capability.isDone()
                 && !capability.isCompletedExceptionally() ? capability.getNow(null) : null;
+        boolean failed = running && capability != null && capability.isCompletedExceptionally();
         com.chainlesschain.ide.PermissionModeState.Snapshot mode = conv.modeState.snapshot();
         return new com.chainlesschain.ide.RuntimeCompatibility.AgentRuntime(
-                !running ? "not-started" : receipts == null ? "initializing" : "running",
+                !running ? "not-started" : failed ? "failed" : receipts == null ? "initializing" : "running",
                 receipts, mode.requested(), mode.effective(), mode.status());
     }
 
@@ -2038,9 +2039,10 @@ final class ConversationView {
     private void ensureSessionForRevision(long modeRevision) throws IOException {
         AgentChatSession existing = liveSession();
         long configurationRevision = com.chainlesschain.ide.LlmConfig.configurationRevision();
+        boolean failedInitialization = receiptSupport != null && receiptSupport.isCompletedExceptionally();
         boolean reload = existing != null && existing.isRunning()
                 && !turnActive && existing.shouldReloadConfiguration(configurationRevision);
-        if (existing != null && existing.isRunning() && !reload) return;
+        if (existing != null && existing.isRunning() && !reload && !failedInitialization) return;
 
         if (existing != null) stopCurrentSession(modeRevision);
         if (disposed || !conv.modeState.current(modeRevision)) throw new IOException("Approval mode changed before agent launch");
@@ -2164,6 +2166,11 @@ final class ConversationView {
             }
             if (event != null && "result".equals(event.get("type")) && event.get("session_id") != null
                     && !java.util.Objects.equals(conv.sessionId, event.get("session_id"))) return;
+            if (!capabilities.isDone()) {
+                String initializationFailure = com.chainlesschain.ide.AgentInitFailure.fromEarlyEvent(event);
+                if (initializationFailure != null)
+                    capabilities.completeExceptionally(new IOException(initializationFailure));
+            }
             if (event != null && "worklog_saved".equals(event.get("type"))) {
                 SwingUtilities.invokeLater(() -> acceptWorklogHandoff(event, generation));
                 return;
@@ -2298,36 +2305,44 @@ final class ConversationView {
             })));
             UiEventDiagnostics.record(Stage.SCHEDULED, ui, generation, conv.sessionId, null);
         });
-        o.onExit = code -> SwingUtilities.invokeLater(() ->
-        {
-            capabilities.completeExceptionally(new IOException("Agent exited before input acknowledgement"));
-            if (disposed || sessionGeneration != generation) return;
-            questions.detach("Agent exited; saved answers require review");
-            conv.modeState.exited(generation, code);
-            refreshModeStatus();
-            try {
-                sendExecutor.execute(() -> {
-                    if (disposed || sessionGeneration != generation || !conv.modeState.current(modeRevision)) return;
-                    try {
-                        stopCurrentSession(modeRevision);
-                        if (code != 0) conv.modeState.failed(modeRevision, "Agent exited (" + code + ")");
-                    } catch (IOException ignored) { /* barrier already records the failure */ }
-                    refreshModeStatus();
-                });
-            } catch (java.util.concurrent.RejectedExecutionException ignored) { /* disposing */ }
-            pendingApprovalGrantCommands.clear();
-            invalidateApprovalCards();
-            indexConversation("stopped");
-            append("\n── agent exited (" + code + ") — next message restarts ──\n");
-            transcript.announce("Status", "stopped", "status:stopped:" + code);
-            turnActive = false;
-            history.stopped();
-        });
+        o.onExit = code -> {
+            capabilities.completeExceptionally(new IOException(
+                    com.chainlesschain.ide.AgentInitFailure.earlyExit()));
+            SwingUtilities.invokeLater(() -> {
+                if (disposed || sessionGeneration != generation) return;
+                questions.detach("Agent exited; saved answers require review");
+                conv.modeState.exited(generation, code);
+                refreshModeStatus();
+                try {
+                    sendExecutor.execute(() -> {
+                        if (disposed || sessionGeneration != generation || !conv.modeState.current(modeRevision)) return;
+                        try {
+                            stopCurrentSession(modeRevision);
+                            if (code != 0) conv.modeState.failed(modeRevision, "Agent exited (" + code + ")");
+                        } catch (IOException ignored) { /* barrier already records the failure */ }
+                        refreshModeStatus();
+                    });
+                } catch (java.util.concurrent.RejectedExecutionException ignored) { /* disposing */ }
+                pendingApprovalGrantCommands.clear();
+                invalidateApprovalCards();
+                indexConversation("stopped");
+                append("\n── agent exited (" + code + ") — next message restarts ──\n");
+                transcript.announce("Status", "stopped", "status:stopped:" + code);
+                turnActive = false;
+                history.stopped();
+            });
+        };
 
         AgentChatSession session = new AgentChatSession(o);
         conv.session = session;
         questions.bind(session, generation, conv.sessionId);
-        session.start();
+        try {
+            session.start();
+        } catch (IOException error) {
+            if (!o.canDispatch.getAsBoolean())
+                throw new IOException("Approval mode changed during agent launch; input was not dispatched", error);
+            throw new IOException(com.chainlesschain.ide.AgentInitFailure.processStart(), error);
+        }
         if (!o.canDispatch.getAsBoolean()) {
             session.stopAndWait();
             throw new IOException("Approval mode changed during agent launch; input was not dispatched");

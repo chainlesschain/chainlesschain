@@ -2,15 +2,14 @@
  * IDE bridge hot reconnect — a window reload / extension update restarts the
  * editor's MCP server on a NEW port with a NEW token. The MCPClient-level
  * reconnector (registered by loadIdeMcp) must re-scan the lockfiles
- * mid-session and retry the failed call once, instead of letting every
- * mcp__ide__* tool (and the selection/diagnostics injection riding on them)
- * silently die for the rest of the run.
+ * mid-session. A possibly dispatched tool call reports an unknown outcome;
+ * the recovered connection serves the next explicit call without replaying it.
  *
  * Two layers:
- *  - unit: MCPClient + fake fetch endpoints (error classification, retry-once,
+ *  - unit: MCPClient + fake fetch endpoints (error classification, no replay,
  *    single-flight, null reconnector, tool errors don't reconnect)
  *  - integration: REAL extension IdeMcpServer A → stop → REAL server B on a
- *    new port/token + lockfile swap → callTool transparently reconnects.
+ *    new port/token + lockfile swap → a later explicit call uses the new peer.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import os from "os";
@@ -162,7 +161,11 @@ describe("MCPClient hot reconnect (unit, fake fetch)", () => {
     });
   }
 
-  it("retries once via the reconnector after the server vanishes", async () => {
+  function setIdeReconnector(fn) {
+    client.setReconnector("ide", fn, { recoverUnknownOutcome: true });
+  }
+
+  it("recovers the connection without replaying an unknown tool call", async () => {
     const a = fakeEndpoint({ token: "tok-a", marker: "a" });
     endpoints.push(a);
     await connectTo(a);
@@ -178,10 +181,16 @@ describe("MCPClient hot reconnect (unit, fake fetch)", () => {
       transport: "http",
       headers: { Authorization: "Bearer tok-b" },
     }));
-    client.setReconnector("ide", reconnector);
+    setIdeReconnector(reconnector);
     const reconnected = vi.fn();
     client.on("server-reconnected", reconnected);
 
+    await expect(client.callTool("ide", "ping", {})).rejects.toMatchObject({
+      code: "CC_MCP_TOOL_OUTCOME_UNKNOWN",
+      outcomeUnknown: true,
+      connectionRecovered: true,
+    });
+    expect(b.calls).toBe(0);
     const r = await client.callTool("ide", "ping", {});
     expect(r.content[0].text).toBe("pong-b");
     expect(reconnector).toHaveBeenCalledTimes(1);
@@ -189,7 +198,7 @@ describe("MCPClient hot reconnect (unit, fake fetch)", () => {
     expect(client.servers.get("ide").httpUrl).toBe(b.url);
   });
 
-  it("restores resource subscriptions before retrying after reconnect", async () => {
+  it("restores subscriptions before a later explicit call", async () => {
     const a = fakeEndpoint({ marker: "a" });
     endpoints.push(a);
     await connectTo(a);
@@ -198,11 +207,16 @@ describe("MCPClient hot reconnect (unit, fake fetch)", () => {
 
     const b = fakeEndpoint({ marker: "b" });
     endpoints.splice(0, endpoints.length, b);
-    client.setReconnector("ide", () => ({
+    setIdeReconnector(() => ({
       url: b.url,
       transport: "http",
     }));
 
+    await expect(client.callTool("ide", "ping", {})).rejects.toMatchObject({
+      outcomeUnknown: true,
+      connectionRecovered: true,
+    });
+    expect(b.calls).toBe(0);
     const result = await client.callTool("ide", "ping", {});
     expect(result.content[0].text).toBe("pong-b");
     expect(b.subscriptions).toEqual(["file:///README.md"]);
@@ -222,7 +236,7 @@ describe("MCPClient hot reconnect (unit, fake fetch)", () => {
       subscriptionError: "subscription removed",
     });
     endpoints.splice(0, endpoints.length, b);
-    client.setReconnector("ide", () => ({
+    setIdeReconnector(() => ({
       url: b.url,
       transport: "http",
     }));
@@ -240,7 +254,7 @@ describe("MCPClient hot reconnect (unit, fake fetch)", () => {
     // failed transport entry above was removed.
     const c = fakeEndpoint({ marker: "c" });
     endpoints.splice(0, endpoints.length, c);
-    client.setReconnector("ide", () => ({
+    setIdeReconnector(() => ({
       url: c.url,
       transport: "http",
     }));
@@ -263,7 +277,7 @@ describe("MCPClient hot reconnect (unit, fake fetch)", () => {
       subscriptionError: "subscription removed",
     });
     endpoints.splice(0, endpoints.length, b);
-    client.setReconnector("ide", () => ({
+    setIdeReconnector(() => ({
       url: b.url,
       transport: "http",
     }));
@@ -275,7 +289,7 @@ describe("MCPClient hot reconnect (unit, fake fetch)", () => {
     await client.disconnectAll();
     const c = fakeEndpoint({ marker: "c" });
     endpoints.splice(0, endpoints.length, c);
-    client.setReconnector("ide", () => ({
+    setIdeReconnector(() => ({
       url: c.url,
       transport: "http",
     }));
@@ -290,7 +304,7 @@ describe("MCPClient hot reconnect (unit, fake fetch)", () => {
     await connectTo(a);
     a.token = "new-token"; // server restarted on the same port, new token
     a.marker = "a2";
-    client.setReconnector("ide", () => ({
+    setIdeReconnector(() => ({
       url: a.url,
       transport: "http",
       headers: { Authorization: "Bearer new-token" },
@@ -309,7 +323,7 @@ describe("MCPClient hot reconnect (unit, fake fetch)", () => {
     await connectTo(a);
     endpoints.length = 0; // gone for good
     const reconnector = vi.fn(() => null);
-    client.setReconnector("ide", reconnector);
+    setIdeReconnector(reconnector);
 
     await expect(client.callTool("ide", "ping", {})).rejects.toThrow(
       /fetch failed/,
@@ -322,7 +336,7 @@ describe("MCPClient hot reconnect (unit, fake fetch)", () => {
     endpoints.push(a);
     await connectTo(a);
     const reconnector = vi.fn();
-    client.setReconnector("ide", reconnector);
+    setIdeReconnector(reconnector);
 
     await expect(client.callTool("ide", "ping", {})).rejects.toThrow(
       "MCP server returned a JSON-RPC error",
@@ -355,22 +369,28 @@ describe("MCPClient hot reconnect (unit, fake fetch)", () => {
         headers: { Authorization: "Bearer tok-b" },
       };
     });
-    client.setReconnector("ide", reconnector);
+    setIdeReconnector(reconnector);
 
-    const [r1, r2] = await Promise.all([
+    const failures = await Promise.allSettled([
       client.callTool("ide", "ping", {}),
       client.callTool("ide", "ping", {}),
     ]);
-    expect(r1.content[0].text).toBe("pong-b");
-    expect(r2.content[0].text).toBe("pong-b");
+    for (const failure of failures) {
+      expect(failure.status).toBe("rejected");
+      expect(failure.reason).toMatchObject({ outcomeUnknown: true });
+    }
+    expect(b.calls).toBe(0);
     expect(reconnector).toHaveBeenCalledTimes(1);
+    expect((await client.callTool("ide", "ping", {})).content[0].text).toBe(
+      "pong-b",
+    );
   });
 
   it("self-heals when the server entry was already dropped", async () => {
     const b = fakeEndpoint({ token: "tok-b", marker: "b" });
     endpoints.push(b);
     // No prior connect — e.g. an earlier failed reconnect deleted the entry.
-    client.setReconnector("ide", () => ({
+    setIdeReconnector(() => ({
       url: b.url,
       transport: "http",
       headers: { Authorization: "Bearer tok-b" },
@@ -473,6 +493,12 @@ describe("IDE hot reconnect (integration: real IdeMcpServer restart)", () => {
       url: serverB.url(),
     });
 
+    await expect(
+      out.mcpClient.callTool("ide", "getSelection", {}),
+    ).rejects.toMatchObject({
+      outcomeUnknown: true,
+      connectionRecovered: true,
+    });
     const r2 = await out.mcpClient.callTool("ide", "getSelection", {});
     expect(JSON.stringify(r2)).toContain("sel-B");
     const entry = out.mcpClient.servers.get("ide");

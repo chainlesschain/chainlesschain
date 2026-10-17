@@ -304,13 +304,16 @@ describe("cc batch command", () => {
     const pending = _internal.decomposeGoal("split this", 2, {
       repoDir: dir,
     });
-    child.stdout.emit(
-      "data",
-      Buffer.from('{"units":[{"key":"a","prompt":"do a"}]}'),
+    const output = Buffer.from(
+      '{"units":[{"key":"a","prompt":"做🙂"}]}',
+      "utf8",
     );
+    const split = output.indexOf(Buffer.from("做", "utf8")) + 1;
+    child.stdout.emit("data", output.subarray(0, split));
+    child.stdout.emit("data", output.subarray(split));
     child.emit("close", 0);
 
-    await expect(pending).resolves.toEqual([{ key: "a", prompt: "do a" }]);
+    await expect(pending).resolves.toEqual([{ key: "a", prompt: "做🙂" }]);
     expect(_processDeps.spawn.mock.calls[0][2]).toMatchObject({
       cwd: dir,
       origin: "batch:decompose",
@@ -318,6 +321,17 @@ describe("cc batch command", () => {
       scope: "batch",
       shell: false,
     });
+  });
+
+  it("preserves stderr characters split across chunks on test failure", async () => {
+    const child = fakeChild();
+    _processDeps.spawn = vi.fn(() => child);
+    const pending = _internal.runTestCommand("npm test", dir);
+    const diagnostic = Buffer.from("测试失败🙂", "utf8");
+    child.stderr.emit("data", diagnostic.subarray(0, 1));
+    child.stderr.emit("data", diagnostic.subarray(1));
+    child.emit("close", 1);
+    await expect(pending).rejects.toThrow("测试失败🙂");
   });
 
   it("brokers git diff and commit operations without a shell", () => {

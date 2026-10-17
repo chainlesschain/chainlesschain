@@ -18,6 +18,7 @@ import {
   launchElectronApp,
   closeElectronApp,
   callIPC,
+  createPmOrganizationFixture,
   type ElectronTestContext,
 } from "./helpers";
 import type { Page, ElectronApplication } from "@playwright/test";
@@ -35,8 +36,8 @@ const REQUIREMENTS_CONTENT =
   "# Requirements\n\n- User authentication\n- Task management\n- Sprint planning\n";
 
 // Test data
-const TEST_ORG_ID = `org-pm-journey-${Date.now()}`;
-const TEST_USER_DID = `did:key:pm-journey-user-${Date.now()}`;
+let testOrgId: string;
+let testUserDid: string;
 const TEST_USER_NAME = "PM Journey User";
 const TEST_MEMBER_DID = `did:key:pm-journey-member-${Date.now()}`;
 const TEST_MEMBER_NAME = "PM Journey Member";
@@ -64,6 +65,12 @@ test.describe.serial("Project Management Journey (Full Lifecycle)", () => {
     const ctx = await launchElectronApp();
     app = ctx.app;
     window = ctx.window;
+    const fixture = await createPmOrganizationFixture(
+      window,
+      "project-management-journey",
+    );
+    testOrgId = fixture.orgId;
+    testUserDid = fixture.actorDid;
   });
 
   // Close Electron app after all tests
@@ -77,12 +84,12 @@ test.describe.serial("Project Management Journey (Full Lifecycle)", () => {
 
   test("Phase 1.1: Create team", async () => {
     const createResult: any = await callIPC(window, "team:create-team", {
-      orgId: TEST_ORG_ID,
+      orgId: testOrgId,
       name: "Engineering Team",
       description: "Core engineering team for PM journey test",
-      leadDid: TEST_USER_DID,
+      leadDid: testUserDid,
       leadName: TEST_USER_NAME,
-      createdBy: TEST_USER_DID,
+      createdBy: testUserDid,
     });
 
     expect(createResult).toBeDefined();
@@ -98,7 +105,7 @@ test.describe.serial("Project Management Journey (Full Lifecycle)", () => {
       memberDid: TEST_MEMBER_DID,
       memberName: TEST_MEMBER_NAME,
       role: "member",
-      invitedBy: TEST_USER_DID,
+      invitedBy: testUserDid,
     });
 
     expect(addResult).toBeDefined();
@@ -119,13 +126,13 @@ test.describe.serial("Project Management Journey (Full Lifecycle)", () => {
 
   test("Phase 1.4: Grant project permissions to member", async () => {
     const grantResult: any = await callIPC(window, "perm:grant-permission", {
-      orgId: TEST_ORG_ID,
+      orgId: testOrgId,
       granteeType: "user",
       granteeId: TEST_MEMBER_DID,
       resourceType: "project",
       resourceId: "*",
       permission: "write",
-      grantedBy: TEST_USER_DID,
+      grantedBy: testUserDid,
     });
 
     expect(grantResult).toBeDefined();
@@ -141,7 +148,7 @@ test.describe.serial("Project Management Journey (Full Lifecycle)", () => {
       name: TEST_PROJECT_NAME,
       description: "E2E project management journey test",
       projectType: "document",
-      userId: TEST_USER_DID,
+      userId: testUserDid,
     });
 
     expect(createResult).toBeDefined();
@@ -211,11 +218,11 @@ test.describe.serial("Project Management Journey (Full Lifecycle)", () => {
 
   test("Phase 3.1: Create task board", async () => {
     const createResult: any = await callIPC(window, "task:create-board", {
-      orgId: TEST_ORG_ID,
+      orgId: testOrgId,
       name: "Sprint Board",
       description: "Main task board for project execution",
       boardType: "scrum",
-      ownerDid: TEST_USER_DID,
+      ownerDid: testUserDid,
     });
 
     expect(createResult).toBeDefined();
@@ -272,7 +279,7 @@ test.describe.serial("Project Management Journey (Full Lifecycle)", () => {
 
     for (const label of labels) {
       const result: any = await callIPC(window, "task:create-label", {
-        orgId: TEST_ORG_ID,
+        orgId: testOrgId,
         name: label.name,
         color: label.color,
       });
@@ -292,7 +299,7 @@ test.describe.serial("Project Management Journey (Full Lifecycle)", () => {
       description: "Add login/logout functionality with JWT tokens",
       priority: "high",
       estimatedHours: 8,
-      createdBy: TEST_USER_DID,
+      createdBy: testUserDid,
       creatorName: TEST_USER_NAME,
     });
 
@@ -308,7 +315,7 @@ test.describe.serial("Project Management Journey (Full Lifecycle)", () => {
       taskId,
       userDid: TEST_MEMBER_DID,
       role: "assignee",
-      assignedBy: TEST_USER_DID,
+      assignedBy: testUserDid,
     });
 
     expect(assignResult).toBeDefined();
@@ -322,14 +329,14 @@ test.describe.serial("Project Management Journey (Full Lifecycle)", () => {
     const dueDateResult: any = await callIPC(window, "task:set-due-date", {
       taskId,
       dueDate: dueDate.toISOString(),
-      actorDid: TEST_USER_DID,
+      actorDid: testUserDid,
     });
     expect(dueDateResult.success).toBe(true);
 
     const priorityResult: any = await callIPC(window, "task:set-priority", {
       taskId,
       priority: "high",
-      actorDid: TEST_USER_DID,
+      actorDid: testUserDid,
     });
     expect(priorityResult.success).toBe(true);
   });
@@ -370,7 +377,7 @@ test.describe.serial("Project Management Journey (Full Lifecycle)", () => {
     const commentResult: any = await callIPC(window, "task:add-comment", {
       taskId,
       comment: {
-        authorDid: TEST_USER_DID,
+        authorDid: testUserDid,
         authorName: TEST_USER_NAME,
         content:
           "Please make sure to follow security best practices for password hashing.",
@@ -489,12 +496,12 @@ test.describe.serial("Project Management Journey (Full Lifecycle)", () => {
 
   test("Phase 6.1: Create team report", async () => {
     const reportResult: any = await callIPC(window, "task:create-report", {
-      orgId: TEST_ORG_ID,
+      orgId: testOrgId,
       teamId,
       reportType: "weekly",
       title: "Sprint 1 Weekly Report",
       content: "Completed user authentication feature",
-      authorDid: TEST_USER_DID,
+      authorDid: testUserDid,
       authorName: TEST_USER_NAME,
     });
 
@@ -668,7 +675,7 @@ test.describe.serial("Project Management Journey (Full Lifecycle)", () => {
 
   test("Phase 8.2: Verify team and members", async () => {
     const teamsResult: any = await callIPC(window, "team:get-teams", {
-      orgId: TEST_ORG_ID,
+      orgId: testOrgId,
       options: {},
     });
 

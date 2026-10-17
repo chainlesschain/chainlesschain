@@ -100,9 +100,18 @@ class AppServerClient extends node_events_1.EventEmitter {
             if (this.child === child)
                 decode(chunk);
         });
+        const stderrDecoder = new TextDecoder("utf-8");
         child.stderr?.on("data", (chunk) => {
-            if (this.child === child)
-                this.emit("stderr", chunk.toString("utf8"));
+            if (this.child !== child)
+                return;
+            const text = stderrDecoder.decode(chunk, { stream: true });
+            if (text)
+                this.emit("stderr", text);
+        });
+        child.stderr?.on("end", () => {
+            const text = stderrDecoder.decode();
+            if (text && this.child === child)
+                this.emit("stderr", text);
         });
         const failCurrent = (error) => {
             if (this.child === child)

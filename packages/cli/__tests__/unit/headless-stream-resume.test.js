@@ -293,6 +293,38 @@ describe("stream persistence + resume", () => {
     ).toEqual([]);
   });
 
+  it.each(["EROFS", "ENOSPC", "EIO"])(
+    "projects %s during session lookup before starting or dispatching",
+    async (code) => {
+      const h = harness({
+        options: { sessionId: "disk-preflight" },
+        over: {
+          sessionExists: () => {
+            throw Object.assign(new Error("private storage path"), { code });
+          },
+        },
+      });
+      const outcome = await h.run();
+      expect(outcome.exitCode).toBe(1);
+      expect(h.events()).toEqual([
+        expect.objectContaining({
+          type: "result",
+          subtype: "error_persistence",
+          is_error: true,
+          persistence: expect.objectContaining({
+            code: "CC_SESSION_PERSISTENCE_FAILED",
+            fs_code: code,
+            phase: "before-model",
+          }),
+        }),
+      ]);
+      expect(h.calls.started).toHaveLength(0);
+      expect(h.calls.users).toHaveLength(0);
+      expect(h.seenTurns).toHaveLength(0);
+      expect(h.output()).not.toContain("private storage path");
+    },
+  );
+
   it("a broken resume store refuses the stream before the model", async () => {
     const boom = () => {
       throw new Error("disk full");

@@ -57,6 +57,7 @@ import {
   appendAuthorityEvent as jsonlAppendAuthorityEvent,
   readEvents as jsonlReadEvents,
   readVerifiedEvents as jsonlReadVerifiedEvents,
+  readVerifiedProjection as jsonlReadVerifiedProjection,
   findLatestEvent as jsonlFindLatestEvent,
   rebuildMessages as jsonlRebuildMessages,
   sessionExists as jsonlSessionExists,
@@ -137,7 +138,9 @@ import executionBroker from "../lib/process-execution-broker/index.js";
 import { extractPluginUsageAttribution } from "../lib/plugin-usage-attribution.js";
 import { formatManagedCheckpointEvent } from "../lib/managed-checkpoint-render.js";
 import {
+  normalizeSessionBudgetRootConfig,
   openProductionSessionBudgetRoot,
+  readProductionSessionBudget,
   sessionBudgetAdmissionError,
 } from "../lib/session-budget-production-root.js";
 import {
@@ -286,6 +289,74 @@ export function resolveHeadlessSkillDecisionOptions(options = {}) {
     ...resolveDecisionProviderOptions(options),
     timeoutMs,
   });
+}
+
+function createDecisionUsageRecoveryProjection() {
+  const started = new Map();
+  const seenCallIds = new Set();
+  let blocked = false;
+  return {
+    accept(event) {
+      if (blocked) return;
+      const data = event?.data;
+      const callId = data?.callId;
+      const isDecision =
+        typeof data?.operationId === "string" &&
+        data.operationId.startsWith("decision:");
+      if (event?.type === "model_usage_started" && isDecision) {
+        if (typeof callId !== "string" || !callId || seenCallIds.has(callId)) {
+          blocked = true;
+          return;
+        }
+        let boundary;
+        try {
+          boundary = projectRuntimeUsageBoundary(data, "started");
+        } catch {
+          blocked = true;
+          return;
+        }
+        seenCallIds.add(callId);
+        started.set(callId, boundary);
+      } else if (
+        event?.type === "model_usage_unknown" &&
+        (isDecision || started.has(callId))
+      ) {
+        blocked = true;
+      } else if (event?.type === "token_usage" && started.has(callId)) {
+        let settlement;
+        try {
+          settlement = projectRuntimeTokenUsage(data);
+        } catch {
+          blocked = true;
+          return;
+        }
+        const boundary = started.get(callId);
+        if (
+          settlement.callId !== boundary.callId ||
+          settlement.operationId !== boundary.operationId ||
+          settlement.provider !== boundary.provider ||
+          settlement.model !== boundary.model ||
+          settlement.source !== boundary.source
+        ) {
+          blocked = true;
+          return;
+        }
+        started.delete(callId);
+      }
+    },
+    finish() {
+      return blocked || started.size > 0;
+    },
+  };
+}
+
+function hasUnreconciledDecisionUsage(events) {
+  if (!Array.isArray(events)) return true;
+  const projection = createDecisionUsageRecoveryProjection();
+  for (const event of events) {
+    projection.accept(event);
+  }
+  return projection.finish();
 }
 
 /**
@@ -500,6 +571,7 @@ export function applyForkSession(opts = {}, store = {}) {
  */
 const HEADLESS_SESSION_RESOLUTION = Symbol("headlessSessionResolution");
 const HEADLESS_SESSION_HOST_LEASE = Symbol("headlessSessionHostLease");
+const HEADLESS_CANONICAL_ADMISSION = Symbol("headlessCanonicalAdmission");
 const HEADLESS_HOOK_EVENT_CLEANUP = Symbol("headlessHookEventCleanup");
 const HOST_EVENT_BACKLOG_CODE = "CC_HOST_EVENT_BACKLOG_EXHAUSTED";
 const HOST_EVENT_BACKLOG_ERROR =
@@ -528,6 +600,7 @@ async function withHeadlessSessionHostLease(options, deps, task) {
   let lease = null;
   let budgetRoot = null;
   let scopedOptions = options;
+  let preflightAdmission;
   try {
     // Session authority/lease/budget setup can lazily initialize AppConfig and
     // DatabaseManager. Those legacy diagnostics use console.info (stdout), and
@@ -589,13 +662,101 @@ async function withHeadlessSessionHostLease(options, deps, task) {
               : lease.signal,
           }
         : options;
+      const canReadCanonical =
+        !hasInjectedSessionStore ||
+        typeof deps.readVerifiedEvents === "function";
+      if (
+        authoritySessionId &&
+        !canReadCanonical &&
+        (deps.sessionBudgetStore || options.sessionBudgetRoot?.enabled) &&
+        (resolution.resumeId ||
+          deps.sessionExists?.(authoritySessionId) !== false)
+      ) {
+        throw Object.assign(
+          new Error("budgeted resume requires verified session events"),
+          { code: "CC_SESSION_BUDGET_JSONL_REQUIRED" },
+        );
+      }
+      if (authoritySessionId && canReadCanonical) {
+        preflightAdmission = readSessionHostResumeState(authoritySessionId, {
+          sessionHasPersistedEvidence:
+            deps.sessionHasPersistedEvidence ||
+            (!hasInjectedSessionStore
+              ? jsonlSessionHasPersistedEvidence
+              : undefined),
+          sessionExists: deps.sessionExists || jsonlSessionExists,
+          readVerifiedEvents:
+            deps.readVerifiedEvents || jsonlReadVerifiedEvents,
+        });
+      }
+      if (preflightAdmission && !preflightAdmission.snapshot.verified) {
+        // The inner runner reports the canonical failure without opening or
+        // mutating a budget sidecar for an unverified transcript.
+        return;
+      }
+      const sidecar =
+        authoritySessionId &&
+        (process.platform === "linux" || deps.sessionBudgetStore)
+          ? readProductionSessionBudget(authoritySessionId, {
+              store: deps.sessionBudgetStore,
+            })
+          : null;
+      if (!preflightAdmission && !hasInjectedSessionStore && sidecar) {
+        throw Object.assign(
+          new Error("budget sidecar has no canonical JSONL session"),
+          { code: "CC_SESSION_BUDGET_JSONL_REQUIRED" },
+        );
+      }
+      let effectiveBudgetConfig = options.sessionBudgetRoot;
+      if (preflightAdmission) {
+        const canonicalConfig = preflightAdmission.sessionBudgetRoot;
+        const requestedConfig = options.sessionBudgetRoot?.enabled
+          ? normalizeSessionBudgetRootConfig(options.sessionBudgetRoot)
+          : null;
+        if (canonicalConfig?.enabled) {
+          if (!sidecar) {
+            throw Object.assign(
+              new Error(
+                "budgeted session is missing its durable budget sidecar",
+              ),
+              { code: "CC_SESSION_BUDGET_SIDECAR_REQUIRED" },
+            );
+          }
+          if (requestedConfig) {
+            if (
+              JSON.stringify(requestedConfig) !==
+              JSON.stringify(canonicalConfig)
+            ) {
+              throw Object.assign(
+                new Error(
+                  "session budget does not match its JSONL declaration",
+                ),
+                { code: "CC_SESSION_BUDGET_CONFIG_MISMATCH" },
+              );
+            }
+          } else {
+            effectiveBudgetConfig = canonicalConfig;
+          }
+        } else if (requestedConfig || sidecar) {
+          throw Object.assign(
+            new Error(
+              "existing session has no canonical JSONL budget declaration",
+            ),
+            { code: "CC_SESSION_BUDGET_JSONL_REQUIRED" },
+          );
+        }
+      }
+      scopedOptions = {
+        ...scopedOptions,
+        sessionBudgetRoot: effectiveBudgetConfig,
+      };
       budgetRoot = openProductionSessionBudgetRoot(
         authoritySessionId,
-        options.sessionBudgetRoot,
+        effectiveBudgetConfig,
         {
           persist: resolution.persist,
           signal: scopedOptions.signal || null,
-          table: options.sessionBudgetRoot?.table,
+          table: effectiveBudgetConfig?.table || options.priceTable,
           open: deps.openSessionBudget,
           store: deps.sessionBudgetStore,
           registry: deps.sessionBudgetRegistry,
@@ -609,6 +770,7 @@ async function withHeadlessSessionHostLease(options, deps, task) {
       ...deps,
       [HEADLESS_SESSION_RESOLUTION]: resolution,
       [HEADLESS_SESSION_HOST_LEASE]: lease,
+      [HEADLESS_CANONICAL_ADMISSION]: preflightAdmission,
     });
   } finally {
     // Cleanup can touch the same lazy stores. Keep late diagnostics out of a
@@ -939,18 +1101,20 @@ async function runAgentHeadlessInWorkspace(
     !hasInjectedSessionStore || typeof deps.readVerifiedEvents === "function";
   const canonicalAdmissionId = resumeId || (persist ? sessionId : null);
   const canonicalAdmission =
-    canonicalAdmissionId && canReadCanonicalResume
-      ? readSessionHostResumeState(canonicalAdmissionId, {
-          sessionHasPersistedEvidence:
-            deps.sessionHasPersistedEvidence ||
-            (!hasInjectedSessionStore
-              ? jsonlSessionHasPersistedEvidence
-              : undefined),
-          sessionExists: deps.sessionExists || jsonlSessionExists,
-          readVerifiedEvents:
-            deps.readVerifiedEvents || jsonlReadVerifiedEvents,
-        })
-      : null;
+    deps[HEADLESS_CANONICAL_ADMISSION] !== undefined
+      ? deps[HEADLESS_CANONICAL_ADMISSION]
+      : canonicalAdmissionId && canReadCanonicalResume
+        ? readSessionHostResumeState(canonicalAdmissionId, {
+            sessionHasPersistedEvidence:
+              deps.sessionHasPersistedEvidence ||
+              (!hasInjectedSessionStore
+                ? jsonlSessionHasPersistedEvidence
+                : undefined),
+            sessionExists: deps.sessionExists || jsonlSessionExists,
+            readVerifiedEvents:
+              deps.readVerifiedEvents || jsonlReadVerifiedEvents,
+          })
+        : null;
   if (canonicalAdmission && !canonicalAdmission.snapshot.verified) {
     const message =
       "CC_SESSION_HOST_SNAPSHOT_UNVERIFIED: canonical JSONL session is not " +
@@ -2012,6 +2176,9 @@ async function runAgentHeadlessInWorkspace(
           provider,
           model,
           observabilityScope: options.observabilityScope,
+          ...(options.sessionBudgetRoot?.enabled === true
+            ? { sessionBudgetRoot: options.sessionBudgetRoot }
+            : {}),
           executionLocation: captureAmbientExecutionLocation({
             provider,
             model,
@@ -2458,13 +2625,35 @@ async function runAgentHeadlessInWorkspace(
   const skillDecisionOptions = resolveHeadlessSkillDecisionOptions(options);
   let skillDecisionRuntime = null;
   if (skillDecisionOptions.mode !== "off") {
-    const previousUnknownDecisionUsage = store.findLatestEvent(
-      sessionId,
-      "model_usage_unknown",
-      (event) =>
-        typeof event?.data?.operationId === "string" &&
-        event.data.operationId.startsWith("decision:"),
-    );
+    let previousUnreconciledDecisionUsage;
+    if (
+      !hasInjectedSessionStore ||
+      typeof deps.readVerifiedEvents === "function"
+    ) {
+      try {
+        previousUnreconciledDecisionUsage = hasInjectedSessionStore
+          ? hasUnreconciledDecisionUsage(store.readVerifiedEvents(sessionId))
+          : jsonlReadVerifiedProjection(
+              sessionId,
+              createDecisionUsageRecoveryProjection,
+            );
+      } catch {
+        // Without a verified settlement, a resumed provider call could be paid twice.
+        previousUnreconciledDecisionUsage = true;
+      }
+    } else {
+      // Legacy injected stores cannot prove a prior call was settled. Their
+      // explicit no-session answer still permits a fresh test/embedding run.
+      previousUnreconciledDecisionUsage =
+        store.sessionExists(sessionId) ||
+        store.findLatestEvent(
+          sessionId,
+          "model_usage_unknown",
+          (event) =>
+            typeof event?.data?.operationId === "string" &&
+            event.data.operationId.startsWith("decision:"),
+        ) != null;
+    }
     const decisionProvider =
       deps.decisionProvider ||
       createDecisionProvider({
@@ -2487,11 +2676,12 @@ async function runAgentHeadlessInWorkspace(
         options.decisionTenantId || evolutionIngress?.tenantId || "cli-local",
       sessionId,
       provider: decisionProvider,
+      evolutionIngress,
       persist: persistDecisionEvent,
       observe: (observation) =>
         persistDecisionEvent("skill_decision_observation", observation),
       sessionBudget: options.sessionBudget || null,
-      initialUsageUnknown: previousUnknownDecisionUsage != null,
+      initialUsageUnknown: previousUnreconciledDecisionUsage,
       timeoutMs: skillDecisionOptions.timeoutMs,
     });
   }

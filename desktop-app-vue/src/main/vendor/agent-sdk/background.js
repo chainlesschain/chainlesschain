@@ -25,6 +25,9 @@ function backgroundAgentsDir() {
 }
 /** Read a background agent's state file (`<dir>/<id>.json`). */
 function readBackgroundAgentState(id, dir = backgroundAgentsDir()) {
+    if (typeof id !== "string" || !/^bg-[a-zA-Z0-9-]+$/.test(id)) {
+        throw new Error(`Invalid background agent id: ${id}`);
+    }
     const raw = (0, node_fs_1.readFileSync)((0, node_path_1.join)(dir, `${id}.json`), "utf8");
     return JSON.parse(raw);
 }
@@ -39,7 +42,13 @@ function attachBackgroundSession(options) {
         if (!options.id) {
             return Promise.reject(new Error("attachBackgroundSession requires id, or pipePath + token"));
         }
-        const state = readBackgroundAgentState(options.id, options.dir);
+        let state;
+        try {
+            state = readBackgroundAgentState(options.id, options.dir);
+        }
+        catch (error) {
+            return Promise.reject(error);
+        }
         pipePath = pipePath || state.transport?.pipe;
         token = token || state.transport?.token;
         if (!pipePath || !token) {
@@ -49,6 +58,8 @@ function attachBackgroundSession(options) {
     const timeoutMs = options.timeoutMs ?? 5000;
     return new Promise((resolve, reject) => {
         let settled = false;
+        let attached = false;
+        let protocolFailed = false;
         const socket = node_net_1.default.connect(pipePath);
         const timer = setTimeout(() => {
             if (!settled) {
@@ -68,10 +79,35 @@ function attachBackgroundSession(options) {
                 return false;
             }
         };
+        const failProtocol = (reason) => {
+            if (protocolFailed)
+                return;
+            protocolFailed = true;
+            if (!settled) {
+                settled = true;
+                clearTimeout(timer);
+                reject(new Error(reason));
+            }
+            socket.destroy();
+        };
         socket.on("data", (0, ndjson_js_1.createNdjsonDecoder)((message) => {
+            if (protocolFailed)
+                return;
+            if (typeof message !== "object" ||
+                message === null ||
+                Array.isArray(message) ||
+                typeof message.type !== "string") {
+                failProtocol("session transport sent an invalid frame");
+                return;
+            }
             if (!settled) {
                 if (message.type === "hello") {
+                    if (options.id && message.id !== options.id) {
+                        failProtocol("session transport hello has a different agent id");
+                        return;
+                    }
                     settled = true;
+                    attached = true;
                     clearTimeout(timer);
                     resolve({
                         hello: message,
@@ -90,7 +126,9 @@ function attachBackgroundSession(options) {
                             socket.end();
                         },
                     });
+                    return;
                 }
+                failProtocol("session transport sent a frame before hello");
                 return;
             }
             try {
@@ -99,6 +137,8 @@ function attachBackgroundSession(options) {
             catch {
                 /* observer errors never kill the connection */
             }
+        }, {
+            onError: () => failProtocol("session transport sent invalid NDJSON"),
         }));
         socket.on("connect", () => {
             write({ type: "hello", token: token });
@@ -116,7 +156,7 @@ function attachBackgroundSession(options) {
                 clearTimeout(timer);
                 reject(new Error("session transport closed during handshake"));
             }
-            else {
+            else if (attached) {
                 try {
                     options.onClose?.();
                 }

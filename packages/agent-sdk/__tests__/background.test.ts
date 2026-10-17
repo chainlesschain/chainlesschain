@@ -2,15 +2,52 @@
  * Integration test: real net server on a local pipe speaking the
  * background-session protocol, exercised through attachBackgroundSession.
  */
+import { mkdtempSync, rmdirSync, unlinkSync, writeFileSync } from "node:fs";
 import net from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { attachBackgroundSession } from "../src/background.js";
+import {
+  attachBackgroundSession,
+  readBackgroundAgentState,
+} from "../src/background.js";
 import { createNdjsonDecoder, encodeNdjson } from "../src/ndjson.js";
 
 const TOKEN = "test-token-123";
+
+describe("readBackgroundAgentState", () => {
+  it("reads a valid background agent id and rejects path traversal", () => {
+    const dir = mkdtempSync(join(tmpdir(), "cc-sdk-state-"));
+    const file = join(dir, "bg-1.json");
+    writeFileSync(file, JSON.stringify({ id: "bg-1", status: "running" }));
+    try {
+      expect(readBackgroundAgentState("bg-1", dir)).toMatchObject({
+        id: "bg-1",
+        status: "running",
+      });
+      for (const id of [
+        "../outside",
+        "..\\outside",
+        "bg-1/../../outside",
+        "other",
+      ]) {
+        expect(() => readBackgroundAgentState(id, dir)).toThrow(
+          "Invalid background agent id",
+        );
+      }
+    } finally {
+      unlinkSync(file);
+      rmdirSync(dir);
+    }
+  });
+});
+
+it("rejects an invalid attach id through its Promise API", async () => {
+  await expect(
+    attachBackgroundSession({ id: "../outside" }),
+  ).rejects.toThrow("Invalid background agent id");
+});
 
 function pipePath(name: string): string {
   if (process.platform === "win32") {
@@ -88,18 +125,19 @@ describe("attachBackgroundSession", () => {
     );
 
     handle.prompt("continue the task");
-    await new Promise((r) => setTimeout(r, 150));
-    expect(received).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ type: "prompt", text: "continue the task" }),
-      ]),
-    );
-    expect(events).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ type: "accepted", queued: 1 }),
-        expect.objectContaining({ type: "turn-started", turn: 2 }),
-      ]),
-    );
+    await vi.waitFor(() => {
+      expect(received).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ type: "prompt", text: "continue the task" }),
+        ]),
+      );
+      expect(events).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ type: "accepted", queued: 1 }),
+          expect.objectContaining({ type: "turn-started", turn: 2 }),
+        ]),
+      );
+    });
 
     const binding = {
       backgroundAgentId: "bg-1",
@@ -109,17 +147,18 @@ describe("attachBackgroundSession", () => {
       sequence: 1,
     };
     handle.answerInteraction("question-1", binding, "yes");
-    await new Promise((r) => setTimeout(r, 50));
-    expect(received).toEqual(
-      expect.arrayContaining([
-        {
-          type: "interaction_response",
-          requestId: "question-1",
-          binding,
-          answer: "yes",
-        },
-      ]),
-    );
+    await vi.waitFor(() => {
+      expect(received).toEqual(
+        expect.arrayContaining([
+          {
+            type: "interaction_response",
+            requestId: "question-1",
+            binding,
+            answer: "yes",
+          },
+        ]),
+      );
+    });
     handle.detach();
   });
 
@@ -135,6 +174,135 @@ describe("attachBackgroundSession", () => {
         timeoutMs: 2000,
       }),
     ).rejects.toThrow(/closed during handshake|timed out/);
+  });
+
+  it("rejects a hello for a different background agent", async () => {
+    const path = pipePath("wrong-id");
+    const sockets = new Set<net.Socket>();
+    const server = net.createServer((socket) => {
+      sockets.add(socket);
+      socket.on("close", () => sockets.delete(socket));
+      socket.write(encodeNdjson({ type: "hello", id: "bg-other" }));
+    });
+    servers.push(server);
+    await new Promise<void>((resolve) => server.listen(path, resolve));
+
+    try {
+      await expect(
+        attachBackgroundSession({
+          id: "bg-expected",
+          pipePath: path,
+          token: TOKEN,
+          timeoutMs: 2000,
+        }),
+      ).rejects.toThrow("session transport hello has a different agent id");
+    } finally {
+      for (const socket of sockets) socket.destroy();
+    }
+  });
+
+  it.each([
+    [
+      "status",
+      encodeNdjson({ type: "status", phase: "running" }),
+      "frame before hello",
+    ],
+    ["null", "null\n", "invalid frame"],
+  ])("rejects a %s frame before hello", async (name, frame, error) => {
+    const path = pipePath(`unexpected-${name}`);
+    const sockets = new Set<net.Socket>();
+    const server = net.createServer((socket) => {
+      sockets.add(socket);
+      socket.on("close", () => sockets.delete(socket));
+      socket.write(`${frame}${encodeNdjson({ type: "hello", id: "bg-1" })}`);
+    });
+    servers.push(server);
+    await new Promise<void>((resolve) => server.listen(path, resolve));
+
+    try {
+      await expect(
+        attachBackgroundSession({
+          pipePath: path,
+          token: TOKEN,
+          timeoutMs: 2000,
+        }),
+      ).rejects.toThrow(error);
+    } finally {
+      for (const socket of sockets) socket.destroy();
+    }
+  });
+
+  it("rejects a malformed frame before a later hello in the same write", async () => {
+    const path = pipePath("malformed");
+    const sockets = new Set<net.Socket>();
+    const server = net.createServer((socket) => {
+      sockets.add(socket);
+      socket.on("close", () => sockets.delete(socket));
+      socket.write(
+        `not-json\n${encodeNdjson({ type: "hello", id: "bg-1" })}`,
+      );
+    });
+    servers.push(server);
+    await new Promise<void>((resolve) => server.listen(path, resolve));
+
+    const onClose = vi.fn();
+    try {
+      await expect(
+        attachBackgroundSession({
+          pipePath: path,
+          token: TOKEN,
+          timeoutMs: 2000,
+          onClose,
+        }),
+      ).rejects.toThrow("session transport sent invalid NDJSON");
+    } finally {
+      for (const socket of sockets) socket.destroy();
+    }
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("closes an attached connection on a malformed frame", async () => {
+    const path = pipePath("malformed-attached");
+    const sockets = new Set<net.Socket>();
+    const server = net.createServer((socket) => {
+      sockets.add(socket);
+      socket.on("close", () => sockets.delete(socket));
+      socket.write(
+        `${encodeNdjson({ type: "hello", id: "bg-1" })}not-json\n${encodeNdjson({ type: "status", phase: "running" })}`,
+      );
+    });
+    servers.push(server);
+    await new Promise<void>((resolve) => server.listen(path, resolve));
+
+    const events: unknown[] = [];
+    let notifyClose: (() => void) | undefined;
+    const closed = new Promise<void>((resolve) => {
+      notifyClose = resolve;
+    });
+    try {
+      const handle = await attachBackgroundSession({
+        pipePath: path,
+        token: TOKEN,
+        timeoutMs: 2000,
+        onEvent: (event) => events.push(event),
+        onClose: () => notifyClose?.(),
+      });
+      expect(handle.hello).toMatchObject({ type: "hello", id: "bg-1" });
+      await new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(
+          () => reject(new Error("attached transport did not close")),
+          2000,
+        );
+        closed.then(() => {
+          clearTimeout(timer);
+          resolve();
+        });
+      });
+      expect(events).toEqual([]);
+    } finally {
+      for (const socket of sockets) socket.destroy();
+    }
   });
 
   it("times out when the server never answers hello", async () => {

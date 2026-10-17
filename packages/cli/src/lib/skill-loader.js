@@ -392,6 +392,7 @@ export class CLISkillLoader {
       throw new TypeError("reauthorizeSkill must be a function or null");
     }
     this._cache = null;
+    this._lastLoadOptions = null;
     bindSkillRuntimeAdmission(this, skillRuntimeAdmission, {
       required: skillRuntimeAdmissionRequired,
     });
@@ -1264,6 +1265,12 @@ export class CLISkillLoader {
    */
   loadAll(options = {}) {
     this._cacheStats.descriptorScans += 1;
+    // Preserve explicit layer policy for a later freshness scan. In particular,
+    // refreshing an opt-in decision must not re-enable a disabled skill layer.
+    this._lastLoadOptions = {
+      ...options,
+      ...(options.env ? { env: { ...options.env } } : {}),
+    };
     // `cc agent --bare` (CC_SKILLS=0): no skill layer loads at all — cache the
     // empty result so getResolvedSkills stays cheap on every call.
     if (allSkillsDisabled(options)) {
@@ -1336,6 +1343,14 @@ export class CLISkillLoader {
     return this.loadAll();
   }
 
+  /** Rescan the same layers under the options used for the current cache. */
+  refreshResolvedSkills() {
+    // A failed scan must not leave a previous descriptor set available as if
+    // it were current on the next lookup.
+    this._cache = null;
+    return this.loadAll(this._lastLoadOptions ?? {});
+  }
+
   /**
    * Get auto-activated persona skills
    * @returns {object[]} skills with category "persona" and activation "auto"
@@ -1367,6 +1382,7 @@ export class CLISkillLoader {
    */
   clearCache() {
     this._cache = null;
+    this._lastLoadOptions = null;
     this._bodyCache.clear();
     this._cacheStats = {
       descriptorScans: 0,

@@ -11,18 +11,19 @@
  * 6. Memory leak detection
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from "@playwright/test";
 import {
   launchElectronApp as launchFreshElectronApp,
   closeElectronApp as closeFreshElectronApp,
   callIPC,
+  createPmOrganizationFixture,
   type ElectronTestContext,
-} from './helpers';
+} from "./helpers";
 
-const TEST_ORG_ID = `org-perf-test-${Date.now()}`;
-const TEST_USER_DID = `did:key:perf-user-${Date.now()}`;
+let testOrgId: string;
+let testUserDid: string;
 
-test.describe.serial('Performance & Stress Tests', () => {
+test.describe.serial("Performance & Stress Tests", () => {
   let sharedContext!: ElectronTestContext;
   let boardId: string;
   let columnId: string;
@@ -41,6 +42,12 @@ test.describe.serial('Performance & Stress Tests', () => {
 
   test.beforeAll(async () => {
     sharedContext = await launchFreshElectronApp();
+    const fixture = await createPmOrganizationFixture(
+      sharedContext.window,
+      "performance-stress",
+    );
+    testOrgId = fixture.orgId;
+    testUserDid = fixture.actorDid;
   });
 
   test.afterAll(async () => {
@@ -55,30 +62,30 @@ test.describe.serial('Performance & Stress Tests', () => {
 
     try {
       // Create board
-      const boardResult: any = await callIPC(window, 'task:create-board', {
-        orgId: TEST_ORG_ID,
-        name: 'Performance Test Board',
-        description: 'For performance testing',
-        boardType: 'kanban',
-        ownerDid: TEST_USER_DID,
+      const boardResult: any = await callIPC(window, "task:create-board", {
+        orgId: testOrgId,
+        name: "Performance Test Board",
+        description: "For performance testing",
+        boardType: "kanban",
+        ownerDid: testUserDid,
       });
       boardId = boardResult.boardId;
 
       // Create column
-      const columnResult: any = await callIPC(window, 'task:create-column', {
+      const columnResult: any = await callIPC(window, "task:create-column", {
         boardId,
-        columnData: { name: 'Todo', position: 0 },
+        columnData: { name: "Todo", position: 0 },
       });
       columnId = columnResult.columnId;
 
       // Create team
-      const teamResult: any = await callIPC(window, 'team:create-team', {
-        orgId: TEST_ORG_ID,
-        name: 'Performance Test Team',
-        description: 'For performance testing',
-        leadDid: TEST_USER_DID,
-        leadName: 'Perf Test User',
-        createdBy: TEST_USER_DID,
+      const teamResult: any = await callIPC(window, "team:create-team", {
+        orgId: testOrgId,
+        name: "Performance Test Team",
+        description: "For performance testing",
+        leadDid: testUserDid,
+        leadName: "Perf Test User",
+        createdBy: testUserDid,
       });
       teamId = teamResult.teamId;
     } finally {
@@ -90,7 +97,7 @@ test.describe.serial('Performance & Stress Tests', () => {
   // Phase 1: Bulk Task Creation
   // ========================================
 
-  test('Phase 1.1: Create 100 tasks in bulk', async () => {
+  test("Phase 1.1: Create 100 tasks in bulk", async () => {
     const { app, window } = await launchElectronApp();
 
     try {
@@ -98,15 +105,15 @@ test.describe.serial('Performance & Stress Tests', () => {
       const TASK_COUNT = 100;
 
       for (let i = 0; i < TASK_COUNT; i++) {
-        const result: any = await callIPC(window, 'task:create-task', {
+        const result: any = await callIPC(window, "task:create-task", {
           boardId,
           columnId,
           title: `Bulk Task ${i + 1}`,
           description: `Performance test task number ${i + 1}`,
-          priority: i % 3 === 0 ? 'high' : i % 3 === 1 ? 'medium' : 'low',
+          priority: i % 3 === 0 ? "high" : i % 3 === 1 ? "medium" : "low",
           estimatedHours: Math.floor(Math.random() * 16) + 1,
-          createdBy: TEST_USER_DID,
-          creatorName: 'Perf Test User',
+          createdBy: testUserDid,
+          creatorName: "Perf Test User",
         });
 
         expect(result.success).toBe(true);
@@ -117,7 +124,9 @@ test.describe.serial('Performance & Stress Tests', () => {
       const duration = endTime - startTime;
       const avgTime = duration / TASK_COUNT;
 
-      console.log(`Created ${TASK_COUNT} tasks in ${duration}ms (avg: ${avgTime.toFixed(2)}ms per task)`);
+      console.log(
+        `Created ${TASK_COUNT} tasks in ${duration}ms (avg: ${avgTime.toFixed(2)}ms per task)`,
+      );
 
       // Performance expectations
       expect(duration).toBeLessThan(60000); // Should complete in under 60 seconds
@@ -127,13 +136,13 @@ test.describe.serial('Performance & Stress Tests', () => {
     }
   });
 
-  test('Phase 1.2: Query all tasks (performance check)', async () => {
+  test("Phase 1.2: Query all tasks (performance check)", async () => {
     const { app, window } = await launchElectronApp();
 
     try {
       const startTime = Date.now();
 
-      const result: any = await callIPC(window, 'task:get-tasks', {
+      const result: any = await callIPC(window, "task:get-tasks", {
         boardId,
         options: {
           limit: 1000,
@@ -159,7 +168,7 @@ test.describe.serial('Performance & Stress Tests', () => {
   // Phase 2: Bulk Updates
   // ========================================
 
-  test('Phase 2.1: Update 50 tasks with priority changes', async () => {
+  test("Phase 2.1: Update 50 tasks with priority changes", async () => {
     const { app, window } = await launchElectronApp();
 
     try {
@@ -167,10 +176,10 @@ test.describe.serial('Performance & Stress Tests', () => {
       const tasksToUpdate = taskIds.slice(0, 50);
 
       for (const taskId of tasksToUpdate) {
-        await callIPC(window, 'task:set-priority', {
+        await callIPC(window, "task:set-priority", {
           taskId,
-          priority: 'high',
-          actorDid: TEST_USER_DID,
+          priority: "high",
+          actorDid: testUserDid,
         });
       }
 
@@ -178,7 +187,9 @@ test.describe.serial('Performance & Stress Tests', () => {
       const duration = endTime - startTime;
       const avgTime = duration / tasksToUpdate.length;
 
-      console.log(`Updated ${tasksToUpdate.length} task priorities in ${duration}ms (avg: ${avgTime.toFixed(2)}ms)`);
+      console.log(
+        `Updated ${tasksToUpdate.length} task priorities in ${duration}ms (avg: ${avgTime.toFixed(2)}ms)`,
+      );
 
       expect(duration).toBeLessThan(30000); // Under 30 seconds
     } finally {
@@ -186,14 +197,14 @@ test.describe.serial('Performance & Stress Tests', () => {
     }
   });
 
-  test('Phase 2.2: Bulk move tasks between columns', async () => {
+  test("Phase 2.2: Bulk move tasks between columns", async () => {
     const { app, window } = await launchElectronApp();
 
     try {
       // Create a second column
-      const newColumnResult: any = await callIPC(window, 'task:create-column', {
+      const newColumnResult: any = await callIPC(window, "task:create-column", {
         boardId,
-        columnData: { name: 'In Progress', position: 1 },
+        columnData: { name: "In Progress", position: 1 },
       });
       const newColumnId = newColumnResult.columnId;
 
@@ -201,11 +212,11 @@ test.describe.serial('Performance & Stress Tests', () => {
       const tasksToMove = taskIds.slice(0, 30);
 
       for (let i = 0; i < tasksToMove.length; i++) {
-        await callIPC(window, 'task:move-task', {
+        await callIPC(window, "task:move-task", {
           taskId: tasksToMove[i],
           columnId: newColumnId,
           position: i,
-          actorDid: TEST_USER_DID,
+          actorDid: testUserDid,
         });
       }
 
@@ -224,7 +235,7 @@ test.describe.serial('Performance & Stress Tests', () => {
   // Phase 3: Large Team Management
   // ========================================
 
-  test('Phase 3.1: Add 50 members to team', async () => {
+  test("Phase 3.1: Add 50 members to team", async () => {
     const { app, window } = await launchElectronApp();
 
     try {
@@ -235,12 +246,12 @@ test.describe.serial('Performance & Stress Tests', () => {
         const memberDid = `did:key:bulk-member-${Date.now()}-${i}`;
         memberDids.push(memberDid);
 
-        const result: any = await callIPC(window, 'team:add-member', {
+        const result: any = await callIPC(window, "team:add-member", {
           teamId,
           memberDid,
           memberName: `Bulk Member ${i + 1}`,
-          role: i % 5 === 0 ? 'lead' : 'member',
-          invitedBy: TEST_USER_DID,
+          role: i % 5 === 0 ? "lead" : "member",
+          invitedBy: testUserDid,
         });
 
         expect(result.success).toBe(true);
@@ -250,7 +261,9 @@ test.describe.serial('Performance & Stress Tests', () => {
       const duration = endTime - startTime;
       const avgTime = duration / MEMBER_COUNT;
 
-      console.log(`Added ${MEMBER_COUNT} members in ${duration}ms (avg: ${avgTime.toFixed(2)}ms)`);
+      console.log(
+        `Added ${MEMBER_COUNT} members in ${duration}ms (avg: ${avgTime.toFixed(2)}ms)`,
+      );
 
       expect(duration).toBeLessThan(40000); // Under 40 seconds
     } finally {
@@ -258,13 +271,13 @@ test.describe.serial('Performance & Stress Tests', () => {
     }
   });
 
-  test('Phase 3.2: Query all team members', async () => {
+  test("Phase 3.2: Query all team members", async () => {
     const { app, window } = await launchElectronApp();
 
     try {
       const startTime = Date.now();
 
-      const result: any = await callIPC(window, 'team:get-team-members', {
+      const result: any = await callIPC(window, "team:get-team-members", {
         teamId,
       });
 
@@ -274,7 +287,9 @@ test.describe.serial('Performance & Stress Tests', () => {
       expect(result.success).toBe(true);
       expect(result.members.length).toBeGreaterThanOrEqual(50);
 
-      console.log(`Queried ${result.members.length} team members in ${duration}ms`);
+      console.log(
+        `Queried ${result.members.length} team members in ${duration}ms`,
+      );
 
       expect(duration).toBeLessThan(3000); // Under 3 seconds
     } finally {
@@ -286,7 +301,7 @@ test.describe.serial('Performance & Stress Tests', () => {
   // Phase 4: Bulk Permission Grants
   // ========================================
 
-  test('Phase 4.1: Grant permissions to 30 members', async () => {
+  test("Phase 4.1: Grant permissions to 30 members", async () => {
     const { app, window } = await launchElectronApp();
 
     try {
@@ -294,14 +309,14 @@ test.describe.serial('Performance & Stress Tests', () => {
       const membersToGrant = memberDids.slice(0, 30);
 
       for (const memberDid of membersToGrant) {
-        await callIPC(window, 'perm:grant-permission', {
-          orgId: TEST_ORG_ID,
-          granteeType: 'user',
+        await callIPC(window, "perm:grant-permission", {
+          orgId: testOrgId,
+          granteeType: "user",
           granteeId: memberDid,
-          resourceType: 'task',
-          resourceId: '*',
-          permission: 'write',
-          grantedBy: TEST_USER_DID,
+          resourceType: "task",
+          resourceId: "*",
+          permission: "write",
+          grantedBy: testUserDid,
         });
       }
 
@@ -309,7 +324,9 @@ test.describe.serial('Performance & Stress Tests', () => {
       const duration = endTime - startTime;
       const avgTime = duration / membersToGrant.length;
 
-      console.log(`Granted permissions to ${membersToGrant.length} members in ${duration}ms (avg: ${avgTime.toFixed(2)}ms)`);
+      console.log(
+        `Granted permissions to ${membersToGrant.length} members in ${duration}ms (avg: ${avgTime.toFixed(2)}ms)`,
+      );
 
       expect(duration).toBeLessThan(25000); // Under 25 seconds
     } finally {
@@ -317,7 +334,7 @@ test.describe.serial('Performance & Stress Tests', () => {
     }
   });
 
-  test('Phase 4.2: Check permissions for all members', async () => {
+  test("Phase 4.2: Check permissions for all members", async () => {
     const { app, window } = await launchElectronApp();
 
     try {
@@ -326,12 +343,12 @@ test.describe.serial('Performance & Stress Tests', () => {
       let hasPermissionCount = 0;
 
       for (const memberDid of membersToCheck) {
-        const result: any = await callIPC(window, 'perm:check-permission', {
-          orgId: TEST_ORG_ID,
+        const result: any = await callIPC(window, "perm:check-permission", {
+          orgId: testOrgId,
           userDid: memberDid,
-          resourceType: 'task',
-          resourceId: '*',
-          permission: 'write',
+          resourceType: "task",
+          resourceId: "*",
+          permission: "write",
         });
 
         if (result.hasPermission) {
@@ -342,7 +359,9 @@ test.describe.serial('Performance & Stress Tests', () => {
       const endTime = Date.now();
       const duration = endTime - startTime;
 
-      console.log(`Checked permissions for ${membersToCheck.length} members in ${duration}ms (${hasPermissionCount} granted)`);
+      console.log(
+        `Checked permissions for ${membersToCheck.length} members in ${duration}ms (${hasPermissionCount} granted)`,
+      );
 
       expect(duration).toBeLessThan(20000); // Under 20 seconds
       expect(hasPermissionCount).toBe(membersToCheck.length);
@@ -355,7 +374,7 @@ test.describe.serial('Performance & Stress Tests', () => {
   // Phase 5: Concurrent Operations
   // ========================================
 
-  test('Phase 5.1: Concurrent task creation (10 tasks simultaneously)', async () => {
+  test("Phase 5.1: Concurrent task creation (10 tasks simultaneously)", async () => {
     const { app, window } = await launchElectronApp();
 
     try {
@@ -365,14 +384,14 @@ test.describe.serial('Performance & Stress Tests', () => {
       const promises = [];
       for (let i = 0; i < CONCURRENT_COUNT; i++) {
         promises.push(
-          callIPC(window, 'task:create-task', {
+          callIPC(window, "task:create-task", {
             boardId,
             columnId,
             title: `Concurrent Task ${i + 1}`,
             description: `Created concurrently`,
-            createdBy: TEST_USER_DID,
-            creatorName: 'Perf Test User',
-          })
+            createdBy: testUserDid,
+            creatorName: "Perf Test User",
+          }),
         );
       }
 
@@ -385,7 +404,9 @@ test.describe.serial('Performance & Stress Tests', () => {
         expect(result.success).toBe(true);
       });
 
-      console.log(`Created ${CONCURRENT_COUNT} tasks concurrently in ${duration}ms`);
+      console.log(
+        `Created ${CONCURRENT_COUNT} tasks concurrently in ${duration}ms`,
+      );
 
       // Concurrent should be faster than sequential
       expect(duration).toBeLessThan(5000); // Under 5 seconds
@@ -394,7 +415,7 @@ test.describe.serial('Performance & Stress Tests', () => {
     }
   });
 
-  test('Phase 5.2: Concurrent permission checks (20 checks)', async () => {
+  test("Phase 5.2: Concurrent permission checks (20 checks)", async () => {
     const { app, window } = await launchElectronApp();
 
     try {
@@ -402,13 +423,13 @@ test.describe.serial('Performance & Stress Tests', () => {
       const membersToCheck = memberDids.slice(0, 20);
 
       const promises = membersToCheck.map((memberDid) =>
-        callIPC(window, 'perm:check-permission', {
-          orgId: TEST_ORG_ID,
+        callIPC(window, "perm:check-permission", {
+          orgId: testOrgId,
           userDid: memberDid,
-          resourceType: 'task',
-          resourceId: '*',
-          permission: 'write',
-        })
+          resourceType: "task",
+          resourceId: "*",
+          permission: "write",
+        }),
       );
 
       const results = await Promise.all(promises);
@@ -416,7 +437,9 @@ test.describe.serial('Performance & Stress Tests', () => {
       const endTime = Date.now();
       const duration = endTime - startTime;
 
-      console.log(`Performed ${results.length} concurrent permission checks in ${duration}ms`);
+      console.log(
+        `Performed ${results.length} concurrent permission checks in ${duration}ms`,
+      );
 
       expect(duration).toBeLessThan(3000); // Under 3 seconds
     } finally {
@@ -428,15 +451,15 @@ test.describe.serial('Performance & Stress Tests', () => {
   // Phase 6: Export Performance
   // ========================================
 
-  test('Phase 6.1: Export board with 100+ tasks', async () => {
+  test("Phase 6.1: Export board with 100+ tasks", async () => {
     const { app, window } = await launchElectronApp();
 
     try {
       const startTime = Date.now();
 
-      const result: any = await callIPC(window, 'task:export-board', {
+      const result: any = await callIPC(window, "task:export-board", {
         boardId,
-        format: 'json',
+        format: "json",
       });
 
       const endTime = Date.now();
@@ -447,7 +470,9 @@ test.describe.serial('Performance & Stress Tests', () => {
 
       const dataSize = JSON.stringify(result.data).length;
 
-      console.log(`Exported board with ${taskIds.length}+ tasks in ${duration}ms (${(dataSize / 1024).toFixed(2)} KB)`);
+      console.log(
+        `Exported board with ${taskIds.length}+ tasks in ${duration}ms (${(dataSize / 1024).toFixed(2)} KB)`,
+      );
 
       expect(duration).toBeLessThan(10000); // Under 10 seconds
     } finally {
@@ -455,16 +480,18 @@ test.describe.serial('Performance & Stress Tests', () => {
     }
   });
 
-  test('Phase 6.2: Get board analytics with large dataset', async () => {
+  test("Phase 6.2: Get board analytics with large dataset", async () => {
     const { app, window } = await launchElectronApp();
 
     try {
       const startTime = Date.now();
 
-      const result: any = await callIPC(window, 'task:get-board-analytics', {
+      const result: any = await callIPC(window, "task:get-board-analytics", {
         boardId,
         options: {
-          startDate: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
+          startDate: new Date(
+            Date.now() - 90 * 24 * 60 * 60 * 1000,
+          ).toISOString(),
           endDate: new Date().toISOString(),
         },
       });
@@ -486,7 +513,7 @@ test.describe.serial('Performance & Stress Tests', () => {
   // Phase 7: Cleanup Performance
   // ========================================
 
-  test('Phase 7.1: Bulk delete tasks (first 50)', async () => {
+  test("Phase 7.1: Bulk delete tasks (first 50)", async () => {
     const { app, window } = await launchElectronApp();
 
     try {
@@ -494,7 +521,7 @@ test.describe.serial('Performance & Stress Tests', () => {
       const tasksToDelete = taskIds.slice(0, 50);
 
       for (const taskId of tasksToDelete) {
-        await callIPC(window, 'task:delete-task', {
+        await callIPC(window, "task:delete-task", {
           taskId,
         });
       }
@@ -503,7 +530,9 @@ test.describe.serial('Performance & Stress Tests', () => {
       const duration = endTime - startTime;
       const avgTime = duration / tasksToDelete.length;
 
-      console.log(`Deleted ${tasksToDelete.length} tasks in ${duration}ms (avg: ${avgTime.toFixed(2)}ms)`);
+      console.log(
+        `Deleted ${tasksToDelete.length} tasks in ${duration}ms (avg: ${avgTime.toFixed(2)}ms)`,
+      );
 
       expect(duration).toBeLessThan(20000); // Under 20 seconds
     } finally {
@@ -511,7 +540,7 @@ test.describe.serial('Performance & Stress Tests', () => {
     }
   });
 
-  test('Phase 7.2: Remove 25 team members', async () => {
+  test("Phase 7.2: Remove 25 team members", async () => {
     const { app, window } = await launchElectronApp();
 
     try {
@@ -519,7 +548,7 @@ test.describe.serial('Performance & Stress Tests', () => {
       const membersToRemove = memberDids.slice(0, 25);
 
       for (const memberDid of membersToRemove) {
-        await callIPC(window, 'team:remove-member', {
+        await callIPC(window, "team:remove-member", {
           teamId,
           memberDid,
         });
@@ -528,7 +557,9 @@ test.describe.serial('Performance & Stress Tests', () => {
       const endTime = Date.now();
       const duration = endTime - startTime;
 
-      console.log(`Removed ${membersToRemove.length} team members in ${duration}ms`);
+      console.log(
+        `Removed ${membersToRemove.length} team members in ${duration}ms`,
+      );
 
       expect(duration).toBeLessThan(15000); // Under 15 seconds
     } finally {
@@ -540,25 +571,29 @@ test.describe.serial('Performance & Stress Tests', () => {
   // Phase 8: Performance Summary
   // ========================================
 
-  test('Phase 8.1: Verify final state', async () => {
+  test("Phase 8.1: Verify final state", async () => {
     const { app, window } = await launchElectronApp();
 
     try {
-      const tasksResult: any = await callIPC(window, 'task:get-tasks', {
+      const tasksResult: any = await callIPC(window, "task:get-tasks", {
         boardId,
         options: {},
       });
 
-      const membersResult: any = await callIPC(window, 'team:get-team-members', {
-        teamId,
-      });
+      const membersResult: any = await callIPC(
+        window,
+        "team:get-team-members",
+        {
+          teamId,
+        },
+      );
 
-      console.log('\n=== Performance Test Summary ===');
+      console.log("\n=== Performance Test Summary ===");
       console.log(`Remaining tasks: ${tasksResult.tasks.length}`);
       console.log(`Remaining team members: ${membersResult.members.length}`);
       console.log(`Total tasks created: ${taskIds.length + 10}`); // +10 from concurrent test
       console.log(`Total members added: ${memberDids.length}`);
-      console.log('================================\n');
+      console.log("================================\n");
 
       expect(tasksResult.success).toBe(true);
       expect(membersResult.success).toBe(true);

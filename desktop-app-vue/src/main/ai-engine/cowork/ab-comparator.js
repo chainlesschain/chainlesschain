@@ -230,12 +230,12 @@ class ABComparator {
           outcome: "compared",
           context: {
             scores,
+            comparisonScore: bestScore > 0 ? bestScore / 100 : 0,
             variantCount,
             duration,
           },
           agents: variants.map((v) => v.name),
           source: "voting",
-          successRate: bestScore > 0 ? bestScore / 100 : 0,
         });
       } catch (e) {
         logger.warn("[ABComparator] DecisionKB record error:", e.message);

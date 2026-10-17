@@ -10,7 +10,7 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import { EventEmitter } from "events";
-import { MCPClient, _deps } from "../../src/lib/mcp-client.js";
+import { MCPClient, ServerState, _deps } from "../../src/lib/mcp-client.js";
 
 beforeEach(() => {
   _deps.consumeMcpStdioExecutionAuthority = () => ({
@@ -174,5 +174,220 @@ describe("MCPClient list_changed refresh", () => {
     const refetches = state.toolsListCalls - baseline;
     expect(refetches).toBeGreaterThanOrEqual(1);
     expect(refetches).toBeLessThanOrEqual(2); // never 5
+  });
+
+  it("discards a late list result after the server entry is replaced", async () => {
+    const client = new MCPClient();
+    const oldEntry = { config: {}, tools: [], _toolMetadataBytes: 0 };
+    client.servers.set("srv", oldEntry);
+    client._replaceToolInventory("srv", oldEntry, [
+      { name: "old", inputSchema: { type: "object" } },
+    ]);
+    let resolveList;
+    let calls = 0;
+    client._sendRequest = () => {
+      calls++;
+      return new Promise((resolve) => {
+        resolveList = resolve;
+      });
+    };
+    const changed = [];
+    client.on("tools-changed", (event) => changed.push(event));
+
+    const pending = client._refreshServerList("srv", "tools");
+    await client._refreshServerList("srv", "tools"); // mark a trailing pass
+    client._releaseToolInventory(oldEntry);
+    const newEntry = { config: {}, tools: [], _toolMetadataBytes: 0 };
+    client.servers.set("srv", newEntry);
+    client._replaceToolInventory("srv", newEntry, [
+      { name: "current", inputSchema: { type: "object" } },
+    ]);
+    const currentBudget = client._toolMetadataBytes;
+
+    resolveList({ tools: [{ name: "stale", inputSchema: { type: "object" } }] });
+    await pending;
+
+    expect(calls).toBe(1);
+    expect(oldEntry.tools).toEqual([]);
+    expect(client.listTools("srv").map((tool) => tool.name)).toEqual([
+      "current",
+    ]);
+    expect(client._toolMetadataBytes).toBe(currentBudget);
+    expect(changed).toEqual([]);
+  });
+
+  it("blocks old tool calls during refresh and after removal before dispatch", async () => {
+    const client = new MCPClient();
+    const entry = {
+      config: {},
+      state: ServerState.CONNECTED,
+      transportKind: "stdio",
+      tools: [{ name: "old", inputSchema: { type: "object" } }],
+      _toolMetadataBytes: 0,
+    };
+    client.servers.set("srv", entry);
+    let resolveList;
+    const calls = [];
+    client._sendRequest = (_server, method, params) => {
+      calls.push({ method, params });
+      if (method === "tools/list") {
+        return new Promise((resolve) => {
+          resolveList = resolve;
+        });
+      }
+      return Promise.resolve({ content: [{ type: "text", text: "ok" }] });
+    };
+
+    const refresh = client._refreshServerList("srv", "tools");
+    await expect(client.callTool("srv", "old", {})).rejects.toMatchObject({
+      code: "CC_MCP_TOOL_CATALOG_STALE",
+      dispatched: false,
+    });
+    expect(calls.map((call) => call.method)).toEqual(["tools/list"]);
+
+    resolveList({ tools: [{ name: "new", inputSchema: { type: "object" } }] });
+    await refresh;
+    await expect(client.callTool("srv", "old", {})).rejects.toMatchObject({
+      code: "CC_MCP_TOOL_NOT_ADVERTISED",
+      dispatched: false,
+    });
+    expect(calls.map((call) => call.method)).toEqual(["tools/list"]);
+    await expect(client.callTool("srv", "new", {})).resolves.toMatchObject({
+      content: [{ type: "text", text: "ok" }],
+    });
+    expect(calls.map((call) => call.method)).toEqual([
+      "tools/list",
+      "tools/call",
+    ]);
+  });
+
+  it("keeps tool calls blocked across a trailing refresh and a failed refresh", async () => {
+    const client = new MCPClient();
+    client.servers.set("srv", {
+      config: {},
+      state: ServerState.CONNECTED,
+      transportKind: "stdio",
+      tools: [{ name: "old", inputSchema: { type: "object" } }],
+      _toolMetadataBytes: 0,
+    });
+    const pendingLists = [];
+    const methods = [];
+    const changed = [];
+    client.on("tools-changed", (event) => changed.push(event));
+    client._sendRequest = (_server, method) => {
+      methods.push(method);
+      if (method === "tools/list") {
+        return new Promise((resolve, reject) => {
+          pendingLists.push({ resolve, reject });
+        });
+      }
+      return Promise.resolve({ content: [] });
+    };
+
+    const firstRefresh = client._refreshServerList("srv", "tools");
+    await client._refreshServerList("srv", "tools");
+    pendingLists[0].resolve({ tools: [{ name: "old" }] });
+    await Promise.resolve();
+    expect(methods).toEqual(["tools/list", "tools/list"]);
+    expect(changed).toEqual([]);
+    await expect(client.callTool("srv", "old")).rejects.toMatchObject({
+      code: "CC_MCP_TOOL_CATALOG_STALE",
+      dispatched: false,
+    });
+
+    pendingLists[1].reject(new Error("list unavailable"));
+    await firstRefresh;
+    expect(changed).toEqual([]);
+    await expect(client.callTool("srv", "old")).rejects.toMatchObject({
+      code: "CC_MCP_TOOL_CATALOG_STALE",
+      dispatched: false,
+    });
+    expect(methods).toEqual(["tools/list", "tools/list"]);
+
+    const retry = client._refreshServerList("srv", "tools");
+    pendingLists[2].resolve({ tools: [{ name: "new" }] });
+    await retry;
+    expect(changed).toEqual([{ server: "srv", count: 1 }]);
+    await expect(client.callTool("srv", "old")).rejects.toMatchObject({
+      code: "CC_MCP_TOOL_NOT_ADVERTISED",
+      dispatched: false,
+    });
+    await expect(client.callTool("srv", "new")).resolves.toMatchObject({
+      content: [],
+    });
+    expect(methods).toEqual([
+      "tools/list",
+      "tools/list",
+      "tools/list",
+      "tools/call",
+    ]);
+  });
+
+  it("rejects an old tool name after the connection entry is replaced", async () => {
+    const client = new MCPClient();
+    const makeEntry = () => ({
+      config: {},
+      state: ServerState.CONNECTED,
+      transportKind: "stdio",
+      tools: [],
+      _toolMetadataBytes: 0,
+    });
+    const oldEntry = makeEntry();
+    client.servers.set("srv", oldEntry);
+    client._replaceToolInventory("srv", oldEntry, [
+      { name: "old", inputSchema: { type: "object" } },
+    ]);
+    client._releaseToolInventory(oldEntry);
+    const newEntry = makeEntry();
+    client.servers.set("srv", newEntry);
+    client._replaceToolInventory("srv", newEntry, [
+      { name: "new", inputSchema: { type: "object" } },
+    ]);
+    const calls = [];
+    client._sendRequest = (_server, method) => {
+      calls.push(method);
+      return Promise.resolve({ content: [] });
+    };
+
+    await expect(client.callTool("srv", "old")).rejects.toMatchObject({
+      code: "CC_MCP_TOOL_NOT_ADVERTISED",
+      dispatched: false,
+    });
+    expect(calls).toEqual([]);
+    await expect(client.callTool("srv", "new")).resolves.toMatchObject({
+      content: [],
+    });
+    expect(calls).toEqual(["tools/call"]);
+  });
+
+  it("allows a newly advertised tool when tools-changed is emitted", async () => {
+    const client = new MCPClient();
+    client.servers.set("srv", {
+      config: {},
+      state: ServerState.CONNECTED,
+      transportKind: "stdio",
+      tools: [],
+      _toolMetadataBytes: 0,
+    });
+    const methods = [];
+    client._sendRequest = (_server, method) => {
+      methods.push(method);
+      return Promise.resolve(
+        method === "tools/list"
+          ? { tools: [{ name: "new", inputSchema: { type: "object" } }] }
+          : { content: [] },
+      );
+    };
+    let eventCall;
+    client.on("tools-changed", () => {
+      eventCall = client.callTool("srv", "new").then(
+        () => "called",
+        (error) => error.code,
+      );
+    });
+
+    await client._refreshServerList("srv", "tools");
+    expect(await eventCall).toBe("called");
+    expect(methods).toEqual(["tools/list", "tools/call"]);
   });
 });

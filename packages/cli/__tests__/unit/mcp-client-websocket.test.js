@@ -341,7 +341,9 @@ describe("MCPClient WebSocket transport contract", () => {
       }
       if (message.method === "notifications/cancelled") {
         cancellations.push(message);
-        resolveCancellation(message);
+        if (requestId !== null && message.params?.requestId === requestId) {
+          resolveCancellation(message);
+        }
         return true;
       }
       return false;
@@ -357,6 +359,8 @@ describe("MCPClient WebSocket transport contract", () => {
       code: "CC_MCP_WS_REQUEST_TIMEOUT",
       transport: "ws",
       url,
+      dispatched: true,
+      outcomeUnknown: true,
     });
     expect(client.servers.get("silent")._pending.size).toBe(0);
     const cancellation = await Promise.race([
@@ -373,7 +377,11 @@ describe("MCPClient WebSocket transport contract", () => {
       reason: "Request timeout: tools/call (WebSocket, no response in 25ms)",
     });
     await new Promise((resolve) => setTimeout(resolve, 40));
-    expect(cancellations).toHaveLength(1);
+    expect(
+      cancellations.filter(
+        (message) => message.params?.requestId === requestId,
+      ),
+    ).toHaveLength(1);
     await client.disconnectAll();
   });
 });

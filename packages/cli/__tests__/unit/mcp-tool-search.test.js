@@ -465,6 +465,51 @@ describe("maybeApplyToolSearch", () => {
     expect(mcp.toolSearchRegistry.deferred.size).toBe(30);
   });
 
+  it("keeps deferring late MCP schemas after auto activation shrinks the request", () => {
+    const mcp = fakeMcp([mcpDef("large", "initial")]);
+    const config = {
+      enabled: "auto",
+      thresholdRatio: 0.01,
+      maxResults: 5,
+      alwaysLoad: [],
+    };
+    const options = {
+      model: "qwen2.5:7b",
+      provider: "ollama",
+      config,
+      estimate: (value) => Math.ceil(value.length / 4),
+    };
+    expect(maybeApplyToolSearch(mcp, options)?.deferredCount).toBe(1);
+    const prefix = mcp.extraToolDefinitions.map((def) => def.function.name);
+
+    const late = mcpDef("late", "lookup", {
+      schema: { type: "object", properties: { id: { type: "string" } } },
+    });
+    mcp.extraToolDefinitions.push(late);
+    mcp.externalToolExecutors[late.function.name] = {
+      kind: "mcp",
+      serverName: "late",
+      toolName: "lookup",
+    };
+    const applied = maybeApplyToolSearch(mcp, options);
+    expect(applied?.deferredCount).toBe(1);
+    expect(
+      mcp.extraToolDefinitions
+        .slice(0, prefix.length)
+        .map((def) => def.function.name),
+    ).toEqual(prefix);
+    expect(mcp.extraToolDefinitions.at(-1).function.description).toMatch(
+      /^\[deferred\]/,
+    );
+    expect(mcp.toolSearchRegistry.loaded.has(late.function.name)).toBe(false);
+    expect(
+      gateDeferredMcpCall(
+        late.function.name,
+        mcp.externalToolExecutors[late.function.name],
+      )?.schema,
+    ).toEqual(late.function.parameters);
+  });
+
   it("fails closed to byte accounting when the token estimator throws", () => {
     const mcp = fakeMcp([mcpDef("w", "get")]);
     const out = maybeApplyToolSearch(mcp, {
@@ -586,6 +631,19 @@ describe("searchDeferredTools", () => {
     });
     expect(results).toHaveLength(1);
   });
+
+  it("caps select results and does not count duplicate names as omitted", () => {
+    const mcp = deferredMcp();
+    const result = searchDeferredTools(
+      mcp.toolSearchRegistry,
+      "select:create_issue,mcp__github__create_issue,list_issues,send_message",
+      { maxResults: 1 },
+    );
+    expect(result.results.map((item) => item.name)).toEqual([
+      "mcp__github__create_issue",
+    ]);
+    expect(result.omittedCount).toBe(2);
+  });
 });
 
 describe("executeToolSearch", () => {
@@ -614,6 +672,34 @@ describe("executeToolSearch", () => {
     });
     expect(none.count).toBe(0);
     expect(none.available).toContain("mcp__github__create_issue");
+  });
+
+  it("loads only selected schemas within max_results and reports omitted tools", () => {
+    const mcp = deferredMcp();
+    const registry = mcp.toolSearchRegistry;
+    const out = executeToolSearch(registry, {
+      query: "select:create_issue,list_issues,send_message",
+      max_results: 1,
+    });
+    expect(out.count).toBe(1);
+    expect(out.omittedCount).toBe(2);
+    expect(out.note).toMatch(/separate search/);
+    expect([...registry.loaded]).toEqual(["mcp__github__create_issue"]);
+    expect(
+      gateDeferredMcpCall(
+        "mcp__github__list_issues",
+        mcp.externalToolExecutors.mcp__github__list_issues,
+      )?.error,
+    ).toMatch(/schema was not loaded/);
+  });
+
+  it("rejects oversized queries without loading any schema", () => {
+    const mcp = deferredMcp();
+    const out = executeToolSearch(mcp.toolSearchRegistry, {
+      query: `select:${"x".repeat(8192)}`,
+    });
+    expect(out.error).toMatch(/too long/);
+    expect(mcp.toolSearchRegistry.loaded.size).toBe(0);
   });
 });
 

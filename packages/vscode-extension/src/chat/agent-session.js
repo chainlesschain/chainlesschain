@@ -25,6 +25,10 @@ const { stopAgentProcess } = require("./stop-agent-process");
 const { buildAgentArgs } = require("../vendor/agent-sdk/agent-session.js");
 const { createNdjsonDecoder } = require("../vendor/agent-sdk/ndjson.js");
 
+const MAX_STDERR_LINE_BYTES = 1024 * 1024;
+const OVERSIZED_STDERR_LINE =
+  "[stderr line exceeded 1 MiB and was discarded]";
+
 class AgentChatSession {
   /**
    * @param {object} opts
@@ -44,6 +48,9 @@ class AgentChatSession {
     this.child = null;
     this._decode = null;
     this._stderrBuf = "";
+    this._stderrBufBytes = 0;
+    this._stderrDecoder = null;
+    this._stderrDiscarding = false;
     this._stopPromise = null;
     this._protocolGeneration = randomUUID();
     this._protocolSequence = 0;
@@ -74,6 +81,9 @@ class AgentChatSession {
       shell: process.platform === "win32",
     });
     this._stderrBuf = "";
+    this._stderrBufBytes = 0;
+    this._stderrDecoder = new TextDecoder("utf-8");
+    this._stderrDiscarding = false;
     // SDK carry-buffer framing: a chunk boundary can split a line. Non-JSON
     // stdout surfaces as {type:"raw"} exactly as before.
     this._decode = createNdjsonDecoder((evt) => this._emit(evt), {
@@ -82,22 +92,14 @@ class AgentChatSession {
       },
     });
     this.child.stdout.on("data", (chunk) => {
-      this._decode(chunk.toString("utf8"));
+      this._decode(chunk);
     });
     this.child.stderr.on("data", (chunk) => {
-      this._stderrBuf += chunk.toString("utf8");
-      let idx;
-      while ((idx = this._stderrBuf.indexOf("\n")) >= 0) {
-        const line = this._stderrBuf.slice(0, idx).trimEnd();
-        this._stderrBuf = this._stderrBuf.slice(idx + 1);
-        if (line && typeof this.opts.onStderr === "function") {
-          try {
-            this.opts.onStderr(line);
-          } catch {
-            /* listener errors must not kill the pump */
-          }
-        }
-      }
+      this._appendStderr(
+        typeof chunk === "string"
+          ? chunk
+          : this._stderrDecoder.decode(chunk, { stream: true }),
+      );
     });
     this.child.on("close", (code, signal) => {
       // Flush a final unterminated line — error output often lacks the
@@ -107,15 +109,12 @@ class AgentChatSession {
       } catch {
         /* best-effort */
       }
-      const errRest = this._stderrBuf.trimEnd();
-      this._stderrBuf = "";
-      if (errRest && typeof this.opts.onStderr === "function") {
-        try {
-          this.opts.onStderr(errRest);
-        } catch {
-          /* listener errors must not kill the pump */
-        }
+      this._appendStderr(this._stderrDecoder.decode());
+      if (!this._stderrDiscarding) {
+        this._emitStderrLine(this._stderrBuf.trimEnd());
       }
+      this._stderrBuf = "";
+      this._stderrBufBytes = 0;
       const child = this.child;
       this._recordProtocol("exit", {
         code,
@@ -147,6 +146,50 @@ class AgentChatSession {
         });
       });
     return this;
+  }
+
+  _emitStderrLine(line) {
+    if (!line || typeof this.opts.onStderr !== "function") return;
+    try {
+      this.opts.onStderr(line);
+    } catch {
+      /* listener errors must not kill the pump */
+    }
+  }
+
+  _appendStderr(text) {
+    if (this._stderrDiscarding) {
+      const end = text.indexOf("\n");
+      if (end < 0) return;
+      this._stderrDiscarding = false;
+      text = text.slice(end + 1);
+    }
+    let offset = 0;
+    let end;
+    while ((end = text.indexOf("\n", offset)) >= 0) {
+      const segment = text.slice(offset, end);
+      const lineBytes =
+        this._stderrBufBytes + Buffer.byteLength(segment, "utf8");
+      this._emitStderrLine(
+        lineBytes > MAX_STDERR_LINE_BYTES
+          ? OVERSIZED_STDERR_LINE
+          : (this._stderrBuf + segment).trimEnd(),
+      );
+      this._stderrBuf = "";
+      this._stderrBufBytes = 0;
+      offset = end + 1;
+    }
+    const tail = text.slice(offset);
+    const tailBytes = this._stderrBufBytes + Buffer.byteLength(tail, "utf8");
+    if (tailBytes > MAX_STDERR_LINE_BYTES) {
+      this._stderrBuf = "";
+      this._stderrBufBytes = 0;
+      this._stderrDiscarding = true;
+      this._emitStderrLine(OVERSIZED_STDERR_LINE);
+    } else {
+      this._stderrBuf += tail;
+      this._stderrBufBytes = tailBytes;
+    }
   }
 
   _emit(evt) {

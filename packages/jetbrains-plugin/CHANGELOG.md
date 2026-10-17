@@ -1,5 +1,13 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.166] - Session recovery and CLI 0.166.104 pairing (2026-10-17)
+
+- Recommend CLI `0.166.104` after its exact-commit npm release and readback.
+- Explain process startup, credential and endpoint failures, and bound the
+  background NDJSON stream by UTF-8 bytes before processing the next message.
+- Keep formal paid evaluation unavailable; production recovery and native
+  acceptance remain separate gates.
+
 ## [0.4.165] - Formal budget boundary pairing (2026-10-16)
 
 - Recommend CLI `0.166.103` after its exact-commit npm release and readback.

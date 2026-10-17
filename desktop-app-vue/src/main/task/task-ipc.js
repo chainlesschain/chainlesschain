@@ -16,6 +16,7 @@
 
 const { ipcMain } = require("electron");
 const { logger } = require("../utils/logger.js");
+const { withBoardReadAccess } = require("./board-read-authority");
 
 function resolveDatabase(database) {
   if (database?.getDatabase) {
@@ -105,22 +106,33 @@ function registerTaskIPC(database) {
     }
   });
 
-  ipcMain.handle("task:get-boards", async (_event, params) => {
+  ipcMain.handle("task:get-boards", async (event, params) => {
     try {
       const { getTaskBoardManager } = require("./task-board-manager");
       const manager = getTaskBoardManager(resolveDatabase(database));
-      return await manager.getBoards(params.orgId, params.options || {});
+      return await withBoardReadAccess(
+        database,
+        event,
+        { orgId: params?.orgId },
+        () => manager.getBoards(params.orgId, params.options || {}),
+      );
     } catch (error) {
       logger.error("[IPC] task:get-boards failed:", error);
       throw error;
     }
   });
 
-  ipcMain.handle("task:get-board", async (_event, params) => {
+  ipcMain.handle("task:get-board", async (event, params) => {
     try {
       const { getTaskBoardManager } = require("./task-board-manager");
       const manager = getTaskBoardManager(resolveDatabase(database));
-      return { success: true, board: await manager.getBoard(params.boardId) };
+      const board = await withBoardReadAccess(
+        database,
+        event,
+        { boardId: params?.boardId },
+        () => manager.getBoard(params.boardId),
+      );
+      return { success: true, board };
     } catch (error) {
       logger.error("[IPC] task:get-board failed:", error);
       throw error;
@@ -202,7 +214,12 @@ function registerTaskIPC(database) {
       if (params.boardId) {
         const { getTeamTaskManager } = require("./team-task-manager");
         const manager = getTeamTaskManager(resolveDatabase(database));
-        return await manager.getTasks(params.boardId, params.options || {});
+        return await withBoardReadAccess(
+          database,
+          event,
+          { boardId: params.boardId },
+          () => manager.getTasks(params.boardId, params.options || {}),
+        );
       }
 
       const options = params.options || params.filters || params;
@@ -222,22 +239,32 @@ function registerTaskIPC(database) {
     }
   });
 
-  ipcMain.handle("task:get-sprints", async (_event, params) => {
+  ipcMain.handle("task:get-sprints", async (event, params) => {
     try {
       const { getTaskBoardManager } = require("./task-board-manager");
       const manager = getTaskBoardManager(resolveDatabase(database));
-      return await manager.getSprints(params.boardId);
+      return await withBoardReadAccess(
+        database,
+        event,
+        { boardId: params?.boardId },
+        () => manager.getSprints(params.boardId),
+      );
     } catch (error) {
       logger.error("[IPC] task:get-sprints failed:", error);
       throw error;
     }
   });
 
-  ipcMain.handle("task:get-labels", async (_event, params) => {
+  ipcMain.handle("task:get-labels", async (event, params) => {
     try {
       const { getTaskBoardManager } = require("./task-board-manager");
       const manager = getTaskBoardManager(resolveDatabase(database));
-      return await manager.getLabels(params.orgId);
+      return await withBoardReadAccess(
+        database,
+        event,
+        { orgId: params?.orgId },
+        () => manager.getLabels(params.orgId),
+      );
     } catch (error) {
       logger.error("[IPC] task:get-labels failed:", error);
       throw error;
@@ -292,21 +319,28 @@ function registerTaskIPC(database) {
           task: { ...task, id: task.taskId, project_id: task.projectId },
         };
       }
-      // Try team task first
-      try {
+      // Canonical tasks keep their own project authority; board tasks require
+      // current organization membership before their details are returned.
+      if (
+        db.prepare("SELECT 1 FROM team_tasks WHERE id=?").get(params.taskId)
+      ) {
         const { getTeamTaskManager } = require("./team-task-manager");
         const manager = getTeamTaskManager(resolveDatabase(database));
-        const task = await manager.getTask(params.taskId);
+        const task = await withBoardReadAccess(
+          database,
+          event,
+          { taskId: params.taskId },
+          () => manager.getTask(params.taskId),
+        );
         return { success: true, task };
-      } catch (teamTaskError) {
-        const task = require("./task-description-ipc")
-          .createTaskDescriptionHost({ database: resolveDatabase(database) })
-          .readTask(event, { taskId: params.taskId });
-        return {
-          success: true,
-          task: { ...task, id: task.taskId, project_id: task.projectId },
-        };
       }
+      const task = require("./task-description-ipc")
+        .createTaskDescriptionHost({ database: resolveDatabase(database) })
+        .readTask(event, { taskId: params.taskId });
+      return {
+        success: true,
+        task: { ...task, id: task.taskId, project_id: task.projectId },
+      };
     } catch (error) {
       logger.error("[IPC] task:get-task failed:", error);
       throw error;
@@ -738,24 +772,34 @@ function registerTaskIPC(database) {
     }
   });
 
-  ipcMain.handle("task:get-comments", async (_event, params) => {
+  ipcMain.handle("task:get-comments", async (event, params) => {
     try {
       rejectLegacyProjectTaskAccess(database, params);
       const { getTaskManager } = require("./task-manager");
       const manager = getTaskManager(resolveDatabase(database));
-      return await manager.getComments(params.taskId, params.options || {});
+      return await withBoardReadAccess(
+        database,
+        event,
+        { taskId: params?.taskId },
+        () => manager.getComments(params.taskId, params.options || {}),
+      );
     } catch (error) {
       logger.error("[IPC] task:get-comments failed:", error);
       throw error;
     }
   });
 
-  ipcMain.handle("task:get-activity", async (_event, params) => {
+  ipcMain.handle("task:get-activity", async (event, params) => {
     try {
       rejectLegacyProjectTaskAccess(database, params);
       const { getTaskManager } = require("./task-manager");
       const manager = getTaskManager(resolveDatabase(database));
-      return await manager.getActivity(params.taskId, params.options || {});
+      return await withBoardReadAccess(
+        database,
+        event,
+        { taskId: params?.taskId },
+        () => manager.getActivity(params.taskId, params.options || {}),
+      );
     } catch (error) {
       logger.error("[IPC] task:get-activity failed:", error);
       throw error;
@@ -814,24 +858,34 @@ function registerTaskIPC(database) {
     }
   });
 
-  ipcMain.handle("task:get-attachments", async (_event, params) => {
+  ipcMain.handle("task:get-attachments", async (event, params) => {
     try {
       rejectLegacyProjectTaskAccess(database, params);
       const { getTaskManager } = require("./task-manager");
       const manager = getTaskManager(resolveDatabase(database));
-      return await manager.getAttachments(params.taskId);
+      return await withBoardReadAccess(
+        database,
+        event,
+        { taskId: params?.taskId },
+        () => manager.getAttachments(params.taskId),
+      );
     } catch (error) {
       logger.error("[IPC] task:get-attachments failed:", error);
       throw error;
     }
   });
 
-  ipcMain.handle("task:preview-attachment", async (_event, params) => {
+  ipcMain.handle("task:preview-attachment", async (event, params) => {
     try {
       rejectLegacyProjectTaskAccess(database, params);
       const { getTaskManager } = require("./task-manager");
       const manager = getTaskManager(resolveDatabase(database));
-      return await manager.previewAttachment(params.attachmentId);
+      return await withBoardReadAccess(
+        database,
+        event,
+        { attachmentId: params?.attachmentId },
+        () => manager.previewAttachment(params.attachmentId),
+      );
     } catch (error) {
       logger.error("[IPC] task:preview-attachment failed:", error);
       throw error;
@@ -875,11 +929,16 @@ function registerTaskIPC(database) {
     }
   });
 
-  ipcMain.handle("task:get-sprint-stats", async (_event, params) => {
+  ipcMain.handle("task:get-sprint-stats", async (event, params) => {
     try {
       const { getTaskBoardManager } = require("./task-board-manager");
       const manager = getTaskBoardManager(resolveDatabase(database));
-      return await manager.getSprintStats(params.sprintId);
+      return await withBoardReadAccess(
+        database,
+        event,
+        { sprintId: params?.sprintId },
+        () => manager.getSprintStats(params.sprintId),
+      );
     } catch (error) {
       logger.error("[IPC] task:get-sprint-stats failed:", error);
       throw error;
@@ -912,11 +971,16 @@ function registerTaskIPC(database) {
     }
   });
 
-  ipcMain.handle("task:get-reports", async (_event, params) => {
+  ipcMain.handle("task:get-reports", async (event, params) => {
     try {
       const { getTeamReportManager } = require("./team-report-manager");
       const manager = getTeamReportManager(resolveDatabase(database));
-      return await manager.getReports(params.orgId, params.options || {});
+      return await withBoardReadAccess(
+        database,
+        event,
+        { orgId: params?.orgId },
+        () => manager.getReports(params.orgId, params.options || {}),
+      );
     } catch (error) {
       logger.error("[IPC] task:get-reports failed:", error);
       throw error;
@@ -934,13 +998,15 @@ function registerTaskIPC(database) {
     }
   });
 
-  ipcMain.handle("task:get-board-analytics", async (_event, params) => {
+  ipcMain.handle("task:get-board-analytics", async (event, params) => {
     try {
       const { getTaskBoardManager } = require("./task-board-manager");
       const manager = getTaskBoardManager(resolveDatabase(database));
-      return await manager.getBoardAnalytics(
-        params.boardId,
-        params.options || {},
+      return await withBoardReadAccess(
+        database,
+        event,
+        { boardId: params?.boardId },
+        () => manager.getBoardAnalytics(params.boardId, params.options || {}),
       );
     } catch (error) {
       logger.error("[IPC] task:get-board-analytics failed:", error);
@@ -948,11 +1014,16 @@ function registerTaskIPC(database) {
     }
   });
 
-  ipcMain.handle("task:export-board", async (_event, params) => {
+  ipcMain.handle("task:export-board", async (event, params) => {
     try {
       const { getTaskBoardManager } = require("./task-board-manager");
       const manager = getTaskBoardManager(resolveDatabase(database));
-      return await manager.exportBoard(params.boardId, params.format);
+      return await withBoardReadAccess(
+        database,
+        event,
+        { boardId: params?.boardId },
+        () => manager.exportBoard(params.boardId, params.format),
+      );
     } catch (error) {
       logger.error("[IPC] task:export-board failed:", error);
       throw error;

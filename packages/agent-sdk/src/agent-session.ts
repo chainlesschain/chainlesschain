@@ -281,16 +281,28 @@ export class AgentSession {
       (message) => this.dispatch(message),
       { onError: () => {} },
     );
-    child.stdout?.on("data", (chunk: Buffer) => decode(chunk.toString("utf8")));
-    child.stderr?.on("data", (chunk: Buffer) =>
-      this.emit("stderr", chunk.toString("utf8")),
-    );
+    child.stdout?.on("data", (chunk: Buffer) => decode(chunk));
+    const stderrDecoder = new TextDecoder("utf-8");
+    child.stderr?.on("data", (chunk: Buffer) => {
+      const text = stderrDecoder.decode(chunk, { stream: true });
+      if (text) this.emit("stderr", text);
+    });
+    child.stderr?.on("end", () => {
+      const text = stderrDecoder.decode();
+      if (text) this.emit("stderr", text);
+    });
     child.on("error", (error) => this.emit("error", error));
-    child.on("exit", (code) => {
-      if (this.exited) return;
+    child.on("exit", () => {
+      this.exited = true;
+    });
+    let drained = false;
+    child.on("close", (code) => {
+      if (drained) return;
+      drained = true;
       this.exited = true;
       // A final unterminated line (error output often lacks the trailing
-      // \n) must not be dropped silently.
+      // \n) must not be dropped silently. Node can emit exit before stdout
+      // is drained, so finalize the decoder only after stdio closes.
       try {
         decode.flush();
       } catch {
