@@ -15,7 +15,10 @@ import { generateReviewPack } from "./verify01-review-pack.mjs";
 import { reviewEnvironment, REVIEW_IMAGE } from "./verify01-review-runtime.mjs";
 import { VERIFY01_REVIEW_SPECS } from "./verify01-review-specs.mjs";
 import { verifyAgentTerminal } from "../src/lib/eval/stream-terminal.js";
-import { createVolcengineDiagnosticBroker } from "./verify01-volcengine-diagnostic-broker.mjs";
+import {
+  BROKER,
+  createVolcengineDiagnosticBroker,
+} from "./verify01-volcengine-diagnostic-broker.mjs";
 import { requireUnscopedModelTransport } from "../src/lib/formal-budget-provider-scope.js";
 
 export const DIAGNOSTIC = Object.freeze({
@@ -33,11 +36,11 @@ export const DIAGNOSTIC = Object.freeze({
   estimatedSpendStopUSD: 0.25,
   repairSeeds: Object.freeze({
     "verify-04": Object.freeze({
-      sourceRun: "39043024352",
-      repairRound: 1,
-      file: "packages/cli/scripts/fixtures/verify01-volcengine/verify-04-39043024352.test.txt",
+      sourceRun: "39045268929",
+      repairRound: 2,
+      file: "packages/cli/scripts/fixtures/verify01-volcengine/verify-04-39045268929.test.txt",
       digest:
-        "sha256:625ba7ca5c97617f52656c91f1d5c03657e8e6af5960ce3ee6a91f7943ef3f7f",
+        "sha256:5066a74a68ed6b56a2152b7a8d6005dc03657c5489f6f427fe23ad416ca057e1",
     }),
     "verify-22": Object.freeze({
       sourceRun: "39043024352",
@@ -112,7 +115,7 @@ export function taskPrompt(task, spec) {
   const seed = DIAGNOSTIC.repairSeeds[task.id];
   const priorFeedback =
     task.id === "verify-04"
-      ? `Ordinary checker feedback: four cases executed; one passed and three failed. Two token-conservation comparisons expected 302000 and 402000 but received zero. Numeric model-row totals read from byModel[0].totalCost were undefined. Source review: mergeUsagePricingBucket updates pricingBuckets, leaving the helper's top-level counters unchanged; sum the bucket component counters for conservation. Bucket totalTokens accumulates only the supplied field, which these fixtures omit. priceRollup exposes model-row cost as .cost; the OUTER result exposes .cost.totalCost. Verify these API facts and preserve behavioral comparisons. The existing cases also test cache and long-context separately: add focused boundary coverage where cache-read or cache-creation tokens independently push otherwise-short input across the threshold, with a short/equality control; avoid explicit requestInputTokens in fallback-classification fixtures. Do not assume cache presence alone changes grouping.\n`
+      ? `Ordinary checker feedback: six cases executed; four passed and two failed. The cached-distribution case expected 0.6 but received 0.5840000000000001. The cache-read short boundary control expected 0.552 but received 0.5504. Exact frozen-source review: estimateCost chooses rate.terms?.cacheReadMultiplier before the provider fallback. GPT6_PRICING_TERMS in model-context-catalog.js supplies 0.1 for this model, overriding the OpenAI fallback of 0.5. Verify that precedence and recompute ALL affected cache-derived total/component assertions and explanatory comments from the model terms; do not just copy observed values or call the function under test to manufacture expectations. Preserve all six existing cases, their controls and classification assertions; do not add cases or rewrite the suite.\n`
       : task.id === "verify-22"
         ? `Ordinary checker feedback: all three cases failed. Fault cases received the injected ordinary Error instead of the published-commit error; the control expected two _collect calls but observed three. Exact frozen-source review: during this fixture's commit, _loadManifest calls _collect, _publish calls it again BEFORE publication, and _publish calls it a THIRD time after manifest replacement. The current second-call injection is pre-publication. Correct both fault cases and the control consistently; if retaining invocation counting, explicitly account for all three calls and verify durable reopened state. Preserve the derived record/store revisions and the existing three cases; do not redesign the suite. Restore instrumentation before recovery checks, include a successful control, and explicitly import every Vitest hook used.\n`
         : "";
@@ -358,9 +361,18 @@ export function changedFiles(before, after) {
     );
 }
 
+export function selectDiagnosticTasks(selection = "both") {
+  assert.ok(
+    selection === "both" || DIAGNOSTIC.tasks.includes(selection),
+    "unsupported diagnostic task selection",
+  );
+  return selection === "both" ? [...DIAGNOSTIC.tasks] : [selection];
+}
+
 export async function runTaskDiagnostic(options) {
   requireUnscopedModelTransport();
   const { outputDir, imageId, sourceSha, key } = options;
+  const selectedTasks = selectDiagnosticTasks(options.task);
   const output = path.resolve(outputDir);
   const relativeOutput = path.relative(repository, output);
   assert.ok(
@@ -390,6 +402,7 @@ export async function runTaskDiagnostic(options) {
     executionSourceCommit: sourceSha,
     ...DIAGNOSTIC,
     tasks: [],
+    selectedTasks,
     imageId,
     imageReference: REVIEW_IMAGE,
     formalSample: false,
@@ -404,7 +417,7 @@ export async function runTaskDiagnostic(options) {
       "Public .99 exposes a six-file-tool ceiling; this run requests all six explicitly and records the actual schemas and calls. It does not attest a narrower two-tool ceiling.",
       "Only expected test deliverables may change; implementation edits in the original task are deliberately excluded.",
       "The $0.25 per-task CLI stop uses returned usage estimates; an in-flight call may exceed it and unpriced/unknown usage is not a hard quota.",
-      "The diagnostic broker disables thinking, requests at most 4096 answer tokens, admits at most 14 physical requests per task and rejects unknown usage before another call. These are diagnostic bounds, not formal budget activation or a provider invoice.",
+      `The diagnostic broker disables thinking, requests at most ${BROKER.maximumAnswerTokens} answer tokens, admits at most ${BROKER.maximumRequestsPerTask} physical attempts per selected task, and rejects unknown usage before another call. These are diagnostic bounds, not formal budget activation or a provider invoice.`,
       "Acceptance is an AI-reviewed independent Docker checker, not independent human review or frozen sample admission.",
       "Setup, model and checker share each task's 20-minute deadline; no automatic model retries or fallback models.",
     ],
@@ -682,7 +695,7 @@ export async function runTaskDiagnostic(options) {
       key,
     });
 
-    for (const taskId of DIAGNOSTIC.tasks) {
+    for (const taskId of selectedTasks) {
       if (canceled) break;
       const task = catalog.tasks.find((entry) => entry.id === taskId);
       const spec = VERIFY01_REVIEW_SPECS.find(
@@ -916,7 +929,7 @@ export async function runTaskDiagnostic(options) {
       }
     }
     summary.passed =
-      summary.tasks.length === DIAGNOSTIC.tasks.length &&
+      summary.tasks.length === selectedTasks.length &&
       summary.tasks.every((task) => task.passed);
   } catch (error) {
     summary.failure = redactDiagnostic(String(error.message), key);
@@ -933,7 +946,7 @@ export async function runTaskDiagnostic(options) {
         summary.broker.physicalRequestsStarted;
     summary.finishedAt = stamp();
     summary.estimatedTotalUSD =
-      summary.tasks.length === DIAGNOSTIC.tasks.length &&
+      summary.tasks.length === selectedTasks.length &&
       summary.tasks.every((task) => Number.isFinite(task.estimatedCostUSD))
         ? summary.tasks.reduce((sum, task) => sum + task.estimatedCostUSD, 0)
         : null;
@@ -955,12 +968,13 @@ if (
         "output-dir": { type: "string" },
         "source-sha": { type: "string" },
         "image-id": { type: "string" },
+        task: { type: "string", default: "both" },
         help: { type: "boolean", default: false },
       },
     });
     if (values.help)
       console.log(
-        "Manual paid Volcengine verify-04/verify-22 diagnostic. Requires --confirm-live --output-dir NEW_DIR --source-sha EXACT_SHA --image-id sha256:IMAGE_ID and VOLCENGINE_API_KEY. No formal samples. $0.25 per-task estimated stop is not a hard spending limit.",
+        "Manual paid Volcengine diagnostic (--task both|verify-04|verify-22). Requires --confirm-live --output-dir NEW_DIR --source-sha EXACT_SHA --image-id sha256:IMAGE_ID and VOLCENGINE_API_KEY. No formal samples. $0.25 per-task estimated stop is not a hard spending limit.",
       );
     else {
       assert.ok(values["confirm-live"], "explicit --confirm-live is required");
@@ -969,6 +983,7 @@ if (
         outputDir: values["output-dir"],
         sourceSha: values["source-sha"],
         imageId: values["image-id"],
+        task: values.task,
         key: process.env.VOLCENGINE_API_KEY,
       });
       if (!result.passed) process.exitCode = 1;

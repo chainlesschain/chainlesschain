@@ -10,6 +10,7 @@ import {
   modelEnvironment,
   redactDiagnostic,
   taskPrompt,
+  selectDiagnosticTasks,
 } from "../scripts/verify01-volcengine-task-diagnostic.mjs";
 
 const workspace = path.resolve("task-workspace");
@@ -266,6 +267,22 @@ test("redacts literal and JSON-escaped key bytes and detects unexpected workspac
   );
 });
 
+test("task selection preserves an explicit supported denominator", () => {
+  assert.deepEqual(selectDiagnosticTasks(), ["verify-04", "verify-22"]);
+  assert.deepEqual(selectDiagnosticTasks("verify-04"), ["verify-04"]);
+  assert.deepEqual(selectDiagnosticTasks("verify-22"), ["verify-22"]);
+  for (const selection of [
+    "",
+    "verify-99",
+    "../verify-04",
+    "verify-04,verify-22",
+  ])
+    assert.throws(
+      () => selectDiagnosticTasks(selection),
+      /unsupported diagnostic task selection/u,
+    );
+});
+
 test("prompt preserves checker constraints and discloses repair provenance", () => {
   const prompt = taskPrompt(
     { prompt: "Frozen task", sourcePaths: ["source.js"], expectedFiles },
@@ -289,7 +306,7 @@ test("prompt preserves checker constraints and discloses repair provenance", () 
   assert.match(retryPrompt, /not a first-attempt or formal sample/u);
   assert.match(
     retryPrompt,
-    /Do not assume cache presence alone changes grouping/u,
+    /rate.terms\?\.cacheReadMultiplier before the provider fallback/u,
   );
   const faultPrompt = taskPrompt(
     {

@@ -19,10 +19,15 @@ on:
   workflow_dispatch:
     inputs:
       confirm_live:
-        description: "Run two bounded paid Volcengine diagnostics (thinking disabled, 14 requests each; no formal admission)"
+        description: "Run selected bounded paid Volcengine diagnostics (thinking disabled, 14 requests each; no formal admission)"
         required: true
         type: boolean
         default: false
+      task:
+        description: "Diagnostic task selection; accepted tasks need not be repeated"
+        type: choice
+        default: both
+        options: [both, verify-04, verify-22]
 
 permissions:
   contents: read
@@ -66,11 +71,13 @@ jobs:
           # pins volcengine/deepseek-v4-flash-ga-260731 and the Ark v3 endpoint.
           VOLCENGINE_API_KEY: ${{ secrets.CC_LLM_API_KEY }}
           EXECUTION_SOURCE_SHA: ${{ github.sha }}
+          DIAGNOSTIC_TASK_SELECTION: ${{ inputs.task || 'both' }}
         run: >-
           node packages/cli/scripts/verify01-volcengine-task-diagnostic.mjs
           --confirm-live
           --source-sha "$EXECUTION_SOURCE_SHA"
           --image-id "$REVIEW_IMAGE_ID"
+          --task "$DIAGNOSTIC_TASK_SELECTION"
           --output-dir "$RUNNER_TEMP/verify01-volcengine-task-diagnostic"
       - name: Preserve workflow context even when preflight fails
         if: always()
