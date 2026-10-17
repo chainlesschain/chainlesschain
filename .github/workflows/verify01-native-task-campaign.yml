@@ -14,18 +14,27 @@ on:
         type: boolean
         required: true
         default: false
+      hosts:
+        description: "Run all hosts or repeat a host after an infrastructure correction"
+        type: choice
+        required: true
+        default: all
+        options: [all, windows, linux, macos]
 
 permissions:
   contents: read
 
 concurrency:
-  group: verify01-native-36-plus-9
+  group: verify01-native-36-plus-9-${{ inputs.hosts || 'all' }}
   cancel-in-progress: false
 
 jobs:
   validate:
     if: github.event_name == 'workflow_dispatch' && inputs.confirm_live == true
     runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.select.outputs.matrix }}
+      groups: ${{ steps.select.outputs.groups }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -39,6 +48,20 @@ jobs:
           packages/cli/test-node/verify01-native-task-campaign.node-test.mjs
           packages/cli/test-node/verify01-native-task-checker.node-test.mjs
           packages/cli/test-node/verify01-volcengine-diagnostic-broker.node-test.mjs
+      - name: Select requested native hosts
+        id: select
+        shell: bash
+        env:
+          HOST_SELECTION: ${{ inputs.hosts || 'all' }}
+        run: |
+          node --input-type=module -e '
+            import fs from "node:fs";
+            const hosts = {windows: ["win32", "windows-latest"], linux: ["linux", "ubuntu-24.04"], macos: ["darwin", "macos-15"]};
+            const selected = process.env.HOST_SELECTION;
+            if (selected !== "all" && !Object.hasOwn(hosts, selected)) throw new Error("unknown host");
+            const rows = Object.entries(hosts).filter(([name]) => selected === "all" || name === selected).flatMap(([, [platform, os]]) => ["cli", "vscode", "jetbrains"].map(entry => ({group: `${platform}-${entry}`, os, entry})));
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, `matrix=${JSON.stringify({include: rows})}\ngroups=${JSON.stringify(rows.map(row => row.group))}\n`);
+          '
 
   generate:
     needs: validate
@@ -48,17 +71,7 @@ jobs:
     strategy:
       fail-fast: false
       max-parallel: 9
-      matrix:
-        include:
-          - { group: win32-cli, os: windows-latest, entry: cli }
-          - { group: win32-vscode, os: windows-latest, entry: vscode }
-          - { group: win32-jetbrains, os: windows-latest, entry: jetbrains }
-          - { group: linux-cli, os: ubuntu-24.04, entry: cli }
-          - { group: linux-vscode, os: ubuntu-24.04, entry: vscode }
-          - { group: linux-jetbrains, os: ubuntu-24.04, entry: jetbrains }
-          - { group: darwin-cli, os: macos-15, entry: cli }
-          - { group: darwin-vscode, os: macos-15, entry: vscode }
-          - { group: darwin-jetbrains, os: macos-15, entry: jetbrains }
+      matrix: ${{ fromJSON(needs.validate.outputs.matrix) }}
     env:
       GRADLE_USER_HOME: ${{ github.workspace }}/.gradle-native-tasks
     steps:
@@ -131,18 +144,7 @@ jobs:
       fail-fast: false
       max-parallel: 9
       matrix:
-        group:
-          [
-            win32-cli,
-            win32-vscode,
-            win32-jetbrains,
-            linux-cli,
-            linux-vscode,
-            linux-jetbrains,
-            darwin-cli,
-            darwin-vscode,
-            darwin-jetbrains,
-          ]
+        group: ${{ fromJSON(needs.validate.outputs.groups) }}
     steps:
       - uses: actions/checkout@v5
         with:

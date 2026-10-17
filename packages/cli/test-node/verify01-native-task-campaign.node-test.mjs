@@ -14,6 +14,7 @@ import {
   protocolStream,
   inspectionStream,
   VERSIONS,
+  archiveExtractor,
 } from "../scripts/verify01-native-task-campaign.mjs";
 import { VERIFY01_REVIEW_SPECS } from "../scripts/verify01-review-specs.mjs";
 const require = createRequire(import.meta.url);
@@ -41,6 +42,23 @@ function temporary(t) {
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   return root;
 }
+test("native archive extraction accepts absolute drive paths even under Git Bash PATH", (t) => {
+  const root = temporary(t),
+    source = path.join(root, "source"),
+    destination = path.join(root, "destination"),
+    archive = path.join(root, "frozen.tar");
+  fs.mkdirSync(source);
+  fs.mkdirSync(destination);
+  fs.writeFileSync(path.join(source, "fixture.txt"), "frozen bytes\n");
+  const executable = archiveExtractor();
+  execFileSync(executable, ["-cf", archive, "-C", source, "fixture.txt"]);
+  execFileSync(executable, ["-xf", archive, "-C", destination]);
+  assert.equal(
+    fs.readFileSync(path.join(destination, "fixture.txt"), "utf8"),
+    "frozen bytes\n",
+  );
+  if (process.platform === "win32") assert.ok(path.isAbsolute(executable));
+});
 test("nine native strata select exactly 36 ordinary and nine independent first samples", () => {
   const all = ["win32", "linux", "darwin"].flatMap((platform) =>
     ["cli", "vscode", "jetbrains"].flatMap((entry) =>

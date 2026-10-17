@@ -37,6 +37,24 @@ const json = (file) => JSON.parse(fs.readFileSync(file, "utf8"));
 const mkdir = (directory) => fs.mkdirSync(directory, { recursive: true });
 const stamp = () => new Date().toISOString();
 
+/** Git Bash may put GNU tar first, which parses C: as a remote archive host. */
+export function archiveExtractor(
+  platform = process.platform,
+  systemRoot = process.env.SystemRoot,
+) {
+  if (platform !== "win32") return "tar";
+  assert.ok(
+    systemRoot && path.isAbsolute(systemRoot),
+    "Windows system root required",
+  );
+  const executable = path.join(systemRoot, "System32", "tar.exe");
+  assert.ok(
+    fs.statSync(executable).isFile(),
+    "native Windows archive extractor required",
+  );
+  return executable;
+}
+
 export function selectNativeSamples(plan, platform, entry) {
   assert.ok(["linux", "win32", "darwin"].includes(platform));
   assert.ok(["cli", "vscode", "jetbrains"].includes(entry));
@@ -552,7 +570,7 @@ export async function runNativeCampaign({
         outputPrefix: path.join(sampleOutput, "commands", name),
       });
     try {
-      execFileSync("tar", ["-xf", archive, "-C", workspace], {
+      execFileSync(archiveExtractor(), ["-xf", archive, "-C", workspace], {
         timeout: 120000,
       });
       for (const file of task.expectedFiles) {
