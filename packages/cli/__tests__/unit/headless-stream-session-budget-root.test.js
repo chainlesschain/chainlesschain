@@ -5,6 +5,7 @@ import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { runAgentHeadlessStream } from "../../src/runtime/headless-stream.js";
 import { SessionBudgetSidecarStore } from "../../src/lib/session-budget-runtime.js";
+import { withFileLock } from "../../src/lib/with-file-lock.js";
 import { resolveSessionBudgetRootOptions } from "../../src/lib/session-budget-production-root.js";
 import {
   readVerifiedEvents,
@@ -66,6 +67,87 @@ afterEach(() => {
 });
 
 describe("stream session budget declaration", () => {
+  it.each(["EROFS", "ENOSPC"])(
+    "projects a %s budget read-lock failure before model dispatch",
+    async (code) => {
+      const { directory, sessionId } = isolatedSession();
+      const cause = Object.assign(new Error("private-path-and-secret"), { code });
+      const store = new SessionBudgetSidecarStore({
+        resolvePath: () => path.join(directory, "private-sidecar.json"),
+        allowUnsupportedPlatformForTests: true,
+        lock: (target, task, options) =>
+          withFileLock(target, task, {
+            ...options,
+            _fs: {
+              ...fs,
+              mkdirSync: () => {
+                throw cause;
+              },
+            },
+          }),
+      });
+      // Exercise the real strict lock's wrapping, not a synthetic final error.
+      expect(() => store.read(sessionId)).toThrow("Could not acquire state lock");
+      const loop = vi.fn();
+      const release = vi.fn();
+      const out = [];
+      const err = [];
+      const outcome = await runAgentHeadlessStream(
+        { sessionId },
+        {
+          ...streamDeps(store, loop),
+          acquireSessionHostLease: () => ({ release }),
+          writeOut: (value) => out.push(value),
+          writeErr: (value) => err.push(value),
+        },
+      );
+      expect(outcome).toMatchObject({ exitCode: 1, turns: 0 });
+      expect(loop).not.toHaveBeenCalled();
+      expect(release).toHaveBeenCalledOnce();
+      expect(JSON.parse(out.join(""))).toMatchObject({
+        type: "result",
+        subtype: "error_persistence",
+        is_error: true,
+        session_id: sessionId,
+        persistence: {
+          code: "CC_SESSION_PERSISTENCE_FAILED",
+          fs_code: code,
+          phase: "before-model",
+          operation: "session-start",
+        },
+      });
+      expect([...out, ...err].join("")).not.toMatch(/private|secret/iu);
+    },
+  );
+
+  it("preserves non-storage admission failures", async () => {
+    const { sessionId } = isolatedSession();
+    const failure = Object.assign(new Error("lock held by another owner"), {
+      code: "STATE_LOCK_UNAVAILABLE",
+    });
+    const loop = vi.fn();
+    const writeOut = vi.fn();
+    await expect(
+      runAgentHeadlessStream(
+        { sessionId },
+        {
+          ...streamDeps(
+            {
+              read() {
+                throw failure;
+              },
+            },
+            loop,
+          ),
+          acquireSessionHostLease: () => ({ release() {} }),
+          writeOut,
+        },
+      ),
+    ).rejects.toBe(failure);
+    expect(loop).not.toHaveBeenCalled();
+    expect(writeOut).not.toHaveBeenCalled();
+  });
+
   it("persists the root in verified JSONL and inherits it when resume omits flags", async () => {
     const { store, sessionId } = isolatedSession();
     const root = resolveSessionBudgetRootOptions({ sessionMaxTurns: 1 });

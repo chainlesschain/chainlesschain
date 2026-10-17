@@ -1443,6 +1443,7 @@ async function withStreamSessionHostLease(options, deps, streamCleanup, task) {
   let lease = null;
   let budgetRoot = null;
   let onLeaseAbort = null;
+  let taskStarted = false;
   try {
     if (persist && typeof acquireHostLease === "function") {
       lease = acquireHostLease(sessionId, { hostKind: "headless-stream" });
@@ -1574,11 +1575,40 @@ async function withStreamSessionHostLease(options, deps, streamCleanup, task) {
     if (budgetRoot.enabled) {
       scopedOptions = { ...scopedOptions, ...budgetRoot.options };
     }
+    taskStarted = true;
     return await task(scopedOptions, {
       ...deps,
       [STREAM_SESSION_ID]: sessionId,
       [STREAM_SESSION_HOST_LEASE]: lease,
     });
+  } catch (error) {
+    // Admission can write a lease or take the Linux budget-sidecar read lock
+    // before the workspace runner installs its persistence boundary. Preserve
+    // the lock's filesystem cause, but never reclassify an executing task.
+    if (taskStarted) throw error;
+    const persistence = projectSessionPersistenceFailure(
+      createSessionPersistenceFailure(error, {
+        sessionId,
+        operation: "session-start",
+      }),
+      { phase: "before-model" },
+    );
+    if (!persistence) throw error;
+    deps.writeOut(
+      `${JSON.stringify({
+        type: "result",
+        subtype: "error_persistence",
+        is_error: true,
+        code: persistence.code,
+        error: "Canonical stream admission failed",
+        session_id: sessionId,
+        persistence,
+      })}\n`,
+    );
+    deps.writeErr(
+      `${persistence.code}: canonical stream admission was refused\n`,
+    );
+    return { exitCode: 1, turns: 0, persistence };
   } finally {
     budgetRoot?.close?.();
     if (lease?.signal && onLeaseAbort) {
