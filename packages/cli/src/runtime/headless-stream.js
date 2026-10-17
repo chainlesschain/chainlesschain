@@ -5770,6 +5770,7 @@ async function runAgentHeadlessStreamInWorkspace(
       exhausted ||
       costStopped ||
       outcome.endReason === "no-response" ||
+      outcome.endReason === "deferred-mutation-unresolved" ||
       Boolean(persistenceFailure);
     if (isError) sawError = true;
     const transcriptRefs = !persistenceFailure
