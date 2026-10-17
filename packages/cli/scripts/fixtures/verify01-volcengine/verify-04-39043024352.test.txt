@@ -1,0 +1,141 @@
+import { describe, expect, it } from "vitest";
+import { mergeUsagePricingBucket } from "../src/lib/usage-pricing-context.js";
+import { priceRollup } from "../src/lib/llm-pricing.js";
+
+/**
+ * Request-level cache / long-context pricing contract.
+ *
+ * The pricing buckets preserve each request's own input size (requestInputTokens
+ * holds the first request's prompt tokens, not an aggregate) and bucket grouping
+ * keyed by serviceTier + regionalProcessing + long-context boolean class. Cache
+ * presence alone does not split buckets; only the long-context classification
+ * (prompt tokens > 272000) does. The same total token count priced through
+ * different cache / long-context request distributions must be billed per
+ * request contract rather than as one pooled sum.
+ */
+
+const MODEL = "gpt-6-sol"; // DOCUMENTED_OPENAI_MODELS with pricing {in:2, out:10}
+const LONG_THRESHOLD = 272000;
+
+/** Build a fresh byModel row and merge one or more usage records into it. */
+function aggregateRequests(usages) {
+  const entry = {
+    provider: "openai",
+    model: MODEL,
+    inputTokens: 0,
+    outputTokens: 0,
+    cacheReadTokens: 0,
+    cacheCreationTokens: 0,
+    totalTokens: 0,
+    calls: 0,
+  };
+  for (const usage of usages) mergeUsagePricingBucket(entry, usage);
+  return entry;
+}
+
+/** Total token count across all components for a usage record. */
+function usageTotal(usage) {
+  return (
+    (usage.inputTokens || 0) +
+    (usage.cacheReadTokens || 0) +
+    (usage.cacheCreationTokens || 0) +
+    (usage.outputTokens || 0)
+  );
+}
+
+describe("request-level cache & long-context pricing buckets", () => {
+  it("groups cached and non-cached short requests into one bucket, preserving each cache total", () => {
+    const entry = aggregateRequests([
+      // promptTokens = input + cacheRead = 160000 (short class)
+      { inputTokens: 150000, cacheReadTokens: 10000, outputTokens: 1000 },
+      // promptTokens = input + cacheRead = 140000 (short class, cached)
+      { inputTokens: 120000, cacheReadTokens: 20000, outputTokens: 1000 },
+    ]);
+    // Cache presence alone does not split buckets: both are short-class, so a
+    // single bucket is produced with the first request's prompt tokens.
+    expect(entry.pricingBuckets).toHaveLength(1);
+    const bucket = entry.pricingBuckets[0];
+    expect(bucket.requestInputTokens).toBe(160000);
+    expect(bucket.serviceTier).toBe("standard");
+    expect(bucket.regionalProcessing).toBe(false);
+    expect(bucket.inputTokens).toBe(270000);
+    expect(bucket.cacheReadTokens).toBe(30000);
+    expect(bucket.outputTokens).toBe(2000);
+    expect(bucket.calls).toBe(2);
+  });
+
+  it("bills the same total tokens differently when cache is distributed per request", () => {
+    // Same total token count (302000), but S1 routes 20000 of them through the
+    // 0.5x cache-read multiplier while S2 bills them all as fresh input.
+    const cached = aggregateRequests([
+      { inputTokens: 150000, cacheReadTokens: 10000, outputTokens: 1000 },
+      { inputTokens: 130000, cacheReadTokens: 10000, outputTokens: 1000 },
+    ]);
+    const uncached = aggregateRequests([
+      { inputTokens: 160000, outputTokens: 1000 },
+      { inputTokens: 140000, outputTokens: 1000 },
+    ]);
+    expect(usageTotal(cached)).toBe(302000);
+    expect(usageTotal(uncached)).toBe(302000);
+
+    const cachedCost = priceRollup({ byModel: [cached] }).byModel[0];
+    const uncachedCost = priceRollup({ byModel: [uncached] }).byModel[0];
+    expect(cachedCost.matched).toBe(true);
+    expect(uncachedCost.matched).toBe(true);
+    expect(cachedCost.totalCost).toBeCloseTo(0.6, 9);
+    expect(uncachedCost.totalCost).toBeCloseTo(0.62, 9);
+    expect(cachedCost.totalCost).not.toBeCloseTo(uncachedCost.totalCost, 9);
+    expect(cachedCost.cacheReadCost).toBeCloseTo(0.02, 9);
+    expect(uncachedCost.cacheReadCost).toBe(0);
+  });
+
+  it("prices a long-context request by its own bucket instead of pooling totals", () => {
+    // Same total (402000 tokens) in both cases.
+    const mixed = aggregateRequests([
+      { inputTokens: 300000, outputTokens: 1000 }, // long class (> threshold)
+      { inputTokens: 100000, outputTokens: 1000 }, // short class
+    ]);
+    const allShort = aggregateRequests([
+      { inputTokens: 200000, outputTokens: 1000 },
+      { inputTokens: 200000, outputTokens: 1000 },
+    ]);
+    expect(usageTotal(mixed)).toBe(402000);
+    expect(usageTotal(allShort)).toBe(402000);
+
+    expect(mixed.pricingBuckets).toHaveLength(2);
+    expect(allShort.pricingBuckets).toHaveLength(1);
+
+    const mixedCost = priceRollup({ byModel: [mixed] }).byModel[0];
+    const shortCost = priceRollup({ byModel: [allShort] }).byModel[0];
+    expect(mixedCost.totalCost).toBeCloseTo(1.425, 9);
+    expect(shortCost.totalCost).toBeCloseTo(0.82, 9);
+    expect(mixedCost.totalCost).toBeGreaterThan(shortCost.totalCost);
+  });
+
+  it("keeps long/short and distinct service tiers in separate buckets with their own rates", () => {
+    const entry = aggregateRequests([
+      { inputTokens: 300000, outputTokens: 1000, serviceTier: "fast" },
+      { inputTokens: 300000, outputTokens: 1000 },
+      { inputTokens: 100000, outputTokens: 1000 },
+    ]);
+    const longFast = entry.pricingBuckets.find(
+      (b) => b.requestInputTokens > LONG_THRESHOLD && b.serviceTier === "fast",
+    );
+    const longStandard = entry.pricingBuckets.find(
+      (b) => b.requestInputTokens > LONG_THRESHOLD && b.serviceTier === "standard",
+    );
+    const shortStandard = entry.pricingBuckets.find(
+      (b) => b.requestInputTokens <= LONG_THRESHOLD && b.serviceTier === "standard",
+    );
+    expect(longFast).toBeDefined();
+    expect(longStandard).toBeDefined();
+    expect(shortStandard).toBeDefined();
+    expect(entry.pricingBuckets).toHaveLength(3);
+
+    // Long-context bucket carries the 2x input / 1.5x output multipliers and the
+    // fast tier a 2x service multiplier, all applied per bucket by priceRollup.
+    const rollup = priceRollup({ byModel: [entry] }).byModel[0];
+    expect(rollup.totalCost).toBeCloseTo(3.855, 9);
+    expect(rollup.matched).toBe(true);
+  });
+});

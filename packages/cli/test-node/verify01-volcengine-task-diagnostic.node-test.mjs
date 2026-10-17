@@ -266,7 +266,7 @@ test("redacts literal and JSON-escaped key bytes and detects unexpected workspac
   );
 });
 
-test("prompt discloses constrained task and independent checker without injecting an answer", () => {
+test("prompt preserves checker constraints and discloses repair provenance", () => {
   const prompt = taskPrompt(
     { prompt: "Frozen task", sourcePaths: ["source.js"], expectedFiles },
     { baselineTests: ["baseline.test.js"] },
@@ -275,7 +275,7 @@ test("prompt discloses constrained task and independent checker without injectin
   assert.match(prompt, /do not claim that tests passed/u);
   assert.match(prompt, /implementation defect/u);
   assert.match(prompt, /repository-relative paths for every mutation/u);
-  assert.match(prompt, /at most 14 model turns/u);
+  assert.match(prompt, /at most 10 model turns/u);
   const retryPrompt = taskPrompt(
     {
       id: "verify-04",
@@ -285,11 +285,11 @@ test("prompt discloses constrained task and independent checker without injectin
     },
     { baselineTests: ["baseline.test.js"] },
   );
-  assert.match(retryPrompt, /Historical diagnostic feedback/u);
+  assert.match(retryPrompt, /Ordinary checker feedback/u);
   assert.match(retryPrompt, /not a first-attempt or formal sample/u);
   assert.match(
     retryPrompt,
-    /do not assume cache presence alone changes grouping/u,
+    /Do not assume cache presence alone changes grouping/u,
   );
   const faultPrompt = taskPrompt(
     {
@@ -300,18 +300,19 @@ test("prompt discloses constrained task and independent checker without injectin
     },
     { baselineTests: ["baseline.test.js"] },
   );
-  assert.match(faultPrompt, /derive the actual manifest publication boundary/u);
+  assert.match(faultPrompt, /THIRD time after manifest replacement/u);
   assert.match(faultPrompt, /include a successful control/u);
   assert.match(faultPrompt, /bounded repair/u);
   assert.match(faultPrompt, /first-attempt or formal sample/u);
-  const seed = DIAGNOSTIC.repairSeeds["verify-22"];
-  const bytes = fs.readFileSync(
-    new URL(`../../../${seed.file}`, import.meta.url),
-  );
-  assert.equal(
-    `sha256:${createHash("sha256").update(bytes).digest("hex")}`,
-    seed.digest,
-  );
+  for (const seed of Object.values(DIAGNOSTIC.repairSeeds)) {
+    const bytes = fs.readFileSync(
+      new URL(`../../../${seed.file}`, import.meta.url),
+    );
+    assert.equal(
+      `sha256:${createHash("sha256").update(bytes).digest("hex")}`,
+      seed.digest,
+    );
+  }
 });
 
 test("workflow requires explicit dispatch or a branch-scoped paid-run marker, and always uploads", () => {

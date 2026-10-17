@@ -28,15 +28,23 @@ export const DIAGNOSTIC = Object.freeze({
   provider: "volcengine",
   model: "deepseek-v4-flash-ga-260731",
   endpoint: "https://ark.cn-beijing.volces.com/api/v3",
-  maxTurns: 14,
+  maxTurns: 10,
   taskTimeoutMs: 20 * 60 * 1000,
   estimatedSpendStopUSD: 0.25,
   repairSeeds: Object.freeze({
-    "verify-22": Object.freeze({
-      sourceRun: "39041797746",
-      file: "packages/cli/scripts/fixtures/verify01-volcengine/verify-22-39041797746.test.txt",
+    "verify-04": Object.freeze({
+      sourceRun: "39043024352",
+      repairRound: 1,
+      file: "packages/cli/scripts/fixtures/verify01-volcengine/verify-04-39043024352.test.txt",
       digest:
-        "sha256:c3c99c33ff24851d26d3ecc90da783b3a77d8fea2d5e9fde0f86ae6696f4f229",
+        "sha256:625ba7ca5c97617f52656c91f1d5c03657e8e6af5960ce3ee6a91f7943ef3f7f",
+    }),
+    "verify-22": Object.freeze({
+      sourceRun: "39043024352",
+      repairRound: 2,
+      file: "packages/cli/scripts/fixtures/verify01-volcengine/verify-22-39043024352.test.txt",
+      digest:
+        "sha256:7cd9d2acb6117665ef69e1498e2c3024b27f5624a3f14a22a4a30292f51aa5e8",
     }),
   }),
 });
@@ -101,16 +109,17 @@ export function modelEnvironment({
 }
 
 export function taskPrompt(task, spec) {
+  const seed = DIAGNOSTIC.repairSeeds[task.id];
   const priorFeedback =
     task.id === "verify-04"
-      ? `Historical diagnostic feedback for this task (a previous candidate failed independent checking): derive bucket grouping and request-level token semantics from the implementation; do not assume cache presence alone changes grouping. Trace each proposed fixture through the relevant source branch, and check fixture initialization before asserting absent fields. This feedback is supplied to aid repair; this run is not a first-attempt or formal sample.\n`
+      ? `Ordinary checker feedback: four cases executed; one passed and three failed. Two token-conservation comparisons expected 302000 and 402000 but received zero. Numeric model-row totals read from byModel[0].totalCost were undefined. Source review: mergeUsagePricingBucket updates pricingBuckets, leaving the helper's top-level counters unchanged; sum the bucket component counters for conservation. Bucket totalTokens accumulates only the supplied field, which these fixtures omit. priceRollup exposes model-row cost as .cost; the OUTER result exposes .cost.totalCost. Verify these API facts and preserve behavioral comparisons. The existing cases also test cache and long-context separately: add focused boundary coverage where cache-read or cache-creation tokens independently push otherwise-short input across the threshold, with a short/equality control; avoid explicit requestInputTokens in fallback-classification fixtures. Do not assume cache presence alone changes grouping.\n`
       : task.id === "verify-22"
-        ? `This is a bounded repair of the previous model candidate from diagnostic run 39041797746, already placed in the deliverable. The independent checker failed to collect it: Cannot find module '../../scripts/persistent-capacity-benchmark.mjs' imported from packages/cli/__tests__/verify-22.test.js. Validate every relative import from the deliverable's own directory; baseline unit tests are one directory deeper. A separate source review also found unverified assumptions about _collect invocation counts and fixture storeRevision: derive the actual manifest publication boundary and distinguish record revision from store revision. A call count alone does not prove publication. Restore instrumentation before recovery checks and include a successful control. Preserve meaningful behavioral assertions. This is a repaired diagnostic, not a first-attempt or formal sample.\n`
+        ? `Ordinary checker feedback: all three cases failed. Fault cases received the injected ordinary Error instead of the published-commit error; the control expected two _collect calls but observed three. Exact frozen-source review: during this fixture's commit, _loadManifest calls _collect, _publish calls it again BEFORE publication, and _publish calls it a THIRD time after manifest replacement. The current second-call injection is pre-publication. Correct both fault cases and the control consistently; if retaining invocation counting, explicitly account for all three calls and verify durable reopened state. Preserve the derived record/store revisions and the existing three cases; do not redesign the suite. Restore instrumentation before recovery checks, include a successful control, and explicitly import every Vitest hook used.\n`
         : "";
   return `${task.prompt}\n\nThis is an independent diagnostic, not a formal VERIFY01 sample.
-${priorFeedback}Read the frozen source and existing tests before writing your own regression tests.
+${seed ? `This is bounded repair round ${seed.repairRound}, starting from the preserved model candidate from run ${seed.sourceRun}; it is not a first-attempt or formal sample.\n` : ""}${priorFeedback}Read the frozen source and existing tests before writing your own regression tests.
 Use the named files as your starting points; avoid listing the entire test directory. Search for exact API names, then read bounded slices rather than repeatedly reading whole unchanged files.
-Keep the patch focused: at most six behavioral cases and roughly 150 lines. Confirm argument names and result fields from source before asserting them. Use up to six turns for focused investigation; write once the necessary API contracts are understood, reserving turns for readback and correction. Do not add unrelated validation cases.
+Keep the patch focused: at most six behavioral cases. Confirm argument names and result fields from source before asserting them. Use at most three targeted read calls before editing, write by turn four, read the completed deliverable once, and finish by turn eight. Do not reread unchanged source, rewrite the suite, or add unrelated validation cases.
 Frozen source files: ${task.sourcePaths.join(", ")}
 Related existing tests: ${spec.baselineTests.join(", ")}
 Only these deliverables may be changed: ${task.expectedFiles.join(", ")}
