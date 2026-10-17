@@ -5,14 +5,14 @@ const english = lang === "en";
 const jetBrainsPending = releaseStatus.jetBrainsPublicationStatus !== "verified";
 const items = english
   ? [
-      ["Budget boundaries and model tiers", "CLI .103 rejects uncovered tools, models and external services within the formal budget scope. Reviewed service tiers and pricing remain subject to the actual model, endpoint and account."],
+      ["Verified session budget recovery", "CLI .104 preserves verified session budget roots on resume and stops model dispatch when usage or budget storage is unresolved."],
       ["Citation source snapshots", "Personal Data Hub .65 attaches source metadata and fact-summary digests to answer citations. Context source token estimates remain separate from provider billing."],
-      ["Recover draft storage capacity", "Public VS Code .148 reclaims empty records and accepted recovery copies at the 128-conversation limit. Unsent text, attachments, saved answers and uncertain submissions remain protected."],
+      ["IDE bridge reconnection", "After MCP reconnection, CLI refreshes the tool catalog without replaying tool calls whose outcome is unknown."],
     ]
   : [
-      ["预算边界与模型服务层级", "CLI .103 在正式预算 scope 中拒绝未覆盖的工具、模型与外部服务出口。服务层级与价格仍需核对实际模型、端点和账号。"],
+      ["已核验的会话预算恢复", "CLI .104 在恢复会话时沿用已核验预算根；用量或预算存储未结清时停止模型发送。"],
       ["回答引用附带来源快照", "Personal Data Hub .65 为引用附加来源元数据和事实摘要哈希；上下文来源 token 估算与 provider 计费记录分开。"],
-      ["草稿容量自动回收", "公开 VS Code .148 在 128 会话到限时回收空记录及已接受输入的恢复副本，保留未发送文字、附件、问题答案与结果未知的提交。"],
+      ["IDE 桥接重连", "MCP 断线重连后刷新工具清单，不自动重放结果未知的工具调用。"],
     ];
 ---
 
@@ -22,7 +22,7 @@ const items = english
       {releaseStatus.checkedAt} · {english ? "Public release and current source" : "公开发布与主线源码"} · CLI {releaseStatus.recommendedCliVersion}
     </p>
     <h2 id="source-update-title" class="mt-3 text-3xl font-bold">
-      {english ? "Budget boundaries, source snapshots and draft recovery" : "预算边界、引用快照与草稿容量回收"}
+      {english ? "Session budget recovery and IDE bridge" : "会话预算恢复与 IDE 桥接"}
     </h2>
     <p class="mt-4 text-muted leading-relaxed max-w-4xl">
       {english
@@ -44,9 +44,9 @@ const items = english
       {english ? "Formal model evaluation and full native acceptance remain open. Durable budget authority code is included, but paid evaluation is not ready." : "正式模型评测和完整原生验收仍待完成。耐久预算 authority 代码已包含，但正式付费评测仍未就绪。"}
     </p>
     <div class="mt-6 flex flex-wrap gap-4">
-      <a class="btn-ghost" href="https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-16.html">{english ? "Upgrade and troubleshooting ↗" : "升级与故障排查 ↗"}</a>
+      <a class="btn-ghost" href="https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-17.html">{english ? "Upgrade and troubleshooting ↗" : "升级与故障排查 ↗"}</a>
       <a class="btn-ghost" href="https://docs.chainlesschain.com/chainlesschain/agent-platform-release.html">{english ? "Release guide ↗" : "发布与升级指南 ↗"}</a>
-      <a class="btn-ghost" href="https://design.chainlesschain.com/release-runtime-update-2026-10-16.html">{english ? "Architecture and acceptance ↗" : "架构与验收范围 ↗"}</a>
+      <a class="btn-ghost" href="https://design.chainlesschain.com/release-runtime-update-2026-10-17.html">{english ? "Architecture and acceptance ↗" : "架构与验收范围 ↗"}</a>
     </div>
   </div>
 </section>

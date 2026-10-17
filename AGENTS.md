@@ -39,6 +39,7 @@
 
 - Use GitHub Actions OIDC Trusted Publishing for npm releases. This is the established release method; do not switch to npm tokens or local publishing when troubleshooting or retrying a failed release.
 - Publish required child npm packages in dependency order before publishing the CLI; publish IDE extensions only after the CLI release is available. Verify each published package can be fetched and downstream dependency versions are aligned before proceeding to the next stage. Release order: child npm packages → CLI → VS Code / JetBrains IDE extensions.
+- Update `packages/cli/README.md` when publishing a new CLI npm version: current public version, IDE pairing, installation command, and release limits must match the published package. Update the root READMEs and public documentation in the same release follow-up.
 - Treat GitHub Actions as the authoritative npm release gate; local tests are supplementary.
 - Before publishing an npm package, verify the exact release commit with the relevant Linux, Windows, and macOS workflow matrix.
 - For CLI releases, require both `CLI CI` and `CLI Strict Sandbox` to pass on all configured operating systems.

@@ -196,6 +196,10 @@ export default defineConfig({
               link: "/chainlesschain/rrsi-current",
             },
             {
+              text: "CLI .104 / IDE 会话恢复",
+              link: "/chainlesschain/cli-ide-update-2026-10-17",
+            },
+            {
               text: "CLI .103 / IDE 升级与草稿容量",
               link: "/chainlesschain/cli-ide-update-2026-10-16",
             },

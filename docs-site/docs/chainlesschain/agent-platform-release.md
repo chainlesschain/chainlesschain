@@ -1,6 +1,10 @@
 # Agent Platform 发布与升级指南
 
-## 2026-10-16 最新发布与升级
+## 2026-10-17 最新发布与升级
+
+2026-10-17：公开 CLI **0.166.104**、Open VSX **0.37.149** 与 JetBrains **0.4.166**，两个 IDE 均推荐 CLI `.104`。CLI 与 VS Code 发行源码为 `93792f6520`，JetBrains 为 `4c3e5cfd56`；主线核对至 `ef26f20b28`。Agent SDK **0.2.15**，Session Core **0.3.19**、Kernel **0.1.10**、PDH **0.4.65**；原生产品 **v5.0.3.140** 独立发行。正式预算 **NOT_PAID_READY**，36+9 **NOT_RUN（0/36、0/9）**、native **NOT_ADMITTED**、自动晋升 **HOLD**。 详见[升级指南](./cli-ide-update-2026-10-17)和[本轮设计](/design/release-runtime-update-2026-10-17)。
+
+## 2026-10-16 发布与升级（历史快照）
 
 2026-10-16：公开 CLI **0.166.103**、Open VSX **0.37.148** 与 JetBrains **0.4.165**，两个 IDE 均推荐 CLI `.103`。CLI 发行提交 `b235ac8068`，VS Code `c8a64caa92`，JetBrains `fa64840216`；主线核对至 `920f263e3f`。Session Core **0.3.19**、Kernel **0.1.10**、PDH **0.4.65**；原生产品 **v5.0.3.140** 独立发行。正式预算保持 **NOT_PAID_READY**，36+9 **NOT_RUN（0/36、0/9）**、native **NOT_ADMITTED**、自动晋升 **HOLD**。
 

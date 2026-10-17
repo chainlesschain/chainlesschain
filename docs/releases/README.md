@@ -4,6 +4,8 @@
 
 发布流程、候选版本、验收清单与历史说明。候选和检查表中的状态以记录日期为准，不能代替对应提交的发布门禁。
 
+每次 CLI npm 包公开发布后，同步核对并更新 `packages/cli/README.md` 的当前版本、IDE 配对、安装命令和限制，再更新根目录中英文 README、用户文档与官网；历史发行段落须标明日期。以准确提交的 GitHub Actions 门禁、OIDC 发布和公共制品回读为准。
+
 - [CLI 与 IDE 下一轮发布检查表](./CLI_IDE_RELEASE_READINESS_2026-09-05.md)
 - [CLI 0.166.23 发布候选](./CLI_RELEASE_CANDIDATE_0.166.23.md)
 - [文档更新历史](./documentation-history.md)

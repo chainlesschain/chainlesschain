@@ -1,6 +1,20 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
-## 2026-10-16 最新代码与公开发行
+## 2026-10-17 最新代码与公开发行
+
+2026-10-17：公开 CLI **0.166.104**、Open VSX **0.37.149** 与 JetBrains **0.4.166**，两个 IDE 均推荐 CLI `.104`。CLI 与 VS Code 发行源码为 `93792f6520`，JetBrains 为 `4c3e5cfd56`；主线核对至 `ef26f20b28`。Agent SDK **0.2.15**，Session Core **0.3.19**、Kernel **0.1.10**、PDH **0.4.65**；原生产品 **v5.0.3.140** 独立发行。正式预算 **NOT_PAID_READY**，36+9 **NOT_RUN（0/36、0/9）**、native **NOT_ADMITTED**、自动晋升 **HOLD**。
+
+本轮校验 Jev 调用的用量预留与结算、会话恢复时的原预算根，并阻止预算锁存储故障后的模型发送。SDK 后台握手与帧校验、UTF-8 输出以及 IDE 桥接重连也已修复；结果未知的工具调用不自动重放。
+
+```bash
+npm i -g chainlesschain@0.166.104 --registry https://registry.npmjs.org
+cc --version
+cc doctor
+```
+
+详见[本轮设计](docs/design/release-runtime-update-2026-10-17.md)、[用户升级指南](docs-site/docs/chainlesschain/cli-ide-update-2026-10-17.md)和[发行记录](docs/research/cli/evidence/implementation-plan-2026-10-15/formal-paid-release-gate/README.md)。Microsoft Marketplace 尚未发行。
+
+## 2026-10-16 代码与公开发行（历史快照）
 
 2026-10-16：公开 CLI **0.166.103**、Open VSX **0.37.148** 与 JetBrains **0.4.165**，两个 IDE 均推荐 CLI `.103`。CLI 发行提交 `b235ac8068`，VS Code `c8a64caa92`，JetBrains `fa64840216`；主线核对至 `920f263e3f`。Session Core **0.3.19**、Kernel **0.1.10**、PDH **0.4.65**；原生产品 **v5.0.3.140** 独立发行。正式预算保持 **NOT_PAID_READY**，36+9 **NOT_RUN（0/36、0/9）**、native **NOT_ADMITTED**、自动晋升 **HOLD**。
 
@@ -3003,7 +3017,7 @@ signals, reason, recommendedConcurrency, suggestedRoles }`。支持 monorepo 边
 ![Tests](https://img.shields.io/badge/tests-30000%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-146-blue.svg)
 ![Commands](https://img.shields.io/badge/CLI%20commands-175-blue.svg)
-![CLI](https://img.shields.io/badge/cli-0.166.103-blue.svg)
+![CLI](https://img.shields.io/badge/cli-0.166.104-blue.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 
 **去中心化 · 隐私优先 · AI原生**

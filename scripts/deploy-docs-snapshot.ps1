@@ -33,8 +33,12 @@ try {
     if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $workDir -PathType Container)) {
         throw "Cannot resolve prepared archives: $workUnix"
     }
-    $sourceHead = (& git rev-parse HEAD).Trim()
-    if ($sourceHead -notmatch '^[0-9a-f]{40}$') { throw 'Invalid source commit' }
+    $sourceHead = [regex]::Match($joined, 'Source commit: ([0-9a-f]{40})').Groups[1].Value
+    if ($sourceHead -notmatch '^[0-9a-f]{40}$') { throw 'Invalid prepared source commit' }
+    $currentHead = (& git rev-parse HEAD).Trim()
+    if ($LASTEXITCODE -ne 0 -or $currentHead -ne $sourceHead -or (& git status --porcelain)) {
+        throw 'Source commit or worktree changed after archive preparation'
+    }
 
     $localScript = Join-Path $PSScriptRoot 'deploy-docs-snapshot.sh'
     $lines = [System.IO.File]::ReadAllLines($localScript)

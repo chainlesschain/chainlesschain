@@ -1,6 +1,20 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
-## Current source and public release (2026-10-16)
+## Current source and public release (2026-10-17)
+
+As of 2026-10-17, CLI **0.166.104**, Open VSX **0.37.149** and JetBrains Marketplace **0.4.166** are public. Both IDEs recommend CLI `.104`. The CLI and VS Code release source is `93792f6520`; JetBrains is `4c3e5cfd56`; main was reviewed through `ef26f20b28`. Agent SDK **0.2.15**, Session Core **0.3.19**, Context/Memory Kernel **0.1.10**, PDH **0.4.65**, and native product **v5.0.3.140** retain separate release identities. Formal paid evaluation remains **NOT_PAID_READY / NOT_RUN (0/36, 0/9)**, native review **NOT_ADMITTED**, and automatic promotion **HOLD**.
+
+The release verifies Jev usage reservation and settlement, preserves the original session budget on resume, and blocks model dispatch after budget lock storage failure. Agent SDK background handshakes and frames, UTF-8 output, and IDE bridge reconnection are also hardened. Unknown tool results are never replayed automatically.
+
+```bash
+npm i -g chainlesschain@0.166.104 --registry https://registry.npmjs.org
+cc --version
+cc doctor
+```
+
+See the [design update](docs/design/release-runtime-update-2026-10-17.md), [upgrade guide](docs-site/docs/chainlesschain/cli-ide-update-2026-10-17.md), and [release evidence](docs/research/cli/evidence/implementation-plan-2026-10-15/formal-paid-release-gate/README.md). Microsoft Marketplace remains unpublished.
+
+## Release snapshot (2026-10-16, historical)
 
 CLI **0.166.103**, Open VSX **0.37.148** and JetBrains Marketplace **0.4.165** are public. Both IDEs recommend CLI `.103`. Their release commits are `b235ac8068`, `c8a64caa92` and `fa64840216`, respectively; source was reviewed through `920f263e3f`. Session Core **0.3.19**, Context/Memory Kernel **0.1.10**, PDH **0.4.65** and native product **v5.0.3.140** retain separate release identities.
 
@@ -2659,7 +2673,7 @@ Design, protocol, and test matrix: [docs/design/modules/79_Coding_Agent系统.md
 ![Tests](https://img.shields.io/badge/tests-30000%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-146-blue.svg)
 ![Commands](https://img.shields.io/badge/CLI%20commands-175-blue.svg)
-![CLI](https://img.shields.io/badge/cli-0.166.103-blue.svg)
+![CLI](https://img.shields.io/badge/cli-0.166.104-blue.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 
 **Decentralized · Privacy First · AI Native**

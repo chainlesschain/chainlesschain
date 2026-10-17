@@ -2,7 +2,13 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
-## Current release and source (2026-10-12)
+## Current release and source (2026-10-17)
+
+Public npm is **chainlesschain@0.166.104**. Open VSX **0.37.149** and JetBrains Marketplace **0.4.166** recommend this CLI. Agent SDK **0.2.15** was published first; Session Core **0.3.19**, Context/Memory Kernel **0.1.10** and Personal Data Hub **0.4.65** retain independent versions. CLI and VS Code release source is `93792f6520`; JetBrains is `4c3e5cfd56`. The exact-release GitHub Actions gates, OIDC publication and public package readback are recorded in the [release evidence](../../docs/research/cli/evidence/implementation-plan-2026-10-15/formal-paid-release-gate/README.md).
+
+CLI .104 verifies Jev usage reservation and settlement, keeps the original budget root when resuming headless, stream-json or REPL sessions, and rejects model dispatch if the budget lock cannot persist. Agent SDK .15 validates background session IDs and frames. The IDE bridge refreshes the MCP catalog after reconnection without replaying unknown tool results. Formal paid evaluation remains **NOT_PAID_READY / NOT_RUN (0/36, 0/9)**; native review remains **NOT_ADMITTED**. See the [upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-17.html).
+
+## Release snapshot (2026-10-12, historical)
 
 Source candidate **0.166.100** pairs with VS Code **0.37.144** and JetBrains
 **0.4.162**. It bounds cancellable Retry-After waits at 60 seconds, preserves
@@ -57,7 +63,7 @@ Explicit Linux durable permissions require administrator provisioning. Cross-pro
 ## Quick Start
 
 ```bash
-npm install -g chainlesschain@0.166.94 --registry https://registry.npmjs.org
+npm install -g chainlesschain@0.166.104 --registry https://registry.npmjs.org
 chainlesschain setup
 ```
 

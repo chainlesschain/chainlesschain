@@ -1,5 +1,7 @@
 # CLI 命令行工具
 
+> 2026-10-17：公开 CLI **0.166.104**、Open VSX **0.37.149** 与 JetBrains **0.4.166**，两个 IDE 均推荐 CLI `.104`。CLI 与 VS Code 发行源码为 `93792f6520`，JetBrains 为 `4c3e5cfd56`；主线核对至 `ef26f20b28`。Agent SDK **0.2.15**，Session Core **0.3.19**、Kernel **0.1.10**、PDH **0.4.65**；原生产品 **v5.0.3.140** 独立发行。正式预算 **NOT_PAID_READY**，36+9 **NOT_RUN（0/36、0/9）**、native **NOT_ADMITTED**、自动晋升 **HOLD**。 详见[升级指南](./cli-ide-update-2026-10-17)。下方日期内容为历史记录。
+
 > 2026-10-16 当前公开版本：CLI **0.166.103**、Open VSX **0.37.148**、JetBrains **0.4.165**；两个 IDE 均推荐 CLI `.103`。Session Core **0.3.19**、Kernel **0.1.10**、PDH **0.4.65**，原生产品 **v5.0.3.140** 独立发行。正式预算 **NOT_PAID_READY**，36+9 **NOT_RUN（0/36、0/9）**。 见[升级与故障排查](./cli-ide-update-2026-10-16)。以下带日期的早期记录保留历史范围。
 
 > 2026-10-13：CLI **0.166.100** 与 Open VSX **0.37.144** 已公开，发行源码 `6a8db627c8`，文档核对主线 `283634169a`。JetBrains **0.4.162** 已上传，公开上架与下载待核验；已核验公开 **0.4.161** 推荐 CLI `.99`。Session Core **0.3.19**、Kernel **0.1.9**、SDK **0.2.14**、PDH **0.4.64** 与产品 **v5.0.3.140** 保持独立版本。 参见[本轮升级与诊断](./cli-ide-update-2026-10-13)。正式 36+9 保持 **NOT_RUN**，完整 native review 为 **NOT_ADMITTED**，自动晋升 **HOLD**；预算 PR #436 未进入本次发行，仍为 **NOT_PAID_READY**。

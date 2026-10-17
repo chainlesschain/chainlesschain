@@ -1,5 +1,7 @@
 # CLI Runtime 当前实现与源码候选
 
+> 2026-10-17：公开 CLI **0.166.104**、Open VSX **0.37.149** 与 JetBrains **0.4.166**，两个 IDE 均推荐 CLI `.104`。CLI 与 VS Code 发行源码为 `93792f6520`，JetBrains 为 `4c3e5cfd56`；主线核对至 `ef26f20b28`。Agent SDK **0.2.15**，Session Core **0.3.19**、Kernel **0.1.10**、PDH **0.4.65**；原生产品 **v5.0.3.140** 独立发行。正式预算 **NOT_PAID_READY**，36+9 **NOT_RUN（0/36、0/9）**、native **NOT_ADMITTED**、自动晋升 **HOLD**。 详见[升级指南](./cli-ide-update-2026-10-17)。下方日期内容为历史记录。
+
 > 2026-10-16：公开 CLI **0.166.103**、Open VSX **0.37.148** 与 JetBrains **0.4.165**，两个 IDE 均推荐 CLI `.103`。CLI 发行提交 `b235ac8068`，VS Code `c8a64caa92`，JetBrains `fa64840216`；主线核对至 `920f263e3f`。Session Core **0.3.19**、Kernel **0.1.10**、PDH **0.4.65**；原生产品 **v5.0.3.140** 独立发行。正式预算保持 **NOT_PAID_READY**，36+9 **NOT_RUN（0/36、0/9）**、native **NOT_ADMITTED**、自动晋升 **HOLD**。 详见[本轮升级指南](./cli-ide-update-2026-10-16)。下方日期段落为历史快照。
 
 > 2026-10-15：公开 CLI **0.166.101**、Kernel **0.1.10** 与 Open VSX **0.37.145** 对应 `6752b49e1e`。压缩拒绝保留上下文及 head，已产生的 provider 用量仍结算；草稿恢复与连接诊断见[本轮指南](./cli-ide-update-2026-10-15)。JetBrains Marketplace 列出 `.162`，`.163` 仍为源码候选。耐久正式预算 authority 已纳入源码，但保持 **NOT_PAID_READY**；正式 36+9 **NOT_RUN**、native review **NOT_ADMITTED**、自动晋升 **HOLD**。
