@@ -1,0 +1,70 @@
+/**
+ * verify-06 — paid decomposition pre-check
+ *
+ * Independent regression for the governance admission that runs BEFORE
+ * decomposition. When the selected backend is rejected in the preflight,
+ * the task must terminate before any decomposition (LLM) call and before
+ * any notification is delivered. This mirrors the path the `orchestrate`
+ * CLI handler drives when it calls `orch.addTask(...)` with a selected
+ * backend set.
+ *
+ * Covers paid/unattested backends (gemini/openai/anthropic) with the same
+ * proven admission pattern the integration suite uses, but as an isolated
+ * regression targeted at the paid-backend rejection path.
+ */
+
+import { describe, it, expect, vi } from "vitest";
+import { Orchestrator } from "../src/lib/orchestrator.js";
+
+const PAID_BACKENDS = ["gemini", "openai", "anthropic"];
+
+/** Build an orchestrator whose backend set is the given list. */
+function buildPaidOrchestrator(backends) {
+  const notifyStart = vi.fn();
+  const composition = vi.fn();
+  const orch = new Orchestrator({
+    agents: { backends },
+    notifier: { isConfigured: true, notifyStart },
+    evolutionCompositionFactory: composition,
+  });
+  const decompose = vi.spyOn(orch, "_decompose");
+  return { orch, decompose, composition, notifyStart };
+}
+
+describe("verify-06: paid decomposition pre-check", () => {
+  it.each(PAID_BACKENDS)(
+    "rejects paid backend %s before decomposition and notification",
+    async (backend) => {
+      const { orch, decompose, composition, notifyStart } =
+        buildPaidOrchestrator([{ type: backend }]);
+
+      await expect(orch.addTask("fix auth")).rejects.toMatchObject({
+        code: "AGENT_ROUTER_EXTERNAL_MODEL_INGRESS_UNATTESTED",
+      });
+
+      // Terminates before decomposition: no LLM work, no composition,
+      // no notification, no Run/task created.
+      expect(decompose).not.toHaveBeenCalled();
+      expect(composition).not.toHaveBeenCalled();
+      expect(notifyStart).not.toHaveBeenCalled();
+      expect(orch._tasks.size).toBe(0);
+    },
+  );
+
+  it("rejects a mixed set once any paid backend is selected, before work", async () => {
+    const { orch, decompose, composition, notifyStart } =
+      buildPaidOrchestrator([
+        { type: "openai" },
+        { type: "ollama" },
+      ]);
+
+    await expect(orch.addTask("fix auth")).rejects.toMatchObject({
+      code: "AGENT_ROUTER_EXTERNAL_MODEL_INGRESS_UNATTESTED",
+    });
+
+    expect(decompose).not.toHaveBeenCalled();
+    expect(composition).not.toHaveBeenCalled();
+    expect(notifyStart).not.toHaveBeenCalled();
+    expect(orch._tasks.size).toBe(0);
+  });
+});

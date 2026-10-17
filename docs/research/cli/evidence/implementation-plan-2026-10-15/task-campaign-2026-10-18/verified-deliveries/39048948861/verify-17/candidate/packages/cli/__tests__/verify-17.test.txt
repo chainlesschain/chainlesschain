@@ -1,0 +1,109 @@
+// Regression coverage for "durable process ownership record" behavior.
+// Focus:
+//   1. A damaged/unreadable journal must be reported unavailable, never
+//      treated as an idle (empty) authority that would admit new launches.
+//   2. A valid pending record awaiting reclamation survives fresh instances.
+// The implementation under test is read-only; this suite verifies behavior.
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { randomUUID } from "node:crypto";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import {
+  ProcessOwnershipJournal,
+  PROCESS_OWNERSHIP_PENDING,
+  PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE,
+} from "../src/lib/process-execution-broker/process-ownership-journal.js";
+
+describe.skipIf(process.platform !== "linux")(
+  "verify-17 persistent process ownership record",
+  () => {
+    let root;
+    let directory;
+
+    beforeEach(() => {
+      root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-verify-17-"));
+      directory = path.join(root, "authority");
+    });
+
+    afterEach(() => {
+      fs.rmSync(root, { recursive: true, force: true });
+    });
+
+    it("reports a valid journal as available but a corrupted journal as unavailable", () => {
+      const owner = new ProcessOwnershipJournal(directory);
+      owner.prepare(randomUUID()).settle();
+      // Positive control: the freshly written valid journal is idle/available.
+      expect(() => new ProcessOwnershipJournal(directory).assertAvailable()).not.toThrow();
+
+      const file = path.join(directory, "journal.json");
+      fs.writeFileSync(file, "{");
+      // Negative: a corrupt file must not be read as an empty authority.
+      expect(() =>
+        new ProcessOwnershipJournal(directory).assertAvailable(),
+      ).toThrow(
+        expect.objectContaining({ code: PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE }),
+      );
+    });
+
+    it("never overwrites a corrupted journal when reporting it unavailable", () => {
+      const owner = new ProcessOwnershipJournal(directory);
+      owner.prepare(randomUUID()).settle();
+      const file = path.join(directory, "journal.json");
+      const bytes = Buffer.from('{"schema":"nonsense","pending":[]}', "utf8");
+      fs.writeFileSync(file, bytes);
+      expect(() =>
+        new ProcessOwnershipJournal(directory).assertAvailable(),
+      ).toThrow(
+        expect.objectContaining({ code: PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE }),
+      );
+      expect(fs.readFileSync(file)).toEqual(bytes);
+    });
+
+    it("treats a journal with a malformed pending entry as unavailable, not idle", () => {
+      const owner = new ProcessOwnershipJournal(directory);
+      owner.prepare(randomUUID()).settle();
+      const file = path.join(directory, "journal.json");
+      const state = JSON.parse(fs.readFileSync(file));
+      // Duplicate executionId is rejected by validation (damaged journal).
+      state.pending.push({ ...state.pending[0], token: randomUUID() });
+      fs.writeFileSync(file, JSON.stringify(state));
+      expect(() =>
+        new ProcessOwnershipJournal(directory).assertAvailable(),
+      ).toThrow(
+        expect.objectContaining({ code: PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE }),
+      );
+    });
+
+    it("preserves a retained pending record across fresh instances", () => {
+      const owner = new ProcessOwnershipJournal(directory);
+      const id = randomUUID();
+      const lease = owner.prepare(id);
+      lease.retain();
+      // A fresh instance must still see the durable record as pending.
+      const peer = new ProcessOwnershipJournal(directory);
+      expect(() => peer.assertAvailable()).toThrow(
+        expect.objectContaining({ code: PROCESS_OWNERSHIP_PENDING }),
+      );
+      expect(peer.inspect().pendingExecutionIds).toEqual([id]);
+      expect(peer.inspect().blocked).toBe(true);
+    });
+
+    it("forgets a settled record so a fresh instance is available again (negative control)", () => {
+      const owner = new ProcessOwnershipJournal(directory);
+      const id = randomUUID();
+      owner.prepare(id).settle();
+      const peer = new ProcessOwnershipJournal(directory);
+      expect(() => peer.assertAvailable()).not.toThrow();
+      expect(peer.inspect().pendingExecutionIds).toEqual([]);
+      expect(peer.inspect().blocked).toBe(false);
+    });
+
+    it("treats a missing journal on a fresh instance as idle (contrast to corruption)", () => {
+      // No directory has ever been created: this is the legitimate empty state.
+      expect(fs.existsSync(directory)).toBe(false);
+      expect(() => new ProcessOwnershipJournal(directory).assertAvailable()).not.toThrow();
+      expect(() => new ProcessOwnershipJournal(directory).inspect()).not.toThrow();
+    });
+  },
+);

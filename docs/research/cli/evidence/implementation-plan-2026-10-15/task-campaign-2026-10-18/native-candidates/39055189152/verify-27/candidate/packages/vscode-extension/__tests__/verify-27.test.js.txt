@@ -1,0 +1,164 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+import fs from "node:fs/promises";
+import path from "node:path";
+import { tmpdir } from "node:os";
+import { randomUUID } from "node:crypto";
+import { DraftStore } from "../src/chat/draft-store.js";
+import { QuestionDrafts } from "../src/chat/question-drafts.js";
+
+// verify-27: 重载问题精确绑定 (precise binding on question reload/recovery).
+// Disk records are editable recovery data, but a reload must only revive the
+// live fields when request, session and schema all match the original review.
+// request/session/schema 不匹配不恢复 live 字段；精确重发才恢复.
+
+const cleanups = [];
+afterEach(async () => {
+  for (const fn of cleanups.splice(0).reverse()) await fn();
+});
+
+async function storage() {
+  const root = await fs.mkdtemp(path.join(tmpdir(), "cc-verify27-"));
+  cleanups.push(() => fs.rm(root, { recursive: true, force: true }));
+  return root;
+}
+
+const binding = {
+  backgroundAgentId: null,
+  sessionId: "session-1",
+  turnId: "turn-1",
+  toolUseId: "tool-1",
+  sequence: 1,
+};
+
+const request = {
+  kind: "question",
+  id: "q1",
+  question: "Choose a target",
+  binding,
+};
+
+const savedValues = [{ key: "answer", value: "half entered 中文" }];
+
+function controller(store, overrides = {}) {
+  cleanups.push(async () => {
+    let queue;
+    do {
+      queue = store.queue;
+      await queue;
+    } while (queue !== store.queue);
+  });
+  const conv = {
+    id: "a",
+    sessionId: "session-1",
+    draftKey: randomUUID(),
+    _sessionToken: {},
+    session: { running: true, sendEvent: vi.fn(() => true) },
+    ...overrides,
+  };
+  const messages = [];
+  const drafts = new QuestionDrafts({
+    store,
+    getConversation: (id) => (id === conv.id ? conv : null),
+    post: (m) => messages.push(m),
+    refresh: () => {},
+  });
+  return { drafts, conv, messages };
+}
+
+const payload = (q, extra = {}) => ({
+  ...q,
+  fields: savedValues,
+  revision: 1,
+  ...extra,
+});
+
+// Persist the exact bound review once, then return the fresh host tied to the
+// same conversation (draftKey) so recovery authority can be exercised.
+async function seedSavedReview() {
+  const root = await storage();
+  const first = controller(new DraftStore(root));
+  const q = first.drafts.register(first.conv, request);
+  await first.drafts.save(payload(q));
+  const next = controller(new DraftStore(root), {
+    draftKey: first.conv.draftKey,
+  });
+  return { root, first, next };
+}
+
+describe("verify-27: question reload precise binding", () => {
+  it("recovers live fields only for the exact request, session and schema", async () => {
+    const { next } = await seedSavedReview();
+    const restored = next.drafts.register(next.conv, request);
+    await next.drafts.restore(restored);
+    expect(next.messages.at(-1)).toMatchObject({
+      kind: "questionDraftSnapshot",
+      state: "draft",
+    });
+    expect(next.messages.at(-1).fields).toEqual(savedValues);
+    expect(next.conv.session.sendEvent).not.toHaveBeenCalled();
+  });
+
+  it("does not revive live fields when the schema differs (same session and id)", async () => {
+    const { next } = await seedSavedReview();
+    const changedSchema = next.drafts.register(next.conv, {
+      ...request,
+      options: ["alpha", "beta"],
+    });
+    await next.drafts.restore(changedSchema);
+    expect(next.messages.at(-1).kind).toBe("questionDraftSnapshot");
+    expect(next.messages.at(-1).fields).toEqual([]);
+    expect(next.conv.session.sendEvent).not.toHaveBeenCalled();
+  });
+
+  it("does not revive live fields when the request id differs", async () => {
+    const { next } = await seedSavedReview();
+    const otherId = next.drafts.register(next.conv, {
+      ...request,
+      id: "q2",
+    });
+    await next.drafts.restore(otherId);
+    expect(next.messages.at(-1).fields).toEqual([]);
+    expect(next.conv.session.sendEvent).not.toHaveBeenCalled();
+  });
+
+  it("does not revive live fields when the session differs (mismatched sessionId)", async () => {
+    const { next } = await seedSavedReview();
+    // Conversation is bound to a different session than the saved record.
+    next.conv.sessionId = "session-2";
+    const otherSession = next.drafts.register(next.conv, request);
+    await next.drafts.restore(otherSession);
+    expect(next.messages.at(-1).fields).toEqual([]);
+    expect(next.conv.session.sendEvent).not.toHaveBeenCalled();
+  });
+
+  it("does not revive live fields for a legacy unbound request in a fresh host", async () => {
+    const root = await storage();
+    const first = controller(new DraftStore(root));
+    const unbound = { ...request, binding: undefined };
+    const q = first.drafts.register(first.conv, unbound);
+    await first.drafts.save(payload(q));
+    const next = controller(new DraftStore(root), {
+      draftKey: first.conv.draftKey,
+    });
+    const restored = next.drafts.register(next.conv, unbound);
+    await next.drafts.restore(restored);
+    expect(next.messages.at(-1).fields).toEqual([]);
+    expect(next.conv.session.sendEvent).not.toHaveBeenCalled();
+  });
+
+  it("after an imprecise reload, only the precise resend revives the live fields", async () => {
+    const { next } = await seedSavedReview();
+    // A schema-mismatched reload resolves with empty fields...
+    const changedSchema = next.drafts.register(next.conv, {
+      ...request,
+      options: ["alpha"],
+    });
+    await next.drafts.restore(changedSchema);
+    expect(next.messages.at(-1).fields).toEqual([]);
+    // ...then re-registering the exact original request recovers the draft.
+    const precise = next.drafts.register(next.conv, request);
+    await next.drafts.restore(precise);
+    expect(next.messages.at(-1).fields).toEqual(savedValues);
+    expect(next.conv.session.sendEvent).not.toHaveBeenCalled();
+  });
+});

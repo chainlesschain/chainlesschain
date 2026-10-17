@@ -1,0 +1,185 @@
+{
+  "schema": "chainlesschain.task-campaign-optimization-validation/v1",
+  "generatedAt": "2026-10-17T18:15:24.570588+00:00",
+  "published": false,
+  "publicVersionsUnderEvaluation": {
+    "cli": "0.166.99",
+    "vscode": "0.37.143",
+    "jetbrains": "0.4.161"
+  },
+  "optimizations": [
+    {
+      "change": "JetBrains live/history Markdown rendering and independent source/display identity checks",
+      "commit": "10d662c150db6f31abe8bd9760649c1a1b607122",
+      "cause": "Public .161 initial output strips code-span markup but restored history displayed raw Markdown.",
+      "tests": [
+        {
+          "class": "com.chainlesschain.ide.intellij.ChatTranscriptRenderingTest",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "localRawXmlDigest": "sha256:50d231b746dd322264bea20425ab7b6fccccbf5c1b6ab3415101e52b37e222aa",
+          "cases": [
+            "livePromotionAndNewTranscriptKeepCanonicalSourceAndSavedIdentitySeparateFromDisplay()",
+            "liveMergedAndReplacedHistoryShareCodeBoldLinkAndUnicodeDisplay()",
+            "renderedOffsetsPreserveFollowingSelectionAndRejectConflictingReplacement()",
+            "userAndToolMarkdownRemainLiteralAndTruncatedAssistantSuffixStaysOutsideBody()"
+          ],
+          "rawXml": {
+            "path": "optimization-receipts/TEST-com.chainlesschain.ide.intellij.ChatTranscriptRenderingTest.xml.gz",
+            "originalDigest": "sha256:50d231b746dd322264bea20425ab7b6fccccbf5c1b6ab3415101e52b37e222aa",
+            "storedDigest": "sha256:a9a3f1f5520b2244e2c9b285bc9cf918fd50e6a39963b4a833cf6f5c0458cc54"
+          }
+        },
+        {
+          "class": "com.chainlesschain.ide.intellij.ChatTranscriptSyncTest",
+          "tests": 9,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "localRawXmlDigest": "sha256:07a1fa06e6903a466f8e1d436c04e3399f9613f7d8e53fda11cfd19acbc0e192",
+          "cases": [
+            "mergesSourceBoundFinalSegmentsAndRepeatedTextWithoutLosingToolsOrDiagnostics()",
+            "preservesActualSelectionWhenRowsAreInsertedBeforeIt()",
+            "savedRowBudgetEvictsTextAndSelectionDefersEviction()",
+            "metadataEvictionDuringMergeCannotOrphanAnIdentifiedSavedCandidate()",
+            "cancellingUndispatchedInputRemovesOnlyItsUnconfirmedReservation()",
+            "verifiedRewindWaitsForConflictingSelectionAndRetainsUnassociatedText()",
+            "anAppendAtSelectionEndDoesNotExtendTheSelection()",
+            "neverAssociatesByEqualTextOrWrongChildAndCanAssociateARepeatedReceiptLater()",
+            "selectionCannotAllowTheDocumentToGrowBeyondItsBudget()"
+          ],
+          "rawXml": {
+            "path": "optimization-receipts/TEST-com.chainlesschain.ide.intellij.ChatTranscriptSyncTest.xml.gz",
+            "originalDigest": "sha256:07a1fa06e6903a466f8e1d436c04e3399f9613f7d8e53fda11cfd19acbc0e192",
+            "storedDigest": "sha256:ee2f499a08c427d6077dfbd752291e7ea285fc1b01fc671c0f468c5fddb8ae2c"
+          }
+        },
+        {
+          "class": "com.chainlesschain.ide.MarkdownLiteTest",
+          "tests": 8,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "localRawXmlDigest": "sha256:070dd90c179e3dea56f5bacc6687e4a6a722fced53db595ddb2493785257c8fd",
+          "cases": [
+            "boldIsTokenized()",
+            "fencedCodeDropsLanguageTagKeepsBody()",
+            "spansLoseOnlyTheMarkers()",
+            "emptyAndNullYieldNoSpans()",
+            "inlineCodeIsTokenized()",
+            "unclosedInlineCodeDegradesToPlain()",
+            "unclosedBoldDegradesToPlain()",
+            "plainTextYieldsOneTextSpan()"
+          ],
+          "rawXml": {
+            "path": "optimization-receipts/TEST-com.chainlesschain.ide.MarkdownLiteTest.xml.gz",
+            "originalDigest": "sha256:070dd90c179e3dea56f5bacc6687e4a6a722fced53db595ddb2493785257c8fd",
+            "storedDigest": "sha256:da9e82831651d0873ab0be6b47f66e80cc665217feaf69b07f91d6f02dc6846e"
+          }
+        }
+      ],
+      "totalPassed": 21,
+      "uiTestCompilationPassed": true,
+      "optimizedRealGuiRestartRetested": false
+    },
+    {
+      "change": "Do not report complete while subtree-deferred mutations remain unexecuted",
+      "commit": "a5e3525be465270d94fad4eabce8df0f12dfd70d",
+      "cause": "Native verify-34 promised to retry a deferred write and ended successfully with its placeholder unchanged.",
+      "testCommand": "npx vitest run __tests__/unit/agent-core-deferred-mutation.test.js __tests__/unit/headless-deferred-mutation.test.js __tests__/unit/agent-core-subtree-instructions.test.js --reporter=dot",
+      "totalPassed": 22,
+      "filesPassed": 3,
+      "realProviderRetestedWithOptimizedRuntime": false,
+      "boundaries": [
+        "One reminder within the existing model-call budget",
+        "No automatic replay or bypass of authoritative subtree rules",
+        "Only explicit successful matching tool and normalized target set clears pending state",
+        "Both headless modes report unresolved work as error"
+      ]
+    },
+    {
+      "change": "Native evaluation fixes",
+      "commits": [
+        "209135141b4cf39aeb0284e6cf347764e19d2bf3",
+        "ceff6c12b4d18e3fe97aed78d9469ab54cfea456",
+        "7a1aa1255b07854f77d11b5251acf9b431b2ca66"
+      ],
+      "checks": [
+        "Native Windows archive drive-path round trip",
+        "Full UTF8 task prompt entered through actual public VS Code composer",
+        "Exact persistent IDE result/session-end identity verification; one-shot default remains strict",
+        "Candidate hashes, frozen-source scope, Docker isolation and original failed receipts retained"
+      ],
+      "latestFocusedNodeTestsPassed": 23,
+      "longComposerTestsPassed": 3
+    },
+    {
+      "change": "Preserve exact UTF8 Windows archive filenames and assess legacy candidates without admitting native generation",
+      "commit": "cbd532e51f53deb3c5f4470627f9ad7c86a41d3e",
+      "cause": "Default Windows bsdtar decoded ordinary UTF8 tar header names in CP437 while PAX paths retained UTF8; native before-tree identity failed.",
+      "futureExtraction": "--options hdrcharset=UTF-8",
+      "focusedWindowsNodeTestsPassed": 13,
+      "realCiBeforeTreeEntriesVerified": 22565,
+      "legacyArchivePathsChanged": 252,
+      "independentProof": {
+        "path": "windows-archive-proof.json"
+      },
+      "nativeGenerationUpgraded": false,
+      "candidateAssessment": "Archive-header/PAX-derived complete tree keys/types/bytes/digests must match exactly; only original candidate bytes are tested on canonical frozen source. Unknown tar formats, links, collisions, extra paths and tampering are rejected."
+    },
+    {
+      "change": "Provision isolated Windows AppData and absolute PowerShell module cache path",
+      "commit": "d572951fc6dd101eaf6d59411b1fee15746bee22",
+      "cause": "Missing KnownFolder directory selected a relative PowerShell cache inside the candidate workspace.",
+      "scopeExceptionsAdded": false,
+      "test": "Real Windows PowerShell KnownFolder and cache-path reproduction; native campaign environment assertions"
+    },
+    {
+      "change": "Native-only 16 MiB response transport bound with correct response-limit error attribution",
+      "commit": "b80948213e5cd952a3785734886c9b3f02df5543",
+      "cause": "Seven native SSE responses hit the former 1 MiB limit; synchronous aborted event obscured the initiating RESPONSE_LIMIT failure.",
+      "brokerTestsPassed": 21,
+      "brokerTestsSkipped": 0,
+      "defaultTransportBytes": 1048576,
+      "nativeTransportBytes": 16777216,
+      "outputTokenLimit": 8192,
+      "requestLimit": 24,
+      "requestTimeoutMs": 180000,
+      "unknownUsageFailsClosed": true,
+      "automaticHttpReplay": false,
+      "nativeRetestRuns": [
+        "39055183659",
+        "39055189152"
+      ],
+      "ciValidation": {
+        "runId": "39055183659",
+        "jobId": "117461599799",
+        "passed": 36,
+        "failed": 0,
+        "skipped": 1,
+        "receipt": {
+          "path": "optimization-receipts/native45-validate-b809.log.gz",
+          "originalDigest": "sha256:356423b188ec4c93e0150e2f908872363e61a8c7c3fe644bd16ac183b5f02cc9",
+          "storedDigest": "sha256:902abacbfb57dae789137571da28934e2ed78f1638304ad6b267b865aabf3752"
+        }
+      }
+    },
+    {
+      "change": "Classify upstream aborted transport as error unless the owned cancellation signal was actually cancelled",
+      "commit": "b80948213e5cd952a3785734886c9b3f02df5543",
+      "cause": "ABORTED_USAGE_UNKNOWN and unrelated AbortError/ABORT_ERR were reported as non-error user interruption by message matching.",
+      "totalPassed": 9,
+      "failed": 0,
+      "success": true,
+      "receipt": {
+        "path": "optimization-receipts/headless-stream-abort-b809-tests.json.gz",
+        "originalDigest": "sha256:0d98fbebac55b45d6a45fa29a0cd99e46ace557b25025c16032e5d103063b4e3",
+        "storedDigest": "sha256:455f005c890193fd3f8b31353a8350abe4b3d3e1795c465aeb6c83dae48eedc6"
+      },
+      "realProviderRetestedWithOptimizedRuntime": false
+    }
+  ],
+  "releaseAttestation": false
+}

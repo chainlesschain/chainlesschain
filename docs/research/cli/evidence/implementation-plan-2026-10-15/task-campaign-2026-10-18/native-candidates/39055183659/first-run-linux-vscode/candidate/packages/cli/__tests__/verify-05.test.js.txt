@@ -1,0 +1,149 @@
+import { describe, it, expect } from "vitest";
+
+import {
+  AgentRouter,
+  createAgentRouter,
+  AGENT_ROUTER_ERROR,
+} from "../src/lib/agent-router.js";
+
+/**
+ * verify-05 — “安装与准入分离” (installation vs admission separation).
+ *
+ * A CLI backend is *installed* (present in the router) but is *not admitted*
+ * for per-request evolution-ingress attestation, because external agent CLIs
+ * are opaque to per-attempt attestation. These regression tests assert the
+ * separation holds and that usable (API) backends are retained:
+ *
+ *   - installed CLI  → governanceAdmitted:false, dispatchable:false,
+ *                      blockedReason EXTERNAL_MODEL_INGRESS_UNATTESTED
+ *   - API backend    → governanceAdmitted:true, dispatchable:true
+ *   - installed CLI still refuses to run via _runSingleTask even when an
+ *     evolution ingress value is supplied (CLI opacity is independent of
+ *     any admission value).
+ *   - dispatch enforces the admission gate (no ingress → CC_AGENT_…_FAILED)
+ *     and accepts only a *captured/branded* ingress (plain objects are
+ *     rejected as non-attestable), so no fabricated ingress can bypass it.
+ */
+
+const makeCLIBackend = (overrides = {}) => ({
+  type: "claude",
+  isCLI: true,
+  weight: 1,
+  adapter: { run: () => Promise.resolve({ output: "ok" }) },
+  ...overrides,
+});
+
+const makeAPIBackend = (overrides = {}) => ({
+  type: "gemini",
+  isCLI: false,
+  weight: 1,
+  adapter: { run: () => Promise.resolve({ output: "ok" }) },
+  ...overrides,
+});
+
+const makeTask = (overrides = {}) => ({
+  id: "task-1",
+  description: "Implement the requested change precisely.",
+  context: "seed",
+  type: "implement",
+  ...overrides,
+});
+
+describe("verify-05: install/admission separation for agent backends", () => {
+  it("an installed CLI backend is reported not admitted and not dispatchable", () => {
+    const router = createAgentRouter({
+      backends: [makeCLIBackend()],
+      strategy: "round-robin",
+    });
+
+    const summary = router.summary();
+    expect(summary.backends).toHaveLength(1);
+    expect(summary.backends[0]).toMatchObject({
+      type: "claude",
+      installed: true,
+      governanceAdmitted: false,
+      dispatchable: false,
+      runnable: false,
+      blockedReason: AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED,
+    });
+  });
+
+  it("an installed API backend is retained as admitted and dispatchable", () => {
+    const router = createAgentRouter({
+      backends: [makeAPIBackend()],
+      strategy: "round-robin",
+    });
+
+    const summary = router.summary();
+    expect(summary.backends).toHaveLength(1);
+    expect(summary.backends[0]).toMatchObject({
+      type: "gemini",
+      installed: true,
+      governanceAdmitted: true,
+      dispatchable: true,
+      runnable: true,
+      blockedReason: null,
+    });
+  });
+
+  it("a mixed router denies the CLI backend while retaining the API backend", () => {
+    const router = createAgentRouter({
+      backends: [makeCLIBackend(), makeAPIBackend()],
+      strategy: "round-robin",
+    });
+
+    const byType = new Map(
+      router.summary().backends.map((b) => [b.type, b]),
+    );
+    expect(byType.get("claude")).toMatchObject({
+      installed: true,
+      dispatchable: false,
+      governanceAdmitted: false,
+      blockedReason: AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED,
+    });
+    expect(byType.get("gemini")).toMatchObject({
+      installed: true,
+      dispatchable: true,
+      governanceAdmitted: true,
+    });
+  });
+
+  it("an installed CLI backend still refuses to run even when an ingress is supplied", async () => {
+    const router = new AgentRouter({
+      backends: [makeCLIBackend()],
+      strategy: "round-robin",
+    });
+
+    // _runSingleTask rejects opaque CLI backends regardless of any ingress
+    // value: external agent CLIs cannot attest per-request evolution.
+    await expect(
+      router._runSingleTask(makeTask(), makeCLIBackend(), {
+        cwd: "/tmp/project",
+        evolutionIngress: {},
+      }),
+    ).rejects.toMatchObject({
+      code: AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED,
+    });
+  });
+
+  it("dispatch enforces the admission gate before selecting any backend", async () => {
+    const router = createAgentRouter({
+      backends: [makeCLIBackend(), makeAPIBackend()],
+      strategy: "round-robin",
+    });
+
+    // No admission value at all → dispatch refuses outright.
+    await expect(
+      router.dispatch([makeTask()], { cwd: "/tmp/project" }),
+    ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+
+    // A plain (non-captured) object must not be treated as attested ingress:
+    // only a properly branded/captured ingress may be admitted.
+    await expect(
+      router.dispatch([makeTask()], {
+        cwd: "/tmp/project",
+        evolutionIngress: { tenantId: "tenant-a", runId: "run-1" },
+      }),
+    ).rejects.toThrow(TypeError);
+  });
+});

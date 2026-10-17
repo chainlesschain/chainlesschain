@@ -1,0 +1,96 @@
+import { describe, expect, it } from "vitest";
+import { resolveModelCapabilityProfile } from "../src/lib/model-capabilities.js";
+
+// Independent regression coverage for exact model-capability identification of
+// the documented GPT-6 family (Astra / Sol / Luna) and for the requirement
+// that an unknown suffix or alias is never certified as a documented tool
+// model. Import path is relative to this deliverable (../src/lib/...), not to
+// the pre-existing unit test directory.
+
+const DOCUMENTED_TOOL_TRANSPORT = "openai-responses";
+
+describe("verify-02: precise documented GPT-6 family identification", () => {
+  it.each(["gpt-6-astra", "gpt-6-sol", "gpt-6-luna"])(
+    "resolves %s to its exact documented official tool profile",
+    (model) => {
+      const profile = resolveModelCapabilityProfile({
+        provider: "openai",
+        model,
+      });
+      expect(profile.model).toBe(model);
+      expect(profile.windowSource).toBe("official-model-docs");
+      expect(profile.windowAssumed).toBe(false);
+      expect(profile.contextWindowTokens).toBe(1050000);
+      expect(profile.advertisedMaxOutputTokens).toBe(128000);
+      expect(profile.runtimeProtocol).toBe(DOCUMENTED_TOOL_TRANSPORT);
+      expect(profile.runtimeVerified).toBe(false);
+      expect(profile.sources.length).toBeGreaterThan(0);
+    },
+  );
+});
+
+describe("verify-02: unknown suffixes are not certified as tool models", () => {
+  it.each([
+    "gpt-6-astra-custom",
+    "gpt-6-sol-2026-01",
+    "gpt-6-luna-v2",
+    "gpt-6-astra-extra",
+  ])(
+    "treats unknown suffix %s as an unverified planning estimate, not a certified model",
+    (model) => {
+      const profile = resolveModelCapabilityProfile({
+        provider: "openai",
+        model,
+      });
+      expect(profile.windowSource).toBe("provider-default");
+      expect(profile.windowAssumed).toBe(true);
+      expect(profile.contextWindowTokens).toBe(128000);
+      expect(profile.advertisedMaxOutputTokens).toBeNull();
+      expect(profile.sources).toEqual([]);
+      expect(profile.runtimeProtocol).not.toBe(DOCUMENTED_TOOL_TRANSPORT);
+    },
+  );
+});
+
+describe("verify-02: identities are exact, never matched by case or trimming", () => {
+  it.each(["GPT-6-ASTRA", "GPT-6-SOL", "GPT-6-LUNA", " gpt-6-astra", "gpt-6-astra "])(
+    "does not certify alias/trimmed variant %s",
+    (model) => {
+      const profile = resolveModelCapabilityProfile({
+        provider: "openai",
+        model,
+      });
+      expect(profile.model).toBe(model);
+      expect(profile.windowSource).toBe("provider-default");
+      expect(profile.windowAssumed).toBe(true);
+      expect(profile.advertisedMaxOutputTokens).toBeNull();
+      expect(profile.sources).toEqual([]);
+    },
+  );
+});
+
+describe("verify-02: unrelated unknown names keep exact identity and no tool certification", () => {
+  it("reports an unknown openai model verbatim without fabricated limits", () => {
+    const profile = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-6-something",
+    });
+    expect(profile.model).toBe("gpt-6-something");
+    expect(profile.windowSource).toBe("provider-default");
+    expect(profile.contextWindowTokens).toBe(128000);
+    expect(profile.windowAssumed).toBe(true);
+    expect(profile.advertisedMaxOutputTokens).toBeNull();
+    expect(profile.runtimeProtocol).not.toBe(DOCUMENTED_TOOL_TRANSPORT);
+  });
+
+  it("keeps the trailing identifier exact on a documented member with no rewrite", () => {
+    const profile = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-6-sol",
+    });
+    expect(profile.model).toBe("gpt-6-sol");
+    expect(profile.profileId).toMatch(/^model-capability-v1:/);
+    expect(profile.profileId).not.toContain("astra");
+    expect(profile.profileId).not.toContain("luna");
+  });
+});

@@ -1,0 +1,164 @@
+import { describe, expect, it } from "vitest";
+import {
+  createEvalComparison,
+  createEvalHistoryRecord,
+  EVAL_CONTEXT_SCHEMA,
+  EVAL_EXECUTION_PROTOCOL,
+  evaluateStrictEvalGate,
+} from "../src/lib/eval/evidence.js";
+
+// verify-24: 比较身份严格隔离.
+// 相同 task 但不同模型/权限/运行时身份, 不能算可比改善:
+// the strict gate must refuse to treat a changed comparison identity as a
+// comparable improvement. Focused positive and negative behavioural controls.
+const NOW = Date.parse("2026-09-12T12:00:00.000Z");
+const D = (character) => `sha256:${character.repeat(64)}`;
+
+const context = (over = {}) => ({
+  schema: EVAL_CONTEXT_SCHEMA,
+  provider: "openai",
+  model: "test-model",
+  modelRevision: "test-model@revision-1",
+  environmentDigest: D("a"),
+  permissionDigest: D("b"),
+  inferenceDigest: D("c"),
+  ...over,
+});
+
+function comparison(ctx, node = "v22.22.2") {
+  return createEvalComparison({
+    suite: "builtin",
+    corpusDigest: D("d"),
+    provider: ctx.provider,
+    model: ctx.model,
+    context: ctx,
+    platform: "linux",
+    arch: "x64",
+    node,
+  });
+}
+
+function record(index, { ctx = context(), node = "v22.22.2", allPass = true } = {}) {
+  // results [id, pass]. allPass=false flips one task so the pair is a genuine
+  // quality change over the baseline while keeping identity and population equal.
+  const pairs = allPass
+    ? [
+        ["a", true],
+        ["b", true],
+      ]
+    : [
+        ["a", true],
+        ["b", false],
+      ];
+  const passed = pairs.filter(([, pass]) => pass).length;
+  return createEvalHistoryRecord(
+    {
+      total: pairs.length,
+      passed,
+      failed: pairs.length - passed,
+      passRate: passed / pairs.length,
+      unrelatedChangeRate: 0,
+      results: pairs.map(([id, pass]) => ({
+        id,
+        pass,
+        artifactCheckPassed: pass,
+        executionSucceeded: true,
+        agentOk: true,
+        executionEvidence: {
+          protocol: EVAL_EXECUTION_PROTOCOL,
+          exitCode: 0,
+          signal: null,
+          terminalVerified: true,
+          observedFallback: false,
+        },
+        error: null,
+        detail: "checked",
+        changedFiles: [],
+        unrelatedChanges: [],
+      })),
+    },
+    {
+      comparison: comparison(ctx, node),
+      runId: `run-${index}`,
+      ranAt: new Date(NOW - (3 - index) * 1000).toISOString(),
+    },
+  );
+}
+
+function gate(candidate, baseline) {
+  return evaluateStrictEvalGate(
+    { runs: [baseline, candidate], issues: [] },
+    { now: NOW },
+  );
+}
+
+describe("verify-24: comparison identity strict isolation", () => {
+  it("positive control: stable identity yields a comparable PASS and a real FAIL", () => {
+    const baseline = record(1);
+    // Genuine improvement, identical identity => comparable PASS.
+    expect(gate(record(2), baseline)).toMatchObject({
+      passed: true,
+      status: "PASS",
+      reasons: [],
+    });
+    // Same identity but a worse outcome => FAIL about task quality, never identity.
+    const verdict = gate(record(2, { allPass: false }), baseline);
+    expect(verdict.passed).toBe(false);
+    expect(verdict.status).toBe("FAIL");
+    expect(verdict.reasons).not.toContain("comparison_identity_changed");
+  });
+
+  it("same task under a different model identity is never a comparable improvement", () => {
+    const baseline = record(1);
+    const verdict = gate(
+      record(2, {
+        ctx: context({ model: "other-model", modelRevision: "other-model@r1" }),
+      }),
+      baseline,
+    );
+    expect(verdict.passed).toBe(false);
+    expect(verdict.reasons).toContain("comparison_identity_changed");
+    expect(verdict.reasons).not.toContain("candidate_tasks_failed");
+  });
+
+  it("same task under a different permission identity is never a comparable improvement", () => {
+    const baseline = record(1);
+    const verdict = gate(
+      record(2, { ctx: context({ permissionDigest: D("e") }) }),
+      baseline,
+    );
+    expect(verdict.passed).toBe(false);
+    expect(verdict.reasons).toContain("comparison_identity_changed");
+    expect(verdict.reasons).not.toContain("candidate_tasks_failed");
+  });
+
+  it("same task under a different runtime identity is never a comparable improvement", () => {
+    const baseline = record(1);
+    const verdict = gate(record(2, { node: "v24.0.0" }), baseline);
+    expect(verdict.passed).toBe(false);
+    expect(verdict.reasons).toContain("comparison_identity_changed");
+    expect(verdict.reasons).not.toContain("candidate_tasks_failed");
+  });
+
+  it("same task under a different environment identity is never a comparable improvement", () => {
+    const baseline = record(1);
+    const verdict = gate(
+      record(2, { ctx: context({ environmentDigest: D("f") }) }),
+      baseline,
+    );
+    expect(verdict.passed).toBe(false);
+    expect(verdict.reasons).toContain("comparison_identity_changed");
+    expect(verdict.reasons).not.toContain("candidate_tasks_failed");
+  });
+
+  it("same task under a different provider identity is never a comparable improvement", () => {
+    const baseline = record(1);
+    const verdict = gate(
+      record(2, { ctx: context({ provider: "anthropic" }) }),
+      baseline,
+    );
+    expect(verdict.passed).toBe(false);
+    expect(verdict.reasons).toContain("comparison_identity_changed");
+    expect(verdict.reasons).not.toContain("candidate_tasks_failed");
+  });
+});

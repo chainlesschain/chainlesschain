@@ -1,0 +1,114 @@
+// Regression coverage for "cancel-approval late callback" binding semantics.
+//
+// Acceptance criteria (verify-19):
+//   - after a cancellation, a late acceptance must NOT authorize a new request;
+//   - a normal acceptance binds only to the original request it was issued for.
+//
+// The unit under test is normalizePermissionRequest, which canonicalizes a tool
+// request into the exact shape (tool / args / command / source / destination /
+// detail) that the approval binding digest is computed from. A binding is a
+// pure function of that canonical shape, so the identity/determinism of the
+// canonical form is what lets a faithful acceptance bind to the original
+// request while a stale acceptance (whose context no longer matches the current
+// pending request) is provably different and therefore cannot green-light it.
+import { describe, it, expect } from "vitest";
+import { normalizePermissionRequest } from "../src/lib/permission-request.js";
+
+describe("normalizePermissionRequest — late-callback binding semantics", () => {
+  it("is deterministic: the same original request canonicalizes identically", () => {
+    const original = {
+      tool: "run_shell",
+      args: { command: "npm test -- --watch", riskLevel: "medium" },
+    };
+    const first = normalizePermissionRequest(original);
+    const second = normalizePermissionRequest(original);
+    // A faithful acceptance recomputes the same canonical shape it was issued
+    // for, so it binds only to the original request.
+    expect(second).toEqual(first);
+    expect(second.command).toBe("npm test -- --watch");
+    expect(second.tool).toBe("run_shell");
+  });
+
+  it("captures the acceptance context; a later args mutation does not bleed in", () => {
+    const args = { command: "rm -rf build" };
+    const req = normalizePermissionRequest({ tool: "run_shell", args });
+    // The canonical command/detail are captured at acceptance time and stay
+    // fixed, so the original acceptance remains bound to the original request
+    // even if the source args object is mutated afterwards.
+    expect(req.args).toBe(args); // same live reference is retained
+    args.command = "rm -rf /";
+    expect(req.command).toBe("rm -rf build");
+    expect(req.detail).toBe("rm -rf build");
+    // A *new* normalization of the mutated args is a different request: it can
+    // no longer match the binding that the original acceptance was issued for.
+    const reNormalized = normalizePermissionRequest({ tool: "run_shell", args });
+    expect(reNormalized.command).toBe("rm -rf /");
+    expect(reNormalized).not.toEqual(req);
+  });
+
+  it("a changed command yields a different canonical form (late accept fails)", () => {
+    const accepted = normalizePermissionRequest({
+      tool: "run_shell",
+      args: { command: "deploy staging" },
+    });
+    // The pending request moved on to a different command; the stale acceptance
+    // was issued for a different context, so its binding cannot match.
+    const current = normalizePermissionRequest({
+      tool: "run_shell",
+      args: { command: "deploy production" },
+    });
+    expect(current).not.toEqual(accepted);
+    expect(current.command).not.toBe(accepted.command);
+    expect(current.detail).toBe("deploy production");
+    expect(accepted.detail).toBe("deploy staging");
+  });
+
+  it("a changed tool also diverges the canonical form", () => {
+    const accepted = normalizePermissionRequest({
+      tool: "run_shell",
+      args: { command: "git push" },
+    });
+    const current = normalizePermissionRequest({
+      tool: "apply_patch",
+      args: { command: "git push" },
+    });
+    expect(current).not.toEqual(accepted);
+    expect(current.tool).toBe("apply_patch");
+    expect(accepted.tool).toBe("run_shell");
+  });
+
+  it("file-move args normalize to a stable source -> destination detail", () => {
+    const req = normalizePermissionRequest({
+      tool: "move_file",
+      args: { path: "a.txt", new_path: "b.txt" },
+    });
+    // The acceptance for this exact request binds to this exact detail.
+    expect(req.source).toBe("a.txt");
+    expect(req.destination).toBe("b.txt");
+    expect(req.detail).toBe("a.txt -> b.txt");
+    // A different destination is a different request → different canonical form.
+    const movedOn = normalizePermissionRequest({
+      tool: "move_file",
+      args: { path: "a.txt", new_path: "c.txt" },
+    });
+    expect(movedOn.detail).toBe("a.txt -> c.txt");
+    expect(movedOn).not.toEqual(req);
+  });
+
+  it("argv array arguments canonicalize to a stable joined command", () => {
+    const req = normalizePermissionRequest({
+      tool: "run_shell",
+      args: { argv: ["npm", "run", "build"] },
+    });
+    expect(req.command).toBe("npm run build");
+    expect(req.detail).toBe("npm run build");
+    // Whitespace/special tokens are quoted deterministically, so the canonical
+    // form is unchanged by re-serialization — the original request only.
+    const requoted = normalizePermissionRequest({
+      tool: "run_shell",
+      args: { argv: ["npm run build", "&&", "echo", "hi"] },
+    });
+    expect(requoted.command).toContain('"');
+    expect(requoted.command).not.toBe(req.command);
+  });
+});

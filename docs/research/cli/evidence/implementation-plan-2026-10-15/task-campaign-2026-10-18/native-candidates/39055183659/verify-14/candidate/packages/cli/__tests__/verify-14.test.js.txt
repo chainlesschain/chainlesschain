@@ -1,0 +1,92 @@
+/**
+ * verify-14 — 图片逐项错误 (per-item image-input errors).
+ *
+ * Independent regression coverage for `resolveImages` when the caller supplies
+ * a MIXED list of valid and corrupt images. Every entry must be evaluated in
+ * order and the rejection must name the failing item accurately
+ * ("Image <n>: <reason>"); a corrupt entry must never be silently skipped while
+ * a valid sibling "succeeds" — the call fails loudly instead. Also asserts that
+ * an all-valid multi-format list retains full, accurate success info.
+ *
+ * Import paths are relative to this file (packages/cli/__tests__/), so the
+ * resolved source is packages/cli/src/lib/image-input.js and the fixtures live
+ * in ../helpers/. Corrupt payloads use real temp files so the bounded reader
+ * (readBoundedImage) is exercised, exactly as the existing boundary suite does.
+ */
+import { describe, it, expect, afterAll } from "vitest";
+import fs from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { resolveImages } from "../../src/lib/image-input.js";
+import {
+  PNG_BYTES,
+  imageHeader,
+  imageFsFixture,
+} from "../helpers/image-file-fixtures.js";
+
+const root = fs.mkdtempSync(join(tmpdir(), "cc-verify14-"));
+afterAll(() => fs.rmSync(root, { recursive: true, force: true }));
+
+/** Write a real temp file and return its path. */
+function file(name, data = PNG_BYTES) {
+  const target = join(root, name);
+  fs.writeFileSync(target, data);
+  return target;
+}
+
+describe("resolveImages mixed valid/corrupt input", () => {
+  it("all-valid multi-format list retains full accurate success info", () => {
+    // Real files with valid admission headers for both formats.
+    const png = file("ok.png", PNG_BYTES);
+    const jpg = file("ok.jpg", imageHeader("jpeg"));
+    const out = resolveImages([png, jpg]);
+    expect(out.map((x) => x.mediaType)).toEqual(["image/png", "image/jpeg"]);
+    expect(out[0].data).toBe(PNG_BYTES.toString("base64")); // raw bytes kept
+    expect(out[1].data.length).toBeGreaterThan(0);
+  });
+
+  it("valid then corrupt: rejects with the accurate item-2 reason, no silent skip", () => {
+    const good = file("good.png", PNG_BYTES);
+    const bad = file("bad.png", Buffer.from("not an image"));
+    // A corrupt second entry must abort the run with its own item number,
+    // never be dropped so only the valid image is returned.
+    expect(() => resolveImages([good, bad])).toThrow(
+      /Image 2: .*malformed image header/,
+    );
+  });
+
+  it("corrupt then valid: names item 1, so rejection order matches input", () => {
+    const bad = file("first-bad.png", Buffer.from("garbage bytes"));
+    const good = file("second-good.png", PNG_BYTES);
+    // The first failing entry is reported as Image 1 even though a valid
+    // sibling follows — nothing is silently skipped or reordered.
+    expect(() => resolveImages([bad, good])).toThrow(
+      /Image 1: .*malformed image header/,
+    );
+  });
+
+  it("valid then forged-extension corrupt: item 2 reason is extension mismatch", () => {
+    const good = file("valid.png", PNG_BYTES);
+    // PNG bytes stored under a .jpg name → header/extension mismatch.
+    const forged = file("forged.jpg", PNG_BYTES);
+    expect(() => resolveImages([good, forged])).toThrow(
+      /Image 2: .*extension does not match/,
+    );
+  });
+
+  it("valid then empty corrupt: item 2 reason is the size-bound rejection", () => {
+    const good = file("real.png", PNG_BYTES);
+    const empty = file("empty.png", Buffer.alloc(0));
+    expect(() => resolveImages([good, empty])).toThrow(
+      /Image 2: .*1 byte to 20 MiB/,
+    );
+  });
+
+  it("a single unsupported extension still fails loudly (never silently skipped)", () => {
+    // Even with no valid sibling, an unrecognized extension must throw the
+    // dedicated message instead of returning an empty/partial result.
+    expect(() =>
+      resolveImages(["report.pdf"], { fs: imageFsFixture() }),
+    ).toThrow(/Unsupported image type "\.pdf"/);
+  });
+});

@@ -1,0 +1,135 @@
+import { describe, expect, it, vi } from "vitest";
+import { readImageSnapshot } from "../src/chat/image-file-snapshot.js";
+
+// Shared stat-shaped objects whose size/dev/ino/mtimeMs/ctimeMs and isFile()
+// feed the function's `same()` change detection.
+function fileStat({ size = 4, ino = 100 } = {}) {
+  return { size, dev: 10, ino, mtimeMs: 500, ctimeMs: 600, isFile: () => true };
+}
+
+// A handle.read that faithfully streams `data` into the caller's buffer and
+// returns 0 bytes once exhausted, mirroring how fs.read completes the loop.
+function streamingRead(data) {
+  return vi.fn(async (buffer, offset, length, position) => {
+    const n = Math.min(length, data.length - position);
+    data.copy(buffer, offset, position, position + n);
+    return { bytesRead: n };
+  });
+}
+
+describe("snapshot failure resource cleanup", () => {
+  it("closes the handle and never deletes the file on a successful read", async () => {
+    const data = Buffer.from("1234");
+    const st = fileStat({ size: 4 });
+    const handle = {
+      stat: vi.fn(async () => st),
+      read: streamingRead(data),
+      close: vi.fn(async () => {}),
+    };
+    const io = {
+      lstat: vi.fn(async () => st),
+      open: vi.fn(async () => handle),
+      unlink: vi.fn(async () => {}),
+    };
+    const result = await readImageSnapshot("/tmp/img.png", null, { io });
+    expect(result.toString()).toBe("1234");
+    expect(handle.close).toHaveBeenCalledTimes(1);
+    expect(io.unlink).not.toHaveBeenCalled();
+  });
+
+  it("still closes the handle when the read itself throws", async () => {
+    const st = fileStat({ size: 4 });
+    const handle = {
+      stat: vi.fn(async () => st),
+      read: vi.fn(async () => {
+        throw new Error("disk error");
+      }),
+      close: vi.fn(async () => {}),
+    };
+    const io = {
+      lstat: vi.fn(async () => st),
+      open: vi.fn(async () => handle),
+      unlink: vi.fn(async () => {}),
+    };
+    await expect(
+      readImageSnapshot("/tmp/img.png", null, { io }),
+    ).rejects.toThrow("disk error");
+    expect(handle.close).toHaveBeenCalledTimes(1);
+    expect(io.unlink).not.toHaveBeenCalled();
+  });
+
+  it("still closes the handle when reading is cancelled mid-stream", async () => {
+    const st = fileStat({ size: 4 });
+    const signal = { aborted: false };
+    let calls = 0;
+    const handle = {
+      stat: vi.fn(async () => st),
+      read: vi.fn(async (buffer, offset, length, position) => {
+        if (calls++ === 0) {
+          signal.aborted = true;
+          buffer.writeUInt8(0, offset);
+          return { bytesRead: 1 };
+        }
+        return { bytesRead: 0 };
+      }),
+      close: vi.fn(async () => {}),
+    };
+    const io = {
+      lstat: vi.fn(async () => st),
+      open: vi.fn(async () => handle),
+      unlink: vi.fn(async () => {}),
+    };
+    await expect(
+      readImageSnapshot("/tmp/img.png", null, { io, signal }),
+    ).rejects.toThrow("Image reading cancelled");
+    expect(handle.close).toHaveBeenCalledTimes(1);
+    expect(io.unlink).not.toHaveBeenCalled();
+  });
+
+  it("closes the handle and keeps the file when the file is detected as changed", async () => {
+    const before = fileStat({ size: 4 });
+    const changed = fileStat({ size: 4, ino: 999 });
+    const handle = {
+      stat: vi.fn()
+        .mockResolvedValueOnce(before)
+        .mockResolvedValueOnce(changed),
+      read: streamingRead(Buffer.from("1234")),
+      close: vi.fn(async () => {}),
+    };
+    const io = {
+      lstat: vi.fn(async () => before),
+      open: vi.fn(async () => handle),
+      unlink: vi.fn(async () => {}),
+    };
+    await expect(
+      readImageSnapshot("/tmp/img.png", null, { io }),
+    ).rejects.toThrow("Saved attachment changed while reading");
+    expect(handle.close).toHaveBeenCalledTimes(1);
+    expect(io.unlink).not.toHaveBeenCalled();
+  });
+
+  it("rejects an unexpected size without opening a handle or deleting the file", async () => {
+    const st = fileStat({ size: 4 });
+    const handle = { stat: vi.fn(), read: vi.fn(), close: vi.fn() };
+    const io = {
+      lstat: vi.fn(async () => st),
+      open: vi.fn(async () => handle),
+      unlink: vi.fn(async () => {}),
+    };
+    await expect(
+      readImageSnapshot("/tmp/img.png", 8, { io }),
+    ).rejects.toThrow("missing or changed");
+    expect(io.open).not.toHaveBeenCalled();
+    expect(io.unlink).not.toHaveBeenCalled();
+  });
+
+  it("does not open a handle when already cancelled", async () => {
+    const io = { lstat: vi.fn(), open: vi.fn(), unlink: vi.fn() };
+    await expect(
+      readImageSnapshot("/tmp/img.png", null, { io, signal: { aborted: true } }),
+    ).rejects.toThrow("Image reading cancelled");
+    expect(io.lstat).not.toHaveBeenCalled();
+    expect(io.open).not.toHaveBeenCalled();
+    expect(io.unlink).not.toHaveBeenCalled();
+  });
+});

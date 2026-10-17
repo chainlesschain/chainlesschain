@@ -1,0 +1,124 @@
+import { EventEmitter } from "node:events";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+// Independent regression coverage for "ownership-unknown keeps blocking":
+// once a supervisor reports unconfirmed tree cleanup, subsequent managed
+// execution stays blocked, and the root process disappearing (close) must
+// NOT be treated as full tree exit.
+beforeEach(() => vi.resetModules());
+
+function supervisor(pid = 456) {
+  return Object.assign(new EventEmitter(), {
+    pid,
+    ownedProcessTreeClosed: new Promise(() => {}),
+  });
+}
+
+async function ledger() {
+  return import(
+    "../../src/lib/process-execution-broker/process-ownership-quarantine.js"
+  );
+}
+
+function unconfirmed(proc) {
+  proc.ownedProcessTreeEvidence = { cleanup: { confirmed: false } };
+  proc.emit(
+    Object.assign(new Error("owner lost"), {
+      code: "EXTERNAL_AGENT_CLEANUP_UNCONFIRMED",
+    }),
+  );
+  proc.emit("cleanup:unconfirmed", proc.ownedProcessTreeEvidence);
+}
+
+describe("verify-18 ownership-unknown keeps blocking", () => {
+  it("blocks execution after supervisor reports unconfirmed tree cleanup", async () => {
+    const mod = await ledger();
+    const proc = supervisor();
+    mod.observeProcessOwnership(proc, "exec-1");
+    unconfirmed(proc);
+    expect(mod.getProcessOwnershipStatus()).toEqual({
+      blocked: true,
+      unresolvedExecutionIds: ["exec-1"],
+      recoveryRequired: true,
+      durable: false,
+      restartSafe: false,
+    });
+    expect(() => mod.assertProcessOwnershipAvailable()).toThrow(
+      expect.objectContaining({
+        code: mod.PROCESS_OWNERSHIP_UNCONFIRMED,
+        recoveryRequired: true,
+        executionStarted: false,
+      }),
+    );
+  });
+
+  it("root process disappearing (close) does NOT clear the block", async () => {
+    const mod = await ledger();
+    const proc = supervisor();
+    mod.observeProcessOwnership(proc, "exec-2");
+    unconfirmed(proc);
+    proc.emit("close", 0);
+    // close of the root is not evidence the whole tree is gone.
+    expect(mod.getProcessOwnershipStatus().blocked).toBe(true);
+    expect(mod.getProcessOwnershipStatus().unresolvedExecutionIds).toEqual([
+      "exec-2",
+    ]);
+    expect(() => mod.assertProcessOwnershipAvailable()).toThrow(
+      expect.objectContaining({
+        code: mod.PROCESS_OWNERSHIP_UNCONFIRMED,
+      }),
+    );
+  });
+
+  it("a fresh execution attempt stays blocked after the owner vanished", async () => {
+    const mod = await ledger();
+    const proc = supervisor();
+    mod.observeProcessOwnership(proc, "exec-3");
+    unconfirmed(proc);
+    proc.emit("close", 0);
+    const later = supervisor();
+    mod.observeProcessOwnership(later, "exec-4");
+    expect(() => mod.assertProcessOwnershipAvailable()).toThrow(
+      expect.objectContaining({
+        code: mod.PROCESS_OWNERSHIP_UNCONFIRMED,
+        executionStarted: false,
+      }),
+    );
+    expect(mod.getProcessOwnershipStatus().blocked).toBe(true);
+  });
+
+  it("cleanup:unconfirmed with confirmed:false also blocks", async () => {
+    const mod = await ledger();
+    const proc = supervisor();
+    mod.observeProcessOwnership(proc, "exec-5");
+    proc.ownedProcessTreeEvidence = { cleanup: { confirmed: false } };
+    proc.emit("cleanup:unconfirmed", proc.ownedProcessTreeEvidence);
+    expect(mod.getProcessOwnershipStatus().blocked).toBe(true);
+    expect(() => mod.assertProcessOwnershipAvailable()).toThrow(
+      expect.objectContaining({ code: mod.PROCESS_OWNERSHIP_UNCONFIRMED }),
+    );
+  });
+
+  it("does not block on ordinary signal errors or confirmed cleanup", async () => {
+    const mod = await ledger();
+    const proc = supervisor();
+    mod.observeProcessOwnership(proc, "exec-6");
+    proc.emit("error", new Error("signal failed"));
+    proc.ownedProcessTreeEvidence = { cleanup: { confirmed: true } };
+    proc.emit("cleanup:unconfirmed", proc.ownedProcessTreeEvidence);
+    expect(mod.getProcessOwnershipStatus().blocked).toBe(false);
+    expect(() => mod.assertProcessOwnershipAvailable()).not.toThrow();
+  });
+
+  it("does not block when no tree was ever owned (no pid)", async () => {
+    const mod = await ledger();
+    const proc = supervisor(undefined);
+    proc.pid = undefined;
+    proc.on("error", () => {});
+    mod.observeProcessOwnership(proc, "exec-7");
+    proc.ownedProcessTreeEvidence = { cleanup: { confirmed: false } };
+    proc.emit("cleanup:unconfirmed", proc.ownedProcessTreeEvidence);
+    expect(mod.getProcessOwnershipStatus().blocked).toBe(false);
+    expect(() => mod.assertProcessOwnershipAvailable()).not.toThrow();
+  });
+});

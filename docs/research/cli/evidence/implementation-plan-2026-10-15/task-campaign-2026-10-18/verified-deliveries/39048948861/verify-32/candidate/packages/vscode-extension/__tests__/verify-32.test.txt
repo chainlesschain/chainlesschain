@@ -1,0 +1,86 @@
+import { describe, it, expect, vi } from "vitest";
+import {
+  createImagePreviewGate,
+  drawImagePreview,
+} from "../src/chat/image-preview-gate.js";
+
+// Regression coverage for "preview cancellation ineffective": after a page
+// switch or explicit cancel, a late worker result must never be surfaced to
+// the caller (so it can never be drawn onto the new page), while the active
+// (current page) validation still resolves normally.
+describe("preview gate: late results after cancel never reach a new page", () => {
+  it("positive: cancelling rejects the pending batch and closes late bitmaps", async () => {
+    const worker = { postMessage() {}, terminate() {} };
+    const gate = createImagePreviewGate({ workerFactory: () => worker });
+    const pending = gate.validate([{ data: "first" }]);
+    const rejected = expect(pending).rejects.toThrow("cancelled");
+    gate.cancel();
+    const bitmap = { close: vi.fn() };
+    worker.onmessage({ data: { results: [{ thumbnails: [{ bitmap }] }] } });
+    await rejected;
+    expect(bitmap.close).toHaveBeenCalledOnce();
+  });
+
+  it("positive: the current page validation still resolves its own result", async () => {
+    const workers = [];
+    const gate = createImagePreviewGate({
+      workerFactory: () => {
+        const worker = { postMessage() {}, terminate: vi.fn() };
+        workers.push(worker);
+        return worker;
+      },
+    });
+    const first = gate.validate([{ data: "first" }]);
+    const rejected = expect(first).rejects.toThrow("cancelled");
+    // Switching pages replaces the batch and kills the previous decoder.
+    const second = gate.validate([{ data: "second" }]);
+    workers[0].onmessage({ data: { results: [{ old: true }] } });
+    workers[1].onmessage({ data: { results: [{ fresh: true }] } });
+    await rejected;
+    await expect(second).resolves.toEqual([{ fresh: true }]);
+  });
+
+  it("negative: a late result after the new page resolved is never resolved again", async () => {
+    const workers = [];
+    const gate = createImagePreviewGate({
+      workerFactory: () => {
+        const worker = { postMessage() {}, terminate: vi.fn() };
+        workers.push(worker);
+        return worker;
+      },
+    });
+    const first = gate.validate([{ data: "first" }]);
+    const rejected = expect(first).rejects.toThrow("cancelled");
+    const second = gate.validate([{ data: "second" }]);
+    const bitmap = { close: vi.fn() };
+    workers[0].onmessage({
+      data: { results: [{ thumbnails: [{ bitmap }] }] },
+    });
+    workers[1].onmessage({ data: { results: [{ fresh: true }] } });
+    await rejected;
+    await second;
+    // The stale batch was disposed, not delivered, so only the fresh result
+    // (already consumed by the awaiting caller) could ever be drawn.
+    expect(bitmap.close).toHaveBeenCalledOnce();
+  });
+
+  it("positive: a late error after cancellation neither resolves nor writes", async () => {
+    const worker = { postMessage() {}, terminate() {} };
+    const gate = createImagePreviewGate({ workerFactory: () => worker });
+    const pending = gate.validate([{ data: "first" }]);
+    const rejected = expect(pending).rejects.toThrow("cancelled");
+    gate.cancel();
+    worker.onmessage({ data: { error: "late decoder failure" } });
+    await rejected;
+  });
+
+  it("negative: drawing on the current canvas renders only the given result", async () => {
+    const context = { clearRect() {}, drawImage: vi.fn() };
+    const stop = drawImagePreview(
+      { getContext: () => context },
+      { repetitions: Infinity, thumbnails: [{ bitmap: "current", duration: 1 }] },
+    );
+    expect(context.drawImage).toHaveBeenLastCalledWith("current", 0, 0);
+    stop();
+  });
+});

@@ -1,0 +1,87 @@
+/**
+ * verify-35 — Model failure classification regression.
+ *
+ * Behavioral controls over the model-failure-policy contract. The contract
+ * distinguishes RETRYABLE / provider-outage failures from EXPLICIT DENIALS
+ * (admission ingress failure, ledger persistence, workflow-outcome-unknown,
+ * session budget, cancellation). Protocol errors such as a plain 503 must NOT
+ * be classified as terminal/ingress failures, otherwise an outage would be
+ * silently converted into a rejection that the pipeline treats as success.
+ */
+
+import { describe, it, expect } from "vitest";
+import {
+  isEvolutionIngressFailure,
+  isTerminalModelFailure,
+} from "../src/lib/model-failure-policy.js";
+
+describe("model failure classification", () => {
+  it("unwraps the cause chain to surface a nested evolution ingress denial", () => {
+    const ingress = Object.assign(new Error("ingress denied"), {
+      code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+    });
+    const wrapped = Object.assign(new Error("provider 503"), {
+      status: 503,
+      cause: ingress,
+    });
+    expect(isEvolutionIngressFailure(wrapped)).toBe(true);
+    expect(isTerminalModelFailure(wrapped)).toBe(true);
+  });
+
+  it("does not classify a retryable protocol error as terminal or ingress", () => {
+    const retryable = Object.assign(new Error("provider overloaded"), {
+      status: 503,
+    });
+    const nested = new Error("upstream timeout", { cause: retryable });
+    // An outage/overload is an explicit denial of neither function's markers.
+    expect(isEvolutionIngressFailure(retryable)).toBe(false);
+    expect(isTerminalModelFailure(nested)).toBe(false);
+  });
+
+  it("recognizes the denial markers that only isTerminalModelFailure covers", () => {
+    const ledger = new Error("ledger write failed", {
+      cause: { runtimeLedgerPersistence: true },
+    });
+    const workflow = new Error("outcome unknown", {
+      cause: { workflowEffectOutcomeUnknown: true },
+    });
+    const budget = new Error("budget", {
+      cause: { code: "ERR_SESSION_BUDGET_IN_FLIGHT_LIMIT" },
+    });
+    // The ingress predicate only covers the ingress code; the terminal
+    // predicate additionally covers ledger / workflow / budget denials.
+    expect(isEvolutionIngressFailure(ledger)).toBe(false);
+    expect(isEvolutionIngressFailure(workflow)).toBe(false);
+    expect(isEvolutionIngressFailure(budget)).toBe(false);
+    expect(isTerminalModelFailure(ledger)).toBe(true);
+    expect(isTerminalModelFailure(workflow)).toBe(true);
+    expect(isTerminalModelFailure(budget)).toBe(true);
+  });
+
+  it("treats cancellation as terminal but not as an ingress failure", () => {
+    const aborted = Object.assign(new Error("request aborted"), {
+      name: "AbortError",
+    });
+    expect(isTerminalModelFailure(aborted)).toBe(true);
+    // An abort is an explicit terminal condition, not an admission denial.
+    expect(isEvolutionIngressFailure(aborted)).toBe(false);
+  });
+
+  it("fails closed (terminal) rather than looping on a cyclic cause chain", () => {
+    const cyclic = new Error("timeout");
+    cyclic.cause = cyclic;
+    // Both predicates must terminate and classify the unclassifiable error
+    // as terminal so it is never retried.
+    expect(isTerminalModelFailure(cyclic)).toBe(true);
+    expect(isEvolutionIngressFailure(cyclic)).toBe(true);
+  });
+
+  it("returns false for nullish and unrelated errors (no implicit denial)", () => {
+    expect(isEvolutionIngressFailure(null)).toBe(false);
+    expect(isEvolutionIngressFailure(undefined)).toBe(false);
+    expect(isTerminalModelFailure(null)).toBe(false);
+    expect(isTerminalModelFailure(new Error("generic invalid input"))).toBe(
+      false,
+    );
+  });
+});

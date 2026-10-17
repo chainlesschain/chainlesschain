@@ -1,0 +1,77 @@
+import { describe, expect, it } from "vitest";
+import { buildPermissionDecision } from "../src/lib/permission-decision.js";
+
+describe("verify-20: deny decisions are not downgraded", () => {
+  it("preserves an explicit policy deny verbatim (never allow)", () => {
+    const decision = buildPermissionDecision({
+      toolUseId: "tu-policy-deny",
+      result: { policy: { decision: "deny", via: "managed", rule: "r1" } },
+    });
+
+    expect(decision).not.toBeNull();
+    expect(decision.decision).toBe("deny");
+    expect(decision.decision).not.toBe("allow");
+  });
+
+  it("preserves an explicit approval deny verbatim (never allow)", () => {
+    const decision = buildPermissionDecision({
+      toolUseId: "tu-approval-deny",
+      result: { approval: { decision: "deny", via: "gate" } },
+    });
+
+    expect(decision).not.toBeNull();
+    expect(decision.decision).toBe("deny");
+    expect(decision.decision).not.toBe("allow");
+  });
+
+  it("preserves a deny from the terminal chain outcome (never allow)", () => {
+    const decision = buildPermissionDecision({
+      toolUseId: "tu-chain-deny",
+      result: {
+        permissionChain: [
+          { layer: "settings-rules", outcome: "no-match" },
+          { layer: "approval-gate", outcome: "deny", via: "gate" },
+        ],
+      },
+    });
+
+    expect(decision).not.toBeNull();
+    expect(decision.decision).toBe("deny");
+    expect(decision.decision).not.toBe("allow");
+  });
+
+  it("does not downgrade an unknown policy decision to allow", () => {
+    const decision = buildPermissionDecision({
+      toolUseId: "tu-unknown",
+      result: {
+        policy: { decision: "unknown-strategy", via: "managed" },
+      },
+    });
+
+    expect(decision).not.toBeNull();
+    expect(decision.decision).toBe("unknown-strategy");
+    expect(decision.decision).not.toBe("allow");
+  });
+
+  it("returns null for an absent decision without a chain, never allow", () => {
+    expect(
+      buildPermissionDecision({
+        toolUseId: "tu-empty",
+        result: { policy: { via: "managed" } },
+      }),
+    ).toBeNull();
+  });
+
+  it("keeps an unrecognized decision distinct from allow", () => {
+    const decision = buildPermissionDecision({
+      toolUseId: "tu-misc",
+      result: {
+        policy: { decision: "escalate-for-review", via: "guardrail" },
+      },
+    });
+
+    expect(decision.decision).toBe("escalate-for-review");
+    expect(decision.decision).not.toBe("allow");
+    expect(decision.decision).not.toBe("deny");
+  });
+});

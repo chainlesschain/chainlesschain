@@ -1,0 +1,119 @@
+// Verify-16: 无效设置来源保守失败
+// Deletion, corruption, and ABA source changes must never reuse an old allowed
+// parsed result. Each mutation is injected mid-observation (right after the
+// first non-empty read) so the result must fail conservatively with
+// CC_SETTINGS_SOURCE_CHANGED instead of returning stale settings.
+import { describe, expect, it } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import observation from "../src/lib/settings-source-observation.cjs";
+
+const { observeSettingsSource } = observation;
+
+let root;
+const mkRoot = () => {
+  root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-verify16-"));
+};
+const rmRoot = () => fs.rmSync(root, { recursive: true, force: true });
+
+function write(relative, value) {
+  const file = path.join(root, relative);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, JSON.stringify(value));
+  return file;
+}
+
+// Wraps fs.readSync to run a mutation exactly once after the first non-empty
+// read, mirroring the point where the source bytes have already been consumed
+// by the opening descriptor.
+function mutateAfterFirstRead(mutate) {
+  let done = false;
+  return {
+    ...fs,
+    readSync(...args) {
+      const count = fs.readSync(...args);
+      if (count && !done) {
+        done = true;
+        mutate();
+      }
+      return count;
+    },
+  };
+}
+
+describe("invalid settings source conservatively fails", () => {
+  it("positive control: an undisturbed source returns its parsed settings", () => {
+    mkRoot();
+    try {
+      const file = write("settings.json", { permissions: { allow: ["Read"] } });
+      const result = observeSettingsSource(file);
+      expect(result.exists).toBe(true);
+      expect(result.settings.permissions.allow).toEqual(["Read"]);
+    } finally {
+      rmRoot();
+    }
+  });
+
+  it("deletion after the read re-validates and does not return the stale settings", () => {
+    mkRoot();
+    try {
+      const file = write("settings.json", { permissions: { allow: ["Read"] } });
+      const runtimeFs = mutateAfterFirstRead(() => fs.rmSync(file));
+      expect(() => observeSettingsSource(file, { fs: runtimeFs })).toThrow(
+        expect.objectContaining({ code: "CC_SETTINGS_SOURCE_CHANGED" }),
+      );
+    } finally {
+      rmRoot();
+    }
+  });
+
+  it("in-place corruption after the read re-validates identity and does not return the stale settings", () => {
+    mkRoot();
+    try {
+      const file = write("settings.json", { permissions: { allow: ["Read"] } });
+      const runtimeFs = mutateAfterFirstRead(() =>
+        fs.writeFileSync(file, JSON.stringify({ permissions: { deny: ["Read"] } })),
+      );
+      expect(() => observeSettingsSource(file, { fs: runtimeFs })).toThrow(
+        expect.objectContaining({ code: "CC_SETTINGS_SOURCE_CHANGED" }),
+      );
+    } finally {
+      rmRoot();
+    }
+  });
+
+  it("ABA replacement (same bytes, new inode) after the read does not reuse the old allowed result", () => {
+    mkRoot();
+    try {
+      const file = write("settings.json", { permissions: { allow: ["Read"] } });
+      const runtimeFs = mutateAfterFirstRead(() => {
+        const swap = path.join(root, "swap.json");
+        fs.writeFileSync(swap, JSON.stringify({ permissions: { allow: ["Read"] } }));
+        fs.renameSync(swap, file);
+      });
+      expect(() => observeSettingsSource(file, { fs: runtimeFs })).toThrow(
+        expect.objectContaining({ code: "CC_SETTINGS_SOURCE_CHANGED" }),
+      );
+    } finally {
+      rmRoot();
+    }
+  });
+
+  it("ABA via remove-and-restore under the same logical path fails rather than returning stale settings", () => {
+    mkRoot();
+    try {
+      const file = write("settings.json", { permissions: { allow: ["Read"] } });
+      const runtimeFs = mutateAfterFirstRead(() => {
+        const content = fs.readFileSync(file);
+        fs.rmSync(file);
+        fs.writeFileSync(file, content);
+      });
+      expect(() => observeSettingsSource(file, { fs: runtimeFs })).toThrow(
+        expect.objectContaining({ code: "CC_SETTINGS_SOURCE_CHANGED" }),
+      );
+    } finally {
+      rmRoot();
+    }
+  });
+});

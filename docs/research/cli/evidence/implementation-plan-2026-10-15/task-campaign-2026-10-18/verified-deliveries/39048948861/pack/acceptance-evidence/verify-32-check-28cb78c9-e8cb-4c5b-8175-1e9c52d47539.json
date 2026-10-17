@@ -1,0 +1,125 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-32",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 13,
+      "passed": 13,
+      "failed": 0
+    },
+    {
+      "kind": "candidate",
+      "total": 5,
+      "passed": 5,
+      "failed": 0
+    }
+  ],
+  "mutations": [
+    {
+      "name": "cancelled-preview-resolves-successfully",
+      "sourceSha256": "0fc78bdc4c0c64003240f870ab9c638f48b2cd04aedf58416cb7bbcbca284b1d",
+      "total": 5,
+      "passed": 1,
+      "failed": 4
+    }
+  ],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 142,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 546,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":4,\"numPassedTestSuites\":4,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":13,\"numPassedTests\":13,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1792255424928,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"complete-container admission, distinct from codec decoding\"],\"fullName\":\"complete-container admission, distinct from codec decoding counts all GIF compositing canvases, including small delta frames\",\"status\":\"passed\",\"title\":\"counts all GIF compositing canvases, including small delta frames\",\"duration\":2.794316000000009,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"complete-container admission, distinct from codec decoding\"],\"fullName\":\"complete-container admission, distinct from codec decoding rejects damaged/truncated containers that retain valid dimension headers\",\"status\":\"passed\",\"title\":\"rejects damaged/truncated containers that retain valid dimension headers\",\"duration\":0.5293470000000013,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"complete-container admission, distinct from codec decoding\"],\"fullName\":\"complete-container admission, distinct from codec decoding retains PNG and GIF acceptance with explicit frame metadata\",\"status\":\"passed\",\"title\":\"retains PNG and GIF acceptance with explicit frame metadata\",\"duration\":0.30681699999999523,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"cancellable codec worker lifecycle\"],\"fullName\":\"cancellable codec worker lifecycle closes transferred bitmaps that arrive after cancellation\",\"status\":\"passed\",\"title\":\"closes transferred bitmaps that arrive after cancellation\",\"duration\":1.1207469999999944,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"cancellable codec worker lifecycle\"],\"fullName\":\"cancellable codec worker lifecycle preserves per-frame duration with a minimum and stops playback timers\",\"status\":\"passed\",\"title\":\"preserves per-frame duration with a minimum and stops playback timers\",\"duration\":1.9763289999999927,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"cancellable codec worker lifecycle\"],\"fullName\":\"cancellable codec worker lifecycle rejects codec frame-count or canvas disagreements and closes native resources\",\"status\":\"passed\",\"title\":\"rejects codec frame-count or canvas disagreements and closes native resources\",\"duration\":1.441473000000002,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"cancellable codec worker lifecycle\"],\"fullName\":\"cancellable codec worker lifecycle terminates a stuck worker on deadline and rejects stale completion\",\"status\":\"passed\",\"title\":\"terminates a stuck worker on deadline and rejects stale completion\",\"duration\":0.6985289999999793,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"cancellable codec worker lifecycle\"],\"fullName\":\"cancellable codec worker lifecycle replacing the visible batch kills its decoder and accepts only the new result\",\"status\":\"passed\",\"title\":\"replacing the visible batch kills its decoder and accepts only the new result\",\"duration\":0.5163179999999841,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"single-descriptor image reads\"],\"fullName\":\"single-descriptor image reads handles short reads and rejects growth or same-size observed modification\",\"status\":\"passed\",\"title\":\"handles short reads and rejects growth or same-size observed modification\",\"duration\":1.3462319999999863,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"single-descriptor image reads\"],\"fullName\":\"single-descriptor image reads checks cancellation and elapsed budget between chunks and closes the descriptor\",\"status\":\"passed\",\"title\":\"checks cancellation and elapsed budget between chunks and closes the descriptor\",\"duration\":0.8254670000000033,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"single-descriptor image reads\"],\"fullName\":\"single-descriptor image reads reads real files and rejects an unexpected saved size\",\"status\":\"passed\",\"title\":\"reads real files and rejects an unexpected saved size\",\"duration\":7.251983999999993,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[],\"fullName\":\"persists GIF attachments and cleans staging under a path longer than Windows MAX_PATH\",\"status\":\"passed\",\"title\":\"persists GIF attachments and cleans staging under a path longer than Windows MAX_PATH\",\"duration\":26.02448000000001,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[],\"fullName\":\"cleans private worker staging after timeout/cancel and promotes accepted bytes exclusively\",\"status\":\"passed\",\"title\":\"cleans private worker staging after timeout/cancel and promotes accepted bytes exclusively\",\"duration\":22.166133000000002,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1792255425091,\"endTime\":1792255425158.166,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/vscode-ext-image-decode-budget.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 456,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":5,\"numPassedTests\":5,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1792255425440,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"preview gate: late results after cancel never reach a new page\"],\"fullName\":\"preview gate: late results after cancel never reach a new page positive: cancelling rejects the pending batch and closes late bitmaps\",\"status\":\"passed\",\"title\":\"positive: cancelling rejects the pending batch and closes late bitmaps\",\"duration\":2.0569690000000094,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"preview gate: late results after cancel never reach a new page\"],\"fullName\":\"preview gate: late results after cancel never reach a new page positive: the current page validation still resolves its own result\",\"status\":\"passed\",\"title\":\"positive: the current page validation still resolves its own result\",\"duration\":0.8046670000000091,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"preview gate: late results after cancel never reach a new page\"],\"fullName\":\"preview gate: late results after cancel never reach a new page negative: a late result after the new page resolved is never resolved again\",\"status\":\"passed\",\"title\":\"negative: a late result after the new page resolved is never resolved again\",\"duration\":0.39005000000000223,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"preview gate: late results after cancel never reach a new page\"],\"fullName\":\"preview gate: late results after cancel never reach a new page positive: a late error after cancellation neither resolves nor writes\",\"status\":\"passed\",\"title\":\"positive: a late error after cancellation neither resolves nor writes\",\"duration\":0.23717299999999852,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"preview gate: late results after cancel never reach a new page\"],\"fullName\":\"preview gate: late results after cancel never reach a new page negative: drawing on the current canvas renders only the given result\",\"status\":\"passed\",\"title\":\"negative: drawing on the current canvas renders only the given result\",\"duration\":0.2917939999999959,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1792255425576,\"endTime\":1792255425580.2917,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/vscode-extension/__tests__/verify-32.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/packages/vscode-extension/src/chat/image-preview-gate.js"
+      ],
+      "setup": false,
+      "ms": 121,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 453,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":0,\"numFailedTestSuites\":2,\"numPendingTestSuites\":0,\"numTotalTests\":5,\"numPassedTests\":1,\"numFailedTests\":4,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1792255426020,\"success\":false,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"preview gate: late results after cancel never reach a new page\"],\"fullName\":\"preview gate: late results after cancel never reach a new page positive: cancelling rejects the pending batch and closes late bitmaps\",\"status\":\"failed\",\"title\":\"positive: cancelling rejects the pending batch and closes late bitmaps\",\"duration\":5.392948999999987,\"failureMessages\":[\"Error: promise resolved \\\"[]\\\" instead of rejecting\\n    at _Assertion.__VITEST_REJECTS__ (file:///workspace/node_modules/@vitest/expect/dist/index.js:1747:17)\\n    at _Assertion.propertyGetter (file:///workspace/node_modules/chai/index.js:1570:27)\\n    at Reflect.get (<anonymous>)\\n    at Object.proxyGetter [as get] (file:///workspace/node_modules/chai/index.js:1659:22)\\n    at /workspace/packages/vscode-extension/__tests__/verify-32.test.js:16:37\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"preview gate: late results after cancel never reach a new page\"],\"fullName\":\"preview gate: late results after cancel never reach a new page positive: the current page validation still resolves its own result\",\"status\":\"failed\",\"title\":\"positive: the current page validation still resolves its own result\",\"duration\":0.7426240000000064,\"failureMessages\":[\"Error: promise resolved \\\"[]\\\" instead of rejecting\\n    at _Assertion.__VITEST_REJECTS__ (file:///workspace/node_modules/@vitest/expect/dist/index.js:1747:17)\\n    at _Assertion.propertyGetter (file:///workspace/node_modules/chai/index.js:1570:27)\\n    at Reflect.get (<anonymous>)\\n    at Object.proxyGetter [as get] (file:///workspace/node_modules/chai/index.js:1659:22)\\n    at /workspace/packages/vscode-extension/__tests__/verify-32.test.js:34:35\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"preview gate: late results after cancel never reach a new page\"],\"fullName\":\"preview gate: late results after cancel never reach a new page negative: a late result after the new page resolved is never resolved again\",\"status\":\"failed\",\"title\":\"negative: a late result after the new page resolved is never resolved again\",\"duration\":0.5975189999999913,\"failureMessages\":[\"Error: promise resolved \\\"[]\\\" instead of rejecting\\n    at _Assertion.__VITEST_REJECTS__ (file:///workspace/node_modules/@vitest/expect/dist/index.js:1747:17)\\n    at _Assertion.propertyGetter (file:///workspace/node_modules/chai/index.js:1570:27)\\n    at Reflect.get (<anonymous>)\\n    at Object.proxyGetter [as get] (file:///workspace/node_modules/chai/index.js:1659:22)\\n    at /workspace/packages/vscode-extension/__tests__/verify-32.test.js:53:35\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"preview gate: late results after cancel never reach a new page\"],\"fullName\":\"preview gate: late results after cancel never reach a new page positive: a late error after cancellation neither resolves nor writes\",\"status\":\"failed\",\"title\":\"positive: a late error after cancellation neither resolves nor writes\",\"duration\":0.4811960000000113,\"failureMessages\":[\"Error: promise resolved \\\"[]\\\" instead of rejecting\\n    at _Assertion.__VITEST_REJECTS__ (file:///workspace/node_modules/@vitest/expect/dist/index.js:1747:17)\\n    at _Assertion.propertyGetter (file:///workspace/node_modules/chai/index.js:1570:27)\\n    at Reflect.get (<anonymous>)\\n    at Object.proxyGetter [as get] (file:///workspace/node_modules/chai/index.js:1659:22)\\n    at /workspace/packages/vscode-extension/__tests__/verify-32.test.js:71:37\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"preview gate: late results after cancel never reach a new page\"],\"fullName\":\"preview gate: late results after cancel never reach a new page negative: drawing on the current canvas renders only the given result\",\"status\":\"passed\",\"title\":\"negative: drawing on the current canvas renders only the given result\",\"duration\":0.6136219999999923,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1792255426155,\"endTime\":1792255426163.6135,\"status\":\"failed\",\"message\":\"\",\"name\":\"/workspace/packages/vscode-extension/__tests__/verify-32.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": true,
+  "detail": "Independent operator checks passed; this is not a provider or task-outcome sample."
+}

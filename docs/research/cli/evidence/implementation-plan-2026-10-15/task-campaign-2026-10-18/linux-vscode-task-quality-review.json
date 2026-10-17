@@ -1,0 +1,518 @@
+{
+  "schema": "chainlesschain.native-task-quality-review/v1",
+  "generatedAt": "2026-10-17T18:20:51.899149+00:00",
+  "scope": "Read-only review of original candidate bytes, exact bound checker receipts, and frozen git source; no source/candidate edits, tests reruns or model requests.",
+  "frozenProjectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "generation": {
+    "runId": "39055183659",
+    "sourceCommit": "b80948213e5cd952a3785734886c9b3f02df5543",
+    "summaryDigest": "sha256:cd37a8ab79b81c1f274a6f6cd08ecb5f5142ebf67caba80fcc7954a7ef9a5e5c",
+    "path": "C:\\code\\chainlesschain\\.work\\native45-generation\\39055183659\\linux-vscode\\summary.json"
+  },
+  "acceptance": {
+    "runId": "39056177887",
+    "sourceCommit": "b80948213e5cd952a3785734886c9b3f02df5543",
+    "artifactSourceCommit": "b80948213e5cd952a3785734886c9b3f02df5543",
+    "summaryDigest": "sha256:57ca020298d4a78a11562dff2d45c9c7dc9f5ad1e878889852d7835a6cfed6e8",
+    "sourceSummaryDigest": "sha256:cd37a8ab79b81c1f274a6f6cd08ecb5f5142ebf67caba80fcc7954a7ef9a5e5c",
+    "path": "C:\\code\\chainlesschain\\.work\\native45-acceptance\\39056177887\\linux-vscode\\summary.json"
+  },
+  "overview": {
+    "samples": 5,
+    "hostAndGenerationPassed": 5,
+    "candidateAcceptancePassed": 0,
+    "candidateTests": {
+      "registered": 23,
+      "passed": 15,
+      "failed": 8,
+      "importBlockedBodies": 6
+    },
+    "emptyOrMissingCandidate": 0,
+    "baselineFailures": 0,
+    "behavioralMutationAssessed": 0,
+    "conclusion": "All five deliveries reached disk and passed native UI/restart generation checks. Rejections are candidate implementation/fixture errors; behavioral mutation quality remains unassessed because all suites fail before that stage."
+  },
+  "samples": [
+    {
+      "sampleId": "first-run-linux-vscode",
+      "taskId": "verify-05",
+      "kind": "first-run",
+      "hostPassed": true,
+      "generationPassed": true,
+      "sourceScopePassed": true,
+      "candidateAcceptancePassed": false,
+      "candidate": {
+        "path": "C:\\code\\chainlesschain\\.work\\native45-generation\\39055183659\\linux-vscode\\first-run-linux-vscode\\candidate\\packages\\cli\\__tests__\\verify-05.test.js",
+        "repositoryPath": "packages/cli/__tests__/verify-05.test.js",
+        "digest": "sha256:2e3f3c98ebd9823efb809bdea1ad9108262a8b9ed71827f2084db9fc27a5a73d",
+        "bytes": 4904,
+        "matchesGenerationDigest": true,
+        "containsNonPlaceholderCode": true,
+        "anchors": [
+          {
+            "startLine": 3,
+            "endLine": 7,
+            "text": "import {\n  AgentRouter,\n  createAgentRouter,\n  AGENT_ROUTER_ERROR,\n} from \"../src/lib/agent-router.js\";"
+          },
+          {
+            "startLine": 53,
+            "endLine": 86,
+            "text": "  it(\"an installed CLI backend is reported not admitted and not dispatchable\", () => {\n    const router = createAgentRouter({\n      backends: [makeCLIBackend()],\n      strategy: \"round-robin\",\n    });\n\n    const summary = router.summary();\n    expect(summary.backends).toHaveLength(1);\n    expect(summary.backends[0]).toMatchObject({\n      type: \"claude\",\n      installed: true,\n      governanceAdmitted: false,\n      dispatchable: false,\n      runnable: false,\n      blockedReason: AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED,\n    });\n  });\n\n  it(\"an installed API backend is retained as admitted and dispatchable\", () => {\n    const router = createAgentRouter({\n      backends: [makeAPIBackend()],\n      strategy: \"round-robin\",\n    });\n\n    const summary = router.summary();\n    expect(summary.backends).toHaveLength(1);\n    expect(summary.backends[0]).toMatchObject({\n      type: \"gemini\",\n      installed: true,\n      governanceAdmitted: true,\n      dispatchable: true,\n      runnable: true,\n      blockedReason: null,\n    });"
+          },
+          {
+            "startLine": 95,
+            "endLine": 108,
+            "text": "    const byType = new Map(\n      router.summary().backends.map((b) => [b.type, b]),\n    );\n    expect(byType.get(\"claude\")).toMatchObject({\n      installed: true,\n      dispatchable: false,\n      governanceAdmitted: false,\n      blockedReason: AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED,\n    });\n    expect(byType.get(\"gemini\")).toMatchObject({\n      installed: true,\n      dispatchable: true,\n      governanceAdmitted: true,\n    });"
+          }
+        ],
+        "archivedPath": "native-candidates/39055183659/first-run-linux-vscode/candidate/packages/cli/__tests__/verify-05.test.js.txt"
+      },
+      "receipt": {
+        "path": "C:\\code\\chainlesschain\\.work\\linux-vscode-quality-evidence\\pack\\acceptance-evidence\\verify-05-check-671ed7f3-6cf6-47d4-8776-0f4574430870.json",
+        "digest": "sha256:3c7db4f12a178ef7c8ea71800ade27b3b54afb762c725d1ec95c38aaaa141a12",
+        "matchesAcceptanceDigest": true,
+        "baseline": [
+          {
+            "kind": "baseline",
+            "total": 42,
+            "passed": 42,
+            "failed": 0
+          }
+        ],
+        "candidateExecution": {
+          "exitCode": 1,
+          "total": 5,
+          "passed": 1,
+          "failed": 4,
+          "suiteErrors": [],
+          "failedAssertions": [
+            {
+              "name": "verify-05: install/admission separation for agent backends an installed CLI backend is reported not admitted and not dispatchable",
+              "messages": [
+                "TypeError: (0 , __vite_ssr_import_1__.createAgentRouter) is not a function\n    at /workspace/packages/cli/__tests__/verify-05.test.js:54:37\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64"
+              ]
+            },
+            {
+              "name": "verify-05: install/admission separation for agent backends an installed API backend is retained as admitted and dispatchable",
+              "messages": [
+                "TypeError: (0 , __vite_ssr_import_1__.createAgentRouter) is not a function\n    at /workspace/packages/cli/__tests__/verify-05.test.js:72:37\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64"
+              ]
+            },
+            {
+              "name": "verify-05: install/admission separation for agent backends a mixed router denies the CLI backend while retaining the API backend",
+              "messages": [
+                "TypeError: (0 , __vite_ssr_import_1__.createAgentRouter) is not a function\n    at /workspace/packages/cli/__tests__/verify-05.test.js:90:37\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64"
+              ]
+            },
+            {
+              "name": "verify-05: install/admission separation for agent backends dispatch enforces the admission gate before selecting any backend",
+              "messages": [
+                "TypeError: (0 , __vite_ssr_import_1__.createAgentRouter) is not a function\n    at /workspace/packages/cli/__tests__/verify-05.test.js:130:37\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64"
+              ]
+            }
+          ]
+        },
+        "mutations": [],
+        "mutationStage": "not reached; candidate suite failed first",
+        "archived": {
+          "path": "quality-review-receipts/verify-05-check-671ed7f3-6cf6-47d4-8776-0f4574430870.json.gz",
+          "originalDigest": "sha256:3c7db4f12a178ef7c8ea71800ade27b3b54afb762c725d1ec95c38aaaa141a12",
+          "storedDigest": "sha256:e93e7a9ee4b84801d00bf7994913f75ee244bb83095d4f6e510ae8a7dede419c",
+          "originalBytes": 22212
+        }
+      },
+      "category": "nonexistent-api-and-contract-mismatch",
+      "conclusion": "Four of five tests fail at calls to nonexistent createAgentRouter. The sole direct AgentRouter CLI-refusal test passes.",
+      "improvements": [
+        "Use the exported AgentRouter constructor; validate the actual exported surface before writing tests.",
+        "summary() returns an array, not {backends}; API summary is governanceAdmitted=null, runnable=false, installed=null, blockedReason=API_TEXT_ONLY_NO_TOOL_EXECUTION. Preserve those distinctions in assertions.",
+        "Pass installed:true explicitly when asserting CLI installation; _resolveBackends defaults this field to null."
+      ],
+      "additionalStaticFindings": [
+        "Fixing the missing factory alone would not make this candidate pass: summary shape and several API admission/execution assertions also contradict frozen source."
+      ],
+      "sourceAnchors": [
+        {
+          "commit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+          "file": "packages/cli/src/lib/agent-router.js",
+          "fileDigest": "sha256:8c6d1fa114372e120f91d5f11a8254b343e12ce87cbc6972eb57cf0f8602e296",
+          "startLine": 195,
+          "endLine": 225,
+          "text": "      output: \"\",\n      exitCode: -1,\n      duration: Date.now() - startTime,\n      agentId: `api-${provider}`,\n      error: err.message,\n      runtimeClaims: SIMULATED_API_CLAIMS,\n      terminalEvidence: [],\n    };\n  } finally {\n    clearTimeout(timeoutHandle);\n  }\n}\n\n// ─── AgentRouter ──────────────────────────────────────────────────\n\nexport class AgentRouter extends EventEmitter {\n  /**\n   * @param {object} options\n   * @param {Array}   options.backends   - Backend configs (see examples above)\n   * @param {string}  options.strategy   - \"round-robin\"|\"by-type\"|\"parallel-all\"|\"primary\"\n   * @param {number}  options.maxParallel - Max concurrent agent tasks (default 3)\n   */\n  constructor(options = {}) {\n    super();\n    this.strategy = options.strategy || \"round-robin\";\n    this.maxParallel = options.maxParallel || 3;\n    this._backends = this._resolveBackends(options.backends || []);\n    this._rrIndex = 0; // round-robin cursor\n  }\n\n  /**"
+        },
+        {
+          "commit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+          "file": "packages/cli/src/lib/agent-router.js",
+          "fileDigest": "sha256:8c6d1fa114372e120f91d5f11a8254b343e12ce87cbc6972eb57cf0f8602e296",
+          "startLine": 473,
+          "endLine": 482,
+          "text": "          sandbox: cfg.sandbox || null,\n        });\n        pool.on(\"agent:output\", (ev) => this.emit(\"agent:output\", ev));\n        return {\n          type,\n          isCLI: true,\n          installed: cfg.installed ?? null,\n          weight: cfg.weight || 1,\n          _pool: pool,\n          timeout: cfg.timeout || 300_000,"
+        },
+        {
+          "commit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+          "file": "packages/cli/src/lib/agent-router.js",
+          "fileDigest": "sha256:8c6d1fa114372e120f91d5f11a8254b343e12ce87cbc6972eb57cf0f8602e296",
+          "startLine": 529,
+          "endLine": 546,
+          "text": "  summary() {\n    return this._backends.map((b) => ({\n      type: b.type,\n      kind: b.isCLI ? \"cli\" : \"api\",\n      provider: b.provider || b.type,\n      weight: b.weight,\n      installed: b.isCLI ? (b.installed ?? null) : null,\n      configured: true,\n      governanceAdmitted: b.isCLI ? false : null,\n      requiresAuthenticatedRun: true,\n      dispatchable: !b.isCLI,\n      runnable: false,\n      executionMode: b.isCLI ? \"blocked\" : \"text-only\",\n      blockedReason: b.isCLI\n        ? AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED\n        : \"API_TEXT_ONLY_NO_TOOL_EXECUTION\",\n      alternative: \"cc agent\",\n    }));"
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-05",
+      "taskId": "verify-05",
+      "kind": "task",
+      "hostPassed": true,
+      "generationPassed": true,
+      "sourceScopePassed": true,
+      "candidateAcceptancePassed": false,
+      "candidate": {
+        "path": "C:\\code\\chainlesschain\\.work\\native45-generation\\39055183659\\linux-vscode\\verify-05\\candidate\\packages\\cli\\__tests__\\verify-05.test.js",
+        "repositoryPath": "packages/cli/__tests__/verify-05.test.js",
+        "digest": "sha256:5fe827288aeae373e4993ab4c82138f8832be2cf7ebe862cf86af499c20be832",
+        "bytes": 5790,
+        "matchesGenerationDigest": true,
+        "containsNonPlaceholderCode": true,
+        "anchors": [
+          {
+            "startLine": 101,
+            "endLine": 113,
+            "text": "  it(\"_runSingleTask() refuses an installed CLI and never touches its pool\", async () => {\n    const cli = installedCliBackend();\n    const router = makeRouter([cli]);\n    await expect(\n      router._runSingleTask(\n        { id: \"t1\", description: \"task\", context: null },\n        { cwd: \"/tmp\", evolutionIngress: null, backend: cli },\n      ),\n    ).rejects.toMatchObject({\n      code: AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED,\n    });\n    // The CLI was never dispatched: install alone grants no run permission.\n    expect(cli._pool.dispatch).not.toHaveBeenCalled();"
+          }
+        ],
+        "archivedPath": "native-candidates/39055183659/verify-05/candidate/packages/cli/__tests__/verify-05.test.js.txt"
+      },
+      "receipt": {
+        "path": "C:\\code\\chainlesschain\\.work\\linux-vscode-quality-evidence\\pack\\acceptance-evidence\\verify-05-check-2dd8d9d0-0ea6-4013-992d-52f7ae4030cc.json",
+        "digest": "sha256:352a221cd859f17bb886e4e6cd5d3fa7b86ce71a71630e842ed84bde6d1cc807",
+        "matchesAcceptanceDigest": true,
+        "baseline": [
+          {
+            "kind": "baseline",
+            "total": 42,
+            "passed": 42,
+            "failed": 0
+          }
+        ],
+        "candidateExecution": {
+          "exitCode": 1,
+          "total": 6,
+          "passed": 5,
+          "failed": 1,
+          "suiteErrors": [],
+          "failedAssertions": [
+            {
+              "name": "installed CLI backend is not admitted to run _runSingleTask() refuses an installed CLI and never touches its pool",
+              "messages": [
+                "Error: expected TypeError: Cannot destructure property 'c… to match object { Object (code) }\n    at _Assertion.__VITEST_REJECTS__ (file:///workspace/node_modules/@vitest/expect/dist/index.js:1747:17)\n    at _Assertion.propertyGetter (file:///workspace/node_modules/chai/index.js:1570:27)\n    at Reflect.get (<anonymous>)\n    at Object.proxyGetter [as get] (file:///workspace/node_modules/chai/index.js:1659:22)\n    at /workspace/packages/cli/__tests__/verify-05.test.js:109:6\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)"
+              ]
+            }
+          ]
+        },
+        "mutations": [],
+        "mutationStage": "not reached; candidate suite failed first",
+        "archived": {
+          "path": "quality-review-receipts/verify-05-check-2dd8d9d0-0ea6-4013-992d-52f7ae4030cc.json.gz",
+          "originalDigest": "sha256:352a221cd859f17bb886e4e6cd5d3fa7b86ce71a71630e842ed84bde6d1cc807",
+          "storedDigest": "sha256:6fc11045af233e28ea97ffa91eb6ec63241b0da9c2f6d1d7501de32e0b9d0d02",
+          "originalBytes": 19930
+        }
+      },
+      "category": "wrong-method-signature",
+      "conclusion": "Five of six tests pass. The direct CLI refusal test calls _runSingleTask(task, {cwd,evolutionIngress,backend}), but the implementation requires _runSingleTask(task, backend, {cwd,evolutionIngress}); missing third argument throws TypeError before governance denial.",
+      "improvements": [
+        "Supply backend as the second argument and options as the third, keeping the error-code and no-pool-dispatch assertions."
+      ],
+      "additionalStaticFindings": [],
+      "sourceAnchors": [
+        {
+          "commit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+          "file": "packages/cli/src/lib/agent-router.js",
+          "fileDigest": "sha256:8c6d1fa114372e120f91d5f11a8254b343e12ce87cbc6972eb57cf0f8602e296",
+          "startLine": 425,
+          "endLine": 441,
+          "text": "  async _runSingleTask(task, backend, { cwd, evolutionIngress }) {\n    this.emit(\"agent:start\", { taskId: task.id, backend: backend.type });\n\n    let result;\n    if (backend.isCLI) {\n      // Claude/Codex own every provider call made inside their subprocess. A\n      // projected initial prompt cannot prove that later compaction, retry,\n      // tool, or model calls crossed this Run's durable ingress. Until an\n      // authenticated child protocol can bind every such call and return\n      // evidence, admitting the black box would create an unobservable model\n      // bypass. This is deliberately unconditional so a future internal caller\n      // cannot bypass dispatch()'s candidate filter by calling this helper.\n      const error = new Error(\n        `External ${backend.type} CLI does not attest per-request evolution ingress`,\n      );\n      error.code = AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED;\n      throw error;"
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-14",
+      "taskId": "verify-14",
+      "kind": "task",
+      "hostPassed": true,
+      "generationPassed": true,
+      "sourceScopePassed": true,
+      "candidateAcceptancePassed": false,
+      "candidate": {
+        "path": "C:\\code\\chainlesschain\\.work\\native45-generation\\39055183659\\linux-vscode\\verify-14\\candidate\\packages\\cli\\__tests__\\verify-14.test.js",
+        "repositoryPath": "packages/cli/__tests__/verify-14.test.js",
+        "digest": "sha256:c939abcdd2ee7b45293f407caa18f43f2cd5caaf29f7d662d1f9e6d3ea379898",
+        "bytes": 3982,
+        "matchesGenerationDigest": true,
+        "containsNonPlaceholderCode": true,
+        "anchors": [
+          {
+            "startLine": 1,
+            "endLine": 12,
+            "text": "/**\n * verify-14 — 图片逐项错误 (per-item image-input errors).\n *\n * Independent regression coverage for `resolveImages` when the caller supplies\n * a MIXED list of valid and corrupt images. Every entry must be evaluated in\n * order and the rejection must name the failing item accurately\n * (\"Image <n>: <reason>\"); a corrupt entry must never be silently skipped while\n * a valid sibling \"succeeds\" — the call fails loudly instead. Also asserts that\n * an all-valid multi-format list retains full, accurate success info.\n *\n * Import paths are relative to this file (packages/cli/__tests__/), so the\n * resolved source is packages/cli/src/lib/image-input.js and the fixtures live"
+          }
+        ],
+        "archivedPath": "native-candidates/39055183659/verify-14/candidate/packages/cli/__tests__/verify-14.test.js.txt"
+      },
+      "receipt": {
+        "path": "C:\\code\\chainlesschain\\.work\\linux-vscode-quality-evidence\\pack\\acceptance-evidence\\verify-14-check-63bb0795-a4b1-4a5e-aa52-4e45a34ab9bf.json",
+        "digest": "sha256:1c705fcb9c3d70358d40142c46d307432b8494b64d9b65c18a9c14ad400eb505",
+        "matchesAcceptanceDigest": true,
+        "baseline": [
+          {
+            "kind": "baseline",
+            "total": 41,
+            "passed": 41,
+            "failed": 0
+          }
+        ],
+        "candidateExecution": {
+          "exitCode": 1,
+          "total": 0,
+          "passed": 0,
+          "failed": 0,
+          "suiteErrors": [
+            {
+              "file": "/workspace/packages/cli/__tests__/verify-14.test.js",
+              "message": "Cannot find module '../../src/lib/image-input.js' imported from /workspace/packages/cli/__tests__/verify-14.test.js"
+            }
+          ],
+          "failedAssertions": []
+        },
+        "mutations": [],
+        "mutationStage": "not reached; candidate suite failed first",
+        "archived": {
+          "path": "quality-review-receipts/verify-14-check-63bb0795-a4b1-4a5e-aa52-4e45a34ab9bf.json.gz",
+          "originalDigest": "sha256:1c705fcb9c3d70358d40142c46d307432b8494b64d9b65c18a9c14ad400eb505",
+          "storedDigest": "sha256:9395dccf574aac954cddfe805fa3b3bc16bb1fb21eef06a876056c99398c07d2",
+          "originalBytes": 16714
+        }
+      },
+      "category": "module-resolution-before-test-discovery",
+      "conclusion": "Six test bodies were written, but zero tests execute because ../../src/lib/image-input.js resolves outside packages/cli. This is an import failure, not an empty test or failed file write.",
+      "improvements": [
+        "From packages/cli/__tests__/verify-14.test.js use ../src/lib/image-input.js and ./helpers/image-file-fixtures.js.",
+        "After import correction, validate actual image admission fixtures and error contracts before assessing behavioral coverage; no pass is inferred here."
+      ],
+      "additionalStaticFindings": [
+        "The ../helpers/image-file-fixtures.js import is also one directory too high; its failure is masked by the first failed module import."
+      ],
+      "sourceAnchors": [
+        {
+          "commit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+          "file": "packages/cli/src/lib/image-input.js",
+          "fileDigest": "sha256:4283855c793164314a1c99587a41459d4aa82d54e93b2498f76c163e984aac9c",
+          "startLine": 65,
+          "endLine": 87,
+          "text": "\n/**\n * Read `--image <path>` values into `[{ mediaType, data(base64) }]`.\n * Throws on an unsupported extension so a typo fails loudly instead of sending\n * a broken request.\n */\nexport function resolveImages(paths, deps = {}) {\n  const _fs = deps.fs || fs;\n  if (!Array.isArray(paths) || paths.length === 0) return [];\n  if (paths.length > MAX_INPUT_IMAGES)\n    throw new Error(`Attach at most ${MAX_INPUT_IMAGES} images per message`);\n  let remainingBytes = MAX_INPUT_IMAGE_BYTES;\n  return paths.map((p, index) => {\n    const ext = path.extname(String(p)).toLowerCase();\n    const mediaType = EXT_MEDIA[ext];\n    if (!mediaType) {\n      throw new Error(\n        `Unsupported image type \"${ext || p}\" — use png/jpg/jpeg/gif/webp.`,\n      );\n    }\n    try {\n      const data = readBoundedImage(p, mediaType, remainingBytes, _fs);\n      remainingBytes -= data.length;"
+        },
+        {
+          "commit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+          "file": "packages/cli/__tests__/helpers/image-file-fixtures.js",
+          "fileDigest": "sha256:fdc99f77551574b6cbe3c4bb358ae12478f95813da3a0234b5f8e564cf661195",
+          "startLine": 1,
+          "endLine": 24,
+          "text": "import fs from \"node:fs\";\n\nexport const PNG_BYTES = Buffer.from(\n  \"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==\",\n  \"base64\",\n);\n\n// Header fixtures exercise admission, not complete codec decoding.\nexport function imageHeader(format) {\n  if (format === \"png\") return Buffer.from(PNG_BYTES);\n  if (format === \"jpeg\")\n    return Buffer.from([\n      255, 216, 255, 192, 0, 11, 8, 0, 2, 0, 3, 1, 1, 17, 0, 255, 217,\n    ]);\n  if (format === \"gif\") return Buffer.from(\"47494638396103000200000000\", \"hex\");\n  const bytes = Buffer.alloc(30);\n  bytes.write(\"RIFF\");\n  bytes.writeUInt32LE(22, 4);\n  bytes.write(\"WEBPVP8X\", 8);\n  bytes.writeUInt32LE(10, 16);\n  bytes.writeUIntLE(2, 24, 3);\n  bytes.writeUIntLE(1, 27, 3);\n  return bytes;\n}"
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-23",
+      "taskId": "verify-23",
+      "kind": "task",
+      "hostPassed": true,
+      "generationPassed": true,
+      "sourceScopePassed": true,
+      "candidateAcceptancePassed": false,
+      "candidate": {
+        "path": "C:\\code\\chainlesschain\\.work\\native45-generation\\39055183659\\linux-vscode\\verify-23\\candidate\\packages\\cli\\__tests__\\verify-23.test.js",
+        "repositoryPath": "packages/cli/__tests__/verify-23.test.js",
+        "digest": "sha256:a6e2493a2e22a7ca280c50a0542d557bc6e321529ceef2d72de476a8f26c96b8",
+        "bytes": 8743,
+        "matchesGenerationDigest": true,
+        "containsNonPlaceholderCode": true,
+        "anchors": [
+          {
+            "startLine": 86,
+            "endLine": 101,
+            "text": "      samples,\n    },\n    history: { runs, issues: [] },\n    observations,\n  };\n}\n\nfunction taskSample(id) {\n  return {\n    id,\n    kind: \"task\",\n    taskId: \"fix-build\",\n    stratum: \"verify-stratum\",\n    comparisonDigest: outcomeDigest(makeComparison()),\n    timeBudgetMs: 1000,\n    costBudget: 1,"
+          },
+          {
+            "startLine": 276,
+            "endLine": 302,
+            "text": "    expect(result.task.knownCost).toBe(0.1);\n    expect(result.task.totalCost).toBeNull();\n    expect(result.task.costPerSuccess).toBeNull();\n  });\n\n  it(\"reports a complete cost when every planned sample is observed and costed\", () => {\n    const samples = [taskSample(\"task-0\"), firstRunSample(\"first-0\")];\n    const runs = makeRuns(makeComparison());\n    const result = report(\n      baseInput({\n        samples,\n        runs,\n        observations: [\n          fullObservation(\"task-0\", \"run-0\"),\n          fullFirstRunObservation(\"first-0\", \"run-1\"),\n        ],\n      }),\n    );\n    expect(result.task).toMatchObject({\n      planned: 1,\n      observed: 1,\n      totalCost: 0.1,\n      costPerSuccess: 0.1,\n    });\n    expect(result.firstRun).toMatchObject({ totalCost: 0.1, costPerSuccess: 0.1 });\n    expect(result.status).toBe(\"BASELINE_RECORDED\");\n  });"
+          }
+        ],
+        "archivedPath": "native-candidates/39055183659/verify-23/candidate/packages/cli/__tests__/verify-23.test.js.txt"
+      },
+      "receipt": {
+        "path": "C:\\code\\chainlesschain\\.work\\linux-vscode-quality-evidence\\pack\\acceptance-evidence\\verify-23-check-4df3aedb-eb2e-405a-9631-178f67c43927.json",
+        "digest": "sha256:d24457ae57d418fc7c17b7db2b1677f87e5efaca18b54dc572ae8bcb3464ed14",
+        "matchesAcceptanceDigest": true,
+        "baseline": [
+          {
+            "kind": "baseline",
+            "total": 30,
+            "passed": 30,
+            "failed": 0
+          }
+        ],
+        "candidateExecution": {
+          "exitCode": 1,
+          "total": 6,
+          "passed": 5,
+          "failed": 1,
+          "suiteErrors": [],
+          "failedAssertions": [
+            {
+              "name": "missing sample fixed denominator reports a complete cost when every planned sample is observed and costed",
+              "messages": [
+                "AssertionError: expected 'INSUFFICIENT_EVIDENCE' to be 'BASELINE_RECORDED' // Object.is equality\n    at /workspace/packages/cli/__tests__/verify-23.test.js:301:27\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64"
+              ]
+            }
+          ]
+        },
+        "mutations": [],
+        "mutationStage": "not reached; candidate suite failed first",
+        "archived": {
+          "path": "quality-review-receipts/verify-23-check-4df3aedb-eb2e-405a-9631-178f67c43927.json.gz",
+          "originalDigest": "sha256:d24457ae57d418fc7c17b7db2b1677f87e5efaca18b54dc572ae8bcb3464ed14",
+          "storedDigest": "sha256:0d2301f390741621dcb717c4b11181fba7dcfd1d31b2fd6f9fcd7020536361e3",
+          "originalBytes": 15553
+        }
+      },
+      "category": "overbroad-success-assertion-with-incomplete-fixture",
+      "conclusion": "Five of six tests pass, including fixed denominators and unknown-cost behavior. The complete-cost test incorrectly equates complete sample cost with complete report evidence: fixture omits maintenance, so status must remain INSUFFICIENT_EVIDENCE.",
+      "improvements": [
+        "Keep cost assertions independent of global report completeness, or add explicitly complete maintenance evidence with a matching window before expecting BASELINE_RECORDED.",
+        "Assert incomplete_maintenance_records for a deliberately omitted maintenance fixture."
+      ],
+      "additionalStaticFindings": [],
+      "sourceAnchors": [
+        {
+          "commit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+          "file": "packages/cli/src/lib/eval/outcomes.js",
+          "fileDigest": "sha256:72f8c93b878de169f9eac544f457aa11040188827c3a9226483837b27476f264",
+          "startLine": 109,
+          "endLine": 122,
+          "text": "function summarize(rows) {\n  const succeeded = rows.filter((row) => row.succeeded).length;\n  const observed = rows.filter((row) => row.observed).length;\n  const knownCost = rows.reduce((sum, row) => sum + (row.cost ?? 0), 0);\n  const costsComplete = rows.every((row) => row.observed && row.cost !== null);\n  return {\n    planned: rows.length,\n    observed,\n    missing: rows.length - observed,\n    succeeded,\n    successRate: rate(succeeded, rows.length),\n    knownCost,\n    totalCost: costsComplete ? knownCost : null,\n    costPerSuccess: costsComplete && succeeded ? knownCost / succeeded : null,"
+        },
+        {
+          "commit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+          "file": "packages/cli/src/lib/eval/outcomes.js",
+          "fileDigest": "sha256:72f8c93b878de169f9eac544f457aa11040188827c3a9226483837b27476f264",
+          "startLine": 273,
+          "endLine": 293,
+          "text": "  let maintenanceComplete = false;\n  if (maintenance) {\n    const entries = uniqueIndex(\n      maintenance.entries,\n      \"id\",\n      \"maintenance entries\",\n    );\n    maintenanceComplete =\n      maintenance.complete === true &&\n      outcomeDigest(maintenance.window) === outcomeDigest(plan.window);\n    for (const entry of entries.values()) {\n      assert(\n        CATEGORIES.has(entry.category) &&\n          nonnegative(entry.hours) &&\n          nonempty(entry.evidenceRef),\n        \"invalid maintenance entry\",\n      );\n      categories[entry.category] += entry.hours;\n    }\n  }\n  if (!maintenanceComplete) issues.push(\"incomplete_maintenance_records\");"
+        },
+        {
+          "commit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+          "file": "packages/cli/src/lib/eval/outcomes.js",
+          "fileDigest": "sha256:72f8c93b878de169f9eac544f457aa11040188827c3a9226483837b27476f264",
+          "startLine": 303,
+          "endLine": 310,
+          "text": "  return {\n    schema: OUTCOME_REPORT_SCHEMA,\n    generatedAt: new Date(now).toISOString(),\n    scope: \"local-outcome-baseline\",\n    productionAttested: false,\n    status: issues.length ? \"INSUFFICIENT_EVIDENCE\" : \"BASELINE_RECORDED\",\n    // Neither a baseline nor operator declarations constitute an improvement gate.\n    improvementVerdict: \"NOT_EVALUATED\","
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-32",
+      "taskId": "verify-32",
+      "kind": "task",
+      "hostPassed": true,
+      "generationPassed": true,
+      "sourceScopePassed": true,
+      "candidateAcceptancePassed": false,
+      "candidate": {
+        "path": "C:\\code\\chainlesschain\\.work\\native45-generation\\39055183659\\linux-vscode\\verify-32\\candidate\\packages\\vscode-extension\\__tests__\\verify-32.test.js",
+        "repositoryPath": "packages/vscode-extension/__tests__/verify-32.test.js",
+        "digest": "sha256:1785adfca714cafd325fd9f669a1972e4578b6318ce98e23d6ed03ee027a1bc6",
+        "bytes": 5951,
+        "matchesGenerationDigest": true,
+        "containsNonPlaceholderCode": true,
+        "anchors": [
+          {
+            "startLine": 93,
+            "endLine": 109,
+            "text": "      const { canvas, context } = drawingCanvas();\n      const stop = drawImagePreview(canvas, {\n        repetitions: Infinity,\n        thumbnails: [\n          { bitmap: \"frame-a\", duration: 1 },\n          { bitmap: \"frame-b\", duration: 1 },\n        ],\n      });\n      expect(context.drawImage).toHaveBeenLastCalledWith(\"frame-a\", 0, 0);\n      await vi.advanceTimersByTimeAsync(1);\n      expect(context.drawImage).toHaveBeenLastCalledWith(\"frame-b\", 0, 0);\n      stop();\n      await vi.advanceTimersByTimeAsync(200);\n      // A cancelled preview writes no further frames to the (new) page.\n      expect(context.drawImage).toHaveBeenCalledTimes(2);\n    } finally {\n      vi.useRealTimers();"
+          },
+          {
+            "startLine": 117,
+            "endLine": 129,
+            "text": "      drawImagePreview(canvas, {\n        repetitions: 0,\n        thumbnails: [\n          { bitmap: \"frame-a\", duration: 1 },\n          { bitmap: \"frame-b\", duration: 1 },\n        ],\n      });\n      await vi.advanceTimersByTimeAsync(1);\n      expect(context.drawImage).toHaveBeenCalledTimes(2);\n      // With repetitions 0 the loop completes after one full cycle.\n      await vi.advanceTimersByTimeAsync(100);\n      expect(context.drawImage).toHaveBeenCalledTimes(2);\n    } finally {"
+          }
+        ],
+        "archivedPath": "native-candidates/39055183659/verify-32/candidate/packages/vscode-extension/__tests__/verify-32.test.js.txt"
+      },
+      "receipt": {
+        "path": "C:\\code\\chainlesschain\\.work\\linux-vscode-quality-evidence\\pack\\acceptance-evidence\\verify-32-check-5285fcbf-8f9a-4e01-9556-b9522b545161.json",
+        "digest": "sha256:5ad2bf98d2ce14f04780f2854670dce79d2a0239c4f643d44f33aae74c241d29",
+        "matchesAcceptanceDigest": true,
+        "baseline": [
+          {
+            "kind": "baseline",
+            "total": 13,
+            "passed": 13,
+            "failed": 0
+          }
+        ],
+        "candidateExecution": {
+          "exitCode": 1,
+          "total": 6,
+          "passed": 4,
+          "failed": 2,
+          "suiteErrors": [],
+          "failedAssertions": [
+            {
+              "name": "drawImagePreview: cancelled preview stops writing, current page keeps rendering stops writing further animation frames after the preview is stopped",
+              "messages": [
+                "AssertionError: expected last \"vi.fn()\" call to have been called with [ 'frame-b', +0, +0 ]\n    at /workspace/packages/vscode-extension/__tests__/verify-32.test.js:103:33\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+              ]
+            },
+            {
+              "name": "drawImagePreview: cancelled preview stops writing, current page keeps rendering keeps animating the current, non-stopped preview until its repetition budget",
+              "messages": [
+                "AssertionError: expected \"vi.fn()\" to be called 2 times, but got 1 times\n    at /workspace/packages/vscode-extension/__tests__/verify-32.test.js:125:33\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+              ]
+            }
+          ]
+        },
+        "mutations": [],
+        "mutationStage": "not reached; candidate suite failed first",
+        "archived": {
+          "path": "quality-review-receipts/verify-32-check-5285fcbf-8f9a-4e01-9556-b9522b545161.json.gz",
+          "originalDigest": "sha256:5ad2bf98d2ce14f04780f2854670dce79d2a0239c4f643d44f33aae74c241d29",
+          "storedDigest": "sha256:bf66458c8f8cfd3bec92bd0c81203988d2ffd39476afcb271ea6f389d417edf5",
+          "originalBytes": 11036
+        }
+      },
+      "category": "incorrect-fake-timer-boundary",
+      "conclusion": "Four of six tests pass, including stale bitmap disposal, replacement, timeout, and stale-error isolation. Both animation assertions advance only 1ms, but drawImagePreview clamps frame delays to at least 20ms.",
+      "improvements": [
+        "Advance fake timers across the documented 20ms minimum before expecting frame-b or a second draw.",
+        "After observing the second frame, stop the preview and verify no future draw; separately verify finite repetition termination."
+      ],
+      "additionalStaticFindings": [],
+      "sourceAnchors": [
+        {
+          "commit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+          "file": "packages/vscode-extension/src/chat/image-preview-gate.js",
+          "fileDigest": "sha256:06e897b07a635c43e1a5a7c3da6047cc69dbfc7a61ff11e547c9484d7acbc413",
+          "startLine": 275,
+          "endLine": 307,
+          "text": "function drawImagePreview(canvas, result) {\n  const context = canvas.getContext(\"2d\");\n  let timer,\n    stopped = false,\n    index = 0,\n    repeats = 0;\n  const draw = () => {\n    if (stopped) return;\n    context.clearRect(0, 0, 40, 40);\n    context.drawImage(result.thumbnails[index].bitmap, 0, 0);\n    canvas.__ccPreviewDrawn = true;\n    if (result.thumbnails.length === 1) return;\n    const duration = result.thumbnails[index].duration;\n    timer = setTimeout(\n      () => {\n        index++;\n        if (index === result.thumbnails.length) {\n          index = 0;\n          if (\n            Number.isFinite(result.repetitions) &&\n            repeats++ >= result.repetitions\n          )\n            return;\n        }\n        draw();\n      },\n      Math.max(20, Math.min(2147483647, duration || 100)),\n    );\n  };\n  draw();\n  return () => {\n    stopped = true;\n    clearTimeout(timer);"
+        }
+      ]
+    }
+  ],
+  "limits": [
+    "Suggested corrections are static recommendations, not repaired or accepted candidates.",
+    "No claim that corrected candidates would kill required behavioral mutants.",
+    "Baseline and candidate test counts are taken from existing authoritative CI receipts; no new local execution substituted."
+  ]
+}
