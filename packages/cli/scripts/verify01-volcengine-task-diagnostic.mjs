@@ -31,6 +31,14 @@ export const DIAGNOSTIC = Object.freeze({
   maxTurns: 14,
   taskTimeoutMs: 20 * 60 * 1000,
   estimatedSpendStopUSD: 0.25,
+  repairSeeds: Object.freeze({
+    "verify-22": Object.freeze({
+      sourceRun: "39041797746",
+      file: "packages/cli/scripts/fixtures/verify01-volcengine/verify-22-39041797746.test.txt",
+      digest:
+        "sha256:c3c99c33ff24851d26d3ecc90da783b3a77d8fea2d5e9fde0f86ae6696f4f229",
+    }),
+  }),
 });
 const repository = fileURLToPath(new URL("../../../", import.meta.url));
 const planDir = path.join(
@@ -93,11 +101,12 @@ export function modelEnvironment({
 }
 
 export function taskPrompt(task, spec) {
-  const priorFeedback = task.id === "verify-04"
-    ? `Historical diagnostic feedback for this task (a previous candidate failed independent checking): derive bucket grouping and request-level token semantics from the implementation; do not assume cache presence alone changes grouping. Trace each proposed fixture through the relevant source branch, and check fixture initialization before asserting absent fields. This feedback is supplied to aid repair; this run is not a first-attempt or formal sample.\n`
-    : task.id === "verify-22"
-      ? `For fault-injection tests, verify the intended fault boundary was reached, restore instrumentation before recovery checks, and include a successful control.\n`
-      : "";
+  const priorFeedback =
+    task.id === "verify-04"
+      ? `Historical diagnostic feedback for this task (a previous candidate failed independent checking): derive bucket grouping and request-level token semantics from the implementation; do not assume cache presence alone changes grouping. Trace each proposed fixture through the relevant source branch, and check fixture initialization before asserting absent fields. This feedback is supplied to aid repair; this run is not a first-attempt or formal sample.\n`
+      : task.id === "verify-22"
+        ? `This is a bounded repair of the previous model candidate from diagnostic run 39041797746, already placed in the deliverable. The independent checker failed to collect it: Cannot find module '../../scripts/persistent-capacity-benchmark.mjs' imported from packages/cli/__tests__/verify-22.test.js. Validate every relative import from the deliverable's own directory; baseline unit tests are one directory deeper. A separate source review also found unverified assumptions about _collect invocation counts and fixture storeRevision: derive the actual manifest publication boundary and distinguish record revision from store revision. A call count alone does not prove publication. Restore instrumentation before recovery checks and include a successful control. Preserve meaningful behavioral assertions. This is a repaired diagnostic, not a first-attempt or formal sample.\n`
+        : "";
   return `${task.prompt}\n\nThis is an independent diagnostic, not a formal VERIFY01 sample.
 ${priorFeedback}Read the frozen source and existing tests before writing your own regression tests.
 Use the named files as your starting points; avoid listing the entire test directory. Search for exact API names, then read bounded slices rather than repeatedly reading whole unchanged files.
@@ -106,7 +115,7 @@ Frozen source files: ${task.sourcePaths.join(", ")}
 Related existing tests: ${spec.baselineTests.join(", ")}
 Only these deliverables may be changed: ${task.expectedFiles.join(", ")}
 Use repository-relative paths for every mutation. Absolute paths are rejected even when they name an allowed deliverable.
-Each deliverable currently contains a non-answer placeholder; replace it with complete runnable Vitest tests.
+${DIAGNOSTIC.repairSeeds[task.id] ? "The deliverable contains the preserved failed candidate; repair it into complete runnable Vitest tests." : "Each deliverable currently contains a non-answer placeholder; replace it with complete runnable Vitest tests."}
 Import paths are relative to each deliverable's location. Use explicit behavioral assertions and positive/negative cases; do not merely import an existing test suite or inspect source text.
 Source implementation and existing tests are read-only in this diagnostic. If you discover an implementation defect, describe it in your final response instead of modifying source.
 Use only the exposed file tools. Do not run shell commands, code, MCP or network tools. Do not inspect node_modules or paths outside this project. No credentials are present in this project.
@@ -530,6 +539,7 @@ export async function runTaskDiagnostic(options) {
       "packages/cli/scripts/verify01-review-specs.mjs",
       "packages/cli/src/lib/eval/stream-terminal.js",
       ".github/workflows/verify01-volcengine-task-diagnostic.yml",
+      ...Object.values(DIAGNOSTIC.repairSeeds).map((seed) => seed.file),
     ]) {
       const bytes = fs.readFileSync(path.join(repository, file));
       const committed = command(
@@ -743,11 +753,18 @@ export async function runTaskDiagnostic(options) {
             "frozen task already contains a deliverable",
           );
           fs.mkdirSync(path.dirname(absolute), { recursive: true });
-          fs.writeFileSync(
-            absolute,
-            "// Diagnostic placeholder: replace with your independent behavioral tests.\n",
-            { flag: "wx", mode: 0o600 },
-          );
+          const seed = DIAGNOSTIC.repairSeeds[taskId];
+          const initial = seed
+            ? fs.readFileSync(path.join(repository, seed.file))
+            : Buffer.from(
+                "// Diagnostic placeholder: replace with your independent behavioral tests.\n",
+              );
+          if (seed) {
+            assert.equal(task.expectedFiles.length, 1);
+            assert.equal(hash(initial), seed.digest, "repair seed differs");
+            row.repairSeed = seed;
+          }
+          fs.writeFileSync(absolute, initial, { flag: "wx", mode: 0o600 });
         }
         broker.beginTask(taskId);
         const taskEnvironment = modelEnvironment({

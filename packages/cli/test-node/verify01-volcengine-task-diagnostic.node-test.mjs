@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import { createHash } from "node:crypto";
 import {
   DIAGNOSTIC,
   changedFiles,
@@ -286,7 +287,10 @@ test("prompt discloses constrained task and independent checker without injectin
   );
   assert.match(retryPrompt, /Historical diagnostic feedback/u);
   assert.match(retryPrompt, /not a first-attempt or formal sample/u);
-  assert.match(retryPrompt, /do not assume cache presence alone changes grouping/u);
+  assert.match(
+    retryPrompt,
+    /do not assume cache presence alone changes grouping/u,
+  );
   const faultPrompt = taskPrompt(
     {
       id: "verify-22",
@@ -296,8 +300,18 @@ test("prompt discloses constrained task and independent checker without injectin
     },
     { baselineTests: ["baseline.test.js"] },
   );
-  assert.match(faultPrompt, /verify the intended fault boundary was reached/u);
+  assert.match(faultPrompt, /derive the actual manifest publication boundary/u);
   assert.match(faultPrompt, /include a successful control/u);
+  assert.match(faultPrompt, /bounded repair/u);
+  assert.match(faultPrompt, /first-attempt or formal sample/u);
+  const seed = DIAGNOSTIC.repairSeeds["verify-22"];
+  const bytes = fs.readFileSync(
+    new URL(`../../../${seed.file}`, import.meta.url),
+  );
+  assert.equal(
+    `sha256:${createHash("sha256").update(bytes).digest("hex")}`,
+    seed.digest,
+  );
 });
 
 test("workflow requires explicit dispatch or a branch-scoped paid-run marker, and always uploads", () => {

@@ -15,6 +15,7 @@ export const BROKER = Object.freeze({
   maximumResponseBytes: 1024 * 1024,
   maximumAnswerTokens: 4096,
   timeoutMs: 45000,
+  connectionAttemptTimeoutMs: 2000,
   thinking: "disabled",
   formalSample: false,
 });
@@ -333,6 +334,9 @@ export function requestArk(body, key, options = {}) {
       requestFinishedMs: null,
       responseStartedMs: null,
       dispatchStarted: false,
+      failureCategory: null,
+      connectionAttempts: [],
+      nestedErrorCodes: [],
       errorCode: null,
       errorSyscall: null,
     };
@@ -347,8 +351,12 @@ export function requestArk(body, key, options = {}) {
       if (finished) return;
       finished = true;
       clearTimeout(timer);
+      transport.failureCategory = error || null;
       transport.errorCode = safeDiagnostic(cause?.code);
       transport.errorSyscall = safeDiagnostic(cause?.syscall);
+      transport.nestedErrorCodes = Array.isArray(cause?.errors)
+        ? cause.errors.slice(0, 8).map((item) => safeDiagnostic(item?.code))
+        : [];
       const settledError =
         error && !transport.dispatchStarted && status === null
           ? "DIAGNOSTIC_REQUEST_NOT_DISPATCHED"
@@ -367,6 +375,8 @@ export function requestArk(body, key, options = {}) {
       req = requestFactory(BROKER.endpoint, {
         method: "POST",
         agent: false,
+        autoSelectFamily: true,
+        autoSelectFamilyAttemptTimeout: BROKER.connectionAttemptTimeoutMs,
         headers: {
           Authorization: `Bearer ${key}`,
           "Content-Type": "application/json",
@@ -385,6 +395,24 @@ export function requestArk(body, key, options = {}) {
     // failure before this gate is provably local; after it, usage is unknown.
     req.on("socket", (socket) => {
       mark("socketAssignedMs");
+      const attempt = (event, family, error) => {
+        if (transport.connectionAttempts.length >= 16) return;
+        transport.connectionAttempts.push({
+          event,
+          family: [4, 6].includes(family) ? family : null,
+          elapsedMs: Date.now() - started,
+          errorCode: safeDiagnostic(error?.code),
+        });
+      };
+      socket.on("connectionAttempt", (_ip, _port, family) =>
+        attempt("start", family),
+      );
+      socket.on("connectionAttemptFailed", (_ip, _port, family, error) =>
+        attempt("failed", family, error),
+      );
+      socket.on("connectionAttemptTimeout", (_ip, _port, family) =>
+        attempt("timeout", family),
+      );
       socket.once("lookup", () => mark("dnsLookupMs"));
       socket.once("connect", () => mark("tcpConnectedMs"));
       socket.once("secureConnect", () => {
@@ -396,6 +424,7 @@ export function requestArk(body, key, options = {}) {
           req.end(payload);
         } catch (error) {
           finish("DIAGNOSTIC_REQUEST_ERROR_USAGE_UNKNOWN", error);
+          req.destroy();
         }
       });
     });
@@ -488,7 +517,9 @@ export async function createVolcengineDiagnosticBroker(options) {
       active.requests >= BROKER.maximumRequestsPerTask
     ) {
       rejectLocal(
-        poisoned || active?.errorCode || "DIAGNOSTIC_REQUEST_ALLOWANCE_EXHAUSTED",
+        poisoned ||
+          active?.errorCode ||
+          "DIAGNOSTIC_REQUEST_ALLOWANCE_EXHAUSTED",
       );
       return;
     }

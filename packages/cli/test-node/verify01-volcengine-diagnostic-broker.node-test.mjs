@@ -137,20 +137,39 @@ test("Ark transport gates HTTP dispatch on TLS and records the failure phase", a
   const before = fakeRequest();
   const socketBefore = new EventEmitter();
   const preflight = requestArk(diagnosticBody(request()), "OFFLINE-KEY", {
-    requestFactory: () => before,
+    requestFactory: (_endpoint, options) => {
+      assert.equal(options.autoSelectFamily, true);
+      assert.equal(options.autoSelectFamilyAttemptTimeout, 2000);
+      return before;
+    },
     timeoutMs: 100,
   });
   before.emit("socket", socketBefore);
+  socketBefore.emit("connectionAttempt", "OFFLINE-IP", 443, 6);
+  socketBefore.emit("connectionAttemptTimeout", "OFFLINE-IP", 443, 6);
   assert.equal(before.payloads.length, 0);
-  before.emit("error", Object.assign(new Error("DNS failed"), {
-    code: "ENOTFOUND",
-    syscall: "getaddrinfo",
-  }));
+  before.emit(
+    "error",
+    Object.assign(new Error("DNS failed"), {
+      code: "ENOTFOUND",
+      syscall: "getaddrinfo",
+    }),
+  );
   await assert.rejects(preflight, (error) => {
     assert.equal(error.message, "DIAGNOSTIC_REQUEST_NOT_DISPATCHED");
     assert.equal(error.captured.transport.dispatchStarted, false);
     assert.equal(error.captured.transport.errorCode, "ENOTFOUND");
     assert.equal(error.captured.transport.errorSyscall, "GETADDRINFO");
+    assert.deepEqual(
+      error.captured.transport.connectionAttempts.map(({ event, family }) => ({
+        event,
+        family,
+      })),
+      [
+        { event: "start", family: 6 },
+        { event: "timeout", family: 6 },
+      ],
+    );
     return true;
   });
   socketBefore.emit("secureConnect");
@@ -165,7 +184,10 @@ test("Ark transport gates HTTP dispatch on TLS and records the failure phase", a
   after.emit("socket", socketAfter);
   socketAfter.emit("secureConnect");
   assert.equal(after.payloads.length, 1);
-  after.emit("error", Object.assign(new Error("reset"), { code: "ECONNRESET" }));
+  after.emit(
+    "error",
+    Object.assign(new Error("reset"), { code: "ECONNRESET" }),
+  );
   await assert.rejects(dispatched, (error) => {
     assert.equal(error.message, "DIAGNOSTIC_REQUEST_ERROR_USAGE_UNKNOWN");
     assert.equal(error.captured.transport.dispatchStarted, true);
@@ -202,6 +224,24 @@ test("Ark transport gates HTTP dispatch on TLS and records the failure phase", a
   assert.equal(result.transport.dispatchStarted, true);
   assert.equal(result.raw.toString(), jsonResponse().toString());
   assert.equal(normal.payloads.length, 1);
+
+  const throwing = fakeRequest();
+  throwing.end = () => {
+    throw new Error("write failed");
+  };
+  const throwingSocket = new EventEmitter();
+  const failedWrite = requestArk(diagnosticBody(request()), "OFFLINE-KEY", {
+    requestFactory: () => throwing,
+    timeoutMs: 100,
+  });
+  throwing.emit("socket", throwingSocket);
+  throwingSocket.emit("secureConnect");
+  await assert.rejects(failedWrite, (error) => {
+    assert.equal(error.message, "DIAGNOSTIC_REQUEST_ERROR_USAGE_UNKNOWN");
+    assert.equal(error.captured.transport.dispatchStarted, true);
+    return true;
+  });
+  assert.equal(throwing.destroyed, true);
 });
 test("proven pre-HTTP network failure fails one task without retrying it", async (t) => {
   let calls = 0;
