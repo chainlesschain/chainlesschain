@@ -1,0 +1,51 @@
+name: VERIFY01 Public CLI Native First Run
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_live:
+        description: "Run real paid public CLI onboarding on three native operating systems"
+        type: boolean
+        required: true
+        default: false
+  push:
+    branches: [feature/verify01-task-completion-20261017]
+    paths:
+      - packages/cli/scripts/verify01-public-cli-matrix-diagnostic.mjs
+      - .github/workflows/verify01-public-cli-matrix-diagnostic.yml
+
+permissions:
+  contents: read
+
+jobs:
+  first-run:
+    if: >-
+      (github.event_name == 'workflow_dispatch' && inputs.confirm_live == true) ||
+      (github.event_name == 'push' && contains(github.event.head_commit.message, '[volcengine-first-run-matrix]'))
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-latest, macos-15]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22.12.0
+      - name: Validate deterministic artifact checker
+        run: node --test packages/cli/test-node/verify01-public-cli-matrix-diagnostic.node-test.mjs
+      - name: Real public installation and paid onboarding
+        env:
+          VOLCENGINE_API_KEY: ${{ secrets.CC_LLM_API_KEY }}
+        run: node packages/cli/scripts/verify01-public-cli-matrix-diagnostic.mjs --confirm-live --output-dir "${{ runner.temp }}/public-cli-first-run"
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: public-cli-first-run-${{ matrix.os }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/public-cli-first-run/
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14
