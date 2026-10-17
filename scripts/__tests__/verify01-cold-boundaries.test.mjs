@@ -62,7 +62,7 @@ function evidence() {
           text:
             i === 0
               ? "Agent initialization did not finish in time"
-              : "Agent exited before input acknowledgement; agent exited (86)",
+              : "Agent exited before initialization; check Doctor. Input was not dispatched\nagent exited (86)",
         },
         stopped: {
           ...state(heldMs + 1),
@@ -183,8 +183,21 @@ test("replacement cannot precede the confirmed exit or duplicate the retry", () 
 });
 
 test("early process exit must retain its distinct cause and code", () => {
+  for (const text of [
+    "Agent initialization did not finish in time; agent exited (86)",
+    "Agent exited before input acknowledgement; agent exited (86)",
+    "Agent exited before initialization; agent exited (86)",
+    "Agent exited before initialization; Input was not dispatched; agent exited (0)",
+  ]) {
+    const e = evidence();
+    e.observations[1].held.text = text;
+    assert.throws(
+      () => verifyColdBoundaries(e.observations, e.trace),
+      /actual nonzero exit/u,
+    );
+  }
   const e = evidence();
-  e.observations[1].held.text = "Agent initialization did not finish in time";
+  e.trace.find((r) => r.command === "init-gate-exit-before-init").code = 0;
   assert.throws(
     () => verifyColdBoundaries(e.observations, e.trace),
     /actual nonzero exit/u,

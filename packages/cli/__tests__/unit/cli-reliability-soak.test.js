@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   descendantPidsFromProcessRows,
+  diskFailureDiagnostics,
   percentile,
   recordBoundedSample,
   reliabilityTurnDelayMs,
@@ -15,6 +16,22 @@ const REPOSITORY_ROOT = resolve(
 );
 
 describe("CLI reliability soak gate", () => {
+  it("keeps disk startup diagnostics bounded and content-free", () => {
+    const diagnostics = diskFailureDiagnostics(
+      "[DatabaseManager] Database initialized: /private/canary.db\n" +
+        "Error: ENOSPC: no space left on device, mkdir /private/secret-token\n" +
+        '{"error":{"message":"EROFS open /private/key","code":"SECRET_CANARY"}}',
+    );
+    expect(diagnostics).toEqual({
+      fsCodes: ["EROFS", "ENOSPC"],
+      operations: ["mkdir", "open"],
+      classes: ["database-initialized", "fatal-json", "command-error"],
+    });
+    expect(JSON.stringify(diagnostics)).not.toMatch(/private|canary|secret|key/iu);
+    expect(
+      diskFailureDiagnostics("x".repeat(64 * 1024) + " ENOSPC").fsCodes,
+    ).toEqual([]);
+  });
   it("keeps formal duration, turn, concurrency, and pipe floors", () => {
     expect(
       resolveReliabilityProfile({
