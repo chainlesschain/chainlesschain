@@ -43,7 +43,7 @@
 | --- | --- | --- | --- |
 | 子 npm 包 → CLI `0.166.104` | `93792f65204aec3d25aa3b5abda83013f290d4ca`；[OIDC 工作流第 2 次运行](https://github.com/chainlesschain/chainlesschain/actions/runs/39012587904/attempts/2) | GitHub Actions 发布成功；公共 npm 可获取 `chainlesschain@0.166.104`，子包先于 CLI 发布。 | 生产宿主与正式效果验收仍按各自工作包判定。 |
 | VS Code `0.37.149` | 同一发布提交；[Open VSX 标签工作流第 2 次运行](https://github.com/chainlesschain/chainlesschain/actions/runs/39014016230/attempts/2) | Open VSX API 返回 `ready`、`listed:true`、`downloadable:true`；推荐 CLI `0.166.104`。 | Microsoft Marketplace 尚无 `VSCE_PAT`，官方渠道未发布。 |
-| JetBrains `0.4.166` | `4c3e5cfd56f9afa947aa2383428fdcd883d4e4b8`；[标签工作流](https://github.com/chainlesschain/chainlesschain/actions/runs/39020301946) | 六组真实宿主矩阵、插件构建、CLI 前置核验及 `publishPlugin` 上传成功；公共 API 暂返回 `pending`、`reason:version-not-visible`。 | 等待 Marketplace 审核或索引后独立回读公开 ZIP，再判定公开发布成功。 |
-| PR #458 | 当前仍开放 | 遵守先发布后合并顺序。 | JetBrains 公开制品回读后检查最终提交与必需门禁，再合并。 |
+| JetBrains `0.4.166` | `4c3e5cfd56f9afa947aa2383428fdcd883d4e4b8`；[标签工作流](https://github.com/chainlesschain/chainlesschain/actions/runs/39020301946) | 六组真实宿主矩阵、插件构建、CLI 前置核验及 `publishPlugin` 上传成功；公共 API 已返回 `ready`、`approve:true`、`listed:true`、`hidden:false`。公开 ZIP 为 1,532,930 字节，完整性检查通过，SHA-256 为 `0aa37f3c34f5e02e66812826629ae0a7e7cb5d1fe1479700900005b02505dc5b`。 | 后续版本须重新走完整宿主与公开制品回读门禁。 |
+| PR #458 | 当前仍开放 | CLI、Open VSX 与 JetBrains 的本轮公开发行均已完成，遵守先发布后合并顺序。 | 检查最终文档提交的必需门禁，再合并。 |
 
 上述发行不改变正式付费评测 `NOT_RUN`（任务 0/36、首次安装 0/9）、`paidReady:false` 或 native `NOT_ADMITTED`。
