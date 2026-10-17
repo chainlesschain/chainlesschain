@@ -49,7 +49,8 @@ export async function runPublicVSCode({
   const output = path.resolve(outputDir);
   assert.ok(!fs.existsSync(output), "new evidence directory required");
   fs.mkdirSync(output, { recursive: true });
-  const scratch = fs.realpathSync(
+  // native expands Windows 8.3 TEMP aliases; realpathSync may retain RUNNER~1.
+  const scratch = fs.realpathSync.native(
     fs.mkdtempSync(
       path.join(process.platform === "darwin" ? "/tmp" : os.tmpdir(), "cc-vs-"),
     ),

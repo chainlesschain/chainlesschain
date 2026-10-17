@@ -103,7 +103,7 @@ export async function runPublicFirstRun({ outputDir, key }) {
   const output = path.resolve(outputDir);
   assert.ok(!fs.existsSync(output), "output must be new");
   fs.mkdirSync(output, { recursive: true });
-  const root = fs.realpathSync(
+  const root = fs.realpathSync.native(
     fs.mkdtempSync(path.join(os.tmpdir(), "cc-jb-public-")),
   );
   const dirs = Object.fromEntries(

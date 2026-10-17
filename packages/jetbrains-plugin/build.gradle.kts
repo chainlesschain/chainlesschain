@@ -7,6 +7,7 @@
 import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 import org.jetbrains.intellij.platform.gradle.tasks.PrepareSandboxTask
 import org.gradle.api.tasks.WriteProperties
+import java.security.MessageDigest
 
 plugins {
     id("java")
@@ -442,7 +443,7 @@ runCatching {
                 require(archive.isAbsolute && archive.isFile && publicUiPluginDigest.isPresent) {
                     "Public plugin requires an absolute archive and external SHA-256 binding"
                 }
-                val digest = java.security.MessageDigest.getInstance("SHA-256")
+                val digest = MessageDigest.getInstance("SHA-256")
                     .digest(archive.readBytes()).joinToString("") { "%02x".format(it) }
                 require(publicUiPluginDigest.get() == "sha256:$digest") {
                     "Public plugin archive differs from the external byte binding"
