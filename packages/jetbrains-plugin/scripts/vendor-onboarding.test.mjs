@@ -60,6 +60,14 @@ test("leaves unrelated Skip controls and incomplete vendor surfaces untouched", 
   assert.equal(incomplete.skip.clicks, undefined);
 });
 
+test("ignores a vendor window before its root pane exists", () => {
+  const f = fixture();
+  const { window, skip } = f.dialog();
+  window.getRootPane = () => null;
+  assert.equal(f.run(), false);
+  assert.equal(skip.clicks, undefined);
+});
+
 test("keeps closure pending without repeated clicks if Skip never closes the modal", () => {
   const f = fixture();
   const { skip } = f.dialog();

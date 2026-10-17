@@ -29,6 +29,7 @@ final class VendorOnboarding {
                     if (String(window.getClass().getName()) !==
                         'com.intellij.openapi.ui.impl.DialogWrapperPeerImpl$MyDialog') continue;
                     var root = window.getRootPane();
+                    if (root == null) continue;
                     if (String(root.getClientProperty(key)) === 'clicked') {
                       if (window.isShowing()) pending = true;
                       else {
