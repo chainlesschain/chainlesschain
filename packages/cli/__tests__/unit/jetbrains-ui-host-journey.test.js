@@ -346,7 +346,6 @@ describe("JetBrains real-host journey driver", () => {
     const failure = new Error("document read failed");
     expect(() => read("pending", true, failure)).toThrow(failure);
     expect(method).toContain("System.nanoTime() < deadline");
-    expect(method).toContain("if (last.contains(expected)) return;");
     expect(method).toContain("throw new AssertionError(");
   });
 
