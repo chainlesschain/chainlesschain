@@ -59,10 +59,12 @@ async function main() {
       "output-dir": { type: "string" },
       "source-sha": { type: "string" },
       "image-id": { type: "string" },
+      round: { type: "string", default: "1" },
     },
   });
   assert.ok(values["confirm-live"], "--confirm-live is required");
   assert.ok(values["output-dir"], "--output-dir is required");
+  assert.match(values.round, /^[1-9][0-9]?$/u);
   const plan = JSON.parse(
     fs.readFileSync(
       path.join(
@@ -84,6 +86,7 @@ async function main() {
   );
   const result = await runTaskDiagnostic({
     mode: "original",
+    campaignRound: Number(values.round),
     ...selected,
     outputDir: values["output-dir"],
     sourceSha: values["source-sha"],

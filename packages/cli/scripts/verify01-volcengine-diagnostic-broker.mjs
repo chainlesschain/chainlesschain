@@ -460,6 +460,7 @@ export async function createVolcengineDiagnosticBroker(options) {
   const allowedTaskIds = options.allowedTaskIds || ["verify-04", "verify-22"];
   const maximumRequestsPerTask =
     options.maximumRequestsPerTask ?? BROKER.maximumRequestsPerTask;
+  const requestTimeoutMs = options.requestTimeoutMs ?? BROKER.timeoutMs;
   check(
     Array.isArray(allowedTaskIds) &&
       allowedTaskIds.length > 0 &&
@@ -474,6 +475,12 @@ export async function createVolcengineDiagnosticBroker(options) {
       maximumRequestsPerTask > 0 &&
       maximumRequestsPerTask <= 32,
     "DIAGNOSTIC_TASK_POLICY_INVALID",
+  );
+  check(
+    Number.isSafeInteger(requestTimeoutMs) &&
+      requestTimeoutMs >= 1000 &&
+      requestTimeoutMs <= 180000,
+    "DIAGNOSTIC_TIMEOUT_POLICY_INVALID",
   );
   check(typeof key === "string" && key.length > 0, "DIAGNOSTIC_KEY_REQUIRED");
   // A restarted broker cannot reuse this request allowance.
@@ -576,7 +583,9 @@ export async function createVolcengineDiagnosticBroker(options) {
       // Persist the physical dispatch slot before network egress.
       save(`request-${id}.dispatch.json`, row);
       receipts.push(row);
-      captured = await requestImpl(effective, key);
+      captured = await requestImpl(effective, key, {
+        timeoutMs: requestTimeoutMs,
+      });
       check(captured.status === 200, "DIAGNOSTIC_NON_200_NO_RETRY");
       Object.assign(
         row,
@@ -666,6 +675,7 @@ export async function createVolcengineDiagnosticBroker(options) {
     ...BROKER,
     allowedTaskIds,
     maximumRequestsPerTask,
+    timeoutMs: requestTimeoutMs,
     retries: 0,
     redirects: false,
     fallback: false,

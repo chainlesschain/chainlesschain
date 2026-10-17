@@ -137,7 +137,7 @@ Read back your completed deliverable. Finish with a concise explanation of the a
 }
 
 export function originalTaskPrompt(task, spec, maxTurns = 20) {
-  return `${task.prompt}\n\nThis is the first attempt for this task in the original-task campaign. No prior candidate or repair feedback has been supplied.
+  return `${task.prompt}\n\nThis is an unseeded attempt using the original task input. No prior candidate or repair feedback has been supplied. Earlier attempts, if any, remain separate evidence.
 This is a real-provider Linux CLI execution with independent Docker acceptance. It is not a frozen cross-platform/IDE sample.
 Read the frozen source and relevant existing tests before writing the deliverable. Use exact API names and bounded reads. Do not list the entire repository or repeatedly reread unchanged files.
 Frozen source files: ${task.sourcePaths.join(", ")}
@@ -438,7 +438,8 @@ export async function runTaskDiagnostic(options) {
     ...DIAGNOSTIC,
     maxTurns,
     repairSeeds,
-    inputMode: original ? "original-first-attempt" : "diagnostic-repair",
+    inputMode: original ? "original-unseeded" : "diagnostic-repair",
+    campaignRound: original ? options.campaignRound || 1 : null,
     actualEntry: "linux-cli",
     designatedStrata: options.designatedStrata || null,
     estimatedSpendStopUSD: original ? null : DIAGNOSTIC.estimatedSpendStopUSD,
@@ -738,12 +739,20 @@ export async function runTaskDiagnostic(options) {
       nativeSqliteAssessed: false,
     });
 
-    broker = await createVolcengineDiagnosticBroker({
-      outputDir: path.join(output, "broker"),
-      key,
-      allowedTaskIds: selectedTasks,
-      maximumRequestsPerTask,
-    });
+    if (original) {
+      summary.taskBrokers = [];
+      fs.mkdirSync(path.join(output, "broker"), { mode: 0o700 });
+      summary.limitations.push(
+        "Each independent task has its own broker. A task with unknown usage fails and is not replayed; later unrelated tasks can still execute. Requests allow up to 180 seconds within the unchanged task deadline.",
+      );
+    } else {
+      broker = await createVolcengineDiagnosticBroker({
+        outputDir: path.join(output, "broker"),
+        key,
+        allowedTaskIds: selectedTasks,
+        maximumRequestsPerTask,
+      });
+    }
 
     for (const taskId of selectedTasks) {
       if (canceled) break;
@@ -839,6 +848,14 @@ export async function runTaskDiagnostic(options) {
           }
           fs.writeFileSync(absolute, initial, { flag: "wx", mode: 0o600 });
         }
+        if (original)
+          broker = await createVolcengineDiagnosticBroker({
+            outputDir: path.join(output, "broker", taskId),
+            key,
+            allowedTaskIds: [taskId],
+            maximumRequestsPerTask,
+            requestTimeoutMs: 180000,
+          });
         broker.beginTask(taskId);
         const taskEnvironment = modelEnvironment({
           root: taskRoot,
@@ -969,6 +986,10 @@ export async function runTaskDiagnostic(options) {
       } finally {
         row.broker = broker?.taskStatus(taskId) || null;
         row.passed = row.passed && row.broker?.passed === true;
+        if (original && broker) {
+          summary.taskBrokers.push({ taskId, ...(await broker.close()) });
+          broker = null;
+        }
         row.finishedAt = stamp();
         save(`${taskId}/result.json`, row);
         console.log(
@@ -991,6 +1012,20 @@ export async function runTaskDiagnostic(options) {
     process.removeListener("SIGTERM", onSignal);
     process.removeListener("SIGINT", onSignal);
     if (broker) summary.broker = await broker.close();
+    if (original)
+      summary.broker = {
+        physicalRequestsStarted: (summary.taskBrokers || []).reduce(
+          (n, row) => n + row.physicalRequestsStarted,
+          0,
+        ),
+        usageCompleteRequests: (summary.taskBrokers || []).reduce(
+          (n, row) => n + row.usageCompleteRequests,
+          0,
+        ),
+        poisoned: (summary.taskBrokers || []).some((row) => row.poisoned)
+          ? "one-or-more-independent-tasks-failed"
+          : null,
+      };
     summary.passed =
       summary.passed &&
       summary.broker?.poisoned === null &&

@@ -490,7 +490,7 @@ test("JSON response is persisted before forwarding and unknown JSON usage poison
   }
   assert.ok(fs.existsSync(path.join(root, "broker", "response-1.json")));
 });
-async function fixture(t, requestImpl) {
+async function fixture(t, requestImpl, policy = {}) {
   const root = fs.mkdtempSync(
     path.join(os.tmpdir(), "cc-volcengine-broker-test-"),
   );
@@ -499,8 +499,9 @@ async function fixture(t, requestImpl) {
     outputDir: path.join(root, "broker"),
     key: "OFFLINE-FAKE-SECRET",
     requestImpl,
+    ...policy,
   });
-  broker.beginTask("verify-04");
+  broker.beginTask(policy.allowedTaskIds?.[0] || "verify-04");
   const send = (key = broker.childKey) =>
     fetch(`${broker.baseUrl}/chat/completions`, {
       method: "POST",
@@ -512,6 +513,47 @@ async function fixture(t, requestImpl) {
     });
   return { root, broker, send };
 }
+
+test("campaign policy binds selected task IDs, request allowance and transport timeout", async (t) => {
+  let calls = 0;
+  const { root, broker, send } = await fixture(
+    t,
+    async (body, key, options) => {
+      calls += 1;
+      assert.equal(options.timeoutMs, 180000);
+      assert.equal(body.thinking.type, "disabled");
+      return { status: 200, raw: response() };
+    },
+    {
+      allowedTaskIds: ["verify-01", "verify-36"],
+      maximumRequestsPerTask: 24,
+      requestTimeoutMs: 180000,
+    },
+  );
+  try {
+    assert.throws(
+      () => broker.beginTask("verify-04"),
+      /TASK_ALLOWANCE_INVALID/u,
+    );
+    for (let i = 0; i < 24; i++) assert.equal((await send()).status, 200);
+    assert.equal((await send()).status, 403);
+    assert.equal(calls, 24);
+    broker.beginTask("verify-36");
+    assert.equal((await send()).status, 200);
+    assert.throws(
+      () => broker.beginTask("verify-01"),
+      /TASK_ALLOWANCE_INVALID/u,
+    );
+    const policy = JSON.parse(
+      fs.readFileSync(path.join(root, "broker", "policy.json"), "utf8"),
+    );
+    assert.equal(policy.maximumRequestsPerTask, 24);
+    assert.equal(policy.timeoutMs, 180000);
+    assert.deepEqual(policy.allowedTaskIds, ["verify-01", "verify-36"]);
+  } finally {
+    await broker.close();
+  }
+});
 test("physical slots persist before dispatch; secret is absent; restart and 15th request reject", async (t) => {
   let calls = 0;
   const { root, broker, send } = await fixture(t, async (body) => {

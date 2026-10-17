@@ -3,10 +3,36 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { execFileSync } from "node:child_process";
 import {
   validateArtifact,
   npmEntrypoint,
+  AUTHENTICATION_NODE_FLAGS,
 } from "../scripts/verify01-public-cli-matrix-diagnostic.mjs";
+
+test("authentication flags change only Node connection establishment defaults", () => {
+  const observed = JSON.parse(
+    execFileSync(
+      process.execPath,
+      [
+        ...AUTHENTICATION_NODE_FLAGS,
+        "--input-type=module",
+        "--eval",
+        "import net from 'node:net';console.log(JSON.stringify({autoSelectFamily:net.getDefaultAutoSelectFamily(),attemptTimeoutMs:net.getDefaultAutoSelectFamilyAttemptTimeout(),argv:process.argv.slice(1)}))",
+        "--",
+        "llm",
+        "test",
+        "--json",
+      ],
+      { encoding: "utf8" },
+    ),
+  );
+  assert.deepEqual(observed, {
+    autoSelectFamily: true,
+    attemptTimeoutMs: 2000,
+    argv: ["llm", "test", "--json"],
+  });
+});
 
 test("artifact acceptance rejects wrong nonce, arithmetic and added fields", (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-matrix-test-"));

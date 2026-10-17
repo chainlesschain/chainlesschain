@@ -142,6 +142,9 @@ export async function runPublicFirstRun({ outputDir, key }) {
     CC_UPDATE_NOTICE: "0",
     CC_MAX_RETRIES: "0",
     CLAUDE_CODE_MAX_RETRIES: "0",
+    ...(process.platform === "win32"
+      ? { CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS: "60000" }
+      : {}),
     npm_config_userconfig: npmrc,
     npm_config_globalconfig: npmrc,
     npm_config_registry: "https://registry.npmjs.org",

@@ -8,6 +8,12 @@ on:
         type: boolean
         required: true
         default: false
+      hosts:
+        description: "Native hosts to execute; select only the failed host for a repair run"
+        type: choice
+        required: true
+        default: all
+        options: [all, linux, windows, macos, linux-windows]
   push:
     branches: [feature/verify01-task-completion-20261017]
     paths:
@@ -21,11 +27,11 @@ jobs:
   first-run:
     if: >-
       (github.event_name == 'workflow_dispatch' && inputs.confirm_live == true) ||
-      (github.event_name == 'push' && contains(github.event.head_commit.message, '[volcengine-first-run-matrix]'))
+      (github.event_name == 'push' && (contains(github.event.head_commit.message, '[volcengine-first-run-matrix]') || contains(github.event.head_commit.message, '[volcengine-first-run-linux]') || contains(github.event.head_commit.message, '[volcengine-first-run-windows]') || contains(github.event.head_commit.message, '[volcengine-first-run-linux-windows]')))
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, windows-latest, macos-15]
+        os: ${{ fromJSON((inputs.hosts == 'linux-windows' || contains(github.event.head_commit.message, '[volcengine-first-run-linux-windows]')) && '["ubuntu-24.04","windows-latest"]' || (inputs.hosts == 'linux' || contains(github.event.head_commit.message, '[volcengine-first-run-linux]')) && '["ubuntu-24.04"]' || (inputs.hosts == 'windows' || contains(github.event.head_commit.message, '[volcengine-first-run-windows]')) && '["windows-latest"]' || inputs.hosts == 'macos' && '["macos-15"]' || '["ubuntu-24.04","windows-latest","macos-15"]') }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 35
     steps:

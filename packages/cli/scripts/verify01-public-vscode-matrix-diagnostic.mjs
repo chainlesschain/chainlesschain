@@ -85,6 +85,9 @@ export async function runPublicVSCode({
     CC_UPDATE_NOTICE: "0",
     CC_MAX_RETRIES: "0",
     CLAUDE_CODE_MAX_RETRIES: "0",
+    ...(process.platform === "win32"
+      ? { CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS: "60000" }
+      : {}),
     CI: "true",
     NO_COLOR: "1",
     LANG: "C.UTF-8",

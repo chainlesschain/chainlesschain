@@ -6,6 +6,7 @@ on:
     branches: [feature/verify01-task-completion-20261017]
     paths:
       - "packages/cli/scripts/verify01-volcengine-campaign.mjs"
+      - "packages/cli/scripts/verify01-volcengine-task-diagnostic.mjs"
       - ".github/workflows/verify01-volcengine-campaign.yml"
   workflow_dispatch:
     inputs:
@@ -73,6 +74,7 @@ jobs:
         run: >-
           node packages/cli/scripts/verify01-volcengine-campaign.mjs
           --confirm-live --group "$CAMPAIGN_GROUP"
+          --round 2
           --source-sha "$EXECUTION_SOURCE_SHA" --image-id "$REVIEW_IMAGE_ID"
           --output-dir "$RUNNER_TEMP/verify01-original36"
       - name: Preserve candidates, model events, raw receipts and independent checker output

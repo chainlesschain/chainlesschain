@@ -47,7 +47,7 @@ test("original verify-04 and verify-22 receive no repaired candidates or previou
       prompt,
       /39045268929|39043024352|GPT6_PRICING_TERMS|_collect calls|Ordinary checker feedback|repair round/u,
     );
-    assert.match(prompt, /first attempt/u);
+    assert.match(prompt, /unseeded attempt/u);
     assert.match(prompt, /not a frozen cross-platform\/IDE sample/u);
   }
 });

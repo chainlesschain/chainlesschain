@@ -5,7 +5,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { randomBytes, createHash } from "node:crypto";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
 import { runCaptured } from "./verify01-first-run-cli-diagnostic.mjs";
 import { LLM_PROBE_SCHEMA } from "../src/lib/llm-connection-probe.js";
@@ -17,6 +17,11 @@ import {
   BROKER,
   createVolcengineDiagnosticBroker,
 } from "./verify01-volcengine-diagnostic-broker.mjs";
+
+export const AUTHENTICATION_NODE_FLAGS = Object.freeze([
+  "--enable-network-family-autoselection",
+  "--network-family-autoselection-attempt-timeout=2000",
+]);
 
 export function npmEntrypoint(execPath = process.execPath) {
   const directory = path.dirname(execPath);
@@ -98,6 +103,9 @@ export async function runPublicCliMatrix({
     LANG: "C.UTF-8",
     CC_MAX_RETRIES: "0",
     CLAUDE_CODE_MAX_RETRIES: "0",
+    ...(process.platform === "win32"
+      ? { CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS: "60000" }
+      : {}),
   };
   fs.writeFileSync(env.npm_config_globalconfig, "");
   const taskId = `first-run-${process.platform}-cli`;
@@ -197,6 +205,23 @@ export async function runPublicCliMatrix({
       lifecycleScriptsEnabled: true,
       locked,
     };
+    if (process.platform === "win32") {
+      const acl = await run("windows-acl-allowance-preflight", [
+        "--input-type=module",
+        "--eval",
+        "const api=await import(process.argv[1]);console.log(JSON.stringify({timeoutMs:api._resolveWindowsAclTimeout(15000)}));",
+        pathToFileURL(path.join(cliRoot, "src/lib/secure-fs.js")).href,
+      ]);
+      const actual = JSON.parse(acl.stdout);
+      assert.equal(actual.timeoutMs, 60000);
+      summary.windowsAclAllowanceOverride = {
+        ...actual,
+        environmentVariable: "CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS",
+        defaultRepairTimeoutMs: 15000,
+        verificationUnchanged: true,
+        automaticRetry: false,
+      };
+    }
     for (const [field, value] of Object.entries({
       provider: DIAGNOSTIC.provider,
       model: BROKER.model,
@@ -225,10 +250,30 @@ export async function runPublicCliMatrix({
       configured,
       credentialsPersisted: false,
     };
-    const auth = await run("authenticate", [cli, "llm", "test", "--json"], {
-      environment: { ...env, VOLCENGINE_API_KEY: key },
-      timeout: 90000,
-    });
+    const transportCheck = await run("authentication-transport-preflight", [
+      ...AUTHENTICATION_NODE_FLAGS,
+      "--input-type=module",
+      "--eval",
+      "import net from 'node:net'; console.log(JSON.stringify({node:process.version,autoSelectFamily:net.getDefaultAutoSelectFamily(),attemptTimeoutMs:net.getDefaultAutoSelectFamilyAttemptTimeout()}));",
+    ]);
+    const transport = JSON.parse(transportCheck.stdout);
+    assert.equal(transport.autoSelectFamily, true);
+    assert.equal(transport.attemptTimeoutMs, 2000);
+    summary.authenticationTransportOverride = {
+      ...transport,
+      flags: AUTHENTICATION_NODE_FLAGS,
+      scope: "authentication child connection establishment only",
+      httpReplay: false,
+      originalFailuresPreserved: true,
+    };
+    const auth = await run(
+      "authenticate",
+      [...AUTHENTICATION_NODE_FLAGS, cli, "llm", "test", "--json"],
+      {
+        environment: { ...env, VOLCENGINE_API_KEY: key },
+        timeout: 90000,
+      },
+    );
     const probe = JSON.parse(auth.stdout.trim());
     assert.equal(probe.schema, LLM_PROBE_SCHEMA);
     assert.equal(probe.provider, DIAGNOSTIC.provider);
