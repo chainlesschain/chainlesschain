@@ -1,0 +1,7 @@
+# Digest-bound generated reports, original candidates and receipts keep exact bytes.
+* -text !eol -whitespace linguist-generated
+
+# Handwritten documentation and the verifier follow normal source formatting.
+README.md text eol=lf whitespace -linguist-generated
+verify-evidence.mjs text eol=lf whitespace -linguist-generated
+.gitattributes text eol=lf whitespace -linguist-generated

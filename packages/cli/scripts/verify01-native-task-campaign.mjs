@@ -360,7 +360,8 @@ export function protocolStream(captureDir) {
     .readdirSync(captureDir)
     .filter(
       (f) =>
-        f.endsWith(".ndjson") &&
+        (f.endsWith(".ndjson") ||
+          (f.startsWith("protocol-") && f.endsWith(".jsonl"))) &&
         f !== "ui.ndjson" &&
         f !== "cdp-discovery.ndjson",
     );

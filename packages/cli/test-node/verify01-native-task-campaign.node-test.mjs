@@ -226,6 +226,55 @@ test("VSCode prompt preserves full UTF8 content up to 1 MiB and first-run deadli
     validateConfig({ ...config, deadline: Date.now() + 1801000 }),
   );
 });
+test("failed JetBrains capture reads one raw JSONL stream and rejects ambiguous generations", (t) => {
+  const root = temporary(t);
+  const raw = path.join(root, "protocol-generation-one.jsonl");
+  const event = { type: "result", subtype: "interrupted", is_error: false };
+  const bytes =
+    [
+      { direction: "input", event: { type: "user", message: "task" } },
+      { direction: "output", event },
+      { direction: "exit", event: { code: 1, stdoutDrained: true } },
+    ]
+      .map((record) => JSON.stringify(record))
+      .join("\n") + "\n";
+  fs.writeFileSync(path.join(root, "unrelated.jsonl"), "not a protocol");
+  assert.throws(
+    () => protocolStream(root),
+    /exactly one raw protocol generation/,
+  );
+  fs.writeFileSync(raw, bytes);
+  assert.deepEqual(JSON.parse(protocolStream(root)), event);
+  assert.equal(fs.readFileSync(raw, "utf8"), bytes);
+  const other = path.join(root, "protocol-generation-two.jsonl");
+  fs.writeFileSync(other, bytes);
+  assert.throws(
+    () => protocolStream(root),
+    /exactly one raw protocol generation/,
+  );
+  fs.unlinkSync(other);
+  const vscode = path.join(root, "generation.ndjson");
+  fs.writeFileSync(vscode, bytes);
+  assert.throws(
+    () => protocolStream(root),
+    /exactly one raw protocol generation/,
+  );
+  // The established consolidated capture remains authoritative when present.
+  const consolidated = { type: "result", subtype: "error", is_error: true };
+  fs.writeFileSync(
+    path.join(root, "protocol.json"),
+    JSON.stringify([{ direction: "output", event: consolidated }]),
+  );
+  assert.deepEqual(JSON.parse(protocolStream(root)), consolidated);
+  fs.unlinkSync(path.join(root, "protocol.json"));
+  fs.unlinkSync(vscode);
+  fs.writeFileSync(
+    raw,
+    JSON.stringify({ direction: "exit", event: { code: 1 } }) + "\n",
+  );
+  assert.equal(protocolStream(root).trim(), "");
+});
+
 test("protocol conversion uses output only and Windows comparison leaves raw evidence unchanged", (t) => {
   const root = temporary(t);
   const event = { type: "tool_use", args: { path: "C:\\Work\\Candidate.js" } };
