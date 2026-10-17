@@ -14622,6 +14622,45 @@ export async function* agentLoop(messages, options) {
     options.hostResourceBudget || new HostResourceBudget();
   const taskProgressTracker =
     options.taskProgressTracker || new TaskProgressTracker();
+  // A subtree preflight is deliberately not an executed mutation. Keep this
+  // obligation outside transcript compaction and never replay it automatically.
+  const pendingSubtreeMutations = new Map();
+  let subtreeMutationReprompted = false;
+  const recordSubtreeMutation = (tool, args, result) => {
+    if (!GUARDED_FILE_MUTATION_TOOLS.has(tool)) return;
+    if (!args || typeof args !== "object" || Array.isArray(args)) return;
+    // Invalid tool arguments/results must retain their existing error path;
+    // bookkeeping must not introduce a new exception or completion verdict.
+    const requestedPaths = fileMutationPaths(tool, args);
+    if (
+      !requestedPaths.length ||
+      requestedPaths.some((target) => typeof target !== "string")
+    )
+      return;
+    const targets = [
+      ...new Set(
+        requestedPaths.map((target) =>
+          path.resolve(options.cwd || process.cwd(), target),
+        ),
+      ),
+    ].sort();
+    const key = JSON.stringify([tool, targets]);
+    if (
+      result?.policy?.via === "subtree-instructions" &&
+      result.policy.decision === "deferred" &&
+      result.mutationPerformed === false
+    ) {
+      pendingSubtreeMutations.set(key, { tool, targets });
+    } else if (
+      result &&
+      !result.error &&
+      result.success !== false &&
+      result.isError !== true &&
+      result.mutationPerformed !== false
+    ) {
+      pendingSubtreeMutations.delete(key);
+    }
+  };
   const signal = options.signal || null;
   const workflowEffectId = _normalizeWorkflowEffectId(options.workflowEffectId);
   // Optional OpenTelemetry recorder (TelemetryRecorder). When present, the loop
@@ -16397,6 +16436,42 @@ export async function* agentLoop(messages, options) {
         }
         continue;
       }
+      if (pendingSubtreeMutations.size) {
+        const pending = [...pendingSubtreeMutations.values()];
+        if (!subtreeMutationReprompted && budget.remaining() > 0) {
+          subtreeMutationReprompted = true;
+          messages.push({ role: "assistant", content: msg.content || "" });
+          messages.push({
+            role: "user",
+            content:
+              "Runtime status: these mutations were deferred before any effect: " +
+              JSON.stringify(pending) +
+              ". Review the authoritative subtree instructions already returned. " +
+              "If still authorized and appropriate, explicitly issue the required tool call. " +
+              "Do not bypass rules or perform a prohibited write. Otherwise report the unfinished work and its blocker. " +
+              "A promise to retry does not execute the mutation.",
+          });
+          yield {
+            type: "iteration-warning",
+            message:
+              "Subtree-deferred mutations remain unexecuted; one recovery turn requested.",
+          };
+          continue;
+        }
+        yield {
+          type: "response-complete",
+          content:
+            (msg.content ? msg.content + "\n\n" : "") +
+            "Incomplete: subtree-deferred mutations remain unexecuted.",
+        };
+        yield {
+          type: "run-ended",
+          runId,
+          reason: "deferred-mutation-unresolved",
+          pendingMutations: pending,
+        };
+        return;
+      }
       // Surface the final answer's extended-thinking reasoning (Anthropic, when
       // --think is on) so non-streaming consumers (the REPL) can show it. The
       // streaming path forwards reasoning live via onThinking instead.
@@ -16638,6 +16713,7 @@ export async function* agentLoop(messages, options) {
         } = await promise;
         if (fatalError) throw fatalError;
         throwIfAborted(signal);
+        recordSubtreeMutation(call.function.name, toolArgs, toolResult);
         const taskAdvanced = taskProgressTracker.record(
           call.function.name,
           toolResult,
@@ -17181,6 +17257,7 @@ export async function* agentLoop(messages, options) {
         // context — but tell the model when we cut it (no more silent
         // mid-content slice). See MAX_TOOL_RESULT_CHARS / capToolResultString.
         const resultStr = toolResultForModel(toolName, toolResult, messages);
+        recordSubtreeMutation(toolName, toolArgs, toolResult);
         const taskAdvanced = taskProgressTracker.record(
           toolName,
           toolResult,

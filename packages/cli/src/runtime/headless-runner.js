@@ -3832,6 +3832,7 @@ async function runAgentHeadlessInWorkspace(
         autoRewake &&
         _hookSupervisor &&
         !stopForCost &&
+        endReason !== "deferred-mutation-unresolved" &&
         endReason !== "max_turns" &&
         endReason !== "cost-budget-exhausted"
       ) {
@@ -3886,7 +3887,8 @@ async function runAgentHeadlessInWorkspace(
         !goalEngine.done &&
         !stopForCost &&
         endReason !== "cost-budget-exhausted" &&
-        endReason !== "max_turns"
+        endReason !== "max_turns" &&
+        endReason !== "deferred-mutation-unresolved"
       ) {
         // Feed this turn's usage DELTA so the engine's totals equal the run's
         // cumulative usage (recordTurnUsage accumulates).
@@ -4208,7 +4210,11 @@ async function runAgentHeadlessInWorkspace(
   const exhausted =
     endReason === "budget-exhausted" || endReason === "max_turns";
   const costStopped = endReason === "cost-budget-exhausted";
-  let isError = exhausted || costStopped || endReason === "no-response";
+  let isError =
+    exhausted ||
+    costStopped ||
+    endReason === "no-response" ||
+    endReason === "deferred-mutation-unresolved";
   let subtype = exhausted
     ? "error_max_turns"
     : costStopped
