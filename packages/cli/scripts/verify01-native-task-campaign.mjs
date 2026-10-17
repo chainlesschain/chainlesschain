@@ -183,8 +183,20 @@ export function nativeEnvironment(
     "JAVA_HOME",
   ])
     if (process.env[name]) env[name] = process.env[name];
-  if (process.platform === "win32")
+  if (process.platform === "win32") {
     env.CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS = "60000";
+    // Windows PowerShell's .NET KnownFolder lookup follows USERPROFILE,
+    // not LOCALAPPDATA. Missing standard directories can make its cache path
+    // relative to the task workspace even when LOCALAPPDATA is absolute.
+    mkdir(path.join(profileHome, "AppData", "Local"));
+    mkdir(path.join(profileHome, "AppData", "Roaming"));
+    env.PSModuleAnalysisCachePath = path.resolve(
+      root,
+      "powershell-cache",
+      "ModuleAnalysisCache",
+    );
+    mkdir(path.dirname(env.PSModuleAnalysisCachePath));
+  }
   for (const name of ["APPDATA", "LOCALAPPDATA", "TMPDIR", "npm_config_cache"])
     mkdir(env[name]);
   for (const name of ["npm_config_userconfig", "npm_config_globalconfig"])

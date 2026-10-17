@@ -8,6 +8,7 @@ import { execFileSync } from "node:child_process";
 import {
   selectNativeSamples,
   nativeTaskPrompt,
+  nativeEnvironment,
   snapshotNativeTree,
   inspectNativeScope,
   nativeCliAdapterSource,
@@ -196,3 +197,74 @@ test("protocol conversion uses output only and Windows comparison leaves raw evi
   );
   assert.deepEqual(JSON.parse(stream), event);
 });
+
+test(
+  "Windows PowerShell KnownFolders and module cache remain outside the task workspace",
+  {
+    skip: process.platform !== "win32",
+    timeout: 30000,
+  },
+  (t) => {
+    const root = temporary(t);
+    const workspace = path.join(root, "workspace");
+    const profileHome = path.join(root, "home");
+    fs.mkdirSync(workspace);
+    const env = nativeEnvironment(
+      root,
+      profileHome,
+      path.join(profileHome, ".chainlesschain"),
+      [],
+    );
+    assert.ok(path.isAbsolute(env.PSModuleAnalysisCachePath));
+    assert.ok(env.PSModuleAnalysisCachePath.startsWith(root + path.sep));
+    assert.ok(!env.PSModuleAnalysisCachePath.startsWith(workspace + path.sep));
+    // Exercise the real Windows PowerShell engine. Its chosen cache location
+    // is authoritative even when no module happens to need a cache write.
+    const script = `
+    $ErrorActionPreference = 'Stop'
+    $type = [System.Management.Automation.PSObject].Assembly.GetType('System.Management.Automation.AnalysisCacheData')
+    $field = $type.GetField('cacheStoreLocation', [Reflection.BindingFlags]'Static,NonPublic')
+    Get-Command Get-Acl | Out-Null
+    [Console]::WriteLine((@{
+      local = [Environment]::GetFolderPath('LocalApplicationData')
+      roaming = [Environment]::GetFolderPath('ApplicationData')
+      cache = [string]$field.GetValue($null)
+    } | ConvertTo-Json -Compress))
+  `;
+    const executable = path.join(
+      process.env.SystemRoot,
+      "System32",
+      "WindowsPowerShell",
+      "v1.0",
+      "powershell.exe",
+    );
+    const observed = JSON.parse(
+      execFileSync(
+        executable,
+        ["-NoLogo", "-NoProfile", "-NonInteractive", "-Command", script],
+        {
+          cwd: workspace,
+          env,
+          windowsHide: true,
+          encoding: "utf8",
+          timeout: 20000,
+        },
+      ).trim(),
+    );
+    const normalize = (value) => path.resolve(value).toLowerCase();
+    assert.equal(
+      normalize(observed.local),
+      normalize(path.join(profileHome, "AppData", "Local")),
+    );
+    assert.equal(
+      normalize(observed.roaming),
+      normalize(path.join(profileHome, "AppData", "Roaming")),
+    );
+    assert.equal(
+      normalize(observed.cache),
+      normalize(env.PSModuleAnalysisCachePath),
+    );
+    assert.equal(fs.existsSync(path.join(workspace, "Microsoft")), false);
+    assert.deepEqual(fs.readdirSync(workspace), []);
+  },
+);

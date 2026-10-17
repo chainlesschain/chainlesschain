@@ -239,25 +239,28 @@ export async function checkNativeCampaign({
       assert.equal(native.kind, sample.kind);
       assert.equal(native.stratum, sample.stratum);
       const candidates = validateNativeCandidate(input, native, task);
-      const stream = fs.readFileSync(
-        artifactFile(input, `${sample.id}/model-stream.ndjson`),
-        "utf8",
-      );
-      row.generationAssessment = assessNativeGeneration(
-        native,
-        stream,
-        source.entry,
-      );
+      const streamPath = `${sample.id}/model-stream.ndjson`;
+      row.generationAssessment = fs.existsSync(path.join(input, streamPath))
+        ? assessNativeGeneration(
+            native,
+            fs.readFileSync(artifactFile(input, streamPath), "utf8"),
+            source.entry,
+          )
+        : {
+            passed: false,
+            originalGenerationPassed: native.generationPassed === true,
+            reason: "complete model stream was not captured",
+          };
       row.generationPassed = row.generationAssessment.passed;
       const before = json(artifactFile(input, `${sample.id}/tree-before.json`)),
         after = json(artifactFile(input, `${sample.id}/tree-after.json`));
       const scope = inspectNativeScope(before, after, task.expectedFiles);
       assert.deepEqual(native.changedPaths, scope.changedPaths);
       assert.equal(native.sourceScopePassed, scope.sourceScopePassed);
-      assert.ok(
-        scope.sourceScopePassed,
-        "native model changed paths outside deliverables",
-      );
+      row.sourceScopePassed = scope.sourceScopePassed;
+      row.unexpectedChanges = scope.unexpectedChanges;
+      // Candidate quality is measured against the unchanged frozen project.
+      // Scope/host failures still prevent end-to-end passage independently.
       for (const c of candidates) {
         assert.equal(after[c.file]?.digest, c.digest);
         assert.equal(after[c.file]?.bytes, c.bytes.length);
