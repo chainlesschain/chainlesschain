@@ -1,0 +1,106 @@
+import { describe, expect, it } from "vitest";
+
+import {
+  agentPrintArgument,
+  assertBackgroundArgvDurable,
+  canonicalizeBackgroundSessionArgv,
+  transformBackgroundLaunchArgv,
+} from "../../src/lib/background-command-argv.js";
+
+// Placeholder: filled with independent regression coverage for "含空格参数完整性".
+const OPTION_SPECS = [
+  { long: "--add-dir", required: true },
+  { long: "--model", required: true },
+  { long: "--title", required: true },
+  { short: "-p", long: "--print", optional: true },
+  { long: "--session", required: true },
+  { long: "--resume", optional: true },
+];
+
+describe("verify-12: space/quoted/path argv boundary integrity", () => {
+  it("keeps a prompt with spaces, quotes and a path inside one --print token", () => {
+    const prompt = "build ./dir with spaces \"quoted part\" -- --model";
+    const token = agentPrintArgument(prompt);
+    expect(token).toBe(`--print=${prompt}`);
+    // The whole prompt must remain a single argv element, never re-split.
+    expect(token.split(/\s+/)).toHaveLength(1);
+  });
+
+  it("keeps a directory path containing spaces and quotes as one --add-dir value", () => {
+    const path = "./my work dir/\"release build\"";
+    const result = transformBackgroundLaunchArgv(
+      ["agent", "--add-dir", path, "--model", "m"],
+      { directories: [path], optionSpecs: OPTION_SPECS, commandNames: ["agent"] },
+    );
+    expect(result).toEqual([
+      "agent",
+      "--model",
+      "m",
+      "--add-dir",
+      path,
+    ]);
+    // The path is one argv element, so it can never be shell-expanded.
+    expect(result[result.length - 1]).toBe(path);
+    expect(result[result.length - 1].includes(" ")).toBe(true);
+  });
+
+  it("preserves an operand containing spaces and quotes as a single token", () => {
+    const operand = "run script 'quoted word' now";
+    const result = transformBackgroundLaunchArgv(
+      ["agent", operand, "--model", "m"],
+      { optionSpecs: OPTION_SPECS, commandNames: ["agent"] },
+    );
+    expect(result).toEqual(["agent", operand, "--model", "m"]);
+    expect(result[1]).toBe(operand);
+  });
+
+  it("keeps a --title value with spaces and quotes as one argv element", () => {
+    const title = "Fix the \"build dir\" now";
+    const result = canonicalizeBackgroundSessionArgv(
+      ["agent", "--title", title, "task"],
+      { sessionId: "resolved", optionSpecs: OPTION_SPECS },
+    );
+    // --title is not a session parent option, so its value round-trips intact.
+    expect(result).toEqual([
+      "agent",
+      "--title",
+      title,
+      "task",
+      "--session",
+      "resolved",
+    ]);
+    expect(result[2]).toBe(title);
+    expect(result[2].includes(" ")).toBe(true);
+  });
+
+  it("never treats an equal-looking value as a parent option (negative control)", () => {
+    const value = "--session literal text";
+    const result = canonicalizeBackgroundSessionArgv(
+      ["agent", "--model", value, "task"],
+      { sessionId: "resolved", optionSpecs: OPTION_SPECS },
+    );
+    // The whole value stays one --model token and is not consumed as a session.
+    expect(result).toEqual([
+      "agent",
+      "--model",
+      value,
+      "task",
+      "--session",
+      "resolved",
+    ]);
+    expect(result[2]).toBe(value);
+  });
+
+  it("scans token boundaries, not substrings, for the ephemeral guard (negative control)", () => {
+    // A value that merely contains the substring is not a separate argv token.
+    expect(
+      assertBackgroundArgvDurable(["agent", "note --ephemeral is not a token"]),
+    ).toBe(true);
+    // A genuine, space-free --ephemeral token still throws.
+    expect(() =>
+      assertBackgroundArgvDurable(["agent", "--ephemeral"]),
+    ).toThrowError(
+      expect.objectContaining({ code: "BACKGROUND_EPHEMERAL_UNSUPPORTED" }),
+    );
+  });
+});

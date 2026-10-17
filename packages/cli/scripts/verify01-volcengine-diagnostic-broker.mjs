@@ -113,7 +113,7 @@ export function parseDiagnosticJson(text) {
   return JSON.parse(text);
 }
 
-export function diagnosticBody(input) {
+export function diagnosticBody(input, { allowTextOnlyRequests = false } = {}) {
   check(input?.model === BROKER.model, "DIAGNOSTIC_MODEL_MISMATCH");
   check(
     input.stream === undefined || typeof input.stream === "boolean",
@@ -125,11 +125,12 @@ export function diagnosticBody(input) {
     "DIAGNOSTIC_MESSAGES_REQUIRED",
   );
   check(
-    Array.isArray(input.tools) &&
-      input.tools.length > 0 &&
-      input.tools.every(
-        (t) => t?.type === "function" && fileTools.has(t.function?.name),
-      ),
+    (allowTextOnlyRequests && input.tools === undefined) ||
+      (Array.isArray(input.tools) &&
+        (allowTextOnlyRequests || input.tools.length > 0) &&
+        input.tools.every(
+          (t) => t?.type === "function" && fileTools.has(t.function?.name),
+        )),
     "DIAGNOSTIC_FILE_TOOLS_REQUIRED",
   );
   check(
@@ -148,7 +149,7 @@ export function diagnosticBody(input) {
   const body = {
     model: BROKER.model,
     messages: input.messages,
-    tools: input.tools,
+    ...(input.tools?.length ? { tools: input.tools } : {}),
     stream: streaming,
     ...(streaming ? { stream_options: { include_usage: true } } : {}),
     max_tokens: BROKER.maximumAnswerTokens,
@@ -461,6 +462,7 @@ export async function createVolcengineDiagnosticBroker(options) {
   const maximumRequestsPerTask =
     options.maximumRequestsPerTask ?? BROKER.maximumRequestsPerTask;
   const requestTimeoutMs = options.requestTimeoutMs ?? BROKER.timeoutMs;
+  const allowTextOnlyRequests = options.allowTextOnlyRequests === true;
   check(
     Array.isArray(allowedTaskIds) &&
       allowedTaskIds.length > 0 &&
@@ -565,7 +567,7 @@ export async function createVolcengineDiagnosticBroker(options) {
       const original = parseDiagnosticJson(
         new TextDecoder("utf-8", { fatal: true }).decode(Buffer.concat(chunks)),
       );
-      const effective = diagnosticBody(original);
+      const effective = diagnosticBody(original, { allowTextOnlyRequests });
       const id = receipts.length + 1;
       save(`request-${id}.original.json`, original);
       save(`request-${id}.effective.json`, effective);
@@ -676,6 +678,7 @@ export async function createVolcengineDiagnosticBroker(options) {
     allowedTaskIds,
     maximumRequestsPerTask,
     timeoutMs: requestTimeoutMs,
+    allowTextOnlyRequests,
     retries: 0,
     redirects: false,
     fallback: false,

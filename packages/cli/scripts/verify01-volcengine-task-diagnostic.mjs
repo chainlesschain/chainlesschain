@@ -20,6 +20,10 @@ import {
   createVolcengineDiagnosticBroker,
 } from "./verify01-volcengine-diagnostic-broker.mjs";
 import { requireUnscopedModelTransport } from "../src/lib/formal-budget-provider-scope.js";
+import {
+  loadRepairManifest,
+  campaignRepairPrompt,
+} from "./verify01-campaign-repair.mjs";
 
 export const DIAGNOSTIC = Object.freeze({
   tasks: ["verify-04", "verify-22"],
@@ -388,11 +392,28 @@ export async function runTaskDiagnostic(options) {
   requireUnscopedModelTransport();
   const { outputDir, imageId, sourceSha, key } = options;
   const original = options.mode === "original";
-  assert.ok(options.mode === undefined || original, "unsupported task mode");
-  const selectedTasks = original
+  const repairing = options.mode === "campaign-repair";
+  const campaign = original || repairing;
+  assert.ok(options.mode === undefined || campaign, "unsupported task mode");
+  assert.ok(
+    repairing || (!options.repairManifest && !options.repairManifestDigest),
+    "repair manifest requires explicit repair mode",
+  );
+  const repair = repairing
+    ? loadRepairManifest({
+        repository,
+        file: options.repairManifest,
+        expectedDigest: options.repairManifestDigest,
+        sourceSha,
+        catalog: json(path.join(planDir, "tasks.json")),
+        projectCommit: DIAGNOSTIC.projectCommit,
+        planDigest: DIAGNOSTIC.planDigest,
+      })
+    : null;
+  const selectedTasks = campaign
     ? options.originalTasks
     : selectDiagnosticTasks(options.task);
-  if (original) {
+  if (campaign) {
     assert.ok(
       Array.isArray(selectedTasks) &&
         selectedTasks.length > 0 &&
@@ -405,9 +426,22 @@ export async function runTaskDiagnostic(options) {
       ),
     );
   }
-  const maxTurns = original ? 20 : DIAGNOSTIC.maxTurns;
-  const maximumRequestsPerTask = original ? 24 : BROKER.maximumRequestsPerTask;
-  const repairSeeds = original ? {} : DIAGNOSTIC.repairSeeds;
+  if (repairing)
+    assert.ok(
+      selectedTasks.every((id) => repair.tasks[id]),
+      "selected repair task missing from manifest",
+    );
+  const maxTurns = campaign ? 20 : DIAGNOSTIC.maxTurns;
+  const maximumRequestsPerTask = campaign ? 24 : BROKER.maximumRequestsPerTask;
+  const repairSeeds = repairing
+    ? Object.fromEntries(
+        Object.entries(repair.tasks)
+          .filter(([, entry]) => entry.seed)
+          .map(([id, entry]) => [id, entry.seed]),
+      )
+    : original
+      ? {}
+      : DIAGNOSTIC.repairSeeds;
   const output = path.resolve(outputDir);
   const relativeOutput = path.relative(repository, output);
   assert.ok(
@@ -438,11 +472,29 @@ export async function runTaskDiagnostic(options) {
     ...DIAGNOSTIC,
     maxTurns,
     repairSeeds,
-    inputMode: original ? "original-unseeded" : "diagnostic-repair",
-    campaignRound: original ? options.campaignRound || 1 : null,
+    inputMode: repairing
+      ? "campaign-repair"
+      : original
+        ? "original-unseeded"
+        : "diagnostic-repair",
+    campaignRound: repairing
+      ? repair.manifest.repairRound
+      : original
+        ? options.campaignRound || 1
+        : null,
+    ...(repairing
+      ? {
+          repairManifest: {
+            file: repair.file,
+            digest: repair.digest,
+            executionSourceCommit: sourceSha,
+            bindings: repair.bindings,
+          },
+        }
+      : {}),
     actualEntry: "linux-cli",
     designatedStrata: options.designatedStrata || null,
-    estimatedSpendStopUSD: original ? null : DIAGNOSTIC.estimatedSpendStopUSD,
+    estimatedSpendStopUSD: campaign ? null : DIAGNOSTIC.estimatedSpendStopUSD,
     tasks: [],
     selectedTasks,
     imageId,
@@ -458,7 +510,7 @@ export async function runTaskDiagnostic(options) {
       "Public CLI .99 is executed, with transport-only diagnostic overrides recorded separately from the frozen default-thinking comparisons.",
       "Public .99 exposes a six-file-tool ceiling; this run requests all six explicitly and records the actual schemas and calls. It does not attest a narrower two-tool ceiling.",
       "Only expected test deliverables may change; implementation edits in the original task are deliberately excluded.",
-      original
+      campaign
         ? "The original-task campaign has no estimated-cost acceptance criterion; billing is not assessed."
         : "The $0.25 per-task CLI stop uses returned usage estimates; an in-flight call may exceed it and unpriced/unknown usage is not a hard quota.",
       `The diagnostic broker disables thinking, requests at most ${BROKER.maximumAnswerTokens} answer tokens, admits at most ${maximumRequestsPerTask} physical attempts per selected task, and rejects unknown usage before another call. These are diagnostic bounds, not formal budget activation or a provider invoice.`,
@@ -600,18 +652,25 @@ export async function runTaskDiagnostic(options) {
     summary.executionSourceBindings = [];
     for (const file of [
       "packages/cli/scripts/verify01-volcengine-task-diagnostic.mjs",
+      "packages/cli/scripts/verify01-campaign-repair.mjs",
       "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs",
       "packages/cli/scripts/verify01-review-pack.mjs",
       "packages/cli/scripts/verify01-review-runtime.mjs",
       "packages/cli/scripts/verify01-review-specs.mjs",
       "packages/cli/src/lib/eval/stream-terminal.js",
       ".github/workflows/verify01-volcengine-task-diagnostic.yml",
-      ...(original
+      ...(campaign
         ? [
             "packages/cli/scripts/verify01-volcengine-campaign.mjs",
             ".github/workflows/verify01-volcengine-campaign.yml",
           ]
         : Object.values(repairSeeds).map((seed) => seed.file)),
+      ...(repairing
+        ? [
+            ".github/workflows/verify01-volcengine-campaign-repair.yml",
+            ...repair.bindings.map((binding) => binding.file),
+          ]
+        : []),
     ]) {
       const bytes = fs.readFileSync(path.join(repository, file));
       const committed = command(
@@ -739,11 +798,13 @@ export async function runTaskDiagnostic(options) {
       nativeSqliteAssessed: false,
     });
 
-    if (original) {
+    if (repairing) save("repair-manifest.json", repair.manifest);
+    if (campaign) {
       summary.taskBrokers = [];
       fs.mkdirSync(path.join(output, "broker"), { mode: 0o700 });
       summary.limitations.push(
         "Each independent task has its own broker. A task with unknown usage fails and is not replayed; later unrelated tasks can still execute. Requests allow up to 180 seconds within the unchanged task deadline.",
+        "Campaign transport admits text-only requests with absent/empty tools for the CLI's internal semantic compaction; all non-file tool schemas remain prohibited.",
       );
     } else {
       broker = await createVolcengineDiagnosticBroker({
@@ -781,6 +842,7 @@ export async function runTaskDiagnostic(options) {
         check: null,
         estimatedCostUSD: null,
         actualBilledCostUSD: null,
+        ...(repairing ? { repairProvenance: repair.tasks[taskId] } : {}),
       };
       summary.tasks.push(row);
       async function stage(name) {
@@ -824,6 +886,8 @@ export async function runTaskDiagnostic(options) {
       }
       try {
         save(`${taskId}/task.json`, task);
+        if (repairing)
+          save(`${taskId}/repair-input.json`, repair.tasks[taskId]);
         row.setup = await stage("setup");
         assert.equal(row.setup.pass, true, "trusted setup failed");
         const before = snapshot(workspace);
@@ -848,13 +912,14 @@ export async function runTaskDiagnostic(options) {
           }
           fs.writeFileSync(absolute, initial, { flag: "wx", mode: 0o600 });
         }
-        if (original)
+        if (campaign)
           broker = await createVolcengineDiagnosticBroker({
             outputDir: path.join(output, "broker", taskId),
             key,
             allowedTaskIds: [taskId],
             maximumRequestsPerTask,
             requestTimeoutMs: 180000,
+            allowTextOnlyRequests: true,
           });
         broker.beginTask(taskId);
         const taskEnvironment = modelEnvironment({
@@ -885,12 +950,14 @@ export async function runTaskDiagnostic(options) {
           configPreflight.ok,
           "installed config directory preflight failed",
         );
-        const prompt = original
-          ? originalTaskPrompt(task, spec, maxTurns)
-          : taskPrompt(task, spec);
+        const prompt = repairing
+          ? campaignRepairPrompt(task, spec, repair.tasks[taskId], maxTurns)
+          : original
+            ? originalTaskPrompt(task, spec, maxTurns)
+            : taskPrompt(task, spec);
         save(`${taskId}/prompt.txt`, prompt);
         const modelTimeout = Math.min(
-          (original ? 13 : 8) * 60 * 1000,
+          (campaign ? 13 : 8) * 60 * 1000,
           deadline - Date.now() - 4 * 60 * 1000,
         );
         assert.ok(
@@ -914,7 +981,7 @@ export async function runTaskDiagnostic(options) {
           "stream-json",
           "--max-turns",
           String(maxTurns),
-          ...(original
+          ...(campaign
             ? []
             : ["--max-budget-usd", String(DIAGNOSTIC.estimatedSpendStopUSD)]),
           "--allowed-tools",
@@ -986,7 +1053,7 @@ export async function runTaskDiagnostic(options) {
       } finally {
         row.broker = broker?.taskStatus(taskId) || null;
         row.passed = row.passed && row.broker?.passed === true;
-        if (original && broker) {
+        if (campaign && broker) {
           summary.taskBrokers.push({ taskId, ...(await broker.close()) });
           broker = null;
         }
@@ -1012,7 +1079,7 @@ export async function runTaskDiagnostic(options) {
     process.removeListener("SIGTERM", onSignal);
     process.removeListener("SIGINT", onSignal);
     if (broker) summary.broker = await broker.close();
-    if (original)
+    if (campaign)
       summary.broker = {
         physicalRequestsStarted: (summary.taskBrokers || []).reduce(
           (n, row) => n + row.physicalRequestsStarted,

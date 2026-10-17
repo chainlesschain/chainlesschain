@@ -43,6 +43,30 @@ function response(mutate = () => {}) {
   mutate(row);
   return Buffer.from(`data: ${JSON.stringify(row)}\n\ndata: [DONE]\n\n`);
 }
+
+test("explicit text-only policy allows internal summarization without adding tool authority", () => {
+  for (const value of [undefined, []]) {
+    const input = { ...request(), tools: value };
+    assert.throws(() => diagnosticBody(input), /FILE_TOOLS_REQUIRED/u);
+    const body = diagnosticBody(input, { allowTextOnlyRequests: true });
+    assert.equal(body.tools, undefined);
+    assert.equal(body.model, BROKER.model);
+    assert.equal(body.thinking.type, "disabled");
+  }
+  for (const value of [
+    null,
+    {},
+    [{ type: "function", function: { name: "mcp__ide__executeCode" } }],
+  ])
+    assert.throws(
+      () =>
+        diagnosticBody(
+          { ...request(), tools: value },
+          { allowTextOnlyRequests: true },
+        ),
+      /FILE_TOOLS_REQUIRED/u,
+    );
+});
 test("effective diagnostic request fixes model, thinking, service tier and token ceiling", () => {
   const body = diagnosticBody({ ...request(), max_tokens: 999999 });
   assert.equal(body.max_tokens, 8192);
