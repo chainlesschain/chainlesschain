@@ -2012,7 +2012,29 @@ async function runAgentHeadlessStreamInWorkspace(
           };
         }
       }
-    } catch {
+    } catch (error) {
+      const persistence = projectSessionPersistenceFailure(
+        createSessionPersistenceFailure(error, {
+          sessionId,
+          operation: "session-start",
+        }),
+        { phase: "before-model" },
+      );
+      if (persistence) {
+        emit({
+          type: "result",
+          subtype: "error_persistence",
+          is_error: true,
+          code: persistence.code,
+          error: "Canonical stream session preparation failed",
+          session_id: sessionId,
+          persistence,
+        });
+        writeErr(
+          `${persistence.code}: canonical stream preparation was refused\n`,
+        );
+        return { exitCode: 1, turns: 0, persistence };
+      }
       const code = "CC_SESSION_HOST_SNAPSHOT_UNVERIFIED";
       emit({
         type: "result",

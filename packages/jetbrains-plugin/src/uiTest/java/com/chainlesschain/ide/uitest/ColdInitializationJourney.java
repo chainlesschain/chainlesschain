@@ -78,7 +78,8 @@ final class ColdInitializationJourney {
                 Files.writeString(release, JSON.toJson(exit));
                 held = ui.waitFor("actual child exits before init", s -> !s.get("sendInFlight").getAsBoolean()
                         && !s.get("childRunning").getAsBoolean() && s.get("editable").getAsBoolean()
-                        && text(s,"text").contains("Agent exited before input acknowledgement"));
+                        && text(s,"text").contains("Agent exited before initialization")
+                        && text(s,"text").contains("Input was not dispatched"));
                 proof.add("held", held);
             }
             assertEquals(prompt, text(held, "inputText"));

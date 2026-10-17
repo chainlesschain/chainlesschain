@@ -26,7 +26,7 @@ the corresponding exact-gated CLI command, as documented below.
 
 ## Release compatibility
 
-Candidate 0.4.166 pairs with CLI 0.166.104 for task scope, finite-budget delivery
+Plugin **0.4.166** is the current release candidate and recommends CLI **0.166.104** for task scope, finite-budget delivery
 guidance, authentication usage and first-run diagnostics. Experimental native review and durable
 Windows/macOS recovery require separate acceptance.
 
@@ -44,6 +44,8 @@ identity and capabilities; the existing compatibility floor still applies.
 The Windows 2025.2 installed-ZIP test host disables development automatic plugin
 reload so restart journeys do not unload the Robot server and ChainlessChain
 plugins mid-test. This is a test-host fix; full IDE restart gates still apply.
+
+## Previous candidates and development notes
 
 Candidate `0.4.165` recommends CLI `0.166.103` for persistent Personal Data Hub
 projection recovery, consumer retirement, and bounded cleanup of historical

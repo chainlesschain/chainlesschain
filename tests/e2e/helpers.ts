@@ -119,9 +119,9 @@ export async function launchElectronApp(): Promise<ElectronTestContext> {
       // full fixture database after every INSERT; production is unaffected
       // because DatabaseManager honours this flag only in NODE_ENV=test.
       CHAINLESSCHAIN_DISABLE_DB_PERSISTENCE: "1",
-      // These journeys exercise permission/team business flows with generated
-      // fixture DIDs. Actor/RBAC enforcement has dedicated security tests and
-      // requires an unlocked real DID, which this isolated profile omits.
+      // These journeys include synthetic secondary-member DIDs. Actor/RBAC
+      // enforcement has dedicated security tests; board reads still require
+      // the authenticated owner created by createPmOrganizationFixture().
       CC_IPC_ACTOR_GUARD: "off",
       CC_IPC_RBAC_GUARD: "off",
       // Pair with --no-web-shell argv: shouldRunWebShell() honours either.
@@ -352,6 +352,64 @@ export async function closeElectronApp(
     return;
   }
   await app.close();
+}
+
+/** Establish a real owner session and organization for authorized board reads. */
+export async function createPmOrganizationFixture(
+  window: Page,
+  name: string,
+): Promise<{ actorDid: string; orgId: string }> {
+  const identity = await callIPC<{ did: string }>(
+    window,
+    "did:create-identity",
+    { nickname: name },
+    { setAsDefault: true },
+  );
+  if (!identity?.did?.startsWith("did:")) {
+    throw new Error("PM fixture did not create a current DID");
+  }
+
+  // Authentication captures the current DID, so it must follow identity
+  // creation even if launchElectronApp already completed the login screen.
+  const authentication = await callIPC<{ success: boolean }>(
+    window,
+    "auth:verify-password",
+    process.env.DEFAULT_USERNAME || "admin",
+    process.env.DEFAULT_PASSWORD || "123456",
+  );
+  if (!authentication?.success) {
+    throw new Error("PM fixture password authentication failed");
+  }
+
+  const result = await callIPC<{
+    success: boolean;
+    error?: string;
+    organization?: { org_id: string; owner_did: string };
+  }>(window, "organization.create", { name, enableInviteCode: false });
+  const organization = result?.organization;
+  if (
+    !result?.success ||
+    !organization?.org_id ||
+    organization.owner_did !== identity.did
+  ) {
+    throw new Error(
+      `PM fixture organization creation failed: ${result?.error || "invalid owner or organization"}`,
+    );
+  }
+
+  // Exercise the production read guard now: password success alone does not
+  // prove a session exists, and team membership is not organization membership.
+  const boards = await callIPC<{ success: boolean }>(
+    window,
+    "task:get-boards",
+    {
+      orgId: organization.org_id,
+    },
+  );
+  if (!boards?.success) {
+    throw new Error("PM fixture authorized board read failed");
+  }
+  return { actorDid: identity.did, orgId: organization.org_id };
 }
 
 /**

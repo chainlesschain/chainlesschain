@@ -46,6 +46,10 @@ import {
   isFormalQualityHermeticRuntime,
 } from "../lib/formal-quality-eval-runtime.js";
 import { withQuietStdout } from "../runtime/quiet-stdout.js";
+import {
+  createSessionPersistenceFailure,
+  projectSessionPersistenceFailure,
+} from "../lib/session-persistence-failure.js";
 import { registerControlledHostCommand } from "./agent-controlled-host.js";
 import { registerProcessOwnershipCommands } from "./agent-process-ownership.js";
 import { resolveCredentialEnvironmentValue } from "../lib/process-execution-broker/credential-transport.js";
@@ -1167,29 +1171,61 @@ export function registerAgentCommand(program, dependencies = {}) {
         // initialize AppConfig/DatabaseManager. Their legacy console.info
         // diagnostics belong on stderr; stdout may already be reserved for a
         // JSON/NDJSON protocol selected by this command.
-        await withQuietStdout(async () => {
-          const { sessionHasPersistedEvidence } = await import(
-            "../harness/jsonl-session-store.js"
-          );
-          if (!sessionHasPersistedEvidence(options.session)) {
-            const [{ bootstrap }, { ensureCanonicalSessionFromDatabase }] =
-              await Promise.all([
-                import("../runtime/bootstrap.js"),
-                import("../lib/session-transcript-migration.js"),
-              ]);
-            const context =
-              sessionBootstrapContext ||
-              (await bootstrap({ verbose: program.opts().verbose }));
-            sessionBootstrapContext = context;
-            const database =
-              context.db?.getDatabase?.() || context.db?.getDb?.() || null;
-            const migrated = ensureCanonicalSessionFromDatabase(
-              database,
-              options.session,
+        try {
+          await withQuietStdout(async () => {
+            const { sessionHasPersistedEvidence } = await import(
+              "../harness/jsonl-session-store.js"
             );
-            if (migrated?.sessionId) options.session = migrated.sessionId;
+            if (!sessionHasPersistedEvidence(options.session)) {
+              const [{ bootstrap }, { ensureCanonicalSessionFromDatabase }] =
+                await Promise.all([
+                  import("../runtime/bootstrap.js"),
+                  import("../lib/session-transcript-migration.js"),
+                ]);
+              const context =
+                sessionBootstrapContext ||
+                (await bootstrap({ verbose: program.opts().verbose }));
+              sessionBootstrapContext = context;
+              const database =
+                context.db?.getDatabase?.() || context.db?.getDb?.() || null;
+              const migrated = ensureCanonicalSessionFromDatabase(
+                database,
+                options.session,
+              );
+              if (migrated?.sessionId) options.session = migrated.sessionId;
+            }
+          });
+        } catch (error) {
+          const persistence = projectSessionPersistenceFailure(
+            createSessionPersistenceFailure(error, {
+              sessionId: options.session,
+              operation: "session-start",
+            }),
+            { phase: "before-model" },
+          );
+          if (!persistence) throw error;
+          // Emit after withQuietStdout restores stdout, so a machine client
+          // receives the failure even when preparation never reaches a runner.
+          if (["json", "stream-json"].includes(options.outputFormat)) {
+            process.stdout.write(
+              `${JSON.stringify({
+                type: "result",
+                subtype: "error_persistence",
+                is_error: true,
+                code: persistence.code,
+                error: "Canonical session preparation failed",
+                session_id: options.session,
+                persistence,
+              })}\n`,
+            );
           }
-        });
+          process.stderr.write(
+            `${persistence.code}: canonical session preparation was refused\n`,
+          );
+          await _finishWorktree();
+          process.exitCode = 1;
+          return;
+        }
       }
 
       // --fork-session: branch the resolved session into a NEW id so the

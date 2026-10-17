@@ -126,7 +126,7 @@
     },
     {
       "path": "packages/cli/src/harness/mcp-client.js",
-      "digest": "sha256:3b17a1d189c81078465b8b0e81f8dbde92a78e4089c69bffea2375c31deec201",
+      "digest": "sha256:75c85ffc9eb99d8365fd079280d9b61b1c150e7576ebe1673333ffa05ccc7b57",
       "category": "TASK_CONTROLLED_NETWORK",
       "rationale": "MCP HTTP/WebSocket/stdio transport can delegate arbitrary tools. Remote or tool costs and descendant containment remain unverified."
     },
