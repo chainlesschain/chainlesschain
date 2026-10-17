@@ -1,5 +1,5 @@
 /** Parse raw agent NDJSON. A declaration of success is never terminal evidence. */
-export function verifyAgentTerminal(output) {
+export function verifyAgentTerminal(output, { allowSessionEnd = false } = {}) {
   try {
     const events = output
       .split(/\r?\n/u)
@@ -7,6 +7,31 @@ export function verifyAgentTerminal(output) {
       .map((line) => JSON.parse(line));
     const results = events.filter((event) => event?.type === "result");
     const terminal = results[0];
+    const last = events.at(-1);
+    const init = events.find(
+      (event) => event?.type === "system" && event.subtype === "init",
+    );
+    const sessionEnded =
+      allowSessionEnd &&
+      events.at(-2) === terminal &&
+      last?.type === "system" &&
+      last.subtype === "end" &&
+      typeof terminal?.session_id === "string" &&
+      terminal.session_id.length > 0 &&
+      last.session_id === terminal.session_id &&
+      init?.session_id === terminal.session_id &&
+      typeof terminal.trace_id === "string" &&
+      terminal.trace_id.length > 0 &&
+      last.trace_id === terminal.trace_id &&
+      Number.isSafeInteger(terminal.seq) &&
+      terminal.seq > 0 &&
+      last.seq === terminal.seq + 1 &&
+      Number.isSafeInteger(terminal.turn) &&
+      terminal.turn > 0 &&
+      last.turns === terminal.turn &&
+      events.filter(
+        (event) => event?.type === "system" && event.subtype === "end",
+      ).length === 1;
     const usage = terminal?.usage;
     const normalizedUsage =
       usage &&
@@ -26,7 +51,7 @@ export function verifyAgentTerminal(output) {
     return {
       terminalVerified:
         results.length === 1 &&
-        events.at(-1) === terminal &&
+        (last === terminal || sessionEnded) &&
         terminal.subtype === "success" &&
         terminal.is_error === false &&
         !events.some((event) => event?.type === "error"),

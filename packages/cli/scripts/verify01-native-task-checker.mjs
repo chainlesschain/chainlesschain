@@ -20,6 +20,7 @@ import {
   VERSIONS,
 } from "./verify01-native-task-campaign.mjs";
 import { runCaptured } from "./verify01-first-run-cli-diagnostic.mjs";
+import { verifyAgentTerminal } from "../src/lib/eval/stream-terminal.js";
 
 const repository = fileURLToPath(new URL("../../../", import.meta.url));
 const planDir = path.join(
@@ -29,6 +30,34 @@ const planDir = path.join(
 const hash = (bytes) =>
   "sha256:" + createHash("sha256").update(bytes).digest("hex");
 const json = (file) => JSON.parse(fs.readFileSync(file, "utf8"));
+
+export function assessNativeGeneration(native, stream, entry) {
+  const terminal = verifyAgentTerminal(stream, {
+    allowSessionEnd: entry !== "cli",
+  });
+  const model = native.model || {};
+  const passed =
+    native.host?.passed === true &&
+    native.sourceScopePassed === true &&
+    native.brokerStatus?.passed === true &&
+    !native.failure &&
+    terminal.terminalVerified &&
+    terminal.observedFallback === false &&
+    terminal.usage !== null &&
+    ["identity", "fileOnlyToolSurface", "scoped", "settled", "delivered"].every(
+      (field) => model[field] === true,
+    );
+  return {
+    passed,
+    originalGenerationPassed: native.generationPassed === true,
+    originalTerminalVerified: model.terminal?.terminalVerified === true,
+    terminal,
+    dialect:
+      entry === "cli"
+        ? "one-shot"
+        : "persistent-IDE-with-validated-session-end",
+  };
+}
 
 export function artifactFile(root, relative) {
   assert.ok(
@@ -96,6 +125,7 @@ export async function checkNativeCampaign({
   inputDir,
   outputDir,
   sourceSha,
+  checkerSourceSha = sourceSha,
   imageId,
 }) {
   assert.equal(
@@ -104,6 +134,7 @@ export async function checkNativeCampaign({
     "acceptance requires Linux Docker host",
   );
   assert.match(sourceSha || "", /^[a-f0-9]{40}$/u);
+  assert.match(checkerSourceSha || "", /^[a-f0-9]{40}$/u);
   assert.match(imageId || "", /^sha256:[a-f0-9]{64}$/u);
   const input = fs.realpathSync(inputDir),
     output = path.resolve(outputDir);
@@ -121,7 +152,7 @@ export async function checkNativeCampaign({
       cwd: repository,
       encoding: "utf8",
     }).trim(),
-    sourceSha,
+    checkerSourceSha,
   );
   assert.equal(source.projectCommit, DIAGNOSTIC.projectCommit);
   assert.equal(source.planDigest, DIAGNOSTIC.planDigest);
@@ -161,14 +192,15 @@ export async function checkNativeCampaign({
   );
   const summary = {
     schema: "chainlesschain.verify01-native-task-acceptance/v1",
-    executionSourceCommit: sourceSha,
+    executionSourceCommit: checkerSourceSha,
+    deliverySourceCommit: sourceSha,
     projectCommit: source.projectCommit,
     planDigest: source.planDigest,
     group: source.group,
     actualGenerationHost: {
       platform: source.platform,
       entry: source.entry,
-      arch: source.arch,
+      arch: source.actualArch,
     },
     acceptanceHost: "linux-docker",
     imageId,
@@ -188,7 +220,8 @@ export async function checkNativeCampaign({
       sampleId: sample.id,
       taskId: task.id,
       kind: sample.kind,
-      generationPassed: native.generationPassed === true,
+      originalGenerationPassed: native.generationPassed === true,
+      generationPassed: false,
       host: native.host,
       model: native.model,
       brokerStatus: native.brokerStatus,
@@ -206,6 +239,16 @@ export async function checkNativeCampaign({
       assert.equal(native.kind, sample.kind);
       assert.equal(native.stratum, sample.stratum);
       const candidates = validateNativeCandidate(input, native, task);
+      const stream = fs.readFileSync(
+        artifactFile(input, `${sample.id}/model-stream.ndjson`),
+        "utf8",
+      );
+      row.generationAssessment = assessNativeGeneration(
+        native,
+        stream,
+        source.entry,
+      );
+      row.generationPassed = row.generationAssessment.passed;
       const before = json(artifactFile(input, `${sample.id}/tree-before.json`)),
         after = json(artifactFile(input, `${sample.id}/tree-after.json`));
       const scope = inspectNativeScope(before, after, task.expectedFiles);
@@ -323,6 +366,7 @@ if (
       "input-dir": { type: "string" },
       "output-dir": { type: "string" },
       "source-sha": { type: "string" },
+      "checker-source-sha": { type: "string" },
       "image-id": { type: "string" },
     },
   });
@@ -330,6 +374,7 @@ if (
     inputDir: values["input-dir"],
     outputDir: values["output-dir"],
     sourceSha: values["source-sha"],
+    checkerSourceSha: values["checker-source-sha"],
     imageId: values["image-id"],
   })
     .then((r) => {

@@ -155,8 +155,13 @@ An independent checker executes the baseline, candidate and behavioral mutants i
 Write the deliverable early enough to read it back and finish. You have at most ${maxTurns} model turns. Finish with a concise account of the behavior covered and limitations.`;
 }
 
-export function inspectModelTrace(stdout, expectedFiles, workspace) {
-  const terminal = verifyAgentTerminal(stdout);
+export function inspectModelTrace(
+  stdout,
+  expectedFiles,
+  workspace,
+  terminalOptions,
+) {
+  const terminal = verifyAgentTerminal(stdout, terminalOptions);
   let events;
   try {
     events = stdout

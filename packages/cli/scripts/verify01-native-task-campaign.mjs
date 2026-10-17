@@ -405,6 +405,7 @@ export async function runNativeCampaign({
     "packages/cli/scripts/verify01-volcengine-task-diagnostic.mjs",
     "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs",
     "packages/cli/scripts/verify01-review-specs.mjs",
+    "packages/cli/src/lib/eval/stream-terminal.js",
     "packages/cli/scripts/verify01-first-run-cli-diagnostic.mjs",
     `${planRoot}/plan.json`,
     `${planRoot}/tasks.json`,
@@ -825,6 +826,7 @@ export async function runNativeCampaign({
         inspected.stream,
         task.expectedFiles,
         inspected.workspace,
+        { allowSessionEnd: entry !== "cli" },
       );
       row.model.scopePathComparison =
         process.platform === "win32"
