@@ -120,6 +120,7 @@ export function taskPrompt(task, spec) {
 ${seed ? `This is bounded repair round ${seed.repairRound}, starting from the preserved model candidate from run ${seed.sourceRun}; it is not a first-attempt or formal sample.\n` : ""}${priorFeedback}Read the frozen source and existing tests before writing your own regression tests.
 Use the named files as your starting points; avoid listing the entire test directory. Search for exact API names, then read bounded slices rather than repeatedly reading whole unchanged files.
 Keep the patch focused: at most six behavioral cases. Confirm argument names and result fields from source before asserting them. Use at most three targeted read calls before editing, write by turn four, read the completed deliverable once, and finish by turn eight. Do not reread unchanged source, rewrite the suite, or add unrelated validation cases.
+Keep tool-call messages brief. Apply focused edit_file replacements when a small patch suffices; avoid long preambles and complete-file rewrites.
 Frozen source files: ${task.sourcePaths.join(", ")}
 Related existing tests: ${spec.baselineTests.join(", ")}
 Only these deliverables may be changed: ${task.expectedFiles.join(", ")}

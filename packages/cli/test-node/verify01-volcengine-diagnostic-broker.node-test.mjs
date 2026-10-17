@@ -45,7 +45,7 @@ function response(mutate = () => {}) {
 }
 test("effective diagnostic request fixes model, thinking, service tier and token ceiling", () => {
   const body = diagnosticBody({ ...request(), max_tokens: 999999 });
-  assert.equal(body.max_tokens, 4096);
+  assert.equal(body.max_tokens, 8192);
   assert.deepEqual(body.thinking, { type: "disabled" });
   assert.equal(body.service_tier, "default");
   assert.throws(
@@ -301,7 +301,7 @@ test("claimed pre-dispatch failure after HTTP submission still poisons the broke
     );
   }
 });
-test("unknown usage, model, tier, partial output and reasoning cannot settle", () => {
+test("unknown usage, model, tier, incomplete protocol and reasoning cannot settle", () => {
   assert.equal(
     diagnosticUsage(response().toString()).tokenOnlyEstimateCny,
     0.00039,
@@ -319,7 +319,8 @@ test("unknown usage, model, tier, partial output and reasoning cannot settle", (
       r.usage.total_tokens += 1;
     },
     (r) => {
-      r.choices[0].finish_reason = "length";
+      r.usage.completion_tokens = BROKER.maximumAnswerTokens + 1;
+      r.usage.total_tokens = r.usage.prompt_tokens + r.usage.completion_tokens;
     },
     (r) => {
       r.usage.prompt_tokens_details.cached_tokens = 101;
@@ -329,6 +330,24 @@ test("unknown usage, model, tier, partial output and reasoning cannot settle", (
   assert.throws(
     () => diagnosticUsage(response().toString().replace("data: [DONE]", "")),
     /INCOMPLETE_STREAM/,
+  );
+  assert.equal(
+    diagnosticUsage(
+      response((r) => {
+        r.choices[0].finish_reason = "length";
+      }).toString(),
+    ).finish,
+    "length",
+  );
+  assert.throws(
+    () =>
+      diagnosticUsage(
+        response((r) => {
+          r.choices[0].finish_reason = "length";
+          delete r.usage;
+        }).toString(),
+      ),
+    /USAGE_UNKNOWN/u,
   );
 });
 test("duplicate decoded members, overflow and incomplete JSON never become usage", () => {
@@ -377,7 +396,7 @@ test("public CLI nonstreaming JSON request preserves all diagnostic bounds", () 
   const body = diagnosticBody(input);
   assert.equal(body.stream, false);
   assert.equal(Object.hasOwn(body, "stream_options"), false);
-  assert.equal(body.max_tokens, 4096);
+  assert.equal(body.max_tokens, 8192);
   assert.deepEqual(body.thinking, { type: "disabled" });
   assert.equal(
     diagnosticJsonUsage(jsonResponse().toString()).tokenOnlyEstimateCny,
@@ -435,7 +454,7 @@ test("JSON response is persisted before forwarding and unknown JSON usage poison
     key: "OFFLINE-FAKE-SECRET",
     requestImpl: async (body) => {
       assert.equal(body.stream, false);
-      assert.equal(body.max_tokens, 4096);
+      assert.equal(body.max_tokens, 8192);
       calls += 1;
       return {
         status: 200,
@@ -540,6 +559,66 @@ test("physical slots persist before dispatch; secret is absent; restart and 15th
     /EEXIST/,
   );
 });
+test("validated truncated output settles usage, fails its task and never forwards tool arguments", async (t) => {
+  for (const mode of ["sse", "json"]) {
+    await t.test(mode, async (t) => {
+      let calls = 0;
+      const { root, broker } = await fixture(t, async () => {
+        calls += 1;
+        const encode = mode === "sse" ? response : jsonResponse;
+        return {
+          status: 200,
+          raw: encode((r) => {
+            if (calls === 1) {
+              r.choices[0].finish_reason = "length";
+              if (mode === "json")
+                r.choices[0].message.tool_calls = [
+                  {
+                    id: "partial-tool",
+                    type: "function",
+                    function: { name: "write_file", arguments: '{"path":' },
+                  },
+                ];
+            }
+          }),
+        };
+      });
+      const send = () =>
+        fetch(`${broker.baseUrl}/chat/completions`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${broker.childKey}` },
+          body: JSON.stringify({ ...request(), stream: mode === "sse" }),
+        });
+      try {
+        const rejected = await send();
+        assert.equal(rejected.status, 403);
+        const body = await rejected.text();
+        assert.match(body, /DIAGNOSTIC_OUTPUT_TRUNCATED/u);
+        assert.equal(body.includes("partial-tool"), false);
+        assert.equal(body.includes("[DONE]"), false);
+        const receipt = JSON.parse(
+          fs.readFileSync(path.join(root, "broker", "request-1.receipt.json")),
+        );
+        assert.equal(receipt.usage.prompt_tokens, 100);
+        assert.equal(receipt.finish, "length");
+        assert.equal(receipt.errorCode, "DIAGNOSTIC_OUTPUT_TRUNCATED");
+        assert.equal(broker.taskStatus("verify-04").passed, false);
+        assert.equal((await send()).status, 403);
+        assert.equal(calls, 1);
+        broker.beginTask("verify-22");
+        assert.equal((await send()).status, 200);
+        assert.equal(broker.taskStatus("verify-22").passed, true);
+        assert.equal(calls, 2);
+      } finally {
+        const summary = await broker.close();
+        assert.equal(summary.poisoned, null);
+        assert.equal(summary.physicalRequestsStarted, 2);
+        assert.equal(summary.usageCompleteRequests, 2);
+      }
+    });
+  }
+});
+
 test("usage unknown poisons allowance, stays null, and never silently retries", async (t) => {
   let calls = 0;
   const { broker, send } = await fixture(t, async () => {

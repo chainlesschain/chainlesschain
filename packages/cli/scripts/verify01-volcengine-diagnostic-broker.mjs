@@ -13,7 +13,7 @@ export const BROKER = Object.freeze({
   maximumRequestsPerTask: 14,
   maximumRequestBytes: 256 * 1024,
   maximumResponseBytes: 1024 * 1024,
-  maximumAnswerTokens: 4096,
+  maximumAnswerTokens: 8192,
   timeoutMs: 45000,
   connectionAttemptTimeoutMs: 2000,
   thinking: "disabled",
@@ -264,7 +264,7 @@ export function diagnosticUsage(raw) {
     }
   }
   check(
-    done && ["stop", "tool_calls"].includes(finish),
+    done && ["stop", "tool_calls", "length"].includes(finish),
     "DIAGNOSTIC_INCOMPLETE_STREAM",
   );
   check(
@@ -566,6 +566,7 @@ export async function createVolcengineDiagnosticBroker(options) {
           new TextDecoder("utf-8", { fatal: true }).decode(captured.raw),
         ),
       );
+      check(row.finish !== "length", "DIAGNOSTIC_OUTPUT_TRUNCATED");
     } catch (error) {
       // An oversized request is rejected before dispatch. It invalidates this
       // task, but no provider usage or response is left unknown for the next.
@@ -579,6 +580,15 @@ export async function createVolcengineDiagnosticBroker(options) {
         captured.status === null &&
         captured.raw.length === 0
       ) {
+        active.errorCode = error.message;
+      } else if (
+        error.message === "DIAGNOSTIC_OUTPUT_TRUNCATED" &&
+        captured?.status === 200 &&
+        row?.finish === "length" &&
+        row.usage !== null
+      ) {
+        // Usage is fully validated, but truncated tool arguments are unusable.
+        // Persist the evidence and reject this task without forwarding output.
         active.errorCode = error.message;
       } else {
         poisoned =
