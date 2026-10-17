@@ -227,7 +227,7 @@ jobs:
         with:
           node-version: "22.12.0"
       - name: Verify Remote Robot startup retry contract
-        run: node --test packages/jetbrains-plugin/scripts/run-ui-host-journey.test.mjs
+        run: node --test packages/jetbrains-plugin/scripts/run-ui-host-journey.test.mjs packages/jetbrains-plugin/scripts/vendor-onboarding.test.mjs
       - name: Assert exact clean ARM64 host
         run: >-
           node scripts/verify-ide-arm64-evidence.mjs --assert-host
@@ -286,13 +286,26 @@ jobs:
           public static class ChainlessChainWslUpdateWindow {
               [DllImport("user32.dll")]
               public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
+              [DllImport("user32.dll")]
+              public static extern IntPtr GetForegroundWindow();
+              [DllImport("user32.dll")]
+              public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
           }
           "@
           $guardLog = Join-Path $env:RUNNER_TEMP 'chainlesschain-windows-gui-guard.log'
           $deadline = [DateTime]::UtcNow.AddMinutes(30)
           $suppressTerminalUntil = [DateTime]::MinValue
+          $lastForeground = [IntPtr]::Zero
           Add-Content -LiteralPath $guardLog -Value "guard-started=$([DateTime]::UtcNow.ToString('o'))"
           while ([DateTime]::UtcNow -lt $deadline) {
+            $foreground = [ChainlessChainWslUpdateWindow]::GetForegroundWindow()
+            if ($foreground -ne $lastForeground) {
+              [uint32]$foregroundProcessId = 0
+              [ChainlessChainWslUpdateWindow]::GetWindowThreadProcessId($foreground, [ref]$foregroundProcessId) | Out-Null
+              $foregroundProcess = Get-Process -Id $foregroundProcessId -ErrorAction SilentlyContinue
+              Add-Content -LiteralPath $guardLog -Value "$([DateTime]::UtcNow.ToString('o')) foreground-hwnd=$foreground pid=$foregroundProcessId process=$($foregroundProcess.ProcessName)"
+              $lastForeground = $foreground
+            }
             $updates = @(Get-CimInstance Win32_Process -Filter "Name = 'wsl.exe'" -ErrorAction SilentlyContinue |
               Where-Object {
                 $commandLine = [string]$_.CommandLine
@@ -303,7 +316,7 @@ jobs:
             if ($updates.Count -gt 0) {
               $suppressTerminalUntil = [DateTime]::UtcNow.AddSeconds(5)
               foreach ($update in $updates) {
-                Add-Content -LiteralPath $guardLog -Value "terminated-wsl-update-pid=$($update.ProcessId)"
+                Add-Content -LiteralPath $guardLog -Value "$([DateTime]::UtcNow.ToString('o')) terminate-wsl-update-pid=$($update.ProcessId) foreground-hwnd=$foreground"
                 Invoke-CimMethod -InputObject $update -MethodName Terminate -ErrorAction SilentlyContinue | Out-Null
               }
             }
