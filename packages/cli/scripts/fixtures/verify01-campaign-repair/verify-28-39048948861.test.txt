@@ -1,0 +1,223 @@
+// Diagnostic placeholder: independent behavioral regression tests for
+// "late-loading must not overwrite in-progress edits".
+
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { DraftStore } from "../src/chat/draft-store.js";
+import { QuestionDrafts } from "../src/chat/question-drafts.js";
+import { QuestionFormDrafts } from "../src/chat/question-form-drafts.js";
+import { ChatViewProvider } from "../src/chat/chat-view.js";
+import { buildChatHtml } from "../src/chat/chat-html.js";
+import { Window } from "happy-dom";
+
+const cleanups = [];
+afterEach(async () => {
+  for (const fn of cleanups.splice(0).reverse()) await fn();
+});
+
+const binding = {
+  backgroundAgentId: null,
+  sessionId: "session-1",
+  turnId: "turn-1",
+  toolUseId: "tool-1",
+  sequence: 1,
+};
+
+const request = {
+  kind: "question",
+  id: "q1",
+  question: "Choose a target",
+  binding,
+};
+
+function controller(store, overrides = {}) {
+  const conv = {
+    id: "a",
+    sessionId: "session-1",
+    draftKey: "key-1",
+    _sessionToken: {},
+    session: { running: true, sendEvent: vi.fn(() => true) },
+    ...overrides,
+  };
+  const messages = [];
+  const drafts = new QuestionDrafts({
+    store,
+    getConversation: (id) => (id === conv.id ? conv : null),
+    post: (m) => messages.push(m),
+    refresh: () => {},
+  });
+  return { drafts, conv, messages };
+}
+
+function ui() {
+  const window = new Window({
+    settings: {
+      enableJavaScriptEvaluation: true,
+      disableCSSFileLoading: true,
+      disableJavaScriptFileLoading: true,
+    },
+  });
+  cleanups.push(() => window.happyDOM.abort());
+  const sent = [];
+  window.acquireVsCodeApi = () => ({
+    postMessage: (m) => sent.push(m),
+    getState: () => ({}),
+    setState: () => {},
+  });
+  window.document.write(
+    buildChatHtml({ nonce: "n", cspSource: "vscode-resource:" }),
+  );
+  const emit = (data) =>
+    window.dispatchEvent(new window.MessageEvent("message", { data }));
+  const card = (q) => window.document.getElementById("q-" + q.questionInstance);
+  return { window, sent, emit, card };
+}
+
+/** Options form: one select (shared by many options) plus one checkbox. */
+function optionQuestion() {
+  return {
+    ...request,
+    question: "Which option?",
+    options: ["alpha", "beta"],
+    multiSelect: true,
+    id: "q-select",
+  };
+}
+
+/** MCP elicitation form from a requested schema with select + checkbox. */
+function schemaQuestion() {
+  const schema = {
+    type: "object",
+    properties: {
+      color: { type: "string", enum: ["red", "green"] },
+      enabled: { type: "boolean" },
+    },
+    required: ["color"],
+  };
+  return {
+    ...request,
+    id: "q-schema",
+    elicitation: true,
+    requestedSchema: schema,
+  };
+}
+
+describe("late load does not overwrite in-progress edits", () => {
+  it("keeps a newly typed answer across a late recovery restore", async () => {
+    const store = await DraftStore.open({ dir: "/tmp/verify28-a" });
+    const h = controller(store);
+    const q = h.drafts.register(h.conv, request);
+    const page = ui();
+    page.emit(q);
+    const input = page.card(q).querySelector("input[type=text]");
+    input.value = "typed while pending";
+    input.dispatchEvent(new page.window.Event("input"));
+
+    // A stale late load restores the same question after the user already
+    // started typing; the typed value must win.
+    h.drafts.restore(
+      { convId: h.conv.id, draftKey: h.conv.draftKey, questionKey: q.questionKey },
+      { ...q, draftStorage: true },
+    );
+    expect(page.card(q).querySelector("input[type=text]").value).toBe(
+      "typed while pending",
+    );
+  });
+
+  it("keeps a typed answer after a full-page late reload", async () => {
+    const store = await DraftStore.open({ dir: "/tmp/verify28-b" });
+    const h = controller(store);
+    const q = h.drafts.register(h.conv, request);
+    const first = ui();
+    first.emit(q);
+    const input = first.card(q).querySelector("input[type=text]");
+    input.value = "in-progress text";
+    input.dispatchEvent(new first.window.Event("input"));
+
+    // Simulate a webview reload: a fresh page re-emits the same late message
+    // carrying the draft from storage; it must not blank the new page edit.
+    const second = ui();
+    second.emit(q);
+    const fresh = second.card(q).querySelector("input[type=text]");
+    fresh.value = "typed on fresh page";
+    fresh.dispatchEvent(new second.window.Event("input"));
+
+    // A late restore arriving after the fresh-page edit must be ignored.
+    h.drafts.restore(
+      { convId: h.conv.id, draftKey: h.conv.draftKey, questionKey: q.questionKey },
+      { ...q, draftStorage: true },
+    );
+    expect(second.card(q).querySelector("input[type=text]").value).toBe(
+      "typed on fresh page",
+    );
+  });
+
+  it("keeps an edited select value across a late restore", async () => {
+    const store = await DraftStore.open({ dir: "/tmp/verify28-c" });
+    const h = controller(store);
+    const q = h.drafts.register(h.conv, optionQuestion());
+    const page = ui();
+    page.emit(q);
+    const select = page.card(q).querySelector("select");
+    select.value = "beta";
+    select.dispatchEvent(new page.window.Event("change"));
+
+    h.drafts.restore(
+      { convId: h.conv.id, draftKey: h.conv.draftKey, questionKey: q.questionKey },
+      { ...q, draftStorage: true },
+    );
+    expect(page.card(q).querySelector("select").value).toBe("beta");
+  });
+
+  it("keeps a toggled checkbox across a late restore", async () => {
+    const store = await DraftStore.open({ dir: "/tmp/verify28-d" });
+    const h = controller(store);
+    const q = h.drafts.register(h.conv, optionQuestion());
+    const page = ui();
+    page.emit(q);
+    const checkbox = page.card(q).querySelector("input[type=checkbox]");
+    checkbox.checked = true;
+    checkbox.dispatchEvent(new page.window.Event("change"));
+
+    h.drafts.restore(
+      { convId: h.conv.id, draftKey: h.conv.draftKey, questionKey: q.questionKey },
+      { ...q, draftStorage: true },
+    );
+    expect(page.card(q).querySelector("input[type=checkbox]").checked).toBe(true);
+  });
+
+  it("renders the schema form with a select then a checkbox, in declaration order", async () => {
+    const store = await DraftStore.open({ dir: "/tmp/verify28-e" });
+    const h = controller(store);
+    const q = h.drafts.register(h.conv, schemaQuestion());
+    const page = ui();
+    page.emit(q);
+
+    const select = page.card(q).querySelector("select");
+    const checkbox = page.card(q).querySelector("input[type=checkbox]");
+    expect(select).toBeTruthy();
+    expect(checkbox).toBeTruthy();
+    // select/checkbox declaration order is preserved: the select precedes the
+    // checkbox in the rendered form.
+    expect(
+      select.compareDocumentPosition(checkbox) &
+        page.window.Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it("does not render a stale form for an archived question after restore", async () => {
+    const store = await DraftStore.open({ dir: "/tmp/verify28-f" });
+    const h = controller(store);
+    const q = h.drafts.register(h.conv, optionQuestion());
+    const page = ui();
+    page.emit(q);
+
+    // User submitted: the question is archived; a late restore must not
+    // resurrect an editable card.
+    h.drafts._archive?.(h.conv, q.questionInstance);
+    h.drafts.restore(
+      { convId: h.conv.id, draftKey: h.conv.draftKey, questionKey: q.questionKey },
+      { ...q, draftStorage: true },
+    );
+    expect(page.card(q)).toBeNull();
+  });
+});

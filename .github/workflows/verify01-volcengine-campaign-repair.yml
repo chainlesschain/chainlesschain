@@ -1,0 +1,109 @@
+name: VERIFY01 Explicit Campaign Repair
+on:
+  push:
+    branches: [feature/verify01-task-completion-20261017]
+    paths:
+      - ".github/workflows/verify01-volcengine-campaign-repair.yml"
+  workflow_dispatch:
+    inputs:
+      confirm_live:
+        description: "Execute explicit paid repair attempts, preserving all original failures"
+        type: boolean
+        required: true
+        default: false
+      repair_manifest:
+        description: "Tracked repository repair fixture manifest path"
+        type: string
+        required: true
+      repair_manifest_digest:
+        description: "Externally pinned sha256: digest of exact manifest bytes"
+        type: string
+        required: true
+permissions:
+  contents: read
+jobs:
+  validate:
+    if: inputs.confirm_live == true
+    runs-on: ubuntu-24.04
+    outputs:
+      groups: ${{ steps.manifest.outputs.groups }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+      - name: Validate repair provenance without credentials or model calls
+        run: >-
+          node --test packages/cli/test-node/verify01-campaign-repair.node-test.mjs
+          packages/cli/test-node/verify01-volcengine-campaign.node-test.mjs
+          packages/cli/test-node/verify01-volcengine-task-diagnostic.node-test.mjs
+          packages/cli/test-node/verify01-volcengine-diagnostic-broker.node-test.mjs
+      - id: manifest
+        name: Bind manifest and every seed to the execution commit
+        env:
+          REPAIR_MANIFEST: ${{ inputs.repair_manifest }}
+          REPAIR_DIGEST: ${{ inputs.repair_manifest_digest }}
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import {loadRepairManifest} from './packages/cli/scripts/verify01-campaign-repair.mjs';
+          import {DIAGNOSTIC} from './packages/cli/scripts/verify01-volcengine-task-diagnostic.mjs';
+          const base='docs/research/cli/verify01-plan-2026-10-13-volcengine/';
+          const catalog=JSON.parse(fs.readFileSync(base+'tasks.json'));
+          const plan=JSON.parse(fs.readFileSync(base+'plan.json'));
+          const repair=loadRepairManifest({repository:process.cwd(),file:process.env.REPAIR_MANIFEST,expectedDigest:process.env.REPAIR_DIGEST,sourceSha:process.env.GITHUB_SHA,catalog,projectCommit:DIAGNOSTIC.projectCommit,planDigest:DIAGNOSTIC.planDigest});
+          const groups=[...new Set(Object.keys(repair.tasks).map(id=>{
+            const sample=plan.samples.find(row=>row.kind==='task'&&row.id===id);
+            if(!sample)throw new Error('repair task outside frozen plan');
+            return sample.stratum.replace(/-volcengine$/,'');
+          }))];
+          fs.appendFileSync(process.env.GITHUB_OUTPUT,`groups=${JSON.stringify(groups)}\n`);
+          console.log(JSON.stringify({manifest:repair.file,digest:repair.digest,round:repair.manifest.repairRound,groups,tasks:Object.keys(repair.tasks),formalSample:false}));
+          NODE
+  repair:
+    needs: validate
+    name: Repair ${{ matrix.group }} (actual Linux CLI)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 100
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        group: ${{ fromJSON(needs.validate.outputs.groups) }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+      - name: Pin independent checker image
+        run: |
+          docker pull node:22.12.0-bookworm
+          echo "REVIEW_IMAGE_ID=$(docker image inspect node:22.12.0-bookworm --format '{{.Id}}')" >> "$GITHUB_ENV"
+      - name: Run bounded real model repair and unchanged independent checker
+        env:
+          VOLCENGINE_API_KEY: ${{ secrets.CC_LLM_API_KEY }}
+          REPAIR_MANIFEST: ${{ inputs.repair_manifest }}
+          REPAIR_DIGEST: ${{ inputs.repair_manifest_digest }}
+          CAMPAIGN_GROUP: ${{ matrix.group }}
+        run: >-
+          node packages/cli/scripts/verify01-volcengine-campaign.mjs
+          --confirm-live --group "$CAMPAIGN_GROUP"
+          --repair-manifest "$REPAIR_MANIFEST" --repair-manifest-digest "$REPAIR_DIGEST"
+          --source-sha "$GITHUB_SHA" --image-id "$REVIEW_IMAGE_ID"
+          --output-dir "$RUNNER_TEMP/verify01-campaign-repair"
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: verify01-campaign-repair-${{ matrix.group }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/verify01-campaign-repair/
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14

@@ -1,0 +1,132 @@
+// Non-answer placeholder.
+//
+// Regression coverage for 「取消审批迟到回调」(cancelled-approval late callback):
+//   1. 取消后迟到接受不能授权新请求 — a verdict that arrives after its request was
+//      already settled/cancelled must not green-light any new request.
+//   2. 正常接受仅绑定原请求 — a legitimate accept only ever binds to the request
+//      that advertised the binding (same toolCallId + args + policy digest).
+//
+// The acceptance gate lives in settleApproval (headless-stream.js): once a
+// request leaves pendingApprovals a late settleApproval is a no-op
+// (`if (!p) return;`), and an approve whose echoed binding does not match the
+// advertised one is rejected (fail closed, "binding-mismatch") rather than
+// authorizing a different or changed tool call. The binding is the
+// request-scoped digest produced by approvalBindingDigest and validated by
+// verifyApprovalBinding (agent-authority.js). These exported primitives are
+// what a correct accept must round-trip, so we regression-test them here
+// against both acceptance criteria.
+import { describe, it, expect } from "vitest";
+import {
+  approvalBindingDigest,
+  verifyApprovalBinding,
+} from "../../src/lib/agent-authority.js";
+
+describe("verify-19: 取消审批迟到回调 (cancelled-approval late callback)", () => {
+  const args = { command: "git push", flags: ["--force"] };
+  const policyDigest = "sha256:policy-A";
+  const otherArgs = { command: "rm -rf /" };
+  const otherPolicy = "sha256:policy-B";
+  const toolCallId = "toolcall-19";
+
+  it("正常接受仅绑定原请求: a correct accept round-trips the original binding", () => {
+    // The accept that answers the original request must echo the exact digest
+    // that request advertised. Only that binding verifies.
+    const advertised = approvalBindingDigest({
+      toolCallId,
+      args,
+      policyDigest,
+    });
+    expect(advertised).toBeTruthy();
+    expect(typeof advertised).toBe("string");
+    // The echoed binding on a legitimate accept matches the advertised one.
+    expect(
+      verifyApprovalBinding(advertised, approvalBindingDigest({
+        toolCallId,
+        args,
+        policyDigest,
+      })),
+    ).toBe(true);
+  });
+
+  it("正常接受仅绑定原请求: tampered arguments fail verification (not granted)", () => {
+    const advertised = approvalBindingDigest({
+      toolCallId,
+      args,
+      policyDigest,
+    });
+    const tampered = approvalBindingDigest({
+      toolCallId,
+      args: otherArgs,
+      policyDigest,
+    });
+    expect(advertised).not.toBe(tampered);
+    expect(verifyApprovalBinding(advertised, tampered)).toBe(false);
+  });
+
+  it("正常接受仅绑定原请求: a different policy digest fails verification", () => {
+    const advertised = approvalBindingDigest({
+      toolCallId,
+      args,
+      policyDigest,
+    });
+    const differentPolicy = approvalBindingDigest({
+      toolCallId,
+      args,
+      policyDigest: otherPolicy,
+    });
+    expect(verifyApprovalBinding(advertised, differentPolicy)).toBe(false);
+  });
+
+  it("取消后迟到接受不能授权新请求: a stale verdict cannot bind to a later request", () => {
+    // Request A advertises its binding and is settled/cancelled. A late accept
+    // for A is echoed against request B's advertised binding (B is the new
+    // pending request). The stale digest must not verify against B, so it
+    // cannot authorize B.
+    const staleDigest = approvalBindingDigest({
+      toolCallId: "toolcall-19",
+      args,
+      policyDigest,
+    });
+    const newRequestBinding = approvalBindingDigest({
+      toolCallId: "toolcall-20",
+      args,
+      policyDigest,
+    });
+    expect(verifyApprovalBinding(newRequestBinding, staleDigest)).toBe(false);
+    // And the inverse is equally rejected.
+    expect(verifyApprovalBinding(staleDigest, newRequestBinding)).toBe(false);
+  });
+
+  it("取消后迟到接受不能授权新请求: a replayed digest for a different tool call is rejected", () => {
+    const original = approvalBindingDigest({
+      toolCallId,
+      args,
+      policyDigest,
+    });
+    // Replay the original verdict against a *new* tool call that reuses the
+    // same args/policy: the toolCallId differs, so the binding must not match.
+    const replayTarget = approvalBindingDigest({
+      toolCallId: "toolcall-21",
+      args,
+      policyDigest,
+    });
+    expect(replayTarget).not.toBe(original);
+    expect(verifyApprovalBinding(replayTarget, original)).toBe(false);
+  });
+
+  it("正常接受仅绑定原请求: deterministic digest for an unchanged request (stable accept)", () => {
+    const first = approvalBindingDigest({
+      toolCallId,
+      args,
+      policyDigest,
+    });
+    const second = approvalBindingDigest({
+      toolCallId,
+      args,
+      policyDigest,
+    });
+    // A genuine accept for the *same unchanged* request is stable and bound.
+    expect(first).toBe(second);
+    expect(verifyApprovalBinding(first, second)).toBe(true);
+  });
+});

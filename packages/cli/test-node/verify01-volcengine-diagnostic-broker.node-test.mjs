@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { EventEmitter } from "node:events";
 import {
   BROKER,
   diagnosticBody,
@@ -10,6 +11,7 @@ import {
   diagnosticJsonUsage,
   parseDiagnosticJson,
   createVolcengineDiagnosticBroker,
+  requestArk,
 } from "../scripts/verify01-volcengine-diagnostic-broker.mjs";
 
 const request = () => ({
@@ -41,9 +43,33 @@ function response(mutate = () => {}) {
   mutate(row);
   return Buffer.from(`data: ${JSON.stringify(row)}\n\ndata: [DONE]\n\n`);
 }
+
+test("explicit text-only policy allows internal summarization without adding tool authority", () => {
+  for (const value of [undefined, []]) {
+    const input = { ...request(), tools: value };
+    assert.throws(() => diagnosticBody(input), /FILE_TOOLS_REQUIRED/u);
+    const body = diagnosticBody(input, { allowTextOnlyRequests: true });
+    assert.equal(body.tools, undefined);
+    assert.equal(body.model, BROKER.model);
+    assert.equal(body.thinking.type, "disabled");
+  }
+  for (const value of [
+    null,
+    {},
+    [{ type: "function", function: { name: "mcp__ide__executeCode" } }],
+  ])
+    assert.throws(
+      () =>
+        diagnosticBody(
+          { ...request(), tools: value },
+          { allowTextOnlyRequests: true },
+        ),
+      /FILE_TOOLS_REQUIRED/u,
+    );
+});
 test("effective diagnostic request fixes model, thinking, service tier and token ceiling", () => {
   const body = diagnosticBody({ ...request(), max_tokens: 999999 });
-  assert.equal(body.max_tokens, 4096);
+  assert.equal(body.max_tokens, 8192);
   assert.deepEqual(body.thinking, { type: "disabled" });
   assert.equal(body.service_tier, "default");
   assert.throws(
@@ -62,6 +88,12 @@ test("effective diagnostic request fixes model, thinking, service tier and token
     () => diagnosticBody({ ...request(), thinking: { type: "enabled" } }),
     /UNEXPECTED_FIELD/,
   );
+  assert.doesNotThrow(() =>
+    diagnosticBody({
+      ...request(),
+      messages: [{ role: "user", content: "x".repeat(82 * 1024) }],
+    }),
+  );
   assert.throws(
     () =>
       diagnosticBody({
@@ -73,7 +105,227 @@ test("effective diagnostic request fixes model, thinking, service tier and token
     /REQUEST_BYTES_LIMIT/,
   );
 });
-test("unknown usage, model, tier, partial output and reasoning cannot settle", () => {
+test("pre-dispatch request size rejection fails only its own task", async (t) => {
+  let calls = 0;
+  const { broker, send } = await fixture(t, async () => {
+    calls += 1;
+    return { status: 200, raw: response() };
+  });
+  try {
+    assert.equal((await send()).status, 200);
+    const oversized = {
+      ...request(),
+      messages: [
+        { role: "user", content: "x".repeat(BROKER.maximumRequestBytes) },
+      ],
+    };
+    const rejected = await fetch(`${broker.baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${broker.childKey}` },
+      body: JSON.stringify(oversized),
+    });
+    assert.equal(rejected.status, 403);
+    assert.match(await rejected.text(), /DIAGNOSTIC_REQUEST_BYTES_LIMIT/u);
+    assert.equal(calls, 1);
+    assert.deepEqual(broker.taskStatus("verify-04"), {
+      physicalRequestsStarted: 1,
+      usageCompleteRequests: 1,
+      passed: false,
+      poisoned: null,
+      errorCode: "DIAGNOSTIC_REQUEST_BYTES_LIMIT",
+    });
+    broker.beginTask("verify-22");
+    assert.equal((await send()).status, 200);
+    assert.equal(broker.taskStatus("verify-22").passed, true);
+    assert.equal(calls, 2);
+  } finally {
+    const result = await broker.close();
+    assert.equal(result.poisoned, null);
+    assert.equal(result.physicalRequestsStarted, 2);
+    assert.equal(result.usageCompleteRequests, 2);
+  }
+});
+function fakeRequest() {
+  const req = new EventEmitter();
+  req.payloads = [];
+  req.end = (payload) => {
+    req.payloads.push(payload);
+    req.emit("finish");
+  };
+  req.destroy = () => {
+    req.destroyed = true;
+  };
+  return req;
+}
+test("Ark transport gates HTTP dispatch on TLS and records the failure phase", async () => {
+  const before = fakeRequest();
+  const socketBefore = new EventEmitter();
+  const preflight = requestArk(diagnosticBody(request()), "OFFLINE-KEY", {
+    requestFactory: (_endpoint, options) => {
+      assert.equal(options.autoSelectFamily, true);
+      assert.equal(options.autoSelectFamilyAttemptTimeout, 2000);
+      return before;
+    },
+    timeoutMs: 100,
+  });
+  before.emit("socket", socketBefore);
+  socketBefore.emit("connectionAttempt", "OFFLINE-IP", 443, 6);
+  socketBefore.emit("connectionAttemptTimeout", "OFFLINE-IP", 443, 6);
+  assert.equal(before.payloads.length, 0);
+  before.emit(
+    "error",
+    Object.assign(new Error("DNS failed"), {
+      code: "ENOTFOUND",
+      syscall: "getaddrinfo",
+    }),
+  );
+  await assert.rejects(preflight, (error) => {
+    assert.equal(error.message, "DIAGNOSTIC_REQUEST_NOT_DISPATCHED");
+    assert.equal(error.captured.transport.dispatchStarted, false);
+    assert.equal(error.captured.transport.errorCode, "ENOTFOUND");
+    assert.equal(error.captured.transport.errorSyscall, "GETADDRINFO");
+    assert.deepEqual(
+      error.captured.transport.connectionAttempts.map(({ event, family }) => ({
+        event,
+        family,
+      })),
+      [
+        { event: "start", family: 6 },
+        { event: "timeout", family: 6 },
+      ],
+    );
+    return true;
+  });
+  socketBefore.emit("secureConnect");
+  assert.equal(before.payloads.length, 0);
+
+  const after = fakeRequest();
+  const socketAfter = new EventEmitter();
+  const dispatched = requestArk(diagnosticBody(request()), "OFFLINE-KEY", {
+    requestFactory: () => after,
+    timeoutMs: 100,
+  });
+  after.emit("socket", socketAfter);
+  socketAfter.emit("secureConnect");
+  assert.equal(after.payloads.length, 1);
+  after.emit(
+    "error",
+    Object.assign(new Error("reset"), { code: "ECONNRESET" }),
+  );
+  await assert.rejects(dispatched, (error) => {
+    assert.equal(error.message, "DIAGNOSTIC_REQUEST_ERROR_USAGE_UNKNOWN");
+    assert.equal(error.captured.transport.dispatchStarted, true);
+    assert.equal(error.captured.transport.errorCode, "ECONNRESET");
+    return true;
+  });
+
+  const timed = fakeRequest();
+  const lateSocket = new EventEmitter();
+  const timeout = requestArk(diagnosticBody(request()), "OFFLINE-KEY", {
+    requestFactory: () => timed,
+    timeoutMs: 5,
+  });
+  timed.emit("socket", lateSocket);
+  await assert.rejects(timeout, /DIAGNOSTIC_REQUEST_NOT_DISPATCHED/u);
+  lateSocket.emit("secureConnect");
+  assert.equal(timed.payloads.length, 0);
+
+  const normal = fakeRequest();
+  const normalSocket = new EventEmitter();
+  const completed = requestArk(diagnosticBody(request()), "OFFLINE-KEY", {
+    requestFactory: () => normal,
+    timeoutMs: 100,
+  });
+  normal.emit("socket", normalSocket);
+  normalSocket.emit("secureConnect");
+  const res = new EventEmitter();
+  res.statusCode = 200;
+  normal.emit("response", res);
+  res.emit("data", jsonResponse());
+  res.emit("end");
+  const result = await completed;
+  assert.equal(result.status, 200);
+  assert.equal(result.transport.dispatchStarted, true);
+  assert.equal(result.raw.toString(), jsonResponse().toString());
+  assert.equal(normal.payloads.length, 1);
+
+  const throwing = fakeRequest();
+  throwing.end = () => {
+    throw new Error("write failed");
+  };
+  const throwingSocket = new EventEmitter();
+  const failedWrite = requestArk(diagnosticBody(request()), "OFFLINE-KEY", {
+    requestFactory: () => throwing,
+    timeoutMs: 100,
+  });
+  throwing.emit("socket", throwingSocket);
+  throwingSocket.emit("secureConnect");
+  await assert.rejects(failedWrite, (error) => {
+    assert.equal(error.message, "DIAGNOSTIC_REQUEST_ERROR_USAGE_UNKNOWN");
+    assert.equal(error.captured.transport.dispatchStarted, true);
+    return true;
+  });
+  assert.equal(throwing.destroyed, true);
+});
+test("proven pre-HTTP network failure fails one task without retrying it", async (t) => {
+  let calls = 0;
+  const { root, broker, send } = await fixture(t, async () => {
+    calls += 1;
+    if (calls === 1)
+      throw Object.assign(new Error("DIAGNOSTIC_REQUEST_NOT_DISPATCHED"), {
+        captured: {
+          status: null,
+          raw: Buffer.alloc(0),
+          transport: { dispatchStarted: false, errorCode: "ENOTFOUND" },
+        },
+      });
+    return { status: 200, raw: response() };
+  });
+  try {
+    assert.equal((await send()).status, 403);
+    assert.equal((await send()).status, 403);
+    assert.equal(calls, 1);
+    assert.equal(
+      broker.taskStatus("verify-04").errorCode,
+      "DIAGNOSTIC_REQUEST_NOT_DISPATCHED",
+    );
+    const receipt = JSON.parse(
+      fs.readFileSync(path.join(root, "broker", "request-1.receipt.json")),
+    );
+    assert.equal(receipt.errorCode, "DIAGNOSTIC_REQUEST_NOT_DISPATCHED");
+    assert.equal(receipt.transport.dispatchStarted, false);
+    broker.beginTask("verify-22");
+    assert.equal((await send()).status, 200);
+    assert.equal(broker.taskStatus("verify-22").passed, true);
+    assert.equal(calls, 2);
+  } finally {
+    const summary = await broker.close();
+    assert.equal(summary.poisoned, null);
+    assert.equal(summary.physicalRequestsStarted, 2);
+    assert.equal(summary.usageCompleteRequests, 1);
+  }
+});
+test("claimed pre-dispatch failure after HTTP submission still poisons the broker", async (t) => {
+  const { broker, send } = await fixture(t, async () => {
+    throw Object.assign(new Error("DIAGNOSTIC_REQUEST_NOT_DISPATCHED"), {
+      captured: {
+        status: null,
+        raw: Buffer.alloc(0),
+        transport: { dispatchStarted: true, errorCode: "ECONNRESET" },
+      },
+    });
+  });
+  try {
+    assert.equal((await send()).status, 403);
+    assert.throws(() => broker.beginTask("verify-22"));
+  } finally {
+    assert.equal(
+      (await broker.close()).poisoned,
+      "DIAGNOSTIC_REQUEST_ERROR_USAGE_UNKNOWN",
+    );
+  }
+});
+test("unknown usage, model, tier, incomplete protocol and reasoning cannot settle", () => {
   assert.equal(
     diagnosticUsage(response().toString()).tokenOnlyEstimateCny,
     0.00039,
@@ -91,7 +343,8 @@ test("unknown usage, model, tier, partial output and reasoning cannot settle", (
       r.usage.total_tokens += 1;
     },
     (r) => {
-      r.choices[0].finish_reason = "length";
+      r.usage.completion_tokens = BROKER.maximumAnswerTokens + 1;
+      r.usage.total_tokens = r.usage.prompt_tokens + r.usage.completion_tokens;
     },
     (r) => {
       r.usage.prompt_tokens_details.cached_tokens = 101;
@@ -101,6 +354,24 @@ test("unknown usage, model, tier, partial output and reasoning cannot settle", (
   assert.throws(
     () => diagnosticUsage(response().toString().replace("data: [DONE]", "")),
     /INCOMPLETE_STREAM/,
+  );
+  assert.equal(
+    diagnosticUsage(
+      response((r) => {
+        r.choices[0].finish_reason = "length";
+      }).toString(),
+    ).finish,
+    "length",
+  );
+  assert.throws(
+    () =>
+      diagnosticUsage(
+        response((r) => {
+          r.choices[0].finish_reason = "length";
+          delete r.usage;
+        }).toString(),
+      ),
+    /USAGE_UNKNOWN/u,
   );
 });
 test("duplicate decoded members, overflow and incomplete JSON never become usage", () => {
@@ -149,7 +420,7 @@ test("public CLI nonstreaming JSON request preserves all diagnostic bounds", () 
   const body = diagnosticBody(input);
   assert.equal(body.stream, false);
   assert.equal(Object.hasOwn(body, "stream_options"), false);
-  assert.equal(body.max_tokens, 4096);
+  assert.equal(body.max_tokens, 8192);
   assert.deepEqual(body.thinking, { type: "disabled" });
   assert.equal(
     diagnosticJsonUsage(jsonResponse().toString()).tokenOnlyEstimateCny,
@@ -207,7 +478,7 @@ test("JSON response is persisted before forwarding and unknown JSON usage poison
     key: "OFFLINE-FAKE-SECRET",
     requestImpl: async (body) => {
       assert.equal(body.stream, false);
-      assert.equal(body.max_tokens, 4096);
+      assert.equal(body.max_tokens, 8192);
       calls += 1;
       return {
         status: 200,
@@ -243,7 +514,7 @@ test("JSON response is persisted before forwarding and unknown JSON usage poison
   }
   assert.ok(fs.existsSync(path.join(root, "broker", "response-1.json")));
 });
-async function fixture(t, requestImpl) {
+async function fixture(t, requestImpl, policy = {}) {
   const root = fs.mkdtempSync(
     path.join(os.tmpdir(), "cc-volcengine-broker-test-"),
   );
@@ -252,8 +523,9 @@ async function fixture(t, requestImpl) {
     outputDir: path.join(root, "broker"),
     key: "OFFLINE-FAKE-SECRET",
     requestImpl,
+    ...policy,
   });
-  broker.beginTask("verify-04");
+  broker.beginTask(policy.allowedTaskIds?.[0] || "verify-04");
   const send = (key = broker.childKey) =>
     fetch(`${broker.baseUrl}/chat/completions`, {
       method: "POST",
@@ -265,6 +537,47 @@ async function fixture(t, requestImpl) {
     });
   return { root, broker, send };
 }
+
+test("campaign policy binds selected task IDs, request allowance and transport timeout", async (t) => {
+  let calls = 0;
+  const { root, broker, send } = await fixture(
+    t,
+    async (body, key, options) => {
+      calls += 1;
+      assert.equal(options.timeoutMs, 180000);
+      assert.equal(body.thinking.type, "disabled");
+      return { status: 200, raw: response() };
+    },
+    {
+      allowedTaskIds: ["verify-01", "verify-36"],
+      maximumRequestsPerTask: 24,
+      requestTimeoutMs: 180000,
+    },
+  );
+  try {
+    assert.throws(
+      () => broker.beginTask("verify-04"),
+      /TASK_ALLOWANCE_INVALID/u,
+    );
+    for (let i = 0; i < 24; i++) assert.equal((await send()).status, 200);
+    assert.equal((await send()).status, 403);
+    assert.equal(calls, 24);
+    broker.beginTask("verify-36");
+    assert.equal((await send()).status, 200);
+    assert.throws(
+      () => broker.beginTask("verify-01"),
+      /TASK_ALLOWANCE_INVALID/u,
+    );
+    const policy = JSON.parse(
+      fs.readFileSync(path.join(root, "broker", "policy.json"), "utf8"),
+    );
+    assert.equal(policy.maximumRequestsPerTask, 24);
+    assert.equal(policy.timeoutMs, 180000);
+    assert.deepEqual(policy.allowedTaskIds, ["verify-01", "verify-36"]);
+  } finally {
+    await broker.close();
+  }
+});
 test("physical slots persist before dispatch; secret is absent; restart and 15th request reject", async (t) => {
   let calls = 0;
   const { root, broker, send } = await fixture(t, async (body) => {
@@ -312,6 +625,66 @@ test("physical slots persist before dispatch; secret is absent; restart and 15th
     /EEXIST/,
   );
 });
+test("validated truncated output settles usage, fails its task and never forwards tool arguments", async (t) => {
+  for (const mode of ["sse", "json"]) {
+    await t.test(mode, async (t) => {
+      let calls = 0;
+      const { root, broker } = await fixture(t, async () => {
+        calls += 1;
+        const encode = mode === "sse" ? response : jsonResponse;
+        return {
+          status: 200,
+          raw: encode((r) => {
+            if (calls === 1) {
+              r.choices[0].finish_reason = "length";
+              if (mode === "json")
+                r.choices[0].message.tool_calls = [
+                  {
+                    id: "partial-tool",
+                    type: "function",
+                    function: { name: "write_file", arguments: '{"path":' },
+                  },
+                ];
+            }
+          }),
+        };
+      });
+      const send = () =>
+        fetch(`${broker.baseUrl}/chat/completions`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${broker.childKey}` },
+          body: JSON.stringify({ ...request(), stream: mode === "sse" }),
+        });
+      try {
+        const rejected = await send();
+        assert.equal(rejected.status, 403);
+        const body = await rejected.text();
+        assert.match(body, /DIAGNOSTIC_OUTPUT_TRUNCATED/u);
+        assert.equal(body.includes("partial-tool"), false);
+        assert.equal(body.includes("[DONE]"), false);
+        const receipt = JSON.parse(
+          fs.readFileSync(path.join(root, "broker", "request-1.receipt.json")),
+        );
+        assert.equal(receipt.usage.prompt_tokens, 100);
+        assert.equal(receipt.finish, "length");
+        assert.equal(receipt.errorCode, "DIAGNOSTIC_OUTPUT_TRUNCATED");
+        assert.equal(broker.taskStatus("verify-04").passed, false);
+        assert.equal((await send()).status, 403);
+        assert.equal(calls, 1);
+        broker.beginTask("verify-22");
+        assert.equal((await send()).status, 200);
+        assert.equal(broker.taskStatus("verify-22").passed, true);
+        assert.equal(calls, 2);
+      } finally {
+        const summary = await broker.close();
+        assert.equal(summary.poisoned, null);
+        assert.equal(summary.physicalRequestsStarted, 2);
+        assert.equal(summary.usageCompleteRequests, 2);
+      }
+    });
+  }
+});
+
 test("usage unknown poisons allowance, stays null, and never silently retries", async (t) => {
   let calls = 0;
   const { broker, send } = await fixture(t, async () => {

@@ -1,0 +1,233 @@
+// Regression coverage: "Memory 影子读取无写入" — reading a frozen store
+// through a readOnly SegmentedMemoryPort must never mutate bytes or entries.
+//
+// Independent v1/v2 regression suite (not copied from the existing unit suite):
+//  - positive controls: a readOnly port shadows v1 and v2 stores with byte
+//    and entry identity preserved, no GC compaction and no migration;
+//  - negative controls: a writable port does perform GC compaction on v2 read
+//    and rejects write attempts when readOnly.
+import { describe, expect, it, afterEach } from "vitest";
+import {
+  mkdtempSync,
+  readFileSync,
+  writeFileSync,
+  readdirSync,
+  rmSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { applyMemoryCommand } from "@chainlesschain/context-memory-kernel";
+import {
+  SegmentedMemoryPort,
+  SEGMENTED_STORE_SCHEMA,
+} from "../../src/lib/context-memory-kernel/segmented-memory-port.js";
+
+const roots = [];
+
+function location() {
+  const root = mkdtempSync(join(tmpdir(), "cc-verify21-shadow-"));
+  roots.push(root);
+  return join(root, "store.json");
+}
+
+function reinforce(record) {
+  return applyMemoryCommand(record, {
+    type: "reinforce",
+    expectedRevision: record.revision,
+    confidenceDelta: 0.01,
+    authority: "test",
+    at: "2026-10-04T00:00:00.000Z",
+  });
+}
+
+function memoryId() {
+  return "mem-" + Math.random().toString(36).slice(2);
+}
+
+// Reconstruct a legacy v1 entry (STORE_SCHEMA) with every field the port
+// exposes on a read: id, memoryId, payload, metadata, revision, timestamps,
+// confidence and authority.
+function legacyRecord(id, at) {
+  return {
+    id,
+    memoryId: id,
+    payload: { note: "legacy-v1-" + id },
+    metadata: { seed: true },
+    revision: 1,
+    createdAt: at,
+    updatedAt: at,
+    lastReinforcedAt: at,
+    confidence: 0.5,
+    authority: "seed",
+  };
+}
+
+// Reconstruct a legacy v1 state for a readOnly port: nested records, a stored
+// event, and a reconciliation keyed by memoryId.
+function legacyState(records) {
+  return {
+    schema: "chainlesschain.cli-context-memory-store/v1",
+    schemaVersion: 1,
+    storeRevision: records.length,
+    records: Object.fromEntries(records.map((r) => [r.memoryId, r])),
+    events: records.map((r) => ({
+      memoryId: r.memoryId,
+      type: "reinforce",
+      at: r.updatedAt,
+      revision: r.revision,
+    })),
+    reconciliations: Object.fromEntries(
+      records.map((r) => [r.memoryId, { revision: r.revision, pending: false }]),
+    ),
+  };
+}
+
+function snapshotKey(frame) {
+  return join(frame, "kernel.json");
+}
+
+async function writeV2Snapshot(frame) {
+  const port = new SegmentedMemoryPort({ filePath: snapshotKey(frame) });
+  const id = memoryId();
+  const at = "2026-10-04T00:00:00.000Z";
+  const record = {
+    id,
+    memoryId: id,
+    payload: { note: "v2-shadow" },
+    metadata: {},
+    revision: 1,
+    createdAt: at,
+    updatedAt: at,
+    lastReinforcedAt: at,
+    confidence: 0.5,
+    authority: "seed",
+  };
+  const transition = reinforce(record);
+  const state = {
+    schema: SEGMENTED_STORE_SCHEMA,
+    schemaVersion: 2,
+    storeRevision: 1,
+    records: { [id]: record },
+    events: [transition.event],
+    reconciliations: { [id]: transition.reconciliation },
+  };
+  await port.importSnapshot(state);
+  return { id, record, state, filePath: snapshotKey(frame) };
+}
+
+// Capture the on-disk authority file plus the shard directory tree (bucket
+// filenames and raw bytes) as a stable signature.
+function capture(filePath) {
+  const manifestBytes = readFileSync(filePath);
+  const shardDir = `${filePath}.shards`;
+  const shardFiles = [];
+  if (readdirSync(shardDir).length > 0) {
+    for (const bucket of readdirSync(shardDir)) {
+      const shardPath = join(shardDir, bucket);
+      for (const name of readdirSync(shardPath)) {
+        shardFiles.push(`${bucket}/${name}:${readFileSync(join(shardPath, name)).length}`);
+      }
+    }
+  }
+  shardFiles.sort();
+  return {
+    bytes: manifestBytes.toString("hex"),
+    shardFiles,
+    shards: shardFiles.length,
+  };
+}
+
+afterEach(() => {
+  while (roots.length) rmSync(roots.pop(), { recursive: true, force: true });
+});
+
+describe("segmented memory readOnly shadow read is write-free (verify-21)", () => {
+  it("v1 shadow read returns exact records, no migration, no shards", async () => {
+    const frame = location();
+    const records = [
+      legacyRecord(memoryId(), "2026-10-04T00:00:00.000Z"),
+      legacyRecord(memoryId(), "2026-10-05T00:00:00.000Z"),
+    ];
+    const filePath = snapshotKey(frame);
+    writeFileSync(filePath, JSON.stringify(legacyState(records), null, 2));
+    const before = capture(filePath);
+
+    const port = new SegmentedMemoryPort({ filePath, readOnly: true });
+    const ids = Object.keys(records).map((k) => records[k].memoryId);
+    const seen = await Promise.all(ids.map((id) => port.read(id)));
+    const raw = JSON.parse(readFileSync(filePath, "utf8"));
+
+    expect(seen).toHaveLength(2);
+    for (const rec of seen) expect(rec).toMatchObject(rec);
+    expect(raw.schema).toBe("chainlesschain.cli-context-memory-store/v1");
+    expect(capture(filePath)).toEqual(before);
+    expect(before.shards).toBe(0);
+    expect(before.bytes).toBe(readFileSync(filePath).toString("hex"));
+  });
+
+  it("v2 shadow read performs no GC compaction and preserves all entries", async () => {
+    const frame = location();
+    const { id, record, state, filePath } = await writeV2Snapshot(frame);
+    const before = capture(filePath);
+    const initialManifest = JSON.parse(readFileSync(filePath, "utf8"));
+
+    const port = new SegmentedMemoryPort({ filePath, readOnly: true });
+    const seen = await port.read(id);
+
+    expect(seen).toEqual(record);
+    expect(initialManifest.records).toHaveProperty(id);
+    expect(initialManifest.events).toHaveLength(state.events.length);
+    expect(capture(filePath)).toEqual(before);
+  });
+
+  it("v2 shadow read returns identical bytes and entry count each time", async () => {
+    const frame = location();
+    const { id, filePath } = await writeV2Snapshot(frame);
+    const before = capture(filePath);
+
+    const port = new SegmentedMemoryPort({ filePath, readOnly: true });
+    for (let i = 0; i < 2; i++) {
+      expect(await port.read(id)).toBeTruthy();
+      expect(capture(filePath)).toEqual(before);
+    }
+    expect(before.shards).toBeGreaterThan(0);
+  });
+
+  it("readOnly port still serves reads after GC compaction is disabled (no _collect)", async () => {
+    const frame = location();
+    const { id, record, filePath } = await writeV2Snapshot(frame);
+
+    const first = new SegmentedMemoryPort({ filePath });
+    await first.read(id);
+    // readOnly shadow opened against the already-compacted store:
+    const shadow = new SegmentedMemoryPort({ filePath, readOnly: true });
+    expect(await shadow.read(id)).toEqual(record);
+  });
+
+  it("readOnly port rejects write attempts with CONTEXT_MEMORY_READ_ONLY", async () => {
+    const frame = location();
+    const { record, filePath } = await writeV2Snapshot(frame);
+    const transition = reinforce(record);
+    const before = capture(filePath);
+
+    const port = new SegmentedMemoryPort({ filePath, readOnly: true });
+    await expect(port.commit(transition, record.revision)).rejects.toMatchObject({
+      code: "CONTEXT_MEMORY_READ_ONLY",
+    });
+    expect(capture(filePath)).toEqual(before);
+  });
+
+  it("writable port compacts (GC) a v2 store during read, unlike readOnly", async () => {
+    const frame = location();
+    const { id, record, filePath } = await writeV2Snapshot(frame);
+    const before = capture(filePath);
+
+    // Writable port's first read runs _collect (GC compaction).
+    const writable = new SegmentedMemoryPort({ filePath });
+    expect(await writable.read(id)).toEqual(record);
+
+    const shadow = new SegmentedMemoryPort({ filePath, readOnly: true });
+    expect(await shadow.read(id)).toEqual(record);
+    expect(capture(filePath)).not.toEqual(before);
+  });
+});

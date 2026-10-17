@@ -1,0 +1,79 @@
+// Independent regression coverage for the cumulative animation frame budget
+// in inspectImageBudget (packages/vscode-extension/src/chat/image-decode-budget.js).
+import { describe, it, expect } from "vitest";
+import { inspectImageBudget } from "../src/chat/image-decode-budget.js";
+
+// A canonical 1x1 GIF used only as the raw frame source for our own animated
+// container builder (independent from the shared CLI fixture file).
+const pixelGif = Buffer.from(
+  "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+  "base64",
+);
+
+// Build an animated GIF whose logical canvas is `canvas`x`canvas` and which
+// contains `count` consecutive 1x1 delta frames. Cumulative decoded pixels are
+// therefore canvas*canvas*count.
+function animatedGif(count, canvas) {
+  const header = Buffer.from(pixelGif.subarray(0, 19));
+  header.writeUInt16LE(canvas, 6);
+  header.writeUInt16LE(canvas, 8);
+  return Buffer.concat([
+    header,
+    ...Array.from({ length: count }, () => pixelGif.subarray(19, -1)),
+    Buffer.from([0x3b]),
+  ]);
+}
+
+describe("cumulative animation frame budget admission", () => {
+  it("rejects a multi-frame accumulation above the 200-frame cap before decode", () => {
+    // 201 tiny 1x1 delta frames sum to a canvas budget of only 201 px, yet the
+    // frame-count cap is exceeded, so admission must fail up front.
+    expect(() => inspectImageBudget(animatedGif(201, 1))).toThrow("200 frames");
+  });
+
+  it("retains the legal boundary of exactly 200 frames", () => {
+    const result = inspectImageBudget(animatedGif(200, 1));
+    expect(result).toMatchObject({
+      format: "gif",
+      width: 1,
+      height: 1,
+      frames: 200,
+      extraCanvases: 0,
+      decodedPixels: 200,
+    });
+  });
+
+  it("rejects multi-frame accumulation over the 40M decoded-pixel budget", () => {
+    // 3 frames x 4000x4000 canvas = 48,000,000 px > 40,000,000.
+    expect(() => inspectImageBudget(animatedGif(3, 4000))).toThrow(
+      "decoded canvas pixels",
+    );
+  });
+
+  it("retains the legal boundary where cumulative pixels equal the budget", () => {
+    // 4 frames x 3162x3162 = 39,992,976 px, within the 40M allowance.
+    const result = inspectImageBudget(animatedGif(4, 3162));
+    expect(result).toMatchObject({
+      frames: 4,
+      decodedPixels: 4 * 3162 * 3162,
+    });
+    expect(result.decodedPixels).toBe(39_992_976);
+  });
+
+  it("rejects the boundary just past the cumulative pixel budget", () => {
+    // 4 frames x 3163x3163 = 40,018,276 px > 40,000,000.
+    expect(() => inspectImageBudget(animatedGif(4, 3163))).toThrow(
+      "decoded canvas pixels",
+    );
+  });
+
+  it("reports exact accumulation for a modest multi-frame animation", () => {
+    const result = inspectImageBudget(animatedGif(3, 100));
+    expect(result).toMatchObject({
+      frames: 3,
+      decodedPixels: 30_000,
+    });
+    // Each delta frame contributes a full logical canvas to the budget.
+    expect(result.decodedPixels).toBe(result.width * result.height * result.frames);
+  });
+});

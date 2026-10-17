@@ -1,0 +1,59 @@
+{
+  "schema": "chainlesschain.verify01-campaign-repair/v1",
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+  "repairRound": 3,
+  "tasks": [
+    {
+      "taskId": "verify-12",
+      "sourceRun": "39048948861",
+      "sourceCommit": "121f904fa0d484788f8e4707c4c985e9a8f23b3a",
+      "sourceRound": 2,
+      "attemptKind": "seeded-repair",
+      "seed": {
+        "file": "packages/cli/scripts/fixtures/verify01-campaign-repair/verify-12-39048948861.test.txt",
+        "digest": "sha256:32231bc094ad6e7a53025613d1e5c5bbf20b7aae4aa1570b0e1fbc6acaa2ccd0",
+        "deliverable": "packages/cli/__tests__/verify-12.test.js"
+      },
+      "feedback": {
+        "kind": "ordinary-checker-or-runtime",
+        "text": "The candidate suite failed before test cases could execute. Review module imports relative to packages/cli/__tests__/verify-12.test.js; its ../../src import does not resolve to packages/cli/src. After correcting collection, inspect the assertions against actual argument-token behavior: splitting a string containing whitespace does not demonstrate that it remains one argv element. Preserve positive and negative argument-boundary cases.",
+        "digest": "sha256:e575fc1986c2a0291cf93c8b7c28c6b89e24636ff1dde10e5178239d597a00fb"
+      }
+    },
+    {
+      "taskId": "verify-21",
+      "sourceRun": "39048948861",
+      "sourceCommit": "121f904fa0d484788f8e4707c4c985e9a8f23b3a",
+      "sourceRound": 2,
+      "attemptKind": "seeded-repair",
+      "seed": {
+        "file": "packages/cli/scripts/fixtures/verify01-campaign-repair/verify-21-39048948861.test.txt",
+        "digest": "sha256:16f622d040886c58540fcf8a1500de7a17f6537a4a4690d68aef7a1f9307de06",
+        "deliverable": "packages/cli/__tests__/verify-21.test.js"
+      },
+      "feedback": {
+        "kind": "ordinary-checker-or-runtime",
+        "text": "The candidate suite failed before test cases could execute. Review module imports relative to packages/cli/__tests__/verify-21.test.js; its ../../src import does not resolve to packages/cli/src. Independently inspect fixture setup before assuming an import-only repair is sufficient: verify the path returned by location(), parent directories, valid record/snapshot schema, and whether shard storage contains files or subdirectories. Use supported fixture construction from the frozen source and existing tests. Preserve write-free checks and meaningful writable controls.",
+        "digest": "sha256:be692262b50632f334fba6491bd0e54a32c1fa7b97fea5c3569b2ace5229198a"
+      }
+    },
+    {
+      "taskId": "verify-30",
+      "sourceRun": "39048948861",
+      "sourceCommit": "121f904fa0d484788f8e4707c4c985e9a8f23b3a",
+      "sourceRound": 2,
+      "attemptKind": "seeded-repair",
+      "seed": {
+        "file": "packages/cli/scripts/fixtures/verify01-campaign-repair/verify-30-39048948861.test.txt",
+        "digest": "sha256:5abbe50cfa4e3d17b9faf60c88b920c6b493d090b77191037523a2700d364a19",
+        "deliverable": "packages/vscode-extension/__tests__/verify-30.test.js"
+      },
+      "feedback": {
+        "kind": "ordinary-checker-or-runtime",
+        "text": "All six candidate cases executed and passed, but the independent behavioral coverage acceptance did not pass. Review the original task acceptance and strengthen the relevant positive/negative behavioral controls while preserving valid existing assertions. Do not weaken assertions or change source/checker code. No checker implementation details are supplied.",
+        "digest": "sha256:0a58fe52e06bf8e2facdee1762cd70959e6b5639935c2657ca04cd6948c25530"
+      }
+    }
+  ]
+}

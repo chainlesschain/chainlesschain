@@ -1,0 +1,157 @@
+// Placeholder replaced with independent Vitest regression coverage for
+// "background agent list index pagination invalidation after write/delete".
+import {
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { loadBackgroundAgentListIndex } from "../../src/lib/background-agent-list-index.js";
+
+let directory;
+
+function writeState(id, state = {}) {
+  writeFileSync(
+    join(directory, `${id}.json`),
+    JSON.stringify({ id, startedAt: 1, status: "completed", ...state }),
+    "utf8",
+  );
+}
+
+function deleteState(id) {
+  rmSync(join(directory, `${id}.json`), { force: true });
+}
+
+function reader() {
+  return vi.fn((id) =>
+    JSON.parse(readFileSync(join(directory, `${id}.json`), "utf8")),
+  );
+}
+
+function paginate(entries, pageSize) {
+  const pages = [];
+  for (let i = 0; i < entries.length; i += pageSize) {
+    pages.push(entries.slice(i, i + pageSize));
+  }
+  return pages;
+}
+
+// Invariant under test: the paged views concatenate back to the exact full
+// snapshot order, and a non-empty snapshot always has a non-empty last page.
+function expectPagesMatchFullList(entries, pageSize) {
+  const pages = paginate(entries, pageSize);
+  expect(pages.flat().map((entry) => entry.id)).toEqual(
+    entries.map((entry) => entry.id),
+  );
+  if (entries.length > 0) {
+    expect(pages[pages.length - 1].length).toBeGreaterThan(0);
+  }
+}
+
+beforeEach(() => {
+  directory = mkdtempSync(join(tmpdir(), "cc-bg-list-page-"));
+});
+
+afterEach(() => {
+  rmSync(directory, { recursive: true, force: true });
+});
+
+describe("background agent list index pagination after write/delete", () => {
+  it("paginates a freshly rebuilt index into pages covering the full snapshot exactly", () => {
+    for (let i = 0; i < 9; i += 1) {
+      writeState(`bg-${String(i).padStart(2, "0")}`, { startedAt: i + 1 });
+    }
+    const loaded = loadBackgroundAgentListIndex({
+      directory,
+      readState: reader(),
+    });
+    expect(loaded.source).toBe("rebuilt");
+    expect(loaded.entries).toHaveLength(9);
+    expectPagesMatchFullList(loaded.entries, 4);
+  });
+
+  it("paginates a served (cached) index the same as the full snapshot list", () => {
+    for (let i = 0; i < 7; i += 1) {
+      writeState(`bg-${String(i).padStart(2, "0")}`, { startedAt: i + 1 });
+    }
+    loadBackgroundAgentListIndex({ directory, readState: reader() });
+    const served = loadBackgroundAgentListIndex({
+      directory,
+      readState: reader(),
+    });
+    expect(served.source).toBe("index");
+    expectPagesMatchFullList(served.entries, 3);
+  });
+
+  it("re-paginates a rebuilt index after deleting states so the trailing page matches the reduced snapshot", () => {
+    for (let i = 0; i < 8; i += 1) {
+      writeState(`bg-${String(i).padStart(2, "0")}`, { startedAt: i + 1 });
+    }
+    loadBackgroundAgentListIndex({ directory, readState: reader() });
+
+    deleteState("bg-06");
+    deleteState("bg-07");
+    const afterDeleteReader = reader();
+    const afterDelete = loadBackgroundAgentListIndex({
+      directory,
+      readState: afterDeleteReader,
+    });
+    expect(afterDelete.source).toBe("rebuilt");
+    expect(afterDeleteReader).toHaveBeenCalledTimes(6);
+    expect(afterDelete.entries).toHaveLength(6);
+    expectPagesMatchFullList(afterDelete.entries, 4);
+  });
+
+  it("keeps a page after delete equal to the concatenated full-snapshot pages, including the last page", () => {
+    for (let i = 0; i < 6; i += 1) {
+      writeState(`bg-${String(i).padStart(2, "0")}`, { startedAt: i + 1 });
+    }
+    loadBackgroundAgentListIndex({ directory, readState: reader() });
+    deleteState("bg-04");
+    const afterDelete = loadBackgroundAgentListIndex({
+      directory,
+      readState: reader(),
+    });
+    expect(afterDelete.source).toBe("rebuilt");
+    expect(afterDelete.entries).toHaveLength(5);
+    const pages = paginate(afterDelete.entries, 2);
+    expect(pages).toHaveLength(3);
+    expect(pages.flat().map((entry) => entry.id)).toEqual(
+      afterDelete.entries.map((entry) => entry.id),
+    );
+    expect(pages[2].map((entry) => entry.id)).toEqual(["bg-05"]);
+  });
+
+  it("invalidates the cache on a new write, keeping pagination identical to the new full snapshot", () => {
+    writeState("bg-a", { startedAt: 1 });
+    loadBackgroundAgentListIndex({ directory, readState: reader() });
+
+    writeState("bg-b", { startedAt: 2 });
+    const afterWrite = loadBackgroundAgentListIndex({
+      directory,
+      readState: reader(),
+    });
+    expect(afterWrite.source).toBe("rebuilt");
+    expect(afterWrite.entries.map((entry) => entry.id)).toEqual([
+      "bg-a",
+      "bg-b",
+    ]);
+    expectPagesMatchFullList(afterWrite.entries, 1);
+  });
+
+  it("returns an empty paged list when the snapshot is emptied by deletion", () => {
+    writeState("bg-a", { startedAt: 1 });
+    loadBackgroundAgentListIndex({ directory, readState: reader() });
+    deleteState("bg-a");
+    const empty = loadBackgroundAgentListIndex({
+      directory,
+      readState: reader(),
+    });
+    expect(empty.source).toBe("rebuilt");
+    expect(empty.entries).toEqual([]);
+    expect(paginate(empty.entries, 4)).toEqual([]);
+  });
+});

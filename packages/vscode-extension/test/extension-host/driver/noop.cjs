@@ -12,6 +12,18 @@ function activate(context) {
           return await require("./verify01.cjs").run(context);
         }
         return await require("./smoke.cjs").run();
+      } catch (error) {
+        if (process.env.CHAINLESSCHAIN_VERIFY01_CONFIG) {
+          const path = require("node:path");
+          require("./failure-receipt.cjs").recordHostDriverFailure(error, {
+            resultFile: path.join(
+              process.env.CHAINLESSCHAIN_VERIFY01_CAPTURE_DIR,
+              `driver-${process.env.CHAINLESSCHAIN_VERIFY01_PHASE}`,
+            ),
+            phase: process.env.CHAINLESSCHAIN_VERIFY01_PHASE,
+          });
+        }
+        throw error;
       } finally {
         if (
           (process.env.CC_UI_CONVERSATION_RECOVERY === "1" ||
