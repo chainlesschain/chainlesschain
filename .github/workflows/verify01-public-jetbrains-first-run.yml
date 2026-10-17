@@ -52,7 +52,10 @@ jobs:
         if: runner.os != 'Windows'
         run: chmod +x packages/jetbrains-plugin/gradlew
       - name: Bootstrap exact Gradle
-        run: node scripts/lib/verify01-gradle-bootstrap.mjs --project-dir packages/jetbrains-plugin
+        run: >-
+          node scripts/lib/verify01-gradle-bootstrap.mjs
+          --project-dir packages/jetbrains-plugin
+          --artifact-dir "${{ runner.temp }}/verify01-public-jb-gradle"
       - name: Install public artifacts and run real IntelliJ 2025.2 task
         shell: bash
         env:
@@ -71,6 +74,7 @@ jobs:
           name: public-jetbrains-first-run-${{ matrix.os }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             ${{ runner.temp }}/verify01-public-jetbrains-first-run/
+            ${{ runner.temp }}/verify01-public-jb-gradle/
             packages/jetbrains-plugin/build/reports/tests/uiSmokeTest/
           include-hidden-files: true
           if-no-files-found: warn

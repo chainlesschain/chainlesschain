@@ -14,6 +14,7 @@ import { runCaptured } from "../../cli/scripts/verify01-first-run-cli-diagnostic
 import {
   npmEntrypoint,
   validateArtifact,
+  AUTHENTICATION_NODE_FLAGS,
 } from "../../cli/scripts/verify01-public-cli-matrix-diagnostic.mjs";
 import {
   DIAGNOSTIC,
@@ -171,6 +172,7 @@ export async function runPublicFirstRun({ outputDir, key }) {
       "Diagnostic broker disables thinking",
       "Installation and configuration are automated; not a human usability study",
       "No native database or frozen host identity claim",
+      "The public CLI adapter disables IDE context/bridge tools; this journey assesses file tools through the IDE UI and recovery",
     ],
   };
   let broker, active;
@@ -284,10 +286,14 @@ export async function runPublicFirstRun({ outputDir, key }) {
       ]);
     const auth = JSON.parse(
       (
-        await runCli("authenticate", [cli, "llm", "test", "--json"], {
-          env: { ...environment, VOLCENGINE_API_KEY: key },
-          timeoutMs: 90000,
-        })
+        await runCli(
+          "authenticate",
+          [...AUTHENTICATION_NODE_FLAGS, cli, "llm", "test", "--json"],
+          {
+            env: { ...environment, VOLCENGINE_API_KEY: key },
+            timeoutMs: 90000,
+          },
+        )
       ).stdout.trim(),
     );
     assert.equal(auth.ok, true);
@@ -299,6 +305,14 @@ export async function runPublicFirstRun({ outputDir, key }) {
         Number.isSafeInteger(auth.usage.output_tokens),
     );
     summary.stages.authentication = { passed: true, usage: auth.usage };
+    summary.authenticationTransportOverride = {
+      nodeFlags: AUTHENTICATION_NODE_FLAGS,
+      automaticHttpRetries: 0,
+    };
+    summary.windowsAclAllowanceOverride =
+      process.platform === "win32"
+        ? { timeoutMs: 60000, validationBypassed: false }
+        : null;
     broker = await createVolcengineDiagnosticBroker({
       outputDir: path.join(output, "broker"),
       key,
@@ -320,11 +334,21 @@ export async function runPublicFirstRun({ outputDir, key }) {
       promptFile,
       "Read input.json using read_file. Write result.json using write_file with exactly three JSON fields: nonce copied from input, sum of values, and sorted containing values in ascending numerical order. Do not modify input.json. Use only file tools, then finish with a short statement.",
     );
+    const adapter = path.join(root, "public-cli-adapter.cjs");
+    fs.writeFileSync(
+      adapter,
+      `const {spawn}=require('node:child_process');const args=process.argv.slice(2);if(args[0]==='agent')args.push('--allowed-tools','read_file,search_files,list_dir,write_file,edit_file,edit_file_hashed','--no-ide','--no-mcp','--no-pdh','--no-jetbrains');const child=spawn(${JSON.stringify(process.execPath)},[${JSON.stringify(cli)},...args],{stdio:'inherit',env:process.env});child.on('error',e=>{console.error(e.message);process.exitCode=1});child.on('exit',code=>{process.exitCode=code??1});`,
+    );
+    summary.cliAdapter = {
+      digest: hash(fs.readFileSync(adapter)),
+      purpose:
+        "delegate to installed public CLI with diagnostic file-only tools",
+    };
     const shim = path.join(
       dirs.bin,
       process.platform === "win32" ? "cc.cmd" : "cc",
     );
-    fs.writeFileSync(shim, cliShim(process.execPath, cli), { mode: 0o700 });
+    fs.writeFileSync(shim, cliShim(process.execPath, adapter), { mode: 0o700 });
     const ideEnv = {
       ...environment,
       PATH: dirs.bin + path.delimiter + environment.PATH,

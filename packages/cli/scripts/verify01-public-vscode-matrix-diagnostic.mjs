@@ -26,6 +26,18 @@ export const HOST_VERSION = "1.132.0";
 export const ARTIFACT_PROMPT =
   "Read input.json with read_file. Write result.json with write_file: exactly nonce copied from input, sum of values, and sorted containing values in ascending numerical order. Do not modify input.json. Only file tools; finish briefly after writing.";
 
+export function publicCliAdapterSource(node, cli) {
+  const flags = [
+    "--allowed-tools",
+    "read_file,search_files,list_dir,write_file,edit_file,edit_file_hashed",
+    "--no-ide",
+    "--no-mcp",
+    "--no-pdh",
+    "--no-jetbrains",
+  ];
+  return `const {spawn}=require('node:child_process');const args=process.argv.slice(2);if(args[0]==='agent')args.push(...${JSON.stringify(flags)});const child=spawn(${JSON.stringify(node)},[${JSON.stringify(cli)},...args],{stdio:'inherit',env:process.env});child.on('error',e=>{console.error(e.message);process.exitCode=1});child.on('exit',(code)=>{process.exitCode=code??1});`;
+}
+
 export async function runPublicVSCode({
   outputDir,
   confirmLive,
@@ -111,6 +123,7 @@ export async function runPublicVSCode({
       "Diagnostic file-tool journey; not a frozen formal sample",
       "Public installed packages; repository capture instrumentation",
       "Adapter restricts agent tools, without a deterministic peer",
+      "IDE context bridge tools disabled for this file-tool journey; real panel protocol and UI remain in use",
       "Public capture incompatibility remains a failure; no replacement VSIX",
     ],
   };
@@ -243,10 +256,7 @@ export async function runPublicVSCode({
       brokerCapabilityInHost: true,
     };
     const adapter = path.join(scratch, "public-cli-adapter.cjs");
-    fs.writeFileSync(
-      adapter,
-      `const {spawn}=require('node:child_process');const args=process.argv.slice(2);if(args[0]==='agent')args.push('--allowed-tools','read_file,search_files,list_dir,write_file,edit_file,edit_file_hashed','--no-mcp','--no-pdh','--no-jetbrains');const child=spawn(${JSON.stringify(process.execPath)},[${JSON.stringify(cli)},...args],{stdio:'inherit',env:process.env});child.on('error',e=>{console.error(e.message);process.exitCode=1});child.on('exit',(code)=>{process.exitCode=code??1});`,
-    );
+    fs.writeFileSync(adapter, publicCliAdapterSource(process.execPath, cli));
     const launcher = path.join(
       scratch,
       process.platform === "win32" ? "public-cli.cmd" : "public-cli",
@@ -338,7 +348,11 @@ export async function runPublicVSCode({
     const terminal = JSON.parse(
       fs.readFileSync(path.join(dirs.captureDir, "terminal.json"), "utf8"),
     );
-    assert.equal(initial.recoveryRequired, true);
+    assert.equal(
+      initial.recoveryRequired,
+      true,
+      `real UI terminal did not succeed: ${terminal.event.error || terminal.event.result || terminal.event.subtype}`,
+    );
     assert.equal(terminal.event.subtype, "success");
     assert.equal(terminal.event.is_error, false);
     const restart = JSON.parse(
