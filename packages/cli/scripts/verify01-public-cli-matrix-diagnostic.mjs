@@ -63,7 +63,12 @@ export async function runPublicCliMatrix({
   const output = path.resolve(outputDir);
   assert.ok(!fs.existsSync(output), "output directory must be new");
   fs.mkdirSync(output, { recursive: true });
-  const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "cc-public-cli-"));
+  const requestedScratch = fs.mkdtempSync(
+    path.join(os.tmpdir(), "cc-public-cli-"),
+  );
+  // Windows TEMP may use RUNNER~1; the authority guard compares native paths.
+  // Resolve the new directory before deriving any profile/workspace coordinates.
+  const scratch = fs.realpathSync.native(requestedScratch);
   const directories = Object.fromEntries(
     [
       "home",
@@ -128,6 +133,7 @@ export async function runPublicCliMatrix({
     version: DIAGNOSTIC.publicVersion,
     sourceCommit: process.env.GITHUB_SHA || null,
     startedAt: new Date().toISOString(),
+    workspaceCoordinates: { requestedScratch, canonicalScratch: scratch },
     stages: {},
     passed: false,
   };
