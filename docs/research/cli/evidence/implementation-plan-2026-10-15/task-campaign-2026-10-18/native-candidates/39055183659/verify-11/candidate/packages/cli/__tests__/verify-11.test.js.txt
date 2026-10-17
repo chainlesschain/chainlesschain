@@ -1,0 +1,225 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  BackgroundInteractionJournal,
+  _deps,
+  classifyLateBackgroundInteractionSettlement,
+  loadBackgroundInteractionJournal,
+  rejectPendingBackgroundInteractions,
+  updateBackgroundInteractionJournal,
+} from "../src/lib/background-interaction-journal.js";
+
+const sessionA = "verify11-session-a";
+const sessionB = "verify11-session-b";
+const agent = "verify11-agent";
+
+function bindingFor(sessionId, toolUseId = "tool-1", sequence = 1) {
+  return {
+    backgroundAgentId: agent,
+    sessionId,
+    turnId: "turn-1",
+    toolUseId,
+    sequence,
+  };
+}
+
+describe("verify-11 problem ownership persistence", () => {
+  let originalAppend;
+  let originalPresence;
+  let originalReadVerified;
+  let events;
+
+  function installStore() {
+    originalAppend = _deps.appendEventWithVerifiedProjection;
+    originalPresence = _deps.getSessionPresence;
+    originalReadVerified = _deps.readVerifiedEvents;
+    events = [{ type: "session_start", data: {} }];
+    _deps.appendEventWithVerifiedProjection = vi.fn(
+      (sessionId, type, data, { createProjection, validateProjection }) => {
+        const projection = createProjection();
+        for (const event of events) projection.accept(structuredClone(event));
+        validateProjection(projection.finish(), {
+          headHash: null,
+          eventCount: events.length,
+        });
+        events.push({ sessionId, type, data: structuredClone(data) });
+        return { hash: "mock-hash" };
+      },
+    );
+    _deps.readVerifiedEvents = vi.fn(() =>
+      events.map(({ type, data }) => ({ type, data: structuredClone(data) })),
+    );
+    _deps.getSessionPresence = vi.fn(() => "present");
+  }
+
+  beforeEach(() => {
+    installStore();
+  });
+
+  afterEach(() => {
+    _deps.appendEventWithVerifiedProjection = originalAppend;
+    _deps.getSessionPresence = originalPresence;
+    _deps.readVerifiedEvents = originalReadVerified;
+  });
+
+  it("keeps the same request id settled independently per session", () => {
+    const sharedId = "request-shared";
+
+    let journalA = new BackgroundInteractionJournal({
+      backgroundAgentId: agent,
+      now: () => 100,
+    });
+    journalA = updateBackgroundInteractionJournal(
+      sessionA,
+      journalA,
+      (draft) =>
+        draft.recordPending({
+          requestId: sharedId,
+          binding: bindingFor(sessionA),
+          payload: { question: "Deploy?" },
+        }),
+    ).journal;
+
+    let journalB = new BackgroundInteractionJournal({
+      backgroundAgentId: agent,
+      now: () => 100,
+    });
+    journalB = updateBackgroundInteractionJournal(
+      sessionB,
+      journalB,
+      (draft) =>
+        draft.recordPending({
+          requestId: sharedId,
+          binding: bindingFor(sessionB),
+          payload: { question: "Deploy?" },
+        }),
+    ).journal;
+
+    updateBackgroundInteractionJournal(
+      sessionA,
+      journalA,
+      (draft) =>
+        draft.settle(sharedId, bindingFor(sessionA), {
+          status: "resolved",
+          answer: "yes",
+        }),
+      { now: () => 200 },
+    );
+
+    // Settling in session A must not alter session B's pending record.
+    const loadedB = loadBackgroundInteractionJournal(sessionB, agent);
+    expect(loadedB.get(sharedId)).toMatchObject({ status: "pending" });
+    expect(loadedB.get(sharedId).settlement).toBeNull();
+    expect(loadedB.get(sharedId).payloadFingerprint).toBe(
+      journalB.get(sharedId).payloadFingerprint,
+    );
+
+    const loadedA = loadBackgroundInteractionJournal(sessionA, agent);
+    expect(loadedA.get(sharedId)).toMatchObject({
+      status: "resolved",
+      settlement: { answer: "yes" },
+    });
+  });
+
+  it("records a same-named pending in a fresh session without replaying another session's answer", () => {
+    // Seed session A with an already-settled answer for the shared request id.
+    let journalA = new BackgroundInteractionJournal({
+      backgroundAgentId: agent,
+      now: () => 100,
+    });
+    journalA = updateBackgroundInteractionJournal(
+      sessionA,
+      journalA,
+      (draft) =>
+        draft.recordPending({
+          requestId: "request-dup-name",
+          binding: bindingFor(sessionA),
+          payload: { question: "Same question" },
+        }),
+    ).journal;
+    updateBackgroundInteractionJournal(
+      sessionA,
+      journalA,
+      (draft) =>
+        draft.settle("request-dup-name", bindingFor(sessionA), {
+          status: "resolved",
+          answer: "from-a",
+        }),
+      { now: () => 200 },
+    );
+
+    // A brand new session B should start empty and not inherit session A's row.
+    const freshB = loadBackgroundInteractionJournal(sessionB, agent);
+    expect(freshB.get("request-dup-name")).toBeNull();
+    expect(freshB.pending()).toEqual([]);
+  });
+
+  it("does not resurrect execution authority from a completed record", () => {
+    const journal = new BackgroundInteractionJournal({
+      backgroundAgentId: agent,
+      now: () => 100,
+    });
+    journal.recordPending({
+      requestId: "request-done",
+      binding: bindingFor(sessionA),
+      payload: { question: "Deploy?" },
+    });
+    journal.settle("request-done", bindingFor(sessionA), {
+      status: "resolved",
+      answer: "yes",
+    });
+
+    // A completed record must not be treated as a live child that grants
+    // recovery/settlement authority for late transport responses.
+    const late = classifyLateBackgroundInteractionSettlement(
+      journal,
+      "request-done",
+      bindingFor(sessionA),
+      { status: "resolved", answer: "yes" },
+    );
+    expect(late.accepted).toBe(true);
+    expect(late.duplicate).toBe(true);
+
+    // Recovery must not re-run execution on an already-terminal record.
+    const recovery = rejectPendingBackgroundInteractions(sessionA, agent);
+    expect(recovery.changed).toBe(false);
+    expect(recovery.rejected).toEqual([]);
+    expect(recovery.journal.get("request-done")).toMatchObject({
+      status: "resolved",
+      settlement: { answer: "yes" },
+    });
+  });
+
+  it("does not rebuild pending execution authority for a settled record on reload", () => {
+    let journal = new BackgroundInteractionJournal({
+      backgroundAgentId: agent,
+      now: () => 100,
+    });
+    journal = updateBackgroundInteractionJournal(
+      sessionA,
+      journal,
+      (draft) =>
+        draft.recordPending({
+          requestId: "request-done-persisted",
+          binding: bindingFor(sessionA),
+          payload: { question: "Deploy?" },
+        }),
+    ).journal;
+    updateBackgroundInteractionJournal(
+      sessionA,
+      journal,
+      (draft) =>
+        draft.settle("request-done-persisted", bindingFor(sessionA), {
+          status: "rejected",
+          error: { code: "INTERACTION_WORKER_LOST", message: "lost" },
+        }),
+      { now: () => 200 },
+    );
+
+    const reloaded = loadBackgroundInteractionJournal(sessionA, agent);
+    expect(reloaded.pending()).toEqual([]);
+    expect(reloaded.get("request-done-persisted").status).toBe("rejected");
+    expect(reloaded.get("request-done-persisted").settlement.error.code).toBe(
+      "INTERACTION_WORKER_LOST",
+    );
+  });
+});

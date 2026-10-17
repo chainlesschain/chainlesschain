@@ -1,0 +1,101 @@
+import { describe, expect, it } from "vitest";
+
+import {
+  agentPrintArgument,
+  canonicalizeBackgroundSessionArgv,
+  stripFirstTurnPromptArgv,
+  transformBackgroundLaunchArgv,
+} from "../src/lib/background-command-argv.js";
+
+const OPTION_SPECS = [
+  { long: "--model", required: true },
+  { long: "--title", required: true },
+  { short: "-p", long: "--print", optional: true },
+  { long: "--session", required: true },
+  { long: "--verbose" },
+];
+
+describe("space/empty/quoted argv boundary integrity", () => {
+  it("keeps spaced and empty --add-dir directories as one intact argv token each", () => {
+    const argv = transformBackgroundLaunchArgv(["agent"], {
+      directories: ["my dir", "", "quoted \"path\""],
+      optionSpecs: OPTION_SPECS,
+    });
+    // A directory is a single boundary-safe token, never split/requoted.
+    expect(argv).toEqual([
+      "agent",
+      "--add-dir",
+      "my dir",
+      "--add-dir",
+      "",
+      "--add-dir",
+      'quoted "path"',
+    ]);
+  });
+
+  it("does not re-parse a directory that resembles an option flag", () => {
+    const argv = transformBackgroundLaunchArgv(["agent", "task"], {
+      directories: ["-flag", "--keep"],
+      optionSpecs: OPTION_SPECS,
+    });
+    expect(argv).toEqual([
+      "agent",
+      "task",
+      "--add-dir",
+      "-flag",
+      "--add-dir",
+      "--keep",
+    ]);
+  });
+
+  it("preserves an option value containing spaces and quotes in the session argv", () => {
+    expect(
+      canonicalizeBackgroundSessionArgv(
+        ["agent", "--model", 'my "model"', "task", "--", "path with space"],
+        { sessionId: "s1", optionSpecs: OPTION_SPECS },
+      ),
+    ).toEqual([
+      "agent",
+      "--model",
+      'my "model"',
+      "task",
+      "--session",
+      "s1",
+      "--",
+      "path with space",
+    ]);
+  });
+
+  it("preserves empty and spaced required-option values when stripping the first turn", () => {
+    expect(
+      stripFirstTurnPromptArgv(
+        ["agent", "--model", "", "--title", "kept title", "--session", "s"],
+        { optionSpecs: OPTION_SPECS },
+      ),
+    ).toEqual([
+      "agent",
+      "--model",
+      "",
+      "--title",
+      "kept title",
+      "--session",
+      "s",
+    ]);
+  });
+
+  it("keeps spaces and emptiness inside a single print argument token", () => {
+    expect(agentPrintArgument("a b c")).toBe("--print=a b c");
+    expect(agentPrintArgument("")).toBe("--print=");
+    expect(agentPrintArgument('q "p"')).toBe('--print=q "p"');
+  });
+
+  it("emits exactly one token per --add-dir directory regardless of embedded spaces", () => {
+    const argv = transformBackgroundLaunchArgv(["agent"], {
+      directories: ["a b", "c  d", ""],
+      optionSpecs: OPTION_SPECS,
+    });
+    // Boundary integrity: token count equals 1 command + 2 tokens per dir.
+    expect(argv.length).toBe(1 + 2 * 3);
+    expect(argv.filter((token) => token === "--add-dir")).toHaveLength(3);
+  });
+});

@@ -1,6 +1,6 @@
 {
   "schema": "chainlesschain.task-campaign-optimization-validation/v1",
-  "generatedAt": "2026-10-17T18:15:24.570588+00:00",
+  "generatedAt": "2026-10-17T19:18:47.814162+00:00",
   "published": false,
   "publicVersionsUnderEvaluation": {
     "cli": "0.166.99",
@@ -114,6 +114,15 @@
       ],
       "latestFocusedNodeTestsPassed": 23,
       "longComposerTestsPassed": 3
+    },
+    {
+      "change": "Preserve the real protocol-*.jsonl stream after failed JetBrains capture",
+      "commit": "7bfe3dad8c7282e288a50cb47d475dfbd40e605a",
+      "cause": "Fallback searched only NDJSON and hid already archived JetBrains JSONL records behind an exactly-one-stream assertion.",
+      "focusedWindowsNativeTestsPassed": 9,
+      "policy": "Keep consolidated protocol.json precedence; accept one real raw generation only; reject ambiguous streams; preserve original interrupted/errors/failures without replay or upgrading old results.",
+      "readOnlyReview": "windows-jb-task-readiness-review.json",
+      "paidModelCallsAdded": false
     },
     {
       "change": "Preserve exact UTF8 Windows archive filenames and assess legacy candidates without admitting native generation",

@@ -1,0 +1,149 @@
+/**
+ * verify-29 — mode ACK correlation.
+ *
+ * Independent regression coverage for `acceptModeAcknowledgement` in
+ * `permission-mode-state.js`. The ACK is display evidence: an ACK that does
+ * not correlate to the current mode request (old generation, mismatched
+ * correlation id, wrong session, wrong requested mode, malformed policy
+ * revision) must be rejected WITHOUT publishing the new mode as effective.
+ *
+ * Import is relative to this deliverable: ../src/chat/permission-mode-state.js.
+ */
+import { describe, it, expect } from "vitest";
+import {
+  acceptModeAcknowledgement,
+  modeState,
+} from "../src/chat/permission-mode-state.js";
+
+const REV = "a".repeat(16);
+
+/** A fresh conversation in the default/pending pre-ACK state. */
+function makeConv(overrides = {}) {
+  return {
+    mode: "bypassPermissions",
+    modeRequestId: "req-1",
+    sessionId: "sess-1",
+    modeStatus: "pending",
+    modeError: "",
+    effectiveMode: null,
+    policyRevision: null,
+    ...overrides,
+  };
+}
+
+/** A system event carrying a well-formed, correlated permission_mode_state. */
+function makeEvent(overrides = {}) {
+  return {
+    type: "system",
+    subtype: "init",
+    session_id: "sess-1",
+    permission_mode_state: {
+      correlation_id: "req-1",
+      requested: "bypassPermissions",
+      effective: "bypassPermissions",
+      policy_revision: REV,
+      ...overrides,
+    },
+  };
+}
+
+describe("acceptModeAcknowledgement — mode ACK correlation", () => {
+  it("accepts a correlated ACK and publishes the effective mode", () => {
+    const conv = makeConv();
+    const ok = acceptModeAcknowledgement(conv, makeEvent());
+    expect(ok).toBe(true);
+    expect(conv).toMatchObject({
+      effectiveMode: "bypassPermissions",
+      policyRevision: REV,
+      modeStatus: "effective",
+      modeError: "",
+    });
+  });
+
+  it("rejects an old-generation ACK (stale correlation id) without publishing a mode", () => {
+    const conv = makeConv();
+    const ok = acceptModeAcknowledgement(
+      conv,
+      makeEvent({ correlation_id: "req-OLD" }),
+    );
+    expect(ok).toBe(false);
+    // The stale ACK must not make the new mode appear effective.
+    expect(conv.effectiveMode).toBeNull();
+    expect(conv.policyRevision).toBeNull();
+    expect(conv.modeStatus).toBe("pending");
+  });
+
+  it("rejects an ACK bound to a different session without publishing a mode", () => {
+    const conv = makeConv();
+    const ok = acceptModeAcknowledgement(
+      conv,
+      makeEvent({ session_id: "sess-OTHER" }),
+    );
+    expect(ok).toBe(false);
+    expect(conv.effectiveMode).toBeNull();
+    expect(conv.modeStatus).toBe("pending");
+  });
+
+  it("a stale ACK arriving after a valid one does not corrupt the established mode", () => {
+    const conv = makeConv();
+    expect(acceptModeAcknowledgement(conv, makeEvent())).toBe(true);
+    // A late old-generation ACK for a previous mode request arrives.
+    const ok = acceptModeAcknowledgement(
+      conv,
+      makeEvent({ correlation_id: "req-OLD", effective: "default" }),
+    );
+    expect(ok).toBe(false);
+    // The already-confirmed effective mode stays intact.
+    expect(conv).toMatchObject({
+      effectiveMode: "bypassPermissions",
+      modeStatus: "effective",
+      policyRevision: REV,
+    });
+  });
+
+  it("rejects an ACK whose requested mode does not match the conversation", () => {
+    const conv = makeConv();
+    const ok = acceptModeAcknowledgement(
+      conv,
+      makeEvent({ requested: "default" }),
+    );
+    expect(ok).toBe(false);
+    // A mismatch is a failed confirmation: never publish the new mode.
+    expect(conv.effectiveMode).toBeNull();
+    expect(conv.modeStatus).toBe("unconfirmed");
+  });
+
+  it("rejects a malformed policy revision as a failed confirmation", () => {
+    for (const bad of ["", "abc", "z".repeat(16), "a".repeat(65)]) {
+      const conv = makeConv();
+      const ok = acceptModeAcknowledgement(
+        conv,
+        makeEvent({ policy_revision: bad }),
+      );
+      expect(ok).toBe(false);
+      expect(conv.effectiveMode).toBeNull();
+      expect(conv.modeStatus).toBe("unconfirmed");
+    }
+  });
+});
+
+describe("modeState — projection of pending vs effective", () => {
+  it("projects the effective mode only once confirmed", () => {
+    const pending = makeConv();
+    expect(modeState(pending)).toEqual({
+      requested: "bypassPermissions",
+      effective: null,
+      status: "pending",
+      policyRevision: null,
+      reason: "",
+    });
+    const confirmed = makeConv();
+    acceptModeAcknowledgement(confirmed, makeEvent());
+    expect(modeState(confirmed)).toMatchObject({
+      requested: "bypassPermissions",
+      effective: "bypassPermissions",
+      status: "effective",
+      policyRevision: REV,
+    });
+  });
+});

@@ -1,0 +1,125 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-27",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 14,
+      "passed": 14,
+      "failed": 0
+    },
+    {
+      "kind": "candidate",
+      "total": 6,
+      "passed": 6,
+      "failed": 0
+    }
+  ],
+  "mutations": [
+    {
+      "name": "restore-mismatched-question-identity",
+      "sourceSha256": "b89f9b26e5deb245c1fedb8f07f55a2b72be880d965c78eaaa2fe0e6c52e2ddb",
+      "total": 6,
+      "passed": 4,
+      "failed": 2
+    }
+  ],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 107,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 937,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":4,\"numPassedTestSuites\":4,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":14,\"numPassedTests\":14,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1792263167302,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"question recovery authority and persistence\"],\"fullName\":\"question recovery authority and persistence recovers an unfinished bound question in a fresh host without sending an answer\",\"status\":\"passed\",\"title\":\"recovers an unfinished bound question in a fresh host without sending an answer\",\"duration\":7.265115000000037,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"question recovery authority and persistence\"],\"fullName\":\"question recovery authority and persistence archives cancellations, schema changes and late edits without reviving the request\",\"status\":\"passed\",\"title\":\"archives cancellations, schema changes and late edits without reviving the request\",\"duration\":3.487538000000029,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"question recovery authority and persistence\"],\"fullName\":\"question recovery authority and persistence does not restore unbound or already submitted answers as a new live form\",\"status\":\"passed\",\"title\":\"does not restore unbound or already submitted answers as a new live form\",\"duration\":3.522841000000028,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"question recovery authority and persistence\"],\"fullName\":\"question recovery authority and persistence reserves one response, persists before writing, and leaves failed delivery unknown\",\"status\":\"passed\",\"title\":\"reserves one response, persists before writing, and leaves failed delivery unknown\",\"duration\":1.4511329999999703,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"question recovery authority and persistence\"],\"fullName\":\"question recovery authority and persistence does not dispatch on storage failure or a reset during the save\",\"status\":\"passed\",\"title\":\"does not dispatch on storage failure or a reset during the save\",\"duration\":52.349244,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"question recovery authority and persistence\"],\"fullName\":\"question recovery authority and persistence keeps deferred questions across turn end and bounds stored questions\",\"status\":\"passed\",\"title\":\"keeps deferred questions across turn end and bounds stored questions\",\"duration\":12.889655000000005,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"generated question forms\"],\"fullName\":\"generated question forms retains multiselect edits when switching between conversation tabs\",\"status\":\"passed\",\"title\":\"retains multiselect edits when switching between conversation tabs\",\"duration\":21.871703999999966,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"generated question forms\"],\"fullName\":\"generated question forms preserves partial form values through Webview reconstruction, omitting write-only secrets\",\"status\":\"passed\",\"title\":\"preserves partial form values through Webview reconstruction, omitting write-only secrets\",\"duration\":24.45160900000002,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"generated question forms\"],\"fullName\":\"generated question forms restores the last keystroke backup and never overwrites a newer edit\",\"status\":\"passed\",\"title\":\"restores the last keystroke backup and never overwrites a newer edit\",\"duration\":9.022749999999974,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"generated question forms\"],\"fullName\":\"generated question forms disables duplicate clicks and marks completion only on the host resolution\",\"status\":\"passed\",\"title\":\"disables duplicate clicks and marks completion only on the host resolution\",\"duration\":6.116156999999987,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"generated question forms\"],\"fullName\":\"generated question forms excludes unsupported JSON fallback values and rejects oversized draft structures\",\"status\":\"passed\",\"title\":\"excludes unsupported JSON fallback values and rejects oversized draft structures\",\"duration\":0.6125729999999976,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ChatView question owner routing\"],\"fullName\":\"ChatView question owner routing keeps a rejected response unresolved and exposes archived text without sending it\",\"status\":\"passed\",\"title\":\"keeps a rejected response unresolved and exposes archived text without sending it\",\"duration\":4.957660000000033,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ChatView question owner routing\"],\"fullName\":\"ChatView question owner routing routes an asynchronous URL answer to its original session after tab switching\",\"status\":\"passed\",\"title\":\"routes an asynchronous URL answer to its original session after tab switching\",\"duration\":53.32048699999996,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ChatView question owner routing\"],\"fullName\":\"ChatView question owner routing ignores callbacks after the owning session is stopped and replacement requests appear\",\"status\":\"passed\",\"title\":\"ignores callbacks after the owning session is stopped and replacement requests appear\",\"duration\":52.46444699999995,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1792263167699,\"endTime\":1792263167953.4644,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/vscode-ext-question-drafts.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 463,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":6,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1792263168259,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"verify-27: question reload precise binding\"],\"fullName\":\"verify-27: question reload precise binding recovers live fields only for the exact request, session and schema\",\"status\":\"passed\",\"title\":\"recovers live fields only for the exact request, session and schema\",\"duration\":5.842558999999994,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-27: question reload precise binding\"],\"fullName\":\"verify-27: question reload precise binding does not revive live fields when the schema differs (same session and id)\",\"status\":\"passed\",\"title\":\"does not revive live fields when the schema differs (same session and id)\",\"duration\":1.812751999999989,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-27: question reload precise binding\"],\"fullName\":\"verify-27: question reload precise binding does not revive live fields when the request id differs\",\"status\":\"passed\",\"title\":\"does not revive live fields when the request id differs\",\"duration\":1.788927000000001,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-27: question reload precise binding\"],\"fullName\":\"verify-27: question reload precise binding does not revive live fields when the session differs (mismatched sessionId)\",\"status\":\"passed\",\"title\":\"does not revive live fields when the session differs (mismatched sessionId)\",\"duration\":1.6685469999999896,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-27: question reload precise binding\"],\"fullName\":\"verify-27: question reload precise binding does not revive live fields for a legacy unbound request in a fresh host\",\"status\":\"passed\",\"title\":\"does not revive live fields for a legacy unbound request in a fresh host\",\"duration\":6.567824000000002,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-27: question reload precise binding\"],\"fullName\":\"verify-27: question reload precise binding after an imprecise reload, only the precise resend revives the live fields\",\"status\":\"passed\",\"title\":\"after an imprecise reload, only the precise resend revives the live fields\",\"duration\":2.019941000000017,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1792263168406,\"endTime\":1792263168426.02,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/vscode-extension/__tests__/verify-27.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/packages/vscode-extension/src/chat/question-drafts.js"
+      ],
+      "setup": false,
+      "ms": 118,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 461,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":0,\"numFailedTestSuites\":2,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":4,\"numFailedTests\":2,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1792263168826,\"success\":false,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"verify-27: question reload precise binding\"],\"fullName\":\"verify-27: question reload precise binding recovers live fields only for the exact request, session and schema\",\"status\":\"passed\",\"title\":\"recovers live fields only for the exact request, session and schema\",\"duration\":5.694849000000005,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-27: question reload precise binding\"],\"fullName\":\"verify-27: question reload precise binding does not revive live fields when the schema differs (same session and id)\",\"status\":\"passed\",\"title\":\"does not revive live fields when the schema differs (same session and id)\",\"duration\":1.8334429999999884,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-27: question reload precise binding\"],\"fullName\":\"verify-27: question reload precise binding does not revive live fields when the request id differs\",\"status\":\"failed\",\"title\":\"does not revive live fields when the request id differs\",\"duration\":10.961148999999992,\"failureMessages\":[\"AssertionError: expected [ { key: 'answer', …(1) } ] to deeply equal []\\n    at /workspace/packages/vscode-extension/__tests__/verify-27.test.js:120:41\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-27: question reload precise binding\"],\"fullName\":\"verify-27: question reload precise binding does not revive live fields when the session differs (mismatched sessionId)\",\"status\":\"passed\",\"title\":\"does not revive live fields when the session differs (mismatched sessionId)\",\"duration\":1.7718909999999823,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-27: question reload precise binding\"],\"fullName\":\"verify-27: question reload precise binding does not revive live fields for a legacy unbound request in a fresh host\",\"status\":\"passed\",\"title\":\"does not revive live fields for a legacy unbound request in a fresh host\",\"duration\":1.9552650000000256,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-27: question reload precise binding\"],\"fullName\":\"verify-27: question reload precise binding after an imprecise reload, only the precise resend revives the live fields\",\"status\":\"failed\",\"title\":\"after an imprecise reload, only the precise resend revives the live fields\",\"duration\":3.0343330000000037,\"failureMessages\":[\"AssertionError: expected [] to deeply equal [ { key: 'answer', …(1) } ]\\n    at /workspace/packages/vscode-extension/__tests__/verify-27.test.js:161:41\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20\"],\"meta\":{},\"tags\":[]}],\"startTime\":1792263168967,\"endTime\":1792263168993.0344,\"status\":\"failed\",\"message\":\"\",\"name\":\"/workspace/packages/vscode-extension/__tests__/verify-27.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": true,
+  "detail": "Independent operator checks passed; this is not a provider or task-outcome sample."
+}

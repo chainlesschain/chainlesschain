@@ -2,6 +2,6 @@
 * -text !eol -whitespace linguist-generated
 
 # Handwritten documentation and the verifier follow normal source formatting.
-README.md text eol=lf whitespace -linguist-generated
-verify-evidence.mjs text eol=lf whitespace -linguist-generated
-.gitattributes text eol=lf whitespace -linguist-generated
+README.md text eol=lf whitespace=blank-at-eol,blank-at-eof,space-before-tab -linguist-generated
+verify-evidence.mjs text eol=lf whitespace=blank-at-eol,blank-at-eof,space-before-tab -linguist-generated
+.gitattributes text eol=lf whitespace=blank-at-eol,blank-at-eof,space-before-tab -linguist-generated

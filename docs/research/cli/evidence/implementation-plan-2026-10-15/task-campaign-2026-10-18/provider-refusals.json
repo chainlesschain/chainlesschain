@@ -1,0 +1,225 @@
+{
+  "schema": "chainlesschain.provider-refusals/v1",
+  "billingAssessed": false,
+  "accountRecoveryRequired": true,
+  "currentAffectedSampleIds": [
+    "verify-20",
+    "verify-29",
+    "verify-03",
+    "verify-12",
+    "verify-21",
+    "verify-30"
+  ],
+  "records": [
+    {
+      "sampleId": "verify-30",
+      "taskId": "verify-30",
+      "kind": "task",
+      "group": "win32-jetbrains",
+      "generationRunId": "39055189152",
+      "generationSourceCommit": "b80948213e5cd952a3785734886c9b3f02df5543",
+      "sourceSummaryDigest": "sha256:c69c88479071cda8ba2bac10e2d44f7deb641f37977cd57bebeabc0b26b2bedc",
+      "currentDeclaredRound": false,
+      "requestSequence": 1,
+      "startedAt": "2026-10-17T18:48:35.343Z",
+      "finishedAt": "2026-10-17T18:48:36.218Z",
+      "httpStatus": 403,
+      "providerCode": "AccountOverdueError",
+      "providerMessage": "The request failed because your account has an overdue balance. Request id: 021792262916087f952b6c252d6ae62c15909f77d85597ed4c220",
+      "usage": null,
+      "automaticHttpRetry": false,
+      "receipt": {
+        "path": "provider-refusal-receipts/39055189152/verify-30/broker/request-1.receipt.json.gz",
+        "originalDigest": "sha256:141c862f691ad4d6b8065b26606589d3cc94ad4095196a5f60ce86e5e1cd8990",
+        "storedDigest": "sha256:f6aa6e2ac83c2a219835c3e32739bc92e560fe8ec419587805748f6f9f8dcb53",
+        "originalBytes": 1080
+      },
+      "response": {
+        "path": "provider-refusal-receipts/39055189152/verify-30/broker/response-1.sse.gz",
+        "originalDigest": "sha256:95acc5d59b85a1a8dfc15645e6e3e5145a620a42fcd6d0bcceea7d16b9790ceb",
+        "storedDigest": "sha256:6e4e0f738be653253f51e660cc5488f497479f389c35a3a1cfbc6beb95d171dc",
+        "originalBytes": 212
+      }
+    },
+    {
+      "sampleId": "verify-20",
+      "taskId": "verify-20",
+      "kind": "task",
+      "group": "win32-vscode",
+      "generationRunId": "39057579828",
+      "generationSourceCommit": "cbd532e51f53deb3c5f4470627f9ad7c86a41d3e",
+      "sourceSummaryDigest": "sha256:cf7899eb29d6b20051ce794286dd772b69a9b4d1ad092c47cb7b821b32f3bb50",
+      "currentDeclaredRound": true,
+      "requestSequence": 1,
+      "startedAt": "2026-10-17T18:47:05.535Z",
+      "finishedAt": "2026-10-17T18:47:06.536Z",
+      "httpStatus": 403,
+      "providerCode": "AccountOverdueError",
+      "providerMessage": "The request failed because your account has an overdue balance. Request id: 02179226282638891b94d62e219899eaebadcce7b395a2310b394",
+      "usage": null,
+      "automaticHttpRetry": false,
+      "receipt": {
+        "path": "provider-refusal-receipts/39057579828/verify-20/broker/request-1.receipt.json.gz",
+        "originalDigest": "sha256:0a62c26c3610df7fe7c508a1959e540cd77167197c23402746f31d309a8930b9",
+        "storedDigest": "sha256:555ae082597d1b34a668e82b05008534363c96f874bfa0aab70b48a91f7e9309",
+        "originalBytes": 1081
+      },
+      "response": {
+        "path": "provider-refusal-receipts/39057579828/verify-20/broker/response-1.sse.gz",
+        "originalDigest": "sha256:975aa5785b1476349d02ca6f638ade0ea4ebe69eeda2db44588bc84ee7e0cec5",
+        "storedDigest": "sha256:efd28d01bc770985ef6bc3ef5a9cd48cf5456afa63f0d17d6c2f002f37ac5122",
+        "originalBytes": 212
+      }
+    },
+    {
+      "sampleId": "verify-29",
+      "taskId": "verify-29",
+      "kind": "task",
+      "group": "win32-vscode",
+      "generationRunId": "39057579828",
+      "generationSourceCommit": "cbd532e51f53deb3c5f4470627f9ad7c86a41d3e",
+      "sourceSummaryDigest": "sha256:cf7899eb29d6b20051ce794286dd772b69a9b4d1ad092c47cb7b821b32f3bb50",
+      "currentDeclaredRound": true,
+      "requestSequence": 1,
+      "startedAt": "2026-10-17T18:50:50.402Z",
+      "finishedAt": "2026-10-17T18:50:51.413Z",
+      "httpStatus": 403,
+      "providerCode": "AccountOverdueError",
+      "providerMessage": "The request failed because your account has an overdue balance. Request id: 0217922630512681b81258b1b281b13270be5f965ba9eb0732f2a",
+      "usage": null,
+      "automaticHttpRetry": false,
+      "receipt": {
+        "path": "provider-refusal-receipts/39057579828/verify-29/broker/request-1.receipt.json.gz",
+        "originalDigest": "sha256:7d85de123cb9fdab1ea918da7d2e21bd54274135018c7effe7f53a86ed93dd84",
+        "storedDigest": "sha256:37a390f830b8ff02cfc9834a74e33653925766da354c6e54c735daeb089ebe21",
+        "originalBytes": 1081
+      },
+      "response": {
+        "path": "provider-refusal-receipts/39057579828/verify-29/broker/response-1.sse.gz",
+        "originalDigest": "sha256:36a1fe9291099142e18186012782145c1c04640c73e6667c4b98fb6dcfd48d8d",
+        "storedDigest": "sha256:be0cdbc3652a29cf8c75572168ac590b49dadac9d253d6aac8e279cfd256b981",
+        "originalBytes": 212
+      }
+    },
+    {
+      "sampleId": "verify-03",
+      "taskId": "verify-03",
+      "kind": "task",
+      "group": "win32-jetbrains",
+      "generationRunId": "39057583779",
+      "generationSourceCommit": "cbd532e51f53deb3c5f4470627f9ad7c86a41d3e",
+      "sourceSummaryDigest": "sha256:122745699550745e0b37cbd207fe7002fe11607b95d701682ef7c7115be29d97",
+      "currentDeclaredRound": true,
+      "requestSequence": 1,
+      "startedAt": "2026-10-17T18:53:09.886Z",
+      "finishedAt": "2026-10-17T18:53:11.809Z",
+      "httpStatus": 403,
+      "providerCode": "AccountOverdueError",
+      "providerMessage": "The request failed because your account has an overdue balance. Request id: 02179226319163379d2e7c3cf49a9962db0730ac2d5dd13da2fda",
+      "usage": null,
+      "automaticHttpRetry": false,
+      "receipt": {
+        "path": "provider-refusal-receipts/39057583779/verify-03/broker/request-1.receipt.json.gz",
+        "originalDigest": "sha256:c53e3274da82b8316edf9bfc41acde0b2c367ade6ff2b4d4d00475142e91947d",
+        "storedDigest": "sha256:8c5a53a1066f8b0f4213af730622e943a7b160198cfe5283a83da476b85e56fa",
+        "originalBytes": 1088
+      },
+      "response": {
+        "path": "provider-refusal-receipts/39057583779/verify-03/broker/response-1.sse.gz",
+        "originalDigest": "sha256:fb020be672d1051ca4ec7c94bb32d4ebc92431f66cdbb7d5069144794cabbca0",
+        "storedDigest": "sha256:a929bae85cf673cba41f2e6b812a9e3daa7fe61ab4f61337a0e6eac7633da235",
+        "originalBytes": 212
+      }
+    },
+    {
+      "sampleId": "verify-12",
+      "taskId": "verify-12",
+      "kind": "task",
+      "group": "win32-jetbrains",
+      "generationRunId": "39057583779",
+      "generationSourceCommit": "cbd532e51f53deb3c5f4470627f9ad7c86a41d3e",
+      "sourceSummaryDigest": "sha256:122745699550745e0b37cbd207fe7002fe11607b95d701682ef7c7115be29d97",
+      "currentDeclaredRound": true,
+      "requestSequence": 1,
+      "startedAt": "2026-10-17T18:58:52.172Z",
+      "finishedAt": "2026-10-17T18:58:53.283Z",
+      "httpStatus": 403,
+      "providerCode": "AccountOverdueError",
+      "providerMessage": "The request failed because your account has an overdue balance. Request id: 0217922635331218e176da3b05ba6e67d04a3c716a0025156b574",
+      "usage": null,
+      "automaticHttpRetry": false,
+      "receipt": {
+        "path": "provider-refusal-receipts/39057583779/verify-12/broker/request-1.receipt.json.gz",
+        "originalDigest": "sha256:ed36603d74e837d99b0888eff02bfb65fe33cfe142b271eb481e51515e19a8c2",
+        "storedDigest": "sha256:8414e20873ec0c75dacb55a191fff58ed7b3e2676f0a21bafd9b149e3f57014b",
+        "originalBytes": 1081
+      },
+      "response": {
+        "path": "provider-refusal-receipts/39057583779/verify-12/broker/response-1.sse.gz",
+        "originalDigest": "sha256:973265b1f743bbbda0ce693930a50b7c411eb9676d3605a59453066c89a1d653",
+        "storedDigest": "sha256:78d148cdf137dd5e3f1555edd890f6f4659781b64ee9e8313c0414f8d7bb066a",
+        "originalBytes": 212
+      }
+    },
+    {
+      "sampleId": "verify-21",
+      "taskId": "verify-21",
+      "kind": "task",
+      "group": "win32-jetbrains",
+      "generationRunId": "39057583779",
+      "generationSourceCommit": "cbd532e51f53deb3c5f4470627f9ad7c86a41d3e",
+      "sourceSummaryDigest": "sha256:122745699550745e0b37cbd207fe7002fe11607b95d701682ef7c7115be29d97",
+      "currentDeclaredRound": true,
+      "requestSequence": 1,
+      "startedAt": "2026-10-17T19:05:23.878Z",
+      "finishedAt": "2026-10-17T19:05:25.068Z",
+      "httpStatus": 403,
+      "providerCode": "AccountOverdueError",
+      "providerMessage": "The request failed because your account has an overdue balance. Request id: 0217922639248868da07b58b0e27c4ddc87ce60198aebfcfa6b1d",
+      "usage": null,
+      "automaticHttpRetry": false,
+      "receipt": {
+        "path": "provider-refusal-receipts/39057583779/verify-21/broker/request-1.receipt.json.gz",
+        "originalDigest": "sha256:886193c3dbbc5122d7c4c5df66c847b1e218288cdb8c7a92444bedd9172efc9c",
+        "storedDigest": "sha256:32cd5d6c680af6336d09e7c37a0d12f9419f361113ca3af359f030712d64cf17",
+        "originalBytes": 1081
+      },
+      "response": {
+        "path": "provider-refusal-receipts/39057583779/verify-21/broker/response-1.sse.gz",
+        "originalDigest": "sha256:3786ad47409b5b9df82a71d76b9b1993e6af663ee1176f88fdcda619462862d1",
+        "storedDigest": "sha256:1220e13abad2419343405fd50d47b6e5c4bb54d2319ced41b6c776757caf49be",
+        "originalBytes": 212
+      }
+    },
+    {
+      "sampleId": "verify-30",
+      "taskId": "verify-30",
+      "kind": "task",
+      "group": "win32-jetbrains",
+      "generationRunId": "39057583779",
+      "generationSourceCommit": "cbd532e51f53deb3c5f4470627f9ad7c86a41d3e",
+      "sourceSummaryDigest": "sha256:122745699550745e0b37cbd207fe7002fe11607b95d701682ef7c7115be29d97",
+      "currentDeclaredRound": true,
+      "requestSequence": 1,
+      "startedAt": "2026-10-17T19:10:48.446Z",
+      "finishedAt": "2026-10-17T19:10:49.587Z",
+      "httpStatus": 403,
+      "providerCode": "AccountOverdueError",
+      "providerMessage": "The request failed because your account has an overdue balance. Request id: 021792264249424c929fb24726b230d1858d8337483a3c0d12fd8",
+      "usage": null,
+      "automaticHttpRetry": false,
+      "receipt": {
+        "path": "provider-refusal-receipts/39057583779/verify-30/broker/request-1.receipt.json.gz",
+        "originalDigest": "sha256:6fae872afe504adc798de7b68a832ca8e533860c962444340d9c2fad3901b6bc",
+        "storedDigest": "sha256:0271646de18432235260e5445708663361becc524d45094b79c7007a3c5c0fe1",
+        "originalBytes": 1083
+      },
+      "response": {
+        "path": "provider-refusal-receipts/39057583779/verify-30/broker/response-1.sse.gz",
+        "originalDigest": "sha256:353f1f7441dc47a1b71e3261c3a152c2ccc17819123e20471874518244f5f768",
+        "storedDigest": "sha256:91357b30f96438d5b2235518dc844e7ceda6fbf9abe827ccac7ac570ae84783c",
+        "originalBytes": 212
+      }
+    }
+  ]
+}
