@@ -115,7 +115,9 @@ export async function runPublicFirstRun({ outputDir, key }) {
   const profile = path.join(dirs.home, ".chainlesschain");
   fs.mkdirSync(profile);
   const npmrc = path.join(root, "npmrc");
+  const globalNpmrc = path.join(root, "global-npmrc");
   fs.writeFileSync(npmrc, "");
+  fs.writeFileSync(globalNpmrc, "");
   const environment = {};
   for (const name of [
     "PATH",
@@ -147,7 +149,7 @@ export async function runPublicFirstRun({ outputDir, key }) {
       ? { CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS: "60000" }
       : {}),
     npm_config_userconfig: npmrc,
-    npm_config_globalconfig: npmrc,
+    npm_config_globalconfig: globalNpmrc,
     npm_config_registry: "https://registry.npmjs.org",
     npm_config_cache: dirs.cache,
   });
