@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { EventEmitter } from "node:events";
 import {
   BROKER,
   diagnosticBody,
@@ -10,6 +11,7 @@ import {
   diagnosticJsonUsage,
   parseDiagnosticJson,
   createVolcengineDiagnosticBroker,
+  requestArk,
 } from "../scripts/verify01-volcengine-diagnostic-broker.mjs";
 
 const request = () => ({
@@ -117,6 +119,146 @@ test("pre-dispatch request size rejection fails only its own task", async (t) =>
     assert.equal(result.poisoned, null);
     assert.equal(result.physicalRequestsStarted, 2);
     assert.equal(result.usageCompleteRequests, 2);
+  }
+});
+function fakeRequest() {
+  const req = new EventEmitter();
+  req.payloads = [];
+  req.end = (payload) => {
+    req.payloads.push(payload);
+    req.emit("finish");
+  };
+  req.destroy = () => {
+    req.destroyed = true;
+  };
+  return req;
+}
+test("Ark transport gates HTTP dispatch on TLS and records the failure phase", async () => {
+  const before = fakeRequest();
+  const socketBefore = new EventEmitter();
+  const preflight = requestArk(diagnosticBody(request()), "OFFLINE-KEY", {
+    requestFactory: () => before,
+    timeoutMs: 100,
+  });
+  before.emit("socket", socketBefore);
+  assert.equal(before.payloads.length, 0);
+  before.emit("error", Object.assign(new Error("DNS failed"), {
+    code: "ENOTFOUND",
+    syscall: "getaddrinfo",
+  }));
+  await assert.rejects(preflight, (error) => {
+    assert.equal(error.message, "DIAGNOSTIC_REQUEST_NOT_DISPATCHED");
+    assert.equal(error.captured.transport.dispatchStarted, false);
+    assert.equal(error.captured.transport.errorCode, "ENOTFOUND");
+    assert.equal(error.captured.transport.errorSyscall, "GETADDRINFO");
+    return true;
+  });
+  socketBefore.emit("secureConnect");
+  assert.equal(before.payloads.length, 0);
+
+  const after = fakeRequest();
+  const socketAfter = new EventEmitter();
+  const dispatched = requestArk(diagnosticBody(request()), "OFFLINE-KEY", {
+    requestFactory: () => after,
+    timeoutMs: 100,
+  });
+  after.emit("socket", socketAfter);
+  socketAfter.emit("secureConnect");
+  assert.equal(after.payloads.length, 1);
+  after.emit("error", Object.assign(new Error("reset"), { code: "ECONNRESET" }));
+  await assert.rejects(dispatched, (error) => {
+    assert.equal(error.message, "DIAGNOSTIC_REQUEST_ERROR_USAGE_UNKNOWN");
+    assert.equal(error.captured.transport.dispatchStarted, true);
+    assert.equal(error.captured.transport.errorCode, "ECONNRESET");
+    return true;
+  });
+
+  const timed = fakeRequest();
+  const lateSocket = new EventEmitter();
+  const timeout = requestArk(diagnosticBody(request()), "OFFLINE-KEY", {
+    requestFactory: () => timed,
+    timeoutMs: 5,
+  });
+  timed.emit("socket", lateSocket);
+  await assert.rejects(timeout, /DIAGNOSTIC_REQUEST_NOT_DISPATCHED/u);
+  lateSocket.emit("secureConnect");
+  assert.equal(timed.payloads.length, 0);
+
+  const normal = fakeRequest();
+  const normalSocket = new EventEmitter();
+  const completed = requestArk(diagnosticBody(request()), "OFFLINE-KEY", {
+    requestFactory: () => normal,
+    timeoutMs: 100,
+  });
+  normal.emit("socket", normalSocket);
+  normalSocket.emit("secureConnect");
+  const res = new EventEmitter();
+  res.statusCode = 200;
+  normal.emit("response", res);
+  res.emit("data", jsonResponse());
+  res.emit("end");
+  const result = await completed;
+  assert.equal(result.status, 200);
+  assert.equal(result.transport.dispatchStarted, true);
+  assert.equal(result.raw.toString(), jsonResponse().toString());
+  assert.equal(normal.payloads.length, 1);
+});
+test("proven pre-HTTP network failure fails one task without retrying it", async (t) => {
+  let calls = 0;
+  const { root, broker, send } = await fixture(t, async () => {
+    calls += 1;
+    if (calls === 1)
+      throw Object.assign(new Error("DIAGNOSTIC_REQUEST_NOT_DISPATCHED"), {
+        captured: {
+          status: null,
+          raw: Buffer.alloc(0),
+          transport: { dispatchStarted: false, errorCode: "ENOTFOUND" },
+        },
+      });
+    return { status: 200, raw: response() };
+  });
+  try {
+    assert.equal((await send()).status, 403);
+    assert.equal((await send()).status, 403);
+    assert.equal(calls, 1);
+    assert.equal(
+      broker.taskStatus("verify-04").errorCode,
+      "DIAGNOSTIC_REQUEST_NOT_DISPATCHED",
+    );
+    const receipt = JSON.parse(
+      fs.readFileSync(path.join(root, "broker", "request-1.receipt.json")),
+    );
+    assert.equal(receipt.errorCode, "DIAGNOSTIC_REQUEST_NOT_DISPATCHED");
+    assert.equal(receipt.transport.dispatchStarted, false);
+    broker.beginTask("verify-22");
+    assert.equal((await send()).status, 200);
+    assert.equal(broker.taskStatus("verify-22").passed, true);
+    assert.equal(calls, 2);
+  } finally {
+    const summary = await broker.close();
+    assert.equal(summary.poisoned, null);
+    assert.equal(summary.physicalRequestsStarted, 2);
+    assert.equal(summary.usageCompleteRequests, 1);
+  }
+});
+test("claimed pre-dispatch failure after HTTP submission still poisons the broker", async (t) => {
+  const { broker, send } = await fixture(t, async () => {
+    throw Object.assign(new Error("DIAGNOSTIC_REQUEST_NOT_DISPATCHED"), {
+      captured: {
+        status: null,
+        raw: Buffer.alloc(0),
+        transport: { dispatchStarted: true, errorCode: "ECONNRESET" },
+      },
+    });
+  });
+  try {
+    assert.equal((await send()).status, 403);
+    assert.throws(() => broker.beginTask("verify-22"));
+  } finally {
+    assert.equal(
+      (await broker.close()).poisoned,
+      "DIAGNOSTIC_REQUEST_ERROR_USAGE_UNKNOWN",
+    );
   }
 });
 test("unknown usage, model, tier, partial output and reasoning cannot settle", () => {

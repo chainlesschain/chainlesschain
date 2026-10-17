@@ -311,40 +311,97 @@ export function diagnosticUsage(raw) {
   };
 }
 
-function requestArk(body, key) {
+export function requestArk(body, key, options = {}) {
   requireUnscopedModelTransport();
+  const requestFactory = options.requestFactory || https.request;
+  const timeoutMs = options.timeoutMs ?? BROKER.timeoutMs;
   return new Promise((resolve, reject) => {
     const payload = JSON.stringify(body),
       chunks = [];
     let bytes = 0,
       status = null,
-      finished = false;
-    const req = https.request(BROKER.endpoint, {
-      method: "POST",
-      agent: false,
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
-        "Content-Length": Buffer.byteLength(payload),
-      },
-    });
-    const timer = setTimeout(() => {
-      req.destroy();
-      finish("DIAGNOSTIC_TIMEOUT_USAGE_UNKNOWN");
-    }, BROKER.timeoutMs);
-    function finish(error) {
+      finished = false,
+      timer = null,
+      req = null;
+    const started = Date.now();
+    const transport = {
+      socketAssignedMs: null,
+      dnsLookupMs: null,
+      tcpConnectedMs: null,
+      tlsConnectedMs: null,
+      dispatchStartedMs: null,
+      requestFinishedMs: null,
+      responseStartedMs: null,
+      dispatchStarted: false,
+      errorCode: null,
+      errorSyscall: null,
+    };
+    const mark = (name) => {
+      transport[name] = Date.now() - started;
+    };
+    const safeDiagnostic = (value) => {
+      const normalized = typeof value === "string" ? value.toUpperCase() : "";
+      return /^[A-Z0-9_]{1,48}$/u.test(normalized) ? normalized : null;
+    };
+    function finish(error, cause) {
       if (finished) return;
       finished = true;
       clearTimeout(timer);
+      transport.errorCode = safeDiagnostic(cause?.code);
+      transport.errorSyscall = safeDiagnostic(cause?.syscall);
+      const settledError =
+        error && !transport.dispatchStarted && status === null
+          ? "DIAGNOSTIC_REQUEST_NOT_DISPATCHED"
+          : error;
       const result = {
         status,
         raw: Buffer.concat(chunks),
-        errorCode: error || null,
+        errorCode: settledError || null,
+        transport: { ...transport },
       };
-      if (error) reject(Object.assign(new Error(error), { captured: result }));
+      if (settledError)
+        reject(Object.assign(new Error(settledError), { captured: result }));
       else resolve(result);
     }
+    try {
+      req = requestFactory(BROKER.endpoint, {
+        method: "POST",
+        agent: false,
+        headers: {
+          Authorization: `Bearer ${key}`,
+          "Content-Type": "application/json",
+          "Content-Length": Buffer.byteLength(payload),
+        },
+      });
+    } catch (error) {
+      finish("DIAGNOSTIC_REQUEST_ERROR_USAGE_UNKNOWN", error);
+      return;
+    }
+    timer = setTimeout(() => {
+      finish("DIAGNOSTIC_TIMEOUT_USAGE_UNKNOWN");
+      req.destroy();
+    }, timeoutMs);
+    // No HTTP bytes are submitted to ClientRequest until TLS is ready. A
+    // failure before this gate is provably local; after it, usage is unknown.
+    req.on("socket", (socket) => {
+      mark("socketAssignedMs");
+      socket.once("lookup", () => mark("dnsLookupMs"));
+      socket.once("connect", () => mark("tcpConnectedMs"));
+      socket.once("secureConnect", () => {
+        mark("tlsConnectedMs");
+        if (finished) return;
+        transport.dispatchStarted = true;
+        mark("dispatchStartedMs");
+        try {
+          req.end(payload);
+        } catch (error) {
+          finish("DIAGNOSTIC_REQUEST_ERROR_USAGE_UNKNOWN", error);
+        }
+      });
+    });
+    req.on("finish", () => mark("requestFinishedMs"));
     req.on("response", (res) => {
+      mark("responseStartedMs");
       status = res.statusCode;
       res.on("data", (chunk) => {
         bytes += chunk.length;
@@ -362,8 +419,9 @@ function requestArk(body, key) {
         finish("DIAGNOSTIC_RESPONSE_ABORTED_USAGE_UNKNOWN"),
       );
     });
-    req.on("error", () => finish("DIAGNOSTIC_REQUEST_ERROR_USAGE_UNKNOWN"));
-    req.end(payload);
+    req.on("error", (error) =>
+      finish("DIAGNOSTIC_REQUEST_ERROR_USAGE_UNKNOWN", error),
+    );
   });
 }
 
@@ -425,10 +483,13 @@ export async function createVolcengineDiagnosticBroker(options) {
     if (
       pending ||
       poisoned ||
+      active?.errorCode ||
       !active ||
       active.requests >= BROKER.maximumRequestsPerTask
     ) {
-      rejectLocal(poisoned || "DIAGNOSTIC_REQUEST_ALLOWANCE_EXHAUSTED");
+      rejectLocal(
+        poisoned || active?.errorCode || "DIAGNOSTIC_REQUEST_ALLOWANCE_EXHAUSTED",
+      );
       return;
     }
     pending = true;
@@ -477,19 +538,31 @@ export async function createVolcengineDiagnosticBroker(options) {
     } catch (error) {
       // An oversized request is rejected before dispatch. It invalidates this
       // task, but no provider usage or response is left unknown for the next.
+      captured ||= error.captured || null;
       if (error.message === "DIAGNOSTIC_REQUEST_BYTES_LIMIT" && !row) {
         active.errorCode = error.message;
+      } else if (
+        error.message === "DIAGNOSTIC_REQUEST_NOT_DISPATCHED" &&
+        row &&
+        captured?.transport?.dispatchStarted === false &&
+        captured.status === null &&
+        captured.raw.length === 0
+      ) {
+        active.errorCode = error.message;
       } else {
-        poisoned = error.message.startsWith("DIAGNOSTIC_")
-          ? error.message
-          : "DIAGNOSTIC_INVALID_RESPONSE_USAGE_UNKNOWN";
+        poisoned =
+          error.message === "DIAGNOSTIC_REQUEST_NOT_DISPATCHED"
+            ? "DIAGNOSTIC_REQUEST_ERROR_USAGE_UNKNOWN"
+            : error.message.startsWith("DIAGNOSTIC_")
+              ? error.message
+              : "DIAGNOSTIC_INVALID_RESPONSE_USAGE_UNKNOWN";
       }
-      captured ||= error.captured || null;
-      if (row) row.errorCode = poisoned;
+      if (row) row.errorCode = poisoned || active.errorCode;
     } finally {
       try {
         if (row) {
           row.finishedAt = new Date().toISOString();
+          if (captured?.transport) row.transport = captured.transport;
           if (captured) {
             const stored = save(
               `response-${row.id}.${row.responseMode}`,
