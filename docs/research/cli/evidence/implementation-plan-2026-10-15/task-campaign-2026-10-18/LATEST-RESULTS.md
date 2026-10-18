@@ -77,7 +77,7 @@ CLI **0.166.105**、VS Code **0.37.150** 与 JetBrains **0.4.167** 均已正式�
 
 ## 已保存的补测工具
 
-新版派发凭据、完整 run 映射及原子 intent 日志见 [派发收据](./next-release-validation/native-105-dispatch-receipt.json)。独立归档恢复 run [`39107288123`](https://github.com/chainlesschain/chainlesschain/actions/runs/39107288123) 已派发，复用原回复且不调用模型，等待真实 IDE 结果。
+新版派发凭据、完整 run 映射及原子 intent 日志见 [派发收据](./next-release-validation/native-105-dispatch-receipt.json)。原独立归档恢复 run [`39107288123`](https://github.com/chainlesschain/chainlesschain/actions/runs/39107288123) 在 Linux canonical 持久化回归失败，尚未启动真实 IDE；6 项单元检查通过、1 项失败，模型请求为 0。WSL 复现定位到评测环境把 `HOME` 与 `CHAINLESSCHAIN_HOME` 设为同一路径，正确触发产品的 `CONFIG_HOME_UNSAFE` 保护。现已分离评测 HOME，并补充断言和安全阶段诊断；两个受影响用例在 WSL Linux、Node 22.22.2 均通过。原失败和产品保护均保留，正式 Node 22.12 检查及公开插件的真实恢复仍待验证。
 
 派发、证据收集和累计交付包工具已迁入 `packages/cli/scripts/`，不再依赖 `.work` 内的未跟踪脚本。派发 14 项、交付包 8 项、收集 8 项离线检查全部通过；此次工具验证未调用模型、未派发真实任务、未执行候选。七个 Python 文件语法检查及三个入口的 `--help` 检查通过。
 
@@ -95,3 +95,7 @@ python -X utf8 packages/cli/scripts/verify01-package-native-deliveries.py --roun
 派发默认仅预览；`--submit` 才发送请求，`--resolve` 只读解析已有请求。所有关联工作树共用 Git common directory 对应的 `.work/next-package-dispatch/` 日志；未解析 intent 必须保留，不得删除或盲目重发。派发至所有 run 绑定完成期间应保持评测分支 HEAD 不变。GitHub 凭据只通过进程环境 `GH_TOKEN` 传入，不放入参数或文件。
 
 收集器和归档读取器只读取已有任务；严格完整验收后才能把轮次及摘要显式加入 `next-package-round-chain.json`。交付包工具默认预览，确认链尾轮次后添加 `--pack` 才在共享 `.work/accepted-round-exports/` 创建独立包；原 25 项产物和收据按字节复用，原包不覆盖。原子创建交付目录目前限 Windows。以上工具及记录属于评测分支，发行源码仍固定 `d4065008bb`。
+
+## 持续修复与发布要求
+
+用户明确要求继续修复不合格项，重新发布 CLI 和 IDE 插件，直到普通 **36** 项与首次 **9** 项均合格。每轮根据实际失败修复产品，经精确提交的正式门禁、发布与公开包核验后，再补测未合格项；已合格的文件和收据直接复用。每次记录失败原因、修复、版本和验收结论。候选文件通过与原生全流程通过分别保留，宿主、终态及恢复失败继续跟踪，历史失败不能被改写或用局部检查通过替代。

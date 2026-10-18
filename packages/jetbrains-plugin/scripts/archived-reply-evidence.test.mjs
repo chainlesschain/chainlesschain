@@ -179,8 +179,11 @@ function prepare(t) {
   return { root, output, canonical, env };
 }
 
-test("fixture child environment excludes provider secrets and preloads", (t) => {
+test("fixture child environment separates OS home from data and excludes secrets and preloads", (t) => {
   const { env } = prepare(t);
+  // Product storage must never chmod the OS home itself. On Linux, os.homedir()
+  // follows HOME, so sharing it with CHAINLESSCHAIN_HOME is unsafe.
+  assert.notEqual(env.HOME, env.CHAINLESSCHAIN_HOME);
   for (const key of ["OPENAI_API_KEY", "VOLCENGINE_API_KEY", "NODE_OPTIONS"])
     assert.equal(env[key], undefined);
 });

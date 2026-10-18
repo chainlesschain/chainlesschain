@@ -68,7 +68,7 @@ export function replyEnvironment(
   return {
     ...env,
     PATH: bin + path.delimiter + (env.PATH || ""),
-    HOME: path.join(root, "home"),
+    HOME: root,
     CHAINLESSCHAIN_HOME: path.join(root, "home"),
     CHAINLESSCHAIN_SECURITY_ANCHOR_HOME: path.join(root, "security"),
     TEMP: root,

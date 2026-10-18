@@ -32,6 +32,7 @@ async function done(code = 0) {
   await new Promise((resolve) => process.stdout.write("", resolve));
   process.exit(code);
 }
+let stage = "validate-fixture";
 try {
   const file = process.env.CC_ARCHIVED_REPLY_MANIFEST;
   assert.ok(
@@ -68,10 +69,12 @@ try {
         (argv.includes("--history") || argv.includes("--input-receipt"))),
     "only archived reply or read-only canonical history is allowed",
   );
+  stage = "load-canonical-store";
   const canonical = await canonicalTranscriptPeer(
     process.env.CC_UI_CANONICAL_ROOT,
     trace,
   );
+  stage = "canonical-history";
   if (await canonical.command(argv)) await done(process.exitCode || 0);
   trace({ command: "archived-agent-start" });
   // A second launch is an error even if the GUI tries to restore automatically.
@@ -83,6 +86,7 @@ try {
   const index = argv.indexOf("--resume");
   const sessionId = index >= 0 ? argv[index + 1] : `archived-${randomUUID()}`;
   assert.ok(sessionId);
+  stage = "start-canonical-session";
   const prior = canonical.start(sessionId);
   assert.equal(prior.messages, 0);
   emit({
@@ -102,6 +106,7 @@ try {
     process.exit(1);
   }, 60000);
   const input = readline.createInterface({ input: process.stdin });
+  stage = "read-fixed-input";
   for await (const line of input) {
     assert.ok(Buffer.byteLength(line) <= 16384);
     const event = JSON.parse(line);
@@ -111,12 +116,14 @@ try {
       !event.images?.length,
       "no attachments or new task input permitted",
     );
+    stage = "persist-fixed-input";
     const accepted = canonical.accept(sessionId, event, emit);
     assert.equal(accepted.duplicate, false);
     emit({
       type: "stream_event",
       event: { delta: { type: "text_delta", text: fixture.source } },
     });
+    stage = "persist-fixed-reply";
     const refs = canonical.finish(sessionId, fixture.source, accepted);
     emit({
       type: "result",
@@ -141,9 +148,10 @@ try {
   trace({
     command: "archived-peer-rejected",
     reason: error.code || "INVALID_REPLAY",
+    stage,
   });
   process.stderr.write(
-    "Archived reply fixture rejected the invocation or input.\n",
+    `Archived reply fixture rejected the invocation or input at ${stage} (${error.code || error.name || "Error"}).\n`,
   );
   await done(1);
 }

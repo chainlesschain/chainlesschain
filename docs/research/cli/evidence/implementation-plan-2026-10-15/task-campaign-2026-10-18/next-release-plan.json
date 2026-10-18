@@ -6,7 +6,8 @@
     "不合格的需要代码优化 下一个版本进行补测",
     "需要发布新的cli或ide插件的下一个版本再测试",
     "记得把结论记录起来",
-    "可以先发布后合并"
+    "可以先发布后合并",
+    "不合格的要继续修复 重新发布cli和ide插件直到全部任务合格"
   ],
   "releaseAuthorized": true,
   "billingAssessed": false,
@@ -498,7 +499,7 @@
     "jobLimitMinutes": 145,
     "alwaysUploadStepLimitMinutes": 15,
     "acceptedReplyRecovery": {
-      "status": "DISPATCHED_AWAITING_RESULT",
+      "status": "HARNESS_HOME_FIXED_AWAITING_OFFICIAL_NO_MODEL_REPLAY",
       "modelRequestsAllowed": false,
       "sampleId": "verify-33",
       "pluginVersionRequired": "0.4.167",
@@ -512,7 +513,80 @@
       "nodeLinuxOnlySkipped": 1,
       "jdk21UiCompilationPassed": true,
       "runId": "39107288123",
-      "executionSourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138"
+      "executionSourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138",
+      "originalAttempt": {
+        "runId": "39107288123",
+        "executionSourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138",
+        "metadata": {
+          "path": "next-release-validation/archived-reply-105-first-attempt-failure.json.gz",
+          "digest": "sha256:12c696c841aa69d40e68d6ef5e22c805d29777bf3b6ff1e13da7775fa4411037",
+          "bytes": 3423,
+          "originalDigest": "sha256:3b7433801fd6f8d67e1730cd74f7ffc3edfd98a78eb372420ed3007108510c64",
+          "originalBytes": 26603
+        },
+        "failedStepLog": {
+          "path": "next-release-validation/archived-reply-105-first-attempt-failed-step.log.gz",
+          "digest": "sha256:1f6d370dc103995ec6ec21fae7a1dbdd2986bcbd7d4ab74cc2858bb2ac65d8d6",
+          "bytes": 1741,
+          "originalDigest": "sha256:1405b9f07aa1ad0484ef2daa3ed752c1669808f2131039bf9a142f45c177c84c",
+          "originalBytes": 11307
+        },
+        "failedStep": "Verify local replay and canonical persistence regressions",
+        "failedTest": "one deterministic reply persists exact bytes and the real history command reads them",
+        "passedUnitCases": 6,
+        "failedUnitCases": 1,
+        "realIdeReplayStarted": false,
+        "modelRequests": 0
+      },
+      "identifiedHarnessCause": "Linux fixture HOME equals CHAINLESSCHAIN_HOME; canonical storage correctly rejects using os.homedir itself with CONFIG_HOME_UNSAFE. WSL reproduction confirms failure at start-canonical-session. Product protection stays enabled.",
+      "implementedHarnessFix": "Separate the fixture HOME from its unchanged root/home canonical data and root/security directories; verify affected environment and canonical persistence regressions before retrying the no-model replay.",
+      "homeIsolationSupplementaryValidation": {
+        "status": "PASSED_AFFECTED_FIXTURE_TESTS_ONLY",
+        "platform": "WSL Ubuntu",
+        "nodeVersion": "22.22.2",
+        "affectedCasesPassed": 2,
+        "modelRequests": 0,
+        "ideStarted": false,
+        "officialNode22120CheckPending": true,
+        "publicPluginRecoveryVerified": false,
+        "evidence": {
+          "archived-reply-home-isolation-before.json": {
+            "path": "next-release-validation/archived-reply-home-isolation-before.json.gz",
+            "digest": "sha256:1abdc2555f91c267edec70450783d752880a6da032cf167da57297d3c2857c40",
+            "bytes": 785,
+            "originalDigest": "sha256:fbc74c6b95263d69444cee82e31f1a045bf697a67a60de706d56a8de4fa62678",
+            "originalBytes": 1282
+          },
+          "archived-reply-home-isolation-after.json": {
+            "path": "next-release-validation/archived-reply-home-isolation-after.json.gz",
+            "digest": "sha256:c4b6d330f9a0be5ee822961db2b727767463e8e816e02b859da5462248f6d6a5",
+            "bytes": 1030,
+            "originalDigest": "sha256:b148a2ca0e1c6ff4e8295e6cd3261965eaf7eb5854ed7ed35f9f39e912f60234",
+            "originalBytes": 1881
+          },
+          "archived-reply-home-isolation-env-after.log": {
+            "path": "next-release-validation/archived-reply-home-isolation-env-after.log.gz",
+            "digest": "sha256:55d4f4037d10b788c99a61be638ae5a6c451b214692638a0694ccb8188a17982",
+            "bytes": 287,
+            "originalDigest": "sha256:a9492ccf7f593bb19d01013091d753fcc04e29e3ea276f240c0f587774ef20df",
+            "originalBytes": 758
+          },
+          "archived-reply-home-isolation-canonical-after.log": {
+            "path": "next-release-validation/archived-reply-home-isolation-canonical-after.log.gz",
+            "digest": "sha256:81569b427ff852ccca893e04b3a7fffe38f861ab9f5f664076a485d9cf726269",
+            "bytes": 290,
+            "originalDigest": "sha256:6531b7ef728bb6062d593a167b2f6332aab51cead1b3c7e1add164a80f92500e",
+            "originalBytes": 750
+          },
+          "archived-reply-home-isolation-launch-error.log": {
+            "path": "next-release-validation/archived-reply-home-isolation-launch-error.log.gz",
+            "digest": "sha256:ca8a9918c1a02d8ffdc8f6c8ba85ce0a5403a195793aec9ea32d2ea925292fe5",
+            "bytes": 340,
+            "originalDigest": "sha256:d30070c0979ec0ce4e1539d5a5b85f6edc4e46c3155a79d5b9b8cdbcab19c6ac",
+            "originalBytes": 794
+          }
+        }
+      }
     },
     "dispatcher": "packages/cli/scripts/verify01-dispatch-native-retest.py",
     "preparedPlan": {
@@ -810,6 +884,13 @@
         "path": "next-release-validation/release-pr461-merged.json.gz",
         "digest": "sha256:ce039b8d99929aa7b9c15f67623f22392dc17a57e87bb673df1eaa26b883c67f",
         "bytes": 6122
+      },
+      "postMergeDuplicateCheckCleanup": {
+        "path": "next-release-validation/documentation-prtests-postmerge-cleanup.json.gz",
+        "digest": "sha256:de9a5cd156fe5510cbc1cfa1a5c38e5633df202aa73a63c5180af1e801c3a785",
+        "bytes": 2128,
+        "originalDigest": "sha256:01082758f9155cba1fb5857588e178ba2a39f684a10fc21a630576f861ae501c",
+        "originalBytes": 16266
       }
     },
     "allPackagePublicReadback": {
@@ -879,5 +960,44 @@
     "modelRequests": 0,
     "usage": "LATEST-RESULTS.md#已保存的补测工具",
     "publishedArtifactSourceUnchanged": "d4065008bb4eff84cfc09f9361f4ae4e9de2140f"
+  },
+  "continuousQualityIteration": {
+    "authorized": true,
+    "targetOrdinaryTasks": 36,
+    "targetFirstRunTasks": 9,
+    "continueUntilAllTasksQualified": true,
+    "newPublishedProductVersionBeforeUnqualifiedRetest": true,
+    "reuseAcceptedFilesAndReceiptsWithoutModelRegeneration": true,
+    "preserveOriginalFailuresAndNativeVerdicts": true,
+    "acceptanceMustNotBeWeakened": true,
+    "recordFixesVersionsPublicProofAndRetestResults": true,
+    "waitForDispatchedRoundBeforeSelectingFurtherModelRuns": true,
+    "releaseGate": "GitHub Actions exact-commit full required OS matrices; npm via OIDC, CLI public before IDE publication."
+  },
+  "nativeRetestQueueObservation": {
+    "evidence": {
+      "path": "next-release-validation/native-105-queue-observation-20261018T074003Z.json.gz",
+      "digest": "sha256:cda47c122f0d4bf520f8dbd18102543f765963a2fd266995937450d505bc551b",
+      "bytes": 363,
+      "originalDigest": "sha256:8959658b197a880e37d0ecc8a925749cd48d5520c15687225d0ed03df84d408a",
+      "originalBytes": 2731
+    },
+    "status": "WAITING_FOR_UBUNTU_24_04_RUNNERS",
+    "noWorkflowConcurrencyConflictFound": true,
+    "existingRunsPreserved": true,
+    "scope": "Run-level queued does not imply validation never ran. Some validate jobs have passed; generation jobs wait for runner assignment. No account-quota cause is inferred.",
+    "firstGenerationStarted": {
+      "group": "darwin-cli",
+      "runId": "39107035717",
+      "jobId": "117618846330",
+      "runnerAssigned": true,
+      "startedAt": "2026-10-18T07:40:49Z",
+      "evidence": {
+        "path": "next-release-validation/native-105-first-generation-started-20261018T074140Z.json.gz",
+        "digest": "sha256:11cda4c3ec6d15cf79005a80db9f63dde7c3ade7d174fe21ececc4b3a86cd0c9",
+        "bytes": 663
+      },
+      "scope": "Job start is not a model request receipt or candidate acceptance."
+    }
   }
 }
