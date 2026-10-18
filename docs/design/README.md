@@ -1,6 +1,8 @@
 # 设计文档
 
-- 当前核对：[CLI .104 / Open VSX .149 / JetBrains .166、会话预算恢复](./release-runtime-update-2026-10-17.md)。
+- 当前核对：[CLI .106 / Open VSX .151 / JetBrains .167、目标草稿互通与存储边界](./release-runtime-update-2026-10-18.md)。
+
+- 10 月 17 日历史核对：[CLI .104 / Open VSX .149 / JetBrains .166、会话预算恢复](./release-runtime-update-2026-10-17.md)。
 
 - 10 月 16 日历史核对：[CLI .103 / Open VSX .148 / JetBrains .165、预算边界与草稿容量](./release-runtime-update-2026-10-16.md)。
 
