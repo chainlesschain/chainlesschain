@@ -1,0 +1,91 @@
+{
+  "schema": "chainlesschain.native-retest-dispatch-receipt/v1",
+  "observedAt": "2026-10-18T07:21:44.660584+00:00",
+  "status": "DISPATCHED_AWAITING_RESULTS",
+  "sourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138",
+  "planPath": "next-package-105-20261018-plan.json",
+  "planDigest": "sha256:2296d637b34f63aff931b5e580da5023df5a47a7e7db3f0f2b314311a3e5579f",
+  "packageSetDigest": "sha256:2cc81784724fcdc8813434fa8798cce28def3569ff97b07369bb6e16fe6af32f",
+  "versions": {
+    "cli": "0.166.105",
+    "vscode": "0.37.150",
+    "jetbrains": "0.4.167",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "plannedNewSamples": 20,
+  "reusedAcceptedSampleIds": [
+    "first-run-win32-cli",
+    "first-run-win32-vscode",
+    "verify-01",
+    "verify-02",
+    "verify-03",
+    "verify-05",
+    "verify-15",
+    "verify-16",
+    "verify-17",
+    "verify-18",
+    "verify-20",
+    "verify-21",
+    "verify-22",
+    "verify-23",
+    "verify-24",
+    "verify-25",
+    "verify-26",
+    "verify-27",
+    "verify-28",
+    "verify-29",
+    "verify-31",
+    "verify-33",
+    "verify-34",
+    "verify-35",
+    "verify-36"
+  ],
+  "nativeDispatchesResolved": 13,
+  "runs": {
+    "path": "next-release-validation/native-105-dispatch-runs.json",
+    "digest": "sha256:d5043ac054ca3508adc5c9a404d180dbd566abc2d5e9a3fa54e6d558064b0c47",
+    "bytes": 2241
+  },
+  "journalArchive": {
+    "path": "next-release-validation/native-105-dispatch-journal.tar.gz",
+    "digest": "sha256:736591322b6ac7d9b4d16ee08ec600966cb1b021850b1be75b407ff2a35aa0d2",
+    "bytes": 3139
+  },
+  "archivedReplyRecovery": {
+    "workflowId": 388186019,
+    "runId": "39107288123",
+    "sourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138",
+    "runUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/39107288123",
+    "packageSetPath": "docs/research/cli/verify01-package-sets/2026-10-18-task-quality-105.json",
+    "modelRequestsAllowed": false
+  },
+  "firstCollection": {
+    "status": "IN_PROGRESS",
+    "counts": {
+      "generationRecordsCollected": 0,
+      "acceptanceRecordsCollected": 0,
+      "candidateAcceptancePassed": 0,
+      "endToEndPassed": 0,
+      "reusedAcceptedDeliverables": 25,
+      "cumulativeAcceptedDeliverables": 25
+    },
+    "runStates": {
+      "39106967536": "queued",
+      "39106991066": "queued",
+      "39107016136": "queued",
+      "39107035717": "queued",
+      "39107065069": "queued",
+      "39107091580": "queued",
+      "39107110039": "queued",
+      "39107134691": "queued",
+      "39107156493": "queued",
+      "39107179320": "queued",
+      "39107198745": "queued",
+      "39107223845": "queued",
+      "39107247624": "queued"
+    }
+  },
+  "billingAssessed": false,
+  "scope": "Dispatch and queued run identity are verified. No new task acceptance is established; all original verdicts remain unchanged."
+}

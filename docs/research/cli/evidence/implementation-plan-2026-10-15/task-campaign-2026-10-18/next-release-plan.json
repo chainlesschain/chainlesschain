@@ -1,7 +1,7 @@
 {
   "schema": "chainlesschain.next-release-task-optimization/v1",
   "recordedDate": "2026-10-18",
-  "status": "PUBLIC_PACKAGES_VERIFIED_RETEST_PREPARED",
+  "status": "NEXT_VERSION_RETEST_DISPATCHED_AWAITING_RESULTS",
   "userDecisions": [
     "不合格的需要代码优化 下一个版本进行补测",
     "需要发布新的cli或ide插件的下一个版本再测试",
@@ -327,7 +327,99 @@
       "modelTaskRetestPerformed": false
     }
   ],
-  "nextVersionRetestRuns": [],
+  "nextVersionRetestRuns": [
+    {
+      "shardId": "linux-cli",
+      "group": "linux-cli",
+      "runId": "39106967536",
+      "sourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39106967536"
+    },
+    {
+      "shardId": "linux-jetbrains--verify-06",
+      "group": "linux-jetbrains",
+      "runId": "39106991066",
+      "sourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39106991066"
+    },
+    {
+      "shardId": "linux-jetbrains--first-run-linux-jetbrains",
+      "group": "linux-jetbrains",
+      "runId": "39107016136",
+      "sourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39107016136"
+    },
+    {
+      "shardId": "darwin-cli",
+      "group": "darwin-cli",
+      "runId": "39107035717",
+      "sourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39107035717"
+    },
+    {
+      "shardId": "darwin-vscode",
+      "group": "darwin-vscode",
+      "runId": "39107065069",
+      "sourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39107065069"
+    },
+    {
+      "shardId": "darwin-jetbrains--verify-09",
+      "group": "darwin-jetbrains",
+      "runId": "39107091580",
+      "sourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39107091580"
+    },
+    {
+      "shardId": "darwin-jetbrains--first-run-darwin-jetbrains",
+      "group": "darwin-jetbrains",
+      "runId": "39107110039",
+      "sourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39107110039"
+    },
+    {
+      "shardId": "win32-cli",
+      "group": "win32-cli",
+      "runId": "39107134691",
+      "sourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39107134691"
+    },
+    {
+      "shardId": "win32-vscode",
+      "group": "win32-vscode",
+      "runId": "39107156493",
+      "sourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39107156493"
+    },
+    {
+      "shardId": "win32-jetbrains--verify-12",
+      "group": "win32-jetbrains",
+      "runId": "39107179320",
+      "sourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39107179320"
+    },
+    {
+      "shardId": "win32-jetbrains--verify-30",
+      "group": "win32-jetbrains",
+      "runId": "39107198745",
+      "sourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39107198745"
+    },
+    {
+      "shardId": "win32-jetbrains--first-run-win32-jetbrains",
+      "group": "win32-jetbrains",
+      "runId": "39107223845",
+      "sourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39107223845"
+    },
+    {
+      "shardId": "linux-vscode",
+      "group": "linux-vscode",
+      "runId": "39107247624",
+      "sourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39107247624"
+    }
+  ],
   "candidateVersions": {
     "cli": "0.166.105",
     "vscode": "0.37.150",
@@ -394,7 +486,7 @@
     "roundVerifier": "packages/cli/scripts/verify01-native-retest-round.mjs",
     "roundVerifierTestsPassed": 8,
     "collector": "packages/cli/scripts/verify01-collect-native-retest.py",
-    "collectorStatus": "IMPLEMENTED_NOT_YET_EXERCISED_ON_NEW_REAL_RUNS",
+    "collectorStatus": "EXERCISED_ON_REAL_QUEUED_RUNS_NO_RESULTS_YET",
     "originalRoundComplete": true,
     "originalStrictCompleteVerificationPassed": true,
     "expectedUnfinishedSamples": 20,
@@ -406,7 +498,7 @@
     "jobLimitMinutes": 145,
     "alwaysUploadStepLimitMinutes": 15,
     "acceptedReplyRecovery": {
-      "status": "PREPARED_NOT_EXECUTED",
+      "status": "DISPATCHED_AWAITING_RESULT",
       "modelRequestsAllowed": false,
       "sampleId": "verify-33",
       "pluginVersionRequired": "0.4.167",
@@ -418,7 +510,9 @@
       "workflowSchemaFixCommit": "bc9f645880",
       "workflowActionlintPassed": true,
       "nodeLinuxOnlySkipped": 1,
-      "jdk21UiCompilationPassed": true
+      "jdk21UiCompilationPassed": true,
+      "runId": "39107288123",
+      "executionSourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138"
     },
     "dispatcher": "packages/cli/scripts/verify01-dispatch-native-retest.py",
     "preparedPlan": {
@@ -427,7 +521,13 @@
       "status": "PREPARED_NOT_DISPATCHED",
       "newSamples": 20,
       "reusedAcceptedSamples": 25,
-      "executionShards": 13
+      "executionShards": 13,
+      "dispatchStatus": "DISPATCHED"
+    },
+    "dispatchReceipt": {
+      "path": "next-release-validation/native-105-dispatch-receipt.json",
+      "digest": "sha256:04926589c0cd8c8dd7b51b7dfd187ddfb0c11429ecfe56fd583a61cce2bbe5bc",
+      "bytes": 2847
     }
   },
   "nativeHarnessFollowup": {
@@ -701,9 +801,16 @@
       "normalAutoMergeRequested": true,
       "autoMergeEnabledAt": "2026-10-18T07:02:04Z",
       "mergeMethod": "MERGE",
-      "mergeStillPendingRequiredChecks": true,
+      "mergeStillPendingRequiredChecks": false,
       "mergeRequiresJetBrainsListing": false,
-      "reason": "All release workflows succeeded; market listing remains an external availability gate for native retesting. User authorized publication before merge. Normal branch protection remains enforced and the verified release tags do not move."
+      "reason": "Normal auto-merge completed after all six protected contexts passed. User authorized publication before merge. All verified release tags remain on d4065008bb.",
+      "mergedAt": "2026-10-18T07:11:03Z",
+      "mergeCommit": "ea49733d5d3ac76de17552f83faf2f8a764b6b7e",
+      "mergedReadback": {
+        "path": "next-release-validation/release-pr461-merged.json.gz",
+        "digest": "sha256:ce039b8d99929aa7b9c15f67623f22392dc17a57e87bb673df1eaa26b883c67f",
+        "bytes": 6122
+      }
     },
     "allPackagePublicReadback": {
       "status": "VERIFIED_PUBLIC_ARTIFACTS",
@@ -770,7 +877,7 @@
     },
     "offlineChecksPassed": 30,
     "modelRequests": 0,
-    "usage": "LATEST-RESULTS.md#????????",
+    "usage": "LATEST-RESULTS.md#已保存的补测工具",
     "publishedArtifactSourceUnchanged": "d4065008bb4eff84cfc09f9361f4ae4e9de2140f"
   }
 }

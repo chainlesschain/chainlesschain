@@ -67,7 +67,7 @@ Astra 对最新 Linux VS Code 五项的 [源码与收据专项复核](./latest-l
 
 已按用户要求将结论、代码修复与发布安排写入 [下一版记录](./next-release-plan.json)，JetBrains 修复来源见 [发布准备复核](./next-release-jetbrains-readiness.json)。
 
-CLI **0.166.105**?VS Code **0.37.150** ? JetBrains **0.4.167** ?????????????????JetBrains ????????????????? ID ? `1197193`??????????? CLI ????????????????? `d4065008bb`?????? CLI?Strict?IDE ? ARM64 ??????? PR [#461](https://github.com/chainlesschain/chainlesschain/pull/461) ???????????????? [??????](./next-package-105-20261018-plan.json)?????? **20** ???? **13** ??? run??????? **25** ????????????????????????????????????????
+CLI **0.166.105**、VS Code **0.37.150** 与 JetBrains **0.4.167** 均已正式发布并完成公开安装包回读。JetBrains 新版已批准、上架且可公开下载，更新 ID 为 `1197193`；三个包的版本、摘要和 CLI 推荐关系已核验。三个发行标签仍固定 `d4065008bb`，该提交完整 CLI、Strict、IDE 与 ARM64 门禁全过。产品发布 PR [#461](https://github.com/chainlesschain/chainlesschain/pull/461) 已经六项保护检查正常合并，后续文档及合并提交不改变发行标签。[新版补测计划](./next-package-105-20261018-plan.json) 仅生成剩余 **20** 项，全部 **13** 个 run 已完成防重复派发与唯一绑定，固定评测来源 `a48e13fc30`；直接复用全部 **25** 项合格交付。首次收集时 13 个 run 均在 GitHub 队列中，新增生成及验收记录均为 0。公开回读和派发不构成新版任务通过，后续结果使用独立轮次保存。
 
 修复覆盖静态导入错误反馈、真实 API 与 fixture 检查指导、延迟写入未完成时的终态、上游中止分类、安全传输原因代码，以及 JetBrains 重启后的 Markdown 渲染。新版公开后仅补未合格项；已有合格文件用于界面恢复核验时直接复用，不重新生成。
 
@@ -76,6 +76,8 @@ CLI **0.166.105**?VS Code **0.37.150** ? JetBrains **0.4.167** ?????????????????
 费用未评估、未推算。旧轮完整报告见 [README](./README.md)。
 
 ## 已保存的补测工具
+
+新版派发凭据、完整 run 映射及原子 intent 日志见 [派发收据](./next-release-validation/native-105-dispatch-receipt.json)。独立归档恢复 run [`39107288123`](https://github.com/chainlesschain/chainlesschain/actions/runs/39107288123) 已派发，复用原回复且不调用模型，等待真实 IDE 结果。
 
 派发、证据收集和累计交付包工具已迁入 `packages/cli/scripts/`，不再依赖 `.work` 内的未跟踪脚本。派发 14 项、交付包 8 项、收集 8 项离线检查全部通过；此次工具验证未调用模型、未派发真实任务、未执行候选。七个 Python 文件语法检查及三个入口的 `--help` 检查通过。
 
