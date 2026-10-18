@@ -55,7 +55,8 @@
     "acceptedDeliveryIndex": "accepted-deliverables.json",
     "existingSourceFixValidation": "optimization-validation.json",
     "windowsJetbrainsStartupReview": "latest-windows-jetbrains-startup-review.json",
-    "windowsACLPreflight": "next-package-windows-acl-preflight.json"
+    "windowsACLPreflight": "next-package-windows-acl-preflight.json",
+    "archivedReplyRecoveryPlan": "next-package-archived-reply-recovery-plan.json"
   },
   "implementationRequirements": [
     "Improve product code and general task-completion feedback for observed failures; preserve original candidates and original verdicts.",
@@ -87,12 +88,6 @@
     ],
     "remoteRuns": [
       {
-        "name": "CLI Strict Sandbox",
-        "runId": 39095758657,
-        "status": "queued",
-        "conclusion": ""
-      },
-      {
         "name": "CLI CI",
         "runId": 39095758702,
         "status": "queued",
@@ -109,10 +104,16 @@
         "runId": 39095758682,
         "status": "completed",
         "conclusion": "success"
+      },
+      {
+        "name": "CLI Strict Sandbox",
+        "runId": 39095758657,
+        "status": "completed",
+        "conclusion": "success"
       }
     ],
     "supersededChecksCancelled": true,
-    "remoteChecksObservedAt": "2026-10-18T04:42:09.121485+00:00",
+    "remoteChecksObservedAt": "2026-10-18T04:52:54.492181+00:00",
     "resolvedGateFailures": [
       {
         "workflow": "Docs-Site Build Gate",
@@ -185,6 +186,22 @@
     "releaseTagsTargetExactVerifiedCommit": true,
     "mergeAfterPublicationSubjectToBranchProtection": true,
     "currentCandidateGateEvidence": [
+      {
+        "name": "CLI Strict Sandbox",
+        "runId": 39095758657,
+        "status": "completed",
+        "conclusion": "success",
+        "sourceCommit": "d4065008bb4eff84cfc09f9361f4ae4e9de2140f",
+        "jobCount": 5,
+        "jobConclusions": {
+          "success": 5
+        },
+        "archive": {
+          "path": "next-release-validation/cli-strict-sandbox-d4065008bb.json.gz",
+          "storedDigest": "sha256:5ba0c68b268bf83c48bcc268d8f539c39e6ea1abba94daa8456beb158325e3eb",
+          "originalDigest": "sha256:0208bb99d548916e5b3c2c2078a8694b3d062251cfd8fb774ceea4e56dd5daa6"
+        }
+      },
       {
         "name": "IDE ARM64 Host Validation",
         "runId": 39095758682,
@@ -326,7 +343,20 @@
     "dispatchConcurrency": "No global pending replacement; group, canonical sample selection and run ID key",
     "generationStepLimitMinutes": 115,
     "jobLimitMinutes": 145,
-    "alwaysUploadStepLimitMinutes": 15
+    "alwaysUploadStepLimitMinutes": 15,
+    "acceptedReplyRecovery": {
+      "status": "PREPARED_NOT_EXECUTED",
+      "modelRequestsAllowed": false,
+      "sampleId": "verify-33",
+      "pluginVersionRequired": "0.4.167",
+      "platform": "linux",
+      "ideVersion": "2025.2",
+      "plan": "next-package-archived-reply-recovery-plan.json",
+      "sourceCommit": "d602df64d3",
+      "nodePassed": 6,
+      "nodeLinuxOnlySkipped": 1,
+      "jdk21UiCompilationPassed": true
+    }
   },
   "nativeHarnessFollowup": {
     "status": "IMPLEMENTED_LOCAL_REGRESSION_PASSED_PENDING_PUBLISHED_NATIVE_RETEST",

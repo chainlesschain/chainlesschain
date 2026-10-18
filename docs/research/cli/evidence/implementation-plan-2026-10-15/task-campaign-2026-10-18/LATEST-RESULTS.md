@@ -6,42 +6,42 @@
 
 历史合格的 **20 项直接复用**，仅对余下 **25 项**使用最新公开包。最新轮已收取生成 **25/25**、独立验收 **25/25**；新增候选合格 **5**、全流程通过 **4**。状态 `COMPLETED` 仅描述记录是否收齐，不代表全部任务成功。
 
-| 类别         | 历史合格复用 | 本次新增合格 | 累计合格交付 |
-| ------------ | ------------ | ------------ | ------------ |
-| 普通任务     | 18           | 5            | 23/36        |
-| 独立首次任务 | 2            | 0            | 2/9          |
+| 类别 | 历史合格复用 | 本次新增合格 | 累计合格交付 |
+| --- | --- | --- | --- |
+| 普通任务 | 18 | 5 | 23/36 |
+| 独立首次任务 | 2 | 0 | 2/9 |
 
 累计交付来自不同版本和多次尝试；20 项复用文件没有重新在最新包生成，不能把累计数字称为统一最新版本的单轮成功率。
 
 ## 最新包逐项结果
 
-| 样本                         | 原生入口         | 生成流程 | 候选验收 | 全流程 | 结果摘要                                             |
-| ---------------------------- | ---------------- | -------- | -------- | ------ | ---------------------------------------------------- |
-| `verify-04`                  | linux-cli        | 通过     | 失败     | 失败   | candidate or baseline regression failed              |
-| `verify-05`                  | linux-vscode     | 通过     | 通过     | 通过   | 候选及行为变异验收通过                               |
-| `verify-06`                  | linux-jetbrains  | 失败     | 失败     | 失败   | candidate or baseline regression failed              |
-| `verify-07`                  | darwin-cli       | 通过     | 失败     | 失败   | candidate or baseline regression failed              |
-| `verify-08`                  | darwin-vscode    | 通过     | 失败     | 失败   | candidate or baseline regression failed              |
-| `verify-09`                  | darwin-jetbrains | 失败     | 失败     | 失败   | acceptance requires executed test cases              |
-| `verify-10`                  | win32-cli        | 通过     | 失败     | 失败   | candidate or baseline regression failed              |
-| `verify-11`                  | win32-vscode     | 通过     | 失败     | 失败   | candidate tests did not reject the behavioral mutant |
-| `verify-12`                  | win32-jetbrains  | 失败     | 失败     | 失败   | acceptance requires executed test cases              |
-| `verify-13`                  | linux-cli        | 通过     | 失败     | 失败   | candidate or baseline regression failed              |
-| `verify-14`                  | linux-vscode     | 通过     | 失败     | 失败   | acceptance requires executed test cases              |
-| `verify-19`                  | win32-cli        | 失败     | 失败     | 失败   | provider-fetch-failed                                |
-| `verify-23`                  | linux-vscode     | 通过     | 通过     | 通过   | 候选及行为变异验收通过                               |
-| `verify-25`                  | darwin-cli       | 通过     | 通过     | 通过   | 候选及行为变异验收通过                               |
-| `verify-30`                  | win32-jetbrains  | 失败     | 失败     | 失败   | acceptance requires executed test cases              |
-| `verify-32`                  | linux-vscode     | 通过     | 失败     | 失败   | candidate or baseline regression failed              |
-| `verify-33`                  | linux-jetbrains  | 失败     | 通过     | 失败   | 候选及行为变异验收通过；原生流程仍失败               |
-| `verify-34`                  | darwin-cli       | 通过     | 通过     | 通过   | 文档规则及基线验收通过                               |
-| `first-run-win32-jetbrains`  | win32-jetbrains  | 失败     | 失败     | 失败   | missing-terminal                                     |
-| `first-run-linux-cli`        | linux-cli        | 通过     | 失败     | 失败   | acceptance requires executed test cases              |
-| `first-run-linux-vscode`     | linux-vscode     | 通过     | 失败     | 失败   | candidate tests did not reject the behavioral mutant |
-| `first-run-linux-jetbrains`  | linux-jetbrains  | 失败     | 失败     | 失败   | candidate or baseline regression failed              |
-| `first-run-darwin-cli`       | darwin-cli       | 失败     | 失败     | 失败   | agent-error                                          |
-| `first-run-darwin-vscode`    | darwin-vscode    | 通过     | 失败     | 失败   | candidate or baseline regression failed              |
-| `first-run-darwin-jetbrains` | darwin-jetbrains | 失败     | 失败     | 失败   | candidate tests did not reject the behavioral mutant |
+| 样本 | 原生入口 | 生成流程 | 候选验收 | 全流程 | 结果摘要 |
+| --- | --- | --- | --- | --- | --- |
+| `verify-04` | linux-cli | 通过 | 失败 | 失败 | candidate or baseline regression failed |
+| `verify-05` | linux-vscode | 通过 | 通过 | 通过 | 候选及行为变异验收通过 |
+| `verify-06` | linux-jetbrains | 失败 | 失败 | 失败 | candidate or baseline regression failed |
+| `verify-07` | darwin-cli | 通过 | 失败 | 失败 | candidate or baseline regression failed |
+| `verify-08` | darwin-vscode | 通过 | 失败 | 失败 | candidate or baseline regression failed |
+| `verify-09` | darwin-jetbrains | 失败 | 失败 | 失败 | acceptance requires executed test cases |
+| `verify-10` | win32-cli | 通过 | 失败 | 失败 | candidate or baseline regression failed |
+| `verify-11` | win32-vscode | 通过 | 失败 | 失败 | candidate tests did not reject the behavioral mutant |
+| `verify-12` | win32-jetbrains | 失败 | 失败 | 失败 | acceptance requires executed test cases |
+| `verify-13` | linux-cli | 通过 | 失败 | 失败 | candidate or baseline regression failed |
+| `verify-14` | linux-vscode | 通过 | 失败 | 失败 | acceptance requires executed test cases |
+| `verify-19` | win32-cli | 失败 | 失败 | 失败 | provider-fetch-failed |
+| `verify-23` | linux-vscode | 通过 | 通过 | 通过 | 候选及行为变异验收通过 |
+| `verify-25` | darwin-cli | 通过 | 通过 | 通过 | 候选及行为变异验收通过 |
+| `verify-30` | win32-jetbrains | 失败 | 失败 | 失败 | acceptance requires executed test cases |
+| `verify-32` | linux-vscode | 通过 | 失败 | 失败 | candidate or baseline regression failed |
+| `verify-33` | linux-jetbrains | 失败 | 通过 | 失败 | 候选及行为变异验收通过；原生流程仍失败 |
+| `verify-34` | darwin-cli | 通过 | 通过 | 通过 | 文档规则及基线验收通过 |
+| `first-run-win32-jetbrains` | win32-jetbrains | 失败 | 失败 | 失败 | missing-terminal |
+| `first-run-linux-cli` | linux-cli | 通过 | 失败 | 失败 | acceptance requires executed test cases |
+| `first-run-linux-vscode` | linux-vscode | 通过 | 失败 | 失败 | candidate tests did not reject the behavioral mutant |
+| `first-run-linux-jetbrains` | linux-jetbrains | 失败 | 失败 | 失败 | candidate or baseline regression failed |
+| `first-run-darwin-cli` | darwin-cli | 失败 | 失败 | 失败 | agent-error |
+| `first-run-darwin-vscode` | darwin-vscode | 通过 | 失败 | 失败 | candidate or baseline regression failed |
+| `first-run-darwin-jetbrains` | darwin-jetbrains | 失败 | 失败 | 失败 | candidate tests did not reject the behavioral mutant |
 
 所有候选在原生系统生成；执行验收统一使用 Linux 无网 Docker。生成完成和单独测试通过均不能替代全部验收。
 
@@ -70,5 +70,7 @@ Astra 对最新 Linux VS Code 五项的 [源码与收据专项复核](./latest-l
 下一版候选：CLI **0.166.105**、VS Code **0.37.150**、JetBrains **0.4.167**；发布 PR [#461](https://github.com/chainlesschain/chainlesschain/pull/461)，当前记录状态 `ORIGINAL_ROUND_ARCHIVED_WAITING_EXACT_COMMIT_RELEASE_GATES`。发布需精确提交的完整矩阵、npm OIDC 和公开包回读；这些优化尚不能计为新版实际任务通过。
 
 修复覆盖静态导入错误反馈、真实 API 与 fixture 检查指导、延迟写入未完成时的终态、上游中止分类、安全传输原因代码，以及 JetBrains 重启后的 Markdown 渲染。新版公开后仅补未合格项；已有合格文件用于界面恢复核验时直接复用，不重新生成。
+
+已准备 [verify-33 归档回复恢复检查](./next-package-archived-reply-recovery-plan.json)：复用原合格文件与原 Markdown，在公开 `.167` 的 Linux 2025.2 真实 IDE 验证重启后正文、会话和行身份，不调用模型。当前仅完成本地回归与 UI 编译，真实公开插件检查尚未运行；旧全流程失败判定保持不变。
 
 费用未评估、未推算。旧轮完整报告见 [README](./README.md)。
