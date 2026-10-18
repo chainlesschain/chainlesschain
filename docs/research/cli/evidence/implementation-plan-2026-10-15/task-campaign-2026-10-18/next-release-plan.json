@@ -499,7 +499,7 @@
     "jobLimitMinutes": 145,
     "alwaysUploadStepLimitMinutes": 15,
     "acceptedReplyRecovery": {
-      "status": "HARNESS_HOME_FIXED_AWAITING_OFFICIAL_NO_MODEL_REPLAY",
+      "status": "HOME_FIX_OFFICIAL_REPLAY_DISPATCHED",
       "modelRequestsAllowed": false,
       "sampleId": "verify-33",
       "pluginVersionRequired": "0.4.167",
@@ -512,8 +512,8 @@
       "workflowActionlintPassed": true,
       "nodeLinuxOnlySkipped": 1,
       "jdk21UiCompilationPassed": true,
-      "runId": "39107288123",
-      "executionSourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138",
+      "runId": "39108779712",
+      "executionSourceCommit": "04d48ca7feb5f587f3c2495500cd9a2dad0c9e49",
       "originalAttempt": {
         "runId": "39107288123",
         "executionSourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138",
@@ -586,6 +586,11 @@
             "originalBytes": 794
           }
         }
+      },
+      "homeFixDispatch": {
+        "path": "next-release-validation/archived-reply-105-homefix-dispatch.json",
+        "digest": "sha256:6bf04223a23d5066b459aa661ee391d0681dbc911f76e5d6c60a56756b1bc631",
+        "bytes": 1811
       }
     },
     "dispatcher": "packages/cli/scripts/verify01-dispatch-native-retest.py",
