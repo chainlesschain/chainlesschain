@@ -1,7 +1,7 @@
 {
   "schema": "chainlesschain.next-release-task-optimization/v1",
   "recordedDate": "2026-10-18",
-  "status": "WAITING_FINAL_CLI_CI_OTHER_EXACT_GATES_PASSED",
+  "status": "CLI_OIDC_PUBLICATION_IN_PROGRESS",
   "userDecisions": [
     "不合格的需要代码优化 下一个版本进行补测",
     "需要发布新的cli或ide插件的下一个版本再测试",
@@ -88,18 +88,6 @@
     ],
     "remoteRuns": [
       {
-        "name": "CLI CI",
-        "runId": 39095758702,
-        "status": "queued",
-        "conclusion": ""
-      },
-      {
-        "name": "IDE ARM64 Host Validation",
-        "runId": 39095758682,
-        "status": "completed",
-        "conclusion": "success"
-      },
-      {
         "name": "CLI Strict Sandbox",
         "runId": 39095758657,
         "status": "completed",
@@ -110,10 +98,22 @@
         "runId": 39095758578,
         "status": "completed",
         "conclusion": "success"
+      },
+      {
+        "name": "IDE ARM64 Host Validation",
+        "runId": 39095758682,
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "CLI CI",
+        "runId": 39095758702,
+        "status": "completed",
+        "conclusion": "success"
       }
     ],
     "supersededChecksCancelled": true,
-    "remoteChecksObservedAt": "2026-10-18T05:29:12.414224+00:00",
+    "remoteChecksObservedAt": "2026-10-18T06:06:47.665038+00:00",
     "resolvedGateFailures": [
       {
         "workflow": "Docs-Site Build Gate",
@@ -187,6 +187,22 @@
     "mergeAfterPublicationSubjectToBranchProtection": true,
     "currentCandidateGateEvidence": [
       {
+        "name": "CLI CI",
+        "runId": 39095758702,
+        "status": "completed",
+        "conclusion": "success",
+        "sourceCommit": "d4065008bb4eff84cfc09f9361f4ae4e9de2140f",
+        "jobCount": 71,
+        "jobConclusions": {
+          "success": 71
+        },
+        "archive": {
+          "path": "next-release-validation/cli-ci-d4065008bb.json.gz",
+          "storedDigest": "sha256:74736a140f4205698f19a3e3d71eabee961827fa8b9de7f6cb2bc2e86bba0ea5",
+          "originalDigest": "sha256:4a5f91e953fcf739053ee207388031d2991002dbdeaf3dc294736425d6b231a7"
+        }
+      },
+      {
         "name": "CLI Strict Sandbox",
         "runId": 39095758657,
         "status": "completed",
@@ -235,7 +251,12 @@
           "originalDigest": "sha256:3239acc205472c62b417405582ce86c72fb68aaabf67fd1f8ce84382a0ea5efd"
         }
       }
-    ]
+    ],
+    "officialCliGateAttestation": {
+      "path": "next-release-validation/cli-release-gate-d4065008bb.json",
+      "digest": "sha256:99ec588540b236b223f48ae3d9d1e9916e77ed1427742607560fc74d205cedad",
+      "bytes": 923
+    }
   },
   "retestPolicy": {
     "newPublishedVersionsRequired": true,
@@ -411,5 +432,23 @@
     "windowsCleanupDeadlineMs": 60000,
     "windowsIdentitySnapshotLimitMs": 30000,
     "limitation": "Local probes and harness regressions do not establish success of the next public CLI/IDE task run."
+  },
+  "publication": {
+    "cli": {
+      "version": "0.166.105",
+      "tag": "v-npm-0-166-105",
+      "tagCommit": "d4065008bb4eff84cfc09f9361f4ae4e9de2140f",
+      "workflowRunId": "39102818482",
+      "workflowUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/39102818482",
+      "method": "GitHub Actions OIDC Trusted Publishing",
+      "createdAt": "2026-10-18T06:05:39Z",
+      "statusObserved": "in_progress",
+      "runArchive": {
+        "path": "next-release-validation/cli-publication-start-39102818482.json.gz",
+        "digest": "sha256:3cae5090d39bfdddb97193000450f014db3f11026e6ebdd955722ddf84bc8be0",
+        "bytes": 1548
+      },
+      "publicFetchVerified": false
+    }
   }
 }
