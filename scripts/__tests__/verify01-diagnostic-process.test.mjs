@@ -197,7 +197,10 @@ test("owned cleanup terminates an actual descendant process", async (t) => {
   }
   // POSIX may briefly retain an orphan zombie until the OS reaper runs.
   let alive = true;
-  while (alive && Date.now() < deadline) {
+  // Windows identity snapshots can consume the readiness deadline above.
+  // Start the post-cleanup probe budget here so it always checks the process.
+  const reapingDeadline = Date.now() + 10000;
+  while (alive && Date.now() < reapingDeadline) {
     try {
       process.kill(pid, 0);
       await delay(50);
