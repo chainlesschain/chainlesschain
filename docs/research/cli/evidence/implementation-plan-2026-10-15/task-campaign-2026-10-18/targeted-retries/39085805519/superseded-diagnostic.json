@@ -1,0 +1,258 @@
+{
+  "schema": "chainlesschain.superseded-native-diagnostic/v1",
+  "generatedAt": "2026-10-18T01:50:37.364741+00:00",
+  "runId": "39085805519",
+  "executionSourceCommit": "69b00213a75cd9509de63e3c5249291d94fceb76",
+  "status": "SUPERSEDED_CANCELLED_WORKFLOW_WITH_FAILED_STARTUP_DIAGNOSTIC",
+  "superseded": true,
+  "supersededReason": "User required latest published CLI and IDE packages; this old-version diagnostic was cancelled.",
+  "includedIn45Denominator": false,
+  "versions": {
+    "cli": "0.166.99",
+    "vscode": "0.37.143",
+    "jetbrains": "0.4.161",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "workflowStatus": "completed",
+  "workflowConclusion": "cancelled",
+  "artifact": {
+    "id": 12121237309,
+    "node_id": "MDg6QXJ0aWZhY3QxMjEyMTIzNzMwOQ==",
+    "name": "verify01-native-subset-delivery-win32-jetbrains-69b00213a75cd9509de63e3c5249291d94fceb76",
+    "size_in_bytes": 2185716,
+    "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/12121237309",
+    "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/12121237309/zip",
+    "expired": false,
+    "digest": "sha256:12f4a02a51da2e7c438de58e84e56e6f1c59a1c2f378170bc9229789f27486fe",
+    "created_at": "2026-10-18T01:45:41Z",
+    "updated_at": "2026-10-18T01:45:41Z",
+    "expires_at": "2026-11-01T01:45:34Z",
+    "workflow_run": {
+      "id": 39085805519,
+      "repository_id": 1107348698,
+      "head_repository_id": 1107348698,
+      "head_branch": "feature/verify01-task-completion-20261017",
+      "head_sha": "69b00213a75cd9509de63e3c5249291d94fceb76"
+    }
+  },
+  "sourceSummaryDigest": "sha256:6c2b61ed408f78d0a8407b49b408f39faccd9d9eb42ad95759eeb7e1881c7818",
+  "summaryFinishedAt": "2026-10-18T01:40:25.319Z",
+  "summarySampleCount": 1,
+  "completionScope": "A failed sample and finished summary were uploaded before cancellation; this is not successful task completion or a completed accepted retry.",
+  "sampleId": "first-run-win32-jetbrains",
+  "originalHostVerdict": {
+    "passed": false,
+    "failure": "Windows process identity snapshot failed: spawnSync C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe ETIMEDOUT",
+    "restartRequired": true
+  },
+  "originalGenerationPassed": false,
+  "executionObservation": {
+    "physicalRequestsStarted": 0,
+    "usageCompleteRequests": 0,
+    "passed": false,
+    "poisoned": null,
+    "errorCode": null
+  },
+  "driverFailure": {
+    "phase": "initial",
+    "at": "2026-10-18T01:38:58.772257Z",
+    "error": "com.chainlesschain.ide.uitest.Verify01HostJourney$HostStartupExit: host-startup-exit: child exited before init/input; code=1; raw=protocol-aa42d233-439b-4875-8f40-e9e969b15e6a.jsonl",
+    "completedActions": [
+      {
+        "action": "submit",
+        "sampleId": "first-run-win32-jetbrains",
+        "sessionId": "panel-1792287463304-c45910",
+        "at": "2026-10-18T01:37:44.115917200Z"
+      },
+      {
+        "action": "background-tab",
+        "sampleId": "first-run-win32-jetbrains",
+        "sessionId": "panel-1792287463304-c45910",
+        "at": "2026-10-18T01:37:47.083843400Z"
+      }
+    ],
+    "category": "host-startup-exit",
+    "rawProtocolFile": "protocol-aa42d233-439b-4875-8f40-e9e969b15e6a.jsonl",
+    "rawProtocolRecords": [
+      {
+        "schema": "chainlesschain.ide-protocol-record/v1",
+        "generation": "aa42d233-439b-4875-8f40-e9e969b15e6a",
+        "sequence": 1,
+        "at": "2026-10-18T01:38:58.685312100Z",
+        "direction": "exit",
+        "event": {
+          "code": 1,
+          "signal": null,
+          "stdoutDrained": true
+        }
+      }
+    ]
+  },
+  "rawProtocolExitRecord": {
+    "schema": "chainlesschain.ide-protocol-record/v1",
+    "generation": "aa42d233-439b-4875-8f40-e9e969b15e6a",
+    "sequence": 1,
+    "at": "2026-10-18T01:38:58.685312100Z",
+    "direction": "exit",
+    "event": {
+      "code": 1,
+      "signal": null,
+      "stdoutDrained": true
+    }
+  },
+  "actualUiText": "ℹ approval mode → auto (accept edits) — next message applies\nℹ A newer cc 0.166.104 is available (you have 0.166.99) — run `npm i -g chainlesschain@latest` to get the latest features.\n\n── agent exited (1) — next message restarts ──\n⚠ could not send message: Agent exited before input acknowledgement\n",
+  "stderrDiagnostic": {
+    "member": "first-run-win32-jetbrains/cli-stderr-diagnostics/f7fff10b-309a-44f9-8cba-02a8eba4ea5a.stderr-redacted.txt",
+    "metadataMember": "first-run-win32-jetbrains/cli-stderr-diagnostics/f7fff10b-309a-44f9-8cba-02a8eba4ea5a.stderr-redacted.json",
+    "redacted": true,
+    "content": "{\"error\":{\"message\":\"owner-only ACL process failed [windows-acl:timeout-traversal] [windows-acl-launch:repair:timeout:traversal:ETIMEDOUT:-4039:spawnSync]\",\"code\":\"CC_UNEXPECTED_ERROR\"}}\n",
+    "captureMetadata": {
+      "schema": "chainlesschain.cli-stderr-redacted/v1",
+      "raw": false,
+      "policy": "UTF-8 complete lines; runtime credential environment values redacted; overlong lines omitted entirely; bounded diagnostic copy only",
+      "maxBytes": 1048576,
+      "maxLineBytes": 65536,
+      "bytesObserved": 187,
+      "bytesStored": 187,
+      "truncated": false,
+      "omittedLines": 0,
+      "captureErrors": [],
+      "childExitCode": 1,
+      "childSignal": null,
+      "redactedDigest": "sha256:dd84deedad1d69523f6a6f7943f2c160d7d5dbfa8ef31ebf49287492eb3a5bb1"
+    }
+  },
+  "finding": {
+    "category": "cli-owner-only-acl-repair-traversal-timeout",
+    "providerCode": "CC_UNEXPECTED_ERROR",
+    "supportedConclusion": "The actual chat CLI emitted owner-only ACL process failure with windows-acl:timeout-traversal and windows-acl-launch:repair:timeout:traversal:ETIMEDOUT:-4039:spawnSync, then exited 1 before init/input; zero model requests were observed.",
+    "additionalFailure": "The original host summary separately records a Windows process identity snapshot PowerShell timeout; retain both observations rather than replacing the original failure.",
+    "limitations": [
+      "This supports the immediate startup error in this old-version diagnostic only.",
+      "It does not prove the earlier 6217/cbd532 runs had the same underlying cause.",
+      "The reason ACL traversal timed out is not established by this error message.",
+      "No claim is made about latest published packages or successful task execution."
+    ]
+  },
+  "nextStep": "Use the explicitly selected latest published package set for further authorized failed-task diagnostics; preserve this superseded evidence without repeating qualified tasks.",
+  "evidence": [
+    {
+      "member": "artifact-index.json",
+      "originalArtifactPath": null,
+      "origin": "GitHub API metadata",
+      "bytes": 1658,
+      "digest": "sha256:462b1a067704c1293d2cdda1744a4b7f94664fe6dd2b00d1ec7a049e7701d408",
+      "archived": {
+        "path": "targeted-retries/39085805519/superseded-evidence/001.gz",
+        "originalDigest": "sha256:462b1a067704c1293d2cdda1744a4b7f94664fe6dd2b00d1ec7a049e7701d408",
+        "storedDigest": "sha256:edc5e4764864ab199a4e96c8bcc7fd252e7bf69b59b658b53352445c6d90b345",
+        "originalBytes": 1658
+      }
+    },
+    {
+      "member": "first-run-win32-jetbrains/capture/driver-failure-initial-snapshot.json",
+      "originalArtifactPath": "first-run-win32-jetbrains/capture/driver-failure-initial-snapshot.json",
+      "origin": "exact ZIP member bytes",
+      "bytes": 3918,
+      "digest": "sha256:e3ff1727eaf672efb22cb634fbbe9ae13885c7d6d44d8565fe5edd56d2395b35",
+      "archived": {
+        "path": "targeted-retries/39085805519/superseded-evidence/002.gz",
+        "originalDigest": "sha256:e3ff1727eaf672efb22cb634fbbe9ae13885c7d6d44d8565fe5edd56d2395b35",
+        "storedDigest": "sha256:f7ff98fcad6b4f012dcde9dbfbbed610da236c5e3f35f5bf6b4c5d5e3a0c26ce",
+        "originalBytes": 3918
+      }
+    },
+    {
+      "member": "first-run-win32-jetbrains/capture/driver-failure-initial.json",
+      "originalArtifactPath": "first-run-win32-jetbrains/capture/driver-failure-initial.json",
+      "origin": "exact ZIP member bytes",
+      "bytes": 1129,
+      "digest": "sha256:56d67cd53b09ed7c63c5476ff772138c617540361ce62b754133aa9769cc332c",
+      "archived": {
+        "path": "targeted-retries/39085805519/superseded-evidence/003.gz",
+        "originalDigest": "sha256:56d67cd53b09ed7c63c5476ff772138c617540361ce62b754133aa9769cc332c",
+        "storedDigest": "sha256:da9ff41218be7e871008b84f65957cd294e785bc0f9e6c162946e1c2833bed75",
+        "originalBytes": 1129
+      }
+    },
+    {
+      "member": "first-run-win32-jetbrains/capture/protocol-aa42d233-439b-4875-8f40-e9e969b15e6a.jsonl",
+      "originalArtifactPath": "first-run-win32-jetbrains/capture/protocol-aa42d233-439b-4875-8f40-e9e969b15e6a.jsonl",
+      "origin": "exact ZIP member bytes",
+      "bytes": 227,
+      "digest": "sha256:7e080d1a3edacb34afd4c61688a9daed3fff483f68ca4c5f994f31da0f5459f9",
+      "archived": {
+        "path": "targeted-retries/39085805519/superseded-evidence/004.gz",
+        "originalDigest": "sha256:7e080d1a3edacb34afd4c61688a9daed3fff483f68ca4c5f994f31da0f5459f9",
+        "storedDigest": "sha256:3702e88b75f16f8b7d83ab187343fc1737886eb58b31d898b91214b72482eba2",
+        "originalBytes": 227
+      }
+    },
+    {
+      "member": "first-run-win32-jetbrains/cli-stderr-diagnostics/f7fff10b-309a-44f9-8cba-02a8eba4ea5a.stderr-redacted.json",
+      "originalArtifactPath": "first-run-win32-jetbrains/cli-stderr-diagnostics/f7fff10b-309a-44f9-8cba-02a8eba4ea5a.stderr-redacted.json",
+      "origin": "exact ZIP member bytes",
+      "bytes": 519,
+      "digest": "sha256:ebd04513b0ffaca1f99b83f2bd34e70260b2cbefd5dbffefbda09b24584ff3ac",
+      "archived": {
+        "path": "targeted-retries/39085805519/superseded-evidence/005.gz",
+        "originalDigest": "sha256:ebd04513b0ffaca1f99b83f2bd34e70260b2cbefd5dbffefbda09b24584ff3ac",
+        "storedDigest": "sha256:4b161321ce00bac6df5fcd719712b01c115925f0ad912559d6e9b3c0c9f7f6a1",
+        "originalBytes": 519
+      }
+    },
+    {
+      "member": "first-run-win32-jetbrains/cli-stderr-diagnostics/f7fff10b-309a-44f9-8cba-02a8eba4ea5a.stderr-redacted.txt",
+      "originalArtifactPath": "first-run-win32-jetbrains/cli-stderr-diagnostics/f7fff10b-309a-44f9-8cba-02a8eba4ea5a.stderr-redacted.txt",
+      "origin": "exact ZIP member bytes",
+      "bytes": 187,
+      "digest": "sha256:dd84deedad1d69523f6a6f7943f2c160d7d5dbfa8ef31ebf49287492eb3a5bb1",
+      "archived": {
+        "path": "targeted-retries/39085805519/superseded-evidence/006.gz",
+        "originalDigest": "sha256:dd84deedad1d69523f6a6f7943f2c160d7d5dbfa8ef31ebf49287492eb3a5bb1",
+        "storedDigest": "sha256:2b12451368d1473c23ad904307b2e164d28c2ace2ad0c0fb8c5c30f9c4612df9",
+        "originalBytes": 187
+      }
+    },
+    {
+      "member": "first-run-win32-jetbrains/test-initial.log",
+      "originalArtifactPath": "first-run-win32-jetbrains/test-initial.log",
+      "origin": "exact ZIP member bytes",
+      "bytes": 3176,
+      "digest": "sha256:6f99d4835568baef23098d893fe105c0b8e6affac7723dc9f0353432186d1d48",
+      "archived": {
+        "path": "targeted-retries/39085805519/superseded-evidence/007.gz",
+        "originalDigest": "sha256:6f99d4835568baef23098d893fe105c0b8e6affac7723dc9f0353432186d1d48",
+        "storedDigest": "sha256:1df2e3fd854d7521c3df36970c7a1965308be22fc38c462dd574ca855cb85a4d",
+        "originalBytes": 3176
+      }
+    },
+    {
+      "member": "summary.json",
+      "originalArtifactPath": "summary.json",
+      "origin": "exact ZIP member bytes",
+      "bytes": 12402,
+      "digest": "sha256:6c2b61ed408f78d0a8407b49b408f39faccd9d9eb42ad95759eeb7e1881c7818",
+      "archived": {
+        "path": "targeted-retries/39085805519/superseded-evidence/008.gz",
+        "originalDigest": "sha256:6c2b61ed408f78d0a8407b49b408f39faccd9d9eb42ad95759eeb7e1881c7818",
+        "storedDigest": "sha256:9cae9597f01a9579aa58ae53069f12e51cbe5817a9b3544debfb75596ca9127a",
+        "originalBytes": 12402
+      }
+    },
+    {
+      "member": "workflow-state.json",
+      "originalArtifactPath": null,
+      "origin": "GitHub API metadata",
+      "bytes": 6633,
+      "digest": "sha256:135baefc0b1720e74dd9cc26d19802011f72fa1f0264bd1df6e29b2cc9ee4296",
+      "archived": {
+        "path": "targeted-retries/39085805519/superseded-evidence/009.gz",
+        "originalDigest": "sha256:135baefc0b1720e74dd9cc26d19802011f72fa1f0264bd1df6e29b2cc9ee4296",
+        "storedDigest": "sha256:1723d79db8cebe3c7c1caaab7dc4d9e7cc494aec7ba01baf5b01398e8e72299c",
+        "originalBytes": 6633
+      }
+    }
+  ]
+}

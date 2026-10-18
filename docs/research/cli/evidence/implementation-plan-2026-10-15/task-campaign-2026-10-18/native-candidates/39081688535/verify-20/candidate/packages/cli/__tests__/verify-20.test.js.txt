@@ -1,0 +1,94 @@
+import { describe, expect, it } from "vitest";
+import { buildPermissionDecision } from "../src/lib/permission-decision.js";
+
+/**
+ * Regression coverage for "deny decisions never degrade to allow".
+ *
+ * buildPermissionDecision must surface an explicit `deny` from policy,
+ * approval, or the terminal chain entry and must never let a deny or an
+ * unknown strategy fall through a `||` chain into `allow`. It must also
+ * leave an unknown decision verbatim rather than coercing it to allow.
+ */
+describe("deny decision does not degrade to allow", () => {
+  it("preserves an explicit policy deny over an approval allow fallback", () => {
+    const decision = buildPermissionDecision({
+      toolUseId: "t1",
+      result: {
+        policy: { decision: "deny", via: "policy", reason: "forbidden" },
+        approval: { decision: "allow", via: "user", reason: "user approved" },
+      },
+    });
+    expect(decision).not.toBeNull();
+    expect(decision.decision).toBe("deny");
+    expect(decision.via).toBe("policy");
+  });
+
+  it("preserves an approval deny when policy is absent", () => {
+    const decision = buildPermissionDecision({
+      toolUseId: "t2",
+      result: {
+        approval: { decision: "deny", via: "approval-gate" },
+        permissionChain: [{ layer: "default", outcome: "allow" }],
+      },
+    });
+    expect(decision).not.toBeNull();
+    expect(decision.decision).toBe("deny");
+  });
+
+  it("preserves a terminal chain deny when policy and approval are absent", () => {
+    const decision = buildPermissionDecision({
+      toolUseId: "t3",
+      result: {
+        permissionChain: [
+          { layer: "default", outcome: "allow" },
+          { layer: "gate", outcome: "deny", via: "managed", reason: "blocked" },
+        ],
+      },
+    });
+    expect(decision).not.toBeNull();
+    expect(decision.decision).toBe("deny");
+    expect(decision.via).toBe("managed");
+  });
+
+  it("does not rewrite an unknown decision into allow", () => {
+    const decision = buildPermissionDecision({
+      toolUseId: "t4",
+      result: {
+        policy: { decision: "unknown", via: "experimental", reason: "no rule" },
+        approval: { decision: "allow", via: "user" },
+      },
+    });
+    expect(decision).not.toBeNull();
+    expect(decision.decision).toBe("unknown");
+    expect(decision.via).toBe("experimental");
+  });
+
+  it("does not synthesize allow when no decision is present", () => {
+    // A gated call with no explicit deny/allow decision must not fall back to
+    // "allow"; the terminal chain outcome is surfaced verbatim.
+    const decision = buildPermissionDecision({
+      toolUseId: "t5",
+      result: {
+        policy: { via: "gate", reason: "pending" },
+        permissionChain: [{ layer: "rule-eval", outcome: "no-match" }],
+      },
+    });
+    expect(decision).not.toBeNull();
+    expect(decision.decision).toBe("no-match");
+    expect(decision.decision).not.toBe("allow");
+  });
+
+  it("keeps a deny decision exactly for an allow result without policy", () => {
+    // Even a plain allow-carrying result must not force decision to allow
+    // when the only explicit signal is a deny in the chain.
+    const decision = buildPermissionDecision({
+      toolUseId: "t6",
+      result: {
+        approval: { via: "user" },
+        permissionChain: [{ layer: "deny-list", outcome: "deny" }],
+      },
+    });
+    expect(decision).not.toBeNull();
+    expect(decision.decision).toBe("deny");
+  });
+});

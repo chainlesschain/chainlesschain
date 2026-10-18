@@ -1,0 +1,195 @@
+import {
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { loadBackgroundAgentListIndex } from "../src/lib/background-agent-list-index.js";
+
+let directory;
+
+function writeState(id, state) {
+  writeFileSync(
+    join(directory, `${id}.json`),
+    JSON.stringify({ id, startedAt: 1, status: "completed", ...state }),
+    "utf8",
+  );
+}
+
+function removeState(id) {
+  rmSync(join(directory, `${id}.json`), { force: true });
+}
+
+function reader() {
+  return vi.fn((id) =>
+    JSON.parse(readFileSync(join(directory, `${id}.json`), "utf8")),
+  );
+}
+
+/**
+ * Deterministic pagination over the entries returned by the index. The last
+ * page may be partial. Returns every page plus the concatenated full list so
+ * callers can assert the pagination reproduces the same snapshot exactly.
+ */
+function paginate(entries, pageSize) {
+  const pages = [];
+  for (let offset = 0; offset < entries.length; offset += pageSize) {
+    pages.push(entries.slice(offset, offset + pageSize));
+  }
+  return { pages, lastPage: pages[pages.length - 1] ?? [] };
+}
+
+beforeEach(() => {
+  directory = mkdtempSync(join(tmpdir(), "cc-background-list-index-paging-"));
+});
+
+afterEach(() => {
+  rmSync(directory, { recursive: true, force: true });
+});
+
+describe("background agent list index pagination invalidation", () => {
+  it("a write invalidates the index and the last page matches the full snapshot", () => {
+    writeState("bg-a");
+    writeState("bg-b");
+    loadBackgroundAgentListIndex({ directory, readState: reader() });
+
+    writeState("bg-c", { status: "running" });
+    const afterWriteReader = reader();
+    const result = loadBackgroundAgentListIndex({
+      directory,
+      readState: afterWriteReader,
+    });
+
+    expect(result.source).toBe("rebuilt");
+    expect(afterWriteReader).toHaveBeenCalledTimes(3);
+    expect(result.entries.map((entry) => entry.id)).toEqual([
+      "bg-a",
+      "bg-b",
+      "bg-c",
+    ]);
+
+    const { pages, lastPage } = paginate(result.entries, 2);
+    expect([...pages.flat()].map((entry) => entry.id)).toEqual([
+      "bg-a",
+      "bg-b",
+      "bg-c",
+    ]);
+    expect(lastPage.map((entry) => entry.id)).toEqual(["bg-c"]);
+    expect(lastPage[0].status).toBe("running");
+  });
+
+  it("a delete invalidates the index and the last page matches the full snapshot", () => {
+    writeState("bg-a");
+    writeState("bg-b");
+    writeState("bg-c");
+    loadBackgroundAgentListIndex({ directory, readState: reader() });
+
+    removeState("bg-b");
+    const afterDeleteReader = reader();
+    const result = loadBackgroundAgentListIndex({
+      directory,
+      readState: afterDeleteReader,
+    });
+
+    expect(result.source).toBe("rebuilt");
+    expect(afterDeleteReader).toHaveBeenCalledTimes(2);
+    expect(result.entries.map((entry) => entry.id)).toEqual(["bg-a", "bg-c"]);
+
+    const { pages, lastPage } = paginate(result.entries, 2);
+    expect([...pages.flat()].map((entry) => entry.id)).toEqual([
+      "bg-a",
+      "bg-c",
+    ]);
+    expect(lastPage.map((entry) => entry.id)).toEqual(["bg-a", "bg-c"]);
+  });
+
+  it("a trailing-page write is not served from stale cache for the same snapshot", () => {
+    writeState("bg-a");
+    loadBackgroundAgentListIndex({ directory, readState: reader() });
+
+    writeState("bg-z", { startedAt: 0 });
+    writeState("bg-a", { status: "running" });
+    const afterMutationReader = reader();
+    const result = loadBackgroundAgentListIndex({
+      directory,
+      readState: afterMutationReader,
+    });
+
+    expect(result.source).toBe("rebuilt");
+    expect(result.entries.map((entry) => entry.id)).toEqual(["bg-a", "bg-z"]);
+    const { lastPage } = paginate(result.entries, 1);
+    expect(lastPage.map((entry) => entry.id)).toEqual(["bg-z"]);
+  });
+
+  it("an unchanged snapshot keeps reusing the index so pagination stays stable", () => {
+    writeState("bg-a");
+    writeState("bg-b");
+    writeState("bg-c");
+    loadBackgroundAgentListIndex({ directory, readState: reader() });
+
+    const unchangedReader = reader();
+    const result = loadBackgroundAgentListIndex({
+      directory,
+      readState: unchangedReader,
+    });
+    expect(result.source).toBe("index");
+    expect(unchangedReader).not.toHaveBeenCalled();
+
+    const { pages, lastPage } = paginate(result.entries, 2);
+    expect([...pages.flat()].map((entry) => entry.id)).toEqual([
+      "bg-a",
+      "bg-b",
+      "bg-c",
+    ]);
+    expect(lastPage.map((entry) => entry.id)).toEqual(["bg-c"]);
+  });
+
+  it("after a delete then a write the final last page matches the full snapshot", () => {
+    writeState("bg-a");
+    writeState("bg-b");
+    writeState("bg-c");
+    loadBackgroundAgentListIndex({ directory, readState: reader() });
+
+    removeState("bg-b");
+    writeState("bg-d", { startedAt: 2 });
+    const finalReader = reader();
+    const result = loadBackgroundAgentListIndex({
+      directory,
+      readState: finalReader,
+    });
+
+    expect(result.source).toBe("rebuilt");
+    expect(result.entries.map((entry) => entry.id)).toEqual([
+      "bg-a",
+      "bg-c",
+      "bg-d",
+    ]);
+    const { pages, lastPage } = paginate(result.entries, 2);
+    expect([...pages.flat()].map((entry) => entry.id)).toEqual([
+      "bg-a",
+      "bg-c",
+      "bg-d",
+    ]);
+    expect(lastPage.map((entry) => entry.id)).toEqual(["bg-d"]);
+  });
+
+  it("a partial last page reconstructs the full list without duplication or loss", () => {
+    writeState("bg-a");
+    writeState("bg-b");
+    writeState("bg-c");
+    writeState("bg-d");
+    const result = loadBackgroundAgentListIndex({
+      directory,
+      readState: reader(),
+    });
+
+    const { pages, lastPage } = paginate(result.entries, 3);
+    expect(lastPage.map((entry) => entry.id)).toEqual(["bg-d"]);
+    const reconstructed = pages.flat().map((entry) => entry.id);
+    expect(reconstructed).toEqual(result.entries.map((entry) => entry.id));
+    expect(new Set(reconstructed).size).toBe(4);
+  });
+});

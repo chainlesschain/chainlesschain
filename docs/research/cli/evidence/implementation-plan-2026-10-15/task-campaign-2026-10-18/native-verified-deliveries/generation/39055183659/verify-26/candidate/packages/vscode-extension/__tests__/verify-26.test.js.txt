@@ -1,0 +1,104 @@
+import { describe, expect, it } from "vitest";
+import {
+  questionFields,
+  normalizeQuestionFields,
+  questionDraftText,
+} from "../src/chat/question-draft-contract.js";
+
+// Independent regression coverage for "sensitive question field exclusion".
+// Acceptance: password/writeOnly schema fields and unknown-schema JSON
+// fallbacks must never enter the persisted projection, while ordinary text
+// fields must continue to persist.
+
+function fieldKinds(request) {
+  return Object.fromEntries(questionFields(request).map((d) => [d.key, d.kind]));
+}
+
+describe("sensitive question field exclusion (verify-26)", () => {
+  // A supported schema: writeOnly is classified as a secret by the contract
+  // (the vendor treats writeOnly as invisible), while a plain string stays
+  // ordinary text.
+  const supported = {
+    type: "object",
+    properties: {
+      note: { type: "string" },
+      token: { type: "string", writeOnly: true },
+    },
+  };
+
+  it("marks writeOnly schema fields as password, keeping plain text as text", () => {
+    expect(fieldKinds({ requestedSchema: supported })).toEqual({
+      '["note"]': "text",
+      '["token"]': "password",
+    });
+  });
+
+  it("drops writeOnly values from the persisted projection but keeps text", () => {
+    const descriptors = questionFields({ requestedSchema: supported });
+    const projected = normalizeQuestionFields(descriptors, [
+      { key: '["note"]', value: "visible" },
+      { key: '["token"]', value: "writeonly-secret" },
+    ]);
+    expect(projected).toEqual([{ key: '["note"]', value: "visible" }]);
+    expect(JSON.stringify(projected)).not.toContain("writeonly-secret");
+  });
+
+  it("also excludes password fields from draft text rendering", () => {
+    const descriptors = questionFields({ requestedSchema: supported });
+    const fields = [
+      { key: '["note"]', value: "hello" },
+      { key: '["token"]', value: "secret-writeonly" },
+    ];
+    const text = questionDraftText(descriptors, fields);
+    expect(text).toContain("hello");
+    expect(text).not.toContain("secret-writeonly");
+  });
+
+  it("uses a password-kind JSON fallback for an unsupported/unknown schema", () => {
+    // A schema the MCP vocabulary cannot classify (nested object field) must
+    // keep an editable JSON fallback whose kind is password, never text.
+    const unsupported = {
+      type: "object",
+      properties: { nested: { type: "object" } },
+    };
+    const descriptors = questionFields({ requestedSchema: unsupported });
+    const fallback = descriptors.find((d) => d.key === "answer-json");
+    expect(fallback).toBeDefined();
+    expect(fallback.kind).toBe("password");
+    // The password-format string is likewise unclassifiable and must not be
+    // surfaced as an ordinary text control.
+    const passwordFormat = {
+      type: "object",
+      properties: { pin: { type: "string", format: "password" } },
+    };
+    const pw = questionFields({ requestedSchema: passwordFormat });
+    expect(pw).toEqual([
+      { key: "answer-json", label: "Answer", kind: "password" },
+    ]);
+  });
+
+  it("does not persist unknown-schema JSON fallback values", () => {
+    const unsupported = {
+      type: "object",
+      properties: { nested: { type: "object" } },
+    };
+    const descriptors = questionFields({ requestedSchema: unsupported });
+    const projected = normalizeQuestionFields(descriptors, [
+      { key: "answer-json", value: "hidden-json-body" },
+    ]);
+    expect(projected).toEqual([]);
+    expect(JSON.stringify(projected)).not.toContain("hidden-json-body");
+  });
+
+  it("persists an ordinary text answer for a schema-less question (positive control)", () => {
+    const descriptors = questionFields({});
+    expect(descriptors).toEqual([
+      { key: "answer", label: "Answer", kind: "text" },
+    ]);
+    const projected = normalizeQuestionFields(descriptors, [
+      { key: "answer", value: "plain answer" },
+    ]);
+    expect(projected).toEqual([{ key: "answer", value: "plain answer" }]);
+    expect(questionDraftText(descriptors, projected)).toBe("Answer: plain answer");
+  });
+});

@@ -1,0 +1,142 @@
+import { afterEach, describe, expect, it } from "vitest";
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  writeFileSync,
+  readdirSync,
+  rmSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { applyMemoryCommand } from "@chainlesschain/context-memory-kernel";
+import { createDurableMemoryFixture } from "../scripts/persistent-capacity-benchmark.mjs";
+import {
+  SegmentedMemoryPort,
+  SEGMENTED_STORE_SCHEMA,
+} from "../src/lib/context-memory-kernel/segmented-memory-port.js";
+
+const roots = [];
+function location() {
+  const root = mkdtempSync(join(tmpdir(), "cc-verify21-"));
+  roots.push(root);
+  return join(root, "authority.json");
+}
+function reinforce(record) {
+  return applyMemoryCommand(record, {
+    type: "reinforce",
+    expectedRevision: record.revision,
+    confidenceDelta: 0.01,
+    authority: "test",
+    at: "2026-10-04T00:00:00.000Z",
+  });
+}
+// Capture every directory entry name and the exact bytes of each file.
+function snapshotDirectory(directory) {
+  const entries = readdirSync(directory).sort();
+  const files = {};
+  for (const name of entries) files[name] = readFileSync(join(directory, name));
+  return { entries, files };
+}
+afterEach(() => {
+  while (roots.length) rmSync(roots.pop(), { recursive: true, force: true });
+});
+
+describe("Memory shadow read performs no writes (verify-21)", () => {
+  it("v1 shadow read leaves the authority file byte-identical and does not migrate", async () => {
+    const filePath = location();
+    const state = createDurableMemoryFixture(2);
+    writeFileSync(filePath, JSON.stringify(state));
+    const before = readFileSync(filePath);
+    const shadow = new SegmentedMemoryPort({ filePath, readOnly: true });
+    expect(await shadow.query()).toHaveLength(2);
+    expect(await shadow.read(Object.values(state.records)[0].memoryId)).toEqual(
+      Object.values(state.records)[0],
+    );
+    // Legacy authority stays untouched: no migration to v2 and no shards dir.
+    expect(JSON.parse(readFileSync(filePath)).schema).not.toBe(
+      SEGMENTED_STORE_SCHEMA,
+    );
+    expect(readFileSync(filePath)).toEqual(before);
+    expect(existsSync(filePath + ".shards")).toBe(false);
+  });
+
+  it("v1 shadow read preserves records and revision; only a writable port migrates", async () => {
+    const filePath = location();
+    const state = createDurableMemoryFixture(2);
+    writeFileSync(filePath, JSON.stringify(state));
+    const shadow = new SegmentedMemoryPort({ filePath, readOnly: true });
+    expect(await shadow.getRevision()).toBe(state.storeRevision);
+    expect((await shadow.exportSnapshot()).records).toEqual(state.records);
+    expect(readFileSync(filePath)).toEqual(Buffer.from(JSON.stringify(state)));
+    // Positive control: a writable port over the same v1 authority must migrate,
+    // proving the frozen source kept a real migration path while shadow skips it.
+    await new SegmentedMemoryPort({ filePath }).query();
+    expect(JSON.parse(readFileSync(filePath)).schema).toBe(
+      SEGMENTED_STORE_SCHEMA,
+    );
+  });
+
+  it("v2 shadow read leaves manifest, shard bytes and directory entries unchanged", async () => {
+    const filePath = location();
+    const port = new SegmentedMemoryPort({ filePath });
+    const state = createDurableMemoryFixture(4);
+    await port.importSnapshot(state);
+    const authority = readFileSync(filePath);
+    const shardBefore = snapshotDirectory(port.shardDirectory);
+    const shadow = new SegmentedMemoryPort({ filePath, readOnly: true });
+    expect(await shadow.query()).toHaveLength(4);
+    expect(await shadow.exportSnapshot()).toEqual(state);
+    expect(await shadow.getRevision()).toBe(state.storeRevision);
+    expect(readFileSync(filePath)).toEqual(authority);
+    expect(snapshotDirectory(port.shardDirectory)).toEqual(shardBefore);
+  });
+
+  it("v2 shadow read never runs GC: an owned superseded shard is left intact", async () => {
+    const filePath = location();
+    const port = new SegmentedMemoryPort({ filePath });
+    const state = createDurableMemoryFixture(3);
+    await port.importSnapshot(state);
+    // Plant an owned-format orphan (bucket "aa" + 64 hex) that a writable
+    // collector (_collect) would purge. The shadow must leave it untouched.
+    const orphan = `aa-${"a".repeat(64)}.json`;
+    writeFileSync(join(port.shardDirectory, orphan), "superseded");
+    const before = snapshotDirectory(port.shardDirectory);
+    const shadow = new SegmentedMemoryPort({ filePath, readOnly: true });
+    expect(await shadow.query()).toHaveLength(3);
+    expect(snapshotDirectory(port.shardDirectory)).toEqual(before);
+    expect(readFileSync(join(port.shardDirectory, orphan))).toEqual(
+      Buffer.from("superseded"),
+    );
+  });
+
+  it("shadow read rejects writes with READ_ONLY and leaves v2 untouched", async () => {
+    const filePath = location();
+    const port = new SegmentedMemoryPort({ filePath });
+    const state = createDurableMemoryFixture(2);
+    await port.importSnapshot(state);
+    const authority = readFileSync(filePath);
+    const shardBefore = snapshotDirectory(port.shardDirectory);
+    const shadow = new SegmentedMemoryPort({ filePath, readOnly: true });
+    await expect(
+      shadow.commit(reinforce(Object.values(state.records)[0]), 1),
+    ).rejects.toMatchObject({ code: "CONTEXT_MEMORY_READ_ONLY" });
+    await expect(
+      shadow.putReconciliation({ requestId: "r", status: "pending" }),
+    ).rejects.toMatchObject({ code: "CONTEXT_MEMORY_READ_ONLY" });
+    expect(readFileSync(filePath)).toEqual(authority);
+    expect(snapshotDirectory(port.shardDirectory)).toEqual(shardBefore);
+  });
+
+  it("shadow read of a record returns it but the directory gains no entries", async () => {
+    const filePath = location();
+    const port = new SegmentedMemoryPort({ filePath });
+    const state = createDurableMemoryFixture(5);
+    await port.importSnapshot(state);
+    const target = Object.values(state.records)[0];
+    const before = snapshotDirectory(port.shardDirectory);
+    const shadow = new SegmentedMemoryPort({ filePath, readOnly: true });
+    expect(await shadow.read(target.memoryId)).toEqual(target);
+    expect(snapshotDirectory(port.shardDirectory)).toEqual(before);
+  });
+});

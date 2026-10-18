@@ -1,0 +1,192 @@
+import { describe, expect, it } from "vitest";
+import { createQuestionForms } from "../src/chat/question-form-drafts.js";
+
+/**
+ * Late draft-loading must not overwrite edits that the user makes after the
+ * form is attached but before the host's questionDraftSnapshot arrives.
+ * Controls must also be restored/captured in select/checkbox declaration order.
+ * These regression cases drive createQuestionForms directly against a minimal
+ * fake DOM/vscode host, without depending on the full ChatView pipeline.
+ */
+
+function makeControl(kind) {
+  return {
+    kind,
+    value: "",
+    checked: false,
+    disabled: false,
+    listeners: {},
+    addEventListener(type, fn) {
+      (this.listeners[type] ||= []).push(fn);
+    },
+    dispatch(type) {
+      for (const fn of this.listeners[type] || []) fn();
+    },
+  };
+}
+
+function makeCard(controls) {
+  return {
+    controls,
+    className: "approval",
+    isConnected: true,
+    note: null,
+    querySelectorAll(selector) {
+      // state() queries "input,select,textarea" and "...button"; both should
+      // resolve to the same live control list.
+      if (selector === "input,select,textarea") return controls;
+      if (selector === "input,select,textarea,button") return controls;
+      return [];
+    },
+    appendChild(el) {
+      this.note = el;
+    },
+  };
+}
+
+const draftFields = [
+  { key: "choice", kind: "select" },
+  { key: "enable", kind: "checkbox" },
+  { key: "name", kind: "text" },
+];
+
+// Identity + schema shared by the question metadata and any snapshot message.
+const identity = {
+  convId: "c1",
+  draftKey: "dk1",
+  id: "q1",
+  questionInstance: "qi1",
+  questionKey: "qk1",
+};
+
+function snapshot(fields, state = "draft") {
+  return {
+    kind: "questionDraftSnapshot",
+    ...identity,
+    state,
+    fields,
+  };
+}
+
+function setup() {
+  const sent = [];
+  let state;
+  const vscode = {
+    getState: () => state,
+    setState: (v) => {
+      state = v;
+    },
+    postMessage: (m) => sent.push(m),
+  };
+  const document = {
+    createElement(tag) {
+      return {
+        tag,
+        className: "",
+        textContent: "",
+        attributes: {},
+        setAttribute(k, v) {
+          this.attributes[k] = v;
+        },
+      };
+    },
+  };
+  const api = createQuestionForms({ document, vscode });
+  const select = makeControl("select");
+  const checkbox = makeControl("checkbox");
+  const text = makeControl("text");
+  const controls = [select, checkbox, text];
+  const card = makeCard(controls);
+  const m = {
+    ...identity,
+    questionState: "draft",
+    draftStorage: true,
+    draftFields,
+  };
+  const f = api.attach(card, m);
+  return { api, card, controls, select, checkbox, text, sent, m };
+}
+
+describe("late draft loading must not overwrite edits", () => {
+  it("preserves new text input when a late snapshot arrives", () => {
+    const { api, text, controls, m } = setup();
+    text.value = "fresh text";
+    controls[2].dispatch("input");
+    api.receive(snapshot([{ key: "name", value: "stale text" }]));
+    expect(text.value).toBe("fresh text");
+  });
+
+  it("preserves new select/checkbox edits when a late snapshot arrives", () => {
+    const { api, select, checkbox, controls, m } = setup();
+    select.value = "blue";
+    checkbox.checked = true;
+    controls[0].dispatch("change");
+    controls[1].dispatch("change");
+    api.receive(
+      snapshot([
+        { key: "choice", value: "red" },
+        { key: "enable", value: false },
+      ]),
+    );
+    expect(select.value).toBe("blue");
+    expect(checkbox.checked).toBe(true);
+  });
+
+  it("still restores untouched forms from a late snapshot (positive control)", () => {
+    const { api, select, checkbox, text } = setup();
+    api.receive(
+      snapshot([
+        { key: "choice", value: "green" },
+        { key: "enable", value: true },
+        { key: "name", value: "recovered" },
+      ]),
+    );
+    expect(select.value).toBe("green");
+    expect(checkbox.checked).toBe(true);
+    expect(text.value).toBe("recovered");
+  });
+
+  it("maps snapshot fields by key regardless of their arrival order", () => {
+    const { api, select, checkbox } = setup();
+    api.receive(
+      snapshot([
+        { key: "enable", value: true },
+        { key: "choice", value: "green" },
+      ]),
+    );
+    expect(select.value).toBe("green");
+    expect(checkbox.checked).toBe(true);
+  });
+
+  it("captures select/checkbox controls in declaration order", () => {
+    const { select, checkbox, text, controls, sent } = setup();
+    select.value = "blue";
+    checkbox.checked = true;
+    text.value = "typed";
+    controls[0].dispatch("change");
+    controls[1].dispatch("change");
+    controls[2].dispatch("input");
+    const update = sent.find((m) => m.type === "questionDraftUpdate");
+    expect(update.fields).toEqual([
+      { key: "choice", value: "blue" },
+      { key: "enable", value: true },
+      { key: "name", value: "typed" },
+    ]);
+  });
+
+  it("does not let a dirty form receive a late non-draft snapshot over edits", () => {
+    const { api, select, controls, card, text } = setup();
+    select.value = "blue";
+    controls[0].dispatch("change");
+    api.receive(snapshot([{ key: "choice", value: "red" }], "pending"));
+    // The non-draft state is applied, but the late fields must not clobber the
+    // user's selection, and the non-draft state disables further edits.
+    expect(select.value).toBe("blue");
+    expect(card.className).toBe("approval");
+    expect(select.disabled).toBe(true);
+    select.value = "overwrite?";
+    controls[0].dispatch("change");
+    expect(select.value).toBe("overwrite?");
+    expect(text.value).toBe("");
+  });
+});

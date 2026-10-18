@@ -1,0 +1,104 @@
+// Independent regression coverage (verify-01): official endpoint vs a
+// same-named custom gateway must not share official authentication, and
+// unknown windows must remain unknown. Resolution logic lives in
+// packages/cli/src/lib/model-capabilities.js; this suite imports it directly
+// and asserts only on runtime behavior, never on source text.
+import { describe, expect, it } from "vitest";
+import { resolveModelCapabilityProfile } from "../src/lib/model-capabilities.js";
+import {
+  CONTEXT_WINDOWS,
+  DOCUMENTED_OPENAI_MODELS,
+} from "../src/lib/model-context-catalog.js";
+
+describe("official endpoint and same-named custom gateway isolation", () => {
+  it("applies the official profile only at the official endpoint for a named model", () => {
+    const official = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-6-astra",
+    });
+    expect(official).toMatchObject({
+      windowAssumed: false,
+      contextWindowTokens: 1050000,
+      advertisedMaxOutputTokens: 128000,
+      runtimeProtocol: "openai-responses",
+      runtimeVerified: false,
+    });
+    expect(official.sources).toEqual(
+      DOCUMENTED_OPENAI_MODELS["gpt-6-astra"].sources,
+    );
+  });
+
+  it("does not let a same-named model reuse official authentication at a custom gateway", () => {
+    const custom = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-6-astra",
+      baseUrl: "https://gateway.example/v1",
+    });
+    expect(custom).toMatchObject({
+      contextWindowTokens: 128000,
+      windowSource: "provider-default",
+      windowAssumed: true,
+      advertisedMaxOutputTokens: null,
+      runtimeProtocol: "chat-completions",
+      runtimeVerified: false,
+      sources: [],
+    });
+  });
+
+  it("keeps official and custom resolutions distinct for the same model name", () => {
+    const official = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-6-sol",
+    });
+    const custom = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-6-sol",
+      baseUrl: "https://gateway.example/v1",
+    });
+    expect(custom.contextWindowTokens).not.toBe(official.contextWindowTokens);
+    expect(custom.windowAssumed).not.toBe(official.windowAssumed);
+    expect(custom.advertisedMaxOutputTokens).toBeNull();
+    expect(official.advertisedMaxOutputTokens).toBe(128000);
+    expect(custom.sources).toEqual([]);
+  });
+
+  it("preserves unknown windows as unknown at the official endpoint", () => {
+    for (const model of ["gpt-6-nova", "gpt-6-astra-custom", "future-model"]) {
+      const profile = resolveModelCapabilityProfile({
+        provider: "openai",
+        model,
+      });
+      expect(CONTEXT_WINDOWS).not.toHaveProperty(model);
+      expect(profile.windowAssumed).toBe(true);
+      expect(profile.windowSource).toBe("provider-default");
+      expect(profile.sources).toEqual([]);
+    }
+  });
+
+  it("preserves unknown windows as unknown at a custom gateway too", () => {
+    const profile = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "future-model",
+      baseUrl: "https://gateway.example/v1",
+    });
+    expect(profile.windowAssumed).toBe(true);
+    expect(profile.windowSource).toBe("provider-default");
+    expect(profile.advertisedMaxOutputTokens).toBeNull();
+  });
+
+  it("keeps a legacy catalog name isolated from its official docs by endpoint", () => {
+    const official = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-4o",
+    });
+    const custom = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-4o",
+      baseUrl: "https://gateway.example/v1",
+    });
+    expect(official.windowAssumed).toBe(false);
+    expect(custom.windowAssumed).toBe(true);
+    expect(custom.windowSource).toBe("legacy-catalog");
+    expect(custom.contextWindowTokens).toBe(official.contextWindowTokens);
+  });
+});

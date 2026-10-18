@@ -1,0 +1,158 @@
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { createHash } from "node:crypto";
+import observation from "../src/lib/settings-source-observation.cjs";
+
+const { observeSettingsSource } = observation;
+
+let root;
+
+beforeEach(() => {
+  root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-settings-verify16-"));
+});
+
+afterEach(() => {
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+function write(relative, value) {
+  const file = path.join(root, relative);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(
+    file,
+    typeof value === "object" && !Buffer.isBuffer(value)
+      ? JSON.stringify(value)
+      : value,
+  );
+  return file;
+}
+
+// Runs `callback` immediately after the first non-empty read of an observation,
+// simulating a concurrent source mutation before the identity checks run.
+function mutateAfterFirstRead(callback) {
+  let called = false;
+  return {
+    ...fs,
+    readSync(...args) {
+      const count = fs.readSync(...args);
+      if (count && !called) {
+        called = true;
+        callback();
+      }
+      return count;
+    },
+  };
+}
+
+function expectObservationError(fn, code) {
+  expect(() => fn()).toThrow(
+    expect.objectContaining({
+      name: "SettingsSourceObservationError",
+      code,
+    }),
+  );
+}
+
+describe("invalid settings sources fail conservatively (verify-16)", () => {
+  it("positive control: a valid source yields a fresh immutable snapshot, never a cached one", () => {
+    const bytes = '{"permissions":{"allow":["Read"]}}';
+    const file = write("settings.json", bytes);
+    const result = observeSettingsSource(file);
+    expect(result).toMatchObject({
+      exists: true,
+      byteLength: Buffer.byteLength(bytes),
+      digest: createHash("sha256").update(bytes).digest("hex"),
+      settings: { permissions: { allow: ["Read"] } },
+    });
+    expect(result.fileIdentity).not.toBeNull();
+    expect(Object.isFrozen(result)).toBe(true);
+    expect(Object.isFrozen(result.settings.permissions.allow)).toBe(true);
+    // The snapshot records what was observed now; a stale/cached result would
+    // not match the freshly computed digest and identity.
+    expect(result.digest).toBe(
+      createHash("sha256")
+        .update(fs.readFileSync(file))
+        .digest("hex"),
+    );
+  });
+
+  it("deletion between observations never returns the previous allowed settings", () => {
+    const file = write("settings.json", { permissions: { allow: ["Read"] } });
+    const before = observeSettingsSource(file);
+    expect(before.settings.permissions.allow).toEqual(["Read"]);
+    fs.rmSync(file);
+    const after = observeSettingsSource(file);
+    expect(after.exists).toBe(false);
+    expect(after.settings).toBeNull();
+    expect(after.digest).toBeNull();
+    expect(after.fileIdentity).toBeNull();
+    expect(after.byteLength).toBe(0);
+    // The old allowed result must not be reused for a now-deleted source.
+    expect(after.settings).not.toEqual(before.settings);
+  });
+
+  it("corruption between observations is rejected instead of returning the stale allowed result", () => {
+    const file = write("settings.json", { permissions: { allow: ["Read"] } });
+    const before = observeSettingsSource(file);
+    expect(before.settings.permissions.allow).toEqual(["Read"]);
+    fs.writeFileSync(file, "{");
+    expectObservationError(
+      () => observeSettingsSource(file),
+      "CC_SETTINGS_SOURCE_INVALID",
+    );
+  });
+
+  it("in-place corruption while inspecting a source is rejected as a changed source", () => {
+    const file = write("settings.json", { permissions: { allow: ["Read"] } });
+    const runtimeFs = mutateAfterFirstRead(() =>
+      fs.writeFileSync(file, "{invalid"),
+    );
+    expectObservationError(
+      () => observeSettingsSource(file, { fs: runtimeFs }),
+      "CC_SETTINGS_SOURCE_CHANGED",
+    );
+  });
+
+  it("a concurrent ABA-style replacement is rejected rather than accepting the old file's bytes", () => {
+    const file = write("settings.json", { permissions: { allow: ["Read"] } });
+    const before = observeSettingsSource(file);
+    expect(before.settings.permissions.allow).toEqual(["Read"]);
+    const replacement = write("replacement.json", {
+      permissions: { deny: ["Read"] },
+    });
+    // Swap the replacement in during the read: the observed bytes are from the
+    // original descriptor, but the path now names a different source, so the
+    // observation must fail instead of surfacing the old allowed settings.
+    const runtimeFs = mutateAfterFirstRead(() =>
+      fs.renameSync(replacement, file),
+    );
+    expectObservationError(
+      () => observeSettingsSource(file, { fs: runtimeFs }),
+      "CC_SETTINGS_SOURCE_CHANGED",
+    );
+    expect(
+      JSON.parse(fs.readFileSync(file, "utf8")).permissions.deny,
+    ).toEqual(["Read"]);
+  });
+
+  it("a parent identity change (ABA) while inspecting is rejected as a changed source", () => {
+    const first = write("first/settings.json", { permissions: { allow: ["Read"] } });
+    const second = write("second/settings.json", { permissions: { allow: ["Write"] } });
+    const alias = path.join(root, "alias");
+    const linkType = process.platform === "win32" ? "junction" : "dir";
+    fs.symlinkSync(path.dirname(first), alias, linkType);
+    const runtimeFs = mutateAfterFirstRead(() => {
+      if (process.platform === "win32") fs.rmdirSync(alias);
+      else fs.unlinkSync(alias);
+      fs.symlinkSync(path.dirname(second), alias, linkType);
+    });
+    expectObservationError(
+      () => observeSettingsSource(path.join(alias, "settings.json"), {
+        fs: runtimeFs,
+      }),
+      "CC_SETTINGS_SOURCE_CHANGED",
+    );
+  });
+});

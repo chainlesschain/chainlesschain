@@ -1,0 +1,84 @@
+/**
+ * Regression: rapid multi-image attachment budgeting.
+ *
+ * Focus: adding attachments in sequence must enforce the aggregate 20 MiB
+ * turn budget and name the *exact* offending item, without disturbing items
+ * that were already accepted. checkImageEnvelope is pure validation (no
+ * side effects), so previously-accepted attachments stay usable; a valid
+ * batch must still land as temp files.
+ */
+import { describe, expect, it, vi } from "vitest";
+import {
+  checkImageEnvelope,
+  writeImageBatch,
+  MAX_IMAGE_BYTES,
+} from "../../vscode-extension/src/chat/image-attachments.js";
+
+const png =
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+const image = { data: `data:image/png;base64,${png}` };
+
+// Build a data URL whose base64 payload decodes to `bytes` raw bytes. The
+// envelope check computes size = (chars*3)/4 - padding; with no trailing
+// "=" and a char count that is an exact multiple of 4 the decoded size equals
+// `bytes` deterministically.
+function sizedUrl(bytes) {
+  const chars = (bytes / 3) * 4;
+  return `data:image/png;base64,${"A".repeat(chars)}`;
+}
+
+const SIX_MIB = 6 * 1024 * 1024; // 6,291,456, divisible by 3
+const SEVEN_HALF_MIB = (15 * 1024 * 1024) / 2; // 7,864,320, divisible by 3
+
+describe("rapid multi-image add budget", () => {
+  it("accepts several images whose sum stays under the turn limit", () => {
+    const m = { data: sizedUrl(SIX_MIB) };
+    expect(() => checkImageEnvelope([m, m, m])).not.toThrow();
+  });
+
+  it("names the exact item that pushes the cumulative total past 20 MiB", () => {
+    // 7.5 MiB each: two fit (15 MiB), the third trips the aggregate budget.
+    const half = { data: sizedUrl(SEVEN_HALF_MIB) };
+    expect(() => checkImageEnvelope([half, half, half])).toThrow(
+      "Image 3: total attachments exceed 20 MiB",
+    );
+  });
+
+  it("reports the exact offending item when it alone exceeds the per-image limit", () => {
+    const oversized = { data: sizedUrl(MAX_IMAGE_BYTES * 2) };
+    expect(() => checkImageEnvelope([image, oversized])).toThrow(
+      "Image 2: exceeds the 20 MiB limit",
+    );
+  });
+
+  it("keeps previously-accepted attachments usable after a later rejection", () => {
+    // checkImageEnvelope is side-effect free: validating a failing batch does
+    // not invalidate items that pass on their own.
+    const half = { data: sizedUrl(SEVEN_HALF_MIB) };
+    expect(() => checkImageEnvelope([half])).not.toThrow();
+    expect(() => checkImageEnvelope([half, half, half])).toThrow(
+      "Image 3: total attachments exceed 20 MiB",
+    );
+    expect(() => checkImageEnvelope([half])).not.toThrow();
+  });
+
+  it("writes a batch that fits the aggregate budget and leaves usable files", async () => {
+    const open = vi.fn(async () => ({
+      writeFile: async () => {},
+      close: vi.fn(),
+    }));
+    const unlink = vi.fn(async () => {});
+    const files = await writeImageBatch([image, image], {
+      io: { open, unlink },
+    });
+    expect(files).toHaveLength(2);
+    expect(open).toHaveBeenCalledTimes(2);
+    expect(unlink).not.toHaveBeenCalled();
+  });
+
+  it("rejects at most 4 images before any per-image size accounting", () => {
+    expect(() => checkImageEnvelope([image, image, image, image, image])).toThrow(
+      "Attach at most 4 images per message",
+    );
+  });
+});

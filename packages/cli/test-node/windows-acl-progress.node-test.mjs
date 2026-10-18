@@ -1,5 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import storage from "../../session-core/lib/private-storage.js";
 import { diagnosticAclCommandArgs } from "../scripts/windows-acl-diagnostic-mode.mjs";
 import {
@@ -215,3 +220,65 @@ test("diagnostic overlay rejects ambiguous commands and arbitrary modes", () => 
     diagnosticAclCommandArgs(["-Command", "unused"], "arbitrary"),
   );
 });
+
+test("fixed helper reports a no-op diagnostic overlay explicitly", () => {
+  const source =
+    "$ErrorActionPreference = 'Stop'\n$env:PSModulePath = [System.IO.Path]::Combine($PSHOME, 'Modules')\nCC_WINDOWS_ACL_STAGE=";
+  for (const mode of ["inherited", "builtin"]) {
+    const result = diagnosticAclCommandArgs(["-Command", source], mode);
+    assert.equal(result.sourceUsesBuiltinModules, true);
+    assert.equal(result.effectiveBuiltinModules, true);
+    assert.equal(result.overlayApplied, false);
+    assert.equal(result.originalScriptSha256, result.executedScriptSha256);
+    assert.equal(result.args[1], source);
+  }
+});
+
+test(
+  "native single and batch ACL helpers exclude a proven untrusted cmdlet module",
+  {
+    skip: process.platform !== "win32",
+    timeout: 270000,
+  },
+  () => {
+    const root = fs.mkdtempSync(
+      path.join(os.tmpdir(), "cc-acl-module-regression-"),
+    );
+    const output = path.join(root, "report.json");
+    const result = spawnSync(
+      process.execPath,
+      [
+        fileURLToPath(
+          new URL("../scripts/windows-acl-progress-probe.mjs", import.meta.url),
+        ),
+        "--output",
+        output,
+        "--root-parent",
+        root,
+        "--untrusted-module-fixture",
+      ],
+      { encoding: "utf8", windowsHide: true, timeout: 260000 },
+    );
+    assert.equal(result.error, undefined);
+    assert.equal(result.status, 0, result.stderr);
+    const report = JSON.parse(fs.readFileSync(output, "utf8"));
+    assert.equal(report.untrustedModuleControlObserved, true);
+    assert.equal(report.untrustedModuleExcluded, true);
+    assert.equal(report.effectiveBuiltinModules, true);
+    assert.equal(
+      report.modulePathOverlayApplied,
+      false,
+      "test product scripts without an overlay",
+    );
+    assert.deepEqual(
+      report.probes.map((probe) => [probe.name, probe.passed]),
+      [
+        ["cold-profile", true],
+        ["security-anchor", true],
+        ["repeat-batch", true],
+      ],
+    );
+    assert.equal(report.probes[2].directoryWitnessesUnchanged, true);
+    assert.equal(report.probes[2].fileContentUnchanged, true);
+  },
+);

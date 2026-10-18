@@ -1,0 +1,102 @@
+/**
+ * verify-19 — 取消审批迟到回调 (cancel approval late-callback) regression.
+ *
+ * Acceptance criteria under test:
+ *   1. After a request is cancelled/settled, a *late* accept cannot authorize a
+ *      new (different) request. At the binding level this holds because every
+ *      approval request advertises a binding that fingerprints the exact tool
+ *      call (`toolCallId`) + normalized arguments + policy digest. A fresh
+ *      request therefore carries a fresh binding, and an accept whose binding
+ *      does not match the advertised one fails closed (`verifyApprovalBinding`
+ *      returns false), so a stale/replayed "yes" can never green-light a
+ *      different tool call.
+ *   2. A normal accept binds only to the original request: the request's own
+ *      advertised binding verifies against itself (and against its digest),
+ *      and only against that request.
+ *
+ * These assertions exercise the real exported primitives from
+ * src/lib/agent-authority.js — the same binding check the runtime's
+ * settleApproval uses — without importing the existing approval suite.
+ */
+import { describe, it, expect } from "vitest";
+import {
+  approvalBindingDigest,
+  verifyApprovalBinding,
+} from "../src/lib/agent-authority.js";
+
+// A request the user is being asked to approve, as advertised by the runtime.
+const originalRequest = {
+  toolCallId: "call_risky_1",
+  args: { command: "rm", path: "/tmp/data" },
+  policyDigest: "policy_digest_A",
+};
+const originalBinding = approvalBindingDigest(originalRequest);
+
+describe("verify-19 cancel approval late-callback", () => {
+  // Positive control — a normal accept carrying the original request's own
+  // binding (descriptor or its precomputed digest) binds only to the original
+  // request. This is what lets a genuine "yes" authorize the intended call.
+  it("accept bound to the original request verifies against it", () => {
+    expect(verifyApprovalBinding(originalBinding, originalRequest)).toBe(true);
+    expect(verifyApprovalBinding(originalRequest, originalBinding)).toBe(true);
+    expect(verifyApprovalBinding(originalBinding, originalBinding)).toBe(true);
+  });
+
+  // Negative control — a *new* request (e.g. one issued after the original was
+  // cancelled) has a fresh toolCallId and therefore a different binding. A
+  // late accept that still carries the ORIGINAL request's binding can never
+  // verify against the new request, so it cannot authorize it.
+  it("stale accept cannot authorize a new request after cancellation", () => {
+    const newRequest = {
+      toolCallId: "call_risky_2", // fresh id → fresh binding
+      args: { command: "rm", path: "/tmp/data" },
+      policyDigest: "policy_digest_A",
+    };
+    expect(newRequest.toolCallId).not.toBe(originalRequest.toolCallId);
+    expect(approvalBindingDigest(newRequest)).not.toBe(originalBinding);
+    // The late accept is still bound to the original (now cancelled) request:
+    expect(verifyApprovalBinding(newRequest, originalBinding)).toBe(false);
+    expect(verifyApprovalBinding(newRequest, originalRequest)).toBe(false);
+  });
+
+  // Negative control — an accept whose binding targets a different tool call
+  // (same id, tampered/substituted arguments) fails against the original.
+  // Argument tampering changes the digest, so the stale accept is rejected.
+  it("accept with substituted arguments fails to bind to the original", () => {
+    const tampered = {
+      toolCallId: "call_risky_1",
+      args: { command: "rm", path: "/etc" }, // changed target
+      policyDigest: "policy_digest_A",
+    };
+    expect(verifyApprovalBinding(originalBinding, tampered)).toBe(false);
+  });
+
+  // Negative control — an accept that carries no binding at all cannot be
+  // relied on to authorize the original request (fail closed on missing input).
+  it("accept with missing binding fails closed against the original", () => {
+    expect(verifyApprovalBinding(originalBinding, null)).toBe(false);
+    expect(verifyApprovalBinding(originalBinding, undefined)).toBe(false);
+    expect(verifyApprovalBinding(null, originalBinding)).toBe(false);
+  });
+
+  // Negative control — an accept bound to a different policy revision cannot
+  // authorize the original request; the policy that was in force at request
+  // time is part of the binding identity.
+  it("accept bound to a different policy revision cannot authorize", () => {
+    const otherPolicy = {
+      toolCallId: "call_risky_1",
+      args: { command: "rm", path: "/tmp/data" },
+      policyDigest: "policy_digest_B", // changed policy in force
+    };
+    expect(verifyApprovalBinding(originalBinding, otherPolicy)).toBe(false);
+  });
+
+  // Positive control — the original request's own digest is deterministic and
+  // unique to that request: it is self-consistent but differs from every other
+  // candidate request tested above, reinforcing "binds only to the original".
+  it("binding digest is deterministic and unique to the original request", () => {
+    const again = approvalBindingDigest(originalRequest);
+    expect(again).toBe(originalBinding);
+    expect(originalBinding.startsWith("ab_")).toBe(true);
+  });
+});

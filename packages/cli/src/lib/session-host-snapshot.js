@@ -27,6 +27,7 @@ import {
   sanitizePersistedMessages,
 } from "./session-message-provenance.js";
 import { createSessionTranscriptStructureProjection } from "./session-transcript-structure.js";
+import { projectToolRoundMessages } from "./session-tool-round.js";
 import { normalizeSessionBudgetRootConfig } from "./session-budget-production-root.js";
 import {
   createDeferredQuestionEventReducer,
@@ -86,6 +87,8 @@ function replayMessagesFromVerifiedEvents(events) {
       isReplayableMessage(event.data)
     ) {
       suffix.push(event.data);
+    } else if (event?.type === "tool_round") {
+      suffix.push(...projectToolRoundMessages(event).toReversed());
     } else if (event?.type === "ws_turn") {
       const turn = projectWsTurnMessages(event);
       if (turn) suffix.push(turn.assistant, turn.user);

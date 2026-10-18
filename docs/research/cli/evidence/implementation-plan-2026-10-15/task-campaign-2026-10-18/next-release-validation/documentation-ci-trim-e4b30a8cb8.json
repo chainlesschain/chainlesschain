@@ -1,0 +1,285 @@
+{
+  "schema": "chainlesschain.documentation-only-ci-trim/v1",
+  "at": "2026-10-18T06:43:01.411563+00:00",
+  "releaseSourceUnchanged": "d4065008bb4eff84cfc09f9361f4ae4e9de2140f",
+  "documentationCommit": "e4b30a8cb8f3281be12f5f04ebde66ab97f8b999",
+  "files": [
+    "README.md",
+    "README_EN.md",
+    "docs-site/docs/chainlesschain/agent-platform-release.md",
+    "docs-site/docs/chainlesschain/cli-ide-update-2026-10-18.md",
+    "docs-site/docs/chainlesschain/cli-runtime-current.md",
+    "docs-site/docs/chainlesschain/cli-update.md",
+    "docs-site/docs/chainlesschain/cli.md",
+    "docs-site/docs/chainlesschain/ide-bridge.md",
+    "docs-site/docs/chainlesschain/ide-plugin.md",
+    "docs-site/docs/index.md",
+    "packages/cli/README.md",
+    "packages/jetbrains-plugin/README.md",
+    "packages/vscode-extension/README.md"
+  ],
+  "requiredContextsPreserved": [
+    "PDH Data Hub Tests (ubuntu-latest)",
+    "PDH Data Hub Tests (windows-latest)",
+    "Quality Gate",
+    "Run All Tests (ubuntu-latest)",
+    "Run All Tests (windows-latest)",
+    "Lint & Format Check"
+  ],
+  "preservedWorkflows": [
+    "CI Tests",
+    "Code Quality & Security",
+    "Docs-Site Build Gate (truncated-render guard)",
+    "Full Test Automation with Diagnostics",
+    "PR Tests"
+  ],
+  "mode": "SUBMITTED",
+  "selected": [
+    {
+      "runId": 39104354970,
+      "name": "E2E Tests",
+      "status": "queued"
+    },
+    {
+      "runId": 39104354381,
+      "name": "Context Memory Kernel CI",
+      "status": "queued"
+    },
+    {
+      "runId": 39104354449,
+      "name": "CLI Clipboard Image Host Matrix",
+      "status": "queued"
+    },
+    {
+      "runId": 39104354450,
+      "name": "IDE Roadmap Safety Matrix",
+      "status": "queued"
+    },
+    {
+      "runId": 39104354486,
+      "name": "CLI Reliability Soak",
+      "status": "queued"
+    },
+    {
+      "runId": 39104354475,
+      "name": "Evolution Ledger Reliability",
+      "status": "queued"
+    },
+    {
+      "runId": 39104354499,
+      "name": "CLI Background Agent Keeper Soak",
+      "status": "queued"
+    },
+    {
+      "runId": 39104354512,
+      "name": "CLI Scheduler Kernel Soak",
+      "status": "queued"
+    },
+    {
+      "runId": 39104354531,
+      "name": "CLI Team Fairness Soak",
+      "status": "queued"
+    },
+    {
+      "runId": 39104354567,
+      "name": "CLI Native Release Readback",
+      "status": "queued"
+    },
+    {
+      "runId": 39104354490,
+      "name": "IDE Roadmap Live Provider Trajectory",
+      "status": "queued"
+    },
+    {
+      "runId": 39104354559,
+      "name": "CLI Agent Team Soak",
+      "status": "queued"
+    },
+    {
+      "runId": 39104354473,
+      "name": "IDE ARM64 Host Validation",
+      "status": "queued"
+    },
+    {
+      "runId": 39104354560,
+      "name": "CLI CI",
+      "status": "queued"
+    },
+    {
+      "runId": 39104354610,
+      "name": "CLI Strict Sandbox",
+      "status": "queued"
+    },
+    {
+      "runId": 39104354583,
+      "name": "Project Management E2E Tests",
+      "status": "queued"
+    },
+    {
+      "runId": 39104354662,
+      "name": "CLI Background Interaction E2E",
+      "status": "queued"
+    },
+    {
+      "runId": 39104354635,
+      "name": "CLI Session Host Consistency",
+      "status": "queued"
+    },
+    {
+      "runId": 39104354744,
+      "name": "CLI Session Scale",
+      "status": "queued"
+    },
+    {
+      "runId": 39104354416,
+      "name": "VERIFY01 Host Diagnostics",
+      "status": "queued"
+    },
+    {
+      "runId": 39104354627,
+      "name": "IDE Extensions",
+      "status": "queued"
+    },
+    {
+      "runId": 39104354566,
+      "name": "IDE Roadmap Accessibility Performance",
+      "status": "queued"
+    }
+  ],
+  "results": [
+    {
+      "runId": 39104354970,
+      "name": "E2E Tests",
+      "status": "queued",
+      "action": "CANCELLATION_REQUESTED"
+    },
+    {
+      "runId": 39104354381,
+      "name": "Context Memory Kernel CI",
+      "status": "queued",
+      "action": "CANCELLATION_REQUESTED"
+    },
+    {
+      "runId": 39104354449,
+      "name": "CLI Clipboard Image Host Matrix",
+      "status": "queued",
+      "action": "CANCELLATION_REQUESTED"
+    },
+    {
+      "runId": 39104354450,
+      "name": "IDE Roadmap Safety Matrix",
+      "status": "queued",
+      "action": "CANCELLATION_REQUESTED"
+    },
+    {
+      "runId": 39104354486,
+      "name": "CLI Reliability Soak",
+      "status": "queued",
+      "action": "CANCELLATION_REQUESTED"
+    },
+    {
+      "runId": 39104354475,
+      "name": "Evolution Ledger Reliability",
+      "status": "queued",
+      "action": "CANCELLATION_REQUESTED"
+    },
+    {
+      "runId": 39104354499,
+      "name": "CLI Background Agent Keeper Soak",
+      "status": "queued",
+      "action": "CANCELLATION_REQUESTED"
+    },
+    {
+      "runId": 39104354512,
+      "name": "CLI Scheduler Kernel Soak",
+      "status": "queued",
+      "action": "CANCELLATION_REQUESTED"
+    },
+    {
+      "runId": 39104354531,
+      "name": "CLI Team Fairness Soak",
+      "status": "queued",
+      "action": "CANCELLATION_REQUESTED"
+    },
+    {
+      "runId": 39104354567,
+      "name": "CLI Native Release Readback",
+      "status": "queued",
+      "action": "CANCELLATION_REQUESTED"
+    },
+    {
+      "runId": 39104354490,
+      "name": "IDE Roadmap Live Provider Trajectory",
+      "status": "queued",
+      "action": "CANCELLATION_REQUESTED"
+    },
+    {
+      "runId": 39104354559,
+      "name": "CLI Agent Team Soak",
+      "status": "queued",
+      "action": "CANCELLATION_REQUESTED"
+    },
+    {
+      "runId": 39104354473,
+      "name": "IDE ARM64 Host Validation",
+      "status": "queued",
+      "action": "CANCELLATION_REQUESTED"
+    },
+    {
+      "runId": 39104354560,
+      "name": "CLI CI",
+      "status": "queued",
+      "action": "CANCELLATION_REQUESTED"
+    },
+    {
+      "runId": 39104354610,
+      "name": "CLI Strict Sandbox",
+      "status": "queued",
+      "action": "CANCELLATION_REQUESTED"
+    },
+    {
+      "runId": 39104354583,
+      "name": "Project Management E2E Tests",
+      "status": "queued",
+      "action": "CANCELLATION_REQUESTED"
+    },
+    {
+      "runId": 39104354662,
+      "name": "CLI Background Interaction E2E",
+      "status": "queued",
+      "action": "CANCELLATION_REQUESTED"
+    },
+    {
+      "runId": 39104354635,
+      "name": "CLI Session Host Consistency",
+      "status": "queued",
+      "action": "CANCELLATION_REQUESTED"
+    },
+    {
+      "runId": 39104354744,
+      "name": "CLI Session Scale",
+      "status": "queued",
+      "action": "CANCELLATION_REQUESTED"
+    },
+    {
+      "runId": 39104354416,
+      "name": "VERIFY01 Host Diagnostics",
+      "status": "queued",
+      "action": "CANCELLATION_REQUESTED"
+    },
+    {
+      "runId": 39104354627,
+      "name": "IDE Extensions",
+      "status": "queued",
+      "action": "CANCELLATION_REQUESTED"
+    },
+    {
+      "runId": 39104354566,
+      "name": "IDE Roadmap Accessibility Performance",
+      "status": "queued",
+      "action": "COMPLETED_BEFORE_CANCEL",
+      "conclusion": "success"
+    }
+  ],
+  "status": "COMPLETED"
+}

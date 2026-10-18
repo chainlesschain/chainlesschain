@@ -1,0 +1,100 @@
+import { describe, expect, it } from "vitest";
+import { resolveModelCapabilityProfile } from "../src/lib/model-capabilities.js";
+
+// Exact model capability lookup for the documented OpenAI tool-family
+// identifiers. Only the exact documented strings are certified; any suffix or
+// alias must not be treated as a certified tool model or receive its
+// documented window / Responses protocol. Source at ../src/lib/model-capabilities.js
+describe("verify-02: exact model capability lookup", () => {
+  const CERTIFIED = [
+    ["gpt-6-astra", 1050000],
+    ["gpt-6-sol", 1050000],
+    ["gpt-6-luna", 1050000],
+  ];
+
+  it.each(CERTIFIED)(
+    "certifies the exact documented identifier %s at the official endpoint",
+    (model, windowTokens) => {
+      const profile = resolveModelCapabilityProfile({
+        provider: "openai",
+        model,
+        baseUrl: "https://api.openai.com/v1",
+      });
+      expect(profile).toMatchObject({
+        contextWindowTokens: windowTokens,
+        windowSource: "official-model-docs",
+        windowAssumed: false,
+        advertisedMaxOutputTokens: 128000,
+        runtimeProtocol: "openai-responses",
+        runtimeVerified: false,
+      });
+      expect(profile.reasoningEfforts).toContain("high");
+      expect(profile.sources).toContain(
+        `https://developers.openai.com/api/docs/models/${model}`,
+      );
+    },
+  );
+
+  it("applies distinct pricing to each certified identifier without collapsing them", () => {
+    const astra = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-6-astra",
+    });
+    const sol = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-6-sol",
+    });
+    const luna = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-6-luna",
+    });
+    expect(astra.pricing).toEqual({ in: 10, out: 50 });
+    expect(sol.pricing).toEqual({ in: 2, out: 10 });
+    expect(luna.pricing).toEqual({ in: 0.1, out: 0.5 });
+    expect(new Set([astra.digest, sol.digest, luna.digest]).size).toBe(3);
+  });
+
+  it.each([
+    "gpt-6-astra-custom",
+    "gpt-6-sol-future",
+    "gpt-6-luna-2026",
+  ])("does not certify the unknown suffix %s as a tool model", (model) => {
+    const profile = resolveModelCapabilityProfile({
+      provider: "openai",
+      model,
+    });
+    expect(profile.windowSource).toBe("provider-default");
+    expect(profile.windowAssumed).toBe(true);
+    expect(profile.contextWindowTokens).toBe(128000);
+    expect(profile.advertisedMaxOutputTokens).toBeNull();
+    expect(profile.sources).toEqual([]);
+    expect(profile.runtimeProtocol).not.toBe("openai-responses");
+    expect(profile).not.toHaveProperty("reasoningEfforts");
+  });
+
+  it("falls back generically when an unknown model is combined with an unknown provider", () => {
+    const profile = resolveModelCapabilityProfile({
+      provider: "volcengine",
+      model: "gpt-6-sol-x1",
+    });
+    expect(profile.windowSource).toBe("provider-default");
+    expect(profile.windowAssumed).toBe(true);
+    expect(profile.advertisedMaxOutputTokens).toBeNull();
+    expect(profile.runtimeProtocol).toBe("chat-completions");
+  });
+
+  it("does not infer a certified model from a differing case or an unknown provider alias", () => {
+    for (const model of ["GPT-6-ASTRA", "gpt-6-astra", " gpt-6-sol"]) {
+      expect(
+        resolveModelCapabilityProfile({ provider: "openai", model })
+          .windowSource,
+      ).toBe("provider-default");
+    }
+    expect(
+      resolveModelCapabilityProfile({
+        provider: "custom-gateway",
+        model: "gpt-6-luna",
+      }).windowSource,
+    ).toBe("generic-default");
+  });
+});

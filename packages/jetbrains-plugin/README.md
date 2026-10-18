@@ -5,11 +5,15 @@ JetBrains counterpart of the [VS Code extension](../vscode-extension/): it lets
 the ChainlessChain **`cc` agent CLI** read editor context and propose native
 diffs inside IntelliJ-platform IDEs (IDEA, PyCharm, WebStorm, …).
 
-Candidate plugin **0.4.168** recommends candidate CLI **0.166.106** and is not yet published. Current public plugin **0.4.167** pairs with CLI **0.166.105**. Configure an explicit ChainlessChain CLI path when the system `cc` is a C compiler.
+This source release **0.4.169** recommends CLI **0.166.107**, subject to exact-commit release gates and public artifact availability. Configure an explicit ChainlessChain CLI path when the system `cc` is a C compiler.
 
-As of 2026-10-18, current public versions are CLI **0.166.105**, Open VSX **0.37.150** and JetBrains **0.4.167**. The next candidates are CLI **0.166.106**, VS Code **0.37.151** and JetBrains **0.4.168**; both candidate plugins recommend CLI `.106`. These candidates are not published and require complete exact-commit release gates, CLI OIDC publication and public artifact readback before IDE release and unfinished-sample retesting. The public `.105` round completed generation and acceptance for **20/20** samples each, adding **6** candidate acceptances and **6** full-flow passes. Cumulative acceptance is **31/45** (**26/36** ordinary tasks and **5/9** first-use tasks), with **14** remaining. The original 25 accepted artifacts were reused byte-for-byte; this cross-version cumulative result is not a single-round 45/45 success. Candidates `.106/.151/.168` remain unpublished and untested on the unfinished samples. Microsoft Marketplace remains unpublished.
+**2026-10-19 preparation baseline:** verified public versions were CLI **0.166.106**, Open VSX **0.37.151** and JetBrains **0.4.168**. Generation and independent acceptance records returned for all **14/14** remaining `.106` retest samples; the newly accepted full-flow delivery was **first-run-win32-jetbrains**. Cumulative accepted deliveries are **32/45** (**26/36** ordinary tasks and **6/9** first-use tasks), leaving **13**. This cross-version cumulative coverage is not a single-round success rate, and returned acceptance records do not mean all 14 samples passed. The intended source release pairing is CLI **0.166.107**, VS Code **0.37.152** and JetBrains **0.4.169**, subject to release gates and public availability. Microsoft Marketplace was unpublished at that preparation baseline.
 
-The public 0.4.167 release restores assistant Markdown with the live renderer while preserving canonical text, session and saved-row identity. CLI 0.166.105 supplies coding guidance and safe transport diagnostics. Restart the IDE and run Doctor after upgrading. Native task and restart acceptance still require published-package retesting.
+The 2026-10-19 preparation baseline release 0.4.168 retains assistant Markdown restoration from
+0.4.167, preserving canonical text, session and saved-row identity. It pairs with
+CLI 0.166.106 and adds final-output draining and separate draft-save receipt
+updates. Restart the IDE and run Doctor after upgrading. Native task and restart
+acceptance still require published-package evidence.
 
 [Task notes and fresh-conversation handoff](../../docs/features/ide-task-worklog-user-guide.md) explains automatic Markdown checkpoints and `Continue in new chat`, introduced in `0.4.126`.
 
@@ -26,24 +30,39 @@ the _same_ lockfile and speaks the _same_ MCP protocol as the VS Code
 extension; only `ide` differs (`"jetbrains"`). Feature controls still require
 the corresponding exact-gated CLI command, as documented below.
 
-Install the public CLI with `npm i -g chainlesschain@0.166.105 --registry https://registry.npmjs.org`.
+After verifying release gates and public availability, install this release's paired CLI with `npm i -g chainlesschain@0.166.107 --registry https://registry.npmjs.org`.
 See the [upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-18.html).
 
 ## Release compatibility
 
-Plugin **0.4.168** is the current release candidate and recommends candidate CLI
-`chainlesschain@0.166.106`. Both await exact-commit validation and publication.
-Publish and verify the CLI through npm OIDC before releasing this plugin.
+Plugin **0.4.169** is this source release and recommends CLI
+`chainlesschain@0.166.107`. Installation requires exact-commit validation and public availability.
+Publish required child npm packages through GitHub Actions OIDC first and verify
+their public archives and downstream versions. Publish and read back the CLI
+before releasing this plugin. The final exact release commit must pass the
+Linux/Windows/macOS matrices, including both `CLI CI` and `CLI Strict Sandbox`
+on every configured operating system; local or older-commit checks are insufficient.
 
-The current public pairing above remains applicable until the
-candidate passes release gates and public artifact readback. Session Core
-`0.3.19` and Context/Memory Kernel `0.1.10` retain their independent versions.
+The 2026-10-19 preparation baseline paired public CLI `.106`
+with Session Core `0.3.19` and Personal Data Hub `0.4.65`. This release's CLI `.107`
+requires Session Core `0.3.20` and Personal Data Hub `0.4.66`, with
+`mailparser` pinned to `3.9.45`; Context/Memory Kernel remains `0.1.10`.
+Session Core adds ACL progress diagnostics and restricts module search to the
+running PowerShell process's built-in `$PSHOME/Modules` before the first cmdlet,
+preserving ACL checks, traversal, security boundaries, timeouts and retries.
+Paired Windows CI supports this optimization; published-package acceptance of
+the original timeout remains pending.
 Restart the IDE and run Doctor after a verified upgrade. Native task quality
 and restart acceptance require separate published-package evidence.
 
-## Previous candidates and development notes
+CLI `.107` adds durable `tool_round` session events. CLI versions before
+`0.166.107` ignore those events and can omit their tool context during resume.
+Use a compatible CLI to resume sessions written by this release. This recovery
+limitation does not change the base bridge compatibility floor.
 
-Candidate `0.4.165` recommends CLI `0.166.103` for persistent Personal Data Hub
+## Earlier releases and retained capabilities
+
+Published release `0.4.165` paired with CLI `0.166.103` for persistent Personal Data Hub
 projection recovery, consumer retirement, and bounded cleanup of historical
 receipts. Its `cc project risk-evaluate --snapshot <file>` and
 `cc project task-description-preview --snapshot <file>` commands use explicit
@@ -54,8 +73,8 @@ The plugin retains opt-in ordered raw protocol capture, bounded slow-start draft
 recovery, strict ChainlessChain command identity during setup and updates, and
 live receipt/mode capability reports in Doctor.
 
-Candidate release `0.4.165` pairs with CLI `0.166.103` after the CLI is published
-and this IDE commit passes its release gates. The paired CLI freezes unattended
+Release `0.4.165` paired with then-public CLI `0.166.103` after its release gates.
+That CLI froze unattended
 policy and tool limits, checks WebSocket host revisions, and revokes active
 shell authority when an official settings rule write starts in the same runtime.
 Official scoped permission additions and revocations also latch active shell
@@ -113,8 +132,9 @@ after this exact IDE commit passes its gates.
   fixes Node 22 hostname lookups, bounds fetch duration, and reports HTTP/network
   failures with retry guidance. The Agent retains useful evidence across compaction
   and offers recovery before stopping persistent repeated downloads.
-- Recommend `chainlesschain@0.166.103` for older installations, including when the
-  npm lookup is unavailable. Status queries and fresh log evidence remain available.
+- The 2026-10-19 preparation baseline plugin `0.4.168` used `chainlesschain@0.166.106`; this source
+  release targets `.107` after its release gates and publication. Status queries
+  and fresh log evidence remain available.
 
 ### Retained task-recovery and governance safeguards
 
@@ -133,8 +153,8 @@ after this exact IDE commit passes its gates.
 - **Slow foreground commands no longer make the persistent IDE Agent appear
   dead.** CLI `0.166.34` keeps the host lease heartbeat responsive and permits
   the unchanged live owner to recover safely after an event-loop stall.
-- If npm lookup is unavailable or stale, the plugin still treats `0.166.103` as
-  the recommended upgrade target and shows
+- If npm lookup is unavailable or stale, the plugin retains its compiled CLI
+  recommendation and shows
   `npm i -g chainlesschain@latest` to users on an older CLI.
 
 - **Evolution Workbench** presents CLI-owned candidate history, evidence and
@@ -160,7 +180,7 @@ run-now, failed-run retry, pause/resume, disable, delete, and revision-CAS
 create/edit operations through exact CLI-issued arguments. Cron, one-shot,
 webhook, and GitHub triggers share the same fail-closed surface.
 
-Candidate CLI `0.166.34` routes Graph, Team, distributed-team, Cowork, Scheduler,
+CLI `0.166.34` introduced routing of Graph, Team, distributed-team, Cowork, Scheduler,
 and App Server entry points through persisted Graph Kernel cutover authority.
 It fences stale writers and takeover/recovery receipts, preserves explicitly
 read-only legacy history, and fails closed on retired mutation paths. It also
@@ -170,7 +190,7 @@ backpressure. Structured overload responses include retry hints, and all
 initialization, heartbeat, disconnect, and late-response paths have finite
 cleanup fences.
 
-The recommended CLI pairing is `chainlesschain@0.166.103`. Candidate CLI
+This source release's CLI pairing is `chainlesschain@0.166.107`. CLI
 `0.166.34` contains the governed Automation/Routine commands, Automation Center
 v3 projection, scoped permission and side-effect authority, and shared
 permission/budget enforcement. Version `0.4.165` accepts only the exact
@@ -186,10 +206,10 @@ Version `0.4.165` also consumes only strict, CLI-issued multi-agent merge-review
 evidence. It displays stable file/hunk choices, persistent conflict explanations,
 and exact apply/rollback previews, then refreshes the evidence before executing
 the exact argv. It never runs or derives `git merge`, `merge-tree`, or
-history-rewriting rollback commands. Candidate CLI `0.166.34` provides the
+history-rewriting rollback commands. CLI `0.166.34` introduced the
 governed `team merge-review` command and exact evidence contract.
 
-Candidate CLI `0.166.34` contains the audited Artifact access, managed-copy
+CLI `0.166.34` introduced the audited Artifact access, managed-copy
 deletion settlement, orphan recovery, and durable workflow authorities used by
 `0.4.165`. The plugin continues to fail closed when an older CLI cannot provide
 the exact projection or refreshed action evidence.
@@ -208,7 +228,7 @@ managed-policy requests. It also pairs the CLI with
 `@chainlesschain/session-core@0.3.10`, including the published
 `./runtime-claims` and `./structured-evolution-memory` entry points.
 
-Candidate CLI `0.166.34` also adds lease-bound real-time teammate send/receive/ack and
+CLI `0.166.34` also introduced lease-bound real-time teammate send/receive/ack and
 follow-up tools with durable, retry-safe TeamMailbox v3 receipts. The native
 Team Monitor reports only bounded delivery health (retained, pending,
 processed, dead-letter, follow-up, recipient, byte, and pressure metadata);

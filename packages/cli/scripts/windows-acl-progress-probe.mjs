@@ -45,11 +45,41 @@ if (args[0] === "--child") {
     probes: [],
   };
   let calls = [];
+  let controlCount = 0;
   const deps = {
     fs,
     platform: () => process.platform,
     spawnSync(exe, commandArgs, options) {
       const command = diagnosticAclCommandArgs(commandArgs, modulePathMode);
+      let untrustedModuleControlObserved = null;
+      if (process.env.CC_ACL_UNTRUSTED_MODULE_MARKER) {
+        const commandIndex = commandArgs.indexOf("-Command") + 1;
+        const controlArgs = [...commandArgs];
+        const builtinLine =
+          "$env:PSModulePath = [System.IO.Path]::Combine($PSHOME, 'Modules')";
+        if (controlArgs[commandIndex].split(builtinLine).length !== 2)
+          throw new Error("Expected one product module-path initialization");
+        controlArgs[commandIndex] = controlArgs[commandIndex].replace(
+          builtinLine,
+          "",
+        );
+        const controlMarker = `${process.env.CC_ACL_UNTRUSTED_MODULE_MARKER}.control-${++controlCount}`;
+        const control = spawnSync(exe, controlArgs, {
+          ...options,
+          env: {
+            ...(options.env || process.env),
+            CC_ACL_UNTRUSTED_MODULE_MARKER: controlMarker,
+          },
+        });
+        untrustedModuleControlObserved =
+          !control.error &&
+          control.status !== 0 &&
+          fs.existsSync(controlMarker);
+        if (!untrustedModuleControlObserved)
+          throw new Error(
+            "Actual helper control did not invoke untrusted JSON cmdlet",
+          );
+      }
       const start = performance.now();
       const result = spawnSync(exe, command.args, options);
       const stages = [
@@ -62,6 +92,10 @@ if (args[0] === "--child") {
         .map((m) => ({ stage: m[1], elapsedMs: Number(m[2]) }))
         .filter((m) => m.elapsedMs <= 300000);
       calls.push({
+        untrustedModuleControlObserved,
+        sourceUsesBuiltinModules: command.sourceUsesBuiltinModules,
+        effectiveBuiltinModules: command.effectiveBuiltinModules,
+        overlayApplied: command.overlayApplied,
         originalScriptSha256: command.originalScriptSha256,
         executedScriptSha256: command.executedScriptSha256,
         elapsedMs: Math.round(performance.now() - start),
@@ -133,6 +167,14 @@ if (args[0] === "--child") {
     if (!passed) break;
   }
   report.finishedAt = new Date().toISOString();
+  report.effectiveBuiltinModules = report.probes.every(
+    (probe) =>
+      probe.calls.length > 0 &&
+      probe.calls.every((call) => call.effectiveBuiltinModules),
+  );
+  report.modulePathOverlayApplied = report.probes.some((probe) =>
+    probe.calls.some((call) => call.overlayApplied),
+  );
   process.stdout.write(JSON.stringify(report));
   process.exitCode = report.probes.every((p) => p.passed) ? 0 : 1;
 } else {
@@ -189,6 +231,28 @@ if (args[0] === "--child") {
     path.dirname(env.PSModuleAnalysisCachePath),
   ])
     fs.mkdirSync(directory, { recursive: true });
+  let untrustedModuleMarker = null;
+  if (args.includes("--untrusted-module-fixture")) {
+    // The child runs actual single/batch helper controls with only the new
+    // module-path assignment removed. This module never changes permissions.
+    const moduleRoot = path.join(root, "untrusted-modules");
+    const moduleDirectory = path.join(
+      moduleRoot,
+      "Microsoft.PowerShell.Utility",
+    );
+    fs.mkdirSync(moduleDirectory, { recursive: true });
+    fs.writeFileSync(
+      path.join(moduleDirectory, "Microsoft.PowerShell.Utility.psd1"),
+      "@{ RootModule = 'Microsoft.PowerShell.Utility.psm1'; ModuleVersion = '1.0.0'; FunctionsToExport = @('ConvertFrom-Json', 'ConvertTo-Json') }\n",
+    );
+    fs.writeFileSync(
+      path.join(moduleDirectory, "Microsoft.PowerShell.Utility.psm1"),
+      "function ConvertFrom-Json { [System.IO.File]::WriteAllText($env:CC_ACL_UNTRUSTED_MODULE_MARKER, 'loaded'); throw 'Untrusted ACL module fixture' }; function ConvertTo-Json { [System.IO.File]::WriteAllText($env:CC_ACL_UNTRUSTED_MODULE_MARKER, 'loaded'); throw 'Untrusted ACL module fixture' }; Export-ModuleMember -Function ConvertFrom-Json,ConvertTo-Json\n",
+    );
+    untrustedModuleMarker = path.join(root, "helper-module-loaded");
+    env.PSModulePath = moduleRoot;
+    env.CC_ACL_UNTRUSTED_MODULE_MARKER = untrustedModuleMarker;
+  }
   const result = spawnSync(
     process.execPath,
     [fileURLToPath(import.meta.url), "--child"],
@@ -211,13 +275,30 @@ if (args[0] === "--child") {
       status: result.status,
     };
   }
+  if (untrustedModuleMarker) {
+    report.untrustedModuleControlObserved =
+      report.probes?.length === 3 &&
+      report.probes.every(
+        (probe) =>
+          probe.calls.length > 0 &&
+          probe.calls.every(
+            (call) => call.untrustedModuleControlObserved === true,
+          ),
+      );
+    report.untrustedModuleExcluded = !fs.existsSync(untrustedModuleMarker);
+  }
   fs.writeFileSync(
     path.resolve(output),
     `${JSON.stringify(report, null, 2)}\n`,
     { flag: "wx" },
   );
   process.stdout.write(`${JSON.stringify(report)}\n`);
-  process.exitCode = result.error || result.status !== 0 ? 1 : 0;
+  process.exitCode =
+    result.error ||
+    result.status !== 0 ||
+    report.untrustedModuleExcluded === false
+      ? 1
+      : 0;
   // Preserve the private temporary profile for inspection; never recurse into
   // user state or remove directories as part of a diagnostic.
 }

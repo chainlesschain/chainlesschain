@@ -5,6 +5,10 @@ on:
     branches: [main]
     paths:
       - "packages/cli/src/**"
+      - "packages/session-core/lib/private-storage.js"
+      - "packages/cli/test-node/windows-acl-progress.node-test.mjs"
+      - "packages/cli/scripts/windows-acl-progress-probe.mjs"
+      - "packages/cli/scripts/windows-acl-diagnostic-mode.mjs"
       - "packages/context-memory-kernel/**"
       - "packages/agent-protocol/**"
       - ".github/workflows/context-memory-*.yml"
@@ -224,6 +228,10 @@ on:
     branches: [main]
     paths:
       - "packages/cli/src/**"
+      - "packages/session-core/lib/private-storage.js"
+      - "packages/cli/test-node/windows-acl-progress.node-test.mjs"
+      - "packages/cli/scripts/windows-acl-progress-probe.mjs"
+      - "packages/cli/scripts/windows-acl-diagnostic-mode.mjs"
       - "packages/context-memory-kernel/**"
       - "packages/agent-protocol/**"
       - ".github/workflows/context-memory-*.yml"
@@ -503,6 +511,9 @@ jobs:
           cache: "npm"
           cache-dependency-path: package-lock.json
       - uses: ./.github/actions/setup-node-deps
+
+      - name: Verify ACL startup boundaries at supported Node floor
+        run: node --test packages/cli/test-node/windows-acl-progress.node-test.mjs
 
       - name: Run mapped Claude security delta tests
         shell: bash

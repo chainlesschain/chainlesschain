@@ -1,0 +1,135 @@
+{
+  "schema": "chainlesschain.windows-jetbrains-acl-environment-review/v1",
+  "mode": "LOCAL_READ_ONLY_PROBE_AND_HARNESS_FIX_NOT_NATIVE_RETEST",
+  "originalRunId": "39087898779",
+  "originalExecutionSourceCommit": "8d5386c7483eac43e522b220d305660cd8ca6965",
+  "releaseCandidateCommit": "d4065008bb4eff84cfc09f9361f4ae4e9de2140f",
+  "packageComparison": {
+    "previousCli": "0.166.104",
+    "nextCli": "0.166.105",
+    "sessionCoreBoth": "0.3.19",
+    "privateStorageSourceIdentical": true,
+    "privateStorageSourcePath": "packages/session-core/lib/private-storage.js",
+    "privateStorageSourceDigest": "sha256:c9e7f476f4dde9051cb5be501e1a522f28e62a6b956fcf446abe2e30c0677eaf"
+  },
+  "originalFindings": [
+    "CLI exited before init/input at 2026-10-18T02:05:11Z with owner-only ACL repair timeout at traversal; this is a real storage startup failure.",
+    "Harness already configured CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS=60000. Effective Java child environment was not captured, so inheritance is established by source inspection only.",
+    "Later cleanup CIM snapshot timeout masked the primary error; the next two samples failed with occupied Remote Robot port 8082.",
+    "Original summary finished at 2026-10-18T02:09:22Z; native job ended at 04:16:15Z. A remaining referenced child handle is consistent with the delay; no claim of additional model work or costs is made."
+  ],
+  "originalArchivedEvidence": [
+    {
+      "stage": "generation",
+      "originalArtifactPath": "first-run-win32-jetbrains/capture/driver-failure-initial.json",
+      "archived": {
+        "path": "latest-package-round/39087898779/generation/first-run-win32-jetbrains/capture/driver-failure-initial.json.gz",
+        "originalDigest": "sha256:1d898471beaf69501fcf36a3f7647bf938e5ef7927ccde91a9cf19d7319b7768",
+        "storedDigest": "sha256:c7bfcdb2525386310791f3be9800b885462725e55aa43949aa2507a21ac59e0f",
+        "originalBytes": 1129
+      }
+    },
+    {
+      "stage": "generation",
+      "originalArtifactPath": "first-run-win32-jetbrains/cli-stderr-diagnostics/cd54949f-25fe-47f4-90b0-d1ef35d5deb3.stderr-redacted.json",
+      "archived": {
+        "path": "latest-package-round/39087898779/objects/80c6074697f73ac9ebcf8ef12cee1b845b94acb76b2a2a8c1a6bb86e592d7aee.gz",
+        "originalDigest": "sha256:ebd04513b0ffaca1f99b83f2bd34e70260b2cbefd5dbffefbda09b24584ff3ac",
+        "storedDigest": "sha256:4b161321ce00bac6df5fcd719712b01c115925f0ad912559d6e9b3c0c9f7f6a1",
+        "originalBytes": 519
+      }
+    },
+    {
+      "stage": "generation",
+      "originalArtifactPath": "first-run-win32-jetbrains/cli-stderr-diagnostics/cd54949f-25fe-47f4-90b0-d1ef35d5deb3.stderr-redacted.txt",
+      "archived": {
+        "path": "latest-package-round/39087898779/objects/b86c98cee67bcbaa59fc2c15497c717c58602198b38cb08fd723a4aef04b3f05.gz",
+        "originalDigest": "sha256:dd84deedad1d69523f6a6f7943f2c160d7d5dbfa8ef31ebf49287492eb3a5bb1",
+        "storedDigest": "sha256:2b12451368d1473c23ad904307b2e164d28c2ace2ad0c0fb8c5c30f9c4612df9",
+        "originalBytes": 187
+      }
+    }
+  ],
+  "localEnvironmentProbe": {
+    "before": {
+      "hermetic": false,
+      "workingDirectory": null,
+      "timeoutMs": 60000
+    },
+    "corrected": {
+      "hermetic": true,
+      "workingDirectory": "<sample-root>/home/.chainlesschain",
+      "timeoutMs": 60000
+    }
+  },
+  "harnessChange": {
+    "file": "packages/cli/scripts/verify01-native-task-campaign.mjs",
+    "function": "nativeEnvironment",
+    "TEMP": "<sample-root>",
+    "TMP": "<sample-root>",
+    "TMPDIR": "<sample-root>",
+    "CHAINLESSCHAIN_HOME": "<sample-root>/home/.chainlesschain",
+    "windowsAclTimeoutMs": 60000,
+    "productAclAlgorithmChanged": false
+  },
+  "localReadOnlyTraversalComparison": [
+    {
+      "label": "original/existing",
+      "expected": "accepted",
+      "status": "accepted",
+      "elapsedMs": 2133.6105000000002,
+      "totalMs": 7412
+    },
+    {
+      "label": "original/missing-descendant",
+      "expected": "accepted",
+      "status": "accepted",
+      "elapsedMs": 1722.3265000000001,
+      "totalMs": 6762
+    },
+    {
+      "label": "original/junction-descendant",
+      "expected": "rejected",
+      "status": "rejected",
+      "elapsedMs": 1632.607,
+      "totalMs": 6048
+    },
+    {
+      "label": "direct-attributes-proposal/existing",
+      "expected": "accepted",
+      "status": "accepted",
+      "elapsedMs": 233.04440000000002,
+      "totalMs": 5853
+    },
+    {
+      "label": "direct-attributes-proposal/missing-descendant",
+      "expected": "accepted",
+      "status": "accepted",
+      "elapsedMs": 351.053,
+      "totalMs": 5623
+    },
+    {
+      "label": "direct-attributes-proposal/junction-descendant",
+      "expected": "rejected",
+      "status": "rejected",
+      "elapsedMs": 343.8041,
+      "totalMs": 5340
+    }
+  ],
+  "probeSourceDigest": "sha256:ddd45291bee4d488ab16c8368c96678a2641a4ca6463334d195f69a0048af48a",
+  "proposalSourceDigest": "sha256:8f02a45600b1fb650bf5e583703605aaad6b4c5ea56e16341d316e0b19841525",
+  "proposalStatus": "NOT_IMPLEMENTED_IN_PRODUCT; full ancestor checks including reparse rejection retained in local proposal only",
+  "localRegressionTests": {
+    "command": "node --test packages/cli/test-node/verify01-native-retest-plan.node-test.mjs packages/cli/test-node/verify01-native-task-campaign.node-test.mjs",
+    "passed": 21,
+    "failed": 0,
+    "skipped": 0,
+    "coverage": "Plan shard coverage and accepted-sample exclusion; real child storage isolation and working-directory selection; existing Windows PowerShell KnownFolders and module-cache behavior; campaign selection, scope, protocol and cleanup guards"
+  },
+  "limitations": [
+    "Local runs did not reproduce the hosted runner 60-second failure.",
+    "The environment correction is verified by real child process behavior, not a successful native JetBrains task.",
+    "Real single-sample Windows JetBrains retest remains required after published packages are verified.",
+    "No product, dependency, ACL algorithm or release-candidate changes were made for this harness correction."
+  ]
+}

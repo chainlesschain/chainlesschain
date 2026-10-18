@@ -1,8 +1,8 @@
 # IDE 桥接（IDE Bridge）
 
-> 2026-10-18：当前公开版本为 CLI **0.166.105**、Open VSX **0.37.150**、JetBrains **0.4.167**。下一候选为 CLI **0.166.106**、VS Code **0.37.151**、JetBrains **0.4.168**，候选插件均推荐 CLI `.106`；候选尚未发布，须通过最终提交完整矩阵、CLI OIDC 发布及公开制品回读，再发行 IDE 并补测未合格项。公开 `.105` 轮已严格完成生成 **20/20**、验收 **20/20**，新增候选合格 **6** 项、全流程通过 **6** 项；累计合格 **31/45**（普通任务 **26/36**、首次使用 **5/9**），剩余 **14** 项。原 25 份合格产物按字节复用；跨版本累计结果不等于单轮 **45/45** 全部成功。候选 `.106/.151/.168` 尚未发布、尚未补测。Microsoft Marketplace 未发布。
+> 2026-10-19：当前已核验公开版本为 CLI **0.166.106**、Open VSX **0.37.151**、JetBrains **0.4.168**，插件配对 CLI `.106`。本轮 **14/14** 项的生成与独立验收记录均已返回，仅 **first-run-win32-jetbrains** 新增合格交付及全流程通过；累计 **32/45**（普通 **26/36**、首次 **6/9**），剩余 **13** 项。记录返回不代表 14 项全部通过，跨版本累计不等于同一版本单轮成功率。下一源码候选 CLI **0.166.107**、VS Code **0.37.152**、JetBrains **0.4.169** 尚未发布。候选子包 Session Core **0.3.20**、PDH **0.4.66** 的当前公开版本分别仍为 **0.3.19**、**0.4.65**；PDH 锁定 `mailparser@3.9.45`，Session Core 增加 ACL 进度诊断，并在首个 cmdlet 前将模块搜索限定为当前 PowerShell 进程的内置 `$PSHOME/Modules`，保持 ACL 检查、遍历、安全边界、超时和重试不变。Windows CI 配对样本支持此优化，但未复现原始 60 秒超时，该案例的公开包验收仍待完成，不能宣称所有启动超时已修复。须通过最终精确提交的 Linux/Windows/macOS 正式矩阵（CLI CI 与 CLI Strict Sandbox 均须全过），按 GitHub Actions OIDC 子包发布及核验 → CLI 发布及公开回读 → IDE 发布 → 未合格项补测执行。Microsoft Marketplace 未发布。
 
-当前安装：`npm i -g chainlesschain@0.166.105 --registry https://registry.npmjs.org`。新版 IDE 公开核验后升级并重启宿主，运行 Doctor 核对实际 CLI。详见[本轮升级指南](./cli-ide-update-2026-10-18)。
+当前安装：`npm i -g chainlesschain@0.166.106 --registry https://registry.npmjs.org`，配套已公开的 Open VSX `.151` 或 JetBrains `.168`。升级后重启宿主并运行 Doctor 核对实际 CLI；候选 `.107/.152/.169` 尚未发布。详见[本轮升级指南](./cli-ide-update-2026-10-18)。
 
 以下带日期的发布和验收记录为历史快照。
 
@@ -142,8 +142,8 @@ Activity Bar → **ChainlessChain IDE → Chat**:不开终端直接和 agent 对
 **1. 安装/升级 `cc` CLI**(实时感知/diff 审批需 ≥ 0.162.39):
 
 ```bash
-npm i -g chainlesschain@0.166.105 --registry https://registry.npmjs.org
-cc --version          # 当前公开 0.166.105；该桥接路径最低 0.162.39
+npm i -g chainlesschain@0.166.106 --registry https://registry.npmjs.org
+cc --version          # 当前公开 0.166.106；该桥接路径最低 0.162.39
 cc ide --help         # 确认有 ide 子命令
 ```
 
@@ -151,9 +151,9 @@ cc ide --help         # 确认有 ide 子命令
 
 **VS Code 及兼容编辑器**（VSCodium / Cursor / Gitpod / 通义灵码 …）
 
-- **通过 [Open VSX Registry](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide)**。版本 `0.37.150` 正在发布，公开核验后在扩展面板搜 **ChainlessChain IDE** 安装。
+- **通过 [Open VSX Registry](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide)**。版本 `0.37.151` 已公开核验，可在扩展面板搜 **ChainlessChain IDE** 安装。
   > 官方 VS Code Marketplace 暂未上架(发布受 Azure 订阅限制),所以**官方版 VS Code 里搜不到**——用上面那些兼容编辑器,或本地 `.vsix` 装(见下)。
-- _（官方 VS Code）_ 不要使用 Open VSX 页面的通用 **Install** 链接（它会跳到未上架的 Microsoft Marketplace）。待版本公开后下载 [0.37.150 VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.150/file/chainlesschain.chainlesschain-ide-0.37.150.vsix)，再运行 **Extensions: Install from VSIX...**。
+- _（官方 VS Code）_ 不要使用 Open VSX 页面的通用 **Install** 链接（它会跳到未上架的 Microsoft Marketplace）。下载公开的 [0.37.151 VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.151/file/chainlesschain.chainlesschain-ide-0.37.151.vsix)，再运行 **Extensions: Install from VSIX...**。
 - _（源码 / 离线）_ 从源码打本地 `.vsix` 安装：
   ```bash
   cd packages/vscode-extension
@@ -163,7 +163,7 @@ cc ide --help         # 确认有 ide 子命令
 
 **JetBrains（IDEA / PyCharm / WebStorm …）**
 
-- **通过 JetBrains Marketplace**（`com.chainlesschain.ide`）：版本 `0.4.167` 正在发布，确认批准、上架及 ZIP 公开下载后，在 IDE 的 _Settings → Plugins → Marketplace_ 搜 **ChainlessChain IDE** 安装（2024.2+），或访问 [plugin 32208](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge)。
+- **通过 JetBrains Marketplace**（`com.chainlesschain.ide`）：版本 `0.4.168` 已公开核验，可在 IDE 的 _Settings → Plugins → Marketplace_ 搜 **ChainlessChain IDE** 安装（2024.2+），或访问 [plugin 32208](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge)。
 - 离线/源码装:`./gradlew buildPlugin` 出 `build/distributions/*.zip` → _Settings → Plugins → ⚙ → Install Plugin from Disk_。
 
 **3. 配置大模型(首次)**:VS Code 系用**命令面板**跑 **ChainlessChain: Configure LLM**

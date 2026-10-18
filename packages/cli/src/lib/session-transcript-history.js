@@ -11,6 +11,7 @@ import {
 } from "./session-transcript-page.js";
 import { createSessionHistoryOrigins } from "./session-history-origins.js";
 import { getDurableSystemMessageProvenance } from "./session-message-provenance.js";
+import { projectToolRoundMessages } from "./session-tool-round.js";
 import {
   BRANCH_HISTORY_SCHEMA,
   BRANCH_HISTORY_SYSTEM_ORIGINS_SCHEMA,
@@ -29,6 +30,7 @@ const MAX_HISTORY_RANGES = 16384;
 // Enumerate all possible display sources, including replacement snapshots.
 // Their physical sequence never changes when the selected history rewinds.
 function eventMessages(event, imported = null) {
+  if (event.type === "tool_round") return projectToolRoundMessages(event);
   if (event.type === BRANCH_HISTORY_MESSAGE)
     return imported?.kind === "archive" ? [imported.message] : [];
   if (

@@ -1,0 +1,178 @@
+// Independent regression coverage for "launch profile identity fidelity":
+// after saving and restoring a background launch profile, the reconstructed
+// policy identity is preserved, and illegal configuration values are rejected
+// (coerced to a conservative default) rather than relaxed into a permissive
+// policy. These tests exercise only the public API surface.
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import {
+  mkdirSync,
+  mkdtempSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import {
+  assessBackgroundLaunchProfileCompatibility,
+  buildArgvFromBackgroundLaunchProfile,
+  captureBackgroundLaunchProfile,
+  fingerprintBackgroundLaunchProfile,
+  normalizeBackgroundLaunchProfile,
+} from "../src/lib/background-launch-profile.js";
+
+let dir;
+let previousHome;
+
+beforeEach(() => {
+  dir = realpathSync.native(mkdtempSync(join(tmpdir(), "cc-verify36-")));
+  previousHome = process.env.CHAINLESSCHAIN_HOME;
+  process.env.CHAINLESSCHAIN_HOME = join(dir, "home");
+  mkdirSync(process.env.CHAINLESSCHAIN_HOME, { recursive: true });
+});
+
+afterEach(() => {
+  if (previousHome === undefined) delete process.env.CHAINLESSCHAIN_HOME;
+  else process.env.CHAINLESSCHAIN_HOME = previousHome;
+  rmSync(dir, { recursive: true, force: true });
+});
+
+// Capture with a stable governance so the baseline permission mode is fixed.
+function capture(argv) {
+  return captureBackgroundLaunchProfile({
+    argv,
+    cwd: dir,
+    governance: {
+      permissionMode: "manual",
+      resourceBudget: { maxTurns: 12, maxCostUsd: 4.5 },
+    },
+  });
+}
+
+// A policy-heavy argv with no prompt or secrets, so a save/restore round trip
+// produces no omitted/redaction drift that could shadow a real identity change.
+function policyArgv() {
+  return [
+    "agent",
+    "--provider",
+    "openai",
+    "--model",
+    "gpt-test",
+    "--allowed-tools",
+    "read_file,run_shell",
+    "--disallowed-tools",
+    "delete_file",
+    "--permission-mode",
+    "plan",
+    "--sandbox-mode",
+    "strict",
+    "--mcp-config",
+    join(dir, "mcp.json"),
+    "--strict-mcp-config",
+    "--max-turns",
+    "8",
+    "--max-budget-usd",
+    "2.25",
+  ];
+}
+
+describe("verify-36: launch profile identity fidelity", () => {
+  it("preserves policy identity across save and restore round trip", () => {
+    // Seed an mcp config file so the source descriptor is stable and real.
+    writeFileSync(join(dir, "mcp.json"), JSON.stringify({ bearer: "mcp-secret" }));
+
+    const saved = capture(policyArgv());
+    // Persist and restore through the resume path (no prompt is re-supplied).
+    const restored = buildArgvFromBackgroundLaunchProfile(saved);
+    const recaptured = capture(restored);
+
+    // The reconstructed policy envelope must not silently drift: the identity
+    // of the persisted and restored profiles is assessed as fully compatible.
+    expect(assessBackgroundLaunchProfileCompatibility(saved, recaptured)).toEqual(
+      expect.objectContaining({ compatible: true, reasons: [] }),
+    );
+    // Re-running normalize is idempotent: the canonical identity is stable.
+    expect(fingerprintBackgroundLaunchProfile(recaptured)).toBe(
+      fingerprintBackgroundLaunchProfile(
+        normalizeBackgroundLaunchProfile(recaptured),
+      ),
+    );
+    // The restored argv still refuses to re-enter any secret.
+    expect(JSON.stringify(restored)).not.toContain("mcp-secret");
+    expect(restored).not.toContain("--api-key");
+  });
+
+  it("rejects an unknown permission mode to a conservative default, not a permissive one", () => {
+    const profile = capture(["agent", "task", "--permission-mode", "root-user"]);
+    expect(profile.permission.mode).toBe("default");
+    expect(profile.permission.mode).not.toBe("bypassPermissions");
+    expect(profile.permission.mode).not.toBe("acceptEdits");
+  });
+
+  it("rejects an unknown sandbox mode to disabled rather than an open sandbox", () => {
+    const profile = capture(["agent", "task", "--sandbox-mode", "chaos"]);
+    // Illegal mode is dropped entirely; the sandbox is not silently opened.
+    expect(profile.sandbox.mode).toBeNull();
+    expect(profile.sandbox.enabled).toBe(false);
+  });
+
+  it("rejects an unknown tri-state value to auto rather than force-enabling", () => {
+    const base = normalizeBackgroundLaunchProfile(capture(["agent", "task"]));
+    expect(base.mcp.ide).toBe("auto");
+
+    // A persisted profile carrying an illegal tri-state value is refused and
+    // never force-enabled, whether it is an unknown literal or the flag value.
+    for (const bad of ["sometimes", "force-on", "anything"]) {
+      base.mcp.ide = bad;
+      expect(normalizeBackgroundLaunchProfile(base).mcp.ide).toBe("auto");
+      expect(base.mcp.ide).not.toBe("enabled");
+    }
+  });
+
+  it("rejects an unknown persisted permission mode and keeps a permissive one explicit", () => {
+    writeFileSync(join(dir, "mcp.json"), "{}");
+    const baseline = capture(["agent", "task", "--permission-mode", "plan"]);
+
+    const persistedWithBogus = normalizeBackgroundLaunchProfile(baseline);
+    persistedWithBogus.permission.mode = "maximum-power";
+    const normalized = normalizeBackgroundLaunchProfile(persistedWithBogus);
+    expect(normalized.permission.mode).toBe("default");
+    // The rejected form never broadens the saved policy identity.
+    expect(
+      assessBackgroundLaunchProfileCompatibility(baseline, normalized),
+    ).toMatchObject({ compatible: false });
+
+    // A genuinely more permissive mode stays exactly as configured.
+    const explicit = capture([
+      "agent",
+      "task",
+      "--permission-mode",
+      "bypassPermissions",
+    ]);
+    expect(explicit.permission.mode).toBe("bypassPermissions");
+    expect(explicit.permission.mode).not.toBe("default");
+  });
+
+  it("restores illegal configuration as rejected, not loosened, through the resume argv", () => {
+    writeFileSync(join(dir, "mcp.json"), "{}");
+    const profile = capture(policyArgv());
+    // Simulate a hand-edited persisted profile with illegal permissive values.
+    profile.permission.mode = "full-access";
+    profile.sandbox.mode = "everything";
+
+    const argv = buildArgvFromBackgroundLaunchProfile(profile);
+    // Illegal values are never emitted as a loosened flag or literal...
+    expect(argv).not.toContain("full-access");
+    expect(argv).not.toContain("everything");
+    expect(argv).not.toContain("--allow-dangerous-bypass");
+    expect(argv).not.toContain("--yolo");
+    // ...and the permission mode is coerced to the conservative default.
+    expect(argv.indexOf("--permission-mode")).toBeGreaterThanOrEqual(0);
+    expect(argv[argv.indexOf("--permission-mode") + 1]).toBe("default");
+
+    // The resumed envelope reflects only the rejected (conservative) identity.
+    const rebuilt = capture(argv);
+    expect(rebuilt.permission.mode).toBe("default");
+    expect(rebuilt.sandbox.mode).toBeNull();
+  });
+});

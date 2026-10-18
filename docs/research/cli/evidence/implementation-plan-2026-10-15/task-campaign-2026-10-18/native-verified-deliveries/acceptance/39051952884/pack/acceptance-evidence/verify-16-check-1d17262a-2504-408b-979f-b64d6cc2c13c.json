@@ -1,0 +1,125 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-16",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 25,
+      "passed": 25,
+      "failed": 0
+    },
+    {
+      "kind": "candidate",
+      "total": 6,
+      "passed": 6,
+      "failed": 0
+    }
+  ],
+  "mutations": [
+    {
+      "name": "ignore-opened-source-identity-change",
+      "sourceSha256": "709981bdfc6fb925c30df6d7b77f6b799c5688a464e7d6f9104abf773c932f87",
+      "total": 6,
+      "passed": 5,
+      "failed": 1
+    }
+  ],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 120,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 632,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":25,\"numPassedTests\":25,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1792258523892,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations derives immutable settings and digest from one descriptor's exact bytes\",\"status\":\"passed\",\"title\":\"derives immutable settings and digest from one descriptor's exact bytes\",\"duration\":4.623316000000017,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations binds missing directories and a future physical target instead of dropping a candidate\",\"status\":\"passed\",\"title\":\"binds missing directories and a future physical target instead of dropping a candidate\",\"duration\":1.403587999999985,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations accepts atomic replacement between observations without pinning a permanent file inode\",\"status\":\"passed\",\"title\":\"accepts atomic replacement between observations without pinning a permanent file inode\",\"duration\":0.9682209999999998,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations rejects creation of a previously missing parent during the absence check\",\"status\":\"passed\",\"title\":\"rejects creation of a previously missing parent during the absence check\",\"duration\":0.8549170000000004,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations closes every opened descriptor even if a close fails, preserving the original read error\",\"status\":\"passed\",\"title\":\"closes every opened descriptor even if a close fails, preserving the original read error\",\"duration\":1.1101540000000227,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations rejects an in-place edit while the source is being inspected\",\"status\":\"passed\",\"title\":\"rejects an in-place edit while the source is being inspected\",\"duration\":0.6614449999999863,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations rejects a concurrent replacement or an OS refusal to perform it while the descriptor is open\",\"status\":\"passed\",\"title\":\"rejects a concurrent replacement or an OS refusal to perform it while the descriptor is open\",\"duration\":0.6849699999999928,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations keeps logical directory aliases while checking the canonical physical parent\",\"status\":\"passed\",\"title\":\"keeps logical directory aliases while checking the canonical physical parent\",\"duration\":0.9798309999999901,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations rejects a directory alias rebound to another target during the read\",\"status\":\"passed\",\"title\":\"rejects a directory alias rebound to another target during the read\",\"duration\":1.0271869999999979,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations rejects hard links and directories as settings sources\",\"status\":\"passed\",\"title\":\"rejects hard links and directories as settings sources\",\"duration\":0.5297659999999951,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations rejects a real final file symlink\",\"status\":\"passed\",\"title\":\"rejects a real final file symlink\",\"duration\":0.3941130000000044,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations rejects a dangling parent link rather than accepting its source as missing\",\"status\":\"passed\",\"title\":\"rejects a dangling parent link rather than accepting its source as missing\",\"duration\":0.45845500000001493,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations only treats ENOENT as absence and preserves other filesystem failure classifications\",\"status\":\"passed\",\"title\":\"only treats ENOENT as absence and preserves other filesystem failure classifications\",\"duration\":0.543832000000009,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations bounds both a declared large file and growth after opening\",\"status\":\"passed\",\"title\":\"bounds both a declared large file and growth after opening\",\"duration\":0.7141530000000103,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations rejects invalid UTF-8, malformed JSON or a non-object top level (0)\",\"status\":\"passed\",\"title\":\"rejects invalid UTF-8, malformed JSON or a non-object top level (0)\",\"duration\":0.6404890000000023,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations rejects invalid UTF-8, malformed JSON or a non-object top level (1)\",\"status\":\"passed\",\"title\":\"rejects invalid UTF-8, malformed JSON or a non-object top level (1)\",\"duration\":0.3560329999999965,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations rejects invalid UTF-8, malformed JSON or a non-object top level (2)\",\"status\":\"passed\",\"title\":\"rejects invalid UTF-8, malformed JSON or a non-object top level (2)\",\"duration\":0.35310400000000186,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations rejects invalid UTF-8, malformed JSON or a non-object top level (3)\",\"status\":\"passed\",\"title\":\"rejects invalid UTF-8, malformed JSON or a non-object top level (3)\",\"duration\":1.6626610000000142,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations rejects invalid UTF-8, malformed JSON or a non-object top level (4)\",\"status\":\"passed\",\"title\":\"rejects invalid UTF-8, malformed JSON or a non-object top level (4)\",\"duration\":0.5301900000000046,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations rejects invalid UTF-8, malformed JSON or a non-object top level (5)\",\"status\":\"passed\",\"title\":\"rejects invalid UTF-8, malformed JSON or a non-object top level (5)\",\"duration\":0.44181599999998866,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations rejects invalid UTF-8, malformed JSON or a non-object top level (6)\",\"status\":\"passed\",\"title\":\"rejects invalid UTF-8, malformed JSON or a non-object top level (6)\",\"duration\":0.46222499999998945,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations freezes a wide JSON object without spreading an unbounded argument list\",\"status\":\"passed\",\"title\":\"freezes a wide JSON object without spreading an unbounded argument list\",\"duration\":17.029274999999984,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations includes the complete discovered and managed inventory, including non-contributing documents\",\"status\":\"passed\",\"title\":\"includes the complete discovered and managed inventory, including non-contributing documents\",\"duration\":3.0271079999999984,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations resolves all relative candidates before a reentrant cwd change in a real Node process\",\"status\":\"passed\",\"title\":\"resolves all relative candidates before a reentrant cwd change in a real Node process\",\"duration\":26.09957400000002,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations bounds the inventory and validates paths before making any observations\",\"status\":\"passed\",\"title\":\"bounds the inventory and validates paths before making any observations\",\"duration\":0.33178600000002234,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1792258524107,\"endTime\":1792258524173.3318,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/settings-source-observation.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 573,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":6,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1792258524536,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"invalid settings sources fail conservatively (verify-16)\"],\"fullName\":\"invalid settings sources fail conservatively (verify-16) positive control: a valid source yields a fresh immutable snapshot, never a cached one\",\"status\":\"passed\",\"title\":\"positive control: a valid source yields a fresh immutable snapshot, never a cached one\",\"duration\":3.984630999999979,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"invalid settings sources fail conservatively (verify-16)\"],\"fullName\":\"invalid settings sources fail conservatively (verify-16) deletion between observations never returns the previous allowed settings\",\"status\":\"passed\",\"title\":\"deletion between observations never returns the previous allowed settings\",\"duration\":1.204845000000006,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"invalid settings sources fail conservatively (verify-16)\"],\"fullName\":\"invalid settings sources fail conservatively (verify-16) corruption between observations is rejected instead of returning the stale allowed result\",\"status\":\"passed\",\"title\":\"corruption between observations is rejected instead of returning the stale allowed result\",\"duration\":1.2321780000000047,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"invalid settings sources fail conservatively (verify-16)\"],\"fullName\":\"invalid settings sources fail conservatively (verify-16) in-place corruption while inspecting a source is rejected as a changed source\",\"status\":\"passed\",\"title\":\"in-place corruption while inspecting a source is rejected as a changed source\",\"duration\":0.7690399999999897,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"invalid settings sources fail conservatively (verify-16)\"],\"fullName\":\"invalid settings sources fail conservatively (verify-16) a concurrent ABA-style replacement is rejected rather than accepting the old file's bytes\",\"status\":\"passed\",\"title\":\"a concurrent ABA-style replacement is rejected rather than accepting the old file's bytes\",\"duration\":0.9724840000000086,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"invalid settings sources fail conservatively (verify-16)\"],\"fullName\":\"invalid settings sources fail conservatively (verify-16) a parent identity change (ABA) while inspecting is rejected as a changed source\",\"status\":\"passed\",\"title\":\"a parent identity change (ABA) while inspecting is rejected as a changed source\",\"duration\":0.8236119999999971,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1792258524718,\"endTime\":1792258524726.8237,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-16.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/packages/cli/src/lib/settings-source-observation.cjs"
+      ],
+      "setup": false,
+      "ms": 124,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 573,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":0,\"numFailedTestSuites\":2,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":5,\"numFailedTests\":1,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1792258525235,\"success\":false,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"invalid settings sources fail conservatively (verify-16)\"],\"fullName\":\"invalid settings sources fail conservatively (verify-16) positive control: a valid source yields a fresh immutable snapshot, never a cached one\",\"status\":\"passed\",\"title\":\"positive control: a valid source yields a fresh immutable snapshot, never a cached one\",\"duration\":3.861680999999976,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"invalid settings sources fail conservatively (verify-16)\"],\"fullName\":\"invalid settings sources fail conservatively (verify-16) deletion between observations never returns the previous allowed settings\",\"status\":\"passed\",\"title\":\"deletion between observations never returns the previous allowed settings\",\"duration\":1.1272530000000245,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"invalid settings sources fail conservatively (verify-16)\"],\"fullName\":\"invalid settings sources fail conservatively (verify-16) corruption between observations is rejected instead of returning the stale allowed result\",\"status\":\"passed\",\"title\":\"corruption between observations is rejected instead of returning the stale allowed result\",\"duration\":1.170597000000015,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"invalid settings sources fail conservatively (verify-16)\"],\"fullName\":\"invalid settings sources fail conservatively (verify-16) in-place corruption while inspecting a source is rejected as a changed source\",\"status\":\"passed\",\"title\":\"in-place corruption while inspecting a source is rejected as a changed source\",\"duration\":0.7180299999999988,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"invalid settings sources fail conservatively (verify-16)\"],\"fullName\":\"invalid settings sources fail conservatively (verify-16) a concurrent ABA-style replacement is rejected rather than accepting the old file's bytes\",\"status\":\"failed\",\"title\":\"a concurrent ABA-style replacement is rejected rather than accepting the old file's bytes\",\"duration\":6.168724000000026,\"failureMessages\":[\"AssertionError: expected function to throw an error, but it didn't\\n    at expectObservationError (/workspace/packages/cli/__tests__/verify-16.test.js:50:22)\\n    at /workspace/packages/cli/__tests__/verify-16.test.js:131:5\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"invalid settings sources fail conservatively (verify-16)\"],\"fullName\":\"invalid settings sources fail conservatively (verify-16) a parent identity change (ABA) while inspecting is rejected as a changed source\",\"status\":\"passed\",\"title\":\"a parent identity change (ABA) while inspecting is rejected as a changed source\",\"duration\":3.236822999999987,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1792258525412,\"endTime\":1792258525428.2368,\"status\":\"failed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-16.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": true,
+  "detail": "Independent operator checks passed; this is not a provider or task-outcome sample."
+}

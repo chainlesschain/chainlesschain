@@ -1,0 +1,118 @@
+import { describe, expect, it } from "vitest";
+import { resolveModelCapabilityProfile } from "../src/lib/model-capabilities.js";
+
+// verify-01: Official endpoint vs same-named custom gateway isolation.
+// A model name served at an official endpoint must never let a custom gateway
+// with the same name inherit official certification. The catalog (`model-
+// context-catalog.js`) feeds `resolveModelCapabilityProfile`, which must only
+// apply documented official specs when the endpoint is provably the official
+// one. Unknown windows must stay unknown (assumed, never verified).
+
+const OFFICIAL_OPENAI_V1 = "https://api.openai.com/v1";
+const CUSTOM_GATEWAY = "https://gateway.example/v1";
+
+describe("official endpoint isolation from same-named custom gateway", () => {
+  it("does not leak official openai certification to a same-named custom gateway", () => {
+    const custom = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-6-astra",
+      baseUrl: CUSTOM_GATEWAY,
+    });
+    expect(custom).toMatchObject({
+      contextWindowTokens: 128000,
+      windowSource: "provider-default",
+      windowAssumed: true,
+      runtimeProtocol: "chat-completions",
+      advertisedMaxOutputTokens: null,
+      sources: [],
+    });
+    // The official 1050000 window / 128000 output cap must not cross over.
+    expect(JSON.stringify(custom)).not.toContain("1050000");
+    expect(JSON.stringify(custom)).not.toContain("advertisedMaxOutputTokens\":128000");
+    expect(custom.limitations.join(" ")).toMatch(/not applied to a custom endpoint/);
+  });
+
+  it("applies official certification only at the genuine official endpoint", () => {
+    const official = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-6-astra",
+      baseUrl: OFFICIAL_OPENAI_V1,
+    });
+    expect(official).toMatchObject({
+      contextWindowTokens: 1050000,
+      windowSource: "official-model-docs",
+      windowAssumed: false,
+      runtimeProtocol: "openai-responses",
+      advertisedMaxOutputTokens: 128000,
+    });
+    expect(official.sources).toContain(
+      "https://developers.openai.com/api/docs/models/gpt-6-astra",
+    );
+  });
+
+  it("keeps the same-named anthropic model assumed on a custom gateway", () => {
+    const custom = resolveModelCapabilityProfile({
+      provider: "anthropic",
+      model: "claude-opus-5-5",
+      baseUrl: CUSTOM_GATEWAY,
+    });
+    expect(custom).toMatchObject({
+      windowAssumed: true,
+      advertisedMaxOutputTokens: null,
+      sources: [],
+    });
+    expect(JSON.stringify(custom)).not.toContain("1000000");
+  });
+
+  it("treats the volcengine doubao legacy window as assumed on every endpoint", () => {
+    for (const baseUrl of [undefined, "https://volcengine.example/v1", CUSTOM_GATEWAY]) {
+      const profile = resolveModelCapabilityProfile({
+        provider: "volcengine",
+        model: "doubao-seed-1-6-251015",
+        baseUrl,
+      });
+      expect(profile).toMatchObject({
+        contextWindowTokens: 32768,
+        windowSource: "legacy-catalog",
+        windowAssumed: true,
+        runtimeProtocol: "chat-completions",
+        advertisedMaxOutputTokens: null,
+        sources: [],
+      });
+      // Never claims verified official documentation for the doubao name.
+      expect(JSON.stringify(profile)).not.toContain("official-model-docs");
+    }
+  });
+
+  it("does not certify an unknown volcengine model window (stays unknown)", () => {
+    const profile = resolveModelCapabilityProfile({
+      provider: "volcengine",
+      model: "future-doubao-unknown",
+    });
+    expect(profile).toMatchObject({
+      contextWindowTokens: 32768,
+      windowSource: "provider-default",
+      windowAssumed: true,
+      advertisedMaxOutputTokens: null,
+      sources: [],
+    });
+    expect(profile.limitations.join(" ")).toMatch(/planning estimate/);
+  });
+
+  it("keeps an unknown window assumed even when routed through a custom gateway", () => {
+    const custom = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "future-unknown-9",
+      baseUrl: CUSTOM_GATEWAY,
+    });
+    expect(custom).toMatchObject({
+      contextWindowTokens: 128000,
+      windowSource: "provider-default",
+      windowAssumed: true,
+      advertisedMaxOutputTokens: null,
+      sources: [],
+    });
+    // A custom gateway does not turn an unknown model into a verified one.
+    expect(JSON.stringify(custom)).not.toContain("windowAssumed\":false");
+  });
+});

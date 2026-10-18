@@ -1,0 +1,125 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-31",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 31,
+      "passed": 31,
+      "failed": 0
+    },
+    {
+      "kind": "candidate",
+      "total": 6,
+      "passed": 6,
+      "failed": 0
+    }
+  ],
+  "mutations": [
+    {
+      "name": "leak-read-handle-on-failure",
+      "sourceSha256": "85b4d79f7c3f29a92887d408c99545fbe431416b47b6b582b4a5c32066dc8049",
+      "total": 6,
+      "passed": 2,
+      "failed": 4
+    }
+  ],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 122,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 2140,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":6,\"numPassedTestSuites\":6,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":31,\"numPassedTests\":31,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1792258614339,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"durable composer storage\"],\"fullName\":\"durable composer storage commits an empty manifest before image cleanup and completes cleanup after page replacement\",\"status\":\"passed\",\"title\":\"commits an empty manifest before image cleanup and completes cleanup after page replacement\",\"duration\":50.150666,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"durable composer storage\"],\"fullName\":\"durable composer storage rechecks page lifetime before rename and removes an abandoned temporary manifest\",\"status\":\"passed\",\"title\":\"rechecks page lifetime before rename and removes an abandoned temporary manifest\",\"duration\":10.18921499999999,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"durable composer storage\"],\"fullName\":\"durable composer storage recovers text and image snapshots in a fresh store, with no image data in metadata\",\"status\":\"passed\",\"title\":\"recovers text and image snapshots in a fresh store, with no image data in metadata\",\"duration\":32.21930800000007,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"durable composer storage\"],\"fullName\":\"durable composer storage saves a submitted snapshot before clearing the composer, and retains unknown sends\",\"status\":\"passed\",\"title\":\"saves a submitted snapshot before clearing the composer, and retains unknown sends\",\"duration\":63.54497700000002,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"durable composer storage\"],\"fullName\":\"durable composer storage does not silently omit missing attachments or accept a tampered snapshot\",\"status\":\"passed\",\"title\":\"does not silently omit missing attachments or accept a tampered snapshot\",\"duration\":33.01448800000003,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"durable composer storage\"],\"fullName\":\"durable composer storage retains the old draft and cleans new attachments when publishing fails\",\"status\":\"passed\",\"title\":\"retains the old draft and cleans new attachments when publishing fails\",\"duration\":58.45536699999991,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"durable composer storage\"],\"fullName\":\"durable composer storage bounds pending records and does not evict unknown inputs\",\"status\":\"passed\",\"title\":\"bounds pending records and does not evict unknown inputs\",\"duration\":8.607448999999974,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"durable composer storage\"],\"fullName\":\"durable composer storage serializes rapid edits without rewriting attachment snapshots\",\"status\":\"passed\",\"title\":\"serializes rapid edits without rewriting attachment snapshots\",\"duration\":43.499398999999926,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"host durable input lifecycle\"],\"fullName\":\"host durable input lifecycle rejects a replaced page's saves and drops delayed image writes before publication\",\"status\":\"passed\",\"title\":\"rejects a replaced page's saves and drops delayed image writes before publication\",\"duration\":37.71520600000008,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"host durable input lifecycle\"],\"fullName\":\"host durable input lifecycle cancels an undispatched saved input during prepare without losing its recovery record\",\"status\":\"passed\",\"title\":\"cancels an undispatched saved input during prepare without losing its recovery record\",\"duration\":8.066412000000014,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"host durable input lifecycle\"],\"fullName\":\"host durable input lifecycle cancels an undispatched saved input during init without losing its recovery record\",\"status\":\"passed\",\"title\":\"cancels an undispatched saved input during init without losing its recovery record\",\"duration\":7.738117000000102,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"host durable input lifecycle\"],\"fullName\":\"host durable input lifecycle cancels an undispatched saved input during unknown without losing its recovery record\",\"status\":\"passed\",\"title\":\"cancels an undispatched saved input during unknown without losing its recovery record\",\"duration\":14.243392999999969,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"host durable input lifecycle\"],\"fullName\":\"host durable input lifecycle cancels an undispatched saved input during session-stop without losing its recovery record\",\"status\":\"passed\",\"title\":\"cancels an undispatched saved input during session-stop without losing its recovery record\",\"duration\":7.414838999999915,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"host durable input lifecycle\"],\"fullName\":\"host durable input lifecycle does not start the agent when the submission cannot be saved\",\"status\":\"passed\",\"title\":\"does not start the agent when the submission cannot be saved\",\"duration\":2.400843000000009,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"host durable input lifecycle\"],\"fullName\":\"host durable input lifecycle waits for init, persists UNKNOWN before writing and settles only a correlated ACK\",\"status\":\"passed\",\"title\":\"waits for init, persists UNKNOWN before writing and settles only a correlated ACK\",\"duration\":9.728310000000079,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"host durable input lifecycle\"],\"fullName\":\"host durable input lifecycle reloads a stable draft identity and reconciles read-only without starting a session\",\"status\":\"passed\",\"title\":\"reloads a stable draft identity and reconciles read-only without starting a session\",\"duration\":45.56003800000008,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"host durable input lifecycle\"],\"fullName\":\"host durable input lifecycle keeps legacy CLI and failed pipe writes unknown and recoverable\",\"status\":\"passed\",\"title\":\"keeps legacy CLI and failed pipe writes unknown and recoverable\",\"duration\":7.87487299999998,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"host durable input lifecycle\"],\"fullName\":\"host durable input lifecycle does not dispatch a saved input after its conversation is reset\",\"status\":\"passed\",\"title\":\"does not dispatch a saved input after its conversation is reset\",\"duration\":7.783655999999951,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"host durable input lifecycle\"],\"fullName\":\"host durable input lifecycle keeps closed drafts discoverable and reopens the same draft identity\",\"status\":\"passed\",\"title\":\"keeps closed drafts discoverable and reopens the same draft identity\",\"duration\":2.526722999999947,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"composer recovery in the generated Webview\"],\"fullName\":\"composer recovery in the generated Webview initializes the page and draft handshake without the secure-context randomUUID API\",\"status\":\"passed\",\"title\":\"initializes the page and draft handshake without the secure-context randomUUID API\",\"duration\":23.991371999999956,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"composer recovery in the generated Webview\"],\"fullName\":\"composer recovery in the generated Webview binds recovery actions to the current page and keeps their errors visible\",\"status\":\"passed\",\"title\":\"binds recovery actions to the current page and keeps their errors visible\",\"duration\":15.970309000000043,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"composer recovery in the generated Webview\"],\"fullName\":\"composer recovery in the generated Webview ignores previous-page image ACKs while accepting the current page's background ACK\",\"status\":\"passed\",\"title\":\"ignores previous-page image ACKs while accepting the current page's background ACK\",\"duration\":272.35381200000006,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"composer recovery in the generated Webview\"],\"fullName\":\"composer recovery in the generated Webview restores saved text and images, but never overwrites newer local edits\",\"status\":\"passed\",\"title\":\"restores saved text and images, but never overwrites newer local edits\",\"duration\":6.288538999999901,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"composer recovery in the generated Webview\"],\"fullName\":\"composer recovery in the generated Webview keeps input until a matching saved-submission ACK, including background ACKs\",\"status\":\"passed\",\"title\":\"keeps input until a matching saved-submission ACK, including background ACKs\",\"duration\":7.906020000000126,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"composer recovery in the generated Webview\"],\"fullName\":\"composer recovery in the generated Webview restores the short text backup across Webview reload and blocks missing images\",\"status\":\"passed\",\"title\":\"restores the short text backup across Webview reload and blocks missing images\",\"duration\":7.41316699999993,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1792258614882,\"endTime\":1792258615667.413,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/vscode-ext-draft-store.test.js\"},{\"assertionResults\":[{\"ancestorTitles\":[\"bounded image intake\"],\"fullName\":\"bounded image intake rejects byte and aggregate limits before allocating buffers\",\"status\":\"passed\",\"title\":\"rejects byte and aggregate limits before allocating buffers\",\"duration\":22.977512999999988,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"bounded image intake\"],\"fullName\":\"bounded image intake rejects a pixel bomb without writing files\",\"status\":\"passed\",\"title\":\"rejects a pixel bomb without writing files\",\"duration\":1.8065859999999816,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"bounded image intake\"],\"fullName\":\"bounded image intake recognizes JPEG, GIF and WebP headers without decoding pixels\",\"status\":\"passed\",\"title\":\"recognizes JPEG, GIF and WebP headers without decoding pixels\",\"duration\":1.0973960000000034,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"bounded image intake\"],\"fullName\":\"bounded image intake cleans already-owned files on write failure and reports the failing image\",\"status\":\"passed\",\"title\":\"cleans already-owned files on write failure and reports the failing image\",\"duration\":1.7696399999999812,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"bounded image intake\"],\"fullName\":\"bounded image intake keeps async image sends bound to their source tab and discards reset results\",\"status\":\"passed\",\"title\":\"keeps async image sends bound to their source tab and discards reset results\",\"duration\":14.970500000000015,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"bounded image intake\"],\"fullName\":\"bounded image intake reserves read slots before rapid drops and keeps drafts in their own tab\",\"status\":\"passed\",\"title\":\"reserves read slots before rapid drops and keeps drafts in their own tab\",\"duration\":28.54565500000001,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1792258616056,\"endTime\":1792258616127.5457,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/vscode-ext-image-budget.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 586,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":6,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1792258616517,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"snapshot failure resource cleanup\"],\"fullName\":\"snapshot failure resource cleanup closes the handle and never deletes the file on a successful read\",\"status\":\"passed\",\"title\":\"closes the handle and never deletes the file on a successful read\",\"duration\":2.475043999999997,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"snapshot failure resource cleanup\"],\"fullName\":\"snapshot failure resource cleanup still closes the handle when the read itself throws\",\"status\":\"passed\",\"title\":\"still closes the handle when the read itself throws\",\"duration\":1.5813469999999938,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"snapshot failure resource cleanup\"],\"fullName\":\"snapshot failure resource cleanup still closes the handle when reading is cancelled mid-stream\",\"status\":\"passed\",\"title\":\"still closes the handle when reading is cancelled mid-stream\",\"duration\":0.569548999999995,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"snapshot failure resource cleanup\"],\"fullName\":\"snapshot failure resource cleanup closes the handle and keeps the file when the file is detected as changed\",\"status\":\"passed\",\"title\":\"closes the handle and keeps the file when the file is detected as changed\",\"duration\":0.5733749999999986,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"snapshot failure resource cleanup\"],\"fullName\":\"snapshot failure resource cleanup rejects an unexpected size without opening a handle or deleting the file\",\"status\":\"passed\",\"title\":\"rejects an unexpected size without opening a handle or deleting the file\",\"duration\":0.4429290000000208,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"snapshot failure resource cleanup\"],\"fullName\":\"snapshot failure resource cleanup does not open a handle when already cancelled\",\"status\":\"passed\",\"title\":\"does not open a handle when already cancelled\",\"duration\":0.3961479999999824,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1792258616693,\"endTime\":1792258616698.4429,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/vscode-extension/__tests__/verify-31.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/packages/vscode-extension/src/chat/image-file-snapshot.js"
+      ],
+      "setup": false,
+      "ms": 135,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 561,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":0,\"numFailedTestSuites\":2,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":2,\"numFailedTests\":4,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1792258617210,\"success\":false,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"snapshot failure resource cleanup\"],\"fullName\":\"snapshot failure resource cleanup closes the handle and never deletes the file on a successful read\",\"status\":\"failed\",\"title\":\"closes the handle and never deletes the file on a successful read\",\"duration\":5.983558999999985,\"failureMessages\":[\"AssertionError: expected \\\"vi.fn()\\\" to be called 1 times, but got 0 times\\n    at /workspace/packages/vscode-extension/__tests__/verify-31.test.js:36:26\\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"snapshot failure resource cleanup\"],\"fullName\":\"snapshot failure resource cleanup still closes the handle when the read itself throws\",\"status\":\"failed\",\"title\":\"still closes the handle when the read itself throws\",\"duration\":1.8708730000000173,\"failureMessages\":[\"AssertionError: expected \\\"vi.fn()\\\" to be called 1 times, but got 0 times\\n    at /workspace/packages/vscode-extension/__tests__/verify-31.test.js:57:26\\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"snapshot failure resource cleanup\"],\"fullName\":\"snapshot failure resource cleanup still closes the handle when reading is cancelled mid-stream\",\"status\":\"failed\",\"title\":\"still closes the handle when reading is cancelled mid-stream\",\"duration\":0.7563710000000015,\"failureMessages\":[\"AssertionError: expected \\\"vi.fn()\\\" to be called 1 times, but got 0 times\\n    at /workspace/packages/vscode-extension/__tests__/verify-31.test.js:85:26\\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"snapshot failure resource cleanup\"],\"fullName\":\"snapshot failure resource cleanup closes the handle and keeps the file when the file is detected as changed\",\"status\":\"failed\",\"title\":\"closes the handle and keeps the file when the file is detected as changed\",\"duration\":0.8339990000000057,\"failureMessages\":[\"AssertionError: expected \\\"vi.fn()\\\" to be called 1 times, but got 0 times\\n    at /workspace/packages/vscode-extension/__tests__/verify-31.test.js:107:26\\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"snapshot failure resource cleanup\"],\"fullName\":\"snapshot failure resource cleanup rejects an unexpected size without opening a handle or deleting the file\",\"status\":\"passed\",\"title\":\"rejects an unexpected size without opening a handle or deleting the file\",\"duration\":0.6930759999999907,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"snapshot failure resource cleanup\"],\"fullName\":\"snapshot failure resource cleanup does not open a handle when already cancelled\",\"status\":\"passed\",\"title\":\"does not open a handle when already cancelled\",\"duration\":0.43116000000000554,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1792258617385,\"endTime\":1792258617395.693,\"status\":\"failed\",\"message\":\"\",\"name\":\"/workspace/packages/vscode-extension/__tests__/verify-31.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": true,
+  "detail": "Independent operator checks passed; this is not a provider or task-outcome sample."
+}

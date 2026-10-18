@@ -46,6 +46,7 @@ import {
   buildReadFileOutline,
 } from "../lib/read-file-page.js";
 import { ReadFileLoopGuard } from "../lib/read-file-loop-guard.js";
+const READ_FILE_REQUEST_CONTEXT = Symbol("read-file-request-context");
 import { gitToolInputError } from "../lib/git-tool-input.js";
 import { shellOutputPage, shellOutputPreview } from "../lib/shell-output.js";
 import { DIAGNOSTIC_WORKFLOW_GUIDANCE } from "../lib/diagnostic-workflow.js";
@@ -232,7 +233,10 @@ import {
   formatStructuredHandoff,
 } from "../harness/structured-handoff.js";
 import { isMcpRpcError } from "../harness/mcp-client.js";
-import { projectCanonicalResumeMessages } from "../lib/session-message-provenance.js";
+import {
+  projectCanonicalResumeMessages,
+  markRuntimeOnlySessionMessage,
+} from "../lib/session-message-provenance.js";
 import { releaseOldLiveSessionResults } from "../lib/session-runtime-retention.js";
 import {
   pathMatchesOpenedFileIdentitySync,
@@ -4935,7 +4939,19 @@ export async function _withPostEditDiagnostics(
   // Parsing the bytes we just wrote is safe even when starting a language
   // server is forbidden. Feed definite local import mistakes back in the same
   // tool result; a successful write still means persistence, not test success.
-  let enriched = result;
+  let enriched =
+    result?.success === true && typeof writtenContent === "string"
+      ? {
+          ...result,
+          validation: {
+            persisted: true,
+            testsExecuted: false,
+            relativeImports: "not-checked",
+            message:
+              "File saved. This file operation did not run tests. Any import feedback checks explicit JavaScript relative references only and does not establish test or task acceptance.",
+          },
+        }
+      : result;
   if (
     result?.success === true &&
     typeof writtenContent === "string" &&
@@ -4956,9 +4972,21 @@ export async function _withPostEditDiagnostics(
           content: writtenContent,
           workspaceRoot: root,
         });
+        enriched = {
+          ...enriched,
+          validation: {
+            ...enriched.validation,
+            relativeImports: checked.status,
+            checkedReferences: checked.checkedReferences,
+            uncheckedReferences: checked.uncheckedReferences.length,
+            truncated: checked.truncated,
+            diagnosticsTruncated: checked.diagnostics.length > 8,
+            ...(checked.reason ? { skipReason: checked.reason } : {}),
+          },
+        };
         if (checked.diagnostics.length) {
           enriched = {
-            ...result,
+            ...enriched,
             newDiagnostics: [
               ...(result.newDiagnostics || []),
               ...checked.diagnostics.slice(0, 8),
@@ -12103,6 +12131,10 @@ export async function chatWithTools(rawMessages, options) {
     tools = projected.tools;
   }
 
+  if (options[READ_FILE_REQUEST_CONTEXT]) {
+    options[READ_FILE_REQUEST_CONTEXT].messages = messages;
+  }
+
   throwIfAborted(signal);
 
   // Host accounting starts only after request admission. A rejected model
@@ -14697,7 +14729,9 @@ export async function* agentLoop(messages, options) {
     // These tools are alternative ways to deliver content to the same target.
     // A successful explicit replacement must settle a deferred edit (and vice
     // versa); move/delete/notebook effects retain their distinct obligations.
-    const effect = ["write_file", "edit_file", "edit_file_hashed"].includes(tool)
+    const effect = ["write_file", "edit_file", "edit_file_hashed"].includes(
+      tool,
+    )
       ? "file-content"
       : tool;
     const key = JSON.stringify([effect, targets]);
@@ -15850,10 +15884,12 @@ export async function* agentLoop(messages, options) {
             // SubagentStop hooks are best-effort
           }
         }
-        messages.push({
-          role: "user",
-          content: _backgroundSubAgentResultText(entry),
-        });
+        messages.push(
+          markRuntimeOnlySessionMessage({
+            role: "user",
+            content: _backgroundSubAgentResultText(entry),
+          }),
+        );
         taskProgressTracker.retainChildResult(
           entry.id,
           {
@@ -16001,6 +16037,11 @@ export async function* agentLoop(messages, options) {
           },
         ];
       }
+    }
+    // Role normalization is request-only: durable history remains unchanged
+    // for tool settlement and canonical compaction authority comparisons.
+    if (typeof options.projectProviderMessages === "function") {
+      callMessages = options.projectProviderMessages(callMessages);
     }
     const contextMemoryTrustedSystemIndexes = [];
     if (Number.isFinite(budget.limit)) {
@@ -16197,10 +16238,15 @@ export async function* agentLoop(messages, options) {
     const requestOptions = providerRequestId
       ? { ...plannedProviderOptions, providerRequestId }
       : plannedProviderOptions;
-    const providerCallOptions =
-      evolutionIngress !== null
+    // Capture the custom adapter's input or the built-in adapter's final
+    // projection. Commit visibility only after a successful model response.
+    const readFileRequestContext = { messages: callMessages };
+    const providerCallOptions = {
+      [READ_FILE_REQUEST_CONTEXT]: readFileRequestContext,
+      ...(evolutionIngress !== null
         ? { ...requestOptions, evolutionIngress }
-        : requestOptions;
+        : requestOptions),
+    };
     const modelUsageCall = {
       type: "model-usage-started",
       callId: _newModelUsageCallId("model"),
@@ -16302,6 +16348,7 @@ export async function* agentLoop(messages, options) {
         },
         "model_error",
       );
+      readFileLoopGuard.observeVisibleMessages(readFileRequestContext.messages);
       providerReceipt = providerRequestId
         ? _snapshotProviderRequestReceipt(
             result?.providerReceipt,
@@ -16463,17 +16510,24 @@ export async function* agentLoop(messages, options) {
         );
         _throwBackgroundUsageFailureState(backgroundUsageFailureState);
         throwIfAborted(signal);
-        messages.push({ role: "assistant", content: msg.content || "" });
+        messages.push(
+          markRuntimeOnlySessionMessage({
+            role: "assistant",
+            content: msg.content || "",
+          }),
+        );
         for (const entry of _takeSettledBackgroundSubAgents(
           backgroundSubAgents,
         )) {
           _throwBackgroundSubAgentUsageFailure(entry);
-          messages.push({
-            role: "user",
-            content:
-              _backgroundSubAgentResultText(entry) +
-              "\n\nAll background sub-agents have finished. Incorporate their results and give your final answer.",
-          });
+          messages.push(
+            markRuntimeOnlySessionMessage({
+              role: "user",
+              content:
+                _backgroundSubAgentResultText(entry) +
+                "\n\nAll background sub-agents have finished. Incorporate their results and give your final answer.",
+            }),
+          );
           taskProgressTracker.retainChildResult(
             entry.id,
             {
@@ -16498,17 +16552,24 @@ export async function* agentLoop(messages, options) {
         const pending = [...pendingSubtreeMutations.values()];
         if (!subtreeMutationReprompted && budget.remaining() > 0) {
           subtreeMutationReprompted = true;
-          messages.push({ role: "assistant", content: msg.content || "" });
-          messages.push({
-            role: "user",
-            content:
-              "Runtime status: these mutations were deferred before any effect: " +
-              JSON.stringify(pending) +
-              ". Review the authoritative subtree instructions already returned. " +
-              "If still authorized and appropriate, explicitly issue the required tool call. " +
-              "Do not bypass rules or perform a prohibited write. Otherwise report the unfinished work and its blocker. " +
-              "A promise to retry does not execute the mutation.",
-          });
+          messages.push(
+            markRuntimeOnlySessionMessage({
+              role: "assistant",
+              content: msg.content || "",
+            }),
+          );
+          messages.push(
+            markRuntimeOnlySessionMessage({
+              role: "user",
+              content:
+                "Runtime status: these mutations were deferred before any effect: " +
+                JSON.stringify(pending) +
+                ". Review the authoritative subtree instructions already returned. " +
+                "If still authorized and appropriate, explicitly issue the required tool call. " +
+                "Do not bypass rules or perform a prohibited write. Otherwise report the unfinished work and its blocker. " +
+                "A promise to retry does not execute the mutation.",
+            }),
+          );
           yield {
             type: "iteration-warning",
             message:
@@ -16551,13 +16612,17 @@ export async function* agentLoop(messages, options) {
       const _contentEmpty = !String(msg.content || "").trim();
       if (_contentEmpty && _thinking && !emptyThinkingReprompted) {
         emptyThinkingReprompted = true;
-        messages.push({ role: "assistant", content: "" });
-        messages.push({
-          role: "user",
-          content:
-            "You ended your turn with only internal reasoning and no visible " +
-            "response. Please provide your actual answer now.",
-        });
+        messages.push(
+          markRuntimeOnlySessionMessage({ role: "assistant", content: "" }),
+        );
+        messages.push(
+          markRuntimeOnlySessionMessage({
+            role: "user",
+            content:
+              "You ended your turn with only internal reasoning and no visible " +
+              "response. Please provide your actual answer now.",
+          }),
+        );
         yield { type: "empty-thinking-reprompt", runId };
         continue;
       }
@@ -16614,13 +16679,20 @@ export async function* agentLoop(messages, options) {
         }
         if (stopOutcome && stopOutcome.decision === "block") {
           stopHookActive = true;
-          messages.push({ role: "assistant", content: msg.content || "" });
-          messages.push({
-            role: "user",
-            content:
-              stopOutcome.reason ||
-              "A Stop hook requested that you keep working.",
-          });
+          messages.push(
+            markRuntimeOnlySessionMessage({
+              role: "assistant",
+              content: msg.content || "",
+            }),
+          );
+          messages.push(
+            markRuntimeOnlySessionMessage({
+              role: "user",
+              content:
+                stopOutcome.reason ||
+                "A Stop hook requested that you keep working.",
+            }),
+          );
           yield {
             type: "stop-hook-continue",
             runId,

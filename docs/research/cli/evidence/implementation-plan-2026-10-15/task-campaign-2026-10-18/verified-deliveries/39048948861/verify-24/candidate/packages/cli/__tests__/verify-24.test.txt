@@ -1,0 +1,123 @@
+import { describe, expect, it } from "vitest";
+import {
+  createEvalComparison,
+  createEvalHistoryRecord,
+  EVAL_CONTEXT_SCHEMA,
+  EVAL_EXECUTION_PROTOCOL,
+  evaluateStrictEvalGate,
+} from "../src/lib/eval/evidence.js";
+
+const NOW = Date.parse("2026-09-12T12:00:00.000Z");
+const D = (character) => `sha256:${character.repeat(64)}`;
+
+/** Build a valid comparison with a distinct model/permission/runtime identity. */
+function comparison({
+  modelRevision = "test-model@revision-1",
+  environmentDigest = D("a"),
+  permissionDigest = D("b"),
+  platform = "linux",
+  arch = "x64",
+  node = "v22.22.2",
+  suite = "builtin",
+} = {}) {
+  return createEvalComparison({
+    suite,
+    corpusDigest: D("d"),
+    provider: "openai",
+    model: "test-model",
+    context: {
+      schema: EVAL_CONTEXT_SCHEMA,
+      provider: "openai",
+      model: "test-model",
+      modelRevision,
+      environmentDigest,
+      permissionDigest,
+      inferenceDigest: D("c"),
+    },
+    platform,
+    arch,
+    node,
+  });
+}
+
+function record(index, cmp) {
+  return createEvalHistoryRecord(
+    {
+      total: 2,
+      passed: 2,
+      failed: 0,
+      passRate: 1,
+      unrelatedChangeRate: 0,
+      results: ["a", "b"].map((id) => ({
+        id,
+        pass: true,
+        artifactCheckPassed: true,
+        executionSucceeded: true,
+        agentOk: true,
+        executionEvidence: {
+          protocol: EVAL_EXECUTION_PROTOCOL,
+          exitCode: 0,
+          signal: null,
+          terminalVerified: true,
+          observedFallback: false,
+        },
+        error: null,
+        detail: "checked",
+        changedFiles: [],
+        unrelatedChanges: [],
+      })),
+    },
+    {
+      comparison: cmp,
+      runId: `run-${index}`,
+      ranAt: new Date(NOW - (3 - index) * 1000).toISOString(),
+    },
+  );
+}
+
+const gate = (runs) =>
+  evaluateStrictEvalGate({ runs, issues: [] }, { now: NOW });
+
+describe("comparison identity isolation for identical tasks", () => {
+  it("passes only when the full identity is unchanged (positive control)", () => {
+    const cmp = comparison();
+    expect(gate([record(1, cmp), record(2, cmp)]).passed).toBe(true);
+  });
+
+  it.each([
+    [
+      "a different model revision",
+      (cmp) => (cmp.declared.modelRevision = "test-model@revision-2"),
+    ],
+    [
+      "a different environment digest",
+      (cmp) => (cmp.declared.environmentDigest = D("e")),
+    ],
+    [
+      "a different permission digest",
+      (cmp) => (cmp.declared.permissionDigest = D("e")),
+    ],
+    [
+      "a different runtime platform/arch",
+      (cmp) => Object.assign(cmp.runtime, { platform: "darwin", arch: "arm64" }),
+    ],
+    [
+      "a different suite identity",
+      (cmp) => (cmp.suite = "custom-suite"),
+    ],
+  ])(
+    "rejects the same tasks claimed under %s as a comparable improvement",
+    (_label, mutate) => {
+      const cmp = comparison();
+      const candidate = record(2, comparison());
+      mutate(candidate.comparison);
+      const outcome = gate([record(1, cmp), candidate]);
+      expect(outcome.passed).toBe(false);
+      expect(outcome.status).toBe("INSUFFICIENT_EVIDENCE");
+      expect(outcome.reasons).toContain("comparison_identity_changed");
+      // The change is identity, not a task regression.
+      expect(outcome.reasons).not.toContain("task_regression");
+      expect(outcome.reasons).not.toContain("candidate_tasks_failed");
+    },
+  );
+});

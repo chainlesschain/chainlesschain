@@ -1,0 +1,112 @@
+// Independent regression coverage for "official endpoint vs same-named custom
+// gateway isolation". When the same model name is resolved against the official
+// endpoint it may use the documented official capability; against a custom
+// gateway it must NOT inherit that official status. Undocumented names keep
+// their window/price unknown rather than being fabricated as official.
+import { describe, expect, it } from "vitest";
+import { resolveModelCapabilityProfile } from "../src/lib/model-capabilities.js";
+import { estimateCost, lookupRate } from "../src/lib/llm-pricing.js";
+
+describe("official endpoint vs same-named custom gateway isolation", () => {
+  it("applies the documented official capability only at the official endpoint", () => {
+    const official = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-6-astra",
+    });
+    expect(official).toMatchObject({
+      windowAssumed: false,
+      contextWindowTokens: 1050000,
+      advertisedMaxOutputTokens: 128000,
+      runtimeProtocol: "openai-responses",
+    });
+    expect(official.sources.length).toBeGreaterThan(0);
+    const gpt4o = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-4o",
+    });
+    expect(gpt4o.windowAssumed).toBe(false);
+    expect(gpt4o.windowSource).toBe("official-model-docs");
+  });
+
+  it("does not let a custom gateway borrow the official window for the same model name", () => {
+    const custom = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-6-astra",
+      baseUrl: "https://gateway.example/v1",
+    });
+    expect(custom).toMatchObject({
+      windowAssumed: true,
+      windowSource: "provider-default",
+      contextWindowTokens: 128000,
+      advertisedMaxOutputTokens: null,
+      runtimeProtocol: "chat-completions",
+    });
+    expect(custom.sources).toEqual([]);
+  });
+
+  it("keeps a same-named legacy model assumed, not official, at a custom gateway", () => {
+    const custom = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-4o",
+      baseUrl: "https://gateway.example/v1",
+    });
+    expect(custom).toMatchObject({
+      windowSource: "legacy-catalog",
+      windowAssumed: true,
+      advertisedMaxOutputTokens: null,
+    });
+    expect(custom.sources).toEqual([]);
+  });
+
+  it("prices a documented model only under its official name and provider", () => {
+    expect(lookupRate("openai", "gpt-6-sol")).toMatchObject({ in: 2, out: 10 });
+    expect(
+      estimateCost({
+        provider: "openai",
+        model: "gpt-6-sol",
+        inputTokens: 1000,
+        outputTokens: 1000,
+      }).matched,
+    ).toBe(true);
+  });
+
+  it("leaves an undocumented model window and price unknown at the official endpoint", () => {
+    const profile = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-6-sol-future",
+    });
+    expect(profile).toMatchObject({
+      windowSource: "provider-default",
+      windowAssumed: true,
+      advertisedMaxOutputTokens: null,
+    });
+    expect(profile.sources).toEqual([]);
+    expect(lookupRate("openai", "gpt-6-sol-future")).toBeNull();
+    expect(
+      estimateCost({
+        provider: "openai",
+        model: "gpt-6-sol-future",
+        inputTokens: 1000,
+        outputTokens: 1000,
+      }).matched,
+    ).toBe(false);
+  });
+
+  it("isolates same-named profiles across endpoints so official status is not shared", () => {
+    const official = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-6-astra",
+    });
+    const custom = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-6-astra",
+      baseUrl: "https://gateway.example/v1",
+    });
+    expect(official.windowAssumed).toBe(false);
+    expect(custom.windowAssumed).toBe(true);
+    expect(official.runtimeProtocol).toBe("openai-responses");
+    expect(custom.runtimeProtocol).toBe("chat-completions");
+    expect(custom.contextWindowTokens).not.toBe(official.contextWindowTokens);
+    expect(custom.digest).not.toBe(official.digest);
+  });
+});

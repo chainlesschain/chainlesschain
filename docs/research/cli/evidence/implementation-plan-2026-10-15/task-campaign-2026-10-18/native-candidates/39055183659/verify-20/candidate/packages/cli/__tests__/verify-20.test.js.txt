@@ -1,0 +1,104 @@
+import { describe, expect, it } from "vitest";
+import { buildPermissionDecision } from "../src/lib/permission-decision.js";
+
+// Regression coverage for "deny 决策不降级" (a deny decision is never
+// downgraded to allow by a later fallback in the decision derivation chain).
+// buildPermissionDecision picks decision from
+//   policy.decision || approval.decision || terminal.outcome
+// The `||` fallback must not let an explicit deny (or an unknown policy
+// value) be replaced by a lower-precedence "allow".
+
+describe("PermissionDecision deny-is-not-downgraded", () => {
+  it("keeps an explicit deny from policy over a lower-precedence allow fallback", () => {
+    const decision = buildPermissionDecision({
+      toolUseId: "tu-1",
+      tool: "run_shell",
+      result: {
+        policy: { decision: "deny", via: "policy", reason: "blocked" },
+        approval: { decision: "allow", via: "approval" },
+        permissionChain: [
+          { layer: "approval-gate", outcome: "allow", via: "approval" },
+        ],
+      },
+    });
+
+    expect(decision.decision).toBe("deny");
+    expect(decision.decision).not.toBe("allow");
+    expect(decision.via).toBe("policy");
+  });
+
+  it("keeps an explicit deny from approval when policy carries no decision", () => {
+    const decision = buildPermissionDecision({
+      toolUseId: "tu-2",
+      tool: "run_shell",
+      result: {
+        approval: { decision: "deny", via: "managed", reason: "denied" },
+        permissionChain: [
+          { layer: "approval-gate", outcome: "allow", via: "managed" },
+        ],
+      },
+    });
+
+    expect(decision.decision).toBe("deny");
+    expect(decision.decision).not.toBe("allow");
+  });
+
+  it("keeps an unknown/undecided policy value instead of rewriting it to allow", () => {
+    const decision = buildPermissionDecision({
+      toolUseId: "tu-3",
+      tool: "run_shell",
+      result: {
+        policy: { decision: "unknown", via: "managed" },
+        approval: { decision: "allow", via: "approval" },
+      },
+    });
+
+    expect(decision.decision).toBe("unknown");
+    expect(decision.decision).not.toBe("allow");
+  });
+
+  it("keeps an explicit non-allow gate value (escalate) over an allow fallback", () => {
+    const decision = buildPermissionDecision({
+      toolUseId: "tu-4",
+      tool: "run_shell",
+      result: {
+        policy: { decision: "escalate", via: "managed" },
+        approval: { decision: "allow", via: "approval" },
+      },
+    });
+
+    expect(decision.decision).toBe("escalate");
+    expect(decision.decision).not.toBe("allow");
+  });
+
+  it("keeps a deny terminal outcome when policy/approval carry no decision", () => {
+    const decision = buildPermissionDecision({
+      toolUseId: "tu-5",
+      tool: "run_shell",
+      result: {
+        permissionChain: [
+          { layer: "settings-rules", outcome: "no-match" },
+          { layer: "approval-gate", outcome: "deny", via: "managed" },
+        ],
+      },
+    });
+
+    expect(decision.decision).toBe("deny");
+    expect(decision.decision).not.toBe("allow");
+  });
+
+  it("negative control: a genuine allow decision is still reported as allow", () => {
+    const decision = buildPermissionDecision({
+      toolUseId: "tu-6",
+      tool: "run_shell",
+      result: {
+        policy: { decision: "allow", via: "managed" },
+        permissionChain: [
+          { layer: "approval-gate", outcome: "allow", via: "managed" },
+        ],
+      },
+    });
+
+    expect(decision.decision).toBe("allow");
+  });
+});

@@ -1,0 +1,49 @@
+{
+  "schema": 1,
+  "diagnosticOnly": true,
+  "releaseGate": false,
+  "originalTimeoutAcceptance": false,
+  "modelCalls": 0,
+  "runId": 39146079798,
+  "runUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/39146079798",
+  "sourceCommit": "83250c25099d02ecb26031a9190d2e5faf24f149",
+  "privateStorageSha256": "81099d3eee6a6d0cd244c35daa2e9b50b337b4b3dbcb9bc9e47ced9b83753a93",
+  "method": "Each paired sample runs both modes on the same Windows runner with separate isolated profiles. Builtin mode inserts only the PSHOME Modules PSModulePath assignment before the first cmdlet. Inherited mode executes unchanged product scripts. Original and executed script hashes are recorded per call. ACL limits remain 60000 ms without retries.",
+  "interpretation": "Supports bounding module discovery in the ACL helper. Does not reproduce or accept the original repair-write timeout and is not a release gate.",
+  "samples": [
+    {
+      "sample": 1,
+      "executionOrder": ["inherited", "builtin"],
+      "artifactId": 12143896545,
+      "reports": [
+        {
+          "path": "sample1/report-inherited.json",
+          "sha256": "ed3e90691e23718c858ab5aa4f9d28ede548141ce3a153994f22831bb4eac4e1",
+          "probeElapsedMs": [32427, 21259, 21613]
+        },
+        {
+          "path": "sample1/report-builtin.json",
+          "sha256": "cf6bd10e28e5d5f520e562c8d7c710d8b05d4c67db9bd4c6b7e26f69667670cb",
+          "probeElapsedMs": [591, 551, 659]
+        }
+      ]
+    },
+    {
+      "sample": 2,
+      "executionOrder": ["builtin", "inherited"],
+      "artifactId": 12143916336,
+      "reports": [
+        {
+          "path": "sample2/report-builtin.json",
+          "sha256": "86bcddad9285c7d4a14b87213542928205e72db2f59f3411b587fcb70c7bbc2f",
+          "probeElapsedMs": [3857, 604, 822]
+        },
+        {
+          "path": "sample2/report-inherited.json",
+          "sha256": "3e2ca13c7d13ab9856752a6336513b5c97b8412bfab68760b47f57ecbfe5564c",
+          "probeElapsedMs": [29335, 22719, 22984]
+        }
+      ]
+    }
+  ]
+}

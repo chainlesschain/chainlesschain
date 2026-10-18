@@ -73,6 +73,12 @@ import { createSessionPersistenceFailure } from "../lib/session-persistence-fail
 import { withSessionHostWriteAuthority } from "../lib/session-host-lease.js";
 import { createSessionTranscriptStructureProjection } from "../lib/session-transcript-structure.js";
 import {
+  TOOL_ROUND_EVENT,
+  TOOL_ROUND_SCHEMA,
+  assertCompleteToolRounds,
+  projectToolRoundMessages,
+} from "../lib/session-tool-round.js";
+import {
   computeExecutionLocationTargetFactsDigest,
   createExecutionLocationTargetAttestation,
   normalizeExecutionLocationBinding,
@@ -3340,11 +3346,60 @@ export function appendCompactEvent(sessionId, stats) {
 }
 
 function canonicalReplayFingerprint(messages) {
-  return JSON.stringify(
+  // Kernel serialization canonicalizes object keys; key insertion order is
+  // not a replay revision. Array order, every field and durable provenance are.
+  return canonicalJson(
     projectCanonicalResumeMessages(messages, { strict: true }).map(
       encodePersistedMessage,
     ),
   );
+}
+
+/** Settle only complete host-owned tool exchanges after the verified prefix.
+ * Both prefix comparisons are required: sampling a newer durable head must
+ * never authorize hiding concurrent input absent from the host's live array. */
+export function appendToolRoundsIfMessagesMatch(
+  sessionId,
+  liveMessages,
+  expectedMessages,
+) {
+  const live = projectCanonicalResumeMessages(liveMessages, { strict: true });
+  const expected = projectCanonicalResumeMessages(expectedMessages, {
+    strict: true,
+  });
+  const expectedFingerprint = canonicalReplayFingerprint(expected);
+  const stale = () =>
+    Object.assign(
+      new Error(
+        `Session messages changed for ${sessionId}; refresh before settling tools`,
+      ),
+      { code: "SESSION_REVISION_STALE" },
+    );
+  if (
+    canonicalReplayFingerprint(live.slice(0, expected.length)) !==
+    expectedFingerprint
+  )
+    throw stale();
+  const suffix = live.slice(expected.length);
+  if (suffix.length) assertCompleteToolRounds(suffix);
+  return withVerifiedWsTurnLock(sessionId, (filePath) => {
+    const verification = verifyTranscriptFile(filePath);
+    assertVerifiedTranscriptAnchor(sessionId, verification);
+    const actual = rebuildVerifiedMessagesFromFile(filePath);
+    if (canonicalReplayFingerprint(actual) !== expectedFingerprint)
+      throw stale();
+    if (!suffix.length) return { hash: verification.lastHash };
+    return appendVerifiedWsAuthorityEventLocked(
+      sessionId,
+      filePath,
+      TOOL_ROUND_EVENT,
+      {
+        schema: TOOL_ROUND_SCHEMA,
+        messages: suffix.map(encodePersistedMessage),
+      },
+      verification.lastHash,
+    );
+  });
 }
 
 /**
@@ -5848,6 +5903,10 @@ function rebuildMessagesFromFile(
       isReplayableMessage(event.data)
     ) {
       suffix.push(decodeMessage(event.data));
+    } else if (event?.type === TOOL_ROUND_EVENT) {
+      suffix.push(
+        ...projectToolRoundMessages(event).map(decodeMessage).reverse(),
+      );
     } else if (event?.type === WS_TURN_EVENT) {
       const turn = projectWsTurnMessages(event);
       if (turn) {

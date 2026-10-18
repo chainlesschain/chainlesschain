@@ -17,18 +17,21 @@ export function diagnosticAclCommandArgs(args, mode = "inherited") {
     !source.includes("CC_WINDOWS_ACL_STAGE=")
   )
     throw new TypeError("Expected exactly one ACL helper initialization");
-  const script =
-    mode === "builtin"
-      ? source.replace(
-          marker,
-          `${marker}\n$env:PSModulePath = [System.IO.Path]::Combine($PSHOME, 'Modules')`,
-        )
-      : source;
+  const builtinLine =
+    "$env:PSModulePath = [System.IO.Path]::Combine($PSHOME, 'Modules')";
+  const sourceUsesBuiltinModules = source.includes(builtinLine);
+  const overlayApplied = mode === "builtin" && !sourceUsesBuiltinModules;
+  const script = overlayApplied
+    ? source.replace(marker, `${marker}\n${builtinLine}`)
+    : source;
   const changed = [...args];
   changed[commandIndex] = script;
   const digest = (text) => createHash("sha256").update(text).digest("hex");
   return {
     args: changed,
+    sourceUsesBuiltinModules,
+    effectiveBuiltinModules: sourceUsesBuiltinModules || overlayApplied,
+    overlayApplied,
     originalScriptSha256: digest(source),
     executedScriptSha256: digest(script),
   };

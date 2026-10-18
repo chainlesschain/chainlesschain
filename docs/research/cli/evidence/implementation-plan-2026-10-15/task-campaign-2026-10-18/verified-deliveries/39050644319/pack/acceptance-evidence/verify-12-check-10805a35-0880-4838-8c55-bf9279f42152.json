@@ -1,0 +1,125 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-12",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 11,
+      "passed": 11,
+      "failed": 0
+    },
+    {
+      "kind": "candidate",
+      "total": 6,
+      "passed": 6,
+      "failed": 0
+    }
+  ],
+  "mutations": [
+    {
+      "name": "flatten-spaces-and-empty-argv",
+      "sourceSha256": "3e443a6ee958f5c6ba68dacef32fc5383e0f88be386ffc5d03c6655d5f542f52",
+      "total": 6,
+      "passed": 2,
+      "failed": 4
+    }
+  ],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 202,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 458,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":11,\"numPassedTests\":11,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1792255876367,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"background command argv\"],\"fullName\":\"background command argv rejects ephemeral background authority but preserves literal prompt data\",\"status\":\"passed\",\"title\":\"rejects ephemeral background authority but preserves literal prompt data\",\"duration\":1.5151110000000045,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background command argv\"],\"fullName\":\"background command argv keeps option-shaped prompt data inside one print token: --help\",\"status\":\"passed\",\"title\":\"keeps option-shaped prompt data inside one print token: --help\",\"duration\":0.24427199999999516,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background command argv\"],\"fullName\":\"background command argv keeps option-shaped prompt data inside one print token: --no-worktree\",\"status\":\"passed\",\"title\":\"keeps option-shaped prompt data inside one print token: --no-worktree\",\"duration\":0.08984399999999937,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background command argv\"],\"fullName\":\"background command argv keeps option-shaped prompt data inside one print token: --dangerously-skip-permissions\",\"status\":\"passed\",\"title\":\"keeps option-shaped prompt data inside one print token: --dangerously-skip-permissions\",\"duration\":0.12890099999999904,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background command argv\"],\"fullName\":\"background command argv captures Commander option aliases and arity\",\"status\":\"passed\",\"title\":\"captures Commander option aliases and arity\",\"duration\":0.375717999999992,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background command argv\"],\"fullName\":\"background command argv captures root options and command aliases as one argv grammar\",\"status\":\"passed\",\"title\":\"captures root options and command aliases as one argv grammar\",\"duration\":0.26523400000000663,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background command argv\"],\"fullName\":\"background command argv canonicalizes resume/fork options to one resolved session\",\"status\":\"passed\",\"title\":\"canonicalizes resume/fork options to one resolved session\",\"duration\":0.47167000000000314,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background command argv\"],\"fullName\":\"background command argv preserves other option values and the literal tail\",\"status\":\"passed\",\"title\":\"preserves other option values and the literal tail\",\"duration\":0.27079200000000014,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background command argv\"],\"fullName\":\"background command argv removes true operands without deleting equal option values\",\"status\":\"passed\",\"title\":\"removes true operands without deleting equal option values\",\"duration\":0.34331000000000245,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background command argv\"],\"fullName\":\"background command argv preserves global options before the real command token\",\"status\":\"passed\",\"title\":\"preserves global options before the real command token\",\"duration\":0.16156999999999755,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"background command argv\"],\"fullName\":\"background command argv drops print payloads and every post-terminator first-turn token\",\"status\":\"passed\",\"title\":\"drops print payloads and every post-terminator first-turn token\",\"duration\":0.15300700000000234,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1792255876498,\"endTime\":1792255876502.3433,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/background-command-argv.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 456,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":6,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1792255876819,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"verify-12: space/quoted/path argv boundary integrity\"],\"fullName\":\"verify-12: space/quoted/path argv boundary integrity keeps a prompt with spaces, quotes and a path inside one --print token\",\"status\":\"passed\",\"title\":\"keeps a prompt with spaces, quotes and a path inside one --print token\",\"duration\":1.4326879999999989,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-12: space/quoted/path argv boundary integrity\"],\"fullName\":\"verify-12: space/quoted/path argv boundary integrity keeps a directory path containing spaces and quotes as one --add-dir value\",\"status\":\"passed\",\"title\":\"keeps a directory path containing spaces and quotes as one --add-dir value\",\"duration\":0.7565840000000037,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-12: space/quoted/path argv boundary integrity\"],\"fullName\":\"verify-12: space/quoted/path argv boundary integrity preserves an operand containing spaces and quotes as a single token\",\"status\":\"passed\",\"title\":\"preserves an operand containing spaces and quotes as a single token\",\"duration\":0.2779330000000044,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-12: space/quoted/path argv boundary integrity\"],\"fullName\":\"verify-12: space/quoted/path argv boundary integrity keeps a --title value with spaces and quotes as one argv element\",\"status\":\"passed\",\"title\":\"keeps a --title value with spaces and quotes as one argv element\",\"duration\":0.28590400000000216,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-12: space/quoted/path argv boundary integrity\"],\"fullName\":\"verify-12: space/quoted/path argv boundary integrity never treats an equal-looking value as a parent option (negative control)\",\"status\":\"passed\",\"title\":\"never treats an equal-looking value as a parent option (negative control)\",\"duration\":0.20270100000000468,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-12: space/quoted/path argv boundary integrity\"],\"fullName\":\"verify-12: space/quoted/path argv boundary integrity scans token boundaries, not substrings, for the ephemeral guard (negative control)\",\"status\":\"passed\",\"title\":\"scans token boundaries, not substrings, for the ephemeral guard (negative control)\",\"duration\":0.36377099999999984,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1792255876953,\"endTime\":1792255876956.3638,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-12.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/packages/cli/src/lib/background-command-argv.js"
+      ],
+      "setup": false,
+      "ms": 116,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 458,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":0,\"numFailedTestSuites\":2,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":2,\"numFailedTests\":4,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1792255877388,\"success\":false,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"verify-12: space/quoted/path argv boundary integrity\"],\"fullName\":\"verify-12: space/quoted/path argv boundary integrity keeps a prompt with spaces, quotes and a path inside one --print token\",\"status\":\"passed\",\"title\":\"keeps a prompt with spaces, quotes and a path inside one --print token\",\"duration\":1.3596100000000035,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-12: space/quoted/path argv boundary integrity\"],\"fullName\":\"verify-12: space/quoted/path argv boundary integrity keeps a directory path containing spaces and quotes as one --add-dir value\",\"status\":\"failed\",\"title\":\"keeps a directory path containing spaces and quotes as one --add-dir value\",\"duration\":5.118053000000003,\"failureMessages\":[\"AssertionError: expected [ 'agent', 'work', …(6) ] to deeply equal [ 'agent', '--model', 'm', …(2) ]\\n    at /workspace/packages/cli/__tests__/verify-12.test.js:38:20\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-12: space/quoted/path argv boundary integrity\"],\"fullName\":\"verify-12: space/quoted/path argv boundary integrity preserves an operand containing spaces and quotes as a single token\",\"status\":\"failed\",\"title\":\"preserves an operand containing spaces and quotes as a single token\",\"duration\":1.0847410000000082,\"failureMessages\":[\"AssertionError: expected [ 'agent', 'run', 'script', …(5) ] to deeply equal [ 'agent', …(3) ]\\n    at /workspace/packages/cli/__tests__/verify-12.test.js:51:20\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-12: space/quoted/path argv boundary integrity\"],\"fullName\":\"verify-12: space/quoted/path argv boundary integrity keeps a --title value with spaces and quotes as one argv element\",\"status\":\"failed\",\"title\":\"keeps a --title value with spaces and quotes as one argv element\",\"duration\":0.8310650000000095,\"failureMessages\":[\"AssertionError: expected [ 'agent', '--title', 'Fix', …(7) ] to deeply equal [ 'agent', '--title', …(4) ]\\n    at /workspace/packages/cli/__tests__/verify-12.test.js:65:20\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-12: space/quoted/path argv boundary integrity\"],\"fullName\":\"verify-12: space/quoted/path argv boundary integrity never treats an equal-looking value as a parent option (negative control)\",\"status\":\"failed\",\"title\":\"never treats an equal-looking value as a parent option (negative control)\",\"duration\":0.5769669999999962,\"failureMessages\":[\"AssertionError: expected [ 'agent', '--model', …(6) ] to deeply equal [ 'agent', '--model', …(4) ]\\n    at /workspace/packages/cli/__tests__/verify-12.test.js:85:20\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-12: space/quoted/path argv boundary integrity\"],\"fullName\":\"verify-12: space/quoted/path argv boundary integrity scans token boundaries, not substrings, for the ephemeral guard (negative control)\",\"status\":\"passed\",\"title\":\"scans token boundaries, not substrings, for the ephemeral guard (negative control)\",\"duration\":0.3727829999999983,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1792255877514,\"endTime\":1792255877523.577,\"status\":\"failed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-12.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": true,
+  "detail": "Independent operator checks passed; this is not a provider or task-outcome sample."
+}

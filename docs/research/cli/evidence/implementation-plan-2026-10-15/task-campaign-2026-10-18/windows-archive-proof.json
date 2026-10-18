@@ -1,0 +1,31 @@
+{
+  "schema": "chainlesschain.windows-tar-independent-proof/v1",
+  "checkerSourceCommit": "cbd532e51f53deb3c5f4470627f9ad7c86a41d3e",
+  "generationRunId": "39054601102",
+  "generationSourceCommit": "d572951fc6dd101eaf6d59411b1fee15746bee22",
+  "sourceSummaryDigest": "sha256:3961f2561d9398c6b062ec6d889bd5fd130db97679fb5a9b70050d3a4beadbfa",
+  "sampleId": "first-run-win32-cli",
+  "artifactId": "12109268824",
+  "archiveDigest": "sha256:0cd894ce05bd6fcbc5673f3728a1cde0b27337eb6f7d43ee8e4cf9cc1bfbb1bc",
+  "capturedEntries": 22565,
+  "expectedEntries": 22565,
+  "archiveEntries": 22564,
+  "changedArchivePaths": 252,
+  "mappingDigest": "sha256:8059c90b09280d2cda8f1a7e11b52c741e8b8d1cdf9bcafdcd5db368d76c60fe",
+  "completeTreeMatched": true,
+  "ignoredNativeExecutableBits": true,
+  "originalFilenameIdentityPassed": false,
+  "generationPassed": false,
+  "candidateOnly": true,
+  "capturedBefore": {
+    "path": "windows-archive-receipts/tree-before.json.gz",
+    "originalDigest": "sha256:1b319e87c74a3b413631fa055020a0f35370ddd96653aaae82bc85f8e8132a50",
+    "storedDigest": "sha256:ff003da9bc4757381b40770e6b905ffad96d1ec2cbc2fc605e2f1bd3619fe6fb",
+    "originalBytes": 4553470
+  },
+  "validation": {
+    "focusedWindowsNodeTestsPassed": 13,
+    "failed": 0,
+    "includesRealBsdtarUtf8AndMixedPax": true
+  }
+}

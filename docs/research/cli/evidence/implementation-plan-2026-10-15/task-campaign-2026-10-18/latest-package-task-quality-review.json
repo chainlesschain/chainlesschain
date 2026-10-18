@@ -1,0 +1,2231 @@
+{
+  "schema": "chainlesschain.latest-package-task-quality-review/v1",
+  "status": "COMPLETED",
+  "method": "Read-only extraction from hash-verified archived generation, acceptance and checker receipts. No model calls or candidate/test execution.",
+  "billingAssessed": false,
+  "versions": {
+    "cli": "0.166.104",
+    "vscode": "0.37.149",
+    "jetbrains": "0.4.166",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "counts": {
+    "newGenerationRecordsCollected": 25,
+    "newAcceptanceRecordsCollected": 25,
+    "newCandidateAcceptancePassed": 5,
+    "newEndToEndPassed": 4,
+    "cumulativeAcceptedDeliverables": 25
+  },
+  "samples": [
+    {
+      "sampleId": "first-run-linux-cli",
+      "kind": "first-run",
+      "group": "linux-cli",
+      "runId": "39087910738",
+      "generationSummary": {
+        "path": "latest-package-round/39087910738/generation/summary.json.gz",
+        "originalDigest": "sha256:4c927ddd6d4d536f7ec5311c9308d63cc84faae34287a2165736b23c6931ac12",
+        "storedDigest": "sha256:6906046ba7b3c27db4c68541aebdf4406b246be9ddbb84c3b9915662a2d89e48",
+        "originalBytes": 224753
+      },
+      "generationPassed": true,
+      "modelFailureCategory": null,
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": false
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 10,
+        "usageCompleteRequests": 10,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "candidateFiles": [
+        {
+          "file": "packages/cli/__tests__/verify-04.test.js",
+          "path": "first-run-linux-cli/candidate/packages/cli/__tests__/verify-04.test.js",
+          "digest": "sha256:d7a924788c0d2de2f22301a279cd47681d5c3248cd7e7947f5c23928df60d1cf",
+          "bytes": 5372
+        }
+      ],
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false,
+      "acceptanceSummary": {
+        "path": "latest-package-round/39087910738/acceptance/summary.json.gz",
+        "originalDigest": "sha256:410a792d6133a0503d366370f3f2fa50acd1594afd28c569e251f565ac6e2c22",
+        "storedDigest": "sha256:85d23c7ee79e09ab574e56d7fc9efc763dcb4294d424801cfb277c5134027659",
+        "originalBytes": 219025
+      },
+      "checkerDetail": "acceptance requires executed test cases",
+      "baselineSetupPassed": true,
+      "receiptTests": [
+        {
+          "kind": "baseline",
+          "total": 22,
+          "passed": 22,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "checkReceipt": {
+        "path": "latest-package-round/39087910738/acceptance/pack/acceptance-evidence/verify-04-check-fd4d049e-c4ff-4051-9a38-cbc2e0a1092b.json.gz",
+        "originalDigest": "sha256:9973df08e3f75a50e4ffafceb59d97332797fe9420bba997caecf397fe2ab55f",
+        "storedDigest": "sha256:2abbe61339c59a40aa94151ffaba73982313e982948ac7045ea74a4b83a0238f",
+        "originalBytes": 10584
+      },
+      "observedTestExecutions": [
+        {
+          "executionIndex": 1,
+          "exitCode": 0,
+          "total": 22,
+          "passed": 22,
+          "failed": 0,
+          "failures": []
+        },
+        {
+          "executionIndex": 2,
+          "exitCode": 1,
+          "total": 0,
+          "passed": 0,
+          "failed": 0,
+          "failures": [
+            {
+              "file": "/workspace/packages/cli/__tests__/verify-04.test.js",
+              "fileError": "Cannot find module '../../src/lib/usage-pricing-context.js' imported from /workspace/packages/cli/__tests__/verify-04.test.js"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-04",
+      "kind": "task",
+      "group": "linux-cli",
+      "runId": "39087910738",
+      "generationSummary": {
+        "path": "latest-package-round/39087910738/generation/summary.json.gz",
+        "originalDigest": "sha256:4c927ddd6d4d536f7ec5311c9308d63cc84faae34287a2165736b23c6931ac12",
+        "storedDigest": "sha256:6906046ba7b3c27db4c68541aebdf4406b246be9ddbb84c3b9915662a2d89e48",
+        "originalBytes": 224753
+      },
+      "generationPassed": true,
+      "modelFailureCategory": null,
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": false
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 9,
+        "usageCompleteRequests": 9,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "candidateFiles": [
+        {
+          "file": "packages/cli/__tests__/verify-04.test.js",
+          "path": "verify-04/candidate/packages/cli/__tests__/verify-04.test.js",
+          "digest": "sha256:9b4a9e71063bda369e306d1972ef3622bbf7627467d9abc3755b6c92509cc4fe",
+          "bytes": 5819
+        }
+      ],
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false,
+      "acceptanceSummary": {
+        "path": "latest-package-round/39087910738/acceptance/summary.json.gz",
+        "originalDigest": "sha256:410a792d6133a0503d366370f3f2fa50acd1594afd28c569e251f565ac6e2c22",
+        "storedDigest": "sha256:85d23c7ee79e09ab574e56d7fc9efc763dcb4294d424801cfb277c5134027659",
+        "originalBytes": 219025
+      },
+      "checkerDetail": "candidate or baseline regression failed",
+      "baselineSetupPassed": true,
+      "receiptTests": [
+        {
+          "kind": "baseline",
+          "total": 22,
+          "passed": 22,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "checkReceipt": {
+        "path": "latest-package-round/39087910738/acceptance/pack/acceptance-evidence/verify-04-check-59fc22ef-dec9-4930-9d83-70bb1fe0bf8a.json.gz",
+        "originalDigest": "sha256:a73915287fe7f1155fac6dab45f6dc5f51cf969231769be738ea0f93c6713743",
+        "storedDigest": "sha256:405a3cfdb320ac97f5ac98ff1b6b9f5d429910326818fabfca011a71b7bc5aa5",
+        "originalBytes": 15474
+      },
+      "observedTestExecutions": [
+        {
+          "executionIndex": 1,
+          "exitCode": 0,
+          "total": 22,
+          "passed": 22,
+          "failed": 0,
+          "failures": []
+        },
+        {
+          "executionIndex": 2,
+          "exitCode": 1,
+          "total": 6,
+          "passed": 3,
+          "failed": 3,
+          "failures": [
+            {
+              "test": "request-level cache and tiered usage buckets prices equal total tokens per request contract by cache/long split",
+              "message": "AssertionError: expected 1.3832 to be close to +0, received difference is 1.3832, but expected 5e-10"
+            },
+            {
+              "test": "request-level cache and tiered usage buckets accumulates same-tier requests into a single bucket with correct sums",
+              "message": "AssertionError: expected { inputTokens: 3000, …(8) } to match object { inputTokens: 3000, …(8) }"
+            },
+            {
+              "test": "request-level cache and tiered usage buckets honors an explicit requestInputTokens for the long-context decision",
+              "message": "AssertionError: expected { inputTokens: 300000, …(8) } to match object { requestInputTokens: 200000, …(2) }\n(6 matching properties omitted from actual)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-13",
+      "kind": "task",
+      "group": "linux-cli",
+      "runId": "39087910738",
+      "generationSummary": {
+        "path": "latest-package-round/39087910738/generation/summary.json.gz",
+        "originalDigest": "sha256:4c927ddd6d4d536f7ec5311c9308d63cc84faae34287a2165736b23c6931ac12",
+        "storedDigest": "sha256:6906046ba7b3c27db4c68541aebdf4406b246be9ddbb84c3b9915662a2d89e48",
+        "originalBytes": 224753
+      },
+      "generationPassed": true,
+      "modelFailureCategory": null,
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": false
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 7,
+        "usageCompleteRequests": 7,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "candidateFiles": [
+        {
+          "file": "packages/cli/__tests__/verify-13.test.js",
+          "path": "verify-13/candidate/packages/cli/__tests__/verify-13.test.js",
+          "digest": "sha256:6c72221358daf3d55fb46faf369f313c5b029e10ea9e6fde2f8a84b8256cf605",
+          "bytes": 4119
+        }
+      ],
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false,
+      "acceptanceSummary": {
+        "path": "latest-package-round/39087910738/acceptance/summary.json.gz",
+        "originalDigest": "sha256:410a792d6133a0503d366370f3f2fa50acd1594afd28c569e251f565ac6e2c22",
+        "storedDigest": "sha256:85d23c7ee79e09ab574e56d7fc9efc763dcb4294d424801cfb277c5134027659",
+        "originalBytes": 219025
+      },
+      "checkerDetail": "candidate or baseline regression failed",
+      "baselineSetupPassed": true,
+      "receiptTests": [
+        {
+          "kind": "baseline",
+          "total": 13,
+          "passed": 13,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "checkReceipt": {
+        "path": "latest-package-round/39087910738/acceptance/pack/acceptance-evidence/verify-13-check-b2a798b1-2777-42eb-b48d-8de2af055f31.json.gz",
+        "originalDigest": "sha256:4772157d672ce75085b7d18f7c743b4d8e97bd05777136eb97f236d1232d0968",
+        "storedDigest": "sha256:145f131c717e7a7b2754fc8cb4c720e105f47acd4fcaeeacbc645d5cc504cfb9",
+        "originalBytes": 10428
+      },
+      "observedTestExecutions": [
+        {
+          "executionIndex": 1,
+          "exitCode": 0,
+          "total": 13,
+          "passed": 13,
+          "failed": 0,
+          "failures": []
+        },
+        {
+          "executionIndex": 2,
+          "exitCode": 1,
+          "total": 6,
+          "passed": 5,
+          "failed": 1,
+          "failures": [
+            {
+              "test": "readBoundedImage same-handle read boundary rejects a non-regular handle, reads nothing, and closes it",
+              "message": "AssertionError: expected [Function] to throw error matching /regular file/ but got 'ENOENT: no such file or directory, op…'"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sampleId": "first-run-linux-vscode",
+      "kind": "first-run",
+      "group": "linux-vscode",
+      "runId": "39087921211",
+      "generationSummary": {
+        "path": "latest-package-round/39087921211/generation/summary.json.gz",
+        "originalDigest": "sha256:9ee7ba1e6e41feeda7f0dfb408120ec67355e651ba21a67ffba342dc71d56761",
+        "storedDigest": "sha256:1e361cf75f92b723fd2ac48433922044da7e488aa8b4b1e7b3587b3d3f1eb273",
+        "originalBytes": 588273
+      },
+      "generationPassed": true,
+      "modelFailureCategory": null,
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": true
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 10,
+        "usageCompleteRequests": 10,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "candidateFiles": [
+        {
+          "file": "packages/cli/__tests__/verify-05.test.js",
+          "path": "first-run-linux-vscode/candidate/packages/cli/__tests__/verify-05.test.js",
+          "digest": "sha256:6fb7fd24ec8187c6655631a30e212db292ab4abf980a781434068a394f806c05",
+          "bytes": 5250
+        }
+      ],
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false,
+      "acceptanceSummary": {
+        "path": "latest-package-round/39087921211/acceptance/summary.json.gz",
+        "originalDigest": "sha256:d712d2e11f18c1929c23aefdaa5268a097f279e934477153affc00218dcd73e6",
+        "storedDigest": "sha256:42992793974702a577212bd25742d6568a9be678402bb1397238c821e0adb090",
+        "originalBytes": 582674
+      },
+      "checkerDetail": "candidate tests did not reject the behavioral mutant",
+      "baselineSetupPassed": true,
+      "receiptTests": [
+        {
+          "kind": "baseline",
+          "total": 42,
+          "passed": 42,
+          "failed": 0
+        },
+        {
+          "kind": "candidate",
+          "total": 6,
+          "passed": 6,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "checkReceipt": {
+        "path": "latest-package-round/39087921211/acceptance/pack/acceptance-evidence/verify-05-check-a3f4dfb9-ba93-4f06-9c9d-fd839d2bb0e7.json.gz",
+        "originalDigest": "sha256:8b284b87d85479c0f5f8ef850b1c48dbcdd747ce565afe820cabd513a745d5df",
+        "storedDigest": "sha256:fd2a489d987c8ff91437a1da2490fc868e61a4538846f5e47db270d88d344c40",
+        "originalBytes": 22929
+      },
+      "observedTestExecutions": [
+        {
+          "executionIndex": 1,
+          "exitCode": 0,
+          "total": 42,
+          "passed": 42,
+          "failed": 0,
+          "failures": []
+        },
+        {
+          "executionIndex": 2,
+          "exitCode": 0,
+          "total": 6,
+          "passed": 6,
+          "failed": 0,
+          "failures": []
+        },
+        {
+          "executionIndex": 4,
+          "exitCode": 0,
+          "total": 6,
+          "passed": 6,
+          "failed": 0,
+          "failures": []
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-05",
+      "kind": "task",
+      "group": "linux-vscode",
+      "runId": "39087921211",
+      "generationSummary": {
+        "path": "latest-package-round/39087921211/generation/summary.json.gz",
+        "originalDigest": "sha256:9ee7ba1e6e41feeda7f0dfb408120ec67355e651ba21a67ffba342dc71d56761",
+        "storedDigest": "sha256:1e361cf75f92b723fd2ac48433922044da7e488aa8b4b1e7b3587b3d3f1eb273",
+        "originalBytes": 588273
+      },
+      "generationPassed": true,
+      "modelFailureCategory": null,
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": true
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 8,
+        "usageCompleteRequests": 8,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "candidateFiles": [
+        {
+          "file": "packages/cli/__tests__/verify-05.test.js",
+          "path": "verify-05/candidate/packages/cli/__tests__/verify-05.test.js",
+          "digest": "sha256:a73506ef592959542bc3f51887f1e8166f2124288e09bce9300f3ba088f5382b",
+          "bytes": 4709
+        }
+      ],
+      "candidateAcceptancePassed": true,
+      "endToEndPassed": true,
+      "acceptanceSummary": {
+        "path": "latest-package-round/39087921211/acceptance/summary.json.gz",
+        "originalDigest": "sha256:d712d2e11f18c1929c23aefdaa5268a097f279e934477153affc00218dcd73e6",
+        "storedDigest": "sha256:42992793974702a577212bd25742d6568a9be678402bb1397238c821e0adb090",
+        "originalBytes": 582674
+      },
+      "checkerDetail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "baselineSetupPassed": true,
+      "receiptTests": [
+        {
+          "kind": "baseline",
+          "total": 42,
+          "passed": 42,
+          "failed": 0
+        },
+        {
+          "kind": "candidate",
+          "total": 6,
+          "passed": 6,
+          "failed": 0
+        }
+      ],
+      "mutations": [
+        {
+          "name": "installed-cli-passes-dispatch-preflight",
+          "sourceSha256": "699f4327571313f3b5f4990692feeb1ea7e521a2ec593d86f8733c7a33ecc8b1",
+          "total": 6,
+          "passed": 5,
+          "failed": 1
+        }
+      ],
+      "checkReceipt": {
+        "path": "latest-package-round/39087921211/acceptance/pack/acceptance-evidence/verify-05-check-d0c5ec77-32fa-4002-a2ef-7639a0a78a74.json.gz",
+        "originalDigest": "sha256:e469b8c67753fe512276e0133572c57440bce862dee7f5167259998bba5ed3f7",
+        "storedDigest": "sha256:c652c4e1790343da81c0648e88022c9e95545e8b3ca9d8780a8d2e0ee83b683b",
+        "originalBytes": 24324
+      },
+      "observedTestExecutions": [
+        {
+          "executionIndex": 1,
+          "exitCode": 0,
+          "total": 42,
+          "passed": 42,
+          "failed": 0,
+          "failures": []
+        },
+        {
+          "executionIndex": 2,
+          "exitCode": 0,
+          "total": 6,
+          "passed": 6,
+          "failed": 0,
+          "failures": []
+        },
+        {
+          "executionIndex": 4,
+          "exitCode": 1,
+          "total": 6,
+          "passed": 5,
+          "failed": 1,
+          "failures": [
+            {
+              "test": "AgentRouter install/admission separation (verify-05) preflight rejects an installed CLI-only router as unattested",
+              "message": "AssertionError: expected [Function] to throw an error"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-14",
+      "kind": "task",
+      "group": "linux-vscode",
+      "runId": "39087921211",
+      "generationSummary": {
+        "path": "latest-package-round/39087921211/generation/summary.json.gz",
+        "originalDigest": "sha256:9ee7ba1e6e41feeda7f0dfb408120ec67355e651ba21a67ffba342dc71d56761",
+        "storedDigest": "sha256:1e361cf75f92b723fd2ac48433922044da7e488aa8b4b1e7b3587b3d3f1eb273",
+        "originalBytes": 588273
+      },
+      "generationPassed": true,
+      "modelFailureCategory": null,
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": true
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 12,
+        "usageCompleteRequests": 12,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "candidateFiles": [
+        {
+          "file": "packages/cli/__tests__/verify-14.test.js",
+          "path": "verify-14/candidate/packages/cli/__tests__/verify-14.test.js",
+          "digest": "sha256:f80b0f6f6b877692908285d01207d0eaa5a75143acbcf26d9fe31bf8d20ef408",
+          "bytes": 5449
+        }
+      ],
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false,
+      "acceptanceSummary": {
+        "path": "latest-package-round/39087921211/acceptance/summary.json.gz",
+        "originalDigest": "sha256:d712d2e11f18c1929c23aefdaa5268a097f279e934477153affc00218dcd73e6",
+        "storedDigest": "sha256:42992793974702a577212bd25742d6568a9be678402bb1397238c821e0adb090",
+        "originalBytes": 582674
+      },
+      "checkerDetail": "acceptance requires executed test cases",
+      "baselineSetupPassed": true,
+      "receiptTests": [
+        {
+          "kind": "baseline",
+          "total": 41,
+          "passed": 41,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "checkReceipt": {
+        "path": "latest-package-round/39087921211/acceptance/pack/acceptance-evidence/verify-14-check-a943ab63-83d5-48ae-aff9-bcf0166e7bf6.json.gz",
+        "originalDigest": "sha256:facab69e1317e59ba4a060d66155571c32d5ccc49b318b8a549cafcec2bffdf9",
+        "storedDigest": "sha256:01b83d945ba7e8c09ba6bf70cfe1af5a5e2f57c6a760182ad3be038d31e2b461",
+        "originalBytes": 16728
+      },
+      "observedTestExecutions": [
+        {
+          "executionIndex": 1,
+          "exitCode": 0,
+          "total": 41,
+          "passed": 41,
+          "failed": 0,
+          "failures": []
+        },
+        {
+          "executionIndex": 2,
+          "exitCode": 1,
+          "total": 0,
+          "passed": 0,
+          "failed": 0,
+          "failures": [
+            {
+              "file": "/workspace/packages/cli/__tests__/verify-14.test.js",
+              "fileError": "Cannot find module '../../src/lib/image-input.js' imported from /workspace/packages/cli/__tests__/verify-14.test.js"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-23",
+      "kind": "task",
+      "group": "linux-vscode",
+      "runId": "39087921211",
+      "generationSummary": {
+        "path": "latest-package-round/39087921211/generation/summary.json.gz",
+        "originalDigest": "sha256:9ee7ba1e6e41feeda7f0dfb408120ec67355e651ba21a67ffba342dc71d56761",
+        "storedDigest": "sha256:1e361cf75f92b723fd2ac48433922044da7e488aa8b4b1e7b3587b3d3f1eb273",
+        "originalBytes": 588273
+      },
+      "generationPassed": true,
+      "modelFailureCategory": null,
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": true
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 5,
+        "usageCompleteRequests": 5,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "candidateFiles": [
+        {
+          "file": "packages/cli/__tests__/verify-23.test.js",
+          "path": "verify-23/candidate/packages/cli/__tests__/verify-23.test.js",
+          "digest": "sha256:313357cac70ac6f7c67c96ba5e80c087d86cf9413a891b8545bbef45c054d546",
+          "bytes": 6119
+        }
+      ],
+      "candidateAcceptancePassed": true,
+      "endToEndPassed": true,
+      "acceptanceSummary": {
+        "path": "latest-package-round/39087921211/acceptance/summary.json.gz",
+        "originalDigest": "sha256:d712d2e11f18c1929c23aefdaa5268a097f279e934477153affc00218dcd73e6",
+        "storedDigest": "sha256:42992793974702a577212bd25742d6568a9be678402bb1397238c821e0adb090",
+        "originalBytes": 582674
+      },
+      "checkerDetail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "baselineSetupPassed": true,
+      "receiptTests": [
+        {
+          "kind": "baseline",
+          "total": 30,
+          "passed": 30,
+          "failed": 0
+        },
+        {
+          "kind": "candidate",
+          "total": 6,
+          "passed": 6,
+          "failed": 0
+        }
+      ],
+      "mutations": [
+        {
+          "name": "remove-missing-samples-from-denominator",
+          "sourceSha256": "6f041e6b788021b60fa38e8d460bc32d9b4db80a710695f0e8e08ecccf639c3e",
+          "total": 6,
+          "passed": 2,
+          "failed": 4
+        },
+        {
+          "name": "unknown-cost-becomes-zero",
+          "sourceSha256": "a7353b3a3c1a92a9cc4ece217e1b9413f6b1768bf41849591a89e5b4d7028d2b",
+          "total": 6,
+          "passed": 5,
+          "failed": 1
+        }
+      ],
+      "checkReceipt": {
+        "path": "latest-package-round/39087921211/acceptance/pack/acceptance-evidence/verify-23-check-9f5eab23-3ff3-46e2-ac69-9bcfde945d24.json.gz",
+        "originalDigest": "sha256:949343b9627ff0152f06a1b2d07472ecaf37c5929026490ac9d6055f829b38fa",
+        "storedDigest": "sha256:5e37fe1afd613f11279a3773b68d69a49c8a3e7f05014a9cb5793dc56b649299",
+        "originalBytes": 28503
+      },
+      "observedTestExecutions": [
+        {
+          "executionIndex": 1,
+          "exitCode": 0,
+          "total": 30,
+          "passed": 30,
+          "failed": 0,
+          "failures": []
+        },
+        {
+          "executionIndex": 2,
+          "exitCode": 0,
+          "total": 6,
+          "passed": 6,
+          "failed": 0,
+          "failures": []
+        },
+        {
+          "executionIndex": 4,
+          "exitCode": 1,
+          "total": 6,
+          "passed": 2,
+          "failed": 4,
+          "failures": [
+            {
+              "test": "verify-23 missing samples keep a fixed planned denominator keeps all planned samples as the fixed success-rate denominator when some are missing",
+              "message": "AssertionError: expected { planned: 2, observed: 2, …(8) } to match object { planned: 3, observed: 2, …(3) }\n(5 matching properties omitted from actual)"
+            },
+            {
+              "test": "verify-23 missing samples keep a fixed planned denominator applies the fixed planned denominator inside each group summary",
+              "message": "AssertionError: expected { kind: 'task', …(12) } to match object { taskId: 'fix-build', …(4) }\n(8 matching properties omitted from actual)"
+            },
+            {
+              "test": "verify-23 missing samples keep a fixed planned denominator keeps a missing first-run sample in the funnel planned denominator",
+              "message": "AssertionError: expected { planned: 1, observed: 1, …(8) } to match object { planned: 2, observed: 1, …(1) }\n(7 matching properties omitted from actual)"
+            },
+            {
+              "test": "verify-23 missing samples keep a fixed planned denominator does not promote a known-cost sum to a total while a planned sample is missing",
+              "message": "AssertionError: expected { planned: 1, observed: 1, …(8) } to match object { planned: 2, observed: 1, …(2) }\n(6 matching properties omitted from actual)"
+            }
+          ]
+        },
+        {
+          "executionIndex": 6,
+          "exitCode": 1,
+          "total": 6,
+          "passed": 5,
+          "failed": 1,
+          "failures": [
+            {
+              "test": "verify-23 missing samples keep a fixed planned denominator keeps an observed-but-unknown cost null instead of turning it into zero",
+              "message": "AssertionError: expected { planned: 2, observed: 2, …(8) } to match object { planned: 2, observed: 2, …(2) }\n(6 matching properties omitted from actual)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-32",
+      "kind": "task",
+      "group": "linux-vscode",
+      "runId": "39087921211",
+      "generationSummary": {
+        "path": "latest-package-round/39087921211/generation/summary.json.gz",
+        "originalDigest": "sha256:9ee7ba1e6e41feeda7f0dfb408120ec67355e651ba21a67ffba342dc71d56761",
+        "storedDigest": "sha256:1e361cf75f92b723fd2ac48433922044da7e488aa8b4b1e7b3587b3d3f1eb273",
+        "originalBytes": 588273
+      },
+      "generationPassed": true,
+      "modelFailureCategory": null,
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": true
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 5,
+        "usageCompleteRequests": 5,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "candidateFiles": [
+        {
+          "file": "packages/vscode-extension/__tests__/verify-32.test.js",
+          "path": "verify-32/candidate/packages/vscode-extension/__tests__/verify-32.test.js",
+          "digest": "sha256:1943cb343fc759ab9728cc7d5c8b8f11637195f4a24d8029d5b899a6d0704fbe",
+          "bytes": 4262
+        }
+      ],
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false,
+      "acceptanceSummary": {
+        "path": "latest-package-round/39087921211/acceptance/summary.json.gz",
+        "originalDigest": "sha256:d712d2e11f18c1929c23aefdaa5268a097f279e934477153affc00218dcd73e6",
+        "storedDigest": "sha256:42992793974702a577212bd25742d6568a9be678402bb1397238c821e0adb090",
+        "originalBytes": 582674
+      },
+      "checkerDetail": "candidate or baseline regression failed",
+      "baselineSetupPassed": true,
+      "receiptTests": [
+        {
+          "kind": "baseline",
+          "total": 13,
+          "passed": 13,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "checkReceipt": {
+        "path": "latest-package-round/39087921211/acceptance/pack/acceptance-evidence/verify-32-check-0d735cd5-99bf-487b-8cd2-f062da7ad19f.json.gz",
+        "originalDigest": "sha256:383b7f3a3bb1636e6808ef57ea57721f81010a54976322d9077a4589d9c6e09f",
+        "storedDigest": "sha256:719518c325a477c69edf9e0219b01968ca3ade4658270e8c0307d36d37d70da2",
+        "originalBytes": 10434
+      },
+      "observedTestExecutions": [
+        {
+          "executionIndex": 1,
+          "exitCode": 0,
+          "total": 13,
+          "passed": 13,
+          "failed": 0,
+          "failures": []
+        },
+        {
+          "executionIndex": 2,
+          "exitCode": 1,
+          "total": 5,
+          "passed": 4,
+          "failed": 1,
+          "failures": [
+            {
+              "test": "image preview gate: page switch / cancel drops late previews a fresh validate after a cancelled one still delivers the current preview normally",
+              "message": "Error: Image decoding exceeded the 5 second budget"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sampleId": "first-run-linux-jetbrains",
+      "kind": "first-run",
+      "group": "linux-jetbrains",
+      "runId": "39087930713",
+      "generationSummary": {
+        "path": "latest-package-round/39087930713/generation/summary.json.gz",
+        "originalDigest": "sha256:a334cd3571e0d66b0cc8b9ece5881cf8ce38fa8ec4e3d9ca8e05599e7d3d33ee",
+        "storedDigest": "sha256:52c165930881f7c6a500f9e27e03ad6bb4e44c2dc821ce12af8486bd10f042c4",
+        "originalBytes": 498459
+      },
+      "generationPassed": false,
+      "modelFailureCategory": null,
+      "host": {
+        "passed": false,
+        "failure": "restart native UI task exited 1/null",
+        "restartRequired": true
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 18,
+        "usageCompleteRequests": 18,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "candidateFiles": [
+        {
+          "file": "packages/cli/__tests__/verify-06.test.js",
+          "path": "first-run-linux-jetbrains/candidate/packages/cli/__tests__/verify-06.test.js",
+          "digest": "sha256:12aa0de1dc0fe4204e8e40a064399db6881fd19484e1b1fe96886643541abaa0",
+          "bytes": 4094
+        }
+      ],
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false,
+      "acceptanceSummary": {
+        "path": "latest-package-round/39087930713/acceptance/summary.json.gz",
+        "originalDigest": "sha256:664973c917c217104e7ba6ff54b65eeb65c5f0567b3e176480469ad3c700952a",
+        "storedDigest": "sha256:ac56569c77bd47bda9630d3553436f0001337c626dc9234154f495cf81703cfc",
+        "originalBytes": 490757
+      },
+      "checkerDetail": "candidate or baseline regression failed",
+      "baselineSetupPassed": true,
+      "receiptTests": [
+        {
+          "kind": "baseline",
+          "total": 31,
+          "passed": 31,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "checkReceipt": {
+        "path": "latest-package-round/39087930713/objects/c927e5c3aa305139802eb80b10e42ab71f7c2d637550b7434362ffe37fd31803.gz",
+        "originalDigest": "sha256:1c6cfc0c7c8626f82d2f03f8ff69ea8e906f018a80fe27ff3e10dc27198aff85",
+        "storedDigest": "sha256:7642ae853143d7e8c6c461b5cda7ef6b46b2e6fb6269d3d356b8b5bcb8963782",
+        "originalBytes": 15720
+      },
+      "observedTestExecutions": [
+        {
+          "executionIndex": 1,
+          "exitCode": 0,
+          "total": 31,
+          "passed": 31,
+          "failed": 0,
+          "failures": []
+        },
+        {
+          "executionIndex": 2,
+          "exitCode": 1,
+          "total": 3,
+          "passed": 2,
+          "failed": 1,
+          "failures": [
+            {
+              "test": "paid-decomposition preflight (rejected backend) a non-CLI (API) backend passes the preflight and proceeds to decompose",
+              "message": "Error: expected Error: should never create evolution comp… to match object { message: 'fake-llm-down' }"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-06",
+      "kind": "task",
+      "group": "linux-jetbrains",
+      "runId": "39087930713",
+      "generationSummary": {
+        "path": "latest-package-round/39087930713/generation/summary.json.gz",
+        "originalDigest": "sha256:a334cd3571e0d66b0cc8b9ece5881cf8ce38fa8ec4e3d9ca8e05599e7d3d33ee",
+        "storedDigest": "sha256:52c165930881f7c6a500f9e27e03ad6bb4e44c2dc821ce12af8486bd10f042c4",
+        "originalBytes": 498459
+      },
+      "generationPassed": false,
+      "modelFailureCategory": null,
+      "host": {
+        "passed": false,
+        "failure": "restart native UI task exited 1/null",
+        "restartRequired": true
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 19,
+        "usageCompleteRequests": 19,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "candidateFiles": [
+        {
+          "file": "packages/cli/__tests__/verify-06.test.js",
+          "path": "verify-06/candidate/packages/cli/__tests__/verify-06.test.js",
+          "digest": "sha256:00f59afa2956c4aea9e13b6bb053d805b02a35733db553143d3efb73911f9820",
+          "bytes": 5013
+        }
+      ],
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false,
+      "acceptanceSummary": {
+        "path": "latest-package-round/39087930713/acceptance/summary.json.gz",
+        "originalDigest": "sha256:664973c917c217104e7ba6ff54b65eeb65c5f0567b3e176480469ad3c700952a",
+        "storedDigest": "sha256:ac56569c77bd47bda9630d3553436f0001337c626dc9234154f495cf81703cfc",
+        "originalBytes": 490757
+      },
+      "checkerDetail": "candidate or baseline regression failed",
+      "baselineSetupPassed": true,
+      "receiptTests": [
+        {
+          "kind": "baseline",
+          "total": 31,
+          "passed": 31,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "checkReceipt": {
+        "path": "latest-package-round/39087930713/objects/5c6d08f91251006d0b5b057c41e868c7d9ea627c933a03e03cbca16aa17335f7.gz",
+        "originalDigest": "sha256:92c6a3cc2278af8af799c2817dc21ff5d57ea049e5256c4f543d1b049830e0da",
+        "storedDigest": "sha256:ca6bb1d1cd2493cf45319277f5d5d114d20ec34a3d8920a7fb666467c0950790",
+        "originalBytes": 16756
+      },
+      "observedTestExecutions": [
+        {
+          "executionIndex": 1,
+          "exitCode": 0,
+          "total": 31,
+          "passed": 31,
+          "failed": 0,
+          "failures": []
+        },
+        {
+          "executionIndex": 2,
+          "exitCode": 1,
+          "total": 6,
+          "passed": 5,
+          "failed": 1,
+          "failures": [
+            {
+              "test": "paid-decomposition preflight (verify-06) preflight passes a dispatchable (non-CLI) backend and decomposition proceeds",
+              "message": "Error: expected { …(19) } to match object { status: 'dispatched' }\n(26 matching properties omitted from actual)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-33",
+      "kind": "task",
+      "group": "linux-jetbrains",
+      "runId": "39087930713",
+      "generationSummary": {
+        "path": "latest-package-round/39087930713/generation/summary.json.gz",
+        "originalDigest": "sha256:a334cd3571e0d66b0cc8b9ece5881cf8ce38fa8ec4e3d9ca8e05599e7d3d33ee",
+        "storedDigest": "sha256:52c165930881f7c6a500f9e27e03ad6bb4e44c2dc821ce12af8486bd10f042c4",
+        "originalBytes": 498459
+      },
+      "generationPassed": false,
+      "modelFailureCategory": null,
+      "host": {
+        "passed": false,
+        "failure": "restart native UI task exited 1/null",
+        "restartRequired": true
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 6,
+        "usageCompleteRequests": 6,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "candidateFiles": [
+        {
+          "file": "packages/vscode-extension/__tests__/verify-33.test.js",
+          "path": "verify-33/candidate/packages/vscode-extension/__tests__/verify-33.test.js",
+          "digest": "sha256:ca01ddbd6496255273a4ccd7d2f478fcf1939c7778ebbf9d975043738490cea5",
+          "bytes": 3322
+        }
+      ],
+      "candidateAcceptancePassed": true,
+      "endToEndPassed": false,
+      "acceptanceSummary": {
+        "path": "latest-package-round/39087930713/acceptance/summary.json.gz",
+        "originalDigest": "sha256:664973c917c217104e7ba6ff54b65eeb65c5f0567b3e176480469ad3c700952a",
+        "storedDigest": "sha256:ac56569c77bd47bda9630d3553436f0001337c626dc9234154f495cf81703cfc",
+        "originalBytes": 490757
+      },
+      "checkerDetail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "baselineSetupPassed": true,
+      "receiptTests": [
+        {
+          "kind": "baseline",
+          "total": 18,
+          "passed": 18,
+          "failed": 0
+        },
+        {
+          "kind": "candidate",
+          "total": 6,
+          "passed": 6,
+          "failed": 0
+        }
+      ],
+      "mutations": [
+        {
+          "name": "reset-byte-budget-for-each-image",
+          "sourceSha256": "21c9965eaaf44ed5f91f192e2ac9073aa2affeca369fa41e33d5998b3685cafe",
+          "total": 6,
+          "passed": 5,
+          "failed": 1
+        }
+      ],
+      "checkReceipt": {
+        "path": "latest-package-round/39087930713/objects/a2f9d0f09a9a6dd5e2c625a4d265ebf48a06d9e05fb7b3b9c981bb56b06619df.gz",
+        "originalDigest": "sha256:0c4ea9807e79cb1a93dd0526f9131f0aef313d7cb601de305e1f9f5f161f906f",
+        "storedDigest": "sha256:e3256d4970c4f4be76b3ffff168f7bf68e0030f3e78911c618f065fbb14061ef",
+        "originalBytes": 16821
+      },
+      "observedTestExecutions": [
+        {
+          "executionIndex": 1,
+          "exitCode": 0,
+          "total": 18,
+          "passed": 18,
+          "failed": 0,
+          "failures": []
+        },
+        {
+          "executionIndex": 2,
+          "exitCode": 0,
+          "total": 6,
+          "passed": 6,
+          "failed": 0,
+          "failures": []
+        },
+        {
+          "executionIndex": 4,
+          "exitCode": 1,
+          "total": 6,
+          "passed": 5,
+          "failed": 1,
+          "failures": [
+            {
+              "test": "fast multi-image add budget (verify-33) rejects the offending item when consecutive additions push the running total past 20 MiB",
+              "message": "AssertionError: expected [Function] to throw an error"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sampleId": "first-run-darwin-cli",
+      "kind": "first-run",
+      "group": "darwin-cli",
+      "runId": "39087938110",
+      "generationSummary": {
+        "path": "latest-package-round/39087938110/generation/summary.json.gz",
+        "originalDigest": "sha256:141ebfeaa0c9ad3e1befbf3dd284f8e231261a4ea316f3803a4cab7da66ff226",
+        "storedDigest": "sha256:a4c0e68dc90343f914f02a8ccb30785d8a6c004d129ca302a145250134b08ea0",
+        "originalBytes": 519236
+      },
+      "generationPassed": false,
+      "modelFailureCategory": "agent-error",
+      "host": {
+        "passed": false,
+        "failure": null,
+        "restartRequired": false
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 9,
+        "usageCompleteRequests": 9,
+        "passed": false,
+        "poisoned": null,
+        "errorCode": "DIAGNOSTIC_OUTPUT_TRUNCATED"
+      },
+      "candidateFiles": [
+        {
+          "file": "packages/cli/__tests__/verify-07.test.js",
+          "path": "first-run-darwin-cli/candidate/packages/cli/__tests__/verify-07.test.js",
+          "digest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa",
+          "bytes": 27
+        }
+      ],
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false,
+      "acceptanceSummary": {
+        "path": "latest-package-round/39087938110/acceptance/summary.json.gz",
+        "originalDigest": "sha256:459906856bc96a429b1963826545ab03757dfaaf2d109288a50112585dfd6a3f",
+        "storedDigest": "sha256:a532302883576d8c6dbccc0a24b451af99cd3c7a2278cc1759a21e6439fdbff5",
+        "originalBytes": 513931
+      },
+      "checkerDetail": "acceptance requires executed test cases",
+      "baselineSetupPassed": true,
+      "receiptTests": [
+        {
+          "kind": "baseline",
+          "total": 39,
+          "passed": 39,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "checkReceipt": {
+        "path": "latest-package-round/39087938110/objects/61eafbcf7a43d2023c14611e1be77fe56142f4cdbfdc1d74111164c6e71bf464.gz",
+        "originalDigest": "sha256:34b7decf0b486cea9f046f402ab71da1331bd4c37cdc201fd3e69ee7310756ff",
+        "storedDigest": "sha256:59383dfce4f8d57c10855a90f9cbef81c3f361f278ee54be93e9e60afc2e801d",
+        "originalBytes": 17507
+      },
+      "observedTestExecutions": [
+        {
+          "executionIndex": 1,
+          "exitCode": 0,
+          "total": 39,
+          "passed": 39,
+          "failed": 0,
+          "failures": []
+        },
+        {
+          "executionIndex": 2,
+          "exitCode": 1,
+          "total": 0,
+          "passed": 0,
+          "failed": 0,
+          "failures": [
+            {
+              "file": "/workspace/packages/cli/__tests__/verify-07.test.js",
+              "fileError": "No test suite found in file /workspace/packages/cli/__tests__/verify-07.test.js"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-07",
+      "kind": "task",
+      "group": "darwin-cli",
+      "runId": "39087938110",
+      "generationSummary": {
+        "path": "latest-package-round/39087938110/generation/summary.json.gz",
+        "originalDigest": "sha256:141ebfeaa0c9ad3e1befbf3dd284f8e231261a4ea316f3803a4cab7da66ff226",
+        "storedDigest": "sha256:a4c0e68dc90343f914f02a8ccb30785d8a6c004d129ca302a145250134b08ea0",
+        "originalBytes": 519236
+      },
+      "generationPassed": true,
+      "modelFailureCategory": null,
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": false
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 16,
+        "usageCompleteRequests": 16,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "candidateFiles": [
+        {
+          "file": "packages/cli/__tests__/verify-07.test.js",
+          "path": "verify-07/candidate/packages/cli/__tests__/verify-07.test.js",
+          "digest": "sha256:a55203906459bf77b91052ffc5b071e6a9fd23133601bc7db2af6c309a52fe36",
+          "bytes": 6105
+        }
+      ],
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false,
+      "acceptanceSummary": {
+        "path": "latest-package-round/39087938110/acceptance/summary.json.gz",
+        "originalDigest": "sha256:459906856bc96a429b1963826545ab03757dfaaf2d109288a50112585dfd6a3f",
+        "storedDigest": "sha256:a532302883576d8c6dbccc0a24b451af99cd3c7a2278cc1759a21e6439fdbff5",
+        "originalBytes": 513931
+      },
+      "checkerDetail": "candidate or baseline regression failed",
+      "baselineSetupPassed": true,
+      "receiptTests": [
+        {
+          "kind": "baseline",
+          "total": 39,
+          "passed": 39,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "checkReceipt": {
+        "path": "latest-package-round/39087938110/objects/e374345f9c49a621c51f0ba5c6c1c19bcdde7c753afd32f5bdb15fe1be4f9bc1.gz",
+        "originalDigest": "sha256:08e353b8ba5f0b75c76a03cffcdef003bc98d2ff2ebf1f8750a44e540a6e7dbd",
+        "storedDigest": "sha256:9be0998efeb2c952b97789261d3fe75dc6704965888137d6b6aa0428446e798e",
+        "originalBytes": 20452
+      },
+      "observedTestExecutions": [
+        {
+          "executionIndex": 1,
+          "exitCode": 0,
+          "total": 39,
+          "passed": 39,
+          "failed": 0,
+          "failures": []
+        },
+        {
+          "executionIndex": 2,
+          "exitCode": 1,
+          "total": 6,
+          "passed": 5,
+          "failed": 1,
+          "failures": [
+            {
+              "test": "persistent body paging boundary walks head-to-tail cursors without omitting or duplicating the body",
+              "message": "AssertionError: expected [ 13, 14, 15, 10, 11, 12, 7, 8, …(8) ] to deeply equal [ +0, 1, 2, 3, 4, 5, 6, 7, 8, 9, …(6) ]"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-25",
+      "kind": "task",
+      "group": "darwin-cli",
+      "runId": "39087938110",
+      "generationSummary": {
+        "path": "latest-package-round/39087938110/generation/summary.json.gz",
+        "originalDigest": "sha256:141ebfeaa0c9ad3e1befbf3dd284f8e231261a4ea316f3803a4cab7da66ff226",
+        "storedDigest": "sha256:a4c0e68dc90343f914f02a8ccb30785d8a6c004d129ca302a145250134b08ea0",
+        "originalBytes": 519236
+      },
+      "generationPassed": true,
+      "modelFailureCategory": null,
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": false
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 14,
+        "usageCompleteRequests": 14,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "candidateFiles": [
+        {
+          "file": "packages/vscode-extension/__tests__/verify-25.test.js",
+          "path": "verify-25/candidate/packages/vscode-extension/__tests__/verify-25.test.js",
+          "digest": "sha256:99a8816c2bae58b897adc42249d9f122eea71158a2051c89ea4e220d9ec97a9e",
+          "bytes": 3837
+        }
+      ],
+      "candidateAcceptancePassed": true,
+      "endToEndPassed": true,
+      "acceptanceSummary": {
+        "path": "latest-package-round/39087938110/acceptance/summary.json.gz",
+        "originalDigest": "sha256:459906856bc96a429b1963826545ab03757dfaaf2d109288a50112585dfd6a3f",
+        "storedDigest": "sha256:a532302883576d8c6dbccc0a24b451af99cd3c7a2278cc1759a21e6439fdbff5",
+        "originalBytes": 513931
+      },
+      "checkerDetail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "baselineSetupPassed": true,
+      "receiptTests": [
+        {
+          "kind": "baseline",
+          "total": 25,
+          "passed": 25,
+          "failed": 0
+        },
+        {
+          "kind": "candidate",
+          "total": 4,
+          "passed": 4,
+          "failed": 0
+        }
+      ],
+      "mutations": [
+        {
+          "name": "delete-prior-draft-before-atomic-publication",
+          "sourceSha256": "031c95c589d5ab3cadd7746d9d8769086fc93a772167d316e858614690cdd945",
+          "total": 4,
+          "passed": 2,
+          "failed": 2
+        }
+      ],
+      "checkReceipt": {
+        "path": "latest-package-round/39087938110/objects/22fb9bf57a24491f0183c6b7af236f222f103b7ded1752ddf0b08c94ed2ee82e.gz",
+        "originalDigest": "sha256:cca0dbf32674222b9a8e0add21154b1a1903d420181957131f37ead60f85d34e",
+        "storedDigest": "sha256:da952a6c1674fd51b6bc48fa6c22c0c7d992f1eb98340c8ae4fa619802d862ba",
+        "originalBytes": 18243
+      },
+      "observedTestExecutions": [
+        {
+          "executionIndex": 1,
+          "exitCode": 0,
+          "total": 25,
+          "passed": 25,
+          "failed": 0,
+          "failures": []
+        },
+        {
+          "executionIndex": 2,
+          "exitCode": 0,
+          "total": 4,
+          "passed": 4,
+          "failed": 0,
+          "failures": []
+        },
+        {
+          "executionIndex": 4,
+          "exitCode": 1,
+          "total": 4,
+          "passed": 2,
+          "failed": 2,
+          "failures": [
+            {
+              "test": "atomic draft writes preserve the previous record on failure keeps the previous draft recoverable when the atomic rename fails",
+              "message": "Error: ENOENT: no such file or directory, open '/tmp/cc-verify25-5SfCU4/f42b5156-fd4e-46c7-a222-586720d4dbff/draft.json'"
+            },
+            {
+              "test": "atomic draft writes preserve the previous record on failure a failed send does not clear the saved composer or commit the pending input",
+              "message": "AssertionError: expected '' to be 'keep me' // Object.is equality"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-34",
+      "kind": "task",
+      "group": "darwin-cli",
+      "runId": "39087938110",
+      "generationSummary": {
+        "path": "latest-package-round/39087938110/generation/summary.json.gz",
+        "originalDigest": "sha256:141ebfeaa0c9ad3e1befbf3dd284f8e231261a4ea316f3803a4cab7da66ff226",
+        "storedDigest": "sha256:a4c0e68dc90343f914f02a8ccb30785d8a6c004d129ca302a145250134b08ea0",
+        "originalBytes": 519236
+      },
+      "generationPassed": true,
+      "modelFailureCategory": null,
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": false
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 8,
+        "usageCompleteRequests": 8,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "candidateFiles": [
+        {
+          "file": "docs/development/verify-34-outcome-runbook.md",
+          "path": "verify-34/candidate/docs/development/verify-34-outcome-runbook.md",
+          "digest": "sha256:7066c081c1f6d21e731c7986dfdb949df90648905e3b2e49daa7ed0e57606394",
+          "bytes": 8752
+        }
+      ],
+      "candidateAcceptancePassed": true,
+      "endToEndPassed": true,
+      "acceptanceSummary": {
+        "path": "latest-package-round/39087938110/acceptance/summary.json.gz",
+        "originalDigest": "sha256:459906856bc96a429b1963826545ab03757dfaaf2d109288a50112585dfd6a3f",
+        "storedDigest": "sha256:a532302883576d8c6dbccc0a24b451af99cd3c7a2278cc1759a21e6439fdbff5",
+        "originalBytes": 513931
+      },
+      "checkerDetail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+      "baselineSetupPassed": true,
+      "receiptTests": [
+        {
+          "kind": "baseline",
+          "total": 30,
+          "passed": 30,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "checkReceipt": {
+        "path": "latest-package-round/39087938110/objects/9b7dceae9eb11e3afe82ffc86f4625d12d9552877ff0057cb5229366aab4b92f.gz",
+        "originalDigest": "sha256:46f3e25884c5ecc9d0795130a0bec5be9aab39787c37584b01cdafdc546c333c",
+        "storedDigest": "sha256:e44ad06275a9b391df1c8ecf5ed4b2ed70a2ff7444bfa3b470b9bd906d922412",
+        "originalBytes": 55182
+      },
+      "document": {
+        "fingerprint": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+        "missingTaskSamples": 36,
+        "missingFirstRunSamples": 9
+      },
+      "observedTestExecutions": [
+        {
+          "executionIndex": 3,
+          "exitCode": 0,
+          "total": 30,
+          "passed": 30,
+          "failed": 0,
+          "failures": []
+        }
+      ]
+    },
+    {
+      "sampleId": "first-run-darwin-vscode",
+      "kind": "first-run",
+      "group": "darwin-vscode",
+      "runId": "39087946196",
+      "generationSummary": {
+        "path": "latest-package-round/39087946196/generation/summary.json.gz",
+        "originalDigest": "sha256:453f7177247b85f037b44eb2295c6cec4725443bd39b3a01674aa4c349d0bd8f",
+        "storedDigest": "sha256:eed7ba295f39fc24bb043b5ce381102a1039d2f18683b8806f3102f2a2d8729e",
+        "originalBytes": 276782
+      },
+      "generationPassed": true,
+      "modelFailureCategory": null,
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": true
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 11,
+        "usageCompleteRequests": 11,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "candidateFiles": [
+        {
+          "file": "packages/cli/__tests__/verify-08.test.js",
+          "path": "first-run-darwin-vscode/candidate/packages/cli/__tests__/verify-08.test.js",
+          "digest": "sha256:565df2b9be0b518f1f7b7e41474416976d25aebcfb374c57547deb958162102e",
+          "bytes": 4471
+        }
+      ],
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false,
+      "acceptanceSummary": {
+        "path": "latest-package-round/39087946196/acceptance/summary.json.gz",
+        "originalDigest": "sha256:7d9715a7552c157752877f6ae5b417f4f9740c8b439cdd05d172e8822c6ffd70",
+        "storedDigest": "sha256:a01ace73688106ee55dd23838733ab2f373fd9f15e2aed77d05c97e1893e3b84",
+        "originalBytes": 269496
+      },
+      "checkerDetail": "candidate or baseline regression failed",
+      "baselineSetupPassed": true,
+      "receiptTests": [
+        {
+          "kind": "baseline",
+          "total": 58,
+          "passed": 58,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "checkReceipt": {
+        "path": "latest-package-round/39087946196/acceptance/pack/acceptance-evidence/verify-08-check-63ba8a7a-b506-4b9b-bd22-35a3d6db3571.json.gz",
+        "originalDigest": "sha256:1299e171bf03b6d51326655f1d833a48e65e5fb17898fe0d74f7f51ef111edde",
+        "storedDigest": "sha256:bba6539c11c7fe37713478d6552c08a10724a65bbcd8f608da377470d2891520",
+        "originalBytes": 26252
+      },
+      "observedTestExecutions": [
+        {
+          "executionIndex": 1,
+          "exitCode": 0,
+          "total": 58,
+          "passed": 58,
+          "failed": 0,
+          "failures": []
+        },
+        {
+          "executionIndex": 2,
+          "exitCode": 1,
+          "total": 6,
+          "passed": 5,
+          "failed": 1,
+          "failures": [
+            {
+              "test": "fork history attribution keeps branch-history capability consumers synchronous and scoped",
+              "message": "AssertionError: expected [Function] to be null // Object.is equality"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-08",
+      "kind": "task",
+      "group": "darwin-vscode",
+      "runId": "39087946196",
+      "generationSummary": {
+        "path": "latest-package-round/39087946196/generation/summary.json.gz",
+        "originalDigest": "sha256:453f7177247b85f037b44eb2295c6cec4725443bd39b3a01674aa4c349d0bd8f",
+        "storedDigest": "sha256:eed7ba295f39fc24bb043b5ce381102a1039d2f18683b8806f3102f2a2d8729e",
+        "originalBytes": 276782
+      },
+      "generationPassed": true,
+      "modelFailureCategory": null,
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": true
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 6,
+        "usageCompleteRequests": 6,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "candidateFiles": [
+        {
+          "file": "packages/cli/__tests__/verify-08.test.js",
+          "path": "verify-08/candidate/packages/cli/__tests__/verify-08.test.js",
+          "digest": "sha256:5f7fee0b550fa39d909e847105f457cae7347c93bc6fbe233314a8a2b727efc2",
+          "bytes": 6275
+        }
+      ],
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false,
+      "acceptanceSummary": {
+        "path": "latest-package-round/39087946196/acceptance/summary.json.gz",
+        "originalDigest": "sha256:7d9715a7552c157752877f6ae5b417f4f9740c8b439cdd05d172e8822c6ffd70",
+        "storedDigest": "sha256:a01ace73688106ee55dd23838733ab2f373fd9f15e2aed77d05c97e1893e3b84",
+        "originalBytes": 269496
+      },
+      "checkerDetail": "candidate or baseline regression failed",
+      "baselineSetupPassed": true,
+      "receiptTests": [
+        {
+          "kind": "baseline",
+          "total": 58,
+          "passed": 58,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "checkReceipt": {
+        "path": "latest-package-round/39087946196/acceptance/pack/acceptance-evidence/verify-08-check-efbd1686-0e72-4570-ae58-b057d29363fb.json.gz",
+        "originalDigest": "sha256:aef12d19d394b130a00d6bec45782e9385ee06d433a468060d0f4e28c16eff3f",
+        "storedDigest": "sha256:1889a567580418a9194bf63123c0a4d7648ac13f82dda43c7c12ae2e13aa4d9e",
+        "originalBytes": 26285
+      },
+      "observedTestExecutions": [
+        {
+          "executionIndex": 1,
+          "exitCode": 0,
+          "total": 58,
+          "passed": 58,
+          "failed": 0,
+          "failures": []
+        },
+        {
+          "executionIndex": 2,
+          "exitCode": 1,
+          "total": 6,
+          "passed": 5,
+          "failed": 1,
+          "failures": [
+            {
+              "test": "verify-08 fork history attribution attributes the same shared ancestry to each fork in its own namespace",
+              "message": "AssertionError: expected [ 'q-0', 'a-0', 'q-1' ] to deeply equal [ 'q-0', 'a-0', 'q-1', 'a-1' ]"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sampleId": "first-run-darwin-jetbrains",
+      "kind": "first-run",
+      "group": "darwin-jetbrains",
+      "runId": "39087957391",
+      "generationSummary": {
+        "path": "latest-package-round/39087957391/generation/summary.json.gz",
+        "originalDigest": "sha256:9abd34c56a7309c7167d329567b2e9a4cfc7cc04ca377a951329ef5f43878a76",
+        "storedDigest": "sha256:afbd3311ee0219ddcb37c2fe9336d0828df5637263e6a985ec1433f32dbf2a9e",
+        "originalBytes": 136702
+      },
+      "generationPassed": false,
+      "modelFailureCategory": null,
+      "host": {
+        "passed": false,
+        "failure": "restart native UI task exited 1/null",
+        "restartRequired": true
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 7,
+        "usageCompleteRequests": 7,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "candidateFiles": [
+        {
+          "file": "packages/cli/__tests__/verify-09.test.js",
+          "path": "first-run-darwin-jetbrains/candidate/packages/cli/__tests__/verify-09.test.js",
+          "digest": "sha256:c7e3ba0462a3beb6ebe2aab8008072337f947aa43b72a36df0543fa898be8767",
+          "bytes": 4334
+        }
+      ],
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false,
+      "acceptanceSummary": {
+        "path": "latest-package-round/39087957391/acceptance/summary.json.gz",
+        "originalDigest": "sha256:5499fab9fb357f380e06a71ce8fb1fc2c3bc0a186678ca477c9430f382f57fff",
+        "storedDigest": "sha256:46a02468c36afe3061439a983344922cfd73d5382953af4b71a9854a33ba841c",
+        "originalBytes": 128922
+      },
+      "checkerDetail": "candidate tests did not reject the behavioral mutant",
+      "baselineSetupPassed": true,
+      "receiptTests": [
+        {
+          "kind": "baseline",
+          "total": 11,
+          "passed": 11,
+          "failed": 0
+        },
+        {
+          "kind": "candidate",
+          "total": 6,
+          "passed": 6,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "checkReceipt": {
+        "path": "latest-package-round/39087957391/objects/07f2155524ed625e1c385db0eb1e008f7ee99843f9ca50416ac94cf881b2524b.gz",
+        "originalDigest": "sha256:063e9dffae98b8908d34203fe6539f00220383cf3c0382425d22c21d4078710a",
+        "storedDigest": "sha256:7bea3f25bc8303c3f9b53752af249b0cf5f643ebb292b361ae7a82f1746d1013",
+        "originalBytes": 13420
+      },
+      "observedTestExecutions": [
+        {
+          "executionIndex": 1,
+          "exitCode": 0,
+          "total": 11,
+          "passed": 11,
+          "failed": 0,
+          "failures": []
+        },
+        {
+          "executionIndex": 2,
+          "exitCode": 0,
+          "total": 6,
+          "passed": 6,
+          "failed": 0,
+          "failures": []
+        },
+        {
+          "executionIndex": 4,
+          "exitCode": 0,
+          "total": 6,
+          "passed": 6,
+          "failed": 0,
+          "failures": []
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-09",
+      "kind": "task",
+      "group": "darwin-jetbrains",
+      "runId": "39087957391",
+      "generationSummary": {
+        "path": "latest-package-round/39087957391/generation/summary.json.gz",
+        "originalDigest": "sha256:9abd34c56a7309c7167d329567b2e9a4cfc7cc04ca377a951329ef5f43878a76",
+        "storedDigest": "sha256:afbd3311ee0219ddcb37c2fe9336d0828df5637263e6a985ec1433f32dbf2a9e",
+        "originalBytes": 136702
+      },
+      "generationPassed": false,
+      "modelFailureCategory": null,
+      "host": {
+        "passed": false,
+        "failure": "restart native UI task exited 1/null",
+        "restartRequired": true
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 5,
+        "usageCompleteRequests": 5,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "candidateFiles": [
+        {
+          "file": "packages/cli/__tests__/verify-09.test.js",
+          "path": "verify-09/candidate/packages/cli/__tests__/verify-09.test.js",
+          "digest": "sha256:6a4404e1e06709baa4a06d282ae86883d12a8f892cff0b8b21769e5650d4dd83",
+          "bytes": 3675
+        }
+      ],
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false,
+      "acceptanceSummary": {
+        "path": "latest-package-round/39087957391/acceptance/summary.json.gz",
+        "originalDigest": "sha256:5499fab9fb357f380e06a71ce8fb1fc2c3bc0a186678ca477c9430f382f57fff",
+        "storedDigest": "sha256:46a02468c36afe3061439a983344922cfd73d5382953af4b71a9854a33ba841c",
+        "originalBytes": 128922
+      },
+      "checkerDetail": "acceptance requires executed test cases",
+      "baselineSetupPassed": true,
+      "receiptTests": [
+        {
+          "kind": "baseline",
+          "total": 11,
+          "passed": 11,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "checkReceipt": {
+        "path": "latest-package-round/39087957391/objects/73b29b5bd789bb7850d8d28e4c51cdb6fdf0203bf48e870eac31ebf0c8aa73a3.gz",
+        "originalDigest": "sha256:44b319c486b7f08eaf464ed33eb4c6a14300bfadd071cd7ae9bd59ed1b095d40",
+        "storedDigest": "sha256:d3b8efcd5396b59251d5ada7d2429ad40006032d5c15a7c4083ade16ac1ce1a9",
+        "originalBytes": 7143
+      },
+      "observedTestExecutions": [
+        {
+          "executionIndex": 1,
+          "exitCode": 0,
+          "total": 11,
+          "passed": 11,
+          "failed": 0,
+          "failures": []
+        },
+        {
+          "executionIndex": 2,
+          "exitCode": 1,
+          "total": 0,
+          "passed": 0,
+          "failed": 0,
+          "failures": [
+            {
+              "file": "/workspace/packages/cli/__tests__/verify-09.test.js",
+              "fileError": "Cannot find module '../../src/lib/session-history-origins.js' imported from /workspace/packages/cli/__tests__/verify-09.test.js"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-10",
+      "kind": "task",
+      "group": "win32-cli",
+      "runId": "39087878780",
+      "generationSummary": {
+        "path": "latest-package-round/39087878780/generation/summary.json.gz",
+        "originalDigest": "sha256:7684eddf9c4383438a510134c8afc0c1e39aa342512d7a9b3f7162c363fbdf70",
+        "storedDigest": "sha256:25c79a79892accb03a688e4fef2b7da7b7e2962425828643d10351ae58e922b8",
+        "originalBytes": 150774
+      },
+      "generationPassed": true,
+      "modelFailureCategory": null,
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": false
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 7,
+        "usageCompleteRequests": 7,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "candidateFiles": [
+        {
+          "file": "packages/cli/__tests__/verify-10.test.js",
+          "path": "verify-10/candidate/packages/cli/__tests__/verify-10.test.js",
+          "digest": "sha256:002f797cc9d663936639768dfc3a294db7b779b4842dbea16bfadd0bc48b1e0c",
+          "bytes": 5981
+        }
+      ],
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false,
+      "acceptanceSummary": {
+        "path": "latest-package-round/39087878780/acceptance/summary.json.gz",
+        "originalDigest": "sha256:5ef8c472de3e60a15810e09f5601a510e41e5ce70c01f710d1e34159c6f2d5c2",
+        "storedDigest": "sha256:162fb5ce94b678e7f0c1809e12558bd3a8ba769dfbf0579a92fa7ca7f93b8f7f",
+        "originalBytes": 144813
+      },
+      "checkerDetail": "candidate or baseline regression failed",
+      "baselineSetupPassed": true,
+      "receiptTests": [
+        {
+          "kind": "baseline",
+          "total": 2,
+          "passed": 2,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "checkReceipt": {
+        "path": "latest-package-round/39087878780/acceptance/pack/acceptance-evidence/verify-10-check-00bc2a1d-fd2a-40d7-a6b9-9d2bf85e7c9f.json.gz",
+        "originalDigest": "sha256:9d0f869eca252998255e002d22d57382f4d320108f07b59be88e9cad12220511",
+        "storedDigest": "sha256:3061a2a6e19b97b68db9d4852f89e9901351e2ba15d47f1c7ec09e71db907a1c",
+        "originalBytes": 11540
+      },
+      "observedTestExecutions": [
+        {
+          "executionIndex": 1,
+          "exitCode": 0,
+          "total": 2,
+          "passed": 2,
+          "failed": 0,
+          "failures": []
+        },
+        {
+          "executionIndex": 2,
+          "exitCode": 1,
+          "total": 6,
+          "passed": 0,
+          "failed": 6,
+          "failures": [
+            {
+              "test": "background agent list index pagination invalidation regression rebuilds the index so pagination matches the snapshot after writes",
+              "message": "AssertionError: expected [ 'bg-a', 'bg-b', 'bg-c', 'bg-d' ] to deeply equal [ undefined, undefined, …(2) ]"
+            },
+            {
+              "test": "background agent list index pagination invalidation regression drops deleted states so pagination matches the snapshot",
+              "message": "AssertionError: expected [ 'bg-a', 'bg-c' ] to deeply equal [ undefined, undefined ]"
+            },
+            {
+              "test": "background agent list index pagination invalidation regression stays consistent with the snapshot when writes and deletes occur together",
+              "message": "AssertionError: expected [ 'bg-b', 'bg-d', 'bg-e', 'bg-f' ] to deeply equal [ undefined, undefined, …(2) ]"
+            },
+            {
+              "test": "background agent list index pagination invalidation regression keeps pagination stable across loads when the snapshot is unchanged",
+              "message": "AssertionError: expected [ Array(5) ] to deeply equal [ undefined, undefined, …(3) ]"
+            },
+            {
+              "test": "background agent list index pagination invalidation regression includes the complete tail page after sequential writes",
+              "message": "AssertionError: expected [ Array(10) ] to deeply equal [ undefined, undefined, …(8) ]"
+            },
+            {
+              "test": "background agent list index pagination invalidation regression replaces the cached index after a mutation so later loads reuse it consistently",
+              "message": "AssertionError: expected [ 'bg-b', 'bg-c' ] to deeply equal [ undefined, undefined ]"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-19",
+      "kind": "task",
+      "group": "win32-cli",
+      "runId": "39087878780",
+      "generationSummary": {
+        "path": "latest-package-round/39087878780/generation/summary.json.gz",
+        "originalDigest": "sha256:7684eddf9c4383438a510134c8afc0c1e39aa342512d7a9b3f7162c363fbdf70",
+        "storedDigest": "sha256:25c79a79892accb03a688e4fef2b7da7b7e2962425828643d10351ae58e922b8",
+        "originalBytes": 150774
+      },
+      "generationPassed": false,
+      "modelFailureCategory": "provider-fetch-failed",
+      "host": {
+        "passed": false,
+        "failure": null,
+        "restartRequired": false
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 4,
+        "usageCompleteRequests": 4,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "candidateFiles": [
+        {
+          "file": "packages/cli/__tests__/verify-19.test.js",
+          "path": "verify-19/candidate/packages/cli/__tests__/verify-19.test.js",
+          "digest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa",
+          "bytes": 27
+        }
+      ],
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false,
+      "acceptanceSummary": {
+        "path": "latest-package-round/39087878780/acceptance/summary.json.gz",
+        "originalDigest": "sha256:5ef8c472de3e60a15810e09f5601a510e41e5ce70c01f710d1e34159c6f2d5c2",
+        "storedDigest": "sha256:162fb5ce94b678e7f0c1809e12558bd3a8ba769dfbf0579a92fa7ca7f93b8f7f",
+        "originalBytes": 144813
+      },
+      "checkerDetail": "acceptance requires executed test cases",
+      "baselineSetupPassed": true,
+      "receiptTests": [
+        {
+          "kind": "baseline",
+          "total": 17,
+          "passed": 17,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "checkReceipt": {
+        "path": "latest-package-round/39087878780/acceptance/pack/acceptance-evidence/verify-19-check-534cd758-108e-442f-af5b-47da45a9de8e.json.gz",
+        "originalDigest": "sha256:867fb206a4f1e9cb464e40ed0987bda0490fa05d7e721ab08c67e2cb0fb1adac",
+        "storedDigest": "sha256:b388fbd63d7f9676a1125652c51ef7030c935d560a87cd054894f2ad3d7edeee",
+        "originalBytes": 8933
+      },
+      "observedTestExecutions": [
+        {
+          "executionIndex": 1,
+          "exitCode": 0,
+          "total": 17,
+          "passed": 17,
+          "failed": 0,
+          "failures": []
+        },
+        {
+          "executionIndex": 2,
+          "exitCode": 1,
+          "total": 0,
+          "passed": 0,
+          "failed": 0,
+          "failures": [
+            {
+              "file": "/workspace/packages/cli/__tests__/verify-19.test.js",
+              "fileError": "No test suite found in file /workspace/packages/cli/__tests__/verify-19.test.js"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-11",
+      "kind": "task",
+      "group": "win32-vscode",
+      "runId": "39087886976",
+      "generationSummary": {
+        "path": "latest-package-round/39087886976/generation/summary.json.gz",
+        "originalDigest": "sha256:0bf2d5f1c89e46e76f8d512bef14fa63be8b48e7f89cb17162b73049e0953361",
+        "storedDigest": "sha256:321e7c0c36f7626850e2403133b1784aa7525980fde5622cc364d6611b673a90",
+        "originalBytes": 131949
+      },
+      "generationPassed": true,
+      "modelFailureCategory": null,
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": true
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 11,
+        "usageCompleteRequests": 11,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "candidateFiles": [
+        {
+          "file": "packages/cli/__tests__/verify-11.test.js",
+          "path": "verify-11/candidate/packages/cli/__tests__/verify-11.test.js",
+          "digest": "sha256:1dff63e5f6c736c0ca1e9ced118c33d955b73fe2ca4372609a4395a8c2b9e054",
+          "bytes": 7143
+        }
+      ],
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false,
+      "acceptanceSummary": {
+        "path": "latest-package-round/39087886976/acceptance/summary.json.gz",
+        "originalDigest": "sha256:6d5ccf330accc7e690b4bd77e61ef18a85434b4ff808cb3d61b07173ca2635b7",
+        "storedDigest": "sha256:3d0c1af1de0c4ba8263983830dab3670caec99a89a987f437f8592d3f4a3a9e3",
+        "originalBytes": 124735
+      },
+      "checkerDetail": "candidate tests did not reject the behavioral mutant",
+      "baselineSetupPassed": true,
+      "receiptTests": [
+        {
+          "kind": "baseline",
+          "total": 16,
+          "passed": 16,
+          "failed": 0
+        },
+        {
+          "kind": "candidate",
+          "total": 6,
+          "passed": 6,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "checkReceipt": {
+        "path": "latest-package-round/39087886976/acceptance/pack/acceptance-evidence/verify-11-check-ca7aae94-32c1-45b9-8921-bac9fb5fd174.json.gz",
+        "originalDigest": "sha256:547809d28219202ff95da707620b6e43be7daaa21211515909d418949bd6d8e8",
+        "storedDigest": "sha256:f813e225bd402b4e810750317f160794d6e25e6218e82ba382c1ecbedd3473c8",
+        "originalBytes": 15375
+      },
+      "observedTestExecutions": [
+        {
+          "executionIndex": 1,
+          "exitCode": 0,
+          "total": 16,
+          "passed": 16,
+          "failed": 0,
+          "failures": []
+        },
+        {
+          "executionIndex": 2,
+          "exitCode": 0,
+          "total": 6,
+          "passed": 6,
+          "failed": 0,
+          "failures": []
+        },
+        {
+          "executionIndex": 4,
+          "exitCode": 0,
+          "total": 6,
+          "passed": 6,
+          "failed": 0,
+          "failures": []
+        }
+      ]
+    },
+    {
+      "sampleId": "first-run-win32-jetbrains",
+      "kind": "first-run",
+      "group": "win32-jetbrains",
+      "runId": "39087898779",
+      "generationSummary": {
+        "path": "latest-package-round/39087898779/generation/summary.json.gz",
+        "originalDigest": "sha256:bdbd18fdab5f4346f89d495fe06d3e5890d4ed73c22da6c8435a6a4d04e46c3d",
+        "storedDigest": "sha256:c61b6eb3076c01117534f03e7fac79a73d504e065b455081728fda4d9ab7b55d",
+        "originalBytes": 19227
+      },
+      "generationPassed": false,
+      "modelFailureCategory": "missing-terminal",
+      "host": {
+        "passed": false,
+        "failure": "Windows process identity snapshot failed: spawnSync C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe ETIMEDOUT",
+        "restartRequired": true
+      },
+      "brokerStatus": {
+        "physicalRequestsStarted": 0,
+        "usageCompleteRequests": 0,
+        "passed": false,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "candidateFiles": [
+        {
+          "file": "packages/cli/__tests__/verify-03.test.js",
+          "path": "first-run-win32-jetbrains/candidate/packages/cli/__tests__/verify-03.test.js",
+          "digest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa",
+          "bytes": 27
+        }
+      ],
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false,
+      "acceptanceSummary": {
+        "path": "latest-package-round/39087898779/acceptance/summary.json.gz",
+        "originalDigest": "sha256:ae9d427221c8d7021eda8d78de9139c1e9b1963ab345ec920ae5d2498081d86d",
+        "storedDigest": "sha256:77c8c3a21061f141377f1f4ac866713ed1b9ae7967c9e722e8b92374bcf14516",
+        "originalBytes": 10187
+      },
+      "checkerDetail": "acceptance requires executed test cases",
+      "baselineSetupPassed": true,
+      "receiptTests": [
+        {
+          "kind": "baseline",
+          "total": 31,
+          "passed": 31,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "checkReceipt": {
+        "path": "latest-package-round/39087898779/objects/2f3055890c974673039b9dc03222fbb160eef0c3f2faf546b4e16101f94c1e76.gz",
+        "originalDigest": "sha256:4690f9009fcbf18cc522af8b0f4256bb3a82d88acad787b45c2a29c125ded7e3",
+        "storedDigest": "sha256:e0c07e850a23154d8d19c6736120e1105119385ab013c8e269d208b48a80a587",
+        "originalBytes": 13828
+      },
+      "observedTestExecutions": [
+        {
+          "executionIndex": 1,
+          "exitCode": 0,
+          "total": 31,
+          "passed": 31,
+          "failed": 0,
+          "failures": []
+        },
+        {
+          "executionIndex": 2,
+          "exitCode": 1,
+          "total": 0,
+          "passed": 0,
+          "failed": 0,
+          "failures": [
+            {
+              "file": "/workspace/packages/cli/__tests__/verify-03.test.js",
+              "fileError": "No test suite found in file /workspace/packages/cli/__tests__/verify-03.test.js"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-12",
+      "kind": "task",
+      "group": "win32-jetbrains",
+      "runId": "39087898779",
+      "generationSummary": {
+        "path": "latest-package-round/39087898779/generation/summary.json.gz",
+        "originalDigest": "sha256:bdbd18fdab5f4346f89d495fe06d3e5890d4ed73c22da6c8435a6a4d04e46c3d",
+        "storedDigest": "sha256:c61b6eb3076c01117534f03e7fac79a73d504e065b455081728fda4d9ab7b55d",
+        "originalBytes": 19227
+      },
+      "generationPassed": false,
+      "modelFailureCategory": null,
+      "host": {
+        "passed": false,
+        "failure": "listen EADDRINUSE: address already in use 127.0.0.1:8082",
+        "restartRequired": true
+      },
+      "brokerStatus": null,
+      "candidateFiles": [
+        {
+          "file": "packages/cli/__tests__/verify-12.test.js",
+          "path": "verify-12/candidate/packages/cli/__tests__/verify-12.test.js",
+          "digest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa",
+          "bytes": 27
+        }
+      ],
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false,
+      "acceptanceSummary": {
+        "path": "latest-package-round/39087898779/acceptance/summary.json.gz",
+        "originalDigest": "sha256:ae9d427221c8d7021eda8d78de9139c1e9b1963ab345ec920ae5d2498081d86d",
+        "storedDigest": "sha256:77c8c3a21061f141377f1f4ac866713ed1b9ae7967c9e722e8b92374bcf14516",
+        "originalBytes": 10187
+      },
+      "checkerDetail": "acceptance requires executed test cases",
+      "baselineSetupPassed": true,
+      "receiptTests": [
+        {
+          "kind": "baseline",
+          "total": 11,
+          "passed": 11,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "checkReceipt": {
+        "path": "latest-package-round/39087898779/objects/0a5b615413df35999a701cf345f3314cad109dc09b4819e4b4e257ecf0851890.gz",
+        "originalDigest": "sha256:c64e1107d847f70cfe7d5df9c9bfc8838585ea67fb09a4ae0be35c52cfe46190",
+        "storedDigest": "sha256:a94f5351542125d3d4a72efdb49b4d2219d5608d1b2ca67110d780752cd5621e",
+        "originalBytes": 6805
+      },
+      "observedTestExecutions": [
+        {
+          "executionIndex": 1,
+          "exitCode": 0,
+          "total": 11,
+          "passed": 11,
+          "failed": 0,
+          "failures": []
+        },
+        {
+          "executionIndex": 2,
+          "exitCode": 1,
+          "total": 0,
+          "passed": 0,
+          "failed": 0,
+          "failures": [
+            {
+              "file": "/workspace/packages/cli/__tests__/verify-12.test.js",
+              "fileError": "No test suite found in file /workspace/packages/cli/__tests__/verify-12.test.js"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-30",
+      "kind": "task",
+      "group": "win32-jetbrains",
+      "runId": "39087898779",
+      "generationSummary": {
+        "path": "latest-package-round/39087898779/generation/summary.json.gz",
+        "originalDigest": "sha256:bdbd18fdab5f4346f89d495fe06d3e5890d4ed73c22da6c8435a6a4d04e46c3d",
+        "storedDigest": "sha256:c61b6eb3076c01117534f03e7fac79a73d504e065b455081728fda4d9ab7b55d",
+        "originalBytes": 19227
+      },
+      "generationPassed": false,
+      "modelFailureCategory": null,
+      "host": {
+        "passed": false,
+        "failure": "listen EADDRINUSE: address already in use 127.0.0.1:8082",
+        "restartRequired": true
+      },
+      "brokerStatus": null,
+      "candidateFiles": [
+        {
+          "file": "packages/vscode-extension/__tests__/verify-30.test.js",
+          "path": "verify-30/candidate/packages/vscode-extension/__tests__/verify-30.test.js",
+          "digest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa",
+          "bytes": 27
+        }
+      ],
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false,
+      "acceptanceSummary": {
+        "path": "latest-package-round/39087898779/acceptance/summary.json.gz",
+        "originalDigest": "sha256:ae9d427221c8d7021eda8d78de9139c1e9b1963ab345ec920ae5d2498081d86d",
+        "storedDigest": "sha256:77c8c3a21061f141377f1f4ac866713ed1b9ae7967c9e722e8b92374bcf14516",
+        "originalBytes": 10187
+      },
+      "checkerDetail": "acceptance requires executed test cases",
+      "baselineSetupPassed": true,
+      "receiptTests": [
+        {
+          "kind": "baseline",
+          "total": 13,
+          "passed": 13,
+          "failed": 0
+        }
+      ],
+      "mutations": [],
+      "checkReceipt": {
+        "path": "latest-package-round/39087898779/objects/5498aeb7b6afb41f6f73fcfa79130700dd439d24379e53015273c92b6669e149.gz",
+        "originalDigest": "sha256:91a90eddf9bd0c2b9b9b6604351786e856ba7b27873a6422a15c43286193120f",
+        "storedDigest": "sha256:961ca7c55ab9ed449431c6d39fb9aad249d3aaded8ccdba9d9fe5bf0caa2d6e3",
+        "originalBytes": 7997
+      },
+      "observedTestExecutions": [
+        {
+          "executionIndex": 1,
+          "exitCode": 0,
+          "total": 13,
+          "passed": 13,
+          "failed": 0,
+          "failures": []
+        },
+        {
+          "executionIndex": 2,
+          "exitCode": 1,
+          "total": 0,
+          "passed": 0,
+          "failed": 0,
+          "failures": [
+            {
+              "file": "/workspace/packages/vscode-extension/__tests__/verify-30.test.js",
+              "fileError": "No test suite found in file /workspace/packages/vscode-extension/__tests__/verify-30.test.js"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

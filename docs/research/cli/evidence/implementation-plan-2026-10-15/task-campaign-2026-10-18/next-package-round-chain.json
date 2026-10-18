@@ -1,0 +1,14 @@
+[
+  {
+    "planPath": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-105-20261018-plan.json",
+    "planDigest": "sha256:2296d637b34f63aff931b5e580da5023df5a47a7e7db3f0f2b314311a3e5579f",
+    "ledgerPath": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-105-20261018.json",
+    "ledgerDigest": "sha256:c18c59578e28d0f6faca1edd34d4ffeea5f302bf21678b69ae0dcf10ca3eab4a"
+  },
+  {
+    "planPath": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-plan.json",
+    "planDigest": "sha256:ce3852ed914c903fa3de6dc6255354e33ab2c53f803c126fe990272904d12718",
+    "ledgerPath": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2.json",
+    "ledgerDigest": "sha256:4ad3a6bba5b4da41a2374854c6dc833edf694b8637734df7724b2d459e649607"
+  }
+]

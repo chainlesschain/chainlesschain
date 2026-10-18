@@ -1,0 +1,89 @@
+/**
+ * Regression tests for model-failure-policy classification.
+ *
+ * Contract under test (packages/cli/src/lib/model-failure-policy.js):
+ *   - isEvolutionIngressFailure / isTerminalModelFailure classify failures so
+ *     that retryable provider/protocol errors stay retryable (non-terminal),
+ *     while explicit rejections (evolution ingress failure, runtime ledger
+ *     persistence, unknown workflow effect, session-budget code, abort) are
+ *     terminal.
+ *   - A retryable/protocol error nested anywhere in the cause chain must NOT
+ *     be implicitly promoted to a terminal failure, and vice versa.
+ *
+ * These are independent behavioral checks; they assert exported API results,
+ * never source text.
+ */
+
+import { describe, it, expect } from "vitest";
+import {
+  isEvolutionIngressFailure,
+  isTerminalModelFailure,
+} from "../src/lib/model-failure-policy.js";
+
+describe("model-failure-policy", () => {
+  it("keeps a plain retryable protocol error non-terminal (no implicit rejection)", () => {
+    // A provider 503 / rate-limit response is a retryable outcome, not a
+    // terminal rejection — it must not be classified as a terminal failure.
+    expect(isTerminalModelFailure({ status: 503 })).toBe(false);
+    expect(isEvolutionIngressFailure({ status: 503 })).toBe(false);
+
+    // Even nested retryable causes (429) stay retryable.
+    const nested = new Error("fetch failed", { cause: { status: 429 } });
+    expect(isTerminalModelFailure(nested)).toBe(false);
+    expect(isEvolutionIngressFailure(nested)).toBe(false);
+  });
+
+  it("treats an ingress admission failure as terminal even when its outer layer looks retryable", () => {
+    const outer = new Error("provider 503: overloaded", {
+      cause: { code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" },
+    });
+    expect(isEvolutionIngressFailure(outer)).toBe(true);
+    expect(isTerminalModelFailure(outer)).toBe(true);
+  });
+
+  it("treats runtime ledger persistence and unknown workflow effect as explicit rejections", () => {
+    const ledger = new Error("503", { cause: { runtimeLedgerPersistence: true } });
+    expect(isTerminalModelFailure(ledger)).toBe(true);
+
+    const workflow = new Error("503", {
+      cause: { workflowEffectOutcomeUnknown: true },
+    });
+    expect(isTerminalModelFailure(workflow)).toBe(true);
+  });
+
+  it("treats a session-budget code (CC or ERR prefix) as terminal but not other codes", () => {
+    expect(
+      isTerminalModelFailure({ code: "ERR_SESSION_BUDGET_IN_FLIGHT_LIMIT" }),
+    ).toBe(true);
+
+    const nested = new Error("limit", {
+      cause: { code: "CC_SESSION_BUDGET_EXCEEDED" },
+    });
+    expect(isTerminalModelFailure(nested)).toBe(true);
+
+    // A budget-like code without the reserved prefix is NOT terminal.
+    expect(
+      isTerminalModelFailure({ code: "SESSION_BUDGET_IN_FLIGHT_LIMIT" }),
+    ).toBe(false);
+  });
+
+  it("treats an abort error anywhere in the cause chain as terminal", () => {
+    const abort = new Error("Agent loop interrupted");
+    abort.name = "AbortError";
+    expect(isTerminalModelFailure(abort)).toBe(true);
+
+    const nested = new Error("503", { cause: abort });
+    expect(isTerminalModelFailure(nested)).toBe(true);
+  });
+
+  it("does not treat retryable words/statuses as terminal without a rejection marker", () => {
+    for (const err of [
+      new Error("model is overloaded, retry later"),
+      new Error("429 Too Many Requests"),
+      { status: 503, code: "ECONNREFUSED" },
+    ]) {
+      expect(isTerminalModelFailure(err)).toBe(false);
+      expect(isEvolutionIngressFailure(err)).toBe(false);
+    }
+  });
+});

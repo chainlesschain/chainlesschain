@@ -1,0 +1,242 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  BackgroundInteractionJournal,
+  _deps,
+  loadBackgroundInteractionJournal,
+  persistBackgroundInteractionJournal,
+  updateBackgroundInteractionJournal,
+} from "../src/lib/background-interaction-journal.js";
+
+const AGENT = "bg-verify-11";
+
+const makeBinding = (sessionId, toolUseId = "tool-1", sequence = 1) => ({
+  backgroundAgentId: AGENT,
+  sessionId,
+  turnId: "turn-1",
+  toolUseId,
+  sequence,
+});
+
+describe("verify-11 problem persistence attribution", () => {
+  let originalAppend;
+  let originalPresence;
+  let originalRead;
+  let events;
+
+  const installStoreMock = () => {
+    originalAppend = _deps.appendEventWithVerifiedProjection;
+    originalPresence = _deps.getSessionPresence;
+    originalRead = _deps.readVerifiedEvents;
+    events = [{ type: "session_start", data: {} }];
+    _deps.appendEventWithVerifiedProjection = vi.fn(
+      (sessionId, type, data, { createProjection, validateProjection } = {}) => {
+        const projection = createProjection();
+        for (const event of events) projection.accept(structuredClone(event));
+        validateProjection(projection.finish(), {
+          headHash: null,
+          eventCount: events.length,
+        });
+        events.push({ sessionId, type, data: structuredClone(data) });
+        return { hash: "mock-hash" };
+      },
+    );
+    _deps.readVerifiedEvents = vi.fn(() =>
+      events.map(({ type, data }) => ({ type, data: structuredClone(data) })),
+    );
+    _deps.getSessionPresence = vi.fn(() => "present");
+  };
+
+  const restoreStore = () => {
+    _deps.appendEventWithVerifiedProjection = originalAppend;
+    _deps.getSessionPresence = originalPresence;
+    _deps.readVerifiedEvents = originalRead;
+  };
+
+  afterEach(() => {
+    restoreStore();
+  });
+
+  it("keeps the same request name independent across different sessions", () => {
+    const sessionA = new BackgroundInteractionJournal({
+      backgroundAgentId: AGENT,
+      sessionId: "session-A",
+    });
+    const sessionB = new BackgroundInteractionJournal({
+      backgroundAgentId: AGENT,
+      sessionId: "session-B",
+    });
+    const bA = makeBinding("session-A");
+    const bB = makeBinding("session-B");
+    sessionA.recordPending({
+      requestId: "request-shared",
+      binding: bA,
+      payload: { question: "Deploy A?" },
+    });
+    sessionB.recordPending({
+      requestId: "request-shared",
+      binding: bB,
+      payload: { question: "Deploy B?" },
+    });
+    sessionA.settle("request-shared", bA, { status: "resolved", answer: "yes" });
+    sessionB.settle("request-shared", bB, { status: "resolved", answer: "no" });
+
+    expect(sessionA.get("request-shared").settlement.answer).toBe("yes");
+    expect(sessionB.get("request-shared").settlement.answer).toBe("no");
+    // values never leak across the same-named request in another session
+    expect(sessionA.get("request-shared").settlement.answer).not.toBe(
+      sessionB.get("request-shared").settlement.answer,
+    );
+  });
+
+  it("refuses to bind a request to a session different from the journal's", () => {
+    const sessionA = new BackgroundInteractionJournal({
+      backgroundAgentId: AGENT,
+      sessionId: "session-A",
+    });
+    expect(() =>
+      sessionA.recordPending({
+        requestId: "request-cross",
+        binding: makeBinding("session-B"),
+        payload: { question: "Cross?" },
+      }),
+    ).toThrow(/complete interaction binding/);
+    expect(sessionA.get("request-cross")).toBeNull();
+  });
+
+  it("persists a record only under its owning session, never a foreign session", () => {
+    installStoreMock();
+    const journal = new BackgroundInteractionJournal({
+      backgroundAgentId: AGENT,
+      sessionId: "session-A",
+    });
+    journal.recordPending({
+      requestId: "request-owned",
+      binding: makeBinding("session-A"),
+      payload: { question: "Deploy A?" },
+    });
+
+    // The owning session accepts and reloads its own record.
+    expect(persistBackgroundInteractionJournal("session-A", journal)).toBe(true);
+    expect(
+      loadBackgroundInteractionJournal("session-A", AGENT).get("request-owned").status,
+    ).toBe("pending");
+    expect(events).toHaveLength(2);
+
+    // A same-named record bound to session-B must not be persisted as session-A.
+    const misattributed = new BackgroundInteractionJournal({
+      backgroundAgentId: AGENT,
+    });
+    misattributed.recordPending({
+      requestId: "request-shared",
+      binding: makeBinding("session-B"),
+      payload: { question: "Deploy B?" },
+    });
+    expect(() =>
+      persistBackgroundInteractionJournal("session-A", misattributed),
+    ).toThrow(/journal write failed/);
+    // No additional journal snapshot was appended under session-A.
+    expect(_deps.appendEventWithVerifiedProjection).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not rebuild execution authority for an already completed record", () => {
+    const journal = new BackgroundInteractionJournal({
+      backgroundAgentId: AGENT,
+      sessionId: "session-A",
+    });
+    const binding = makeBinding("session-A");
+    const payload = { question: "Deploy?" };
+    journal.recordPending({ requestId: "request-completed", binding, payload });
+    expect(
+      journal.settle("request-completed", binding, {
+        status: "resolved",
+        answer: "yes",
+      }).applied,
+    ).toBe(true);
+
+    // Replaying the identical pending must NOT create a new pending execution.
+    const replay = journal.recordPending({
+      requestId: "request-completed",
+      binding,
+      payload,
+    });
+    expect(replay.applied).toBe(false);
+    expect(journal.get("request-completed").status).toBe("resolved");
+    expect(journal.pending()).toHaveLength(0);
+  });
+
+  it("rejects a conflicting replay of a completed record instead of re-arming it", () => {
+    const journal = new BackgroundInteractionJournal({
+      backgroundAgentId: AGENT,
+      sessionId: "session-A",
+    });
+    const binding = makeBinding("session-A");
+    journal.recordPending({
+      requestId: "request-settled",
+      binding,
+      payload: { question: "A?" },
+    });
+    journal.settle("request-settled", binding, {
+      status: "rejected",
+      error: { code: "INTERACTION_REJECTED", message: "nope" },
+    });
+
+    expect(() =>
+      journal.recordPending({
+        requestId: "request-settled",
+        binding,
+        payload: { question: "B?" },
+      }),
+    ).toThrow(/conflict/);
+    expect(journal.get("request-settled").status).toBe("rejected");
+    expect(journal.pending()).toHaveLength(0);
+  });
+
+  it("keeps a completed record terminal across persist and reload", () => {
+    installStoreMock();
+    let journal = new BackgroundInteractionJournal({
+      backgroundAgentId: AGENT,
+      now: () => 100,
+    });
+    journal = updateBackgroundInteractionJournal(
+      "session-A",
+      journal,
+      (draft) =>
+        draft.recordPending({
+          requestId: "request-reload",
+          binding: makeBinding("session-A"),
+          payload: { question: "Deploy?" },
+        }),
+    ).journal;
+    journal = updateBackgroundInteractionJournal(
+      "session-A",
+      journal,
+      (draft) =>
+        draft.settle("request-reload", makeBinding("session-A"), {
+          status: "resolved",
+          answer: "yes",
+        }),
+      { now: () => 200 },
+    ).journal;
+    expect(journal.get("request-reload").status).toBe("resolved");
+
+    const loaded = loadBackgroundInteractionJournal("session-A", AGENT);
+    expect(loaded.get("request-reload")).toMatchObject({
+      status: "resolved",
+      settlement: { answer: "yes" },
+    });
+
+    // Replaying the completed request against the reloaded journal stays terminal.
+    const replay = updateBackgroundInteractionJournal(
+      "session-A",
+      loaded,
+      (draft) =>
+        draft.recordPending({
+          requestId: "request-reload",
+          binding: makeBinding("session-A"),
+          payload: { question: "Deploy?" },
+        }),
+    );
+    expect(replay.journal.get("request-reload").status).toBe("resolved");
+    expect(replay.journal.pending()).toHaveLength(0);
+  });
+});

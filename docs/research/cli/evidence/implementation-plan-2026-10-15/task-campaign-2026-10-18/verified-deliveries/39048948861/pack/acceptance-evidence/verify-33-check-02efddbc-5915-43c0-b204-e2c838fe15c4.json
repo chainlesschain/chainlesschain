@@ -1,0 +1,125 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-33",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 18,
+      "passed": 18,
+      "failed": 0
+    },
+    {
+      "kind": "candidate",
+      "total": 6,
+      "passed": 6,
+      "failed": 0
+    }
+  ],
+  "mutations": [
+    {
+      "name": "reset-byte-budget-for-each-image",
+      "sourceSha256": "21c9965eaaf44ed5f91f192e2ac9073aa2affeca369fa41e33d5998b3685cafe",
+      "total": 6,
+      "passed": 4,
+      "failed": 2
+    }
+  ],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 160,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 2023,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":7,\"numPassedTestSuites\":7,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":18,\"numPassedTests\":18,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1792255940365,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"ChatViewProvider._writeImageTemps\"],\"fullName\":\"ChatViewProvider._writeImageTemps writes a whitelisted data URL to a temp file with the exact bytes\",\"status\":\"passed\",\"title\":\"writes a whitelisted data URL to a temp file with the exact bytes\",\"duration\":43.74354299999999,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ChatViewProvider._writeImageTemps\"],\"fullName\":\"ChatViewProvider._writeImageTemps rejects MIME spoofing without sending a partial attachment set\",\"status\":\"passed\",\"title\":\"rejects MIME spoofing without sending a partial attachment set\",\"duration\":35.002358000000015,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ChatViewProvider._writeImageTemps\"],\"fullName\":\"ChatViewProvider._writeImageTemps reports junk: non-image mime, malformed base64, missing data\",\"status\":\"passed\",\"title\":\"reports junk: non-image mime, malformed base64, missing data\",\"duration\":67.83110800000003,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ChatViewProvider._writeImageTemps\"],\"fullName\":\"ChatViewProvider._writeImageTemps rejects more than 4 attachments per message visibly\",\"status\":\"passed\",\"title\":\"rejects more than 4 attachments per message visibly\",\"duration\":0.5265509999999836,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"chat HTML ships the paste/attach UI (parse gate)\"],\"fullName\":\"chat HTML ships the paste/attach UI (parse gate) has the attach strip and paste handler, and all scripts parse\",\"status\":\"passed\",\"title\":\"has the attach strip and paste handler, and all scripts parse\",\"duration\":5.001273000000026,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"image temp-file cleanup (no tmpdir pile-up)\"],\"fullName\":\"image temp-file cleanup (no tmpdir pile-up) deletes a conversation's temp images once its turn results\",\"status\":\"passed\",\"title\":\"deletes a conversation's temp images once its turn results\",\"duration\":43.40126500000002,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"image temp-file cleanup (no tmpdir pile-up)\"],\"fullName\":\"image temp-file cleanup (no tmpdir pile-up) Stop cancels image preparation before spawning and removes the prepared files\",\"status\":\"passed\",\"title\":\"Stop cancels image preparation before spawning and removes the prepared files\",\"duration\":38.31645600000002,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"image temp-file cleanup (no tmpdir pile-up)\"],\"fullName\":\"image temp-file cleanup (no tmpdir pile-up) dispose() sweeps every conversation's leftovers\",\"status\":\"passed\",\"title\":\"dispose() sweeps every conversation's leftovers\",\"duration\":35.69250499999998,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"image temp-file cleanup (no tmpdir pile-up)\"],\"fullName\":\"image temp-file cleanup (no tmpdir pile-up) keeps a queued screenshot until its own turn finishes\",\"status\":\"passed\",\"title\":\"keeps a queued screenshot until its own turn finishes\",\"duration\":40.78567599999997,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"image temp-file cleanup (no tmpdir pile-up)\"],\"fullName\":\"image temp-file cleanup (no tmpdir pile-up) a failed send does not delete earlier queued attachments\",\"status\":\"passed\",\"title\":\"a failed send does not delete earlier queued attachments\",\"duration\":71.87550399999998,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"API key stays in the CLI secure store\"],\"fullName\":\"API key stays in the CLI secure store never copies a configured key into child env or argv\",\"status\":\"passed\",\"title\":\"never copies a configured key into child env or argv\",\"duration\":1.2681840000000193,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"API key stays in the CLI secure store\"],\"fullName\":\"API key stays in the CLI secure store does not synthesize CC_API_KEY when no key is configured\",\"status\":\"passed\",\"title\":\"does not synthesize CC_API_KEY when no key is configured\",\"duration\":0.4884509999999409,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1792255940774,\"endTime\":1792255941158.4885,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/vscode-ext-chat-images.test.js\"},{\"assertionResults\":[{\"ancestorTitles\":[\"bounded image intake\"],\"fullName\":\"bounded image intake rejects byte and aggregate limits before allocating buffers\",\"status\":\"passed\",\"title\":\"rejects byte and aggregate limits before allocating buffers\",\"duration\":13.957047999999986,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"bounded image intake\"],\"fullName\":\"bounded image intake rejects a pixel bomb without writing files\",\"status\":\"passed\",\"title\":\"rejects a pixel bomb without writing files\",\"duration\":2.5659630000000107,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"bounded image intake\"],\"fullName\":\"bounded image intake recognizes JPEG, GIF and WebP headers without decoding pixels\",\"status\":\"passed\",\"title\":\"recognizes JPEG, GIF and WebP headers without decoding pixels\",\"duration\":1.701722000000018,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"bounded image intake\"],\"fullName\":\"bounded image intake cleans already-owned files on write failure and reports the failing image\",\"status\":\"passed\",\"title\":\"cleans already-owned files on write failure and reports the failing image\",\"duration\":2.5351459999999406,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"bounded image intake\"],\"fullName\":\"bounded image intake keeps async image sends bound to their source tab and discards reset results\",\"status\":\"passed\",\"title\":\"keeps async image sends bound to their source tab and discards reset results\",\"duration\":16.156678000000056,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"bounded image intake\"],\"fullName\":\"bounded image intake reserves read slots before rapid drops and keeps drafts in their own tab\",\"status\":\"passed\",\"title\":\"reserves read slots before rapid drops and keeps drafts in their own tab\",\"duration\":43.36190099999999,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1792255941780,\"endTime\":1792255941861.3618,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/vscode-ext-image-budget.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 791,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":6,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1792255942387,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"rapid multi-image add budget\"],\"fullName\":\"rapid multi-image add budget accepts several images whose sum stays under the turn limit\",\"status\":\"passed\",\"title\":\"accepts several images whose sum stays under the turn limit\",\"duration\":4.9489460000000065,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"rapid multi-image add budget\"],\"fullName\":\"rapid multi-image add budget names the exact item that pushes the cumulative total past 20 MiB\",\"status\":\"passed\",\"title\":\"names the exact item that pushes the cumulative total past 20 MiB\",\"duration\":6.427532000000014,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"rapid multi-image add budget\"],\"fullName\":\"rapid multi-image add budget reports the exact offending item when it alone exceeds the per-image limit\",\"status\":\"passed\",\"title\":\"reports the exact offending item when it alone exceeds the per-image limit\",\"duration\":0.5262210000000209,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"rapid multi-image add budget\"],\"fullName\":\"rapid multi-image add budget keeps previously-accepted attachments usable after a later rejection\",\"status\":\"passed\",\"title\":\"keeps previously-accepted attachments usable after a later rejection\",\"duration\":8.05134799999999,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"rapid multi-image add budget\"],\"fullName\":\"rapid multi-image add budget writes a batch that fits the aggregate budget and leaves usable files\",\"status\":\"passed\",\"title\":\"writes a batch that fits the aggregate budget and leaves usable files\",\"duration\":5.003165999999993,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"rapid multi-image add budget\"],\"fullName\":\"rapid multi-image add budget rejects at most 4 images before any per-image size accounting\",\"status\":\"passed\",\"title\":\"rejects at most 4 images before any per-image size accounting\",\"duration\":0.3912899999999979,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1792255942635,\"endTime\":1792255942661.3914,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/vscode-extension/__tests__/verify-33.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/packages/vscode-extension/src/chat/image-attachments.js"
+      ],
+      "setup": false,
+      "ms": 171,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 817,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":0,\"numFailedTestSuites\":2,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":4,\"numFailedTests\":2,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1792255943337,\"success\":false,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"rapid multi-image add budget\"],\"fullName\":\"rapid multi-image add budget accepts several images whose sum stays under the turn limit\",\"status\":\"passed\",\"title\":\"accepts several images whose sum stays under the turn limit\",\"duration\":4.443031999999988,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"rapid multi-image add budget\"],\"fullName\":\"rapid multi-image add budget names the exact item that pushes the cumulative total past 20 MiB\",\"status\":\"failed\",\"title\":\"names the exact item that pushes the cumulative total past 20 MiB\",\"duration\":13.460230999999993,\"failureMessages\":[\"AssertionError: expected [Function] to throw an error\\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1552:16)\\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1156:15)\\n    at Proxy.methodWrapper (file:///workspace/node_modules/chai/index.js:1700:25)\\n    at /workspace/packages/vscode-extension/__tests__/verify-33.test.js:42:58\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"rapid multi-image add budget\"],\"fullName\":\"rapid multi-image add budget reports the exact offending item when it alone exceeds the per-image limit\",\"status\":\"passed\",\"title\":\"reports the exact offending item when it alone exceeds the per-image limit\",\"duration\":0.45167200000000207,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"rapid multi-image add budget\"],\"fullName\":\"rapid multi-image add budget keeps previously-accepted attachments usable after a later rejection\",\"status\":\"failed\",\"title\":\"keeps previously-accepted attachments usable after a later rejection\",\"duration\":3.6961729999999875,\"failureMessages\":[\"AssertionError: expected [Function] to throw an error\\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1552:16)\\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1156:15)\\n    at Proxy.methodWrapper (file:///workspace/node_modules/chai/index.js:1700:25)\\n    at /workspace/packages/vscode-extension/__tests__/verify-33.test.js:59:58\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"rapid multi-image add budget\"],\"fullName\":\"rapid multi-image add budget writes a batch that fits the aggregate budget and leaves usable files\",\"status\":\"passed\",\"title\":\"writes a batch that fits the aggregate budget and leaves usable files\",\"duration\":3.9631280000000118,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"rapid multi-image add budget\"],\"fullName\":\"rapid multi-image add budget rejects at most 4 images before any per-image size accounting\",\"status\":\"passed\",\"title\":\"rejects at most 4 images before any per-image size accounting\",\"duration\":0.3786360000000002,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1792255943605,\"endTime\":1792255943632.3787,\"status\":\"failed\",\"message\":\"\",\"name\":\"/workspace/packages/vscode-extension/__tests__/verify-33.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": true,
+  "detail": "Independent operator checks passed; this is not a provider or task-outcome sample."
+}

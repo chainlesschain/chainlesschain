@@ -1,0 +1,412 @@
+{
+  "schema": 1,
+  "diagnosticOnly": true,
+  "releaseGate": false,
+  "modelCalls": 0,
+  "sourceCommit": "83250c25099d02ecb26031a9190d2e5faf24f149",
+  "modulePathMode": "builtin",
+  "sourceSha256": "81099d3eee6a6d0cd244c35daa2e9b50b337b4b3dbcb9bc9e47ced9b83753a93",
+  "startedAt": "2026-10-18T16:44:56.535Z",
+  "platform": "win32",
+  "windowsBuild": "10.0.26100",
+  "node": "v22.12.0",
+  "timeoutMs": 60000,
+  "probes": [
+    {
+      "name": "cold-profile",
+      "elapsedMs": 3857,
+      "passed": true,
+      "directoryWitnessesUnchanged": null,
+      "fileContentUnchanged": null,
+      "calls": [
+        {
+          "originalScriptSha256": "a6403a9c3670792aceb8c874ebaaed2d9b73babfc59e6b186016ba495f6fa84a",
+          "executedScriptSha256": "a78d4592c59ab0e938d8a26d143a3a4e36511fc227fd8e8090e193e6083cb066",
+          "elapsedMs": 3853,
+          "timeoutMs": 60000,
+          "cwdIsProfile": true,
+          "status": 0,
+          "signal": null,
+          "errorCode": null,
+          "stages": [
+            {
+              "stage": "initialize",
+              "elapsedMs": 8
+            },
+            {
+              "stage": "traversal",
+              "elapsedMs": 39
+            },
+            {
+              "stage": "lookup",
+              "elapsedMs": 447
+            },
+            {
+              "stage": "repair-lock",
+              "elapsedMs": 504
+            },
+            {
+              "stage": "repair-wait",
+              "elapsedMs": 527
+            },
+            {
+              "stage": "repair-traversal",
+              "elapsedMs": 529
+            },
+            {
+              "stage": "repair-inspect",
+              "elapsedMs": 531
+            },
+            {
+              "stage": "repair-write",
+              "elapsedMs": 553
+            },
+            {
+              "stage": "repair-read",
+              "elapsedMs": 558
+            },
+            {
+              "stage": "repair-owner",
+              "elapsedMs": 560
+            },
+            {
+              "stage": "repair-protect",
+              "elapsedMs": 561
+            },
+            {
+              "stage": "repair-rules",
+              "elapsedMs": 565
+            },
+            {
+              "stage": "repair-persist",
+              "elapsedMs": 572
+            },
+            {
+              "stage": "repair-unlock",
+              "elapsedMs": 575
+            },
+            {
+              "stage": "verify",
+              "elapsedMs": 577
+            },
+            {
+              "stage": "verify-read",
+              "elapsedMs": 578
+            },
+            {
+              "stage": "verify-rules",
+              "elapsedMs": 579
+            },
+            {
+              "stage": "serialize",
+              "elapsedMs": 601
+            },
+            {
+              "stage": "output-complete",
+              "elapsedMs": 1679
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "security-anchor",
+      "elapsedMs": 604,
+      "passed": true,
+      "directoryWitnessesUnchanged": null,
+      "fileContentUnchanged": null,
+      "calls": [
+        {
+          "originalScriptSha256": "a6403a9c3670792aceb8c874ebaaed2d9b73babfc59e6b186016ba495f6fa84a",
+          "executedScriptSha256": "a78d4592c59ab0e938d8a26d143a3a4e36511fc227fd8e8090e193e6083cb066",
+          "elapsedMs": 601,
+          "timeoutMs": 60000,
+          "cwdIsProfile": true,
+          "status": 0,
+          "signal": null,
+          "errorCode": null,
+          "stages": [
+            {
+              "stage": "initialize",
+              "elapsedMs": 6
+            },
+            {
+              "stage": "traversal",
+              "elapsedMs": 30
+            },
+            {
+              "stage": "lookup",
+              "elapsedMs": 180
+            },
+            {
+              "stage": "repair-lock",
+              "elapsedMs": 188
+            },
+            {
+              "stage": "repair-wait",
+              "elapsedMs": 205
+            },
+            {
+              "stage": "repair-traversal",
+              "elapsedMs": 206
+            },
+            {
+              "stage": "repair-inspect",
+              "elapsedMs": 209
+            },
+            {
+              "stage": "repair-write",
+              "elapsedMs": 227
+            },
+            {
+              "stage": "repair-read",
+              "elapsedMs": 232
+            },
+            {
+              "stage": "repair-owner",
+              "elapsedMs": 233
+            },
+            {
+              "stage": "repair-protect",
+              "elapsedMs": 235
+            },
+            {
+              "stage": "repair-rules",
+              "elapsedMs": 239
+            },
+            {
+              "stage": "repair-persist",
+              "elapsedMs": 245
+            },
+            {
+              "stage": "repair-unlock",
+              "elapsedMs": 249
+            },
+            {
+              "stage": "verify",
+              "elapsedMs": 251
+            },
+            {
+              "stage": "verify-read",
+              "elapsedMs": 252
+            },
+            {
+              "stage": "verify-rules",
+              "elapsedMs": 253
+            },
+            {
+              "stage": "serialize",
+              "elapsedMs": 272
+            },
+            {
+              "stage": "output-complete",
+              "elapsedMs": 367
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "repeat-batch",
+      "elapsedMs": 822,
+      "passed": true,
+      "directoryWitnessesUnchanged": true,
+      "fileContentUnchanged": true,
+      "calls": [
+        {
+          "originalScriptSha256": "b730ca213a6ab4e837fb4a159033a0ce4bed765d6fe7738406a3cafd3a0472fd",
+          "executedScriptSha256": "af5134e90e9394b328bd06d11ba89cf2e5889fd3f8016ec54f5a33c4155e3ecc",
+          "elapsedMs": 819,
+          "timeoutMs": 60000,
+          "cwdIsProfile": true,
+          "status": 0,
+          "signal": null,
+          "errorCode": null,
+          "stages": [
+            {
+              "stage": "initialize",
+              "elapsedMs": 6
+            },
+            {
+              "stage": "traversal",
+              "elapsedMs": 269
+            },
+            {
+              "stage": "lookup",
+              "elapsedMs": 373
+            },
+            {
+              "stage": "traversal",
+              "elapsedMs": 374
+            },
+            {
+              "stage": "lookup",
+              "elapsedMs": 376
+            },
+            {
+              "stage": "traversal",
+              "elapsedMs": 378
+            },
+            {
+              "stage": "lookup",
+              "elapsedMs": 386
+            },
+            {
+              "stage": "traversal",
+              "elapsedMs": 390
+            },
+            {
+              "stage": "lookup",
+              "elapsedMs": 393
+            },
+            {
+              "stage": "repair-lock",
+              "elapsedMs": 408
+            },
+            {
+              "stage": "repair-wait",
+              "elapsedMs": 461
+            },
+            {
+              "stage": "repair-traversal",
+              "elapsedMs": 463
+            },
+            {
+              "stage": "repair-inspect",
+              "elapsedMs": 466
+            },
+            {
+              "stage": "repair-unlock",
+              "elapsedMs": 505
+            },
+            {
+              "stage": "verify",
+              "elapsedMs": 508
+            },
+            {
+              "stage": "verify-read",
+              "elapsedMs": 508
+            },
+            {
+              "stage": "verify-rules",
+              "elapsedMs": 510
+            },
+            {
+              "stage": "traversal",
+              "elapsedMs": 516
+            },
+            {
+              "stage": "lookup",
+              "elapsedMs": 519
+            },
+            {
+              "stage": "repair-lock",
+              "elapsedMs": 520
+            },
+            {
+              "stage": "repair-wait",
+              "elapsedMs": 521
+            },
+            {
+              "stage": "repair-traversal",
+              "elapsedMs": 522
+            },
+            {
+              "stage": "repair-inspect",
+              "elapsedMs": 524
+            },
+            {
+              "stage": "repair-unlock",
+              "elapsedMs": 527
+            },
+            {
+              "stage": "verify",
+              "elapsedMs": 528
+            },
+            {
+              "stage": "verify-read",
+              "elapsedMs": 528
+            },
+            {
+              "stage": "verify-rules",
+              "elapsedMs": 530
+            },
+            {
+              "stage": "traversal",
+              "elapsedMs": 530
+            },
+            {
+              "stage": "lookup",
+              "elapsedMs": 532
+            },
+            {
+              "stage": "repair-lock",
+              "elapsedMs": 534
+            },
+            {
+              "stage": "repair-wait",
+              "elapsedMs": 535
+            },
+            {
+              "stage": "repair-traversal",
+              "elapsedMs": 535
+            },
+            {
+              "stage": "repair-inspect",
+              "elapsedMs": 537
+            },
+            {
+              "stage": "repair-write",
+              "elapsedMs": 546
+            },
+            {
+              "stage": "repair-read",
+              "elapsedMs": 552
+            },
+            {
+              "stage": "repair-owner",
+              "elapsedMs": 554
+            },
+            {
+              "stage": "repair-protect",
+              "elapsedMs": 556
+            },
+            {
+              "stage": "repair-rules",
+              "elapsedMs": 559
+            },
+            {
+              "stage": "repair-persist",
+              "elapsedMs": 565
+            },
+            {
+              "stage": "repair-unlock",
+              "elapsedMs": 569
+            },
+            {
+              "stage": "verify",
+              "elapsedMs": 569
+            },
+            {
+              "stage": "verify-read",
+              "elapsedMs": 569
+            },
+            {
+              "stage": "verify-rules",
+              "elapsedMs": 571
+            },
+            {
+              "stage": "serialize",
+              "elapsedMs": 575
+            },
+            {
+              "stage": "output-complete",
+              "elapsedMs": 580
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "finishedAt": "2026-10-18T16:45:01.819Z"
+}

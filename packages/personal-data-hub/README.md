@@ -1,10 +1,21 @@
 # @chainlesschain/personal-data-hub
 
-Release candidate: `@chainlesschain/personal-data-hub@0.4.63`, paired with CLI
-`0.166.90`. It adds durable projection receipts, incomplete-derivation recovery,
-bounded receipt retention and honest adapter capability reporting. At candidate
-preparation, npm latest is `0.4.62`. Publication requires the full three-platform
-native test suite and public archive verification before the paired CLI publishes.
+This source release is `@chainlesschain/personal-data-hub@0.4.66`, intended for
+CLI `0.166.107`, subject to the release gates and public availability below.
+The **2026-10-19 preparation baseline** was public Personal Data Hub `0.4.65`
+with CLI `0.166.106`. This release pins `mailparser` to `3.9.45`; this is not a
+dependency downgrade.
+
+Publication requires the exact release commit's Linux, Windows and macOS native
+test matrix, GitHub Actions npm OIDC Trusted Publishing, and public archive
+verification. Publish required child packages before the CLI, verify downstream
+dependency versions, then release the IDE extensions after the CLI is public.
+CLI publication requires both `CLI CI` and `CLI Strict Sandbox` on all configured
+operating systems.
+
+The published `0.4.63` release introduced durable projection receipts,
+incomplete-derivation recovery, bounded receipt retention and adapter capability
+reporting with CLI `0.166.90`.
 
 Personal Data Hub — UnifiedSchema, validators, batch helpers, SQLCipher
 LocalVault, and AdapterRegistry for the "data back to the individual"
@@ -140,8 +151,9 @@ middleware.
 > classic-ZIP shape are checked before extraction, and selected paths or entry
 > names are not archived.
 >
-> Editing `lib/**` requires bumping the package version + `npm publish` +
-> the Android `USR_VERSION` sentinel, or real devices keep running stale code
+> Editing `lib/**` requires bumping the package version, publishing through the
+> GitHub Actions npm OIDC workflow, and updating the Android `USR_VERSION`
+> sentinel, or real devices keep running stale code
 > (see hidden-risk-traps #27/#28).
 
 ## What's in here
@@ -344,7 +356,7 @@ v.rotateKey(generateKeyHex());
 v.close();
 ```
 
-## Durable KG/RAG projections (unreleased, 2026-10-06)
+## Durable KG/RAG projections (introduced 2026-10-06)
 
 The encrypted vault now records each normalized entity's desired projection
 revision in the same transaction as its insert, update, or deletion. KG and RAG
