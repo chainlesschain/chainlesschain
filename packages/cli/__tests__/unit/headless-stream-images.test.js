@@ -5,7 +5,8 @@ import "../helpers/test-model-egress.js";
  * the same image-input pipeline (data URLs → OpenAI-style multimodal content);
  * a bad attachment errors THAT turn only, the session keeps serving.
  */
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import * as configManager from "../../src/lib/config-manager.js";
 import fs from "fs";
 import os from "os";
 import path from "path";
@@ -174,7 +175,7 @@ describe("stream turn with images", () => {
     const h = harness({
       runOptions: {
         provider: "volcengine",
-        model: "doubao-seed-1-6-251015", // text model
+        model: "deepseek-chat", // text model
         baseUrl: "https://ark/api",
         apiKey: "K",
         visionModel: "doubao-vlm",
@@ -187,7 +188,7 @@ describe("stream turn with images", () => {
     await h.run();
     expect(h.seenOpts).toHaveLength(2);
     // text turn keeps the session's text model
-    expect(h.seenOpts[0].model).toBe("doubao-seed-1-6-251015");
+    expect(h.seenOpts[0].model).toBe("deepseek-chat");
     // image turn switches model → vision (same provider/baseUrl/apiKey)
     expect(h.seenOpts[1].model).toBe("doubao-vlm");
     expect(h.seenOpts[1].provider).toBe("volcengine");
@@ -199,7 +200,7 @@ describe("stream turn with images", () => {
     const h = harness({
       runOptions: {
         provider: "volcengine",
-        model: "doubao-seed-1-6-251015", // text-only default model
+        model: "deepseek-chat", // text-only default model
         baseUrl: "https://ark/api",
         apiKey: "K",
         visionModel: "doubao-vlm",
@@ -219,6 +220,50 @@ describe("stream turn with images", () => {
     expect(h.seenOpts[1].provider).toBe("volcengine");
     expect(h.seenOpts[1].apiKey).toBe("K");
   });
+
+  it.each([
+    ["volcengine", "deepseek-v4-1-flash-260910"],
+    ["volcengine", "doubao-seed-2-1-pro-260628"],
+    ["openai", "gpt-4o"],
+    ["anthropic", "claude-sonnet-4-6"],
+    ["gemini", "gemini-2.5-flash"],
+  ])(
+    "%s/%s keeps images and follow-ups on the main model",
+    async (provider, model) => {
+      const configSpy = vi.spyOn(configManager, "loadConfig").mockReturnValue({
+        llm: { visionModel: "saved-vision-fallback" },
+      });
+      try {
+        const h = harness({
+          runOptions: {
+            provider,
+            model,
+            baseUrl: "https://main/api",
+            apiKey: "K",
+          },
+          inputObjs: [
+            { type: "user", text: "look", images: [pngPath] },
+            { type: "user", text: "what colour is it" },
+          ],
+        });
+        await h.run();
+        expect(h.seenOpts).toHaveLength(2);
+        for (const opts of h.seenOpts) {
+          expect(opts).toMatchObject({
+            provider,
+            model,
+            baseUrl: "https://main/api",
+            apiKey: "K",
+          });
+        }
+        expect(
+          h.seenTurns[0].find((message) => message.role === "user").content,
+        ).toEqual(expect.any(Array));
+      } finally {
+        configSpy.mockRestore();
+      }
+    },
+  );
 
   it("a text turn BEFORE any image stays on the text model", async () => {
     const h = harness({

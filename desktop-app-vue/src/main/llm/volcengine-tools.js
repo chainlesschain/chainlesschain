@@ -47,7 +47,7 @@ class VolcengineToolsClient {
   constructor(config = {}) {
     this.apiKey = config.apiKey;
     this.baseURL = config.baseURL || "https://ark.cn-beijing.volces.com/api/v3";
-    this.model = config.model || "doubao-seed-1.6";
+    this.model = config.model || "deepseek-v4-1-flash-260910";
     this.timeout = config.timeout || 300000; // 5分钟超时
     this.modelSelector = getModelSelector();
   }

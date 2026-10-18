@@ -975,7 +975,7 @@ export default {
       const defaults = {
         openai: 'gpt-3.5-turbo',
         deepseek: 'deepseek-chat',
-        volcengine: 'doubao-pro-32k',
+        volcengine: 'deepseek-v4-1-flash-260910',
         baidu_qianfan: 'ERNIE-Speed-128K',
         aliyun_dashscope: 'qwen-turbo',
         tencent_hunyuan: 'hunyuan-lite',

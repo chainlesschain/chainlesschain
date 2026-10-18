@@ -346,7 +346,7 @@ class LLMTestChatViewModel @Inject constructor(
             LLMProvider.CHATGLM -> "glm-4"
             LLMProvider.MOONSHOT -> "moonshot-v1-8k"
             LLMProvider.SPARK -> "spark-v3.5"
-            LLMProvider.DOUBAO -> "doubao-pro-32k"
+            LLMProvider.DOUBAO -> "deepseek-v4-1-flash-260910"
             LLMProvider.OLLAMA -> "qwen2:7b"
             LLMProvider.CUSTOM -> "custom-model"
         }

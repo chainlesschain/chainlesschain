@@ -9504,12 +9504,18 @@ async function startAgentReplInWorkspaceOwned(
     let _userMessageContent = userContent;
     if (process.env.CC_AUTO_IMAGE !== "0") {
       try {
-        const turn = prepareVisionTurn(userContent, {
-          provider,
-          baseUrl,
-          apiKey,
-          visionModel: _visionModel,
-        });
+        const turn = prepareVisionTurn(
+          userContent,
+          {
+            provider,
+            model,
+            baseUrl,
+            apiKey,
+            visionModel: _visionModel,
+          },
+          {},
+          { visionModel: options.visionModel },
+        );
         if (turn.visionLlm) {
           _userMessageContent = turn.content;
           _visionLlm = turn.visionLlm;
@@ -9549,9 +9555,10 @@ async function startAgentReplInWorkspaceOwned(
       if (!_visionLlm) {
         _visionLlm = resolveVisionLlm({
           hasImage: true,
-          flags: {},
+          flags: { visionModel: options.visionModel },
           llm: {
             provider,
+            model,
             baseUrl,
             apiKey,
             visionModel: _visionModel,

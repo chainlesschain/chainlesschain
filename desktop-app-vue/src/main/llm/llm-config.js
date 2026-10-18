@@ -68,7 +68,7 @@ const DEFAULT_CONFIG = {
     // 不再硬编码密钥：优先读环境变量，否则留空由用户在设置中填写并加密存储
     apiKey: process.env.VOLCENGINE_API_KEY || "",
     baseURL: "https://ark.cn-beijing.volces.com/api/v3",
-    model: "doubao-seed-1-6-251015", // 使用最新版本（注意：下划线格式，带版本号）
+    model: "deepseek-v4-1-flash-260910",
     embeddingModel: "doubao-embedding-text-240715", // 嵌入模型（最新版本，支持中英双语）
     videoModel: "doubao-seedance-1.0-lite", // 文生视频模型（Seedance 系列）
   },
@@ -254,7 +254,7 @@ class LLMConfig {
           !oldModel.match(/-\d{6}$/))
       ) {
         configPrivacy.event("model-migrated");
-        this.config.volcengine.model = "doubao-seed-1-6-251015";
+        this.config.volcengine.model = DEFAULT_CONFIG.volcengine.model;
         needsMigration = true;
       }
       const oldEmbedding = this.config.volcengine.embeddingModel;
@@ -320,7 +320,7 @@ class LLMConfig {
               !oldModel.match(/-\d{6}$/)) // 没有版本号后缀
           ) {
             configPrivacy.event("model-migrated");
-            this.config.volcengine.model = "doubao-seed-1-6-251015";
+            this.config.volcengine.model = DEFAULT_CONFIG.volcengine.model;
             needsMigration = true;
           }
 

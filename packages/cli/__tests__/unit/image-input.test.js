@@ -16,6 +16,7 @@ import {
   detectImagePaths,
   prepareVisionTurn,
   DEFAULT_VISION_MODEL,
+  supportsVisionModel,
 } from "../../src/lib/image-input.js";
 
 const fakeFs = imageFsFixture();
@@ -138,6 +139,66 @@ describe("imageUrlBlockToAnthropic", () => {
   });
 });
 
+describe("supportsVisionModel", () => {
+  it.each([
+    "deepseek-v4-1-flash-260910",
+    "gpt-4o",
+    "gpt-4o-mini-2024-07-18",
+    "openai/gpt-4.1",
+    "gpt-5-mini",
+    "gpt-6.1-sol",
+    "o3",
+    "o4-mini",
+    "claude-3-5-sonnet-20241022",
+    "claude-sonnet-4-6",
+    "claude-opus-4-8",
+    "gemini-1.5-pro",
+    "gemini-2.5-flash",
+    "doubao-seed-1-6-251015",
+    "doubao-seed-2-0-lite-260215",
+    "doubao-seed-2-1-pro-260628",
+    "qwen-vl-max-latest",
+    "qwen2.5vl:7b",
+    "qwen3-vl-plus",
+    "qwen3.5-plus",
+    "qwen3.5:9b",
+    "glm-4v",
+    "glm-4.5v",
+    "kimi-k2.5",
+    "pixtral-large-latest",
+    "MiniMax-VL-01",
+    "llama3.2-vision:11b",
+    "llava:7b",
+    "gemma3:4b",
+  ])("recognizes image input for %s", (model) => {
+    expect(supportsVisionModel(model)).toBe(true);
+  });
+
+  it.each([
+    undefined,
+    "",
+    "unknown-model",
+    "deepseek-chat",
+    "deepseek-v4-flash-ga-260731",
+    "doubao-pro-32k",
+    "gpt-3.5-turbo",
+    "gpt-4o-mini-tts",
+    "gpt-4o-transcribe",
+    "o1-mini",
+    "o3-mini",
+    "claude-2.1",
+    "gemini-embedding-001",
+    "gemini-2.5-flash-preview-tts",
+    "qwen2.5-coder:14b",
+    "qwen-max",
+    "MiniMax-Text-01",
+    "kimi-k2-0905-preview",
+    "gemma3:1b",
+  ])("keeps the vision fallback for %s", (model) => {
+    expect(supportsVisionModel(model)).toBe(false);
+  });
+});
+
 describe("resolveVisionLlm", () => {
   const llm = {
     provider: "volcengine",
@@ -192,6 +253,46 @@ describe("resolveVisionLlm", () => {
         llm,
       }).model,
     ).toBe("my-vlm");
+  });
+
+  it.each([
+    "deepseek-v4-1-flash-260910",
+    "doubao-seed-2-1-pro-260628",
+    "gpt-4o",
+    "claude-sonnet-4-6",
+    "gemini-2.5-flash",
+  ])(
+    "uses multimodal main model %s despite a saved vision fallback",
+    (model) => {
+      expect(
+        resolveVisionLlm({ hasImage: true, llm: { ...llm, model } }),
+      ).toEqual({
+        provider: llm.provider,
+        model,
+        baseUrl: llm.baseUrl,
+        apiKey: llm.apiKey,
+      });
+    },
+  );
+
+  it("does not adopt a main model belonging to a different provider", () => {
+    expect(
+      resolveVisionLlm({
+        hasImage: true,
+        flags: { provider: "openai" },
+        llm: { ...llm, model: "deepseek-v4-1-flash-260910" },
+      }).model,
+    ).toBe(llm.visionModel);
+  });
+
+  it("honors an explicit vision override even for a multimodal main model", () => {
+    expect(
+      resolveVisionLlm({
+        hasImage: true,
+        flags: { visionModel: "chosen-vlm" },
+        llm: { ...llm, model: "deepseek-v4-1-flash-260910" },
+      }).model,
+    ).toBe("chosen-vlm");
   });
 
   it("falls back to DEFAULT_VISION_MODEL when none configured", () => {
@@ -320,6 +421,19 @@ describe("prepareVisionTurn (REPL interactive composition)", () => {
     const r = prepareVisionTurn("a.png", llm, deps(["a.png"]));
     expect(r.content[0].text).toMatch(/attached image/);
     expect(r.visionLlm.model).toBe("doubao-vlm");
+  });
+
+  it("keeps a multimodal main model for an auto-attached REPL image", () => {
+    const main = { ...llm, model: "deepseek-v4-1-flash-260910" };
+    const r = prepareVisionTurn("describe a.png", main, deps(["a.png"]));
+    expect(r.visionLlm).toEqual({
+      provider: main.provider,
+      model: main.model,
+      baseUrl: main.baseUrl,
+      apiKey: main.apiKey,
+    });
+    expect(r.content[1].type).toBe("image_url");
+    expect(main.visionModel).toBe("doubao-vlm");
   });
 
   it("falls back to the default vision model when none configured", () => {

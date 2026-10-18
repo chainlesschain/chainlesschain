@@ -336,7 +336,7 @@ export function registerAgentCommand(program, dependencies = {}) {
     )
     .option(
       "--vision-model <id>",
-      "Model to use when an image is attached (default: config llm.visionModel or doubao-seed-2-0-lite-260215)",
+      "Explicit image model override (otherwise: multimodal main model, then config llm.visionModel or doubao-seed-2-0-lite-260215)",
     )
     .option("--session <id>", "Resume a previous agent session")
     .option(
@@ -1417,29 +1417,12 @@ export function registerAgentCommand(program, dependencies = {}) {
         }
       }
 
-      // When an image is attached, default the run to the configured vision LLM
-      // (config.llm provider/baseUrl/apiKey + llm.visionModel | --vision-model |
-      // doubao default) so `cc agent --image foo.png` works without extra flags.
-      // Explicit --provider/--model/etc. always win; no image 鈫?unchanged.
-      const visionLlm = resolveVisionLlm({
-        hasImage: images.length > 0,
-        flags: {
-          provider: options.provider,
-          model: explicitCliModel,
-          baseUrl: options.baseUrl,
-          apiKey: options.apiKey,
-          visionModel: options.visionModel,
-        },
-        llm: loadConfig().llm || {},
-      });
-
       // Config-default LLM (parity with cc ask/chat): a bare `cc agent` honors
       // config.json `llm` (provider/model/baseUrl/apiKey) instead of silently
       // assuming local ollama 鈥?this is what makes the editor chat panel work
       // against a cloud-configured setup. Explicit --provider wins outright;
-      // the vision resolution above still overrides for --image runs. Applied
-      // AFTER resolveVisionLlm so config defaults don't masquerade as explicit
-      // flags there, and BEFORE every dispatch (headless/stream/REPL) since
+      // resolve the main model before checking whether it can handle images,
+      // and BEFORE every dispatch (headless/stream/REPL) since
       // they all read options.provider/model/baseUrl/apiKey.
       {
         const { applyAgentModelDefaults, reconcileConfigLlmProvider } =
@@ -1496,6 +1479,21 @@ export function registerAgentCommand(program, dependencies = {}) {
           if (fixedOpts.model) options.model = fixedOpts.model;
         }
       }
+
+      const visionLlm = resolveVisionLlm({
+        hasImage: images.length > 0,
+        flags: {
+          model: explicitCliModel,
+          visionModel: options.visionModel,
+        },
+        llm: {
+          ...loadConfig().llm,
+          provider: options.provider,
+          model: options.model,
+          baseUrl: options.baseUrl,
+          apiKey: options.apiKey,
+        },
+      });
 
       // Claude-Code 2.1.183 parity: warn up front if the now-resolved model is
       // a provider-retired snapshot, before the run fails with an opaque "model
@@ -1980,6 +1978,7 @@ export function registerAgentCommand(program, dependencies = {}) {
           prompt,
           images,
           model: visionLlm.model || options.model,
+          visionModel: options.visionModel,
           thinking,
           thinkingBudget,
           provider: visionLlm.provider || options.provider,
@@ -2239,6 +2238,7 @@ export function registerAgentCommand(program, dependencies = {}) {
         skillRetrievalRevocationReader,
       }).createAgentRuntime({
         model: options.model,
+        visionModel: options.visionModel,
         thinking,
         thinkingBudget,
         provider: options.provider,

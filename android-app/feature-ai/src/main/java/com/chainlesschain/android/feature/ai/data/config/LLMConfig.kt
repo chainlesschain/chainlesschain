@@ -73,7 +73,7 @@ data class DeepSeekConfig(
 data class VolcengineConfig(
     val apiKey: String = "",
     val baseURL: String = "https://ark.cn-beijing.volces.com/api/v3",
-    val model: String = "doubao-seed-1-8-251228",
+    val model: String = "deepseek-v4-1-flash-260910",
     val embeddingModel: String = "doubao-embedding-text-240715"
 )
 

@@ -2078,10 +2078,8 @@ async function runAgentHeadlessStreamInWorkspace(
       return { exitCode: 1, turns: 0 };
     }
   }
-  // Vision model (config.llm.visionModel) — image turns switch to it for that
-  // turn only (resolveVisionLlm falls back to the default when unset), so a
-  // pasted/typed image is read by a vision-capable model even though the
-  // session's default model is text-only.
+  // Vision fallback for a text-only main model. Multimodal main models keep
+  // handling both image turns and follow-ups themselves.
   let visionModel = options.visionModel;
   if (!visionModel) {
     try {
@@ -5312,8 +5310,8 @@ async function runAgentHeadlessStreamInWorkspace(
     if (conversationHasImages) {
       turnVisionLlm = resolveVisionLlm({
         hasImage: true,
-        flags: {},
-        llm: { provider, baseUrl, apiKey, visionModel },
+        flags: { visionModel: options.visionModel },
+        llm: { provider, model, baseUrl, apiKey, visionModel },
       });
       if (parsed.images && parsed.images.length) {
         writeErr(

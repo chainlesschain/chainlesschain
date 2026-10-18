@@ -83,7 +83,7 @@ const DESCRIPTORS = [
       "Requested live service tier; model and endpoint support are checked before dispatch",
   }),
   descriptor("llm.visionModel", ["string", "null"], {
-    description: "Model used for image turns",
+    description: "Fallback for image turns when the main model lacks vision",
   }),
   descriptor("llm.fallbackModel", ["string", "null"], {
     deprecated: true,

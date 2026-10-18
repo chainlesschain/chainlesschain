@@ -284,7 +284,7 @@ export default {
       modelsByProvider: {
         openai: ['gpt-3.5-turbo', 'gpt-4', 'gpt-4-turbo'],
         deepseek: ['deepseek-chat', 'deepseek-coder'],
-        volcengine: ['doubao-pro-32k', 'doubao-lite-32k'],
+        volcengine: ['deepseek-v4-1-flash-260910', 'doubao-pro-32k', 'doubao-lite-32k'],
         baidu_qianfan: ['ERNIE-Speed-128K', 'ERNIE-Lite-8K'],
         aliyun_dashscope: ['qwen-turbo', 'qwen-plus', 'qwen-max'],
         tencent_hunyuan: ['hunyuan-lite', 'hunyuan-standard', 'hunyuan-pro'],

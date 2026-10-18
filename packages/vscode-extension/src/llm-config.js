@@ -54,7 +54,7 @@ const PROVIDER_PRESETS = [
     id: "volcengine",
     label: "Volcengine / Doubao (volcengine)",
     baseUrl: "https://ark.cn-beijing.volces.com/api/v3",
-    defaultModel: "deepseek-v4-flash-ga-260731",
+    defaultModel: "deepseek-v4-1-flash-260910",
     needsKey: true,
   },
   {
