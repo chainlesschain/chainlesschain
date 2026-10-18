@@ -484,11 +484,15 @@ const status = ref({
   error: null,
 });
 
-// 火山引擎（豆包）模型选项 - 2025年1月最新版本
+// 火山引擎模型选项
 const volcengineModelOptions = [
-  // Doubao Seed 1.6 系列（最新推荐 - 注意使用下划线格式）
   {
-    label: "doubao-seed-1-6-251015（推荐 - 最新，支持reasoning_effort）",
+    label: "deepseek-v4-1-flash-260910（默认）",
+    value: "deepseek-v4-1-flash-260910",
+  },
+  // Doubao Seed 1.6 系列
+  {
+    label: "doubao-seed-1-6-251015（支持reasoning_effort）",
     value: "doubao-seed-1-6-251015",
   },
   {
@@ -561,7 +565,7 @@ const form = reactive({
   volcengine: {
     apiKey: "",
     baseURL: "https://ark.cn-beijing.volces.com/api/v3",
-    model: "doubao-seed-1-6-251015",
+    model: "deepseek-v4-1-flash-260910",
   },
 
   custom: {
@@ -696,7 +700,7 @@ const handleReset = () => {
   form.volcengine = {
     apiKey: "",
     baseURL: "https://ark.cn-beijing.volces.com/api/v3",
-    model: "doubao-seed-1-6-251015",
+    model: "deepseek-v4-1-flash-260910",
   };
   form.custom = {
     name: "Custom Provider",

@@ -174,14 +174,15 @@ export function detectImagePaths(text, deps = {}) {
  * (the REPL itself forces a terminal and can't be driven headlessly).
  *
  * @param {string} text     the user's typed message
- * @param {object} llm      { provider, baseUrl, apiKey, visionModel } current LLM
+ * @param {object} llm      { provider, model, baseUrl, apiKey, visionModel } current LLM
  * @param {object} deps     { existsSync, fs } injected for tests
+ * @param {object} flags    explicit per-run model overrides
  * @returns {{ content, images: string[], visionLlm: object|null, text: string }}
  *   content is a plain string when no image is detected, else a multimodal
  *   array; visionLlm is the per-turn provider/model/baseUrl/apiKey override
  *   (null when there are no images); text is the path-stripped prompt.
  */
-export function prepareVisionTurn(text, llm = {}, deps = {}) {
+export function prepareVisionTurn(text, llm = {}, deps = {}, flags = {}) {
   const detected = detectImagePaths(text, deps);
   if (!detected.images.length) {
     return { content: text, images: [], visionLlm: null, text };
@@ -191,7 +192,7 @@ export function prepareVisionTurn(text, llm = {}, deps = {}) {
   return {
     content: buildUserContent(finalText, resolved),
     images: detected.images,
-    visionLlm: resolveVisionLlm({ hasImage: true, flags: {}, llm }),
+    visionLlm: resolveVisionLlm({ hasImage: true, flags, llm }),
     text: finalText,
   };
 }
@@ -276,13 +277,38 @@ export function imageUrlBlockToAnthropic(block) {
  */
 export const DEFAULT_VISION_MODEL = "doubao-seed-2-0-lite-260215";
 
+// Recognize image-input families, including dated snapshots and local tags.
+// Unknown models keep using the configured vision fallback. Do not infer
+// vision from the provider alone or from text-only siblings (e.g. o1-mini,
+// DeepSeek V3/V4, MiniMax-Text, Qwen Coder, or GPT audio/transcription SKUs).
+const VISION_MODEL_PATTERNS = [
+  /^deepseek-v4[.-]1-(?:flash|pro)(?:-\d{6})?$/i,
+  /^gpt-(?:4o(?:-mini)?|4\.1(?:-mini|-nano)?|[56](?:\.\d+)?(?:-(?:sol|astra|luna|mini|nano|pro|chat|codex)(?:-(?:mini|max))?)*)(?:-(?:\d{4}-\d{2}-\d{2}|latest))?$/i,
+  /^gpt-4-(?:turbo(?:-\d{4}-\d{2}-\d{2})?|vision-preview)$/i,
+  /^(?:o1|o3(?:-pro)?|o4-mini)(?:-\d{4}-\d{2}-\d{2})?$/i,
+  /^claude-(?:3(?:[.-][57])?-(?:opus|sonnet|haiku)|(?:opus|sonnet|haiku)-[345](?:[.-]\d+)?)(?:-\d{8}|-latest)?$/i,
+  /^gemini-(?:(?:1\.5|[23](?:\.\d+)?)-(?:pro|flash)(?!.*(?:tts|audio))[\w.-]*|pro-vision)$/i,
+  /^doubao-(?:seed-(?:1[.-][68]|2[.-][01])(?:-(?:pro|lite|flash|thinking))?(?:-\d{6})?|(?:1[.-]5-)?vision[\w.-]*)$/i,
+  /^(?:qwen-vl-(?:max|plus)|qwen(?:2(?:[.-]5)?|3)[.-]?vl|qwen[23](?:[.-]5)?-omni|qvq)(?:[-:.][\w.-]+)?$/i,
+  /^qwen3[.-]5(?:[-:.][\w.-]+)?$/i,
+  /^glm-4(?:[.-]\d+)?v(?:-[\w.-]+)?$/i,
+  /^(?:kimi-k2[.-]5|moonshot-v1-(?:8k|32k|128k)-vision)(?:-[\w.-]+)?$/i,
+  /^(?:pixtral-(?:12b|large)|mistral-small-(?:3[.-][12]|250[36])|minimax-vl-01)(?:[-:.][\w.-]+)?$/i,
+  /^(?:llava|bakllava|llama3\.2-vision|minicpm-v|moondream)(?:[-:.][\w.-]+)?$/i,
+  /^gemma3(?::(?:4b|12b|27b)(?:-[\w.-]+)?)?$/i,
+];
+
+export function supportsVisionModel(model) {
+  if (typeof model !== "string") return false;
+  const id = model.trim().split("/").at(-1);
+  return VISION_MODEL_PATTERNS.some((pattern) => pattern.test(id));
+}
+
 /**
- * Resolve the effective LLM config for a run. When an image is attached, default
- * the provider/model/baseUrl/apiKey to the configured vision LLM so
- * `cc agent --image foo.png` works without extra flags — using `llm.visionModel`
- * (a separate, configurable vision model) and falling back to DEFAULT_VISION_MODEL.
- * Explicit flags always win; with no image, behaviour is unchanged (vision config
- * is ignored). `--vision-model` overrides the configured/default vision model.
+ * Resolve image input using the main model when it supports vision. Only
+ * text-only/unknown main models use llm.visionModel or DEFAULT_VISION_MODEL.
+ * Explicit --model/--vision-model choices take precedence over saved settings.
+ * Without an image, no override is applied.
  *
  * @param {object} p
  * @param {boolean} p.hasImage  true when the run carries an attached image
@@ -301,13 +327,16 @@ export function resolveVisionLlm({ hasImage, flags = {}, llm = {} } = {}) {
       apiKey: undefined,
     };
   }
-  const visionModel =
-    flags.visionModel || llm.visionModel || DEFAULT_VISION_MODEL;
-  // `flags.model` must be the EXPLICIT `--model` (not a settings/default), so an
-  // attached image uses the vision model unless the user deliberately picked one.
+  const mainModel =
+    !flags.provider || !llm.provider || flags.provider === llm.provider
+      ? llm.model
+      : undefined;
+  const visionModel = supportsVisionModel(mainModel)
+    ? mainModel
+    : llm.visionModel || DEFAULT_VISION_MODEL;
   return {
     provider: flags.provider || llm.provider,
-    model: flags.model || visionModel,
+    model: flags.model || flags.visionModel || visionModel,
     baseUrl: flags.baseUrl || llm.baseUrl,
     apiKey: flags.apiKey || llm.apiKey,
   };

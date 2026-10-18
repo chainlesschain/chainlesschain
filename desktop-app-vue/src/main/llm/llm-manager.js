@@ -290,7 +290,7 @@ class LLMManager extends EventEmitter {
             apiKey: this.config.apiKey,
             baseURL:
               this.config.baseURL || "https://ark.cn-beijing.volces.com/api/v3",
-            model: this.config.model || "doubao-seed-1.6-lite",
+            model: this.config.model || "deepseek-v4-1-flash-260910",
           });
           if (modelIngressHosts.has(this))
             bindDesktopModelIngressClient(
@@ -385,7 +385,7 @@ class LLMManager extends EventEmitter {
             apiKey: this.config.apiKey,
             baseURL:
               this.config.baseURL || "https://ark.cn-beijing.volces.com/api/v3",
-            model: this.config.model || "doubao-seed-1.6-lite",
+            model: this.config.model || "deepseek-v4-1-flash-260910",
             embeddingModel:
               this.config.embeddingModel || "doubao-embedding-large",
             timeout: this.config.timeout,

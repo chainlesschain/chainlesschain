@@ -10,6 +10,7 @@ export function resolveAgentPolicy({
 
   return {
     model: overrides.model || llm.model || defaults.model || "qwen2:7b",
+    visionModel: overrides.visionModel,
     provider:
       overrides.provider || llm.provider || defaults.provider || "ollama",
     baseUrl:

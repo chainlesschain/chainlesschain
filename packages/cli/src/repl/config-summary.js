@@ -34,7 +34,7 @@ export function parseConfigCommand(argStr) {
 export const COMMON_CONFIG_KEYS = Object.freeze([
   ["llm.provider", "LLM provider id"],
   ["llm.model", "default text model id"],
-  ["llm.visionModel", "model used for image turns"],
+  ["llm.visionModel", "image fallback for a main model without vision"],
   ["llm.baseUrl", "provider API base URL"],
   ["llm.apiKey", "provider API key (use cc config set-secret)"],
   ["webSearch.provider", "web-search backend"],
