@@ -14,9 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Preserve the explicit provider reason for HTTP 403 responses that are not authentication or billing errors.
 - Keep JetBrains asynchronous draft-save receipts in a separate status update so they do not interrupt the assistant reply.
 - Wait up to two seconds for final JetBrains stdout callbacks on the background process waiter and schedule exit alongside result rendering on the IDE event queue.
+- Close unused Windows ACL subprocess input, require complete output before success, and share one bounded drain/cleanup deadline; native ACL startup timeouts remain under investigation.
 - Pair candidate VS Code 0.37.151 and JetBrains 0.4.168 with CLI 0.166.106; retain the existing published child-package versions.
 - Current public versions remain CLI 0.166.105, Open VSX 0.37.150 and JetBrains 0.4.167. Publish this candidate only after complete exact-commit gates, npm OIDC and public artifact readback, then retest unfinished samples.
-- Preserve the accepted 25/45 baseline. The .105 retest is in progress and has observed failures; this candidate is not published or accepted and does not claim 45/45 success.
+- Public .105 retesting completed generation 20/20 and acceptance 20/20, adding 6 candidate acceptances and 6 full-flow passes. Cumulative acceptance is 31/45 (ordinary 26/36, first-use 5/9), with 14 remaining. The original 25 accepted artifacts were reused byte-for-byte; cross-version cumulative acceptance is not a single-round 45/45 success. Candidates .106/.151/.168 remain unpublished and have not been retested.
 
 ### Fixed - cc CLI 0.166.105: task delivery quality and safe diagnostics (candidate, 2026-10-18)
 
