@@ -1,0 +1,2370 @@
+{
+  "schema": "chainlesschain.rrsi-manifest-state-local-controls/v1",
+  "recordedAt": "2026-10-18T03:24:41.865Z",
+  "platform": "win32",
+  "nodeVersion": "v22.22.2",
+  "uvVersion": "1.51.0",
+  "evidenceKind": "original-manifest-catalog-head-directories-and-bounded-full-precision-stable-leaf-windows-not-complete-storage-graph",
+  "passedFinalWindowsCases": 177,
+  "failedFinalWindowsCases": 0,
+  "skippedFinalWindowsCases": 4,
+  "finalFileCount": 10,
+  "newPassedCases": 91,
+  "newUnitPassedCases": 86,
+  "newIntegrationPassedCases": 5,
+  "existingPassedCases": 86,
+  "sourceCheckpoint": {
+    "path": ".work/rrsi-manifest-state-source-checkpoint-v2.json",
+    "sha256": "b47b294b358173175172079091bc317410e9dd8a9c6478efa5bec5ecb43116a8",
+    "recordedAt": "2026-10-18T03:04:18.229Z",
+    "worktree": ".work/r32",
+    "branch": "feature/rrsi-index-readback-isolated-20261018",
+    "baseCommit": "7111f3f78725c82c35927fd5bada0e0b1be5983c",
+    "priorBatchSourceCheckpointSha256": "cdd2c3c0db5cf73f0d962e7793628c80b0571e5aa4996145dcafa7898198e841",
+    "priorDiagnosticCheckpointSha256": "0f100936d15c0e6e8098d25f01ddea41471f0267820a2a07797dd8c33cd76a0a",
+    "changedFiles": [
+      "packages/cli/src/lib/evolution/evolution-manifest-state-reader.js",
+      "packages/cli/src/lib/evolution/evolution-ledger-file-manifest-catalog.js",
+      "packages/cli/src/lib/evolution/evolution-ledger-file-manifest-head-store.js",
+      "packages/cli/__tests__/unit/evolution-manifest-state-reader.test.js",
+      "packages/cli/__tests__/integration/rrsi-manifest-state-boundary.test.js",
+      "packages/cli/__tests__/fixtures/rrsi-manifest-state-process.mjs"
+    ],
+    "testFiles": [
+      "__tests__/unit/evolution-manifest-state-reader.test.js",
+      "__tests__/integration/rrsi-manifest-state-boundary.test.js",
+      "__tests__/unit/evolution-ledger-file-manifest-head-store.test.js",
+      "__tests__/unit/evolution-ledger-v2-manifest-backend.test.js",
+      "__tests__/unit/evolution-ledger-v2-journal.test.js",
+      "__tests__/unit/rrsi-observed-text-index.test.js",
+      "__tests__/unit/rrsi-tenant-index-anchor-history.test.js",
+      "__tests__/integration/rrsi-observed-text-controls.test.js",
+      "__tests__/integration/rrsi-tenant-index-anchor-history-process.test.js",
+      "__tests__/integration/rrsi-artifact-index-readback.test.js"
+    ],
+    "sourceDigests": [
+      {
+        "path": "packages/cli/src/lib/evolution/evolution-artifact-ports.js",
+        "sha256": "406620241886185540e44d4a78e9274779e8ec1f89bcf3d1871fe3c5c8e41586"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/rrsi-observed-text-index.js",
+        "sha256": "53ab4facacd165b9015e5687183222ac9391c56607fd028ea6ca5c7901a7db22"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/rrsi-tenant-index-anchor-history.js",
+        "sha256": "ed1f9892346563f984eef84d6b2bc0273b992bc14d8632b779310be9b54aa151"
+      },
+      {
+        "path": "packages/cli/__tests__/fixtures/rrsi-artifact-directory.js",
+        "sha256": "280565637f2df62abfe99a52f5aacfaecbebb697c9c36ec467f2c8353fc179c3"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/evolution-artifact-directory-boundary.test.js",
+        "sha256": "e2f45d57bfa58a92e7bc30cae2cb98994f8a4895ba0be2fc98313064c6961c20"
+      },
+      {
+        "path": "packages/cli/__tests__/integration/rrsi-artifact-directory-boundary.test.js",
+        "sha256": "8a73efe849b77da24beb7e272b61cadad6f6008e71992cf4e89143bbe30c51f7"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/evolution-artifact-identity.js",
+        "sha256": "fda6b4c4fb48897c86296ae9e6afa611172fe06f5e77fe44b458788b128a505b"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/evolution-artifact-ports.test.js",
+        "sha256": "57bf3a1085cbef53baac3c5599226b8caf9b8f187cdda37e8f699c3e2fe81ba6"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/evolution-artifact-identity.test.js",
+        "sha256": "f08b7935f0adcc52e870dbf5c28647a84af848518afac31222ffb9d6eb765d25"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/evolution-file-identity.test.js",
+        "sha256": "8ee4b38557541dac9df1a2cf3219a7614c6bf01e50f1c26dc9fcbdd859be17bd"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/rrsi-observed-text-index.test.js",
+        "sha256": "f7d789b9e13e03452d929407359b9d2111262b9c49950789d954a191300b8b20"
+      },
+      {
+        "path": "packages/cli/__tests__/integration/rrsi-observed-text-controls.test.js",
+        "sha256": "7054076a87bccd589a0dbe7843f617178fd2c1853b42f4d89cb491add09eb9a4"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/rrsi-tenant-index-anchor-history.test.js",
+        "sha256": "97b4f64ddf72019d64cd37c88ae69823afbbbf23fb6f7c38c79cf7605abd46c5"
+      },
+      {
+        "path": "packages/cli/__tests__/integration/rrsi-tenant-index-anchor-history-process.test.js",
+        "sha256": "e4b4d57e72998b97c4b6e10626c5cdf8a6c6fd6b1299b855fcc49293a6c515a2"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/evolution-artifact-index-boundary.test.js",
+        "sha256": "620e7ded8dcb950a19faae2bb73c31505df2b29fd705312e04142687d2d58ceb"
+      },
+      {
+        "path": "packages/cli/__tests__/integration/rrsi-artifact-index-boundary.test.js",
+        "sha256": "d28735b2b8bcae1a558e02cabcfa6369a15e8546442e3faf3a4c3ad10d43afbd"
+      },
+      {
+        "path": "packages/cli/__tests__/fixtures/rrsi-artifact-index-process.mjs",
+        "sha256": "c26c2d0e2203aa8d98033b5dbee4dff702640db5f44dd4c56be3e6d4eba5fde8"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/bounded-descriptor-read.js",
+        "sha256": "326c864205412e3b419a7c1b18d009eb6f1470a6f8514b80cb3502f59aeefa3d"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/evolution-file-identity.js",
+        "sha256": "b92a4e75a5a55a0752341326e13bd4935f70561b4e4793425700ad293d70fdfd"
+      },
+      {
+        "path": "packages/cli/src/lib/secure-file-identity.js",
+        "sha256": "d4170c7443c075d89c73478b4fa617d264999fb95f75456b1e1232797092a376"
+      },
+      {
+        "path": "packages/cli/src/lib/artifact-store.js",
+        "sha256": "0522e0abc1674b9a0f53635748b0d105c8331de9d5223767ab1f0637cdc1083a"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/evolution-ledger-v2-journal.js",
+        "sha256": "01acaa720b12ef411d47d83257df7caf24db03683a4ae7e7c5228fbe716c9208"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/evolution-ledger-file-backend.js",
+        "sha256": "0cfbc04b69db9768828f4a969742a4e4c674e5f171e318d497d1c5d6852f2f17"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/rrsi-registry-store-policy.js",
+        "sha256": "add7988b95ca617dd9977275b6fc45e0f1dd30035e2ddfa3e25aed6b6e25946c"
+      },
+      {
+        "path": "packages/cli/__tests__/fixtures/rrsi-observed-text.js",
+        "sha256": "8a5de277aea8fd89032d30b5eaac261a03b51152d0a826c6b90d53d73f94aacd"
+      },
+      {
+        "path": "packages/cli/__tests__/fixtures/rrsi-anchor-history.js",
+        "sha256": "b6122ab25c3a49028c97ab505559596cb8a9d97ad9cc215a7ddcda8291e5fd27"
+      },
+      {
+        "path": "packages/cli/__tests__/fixtures/evolution-durable-store.js",
+        "sha256": "15f2c1eb8177c564b2d79357d6bbff0e7543c36e9a276f2f4840c0aefbfc01e8"
+      },
+      {
+        "path": "packages/cli/src/lib/bounded-artifact-file-read.js",
+        "sha256": "2087cf945dbc00f3d839b323fb6f735ea723c6626ae7fec1f14585e432c0b39d"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/bounded-artifact-file-read.test.js",
+        "sha256": "6c60daf8b74e4bc7694f3b83aa73e1f6a095c8297bd4f8deb0b0204abb0d6afc"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/evolution-artifact-byte-boundary.test.js",
+        "sha256": "15b87d0154f97362b446d8a1a5d9c16dc38b2649e21b9e62818960cef6e4b3c6"
+      },
+      {
+        "path": "packages/cli/__tests__/fixtures/evolution-artifact-bytes.js",
+        "sha256": "699d1a5d8ba3da9c7353d6dca9d3611029b382bdf1108165f395a1bdadf78781"
+      },
+      {
+        "path": "packages/cli/__tests__/fixtures/rrsi-artifact-bytes-process.mjs",
+        "sha256": "944b5db7f32a430fa0e691f6233127e6d02cc2604c54cddb0e1b3d57c5ad1811"
+      },
+      {
+        "path": "packages/cli/__tests__/integration/rrsi-artifact-byte-boundary.test.js",
+        "sha256": "ccb60bc80f811a9ff1df4e2fca703500d04fb7829d801a6bdd9a69effd156b3f"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/artifact-store.test.js",
+        "sha256": "4780a5af0fa7ffccdbb3112dc845a36960cdb593cde1bdb83e83c7c753581cd8"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/delivery-evidence-command.test.js",
+        "sha256": "2ee4d85812d51984488a317e20926706db2c68c1eef4f9597523919c7cff71d6"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/evolution-artifact-index-readback.test.js",
+        "sha256": "dcf6f9fb977e3c6c1a10145eb62fb0a305e232381a8fefade179ac300a91de63"
+      },
+      {
+        "path": "packages/cli/__tests__/integration/rrsi-artifact-index-readback.test.js",
+        "sha256": "dab052d9e7fb57aab449e18e11d2418d2b9f4a650f64702241283b569b7d8f9f"
+      },
+      {
+        "path": "packages/cli/vitest.config.js",
+        "sha256": "a1b30cb7d677348dd9c9a625373c7532b6c333436a357b633237bd911b1f3770"
+      },
+      {
+        "path": "packages/cli/test/setup/agent-evolution-test-boundary.js",
+        "sha256": "6fdfb8d31f3e5813f5f3f46ce2485fc345d68cbe277b1f4cea79de6a10f9a275"
+      },
+      {
+        "path": "packages/cli/test/setup/windows-sandbox-adapter-cleanup.js",
+        "sha256": "c81f9ac1ae76d541b60ed2befa5eac8e553470856409d6c11c46d5ac640d15ad"
+      },
+      {
+        "path": "packages/cli/test/global-setup/windows-sandbox-adapter-temp-root.js",
+        "sha256": "3cf3ae650079cac5f3a020de627255e3c801a4f873a6a1ff8d1e3e782e357aa1"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/evolution-manifest-state-reader.js",
+        "sha256": "6fff7dcb8591c856a87d2772f2238beaafe48b06266cea3789cc6c1ff630e8c5"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/evolution-ledger-file-manifest-catalog.js",
+        "sha256": "311b2f5ab1ec83d588dae169e4a277057880cf60e4c42a747c0618ddad5b90db"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/evolution-ledger-file-manifest-head-store.js",
+        "sha256": "e02e9521d1ead8eceef09faab7ea9a7289d7395942b86f43a1206fba9a119887"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/evolution-manifest-state-reader.test.js",
+        "sha256": "a5f2d747037804d05a54ff7f69b30b69752899973b41333738cedb96c9f7dba9"
+      },
+      {
+        "path": "packages/cli/__tests__/integration/rrsi-manifest-state-boundary.test.js",
+        "sha256": "ed01f41f7e231862ef54cc1b297c2b09c729d9018d0449933c3a6d415be48b3c"
+      },
+      {
+        "path": "packages/cli/__tests__/fixtures/rrsi-manifest-state-process.mjs",
+        "sha256": "0e2c33ce99a97698c4c772ab95c56e3e7643cbd6f55c2474f4682a3aacbd7dcb"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/evolution-ledger-file-manifest-head-store.test.js",
+        "sha256": "b779638743d424be30625ea3e167622c7c0c0c44d69226d4920fbd61f3051c6c"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/evolution-ledger-v2-manifest-backend.test.js",
+        "sha256": "7b932a19d3446c859df26939c85546d9d4e8709ba05b1a4a8579bea2301cc1c2"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/evolution-ledger-v2-journal.test.js",
+        "sha256": "c759481f8516bc0c24cb5356712d0ddec43994a483581213fae63501f71987f1"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/evolution-ledger-v2-manifest-backend.js",
+        "sha256": "a50e03c207ca21e072a3ce66952f961568b318eb0bf02051af9cfd89b9f16b7e"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/evolution-ledger-manifest-head-store.js",
+        "sha256": "161eae782b5cbd6cc94d76ad1af2333618afe11a083b92b4f074a1776f8453ff"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/evolution-ledger-manifest-catalog.js",
+        "sha256": "770fffb5c9d6c0eb31854b9a382295b4d2ef7b150487e001a6cd2c0659827c7c"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/evolution-ledger-manifest-chain.js",
+        "sha256": "13ff707cf15c7a83cd9cee94b6080bd08c775608c0bd3a1cd10b3730e12aabdf"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/evolution-file-witness.js",
+        "sha256": "9bb8b776b66f24d0a1d80e9dd66e5f2b857eb471b3c2446c26891e30ab12e121"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/evolution-immutable-ledger-segment-store.js",
+        "sha256": "793bebb368493953df0a283d0dd4d6bf7c1eaac81fa054b1bca457ed7fb3d865"
+      }
+    ],
+    "rootBeforePropagation": [
+      {
+        "path": "packages/cli/src/lib/evolution/evolution-manifest-state-reader.js",
+        "sha256": null
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/evolution-ledger-file-manifest-catalog.js",
+        "sha256": "9257e68c606d96134730bfdd890b2ec8b8e3bcbed62f06c4a4fd33418645ab04"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/evolution-ledger-file-manifest-head-store.js",
+        "sha256": "2f77d6e4f793efb379a81497ce579d8bbbd9b06a0bf08658eed60ef1c18fb0d0"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/evolution-manifest-state-reader.test.js",
+        "sha256": null
+      },
+      {
+        "path": "packages/cli/__tests__/integration/rrsi-manifest-state-boundary.test.js",
+        "sha256": null
+      },
+      {
+        "path": "packages/cli/__tests__/fixtures/rrsi-manifest-state-process.mjs",
+        "sha256": null
+      }
+    ]
+  },
+  "sourceDigests": [
+    {
+      "path": "packages/cli/src/lib/evolution/evolution-artifact-ports.js",
+      "sha256": "406620241886185540e44d4a78e9274779e8ec1f89bcf3d1871fe3c5c8e41586"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/rrsi-observed-text-index.js",
+      "sha256": "53ab4facacd165b9015e5687183222ac9391c56607fd028ea6ca5c7901a7db22"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/rrsi-tenant-index-anchor-history.js",
+      "sha256": "ed1f9892346563f984eef84d6b2bc0273b992bc14d8632b779310be9b54aa151"
+    },
+    {
+      "path": "packages/cli/__tests__/fixtures/rrsi-artifact-directory.js",
+      "sha256": "280565637f2df62abfe99a52f5aacfaecbebb697c9c36ec467f2c8353fc179c3"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/evolution-artifact-directory-boundary.test.js",
+      "sha256": "e2f45d57bfa58a92e7bc30cae2cb98994f8a4895ba0be2fc98313064c6961c20"
+    },
+    {
+      "path": "packages/cli/__tests__/integration/rrsi-artifact-directory-boundary.test.js",
+      "sha256": "8a73efe849b77da24beb7e272b61cadad6f6008e71992cf4e89143bbe30c51f7"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/evolution-artifact-identity.js",
+      "sha256": "fda6b4c4fb48897c86296ae9e6afa611172fe06f5e77fe44b458788b128a505b"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/evolution-artifact-ports.test.js",
+      "sha256": "57bf3a1085cbef53baac3c5599226b8caf9b8f187cdda37e8f699c3e2fe81ba6"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/evolution-artifact-identity.test.js",
+      "sha256": "f08b7935f0adcc52e870dbf5c28647a84af848518afac31222ffb9d6eb765d25"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/evolution-file-identity.test.js",
+      "sha256": "8ee4b38557541dac9df1a2cf3219a7614c6bf01e50f1c26dc9fcbdd859be17bd"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/rrsi-observed-text-index.test.js",
+      "sha256": "f7d789b9e13e03452d929407359b9d2111262b9c49950789d954a191300b8b20"
+    },
+    {
+      "path": "packages/cli/__tests__/integration/rrsi-observed-text-controls.test.js",
+      "sha256": "7054076a87bccd589a0dbe7843f617178fd2c1853b42f4d89cb491add09eb9a4"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/rrsi-tenant-index-anchor-history.test.js",
+      "sha256": "97b4f64ddf72019d64cd37c88ae69823afbbbf23fb6f7c38c79cf7605abd46c5"
+    },
+    {
+      "path": "packages/cli/__tests__/integration/rrsi-tenant-index-anchor-history-process.test.js",
+      "sha256": "e4b4d57e72998b97c4b6e10626c5cdf8a6c6fd6b1299b855fcc49293a6c515a2"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/evolution-artifact-index-boundary.test.js",
+      "sha256": "620e7ded8dcb950a19faae2bb73c31505df2b29fd705312e04142687d2d58ceb"
+    },
+    {
+      "path": "packages/cli/__tests__/integration/rrsi-artifact-index-boundary.test.js",
+      "sha256": "d28735b2b8bcae1a558e02cabcfa6369a15e8546442e3faf3a4c3ad10d43afbd"
+    },
+    {
+      "path": "packages/cli/__tests__/fixtures/rrsi-artifact-index-process.mjs",
+      "sha256": "c26c2d0e2203aa8d98033b5dbee4dff702640db5f44dd4c56be3e6d4eba5fde8"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/bounded-descriptor-read.js",
+      "sha256": "326c864205412e3b419a7c1b18d009eb6f1470a6f8514b80cb3502f59aeefa3d"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/evolution-file-identity.js",
+      "sha256": "b92a4e75a5a55a0752341326e13bd4935f70561b4e4793425700ad293d70fdfd"
+    },
+    {
+      "path": "packages/cli/src/lib/secure-file-identity.js",
+      "sha256": "d4170c7443c075d89c73478b4fa617d264999fb95f75456b1e1232797092a376"
+    },
+    {
+      "path": "packages/cli/src/lib/artifact-store.js",
+      "sha256": "0522e0abc1674b9a0f53635748b0d105c8331de9d5223767ab1f0637cdc1083a"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/evolution-ledger-v2-journal.js",
+      "sha256": "01acaa720b12ef411d47d83257df7caf24db03683a4ae7e7c5228fbe716c9208"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/evolution-ledger-file-backend.js",
+      "sha256": "0cfbc04b69db9768828f4a969742a4e4c674e5f171e318d497d1c5d6852f2f17"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/rrsi-registry-store-policy.js",
+      "sha256": "add7988b95ca617dd9977275b6fc45e0f1dd30035e2ddfa3e25aed6b6e25946c"
+    },
+    {
+      "path": "packages/cli/__tests__/fixtures/rrsi-observed-text.js",
+      "sha256": "8a5de277aea8fd89032d30b5eaac261a03b51152d0a826c6b90d53d73f94aacd"
+    },
+    {
+      "path": "packages/cli/__tests__/fixtures/rrsi-anchor-history.js",
+      "sha256": "b6122ab25c3a49028c97ab505559596cb8a9d97ad9cc215a7ddcda8291e5fd27"
+    },
+    {
+      "path": "packages/cli/__tests__/fixtures/evolution-durable-store.js",
+      "sha256": "15f2c1eb8177c564b2d79357d6bbff0e7543c36e9a276f2f4840c0aefbfc01e8"
+    },
+    {
+      "path": "packages/cli/src/lib/bounded-artifact-file-read.js",
+      "sha256": "2087cf945dbc00f3d839b323fb6f735ea723c6626ae7fec1f14585e432c0b39d"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/bounded-artifact-file-read.test.js",
+      "sha256": "6c60daf8b74e4bc7694f3b83aa73e1f6a095c8297bd4f8deb0b0204abb0d6afc"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/evolution-artifact-byte-boundary.test.js",
+      "sha256": "15b87d0154f97362b446d8a1a5d9c16dc38b2649e21b9e62818960cef6e4b3c6"
+    },
+    {
+      "path": "packages/cli/__tests__/fixtures/evolution-artifact-bytes.js",
+      "sha256": "699d1a5d8ba3da9c7353d6dca9d3611029b382bdf1108165f395a1bdadf78781"
+    },
+    {
+      "path": "packages/cli/__tests__/fixtures/rrsi-artifact-bytes-process.mjs",
+      "sha256": "944b5db7f32a430fa0e691f6233127e6d02cc2604c54cddb0e1b3d57c5ad1811"
+    },
+    {
+      "path": "packages/cli/__tests__/integration/rrsi-artifact-byte-boundary.test.js",
+      "sha256": "ccb60bc80f811a9ff1df4e2fca703500d04fb7829d801a6bdd9a69effd156b3f"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/artifact-store.test.js",
+      "sha256": "4780a5af0fa7ffccdbb3112dc845a36960cdb593cde1bdb83e83c7c753581cd8"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/delivery-evidence-command.test.js",
+      "sha256": "2ee4d85812d51984488a317e20926706db2c68c1eef4f9597523919c7cff71d6"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/evolution-artifact-index-readback.test.js",
+      "sha256": "dcf6f9fb977e3c6c1a10145eb62fb0a305e232381a8fefade179ac300a91de63"
+    },
+    {
+      "path": "packages/cli/__tests__/integration/rrsi-artifact-index-readback.test.js",
+      "sha256": "dab052d9e7fb57aab449e18e11d2418d2b9f4a650f64702241283b569b7d8f9f"
+    },
+    {
+      "path": "packages/cli/vitest.config.js",
+      "sha256": "a1b30cb7d677348dd9c9a625373c7532b6c333436a357b633237bd911b1f3770"
+    },
+    {
+      "path": "packages/cli/test/setup/agent-evolution-test-boundary.js",
+      "sha256": "6fdfb8d31f3e5813f5f3f46ce2485fc345d68cbe277b1f4cea79de6a10f9a275"
+    },
+    {
+      "path": "packages/cli/test/setup/windows-sandbox-adapter-cleanup.js",
+      "sha256": "c81f9ac1ae76d541b60ed2befa5eac8e553470856409d6c11c46d5ac640d15ad"
+    },
+    {
+      "path": "packages/cli/test/global-setup/windows-sandbox-adapter-temp-root.js",
+      "sha256": "3cf3ae650079cac5f3a020de627255e3c801a4f873a6a1ff8d1e3e782e357aa1"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/evolution-manifest-state-reader.js",
+      "sha256": "6fff7dcb8591c856a87d2772f2238beaafe48b06266cea3789cc6c1ff630e8c5"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/evolution-ledger-file-manifest-catalog.js",
+      "sha256": "311b2f5ab1ec83d588dae169e4a277057880cf60e4c42a747c0618ddad5b90db"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/evolution-ledger-file-manifest-head-store.js",
+      "sha256": "e02e9521d1ead8eceef09faab7ea9a7289d7395942b86f43a1206fba9a119887"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/evolution-manifest-state-reader.test.js",
+      "sha256": "a5f2d747037804d05a54ff7f69b30b69752899973b41333738cedb96c9f7dba9"
+    },
+    {
+      "path": "packages/cli/__tests__/integration/rrsi-manifest-state-boundary.test.js",
+      "sha256": "ed01f41f7e231862ef54cc1b297c2b09c729d9018d0449933c3a6d415be48b3c"
+    },
+    {
+      "path": "packages/cli/__tests__/fixtures/rrsi-manifest-state-process.mjs",
+      "sha256": "0e2c33ce99a97698c4c772ab95c56e3e7643cbd6f55c2474f4682a3aacbd7dcb"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/evolution-ledger-file-manifest-head-store.test.js",
+      "sha256": "b779638743d424be30625ea3e167622c7c0c0c44d69226d4920fbd61f3051c6c"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/evolution-ledger-v2-manifest-backend.test.js",
+      "sha256": "7b932a19d3446c859df26939c85546d9d4e8709ba05b1a4a8579bea2301cc1c2"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/evolution-ledger-v2-journal.test.js",
+      "sha256": "c759481f8516bc0c24cb5356712d0ddec43994a483581213fae63501f71987f1"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/evolution-ledger-v2-manifest-backend.js",
+      "sha256": "a50e03c207ca21e072a3ce66952f961568b318eb0bf02051af9cfd89b9f16b7e"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/evolution-ledger-manifest-head-store.js",
+      "sha256": "161eae782b5cbd6cc94d76ad1af2333618afe11a083b92b4f074a1776f8453ff"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/evolution-ledger-manifest-catalog.js",
+      "sha256": "770fffb5c9d6c0eb31854b9a382295b4d2ef7b150487e001a6cd2c0659827c7c"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/evolution-ledger-manifest-chain.js",
+      "sha256": "13ff707cf15c7a83cd9cee94b6080bd08c775608c0bd3a1cd10b3730e12aabdf"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/evolution-file-witness.js",
+      "sha256": "9bb8b776b66f24d0a1d80e9dd66e5f2b857eb471b3c2446c26891e30ab12e121"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/evolution-immutable-ledger-segment-store.js",
+      "sha256": "793bebb368493953df0a283d0dd4d6bf7c1eaac81fa054b1bca457ed7fb3d865"
+    }
+  ],
+  "sourceHashesVerifiedAfterWindowsAndWsl": true,
+  "sharedRootHashesMatchTestedWorktreeAfterPropagation": true,
+  "finalWindowsRun": {
+    "reporterPath": ".work/rrsi-manifest-state-final-controls.json",
+    "reporterSha256": "2968e62662e54978a6620dccf5b6dc4e7ef835f8464ce1e5947236a28b02334b",
+    "startTime": 1792292665470,
+    "invocation": "node ../../node_modules/vitest/vitest.mjs run <testFiles below> --maxWorkers=1 --reporter=default --reporter=json --outputFile=<report.json>",
+    "cwd": "packages/cli",
+    "testFiles": [
+      "__tests__/unit/evolution-manifest-state-reader.test.js",
+      "__tests__/integration/rrsi-manifest-state-boundary.test.js",
+      "__tests__/unit/evolution-ledger-file-manifest-head-store.test.js",
+      "__tests__/unit/evolution-ledger-v2-manifest-backend.test.js",
+      "__tests__/unit/evolution-ledger-v2-journal.test.js",
+      "__tests__/unit/rrsi-observed-text-index.test.js",
+      "__tests__/unit/rrsi-tenant-index-anchor-history.test.js",
+      "__tests__/integration/rrsi-observed-text-controls.test.js",
+      "__tests__/integration/rrsi-tenant-index-anchor-history-process.test.js",
+      "__tests__/integration/rrsi-artifact-index-readback.test.js"
+    ],
+    "files": [
+      {
+        "path": "packages/cli/__tests__/integration/rrsi-artifact-index-readback.test.js",
+        "status": "passed",
+        "passed": 2,
+        "skipped": 0,
+        "cases": [
+          {
+            "title": "retained RRSI history and management share bounded index readback authenticates a genuine retained chunk through management and replays the original history without whole-index reads",
+            "status": "passed",
+            "durationMs": 959.1923999999999,
+            "failureMessages": []
+          },
+          {
+            "title": "retained RRSI history and management share bounded index readback holds an actual target-row change during management payload reading and authenticates restored original history",
+            "status": "passed",
+            "durationMs": 1430.4070000000029,
+            "failureMessages": []
+          }
+        ]
+      },
+      {
+        "path": "packages/cli/__tests__/integration/rrsi-manifest-state-boundary.test.js",
+        "status": "passed",
+        "passed": 5,
+        "skipped": 2,
+        "cases": [
+          {
+            "title": "real manifest state bytes and actual FIFO replacement in a new process reads genuine catalog backend state with actual descriptor bytes and no authority grant",
+            "status": "passed",
+            "durationMs": 4313.320299999999,
+            "failureMessages": []
+          },
+          {
+            "title": "real manifest state bytes and actual FIFO replacement in a new process reads genuine head backend state with actual descriptor bytes and no authority grant",
+            "status": "passed",
+            "durationMs": 3670.8459999999995,
+            "failureMessages": []
+          },
+          {
+            "title": "real manifest state bytes and actual FIFO replacement in a new process rejects a real catalog FIFO leaf without waiting for a writer",
+            "status": "skipped",
+            "failureMessages": []
+          },
+          {
+            "title": "real manifest state bytes and actual FIFO replacement in a new process rejects a real head FIFO leaf without waiting for a writer",
+            "status": "skipped",
+            "failureMessages": []
+          },
+          {
+            "title": "real retained RRSI history keeps its original v2 state directories authenticates signed retained history while complete physical graph and external authority remain HOLD",
+            "status": "passed",
+            "durationMs": 884.9570999999996,
+            "failureMessages": []
+          },
+          {
+            "title": "real retained RRSI history keeps its original v2 state directories holds a same-byte catalog directory clone and reauthenticates the original signed history after restore",
+            "status": "passed",
+            "durationMs": 1045.4804000000004,
+            "failureMessages": []
+          },
+          {
+            "title": "real retained RRSI history keeps its original v2 state directories holds a same-byte head directory clone and reauthenticates the original signed history after restore",
+            "status": "passed",
+            "durationMs": 1458.1658000000025,
+            "failureMessages": []
+          }
+        ]
+      },
+      {
+        "path": "packages/cli/__tests__/integration/rrsi-observed-text-controls.test.js",
+        "status": "passed",
+        "passed": 8,
+        "skipped": 0,
+        "cases": [
+          {
+            "title": "retained text controls on original v2 journal reconstructs exact text and persistent restrictions in a fresh process",
+            "status": "passed",
+            "durationMs": 10627.465099999994,
+            "failureMessages": []
+          },
+          {
+            "title": "retained text controls on original v2 journal retains restrictions after actual head response loss and retries the same operation without duplicating",
+            "status": "passed",
+            "durationMs": 14003.093000000008,
+            "failureMessages": []
+          },
+          {
+            "title": "retained text controls on original v2 journal stops artifact publication after the operation owner is replaced",
+            "status": "passed",
+            "durationMs": 4059.2590000000055,
+            "failureMessages": []
+          },
+          {
+            "title": "signed malformed retained text: noncanonical-base64 holds even when envelopes and declaration references are genuinely authenticated",
+            "status": "passed",
+            "durationMs": 3054.708999999988,
+            "failureMessages": []
+          },
+          {
+            "title": "signed malformed retained text: wrong-length holds even when envelopes and declaration references are genuinely authenticated",
+            "status": "passed",
+            "durationMs": 3365.438200000004,
+            "failureMessages": []
+          },
+          {
+            "title": "signed malformed retained text: invalid-utf8 holds even when envelopes and declaration references are genuinely authenticated",
+            "status": "passed",
+            "durationMs": 4514.5768999999855,
+            "failureMessages": []
+          },
+          {
+            "title": "retained maximum size and malformed declaration controls retains and reads back exactly 1 MiB using 16 bounded chunks",
+            "status": "passed",
+            "durationMs": 19824.225599999976,
+            "failureMessages": []
+          },
+          {
+            "title": "retained maximum size and malformed declaration controls rejects an authenticated but self-inconsistent History association on reopening",
+            "status": "passed",
+            "durationMs": 3369.731999999989,
+            "failureMessages": []
+          }
+        ]
+      },
+      {
+        "path": "packages/cli/__tests__/integration/rrsi-tenant-index-anchor-history-process.test.js",
+        "status": "passed",
+        "passed": 3,
+        "skipped": 0,
+        "cases": [
+          {
+            "title": "signed local anchor prefix across original v2 processes reconstructs genuine local prefixes in a new process while preserving artifacts and denying external authority",
+            "status": "passed",
+            "durationMs": 11756.622900000002,
+            "failureMessages": []
+          },
+          {
+            "title": "signed local anchor prefix across original v2 processes holds a captured proof after another real process authenticates a new event",
+            "status": "passed",
+            "durationMs": 8145.440400000007,
+            "failureMessages": []
+          },
+          {
+            "title": "signed local anchor prefix across original v2 processes rejects a fresh, valid signature that erases retained restrictions without appending or publishing",
+            "status": "passed",
+            "durationMs": 7198.768199999991,
+            "failureMessages": []
+          }
+        ]
+      },
+      {
+        "path": "packages/cli/__tests__/unit/evolution-ledger-file-manifest-head-store.test.js",
+        "status": "passed",
+        "passed": 4,
+        "skipped": 0,
+        "cases": [
+          {
+            "title": "Evolution Ledger file manifest head backend durably commits, reopens, and rejects a stale CAS",
+            "status": "passed",
+            "durationMs": 81.20830000000001,
+            "failureMessages": []
+          },
+          {
+            "title": "Evolution Ledger file manifest head backend does not commit when interrupted before rename",
+            "status": "passed",
+            "durationMs": 26.11469999999997,
+            "failureMessages": []
+          },
+          {
+            "title": "Evolution Ledger file manifest head backend reports commit unknown after rename and exposes the committed head on reopen",
+            "status": "passed",
+            "durationMs": 39.60360000000003,
+            "failureMessages": []
+          },
+          {
+            "title": "Evolution Ledger file manifest head backend rejects hard-linked and malformed state files",
+            "status": "passed",
+            "durationMs": 53.466999999999985,
+            "failureMessages": []
+          }
+        ]
+      },
+      {
+        "path": "packages/cli/__tests__/unit/evolution-ledger-v2-journal.test.js",
+        "status": "passed",
+        "passed": 14,
+        "skipped": 0,
+        "cases": [
+          {
+            "title": "production v2 ledger payload journal and cutover recovers complete payloads from a fresh manifest process without opening the offline v1 WAL",
+            "status": "passed",
+            "durationMs": 18230.3219,
+            "failureMessages": []
+          },
+          {
+            "title": "production v2 ledger payload journal and cutover migrates and reopens existing slash-bearing tenant, artifact and audience scopes",
+            "status": "passed",
+            "durationMs": 16891.6433,
+            "failureMessages": []
+          },
+          {
+            "title": "production v2 ledger payload journal and cutover migrates signed v1 payloads once, finalizes one live batch once, and recovers the exact bytes in a fresh process",
+            "status": "passed",
+            "durationMs": 25636.134700000002,
+            "failureMessages": []
+          },
+          {
+            "title": "production v2 ledger payload journal and cutover recovers crash-intent after signed WAL witness publication without duplicating migration records",
+            "status": "passed",
+            "durationMs": 36786.3395,
+            "failureMessages": []
+          },
+          {
+            "title": "production v2 ledger payload journal and cutover recovers crash-completed after signed WAL witness publication without duplicating migration records",
+            "status": "passed",
+            "durationMs": 32886.70090000001,
+            "failureMessages": []
+          },
+          {
+            "title": "production v2 ledger payload journal and cutover resumes migration idempotently after after-retain loses its acknowledgement",
+            "status": "passed",
+            "durationMs": 20287.677599999995,
+            "failureMessages": []
+          },
+          {
+            "title": "production v2 ledger payload journal and cutover resumes migration idempotently after after-catalog loses its acknowledgement",
+            "status": "passed",
+            "durationMs": 16123.555200000003,
+            "failureMessages": []
+          },
+          {
+            "title": "production v2 ledger payload journal and cutover resumes migration idempotently after after-head loses its acknowledgement",
+            "status": "passed",
+            "durationMs": 24928.60949999999,
+            "failureMessages": []
+          },
+          {
+            "title": "production v2 ledger payload journal and cutover resumes migration idempotently after after-witness loses its acknowledgement",
+            "status": "passed",
+            "durationMs": 22422.8732,
+            "failureMessages": []
+          },
+          {
+            "title": "production v2 ledger payload journal and cutover reports a partially witnessed v1 batch as unknown and recovers only the authenticated prefix without duplicates",
+            "status": "passed",
+            "durationMs": 27894.299700000003,
+            "failureMessages": []
+          },
+          {
+            "title": "production v2 ledger payload journal and cutover recovers a killed process at crash-live-wal",
+            "status": "passed",
+            "durationMs": 22619.873300000007,
+            "failureMessages": []
+          },
+          {
+            "title": "production v2 ledger payload journal and cutover recovers a killed process at crash-live-manifest",
+            "status": "passed",
+            "durationMs": 16681.695200000016,
+            "failureMessages": []
+          },
+          {
+            "title": "production v2 ledger payload journal and cutover fails closed on structural authorities, oversized batches, rebinding, and completed-backend rollback",
+            "status": "passed",
+            "durationMs": 25937.608799999987,
+            "failureMessages": []
+          },
+          {
+            "title": "production v2 ledger payload journal and cutover refuses tampered payload bytes even when v1 WAL and signed manifest files remain intact",
+            "status": "passed",
+            "durationMs": 19117.219199999992,
+            "failureMessages": []
+          }
+        ]
+      },
+      {
+        "path": "packages/cli/__tests__/unit/evolution-ledger-v2-manifest-backend.test.js",
+        "status": "passed",
+        "passed": 6,
+        "skipped": 0,
+        "cases": [
+          {
+            "title": "Evolution Ledger v2 manifest backend publishes a segment only after CAS and witnessed durable readback",
+            "status": "passed",
+            "durationMs": 11383.292099999999,
+            "failureMessages": []
+          },
+          {
+            "title": "Evolution Ledger v2 manifest backend returns a conflict before retaining a segment when the caller snapshot is stale",
+            "status": "passed",
+            "durationMs": 11.22609999999986,
+            "failureMessages": []
+          },
+          {
+            "title": "Evolution Ledger v2 manifest backend rejects an event payload accessor without invoking it or retaining bytes",
+            "status": "passed",
+            "durationMs": 7.067800000000716,
+            "failureMessages": []
+          },
+          {
+            "title": "Evolution Ledger v2 manifest backend recovers a transient witness conflict after the head was committed",
+            "status": "passed",
+            "durationMs": 30.60440000000017,
+            "failureMessages": []
+          },
+          {
+            "title": "Evolution Ledger v2 manifest backend recovers a catalog commit after its acknowledgement is lost",
+            "status": "passed",
+            "durationMs": 39.643599999999424,
+            "failureMessages": []
+          },
+          {
+            "title": "Evolution Ledger v2 manifest backend recovers after the head CAS commits but loses its acknowledgement",
+            "status": "passed",
+            "durationMs": 49.95210000000043,
+            "failureMessages": []
+          }
+        ]
+      },
+      {
+        "path": "packages/cli/__tests__/unit/evolution-manifest-state-reader.test.js",
+        "status": "passed",
+        "passed": 86,
+        "skipped": 2,
+        "cases": [
+          {
+            "title": "original catalog state directory and stable leaf reads preserves absent leaves, permits actual atomic rename updates and stable reopen without pinning leaf inodes",
+            "status": "passed",
+            "durationMs": 4695.9105,
+            "failureMessages": []
+          },
+          {
+            "title": "original catalog state directory and stable leaf reads uses the original fsImpl through false native realpath and counts bounded actual bytes with partial reads",
+            "status": "passed",
+            "durationMs": 5459.2271,
+            "failureMessages": []
+          },
+          {
+            "title": "original catalog state directory and stable leaf reads uses the original fsImpl through true native realpath and counts bounded actual bytes with partial reads",
+            "status": "passed",
+            "durationMs": 5774.3964,
+            "failureMessages": []
+          },
+          {
+            "title": "original catalog state directory and stable leaf reads rejects an actual same-byte directory copy before read or writer lock creation; a new independent backend may capture its own copy",
+            "status": "passed",
+            "durationMs": 4948.7213999999985,
+            "failureMessages": []
+          },
+          {
+            "title": "original catalog state directory and stable leaf reads rejects an actual missing original directory without rebuilding or following an alias",
+            "status": "passed",
+            "durationMs": 6344.2297,
+            "failureMessages": []
+          },
+          {
+            "title": "original catalog state directory and stable leaf reads rejects an actual junction original directory without rebuilding or following an alias",
+            "status": "passed",
+            "durationMs": 4367.712699999996,
+            "failureMessages": []
+          },
+          {
+            "title": "original catalog state directory and stable leaf reads accounts for native Windows/WSL1 late directory rename denial separately from a successful POSIX replacement",
+            "status": "passed",
+            "durationMs": 4577.567499999997,
+            "failureMessages": []
+          },
+          {
+            "title": "original catalog state directory and stable leaf reads rejects an explicitly synthetic directory stat change only at the ending directory check",
+            "status": "passed",
+            "durationMs": 5588.399299999997,
+            "failureMessages": []
+          },
+          {
+            "title": "original catalog state directory and stable leaf reads uses real held directory/volume fds only for the affected zero-device projection and still rejects inode changes",
+            "status": "passed",
+            "durationMs": 6566.3807000000015,
+            "failureMessages": []
+          },
+          {
+            "title": "original catalog state directory and stable leaf reads does not turn an access error into empty state or trust existsSync",
+            "status": "passed",
+            "durationMs": 5238.5838,
+            "failureMessages": []
+          },
+          {
+            "title": "original catalog state directory and stable leaf reads rejects actual open-swap within the file read window and closes real descriptors",
+            "status": "passed",
+            "durationMs": 5931.685799999999,
+            "failureMessages": []
+          },
+          {
+            "title": "original catalog state directory and stable leaf reads rejects actual final-path-swap within the file read window and closes real descriptors",
+            "status": "passed",
+            "durationMs": 5074.180899999992,
+            "failureMessages": []
+          },
+          {
+            "title": "original catalog state directory and stable leaf reads rejects actual open-unlink within the file read window and closes real descriptors",
+            "status": "passed",
+            "durationMs": 4244.164600000004,
+            "failureMessages": []
+          },
+          {
+            "title": "original catalog state directory and stable leaf reads rejects a real same-inode equal-length rewrite during a successful read",
+            "status": "passed",
+            "durationMs": 3502.6587,
+            "failureMessages": []
+          },
+          {
+            "title": "original catalog state directory and stable leaf reads rejects grow during descriptor reading and closes the opened file",
+            "status": "passed",
+            "durationMs": 4395.487000000008,
+            "failureMessages": []
+          },
+          {
+            "title": "original catalog state directory and stable leaf reads rejects truncate during descriptor reading and closes the opened file",
+            "status": "passed",
+            "durationMs": 4603.35560000001,
+            "failureMessages": []
+          },
+          {
+            "title": "original catalog state directory and stable leaf reads rejects io-error during descriptor reading and closes the opened file",
+            "status": "passed",
+            "durationMs": 5116.116699999999,
+            "failureMessages": []
+          },
+          {
+            "title": "original catalog state directory and stable leaf reads rejects an actual oversized leaf before allocating or reading file bytes",
+            "status": "passed",
+            "durationMs": 4586.876699999993,
+            "failureMessages": []
+          },
+          {
+            "title": "original catalog state directory and stable leaf reads rejects an actual hard link",
+            "status": "passed",
+            "durationMs": 4065.587400000004,
+            "failureMessages": []
+          },
+          {
+            "title": "original catalog state directory and stable leaf reads rejects a dangling leaf symlink instead of treating it as absent",
+            "status": "skipped",
+            "failureMessages": []
+          },
+          {
+            "title": "original catalog state directory and stable leaf reads full precision field matrix rejects a Number fallback in path dev before content reads",
+            "status": "passed",
+            "durationMs": 4.249800000005052,
+            "failureMessages": []
+          },
+          {
+            "title": "original catalog state directory and stable leaf reads full precision field matrix rejects a Number fallback in path ino before content reads",
+            "status": "passed",
+            "durationMs": 3.232799999997951,
+            "failureMessages": []
+          },
+          {
+            "title": "original catalog state directory and stable leaf reads full precision field matrix rejects a Number fallback in path mode before content reads",
+            "status": "passed",
+            "durationMs": 2.751399999993737,
+            "failureMessages": []
+          },
+          {
+            "title": "original catalog state directory and stable leaf reads full precision field matrix rejects a Number fallback in path uid before content reads",
+            "status": "passed",
+            "durationMs": 2.537800000005518,
+            "failureMessages": []
+          },
+          {
+            "title": "original catalog state directory and stable leaf reads full precision field matrix rejects a Number fallback in path gid before content reads",
+            "status": "passed",
+            "durationMs": 2.338399999993271,
+            "failureMessages": []
+          },
+          {
+            "title": "original catalog state directory and stable leaf reads full precision field matrix rejects a Number fallback in path nlink before content reads",
+            "status": "passed",
+            "durationMs": 3.0703000000066822,
+            "failureMessages": []
+          },
+          {
+            "title": "original catalog state directory and stable leaf reads full precision field matrix rejects a Number fallback in path size before content reads",
+            "status": "passed",
+            "durationMs": 3.737699999997858,
+            "failureMessages": []
+          },
+          {
+            "title": "original catalog state directory and stable leaf reads full precision field matrix rejects a Number fallback in path mtimeNs before content reads",
+            "status": "passed",
+            "durationMs": 2.334000000002561,
+            "failureMessages": []
+          },
+          {
+            "title": "original catalog state directory and stable leaf reads full precision field matrix rejects a Number fallback in path ctimeNs before content reads",
+            "status": "passed",
+            "durationMs": 2.7639000000053784,
+            "failureMessages": []
+          },
+          {
+            "title": "original catalog state directory and stable leaf reads full precision field matrix rejects a Number fallback in fd dev before content reads",
+            "status": "passed",
+            "durationMs": 4.975300000005518,
+            "failureMessages": []
+          },
+          {
+            "title": "original catalog state directory and stable leaf reads full precision field matrix rejects a Number fallback in fd ino before content reads",
+            "status": "passed",
+            "durationMs": 5.102100000003702,
+            "failureMessages": []
+          },
+          {
+            "title": "original catalog state directory and stable leaf reads full precision field matrix rejects a Number fallback in fd mode before content reads",
+            "status": "passed",
+            "durationMs": 4.779499999989639,
+            "failureMessages": []
+          },
+          {
+            "title": "original catalog state directory and stable leaf reads full precision field matrix rejects a Number fallback in fd uid before content reads",
+            "status": "passed",
+            "durationMs": 5.489000000001397,
+            "failureMessages": []
+          },
+          {
+            "title": "original catalog state directory and stable leaf reads full precision field matrix rejects a Number fallback in fd gid before content reads",
+            "status": "passed",
+            "durationMs": 4.7546000000002095,
+            "failureMessages": []
+          },
+          {
+            "title": "original catalog state directory and stable leaf reads full precision field matrix rejects a Number fallback in fd nlink before content reads",
+            "status": "passed",
+            "durationMs": 4.453899999993155,
+            "failureMessages": []
+          },
+          {
+            "title": "original catalog state directory and stable leaf reads full precision field matrix rejects a Number fallback in fd size before content reads",
+            "status": "passed",
+            "durationMs": 4.589499999987311,
+            "failureMessages": []
+          },
+          {
+            "title": "original catalog state directory and stable leaf reads full precision field matrix rejects a Number fallback in fd mtimeNs before content reads",
+            "status": "passed",
+            "durationMs": 4.3761000000085915,
+            "failureMessages": []
+          },
+          {
+            "title": "original catalog state directory and stable leaf reads full precision field matrix rejects a Number fallback in fd ctimeNs before content reads",
+            "status": "passed",
+            "durationMs": 3.949900000006892,
+            "failureMessages": []
+          },
+          {
+            "title": "original catalog state directory and stable leaf reads rejects distinct full path/fd inodes whose Number projections collide",
+            "status": "passed",
+            "durationMs": 3195.2261,
+            "failureMessages": []
+          },
+          {
+            "title": "original catalog state directory and stable leaf reads rejects a one-unit mtimeNs descriptor drift hidden by Number projection",
+            "status": "passed",
+            "durationMs": 2633.5853999999963,
+            "failureMessages": []
+          },
+          {
+            "title": "original catalog state directory and stable leaf reads rejects a one-unit ctimeNs descriptor drift hidden by Number projection",
+            "status": "passed",
+            "durationMs": 3589.5792999999976,
+            "failureMessages": []
+          },
+          {
+            "title": "original catalog state directory and stable leaf reads rejects open-time uid differences outside the shared comparator",
+            "status": "passed",
+            "durationMs": 4284.362299999993,
+            "failureMessages": []
+          },
+          {
+            "title": "original catalog state directory and stable leaf reads rejects open-time gid differences outside the shared comparator",
+            "status": "passed",
+            "durationMs": 4803.484700000001,
+            "failureMessages": []
+          },
+          {
+            "title": "original catalog state directory and stable leaf reads rejects a Number fallback in the original directory capture",
+            "status": "passed",
+            "durationMs": 3481.225000000006,
+            "failureMessages": []
+          },
+          {
+            "title": "original head state directory and stable leaf reads preserves absent leaves, permits actual atomic rename updates and stable reopen without pinning leaf inodes",
+            "status": "passed",
+            "durationMs": 4604.388600000006,
+            "failureMessages": []
+          },
+          {
+            "title": "original head state directory and stable leaf reads uses the original fsImpl through false native realpath and counts bounded actual bytes with partial reads",
+            "status": "passed",
+            "durationMs": 6390.078099999999,
+            "failureMessages": []
+          },
+          {
+            "title": "original head state directory and stable leaf reads uses the original fsImpl through true native realpath and counts bounded actual bytes with partial reads",
+            "status": "passed",
+            "durationMs": 10927.976800000004,
+            "failureMessages": []
+          },
+          {
+            "title": "original head state directory and stable leaf reads rejects an actual same-byte directory copy before read or writer lock creation; a new independent backend may capture its own copy",
+            "status": "passed",
+            "durationMs": 6142.104699999996,
+            "failureMessages": []
+          },
+          {
+            "title": "original head state directory and stable leaf reads rejects an actual missing original directory without rebuilding or following an alias",
+            "status": "passed",
+            "durationMs": 4340.674300000013,
+            "failureMessages": []
+          },
+          {
+            "title": "original head state directory and stable leaf reads rejects an actual junction original directory without rebuilding or following an alias",
+            "status": "passed",
+            "durationMs": 4684.59090000001,
+            "failureMessages": []
+          },
+          {
+            "title": "original head state directory and stable leaf reads accounts for native Windows/WSL1 late directory rename denial separately from a successful POSIX replacement",
+            "status": "passed",
+            "durationMs": 6905.095900000015,
+            "failureMessages": []
+          },
+          {
+            "title": "original head state directory and stable leaf reads rejects an explicitly synthetic directory stat change only at the ending directory check",
+            "status": "passed",
+            "durationMs": 5534.880499999999,
+            "failureMessages": []
+          },
+          {
+            "title": "original head state directory and stable leaf reads uses real held directory/volume fds only for the affected zero-device projection and still rejects inode changes",
+            "status": "passed",
+            "durationMs": 3617.158599999995,
+            "failureMessages": []
+          },
+          {
+            "title": "original head state directory and stable leaf reads does not turn an access error into empty state or trust existsSync",
+            "status": "passed",
+            "durationMs": 2969.815399999992,
+            "failureMessages": []
+          },
+          {
+            "title": "original head state directory and stable leaf reads rejects actual open-swap within the file read window and closes real descriptors",
+            "status": "passed",
+            "durationMs": 3428.123099999997,
+            "failureMessages": []
+          },
+          {
+            "title": "original head state directory and stable leaf reads rejects actual final-path-swap within the file read window and closes real descriptors",
+            "status": "passed",
+            "durationMs": 3870.813300000009,
+            "failureMessages": []
+          },
+          {
+            "title": "original head state directory and stable leaf reads rejects actual open-unlink within the file read window and closes real descriptors",
+            "status": "passed",
+            "durationMs": 2507.602099999989,
+            "failureMessages": []
+          },
+          {
+            "title": "original head state directory and stable leaf reads rejects a real same-inode equal-length rewrite during a successful read",
+            "status": "passed",
+            "durationMs": 2371.2292000000016,
+            "failureMessages": []
+          },
+          {
+            "title": "original head state directory and stable leaf reads rejects grow during descriptor reading and closes the opened file",
+            "status": "passed",
+            "durationMs": 2252.2266999999993,
+            "failureMessages": []
+          },
+          {
+            "title": "original head state directory and stable leaf reads rejects truncate during descriptor reading and closes the opened file",
+            "status": "passed",
+            "durationMs": 2253.747000000003,
+            "failureMessages": []
+          },
+          {
+            "title": "original head state directory and stable leaf reads rejects io-error during descriptor reading and closes the opened file",
+            "status": "passed",
+            "durationMs": 2871.0353000000177,
+            "failureMessages": []
+          },
+          {
+            "title": "original head state directory and stable leaf reads rejects an actual oversized leaf before allocating or reading file bytes",
+            "status": "passed",
+            "durationMs": 2784.0434999999998,
+            "failureMessages": []
+          },
+          {
+            "title": "original head state directory and stable leaf reads rejects an actual hard link",
+            "status": "passed",
+            "durationMs": 2299.640000000014,
+            "failureMessages": []
+          },
+          {
+            "title": "original head state directory and stable leaf reads rejects a dangling leaf symlink instead of treating it as absent",
+            "status": "skipped",
+            "failureMessages": []
+          },
+          {
+            "title": "original head state directory and stable leaf reads full precision field matrix rejects a Number fallback in path dev before content reads",
+            "status": "passed",
+            "durationMs": 3.4680999999982305,
+            "failureMessages": []
+          },
+          {
+            "title": "original head state directory and stable leaf reads full precision field matrix rejects a Number fallback in path ino before content reads",
+            "status": "passed",
+            "durationMs": 6.221999999979744,
+            "failureMessages": []
+          },
+          {
+            "title": "original head state directory and stable leaf reads full precision field matrix rejects a Number fallback in path mode before content reads",
+            "status": "passed",
+            "durationMs": 3.38389999998617,
+            "failureMessages": []
+          },
+          {
+            "title": "original head state directory and stable leaf reads full precision field matrix rejects a Number fallback in path uid before content reads",
+            "status": "passed",
+            "durationMs": 3.228300000017043,
+            "failureMessages": []
+          },
+          {
+            "title": "original head state directory and stable leaf reads full precision field matrix rejects a Number fallback in path gid before content reads",
+            "status": "passed",
+            "durationMs": 3.171299999987241,
+            "failureMessages": []
+          },
+          {
+            "title": "original head state directory and stable leaf reads full precision field matrix rejects a Number fallback in path nlink before content reads",
+            "status": "passed",
+            "durationMs": 5.78780000002007,
+            "failureMessages": []
+          },
+          {
+            "title": "original head state directory and stable leaf reads full precision field matrix rejects a Number fallback in path size before content reads",
+            "status": "passed",
+            "durationMs": 4.401299999997718,
+            "failureMessages": []
+          },
+          {
+            "title": "original head state directory and stable leaf reads full precision field matrix rejects a Number fallback in path mtimeNs before content reads",
+            "status": "passed",
+            "durationMs": 3.800199999997858,
+            "failureMessages": []
+          },
+          {
+            "title": "original head state directory and stable leaf reads full precision field matrix rejects a Number fallback in path ctimeNs before content reads",
+            "status": "passed",
+            "durationMs": 3.454200000007404,
+            "failureMessages": []
+          },
+          {
+            "title": "original head state directory and stable leaf reads full precision field matrix rejects a Number fallback in fd dev before content reads",
+            "status": "passed",
+            "durationMs": 5.709000000002561,
+            "failureMessages": []
+          },
+          {
+            "title": "original head state directory and stable leaf reads full precision field matrix rejects a Number fallback in fd ino before content reads",
+            "status": "passed",
+            "durationMs": 4.700299999996787,
+            "failureMessages": []
+          },
+          {
+            "title": "original head state directory and stable leaf reads full precision field matrix rejects a Number fallback in fd mode before content reads",
+            "status": "passed",
+            "durationMs": 6.024000000004889,
+            "failureMessages": []
+          },
+          {
+            "title": "original head state directory and stable leaf reads full precision field matrix rejects a Number fallback in fd uid before content reads",
+            "status": "passed",
+            "durationMs": 5.991299999994226,
+            "failureMessages": []
+          },
+          {
+            "title": "original head state directory and stable leaf reads full precision field matrix rejects a Number fallback in fd gid before content reads",
+            "status": "passed",
+            "durationMs": 5.3950000000186265,
+            "failureMessages": []
+          },
+          {
+            "title": "original head state directory and stable leaf reads full precision field matrix rejects a Number fallback in fd nlink before content reads",
+            "status": "passed",
+            "durationMs": 8.340499999991152,
+            "failureMessages": []
+          },
+          {
+            "title": "original head state directory and stable leaf reads full precision field matrix rejects a Number fallback in fd size before content reads",
+            "status": "passed",
+            "durationMs": 5.341300000000047,
+            "failureMessages": []
+          },
+          {
+            "title": "original head state directory and stable leaf reads full precision field matrix rejects a Number fallback in fd mtimeNs before content reads",
+            "status": "passed",
+            "durationMs": 5.529399999999441,
+            "failureMessages": []
+          },
+          {
+            "title": "original head state directory and stable leaf reads full precision field matrix rejects a Number fallback in fd ctimeNs before content reads",
+            "status": "passed",
+            "durationMs": 7.5820999999996275,
+            "failureMessages": []
+          },
+          {
+            "title": "original head state directory and stable leaf reads rejects distinct full path/fd inodes whose Number projections collide",
+            "status": "passed",
+            "durationMs": 5588.365300000005,
+            "failureMessages": []
+          },
+          {
+            "title": "original head state directory and stable leaf reads rejects a one-unit mtimeNs descriptor drift hidden by Number projection",
+            "status": "passed",
+            "durationMs": 3863.0978000000177,
+            "failureMessages": []
+          },
+          {
+            "title": "original head state directory and stable leaf reads rejects a one-unit ctimeNs descriptor drift hidden by Number projection",
+            "status": "passed",
+            "durationMs": 4157.009300000005,
+            "failureMessages": []
+          },
+          {
+            "title": "original head state directory and stable leaf reads rejects open-time uid differences outside the shared comparator",
+            "status": "passed",
+            "durationMs": 5480.517800000001,
+            "failureMessages": []
+          },
+          {
+            "title": "original head state directory and stable leaf reads rejects open-time gid differences outside the shared comparator",
+            "status": "passed",
+            "durationMs": 3316.8092999999935,
+            "failureMessages": []
+          },
+          {
+            "title": "original head state directory and stable leaf reads rejects a Number fallback in the original directory capture",
+            "status": "passed",
+            "durationMs": 4892.8658,
+            "failureMessages": []
+          }
+        ]
+      },
+      {
+        "path": "packages/cli/__tests__/unit/rrsi-observed-text-index.test.js",
+        "status": "passed",
+        "passed": 16,
+        "skipped": 0,
+        "cases": [
+          {
+            "title": "exact UTF-8 Skill text encoding rejects oversized code units and UTF-8 bytes before allocating a Buffer",
+            "status": "passed",
+            "durationMs": 6.982999999999947,
+            "failureMessages": []
+          },
+          {
+            "title": "exact UTF-8 Skill text encoding preserves BOM, CRLF, combining characters and supplementary Unicode",
+            "status": "passed",
+            "durationMs": 23.63189999999986,
+            "failureMessages": []
+          },
+          {
+            "title": "exact UTF-8 Skill text encoding rejects invalid or oversized text 0",
+            "status": "passed",
+            "durationMs": 0.49070000000006075,
+            "failureMessages": []
+          },
+          {
+            "title": "exact UTF-8 Skill text encoding rejects invalid or oversized text 1",
+            "status": "passed",
+            "durationMs": 0.4673999999999978,
+            "failureMessages": []
+          },
+          {
+            "title": "exact UTF-8 Skill text encoding rejects invalid or oversized text 2",
+            "status": "passed",
+            "durationMs": 0.4637000000000171,
+            "failureMessages": []
+          },
+          {
+            "title": "exact UTF-8 Skill text encoding rejects invalid or oversized text 3",
+            "status": "passed",
+            "durationMs": 0.5541000000000622,
+            "failureMessages": []
+          },
+          {
+            "title": "exact UTF-8 Skill text encoding rejects invalid or oversized text 4",
+            "status": "passed",
+            "durationMs": 0.28710000000000946,
+            "failureMessages": []
+          },
+          {
+            "title": "exact UTF-8 Skill text encoding accepts the exact 1 MiB bound without applying the envelope string bound",
+            "status": "passed",
+            "durationMs": 4.3482000000001335,
+            "failureMessages": []
+          },
+          {
+            "title": "real retained observed text and permanent graph-local restrictions authenticates exact retained bytes and a real declaration without claiming generation, dispatch or tenant-wide authority",
+            "status": "passed",
+            "durationMs": 2769.1646000000037,
+            "failureMessages": []
+          },
+          {
+            "title": "real retained observed text and permanent graph-local restrictions does not append or publish again for the same exact observation",
+            "status": "passed",
+            "durationMs": 7222.059300000008,
+            "failureMessages": []
+          },
+          {
+            "title": "real retained observed text and permanent graph-local restrictions unions restrictions for the same text across genuinely registered goals",
+            "status": "passed",
+            "durationMs": 16309.935099999988,
+            "failureMessages": []
+          },
+          {
+            "title": "real retained observed text and permanent graph-local restrictions rejects getters, proxies, copied handles and caller origin exemptions before publishing",
+            "status": "passed",
+            "durationMs": 577.3423000000039,
+            "failureMessages": []
+          },
+          {
+            "title": "real retained observed text and permanent graph-local restrictions cannot use another genuine graph or an absent preparation as content authority",
+            "status": "passed",
+            "durationMs": 4861.875899999999,
+            "failureMessages": []
+          },
+          {
+            "title": "real retained observed text and permanent graph-local restrictions retains multiple bounded chunks even when raw text exceeds 8192 code units",
+            "status": "passed",
+            "durationMs": 16649.726800000004,
+            "failureMessages": []
+          },
+          {
+            "title": "real retained observed text and permanent graph-local restrictions reopens the original authenticated journal and retains cumulative restrictions",
+            "status": "passed",
+            "durationMs": 7523.981899999999,
+            "failureMessages": []
+          },
+          {
+            "title": "real retained observed text and permanent graph-local restrictions holds when a referenced retained chunk is missing and preserves all existing declarations",
+            "status": "passed",
+            "durationMs": 3204.8648000000103,
+            "failureMessages": []
+          }
+        ]
+      },
+      {
+        "path": "packages/cli/__tests__/unit/rrsi-tenant-index-anchor-history.test.js",
+        "status": "passed",
+        "passed": 33,
+        "skipped": 0,
+        "cases": [
+          {
+            "title": "real captured observed-text history and signed anchor prefixes includes real migration events in an empty restriction prefix without inventing genesis digests",
+            "status": "passed",
+            "durationMs": 1378.825600000011,
+            "failureMessages": []
+          },
+          {
+            "title": "real captured observed-text history and signed anchor prefixes authenticates both prefixes from real retained readback while all external authority stays HOLD",
+            "status": "passed",
+            "durationMs": 1526.0211999999883,
+            "failureMessages": []
+          },
+          {
+            "title": "real captured observed-text history and signed anchor prefixes keeps non-restriction events in the journal without changing restriction count or union",
+            "status": "passed",
+            "durationMs": 1636.9988000000012,
+            "failureMessages": []
+          },
+          {
+            "title": "real captured observed-text history and signed anchor prefixes counts three actual restriction records while unioning two exact text keys deterministically",
+            "status": "passed",
+            "durationMs": 1.88289999999688,
+            "failureMessages": []
+          },
+          {
+            "title": "real captured observed-text history and signed anchor prefixes accepts exact signed anchor idempotence only at the actual current head",
+            "status": "passed",
+            "durationMs": 2453.2949999999983,
+            "failureMessages": []
+          },
+          {
+            "title": "real captured observed-text history and signed anchor prefixes rejects genuinely re-signed false previous-count",
+            "status": "passed",
+            "durationMs": 816.3325000000041,
+            "failureMessages": []
+          },
+          {
+            "title": "real captured observed-text history and signed anchor prefixes rejects genuinely re-signed false previous-tail",
+            "status": "passed",
+            "durationMs": 810.9860999999946,
+            "failureMessages": []
+          },
+          {
+            "title": "real captured observed-text history and signed anchor prefixes rejects genuinely re-signed false previous-set",
+            "status": "passed",
+            "durationMs": 871.5148999999947,
+            "failureMessages": []
+          },
+          {
+            "title": "real captured observed-text history and signed anchor prefixes rejects genuinely re-signed false current-count",
+            "status": "passed",
+            "durationMs": 1133.0929999999935,
+            "failureMessages": []
+          },
+          {
+            "title": "real captured observed-text history and signed anchor prefixes rejects genuinely re-signed false current-tail",
+            "status": "passed",
+            "durationMs": 1380.2577999999921,
+            "failureMessages": []
+          },
+          {
+            "title": "real captured observed-text history and signed anchor prefixes rejects genuinely re-signed false current-set",
+            "status": "passed",
+            "durationMs": 1910.8089999999938,
+            "failureMessages": []
+          },
+          {
+            "title": "real captured observed-text history and signed anchor prefixes rejects a real signature over wrong-sequence checkpoint",
+            "status": "passed",
+            "durationMs": 1026.1827000000048,
+            "failureMessages": []
+          },
+          {
+            "title": "real captured observed-text history and signed anchor prefixes rejects a real signature over other-event-digest checkpoint",
+            "status": "passed",
+            "durationMs": 977.5406999999977,
+            "failureMessages": []
+          },
+          {
+            "title": "real captured observed-text history and signed anchor prefixes rejects a real signature over record-digest checkpoint",
+            "status": "passed",
+            "durationMs": 962.8508000000002,
+            "failureMessages": []
+          },
+          {
+            "title": "real captured observed-text history and signed anchor prefixes rejects a real signature over zero checkpoint",
+            "status": "passed",
+            "durationMs": 1327.7019,
+            "failureMessages": []
+          },
+          {
+            "title": "real captured observed-text history and signed anchor prefixes rejects a real signature over stale-current checkpoint",
+            "status": "passed",
+            "durationMs": 1724.2247999999963,
+            "failureMessages": []
+          },
+          {
+            "title": "real captured observed-text history and signed anchor prefixes rejects signed continuation jump",
+            "status": "passed",
+            "durationMs": 9.620699999999488,
+            "failureMessages": []
+          },
+          {
+            "title": "real captured observed-text history and signed anchor prefixes rejects signed continuation wrong-predecessor",
+            "status": "passed",
+            "durationMs": 8.631499999988591,
+            "failureMessages": []
+          },
+          {
+            "title": "real captured observed-text history and signed anchor prefixes rejects signed continuation same-revision-conflict",
+            "status": "passed",
+            "durationMs": 11.167199999996228,
+            "failureMessages": []
+          },
+          {
+            "title": "real captured observed-text history and signed anchor prefixes rejects signed continuation backward-checkpoint",
+            "status": "passed",
+            "durationMs": 22.24790000000212,
+            "failureMessages": []
+          },
+          {
+            "title": "real captured observed-text history and signed anchor prefixes rejects signed continuation changed-graph",
+            "status": "passed",
+            "durationMs": 10.207900000008522,
+            "failureMessages": []
+          },
+          {
+            "title": "real captured observed-text history and signed anchor prefixes rejects signed continuation changed-deployment",
+            "status": "passed",
+            "durationMs": 9.074900000006892,
+            "failureMessages": []
+          },
+          {
+            "title": "real captured observed-text history and signed anchor prefixes rejects signed continuation shared-scope",
+            "status": "passed",
+            "durationMs": 7.531199999997625,
+            "failureMessages": []
+          },
+          {
+            "title": "real captured observed-text history and signed anchor prefixes does not authenticate a caller graph digest even when both signed anchors repeat it",
+            "status": "passed",
+            "durationMs": 1495.8244000000122,
+            "failureMessages": []
+          },
+          {
+            "title": "real captured observed-text history and signed anchor prefixes refuses another genuine backend and index rather than treating tenant equality as global authority",
+            "status": "passed",
+            "durationMs": 12.620999999999185,
+            "failureMessages": []
+          },
+          {
+            "title": "real captured observed-text history and signed anchor prefixes rejects two consistent signatures that both claim the wrong tenant",
+            "status": "passed",
+            "durationMs": 8.283100000000559,
+            "failureMessages": []
+          },
+          {
+            "title": "real captured observed-text history and signed anchor prefixes rejects two consistent signatures that both claim the wrong journal",
+            "status": "passed",
+            "durationMs": 6.938500000003842,
+            "failureMessages": []
+          },
+          {
+            "title": "real captured observed-text history and signed anchor prefixes rejects two consistent signatures that both claim the wrong artifact-scope",
+            "status": "passed",
+            "durationMs": 10.247600000002421,
+            "failureMessages": []
+          },
+          {
+            "title": "real captured observed-text history and signed anchor prefixes rejects a genuine signature from another root key rather than adopting a replacement root",
+            "status": "passed",
+            "durationMs": 10.252500000002328,
+            "failureMessages": []
+          },
+          {
+            "title": "real captured observed-text history and signed anchor prefixes does not accept caller prefix results, excess checkpoints or accessor callbacks in the internal capture",
+            "status": "passed",
+            "durationMs": 6.240399999995134,
+            "failureMessages": []
+          },
+          {
+            "title": "real captured observed-text history and signed anchor prefixes rejects forged index handles, getters, proxies and supplied prefix callbacks without invoking them",
+            "status": "passed",
+            "durationMs": 5.300600000002305,
+            "failureMessages": []
+          },
+          {
+            "title": "real captured observed-text history and signed anchor prefixes authenticates the entire current suffix even when the requested previous prefix has no text records",
+            "status": "passed",
+            "durationMs": 1331.1800000000076,
+            "failureMessages": []
+          },
+          {
+            "title": "real captured observed-text history and signed anchor prefixes rechecks a captured head instead of caching success after a new authentic event",
+            "status": "passed",
+            "durationMs": 3604.205900000001,
+            "failureMessages": []
+          }
+        ]
+      }
+    ],
+    "accounting": "One fresh complete ten-file invocation; no preliminary, filtered, interrupted or prior-batch passes added"
+  },
+  "wslTargetedProbes": {
+    "reportPath": ".work/rrsi-manifest-state-posix.json",
+    "reportSha256": "169ca3ba5cadb52f081e1b4180aafc94b142d381633a09b5888f82032ee191d4",
+    "schema": "chainlesschain.rrsi-manifest-state-posix-probes/v1",
+    "recordedAt": "2026-10-18T03:22:11.981Z",
+    "platform": "linux",
+    "nodeVersion": "v22.22.2",
+    "uvVersion": "1.51.0",
+    "osRelease": "4.4.0-19041-Microsoft",
+    "wsl1": true,
+    "nodeBinarySha256": "81925c0995b5c1427b5d538e6a90ca2fdc4daffb786b09af749beaf7369d4e90",
+    "runnerSha256": "3162a0d36a46efa21173f379459457519f9f9614559b1ce08871f41048f9aca0",
+    "sourceCheckpointSha256": "b47b294b358173175172079091bc317410e9dd8a9c6478efa5bec5ecb43116a8",
+    "sourceDigests": [
+      {
+        "path": "packages/cli/src/lib/evolution/evolution-artifact-ports.js",
+        "sha256": "406620241886185540e44d4a78e9274779e8ec1f89bcf3d1871fe3c5c8e41586"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/rrsi-observed-text-index.js",
+        "sha256": "53ab4facacd165b9015e5687183222ac9391c56607fd028ea6ca5c7901a7db22"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/rrsi-tenant-index-anchor-history.js",
+        "sha256": "ed1f9892346563f984eef84d6b2bc0273b992bc14d8632b779310be9b54aa151"
+      },
+      {
+        "path": "packages/cli/__tests__/fixtures/rrsi-artifact-directory.js",
+        "sha256": "280565637f2df62abfe99a52f5aacfaecbebb697c9c36ec467f2c8353fc179c3"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/evolution-artifact-directory-boundary.test.js",
+        "sha256": "e2f45d57bfa58a92e7bc30cae2cb98994f8a4895ba0be2fc98313064c6961c20"
+      },
+      {
+        "path": "packages/cli/__tests__/integration/rrsi-artifact-directory-boundary.test.js",
+        "sha256": "8a73efe849b77da24beb7e272b61cadad6f6008e71992cf4e89143bbe30c51f7"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/evolution-artifact-identity.js",
+        "sha256": "fda6b4c4fb48897c86296ae9e6afa611172fe06f5e77fe44b458788b128a505b"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/evolution-artifact-ports.test.js",
+        "sha256": "57bf3a1085cbef53baac3c5599226b8caf9b8f187cdda37e8f699c3e2fe81ba6"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/evolution-artifact-identity.test.js",
+        "sha256": "f08b7935f0adcc52e870dbf5c28647a84af848518afac31222ffb9d6eb765d25"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/evolution-file-identity.test.js",
+        "sha256": "8ee4b38557541dac9df1a2cf3219a7614c6bf01e50f1c26dc9fcbdd859be17bd"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/rrsi-observed-text-index.test.js",
+        "sha256": "f7d789b9e13e03452d929407359b9d2111262b9c49950789d954a191300b8b20"
+      },
+      {
+        "path": "packages/cli/__tests__/integration/rrsi-observed-text-controls.test.js",
+        "sha256": "7054076a87bccd589a0dbe7843f617178fd2c1853b42f4d89cb491add09eb9a4"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/rrsi-tenant-index-anchor-history.test.js",
+        "sha256": "97b4f64ddf72019d64cd37c88ae69823afbbbf23fb6f7c38c79cf7605abd46c5"
+      },
+      {
+        "path": "packages/cli/__tests__/integration/rrsi-tenant-index-anchor-history-process.test.js",
+        "sha256": "e4b4d57e72998b97c4b6e10626c5cdf8a6c6fd6b1299b855fcc49293a6c515a2"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/evolution-artifact-index-boundary.test.js",
+        "sha256": "620e7ded8dcb950a19faae2bb73c31505df2b29fd705312e04142687d2d58ceb"
+      },
+      {
+        "path": "packages/cli/__tests__/integration/rrsi-artifact-index-boundary.test.js",
+        "sha256": "d28735b2b8bcae1a558e02cabcfa6369a15e8546442e3faf3a4c3ad10d43afbd"
+      },
+      {
+        "path": "packages/cli/__tests__/fixtures/rrsi-artifact-index-process.mjs",
+        "sha256": "c26c2d0e2203aa8d98033b5dbee4dff702640db5f44dd4c56be3e6d4eba5fde8"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/bounded-descriptor-read.js",
+        "sha256": "326c864205412e3b419a7c1b18d009eb6f1470a6f8514b80cb3502f59aeefa3d"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/evolution-file-identity.js",
+        "sha256": "b92a4e75a5a55a0752341326e13bd4935f70561b4e4793425700ad293d70fdfd"
+      },
+      {
+        "path": "packages/cli/src/lib/secure-file-identity.js",
+        "sha256": "d4170c7443c075d89c73478b4fa617d264999fb95f75456b1e1232797092a376"
+      },
+      {
+        "path": "packages/cli/src/lib/artifact-store.js",
+        "sha256": "0522e0abc1674b9a0f53635748b0d105c8331de9d5223767ab1f0637cdc1083a"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/evolution-ledger-v2-journal.js",
+        "sha256": "01acaa720b12ef411d47d83257df7caf24db03683a4ae7e7c5228fbe716c9208"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/evolution-ledger-file-backend.js",
+        "sha256": "0cfbc04b69db9768828f4a969742a4e4c674e5f171e318d497d1c5d6852f2f17"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/rrsi-registry-store-policy.js",
+        "sha256": "add7988b95ca617dd9977275b6fc45e0f1dd30035e2ddfa3e25aed6b6e25946c"
+      },
+      {
+        "path": "packages/cli/__tests__/fixtures/rrsi-observed-text.js",
+        "sha256": "8a5de277aea8fd89032d30b5eaac261a03b51152d0a826c6b90d53d73f94aacd"
+      },
+      {
+        "path": "packages/cli/__tests__/fixtures/rrsi-anchor-history.js",
+        "sha256": "b6122ab25c3a49028c97ab505559596cb8a9d97ad9cc215a7ddcda8291e5fd27"
+      },
+      {
+        "path": "packages/cli/__tests__/fixtures/evolution-durable-store.js",
+        "sha256": "15f2c1eb8177c564b2d79357d6bbff0e7543c36e9a276f2f4840c0aefbfc01e8"
+      },
+      {
+        "path": "packages/cli/src/lib/bounded-artifact-file-read.js",
+        "sha256": "2087cf945dbc00f3d839b323fb6f735ea723c6626ae7fec1f14585e432c0b39d"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/bounded-artifact-file-read.test.js",
+        "sha256": "6c60daf8b74e4bc7694f3b83aa73e1f6a095c8297bd4f8deb0b0204abb0d6afc"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/evolution-artifact-byte-boundary.test.js",
+        "sha256": "15b87d0154f97362b446d8a1a5d9c16dc38b2649e21b9e62818960cef6e4b3c6"
+      },
+      {
+        "path": "packages/cli/__tests__/fixtures/evolution-artifact-bytes.js",
+        "sha256": "699d1a5d8ba3da9c7353d6dca9d3611029b382bdf1108165f395a1bdadf78781"
+      },
+      {
+        "path": "packages/cli/__tests__/fixtures/rrsi-artifact-bytes-process.mjs",
+        "sha256": "944b5db7f32a430fa0e691f6233127e6d02cc2604c54cddb0e1b3d57c5ad1811"
+      },
+      {
+        "path": "packages/cli/__tests__/integration/rrsi-artifact-byte-boundary.test.js",
+        "sha256": "ccb60bc80f811a9ff1df4e2fca703500d04fb7829d801a6bdd9a69effd156b3f"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/artifact-store.test.js",
+        "sha256": "4780a5af0fa7ffccdbb3112dc845a36960cdb593cde1bdb83e83c7c753581cd8"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/delivery-evidence-command.test.js",
+        "sha256": "2ee4d85812d51984488a317e20926706db2c68c1eef4f9597523919c7cff71d6"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/evolution-artifact-index-readback.test.js",
+        "sha256": "dcf6f9fb977e3c6c1a10145eb62fb0a305e232381a8fefade179ac300a91de63"
+      },
+      {
+        "path": "packages/cli/__tests__/integration/rrsi-artifact-index-readback.test.js",
+        "sha256": "dab052d9e7fb57aab449e18e11d2418d2b9f4a650f64702241283b569b7d8f9f"
+      },
+      {
+        "path": "packages/cli/vitest.config.js",
+        "sha256": "a1b30cb7d677348dd9c9a625373c7532b6c333436a357b633237bd911b1f3770"
+      },
+      {
+        "path": "packages/cli/test/setup/agent-evolution-test-boundary.js",
+        "sha256": "6fdfb8d31f3e5813f5f3f46ce2485fc345d68cbe277b1f4cea79de6a10f9a275"
+      },
+      {
+        "path": "packages/cli/test/setup/windows-sandbox-adapter-cleanup.js",
+        "sha256": "c81f9ac1ae76d541b60ed2befa5eac8e553470856409d6c11c46d5ac640d15ad"
+      },
+      {
+        "path": "packages/cli/test/global-setup/windows-sandbox-adapter-temp-root.js",
+        "sha256": "3cf3ae650079cac5f3a020de627255e3c801a4f873a6a1ff8d1e3e782e357aa1"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/evolution-manifest-state-reader.js",
+        "sha256": "6fff7dcb8591c856a87d2772f2238beaafe48b06266cea3789cc6c1ff630e8c5"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/evolution-ledger-file-manifest-catalog.js",
+        "sha256": "311b2f5ab1ec83d588dae169e4a277057880cf60e4c42a747c0618ddad5b90db"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/evolution-ledger-file-manifest-head-store.js",
+        "sha256": "e02e9521d1ead8eceef09faab7ea9a7289d7395942b86f43a1206fba9a119887"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/evolution-manifest-state-reader.test.js",
+        "sha256": "a5f2d747037804d05a54ff7f69b30b69752899973b41333738cedb96c9f7dba9"
+      },
+      {
+        "path": "packages/cli/__tests__/integration/rrsi-manifest-state-boundary.test.js",
+        "sha256": "ed01f41f7e231862ef54cc1b297c2b09c729d9018d0449933c3a6d415be48b3c"
+      },
+      {
+        "path": "packages/cli/__tests__/fixtures/rrsi-manifest-state-process.mjs",
+        "sha256": "0e2c33ce99a97698c4c772ab95c56e3e7643cbd6f55c2474f4682a3aacbd7dcb"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/evolution-ledger-file-manifest-head-store.test.js",
+        "sha256": "b779638743d424be30625ea3e167622c7c0c0c44d69226d4920fbd61f3051c6c"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/evolution-ledger-v2-manifest-backend.test.js",
+        "sha256": "7b932a19d3446c859df26939c85546d9d4e8709ba05b1a4a8579bea2301cc1c2"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/evolution-ledger-v2-journal.test.js",
+        "sha256": "c759481f8516bc0c24cb5356712d0ddec43994a483581213fae63501f71987f1"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/evolution-ledger-v2-manifest-backend.js",
+        "sha256": "a50e03c207ca21e072a3ce66952f961568b318eb0bf02051af9cfd89b9f16b7e"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/evolution-ledger-manifest-head-store.js",
+        "sha256": "161eae782b5cbd6cc94d76ad1af2333618afe11a083b92b4f074a1776f8453ff"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/evolution-ledger-manifest-catalog.js",
+        "sha256": "770fffb5c9d6c0eb31854b9a382295b4d2ef7b150487e001a6cd2c0659827c7c"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/evolution-ledger-manifest-chain.js",
+        "sha256": "13ff707cf15c7a83cd9cee94b6080bd08c775608c0bd3a1cd10b3730e12aabdf"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/evolution-file-witness.js",
+        "sha256": "9bb8b776b66f24d0a1d80e9dd66e5f2b857eb471b3c2446c26891e30ab12e121"
+      },
+      {
+        "path": "packages/cli/src/lib/evolution/evolution-immutable-ledger-segment-store.js",
+        "sha256": "793bebb368493953df0a283d0dd4d6bf7c1eaac81fa054b1bca457ed7fb3d865"
+      }
+    ],
+    "scope": "Actual WSL FIFO/dangling symlinks, native late directory rename behavior, and real ending directory mode checks for two backends; native WSL1 EACCES is not ending-check coverage; not full Linux Vitest/macOS/release matrix",
+    "passedScenarios": 8,
+    "failures": 0,
+    "results": [
+      {
+        "kind": "catalog",
+        "mode": "fifo",
+        "status": "passed",
+        "durationMs": 434,
+        "childWatchdogMs": 15000,
+        "childTimedOut": false,
+        "code": "CC_EVOLUTION_MANIFEST_STATE_READ_FAILED",
+        "message": "manifest catalog file identity is invalid",
+        "faultInjected": true,
+        "opens": 1,
+        "rawReads": 0,
+        "actualReadBytes": 0,
+        "expectedSize": 100163,
+        "liveDescriptors": 0,
+        "directoryMoved": false,
+        "directoryCopied": false,
+        "directoryModeChanged": false,
+        "leafPathSamples": 0,
+        "originalDirectoryInode": "281474987147602",
+        "originalLeafInode": "281474987147605",
+        "originalDirectoryMode": 16832,
+        "savedByteLength": 100163,
+        "preservedLeafInode": "281474987147605",
+        "currentDirectoryInode": "281474987147602",
+        "currentDirectoryMode": 16832,
+        "actualFifoVerified": true,
+        "actualDanglingSymlinkVerified": false,
+        "savedBytesVerified": true,
+        "nativeRenameDenied": false,
+        "endingDirectoryCheckVerified": false
+      },
+      {
+        "kind": "catalog",
+        "mode": "directory",
+        "status": "passed",
+        "durationMs": 538,
+        "childWatchdogMs": 15000,
+        "childTimedOut": false,
+        "code": "CC_EVOLUTION_MANIFEST_STATE_READ_FAILED",
+        "message": "manifest catalog bounded state read failed",
+        "causeCode": "EACCES",
+        "faultInjected": true,
+        "opens": 1,
+        "rawReads": 0,
+        "actualReadBytes": 100163,
+        "expectedSize": 100163,
+        "liveDescriptors": 0,
+        "directoryMoved": false,
+        "directoryCopied": false,
+        "directoryModeChanged": false,
+        "leafPathSamples": 3,
+        "originalDirectoryInode": "281474987147614",
+        "originalLeafInode": "281474987147617",
+        "originalDirectoryMode": 16832,
+        "savedByteLength": 100163,
+        "preservedLeafInode": "281474987147617",
+        "currentDirectoryInode": "281474987147614",
+        "currentDirectoryMode": 16832,
+        "actualFifoVerified": false,
+        "actualDanglingSymlinkVerified": false,
+        "savedBytesVerified": true,
+        "nativeRenameDenied": true,
+        "endingDirectoryCheckVerified": false
+      },
+      {
+        "kind": "catalog",
+        "mode": "directory-mode",
+        "status": "passed",
+        "durationMs": 422,
+        "childWatchdogMs": 15000,
+        "childTimedOut": false,
+        "code": "CC_EVOLUTION_MANIFEST_STATE_READ_FAILED",
+        "message": "manifest catalog directory physical identity changed",
+        "faultInjected": true,
+        "opens": 1,
+        "rawReads": 0,
+        "actualReadBytes": 100163,
+        "expectedSize": 100163,
+        "liveDescriptors": 0,
+        "directoryMoved": false,
+        "directoryCopied": false,
+        "directoryModeChanged": true,
+        "leafPathSamples": 3,
+        "originalDirectoryInode": "562949963858273",
+        "originalLeafInode": "281474987147620",
+        "originalDirectoryMode": 16832,
+        "savedByteLength": 100163,
+        "preservedLeafInode": "281474987147620",
+        "currentDirectoryInode": "562949963858273",
+        "currentDirectoryMode": 16840,
+        "actualFifoVerified": false,
+        "actualDanglingSymlinkVerified": false,
+        "savedBytesVerified": true,
+        "nativeRenameDenied": false,
+        "endingDirectoryCheckVerified": true
+      },
+      {
+        "kind": "catalog",
+        "mode": "symlink",
+        "status": "passed",
+        "durationMs": 486,
+        "childWatchdogMs": 15000,
+        "childTimedOut": false,
+        "code": "CC_EVOLUTION_MANIFEST_STATE_READ_FAILED",
+        "message": "manifest catalog file identity is invalid",
+        "faultInjected": true,
+        "opens": 0,
+        "rawReads": 0,
+        "actualReadBytes": 0,
+        "expectedSize": 100163,
+        "liveDescriptors": 0,
+        "directoryMoved": false,
+        "directoryCopied": false,
+        "directoryModeChanged": false,
+        "leafPathSamples": 0,
+        "originalDirectoryInode": "281474987147639",
+        "originalLeafInode": "281474987147643",
+        "originalDirectoryMode": 16832,
+        "savedByteLength": 100163,
+        "preservedLeafInode": "281474987147643",
+        "currentDirectoryInode": "281474987147639",
+        "currentDirectoryMode": 16832,
+        "actualFifoVerified": false,
+        "actualDanglingSymlinkVerified": true,
+        "savedBytesVerified": true,
+        "nativeRenameDenied": false,
+        "endingDirectoryCheckVerified": false
+      },
+      {
+        "kind": "head",
+        "mode": "fifo",
+        "status": "passed",
+        "durationMs": 457,
+        "childWatchdogMs": 15000,
+        "childTimedOut": false,
+        "code": "CC_EVOLUTION_MANIFEST_STATE_READ_FAILED",
+        "message": "manifest head file identity is invalid",
+        "faultInjected": true,
+        "opens": 1,
+        "rawReads": 0,
+        "actualReadBytes": 0,
+        "expectedSize": 100153,
+        "liveDescriptors": 0,
+        "directoryMoved": false,
+        "directoryCopied": false,
+        "directoryModeChanged": false,
+        "leafPathSamples": 0,
+        "originalDirectoryInode": "281474987147660",
+        "originalLeafInode": "281474987147664",
+        "originalDirectoryMode": 16832,
+        "savedByteLength": 100153,
+        "preservedLeafInode": "281474987147664",
+        "currentDirectoryInode": "281474987147660",
+        "currentDirectoryMode": 16832,
+        "actualFifoVerified": true,
+        "actualDanglingSymlinkVerified": false,
+        "savedBytesVerified": true,
+        "nativeRenameDenied": false,
+        "endingDirectoryCheckVerified": false
+      },
+      {
+        "kind": "head",
+        "mode": "directory",
+        "status": "passed",
+        "durationMs": 498,
+        "childWatchdogMs": 15000,
+        "childTimedOut": false,
+        "code": "CC_EVOLUTION_MANIFEST_STATE_READ_FAILED",
+        "message": "manifest head bounded state read failed",
+        "causeCode": "EACCES",
+        "faultInjected": true,
+        "opens": 1,
+        "rawReads": 0,
+        "actualReadBytes": 100153,
+        "expectedSize": 100153,
+        "liveDescriptors": 0,
+        "directoryMoved": false,
+        "directoryCopied": false,
+        "directoryModeChanged": false,
+        "leafPathSamples": 3,
+        "originalDirectoryInode": "562949963858344",
+        "originalLeafInode": "281474987147695",
+        "originalDirectoryMode": 16832,
+        "savedByteLength": 100153,
+        "preservedLeafInode": "281474987147695",
+        "currentDirectoryInode": "562949963858344",
+        "currentDirectoryMode": 16832,
+        "actualFifoVerified": false,
+        "actualDanglingSymlinkVerified": false,
+        "savedBytesVerified": true,
+        "nativeRenameDenied": true,
+        "endingDirectoryCheckVerified": false
+      },
+      {
+        "kind": "head",
+        "mode": "directory-mode",
+        "status": "passed",
+        "durationMs": 456,
+        "childWatchdogMs": 15000,
+        "childTimedOut": false,
+        "code": "CC_EVOLUTION_MANIFEST_STATE_READ_FAILED",
+        "message": "manifest head directory physical identity changed",
+        "faultInjected": true,
+        "opens": 1,
+        "rawReads": 0,
+        "actualReadBytes": 100153,
+        "expectedSize": 100153,
+        "liveDescriptors": 0,
+        "directoryMoved": false,
+        "directoryCopied": false,
+        "directoryModeChanged": true,
+        "leafPathSamples": 3,
+        "originalDirectoryInode": "17451448566350196",
+        "originalLeafInode": "281474987147699",
+        "originalDirectoryMode": 16832,
+        "savedByteLength": 100153,
+        "preservedLeafInode": "281474987147699",
+        "currentDirectoryInode": "17451448566350196",
+        "currentDirectoryMode": 16840,
+        "actualFifoVerified": false,
+        "actualDanglingSymlinkVerified": false,
+        "savedBytesVerified": true,
+        "nativeRenameDenied": false,
+        "endingDirectoryCheckVerified": true
+      },
+      {
+        "kind": "head",
+        "mode": "symlink",
+        "status": "passed",
+        "durationMs": 478,
+        "childWatchdogMs": 15000,
+        "childTimedOut": false,
+        "code": "CC_EVOLUTION_MANIFEST_STATE_READ_FAILED",
+        "message": "manifest head file identity is invalid",
+        "faultInjected": true,
+        "opens": 0,
+        "rawReads": 0,
+        "actualReadBytes": 0,
+        "expectedSize": 100153,
+        "liveDescriptors": 0,
+        "directoryMoved": false,
+        "directoryCopied": false,
+        "directoryModeChanged": false,
+        "leafPathSamples": 0,
+        "originalDirectoryInode": "2251799824122180",
+        "originalLeafInode": "562949963858355",
+        "originalDirectoryMode": 16832,
+        "savedByteLength": 100153,
+        "preservedLeafInode": "562949963858355",
+        "currentDirectoryInode": "2251799824122180",
+        "currentDirectoryMode": 16832,
+        "actualFifoVerified": false,
+        "actualDanglingSymlinkVerified": true,
+        "savedBytesVerified": true,
+        "nativeRenameDenied": false,
+        "endingDirectoryCheckVerified": false
+      }
+    ],
+    "runnerSource": "import fs from \"node:fs\";\nimport os from \"node:os\";\nimport path from \"node:path\";\nimport assert from \"node:assert/strict\";\nimport { createHash } from \"node:crypto\";\nimport { spawnSync } from \"node:child_process\";\nimport { fileURLToPath } from \"node:url\";\nassert.equal(process.platform, \"linux\");\nconst root = fileURLToPath(new URL(\"../\", import.meta.url));\nconst checkpointPath = path.join(root, \".work/rrsi-manifest-state-source-checkpoint-v2.json\");\nconst checkpoint = JSON.parse(fs.readFileSync(checkpointPath, \"utf8\"));\nconst isolated = path.join(root, checkpoint.worktree), sha = (bytes) => createHash(\"sha256\").update(bytes).digest(\"hex\");\nconst check = () => { for (const entry of checkpoint.sourceDigests)\n  assert.equal(sha(fs.readFileSync(path.join(isolated, entry.path))), entry.sha256, entry.path); };\ncheck();\nconst helper = path.join(isolated, \"packages/cli/__tests__/fixtures/rrsi-manifest-state-process.mjs\");\nconst temp = fs.realpathSync.native(os.tmpdir()), results = [];\nconst wsl1 = /^4\\.4\\..*-microsoft$/i.test(os.release());\nfor (const kind of [\"catalog\", \"head\"]) for (const mode of [\"fifo\", \"directory\", \"directory-mode\", \"symlink\"]) {\n  const directory = fs.mkdtempSync(path.join(temp, \"cc-manifest-state-process-\")), start = Date.now();\n  try {\n    const response = spawnSync(process.execPath, [helper, path.join(directory, kind), kind, mode], {\n      encoding: \"utf8\", timeout: 15_000, windowsHide: true,\n    });\n    assert.equal(response.error, undefined, \"child must finish before watchdog\");\n    assert.equal(response.status, 2, response.stderr);\n    const value = JSON.parse(response.stderr);\n    assert.equal(value.inspectionError, undefined);\n    assert.equal(value.code, \"CC_EVOLUTION_MANIFEST_STATE_READ_FAILED\");\n    const nativeDenial = mode === \"directory\" && wsl1;\n    const directoryCheck = mode === \"directory-mode\" || (mode === \"directory\" && !nativeDenial);\n    assert.equal(value.message, nativeDenial ? `manifest ${kind} bounded state read failed`\n      : directoryCheck ? `manifest ${kind} directory physical identity changed`\n      : `manifest ${kind} file identity is invalid`);\n    assert.equal(value.causeCode, nativeDenial ? \"EACCES\" : undefined);\n    assert.equal(value.faultInjected, true);\n    assert.equal(value.opens, mode === \"symlink\" ? 0 : 1); assert.equal(value.rawReads, 0);\n    assert.equal(value.actualReadBytes, mode.startsWith(\"directory\") ? value.expectedSize : 0);\n    assert.equal(value.liveDescriptors, 0); assert.equal(value.savedByteLength, value.expectedSize);\n    assert.equal(value.preservedLeafInode, value.originalLeafInode);\n    const current = path.join(directory, kind, `manifest-${kind}.json`);\n    const preserved = mode === \"directory\" && !nativeDenial\n      ? path.join(directory, \"saved-directory\", `manifest-${kind}.json`)\n      : mode.startsWith(\"directory\") ? current : path.join(directory, \"saved-state\");\n    const saved = fs.readFileSync(preserved);\n    assert.equal(saved.length, value.expectedSize);\n    const original = JSON.parse(saved);\n    const entry = kind === \"head\" ? original.head : original.manifests[0];\n    assert.equal(entry.payload, \"x\".repeat(100_000));\n    assert.equal(entry.headDigest, \"test-head\"); assert.equal(entry.manifestDigest, \"test-manifest\");\n    const expectedEntry = { headDigest: \"test-head\", manifestDigest: \"test-manifest\", payload: \"x\".repeat(100_000) };\n    const expectedState = kind === \"head\"\n      ? { head: expectedEntry, schema: \"chainlesschain.evolution-ledger-file-manifest-head-state/v2\" }\n      : { manifests: [expectedEntry], schema: \"chainlesschain.evolution-ledger-file-manifest-catalog-state/v2\" };\n    assert.deepEqual(saved, Buffer.from(JSON.stringify(expectedState) + \"\\n\"), \"entire original state bytes must survive the fault\");\n    if (mode === \"fifo\") {\n      assert.equal(value.actualFifoVerified, true); assert.equal(fs.lstatSync(current).isFIFO(), true);\n    } else if (mode === \"directory\") {\n      assert.equal(value.directoryMoved, !nativeDenial); assert.equal(value.directoryCopied, !nativeDenial);\n      assert.equal(value.directoryModeChanged, false);\n      if (nativeDenial) {\n        assert.equal(value.currentDirectoryInode, value.originalDirectoryInode);\n        assert.equal(value.currentDirectoryMode, value.originalDirectoryMode);\n        assert.equal(fs.existsSync(path.join(directory, \"saved-directory\")), false);\n      } else {\n        assert.notEqual(value.currentDirectoryInode, value.originalDirectoryInode);\n        assert.equal(saved.equals(fs.readFileSync(current)), true);\n      }\n    } else if (mode === \"directory-mode\") {\n      assert.equal(value.directoryMoved, false); assert.equal(value.directoryCopied, false);\n      // Two samples reach the injection; error reporting lstat of the preserved\n      // leaf contributes the third sample after the reader has already failed.\n      assert.equal(value.directoryModeChanged, true); assert.equal(value.leafPathSamples, 3);\n      assert.equal(value.originalDirectoryMode & 0o777, 0o700);\n      assert.equal(value.currentDirectoryMode & 0o777, 0o710);\n      assert.equal(value.currentDirectoryInode, value.originalDirectoryInode);\n      assert.equal(value.currentDirectoryMode, value.originalDirectoryMode ^ 0o010);\n      fs.chmodSync(path.dirname(current), value.originalDirectoryMode & 0o777);\n      assert.equal(fs.lstatSync(path.dirname(current)).mode, value.originalDirectoryMode);\n    } else {\n      assert.equal(value.actualDanglingSymlinkVerified, true); assert.equal(fs.lstatSync(current).isSymbolicLink(), true);\n    }\n    results.push({ kind, mode, status: \"passed\", durationMs: Date.now() - start, childWatchdogMs: 15000,\n      childTimedOut: false, ...value, savedBytesVerified: true,\n      nativeRenameDenied: nativeDenial, endingDirectoryCheckVerified: directoryCheck });\n  } finally {\n    const target = path.resolve(directory);\n    assert.equal(path.dirname(target), temp);\n    assert.ok(path.basename(target).startsWith(\"cc-manifest-state-process-\"));\n    fs.rmSync(target, { recursive: true, force: true });\n  }\n}\ncheck();\nconst report = {\n  schema: \"chainlesschain.rrsi-manifest-state-posix-probes/v1\", recordedAt: new Date().toISOString(),\n  platform: process.platform, nodeVersion: process.version, uvVersion: process.versions.uv,\n  osRelease: os.release(), wsl1,\n  nodeBinarySha256: sha(fs.readFileSync(process.execPath)), runnerSha256: sha(fs.readFileSync(fileURLToPath(import.meta.url))),\n  sourceCheckpointSha256: sha(fs.readFileSync(checkpointPath)), sourceDigests: checkpoint.sourceDigests,\n  scope: \"Actual WSL FIFO/dangling symlinks, native late directory rename behavior, and real ending directory mode checks for two backends; native WSL1 EACCES is not ending-check coverage; not full Linux Vitest/macOS/release matrix\",\n  passedScenarios: results.length, failures: 0, results,\n};\nfs.writeFileSync(path.join(root, \".work/rrsi-manifest-state-posix.json\"), JSON.stringify(report, null, 2) + \"\\n\");\nconsole.log(JSON.stringify({ platform: process.platform, passedScenarios: results.length, results }));\n",
+    "command": "wsl.exe -d Ubuntu -e /mnt/c/code/chainlesschain/.work/node-v22.22.2-linux-x64/bin/node /mnt/c/code/chainlesschain/.work/rrsi-manifest-state-posix.mjs",
+    "runtime": "Reused previously checked official Linux Node v22.22.2 cache; no new downloads or npm installs",
+    "directoryClassification": "Two native WSL1 EACCES refusals are not ending-check coverage; two actual 0700-to-0710 mutations prove the ending directory check with unchanged original directory/leaf inodes and restored fixture mode"
+  },
+  "diagnostics": [
+    {
+      "path": ".work/rrsi-manifest-state-existing-smoke.json",
+      "sha256": "45d3ad9a48ddc5436dfb06132cf17062305aa21f87b5bb727364643140576ebb",
+      "note": "Original manifest head and v2 manifest backend smoke run before new tests",
+      "passed": 10,
+      "failed": 0,
+      "pendingOrFiltered": 0,
+      "failures": []
+    },
+    {
+      "path": ".work/rrsi-manifest-state-new-unit-initial.json",
+      "sha256": "dcb2658422c00453b10e2395a77df7daa8961b90e2cd2b1aaa13c4458326b09f",
+      "note": "Initial unit suite, before projection/ending directory tests",
+      "passed": 80,
+      "failed": 0,
+      "pendingOrFiltered": 2,
+      "failures": []
+    },
+    {
+      "path": ".work/rrsi-manifest-state-new-integration-initial.json",
+      "sha256": "429d127169f3527cad63413fe2bb3f4045e9d07cfb52f567e32a9b954c3d5580",
+      "note": "Initial real retained-history and child integration controls",
+      "passed": 5,
+      "failed": 0,
+      "pendingOrFiltered": 2,
+      "failures": []
+    },
+    {
+      "path": ".work/rrsi-manifest-state-new-unit-final-shape.json",
+      "sha256": "69feb4d35ffaf8388e79431f7a254ade2b89185d997afea520476374d0a21526",
+      "note": "Two new late-directory tests incorrectly expected native Windows rename to succeed; real EPERM correctly failed the read",
+      "passed": 82,
+      "failed": 2,
+      "pendingOrFiltered": 2,
+      "failures": [
+        {
+          "title": "original catalog state directory and stable leaf reads rejects a real directory copy after the final leaf pathname sample through the ending directory check",
+          "failureMessages": [
+            "AssertionError: expected Error: manifest catalog bounded state rea… { code: '…' } to match object { …(2) }\n    at Proxy.<anonymous> (file:///C:/code/chainlesschain/node_modules/@vitest/expect/dist/index.js:1283:10)\n    at Proxy.<anonymous> (file:///C:/code/chainlesschain/node_modules/@vitest/expect/dist/index.js:1156:15)\n    at Proxy.methodWrapper (file:///C:/code/chainlesschain/node_modules/chai/index.js:1700:25)\n    at held (C:/code/chainlesschain/.work/r32/packages/cli/__tests__/unit/evolution-manifest-state-reader.test.js:190:17)\n    at C:/code/chainlesschain/.work/r32/packages/cli/__tests__/unit/evolution-manifest-state-reader.test.js:335:7\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)"
+          ]
+        },
+        {
+          "title": "original head state directory and stable leaf reads rejects a real directory copy after the final leaf pathname sample through the ending directory check",
+          "failureMessages": [
+            "AssertionError: expected Error: manifest head bounded state read f… { code: '…' } to match object { …(2) }\n    at Proxy.<anonymous> (file:///C:/code/chainlesschain/node_modules/@vitest/expect/dist/index.js:1283:10)\n    at Proxy.<anonymous> (file:///C:/code/chainlesschain/node_modules/@vitest/expect/dist/index.js:1156:15)\n    at Proxy.methodWrapper (file:///C:/code/chainlesschain/node_modules/chai/index.js:1700:25)\n    at held (C:/code/chainlesschain/.work/r32/packages/cli/__tests__/unit/evolution-manifest-state-reader.test.js:190:17)\n    at C:/code/chainlesschain/.work/r32/packages/cli/__tests__/unit/evolution-manifest-state-reader.test.js:335:7\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)"
+          ]
+        }
+      ]
+    },
+    {
+      "path": ".work/rrsi-manifest-state-directory-diagnostic.json",
+      "sha256": "1e5fbeb21749c949ab4657253381d235dad6ac261f91a40c266fb850dc66a751",
+      "note": "Native Windows EPERM diagnostic; production reader unchanged",
+      "passed": 0,
+      "failed": 2,
+      "pendingOrFiltered": 84,
+      "failures": [
+        {
+          "title": "original catalog state directory and stable leaf reads rejects a real directory copy after the final leaf pathname sample through the ending directory check",
+          "failureMessages": [
+            "AssertionError: {\"message\":\"manifest catalog bounded state read failed\",\"cause\":\"EPERM: operation not permitted, rename 'C:\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-manifest-state-ZtODPb\\\\catalog' -> 'C:\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-manifest-state-ZtODPb\\\\saved-during-read'\",\"causeCode\":\"EPERM\"}: expected Error: manifest catalog bounded state rea… { code: '…' } to match object { …(2) }\n    at Proxy.<anonymous> (file:///C:/code/chainlesschain/node_modules/@vitest/expect/dist/index.js:1283:10)\n    at Proxy.<anonymous> (file:///C:/code/chainlesschain/node_modules/@vitest/expect/dist/index.js:1156:15)\n    at Proxy.methodWrapper (file:///C:/code/chainlesschain/node_modules/chai/index.js:1700:25)\n    at held (C:/code/chainlesschain/.work/r32/packages/cli/__tests__/unit/evolution-manifest-state-reader.test.js:190:123)\n    at C:/code/chainlesschain/.work/r32/packages/cli/__tests__/unit/evolution-manifest-state-reader.test.js:335:7\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)"
+          ]
+        },
+        {
+          "title": "original head state directory and stable leaf reads rejects a real directory copy after the final leaf pathname sample through the ending directory check",
+          "failureMessages": [
+            "AssertionError: {\"message\":\"manifest head bounded state read failed\",\"cause\":\"EPERM: operation not permitted, rename 'C:\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-manifest-state-FKif2J\\\\head' -> 'C:\\\\Users\\\\longfa\\\\AppData\\\\Local\\\\Temp\\\\cc-manifest-state-FKif2J\\\\saved-during-read'\",\"causeCode\":\"EPERM\"}: expected Error: manifest head bounded state read f… { code: '…' } to match object { …(2) }\n    at Proxy.<anonymous> (file:///C:/code/chainlesschain/node_modules/@vitest/expect/dist/index.js:1283:10)\n    at Proxy.<anonymous> (file:///C:/code/chainlesschain/node_modules/@vitest/expect/dist/index.js:1156:15)\n    at Proxy.methodWrapper (file:///C:/code/chainlesschain/node_modules/chai/index.js:1700:25)\n    at held (C:/code/chainlesschain/.work/r32/packages/cli/__tests__/unit/evolution-manifest-state-reader.test.js:190:123)\n    at C:/code/chainlesschain/.work/r32/packages/cli/__tests__/unit/evolution-manifest-state-reader.test.js:335:7\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)"
+          ]
+        }
+      ]
+    },
+    {
+      "path": ".work/rrsi-manifest-state-directory-platform.json",
+      "sha256": "7ad2b91f378bce4903b5d78cc46942f358b6f14139e38e19c85dd076ecf556f5",
+      "note": "Two targeted corrected native Windows refusal tests; filtered cases do not count as platform skips",
+      "passed": 2,
+      "failed": 0,
+      "pendingOrFiltered": 84,
+      "failures": []
+    },
+    {
+      "path": ".work/rrsi-manifest-state-directory-final-targeted.json",
+      "sha256": "fd2e569ab907c6d0d6b2dc3cd736eeea86ad6a2d321e54f2853c9bfb620a6ff8",
+      "note": "Four targeted native refusal/synthetic ending-check tests; filtered cases do not count in final totals",
+      "passed": 4,
+      "failed": 0,
+      "pendingOrFiltered": 84,
+      "failures": []
+    }
+  ],
+  "otherDevelopmentDiagnostics": [
+    "A full Windows attempt was deliberately stopped before final source freeze to correct the WSL1 fixture; it supplies no final counts",
+    "Initial WSL directory probe attempted rename while a leaf fd remained open; native EACCES was masked by the fixture reporting an absent saved-directory as ENOENT. Reporting was fixed to retain the original cause and separately expose inspection failures",
+    "First final WSL runner expected two leaf lstat samples in the chmod case, but independent error reporting contributes a third after read failure. Only runner accounting changed; the frozen helper/production bytes were unchanged and the subsequent full eight-scenario invocation passed"
+  ],
+  "verification": {
+    "eslint": "Six changed JS/MJS files pass cached ESLint with --max-warnings=0 and existing Node recommended .work/gap-eslint.config.mjs; not full-repository lint",
+    "prettier": "All six source/test files pass repository Prettier; Markdown/evidence checked separately",
+    "astraReview": "Read-only production/test review found no production blocker; native refusal classification, one-shot synthetic ending stat and exact real chmod assertions incorporated",
+    "nativeAclBudgetsChanged": false,
+    "existingRegressionTimeoutsChanged": false,
+    "newIntegrationPreparationStageMs": 60000,
+    "newIntegrationBehaviorMs": 60000,
+    "childWatchdogMs": 15000,
+    "gitDiffCheck": "Passed for the six changed source/test paths and requested RRSI documentation/evidence paths",
+    "finalPrettierCheck": "All six source/test and four documentation/evidence files pass repository Prettier",
+    "reporterSkipAccounting": "Vitest assertionResults encode conditional skips as skipped; corrected the initial per-file pending-only count and checked aggregate equals reporter numPendingTests=4. Top-level totals and case records were already correct; no source/test changes or rerun"
+  },
+  "implementation": {
+    "catalogDefaultMaximumBytes": 67108864,
+    "headDefaultMaximumBytes": 262144,
+    "descriptorChunkBytes": 65536,
+    "eofProbeBytes": 1,
+    "requiredBigIntFileFields": [
+      "dev",
+      "ino",
+      "mode",
+      "uid",
+      "gid",
+      "nlink",
+      "size",
+      "mtimeNs",
+      "ctimeNs"
+    ],
+    "retainedDirectoryFields": ["dev", "ino", "mode", "uid", "gid"],
+    "directoryBirthtime": "Existing artifactPhysicalIdentity birthtimeMs semantics including WSL1 rules, not a new nanosecond precision claim",
+    "scope": "Only original catalog/head directories are bound per backend instance; mutable leaves reacquire identity each call and permit legitimate atomic rename updates",
+    "writerPrecheck": "recheck before lock rejects an already-replaced directory; no whole-transaction atomic write protection",
+    "absence": "Only initial leaf lstat ENOENT yields empty/null, even after prior presence. No persistent leaf highwater; access errors/dangling links/disappearance during open or read fail",
+    "constructors": "Original ensurePrivateDirectory remains; these constructors may create/secure their own directories and are not open-only installation readers",
+    "fsImpl": "All reader and directory identity-helper operations forward to original supplied filesystem, preserving receiver and Windows projection bridge",
+    "failureCode": "CC_EVOLUTION_MANIFEST_STATE_READ_FAILED"
+  },
+  "remainingBoundaries": [
+    "Sequential physical samples are not an atomic snapshot or general ABA defense; an independent backend may capture a new same-byte directory copy",
+    "No persistent mutable-leaf inode pin or detection of deletion across calls; no disk byte format/public descriptor/signature/CAS authority changes",
+    "Partial reads may request remaining ranges more than once; actual returned bytes and EOF probe, rather than sum of requested lengths, define this bound",
+    "Native Windows EPERM and WSL1 EACCES apply to the tested filesystems/runtime; they are not universal kernel/mount guarantees or ending-directory-check evidence",
+    "Synthetic precision/mode stat tests use real files/fds but do not demonstrate native NTFS Number-projection inode collisions or native mode replacement",
+    "Full actual journal/witness/segment/retention graph, installation endorsement, protected durable pins/highwater and forced business routes remain unfinished",
+    "No tenant-wide producer provenance, alias finalization, release lease/recovery admission, real paid A/B/C, statistical PASS or production promotion",
+    "WSL probes are targeted; no complete Linux Vitest/macOS/release workflow matrix executed"
+  ],
+  "fullPhysicalStorageGraphVerified": false,
+  "installationRootAuthorityVerified": false,
+  "routingPinVerified": false,
+  "tenantWideIndexAuthorityVerified": false,
+  "generationProvenanceVerified": false,
+  "grantsMutationOrPromotionAuthority": false,
+  "realRrsiAbcExperimentStatus": "NOT_RUN",
+  "statisticalQualityDecision": "HOLD",
+  "promotionDecision": "HOLD"
+}

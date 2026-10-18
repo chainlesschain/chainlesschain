@@ -4,6 +4,7 @@ import { createEvolutionFileWitness } from "./evolution-file-witness.js";
 import {
   EvolutionLedger,
   captureEvolutionLedgerMigrationSource,
+  captureEvolutionLedgerDirectoryBoundary,
 } from "./evolution-ledger.js";
 import { createEvolutionLedgerV2JournalFromFactory } from "./evolution-ledger-v2-journal.js";
 
@@ -12,6 +13,7 @@ export const EVOLUTION_LEDGER_FILE_BACKEND_SCHEMA =
 
 const BACKENDS = new WeakSet();
 const BACKEND_BINDINGS = new WeakMap();
+const SOURCE_DIRECTORY_BOUNDARIES = new WeakMap();
 
 function requiredString(value, label) {
   if (typeof value !== "string" || value.trim() === "") {
@@ -205,7 +207,10 @@ export function createEvolutionLedgerFileBackend({
     ledger,
     witness,
   });
+  const sourceDirectoryBoundary =
+    captureEvolutionLedgerDirectoryBoundary(sourceLedger);
   BACKENDS.add(backend);
+  SOURCE_DIRECTORY_BOUNDARIES.set(backend, sourceDirectoryBoundary);
   BACKEND_BINDINGS.set(
     backend,
     Object.freeze({
@@ -233,4 +238,21 @@ export function captureEvolutionLedgerFileBackendBinding(value) {
       "a branded EvolutionLedger file backend binding is required",
     );
   return binding;
+}
+
+/** Captured private v1 source even when the public journal is a v2 wrapper. */
+export function captureEvolutionLedgerFileBackendSourceDirectoryBoundary(
+  value,
+) {
+  if (arguments.length !== 1)
+    throw new TypeError(
+      "source directory boundary capture takes exactly one original backend",
+    );
+  const boundary = SOURCE_DIRECTORY_BOUNDARIES.get(value);
+  if (!boundary)
+    throw new TypeError(
+      "a branded file backend source directory boundary is required",
+    );
+  boundary.recheck();
+  return boundary;
 }
