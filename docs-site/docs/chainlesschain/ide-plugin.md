@@ -1,6 +1,6 @@
 # IDE 插件使用指南（VS Code / JetBrains）
 
-> 2026-10-18：当前公开版本为 CLI **0.166.105**、Open VSX **0.37.150**、JetBrains **0.4.167**。下一候选为 CLI **0.166.106**、VS Code **0.37.151**、JetBrains **0.4.168**，候选插件均推荐 CLI `.106`；候选尚未发布，须通过最终提交完整矩阵、CLI OIDC 发布及公开制品回读，再发行 IDE 并补测未合格项。公开 `.105` 轮已严格完成生成 **20/20**、验收 **20/20**，新增候选合格 **6** 项、全流程通过 **6** 项；累计合格 **31/45**（普通任务 **26/36**、首次使用 **5/9**），剩余 **14** 项。原 25 份合格产物按字节复用；跨版本累计结果不等于单轮 **45/45** 全部成功。候选 `.106/.151/.168` 尚未发布、尚未补测。Microsoft Marketplace 未发布。
+> 当前公开版本为 CLI **0.166.106**、Open VSX **0.37.151**、JetBrains **0.4.168**，两个插件均推荐 CLI `.106`。三包公开制品已严格回读，发行源码为 `dca47fd91a209642b6536afd5bc9e99ec74c7d06`；该提交完整官方门禁 CLI CI **71/71**、CLI Strict Sandbox **5/5**、IDE Extensions **18/18**、ARM64 **10/10** 通过，发行门禁不等于任务合格。公开 `.105` 轮已严格完成生成 **20/20**、验收 **20/20**，新增候选合格 **6** 项、全流程通过 **6** 项；累计合格 **31/45**（普通任务 **26/36**、首次使用 **5/9**），剩余 **14** 项。原 25 份合格产物按字节复用；跨版本累计结果不等于单轮 **45/45** 全部成功。剩余 **14** 项尚未使用 `.106/.151/.168` 补测，旧失败记录保持不变。Microsoft Marketplace 未发布。
 
 详见[当前升级指南](./cli-ide-update-2026-10-18)。以下带日期记录为历史快照。
 
@@ -10,7 +10,7 @@
 
 ## 安装与升级
 
-CLI `0.166.105` 已公开。配套 Open VSX `0.37.150` 与 JetBrains `0.4.167` 发布中；确认对应制品公开后升级，重启聊天宿主并运行 Doctor。详见[升级与故障排查](./cli-ide-update-2026-10-18)。
+CLI `0.166.106`、配套 Open VSX `0.37.151` 与 JetBrains `0.4.168` 已公开并完成严格回读；升级后，重启聊天宿主并运行 Doctor。详见[升级与故障排查](./cli-ide-update-2026-10-18)。
 
 ## 重复调查与证据总结（公开 .93）
 
@@ -74,8 +74,8 @@ VS Code / VSCodium 扩展 `0.37.118` 支持 `chainlesschain.chat.maxTurns`。默
 ### 1. 安装 / 升级 `cc` CLI
 
 ```bash
-npm i -g chainlesschain@0.166.105 --registry https://registry.npmjs.org # Node ≥ 22.12.0
-cc --version                # 本次公开核验版本 0.166.105
+npm i -g chainlesschain@0.166.106 --registry https://registry.npmjs.org # Node ≥ 22.12.0
+cc --version                # 本次公开核验版本 0.166.106
 cc ide --help               # 确认有 ide 子命令
 ```
 
@@ -83,8 +83,8 @@ cc ide --help               # 确认有 ide 子命令
 
 **VS Code 及兼容编辑器**（VSCodium / Cursor / Gitpod / 通义灵码 …）
 
-- **通过 [Open VSX Registry](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide)**（扩展 ID `chainlesschain.chainlesschain-ide`，需 VS Code ≥ 1.85）。版本 `0.37.150` 正在发布，确认该版本公开后，在扩展面板搜 **ChainlessChain IDE** 安装。
-  > 官方 VS Code Marketplace（marketplace.visualstudio.com）**暂未上架**。官方版 VS Code 不查询 Open VSX，不要点 Open VSX 的通用 **Install** 链接；待版本公开后下载 [0.37.150 VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.150/file/chainlesschain.chainlesschain-ide-0.37.150.vsix)，再运行 **Extensions: Install from VSIX...**。也可从源码打包：
+- **通过 [Open VSX Registry](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide)**（扩展 ID `chainlesschain.chainlesschain-ide`，需 VS Code ≥ 1.85）。版本 `0.37.151` 已公开，在扩展面板搜 **ChainlessChain IDE** 安装。
+  > 官方 VS Code Marketplace（marketplace.visualstudio.com）**暂未上架**。官方版 VS Code 不查询 Open VSX，不要点 Open VSX 的通用 **Install** 链接；下载已公开的 [0.37.151 VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.151/file/chainlesschain.chainlesschain-ide-0.37.151.vsix)，再运行 **Extensions: Install from VSIX...**。也可从源码打包：
   ```bash
   cd packages/vscode-extension
   npx @vscode/vsce package --no-dependencies
@@ -93,7 +93,7 @@ cc ide --help               # 确认有 ide 子命令
 
 **JetBrains（IDEA / PyCharm / WebStorm / GoLand …，2024.2+）**
 
-- **通过 [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge)**（插件 ID `com.chainlesschain.ide`）：_Settings → Plugins → Marketplace_ 搜 **ChainlessChain IDE** 一键安装。版本 `0.4.167` 正在发布，配对 CLI `0.166.105`；须确认已批准、已列出且 ZIP 可公开下载后升级。仅依赖 platform 模块，非 Java IDE 同样可装。
+- **通过 [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge)**（插件 ID `com.chainlesschain.ide`）：_Settings → Plugins → Marketplace_ 搜 **ChainlessChain IDE** 一键安装。版本 `0.4.168` 已批准、列出且 ZIP 可下载，配对 CLI `0.166.106`。仅依赖 platform 模块，非 Java IDE 同样可装。
 - 离线 / 源码安装：`./gradlew buildPlugin` 得 `build/distributions/*.zip` → _Settings → Plugins → ⚙ → Install Plugin from Disk_。
 
 配套 Open VSX `0.37.150` 与 JetBrains `0.4.167` 均推荐公开 CLI `0.166.105`；IDE 市场发布尚待完整回读。IDE 继续只提交审阅决定、读取有界投影，不拥有 CLI writer、评测、发布或 Skill 执行 authority。TypeSafe/Laya/System One 决策仍仅限耐久、单 prompt、headless CLI。下方标注 `0.166.77/0.37.118/0.4.138` 的能力说明保留历史首次核对版本，当前版继承这些行为。

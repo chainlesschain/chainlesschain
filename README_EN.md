@@ -1,16 +1,16 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
-As of 2026-10-18, current public versions are CLI **0.166.105**, Open VSX **0.37.150** and JetBrains **0.4.167**. The next candidates are CLI **0.166.106**, VS Code **0.37.151** and JetBrains **0.4.168**; both candidate plugins recommend CLI `.106`. These candidates are not published and require complete exact-commit release gates, CLI OIDC publication and public artifact readback before IDE release and unfinished-sample retesting. The public `.105` round completed generation and acceptance for **20/20** samples each, adding **6** candidate acceptances and **6** full-flow passes. Cumulative acceptance is **31/45** (**26/36** ordinary tasks and **5/9** first-use tasks), with **14** remaining. The original 25 accepted artifacts were reused byte-for-byte; this cross-version cumulative result is not a single-round 45/45 success. Candidates `.106/.151/.168` remain unpublished and untested on the unfinished samples. Microsoft Marketplace remains unpublished.
+Current public versions are CLI **0.166.106**, Open VSX **0.37.151** and JetBrains **0.4.168**; both plugins recommend CLI `.106`. All three public artifacts have passed strict readback against release source `dca47fd91a209642b6536afd5bc9e99ec74c7d06`. Its complete official gates passed: CLI CI **71/71**, CLI Strict Sandbox **5/5**, IDE Extensions **18/18** and ARM64 **10/10**. These release checks do not establish task acceptance. The public `.105` round completed generation and acceptance for **20/20** samples each, adding **6** candidate acceptances and **6** full-flow passes. Cumulative acceptance is **31/45** (**26/36** ordinary tasks and **5/9** first-use tasks), with **14** remaining. The original 25 accepted artifacts were reused byte-for-byte; this cross-version cumulative result is not a single-round 45/45 success. The remaining **14** tasks have not been retested on `.106/.151/.168`; previous failures remain recorded. Microsoft Marketplace remains unpublished.
 
-Install the public CLI now. Upgrade the paired IDE only after its public artifact is verified, then restart the chat host and run Doctor.
+Install the public CLI now. Upgrade to the paired Open VSX 0.37.151 or JetBrains 0.4.168 release, then restart the chat host and run Doctor.
 
 ```bash
-npm i -g chainlesschain@0.166.105 --registry https://registry.npmjs.org
+npm i -g chainlesschain@0.166.106 --registry https://registry.npmjs.org
 cc --version
 cc doctor
 ```
 
-See the [current upgrade guide](docs-site/docs/chainlesschain/cli-ide-update-2026-10-18.md) and [OIDC release](https://github.com/chainlesschain/chainlesschain/actions/runs/39102818482).
+See the [current upgrade guide](docs-site/docs/chainlesschain/cli-ide-update-2026-10-18.md) and [OIDC release](https://github.com/chainlesschain/chainlesschain/actions/runs/39130542725).
 
 ## Release snapshot (2026-10-17, historical)
 

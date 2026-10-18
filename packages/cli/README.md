@@ -4,11 +4,11 @@ Command-line interface for installing, configuring, and managing [ChainlessChain
 
 ## Package version and IDE pairing
 
-As of 2026-10-18, current public versions are CLI **0.166.105**, Open VSX **0.37.150** and JetBrains **0.4.167**. The next candidates are CLI **0.166.106**, VS Code **0.37.151** and JetBrains **0.4.168**; both candidate plugins recommend CLI `.106`. These candidates are not published and require complete exact-commit release gates, CLI OIDC publication and public artifact readback before IDE release and unfinished-sample retesting. The public `.105` round completed generation and acceptance for **20/20** samples each, adding **6** candidate acceptances and **6** full-flow passes. Cumulative acceptance is **31/45** (**26/36** ordinary tasks and **5/9** first-use tasks), with **14** remaining. The original 25 accepted artifacts were reused byte-for-byte; this cross-version cumulative result is not a single-round 45/45 success. Candidates `.106/.151/.168` remain unpublished and untested on the unfinished samples. Microsoft Marketplace remains unpublished.
+Current public versions are CLI **0.166.106**, Open VSX **0.37.151** and JetBrains **0.4.168**; both plugins recommend CLI `.106`. All three public artifacts have passed strict readback against release source `dca47fd91a209642b6536afd5bc9e99ec74c7d06`. Its complete official gates passed: CLI CI **71/71**, CLI Strict Sandbox **5/5**, IDE Extensions **18/18** and ARM64 **10/10**. These release checks do not establish task acceptance. The public `.105` round completed generation and acceptance for **20/20** samples each, adding **6** candidate acceptances and **6** full-flow passes. Cumulative acceptance is **31/45** (**26/36** ordinary tasks and **5/9** first-use tasks), with **14** remaining. The original 25 accepted artifacts were reused byte-for-byte; this cross-version cumulative result is not a single-round 45/45 success. The remaining **14** tasks have not been retested on `.106/.151/.168`; previous failures remain recorded. Microsoft Marketplace remains unpublished.
 
-Release `.105` adds general coding guidance, static relative-import feedback, safe transport error details, provider-abort classification and protection against reporting completion while deferred writes remain. JetBrains `.167` includes the saved-Markdown renderer change; its public-package restart acceptance remains pending. Child package versions remain unchanged.
+Release `.106` adds bounded task-delivery guidance and preserves explicit HTTP 403 reasons. JetBrains `.168` keeps asynchronous save receipts separate from replies, orders final output before exit handling, and bounds ACL subprocess cleanup. Native task quality, archived-reply recovery and the original ACL timeout cause require separate evidence. Child package versions remain unchanged.
 
-Install the public CLI with `npm i -g chainlesschain@0.166.105 --registry https://registry.npmjs.org`. Public IDE pairing is Open VSX 0.37.150 / JetBrains 0.4.167. Candidate CLI 0.166.106 is not yet an installation target; restart the chat host and run Doctor after a verified upgrade. The original completed round used CLI `.104`, Open VSX `.149` and JetBrains `.166`; it does not establish `.105` task acceptance. [Current upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-18.html).
+Install the public CLI with `npm i -g chainlesschain@0.166.106 --registry https://registry.npmjs.org`. Public IDE pairing is Open VSX 0.37.151 / JetBrains 0.4.168. Restart the chat host and run Doctor after upgrading. Earlier `.104` and `.105` task results retain their original version bindings; the remaining 14 tasks have not been retested on `.106`. [Current upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-18.html).
 
 ## Release snapshot (2026-10-12, historical)
 
@@ -64,8 +64,7 @@ Explicit Linux durable permissions require administrator provisioning. Cross-pro
 
 ## Quick Start
 
-After candidate CLI `0.166.106` passes release gates and becomes publicly available
-(use the public `.105` installation command above until then):
+Install the public CLI `0.166.106`:
 
 ```bash
 npm install -g chainlesschain@0.166.106 --registry https://registry.npmjs.org
