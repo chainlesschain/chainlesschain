@@ -1,8 +1,8 @@
 # CLI Runtime 当前实现与源码候选
 
-> 2026-10-18：当前公开版本为 CLI **0.166.105**、Open VSX **0.37.150**、JetBrains **0.4.167**。下一候选为 CLI **0.166.106**、VS Code **0.37.151**、JetBrains **0.4.168**，候选插件均推荐 CLI `.106`；候选尚未发布，须通过最终提交完整矩阵、CLI OIDC 发布及公开制品回读，再发行 IDE 并补测未合格项。已验收基线保持 **25/45**；公开 `.105` 补测正在进行且已出现失败，候选合格与端到端成功分别记账，不宣称 **45/45** 全部合格。Microsoft Marketplace 未发布。
+> 2026-10-18 实时核对：npm CLI **0.166.106**、Open VSX **0.37.151** 已公开，Open VSX 推荐 CLI `.106`，发行提交 `dca47fd91a`。JetBrains 当前已核验公开 **0.4.167**，仍推荐 CLI `.105`；`.168` 的公开上架与下载待核验。公开 `.105/.150/.167` 任务补测已收齐生成与独立验收各 **20/20**，新增 **6** 项候选及全流程通过；跨版本累计候选合格交付 **31/45**（普通 **26/36**、首次 **5/9**），剩余 **14** 项。`.106/.151/.168` 新轮模型补测尚未运行，累计覆盖不等于新版单轮成功率。Microsoft Marketplace 未发布。
 
-当前安装：`npm i -g chainlesschain@0.166.105 --registry https://registry.npmjs.org`。新版 IDE 公开核验后升级并重启宿主，运行 Doctor 核对实际 CLI。详见[本轮升级指南](./cli-ide-update-2026-10-18)。
+当前安装：`npm i -g chainlesschain@0.166.106 --registry https://registry.npmjs.org`。Open VSX .151 推荐 .106；JetBrains .167 仍推荐 .105，.168 待公开核验。升级后重启宿主，运行 Doctor 核对实际 CLI。详见[本轮升级指南](./cli-ide-update-2026-10-18)。
 
 以下带日期的发布和验收记录为历史快照。
 
@@ -72,20 +72,20 @@ git merge-base --is-ancestor 退出码 1 是合法的 predicateResult:false，�
 
 ## 安装版本怎么选
 
-| 用途                               | 版本                                                    | 来源与范围                                                |
-| ---------------------------------- | ------------------------------------------------------- | --------------------------------------------------------- |
-| 日常使用 / npm latest              | CLI 0.166.103                                           | b235ac8068，三系统 CLI CI / Strict、OIDC 与公开回读已通过 |
-| IDE 工作台                         | Open VSX 0.37.148 / JetBrains 0.4.165                   | 均推荐 CLI 0.166.103；分别来自 c8a64caa92 / fa64840216    |
-| 共享服务                           | Session Core 0.3.19 / Memory Kernel 0.1.10 / PDH 0.4.65 | 独立公开子包，CLI 保持精确依赖                            |
-| Desktop / Android / iOS            | v5.0.3.140                                              | f733f92cb9，独立公开产品；iOS 仅授权 ad hoc 设备          |
-| Windows 工具链 / Node runtime 胶囊 | 1e5477aebe 源码实验                                     | admissionEligible=false，正式目标宿主验收未完成           |
+| 用途                               | 版本                                                    | 来源与范围                                                       |
+| ---------------------------------- | ------------------------------------------------------- | ---------------------------------------------------------------- |
+| 日常使用 / npm latest              | CLI 0.166.106                                           | dca47fd91a，准确提交完整 CLI CI / Strict、OIDC 与公开回读已通过  |
+| IDE 工作台                         | Open VSX 0.37.151 / JetBrains 0.4.167                   | Open VSX .151 推荐 .106；JetBrains .167 仍推荐 .105，.168 待核验 |
+| 共享服务                           | Session Core 0.3.19 / Memory Kernel 0.1.10 / PDH 0.4.65 | 独立公开子包，CLI 保持精确依赖                                   |
+| Desktop / Android / iOS            | v5.0.3.140                                              | f733f92cb9，独立公开产品；iOS 仅授权 ad hoc 设备                 |
+| Windows 工具链 / Node runtime 胶囊 | 1e5477aebe 源码实验                                     | admissionEligible=false，正式目标宿主验收未完成                  |
 
 ```bash
-npm i -g chainlesschain@0.166.103 --registry https://registry.npmjs.org
+npm i -g chainlesschain@0.166.106 --registry https://registry.npmjs.org
 cc --version
 ```
 
-升级后重启 IDE 聊天宿主并通过 Doctor 核对实际路径与能力。实验胶囊不用于解除生产严格模式阻塞；详细准入与限制见[最新设计](/design/release-runtime-update-2026-10-16)。
+升级后重启 IDE 聊天宿主并通过 Doctor 核对实际路径与能力。实验胶囊不用于解除生产严格模式阻塞；详细准入与限制见[最新设计](/design/release-runtime-update-2026-10-18)。
 
 ## 核心特性
 

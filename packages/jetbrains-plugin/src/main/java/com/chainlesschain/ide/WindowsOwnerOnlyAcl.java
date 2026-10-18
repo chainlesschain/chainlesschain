@@ -229,30 +229,69 @@ final class WindowsOwnerOnlyAcl {
         reader.setDaemon(true);
         reader.start();
 
-        final boolean completed;
+        long cleanupDeadline = 0;
         try {
-            completed = process.waitFor(timeoutSeconds, TimeUnit.SECONDS);
+            // This non-interactive command never consumes input. Publish EOF
+            // before waiting, rather than holding an unused stdin pipe open.
+            process.getOutputStream().close();
+            if (!process.waitFor(timeoutSeconds, TimeUnit.SECONDS)) {
+                throw new IOException("PowerShell ACL command timed out after "
+                        + timeoutSeconds + " seconds");
+            }
+            cleanupDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+            joinUntil(reader, cleanupDeadline);
+            if (reader.isAlive()) {
+                throw new IOException("Windows ACL output did not drain within 5 seconds");
+            }
+            if (readFailure.get() != null) throw readFailure.get();
+            return new Result(process.exitValue(),
+                    output.toString(StandardCharsets.UTF_8));
         } catch (InterruptedException interrupted) {
             Thread.currentThread().interrupt();
-            process.destroyForcibly();
             throw new IOException("interrupted while applying Windows ACL", interrupted);
+        } finally {
+            if (cleanupDeadline == 0) {
+                cleanupDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+            }
+            cleanupOwnedProcess(process, reader, cleanupDeadline);
         }
-        if (!completed) {
-            process.destroyForcibly();
-            throw new IOException(
-                    "PowerShell ACL command timed out after "
-                            + timeoutSeconds + " seconds");
+    }
+
+    private static void joinUntil(Thread thread, long deadline)
+            throws InterruptedException {
+        long remaining = deadline - System.nanoTime();
+        if (remaining > 0) {
+            TimeUnit.NANOSECONDS.timedJoin(thread, remaining);
         }
+    }
+
+    private static void cleanupOwnedProcess(Process process, Thread reader,
+                                            long deadline) {
+        // Only the process started above is owned. A descendant may retain an
+        // inherited pipe; never kill an unrelated process to manufacture EOF.
+        if (process.isAlive()) process.destroyForcibly();
+        // Closing a stream can contend with a blocked reader. Keep that work
+        // off the caller and within the same total drain/cleanup wait budget.
+        Thread closer = new Thread(() -> {
+            try { process.getOutputStream().close(); } catch (IOException ignored) { }
+            try { process.getInputStream().close(); } catch (IOException ignored) { }
+            try { process.getErrorStream().close(); } catch (IOException ignored) { }
+        }, "chainlesschain-ide-acl-cleanup");
+        closer.setDaemon(true);
+        closer.start();
+        boolean interrupted = Thread.interrupted();
         try {
-            reader.join(5_000);
-        } catch (InterruptedException interrupted) {
-            Thread.currentThread().interrupt();
-            throw new IOException("interrupted while reading Windows ACL output",
-                    interrupted);
+            long remaining = deadline - System.nanoTime();
+            if (remaining > 0 && process.isAlive()) {
+                process.waitFor(remaining, TimeUnit.NANOSECONDS);
+            }
+            joinUntil(closer, deadline);
+            joinUntil(reader, deadline);
+        } catch (InterruptedException stopped) {
+            interrupted = true;
+        } finally {
+            if (interrupted) Thread.currentThread().interrupt();
         }
-        if (readFailure.get() != null) throw readFailure.get();
-        return new Result(process.exitValue(),
-                output.toString(StandardCharsets.UTF_8));
     }
 
     private static void drainBounded(InputStream input,

@@ -5,6 +5,7 @@
 - Recommend candidate CLI 0.166.106 for brief action guidance, complete file writes in bounded segments, and accurate reasons for explicit HTTP 403 errors outside authentication or billing.
 - Wait up to two seconds for final stdout callbacks on the background process waiter and schedule exit alongside result rendering on the IDE event queue.
 - Report asynchronous draft-save receipts through a separate status update without interrupting the assistant reply.
+- Close unused Windows ACL subprocess input, reject incomplete output, and keep drain/cleanup within one shared five-second deadline. This lifecycle fix does not establish the cause of native ACL startup timeouts.
 - Keep current public CLI 0.166.105 and IDE pairing unchanged until exact-commit gates, CLI npm OIDC publication and public artifact readback pass.
 - Published-package retesting remains a separate requirement. Existing failed samples are not accepted by this version bump.
 

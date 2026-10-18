@@ -4,11 +4,15 @@ Command-line interface for installing, configuring, and managing [ChainlessChain
 
 ## Package version and IDE pairing
 
-As of 2026-10-18, current public versions are CLI **0.166.105**, Open VSX **0.37.150** and JetBrains **0.4.167**. The next candidates are CLI **0.166.106**, VS Code **0.37.151** and JetBrains **0.4.168**; both candidate plugins recommend CLI `.106`. These candidates are not published and require complete exact-commit release gates, CLI OIDC publication and public artifact readback before IDE release and unfinished-sample retesting. The accepted baseline remains **25/45**. Public `.105` retesting is in progress with observed failures; candidate acceptance and end-to-end success remain separate. No 45/45 success is claimed. Microsoft Marketplace remains unpublished.
+Live check on 2026-10-18: npm CLI **0.166.106** and Open VSX **0.37.151** are public; Open VSX recommends CLI `.106`, released from `dca47fd91a`. The verified public JetBrains **0.4.167** still recommends CLI `.105`; public listing and download of `.168` remain unverified. The `.105/.150/.167` retest collected all **20/20** generation and acceptance records and added **6** candidate and end-to-end passes. Cumulative cross-version accepted deliveries are **31/45** (**26/36** ordinary, **5/9** first-run), with **14** unaccepted. A new `.106/.151/.168` model retest has not run; cumulative coverage is not a latest-version single-round success rate. Microsoft Marketplace remains unpublished.
 
 Release `.105` adds general coding guidance, static relative-import feedback, safe transport error details, provider-abort classification and protection against reporting completion while deferred writes remain. JetBrains `.167` includes the saved-Markdown renderer change; its public-package restart acceptance remains pending. Child package versions remain unchanged.
 
-Install the public CLI with `npm i -g chainlesschain@0.166.105 --registry https://registry.npmjs.org`. Public IDE pairing is Open VSX 0.37.150 / JetBrains 0.4.167. Candidate CLI 0.166.106 is not yet an installation target; restart the chat host and run Doctor after a verified upgrade. The original completed round used CLI `.104`, Open VSX `.149` and JetBrains `.166`; it does not establish `.105` task acceptance. [Current upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-18.html).
+Install the current public CLI with `npm i -g chainlesschain@0.166.106 --registry https://registry.npmjs.org`. Open VSX 0.37.151 recommends CLI .106; public JetBrains .167 still recommends .105 while .168 awaits public verification; restart the chat host and run Doctor after a verified upgrade. The original completed round used CLI `.104`, Open VSX `.149` and JetBrains `.166`; it does not establish `.105` task acceptance. [Current upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-18.html).
+
+## Development snapshot capabilities (2026-10-18)
+
+Development snapshot `f21eac547e`, outside this remote documentation baseline, adds goal catalogs and authorized panels, offline description request export, online pending drafts and receipt reconciliation. The public .106 package does not include these new commands. New Session Core exports remain unpublished and require a child-package release before CLI distribution. Pending suggestions still require desktop preview and native confirmation. See the [goal draft guide](https://docs.chainlesschain.com/chainlesschain/goal-drafts-current.html).
 
 ## Release snapshot (2026-10-12, historical)
 
@@ -30,7 +34,7 @@ Core **0.3.19**, Personal Data Hub **0.4.64** and Context/Memory Kernel **0.1.9*
 Open VSX **0.37.143** and JetBrains **0.4.161** recommend that CLI; public
 artifacts and the original exact-source release receipts have been read back.
 
-Windows native review requires separate admission. Public-package 36+9 retesting is in progress; the accepted baseline remains 25/45.
+Windows native review requires separate admission. Public .105 task retesting has collected 20/20 records; cumulative accepted delivery coverage is 31/45 across versions, with 14 still unaccepted.
 The original macOS needs-input performance failure and all unfinished native,
 durable, human, billing and long-term acceptance remain separately recorded.
 
@@ -2408,14 +2412,22 @@ Cross-session persistent goals / OKRs. Bind a goal into headless runs with `cc a
 chainlesschain goal set "Ship the v2 importer" --title importer   # Create (alias: add)
 chainlesschain goal list --status active                          # List goals
 chainlesschain goal show <id>                                     # Full detail
-chainlesschain goal catalog --limit 20 --json                     # Bounded selection metadata
-chainlesschain goal panels <id> --plugin goal-progress-viewer --scope project --json
 chainlesschain goal kr add <id> "100 tests green" --target 100    # Add key result
 chainlesschain goal kr set <id> <krId> --current 80               # Update key result
 chainlesschain goal progress <id> --pct 60 --note "parser done"   # Record progress
 chainlesschain goal link <id> [sessionId]                         # Attach a session
 chainlesschain goal pause|resume|close|abandon <id>               # Lifecycle
 chainlesschain goal rm <id>                                       # Delete (alias: delete)
+```
+
+The catalog, panels and draft workflows below describe source snapshot
+`f21eac547e`, not public CLI .106. Use matching local builds for development;
+the new Session Core exports require a child-package release first. Evidence paths
+below refer to that development snapshot.
+
+```bash
+chainlesschain goal catalog --limit 20 --json                     # Bounded selection metadata
+chainlesschain goal panels <id> --plugin goal-progress-viewer --scope project --json
 ```
 
 `goal panels` reads an explicitly selected standalone CLI goal through trusted,
@@ -2577,7 +2589,7 @@ saved drafts and the grant across application restarts. Revoking the source
 invalidates its old drafts and pending previews; completed task receipts remain.
 Actual changes require a current preview and separate native confirmation.
 Event subscriptions, the complete delivery assistant and real GUI acceptance
-remain open. See [local implementation evidence](../../docs/research/agents/evidence/dmm-cli-online-drafts-2026-10-18/README.md).
+remain open. See local implementation evidence (`../../docs/research/agents/evidence/dmm-cli-online-drafts-2026-10-18/README.md`).
 
 ### `chainlesschain permissions <action>` (alias: `perms`)
 

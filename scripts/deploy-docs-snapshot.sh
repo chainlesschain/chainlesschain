@@ -18,20 +18,20 @@ printf 'Deployment stamp: %s\nSource commit: %s\nLocal evidence: %s\n' "$stamp" 
 
 for site in docs design www; do
   case "$site" in
-    docs) dist="$repo_root/docs-site/docs/.vitepress/dist"; minimum=600; required="chainlesschain/cli-ide-update-2026-10-17.html" ;;
-    design) dist="$repo_root/docs-site-design/docs/.vitepress/dist"; minimum=250; required="release-runtime-update-2026-10-17.html" ;;
+    docs) dist="$repo_root/docs-site/docs/.vitepress/dist"; minimum=600; required="chainlesschain/cli-ide-update-2026-10-18.html" ;;
+    design) dist="$repo_root/docs-site-design/docs/.vitepress/dist"; minimum=250; required="release-runtime-update-2026-10-18.html" ;;
     www) dist="$repo_root/docs-website-v2/dist"; minimum=18; required="index.html" ;;
   esac
   test -f "$dist/index.html" && test -f "$dist/$required"
   if [ "$site" != www ]; then
-    grep -Fq '0.166.104' "$dist/$required"
+    grep -Fq '0.166.106' "$dist/$required"
   fi
   html_count="$(find "$dist" -type f -name '*.html' | wc -l | tr -d ' ')"
   file_count="$(find "$dist" -type f | wc -l | tr -d ' ')"
   test "$html_count" -ge "$minimum"
   if [ "$site" = www ]; then
-    grep -Fq '0.166.104' "$dist/index.html"
-    grep -Fq '0.37.149' "$dist/index.html"
+    grep -Fq '0.166.106' "$dist/index.html"
+    grep -Fq '0.37.151' "$dist/index.html"
     grep -Fq '6 万+' "$dist/index.html"
   fi
   tar -czf "$work_dir/$site.tar.gz" -C "$dist" .
@@ -118,9 +118,9 @@ while IFS=$'\t' read -r site sha html files; do
   test "$(find "$stage" -type f -name '*.html' | wc -l)" -eq "$html"
   test "$(find "$stage" -type f | wc -l)" -eq "$files"
   case "$site" in
-    docs) test -f "$stage/chainlesschain/cli-ide-update-2026-10-17.html"; grep -Fq '0.166.104' "$stage/chainlesschain/cli-ide-update-2026-10-17.html" ;;
-    design) test -f "$stage/release-runtime-update-2026-10-17.html"; grep -Fq '0.166.104' "$stage/release-runtime-update-2026-10-17.html" ;;
-    www) grep -Fq '0.166.104' "$stage/index.html"; grep -Fq '0.37.149' "$stage/index.html"; grep -Fq '6 万+' "$stage/index.html" ;;
+    docs) test -f "$stage/chainlesschain/cli-ide-update-2026-10-18.html"; grep -Fq '0.166.106' "$stage/chainlesschain/cli-ide-update-2026-10-18.html" ;;
+    design) test -f "$stage/release-runtime-update-2026-10-18.html"; grep -Fq '0.166.106' "$stage/release-runtime-update-2026-10-18.html" ;;
+    www) grep -Fq '0.166.106' "$stage/index.html"; grep -Fq '0.37.151' "$stage/index.html"; grep -Fq '6 万+' "$stage/index.html" ;;
   esac
   # Keep operational files, old pages, and hashed assets still used by cached HTML.
   # New build files win where the paths are identical.
@@ -147,12 +147,12 @@ for site in "${staged[@]}"; do
   test -f "$live/index.html"
   echo "LIVE $site; rollback directory: $backup"
 done
-curl --resolve docs.chainlesschain.com:443:127.0.0.1 -fsSL --max-time 30 https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-17.html -o "$prefix-origin-docs.html"
-curl --resolve design.chainlesschain.com:443:127.0.0.1 -fsSL --max-time 30 https://design.chainlesschain.com/release-runtime-update-2026-10-17.html -o "$prefix-origin-design.html"
+curl --resolve docs.chainlesschain.com:443:127.0.0.1 -fsSL --max-time 30 https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-18.html -o "$prefix-origin-docs.html"
+curl --resolve design.chainlesschain.com:443:127.0.0.1 -fsSL --max-time 30 https://design.chainlesschain.com/release-runtime-update-2026-10-18.html -o "$prefix-origin-design.html"
 curl --resolve www.chainlesschain.com:443:127.0.0.1 -fsSL --max-time 30 https://www.chainlesschain.com/ -o "$prefix-origin-www.html"
-grep -Fq '0.166.104' "$prefix-origin-docs.html"
-grep -Fq '0.166.104' "$prefix-origin-design.html"
-grep -Fq '0.37.149' "$prefix-origin-www.html"
+grep -Fq '0.166.106' "$prefix-origin-docs.html"
+grep -Fq '0.166.106' "$prefix-origin-design.html"
+grep -Fq '0.37.151' "$prefix-origin-www.html"
 grep -Fq '6 万+' "$prefix-origin-www.html"
 trap - EXIT
 echo "DEPLOYED_ALL $stamp"
