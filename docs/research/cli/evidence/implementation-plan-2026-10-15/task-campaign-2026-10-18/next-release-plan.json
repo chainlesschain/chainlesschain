@@ -1,7 +1,7 @@
 {
   "schema": "chainlesschain.next-release-task-optimization/v1",
   "recordedDate": "2026-10-18",
-  "status": "CLI_VSCODE_PUBLIC_JETBRAINS_AWAITING_PUBLIC_LISTING",
+  "status": "PUBLIC_PACKAGES_VERIFIED_RETEST_PREPARED",
   "userDecisions": [
     "不合格的需要代码优化 下一个版本进行补测",
     "需要发布新的cli或ide插件的下一个版本再测试",
@@ -318,6 +318,13 @@
       "publicFetchVerified": true,
       "officialCandidateBytesMatch": true,
       "modelTaskRetestPerformed": false
+    },
+    {
+      "kind": "jetbrains",
+      "version": "0.4.167",
+      "sourceCommit": "d4065008bb4eff84cfc09f9361f4ae4e9de2140f",
+      "publicFetchVerified": true,
+      "modelTaskRetestPerformed": false
     }
   ],
   "nextVersionRetestRuns": [],
@@ -386,7 +393,7 @@
     "mustUseIndependentLedger": true,
     "roundVerifier": "packages/cli/scripts/verify01-native-retest-round.mjs",
     "roundVerifierTestsPassed": 8,
-    "collector": "C:/code/chainlesschain/.work/collect-next-package-round.py",
+    "collector": "packages/cli/scripts/verify01-collect-native-retest.py",
     "collectorStatus": "IMPLEMENTED_NOT_YET_EXERCISED_ON_NEW_REAL_RUNS",
     "originalRoundComplete": true,
     "originalStrictCompleteVerificationPassed": true,
@@ -412,6 +419,15 @@
       "workflowActionlintPassed": true,
       "nodeLinuxOnlySkipped": 1,
       "jdk21UiCompilationPassed": true
+    },
+    "dispatcher": "packages/cli/scripts/verify01-dispatch-native-retest.py",
+    "preparedPlan": {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-105-20261018-plan.json",
+      "digest": "sha256:2296d637b34f63aff931b5e580da5023df5a47a7e7db3f0f2b314311a3e5579f",
+      "status": "PREPARED_NOT_DISPATCHED",
+      "newSamples": 20,
+      "reusedAcceptedSamples": 25,
+      "executionShards": 13
     }
   },
   "nativeHarnessFollowup": {
@@ -630,7 +646,7 @@
         "digest": "sha256:b29e6cb47cbcfd091d6a98669338ecd6fa350b91e6e84c8af54d0f65a73dcbd8",
         "bytes": 2964
       },
-      "publicFetchVerified": false,
+      "publicFetchVerified": true,
       "jobsSuccessful": 13,
       "finalRunArchive": {
         "path": "next-release-validation/jetbrains-publication-39104011767-final.json.gz",
@@ -638,15 +654,26 @@
         "bytes": 3492
       },
       "uploadSucceeded": true,
-      "marketplacePublicMetadataReady": false,
+      "marketplacePublicMetadataReady": true,
       "publicListingCheck": {
         "path": "next-release-validation/jetbrains-public-listing-20261018T070120Z-check.json",
         "digest": "sha256:cf54ddcecd7905303e7ddf891adf0394e8cdd9854ce773864bebd998d5c51d7a",
         "bytes": 574
       },
-      "scope": "The workflow permits a reachable pending listing; successful upload/post-check is not proof of an approved publicly fetchable plugin."
+      "scope": "Public approved listing and ZIP byte binding are verified. Static packaged renderer classes and CLI recommendation do not establish UI restoration or new model task acceptance.",
+      "publicListingObservedAt": "2026-10-18T07:12:52.855299+00:00",
+      "publicUpdateId": 1197193,
+      "approved": true,
+      "listed": true,
+      "hidden": false,
+      "publicReadback": {
+        "path": "next-release-validation/task-quality-105-public-readback/readback.json",
+        "digest": "sha256:88f4123a4eccb5b312e0f947199fdab95505d36be1b5dfe0cbe6dcbe77237e5a",
+        "bytes": 7885
+      },
+      "publicZipDigest": "sha256:4c5984d525e86a3d3ff27e085b5f4e27d4f47c8a76d8b73ec9251f73a13a7a7b"
     },
-    "observedAt": "2026-10-18T07:01:20.725876+00:00",
+    "observedAt": "2026-10-18T07:12:52.855299+00:00",
     "documentationFollowup": {
       "commit": "e4b30a8cb8f3281be12f5f04ebde66ab97f8b999",
       "files": 13,
@@ -677,6 +704,62 @@
       "mergeStillPendingRequiredChecks": true,
       "mergeRequiresJetBrainsListing": false,
       "reason": "All release workflows succeeded; market listing remains an external availability gate for native retesting. User authorized publication before merge. Normal branch protection remains enforced and the verified release tags do not move."
+    },
+    "allPackagePublicReadback": {
+      "status": "VERIFIED_PUBLIC_ARTIFACTS",
+      "versions": {
+        "cli": "0.166.105",
+        "vscode": "0.37.150",
+        "jetbrains": "0.4.167",
+        "vscodeHost": "1.132.0",
+        "jetbrainsHost": "2025.2"
+      },
+      "verifiedAt": "2026-10-18T07:12:52.855299+00:00",
+      "evidence": {
+        "readback.json": {
+          "path": "next-release-validation/task-quality-105-public-readback/readback.json",
+          "digest": "sha256:88f4123a4eccb5b312e0f947199fdab95505d36be1b5dfe0cbe6dcbe77237e5a",
+          "bytes": 7885
+        },
+        "package-set.json": {
+          "path": "next-release-validation/task-quality-105-public-readback/package-set.json",
+          "digest": "sha256:2cc81784724fcdc8813434fa8798cce28def3569ff97b07369bb6e16fe6af32f",
+          "bytes": 1606
+        },
+        "original-package-set.json": {
+          "path": "next-release-validation/task-quality-105-public-readback/original-package-set.json",
+          "digest": "sha256:7eeb5433397a85c2bed67b5164e37bd0a44b9eec0da5ce34e821bb9e6e9952b2",
+          "bytes": 1095
+        },
+        "npm-metadata.json": {
+          "path": "next-release-validation/task-quality-105-public-readback/npm-metadata.json",
+          "digest": "sha256:9cd478149a722694ac061cf9f828844cde260d63ffc17455b7eacd8e61428829",
+          "bytes": 7696
+        },
+        "openvsx-metadata.json": {
+          "path": "next-release-validation/task-quality-105-public-readback/openvsx-metadata.json",
+          "digest": "sha256:2fa745255f066ef8693229c3bc5fa1f884aea14974fbc47047e5886da4e10c0f",
+          "bytes": 10905
+        },
+        "jetbrains-updates.json": {
+          "path": "next-release-validation/task-quality-105-public-readback/jetbrains-updates.json.gz",
+          "digest": "sha256:44a5559cc0c5fb87e45f2b6abe9e9a2dfbfc5a8e0936a0761485078c7d2d29a1",
+          "bytes": 47191,
+          "originalDigest": "sha256:618e817dac3225a8a9208bf85a084a63cce691c11c7a4a49d68c572783653c58",
+          "originalBytes": 552768
+        }
+      },
+      "packageSet": {
+        "path": "docs/research/cli/verify01-package-sets/2026-10-18-task-quality-105.json",
+        "digest": "sha256:2cc81784724fcdc8813434fa8798cce28def3569ff97b07369bb6e16fe6af32f",
+        "bytes": 1606
+      },
+      "originalManifestUnchanged": {
+        "path": "docs/research/cli/verify01-package-sets/2026-10-18-latest.json",
+        "digest": "sha256:7eeb5433397a85c2bed67b5164e37bd0a44b9eec0da5ce34e821bb9e6e9952b2",
+        "bytes": 1095
+      },
+      "modelRequests": 0
     }
   },
   "versionControlledRetestTools": {
