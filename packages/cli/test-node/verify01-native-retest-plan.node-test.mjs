@@ -3,10 +3,12 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import {
   DEFAULT_NATIVE_PACKAGE_SET,
   NATIVE_EVIDENCE_ROOT,
+  NATIVE_RETEST_CHAIN,
   assertUnfinishedNativeSamples,
   createNativeRetestPlan,
   loadVerifiedNativeAcceptedSamples,
@@ -180,9 +182,27 @@ test("strict existing validators bind accepted files before selecting unfinished
   assert.equal(ids.length + state.acceptedIds.size, 45);
   assert.equal(new Set(ids).size, ids.length);
   for (const id of state.acceptedIds) assert.ok(!ids.includes(id));
-  assert.equal(state.baselineEvidence.length, 3);
-  for (const row of state.baselineEvidence)
-    assert.match(row.digest, /^sha256:[a-f0-9]{64}$/u);
+  const registered = JSON.parse(
+    fs.readFileSync(path.join(repository, NATIVE_RETEST_CHAIN)),
+  );
+  assert.deepEqual(
+    state.baselineEvidence.map((row) => row.path),
+    [
+      ...[
+        "latest-package-round.json",
+        "fetch-diagnostics-followup.json",
+        "native-verified-deliveries.json",
+      ].map((name) => `${NATIVE_EVIDENCE_ROOT}/${name}`),
+      ...registered.flatMap((round) => [round.planPath, round.ledgerPath]),
+    ],
+  );
+  for (const row of state.baselineEvidence) {
+    const bytes = fs.readFileSync(path.join(repository, row.path));
+    assert.equal(
+      row.digest,
+      `sha256:${createHash("sha256").update(bytes).digest("hex")}`,
+    );
+  }
   assert.throws(
     () => unfinishedNativeGroups(plan, new Set(["not-planned"])),
     /outside frozen plan/,
@@ -300,7 +320,7 @@ test("next-round preparation cannot overwrite an old round name or reuse the ori
         versionsFile: DEFAULT_NATIVE_PACKAGE_SET,
         roundName: "next-package-retest",
       }),
-    /latest package round incomplete|require a new package set/,
+    /next-version retests require a newer published CLI version/,
   );
   assert.equal(
     fs.existsSync(

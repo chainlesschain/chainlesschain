@@ -43,7 +43,9 @@ function archived(record) {
 
 /** Verify the actual accepted bytes and receipts, then bind the old UI result. */
 export function loadVerify33Reply() {
-  const baseline = loadVerifiedNativeAcceptedSamples();
+  // This replay is pinned to the original accepted round. Later retest rounds
+  // intentionally omit already accepted samples and must not replace its ledger.
+  const baseline = loadVerifiedNativeAcceptedSamples({ priorRounds: [] });
   assert.ok(baseline.acceptedIds.has("verify-33"));
   const sample = baseline.latest.samples.find(
     (row) => row.sampleId === "verify-33",
