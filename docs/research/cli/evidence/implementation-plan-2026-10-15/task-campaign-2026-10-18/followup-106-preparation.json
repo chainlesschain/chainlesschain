@@ -1,7 +1,7 @@
 {
   "schema": "chainlesschain.task-quality-next-version-preparation/v1",
   "recordedAt": "2026-10-18T08:16:55.683049+00:00",
-  "status": "RELEASE_GATES_IN_PROGRESS_AUXILIARY_CI_CLEANED",
+  "status": "ALL_EXACT_GATES_PASSED_PUBLISHING_CLI",
   "billingAssessed": false,
   "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
   "pullRequest": "https://github.com/chainlesschain/chainlesschain/pull/462",
@@ -46,7 +46,6 @@
     "next-release-validation/followup-106-dca47-evidence-review.json"
   ],
   "remaining": [
-    "Require every configured official gate for final source dca47fd91a209642b6536afd5bc9e99ec74c7d06; initial queued snapshots are historical, and ARM64 job 117637196667 now has a reported failure pending diagnosis.",
     "Publish and verify CLI 0.166.106 through OIDC, then VS Code 0.37.151 / JetBrains 0.4.168.",
     "Create a strict public package manifest and retest only the remaining 14 sample IDs, reusing all 31 accepted deliverables.",
     "Run the existing archived-reply zero-model recovery against the new approved public .168 ZIP.",
@@ -65,7 +64,7 @@
     "reusedAcceptedDeliverables": 25,
     "cumulativeAcceptedDeliverables": 26
   },
-  "updatedAt": "2026-10-18T10:08:24.892837+00:00",
+  "updatedAt": "2026-10-18T13:15:20.349406+00:00",
   "supersededSourceCommits": [
     "e01eb3a92212a69140559d8ec304ddd0dce99274",
     "52f882ffa891f0683120eff6399701378a617ae7",
@@ -143,8 +142,8 @@
       "conclusion": null
     }
   ],
-  "officialGatesCompleted": false,
-  "releaseEligible": false,
+  "officialGatesCompleted": true,
+  "releaseEligible": true,
   "windowsAclDiagnostic": {
     "sourceCommit": "2ceaa8421901fbdc68bec4d4c2395f6af089602d",
     "runId": "39112546523",
@@ -173,50 +172,53 @@
     "source": "Parent observation; official failure evidence is being reviewed separately.",
     "releaseEligible": false,
     "review": "next-release-validation/followup-106-dca47-arm64-dns-failure-review.json",
-    "retryStatus": "SINGLE_JOB_REQUEST_ACCEPTED_ATTEMPT_2_IN_PROGRESS",
+    "retryStatus": "RESOLVED_BY_SUCCESSFUL_EXACT_SOURCE_ATTEMPT_2",
     "productRegressionEstablished": false,
-    "retryEvidence": "next-release-validation/followup-106-dca47-dns-rerun-and-release-progress.json"
+    "retryEvidence": "next-release-validation/followup-106-dca47-dns-rerun-and-release-progress.json",
+    "resolvedEvidence": "next-release-validation/followup-106-final-gates-review.json",
+    "originalFailurePreserved": true
   },
   "latestOfficialGateProgress": "next-release-validation/followup-106-release-priority-cleanup-review.json",
   "officialGateCurrentSummary": [
     {
-      "name": "CLI CI",
+      "workflow": "CLI CI",
       "runId": 39114428682,
-      "status": "queued",
-      "conclusion": "",
-      "jobs": {
-        "queued": 40,
-        "success": 15,
-        "in_progress": 10
+      "status": "completed",
+      "conclusion": "success",
+      "requiredPrepublicationJobs": 71,
+      "jobConclusions": {
+        "success": 71
       }
     },
     {
-      "name": "CLI Strict Sandbox",
+      "workflow": "CLI Strict Sandbox",
       "runId": 39114428621,
       "status": "completed",
       "conclusion": "success",
-      "jobs": {
+      "requiredPrepublicationJobs": 5,
+      "jobConclusions": {
         "success": 5
       }
     },
     {
-      "name": "IDE Extensions",
+      "workflow": "IDE Extensions",
       "runId": 39114428636,
-      "status": "in_progress",
-      "conclusion": "",
-      "jobs": {
-        "success": 14,
-        "in_progress": 1
+      "status": "completed",
+      "conclusion": "success",
+      "requiredPrepublicationJobs": 18,
+      "jobConclusions": {
+        "success": 18,
+        "skipped": 1
       }
     },
     {
-      "name": "IDE ARM64 Host Validation",
+      "workflow": "IDE ARM64 Host Validation",
       "runId": 39114428701,
-      "status": "in_progress",
-      "conclusion": "",
-      "jobs": {
-        "in_progress": 1,
-        "success": 8
+      "status": "completed",
+      "conclusion": "success",
+      "requiredPrepublicationJobs": 10,
+      "jobConclusions": {
+        "success": 10
       }
     }
   ],
@@ -226,5 +228,39 @@
     "allFinalOutcomesVerified": true,
     "currentReleaseGatesAndProtectedWorkflowsPreserved": true,
     "nativeTaskRunsCancelled": 0
+  },
+  "finalOfficialGatesReview": "next-release-validation/followup-106-final-gates-review.json",
+  "currentBlockingOfficialFailure": null,
+  "cliPublication": {
+    "version": "0.166.106",
+    "tag": "v-npm-0-166-106",
+    "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+    "runId": 39130542725,
+    "status": "IN_PROGRESS",
+    "method": "GitHub Actions OIDC Trusted Publishing",
+    "publicVerified": false,
+    "evidence": [
+      {
+        "path": "followup-106-cli-verified-release-gates.json.gz",
+        "originalDigest": "sha256:d48cf7e7e0c1f51948ee0b582a4198123432a2544c16993a0a136f04bd780256",
+        "storedDigest": "sha256:7ac2d263632f24727702f5269bac7937b1db30b58875bd0aa24f18c4e6078afe",
+        "originalBytes": 923,
+        "storedBytes": 338
+      },
+      {
+        "path": "followup-106-cli-publish-intent.json.gz",
+        "originalDigest": "sha256:36b0d44e2a188f86dc5e9fd0642f61a104a5aa53d362ddf785f9ee219bbc3a4c",
+        "storedDigest": "sha256:6abb609c88e21550c3a957bc2035db596a69ceb34acfbdaf0bb1cfd58bb47148",
+        "originalBytes": 697,
+        "storedBytes": 434
+      },
+      {
+        "path": "followup-106-cli-initial-publish-runs.json.gz",
+        "originalDigest": "sha256:81835c4d1e9c9b1425a9213a1c4804c525a8be4bbad6ada1b8676c25bee1a69e",
+        "storedDigest": "sha256:1bd1a610eea561170cd1f3e217b4197b26c620e698e4e64257e66ba76d84b7e3",
+        "originalBytes": 542,
+        "storedBytes": 282
+      }
+    ]
   }
 }
