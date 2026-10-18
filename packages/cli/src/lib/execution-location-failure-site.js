@@ -22,7 +22,7 @@ export function readExecutionLocationStorageFailure(stderr) {
   const match = String(stderr || "")
     .slice(0, MAX_DIAGNOSTIC_CHARS)
     .match(
-      /\[windows-acl:(initialize|traversal|lookup|repair-lock|repair-inspect|repair-write|verify|timeout(?:-(?:startup|initialize|traversal|lookup|repair-lock|repair-inspect|repair-write|verify))?|spawn|output)(:0x[0-9a-f]{8})?\]/u,
+      /\[windows-acl:(initialize|traversal|lookup|repair-lock|repair-inspect|repair-write|verify|verify-read|verify-rules|serialize|output-complete|timeout(?:-(?:startup|initialize|traversal|lookup|repair-lock|repair-inspect|repair-write|verify|verify-read|verify-rules|serialize|output-complete))?|spawn|output)(:0x[0-9a-f]{8})?\]/u,
     );
   return match ? `${match[1]}${match[2] || ""}` : null;
 }
@@ -31,7 +31,7 @@ export function readExecutionLocationStorageLaunchFailure(stderr) {
   const match = String(stderr || "")
     .slice(0, MAX_DIAGNOSTIC_CHARS)
     .match(
-      /\[windows-acl-launch:(inspect|repair|preflight):(spawn|timeout):(startup|initialize|traversal|lookup|repair-lock|repair-inspect|repair-write|verify):(EACCES|EPERM|ENOENT|ETIMEDOUT|EINVAL|ENOSYS|ENOMEM|EMFILE|ENFILE|ENOBUFS|EBUSY|UNKNOWN):(unknown|-?(?:0|[1-9][0-9]{0,4})):(spawnSync|spawn|unknown)\]/u,
+      /\[windows-acl-launch:(inspect|repair|preflight):(spawn|timeout):(startup|initialize|traversal|lookup|repair-lock|repair-inspect|repair-write|verify|verify-read|verify-rules|serialize|output-complete):(EACCES|EPERM|ENOENT|ETIMEDOUT|EINVAL|ENOSYS|ENOMEM|EMFILE|ENFILE|ENOBUFS|EBUSY|UNKNOWN):(unknown|-?(?:0|[1-9][0-9]{0,4})):(spawnSync|spawn|unknown)\]/u,
     );
   if (!match) return null;
   const [, operation, failureStage, progressStage, code, rawErrno, syscall] =
@@ -42,7 +42,24 @@ export function readExecutionLocationStorageLaunchFailure(stderr) {
     (failureStage === "timeout") !== (code === "ETIMEDOUT")
   )
     return null;
-  return { operation, failureStage, progressStage, code, errno, syscall };
+  const timing = String(stderr || "")
+    .slice(0, MAX_DIAGNOSTIC_CHARS)
+    .match(
+      /\[windows-acl-elapsed:(initialize|traversal|lookup|repair-lock|repair-inspect|repair-write|verify|verify-read|verify-rules|serialize|output-complete):(0|[1-9][0-9]{0,5})\]/u,
+    );
+  const elapsedMs =
+    timing?.[1] === progressStage && Number(timing[2]) <= 300000
+      ? Number(timing[2])
+      : null;
+  return {
+    operation,
+    failureStage,
+    progressStage,
+    code,
+    errno,
+    syscall,
+    ...(elapsedMs === null ? {} : { elapsedMs }),
+  };
 }
 
 export function executionLocationFailureSite(error) {

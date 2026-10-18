@@ -3,6 +3,10 @@ name: CLI Windows Diagnostics
 on:
   workflow_dispatch:
     inputs:
+      acl_progress_only:
+        description: "Only run zero-model Windows x64 ACL progress diagnostics at the selected ref (not a release gate)"
+        type: boolean
+        default: false
       source_sha:
         description: "Exact full production commit to diagnose"
         type: string
@@ -32,7 +36,67 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  acl-progress-diagnostic:
+    if: ${{ inputs.acl_progress_only }}
+    name: "diagnostic only: Windows x64 ACL progress (zero model calls)"
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact diagnostic commit
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+          architecture: x64
+
+      - name: Verify source identity and run bounded zero-model diagnostics
+        shell: pwsh
+        env:
+          CC_ACL_DIAGNOSTIC_SHA: ${{ github.sha }}
+          CC_ACL_DIAGNOSTIC_OUTPUT: ${{ runner.temp }}/acl-progress-diagnostic
+        run: |
+          @'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const { spawnSync } = require('node:child_process');
+          const output = process.env.CC_ACL_DIAGNOSTIC_OUTPUT;
+          fs.mkdirSync(output, { recursive: true });
+          const head = spawnSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8', timeout: 10000, maxBuffer: 4096, windowsHide: true });
+          if (head.status !== 0 || head.stdout.trim() !== process.env.CC_ACL_DIAGNOSTIC_SHA) throw new Error('Exact diagnostic SHA mismatch');
+          if (process.platform !== 'win32' || process.arch !== 'x64' || process.version !== 'v22.12.0') throw new Error('Unexpected diagnostic host');
+          const receipt = { schema: 1, sourceCommit: head.stdout.trim(), node: process.version, platform: process.platform, arch: process.arch, diagnosticOnly: true, releaseGate: false, modelCalls: 0, commands: [] };
+          fs.writeFileSync(path.join(output, 'execution.json'), JSON.stringify(receipt, null, 2));
+          const commands = [
+            ['focused-tests', ['--test', 'packages/cli/test-node/windows-acl-progress.node-test.mjs'], 30000],
+            ['native-probes', ['packages/cli/scripts/windows-acl-progress-probe.mjs', '--output', path.join(output, 'acl-progress.json')], 225000],
+          ];
+          for (const [name, args, timeout] of commands) {
+            const result = spawnSync(process.execPath, args, { encoding: 'utf8', windowsHide: true, timeout, maxBuffer: 128 * 1024 });
+            for (const stream of ['stdout', 'stderr']) {
+              fs.writeFileSync(path.join(output, name + '.' + stream + '.log'), Buffer.from(result[stream] || '').subarray(0, 64 * 1024));
+            }
+            receipt.commands.push({ name, status: result.status, signal: result.signal, processError: Boolean(result.error) });
+            fs.writeFileSync(path.join(output, 'execution.json'), JSON.stringify(receipt, null, 2));
+            if (result.error || result.status !== 0) { process.exitCode = 1; break; }
+          }
+          '@ | node -
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Upload bounded diagnostic evidence (not task acceptance)
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: windows-acl-progress-${{ github.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/acl-progress-diagnostic
+          if-no-files-found: error
+          retention-days: 30
+
   updater-arm64-diagnostic:
+    if: ${{ !inputs.acl_progress_only }}
     name: Windows ARM64 updater diagnosis (not a release gate)
     runs-on: windows-11-arm
     timeout-minutes: 25
@@ -96,7 +160,7 @@ jobs:
           retention-days: 30
 
   parent-worker-diagnostic:
-    if: ${{ inputs.run_parent_worker }}
+    if: ${{ !inputs.acl_progress_only && inputs.run_parent_worker }}
     name: "diagnostic only: Windows x64 full unit shard 14/16"
     runs-on: windows-latest
     timeout-minutes: 60
