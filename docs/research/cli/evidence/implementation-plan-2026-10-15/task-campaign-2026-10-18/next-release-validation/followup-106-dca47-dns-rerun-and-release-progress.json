@@ -1,0 +1,102 @@
+{
+  "schema": "chainlesschain.exact-source-release-progress/v1",
+  "recordedAt": "2026-10-18T09:58:03.332625+00:00",
+  "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+  "status": "OFFICIAL_GATES_IN_PROGRESS",
+  "published": false,
+  "releaseEligible": false,
+  "dnsRetry": {
+    "runId": "39114428701",
+    "originalJobId": "117637196667",
+    "acceptedAt": "2026-10-18T09:51:38.391954+00:00",
+    "acceptedRequestCount": 1,
+    "runAttempt": 2,
+    "status": "in_progress",
+    "originalFailurePreserved": true,
+    "checksumVerificationRetained": true
+  },
+  "officialGates": [
+    {
+      "name": "CLI CI",
+      "runId": 39114428682,
+      "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+      "status": "queued",
+      "conclusion": "",
+      "jobs": {
+        "queued": 49,
+        "success": 13,
+        "in_progress": 3
+      }
+    },
+    {
+      "name": "CLI Strict Sandbox",
+      "runId": 39114428621,
+      "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": {
+        "success": 5
+      }
+    },
+    {
+      "name": "IDE Extensions",
+      "runId": 39114428636,
+      "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+      "status": "queued",
+      "conclusion": "",
+      "jobs": {
+        "success": 11,
+        "in_progress": 3,
+        "queued": 1
+      }
+    },
+    {
+      "name": "IDE ARM64 Host Validation",
+      "runId": 39114428701,
+      "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+      "status": "in_progress",
+      "conclusion": "",
+      "jobs": {
+        "in_progress": 1,
+        "success": 8
+      }
+    }
+  ],
+  "modelCalls": 0,
+  "taskGenerationDispatched": 0,
+  "evidence": [
+    {
+      "path": "followup-106-dca47-dns-rerun-accepted-intent.json.gz",
+      "originalBytes": 22928,
+      "storedBytes": 2829,
+      "originalDigest": "sha256:af89ea89c5ec16f4ca4e0160aa15c765c386c8bf9e07ceebfa27a1f8c0c0914a",
+      "storedDigest": "sha256:103cf2e1599bba6b1c0d6798b262bd336b2e1f7d3c2f60226fb2c758967658a6"
+    },
+    {
+      "path": "followup-106-dca47-arm64-attempt2-observation.json.gz",
+      "originalBytes": 13849,
+      "storedBytes": 1695,
+      "originalDigest": "sha256:423e3f246c9fb38968fb7be7c6a0c76a314862df6fa577c0c0eb521c08583203",
+      "storedDigest": "sha256:afc4bd665df173c3ff07264c5e1d86880bfda5133bdd4fe50617ebeda080575c"
+    },
+    {
+      "path": "followup-106-dca47-public-availability-0954.json.gz",
+      "originalBytes": 596,
+      "storedBytes": 314,
+      "originalDigest": "sha256:9c794522bf06440206b83cf5e8a496354a2160728d21e2f630f51f441d163edc",
+      "storedDigest": "sha256:0afd0cd011d70739c0457e1e842f398bafea39949b98e944724e00223d54d854"
+    },
+    {
+      "path": "followup-106-dca47-gate-observation-0957.json.gz",
+      "originalBytes": 212553,
+      "storedBytes": 10337,
+      "originalDigest": "sha256:e4fbbbd3d292c502186c9ce15860e7c90d5790e8b64ea3016725bd3736436622",
+      "storedDigest": "sha256:b67f1fb97aa9c7ba9edc5a9b0ef513d2d7be52a33d1f2272ea4d2c46df0fdcd7"
+    }
+  ],
+  "limits": [
+    "Successful Strict Sandbox is not a substitute for the other required exact-source matrices.",
+    "CLI 106 and IDE 151/168 remain unavailable in the archived registry snapshot; no publication is claimed.",
+    "The earlier HTTP 403 rejected request and the original DNS failure remain preserved separately."
+  ]
+}

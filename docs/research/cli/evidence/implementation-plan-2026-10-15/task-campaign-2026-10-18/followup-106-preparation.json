@@ -1,7 +1,7 @@
 {
   "schema": "chainlesschain.task-quality-next-version-preparation/v1",
   "recordedAt": "2026-10-18T08:16:55.683049+00:00",
-  "status": "RELEASE_GATE_INFRASTRUCTURE_RETRY_PENDING_RUN_COMPLETION",
+  "status": "RELEASE_GATES_IN_PROGRESS_DNS_RERUN_ACCEPTED",
   "billingAssessed": false,
   "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
   "pullRequest": "https://github.com/chainlesschain/chainlesschain/pull/462",
@@ -65,7 +65,7 @@
     "reusedAcceptedDeliverables": 25,
     "cumulativeAcceptedDeliverables": 26
   },
-  "updatedAt": "2026-10-18T09:19:56.962939+00:00",
+  "updatedAt": "2026-10-18T09:58:03.332625+00:00",
   "supersededSourceCommits": [
     "e01eb3a92212a69140559d8ec304ddd0dce99274",
     "52f882ffa891f0683120eff6399701378a617ae7",
@@ -173,7 +173,56 @@
     "source": "Parent observation; official failure evidence is being reviewed separately.",
     "releaseEligible": false,
     "review": "next-release-validation/followup-106-dca47-arm64-dns-failure-review.json",
-    "retryStatus": "WAIT_FOR_ORIGINAL_RUN_COMPLETION_BEFORE_RETRY",
-    "productRegressionEstablished": false
-  }
+    "retryStatus": "SINGLE_JOB_REQUEST_ACCEPTED_ATTEMPT_2_IN_PROGRESS",
+    "productRegressionEstablished": false,
+    "retryEvidence": "next-release-validation/followup-106-dca47-dns-rerun-and-release-progress.json"
+  },
+  "latestOfficialGateProgress": "next-release-validation/followup-106-dca47-dns-rerun-and-release-progress.json",
+  "officialGateCurrentSummary": [
+    {
+      "name": "CLI CI",
+      "runId": 39114428682,
+      "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+      "status": "queued",
+      "conclusion": "",
+      "jobs": {
+        "queued": 49,
+        "success": 13,
+        "in_progress": 3
+      }
+    },
+    {
+      "name": "CLI Strict Sandbox",
+      "runId": 39114428621,
+      "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": {
+        "success": 5
+      }
+    },
+    {
+      "name": "IDE Extensions",
+      "runId": 39114428636,
+      "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+      "status": "queued",
+      "conclusion": "",
+      "jobs": {
+        "success": 11,
+        "in_progress": 3,
+        "queued": 1
+      }
+    },
+    {
+      "name": "IDE ARM64 Host Validation",
+      "runId": 39114428701,
+      "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+      "status": "in_progress",
+      "conclusion": "",
+      "jobs": {
+        "in_progress": 1,
+        "success": 8
+      }
+    }
+  ]
 }
