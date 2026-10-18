@@ -66,6 +66,7 @@ jobs:
           packages/cli/test-node/verify01-vscode-composer.node-test.mjs
           packages/cli/test-node/verify01-ide-terminal.node-test.mjs
           packages/cli/test-node/verify01-volcengine-diagnostic-broker.node-test.mjs
+          packages/jetbrains-plugin/scripts/verify01-native-task-adapter.test.mjs
       - name: Select requested native hosts
         id: select
         shell: bash
