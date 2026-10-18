@@ -1,0 +1,69 @@
+name: Windows ACL Startup Diagnostics
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/windows-acl-startup-diagnostic.yml
+      - packages/session-core/lib/private-storage.js
+      - packages/cli/src/lib/execution-location-failure-site.js
+      - packages/cli/scripts/windows-acl-progress-probe.mjs
+      - packages/cli/test-node/windows-acl-progress.node-test.mjs
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: "Exact full candidate commit; diagnostic only, no model requests"
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-acl-startup-${{ inputs.source_sha || github.event.pull_request.head.sha }}
+  cancel-in-progress: false
+
+jobs:
+  native-acl:
+    name: "Windows ACL cold profile ${{ matrix.sample }} (not a release gate)"
+    runs-on: windows-latest
+    timeout-minutes: 10
+    env:
+      SOURCE_SHA: ${{ inputs.source_sha || github.event.pull_request.head.sha }}
+    strategy:
+      fail-fast: false
+      matrix:
+        sample: [1, 2, 3]
+    steps:
+      - name: Require an exact commit
+        shell: pwsh
+        run: |
+          if ($env:SOURCE_SHA -cnotmatch '^[a-f0-9]{40}$') { throw 'source_sha must be a full commit' }
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+      - name: Verify source and diagnostic boundary tests
+        shell: pwsh
+        run: |
+          if ((git rev-parse HEAD).Trim() -cne $env:SOURCE_SHA) { throw 'Checkout commit mismatch' }
+          if ((node --version).Trim() -cne 'v22.12.0') { throw 'Node version mismatch' }
+          node --test packages/cli/test-node/windows-acl-progress.node-test.mjs
+      - name: Exercise the real ACL helper with isolated profiles
+        shell: pwsh
+        env:
+          CC_ACL_DIAGNOSTIC_SOURCE_SHA: ${{ env.SOURCE_SHA }}
+        run: |
+          New-Item -ItemType Directory -Force -Path .work/acl-startup | Out-Null
+          node packages/cli/scripts/windows-acl-progress-probe.mjs --output .work/acl-startup/report.json
+      - name: Upload bounded observations, including failures
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: windows-acl-startup-${{ env.SOURCE_SHA }}-${{ matrix.sample }}
+          path: .work/acl-startup/report.json
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 30
