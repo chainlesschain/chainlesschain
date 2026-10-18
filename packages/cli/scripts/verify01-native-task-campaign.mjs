@@ -460,6 +460,19 @@ export function inspectionStream(
   return { stream: lowered, workspace: workspace.toLowerCase() };
 }
 
+export function nativeFetchDiagnosticLaunch(name, args, env, diagnostics) {
+  if (name !== "model" || !diagnostics) return { args, env };
+  return {
+    args: ["--require", diagnostics.preloadPath, ...args],
+    env: {
+      ...env,
+      CC_VERIFY01_FETCH_DIAGNOSTICS_FILE: diagnostics.logPath,
+      CC_VERIFY01_FETCH_BROKER_ORIGIN: new URL(diagnostics.brokerBaseUrl)
+        .origin,
+    },
+  };
+}
+
 export async function runNativeCampaign({
   entry,
   outputDir,
@@ -467,8 +480,14 @@ export async function runNativeCampaign({
   confirmLive,
   sampleIds,
   versionsFile,
+  fetchDiagnostics = false,
   key = process.env.VOLCENGINE_API_KEY,
 }) {
+  assert.equal(typeof fetchDiagnostics, "boolean");
+  assert.ok(
+    !fetchDiagnostics || entry === "cli",
+    "fetch diagnostics require CLI entry",
+  );
   const {
     versions,
     packageSetDigest,
@@ -501,6 +520,9 @@ export async function runNativeCampaign({
     `${planRoot}/tasks.json`,
     `${planRoot}/plan.sha256`,
   ];
+  const fetchPreloadSource =
+    "packages/cli/scripts/verify01-fetch-diagnostics-preload.cjs";
+  if (fetchDiagnostics) bindingFiles.push(fetchPreloadSource);
   if (entry === "vscode")
     bindingFiles.push(
       "packages/vscode-extension/test/extension-host/verify01-run.cjs",
@@ -536,6 +558,18 @@ export async function runNativeCampaign({
   const output = path.resolve(outputDir);
   assert.ok(!fs.existsSync(output), "new output directory required");
   mkdir(output);
+  let fetchPreload;
+  if (fetchDiagnostics) {
+    const bytes = fs.readFileSync(path.join(repository, fetchPreloadSource));
+    fetchPreload = {
+      path: "operator-fetch-diagnostics.cjs",
+      digest: hash(bytes),
+      bytes: bytes.length,
+    };
+    fs.writeFileSync(path.join(output, fetchPreload.path), bytes, {
+      flag: "wx",
+    });
+  }
   if (packageSetBytes)
     fs.writeFileSync(path.join(output, "package-set.json"), packageSetBytes, {
       flag: "wx",
@@ -577,6 +611,9 @@ export async function runNativeCampaign({
     frozenArchiveDigest: hash(fs.readFileSync(archive)),
     versions,
     ...packageBinding,
+    ...(fetchDiagnostics
+      ? { fetchDiagnostics: { enabled: true, preload: fetchPreload } }
+      : {}),
     actualPlatform: process.platform,
     actualArch: process.arch,
     actualEntry: entry,
@@ -656,6 +693,15 @@ export async function runNativeCampaign({
       planDigest: DIAGNOSTIC.planDigest,
       versions,
       ...packageBinding,
+      ...(fetchDiagnostics
+        ? {
+            fetchDiagnostics: {
+              enabled: true,
+              preload: fetchPreload,
+              logPath: `${sample.id}/commands/fetch-diagnostics.jsonl`,
+            },
+          }
+        : {}),
       expectedFiles: task.expectedFiles,
       startedAt: stamp(),
       deadline: new Date(deadline).toISOString(),
@@ -682,14 +728,27 @@ export async function runNativeCampaign({
       profile,
       task.expectedFiles,
     );
-    const run = (name, args, cwd = workspace, env = environment) =>
-      runCaptured(process.execPath, args, {
-        cwd,
+    const run = (name, args, cwd = workspace, env = environment) => {
+      const launch = nativeFetchDiagnosticLaunch(
+        name,
+        args,
         env,
+        fetchDiagnostics
+          ? {
+              preloadPath: path.join(output, fetchPreload.path),
+              logPath: path.join(output, row.fetchDiagnostics.logPath),
+              brokerBaseUrl: broker?.baseUrl,
+            }
+          : undefined,
+      );
+      return runCaptured(process.execPath, launch.args, {
+        cwd,
+        env: launch.env,
         deadline,
         secret: capability || key,
         outputPrefix: path.join(sampleOutput, "commands", name),
       });
+    };
     try {
       extractNativeArchive(archive, workspace);
       for (const file of task.expectedFiles) {
@@ -992,6 +1051,20 @@ export async function runNativeCampaign({
         row.failure = redact(error.message);
       }
       row.finishedAt = stamp();
+      if (fetchDiagnostics) {
+        try {
+          const bytes = fs.readFileSync(
+            path.join(output, row.fetchDiagnostics.logPath),
+          );
+          row.fetchDiagnostics.log = {
+            path: row.fetchDiagnostics.logPath,
+            digest: hash(bytes),
+            bytes: bytes.length,
+          };
+        } catch {
+          row.fetchDiagnostics.captureError = "DIAGNOSTIC_LOG_UNAVAILABLE";
+        }
+      }
       save(
         `${sample.id}/summary.json`,
         JSON.parse(redact(JSON.stringify(row))),
@@ -1029,6 +1102,7 @@ if (
       "confirm-live": { type: "boolean" },
       samples: { type: "string" },
       "versions-file": { type: "string" },
+      "fetch-diagnostics": { type: "boolean", default: false },
     },
   });
   const summary = await runNativeCampaign({
@@ -1038,6 +1112,7 @@ if (
     confirmLive: values["confirm-live"],
     sampleIds: parseNativeSampleIds(values.samples),
     versionsFile: values["versions-file"],
+    fetchDiagnostics: values["fetch-diagnostics"],
   });
   console.log(
     JSON.stringify({

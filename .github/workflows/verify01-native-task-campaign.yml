@@ -36,6 +36,11 @@ on:
         description: "Optional comma-separated unfinished sample IDs; requires one host and one entry. Subset artifacts stay separate from full 36+9 rounds."
         type: string
         default: ""
+      fetch_diagnostics:
+        description: "Passive fetch error capture for one host, CLI entry and explicit unfinished sample IDs only"
+        type: boolean
+        required: false
+        default: false
       accept_existing_run:
         description: "Optional completed delivery artifact run ID; performs acceptance only without paid model calls"
         type: string
@@ -77,6 +82,7 @@ jobs:
           packages/cli/test-node/verify01-native-task-campaign.node-test.mjs
           packages/cli/test-node/verify01-native-subset.node-test.mjs
           packages/cli/test-node/verify01-native-task-checker.node-test.mjs
+          packages/cli/test-node/verify01-fetch-diagnostics.node-test.mjs
           packages/cli/test-node/verify01-legacy-windows-tar.node-test.mjs
           packages/cli/test-node/verify01-vscode-composer.node-test.mjs
           packages/cli/test-node/verify01-ide-terminal.node-test.mjs
@@ -92,6 +98,7 @@ jobs:
           DELIVERY_COMMIT: ${{ inputs.accept_existing_commit }}
           SAMPLE_SELECTION: ${{ inputs.sample_ids }}
           PACKAGE_SET_SELECTION: ${{ inputs.package_set || 'latest' }}
+          FETCH_DIAGNOSTICS: ${{ inputs.fetch_diagnostics && 'true' || 'false' }}
         run: |
           node --input-type=module -e '
             import fs from "node:fs";
@@ -109,6 +116,9 @@ jobs:
             if (!entries.length) throw new Error("unknown entry");
             const rows = Object.entries(hosts).filter(([name]) => selected === "all" || name === selected).flatMap(([, [platform, os]]) => entries.map(entry => ({group: `${platform}-${entry}`, os, entry})));
             const ids = parseNativeSampleIds(process.env.SAMPLE_SELECTION);
+            const fetchDiagnostics = process.env.FETCH_DIAGNOSTICS || "false";
+            if (!["true", "false"].includes(fetchDiagnostics)) throw new Error("invalid fetch diagnostics flag");
+            if (fetchDiagnostics === "true" && (run || rows.length !== 1 || rows[0].entry !== "cli" || !ids)) throw new Error("fetch diagnostics require new CLI generation, exactly one host and explicit sample IDs");
             if (ids) {
               if (rows.length !== 1) throw new Error("explicit sample IDs require exactly one host and one entry");
               const plan = JSON.parse(fs.readFileSync("docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.json", "utf8"));
@@ -186,10 +196,15 @@ jobs:
           NATIVE_ENTRY: ${{ matrix.entry }}
           EXECUTION_SOURCE_SHA: ${{ github.sha }}
           NATIVE_SAMPLES: ${{ inputs.sample_ids }}
+          FETCH_DIAGNOSTICS: ${{ inputs.fetch_diagnostics && 'true' || 'false' }}
         run: |
           display=()
           selection=()
           package=()
+          diagnostics=()
+          if [[ "$FETCH_DIAGNOSTICS" == "true" ]]; then
+            diagnostics=(--fetch-diagnostics)
+          fi
           if [[ "$NATIVE_PACKAGE_SET" == "latest" ]]; then
             package=(--versions-file "$NATIVE_PACKAGE_SET_FILE")
           fi
@@ -201,7 +216,7 @@ jobs:
           fi
           "${display[@]}" node packages/cli/scripts/verify01-native-task-campaign.mjs \
             --entry "$NATIVE_ENTRY" --source-sha "$EXECUTION_SOURCE_SHA" \
-            --confirm-live --output-dir "$RUNNER_TEMP/verify01-native-tasks" "${selection[@]}" "${package[@]}"
+            --confirm-live --output-dir "$RUNNER_TEMP/verify01-native-tasks" "${selection[@]}" "${package[@]}" "${diagnostics[@]}"
       - name: Preserve all candidates, native traces, UI and broker failures
         if: always()
         uses: actions/upload-artifact@v6
