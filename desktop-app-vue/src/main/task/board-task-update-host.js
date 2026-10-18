@@ -14,6 +14,7 @@ const {
   transaction,
 } = require("./board-action-storage");
 const C = require("./board-task-update-contract");
+const L = require("./board-task-label-source");
 const FIELD_LABELS = Object.freeze({
   title: "标题",
   description: "描述",
@@ -89,11 +90,13 @@ function createBoardTaskUpdateHost({ database, ...dependencies } = {}) {
       );
     };
     check();
-    return { auth, db, taskId, check };
+    return { auth, db, taskId, check, labelId: updates.labelId };
   }
   function currentSource(ctx, editable = true) {
     ctx.check();
-    const source = C.snapshot(ctx.db, ctx.taskId);
+    const source = ctx.labelId === undefined
+      ? C.snapshot(ctx.db, ctx.taskId)
+      : L.snapshot(ctx.db, ctx.taskId, ctx.labelId);
     if (
       source.board.id !== ctx.auth.scope.boardId ||
       source.board.org_id !== ctx.auth.scope.orgId
@@ -106,8 +109,8 @@ function createBoardTaskUpdateHost({ database, ...dependencies } = {}) {
   function checkUpdateReferences(ctx, updates) {
     checkBoardWriteReferences(
       ctx.db,
-      "update-task",
-      { taskId: ctx.taskId, updates },
+      C.isLabel(updates) ? "add-label" : "update-task",
+      C.isLabel(updates) ? { taskId: ctx.taskId, labelId: updates.labelId } : { taskId: ctx.taskId, updates },
       ctx.auth.scope,
     );
   }
@@ -284,6 +287,18 @@ function createBoardTaskUpdateHost({ database, ...dependencies } = {}) {
             }
           })
         : [];
+      let labeling = { editable: false, labels: [], selectedLabelIds: [], reason: null };
+      try {
+        const catalog = L.catalog(db, source);
+        let allowed = editable;
+        try {
+          authorizeBoardWrite(database, event, "add-label", { taskId: params.taskId }, dependencies).checkTarget();
+        } catch { allowed = false; }
+        labeling = { ...catalog, editable: allowed, reason: allowed ? null : "BOARD_WRITE_NOT_FOUND_OR_DENIED" };
+      } catch (error) {
+        labeling.reason = safeCode(error);
+      }
+      check();
       return {
         success: true,
         task: {
@@ -302,6 +317,7 @@ function createBoardTaskUpdateHost({ database, ...dependencies } = {}) {
             name: column.name,
           })),
         },
+        labeling,
         reason,
       };
     });
@@ -326,6 +342,8 @@ function createBoardTaskUpdateHost({ database, ...dependencies } = {}) {
       cap.check(event);
       const source = currentSource(ctx);
       checkUpdateReferences(ctx, params.updates);
+      if (C.isLabel(params.updates) && L.selected(source.task).includes(params.updates.labelId))
+        fail("BOARD_ACTION_LABEL_ALREADY_PRESENT");
       const previewId = randomUUID(),
         request = C.requestFor(
           source,
@@ -393,8 +411,11 @@ function createBoardTaskUpdateHost({ database, ...dependencies } = {}) {
         before: C.projectionFor(source.task, request.actionType),
         after: {
           ...C.projectionFor(source.task, request.actionType),
-          ...params.updates,
+          ...(C.isLabel(params.updates)
+            ? { labels: [...L.selected(source.task), params.updates.labelId] }
+            : params.updates),
         },
+        ...(C.isLabel(params.updates) ? { label: source.label } : {}),
       };
     });
     caps.set(result.request.input.previewId, cap);
@@ -416,7 +437,7 @@ function createBoardTaskUpdateHost({ database, ...dependencies } = {}) {
         if (!row) fail("BOARD_ACTION_PREVIEW_REQUIRED");
         assertBinding(row, request, ctx);
         if (row.status !== "queued") return { previous: response(row, true) };
-        if (![C.ACTION_TYPE, C.MOVE_ACTION_TYPE].includes(request.actionType))
+        if (![C.ACTION_TYPE, C.MOVE_ACTION_TYPE, C.LABEL_ACTION_TYPE].includes(request.actionType))
           fail("BOARD_ACTION_PREVIEW_EXPIRED");
         checkUpdateReferences(ctx, request.input.updates);
         if (nativeOperations.has(db))
@@ -462,10 +483,18 @@ function createBoardTaskUpdateHost({ database, ...dependencies } = {}) {
               `组织：${display(source.board.org_id)}`,
               `看板：${display(source.board.id)}`,
               `任务：${display(ctx.taskId)}`,
-              ...Object.keys(request.input.updates).map(
+              ...(request.actionType === C.LABEL_ACTION_TYPE
+                ? [
+                    `添加标签：${display(source.label.id)}`,
+                    `标签名称：${display(source.label.name)}`,
+                    `标签颜色：${display(source.label.color)}`,
+                    `修改前：${display(L.selected(source.task))}`,
+                    `修改后：${display([...L.selected(source.task), source.label.id])}`,
+                  ]
+                : Object.keys(request.input.updates).map(
                 (key) =>
                   `${FIELD_LABELS[key]}\n修改前：${display(C.projectionFor(source.task, request.actionType)[key])}\n修改后：${display(request.input.updates[key])}${key === "columnId" ? `\n原列名称：${display(source.columns.find((column) => column.id === source.task.column_id)?.name)}\n目标列名称：${display(source.columns.find((column) => column.id === request.input.updates.columnId)?.name)}` : ""}`,
-              ),
+              )),
               `操作摘要：${request.actionDigest}`,
             ].join("\n\n"),
             buttons: ["取消", "确认保存"],
@@ -550,7 +579,9 @@ function createBoardTaskUpdateHost({ database, ...dependencies } = {}) {
         const timestamp = Math.max(wall(), latest.task.updated_at + 1);
         if (!Number.isSafeInteger(timestamp))
           fail("BOARD_ACTION_SOURCE_INVALID");
+        const labelAction = request.actionType === C.LABEL_ACTION_TYPE;
         const columnMap =
+          labelAction ? { labelId: "labels" } :
           request.actionType === C.MOVE_ACTION_TYPE
             ? C.MOVE_COLUMNS
             : C.COLUMN_MAP;
@@ -559,7 +590,7 @@ function createBoardTaskUpdateHost({ database, ...dependencies } = {}) {
           ...Object.fromEntries(
             Object.entries(request.input.updates).map(([key, value]) => [
               columnMap[key],
-              value,
+              labelAction ? JSON.stringify([...L.selected(latest.task), value]) : value,
             ]),
           ),
           updated_at: timestamp,
@@ -574,7 +605,7 @@ function createBoardTaskUpdateHost({ database, ...dependencies } = {}) {
               : null;
         const keys = Object.keys(request.input.updates),
           sets = keys.map((key) => `${columnMap[key]}=?`),
-          bindings = keys.map((key) => request.input.updates[key]);
+          bindings = keys.map((key) => labelAction ? expectedTask.labels : request.input.updates[key]);
         if (Object.hasOwn(request.input.updates, "status")) {
           sets.push("completed_at=?");
           bindings.push(expectedTask.completed_at);
@@ -600,6 +631,7 @@ function createBoardTaskUpdateHost({ database, ...dependencies } = {}) {
           C.digest(after.board) !== C.digest(latest.board) ||
           after.boardRevision !== latest.boardRevision ||
           C.digest(after.columns) !== C.digest(latest.columns) ||
+          (labelAction && C.digest(after.labels) !== C.digest(latest.labels)) ||
           after.revision !== latest.revision + 1
         )
           fail("BOARD_ACTION_POSTCONDITION_FAILED");
@@ -617,7 +649,7 @@ function createBoardTaskUpdateHost({ database, ...dependencies } = {}) {
           activityId,
           ctx.taskId,
           ctx.auth.actor,
-          request.actionType === C.MOVE_ACTION_TYPE
+          labelAction ? "controlled_task_add_label" : request.actionType === C.MOVE_ACTION_TYPE
             ? "controlled_task_move"
             : "controlled_task_update",
           metadata,
@@ -626,7 +658,7 @@ function createBoardTaskUpdateHost({ database, ...dependencies } = {}) {
         const execution = {
           id: randomUUID(),
           kind:
-            request.actionType === C.MOVE_ACTION_TYPE
+            labelAction ? "sqlite-board-task-add-label" : request.actionType === C.MOVE_ACTION_TYPE
               ? "sqlite-board-task-move"
               : "sqlite-board-task-update",
           actorDid: ctx.auth.actor,
@@ -659,7 +691,7 @@ function createBoardTaskUpdateHost({ database, ...dependencies } = {}) {
           activity.task_id !== ctx.taskId ||
           activity.actor_did !== ctx.auth.actor ||
           activity.action !==
-            (request.actionType === C.MOVE_ACTION_TYPE
+            (labelAction ? "controlled_task_add_label" : request.actionType === C.MOVE_ACTION_TYPE
               ? "controlled_task_move"
               : "controlled_task_update") ||
           activity.metadata !== metadata ||

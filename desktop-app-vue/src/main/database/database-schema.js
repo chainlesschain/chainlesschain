@@ -2290,6 +2290,24 @@ function createTables(dbManager, logger) {
         UNIQUE(org_id, name)
       );
 
+      -- Label revision tombstones retain changes across deletion and ID reuse.
+      CREATE TABLE IF NOT EXISTS task_board_label_revisions (
+        label_id TEXT PRIMARY KEY,
+        revision INTEGER NOT NULL CHECK(revision >= 1)
+      );
+      INSERT INTO task_board_label_revisions(label_id,revision)
+        SELECT id,1 FROM task_labels WHERE true ON CONFLICT(label_id) DO NOTHING;
+      CREATE TRIGGER IF NOT EXISTS trg_board_label_insert AFTER INSERT ON task_labels BEGIN
+        INSERT INTO task_board_label_revisions(label_id,revision) VALUES(NEW.id,1) ON CONFLICT(label_id) DO UPDATE SET revision=revision+1;
+      END;
+      CREATE TRIGGER IF NOT EXISTS trg_board_label_update AFTER UPDATE ON task_labels BEGIN
+        INSERT INTO task_board_label_revisions(label_id,revision) VALUES(OLD.id,1) ON CONFLICT(label_id) DO UPDATE SET revision=revision+1;
+        INSERT INTO task_board_label_revisions(label_id,revision) SELECT NEW.id,1 WHERE NEW.id<>OLD.id ON CONFLICT(label_id) DO UPDATE SET revision=revision+1;
+      END;
+      CREATE TRIGGER IF NOT EXISTS trg_board_label_delete AFTER DELETE ON task_labels BEGIN
+        INSERT INTO task_board_label_revisions(label_id,revision) VALUES(OLD.id,1) ON CONFLICT(label_id) DO UPDATE SET revision=revision+1;
+      END;
+
       -- 任务检查清单表
       CREATE TABLE IF NOT EXISTS task_checklists (
         id TEXT PRIMARY KEY,

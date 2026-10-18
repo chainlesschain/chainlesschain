@@ -161,6 +161,163 @@ describe("controlled board task editor", () => {
     await wrapper.find('[data-move-field="position"]').setValue(position);
     await action("preview-move");
   }
+  function enableLabeling(extra = {}) {
+    const labeling = {
+      editable: true,
+      selectedLabelIds: ["label-old"],
+      labels: [
+        { id: "label-old", name: "Existing", color: null },
+        { id: "label-new", name: "Candidate", color: "#ff0000" },
+      ],
+      ...extra,
+    };
+    api.getBoardEditSource.mockResolvedValue(source({ labeling }));
+    api.previewBoardUpdate.mockImplementation(async (input) => ({
+      success: true,
+      runId: "label-run",
+      request: { ...request(input), actionType: "board-task.add-label" },
+      before: { labels: [...labeling.selectedLabelIds] },
+      after: { labels: [...labeling.selectedLabelIds, input.updates.labelId] },
+      label: { id: input.updates.labelId, name: "Trusted native name", color: "url(javascript:evil)" },
+    }));
+    for (const [method, status] of [["executeBoardUpdate", "succeeded"], ["cancelBoardUpdate", "cancelled"]]) {
+      const result = runResult(status);
+      result.run.id = "label-run";
+      result.run.actionType = "board-task.add-label";
+      api[method].mockResolvedValue(result);
+    }
+    return labeling;
+  }
+  async function addLabel() {
+    await wrapper.find('[data-label-field="labelId"]').setValue("label-new");
+    await action("preview-label");
+  }
+  it("shows selected labels, omits them from candidates and previews only an existing label", async () => {
+    enableLabeling();
+    await render();
+    expect(wrapper.find('[data-selected-labels]').text()).toContain("label-old");
+    expect(wrapper.find('[data-label-field] option[value="label-old"]').exists()).toBe(false);
+    await wrapper.find('[data-field="title"]').setValue("Unsubmitted title");
+    await addLabel();
+    expect(api.previewBoardUpdate.mock.calls[0][0]).toEqual({ taskId: "task-1", updates: { labelId: "label-new" }, idempotencyKey: expect.any(String) });
+    const preview = wrapper.find('[data-label-preview]');
+    expect(preview.text()).toContain("Trusted native name");
+    expect(preview.text()).toContain("url(javascript:evil)");
+    expect(preview.find('[style]').exists()).toBe(false);
+    expect(preview.text()).toContain("label-old");
+    expect(preview.text()).toContain("label-new");
+    expect(wrapper.find('[data-action="preview-update"]').attributes("disabled")).toBeDefined();
+    expect(api.executeBoardUpdate).not.toHaveBeenCalled();
+  });
+  it("executes the exact label request then reloads selected labels", async () => {
+    const labeling = enableLabeling();
+    await render();
+    await addLabel();
+    const previewed = wrapper.vm.previewRequest;
+    api.getBoardEditSource.mockResolvedValue(source({ labeling: { ...labeling, selectedLabelIds: ["label-old", "label-new"] } }));
+    await action("execute-update");
+    expect(api.executeBoardUpdate).toHaveBeenCalledWith({ request: previewed });
+    expect(wrapper.emitted("updated")).toHaveLength(1);
+    expect(wrapper.find('[data-selected-labels]').text()).toContain("label-new");
+    expect(wrapper.find('[data-label-field] option[value="label-new"]').exists()).toBe(false);
+    expect(api.updateTask).not.toHaveBeenCalled();
+  });
+  it.each(["label-old", "outside", ""])("rejects unavailable label %s without IPC", async (labelId) => {
+    enableLabeling();
+    await render();
+    wrapper.vm.labelDraft = labelId;
+    await wrapper.vm.previewLabel();
+    expect(api.previewBoardUpdate).not.toHaveBeenCalled();
+  });
+  it.each([
+    { editable: false },
+    { labels: Array.from({ length: 501 }, (_, i) => ({ id: `label-${i}`, name: "Label", color: null })) },
+    { labels: [{ id: "label", name: "文".repeat(342), color: null }] },
+    { labels: [{ id: "label", name: "Name", color: "文".repeat(43) }] },
+    { labels: [{ id: "label", name: " ", color: null }] },
+    { labels: [{ id: "bad id", name: "Name", color: null }] },
+    { labels: [{ id: "a".repeat(257), name: "Name", color: null }] },
+    { labels: [{ id: "label", name: "Name", color: null }, { id: "label", name: "Duplicate", color: null }] },
+    { labels: Array.from({ length: 65 }, (_, i) => ({ id: `label-${i}`, name: "n".repeat(1024), color: null })) },
+    { selectedLabelIds: ["same", "same"] },
+    { selectedLabelIds: ["bad id"] },
+    { selectedLabelIds: Array.from({ length: 501 }, (_, i) => `label-${i}`) },
+  ])("disables invalid or denied labeling without blocking field edits: %j", async (extra) => {
+    enableLabeling(extra);
+    await render();
+    expect(wrapper.find('[data-label-field]').attributes("disabled")).toBeDefined();
+    expect(wrapper.find('[data-action="preview-update"]').attributes("disabled")).toBeUndefined();
+    wrapper.vm.labelDraft = "label-new";
+    await wrapper.vm.previewLabel();
+    expect(api.previewBoardUpdate).not.toHaveBeenCalled();
+  });
+  it("accepts exact UTF8 metadata bounds and uses raw catalog bytes", async () => {
+    enableLabeling({ labels: Array.from({ length: 60 }, (_, i) => ({ id: `label-${i}`, name: "\\".repeat(1024), color: "x".repeat(64) })) });
+    await render();
+    expect(wrapper.find('[data-label-field]').attributes("disabled")).toBeUndefined();
+    expect(wrapper.findAll('[data-label-field] option')).toHaveLength(61);
+  });
+  it.each([
+    (result: any) => { result.request.actionType = "board-task.update-fields"; },
+    (result: any) => { result.request.actionVersion = 2; },
+    (result: any) => { result.request.input.updates = { labelId: "other" }; },
+    (result: any) => { result.request.input.updates.title = "mixed"; },
+    (result: any) => { result.label.id = "other"; },
+    (result: any) => { result.label.name = ""; },
+    (result: any) => { result.before.labels.push("label-new"); },
+    (result: any) => { result.after.labels = ["label-new"]; },
+    (result: any) => { result.after.labels.push("extra"); },
+    (result: any) => { result.after.labels = ["label-new", "label-new"]; },
+    (result: any) => { result.after.title = "mixed"; },
+  ])("rejects malformed label previews %#", async (change) => {
+    enableLabeling();
+    const implementation = api.previewBoardUpdate.getMockImplementation();
+    api.previewBoardUpdate.mockImplementation(async (input) => { const result = await implementation(input); result.request.input.updates = { ...result.request.input.updates }; change(result); return result; });
+    await render();
+    await addLabel();
+    expect(wrapper.find('[data-update-preview]').exists()).toBe(false);
+    expect(api.executeBoardUpdate).not.toHaveBeenCalled();
+  });
+  it("cancels a label preview through the shared durable cancellation", async () => {
+    enableLabeling();
+    await render();
+    await addLabel();
+    await action("cancel-update");
+    expect(api.cancelBoardUpdate).toHaveBeenCalledWith({ taskId: "task-1", runId: "label-run" });
+    expect(wrapper.find('[data-action="preview-label"]').attributes("disabled")).toBeUndefined();
+    expect(api.executeBoardUpdate).not.toHaveBeenCalled();
+  });
+  it("preserves label unknown results and locks all edit forms without retry", async () => {
+    enableLabeling();
+    api.executeBoardUpdate.mockRejectedValue(new Error("lost reply"));
+    await render();
+    await addLabel();
+    await action("execute-update");
+    expect(wrapper.vm.runs[0].status).toBe("unknown");
+    expect(wrapper.find('[data-label-field]').attributes("disabled")).toBeDefined();
+    expect(wrapper.find('[data-action="preview-update"]').attributes("disabled")).toBeDefined();
+    expect(api.executeBoardUpdate).toHaveBeenCalledTimes(1);
+    expect(wrapper.emitted("updated")).toBeUndefined();
+  });
+  it.each(["draft", "auth-aba", "device-aba", "identity", "vault", "task"])("fences late label preview after %s", async (kind) => {
+    enableLabeling();
+    const implementation = api.previewBoardUpdate.getMockImplementation(), deferred = pending();
+    api.previewBoardUpdate.mockImplementation(() => deferred.promise);
+    await render();
+    await wrapper.find('[data-label-field]').setValue("label-new");
+    await wrapper.find('[data-action="preview-label"]').trigger("click");
+    const input = api.previewBoardUpdate.mock.calls[0][0];
+    if (kind === "draft") wrapper.vm.labelDraft = "";
+    if (kind === "auth-aba") { useAppStore().isAuthenticated = false; useAppStore().isAuthenticated = true; }
+    if (kind === "device-aba") { useAppStore().deviceId = "other"; useAppStore().deviceId = "device-1"; }
+    if (kind === "identity") useIdentityStore().primaryDID = "did:other";
+    if (kind === "vault") invalidate();
+    if (kind === "task") await wrapper.setProps({ taskId: "task-2" });
+    deferred.resolve(await implementation(input));
+    await flushPromises();
+    expect(wrapper.find('[data-update-preview]').exists()).toBe(false);
+    expect(api.executeBoardUpdate).not.toHaveBeenCalled();
+  });
   it("fills from fresh native source, retains no unrelated fields, and reads bounded history", async () => {
     api.getBoardEditSource.mockResolvedValue(
       source({ task: task({ secret: "SECRET" }) }),
@@ -382,7 +539,7 @@ describe("controlled board task editor", () => {
     expect(wrapper.find("[data-update-preview]").exists()).toBe(false);
     expect(api.executeBoardUpdate).not.toHaveBeenCalled();
   });
-  it.each(["board-task.update-fields", "board-task.create"])(
+  it.each(["board-task.update-fields", "board-task.create", "board-task.add-label"])(
     "accepts %s history and rejects unknown versions",
     async (actionType) => {
       const currentRun = runResult("cancelled");

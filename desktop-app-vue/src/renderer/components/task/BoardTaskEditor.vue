@@ -122,12 +122,29 @@
       >
       <p v-if="!movement.editable">当前没有移动此任务的权限。</p>
     </section>
+    <section v-if="source && labeling" aria-label="添加任务标签">
+      <h4>添加标签</h4>
+      <p data-selected-labels>已有标签：{{ labeling.selectedLabelIds.join('、') || '无' }}</p>
+      <label>组织内已有标签<select v-model="labelDraft" data-label-field="labelId" :disabled="!canLabel">
+        <option value="">请选择标签</option>
+        <option v-for="label in labelCandidates" :key="label.id" :value="label.id">{{ label.name }}（{{ label.id }}）</option>
+      </select></label>
+      <a-button data-action="preview-label" :disabled="!canLabel || !labelDraft" @click="previewLabel">预览添加标签</a-button>
+      <p v-if="!labeling.editable">当前标签来源或权限不可用，请刷新后重试。</p>
+      <p v-else-if="!labelCandidates.length">没有可添加的标签。</p>
+    </section>
     <p v-if="source && !editable">
       当前任务暂不支持编辑，请刷新并检查权限或存储模式。
     </p>
     <p v-if="hasUnresolved">已有预览或未确认结果的修改，请先取消或结束等待。</p>
     <div v-if="previewRequest" data-update-preview>
       <p>请核对修改前后的内容：</p>
+      <dl v-if="previewRequest.actionType === 'board-task.add-label'" data-label-preview>
+        <dt>添加标签：{{ previewedLabel?.name }}（{{ previewedLabel?.id }}）</dt>
+        <dd v-if="previewedLabel?.color">颜色：{{ previewedLabel.color }}</dd>
+        <dd>添加前：<pre>{{ labelBefore.join('、') || '无' }}</pre></dd>
+        <dd>添加后：<pre>{{ labelAfter.join('、') }}</pre></dd>
+      </dl>
       <template v-if="previewRequest.actionType === 'board-task.move'">
         <dl data-move-preview>
           <dt>所在列及位置</dt>
@@ -150,7 +167,7 @@
         </dl>
       </template>
       <dl
-        v-for="field in previewRequest.actionType === 'board-task.move'
+        v-for="field in ['board-task.move', 'board-task.add-label'].includes(previewRequest.actionType)
           ? []
           : fields"
         :key="field"
@@ -247,6 +264,8 @@ type Movement = Move & {
   editable: boolean;
   columns: { id: string; name: string }[];
 };
+type Label = { id: string; name: string; color: string | null };
+type Labeling = { editable: boolean; selectedLabelIds: string[]; labels: Label[] };
 const labels = {
   title: "标题",
   description: "描述",
@@ -302,6 +321,11 @@ const source = ref<
 const draft = ref<Draft>(toDraft(blank()));
 const movement = ref<Movement | null>(null);
 const moveDraft = ref({ columnId: "", position: "0" });
+const labeling = ref<Labeling | null>(null);
+const labelDraft = ref("");
+const labelBefore = ref<string[]>([]), labelAfter = ref<string[]>([]);
+const previewedLabel = ref<Label | null>(null);
+const labelCandidates = computed(() => labeling.value?.labels.filter(label => !labeling.value!.selectedLabelIds.includes(label.id)) ?? []);
 const moveBefore = ref<Move>({ columnId: "", position: 0 }),
   moveAfter = ref<Move>({ columnId: "", position: 0 });
 const columnLabel = (id: string) =>
@@ -345,6 +369,7 @@ const canMove = computed(
     !hasUnresolved.value,
 );
 const api = () => (window as any).electronAPI?.task;
+const canLabel = computed(() => app.isAuthenticated && editable.value && source.value !== null && labeling.value?.editable === true && labeling.value.selectedLabelIds.length < 500 && !busy.value && !cancelling.value && !hasUnresolved.value);
 let epoch = 0,
   draftVersion = 0;
 let unsubscribe: (() => void) | undefined;
@@ -352,6 +377,11 @@ function invalidate() {
   epoch++;
   source.value = null;
   movement.value = null;
+  labeling.value = null;
+  labelDraft.value = "";
+  labelBefore.value = [];
+  labelAfter.value = [];
+  previewedLabel.value = null;
   moveDraft.value = { columnId: "", position: "0" };
   moveBefore.value = { columnId: "", position: 0 };
   moveAfter.value = { columnId: "", position: 0 };
@@ -402,7 +432,7 @@ watch(
   { flush: "sync" },
 );
 watch(
-  [draft, moveDraft],
+  [draft, moveDraft, labelDraft],
   () => {
     draftVersion++;
     previewRequest.value = null;
@@ -489,6 +519,7 @@ function projectRun(value: any): Run {
       "board-task.update-fields",
       "board-task.move",
       "board-task.create",
+      "board-task.add-label",
     ].includes(run.actionType) ||
     run.actionVersion !== 1 ||
     run.target?.sourceKind !== "desktop.board-task" ||
@@ -584,6 +615,37 @@ function projectMovement(value: any): Movement | null {
     columns,
   };
 }
+const byteLength = (value: string) => new TextEncoder().encode(value).byteLength;
+const validLabelId = (value: unknown): value is string => typeof value === "string" && /^[A-Za-z0-9][A-Za-z0-9._:@-]{0,255}$/u.test(value);
+function labelIds(value: any): string[] {
+  if (!Array.isArray(value) || value.length > 500 || value.some(id => !validLabelId(id)) || new Set(value).size !== value.length)
+    throw new Error("INVALID_LABEL_IDS");
+  return [...value];
+}
+function projectLabel(value: any): Label {
+  if (!value || !validLabelId(value.id) || typeof value.name !== "string" || !value.name.trim() || byteLength(value.name) > 1024 || !(value.color === null || (typeof value.color === "string" && byteLength(value.color) <= 128)) || Object.keys(value).some(key => !["id", "name", "color"].includes(key)))
+    throw new Error("INVALID_LABEL");
+  return { id: value.id, name: value.name, color: value.color };
+}
+function projectLabeling(value: any): Labeling | null {
+  if (value == null) return null;
+  let selectedLabelIds: string[] = [];
+  try {
+    selectedLabelIds = labelIds(value.selectedLabelIds);
+    if (typeof value.editable !== "boolean" || !Array.isArray(value.labels) || value.labels.length > 500)
+      throw new Error("INVALID_LABELING");
+    const labels: Label[] = value.labels.map(projectLabel);
+    if (new Set(labels.map(label => label.id)).size !== labels.length || labels.reduce((bytes, label) => bytes + byteLength(label.id) + byteLength(label.name) + byteLength(label.color ?? ""), 0) > 65536)
+      throw new Error("INVALID_LABELING");
+    return { editable: value.editable, selectedLabelIds, labels };
+  } catch {
+    return { editable: false, selectedLabelIds, labels: [] };
+  }
+}
+function previewLabelIds(value: any): string[] {
+  if (!value || Object.keys(value).length !== 1 || !Object.hasOwn(value, "labels")) throw new Error("INVALID_LABEL_PREVIEW");
+  return labelIds(value.labels);
+}
 async function load() {
   if (!app.isAuthenticated || !props.taskId) {
     invalidate();
@@ -599,6 +661,9 @@ async function load() {
   previewRequest.value = null;
   source.value = null;
   movement.value = null;
+  labeling.value = null;
+  labelDraft.value = "";
+  previewedLabel.value = null;
   editable.value = false;
   editableFields.value = [];
   runs.value = [];
@@ -630,6 +695,7 @@ async function load() {
     editable.value = result.editable;
     editableFields.value = [...result.editableFields];
     movement.value = projectMovement(result.movement);
+    labeling.value = projectLabeling(result.labeling);
     if (movement.value)
       moveDraft.value = {
         columnId: movement.value.columnId,
@@ -641,6 +707,7 @@ async function load() {
     if (current(stamp, taskId)) {
       source.value = null;
       movement.value = null;
+      labeling.value = null;
       editable.value = false;
       runs.value = [];
       failure();
@@ -649,8 +716,9 @@ async function load() {
     if (current(stamp, taskId)) busy.value = false;
   }
 }
-async function preview(isMove = false) {
-  if (!(isMove ? canMove.value : canEdit.value) || !source.value) return;
+async function preview(mode: "fields" | "move" | "label" = "fields") {
+  const isMove = mode === "move", isLabel = mode === "label";
+  if (!(isMove ? canMove.value : isLabel ? canLabel.value : canEdit.value) || !source.value) return;
   const taskId = props.taskId,
     stamp = epoch,
     editing = draftVersion;
@@ -658,10 +726,11 @@ async function preview(isMove = false) {
   error.value = "";
   notice.value = "";
   try {
-    const values = isMove ? null : draftFields();
+    const values = isMove || isLabel ? null : draftFields();
+    if (isLabel && !labelCandidates.value.some(label => label.id === labelDraft.value)) throw new Error("INVALID_LABEL_CHOICE");
     if (isMove && !/^\d+$/u.test(moveDraft.value.position))
       throw new Error("INVALID_MOVE");
-    const updates = isMove
+    const updates = isLabel ? { labelId: labelDraft.value } : isMove
       ? moveFields({
           columnId: moveDraft.value.columnId,
           position: Number(moveDraft.value.position),
@@ -672,7 +741,7 @@ async function preview(isMove = false) {
             .map((field) => [field, values![field]]),
         );
     if (
-      !isMove &&
+      !isMove && !isLabel &&
       Object.keys(updates).some(
         (field) => !editableFields.value.includes(field as Field),
       )
@@ -701,7 +770,7 @@ async function preview(isMove = false) {
       typeof result.runId !== "string" ||
       !result.runId ||
       request?.actionType !==
-        (isMove ? "board-task.move" : "board-task.update-fields") ||
+        (isMove ? "board-task.move" : isLabel ? "board-task.add-label" : "board-task.update-fields") ||
       request.actionVersion !== 1 ||
       request.target?.sourceKind !== "desktop.board-task" ||
       request.target.type !== "Task" ||
@@ -716,7 +785,15 @@ async function preview(isMove = false) {
       !/^sha256:[0-9a-f]{64}$/u.test(request.invocationDigest)
     )
       throw new Error("INVALID_PREVIEW");
-    if (isMove) {
+    if (isLabel) {
+      const previous = previewLabelIds(result.before), next = previewLabelIds(result.after), label = projectLabel(result.label);
+      const proposed = request.input?.updates;
+      if (!proposed || Object.keys(proposed).length !== 1 || proposed.labelId !== updates.labelId || label.id !== updates.labelId || previous.includes(label.id) || next.length !== previous.length + 1 || !next.includes(label.id) || previous.some(id => !next.includes(id)))
+        throw new Error("MISMATCHED_LABEL");
+      labelBefore.value = previous;
+      labelAfter.value = next;
+      previewedLabel.value = label;
+    } else if (isMove) {
       const previous = moveFields(result.before),
         next = moveFields(result.after);
       const proposed = moveFields(request.input?.updates);
@@ -760,7 +837,8 @@ async function preview(isMove = false) {
     if (current(stamp, taskId)) busy.value = false;
   }
 }
-const previewMove = () => preview(true);
+const previewMove = () => preview("move");
+const previewLabel = () => preview("label");
 function record(result: any) {
   if (result?.success !== true) throw new Error("ACTION_UNAVAILABLE");
   const run = projectRun(result);

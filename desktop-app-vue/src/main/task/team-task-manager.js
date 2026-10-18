@@ -460,26 +460,9 @@ class TeamTaskManager {
   }
 
   addLabelSync(taskId, labelId, actorDid) {
-    const db = this.database.getDatabase();
-    const task = db
-      .prepare("SELECT labels FROM team_tasks WHERE id=?")
-      .get(taskId);
-    const labels = task.labels == null ? [] : JSON.parse(task.labels);
-    if (labels.includes(labelId))
-      return { success: true, taskId, added: false };
-    labels.push(labelId);
-    db.prepare("UPDATE team_tasks SET labels=?,updated_at=? WHERE id=?").run(
-      JSON.stringify(labels),
-      Date.now(),
-      taskId,
-    );
-    const activityId = this._recordActivitySync(
-      taskId,
-      actorDid,
-      "label_added",
-      { labelId },
-    );
-    return { success: true, taskId, added: true, activityId };
+    throw Object.assign(new Error("BOARD_ACTION_CONTROLLED_UPDATE_REQUIRED"), {
+      code: "BOARD_ACTION_CONTROLLED_UPDATE_REQUIRED",
+    });
   }
 
   async linkTasks(taskId, dependsOnTaskId, dependencyType, actorDid) {
