@@ -2308,7 +2308,9 @@ final class ConversationView {
         o.onExit = code -> {
             capabilities.completeExceptionally(new IOException(
                     com.chainlesschain.ide.AgentInitFailure.earlyExit()));
-            SwingUtilities.invokeLater(() -> {
+            // Use the same IDE event queue/modality as terminal rendering so
+            // the stopped banner cannot finalize its assistant span first.
+            ApplicationManager.getApplication().invokeLater(() -> {
                 if (disposed || sessionGeneration != generation) return;
                 questions.detach("Agent exited; saved answers require review");
                 conv.modeState.exited(generation, code);

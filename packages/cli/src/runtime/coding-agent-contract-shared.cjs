@@ -77,7 +77,8 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
     title: "Write File",
     kind: "filesystem",
     tier: "mvp",
-    description: "Write content to a file (create or overwrite)",
+    description:
+      "Write content to a file (create or overwrite). For a large new file, write a small complete section first, then extend it with edit_file using a unique existing anchor. Aim for a few thousand characters of new content per call and wait for the result before continuing; each write_file call replaces the whole file.",
     inputSchema: {
       type: "object",
       properties: {
@@ -200,7 +201,7 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
     kind: "filesystem",
     tier: "mvp",
     description:
-      "Replace a string in a file. old_string must match EXACTLY ONE place — include enough surrounding context to make it unique, or the edit is rejected. Pass replace_all:true to change every occurrence instead.",
+      "Replace a string in a file. old_string must match EXACTLY ONE place — include enough surrounding context to make it unique, or the edit is rejected. To extend a file in small complete sections, use a unique existing anchor as old_string and retain that anchor plus the new section in new_string; do not resend the whole growing file. Wait for each edit result before continuing. Pass replace_all:true to change every occurrence instead.",
     inputSchema: {
       type: "object",
       properties: {

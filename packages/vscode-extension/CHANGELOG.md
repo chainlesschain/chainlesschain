@@ -2,6 +2,12 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.151] - Task-delivery follow-up candidate (2026-10-18)
+
+- Recommend candidate CLI 0.166.106 for brief action guidance, complete file writes in bounded segments, and accurate reasons for explicit HTTP 403 errors outside authentication or billing.
+- Keep current public CLI 0.166.105 and IDE pairing unchanged until exact-commit gates, CLI npm OIDC publication and public artifact readback pass.
+- Published-package retesting remains a separate requirement. Existing failed samples are not accepted by this version bump.
+
 ## [0.37.150] - Task-quality candidate (2026-10-18)
 
 - Recommend CLI 0.166.105 for coding guidance, static import feedback and truthful completion with safe transport diagnostics.

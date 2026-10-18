@@ -38,6 +38,56 @@ describe("formatProviderHttpError (actionable auth errors)", () => {
     expect(msg).toMatch(/account status\/balance/i);
     expect(msg).not.toMatch(/authentication failed/i);
   });
+  it.each([
+    [
+      { error: { message: "DIAGNOSTIC_OUTPUT_TRUNCATED" } },
+      "DIAGNOSTIC_OUTPUT_TRUNCATED",
+    ],
+    [
+      {
+        error: {
+          code: "RequestPolicyDenied",
+          message: "Response exceeds the configured output limit",
+        },
+      },
+      "RequestPolicyDenied: Response exceeds the configured output limit",
+    ],
+    [
+      { error: "The requested model is not available in this region" },
+      "not available in this region",
+    ],
+  ])(
+    "preserves an explicit non-auth 403 reason without credential or billing advice: %j",
+    (payload, reason) => {
+      const msg = formatProviderHttpError("volcengine", 403, payload);
+      expect(msg).toContain("HTTP 403");
+      expect(msg).toContain(reason);
+      expect(msg).not.toMatch(
+        /authentication failed|API key|account status|balance|billing/i,
+      );
+    },
+  );
+  it("redacts configured and credential-shaped secrets from a non-auth 403", () => {
+    const secret = "configured-private-value";
+    const msg = formatProviderHttpError(
+      "volcengine",
+      403,
+      {
+        error: {
+          code: "OutputLimit",
+          message: `Rejected ${secret}\nBearer abcdefghijklmnop sk-1234567890abcdef`,
+        },
+      },
+      { secrets: [secret] },
+    );
+    expect(msg).toContain("OutputLimit");
+    expect(msg).toContain("Bearer ***");
+    expect(msg).toContain("sk-***");
+    expect(msg).not.toContain(secret);
+    expect(msg).not.toContain("abcdefghijklmnop");
+    expect(msg).not.toContain("1234567890abcdef");
+    expect(msg).not.toContain("\n");
+  });
   it("preserves an overdue-account response and gives the billing action", () => {
     const msg = formatProviderHttpError("volcengine", 403, {
       error: {

@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.106",
+      "cliVersions": ["0.166.105", "0.166.106"],
+      "date": "2026-10-18",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.106: task delivery follow-up (candidate, 2026-10-18)",
+          "body": "- Guide coding tasks toward brief action statements and complete file writes split into bounded segments.\n- Ground regression expectations and defaults in the source contract, exercise actual boundaries with valid fault-injection fixtures, and use independent expected values or authoritative state.\n- Preserve the explicit provider reason for HTTP 403 responses that are not authentication or billing errors.\n- Keep JetBrains asynchronous draft-save receipts in a separate status update so they do not interrupt the assistant reply.\n- Wait up to two seconds for final JetBrains stdout callbacks on the background process waiter and schedule exit alongside result rendering on the IDE event queue.\n- Close unused Windows ACL subprocess input, require complete output before success, and share one bounded drain/cleanup deadline; native ACL startup timeouts remain under investigation.\n- Pair candidate VS Code 0.37.151 and JetBrains 0.4.168 with CLI 0.166.106; retain the existing published child-package versions.\n- Current public versions remain CLI 0.166.105, Open VSX 0.37.150 and JetBrains 0.4.167. Publish this candidate only after complete exact-commit gates, npm OIDC and public artifact readback, then retest unfinished samples.\n- Public .105 retesting completed generation 20/20 and acceptance 20/20, adding 6 candidate acceptances and 6 full-flow passes. Cumulative acceptance is 31/45 (ordinary 26/36, first-use 5/9), with 14 remaining. The original 25 accepted artifacts were reused byte-for-byte; cross-version cumulative acceptance is not a single-round 45/45 success. Candidates .106/.151/.168 remain unpublished and have not been retested."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.105",
       "cliVersions": ["0.166.105"],
       "date": "2026-10-18",

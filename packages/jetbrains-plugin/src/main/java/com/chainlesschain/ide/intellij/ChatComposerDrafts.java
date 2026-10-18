@@ -111,7 +111,10 @@ final class ChatComposerDrafts {
                 .whenComplete((ignored, error) -> SwingUtilities.invokeLater(() -> {
                     if (disposed) return;
                     if (error != null) showError(error);
-                    else { status.setText("Input accepted and stored by the CLI"); notice.accept("ℹ Input accepted by the CLI; task completion is separate.\n"); }
+                    // Receipt persistence completes independently of stream rendering.
+                    // Appending a notice here would finalize a live assistant span
+                    // between its delta and result, causing the final body to repeat.
+                    else status.setText("Input accepted and stored by the CLI; task completion is separate");
                 }));
     }
     void finishSend(ChatDraftStore.Prepared prepared, long captured) {

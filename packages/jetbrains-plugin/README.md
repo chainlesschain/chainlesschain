@@ -5,11 +5,11 @@ JetBrains counterpart of the [VS Code extension](../vscode-extension/): it lets
 the ChainlessChain **`cc` agent CLI** read editor context and propose native
 diffs inside IntelliJ-platform IDEs (IDEA, PyCharm, WebStorm, …).
 
-Plugin **0.4.167** recommends public CLI **0.166.105**. Its release tag points to `d4065008bb`; publication is in progress, with Marketplace approval, listing and public ZIP download still awaiting verification. A system C compiler named `cc` is not a ChainlessChain CLI installation; configure an explicit CLI path or use the install/repair flow when identity checks fail. [Upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-18.html).
+Candidate plugin **0.4.168** recommends candidate CLI **0.166.106** and is not yet published. Current public plugin **0.4.167** pairs with CLI **0.166.105**. Configure an explicit ChainlessChain CLI path when the system `cc` is a C compiler.
 
-As of 2026-10-18, CLI **0.166.105** is public through GitHub Actions OIDC, with public metadata, tarball SRI and source bytes read back against release commit `d4065008bb`. The same commit passed CLI CI **71/71**, Strict Sandbox **5/5**, IDE **18 successful / 1 conditional skip**, and ARM64 **10/10**. VS Code **0.37.150** and JetBrains **0.4.167** tags have been pushed; both plugins recommend CLI `.105`. **IDE publication is in progress**; public listing and downloads await complete readback. The original public-package round has all **25/25** generation and acceptance records, **25/45** cumulative accepted candidates, **4 end-to-end passes in that original round**, and **20** unfinished samples. **New-version retesting is NOT_RUN**. Candidate acceptance is distinct from end-to-end success; publication and CI do not establish task-quality improvement. Microsoft Marketplace remains unpublished.
+As of 2026-10-18, current public versions are CLI **0.166.105**, Open VSX **0.37.150** and JetBrains **0.4.167**. The next candidates are CLI **0.166.106**, VS Code **0.37.151** and JetBrains **0.4.168**; both candidate plugins recommend CLI `.106`. These candidates are not published and require complete exact-commit release gates, CLI OIDC publication and public artifact readback before IDE release and unfinished-sample retesting. The public `.105` round completed generation and acceptance for **20/20** samples each, adding **6** candidate acceptances and **6** full-flow passes. Cumulative acceptance is **31/45** (**26/36** ordinary tasks and **5/9** first-use tasks), with **14** remaining. The original 25 accepted artifacts were reused byte-for-byte; this cross-version cumulative result is not a single-round 45/45 success. Candidates `.106/.151/.168` remain unpublished and untested on the unfinished samples. Microsoft Marketplace remains unpublished.
 
-This candidate restores assistant Markdown with the live renderer while preserving canonical text, session and saved-row identity. CLI 0.166.105 supplies coding guidance and safe transport diagnostics. Restart the IDE and run Doctor after upgrading. Native task and restart acceptance still require published-package retesting.
+The public 0.4.167 release restores assistant Markdown with the live renderer while preserving canonical text, session and saved-row identity. CLI 0.166.105 supplies coding guidance and safe transport diagnostics. Restart the IDE and run Doctor after upgrading. Native task and restart acceptance still require published-package retesting.
 
 [Task notes and fresh-conversation handoff](../../docs/features/ide-task-worklog-user-guide.md) explains automatic Markdown checkpoints and `Continue in new chat`, introduced in `0.4.126`.
 
@@ -26,26 +26,20 @@ the _same_ lockfile and speaks the _same_ MCP protocol as the VS Code
 extension; only `ide` differs (`"jetbrains"`). Feature controls still require
 the corresponding exact-gated CLI command, as documented below.
 
+Install the public CLI with `npm i -g chainlesschain@0.166.105 --registry https://registry.npmjs.org`.
+See the [upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-18.html).
+
 ## Release compatibility
 
-Plugin **0.4.167** is being published and recommends CLI **0.166.105** for task scope, finite-budget delivery
-guidance, authentication usage and first-run diagnostics. Experimental native review and durable
-Windows/macOS recovery require separate acceptance.
+Plugin **0.4.168** is the current release candidate and recommends candidate CLI
+`chainlesschain@0.166.106`. Both await exact-commit validation and publication.
+Publish and verify the CLI through npm OIDC before releasing this plugin.
 
-The exact-commit release gates passed. CLI `.105` is public; plugin `.167` still requires public Marketplace readback.
-CLI `0.166.105` pairs with Session Core `0.3.19` and Context/Memory Kernel
-`0.1.10`, including scheduler initialization before Windows sidecar ACL protection
-and canonical record/replay digest handling that retains captured-content
-secret and PII checks.
-
-Install public CLI `0.166.105` with
-`npm i -g chainlesschain@0.166.105 --registry https://registry.npmjs.org`, check `cc --version`, and upgrade to plugin
-`0.4.167` after its public artifact is verified. Restart the IDE and check Doctor for the actual CLI
-identity and capabilities; the existing compatibility floor still applies.
-
-The Windows 2025.2 installed-ZIP test host disables development automatic plugin
-reload so restart journeys do not unload the Robot server and ChainlessChain
-plugins mid-test. This is a test-host fix; full IDE restart gates still apply.
+The current public pairing above remains applicable until the
+candidate passes release gates and public artifact readback. Session Core
+`0.3.19` and Context/Memory Kernel `0.1.10` retain their independent versions.
+Restart the IDE and run Doctor after a verified upgrade. Native task quality
+and restart acceptance require separate published-package evidence.
 
 ## Previous candidates and development notes
 
