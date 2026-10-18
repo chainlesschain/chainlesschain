@@ -2,6 +2,8 @@
 
 日期：2026-10-07。承接 [RRSI 实施方案](./rrsi-implementation-plan-2026-10-07.md)。工程基线为 `1de6f0f8d052eb1186a06ce6d30d0aa2dfffe85b`，初始实施分支为 `feature/rrsi-foundation-2026-10-07`。本轮新增文件的摘要及离线结果见 [合成回放记录](./evidence/rrsi-rr01-synthetic-replay-2026-10-07.json)。
 
+2026-10-18 续做及默认管理接口索引有界回读见[第 32 节](#32-默认管理接口索引的有界回读)。
+
 首批合同与离线回放已提交为 `3238aa30cc`，第二批耐久控制已提交为 `c885bd7cb6`，准备阶段计账已提交为 `80591450ad`，PM broad 桥接已提交为 `1b278b14b6`，RR-03 五池映射与统计已提交为 `4abe03f44d`，有效父版本与运行组装为 `7879476ee2`，原生测量图为 `3f94d1f33f`，原生批次计账为 `b82072d9b0`，签名登记与准入为 `6ed173c65f`，后续统计 v2、耐久预注册、HOLD 质量回执和后端关联见第 15–19 节；已通过 `58a30cbae7` 随功能分支合入 `main`，本页最新控制验证记录至 `2afd65c12f`。各批仅提交本页所列 RRSI 文件及有限的产物类型注册；其他任务的工作区修改继续独立保留。
 
 ## 1 当前交付
@@ -542,7 +544,7 @@ v2 verify／read 会采用既有维护锁并可能恢复已获授权的迁移或
 
 构造仅固定原 dev／ino／birthtime 物理身份，额外复查构造窗口内 path／fd 元数据和 realpath 后关闭 descriptor；不会固定整个生命周期的 size／mtime／ctime 或内容。每次读取独立检查 0–64 MiB 的 BigInt size，检查成功后才转 Number 分配；复用原 bounded-descriptor-read，按已检查长度以最多 64 KiB 分块读取，最后只探测一个 EOF 字节，再复验 descriptor、pathname 和原两目录。短读可继续，提前 EOF、增长、读取异常或元数据漂移均 HOLD，并关闭本次打开的 fd。分块读取范围受检查长度约束；partial read 可能多次请求剩余区间，不把请求长度简单累加称为总读取字节上限。
 
-两处 index 叶节点打开新增 O_NONBLOCK／O_NOFOLLOW；模块私有 directory fs 适配仅在原身份 helper 打开目录时增加 O_NONBLOCK／O_DIRECTORY，不改共享 helper 或 artifact 叶节点打开。该加固只覆盖 inspectPhysicalIndex／readTrustedIndexSnapshot，原 boundedIndexEntries 在两个可信快照之间仍可调用 store.list()，底层 _readEntries 与产物 bytes 仍使用整文件读取；不能宣称整个 ports API 已有严格读取上界或所有 FIFO race 都不会阻塞。
+两处 index 叶节点打开新增 O_NONBLOCK／O_NOFOLLOW；模块私有 directory fs 适配仅在原身份 helper 打开目录时增加 O_NONBLOCK／O_DIRECTORY，不改共享 helper 或 artifact 叶节点打开。该加固只覆盖 inspectPhysicalIndex／readTrustedIndexSnapshot，原 boundedIndexEntries 在两个可信快照之间仍可调用 store.list()，底层 \_readEntries 与产物 bytes 仍使用整文件读取；不能宣称整个 ports API 已有严格读取上界或所有 FIFO race 都不会阻塞。
 
 真正 append 与同 inode 合法写入后可以读取新快照；同字节但不同 inode 的 index 复制替换由原 ports 拒绝，新真正 ports 仍可捕获自己的局部文件。ArtifactStore remove／cleanup 的 temporary＋rename 同样会更换 index inode，原 ports 继续拒绝，不悄悄重新认领。旧 root／files 目录 descriptor、其摘要域、持久 observed index descriptor、限制记录与 localCompositionDigest 全部未改；目录能力的 indexFileIdentityVerified／indexContentsVerified 仍为 false，本批没有增设完整物理图或持久权威能力。
 
@@ -579,3 +581,139 @@ WSL Ubuntu 补充执行 **3/3** 个真正 FIFO 场景，分别在前校验、中
 最终 35 个源码／测试有 Windows 与 WSL 启动前的摘要检查点，独立 main 的复验前再次核对全部摘要一致并保留新检查点，完成后逐一核对未变；完整逐项结果、诊断失败、真实 FIFO 与合成模型边界见 [产物字节本地控制验证记录](./evidence/rrsi-artifact-bytes-local-controls-2026-10-07.json)。ESLint、Prettier、diff check 与 Astra 只读复核通过。原 list／get、source publish、无 bounds verify 与任意 override 的 I/O 仍非全路径有界；完整 v2／retention 图、独立安装根／持久 pin／高水位、producer、alias 和发布准入尚未闭合，完整 RRSI 继续实施。
 
 共享工作区在首份完整回归期间被另一任务切到 feature 分支，并提交了本批 helper 与旧 hook 参数转发两文件，默认 wiring 尚未在 main。为保留另一任务的提交和未提交修改，没有切换／stash／回滚共享 root；从 main 基线 `3e2d1042db` 新建完整独立工作树，只复制本批 12 文件，不为匹配摘要覆盖其它源码。本地 16 个 @chainlesschain workspace 包链接指向独立 main 源码，普通外部依赖复用已有缓存。独立 main 再次完整运行 16 文件并确认同一 254／6 结果，最终计数仅取该次；共享 root 的 254／6 reporter 单独保留为隔离前证据。WSL 三阶段与最终 main 的全部 35 项依赖摘要一致，因此保留其定向证据；本地复验仍不替代准确 release commit 的完整 Actions。
+
+## 32 默认管理接口索引的有界回读
+
+日期：2026-10-18，基线为 `main@7111f3f78725c82c35927fd5bada0e0b1be5983c`。[evolution-artifact-ports.js](../../../packages/cli/src/lib/evolution/evolution-artifact-ports.js) 在 bind 前按实际 data method 的函数身份识别原 ArtifactStore list/get：默认枚举使用第一个可信 descriptor 快照的条目，默认 get 使用已经唯一定位的条目；前后快照的字节摘要／条目 fingerprint、真实 id／recordDigest 唯一性和读取后的 canonical 稳定性检查仍执行。原方法的继承或 own 引用均可识别；不同函数的自定义 hook 仍调用并执行原交叉检查，不能以相同名称或 subclass 身份跳过。原 getter／Proxy 检查、固定目录、产物三阶段回读、签名和当前 authority 检查未放宽。
+
+新增单元使用真实普通交付物构造超过 64 KiB 的索引，在发布完成后的管理 resolve、单次 resolver 和 batch 窗口禁止按路径或实际 index fd 调用 readFileSync；逐次核对最多 64 KiB 的 descriptor 请求、实际返回的完整索引字节、单字节 EOF 探测和真实 fd 关闭。另一正对照保留合作 list/get wrapper 的实际调用及整索引 I/O，明确其不属于默认路径上界；原 OversizedIndexStore、LyingListStore、LyingGetStore 及自定义完整性 hook 故障断言未改。
+
+真实同 inode append 注入发生在 resolve 的单独准入快照之后、首次成对枚举第一个快照的最终 pathname stat 采样后，第二个快照看到稳定新字节而精确拒绝；后续稳定读取可通过。另覆盖真实删除目标、重复 id／recordDigest、不完整／损坏 JSONL、超过行数或 64 MiB 字节上限、同字节新 inode 替换。集成使用真实 retained chunk、原 v2 journal 和 preparation 历史：禁止整索引读取时管理接口与历史重放均认证成功；在实际 payload fd 成功读取后修改原 index 的目标 title，当次管理回读精确 HOLD，恢复原字节后重新核对原 journal head 和完整 retained 历史。故障及恢复后的 index／payload fd 集合均须为空。
+
+最终独立工作树的 Windows **18 文件一次完整运行 271 项通过、6 项既有条件跳过**，零失败；新增单元 **15**、集成 **2**，既有回归 **254**，不重复累计开发阶段结果。跳过仍为非 Windows index symlink 一项、原 index FIFO 两项及 artifact FIFO 三项，本批未新增跳过或运行 Linux／macOS 矩阵。41 个相关源码／测试及测试配置在启动前留存摘要，完成后同时核对独立工作树与共享 root 字节一致；逐文件／逐项结果、诊断记录和范围见[索引管理回读本地控制记录](./evidence/rrsi-artifact-index-readback-local-controls-2026-10-18.json)。ESLint 使用既有 Node recommended 配置对三个变更 JS 文件检查，Prettier、diff check 与 Astra 只读复核均通过；既有 ACL helper、预算和时限未放宽，新集成准备阶段及行为各 60 秒。
+
+开发记录保留最初整文件读取反例，以及两处测试编写修正：超限错误 message 应匹配原 bounded snapshot 提示；append 必须注入首次成对枚举，而非 resolve 的单独前置快照。共享 root 被其他任务切分支并修改无关文件后，最终从上述 main 基线建立独立 `.work/r32`，只复制三个源码／测试文件，16 个本地 workspace 别名指向该工作树源码；原 CLI 局部安装的七个第三方依赖也链接至现有缓存，无下载或安装。首次较长工作树路径遇到 Windows checkout 长路径失败，改用短路径及 core.longpaths；首次完整尝试因缺 CLI 局部 chalk 链接在旧 ArtifactStore 文件导入阶段失败，停止该次测试进程树，补齐缓存链接后原 15 项 ArtifactStore 通过，再从头执行上述完整 18 文件。源码／测试字节、原断言与超时均未为这些环境问题改变；最终结果仅取成功的完整运行。
+
+默认管理回读现在使用原 64 MiB／10,000 条／每条 16 KiB 快照上限；这不是整个 ArtifactStore 的读取上界。发布、普通 list/get/\_readEntries、以 id 调用 verifyIntegrity 及任意 override 的自行 I/O 仍保留原范围。两次稳定快照不构成原子快照、任意 ABA 防御或跨调用 artifact inode pin；原目录 descriptor、持久 observed 协议、localCompositionDigest 及授权 false 标志均未变。完整实际 v2／retention 图、独立安装认可、受保护 pin／高水位、producer、alias 和发布准入继续实施；真实 RRSI A/B/C 实验仍为 `NOT_RUN`，统计质量与晋级保持 `HOLD`。
+
+## 33 实际 manifest 状态的目录绑定与精确回读
+
+日期：2026-10-18，延续独立工作树的 `main@7111f3f78725c82c35927fd5bada0e0b1be5983c` 基线。[evolution-manifest-state-reader.js](../../../packages/cli/src/lib/evolution/evolution-manifest-state-reader.js) 接入实际 v2 manifest catalog 与 head 文件后端，替换原 Number stat 和仅长度比较。构造保存原目录 dev／ino／mode／uid／gid 的冻结 BigInt 标量及既有 birthtime 身份，每次读取前后重新检查目录和规范物理路径；不固定目录的 size／mtime／nlink，保留正常 lock 与 temporary＋rename 写入。原目录被同字节复制替换、丢失或换为 junction 时，原 backend 拒绝；新独立 backend 仍可捕获自己的目录，不将局部捕获称为安装认可。
+
+叶节点要求 regular、非 symlink、单链接及真正 BigInt dev／ino／mode／uid／gid／nlink／size／mtimeNs／ctimeNs；原路径与 descriptor 的完整身份比较继续使用既有 Windows 窄 device 兼容，并额外核对 uid／gid。读取前后同 API 元数据逐字段精确复查，birthtime 沿用原 Number／WSL1 规则，不声称全部时间戳都是纳秒身份。每次读取重新取得叶节点身份，合法原子 rename 更新可以回读；没有建立跨调用 leaf inode pin。
+
+沿用 catalog 默认 64 MiB、head 默认 256 KiB 上限：先检查真实 path／fd 长度，再按检查长度以最多 64 KiB 读取 descriptor，最后探测一个 EOF 字节。提前 EOF、增长、截断、同 inode 等长重写、path／fd 差异或最终目录变化均拒绝并关闭 fd。partial read 可重试剩余区间，以实际返回字节和 EOF probe 计量，不能简单累加请求长度称为总读取上限。叶节点打开增加 NONBLOCK／NOFOLLOW，私有目录适配只加固原身份 helper 的目录打开；所有操作保留调用者原 fsImpl 和 receiver。新的物理读取错误码为 `CC_EVOLUTION_MANIFEST_STATE_READ_FAILED`，原 descriptor、JSON 格式、签名和 CAS 层不改。
+
+仅首次叶节点 lstat 的 ENOENT 保持空状态／null 语义，即使之前存在也如此；EACCES、悬空链接或打开／读取中消失均不变成空状态。writer 在取得 lock 前增加原目录复查，只能拒绝已发生的目录替换，不构成整个写事务的原子防护。两个 constructor 仍执行原 ensurePrivateDirectory，可能创建或加固自己的目录，不能作为缺失状态一律 HOLD 的安装只读入口。
+
+新增单元覆盖实际目录复制、丢失、junction、hardlink、open／最终 pathname 替换、等长重写、增长／截断／I/O 异常、partial read、完整字节计量和真实 fd 关闭。精度模型覆盖两 API 九字段 Number 回退、相同 Number 投影的不同完整 inode、固定大整数时间戳的 1n 漂移、open 时 uid／gid 差异，以及受影响 Windows uv 的目录／卷 handle 桥接；这些是明确的 stat 故障模型，不是原生 NTFS 同投影替换实测。末尾目录检查另有两后端的一次性合成 mode 投影；额外父目录复查返回真实 stat，避免覆盖预期错误。
+
+新集成使用真实 preparation、observed 文本和签名 retained 历史：实际复制 catalog／head 目录后，原历史必须沿错误链精确 HOLD，复制字节和目录内容保持；恢复原目录 inode 后重新认证原 journal head 与完整 retained 历史。新进程正对照核对真正后端字节、禁止整文件读取、逐次 actualReadBytes 和零遗留 fd；所有完整存储图／安装／producer／晋级权威标志仍为 false。
+
+最终 Windows **10 文件一次完整运行 177 项通过、4 项条件跳过**，零失败；新增单元 **86**、集成 **5**，既有回归 **86**。跳过为两后端的 POSIX 叶 symlink 与 FIFO 各两项，本地定向筛选掉的其它用例不算平台跳过，也不累计开发阶段通过项。ESLint 使用既有 Node recommended 配置检查六个源码／测试文件，Prettier、diff check 与 Astra 只读复核通过；原 ACL helper 和既有回归预算未放宽，新历史准备阶段及行为各 60 秒。
+
+WSL Ubuntu 补充 **8/8** 个真实定向场景：两后端各自的 FIFO、悬空 symlink、晚期目录 rename 和最终目录 mode 变化。当前 Windows 文件系统晚期 rename 返回原生 EPERM，WSL1 `4.4.0-19041-Microsoft` 返回 EACCES，均严格核对移动／复制未发生、原 inode／字节保留与 fd 关闭；这些原生拒绝不计为最终目录复查覆盖，也不外推到所有挂载。WSL 的另外两项真实 mode 故障在最终叶 stat 采样后将私有 fixture 目录 0700 改为 0710，精确触发目录身份变化；核对原目录／leaf inode 未变、完整读取量、零 fd 和原 payload 后恢复 0700。FIFO／symlink 各核对实际类型、精确错误及保留原字节，所有 child 均在原 15 秒 watchdog 内完成。复用既有 Linux Node v22.22.2 缓存，无下载或安装；这不是完整 Linux Vitest、macOS 或发行矩阵。
+
+开发阶段两项晚期目录测试起初误以为 Windows 可移动有打开 leaf 的目录；WSL 又发现同类 EACCES 被 fixture 的 saved-directory 查询误掩盖为 ENOENT，已修正报告，生产 reader 未为这些平台假设改变。WSL 首轮最终探针还把报告阶段额外的一次 lstat 漏计，修正 runner 后按冻结源码重新完成八项。一个完整 Windows 尝试在修正 fixture 前主动停止，不纳入最终计数。原诊断与最终两份 checkpoint 均保留，最终 56 项源码／测试／配置在 Windows 与 WSL 前共享同一摘要检查点，结束后核对未变，并在回传六文件前检查共享 root 原摘要，回传后核对全部 56 项一致。逐文件／逐项结果、平台区分、探针 runner、模型与诊断记录见[manifest 状态本地控制记录](./evidence/rrsi-manifest-state-local-controls-2026-10-18.json)。
+
+本批只完成实际 manifest catalog／head 这一局部边界；顺序检查不是原子快照、任意 ABA 防御或持久高水位。完整 journal／witness／segment／retention 物理图、独立安装认可、受保护 pin／高水位、强制业务路由、真实 producer、alias 和发布准入继续实施。真实 RRSI A/B/C 仍为 `NOT_RUN`，统计质量与生产晋级保持 `HOLD`。
+
+## 34 实际 witness 主文件与分段的目录绑定和精确回读
+
+日期：2026-10-18，延续独立工作树 `main@7111f3f78725c82c35927fd5bada0e0b1be5983c`。新增 [evolution-physical-state-reader.js](../../../packages/cli/src/lib/evolution/evolution-physical-state-reader.js)，将第 33 节的实际目录与稳定文件窗口抽成共用内核；原 manifest wrapper 保留原错误码、提示、默认上限和 ENOENT 空状态语义。本批接入 [evolution-file-witness.js](../../../packages/cli/src/lib/evolution/evolution-file-witness.js) 的主文件及被 head 引用的历史分段，使用独立 `CC_EVOLUTION_WITNESS_STATE_READ_FAILED`，witness 错误链不借用 manifest 错误码。
+
+同一 witness 实例至多保存原 root 和 segments 各一个目录 reader，不按 digest 建 reader Map。目录冻结 BigInt dev／ino／mode／uid／gid 及原 birthtime 身份；内容 size／mtime／nlink 可随合法锁、文件创建和 rename 改变。构造可以创建／加固 root，也可以加固并捕获已有 segments 目录；尚未分段时不预建目录。首次读取由另一合法实例发布的分段只捕获已经存在、规范且权限合格的目录，不 mkdir／chmod；引用目录缺失直接拒绝。首次分段发布仍可在原 CAS 锁内创建私有目录。一旦捕获，丢失、复制替换和 junction 在读前后及 lock 前均拒绝，不重新认领或补建；POSIX 读取要求目录 0700，变宽后失败而不修复。Windows 保留原 private-storage helper 规则，不将 stat mode 当作新增 ACL 权威认证。
+
+每个实际文件先要求 regular、非 symlink、单链接和真正 BigInt dev／ino／mode／uid／gid／nlink／size／mtimeNs／ctimeNs，再执行原 ensurePrivateFile，最后重新取得正式读取窗口的 stat；准备前后须保持 dev／ino／birthtime 身份。这样保留 POSIX 叶权限归一引起 mode／ctime 变化的既有行为，而准备期间换成同字节新 inode 会拒绝。正式 path→fd 继续保留原 Windows 窄 device 兼容和完整比较器，并额外核对 uid／gid；同 API 元数据逐字段精确复验。birthtime 仍使用原 Number／WSL1 规则，不声称所有时间戳都是纳秒身份。私有文件准备和 constructor 可能修改权限，不能称为安装只读入口。
+
+单文件默认仍为 64 MiB，累计历史默认仍为 64 MiB，最少 2 字节；实际读取使用 min(maximumBytes, 剩余 maximumHistoryBytes)，剩余 0／1 不回退默认上限。检查成功后才分配，最多 64 KiB 分块读取检查长度并探测一个 EOF 字节，最后复验 descriptor、pathname、realpath 和原目录，失败关闭 fd；叶节点增加 NONBLOCK／NOFOLLOW，目录适配只加固原身份 helper 的打开。partial read 按实际返回字节计量，不累加请求长度充当上限。只有主文件首次 lstat 的 ENOENT 可以返回原签名 absent，即使之前存在；根目录丢失、已捕获分段目录丢失、被引用分段缺失、访问错误及悬空链接都不能变成新空历史。
+
+[evolution-witness-segments.js](../../../packages/cli/src/lib/evolution/evolution-witness-segments.js) 将读取 checkDirectory 与首次发布 prepareDirectory 分开，已有内容地址是否存在也只由初次 lstat 的 ENOENT 判断，避免权限错误／悬空链接被当作可覆盖的新文件。每次仍回读全部被引用分段字节并重新 hash，再按原 trust epoch 决定签名缓存是否可复用；1024 条／16 MiB 编码缓存、16 MiB 分段缓存、两次 epoch 重试、撤销、ancestry、discard、签名格式及 CAS 不改。readStore 在正常签名／epoch 验证后、以及 emptyStore 签名后返回前再复验两个已捕获目录，覆盖 verifier 回调期间实际替换的明确窗口。后续 proof signing、writeBytes、r+ fsync 和 confirmDurable 仍有各自原写入／耐久范围，不将这项复查扩称为整个事务原子身份保护。
+
+新增单元覆盖两种实际文件的真实目录复制／缺失／junction、叶 hardlink、open／最终 pathname 交换、等长重写、合法跨调用同字节新 inode、完整字节与 EOF 计量、失败关闭 fd；精度模型覆盖两 API 九字段 Number 回退、同 Number 投影的不同完整 inode、固定大整数时间戳 1n 漂移、uid／gid 差异及明确的一次性目录 mode 投影。另验证累计剩余 0／1 的分段内容零读取，以及旧实例首次读取其它真正实例新建目录时禁止 mkdir／chmod、绑定后再丢失必须失败。verifier 反例先变更测试 epoch 使回调确实执行，再真实复制原目录，精确拒绝并在恢复原目录后重读成功；不把合法 warm-cache 命中当作故障已触发。
+
+新 RRSI 集成沿原 preparation、observed 文本、实际 v2 journal 与 retained 历史认证链，分别复制真正 source witness 和 v2 witness 的目录；当次历史回读必须沿错误链精确 HOLD，复制文件字节及目录内容保持。恢复原目录后重新核对原 journal head 与 retained 历史。分段文件的物理 I/O 另用真正 witness 将独立测试签名的完整 legacy 历史转换为分段，实际 CAS／read／ancestry／重开与既有缓存／撤销回归均参与验证；这不是把分段 fixture 称为分段 RRSI 生产运行或独立 retention 权威。
+
+最终 Windows **13 文件一次完整运行 340 项通过、13 项条件跳过**，零失败；新增单元 **85**、集成 **5**，既有回归 **250**。跳过包括原 manifest 的 symlink／FIFO 四项，以及新增 witness 的两个 symlink、四个 POSIX private-file 准备用例、一个 POSIX 目录权限用例和两个 FIFO；定向筛选未运行的用例不算平台跳过。完整运行同时保留原 73 项 witness 的缓存上限、撤销、完整累计预算和 response-loss／分段重试回归，旧测试断言与预算未放宽。
+
+WSL Ubuntu 在同一冻结源码上完成 **14/14** 项：head／segment 各自的稳定读取、真实 FIFO、悬空 symlink、晚期原生目录 rename、最终目录 0700→0710、文件准备 0640→0600、准备期间真实同字节新 inode 替换。两个原生 rename 在当前 WSL1 挂载返回 EACCES，严格确认移动／复制未发生、原 inode／字节保留及零 fd，不计为 ending check；两个实际目录 mode 用例精确拒绝后恢复 0700。权限归一正对照完整回读并核对 0600／原 inode，准备中置换则在内容读取前拒绝并保存原字节。所有场景核对保留原完整文件 digest 与真实 fd 关闭；成功读取核对完整实际字节与 EOF，故障场景按注入阶段核对实际字节和精确错误。字节计数只覆盖选中 head 或 segment 的正式测量窗口，不含夹具创建或初次重开认证；其它文件有各自的独立有界读取。
+
+Windows 新进程集成由 parent 在既有测试预算内准备真正签名文件，child 只重开并读取，原 15 秒 read watchdog 不变；WSL 定向 child 则在同一 15 秒 watchdog 内完成自己的夹具准备及实际读取，不能把两者写成全部只做 reopen。复用既有已校验 Linux Node v22.22.2 缓存，无下载或安装；未执行完整 Linux Vitest、macOS 或发行矩阵。
+
+开发诊断保留：首轮两项旧 grow／truncate 已正确拒绝，但包装提示不匹配原 bounded read 断言，修正 witness 可配置文字而不改旧断言；verifier fixture 最初被 warm epoch 缓存绕过，变更测试 epoch 后两项精确通过；新 child 的初版 JSON.stringify 比较受键顺序影响且 Windows fixture 创建超过读取 watchdog，改为结构相等并将 Windows 准备移至 parent，保持读取时限。这些失败与定向通过均不累计最终计数。最终 63 项相关源码／测试／配置在完整 Windows 与 WSL 前留同一摘要检查点，完成后逐一核对未变；回传八文件前核对共享 root 原摘要，回传后再次逐一核对一致。完整逐项结果、源摘要、探针 runner、平台区分和范围见[witness 状态本地控制记录](./evidence/rrsi-witness-state-local-controls-2026-10-18.json)。八个变更源码／测试的 Node recommended ESLint、Prettier、diff check 和 Astra 只读复核通过。
+
+本批仍是实际 witness 的局部目录／稳定字节窗口，不建立完整存储 inventory、journal／retention／authority 物理图、跨调用叶 inode pin、持久高水位、任意 ABA 防御或原子事务。独立安装认可、受保护路由 pin／高水位、强制业务入口、producer、alias 与发布准入继续实施；真实 RRSI A/B/C 仍为 `NOT_RUN`，统计质量和生产晋级保持 `HOLD`。
+
+## 35 实际 journal／authority 的完整精度读取窗口与旧签名兼容
+
+在第 34 节后继续沿实际 source journal 读取路径加固。[evolution-ledger.js](../../../packages/cli/src/lib/evolution/evolution-ledger.js) 将 canonical JSON、增量缓存命中和签名快照的 expectedBytes 回读统一到同一物理读取窗口，覆盖 identity、store marker、HEAD、anchor、event segment 和可丢弃的签名 snapshot。四个原目录（event root、authority root、segments、anchors）另存每实例完整精度 dev／ino／mode／uid／gid 与原 Number／WSL1 birthtime 身份；目录内容、mtime、size 和 nlink 不作持久 pin。旧 Number boundary.identity 继续原样进入 storeBindingDigest，旧 fileFingerprint 继续原样进入 storeMarkerEntryDigest，未迁移签名格式或摘要域。
+
+文件的 dev、ino、mode、uid、gid、nlink、size、mtimeNs、ctimeNs 必须是 BigInt；在 BigInt 上检查 regular／非 symlink／单链接及 2 字节至原上限，再转换已验证 size 分配内存。旧 Number 指纹只在独立完整精度窗口中采样，既不从 BigInt 毫秒字段截断重建，也不充当物理身份权威。路径到 fd 保留原有窄 Windows device bridge，并额外核对 owner 和原 birthtime；同 API 元数据逐字段精确比较。最多 64 KiB 分块回读加单字节 EOF 探测，最后复核 descriptor、pathname、原 Number 指纹，以及相应原目录。expectedBytes 的早返回位于所有叶检查之后。heldParent 仍每目录一次父身份作用域；其整批读取结束后，在记入状态缓存前再检查四个完整精度目录，覆盖签名 verifier 回调后的明确窗口。
+
+叶打开增加 NONBLOCK／NOFOLLOW；独立 adapter 仅为身份 helper 的目录打开增加 NONBLOCK／DIRECTORY，写入／fsync 原端口保持原行为。只有初次可缺叶 lstat 的 ENOENT 可返回 null，且返回前复核目录；晚期叶读取 try-body 的原生 I/O 映射为 CORRUPT，close 和外层 parent helper 仍可保留原生／helper 错误。authority root 缺失先沿原锁边界等待既有 10 秒后报告 LOCK_UNAVAILABLE；其它缺失目录走 STORE_UNSAFE。测试确认这些读取均不重建缺失目录，未放宽 ACL、锁、watchdog 或旧回归预算。
+
+新增单元覆盖 cold／cached／snapshot 三分支的两 API 九字段 Number 回退、同 Number 投影的不同完整 inode、mtime／ctime 的 1ns 差异、uid／gid 在打开和末尾的差异、非法 BigInt 大小、真实 open 前交换、最后 fd stat 后的真实 pathname 交换、同长改写／增长／截断／晚期消失及 fd 关闭。实际 rename 若在最后 fd stat 之前发生，可能先改变原 fd 的 ctime；最终 pathname 用例因此把交换安排在该 stat 之后，并重新取得真实新 pathname stat，不用伪造 inode 证明该分支。缓存和可丢弃 snapshot 遇到一次性扰动可以安全回退，断言必须看到额外 open 与完整冷签名校验；持续损坏仍拒绝。另验四种实际 authority 叶、四目录同字节 clone／缺失、明确标注的合成目录投影，以及 cold／snapshot verifier 触发后的最终目录检查。旧 reincarnation-blind mock 仅改为尊重 bigint 选项，保留原拒绝断言。
+
+升级对照确实先导入摘要核对的旧 ledger 源码，在同一原目录 bootstrap、追加签名事件并写出旧 snapshot，再由新版经 snapshot 和 warm cache 重开、追加第二项，最后由旧代码反向重开。没有复制到账本的新路径，也不是新版自建自验。identity、store marker 和原 snapshot 的完整字节在整个往返结束后再次相等；原 storeBindingDigest／storeMarkerEntryDigest、签名格式及每侧认证均通过。此对照专门验证 journal reader 升级，witness 使用第 34 节实现；不等于部署升级或掉电演练。
+
+新 RRSI 集成沿真实 preparation、observed 文本、v2 journal 和 retained history 链，分别 clone source 的四个 journal／authority 目录；每次沿错误链准确 HOLD，恢复原目录后重新认证原 journal head 与 retained history。新进程正对照则在 parent 准备签名文件，child 在未扩大的 15 秒 watchdog 内完成初次重开和正式测量回读；字节／fd 计数只覆盖选中 segment 的正式测量窗口，不含准备、初次重开或其它文件各自的有界读取。
+
+最终 Windows **12 文件一次完整运行 290 项通过、11 项条件跳过**，零失败；新增单元 **131**、集成 **8**，既有回归 **151**。平台跳过逐项保留在证据中；新增包括一项 POSIX 目录权限，以及三分支各自的 FIFO／symlink／末尾权限和 snapshot parent FIFO 共十项集成。原 ledger 的 57 项、并发／崩溃恢复、v2 journal／manifest、RRSI observed／retained 历史及既有跨进程与可靠性回归均参与最终运行；不累加任何初轮、筛选、终止运行或前批通过数。
+
+同一冻结源码在 WSL Ubuntu／WSL1／缓存 Linux Node v22.22.2 完成 **13/13** 定向实际文件系统场景：cold／cached／snapshot 各自稳定回读、叶 FIFO、悬空 symlink、EOF 后 root 的实际 0700→0710，以及一次 snapshot parent directory FIFO。叶 FIFO 均实际打开一次、读零字节；symlink 在原目录枚举阶段以 STORE_UNSAFE 拒绝，叶 open 为零，不计作 O_NOFOLLOW late-open 证据。parent FIFO 证明 NONBLOCK／DIRECTORY 拒绝打开而不等待 writer，未完成 parent fd 的后置比较；三个真实权限用例才覆盖末尾目录拒绝。各场景核对完整原 digest／inode 恢复及零遗留 fd，成功读取核对实际字节与 EOF。未执行完整 Linux Vitest、macOS 或 Actions 宿主矩阵，当前原生 Windows 正对照也不独立证明历史 libuv 1.49／1.50 运行时；原兼容桥经源码复核保留。
+
+开发诊断保留：首轮三项新 fixture 断言因 rename 的 fd ctime 分支及改写 algorithm 字节触发 TRUST_MISMATCH 而失败，调整注入位置与 reason 字节；扩展中的缺 authority 断言最初误期望目录错误，改为既有锁错误并核对不重建；WSL symlink 实际分类促使修正新增断言并终止尚未完成的首个全量候选，重新冻结、重新完成唯一最终全量。均未放宽生产比较器或原测试条件。391 项本地来源／测试／配置摘要在最终 Windows、WSL 和升级检查前冻结并在结束后逐项核对；发现共享 root 已有三项 plugin dependency 修改及一个新增被引入文件，只同步至独立工作树以对齐依赖，未覆盖共享修改。回传本轮六文件前核对共享目标原摘要，之后再次核对全 391 项一致。六文件的 Node recommended ESLint 与 Prettier、已有 Git diff 的空白检查及 Astra 只读复核通过。完整逐项结果、runner、摘要和范围见 [journal 状态本地控制记录](./evidence/rrsi-journal-state-local-controls-2026-10-18.json)。
+
+本批仍是局部 source journal／authority 的每实例目录绑定和稳定读取窗口，不建立全存储 inventory／物理图、独立安装权威、持久完整精度 pin／高水位、不可变叶的跨调用 pin、任意 ABA 防御或整个事务原子性。constructor 可能准备权限，append、恢复清理、写入／fsync 及后续 receipt／proof 回调各保留其原有范围，不能称为全入口安装只读。真实 producer、tenant-wide 来源、部署准入、业务强制门、candidate alias、release lease／恢复与真实对照继续实施；真实 RRSI A/B/C 仍为 `NOT_RUN`，统计质量和生产晋级保持 `HOLD`。
+
+## 36 原 source journal 四目录能力与历史组合复查
+
+在第 35 节的实际读取边界上，补齐后续存储图核对所需的一项原组件描述。[evolution-ledger.js](../../../packages/cli/src/lib/evolution/evolution-ledger.js) 在成功初始化后，直接把原 #physicalBoundaries 中的 events、authority、segments、anchors 四目录投影为模块私有能力，未在首次查询时重新 lstat 认领路径。dev／ino／mode／uid／gid 转为十进制字符串，birthtime 保留原 Number／WSL1 语义；descriptor、目录列表、identity、能力和 recheck 均冻结，scope 明确为 source-journal-four-directories。目录内容、mtime、size 和 nlink 不纳入绑定；叶身份／内容、witness、retention、完整图和全部权威标志为 false。
+
+capture 仅接受原构造类、精确 prototype 与 WeakMap 登记实例；Proxy／撤销 Proxy 不触发 getter 或 prototype trap。只有 new.target 等于原 EvolutionLedger 时登记，Reflect.construct 使用相同 prototype 的替代 newTarget 也不能取得能力，原 migration source 的既有行为未改。capture 和 recheck 拒绝所有额外上下文，闭包只用原 #assertBoundaries 的 lstat／realpath，不打开叶文件、不读内容、不获取锁、不初始化或修复权限，也不调用 signer、verifier、witness 或替换 callback。缺 authority 的直接能力查询因此立即报告目录错误、不重建；普通 ledger.verify 仍保留第 35 节的原 10 秒锁拒绝行为。
+
+[evolution-ledger-file-backend.js](../../../packages/cli/src/lib/evolution/evolution-ledger-file-backend.js) 另用私有 WeakMap，把真正的局部 sourceLedger 能力绑定到原 backend；v2 对外 ledger 是 wrapper，不能把 wrapper 或公开 descriptor 路径重建为 source。捕获位于 v2 factory 完成后，若 factory 期间实际替换 source 目录，同样不能返回带有效原能力的 backend。公开 backend descriptor、旧 BACKEND_BINDINGS 形状、签名端口及原 v2 组合均未扩张；不按 requested resolve 路径与 source realpath 的文本差异拒绝合法别名。
+
+[rrsi-observed-text-index.js](../../../packages/cli/src/lib/evolution/rrsi-observed-text-index.js) 在确认原 policy／backend／ports／resolver 关系后取得私有 source 能力，在完整 retained load 与固定 head recheck 前后和原 artifact 两目录能力一起复查。临时 history snapshot 及 [anchor history 检查](../../../packages/cli/src/lib/evolution/rrsi-tenant-index-anchor-history.js) 增加 sourceJournalDirectoryBoundaryDigest、复查标志和四目录 scope，使用独立 chainlesschain.rrsi-source-journal-directory-boundary/v1 域。index.descriptor、持久 restriction／artifact／anchor、store binding／marker 签名及原 localCompositionDigest 输入保持原值；临时 snapshot／history check 的摘要随新增输出变化。新的组件摘要不认证 caller 声明的 storageGraphDigest，fullPhysicalStorageGraphVerified／storageGraphDigestVerified 和安装／业务／晋级权威均继续 false／HOLD。初次 index factory 的 capture 可直接抛 STORE_UNSAFE 或 TypeError；既有 index/history 操作才沿原错误链包装 HOLD，不宣称所有入口统一错误码。
+
+新增单元用真实 journal 验证正常追加、snapshot 和同原目录重开后的摘要稳定；逐四目录执行实际 clone、缺失、junction／symlink，capture 前已替换与后续 recheck 均拒绝，缺失不补建，恢复原目录后局部摘要恢复。另覆盖全五字段 Number 回退、真正 v1 backend 的精确绑定及其副本／Proxy／撤销 Proxy、subclass／替代 newTarget、上下文 getter／callback 零调用。无副作用探针仅允许 lstat／realpath，其它文件端口与可信端口调用均抛错，能力仍成功。真实 HEAD 损坏时目录能力保持其局部摘要而 journal 原内容检查拒绝，明确不能把 metadata-only 成功当作文件或账本认证。
+
+新 RRSI 集成走真正 preparation、observed 文本和 v2 retained 历史，核对私有 source 与公开 wrapper 的区别、四目录摘要、原 descriptor／localComposition 和显式 false 权威；四种 source 目录 clone 均精确 HOLD，Windows 恢复原目录后再认证原 head／历史。末尾反例先校准 history.recheck 的最后一次 artifact-files lstat，第二次在该回调中真实 clone source segments；此时最后一次 journal.verify 已返回，新增最终 source 复查必须拒绝。它覆盖新增组合末端窗口，不把第 35 节前置 verify 拒绝重复计作新证据，也不外推任意 ABA 或原子图快照。
+
+兼容对照先导入摘要核对的旧第 35 节 observed-index 模块，在原组合写入真实记录；新版读取后追加另一文本，旧版重新构造并读取两个世代。旧 descriptor、localCompositionDigest 及原 8 个产物完整字节在整个往返后保持不变，index 文件字节在新版只读回放期间不变。旧临时 snapshot 没有新 source 字段，新 snapshot 有组件摘要；此对照共享当前 ledger/backend，仅证明 observed 持久记录双向兼容，不称为整套安装或部署升级。
+
+首次完整 Windows 运行实际为 171 项通过、1 项失败、0 项跳过，新增 34 项均通过。唯一失败发生在 partial-witness 用例第 216 行的初次 fixture 初始化：manifest catalog 的 ensurePrivateDirectory 报 windows-acl:timeout-verify／repair:timeout:verify:ETIMEDOUT，早于该用例 fault armed 和 batch 操作，不能称为恢复断言或新目录能力拒绝；未确立该本机子进程超时的更深原因。独立定向复测为 1 项通过、13 项过滤，并非完整回归。原失败信息、两份报告摘要保留在证据中，未增加 ACL、watchdog、锁或测试预算，源码保持同一冻结版本。
+
+最终 Windows **10 文件一次完整复跑 172 项通过、0 项条件跳过**，零失败；新增单元 **25**、集成 **9**，既有回归 **138**。最终集合包括原 ledger、file backend、v2 journal 迁移／恢复、observed-index、anchor history、跨进程历史、observed 控制及 artifact 目录组合。核对了精确文件集合、每 suite 状态、报告时间和逐断言总数，不累加首轮 26 项、两文件初轮 34 项、失败全量运行的 171 项、定向复测、前批、升级 probe 或 WSL 数量。
+
+同一冻结源码在 WSL Ubuntu／WSL1／缓存 Linux Node v22.22.2 完成 **21/21** 实际定向场景：稳定只读元数据、真正 append／snapshot／同目录重开；四目录分别 clone／缺失／symlink／FIFO 共 16 项；真实 mode 变化、全新健康夹具上的 HEAD 内容范围对照，以及 fresh v2 migration/history 的私有 source 接线。四个 FIFO 均实际创建，能力端口零 open／遗留 fd；不需要 writer，也不把调用者执行的 rename/copy 本身称作只读。目录恢复核对原 inode／组件摘要，不据此声称完整历史恢复。
+
+WSL 开发诊断保留：第一版 probe 在目录轮换夹具上继续假定旧签名 marker 健康，完整 ledger 仍以 CORRUPT 拒绝 store incarnation marker。最终逐字段记录确认原 dev／ino／mode／nlink／size／mtime 相同，但 ctime 和 WSL1 回退 birthtime 已变化；该旧 Number 指纹围栏继续拒绝，未放宽生产检查。最终把 HEAD 范围对照移至独立全新夹具，先确认账本健康，再核对明确的 HEAD 损坏拒绝与字节恢复。21 项能力／接线通过与旧 marker 诊断分别记录，WSL 的目录轮换不声称完整 journal 恢复；未执行完整 Linux Vitest、macOS、Actions 发行矩阵或掉电演练。
+
+393 项本地源码／测试／配置在最终 Windows、WSL 和旧记录对照前冻结，结束后逐项核对；回传六文件前核对共享目标原摘要，之后核对两工作区全 393 项一致。六个 JS 文件的 Node recommended ESLint／Prettier、已有 Git diff 的空白检查及 Astra 只读复核通过；两个未跟踪新测试由 Prettier 检查格式。完整逐项结果、来源摘要、runner、诊断与范围见 [source journal 目录能力本地控制记录](./evidence/rrsi-source-journal-directory-boundary-local-controls-2026-10-18.json)。
+
+本批只把原 source journal 四目录加入已有 artifact 目录组件的局部组合核对，尚无全部 v2 manifest／head／witness／retention 的物理能力汇总、完整文件 inventory 或实际 storageGraphDigest 认证。constructor 可能准备权限，普通 index／history 保留原锁与恢复写入，只有本能力自身为 metadata-only。独立安装认可、持久 pin／高水位、受保护业务入口、真实 producer、tenant-wide 路由、candidate alias 和 release lease／恢复继续实施；真实 RRSI A/B/C 仍为 NOT_RUN，统计质量和生产晋级保持 HOLD。
+
+## 37 manifest catalog 与 head 的原目录能力
+
+继续为后续存储图组合补齐原组件描述。[evolution-physical-state-reader.js](../../../packages/cli/src/lib/evolution/evolution-physical-state-reader.js) 直接投影成功构造时 originalDirectory 的 dev／ino／mode／uid／gid 和既有 Number／WSL1 birthtime；五个完整精度字段序列化为十进制字符串，目录内容、nlink、size 和变更时间不纳入 pin。新增 schema 为 chainlesschain.evolution-physical-state-directory-boundary/v1，scope 固定 single-original-state-directory。descriptor、directory、identity、capability 和新 recheck 均冻结；capture 不重新认领路径。构造结束前额外复核原目录，检查初始 pin 之后的实际替换。
+
+physical reader、[manifest reader](../../../packages/cli/src/lib/evolution/evolution-manifest-state-reader.js)、[file manifest catalog](../../../packages/cli/src/lib/evolution/evolution-ledger-file-manifest-catalog.js) 和 [head backend](../../../packages/cli/src/lib/evolution/evolution-ledger-file-manifest-head-store.js) 分别用模块私有 WeakMap 沿真正构造的原对象传递能力。两个 raw backend 的 capture 严格接受一个原实例，错种、结构副本、相同 descriptor 的 wrapper、Proxy／撤销 Proxy 均拒绝；能力 recheck 严格零参数，不读取额外 getter／callback。通用 descriptor 不包含调用者 label 或宣称 catalog/head 所有权；组件角色只能由相应原 backend 的品牌表达。
+
+能力本身只执行原 reader 的目录 lstat／realpath，不读叶内容、不开 fd、不获取锁、不初始化或修复权限。品牌证明工厂构造的原对象及其原注入端口，**不认证任意 fsImpl 是可信原生文件系统**；本批保留原动态 fsImpl 信任边界。只有此导出能力为 metadata-only：backend factory 仍有 ensurePrivateDirectory／ACL，普通 reader、write、journal 和 history 仍保留原有 I/O、锁与恢复行为。原 reader 的 read／recheck 形状及 recheck 的 undefined 返回、公开 backend descriptor／keys、字节上限、错误码、CAS、签名格式和写入／rename 协议不变。
+
+新增单元 **40** 项核对实际 BigInt 原身份、序列化／冻结、读写后摘要稳定、真实 append／CAS 的叶 rename、同原目录重开，以及原 reader 接口。无副作用正对照只允许原目录 lstat／realpath，其它文件端口、lock 和 random 一旦调用即抛错。首次用户 capture 前实际 clone 目录仍拒绝；已保留能力另覆盖 clone／缺失／junction 或 symlink 后的 capture 和 recheck，缺失不补建，恢复原目录才恢复局部摘要。另逐五字段拒绝 Number 回退及不同完整精度标量，拒绝所有替换上下文，且在通用 reader 构造第二次 stat 时真实 clone 目录，验证末尾检查不接纳新 inode。真实状态叶损坏或删除时，目录能力仍成功；普通读取依原 JSON 校验或 empty/null 合同处理，不把局部元数据成功当作状态认证。
+
+新增集成 **6** 项走真正 preparation、observed 文本与 retained v2 历史，旁证 fixture 持有的真实 catalogBackend／headBackend 能力在原提交及重开后稳定；实际 clone 两目录时，新 raw capability 与原 history reader 分别拒绝，Windows 恢复原目录后再次认证原历史。这里 history HOLD 来自第 33 节既有物理 reader，**尚未把 manifest capability 接入 history composition**。当前 catalog/head 的结构 wrapper 不能凭相同路径或同名方法取得原对象品牌；history 未新增 manifestDirectoryBoundaryDigest，也不接受调用者 capability。未将这些局部对照写成已完成的 v2 物理图汇总。
+
+状态协议兼容对照直接导入共享区第 36 节旧模块与独立区新版模块，在同一原目录分别执行旧写→新读、新写→旧读、旧再次写→新读；catalog 和 head 两角色均通过。两次只读窗口的完整状态字节保持相等，公开 descriptor、旧 v2 state schema 及往返后的原目录组件摘要保持原值。正常写入本来会更新字节并替换叶 inode，未声称写入前后叶字节相同；该对照不等于完整签名 v2 安装或部署升级。
+
+Windows 首次完整 10 文件运行为 **323 项通过、1 项失败、13 项平台跳过**。唯一失败在 slash-bearing tenant 迁移用例第 90 行的初次 migrated fixture：catalog 的 ensurePrivateDirectory 第 80 行报 windows-acl:timeout-traversal／repair:timeout:traversal:ETIMEDOUT，尚未进入第 82 行新 manifest stateReader／目录能力构造。原始完整报告与错误链保留；未确立 native ACL 子进程超时的更深原因。原全量退出后，保持同一冻结源码、测试、参数及预算，完整复测 v2 journal 文件 **14 项通过、0 失败、0 跳过**，没有筛选测试。
+
+本地 Windows **10 文件覆盖结果来自两次运行：按完整文件去重后 324 项通过、13 项平台跳过**。九个原全量成功文件加一个完整复测文件各计一次，未重复计算原失败文件中的 13 项通过，也不把此汇总称为一次全量 clean pass 或 Actions 发行门。其中新增单元 40、集成 6，既有 278；共用 reader 的原 manifest／witness 完整精度与稳定字节窗口、file witness、head CAS、v2 manifest、v2 journal 迁移／故障恢复及实际 retained 集成都覆盖。核对精确文件集、每个所取完整文件的报告来源、逐断言计数、复测晚于全量结束及两次运行的全部列明源码摘要；不累加最初两文件 46 项、WSL 或兼容 probe。
+
+同一冻结源码在 WSL Ubuntu／WSL1／缓存 Linux Node v22.22.2 完成 **15/15** 实际定向场景：catalog/head 各自正常 write/read/reopen、clone／缺失／symlink／FIFO、实际 0700→0710 模式变化、叶损坏／缺失范围对照，共 14 项；另用全新真实 v2 migration 与 domain append 核对两个真实 raw 组件。两个 FIFO 均实际创建；guard 同时记录所有禁止端口尝试并要求为空，因此能力拒绝不是靠 open 失败伪造的成功。它们仅证明 metadata-only 拒绝，不能充当 NONBLOCK 叶打开证据。fresh v2 probe 没有注册 observed 文本；未运行完整 Linux Vitest、macOS、Actions 发行矩阵或物理掉电演练，未下载或安装新运行时。
+
+403 项列明的本地来源／测试／配置及 session-core 私有存储依赖在最终回归前冻结，Windows、WSL、兼容对照后逐项核对；只回传六个测试过的文件，并核对两工作区全量列明摘要一致。Node recommended ESLint、仓库 Prettier、已有 tracked diff 空白检查及 Astra 只读代码复核通过；未跟踪 reader／测试由 ESLint／Prettier 检查。共享研究目录 README 保留其它工作进度，仅更新原 RRSI 条目。逐项结果、原源码摘要、runner、平台跳过与范围见 [manifest 目录能力本地控制记录](./evidence/rrsi-manifest-directory-capability-local-controls-2026-10-18.json)。
+
+下一步先在实际 factory／composition 建立 catalog/head 原对象或原端口的私有所有权绑定，再接入历史组合并继续 witness／retention／source 的组件汇总；不得通过公开路径重建或调用者声明补齐。完整文件 inventory、实际 storageGraphDigest 认证、独立安装认可、受保护持久 pin／高水位、强制业务入口、真实 producer、tenant-wide 来源、candidate alias 和 release lease／恢复仍未闭环。真实 RRSI A/B/C 仍为 NOT_RUN，统计质量和生产晋级保持 HOLD。

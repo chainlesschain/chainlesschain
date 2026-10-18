@@ -1,0 +1,2532 @@
+{
+  "schema": "chainlesschain.rrsi-artifact-index-readback-local-controls/v1",
+  "recordedAt": "2026-10-18T02:12:54.545Z",
+  "platform": "win32",
+  "nodeVersion": "v22.22.2",
+  "evidenceKind": "default-management-index-bounded-snapshots-with-original-custom-hook-crosschecks-not-complete-storage-graph",
+  "passedFinalWindowsCases": 271,
+  "newPassedCases": 17,
+  "existingPassedCases": 254,
+  "failedFinalWindowsCases": 0,
+  "skippedFinalWindowsCases": 6,
+  "finalFileCount": 18,
+  "sourceDigests": [
+    {
+      "path": "packages/cli/src/lib/evolution/evolution-artifact-ports.js",
+      "sha256": "406620241886185540e44d4a78e9274779e8ec1f89bcf3d1871fe3c5c8e41586"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/rrsi-observed-text-index.js",
+      "sha256": "53ab4facacd165b9015e5687183222ac9391c56607fd028ea6ca5c7901a7db22"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/rrsi-tenant-index-anchor-history.js",
+      "sha256": "ed1f9892346563f984eef84d6b2bc0273b992bc14d8632b779310be9b54aa151"
+    },
+    {
+      "path": "packages/cli/__tests__/fixtures/rrsi-artifact-directory.js",
+      "sha256": "280565637f2df62abfe99a52f5aacfaecbebb697c9c36ec467f2c8353fc179c3"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/evolution-artifact-directory-boundary.test.js",
+      "sha256": "e2f45d57bfa58a92e7bc30cae2cb98994f8a4895ba0be2fc98313064c6961c20"
+    },
+    {
+      "path": "packages/cli/__tests__/integration/rrsi-artifact-directory-boundary.test.js",
+      "sha256": "8a73efe849b77da24beb7e272b61cadad6f6008e71992cf4e89143bbe30c51f7"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/evolution-artifact-identity.js",
+      "sha256": "fda6b4c4fb48897c86296ae9e6afa611172fe06f5e77fe44b458788b128a505b"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/evolution-artifact-ports.test.js",
+      "sha256": "57bf3a1085cbef53baac3c5599226b8caf9b8f187cdda37e8f699c3e2fe81ba6"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/evolution-artifact-identity.test.js",
+      "sha256": "f08b7935f0adcc52e870dbf5c28647a84af848518afac31222ffb9d6eb765d25"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/evolution-file-identity.test.js",
+      "sha256": "8ee4b38557541dac9df1a2cf3219a7614c6bf01e50f1c26dc9fcbdd859be17bd"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/rrsi-observed-text-index.test.js",
+      "sha256": "f7d789b9e13e03452d929407359b9d2111262b9c49950789d954a191300b8b20"
+    },
+    {
+      "path": "packages/cli/__tests__/integration/rrsi-observed-text-controls.test.js",
+      "sha256": "7054076a87bccd589a0dbe7843f617178fd2c1853b42f4d89cb491add09eb9a4"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/rrsi-tenant-index-anchor-history.test.js",
+      "sha256": "97b4f64ddf72019d64cd37c88ae69823afbbbf23fb6f7c38c79cf7605abd46c5"
+    },
+    {
+      "path": "packages/cli/__tests__/integration/rrsi-tenant-index-anchor-history-process.test.js",
+      "sha256": "e4b4d57e72998b97c4b6e10626c5cdf8a6c6fd6b1299b855fcc49293a6c515a2"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/evolution-artifact-index-boundary.test.js",
+      "sha256": "620e7ded8dcb950a19faae2bb73c31505df2b29fd705312e04142687d2d58ceb"
+    },
+    {
+      "path": "packages/cli/__tests__/integration/rrsi-artifact-index-boundary.test.js",
+      "sha256": "d28735b2b8bcae1a558e02cabcfa6369a15e8546442e3faf3a4c3ad10d43afbd"
+    },
+    {
+      "path": "packages/cli/__tests__/fixtures/rrsi-artifact-index-process.mjs",
+      "sha256": "c26c2d0e2203aa8d98033b5dbee4dff702640db5f44dd4c56be3e6d4eba5fde8"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/bounded-descriptor-read.js",
+      "sha256": "326c864205412e3b419a7c1b18d009eb6f1470a6f8514b80cb3502f59aeefa3d"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/evolution-file-identity.js",
+      "sha256": "b92a4e75a5a55a0752341326e13bd4935f70561b4e4793425700ad293d70fdfd"
+    },
+    {
+      "path": "packages/cli/src/lib/secure-file-identity.js",
+      "sha256": "d4170c7443c075d89c73478b4fa617d264999fb95f75456b1e1232797092a376"
+    },
+    {
+      "path": "packages/cli/src/lib/artifact-store.js",
+      "sha256": "0522e0abc1674b9a0f53635748b0d105c8331de9d5223767ab1f0637cdc1083a"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/evolution-ledger-v2-journal.js",
+      "sha256": "01acaa720b12ef411d47d83257df7caf24db03683a4ae7e7c5228fbe716c9208"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/evolution-ledger-file-backend.js",
+      "sha256": "0cfbc04b69db9768828f4a969742a4e4c674e5f171e318d497d1c5d6852f2f17"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/rrsi-registry-store-policy.js",
+      "sha256": "add7988b95ca617dd9977275b6fc45e0f1dd30035e2ddfa3e25aed6b6e25946c"
+    },
+    {
+      "path": "packages/cli/__tests__/fixtures/rrsi-observed-text.js",
+      "sha256": "8a5de277aea8fd89032d30b5eaac261a03b51152d0a826c6b90d53d73f94aacd"
+    },
+    {
+      "path": "packages/cli/__tests__/fixtures/rrsi-anchor-history.js",
+      "sha256": "b6122ab25c3a49028c97ab505559596cb8a9d97ad9cc215a7ddcda8291e5fd27"
+    },
+    {
+      "path": "packages/cli/__tests__/fixtures/evolution-durable-store.js",
+      "sha256": "15f2c1eb8177c564b2d79357d6bbff0e7543c36e9a276f2f4840c0aefbfc01e8"
+    },
+    {
+      "path": "packages/cli/src/lib/bounded-artifact-file-read.js",
+      "sha256": "2087cf945dbc00f3d839b323fb6f735ea723c6626ae7fec1f14585e432c0b39d"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/bounded-artifact-file-read.test.js",
+      "sha256": "6c60daf8b74e4bc7694f3b83aa73e1f6a095c8297bd4f8deb0b0204abb0d6afc"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/evolution-artifact-byte-boundary.test.js",
+      "sha256": "15b87d0154f97362b446d8a1a5d9c16dc38b2649e21b9e62818960cef6e4b3c6"
+    },
+    {
+      "path": "packages/cli/__tests__/fixtures/evolution-artifact-bytes.js",
+      "sha256": "699d1a5d8ba3da9c7353d6dca9d3611029b382bdf1108165f395a1bdadf78781"
+    },
+    {
+      "path": "packages/cli/__tests__/fixtures/rrsi-artifact-bytes-process.mjs",
+      "sha256": "944b5db7f32a430fa0e691f6233127e6d02cc2604c54cddb0e1b3d57c5ad1811"
+    },
+    {
+      "path": "packages/cli/__tests__/integration/rrsi-artifact-byte-boundary.test.js",
+      "sha256": "ccb60bc80f811a9ff1df4e2fca703500d04fb7829d801a6bdd9a69effd156b3f"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/artifact-store.test.js",
+      "sha256": "4780a5af0fa7ffccdbb3112dc845a36960cdb593cde1bdb83e83c7c753581cd8"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/delivery-evidence-command.test.js",
+      "sha256": "2ee4d85812d51984488a317e20926706db2c68c1eef4f9597523919c7cff71d6"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/evolution-artifact-index-readback.test.js",
+      "sha256": "dcf6f9fb977e3c6c1a10145eb62fb0a305e232381a8fefade179ac300a91de63"
+    },
+    {
+      "path": "packages/cli/__tests__/integration/rrsi-artifact-index-readback.test.js",
+      "sha256": "dab052d9e7fb57aab449e18e11d2418d2b9f4a650f64702241283b569b7d8f9f"
+    },
+    {
+      "path": "packages/cli/vitest.config.js",
+      "sha256": "a1b30cb7d677348dd9c9a625373c7532b6c333436a357b633237bd911b1f3770"
+    },
+    {
+      "path": "packages/cli/test/setup/agent-evolution-test-boundary.js",
+      "sha256": "6fdfb8d31f3e5813f5f3f46ce2485fc345d68cbe277b1f4cea79de6a10f9a275"
+    },
+    {
+      "path": "packages/cli/test/setup/windows-sandbox-adapter-cleanup.js",
+      "sha256": "c81f9ac1ae76d541b60ed2befa5eac8e553470856409d6c11c46d5ac640d15ad"
+    },
+    {
+      "path": "packages/cli/test/global-setup/windows-sandbox-adapter-temp-root.js",
+      "sha256": "3cf3ae650079cac5f3a020de627255e3c801a4f873a6a1ff8d1e3e782e357aa1"
+    }
+  ],
+  "sourceCheckpoint": {
+    "localPath": ".work/rrsi-index-readback-source-checkpoint.json",
+    "sha256": "cdd2c3c0db5cf73f0d962e7793628c80b0571e5aa4996145dcafa7898198e841",
+    "recordedAt": "2026-10-18T02:00:20.393Z",
+    "unchangedAfterFinalRun": true,
+    "sharedRootMatchesFinalIsolatedSources": true
+  },
+  "finalRun": {
+    "localPath": ".work/rrsi-index-readback-final-controls.json",
+    "sha256": "e84efab978bdd4f200398909ed89156143333a3525161272fa79e52c5bca4008",
+    "success": true,
+    "suites": [
+      {
+        "path": "packages/cli/__tests__/integration/rrsi-artifact-byte-boundary.test.js",
+        "status": "passed",
+        "startTime": 1792289495525,
+        "endTime": 1792289512677.9226,
+        "cases": [
+          {
+            "name": "fresh-process three-phase artifact bytes and actual FIFO replacement authenticates real signed bytes through three bounded reads in a new process without a graph grant",
+            "status": "passed",
+            "durationMs": 330.73710000000005
+          },
+          {
+            "name": "fresh-process three-phase artifact bytes and actual FIFO replacement rejects an actual phase 1 FIFO leaf swap without waiting for a writer",
+            "status": "skipped",
+            "durationMs": null
+          },
+          {
+            "name": "fresh-process three-phase artifact bytes and actual FIFO replacement rejects an actual phase 2 FIFO leaf swap without waiting for a writer",
+            "status": "skipped",
+            "durationMs": null
+          },
+          {
+            "name": "fresh-process three-phase artifact bytes and actual FIFO replacement rejects an actual phase 3 FIFO leaf swap without waiting for a writer",
+            "status": "skipped",
+            "durationMs": null
+          },
+          {
+            "name": "real retained RRSI text respects the bounded artifact byte reader holds an oversized actual retained chunk and preserves journal/index bytes through rejection",
+            "status": "passed",
+            "durationMs": 1195.9226000000017
+          }
+        ]
+      },
+      {
+        "path": "packages/cli/__tests__/integration/rrsi-artifact-directory-boundary.test.js",
+        "status": "passed",
+        "startTime": 1792289439965,
+        "endTime": 1792289443936.1523,
+        "cases": [
+          {
+            "name": "genuine RRSI index retains its original artifact directory boundary adds the exact directory-only digest without changing persisted index descriptors or composition semantics",
+            "status": "passed",
+            "durationMs": 4.868499999996857
+          },
+          {
+            "name": "genuine RRSI index retains its original artifact directory boundary holds a same-byte physical root clone while original journal identity/history is unchanged",
+            "status": "passed",
+            "durationMs": 896.2060999999994
+          },
+          {
+            "name": "genuine RRSI index retains its original artifact directory boundary holds a same-byte physical files clone while original journal identity/history is unchanged",
+            "status": "passed",
+            "durationMs": 900.0053000000007
+          },
+          {
+            "name": "genuine RRSI index retains its original artifact directory boundary refuses another genuine ports/resolver mixed into the original policy/backend",
+            "status": "passed",
+            "durationMs": 8.32129999999961
+          },
+          {
+            "name": "genuine RRSI index retains its original artifact directory boundary reopens the same original physical directories with the same digest and no tenant authority",
+            "status": "passed",
+            "durationMs": 2161.152399999999
+          }
+        ]
+      },
+      {
+        "path": "packages/cli/__tests__/integration/rrsi-artifact-index-boundary.test.js",
+        "status": "passed",
+        "startTime": 1792289513898,
+        "endTime": 1792289531360.9783,
+        "cases": [
+          {
+            "name": "genuine index in a new process and actual POSIX FIFO open races opens and reads a real empty index without granting authority in a new process",
+            "status": "passed",
+            "durationMs": 273.837
+          },
+          {
+            "name": "genuine index in a new process and actual POSIX FIFO open races rejects actual fifo-constructor leaf replacement without waiting for a FIFO writer",
+            "status": "skipped",
+            "durationMs": null
+          },
+          {
+            "name": "genuine index in a new process and actual POSIX FIFO open races rejects actual fifo-snapshot leaf replacement without waiting for a FIFO writer",
+            "status": "skipped",
+            "durationMs": null
+          },
+          {
+            "name": "real retained RRSI history requires its original index inode holds a same-byte index clone, preserves original history and leaves the directory digest unchanged",
+            "status": "passed",
+            "durationMs": 1113.9783000000025
+          }
+        ]
+      },
+      {
+        "path": "packages/cli/__tests__/integration/rrsi-artifact-index-readback.test.js",
+        "status": "passed",
+        "startTime": 1792289492710,
+        "endTime": 1792289494282.8293,
+        "cases": [
+          {
+            "name": "retained RRSI history and management share bounded index readback authenticates a genuine retained chunk through management and replays the original history without whole-index reads",
+            "status": "passed",
+            "durationMs": 651.3732000000018
+          },
+          {
+            "name": "retained RRSI history and management share bounded index readback holds an actual target-row change during management payload reading and authenticates restored original history",
+            "status": "passed",
+            "durationMs": 920.8293999999987
+          }
+        ]
+      },
+      {
+        "path": "packages/cli/__tests__/integration/rrsi-observed-text-controls.test.js",
+        "status": "passed",
+        "startTime": 1792289268713,
+        "endTime": 1792289357473.3262,
+        "cases": [
+          {
+            "name": "retained text controls on original v2 journal reconstructs exact text and persistent restrictions in a fresh process",
+            "status": "passed",
+            "durationMs": 3681.4205999999976
+          },
+          {
+            "name": "retained text controls on original v2 journal retains restrictions after actual head response loss and retries the same operation without duplicating",
+            "status": "passed",
+            "durationMs": 6432.060099999999
+          },
+          {
+            "name": "retained text controls on original v2 journal stops artifact publication after the operation owner is replaced",
+            "status": "passed",
+            "durationMs": 1491.246900000002
+          },
+          {
+            "name": "signed malformed retained text: noncanonical-base64 holds even when envelopes and declaration references are genuinely authenticated",
+            "status": "passed",
+            "durationMs": 2016.3944000000047
+          },
+          {
+            "name": "signed malformed retained text: wrong-length holds even when envelopes and declaration references are genuinely authenticated",
+            "status": "passed",
+            "durationMs": 2328.9435999999987
+          },
+          {
+            "name": "signed malformed retained text: invalid-utf8 holds even when envelopes and declaration references are genuinely authenticated",
+            "status": "passed",
+            "durationMs": 3013.9493000000075
+          },
+          {
+            "name": "retained maximum size and malformed declaration controls retains and reads back exactly 1 MiB using 16 bounded chunks",
+            "status": "passed",
+            "durationMs": 11062.611099999995
+          },
+          {
+            "name": "retained maximum size and malformed declaration controls rejects an authenticated but self-inconsistent History association on reopening",
+            "status": "passed",
+            "durationMs": 2373.3261000000057
+          }
+        ]
+      },
+      {
+        "path": "packages/cli/__tests__/integration/rrsi-tenant-index-anchor-history-process.test.js",
+        "status": "passed",
+        "startTime": 1792289464419,
+        "endTime": 1792289474826.3428,
+        "cases": [
+          {
+            "name": "signed local anchor prefix across original v2 processes reconstructs genuine local prefixes in a new process while preserving artifacts and denying external authority",
+            "status": "passed",
+            "durationMs": 3386.534599999999
+          },
+          {
+            "name": "signed local anchor prefix across original v2 processes holds a captured proof after another real process authenticates a new event",
+            "status": "passed",
+            "durationMs": 3698.658599999999
+          },
+          {
+            "name": "signed local anchor prefix across original v2 processes rejects a fresh, valid signature that erases retained restrictions without appending or publishing",
+            "status": "passed",
+            "durationMs": 3321.3427999999985
+          }
+        ]
+      },
+      {
+        "path": "packages/cli/__tests__/unit/artifact-store.test.js",
+        "status": "passed",
+        "startTime": 1792289248419,
+        "endTime": 1792289250199.5864,
+        "cases": [
+          {
+            "name": "ArtifactStore publish copies the file and records metadata (no body in the entry)",
+            "status": "passed",
+            "durationMs": 35.90430000000015
+          },
+          {
+            "name": "ArtifactStore list filters by session; get finds by id; unknown kind → other",
+            "status": "passed",
+            "durationMs": 60.6304999999993
+          },
+          {
+            "name": "ArtifactStore survives a corrupt index row (per-row tolerance)",
+            "status": "passed",
+            "durationMs": 36.994300000000294
+          },
+          {
+            "name": "ArtifactStore serializes every index generation through one strict lock",
+            "status": "passed",
+            "durationMs": 25.6891999999998
+          },
+          {
+            "name": "ArtifactStore waits for a live cross-process index owner before publishing",
+            "status": "passed",
+            "durationMs": 972.8265000000001
+          },
+          {
+            "name": "ArtifactStore refuses ambiguous removal without deleting bytes or rewriting rows",
+            "status": "passed",
+            "durationMs": 31.97819999999956
+          },
+          {
+            "name": "ArtifactStore remove deletes the copy + row; cleanupExpired honors TTL via injected clock",
+            "status": "passed",
+            "durationMs": 79.66470000000027
+          },
+          {
+            "name": "ArtifactStore rejects missing sources, directories and oversized files",
+            "status": "passed",
+            "durationMs": 2.9104999999999563
+          },
+          {
+            "name": "cc artifacts command runners (injected store) list --json returns the entries; empty store exits 0",
+            "status": "passed",
+            "durationMs": 37.09810000000016
+          },
+          {
+            "name": "cc artifacts command runners (injected store) show remains metadata-only; unknown id exits 1",
+            "status": "passed",
+            "durationMs": 33.60919999999987
+          },
+          {
+            "name": "cc artifacts command runners (injected store) open/access records current-byte authority and exposes a verified log",
+            "status": "passed",
+            "durationMs": 93.0005000000001
+          },
+          {
+            "name": "cc artifacts command runners (injected store) remove + clean report outcomes",
+            "status": "passed",
+            "durationMs": 149.6161000000002
+          },
+          {
+            "name": "publish_artifact tool dispatch (HOME redirected) publishes a workspace file and returns metadata + hint",
+            "status": "passed",
+            "durationMs": 202.3868999999995
+          },
+          {
+            "name": "publish_artifact tool dispatch (HOME redirected) surfaces a clean error for a missing file",
+            "status": "passed",
+            "durationMs": 11.845400000000154
+          },
+          {
+            "name": "publish_artifact tool dispatch (HOME redirected) formatToolArgs renders kind + title",
+            "status": "passed",
+            "durationMs": 4.58640000000014
+          }
+        ]
+      },
+      {
+        "path": "packages/cli/__tests__/unit/bounded-artifact-file-read.test.js",
+        "status": "passed",
+        "startTime": 1792289358417,
+        "endTime": 1792289359895.5437,
+        "cases": [
+          {
+            "name": "bounded artifact file windows returns exact bytes including an empty file and accepts a coherent same-byte new inode on a later independent read",
+            "status": "passed",
+            "durationMs": 21.245599999999968
+          },
+          {
+            "name": "bounded artifact file windows rejects Number fallback in path dev before content reads",
+            "status": "passed",
+            "durationMs": 11.416500000000042
+          },
+          {
+            "name": "bounded artifact file windows rejects Number fallback in path ino before content reads",
+            "status": "passed",
+            "durationMs": 7.308100000000081
+          },
+          {
+            "name": "bounded artifact file windows rejects Number fallback in path mode before content reads",
+            "status": "passed",
+            "durationMs": 6.323499999999967
+          },
+          {
+            "name": "bounded artifact file windows rejects Number fallback in path uid before content reads",
+            "status": "passed",
+            "durationMs": 6.191699999999969
+          },
+          {
+            "name": "bounded artifact file windows rejects Number fallback in path gid before content reads",
+            "status": "passed",
+            "durationMs": 5.013699999999972
+          },
+          {
+            "name": "bounded artifact file windows rejects Number fallback in path nlink before content reads",
+            "status": "passed",
+            "durationMs": 4.511099999999942
+          },
+          {
+            "name": "bounded artifact file windows rejects Number fallback in path size before content reads",
+            "status": "passed",
+            "durationMs": 6.183899999999994
+          },
+          {
+            "name": "bounded artifact file windows rejects Number fallback in path mtimeNs before content reads",
+            "status": "passed",
+            "durationMs": 7.82510000000002
+          },
+          {
+            "name": "bounded artifact file windows rejects Number fallback in path ctimeNs before content reads",
+            "status": "passed",
+            "durationMs": 5.304300000000012
+          },
+          {
+            "name": "bounded artifact file windows rejects Number fallback in fd dev before content reads",
+            "status": "passed",
+            "durationMs": 5.296199999999999
+          },
+          {
+            "name": "bounded artifact file windows rejects Number fallback in fd ino before content reads",
+            "status": "passed",
+            "durationMs": 4.878500000000031
+          },
+          {
+            "name": "bounded artifact file windows rejects Number fallback in fd mode before content reads",
+            "status": "passed",
+            "durationMs": 7.339900000000057
+          },
+          {
+            "name": "bounded artifact file windows rejects Number fallback in fd uid before content reads",
+            "status": "passed",
+            "durationMs": 6.54830000000004
+          },
+          {
+            "name": "bounded artifact file windows rejects Number fallback in fd gid before content reads",
+            "status": "passed",
+            "durationMs": 6.508800000000065
+          },
+          {
+            "name": "bounded artifact file windows rejects Number fallback in fd nlink before content reads",
+            "status": "passed",
+            "durationMs": 4.821699999999964
+          },
+          {
+            "name": "bounded artifact file windows rejects Number fallback in fd size before content reads",
+            "status": "passed",
+            "durationMs": 5.072499999999991
+          },
+          {
+            "name": "bounded artifact file windows rejects Number fallback in fd mtimeNs before content reads",
+            "status": "passed",
+            "durationMs": 8.005899999999997
+          },
+          {
+            "name": "bounded artifact file windows rejects Number fallback in fd ctimeNs before content reads",
+            "status": "passed",
+            "durationMs": 6.24860000000001
+          },
+          {
+            "name": "bounded artifact file windows rejects different full path/fd inode IDs whose Number projections collide",
+            "status": "passed",
+            "durationMs": 4.888999999999896
+          },
+          {
+            "name": "bounded artifact file windows holds mtimeNs drift after reading and closes the real descriptor",
+            "status": "passed",
+            "durationMs": 10.47180000000003
+          },
+          {
+            "name": "bounded artifact file windows holds ctimeNs drift after reading and closes the real descriptor",
+            "status": "passed",
+            "durationMs": 5.890999999999963
+          },
+          {
+            "name": "bounded artifact file windows holds uid drift after reading and closes the real descriptor",
+            "status": "passed",
+            "durationMs": 6.731899999999996
+          },
+          {
+            "name": "bounded artifact file windows holds gid drift after reading and closes the real descriptor",
+            "status": "passed",
+            "durationMs": 5.668300000000045
+          },
+          {
+            "name": "bounded artifact file windows holds mode drift after reading and closes the real descriptor",
+            "status": "passed",
+            "durationMs": 6.377999999999929
+          },
+          {
+            "name": "bounded artifact file windows rejects only uid differing between path and opened fd",
+            "status": "passed",
+            "durationMs": 5.654999999999973
+          },
+          {
+            "name": "bounded artifact file windows rejects only gid differing between path and opened fd",
+            "status": "passed",
+            "durationMs": 4.648599999999988
+          },
+          {
+            "name": "bounded artifact file windows rejects a real open-window file replacement before returning any bytes",
+            "status": "passed",
+            "durationMs": 10.771299999999997
+          },
+          {
+            "name": "bounded artifact file windows rejects a real final-path replacement after sampled final fd stat and closes it",
+            "status": "passed",
+            "durationMs": 11.238300000000095
+          },
+          {
+            "name": "bounded artifact file windows rejects a real hard link before opening the artifact",
+            "status": "passed",
+            "durationMs": 7.956299999999942
+          },
+          {
+            "name": "bounded artifact file windows rejects a real directory junction/symlink alias before opening the file",
+            "status": "passed",
+            "durationMs": 8.365099999999984
+          },
+          {
+            "name": "bounded artifact file windows rejects mismatched expected size before allocating",
+            "status": "passed",
+            "durationMs": 4.953099999999949
+          },
+          {
+            "name": "bounded artifact file windows rejects mismatched expected size before allocating",
+            "status": "passed",
+            "durationMs": 4.419300000000021
+          },
+          {
+            "name": "bounded artifact file windows handles partial reads and caps every read at 64 KiB with exactly one EOF probe",
+            "status": "passed",
+            "durationMs": 1115.2867
+          },
+          {
+            "name": "bounded artifact file windows rejects actual growth at EOF after probing just one additional byte",
+            "status": "passed",
+            "durationMs": 10.691599999999653
+          },
+          {
+            "name": "bounded artifact file windows rejects actual truncation while reading and closes the descriptor",
+            "status": "passed",
+            "durationMs": 7.912499999999909
+          },
+          {
+            "name": "bounded artifact file windows closes the descriptor when the actual read API throws",
+            "status": "passed",
+            "durationMs": 6.146099999999933
+          },
+          {
+            "name": "ArtifactStore explicit bounded integrity mode keeps legacy verification for deliverables larger than the evolution 1 MiB bound",
+            "status": "passed",
+            "durationMs": 64.11819999999989
+          },
+          {
+            "name": "ArtifactStore explicit bounded integrity mode verifies exact bytes with valid explicit bounds and holds a changed size",
+            "status": "passed",
+            "durationMs": 28.048999999999978
+          },
+          {
+            "name": "ArtifactStore explicit bounded integrity mode rejects malformed or callable bounds before id lookup without raw-read fallback or getter invocation",
+            "status": "passed",
+            "durationMs": 9.54359999999997
+          }
+        ]
+      },
+      {
+        "path": "packages/cli/__tests__/unit/delivery-evidence-command.test.js",
+        "status": "passed",
+        "startTime": 1792289417397,
+        "endTime": 1792289417559.8904,
+        "cases": [
+          {
+            "name": "delivery evidence artifact/CLI stores generated bytes as immutable metadata and detects tampering",
+            "status": "passed",
+            "durationMs": 28.90790000000004
+          },
+          {
+            "name": "delivery evidence artifact/CLI emits a machine-readable full-suite fallback",
+            "status": "passed",
+            "durationMs": 8.572599999999966
+          },
+          {
+            "name": "delivery evidence artifact/CLI archives a ready record and reports readiness/integrity as JSON",
+            "status": "passed",
+            "durationMs": 32.262300000000096
+          },
+          {
+            "name": "delivery evidence artifact/CLI archives but exits non-zero when CI points at an older commit",
+            "status": "passed",
+            "durationMs": 18.330299999999966
+          },
+          {
+            "name": "delivery evidence artifact/CLI initializes, requests and explicitly settles a resumable flow as JSON",
+            "status": "passed",
+            "durationMs": 20.12639999999999
+          },
+          {
+            "name": "delivery evidence artifact/CLI persists IDE steps under revision, digest and effect CAS bindings",
+            "status": "passed",
+            "durationMs": 37.42629999999997
+          },
+          {
+            "name": "delivery evidence artifact/CLI projects a valid snapshot and rejects a mutated one",
+            "status": "passed",
+            "durationMs": 9.130800000000022
+          },
+          {
+            "name": "delivery evidence artifact/CLI rejects a result envelope bound to another pending effect",
+            "status": "passed",
+            "durationMs": 6.8904999999999745
+          }
+        ]
+      },
+      {
+        "path": "packages/cli/__tests__/unit/evolution-artifact-byte-boundary.test.js",
+        "status": "passed",
+        "startTime": 1792289421451,
+        "endTime": 1792289422174.085,
+        "cases": [
+          {
+            "name": "genuine three-phase artifact reads bounds all three artifact reads, forwards the same frozen limits and authenticates exact signed bytes",
+            "status": "passed",
+            "durationMs": 116.31290000000001
+          },
+          {
+            "name": "genuine three-phase artifact reads rejects real phase 1 expected-size growth before content reads in that phase",
+            "status": "passed",
+            "durationMs": 71.82040000000006
+          },
+          {
+            "name": "genuine three-phase artifact reads rejects real phase 1 maximum-size growth before content reads in that phase",
+            "status": "passed",
+            "durationMs": 65.18499999999995
+          },
+          {
+            "name": "genuine three-phase artifact reads rejects real phase 2 expected-size growth before content reads in that phase",
+            "status": "passed",
+            "durationMs": 65.40980000000002
+          },
+          {
+            "name": "genuine three-phase artifact reads rejects real phase 2 maximum-size growth before content reads in that phase",
+            "status": "passed",
+            "durationMs": 64.51190000000008
+          },
+          {
+            "name": "genuine three-phase artifact reads rejects real phase 3 expected-size growth before content reads in that phase",
+            "status": "passed",
+            "durationMs": 65.79090000000008
+          },
+          {
+            "name": "genuine three-phase artifact reads rejects real phase 3 maximum-size growth before content reads in that phase",
+            "status": "passed",
+            "durationMs": 66.18679999999995
+          },
+          {
+            "name": "genuine three-phase artifact reads keeps same-byte artifact inode replacement between independent reads outside a lifetime pin",
+            "status": "passed",
+            "durationMs": 73.394
+          },
+          {
+            "name": "genuine three-phase artifact reads rejects same-size changed content through the original signed digest",
+            "status": "passed",
+            "durationMs": 64.99130000000014
+          },
+          {
+            "name": "genuine three-phase artifact reads retains the subclass integrity callback's real index mutation while forwarding bounds",
+            "status": "passed",
+            "durationMs": 69.08500000000004
+          }
+        ]
+      },
+      {
+        "path": "packages/cli/__tests__/unit/evolution-artifact-directory-boundary.test.js",
+        "status": "passed",
+        "startTime": 1792289418219,
+        "endTime": 1792289418637.7976,
+        "cases": [
+          {
+            "name": "original ArtifactPorts root/files directory boundary exports constructor-captured exact BigInt IDs and only the declared directory scope",
+            "status": "passed",
+            "durationMs": 30.49580000000003
+          },
+          {
+            "name": "original ArtifactPorts root/files directory boundary keeps the same boundary after normal artifact publication and new ports reopening the original directories",
+            "status": "passed",
+            "durationMs": 86.40229999999997
+          },
+          {
+            "name": "original ArtifactPorts root/files directory boundary rejects a real same-byte replacement of root without adopting new IDs",
+            "status": "passed",
+            "durationMs": 84.49659999999994
+          },
+          {
+            "name": "original ArtifactPorts root/files directory boundary rejects a real same-byte replacement of files without adopting new IDs",
+            "status": "passed",
+            "durationMs": 76.08849999999995
+          },
+          {
+            "name": "original ArtifactPorts root/files directory boundary holds missing root and never calls the layout initializer",
+            "status": "passed",
+            "durationMs": 13.498199999999997
+          },
+          {
+            "name": "original ArtifactPorts root/files directory boundary holds missing files and never calls the layout initializer",
+            "status": "passed",
+            "durationMs": 13.003600000000006
+          },
+          {
+            "name": "original ArtifactPorts root/files directory boundary explicitly leaves index file identity and bytes outside directory-only verification",
+            "status": "passed",
+            "durationMs": 11.936599999999999
+          },
+          {
+            "name": "original ArtifactPorts root/files directory boundary rejects copied, prototype-forged, subclass and proxy handles without reading caller getters",
+            "status": "passed",
+            "durationMs": 18.922300000000064
+          },
+          {
+            "name": "original ArtifactPorts root/files directory boundary refuses caller paths/callbacks and retains the immutable original ArtifactStore path",
+            "status": "passed",
+            "durationMs": 11.063599999999951
+          },
+          {
+            "name": "original ArtifactPorts root/files directory boundary does not silently recapture a changed root before the first exported boundary query",
+            "status": "passed",
+            "durationMs": 15.510800000000017
+          },
+          {
+            "name": "original ArtifactPorts root/files directory boundary refuses a real directory junction/symlink replacing the files root",
+            "status": "passed",
+            "durationMs": 12.855799999999931
+          },
+          {
+            "name": "original ArtifactPorts root/files directory boundary detects a real files directory replacement during the root recheck",
+            "status": "passed",
+            "durationMs": 13.595100000000002
+          },
+          {
+            "name": "synthetic full-precision directory IDs on real local files keeps different full IDs whose Number projections collide",
+            "status": "passed",
+            "durationMs": 10.031500000000051
+          },
+          {
+            "name": "synthetic full-precision directory IDs on real local files holds a different full ID even when its Number projection remains the same",
+            "status": "passed",
+            "durationMs": 9.598799999999983
+          },
+          {
+            "name": "synthetic full-precision directory IDs on real local files rejects a provider returning Number for the requested BigInt directory stat",
+            "status": "passed",
+            "durationMs": 9.797599999999989
+          }
+        ]
+      },
+      {
+        "path": "packages/cli/__tests__/unit/evolution-artifact-identity.test.js",
+        "status": "passed",
+        "startTime": 1792289558070,
+        "endTime": 1792289558076.382,
+        "cases": [
+          {
+            "name": "WSL1 ctime fallback can change without changing device/inode identity",
+            "status": "passed",
+            "durationMs": 4.625200000000007
+          },
+          {
+            "name": "retains birthtime outside the observed WSL1 fallback ('linux' '6.6.87.2-microsoft-standard-WSL2')",
+            "status": "passed",
+            "durationMs": 0.6750999999999863
+          },
+          {
+            "name": "retains birthtime outside the observed WSL1 fallback ('linux' '6.8.0-71-generic')",
+            "status": "passed",
+            "durationMs": 0.3058000000000334
+          },
+          {
+            "name": "retains birthtime outside the observed WSL1 fallback ('win32' '10.0.26100')",
+            "status": "passed",
+            "durationMs": 0.5663999999999874
+          },
+          {
+            "name": "retains birthtime outside the observed WSL1 fallback ('darwin' '24.0.0')",
+            "status": "passed",
+            "durationMs": 0.3820999999999799
+          },
+          {
+            "name": "retains an independently reported creation time even on WSL1",
+            "status": "passed",
+            "durationMs": 0.22859999999997171
+          }
+        ]
+      },
+      {
+        "path": "packages/cli/__tests__/unit/evolution-artifact-index-boundary.test.js",
+        "status": "passed",
+        "startTime": 1792289240658,
+        "endTime": 1792289241634.2947,
+        "cases": [
+          {
+            "name": "original ArtifactPorts index snapshot precision and read bounds reads an empty index and genuine appended artifacts without freezing mutable index bytes",
+            "status": "passed",
+            "durationMs": 210.90190000000007
+          },
+          {
+            "name": "original ArtifactPorts index snapshot precision and read bounds holds an actual same-byte index inode replacement while the directory-only boundary stays in scope",
+            "status": "passed",
+            "durationMs": 40.128999999999905
+          },
+          {
+            "name": "original ArtifactPorts index snapshot precision and read bounds rejects Number fields during constructor path capture and closes every opened index fd",
+            "status": "passed",
+            "durationMs": 20.643100000000004
+          },
+          {
+            "name": "original ArtifactPorts index snapshot precision and read bounds rejects Number fields during constructor fd capture and closes every opened index fd",
+            "status": "passed",
+            "durationMs": 17.230499999999893
+          },
+          {
+            "name": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot path dev before reading",
+            "status": "passed",
+            "durationMs": 19.437800000000152
+          },
+          {
+            "name": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot path ino before reading",
+            "status": "passed",
+            "durationMs": 20.351300000000037
+          },
+          {
+            "name": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot path mode before reading",
+            "status": "passed",
+            "durationMs": 20.147300000000087
+          },
+          {
+            "name": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot path uid before reading",
+            "status": "passed",
+            "durationMs": 16.48850000000016
+          },
+          {
+            "name": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot path gid before reading",
+            "status": "passed",
+            "durationMs": 14.226400000000012
+          },
+          {
+            "name": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot path nlink before reading",
+            "status": "passed",
+            "durationMs": 15.30619999999999
+          },
+          {
+            "name": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot path size before reading",
+            "status": "passed",
+            "durationMs": 14.58809999999994
+          },
+          {
+            "name": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot path mtimeNs before reading",
+            "status": "passed",
+            "durationMs": 11.301799999999957
+          },
+          {
+            "name": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot path ctimeNs before reading",
+            "status": "passed",
+            "durationMs": 12.526100000000042
+          },
+          {
+            "name": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot fd dev before reading",
+            "status": "passed",
+            "durationMs": 14.353800000000092
+          },
+          {
+            "name": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot fd ino before reading",
+            "status": "passed",
+            "durationMs": 12.416800000000194
+          },
+          {
+            "name": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot fd mode before reading",
+            "status": "passed",
+            "durationMs": 12.503600000000006
+          },
+          {
+            "name": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot fd uid before reading",
+            "status": "passed",
+            "durationMs": 13.472899999999981
+          },
+          {
+            "name": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot fd gid before reading",
+            "status": "passed",
+            "durationMs": 16.331500000000005
+          },
+          {
+            "name": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot fd nlink before reading",
+            "status": "passed",
+            "durationMs": 12.964100000000144
+          },
+          {
+            "name": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot fd size before reading",
+            "status": "passed",
+            "durationMs": 14.729299999999967
+          },
+          {
+            "name": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot fd mtimeNs before reading",
+            "status": "passed",
+            "durationMs": 12.322300000000041
+          },
+          {
+            "name": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot fd ctimeNs before reading",
+            "status": "passed",
+            "durationMs": 12.243600000000015
+          },
+          {
+            "name": "original ArtifactPorts index snapshot precision and read bounds retains a full index inode and rejects a different ID with the same Number projection",
+            "status": "passed",
+            "durationMs": 18.89910000000009
+          },
+          {
+            "name": "original ArtifactPorts index snapshot precision and read bounds rejects different path and fd full inodes even when their Number projections agree",
+            "status": "passed",
+            "durationMs": 15.22440000000006
+          },
+          {
+            "name": "original ArtifactPorts index snapshot precision and read bounds holds mtimeNs drift on the opened descriptor and closes it",
+            "status": "passed",
+            "durationMs": 12.743799999999965
+          },
+          {
+            "name": "original ArtifactPorts index snapshot precision and read bounds holds ctimeNs drift on the opened descriptor and closes it",
+            "status": "passed",
+            "durationMs": 13.600300000000061
+          },
+          {
+            "name": "original ArtifactPorts index snapshot precision and read bounds holds uid drift on the opened descriptor and closes it",
+            "status": "passed",
+            "durationMs": 18.41579999999999
+          },
+          {
+            "name": "original ArtifactPorts index snapshot precision and read bounds holds gid drift on the opened descriptor and closes it",
+            "status": "passed",
+            "durationMs": 14.800599999999804
+          },
+          {
+            "name": "original ArtifactPorts index snapshot precision and read bounds holds mode drift on the opened descriptor and closes it",
+            "status": "passed",
+            "durationMs": 11.977599999999939
+          },
+          {
+            "name": "original ArtifactPorts index snapshot precision and read bounds rejects actual same-inode growth between path stat and fd stat before reading",
+            "status": "passed",
+            "durationMs": 15.64839999999981
+          },
+          {
+            "name": "original ArtifactPorts index snapshot precision and read bounds holds a real pathname copy replacement after final descriptor stat and closes the original descriptor",
+            "status": "passed",
+            "durationMs": 24.254799999999932
+          },
+          {
+            "name": "original ArtifactPorts index snapshot precision and read bounds rejects declared size -1n before buffer allocation or read",
+            "status": "passed",
+            "durationMs": 14.747699999999895
+          },
+          {
+            "name": "original ArtifactPorts index snapshot precision and read bounds rejects declared size 67108865n before buffer allocation or read",
+            "status": "passed",
+            "durationMs": 14.09199999999987
+          },
+          {
+            "name": "original ArtifactPorts index snapshot precision and read bounds rejects a real oversized index before opening it or allocating its contents",
+            "status": "passed",
+            "durationMs": 13.844299999999976
+          },
+          {
+            "name": "original ArtifactPorts index snapshot precision and read bounds reads partial chunks to the checked length using descriptor reads and one EOF probe",
+            "status": "passed",
+            "durationMs": 21.891900000000078
+          },
+          {
+            "name": "original ArtifactPorts index snapshot precision and read bounds caps each descriptor read at 64 KiB even for a larger admitted JSONL snapshot",
+            "status": "passed",
+            "durationMs": 42.699600000000146
+          },
+          {
+            "name": "original ArtifactPorts index snapshot precision and read bounds detects actual growth with exactly one extra byte instead of reading the enlarged file",
+            "status": "passed",
+            "durationMs": 21.896599999999808
+          },
+          {
+            "name": "original ArtifactPorts index snapshot precision and read bounds holds actual truncation during a bounded read and closes the fd",
+            "status": "passed",
+            "durationMs": 20.296800000000076
+          },
+          {
+            "name": "original ArtifactPorts index snapshot precision and read bounds closes the actual index fd when readSync throws",
+            "status": "passed",
+            "durationMs": 22.42800000000011
+          },
+          {
+            "name": "original ArtifactPorts index snapshot precision and read bounds rejects only uid changing between path and opened fd before any bytes are read",
+            "status": "passed",
+            "durationMs": 23.97180000000003
+          },
+          {
+            "name": "original ArtifactPorts index snapshot precision and read bounds rejects only gid changing between path and opened fd before any bytes are read",
+            "status": "passed",
+            "durationMs": 22.119699999999966
+          },
+          {
+            "name": "original ArtifactPorts index snapshot precision and read bounds holds an actual constructor pathname replacement after its first fd stat and closes all index fds",
+            "status": "passed",
+            "durationMs": 19.102999999999838
+          },
+          {
+            "name": "original ArtifactPorts index snapshot precision and read bounds rejects opened descriptor size -1n before allocation/read and closes it",
+            "status": "passed",
+            "durationMs": 20.422500000000127
+          },
+          {
+            "name": "original ArtifactPorts index snapshot precision and read bounds rejects opened descriptor size 67108865n before allocation/read and closes it",
+            "status": "passed",
+            "durationMs": 17.29469999999992
+          }
+        ]
+      },
+      {
+        "path": "packages/cli/__tests__/unit/evolution-artifact-index-readback.test.js",
+        "status": "passed",
+        "startTime": 1792289419278,
+        "endTime": 1792289420808.1628,
+        "cases": [
+          {
+            "name": "default ArtifactPorts index readback uses bounded snapshots authenticates resolve with multi-block index snapshots and no whole-index read",
+            "status": "passed",
+            "durationMs": 226.02549999999997
+          },
+          {
+            "name": "default ArtifactPorts index readback uses bounded snapshots authenticates read with multi-block index snapshots and no whole-index read",
+            "status": "passed",
+            "durationMs": 139.14520000000005
+          },
+          {
+            "name": "default ArtifactPorts index readback uses bounded snapshots authenticates batch with multi-block index snapshots and no whole-index read",
+            "status": "passed",
+            "durationMs": 137.46230000000003
+          },
+          {
+            "name": "default ArtifactPorts index readback uses bounded snapshots recognizes inherited and own references to the original repository methods by function identity",
+            "status": "passed",
+            "durationMs": 88.61569999999983
+          },
+          {
+            "name": "default ArtifactPorts index readback uses bounded snapshots preserves a custom list wrapper and explicitly leaves its legacy I/O outside the default bounds",
+            "status": "passed",
+            "durationMs": 207.99500000000012
+          },
+          {
+            "name": "default ArtifactPorts index readback uses bounded snapshots preserves a custom get wrapper and explicitly leaves its legacy I/O outside the default bounds",
+            "status": "passed",
+            "durationMs": 133.34030000000007
+          },
+          {
+            "name": "default ArtifactPorts index readback uses bounded snapshots detects a real same-inode append between management snapshots and later accepts the stable append",
+            "status": "passed",
+            "durationMs": 101.53960000000006
+          },
+          {
+            "name": "default ArtifactPorts index readback uses bounded snapshots rejects actual missing index bytes without consulting legacy index readers",
+            "status": "passed",
+            "durationMs": 63.12419999999997
+          },
+          {
+            "name": "default ArtifactPorts index readback uses bounded snapshots rejects actual duplicate-digest index bytes without consulting legacy index readers",
+            "status": "passed",
+            "durationMs": 62.5329999999999
+          },
+          {
+            "name": "default ArtifactPorts index readback uses bounded snapshots rejects actual duplicate-id index bytes without consulting legacy index readers",
+            "status": "passed",
+            "durationMs": 72.63619999999992
+          },
+          {
+            "name": "default ArtifactPorts index readback uses bounded snapshots rejects actual partial-jsonl index bytes without consulting legacy index readers",
+            "status": "passed",
+            "durationMs": 58.9837
+          },
+          {
+            "name": "default ArtifactPorts index readback uses bounded snapshots rejects actual corrupt-json index bytes without consulting legacy index readers",
+            "status": "passed",
+            "durationMs": 60.57190000000014
+          },
+          {
+            "name": "default ArtifactPorts index readback uses bounded snapshots rejects actual too-many-rows index bytes without consulting legacy index readers",
+            "status": "passed",
+            "durationMs": 61.522199999999884
+          },
+          {
+            "name": "default ArtifactPorts index readback uses bounded snapshots rejects actual inode-swap index bytes without consulting legacy index readers",
+            "status": "passed",
+            "durationMs": 57.32920000000013
+          },
+          {
+            "name": "default ArtifactPorts index readback uses bounded snapshots rejects an actual oversized management index before reading its contents",
+            "status": "passed",
+            "durationMs": 58.16289999999981
+          }
+        ]
+      },
+      {
+        "path": "packages/cli/__tests__/unit/evolution-artifact-ports.test.js",
+        "status": "passed",
+        "startTime": 1792289143194,
+        "endTime": 1792289167236.4883,
+        "cases": [
+          {
+            "name": "EvolutionArtifactPorts persists canonical bytes with an exact signed-lineage envelope and resolves a frozen value",
+            "status": "passed",
+            "durationMs": 197.96709999999985
+          },
+          {
+            "name": "EvolutionArtifactPorts returns the existing exact envelope and locator after a response-loss retry",
+            "status": "passed",
+            "durationMs": 157.1976999999997
+          },
+          {
+            "name": "EvolutionArtifactPorts provides a short read-only EvolutionLedger resolver without write authority",
+            "status": "passed",
+            "durationMs": 131.4055000000003
+          },
+          {
+            "name": "EvolutionArtifactPorts rejects accessors, sparse arrays, cycles, unsupported values, oversized values, and non-whitelisted types",
+            "status": "passed",
+            "durationMs": 17.529499999999643
+          },
+          {
+            "name": "EvolutionArtifactPorts rejects every Proxy before reflective traps or persistence can run",
+            "status": "passed",
+            "durationMs": 16.728500000000167
+          },
+          {
+            "name": "EvolutionArtifactPorts rejects cross-tenant, cross-audience, wrong-type, wrong-digest, and purpose replay",
+            "status": "passed",
+            "durationMs": 129.8134
+          },
+          {
+            "name": "EvolutionArtifactPorts rejects expired envelopes and fails closed after ArtifactStore removal",
+            "status": "passed",
+            "durationMs": 130.2280999999998
+          },
+          {
+            "name": "EvolutionArtifactPorts fails closed after ArtifactStore TTL cleanup removes otherwise-valid bytes",
+            "status": "passed",
+            "durationMs": 155.5967999999998
+          },
+          {
+            "name": "EvolutionArtifactPorts rechecks current revocation and exact policy on every resolution",
+            "status": "passed",
+            "durationMs": 80.74940000000015
+          },
+          {
+            "name": "EvolutionArtifactPorts supports only the approved ledger-retention types without an envelope TTL",
+            "status": "passed",
+            "durationMs": 19649.9736
+          },
+          {
+            "name": "EvolutionArtifactPorts lets current authority trust an issued ledger policy after key/policy rotation and still applies revocation",
+            "status": "passed",
+            "durationMs": 133.8035000000018
+          },
+          {
+            "name": "EvolutionArtifactPorts rejects ledger housekeeping metadata before portable Date arithmetic could overflow",
+            "status": "passed",
+            "durationMs": 27.990899999997055
+          },
+          {
+            "name": "EvolutionArtifactPorts denies caller-selected infinite retention without an approved type, purpose, and authority",
+            "status": "passed",
+            "durationMs": 30.410899999998946
+          },
+          {
+            "name": "EvolutionArtifactPorts rejects a signed envelope replayed with a mutated core",
+            "status": "passed",
+            "durationMs": 94.68089999999938
+          },
+          {
+            "name": "EvolutionArtifactPorts rejects stored-byte replacement even when the index still advertises the original hash",
+            "status": "passed",
+            "durationMs": 135.2742999999973
+          },
+          {
+            "name": "EvolutionArtifactPorts rejects index recordDigest and exact-lineage replacement",
+            "status": "passed",
+            "durationMs": 109.47710000000006
+          },
+          {
+            "name": "EvolutionArtifactPorts rejects traversal in a tampered index before following the stored path",
+            "status": "passed",
+            "durationMs": 66.07749999999942
+          },
+          {
+            "name": "EvolutionArtifactPorts rejects a hard-linked ArtifactStore index before trusting repository API output",
+            "status": "passed",
+            "durationMs": 59.53269999999975
+          },
+          {
+            "name": "EvolutionArtifactPorts rejects an ArtifactStore index replaced by a symlink",
+            "status": "skipped",
+            "durationMs": null
+          },
+          {
+            "name": "EvolutionArtifactPorts rejects an ArtifactStore files directory replaced by a symlink or junction",
+            "status": "passed",
+            "durationMs": 69.42589999999836
+          },
+          {
+            "name": "EvolutionArtifactPorts rejects replacement of the captured ArtifactStore root identity",
+            "status": "passed",
+            "durationMs": 67.22639999999956
+          },
+          {
+            "name": "EvolutionArtifactPorts rejects a replaced lineage envelope before releasing bytes",
+            "status": "passed",
+            "durationMs": 71.57129999999961
+          },
+          {
+            "name": "EvolutionArtifactPorts requires a unique recordDigest and rejects an index above the adapter admission ceiling",
+            "status": "passed",
+            "durationMs": 120.38550000000032
+          },
+          {
+            "name": "EvolutionArtifactPorts resolves ledger bytes without list/get locks while rejecting an index change during readback",
+            "status": "passed",
+            "durationMs": 273.09409999999843
+          },
+          {
+            "name": "EvolutionArtifactPorts resolves a bounded ledger batch with fresh authority for every item",
+            "status": "passed",
+            "durationMs": 179.55649999999878
+          },
+          {
+            "name": "EvolutionArtifactPorts rechecks every decision lease at the end of a ledger batch",
+            "status": "passed",
+            "durationMs": 130.31359999999768
+          },
+          {
+            "name": "EvolutionArtifactPorts rejects index replacement during authority lookup in a single descriptor read",
+            "status": "passed",
+            "durationMs": 74.19610000000102
+          },
+          {
+            "name": "EvolutionArtifactPorts rejects index replacement during authority lookup in a batch descriptor read",
+            "status": "passed",
+            "durationMs": 88.56589999999778
+          },
+          {
+            "name": "EvolutionArtifactPorts rejects missing through the single descriptor-only ledger resolver",
+            "status": "passed",
+            "durationMs": 100.85770000000048
+          },
+          {
+            "name": "EvolutionArtifactPorts rejects missing through the batch descriptor-only ledger resolver",
+            "status": "passed",
+            "durationMs": 96.44380000000092
+          },
+          {
+            "name": "EvolutionArtifactPorts rejects duplicate-id through the single descriptor-only ledger resolver",
+            "status": "passed",
+            "durationMs": 111.23070000000007
+          },
+          {
+            "name": "EvolutionArtifactPorts rejects duplicate-id through the batch descriptor-only ledger resolver",
+            "status": "passed",
+            "durationMs": 97.83030000000144
+          },
+          {
+            "name": "EvolutionArtifactPorts rejects duplicate-digest through the single descriptor-only ledger resolver",
+            "status": "passed",
+            "durationMs": 81.19540000000052
+          },
+          {
+            "name": "EvolutionArtifactPorts rejects duplicate-digest through the batch descriptor-only ledger resolver",
+            "status": "passed",
+            "durationMs": 73.8331999999973
+          },
+          {
+            "name": "EvolutionArtifactPorts rejects lineage through the single descriptor-only ledger resolver",
+            "status": "passed",
+            "durationMs": 62.87579999999798
+          },
+          {
+            "name": "EvolutionArtifactPorts rejects lineage through the batch descriptor-only ledger resolver",
+            "status": "passed",
+            "durationMs": 72.23890000000029
+          },
+          {
+            "name": "EvolutionArtifactPorts rejects payload through the single descriptor-only ledger resolver",
+            "status": "passed",
+            "durationMs": 73.81420000000071
+          },
+          {
+            "name": "EvolutionArtifactPorts rejects payload through the batch descriptor-only ledger resolver",
+            "status": "passed",
+            "durationMs": 127.08050000000003
+          },
+          {
+            "name": "EvolutionArtifactPorts rejects revocation through the single descriptor-only ledger resolver",
+            "status": "passed",
+            "durationMs": 109.84310000000187
+          },
+          {
+            "name": "EvolutionArtifactPorts rejects revocation through the batch descriptor-only ledger resolver",
+            "status": "passed",
+            "durationMs": 106.6923999999999
+          },
+          {
+            "name": "EvolutionArtifactPorts cross-checks captured ArtifactStore list/get results against the trusted descriptor snapshot",
+            "status": "passed",
+            "durationMs": 301.0054999999993
+          },
+          {
+            "name": "EvolutionArtifactPorts captures and freezes trusted ports so later monkeypatching cannot redirect authority",
+            "status": "passed",
+            "durationMs": 116.9326000000001
+          },
+          {
+            "name": "EvolutionArtifactPorts fails putCanonical when a store mutates bytes before immediate readback",
+            "status": "passed",
+            "durationMs": 110.488400000002
+          }
+        ]
+      },
+      {
+        "path": "packages/cli/__tests__/unit/evolution-file-identity.test.js",
+        "status": "passed",
+        "startTime": 1792289532784,
+        "endTime": 1792289557605.853,
+        "cases": [
+          {
+            "name": "evolution path/handle identity accepts affected path-device projection only against the held volume",
+            "status": "passed",
+            "durationMs": 10.120499999999993
+          },
+          {
+            "name": "evolution path/handle identity shares one held parent authority across multiple child checks",
+            "status": "passed",
+            "durationMs": 8.1083000000001
+          },
+          {
+            "name": "evolution path/handle identity retains exact device comparison on unaffected runtime {\"platform\":\"win32\",\"uvVersion\":\"1.51.0\"}",
+            "status": "passed",
+            "durationMs": 3.3128999999998996
+          },
+          {
+            "name": "evolution path/handle identity retains exact device comparison on unaffected runtime {\"platform\":\"linux\",\"uvVersion\":\"1.49.1\"}",
+            "status": "passed",
+            "durationMs": 3.00870000000009
+          },
+          {
+            "name": "evolution path/handle identity reopens a real Workbench ledger under the affected Windows projection",
+            "status": "passed",
+            "durationMs": 24796.853
+          }
+        ]
+      },
+      {
+        "path": "packages/cli/__tests__/unit/rrsi-observed-text-index.test.js",
+        "status": "passed",
+        "startTime": 1792289361576,
+        "endTime": 1792289416767.8518,
+        "cases": [
+          {
+            "name": "exact UTF-8 Skill text encoding rejects oversized code units and UTF-8 bytes before allocating a Buffer",
+            "status": "passed",
+            "durationMs": 6.750299999999925
+          },
+          {
+            "name": "exact UTF-8 Skill text encoding preserves BOM, CRLF, combining characters and supplementary Unicode",
+            "status": "passed",
+            "durationMs": 4.789299999999912
+          },
+          {
+            "name": "exact UTF-8 Skill text encoding rejects invalid or oversized text 0",
+            "status": "passed",
+            "durationMs": 0.5302000000001499
+          },
+          {
+            "name": "exact UTF-8 Skill text encoding rejects invalid or oversized text 1",
+            "status": "passed",
+            "durationMs": 0.6084999999998217
+          },
+          {
+            "name": "exact UTF-8 Skill text encoding rejects invalid or oversized text 2",
+            "status": "passed",
+            "durationMs": 0.4558999999999287
+          },
+          {
+            "name": "exact UTF-8 Skill text encoding rejects invalid or oversized text 3",
+            "status": "passed",
+            "durationMs": 0.5257999999998901
+          },
+          {
+            "name": "exact UTF-8 Skill text encoding rejects invalid or oversized text 4",
+            "status": "passed",
+            "durationMs": 0.32349999999996726
+          },
+          {
+            "name": "exact UTF-8 Skill text encoding accepts the exact 1 MiB bound without applying the envelope string bound",
+            "status": "passed",
+            "durationMs": 3.1262000000001535
+          },
+          {
+            "name": "real retained observed text and permanent graph-local restrictions authenticates exact retained bytes and a real declaration without claiming generation, dispatch or tenant-wide authority",
+            "status": "passed",
+            "durationMs": 1270.2223999999987
+          },
+          {
+            "name": "real retained observed text and permanent graph-local restrictions does not append or publish again for the same exact observation",
+            "status": "passed",
+            "durationMs": 2437.6949000000022
+          },
+          {
+            "name": "real retained observed text and permanent graph-local restrictions unions restrictions for the same text across genuinely registered goals",
+            "status": "passed",
+            "durationMs": 5695.455500000004
+          },
+          {
+            "name": "real retained observed text and permanent graph-local restrictions rejects getters, proxies, copied handles and caller origin exemptions before publishing",
+            "status": "passed",
+            "durationMs": 142.88080000000627
+          },
+          {
+            "name": "real retained observed text and permanent graph-local restrictions cannot use another genuine graph or an absent preparation as content authority",
+            "status": "passed",
+            "durationMs": 1631.3452000000034
+          },
+          {
+            "name": "real retained observed text and permanent graph-local restrictions retains multiple bounded chunks even when raw text exceeds 8192 code units",
+            "status": "passed",
+            "durationMs": 4654.996200000001
+          },
+          {
+            "name": "real retained observed text and permanent graph-local restrictions reopens the original authenticated journal and retains cumulative restrictions",
+            "status": "passed",
+            "durationMs": 3031.5754000000015
+          },
+          {
+            "name": "real retained observed text and permanent graph-local restrictions holds when a referenced retained chunk is missing and preserves all existing declarations",
+            "status": "passed",
+            "durationMs": 1064.8516999999993
+          }
+        ]
+      },
+      {
+        "path": "packages/cli/__tests__/unit/rrsi-tenant-index-anchor-history.test.js",
+        "status": "passed",
+        "startTime": 1792289218438,
+        "endTime": 1792289239318.3027,
+        "cases": [
+          {
+            "name": "real captured observed-text history and signed anchor prefixes includes real migration events in an empty restriction prefix without inventing genesis digests",
+            "status": "passed",
+            "durationMs": 1734.121699999996
+          },
+          {
+            "name": "real captured observed-text history and signed anchor prefixes authenticates both prefixes from real retained readback while all external authority stays HOLD",
+            "status": "passed",
+            "durationMs": 1258.6984000000011
+          },
+          {
+            "name": "real captured observed-text history and signed anchor prefixes keeps non-restriction events in the journal without changing restriction count or union",
+            "status": "passed",
+            "durationMs": 1164.013500000001
+          },
+          {
+            "name": "real captured observed-text history and signed anchor prefixes counts three actual restriction records while unioning two exact text keys deterministically",
+            "status": "passed",
+            "durationMs": 0.8390999999974156
+          },
+          {
+            "name": "real captured observed-text history and signed anchor prefixes accepts exact signed anchor idempotence only at the actual current head",
+            "status": "passed",
+            "durationMs": 1459.7186000000002
+          },
+          {
+            "name": "real captured observed-text history and signed anchor prefixes rejects genuinely re-signed false previous-count",
+            "status": "passed",
+            "durationMs": 766.7595999999976
+          },
+          {
+            "name": "real captured observed-text history and signed anchor prefixes rejects genuinely re-signed false previous-tail",
+            "status": "passed",
+            "durationMs": 640.4790999999968
+          },
+          {
+            "name": "real captured observed-text history and signed anchor prefixes rejects genuinely re-signed false previous-set",
+            "status": "passed",
+            "durationMs": 662.204899999997
+          },
+          {
+            "name": "real captured observed-text history and signed anchor prefixes rejects genuinely re-signed false current-count",
+            "status": "passed",
+            "durationMs": 746.0752000000066
+          },
+          {
+            "name": "real captured observed-text history and signed anchor prefixes rejects genuinely re-signed false current-tail",
+            "status": "passed",
+            "durationMs": 642.5651999999973
+          },
+          {
+            "name": "real captured observed-text history and signed anchor prefixes rejects genuinely re-signed false current-set",
+            "status": "passed",
+            "durationMs": 796.1955999999991
+          },
+          {
+            "name": "real captured observed-text history and signed anchor prefixes rejects a real signature over wrong-sequence checkpoint",
+            "status": "passed",
+            "durationMs": 799.2658999999985
+          },
+          {
+            "name": "real captured observed-text history and signed anchor prefixes rejects a real signature over other-event-digest checkpoint",
+            "status": "passed",
+            "durationMs": 681.2624999999971
+          },
+          {
+            "name": "real captured observed-text history and signed anchor prefixes rejects a real signature over record-digest checkpoint",
+            "status": "passed",
+            "durationMs": 682.9213999999993
+          },
+          {
+            "name": "real captured observed-text history and signed anchor prefixes rejects a real signature over zero checkpoint",
+            "status": "passed",
+            "durationMs": 758.646900000007
+          },
+          {
+            "name": "real captured observed-text history and signed anchor prefixes rejects a real signature over stale-current checkpoint",
+            "status": "passed",
+            "durationMs": 997.7402000000002
+          },
+          {
+            "name": "real captured observed-text history and signed anchor prefixes rejects signed continuation jump",
+            "status": "passed",
+            "durationMs": 6.042599999993399
+          },
+          {
+            "name": "real captured observed-text history and signed anchor prefixes rejects signed continuation wrong-predecessor",
+            "status": "passed",
+            "durationMs": 5.430500000002212
+          },
+          {
+            "name": "real captured observed-text history and signed anchor prefixes rejects signed continuation same-revision-conflict",
+            "status": "passed",
+            "durationMs": 8.71940000000177
+          },
+          {
+            "name": "real captured observed-text history and signed anchor prefixes rejects signed continuation backward-checkpoint",
+            "status": "passed",
+            "durationMs": 6.642299999999523
+          },
+          {
+            "name": "real captured observed-text history and signed anchor prefixes rejects signed continuation changed-graph",
+            "status": "passed",
+            "durationMs": 7.441599999998289
+          },
+          {
+            "name": "real captured observed-text history and signed anchor prefixes rejects signed continuation changed-deployment",
+            "status": "passed",
+            "durationMs": 7.013200000001234
+          },
+          {
+            "name": "real captured observed-text history and signed anchor prefixes rejects signed continuation shared-scope",
+            "status": "passed",
+            "durationMs": 10.646200000002864
+          },
+          {
+            "name": "real captured observed-text history and signed anchor prefixes does not authenticate a caller graph digest even when both signed anchors repeat it",
+            "status": "passed",
+            "durationMs": 1135.598300000005
+          },
+          {
+            "name": "real captured observed-text history and signed anchor prefixes refuses another genuine backend and index rather than treating tenant equality as global authority",
+            "status": "passed",
+            "durationMs": 3.3021000000007916
+          },
+          {
+            "name": "real captured observed-text history and signed anchor prefixes rejects two consistent signatures that both claim the wrong tenant",
+            "status": "passed",
+            "durationMs": 4.413000000000466
+          },
+          {
+            "name": "real captured observed-text history and signed anchor prefixes rejects two consistent signatures that both claim the wrong journal",
+            "status": "passed",
+            "durationMs": 4.940999999991618
+          },
+          {
+            "name": "real captured observed-text history and signed anchor prefixes rejects two consistent signatures that both claim the wrong artifact-scope",
+            "status": "passed",
+            "durationMs": 3.684900000007474
+          },
+          {
+            "name": "real captured observed-text history and signed anchor prefixes rejects a genuine signature from another root key rather than adopting a replacement root",
+            "status": "passed",
+            "durationMs": 3.5486999999993714
+          },
+          {
+            "name": "real captured observed-text history and signed anchor prefixes does not accept caller prefix results, excess checkpoints or accessor callbacks in the internal capture",
+            "status": "passed",
+            "durationMs": 3.760099999999511
+          },
+          {
+            "name": "real captured observed-text history and signed anchor prefixes rejects forged index handles, getters, proxies and supplied prefix callbacks without invoking them",
+            "status": "passed",
+            "durationMs": 3.018400000000838
+          },
+          {
+            "name": "real captured observed-text history and signed anchor prefixes authenticates the entire current suffix even when the requested previous prefix has no text records",
+            "status": "passed",
+            "durationMs": 625.575800000006
+          },
+          {
+            "name": "real captured observed-text history and signed anchor prefixes rechecks a captured head instead of caching success after a new authentic event",
+            "status": "passed",
+            "durationMs": 5248.3027
+          }
+        ]
+      }
+    ],
+    "startTime": 1792289140506
+  },
+  "diagnostics": [
+    {
+      "localPath": ".work/rrsi-index-readback-before.json",
+      "sha256": "40f929fe3f100b6b66444088f664efb48c12f14c562d8fefca34a7bef75623e4",
+      "meaning": "Pre-change control: whole-index reads attempted; also contains the initially wrong oversize message and append window assertions",
+      "success": false,
+      "passedTests": 6,
+      "failedTests": 7,
+      "skippedTests": 0,
+      "suites": [
+        {
+          "path": "packages/cli/__tests__/unit/evolution-artifact-index-readback.test.js",
+          "status": "failed",
+          "startTime": 1792288345988,
+          "endTime": 1792288349453.5315,
+          "cases": [
+            {
+              "name": "default ArtifactPorts index readback uses bounded snapshots authenticates resolve with multi-block index snapshots and no whole-index read",
+              "status": "failed",
+              "durationMs": 559.0032000000001,
+              "failures": [
+                "EvolutionArtifactPortError: ArtifactStore.list is not exactly bound to one trusted index snapshot\n    at artifactError (C:/code/chainlesschain/packages/cli/src/lib/evolution/evolution-artifact-ports.js:537:10)\n    at EvolutionArtifactPorts.#boundedIndexEntries (C:/code/chainlesschain/packages/cli/src/lib/evolution/evolution-artifact-ports.js:2224:13)\n    at EvolutionArtifactPorts.#findUniqueEntryIdByRecordDigest (C:/code/chainlesschain/packages/cli/src/lib/evolution/evolution-artifact-ports.js:3131:32)\n    at EvolutionArtifactPorts.resolve (C:/code/chainlesschain/packages/cli/src/lib/evolution/evolution-artifact-ports.js:3452:61)\n    at Object.resolve (C:/code/chainlesschain/packages/cli/__tests__/unit/evolution-artifact-index-readback.test.js:47:34)\n    at C:/code/chainlesschain/packages/cli/__tests__/unit/evolution-artifact-index-readback.test.js:122:27\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2027:60\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20"
+              ]
+            },
+            {
+              "name": "default ArtifactPorts index readback uses bounded snapshots authenticates read with multi-block index snapshots and no whole-index read",
+              "status": "passed",
+              "durationMs": 391.46209999999974
+            },
+            {
+              "name": "default ArtifactPorts index readback uses bounded snapshots authenticates batch with multi-block index snapshots and no whole-index read",
+              "status": "passed",
+              "durationMs": 291.8555000000001
+            },
+            {
+              "name": "default ArtifactPorts index readback uses bounded snapshots recognizes inherited and own references to the original repository methods by function identity",
+              "status": "failed",
+              "durationMs": 282.7581,
+              "failures": [
+                "EvolutionArtifactPortError: ArtifactStore.list is not exactly bound to one trusted index snapshot\n    at artifactError (C:/code/chainlesschain/packages/cli/src/lib/evolution/evolution-artifact-ports.js:537:10)\n    at EvolutionArtifactPorts.#boundedIndexEntries (C:/code/chainlesschain/packages/cli/src/lib/evolution/evolution-artifact-ports.js:2224:13)\n    at EvolutionArtifactPorts.#findUniqueEntryIdByRecordDigest (C:/code/chainlesschain/packages/cli/src/lib/evolution/evolution-artifact-ports.js:3131:32)\n    at EvolutionArtifactPorts.resolve (C:/code/chainlesschain/packages/cli/src/lib/evolution/evolution-artifact-ports.js:3452:61)\n    at Object.resolve (C:/code/chainlesschain/packages/cli/__tests__/unit/evolution-artifact-index-readback.test.js:47:34)\n    at C:/code/chainlesschain/packages/cli/__tests__/unit/evolution-artifact-index-readback.test.js:149:20\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)"
+              ]
+            },
+            {
+              "name": "default ArtifactPorts index readback uses bounded snapshots detects a real same-inode append between management snapshots and later accepts the stable append",
+              "status": "failed",
+              "durationMs": 289.74960000000056,
+              "failures": [
+                "AssertionError: expected EvolutionArtifactPortError: ArtifactStore… { code: '…' } to match object { …(2) }\n(1 matching property omitted from actual)\n    at Proxy.<anonymous> (file:///C:/code/chainlesschain/node_modules/@vitest/expect/dist/index.js:1283:10)\n    at Proxy.<anonymous> (file:///C:/code/chainlesschain/node_modules/@vitest/expect/dist/index.js:1156:15)\n    at Proxy.methodWrapper (file:///C:/code/chainlesschain/node_modules/chai/index.js:1700:25)\n    at expectHeld (C:/code/chainlesschain/packages/cli/__tests__/unit/evolution-artifact-index-readback.test.js:105:17)\n    at C:/code/chainlesschain/packages/cli/__tests__/unit/evolution-artifact-index-readback.test.js:165:5\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)"
+              ]
+            },
+            {
+              "name": "default ArtifactPorts index readback uses bounded snapshots rejects actual missing index bytes without consulting legacy index readers",
+              "status": "failed",
+              "durationMs": 176.02210000000014,
+              "failures": [
+                "AssertionError: expected [ Array(1) ] to deeply equal []\n    at C:/code/chainlesschain/packages/cli/__tests__/unit/evolution-artifact-index-readback.test.js:203:30\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2025:60\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)"
+              ]
+            },
+            {
+              "name": "default ArtifactPorts index readback uses bounded snapshots rejects actual duplicate-digest index bytes without consulting legacy index readers",
+              "status": "failed",
+              "durationMs": 174.85289999999986,
+              "failures": [
+                "AssertionError: expected EvolutionArtifactPortError: ArtifactStore… { code: '…' } to match object { …(2) }\n(1 matching property omitted from actual)\n    at Proxy.<anonymous> (file:///C:/code/chainlesschain/node_modules/@vitest/expect/dist/index.js:1283:10)\n    at Proxy.<anonymous> (file:///C:/code/chainlesschain/node_modules/@vitest/expect/dist/index.js:1156:15)\n    at Proxy.methodWrapper (file:///C:/code/chainlesschain/node_modules/chai/index.js:1700:25)\n    at expectHeld (C:/code/chainlesschain/packages/cli/__tests__/unit/evolution-artifact-index-readback.test.js:105:17)\n    at C:/code/chainlesschain/packages/cli/__tests__/unit/evolution-artifact-index-readback.test.js:202:5\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2025:60\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)"
+              ]
+            },
+            {
+              "name": "default ArtifactPorts index readback uses bounded snapshots rejects actual duplicate-id index bytes without consulting legacy index readers",
+              "status": "failed",
+              "durationMs": 245.64589999999953,
+              "failures": [
+                "AssertionError: expected EvolutionArtifactPortError: ArtifactStore… { code: '…' } to match object { …(2) }\n(1 matching property omitted from actual)\n    at Proxy.<anonymous> (file:///C:/code/chainlesschain/node_modules/@vitest/expect/dist/index.js:1283:10)\n    at Proxy.<anonymous> (file:///C:/code/chainlesschain/node_modules/@vitest/expect/dist/index.js:1156:15)\n    at Proxy.methodWrapper (file:///C:/code/chainlesschain/node_modules/chai/index.js:1700:25)\n    at expectHeld (C:/code/chainlesschain/packages/cli/__tests__/unit/evolution-artifact-index-readback.test.js:105:17)\n    at C:/code/chainlesschain/packages/cli/__tests__/unit/evolution-artifact-index-readback.test.js:202:5\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2025:60\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)"
+              ]
+            },
+            {
+              "name": "default ArtifactPorts index readback uses bounded snapshots rejects actual partial-jsonl index bytes without consulting legacy index readers",
+              "status": "passed",
+              "durationMs": 242.34479999999985
+            },
+            {
+              "name": "default ArtifactPorts index readback uses bounded snapshots rejects actual corrupt-json index bytes without consulting legacy index readers",
+              "status": "passed",
+              "durationMs": 160.3723
+            },
+            {
+              "name": "default ArtifactPorts index readback uses bounded snapshots rejects actual too-many-rows index bytes without consulting legacy index readers",
+              "status": "passed",
+              "durationMs": 161.89670000000024
+            },
+            {
+              "name": "default ArtifactPorts index readback uses bounded snapshots rejects actual inode-swap index bytes without consulting legacy index readers",
+              "status": "passed",
+              "durationMs": 234.2482
+            },
+            {
+              "name": "default ArtifactPorts index readback uses bounded snapshots rejects an actual oversized management index before reading its contents",
+              "status": "failed",
+              "durationMs": 253.53160000000025,
+              "failures": [
+                "AssertionError: expected EvolutionArtifactPortError: ArtifactStore… { code: '…' } to match object { …(2) }\n(1 matching property omitted from actual)\n    at Proxy.<anonymous> (file:///C:/code/chainlesschain/node_modules/@vitest/expect/dist/index.js:1283:10)\n    at Proxy.<anonymous> (file:///C:/code/chainlesschain/node_modules/@vitest/expect/dist/index.js:1156:15)\n    at Proxy.methodWrapper (file:///C:/code/chainlesschain/node_modules/chai/index.js:1700:25)\n    at expectHeld (C:/code/chainlesschain/packages/cli/__tests__/unit/evolution-artifact-index-readback.test.js:105:17)\n    at C:/code/chainlesschain/packages/cli/__tests__/unit/evolution-artifact-index-readback.test.js:212:5\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "localPath": ".work/rrsi-index-readback-development.json",
+      "sha256": "3ac0ac455eff1696e9566a8fc421c369062dd24a6bb9cb7d5ee4a03fa2123f46",
+      "meaning": "Production diff in place; old 42 passed / 1 skipped retained; one new append test injected into the standalone admission snapshot instead of paired enumeration",
+      "success": false,
+      "passedTests": 54,
+      "failedTests": 1,
+      "skippedTests": 1,
+      "suites": [
+        {
+          "path": "packages/cli/__tests__/unit/evolution-artifact-index-readback.test.js",
+          "status": "failed",
+          "startTime": 1792288414677,
+          "endTime": 1792288416346.3362,
+          "cases": [
+            {
+              "name": "default ArtifactPorts index readback uses bounded snapshots authenticates resolve with multi-block index snapshots and no whole-index read",
+              "status": "passed",
+              "durationMs": 261.4538000000001
+            },
+            {
+              "name": "default ArtifactPorts index readback uses bounded snapshots authenticates read with multi-block index snapshots and no whole-index read",
+              "status": "passed",
+              "durationMs": 223.83289999999988
+            },
+            {
+              "name": "default ArtifactPorts index readback uses bounded snapshots authenticates batch with multi-block index snapshots and no whole-index read",
+              "status": "passed",
+              "durationMs": 186.23749999999995
+            },
+            {
+              "name": "default ArtifactPorts index readback uses bounded snapshots recognizes inherited and own references to the original repository methods by function identity",
+              "status": "passed",
+              "durationMs": 98.67470000000003
+            },
+            {
+              "name": "default ArtifactPorts index readback uses bounded snapshots detects a real same-inode append between management snapshots and later accepts the stable append",
+              "status": "failed",
+              "durationMs": 116.9099000000001,
+              "failures": [
+                "AssertionError: expected undefined to match object { …(2) }\n    at Proxy.<anonymous> (file:///C:/code/chainlesschain/node_modules/@vitest/expect/dist/index.js:1283:10)\n    at Proxy.<anonymous> (file:///C:/code/chainlesschain/node_modules/@vitest/expect/dist/index.js:1156:15)\n    at Proxy.methodWrapper (file:///C:/code/chainlesschain/node_modules/chai/index.js:1700:25)\n    at expectHeld (C:/code/chainlesschain/packages/cli/__tests__/unit/evolution-artifact-index-readback.test.js:103:17)\n    at C:/code/chainlesschain/packages/cli/__tests__/unit/evolution-artifact-index-readback.test.js:179:5\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)"
+              ]
+            },
+            {
+              "name": "default ArtifactPorts index readback uses bounded snapshots rejects actual missing index bytes without consulting legacy index readers",
+              "status": "passed",
+              "durationMs": 76.8793999999998
+            },
+            {
+              "name": "default ArtifactPorts index readback uses bounded snapshots rejects actual duplicate-digest index bytes without consulting legacy index readers",
+              "status": "passed",
+              "durationMs": 71.33949999999982
+            },
+            {
+              "name": "default ArtifactPorts index readback uses bounded snapshots rejects actual duplicate-id index bytes without consulting legacy index readers",
+              "status": "passed",
+              "durationMs": 85.93970000000013
+            },
+            {
+              "name": "default ArtifactPorts index readback uses bounded snapshots rejects actual partial-jsonl index bytes without consulting legacy index readers",
+              "status": "passed",
+              "durationMs": 93.8010999999999
+            },
+            {
+              "name": "default ArtifactPorts index readback uses bounded snapshots rejects actual corrupt-json index bytes without consulting legacy index readers",
+              "status": "passed",
+              "durationMs": 120.18309999999974
+            },
+            {
+              "name": "default ArtifactPorts index readback uses bounded snapshots rejects actual too-many-rows index bytes without consulting legacy index readers",
+              "status": "passed",
+              "durationMs": 113.25790000000006
+            },
+            {
+              "name": "default ArtifactPorts index readback uses bounded snapshots rejects actual inode-swap index bytes without consulting legacy index readers",
+              "status": "passed",
+              "durationMs": 99.7538999999997
+            },
+            {
+              "name": "default ArtifactPorts index readback uses bounded snapshots rejects an actual oversized management index before reading its contents",
+              "status": "passed",
+              "durationMs": 120.33619999999974
+            }
+          ]
+        },
+        {
+          "path": "packages/cli/__tests__/unit/evolution-artifact-ports.test.js",
+          "status": "passed",
+          "startTime": 1792288386239,
+          "endTime": 1792288413726.053,
+          "cases": [
+            {
+              "name": "EvolutionArtifactPorts persists canonical bytes with an exact signed-lineage envelope and resolves a frozen value",
+              "status": "passed",
+              "durationMs": 315.38110000000006
+            },
+            {
+              "name": "EvolutionArtifactPorts returns the existing exact envelope and locator after a response-loss retry",
+              "status": "passed",
+              "durationMs": 202.10570000000007
+            },
+            {
+              "name": "EvolutionArtifactPorts provides a short read-only EvolutionLedger resolver without write authority",
+              "status": "passed",
+              "durationMs": 91.73149999999987
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects accessors, sparse arrays, cycles, unsupported values, oversized values, and non-whitelisted types",
+              "status": "passed",
+              "durationMs": 10.726599999999962
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects every Proxy before reflective traps or persistence can run",
+              "status": "passed",
+              "durationMs": 15.033500000000004
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects cross-tenant, cross-audience, wrong-type, wrong-digest, and purpose replay",
+              "status": "passed",
+              "durationMs": 126.2161000000001
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects expired envelopes and fails closed after ArtifactStore removal",
+              "status": "passed",
+              "durationMs": 149.7892999999999
+            },
+            {
+              "name": "EvolutionArtifactPorts fails closed after ArtifactStore TTL cleanup removes otherwise-valid bytes",
+              "status": "passed",
+              "durationMs": 160.61020000000008
+            },
+            {
+              "name": "EvolutionArtifactPorts rechecks current revocation and exact policy on every resolution",
+              "status": "passed",
+              "durationMs": 120.9088999999999
+            },
+            {
+              "name": "EvolutionArtifactPorts supports only the approved ledger-retention types without an envelope TTL",
+              "status": "passed",
+              "durationMs": 23848.3777
+            },
+            {
+              "name": "EvolutionArtifactPorts lets current authority trust an issued ledger policy after key/policy rotation and still applies revocation",
+              "status": "passed",
+              "durationMs": 96.69540000000052
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects ledger housekeeping metadata before portable Date arithmetic could overflow",
+              "status": "passed",
+              "durationMs": 17.28020000000106
+            },
+            {
+              "name": "EvolutionArtifactPorts denies caller-selected infinite retention without an approved type, purpose, and authority",
+              "status": "passed",
+              "durationMs": 20.016500000001543
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects a signed envelope replayed with a mutated core",
+              "status": "passed",
+              "durationMs": 61.498999999999796
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects stored-byte replacement even when the index still advertises the original hash",
+              "status": "passed",
+              "durationMs": 81.16370000000097
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects index recordDigest and exact-lineage replacement",
+              "status": "passed",
+              "durationMs": 64.91080000000147
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects traversal in a tampered index before following the stored path",
+              "status": "passed",
+              "durationMs": 60.50810000000274
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects a hard-linked ArtifactStore index before trusting repository API output",
+              "status": "passed",
+              "durationMs": 57.99409999999989
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects an ArtifactStore index replaced by a symlink",
+              "status": "skipped",
+              "durationMs": null
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects an ArtifactStore files directory replaced by a symlink or junction",
+              "status": "passed",
+              "durationMs": 60.956999999998516
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects replacement of the captured ArtifactStore root identity",
+              "status": "passed",
+              "durationMs": 60.9362000000001
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects a replaced lineage envelope before releasing bytes",
+              "status": "passed",
+              "durationMs": 62.133600000001024
+            },
+            {
+              "name": "EvolutionArtifactPorts requires a unique recordDigest and rejects an index above the adapter admission ceiling",
+              "status": "passed",
+              "durationMs": 81.5760999999984
+            },
+            {
+              "name": "EvolutionArtifactPorts resolves ledger bytes without list/get locks while rejecting an index change during readback",
+              "status": "passed",
+              "durationMs": 163.6915999999983
+            },
+            {
+              "name": "EvolutionArtifactPorts resolves a bounded ledger batch with fresh authority for every item",
+              "status": "passed",
+              "durationMs": 138.6350999999995
+            },
+            {
+              "name": "EvolutionArtifactPorts rechecks every decision lease at the end of a ledger batch",
+              "status": "passed",
+              "durationMs": 115.29379999999946
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects index replacement during authority lookup in a single descriptor read",
+              "status": "passed",
+              "durationMs": 66.1851999999999
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects index replacement during authority lookup in a batch descriptor read",
+              "status": "passed",
+              "durationMs": 101.34600000000137
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects missing through the single descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 91.29190000000017
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects missing through the batch descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 106.33880000000136
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects duplicate-id through the single descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 88.08789999999863
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects duplicate-id through the batch descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 66.02470000000176
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects duplicate-digest through the single descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 62.5541000000012
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects duplicate-digest through the batch descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 56.8904999999977
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects lineage through the single descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 58.57560000000012
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects lineage through the batch descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 57.65309999999954
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects payload through the single descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 59.96519999999873
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects payload through the batch descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 65.72790000000168
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects revocation through the single descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 59.053100000000995
+            },
+            {
+              "name": "EvolutionArtifactPorts rejects revocation through the batch descriptor-only ledger resolver",
+              "status": "passed",
+              "durationMs": 58.613100000002305
+            },
+            {
+              "name": "EvolutionArtifactPorts cross-checks captured ArtifactStore list/get results against the trusted descriptor snapshot",
+              "status": "passed",
+              "durationMs": 167.12549999999828
+            },
+            {
+              "name": "EvolutionArtifactPorts captures and freezes trusted ports so later monkeypatching cannot redirect authority",
+              "status": "passed",
+              "durationMs": 86.32049999999799
+            },
+            {
+              "name": "EvolutionArtifactPorts fails putCanonical when a store mutates bytes before immediate readback",
+              "status": "passed",
+              "durationMs": 50.05290000000241
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "localPath": ".work/rrsi-index-readback-new.json",
+      "sha256": "2dfcdf792d5e930df41fa04db216842ac0185928d6213107e2de36f7f12e4f38",
+      "meaning": "Initial corrected 13 unit + 2 integration passed; two wrapper controls and final restored-fd assertions subsequently added for final run",
+      "success": true,
+      "passedTests": 15,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "suites": [
+        {
+          "path": "packages/cli/__tests__/integration/rrsi-artifact-index-readback.test.js",
+          "status": "passed",
+          "startTime": 1792288530849,
+          "endTime": 1792288535167.286,
+          "cases": [
+            {
+              "name": "retained RRSI history and management share bounded index readback authenticates a genuine retained chunk through management and replays the original history without whole-index reads",
+              "status": "passed",
+              "durationMs": 2294.900400000006
+            },
+            {
+              "name": "retained RRSI history and management share bounded index readback holds an actual target-row change during management payload reading and authenticates restored original history",
+              "status": "passed",
+              "durationMs": 2023.286
+            }
+          ]
+        },
+        {
+          "path": "packages/cli/__tests__/unit/evolution-artifact-index-readback.test.js",
+          "status": "passed",
+          "startTime": 1792288480880,
+          "endTime": 1792288484099.9575,
+          "cases": [
+            {
+              "name": "default ArtifactPorts index readback uses bounded snapshots authenticates resolve with multi-block index snapshots and no whole-index read",
+              "status": "passed",
+              "durationMs": 517.0558999999998
+            },
+            {
+              "name": "default ArtifactPorts index readback uses bounded snapshots authenticates read with multi-block index snapshots and no whole-index read",
+              "status": "passed",
+              "durationMs": 350.83870000000024
+            },
+            {
+              "name": "default ArtifactPorts index readback uses bounded snapshots authenticates batch with multi-block index snapshots and no whole-index read",
+              "status": "passed",
+              "durationMs": 406.346
+            },
+            {
+              "name": "default ArtifactPorts index readback uses bounded snapshots recognizes inherited and own references to the original repository methods by function identity",
+              "status": "passed",
+              "durationMs": 296.83479999999963
+            },
+            {
+              "name": "default ArtifactPorts index readback uses bounded snapshots detects a real same-inode append between management snapshots and later accepts the stable append",
+              "status": "passed",
+              "durationMs": 261.8117999999995
+            },
+            {
+              "name": "default ArtifactPorts index readback uses bounded snapshots rejects actual missing index bytes without consulting legacy index readers",
+              "status": "passed",
+              "durationMs": 179.4911000000002
+            },
+            {
+              "name": "default ArtifactPorts index readback uses bounded snapshots rejects actual duplicate-digest index bytes without consulting legacy index readers",
+              "status": "passed",
+              "durationMs": 202.7572
+            },
+            {
+              "name": "default ArtifactPorts index readback uses bounded snapshots rejects actual duplicate-id index bytes without consulting legacy index readers",
+              "status": "passed",
+              "durationMs": 226.33730000000014
+            },
+            {
+              "name": "default ArtifactPorts index readback uses bounded snapshots rejects actual partial-jsonl index bytes without consulting legacy index readers",
+              "status": "passed",
+              "durationMs": 170.6910000000007
+            },
+            {
+              "name": "default ArtifactPorts index readback uses bounded snapshots rejects actual corrupt-json index bytes without consulting legacy index readers",
+              "status": "passed",
+              "durationMs": 204.67649999999958
+            },
+            {
+              "name": "default ArtifactPorts index readback uses bounded snapshots rejects actual too-many-rows index bytes without consulting legacy index readers",
+              "status": "passed",
+              "durationMs": 142.40309999999954
+            },
+            {
+              "name": "default ArtifactPorts index readback uses bounded snapshots rejects actual inode-swap index bytes without consulting legacy index readers",
+              "status": "passed",
+              "durationMs": 106.78739999999925
+            },
+            {
+              "name": "default ArtifactPorts index readback uses bounded snapshots rejects an actual oversized management index before reading its contents",
+              "status": "passed",
+              "durationMs": 147.95750000000044
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "localPath": ".work/rrsi-index-readback-artifact-import-diagnostic.json",
+      "sha256": "71a33d93eafd5c5772fbc185711632e70fe22e7d0674c7311fcca6f886f1fcc2",
+      "meaning": "Independent checkout initially lacked CLI-local chalk cache link; 18-file attempt was stopped after the import failure and is not final evidence",
+      "success": false,
+      "passedTests": 0,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "suites": [
+        {
+          "path": ".work/r32/packages/cli/__tests__/unit/artifact-store.test.js",
+          "status": "failed",
+          "startTime": 1792289001950,
+          "endTime": 1792289001950,
+          "message": "Cannot find package 'chalk' imported from C:/code/chainlesschain/.work/r32/packages/cli/src/commands/artifacts.js",
+          "cases": []
+        }
+      ]
+    },
+    {
+      "localPath": ".work/rrsi-index-readback-artifact-import-fixed.json",
+      "sha256": "e2e3de70f78f6a2d5efbc5f0d6cbef63a34efff25199606738f1ca3a5ce52305",
+      "meaning": "Existing CLI-local third-party cache links restored module resolution; all original 15 ArtifactStore tests passed before restarting the complete run",
+      "success": true,
+      "passedTests": 15,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "suites": [
+        {
+          "path": ".work/r32/packages/cli/__tests__/unit/artifact-store.test.js",
+          "status": "passed",
+          "startTime": 1792289111652,
+          "endTime": 1792289113347.8494,
+          "cases": [
+            {
+              "name": "ArtifactStore publish copies the file and records metadata (no body in the entry)",
+              "status": "passed",
+              "durationMs": 131.3791000000001
+            },
+            {
+              "name": "ArtifactStore list filters by session; get finds by id; unknown kind → other",
+              "status": "passed",
+              "durationMs": 60.6273999999994
+            },
+            {
+              "name": "ArtifactStore survives a corrupt index row (per-row tolerance)",
+              "status": "passed",
+              "durationMs": 38.55969999999979
+            },
+            {
+              "name": "ArtifactStore serializes every index generation through one strict lock",
+              "status": "passed",
+              "durationMs": 25.96190000000024
+            },
+            {
+              "name": "ArtifactStore waits for a live cross-process index owner before publishing",
+              "status": "passed",
+              "durationMs": 977.3813999999984
+            },
+            {
+              "name": "ArtifactStore refuses ambiguous removal without deleting bytes or rewriting rows",
+              "status": "passed",
+              "durationMs": 33.261899999999514
+            },
+            {
+              "name": "ArtifactStore remove deletes the copy + row; cleanupExpired honors TTL via injected clock",
+              "status": "passed",
+              "durationMs": 79.04160000000047
+            },
+            {
+              "name": "ArtifactStore rejects missing sources, directories and oversized files",
+              "status": "passed",
+              "durationMs": 2.8641999999999825
+            },
+            {
+              "name": "cc artifacts command runners (injected store) list --json returns the entries; empty store exits 0",
+              "status": "passed",
+              "durationMs": 34.680099999999584
+            },
+            {
+              "name": "cc artifacts command runners (injected store) show remains metadata-only; unknown id exits 1",
+              "status": "passed",
+              "durationMs": 33.64769999999953
+            },
+            {
+              "name": "cc artifacts command runners (injected store) open/access records current-byte authority and exposes a verified log",
+              "status": "passed",
+              "durationMs": 62.11170000000129
+            },
+            {
+              "name": "cc artifacts command runners (injected store) remove + clean report outcomes",
+              "status": "passed",
+              "durationMs": 82.73099999999977
+            },
+            {
+              "name": "publish_artifact tool dispatch (HOME redirected) publishes a workspace file and returns metadata + hint",
+              "status": "passed",
+              "durationMs": 124.85789999999906
+            },
+            {
+              "name": "publish_artifact tool dispatch (HOME redirected) surfaces a clean error for a missing file",
+              "status": "passed",
+              "durationMs": 4.206499999998414
+            },
+            {
+              "name": "publish_artifact tool dispatch (HOME redirected) formatToolArgs renders kind + title",
+              "status": "passed",
+              "durationMs": 2.84939999999915
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "isolation": {
+    "worktree": ".work/r32",
+    "branch": "feature/rrsi-index-readback-isolated-20261018",
+    "baseCommit": "7111f3f78725c82c35927fd5bada0e0b1be5983c",
+    "copiedSourceAndTestFiles": [
+      "packages/cli/src/lib/evolution/evolution-artifact-ports.js",
+      "packages/cli/__tests__/unit/evolution-artifact-index-readback.test.js",
+      "packages/cli/__tests__/integration/rrsi-artifact-index-readback.test.js"
+    ],
+    "dependencyScope": "Full main checkout; local workspace aliases point into this checkout; external dependencies reuse the installed ancestor cache",
+    "localWorkspaceAliases": [
+      {
+        "packageName": "@chainlesschain/agent-protocol",
+        "relativeTarget": "packages/agent-protocol"
+      },
+      {
+        "packageName": "@chainlesschain/agent-sdk",
+        "relativeTarget": "packages/agent-sdk"
+      },
+      {
+        "packageName": "@chainlesschain/context-memory-kernel",
+        "relativeTarget": "packages/context-memory-kernel"
+      },
+      {
+        "packageName": "@chainlesschain/core-config",
+        "relativeTarget": "packages/core-config"
+      },
+      {
+        "packageName": "@chainlesschain/core-db",
+        "relativeTarget": "packages/core-db"
+      },
+      {
+        "packageName": "@chainlesschain/core-env",
+        "relativeTarget": "packages/core-env"
+      },
+      {
+        "packageName": "@chainlesschain/core-infra",
+        "relativeTarget": "packages/core-infra"
+      },
+      {
+        "packageName": "@chainlesschain/core-mtc",
+        "relativeTarget": "packages/core-mtc"
+      },
+      {
+        "packageName": "@chainlesschain/core-multisig",
+        "relativeTarget": "packages/core-multisig"
+      },
+      {
+        "packageName": "@chainlesschain/core-settlement",
+        "relativeTarget": "packages/core-settlement"
+      },
+      {
+        "packageName": "@chainlesschain/elicitation-schema",
+        "relativeTarget": "packages/elicitation-schema"
+      },
+      {
+        "packageName": "@chainlesschain/locales",
+        "relativeTarget": "packages/locales"
+      },
+      {
+        "packageName": "@chainlesschain/personal-data-hub",
+        "relativeTarget": "packages/personal-data-hub"
+      },
+      {
+        "packageName": "@chainlesschain/session-core",
+        "relativeTarget": "packages/session-core"
+      },
+      {
+        "packageName": "@chainlesschain/shared-logger",
+        "relativeTarget": "packages/shared-logger"
+      },
+      {
+        "packageName": "@chainlesschain/web-panel",
+        "relativeTarget": "packages/web-panel"
+      }
+    ],
+    "reason": "Other tasks modified unrelated root files and switched the shared root branch; no other-task changes copied, stashed, reset or rolled back",
+    "setupNote": "First longer worktree path failed checkout on Windows long paths and Git removed it; final short .work/r32 checkout completed with core.longpaths=true",
+    "cliLocalDependencyCache": {
+      "recordedAt": "2026-10-18T02:04:54.967Z",
+      "reason": "CLI-local installed dependencies supplement the shared root dependency cache; no installs/downloads or source changes",
+      "links": [
+        {
+          "package": "ajv",
+          "target": "packages/cli/node_modules/ajv"
+        },
+        {
+          "package": "argparse",
+          "target": "packages/cli/node_modules/argparse"
+        },
+        {
+          "package": "chalk",
+          "target": "packages/cli/node_modules/chalk"
+        },
+        {
+          "package": "js-yaml",
+          "target": "packages/cli/node_modules/js-yaml"
+        },
+        {
+          "package": "json-schema-traverse",
+          "target": "packages/cli/node_modules/json-schema-traverse"
+        },
+        {
+          "package": "sprintf-js",
+          "target": "packages/cli/node_modules/sprintf-js"
+        },
+        {
+          "package": "undici",
+          "target": "packages/cli/node_modules/undici"
+        }
+      ]
+    },
+    "incompleteFirstFullAttempt": "Stopped only the identified RRSI Vitest process tree after real chalk import failure; source/test bytes, ACL helper and all timeouts unchanged; final record comes from a subsequent fresh complete invocation"
+  },
+  "verification": {
+    "eslint": "Passed all three changed JS files with --max-warnings=0 using existing .work/gap-eslint.config.mjs (Node recommended rules) and cached ESLint; not a full-repository lint",
+    "prettier": "All three changed JS files passed; repository Markdown formatting verified separately",
+    "gitDiffCheck": "Passed for changed source and requested RRSI docs",
+    "astraReview": "Read-only production and test review found no blocker; restored final index/payload fd assertions added as suggested"
+  },
+  "reproduction": {
+    "cwd": "packages/cli",
+    "testFiles": [
+      "__tests__/integration/rrsi-artifact-byte-boundary.test.js",
+      "__tests__/integration/rrsi-artifact-directory-boundary.test.js",
+      "__tests__/integration/rrsi-artifact-index-boundary.test.js",
+      "__tests__/integration/rrsi-artifact-index-readback.test.js",
+      "__tests__/integration/rrsi-observed-text-controls.test.js",
+      "__tests__/integration/rrsi-tenant-index-anchor-history-process.test.js",
+      "__tests__/unit/artifact-store.test.js",
+      "__tests__/unit/bounded-artifact-file-read.test.js",
+      "__tests__/unit/delivery-evidence-command.test.js",
+      "__tests__/unit/evolution-artifact-byte-boundary.test.js",
+      "__tests__/unit/evolution-artifact-directory-boundary.test.js",
+      "__tests__/unit/evolution-artifact-identity.test.js",
+      "__tests__/unit/evolution-artifact-index-boundary.test.js",
+      "__tests__/unit/evolution-artifact-index-readback.test.js",
+      "__tests__/unit/evolution-artifact-ports.test.js",
+      "__tests__/unit/evolution-file-identity.test.js",
+      "__tests__/unit/rrsi-observed-text-index.test.js",
+      "__tests__/unit/rrsi-tenant-index-anchor-history.test.js"
+    ],
+    "command": "node ../../node_modules/vitest/vitest.mjs run <testFiles in this record> --maxWorkers=1 --reporter=default --reporter=json --outputFile=<report.json>",
+    "finalInvocationScope": "One complete 18-file run in the independent main-based checkout; no combining preliminary results into final counts"
+  },
+  "limits": {
+    "indexMaximumBytesPerSnapshot": 67108864,
+    "maximumIndexEntries": 10000,
+    "maximumIndexEntryBytes": 16384,
+    "descriptorChunkBytes": 65536,
+    "eofProbeBytesPerSnapshot": 1,
+    "identity": "Exact original repository list/get function identity captured before binding; inherited and own references to those exact functions use descriptor entries",
+    "customHooks": "Any distinct list/get function keeps original execution and exact snapshot/canonical cross-checks; wrapper calling super retains whole-index I/O outside the default bounds",
+    "actualReadControl": "Real ordinary publications create >64 KiB index; management, single resolver and batch use only descriptor reads, count actual returned bytes and EOF probes, close real fds",
+    "appendFault": "Actual same-inode append after the final pathname stat sample of the first paired management enumeration snapshot; standalone resolve admission snapshot precedes it; exact mismatch then stable retry succeeds",
+    "targetRowFault": "Actual original-index target title change after a successful retained-chunk payload fd read; precise changed-entry HOLD; restore original bytes and reauthenticate original journal/history",
+    "nativeAclBudgetsChanged": false,
+    "regressionBudgetsChanged": false,
+    "newIntegrationPreparationStageMs": 60000,
+    "newIntegrationBehaviorMs": 60000
+  },
+  "remainingBoundaries": [
+    "Default readback reuses bounded index snapshots; publication, ordinary ArtifactStore list/get/_readEntries and verifyIntegrity(id,bounds) keep original whole-index semantics",
+    "Arbitrary custom methods may perform their own I/O, block, mutate or ignore bounds; snapshots only detect covered observable mismatches",
+    "Each stable read window is checked separately; no atomic multi-read snapshot, complete ABA defense or artifact-lifetime inode pin",
+    "No complete v2/retention storage graph, independent installation endorsement, protected durable pin/highwater, tenant-wide producer authority or business-write admission",
+    "No real paid model experiment, statistical quality PASS, production promotion, Linux/macOS matrix or release performed"
+  ],
+  "fullPhysicalStorageGraphVerified": false,
+  "installationRootAuthorityVerified": false,
+  "routingPinVerified": false,
+  "tenantWideIndexAuthorityVerified": false,
+  "generationProvenanceVerified": false,
+  "grantsMutationOrPromotionAuthority": false,
+  "realRrsiAbcExperimentStatus": "NOT_RUN",
+  "statisticalQualityDecision": "HOLD",
+  "promotionDecision": "HOLD"
+}

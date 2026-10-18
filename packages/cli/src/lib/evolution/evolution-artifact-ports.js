@@ -23,6 +23,11 @@ import {
 } from "./evolution-ledger.js";
 
 const ARTIFACT_STORE_DIRECTORY_BOUNDARIES = new WeakMap();
+// Capture repository function identity before binding instance methods. Only
+// these exact defaults may skip legacy list/get I/O; overrides still execute
+// and must match the independently authenticated descriptor snapshots.
+const DEFAULT_STORE_LIST = ArtifactStore.prototype.list;
+const DEFAULT_STORE_GET = ArtifactStore.prototype.get;
 // Only the shared identity helper's directory opens use this adapter. A POSIX
 // directory/FIFO swap must fail before reaching a potentially blocking open.
 const INDEX_DIRECTORY_FS = Object.freeze({
@@ -1014,7 +1019,7 @@ function normalizeKeyId(value, label) {
   return value;
 }
 
-function captureMethod(port, method, label) {
+function captureDataMethod(port, method, label) {
   if (!port || (typeof port !== "object" && typeof port !== "function")) {
     throw new TypeError(`EvolutionArtifactPorts requires ${label}.${method}`);
   }
@@ -1029,11 +1034,15 @@ function captureMethod(port, method, label) {
           `EvolutionArtifactPorts requires ${label}.${method} as a data method`,
         );
       }
-      return Object.freeze(descriptor.value.bind(port));
+      return descriptor.value;
     }
     cursor = Object.getPrototypeOf(cursor);
   }
   throw new TypeError(`EvolutionArtifactPorts requires ${label}.${method}`);
+}
+
+function captureMethod(port, method, label) {
+  return Object.freeze(captureDataMethod(port, method, label).bind(port));
 }
 
 function captureArtifactStore(store) {
@@ -1049,19 +1058,21 @@ function captureArtifactStore(store) {
   }
   const resolvedDir = path.resolve(dir);
   const layout = establishStoreLayout(resolvedDir);
+  const list = captureDataMethod(store, "list", "artifactStore");
+  const get = captureDataMethod(store, "get", "artifactStore");
   const captured = Object.freeze({
     dir: resolvedDir,
-    get: captureMethod(store, "get", "artifactStore"),
+    get: get === DEFAULT_STORE_GET ? null : Object.freeze(get.bind(store)),
     layout,
-    list: captureMethod(store, "list", "artifactStore"),
+    list: list === DEFAULT_STORE_LIST ? null : Object.freeze(list.bind(store)),
     publishDataOnce: captureMethod(store, "publishDataOnce", "artifactStore"),
     storedPath: captureMethod(store, "storedPath", "artifactStore"),
     verifyIntegrity: captureMethod(store, "verifyIntegrity", "artifactStore"),
   });
   // ArtifactStore methods consult public instance fields such as `dir` on
   // every call. Freeze the trusted instance after capturing its methods so a
-  // later collaborator cannot redirect a bound get/list/integrity call to a
-  // different store root.
+  // later collaborator cannot redirect a bound custom get/list/integrity call
+  // to a different store root. Null index methods select trusted snapshots.
   Object.freeze(store);
   return captured;
 }
@@ -2164,7 +2175,7 @@ export class EvolutionArtifactPorts {
     let entries;
     try {
       entries = rejectPromise(
-        this.#store.list(),
+        this.#store.list ? this.#store.list() : trustedBefore.entries,
         "ArtifactStore.list",
         EVOLUTION_ARTIFACT_STORE_FAILED_CODE,
       );
@@ -2187,9 +2198,9 @@ export class EvolutionArtifactPorts {
         "ArtifactStore.list did not return an array",
       );
     }
-    // ArtifactStore currently materializes its whole JSONL index before this
-    // adapter can enforce a limit. Reject immediately after return; this is an
-    // explicit scalability boundary, not a claim of bounded store-side query.
+    // Default entries already came from a bounded descriptor read. Custom
+    // list hooks retain their original execution and exact cross-check; their
+    // own I/O cannot be constrained by this adapter's snapshot byte limit.
     if (entries.length > EVOLUTION_ARTIFACT_MAX_INDEX_ENTRIES) {
       throw artifactError(
         EVOLUTION_ARTIFACT_STORE_FAILED_CODE,
@@ -2280,7 +2291,7 @@ export class EvolutionArtifactPorts {
     let current;
     try {
       current = rejectPromise(
-        this.#store.get(artifactId),
+        this.#store.get ? this.#store.get(artifactId) : listed[0],
         "ArtifactStore.get",
         EVOLUTION_ARTIFACT_STORE_FAILED_CODE,
       );

@@ -7,7 +7,7 @@ import {
   withEvolutionDirectoryFileIdentity,
   withEvolutionFileIdentity,
 } from "./evolution-file-identity.js";
-import { sameFileStatIdentity } from "../secure-file-identity.js";
+import { artifactPhysicalIdentity } from "./evolution-artifact-identity.js";
 import { getHomeDir } from "../paths.js";
 import { ensurePrivateDirectory, ensurePrivateFile } from "../secure-fs.js";
 import { withFileLock } from "../with-file-lock.js";
@@ -59,6 +59,7 @@ export const EVOLUTION_LEDGER_V2_MIGRATION_INTENT =
 export const EVOLUTION_LEDGER_V2_CUTOVER_COMPLETED =
   "evolution.ledger-v2.cutover-completed";
 const MIGRATION_SOURCES = new WeakMap();
+const DIRECTORY_BOUNDARIES = new WeakMap();
 
 const IDENTITY_DOMAIN = "chainlesschain.evolution-ledger-identity/v1\0";
 const EVENT_DOMAIN = "chainlesschain.evolution-event/v2\0";
@@ -557,7 +558,7 @@ function isUnsafeAsyncResult(value) {
   const descriptor = Object.getOwnPropertyDescriptor(value, "then");
   return Boolean(
     descriptor &&
-    (!("value" in descriptor) || typeof descriptor.value === "function"),
+      (!("value" in descriptor) || typeof descriptor.value === "function"),
   );
 }
 
@@ -1656,6 +1657,75 @@ function fileFingerprint(stat) {
   ].join(":");
 }
 
+const PHYSICAL_FILE_FIELDS = Object.freeze([
+  "dev",
+  "ino",
+  "mode",
+  "uid",
+  "gid",
+  "nlink",
+  "size",
+  "mtimeNs",
+  "ctimeNs",
+]);
+const PHYSICAL_DIRECTORY_FIELDS = Object.freeze([
+  "dev",
+  "ino",
+  "mode",
+  "uid",
+  "gid",
+]);
+const physicalBirthtime = (stat) => artifactPhysicalIdentity(stat).birthtimeMs;
+const samePhysicalFile = (left, right) =>
+  PHYSICAL_FILE_FIELDS.every((field) => left[field] === right[field]) &&
+  physicalBirthtime(left) === physicalBirthtime(right);
+const samePhysicalOwner = (left, right) =>
+  left.uid === right.uid &&
+  left.gid === right.gid &&
+  physicalBirthtime(left) === physicalBirthtime(right);
+
+function assertPhysicalFile(stat, maximum, label) {
+  if (PHYSICAL_FILE_FIELDS.some((field) => typeof stat?.[field] !== "bigint")) {
+    throw ledgerError(
+      "CC_EVOLUTION_LEDGER_CORRUPT",
+      `${label} requires full-precision stat fields`,
+    );
+  }
+  if (
+    !stat.isFile() ||
+    stat.isSymbolicLink() ||
+    stat.nlink !== 1n ||
+    stat.size < 2n ||
+    stat.size > BigInt(maximum)
+  ) {
+    throw ledgerError(
+      "CC_EVOLUTION_LEDGER_CORRUPT",
+      `${label} must be a bounded, single-link, non-symlink file`,
+    );
+  }
+}
+
+function physicalDirectoryIdentity(stat) {
+  if (
+    PHYSICAL_DIRECTORY_FIELDS.some(
+      (field) => typeof stat?.[field] !== "bigint",
+    ) ||
+    !stat.isDirectory() ||
+    stat.isSymbolicLink()
+  ) {
+    throw ledgerError(
+      "CC_EVOLUTION_LEDGER_STORE_UNSAFE",
+      "ledger boundary requires a full-precision directory identity",
+    );
+  }
+  return Object.freeze({
+    ...Object.fromEntries(
+      PHYSICAL_DIRECTORY_FIELDS.map((field) => [field, stat[field]]),
+    ),
+    birthtimeMs: physicalBirthtime(stat),
+  });
+}
+
 function storeMarkerEntryDigest(storeMarkerFile) {
   return domainDigest(STORE_MARKER_ENTRY_DOMAIN, {
     contentDigest: storeMarkerFile.contentDigest,
@@ -1831,9 +1901,11 @@ function defaultAuthorityRoot(rootDir) {
 export class EvolutionLedger {
   #artifactResolver;
   #boundaries;
+  #physicalBoundaries;
   #clock;
   #crashHook;
   #fs;
+  #identityFs;
   #lock;
   #lockClock;
   #lockTimeoutMs;
@@ -1900,6 +1972,17 @@ export class EvolutionLedger {
     }
 
     this.#fs = captureFs(fsImpl);
+    // Identity helpers only open parent/volume directories through this port.
+    this.#identityFs = Object.freeze({
+      ...this.#fs,
+      openSync: (target, flags) =>
+        this.#fs.openSync(
+          target,
+          flags |
+            (this.#fs.constants.O_NONBLOCK || 0) |
+            (this.#fs.constants.O_DIRECTORY || 0),
+        ),
+    });
     this.#trust = normalizeTrust(trust);
     this.#witnessTrust = normalizeTrust(witnessTrust);
     this.#witness = captureWitness(witness);
@@ -1984,6 +2067,23 @@ export class EvolutionLedger {
           STORE_MARKER_FILE_NAME,
         ),
       });
+      // These per-instance physical pins do not alter the persisted Number
+      // directory identities used by the original store-binding signature.
+      this.#physicalBoundaries = Object.freeze(
+        [
+          this.#paths.rootDir,
+          this.#paths.authorityRootDir,
+          this.#paths.segmentDir,
+          this.#paths.anchorDir,
+        ].map((directory) =>
+          Object.freeze({
+            directory,
+            identity: physicalDirectoryIdentity(
+              this.#fs.lstatSync(directory, { bigint: true }),
+            ),
+          }),
+        ),
+      );
       this.#boundaries = deepFreeze(
         [
           this.#paths.rootDir,
@@ -2039,6 +2139,53 @@ export class EvolutionLedger {
           this.#appendEvents(inputs, options, true, true, true),
       }),
     );
+    // Project the original constructor pins, never a fresh claim of the paths
+    // first supplied to a later caller. Mutable directory metadata is excluded.
+    const directoryBoundary = deepFreeze({
+      schema: "chainlesschain.evolution-ledger-directory-boundary/v1",
+      scope: "source-journal-four-directories",
+      directories: this.#physicalBoundaries.map(
+        ({ directory, identity }, index) => ({
+          role: ["events", "authority", "segments", "anchors"][index],
+          path: directory,
+          identity: {
+            ...Object.fromEntries(
+              PHYSICAL_DIRECTORY_FIELDS.map((field) => [
+                field,
+                String(identity[field]),
+              ]),
+            ),
+            birthtimeMs: identity.birthtimeMs,
+          },
+        }),
+      ),
+      journalFileIdentityVerified: false,
+      journalContentsVerified: false,
+      witnessDirectoriesVerified: false,
+      retentionStorageVerified: false,
+      fullPhysicalStorageGraphVerified: false,
+      rootAuthorityVerified: false,
+      crossProcessRollbackProtectionVerified: false,
+      tenantWideIndexAuthorityVerified: false,
+      grantsMutationOrPromotionAuthority: false,
+    });
+    const recheck = (...args) => {
+      if (args.length)
+        throw new TypeError(
+          "ledger directory boundary takes no replacement context",
+        );
+      this.#assertBoundaries();
+      return directoryBoundary;
+    };
+    recheck();
+    if (new.target === EvolutionLedger)
+      DIRECTORY_BOUNDARIES.set(
+        this,
+        Object.freeze({
+          descriptor: directoryBoundary,
+          recheck: Object.freeze(recheck),
+        }),
+      );
     Object.freeze(this);
   }
 
@@ -2071,11 +2218,11 @@ export class EvolutionLedger {
   }
 
   #assertBoundaries() {
-    for (const boundary of this.#boundaries) {
+    for (const boundary of this.#physicalBoundaries) {
       let stat;
       let canonical;
       try {
-        stat = this.#fs.lstatSync(boundary.directory);
+        stat = this.#fs.lstatSync(boundary.directory, { bigint: true });
         canonical = realpath(this.#fs, boundary.directory);
       } catch (cause) {
         if (cause instanceof EvolutionLedgerError) throw cause;
@@ -2085,10 +2232,12 @@ export class EvolutionLedger {
           { cause },
         );
       }
+      const identity = physicalDirectoryIdentity(stat);
       if (
-        !stat.isDirectory() ||
-        stat.isSymbolicLink() ||
-        entryIdentity(stat) !== boundary.identity ||
+        !PHYSICAL_DIRECTORY_FIELDS.every(
+          (field) => identity[field] === boundary.identity[field],
+        ) ||
+        identity.birthtimeMs !== boundary.identity.birthtimeMs ||
         !samePath(canonical, boundary.directory)
       ) {
         throw ledgerError(
@@ -2805,24 +2954,27 @@ export class EvolutionLedger {
   }
 
   #readCanonicalFile(filePath, maximum, label, { allowMissing = false } = {}) {
-    return withEvolutionFileIdentity(this.#fs, filePath, (samePathHandle) =>
-      this.#readCanonicalFileWithIdentity(
-        filePath,
-        maximum,
-        label,
-        allowMissing,
-        samePathHandle,
-      ),
+    return withEvolutionFileIdentity(
+      this.#identityFs,
+      filePath,
+      (samePathHandle) =>
+        this.#readCanonicalFileWithIdentity(
+          filePath,
+          maximum,
+          label,
+          allowMissing,
+          samePathHandle,
+        ),
     );
   }
 
-  #readCanonicalFileWithIdentity(
+  #readPhysicalFileWithIdentity(
     filePath,
     maximum,
     label,
     allowMissing,
     samePathHandle,
-    { expectedBytes = null, trustedParentPath = null } = {},
+    { trustedParentPath = null } = {},
   ) {
     const heldParent =
       trustedParentPath !== null &&
@@ -2830,9 +2982,12 @@ export class EvolutionLedger {
     if (!heldParent) this.#assertBoundaries();
     let before;
     try {
-      before = this.#fs.lstatSync(filePath);
+      before = this.#fs.lstatSync(filePath, { bigint: true });
     } catch (cause) {
-      if (allowMissing && cause?.code === "ENOENT") return null;
+      if (allowMissing && cause?.code === "ENOENT") {
+        if (!heldParent) this.#assertBoundaries();
+        return null;
+      }
       throw ledgerError(
         cause?.code === "ENOENT"
           ? "CC_EVOLUTION_LEDGER_CORRUPT"
@@ -2841,31 +2996,36 @@ export class EvolutionLedger {
         { cause },
       );
     }
-    if (
-      !before.isFile() ||
-      before.isSymbolicLink() ||
-      before.nlink !== 1 ||
-      before.size < 2 ||
-      before.size > maximum ||
-      (!heldParent && !samePath(realpath(this.#fs, filePath), filePath))
-    ) {
-      throw ledgerError(
-        "CC_EVOLUTION_LEDGER_CORRUPT",
-        `${label} must be a bounded, single-link, non-symlink file`,
-      );
-    }
+    assertPhysicalFile(before, maximum, label);
     let descriptor = null;
     try {
+      // Preserve the exact legacy Number fingerprint already signed into the
+      // store marker binding. It is sampled inside a separate BigInt window and
+      // is never used as the authority for a physical file/handle comparison.
+      const legacyBefore = this.#fs.lstatSync(filePath);
+      const sampled = this.#fs.lstatSync(filePath, { bigint: true });
+      assertPhysicalFile(sampled, maximum, label);
+      if (
+        !samePhysicalFile(before, sampled) ||
+        (!heldParent && !samePath(realpath(this.#fs, filePath), filePath))
+      ) {
+        throw ledgerError(
+          "CC_EVOLUTION_LEDGER_CORRUPT",
+          `${label} changed while its fingerprint was sampled`,
+        );
+      }
+      const fingerprint = fileFingerprint(legacyBefore);
       descriptor = this.#fs.openSync(
         filePath,
-        this.#fs.constants.O_RDONLY | (this.#fs.constants.O_NOFOLLOW || 0),
+        this.#fs.constants.O_RDONLY |
+          (this.#fs.constants.O_NOFOLLOW || 0) |
+          (this.#fs.constants.O_NONBLOCK || 0),
       );
-      const opened = this.#fs.fstatSync(descriptor);
+      const opened = this.#fs.fstatSync(descriptor, { bigint: true });
+      assertPhysicalFile(opened, maximum, label);
       if (
-        !opened.isFile() ||
-        opened.nlink !== 1 ||
         !samePathHandle(before, opened) ||
-        opened.size !== before.size
+        !samePhysicalOwner(before, opened)
       ) {
         throw ledgerError(
           "CC_EVOLUTION_LEDGER_CORRUPT",
@@ -2877,7 +3037,7 @@ export class EvolutionLedger {
         bytes = readBoundedDescriptor(
           this.#fs,
           descriptor,
-          opened.size,
+          Number(opened.size),
           maximum,
         );
       } catch (cause) {
@@ -2887,76 +3047,106 @@ export class EvolutionLedger {
           { cause },
         );
       }
-      const after = this.#fs.fstatSync(descriptor);
+      const after = this.#fs.fstatSync(descriptor, { bigint: true });
+      const legacyAfter = this.#fs.lstatSync(filePath);
+      const afterPath = this.#fs.lstatSync(filePath, { bigint: true });
+      assertPhysicalFile(after, maximum, label);
+      assertPhysicalFile(afterPath, maximum, label);
       if (
-        after.nlink !== 1 ||
-        !sameFileStatIdentity(opened, after) ||
-        after.size !== opened.size ||
-        bytes.length !== opened.size
+        !samePhysicalFile(opened, after) ||
+        bytes.length !== Number(opened.size)
       ) {
         throw ledgerError(
           "CC_EVOLUTION_LEDGER_CORRUPT",
           `${label} changed while it was read`,
         );
       }
-      if (expectedBytes !== null) {
-        if (!Buffer.isBuffer(expectedBytes) || !bytes.equals(expectedBytes)) {
-          throw ledgerError(
-            "CC_EVOLUTION_LEDGER_CORRUPT",
-            `${label} differs from its signed snapshot bytes`,
-          );
-        }
-        return {
-          bytes,
-          contentDigest: sha256(bytes),
-          fingerprint: fileFingerprint(before),
-          record: null,
-        };
-      }
-      let text;
-      try {
-        text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-      } catch (cause) {
+      if (
+        !samePhysicalFile(before, afterPath) ||
+        !samePathHandle(afterPath, after) ||
+        !samePhysicalOwner(afterPath, after) ||
+        fileFingerprint(legacyAfter) !== fingerprint ||
+        (!heldParent && !samePath(realpath(this.#fs, filePath), filePath))
+      ) {
         throw ledgerError(
           "CC_EVOLUTION_LEDGER_CORRUPT",
-          `${label} is not valid UTF-8`,
-          { cause },
+          `${label} pathname changed during bounded read`,
         );
       }
-      if (!text.endsWith("\n") || text.slice(0, -1).includes("\n")) {
-        throw ledgerError(
-          "CC_EVOLUTION_LEDGER_CORRUPT",
-          `${label} is truncated or not a single canonical record`,
-        );
-      }
-      let record;
-      try {
-        record = JSON.parse(text.slice(0, -1));
-      } catch (cause) {
-        throw ledgerError(
-          "CC_EVOLUTION_LEDGER_CORRUPT",
-          `${label} contains invalid JSON`,
-          { cause },
-        );
-      }
-      if (`${canonicalJson(record)}\n` !== text) {
-        throw ledgerError(
-          "CC_EVOLUTION_LEDGER_CORRUPT",
-          `${label} bytes are not canonical`,
-        );
-      }
-      return {
-        bytes,
-        contentDigest: sha256(bytes),
-        // Cache fingerprints belong to the pathname API. On affected Windows
-        // runtimes the handle API has a different device projection.
-        fingerprint: fileFingerprint(before),
-        record,
-      };
+      return { bytes, fingerprint };
+    } catch (cause) {
+      if (cause instanceof EvolutionLedgerError) throw cause;
+      throw ledgerError(
+        "CC_EVOLUTION_LEDGER_CORRUPT",
+        `${label} changed during bounded read`,
+        { cause },
+      );
     } finally {
       if (descriptor !== null) this.#fs.closeSync(descriptor);
       if (!heldParent) this.#assertBoundaries();
     }
+  }
+
+  #readCanonicalFileWithIdentity(
+    filePath,
+    maximum,
+    label,
+    allowMissing,
+    samePathHandle,
+    { expectedBytes = null, trustedParentPath = null } = {},
+  ) {
+    const file = this.#readPhysicalFileWithIdentity(
+      filePath,
+      maximum,
+      label,
+      allowMissing,
+      samePathHandle,
+      { trustedParentPath },
+    );
+    if (file === null) return null;
+    const { bytes, fingerprint } = file;
+    if (expectedBytes !== null) {
+      if (!Buffer.isBuffer(expectedBytes) || !bytes.equals(expectedBytes)) {
+        throw ledgerError(
+          "CC_EVOLUTION_LEDGER_CORRUPT",
+          `${label} differs from its signed snapshot bytes`,
+        );
+      }
+      return { bytes, contentDigest: sha256(bytes), fingerprint, record: null };
+    }
+    let text;
+    try {
+      text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+    } catch (cause) {
+      throw ledgerError(
+        "CC_EVOLUTION_LEDGER_CORRUPT",
+        `${label} is not valid UTF-8`,
+        { cause },
+      );
+    }
+    if (!text.endsWith("\n") || text.slice(0, -1).includes("\n")) {
+      throw ledgerError(
+        "CC_EVOLUTION_LEDGER_CORRUPT",
+        `${label} is truncated or not a single canonical record`,
+      );
+    }
+    let record;
+    try {
+      record = JSON.parse(text.slice(0, -1));
+    } catch (cause) {
+      throw ledgerError(
+        "CC_EVOLUTION_LEDGER_CORRUPT",
+        `${label} contains invalid JSON`,
+        { cause },
+      );
+    }
+    if (`${canonicalJson(record)}\n` !== text) {
+      throw ledgerError(
+        "CC_EVOLUTION_LEDGER_CORRUPT",
+        `${label} bytes are not canonical`,
+      );
+    }
+    return { bytes, contentDigest: sha256(bytes), fingerprint, record };
   }
 
   #writeImmutable(filePath, bytes, label, onPublished = null) {
@@ -3437,8 +3627,15 @@ export class EvolutionLedger {
 
   #matchesCachedFile(filePath, expected) {
     try {
-      return withEvolutionFileIdentity(this.#fs, filePath, (samePathHandle) =>
-        this.#matchesCachedFileWithIdentity(filePath, expected, samePathHandle),
+      return withEvolutionFileIdentity(
+        this.#identityFs,
+        filePath,
+        (samePathHandle) =>
+          this.#matchesCachedFileWithIdentity(
+            filePath,
+            expected,
+            samePathHandle,
+          ),
       );
     } catch {
       return false;
@@ -3446,50 +3643,17 @@ export class EvolutionLedger {
   }
 
   #matchesCachedFileWithIdentity(filePath, expected, samePathHandle) {
-    let descriptor = null;
-    try {
-      const before = this.#fs.lstatSync(filePath);
-      if (
-        !before.isFile() ||
-        before.isSymbolicLink() ||
-        before.nlink !== 1 ||
-        fileFingerprint(before) !== expected.fingerprint ||
-        !samePath(realpath(this.#fs, filePath), filePath)
-      ) {
-        return false;
-      }
-      descriptor = this.#fs.openSync(
-        filePath,
-        this.#fs.constants.O_RDONLY | (this.#fs.constants.O_NOFOLLOW || 0),
-      );
-      const opened = this.#fs.fstatSync(descriptor);
-      if (
-        !opened.isFile() ||
-        opened.nlink !== 1 ||
-        !samePathHandle(before, opened) ||
-        opened.size !== before.size
-      ) {
-        return false;
-      }
-      const bytes = readBoundedDescriptor(
-        this.#fs,
-        descriptor,
-        opened.size,
-        EVOLUTION_LEDGER_MAX_EVENT_BYTES,
-      );
-      const after = this.#fs.fstatSync(descriptor);
-      return (
-        after.nlink === 1 &&
-        entryIdentity(after) === entryIdentity(opened) &&
-        samePathHandle(before, after) &&
-        bytes.length === opened.size &&
-        sha256(bytes) === expected.contentDigest
-      );
-    } catch {
-      return false;
-    } finally {
-      if (descriptor !== null) this.#fs.closeSync(descriptor);
-    }
+    const file = this.#readPhysicalFileWithIdentity(
+      filePath,
+      EVOLUTION_LEDGER_MAX_EVENT_BYTES,
+      "cached ledger file",
+      false,
+      samePathHandle,
+    );
+    return (
+      file.fingerprint === expected.fingerprint &&
+      sha256(file.bytes) === expected.contentDigest
+    );
   }
 
   #snapshotFileRecords(values, label, expectedNames) {
@@ -3674,7 +3838,7 @@ export class EvolutionLedger {
     const anchorFingerprints = {};
     const segmentFingerprints = {};
     withEvolutionDirectoryFileIdentity(
-      this.#fs,
+      this.#identityFs,
       this.#paths.anchorDir,
       (samePathHandle, _sameStableHandle, { parentPath }) => {
         for (let index = 0; index < anchorFiles.length; index += 1) {
@@ -3712,7 +3876,7 @@ export class EvolutionLedger {
       },
     );
     withEvolutionDirectoryFileIdentity(
-      this.#fs,
+      this.#identityFs,
       this.#paths.segmentDir,
       (samePathHandle, _sameStableHandle, { parentPath }) => {
         for (let index = 0; index < segmentFiles.length; index += 1) {
@@ -3881,6 +4045,7 @@ export class EvolutionLedger {
     anchorFingerprints,
     segmentFingerprints,
   ) {
+    this.#assertBoundaries();
     const byEventDigest = new Map();
     const byEventId = new Map();
     for (const event of state.events) {
@@ -5263,6 +5428,25 @@ export function captureEvolutionLedgerMigrationSource(ledger) {
       "a constructed EvolutionLedger migration source is required",
     );
   return source;
+}
+
+/** Original source journal directories only; no file inventory or installer grant. */
+export function captureEvolutionLedgerDirectoryBoundary(ledger) {
+  if (arguments.length !== 1)
+    throw new TypeError(
+      "ledger directory boundary capture takes exactly one original ledger",
+    );
+  if (
+    utilTypes.isProxy(ledger) ||
+    !DIRECTORY_BOUNDARIES.has(ledger) ||
+    Object.getPrototypeOf(ledger) !== EvolutionLedger.prototype
+  )
+    throw new TypeError(
+      "a genuine EvolutionLedger directory boundary is required",
+    );
+  const boundary = DIRECTORY_BOUNDARIES.get(ledger);
+  boundary.recheck();
+  return boundary;
 }
 
 function artifactRefsForAudit(input) {

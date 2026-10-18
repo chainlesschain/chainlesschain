@@ -1,5 +1,4 @@
 import path from "node:path";
-import { ensurePrivateDirectory } from "../secure-fs.js";
 
 export const EVOLUTION_SEGMENTED_WITNESS_SCHEMA =
   "chainlesschain.evolution-file-witness-store/v2";
@@ -43,6 +42,8 @@ function matchesDiscard(entry, snapshot) {
 export function createEvolutionWitnessSegments({
   filePath,
   fsImpl,
+  checkDirectory,
+  prepareDirectory,
   readBytes,
   writeBytes,
   confirmDurable,
@@ -54,7 +55,6 @@ export function createEvolutionWitnessSegments({
   maximumHistoryBytes,
 }) {
   const segmentDirectory = `${filePath}.segments-v2`;
-  const secureOptions = { deps: { fs: fsImpl }, failIfUnavailable: true };
   const metadata = new WeakMap();
   const cache = new Map();
   let cacheBytes = 0;
@@ -63,14 +63,6 @@ export function createEvolutionWitnessSegments({
     if (!DIGEST.test(digest || ""))
       throw new Error("witness segment digest is invalid");
     return path.join(segmentDirectory, `${digest.slice(7)}.json`);
-  };
-
-  const assertDirectory = () => {
-    ensurePrivateDirectory(segmentDirectory, secureOptions);
-    const observed = fsImpl.lstatSync(segmentDirectory);
-    if (!observed.isDirectory() || observed.isSymbolicLink()) {
-      throw new Error("witness segment directory is invalid");
-    }
   };
 
   const validateSegment = (segment, previous, trustEpoch) => {
@@ -150,7 +142,7 @@ export function createEvolutionWitnessSegments({
     ) {
       throw new Error("segmented witness store capacity or schema is invalid");
     }
-    assertDirectory();
+    checkDirectory();
     const seen = new Set();
     const observations = {
       discards: (options.discards || [])
@@ -254,7 +246,7 @@ export function createEvolutionWitnessSegments({
     ) {
       throw new Error("witness history exceeds its configured record capacity");
     }
-    assertDirectory();
+    prepareDirectory();
     let history = store.history;
     let discardedAnchors = store.discardedAnchors;
     let segmentBytes = existing?.segmentBytes ?? 0;
@@ -282,7 +274,14 @@ export function createEvolutionWitnessSegments({
       }
       const digest = hash(bytes);
       const destination = segmentPath(digest);
-      if (fsImpl.existsSync(destination)) {
+      let exists = false;
+      try {
+        fsImpl.lstatSync(destination, { bigint: true });
+        exists = true;
+      } catch (cause) {
+        if (cause?.code !== "ENOENT") throw cause;
+      }
+      if (exists) {
         if (!readBytes(destination).equals(bytes)) {
           throw new Error(
             "existing witness segment differs from its content address",

@@ -5,7 +5,10 @@ import { types as utilTypes } from "node:util";
 
 import { ensurePrivateDirectory, ensurePrivateFile } from "../secure-fs.js";
 import { withFileLock } from "../with-file-lock.js";
-import { readBoundedDescriptor } from "./bounded-descriptor-read.js";
+import {
+  createEvolutionManifestStateReader,
+  captureEvolutionManifestStateReaderDirectoryBoundary,
+} from "./evolution-manifest-state-reader.js";
 import { EVOLUTION_LEDGER_MANIFEST_HEAD_CAS_RESULT_SCHEMA } from "./evolution-ledger-manifest-head-store.js";
 
 export const EVOLUTION_LEDGER_FILE_MANIFEST_HEAD_BACKEND_SCHEMA =
@@ -15,6 +18,7 @@ const STATE_SCHEMA =
   "chainlesschain.evolution-ledger-file-manifest-head-state/v2";
 const STATE_KEYS = new Set(["head", "schema"]);
 const DEFAULT_MAXIMUM_BYTES = 256 * 1024;
+const DIRECTORY_BOUNDARIES = new WeakMap();
 
 function exactRecord(value, keys, label) {
   if (
@@ -99,43 +103,13 @@ export function createEvolutionLedgerFileManifestHeadBackend({
     if (crashHook !== null) crashHook(phase, Object.freeze(details));
   };
 
-  const readBytes = () => {
-    if (!fsImpl.existsSync(file)) return null;
-    const stat = fsImpl.lstatSync(file);
-    if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1) {
-      throw new Error("manifest head file identity is invalid");
-    }
-    if (stat.size > maximumBytes)
-      throw new Error("manifest head exceeds maximumBytes");
-    let descriptor;
-    try {
-      descriptor = fsImpl.openSync(
-        file,
-        fsImpl.constants.O_RDONLY | (fsImpl.constants.O_NOFOLLOW || 0),
-      );
-      const opened = fsImpl.fstatSync(descriptor);
-      if (!opened.isFile() || opened.nlink !== 1 || opened.size !== stat.size) {
-        throw new Error("manifest head changed while opening");
-      }
-      const bytes = readBoundedDescriptor(
-        fsImpl,
-        descriptor,
-        stat.size,
-        maximumBytes,
-      );
-      const after = fsImpl.lstatSync(file);
-      if (
-        after.isSymbolicLink() ||
-        after.nlink !== 1 ||
-        after.size !== stat.size
-      ) {
-        throw new Error("manifest head changed while reading");
-      }
-      return bytes;
-    } finally {
-      if (descriptor !== undefined) fsImpl.closeSync(descriptor);
-    }
-  };
+  const stateReader = createEvolutionManifestStateReader({
+    file,
+    fsImpl,
+    maximumBytes,
+    label: "manifest head",
+  });
+  const readBytes = stateReader.read;
 
   const readState = () => {
     const bytes = readBytes();
@@ -205,7 +179,7 @@ export function createEvolutionLedgerFileManifestHeadBackend({
     }
   };
 
-  return Object.freeze({
+  const backend = Object.freeze({
     descriptor: Object.freeze({
       file,
       localOnly: true,
@@ -215,6 +189,7 @@ export function createEvolutionLedgerFileManifestHeadBackend({
       return structuredClone(readState().head);
     },
     compareAndSet(request) {
+      stateReader.recheck();
       return lock(
         file,
         () => {
@@ -239,4 +214,22 @@ export function createEvolutionLedgerFileManifestHeadBackend({
       );
     },
   });
+  DIRECTORY_BOUNDARIES.set(
+    backend,
+    captureEvolutionManifestStateReaderDirectoryBoundary(stateReader),
+  );
+  return backend;
+}
+
+/** Original local head directory only; structural wrappers are not owners. */
+export function captureEvolutionLedgerFileManifestHeadDirectoryBoundary(
+  backend,
+) {
+  if (arguments.length !== 1)
+    throw new TypeError("head directory capture takes one original backend");
+  const boundary = DIRECTORY_BOUNDARIES.get(backend);
+  if (!boundary)
+    throw new TypeError("an original file manifest head backend is required");
+  boundary.recheck();
+  return boundary;
 }
