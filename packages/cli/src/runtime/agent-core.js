@@ -49,6 +49,7 @@ import { ReadFileLoopGuard } from "../lib/read-file-loop-guard.js";
 import { gitToolInputError } from "../lib/git-tool-input.js";
 import { shellOutputPage, shellOutputPreview } from "../lib/shell-output.js";
 import { DIAGNOSTIC_WORKFLOW_GUIDANCE } from "../lib/diagnostic-workflow.js";
+import { CODING_TASK_QUALITY_GUIDANCE } from "../lib/coding-task-guidance.js";
 import { RemoteReadLoopGuard } from "../lib/remote-read-loop-guard.js";
 import {
   isPrActionRequest,
@@ -1167,6 +1168,8 @@ export function getBaseSystemPrompt(cwd) {
 You have access to tools that let you read files, write files, edit files, run shell commands, and search the codebase. When the user asks you to do something, USE THE TOOLS to actually do it — don't just describe what should be done.
 
 Key behaviors:
+${CODING_TASK_QUALITY_GUIDANCE}
+
 - A new user message may arrive before the previous task finishes. Incorporate corrections and added requests while preserving unfinished authorized work, unless the user cancels or replaces it. Use the completed tool results already in history; do not restart the investigation.
 - When asked to modify code, read the file first, then edit it
 - When asked to create something, use write_file to create it
@@ -4927,19 +4930,63 @@ export async function _withPostEditDiagnostics(
   cwd,
   additionalDirectories,
   managedCheckpoint = false,
+  writtenContent = null,
 ) {
+  // Parsing the bytes we just wrote is safe even when starting a language
+  // server is forbidden. Feed definite local import mistakes back in the same
+  // tool result; a successful write still means persistence, not test success.
+  let enriched = result;
+  if (
+    result?.success === true &&
+    typeof writtenContent === "string" &&
+    /\.(?:js|mjs|cjs)$/i.test(filePath) &&
+    process.env.CC_EDIT_DIAGNOSTICS !== "0"
+  ) {
+    try {
+      const root = pickRootForFile(
+        path.resolve(cwd || process.cwd(), filePath),
+        workspaceRootsFor(cwd, additionalDirectories),
+      );
+      if (root) {
+        const { collectFileImportDiagnostics } = await import(
+          "../lib/file-import-diagnostics.js"
+        );
+        const checked = collectFileImportDiagnostics({
+          filePath,
+          content: writtenContent,
+          workspaceRoot: root,
+        });
+        if (checked.diagnostics.length) {
+          enriched = {
+            ...result,
+            newDiagnostics: [
+              ...(result.newDiagnostics || []),
+              ...checked.diagnostics.slice(0, 8),
+            ],
+          };
+        }
+      }
+    } catch {
+      // Optional diagnostics must not turn a persisted edit into a failed one.
+    }
+  }
   // A cold language server is a long-lived child process. Starting one inside
   // a managed workspace transaction would keep a writer bound past tool
   // settlement and make commit/rollback unverifiable. Managed edits therefore
   // skip this best-effort enrichment; callers can request diagnostics after the
   // checkpoint has sealed.
-  if (managedCheckpoint) return result;
+  if (managedCheckpoint) return enriched;
   const newDiagnostics = await _postEditDiagnostics(
     filePath,
     cwd,
     additionalDirectories,
   );
-  return newDiagnostics ? { ...result, newDiagnostics } : result;
+  return newDiagnostics
+    ? {
+        ...enriched,
+        newDiagnostics: [...(enriched.newDiagnostics || []), ...newDiagnostics],
+      }
+    : enriched;
 }
 
 // ─── Lazy subtree instruction injection (large-monorepo lever) ─────────────
@@ -5791,6 +5838,7 @@ async function executeToolInner(
             cwd,
             additionalDirectories,
             managedCheckpoint || hermeticExecution,
+            args.content,
           ),
           filePath,
           cwd,
@@ -5992,6 +6040,7 @@ async function executeToolInner(
             cwd,
             additionalDirectories,
             managedCheckpoint || hermeticExecution,
+            newContent,
           ),
           filePath,
           cwd,
@@ -6094,6 +6143,7 @@ async function executeToolInner(
             cwd,
             additionalDirectories,
             managedCheckpoint || hermeticExecution,
+            result.content,
           ),
           filePath,
           cwd,

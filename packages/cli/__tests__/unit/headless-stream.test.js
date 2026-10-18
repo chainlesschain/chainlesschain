@@ -227,6 +227,37 @@ describe("runAgentHeadlessStream", () => {
     yield jsonObjs.map((o) => JSON.stringify(o)).join("\n") + "\n";
   }
 
+  it("preserves stream-input failure and adds only safe transport details", async () => {
+    const agentLoop = vi.fn(async function* () {
+      throw new TypeError("fetch failed", {
+        cause: Object.assign(new Error("private endpoint"), {
+          code: "ECONNREFUSED",
+        }),
+      });
+    });
+    const deps = baseDeps({ input: input({ text: "go" }), agentLoop });
+    const outcome = await runAgentHeadlessStream(
+      { expandFileRefs: false, useRegisteredMcp: false },
+      deps,
+    );
+    expect(outcome).toEqual({ exitCode: 1, turns: 1 });
+    expect(agentLoop).toHaveBeenCalledTimes(1);
+    const terminal = parseEmitted(deps._lines).find(
+      (row) => row.type === "result" && row.is_error,
+    );
+    expect(terminal).toMatchObject({
+      subtype: "error",
+      error: "fetch failed",
+      turn: 1,
+      error_details: {
+        kind: "transport",
+        name: "TypeError",
+        causeCode: "ECONNREFUSED",
+      },
+    });
+    expect(JSON.stringify(terminal)).not.toContain("private endpoint");
+  });
+
   it("seeds initial rules from the injected branded permission provider", async () => {
     let captured;
     const provider = createPermissionRulesProvider({
@@ -398,8 +429,9 @@ describe("runAgentHeadlessStream", () => {
       path.join(root, "security"),
     );
     const store = await import("../../src/harness/jsonl-session-store.js");
-    const { readSessionTranscriptHistory } =
-      await import("../../src/lib/session-transcript-history.js");
+    const { readSessionTranscriptHistory } = await import(
+      "../../src/lib/session-transcript-history.js"
+    );
     const id = "real-transcript-references";
     try {
       const deps = receiptDeps({
