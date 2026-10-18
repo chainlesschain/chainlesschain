@@ -1,3 +1,19 @@
+# 当前组件发布状态：CLI 与 VS Code 已公开核验
+
+VS Code **0.37.151** 的[正式发布流程 39131607926](https://github.com/chainlesschain/chainlesschain/actions/runs/39131607926) 已 `completed/success`，**11** 个必需任务成功；独立回读状态为 `VERIFIED_PUBLIC_VSCODE_ONLY`，Open VSX 公开 VSIX 与官方 candidate **12138485629** 字节完全一致，绑定发行提交 `dca47fd91a209642b6536afd5bc9e99ec74c7d06`，推荐 CLI **0.166.106**。全部既有原始证据和最终官方记录见[VS Code 发布归档](./next-release-validation/followup-106-vscode-publication-final-review.json)。
+
+| 组件 | 版本 | 当前状态 |
+| --- | --- | --- |
+| CLI | 0.166.106 | 已发布，npm 公开回读通过 |
+| VS Code | 0.37.151 | 已发布，Open VSX 公开回读通过；微软 Marketplace 发布尚未核验 |
+| JetBrains | 0.4.168 | 六个真实宿主任务已通过，官方 build + publish 流程仍在推进，尚未公开核验 |
+
+本次 Open VSX 核验不证明微软 Marketplace 已发布。JetBrains [39131605961](https://github.com/chainlesschain/chainlesschain/actions/runs/39131605961) 仍须完成正式发行及公开包回读；全套 `published` 仍为 **false**，累计 **31/45**、剩余 **14** 项不变，既有合格产物全部复用。没有重新下载公开包、安装、运行测试或调用模型，也没有创建新版三包 manifest。
+
+以下保留此前发布进度和评测原文；其中旧状态以当时观察为准。
+
+---
+
 # 当前组件发布状态
 
 发行队列补充：按用户授权，两个 IDE 标签额外触发的辅助 `Context Memory Kernel CI` 流程 **39131607809 / 39131605982** 已由官方回读确认 `completed/cancelled`；取消不记作测试通过。正式 IDE 发行流程 **39131607926 / 39131605961**、既有发布门禁、保护检查及原生任务均保留。审核及请求收据另存[标签辅助流程清理证据](./next-release-validation/followup-106-ide-tag-runner-cleanup-review.json)。此更新不改变 CLI 已公开核验、IDE 尚待公开核验、全套 `published=false` 和累计 **31/45**。

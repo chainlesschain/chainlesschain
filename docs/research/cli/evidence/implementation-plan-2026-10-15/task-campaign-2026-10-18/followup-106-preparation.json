@@ -1,7 +1,7 @@
 {
   "schema": "chainlesschain.task-quality-next-version-preparation/v1",
   "recordedAt": "2026-10-18T08:16:55.683049+00:00",
-  "status": "CLI_PUBLISHED_PUBLIC_VERIFIED_IDE_OFFICIAL_RELEASE_IN_PROGRESS",
+  "status": "CLI_VSCODE_PUBLIC_VERIFIED_JETBRAINS_PUBLICATION_PENDING",
   "billingAssessed": false,
   "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
   "pullRequest": "https://github.com/chainlesschain/chainlesschain/pull/462",
@@ -45,10 +45,11 @@
     "next-release-validation/followup-106-archived-reply-regressions.json",
     "next-release-validation/followup-106-dca47-evidence-review.json",
     "next-release-validation/followup-106-cli-publication-final-review.json",
-    "next-release-validation/followup-106-cli-publication-final-ide-tag-resolution.json"
+    "next-release-validation/followup-106-cli-publication-final-ide-tag-resolution.json",
+    "next-release-validation/followup-106-vscode-publication-final-review.json"
   ],
   "remaining": [
-    "Complete official fixed-SHA tag publication and public verification for VS Code 0.37.151 / JetBrains 0.4.168; CLI 0.166.106 is already OIDC-published and publicly byte-verified.",
+    "Complete official fixed-SHA tag publication and public verification for JetBrains 0.4.168; CLI 0.166.106 and VS Code/Open VSX 0.37.151 are already publicly byte-verified. Microsoft Marketplace publication remains unverified.",
     "Create a strict public package manifest and retest only the remaining 14 sample IDs, reusing all 31 accepted deliverables.",
     "Run the existing archived-reply zero-model recovery against the new approved public .168 ZIP.",
     "Diagnose Windows ACL traversal/verify timeouts without weakening protection; Java lifecycle tests and the separate 2ceaa diagnostic run do not establish the native timeout root cause."
@@ -66,7 +67,7 @@
     "reusedAcceptedDeliverables": 25,
     "cumulativeAcceptedDeliverables": 26
   },
-  "updatedAt": "2026-10-18T13:29:41.619621+00:00",
+  "updatedAt": "2026-10-18T13:52:34.619789+00:00",
   "supersededSourceCommits": [
     "e01eb3a92212a69140559d8ec304ddd0dce99274",
     "52f882ffa891f0683120eff6399701378a617ae7",
@@ -318,11 +319,15 @@
     "vscode": {
       "version": "0.37.151",
       "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
-      "status": "OFFICIAL_RELEASE_IN_PROGRESS_PENDING_PUBLIC_VERIFICATION",
-      "published": false,
-      "publicVerified": false,
+      "status": "PUBLISHED_OPEN_VSX_PUBLIC_VERIFIED",
+      "published": true,
+      "publicVerified": true,
       "runId": 39131607926,
-      "tag": "ide-vscode-v0.37.151"
+      "tag": "ide-vscode-v0.37.151",
+      "publicRegistry": "Open VSX",
+      "microsoftMarketplacePublicationVerified": false,
+      "publicVerifiedAt": "2026-10-18T13:49:25.110636+00:00",
+      "review": "next-release-validation/followup-106-vscode-publication-final-review.json"
     },
     "jetbrains": {
       "version": "0.4.168",
@@ -331,11 +336,21 @@
       "published": false,
       "publicVerified": false,
       "runId": 39131605961,
-      "tag": "ide-jetbrains-v0.4.168"
+      "tag": "ide-jetbrains-v0.4.168",
+      "hostJobsPassed": 6,
+      "buildJobStatus": "in_progress",
+      "latestOfficialObservation": {
+        "path": "followup-106-vscode-publication-final-jetbrains-progress-39131605961.json.gz",
+        "source": "Single official JetBrains progress observation; no public availability claim",
+        "originalDigest": "sha256:8176a40ee64aa748787d5c2f07b83dbed3eebb83a3d878669271e138bfa5e9b0",
+        "storedDigest": "sha256:6f38531a5638a7f80929452aa5cd9a67d6a85fab251d279a90b9fa7a68113e0b",
+        "originalBytes": 39433,
+        "storedBytes": 3173
+      }
     }
   },
   "idePublication": {
-    "status": "OFFICIAL_RELEASE_IN_PROGRESS",
+    "status": "VSCODE_OPEN_VSX_PUBLIC_VERIFIED_JETBRAINS_PENDING",
     "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
     "publicVerified": false,
     "resolutionEvidence": "next-release-validation/followup-106-cli-publication-final-ide-tag-resolution.json",
@@ -346,10 +361,10 @@
         "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
         "tag": "ide-vscode-v0.37.151",
         "event": "push",
-        "workflowStatus": "queued",
-        "workflowConclusion": "",
+        "workflowStatus": "completed",
+        "workflowConclusion": "success",
         "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39131607926",
-        "publicVerified": false,
+        "publicVerified": true,
         "archive": {
           "path": "followup-106-cli-publication-final-ide-vscode-run-39131607926.json.gz",
           "source": "Independent official GitHub push workflow run metadata",
@@ -357,7 +372,18 @@
           "storedDigest": "sha256:f5d8dbc7c3480280d1891c67dfcd2af7f133580259a861949746b175a7d3d0b3",
           "originalBytes": 17450,
           "storedBytes": 2092
-        }
+        },
+        "publicRegistry": "Open VSX",
+        "microsoftMarketplacePublicationVerified": false,
+        "latestOfficialRun": {
+          "path": "followup-106-vscode-publication-final-official-run-39131607926.json.gz",
+          "source": "Official final GitHub run metadata and latest jobs",
+          "originalDigest": "sha256:493eb13b87603918b02a8b5b90b3e0ff0747d7f57155272669bc3ec44f9f7a77",
+          "storedDigest": "sha256:9e2e1c15d8424239fefffc810feaaba27cbe15b231c76ba16a691524b0f41081",
+          "originalBytes": 32135,
+          "storedBytes": 3245
+        },
+        "publicReadbackReview": "next-release-validation/followup-106-vscode-publication-final-review.json"
       },
       {
         "component": "jetbrains",
@@ -376,8 +402,46 @@
           "storedDigest": "sha256:fa6869aa496b10468d6c292f743345ed35d801e2cf1ec006e2dd857f3f4d95f5",
           "originalBytes": 31700,
           "storedBytes": 2175
+        },
+        "hostJobsPassed": 6,
+        "buildJobStatus": "in_progress",
+        "latestOfficialRun": {
+          "path": "followup-106-vscode-publication-final-jetbrains-progress-39131605961.json.gz",
+          "source": "Single official JetBrains progress observation; no public availability claim",
+          "originalDigest": "sha256:8176a40ee64aa748787d5c2f07b83dbed3eebb83a3d878669271e138bfa5e9b0",
+          "storedDigest": "sha256:6f38531a5638a7f80929452aa5cd9a67d6a85fab251d279a90b9fa7a68113e0b",
+          "originalBytes": 39433,
+          "storedBytes": 3173
         }
       }
     ]
+  },
+  "vscodePublication": {
+    "version": "0.37.151",
+    "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+    "tag": "ide-vscode-v0.37.151",
+    "runId": 39131607926,
+    "status": "COMPLETED_SUCCESS_OPEN_VSX_PUBLIC_VERIFIED",
+    "workflowStatus": "completed",
+    "workflowConclusion": "success",
+    "requiredJobsPassed": 11,
+    "published": true,
+    "publicVerified": true,
+    "publicRegistry": "Open VSX",
+    "microsoftMarketplacePublicationVerified": false,
+    "readbackDigest": "sha256:549c00efdd298c296a44ce1578dfd55fd8379e972d2ce0765ee37a6d24b848fb",
+    "officialCandidateArtifactId": 12138485629,
+    "officialCandidateBytesMatch": true,
+    "recommendedCliVersion": "0.166.106",
+    "publicVerifiedAt": "2026-10-18T13:49:25.110636+00:00",
+    "finalOfficialRun": {
+      "path": "followup-106-vscode-publication-final-official-run-39131607926.json.gz",
+      "source": "Official final GitHub run metadata and latest jobs",
+      "originalDigest": "sha256:493eb13b87603918b02a8b5b90b3e0ff0747d7f57155272669bc3ec44f9f7a77",
+      "storedDigest": "sha256:9e2e1c15d8424239fefffc810feaaba27cbe15b231c76ba16a691524b0f41081",
+      "originalBytes": 32135,
+      "storedBytes": 3245
+    },
+    "review": "next-release-validation/followup-106-vscode-publication-final-review.json"
   }
 }

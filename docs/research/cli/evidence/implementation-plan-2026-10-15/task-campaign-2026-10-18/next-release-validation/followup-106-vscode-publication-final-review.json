@@ -1,0 +1,248 @@
+{
+  "schema": "chainlesschain.vscode-publication-final-evidence/v1",
+  "recordedAt": "2026-10-18T13:52:34.619789+00:00",
+  "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+  "status": "CLI_VSCODE_PUBLIC_VERIFIED_JETBRAINS_PUBLICATION_PENDING",
+  "published": false,
+  "cliPublicVerified": true,
+  "vscodeOpenVsxPublicVerified": true,
+  "microsoftMarketplacePublicationVerified": false,
+  "jetbrainsPublicVerified": false,
+  "officialPublication": {
+    "runId": 39131607926,
+    "status": "completed",
+    "conclusion": "success",
+    "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+    "tag": "ide-vscode-v0.37.151",
+    "requiredJobsPassed": 11,
+    "jobs": [
+      {
+        "name": "Public IDE capability manifest (drift gate)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Browser evidence (macos)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Browser evidence (windows)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "VS Code extension (immutable candidate)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Browser evidence (linux)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "JetBrains real host (${{ matrix.os }}, ${{ matrix.ide.version }})",
+        "status": "completed",
+        "conclusion": "skipped"
+      },
+      {
+        "name": "VS Code extension (macOS host gate)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "VS Code extension (Windows host gate)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "VS Code Remote-SSH container (scoped trusted cell)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "IDE roadmap evidence (trusted scoped aggregate)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Browser evidence (three-OS required aggregate)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "JetBrains plugin (build + publish)",
+        "status": "completed",
+        "conclusion": "skipped"
+      },
+      {
+        "name": "JetBrains Marketplace (post-publish verification)",
+        "status": "completed",
+        "conclusion": "skipped"
+      },
+      {
+        "name": "VS Code extension (Linux host gate + publish)",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ],
+    "archive": {
+      "path": "followup-106-vscode-publication-final-official-run-39131607926.json.gz",
+      "source": "Official final GitHub run metadata and latest jobs",
+      "originalDigest": "sha256:493eb13b87603918b02a8b5b90b3e0ff0747d7f57155272669bc3ec44f9f7a77",
+      "storedDigest": "sha256:9e2e1c15d8424239fefffc810feaaba27cbe15b231c76ba16a691524b0f41081",
+      "originalBytes": 32135,
+      "storedBytes": 3245
+    }
+  },
+  "publicReadback": {
+    "status": "VERIFIED_PUBLIC_VSCODE_ONLY",
+    "digest": "sha256:549c00efdd298c296a44ce1578dfd55fd8379e972d2ce0765ee37a6d24b848fb",
+    "verifiedAt": "2026-10-18T13:49:25.110636+00:00",
+    "registry": "Open VSX",
+    "version": "0.37.151",
+    "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+    "officialCandidateArtifactId": 12138485629,
+    "officialCandidateBytesMatch": true,
+    "publicVsixDigest": "sha256:0fd07d7fea9c9588f578cd86c9e720c80e442fc01b102d940d15b2546da75888",
+    "publicVsixBytes": 720935,
+    "recommendedCliVersion": "0.166.106",
+    "cliReadbackDigest": "sha256:7e8459e953bfa5aab4e7cd816e51fd3da6a62a603d6a219ff6c21e1527d5e732",
+    "limitations": [
+      "VS Code/Open VSX only; JetBrains and Microsoft Marketplace publication are not verified.",
+      "No package installation, module execution, IDE startup, candidate execution, or model request.",
+      "No full three-package manifest or new-version task acceptance is created.",
+      "GitHub artifact/API and HTTPS byte bindings are verified; no additional publisher signature is asserted."
+    ]
+  },
+  "jetbrainsProgress": {
+    "runId": 39131605961,
+    "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+    "status": "in_progress",
+    "conclusion": "",
+    "hostJobsPassed": 6,
+    "buildJobStatus": "in_progress",
+    "activeSteps": [
+      "Unit tests (JUnit)"
+    ],
+    "publicVerified": false,
+    "archive": {
+      "path": "followup-106-vscode-publication-final-jetbrains-progress-39131605961.json.gz",
+      "source": "Single official JetBrains progress observation; no public availability claim",
+      "originalDigest": "sha256:8176a40ee64aa748787d5c2f07b83dbed3eebb83a3d878669271e138bfa5e9b0",
+      "storedDigest": "sha256:6f38531a5638a7f80929452aa5cd9a67d6a85fab251d279a90b9fa7a68113e0b",
+      "originalBytes": 39433,
+      "storedBytes": 3173
+    }
+  },
+  "scope": "Archived every existing file in the provided public VS Code directory and two read-only official workflow observations. No public package download, package execution, test, model request, tag operation, workflow dispatch or publication.",
+  "originalPublicEvidenceFileCount": 9,
+  "archives": [
+    {
+      "path": "followup-106-vscode-publication-final-public-artifact.json.gz",
+      "source": ".work/public106-vscode-20261018/artifact.json",
+      "originalDigest": "sha256:1a260f5669da2389eebabe3770c2f535b579c234752f529d78af7fbd80e4e4ca",
+      "storedDigest": "sha256:21d289c2d16346a7976f0e2fa9e7bddc1f2170991b030ab66c5eae52a3bfec76",
+      "originalBytes": 737,
+      "storedBytes": 424
+    },
+    {
+      "path": "followup-106-vscode-publication-final-public-binding.json.gz",
+      "source": ".work/public106-vscode-20261018/binding.json",
+      "originalDigest": "sha256:5568c9ce9b9c3d6d15cbaaafc471b883e39117f06cdd20580d826d8e7ab678b7",
+      "storedDigest": "sha256:385ad9d98bd245fca9d365b3abac600c713e7ffe9eae44cc5c8d215374be9f23",
+      "originalBytes": 1496,
+      "storedBytes": 708
+    },
+    {
+      "path": "followup-106-vscode-publication-final-public-chainlesschain.vsix.gz",
+      "source": ".work/public106-vscode-20261018/chainlesschain.vsix",
+      "originalDigest": "sha256:0fd07d7fea9c9588f578cd86c9e720c80e442fc01b102d940d15b2546da75888",
+      "storedDigest": "sha256:bcf9386c926e6b402582c95600cd571cc9c50f7c2abbc96a8e0423f1dd4d1e2a",
+      "originalBytes": 720935,
+      "storedBytes": 704105
+    },
+    {
+      "path": "followup-106-vscode-publication-final-public-official-candidate.zip.gz",
+      "source": ".work/public106-vscode-20261018/official-candidate.zip",
+      "originalDigest": "sha256:d4cac147210e31f15918310e6d43b5be742029f049818b371435fcf8161e9ed1",
+      "storedDigest": "sha256:12067a2f781a1d812a7ade3c03faf70e8d633ebbe5b0c0af9a8bd1d1948a4394",
+      "originalBytes": 704731,
+      "storedBytes": 704913
+    },
+    {
+      "path": "followup-106-vscode-publication-final-public-official-manifest.json.gz",
+      "source": ".work/public106-vscode-20261018/official-manifest.json",
+      "originalDigest": "sha256:2351e82a37e9632983b4abdd4ef3b4e9a892319860e4c6658cc88747c8d7c229",
+      "storedDigest": "sha256:9da35462f5a156178f755ab06283417dcc9915bc425380116239b49055a591bc",
+      "originalBytes": 714,
+      "storedBytes": 412
+    },
+    {
+      "path": "followup-106-vscode-publication-final-public-openvsx-metadata.json.gz",
+      "source": ".work/public106-vscode-20261018/openvsx-metadata.json",
+      "originalDigest": "sha256:95fafc64584ec5307cd2c99c8a7ec024f295872e31bd5ba0a7d1e238487d57d5",
+      "storedDigest": "sha256:cfcb430af53e21da4ae485e382930442142beff53b6265d7d34e1ad1680fcf13",
+      "originalBytes": 10907,
+      "storedBytes": 1556
+    },
+    {
+      "path": "followup-106-vscode-publication-final-public-readback.json.gz",
+      "source": ".work/public106-vscode-20261018/readback.json",
+      "originalDigest": "sha256:549c00efdd298c296a44ce1578dfd55fd8379e972d2ce0765ee37a6d24b848fb",
+      "storedDigest": "sha256:bf1d9b58b927634761041be85a9ddc56159d88944d632887617ac4d16a8183c7",
+      "originalBytes": 3026,
+      "storedBytes": 1356
+    },
+    {
+      "path": "followup-106-vscode-publication-final-public-response-records.json.gz",
+      "source": ".work/public106-vscode-20261018/response-records.json",
+      "originalDigest": "sha256:6b7914c2c29930b5473fa8a33e2e7c0408b3f3db8562f6e58321cdc588052336",
+      "storedDigest": "sha256:9a2c02017cfb9bcd3f6c33d072568d3735efb4bb9bf2fd08d1f4a87acf43248c",
+      "originalBytes": 1860,
+      "storedBytes": 630
+    },
+    {
+      "path": "followup-106-vscode-publication-final-public-run.json.gz",
+      "source": ".work/public106-vscode-20261018/run.json",
+      "originalDigest": "sha256:b0a359c310bc2a24e9bcb6a929adf711fa6a177a9794ec0310ab5ca7424b0e00",
+      "storedDigest": "sha256:00cb2dd37752a578757aa9020b93f73c8889b4ff88aee02108e58dbfbb1afa1c",
+      "originalBytes": 13209,
+      "storedBytes": 1513
+    },
+    {
+      "path": "followup-106-vscode-publication-final-official-run-39131607926.json.gz",
+      "source": "Official final GitHub run metadata and latest jobs",
+      "originalDigest": "sha256:493eb13b87603918b02a8b5b90b3e0ff0747d7f57155272669bc3ec44f9f7a77",
+      "storedDigest": "sha256:9e2e1c15d8424239fefffc810feaaba27cbe15b231c76ba16a691524b0f41081",
+      "originalBytes": 32135,
+      "storedBytes": 3245
+    },
+    {
+      "path": "followup-106-vscode-publication-final-jetbrains-progress-39131605961.json.gz",
+      "source": "Single official JetBrains progress observation; no public availability claim",
+      "originalDigest": "sha256:8176a40ee64aa748787d5c2f07b83dbed3eebb83a3d878669271e138bfa5e9b0",
+      "storedDigest": "sha256:6f38531a5638a7f80929452aa5cd9a67d6a85fab251d279a90b9fa7a68113e0b",
+      "originalBytes": 39433,
+      "storedBytes": 3173
+    }
+  ],
+  "nativeTaskResults": {
+    "accepted": 31,
+    "total": 45,
+    "remaining": 14,
+    "unchanged": true,
+    "newTests": 0,
+    "newModelCalls": 0
+  },
+  "historyPreservation": {
+    "latestOriginalDigest": "sha256:def38600c47fb3bf7e9f574f99f680b9f99d2fc0c7b9fba35831bfb907bbda3a",
+    "latestOriginalBytes": 22563,
+    "latestOriginalBytesAreExactSuffix": true,
+    "prepOriginalDigest": "sha256:74695c805934dc9f8571f4187d10ad8689451f683c5065ccbaed1dd55f0e6a23",
+    "currentRoundSnapshotUnchanged": true,
+    "remainingSampleIdsUnchanged": true,
+    "priorFailureFilesUnmodified": true
+  }
+}
