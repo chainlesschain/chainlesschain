@@ -4,13 +4,11 @@ Command-line interface for installing, configuring, and managing [ChainlessChain
 
 ## Package version and IDE pairing
 
-This package is **chainlesschain@0.166.105**, paired with VS Code **0.37.150** and JetBrains **0.4.167**. Both plugins recommend CLI `.105`. Confirm each version is available from its public registry before upgrading; source metadata alone does not establish publication. Release gates, public readback and task acceptance are recorded separately in the [upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-18.html).
+As of 2026-10-18, CLI **0.166.105** is public through GitHub Actions OIDC, with public metadata, tarball SRI and source bytes read back against release commit `d4065008bb`. The same commit passed CLI CI **71/71**, Strict Sandbox **5/5**, IDE **18 successful / 1 conditional skip**, and ARM64 **10/10**. VS Code **0.37.150** and JetBrains **0.4.167** tags have been pushed; both plugins recommend CLI `.105`. **IDE publication is in progress**; public listing and downloads await complete readback. The original public-package round has all **25/25** generation and acceptance records, **25/45** cumulative accepted candidates, **4 end-to-end passes in that original round**, and **20** unfinished samples. **New-version retesting is NOT_RUN**. Candidate acceptance is distinct from end-to-end success; publication and CI do not establish task-quality improvement. Microsoft Marketplace remains unpublished.
 
-Candidate `.105` adds general coding guidance, static relative-import feedback, safe transport error details, provider-abort classification and protection against reporting completion while deferred writes remain. JetBrains `.167` restores saved Markdown with the live renderer while retaining canonical source and row identity. Child package versions remain unchanged.
+Release `.105` adds general coding guidance, static relative-import feedback, safe transport error details, provider-abort classification and protection against reporting completion while deferred writes remain. JetBrains `.167` includes the saved-Markdown renderer change; its public-package restart acceptance remains pending. Child package versions remain unchanged.
 
-### Evaluation snapshot before publication (2026-10-18)
-
-At this snapshot, public versions were CLI **0.166.104**, Open VSX **0.37.149** and JetBrains **0.4.166**. The 36-task plus 9-first-run campaign had **25/45 cumulative accepted candidates**, **22/25 latest retests collected**, **4 latest end-to-end passes**, and **3 Windows JetBrains samples still running**. These observations precede publication and retesting of this package. Candidate acceptance is distinct from end-to-end success; no new-version task improvement is claimed by this snapshot.
+Install the public CLI with `npm i -g chainlesschain@0.166.105 --registry https://registry.npmjs.org`. Wait for public verification of the paired IDE version before upgrading it, then restart the chat host and run Doctor. The original completed round used CLI `.104`, Open VSX `.149` and JetBrains `.166`; it does not establish `.105` task acceptance. [Current upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-18.html).
 
 ## Release snapshot (2026-10-12, historical)
 

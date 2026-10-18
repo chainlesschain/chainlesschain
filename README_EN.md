@@ -1,6 +1,18 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
-As of 2026-10-18, public versions remain CLI **0.166.104**, Open VSX **0.37.149** and JetBrains **0.4.166**. Next candidates are CLI **0.166.105**, VS Code **0.37.150** and JetBrains **0.4.167**; both candidate plugins recommend CLI `.105`. Publication awaits the final commit full CI matrices, npm OIDC publishing and public package readback; IDE publication follows publicly fetchable CLI availability. The 36-task plus 9-first-run campaign has executed: **25/45 cumulative accepted candidates**, **22/25 latest retests collected**, **4 latest end-to-end passes**, and **3 Windows JetBrains samples still running**. Candidate acceptance is distinct from end-to-end success. The new versions have not yet been published or retested.
+As of 2026-10-18, CLI **0.166.105** is public through GitHub Actions OIDC, with public metadata, tarball SRI and source bytes read back against release commit `d4065008bb`. The same commit passed CLI CI **71/71**, Strict Sandbox **5/5**, IDE **18 successful / 1 conditional skip**, and ARM64 **10/10**. VS Code **0.37.150** and JetBrains **0.4.167** tags have been pushed; both plugins recommend CLI `.105`. **IDE publication is in progress**; public listing and downloads await complete readback. The original public-package round has all **25/25** generation and acceptance records, **25/45** cumulative accepted candidates, **4 end-to-end passes in that original round**, and **20** unfinished samples. **New-version retesting is NOT_RUN**. Candidate acceptance is distinct from end-to-end success; publication and CI do not establish task-quality improvement. Microsoft Marketplace remains unpublished.
+
+Install the public CLI now. Upgrade the paired IDE only after its public artifact is verified, then restart the chat host and run Doctor.
+
+```bash
+npm i -g chainlesschain@0.166.105 --registry https://registry.npmjs.org
+cc --version
+cc doctor
+```
+
+See the [current upgrade guide](docs-site/docs/chainlesschain/cli-ide-update-2026-10-18.md) and [OIDC release](https://github.com/chainlesschain/chainlesschain/actions/runs/39102818482).
+
+## Release snapshot (2026-10-17, historical)
 
 As of 2026-10-17, CLI **0.166.104**, Open VSX **0.37.149** and JetBrains Marketplace **0.4.166** are public. Both IDEs recommend CLI `.104`. The CLI and VS Code release source is `93792f6520`; JetBrains is `4c3e5cfd56`; main was reviewed through `ef26f20b28`. Agent SDK **0.2.15**, Session Core **0.3.19**, Context/Memory Kernel **0.1.10**, PDH **0.4.65**, and native product **v5.0.3.140** retain separate release identities. Formal paid evaluation remains **NOT_PAID_READY / NOT_RUN (0/36, 0/9)**, native review **NOT_ADMITTED**, and automatic promotion **HOLD**.
 
@@ -2673,7 +2685,7 @@ Design, protocol, and test matrix: [docs/design/modules/79_Coding_Agent系统.md
 ![Tests](https://img.shields.io/badge/tests-30000%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-146-blue.svg)
 ![Commands](https://img.shields.io/badge/CLI%20commands-175-blue.svg)
-![CLI](https://img.shields.io/badge/cli-0.166.104-blue.svg)
+![CLI](https://img.shields.io/badge/cli-0.166.105-blue.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 
 **Decentralized · Privacy First · AI Native**

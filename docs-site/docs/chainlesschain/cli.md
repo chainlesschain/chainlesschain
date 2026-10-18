@@ -1,6 +1,10 @@
 # CLI 命令行工具
 
-> 2026-10-18：当前公开仍为 CLI **0.166.104**、Open VSX **0.37.149**、JetBrains **0.4.166**。下一版候选为 CLI **0.166.105**、VS Code **0.37.150**、JetBrains **0.4.167**，两个候选插件推荐 CLI `.105`；尚待最终提交完整 CI 矩阵、npm OIDC 发布与公开包回读，插件在 CLI 可获取后发行。36+9 活动已执行，累计候选合格 **25/45**；最新补测已收齐 **22/25**，其中 **4 项全流程通过**，另有 **3 项 Windows JetBrains 进行中**。候选合格不等于全流程通过，新版尚未发布或补测，不能声称全部合格。 详见[升级指南](./cli-ide-update-2026-10-18)。
+> 2026-10-18：CLI **0.166.105** 已通过 GitHub Actions OIDC 发布并完成公开 metadata、tarball SRI 与源码字节回读，发行提交为 `d4065008bb`。同一提交的 CLI CI **71/71**、Strict Sandbox **5/5**、IDE **18 成功 / 1 条件跳过**、ARM64 **10/10** 均通过。VS Code **0.37.150** 与 JetBrains **0.4.167** 标签已提交，两个插件推荐 CLI `.105`；**IDE 发布中**，公开上架及下载尚待完整回读。原公开包轮次的生成与验收记录均已收齐 **25/25**，累计候选合格 **25/45**，原轮次 **4 项端到端通过**，剩余 **20** 项待补测。**新版补测为 NOT_RUN**；候选合格不等于端到端通过，发布和 CI 不证明新版任务质量提高。Microsoft Marketplace 未发布。
+
+当前安装：`npm i -g chainlesschain@0.166.105 --registry https://registry.npmjs.org`。新版 IDE 公开核验后升级并重启宿主，运行 Doctor 核对实际 CLI。详见[本轮升级指南](./cli-ide-update-2026-10-18)。
+
+以下带日期的发布和验收记录为历史快照。
 
 > 2026-10-16 当前公开版本：CLI **0.166.103**、Open VSX **0.37.148**、JetBrains **0.4.165**；两个 IDE 均推荐 CLI `.103`。Session Core **0.3.19**、Kernel **0.1.10**、PDH **0.4.65**，原生产品 **v5.0.3.140** 独立发行。正式预算 **NOT_PAID_READY**，36+9 **NOT_RUN（0/36、0/9）**。 见[升级与故障排查](./cli-ide-update-2026-10-16)。以下带日期的早期记录保留历史范围。
 
@@ -148,7 +152,7 @@ CLI 主配置文件位于 `~/.chainlesschain/config.json`，支持通过 `chainl
 ## 快速开始
 
 ```bash
-npm install -g chainlesschain@0.166.103 --registry https://registry.npmjs.org
+npm install -g chainlesschain@0.166.105 --registry https://registry.npmjs.org
 chainlesschain setup
 chainlesschain start
 ```
@@ -165,7 +169,7 @@ chainlesschain start
 ### 全局安装
 
 ```bash
-npm install -g chainlesschain@0.166.103 --registry https://registry.npmjs.org
+npm install -g chainlesschain@0.166.105 --registry https://registry.npmjs.org
 ```
 
 安装后提供 4 个等价命令：
