@@ -26,6 +26,10 @@ on:
         required: true
         default: all
         options: [all, cli, vscode, jetbrains]
+      sample_ids:
+        description: "Optional comma-separated unfinished sample IDs; requires one host and one entry. Subset artifacts stay separate from full 36+9 rounds."
+        type: string
+        default: ""
       accept_existing_run:
         description: "Optional completed delivery artifact run ID; performs acceptance only without paid model calls"
         type: string
@@ -61,6 +65,7 @@ jobs:
         run: >-
           node --test
           packages/cli/test-node/verify01-native-task-campaign.node-test.mjs
+          packages/cli/test-node/verify01-native-subset.node-test.mjs
           packages/cli/test-node/verify01-native-task-checker.node-test.mjs
           packages/cli/test-node/verify01-legacy-windows-tar.node-test.mjs
           packages/cli/test-node/verify01-vscode-composer.node-test.mjs
@@ -75,9 +80,11 @@ jobs:
           ENTRY_SELECTION: ${{ inputs.entries || 'all' }}
           DELIVERY_RUN: ${{ inputs.accept_existing_run }}
           DELIVERY_COMMIT: ${{ inputs.accept_existing_commit }}
+          SAMPLE_SELECTION: ${{ inputs.sample_ids }}
         run: |
           node --input-type=module -e '
             import fs from "node:fs";
+            import {parseNativeSampleIds, selectNativeSamples} from "./packages/cli/scripts/verify01-native-task-campaign.mjs";
             const run = process.env.DELIVERY_RUN, commit = process.env.DELIVERY_COMMIT;
             if (!!run !== !!commit || (run && (!/^[1-9][0-9]+$/.test(run) || !/^[a-f0-9]{40}$/.test(commit)))) throw new Error("paired exact delivery run and commit required");
             const hosts = {windows: ["win32", "windows-latest"], linux: ["linux", "ubuntu-24.04"], macos: ["darwin", "macos-15"]};
@@ -86,13 +93,19 @@ jobs:
             const entries = ["cli", "vscode", "jetbrains"].filter(entry => process.env.ENTRY_SELECTION === "all" || process.env.ENTRY_SELECTION === entry);
             if (!entries.length) throw new Error("unknown entry");
             const rows = Object.entries(hosts).filter(([name]) => selected === "all" || name === selected).flatMap(([, [platform, os]]) => entries.map(entry => ({group: `${platform}-${entry}`, os, entry})));
+            const ids = parseNativeSampleIds(process.env.SAMPLE_SELECTION);
+            if (ids) {
+              if (rows.length !== 1) throw new Error("explicit sample IDs require exactly one host and one entry");
+              const plan = JSON.parse(fs.readFileSync("docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.json", "utf8"));
+              selectNativeSamples(plan, rows[0].group.split("-")[0], rows[0].entry, ids);
+            }
             fs.appendFileSync(process.env.GITHUB_OUTPUT, `matrix=${JSON.stringify({include: rows})}\ngroups=${JSON.stringify(rows.map(row => row.group))}\n`);
           '
 
   generate:
     needs: validate
     if: inputs.accept_existing_run == ''
-    name: Native ${{ matrix.group }} (five independent samples)
+    name: Native ${{ matrix.group }} (${{ inputs.sample_ids != '' && 'selected samples' || 'five independent samples' }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 145
     strategy:
@@ -143,19 +156,24 @@ jobs:
           VOLCENGINE_API_KEY: ${{ secrets.CC_LLM_API_KEY }}
           NATIVE_ENTRY: ${{ matrix.entry }}
           EXECUTION_SOURCE_SHA: ${{ github.sha }}
+          NATIVE_SAMPLES: ${{ inputs.sample_ids }}
         run: |
           display=()
+          selection=()
+          if [[ -n "$NATIVE_SAMPLES" ]]; then
+            selection=(--samples "$NATIVE_SAMPLES")
+          fi
           if [[ "$RUNNER_OS" == "Linux" && "$NATIVE_ENTRY" != "cli" ]]; then
             display=(xvfb-run --auto-servernum '--server-args=-screen 0 1920x1080x24')
           fi
           "${display[@]}" node packages/cli/scripts/verify01-native-task-campaign.mjs \
             --entry "$NATIVE_ENTRY" --source-sha "$EXECUTION_SOURCE_SHA" \
-            --confirm-live --output-dir "$RUNNER_TEMP/verify01-native-tasks"
+            --confirm-live --output-dir "$RUNNER_TEMP/verify01-native-tasks" "${selection[@]}"
       - name: Preserve all candidates, native traces, UI and broker failures
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: verify01-native-delivery-${{ matrix.group }}-${{ github.sha }}
+          name: verify01-native-${{ inputs.sample_ids != '' && 'subset-delivery' || 'delivery' }}-${{ matrix.group }}-${{ github.sha }}
           path: ${{ runner.temp }}/verify01-native-tasks/
           include-hidden-files: true
           if-no-files-found: warn
@@ -183,7 +201,7 @@ jobs:
           node-version: "22.12.0"
       - uses: actions/download-artifact@v7
         with:
-          name: verify01-native-delivery-${{ matrix.group }}-${{ inputs.accept_existing_commit || github.sha }}
+          name: verify01-native-${{ inputs.sample_ids != '' && 'subset-delivery' || 'delivery' }}-${{ matrix.group }}-${{ inputs.accept_existing_commit || github.sha }}
           path: ${{ runner.temp }}/native-delivery
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ inputs.accept_existing_run || github.run_id }}
@@ -195,17 +213,23 @@ jobs:
         env:
           EXECUTION_SOURCE_SHA: ${{ inputs.accept_existing_commit || github.sha }}
           CHECKER_SOURCE_SHA: ${{ github.sha }}
-        run: >-
-          node packages/cli/scripts/verify01-native-task-checker.mjs
-          --input-dir "$RUNNER_TEMP/native-delivery"
-          --output-dir "$RUNNER_TEMP/native-acceptance"
-          --source-sha "$EXECUTION_SOURCE_SHA" --checker-source-sha "$CHECKER_SOURCE_SHA"
-          --image-id "$REVIEW_IMAGE_ID"
+          NATIVE_SAMPLES: ${{ inputs.sample_ids }}
+        shell: bash
+        run: |
+          selection=()
+          if [[ -n "$NATIVE_SAMPLES" ]]; then
+            selection=(--samples "$NATIVE_SAMPLES")
+          fi
+          node packages/cli/scripts/verify01-native-task-checker.mjs \
+            --input-dir "$RUNNER_TEMP/native-delivery" \
+            --output-dir "$RUNNER_TEMP/native-acceptance" \
+            --source-sha "$EXECUTION_SOURCE_SHA" --checker-source-sha "$CHECKER_SOURCE_SHA" \
+            --image-id "$REVIEW_IMAGE_ID" "${selection[@]}"
       - name: Preserve independent checker receipts including failures
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: verify01-native-acceptance-${{ matrix.group }}-${{ github.sha }}
+          name: verify01-native-${{ inputs.sample_ids != '' && 'subset-acceptance' || 'acceptance' }}-${{ matrix.group }}-${{ github.sha }}
           path: ${{ runner.temp }}/native-acceptance/
           include-hidden-files: true
           if-no-files-found: warn

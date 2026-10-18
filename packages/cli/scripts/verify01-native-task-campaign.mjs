@@ -67,7 +67,19 @@ export function extractNativeArchive(archive, workspace) {
   );
 }
 
-export function selectNativeSamples(plan, platform, entry) {
+export function parseNativeSampleIds(value) {
+  if (value === undefined || value === "") return undefined;
+  assert.equal(typeof value, "string", "sample IDs must be comma separated");
+  const ids = value.split(",").map((id) => id.trim());
+  assert.ok(
+    ids.every((id) => id.length > 0),
+    "empty sample ID",
+  );
+  assert.equal(new Set(ids).size, ids.length, "duplicate sample IDs");
+  return ids;
+}
+
+export function selectNativeSamples(plan, platform, entry, sampleIds) {
   assert.ok(["linux", "win32", "darwin"].includes(platform));
   assert.ok(["cli", "vscode", "jetbrains"].includes(entry));
   const samples = plan.samples.filter(
@@ -80,7 +92,23 @@ export function selectNativeSamples(plan, platform, entry) {
   assert.equal(first[0].taskId, ordinary[0].taskId);
   assert.equal(new Set(samples.map((s) => s.id)).size, 5);
   assert.notEqual(first[0].id, first[0].taskId);
-  return [...first, ...ordinary];
+  const ordered = [...first, ...ordinary];
+  if (sampleIds === undefined) return ordered;
+  assert.ok(
+    Array.isArray(sampleIds) && sampleIds.length > 0,
+    "nonempty explicit sample selection required",
+  );
+  assert.equal(
+    new Set(sampleIds).size,
+    sampleIds.length,
+    "duplicate sample IDs",
+  );
+  const allowed = new Set(ordered.map((sample) => sample.id));
+  assert.ok(
+    sampleIds.every((id) => allowed.has(id)),
+    "sample selection is outside the requested native group",
+  );
+  return ordered.filter((sample) => sampleIds.includes(sample.id));
 }
 
 export function nativeTaskPrompt(task, spec, sample) {
@@ -408,6 +436,7 @@ export async function runNativeCampaign({
   outputDir,
   sourceSha,
   confirmLive,
+  sampleIds,
   key = process.env.VOLCENGINE_API_KEY,
 }) {
   assert.equal(confirmLive, true);
@@ -481,7 +510,7 @@ export async function runNativeCampaign({
       .trim(),
     DIAGNOSTIC.planDigest,
   );
-  const samples = selectNativeSamples(plan, process.platform, entry);
+  const samples = selectNativeSamples(plan, process.platform, entry, sampleIds);
   const scratch = fs.realpathSync.native(
     fs.mkdtempSync(
       path.join(
@@ -512,6 +541,9 @@ export async function runNativeCampaign({
     actualEntry: entry,
     startedAt: stamp(),
     samples: [],
+    selectionScope:
+      sampleIds === undefined ? "full-native-group" : "operator-subset",
+    selectedSampleIds: samples.map((sample) => sample.id),
     generationPassed: false,
     acceptancePending: true,
     formalSample: false,
@@ -935,7 +967,7 @@ export async function runNativeCampaign({
     }
   }
   summary.generationPassed =
-    summary.samples.length === 5 &&
+    summary.samples.length === samples.length &&
     summary.samples.every((s) => s.generationPassed);
   summary.finishedAt = stamp();
   save("summary.json", summary);
@@ -952,6 +984,7 @@ if (
       "output-dir": { type: "string" },
       "source-sha": { type: "string" },
       "confirm-live": { type: "boolean" },
+      samples: { type: "string" },
     },
   });
   const summary = await runNativeCampaign({
@@ -959,6 +992,7 @@ if (
     outputDir: values["output-dir"],
     sourceSha: values["source-sha"],
     confirmLive: values["confirm-live"],
+    sampleIds: parseNativeSampleIds(values.samples),
   });
   console.log(
     JSON.stringify({

@@ -15,6 +15,7 @@ import { REVIEW_IMAGE, reviewEnvironment } from "./verify01-review-runtime.mjs";
 import { DIAGNOSTIC } from "./verify01-volcengine-task-diagnostic.mjs";
 import {
   selectNativeSamples,
+  parseNativeSampleIds,
   inspectNativeScope,
   snapshotNativeTree,
   VERSIONS,
@@ -154,12 +155,57 @@ export function assessFrozenBefore(expected, captured, platform, legacy) {
   }
 }
 
+export function validateNativeSelection(plan, source, sampleIds) {
+  const selected = selectNativeSamples(
+    plan,
+    source.platform,
+    source.entry,
+    sampleIds,
+  );
+  const expected = selected.map((sample) => sample.id);
+  if (source.selectionScope === "operator-subset") {
+    assert.ok(
+      sampleIds !== undefined,
+      "subset acceptance requires explicit operator sample IDs",
+    );
+    assert.deepEqual(
+      source.selectedSampleIds,
+      expected,
+      "operator subset differs from delivery",
+    );
+  } else {
+    assert.ok(
+      source.selectionScope === undefined ||
+        source.selectionScope === "full-native-group",
+      "unknown native selection scope",
+    );
+    assert.equal(
+      sampleIds,
+      undefined,
+      "full-group delivery cannot be relabeled as a subset",
+    );
+    if (source.selectedSampleIds !== undefined)
+      assert.deepEqual(source.selectedSampleIds, expected);
+  }
+  assert.equal(source.samples.length, selected.length);
+  assert.equal(
+    new Set(source.samples.map((sample) => sample.sampleId)).size,
+    selected.length,
+  );
+  assert.deepEqual(
+    source.samples.map((sample) => sample.sampleId).sort(),
+    [...expected].sort(),
+  );
+  return selected;
+}
+
 export async function checkNativeCampaign({
   inputDir,
   outputDir,
   sourceSha,
   checkerSourceSha = sourceSha,
   imageId,
+  sampleIds,
 }) {
   assert.equal(
     process.platform,
@@ -190,16 +236,7 @@ export async function checkNativeCampaign({
   assert.equal(source.projectCommit, DIAGNOSTIC.projectCommit);
   assert.equal(source.planDigest, DIAGNOSTIC.planDigest);
   assert.deepEqual(source.versions, VERSIONS);
-  const selected = selectNativeSamples(plan, source.platform, source.entry);
-  assert.equal(source.samples.length, selected.length);
-  assert.equal(
-    new Set(source.samples.map((s) => s.sampleId)).size,
-    selected.length,
-  );
-  assert.deepEqual(
-    source.samples.map((s) => s.sampleId).sort(),
-    selected.map((s) => s.id).sort(),
-  );
+  const selected = validateNativeSelection(plan, source, sampleIds);
   const image = JSON.parse(
     execFileSync("docker", ["image", "inspect", imageId], { encoding: "utf8" }),
   )[0];
@@ -244,6 +281,8 @@ export async function checkNativeCampaign({
     formalSample: false,
     startedAt: new Date().toISOString(),
     samples: [],
+    selectionScope: source.selectionScope ?? "full-native-group",
+    selectedSampleIds: selected.map((sample) => sample.id),
     passed: false,
   };
   for (const sample of selected) {
@@ -413,7 +452,8 @@ export async function checkNativeCampaign({
     );
   }
   summary.passed =
-    summary.samples.length === 5 && summary.samples.every((s) => s.passed);
+    summary.samples.length === selected.length &&
+    summary.samples.every((s) => s.passed);
   summary.finishedAt = new Date().toISOString();
   save("summary.json", summary);
   // The runner temp area and its untrusted candidates are retained for this job's lifetime only.
@@ -431,6 +471,7 @@ if (
       "source-sha": { type: "string" },
       "checker-source-sha": { type: "string" },
       "image-id": { type: "string" },
+      samples: { type: "string" },
     },
   });
   checkNativeCampaign({
@@ -439,6 +480,7 @@ if (
     sourceSha: values["source-sha"],
     checkerSourceSha: values["checker-source-sha"],
     imageId: values["image-id"],
+    sampleIds: parseNativeSampleIds(values.samples),
   })
     .then((r) => {
       if (!r.passed) process.exitCode = 1;
