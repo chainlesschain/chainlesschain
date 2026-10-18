@@ -37,6 +37,27 @@ const json = (file) => JSON.parse(fs.readFileSync(file, "utf8"));
 const mkdir = (directory) => fs.mkdirSync(directory, { recursive: true });
 const stamp = () => new Date().toISOString();
 
+export function createNativeHostGuard() {
+  let failure = null;
+  return {
+    get failure() {
+      return failure;
+    },
+    block(reason) {
+      failure ||= reason || "host cleanup was not confirmed";
+    },
+    assertReady() {
+      if (failure)
+        throw Object.assign(
+          new Error(
+            `Sample not executed: previous host cleanup was unconfirmed: ${failure}`,
+          ),
+          { code: "HOST_CLEANUP_UNCONFIRMED" },
+        );
+    },
+  };
+}
+
 export function loadNativePackageSet(versionsFile) {
   if (versionsFile === undefined) return { versions: VERSIONS };
   const bytes = fs.readFileSync(versionsFile);
@@ -224,9 +245,12 @@ export function nativeEnvironment(
     CHAINLESSCHAIN_HOME: profile,
     APPDATA: path.join(root, "appdata"),
     LOCALAPPDATA: path.join(root, "localappdata"),
-    TMPDIR: path.join(root, "tmp"),
-    TEMP: path.join(root, "tmp"),
-    TMP: path.join(root, "tmp"),
+    // The storage guard recognizes an isolated profile only when it is below
+    // the child's real os.tmpdir(). Keep all temporary files inside this
+    // sample while including its sibling home/profile in that boundary.
+    TMPDIR: root,
+    TEMP: root,
+    TMP: root,
     npm_config_userconfig: path.join(root, "npmrc"),
     npm_config_globalconfig: path.join(root, "global-npmrc"),
     npm_config_cache: path.join(root, "npm-cache"),
@@ -665,6 +689,7 @@ export async function runNativeCampaign({
     );
     return response;
   };
+  const hostGuard = createNativeHostGuard();
   for (const sample of samples) {
     const task = catalog.tasks.find((t) => t.id === sample.taskId);
     assert.ok(task);
@@ -750,6 +775,11 @@ export async function runNativeCampaign({
       });
     };
     try {
+      if (hostGuard.failure) {
+        row.executionSkipped = true;
+        row.skipReason = "HOST_CLEANUP_UNCONFIRMED";
+      }
+      hostGuard.assertReady();
       extractNativeArchive(archive, workspace);
       for (const file of task.expectedFiles) {
         assert.ok(!path.isAbsolute(file) && !file.split("/").includes(".."));
@@ -976,6 +1006,12 @@ export async function runNativeCampaign({
         failure: result.failure || null,
         restartRequired: entry !== "cli",
       };
+      if (result.cleanupUnconfirmed) {
+        row.host.cleanupUnconfirmed = true;
+        row.host.cleanupFailure = result.cleanupFailure;
+        row.host.cleanupFailures = result.cleanupFailures;
+        hostGuard.block(result.cleanupFailure || result.failure);
+      }
       if (result.captureDir) {
         const destination = path.join(sampleOutput, "capture");
         if (path.resolve(result.captureDir) !== path.resolve(destination))
@@ -1010,7 +1046,10 @@ export async function runNativeCampaign({
           row.broker = await broker.close();
         } catch (error) {
           row.generationPassed = false;
-          row.failure = redact(error.message);
+          row.failure = [row.failure, redact(error.message)]
+            .filter(Boolean)
+            .join("\n");
+          hostGuard.block(error.message);
         }
       }
       try {
@@ -1048,7 +1087,9 @@ export async function runNativeCampaign({
         }
       } catch (error) {
         row.generationPassed = false;
-        row.failure = redact(error.message);
+        row.failure = [row.failure, redact(error.message)]
+          .filter(Boolean)
+          .join("\n");
       }
       row.finishedAt = stamp();
       if (fetchDiagnostics) {

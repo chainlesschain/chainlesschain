@@ -56,6 +56,76 @@ function repositoryReader(root) {
   };
 }
 
+// Legacy plans retain exactly one run per group. Sharded plans bind every run
+// to a declared shard; neither missing samples nor duplicate execution is valid.
+export function nativeRetestExecutionShards(plan) {
+  const shards =
+    plan.executionShards ??
+    plan.groups.map((group) => ({
+      shardId: group.group,
+      group: group.group,
+      sampleIds: group.sampleIds,
+    }));
+  assert.ok(Array.isArray(shards));
+  unique(
+    shards.map((shard) => shard.shardId),
+    "execution shard IDs",
+  );
+  for (const shard of shards) {
+    assert.match(shard.shardId, /^[a-z0-9][a-z0-9-]{0,159}$/u);
+    const group = plan.groups.find((item) => item.group === shard.group);
+    assert.ok(group, "shard group outside plan");
+    assert.ok(Array.isArray(shard.sampleIds) && shard.sampleIds.length > 0);
+    for (const id of shard.sampleIds) assert.ok(group.sampleIds.includes(id));
+    if (plan.executionShards && shard.group.endsWith("-jetbrains")) {
+      assert.equal(
+        shard.sampleIds.length,
+        1,
+        "JetBrains shards require one sample",
+      );
+    }
+  }
+  assert.deepEqual(
+    sorted(
+      unique(
+        shards.flatMap((shard) => shard.sampleIds),
+        "shard samples",
+      ),
+    ),
+    sorted(plan.groups.flatMap((group) => group.sampleIds)),
+    "shards must cover every planned sample",
+  );
+  return shards;
+}
+
+export function validateNativeRetestRunBindings(plan, runs) {
+  const shards = nativeRetestExecutionShards(plan);
+  assert.deepEqual(
+    sorted(
+      unique(
+        runs.map((run) => run.shardId ?? run.group),
+        "run shard IDs",
+      ),
+    ),
+    sorted(shards.map((shard) => shard.shardId)),
+  );
+  unique(
+    runs.map((run) => run.runId),
+    "run IDs",
+  );
+  for (const run of runs) {
+    if (plan.executionShards) assert.equal(typeof run.shardId, "string");
+    const shard = shards.find(
+      (item) => item.shardId === (run.shardId ?? run.group),
+    );
+    assert.equal(run.group, shard.group);
+    assert.deepEqual(
+      sorted(unique(run.selectedSampleIds, "run samples")),
+      sorted(shard.sampleIds),
+    );
+  }
+}
+
 /** Pure plan checks use a baseline that the entry point has already verified. */
 export function validateRetestPlanBinding(plan, context) {
   const { planFile, baseline, frozenPlan, pinned } = context;
@@ -94,6 +164,7 @@ export function validateRetestPlanBinding(plan, context) {
     "planned samples",
   );
   assert.equal(plan.plannedNewSamples, ids.length);
+  nativeRetestExecutionShards(plan);
   assert.equal(
     ids.length + baseline.acceptedIds.size,
     frozenPlan.samples.length,
@@ -219,8 +290,12 @@ export function validateNativeRetestRun(run, context) {
     context;
   assert.match(run.sourceCommit, /^[a-f0-9]{40}$/u);
   assert.match(run.runId, /^[1-9][0-9]*$/u);
-  const group = plan.groups.find((item) => item.group === run.group);
+  const group = nativeRetestExecutionShards(plan).find(
+    (item) => item.shardId === (run.shardId ?? run.group),
+  );
   assert.ok(group, "run group outside retest plan");
+  assert.equal(group.group, run.group);
+  if (plan.executionShards) assert.equal(typeof run.shardId, "string");
   assert.deepEqual(
     sorted(unique(run.selectedSampleIds, "run samples")),
     sorted(group.sampleIds),
@@ -483,15 +558,7 @@ export function verifyNativeRetestRound({
     assert.equal(sample.kind, frozen.kind);
     assert.equal(sample.group, frozen.stratum.replace(/-volcengine$/u, ""));
   }
-  assert.deepEqual(
-    sorted(
-      unique(
-        data.runs.map((run) => run.group),
-        "ledger groups",
-      ),
-    ),
-    sorted(plan.groups.map((group) => group.group)),
-  );
+  validateNativeRetestRunBindings(plan, data.runs);
   unique(
     data.runs.map((run) => run.runId),
     "run IDs",

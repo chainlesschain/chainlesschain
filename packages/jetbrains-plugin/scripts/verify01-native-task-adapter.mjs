@@ -10,6 +10,7 @@ import {
   launchLogged,
   requireSuccess,
   stopOwned,
+  preserveFailureDuringCleanup,
 } from "../../../scripts/lib/verify01-diagnostic-process.mjs";
 import {
   assertPortFree,
@@ -358,33 +359,36 @@ export async function runJetBrainsNativeTask({
     );
     for (const phase of ["initial", "restart"]) {
       active = launch(["runIdeForUiTests", ...params], `ide-${phase}`);
-      try {
-        const startup = Math.min(deadline, Date.now() + 8 * 60 * 1000);
-        while (!(await robotReady())) {
-          assert.ok(!active.closed, `${phase} IDE exited before readiness`);
-          assert.ok(
-            Date.now() < startup,
-            "native Robot startup deadline exceeded",
+      await preserveFailureDuringCleanup(
+        async () => {
+          const startup = Math.min(deadline, Date.now() + 8 * 60 * 1000);
+          while (!(await robotReady())) {
+            assert.ok(!active.closed, `${phase} IDE exited before readiness`);
+            assert.ok(
+              Date.now() < startup,
+              "native Robot startup deadline exceeded",
+            );
+            await delay(500);
+          }
+          await requireSuccess(
+            launch(
+              ["uiSmokeTest", `-Dui.journey.phase=${phase}`, ...params],
+              `test-${phase}`,
+              buildEnv,
+            ),
+            deadline,
+            `${phase} native UI task`,
           );
-          await delay(500);
-        }
-        await requireSuccess(
-          launch(
-            ["uiSmokeTest", `-Dui.journey.phase=${phase}`, ...params],
-            `test-${phase}`,
-            buildEnv,
-          ),
-          deadline,
-          `${phase} native UI task`,
-        );
-      } finally {
-        await stopOwned(active, {
-          requireRunningOwner: true,
-          gracefulStop: requestIdeExit,
-          gracefulDeadline: Math.min(deadline, Date.now() + 30000),
-        });
-        active = null;
-      }
+        },
+        async () => {
+          await stopOwned(active, {
+            requireRunningOwner: true,
+            gracefulStop: requestIdeExit,
+            gracefulDeadline: Math.min(deadline, Date.now() + 30000),
+          });
+          active = null;
+        },
+      );
       await waitForPortFree({
         port: 8082,
         deadline: Math.min(deadline, Date.now() + 30000),
@@ -401,12 +405,21 @@ export async function runJetBrainsNativeTask({
     result.ok = true;
   } catch (error) {
     result.failure = error.message;
+    if (error.cleanupUnconfirmed) {
+      result.cleanupUnconfirmed = true;
+      result.cleanupFailure = error.cleanupFailure || error.message;
+      result.cleanupFailures = error.cleanupFailures || [result.cleanupFailure];
+    }
   } finally {
     if (active) {
       try {
         await stopOwned(active);
       } catch (error) {
-        result.cleanupFailure = error.message;
+        result.cleanupFailure ||= error.message;
+        result.cleanupFailures = [
+          ...new Set([...(result.cleanupFailures || []), error.message]),
+        ];
+        result.cleanupUnconfirmed = true;
         result.ok = false;
       }
     }

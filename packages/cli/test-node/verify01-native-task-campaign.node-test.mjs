@@ -18,7 +18,24 @@ import {
   archiveExtractor,
   extractNativeArchive,
   loadNativePackageSet,
+  createNativeHostGuard,
 } from "../scripts/verify01-native-task-campaign.mjs";
+
+test("an unconfirmed host cleanup prevents subsequent sample work without retry", () => {
+  const guard = createNativeHostGuard();
+  let executions = 0;
+  const sample = () => {
+    guard.assertReady();
+    executions++;
+  };
+  sample();
+  guard.block("Windows identity snapshot timeout");
+  for (let i = 0; i < 2; i++)
+    assert.throws(sample, { code: "HOST_CLEANUP_UNCONFIRMED" });
+  guard.block("secondary port failure");
+  assert.equal(guard.failure, "Windows identity snapshot timeout");
+  assert.equal(executions, 1);
+});
 
 test("package set selects exact complete versions and binds original manifest bytes", (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "native-package-set-"));
@@ -339,6 +356,59 @@ test("protocol conversion uses output only and Windows comparison leaves raw evi
     "c:\\work\\candidate.js",
   );
   assert.deepEqual(JSON.parse(stream), event);
+});
+
+test("native child storage recognizes its isolated profile and keeps ACL verification enabled", (t) => {
+  const root = temporary(t);
+  const profileHome = path.join(root, "home");
+  const profile = path.join(profileHome, ".chainlesschain");
+  fs.mkdirSync(profile, { recursive: true });
+  const env = nativeEnvironment(root, profileHome, profile, []);
+  const require = createRequire(import.meta.url);
+  const storage = require.resolve("../../session-core/lib/private-storage.js");
+  const host = require.resolve(
+    "../../session-core/lib/host-storage-environment.js",
+  );
+  const script = `
+    const storage = require(${JSON.stringify(storage)});
+    const host = require(${JSON.stringify(host)});
+    console.log(JSON.stringify({
+      hermetic: host.isFormalQualityHermeticRuntime(),
+      workingDirectory: storage._windowsAclWorkingDirectory(),
+      temporaryRoot: require('node:os').tmpdir(),
+      timeoutMs: storage._resolveWindowsAclTimeout(15000)
+    }));`;
+  const observe = (childEnv) =>
+    JSON.parse(
+      execFileSync(process.execPath, ["-e", script], {
+        env: childEnv,
+        encoding: "utf8",
+        timeout: 10000,
+        windowsHide: true,
+      }),
+    );
+  const corrected = observe(env);
+  assert.equal(corrected.hermetic, true);
+  assert.equal(corrected.workingDirectory, profile);
+  assert.equal(path.resolve(corrected.temporaryRoot), root);
+  assert.equal(
+    corrected.timeoutMs,
+    process.platform === "win32" ? 60000 : 15000,
+  );
+  // The original layout remains rejected by the unchanged product guard.
+  const childTemp = path.join(root, "tmp");
+  fs.mkdirSync(childTemp);
+  const old = observe({
+    ...env,
+    TEMP: childTemp,
+    TMP: childTemp,
+    TMPDIR: childTemp,
+  });
+  assert.equal(old.hermetic, false);
+  assert.equal(old.workingDirectory, null);
+  const outside = observe({ ...env, CHAINLESSCHAIN_HOME: path.dirname(root) });
+  assert.equal(outside.hermetic, false);
+  assert.equal(outside.workingDirectory, null);
 });
 
 test(

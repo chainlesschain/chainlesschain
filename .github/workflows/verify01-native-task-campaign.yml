@@ -62,10 +62,6 @@ env:
   NATIVE_PACKAGE_SET: ${{ inputs.package_set || 'latest' }}
   NATIVE_PACKAGE_SET_FILE: ${{ inputs.package_set_file || 'docs/research/cli/verify01-package-sets/2026-10-18-latest.json' }}
 
-concurrency:
-  group: verify01-native-36-plus-9-${{ inputs.hosts || 'all' }}-${{ inputs.entries || 'all' }}-${{ inputs.accept_existing_run || 'generate' }}
-  cancel-in-progress: false
-
 jobs:
   validate:
     if: github.event_name == 'workflow_dispatch' && inputs.confirm_live == true
@@ -73,6 +69,7 @@ jobs:
     outputs:
       matrix: ${{ steps.select.outputs.matrix }}
       groups: ${{ steps.select.outputs.groups }}
+      sample_key: ${{ steps.select.outputs.sample_key }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -123,6 +120,9 @@ jobs:
             if (!entries.length) throw new Error("unknown entry");
             const rows = Object.entries(hosts).filter(([name]) => selected === "all" || name === selected).flatMap(([, [platform, os]]) => entries.map(entry => ({group: `${platform}-${entry}`, os, entry})));
             const ids = parseNativeSampleIds(process.env.SAMPLE_SELECTION);
+            const sampleKey = ids ? [...ids].sort().join("-") : "all";
+            if (sampleKey.length > 160 || !/^[a-z0-9-]+$/.test(sampleKey)) throw new Error("sample concurrency key exceeds canonical bounds");
+            if (!run && entries.includes("jetbrains") && (!ids || ids.length !== 1)) throw new Error("JetBrains generation requires exactly one explicit sample per dispatch");
             const fetchDiagnostics = process.env.FETCH_DIAGNOSTICS || "false";
             if (!["true", "false"].includes(fetchDiagnostics)) throw new Error("invalid fetch diagnostics flag");
             if (fetchDiagnostics === "true" && (run || rows.length !== 1 || rows[0].entry !== "cli" || !ids)) throw new Error("fetch diagnostics require new CLI generation, exactly one host and explicit sample IDs");
@@ -135,6 +135,7 @@ jobs:
               assertUnfinishedNativeSamples(ids, {versionsFile: process.env.NATIVE_PACKAGE_SET_FILE || undefined});
             }
             fs.appendFileSync(process.env.GITHUB_OUTPUT, `matrix=${JSON.stringify({include: rows})}\ngroups=${JSON.stringify(rows.map(row => row.group))}\n`);
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, `sample_key=${sampleKey}\n`);
           '
 
   generate:
@@ -143,6 +144,11 @@ jobs:
     name: Native ${{ matrix.group }} (${{ inputs.sample_ids != '' && 'selected samples' || 'five independent samples' }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 145
+    # Run identity prevents GitHub replacing a pending dispatch, even when an
+    # operator accidentally repeats the same canonical sample selection.
+    concurrency:
+      group: native-${{ matrix.group }}-${{ needs.validate.outputs.sample_key }}-${{ github.run_id }}
+      cancel-in-progress: false
     strategy:
       fail-fast: false
       max-parallel: 9
@@ -186,6 +192,7 @@ jobs:
           --project-dir packages/jetbrains-plugin
           --artifact-dir "${{ runner.temp }}/verify01-native-gradle"
       - name: Run original project tasks through public native entry
+        timeout-minutes: 115
         shell: bash
         env:
           VOLCENGINE_API_KEY: ${{ secrets.CC_LLM_API_KEY }}
@@ -214,6 +221,7 @@ jobs:
             --entry "$NATIVE_ENTRY" --source-sha "$EXECUTION_SOURCE_SHA" \
             --confirm-live --output-dir "$RUNNER_TEMP/verify01-native-tasks" "${selection[@]}" "${package[@]}" "${diagnostics[@]}"
       - name: Preserve all candidates, native traces, UI and broker failures
+        timeout-minutes: 15
         if: always()
         uses: actions/upload-artifact@v6
         with:

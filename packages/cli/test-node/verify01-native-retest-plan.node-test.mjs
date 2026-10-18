@@ -10,6 +10,7 @@ import {
   assertUnfinishedNativeSamples,
   createNativeRetestPlan,
   loadVerifiedNativeAcceptedSamples,
+  nativeExecutionShards,
   unfinishedNativeGroups,
   validateNativePackageSetFile,
   validateNextNativePackageSet,
@@ -152,6 +153,39 @@ test("strict existing validators bind accepted files before selecting unfinished
     () => unfinishedNativeGroups(plan, new Set(["not-planned"])),
     /outside frozen plan/,
   );
+});
+
+test("JetBrains execution shards isolate each unfinished sample without losing other groups", () => {
+  const accepted = new Set([
+    "verify-33",
+    "verify-03",
+    "first-run-win32-vscode",
+  ]);
+  const groups = unfinishedNativeGroups(plan, accepted);
+  const before = JSON.stringify(groups);
+  const shards = nativeExecutionShards(groups);
+  assert.equal(JSON.stringify(groups), before);
+  assert.equal(
+    new Set(shards.map((shard) => shard.shardId)).size,
+    shards.length,
+  );
+  assert.deepEqual(
+    shards.flatMap((shard) => shard.sampleIds).sort(),
+    groups.flatMap((group) => group.sampleIds).sort(),
+  );
+  for (const shard of shards) {
+    assert.ok(shard.sampleIds.every((id) => !accepted.has(id)));
+    if (shard.group.endsWith("-jetbrains")) {
+      assert.equal(shard.sampleIds.length, 1);
+      assert.equal(shard.shardId, `${shard.group}--${shard.sampleIds[0]}`);
+    } else {
+      assert.equal(shard.shardId, shard.group);
+      assert.deepEqual(
+        shard.sampleIds,
+        groups.find((group) => group.group === shard.group).sampleIds,
+      );
+    }
+  }
 });
 
 test("an acceptance boolean without its bound checker evidence cannot suppress a task", (t) => {

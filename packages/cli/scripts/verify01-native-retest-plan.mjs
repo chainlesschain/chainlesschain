@@ -176,6 +176,18 @@ export function unfinishedNativeGroups(plan, acceptedIds) {
   return [...groups].map(([group, sampleIds]) => ({ group, sampleIds }));
 }
 
+export function nativeExecutionShards(groups) {
+  return groups.flatMap(({ group, sampleIds }) =>
+    group.endsWith("-jetbrains")
+      ? sampleIds.map((sampleId) => ({
+          shardId: `${group}--${sampleId}`,
+          group,
+          sampleIds: [sampleId],
+        }))
+      : [{ shardId: group, group, sampleIds: [...sampleIds] }],
+  );
+}
+
 export function createNativeRetestPlan({
   versionsFile,
   roundName,
@@ -218,6 +230,7 @@ export function createNativeRetestPlan({
       0,
     ),
     groups,
+    executionShards: nativeExecutionShards(groups),
     ledgerPath: `${NATIVE_EVIDENCE_ROOT}/${ledgerName}`,
     archivePrefix: `${NATIVE_EVIDENCE_ROOT}/${roundName}`,
     policy:

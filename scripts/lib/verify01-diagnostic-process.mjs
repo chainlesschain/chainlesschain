@@ -57,8 +57,15 @@ function cleanupUnconfirmed(message) {
   });
 }
 
-function windowsProcessSnapshot() {
-  const script = `$ErrorActionPreference='Stop'; @(Get-CimInstance -Query 'SELECT ProcessId, ParentProcessId, Name, CreationDate FROM Win32_Process' | ForEach-Object { [pscustomobject]@{pid=[int]$_.ProcessId;parentPid=[int]$_.ParentProcessId;name=$_.Name;created=if($null -eq $_.CreationDate){$null}else{$_.CreationDate.ToUniversalTime().Ticks.ToString()}} }) | ConvertTo-Json -Compress`;
+function windowsProcessSnapshot(deadline = Date.now() + 30000) {
+  const remaining = deadline - Date.now();
+  if (remaining <= 0)
+    throw cleanupUnconfirmed(
+      "Windows identity snapshot cleanup deadline exceeded",
+    );
+  // Avoid one PowerShell pipeline invocation per process. Preserve the same
+  // projected CIM identities and fail closed when creation time is unavailable.
+  const script = `$ErrorActionPreference='Stop'; $rows=@(foreach($p in (Get-CimInstance -Query 'SELECT ProcessId, ParentProcessId, Name, CreationDate FROM Win32_Process')) { [pscustomobject]@{pid=[int]$p.ProcessId;parentPid=[int]$p.ParentProcessId;name=$p.Name;created=if($null -eq $p.CreationDate){$null}else{$p.CreationDate.ToUniversalTime().Ticks.ToString()}} }); ConvertTo-Json -InputObject $rows -Compress`;
   const result = spawnSync(
     path.join(
       process.env.SystemRoot || "C:\\Windows",
@@ -76,7 +83,10 @@ function windowsProcessSnapshot() {
     {
       windowsHide: true,
       encoding: "utf8",
-      timeout: 10000,
+      // PowerShell cold startup alone can consume 5-7 seconds on Windows.
+      // Allow one observation more time without retrying or extending the
+      // caller's shared cleanup deadline.
+      timeout: Math.min(30000, remaining),
       maxBuffer: 4 * 1024 * 1024,
     },
   );
@@ -179,7 +189,7 @@ const preparedWindowsTrees = new WeakMap();
 /** Capture live Windows ownership before starting a caller's shutdown deadline.
  * This is preparation only: descendants must still be observed absent by stopOwned.
  */
-export function captureOwnedProcessTree(handle) {
+export function captureOwnedProcessTree(handle, { deadline } = {}) {
   if (
     process.platform !== "win32" ||
     !handle?.child.pid ||
@@ -204,7 +214,7 @@ export function captureOwnedProcessTree(handle) {
         "Windows host owner exited before identity capture",
       );
     evidence.owned = windowsOwnedTree(
-      windowsProcessSnapshot(),
+      windowsProcessSnapshot(deadline),
       handle.child.pid,
     );
     preparedWindowsTrees.set(handle, evidence.owned);
@@ -226,6 +236,7 @@ export async function stopOwned(
     requireRunningOwner = false,
     gracefulStop,
     gracefulDeadline = Date.now() + 30000,
+    cleanupDeadline = Date.now() + 60000,
   } = {},
 ) {
   if (!handle?.child.pid) return;
@@ -251,13 +262,13 @@ export async function stopOwned(
     if (process.platform === "win32") {
       // Record OS identities while the owner is alive. This confirms the known
       // diagnostic tree, not containment of hostile/detaching descendants.
-      captureOwnedProcessTree(handle);
+      captureOwnedProcessTree(handle, { deadline: cleanupDeadline });
       const owned = preparedWindowsTrees.get(handle);
       preparedWindowsTrees.delete(handle);
       const evidence = handle.cleanupEvidence;
       const saveEvidence = () => saveCleanupEvidence(handle);
       const observeRemaining = () => {
-        const snapshot = windowsProcessSnapshot();
+        const snapshot = windowsProcessSnapshot(cleanupDeadline);
         // Retain ancestry even when a known parent has already exited. A
         // post-shutdown descendant must also disappear before confirmation.
         extendWindowsOwnedTree(snapshot, owned);
@@ -272,7 +283,7 @@ export async function stopOwned(
         if (gracefulStop && Date.now() < gracefulDeadline) {
           await requestGracefulShutdown(
             gracefulStop,
-            gracefulDeadline,
+            Math.min(gracefulDeadline, cleanupDeadline),
             evidence,
           );
           do {
@@ -293,10 +304,18 @@ export async function stopOwned(
             );
         }
         if (!evidence.remaining || evidence.remaining.length) {
+          if (Date.now() >= cleanupDeadline)
+            throw cleanupUnconfirmed(
+              "Windows tree cleanup deadline exceeded before termination",
+            );
           const result = spawnSync(
             "taskkill.exe",
             ["/PID", String(child.pid), "/T", "/F"],
-            { shell: false, windowsHide: true, timeout: 10000 },
+            {
+              shell: false,
+              windowsHide: true,
+              timeout: Math.min(10000, cleanupDeadline - Date.now()),
+            },
           );
           evidence.taskkill = {
             status: result.status,
@@ -312,7 +331,7 @@ export async function stopOwned(
           };
           saveEvidence();
           if (result.error) throw result.error;
-          const deadline = Date.now() + 10000;
+          const deadline = Math.min(cleanupDeadline, Date.now() + 10000);
           while (true) {
             observeRemaining();
             if (!evidence.remaining.length) break;
@@ -327,7 +346,7 @@ export async function stopOwned(
         // Its exit status alone is never the evidence that cleanup succeeded.
         evidence.ownerExit = await withinDeadline(
           handle.done,
-          Date.now() + 10000,
+          Math.min(cleanupDeadline, Date.now() + 10000),
           "Windows owner exit acknowledgement",
         );
         evidence.confirmed = true;
@@ -421,7 +440,39 @@ export async function stopOwned(
     handle.cleanupConfirmed = true;
     if (handle.cleanupEvidence) handle.cleanupEvidence.confirmed = true;
   })();
-  return await handle.cleanupPromise;
+  try {
+    return await handle.cleanupPromise;
+  } catch (error) {
+    // Do not kill a process whose identity could not be verified. Release only
+    // our Node event-loop reference so evidence upload is not held indefinitely.
+    child.unref();
+    error.cleanupUnconfirmed = true;
+    throw error;
+  }
+}
+
+export async function preserveFailureDuringCleanup(operation, cleanup) {
+  let result, primary;
+  try {
+    result = await operation();
+  } catch (error) {
+    primary = error;
+  }
+  try {
+    await cleanup();
+  } catch (error) {
+    if (!primary) primary = error;
+    else {
+      primary.cleanupFailure ||= error.message;
+      primary.cleanupFailures = [
+        ...(primary.cleanupFailures || []),
+        error.message,
+      ];
+    }
+    primary.cleanupUnconfirmed = true;
+  }
+  if (primary) throw primary;
+  return result;
 }
 
 export async function withinDeadline(promise, deadline, label) {
@@ -442,12 +493,13 @@ export async function withinDeadline(promise, deadline, label) {
 }
 
 export async function requireSuccess(handle, deadline, label) {
-  try {
-    const result = await withinDeadline(handle.done, deadline, label);
-    if (result.code !== 0 || result.signal !== null)
-      throw new Error(`${label} exited ${result.code}/${result.signal}`);
-    return result;
-  } finally {
-    await stopOwned(handle);
-  }
+  return preserveFailureDuringCleanup(
+    async () => {
+      const result = await withinDeadline(handle.done, deadline, label);
+      if (result.code !== 0 || result.signal !== null)
+        throw new Error(`${label} exited ${result.code}/${result.signal}`);
+      return result;
+    },
+    () => stopOwned(handle),
+  );
 }

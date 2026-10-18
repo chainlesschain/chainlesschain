@@ -10,6 +10,8 @@ import {
   retestHash,
   validateNativeRetestRun,
   validateRetestPlanBinding,
+  nativeRetestExecutionShards,
+  validateNativeRetestRunBindings,
 } from "../scripts/verify01-native-retest-round.mjs";
 import {
   NATIVE_EVIDENCE_ROOT,
@@ -353,6 +355,64 @@ const collector = path.resolve(
   repository,
   "../../.work/collect-next-package-round.py",
 );
+
+test("single-sample shards permit multiple runs per group with exact disjoint coverage", () => {
+  const plan = {
+    groups: [
+      { group: "win32-jetbrains", sampleIds: ["verify-01", "verify-02"] },
+    ],
+    executionShards: ["verify-01", "verify-02"].map((id) => ({
+      shardId: `win32-jetbrains--${id}`,
+      group: "win32-jetbrains",
+      sampleIds: [id],
+    })),
+  };
+  const runs = plan.executionShards.map((shard, i) => ({
+    shardId: shard.shardId,
+    group: shard.group,
+    runId: String(i + 1),
+    selectedSampleIds: shard.sampleIds,
+  }));
+  validateNativeRetestRunBindings(plan, runs);
+  for (const change of [
+    (rows) => rows.pop(),
+    (rows) => {
+      rows[1].runId = rows[0].runId;
+    },
+    (rows) => {
+      rows[1].shardId = rows[0].shardId;
+    },
+    (rows) => {
+      rows[1].selectedSampleIds = rows[0].selectedSampleIds;
+    },
+    (rows) => {
+      delete rows[0].shardId;
+    },
+    (rows) => {
+      rows[0].group = "linux-jetbrains";
+    },
+  ]) {
+    const altered = structuredClone(runs);
+    change(altered);
+    assert.throws(() => validateNativeRetestRunBindings(plan, altered));
+  }
+  const overlap = structuredClone(plan);
+  overlap.executionShards[1].sampleIds = ["verify-01"];
+  assert.throws(() => nativeRetestExecutionShards(overlap));
+  const missing = structuredClone(plan);
+  missing.executionShards.pop();
+  assert.throws(() => nativeRetestExecutionShards(missing));
+  const legacy = { groups: plan.groups };
+  validateNativeRetestRunBindings(legacy, [
+    {
+      group: "win32-jetbrains",
+      runId: "1",
+      selectedSampleIds: ["verify-01", "verify-02"],
+    },
+  ]);
+  assert.throws(() => validateNativeRetestRunBindings(legacy, runs));
+});
+
 test(
   "local collector does not clobber existing ledger/archive bytes or checkpoint failed evidence",
   { skip: !fs.existsSync(collector) },
@@ -362,6 +422,25 @@ import importlib.util, pathlib, sys, tempfile
 spec = importlib.util.spec_from_file_location('next_collector', sys.argv[1])
 m = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(m)
+projection = {'brokerStatus': 'stale', 'host': None, 'generationPassed': True}
+m.copy_generation_fields(projection, {'generationPassed': False})
+assert projection == {'generationPassed': False}
+m.copy_generation_fields(projection, {'generationPassed': False, 'brokerStatus': None, 'host': {'passed': False}})
+assert projection == {'generationPassed': False, 'brokerStatus': None, 'host': {'passed': False}}
+plan = {'groups': [{'group': 'win32-jetbrains', 'sampleIds': ['verify-01', 'verify-02']}],
+        'executionShards': [{'shardId': 'shard-' + str(i), 'group': 'win32-jetbrains', 'sampleIds': [sample]}
+                            for i, sample in enumerate(['verify-01', 'verify-02'])]}
+bindings = [{'shardId': 'shard-' + str(i), 'group': 'win32-jetbrains', 'runId': str(i + 1), 'sourceCommit': 'a' * 40}
+            for i in range(2)]
+assert len(m.validate_bindings(bindings, plan)) == 2
+for bad in [bindings[:1], [bindings[0], bindings[0]],
+            [bindings[0], dict(bindings[1], runId='1')],
+            [bindings[0], dict(bindings[1], group='linux-jetbrains')]]:
+    try:
+        m.validate_bindings(bad, plan)
+        raise RuntimeError('invalid shard binding accepted')
+    except AssertionError:
+        pass
 with tempfile.TemporaryDirectory() as directory:
     root = pathlib.Path(directory)
     m.TREE = root
