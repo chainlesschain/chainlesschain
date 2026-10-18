@@ -56,7 +56,7 @@
   ],
   "releaseRequirements": {
     "method": "GitHub Actions OIDC Trusted Publishing for npm; established IDE release workflows",
-    "exactReleaseCommit": "25782a535ea296548f0f8347544da378e8fdf738",
+    "exactReleaseCommit": "78f41dba010e18d0ae2f1b7756ecff5f1232ab2a",
     "requiredMatrices": [
       "Linux, Windows and macOS checks for the exact release commit",
       "CLI CI on every configured OS",
@@ -71,36 +71,37 @@
     "pullRequest": "https://github.com/chainlesschain/chainlesschain/pull/461",
     "supersededCandidateCommits": [
       "372334d2136a69a4d313bc460c1a73d051773bcb",
-      "f5fa3c23cf02e0a80b15750717fac866515bfb07"
+      "f5fa3c23cf02e0a80b15750717fac866515bfb07",
+      "25782a535ea296548f0f8347544da378e8fdf738"
     ],
     "remoteRuns": [
       {
-        "name": "IDE Extensions",
-        "runId": 39093031315,
-        "status": "queued",
-        "conclusion": ""
-      },
-      {
-        "name": "CLI Strict Sandbox",
-        "runId": 39093031334,
+        "name": "IDE ARM64 Host Validation",
+        "runId": 39093458574,
         "status": "queued",
         "conclusion": ""
       },
       {
         "name": "CLI CI",
-        "runId": 39093031244,
+        "runId": 39093458658,
         "status": "queued",
         "conclusion": ""
       },
       {
-        "name": "IDE ARM64 Host Validation",
-        "runId": 39093031192,
+        "name": "IDE Extensions",
+        "runId": 39093458567,
+        "status": "queued",
+        "conclusion": ""
+      },
+      {
+        "name": "CLI Strict Sandbox",
+        "runId": 39093458609,
         "status": "queued",
         "conclusion": ""
       }
     ],
     "supersededChecksCancelled": true,
-    "remoteChecksObservedAt": "2026-10-18T03:19:21.712149+00:00",
+    "remoteChecksObservedAt": "2026-10-18T03:25:48.294492+00:00",
     "resolvedGateFailures": [
       {
         "workflow": "Docs-Site Build Gate",
@@ -108,6 +109,27 @@
         "reason": "New upgrade guide lacked the repository required section headings.",
         "fixCommit": "25782a535ea296548f0f8347544da378e8fdf738",
         "localValidation": "315 user documents all have 11 nonempty required sections; full remote docs build still required."
+      },
+      {
+        "workflow": "CLI Strict Sandbox",
+        "runId": "39093031334",
+        "failedJobs": ["117573650636", "117573650709"],
+        "reason": "Reviewed producer digest for headless-runner.test.js was stale after added quality/transport assertions.",
+        "fixCommit": "78f41dba010e18d0ae2f1b7756ecff5f1232ab2a",
+        "unchangedMappedTest": "rejects bypassPermissions when managed policy disables it",
+        "localValidation": {
+          "selectedPassed": 29,
+          "failed": 0,
+          "unselected": 948,
+          "rawReport": {
+            "path": "next-release-validation/security-map-tests.json.gz",
+            "originalDigest": "sha256:e64ad233dd3785f51eb0d8caca054843da67e000192e80e36c259695563db6ac",
+            "storedDigest": "sha256:34d29d45dbee7af18ee47d87e164f33b9cef492ce9a78e944b408390bb8f66bc",
+            "originalBytes": 305089
+          },
+          "sourceReview": "next-release-validation/security-map-review.json"
+        },
+        "scope": "Only one producer hash was rebound; tests, disposition, thresholds and permission order were not weakened. Final exact-SHA remote gates remain required."
       }
     ]
   },
