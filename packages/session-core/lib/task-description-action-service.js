@@ -1,6 +1,10 @@
 "use strict";
+const { isReadOnlyNativeDatabase } = require("./read-only-native-database.js");
 
 const { randomUUID } = require("node:crypto");
+const {
+  validateGoalExtensionIntentRef,
+} = require("./goal-extension-proposal-contract.js");
 const {
   hasOrganizationProjectBinding,
 } = require("./organization-project-authority");
@@ -138,9 +142,16 @@ function validateGoalIntent(value) {
       "controlGeneration",
       "proposalId",
     ],
-    [],
+    ["extensionRef"],
   );
   for (const key of ["id", "goalId", "storeId", "proposalId"]) id(value[key]);
+  if (Object.hasOwn(value, "extensionRef")) {
+    try {
+      validateGoalExtensionIntentRef(value.extensionRef);
+    } catch {
+      fail("ACTION_INVALID_REQUEST");
+    }
+  }
   if (
     !Number.isSafeInteger(value.goalRevision) ||
     value.goalRevision < 1 ||
@@ -285,8 +296,9 @@ class TaskDescriptionActionService {
     )
       fail("ACTION_GOAL_AUTHORITY_REQUIRED");
     this.contextAdapter = contextAdapter;
-    this._transaction(() =>
-      db.exec(`CREATE TABLE IF NOT EXISTS cc_business_action_runs (
+    if (!isReadOnlyNativeDatabase(db))
+      this._transaction(() =>
+        db.exec(`CREATE TABLE IF NOT EXISTS cc_business_action_runs (
       id TEXT PRIMARY KEY,
       actor_did TEXT NOT NULL,
       target_id TEXT NOT NULL,
@@ -299,7 +311,7 @@ class TaskDescriptionActionService {
       ON cc_business_action_runs(actor_did,target_id);
     CREATE INDEX IF NOT EXISTS idx_cc_business_action_runs_target
       ON cc_business_action_runs(target_id);`),
-    );
+      );
   }
 
   _transaction(fn) {

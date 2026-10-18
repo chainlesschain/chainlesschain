@@ -1,0 +1,25 @@
+{
+  "name": "chainlesschain",
+  "version": "0.166.104",
+  "localArchive": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-dmm-evidence-cli-pack-_bm6621g\\chainlesschain-0.166.104.tgz",
+  "sha256": "76cd08f568feb3b8cf262d99c24f715f17cec83cd5b7ad39f47de701d04bd865",
+  "fileCount": 1543,
+  "packagedSourceMatches": {
+    "src/lib/plugin-runtime/examples/goal-evidence-viewer/plugin.json": true,
+    "src/lib/plugin-runtime/cli-goal-extension-host.js": true,
+    "src/lib/project-goal-connection.js": true
+  },
+  "command": [
+    "npm.cmd",
+    "pack",
+    "--ignore-scripts",
+    "--json",
+    "--pack-destination",
+    "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-dmm-evidence-cli-pack-_bm6621g",
+    "--cache",
+    "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-dmm-evidence-cli-pack-_bm6621g\\npm-cache"
+  ],
+  "published": false,
+  "isolatedCliRuntime": false,
+  "limit": "Archive contents verified; child-package exports tested separately with the isolated Session Core probe; no registry dependency installation or release."
+}

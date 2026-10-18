@@ -1,0 +1,15 @@
+Working directory: C:\code\chainlesschain\packages\jetbrains-plugin
+Command:
+.\gradlew.bat '-Porg.gradle.java.installations.paths=C:/Users/longfa/AppData/Local/Programs/idea-2025.3/jbr' --offline --no-daemon test --tests com.chainlesschain.ide.PluginManagerTest compileJava buildPlugin --console=plain
+
+Recorded completion output from the existing build (full stdout was not saved; no build rerun was performed to produce this log):
+BUILD SUCCESSFUL in 1m 7s
+19 actionable tasks: 12 executed, 7 up-to-date
+
+Verified existing JUnit XML:
+packages/jetbrains-plugin/build/test-results/test/TEST-com.chainlesschain.ide.PluginManagerTest.xml
+<testsuite name="com.chainlesschain.ide.PluginManagerTest" tests="17" skipped="0" failures="0" errors="0" timestamp="2026-10-18T06:42:42" hostname="DESKTOP-MTMV2RE" time="0.358">
+
+Build artifact:
+packages/jetbrains-plugin/build/distributions/chainlesschain-ide-bridge-0.4.166.zip
+Length: 1548064 bytes

@@ -1,6 +1,7 @@
 "use strict";
 
 const { randomUUID } = require("node:crypto");
+const { isReadOnlyNativeDatabase } = require("./read-only-native-database.js");
 const {
   digestBusinessObjectContent: digest,
   validateBusinessActionRequest,
@@ -11,6 +12,13 @@ const {
 } = require("./project-risk-review-service.js");
 const { GoalUsageLedger } = require("./goal-usage-ledger.js");
 const { ApprovalGate } = require("./approval-gate.js");
+const {
+  validateGoalExtensionIntentRef,
+  goalExtensionIntentId,
+} = require("./goal-extension-proposal-contract.js");
+const {
+  readExtensionIntentBinding,
+} = require("./project-goal-extension-conversion.js");
 const {
   TaskDescriptionActionService,
   TaskCreateActionService,
@@ -116,16 +124,19 @@ function signal(review, taskId) {
   });
 }
 function reference(intent) {
-  return Object.fromEntries(
-    [
-      "id",
-      "goalId",
-      "storeId",
-      "goalRevision",
-      "controlGeneration",
-      "proposalId",
-    ].map((key) => [key, intent[key]]),
-  );
+  return {
+    ...Object.fromEntries(
+      [
+        "id",
+        "goalId",
+        "storeId",
+        "goalRevision",
+        "controlGeneration",
+        "proposalId",
+      ].map((key) => [key, intent[key]]),
+    ),
+    ...(intent.extensionRef ? { extensionRef: intent.extensionRef } : {}),
+  };
 }
 function copy(value) {
   return JSON.parse(JSON.stringify(value));
@@ -149,10 +160,12 @@ class ProjectGoalWorkflow {
     risk = null,
     usage = null,
     approvalGate = null,
+    verifyExtensionIntent = null,
   } = {}) {
     if (typeof clock !== "function") fail("ACTION_GOAL_INVALID_CLOCK");
     this.db = db;
     this.clock = clock;
+    this.verifyExtensionIntent = verifyExtensionIntent;
     this.goals =
       goals ||
       new PersonalProjectGoalService({
@@ -166,8 +179,9 @@ class ProjectGoalWorkflow {
     this.usage = usage || new GoalUsageLedger({ db });
     if (this.adapter.db !== db || this.risk.db !== db || this.usage.db !== db)
       fail("ACTION_GOAL_DATABASE_MISMATCH");
-    this._tx(() =>
-      db.exec(`CREATE TABLE IF NOT EXISTS cc_project_goal_workflow (
+    if (!isReadOnlyNativeDatabase(db))
+      this._tx(() =>
+        db.exec(`CREATE TABLE IF NOT EXISTS cc_project_goal_workflow (
       id TEXT PRIMARY KEY,kind TEXT NOT NULL,goal_id TEXT NOT NULL,actor_did TEXT NOT NULL,
       record_json TEXT NOT NULL,content_digest TEXT NOT NULL);
       CREATE INDEX IF NOT EXISTS idx_cc_project_goal_workflow_scope
@@ -175,7 +189,7 @@ class ProjectGoalWorkflow {
       CREATE TABLE IF NOT EXISTS cc_project_goal_proposal_observations (
         review_id TEXT NOT NULL,goal_id TEXT NOT NULL,actor_did TEXT NOT NULL,
         summary_json TEXT NOT NULL,content_digest TEXT NOT NULL,PRIMARY KEY(review_id,goal_id));`),
-    );
+      );
     const contextAdapter = Object.freeze({
       verify: (value) => this._verify(value),
       record: (value) => this._record(value),
@@ -192,7 +206,7 @@ class ProjectGoalWorkflow {
     // Avoid lazy service construction while a native action transaction is open.
     this.descriptionActions.riskService = this.risk;
     this.createActions.riskService = this.risk;
-    this.recoverUnresolved();
+    if (!isReadOnlyNativeDatabase(db)) this.recoverUnresolved();
   }
   _tx(operation) {
     if (this.db.inTransaction) fail("ACTION_GOAL_TRANSACTION_BUSY");
@@ -242,9 +256,14 @@ class ProjectGoalWorkflow {
     try {
       const record = JSON.parse(row.record_json);
       const fields = kind === "proposal" ? PROPOSAL_FIELDS : INTENT_FIELDS;
+      const expectedFields =
+        kind === "intent" && Object.hasOwn(record || {}, "extensionRef")
+          ? [...fields, "extensionRef"]
+          : fields;
       if (
         !record ||
-        Object.keys(record).sort().join(",") !== [...fields].sort().join(",") ||
+        Object.keys(record).sort().join(",") !==
+          [...expectedFields].sort().join(",") ||
         record.schema !== `chainlesschain.goal-${kind}/v1` ||
         record.id !== row.id ||
         record.goalId !== row.goal_id ||
@@ -275,6 +294,16 @@ class ProjectGoalWorkflow {
           throw new Error();
         if (record.intentId !== null) id(record.intentId);
       } else {
+        if (
+          record.id.startsWith("goal-intent-extension-") !==
+          Object.hasOwn(record, "extensionRef")
+        )
+          throw new Error();
+        if (record.extensionRef) {
+          validateGoalExtensionIntentRef(record.extensionRef);
+          if (goalExtensionIntentId(record.extensionRef) !== record.id)
+            throw new Error();
+        }
         for (const key of ["proposalId", "requestId"]) id(record[key]);
         if (
           ![
@@ -309,6 +338,69 @@ class ProjectGoalWorkflow {
     } catch {
       fail("ACTION_GOAL_RECORD_CORRUPT");
     }
+  }
+  /** Host adapters reuse native ownership and source checks inside their own
+   * immediate transaction. This grants no execution or confirmation port. */
+  assertExtensionGoalInTransaction(goalRef) {
+    this._transactionRequired();
+    options(goalRef, ["id", "storeId", "revision", "controlGeneration"]);
+    const actorDid = this.adapter._actor();
+    const goal = this._goal(goalRef.id, actorDid);
+    this._live(
+      goal,
+      {
+        storeId: goalRef.storeId,
+        goalRevision: goalRef.revision,
+        controlGeneration: goalRef.controlGeneration,
+      },
+      actorDid,
+    );
+    return { actorDid, projectId: goal.projectRef.id };
+  }
+  assertExtensionSourceInTransaction({
+    goalRef,
+    sourceRef,
+    nativeActionType,
+    extensionResume = null,
+    fresh = true,
+  }) {
+    const { actorDid, projectId } =
+      this.assertExtensionGoalInTransaction(goalRef);
+    if (!ACTIONS.includes(nativeActionType))
+      fail("ACTION_GOAL_ACTION_OUT_OF_SCOPE");
+    const proposal = this._read(sourceRef, "proposal", actorDid);
+    if (
+      proposal.goalId !== goalRef.id ||
+      proposal.actionType !== nativeActionType
+    )
+      fail("ACTION_GOAL_SOURCE_CONFLICT");
+    const goal = this._goal(goalRef.id, actorDid);
+    this._live(goal, proposal, actorDid, nativeActionType);
+    this._source(proposal, actorDid, undefined, undefined, fresh);
+    if (proposal.intentId !== null) {
+      if (!extensionResume) fail("ACTION_GOAL_SOURCE_ALREADY_PREPARED");
+      const intent = this._read(proposal.intentId, "intent", actorDid);
+      readExtensionIntentBinding({ db: this.db, intent, actor: actorDid });
+      if (
+        digest(intent.extensionRef) !==
+          digest(validateGoalExtensionIntentRef(extensionResume)) ||
+        intent.proposalId !== proposal.id ||
+        intent.goalId !== goalRef.id
+      )
+        fail("ACTION_GOAL_SOURCE_ALREADY_PREPARED");
+    }
+    if (this.adapter._actor() !== actorDid)
+      fail("ACTION_GOAL_AUTHORITY_CHANGED");
+    return {
+      proposalId: proposal.id,
+      projectId,
+      actionType: proposal.actionType,
+      targetId: proposal.targetId,
+      sourceTaskId: proposal.sourceTaskId,
+      signalDigest: proposal.signalDigest,
+      reviewId: proposal.reviewId,
+      reviewDigest: proposal.reviewDigest,
+    };
   }
   _save(record, kind) {
     this._transactionRequired();
@@ -518,9 +610,30 @@ class ProjectGoalWorkflow {
           proposal.intentId === null
             ? null
             : this._read(proposal.intentId, "intent", actor);
+        let intentResult = intent ? this._intentResult(intent, actor) : null;
+        let intentUnavailable = false;
+        if (
+          intent?.extensionRef &&
+          ["draft", "prepared"].includes(intent.status)
+        ) {
+          try {
+            this._extension(intent, actor, "read");
+          } catch (error) {
+            if (
+              ![
+                "ACTION_GOAL_EXTENSION_REJECTED",
+                "ACTION_GOAL_EXTENSION_AUTHORITY_REQUIRED",
+              ].includes(error.code)
+            )
+              throw error;
+            intentResult = null;
+            intentUnavailable = true;
+          }
+        }
         return {
           proposal,
-          intent: intent ? this._intentResult(intent, actor) : null,
+          intent: intentResult,
+          ...(intentUnavailable ? { intentUnavailable: true } : {}),
           current:
             goal.revision === proposal.goalRevision &&
             goal.controlGeneration === proposal.controlGeneration &&
@@ -576,8 +689,13 @@ class ProjectGoalWorkflow {
     options(
       input,
       ["goalId", "proposalId", "expectedRevision", "requestId", "description"],
-      ["taskType"],
+      ["taskType", "extensionRef"],
     );
+    if (input.extensionRef !== undefined)
+      input = {
+        ...input,
+        extensionRef: validateGoalExtensionIntentRef(input.extensionRef),
+      };
     id(input.requestId);
     if (
       typeof input.description !== "string" ||
@@ -614,6 +732,7 @@ class ProjectGoalWorkflow {
           prior.inputDigest !== inputDigest
         )
           fail("ACTION_GOAL_INTENT_CONFLICT");
+        this._extension(prior, actor, "prepare");
         return prior;
       }
       this._source(proposal, actor);
@@ -631,7 +750,9 @@ class ProjectGoalWorkflow {
         fail("ACTION_GOAL_INTENT_CONFLICT");
       const intent = {
         schema: "chainlesschain.goal-intent/v1",
-        id: `goal-intent-${randomUUID()}`,
+        id: input.extensionRef
+          ? goalExtensionIntentId(input.extensionRef)
+          : `goal-intent-${randomUUID()}`,
         goalId: goal.id,
         storeId: goal.storeId,
         goalRevision: goal.revision,
@@ -649,9 +770,11 @@ class ProjectGoalWorkflow {
         runId: null,
         status: "draft",
         executionStartedAt: null,
+        ...(input.extensionRef ? { extensionRef: input.extensionRef } : {}),
       };
       this._save(intent, "intent");
       this._save({ ...proposal, intentId: intent.id }, "proposal");
+      this._extension(intent, actor, "prepare");
       if (this.adapter._actor() !== actor)
         fail("ACTION_GOAL_AUTHORITY_CHANGED");
       return intent;
@@ -688,6 +811,28 @@ class ProjectGoalWorkflow {
       ? this.createActions
       : this.descriptionActions;
   }
+  _extension(intent, actor, phase, live = true) {
+    if (!intent.extensionRef) return;
+    try {
+      readExtensionIntentBinding({ db: this.db, intent, actor });
+    } catch {
+      fail("ACTION_GOAL_EXTENSION_BINDING_INVALID");
+    }
+    if (!live) return;
+    if (typeof this.verifyExtensionIntent !== "function")
+      fail("ACTION_GOAL_EXTENSION_AUTHORITY_REQUIRED");
+    let allowed;
+    try {
+      allowed = this.verifyExtensionIntent({
+        intent: copy(intent),
+        actor,
+        phase,
+      });
+    } catch {
+      fail("ACTION_GOAL_EXTENSION_REJECTED");
+    }
+    if (allowed !== true) fail("ACTION_GOAL_EXTENSION_REJECTED");
+  }
   _verify({ request, actor, phase }) {
     this._transactionRequired();
     if (!["preview", "admission", "before-write", "replay"].includes(phase))
@@ -717,6 +862,7 @@ class ProjectGoalWorkflow {
       intent.reviewDigest,
       phase !== "replay",
     );
+    this._extension(intent, actor, phase, phase !== "replay");
     if (phase === "replay") {
       if (intent.runId === null) fail("ACTION_GOAL_INTENT_CONFLICT");
       return { allowed: true };
@@ -756,6 +902,7 @@ class ProjectGoalWorkflow {
     this._transactionRequired();
     const intent = this._read(request.input.goalIntent.id, "intent", actor);
     const proposal = this._read(intent.proposalId, "proposal", actor);
+    this._extension(intent, actor, "record", run.status === "succeeded");
     const stored = this.db
       .prepare("SELECT * FROM cc_business_action_runs WHERE id=?")
       .get(run.id);
@@ -827,6 +974,7 @@ class ProjectGoalWorkflow {
     return { recorded: true };
   }
   _intentResult(intent, actor) {
+    this._extension(intent, actor, "history", false);
     const proposal = this._read(intent.proposalId, "proposal", actor);
     if (proposal.intentId !== intent.id || proposal.goalId !== intent.goalId)
       fail("ACTION_GOAL_RECORD_CORRUPT");
@@ -866,6 +1014,8 @@ class ProjectGoalWorkflow {
         intent = this._read(input.intentId, "intent", actor);
       this._goal(intent.goalId, actor);
       const result = this._intentResult(intent, actor);
+      if (["draft", "prepared"].includes(intent.status))
+        this._extension(intent, actor, "read");
       if (this.adapter._actor() !== actor)
         fail("ACTION_GOAL_AUTHORITY_CHANGED");
       return copy(result);

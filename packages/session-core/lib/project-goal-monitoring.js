@@ -131,6 +131,70 @@ function resultFor(goal, review) {
   };
 }
 
+function validateStoredCheckPayload(payload) {
+  input(payload, PAYLOAD_FIELDS);
+  id(payload.storeId);
+  id(payload.goalId);
+  if (
+    !Number.isSafeInteger(payload.goalRevision) ||
+    payload.goalRevision < 1 ||
+    !Number.isSafeInteger(payload.controlGeneration) ||
+    payload.controlGeneration < 0 ||
+    !Number.isSafeInteger(payload.schedulerPolicyRevision) ||
+    payload.schedulerPolicyRevision < 1 ||
+    (payload.requestId === null
+      ? !Number.isSafeInteger(payload.monitorRevision) ||
+        payload.monitorRevision < 1
+      : payload.monitorRevision !== null)
+  )
+    throw goalError("GOAL_MONITOR_BINDING_STALE");
+  if (payload.requestId !== null) id(payload.requestId);
+}
+function validateStoredProjectGoalCheck({
+  row,
+  goal,
+  actor,
+  risk,
+  expectedPayload = null,
+}) {
+  let payload, result;
+  try {
+    payload = JSON.parse(row.payload_json);
+    result = JSON.parse(row.result_json);
+    validateStoredCheckPayload(payload);
+    if (
+      row.goal_id !== goal.id ||
+      row.actor_did !== actor ||
+      row.goal_revision !== payload.goalRevision ||
+      row.control_generation !== payload.controlGeneration ||
+      payload.goalRevision > goal.revision ||
+      payload.controlGeneration > goal.controlGeneration ||
+      payload.goalId !== goal.id ||
+      payload.storeId !== goal.storeId ||
+      digest(payload) !== row.request_digest ||
+      digest(result) !== row.result_digest ||
+      (expectedPayload !== null &&
+        digest(expectedPayload) !== row.request_digest) ||
+      !Number.isSafeInteger(row.elapsed_ms) ||
+      row.elapsed_ms < 0 ||
+      epoch(row.checked_at) !== Date.parse(result.checkedAt)
+    )
+      throw new Error("invalid check");
+  } catch {
+    throw goalError("GOAL_MONITOR_CHECK_CORRUPT");
+  }
+  const review = risk.getReviewInTransaction({
+    reviewId: row.review_id,
+  });
+  if (
+    review.review.actorDid !== actor ||
+    review.review.projectId !== goal.projectRef.id ||
+    digest(resultFor(goal, review)) !== row.result_digest
+  )
+    throw goalError("GOAL_MONITOR_CHECK_CORRUPT");
+  return result;
+}
+
 /** Project evidence and usage commit together in native SQLite. Scheduler
  * settlement is a separate projection, recoverable by occurrence identity. */
 class ProjectGoalMonitoringState {
@@ -638,23 +702,7 @@ class ProjectGoalMonitoringState {
     });
   }
   _payload(payload) {
-    input(payload, PAYLOAD_FIELDS);
-    id(payload.storeId);
-    id(payload.goalId);
-    if (
-      !Number.isSafeInteger(payload.goalRevision) ||
-      payload.goalRevision < 1 ||
-      !Number.isSafeInteger(payload.controlGeneration) ||
-      payload.controlGeneration < 0 ||
-      !Number.isSafeInteger(payload.schedulerPolicyRevision) ||
-      payload.schedulerPolicyRevision < 1 ||
-      (payload.requestId === null
-        ? !Number.isSafeInteger(payload.monitorRevision) ||
-          payload.monitorRevision < 1
-        : payload.monitorRevision !== null)
-    )
-      throw goalError("GOAL_MONITOR_BINDING_STALE");
-    if (payload.requestId !== null) id(payload.requestId);
+    return validateStoredCheckPayload(payload);
   }
   _validateBinding(payload, goal, actor) {
     this._payload(payload);
@@ -701,42 +749,13 @@ class ProjectGoalMonitoringState {
       .get(id(occurrenceId));
   }
   _validatedCheck(row, goal, actor, expectedPayload = null) {
-    let payload, result;
-    try {
-      payload = JSON.parse(row.payload_json);
-      result = JSON.parse(row.result_json);
-      this._payload(payload);
-      if (
-        row.goal_id !== goal.id ||
-        row.actor_did !== actor ||
-        row.goal_revision !== payload.goalRevision ||
-        row.control_generation !== payload.controlGeneration ||
-        payload.goalRevision > goal.revision ||
-        payload.controlGeneration > goal.controlGeneration ||
-        payload.goalId !== goal.id ||
-        payload.storeId !== goal.storeId ||
-        digest(payload) !== row.request_digest ||
-        digest(result) !== row.result_digest ||
-        (expectedPayload !== null &&
-          digest(expectedPayload) !== row.request_digest) ||
-        !Number.isSafeInteger(row.elapsed_ms) ||
-        row.elapsed_ms < 0 ||
-        epoch(row.checked_at) !== Date.parse(result.checkedAt)
-      )
-        throw new Error("invalid check");
-    } catch {
-      throw goalError("GOAL_MONITOR_CHECK_CORRUPT");
-    }
-    const review = this.risk.getReviewInTransaction({
-      reviewId: row.review_id,
+    return validateStoredProjectGoalCheck({
+      row,
+      goal,
+      actor,
+      expectedPayload,
+      risk: this.risk,
     });
-    if (
-      review.review.actorDid !== actor ||
-      review.review.projectId !== goal.projectRef.id ||
-      digest(resultFor(goal, review)) !== row.result_digest
-    )
-      throw goalError("GOAL_MONITOR_CHECK_CORRUPT");
-    return result;
   }
   authorize({ job, occurrence }) {
     try {
@@ -1323,6 +1342,7 @@ class ProjectGoalMonitoringEngine {
 }
 
 module.exports = {
+  validateStoredProjectGoalCheck,
   ProjectGoalMonitoringState,
   ProjectGoalMonitoringEngine,
   MIN_INTERVAL_MS,

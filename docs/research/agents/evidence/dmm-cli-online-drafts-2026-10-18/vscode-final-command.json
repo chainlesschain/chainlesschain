@@ -1,0 +1,23 @@
+{
+  "command": [
+    "node",
+    "../../node_modules/vitest/vitest.mjs",
+    "run",
+    "__tests__/unit/vscode-ext-goal-drafts.test.js",
+    "__tests__/unit/vscode-ext-goal-draft-request-view.test.js",
+    "__tests__/unit/vscode-ext-goal-panels-view.test.js",
+    "__tests__/unit/vscode-ext-plugin-manager.test.js",
+    "--reporter=json",
+    "--outputFile=C:\\code\\chainlesschain\\docs\\research\\agents\\evidence\\dmm-cli-online-drafts-2026-10-18\\vscode-final-tests.json"
+  ],
+  "cwd": "C:\\code\\chainlesschain\\packages\\cli",
+  "exitCode": 0,
+  "stdout": "JSON report written to C:/code/chainlesschain/docs/research/agents/evidence/dmm-cli-online-drafts-2026-10-18/vscode-final-tests.json\n",
+  "stderr": "",
+  "files": [
+    "packages/cli/__tests__/unit/vscode-ext-goal-drafts.test.js",
+    "packages/cli/__tests__/unit/vscode-ext-goal-draft-request-view.test.js",
+    "packages/cli/__tests__/unit/vscode-ext-goal-panels-view.test.js",
+    "packages/cli/__tests__/unit/vscode-ext-plugin-manager.test.js"
+  ]
+}

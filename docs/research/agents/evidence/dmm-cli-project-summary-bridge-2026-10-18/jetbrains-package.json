@@ -1,0 +1,20 @@
+{
+  "version": "0.4.166",
+  "localArchive": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-dmm-cli-project-ide-0p2scphw\\chainlesschain-ide-bridge-0.4.166.zip",
+  "sha256": "398f375b94fb75371c9f45289b0ade8331d09c356fb0da47cfcde41fb385bf64",
+  "packagedConnectionClassesVerified": {
+    "com/chainlesschain/ide/PluginManager.class": true,
+    "com/chainlesschain/ide/intellij/PluginManagerAction.class": true
+  },
+  "nativeSourceCompiled": true,
+  "tests": 10,
+  "failed": 0,
+  "skipped": 0,
+  "testCommand": ".\\gradlew.bat -Porg.gradle.java.installations.paths=C:/Users/longfa/AppData/Local/Programs/idea-2025.3/jbr --offline --no-daemon test --tests com.chainlesschain.ide.PluginManagerTest compileJava --console=plain",
+  "buildCommand": ".\\gradlew.bat -Porg.gradle.java.installations.paths=C:/Users/longfa/AppData/Local/Programs/idea-2025.3/jbr --offline --no-daemon buildPlugin --console=plain",
+  "jdk": "JBR 21.0.8 compiler toolchain; Gradle launcher default JDK 17",
+  "intellijSdk": "cached IntelliJ Community 2024.2",
+  "initialAttempts": "JAVA_HOME=JBR21 triggered missing offline installer resolution; -Dorg.gradle.java.installations.paths did not select the JDK21 compiler; resolved with -Porg.gradle.java.installations.paths under default JDK17 launcher",
+  "published": false,
+  "realGuiRun": false
+}

@@ -1,0 +1,21 @@
+{
+  "name": "goal-progress-viewer",
+  "version": "0.1.0",
+  "description": "Read-only summary of an explicitly selected standalone CLI goal",
+  "permissions": { "goalExtension": ["panel:goal.summary"] },
+  "goalExtension": {
+    "apiVersion": "1.0.0",
+    "hosts": { "cli": ">=0.166.104" },
+    "events": [],
+    "panels": [
+      {
+        "id": "goal-progress",
+        "title": "Goal progress",
+        "slot": "goal.summary",
+        "fields": ["objective", "status"],
+        "fallback": "text"
+      }
+    ],
+    "proposals": []
+  }
+}

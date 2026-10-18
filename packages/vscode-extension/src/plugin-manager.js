@@ -19,6 +19,328 @@ function buildPluginInstalledArgs() {
   return ["plugin", "installed", "--json"];
 }
 
+function connectionArgs(connection) {
+  if (connection === undefined) return [];
+  if (
+    typeof connection !== "string" ||
+    !connection ||
+    connection.length > 4096 ||
+    /[\u0000-\u001f]/u.test(connection)
+  )
+    throw new Error("Invalid goal connection file");
+  return [`--connection=${connection}`];
+}
+function buildCliGoalCatalogArgs(after, connection) {
+  if (
+    after !== undefined &&
+    (typeof after !== "string" || !/^[A-Za-z0-9_-]{1,1024}$/.test(after))
+  )
+    throw new Error("Invalid goal catalog cursor");
+  return [
+    "goal",
+    "catalog",
+    "--json",
+    ...(after ? [`--after=${after}`] : []),
+    ...connectionArgs(connection),
+  ];
+}
+
+function parseCliGoalCatalog(text, expectedStore, connection) {
+  if (typeof text !== "string" || Buffer.byteLength(text, "utf8") > 32 * 1024)
+    return null;
+  try {
+    const raw = JSON.parse(text);
+    if (
+      raw?.schema !== "chainlesschain.goal-catalog.v1" ||
+      raw.snapshot !== true ||
+      typeof raw.storeId !== "string" ||
+      !(connection
+        ? raw.source === "desktop-project" &&
+          /^project-goals-[a-f0-9-]{36}$/.test(raw.storeId)
+        : raw.source === undefined &&
+          /^cli-goals-[a-f0-9]{64}$/.test(raw.storeId)) ||
+      (expectedStore !== undefined && raw.storeId !== expectedStore) ||
+      typeof raw.observedAt !== "string" ||
+      raw.observedAt.length > 64 ||
+      !Number.isFinite(Date.parse(raw.observedAt)) ||
+      !Array.isArray(raw.entries) ||
+      raw.entries.length > 20 ||
+      !Number.isSafeInteger(raw.scannedCount) ||
+      raw.scannedCount < 0 ||
+      raw.scannedCount > 20 ||
+      !Number.isSafeInteger(raw.skippedCount) ||
+      raw.skippedCount < 0 ||
+      raw.scannedCount !== raw.entries.length + raw.skippedCount ||
+      !Number.isSafeInteger(raw.invalidNameCount) ||
+      raw.invalidNameCount < 0 ||
+      raw.invalidNameCount > 2048 ||
+      (raw.nextCursor !== null &&
+        (typeof raw.nextCursor !== "string" ||
+          !/^[A-Za-z0-9_-]{1,1024}$/.test(raw.nextCursor) ||
+          raw.scannedCount === 0))
+    )
+      return null;
+    let prior = "";
+    const entries = [];
+    for (const entry of raw.entries) {
+      if (
+        !entry ||
+        typeof entry.id !== "string" ||
+        !/^[A-Za-z0-9][A-Za-z0-9._-]{0,255}$/.test(entry.id) ||
+        entry.id.includes("..") ||
+        entry.id <= prior ||
+        typeof entry.title !== "string" ||
+        entry.title.length > 160 ||
+        /[\u0000-\u001f\u007f-\u009f\u200e\u200f\u202a-\u202e\u2066-\u2069]/u.test(
+          entry.title,
+        ) ||
+        !["active", "paused", "done", "abandoned"].includes(entry.status) ||
+        !Number.isSafeInteger(entry.revision) ||
+        entry.revision < 1 ||
+        !Number.isSafeInteger(entry.controlGeneration) ||
+        entry.controlGeneration < 0
+      )
+        return null;
+      prior = entry.id;
+      entries.push({
+        id: entry.id,
+        title: entry.title,
+        status: entry.status,
+        revision: entry.revision,
+        controlGeneration: entry.controlGeneration,
+      });
+    }
+    return {
+      storeId: raw.storeId,
+      entries,
+      observedAt: raw.observedAt,
+      scannedCount: raw.scannedCount,
+      skippedCount: raw.skippedCount,
+      invalidNameCount: raw.invalidNameCount,
+      nextCursor: raw.nextCursor,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function buildCliGoalPanelsArgs(
+  id,
+  name,
+  scope = "user",
+  expectedStore,
+  connection,
+) {
+  if (
+    typeof id !== "string" ||
+    !/^[A-Za-z0-9][A-Za-z0-9._-]{0,255}$/.test(id) ||
+    id.includes("..")
+  )
+    throw new Error("Enter a standalone CLI goal ID");
+  if (
+    typeof name !== "string" ||
+    !name ||
+    name.length > 256 ||
+    !["user", "project", "local"].includes(scope)
+  )
+    throw new Error("Invalid plugin selection");
+  if (
+    expectedStore !== undefined &&
+    !(connection
+      ? /^project-goals-[a-f0-9-]{36}$/.test(expectedStore)
+      : /^cli-goals-[a-f0-9]{64}$/.test(expectedStore))
+  )
+    throw new Error("Invalid selected goal store");
+  return [
+    "goal",
+    "panels",
+    id,
+    `--plugin=${name}`,
+    "--scope",
+    scope,
+    "--json",
+    ...(expectedStore ? [`--expected-store=${expectedStore}`] : []),
+    ...connectionArgs(connection),
+  ];
+}
+
+/** A user-requested snapshot, never a live subscription or an action receipt. */
+function parseCliGoalPanels(
+  text,
+  { id, name, scope, expectedStore, connection } = {},
+) {
+  if (typeof text !== "string" || Buffer.byteLength(text, "utf8") > 128 * 1024)
+    return null;
+  try {
+    const raw = JSON.parse(text);
+    const ref = raw?.goalRef;
+    if (
+      raw?.schema !== "chainlesschain.goal-extension-panels.v1" ||
+      raw.snapshot !== true ||
+      (connection
+        ? raw.source !== "desktop-project"
+        : raw.source !== undefined) ||
+      !ref ||
+      ![ref.id, ref.storeId].every(
+        (v) => typeof v === "string" && v.length > 0 && v.length <= 256,
+      ) ||
+      !Number.isSafeInteger(ref.revision) ||
+      ref.revision < 1 ||
+      !Number.isSafeInteger(ref.controlGeneration) ||
+      ref.controlGeneration < 0 ||
+      (id !== undefined && ref.id !== id) ||
+      (expectedStore !== undefined && ref.storeId !== expectedStore) ||
+      typeof raw.observedAt !== "string" ||
+      raw.observedAt.length > 64 ||
+      !Number.isFinite(Date.parse(raw.observedAt)) ||
+      !Array.isArray(raw.panels) ||
+      raw.panels.length > 16 ||
+      !Array.isArray(raw.dropped) ||
+      raw.dropped.length > 256
+    )
+      return null;
+    const panels = [];
+    for (const panel of raw.panels) {
+      const plugin = panel?.plugin;
+      if (
+        !plugin ||
+        ![plugin.name, plugin.version].every(
+          (v) => typeof v === "string" && v.length > 0 && v.length <= 256,
+        ) ||
+        !["user", "project", "local"].includes(plugin.scope) ||
+        (name !== undefined && plugin.name !== name) ||
+        (scope !== undefined && plugin.scope !== scope) ||
+        typeof panel.id !== "string" ||
+        !/^[a-z][a-z0-9-]{0,63}$/.test(panel.id) ||
+        !(
+          panel.slot === "goal.summary" ||
+          (connection && panel.slot === "goal.evidence")
+        ) ||
+        panel.format !== "text" ||
+        typeof panel.text !== "string" ||
+        panel.text.length > 32768
+      )
+        return null;
+      panels.push({
+        plugin: {
+          name: plugin.name,
+          version: plugin.version,
+          scope: plugin.scope,
+        },
+        id: panel.id,
+        text: panel.text,
+      });
+    }
+    return {
+      goalRef: {
+        id: ref.id,
+        storeId: ref.storeId,
+        revision: ref.revision,
+        controlGeneration: ref.controlGeneration,
+      },
+      observedAt: raw.observedAt,
+      panels,
+      dropped: raw.dropped.map((entry) => ({
+        name: bounded(entry?.name, 256),
+        reason: bounded(entry?.reason, 128),
+      })),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function buildCliGoalDraftRequestArgs(input) {
+  const {
+    id,
+    name,
+    scope = "user",
+    expectedStore,
+    connection,
+    source,
+    requestId,
+    title,
+    descriptionFile,
+    out,
+  } = input;
+  buildCliGoalPanelsArgs(id, name, scope, expectedStore, connection);
+  if (
+    !connection ||
+    !/^goal-proposal-[a-f0-9]{64}$/u.test(source || "") ||
+    ![
+      [requestId, 128],
+      [title, 256],
+      [descriptionFile, 4096],
+      [out, 4096],
+    ].every(
+      ([value, max]) =>
+        typeof value === "string" &&
+        value.trim() &&
+        value.length <= max &&
+        !/[\u0000-\u001f]/u.test(value),
+    )
+  )
+    throw new Error("Invalid draft request selection");
+  return [
+    "goal",
+    "draft-request",
+    id,
+    `--plugin=${name}`,
+    "--scope",
+    scope,
+    `--connection=${connection}`,
+    `--source=${source}`,
+    `--request-id=${requestId}`,
+    `--title=${title}`,
+    `--description-file=${descriptionFile}`,
+    `--out=${out}`,
+    "--json",
+    ...(expectedStore ? [`--expected-store=${expectedStore}`] : []),
+  ];
+}
+function parseCliGoalDraftExport(text, expected) {
+  if (typeof text !== "string" || Buffer.byteLength(text, "utf8") > 16384)
+    return null;
+  try {
+    const result = JSON.parse(text);
+    if (
+      result.schema !== "chainlesschain.goal-draft-export/v1" ||
+      result.state !== "request-exported" ||
+      result.goalRef?.id !== expected.id ||
+      result.goalRef?.storeId !== expected.expectedStore ||
+      result.declaredPlugin?.name !== expected.name ||
+      result.declaredPlugin?.scope !== expected.scope ||
+      result.file !== expected.out ||
+      result.requestId !== expected.requestId ||
+      !/^sha256:[a-f0-9]{64}$/u.test(result.contentDigest)
+    )
+      return null;
+    return {
+      file: result.file,
+      requestId: result.requestId,
+      contentDigest: result.contentDigest,
+    };
+  } catch {
+    return null;
+  }
+}
+function formatCliGoalPanels(result) {
+  return [
+    `CLI goal snapshot: ${result.goalRef.id} (revision ${result.goalRef.revision})`,
+    `Observed: ${result.observedAt}`,
+    ...result.panels.map(
+      (panel) =>
+        `\n${panel.plugin.name} [${panel.plugin.scope}]\n${panel.text}`,
+    ),
+    ...(result.panels.length
+      ? []
+      : ["\nNo authorized goal panels are available."]),
+    ...result.dropped.map(
+      (entry) => `${entry.name || "plugins"}: ${entry.reason}`,
+    ),
+  ].join("\n");
+}
+
 function buildPluginTrustArgs(name, trusted, scope) {
   const args = ["plugin", trusted ? "trust" : "untrust", String(name)];
   // The CLI defaults trust/untrust to --scope project, but the panel's Add
@@ -194,7 +516,30 @@ function parsePluginInstalled(text) {
       source: parsePluginSource(r.source),
       integrity: parsePluginIntegrity(r.integrity),
       policy: parsePluginPolicy(r.policy),
+      ...(r.goalExtension !== undefined
+        ? { goalExtension: parseGoalExtension(r.goalExtension) }
+        : {}),
     }));
+}
+
+// Management output is descriptive. Never infer admission from compatibility.
+function parseGoalExtension(raw) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw))
+    return { status: "unknown", runtimeAvailable: false, hosts: {} };
+  const hosts = {};
+  for (const host of ["cli", "vscode", "jetbrains", "desktop"]) {
+    if (typeof raw.hosts?.[host] === "string")
+      hosts[host] = bounded(raw.hosts[host], 128);
+  }
+  return {
+    status: ["legacy", "invalid", "declaration-only"].includes(raw.status)
+      ? raw.status
+      : "unknown",
+    apiVersion: bounded(raw.apiVersion, 128),
+    apiCompatible: raw.apiCompatible === true,
+    runtimeAvailable: false,
+    hosts,
+  };
 }
 
 function bounded(value, max = 4096) {
@@ -306,6 +651,13 @@ function parseSkillList(text) {
 }
 
 module.exports = {
+  buildCliGoalCatalogArgs,
+  parseCliGoalCatalog,
+  buildCliGoalPanelsArgs,
+  buildCliGoalDraftRequestArgs,
+  parseCliGoalDraftExport,
+  parseCliGoalPanels,
+  formatCliGoalPanels,
   buildMcpConnectArgs,
   buildMcpRemoveArgs,
   buildMcpServersArgs,

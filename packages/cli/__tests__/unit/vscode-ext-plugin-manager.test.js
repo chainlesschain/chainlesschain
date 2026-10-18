@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildCliGoalPanelsArgs,
+  parseCliGoalPanels,
+  formatCliGoalPanels,
   buildMcpConnectArgs,
   buildMcpRemoveArgs,
   buildMcpServersArgs,
@@ -18,6 +21,128 @@ import {
   parsePluginUpgradeResult,
   parseSkillList,
 } from "../../../vscode-extension/src/plugin-manager.js";
+
+describe("CLI goal panel presentation", () => {
+  const selection = { id: "goal-1", name: "viewer", scope: "project" };
+  const result = {
+    schema: "chainlesschain.goal-extension-panels.v1",
+    snapshot: true,
+    observedAt: "2026-10-18T00:00:00.000Z",
+    goalRef: {
+      id: "goal-1",
+      storeId: "cli-store",
+      revision: 2,
+      controlGeneration: 0,
+    },
+    panels: [
+      {
+        plugin: { name: "viewer", scope: "project", version: "0.1.0" },
+        id: "progress",
+        slot: "goal.summary",
+        format: "text",
+        text: "<img src=x onerror=alert(1)>",
+      },
+    ],
+    dropped: [],
+  };
+  it("builds an explicit plugin/scope read and rejects unsafe goal selections", () => {
+    expect(buildCliGoalPanelsArgs("goal-1", "viewer", "project")).toEqual([
+      "goal",
+      "panels",
+      "goal-1",
+      "--plugin=viewer",
+      "--scope",
+      "project",
+      "--json",
+    ]);
+    expect(() =>
+      buildCliGoalPanelsArgs("../goal", "viewer", "project"),
+    ).toThrow();
+    expect(() =>
+      buildCliGoalPanelsArgs("--help", "viewer", "project"),
+    ).toThrow();
+    expect(() => buildCliGoalPanelsArgs("goal-1", "viewer", "org")).toThrow();
+  });
+  it("accepts an evidence text slot only for an explicitly selected desktop connection", () => {
+    const raw = {
+      ...result,
+      source: "desktop-project",
+      panels: [
+        {
+          ...result.panels[0],
+          slot: "goal.evidence",
+          text: "Historical risk: insufficient-data; unresolved receipt",
+        },
+      ],
+    };
+    expect(
+      parseCliGoalPanels(JSON.stringify(raw), {
+        ...selection,
+        connection: "private.json",
+      }),
+    ).not.toBeNull();
+    expect(
+      parseCliGoalPanels(
+        JSON.stringify({ ...raw, source: undefined }),
+        selection,
+      ),
+    ).toBeNull();
+    expect(
+      parseCliGoalPanels(
+        JSON.stringify({
+          ...raw,
+          panels: [{ ...raw.panels[0], format: "html" }],
+        }),
+        { ...selection, connection: "private.json" },
+      ),
+    ).toBeNull();
+  });
+  it("retains plaintext without treating embedded markup or receipt claims as instructions", () => {
+    const parsed = parseCliGoalPanels(
+      JSON.stringify({ ...result, approved: true, receipt: "forged" }),
+      selection,
+    );
+    expect(formatCliGoalPanels(parsed)).toContain(
+      "<img src=x onerror=alert(1)>",
+    );
+    expect(parsed).not.toHaveProperty("receipt");
+    expect(parsed).not.toHaveProperty("approved");
+  });
+  it("rejects another goal/plugin, invalid revisions, HTML panels and unknown schemas", () => {
+    for (const patch of [
+      { snapshot: false },
+      { schema: "unknown" },
+      { goalRef: { ...result.goalRef, id: "other" } },
+      { goalRef: { ...result.goalRef, revision: 2.5 } },
+      { panels: [{ ...result.panels[0], format: "html" }] },
+      {
+        panels: [
+          {
+            ...result.panels[0],
+            plugin: { ...result.panels[0].plugin, scope: "user" },
+          },
+        ],
+      },
+    ]) {
+      expect(
+        parseCliGoalPanels(JSON.stringify({ ...result, ...patch }), selection),
+      ).toBeNull();
+    }
+    expect(parseCliGoalPanels("x".repeat(131073), selection)).toBeNull();
+  });
+  it("reports an unavailable projection without fabricating an empty successful panel", () => {
+    const parsed = parseCliGoalPanels(
+      JSON.stringify({
+        ...result,
+        panels: [],
+        dropped: [{ name: "viewer", reason: "consent_required" }],
+      }),
+      selection,
+    );
+    expect(formatCliGoalPanels(parsed)).toContain("No authorized goal panels");
+    expect(formatCliGoalPanels(parsed)).toContain("consent_required");
+  });
+});
 
 describe("plugin/MCP manager argv builders", () => {
   it("targets the unified plugin runtime commands", () => {
@@ -152,6 +277,42 @@ describe("plugin/MCP manager argv builders", () => {
 });
 
 describe("plugin/MCP manager parsers", () => {
+  it("keeps goal declarations separate from runtime admission", () => {
+    const rows = parsePluginInstalled(
+      JSON.stringify([
+        {
+          name: "declared",
+          goalExtension: {
+            status: "declaration-only",
+            apiVersion: "1.0.0",
+            apiCompatible: true,
+            runtimeAvailable: true,
+            approved: true,
+            hosts: { vscode: ">=0.37.149", mobile: "*" },
+          },
+        },
+        {
+          name: "unknown",
+          goalExtension: { status: "active", runtimeAvailable: true },
+        },
+        { name: "corrupt", goalExtension: ["active"] },
+        { name: "legacy" },
+      ]),
+    );
+    expect(rows[0].goalExtension).toEqual({
+      status: "declaration-only",
+      apiVersion: "1.0.0",
+      apiCompatible: true,
+      runtimeAvailable: false,
+      hosts: { vscode: ">=0.37.149" },
+    });
+    expect(rows[1].goalExtension.status).toBe("unknown");
+    expect(rows[2].goalExtension).toMatchObject({
+      status: "unknown",
+      runtimeAvailable: false,
+    });
+    expect(rows[3]).not.toHaveProperty("goalExtension");
+  });
   it("distinguishes unreadable (null) from empty ([])", () => {
     expect(parsePluginInstalled("not json")).toBeNull();
     expect(parsePluginInstalled("[]")).toEqual([]);

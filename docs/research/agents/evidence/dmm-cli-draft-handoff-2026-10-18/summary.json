@@ -1,0 +1,413 @@
+{
+  "taskIds": [
+    "DMM-07",
+    "DMM-08"
+  ],
+  "recordedAt": "2026-10-18T06:13:24.100984+00:00",
+  "result": "CLI and VS Code/JetBrains export untrusted request files; desktop explicitly adopts each exact payload into an atomic pending draft, then uses existing native preview/confirmation/receipt. No online write authority added.",
+  "source": {
+    "baseCommit": "7111f3f78725c82c35927fd5bada0e0b1be5983c",
+    "state": "Uncommitted shared worktree; unrelated concurrent changes preserved. Local evidence is not exact-commit release CI.",
+    "sha256": {
+      "desktop-app-vue/scripts/verify-fixed-renderer-ipc.mjs": "760955991d15f0c9bbdfd2a71bf55942beef1662b030eeb0fc2637c22ba11f80",
+      "desktop-app-vue/src/main/task/__tests__/project-goal-cli-bridge.test.js": "2791129af7ae0a43ec960bd87c9a9434c14b16e33fca178ef611220029fa017d",
+      "desktop-app-vue/src/main/task/__tests__/project-goal-draft-imports-ipc.test.js": "9f491a4fa0079b984f94a1cdde38eab82111cd2922341d3afae84d9dc44d70ed",
+      "desktop-app-vue/src/main/task/project-goal-auth-session.js": "c2e81e219c34c8ffb480dad823d605eadc80964dd2403d17f18d87195b3b5226",
+      "desktop-app-vue/src/main/task/project-goal-cli-bridge.js": "389aede8adbc04715408b0bac6c7afa6039d6309feac70cd33717ade97298d80",
+      "desktop-app-vue/src/main/task/project-goal-draft-request-file.js": "78423b73eb5dc5577afd0fd6e75dc026af8cc9a55a5a2a49d3ea1c568b260671",
+      "desktop-app-vue/src/main/task/project-goal-ipc.js": "188b26594d62cde25c462d9a865bb2286e6f3b929820d89c374a1943a7342e24",
+      "desktop-app-vue/src/preload/index.js": "ea52fc7226024d993d5625a5e6b38affe8293ace78ab2e8743c4f617826d0d0b",
+      "desktop-app-vue/src/preload/renderer-ipc-capabilities.json": "c8cc739dc482df08aba945bfe5d1bf6e2c660526e3fc4a2dfa5e94eb507f1835",
+      "desktop-app-vue/src/renderer/components/projects/ProjectGoalActionsPanel.vue": "b6c9305dd7325c70f9df078dfedaeef51cbad4450ad88e3ced65cdb32129e460",
+      "desktop-app-vue/src/renderer/components/projects/ProjectGoalCliConnectionPanel.vue": "2292f7b8e294b3f67b6dbb50bcec9c8ec3c6ca414a527d07add7803231ae8363",
+      "desktop-app-vue/src/renderer/components/projects/ProjectGoalDraftImportsPanel.vue": "4f5fb9ac67847625fdf3da042f1b52ab0777c2eaa7311e0055b7f00064348ba6",
+      "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-cli-connection-panel.test.ts": "f914a77738add335cf20a25831671964d64351c4315dcb78b2e0f8ee8734f82c",
+      "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-draft-imports-panel.test.ts": "9d645b988a4dad86c2c0b4faa8aeb78b3bb3dceefcf21765c775a197d9b98bff",
+      "desktop-app-vue/vitest.business-actions-renderer.config.mjs": "e72844fbf50f4e209105b59a06edcb2d651ecacb2f4056c3b7f59b44562a076e",
+      "desktop-app-vue/vitest.business-actions.config.mjs": "c09e4af2c358d507a71f7030999e2b4fe070a9e3010c7286955ed0c1ee85e78d",
+      "docs/research/agents/README.md": "634257ed7ebc01458ba0bb516717d9ae775fd418f4eace28a3ea56ca157b0aed",
+      "docs/research/agents/chainlesschain-dots-muse-mods-analysis-2026-10-06.md": "1c02c4f96dda618fd39ca50aa88e49f96e5cba481f9e5a1f4c5177de879aa448",
+      "docs/research/agents/dots-muse-mods-implementation-progress-2026-10-07.md": "743109aa1d81021b1da4790fd953c7a7ca4ae4e8f6d8c142b59722f4cf8860f2",
+      "packages/cli/README.md": "01c91a14a5571e86fb2bb5a42b6646c0e88451318a7079ceb86d7ff5eec519c7",
+      "packages/cli/__tests__/unit/cli-goal-draft-request.test.js": "252841b6f89a738d6669fce00d730bf70cfd8b2d7a52f894d637446dc8d704f5",
+      "packages/cli/__tests__/unit/cli-goal-evidence-host.test.js": "c9c0f54c39d981841e9aca8ca5b68f25a5d97961516e0638295b67c40e8ba468",
+      "packages/cli/__tests__/unit/goal-evidence-contract.test.js": "32e2afa82d01ef19195e07992717451668922ec5c6a45856f94a2c2c16761863",
+      "packages/cli/__tests__/unit/project-goal-evidence-reader.test.js": "35a7e1f712750848af2da286b65a52b3cc2f1d76e38614648e3a00eee79f3855",
+      "packages/cli/__tests__/unit/vscode-ext-goal-draft-request-view.test.js": "f4de525633232331a91d8df7e4d90165458fa994a7c54fafb341235f749095f0",
+      "packages/cli/__tests__/unit/vscode-ext-plugin-manager.test.js": "f6e7a2970e2f646c73919958dc97d4b7e1e6b186f8674052b09d1d70d848cfe1",
+      "packages/cli/package.json": "42f73521e9976a129b77a9eb1e42836803e412f69891780c5d01096fbb79f8e4",
+      "packages/cli/src/command-help-index.json": "5373d2a04d6628268f91dcad5177479a2dc2500d7639303485818edd212d99e1",
+      "packages/cli/src/command-manifest.json": "1b2261ae858003c325fd5132e27ce3eb38c1066f559e9f7ebb23afdf26b44ebf",
+      "packages/cli/src/commands/goal.js": "b9b490b1c76d53f515d0af0e12fa71e04493534c45ed0c690012523843cd732d",
+      "packages/cli/src/lib/plugin-runtime/cli-goal-draft-request.js": "ae1ddeb1920066d1ce807d3e1b20fd60ce1d0092cfd2ba4641795d79351ca564",
+      "packages/cli/src/lib/plugin-runtime/cli-goal-extension-host.js": "7c6708a65301bb77e1e17b50d35dd69578c0a282fb09d6d75fefe2bd2ced1c80",
+      "packages/cli/src/lib/plugin-runtime/examples/goal-description-drafter/plugin.json": "9a06fb9cde1219612614d48e2bbd6ad1072613df05eb7153b7507a20d8581738",
+      "packages/cli/src/lib/plugin-runtime/examples/goal-evidence-viewer/plugin.json": "b9d86c91919a2750b8bdadb6050c81b2f3e200e30f0ebd962488a54db6fde1f5",
+      "packages/cli/src/lib/plugin-runtime/goal-extension-contract.js": "dc514a9b07388859e4431bb480b88f55f344e28d4b0687f7dc6df4379b8b6b10",
+      "packages/cli/src/lib/plugin-runtime/goal-extensions.js": "c481936f30abab17353044d133ddd22d12a1879d5d1bb8257750a789cdf0e2f8",
+      "packages/cli/src/lib/project-goal-connection.js": "43791b7fff666702fa3b009f7f3b758692812302316e0dc1333fe90bc477e677",
+      "packages/jetbrains-plugin/build.gradle.kts": "43b01244be42b58ed2bbd031dc497e276421e3a1b47a378534101595dbd5d737",
+      "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/PluginManager.java": "27654730e938de4cbbbb33dcbc6a86ca9d0f9610c9ce38690c6070981f5fec12",
+      "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/PluginManagerAction.java": "26ef61626121e78dea8f47b1b4829de74518b418e80a3ad3daa82d3bb7ba0b04",
+      "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/PluginManagerTest.java": "ec49ca57119eda4a929076c0a190178f8b9c42d1cfafba46f001171c6f1d09c3",
+      "packages/session-core/README.md": "fd2255c20cf233202ecf69242eff17b80573368592ca936c389d1e1a81b20a47",
+      "packages/session-core/lib/goal-draft-request-contract.js": "f490ba94e987a79ffeb62f2c33c2cb8d8b61fca139db7aa7299aa37a0b894add",
+      "packages/session-core/lib/goal-evidence-contract.js": "bea1a233537c0eb03190901bc63e156356b3d4f4399e17cb5145558885e5c598",
+      "packages/session-core/lib/goal-usage-ledger.js": "9f9587efcf03776f6d539706df108c702cbdd61cf032f66fce0d6183e35238ed",
+      "packages/session-core/lib/project-goal-draft-imports.js": "e7ee74fc52535206891e5d2e16afa767206691c3f8fd007ef16ff36a3bec0205",
+      "packages/session-core/lib/project-goal-evidence-reader.js": "b399bc088d8dd8fef54c89246303a4013f1dde96f7c0e25d0955cba087a1f798",
+      "packages/session-core/lib/project-goal-extension-queue.js": "b75b3d15ec40a1bbafee7b0722db8539bab0749545f0d5b3dfcded38fdb36067",
+      "packages/session-core/lib/project-goal-monitoring.js": "cc346510669c51d856c77ee252c163a506febb0f9b98827126b2e44d52aceea8",
+      "packages/session-core/lib/project-goal-service.js": "f9463f368c096fd438bbdf8ef392b42299001405f2d28644d2770574506c616b",
+      "packages/session-core/lib/project-goal-workflow.js": "e7dc6a9f5cfa2027711b740afe042faeae47743db9664e04850faed65ff9aa1b",
+      "packages/session-core/lib/project-risk-review-service.js": "95b2739b2c4c411b4cec308eb884c7e3286874c8e4899fefec2d3e4e02d8e991",
+      "packages/session-core/lib/read-only-native-database.js": "46d465270a2332a6914acf269472346ee47de98b70b043996c537ab4bc15725e",
+      "packages/session-core/lib/task-description-action-service.js": "7b6d7ad0f1144342273e179f98a6236b3cc393c1521e6b9e359445108444eef8",
+      "packages/session-core/package.json": "737e6ac00fdfc31230a1a949288736c4ae8ccb6a89db06b91943c01c02dcb8d4",
+      "packages/vscode-extension/package.json": "66749b353c4c37a2e756c06ec308087e605778c5d5f21885f5fb79ad5870ea0d",
+      "packages/vscode-extension/src/plugin-manager.js": "3b6f41ebd7b376c1600144e5ad811e07e06045cf781b0d9d9f2d90967c096b73",
+      "packages/vscode-extension/src/ui/plugin-manager-view.js": "1c702f9bdbd57ddfa5c43c0a3dc162ccb73d1678776b80988436c109b73a1951"
+    },
+    "finalSnapshot": "source-final-snapshot.json",
+    "matched": 53,
+    "changesAfterInitialSnapshot": [
+      "desktop-app-vue/src/main/task/project-goal-ipc.js"
+    ]
+  },
+  "environment": {
+    "os": "Windows 10 19045",
+    "node": "22.22.2",
+    "npm": "10.9.7",
+    "vitest": "4.1.10",
+    "prettier": "3.6.2",
+    "database": "real better-sqlite3",
+    "java": "JBR 21.0.8 toolchain; default JDK17 Gradle launcher",
+    "intellijSdk": "cached IntelliJ Community 2024.2",
+    "vsce": "3.9.2",
+    "rendererDependencies": "Existing temporary exact-version dependency tree reused; no package manifest or lockfile changes."
+  },
+  "verification": [
+    {
+      "report": "cli-tests.json",
+      "commandRecord": "cli-command.json",
+      "files": [
+        "packages/cli/__tests__/integration/cli-goal-panels.test.js",
+        "packages/cli/__tests__/integration/goal-extension-conversion-process.test.js",
+        "packages/cli/__tests__/integration/project-goal-process-recovery.test.js",
+        "packages/cli/__tests__/integration/project-goal-workflow-process-recovery.test.js",
+        "packages/cli/__tests__/unit/cli-goal-catalog.test.js",
+        "packages/cli/__tests__/unit/cli-goal-draft-request.test.js",
+        "packages/cli/__tests__/unit/cli-goal-evidence-host.test.js",
+        "packages/cli/__tests__/unit/cli-goal-extension-host.test.js",
+        "packages/cli/__tests__/unit/goal-evidence-contract.test.js",
+        "packages/cli/__tests__/unit/goal-store.test.js",
+        "packages/cli/__tests__/unit/goal-usage-ledger.test.js",
+        "packages/cli/__tests__/unit/organization-project-goal-completion.test.js",
+        "packages/cli/__tests__/unit/organization-project-goal-periodic.test.js",
+        "packages/cli/__tests__/unit/organization-project-goal-service.test.js",
+        "packages/cli/__tests__/unit/organization-project-goal-workflow.test.js",
+        "packages/cli/__tests__/unit/organization-project-risk-review-service.test.js",
+        "packages/cli/__tests__/unit/organization-task-action-service.test.js",
+        "packages/cli/__tests__/unit/plugin-goal-extension.test.js",
+        "packages/cli/__tests__/unit/project-goal-completion.test.js",
+        "packages/cli/__tests__/unit/project-goal-evidence-reader.test.js",
+        "packages/cli/__tests__/unit/project-goal-extension-queue.test.js",
+        "packages/cli/__tests__/unit/project-goal-monitoring.test.js",
+        "packages/cli/__tests__/unit/project-goal-notifications.test.js",
+        "packages/cli/__tests__/unit/project-goal-service.test.js",
+        "packages/cli/__tests__/unit/project-goal-workflow.test.js",
+        "packages/cli/__tests__/unit/project-risk-review-service.test.js",
+        "packages/cli/__tests__/unit/task-description-action-service.test.js",
+        "packages/cli/__tests__/unit/vscode-ext-goal-draft-request-view.test.js",
+        "packages/cli/__tests__/unit/vscode-ext-goal-panels-view.test.js",
+        "packages/cli/__tests__/unit/vscode-ext-plugin-manager.test.js"
+      ],
+      "passed": 619,
+      "failed": 0,
+      "skipped": 3
+    },
+    {
+      "report": "desktop-final-tests.json",
+      "commandRecord": "desktop-final-command.json",
+      "files": [
+        "desktop-app-vue/src/preload/__tests__/legacy-ipc-policy.test.js",
+        "desktop-app-vue/src/main/ipc/__tests__/ipc-sender-guard.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-auth-session.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-cli-bridge.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-delivery-drafts-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-draft-imports-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-workflow-ipc.test.js"
+      ],
+      "passed": 139,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "report": "renderer-tests.json",
+      "commandRecord": "renderer-command.json",
+      "files": [
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-actions-panel.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-cli-connection-panel.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-draft-imports-panel.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-extension-drafts-panel.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-monitoring-panel.test.ts"
+      ],
+      "passed": 74,
+      "failed": 0,
+      "skipped": 0
+    }
+  ],
+  "jetbrains": {
+    "files": [
+      "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/PluginManagerTest.java"
+    ],
+    "passed": 11,
+    "failed": 0,
+    "skipped": 0,
+    "cwd": "packages/jetbrains-plugin",
+    "command": [
+      ".\\gradlew.bat",
+      "-Porg.gradle.java.installations.paths=C:/Users/longfa/AppData/Local/Programs/idea-2025.3/jbr",
+      "--offline",
+      "--no-daemon",
+      "test",
+      "--tests",
+      "com.chainlesschain.ide.PluginManagerTest",
+      "compileJava",
+      "buildPlugin",
+      "--console=plain"
+    ]
+  },
+  "counts": {
+    "distinctFiles": 44,
+    "passed": 843,
+    "failed": 0,
+    "skipped": 3,
+    "overlapsPreviousBatches": true
+  },
+  "checks": "checks.json",
+  "packages": {
+    "packed-session-core": {
+      "name": "@chainlesschain/session-core",
+      "version": "0.3.19",
+      "archive": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-dmm-evidence-pack-mcgm2tyn\\chainlesschain-session-core-0.3.19.tgz",
+      "sha256": "173ecac6ee4f6909bd1c1843158e7defe463c70384344129855a37bd0a5712de",
+      "fileCount": 73,
+      "probe": {
+        "publicCjsAndEsmExports": true,
+        "realSqlite": true,
+        "atomicAdoptionAndPending": true,
+        "idempotentReimport": true,
+        "nativePreview": true,
+        "revocationPreventsRestore": true,
+        "noTaskModification": true,
+        "noCliPrivateImports": true
+      },
+      "packagedSourceMatches": {
+        "lib/goal-draft-request-contract.js": true,
+        "lib/project-goal-draft-imports.js": true,
+        "lib/project-goal-extension-queue.js": true,
+        "README.md": true
+      },
+      "commands": [
+        {
+          "command": [
+            "npm.cmd",
+            "pack",
+            "--ignore-scripts",
+            "--json",
+            "--pack-destination",
+            "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-dmm-evidence-pack-mcgm2tyn",
+            "--cache",
+            "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-dmm-evidence-pack-mcgm2tyn\\npm-cache"
+          ],
+          "cwd": "packages\\session-core",
+          "exitCode": 0,
+          "stdout": "[\n  {\n    \"id\": \"@chainlesschain/session-core@0.3.19\",\n    \"name\": \"@chainlesschain/session-core\",\n    \"version\": \"0.3.19\",\n    \"size\": 300071,\n    \"unpackedSize\": 1408944,\n    \"shasum\": \"b017207424ca45e916142bc429da5eec7b066232\",\n    \"integrity\": \"sha512-8CPf+qA5dJadgmKRztnNQO92fbXemk/CMSQF9J4pl/3cB+GpmDYtzZoj1koPNIJPgR5sznaRyMCV9jCnzwCxwg==\",\n    \"filename\": \"chainlesschain-session-core-0.3.19.tgz\",\n    \"files\": [\n      {\n        \"path\": \"README.md\",\n        \"size\": 12183,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/agent-bundle-loader.js\",\n        \"size\": 3643,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/agent-bundle-resolver.js\",\n        \"size\": 5297,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/agent-bundle-schema.js\",\n        \"size\": 6729,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/agent-definition.js\",\n        \"size\": 5879,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/agent-group.js\",\n        \"size\": 4481,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/approval-gate.js\",\n        \"size\": 17411,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/audit-data-policy.js\",\n        \"size\": 6043,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/beta-flags.js\",\n        \"size\": 3434,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/business-object-contract.js\",\n        \"size\": 15548,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/envelope-sse.js\",\n        \"size\": 3973,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/evolution-run.js\",\n        \"size\": 9132,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/evolvable-artifact.js\",\n        \"size\": 43494,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/file-adapters.js\",\n        \"size\": 5005,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/goal-contract.js\",\n        \"size\": 13143,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/goal-draft-request-contract.js\",\n        \"size\": 2329,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/goal-evidence-contract.js\",\n        \"size\": 4480,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/goal-extension-proposal-contract.js\",\n        \"size\": 3094,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/goal-notification-policy.js\",\n        \"size\": 3554,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/goal-repository.js\",\n        \"size\": 2897,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/goal-usage-ledger.js\",\n        \"size\": 16350,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/host-storage-environment.js\",\n        \"size\": 693,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/idle-parker.js\",\n        \"size\": 3082,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/index.js\",\n        \"size\": 10613,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/mcp-policy.js\",\n        \"size\": 5389,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/memory-consolidator.js\",\n        \"size\": 5330,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/memory-store.js\",\n        \"size\": 7914,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/nostr-crypto.js\",\n        \"size\": 5435,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/organization-project-approval-service.js\",\n        \"size\": 40079,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/organization-project-authority.js\",\n        \"size\": 34330,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/organization-project-goal-completion.js\",\n        \"size\": 42738,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/organization-project-goal-memory.js\",\n        \"size\": 50632,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/organization-project-goal-monitoring.js\",\n        \"size\": 54890,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/organization-project-goal-service.js\",\n        \"size\": 30078,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/organization-project-goal-workflow.js\",\n        \"size\": 36207,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/organization-project-proposal-store.js\",\n        \"size\": 18149,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/organization-project-risk-review-service.js\",\n        \"size\": 40792,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/organization-project-transfer-service.js\",\n        \"size\": 28515,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/organization-task-action-service.js\",\n        \"size\": 26089,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/private-storage.js\",\n        \"size\": 48338,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/project-goal-completion.js\",\n        \"size\": 41903,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/project-goal-draft-imports.js\",\n        \"size\": 14761,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/project-goal-evidence-reader.js\",\n        \"size\": 7606,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/project-goal-extension-conversion.js\",\n        \"size\": 7541,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/project-goal-extension-queue.js\",\n        \"size\": 13417,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/project-goal-memory.js\",\n        \"size\": 44065,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/project-goal-monitoring.js\",\n        \"size\": 46510,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/project-goal-notifications.js\",\n        \"size\": 25005,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/project-goal-service.js\",\n        \"size\": 12068,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/project-goal-workflow.js\",\n        \"size\": 38622,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/project-risk-evaluation.js\",\n        \"size\": 11788,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/project-risk-review-service.js\",\n        \"size\": 34215,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/quality-gate.js\",\n        \"size\": 11820,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/read-only-native-database.js\",\n        \"size\": 1488,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/restricted-audit-store.js\",\n        \"size\": 3773,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/runtime-claims.js\",\n        \"size\": 2404,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/sandbox-policy.js\",\n        \"size\": 6155,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/scheduler-authority-resolver.js\",\n        \"size\": 6828,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/scheduler-contract.js\",\n        \"size\": 13017,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/scheduler-runtime.js\",\n        \"size\": 27348,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/scheduler-service.js\",\n        \"size\": 9395,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/scheduler-source-path.js\",\n        \"size\": 4544,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/scheduler-store.js\",\n        \"size\": 203109,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/service-envelope.js\",\n        \"size\": 6922,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/session-handle.js\",\n        \"size\": 5267,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/session-manager.js\",\n        \"size\": 6893,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/shared-task-list.js\",\n        \"size\": 6655,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/skill-invocation-receipt.js\",\n        \"size\": 20270,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/stream-router.js\",\n        \"size\": 4948,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/structured-evolution-memory.js\",\n        \"size\": 32202,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/task-description-action-service.js\",\n        \"size\": 49927,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"lib/trace-store.js\",\n        \"size\": 5709,\n        \"mode\": 420\n      },\n      {\n        \"path\": \"package.json\",\n        \"size\": 5377,\n        \"mode\": 420\n      }\n    ],\n    \"entryCount\": 73,\n    \"bundled\": []\n  }\n]\n",
+          "stderr": ""
+        },
+        {
+          "command": [
+            "node",
+            "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-dmm-evidence-pack-mcgm2tyn\\probe\\probe.cjs",
+            "C:\\code\\chainlesschain\\node_modules\\better-sqlite3\\lib\\index.js"
+          ],
+          "cwd": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-dmm-evidence-pack-mcgm2tyn\\probe",
+          "exitCode": 0,
+          "stdout": "{\"publicCjsAndEsmExports\":true,\"realSqlite\":true,\"atomicAdoptionAndPending\":true,\"idempotentReimport\":true,\"nativePreview\":true,\"revocationPreventsRestore\":true,\"noTaskModification\":true,\"noCliPrivateImports\":true}\n",
+          "stderr": ""
+        }
+      ],
+      "published": false
+    },
+    "cli-package": {
+      "name": "chainlesschain",
+      "version": "0.166.104",
+      "localArchive": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-dmm-evidence-cli-pack-bb3ngf_e\\chainlesschain-0.166.104.tgz",
+      "sha256": "c8ec96537fc4b7ddf5794c9cf55565345c8f851ce97e523230ea0537c8c97820",
+      "fileCount": 1545,
+      "packagedSourceMatches": {
+        "src/lib/plugin-runtime/examples/goal-description-drafter/plugin.json": true,
+        "src/lib/plugin-runtime/cli-goal-draft-request.js": true,
+        "src/commands/goal.js": true,
+        "src/command-manifest.json": true,
+        "src/command-help-index.json": true,
+        "README.md": true
+      },
+      "command": [
+        "npm.cmd",
+        "pack",
+        "--ignore-scripts",
+        "--json",
+        "--pack-destination",
+        "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-dmm-evidence-cli-pack-bb3ngf_e",
+        "--cache",
+        "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-dmm-evidence-cli-pack-bb3ngf_e\\npm-cache"
+      ],
+      "published": false,
+      "isolatedCliRuntime": false,
+      "limit": "Archive contents verified; child-package exports tested separately with the isolated Session Core probe; no registry dependency installation or release."
+    },
+    "vscode-package": {
+      "localArchive": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-dmm-evidence-pack-ee9kk5xo\\chainlesschain-ide-local.vsix",
+      "sha256": "8863f63697cba571496419f127b8cad3b17a553174f123cc6895c1189b87c19f",
+      "packagedSourceMatches": {
+        "src/plugin-manager.js": true,
+        "src/ui/plugin-manager-view.js": true
+      },
+      "command": {
+        "command": [
+          "node",
+          "node_modules/@vscode/vsce/vsce",
+          "package",
+          "--no-dependencies",
+          "--out",
+          "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-dmm-evidence-pack-ee9kk5xo\\chainlesschain-ide-local.vsix"
+        ],
+        "cwd": "packages\\vscode-extension",
+        "exitCode": 0,
+        "stdout": " INFO  Files included in the VSIX:\nchainlesschain-ide-local.vsix\n├─ [Content_Types].xml \n├─ extension.vsixmanifest \n└─ extension/\n   ├─ LICENSE.txt [1.05 KB]\n   ├─ changelog.md [159.58 KB]\n   ├─ package.json [24.03 KB]\n   ├─ package.nls.json [9.66 KB]\n   ├─ package.nls.zh-cn.json [9.52 KB]\n   ├─ readme.md [39.84 KB]\n   ├─ docs/ (2 files) [19.51 KB]\n   ├─ l10n/ (1 file) [7.87 KB]\n   ├─ media/ (9 files) [58.78 KB]\n   ├─ scripts/ (6 files) [51.67 KB]\n   └─ src/ (152 files) [1.94 MB]\n\n=> Run vsce ls --tree to see all included files.\n\n DONE  Packaged: C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-dmm-evidence-pack-ee9kk5xo\\chainlesschain-ide-local.vsix (178 files, 707.95 KB)\n",
+        "stderr": " WARNING  This extension consists of 178 files, out of which 142 are JavaScript files. For performance reasons, you should bundle your extension: https://aka.ms/vscode-bundle-extension. You should also exclude unnecessary files by adding them to your .vscodeignore: https://aka.ms/vscode-vscodeignore.\n\n"
+      },
+      "published": false,
+      "realGuiRun": false
+    },
+    "jetbrains-package": {
+      "localArchive": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-dmm-evidence-pack-ee9kk5xo\\chainlesschain-ide-bridge-0.4.166.zip",
+      "sha256": "f07c0b6f32d2c6fad7cab88f5a8e9dd512b684cc7fec4872fa998b2a698b23f3",
+      "packagedClassesMatch": {
+        "com/chainlesschain/ide/PluginManager.class": true,
+        "com/chainlesschain/ide/intellij/PluginManagerAction.class": true
+      },
+      "nativeSourceCompiled": true,
+      "buildLog": "jetbrains-build.log",
+      "published": false,
+      "realGuiRun": false
+    }
+  },
+  "boundaries": {
+    "request": "Strict fixed schema, declared plugin label/declaration digest and exact description proposal. Digests establish consistency only; request metadata does not authenticate plugin code or choose native authority. No connection keys, task snapshots or approval records included.",
+    "cli": "Requires explicit live summary/evidence connection and current installed-plugin trust/workspace trust/capability consent/policy. Invocation options/env fixed before await; source ID explicitly copied from desktop; bounded UTF-8 description file read and exclusive output create. Output is request-exported, not a native pending receipt.",
+    "nativeAdoption": "Native picker only; renderer cannot submit a path, plugin authority or approval. Read one bounded FD snapshot and confirm full goal/source/body/digest, then revalidate actor/auth generation/window/frame/navigation/database/goal/source. User adopts exact text under fixed native-imported-description identity, origin user-edited. CLI plugin lifecycle does not revoke this separate adoption.",
+    "atomic": "Adoption + pending insertion share one immediate native transaction through the trusted enqueueInTransaction composition entry. Failure rolls both back; no task changes, intents or ActionRuns created by adoption.",
+    "idempotency": "Actor/native importer/store/goal/request identity is stable. Same payload reimport reads original status; changed payload conflicts. Historical saved status remains visible after source changes. No automatic new request ID after unknown results.",
+    "revocation": "Each record has persistent epoch; revoke disables it and advances epoch. Reimport cannot revive it. Conversion and execution verify exact payload, native identity and current adoption epoch. Completed task changes and receipts are not undone.",
+    "execution": "Existing durable conversion and native action preview/strict confirmation remain required. Verifier routes by validated draft identity without trying/swallowing unrelated verifiers. Final confirmation identifies adopted external request, declared source and content digest.",
+    "ui": "Both IDEs obtain file paths from native pickers; webview path fields ignored. Generation checks discard late results. Desktop failures/source changes clear imported body and parent pending previews; revoke/prepare invalidate before request. Completed history retained.",
+    "limits": {
+      "requestBytes": 16384,
+      "descriptionUtf8Bytes": 8192,
+      "adoptionReadBytes": 24576,
+      "pendingRecordBytes": 49152,
+      "importsPerActorGoal": 100,
+      "listPage": 20
+    },
+    "transport": "Existing v1/v2 HMAC leases retain their prior read-only scopes. No new HTTP write endpoint or persistent plugin delegation grant in this slice."
+  },
+  "realAndStubbed": {
+    "real": [
+      "Native SQLite risk source and task versions",
+      "Actual private Windows DACL and signed loopback connection",
+      "Installed plugin discovery/trust/consent/policy and real request-file exporter",
+      "Atomic rollback trigger, repeat import, close/reopen, revocation and actual native action result",
+      "Canonical conversion/evidence integrity and existing child-process recovery regressions",
+      "Vue component tests",
+      "Native IntelliJ source compilation and local packages",
+      "Isolated packed public CJS/ESM service with SQLite adoption/preview/revocation"
+    ],
+    "stubbed": [
+      "Electron BrowserWindow, authenticated actor context, native dialogs",
+      "Security-store locations",
+      "IDE/Vue harnesses",
+      "Transport fixture in the isolated CLI exporter unit suite; separate desktop journey uses actual HTTP"
+    ],
+    "notEstablished": "No real Electron/IDE GUI or independent business-effect study; new adoption close/reopen is not a new SIGKILL test. CLI archive contents checked, no clean registry install."
+  },
+  "review": {
+    "reviewer": "Astra",
+    "mode": "Read-only design and code reviews; no edits or tests",
+    "findingsAndResolutions": [
+      "Chose explicit offline handoff to keep untrusted plugin metadata separate from native adoption; online grant and unknown-result protocol remains future work.",
+      "Fixed options/env snapshot across await; mutation regression passes.",
+      "Fixed failed/read/prepare and unknown-result parent-preview invalidation; UI regressions pass.",
+      "Scoped shared navigation tracking to write contexts; bridge retains independent revocable listeners."
+    ],
+    "final": "No remaining substantive blocker in reviewed scope."
+  },
+  "diagnostics": {
+    "initialDesktopReport": "desktop-tests.json",
+    "initialPassed": 138,
+    "initialFailed": 1,
+    "initialFailures": [
+      {
+        "file": "C:/code/chainlesschain/desktop-app-vue/src/main/task/__tests__/project-goal-cli-bridge.test.js",
+        "tests": [
+          "explicit desktop goal connection native cancel creates no credential or listener"
+        ]
+      }
+    ],
+    "fix": "Navigation generation tracking had added a persistent listener to cancelled summary connections. Pinned write contexts now opt in; bridge uses its own cleaned-up invalidation listeners. Native cancel targeted check passed, then final full desktop report passed.",
+    "intermediateRerun": "A rerun started before the diagnosis was interrupted after the listener fix; no partial result counted.",
+    "expectedCliStderr": "CLI_GOAL_STORE_MISMATCH is emitted by an existing negative test; CLI runner exit code is zero.",
+    "fixtureCorrections": [
+      "Initialize pending tables before installing rollback trigger",
+      "Assert the native execution API run.status rather than a projection field",
+      "Use the actual IPC registration dependency signature"
+    ]
+  },
+  "release": {
+    "versionBump": false,
+    "published": false,
+    "committed": false,
+    "required": "Exact release commit complete configured OS matrices including CLI CI and CLI Strict Sandbox; GitHub Actions OIDC; child packages then CLI then IDE extensions."
+  },
+  "remaining": [
+    "Authenticated online pending-proposal connection with persistent grants, native revoke, bounded source catalog and unknown-result lookup",
+    "Event subscriptions",
+    "Complete installable delivery assistant and lifecycle restoration",
+    "Real Electron/IDE GUI and independent business-effect study",
+    "Exact-commit release CI and rollout/migration/rollback exercises"
+  ],
+  "evidenceSha256": {
+    "checks.json": "9e25068fcbb869d037ba32ece01efb6132960110c84d3f680b75b450b084e948",
+    "cli-command.json": "3637c926f3f7f69111158524d454083f74affb1f3a446264d3aa448f2a2006de",
+    "cli-package.json": "091bc4e389429941f41899aa0f4200c977c8db1423e013438f48f1300d858ad6",
+    "cli-tests.json": "cd01656ec95c98a1b4e26c09928e030ac1672883ed1f98d2846d039ac1add3d7",
+    "desktop-command.json": "17a1dfce790554c3ba47851b2a8e9e4321107b3e0c3acd96a511cf17cc2836c4",
+    "desktop-final-command.json": "61fb233fe8c93ce08c220f78f6f0365d12d2682426f30a28c691a8dc9828ddd7",
+    "desktop-final-tests.json": "4e176708efbfe4a0def10dfacb8b10a2dd9408e2dc52ed49f8f04e514f9c042f",
+    "desktop-tests.json": "eff8d3812088193287d1b423d3a05406904290f1305ce8ac141f931309c38988",
+    "jetbrains-build.log": "c8442eb79c2941b0488a9a3dc57ee2eba90903342ab360208db3fc49c2856b4a",
+    "jetbrains-package.json": "4df5f736e91f7b3ea2e3d9701710fdbaf1b209c20db8e0a5b3cece98132ae395",
+    "jetbrains-tests.xml": "5b2d2c44b9455d28eaf13a0652bd433c4295f839bbb51ed6ce0deb3045202959",
+    "packed-session-core-probe.cjs": "7504599c61768c54e0708cc5c1b5f376575a14e2c4c1d6190c5f6e6598259e66",
+    "packed-session-core.json": "39f39459dd0dabb013d6a4f107caba7b686429a8ff2c2dea7ec7a7f7b69c7051",
+    "README.md": "0b46d45b400f33c591af6744ac4849e8bf0419eb4d5889de2e6f53f25474f3be",
+    "renderer-command.json": "84d3b5d8fa85576c88e5ec559c3755bc9d44c93684b45892cb1d6b24744701f7",
+    "renderer-tests.json": "4e7faa2e743e1850e6452244d0ccc73969b219d699db38e94c9cad41142be632",
+    "source-final-snapshot.json": "a3582260b67c3cae39b8ab8294e59de4913013d9456826594abcdfe50fa59714",
+    "source-snapshot.json": "722eeec5665450b81345ceb3a7257986e709354a133aa90aede79e7bb75bdff6",
+    "vscode-package.json": "3dbf86be7e0de5cbc9dda09723f148ca0427c1aa9cdc22852a3d46572cc5209b"
+  }
+}

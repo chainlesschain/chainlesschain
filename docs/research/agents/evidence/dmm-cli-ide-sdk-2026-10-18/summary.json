@@ -1,0 +1,129 @@
+{
+    "taskIds":  [
+                    "DMM-07",
+                    "DMM-08"
+                ],
+    "date":  "2026-10-18",
+    "recordedAt":  "2026-10-18T02:06:56.7437859Z",
+    "implementationState":  {
+                                "DMM08":  "declarative prototype only",
+                                "DMM07":  "SDK foundation and management display; native host adapters not connected"
+                            },
+    "source":  {
+                   "baseCommit":  "7111f3f78725c82c35927fd5bada0e0b1be5983c",
+                   "sha256":  {
+                                  "packages/cli/src/lib/plugin-runtime/goal-extension-contract.js":  "dc514a9b07388859e4431bb480b88f55f344e28d4b0687f7dc6df4379b8b6b10",
+                                  "packages/cli/src/lib/plugin-runtime/goal-extensions.js":  "fff7aa22095835563ec8084e0302302d77e570020ab94b46e89296c73f17d4d3",
+                                  "packages/cli/src/lib/plugin-runtime/capabilities.js":  "25dc65054e788234730421470a31b6867e152cf34b3be20f6fef0435742abbc4",
+                                  "packages/cli/src/lib/plugin-runtime/manifest.js":  "b02c4365e6f6a5614fa9f5fd30dbe07e76df7c14f4d66042aa910188c3a8db3e",
+                                  "packages/cli/src/lib/plugin-runtime/policy.js":  "308c949dbb84ffda053e481728a6748441568523da7b15958aa8675768ef787e",
+                                  "packages/cli/src/lib/plugin-runtime/install.js":  "cc4b34566ddf9e19bb745085dfdcf3cba3d5641ef314712399695b45afb0d10e",
+                                  "packages/cli/src/lib/plugin-runtime/examples/project-delivery-assistant/plugin.json":  "87750a364168b4c7616f602460e93181fd844865b126604f36ec850680fabbb2",
+                                  "packages/cli/src/commands/plugin.js":  "da19e583925882640ba8648d1b1a3c278efa9b6da9ebb90fd197e2b73035ed67",
+                                  "packages/cli/__tests__/unit/plugin-goal-extension.test.js":  "d3b9f3f8f928bee398bff5850b8a82e4545c3c0d1a666883dee94e86262635a7",
+                                  "packages/cli/__tests__/unit/vscode-ext-plugin-manager.test.js":  "a52ac164de82708630d49f5a5b2abf5f0235dcc6a149676e14f7b3b9031b69cf",
+                                  "packages/vscode-extension/src/plugin-manager.js":  "ad17366a31a025cb442c39f53c0ff6ad7611d1e89baa3d80c5881dcc34ff1bef",
+                                  "packages/vscode-extension/src/ui/plugin-manager-view.js":  "7a5c5d1cee8c0775b362e4f7359faffa44ec6c5c4988de99abb5df00f11f0165",
+                                  "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/PluginManager.java":  "da892e056ed3978ee6a89b1a4e59293c364392676bc1e990082438df3530138c",
+                                  "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/PluginManagerTest.java":  "f52240f5d84af23b7267e5ee2833ee750a7156ce704ddc1b12362cd85fdfcebd",
+                                  "docs/research/agents/chainlesschain-dots-muse-mods-analysis-2026-10-06.md":  "e758ac2b6c1446345b2d3fc4a1b5c40fb208fba500d89268671a16b8c9fe15e2",
+                                  "docs/research/agents/dots-muse-mods-implementation-progress-2026-10-07.md":  "ae453214199ce7ecb01fe6ada8c78398f2971811e4244faae8b74b047b0c1611"
+                              },
+                   "otherConcurrentChangesPresent":  true,
+                   "worktree":  "uncommitted"
+               },
+    "environment":  {
+                        "semver":  "7.8.5",
+                        "junit":  "5.10.2",
+                        "javaCore":  "Eclipse Adoptium JDK 17.0.17",
+                        "node":  "22.22.2",
+                        "os":  "Windows x64",
+                        "junitPlatform":  "1.10.2",
+                        "vitest":  "4.1.10",
+                        "prettier":  "3.6.2",
+                        "npm":  "10.9.7"
+                    },
+    "cli":  {
+                "total":  307,
+                "skippedTests":  [
+
+                                 ],
+                "report":  "cli-tests.json",
+                "passed":  306,
+                "command":  "npm.cmd --prefix packages/cli test -- __tests__/unit/plugin-consent-command.test.js __tests__/unit/plugin-goal-extension.test.js __tests__/unit/plugin-lifecycle-command.test.js __tests__/unit/plugin-runtime-capabilities.test.js __tests__/unit/plugin-runtime-capability-consent.test.js __tests__/unit/plugin-runtime-consent-enforce.test.js __tests__/unit/plugin-runtime-install.test.js __tests__/unit/plugin-runtime-manifest.test.js __tests__/unit/plugin-runtime-policy.test.js __tests__/unit/plugin-runtime-scopes.test.js __tests__/unit/plugin-runtime-trust.test.js __tests__/unit/vscode-ext-plugin-manager.test.js --reporter=default --reporter=json --outputFile=C:/code/chainlesschain/docs/research/agents/evidence/dmm-cli-ide-sdk-2026-10-18/cli-tests.json",
+                "skipped":  1,
+                "environmentKind":  "real temp plugin files and durable consent; host readers/authorization/queue callbacks are test doubles",
+                "fileCount":  12,
+                "files":  [
+                              "__tests__/unit/plugin-consent-command.test.js",
+                              "__tests__/unit/plugin-goal-extension.test.js",
+                              "__tests__/unit/plugin-lifecycle-command.test.js",
+                              "__tests__/unit/plugin-runtime-capabilities.test.js",
+                              "__tests__/unit/plugin-runtime-capability-consent.test.js",
+                              "__tests__/unit/plugin-runtime-consent-enforce.test.js",
+                              "__tests__/unit/plugin-runtime-install.test.js",
+                              "__tests__/unit/plugin-runtime-manifest.test.js",
+                              "__tests__/unit/plugin-runtime-policy.test.js",
+                              "__tests__/unit/plugin-runtime-scopes.test.js",
+                              "__tests__/unit/plugin-runtime-trust.test.js",
+                              "__tests__/unit/vscode-ext-plugin-manager.test.js"
+                          ],
+                "failed":  0
+            },
+    "jetbrainsCore":  {
+                          "passed":  7,
+                          "javac":  "javac -encoding UTF-8 --release 17 -cp \u003ccached JUnit jars\u003e -d \u003ctemp\u003e \u003ccompiledSources\u003e",
+                          "java":  "java -cp \u003ctemp\u003e;\u003ccached JUnit jars\u003e com.chainlesschain.ide.GoalExtensionCoreTestRunner",
+                          "skipped":  0,
+                          "report":  "jetbrains-core-tests.txt",
+                          "compiledSources":  [
+                                                  "MiniJson.java",
+                                                  "PluginManager.java",
+                                                  "PluginManagerTest.java",
+                                                  "GoalExtensionCoreTestRunner.java"
+                                              ],
+                          "environmentKind":  "actual JDK/JUnit; pure core, no IntelliJ host",
+                          "failed":  0
+                      },
+    "gradle":  {
+                   "workdir":  "packages/jetbrains-plugin",
+                   "exitCode":  1,
+                   "command":  ".\\gradlew.bat --offline test --tests com.chainlesschain.ide.PluginManagerTest --console=plain",
+                   "reason":  "No installed JDK 21 toolchain; no toolchain download repositories configured",
+                   "outcome":  "environment-blocked-before-compilation"
+               },
+    "checks":  {
+                   "prettier":  "passed",
+                   "npmPack":  {
+                                   "version":  "0.166.104",
+                                   "name":  "chainlesschain",
+                                   "command":  "npm.cmd pack --dry-run --ignore-scripts --json",
+                                   "included":  [
+                                                    "src/lib/plugin-runtime/goal-extension-contract.js",
+                                                    "src/lib/plugin-runtime/goal-extensions.js",
+                                                    "src/lib/plugin-runtime/examples/project-delivery-assistant/plugin.json"
+                                                ],
+                                   "workdir":  "packages/cli",
+                                   "published":  false
+                               },
+                   "gitDiffCheck":  "passed",
+                   "eslint":  "not run: local eslint dependency missing"
+               },
+    "businessAssertions":  [
+                               "old consent cannot admit new goal capabilities",
+                               "mandatory trust and consent remain independent of legacy policy flags",
+                               "cross-workspace trust and async option switching are rejected",
+                               "late event/panel output is rejected after revocation or lifecycle changes",
+                               "proposal authority claims and contradictory host execution receipts are rejected",
+                               "CLI and IDE management output never activates a goal runtime"
+                           ],
+    "notVerified":  [
+                        "Native project-service adapter and transaction-time proposal authorization/idempotency",
+                        "Actual CLI/IDE event subscription and extension panel integration",
+                        "Real Electron or IDE GUI journeys",
+                        "Full JetBrains plugin compile/package due missing JDK 21",
+                        "Linux/macOS matrix and Windows-skipped symlink case",
+                        "Business effectiveness, release migration and rollback",
+                        "Exact-commit GitHub Actions release gates or publication"
+                    ]
+}

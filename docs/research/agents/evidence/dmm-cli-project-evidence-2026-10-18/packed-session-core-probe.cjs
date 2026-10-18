@@ -1,0 +1,26 @@
+const assert = require('node:assert/strict');
+const { ProjectGoalEvidenceReader } = require('@chainlesschain/session-core/project-goal-evidence-reader');
+const contract = require('@chainlesschain/session-core/goal-evidence-contract');
+const { PersonalProjectGoalService } = require('@chainlesschain/session-core/project-goal-service');
+const Database = require(process.argv[2]);
+(async () => {
+  const esm = await import('@chainlesschain/session-core/project-goal-evidence-reader');
+  assert.equal(esm.ProjectGoalEvidenceReader, ProjectGoalEvidenceReader);
+  const db = new Database(':memory:');
+  db.exec("CREATE TABLE projects(id TEXT PRIMARY KEY,user_id TEXT,status TEXT,updated_at INTEGER,deleted INTEGER DEFAULT 0); INSERT INTO projects VALUES('p1','did:owner','active',10,0)");
+  const goal = new PersonalProjectGoalService({db,getActor:()=> 'did:owner'}).create({projectId:'p1',objective:'Packed native goal'});
+  const ref = { id:goal.id,storeId:goal.storeId,revision:goal.revision,controlGeneration:goal.controlGeneration };
+  const before=db.prepare('SELECT total_changes() AS n').get().n;
+  db.pragma('query_only = ON');
+  const reader = new ProjectGoalEvidenceReader({db,getActor:()=> 'did:owner'});
+  assert.equal(reader.readSummary(ref).objective, 'Packed native goal');
+  const value=reader.read(ref);
+  assert.equal(value.risk.state,'unavailable');
+  assert.equal(value.receipts.state,'unavailable');
+  assert.match(contract.formatGoalEvidenceProjection(value).riskSummary,/unknown/);
+  assert.equal(db.prepare('SELECT total_changes() AS n').get().n,before);
+  assert.deepEqual(Object.keys(reader).sort(),['read','readSummary']);
+  assert.ok(!Object.keys(require.cache).some(p=>/[\\/]packages[\\/]cli[\\/]/.test(p)));
+  db.close();
+  console.log(JSON.stringify({publicCjsAndEsmExports:true,realSqliteQueryOnly:true,zeroWrites:true,noMutationPorts:true,noCliPrivateImports:true}));
+})().catch(error=>{console.error(error);process.exitCode=1;});

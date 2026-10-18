@@ -1,0 +1,206 @@
+{
+  "taskIds": [
+    "DMM-07",
+    "DMM-08"
+  ],
+  "recordedAt": "2026-10-18T03:22:03.907421+00:00",
+  "result": "Bounded standalone CLI goal catalog and native VS Code/JetBrains pickers; selected store remains pinned before source/plugin reauthorization.",
+  "source": {
+    "baseCommit": "7111f3f78725c82c35927fd5bada0e0b1be5983c",
+    "state": "uncommitted shared worktree; unrelated concurrent changes preserved",
+    "sha256": {
+      "packages/cli/src/commands/goal.js": "9f3b0cb60e09fa9566324568e94fef8ce1ce689752117b0479bc8889e8e6234b",
+      "packages/cli/src/lib/goal-store.js": "a3633db0ed1773d86aff8fb6f419d035046a18a0b6a028b2adc684bf5bb68542",
+      "packages/cli/src/lib/plugin-runtime/cli-goal-extension-host.js": "8988941ed4da912edbf9b1f1827b99f69bd329c75fecf858c94ef0d3b9fb1fc8",
+      "packages/cli/src/lib/plugin-runtime/goal-extension-contract.js": "dc514a9b07388859e4431bb480b88f55f344e28d4b0687f7dc6df4379b8b6b10",
+      "packages/cli/src/lib/plugin-runtime/goal-extensions.js": "fff7aa22095835563ec8084e0302302d77e570020ab94b46e89296c73f17d4d3",
+      "packages/cli/src/lib/plugin-runtime/capabilities.js": "25dc65054e788234730421470a31b6867e152cf34b3be20f6fef0435742abbc4",
+      "packages/cli/src/lib/plugin-runtime/capability-consent.js": "c06ba6e26d80ded2ee16fdb234677bb9ec608947ea4725d189225014c776d10a",
+      "packages/cli/src/lib/plugin-runtime/trust.js": "d9a092642d2065c0dd4ca2f3525d1870eb5b668ba5bedce2cc78335aac4c1b99",
+      "packages/cli/src/lib/plugin-runtime/scopes.js": "3d65410ae0edeb14587a0cf63ce91c968fd8fe652a4e0cb4bc8d0970f78cc6e9",
+      "packages/cli/src/lib/plugin-runtime/policy.js": "308c949dbb84ffda053e481728a6748441568523da7b15958aa8675768ef787e",
+      "packages/cli/src/lib/plugin-runtime/manifest.js": "b02c4365e6f6a5614fa9f5fd30dbe07e76df7c14f4d66042aa910188c3a8db3e",
+      "packages/cli/src/lib/plugin-runtime/examples/goal-progress-viewer/plugin.json": "d2765cedefb177d319c588b854015d20478ae690c3683f873750fa39a893fdb1",
+      "packages/cli/src/lib/plugin-runtime/examples/project-delivery-assistant/plugin.json": "87750a364168b4c7616f602460e93181fd844865b126604f36ec850680fabbb2",
+      "packages/cli/__tests__/unit/cli-goal-extension-host.test.js": "cd5b36550b4aa822556ea93fb4adea06f1a3dd32d8d6c6c6df583dce6228b536",
+      "packages/cli/__tests__/unit/plugin-goal-extension.test.js": "d3b9f3f8f928bee398bff5850b8a82e4545c3c0d1a666883dee94e86262635a7",
+      "packages/cli/__tests__/unit/vscode-ext-plugin-manager.test.js": "305bb9a1e0a1a7c7cf4a9e214650a489d6e0154edd29bcba9567a875aab9f132",
+      "packages/cli/__tests__/unit/vscode-ext-goal-panels-view.test.js": "2b67e3166a28328d6d37c70d665f34c0218c610550c091aa6280892e5a9a536c",
+      "packages/cli/__tests__/integration/cli-goal-panels.test.js": "69ce1793bffd6df4278c9d4f1fc7c66e130d71ff24af76600e2907f6df9938c0",
+      "packages/vscode-extension/src/plugin-manager.js": "96ad79d6546d7b9722d54765888f617bad292cef03c6eda9c635670f1fc53242",
+      "packages/vscode-extension/src/ui/plugin-manager-view.js": "05036222b777faea91a7f22f6c0b9577151b81c6c6a80e65a601626d9ac5e68d",
+      "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/PluginManager.java": "1e91c39cd782d53df3232731d6252c60010ea5733434c4e34709fdce6190c35f",
+      "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/PluginManagerAction.java": "40cf4f2fde48edc0e1df3e9bb5b2c7a97eac846c2fd847537aacaacd132383ad",
+      "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/PluginManagerTest.java": "f6b94464cdb8da9e59fd9896ddaa032ece74b7f47fb677565344cf3c4ad29eaa",
+      "packages/session-core/lib/goal-contract.js": "1be40a2a686ce8ae1a21afd31882677f1bd66dbd8858a86326500694315f9479",
+      "packages/session-core/__tests__/goal-contract.test.js": "bfae7558b5ec33f0db89c01f9db342361f54eb18b0c6336e135840b9e3b9eb84",
+      "packages/cli/src/command-help-index.json": "603571768b0c94d99ce7279fd446b33c2babb2e1e3030c1204f873f77d7aaf31",
+      "packages/cli/README.md": "8c9d7a9bbe28cb937ea65b59a7e5b9c31160b70e5d22d0ce0a2f800c44127bad",
+      "docs/research/agents/chainlesschain-dots-muse-mods-analysis-2026-10-06.md": "f6134cfdae7307684d5b503f09caa13197bc3ea1ca3c92317b676124e9d808d5",
+      "docs/research/agents/dots-muse-mods-implementation-progress-2026-10-07.md": "da0198ae86be8b8e27462d0587ffe0484aae958892dd4727e06f6356243c464b",
+      "packages/cli/src/lib/cli-goal-source.js": "287e8338d0cb27d57f776ffdefd1b25b9fa0e8b9fd183ae23a3699f6f21e2c7d",
+      "packages/cli/src/lib/cli-goal-catalog.js": "13ffdb1fc8aa242244f5eeb7aad53b606d90deb9cd598dc2d19b54ed76bd7d94",
+      "packages/cli/__tests__/unit/cli-goal-catalog.test.js": "b7b8a70600a82eadce4e998f000f9a14c3cdfe77e3163742c50b6b1f41c657b3"
+    }
+  },
+  "environment": {
+    "os": "Windows-10-10.0.19045-SP0",
+    "node": "v22.22.2",
+    "npm": "10.9.7",
+    "vitest": "4.1.10",
+    "prettier": "3.6.2",
+    "gradle": "8.7",
+    "java": "JBR 21.0.8+9-1163.69-jcef",
+    "javaHome": "C:/Users/longfa/AppData/Local/Programs/idea-2025.3/jbr"
+  },
+  "verification": {
+    "cli": {
+      "files": [
+        "packages/cli/__tests__/integration/cli-goal-panels.test.js",
+        "packages/cli/__tests__/unit/cli-goal-catalog.test.js",
+        "packages/cli/__tests__/unit/cli-goal-extension-host.test.js",
+        "packages/cli/__tests__/unit/goal-repository.test.js",
+        "packages/cli/__tests__/unit/goal-store.test.js",
+        "packages/cli/__tests__/unit/plugin-consent-command.test.js",
+        "packages/cli/__tests__/unit/plugin-goal-extension.test.js",
+        "packages/cli/__tests__/unit/plugin-lifecycle-command.test.js",
+        "packages/cli/__tests__/unit/plugin-runtime-capabilities.test.js",
+        "packages/cli/__tests__/unit/plugin-runtime-capability-consent.test.js",
+        "packages/cli/__tests__/unit/plugin-runtime-consent-enforce.test.js",
+        "packages/cli/__tests__/unit/plugin-runtime-install.test.js",
+        "packages/cli/__tests__/unit/plugin-runtime-manifest.test.js",
+        "packages/cli/__tests__/unit/plugin-runtime-policy.test.js",
+        "packages/cli/__tests__/unit/plugin-runtime-scopes.test.js",
+        "packages/cli/__tests__/unit/plugin-runtime-trust.test.js",
+        "packages/cli/__tests__/unit/vscode-ext-goal-panels-view.test.js",
+        "packages/cli/__tests__/unit/vscode-ext-plugin-manager.test.js"
+      ],
+      "passed": 382,
+      "failed": 0,
+      "skipped": 4,
+      "cwd": "packages/cli",
+      "command": "node ../../node_modules/vitest/vitest.mjs run __tests__/integration/cli-goal-panels.test.js __tests__/unit/cli-goal-catalog.test.js __tests__/unit/cli-goal-extension-host.test.js __tests__/unit/goal-repository.test.js __tests__/unit/goal-store.test.js __tests__/unit/plugin-consent-command.test.js __tests__/unit/plugin-goal-extension.test.js __tests__/unit/plugin-lifecycle-command.test.js __tests__/unit/plugin-runtime-capabilities.test.js __tests__/unit/plugin-runtime-capability-consent.test.js __tests__/unit/plugin-runtime-consent-enforce.test.js __tests__/unit/plugin-runtime-install.test.js __tests__/unit/plugin-runtime-manifest.test.js __tests__/unit/plugin-runtime-policy.test.js __tests__/unit/plugin-runtime-scopes.test.js __tests__/unit/plugin-runtime-trust.test.js __tests__/unit/vscode-ext-goal-panels-view.test.js __tests__/unit/vscode-ext-plugin-manager.test.js --reporter=json --outputFile=../../docs/research/agents/evidence/dmm-cli-goal-catalog-2026-10-18/cli-tests.json"
+    },
+    "jetbrains": {
+      "passed": 9,
+      "failed": 0,
+      "skipped": 0,
+      "nativeSourceCompiled": true,
+      "cwd": "packages/jetbrains-plugin",
+      "command": ".\\gradlew.bat -Dorg.gradle.java.installations.paths=C:/Users/longfa/AppData/Local/Programs/idea-2025.3/jbr --offline --no-daemon test --tests com.chainlesschain.ide.PluginManagerTest --console=plain"
+    },
+    "controls": [
+      {
+        "command": [
+          "git",
+          "diff",
+          "--check"
+        ],
+        "cwd": ".",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "warning: in the working copy of 'packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/PluginManager.java', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/PluginManagerAction.java', CRLF will be replaced by LF the next time Git touches it\n"
+      },
+      {
+        "command": [
+          "node",
+          "scripts/gen-command-manifest.mjs",
+          "--check"
+        ],
+        "cwd": "packages/cli",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "node",
+          "scripts/gen-command-help-index.mjs",
+          "--check"
+        ],
+        "cwd": "packages/cli",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "node",
+          "scripts/gen-shell-completions.mjs",
+          "--check"
+        ],
+        "cwd": "packages/cli",
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "Shell completions are current (196 command tokens).\n"
+      }
+    ],
+    "npmPackDryRun": {
+      "name": "chainlesschain",
+      "version": "0.166.104",
+      "catalogIncluded": true,
+      "readerIncluded": true,
+      "hostIncluded": true
+    },
+    "prettier": "3.6.2: all 9 changed JavaScript source/test paths passed --check; final write reported unchanged",
+    "overlapWithPreviousBatches": true
+  },
+  "boundaries": {
+    "maxDirectoryEntries": 2048,
+    "maxPageCandidatesIncludingInvalid": 20,
+    "maxSourceBytes": 65536,
+    "maxTitleCharacters": 160,
+    "maxIdeCatalogBytes": 32768,
+    "cursor": "canonical base64url v1 + store identity + last scanned safe ID",
+    "pages": "fresh independent reads; not a frozen cross-page snapshot",
+    "invalidSources": "per-page skippedCount plus directory-level invalidNameCount",
+    "authorization": "standalone file goals; directory identity and complete raw-byte digest rechecked; selected store checked before body read; existing panel authorization retained"
+  },
+  "scenarios": [
+    "bounded pagination including invalid-only pages",
+    "foreign store and cursor rejection",
+    "source mutation beyond visible title",
+    "oversized/project-owned/wrong-store/non-file rejection",
+    "missing initial directory versus mid-scan disappearance/dangling symlink",
+    "control and bidi stripping; unsafe-name count",
+    "IDE cancel/close/refresh late-result rejection",
+    "manual fallback after page failure preserves store",
+    "Java count overflow and protocol limits",
+    "real CLI subprocess lifecycle with unchanged source bytes"
+  ],
+  "review": {
+    "agent": "astra_review",
+    "fixed": [
+      "directory ENOENT masked as empty",
+      "manual fallback dropped store binding",
+      "Java counter narrowing overflow",
+      "unsafe filenames uncounted"
+    ],
+    "final": "No remaining blocking findings; independent reviewer did not rerun tests."
+  },
+  "notRun": [
+    "interactive VS Code/JetBrains/Electron GUI",
+    "real business-effectiveness samples",
+    "exact-commit Linux/Windows/macOS release workflows",
+    "ESLint",
+    "publishing"
+  ],
+  "remaining": [
+    "trusted native project-host adapter",
+    "durable extension proposal transaction with source/actor/auth-generation checks and explicit action-name mapping",
+    "event subscriptions",
+    "project-delivery-assistant assembly"
+  ],
+  "release": {
+    "versionBump": false,
+    "published": false,
+    "newIdeZipBuilt": false,
+    "gate": "GitHub Actions OIDC, exact-commit complete OS matrix; child packages then CLI then IDE"
+  },
+  "evidenceSha256": {
+    "cli-tests.json": "09026f0f2e8d220a019b801c09e0a2a8de8d2f8a822809a189d800e5966ae8c9",
+    "jetbrains-plugin-manager.xml": "c34f4d13b537052e4cff9394ec40499b406e6994cceefdd21f095e0106366be3",
+    "checks.json": "9dbc4b8df15c00043bbbbd93d5c7b9a110c24babfe1c0a0f59b2997c3127c22f",
+    "npm-pack-dry-run.json": "5129deff9a923ff29ba5166e2a3aafc66e101b24e40729fe71ced31a57ab76ec"
+  }
+}

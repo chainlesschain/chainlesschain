@@ -967,8 +967,27 @@ const FIXED_RENDERER_IPC_CHANNELS = new Set([
   "project:goal-acceptance-check",
   "project:goal-acceptance-configure",
   "project:goal-acceptance-status",
+  "project:goal-cli-connection-close",
+  "project:goal-cli-connection-open",
+  "project:goal-cli-connection-status",
   "project:goal-complete",
   "project:goal-create",
+  "project:goal-delivery-drafts-configure",
+  "project:goal-delivery-drafts-list",
+  "project:goal-delivery-drafts-prepare",
+  "project:goal-delivery-drafts-propose",
+  "project:goal-delivery-drafts-read",
+  "project:goal-delivery-drafts-status",
+  "project:goal-draft-import",
+  "project:goal-draft-import-prepare",
+  "project:goal-draft-import-read",
+  "project:goal-draft-import-revoke",
+  "project:goal-draft-imports-list",
+  "project:goal-external-drafts-grants",
+  "project:goal-external-drafts-list",
+  "project:goal-external-drafts-prepare",
+  "project:goal-external-drafts-read",
+  "project:goal-external-drafts-revoke",
   "project:goal-follow-up-end",
   "project:goal-intent-execute",
   "project:goal-intent-prepare",
@@ -2948,6 +2967,44 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke("project:goal-monitor-status", params),
     listGoalProposals: (params) =>
       ipcRenderer.invoke("project:goal-proposals", params),
+    getGoalDeliveryDraftStatus: (params) =>
+      ipcRenderer.invoke("project:goal-delivery-drafts-status", params),
+    configureGoalDeliveryDrafts: (params) =>
+      ipcRenderer.invoke("project:goal-delivery-drafts-configure", params),
+    proposeGoalDeliveryDraft: (params) =>
+      ipcRenderer.invoke("project:goal-delivery-drafts-propose", params),
+    listGoalDeliveryDrafts: (params) =>
+      ipcRenderer.invoke("project:goal-delivery-drafts-list", params),
+    readGoalDeliveryDraft: (params) =>
+      ipcRenderer.invoke("project:goal-delivery-drafts-read", params),
+    prepareGoalDeliveryDraft: (params) =>
+      ipcRenderer.invoke("project:goal-delivery-drafts-prepare", params),
+    importGoalDraftRequest: (params) =>
+      ipcRenderer.invoke("project:goal-draft-import", params),
+    listGoalDraftImports: (params) =>
+      ipcRenderer.invoke("project:goal-draft-imports-list", params),
+    readGoalDraftImport: (params) =>
+      ipcRenderer.invoke("project:goal-draft-import-read", params),
+    prepareGoalDraftImport: (params) =>
+      ipcRenderer.invoke("project:goal-draft-import-prepare", params),
+    revokeGoalDraftImport: (params) =>
+      ipcRenderer.invoke("project:goal-draft-import-revoke", params),
+    listGoalExternalDraftGrants: (params) =>
+      ipcRenderer.invoke("project:goal-external-drafts-grants", params),
+    revokeGoalExternalDraftGrant: (params) =>
+      ipcRenderer.invoke("project:goal-external-drafts-revoke", params),
+    listGoalExternalDrafts: (params) =>
+      ipcRenderer.invoke("project:goal-external-drafts-list", params),
+    readGoalExternalDraft: (params) =>
+      ipcRenderer.invoke("project:goal-external-drafts-read", params),
+    prepareGoalExternalDraft: (params) =>
+      ipcRenderer.invoke("project:goal-external-drafts-prepare", params),
+    openGoalCliConnection: (params) =>
+      ipcRenderer.invoke("project:goal-cli-connection-open", params),
+    closeGoalCliConnection: () =>
+      ipcRenderer.invoke("project:goal-cli-connection-close"),
+    getGoalCliConnectionStatus: () =>
+      ipcRenderer.invoke("project:goal-cli-connection-status"),
     prepareGoalIntent: (params) =>
       ipcRenderer.invoke("project:goal-intent-prepare", params),
     executeGoalIntent: (params) =>

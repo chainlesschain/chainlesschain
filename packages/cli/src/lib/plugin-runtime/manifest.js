@@ -27,6 +27,7 @@
 import fs from "fs";
 import path from "path";
 import semver from "semver";
+import { normalizeGoalExtension } from "./goal-extension-contract.js";
 import {
   normalizeCapabilities,
   normalizeOptionsSchema,
@@ -89,6 +90,8 @@ export function parsePluginManifest(root) {
     // actual audit) from a legacy one that declared nothing (unrestricted).
     capabilities: normalizeCapabilities(null),
     capabilitiesDeclared: false,
+    goalExtensionDeclared: false,
+    goalExtension: null,
     optionsSchema: {},
     errors,
     warnings,
@@ -219,6 +222,15 @@ export function parsePluginManifest(root) {
   result.capabilities = normalizeCapabilities(manifest.permissions);
   result.capabilitiesDeclared = Boolean(hasPermissions);
   result.optionsSchema = normalizeOptionsSchema(manifest.optionsSchema);
+  result.goalExtensionDeclared = Object.hasOwn(manifest, "goalExtension");
+  try {
+    result.goalExtension = normalizeGoalExtension(
+      manifest.goalExtension,
+      manifest.permissions,
+    );
+  } catch (err) {
+    errors.push(err.message);
+  }
   // Declared-vs-actual audit runs ONLY when a permissions block is present — a
   // legacy plugin that declares nothing is unrestricted by design, so it never
   // gets these warnings (keeps existing manifests warning-free).

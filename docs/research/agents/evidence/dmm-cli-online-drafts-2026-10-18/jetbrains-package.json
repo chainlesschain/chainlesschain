@@ -1,0 +1,12 @@
+{
+  "localArchive": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-dmm-evidence-pack-pua_2rc7\\chainlesschain-ide-bridge-0.4.166.zip",
+  "sha256": "93016d28b44c4b0e5caa235ba6bdccdbb71843c812ae3851ffab94a40f9ac9ba",
+  "packagedClassesMatch": {
+    "com/chainlesschain/ide/PluginManager.class": true,
+    "com/chainlesschain/ide/intellij/PluginManagerAction.class": true
+  },
+  "nativeSourceCompiled": true,
+  "buildLog": "jetbrains-build.log",
+  "published": false,
+  "realGuiRun": false
+}

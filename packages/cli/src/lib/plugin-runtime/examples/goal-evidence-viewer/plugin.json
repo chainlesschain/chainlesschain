@@ -1,0 +1,25 @@
+{
+  "name": "goal-evidence-viewer",
+  "version": "0.1.0",
+  "description": "Read historical risk checks and action-receipt summaries through an explicitly authorized desktop evidence connection",
+  "permissions": { "goalExtension": ["panel:goal.evidence"] },
+  "goalExtension": {
+    "apiVersion": "1.0.0",
+    "hosts": {
+      "cli": ">=0.166.104",
+      "vscode": ">=0.37.149",
+      "jetbrains": ">=0.4.166"
+    },
+    "events": [],
+    "panels": [
+      {
+        "id": "delivery-evidence",
+        "title": "Historical project goal evidence",
+        "slot": "goal.evidence",
+        "fields": ["objective", "status", "riskSummary", "receiptSummary"],
+        "fallback": "text"
+      }
+    ],
+    "proposals": []
+  }
+}
