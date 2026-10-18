@@ -1,6 +1,6 @@
 # ChainlessChain 文档网站
 
-> 2026-10-18：当前公开仍为 CLI **0.166.104**、Open VSX **0.37.149**、JetBrains **0.4.166**。下一版候选为 CLI **0.166.105**、VS Code **0.37.150**、JetBrains **0.4.167**，两个候选插件推荐 CLI `.105`；尚待最终提交完整 CI 矩阵、npm OIDC 发布与公开包回读，插件在 CLI 可获取后发行。36+9 活动已执行，累计候选合格 **25/45**；最新补测已收齐 **22/25**，其中 **4 项全流程通过**，另有 **3 项 Windows JetBrains 进行中**。候选合格不等于全流程通过，新版尚未发布或补测，不能声称全部合格。 详见[升级指南](docs/chainlesschain/cli-ide-update-2026-10-18.md)。
+> 2026-10-18：当前公开版本为 CLI **0.166.105**、Open VSX **0.37.150**、JetBrains **0.4.167**。下一候选为 CLI **0.166.106**、VS Code **0.37.151**、JetBrains **0.4.168**，候选插件均推荐 CLI `.106`；候选尚未发布，须通过最终提交完整矩阵、CLI OIDC 发布及公开制品回读，再发行 IDE 并补测未合格项。已验收基线保持 **25/45**；公开 `.105` 补测正在进行且已出现失败，候选合格与端到端成功分别记账，不宣称 **45/45** 全部合格。Microsoft Marketplace 未发布。
 
 > 2026-10-16：公开 CLI **0.166.103**、Open VSX **0.37.148** 与 JetBrains **0.4.165**，两个 IDE 均推荐 CLI `.103`。CLI 发行提交 `b235ac8068`，VS Code `c8a64caa92`，JetBrains `fa64840216`；主线核对至 `920f263e3f`。Session Core **0.3.19**、Kernel **0.1.10**、PDH **0.4.65**；原生产品 **v5.0.3.140** 独立发行。正式预算保持 **NOT_PAID_READY**，36+9 **NOT_RUN（0/36、0/9）**、native **NOT_ADMITTED**、自动晋升 **HOLD**。 参见[本轮升级指南](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-16.html)。较早日期的记录保留历史范围。
 

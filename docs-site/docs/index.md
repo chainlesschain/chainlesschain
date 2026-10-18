@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: "v5.0.3.140 | CLI 0.166.105 已公开 | IDE 发布中 | 桌面与移动端"
+  tagline: "v5.0.3.140 | CLI .105 / IDE .150/.167 已公开 | .106 候选 | 桌面与移动端"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -21,8 +21,8 @@ hero:
 
 features:
   - icon: 🛡️
-    title: CLI .105 已公开，IDE 发布中
-    details: CLI .105 已经 OIDC 发布与公开回读；Open VSX .150、JetBrains .167 标签已提交，市场可获取性待核验。新版补测 NOT_RUN。
+    title: CLI .105 已公开，.106 候选待验证
+    details: 公开 CLI .105、Open VSX .150、JetBrains .167；下一候选 .106/.151/.168 尚未发布，须通过最终提交门禁和公开回读。
     link: /chainlesschain/cli-ide-update-2026-10-18
   - icon: 🏢
     title: 组织目标、授权记忆与站内通知（主线）
@@ -38,11 +38,11 @@ features:
     link: /chainlesschain/rrsi-current
   - icon: 🧩
     title: Agent Platform 0.166.105
-    details: 通用编码指导、静态导入反馈、延迟写入完成保护与安全传输诊断；原轮次25/25记录收齐，累计25/45，新版未补测。
+    details: 通用编码指导、静态导入反馈、延迟写入完成保护与安全传输诊断；已验收基线25/45；.105补测进行中且出现失败，下一候选尚未验收。
     link: /chainlesschain/agent-platform-release
   - icon: 📝
     title: IDE 任务记录与新会话接力
-    details: Open VSX 0.37.150 与 JetBrains 0.4.167 推荐公开 CLI 0.166.105，IDE 发布中；桥接重连不重放结果未知的工具调用。
+    details: Open VSX 0.37.150 与 JetBrains 0.4.167 推荐公开 CLI 0.166.105；下一候选 .151/.168 推荐候选 CLI .106；桥接重连不重放结果未知的工具调用。
     link: /chainlesschain/ide-task-worklog
   - icon: 🎯
     title: Skill 决策模型试点
@@ -66,7 +66,7 @@ features:
     link: /chainlesschain/desktop-model-governance
   - icon: 🧑‍💻
     title: IDE Bridge 突破 6 万下载
-    details: Open VSX .150 与 JetBrains .167 发布中，公开制品待核验；Microsoft Marketplace 未发行。
+    details: Open VSX .150 与 JetBrains .167 已公开；下一候选 .151/.168 尚未发布；Microsoft Marketplace 未发行。
     link: /chainlesschain/ide-plugin
   - icon: 🔐
     title: 安全优先
@@ -79,7 +79,7 @@ features:
     details: CLI 0.166.105@d4065008bb 已公开回读；同提交 CLI CI、Strict、IDE、ARM64 门禁全过；IDE 市场公开与任务验收分别核验。
 ---
 
-> 2026-10-18：CLI **0.166.105** 已通过 GitHub Actions OIDC 发布并完成公开 metadata、tarball SRI 与源码字节回读，发行提交为 `d4065008bb`。同一提交的 CLI CI **71/71**、Strict Sandbox **5/5**、IDE **18 成功 / 1 条件跳过**、ARM64 **10/10** 均通过。VS Code **0.37.150** 与 JetBrains **0.4.167** 标签已提交，两个插件推荐 CLI `.105`；**IDE 发布中**，公开上架及下载尚待完整回读。原公开包轮次的生成与验收记录均已收齐 **25/25**，累计候选合格 **25/45**，原轮次 **4 项端到端通过**，剩余 **20** 项待补测。**新版补测为 NOT_RUN**；候选合格不等于端到端通过，发布和 CI 不证明新版任务质量提高。Microsoft Marketplace 未发布。
+> 2026-10-18：当前公开版本为 CLI **0.166.105**、Open VSX **0.37.150**、JetBrains **0.4.167**。下一候选为 CLI **0.166.106**、VS Code **0.37.151**、JetBrains **0.4.168**，候选插件均推荐 CLI `.106`；候选尚未发布，须通过最终提交完整矩阵、CLI OIDC 发布及公开制品回读，再发行 IDE 并补测未合格项。已验收基线保持 **25/45**；公开 `.105` 补测正在进行且已出现失败，候选合格与端到端成功分别记账，不宣称 **45/45** 全部合格。Microsoft Marketplace 未发布。
 
 > **验收范围**：原公开包轮次已执行并收齐生成与验收各 **25/25**；累计候选合格 **25/45**，原轮次端到端通过 **4** 项，剩余 **20** 项。新版任务补测 **NOT_RUN**，完整 native review 与自动晋升仍单独验收，自动晋升 **HOLD**。产品 .140 独立发行；详见[当前升级指南](/chainlesschain/cli-ide-update-2026-10-18)。
 
