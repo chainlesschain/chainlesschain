@@ -1,0 +1,100 @@
+{
+  "schema": "chainlesschain.exact-source-infrastructure-gate-failure/v1",
+  "recordedAt": "2026-10-18T09:19:56.962939+00:00",
+  "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+  "runId": "39114428701",
+  "jobId": "117637196667",
+  "failedStep": "Install exact JetBrains Windows ARM64 host",
+  "diagnosis": "Vendor checksum download failed with DNS resolution error. Installer download completed, checksum verification/installation/Gradle/IDE journey did not execute.",
+  "newLifecycleTestsCausal": false,
+  "releaseEligible": false,
+  "modelCalls": 0,
+  "taskGenerationDispatched": 0,
+  "originalFailurePreserved": true,
+  "checksumVerificationRetained": true,
+  "singleJobRerun": {
+    "requestCount": 1,
+    "accepted": false,
+    "response": "HTTP 403: The workflow run containing this job is already running",
+    "status": "WAIT_FOR_ORIGINAL_RUN_COMPLETION_BEFORE_RETRY",
+    "effect": "No new job or model dispatch was accepted. Do not resubmit until the original matrix finishes."
+  },
+  "desktopQueueTrim": {
+    "exactSourceAndPullRequestVerified": true,
+    "pullRequest": 462,
+    "onlyRunIds": [
+      "39114428707",
+      "39114428628"
+    ],
+    "paths": [
+      ".github/workflows/e2e-tests.yml",
+      ".github/workflows/pm-e2e-tests.yml"
+    ],
+    "finalStatus": "completed/cancelled",
+    "allSixProtectedContextsRetained": true,
+    "cliIdeAndReleaseWorkflowsPreserved": true
+  },
+  "evidence": [
+    {
+      "source": "task-quality-106-dca-windows-arm64-failure/job.log",
+      "path": "followup-106-dca47-arm64-dns-job.log.gz",
+      "originalDigest": "sha256:1c75487c04dad32d094113348d6f6e619548ce9d985f090c947c4a05c051d79b",
+      "storedDigest": "sha256:e1ba9fbbca2732aaea3da790dfa54fd6b23e203b7f1f12d0a32de3c5e0e1b344",
+      "originalBytes": 149104,
+      "storedBytes": 24766
+    },
+    {
+      "source": "task-quality-106-dca-windows-arm64-failure/job-metadata.json",
+      "path": "followup-106-dca47-arm64-dns-job-metadata.json.gz",
+      "originalDigest": "sha256:92d3a6a31d0b5fc93edd6fb522c40a0210f4028bf6f69cab6e1063b56c48b47e",
+      "storedDigest": "sha256:c4316e15ef7ed54710ac14332e75d8071fabaf91b50f3beadc18415642633b01",
+      "originalBytes": 4484,
+      "storedBytes": 990
+    },
+    {
+      "source": "task-quality-106-dca-windows-arm64-failure/metadata.json",
+      "path": "followup-106-dca47-arm64-dns-metadata.json.gz",
+      "originalDigest": "sha256:d50cecd0ecf6645aaa18dff96af4d028fd26972966ce70d7d385b004bb2a355e",
+      "storedDigest": "sha256:fda217377173831b503a21d573cfe425d203843593461bf876cb8d6d398072b5",
+      "originalBytes": 11478,
+      "storedBytes": 1196
+    },
+    {
+      "source": "task-quality-106-dca-windows-arm64-failure/review.json",
+      "path": "followup-106-dca47-arm64-dns-review.json.gz",
+      "originalDigest": "sha256:7156da73e2b14cb13beab99df3c69c969b42ac9e07845908ecf8c36d62e6836b",
+      "storedDigest": "sha256:c7b570c59bd1f73619273f8bf533ff5dfc4bfc65f0d784dd93d689ef65276659",
+      "originalBytes": 1662,
+      "storedBytes": 878
+    },
+    {
+      "source": "task-quality-106-dca-windows-arm64-failure/single-job-rerun-intent.json",
+      "path": "followup-106-dca47-arm64-dns-single-job-rerun-intent.json.gz",
+      "originalDigest": "sha256:b0b8bc8473684ca00dfec002ae7dcb05ec1a42d7422a17ed50bf50ca9070a32a",
+      "storedDigest": "sha256:dd34583ec551376f43eee108b83dc3ffd4ed7a15b4af0ee3dc8a06fbd80303f0",
+      "originalBytes": 23248,
+      "storedBytes": 2991
+    },
+    {
+      "source": "task-quality-106-dca-desktop-trim.json",
+      "path": "followup-106-dca47-desktop-trim.json.gz",
+      "originalDigest": "sha256:6eac920273f24941d114411b4b241cca752479b5ca05a303b15fa9806a81ef4a",
+      "storedDigest": "sha256:da3a075079e8f255a7a99b1b7cb6dffadb89bdfb282d1092b19b546c1ba69b72",
+      "originalBytes": 41212,
+      "storedBytes": 2903
+    },
+    {
+      "source": "task-quality-106-dca-desktop-trim-readback.json",
+      "path": "followup-106-dca47-desktop-trim-readback.json.gz",
+      "originalDigest": "sha256:7729a8153111b58faf4dbec5f794c7bbb338409a63a33a3e1b42c60db25cff08",
+      "storedDigest": "sha256:7928c1f49c86b3de28a6d50783f3d91a6e95d2d0684ebacc0737ddda4563950e",
+      "originalBytes": 44327,
+      "storedBytes": 2615
+    }
+  ],
+  "limits": [
+    "DNS hostname is not identified by the official log; one observation does not establish a persistent outage.",
+    "This failure occurred before Java compilation or IDE journey and does not establish a product regression.",
+    "All exact-source official release matrices remain required before publication."
+  ]
+}

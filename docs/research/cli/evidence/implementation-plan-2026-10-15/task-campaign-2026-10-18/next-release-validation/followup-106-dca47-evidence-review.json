@@ -1,0 +1,247 @@
+{
+  "schema": "chainlesschain.followup-106-evidence-archive/v1",
+  "recordedAt": "2026-10-18T09:17:26.824594+00:00",
+  "productSourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+  "javaLifecycle": {
+    "status": "LOCAL_JUNIT_PASSED",
+    "testsPassed": 9,
+    "realSubprocessTests": [
+      "closesUnusedStdinBeforeWaiting",
+      "drainsMergedOutputBeyondCaptureLimit",
+      "timeoutReapsOnlyOwnedProcess",
+      "interruptionRestoresFlagAndReapsOwnedProcess",
+      "incompleteInheritedPipeFailsWithinSharedCleanupBudget"
+    ],
+    "realSubprocessTestCount": 5,
+    "java": "21.0.12.1+1",
+    "gradle": "8.7",
+    "offline": true,
+    "beforeSourceCommit": "4317bf01a48a7ec612e12000936a81851c6febf3",
+    "beforeDigest": "sha256:419cd3f4b918a6ad3b603de8718a815a7504aaf13f3a3b8f0e4b7d97e69846f7",
+    "sourceBindings": [
+      {
+        "role": "production",
+        "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/WindowsOwnerOnlyAcl.java",
+        "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+        "workingBytesDigest": "sha256:f2153e5818a01ca0f45dd38f591ea6c1da6097aa788b686cf604b09f78d61785",
+        "gitObjectBytesDigest": "sha256:f2153e5818a01ca0f45dd38f591ea6c1da6097aa788b686cf604b09f78d61785",
+        "recordedAtExecutionDigest": "sha256:f2153e5818a01ca0f45dd38f591ea6c1da6097aa788b686cf604b09f78d61785",
+        "bindingLimit": "Exact digest equals the production digest recorded by the completed local test review.",
+        "exactBytesEqual": true,
+        "lfNormalizedEqual": true,
+        "workingCrlfCount": 0,
+        "gitCrlfCount": 0,
+        "workingArchive": "followup-106-java-acl-WindowsOwnerOnlyAcl.after.java.gz",
+        "gitObjectArchive": "followup-106-java-acl-WindowsOwnerOnlyAcl.after.java.gz"
+      },
+      {
+        "role": "test",
+        "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/WindowsOwnerOnlyAclTest.java",
+        "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+        "workingBytesDigest": "sha256:188de544fe140254242a15e03a8f30d4a38b4c56b7ebde86908ceaa3edf84acd",
+        "gitObjectBytesDigest": "sha256:188de544fe140254242a15e03a8f30d4a38b4c56b7ebde86908ceaa3edf84acd",
+        "recordedAtExecutionDigest": null,
+        "bindingLimit": "Execution receipt records production digest; test source is the retained clean checkout compared with the committed git object, not a separately timestamped execution digest.",
+        "exactBytesEqual": true,
+        "lfNormalizedEqual": true,
+        "workingCrlfCount": 0,
+        "gitCrlfCount": 0,
+        "workingArchive": "followup-106-java-acl-WindowsOwnerOnlyAclTest.after.java.gz",
+        "gitObjectArchive": "followup-106-java-acl-WindowsOwnerOnlyAclTest.after.java.gz"
+      }
+    ],
+    "cleanupBudgetSeconds": 5,
+    "cleanupBudgetShared": true,
+    "operationTimeoutSeconds": 30,
+    "aclScriptUnchanged": true,
+    "scope": "Close unused stdin, drain merged output, bound cleanup, preserve interrupt and reap only the directly owned process. A daemon reader/closer may outlive the caller until an inherited pipe closes.",
+    "nativeAclRootCauseProven": false,
+    "unexecutedNodePrototypeIncluded": false,
+    "officialGateReplacement": false
+  },
+  "windowsAclDiagnostic": {
+    "sourceCommit": "2ceaa8421901fbdc68bec4d4c2395f6af089602d",
+    "runId": "39112546523",
+    "conclusion": "success",
+    "focusedPassed": 16,
+    "probesPassed": 3,
+    "diagnosticOnly": true,
+    "modelCalls": 0,
+    "sessionCoreProductModification": false,
+    "limits": [
+      "Observed roughly 22–29 second stage intervals include intervening work and are not precise native-call timings.",
+      "Standalone probes do not reproduce IDE/Gradle/CEF concurrent load.",
+      "PowerShell stage timing excludes pre-script startup; output-complete is not process exit.",
+      "Native ACL timeout root cause remains unresolved; no acceptance or release gate is replaced."
+    ]
+  },
+  "oldGateReview": {
+    "sourceCommit": "4317bf01a48a7ec612e12000936a81851c6febf3",
+    "releaseEligible": false,
+    "supersededBy": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+    "independentFailure": "VS Code README release coherence assertion; ARM64 aggregate failure is downstream incomplete-matrix rejection.",
+    "pendingLimit": "CLI CI, CLI Strict Sandbox, and IDE Extensions still have queued/running jobs. Their remaining failures cannot be assessed from this snapshot.",
+    "priorEvidenceReview": "followup-106-vscode-contract-failure-review.json",
+    "priorOfficialLog": {
+      "source": "job.log",
+      "path": "followup-106-vscode-contract-job.log.gz",
+      "originalDigest": "sha256:eee56426f7edaf7d4af4c39a618e33c6736a401ca255f71cdc68b604fffad093",
+      "storedDigest": "sha256:e843768700b5517bc6438d0a296dd8cae24c8ca06c6d13bcf6726349666d8b25"
+    },
+    "laterRetrievalLogDigest": "sha256:c82baf405a8ca6baa37b0cbfd4508ff5b205df6fdd3b514cf7cc6a9bed55ccaa",
+    "sameDecodedLines": true,
+    "byteDifference": "Existing archived retrieval has UTF-8 BOM and LF; later review retrieval has CRLF and a different final line terminator. Original and stored digests remain distinct.",
+    "rawLogDuplication": false,
+    "aggregateLog": "Only review receipt and its raw-log digest are newly archived; no second copy of official large logs is stored.",
+    "newSourceReleaseQualified": false
+  },
+  "versionAvailability": {
+    "archive": "followup-106-version-availability.json.gz",
+    "snapshotOnly": true,
+    "cli106Http": 404,
+    "vscode151Http": 404,
+    "jetbrains168Listed": false,
+    "runtimeVerified": false
+  },
+  "newOfficialGates": {
+    "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+    "status": "QUEUED_PENDING",
+    "complete": false,
+    "releaseEligible": false,
+    "runs": [
+      {
+        "runId": 39114428682,
+        "name": "CLI CI",
+        "path": ".github/workflows/cli-ci.yml",
+        "status": "queued",
+        "conclusion": null
+      },
+      {
+        "runId": 39114428621,
+        "name": "CLI Strict Sandbox",
+        "path": ".github/workflows/cli-strict-sandbox.yml",
+        "status": "queued",
+        "conclusion": null
+      },
+      {
+        "runId": 39114428636,
+        "name": "IDE Extensions",
+        "path": ".github/workflows/ide-extensions.yml",
+        "status": "queued",
+        "conclusion": null
+      },
+      {
+        "runId": 39114428701,
+        "name": "IDE ARM64 Host Validation",
+        "path": ".github/workflows/ide-arm64-validation.yml",
+        "status": "queued",
+        "conclusion": null
+      }
+    ]
+  },
+  "artifacts": [
+    {
+      "path": "followup-106-java-acl-before.json.gz",
+      "source": ".work/java-acl-lifecycle-review/before.json",
+      "originalDigest": "sha256:86d4e8911cd36126b9b0cc30624c5862ea456e35ae07e31dc4678d7d8ae66d62",
+      "storedDigest": "sha256:c7a80422979f4dcedbd01475358492cda2de08c3bbd46d826f55ac67c227910f",
+      "originalBytes": 420,
+      "storedBytes": 278
+    },
+    {
+      "path": "followup-106-java-acl-after.json.gz",
+      "source": ".work/java-acl-lifecycle-review/after.json",
+      "originalDigest": "sha256:aa1fb86d6fb65dfdc8a6685435a2b55897d8c70ac3dcfe2fae5bb0cdd4694dfb",
+      "storedDigest": "sha256:e07580fe62c539a7ca8026c6ac7def2df9be9d99f2e7397448755dab1e1135f1",
+      "originalBytes": 2159,
+      "storedBytes": 738
+    },
+    {
+      "path": "followup-106-java-acl-TEST-WindowsOwnerOnlyAclTest.after.xml.gz",
+      "source": ".work/java-acl-lifecycle-review/TEST-WindowsOwnerOnlyAclTest.after.xml",
+      "originalDigest": "sha256:ce52c27e60002441496cf81a226d562987ff37b3c3297463e0fe7b187912e2ae",
+      "storedDigest": "sha256:074957b9d439b7e99fa265453b213be1330c4a37ccfa9a299aeff1706da21df6",
+      "originalBytes": 1603,
+      "storedBytes": 557
+    },
+    {
+      "path": "followup-106-java-acl-AclLifecycleProbe.java.gz",
+      "source": ".work/java-acl-lifecycle-review/AclLifecycleProbe.java",
+      "originalDigest": "sha256:b8133e58aa680d888994c22a377e5e3c610a091b06ac2038cecd9c31e763bd7a",
+      "storedDigest": "sha256:d831cd0ba8a3cd8e0c52ed419b3a9875e9d94a295350bc212c32801a55089233",
+      "originalBytes": 2187,
+      "storedBytes": 1033
+    },
+    {
+      "path": "followup-106-java-acl-WindowsOwnerOnlyAcl.before.java.gz",
+      "source": ".work/java-acl-lifecycle-review/WindowsOwnerOnlyAcl.before.java",
+      "originalDigest": "sha256:419cd3f4b918a6ad3b603de8718a815a7504aaf13f3a3b8f0e4b7d97e69846f7",
+      "storedDigest": "sha256:2d117af8041596226f327c27da131dd0b9e50f1274f672fa8d32055bb87c1d68",
+      "originalBytes": 12852,
+      "storedBytes": 3093
+    },
+    {
+      "path": "followup-106-java-acl-WindowsOwnerOnlyAcl.after.java.gz",
+      "source": "C:\\code\\chainlesschain\\.worktrees\\task-quality-followup\\packages\\jetbrains-plugin\\src\\main\\java\\com\\chainlesschain\\ide\\WindowsOwnerOnlyAcl.java",
+      "originalDigest": "sha256:f2153e5818a01ca0f45dd38f591ea6c1da6097aa788b686cf604b09f78d61785",
+      "storedDigest": "sha256:580d34b2490f2aa651d1f956d493aefc9fef6ae8141b804c2812a3ca9918141d",
+      "originalBytes": 14870,
+      "storedBytes": 3600
+    },
+    {
+      "path": "followup-106-java-acl-WindowsOwnerOnlyAclTest.after.java.gz",
+      "source": "C:\\code\\chainlesschain\\.worktrees\\task-quality-followup\\packages\\jetbrains-plugin\\src\\test\\java\\com\\chainlesschain\\ide\\WindowsOwnerOnlyAclTest.java",
+      "originalDigest": "sha256:188de544fe140254242a15e03a8f30d4a38b4c56b7ebde86908ceaa3edf84acd",
+      "storedDigest": "sha256:699b107c7c45ac7a6aa81cf7884722631ab4eaf2e1eebc4360c06d151eedc01c",
+      "originalBytes": 13389,
+      "storedBytes": 3550
+    },
+    {
+      "path": "followup-106-windows-acl-progress-ci-review.json.gz",
+      "source": ".work/windows-acl-progress-ci-review.json",
+      "originalDigest": "sha256:d4ee25af67237fae7cfa5392d8775bd1abf82952ecb68e253dc7b44d02e04f18",
+      "storedDigest": "sha256:5a0c0ea6c6d120a16907d5a11d4eb38bc5143d04073e2d1d079625ea1f71c484",
+      "originalBytes": 10137,
+      "storedBytes": 2015
+    },
+    {
+      "path": "followup-106-old-gate-review.json.gz",
+      "source": ".work/task-quality-106-old-gate-review/review.json",
+      "originalDigest": "sha256:ce7a677754200337461a9d0b25dced3e1fe682523ccf6da53f74a038566d2154",
+      "storedDigest": "sha256:364f158b48aad8f06e5cdc1efe3abb522ac6bcfe846f6c19ad00635a0f53f333",
+      "originalBytes": 4832,
+      "storedBytes": 1664
+    },
+    {
+      "path": "followup-106-old-gate-expected-gate-jobs.json.gz",
+      "source": ".work/task-quality-106-old-gate-review/expected-gate-jobs.json",
+      "originalDigest": "sha256:1b76691979ea01e50dd66a4b6505863981141d76dad3a439c17546ccd8681597",
+      "storedDigest": "sha256:6cc65cbf79a597df25e3bdabb3efcd4bfa62fe506a9980ea08ad00e1416b78ca",
+      "originalBytes": 22526,
+      "storedBytes": 2305
+    },
+    {
+      "path": "followup-106-version-availability.json.gz",
+      "source": ".work/task-quality-106-version-availability.json",
+      "originalDigest": "sha256:1748f908705aaf58b169c77c8ecfd4fc4231821e05c4aa4e682e8294e77d73f0",
+      "storedDigest": "sha256:8a4c4a4632a61c37835139f1f05bb2ee8732e0934ddc564ab3a0ef4f1d1a97be",
+      "originalBytes": 596,
+      "storedBytes": 314
+    },
+    {
+      "path": "followup-106-dca47-initial-gates.json.gz",
+      "source": ".work/task-quality-106-dca47-initial-gates.json",
+      "originalDigest": "sha256:141ebed9a73112b1361c257d0545fdf626e8ea667c8a14c7fe006834cd88f88f",
+      "storedDigest": "sha256:df57e43a3cd09774ccf8aeb548041a8dda77a4c0fa956f10d2614ea1ed8132d3",
+      "originalBytes": 5090,
+      "storedBytes": 609
+    }
+  ],
+  "actions": {
+    "modelCalls": 0,
+    "dispatches": 0,
+    "cancellations": 0,
+    "publications": 0,
+    "commits": 0
+  }
+}

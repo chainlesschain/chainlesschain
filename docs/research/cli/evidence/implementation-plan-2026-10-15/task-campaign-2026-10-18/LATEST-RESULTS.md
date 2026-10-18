@@ -2,9 +2,15 @@
 
 当前公开包补测使用 CLI **0.166.105**、VS Code **0.37.150**、JetBrains **0.4.167**。[本轮账本](./next-package-105-20261018.json) 已完整收取生成 **20/20**、独立验收 **20/20**，新增 **6** 项候选及全流程通过。累计候选合格 **31/45**（普通 **26/36**、首次 **5/9**），剩余 **14** 项；完整性严格校验通过，原生任务没有重复派发。逐项及原因见[本轮复核](./next-package-105-20261018-review.json)，状态 `COMPLETED` 表示证据收齐。
 
-下一候选 **.106/.151/.168** 见 [PR #462](https://github.com/chainlesschain/chainlesschain/pull/462) 和[准备记录](./followup-106-preparation.json)。CLI 聚焦回归 **58** 项、JetBrains 聚焦回归 **38** 项通过，通用边界指导已根据真实失败补全。候选 `4317bf01a4` 的正式 ARM64 工作流有一项 VS Code README 发行一致性检查失败，原始汇总 **274/275** 通过，未进入 VSIX 打包；[原失败与修复证据](./next-release-validation/followup-106-vscode-contract-failure-review.json) 保留，README 定向检查 **4/4** 通过，校验器及验收规则未改。正在准备新的完整发行提交，其正式跨系统门禁必须重新验证。候选尚未发布，也未进行新版模型补测。
+下一候选 **.106/.151/.168** 见 [PR #462](https://github.com/chainlesschain/chainlesschain/pull/462) 和[准备记录](./followup-106-preparation.json)。产品提交已更新为 `dca47fd91a209642b6536afd5bc9e99ec74c7d06`。对应官方运行：CLI CI [39114428682](https://github.com/chainlesschain/chainlesschain/actions/runs/39114428682)、CLI Strict Sandbox [39114428621](https://github.com/chainlesschain/chainlesschain/actions/runs/39114428621)、IDE Extensions [39114428636](https://github.com/chainlesschain/chainlesschain/actions/runs/39114428636)、ARM64 [39114428701](https://github.com/chainlesschain/chainlesschain/actions/runs/39114428701)，初始观察均为 queued/pending，尚未完成，不能放行发行。CLI 聚焦 **58** 项、JetBrains 聚焦 **38** 项及 README 定向 **4/4** 通过不替代官方完整矩阵。候选尚未发布，也未进行新版模型补测。
 
-Windows JetBrains 的 ACL 遍历和校验超时仍未定位，单独分支的有界阶段诊断未纳入本次发行源码；本地未复现不能证明问题解决。已另用真实 JDK 子进程复现插件 ACL 助手的未用 stdin 未关闭、成功路径输出未完全读完的问题，正在做最小有界修复；通用生命周期缺陷不能直接解释原先 30 秒超时。
+新提交 ARM64 运行 `39114428701` 的 Windows JetBrains `2026.2.0.1` job `117637196667` 失败，已由官方日志确认：安装包下载完成，但获取供应商 checksum 时 DNS 解析失败，校验、安装、Gradle 和 IDE journey 均未执行，与新增 Java 测试无关。[失败与原始证据](./next-release-validation/followup-106-dca47-arm64-dns-failure-review.json) 已保存；单项重试请求被 GitHub 以“原工作流仍在运行”拒绝，未产生新 job 或模型调用。需等原矩阵结束后再仅重试此项，保留严格 checksum 校验；四项初始 queued 快照仍为初始事实，当前不能发布。
+
+旧提交 `4317bf01a48a7ec612e12000936a81851c6febf3` 已被新提交取代；其正式 ARM64 工作流独立失败为 VS Code README 一致性检查，原始汇总 **274/275** 通过，未进入 VSIX 打包，聚合随后拒绝不完整矩阵。[原失败证据](./next-release-validation/followup-106-vscode-contract-failure-review.json) 与[补充归档](./next-release-validation/followup-106-dca47-evidence-review.json) 均保留；旧结果不能放行新提交，原失败没有改写为成功。
+
+Windows JetBrains 的原生 ACL 超时根因仍未解决。新产品提交包含插件 Java 子进程生命周期修复，本地 JUnit **9/9**（含 **5** 个真实子进程测试）通过：关闭未使用 stdin、完整排空输出、共用单一 **5 秒**清理等待预算，仅回收自身子进程并保留中断；原操作 **30 秒**期限与 ACL 脚本不变。执行时记录的生产源码摘要与新 git 对象一致，原始源码、测试源码及各自摘要已归档；未执行的 Node 原型不作为测试结果。继承管道未关闭时 daemon reader/closer 仍可能晚于调用方结束，这不证明原生超时根因已修复。
+
+独立阶段诊断运行 [39112546523](https://github.com/chainlesschain/chainlesschain/actions/runs/39112546523) 精确绑定 `2ceaa8421901fbdc68bec4d4c2395f6af089602d`，完成 **16** 项测试和 **3** 个 probe。约 **22–29 秒**为阶段区间，包含间隔工作，不是精确 native call 用时；未重现 IDE/Gradle/CEF 并发负载，也未向产品提交引入 session-core 修改。[诊断及原始/存储 SHA-256 清单](./next-release-validation/followup-106-dca47-evidence-review.json) 保留这些限制及候选版本尚不可用的只读快照。
 
 新增合格为 `verify-12`、`verify-14`、`verify-32`、`first-run-linux-jetbrains`、`first-run-linux-vscode` 和 `first-run-darwin-vscode`。已将完整轮次摘要登记至[累计轮次链](./next-package-round-chain.json)，新计划会严格排除全部 31 项合格样本。可下载[31 项交付包](./next-package-105-20261018-accepted-deliverables.tar.gz)及[索引](./next-package-105-20261018-accepted-deliverables.json)，原 25 项产物和收据按字节复用，原包保持不变；打包没有重新执行模型或候选测试。累计跨版本的文件合格与原生全流程结论分别保留。
 

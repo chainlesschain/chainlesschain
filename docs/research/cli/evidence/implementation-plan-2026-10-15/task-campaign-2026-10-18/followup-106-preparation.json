@@ -1,9 +1,9 @@
 {
   "schema": "chainlesschain.task-quality-next-version-preparation/v1",
   "recordedAt": "2026-10-18T08:16:55.683049+00:00",
-  "status": "RELEASE_GATE_README_CONTRACT_FIX_PENDING_NEW_SOURCE",
+  "status": "RELEASE_GATE_INFRASTRUCTURE_RETRY_PENDING_RUN_COMPLETION",
   "billingAssessed": false,
-  "sourceCommit": "4317bf01a48a7ec612e12000936a81851c6febf3",
+  "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
   "pullRequest": "https://github.com/chainlesschain/chainlesschain/pull/462",
   "candidateVersions": {
     "cli": "0.166.106",
@@ -34,19 +34,23 @@
     "linuxFixturePassed": 8,
     "windowsFixturePassed": 7,
     "windowsFixtureSkipped": 1,
-    "uiJavaCompile": "passed"
+    "uiJavaCompile": "passed",
+    "windowsAclLifecyclePassed": 9,
+    "windowsAclRealSubprocessTests": 5,
+    "marketplaceOverviewPassed": 4
   },
   "evidence": [
     "next-release-validation/native-105-darwin-cli-product-followup.json",
     "next-release-validation/native-105-new-failures-review.json",
-    "next-release-validation/followup-106-archived-reply-regressions.json"
+    "next-release-validation/followup-106-archived-reply-regressions.json",
+    "next-release-validation/followup-106-dca47-evidence-review.json"
   ],
   "remaining": [
-    "Require every configured official gate for final source 4317bf01a48a7ec612e12000936a81851c6febf3.",
+    "Require every configured official gate for final source dca47fd91a209642b6536afd5bc9e99ec74c7d06; initial queued snapshots are historical, and ARM64 job 117637196667 now has a reported failure pending diagnosis.",
     "Publish and verify CLI 0.166.106 through OIDC, then VS Code 0.37.151 / JetBrains 0.4.168.",
     "Create a strict public package manifest and retest only the remaining 14 sample IDs, reusing all 31 accepted deliverables.",
     "Run the existing archived-reply zero-model recovery against the new approved public .168 ZIP.",
-    "Diagnose Windows ACL traversal/verify timeouts without weakening protection; the instrumentation branch is not a proven fix."
+    "Diagnose Windows ACL traversal/verify timeouts without weakening protection; Java lifecycle tests and the separate 2ceaa diagnostic run do not establish the native timeout root cause."
   ],
   "releaseLimits": [
     "No old checks qualify a later source commit.",
@@ -61,10 +65,11 @@
     "reusedAcceptedDeliverables": 25,
     "cumulativeAcceptedDeliverables": 26
   },
-  "updatedAt": "2026-10-18T08:40:45.362500+00:00",
+  "updatedAt": "2026-10-18T09:19:56.962939+00:00",
   "supersededSourceCommits": [
     "e01eb3a92212a69140559d8ec304ddd0dce99274",
-    "52f882ffa891f0683120eff6399701378a617ae7"
+    "52f882ffa891f0683120eff6399701378a617ae7",
+    "4317bf01a48a7ec612e12000936a81851c6febf3"
   ],
   "remainingSampleIds": [
     "verify-04",
@@ -83,14 +88,92 @@
     "first-run-win32-jetbrains"
   ],
   "officialGateObservation": {
-    "path": "followup-106-final-source-initial-gates.json.gz",
-    "originalDigest": "sha256:309aa696044686bf641f67af1c9b78446638fce0dfd815d0f2947b835d614b64",
-    "storedDigest": "sha256:7ba6114dee931b745ca13f82a0b1c3699feaa7b2788e9be3aea73af965c136a4",
-    "originalBytes": 7431
+    "path": "followup-106-dca47-initial-gates.json.gz",
+    "source": ".work/task-quality-106-dca47-initial-gates.json",
+    "originalDigest": "sha256:141ebed9a73112b1361c257d0545fdf626e8ea667c8a14c7fe006834cd88f88f",
+    "storedDigest": "sha256:df57e43a3cd09774ccf8aeb548041a8dda77a4c0fa956f10d2614ea1ed8132d3",
+    "originalBytes": 5090,
+    "storedBytes": 609
   },
   "roundChainRegistered": true,
   "acceptedExportIndex": "next-package-105-20261018-accepted-deliverables.json",
   "publicReadbackToolsValidation": "next-release-validation/public-readback-generic-tool-validation.json",
-  "latestOfficialFailure": "next-release-validation/followup-106-vscode-contract-failure-review.json",
-  "sourceCommitFailedGate": "4317bf01a48a7ec612e12000936a81851c6febf3"
+  "latestOfficialFailure": "next-release-validation/followup-106-dca47-arm64-dns-failure-review.json",
+  "sourceCommitFailedGate": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+  "supersededOfficialGateObservations": [
+    {
+      "sourceCommit": "4317bf01a48a7ec612e12000936a81851c6febf3",
+      "observation": {
+        "path": "followup-106-final-source-initial-gates.json.gz",
+        "originalDigest": "sha256:309aa696044686bf641f67af1c9b78446638fce0dfd815d0f2947b835d614b64",
+        "storedDigest": "sha256:7ba6114dee931b745ca13f82a0b1c3699feaa7b2788e9be3aea73af965c136a4",
+        "originalBytes": 7431
+      },
+      "failureReview": "next-release-validation/followup-106-vscode-contract-failure-review.json",
+      "releaseEligible": false
+    }
+  ],
+  "officialGateRuns": [
+    {
+      "runId": 39114428682,
+      "name": "CLI CI",
+      "path": ".github/workflows/cli-ci.yml",
+      "status": "queued",
+      "conclusion": null
+    },
+    {
+      "runId": 39114428621,
+      "name": "CLI Strict Sandbox",
+      "path": ".github/workflows/cli-strict-sandbox.yml",
+      "status": "queued",
+      "conclusion": null
+    },
+    {
+      "runId": 39114428636,
+      "name": "IDE Extensions",
+      "path": ".github/workflows/ide-extensions.yml",
+      "status": "queued",
+      "conclusion": null
+    },
+    {
+      "runId": 39114428701,
+      "name": "IDE ARM64 Host Validation",
+      "path": ".github/workflows/ide-arm64-validation.yml",
+      "status": "queued",
+      "conclusion": null
+    }
+  ],
+  "officialGatesCompleted": false,
+  "releaseEligible": false,
+  "windowsAclDiagnostic": {
+    "sourceCommit": "2ceaa8421901fbdc68bec4d4c2395f6af089602d",
+    "runId": "39112546523",
+    "conclusion": "success",
+    "focusedPassed": 16,
+    "probesPassed": 3,
+    "diagnosticOnly": true,
+    "modelCalls": 0,
+    "sessionCoreProductModification": false,
+    "limits": [
+      "Observed roughly 22–29 second stage intervals include intervening work and are not precise native-call timings.",
+      "Standalone probes do not reproduce IDE/Gradle/CEF concurrent load.",
+      "PowerShell stage timing excludes pre-script startup; output-complete is not process exit.",
+      "Native ACL timeout root cause remains unresolved; no acceptance or release gate is replaced."
+    ]
+  },
+  "candidateAvailabilityObservation": "next-release-validation/followup-106-version-availability.json.gz",
+  "currentReportedOfficialFailure": {
+    "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+    "workflow": "IDE ARM64 Host Validation",
+    "runId": "39114428701",
+    "jobId": "117637196667",
+    "job": "Windows JetBrains 2026.2.0.1",
+    "status": "failure",
+    "diagnosis": "Vendor checksum download failed with DNS resolution error. Installer download completed, checksum verification/installation/Gradle/IDE journey did not execute.",
+    "source": "Parent observation; official failure evidence is being reviewed separately.",
+    "releaseEligible": false,
+    "review": "next-release-validation/followup-106-dca47-arm64-dns-failure-review.json",
+    "retryStatus": "WAIT_FOR_ORIGINAL_RUN_COMPLETION_BEFORE_RETRY",
+    "productRegressionEstablished": false
+  }
 }
