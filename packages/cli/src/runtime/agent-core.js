@@ -14694,7 +14694,13 @@ export async function* agentLoop(messages, options) {
         ),
       ),
     ].sort();
-    const key = JSON.stringify([tool, targets]);
+    // These tools are alternative ways to deliver content to the same target.
+    // A successful explicit replacement must settle a deferred edit (and vice
+    // versa); move/delete/notebook effects retain their distinct obligations.
+    const effect = ["write_file", "edit_file", "edit_file_hashed"].includes(tool)
+      ? "file-content"
+      : tool;
+    const key = JSON.stringify([effect, targets]);
     if (
       result?.policy?.via === "subtree-instructions" &&
       result.policy.decision === "deferred" &&
@@ -14704,8 +14710,10 @@ export async function* agentLoop(messages, options) {
     } else if (
       result &&
       !result.error &&
-      result.success !== false &&
+      result.success === true &&
       result.isError !== true &&
+      result.policy?.decision !== "deny" &&
+      result.policy?.decision !== "deferred" &&
       result.mutationPerformed !== false
     ) {
       pendingSubtreeMutations.delete(key);
