@@ -1,0 +1,125 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-20",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 4,
+      "passed": 4,
+      "failed": 0
+    },
+    {
+      "kind": "candidate",
+      "total": 6,
+      "passed": 6,
+      "failed": 0
+    }
+  ],
+  "mutations": [
+    {
+      "name": "approval-overrides-policy-deny",
+      "sourceSha256": "68fe7fcc8a3fb04c55b6618a844750a68b350c6e97ffec9f41afcc9a7bb43410",
+      "total": 6,
+      "passed": 4,
+      "failed": 2
+    }
+  ],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 102,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 2236,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":4,\"numPassedTests\":4,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1792283852203,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"PermissionDecision\"],\"fullName\":\"PermissionDecision normalizes an approval chain into a stable protocol record\",\"status\":\"passed\",\"title\":\"normalizes an approval chain into a stable protocol record\",\"duration\":2.411890000000085,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"PermissionDecision\"],\"fullName\":\"PermissionDecision redacts and bounds user-controlled explanations\",\"status\":\"passed\",\"title\":\"redacts and bounds user-controlled explanations\",\"duration\":0.27290100000004713,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"PermissionDecision\"],\"fullName\":\"PermissionDecision returns null for an ordinary non-policy tool result\",\"status\":\"passed\",\"title\":\"returns null for an ordinary non-policy tool result\",\"duration\":0.10806300000012925,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"PermissionDecision\"],\"fullName\":\"PermissionDecision is emitted by the real agent loop for a gated tool call\",\"status\":\"passed\",\"title\":\"is emitted by the real agent loop for a gated tool call\",\"duration\":75.3582570000001,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1792283854024,\"endTime\":1792283854102.3582,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/permission-decision.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 445,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":6,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1792283854442,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"deny decision does not degrade to allow\"],\"fullName\":\"deny decision does not degrade to allow preserves an explicit policy deny over an approval allow fallback\",\"status\":\"passed\",\"title\":\"preserves an explicit policy deny over an approval allow fallback\",\"duration\":1.4464770000000016,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"deny decision does not degrade to allow\"],\"fullName\":\"deny decision does not degrade to allow preserves an approval deny when policy is absent\",\"status\":\"passed\",\"title\":\"preserves an approval deny when policy is absent\",\"duration\":0.2409320000000008,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"deny decision does not degrade to allow\"],\"fullName\":\"deny decision does not degrade to allow preserves a terminal chain deny when policy and approval are absent\",\"status\":\"passed\",\"title\":\"preserves a terminal chain deny when policy and approval are absent\",\"duration\":0.16248399999999208,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"deny decision does not degrade to allow\"],\"fullName\":\"deny decision does not degrade to allow does not rewrite an unknown decision into allow\",\"status\":\"passed\",\"title\":\"does not rewrite an unknown decision into allow\",\"duration\":0.24267500000000553,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"deny decision does not degrade to allow\"],\"fullName\":\"deny decision does not degrade to allow does not synthesize allow when no decision is present\",\"status\":\"passed\",\"title\":\"does not synthesize allow when no decision is present\",\"duration\":0.43344199999999944,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"deny decision does not degrade to allow\"],\"fullName\":\"deny decision does not degrade to allow keeps a deny decision exactly for an allow result without policy\",\"status\":\"passed\",\"title\":\"keeps a deny decision exactly for an allow result without policy\",\"duration\":0.15517299999999068,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1792283854583,\"endTime\":1792283854586.1553,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-20.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/packages/cli/src/lib/permission-decision.js"
+      ],
+      "setup": false,
+      "ms": 109,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 456,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":0,\"numFailedTestSuites\":2,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":4,\"numFailedTests\":2,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1792283855003,\"success\":false,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"deny decision does not degrade to allow\"],\"fullName\":\"deny decision does not degrade to allow preserves an explicit policy deny over an approval allow fallback\",\"status\":\"failed\",\"title\":\"preserves an explicit policy deny over an approval allow fallback\",\"duration\":5.362390000000005,\"failureMessages\":[\"AssertionError: expected 'allow' to be 'deny' // Object.is equality\\n    at /workspace/packages/cli/__tests__/verify-20.test.js:22:31\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"deny decision does not degrade to allow\"],\"fullName\":\"deny decision does not degrade to allow preserves an approval deny when policy is absent\",\"status\":\"passed\",\"title\":\"preserves an approval deny when policy is absent\",\"duration\":0.3896360000000101,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"deny decision does not degrade to allow\"],\"fullName\":\"deny decision does not degrade to allow preserves a terminal chain deny when policy and approval are absent\",\"status\":\"passed\",\"title\":\"preserves a terminal chain deny when policy and approval are absent\",\"duration\":0.18537899999999752,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"deny decision does not degrade to allow\"],\"fullName\":\"deny decision does not degrade to allow does not rewrite an unknown decision into allow\",\"status\":\"failed\",\"title\":\"does not rewrite an unknown decision into allow\",\"duration\":0.854424999999992,\"failureMessages\":[\"AssertionError: expected 'allow' to be 'unknown' // Object.is equality\\n    at /workspace/packages/cli/__tests__/verify-20.test.js:62:31\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"deny decision does not degrade to allow\"],\"fullName\":\"deny decision does not degrade to allow does not synthesize allow when no decision is present\",\"status\":\"passed\",\"title\":\"does not synthesize allow when no decision is present\",\"duration\":0.2387990000000002,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"deny decision does not degrade to allow\"],\"fullName\":\"deny decision does not degrade to allow keeps a deny decision exactly for an allow result without policy\",\"status\":\"passed\",\"title\":\"keeps a deny decision exactly for an allow result without policy\",\"duration\":0.15893900000000372,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1792283855138,\"endTime\":1792283855145.2388,\"status\":\"failed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-20.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": true,
+  "detail": "Independent operator checks passed; this is not a provider or task-outcome sample."
+}

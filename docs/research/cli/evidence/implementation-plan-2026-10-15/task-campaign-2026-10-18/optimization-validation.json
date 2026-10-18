@@ -1,6 +1,6 @@
 {
   "schema": "chainlesschain.task-campaign-optimization-validation/v1",
-  "generatedAt": "2026-10-18T00:15:59.996408+00:00",
+  "generatedAt": "2026-10-18T00:40:26.946557+00:00",
   "published": false,
   "publicVersionsUnderEvaluation": {
     "cli": "0.166.99",
@@ -209,6 +209,29 @@
         "Original failure is durable before at most five seconds of separately bounded read-only UI diagnostics",
         "Task deadline and public packages are unchanged",
         "Runtime source bindings include Java host driver and Gradle configuration"
+      ]
+    },
+    {
+      "change": "Capture a bounded redacted diagnostic copy of actual CLI stderr while forwarding original bytes",
+      "commit": "23ebe5de846c9f40c4b6d04d9c69ddf6b2e15b50",
+      "scope": "Operator adapter only; no evaluated public package changes.",
+      "totalPassed": 8,
+      "receipt": {
+        "path": "optimization-receipts/recharge-stderr-tests.tap.gz",
+        "originalDigest": "sha256:0952aedcf0ccf3279c61b0f802f8ec3e36d3b889daddb19fed8d52c76c440635",
+        "storedDigest": "sha256:40ec0d75e3002d5d071656f591f1fd1e8d937ae032a82a7af576c5fce20faf1c"
+      },
+      "defaultMaxBytes": 1048576,
+      "defaultMaxLineBytes": 65536,
+      "diagnosticDirectory": "sample outputDir/cli-stderr-diagnostics, outside task workspace and raw protocol directory",
+      "appliedToRechargeRuns": false,
+      "realGuiRetested": false,
+      "boundaries": [
+        "stdin/stdout/arguments/exit and original stderr forwarding retained",
+        "Complete UTF8 lines redact runtime credential values across chunks; omit whole oversized lines",
+        "Stop storing at cap but keep draining original stderr",
+        "Capture errors do not mask original CLI failure; absent metadata means unavailable capture",
+        "Eight offline stub tests are not GUI/provider verification"
       ]
     }
   ],

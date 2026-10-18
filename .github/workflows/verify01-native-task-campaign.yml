@@ -99,6 +99,16 @@ jobs:
               const plan = JSON.parse(fs.readFileSync("docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.json", "utf8"));
               selectNativeSamples(plan, rows[0].group.split("-")[0], rows[0].entry, ids);
             }
+            const evidence = "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/";
+            const retryPolicy = fs.existsSync(evidence + "recharge-round.json")
+              ? JSON.parse(fs.readFileSync(evidence + "recharge-round.json", "utf8")).futureRetryPolicy : null;
+            if (!run && retryPolicy?.explicitSampleIdsRequiredForFurtherModelRequests) {
+              if (!ids) throw new Error("Further model requests require explicit unfinished sample_ids; do not rerun whole groups");
+              const deliveries = JSON.parse(fs.readFileSync(evidence + "native-verified-deliveries.json", "utf8"));
+              const completed = new Set(deliveries.filter(row => row.candidateAcceptancePassed === true).map(row => row.sampleId));
+              const repeated = ids.filter(id => completed.has(id));
+              if (repeated.length) throw new Error("Reuse already accepted deliverables instead of model generation: " + repeated.join(","));
+            }
             fs.appendFileSync(process.env.GITHUB_OUTPUT, `matrix=${JSON.stringify({include: rows})}\ngroups=${JSON.stringify(rows.map(row => row.group))}\n`);
           '
 

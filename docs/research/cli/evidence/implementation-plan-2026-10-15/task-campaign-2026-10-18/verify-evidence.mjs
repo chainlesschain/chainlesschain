@@ -173,6 +173,58 @@ for (const row of json("native-verified-deliveries.json")) {
   }
 }
 const current = audit.currentDeclaredRound;
+if (fs.existsSync(path.join(root, "recharge-checker-receipts.json"))) {
+  const plan = json("recharge-round.json");
+  const runIds = new Set(plan.runs.map((row) => row.runId));
+  const generationDigests = new Set(
+    results.native45.results
+      .filter(
+        (batch) => batch.stage === "generation" && runIds.has(batch.runId),
+      )
+      .map((batch) => batch.rawSummary.originalDigest),
+  );
+  const expected = new Set();
+  for (const batch of results.native45.results.filter(
+    (batch) =>
+      batch.stage === "acceptance" &&
+      generationDigests.has(batch.sourceSummaryDigest),
+  )) {
+    for (const sample of batch.samples) {
+      for (const stage of ["setup", "check"]) {
+        if (sample[stage]?.receiptPath)
+          expected.add(
+            `${batch.rawSummary.originalDigest}/${sample.sampleId}/${stage}`,
+          );
+      }
+    }
+  }
+  const observed = new Set();
+  for (const entry of json("recharge-checker-receipts.json").entries) {
+    const key = `${entry.acceptanceSummaryDigest}/${entry.sampleId}/${entry.stage}`;
+    assert.ok(expected.has(key));
+    assert.ok(!observed.has(key));
+    observed.add(key);
+    const accepted = raw.get(entry.acceptanceSummaryDigest);
+    const generated = raw.get(entry.sourceSummaryDigest);
+    assert.equal(accepted.batch.sourceSummaryDigest, entry.sourceSummaryDigest);
+    assert.equal(accepted.batch.runId, entry.acceptanceRunId);
+    assert.equal(generated.batch.runId, entry.generationRunId);
+    assert.equal(accepted.batch.group, entry.group);
+    const sample = accepted.summary.samples.find(
+      (row) => row.sampleId === entry.sampleId,
+    );
+    assert.equal(sample.taskId, entry.taskId);
+    const stage = sample[entry.stage];
+    assert.equal(stage.receiptPath, entry.originalArtifactPath);
+    assert.equal(stage.receiptDigest, entry.archived.originalDigest);
+    assert.equal(stage.pass, entry.passed);
+    const receipt = JSON.parse(verifyArchive(entry.archived));
+    assert.equal(receipt.taskId, entry.taskId);
+    assert.equal(receipt.pass, entry.passed);
+    files++;
+  }
+  assert.deepEqual([...observed].sort(), [...expected].sort());
+}
 if (fs.existsSync(path.join(root, "native-candidates.json"))) {
   for (const file of json("native-candidates.json").files) {
     const bytes = read(file.path);
@@ -283,6 +335,38 @@ if (fs.existsSync(path.join(root, "windows-jb-latest-readiness-review.json"))) {
     );
   }
 }
+if (fs.existsSync(path.join(root, "recharge-vscode-final-error.json"))) {
+  const review = json("recharge-vscode-final-error.json");
+  const generated = raw.get(review.sourceSummaryDigest);
+  const accepted = raw.get(review.acceptanceSummaryDigest);
+  assert.equal(generated?.batch.runId, review.generationRunId);
+  assert.equal(accepted?.batch.sourceSummaryDigest, review.sourceSummaryDigest);
+  const sample = generated.summary.samples.find(
+    (row) => row.sampleId === review.sampleId,
+  );
+  const checked = accepted.summary.samples.find(
+    (row) => row.sampleId === review.sampleId,
+  );
+  assert.equal(sample.model.failureCategory, review.modelFailureCategory);
+  assert.deepEqual(sample.brokerStatus, review.brokerStatus);
+  assert.equal(review.brokerStatus.physicalRequestsStarted, 5);
+  assert.equal(review.brokerStatus.usageCompleteRequests, 5);
+  assert.equal(checked.candidateAcceptancePassed, true);
+  assert.equal(checked.passed, false);
+  assert.equal(
+    review.candidateAcceptancePassed,
+    checked.candidateAcceptancePassed,
+  );
+  assert.equal(review.endToEndPassed, checked.passed);
+  for (const evidence of review.evidence) {
+    const value = JSON.parse(verifyArchive(evidence.archived));
+    if (evidence.originalArtifactPath.endsWith("/terminal.json")) {
+      assert.deepEqual(value, review.terminal);
+      assert.equal(value.event.is_error, true);
+      assert.equal(value.event.error, "fetch failed");
+    } else assert.equal(value.recoveryRequired, false);
+  }
+}
 if (results.providerAvailability) {
   const provider = results.providerAvailability;
   assert.equal(hash(read(provider.path)), provider.digest);
@@ -383,6 +467,12 @@ for (const row of rows) {
     (sample) => sample.sampleId === row.sampleId,
   );
   assert.equal(original?.generationPassed, row.originalGenerationPassed);
+  if (Object.hasOwn(row, "modelFailureCategory")) {
+    assert.equal(
+      row.modelFailureCategory,
+      original.model?.failureCategory ?? null,
+    );
+  }
   const selected = row.acceptanceAttempts.find(
     (attempt) => attempt.checkerRunId === row.selectedCheckerRunId,
   );

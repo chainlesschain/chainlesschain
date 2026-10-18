@@ -151,8 +151,8 @@ test("workflow validates a single matching host and entry before subset dispatch
     HOST_SELECTION: "windows",
     ENTRY_SELECTION: "jetbrains",
     SAMPLE_SELECTION: "first-run-win32-jetbrains",
-    DELIVERY_RUN: "",
-    DELIVERY_COMMIT: "",
+    DELIVERY_RUN: "10",
+    DELIVERY_COMMIT: "a".repeat(40),
   };
   const run = (override = {}) =>
     spawnSync(process.execPath, ["--input-type=module", "-e", script], {
@@ -173,4 +173,29 @@ test("workflow validates a single matching host and entry before subset dispatch
   assert.notEqual(run({ HOST_SELECTION: "all" }).status, 0);
   assert.notEqual(run({ ENTRY_SELECTION: "all" }).status, 0);
   assert.notEqual(run({ SAMPLE_SELECTION: "verify-20" }).status, 0);
+  const policy = JSON.parse(
+    fs.readFileSync(
+      path.join(
+        repository,
+        "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/recharge-round.json",
+      ),
+      "utf8",
+    ),
+  ).futureRetryPolicy;
+  if (policy?.explicitSampleIdsRequiredForFurtherModelRequests) {
+    assert.notEqual(
+      run({ SAMPLE_SELECTION: "", DELIVERY_RUN: "", DELIVERY_COMMIT: "" })
+        .status,
+      0,
+    );
+    assert.notEqual(
+      run({
+        ENTRY_SELECTION: "vscode",
+        SAMPLE_SELECTION: "first-run-win32-vscode",
+        DELIVERY_RUN: "",
+        DELIVERY_COMMIT: "",
+      }).status,
+      0,
+    );
+  }
 });

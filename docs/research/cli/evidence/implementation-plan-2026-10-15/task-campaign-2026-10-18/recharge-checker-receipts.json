@@ -1,0 +1,186 @@
+{
+  "schema": "chainlesschain.recharge-checker-receipts/v1",
+  "scope": "All available bound setup/check receipts for new generation, including failures; not a pass list.",
+  "entries": [
+    {
+      "sampleId": "first-run-win32-vscode",
+      "taskId": "verify-02",
+      "group": "win32-vscode",
+      "generationRunId": "39081688535",
+      "acceptanceRunId": "39081688535",
+      "sourceSummaryDigest": "sha256:fd0f698bdf56dd66be3719cd6affdd5a11c54a957849ad95c871fae88389ea5e",
+      "acceptanceSummaryDigest": "sha256:f0946dd0820f491d1213314ebfc6a45be99b6b98f2ae790d832fa0a965582cee",
+      "stage": "setup",
+      "passed": true,
+      "originalArtifactPath": "pack/acceptance-evidence/verify-02-setup-c4846ffe-a2e7-4733-aa13-88fa8d8dbbd3.json",
+      "archived": {
+        "path": "recharge-checker-receipts/39081688535/first-run-win32-vscode-setup-ea175f55b63930a2.json.gz",
+        "originalDigest": "sha256:4a5373ee25772983a11bf079898c577db4913f9527ba5b4aea175f55b63930a2",
+        "storedDigest": "sha256:7b79bb163aa7175cf2c4eabef876d35c27b90a040f9ce90432bd9f768e2282e5",
+        "originalBytes": 39655
+      }
+    },
+    {
+      "sampleId": "first-run-win32-vscode",
+      "taskId": "verify-02",
+      "group": "win32-vscode",
+      "generationRunId": "39081688535",
+      "acceptanceRunId": "39081688535",
+      "sourceSummaryDigest": "sha256:fd0f698bdf56dd66be3719cd6affdd5a11c54a957849ad95c871fae88389ea5e",
+      "acceptanceSummaryDigest": "sha256:f0946dd0820f491d1213314ebfc6a45be99b6b98f2ae790d832fa0a965582cee",
+      "stage": "check",
+      "passed": true,
+      "originalArtifactPath": "pack/acceptance-evidence/verify-02-check-9d04b4af-596d-4ed9-ac8c-accdff813ca8.json",
+      "archived": {
+        "path": "recharge-checker-receipts/39081688535/first-run-win32-vscode-check-93fc4f77a488be7e.json.gz",
+        "originalDigest": "sha256:b2718033cb5c06fa06d40766013403ae9a932df3e87015f693fc4f77a488be7e",
+        "storedDigest": "sha256:41933d93cd52f24cd43c9a1f9601945e9a17190f49db34e3c2027d4b1aa403cb",
+        "originalBytes": 46590
+      }
+    },
+    {
+      "sampleId": "verify-02",
+      "taskId": "verify-02",
+      "group": "win32-vscode",
+      "generationRunId": "39081688535",
+      "acceptanceRunId": "39081688535",
+      "sourceSummaryDigest": "sha256:fd0f698bdf56dd66be3719cd6affdd5a11c54a957849ad95c871fae88389ea5e",
+      "acceptanceSummaryDigest": "sha256:f0946dd0820f491d1213314ebfc6a45be99b6b98f2ae790d832fa0a965582cee",
+      "stage": "setup",
+      "passed": true,
+      "originalArtifactPath": "pack/acceptance-evidence/verify-02-setup-600ae947-795d-4267-a5f7-d0a9f2c25742.json",
+      "archived": {
+        "path": "recharge-checker-receipts/39081688535/verify-02-setup-f3e0b8b555906086.json.gz",
+        "originalDigest": "sha256:935ecb548abf63cf318963464093f669f6c9c8e442849627f3e0b8b555906086",
+        "storedDigest": "sha256:65368052025513b183d6523c07cb61cd69b509fdd748d210513a57616a630a16",
+        "originalBytes": 39649
+      }
+    },
+    {
+      "sampleId": "verify-02",
+      "taskId": "verify-02",
+      "group": "win32-vscode",
+      "generationRunId": "39081688535",
+      "acceptanceRunId": "39081688535",
+      "sourceSummaryDigest": "sha256:fd0f698bdf56dd66be3719cd6affdd5a11c54a957849ad95c871fae88389ea5e",
+      "acceptanceSummaryDigest": "sha256:f0946dd0820f491d1213314ebfc6a45be99b6b98f2ae790d832fa0a965582cee",
+      "stage": "check",
+      "passed": true,
+      "originalArtifactPath": "pack/acceptance-evidence/verify-02-check-c288fb7b-1c13-4637-8601-bddf1fc387ef.json",
+      "archived": {
+        "path": "recharge-checker-receipts/39081688535/verify-02-check-fc41af5741520343.json.gz",
+        "originalDigest": "sha256:530c4c680543bfc7271aff9342e01ef24b35325b0d57c610fc41af5741520343",
+        "storedDigest": "sha256:388b11b0d8328242ab7d9510d2b4cff03b25689cb9a07e73a3f4b6a5d21d4c0a",
+        "originalBytes": 40511
+      }
+    },
+    {
+      "sampleId": "verify-11",
+      "taskId": "verify-11",
+      "group": "win32-vscode",
+      "generationRunId": "39081688535",
+      "acceptanceRunId": "39081688535",
+      "sourceSummaryDigest": "sha256:fd0f698bdf56dd66be3719cd6affdd5a11c54a957849ad95c871fae88389ea5e",
+      "acceptanceSummaryDigest": "sha256:f0946dd0820f491d1213314ebfc6a45be99b6b98f2ae790d832fa0a965582cee",
+      "stage": "setup",
+      "passed": true,
+      "originalArtifactPath": "pack/acceptance-evidence/verify-11-setup-9d452714-2706-44c2-8e96-6f0e9d842c51.json",
+      "archived": {
+        "path": "recharge-checker-receipts/39081688535/verify-11-setup-7e1e24dd60c21aa7.json.gz",
+        "originalDigest": "sha256:0b09b7e5cee63d9ecb1de818f0b0285583dffe67d62955c27e1e24dd60c21aa7",
+        "storedDigest": "sha256:8bbe45b588a44102e522bb2932226882ca380ba866f7f8f7e838ff69e1029a83",
+        "originalBytes": 17405
+      }
+    },
+    {
+      "sampleId": "verify-11",
+      "taskId": "verify-11",
+      "group": "win32-vscode",
+      "generationRunId": "39081688535",
+      "acceptanceRunId": "39081688535",
+      "sourceSummaryDigest": "sha256:fd0f698bdf56dd66be3719cd6affdd5a11c54a957849ad95c871fae88389ea5e",
+      "acceptanceSummaryDigest": "sha256:f0946dd0820f491d1213314ebfc6a45be99b6b98f2ae790d832fa0a965582cee",
+      "stage": "check",
+      "passed": false,
+      "originalArtifactPath": "pack/acceptance-evidence/verify-11-check-0ad90934-2bd4-48c0-9e96-04914d26e110.json",
+      "archived": {
+        "path": "recharge-checker-receipts/39081688535/verify-11-check-c639b673f00f70cc.json.gz",
+        "originalDigest": "sha256:0354d84eea0a17b4b72bf7cbc2dc4b4c5af69be314640e2ac639b673f00f70cc",
+        "storedDigest": "sha256:87d022bd6a9edb91ece3f1b9dd5b8241beb20f3f767dacede8d2b35585693404",
+        "originalBytes": 14689
+      }
+    },
+    {
+      "sampleId": "verify-20",
+      "taskId": "verify-20",
+      "group": "win32-vscode",
+      "generationRunId": "39081688535",
+      "acceptanceRunId": "39081688535",
+      "sourceSummaryDigest": "sha256:fd0f698bdf56dd66be3719cd6affdd5a11c54a957849ad95c871fae88389ea5e",
+      "acceptanceSummaryDigest": "sha256:f0946dd0820f491d1213314ebfc6a45be99b6b98f2ae790d832fa0a965582cee",
+      "stage": "setup",
+      "passed": true,
+      "originalArtifactPath": "pack/acceptance-evidence/verify-20-setup-853c8c53-9d70-47ae-8a6c-eebd27ad646f.json",
+      "archived": {
+        "path": "recharge-checker-receipts/39081688535/verify-20-setup-24b4e8f3e06653d7.json.gz",
+        "originalDigest": "sha256:ae7476a72a4c62a21e9692f693691907c6119ba9a08cb59924b4e8f3e06653d7",
+        "storedDigest": "sha256:5274310cbb47a6349bfa3ef0fc7fcee94d2beae26d0a8c9f6ee52379d461e123",
+        "originalBytes": 12643
+      }
+    },
+    {
+      "sampleId": "verify-20",
+      "taskId": "verify-20",
+      "group": "win32-vscode",
+      "generationRunId": "39081688535",
+      "acceptanceRunId": "39081688535",
+      "sourceSummaryDigest": "sha256:fd0f698bdf56dd66be3719cd6affdd5a11c54a957849ad95c871fae88389ea5e",
+      "acceptanceSummaryDigest": "sha256:f0946dd0820f491d1213314ebfc6a45be99b6b98f2ae790d832fa0a965582cee",
+      "stage": "check",
+      "passed": true,
+      "originalArtifactPath": "pack/acceptance-evidence/verify-20-check-a13137fe-f944-4f24-82f7-a7757bffa590.json",
+      "archived": {
+        "path": "recharge-checker-receipts/39081688535/verify-20-check-6e5342906fbced31.json.gz",
+        "originalDigest": "sha256:b9267b29c1e2b682ed263d3299b40f73cb7e8a3251c77e866e5342906fbced31",
+        "storedDigest": "sha256:3d4023f3dd4826f7236d8b4514698c3f54b4ffed3efa1c3da7025bedad5d164d",
+        "originalBytes": 11994
+      }
+    },
+    {
+      "sampleId": "verify-29",
+      "taskId": "verify-29",
+      "group": "win32-vscode",
+      "generationRunId": "39081688535",
+      "acceptanceRunId": "39081688535",
+      "sourceSummaryDigest": "sha256:fd0f698bdf56dd66be3719cd6affdd5a11c54a957849ad95c871fae88389ea5e",
+      "acceptanceSummaryDigest": "sha256:f0946dd0820f491d1213314ebfc6a45be99b6b98f2ae790d832fa0a965582cee",
+      "stage": "setup",
+      "passed": true,
+      "originalArtifactPath": "pack/acceptance-evidence/verify-29-setup-a4facd52-a970-488e-8d39-674271aa3dd9.json",
+      "archived": {
+        "path": "recharge-checker-receipts/39081688535/verify-29-setup-4c9daba86a84af54.json.gz",
+        "originalDigest": "sha256:1fa6769f00c3033b49002cb2089e705c69b1086fc59d4d8c4c9daba86a84af54",
+        "storedDigest": "sha256:704213863ca9e42507dc1bc90525d5d0cb13e80ae1a2124439a07e520080313b",
+        "originalBytes": 18240
+      }
+    },
+    {
+      "sampleId": "verify-29",
+      "taskId": "verify-29",
+      "group": "win32-vscode",
+      "generationRunId": "39081688535",
+      "acceptanceRunId": "39081688535",
+      "sourceSummaryDigest": "sha256:fd0f698bdf56dd66be3719cd6affdd5a11c54a957849ad95c871fae88389ea5e",
+      "acceptanceSummaryDigest": "sha256:f0946dd0820f491d1213314ebfc6a45be99b6b98f2ae790d832fa0a965582cee",
+      "stage": "check",
+      "passed": true,
+      "originalArtifactPath": "pack/acceptance-evidence/verify-29-check-238afe34-ad05-439d-83b0-2f9fb03b7b5b.json",
+      "archived": {
+        "path": "recharge-checker-receipts/39081688535/verify-29-check-33d2839ffb4751e3.json.gz",
+        "originalDigest": "sha256:c88dfb9b87d7a1063a6dc156b96ef8f32770b2515dca15aa33d2839ffb4751e3",
+        "storedDigest": "sha256:727887a6852eff5a07d9edc46db34f5aee7278c6eb5f7f60a5e92b05c7e8174c",
+        "originalBytes": 18479
+      }
+    }
+  ]
+}

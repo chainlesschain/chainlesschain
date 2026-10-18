@@ -1,0 +1,132 @@
+/**
+ * Independent regression coverage for mode ACK correlation in the fixed
+ * snapshot. Verifies that an old generation / stale-correlation ACK is
+ * invalid and that a failed ACK never reports the new mode as effective.
+ *
+ * Imports resolve from this deliverable to the frozen source module
+ * (`../src/chat/permission-mode-state.js`). No existing suite is reused.
+ */
+import { describe, it, expect } from "vitest";
+import {
+  acceptModeAcknowledgement,
+  modeState,
+} from "../src/chat/permission-mode-state.js";
+
+const REV = "a".repeat(16);
+
+/** A conversation with a current mode request and matching session id. */
+function conv(overrides = {}) {
+  return {
+    mode: "acceptEdits",
+    modeRequestId: "req-9",
+    sessionId: "sess-1",
+    effectiveMode: null,
+    policyRevision: null,
+    modeStatus: "pending",
+    modeError: "",
+    ...overrides,
+  };
+}
+
+function ack(overrides = {}) {
+  return {
+    correlation_id: "req-9",
+    requested: "acceptEdits",
+    effective: "acceptEdits",
+    policy_revision: REV,
+    ...overrides,
+  };
+}
+
+describe("acceptModeAcknowledgement — ACK correlation / generation binding", () => {
+  it("accepts a fully correlated current-generation ACK and marks it effective", () => {
+    const c = conv();
+    expect(
+      acceptModeAcknowledgement(c, { session_id: "sess-1", permission_mode_state: ack() }),
+    ).toBe(true);
+    expect(c).toMatchObject({
+      effectiveMode: "acceptEdits",
+      policyRevision: REV,
+      modeStatus: "effective",
+      modeError: "",
+    });
+  });
+
+  it("rejects an old-generation ACK (stale correlation) without marking effective", () => {
+    const c = conv();
+    // The conversation has since requested a new generation; the ACK still
+    // carries the previous correlation id and the previous session binding.
+    const stale = ack({ correlation_id: "req-8" });
+    expect(
+      acceptModeAcknowledgement(c, { session_id: "sess-1", permission_mode_state: stale }),
+    ).toBe(false);
+    // A stale ACK is display evidence only — the new mode is never shown effective.
+    expect(c.effectiveMode).toBeNull();
+    expect(c.modeStatus).toBe("pending");
+  });
+
+  it("rejects an ACK bound to a different session (old generation)", () => {
+    const c = conv();
+    expect(
+      acceptModeAcknowledgement(c, { session_id: "sess-9", permission_mode_state: ack() }),
+    ).toBe(false);
+    expect(c.effectiveMode).toBeNull();
+    expect(c.modeStatus).toBe("pending");
+  });
+
+  it("flags unconfirmed when the CLI sends no permission_mode_state", () => {
+    const c = conv();
+    expect(
+      acceptModeAcknowledgement(c, { session_id: "sess-1", permission_mode_state: null }),
+    ).toBe(false);
+    expect(c).toMatchObject({
+      effectiveMode: null,
+      modeStatus: "unconfirmed",
+    });
+    expect(c.modeError).toContain("has not confirmed");
+  });
+
+  it("rejects a mismatched requested mode without marking effective", () => {
+    const c = conv();
+    expect(
+      acceptModeAcknowledgement(c, {
+        session_id: "sess-1",
+        permission_mode_state: ack({ requested: "bypassPermissions" }),
+      }),
+    ).toBe(false);
+    expect(c.effectiveMode).toBeNull();
+    expect(c.modeStatus).toBe("unconfirmed");
+  });
+
+  it("rejects a malformed policy_revision as unconfirmed, never effective", () => {
+    for (const bad of [undefined, "", "abc", "Z".repeat(16), "f".repeat(65)]) {
+      const c = conv();
+      expect(
+        acceptModeAcknowledgement(c, {
+          session_id: "sess-1",
+          permission_mode_state: ack({ policy_revision: bad }),
+        }),
+      ).toBe(false);
+      expect(c.effectiveMode).toBeNull();
+      expect(c.modeStatus).toBe("unconfirmed");
+    }
+  });
+});
+
+describe("modeState — projection reflects unconfirmed / pending state", () => {
+  it("surfaces pending defaults and never fabricates an effective mode", () => {
+    expect(modeState(conv())).toEqual({
+      requested: "acceptEdits",
+      effective: null,
+      status: "pending",
+      policyRevision: null,
+      reason: "",
+    });
+    const c = conv({ modeStatus: "unconfirmed", modeError: "not confirmed" });
+    expect(modeState(c)).toMatchObject({
+      effective: null,
+      status: "unconfirmed",
+      reason: "not confirmed",
+    });
+  });
+});
