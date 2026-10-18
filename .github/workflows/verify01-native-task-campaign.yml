@@ -121,6 +121,10 @@ jobs:
               if (!ids) throw new Error("Further model requests require explicit unfinished sample_ids; do not rerun whole groups");
               const deliveries = JSON.parse(fs.readFileSync(evidence + "native-verified-deliveries.json", "utf8"));
               const completed = new Set(deliveries.filter(row => row.candidateAcceptancePassed === true).map(row => row.sampleId));
+              if (fs.existsSync(evidence + "latest-package-round.json")) {
+                const latest = JSON.parse(fs.readFileSync(evidence + "latest-package-round.json", "utf8"));
+                for (const sample of latest.samples) if (sample.candidateAcceptancePassed === true) completed.add(sample.sampleId);
+              }
               const repeated = ids.filter(id => completed.has(id));
               if (repeated.length) throw new Error("Reuse already accepted deliverables instead of model generation: " + repeated.join(","));
             }
