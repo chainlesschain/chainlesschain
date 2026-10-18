@@ -1,7 +1,7 @@
 {
   "schema": "chainlesschain.latest-package-task-round/v1",
   "startedAt": "2026-10-18T01:48:26.375807+00:00",
-  "status": "IN_PROGRESS",
+  "status": "COMPLETED",
   "trigger": "User explicitly required latest released CLI and IDE plugins after the frozen public-version round.",
   "billingAssessed": false,
   "frozenProjectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
@@ -1705,15 +1705,184 @@
       ],
       "runId": "39087898779",
       "sourceCommit": "8d5386c7483eac43e522b220d305660cd8ca6965",
-      "status": "IN_PROGRESS",
+      "status": "COMPLETED",
       "dispatchSubmitted": true,
       "startedAt": "2026-10-18T01:50:03Z",
-      "remoteStatus": "in_progress",
-      "conclusion": null,
-      "activeJobs": [
-        "Native win32-jetbrains (selected samples)"
+      "remoteStatus": "completed",
+      "conclusion": "cancelled",
+      "activeJobs": [],
+      "evidence": [
+        {
+          "stage": "acceptance",
+          "originalArtifactPath": "pack/acceptance-evidence/verify-03-check-0e7341d9-8885-4233-85c6-2d9cac630854.json",
+          "archived": {
+            "path": "latest-package-round/39087898779/objects/2f3055890c974673039b9dc03222fbb160eef0c3f2faf546b4e16101f94c1e76.gz",
+            "originalDigest": "sha256:4690f9009fcbf18cc522af8b0f4256bb3a82d88acad787b45c2a29c125ded7e3",
+            "storedDigest": "sha256:e0c07e850a23154d8d19c6736120e1105119385ab013c8e269d208b48a80a587",
+            "originalBytes": 13828
+          }
+        },
+        {
+          "stage": "acceptance",
+          "originalArtifactPath": "pack/acceptance-evidence/verify-03-setup-be25af30-0b6e-4190-a47c-e2f2fd9eef12.json",
+          "archived": {
+            "path": "latest-package-round/39087898779/objects/390d0524a3ef528f53506280a040bd50a40c6b8363456ef46f8c384f7102aacc.gz",
+            "originalDigest": "sha256:be362b93e6b1fcf0923f0c519f7ead3dbd8fdaf2967c499d88b9c507446e668a",
+            "storedDigest": "sha256:29939359f78fee193efecae1dd642d638cf787899efd115a65c4f1daa360cbee",
+            "originalBytes": 22111
+          }
+        },
+        {
+          "stage": "acceptance",
+          "originalArtifactPath": "pack/acceptance-evidence/verify-12-check-56f254dc-e0e2-46bf-afec-73fc82edb5a8.json",
+          "archived": {
+            "path": "latest-package-round/39087898779/objects/0a5b615413df35999a701cf345f3314cad109dc09b4819e4b4e257ecf0851890.gz",
+            "originalDigest": "sha256:c64e1107d847f70cfe7d5df9c9bfc8838585ea67fb09a4ae0be35c52cfe46190",
+            "storedDigest": "sha256:a94f5351542125d3d4a72efdb49b4d2219d5608d1b2ca67110d780752cd5621e",
+            "originalBytes": 6805
+          }
+        },
+        {
+          "stage": "acceptance",
+          "originalArtifactPath": "pack/acceptance-evidence/verify-12-setup-07b11003-76d8-4c2c-b32a-19b5ae332f4b.json",
+          "archived": {
+            "path": "latest-package-round/39087898779/objects/ed0f7af8cc53db493e2435a7a41a4fe37d65e2e5bc2b2b633fde95af3eb0c1d7.gz",
+            "originalDigest": "sha256:e4ae98e74a5ee04945485627169a39ec4a96f54291946eeeb9ee798773c03a8c",
+            "storedDigest": "sha256:3f5652ed47aa073ec5e1972e05e3dd536439b31c74766bf33aef0c804a3fab86",
+            "originalBytes": 15070
+          }
+        },
+        {
+          "stage": "acceptance",
+          "originalArtifactPath": "pack/acceptance-evidence/verify-30-check-f6f39a32-0472-4e06-8a7b-4c85fb3ff313.json",
+          "archived": {
+            "path": "latest-package-round/39087898779/objects/5498aeb7b6afb41f6f73fcfa79130700dd439d24379e53015273c92b6669e149.gz",
+            "originalDigest": "sha256:91a90eddf9bd0c2b9b9b6604351786e856ba7b27873a6422a15c43286193120f",
+            "storedDigest": "sha256:961ca7c55ab9ed449431c6d39fb9aad249d3aaded8ccdba9d9fe5bf0caa2d6e3",
+            "originalBytes": 7997
+          }
+        },
+        {
+          "stage": "acceptance",
+          "originalArtifactPath": "pack/acceptance-evidence/verify-30-setup-1ea55816-8c97-40a6-8e34-48894a21155a.json",
+          "archived": {
+            "path": "latest-package-round/39087898779/objects/78e19800567fac48f484942763af646fef346d911e4e71b7c80fede0e9cb8c4d.gz",
+            "originalDigest": "sha256:fd9f8275699bda9e89b45f44f2389f32dbd7915d77969b65f6a7c40a9fdb6efa",
+            "storedDigest": "sha256:c028ee303a9f986614db2ad76813148bb0dee89960455a0b3dc5cbafc8b71a70",
+            "originalBytes": 16249
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "first-run-win32-jetbrains/candidate/packages/cli/__tests__/verify-03.test.js",
+          "archived": {
+            "path": "latest-package-round/39087898779/generation/first-run-win32-jetbrains/candidate/packages/cli/__tests__/verify-03.test.js.gz",
+            "originalDigest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa",
+            "storedDigest": "sha256:cb08cff712b004e31f6a342c4bd35c3e11481cf6c05bf25687814d4666923328",
+            "originalBytes": 27
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "first-run-win32-jetbrains/capture/driver-failure-initial-snapshot.json",
+          "archived": {
+            "path": "latest-package-round/39087898779/generation/first-run-win32-jetbrains/capture/driver-failure-initial-snapshot.json.gz",
+            "originalDigest": "sha256:6569ecac7f739dccbec64dfc6e223287f86003bc56974f73eedaa1355d633050",
+            "storedDigest": "sha256:3f93e8cfcf318d9edde4615b1081cacda466c6326f0d74f5eac1e7e1a2d6f978",
+            "originalBytes": 3823
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "first-run-win32-jetbrains/capture/driver-failure-initial.json",
+          "archived": {
+            "path": "latest-package-round/39087898779/generation/first-run-win32-jetbrains/capture/driver-failure-initial.json.gz",
+            "originalDigest": "sha256:1d898471beaf69501fcf36a3f7647bf938e5ef7927ccde91a9cf19d7319b7768",
+            "storedDigest": "sha256:c7bfcdb2525386310791f3be9800b885462725e55aa43949aa2507a21ac59e0f",
+            "originalBytes": 1129
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "first-run-win32-jetbrains/cli-stderr-diagnostics/cd54949f-25fe-47f4-90b0-d1ef35d5deb3.stderr-redacted.json",
+          "archived": {
+            "path": "latest-package-round/39087898779/objects/80c6074697f73ac9ebcf8ef12cee1b845b94acb76b2a2a8c1a6bb86e592d7aee.gz",
+            "originalDigest": "sha256:ebd04513b0ffaca1f99b83f2bd34e70260b2cbefd5dbffefbda09b24584ff3ac",
+            "storedDigest": "sha256:4b161321ce00bac6df5fcd719712b01c115925f0ad912559d6e9b3c0c9f7f6a1",
+            "originalBytes": 519
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "first-run-win32-jetbrains/cli-stderr-diagnostics/cd54949f-25fe-47f4-90b0-d1ef35d5deb3.stderr-redacted.txt",
+          "archived": {
+            "path": "latest-package-round/39087898779/objects/b86c98cee67bcbaa59fc2c15497c717c58602198b38cb08fd723a4aef04b3f05.gz",
+            "originalDigest": "sha256:dd84deedad1d69523f6a6f7943f2c160d7d5dbfa8ef31ebf49287492eb3a5bb1",
+            "storedDigest": "sha256:2b12451368d1473c23ad904307b2e164d28c2ace2ad0c0fb8c5c30f9c4612df9",
+            "originalBytes": 187
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "package-set.json",
+          "archived": {
+            "path": "latest-package-round/39087898779/generation/package-set.json.gz",
+            "originalDigest": "sha256:7eeb5433397a85c2bed67b5164e37bd0a44b9eec0da5ce34e821bb9e6e9952b2",
+            "storedDigest": "sha256:c5a455bb155ad86095f62babbcb7a8c4ab665a682de70a0ccd6dab302fa04387",
+            "originalBytes": 1095
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "verify-12/candidate/packages/cli/__tests__/verify-12.test.js",
+          "archived": {
+            "path": "latest-package-round/39087898779/generation/verify-12/candidate/packages/cli/__tests__/verify-12.test.js.gz",
+            "originalDigest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa",
+            "storedDigest": "sha256:cb08cff712b004e31f6a342c4bd35c3e11481cf6c05bf25687814d4666923328",
+            "originalBytes": 27
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "verify-30/candidate/packages/vscode-extension/__tests__/verify-30.test.js",
+          "archived": {
+            "path": "latest-package-round/39087898779/generation/verify-30/candidate/packages/vscode-extension/__tests__/verify-30.test.js.gz",
+            "originalDigest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa",
+            "storedDigest": "sha256:cb08cff712b004e31f6a342c4bd35c3e11481cf6c05bf25687814d4666923328",
+            "originalBytes": 27
+          }
+        }
       ],
-      "evidence": []
+      "generation": {
+        "artifactId": 12124806190,
+        "artifactName": "verify01-native-subset-delivery-win32-jetbrains-8d5386c7483eac43e522b220d305660cd8ca6965",
+        "rawSummary": {
+          "path": "latest-package-round/39087898779/generation/summary.json.gz",
+          "originalDigest": "sha256:bdbd18fdab5f4346f89d495fe06d3e5890d4ed73c22da6c8435a6a4d04e46c3d",
+          "storedDigest": "sha256:c61b6eb3076c01117534f03e7fac79a73d504e065b455081728fda4d9ab7b55d",
+          "originalBytes": 19227
+        },
+        "sampleIds": [
+          "first-run-win32-jetbrains",
+          "verify-12",
+          "verify-30"
+        ]
+      },
+      "acceptance": {
+        "artifactId": 12124792708,
+        "artifactName": "verify01-native-subset-acceptance-win32-jetbrains-8d5386c7483eac43e522b220d305660cd8ca6965",
+        "rawSummary": {
+          "path": "latest-package-round/39087898779/acceptance/summary.json.gz",
+          "originalDigest": "sha256:ae9d427221c8d7021eda8d78de9139c1e9b1963ab345ec920ae5d2498081d86d",
+          "storedDigest": "sha256:77c8c3a21061f141377f1f4ac866713ed1b9ae7967c9e722e8b92374bcf14516",
+          "originalBytes": 10187
+        },
+        "sampleIds": [
+          "first-run-win32-jetbrains",
+          "verify-12",
+          "verify-30"
+        ]
+      }
     }
   ],
   "samples": [
@@ -2067,9 +2236,20 @@
       "taskId": "verify-12",
       "kind": "task",
       "group": "win32-jetbrains",
-      "status": "PENDING_LATEST_EXECUTION",
+      "status": "LATEST_ATTEMPT_FAILED",
       "newModelGenerationRequired": true,
-      "latestPackageGenerationObserved": false
+      "latestPackageGenerationObserved": true,
+      "latestGenerationRunId": "39087898779",
+      "sourceSummaryDigest": "sha256:bdbd18fdab5f4346f89d495fe06d3e5890d4ed73c22da6c8435a6a4d04e46c3d",
+      "generationPassed": false,
+      "modelFailureCategory": null,
+      "host": {
+        "passed": false,
+        "failure": "listen EADDRINUSE: address already in use 127.0.0.1:8082",
+        "restartRequired": true
+      },
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false
     },
     {
       "sampleId": "verify-13",
@@ -2727,9 +2907,20 @@
       "taskId": "verify-30",
       "kind": "task",
       "group": "win32-jetbrains",
-      "status": "PENDING_LATEST_EXECUTION",
+      "status": "LATEST_ATTEMPT_FAILED",
       "newModelGenerationRequired": true,
-      "latestPackageGenerationObserved": false
+      "latestPackageGenerationObserved": true,
+      "latestGenerationRunId": "39087898779",
+      "sourceSummaryDigest": "sha256:bdbd18fdab5f4346f89d495fe06d3e5890d4ed73c22da6c8435a6a4d04e46c3d",
+      "generationPassed": false,
+      "modelFailureCategory": null,
+      "host": {
+        "passed": false,
+        "failure": "listen EADDRINUSE: address already in use 127.0.0.1:8082",
+        "restartRequired": true
+      },
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false
     },
     {
       "sampleId": "verify-31",
@@ -3032,9 +3223,27 @@
       "taskId": "verify-03",
       "kind": "first-run",
       "group": "win32-jetbrains",
-      "status": "PENDING_LATEST_EXECUTION",
+      "status": "LATEST_ATTEMPT_FAILED",
       "newModelGenerationRequired": true,
-      "latestPackageGenerationObserved": false
+      "latestPackageGenerationObserved": true,
+      "latestGenerationRunId": "39087898779",
+      "sourceSummaryDigest": "sha256:bdbd18fdab5f4346f89d495fe06d3e5890d4ed73c22da6c8435a6a4d04e46c3d",
+      "generationPassed": false,
+      "modelFailureCategory": "missing-terminal",
+      "brokerStatus": {
+        "physicalRequestsStarted": 0,
+        "usageCompleteRequests": 0,
+        "passed": false,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "host": {
+        "passed": false,
+        "failure": "Windows process identity snapshot failed: spawnSync C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe ETIMEDOUT",
+        "restartRequired": true
+      },
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false
     },
     {
       "sampleId": "first-run-linux-cli",
@@ -3200,8 +3409,8 @@
     }
   ],
   "counts": {
-    "newGenerationRecordsCollected": 22,
-    "newAcceptanceRecordsCollected": 22,
+    "newGenerationRecordsCollected": 25,
+    "newAcceptanceRecordsCollected": 25,
     "newCandidateAcceptancePassed": 5,
     "newEndToEndPassed": 4,
     "cumulativeAcceptedDeliverables": 25

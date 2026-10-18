@@ -2,7 +2,7 @@
 
 最新版本的逐项交付、验收结果及失败证据见 [最新结果](./LATEST-RESULTS.md)。
 
-状态：**旧版本 45 项记录已归档；最新公开版本补测 IN_PROGRESS**。按用户授权继续测试实际交付与验收，费用未评估、未推算。
+状态：**旧版本 45 项记录已归档；最新公开版本补测 COMPLETED**。按用户授权继续测试实际交付与验收，费用未评估、未推算。
 
 ## 充值后的两组补测
 
@@ -25,19 +25,19 @@
 
 使用 CLI **0.166.104**、VS Code **0.37.149**、JetBrains **0.4.166**，版本来自本次查询的公开注册表并以 [精确版本清单](../../../verify01-package-sets/2026-10-18-latest.json) 原始字节摘要绑定。仅对 **25 项**未合格或未执行任务发起新模型执行；其余 **20 项历史已验收产物**及收据直接复用。这 20 项不是最新包上的新模型执行，不能将混合来源覆盖率冒充统一最新版本通过率。
 
-最新包生成已收集 **22/25**、独立验收 **22/25**。逐项来源、复用产物和运行状态见 [最新包轮次](./latest-package-round.json)。
+最新包生成已收集 **25/25**、独立验收 **25/25**。逐项来源、复用产物和运行状态见 [最新包轮次](./latest-package-round.json)。
 
-| 原生入口         | Run         | 显式待补样本                                                       | 状态        |
-| ---------------- | ----------- | ------------------------------------------------------------------ | ----------- |
-| linux-cli        | 39087910738 | verify-04, verify-13, first-run-linux-cli                          | COMPLETED   |
-| linux-vscode     | 39087921211 | verify-05, verify-14, verify-23, verify-32, first-run-linux-vscode | COMPLETED   |
-| linux-jetbrains  | 39087930713 | verify-06, verify-33, first-run-linux-jetbrains                    | COMPLETED   |
-| darwin-cli       | 39087938110 | verify-07, verify-25, verify-34, first-run-darwin-cli              | COMPLETED   |
-| darwin-vscode    | 39087946196 | verify-08, first-run-darwin-vscode                                 | COMPLETED   |
-| darwin-jetbrains | 39087957391 | verify-09, first-run-darwin-jetbrains                              | COMPLETED   |
-| win32-cli        | 39087878780 | verify-10, verify-19                                               | COMPLETED   |
-| win32-vscode     | 39087886976 | verify-11                                                          | COMPLETED   |
-| win32-jetbrains  | 39087898779 | verify-12, verify-30, first-run-win32-jetbrains                    | IN_PROGRESS |
+| 原生入口         | Run         | 显式待补样本                                                       | 状态      |
+| ---------------- | ----------- | ------------------------------------------------------------------ | --------- |
+| linux-cli        | 39087910738 | verify-04, verify-13, first-run-linux-cli                          | COMPLETED |
+| linux-vscode     | 39087921211 | verify-05, verify-14, verify-23, verify-32, first-run-linux-vscode | COMPLETED |
+| linux-jetbrains  | 39087930713 | verify-06, verify-33, first-run-linux-jetbrains                    | COMPLETED |
+| darwin-cli       | 39087938110 | verify-07, verify-25, verify-34, first-run-darwin-cli              | COMPLETED |
+| darwin-vscode    | 39087946196 | verify-08, first-run-darwin-vscode                                 | COMPLETED |
+| darwin-jetbrains | 39087957391 | verify-09, first-run-darwin-jetbrains                              | COMPLETED |
+| win32-cli        | 39087878780 | verify-10, verify-19                                               | COMPLETED |
+| win32-vscode     | 39087886976 | verify-11                                                          | COMPLETED |
+| win32-jetbrains  | 39087898779 | verify-12, verify-30, first-run-win32-jetbrains                    | COMPLETED |
 
 最新补测目前候选合格 **5/25**、全程通过 **4/25**；连同 20 项历史复用，累计已有 **25/45** 项合格交付。该累计覆盖不表示 45 项均在最新包上重新执行或全流程通过。
 

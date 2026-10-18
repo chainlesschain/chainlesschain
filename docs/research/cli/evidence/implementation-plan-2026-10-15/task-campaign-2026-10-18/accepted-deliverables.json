@@ -1,8 +1,8 @@
 {
   "schema": "chainlesschain.accepted-native-export-index/v1",
   "archive": "accepted-deliverables.tar.gz",
-  "digest": "sha256:541bfddeabf1fa8b283c9b86a7c82b454f3c806bf30b5aa60abbe3db996dfc37",
-  "bytes": 171212,
+  "digest": "sha256:9e06e9cb5876d7daf5deb8a2f0dbe23bffb85cf471bdf16562d274a72c62d18b",
+  "bytes": 171210,
   "acceptedCandidates": 25,
   "historicallyReused": 20,
   "latestAccepted": 5,
@@ -33,6 +33,6 @@
     "first-run-win32-cli",
     "first-run-win32-vscode"
   ],
-  "manifestDigest": "sha256:b49fd3bd2c8ba4437902a12e57750d9ba7e16530b7b166c6775a5892b1349b61",
+  "manifestDigest": "sha256:9357d4f031c70b2ac59f88fdc8fd5fa9486982c0012cb23f0f42d4d66f7fc0d8",
   "verification": "Every exported file and receipt matches its existing evidence digest; all TAR members read back byte-for-byte. No model generation or candidate execution."
 }

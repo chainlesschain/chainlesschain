@@ -4,7 +4,7 @@
 
 固定条件：thinking disabled、六种文件工具、20 turns、24 requests、180 秒请求期限及 8192 输出 token；模型不执行测试，生成后由独立验收器检查。这些结果对应本组固定条件。
 
-历史合格的 **20 项直接复用**，仅对余下 **25 项**使用最新公开包。最新轮已收取生成 **22/25**、独立验收 **22/25**；新增候选合格 **5**、全流程通过 **4**。状态 `IN_PROGRESS` 仅描述记录是否收齐，不代表全部任务成功。
+历史合格的 **20 项直接复用**，仅对余下 **25 项**使用最新公开包。最新轮已收取生成 **25/25**、独立验收 **25/25**；新增候选合格 **5**、全流程通过 **4**。状态 `COMPLETED` 仅描述记录是否收齐，不代表全部任务成功。
 
 | 类别         | 历史合格复用 | 本次新增合格 | 累计合格交付 |
 | ------------ | ------------ | ------------ | ------------ |
@@ -25,17 +25,17 @@
 | `verify-09`                  | darwin-jetbrains | 失败     | 失败     | 失败   | acceptance requires executed test cases              |
 | `verify-10`                  | win32-cli        | 通过     | 失败     | 失败   | candidate or baseline regression failed              |
 | `verify-11`                  | win32-vscode     | 通过     | 失败     | 失败   | candidate tests did not reject the behavioral mutant |
-| `verify-12`                  | win32-jetbrains  | 待收取   | 待收取   | 待收取 | 待收取证据                                           |
+| `verify-12`                  | win32-jetbrains  | 失败     | 失败     | 失败   | acceptance requires executed test cases              |
 | `verify-13`                  | linux-cli        | 通过     | 失败     | 失败   | candidate or baseline regression failed              |
 | `verify-14`                  | linux-vscode     | 通过     | 失败     | 失败   | acceptance requires executed test cases              |
 | `verify-19`                  | win32-cli        | 失败     | 失败     | 失败   | provider-fetch-failed                                |
 | `verify-23`                  | linux-vscode     | 通过     | 通过     | 通过   | 候选及行为变异验收通过                               |
 | `verify-25`                  | darwin-cli       | 通过     | 通过     | 通过   | 候选及行为变异验收通过                               |
-| `verify-30`                  | win32-jetbrains  | 待收取   | 待收取   | 待收取 | 待收取证据                                           |
+| `verify-30`                  | win32-jetbrains  | 失败     | 失败     | 失败   | acceptance requires executed test cases              |
 | `verify-32`                  | linux-vscode     | 通过     | 失败     | 失败   | candidate or baseline regression failed              |
 | `verify-33`                  | linux-jetbrains  | 失败     | 通过     | 失败   | 候选及行为变异验收通过；原生流程仍失败               |
 | `verify-34`                  | darwin-cli       | 通过     | 通过     | 通过   | 文档规则及基线验收通过                               |
-| `first-run-win32-jetbrains`  | win32-jetbrains  | 待收取   | 待收取   | 待收取 | 待收取证据                                           |
+| `first-run-win32-jetbrains`  | win32-jetbrains  | 失败     | 失败     | 失败   | missing-terminal                                     |
 | `first-run-linux-cli`        | linux-cli        | 通过     | 失败     | 失败   | acceptance requires executed test cases              |
 | `first-run-linux-vscode`     | linux-vscode     | 通过     | 失败     | 失败   | candidate tests did not reject the behavioral mutant |
 | `first-run-linux-jetbrains`  | linux-jetbrains  | 失败     | 失败     | 失败   | candidate or baseline regression failed              |
@@ -53,6 +53,8 @@ Astra 对最新 Linux VS Code 五项的 [源码与收据专项复核](./latest-l
 
 [最新 JetBrains 重启快照复核](./latest-jetbrains-restart-review.json) 比较了原文、已保存行及实际显示：会话和原文保留，但重启后把 Markdown 源文直接当作正文显示，原渲染结果未保持。通过文件验收的 `verify-33` 仍保留原生全流程失败。
 
+[Windows JetBrains 启动专项复核](./latest-windows-jetbrains-startup-review.json) 保留了最后三项的失败证据：首次任务 CLI 私有目录 ACL 遍历超时，后续清理的进程身份查询也超时；另两项端口 8082 被占用。三项均只留下原占位文件，未达到交付要求。端口占用者及真实 runner 超时根因尚未确定；新版补测采用独立分片并修正评测环境目录关系。
+
 ## 未完成网络失败项的独立诊断
 
 仅对 `verify-19` 的原 `fetch failed`、27 字节占位且验收失败执行一次单项采证；run `39089395770`，状态 `COMPLETED`。被动记录 Undici 安全错误码，不更改 fetch、重试策略、提示、工具权限或原判定。此项不覆盖原 25 项轮次，也没有重新生成已合格任务。见 [独立补测清单](./fetch-diagnostics-followup.json)。
@@ -65,7 +67,7 @@ Astra 对最新 Linux VS Code 五项的 [源码与收据专项复核](./latest-l
 
 已按用户要求将结论、代码修复与发布安排写入 [下一版记录](./next-release-plan.json)，JetBrains 修复来源见 [发布准备复核](./next-release-jetbrains-readiness.json)。
 
-下一版候选：CLI **0.166.105**、VS Code **0.37.150**、JetBrains **0.4.167**；发布 PR [#461](https://github.com/chainlesschain/chainlesschain/pull/461)，当前记录状态 `EXACT_COMMIT_CI_PENDING`。发布需精确提交的完整矩阵、npm OIDC 和公开包回读；这些优化尚不能计为新版实际任务通过。
+下一版候选：CLI **0.166.105**、VS Code **0.37.150**、JetBrains **0.4.167**；发布 PR [#461](https://github.com/chainlesschain/chainlesschain/pull/461)，当前记录状态 `ORIGINAL_ROUND_ARCHIVED_WAITING_EXACT_COMMIT_RELEASE_GATES`。发布需精确提交的完整矩阵、npm OIDC 和公开包回读；这些优化尚不能计为新版实际任务通过。
 
 修复覆盖静态导入错误反馈、真实 API 与 fixture 检查指导、延迟写入未完成时的终态、上游中止分类、安全传输原因代码，以及 JetBrains 重启后的 Markdown 渲染。新版公开后仅补未合格项；已有合格文件用于界面恢复核验时直接复用，不重新生成。
 

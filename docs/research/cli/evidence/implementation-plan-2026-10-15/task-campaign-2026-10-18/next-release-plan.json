@@ -1,7 +1,7 @@
 {
   "schema": "chainlesschain.next-release-task-optimization/v1",
   "recordedDate": "2026-10-18",
-  "status": "EXACT_COMMIT_CI_PENDING",
+  "status": "ORIGINAL_ROUND_ARCHIVED_WAITING_EXACT_COMMIT_RELEASE_GATES",
   "userDecisions": [
     "不合格的需要代码优化 下一个版本进行补测",
     "需要发布新的cli或ide插件的下一个版本再测试",
@@ -15,9 +15,9 @@
     "jetbrains": "0.4.166"
   },
   "currentFindings": {
-    "provisional": true,
-    "latestPackageGenerationRecords": 22,
-    "latestPackageAcceptanceRecords": 22,
+    "provisional": false,
+    "latestPackageGenerationRecords": 25,
+    "latestPackageAcceptanceRecords": 25,
     "plannedLatestPackageSamples": 25,
     "historicallyAcceptedReused": 20,
     "newCandidateAcceptancePassed": 5,
@@ -25,17 +25,24 @@
     "cumulativeCandidateAccepted": 25,
     "ordinaryCandidateAccepted": 23,
     "firstRunCandidateAccepted": 2,
-    "pendingRun": "39087898779",
-    "pendingSampleIds": ["verify-12", "verify-30", "first-run-win32-jetbrains"],
-    "failedCandidateCategoriesAmong22Collected": {
+    "pendingRun": null,
+    "pendingSampleIds": [],
+    "jetbrainsRestoration": "Five collected latest-package restart failures preserve the session, row ID and original Markdown; the restored body displays raw Markdown instead of preserving the live rendered body. verify-33 passes candidate acceptance but fails native end-to-end restoration.",
+    "fetchDiagnostic": "The separate verify-19 follow-up completed 19/19 request receipts with passive diagnostics enabled and did not reproduce fetch failed. Baseline 17/17 and candidate 5/5 passed, but the behavioral mutant also passed 5/5; candidate acceptance remains false and the original transport cause remains unknown.",
+    "scope": "Thinking disabled, six file tools, fixed project snapshot and request/turn/output limits. Generation runs on native hosts; all candidate execution acceptance runs in Linux offline Docker. Historical accepted files are reused and are not new latest-version runs.",
+    "prior22CollectedFailureCategories": {
       "relativeImportErrors": 3,
       "assertionOrFixtureErrors": 9,
       "behavioralCoverageMissing": 3,
       "noCompletedDelivery": 2
     },
-    "jetbrainsRestoration": "Five collected latest-package restart failures preserve the session, row ID and original Markdown; the restored body displays raw Markdown instead of preserving the live rendered body. verify-33 passes candidate acceptance but fails native end-to-end restoration.",
-    "fetchDiagnostic": "The separate verify-19 follow-up completed 19/19 request receipts with passive diagnostics enabled and did not reproduce fetch failed. Baseline 17/17 and candidate 5/5 passed, but the behavioral mutant also passed 5/5; candidate acceptance remains false and the original transport cause remains unknown.",
-    "scope": "Thinking disabled, six file tools, fixed project snapshot and request/turn/output limits. Generation runs on native hosts; all candidate execution acceptance runs in Linux offline Docker. Historical accepted files are reused and are not new latest-version runs."
+    "failedCandidateCategoriesAmong25Collected": {
+      "relativeImportErrors": 3,
+      "assertionOrFixtureErrors": 9,
+      "behavioralCoverageMissing": 3,
+      "noCompletedDelivery": 5
+    },
+    "windowsJetbrainsStartup": "All three original Windows JetBrains records and independent acceptance receipts are collected and failed. The first CLI exited after a private-directory ACL traversal timeout; a later cleanup identity snapshot timeout masked that startup error. The next two samples failed with EADDRINUSE on 127.0.0.1:8082. All candidate files remain original 27-byte placeholders; no port owner is established by the archive. The test environment placed its profile outside the child os.tmpdir boundary. This layout is corrected in the next harness, with all product ACL checks retained. The actual hosted timeout is not reproduced or declared fixed."
   },
   "evidence": {
     "latestRound": "latest-package-round.json",
@@ -45,7 +52,9 @@
     "fetchFollowup": "fetch-diagnostics-followup.json",
     "fetchFollowupReview": "fetch-diagnostic-followup-review.json",
     "acceptedDeliveryIndex": "accepted-deliverables.json",
-    "existingSourceFixValidation": "optimization-validation.json"
+    "existingSourceFixValidation": "optimization-validation.json",
+    "windowsJetbrainsStartupReview": "latest-windows-jetbrains-startup-review.json",
+    "windowsACLPreflight": "next-package-windows-acl-preflight.json"
   },
   "implementationRequirements": [
     "Improve product code and general task-completion feedback for observed failures; preserve original candidates and original verdicts.",
@@ -56,7 +65,7 @@
   ],
   "releaseRequirements": {
     "method": "GitHub Actions OIDC Trusted Publishing for npm; established IDE release workflows",
-    "exactReleaseCommit": "78f41dba010e18d0ae2f1b7756ecff5f1232ab2a",
+    "exactReleaseCommit": "d4065008bb4eff84cfc09f9361f4ae4e9de2140f",
     "requiredMatrices": [
       "Linux, Windows and macOS checks for the exact release commit",
       "CLI CI on every configured OS",
@@ -72,50 +81,37 @@
     "supersededCandidateCommits": [
       "372334d2136a69a4d313bc460c1a73d051773bcb",
       "f5fa3c23cf02e0a80b15750717fac866515bfb07",
-      "25782a535ea296548f0f8347544da378e8fdf738"
+      "25782a535ea296548f0f8347544da378e8fdf738",
+      "78f41dba010e18d0ae2f1b7756ecff5f1232ab2a"
     ],
     "remoteRuns": [
       {
-        "name": "IDE ARM64 Host Validation",
-        "runId": 39093458574,
-        "status": "completed",
-        "conclusion": "success",
-        "jobsPassed": 10,
-        "evidence": {
-          "path": "next-release-validation/ide-arm64-78f41dba01.json.gz",
-          "originalDigest": "sha256:60ac9eef5311650ff2b9b1c427886fde67c9c02a4167d8f3aa54d930e2a021e4",
-          "storedDigest": "sha256:027ddf2f4ab26dee280c4a338aeabeaac7985053e6b3c4577f209ba3da4f4f96",
-          "originalBytes": 46952
-        }
+        "name": "CLI Strict Sandbox",
+        "runId": 39095758657,
+        "status": "queued",
+        "conclusion": ""
       },
       {
         "name": "CLI CI",
-        "runId": 39093458658,
+        "runId": 39095758702,
         "status": "queued",
         "conclusion": ""
       },
       {
         "name": "IDE Extensions",
-        "runId": 39093458567,
+        "runId": 39095758578,
         "status": "queued",
         "conclusion": ""
       },
       {
-        "name": "CLI Strict Sandbox",
-        "runId": 39093458609,
-        "status": "completed",
-        "conclusion": "success",
-        "jobsPassed": 5,
-        "evidence": {
-          "path": "next-release-validation/cli-strict-sandbox-78f41dba01.json.gz",
-          "originalDigest": "sha256:b7e31d2393c8e4409c7b15dc6be7db5f3bd5261eafebbe741970b076743ec134",
-          "storedDigest": "sha256:ec94148c498da80d122b13385c701ba5b097e20d722bec0e0c448386a59d0756",
-          "originalBytes": 27823
-        }
+        "name": "IDE ARM64 Host Validation",
+        "runId": 39095758682,
+        "status": "queued",
+        "conclusion": ""
       }
     ],
     "supersededChecksCancelled": true,
-    "remoteChecksObservedAt": "2026-10-18T03:57:56.941441+00:00",
+    "remoteChecksObservedAt": "2026-10-18T04:33:39.433560+00:00",
     "resolvedGateFailures": [
       {
         "workflow": "Docs-Site Build Gate",
@@ -127,7 +123,10 @@
       {
         "workflow": "CLI Strict Sandbox",
         "runId": "39093031334",
-        "failedJobs": ["117573650636", "117573650709"],
+        "failedJobs": [
+          "117573650636",
+          "117573650709"
+        ],
         "reason": "Reviewed producer digest for headless-runner.test.js was stale after added quality/transport assertions.",
         "fixCommit": "78f41dba010e18d0ae2f1b7756ecff5f1232ab2a",
         "unchangedMappedTest": "rejects bypassPermissions when managed policy disables it",
@@ -145,13 +144,48 @@
         },
         "scope": "Only one producer hash was rebound; tests, disposition, thresholds and permission order were not weakened. Final exact-SHA remote gates remain required."
       }
-    ]
+    ],
+    "priorCandidateGateEvidence": [
+      {
+        "name": "IDE ARM64 Host Validation",
+        "runId": 39093458574,
+        "status": "completed",
+        "conclusion": "success",
+        "jobsPassed": 10,
+        "evidence": {
+          "path": "next-release-validation/ide-arm64-78f41dba01.json.gz",
+          "originalDigest": "sha256:60ac9eef5311650ff2b9b1c427886fde67c9c02a4167d8f3aa54d930e2a021e4",
+          "storedDigest": "sha256:027ddf2f4ab26dee280c4a338aeabeaac7985053e6b3c4577f209ba3da4f4f96",
+          "originalBytes": 46952
+        }
+      },
+      {
+        "name": "CLI Strict Sandbox",
+        "runId": 39093458609,
+        "status": "completed",
+        "conclusion": "success",
+        "jobsPassed": 5,
+        "evidence": {
+          "path": "next-release-validation/cli-strict-sandbox-78f41dba01.json.gz",
+          "originalDigest": "sha256:b7e31d2393c8e4409c7b15dc6be7db5f3bd5261eafebbe741970b076743ec134",
+          "storedDigest": "sha256:ec94148c498da80d122b13385c701ba5b097e20d722bec0e0c448386a59d0756",
+          "originalBytes": 27823
+        }
+      }
+    ],
+    "readmeAlignment": {
+      "commit": "d4065008bb4eff84cfc09f9361f4ae4e9de2140f",
+      "reason": "The packed CLI Quick Start still pinned .104. The package version/pairing and Quick Start now match .105, with a clearly historical prepublication evaluation snapshot.",
+      "runtimeCodeChanged": false,
+      "priorSourceSuccessesNotUsedAsNewExactSHAGates": true,
+      "requiresNewFullMatrices": true
+    }
   },
   "retestPolicy": {
     "newPublishedVersionsRequired": true,
     "currentVersionAdditionalPaidRetries": false,
     "finishAlreadyDispatchedWindowsSamples": true,
-    "selection": "After all current results are collected, select only still-unqualified or unexecuted sample IDs. Reuse accepted candidate files and their bound receipts.",
+    "selection": "Original latest-package generation and acceptance are complete. After publishing and verifying the newer package set, generate only the 20 still-unqualified sample IDs. Reuse all 25 accepted candidate files and receipts.",
     "acceptedFilesMustNotBeRegeneratedForUIValidation": true,
     "preserveAllPriorFailures": true,
     "mustNotReportLocalRegressionsAsPublishedNativeTaskPasses": true
@@ -260,6 +294,51 @@
     "roundVerifier": "packages/cli/scripts/verify01-native-retest-round.mjs",
     "roundVerifierTestsPassed": 8,
     "collector": "C:/code/chainlesschain/.work/collect-next-package-round.py",
-    "collectorStatus": "IMPLEMENTED_NOT_YET_EXERCISED_ON_NEW_REAL_RUNS"
+    "collectorStatus": "IMPLEMENTED_NOT_YET_EXERCISED_ON_NEW_REAL_RUNS",
+    "originalRoundComplete": true,
+    "originalStrictCompleteVerificationPassed": true,
+    "expectedUnfinishedSamples": 20,
+    "reusedAcceptedSamples": 25,
+    "executionShards": "JetBrains: one sample per run; other entries: one explicit unfinished subset per group",
+    "noTerminalExceptionUsed": true,
+    "dispatchConcurrency": "No global pending replacement; group, canonical sample selection and run ID key",
+    "generationStepLimitMinutes": 115,
+    "jobLimitMinutes": 145,
+    "alwaysUploadStepLimitMinutes": 15
+  },
+  "nativeHarnessFollowup": {
+    "status": "IMPLEMENTED_LOCAL_REGRESSION_PASSED_PENDING_PUBLISHED_NATIVE_RETEST",
+    "sourceCommit": "e56bd0236c7abad37a4dee4d193648f2abdd1e56",
+    "changes": [
+      "Align child temporary directory and isolated profile containment without changing ACL validation or its 60000ms bound.",
+      "Preserve primary failure and attach bounded cleanup failure diagnostics.",
+      "Keep PID and creation-time identity checks; never kill an unverified process.",
+      "Bound Windows cleanup by one shared deadline and release only the owned Node child reference on failure.",
+      "Prevent later samples from starting after unconfirmed host cleanup or broker shutdown.",
+      "Preserve missing optional summary fields rather than changing them to JSON null in the collectors."
+    ],
+    "validation": [
+      {
+        "scope": "plan and native campaign including actual child storage boundary",
+        "passed": 21
+      },
+      {
+        "scope": "diagnostic process lifecycle",
+        "passed": 6
+      },
+      {
+        "scope": "cleanup error preservation and exhausted Windows cleanup budget",
+        "passed": 2
+      },
+      {
+        "scope": "JetBrains native adapter",
+        "passed": 8
+      }
+    ],
+    "productACLChanged": false,
+    "hostedTimeoutReproducedLocally": false,
+    "windowsCleanupDeadlineMs": 60000,
+    "windowsIdentitySnapshotLimitMs": 30000,
+    "limitation": "Local probes and harness regressions do not establish success of the next public CLI/IDE task run."
   }
 }
