@@ -180,7 +180,23 @@ test("strict existing validators bind accepted files before selecting unfinished
   assert.equal(ids.length + state.acceptedIds.size, 45);
   assert.equal(new Set(ids).size, ids.length);
   for (const id of state.acceptedIds) assert.ok(!ids.includes(id));
-  assert.equal(state.baselineEvidence.length, 3);
+  const registeredChain = readNativeRetestChain();
+  assert.deepEqual(state.priorRounds, registeredChain);
+  assert.deepEqual(
+    state.baselineEvidence.slice(0, 3).map((row) => row.path),
+    [
+      "latest-package-round.json",
+      "fetch-diagnostics-followup.json",
+      "native-verified-deliveries.json",
+    ].map((name) => `${NATIVE_EVIDENCE_ROOT}/${name}`),
+  );
+  assert.deepEqual(
+    state.baselineEvidence.slice(3),
+    registeredChain.flatMap((round) => [
+      { path: round.planPath, digest: round.planDigest },
+      { path: round.ledgerPath, digest: round.ledgerDigest },
+    ]),
+  );
   for (const row of state.baselineEvidence)
     assert.match(row.digest, /^sha256:[a-f0-9]{64}$/u);
   assert.throws(
@@ -300,7 +316,10 @@ test("next-round preparation cannot overwrite an old round name or reuse the ori
         versionsFile: DEFAULT_NATIVE_PACKAGE_SET,
         roundName: "next-package-retest",
       }),
-    /latest package round incomplete|require a new package set/,
+    {
+      code: "ERR_ASSERTION",
+      message: "next-version retests require a newer published CLI version",
+    },
   );
   assert.equal(
     fs.existsSync(
