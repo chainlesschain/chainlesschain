@@ -2,24 +2,38 @@
 
 ## 概述
 
-2026-10-18：当前公开版本为 CLI **0.166.105**、Open VSX **0.37.150**、JetBrains **0.4.167**。下一候选为 CLI **0.166.106**、VS Code **0.37.151**、JetBrains **0.4.168**，候选插件均推荐 CLI `.106`；候选尚未发布，须通过最终提交完整矩阵、CLI OIDC 发布及公开制品回读，再发行 IDE 并补测未合格项。公开 `.105` 轮已严格完成生成 **20/20**、验收 **20/20**，新增候选合格 **6** 项、全流程通过 **6** 项；累计合格 **31/45**（普通任务 **26/36**、首次使用 **5/9**），剩余 **14** 项。原 25 份合格产物按字节复用；跨版本累计结果不等于单轮 **45/45** 全部成功。候选 `.106/.151/.168` 尚未发布、尚未补测。Microsoft Marketplace 未发布。
+2026-10-18 实时核对：npm CLI **0.166.106**、Open VSX **0.37.151** 已公开，Open VSX 推荐 CLI `.106`，发行提交 `dca47fd91a`。JetBrains 当前已核验公开 **0.4.167**，仍推荐 CLI `.105`；`.168` 的公开上架与下载待核验。公开 `.105/.150/.167` 任务补测已收齐生成与独立验收各 **20/20**，新增 **6** 项候选及全流程通过；跨版本累计候选合格交付 **31/45**（普通 **26/36**、首次 **5/9**），剩余 **14** 项。`.106/.151/.168` 新轮模型补测尚未运行，累计覆盖不等于新版单轮成功率。Microsoft Marketplace 未发布。
 
-## 此前 .105 发布过程记录（历史快照）
+## .106 公开发行与 IDE 配对
 
-以下保留此前发布阶段的状态和证据；当前公开与候选状态以上方概况为准，历史 NOT_RUN 不代表当前补测状态。
+CLI .106 和 Open VSX .151 来自 `dca47fd91a209642b6536afd5bc9e99ec74c7d06`；该提交完整配置的 CLI CI、CLI Strict Sandbox、IDE 与 ARM64 门均成功，[npm OIDC 发布 39130542725](https://github.com/chainlesschain/chainlesschain/actions/runs/39130542725) 成功。Open VSX .151 推荐 CLI .106。JetBrains .168 标签绑定相同提交，但公开市场尚未核验，因此当前公开 .167 保留其 .105 推荐。
+
+```bash
+npm i -g chainlesschain@0.166.106 --registry https://registry.npmjs.org
+cc --version
+cc doctor
+```
+
+本轮增加通用拒绝边界与源码契约指导，修正传输中止分类和 IDE 回复生命周期；JetBrains .168 源码约束 Windows ACL 子进程与清理，不能以源码或发行门证明原生任务超时已解决。新的 .106/.151/.168 模型补测尚未运行。下面的 .105 记录保留该版本与已收齐补测的准确范围。
+
+## .105 配对与补测结果（已完成轮次）
+
+三个公开发行标签均绑定 `d4065008bb4eff84cfc09f9361f4ae4e9de2140f`。候选准备记录绑定 `4317bf01a4`，不是当前主线全部新增功能的发行证明。
 
 | 组件                  | 本轮版本  | 当前状态                                           |
 | --------------------- | --------- | -------------------------------------------------- |
 | CLI                   | 0.166.105 | npm OIDC 发布成功，公开 metadata 与 tarball 已回读 |
-| Open VSX              | 0.37.150  | 标签已提交，发布中；公开制品待核验                 |
-| JetBrains Marketplace | 0.4.167   | 标签已提交，发布中；批准、上架与 ZIP 下载待核验    |
+| Open VSX              | 0.37.150  | 公开 API、VSIX 下载及制品摘要已核验                |
+| JetBrains Marketplace | 0.4.167   | 已批准、已列出、未隐藏，公开 ZIP 已核验            |
 | Microsoft Marketplace | —         | 未发布                                             |
 
 两个插件推荐 CLI 0.166.105。Agent SDK 0.2.15、Session Core 0.3.19、Context/Memory Kernel 0.1.10、PDH 0.4.65 保持独立版本。
 
 发行标签保持绑定 `d4065008bb4eff84cfc09f9361f4ae4e9de2140f`。该提交的 CLI CI、CLI Strict Sandbox、IDE 与 ARM64 完整矩阵均通过；[npm OIDC 发布运行 39102818482](https://github.com/chainlesschain/chainlesschain/actions/runs/39102818482) 成功。独立公开回读核对 npm metadata、tarball SHA-512 SRI、依赖声明以及六个 runtime/helper 文件与该提交的字节一致性，离线复核通过；CLI-only 收据 SHA-256 为 `611de63ae5eb821f8e395b2b7ec15c7b4329ad003d52816c0f4f337d10c5939f`。
 
-CLI 公开可获取后，已提交两个 IDE 标签。标签存在或上传成功不等于市场公开；JetBrains 还须已批准、已列出、未隐藏且 ZIP 可公开下载。三个包均完成公开回读后再建立完整配对包清单，开始新版剩余项补测。
+三个公开制品已进入固定配对清单。`.105` 轮对原先未合格的 20 项补测，生成及独立验收记录各 20/20，新增合格 6 项；仍有 14 项未合格。累计 31/45 是多版本、多次尝试的候选交付覆盖，不是累计全流程通过率或新版单轮成功率。`COMPLETED` 表示该轮证据收齐。Windows JetBrains 的 ACL 遍历/校验超时仍需定位。
+
+主线 `f21eac547e` 的目标目录、插件面板、离线请求采纳、独立在线待审连接及演化存储边界尚未公开发布，新增 Session Core 出口须先独立发行。操作与限制见[目标草稿指南](./goal-drafts-current)及[本轮设计](/design/release-runtime-update-2026-10-18)。
 
 ## 核心特性
 
@@ -34,11 +48,11 @@ IDE 通过同一 CLI 完成模型与文件工具调用；CLI 在文件写入结�
 
 ## 配置参考
 
-需要 Node.js 22.12.0+ 和 npm 10.0.0+。插件推荐 CLI 0.166.105；升级后通过 Doctor 核对实际 CLI 路径。`CC_EDIT_DIAGNOSTICS=0` 可关闭编辑后诊断；诊断不执行测试，也不替代验收。
+需要 Node.js 22.12.0+ 和 npm 10.0.0+。Open VSX .151 推荐 CLI .106，JetBrains .167 仍推荐 .105；升级后通过 Doctor 核对实际 CLI 路径。`CC_EDIT_DIAGNOSTICS=0` 可关闭编辑后诊断；诊断不执行测试，也不替代验收。
 
 ## 使用示例
 
-当前公开安装命令：
+复现 .105 已完成补测的固定版本命令（当前升级使用上方 .106）：
 
 ```bash
 npm i -g chainlesschain@0.166.105 --registry https://registry.npmjs.org
@@ -46,17 +60,15 @@ cc --version
 cc doctor
 ```
 
-插件公开后升级并重启 IDE，确认 Doctor 指向同一 CLI。对未合格项使用新公开包补测；保留已合格候选的原始证据，不因诊断重复生成。原失败记录不改写。候选验收、宿主恢复和全流程结果分别报告，本次公开发行不代表新版补测通过。
+安装公开配对后重启 IDE，确认 Doctor 指向同一 CLI。对剩余 14 项使用核验后的新公开包补测；保留已合格候选的原始证据，不因诊断重复生成。原失败记录不改写。候选验收、宿主恢复和全流程结果分别报告；CLI .106 / Open VSX .151 已公开；JetBrains .168 待公开核验，新一轮模型补测尚未运行。
 
 ## 性能指标
 
-公开 `.105` 轮已完成生成与验收各 20/20，新增候选合格与全流程通过各 6 项；累计 31/45（普通 26/36、首次 5/9），剩余 14 项。原 25 份合格产物按字节复用；31/45 是不同版本与多次尝试的累计交付覆盖，不是单轮 45/45。下一候选 `.106/.151/.168` 尚未发布、尚未补测，尚无其任务成功率、端到端延迟或费用改善结论。费用未评估、未推算。
+`.105` 轮新增候选及全流程通过均为 6/20；累计 31/45 包含原 25 项按字节复用的文件和收据。不能把累计覆盖写成新版单轮成功率。端到端延迟和费用改善未评估、未推算。
 
-## 测试覆盖（.105 发布时历史快照）
+## 测试覆盖
 
-以下保留发布时的门禁与任务状态；当前 `.105` 补测结果以上方概况和性能指标为准。
-
-本地相关回归 226 项通过；Astra 复核后针对等价工具完成同一写入的误判修复，另有 14 项聚焦检查通过，部分与前述用例重叠。最终发行提交 `d4065008bb` 已通过 CLI CI 71/71、Strict 5/5、IDE 18 成功/1 条件跳过及 ARM64 10/10。这些门禁与本地检查不代表公开新版的原生任务补测通过；新版状态仍为 NOT_RUN。
+发行前本地相关回归 226 项通过；Astra 复核后的另 14 项聚焦检查与前述部分重叠。发行提交 `d4065008bb` 已通过 CLI CI 71/71、Strict 5/5、IDE 18 成功/1 条件跳过及 ARM64 10/10。公开 `.105` 任务补测现已收齐记录，但仍有失败；发行门、候选交付、全流程和完整 native review 分别验收。新公开 .106 及其新配对轮次尚未进行模型补测。
 
 ## 安全考虑
 
@@ -72,4 +84,4 @@ CLI 的 `coding-task-guidance.js`、`file-import-diagnostics.js` 和 `transport-
 
 ## 相关文档
 
-参见 [CLI 使用指南](./cli.md)、[IDE 桥接](./ide-bridge.md)、[上一版升级记录](./cli-ide-update-2026-10-17.md)和[发布 PR #461](https://github.com/chainlesschain/chainlesschain/pull/461)。
+参见 [CLI 使用指南](./cli.md)、[IDE 桥接](./ide-bridge.md)、[目标草稿指南](./goal-drafts-current)、[上一版升级记录](./cli-ide-update-2026-10-17.md)、[发布 PR #461](https://github.com/chainlesschain/chainlesschain/pull/461)和[最新任务账本](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/LATEST-RESULTS.md)。

@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 系统设计文档
-  tagline: "v5.0.3.140 | Agent Platform CLI 0.166.104 | Open VSX 0.37.149 | JetBrains 0.4.166 已公开"
+  tagline: "v5.0.3.140 | Agent Platform CLI 0.166.106 | Open VSX 0.37.151 | JetBrains 0.4.167 已公开"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -21,9 +21,9 @@ hero:
 
 features:
   - icon: 🛡️
-    title: 会话预算恢复与 IDE 桥接
-    details: CLI .104、Open VSX .149 与 JetBrains .166 已公开；会话预算与重连边界已加固。正式预算仍 NOT_PAID_READY，36+9 未运行。
-    link: /release-runtime-update-2026-10-17
+    title: 目标草稿互通与发行边界
+    details: 公开 CLI .106 / Open VSX .151；JetBrains .167 推荐 .105；累计合格交付31/45，剩余14。目标草稿与演化存储为未发布主线能力，任务修改仍需原生确认。
+    link: /release-runtime-update-2026-10-18
   - icon: 🏢
     title: 组织目标、授权记忆与站内通知（主线）
     details: 产品 .140 已包含显式巡检、多级审批、独立验收、共享记忆与授权通知；记忆不自动注入模型。
@@ -41,7 +41,7 @@ features:
     details: 覆盖知识库、社交、交易、AI引擎、安全、企业、去中心化基础设施、Web3、低代码平台、自进化AI、CLI分发系统、CLI高级功能、AI媒体创作、AI文档创作、Web管理界面、Personal Data Hub、iOS Phase 1-6、远程操控 Plan A/B/C、MTC v0.11 联邦等全部子系统的详细设计
 
   - icon: 🏗️
-    title: Agent Platform 0.166.104
+    title: Agent Platform 0.166.106
     details: 公开 CLI 包含投影恢复、回执维护、离线任务预览与风险检查；本轮桌面源码提供个人项目受控修改，产品安装包单独验收。
     link: /modules/112-governed-skill-evolution-design
   - icon: 📝

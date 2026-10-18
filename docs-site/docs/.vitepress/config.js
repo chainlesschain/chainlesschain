@@ -196,7 +196,19 @@ export default defineConfig({
               link: "/chainlesschain/rrsi-current",
             },
             {
-              text: "CLI .104 / IDE 会话恢复",
+              text: "CLI .106 / IDE 公开配对与补测",
+              link: "/chainlesschain/cli-ide-update-2026-10-18",
+            },
+            {
+              text: "目标草稿互通（主线源码）",
+              link: "/chainlesschain/goal-drafts-current",
+            },
+            {
+              text: "2026-10-18 目标与演化边界",
+              link: "/design/release-runtime-update-2026-10-18",
+            },
+            {
+              text: "CLI .104 / IDE 会话恢复（历史）",
               link: "/chainlesschain/cli-ide-update-2026-10-17",
             },
             {

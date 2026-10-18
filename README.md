@@ -1,16 +1,16 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
-2026-10-18：当前公开版本为 CLI **0.166.105**、Open VSX **0.37.150**、JetBrains **0.4.167**。下一候选为 CLI **0.166.106**、VS Code **0.37.151**、JetBrains **0.4.168**，候选插件均推荐 CLI `.106`；候选尚未发布，须通过最终提交完整矩阵、CLI OIDC 发布及公开制品回读，再发行 IDE 并补测未合格项。公开 `.105` 轮已严格完成生成 **20/20**、验收 **20/20**，新增候选合格 **6** 项、全流程通过 **6** 项；累计合格 **31/45**（普通任务 **26/36**、首次使用 **5/9**），剩余 **14** 项。原 25 份合格产物按字节复用；跨版本累计结果不等于单轮 **45/45** 全部成功。候选 `.106/.151/.168` 尚未发布、尚未补测。Microsoft Marketplace 未发布。
+2026-10-18 实时核对：npm CLI **0.166.106**、Open VSX **0.37.151** 已公开，Open VSX 推荐 CLI `.106`，发行提交 `dca47fd91a`。JetBrains 当前已核验公开 **0.4.167**，仍推荐 CLI `.105`；`.168` 的公开上架与下载待核验。公开 `.105/.150/.167` 任务补测已收齐生成与独立验收各 **20/20**，新增 **6** 项候选及全流程通过；跨版本累计候选合格交付 **31/45**（普通 **26/36**、首次 **5/9**），剩余 **14** 项。`.106/.151/.168` 新轮模型补测尚未运行，累计覆盖不等于新版单轮成功率。Microsoft Marketplace 未发布。
 
-现在可安装公开 CLI；配套 IDE 制品公开核验后再升级，重启聊天宿主并运行 Doctor。
+CLI .106 与 Open VSX .151 可安装升级，随后重启 IDE 聊天宿主并运行 Doctor。JetBrains .167 保留其 .105 推荐，等待 .168 公开核验。主线 `f21eac547e` 新增目标目录、插件面板、离线草稿采纳、独立在线待审连接、看板标签来源保护及演化存储边界；这些源码能力尚未随公开包或产品 .140 发行，新 Session Core 出口须先完成子包发行。
 
 ```bash
-npm i -g chainlesschain@0.166.105 --registry https://registry.npmjs.org
+npm i -g chainlesschain@0.166.106 --registry https://registry.npmjs.org
 cc --version
 cc doctor
 ```
 
-详见[当前升级指南](docs-site/docs/chainlesschain/cli-ide-update-2026-10-18.md)和[OIDC 发布记录](https://github.com/chainlesschain/chainlesschain/actions/runs/39102818482)。
+详见[本轮设计](docs/design/release-runtime-update-2026-10-18.md)、[目标草稿使用指南](docs-site/docs/chainlesschain/goal-drafts-current.md)、[最新任务结果](docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/LATEST-RESULTS.md)、[当前升级指南](docs-site/docs/chainlesschain/cli-ide-update-2026-10-18.md)、[公开制品回读](docs/research/cli/evidence/documentation-release-status-2026-10-18.json)和[OIDC 发布记录](https://github.com/chainlesschain/chainlesschain/actions/runs/39130542725)。
 
 ## 2026-10-17 发布与升级（历史快照）
 

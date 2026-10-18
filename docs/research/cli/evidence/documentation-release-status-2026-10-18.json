@@ -1,0 +1,76 @@
+{
+  "schema": "chainlesschain.documentation-release-status/v1",
+  "checkedAt": "2026-10-18T14:05:33.744405+00:00",
+  "sourceReviewed": "f21eac547e",
+  "cli": {
+    "version": "0.166.106",
+    "releaseCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+    "url": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.106.tgz",
+    "bytes": 9421202,
+    "sha256": "036264d2ad883cf3a089440cb5d7e228abdc9efe568c240509aa7bd50b3e6e14",
+    "sha512IntegrityVerified": true,
+    "sourceByteChecks": [
+      {
+        "path": "src/lib/coding-task-guidance.js",
+        "sha256": "937a8bb6384f45b0b1ff2a9534fe87fe6828069500f80a181883176af9a34810",
+        "matchesReleaseCommit": true
+      },
+      {
+        "path": "src/lib/provider-http-error.js",
+        "sha256": "f2f5afc28730519a413d4d13c3866a0eb76f32741a4e3b73a416112064aaaad5",
+        "matchesReleaseCommit": true
+      },
+      {
+        "path": "src/runtime/coding-agent-contract-shared.cjs",
+        "sha256": "486bb1a7e378db1c6417edfcc9a06eb1f9797000facc48d61dbb21fac92ad8cb",
+        "matchesReleaseCommit": true
+      }
+    ]
+  },
+  "openVsx": {
+    "version": "0.37.151",
+    "recommendedCliVersion": "0.166.106",
+    "releaseCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+    "url": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.151/file/chainlesschain.chainlesschain-ide-0.37.151.vsix",
+    "bytes": 720935,
+    "sha256": "0fd07d7fea9c9588f578cd86c9e720c80e442fc01b102d940d15b2546da75888"
+  },
+  "jetBrains": {
+    "version": "0.4.167",
+    "recommendedCliVersion": "0.166.105",
+    "updateId": 1197193,
+    "approved": true,
+    "listed": true,
+    "hidden": false,
+    "nextVersion": "0.4.168",
+    "nextPublicStatus": "pending-public-readback"
+  },
+  "releaseGates": {
+    "cliCi": 39114428682,
+    "strictSandbox": 39114428621,
+    "ide": 39114428636,
+    "arm64": 39114428701,
+    "npmOidc": 39130542725,
+    "openVsx": 39131607926
+  },
+  "taskRetest": {
+    "packageVersions": {
+      "cli": "0.166.105",
+      "openVsx": "0.37.150",
+      "jetBrains": "0.4.167"
+    },
+    "generationRecords": 20,
+    "acceptanceRecords": 20,
+    "newCandidatePasses": 6,
+    "newEndToEndPasses": 6,
+    "cumulativeAcceptedDeliveries": 31,
+    "ordinaryAccepted": 26,
+    "ordinaryTotal": 36,
+    "firstRunAccepted": 5,
+    "firstRunTotal": 9,
+    "totalSamples": 45,
+    "remainingUnaccepted": 14,
+    "new106Round": "NOT_RUN"
+  },
+  "boundaries": "Cumulative deliveries span versions and attempts, not a current-version single-round or cumulative end-to-end success rate. Main goal bridges/new Session Core exports, storage guards and ACL stage diagnostics are not part of this public release. No model calls executed for this documentation audit."
+}

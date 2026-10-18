@@ -1,16 +1,16 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
-As of 2026-10-18, current public versions are CLI **0.166.105**, Open VSX **0.37.150** and JetBrains **0.4.167**. The next candidates are CLI **0.166.106**, VS Code **0.37.151** and JetBrains **0.4.168**; both candidate plugins recommend CLI `.106`. These candidates are not published and require complete exact-commit release gates, CLI OIDC publication and public artifact readback before IDE release and unfinished-sample retesting. The public `.105` round completed generation and acceptance for **20/20** samples each, adding **6** candidate acceptances and **6** full-flow passes. Cumulative acceptance is **31/45** (**26/36** ordinary tasks and **5/9** first-use tasks), with **14** remaining. The original 25 accepted artifacts were reused byte-for-byte; this cross-version cumulative result is not a single-round 45/45 success. Candidates `.106/.151/.168` remain unpublished and untested on the unfinished samples. Microsoft Marketplace remains unpublished.
+Live check on 2026-10-18: npm CLI **0.166.106** and Open VSX **0.37.151** are public; Open VSX recommends CLI `.106`, released from `dca47fd91a`. The verified public JetBrains **0.4.167** still recommends CLI `.105`; public listing and download of `.168` remain unverified. The `.105/.150/.167` retest collected all **20/20** generation and acceptance records and added **6** candidate and end-to-end passes. Cumulative cross-version accepted deliveries are **31/45** (**26/36** ordinary, **5/9** first-run), with **14** unaccepted. A new `.106/.151/.168` model retest has not run; cumulative coverage is not a latest-version single-round success rate. Microsoft Marketplace remains unpublished.
 
-Install the public CLI now. Upgrade the paired IDE only after its public artifact is verified, then restart the chat host and run Doctor.
+Install public CLI .106 with Open VSX .151, restart the IDE chat host and run Doctor. JetBrains .167 retains its .105 recommendation until .168 is publicly verified. Main `f21eac547e` adds goal catalogs, authorized plugin panels, offline draft adoption, a separate online pending-draft connection, board label source preservation and evolution storage checks. These source capabilities are not included in the public packages or native product .140; new Session Core exports require a child-package release first.
 
 ```bash
-npm i -g chainlesschain@0.166.105 --registry https://registry.npmjs.org
+npm i -g chainlesschain@0.166.106 --registry https://registry.npmjs.org
 cc --version
 cc doctor
 ```
 
-See the [current upgrade guide](docs-site/docs/chainlesschain/cli-ide-update-2026-10-18.md) and [OIDC release](https://github.com/chainlesschain/chainlesschain/actions/runs/39102818482).
+See the [architecture update](docs/design/release-runtime-update-2026-10-18.md), [goal draft guide](docs-site/docs/chainlesschain/goal-drafts-current.md), [latest task results](docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/LATEST-RESULTS.md), [current upgrade guide](docs-site/docs/chainlesschain/cli-ide-update-2026-10-18.md) [public artifact readback](docs/research/cli/evidence/documentation-release-status-2026-10-18.json), and [OIDC release](https://github.com/chainlesschain/chainlesschain/actions/runs/39130542725).
 
 ## Release snapshot (2026-10-17, historical)
 

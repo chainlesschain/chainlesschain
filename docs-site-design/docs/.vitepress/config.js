@@ -152,6 +152,10 @@ export default defineConfig({
             link: "/modules/110-agent-platform-release-boundaries",
           },
           {
+            text: "2026-10-18 目标草稿与演化边界",
+            link: "/release-runtime-update-2026-10-18",
+          },
+          {
             text: "2026-10-17 会话预算与 IDE 恢复",
             link: "/release-runtime-update-2026-10-17",
           },
