@@ -1,6 +1,6 @@
 {
   "schema": "chainlesschain.task-campaign-optimization-validation/v1",
-  "generatedAt": "2026-10-17T19:18:47.814162+00:00",
+  "generatedAt": "2026-10-18T00:15:59.996408+00:00",
   "published": false,
   "publicVersionsUnderEvaluation": {
     "cli": "0.166.99",
@@ -188,6 +188,28 @@
         "storedDigest": "sha256:455f005c890193fd3f8b31353a8350abe4b3d3e1795c465aeb6c83dae48eedc6"
       },
       "realProviderRetestedWithOptimizedRuntime": false
+    },
+    {
+      "change": "Fail promptly on native pre-init exit and retain bounded original-tab failure diagnostics",
+      "commit": "6217c89ac4c7735c5f9e08bc01ea885bde14a0b3",
+      "scope": "Operator UI driver only; evaluated public plugin and CLI unchanged.",
+      "totalPassed": 8,
+      "uiTestCompilationPassed": true,
+      "testCommand": "gradlew.bat uiSmokeTest --tests com.chainlesschain.ide.uitest.Verify01HostJourneyTest --console=plain --no-daemon",
+      "receipt": {
+        "path": "optimization-receipts/recharge-driver-validation.xml.gz",
+        "originalDigest": "sha256:c84d65146d34212efac717d17b02e39321ba7341963a626c51ca07390e0f9d47",
+        "storedDigest": "sha256:33c740df127f440a640645d7cf8540b66b337f1f767a98e8f89c96f8065bc8b7"
+      },
+      "realGuiRetestRun": "39082074376",
+      "realGuiOutcome": "Use bound generation/acceptance results; eight offline tests do not attest GUI completion.",
+      "boundaries": [
+        "No new task terminal, prompt, dispatch, or synthetic init/result",
+        "One exact fully drained pre-init exit; ambiguous/partial/undrained records fail closed",
+        "Original failure is durable before at most five seconds of separately bounded read-only UI diagnostics",
+        "Task deadline and public packages are unchanged",
+        "Runtime source bindings include Java host driver and Gradle configuration"
+      ]
     }
   ],
   "releaseAttestation": false

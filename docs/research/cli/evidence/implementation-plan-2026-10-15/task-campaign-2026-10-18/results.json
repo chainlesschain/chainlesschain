@@ -1,7 +1,7 @@
 {
   "schema": "chainlesschain.actual-task-campaign-results/v1",
-  "generatedAt": "2026-10-17T19:18:50.178827+00:00",
-  "status": "COMPLETED",
+  "generatedAt": "2026-10-18T00:18:28.921194+00:00",
+  "status": "IN_PROGRESS",
   "billingAssessed": false,
   "formalFrozenObservations": {
     "tasks": 0,
@@ -3761,6 +3761,18 @@
         "sourceCommit": "cbd532e51f53deb3c5f4470627f9ad7c86a41d3e",
         "selection": "Windows JetBrains",
         "reason": "UTF8-correct canonical frozen archive; 16 MiB SSE bound; no old candidates/feedback supplied"
+      },
+      {
+        "runId": "39081688535",
+        "sourceCommit": "17a27e1dc8fe75bcd40adb66a13af39eab5d043b",
+        "selection": "win32-vscode",
+        "reason": "Whole five-sample IDE group rerun after user-reported account recovery; fresh install/profile/workspace, no prior candidates/feedback; previous round preserved."
+      },
+      {
+        "runId": "39082074376",
+        "sourceCommit": "6217c89ac4c7735c5f9e08bc01ea885bde14a0b3",
+        "selection": "win32-jetbrains",
+        "reason": "Whole five-sample IDE group rerun after user-reported account recovery; fresh install/profile/workspace, no prior candidates/feedback; previous round preserved."
       }
     ],
     "plannedOrdinaryTasks": 36,
@@ -21749,7 +21761,7 @@
     "countingPolicy": "Primary results, historical ever-pass counts and the explicitly declared latest round are separate. Missing latest results are never filled with old passes. Candidate and end-to-end passage always bind to the same generation summary digest.",
     "independentAudit": {
       "path": "native45-independent-audit.json",
-      "digest": "sha256:3e3d1969db4e91cb2f80d5e6c23dea2a46760b403c2950a57d27176278f17f64",
+      "digest": "sha256:94e2ed6d8b2d4d38dddcc3e84be219ed0162678210b62a00a7ededea8bbb5f35",
       "bindingCheckCounts": {
         "generationSummaries": 27,
         "acceptanceSummaries": 37,
@@ -23701,8 +23713,8 @@
     },
     "latestDeclaredSelection": {
       "win32-cli": "39057575738",
-      "win32-vscode": "39057579828",
-      "win32-jetbrains": "39057583779",
+      "win32-vscode": "39081688535",
+      "win32-jetbrains": "39082074376",
       "linux-cli": "39051952884",
       "linux-vscode": "39055183659",
       "linux-jetbrains": "39055189152",
@@ -23712,33 +23724,48 @@
     },
     "requiredCheckerByGroup": {
       "win32-cli": "cbd532e51f53deb3c5f4470627f9ad7c86a41d3e",
-      "win32-vscode": "cbd532e51f53deb3c5f4470627f9ad7c86a41d3e",
-      "win32-jetbrains": "cbd532e51f53deb3c5f4470627f9ad7c86a41d3e"
+      "win32-vscode": "17a27e1dc8fe75bcd40adb66a13af39eab5d043b",
+      "win32-jetbrains": "6217c89ac4c7735c5f9e08bc01ea885bde14a0b3"
     },
-    "latestDeclaredRoundComplete": true,
+    "latestDeclaredRoundComplete": false,
     "counts": {
-      "generationResultsCollected": 45,
-      "generationPassedIncludingIndependentReassessment": 22,
-      "acceptanceResultsCollected": 45,
+      "generationResultsCollected": 35,
+      "generationPassedIncludingIndependentReassessment": 19,
+      "acceptanceResultsCollected": 35,
       "ordinaryCandidateAcceptancePassed": 12,
-      "firstRunCandidateAcceptancePassed": 1,
+      "firstRunCandidateAcceptancePassed": 0,
       "ordinaryEndToEndPassed": 7,
-      "firstRunEndToEndPassed": 1,
-      "missingGenerationIds": []
+      "firstRunEndToEndPassed": 0,
+      "missingGenerationIds": [
+        "verify-02",
+        "verify-03",
+        "verify-11",
+        "verify-12",
+        "verify-20",
+        "verify-21",
+        "verify-29",
+        "verify-30",
+        "first-run-win32-vscode",
+        "first-run-win32-jetbrains"
+      ]
     }
   },
   "providerAvailability": {
     "path": "provider-refusals.json",
-    "digest": "sha256:8958955905407f7b6f6d49c8164d5de81eb47dc73faad99b5d2fdaec63ee21d0",
-    "accountRecoveryRequired": true,
-    "currentAffectedSampleIds": [
-      "verify-20",
-      "verify-29",
-      "verify-03",
-      "verify-12",
-      "verify-21",
-      "verify-30"
-    ],
+    "digest": "sha256:e208573fe194053669686dc231bc0d780904d29b6bac7e586a5074e1dbe8acdd",
+    "accountRecoveryRequired": false,
+    "currentAffectedSampleIds": [],
     "scope": "Observed HTTP/provider refusals; no billing extrapolation. Completed round means attempt/acceptance records are complete, not that refused samples ran successfully."
+  },
+  "rechargeRound": {
+    "path": "recharge-round.json",
+    "digest": "sha256:7889721fc7bf96896080be495a817f3d290fb9f009940d7f32fa3fa8b9506061",
+    "plannedRerunSamples": 10,
+    "unchangedSamples": 35,
+    "newGenerationRecordsCollected": 0,
+    "newAcceptanceRecordsCollected": 0,
+    "originallyRefusedSamplesRetestedWithObservedResponses": [],
+    "allOriginalProviderRefusalsRetested": false,
+    "providerRecoveryVerified": false
   }
 }

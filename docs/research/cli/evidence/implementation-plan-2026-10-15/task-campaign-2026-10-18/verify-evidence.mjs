@@ -408,7 +408,147 @@ assert.equal(
   9,
 );
 const counts = results.native45.counts;
+if (fs.existsSync(path.join(root, "historical-rounds.json"))) {
+  for (const round of json("historical-rounds.json")) {
+    const previous = {};
+    for (const [name, entry] of Object.entries(round.files)) {
+      const bytes = verifyArchive(entry);
+      if (name.endsWith(".json")) previous[name] = JSON.parse(bytes);
+    }
+    const oldResults = previous["results.json"];
+    const oldAudit = previous["native45-independent-audit.json"];
+    const oldRefusals = previous["provider-refusals.json"];
+    assert.equal(oldResults.status, "COMPLETED");
+    assert.equal(
+      oldResults.native45.independentAudit.digest,
+      round.files["native45-independent-audit.json"].originalDigest,
+    );
+    assert.equal(
+      oldResults.providerAvailability.digest,
+      round.files["provider-refusals.json"].originalDigest,
+    );
+    assert.deepEqual(oldResults.native45.counts, round.counts);
+    assert.deepEqual(
+      oldResults.native45.latestDeclaredSelection,
+      round.selection,
+    );
+    assert.deepEqual(
+      oldRefusals.currentAffectedSampleIds,
+      round.providerAffectedSampleIds,
+    );
+    const previousRows = Object.values(oldAudit.currentDeclaredRound.samples);
+    assert.equal(previousRows.length, 45);
+    assert.equal(new Set(previousRows.map((row) => row.sampleId)).size, 45);
+    assert.equal(previousRows.filter((row) => row.kind === "task").length, 36);
+    assert.equal(
+      previousRows.filter((row) => row.kind === "first-run").length,
+      9,
+    );
+    for (const row of previousRows) {
+      const source = raw.get(row.sourceSummaryDigest);
+      assert.equal(source?.batch.runId, round.selection[row.group]);
+      const selected = row.acceptanceAttempts.find(
+        (item) => item.checkerRunId === row.selectedCheckerRunId,
+      );
+      const accepted = raw.get(selected.summaryDigest);
+      assert.equal(
+        accepted?.batch.sourceSummaryDigest,
+        row.sourceSummaryDigest,
+      );
+      const sample = accepted.summary.samples.find(
+        (item) => item.sampleId === row.sampleId,
+      );
+      assert.equal(
+        sample.candidateAcceptancePassed,
+        row.candidateAcceptancePassed,
+      );
+      assert.equal(sample.passed, row.latestAcceptancePassed);
+    }
+  }
+}
 assert.equal(counts.generationResultsCollected, rows.length);
+if (results.rechargeRound) {
+  const progress = results.rechargeRound;
+  const plan = json(progress.path);
+  assert.equal(hash(read(progress.path)), progress.digest);
+  assert.equal(plan.billingAssessed, false);
+  assert.equal(plan.userReportedAccountRestored, true);
+  assert.equal(plan.plannedRerunSamples, 10);
+  assert.equal(plan.unchangedSamples, 35);
+  assert.equal(plan.pendingGroups.length, 0);
+  assert.deepEqual(plan.runs.map((row) => row.group).sort(), [
+    "win32-jetbrains",
+    "win32-vscode",
+  ]);
+  const history = json("historical-rounds.json").find(
+    (row) => row.sourceReportCommit === plan.previousReportCommit,
+  );
+  assert.ok(history, "the completed previous round must be preserved");
+  const runIds = new Set(plan.runs.map((row) => row.runId));
+  const expectedGroups = new Set(plan.runs.map((row) => row.group));
+  for (const [group, run] of Object.entries(current.selection)) {
+    if (!expectedGroups.has(group)) assert.equal(run, history.selection[group]);
+  }
+  const newBatches = results.native45.results.filter(
+    (batch) => batch.stage === "generation" && runIds.has(batch.runId),
+  );
+  const newSamples = newBatches.flatMap((batch) => batch.samples);
+  for (const run of plan.runs) {
+    assert.equal(current.selection[run.group], run.runId);
+    for (const batch of newBatches.filter(
+      (batch) => batch.runId === run.runId,
+    )) {
+      assert.equal(batch.group, run.group);
+      assert.equal(batch.executionSourceCommit, run.sourceCommit);
+    }
+  }
+  assert.equal(
+    new Set(newSamples.map((row) => row.sampleId)).size,
+    newSamples.length,
+  );
+  assert.equal(progress.newGenerationRecordsCollected, newSamples.length);
+  const selectedNew = rows.filter((row) => runIds.has(row.generationRunId));
+  assert.equal(
+    progress.newAcceptanceRecordsCollected,
+    selectedNew.filter((row) => row.acceptanceAttempts.length).length,
+  );
+  const originallyBlocked = new Set(plan.originallyProviderRefusedSampleIds);
+  assert.equal(originallyBlocked.size, 6);
+  assert.deepEqual(
+    [...originallyBlocked].sort(),
+    [...history.providerAffectedSampleIds].sort(),
+  );
+  const observed = newSamples
+    .filter(
+      (row) =>
+        originallyBlocked.has(row.sampleId) &&
+        row.providerResponsesObserved > 0,
+    )
+    .map((row) => row.sampleId)
+    .sort();
+  assert.deepEqual(
+    progress.originallyRefusedSamplesRetestedWithObservedResponses,
+    observed,
+  );
+  assert.equal(
+    progress.allOriginalProviderRefusalsRetested,
+    observed.length === originallyBlocked.size,
+  );
+  assert.equal(
+    progress.providerRecoveryVerified,
+    newSamples.some((row) => row.providerResponsesObserved > 0) &&
+      !results.providerAvailability.accountRecoveryRequired,
+  );
+  if (results.status === "COMPLETED") {
+    assert.equal(newSamples.length, 10);
+    assert.equal(newSamples.filter((row) => row.kind === "task").length, 8);
+    assert.equal(
+      newSamples.filter((row) => row.kind === "first-run").length,
+      2,
+    );
+    assert.equal(progress.newAcceptanceRecordsCollected, 10);
+  }
+}
 assert.equal(
   counts.acceptanceResultsCollected,
   rows.filter((row) => row.acceptanceAttempts.length).length,
