@@ -61,4 +61,12 @@ Astra 对最新 Linux VS Code 五项的 [源码与收据专项复核](./latest-l
 
 本次生成正常，19 次请求均有完整用量收据；被动诊断仅有启用标识，未复现原网络错误，不能据此断言根因已修复。基线 17/17、候选 5/5 通过，但行为变异也为 5/5，故未达到任务验收要求。见 [只读补测复核](./fetch-diagnostic-followup-review.json)。
 
-费用未评估、未推算；未发布、未合并。旧轮完整报告见 [README](./README.md)。
+## 问题修复与下一版补测
+
+已按用户要求将结论、代码修复与发布安排写入 [下一版记录](./next-release-plan.json)，JetBrains 修复来源见 [发布准备复核](./next-release-jetbrains-readiness.json)。
+
+下一版候选：CLI **0.166.105**、VS Code **0.37.150**、JetBrains **0.4.167**；发布 PR [#461](https://github.com/chainlesschain/chainlesschain/pull/461)，当前记录状态 `EXACT_COMMIT_CI_PENDING`。发布需精确提交的完整矩阵、npm OIDC 和公开包回读；这些优化尚不能计为新版实际任务通过。
+
+修复覆盖静态导入错误反馈、真实 API 与 fixture 检查指导、延迟写入未完成时的终态、上游中止分类、安全传输原因代码，以及 JetBrains 重启后的 Markdown 渲染。新版公开后仅补未合格项；已有合格文件用于界面恢复核验时直接复用，不重新生成。
+
+费用未评估、未推算。旧轮完整报告见 [README](./README.md)。

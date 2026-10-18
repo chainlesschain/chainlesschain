@@ -56,7 +56,7 @@
   ],
   "releaseRequirements": {
     "method": "GitHub Actions OIDC Trusted Publishing for npm; established IDE release workflows",
-    "exactReleaseCommit": "372334d2136a69a4d313bc460c1a73d051773bcb",
+    "exactReleaseCommit": "25782a535ea296548f0f8347544da378e8fdf738",
     "requiredMatrices": [
       "Linux, Windows and macOS checks for the exact release commit",
       "CLI CI on every configured OS",
@@ -68,7 +68,48 @@
       "VS Code and JetBrains extensions after the CLI release is available"
     ],
     "noReleaseFromPartialOldOrTimedOutChecks": true,
-    "pullRequest": "https://github.com/chainlesschain/chainlesschain/pull/461"
+    "pullRequest": "https://github.com/chainlesschain/chainlesschain/pull/461",
+    "supersededCandidateCommits": [
+      "372334d2136a69a4d313bc460c1a73d051773bcb",
+      "f5fa3c23cf02e0a80b15750717fac866515bfb07"
+    ],
+    "remoteRuns": [
+      {
+        "name": "IDE Extensions",
+        "runId": 39093031315,
+        "status": "queued",
+        "conclusion": ""
+      },
+      {
+        "name": "CLI Strict Sandbox",
+        "runId": 39093031334,
+        "status": "queued",
+        "conclusion": ""
+      },
+      {
+        "name": "CLI CI",
+        "runId": 39093031244,
+        "status": "queued",
+        "conclusion": ""
+      },
+      {
+        "name": "IDE ARM64 Host Validation",
+        "runId": 39093031192,
+        "status": "queued",
+        "conclusion": ""
+      }
+    ],
+    "supersededChecksCancelled": true,
+    "remoteChecksObservedAt": "2026-10-18T03:19:21.712149+00:00",
+    "resolvedGateFailures": [
+      {
+        "workflow": "Docs-Site Build Gate",
+        "runId": "39092688943",
+        "reason": "New upgrade guide lacked the repository required section headings.",
+        "fixCommit": "25782a535ea296548f0f8347544da378e8fdf738",
+        "localValidation": "315 user documents all have 11 nonempty required sections; full remote docs build still required."
+      }
+    ]
   },
   "retestPolicy": {
     "newPublishedVersionsRequired": true,
@@ -104,6 +145,15 @@
       "developmentCommit": "b893f45762",
       "status": "IMPLEMENTED_LOCAL_REGRESSION_PASSED",
       "scope": "General source/API/fixture guidance, bounded static metadata-only relative import feedback in all three mutation tools, and optional allowlisted transport causes without replay/retry."
+    },
+    {
+      "kind": "equivalent-successful-content-mutation",
+      "releaseFixCommit": "f5fa3c23cf02e0a80b15750717fac866515bfb07",
+      "developmentCommit": "adcf329166",
+      "status": "IMPLEMENTED_LOCAL_REGRESSION_PASSED",
+      "scope": "Successful write/edit/hashed-edit operations settle the same content target; denied, failed and deferred operations do not settle it; move/delete remain independent.",
+      "focusedTestsPassed": 14,
+      "foundBy": "Astra independent source review"
     }
   ],
   "publishedPackages": [],
@@ -155,7 +205,13 @@
       }
     ],
     "environmentFailure": "First attempt could not import chalk in the new worktree. After linking existing matching CLI dependencies, all five affected suites ran and passed. No assertion failure was ignored.",
-    "limitation": "Local checks are supplementary; final exact-SHA full CI matrices and public artifact/native task retests remain required."
+    "limitation": "Local checks are supplementary; final exact-SHA full CI matrices and public artifact/native task retests remain required.",
+    "followup": {
+      "fixCommit": "f5fa3c23cf02e0a80b15750717fac866515bfb07",
+      "focusedDeferredMutationTestsPassed": 14,
+      "sourceReviewPassed": true,
+      "checksFromEarlierSourceNotRecastAsFinalSHAFullMatrix": true
+    }
   },
   "selectiveRetestPreparation": {
     "workflowInput": "package_set_file",
@@ -164,6 +220,10 @@
     "modelCalls": 0,
     "requiresOriginalRoundComplete": true,
     "requiresNewerCLI": true,
-    "mustUseIndependentLedger": true
+    "mustUseIndependentLedger": true,
+    "roundVerifier": "packages/cli/scripts/verify01-native-retest-round.mjs",
+    "roundVerifierTestsPassed": 8,
+    "collector": "C:/code/chainlesschain/.work/collect-next-package-round.py",
+    "collectorStatus": "IMPLEMENTED_NOT_YET_EXERCISED_ON_NEW_REAL_RUNS"
   }
 }
