@@ -1,7 +1,7 @@
 {
   "schema": "chainlesschain.next-release-task-optimization/v1",
   "recordedDate": "2026-10-18",
-  "status": "ORIGINAL_ROUND_ARCHIVED_WAITING_EXACT_COMMIT_RELEASE_GATES",
+  "status": "WAITING_FINAL_CLI_CI_OTHER_EXACT_GATES_PASSED",
   "userDecisions": [
     "不合格的需要代码优化 下一个版本进行补测",
     "需要发布新的cli或ide插件的下一个版本再测试",
@@ -94,12 +94,6 @@
         "conclusion": ""
       },
       {
-        "name": "IDE Extensions",
-        "runId": 39095758578,
-        "status": "queued",
-        "conclusion": ""
-      },
-      {
         "name": "IDE ARM64 Host Validation",
         "runId": 39095758682,
         "status": "completed",
@@ -110,10 +104,16 @@
         "runId": 39095758657,
         "status": "completed",
         "conclusion": "success"
+      },
+      {
+        "name": "IDE Extensions",
+        "runId": 39095758578,
+        "status": "completed",
+        "conclusion": "success"
       }
     ],
     "supersededChecksCancelled": true,
-    "remoteChecksObservedAt": "2026-10-18T04:52:54.492181+00:00",
+    "remoteChecksObservedAt": "2026-10-18T05:29:12.414224+00:00",
     "resolvedGateFailures": [
       {
         "workflow": "Docs-Site Build Gate",
@@ -200,6 +200,23 @@
           "path": "next-release-validation/cli-strict-sandbox-d4065008bb.json.gz",
           "storedDigest": "sha256:5ba0c68b268bf83c48bcc268d8f539c39e6ea1abba94daa8456beb158325e3eb",
           "originalDigest": "sha256:0208bb99d548916e5b3c2c2078a8694b3d062251cfd8fb774ceea4e56dd5daa6"
+        }
+      },
+      {
+        "name": "IDE Extensions",
+        "runId": 39095758578,
+        "status": "completed",
+        "conclusion": "success",
+        "sourceCommit": "d4065008bb4eff84cfc09f9361f4ae4e9de2140f",
+        "jobCount": 19,
+        "jobConclusions": {
+          "success": 18,
+          "skipped": 1
+        },
+        "archive": {
+          "path": "next-release-validation/ide-extensions-d4065008bb.json.gz",
+          "storedDigest": "sha256:7b5deef6bf258c4bb5170c80b55071b3d3bbe235771ed67b7a18503c3c6ef214",
+          "originalDigest": "sha256:44208e93e947a990ca56b379dba0900112aa5cc2bdb5ccd4da5922d1325fd30c"
         }
       },
       {
@@ -354,6 +371,8 @@
       "plan": "next-package-archived-reply-recovery-plan.json",
       "sourceCommit": "d602df64d3",
       "nodePassed": 6,
+      "workflowSchemaFixCommit": "bc9f645880",
+      "workflowActionlintPassed": true,
       "nodeLinuxOnlySkipped": 1,
       "jdk21UiCompilationPassed": true
     }
