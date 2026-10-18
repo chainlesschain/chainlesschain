@@ -1,7 +1,8 @@
 name: VERIFY01 Archived Reply Recovery (no model)
 
 on:
-  # Registers this manual entry on feature branches; push never runs the job.
+  # Register the manual entry on feature branches. Registration has no jobs or
+  # provider requests; only an explicit workflow_dispatch runs the recovery.
   push:
     branches: ["feature/**"]
     paths: [".github/workflows/verify01-archived-reply-recovery.yml"]
