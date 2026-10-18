@@ -1,7 +1,7 @@
 {
   "schema": "chainlesschain.next-release-task-optimization/v1",
   "recordedDate": "2026-10-18",
-  "status": "NEXT_VERSION_RETEST_DISPATCHED_AWAITING_RESULTS",
+  "status": "105_RETEST_COMPLETE_FOLLOWUP_RELEASE_IN_VALIDATION",
   "userDecisions": [
     "不合格的需要代码优化 下一个版本进行补测",
     "需要发布新的cli或ide插件的下一个版本再测试",
@@ -1005,5 +1005,43 @@
       "scope": "Job start is not a model request receipt or candidate acceptance."
     }
   },
-  "followup106Preparation": "followup-106-preparation.json"
+  "followup106Preparation": "followup-106-preparation.json",
+  "latestNativeRetest": {
+    "review": "next-package-105-20261018-review.json",
+    "counts": {
+      "generationRecordsCollected": 20,
+      "acceptanceRecordsCollected": 20,
+      "candidateAcceptancePassed": 6,
+      "endToEndPassed": 6,
+      "reusedAcceptedDeliverables": 25,
+      "cumulativeAcceptedDeliverables": 31
+    },
+    "remainingSampleIds": [
+      "verify-04",
+      "verify-13",
+      "first-run-linux-cli",
+      "verify-06",
+      "verify-07",
+      "first-run-darwin-cli",
+      "verify-08",
+      "verify-09",
+      "first-run-darwin-jetbrains",
+      "verify-10",
+      "verify-19",
+      "verify-11",
+      "verify-30",
+      "first-run-win32-jetbrains"
+    ]
+  },
+  "followupReleaseRequirements": {
+    "sourceCommit": "4317bf01a48a7ec612e12000936a81851c6febf3",
+    "versions": {
+      "cli": "0.166.106",
+      "vscode": "0.37.151",
+      "jetbrains": "0.4.168"
+    },
+    "pullRequest": "https://github.com/chainlesschain/chainlesschain/pull/462",
+    "published": false,
+    "requireExactFinalSourceAllMatrices": true
+  }
 }

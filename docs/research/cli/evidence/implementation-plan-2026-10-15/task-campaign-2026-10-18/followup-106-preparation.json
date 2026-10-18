@@ -1,9 +1,9 @@
 {
   "schema": "chainlesschain.task-quality-next-version-preparation/v1",
   "recordedAt": "2026-10-18T08:16:55.683049+00:00",
-  "status": "SOURCE_COMMITTED_OFFICIAL_GATES_STARTED_ADDITIONAL_FAILURE_REVIEW_REQUIRED",
+  "status": "FINAL_SOURCE_COMMITTED_OFFICIAL_RELEASE_GATES_IN_PROGRESS",
   "billingAssessed": false,
-  "sourceCommit": "e01eb3a92212a69140559d8ec304ddd0dce99274",
+  "sourceCommit": "4317bf01a48a7ec612e12000936a81851c6febf3",
   "pullRequest": "https://github.com/chainlesschain/chainlesschain/pull/462",
   "candidateVersions": {
     "cli": "0.166.106",
@@ -13,15 +13,20 @@
   "published": false,
   "currentRoundLedger": "next-package-105-20261018.json",
   "currentRoundSnapshot": {
-    "generationRecordsCollected": 18,
-    "acceptanceRecordsCollected": 7,
-    "candidateAcceptancePassed": 1,
-    "endToEndPassed": 1,
+    "generationRecordsCollected": 20,
+    "acceptanceRecordsCollected": 20,
+    "candidateAcceptancePassed": 6,
+    "endToEndPassed": 6,
     "reusedAcceptedDeliverables": 25,
-    "cumulativeAcceptedDeliverables": 26
+    "cumulativeAcceptedDeliverables": 31
   },
   "newlyAcceptedSampleIds": [
-    "first-run-darwin-vscode"
+    "first-run-linux-jetbrains",
+    "first-run-darwin-vscode",
+    "verify-12",
+    "verify-14",
+    "verify-32",
+    "first-run-linux-vscode"
   ],
   "focusedRegressions": {
     "cliPassed": 58,
@@ -37,16 +42,53 @@
     "next-release-validation/followup-106-archived-reply-regressions.json"
   ],
   "remaining": [
-    "Collect every already-dispatched .105 generation and independent acceptance record, without re-dispatch.",
-    "Review the new Windows JetBrains ACL verification timeout and candidate mutation-test failures.",
-    "Finish fixes and require complete official release gates for the exact final source commit.",
-    "Publish through established CLI OIDC and IDE workflows, verify public artifacts, then retest only unfinished samples.",
-    "After complete strict .105 collection, bind the full round chain so newly accepted samples are skipped.",
-    "Run the archived-reply no-model recovery with the new public .168 manifest; preserve both old .167 failures."
+    "Require every configured official gate for final source 4317bf01a48a7ec612e12000936a81851c6febf3.",
+    "Publish and verify CLI 0.166.106 through OIDC, then VS Code 0.37.151 / JetBrains 0.4.168.",
+    "Create a strict public package manifest and retest only the remaining 14 sample IDs, reusing all 31 accepted deliverables.",
+    "Run the existing archived-reply zero-model recovery against the new approved public .168 ZIP.",
+    "Diagnose Windows ACL traversal/verify timeouts without weakening protection; the instrumentation branch is not a proven fix."
   ],
   "releaseLimits": [
     "No old checks qualify a later source commit.",
     "Never move previous release tags.",
     "Accepted candidate files and native end-to-end results retain separate verdicts."
-  ]
+  ],
+  "initialRoundSnapshot": {
+    "generationRecordsCollected": 18,
+    "acceptanceRecordsCollected": 7,
+    "candidateAcceptancePassed": 1,
+    "endToEndPassed": 1,
+    "reusedAcceptedDeliverables": 25,
+    "cumulativeAcceptedDeliverables": 26
+  },
+  "updatedAt": "2026-10-18T08:40:45.362500+00:00",
+  "supersededSourceCommits": [
+    "e01eb3a92212a69140559d8ec304ddd0dce99274",
+    "52f882ffa891f0683120eff6399701378a617ae7"
+  ],
+  "remainingSampleIds": [
+    "verify-04",
+    "verify-13",
+    "first-run-linux-cli",
+    "verify-06",
+    "verify-07",
+    "first-run-darwin-cli",
+    "verify-08",
+    "verify-09",
+    "first-run-darwin-jetbrains",
+    "verify-10",
+    "verify-19",
+    "verify-11",
+    "verify-30",
+    "first-run-win32-jetbrains"
+  ],
+  "officialGateObservation": {
+    "path": "followup-106-final-source-initial-gates.json.gz",
+    "originalDigest": "sha256:309aa696044686bf641f67af1c9b78446638fce0dfd815d0f2947b835d614b64",
+    "storedDigest": "sha256:7ba6114dee931b745ca13f82a0b1c3699feaa7b2788e9be3aea73af965c136a4",
+    "originalBytes": 7431
+  },
+  "roundChainRegistered": true,
+  "acceptedExportIndex": "next-package-105-20261018-accepted-deliverables.json",
+  "publicReadbackToolsValidation": "next-release-validation/public-readback-generic-tool-validation.json"
 }
