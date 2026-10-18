@@ -2,7 +2,7 @@
 
 2026-10-18 实时核对：npm CLI **0.166.106**、Open VSX **0.37.151** 已公开，Open VSX 推荐 CLI `.106`，发行提交 `dca47fd91a`。JetBrains 当前已核验公开 **0.4.167**，仍推荐 CLI `.105`；`.168` 的公开上架与下载待核验。公开 `.105/.150/.167` 任务补测已收齐生成与独立验收各 **20/20**，新增 **6** 项候选及全流程通过；跨版本累计候选合格交付 **31/45**（普通 **26/36**、首次 **5/9**），剩余 **14** 项。`.106/.151/.168` 新轮模型补测尚未运行，累计覆盖不等于新版单轮成功率。Microsoft Marketplace 未发布。
 
-CLI .106 与 Open VSX .151 可安装升级，随后重启 IDE 聊天宿主并运行 Doctor。JetBrains .167 保留其 .105 推荐，等待 .168 公开核验。主线 `f21eac547e` 新增目标目录、插件面板、离线草稿采纳、独立在线待审连接、看板标签来源保护及演化存储边界；这些源码能力尚未随公开包或产品 .140 发行，新 Session Core 出口须先完成子包发行。
+CLI .106 与 Open VSX .151 可安装升级，随后重启 IDE 聊天宿主并运行 Doctor。JetBrains .167 保留其 .105 推荐，等待 .168 公开核验。开发源码快照 `f21eac547e`（不在本次远端主线文档基线中）新增目标目录、插件面板、离线草稿采纳、独立在线待审连接、看板标签来源保护及演化存储边界；这些源码能力尚未随公开包或产品 .140 发行，新 Session Core 出口须先完成子包发行。
 
 ```bash
 npm i -g chainlesschain@0.166.106 --registry https://registry.npmjs.org
@@ -10,7 +10,7 @@ cc --version
 cc doctor
 ```
 
-详见[本轮设计](docs/design/release-runtime-update-2026-10-18.md)、[目标草稿使用指南](docs-site/docs/chainlesschain/goal-drafts-current.md)、[最新任务结果](docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/LATEST-RESULTS.md)、[当前升级指南](docs-site/docs/chainlesschain/cli-ide-update-2026-10-18.md)、[公开制品回读](docs/research/cli/evidence/documentation-release-status-2026-10-18.json)和[OIDC 发布记录](https://github.com/chainlesschain/chainlesschain/actions/runs/39130542725)。
+详见[本轮设计](docs/design/release-runtime-update-2026-10-18.md)、[目标草稿使用指南](docs-site/docs/chainlesschain/goal-drafts-current.md)、[当前升级指南](docs-site/docs/chainlesschain/cli-ide-update-2026-10-18.md)、[公开制品回读](docs/research/cli/evidence/documentation-release-status-2026-10-18.json)和[OIDC 发布记录](https://github.com/chainlesschain/chainlesschain/actions/runs/39130542725)。
 
 ## 2026-10-17 发布与升级（历史快照）
 

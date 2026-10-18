@@ -21,8 +21,8 @@ hero:
 
 features:
   - icon: 🔗
-    title: CLI / IDE 与桌面目标草稿（主线）
-    details: 目标目录、授权面板、离线采纳与独立在线待审连接；修改任务仍需桌面原生预览和确认，尚未公开发行。
+    title: CLI / IDE 与桌面目标草稿（开发快照）
+    details: 目标目录、授权面板、离线采纳与独立在线待审连接；修改任务仍需桌面原生预览和确认，开发快照尚未纳入远端文档基线或公开发行。
     link: /chainlesschain/goal-drafts-current
   - icon: 🛡️
     title: CLI .105 已公开，.106 候选待验证

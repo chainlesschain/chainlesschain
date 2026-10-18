@@ -2,9 +2,9 @@
 
 ## 核对范围
 
-本次核对主线 `f21eac547e`，包含 `ddabc1ee3a` 的目标草稿与演化边界合并、`2ceaa84219` 的 Windows ACL 阶段诊断，以及 `4317bf01a4` 的通用编码回归指导。实时公开版本为 CLI **0.166.106**、Open VSX **0.37.151**、JetBrains **0.4.167**。Open VSX .151 推荐 CLI .106；JetBrains .167 仍推荐 .105，.168 的公开上架与下载待核验。CLI .106 / Open VSX .151 的发行提交为 `dca47fd91a209642b6536afd5bc9e99ec74c7d06`，完整 CLI CI / Strict、IDE / ARM64 门和 OIDC 发布成功。主线功能不能由相同版本号推断为已发行。
+本次核对开发源码快照 `f21eac547e`（不在本次远端主线文档基线中），包含 `ddabc1ee3a` 的目标草稿与演化边界合并、`2ceaa84219` 的 Windows ACL 阶段诊断，以及 `4317bf01a4` 的通用编码回归指导。实时公开版本为 CLI **0.166.106**、Open VSX **0.37.151**、JetBrains **0.4.167**。Open VSX .151 推荐 CLI .106；JetBrains .167 仍推荐 .105，.168 的公开上架与下载待核验。CLI .106 / Open VSX .151 的发行提交为 `dca47fd91a209642b6536afd5bc9e99ec74c7d06`，完整 CLI CI / Strict、IDE / ARM64 门和 OIDC 发布成功。开发快照能力不能由相同版本号推断为已发行。
 
-CLI `.105` 的发行提交为 `d4065008bb4eff84cfc09f9361f4ae4e9de2140f`，通过准确提交的 CLI CI、Strict Sandbox 与 OIDC 发布。Session Core **0.3.19**、Context/Memory Kernel **0.1.10**、Agent SDK **0.2.15**、PDH **0.4.65** 独立发行。新目标连接所需的 Session Core 公共出口仍是未发布源码；复用旧子包版本不能发行新增能力。Desktop / Android / iOS 仍从产品 **v5.0.3.140** 单独下载，未包含本轮全部主线更新。
+CLI `.105` 的发行提交为 `d4065008bb4eff84cfc09f9361f4ae4e9de2140f`，通过准确提交的 CLI CI、Strict Sandbox 与 OIDC 发布。Session Core **0.3.19**、Context/Memory Kernel **0.1.10**、Agent SDK **0.2.15**、PDH **0.4.65** 独立发行。新目标连接所需的 Session Core 公共出口仍是未发布源码；复用旧子包版本不能发行新增能力。Desktop / Android / iOS 仍从产品 **v5.0.3.140** 单独下载，未包含本轮全部开发快照更新。
 
 ## 目标与草稿架构
 
@@ -41,7 +41,7 @@ flowchart LR
 
 私有存储 ACL 检查输出固定阶段名和有界单调耗时，例如 `initialize`、`traversal`、`verify`；不输出路径或凭据。`windows-acl-progress-probe.mjs` 不调用模型，保留每个 ACL 进程原有 60 秒诊断预算与准入检查。对未变化 DACL 避免重复传播，仍保留修复后的校验和遍历保护。
 
-该阶段诊断源码已合入主线，但未进入 `.105` 或本轮 `.106` 发行树，也不能据此宣称 Windows JetBrains 原生启动超时已解决。诊断观察、CLI 发行门和真实宿主任务结果分别记录。
+该阶段诊断源码已纳入该开发快照，但未进入 `.105` 或本轮 `.106` 发行树，也不能据此宣称 Windows JetBrains 原生启动超时已解决。诊断观察、CLI 发行门和真实宿主任务结果分别记录。
 
 ## 评测与发布状态
 
@@ -49,16 +49,13 @@ flowchart LR
 
 上述任务补测与正式付费准入、完整 native review、长期验收及 RRSI 真实效果实验分别记账。预算准入仍 **NOT_PAID_READY**，完整 native review **NOT_ADMITTED**，自动晋升 **HOLD**；不得将这些状态合并为“36+9 未执行”或“45/45 通过”。
 
-目标互通的本地验证包含 SQLite、真实私有 DACL、loopback HTTP 和包出口探测；Electron 登录、窗口、原生对话框及部分 IDE 界面使用替身，未完成真实 GUI / 独立业务效果验收。各批次测试有重叠，不能累计报告总数；历史快照中的“未提交”描述保留当时含义，源码现已由本轮 Git 合并承接。
+目标互通的本地验证包含 SQLite、真实私有 DACL、loopback HTTP 和包出口探测；Electron 登录、窗口、原生对话框及部分 IDE 界面使用替身，未完成真实 GUI / 独立业务效果验收。各批次测试有重叠，不能累计报告总数；历史快照中的“未提交”描述保留当时含义，源码现已由本地快照的 Git 合并承接。
 
 发布新增出口时先发布所需子 npm 包，再发布 CLI，最后发布 IDE；各阶段要求准确提交完整配置的跨系统门、GitHub Actions OIDC 和公开制品回读。此次文档与网站部署不发布这些软件包。
 
 ## 来源与相关文档
 
-- [目标互通实施记录](../research/agents/dots-muse-mods-implementation-progress-2026-10-07.md)
-- [在线草稿连接证据](../research/agents/evidence/dmm-cli-online-drafts-2026-10-18/README.md)
-- [离线移交与采纳证据](../research/agents/evidence/dmm-cli-draft-handoff-2026-10-18/README.md)
-- [历史证据只读桥](../research/agents/evidence/dmm-cli-project-evidence-2026-10-18/README.md)
-- [最新任务账本](../research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/LATEST-RESULTS.md)
+- [公开版本与补测核对收据](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/documentation-release-status-2026-10-18.json)
+- 开发快照内的原始记录：`docs/research/agents/dots-muse-mods-implementation-progress-2026-10-07.md`，及该快照 `evidence/dmm-cli-online-drafts-2026-10-18`、`dmm-cli-draft-handoff-2026-10-18`、`dmm-cli-project-evidence-2026-10-18` 下的逐批收据；未随本次远端文档变更公开。
 - [用户升级指南](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-18.html)
 - [目标草稿使用指南](https://docs.chainlesschain.com/chainlesschain/goal-drafts-current.html)

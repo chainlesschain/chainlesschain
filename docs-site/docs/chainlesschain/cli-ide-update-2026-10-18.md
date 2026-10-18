@@ -18,7 +18,7 @@ cc doctor
 
 ## .105 配对与补测结果（已完成轮次）
 
-三个公开发行标签均绑定 `d4065008bb4eff84cfc09f9361f4ae4e9de2140f`。候选准备记录绑定 `4317bf01a4`，不是当前主线全部新增功能的发行证明。
+三个公开发行标签均绑定 `d4065008bb4eff84cfc09f9361f4ae4e9de2140f`。候选准备记录绑定 `4317bf01a4`，不是开发快照全部新增功能的发行证明。
 
 | 组件                  | 本轮版本  | 当前状态                                           |
 | --------------------- | --------- | -------------------------------------------------- |
@@ -33,7 +33,7 @@ cc doctor
 
 三个公开制品已进入固定配对清单。`.105` 轮对原先未合格的 20 项补测，生成及独立验收记录各 20/20，新增合格 6 项；仍有 14 项未合格。累计 31/45 是多版本、多次尝试的候选交付覆盖，不是累计全流程通过率或新版单轮成功率。`COMPLETED` 表示该轮证据收齐。Windows JetBrains 的 ACL 遍历/校验超时仍需定位。
 
-主线 `f21eac547e` 的目标目录、插件面板、离线请求采纳、独立在线待审连接及演化存储边界尚未公开发布，新增 Session Core 出口须先独立发行。操作与限制见[目标草稿指南](./goal-drafts-current)及[本轮设计](/design/release-runtime-update-2026-10-18)。
+开发源码快照 `f21eac547e`（未纳入本次远端文档基线）的目标目录、插件面板、离线请求采纳、独立在线待审连接及演化存储边界尚未公开发布，新增 Session Core 出口须先独立发行。操作与限制见[目标草稿指南](./goal-drafts-current)及[本轮设计](/design/release-runtime-update-2026-10-18)。
 
 ## 核心特性
 
@@ -84,4 +84,4 @@ CLI 的 `coding-task-guidance.js`、`file-import-diagnostics.js` 和 `transport-
 
 ## 相关文档
 
-参见 [CLI 使用指南](./cli.md)、[IDE 桥接](./ide-bridge.md)、[目标草稿指南](./goal-drafts-current)、[上一版升级记录](./cli-ide-update-2026-10-17.md)、[发布 PR #461](https://github.com/chainlesschain/chainlesschain/pull/461)和[最新任务账本](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/LATEST-RESULTS.md)。
+参见 [CLI 使用指南](./cli.md)、[IDE 桥接](./ide-bridge.md)、[目标草稿指南](./goal-drafts-current)、[上一版升级记录](./cli-ide-update-2026-10-17.md)、[发布 PR #461](https://github.com/chainlesschain/chainlesschain/pull/461)和[公开版本与补测核对](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/documentation-release-status-2026-10-18.json)。

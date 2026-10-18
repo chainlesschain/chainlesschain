@@ -13,7 +13,7 @@
   "sourceHeadCommit": "f21eac547e",
   "documentedDesktopCommit": "f733f92cb953fffaafea9f91024bbf1c8846406d",
   "postReleaseDesktopGovernanceCommit": "f733f92cb953fffaafea9f91024bbf1c8846406d",
-  "sourceMainStatus": "Reviewed main@f21eac547e. Goal catalogs, authorized panels, offline adoption, v3 online pending drafts, board label source preservation, evolution storage guards and Windows ACL stage diagnostics are unpublished source. New Session Core exports require a child-package release. 31/45 cumulative accepted deliveries, 14 unaccepted; full native NOT_ADMITTED; promotion HOLD.",
+  "sourceMainStatus": "Reviewed development snapshot f21eac547e, outside this remote documentation baseline. Goal catalogs, authorized panels, offline adoption, v3 online pending drafts, board label source preservation, evolution storage guards and Windows ACL stage diagnostics are unpublished source. New Session Core exports require a child-package release. 31/45 cumulative accepted deliveries, 14 unaccepted; full native NOT_ADMITTED; promotion HOLD.",
   "agentSdkVersion": "0.2.15",
   "pythonAgentSdkVersion": "0.2.9",
   "agentProtocolVersion": "0.1.12",
@@ -65,5 +65,6 @@
   "totalTaskSamples": 45,
   "remainingUnaccepted": 14,
   "releaseEvidence": "docs/research/cli/evidence/documentation-release-status-2026-10-18.json",
-  "taskEvidence": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-105-20261018.json"
+  "taskEvidence": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-105-20261018.json",
+  "sourceSnapshotStatus": "development snapshot f21eac547e; not included in this remote documentation baseline or public packages"
 }

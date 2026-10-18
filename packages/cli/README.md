@@ -10,9 +10,9 @@ Release `.105` adds general coding guidance, static relative-import feedback, sa
 
 Install the current public CLI with `npm i -g chainlesschain@0.166.106 --registry https://registry.npmjs.org`. Open VSX 0.37.151 recommends CLI .106; public JetBrains .167 still recommends .105 while .168 awaits public verification; restart the chat host and run Doctor after a verified upgrade. The original completed round used CLI `.104`, Open VSX `.149` and JetBrains `.166`; it does not establish `.105` task acceptance. [Current upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-18.html).
 
-## Main source capabilities (2026-10-18)
+## Development snapshot capabilities (2026-10-18)
 
-Main `f21eac547e` adds goal catalogs and authorized panels, offline description request export, online pending drafts and receipt reconciliation. The public .106 package does not include these new commands. New Session Core exports remain unpublished and require a child-package release before CLI distribution. Pending suggestions still require desktop preview and native confirmation. See the [goal draft guide](https://docs.chainlesschain.com/chainlesschain/goal-drafts-current.html).
+Development snapshot `f21eac547e`, outside this remote documentation baseline, adds goal catalogs and authorized panels, offline description request export, online pending drafts and receipt reconciliation. The public .106 package does not include these new commands. New Session Core exports remain unpublished and require a child-package release before CLI distribution. Pending suggestions still require desktop preview and native confirmation. See the [goal draft guide](https://docs.chainlesschain.com/chainlesschain/goal-drafts-current.html).
 
 ## Release snapshot (2026-10-12, historical)
 
@@ -2412,8 +2412,6 @@ Cross-session persistent goals / OKRs. Bind a goal into headless runs with `cc a
 chainlesschain goal set "Ship the v2 importer" --title importer   # Create (alias: add)
 chainlesschain goal list --status active                          # List goals
 chainlesschain goal show <id>                                     # Full detail
-chainlesschain goal catalog --limit 20 --json                     # Bounded selection metadata
-chainlesschain goal panels <id> --plugin goal-progress-viewer --scope project --json
 chainlesschain goal kr add <id> "100 tests green" --target 100    # Add key result
 chainlesschain goal kr set <id> <krId> --current 80               # Update key result
 chainlesschain goal progress <id> --pct 60 --note "parser done"   # Record progress
@@ -2424,7 +2422,13 @@ chainlesschain goal rm <id>                                       # Delete (alia
 
 The catalog, panels and draft workflows below describe source snapshot
 `f21eac547e`, not public CLI .106. Use matching local builds for development;
-the new Session Core exports require a child-package release first.
+the new Session Core exports require a child-package release first. Evidence paths
+below refer to that development snapshot.
+
+```bash
+chainlesschain goal catalog --limit 20 --json                     # Bounded selection metadata
+chainlesschain goal panels <id> --plugin goal-progress-viewer --scope project --json
+```
 
 `goal panels` reads an explicitly selected standalone CLI goal through trusted,
 consented declarative plugins. The included `goal-progress-viewer` shows the
@@ -2585,7 +2589,7 @@ saved drafts and the grant across application restarts. Revoking the source
 invalidates its old drafts and pending previews; completed task receipts remain.
 Actual changes require a current preview and separate native confirmation.
 Event subscriptions, the complete delivery assistant and real GUI acceptance
-remain open. See [local implementation evidence](../../docs/research/agents/evidence/dmm-cli-online-drafts-2026-10-18/README.md).
+remain open. See local implementation evidence (`../../docs/research/agents/evidence/dmm-cli-online-drafts-2026-10-18/README.md`).
 
 ### `chainlesschain permissions <action>` (alias: `perms`)
 

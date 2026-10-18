@@ -22,7 +22,7 @@ hero:
 features:
   - icon: 🛡️
     title: 目标草稿互通与发行边界
-    details: 公开 CLI .106 / Open VSX .151；JetBrains .167 推荐 .105；累计合格交付31/45，剩余14。目标草稿与演化存储为未发布主线能力，任务修改仍需原生确认。
+    details: 公开 CLI .106 / Open VSX .151；JetBrains .167 推荐 .105；累计合格交付31/45，剩余14。目标草稿与演化存储为未发布开发快照能力，任务修改仍需原生确认。
     link: /release-runtime-update-2026-10-18
   - icon: 🏢
     title: 组织目标、授权记忆与站内通知（主线）

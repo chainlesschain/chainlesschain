@@ -200,7 +200,7 @@ export default defineConfig({
               link: "/chainlesschain/cli-ide-update-2026-10-18",
             },
             {
-              text: "目标草稿互通（主线源码）",
+              text: "目标草稿互通（开发快照）",
               link: "/chainlesschain/goal-drafts-current",
             },
             {

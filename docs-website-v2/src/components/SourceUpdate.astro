@@ -6,12 +6,12 @@ const jetBrainsPending = releaseStatus.jetBrainsPublicationStatus !== "verified"
 const items = english
   ? [
       ["Public CLI and IDE pairing", "Public CLI .106 pairs with Open VSX .151. JetBrains .167 still recommends .105; .168 is uploaded with public listing pending. Coding guidance and rejection-boundary feedback are included."],
-      ["Goal draft handoff in main source", "Authorized panels, offline adoption and a separate online pending queue are implemented in main source. These capabilities are unpublished; task changes still require desktop preview and native confirmation."],
+      ["Goal drafts in development snapshot", "Authorized panels, offline adoption and a separate online pending queue are implemented in development snapshot f21eac547e, outside the remote documentation baseline. These capabilities are unpublished; task changes still require desktop preview and native confirmation."],
       ["31 of 45 deliveries accepted", "The .105 retest collected all 20 records and added 6 accepted deliveries. Cumulative cross-version coverage is 31/45; 14 remain unaccepted. This is not a latest-version single-round success rate."],
     ]
   : [
       ["公开 CLI 与 IDE 配对", "CLI .106 配对 Open VSX .151；JetBrains .167 仍推荐 .105，.168 已上传待公开核验。本轮包含编码指导与拒绝边界反馈。"],
-      ["主线目标草稿互通", "授权面板、离线采纳与独立在线待审队列已进入主线，尚未公开发行；修改任务仍需桌面预览与逐次原生确认。"],
+      ["开发快照目标草稿互通", "授权面板、离线采纳与独立在线待审队列已在开发快照 f21eac547e 实现，未纳入远端文档基线或公开发行；修改任务仍需桌面预览与逐次原生确认。"],
       ["累计合格交付 31/45", ".105 补测已收齐20项记录，新增6项合格；跨版本累计31/45，剩余14项。这不是最新版单轮成功率。"],
     ];
 ---
@@ -19,7 +19,7 @@ const items = english
 <section class="py-16 border-t border-line bg-cream" aria-labelledby="source-update-title">
   <div class="container-wide">
     <p class="font-mono text-sm text-muted">
-      {releaseStatus.checkedAt} · {english ? "Public release and current source" : "公开发布与主线源码"} · CLI {releaseStatus.recommendedCliVersion}
+      {releaseStatus.checkedAt} · {english ? "Public release and current source" : "公开发布与开发快照"} · CLI {releaseStatus.recommendedCliVersion}
     </p>
     <h2 id="source-update-title" class="mt-3 text-3xl font-bold">
       {english ? "Public releases and goal draft handoff" : "公开配对与目标草稿互通"}
