@@ -11,15 +11,20 @@
         "first-run-win32-jetbrains"
       ],
       "startedAt": "2026-10-18T01:15:13Z",
-      "status": "IN_PROGRESS",
+      "status": "SUPERSEDED",
       "reason": "The independent first-run has not reached model execution: pre-init exit 1, zero broker requests, unchanged placeholder. Capture bounded redacted stderr to identify the actual startup failure.",
       "priorGenerationRunId": "39082074376",
       "acceptedOtherCandidatesReused": true,
       "generation": null,
       "acceptance": null,
       "evidence": [],
-      "remoteStatus": "in_progress",
-      "conclusion": null
+      "remoteStatus": "completed",
+      "conclusion": "cancelled",
+      "supersededReason": "User explicitly required latest released CLI and IDE packages; old-version native generation was cancelled and only already-uploaded evidence is retained.",
+      "supersededBy": "latest-package-round.json",
+      "generationStopped": true,
+      "diagnosticReport": "targeted-retries/39085805519/superseded-diagnostic.json",
+      "diagnosis": "该次旧包诊断的脱敏 stderr 明确为 owner-only ACL traversal timeout；0 模型请求。不能倒推更早两轮同因。该诊断已被用户最新版本要求取代，真实原始失败不改写。"
     }
   ]
 }

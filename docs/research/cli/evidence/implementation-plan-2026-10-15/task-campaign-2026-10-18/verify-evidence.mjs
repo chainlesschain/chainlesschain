@@ -448,17 +448,86 @@ if (fs.existsSync(path.join(root, "recharge-jetbrains-review.json"))) {
 }
 if (fs.existsSync(path.join(root, "targeted-retries.json"))) {
   for (const retry of json("targeted-retries.json").runs) {
+    const prior = results.native45.results.find(
+      (batch) =>
+        batch.stage === "generation" &&
+        batch.runId === retry.priorGenerationRunId &&
+        batch.group === retry.group,
+    );
+    assert.ok(prior, "targeted retry requires the original failed generation");
+    const priorGeneration = raw.get(prior.rawSummary.originalDigest).summary;
     assert.ok(retry.selectedSampleIds.length > 0);
     assert.equal(
       new Set(retry.selectedSampleIds).size,
       retry.selectedSampleIds.length,
     );
     if (process.argv.includes("--require-retries-complete"))
-      assert.equal(retry.status, "COMPLETED");
+      assert.ok(["COMPLETED", "SUPERSEDED"].includes(retry.status));
+    if (retry.status === "SUPERSEDED") {
+      assert.ok(retry.supersededReason);
+      assert.equal(retry.conclusion, "cancelled");
+      assert.equal(retry.generationStopped, true);
+      const review = json(retry.diagnosticReport);
+      assert.equal(review.runId, retry.runId);
+      assert.equal(review.executionSourceCommit, retry.sourceCommit);
+      assert.equal(review.includedIn45Denominator, false);
+      assert.equal(review.workflowConclusion, "cancelled");
+      const members = new Map();
+      for (const entry of review.evidence) {
+        const bytes = verifyArchive(entry.archived);
+        assert.equal(hash(bytes), entry.digest);
+        assert.equal(bytes.length, entry.bytes);
+        members.set(entry.member, bytes);
+        files++;
+      }
+      const source = JSON.parse(members.get("summary.json"));
+      assert.equal(
+        hash(members.get("summary.json")),
+        review.sourceSummaryDigest,
+      );
+      assert.equal(source.executionSourceCommit, retry.sourceCommit);
+      const sample = source.samples.find(
+        (item) => item.sampleId === review.sampleId,
+      );
+      assert.ok(sample);
+      assert.deepEqual(sample.host, review.originalHostVerdict);
+      assert.equal(sample.generationPassed, review.originalGenerationPassed);
+      assert.equal(sample.brokerStatus.physicalRequestsStarted, 0);
+      assert.equal(
+        members.get(review.stderrDiagnostic.member).toString("utf8"),
+        review.stderrDiagnostic.content,
+      );
+      assert.deepEqual(
+        JSON.parse(members.get(review.stderrDiagnostic.metadataMember)),
+        review.stderrDiagnostic.captureMetadata,
+      );
+      assert.match(
+        JSON.parse(review.stderrDiagnostic.content).error.message,
+        /windows-acl:timeout-traversal/u,
+      );
+      continue;
+    }
+    for (const id of retry.selectedSampleIds) {
+      const original = prior.samples.find((item) => item.sampleId === id);
+      assert.ok(original);
+      assert.equal(original.providerResponsesObserved, 0);
+      assert.equal(original.generationPassed, false);
+      assert.ok(
+        !json("native-verified-deliveries.json").some(
+          (item) => item.sampleId === id,
+        ),
+      );
+    }
+    if (retry.status === "COMPLETED") {
+      assert.ok(retry.generation && retry.acceptance);
+      assert.equal(retry.remoteStatus, "completed");
+    }
     if (!retry.generation) continue;
     const generated = JSON.parse(verifyArchive(retry.generation.rawSummary));
     assert.equal(generated.executionSourceCommit, retry.sourceCommit);
     assert.equal(generated.group, retry.group);
+    assert.equal(generated.projectCommit, priorGeneration.projectCommit);
+    assert.equal(generated.planDigest, priorGeneration.planDigest);
     assert.equal(generated.selectionScope, "operator-subset");
     assert.deepEqual(generated.selectedSampleIds, retry.selectedSampleIds);
     assert.deepEqual(
@@ -480,7 +549,42 @@ if (fs.existsSync(path.join(root, "targeted-retries.json"))) {
         retry.selectedSampleIds,
       );
     }
+    const expectedFiles = generated.samples.flatMap((sample) =>
+      sample.candidates.map((item) => `generation/${item.path}`),
+    );
+    if (accepted)
+      expectedFiles.push(
+        ...accepted.samples
+          .flatMap((sample) => [sample.setup, sample.check])
+          .filter((item) => item?.receiptPath)
+          .map((item) => `acceptance/${item.receiptPath}`),
+      );
+    assert.deepEqual(
+      retry.outcomes,
+      generated.samples.map((sample) => {
+        const broker = sample.brokerStatus ?? sample.broker ?? {};
+        const checked = accepted?.samples.find(
+          (item) => item.sampleId === sample.sampleId,
+        );
+        return {
+          sampleId: sample.sampleId,
+          generationPassed: sample.generationPassed,
+          modelPassed: sample.model?.pass ?? false,
+          modelFailureCategory: sample.model?.failureCategory ?? null,
+          physicalRequestsStarted: broker.physicalRequestsStarted ?? 0,
+          usageCompleteRequests: broker.usageCompleteRequests ?? 0,
+          hostPassed: sample.host?.passed ?? false,
+          hostFailure: sample.host?.failure ?? null,
+          candidateAcceptancePassed: checked?.candidateAcceptancePassed ?? null,
+          endToEndPassed: checked?.passed ?? null,
+        };
+      }),
+    );
+    const archivedFiles = new Set();
     for (const entry of retry.evidence) {
+      const key = `${entry.stage}/${entry.originalArtifactPath}`;
+      assert.ok(!archivedFiles.has(key));
+      archivedFiles.add(key);
       const bytes = verifyArchive(entry.archived);
       const summary = entry.stage === "generation" ? generated : accepted;
       assert.ok(summary);
@@ -498,6 +602,8 @@ if (fs.existsSync(path.join(root, "targeted-retries.json"))) {
       }
       files++;
     }
+    for (const key of expectedFiles)
+      assert.ok(archivedFiles.has(key), `missing targeted evidence ${key}`);
   }
 }
 if (results.providerAvailability) {

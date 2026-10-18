@@ -1,6 +1,6 @@
 # CLI / IDE 原生 36+9 实际任务评测（2026-10-18）
 
-状态：**本轮 45 条尝试与独立验收记录已收齐**。本轮按用户授权使用火山引擎付费测试，优先核对实际交付与验收；费用未评估、未推算。
+状态：**旧版本 45 项记录已归档；最新公开版本补测 IN_PROGRESS**。按用户授权继续测试实际交付与验收，费用未评估、未推算。
 
 ## 充值后的两组补测
 
@@ -16,9 +16,28 @@
 
 仅对仍未进入模型执行的 Windows JetBrains 首次任务采集缺失的 stderr；不重复另外四项已有候选。补测摘要和文件独立保存在 [单项补测记录](./targeted-retries.json)，不替换本轮 45 条结果。
 
-- `39085805519`：仅 `first-run-win32-jetbrains`；状态 `IN_PROGRESS`。来源 `69b00213a75cd9509de63e3c5249291d94fceb76`。
+- `39085805519`：仅 `first-run-win32-jetbrains`；状态 `SUPERSEDED`。来源 `69b00213a75cd9509de63e3c5249291d94fceb76`。
+  - 诊断：该次旧包诊断的脱敏 stderr 明确为 owner-only ACL traversal timeout；0 模型请求。不能倒推更早两轮同因。该诊断已被用户最新版本要求取代，真实原始失败不改写。
 
-## 当前指定轮次
+## 最新公开版本补测（用户更正后）
+
+使用 CLI **0.166.104**、VS Code **0.37.149**、JetBrains **0.4.166**，版本来自本次查询的公开注册表并以 [精确版本清单](../../../verify01-package-sets/2026-10-18-latest.json) 原始字节摘要绑定。仅对 **25 项**未合格或未执行任务发起新模型执行；其余 **20 项历史已验收产物**及收据直接复用。这 20 项不是最新包上的新模型执行，不能将混合来源覆盖率冒充统一最新版本通过率。
+
+最新包生成已收集 **0/25**、独立验收 **0/25**。逐项来源、复用产物和运行状态见 [最新包轮次](./latest-package-round.json)。
+
+| 原生入口         | Run         | 显式待补样本                                                       | 状态        |
+| ---------------- | ----------- | ------------------------------------------------------------------ | ----------- |
+| linux-cli        | 39087910738 | verify-04, verify-13, first-run-linux-cli                          | IN_PROGRESS |
+| linux-vscode     | 39087921211 | verify-05, verify-14, verify-23, verify-32, first-run-linux-vscode | IN_PROGRESS |
+| linux-jetbrains  | 39087930713 | verify-06, verify-33, first-run-linux-jetbrains                    | IN_PROGRESS |
+| darwin-cli       | 39087938110 | verify-07, verify-25, verify-34, first-run-darwin-cli              | IN_PROGRESS |
+| darwin-vscode    | 39087946196 | verify-08, first-run-darwin-vscode                                 | IN_PROGRESS |
+| darwin-jetbrains | 39087957391 | verify-09, first-run-darwin-jetbrains                              | IN_PROGRESS |
+| win32-cli        | 39087878780 | verify-10, verify-19                                               | IN_PROGRESS |
+| win32-vscode     | 39087886976 | verify-11                                                          | IN_PROGRESS |
+| win32-jetbrains  | 39087898779 | verify-12, verify-30, first-run-win32-jetbrains                    | IN_PROGRESS |
+
+## 固定旧版本对照轮次（已归档）
 
 本轮从各真实入口执行 36 项原始项目任务及 9 次独立首次安装项目任务。每次 first-run 使用独立安装流程、profile、workspace 和 run ID；同层普通任务不能替代它。九入口的 nonce 冒烟结果另列保存。
 
@@ -83,6 +102,8 @@ JetBrains 存在候选通过但重启恢复失败的情况，不能按文件通�
 [充值后 VS Code `verify-20` 终态复核](./recharge-vscode-final-error.json)：候选已通过独立验收，但 CLI 最终返回 `fetch failed`，原生全程保持失败。代理记录 5 次完整 usage 响应且未拒绝账户；底层网络原因仍未知。模型错误后没有进入恢复阶段，不能仅据缺少重启文件判定为 IDE 恢复缺陷。按用户要求复用合格候选，不为此终态错误重复生成。
 
 [充值后 JetBrains 复核](./recharge-jetbrains-review.json)：四项普通任务共 32 次完整模型响应；重启后会话、保存行和原始 Markdown 均保留，但界面直接显示 Markdown 源文，与实时渲染不同。该公开版历史渲染缺陷已在源码修复，本轮仍保持恢复失败。首次任务仍是初始化前 exit 1、0 请求；底层原因待独立 stderr 采证，不根据相同症状断言同一根因。
+
+充值后 JetBrains 的候选质量按 [原始验收收据](./recharge-checker-receipts.json) 单独判定：`verify-03/21` 合格并直接复用；`verify-12` 基线 11/11，候选 5/6，错误地期待 `stripFirstTurnPromptArgv` 删除应保留的 `--session`，这是候选断言错误；`verify-30` 基线 13/13、候选 6/6，检出帧计数变异，但第二个“忽略动画 fallback 画布像素”的变异仍 6/6 通过。其 GIF 用例没有覆盖 APNG 额外 fallback 画布，不能把检出第一个变异当作完成全部行为验收。以上复核仅使用已有源码与收据，没有重新执行任务或测试。
 
 ## 后续优化顺序
 
