@@ -16,6 +16,9 @@ import {
 import {
   NATIVE_EVIDENCE_ROOT,
   unfinishedNativeGroups,
+  extendNativeRetestBaseline,
+  assertCurrentNativeRetestChain,
+  validateNextNativePackageSet,
 } from "../scripts/verify01-native-retest-plan.mjs";
 
 const repository = fileURLToPath(new URL("../../../", import.meta.url));
@@ -274,6 +277,189 @@ test("missing acceptance cannot be relabeled as a completed or accepted run", ()
   const result = sample.verify();
   assert.equal(result.acceptanceRecordsCollected, 0);
   assert.equal(result.candidateAcceptancePassed, 0);
+});
+
+function chainFixture() {
+  const sample = fixture();
+  const stem = "next-package-chain-test";
+  const prefix = `${NATIVE_EVIDENCE_ROOT}/${stem}`;
+  const memory = new Map();
+  // Relocate the fixture envelope, retaining original receipt/candidate bytes.
+  const relocate = (value) => {
+    if (!value || typeof value !== "object") return;
+    if (
+      typeof value.path === "string" &&
+      value.path.startsWith("latest-package-round/")
+    ) {
+      const oldPath = `${NATIVE_EVIDENCE_ROOT}/${value.path}`;
+      const bytes =
+        sample.blobs.get(oldPath) ??
+        fs.readFileSync(path.join(repository, oldPath));
+      value.path = value.path.replace("latest-package-round/", `${stem}/`);
+      memory.set(`${NATIVE_EVIDENCE_ROOT}/${value.path}`, bytes);
+    }
+    for (const child of Object.values(value)) relocate(child);
+  };
+  const counts = sample.verify();
+  relocate(sample.run);
+  const acceptedIds = new Set(
+    frozenPlan.samples
+      .map((row) => row.id)
+      .filter((id) => !sample.run.selectedSampleIds.includes(id)),
+  );
+  const baseline = {
+    acceptedIds,
+    baselineEvidence: [],
+    priorRounds: [],
+    latest: {
+      packageSetDigest: "sha256:" + "1".repeat(64),
+      versions: { ...original.versions, cli: "0.166.103" },
+    },
+  };
+  const plan = {
+    schema: "chainlesschain.native-package-retest-plan/v1",
+    status: "PREPARED_NOT_DISPATCHED",
+    billingAssessed: false,
+    packageSetPath: original.packageSetPath,
+    packageSetDigest: original.packageSetDigest,
+    versions: original.versions,
+    frozenProjectCommit: frozenPlan.commitSha,
+    baselineEvidence: [],
+    priorRounds: [],
+    reusedAcceptedSampleIds: [...acceptedIds].sort(),
+    groups: unfinishedNativeGroups(frozenPlan, acceptedIds),
+    plannedNewSamples: sample.run.selectedSampleIds.length,
+    ledgerPath: `${prefix}.json`,
+    archivePrefix: prefix,
+  };
+  const planBytes = Buffer.from(JSON.stringify(plan));
+  const ledger = {
+    ...plan,
+    schema: "chainlesschain.native-package-retest-round/v1",
+    status: "COMPLETED",
+    planPath: `${prefix}-plan.json`,
+    planDigest: retestHash(planBytes),
+    runs: [sample.run],
+    samples: [...sample.context.samples.values()],
+    counts: {
+      ...counts,
+      reusedAcceptedDeliverables: acceptedIds.size,
+      cumulativeAcceptedDeliverables:
+        acceptedIds.size + counts.candidateAcceptancePassed,
+    },
+  };
+  const reference = {
+    planPath: ledger.planPath,
+    planDigest: ledger.planDigest,
+    ledgerPath: plan.ledgerPath,
+    ledgerDigest: "",
+  };
+  const refresh = () => {
+    const bytes = Buffer.from(JSON.stringify(plan));
+    reference.planDigest = ledger.planDigest = retestHash(bytes);
+    memory.set(reference.planPath, bytes);
+    const raw = Buffer.from(JSON.stringify(ledger));
+    reference.ledgerDigest = retestHash(raw);
+    memory.set(reference.ledgerPath, raw);
+  };
+  refresh();
+  const read = (name) =>
+    memory.get(name) ?? fs.readFileSync(path.join(repository, name));
+  const verify = () =>
+    extendNativeRetestBaseline(structuredClone(baseline), [reference], {
+      repositoryRoot: repository,
+      readRepository: read,
+    });
+  return { plan, ledger, reference, refresh, read, verify, baseline };
+}
+
+test("complete archive-backed prior round adds accepted deliveries and advances the version floor", () => {
+  const sample = chainFixture();
+  const baseline = sample.verify();
+  assert.equal(
+    baseline.acceptedIds.size,
+    sample.baseline.acceptedIds.size +
+      sample.ledger.counts.candidateAcceptancePassed,
+  );
+  assert.ok(
+    baseline.acceptedIds.has("verify-33"),
+    "native UI failure must not discard an accepted candidate",
+  );
+  assert.equal(
+    sample.ledger.samples.find((row) => row.sampleId === "verify-33")
+      .endToEndPassed,
+    false,
+  );
+  assert.equal(baseline.latest.versions.cli, "0.166.104");
+  assert.deepEqual(baseline.priorRounds, [sample.reference]);
+  assert.throws(
+    () =>
+      validateNextNativePackageSet(
+        {
+          packageSetDigest: "sha256:" + "9".repeat(64),
+          versions: baseline.latest.versions,
+        },
+        baseline.latest,
+      ),
+    /newer published/,
+  );
+  const next = {
+    packageSetDigest: "sha256:" + "9".repeat(64),
+    versions: { ...baseline.latest.versions, cli: "0.166.105" },
+  };
+  assert.doesNotThrow(() =>
+    validateNextNativePackageSet(next, baseline.latest),
+  );
+  const remaining = unfinishedNativeGroups(
+    frozenPlan,
+    baseline.acceptedIds,
+  ).flatMap((group) => group.sampleIds);
+  for (const row of sample.ledger.samples.filter(
+    (row) => row.candidateAcceptancePassed,
+  ))
+    assert.ok(!remaining.includes(row.sampleId));
+  // A historical plan's fixed prefix stays valid even after registration;
+  // the same prefix is no longer eligible for a new paid dispatch.
+  assert.deepEqual(sample.plan.priorRounds, []);
+  assert.throws(
+    () =>
+      assertCurrentNativeRetestChain([], () =>
+        Buffer.from(JSON.stringify([sample.reference])),
+      ),
+    /omitted/,
+  );
+});
+
+test("prior ledger chain rejects incomplete evidence, changed digests, cycles and forged acceptance", () => {
+  for (const mutate of [
+    (item) => {
+      item.reference.ledgerDigest = "sha256:" + "0".repeat(64);
+    },
+    (item) => {
+      item.reference.planDigest = "sha256:" + "0".repeat(64);
+    },
+    (item) => {
+      item.ledger.status = "IN_PROGRESS";
+      item.refresh();
+    },
+    (item) => {
+      delete item.ledger.runs[0].acceptance;
+      item.refresh();
+    },
+    (item) => {
+      item.plan.priorRounds = [structuredClone(item.reference)];
+      item.refresh();
+    },
+    (item) => {
+      item.ledger.samples[0].candidateAcceptancePassed =
+        !item.ledger.samples[0].candidateAcceptancePassed;
+      item.refresh();
+    },
+  ]) {
+    const item = chainFixture();
+    mutate(item);
+    assert.throws(item.verify);
+  }
 });
 
 function planFixture() {

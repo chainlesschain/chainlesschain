@@ -14,7 +14,41 @@ import {
   unfinishedNativeGroups,
   validateNativePackageSetFile,
   validateNextNativePackageSet,
+  readNativeRetestChain,
+  assertCurrentNativeRetestChain,
 } from "../scripts/verify01-native-retest-plan.mjs";
+
+test("explicit chain rejects duplicates, traversal and omitted current rounds", () => {
+  const reference = {
+    planPath: `${NATIVE_EVIDENCE_ROOT}/next-package-105-plan.json`,
+    ledgerPath: `${NATIVE_EVIDENCE_ROOT}/next-package-105.json`,
+    planDigest: "sha256:" + "a".repeat(64),
+    ledgerDigest: "sha256:" + "b".repeat(64),
+  };
+  const read = () => Buffer.from(JSON.stringify([reference]));
+  assert.deepEqual(readNativeRetestChain(read), [reference]);
+  assert.doesNotThrow(() => assertCurrentNativeRetestChain([reference], read));
+  assert.throws(() => assertCurrentNativeRetestChain([], read), /omitted/);
+  assert.throws(
+    () => assertUnfinishedNativeSamples(["verify-12"], { priorRounds: [] }),
+    /current complete round chain/,
+  );
+  for (const rows of [
+    [reference, reference],
+    [{ ...reference, planPath: "../escape" }],
+    [{ ...reference, ledgerDigest: "forged" }],
+  ]) {
+    assert.throws(() =>
+      readNativeRetestChain(() => Buffer.from(JSON.stringify(rows))),
+    );
+  }
+  assert.deepEqual(
+    readNativeRetestChain(() => {
+      throw Object.assign(new Error(), { code: "ENOENT" });
+    }),
+    [],
+  );
+});
 
 const repository = fileURLToPath(new URL("../../../", import.meta.url));
 const packageRelative =

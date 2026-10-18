@@ -9,12 +9,19 @@ import { parseArgs } from "node:util";
 import { loadNativePackageSet } from "./verify01-native-task-campaign.mjs";
 import { verifyLatestPackageRound } from "../../../docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/verify-latest-package-round.mjs";
 import { verifyFetchDiagnosticFollowup } from "../../../docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/verify-fetch-diagnostic-followup.mjs";
+// Function-only ESM bindings: neither module invokes the other at initialization.
+import {
+  repositoryReader,
+  loadNativeRetestPlanWithBaseline,
+  verifyNativeRetestRoundWithContext,
+} from "./verify01-native-retest-round.mjs";
 
 const repository = fileURLToPath(new URL("../../../", import.meta.url));
 export const NATIVE_EVIDENCE_ROOT =
   "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18";
 export const DEFAULT_NATIVE_PACKAGE_SET =
   "docs/research/cli/verify01-package-sets/2026-10-18-latest.json";
+export const NATIVE_RETEST_CHAIN = `${NATIVE_EVIDENCE_ROOT}/next-package-round-chain.json`;
 const packageDirectory = "docs/research/cli/verify01-package-sets/";
 const hash = (bytes) =>
   `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
@@ -64,12 +71,14 @@ export function validateNativePackageSetFile(
 export function loadVerifiedNativeAcceptedSamples({
   repositoryRoot = repository,
   requireComplete = true,
+  priorRounds,
+  readRepository = repositoryReader(repositoryRoot),
 } = {}) {
   const root = path.join(repositoryRoot, NATIVE_EVIDENCE_ROOT);
   const cache = new Map();
   const readEvidence = (name) => {
     if (!cache.has(name))
-      cache.set(name, fs.readFileSync(containedFile(root, name)));
+      cache.set(name, readRepository(`${NATIVE_EVIDENCE_ROOT}/${name}`));
     return cache.get(name);
   };
   const options = {
@@ -95,7 +104,7 @@ export function loadVerifiedNativeAcceptedSamples({
       if (row.candidateAcceptancePassed === true) acceptedIds.add(row.sampleId);
     }
   }
-  return {
+  const baseline = {
     acceptedIds,
     latest,
     baselineEvidence: [
@@ -106,7 +115,138 @@ export function loadVerifiedNativeAcceptedSamples({
       path: `${NATIVE_EVIDENCE_ROOT}/${name}`,
       digest: hash(readEvidence(name)),
     })),
+    priorRounds: [],
   };
+  const current = readNativeRetestChain(readRepository);
+  const selected = priorRounds ?? current;
+  assert.deepEqual(
+    selected,
+    current.slice(0, selected.length),
+    "prior rounds must be an exact registered prefix",
+  );
+  assert.ok(selected.length <= current.length, "unregistered prior round");
+  const seenRuns = new Set(
+    [latest, followup].flatMap((ledger) =>
+      (ledger.runs ?? []).map((run) => run.runId),
+    ),
+  );
+  return extendNativeRetestBaseline(baseline, selected, {
+    repositoryRoot,
+    readRepository,
+    seenRuns,
+  });
+}
+
+// Every referenced round is fully verified before any of its acceptance flags
+// contribute. Kept separate so archive-backed fixtures can exercise the fold.
+export function extendNativeRetestBaseline(
+  baseline,
+  selected,
+  {
+    repositoryRoot = repository,
+    readRepository = repositoryReader(repositoryRoot),
+    seenRuns = new Set(),
+  } = {},
+) {
+  for (const reference of selected) {
+    const planBytes = readRepository(reference.planPath);
+    const ledgerBytes = readRepository(reference.ledgerPath);
+    assert.equal(
+      hash(planBytes),
+      reference.planDigest,
+      "prior plan digest differs",
+    );
+    assert.equal(
+      hash(ledgerBytes),
+      reference.ledgerDigest,
+      "prior ledger digest differs",
+    );
+    const previousPlan = JSON.parse(planBytes);
+    assert.equal(previousPlan.ledgerPath, reference.ledgerPath);
+    assert.deepEqual(
+      previousPlan.priorRounds ?? [],
+      baseline.priorRounds,
+      "prior plan omitted or cycled its prefix",
+    );
+    const context = loadNativeRetestPlanWithBaseline(
+      reference.planPath,
+      repositoryRoot,
+      baseline,
+      readRepository,
+    );
+    const ledger = JSON.parse(ledgerBytes);
+    verifyNativeRetestRoundWithContext(context, {
+      ledger,
+      requireComplete: true,
+    });
+    for (const run of ledger.runs) {
+      assert.ok(!seenRuns.has(run.runId), "run reused across retest rounds");
+      seenRuns.add(run.runId);
+    }
+    for (const sample of ledger.samples) {
+      assert.ok(
+        !baseline.acceptedIds.has(sample.sampleId),
+        "previously accepted sample was rerun",
+      );
+      if (sample.candidateAcceptancePassed === true)
+        baseline.acceptedIds.add(sample.sampleId);
+    }
+    baseline.latest = ledger;
+    baseline.priorRounds = [...baseline.priorRounds, reference];
+    baseline.baselineEvidence.push(
+      { path: reference.planPath, digest: reference.planDigest },
+      { path: reference.ledgerPath, digest: reference.ledgerDigest },
+    );
+  }
+  return baseline;
+}
+
+export function readNativeRetestChain(read = repositoryReader(repository)) {
+  let bytes;
+  try {
+    bytes = read(NATIVE_RETEST_CHAIN);
+  } catch (error) {
+    if (error.code === "ENOENT") return [];
+    throw error;
+  }
+  const chain = JSON.parse(bytes);
+  assert.ok(
+    Array.isArray(chain) && chain.length <= 100,
+    "bounded explicit round chain required",
+  );
+  const paths = new Set();
+  for (const entry of chain) {
+    assert.deepEqual(Object.keys(entry).sort(), [
+      "ledgerDigest",
+      "ledgerPath",
+      "planDigest",
+      "planPath",
+    ]);
+    const stem = path.posix
+      .basename(entry.planPath)
+      .replace(/-plan\.json$/u, "");
+    assert.match(stem, /^next-package-[a-z0-9][a-z0-9-]{0,70}$/u);
+    assert.equal(entry.planPath, `${NATIVE_EVIDENCE_ROOT}/${stem}-plan.json`);
+    assert.equal(entry.ledgerPath, `${NATIVE_EVIDENCE_ROOT}/${stem}.json`);
+    for (const key of ["planDigest", "ledgerDigest"])
+      assert.match(entry[key], /^sha256:[a-f0-9]{64}$/u);
+    for (const name of [entry.planPath, entry.ledgerPath]) {
+      assert.ok(!paths.has(name), "duplicate or cyclic chain reference");
+      paths.add(name);
+    }
+  }
+  return chain;
+}
+
+export function assertCurrentNativeRetestChain(
+  priorRounds,
+  read = repositoryReader(repository),
+) {
+  assert.deepEqual(
+    priorRounds,
+    readNativeRetestChain(read),
+    "dispatch plan omitted current completed rounds",
+  );
 }
 
 export function validateNextNativePackageSet(selected, previous) {
@@ -134,11 +274,19 @@ export function validateNextNativePackageSet(selected, previous) {
 }
 
 export function assertUnfinishedNativeSamples(sampleIds, options = {}) {
+  assert.equal(
+    options.priorRounds,
+    undefined,
+    "dispatch must use the current complete round chain",
+  );
   assert.ok(
     Array.isArray(sampleIds) && sampleIds.length,
     "Further model requests require explicit unfinished sample_ids; do not rerun whole groups",
   );
-  const { acceptedIds, latest } = loadVerifiedNativeAcceptedSamples(options);
+  const { acceptedIds, latest } = loadVerifiedNativeAcceptedSamples({
+    ...options,
+    priorRounds: undefined,
+  });
   const repeated = sampleIds.filter((id) => acceptedIds.has(id));
   assert.equal(
     repeated.length,
@@ -224,6 +372,7 @@ export function createNativeRetestPlan({
     versions: selected.versions,
     frozenProjectCommit: frozenPlan.commitSha,
     baselineEvidence: baseline.baselineEvidence,
+    priorRounds: baseline.priorRounds,
     reusedAcceptedSampleIds: [...baseline.acceptedIds].sort(),
     plannedNewSamples: groups.reduce(
       (total, group) => total + group.sampleIds.length,

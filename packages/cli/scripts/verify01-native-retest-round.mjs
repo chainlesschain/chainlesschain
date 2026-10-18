@@ -13,6 +13,7 @@ import {
   unfinishedNativeGroups,
   validateNativePackageSetFile,
   validateNextNativePackageSet,
+  assertCurrentNativeRetestChain,
 } from "./verify01-native-retest-plan.mjs";
 import { validateDocumentReceipt } from "../../../docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/verify-latest-package-round.mjs";
 
@@ -35,7 +36,7 @@ function safeRelative(value) {
   );
   return value;
 }
-function repositoryReader(root) {
+export function repositoryReader(root) {
   const cache = new Map();
   return (relative) => {
     safeRelative(relative);
@@ -152,6 +153,7 @@ export function validateRetestPlanBinding(plan, context) {
   validateNextNativePackageSet(pinned, baseline.latest);
   assert.equal(plan.frozenProjectCommit, frozenPlan.commitSha);
   assert.deepEqual(plan.baselineEvidence, baseline.baselineEvidence);
+  assert.deepEqual(plan.priorRounds ?? [], baseline.priorRounds ?? []);
   assert.deepEqual(plan.reusedAcceptedSampleIds, sorted(baseline.acceptedIds));
   const groups = unfinishedNativeGroups(frozenPlan, baseline.acceptedIds);
   assert.deepEqual(
@@ -174,9 +176,30 @@ export function validateRetestPlanBinding(plan, context) {
 
 export function loadNativeRetestPlan(planFile, repositoryRoot = repository) {
   const read = repositoryReader(repositoryRoot);
+  const plan = parsed(read(planFile));
+  const baseline = loadVerifiedNativeAcceptedSamples({
+    repositoryRoot,
+    priorRounds: plan.priorRounds ?? [],
+    readRepository: read,
+  });
+  return loadNativeRetestPlanWithBaseline(
+    planFile,
+    repositoryRoot,
+    baseline,
+    read,
+  );
+}
+
+// The chain loader supplies only the already verified prefix. This avoids
+// recursively loading the current registry while verifying historical plans.
+export function loadNativeRetestPlanWithBaseline(
+  planFile,
+  repositoryRoot,
+  baseline,
+  read,
+) {
   const bytes = read(planFile);
   const plan = parsed(bytes);
-  const baseline = loadVerifiedNativeAcceptedSamples({ repositoryRoot });
   const pinned = validateNativePackageSetFile(
     plan.packageSetPath,
     repositoryRoot,
@@ -519,6 +542,17 @@ export function verifyNativeRetestRound({
   requireComplete = false,
 }) {
   const context = loadNativeRetestPlan(planFile, repositoryRoot);
+  return verifyNativeRetestRoundWithContext(context, {
+    ledger,
+    requireComplete,
+  });
+}
+
+export function verifyNativeRetestRoundWithContext(
+  context,
+  { ledger, requireComplete = false } = {},
+) {
+  const { planFile } = context;
   const { plan, frozenPlan, catalog, read, stem } = context;
   const data = ledger ?? parsed(read(plan.ledgerPath));
   assert.equal(data.schema, "chainlesschain.native-package-retest-round/v1");
@@ -618,6 +652,7 @@ if (
   if (values["plan-only"]) {
     assert.ok(!values.stdin && !values["require-complete"]);
     const context = loadNativeRetestPlan(values.plan);
+    assertCurrentNativeRetestChain(context.plan.priorRounds ?? []);
     console.log(
       JSON.stringify({ plan: context.plan, planDigest: context.planDigest }),
     );

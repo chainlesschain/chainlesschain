@@ -433,6 +433,28 @@
     "windowsIdentitySnapshotLimitMs": 30000,
     "limitation": "Local probes and harness regressions do not establish success of the next public CLI/IDE task run."
   },
+  "acceptedRoundChain": {
+    "status": "IMPLEMENTED_OFFLINE_VALIDATED_NOT_YET_POPULATED",
+    "registry": "next-package-round-chain.json",
+    "scope": "Evaluation tooling only; release source d4065008bb4eff84cfc09f9361f4ae4e9de2140f is unchanged.",
+    "reason": "A later package round must reuse newly accepted candidate files from completed prior rounds, including candidates whose IDE end-to-end verdict failed.",
+    "rules": [
+      "No arbitrary ledger discovery: append explicit plan and ledger paths and SHA-256 digests only after complete strict verification.",
+      "Each plan binds its immutable prior-round prefix; dispatch requires the complete currently registered prefix.",
+      "Every prior round is verified with its own prefix, archived candidate and acceptance evidence before acceptance flags contribute.",
+      "Compare a new CLI version against the verified chain tail; reject duplicate runs, repeated accepted candidates and cyclic references."
+    ],
+    "validation": {
+      "command": "node --test packages/cli/test-node/verify01-native-retest-plan.node-test.mjs packages/cli/test-node/verify01-native-retest-round.node-test.mjs",
+      "passed": 21,
+      "failed": 0,
+      "exitCode": 0,
+      "toolOutputChunk": "41389d",
+      "modelRequests": 0
+    },
+    "originalEvidenceModified": false,
+    "actualPriorRoundsRegistered": 0
+  },
   "publication": {
     "cli": {
       "version": "0.166.105",
