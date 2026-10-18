@@ -1,3 +1,17 @@
+# Current status: original .106 preflight aborted; independent r2 plan prepared
+
+The four original .106 runs on evaluation source `3aee87b8e4b0943feb9960e520fc4467028c8c84` failed in **validate**, all at attempt **1**. Native generation and acceptance were **skipped**, with **0 artifacts**. Seven selected samples stopped before provider execution; the other seven had no request in the original journal. These are harness validation failures, not model-quality failures. The original `0f9ec118...` plan, intents, resolved run references and failure evidence remain unchanged and are **not** added to the accepted-round chain.
+
+The integrated harness source `bd15b6c9770c5d20596c08d43ddc1ea2006eb74d` fixes two stale test assertions and historical reply lookup. Local Windows combined validation reports **92 passed, 0 failed, 1 Linux-only test skipped**; this is not an official Linux gate or native task acceptance. Historical `verify-33` data loads against the public .168 binding, but native UI archive-reply recovery remains unexecuted. See the [independent review and immutable raw evidence](./next-release-validation/followup-106-r2-preparation-review.json).
+
+The [new r2 plan](./next-package-106-20261018-r2-plan.json) is **PREPARED_NOT_DISPATCHED**: **14** unfinished samples, **8** groups, **10** execution shards, and **31** accepted samples reused. `verify-33` is excluded from generation. Cumulative acceptance remains **31/45** (ordinary **26/36**, first-use **5/9**); no new candidate or acceptance ledger has been created. The public CLI .106 / Open VSX .151 / JetBrains .168 manifest and release source `dca47fd91a209642b6536afd5bc9e99ec74c7d06` are unchanged. Microsoft Marketplace remains unpublished.
+
+Authorized runner cleanup confirmed **12** docs auxiliary runs and **7** duplicate matrices on non-release merge/docs sources cancelled; **1** already-successful matrix was skipped. This later policy supersedes the earlier blanket preservation of those duplicate matrices only. Actual `dca` release gates/publishers, protection checks, the docs build gate and native generation/acceptance/recovery runs were retained. Cancellation is not a passing check.
+
+The parent will commit and freeze a new evaluation source before any r2 dispatch. This bookkeeping performed **0 model requests, 0 workflow dispatches, 0 commits and 0 pushes**. All previous status text below is preserved byte-for-byte as historical observations.
+
+---
+
 # 当前状态：三包公开发布完成，同源插件内容已核实
 
 CLI **0.166.106**（npm）、VS Code **0.37.151**（Open VSX）、JetBrains **0.4.168**（Marketplace）均已严格公开核验，`published=true`。JetBrains update **1197255** 已获批并公开；[106 manifest](../../../verify01-package-sets/2026-10-18-task-quality-106.json) 固定三包公开字节摘要。发行源码仍为 `dca47fd91a209642b6536afd5bc9e99ec74c7d06`；VS Code 的微软 Marketplace 发布未核验。

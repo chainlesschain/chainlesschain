@@ -1,7 +1,7 @@
 {
   "schema": "chainlesschain.task-quality-next-version-preparation/v1",
   "recordedAt": "2026-10-18T08:16:55.683049+00:00",
-  "status": "ALL_THREE_PACKAGES_PUBLIC_VERIFIED_SOURCE_PAYLOAD_VERIFIED_RETEST_PREPARED",
+  "status": "PUBLIC_PACKAGES_VERIFIED_ORIGINAL_PREFLIGHT_ABORTED_R2_PREPARED",
   "billingAssessed": false,
   "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
   "pullRequest": "https://github.com/chainlesschain/chainlesschain/pull/462",
@@ -69,7 +69,7 @@
     "reusedAcceptedDeliverables": 25,
     "cumulativeAcceptedDeliverables": 26
   },
-  "updatedAt": "2026-10-18T14:15:52.601151+00:00",
+  "updatedAt": "2026-10-18T14:43:39.642147+00:00",
   "supersededSourceCommits": [
     "e01eb3a92212a69140559d8ec304ddd0dce99274",
     "52f882ffa891f0683120eff6399701378a617ae7",
@@ -617,15 +617,17 @@
     }
   },
   "nextVersionValidation": {
-    "remainingRetestStatus": "NOT_RUN",
+    "remainingRetestStatus": "PREFLIGHT_ABORTED_R2_NOT_DISPATCHED",
     "remainingSamples": 14,
     "threePackageManifestCreated": true,
-    "archivedReplyVerify33RecoveryStatus": "NOT_RUN_ON_0.4.168",
+    "archivedReplyVerify33RecoveryStatus": "LOADER_REPAIRED_NATIVE_UI_RECOVERY_NOT_RUN",
     "acceptedDeliverablesRetained": 31,
     "requiresPublicJetbrainsArtifact": false,
     "packagingReviewPending": false,
-    "dispatchPerformed": false,
-    "sourcePayloadVerified": true
+    "dispatchPerformed": true,
+    "sourcePayloadVerified": true,
+    "priorAttemptProviderRequests": 0,
+    "r2DispatchPerformed": false
   },
   "productMerge": {
     "pullRequest": 462,
@@ -690,13 +692,17 @@
     "modelDispatchPerformed": false
   },
   "offlineRetestPlan": {
-    "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-plan.json",
-    "digest": "sha256:0f9ec118c5a36b82be594eac87883e31319741c682c7e7baedb1c2dc595d2ca8",
+    "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-plan.json",
+    "digest": "sha256:ce3852ed914c903fa3de6dc6255354e33ab2c53f803c126fe990272904d12718",
     "status": "PREPARED_NOT_DISPATCHED",
     "plannedNewSamples": 14,
     "reusedAcceptedSamples": 31,
     "groups": 8,
     "executionShards": 10,
+    "verify33ReusedNotRegenerated": true,
+    "dispatchPerformed": false,
+    "ledgerCreated": false,
+    "sourceFreeze": "Parent must commit evidence and freeze resulting evaluation source before any dispatch.",
     "plannedSampleIds": [
       "verify-04",
       "verify-13",
@@ -713,11 +719,77 @@
       "verify-30",
       "first-run-win32-jetbrains"
     ],
-    "acceptedIdsExcluded": true,
-    "verify33ReusedNotRegenerated": true,
-    "ledgerCreated": false,
-    "dispatchPerformed": false
+    "acceptedIdsExcluded": true
   },
   "mainMergeRunnerCleanupReview": "next-release-validation/followup-106-main-merge-runner-cleanup-review.json",
-  "evaluationHeadPolicy": "Freeze the resulting committed evaluation HEAD until the parent collects the 14-sample round. No later commits or autonomous dispatch from this agent."
+  "evaluationHeadPolicy": "Parent must commit this integrated harness/evidence/r2-plan state, then freeze the resulting exact evaluation HEAD before dispatch. This preparation performed no dispatch.",
+  "supersededOfflineRetestPlans": [
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-plan.json",
+      "digest": "sha256:0f9ec118c5a36b82be594eac87883e31319741c682c7e7baedb1c2dc595d2ca8",
+      "status": "PREPARED_NOT_DISPATCHED",
+      "plannedNewSamples": 14,
+      "reusedAcceptedSamples": 31,
+      "groups": 8,
+      "executionShards": 10,
+      "plannedSampleIds": [
+        "verify-04",
+        "verify-13",
+        "first-run-linux-cli",
+        "verify-06",
+        "verify-07",
+        "first-run-darwin-cli",
+        "verify-08",
+        "verify-09",
+        "first-run-darwin-jetbrains",
+        "verify-10",
+        "verify-19",
+        "verify-11",
+        "verify-30",
+        "first-run-win32-jetbrains"
+      ],
+      "acceptedIdsExcluded": true,
+      "verify33ReusedNotRegenerated": true,
+      "ledgerCreated": false,
+      "dispatchPerformed": false
+    }
+  ],
+  "original106PreflightAbort": {
+    "evaluationSourceCommit": "3aee87b8e4b0943feb9960e520fc4467028c8c84",
+    "planDigest": "sha256:0f9ec118c5a36b82be594eac87883e31319741c682c7e7baedb1c2dc595d2ca8",
+    "status": "PREFLIGHT_ABORTED_BEFORE_PROVIDER",
+    "runIds": [
+      "39135920734",
+      "39136059726",
+      "39135410669",
+      "39135438416"
+    ],
+    "dispatchedSamples": [
+      "verify-07",
+      "first-run-darwin-cli",
+      "verify-08",
+      "verify-04",
+      "verify-13",
+      "first-run-linux-cli",
+      "verify-06"
+    ],
+    "notRequestedSamples": [
+      "verify-09",
+      "first-run-darwin-jetbrains",
+      "verify-10",
+      "verify-19",
+      "verify-11",
+      "verify-30",
+      "first-run-win32-jetbrains"
+    ],
+    "runAttempt": 1,
+    "providerExecutionReached": false,
+    "generation": "skipped",
+    "acceptance": "skipped",
+    "artifacts": 0,
+    "modelQualityVerdict": null,
+    "registeredInAcceptedRoundChain": false,
+    "originalPlanAndJournalUnchanged": true
+  },
+  "r2PreparationReview": "next-release-validation/followup-106-r2-preparation-review.json"
 }
