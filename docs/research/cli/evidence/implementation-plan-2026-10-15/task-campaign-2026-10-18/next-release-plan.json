@@ -1,7 +1,7 @@
 {
   "schema": "chainlesschain.next-release-task-optimization/v1",
   "recordedDate": "2026-10-18",
-  "status": "CLI_PUBLIC_IDE_PUBLICATION_IN_PROGRESS",
+  "status": "CLI_VSCODE_PUBLIC_JETBRAINS_AWAITING_PUBLIC_LISTING",
   "userDecisions": [
     "不合格的需要代码优化 下一个版本进行补测",
     "需要发布新的cli或ide插件的下一个版本再测试",
@@ -310,6 +310,14 @@
       "sourceCommit": "d4065008bb4eff84cfc09f9361f4ae4e9de2140f",
       "publicFetchVerified": true,
       "modelTaskRetestPerformed": false
+    },
+    {
+      "kind": "vscode",
+      "version": "0.37.150",
+      "sourceCommit": "d4065008bb4eff84cfc09f9361f4ae4e9de2140f",
+      "publicFetchVerified": true,
+      "officialCandidateBytesMatch": true,
+      "modelTaskRetestPerformed": false
     }
   ],
   "nextVersionRetestRuns": [],
@@ -542,8 +550,8 @@
     "vscode": {
       "workflowRunId": "39104012121",
       "workflowUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/39104012121",
-      "statusObserved": "in_progress",
-      "conclusionObserved": "",
+      "statusObserved": "completed",
+      "conclusionObserved": "success",
       "runArchive": {
         "path": "next-release-validation/vscode-publication-39104012121-initial.json.gz",
         "digest": "sha256:b9e5602eb9377e9e972a87a83b60ea79f5944ea47ca0d16fb93ff137945d0d62",
@@ -557,13 +565,58 @@
         "digest": "sha256:b29e6cb47cbcfd091d6a98669338ecd6fa350b91e6e84c8af54d0f65a73dcbd8",
         "bytes": 2964
       },
-      "publicFetchVerified": false
+      "publicFetchVerified": true,
+      "jobsSuccessful": 11,
+      "finalRunArchive": {
+        "path": "next-release-validation/vscode-publication-39104012121-final.json.gz",
+        "digest": "sha256:e91022004fb439766e4ee5b100de83fc813f27f642cfd203098b2ac85af76ae8",
+        "bytes": 3340
+      },
+      "publicReadback": {
+        "path": "next-release-validation/vscode-public-readback/readback.json",
+        "digest": "sha256:eed3f835cd9c4f4c1d3d5751a68c9dc16307e0c80eceac4138a9f01ae1efbcdd",
+        "bytes": 1562
+      },
+      "publicReadbackEvidence": {
+        "readback.json": {
+          "path": "next-release-validation/vscode-public-readback/readback.json",
+          "digest": "sha256:eed3f835cd9c4f4c1d3d5751a68c9dc16307e0c80eceac4138a9f01ae1efbcdd",
+          "bytes": 1562
+        },
+        "openvsx-metadata.json": {
+          "path": "next-release-validation/vscode-public-readback/openvsx-metadata.json",
+          "digest": "sha256:2fa745255f066ef8693229c3bc5fa1f884aea14974fbc47047e5886da4e10c0f",
+          "bytes": 10905
+        },
+        "official-manifest.json": {
+          "path": "next-release-validation/vscode-public-readback/official-manifest.json",
+          "digest": "sha256:ba3ebd02eeefb28145d409aff5a9e6f2649031c3219380fbaf7ecb9c9a078ae4",
+          "bytes": 714
+        },
+        "run.json": {
+          "path": "next-release-validation/vscode-public-readback/run.json",
+          "digest": "sha256:3a318bcb778b7d9ba978df28c75d3678e82acb09e21c5c758e1f56a0fc9ae1f0",
+          "bytes": 13191
+        },
+        "artifact.json": {
+          "path": "next-release-validation/vscode-public-readback/artifact.json",
+          "digest": "sha256:3743614c1a7129534256fbd126422118e9bacb8e431b976401b37d440eee00ce",
+          "bytes": 737
+        },
+        "response-records.json": {
+          "path": "next-release-validation/vscode-public-readback/response-records.json",
+          "digest": "sha256:4f9cdd0e01caae1bf0242bf012dd7b3562a54bdb8a5cd17dc7d1b00530149205",
+          "bytes": 1860
+        }
+      },
+      "publicVsixDigest": "sha256:505b95e7fe2dbfae329600400046d1ea3e916b58068b4b1eaec980915abfb720",
+      "officialCandidateBytesMatch": true
     },
     "jetbrains": {
       "workflowRunId": "39104011767",
       "workflowUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/39104011767",
-      "statusObserved": "queued",
-      "conclusionObserved": "",
+      "statusObserved": "completed",
+      "conclusionObserved": "success",
       "runArchive": {
         "path": "next-release-validation/jetbrains-publication-39104011767-initial.json.gz",
         "digest": "sha256:e845edf39bac1564ccc6fe6e2bbffb27251e28c8ed549d41be82f7658eb0b929",
@@ -577,8 +630,53 @@
         "digest": "sha256:b29e6cb47cbcfd091d6a98669338ecd6fa350b91e6e84c8af54d0f65a73dcbd8",
         "bytes": 2964
       },
-      "publicFetchVerified": false
+      "publicFetchVerified": false,
+      "jobsSuccessful": 13,
+      "finalRunArchive": {
+        "path": "next-release-validation/jetbrains-publication-39104011767-final.json.gz",
+        "digest": "sha256:29ab9f14c1801d74414dee801f49b8a34deb1a26b77b309e730796194c779466",
+        "bytes": 3492
+      },
+      "uploadSucceeded": true,
+      "marketplacePublicMetadataReady": false,
+      "publicListingCheck": {
+        "path": "next-release-validation/jetbrains-public-listing-20261018T070120Z-check.json",
+        "digest": "sha256:cf54ddcecd7905303e7ddf891adf0394e8cdd9854ce773864bebd998d5c51d7a",
+        "bytes": 574
+      },
+      "scope": "The workflow permits a reachable pending listing; successful upload/post-check is not proof of an approved publicly fetchable plugin."
     },
-    "observedAt": "2026-10-18T06:27:17.908574+00:00"
+    "observedAt": "2026-10-18T07:01:20.725876+00:00",
+    "documentationFollowup": {
+      "commit": "e4b30a8cb8f3281be12f5f04ebde66ab97f8b999",
+      "files": 13,
+      "markdownOnly": true,
+      "publishedArtifactSourceUnchanged": "d4065008bb4eff84cfc09f9361f4ae4e9de2140f",
+      "localValidation": {
+        "prettier": "PASSED",
+        "requiredDocumentSections": "315 documents passed",
+        "diffCheck": "PASSED"
+      },
+      "duplicateAutomaticChecks": {
+        "path": "next-release-validation/documentation-ci-trim-e4b30a8cb8.json",
+        "digest": "sha256:03fdd3a65619cbc8b54fb8932e8efa294718dff32d56de364fdf189304bf239f",
+        "bytes": 7061
+      },
+      "mergeProtectedContextsPreserved": [
+        "PDH Data Hub Tests (ubuntu-latest)",
+        "PDH Data Hub Tests (windows-latest)",
+        "Quality Gate",
+        "Run All Tests (ubuntu-latest)",
+        "Run All Tests (windows-latest)",
+        "Lint & Format Check"
+      ],
+      "allPublishedSourceMatricesRemainSuccessful": true,
+      "normalAutoMergeRequested": true,
+      "autoMergeEnabledAt": "2026-10-18T07:02:04Z",
+      "mergeMethod": "MERGE",
+      "mergeStillPendingRequiredChecks": true,
+      "mergeRequiresJetBrainsListing": false,
+      "reason": "All release workflows succeeded; market listing remains an external availability gate for native retesting. User authorized publication before merge. Normal branch protection remains enforced and the verified release tags do not move."
+    }
   }
 }

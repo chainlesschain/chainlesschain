@@ -1,0 +1,30 @@
+{
+  "schema": "chainlesschain.vscode-only-public-readback/v1",
+  "status": "VERIFIED_PUBLIC_VSCODE_ONLY",
+  "version": "0.37.150",
+  "recommendedCliVersion": "0.166.105",
+  "releaseSourceCommit": "d4065008bb4eff84cfc09f9361f4ae4e9de2140f",
+  "workflowRun": "https://github.com/chainlesschain/chainlesschain/actions/runs/39104012121",
+  "artifactId": 12127523866,
+  "publicVsixDigest": "sha256:505b95e7fe2dbfae329600400046d1ea3e916b58068b4b1eaec980915abfb720",
+  "publicVsixBytes": 720635,
+  "officialManifestDigest": "sha256:ba3ebd02eeefb28145d409aff5a9e6f2649031c3219380fbaf7ecb9c9a078ae4",
+  "officialCandidateBytesMatch": true,
+  "checks": {
+    "packageVersion": "0.37.150",
+    "manifestVersion": "0.37.150",
+    "recommendedCliVersion": "0.166.105",
+    "packageManifestDigest": "sha256:b59638ab53766ec3fcb0d478d79d8a601003a5ea1c87f91af3e4c719f1da89d4",
+    "vsixManifestDigest": "sha256:6fe3a9d5829e5b890c04e9c4bc55adb2c25f5ad0a5484cbbcbf571f72b0891a9"
+  },
+  "jetbrainsPublicationVerified": false,
+  "microsoftMarketplacePublicationVerified": false,
+  "newVersionTaskRetest": "NOT_RUN",
+  "limitations": [
+    "VS Code/Open VSX only; JetBrains and Microsoft Marketplace publication are not verified.",
+    "No package installation, module execution, IDE startup, candidate execution, or model request.",
+    "No full three-package manifest or new-version task acceptance is created.",
+    "GitHub artifact/API and HTTPS byte bindings are verified; no additional publisher signature is asserted."
+  ],
+  "verifiedAt": "2026-10-18T06:58:22.093241+00:00"
+}
