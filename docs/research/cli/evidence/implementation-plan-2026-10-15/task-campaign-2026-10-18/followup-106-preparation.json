@@ -1,7 +1,7 @@
 {
   "schema": "chainlesschain.task-quality-next-version-preparation/v1",
   "recordedAt": "2026-10-18T08:16:55.683049+00:00",
-  "status": "FINAL_SOURCE_COMMITTED_OFFICIAL_RELEASE_GATES_IN_PROGRESS",
+  "status": "RELEASE_GATE_README_CONTRACT_FIX_PENDING_NEW_SOURCE",
   "billingAssessed": false,
   "sourceCommit": "4317bf01a48a7ec612e12000936a81851c6febf3",
   "pullRequest": "https://github.com/chainlesschain/chainlesschain/pull/462",
@@ -90,5 +90,7 @@
   },
   "roundChainRegistered": true,
   "acceptedExportIndex": "next-package-105-20261018-accepted-deliverables.json",
-  "publicReadbackToolsValidation": "next-release-validation/public-readback-generic-tool-validation.json"
+  "publicReadbackToolsValidation": "next-release-validation/public-readback-generic-tool-validation.json",
+  "latestOfficialFailure": "next-release-validation/followup-106-vscode-contract-failure-review.json",
+  "sourceCommitFailedGate": "4317bf01a48a7ec612e12000936a81851c6febf3"
 }

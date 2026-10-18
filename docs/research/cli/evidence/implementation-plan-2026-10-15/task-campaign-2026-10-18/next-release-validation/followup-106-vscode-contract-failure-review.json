@@ -1,0 +1,68 @@
+{
+  "schema": "chainlesschain.release-gate-followup/v1",
+  "recordedAt": "2026-10-18T09:01:15.592143+00:00",
+  "failedSourceCommit": "4317bf01a48a7ec612e12000936a81851c6febf3",
+  "runId": "39111986483",
+  "jobId": "117630019848",
+  "officialSummary": {
+    "tests": 275,
+    "passed": 274,
+    "failed": 1
+  },
+  "originalFailure": "README candidate version table and pinned installation/artifact examples conflict with the strict package-version coherence contract.",
+  "packagingReached": false,
+  "fixStatus": "README_CORRECTED_NOT_YET_COMMITTED",
+  "changedProductFiles": [
+    "packages/vscode-extension/README.md"
+  ],
+  "localTargetedPassed": 4,
+  "validatorUnchanged": true,
+  "schemaUnchanged": true,
+  "taskAcceptanceUnchanged": true,
+  "modelsCalled": 0,
+  "scope": "Current source package examples target 151/106, conditional on publication/readback. Public 150/105 facts and upgrade guide remain. Official failed source is preserved and cannot qualify publication.",
+  "evidence": [
+    {
+      "source": "job.log",
+      "path": "followup-106-vscode-contract-job.log.gz",
+      "originalDigest": "sha256:eee56426f7edaf7d4af4c39a618e33c6736a401ca255f71cdc68b604fffad093",
+      "storedDigest": "sha256:e843768700b5517bc6438d0a296dd8cae24c8ca06c6d13bcf6726349666d8b25"
+    },
+    {
+      "source": "job.json",
+      "path": "followup-106-vscode-contract-job.json.gz",
+      "originalDigest": "sha256:291d19f4eacf52b66de70022fa8d764eb23034d918605fb8f9a5118e7e5bcfff",
+      "storedDigest": "sha256:b034b39e1363ef8f032e46b4f072404fb6fc0c2e91ab43379e51a08791f48f27"
+    },
+    {
+      "source": "run.json",
+      "path": "followup-106-vscode-contract-run.json.gz",
+      "originalDigest": "sha256:559bd6132d08fabbd16aebcd98e02cbd47e89fae1e722c31732a4291d422a0e0",
+      "storedDigest": "sha256:e313d44c2dfe8f81e6fd716f41939a1433af04c1236a7ea39ca2485d1129fef3"
+    },
+    {
+      "source": "artifacts.json",
+      "path": "followup-106-vscode-contract-artifacts.json.gz",
+      "originalDigest": "sha256:3466cec117683b550d06f3193d45b67dc60cb84e29ef0a7ad36aa8c01b7e1b46",
+      "storedDigest": "sha256:39c6a368740b83ca56fced00a252a4cdb091f2a7302c06f30baca0de874a9740"
+    },
+    {
+      "source": "diagnosis.json",
+      "path": "followup-106-vscode-contract-diagnosis.json.gz",
+      "originalDigest": "sha256:8f7e140db9e9ee339420a8ef854d1951f36a1f43ae9dc99286040476e656cb6c",
+      "storedDigest": "sha256:12f00fd2c0312aca6a177ebd9e37c09eed540058a0dc054aa6cc197ee995ec81"
+    },
+    {
+      "source": "fixed-marketplace-overview-test.log",
+      "path": "followup-106-vscode-contract-fixed-marketplace-overview-test.log.gz",
+      "originalDigest": "sha256:da0e6e334ad6a416575e7bc1dd4e6fb7f5e4d443be00601830d8c4ffd78ab343",
+      "storedDigest": "sha256:d6fdc6e5639ac9474e9a7b0687e2d655ab67004951d73b32b936c429345aff63"
+    },
+    {
+      "source": "table-only-test.log",
+      "path": "followup-106-vscode-contract-table-only-test.log.gz",
+      "originalDigest": "sha256:56f4911947175d252614711f0933284967f6e04658aee1fa8b2b52f1065a1967",
+      "storedDigest": "sha256:d9832fb1d6c7ade66bf98fecd1bc1f65e460be4ffb77919b925781df8e470c25"
+    }
+  ]
+}

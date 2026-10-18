@@ -2,7 +2,9 @@
 
 当前公开包补测使用 CLI **0.166.105**、VS Code **0.37.150**、JetBrains **0.4.167**。[本轮账本](./next-package-105-20261018.json) 已完整收取生成 **20/20**、独立验收 **20/20**，新增 **6** 项候选及全流程通过。累计候选合格 **31/45**（普通 **26/36**、首次 **5/9**），剩余 **14** 项；完整性严格校验通过，原生任务没有重复派发。逐项及原因见[本轮复核](./next-package-105-20261018-review.json)，状态 `COMPLETED` 表示证据收齐。
 
-下一候选 **.106/.151/.168** 的代码和版本信息已提交至最终候选 `4317bf01a4`，见 [PR #462](https://github.com/chainlesschain/chainlesschain/pull/462) 和[准备记录](./followup-106-preparation.json)。CLI 聚焦回归 **58** 项、JetBrains 聚焦回归 **38** 项通过；通用边界指导已根据真实失败补全，最终提交的正式跨系统门禁进行中。候选尚未发布，也未进行新版模型补测。Windows JetBrains 的 ACL 遍历和校验超时仍未定位，单独分支的有界阶段诊断未纳入本次发行源码；本地未复现不能证明问题解决。
+下一候选 **.106/.151/.168** 见 [PR #462](https://github.com/chainlesschain/chainlesschain/pull/462) 和[准备记录](./followup-106-preparation.json)。CLI 聚焦回归 **58** 项、JetBrains 聚焦回归 **38** 项通过，通用边界指导已根据真实失败补全。候选 `4317bf01a4` 的正式 ARM64 工作流有一项 VS Code README 发行一致性检查失败，原始汇总 **274/275** 通过，未进入 VSIX 打包；[原失败与修复证据](./next-release-validation/followup-106-vscode-contract-failure-review.json) 保留，README 定向检查 **4/4** 通过，校验器及验收规则未改。正在准备新的完整发行提交，其正式跨系统门禁必须重新验证。候选尚未发布，也未进行新版模型补测。
+
+Windows JetBrains 的 ACL 遍历和校验超时仍未定位，单独分支的有界阶段诊断未纳入本次发行源码；本地未复现不能证明问题解决。已另用真实 JDK 子进程复现插件 ACL 助手的未用 stdin 未关闭、成功路径输出未完全读完的问题，正在做最小有界修复；通用生命周期缺陷不能直接解释原先 30 秒超时。
 
 新增合格为 `verify-12`、`verify-14`、`verify-32`、`first-run-linux-jetbrains`、`first-run-linux-vscode` 和 `first-run-darwin-vscode`。已将完整轮次摘要登记至[累计轮次链](./next-package-round-chain.json)，新计划会严格排除全部 31 项合格样本。可下载[31 项交付包](./next-package-105-20261018-accepted-deliverables.tar.gz)及[索引](./next-package-105-20261018-accepted-deliverables.json)，原 25 项产物和收据按字节复用，原包保持不变；打包没有重新执行模型或候选测试。累计跨版本的文件合格与原生全流程结论分别保留。
 
