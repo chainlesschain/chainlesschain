@@ -53,9 +53,65 @@
       "remoteStatus": "in_progress",
       "conclusion": null,
       "activeJobs": [
-        "Native linux-cli (selected samples)"
+        "Linux acceptance of linux-cli deliveries"
       ],
-      "evidence": []
+      "evidence": [
+        {
+          "stage": "generation",
+          "originalArtifactPath": "first-run-linux-cli/candidate/packages/cli/__tests__/verify-04.test.js",
+          "archived": {
+            "path": "latest-package-round/39087910738/generation/first-run-linux-cli/candidate/packages/cli/__tests__/verify-04.test.js.gz",
+            "originalDigest": "sha256:d7a924788c0d2de2f22301a279cd47681d5c3248cd7e7947f5c23928df60d1cf",
+            "storedDigest": "sha256:b11f5725f2fa4ab3ca0b6a9845dcf09d958caa9356a9835ba081434e4b013081",
+            "originalBytes": 5372
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "package-set.json",
+          "archived": {
+            "path": "latest-package-round/39087910738/generation/package-set.json.gz",
+            "originalDigest": "sha256:7eeb5433397a85c2bed67b5164e37bd0a44b9eec0da5ce34e821bb9e6e9952b2",
+            "storedDigest": "sha256:c5a455bb155ad86095f62babbcb7a8c4ab665a682de70a0ccd6dab302fa04387",
+            "originalBytes": 1095
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "verify-04/candidate/packages/cli/__tests__/verify-04.test.js",
+          "archived": {
+            "path": "latest-package-round/39087910738/generation/verify-04/candidate/packages/cli/__tests__/verify-04.test.js.gz",
+            "originalDigest": "sha256:9b4a9e71063bda369e306d1972ef3622bbf7627467d9abc3755b6c92509cc4fe",
+            "storedDigest": "sha256:81134896f511162ea7eedf09604117712d8cb3b53a3a44a8e3af6f83f39a843d",
+            "originalBytes": 5819
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "verify-13/candidate/packages/cli/__tests__/verify-13.test.js",
+          "archived": {
+            "path": "latest-package-round/39087910738/generation/verify-13/candidate/packages/cli/__tests__/verify-13.test.js.gz",
+            "originalDigest": "sha256:6c72221358daf3d55fb46faf369f313c5b029e10ea9e6fde2f8a84b8256cf605",
+            "storedDigest": "sha256:0307158aa66d9a893250be0c29efb31955c68ebd700bfba3496b4b36dfe9eb9d",
+            "originalBytes": 4119
+          }
+        }
+      ],
+      "generation": {
+        "artifactId": 12121692167,
+        "artifactName": "verify01-native-subset-delivery-linux-cli-8d5386c7483eac43e522b220d305660cd8ca6965",
+        "rawSummary": {
+          "path": "latest-package-round/39087910738/generation/summary.json.gz",
+          "originalDigest": "sha256:4c927ddd6d4d536f7ec5311c9308d63cc84faae34287a2165736b23c6931ac12",
+          "storedDigest": "sha256:6906046ba7b3c27db4c68541aebdf4406b246be9ddbb84c3b9915662a2d89e48",
+          "originalBytes": 224753
+        },
+        "sampleIds": [
+          "first-run-linux-cli",
+          "verify-04",
+          "verify-13"
+        ]
+      }
     },
     {
       "group": "linux-vscode",
@@ -133,7 +189,112 @@
       "activeJobs": [
         "Native darwin-vscode (selected samples)"
       ],
-      "evidence": []
+      "evidence": [
+        {
+          "stage": "generation",
+          "originalArtifactPath": "first-run-darwin-vscode/candidate/packages/cli/__tests__/verify-08.test.js",
+          "archived": {
+            "path": "latest-package-round/39087946196/generation/first-run-darwin-vscode/candidate/packages/cli/__tests__/verify-08.test.js.gz",
+            "originalDigest": "sha256:565df2b9be0b518f1f7b7e41474416976d25aebcfb374c57547deb958162102e",
+            "storedDigest": "sha256:3d302a1386c168dd96e879e2b5d4c0fdd62bc00df70c7163a147d8e618b9f900",
+            "originalBytes": 4471
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "first-run-darwin-vscode/capture/terminal.json",
+          "archived": {
+            "path": "latest-package-round/39087946196/generation/first-run-darwin-vscode/capture/terminal.json.gz",
+            "originalDigest": "sha256:8ff43b195bfd91b7a518db2821a5d48f7d6648fd4c0029be671b394b3ae7e095",
+            "storedDigest": "sha256:daf04a20743d1b05f2156b20066568be254ca47c6d43ff133ce4c8a34ef230a2",
+            "originalBytes": 8439
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "first-run-darwin-vscode/capture/vscode-initial.json",
+          "archived": {
+            "path": "latest-package-round/39087946196/generation/first-run-darwin-vscode/capture/vscode-initial.json.gz",
+            "originalDigest": "sha256:0b27bb47dae700773c33ab2b22f1339dc53cc4840396ef19bb79c3ba2abbbbfa",
+            "storedDigest": "sha256:986095e2073197c4ca6dc77eada6498b61a412d1f48c6d2ea970c976ac5d2ff4",
+            "originalBytes": 72029
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "first-run-darwin-vscode/capture/vscode-restart.json",
+          "archived": {
+            "path": "latest-package-round/39087946196/generation/first-run-darwin-vscode/capture/vscode-restart.json.gz",
+            "originalDigest": "sha256:373b1b5a8e819e08d01a017695f492d09a9d9c4527e01b6e714a2288f50d606a",
+            "storedDigest": "sha256:97bebad0cf8f2168e8f30a3db2bde7ee76cabb10eec13adb051a5ffaa3df8a9e",
+            "originalBytes": 32414
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "package-set.json",
+          "archived": {
+            "path": "latest-package-round/39087946196/generation/package-set.json.gz",
+            "originalDigest": "sha256:7eeb5433397a85c2bed67b5164e37bd0a44b9eec0da5ce34e821bb9e6e9952b2",
+            "storedDigest": "sha256:c5a455bb155ad86095f62babbcb7a8c4ab665a682de70a0ccd6dab302fa04387",
+            "originalBytes": 1095
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "verify-08/candidate/packages/cli/__tests__/verify-08.test.js",
+          "archived": {
+            "path": "latest-package-round/39087946196/generation/verify-08/candidate/packages/cli/__tests__/verify-08.test.js.gz",
+            "originalDigest": "sha256:5f7fee0b550fa39d909e847105f457cae7347c93bc6fbe233314a8a2b727efc2",
+            "storedDigest": "sha256:8ebd724d799d66837696f1dc6579e5c2906ddcf31542494d60571831596b7664",
+            "originalBytes": 6275
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "verify-08/capture/terminal.json",
+          "archived": {
+            "path": "latest-package-round/39087946196/generation/verify-08/capture/terminal.json.gz",
+            "originalDigest": "sha256:26642d8af0a6b450d814c103d1788c2de255921b686539e9f5b61a9d963fd27c",
+            "storedDigest": "sha256:d8df3a97123058cbb97b90c87a9e3269b67a801f941eed17608c53539fd310ff",
+            "originalBytes": 7770
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "verify-08/capture/vscode-initial.json",
+          "archived": {
+            "path": "latest-package-round/39087946196/generation/verify-08/capture/vscode-initial.json.gz",
+            "originalDigest": "sha256:775d2f6a496cd93be0f7c4ad48ddf956ee7477272755e4632e610fc1e1afd2b7",
+            "storedDigest": "sha256:e52e327bc79bcaec5d6a92ac14177e8a3c60e89e4e5a514150d0bc424187fcb9",
+            "originalBytes": 106244
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "verify-08/capture/vscode-restart.json",
+          "archived": {
+            "path": "latest-package-round/39087946196/generation/verify-08/capture/vscode-restart.json.gz",
+            "originalDigest": "sha256:fb44d18fc088e2765721e07f6f419d4b4cf631cb8d0f8df4ff394ec8bb4a43ae",
+            "storedDigest": "sha256:b79ca5fef7a964e2604de4b1ba7028e4357c6965dbb53eccb783ab8792ecf4dd",
+            "originalBytes": 30637
+          }
+        }
+      ],
+      "generation": {
+        "artifactId": 12121866391,
+        "artifactName": "verify01-native-subset-delivery-darwin-vscode-8d5386c7483eac43e522b220d305660cd8ca6965",
+        "rawSummary": {
+          "path": "latest-package-round/39087946196/generation/summary.json.gz",
+          "originalDigest": "sha256:453f7177247b85f037b44eb2295c6cec4725443bd39b3a01674aa4c349d0bd8f",
+          "storedDigest": "sha256:eed7ba295f39fc24bb043b5ce381102a1039d2f18683b8806f3102f2a2d8729e",
+          "originalBytes": 276782
+        },
+        "sampleIds": [
+          "first-run-darwin-vscode",
+          "verify-08"
+        ]
+      }
     },
     {
       "group": "darwin-jetbrains",
@@ -343,9 +504,25 @@
       "taskId": "verify-04",
       "kind": "task",
       "group": "linux-cli",
-      "status": "PENDING_LATEST_EXECUTION",
+      "status": "AWAITING_LATEST_ACCEPTANCE",
       "newModelGenerationRequired": true,
-      "latestPackageGenerationObserved": false
+      "latestPackageGenerationObserved": true,
+      "latestGenerationRunId": "39087910738",
+      "sourceSummaryDigest": "sha256:4c927ddd6d4d536f7ec5311c9308d63cc84faae34287a2165736b23c6931ac12",
+      "generationPassed": true,
+      "modelFailureCategory": null,
+      "brokerStatus": {
+        "physicalRequestsStarted": 9,
+        "usageCompleteRequests": 9,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": false
+      }
     },
     {
       "sampleId": "verify-05",
@@ -379,9 +556,25 @@
       "taskId": "verify-08",
       "kind": "task",
       "group": "darwin-vscode",
-      "status": "PENDING_LATEST_EXECUTION",
+      "status": "AWAITING_LATEST_ACCEPTANCE",
       "newModelGenerationRequired": true,
-      "latestPackageGenerationObserved": false
+      "latestPackageGenerationObserved": true,
+      "latestGenerationRunId": "39087946196",
+      "sourceSummaryDigest": "sha256:453f7177247b85f037b44eb2295c6cec4725443bd39b3a01674aa4c349d0bd8f",
+      "generationPassed": true,
+      "modelFailureCategory": null,
+      "brokerStatus": {
+        "physicalRequestsStarted": 6,
+        "usageCompleteRequests": 6,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": true
+      }
     },
     {
       "sampleId": "verify-09",
@@ -424,9 +617,25 @@
       "taskId": "verify-13",
       "kind": "task",
       "group": "linux-cli",
-      "status": "PENDING_LATEST_EXECUTION",
+      "status": "AWAITING_LATEST_ACCEPTANCE",
       "newModelGenerationRequired": true,
-      "latestPackageGenerationObserved": false
+      "latestPackageGenerationObserved": true,
+      "latestGenerationRunId": "39087910738",
+      "sourceSummaryDigest": "sha256:4c927ddd6d4d536f7ec5311c9308d63cc84faae34287a2165736b23c6931ac12",
+      "generationPassed": true,
+      "modelFailureCategory": null,
+      "brokerStatus": {
+        "physicalRequestsStarted": 7,
+        "usageCompleteRequests": 7,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": false
+      }
     },
     {
       "sampleId": "verify-14",
@@ -1245,9 +1454,25 @@
       "taskId": "verify-04",
       "kind": "first-run",
       "group": "linux-cli",
-      "status": "PENDING_LATEST_EXECUTION",
+      "status": "AWAITING_LATEST_ACCEPTANCE",
       "newModelGenerationRequired": true,
-      "latestPackageGenerationObserved": false
+      "latestPackageGenerationObserved": true,
+      "latestGenerationRunId": "39087910738",
+      "sourceSummaryDigest": "sha256:4c927ddd6d4d536f7ec5311c9308d63cc84faae34287a2165736b23c6931ac12",
+      "generationPassed": true,
+      "modelFailureCategory": null,
+      "brokerStatus": {
+        "physicalRequestsStarted": 10,
+        "usageCompleteRequests": 10,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": false
+      }
     },
     {
       "sampleId": "first-run-linux-vscode",
@@ -1281,9 +1506,25 @@
       "taskId": "verify-08",
       "kind": "first-run",
       "group": "darwin-vscode",
-      "status": "PENDING_LATEST_EXECUTION",
+      "status": "AWAITING_LATEST_ACCEPTANCE",
       "newModelGenerationRequired": true,
-      "latestPackageGenerationObserved": false
+      "latestPackageGenerationObserved": true,
+      "latestGenerationRunId": "39087946196",
+      "sourceSummaryDigest": "sha256:453f7177247b85f037b44eb2295c6cec4725443bd39b3a01674aa4c349d0bd8f",
+      "generationPassed": true,
+      "modelFailureCategory": null,
+      "brokerStatus": {
+        "physicalRequestsStarted": 11,
+        "usageCompleteRequests": 11,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": true
+      }
     },
     {
       "sampleId": "first-run-darwin-jetbrains",
@@ -1296,7 +1537,7 @@
     }
   ],
   "counts": {
-    "newGenerationRecordsCollected": 0,
+    "newGenerationRecordsCollected": 5,
     "newAcceptanceRecordsCollected": 0,
     "newCandidateAcceptancePassed": 0,
     "newEndToEndPassed": 0,
