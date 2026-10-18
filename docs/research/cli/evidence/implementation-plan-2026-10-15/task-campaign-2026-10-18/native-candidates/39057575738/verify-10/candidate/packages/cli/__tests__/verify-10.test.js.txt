@@ -1,0 +1,168 @@
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { loadBackgroundAgentListIndex } from "../src/lib/background-agent-list-index.js";
+
+let directory;
+
+function writeState(id, status = "completed") {
+  writeFileSync(
+    join(directory, `${id}.json`),
+    JSON.stringify({ id, startedAt: 1, status }),
+    "utf8",
+  );
+}
+
+function removeState(id) {
+  rmSync(join(directory, `${id}.json`), { force: true });
+}
+
+function reader() {
+  return vi.fn((id) =>
+    JSON.parse(readFileSync(join(directory, `${id}.json`), "utf8")),
+  );
+}
+
+/** Emulate pagination by chunking the full entries into pages of pageSize. */
+function paginate(entries, pageSize) {
+  const pages = [];
+  for (let i = 0; i < entries.length; i += pageSize) {
+    pages.push(entries.slice(i, i + pageSize));
+  }
+  return pages;
+}
+
+function assertPaginationMatches(entries, pageSize) {
+  const pages = paginate(entries, pageSize);
+  expect(pages.flat()).toEqual(entries);
+  if (entries.length > 0) {
+    expect(pages[pages.length - 1].length).toBeGreaterThan(0);
+  }
+}
+
+beforeEach(() => {
+  directory = mkdtempSync(join(tmpdir(), "cc-verify10-"));
+});
+
+afterEach(() => {
+  rmSync(directory, { recursive: true, force: true });
+});
+
+describe("background agent list index pagination invalidation regression", () => {
+  it("invalidates the index after a write so pagination reflects the added authority", () => {
+    writeState("bg-a");
+    writeState("bg-b");
+    const first = loadBackgroundAgentListIndex({
+      directory,
+      readState: reader(),
+    });
+    expect(first.source).toBe("rebuilt");
+    assertPaginationMatches(first.entries, 1);
+
+    writeState("bg-c", "running");
+    const afterWrite = loadBackgroundAgentListIndex({
+      directory,
+      readState: reader(),
+    });
+    expect(afterWrite.source).toBe("rebuilt");
+    expect(afterWrite.entries.map((e) => e.id)).toEqual([
+      "bg-a",
+      "bg-b",
+      "bg-c",
+    ]);
+    assertPaginationMatches(afterWrite.entries, 2);
+  });
+
+  it("invalidates the index after a delete so pagination drops the removed authority", () => {
+    writeState("bg-a");
+    writeState("bg-b");
+    writeState("bg-c");
+    const first = loadBackgroundAgentListIndex({
+      directory,
+      readState: reader(),
+    });
+    expect(first.entries).toHaveLength(3);
+
+    removeState("bg-b");
+    const afterDelete = loadBackgroundAgentListIndex({
+      directory,
+      readState: reader(),
+    });
+    expect(afterDelete.source).toBe("rebuilt");
+    expect(afterDelete.entries.map((e) => e.id)).toEqual(["bg-a", "bg-c"]);
+    assertPaginationMatches(afterDelete.entries, 2);
+  });
+
+  it("stays consistent after both write and delete in one mutation batch", () => {
+    writeState("bg-a");
+    writeState("bg-b");
+    writeState("bg-c");
+    loadBackgroundAgentListIndex({ directory, readState: reader() });
+
+    removeState("bg-b");
+    writeState("bg-d", "running");
+    writeState("bg-e");
+    const afterBatch = loadBackgroundAgentListIndex({
+      directory,
+      readState: reader(),
+    });
+    expect(afterBatch.source).toBe("rebuilt");
+    expect(afterBatch.entries.map((e) => e.id)).toEqual([
+      "bg-a",
+      "bg-c",
+      "bg-d",
+      "bg-e",
+    ]);
+    assertPaginationMatches(afterBatch.entries, 3);
+  });
+
+  it("reuses the cached index when the authority snapshot is unchanged", () => {
+    writeState("bg-a");
+    writeState("bg-b");
+    const first = loadBackgroundAgentListIndex({
+      directory,
+      readState: reader(),
+    });
+    expect(first.source).toBe("rebuilt");
+
+    const second = loadBackgroundAgentListIndex({
+      directory,
+      readState: reader(),
+    });
+    expect(second.source).toBe("index");
+    expect(second.entries).toEqual(first.entries);
+    assertPaginationMatches(second.entries, 2);
+  });
+
+  it("keeps the last page consistent when counts divide evenly", () => {
+    writeState("bg-a");
+    writeState("bg-b");
+    writeState("bg-c");
+    writeState("bg-d");
+    const result = loadBackgroundAgentListIndex({
+      directory,
+      readState: reader(),
+    });
+    expect(result.entries).toHaveLength(4);
+    const pages = paginate(result.entries, 2);
+    expect(pages).toHaveLength(2);
+    expect(pages[1].map((e) => e.id)).toEqual(["bg-c", "bg-d"]);
+  });
+
+  it("negative control: a stale cached index must never serve deleted authority", () => {
+    writeState("bg-a");
+    writeState("bg-b");
+    loadBackgroundAgentListIndex({ directory, readState: reader() });
+
+    removeState("bg-a");
+    const afterDelete = loadBackgroundAgentListIndex({
+      directory,
+      readState: reader(),
+    });
+    // Invalidation must fire; a stale index serving bg-a would be a regression.
+    expect(afterDelete.source).toBe("rebuilt");
+    expect(afterDelete.entries.map((e) => e.id)).toEqual(["bg-b"]);
+    assertPaginationMatches(afterDelete.entries, 1);
+  });
+});

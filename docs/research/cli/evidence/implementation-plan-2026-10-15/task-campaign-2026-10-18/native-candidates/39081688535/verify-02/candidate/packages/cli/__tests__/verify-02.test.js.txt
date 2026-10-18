@@ -1,0 +1,114 @@
+import { describe, expect, it } from "vitest";
+import { resolveModelCapabilityProfile } from "../src/lib/model-capabilities.js";
+
+// Independent regression coverage for precise model-capability lookup of the
+// documented OpenAI tool families (Astra/Sol/Luna). Exact identifiers map to
+// official documented specs; any other identifier (unknown suffix, prefix or
+// unrelated string) must never be certified as a documented tool model.
+
+const OFFICIAL_OPENAI_BASE_URL = "https://api.openai.com/v1";
+
+const ASTRA_SOL_LUNA = {
+  "gpt-6-astra": { advertisedMaxOutputTokens: 128000, contextWindowTokens: 1050000 },
+  "gpt-6-sol": { advertisedMaxOutputTokens: 128000, contextWindowTokens: 1050000 },
+  "gpt-6-luna": { advertisedMaxOutputTokens: 128000, contextWindowTokens: 1050000 },
+};
+
+describe("precise model capability lookup (Astra/Sol/Luna)", () => {
+  it("certifies each exact Astra/Sol/Luna identifier at the official endpoint", () => {
+    for (const [model, spec] of Object.entries(ASTRA_SOL_LUNA)) {
+      const profile = resolveModelCapabilityProfile({
+        provider: "openai",
+        model,
+        baseUrl: OFFICIAL_OPENAI_BASE_URL,
+      });
+      expect(profile.model).toBe(model);
+      expect(profile.windowSource).toBe("official-model-docs");
+      expect(profile.windowAssumed).toBe(false);
+      expect(profile.contextWindowTokens).toBe(spec.contextWindowTokens);
+      expect(profile.advertisedMaxOutputTokens).toBe(spec.advertisedMaxOutputTokens);
+      expect(profile.runtimeProtocol).toBe("openai-responses");
+      expect(profile.runtimeVerified).toBe(false);
+      expect(profile.sources.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("never treats an unknown suffix as a certified Astra/Sol/Luna tool model", () => {
+    for (const model of [
+      "gpt-6-astra-custom",
+      "gpt-6-sol-v2",
+      "gpt-6-luna-x",
+      "gpt-6-astra-extra",
+    ]) {
+      const profile = resolveModelCapabilityProfile({
+        provider: "openai",
+        model,
+        baseUrl: OFFICIAL_OPENAI_BASE_URL,
+      });
+      expect(profile.windowSource).toBe("provider-default");
+      expect(profile.windowAssumed).toBe(true);
+      expect(profile.advertisedMaxOutputTokens).toBeNull();
+      expect(profile.sources).toEqual([]);
+      expect(profile.runtimeProtocol).toBe("chat-completions");
+    }
+  });
+
+  it("does not infer a documented model from a longer or shorter name prefix", () => {
+    expect(
+      resolveModelCapabilityProfile({
+        provider: "openai",
+        model: "gpt-6-astra-",
+        baseUrl: OFFICIAL_OPENAI_BASE_URL,
+      }).windowSource,
+    ).toBe("provider-default");
+    expect(
+      resolveModelCapabilityProfile({
+        provider: "openai",
+        model: "gpt-6-ast",
+        baseUrl: OFFICIAL_OPENAI_BASE_URL,
+      }).windowSource,
+    ).toBe("provider-default");
+  });
+
+  it("keeps identities exact and does not rewrite case or whitespace into a match", () => {
+    for (const model of [
+      " gpt-6-sol",
+      "gpt-6-sol ",
+      "GPT-6-SOL",
+      "gpt-6-LUNA",
+    ]) {
+      const profile = resolveModelCapabilityProfile({
+        provider: "openai",
+        model,
+        baseUrl: OFFICIAL_OPENAI_BASE_URL,
+      });
+      expect(profile.windowSource).toBe("provider-default");
+      expect(profile.advertisedMaxOutputTokens).toBeNull();
+    }
+  });
+
+  it("does not certify Astra/Sol/Luna specs on a custom (non-official) endpoint", () => {
+    for (const model of ["gpt-6-sol", "gpt-6-luna", "gpt-6-astra"]) {
+      const profile = resolveModelCapabilityProfile({
+        provider: "openai",
+        model,
+        baseUrl: "https://gateway.example/v1",
+      });
+      expect(profile.windowSource).toBe("provider-default");
+      expect(profile.windowAssumed).toBe(true);
+      expect(profile.advertisedMaxOutputTokens).toBeNull();
+    }
+  });
+
+  it("only certifies exact documented identifiers, never arbitrary or prototype names", () => {
+    for (const model of ["__proto__", "constructor", "toString", "unknown-model"]) {
+      const profile = resolveModelCapabilityProfile({
+        provider: "openai",
+        model,
+        baseUrl: OFFICIAL_OPENAI_BASE_URL,
+      });
+      expect(profile.windowSource).toBe("provider-default");
+      expect(profile.advertisedMaxOutputTokens).toBeNull();
+    }
+  });
+});

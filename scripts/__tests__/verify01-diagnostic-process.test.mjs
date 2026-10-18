@@ -11,7 +11,47 @@ import {
   stopOwned,
   withinDeadline,
   windowsBatchInvocation,
+  preserveFailureDuringCleanup,
 } from "../lib/verify01-diagnostic-process.mjs";
+
+test("cleanup uncertainty preserves the original host failure and does not retry cleanup", async () => {
+  const primary = new Error("CLI ACL timeout-traversal");
+  let calls = 0;
+  await assert.rejects(
+    preserveFailureDuringCleanup(
+      async () => {
+        throw primary;
+      },
+      async () => {
+        calls++;
+        throw new Error("identity snapshot timeout");
+      },
+    ),
+    (error) =>
+      error === primary &&
+      error.message === "CLI ACL timeout-traversal" &&
+      error.cleanupFailure === "identity snapshot timeout" &&
+      error.cleanupUnconfirmed === true,
+  );
+  assert.equal(calls, 1);
+  await assert.rejects(
+    preserveFailureDuringCleanup(
+      async () => "success",
+      async () => {
+        throw new Error("owned tree remains");
+      },
+    ),
+    (error) =>
+      error.cleanupUnconfirmed && error.message === "owned tree remains",
+  );
+  assert.equal(
+    await preserveFailureDuringCleanup(
+      async () => "success",
+      async () => {},
+    ),
+    "success",
+  );
+});
 
 function root(t) {
   const directory = fs.mkdtempSync(
@@ -20,6 +60,48 @@ function root(t) {
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   return directory;
 }
+
+for (const budgetMs of [-1, 100])
+  test(
+    `bounded Windows cleanup (${budgetMs}ms) does not kill an unverified child or retain its event-loop reference`,
+    { skip: process.platform !== "win32" },
+    async (t) => {
+      const directory = root(t);
+      const handle = launchLogged(
+        process.execPath,
+        ["-e", "setTimeout(() => {}, 1500)"],
+        {
+          cwd: directory,
+          env: process.env,
+          logFile: path.join(directory, "budget.log"),
+        },
+      );
+      let unreferenced = false;
+      const unref = handle.child.unref.bind(handle.child);
+      handle.child.unref = () => {
+        unreferenced = true;
+        return unref();
+      };
+      await assert.rejects(
+        stopOwned(handle, {
+          requireRunningOwner: true,
+          cleanupDeadline: Date.now() + budgetMs,
+        }),
+        (error) =>
+          error.cleanupUnconfirmed &&
+          /deadline exceeded|ETIMEDOUT/u.test(error.message),
+      );
+      assert.equal(unreferenced, true);
+      assert.equal(handle.cleanupEvidence.confirmed, false);
+      assert.equal(handle.cleanupEvidence.taskkill, null);
+      const exit = await withinDeadline(
+        handle.done,
+        Date.now() + 10000,
+        "self-expiring test child",
+      );
+      assert.equal(exit.code, 0);
+    },
+  );
 
 test("actual child preserves arguments with spaces and drains logs", async (t) => {
   const directory = root(t);

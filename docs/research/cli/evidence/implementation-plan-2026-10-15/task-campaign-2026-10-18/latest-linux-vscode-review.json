@@ -1,0 +1,450 @@
+{
+  "schema": "chainlesschain.latest-linux-vscode-review/v1",
+  "scope": "Read-only existing evidence and frozen-source review. No model requests, test reruns or candidate edits.",
+  "runId": "39087921211",
+  "versions": {
+    "cli": "0.166.104",
+    "vscode": "0.37.149",
+    "jetbrains": "0.4.166",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "executionSourceCommit": "8d5386c7483eac43e522b220d305660cd8ca6965",
+  "frozenProjectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "summary": {
+    "generation": {
+      "path": "latest-package-round/39087921211/generation/summary.json.gz",
+      "originalDigest": "sha256:9ee7ba1e6e41feeda7f0dfb408120ec67355e651ba21a67ffba342dc71d56761",
+      "storedDigest": "sha256:1e361cf75f92b723fd2ac48433922044da7e488aa8b4b1e7b3587b3d3f1eb273",
+      "originalBytes": 588273,
+      "storedBytes": 102721
+    },
+    "acceptance": {
+      "path": "latest-package-round/39087921211/acceptance/summary.json.gz",
+      "originalDigest": "sha256:d712d2e11f18c1929c23aefdaa5268a097f279e934477153affc00218dcd73e6",
+      "storedDigest": "sha256:42992793974702a577212bd25742d6568a9be678402bb1397238c821e0adb090",
+      "originalBytes": 582674,
+      "storedBytes": 100796
+    }
+  },
+  "overview": {
+    "samples": 5,
+    "generationPassed": 5,
+    "hostPassed": 5,
+    "candidateAcceptancePassed": 2,
+    "endToEndPassed": 2,
+    "acceptedSampleIds": [
+      "verify-05",
+      "verify-23"
+    ]
+  },
+  "samples": [
+    {
+      "sampleId": "first-run-linux-vscode",
+      "taskId": "verify-05",
+      "generationPassed": true,
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": true
+      },
+      "sourceScopePassed": true,
+      "frozenSourceAssessment": {
+        "exact": true,
+        "contentVerified": true,
+        "filenameEncoding": "utf8"
+      },
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false,
+      "candidate": {
+        "path": "latest-package-round/39087921211/generation/first-run-linux-vscode/candidate/packages/cli/__tests__/verify-05.test.js.gz",
+        "originalDigest": "sha256:6fb7fd24ec8187c6655631a30e212db292ab4abf980a781434068a394f806c05",
+        "storedDigest": "sha256:a7d89c35aaf9d1db17bade37225f494df8c25f0cda1edc806b454b0cb09d0e93",
+        "originalBytes": 5250,
+        "storedBytes": 1804
+      },
+      "checker": {
+        "path": "latest-package-round/39087921211/acceptance/pack/acceptance-evidence/verify-05-check-a3f4dfb9-ba93-4f06-9c9d-fd839d2bb0e7.json.gz",
+        "pass": false,
+        "detail": "candidate tests did not reject the behavioral mutant",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 42,
+            "passed": 42,
+            "failed": 0
+          },
+          {
+            "kind": "candidate",
+            "total": 6,
+            "passed": 6,
+            "failed": 0
+          }
+        ],
+        "mutationOutcomes": [],
+        "executionCounts": [
+          {
+            "index": 1,
+            "exitCode": 0,
+            "total": 42,
+            "passed": 42,
+            "failed": 0
+          },
+          {
+            "index": 2,
+            "exitCode": 0,
+            "total": 6,
+            "passed": 6,
+            "failed": 0
+          },
+          {
+            "index": 4,
+            "exitCode": 0,
+            "total": 6,
+            "passed": 6,
+            "failed": 0
+          }
+        ],
+        "originalDigest": "sha256:8b284b87d85479c0f5f8ef850b1c48dbcdd747ce565afe820cabd513a745d5df",
+        "storedDigest": "sha256:fd2a489d987c8ff91437a1da2490fc868e61a4538846f5e47db270d88d344c40",
+        "originalBytes": 22929,
+        "storedBytes": 3000
+      },
+      "finding": "Candidate 6/6 passes but the behavioral mutant also passes 6/6. It checks dispatch/internal execution and API-positive preflight, but omits CLI-only assertDispatchAvailable refusal. Independent dispatch guards mask the weakened preflight.",
+      "oldRoundComparison": "Old candidate called nonexistent createAgentRouter and failed 4/5 cases. New candidate uses AgentRouter and passes its suite, but fails behavioral sensitivity."
+    },
+    {
+      "sampleId": "verify-05",
+      "taskId": "verify-05",
+      "generationPassed": true,
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": true
+      },
+      "sourceScopePassed": true,
+      "frozenSourceAssessment": {
+        "exact": true,
+        "contentVerified": true,
+        "filenameEncoding": "utf8"
+      },
+      "candidateAcceptancePassed": true,
+      "endToEndPassed": true,
+      "candidate": {
+        "path": "latest-package-round/39087921211/generation/verify-05/candidate/packages/cli/__tests__/verify-05.test.js.gz",
+        "originalDigest": "sha256:a73506ef592959542bc3f51887f1e8166f2124288e09bce9300f3ba088f5382b",
+        "storedDigest": "sha256:939be35685e432ab793ac89654af1446d7722dac81312a2c6f345e6f602c12a1",
+        "originalBytes": 4709,
+        "storedBytes": 1442
+      },
+      "checker": {
+        "path": "latest-package-round/39087921211/acceptance/pack/acceptance-evidence/verify-05-check-d0c5ec77-32fa-4002-a2ef-7639a0a78a74.json.gz",
+        "pass": true,
+        "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 42,
+            "passed": 42,
+            "failed": 0
+          },
+          {
+            "kind": "candidate",
+            "total": 6,
+            "passed": 6,
+            "failed": 0
+          }
+        ],
+        "mutationOutcomes": [
+          {
+            "total": 6,
+            "passed": 5,
+            "failed": 1
+          }
+        ],
+        "executionCounts": [
+          {
+            "index": 1,
+            "exitCode": 0,
+            "total": 42,
+            "passed": 42,
+            "failed": 0
+          },
+          {
+            "index": 2,
+            "exitCode": 0,
+            "total": 6,
+            "passed": 6,
+            "failed": 0
+          },
+          {
+            "index": 4,
+            "exitCode": 1,
+            "total": 6,
+            "passed": 5,
+            "failed": 1
+          }
+        ],
+        "originalDigest": "sha256:e469b8c67753fe512276e0133572c57440bce862dee7f5167259998bba5ed3f7",
+        "storedDigest": "sha256:c652c4e1790343da81c0648e88022c9e95545e8b3ca9d8780a8d2e0ee83b683b",
+        "originalBytes": 24324,
+        "storedBytes": 3367
+      },
+      "finding": "Baseline 42/42, candidate 6/6, and one behavioral mutant rejected (1 assertion fails). Native generation, restart, scope and independent acceptance all pass.",
+      "oldRoundComparison": "Old candidate contradicted the internal CLI refusal contract. The new delivery is independently accepted."
+    },
+    {
+      "sampleId": "verify-14",
+      "taskId": "verify-14",
+      "generationPassed": true,
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": true
+      },
+      "sourceScopePassed": true,
+      "frozenSourceAssessment": {
+        "exact": true,
+        "contentVerified": true,
+        "filenameEncoding": "utf8"
+      },
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false,
+      "candidate": {
+        "path": "latest-package-round/39087921211/generation/verify-14/candidate/packages/cli/__tests__/verify-14.test.js.gz",
+        "originalDigest": "sha256:f80b0f6f6b877692908285d01207d0eaa5a75143acbcf26d9fe31bf8d20ef408",
+        "storedDigest": "sha256:04b8eec846dae408c23e40f1b6c966a05d846cbc7a8b45b1c26b22d112315d9c",
+        "originalBytes": 5449,
+        "storedBytes": 1984
+      },
+      "checker": {
+        "path": "latest-package-round/39087921211/acceptance/pack/acceptance-evidence/verify-14-check-a943ab63-83d5-48ae-aff9-bcf0166e7bf6.json.gz",
+        "pass": false,
+        "detail": "acceptance requires executed test cases",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 41,
+            "passed": 41,
+            "failed": 0
+          }
+        ],
+        "mutationOutcomes": [],
+        "executionCounts": [
+          {
+            "index": 1,
+            "exitCode": 0,
+            "total": 41,
+            "passed": 41,
+            "failed": 0
+          },
+          {
+            "index": 2,
+            "exitCode": 1,
+            "total": 0,
+            "passed": 0,
+            "failed": 0
+          }
+        ],
+        "originalDigest": "sha256:facab69e1317e59ba4a060d66155571c32d5ccc49b318b8a549cafcec2bffdf9",
+        "storedDigest": "sha256:01b83d945ba7e8c09ba6bf70cfe1af5a5e2f57c6a760182ad3be038d31e2b461",
+        "originalBytes": 16728,
+        "storedBytes": 2959
+      },
+      "finding": "Zero executed candidate tests: ../../src/lib/image-input.js resolves from packages/cli/__tests__ to packages/src/lib/image-input.js, not the frozen packages/cli/src/lib/image-input.js. Receipt reports Cannot find module. The separate ./helpers/image-file-fixtures.js import DOES resolve to an existing frozen file.",
+      "oldRoundComparison": "Same excess relative parent traversal as the old round; latest packages did not prevent recurrence."
+    },
+    {
+      "sampleId": "verify-23",
+      "taskId": "verify-23",
+      "generationPassed": true,
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": true
+      },
+      "sourceScopePassed": true,
+      "frozenSourceAssessment": {
+        "exact": true,
+        "contentVerified": true,
+        "filenameEncoding": "utf8"
+      },
+      "candidateAcceptancePassed": true,
+      "endToEndPassed": true,
+      "candidate": {
+        "path": "latest-package-round/39087921211/generation/verify-23/candidate/packages/cli/__tests__/verify-23.test.js.gz",
+        "originalDigest": "sha256:313357cac70ac6f7c67c96ba5e80c087d86cf9413a891b8545bbef45c054d546",
+        "storedDigest": "sha256:3867084d1baf1ddacb15baf274c231f75500f95d04204ea21f529dd70ba5e839",
+        "originalBytes": 6119,
+        "storedBytes": 1871
+      },
+      "checker": {
+        "path": "latest-package-round/39087921211/acceptance/pack/acceptance-evidence/verify-23-check-9f5eab23-3ff3-46e2-ac69-9bcfde945d24.json.gz",
+        "pass": true,
+        "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 30,
+            "passed": 30,
+            "failed": 0
+          },
+          {
+            "kind": "candidate",
+            "total": 6,
+            "passed": 6,
+            "failed": 0
+          }
+        ],
+        "mutationOutcomes": [
+          {
+            "total": 6,
+            "passed": 2,
+            "failed": 4
+          },
+          {
+            "total": 6,
+            "passed": 5,
+            "failed": 1
+          }
+        ],
+        "executionCounts": [
+          {
+            "index": 1,
+            "exitCode": 0,
+            "total": 30,
+            "passed": 30,
+            "failed": 0
+          },
+          {
+            "index": 2,
+            "exitCode": 0,
+            "total": 6,
+            "passed": 6,
+            "failed": 0
+          },
+          {
+            "index": 4,
+            "exitCode": 1,
+            "total": 6,
+            "passed": 2,
+            "failed": 4
+          },
+          {
+            "index": 6,
+            "exitCode": 1,
+            "total": 6,
+            "passed": 5,
+            "failed": 1
+          }
+        ],
+        "originalDigest": "sha256:949343b9627ff0152f06a1b2d07472ecaf37c5929026490ac9d6055f829b38fa",
+        "storedDigest": "sha256:5e37fe1afd613f11279a3773b68d69a49c8a3e7f05014a9cb5793dc56b649299",
+        "originalBytes": 28503,
+        "storedBytes": 3339
+      },
+      "finding": "Baseline 30/30, candidate 6/6, and both required behavioral mutants rejected (4 and 1 assertions fail). Native generation, restart, scope and independent acceptance all pass.",
+      "oldRoundComparison": "Old candidate asserted global completeness despite an incomplete fixture. New delivery passes its suite and required mutation checks."
+    },
+    {
+      "sampleId": "verify-32",
+      "taskId": "verify-32",
+      "generationPassed": true,
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": true
+      },
+      "sourceScopePassed": true,
+      "frozenSourceAssessment": {
+        "exact": true,
+        "contentVerified": true,
+        "filenameEncoding": "utf8"
+      },
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false,
+      "candidate": {
+        "path": "latest-package-round/39087921211/generation/verify-32/candidate/packages/vscode-extension/__tests__/verify-32.test.js.gz",
+        "originalDigest": "sha256:1943cb343fc759ab9728cc7d5c8b8f11637195f4a24d8029d5b899a6d0704fbe",
+        "storedDigest": "sha256:fd13b578a7735d0784fbdc539b4c61cc00c2ebfa7a44bd4be59932f62b198c47",
+        "originalBytes": 4262,
+        "storedBytes": 1164
+      },
+      "checker": {
+        "path": "latest-package-round/39087921211/acceptance/pack/acceptance-evidence/verify-32-check-0d735cd5-99bf-487b-8cd2-f062da7ad19f.json.gz",
+        "pass": false,
+        "detail": "candidate or baseline regression failed",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 13,
+            "passed": 13,
+            "failed": 0
+          }
+        ],
+        "mutationOutcomes": [],
+        "executionCounts": [
+          {
+            "index": 1,
+            "exitCode": 0,
+            "total": 13,
+            "passed": 13,
+            "failed": 0
+          },
+          {
+            "index": 2,
+            "exitCode": 1,
+            "total": 5,
+            "passed": 4,
+            "failed": 1
+          }
+        ],
+        "originalDigest": "sha256:383b7f3a3bb1636e6808ef57ea57721f81010a54976322d9077a4589d9c6e09f",
+        "storedDigest": "sha256:719518c325a477c69edf9e0219b01968ca3ade4658270e8c0307d36d37d70da2",
+        "originalBytes": 10434,
+        "storedBytes": 2219
+      },
+      "finding": "Candidate 4/5 passes. Final case cancels worker 0, creates worker 1, then sends completion to workers[0]. Frozen validate creates one worker per call; the settled old callback disposes late results. The current promise gets no completion and hits the 5-second deadline (receipt assertion duration approximately 5010ms). This is a candidate harness error, not evidence of a production cancellation defect.",
+      "oldRoundComparison": "Old candidate advanced fake timers by 1ms despite the 20ms frame minimum. New candidate uses a single-frame draw control without fake-timer advancement, avoiding that boundary rather than proving it fixed. Its new failure is wrong worker identity."
+    }
+  ],
+  "frozenSources": [
+    {
+      "commit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+      "path": "packages/cli/src/lib/agent-router.js",
+      "sha256": "sha256:8c6d1fa114372e120f91d5f11a8254b343e12ce87cbc6972eb57cf0f8602e296"
+    },
+    {
+      "commit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+      "path": "packages/vscode-extension/src/chat/image-preview-gate.js",
+      "sha256": "sha256:06e897b07a635c43e1a5a7c3da6047cc69dbfc7a61ff11e547c9484d7acbc413"
+    },
+    {
+      "commit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+      "path": "packages/cli/src/lib/image-input.js",
+      "sha256": "sha256:4283855c793164314a1c99587a41459d4aa82d54e93b2498f76c163e984aac9c"
+    },
+    {
+      "commit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+      "path": "packages/cli/__tests__/helpers/image-file-fixtures.js",
+      "sha256": "sha256:fdc99f77551574b6cbe3c4bb358ae12478f95813da3a0234b5f8e564cf661195"
+    }
+  ],
+  "oldRoundComparisonSource": {
+    "path": "linux-vscode-task-quality-review.json",
+    "sha256": "sha256:234c4c6a3a5fd54ef590f3ab8fafb30256009e97e76fd21bf7069c529823bbfd",
+    "generationRunId": "39055183659",
+    "acceptanceRunId": "39056177887"
+  },
+  "generalizableRecommendations": [
+    "Check relative imports from actual delivery paths and exported symbols against frozen source.",
+    "Track asynchronous fixture instance ownership; settle every operation and distinguish stale from current callbacks.",
+    "Review positive and negative public-contract coverage independently from ordinary passing tests. Do not reveal checker mutants or tailor answers by sample ID.",
+    "Separate observed delivery improvements from version causality: these samples do not establish a universal import or timing fix."
+  ],
+  "limits": [
+    "No corrected candidate was produced or executed.",
+    "No causal claim that package upgrade alone improved outcomes.",
+    "No sample-specific prompt or customized answer injection is proposed."
+  ]
+}

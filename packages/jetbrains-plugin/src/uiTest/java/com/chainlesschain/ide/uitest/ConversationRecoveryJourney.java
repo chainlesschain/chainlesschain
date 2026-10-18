@@ -75,7 +75,7 @@ final class ConversationRecoveryJourney {
         rows.sort(function(a,b){return a.start-b.start;});
         for (var i = 0; i < ids.size(); i++) {
             var c = field(views.get(ids.get(i)), 'conv');
-            tabList.push({id:String(field(c,'draftKey')), index:i, selected:i===index});
+            tabList.push({id:String(field(c,'draftKey')), index:i, selected:i===tabs.getSelectedIndex()});
         }
         JSON.stringify({
             initializationTimeoutSeconds:Number(java.lang.Class.forName('com.chainlesschain.ide.InputDispatch',true,loader)
@@ -101,6 +101,22 @@ final class ConversationRecoveryJourney {
         assertTrue(System.currentTimeMillis() < taskDeadline, "task-wide deadline expired");
         Object result = frame.callJs(SNAPSHOT, true);
         return JsonParser.parseString(String.valueOf(result)).getAsJsonObject();
+    }
+    /** Read the original conversation without selecting, sending, or restarting.
+     * Only failure diagnostics call this after a task deadline; the driver bounds
+     * the remote read separately and never treats it as a completed task. */
+    JsonObject snapshotForFailure(String tabId) {
+        // Snapshot IDs are stable draft keys, not the panel's transient view IDs.
+        String script = SNAPSHOT.replace("var index = tabs.getSelectedIndex(), view =",
+                "var index = -1; for (var j = 0; j < ids.size(); j++) { "
+                        + "var candidate = field(views.get(ids.get(j)), 'conv'); "
+                        + "if (String(field(candidate, 'draftKey')) === " + JSON.toJson(tabId)
+                        + ") index = j; } "
+                        + "if (index < 0) throw 'Original conversation missing'; var view =");
+        Object result = frame.callJs(script, true);
+        JsonObject snapshot = JsonParser.parseString(String.valueOf(result)).getAsJsonObject();
+        assertEquals(tabId, text(snapshot, "id"), "Failure snapshot must describe the original conversation");
+        return snapshot;
     }
     private static String text(JsonObject value, String key) { return value.get(key).getAsString(); }
     JsonObject waitFor(String label, Predicate<JsonObject> condition) throws Exception {
@@ -268,7 +284,7 @@ final class ConversationRecoveryJourney {
     private static String digest(byte[] bytes) throws Exception {
         return "sha256:" + java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(bytes));
     }
-    private JsonObject verifyInstalledArchive() throws Exception {
+    JsonObject verifyInstalledArchive() throws Exception {
         Object location = frame.callJs("String(Packages.com.intellij.ide.plugins.PluginManagerCore.getPlugin("
                 + "Packages.com.intellij.openapi.extensions.PluginId.getId('com.chainlesschain.ide')).getPluginPath());");
         Path installed = Paths.get(String.valueOf(location)).toRealPath();

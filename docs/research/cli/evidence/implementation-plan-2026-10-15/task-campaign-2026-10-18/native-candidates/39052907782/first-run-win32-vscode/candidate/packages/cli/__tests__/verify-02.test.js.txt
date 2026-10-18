@@ -1,0 +1,68 @@
+import { describe, expect, it } from "vitest";
+import { resolveModelCapabilityProfile } from "../src/lib/model-capabilities.js";
+
+const OFFICIAL_TOOL_MODELS = ["gpt-6-astra", "gpt-6-sol", "gpt-6-luna"];
+
+describe("verify-02: precise tool-model identification and unknown suffixes", () => {
+  it.each(OFFICIAL_TOOL_MODELS)(
+    "resolves the documented official tool target %s exactly at the official endpoint",
+    (model) => {
+      const profile = resolveModelCapabilityProfile({
+        provider: "openai",
+        model,
+        baseUrl: "https://api.openai.com/v1",
+      });
+      expect(profile).toMatchObject({
+        provider: "openai",
+        model,
+        contextWindowTokens: 1050000,
+        advertisedMaxOutputTokens: 128000,
+        runtimeProtocol: "openai-responses",
+        windowAssumed: false,
+        runtimeVerified: false,
+      });
+      expect(profile.reasoningEfforts).toContain("high");
+      expect(profile.sources).toContain(
+        "https://developers.openai.com/api/docs/guides/migrate-to-responses",
+      );
+    },
+  );
+
+  it.each(["gpt-6-astra-custom", "gpt-6-sol-future", "gpt-6-luna-rc1"])(
+    "does not certify an unknown suffix %s as a tool model",
+    (model) => {
+      const profile = resolveModelCapabilityProfile({
+        provider: "openai",
+        model,
+        baseUrl: "https://api.openai.com/v1",
+      });
+      expect(profile.model).toBe(model);
+      expect(profile.runtimeProtocol).toBe("chat-completions");
+      expect(profile.windowAssumed).toBe(true);
+      expect(profile.advertisedMaxOutputTokens).toBeNull();
+      expect(profile.sources).toEqual([]);
+    },
+  );
+
+  it("keeps identities exact so a case-variant is not treated as a certified model", () => {
+    for (const model of ["GPT-6-ASTRA", " gpt-6-sol", "gpt-6-luna "]) {
+      const profile = resolveModelCapabilityProfile({
+        provider: "openai",
+        model,
+      });
+      expect(profile.runtimeProtocol).toBe("chat-completions");
+      expect(profile.windowAssumed).toBe(true);
+      expect(profile.advertisedMaxOutputTokens).toBeNull();
+    }
+  });
+
+  it("does not downgrade an unknown suffix to a provider default window estimate", () => {
+    const profile = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-6-astra-unknown-suffix",
+    });
+    expect(profile.windowSource).toBe("provider-default");
+    expect(profile.runtimeVerified).toBe(false);
+    expect(profile.advertisedMaxOutputTokens).toBeNull();
+  });
+});

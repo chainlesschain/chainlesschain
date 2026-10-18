@@ -1,0 +1,110 @@
+// Independent regression coverage for official endpoint vs same-name custom
+// gateway isolation in model-context-catalog / model-capabilities.
+//
+// The "official" base URL (exactly https://api.openai.com/v1) resolves a model
+// against the documented catalog. Any other endpoint for that provider is a
+// custom gateway and must not inherit the official window, advertised output
+// cap, Responses protocol, sources, or authentication — even for an identical
+// model name. Undocumented models must remain unknown on either endpoint.
+import { describe, expect, it } from "vitest";
+import { resolveModelCapabilityProfile } from "../src/lib/model-capabilities.js";
+
+const OFFICIAL = "https://api.openai.com/v1";
+const CUSTOM = "https://gateway.example/v1";
+const OFFICIAL_MODEL = "gpt-6-astra";
+
+describe("official endpoint vs same-name custom gateway isolation", () => {
+  it("resolves the documented window only at the exact official endpoint", () => {
+    const profile = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: OFFICIAL_MODEL,
+      baseUrl: OFFICIAL,
+    });
+    expect(profile).toMatchObject({
+      contextWindowTokens: 1050000,
+      windowSource: "official-model-docs",
+      windowAssumed: false,
+      advertisedMaxOutputTokens: 128000,
+      runtimeProtocol: "openai-responses",
+    });
+    expect(profile.sources.length).toBeGreaterThan(0);
+  });
+
+  it("does not apply official limits to the same-name model at a custom gateway", () => {
+    const profile = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: OFFICIAL_MODEL,
+      baseUrl: CUSTOM,
+    });
+    expect(profile).toMatchObject({
+      contextWindowTokens: 128000,
+      windowSource: "provider-default",
+      windowAssumed: true,
+      advertisedMaxOutputTokens: null,
+      runtimeProtocol: "chat-completions",
+    });
+    expect(profile.sources).toEqual([]);
+  });
+
+  it("keeps the official and custom profiles separate for identical model names", () => {
+    const official = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: OFFICIAL_MODEL,
+      baseUrl: OFFICIAL,
+    });
+    const custom = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: OFFICIAL_MODEL,
+      baseUrl: CUSTOM,
+    });
+    expect(official.digest).not.toBe(custom.digest);
+    expect(official.profileId).not.toBe(custom.profileId);
+    expect(custom.sources).not.toEqual(official.sources);
+  });
+
+  it("never lets a custom gateway inherit official authentication from the official profile", () => {
+    const custom = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: OFFICIAL_MODEL,
+      baseUrl: CUSTOM,
+    });
+    // The custom profile carries no official documentation, advertised cap or
+    // Responses assumption — it stays an assumed planning estimate only.
+    expect(custom.advertisedMaxOutputTokens).toBeNull();
+    expect(custom.windowAssumed).toBe(true);
+    expect(custom.sources).toEqual([]);
+    expect(JSON.stringify(custom)).not.toContain("api.openai.com");
+    expect(JSON.stringify(custom)).not.toContain(CUSTOM);
+  });
+
+  it("keeps an undocumented model unknown at the official endpoint", () => {
+    const profile = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-6-astra-future",
+      baseUrl: OFFICIAL,
+    });
+    expect(profile).toMatchObject({
+      contextWindowTokens: 128000,
+      windowSource: "provider-default",
+      windowAssumed: true,
+      advertisedMaxOutputTokens: null,
+    });
+    expect(profile.sources).toEqual([]);
+  });
+
+  it("keeps an undocumented model unknown at a custom gateway too", () => {
+    const profile = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-6-astra-future",
+      baseUrl: CUSTOM,
+    });
+    expect(profile).toMatchObject({
+      contextWindowTokens: 128000,
+      windowSource: "provider-default",
+      windowAssumed: true,
+      advertisedMaxOutputTokens: null,
+      runtimeProtocol: "chat-completions",
+    });
+    expect(profile.sources).toEqual([]);
+  });
+});

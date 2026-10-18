@@ -1,0 +1,151 @@
+import { describe, expect, it } from "vitest";
+import {
+  createSessionHistoryOrigins,
+  HISTORY_PREFIX_SCHEMA,
+} from "../src/lib/session-history-origins.js";
+import {
+  HISTORY_SUMMARY_SCHEMA,
+  projectCheckpointSummary,
+} from "../src/lib/checkpoint-summary-projection.js";
+
+const head = "a".repeat(64);
+const forgedHead = "b".repeat(64);
+
+function prefixEvent(messages, retainedMessageCount) {
+  return {
+    prevHash: head,
+    data: {
+      action: "restore-conversation",
+      messages: messages.slice(0, retainedMessageCount),
+      historyPrefix: {
+        schema: HISTORY_PREFIX_SCHEMA,
+        sourceHead: head,
+        sourceMessageCount: messages.length,
+        retainedMessageCount,
+      },
+    },
+  };
+}
+
+function summaryEvent(messages) {
+  return {
+    prevHash: head,
+    data: {
+      action: "summary-from",
+      turnId: "selected",
+      historySummary: {
+        schema: HISTORY_SUMMARY_SCHEMA,
+        sourceHead: head,
+        sourceMessageCount: messages.length,
+        start: 0,
+        end: messages.length,
+      },
+      messages: projectCheckpointSummary({
+        messages,
+        action: "summary-from",
+        start: 0,
+        end: messages.length,
+        turnId: "selected",
+      }).map(({ message }) => message),
+    },
+  };
+}
+
+describe("history source tampering rejection", () => {
+  it("reads a correct un-tampered source identity back", () => {
+    const messages = [
+      { role: "assistant", content: "before" },
+      { role: "user", content: "cut" },
+      { role: "assistant", content: "after" },
+    ];
+    const rewindOrigins = createSessionHistoryOrigins();
+    rewindOrigins.snapshot(messages);
+    expect(rewindOrigins.rewind(prefixEvent(messages, 1), 3)).toBe(1);
+    const summaryOrigins = createSessionHistoryOrigins();
+    summaryOrigins.snapshot(messages);
+    expect(summaryOrigins.summarize(summaryEvent(messages))).toBe(true);
+  });
+
+  it("rejects a rewind whose source head does not match the event predecessor", () => {
+    const messages = [
+      { role: "assistant", content: "before" },
+      { role: "user", content: "cut" },
+      { role: "assistant", content: "after" },
+    ];
+    const origins = createSessionHistoryOrigins();
+    origins.snapshot(messages);
+    const tampered = prefixEvent(messages, 1);
+    tampered.prevHash = forgedHead;
+    expect(origins.rewind(tampered, 3)).toBeNull();
+  });
+
+  it("rejects a rewind whose retained message content was replaced", () => {
+    const messages = [
+      { role: "assistant", content: "before" },
+      { role: "user", content: "cut" },
+      { role: "assistant", content: "after" },
+    ];
+    const origins = createSessionHistoryOrigins();
+    origins.snapshot(messages);
+    const tampered = prefixEvent(messages, 1);
+    tampered.data.messages[0].content = "rewritten";
+    expect(origins.rewind(tampered, 3)).toBeNull();
+  });
+
+  it("rejects a rewind with a forged prefix schema or message count", () => {
+    const messages = [
+      { role: "assistant", content: "before" },
+      { role: "user", content: "cut" },
+      { role: "assistant", content: "after" },
+    ];
+    for (const tamper of [
+      (value) => {
+        value.data.historyPrefix.schema += "-unknown";
+      },
+      (value) => {
+        value.data.historyPrefix.sourceMessageCount = 2;
+      },
+    ]) {
+      const origins = createSessionHistoryOrigins();
+      origins.snapshot(messages);
+      const forged = prefixEvent(messages, 1);
+      tamper(forged);
+      expect(origins.rewind(forged, 3)).toBeNull();
+    }
+  });
+
+  it("rejects a summary certificate bound to a different source identity", () => {
+    const messages = [
+      { role: "assistant", content: "before" },
+      { role: "user", content: "cut" },
+      { role: "assistant", content: "after" },
+    ];
+    for (const tamper of [
+      (value) => {
+        value.data.historySummary.sourceHead = forgedHead;
+      },
+      (value) => {
+        value.data.historySummary.sourceMessageCount = 2;
+      },
+    ]) {
+      const origins = createSessionHistoryOrigins();
+      origins.snapshot(messages);
+      const forged = summaryEvent(messages);
+      tamper(forged);
+      expect(origins.summarize(forged)).toBe(false);
+    }
+  });
+
+  it("rejects a summary whose projected output content was tampered", () => {
+    const messages = [
+      { role: "assistant", content: "before" },
+      { role: "user", content: "cut" },
+      { role: "assistant", content: "after" },
+    ];
+    const origins = createSessionHistoryOrigins();
+    origins.snapshot(messages);
+    const forged = summaryEvent(messages);
+    forged.data.messages[0].content = "rewritten";
+    expect(origins.summarize(forged)).toBe(false);
+  });
+});

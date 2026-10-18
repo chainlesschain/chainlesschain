@@ -1,0 +1,118 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { randomUUID } from "node:crypto";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import {
+  ProcessOwnershipJournal,
+  PROCESS_OWNERSHIP_PENDING,
+  PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE,
+} from "../src/lib/process-execution-broker/process-ownership-journal.js";
+
+// Independent regression coverage for durable process-ownership journal
+// persistence semantics:
+//   1. A damaged journal must NOT be treated as idle (unavailable, never a
+//      green light for a fresh runtime).
+//   2. A legal, well-formed pending record must be retained across fresh
+//      instances (fences instead of being ignored as "nothing pending").
+// The source is read-only; only this deliverable is modified.
+
+const SCHEMA = "chainlesschain.process-ownership-journal/v1";
+
+function validPendingEntry(overrides = {}) {
+  return {
+    executionId: randomUUID(),
+    token: randomUUID(),
+    ownerPid: process.pid,
+    ...overrides,
+  };
+}
+
+// Create the authority directory exactly as the broker would and drop a
+// journal.json with the security-store ownership (0700 dir, 0600 single-link
+// file owned by this uid), so #read accepts the file long enough to validate
+// its contents. Returns the journal file path.
+function writeJournal(state, { chmod = 0o600 } = {}) {
+  const directory = path.join(root, "authority");
+  fs.mkdirSync(directory, { mode: 0o700 });
+  const file = path.join(directory, "journal.json");
+  fs.writeFileSync(file, JSON.stringify(state), { mode: chmod });
+  return file;
+}
+
+describe.skipIf(process.platform !== "linux")(
+  "verify-17: durable ownership journal persistence",
+  () => {
+    let root;
+    beforeEach(() => {
+      root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-verify-17-"));
+    });
+    afterEach(() => {
+      fs.rmSync(root, { recursive: true, force: true });
+    });
+
+    it("retains a legal pending record across fresh instances as a fence, not idle", () => {
+      const file = writeJournal({ schema: SCHEMA, pending: [validPendingEntry()] });
+      const saved = JSON.parse(fs.readFileSync(file));
+      const peer = new ProcessOwnershipJournal(path.dirname(file));
+      expect(() => peer.assertAvailable()).toThrow(
+        expect.objectContaining({ code: PROCESS_OWNERSHIP_PENDING }),
+      );
+      // The pending record must survive inspection unchanged.
+      expect(peer.inspect()).toEqual({
+        pendingExecutionIds: [saved.pending[0].executionId],
+        blocked: true,
+      });
+      expect(JSON.parse(fs.readFileSync(file)).pending).toHaveLength(1);
+    });
+
+    it("does not treat a malformed JSON journal as idle", () => {
+      const file = writeJournal("{not valid json");
+      const peer = new ProcessOwnershipJournal(path.dirname(file));
+      expect(() => peer.assertAvailable()).toThrow(
+        expect.objectContaining({ code: PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE }),
+      );
+    });
+
+    it("does not treat a wrong-schema journal as idle", () => {
+      const file = writeJournal({ schema: "old", pending: [] });
+      const peer = new ProcessOwnershipJournal(path.dirname(file));
+      expect(() => peer.assertAvailable()).toThrow(
+        expect.objectContaining({ code: PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE }),
+      );
+    });
+
+    it("does not treat a journal with an invalid entry as idle", () => {
+      const file = writeJournal({
+        schema: SCHEMA,
+        pending: [validPendingEntry({ ownerPid: 0 })],
+      });
+      const peer = new ProcessOwnershipJournal(path.dirname(file));
+      expect(() => peer.assertAvailable()).toThrow(
+        expect.objectContaining({ code: PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE }),
+      );
+    });
+
+    it("does not treat a journal with duplicate execution ids as idle", () => {
+      const duplicated = validPendingEntry();
+      const file = writeJournal({
+        schema: SCHEMA,
+        pending: [duplicated, { ...duplicated }],
+      });
+      const peer = new ProcessOwnershipJournal(path.dirname(file));
+      expect(() => peer.assertAvailable()).toThrow(
+        expect.objectContaining({ code: PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE }),
+      );
+    });
+
+    it("does not treat an oversized journal as idle", () => {
+      const file = path.join(root, "authority", "journal.json");
+      fs.mkdirSync(path.dirname(file), { mode: 0o700 });
+      fs.writeFileSync(file, " ".repeat(1024 * 1024 + 1), { mode: 0o600 });
+      const peer = new ProcessOwnershipJournal(path.dirname(file));
+      expect(() => peer.assertAvailable()).toThrow(
+        expect.objectContaining({ code: PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE }),
+      );
+    });
+  },
+);

@@ -1,0 +1,93 @@
+{
+  "schema": "chainlesschain.verify01-campaign-repair/v1",
+  "projectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "planDigest": "sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13",
+  "repairRound": 3,
+  "tasks": [
+    {
+      "taskId": "verify-10",
+      "sourceRun": "39048948861",
+      "sourceCommit": "121f904fa0d484788f8e4707c4c985e9a8f23b3a",
+      "sourceRound": 2,
+      "attemptKind": "seeded-repair",
+      "seed": {
+        "file": "packages/cli/scripts/fixtures/verify01-campaign-repair/verify-10-39048948861.test.txt",
+        "digest": "sha256:9c59e399e13240f92f75960fbc2d66c620a2b44f6e7aa7a4a064924851720ba4",
+        "deliverable": "packages/cli/__tests__/verify-10.test.js"
+      },
+      "feedback": {
+        "kind": "ordinary-checker-or-runtime",
+        "text": "The candidate suite failed before test cases could execute. Its ../../src import from packages/cli/__tests__/verify-10.test.js resolves outside packages/cli/src. Review the relative import and then check the fixture, ordering, and pagination assertions against the frozen implementation. Preserve meaningful write/delete invalidation controls and the original task acceptance.",
+        "digest": "sha256:88bdbe038c40616b63bbe4a74c30112ee1d4549bb218be6f6b0829392f51d382"
+      }
+    },
+    {
+      "taskId": "verify-19",
+      "sourceRun": "39048948861",
+      "sourceCommit": "121f904fa0d484788f8e4707c4c985e9a8f23b3a",
+      "sourceRound": 2,
+      "attemptKind": "seeded-repair",
+      "seed": {
+        "file": "packages/cli/scripts/fixtures/verify01-campaign-repair/verify-19-39048948861.test.txt",
+        "digest": "sha256:76e9b1487b90338ddfc85a4cc8151947ae2c23b0189aa16f45cb0e2c8845e774",
+        "deliverable": "packages/cli/__tests__/verify-19.test.js"
+      },
+      "feedback": {
+        "kind": "ordinary-checker-or-runtime",
+        "text": "The candidate suite failed before test cases could execute. Its ../../src import from packages/cli/__tests__/verify-19.test.js resolves outside packages/cli/src. Correct collection using the actual module path, verify the exported API, and retain positive original-request approval and negative stale/replayed approval controls from the original task.",
+        "digest": "sha256:389a2b3fd6deb150a48fafc845d257ebf8791b8d4357d92a3db893cd8cc230fd"
+      }
+    },
+    {
+      "taskId": "verify-20",
+      "sourceRun": "39048948861",
+      "sourceCommit": "121f904fa0d484788f8e4707c4c985e9a8f23b3a",
+      "sourceRound": 2,
+      "attemptKind": "seeded-repair",
+      "seed": {
+        "file": "packages/cli/scripts/fixtures/verify01-campaign-repair/verify-20-39048948861.test.txt",
+        "digest": "sha256:66113635e2f8fe50b1c3a9fec91b95cc7ba20178a5bf6d5d9e618937856a075c",
+        "deliverable": "packages/cli/__tests__/verify-20.test.js"
+      },
+      "feedback": {
+        "kind": "ordinary-checker-or-runtime",
+        "text": "The baseline passed, but the candidate regression suite failed. Two candidate cases populate permissionChain terminal outcome with the nonempty string no-match while asserting decision is null. The frozen buildPermissionDecision falls back to terminal.outcome when policy/approval decisions are absent, so those fixture/assertion pairs disagree with the implementation. Inspect the source and existing tests to construct valid missing/unknown controls while preserving explicit deny and never-allow assertions. Do not change source or checker code.",
+        "digest": "sha256:9d5195ad6bd436b6f5fb8d452c18f62a37bc3a12dc4f81fdc2042965954196f8"
+      }
+    },
+    {
+      "taskId": "verify-28",
+      "sourceRun": "39048948861",
+      "sourceCommit": "121f904fa0d484788f8e4707c4c985e9a8f23b3a",
+      "sourceRound": 2,
+      "attemptKind": "seeded-repair",
+      "seed": {
+        "file": "packages/cli/scripts/fixtures/verify01-campaign-repair/verify-28-39048948861.test.txt",
+        "digest": "sha256:1d2d7a05d1253b811341ddb560a4e7c090f35834dba73c77f1381b7de6e901e4",
+        "deliverable": "packages/vscode-extension/__tests__/verify-28.test.js"
+      },
+      "feedback": {
+        "kind": "ordinary-checker-or-runtime",
+        "text": "The baseline passed, but the candidate regression suite failed. Inspect fixture/API construction before interpreting any result as a source defect: the frozen DraftStore has a constructor and no static open method; QuestionDrafts.restore accepts one message and match requires questionInstance and id as well as conversation/draft bindings. The candidate omits those fields, passes a second ignored argument, and does not await restore. Its optional _archive call targets no method; archive is the actual method. Also ensure posted restore messages reach the test webview and selectors match the rendered form. Read supported fixtures in the frozen tests; use isolated temporary storage and cleanup. Preserve actual late-load versus fresh-edit behavior and select/checkbox declaration-order controls.",
+        "digest": "sha256:ea1d18590f6165f16cd327d7883bc13576c5d9045b5ed4ac247ac417d77e8ce7"
+      }
+    },
+    {
+      "taskId": "verify-29",
+      "sourceRun": "39048948861",
+      "sourceCommit": "121f904fa0d484788f8e4707c4c985e9a8f23b3a",
+      "sourceRound": 2,
+      "attemptKind": "seeded-repair",
+      "seed": {
+        "file": "packages/cli/scripts/fixtures/verify01-campaign-repair/verify-29-39048948861.test.txt",
+        "digest": "sha256:a27b715ceb36f94b2f25a24f86de902410f87bf92614c30cddb4c1b2396ac29e",
+        "deliverable": "packages/vscode-extension/__tests__/verify-29.test.js"
+      },
+      "feedback": {
+        "kind": "ordinary-checker-or-runtime",
+        "text": "The baseline passed, but the candidate regression suite failed. makeEvent uses a shallow spread: replacing permission_mode_state with a partial object discards correlation_id and other required ACK fields. The requested-mode/effective-mode/policy-revision negative cases therefore enter the stale-correlation ignore branch and leave status pending, contrary to their unconfirmed assertions. Construct fixtures that preserve valid unrelated binding fields so each negative case isolates its intended invalid field. Preserve stale correlation/session controls and the valid ACK control without changing source or checker code.",
+        "digest": "sha256:3d343f4a7ca6d9a023316514845607add5e668486cf78cd39c645c726ea958ea"
+      }
+    }
+  ]
+}

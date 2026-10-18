@@ -1,0 +1,125 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-16",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 25,
+      "passed": 25,
+      "failed": 0
+    },
+    {
+      "kind": "candidate",
+      "total": 5,
+      "passed": 5,
+      "failed": 0
+    }
+  ],
+  "mutations": [
+    {
+      "name": "ignore-opened-source-identity-change",
+      "sourceSha256": "709981bdfc6fb925c30df6d7b77f6b799c5688a464e7d6f9104abf773c932f87",
+      "total": 5,
+      "passed": 3,
+      "failed": 2
+    }
+  ],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 124,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 738,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":25,\"numPassedTests\":25,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1792255745697,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations derives immutable settings and digest from one descriptor's exact bytes\",\"status\":\"passed\",\"title\":\"derives immutable settings and digest from one descriptor's exact bytes\",\"duration\":6.129633999999982,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations binds missing directories and a future physical target instead of dropping a candidate\",\"status\":\"passed\",\"title\":\"binds missing directories and a future physical target instead of dropping a candidate\",\"duration\":1.8742539999999792,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations accepts atomic replacement between observations without pinning a permanent file inode\",\"status\":\"passed\",\"title\":\"accepts atomic replacement between observations without pinning a permanent file inode\",\"duration\":1.1494950000000017,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations rejects creation of a previously missing parent during the absence check\",\"status\":\"passed\",\"title\":\"rejects creation of a previously missing parent during the absence check\",\"duration\":0.9953130000000101,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations closes every opened descriptor even if a close fails, preserving the original read error\",\"status\":\"passed\",\"title\":\"closes every opened descriptor even if a close fails, preserving the original read error\",\"duration\":1.3122219999999913,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations rejects an in-place edit while the source is being inspected\",\"status\":\"passed\",\"title\":\"rejects an in-place edit while the source is being inspected\",\"duration\":0.7864230000000134,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations rejects a concurrent replacement or an OS refusal to perform it while the descriptor is open\",\"status\":\"passed\",\"title\":\"rejects a concurrent replacement or an OS refusal to perform it while the descriptor is open\",\"duration\":0.828678999999994,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations keeps logical directory aliases while checking the canonical physical parent\",\"status\":\"passed\",\"title\":\"keeps logical directory aliases while checking the canonical physical parent\",\"duration\":1.1697389999999928,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations rejects a directory alias rebound to another target during the read\",\"status\":\"passed\",\"title\":\"rejects a directory alias rebound to another target during the read\",\"duration\":1.1849710000000186,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations rejects hard links and directories as settings sources\",\"status\":\"passed\",\"title\":\"rejects hard links and directories as settings sources\",\"duration\":0.6100230000000124,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations rejects a real final file symlink\",\"status\":\"passed\",\"title\":\"rejects a real final file symlink\",\"duration\":0.5071539999999857,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations rejects a dangling parent link rather than accepting its source as missing\",\"status\":\"passed\",\"title\":\"rejects a dangling parent link rather than accepting its source as missing\",\"duration\":0.5184749999999951,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations only treats ENOENT as absence and preserves other filesystem failure classifications\",\"status\":\"passed\",\"title\":\"only treats ENOENT as absence and preserves other filesystem failure classifications\",\"duration\":0.656093999999996,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations bounds both a declared large file and growth after opening\",\"status\":\"passed\",\"title\":\"bounds both a declared large file and growth after opening\",\"duration\":0.724380999999994,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations rejects invalid UTF-8, malformed JSON or a non-object top level (0)\",\"status\":\"passed\",\"title\":\"rejects invalid UTF-8, malformed JSON or a non-object top level (0)\",\"duration\":0.5729489999999942,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations rejects invalid UTF-8, malformed JSON or a non-object top level (1)\",\"status\":\"passed\",\"title\":\"rejects invalid UTF-8, malformed JSON or a non-object top level (1)\",\"duration\":0.43484799999998813,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations rejects invalid UTF-8, malformed JSON or a non-object top level (2)\",\"status\":\"passed\",\"title\":\"rejects invalid UTF-8, malformed JSON or a non-object top level (2)\",\"duration\":0.42152999999998997,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations rejects invalid UTF-8, malformed JSON or a non-object top level (3)\",\"status\":\"passed\",\"title\":\"rejects invalid UTF-8, malformed JSON or a non-object top level (3)\",\"duration\":2.1008860000000027,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations rejects invalid UTF-8, malformed JSON or a non-object top level (4)\",\"status\":\"passed\",\"title\":\"rejects invalid UTF-8, malformed JSON or a non-object top level (4)\",\"duration\":0.656899999999979,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations rejects invalid UTF-8, malformed JSON or a non-object top level (5)\",\"status\":\"passed\",\"title\":\"rejects invalid UTF-8, malformed JSON or a non-object top level (5)\",\"duration\":0.7220859999999902,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations rejects invalid UTF-8, malformed JSON or a non-object top level (6)\",\"status\":\"passed\",\"title\":\"rejects invalid UTF-8, malformed JSON or a non-object top level (6)\",\"duration\":0.7044429999999977,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations freezes a wide JSON object without spreading an unbounded argument list\",\"status\":\"passed\",\"title\":\"freezes a wide JSON object without spreading an unbounded argument list\",\"duration\":20.14851299999998,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations includes the complete discovered and managed inventory, including non-contributing documents\",\"status\":\"passed\",\"title\":\"includes the complete discovered and managed inventory, including non-contributing documents\",\"duration\":3.0429080000000113,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations resolves all relative candidates before a reentrant cwd change in a real Node process\",\"status\":\"passed\",\"title\":\"resolves all relative candidates before a reentrant cwd change in a real Node process\",\"duration\":29.172480999999976,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations bounds the inventory and validates paths before making any observations\",\"status\":\"passed\",\"title\":\"bounds the inventory and validates paths before making any observations\",\"duration\":0.48970500000001493,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1792255745940,\"endTime\":1792255746017.4897,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/settings-source-observation.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 656,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":5,\"numPassedTests\":5,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1792255746440,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"invalid settings source conservatively fails\"],\"fullName\":\"invalid settings source conservatively fails positive control: an undisturbed source returns its parsed settings\",\"status\":\"passed\",\"title\":\"positive control: an undisturbed source returns its parsed settings\",\"duration\":3.8159880000000044,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"invalid settings source conservatively fails\"],\"fullName\":\"invalid settings source conservatively fails deletion after the read re-validates and does not return the stale settings\",\"status\":\"passed\",\"title\":\"deletion after the read re-validates and does not return the stale settings\",\"duration\":1.3284590000000094,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"invalid settings source conservatively fails\"],\"fullName\":\"invalid settings source conservatively fails in-place corruption after the read re-validates identity and does not return the stale settings\",\"status\":\"passed\",\"title\":\"in-place corruption after the read re-validates identity and does not return the stale settings\",\"duration\":0.7521839999999997,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"invalid settings source conservatively fails\"],\"fullName\":\"invalid settings source conservatively fails ABA replacement (same bytes, new inode) after the read does not reuse the old allowed result\",\"status\":\"passed\",\"title\":\"ABA replacement (same bytes, new inode) after the read does not reuse the old allowed result\",\"duration\":0.8368409999999926,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"invalid settings source conservatively fails\"],\"fullName\":\"invalid settings source conservatively fails ABA via remove-and-restore under the same logical path fails rather than returning stale settings\",\"status\":\"passed\",\"title\":\"ABA via remove-and-restore under the same logical path fails rather than returning stale settings\",\"duration\":0.8400100000000066,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1792255746658,\"endTime\":1792255746665.84,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-16.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/packages/cli/src/lib/settings-source-observation.cjs"
+      ],
+      "setup": false,
+      "ms": 137,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 648,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":0,\"numFailedTestSuites\":2,\"numPendingTestSuites\":0,\"numTotalTests\":5,\"numPassedTests\":3,\"numFailedTests\":2,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1792255747231,\"success\":false,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"invalid settings source conservatively fails\"],\"fullName\":\"invalid settings source conservatively fails positive control: an undisturbed source returns its parsed settings\",\"status\":\"passed\",\"title\":\"positive control: an undisturbed source returns its parsed settings\",\"duration\":3.841530000000006,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"invalid settings source conservatively fails\"],\"fullName\":\"invalid settings source conservatively fails deletion after the read re-validates and does not return the stale settings\",\"status\":\"passed\",\"title\":\"deletion after the read re-validates and does not return the stale settings\",\"duration\":1.3403380000000027,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"invalid settings source conservatively fails\"],\"fullName\":\"invalid settings source conservatively fails in-place corruption after the read re-validates identity and does not return the stale settings\",\"status\":\"passed\",\"title\":\"in-place corruption after the read re-validates identity and does not return the stale settings\",\"duration\":0.8016430000000128,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"invalid settings source conservatively fails\"],\"fullName\":\"invalid settings source conservatively fails ABA replacement (same bytes, new inode) after the read does not reuse the old allowed result\",\"status\":\"failed\",\"title\":\"ABA replacement (same bytes, new inode) after the read does not reuse the old allowed result\",\"duration\":5.304264999999987,\"failureMessages\":[\"AssertionError: expected function to throw an error, but it didn't\\n    at /workspace/packages/cli/__tests__/verify-16.test.js:95:68\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"invalid settings source conservatively fails\"],\"fullName\":\"invalid settings source conservatively fails ABA via remove-and-restore under the same logical path fails rather than returning stale settings\",\"status\":\"failed\",\"title\":\"ABA via remove-and-restore under the same logical path fails rather than returning stale settings\",\"duration\":1.3854110000000048,\"failureMessages\":[\"AssertionError: expected function to throw an error, but it didn't\\n    at /workspace/packages/cli/__tests__/verify-16.test.js:112:68\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64\"],\"meta\":{},\"tags\":[]}],\"startTime\":1792255747453,\"endTime\":1792255747466.3855,\"status\":\"failed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-16.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": true,
+  "detail": "Independent operator checks passed; this is not a provider or task-outcome sample."
+}

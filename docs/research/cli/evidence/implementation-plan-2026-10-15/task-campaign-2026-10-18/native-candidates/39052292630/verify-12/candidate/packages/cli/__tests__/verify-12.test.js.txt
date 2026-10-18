@@ -1,0 +1,123 @@
+import { describe, expect, it } from "vitest";
+
+import {
+  agentPrintArgument,
+  canonicalizeBackgroundSessionArgv,
+  transformBackgroundLaunchArgv,
+} from "../src/lib/background-command-argv.js";
+
+/**
+ * Regression coverage for "含空格参数完整性" (argument-integrity with spaces).
+ * Every argv transform here builds array elements directly (no shell), so each
+ * pushed element is a hard argv boundary. These cases assert that empty values,
+ * embedded spaces, quoted paths and shell metacharacters are preserved as
+ * single, literal argv elements -- never split, re-quoted, or shell-expanded.
+ */
+
+const OPTION_SPECS = [
+  { long: "--model", required: true },
+  { long: "--title", required: true },
+  { short: "-p", long: "--print", optional: true },
+  { short: "-c", long: "--continue" },
+  { long: "--session", required: true },
+  { long: "--add-dir", required: true },
+];
+
+describe("verify-12: argv boundary integrity for spaces, quotes and empty args", () => {
+  it("appends empty and space/quote-containing roots as single add-dir argv elements", () => {
+    const out = transformBackgroundLaunchArgv(["agent", "--model", "m"], {
+      directories: ["", '/var/lib "app" data', "C:/Program Files/app"],
+      optionSpecs: OPTION_SPECS,
+      commandNames: ["agent"],
+    });
+    // Each root must be its own argv element, not split on whitespace.
+    expect(out).toEqual([
+      "agent",
+      "--model",
+      "m",
+      "--add-dir",
+      "",
+      "--add-dir",
+      '/var/lib "app" data',
+      "--add-dir",
+      "C:/Program Files/app",
+    ]);
+  });
+
+  it("replaces add-dir without touching other values that look like paths/options", () => {
+    const out = transformBackgroundLaunchArgv(
+      [
+        "agent",
+        "--add-dir",
+        "/old",
+        "--title",
+        "task dir with space",
+        "--model",
+        "--add-dir",
+        "task",
+      ],
+      { directories: ["/canonical root"], optionSpecs: OPTION_SPECS },
+    );
+    // "--add-dir" inside "--model"'s required value is a value boundary, not
+    // a flag; the only emitted --add-dir is the canonical one.
+    expect(out).toEqual([
+      "agent",
+      "--title",
+      "task dir with space",
+      "--model",
+      "--add-dir",
+      "task",
+      "--add-dir",
+      "/canonical root",
+    ]);
+  });
+
+  it("keeps quoted/space option values literal and never shell-expands them", () => {
+    const out = canonicalizeBackgroundSessionArgv(
+      ["agent", "--title", 'root "quoted" path', "--model", "$HOME/*.txt", "task"],
+      { sessionId: "resolved", optionSpecs: OPTION_SPECS },
+    );
+    // "$HOME" and "*.txt" are plain argv text: no expansion, no globbing, and
+    // the quoted value stays one element.
+    expect(out).toEqual([
+      "agent",
+      "--title",
+      'root "quoted" path',
+      "--model",
+      "$HOME/*.txt",
+      "task",
+      "--session",
+      "resolved",
+    ]);
+  });
+
+  it("preserves a value byte-identical to an option token as its own boundary", () => {
+    // "--model"'s required value is literally "--session"; it must not be
+    // reinterpreted as the session option or dropped.
+    const out = canonicalizeBackgroundSessionArgv(
+      ["agent", "--model", "--session", "task"],
+      { sessionId: "resolved", optionSpecs: OPTION_SPECS },
+    );
+    expect(out).toEqual([
+      "agent",
+      "--model",
+      "--session",
+      "task",
+      "--session",
+      "resolved",
+    ]);
+  });
+
+  it("keeps empty, space and quote-bearing prompt text inside one print token", () => {
+    expect(agentPrintArgument("")).toBe("--print=");
+    expect(agentPrintArgument("two words")).toBe("--print=two words");
+    expect(agentPrintArgument('dir "quoted"')).toBe('--print=dir "quoted"');
+  });
+
+  it("leaves option-shaped prompt text as a single non-split token (negative control)", () => {
+    // A prompt beginning with "-" must remain inside --print=..., never turned
+    // into separate flag-like argv elements or shell-escaped.
+    expect(agentPrintArgument("--session")).toBe("--print=--session");
+    expect(agentPrintArgument("-x y")).toBe("--print=-x y");
+  });
+});

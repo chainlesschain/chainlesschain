@@ -15,8 +15,15 @@ import { generateReviewPack } from "./verify01-review-pack.mjs";
 import { reviewEnvironment, REVIEW_IMAGE } from "./verify01-review-runtime.mjs";
 import { VERIFY01_REVIEW_SPECS } from "./verify01-review-specs.mjs";
 import { verifyAgentTerminal } from "../src/lib/eval/stream-terminal.js";
-import { createVolcengineDiagnosticBroker } from "./verify01-volcengine-diagnostic-broker.mjs";
+import {
+  BROKER,
+  createVolcengineDiagnosticBroker,
+} from "./verify01-volcengine-diagnostic-broker.mjs";
 import { requireUnscopedModelTransport } from "../src/lib/formal-budget-provider-scope.js";
+import {
+  loadRepairManifest,
+  campaignRepairPrompt,
+} from "./verify01-campaign-repair.mjs";
 
 export const DIAGNOSTIC = Object.freeze({
   tasks: ["verify-04", "verify-22"],
@@ -28,9 +35,25 @@ export const DIAGNOSTIC = Object.freeze({
   provider: "volcengine",
   model: "deepseek-v4-flash-ga-260731",
   endpoint: "https://ark.cn-beijing.volces.com/api/v3",
-  maxTurns: 14,
+  maxTurns: 10,
   taskTimeoutMs: 20 * 60 * 1000,
   estimatedSpendStopUSD: 0.25,
+  repairSeeds: Object.freeze({
+    "verify-04": Object.freeze({
+      sourceRun: "39045268929",
+      repairRound: 2,
+      file: "packages/cli/scripts/fixtures/verify01-volcengine/verify-04-39045268929.test.txt",
+      digest:
+        "sha256:5066a74a68ed6b56a2152b7a8d6005dc03657c5489f6f427fe23ad416ca057e1",
+    }),
+    "verify-22": Object.freeze({
+      sourceRun: "39043024352",
+      repairRound: 2,
+      file: "packages/cli/scripts/fixtures/verify01-volcengine/verify-22-39043024352.test.txt",
+      digest:
+        "sha256:7cd9d2acb6117665ef69e1498e2c3024b27f5624a3f14a22a4a30292f51aa5e8",
+    }),
+  }),
 });
 const repository = fileURLToPath(new URL("../../../", import.meta.url));
 const planDir = path.join(
@@ -93,15 +116,23 @@ export function modelEnvironment({
 }
 
 export function taskPrompt(task, spec) {
+  const seed = DIAGNOSTIC.repairSeeds[task.id];
+  const priorFeedback =
+    task.id === "verify-04"
+      ? `Ordinary checker feedback: six cases executed; four passed and two failed. The cached-distribution case expected 0.6 but received 0.5840000000000001. The cache-read short boundary control expected 0.552 but received 0.5504. Exact frozen-source review: estimateCost chooses rate.terms?.cacheReadMultiplier before the provider fallback. GPT6_PRICING_TERMS in model-context-catalog.js supplies 0.1 for this model, overriding the OpenAI fallback of 0.5. Verify that precedence and recompute ALL affected cache-derived total/component assertions and explanatory comments from the model terms; do not just copy observed values or call the function under test to manufacture expectations. Preserve all six existing cases, their controls and classification assertions; do not add cases or rewrite the suite.\n`
+      : task.id === "verify-22"
+        ? `Ordinary checker feedback: all three cases failed. Fault cases received the injected ordinary Error instead of the published-commit error; the control expected two _collect calls but observed three. Exact frozen-source review: during this fixture's commit, _loadManifest calls _collect, _publish calls it again BEFORE publication, and _publish calls it a THIRD time after manifest replacement. The current second-call injection is pre-publication. Correct both fault cases and the control consistently; if retaining invocation counting, explicitly account for all three calls and verify durable reopened state. Preserve the derived record/store revisions and the existing three cases; do not redesign the suite. Restore instrumentation before recovery checks, include a successful control, and explicitly import every Vitest hook used.\n`
+        : "";
   return `${task.prompt}\n\nThis is an independent diagnostic, not a formal VERIFY01 sample.
-Read the frozen source and existing tests before writing your own regression tests.
+${seed ? `This is bounded repair round ${seed.repairRound}, starting from the preserved model candidate from run ${seed.sourceRun}; it is not a first-attempt or formal sample.\n` : ""}${priorFeedback}Read the frozen source and existing tests before writing your own regression tests.
 Use the named files as your starting points; avoid listing the entire test directory. Search for exact API names, then read bounded slices rather than repeatedly reading whole unchanged files.
-Keep the patch focused: at most six behavioral cases and roughly 150 lines. Confirm argument names and result fields from source before asserting them. Spend the first six turns reading, then write, read back the deliverable once, and finish. Do not add unrelated validation cases.
+Keep the patch focused: at most six behavioral cases. Confirm argument names and result fields from source before asserting them. Use at most three targeted read calls before editing, write by turn four, read the completed deliverable once, and finish by turn eight. Do not reread unchanged source, rewrite the suite, or add unrelated validation cases.
+Keep tool-call messages brief. Apply focused edit_file replacements when a small patch suffices; avoid long preambles and complete-file rewrites.
 Frozen source files: ${task.sourcePaths.join(", ")}
 Related existing tests: ${spec.baselineTests.join(", ")}
 Only these deliverables may be changed: ${task.expectedFiles.join(", ")}
 Use repository-relative paths for every mutation. Absolute paths are rejected even when they name an allowed deliverable.
-Each deliverable currently contains a non-answer placeholder; replace it with complete runnable Vitest tests.
+${DIAGNOSTIC.repairSeeds[task.id] ? "The deliverable contains the preserved failed candidate; repair it into complete runnable Vitest tests." : "Each deliverable currently contains a non-answer placeholder; replace it with complete runnable Vitest tests."}
 Import paths are relative to each deliverable's location. Use explicit behavioral assertions and positive/negative cases; do not merely import an existing test suite or inspect source text.
 Source implementation and existing tests are read-only in this diagnostic. If you discover an implementation defect, describe it in your final response instead of modifying source.
 Use only the exposed file tools. Do not run shell commands, code, MCP or network tools. Do not inspect node_modules or paths outside this project. No credentials are present in this project.
@@ -109,8 +140,28 @@ An independent operator will execute baseline tests, your candidate tests, and b
 Read back your completed deliverable. Finish with a concise explanation of the assertions and any limitations. You have at most ${DIAGNOSTIC.maxTurns} model turns; use focused reads and leave time to write the file.`;
 }
 
-export function inspectModelTrace(stdout, expectedFiles, workspace) {
-  const terminal = verifyAgentTerminal(stdout);
+export function originalTaskPrompt(task, spec, maxTurns = 20) {
+  return `${task.prompt}\n\nThis is an unseeded attempt using the original task input. No prior candidate or repair feedback has been supplied. Earlier attempts, if any, remain separate evidence.
+This is a real-provider Linux CLI execution with independent Docker acceptance. It is not a frozen cross-platform/IDE sample.
+Read the frozen source and relevant existing tests before writing the deliverable. Use exact API names and bounded reads. Do not list the entire repository or repeatedly reread unchanged files.
+Frozen source files: ${task.sourcePaths.join(", ")}
+Related existing tests: ${spec.baselineTests.join(", ")}
+Only these deliverables may be changed: ${task.expectedFiles.join(", ")}
+Use repository-relative paths for every mutation. Each deliverable starts with a non-answer placeholder.
+${spec.doc ? "Write the requested substantive Markdown operating runbook. Check command options against the frozen implementation, include runnable examples and honest interpretation of insufficient evidence. Do not create a test file." : "Replace the placeholder with complete independent runnable Vitest regression tests, including positive and negative controls. Keep the suite focused on the requested behavior, with at most six cases. Confirm argument names, return fields, imports and relative paths from the frozen source. Do not copy/import an existing test suite or use source-text assertions."}
+The source implementation and existing tests are read-only for this campaign. Describe any implementation defect in the final response.
+Use only the exposed file tools. Do not run shell commands, code, MCP or network tools. Do not inspect node_modules or paths outside this project.
+An independent checker executes the baseline, candidate and behavioral mutants in network-disabled Linux Docker after you finish. You cannot execute tests yourself; do not claim tests passed.
+Write the deliverable early enough to read it back and finish. You have at most ${maxTurns} model turns. Finish with a concise account of the behavior covered and limitations.`;
+}
+
+export function inspectModelTrace(
+  stdout,
+  expectedFiles,
+  workspace,
+  terminalOptions,
+) {
+  const terminal = verifyAgentTerminal(stdout, terminalOptions);
   let events;
   try {
     events = stdout
@@ -334,9 +385,68 @@ export function changedFiles(before, after) {
     );
 }
 
+export function selectDiagnosticTasks(selection = "both") {
+  assert.ok(
+    selection === "both" || DIAGNOSTIC.tasks.includes(selection),
+    "unsupported diagnostic task selection",
+  );
+  return selection === "both" ? [...DIAGNOSTIC.tasks] : [selection];
+}
+
 export async function runTaskDiagnostic(options) {
   requireUnscopedModelTransport();
   const { outputDir, imageId, sourceSha, key } = options;
+  const original = options.mode === "original";
+  const repairing = options.mode === "campaign-repair";
+  const campaign = original || repairing;
+  assert.ok(options.mode === undefined || campaign, "unsupported task mode");
+  assert.ok(
+    repairing || (!options.repairManifest && !options.repairManifestDigest),
+    "repair manifest requires explicit repair mode",
+  );
+  const repair = repairing
+    ? loadRepairManifest({
+        repository,
+        file: options.repairManifest,
+        expectedDigest: options.repairManifestDigest,
+        sourceSha,
+        catalog: json(path.join(planDir, "tasks.json")),
+        projectCommit: DIAGNOSTIC.projectCommit,
+        planDigest: DIAGNOSTIC.planDigest,
+      })
+    : null;
+  const selectedTasks = campaign
+    ? options.originalTasks
+    : selectDiagnosticTasks(options.task);
+  if (campaign) {
+    assert.ok(
+      Array.isArray(selectedTasks) &&
+        selectedTasks.length > 0 &&
+        selectedTasks.length <= 36,
+    );
+    assert.equal(new Set(selectedTasks).size, selectedTasks.length);
+    assert.ok(
+      selectedTasks.every((id) =>
+        /^verify-(?:0[1-9]|[12][0-9]|3[0-6])$/u.test(id),
+      ),
+    );
+  }
+  if (repairing)
+    assert.ok(
+      selectedTasks.every((id) => repair.tasks[id]),
+      "selected repair task missing from manifest",
+    );
+  const maxTurns = campaign ? 20 : DIAGNOSTIC.maxTurns;
+  const maximumRequestsPerTask = campaign ? 24 : BROKER.maximumRequestsPerTask;
+  const repairSeeds = repairing
+    ? Object.fromEntries(
+        Object.entries(repair.tasks)
+          .filter(([, entry]) => entry.seed)
+          .map(([id, entry]) => [id, entry.seed]),
+      )
+    : original
+      ? {}
+      : DIAGNOSTIC.repairSeeds;
   const output = path.resolve(outputDir);
   const relativeOutput = path.relative(repository, output);
   assert.ok(
@@ -365,7 +475,33 @@ export async function runTaskDiagnostic(options) {
     startedAt: stamp(),
     executionSourceCommit: sourceSha,
     ...DIAGNOSTIC,
+    maxTurns,
+    repairSeeds,
+    inputMode: repairing
+      ? "campaign-repair"
+      : original
+        ? "original-unseeded"
+        : "diagnostic-repair",
+    campaignRound: repairing
+      ? repair.manifest.repairRound
+      : original
+        ? options.campaignRound || 1
+        : null,
+    ...(repairing
+      ? {
+          repairManifest: {
+            file: repair.file,
+            digest: repair.digest,
+            executionSourceCommit: sourceSha,
+            bindings: repair.bindings,
+          },
+        }
+      : {}),
+    actualEntry: "linux-cli",
+    designatedStrata: options.designatedStrata || null,
+    estimatedSpendStopUSD: campaign ? null : DIAGNOSTIC.estimatedSpendStopUSD,
     tasks: [],
+    selectedTasks,
     imageId,
     imageReference: REVIEW_IMAGE,
     formalSample: false,
@@ -379,8 +515,10 @@ export async function runTaskDiagnostic(options) {
       "Public CLI .99 is executed, with transport-only diagnostic overrides recorded separately from the frozen default-thinking comparisons.",
       "Public .99 exposes a six-file-tool ceiling; this run requests all six explicitly and records the actual schemas and calls. It does not attest a narrower two-tool ceiling.",
       "Only expected test deliverables may change; implementation edits in the original task are deliberately excluded.",
-      "The $0.25 per-task CLI stop uses returned usage estimates; an in-flight call may exceed it and unpriced/unknown usage is not a hard quota.",
-      "The diagnostic broker disables thinking, requests at most 4096 answer tokens, admits at most 14 physical requests per task and rejects unknown usage before another call. These are diagnostic bounds, not formal budget activation or a provider invoice.",
+      campaign
+        ? "The original-task campaign has no estimated-cost acceptance criterion; billing is not assessed."
+        : "The $0.25 per-task CLI stop uses returned usage estimates; an in-flight call may exceed it and unpriced/unknown usage is not a hard quota.",
+      `The diagnostic broker disables thinking, requests at most ${BROKER.maximumAnswerTokens} answer tokens, admits at most ${maximumRequestsPerTask} physical attempts per selected task, and rejects unknown usage before another call. These are diagnostic bounds, not formal budget activation or a provider invoice.`,
       "Acceptance is an AI-reviewed independent Docker checker, not independent human review or frozen sample admission.",
       "Setup, model and checker share each task's 20-minute deadline; no automatic model retries or fallback models.",
     ],
@@ -519,12 +657,25 @@ export async function runTaskDiagnostic(options) {
     summary.executionSourceBindings = [];
     for (const file of [
       "packages/cli/scripts/verify01-volcengine-task-diagnostic.mjs",
+      "packages/cli/scripts/verify01-campaign-repair.mjs",
       "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs",
       "packages/cli/scripts/verify01-review-pack.mjs",
       "packages/cli/scripts/verify01-review-runtime.mjs",
       "packages/cli/scripts/verify01-review-specs.mjs",
       "packages/cli/src/lib/eval/stream-terminal.js",
       ".github/workflows/verify01-volcengine-task-diagnostic.yml",
+      ...(campaign
+        ? [
+            "packages/cli/scripts/verify01-volcengine-campaign.mjs",
+            ".github/workflows/verify01-volcengine-campaign.yml",
+          ]
+        : Object.values(repairSeeds).map((seed) => seed.file)),
+      ...(repairing
+        ? [
+            ".github/workflows/verify01-volcengine-campaign-repair.yml",
+            ...repair.bindings.map((binding) => binding.file),
+          ]
+        : []),
     ]) {
       const bytes = fs.readFileSync(path.join(repository, file));
       const committed = command(
@@ -652,12 +803,24 @@ export async function runTaskDiagnostic(options) {
       nativeSqliteAssessed: false,
     });
 
-    broker = await createVolcengineDiagnosticBroker({
-      outputDir: path.join(output, "broker"),
-      key,
-    });
+    if (repairing) save("repair-manifest.json", repair.manifest);
+    if (campaign) {
+      summary.taskBrokers = [];
+      fs.mkdirSync(path.join(output, "broker"), { mode: 0o700 });
+      summary.limitations.push(
+        "Each independent task has its own broker. A task with unknown usage fails and is not replayed; later unrelated tasks can still execute. Requests allow up to 180 seconds within the unchanged task deadline.",
+        "Campaign transport admits text-only requests with absent/empty tools for the CLI's internal semantic compaction; all non-file tool schemas remain prohibited.",
+      );
+    } else {
+      broker = await createVolcengineDiagnosticBroker({
+        outputDir: path.join(output, "broker"),
+        key,
+        allowedTaskIds: selectedTasks,
+        maximumRequestsPerTask,
+      });
+    }
 
-    for (const taskId of DIAGNOSTIC.tasks) {
+    for (const taskId of selectedTasks) {
       if (canceled) break;
       const task = catalog.tasks.find((entry) => entry.id === taskId);
       const spec = VERIFY01_REVIEW_SPECS.find(
@@ -684,6 +847,7 @@ export async function runTaskDiagnostic(options) {
         check: null,
         estimatedCostUSD: null,
         actualBilledCostUSD: null,
+        ...(repairing ? { repairProvenance: repair.tasks[taskId] } : {}),
       };
       summary.tasks.push(row);
       async function stage(name) {
@@ -727,6 +891,8 @@ export async function runTaskDiagnostic(options) {
       }
       try {
         save(`${taskId}/task.json`, task);
+        if (repairing)
+          save(`${taskId}/repair-input.json`, repair.tasks[taskId]);
         row.setup = await stage("setup");
         assert.equal(row.setup.pass, true, "trusted setup failed");
         const before = snapshot(workspace);
@@ -738,12 +904,28 @@ export async function runTaskDiagnostic(options) {
             "frozen task already contains a deliverable",
           );
           fs.mkdirSync(path.dirname(absolute), { recursive: true });
-          fs.writeFileSync(
-            absolute,
-            "// Diagnostic placeholder: replace with your independent behavioral tests.\n",
-            { flag: "wx", mode: 0o600 },
-          );
+          const seed = repairSeeds[taskId];
+          const initial = seed
+            ? fs.readFileSync(path.join(repository, seed.file))
+            : Buffer.from(
+                "// Diagnostic placeholder: replace with your independent behavioral tests.\n",
+              );
+          if (seed) {
+            assert.equal(task.expectedFiles.length, 1);
+            assert.equal(hash(initial), seed.digest, "repair seed differs");
+            row.repairSeed = seed;
+          }
+          fs.writeFileSync(absolute, initial, { flag: "wx", mode: 0o600 });
         }
+        if (campaign)
+          broker = await createVolcengineDiagnosticBroker({
+            outputDir: path.join(output, "broker", taskId),
+            key,
+            allowedTaskIds: [taskId],
+            maximumRequestsPerTask,
+            requestTimeoutMs: 180000,
+            allowTextOnlyRequests: true,
+          });
         broker.beginTask(taskId);
         const taskEnvironment = modelEnvironment({
           root: taskRoot,
@@ -773,10 +955,14 @@ export async function runTaskDiagnostic(options) {
           configPreflight.ok,
           "installed config directory preflight failed",
         );
-        const prompt = taskPrompt(task, spec);
+        const prompt = repairing
+          ? campaignRepairPrompt(task, spec, repair.tasks[taskId], maxTurns)
+          : original
+            ? originalTaskPrompt(task, spec, maxTurns)
+            : taskPrompt(task, spec);
         save(`${taskId}/prompt.txt`, prompt);
         const modelTimeout = Math.min(
-          8 * 60 * 1000,
+          (campaign ? 13 : 8) * 60 * 1000,
           deadline - Date.now() - 4 * 60 * 1000,
         );
         assert.ok(
@@ -799,9 +985,10 @@ export async function runTaskDiagnostic(options) {
           "--output-format",
           "stream-json",
           "--max-turns",
-          String(DIAGNOSTIC.maxTurns),
-          "--max-budget-usd",
-          String(DIAGNOSTIC.estimatedSpendStopUSD),
+          String(maxTurns),
+          ...(campaign
+            ? []
+            : ["--max-budget-usd", String(DIAGNOSTIC.estimatedSpendStopUSD)]),
           "--allowed-tools",
           "read_file,search_files,list_dir,write_file,edit_file,edit_file_hashed",
           "--ephemeral",
@@ -871,6 +1058,10 @@ export async function runTaskDiagnostic(options) {
       } finally {
         row.broker = broker?.taskStatus(taskId) || null;
         row.passed = row.passed && row.broker?.passed === true;
+        if (campaign && broker) {
+          summary.taskBrokers.push({ taskId, ...(await broker.close()) });
+          broker = null;
+        }
         row.finishedAt = stamp();
         save(`${taskId}/result.json`, row);
         console.log(
@@ -884,7 +1075,7 @@ export async function runTaskDiagnostic(options) {
       }
     }
     summary.passed =
-      summary.tasks.length === DIAGNOSTIC.tasks.length &&
+      summary.tasks.length === selectedTasks.length &&
       summary.tasks.every((task) => task.passed);
   } catch (error) {
     summary.failure = redactDiagnostic(String(error.message), key);
@@ -893,6 +1084,20 @@ export async function runTaskDiagnostic(options) {
     process.removeListener("SIGTERM", onSignal);
     process.removeListener("SIGINT", onSignal);
     if (broker) summary.broker = await broker.close();
+    if (campaign)
+      summary.broker = {
+        physicalRequestsStarted: (summary.taskBrokers || []).reduce(
+          (n, row) => n + row.physicalRequestsStarted,
+          0,
+        ),
+        usageCompleteRequests: (summary.taskBrokers || []).reduce(
+          (n, row) => n + row.usageCompleteRequests,
+          0,
+        ),
+        poisoned: (summary.taskBrokers || []).some((row) => row.poisoned)
+          ? "one-or-more-independent-tasks-failed"
+          : null,
+      };
     summary.passed =
       summary.passed &&
       summary.broker?.poisoned === null &&
@@ -901,7 +1106,7 @@ export async function runTaskDiagnostic(options) {
         summary.broker.physicalRequestsStarted;
     summary.finishedAt = stamp();
     summary.estimatedTotalUSD =
-      summary.tasks.length === DIAGNOSTIC.tasks.length &&
+      summary.tasks.length === selectedTasks.length &&
       summary.tasks.every((task) => Number.isFinite(task.estimatedCostUSD))
         ? summary.tasks.reduce((sum, task) => sum + task.estimatedCostUSD, 0)
         : null;
@@ -923,12 +1128,13 @@ if (
         "output-dir": { type: "string" },
         "source-sha": { type: "string" },
         "image-id": { type: "string" },
+        task: { type: "string", default: "both" },
         help: { type: "boolean", default: false },
       },
     });
     if (values.help)
       console.log(
-        "Manual paid Volcengine verify-04/verify-22 diagnostic. Requires --confirm-live --output-dir NEW_DIR --source-sha EXACT_SHA --image-id sha256:IMAGE_ID and VOLCENGINE_API_KEY. No formal samples. $0.25 per-task estimated stop is not a hard spending limit.",
+        "Manual paid Volcengine diagnostic (--task both|verify-04|verify-22). Requires --confirm-live --output-dir NEW_DIR --source-sha EXACT_SHA --image-id sha256:IMAGE_ID and VOLCENGINE_API_KEY. No formal samples. $0.25 per-task estimated stop is not a hard spending limit.",
       );
     else {
       assert.ok(values["confirm-live"], "explicit --confirm-live is required");
@@ -937,6 +1143,7 @@ if (
         outputDir: values["output-dir"],
         sourceSha: values["source-sha"],
         imageId: values["image-id"],
+        task: values.task,
         key: process.env.VOLCENGINE_API_KEY,
       });
       if (!result.passed) process.exitCode = 1;

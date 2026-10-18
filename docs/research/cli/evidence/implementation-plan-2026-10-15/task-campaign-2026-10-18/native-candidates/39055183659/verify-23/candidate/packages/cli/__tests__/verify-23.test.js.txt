@@ -1,0 +1,330 @@
+import { describe, expect, it } from "vitest";
+import {
+  createEvalComparison,
+  createEvalHistoryRecord,
+  EVAL_CONTEXT_SCHEMA,
+  EVAL_EXECUTION_PROTOCOL,
+} from "../src/lib/eval/evidence.js";
+import {
+  buildOutcomeReport,
+  outcomeDigest,
+  OUTCOME_PLAN_SCHEMA,
+} from "../src/lib/eval/outcomes.js";
+
+const NOW = Date.parse("2026-09-15T12:00:00.000Z");
+const SHA = "b".repeat(40);
+const D = (letter) => `sha256:${letter.repeat(64)}`;
+
+function makeComparison() {
+  return createEvalComparison({
+    suite: "builtin",
+    corpusDigest: D("a"),
+    provider: "test",
+    model: "test-model",
+    context: {
+      schema: EVAL_CONTEXT_SCHEMA,
+      provider: "test",
+      model: "test-model",
+      modelRevision: "test-r1",
+      environmentDigest: D("b"),
+      permissionDigest: D("c"),
+      inferenceDigest: D("d"),
+    },
+  });
+}
+
+const WINDOW = {
+  start: "2026-09-15T10:00:00.000Z",
+  end: "2026-09-15T11:00:00.000Z",
+};
+
+function makeRuns(comparison) {
+  return [0, 1].map((index) =>
+    createEvalHistoryRecord(
+      {
+        total: 1,
+        passed: 1,
+        failed: 0,
+        passRate: 1,
+        unrelatedChangeRate: 0,
+        results: [
+          {
+            id: "fix-build",
+            pass: true,
+            artifactCheckPassed: true,
+            executionSucceeded: true,
+            agentOk: true,
+            error: null,
+            ms: 100,
+            executionEvidence: {
+              protocol: EVAL_EXECUTION_PROTOCOL,
+              exitCode: 0,
+              signal: null,
+              terminalVerified: true,
+              observedFallback: false,
+            },
+          },
+        ],
+      },
+      {
+        runId: `run-${index}`,
+        ranAt: "2026-09-15T10:30:00.000Z",
+        label: SHA,
+        comparison,
+      },
+    ),
+  );
+}
+
+function baseInput({ samples, observations, runs }) {
+  return {
+    plan: {
+      schema: OUTCOME_PLAN_SCHEMA,
+      commitSha: SHA,
+      currency: "USD",
+      window: WINDOW,
+      samples,
+    },
+    history: { runs, issues: [] },
+    observations,
+  };
+}
+
+function taskSample(id) {
+  return {
+    id,
+    kind: "task",
+    taskId: "fix-build",
+    stratum: "verify-stratum",
+    comparisonDigest: outcomeDigest(makeComparison()),
+    timeBudgetMs: 1000,
+    costBudget: 1,
+  };
+}
+
+function firstRunSample(id) {
+  return {
+    id,
+    kind: "first-run",
+    taskId: "fix-build",
+    stratum: "verify-stratum",
+    comparisonDigest: outcomeDigest(makeComparison()),
+    timeBudgetMs: 1000,
+    costBudget: 1,
+  };
+}
+
+function fullObservation(id, runId) {
+  return {
+    sampleId: id,
+    observedAt: "2026-09-15T10:30:00.000Z",
+    runId,
+    cost: 0.1,
+    elapsedMs: 500,
+    retries: 0,
+    manualRepairs: 0,
+  };
+}
+
+function fullFirstRunObservation(id, runId) {
+  return {
+    ...fullObservation(id, runId),
+    firstRun: {
+      cleanEnvironment: true,
+      stages: Object.fromEntries(
+        [
+          "install",
+          "configure",
+          "authenticate",
+          "tool",
+          "artifact",
+        ].map((stage) => [
+          stage,
+          { passed: true, receipt: `receipt:${stage}` },
+        ]),
+      ),
+    },
+  };
+}
+
+const report = (input) => buildOutcomeReport(input, { now: NOW });
+
+describe("missing sample fixed denominator", () => {
+  it("retains all planned samples when only some observations exist", () => {
+    const comparison = makeComparison();
+    const samples = [
+      taskSample("task-0"),
+      taskSample("task-1"),
+      firstRunSample("first-0"),
+    ];
+    const runs = [0, 1].map((index) =>
+      createEvalHistoryRecord(
+        {
+          total: 1,
+          passed: 1,
+          failed: 0,
+          passRate: 1,
+          unrelatedChangeRate: 0,
+          results: [
+            {
+              id: "fix-build",
+              pass: true,
+              artifactCheckPassed: true,
+              executionSucceeded: true,
+              agentOk: true,
+              error: null,
+              ms: 100,
+              executionEvidence: {
+                protocol: EVAL_EXECUTION_PROTOCOL,
+                exitCode: 0,
+                signal: null,
+                terminalVerified: true,
+                observedFallback: false,
+              },
+            },
+          ],
+        },
+        {
+          runId: `run-${index}`,
+          ranAt: "2026-09-15T10:30:00.000Z",
+          label: SHA,
+          comparison,
+        },
+      ),
+    );
+    // Only the first task and the first-run are observed; task-1 is missing.
+    const result = report(
+      baseInput({
+        samples,
+        runs,
+        observations: [
+          fullObservation("task-0", "run-0"),
+          fullFirstRunObservation("first-0", "run-1"),
+        ],
+      }),
+    );
+    expect(result.task).toMatchObject({
+      planned: 2,
+      observed: 1,
+      missing: 1,
+      succeeded: 1,
+      successRate: 0.5,
+    });
+    expect(result.firstRun).toMatchObject({ planned: 1, observed: 1, succeeded: 1 });
+    expect(result.status).toBe("INSUFFICIENT_EVIDENCE");
+    // The unobserved sample keeps its own row with null cost.
+    const missingRow = result.rows.find((row) => row.sampleId === "task-1");
+    expect(missingRow.observed).toBe(false);
+    expect(missingRow.cost).toBeNull();
+  });
+
+  it("keeps totalCost null when any planned sample is unobserved", () => {
+    const samples = [taskSample("task-0"), taskSample("task-1")];
+    const runs = makeRuns(makeComparison());
+    const result = report(
+      baseInput({
+        samples,
+        runs,
+        observations: [fullObservation("task-0", "run-0")],
+      }),
+    );
+    expect(result.task).toMatchObject({
+      planned: 2,
+      observed: 1,
+      knownCost: 0.1,
+      totalCost: null,
+      costPerSuccess: null,
+    });
+    // Unknown cost must not impersonate zero.
+    expect(result.task.totalCost).not.toBe(0);
+    expect(result.task.costPerSuccess).not.toBe(0);
+  });
+
+  it("does not count an observed-but-costless sample as zero expense", () => {
+    const samples = [taskSample("task-0")];
+    const runs = makeRuns(makeComparison());
+    const observation = fullObservation("task-0", "run-0");
+    delete observation.cost;
+    const result = report(
+      baseInput({ samples, runs, observations: [observation] }),
+    );
+    expect(result.task).toMatchObject({
+      planned: 1,
+      observed: 1,
+      knownCost: 0,
+      totalCost: null,
+      costPerSuccess: null,
+    });
+    expect(result.rows[0].cost).toBeNull();
+    expect(result.status).toBe("INSUFFICIENT_EVIDENCE");
+  });
+
+  it("only sums known costs and stays null until every observed sample reports a cost", () => {
+    const samples = [taskSample("task-0"), taskSample("task-1")];
+    const runs = makeRuns(makeComparison());
+    const withCost = fullObservation("task-0", "run-0");
+    const withoutCost = fullObservation("task-1", "run-1");
+    delete withoutCost.cost;
+    const result = report(
+      baseInput({
+        samples,
+        runs,
+        observations: [withCost, withoutCost],
+      }),
+    );
+    expect(result.task.observed).toBe(2);
+    expect(result.task.knownCost).toBe(0.1);
+    expect(result.task.totalCost).toBeNull();
+    expect(result.task.costPerSuccess).toBeNull();
+  });
+
+  it("reports a complete cost when every planned sample is observed and costed", () => {
+    const samples = [taskSample("task-0"), firstRunSample("first-0")];
+    const runs = makeRuns(makeComparison());
+    const result = report(
+      baseInput({
+        samples,
+        runs,
+        observations: [
+          fullObservation("task-0", "run-0"),
+          fullFirstRunObservation("first-0", "run-1"),
+        ],
+      }),
+    );
+    expect(result.task).toMatchObject({
+      planned: 1,
+      observed: 1,
+      totalCost: 0.1,
+      costPerSuccess: 0.1,
+    });
+    expect(result.firstRun).toMatchObject({ totalCost: 0.1, costPerSuccess: 0.1 });
+    expect(result.status).toBe("BASELINE_RECORDED");
+  });
+
+  it("keeps planned samples intact in per-group denominators", () => {
+    const samples = [
+      taskSample("task-0"),
+      taskSample("task-1"),
+      firstRunSample("first-0"),
+    ];
+    const runs = makeRuns(makeComparison());
+    const result = report(
+      baseInput({
+        samples,
+        runs,
+        observations: [
+          fullObservation("task-0", "run-0"),
+          fullFirstRunObservation("first-0", "run-1"),
+        ],
+      }),
+    );
+    const taskGroup = result.groups.find(
+      (group) => group.kind === "task" && group.stratum === "verify-stratum",
+    );
+    expect(taskGroup).toMatchObject({ planned: 2, observed: 1, succeeded: 1 });
+    const firstRunGroup = result.groups.find(
+      (group) => group.kind === "first-run",
+    );
+    expect(firstRunGroup).toMatchObject({ planned: 1, observed: 1, succeeded: 1 });
+  });
+});

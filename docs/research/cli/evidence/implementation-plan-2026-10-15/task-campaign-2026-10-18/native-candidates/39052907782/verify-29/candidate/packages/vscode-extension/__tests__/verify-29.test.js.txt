@@ -1,0 +1,109 @@
+/**
+ * verify-29 — 模式 ACK 关联 (Mode ACK correlation).
+ *
+ * Independent behavioral coverage of acceptModeAcknowledgement from
+ * packages/vscode-extension/src/chat/permission-mode-state.js.
+ *
+ * Acceptance criteria covered:
+ *   - a stale/old generation ACK (mismatched correlation_id) is invalid and
+ *     never promotes the display to the new mode;
+ *   - a session-scope mismatch is likewise rejected without surfacing a mode;
+ *   - a malformed / mis-requested ACK marks the mode "unconfirmed" and does
+ *     NOT display the new mode as effective.
+ */
+import { describe, it, expect } from "vitest";
+import {
+  acceptModeAcknowledgement,
+} from "../src/chat/permission-mode-state.js";
+
+const VALID_REV = "a".repeat(16);
+
+// A conversation pre-wired as the current generation awaiting a correlated ACK.
+function makeConv(overrides = {}) {
+  return {
+    mode: "acceptEdits",
+    modeRequestId: "req-current",
+    sessionId: "sess-current",
+    effectiveMode: undefined,
+    policyRevision: undefined,
+    modeStatus: "pending",
+    modeError: "",
+    ...overrides,
+  };
+}
+
+function makeAck(overrides = {}) {
+  return {
+    correlation_id: "req-current",
+    requested: "acceptEdits",
+    effective: "acceptEdits",
+    policy_revision: VALID_REV,
+    ...overrides,
+  };
+}
+
+function makeEvent(ack, overrides = {}) {
+  return {
+    session_id: "sess-current",
+    permission_mode_state: ack,
+    ...overrides,
+  };
+}
+
+describe("acceptModeAcknowledgement — mode ACK correlation", () => {
+  it("accepts a correctly correlated, well-formed ACK as effective", () => {
+    const conv = makeConv();
+    expect(acceptModeAcknowledgement(conv, makeEvent(makeAck()))).toBe(true);
+    expect(conv).toMatchObject({
+      effectiveMode: "acceptEdits",
+      policyRevision: VALID_REV,
+      modeStatus: "effective",
+      modeError: "",
+    });
+  });
+
+  it("rejects an old-generation ACK and never displays the new mode as effective", () => {
+    const conv = makeConv();
+    const oldAck = makeAck({ correlation_id: "req-old-generation" });
+    expect(acceptModeAcknowledgement(conv, makeEvent(oldAck))).toBe(false);
+    // The stale ACK must not publish a mode: status stays pending, no effective.
+    expect(conv.effectiveMode).toBeUndefined();
+    expect(conv.policyRevision).toBeUndefined();
+    expect(conv.modeStatus).toBe("pending");
+    expect(conv.modeError).toBe("");
+  });
+
+  it("rejects an ACK from the wrong session scope without promoting a mode", () => {
+    const conv = makeConv();
+    expect(
+      acceptModeAcknowledgement(conv, makeEvent(makeAck(), { session_id: "sess-other" })),
+    ).toBe(false);
+    expect(conv.effectiveMode).toBeUndefined();
+    expect(conv.modeStatus).toBe("pending");
+  });
+
+  it("marks the mode unconfirmed and does not surface an unknown effective mode", () => {
+    const conv = makeConv();
+    const bad = makeAck({ effective: "totallyNotAMode" });
+    expect(acceptModeAcknowledgement(conv, makeEvent(bad))).toBe(false);
+    expect(conv.effectiveMode).toBeUndefined();
+    expect(conv.modeStatus).toBe("unconfirmed");
+    expect(conv.modeError).toContain("not confirmed");
+  });
+
+  it("rejects an invalid policy_revision without displaying a mode as effective", () => {
+    const conv = makeConv();
+    const bad = makeAck({ policy_revision: "not-hex" });
+    expect(acceptModeAcknowledgement(conv, makeEvent(bad))).toBe(false);
+    expect(conv.effectiveMode).toBeUndefined();
+    expect(conv.modeStatus).toBe("unconfirmed");
+  });
+
+  it("rejects an ACK whose requested mode does not match the conversation", () => {
+    const conv = makeConv();
+    const bad = makeAck({ requested: "bypassPermissions" });
+    expect(acceptModeAcknowledgement(conv, makeEvent(bad))).toBe(false);
+    expect(conv.effectiveMode).toBeUndefined();
+    expect(conv.modeStatus).toBe("unconfirmed");
+  });
+});

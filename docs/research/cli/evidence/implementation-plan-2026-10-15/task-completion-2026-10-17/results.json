@@ -1,0 +1,1070 @@
+{
+  "schema": "chainlesschain.task-completion-diagnostic-readout/v1",
+  "formalSample": false,
+  "hostRun": "39040127653",
+  "hosts": [
+    {
+      "artifact": "jetbrains-linux.zip",
+      "archiveDigest": "sha256:b2aceaf999bdfdf717c53c3a8e2c42181536a0e26b9b659636b3fbe110e1112e",
+      "results": [
+        {
+          "receipt": "verify01-artifacts/cold/diagnostic-result.json",
+          "receiptDigest": "sha256:d32e921ee20eee5636416a1e8b9aa2ae6db23a300dad4263069956aa3fe2d067",
+          "scope": "real-jetbrains-host-with-deterministic-peer",
+          "passed": true,
+          "platform": "linux",
+          "sourceCommit": "1e8e7942c3e1979dfab6625a4bd23f6035a8a910",
+          "providerAssessed": false,
+          "formalSample": false,
+          "hostVersion": "2024.2",
+          "pluginVersion": "0.4.166",
+          "journey": "cold"
+        },
+        {
+          "receipt": "verify01-artifacts/cold-boundaries/diagnostic-result.json",
+          "receiptDigest": "sha256:56983d47fbc69c66ad250987395e8986f5311d6c386bcfa476c27c9c529e492d",
+          "scope": "real-jetbrains-host-with-deterministic-peer",
+          "passed": true,
+          "platform": "linux",
+          "sourceCommit": "1e8e7942c3e1979dfab6625a4bd23f6035a8a910",
+          "providerAssessed": false,
+          "formalSample": false,
+          "hostVersion": "2024.2",
+          "pluginVersion": "0.4.166",
+          "journey": "cold-boundaries"
+        },
+        {
+          "receipt": "verify01-artifacts/jetbrains/diagnostic-result.json",
+          "receiptDigest": "sha256:f0f33c98f710507c3af97979b999cb6583b17d491691ca4dc13ccb8ae3b2a3b9",
+          "scope": "real-jetbrains-host-with-deterministic-peer",
+          "passed": true,
+          "platform": "linux",
+          "sourceCommit": "1e8e7942c3e1979dfab6625a4bd23f6035a8a910",
+          "providerAssessed": false,
+          "formalSample": false,
+          "hostVersion": "2024.2",
+          "pluginVersion": "0.4.166",
+          "journey": "capture"
+        },
+        {
+          "receipt": "verify01-artifacts/onboarding/diagnostic-result.json",
+          "receiptDigest": "sha256:e6f77882bfdd94c38b9e6292ffd4730fe2e42e1d218b61f9c535223599f0fe76",
+          "scope": "real-intellij-onboarding-local-command-fixtures",
+          "passed": true,
+          "platform": "linux",
+          "providerAssessed": false,
+          "formalSample": false,
+          "hostVersion": "2024.2",
+          "pluginVersion": "0.4.166"
+        }
+      ]
+    },
+    {
+      "artifact": "jetbrains-macos.zip",
+      "archiveDigest": "sha256:3b4859faade9ed40f5d3c2b3413aa2e8b171e9213b77891df6c90d3612c984a4",
+      "results": [
+        {
+          "receipt": "verify01-artifacts/cold/diagnostic-result.json",
+          "receiptDigest": "sha256:189c3280b1ebb6f9b663ce2516078b4223aef0e7906f49c4ff35f6fe2df1ba87",
+          "scope": "real-jetbrains-host-with-deterministic-peer",
+          "passed": true,
+          "platform": "darwin",
+          "sourceCommit": "1e8e7942c3e1979dfab6625a4bd23f6035a8a910",
+          "providerAssessed": false,
+          "formalSample": false,
+          "hostVersion": "2024.2",
+          "pluginVersion": "0.4.166",
+          "journey": "cold"
+        },
+        {
+          "receipt": "verify01-artifacts/cold-boundaries/diagnostic-result.json",
+          "receiptDigest": "sha256:616b31d8726846e0fe859d3768e645b4b7865d4bf91cb579c0701343b2915846",
+          "scope": "real-jetbrains-host-with-deterministic-peer",
+          "passed": true,
+          "platform": "darwin",
+          "sourceCommit": "1e8e7942c3e1979dfab6625a4bd23f6035a8a910",
+          "providerAssessed": false,
+          "formalSample": false,
+          "hostVersion": "2024.2",
+          "pluginVersion": "0.4.166",
+          "journey": "cold-boundaries"
+        },
+        {
+          "receipt": "verify01-artifacts/jetbrains/diagnostic-result.json",
+          "receiptDigest": "sha256:fc3a7dc1b15c0bc25982dcb9c81a9ba80eb28b344e2b7b6cd8ee19f01cf3d116",
+          "scope": "real-jetbrains-host-with-deterministic-peer",
+          "passed": true,
+          "platform": "darwin",
+          "sourceCommit": "1e8e7942c3e1979dfab6625a4bd23f6035a8a910",
+          "providerAssessed": false,
+          "formalSample": false,
+          "hostVersion": "2024.2",
+          "pluginVersion": "0.4.166",
+          "journey": "capture"
+        },
+        {
+          "receipt": "verify01-artifacts/onboarding/diagnostic-result.json",
+          "receiptDigest": "sha256:063fa85b8c446b94f5a1ade131c55050991c1c5646dc583d44b7bf1549fd3bd8",
+          "scope": "real-intellij-onboarding-local-command-fixtures",
+          "passed": true,
+          "platform": "darwin",
+          "providerAssessed": false,
+          "formalSample": false,
+          "hostVersion": "2024.2",
+          "pluginVersion": "0.4.166"
+        }
+      ]
+    },
+    {
+      "artifact": "jetbrains-windows.zip",
+      "archiveDigest": "sha256:d6d2edf14864753181743f5acc5dc92624cfbe29609a2d9f2c7c8ced19bbdccd",
+      "results": [
+        {
+          "receipt": "verify01-artifacts/cold/diagnostic-result.json",
+          "receiptDigest": "sha256:f3998887b64cdfd4ede1b302313b66ee96bba51f329e40a4867196e5a07eff13",
+          "scope": "real-jetbrains-host-with-deterministic-peer",
+          "passed": true,
+          "platform": "win32",
+          "sourceCommit": "1e8e7942c3e1979dfab6625a4bd23f6035a8a910",
+          "providerAssessed": false,
+          "formalSample": false,
+          "hostVersion": "2024.2",
+          "pluginVersion": "0.4.166",
+          "journey": "cold"
+        },
+        {
+          "receipt": "verify01-artifacts/cold-boundaries/diagnostic-result.json",
+          "receiptDigest": "sha256:5dcdfad5dc88346735937f05f38687288bd22e4403d9b3b193fd2b1852071ca0",
+          "scope": "real-jetbrains-host-with-deterministic-peer",
+          "passed": true,
+          "platform": "win32",
+          "sourceCommit": "1e8e7942c3e1979dfab6625a4bd23f6035a8a910",
+          "providerAssessed": false,
+          "formalSample": false,
+          "hostVersion": "2024.2",
+          "pluginVersion": "0.4.166",
+          "journey": "cold-boundaries"
+        },
+        {
+          "receipt": "verify01-artifacts/jetbrains/diagnostic-result.json",
+          "receiptDigest": "sha256:9625f5f40f50ea59efafd8284224399e645c6af08df3e1732788ec6efab63f1a",
+          "scope": "real-jetbrains-host-with-deterministic-peer",
+          "passed": true,
+          "platform": "win32",
+          "sourceCommit": "1e8e7942c3e1979dfab6625a4bd23f6035a8a910",
+          "providerAssessed": false,
+          "formalSample": false,
+          "hostVersion": "2024.2",
+          "pluginVersion": "0.4.166",
+          "journey": "capture"
+        },
+        {
+          "receipt": "verify01-artifacts/onboarding/diagnostic-result.json",
+          "receiptDigest": "sha256:e4c22ab3d7578ff0aad9f1450e5ef5a15226f23f598dfda9738e72a06b7067eb",
+          "scope": "real-intellij-onboarding-local-command-fixtures",
+          "passed": true,
+          "platform": "win32",
+          "providerAssessed": false,
+          "formalSample": false,
+          "hostVersion": "2024.2",
+          "pluginVersion": "0.4.166"
+        }
+      ]
+    },
+    {
+      "artifact": "vscode-linux.zip",
+      "archiveDigest": "sha256:897573f5be4a43b4ad9a2cc7345b530d5f56dcbc85de8d1dfa5ca219e4aa940a",
+      "results": [
+        {
+          "receipt": "verify01-artifacts/vscode/diagnostic-result.json",
+          "receiptDigest": "sha256:fd5016cc68acd41b6b8c54165aa18e31358c35e9753cafd527e6bae25c51e418",
+          "scope": "real-installed-vscode-with-deterministic-protocol-peer",
+          "passed": true,
+          "platform": "linux",
+          "sourceCommit": "1e8e7942c3e1979dfab6625a4bd23f6035a8a910",
+          "providerAssessed": false,
+          "formalSample": false,
+          "hostVersion": "1.132.0",
+          "extensionVersion": "0.37.149"
+        }
+      ]
+    },
+    {
+      "artifact": "vscode-macos.zip",
+      "archiveDigest": "sha256:d140bbec18a626842d4de7eeb764a782fee70285b3aac8040ca460fd7b65744d",
+      "results": [
+        {
+          "receipt": "verify01-artifacts/vscode/diagnostic-result.json",
+          "receiptDigest": "sha256:ba25598c3d33fcf716c380735ee2223ce07b9e7e133a419c1fffdd410763dafd",
+          "scope": "real-installed-vscode-with-deterministic-protocol-peer",
+          "passed": true,
+          "platform": "darwin",
+          "sourceCommit": "1e8e7942c3e1979dfab6625a4bd23f6035a8a910",
+          "providerAssessed": false,
+          "formalSample": false,
+          "hostVersion": "1.132.0",
+          "extensionVersion": "0.37.149"
+        }
+      ]
+    },
+    {
+      "artifact": "vscode-windows.zip",
+      "archiveDigest": "sha256:d22a9efd3a0053456582d1e89c631ea780d6a749882a94419b2b690087037be8",
+      "results": [
+        {
+          "receipt": "verify01-artifacts/vscode/diagnostic-result.json",
+          "receiptDigest": "sha256:380f4bbc92e4589516ecacfb1fdcf2599328fe4a5431005cffcdef737201bae8",
+          "scope": "real-installed-vscode-with-deterministic-protocol-peer",
+          "passed": true,
+          "platform": "win32",
+          "sourceCommit": "1e8e7942c3e1979dfab6625a4bd23f6035a8a910",
+          "providerAssessed": false,
+          "formalSample": false,
+          "hostVersion": "1.132.0",
+          "extensionVersion": "0.37.149"
+        }
+      ]
+    }
+  ],
+  "cliRuns": [
+    {
+      "run": "39039938906",
+      "sourceCommit": "1e8e7942c3e1979dfab6625a4bd23f6035a8a910",
+      "archiveDigest": "sha256:61681e13c166d43e7cf00b1e7c8ce703d32dee9ec675df6fc742f664a5934e37",
+      "summaryDigest": "sha256:7e78e9a2ddc8436bf212883702255e1b12ab42dcdc8329903a4edb45d9cc05c5",
+      "passed": false,
+      "tasks": [
+        {
+          "id": "verify-04",
+          "passed": false,
+          "failure": null,
+          "modelTerminalVerified": false,
+          "delivered": false,
+          "failureCategory": "agent-error",
+          "broker": {
+            "physicalRequestsStarted": 1,
+            "usageCompleteRequests": 0,
+            "passed": false,
+            "poisoned": "DIAGNOSTIC_REQUEST_ERROR_USAGE_UNKNOWN",
+            "errorCode": null
+          },
+          "checker": {
+            "pass": false,
+            "detail": "acceptance requires executed test cases",
+            "receiptDigest": "sha256:18fef88d9cace450397e25589288d148c66ce0b054f9cc156eab68791bbce63f",
+            "receiptPath": "pack/acceptance-evidence/verify-04-check-ddf0b563-587d-438a-a0e5-4ae8e02f5767.json",
+            "tests": [
+              {
+                "kind": "baseline",
+                "total": 22,
+                "passed": 22,
+                "failed": 0
+              }
+            ],
+            "mutations": []
+          },
+          "candidates": [
+            {
+              "file": "packages/cli/__tests__/verify-04.test.js",
+              "originalDigest": "sha256:a2dfd9c66e46b38a4b38be92569fdb1c1f70d0576c7a5087f91228c432dfff19",
+              "bytes": 75
+            }
+          ]
+        },
+        {
+          "id": "verify-22",
+          "passed": false,
+          "failure": "DIAGNOSTIC_TASK_ALLOWANCE_INVALID",
+          "modelTerminalVerified": null,
+          "delivered": null,
+          "failureCategory": null,
+          "broker": {
+            "physicalRequestsStarted": 0,
+            "usageCompleteRequests": 0,
+            "passed": false,
+            "poisoned": "DIAGNOSTIC_REQUEST_ERROR_USAGE_UNKNOWN",
+            "errorCode": null
+          },
+          "checker": {
+            "pass": null,
+            "detail": null,
+            "receiptDigest": null,
+            "receiptPath": null,
+            "tests": null,
+            "mutations": null
+          },
+          "candidates": []
+        }
+      ],
+      "transportFailures": [
+        {
+          "id": 1,
+          "taskId": "verify-04",
+          "errorCode": "DIAGNOSTIC_REQUEST_ERROR_USAGE_UNKNOWN",
+          "transport": null,
+          "response": {
+            "storedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "storedBytes": 0,
+            "status": null,
+            "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "originalBytes": 0,
+            "sensitiveValueRedacted": false
+          }
+        }
+      ]
+    },
+    {
+      "run": "39041797746",
+      "sourceCommit": "fabecfacf4414bab3d24d17854d94eb44933fcd2",
+      "archiveDigest": "sha256:f930a45da44e1fa4074480f3cabb41fd0f5ff81781bba7eaa8fffd17b440e335",
+      "summaryDigest": "sha256:3fdcea3afce6d793b5c341b6f6dd2d537b0297ae0da44ea10f5cbe7254141474",
+      "passed": false,
+      "tasks": [
+        {
+          "id": "verify-04",
+          "passed": false,
+          "failure": null,
+          "modelTerminalVerified": false,
+          "delivered": false,
+          "failureCategory": "agent-error",
+          "broker": {
+            "physicalRequestsStarted": 2,
+            "usageCompleteRequests": 1,
+            "passed": false,
+            "poisoned": null,
+            "errorCode": "DIAGNOSTIC_REQUEST_NOT_DISPATCHED"
+          },
+          "checker": {
+            "pass": false,
+            "detail": "acceptance requires executed test cases",
+            "receiptDigest": "sha256:6c9cfd0afd274ec60c27898fd696d6b465ea52b56285254a383cc21534c5b966",
+            "receiptPath": "pack/acceptance-evidence/verify-04-check-fa75da53-3785-4d30-aa40-992bd04a0ed5.json",
+            "tests": [
+              {
+                "kind": "baseline",
+                "total": 22,
+                "passed": 22,
+                "failed": 0
+              }
+            ],
+            "mutations": []
+          },
+          "candidates": [
+            {
+              "file": "packages/cli/__tests__/verify-04.test.js",
+              "originalDigest": "sha256:a2dfd9c66e46b38a4b38be92569fdb1c1f70d0576c7a5087f91228c432dfff19",
+              "bytes": 75
+            }
+          ]
+        },
+        {
+          "id": "verify-22",
+          "passed": false,
+          "failure": null,
+          "modelTerminalVerified": true,
+          "delivered": true,
+          "failureCategory": null,
+          "broker": {
+            "physicalRequestsStarted": 13,
+            "usageCompleteRequests": 13,
+            "passed": true,
+            "poisoned": null,
+            "errorCode": null
+          },
+          "checker": {
+            "pass": false,
+            "detail": "acceptance requires executed test cases",
+            "receiptDigest": "sha256:868ee15839e62bbf50b40d79e82b1a93b657a03edb201501baffa6b8ac83c938",
+            "receiptPath": "pack/acceptance-evidence/verify-22-check-1fcd61c7-fbb3-4d5f-a4c3-68b8eebed0ca.json",
+            "tests": [
+              {
+                "kind": "baseline",
+                "total": 19,
+                "passed": 19,
+                "failed": 0
+              }
+            ],
+            "mutations": []
+          },
+          "candidates": [
+            {
+              "file": "packages/cli/__tests__/verify-22.test.js",
+              "originalDigest": "sha256:c3c99c33ff24851d26d3ecc90da783b3a77d8fea2d5e9fde0f86ae6696f4f229",
+              "bytes": 5364
+            }
+          ]
+        }
+      ],
+      "transportFailures": [
+        {
+          "id": 2,
+          "taskId": "verify-04",
+          "errorCode": "DIAGNOSTIC_REQUEST_NOT_DISPATCHED",
+          "transport": {
+            "socketAssignedMs": 1,
+            "dnsLookupMs": 1,
+            "tcpConnectedMs": null,
+            "tlsConnectedMs": null,
+            "dispatchStartedMs": null,
+            "requestFinishedMs": null,
+            "responseStartedMs": null,
+            "dispatchStarted": false,
+            "errorCode": "ETIMEDOUT",
+            "errorSyscall": null
+          },
+          "response": {
+            "storedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "storedBytes": 0,
+            "status": null,
+            "originalSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "originalBytes": 0,
+            "sensitiveValueRedacted": false
+          }
+        }
+      ]
+    },
+    {
+      "run": "39043024352",
+      "sourceCommit": "a0414280ce407d121e08f5aa050cf9662fb33510",
+      "archiveDigest": "sha256:bacdf1be16d1b0158414127992b6e7f98605329481cab3fba98f9c61931c0077",
+      "summaryDigest": "sha256:f3a6fd7b5c578de5c37331405f911ef5a3baabdc0f4cae3db5991619e3261f0b",
+      "passed": false,
+      "tasks": [
+        {
+          "id": "verify-04",
+          "passed": false,
+          "failure": null,
+          "repairSeed": null,
+          "modelTerminalVerified": true,
+          "delivered": true,
+          "failureCategory": null,
+          "broker": {
+            "physicalRequestsStarted": 13,
+            "usageCompleteRequests": 13,
+            "passed": true,
+            "poisoned": null,
+            "errorCode": null
+          },
+          "checker": {
+            "pass": false,
+            "detail": "candidate or baseline regression failed",
+            "receiptDigest": "sha256:1cd61dd13491ea1b787c4d66259a7149bd6aa131fe0720ee677e2c262962d6e2",
+            "receiptPath": "pack/acceptance-evidence/verify-04-check-9f1ac3f1-1c6e-4511-90f1-9d2f55f4a1b3.json",
+            "tests": [
+              {
+                "kind": "baseline",
+                "total": 22,
+                "passed": 22,
+                "failed": 0
+              }
+            ],
+            "mutations": [],
+            "executedSuites": [
+              {
+                "numTotalTests": 22,
+                "numPassedTests": 22,
+                "numFailedTests": 0,
+                "failures": []
+              },
+              {
+                "numTotalTests": 4,
+                "numPassedTests": 1,
+                "numFailedTests": 3,
+                "failures": [
+                  {
+                    "name": "request-level cache & long-context pricing buckets bills the same total tokens differently when cache is distributed per request",
+                    "messages": [
+                      "AssertionError: expected +0 to be 302000 // Object.is equality"
+                    ]
+                  },
+                  {
+                    "name": "request-level cache & long-context pricing buckets prices a long-context request by its own bucket instead of pooling totals",
+                    "messages": [
+                      "AssertionError: expected +0 to be 402000 // Object.is equality"
+                    ]
+                  },
+                  {
+                    "name": "request-level cache & long-context pricing buckets keeps long/short and distinct service tiers in separate buckets with their own rates",
+                    "messages": [
+                      "AssertionError: expected undefined to be close to 3.855, received difference is NaN, but expected 5e-10"
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "candidates": [
+            {
+              "file": "packages/cli/__tests__/verify-04.test.js",
+              "originalDigest": "sha256:625ba7ca5c97617f52656c91f1d5c03657e8e6af5960ce3ee6a91f7943ef3f7f",
+              "bytes": 6090
+            }
+          ]
+        },
+        {
+          "id": "verify-22",
+          "passed": false,
+          "failure": null,
+          "repairSeed": {
+            "sourceRun": "39041797746",
+            "file": "packages/cli/scripts/fixtures/verify01-volcengine/verify-22-39041797746.test.txt",
+            "digest": "sha256:c3c99c33ff24851d26d3ecc90da783b3a77d8fea2d5e9fde0f86ae6696f4f229"
+          },
+          "modelTerminalVerified": false,
+          "delivered": true,
+          "failureCategory": "iteration-budget-exhausted",
+          "broker": {
+            "physicalRequestsStarted": 14,
+            "usageCompleteRequests": 14,
+            "passed": true,
+            "poisoned": null,
+            "errorCode": null
+          },
+          "checker": {
+            "pass": false,
+            "detail": "candidate or baseline regression failed",
+            "receiptDigest": "sha256:6d1e3157f7f9e3a6c0b3ce5e851b24dda2bf6dc5f4d6819bbee81b69048cb643",
+            "receiptPath": "pack/acceptance-evidence/verify-22-check-c88bc37a-527b-455f-b15b-9e0a1f7ae6f2.json",
+            "tests": [
+              {
+                "kind": "baseline",
+                "total": 19,
+                "passed": 19,
+                "failed": 0
+              }
+            ],
+            "mutations": [],
+            "executedSuites": [
+              {
+                "numTotalTests": 19,
+                "numPassedTests": 19,
+                "numFailedTests": 0,
+                "failures": []
+              },
+              {
+                "numTotalTests": 3,
+                "numPassedTests": 0,
+                "numFailedTests": 3,
+                "failures": [
+                  {
+                    "name": "verify-22: post-publish maintenance failure semantics commits the manifest, reports committed:true, and keeps the new state readable",
+                    "messages": [
+                      "AssertionError: expected Error: injected post-publish maintenance … to match object { …(3) }"
+                    ]
+                  },
+                  {
+                    "name": "verify-22: post-publish maintenance failure semantics rejects a stale retry against the published revision without losing state",
+                    "messages": [
+                      "AssertionError: expected Error: injected post-publish failure to match object { …(2) }"
+                    ]
+                  },
+                  {
+                    "name": "verify-22: post-publish maintenance failure semantics succeeds with full cleanup when no post-publish failure is injected (control)",
+                    "messages": [
+                      "AssertionError: expected 3 to be 2 // Object.is equality"
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "candidates": [
+            {
+              "file": "packages/cli/__tests__/verify-22.test.js",
+              "originalDigest": "sha256:7cd9d2acb6117665ef69e1498e2c3024b27f5624a3f14a22a4a30292f51aa5e8",
+              "bytes": 6493
+            }
+          ]
+        }
+      ],
+      "transportFailures": [],
+      "requestEvidence": {
+        "physicalRequestsStarted": 27,
+        "usageCompleteRequests": 27,
+        "poisoned": null
+      }
+    },
+    {
+      "run": "39044546005",
+      "sourceCommit": "9785536429f248f10ec9371f07fd1d6e877485c9",
+      "archiveDigest": "sha256:95986c50e227a8a19b6dbe0da8a51b3a30ea8ecd30a2362b0b4aea69390b8038",
+      "summaryDigest": "sha256:724c255466468b39a8edb3074cfb432406af9b7876cf21c80add2700332e882c",
+      "passed": false,
+      "tasks": [
+        {
+          "id": "verify-04",
+          "passed": false,
+          "failure": null,
+          "repairSeed": {
+            "sourceRun": "39043024352",
+            "repairRound": 1,
+            "file": "packages/cli/scripts/fixtures/verify01-volcengine/verify-04-39043024352.test.txt",
+            "digest": "sha256:625ba7ca5c97617f52656c91f1d5c03657e8e6af5960ce3ee6a91f7943ef3f7f"
+          },
+          "modelTerminalVerified": false,
+          "delivered": false,
+          "failureCategory": "agent-error",
+          "broker": {
+            "physicalRequestsStarted": 8,
+            "usageCompleteRequests": 7,
+            "passed": false,
+            "poisoned": "DIAGNOSTIC_INCOMPLETE_STREAM",
+            "errorCode": null
+          },
+          "checker": {
+            "pass": false,
+            "detail": "candidate or baseline regression failed",
+            "receiptDigest": "sha256:8390d928d47b5594c3cb3c361a7f4f85780f1085730b92c8271dc0357e61cb8b",
+            "receiptPath": "pack/acceptance-evidence/verify-04-check-19183354-0e22-49ab-94ee-6480f8c8963f.json",
+            "tests": [
+              {
+                "kind": "baseline",
+                "total": 22,
+                "passed": 22,
+                "failed": 0
+              }
+            ],
+            "mutations": [],
+            "executedSuites": [
+              {
+                "numTotalTests": 22,
+                "numPassedTests": 22,
+                "numFailedTests": 0,
+                "failures": []
+              },
+              {
+                "numTotalTests": 4,
+                "numPassedTests": 1,
+                "numFailedTests": 3,
+                "failures": [
+                  {
+                    "name": "request-level cache & long-context pricing buckets bills the same total tokens differently when cache is distributed per request",
+                    "messages": [
+                      "AssertionError: expected +0 to be 302000 // Object.is equality"
+                    ]
+                  },
+                  {
+                    "name": "request-level cache & long-context pricing buckets prices a long-context request by its own bucket instead of pooling totals",
+                    "messages": [
+                      "AssertionError: expected +0 to be 402000 // Object.is equality"
+                    ]
+                  },
+                  {
+                    "name": "request-level cache & long-context pricing buckets keeps long/short and distinct service tiers in separate buckets with their own rates",
+                    "messages": [
+                      "AssertionError: expected undefined to be close to 3.855, received difference is NaN, but expected 5e-10"
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "candidates": [
+            {
+              "file": "packages/cli/__tests__/verify-04.test.js",
+              "originalDigest": "sha256:625ba7ca5c97617f52656c91f1d5c03657e8e6af5960ce3ee6a91f7943ef3f7f",
+              "bytes": 6090
+            }
+          ]
+        },
+        {
+          "id": "verify-22",
+          "passed": false,
+          "failure": "DIAGNOSTIC_TASK_ALLOWANCE_INVALID",
+          "repairSeed": {
+            "sourceRun": "39043024352",
+            "repairRound": 2,
+            "file": "packages/cli/scripts/fixtures/verify01-volcengine/verify-22-39043024352.test.txt",
+            "digest": "sha256:7cd9d2acb6117665ef69e1498e2c3024b27f5624a3f14a22a4a30292f51aa5e8"
+          },
+          "modelTerminalVerified": null,
+          "delivered": null,
+          "failureCategory": null,
+          "broker": {
+            "physicalRequestsStarted": 0,
+            "usageCompleteRequests": 0,
+            "passed": false,
+            "poisoned": "DIAGNOSTIC_INCOMPLETE_STREAM",
+            "errorCode": null
+          },
+          "checker": {
+            "pass": null,
+            "detail": null,
+            "receiptDigest": null,
+            "receiptPath": null,
+            "tests": null,
+            "mutations": null,
+            "executedSuites": []
+          },
+          "candidates": []
+        }
+      ],
+      "transportFailures": [
+        {
+          "id": 8,
+          "taskId": "verify-04",
+          "errorCode": "DIAGNOSTIC_INCOMPLETE_STREAM",
+          "transport": {
+            "socketAssignedMs": 1,
+            "dnsLookupMs": 2,
+            "tcpConnectedMs": 267,
+            "tlsConnectedMs": 535,
+            "dispatchStartedMs": 535,
+            "requestFinishedMs": 535,
+            "responseStartedMs": 34748,
+            "dispatchStarted": true,
+            "failureCategory": null,
+            "connectionAttempts": [
+              {
+                "event": "start",
+                "family": 4,
+                "elapsedMs": 2,
+                "errorCode": null
+              }
+            ],
+            "nestedErrorCodes": [],
+            "errorCode": null,
+            "errorSyscall": null
+          },
+          "response": {
+            "storedSha256": "ae80de7dfd851cc9cc4a43fcd006141bbe52aa9bc8e8d1d3d2f78f2117bd9bc5",
+            "storedBytes": 14957,
+            "status": 200,
+            "originalSha256": "ae80de7dfd851cc9cc4a43fcd006141bbe52aa9bc8e8d1d3d2f78f2117bd9bc5",
+            "originalBytes": 14957,
+            "sensitiveValueRedacted": false
+          }
+        }
+      ],
+      "requestEvidence": {
+        "physicalRequestsStarted": 8,
+        "usageCompleteRequests": 7,
+        "poisoned": "DIAGNOSTIC_INCOMPLETE_STREAM"
+      }
+    },
+    {
+      "run": "39045268929",
+      "sourceCommit": "9b1ddce5d0b8e4c8d297db1f85ec2968be1f6e91",
+      "archiveDigest": "sha256:3ee04abf25a5997ec3b82143955534aaddea10e91774ddd7905cf39cc6490e08",
+      "summaryDigest": "sha256:04d8a22e305de114f528f61ca959debb092d4fa38a75b340136f68835eb786b0",
+      "passed": false,
+      "tasks": [
+        {
+          "id": "verify-04",
+          "passed": false,
+          "failure": null,
+          "repairSeed": {
+            "sourceRun": "39043024352",
+            "repairRound": 1,
+            "file": "packages/cli/scripts/fixtures/verify01-volcengine/verify-04-39043024352.test.txt",
+            "digest": "sha256:625ba7ca5c97617f52656c91f1d5c03657e8e6af5960ce3ee6a91f7943ef3f7f"
+          },
+          "modelTerminalVerified": true,
+          "delivered": true,
+          "failureCategory": null,
+          "broker": {
+            "physicalRequestsStarted": 9,
+            "usageCompleteRequests": 9,
+            "passed": true,
+            "poisoned": null,
+            "errorCode": null
+          },
+          "checker": {
+            "pass": false,
+            "detail": "candidate or baseline regression failed",
+            "receiptDigest": "sha256:9d34ffde2b066397c891057e3400b0ee90f8bbb1fe8341074f208d9f6ae492f0",
+            "receiptPath": "pack/acceptance-evidence/verify-04-check-b517239c-47bf-4ead-92b1-37ae96eac77f.json",
+            "tests": [
+              {
+                "kind": "baseline",
+                "total": 22,
+                "passed": 22,
+                "failed": 0
+              }
+            ],
+            "mutations": [],
+            "executedSuites": [
+              {
+                "numTotalTests": 22,
+                "numPassedTests": 22,
+                "numFailedTests": 0,
+                "failures": []
+              },
+              {
+                "numTotalTests": 6,
+                "numPassedTests": 4,
+                "numFailedTests": 2,
+                "failures": [
+                  {
+                    "name": "request-level cache & long-context pricing buckets bills the same total tokens differently when cache is distributed per request",
+                    "messages": [
+                      "AssertionError: expected 0.5840000000000001 to be close to 0.6, received difference is 0.015999999999999903, but expected 5e-10"
+                    ]
+                  },
+                  {
+                    "name": "request-level cache & long-context pricing buckets lets cache-read tokens alone push a short input across the long-context threshold",
+                    "messages": [
+                      "AssertionError: expected 0.5504 to be close to 0.552, received difference is 0.0016000000000000458, but expected 5e-10"
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "candidates": [
+            {
+              "file": "packages/cli/__tests__/verify-04.test.js",
+              "originalDigest": "sha256:5066a74a68ed6b56a2152b7a8d6005dc03657c5489f6f427fe23ad416ca057e1",
+              "bytes": 9414
+            }
+          ]
+        },
+        {
+          "id": "verify-22",
+          "passed": true,
+          "failure": null,
+          "repairSeed": {
+            "sourceRun": "39043024352",
+            "repairRound": 2,
+            "file": "packages/cli/scripts/fixtures/verify01-volcengine/verify-22-39043024352.test.txt",
+            "digest": "sha256:7cd9d2acb6117665ef69e1498e2c3024b27f5624a3f14a22a4a30292f51aa5e8"
+          },
+          "modelTerminalVerified": true,
+          "delivered": true,
+          "failureCategory": null,
+          "broker": {
+            "physicalRequestsStarted": 6,
+            "usageCompleteRequests": 6,
+            "passed": true,
+            "poisoned": null,
+            "errorCode": null
+          },
+          "checker": {
+            "pass": true,
+            "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+            "receiptDigest": "sha256:086ae70b47c0a8943a26982358c88a5570f002d81c2cc4925c3ae0b09c4fa0f8",
+            "receiptPath": "pack/acceptance-evidence/verify-22-check-67042c79-9ba7-4e7e-9342-7159e6e425b6.json",
+            "tests": [
+              {
+                "kind": "baseline",
+                "total": 19,
+                "passed": 19,
+                "failed": 0
+              },
+              {
+                "kind": "candidate",
+                "total": 3,
+                "passed": 3,
+                "failed": 0
+              }
+            ],
+            "mutations": [
+              {
+                "name": "published-commit-reported-uncommitted",
+                "sourceSha256": "515e1028de9a8d6e6e676fa85e70ccae48f8812267d97e1a20906f59e2530512",
+                "total": 3,
+                "passed": 1,
+                "failed": 2
+              }
+            ],
+            "executedSuites": [
+              {
+                "numTotalTests": 19,
+                "numPassedTests": 19,
+                "numFailedTests": 0,
+                "failures": []
+              },
+              {
+                "numTotalTests": 3,
+                "numPassedTests": 3,
+                "numFailedTests": 0,
+                "failures": []
+              },
+              {
+                "numTotalTests": 3,
+                "numPassedTests": 1,
+                "numFailedTests": 2,
+                "failures": [
+                  {
+                    "name": "verify-22: post-publish maintenance failure semantics commits the manifest, reports committed:true, and keeps the new state readable",
+                    "messages": [
+                      "AssertionError: expected Error: Context/Memory commit was publishe… { …(5) } to match object { …(3) }"
+                    ]
+                  },
+                  {
+                    "name": "verify-22: post-publish maintenance failure semantics rejects a stale retry against the published revision without losing state",
+                    "messages": [
+                      "AssertionError: expected Error: Context/Memory commit was publishe… { …(5) } to match object { …(2) }"
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "candidates": [
+            {
+              "file": "packages/cli/__tests__/verify-22.test.js",
+              "originalDigest": "sha256:175c322775dd4f2477beb422948b00a207f041a1279f21615947a3ff604e0e0c",
+              "bytes": 6688
+            }
+          ],
+          "acceptedCandidates": [
+            {
+              "path": "accepted-candidates/verify-22-39045268929.test.txt",
+              "digest": "sha256:175c322775dd4f2477beb422948b00a207f041a1279f21615947a3ff604e0e0c"
+            }
+          ]
+        }
+      ],
+      "transportFailures": [],
+      "requestEvidence": {
+        "physicalRequestsStarted": 15,
+        "usageCompleteRequests": 15,
+        "poisoned": null
+      }
+    },
+    {
+      "run": "39046343326",
+      "sourceCommit": "7bc147b7c6fa5f7c674c91eeb461171f5a2a5797",
+      "archiveDigest": "sha256:dc4d873c1e23ca2f13f01ad09af71d3fa91d421d2649c1a150209525517ccd2f",
+      "summaryDigest": "sha256:7632df4f7e9725485f7f264b91a2a159c6bb7e852000212f53e813f3f5a136cd",
+      "passed": true,
+      "tasks": [
+        {
+          "id": "verify-04",
+          "passed": true,
+          "failure": null,
+          "repairSeed": {
+            "sourceRun": "39045268929",
+            "repairRound": 2,
+            "file": "packages/cli/scripts/fixtures/verify01-volcengine/verify-04-39045268929.test.txt",
+            "digest": "sha256:5066a74a68ed6b56a2152b7a8d6005dc03657c5489f6f427fe23ad416ca057e1"
+          },
+          "modelTerminalVerified": true,
+          "delivered": true,
+          "failureCategory": null,
+          "broker": {
+            "physicalRequestsStarted": 10,
+            "usageCompleteRequests": 10,
+            "passed": true,
+            "poisoned": null,
+            "errorCode": null
+          },
+          "checker": {
+            "pass": true,
+            "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+            "receiptDigest": "sha256:12fb6c85d14f5c8ab8efa0c9d6d927a07dc8fc296abf67ef38469864f34d9f6e",
+            "receiptPath": "pack/acceptance-evidence/verify-04-check-aa9d1164-f4a3-484d-8076-61eec9019505.json",
+            "tests": [
+              {
+                "kind": "baseline",
+                "total": 22,
+                "passed": 22,
+                "failed": 0
+              },
+              {
+                "kind": "candidate",
+                "total": 6,
+                "passed": 6,
+                "failed": 0
+              }
+            ],
+            "mutations": [
+              {
+                "name": "merge-short-and-long-request-price-buckets",
+                "sourceSha256": "7b8898a171561e61a4803ef8aa05ffc947aea3cd85e194c2b8ca6898a535b86c",
+                "total": 6,
+                "passed": 4,
+                "failed": 2
+              },
+              {
+                "name": "drop-cache-tokens-from-request-threshold",
+                "sourceSha256": "63b0dbf58bfccf374c4b480da32f78b06c96ff461905e294005ac9047e7a5abd",
+                "total": 6,
+                "passed": 3,
+                "failed": 3
+              }
+            ],
+            "executedSuites": [
+              {
+                "numTotalTests": 22,
+                "numPassedTests": 22,
+                "numFailedTests": 0,
+                "failures": []
+              },
+              {
+                "numTotalTests": 6,
+                "numPassedTests": 6,
+                "numFailedTests": 0,
+                "failures": []
+              },
+              {
+                "numTotalTests": 6,
+                "numPassedTests": 4,
+                "numFailedTests": 2,
+                "failures": [
+                  {
+                    "name": "request-level cache & long-context pricing buckets prices a long-context request by its own bucket instead of pooling totals",
+                    "messages": [
+                      "AssertionError: expected [ { inputTokens: 400000, …(8) } ] to have a length of 2 but got 1"
+                    ]
+                  },
+                  {
+                    "name": "request-level cache & long-context pricing buckets keeps long/short and distinct service tiers in separate buckets with their own rates",
+                    "messages": [
+                      "AssertionError: expected undefined to be defined"
+                    ]
+                  }
+                ]
+              },
+              {
+                "numTotalTests": 6,
+                "numPassedTests": 3,
+                "numFailedTests": 3,
+                "failures": [
+                  {
+                    "name": "request-level cache & long-context pricing buckets groups cached and non-cached short requests into one bucket, preserving each cache total",
+                    "messages": [
+                      "AssertionError: expected 150000 to be 160000 // Object.is equality"
+                    ]
+                  },
+                  {
+                    "name": "request-level cache & long-context pricing buckets lets cache-read tokens alone push a short input across the long-context threshold",
+                    "messages": [
+                      "AssertionError: expected 270000 to be 272000 // Object.is equality"
+                    ]
+                  },
+                  {
+                    "name": "request-level cache & long-context pricing buckets lets cache-creation tokens alone push a short input across the long-context threshold",
+                    "messages": [
+                      "AssertionError: expected 270000 to be 272001 // Object.is equality"
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "candidates": [
+            {
+              "file": "packages/cli/__tests__/verify-04.test.js",
+              "originalDigest": "sha256:fb6f52080dc74baf7244ab354732bf4201d709611f730c8e07cebe276f6a942f",
+              "bytes": 9425
+            }
+          ],
+          "acceptedCandidates": [
+            {
+              "path": "accepted-candidates/verify-04-39046343326.test.txt",
+              "digest": "sha256:fb6f52080dc74baf7244ab354732bf4201d709611f730c8e07cebe276f6a942f"
+            }
+          ]
+        }
+      ],
+      "transportFailures": [],
+      "requestEvidence": {
+        "physicalRequestsStarted": 10,
+        "usageCompleteRequests": 10,
+        "poisoned": null
+      }
+    }
+  ]
+}

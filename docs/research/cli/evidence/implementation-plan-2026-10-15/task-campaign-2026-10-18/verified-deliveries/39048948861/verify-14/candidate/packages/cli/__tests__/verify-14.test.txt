@@ -1,0 +1,85 @@
+/**
+ * verify-14 — per-item image error regression (图片逐项错误).
+ *
+ * When a batch mixes valid images with damaged/non-image inputs, the resolver
+ * must keep accurate per-item success/rejection information: each valid image
+ * resolves to {mediaType, base64 data}, and the first damaged/unsupported entry
+ * rejects loudly with an `Image <n>:` prefix identifying exactly which item —
+ * never silently skipping the damaged input or the valid ones around it.
+ *
+ * Independent from image-input.test.js / image-file-boundary.test.js; uses the
+ * shared helper fixtures but asserts behavior on the real Node fs via temp
+ * files so the header/extension path is exercised end to end.
+ */
+import { afterAll, describe, expect, it } from "vitest";
+import fs from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { resolveImages } from "../src/lib/image-input.js";
+import { PNG_BYTES, imageHeader } from "./helpers/image-file-fixtures.js";
+
+const root = fs.mkdtempSync(join(tmpdir(), "cc-verify-14-"));
+afterAll(() => fs.rmSync(root, { recursive: true, force: true }));
+
+let seq = 0;
+function file(name, data = PNG_BYTES) {
+  const target = join(root, `${seq++}-${name}`);
+  fs.writeFileSync(target, data);
+  return target;
+}
+
+describe("per-item image error handling in resolveImages", () => {
+  it("positive control: a lone valid png resolves, a lone damaged png rejects with Image 1", () => {
+    const ok = resolveImages([file("ok.png")]);
+    expect(ok).toHaveLength(1);
+    expect(ok[0].mediaType).toBe("image/png");
+    expect(ok[0].data).toBe(PNG_BYTES.toString("base64"));
+
+    expect(() =>
+      resolveImages([file("broken.png", Buffer.from("not an image"))]),
+    ).toThrow(/^Image 1: /);
+  });
+
+  it("valid image first, damaged image second → rejects identifying item 2, not silent", () => {
+    const good = file("good.png");
+    const broken = file("broken.png", Buffer.from("garbage bytes"));
+    expect(() => resolveImages([good, broken])).toThrow(
+      /^Image 2: .*malformed image header/,
+    );
+  });
+
+  it("damaged image first, valid image second → rejects identifying item 1", () => {
+    const broken = file("broken.png", Buffer.from("garbage bytes"));
+    const good = file("good.png");
+    expect(() => resolveImages([broken, good])).toThrow(
+      /^Image 1: .*malformed image header/,
+    );
+  });
+
+  it("valid image + forged-extension damaged image → rejects the forged entry by index", () => {
+    const good = file("good.png");
+    // real PNG bytes but a .jpg extension → header/media-type mismatch
+    const forged = file("forged.jpg", PNG_BYTES);
+    expect(() => resolveImages([good, forged])).toThrow(
+      /^Image 2: .*extension does not match/,
+    );
+  });
+
+  it("valid image + unsupported-extension entry → rejects identifying the bad entry", () => {
+    const good = file("good.png");
+    const pdf = file("doc.pdf", Buffer.from("PDF body"));
+    expect(() => resolveImages([good, pdf])).toThrow(
+      /^Unsupported image type/,
+    );
+  });
+
+  it("two valid images both succeed, per-item success info preserved", () => {
+    const a = file("a.png", PNG_BYTES);
+    const b = file("b.png", imageHeader("png"));
+    const out = resolveImages([a, b]);
+    expect(out).toHaveLength(2);
+    expect(out[0]).toEqual({ mediaType: "image/png", data: PNG_BYTES.toString("base64") });
+    expect(out[1].mediaType).toBe("image/png");
+    expect(out[1].data).toBe(imageHeader("png").toString("base64"));
+  });
+});

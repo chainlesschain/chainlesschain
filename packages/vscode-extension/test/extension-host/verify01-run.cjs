@@ -60,7 +60,7 @@ function validateConfig(config) {
   assert.ok(
     typeof config.prompt === "string" &&
       config.prompt.length > 0 &&
-      config.prompt.length <= 512,
+      Buffer.byteLength(config.prompt, "utf8") <= 1024 * 1024,
   );
   assert.match(config.hostVersion || "", /^\d+\.\d+\.\d+$/u);
   assert.match(config.extensionVersion || "", /^\d+\.\d+\.\d+$/u);
@@ -78,7 +78,7 @@ function validateConfig(config) {
   assert.ok(
     Number.isSafeInteger(config.deadline) &&
       config.deadline > Date.now() &&
-      config.deadline - Date.now() <= 1200000,
+      config.deadline - Date.now() <= 1800000,
   );
   for (const key of [
     "workspace",
@@ -171,6 +171,7 @@ async function main(argv = process.argv.slice(2)) {
   const {
     launchManagedExtensionHost,
     buildHostDomRelayLaunchArgs,
+    createDevToolsEndpointCapture,
     stopManagedHostAfterActivationFailure,
   } = require("./run.cjs");
   const profileArgs = [
@@ -233,6 +234,36 @@ async function main(argv = process.argv.slice(2)) {
       "task deadline expired before host launch",
     );
     let ownedHost;
+    // The public VSIX's test relay accepts only 512 characters. Long task
+    // prompts use the same real composer through an isolated CDP endpoint.
+    const cdpPort =
+      config.prompt.length > 512
+        ? await require("./cdp-journey.cjs").reserveLoopbackPort()
+        : null;
+    const endpointFile = path.join(config.captureDir, `cdp-${phase}.json`);
+    const endpointCapture = cdpPort
+      ? createDevToolsEndpointCapture(cdpPort)
+      : null;
+    if (endpointCapture)
+      endpointCapture.stderr.on("data", () => {
+        const endpoint = endpointCapture.getEndpoint();
+        if (endpoint && !fs.existsSync(endpointFile))
+          fs.writeFileSync(
+            endpointFile,
+            JSON.stringify({ port: cdpPort, endpoint }),
+            { flag: "wx", mode: 0o600 },
+          );
+      });
+    const hostArgs = buildHostDomRelayLaunchArgs({
+      workspaceDir: config.workspace,
+      profileArgs,
+    });
+    if (cdpPort)
+      hostArgs.unshift(
+        `--remote-debugging-port=${cdpPort}`,
+        "--remote-debugging-address=127.0.0.1",
+        `--remote-allow-origins=http://127.0.0.1:${cdpPort}`,
+      );
     const launched = launchManagedExtensionHost({
       spawnProcess: (command, args, options) => {
         ownedHost = spawn(command, args, {
@@ -245,10 +276,8 @@ async function main(argv = process.argv.slice(2)) {
       vscodeExecutablePath: executable,
       extensionDevelopmentPath: path.join(__dirname, "driver"),
       persistentStorage: true,
-      launchArgs: buildHostDomRelayLaunchArgs({
-        workspaceDir: config.workspace,
-        profileArgs,
-      }),
+      launchArgs: hostArgs,
+      ...(endpointCapture ? { stderr: endpointCapture.stderr } : {}),
       extensionTestsEnv: {
         HOME: config.profileHome,
         USERPROFILE: config.profileHome,
@@ -257,6 +286,9 @@ async function main(argv = process.argv.slice(2)) {
         CHAINLESSCHAIN_VERIFY01_CAPTURE_DIR: config.captureDir,
         CHAINLESSCHAIN_VERIFY01_CONFIG: configFile,
         CHAINLESSCHAIN_VERIFY01_PHASE: phase,
+        ...(cdpPort
+          ? { CHAINLESSCHAIN_VERIFY01_CDP_ENDPOINT_FILE: endpointFile }
+          : {}),
       },
     });
     let stopCount = 0;

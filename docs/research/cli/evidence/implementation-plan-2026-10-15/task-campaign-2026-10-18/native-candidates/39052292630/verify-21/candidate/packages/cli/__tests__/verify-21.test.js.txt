@@ -1,0 +1,119 @@
+import { describe, expect, it } from "vitest";
+import {
+  existsSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { applyMemoryCommand } from "@chainlesschain/context-memory-kernel";
+import { createDurableMemoryFixture } from "../scripts/persistent-capacity-benchmark.mjs";
+import { stateDigest } from "../src/lib/context-memory-kernel/durable-memory-port.js";
+import { SegmentedMemoryPort } from "../src/lib/context-memory-kernel/segmented-memory-port.js";
+
+const roots = [];
+function location() {
+  const root = mkdtempSync(join(tmpdir(), "cc-verify21-"));
+  roots.push(root);
+  return join(root, "kernel-v1.json");
+}
+function reinforce(record) {
+  return applyMemoryCommand(record, {
+    type: "reinforce",
+    expectedRevision: record.revision,
+    confidenceDelta: 0.01,
+    authority: "test",
+    at: "2026-10-04T00:00:00.000Z",
+  });
+}
+function snapshot(filePath) {
+  return {
+    fileBytes: readFileSync(filePath),
+    shardEntries: existsSync(`${filePath}.shards`)
+      ? readdirSync(`${filePath}.shards`).slice().sort()
+      : [],
+  };
+}
+function assertUnchanged(before, after) {
+  expect(after.fileBytes).toEqual(before.fileBytes);
+  expect(after.shardEntries).toEqual(before.shardEntries);
+}
+
+describe("verify-21: Memory shadow reads never write", () => {
+  it("v1 shadow read leaves bytes and shard entries untouched and does not migrate", async () => {
+    const filePath = location();
+    const state = createDurableMemoryFixture(2);
+    writeFileSync(filePath, JSON.stringify(state));
+    const before = snapshot(filePath);
+    const shadow = new SegmentedMemoryPort({ filePath, readOnly: true });
+    expect(await shadow.query()).toHaveLength(2);
+    expect(await shadow.exportSnapshot()).toEqual(state);
+    expect(await shadow.read(Object.values(state.records)[0].memoryId)).toEqual(
+      Object.values(state.records)[0],
+    );
+    assertUnchanged(before, snapshot(filePath));
+  });
+
+  it("v2 shadow read leaves bytes and shard entries untouched and triggers no GC", async () => {
+    const filePath = location();
+    const port = new SegmentedMemoryPort({ filePath });
+    const state = createDurableMemoryFixture(3);
+    await port.importSnapshot(state);
+    // A superseded shard that GC would normally collect must survive a shadow read.
+    writeFileSync(join(`${filePath}.shards`, `00-${"a".repeat(64)}.json`), "x");
+    const before = snapshot(filePath);
+    const shadow = new SegmentedMemoryPort({ filePath, readOnly: true });
+    expect(await shadow.query()).toHaveLength(3);
+    assertUnchanged(before, snapshot(filePath));
+  });
+
+  it("v2 shadow point read leaves bytes and shard entries untouched", async () => {
+    const filePath = location();
+    const port = new SegmentedMemoryPort({ filePath });
+    const state = createDurableMemoryFixture(5);
+    await port.importSnapshot(state);
+    const before = snapshot(filePath);
+    const record = Object.values(state.records)[4];
+    const shadow = new SegmentedMemoryPort({ filePath, readOnly: true });
+    expect(await shadow.read(record.memoryId)).toEqual(record);
+    expect(await shadow.getRevision()).toBe(state.storeRevision);
+    assertUnchanged(before, snapshot(filePath));
+  });
+
+  it("v1 shadow read with a full read-only port never advances storeRevision", async () => {
+    const filePath = location();
+    const state = createDurableMemoryFixture(1);
+    state.digest = stateDigest(state);
+    writeFileSync(filePath, JSON.stringify(state));
+    const before = snapshot(filePath);
+    const shadow = new SegmentedMemoryPort({ filePath, readOnly: true });
+    expect(await shadow.getRevision()).toBe(state.storeRevision);
+    assertUnchanged(before, snapshot(filePath));
+  });
+
+  it("shadow reads reject writes while leaving bytes unchanged", async () => {
+    const filePath = location();
+    const port = new SegmentedMemoryPort({ filePath });
+    const state = createDurableMemoryFixture(2);
+    await port.importSnapshot(state);
+    const before = snapshot(filePath);
+    const shadow = new SegmentedMemoryPort({ filePath, readOnly: true });
+    await expect(
+      shadow.commit(reinforce(Object.values(state.records)[0]), 1),
+    ).rejects.toMatchObject({ code: "CONTEXT_MEMORY_READ_ONLY" });
+    assertUnchanged(before, snapshot(filePath));
+  });
+
+  it("shadow read of a v2 manifest that is on-disk identical yields identical snapshot", async () => {
+    const filePath = location();
+    const port = new SegmentedMemoryPort({ filePath });
+    const state = createDurableMemoryFixture(4);
+    await port.importSnapshot(state);
+    const shadow = new SegmentedMemoryPort({ filePath, readOnly: true });
+    expect(await shadow.query()).toEqual(Object.values(state.records));
+    expect(await shadow.exportSnapshot()).toEqual(await port.exportSnapshot());
+  });
+});

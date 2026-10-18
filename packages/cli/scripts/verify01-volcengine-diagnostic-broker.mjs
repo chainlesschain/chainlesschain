@@ -11,10 +11,11 @@ export const BROKER = Object.freeze({
   endpoint: "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
   model: "deepseek-v4-flash-ga-260731",
   maximumRequestsPerTask: 14,
-  maximumRequestBytes: 80 * 1024,
+  maximumRequestBytes: 256 * 1024,
   maximumResponseBytes: 1024 * 1024,
-  maximumAnswerTokens: 4096,
+  maximumAnswerTokens: 8192,
   timeoutMs: 45000,
+  connectionAttemptTimeoutMs: 2000,
   thinking: "disabled",
   formalSample: false,
 });
@@ -112,7 +113,7 @@ export function parseDiagnosticJson(text) {
   return JSON.parse(text);
 }
 
-export function diagnosticBody(input) {
+export function diagnosticBody(input, { allowTextOnlyRequests = false } = {}) {
   check(input?.model === BROKER.model, "DIAGNOSTIC_MODEL_MISMATCH");
   check(
     input.stream === undefined || typeof input.stream === "boolean",
@@ -124,11 +125,12 @@ export function diagnosticBody(input) {
     "DIAGNOSTIC_MESSAGES_REQUIRED",
   );
   check(
-    Array.isArray(input.tools) &&
-      input.tools.length > 0 &&
-      input.tools.every(
-        (t) => t?.type === "function" && fileTools.has(t.function?.name),
-      ),
+    (allowTextOnlyRequests && input.tools === undefined) ||
+      (Array.isArray(input.tools) &&
+        (allowTextOnlyRequests || input.tools.length > 0) &&
+        input.tools.every(
+          (t) => t?.type === "function" && fileTools.has(t.function?.name),
+        )),
     "DIAGNOSTIC_FILE_TOOLS_REQUIRED",
   );
   check(
@@ -147,7 +149,7 @@ export function diagnosticBody(input) {
   const body = {
     model: BROKER.model,
     messages: input.messages,
-    tools: input.tools,
+    ...(input.tools?.length ? { tools: input.tools } : {}),
     stream: streaming,
     ...(streaming ? { stream_options: { include_usage: true } } : {}),
     max_tokens: BROKER.maximumAnswerTokens,
@@ -263,7 +265,7 @@ export function diagnosticUsage(raw) {
     }
   }
   check(
-    done && ["stop", "tool_calls"].includes(finish),
+    done && ["stop", "tool_calls", "length"].includes(finish),
     "DIAGNOSTIC_INCOMPLETE_STREAM",
   );
   check(
@@ -311,47 +313,144 @@ export function diagnosticUsage(raw) {
   };
 }
 
-function requestArk(body, key) {
+function responseByteLimit(options) {
+  const limit = options.maximumResponseBytes ?? BROKER.maximumResponseBytes;
+  check(
+    Number.isSafeInteger(limit) && limit >= 1024 && limit <= 16 * 1024 * 1024,
+    "DIAGNOSTIC_RESPONSE_LIMIT_POLICY_INVALID",
+  );
+  return limit;
+}
+
+export function requestArk(body, key, options = {}) {
   requireUnscopedModelTransport();
+  const requestFactory = options.requestFactory || https.request;
+  const timeoutMs = options.timeoutMs ?? BROKER.timeoutMs;
+  const maximumResponseBytes = responseByteLimit(options);
   return new Promise((resolve, reject) => {
     const payload = JSON.stringify(body),
       chunks = [];
     let bytes = 0,
       status = null,
-      finished = false;
-    const req = https.request(BROKER.endpoint, {
-      method: "POST",
-      agent: false,
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
-        "Content-Length": Buffer.byteLength(payload),
-      },
-    });
-    const timer = setTimeout(() => {
-      req.destroy();
-      finish("DIAGNOSTIC_TIMEOUT_USAGE_UNKNOWN");
-    }, BROKER.timeoutMs);
-    function finish(error) {
+      finished = false,
+      timer = null,
+      req = null;
+    const started = Date.now();
+    const transport = {
+      socketAssignedMs: null,
+      dnsLookupMs: null,
+      tcpConnectedMs: null,
+      tlsConnectedMs: null,
+      dispatchStartedMs: null,
+      requestFinishedMs: null,
+      responseStartedMs: null,
+      dispatchStarted: false,
+      failureCategory: null,
+      connectionAttempts: [],
+      nestedErrorCodes: [],
+      errorCode: null,
+      errorSyscall: null,
+    };
+    const mark = (name) => {
+      transport[name] = Date.now() - started;
+    };
+    const safeDiagnostic = (value) => {
+      const normalized = typeof value === "string" ? value.toUpperCase() : "";
+      return /^[A-Z0-9_]{1,48}$/u.test(normalized) ? normalized : null;
+    };
+    function finish(error, cause) {
       if (finished) return;
       finished = true;
       clearTimeout(timer);
+      transport.failureCategory = error || null;
+      transport.errorCode = safeDiagnostic(cause?.code);
+      transport.errorSyscall = safeDiagnostic(cause?.syscall);
+      transport.nestedErrorCodes = Array.isArray(cause?.errors)
+        ? cause.errors.slice(0, 8).map((item) => safeDiagnostic(item?.code))
+        : [];
+      const settledError =
+        error && !transport.dispatchStarted && status === null
+          ? "DIAGNOSTIC_REQUEST_NOT_DISPATCHED"
+          : error;
       const result = {
         status,
         raw: Buffer.concat(chunks),
-        errorCode: error || null,
+        errorCode: settledError || null,
+        transport: { ...transport },
       };
-      if (error) reject(Object.assign(new Error(error), { captured: result }));
+      if (settledError)
+        reject(Object.assign(new Error(settledError), { captured: result }));
       else resolve(result);
     }
+    try {
+      req = requestFactory(BROKER.endpoint, {
+        method: "POST",
+        agent: false,
+        autoSelectFamily: true,
+        autoSelectFamilyAttemptTimeout: BROKER.connectionAttemptTimeoutMs,
+        headers: {
+          Authorization: `Bearer ${key}`,
+          "Content-Type": "application/json",
+          "Content-Length": Buffer.byteLength(payload),
+        },
+      });
+    } catch (error) {
+      finish("DIAGNOSTIC_REQUEST_ERROR_USAGE_UNKNOWN", error);
+      return;
+    }
+    timer = setTimeout(() => {
+      finish("DIAGNOSTIC_TIMEOUT_USAGE_UNKNOWN");
+      req.destroy();
+    }, timeoutMs);
+    // No HTTP bytes are submitted to ClientRequest until TLS is ready. A
+    // failure before this gate is provably local; after it, usage is unknown.
+    req.on("socket", (socket) => {
+      mark("socketAssignedMs");
+      const attempt = (event, family, error) => {
+        if (transport.connectionAttempts.length >= 16) return;
+        transport.connectionAttempts.push({
+          event,
+          family: [4, 6].includes(family) ? family : null,
+          elapsedMs: Date.now() - started,
+          errorCode: safeDiagnostic(error?.code),
+        });
+      };
+      socket.on("connectionAttempt", (_ip, _port, family) =>
+        attempt("start", family),
+      );
+      socket.on("connectionAttemptFailed", (_ip, _port, family, error) =>
+        attempt("failed", family, error),
+      );
+      socket.on("connectionAttemptTimeout", (_ip, _port, family) =>
+        attempt("timeout", family),
+      );
+      socket.once("lookup", () => mark("dnsLookupMs"));
+      socket.once("connect", () => mark("tcpConnectedMs"));
+      socket.once("secureConnect", () => {
+        mark("tlsConnectedMs");
+        if (finished) return;
+        transport.dispatchStarted = true;
+        mark("dispatchStartedMs");
+        try {
+          req.end(payload);
+        } catch (error) {
+          finish("DIAGNOSTIC_REQUEST_ERROR_USAGE_UNKNOWN", error);
+          req.destroy();
+        }
+      });
+    });
+    req.on("finish", () => mark("requestFinishedMs"));
     req.on("response", (res) => {
+      mark("responseStartedMs");
       status = res.statusCode;
       res.on("data", (chunk) => {
         bytes += chunk.length;
-        if (bytes > BROKER.maximumResponseBytes) {
+        if (bytes > maximumResponseBytes) {
+          // IncomingMessage.destroy emits aborted synchronously. Settle the
+          // actual limit failure first so teardown cannot replace its cause.
+          finish("DIAGNOSTIC_RESPONSE_LIMIT_USAGE_UNKNOWN");
           res.destroy();
           req.destroy();
-          finish("DIAGNOSTIC_RESPONSE_LIMIT_USAGE_UNKNOWN");
           return;
         }
         chunks.push(chunk);
@@ -362,14 +461,42 @@ function requestArk(body, key) {
         finish("DIAGNOSTIC_RESPONSE_ABORTED_USAGE_UNKNOWN"),
       );
     });
-    req.on("error", () => finish("DIAGNOSTIC_REQUEST_ERROR_USAGE_UNKNOWN"));
-    req.end(payload);
+    req.on("error", (error) =>
+      finish("DIAGNOSTIC_REQUEST_ERROR_USAGE_UNKNOWN", error),
+    );
   });
 }
 
 export async function createVolcengineDiagnosticBroker(options) {
   requireUnscopedModelTransport();
   const { outputDir, key, requestImpl = requestArk } = options;
+  const allowedTaskIds = options.allowedTaskIds || ["verify-04", "verify-22"];
+  const maximumRequestsPerTask =
+    options.maximumRequestsPerTask ?? BROKER.maximumRequestsPerTask;
+  const requestTimeoutMs = options.requestTimeoutMs ?? BROKER.timeoutMs;
+  const maximumResponseBytes = responseByteLimit(options);
+  const allowTextOnlyRequests = options.allowTextOnlyRequests === true;
+  check(
+    Array.isArray(allowedTaskIds) &&
+      allowedTaskIds.length > 0 &&
+      allowedTaskIds.length <= 45 &&
+      new Set(allowedTaskIds).size === allowedTaskIds.length &&
+      allowedTaskIds.every((id) =>
+        /^(?:verify-(?:0[1-9]|[12][0-9]|3[0-6])|first-run-(?:win32|linux|darwin)-(?:cli|vscode|jetbrains))$/u.test(
+          id,
+        ),
+      ) &&
+      Number.isSafeInteger(maximumRequestsPerTask) &&
+      maximumRequestsPerTask > 0 &&
+      maximumRequestsPerTask <= 32,
+    "DIAGNOSTIC_TASK_POLICY_INVALID",
+  );
+  check(
+    Number.isSafeInteger(requestTimeoutMs) &&
+      requestTimeoutMs >= 1000 &&
+      requestTimeoutMs <= 180000,
+    "DIAGNOSTIC_TIMEOUT_POLICY_INVALID",
+  );
   check(typeof key === "string" && key.length > 0, "DIAGNOSTIC_KEY_REQUIRED");
   // A restarted broker cannot reuse this request allowance.
   fs.mkdirSync(outputDir, { mode: 0o700 });
@@ -425,10 +552,15 @@ export async function createVolcengineDiagnosticBroker(options) {
     if (
       pending ||
       poisoned ||
+      active?.errorCode ||
       !active ||
-      active.requests >= BROKER.maximumRequestsPerTask
+      active.requests >= maximumRequestsPerTask
     ) {
-      rejectLocal(poisoned || "DIAGNOSTIC_REQUEST_ALLOWANCE_EXHAUSTED");
+      rejectLocal(
+        poisoned ||
+          active?.errorCode ||
+          "DIAGNOSTIC_REQUEST_ALLOWANCE_EXHAUSTED",
+      );
       return;
     }
     pending = true;
@@ -448,7 +580,7 @@ export async function createVolcengineDiagnosticBroker(options) {
       const original = parseDiagnosticJson(
         new TextDecoder("utf-8", { fatal: true }).decode(Buffer.concat(chunks)),
       );
-      const effective = diagnosticBody(original);
+      const effective = diagnosticBody(original, { allowTextOnlyRequests });
       const id = receipts.length + 1;
       save(`request-${id}.original.json`, original);
       save(`request-${id}.effective.json`, effective);
@@ -466,7 +598,10 @@ export async function createVolcengineDiagnosticBroker(options) {
       // Persist the physical dispatch slot before network egress.
       save(`request-${id}.dispatch.json`, row);
       receipts.push(row);
-      captured = await requestImpl(effective, key);
+      captured = await requestImpl(effective, key, {
+        timeoutMs: requestTimeoutMs,
+        maximumResponseBytes,
+      });
       check(captured.status === 200, "DIAGNOSTIC_NON_200_NO_RETRY");
       Object.assign(
         row,
@@ -474,16 +609,44 @@ export async function createVolcengineDiagnosticBroker(options) {
           new TextDecoder("utf-8", { fatal: true }).decode(captured.raw),
         ),
       );
+      check(row.finish !== "length", "DIAGNOSTIC_OUTPUT_TRUNCATED");
     } catch (error) {
-      poisoned = error.message.startsWith("DIAGNOSTIC_")
-        ? error.message
-        : "DIAGNOSTIC_INVALID_RESPONSE_USAGE_UNKNOWN";
+      // An oversized request is rejected before dispatch. It invalidates this
+      // task, but no provider usage or response is left unknown for the next.
       captured ||= error.captured || null;
-      if (row) row.errorCode = poisoned;
+      if (error.message === "DIAGNOSTIC_REQUEST_BYTES_LIMIT" && !row) {
+        active.errorCode = error.message;
+      } else if (
+        error.message === "DIAGNOSTIC_REQUEST_NOT_DISPATCHED" &&
+        row &&
+        captured?.transport?.dispatchStarted === false &&
+        captured.status === null &&
+        captured.raw.length === 0
+      ) {
+        active.errorCode = error.message;
+      } else if (
+        error.message === "DIAGNOSTIC_OUTPUT_TRUNCATED" &&
+        captured?.status === 200 &&
+        row?.finish === "length" &&
+        row.usage !== null
+      ) {
+        // Usage is fully validated, but truncated tool arguments are unusable.
+        // Persist the evidence and reject this task without forwarding output.
+        active.errorCode = error.message;
+      } else {
+        poisoned =
+          error.message === "DIAGNOSTIC_REQUEST_NOT_DISPATCHED"
+            ? "DIAGNOSTIC_REQUEST_ERROR_USAGE_UNKNOWN"
+            : error.message.startsWith("DIAGNOSTIC_")
+              ? error.message
+              : "DIAGNOSTIC_INVALID_RESPONSE_USAGE_UNKNOWN";
+      }
+      if (row) row.errorCode = poisoned || active.errorCode;
     } finally {
       try {
         if (row) {
           row.finishedAt = new Date().toISOString();
+          if (captured?.transport) row.transport = captured.transport;
           if (captured) {
             const stored = save(
               `response-${row.id}.${row.responseMode}`,
@@ -507,7 +670,8 @@ export async function createVolcengineDiagnosticBroker(options) {
       pending = false;
       // Never expose a successful terminal to the product until both raw
       // response and complete receipt have been durably written.
-      if (poisoned) rejectLocal(poisoned);
+      if (poisoned || active?.errorCode)
+        rejectLocal(poisoned || active.errorCode);
       else if (!res.destroyed) {
         res.writeHead(200, {
           "Content-Type":
@@ -525,6 +689,11 @@ export async function createVolcengineDiagnosticBroker(options) {
   });
   save("policy.json", {
     ...BROKER,
+    allowedTaskIds,
+    maximumRequestsPerTask,
+    timeoutMs: requestTimeoutMs,
+    maximumResponseBytes,
+    allowTextOnlyRequests,
     retries: 0,
     redirects: false,
     fallback: false,
@@ -542,24 +711,27 @@ export async function createVolcengineDiagnosticBroker(options) {
       check(
         !pending &&
           !poisoned &&
-          ["verify-04", "verify-22"].includes(taskId) &&
+          allowedTaskIds.includes(taskId) &&
           !tasks.some((t) => t.taskId === taskId),
         "DIAGNOSTIC_TASK_ALLOWANCE_INVALID",
       );
-      active = { taskId, requests: 0 };
+      active = { taskId, requests: 0, errorCode: null };
       tasks.push(active);
     },
     taskStatus(taskId) {
       const rows = receipts.filter((r) => r.taskId === taskId);
+      const task = tasks.find((item) => item.taskId === taskId);
       return {
         physicalRequestsStarted: rows.length,
         usageCompleteRequests: rows.filter((r) => r.usage !== null).length,
         passed:
           !pending &&
           !poisoned &&
+          !task?.errorCode &&
           rows.length > 0 &&
           rows.every((r) => r.usage !== null && r.errorCode === null),
         poisoned,
+        errorCode: task?.errorCode || null,
       };
     },
     async close() {

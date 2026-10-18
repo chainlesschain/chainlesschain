@@ -1,0 +1,210 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+import fs from "node:fs";
+import { syncBuiltinESMExports } from "node:module";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { applyMemoryCommand } from "@chainlesschain/context-memory-kernel";
+import { createDurableMemoryFixture } from "../scripts/persistent-capacity-benchmark.mjs";
+import { SegmentedMemoryPort } from "../src/lib/context-memory-kernel/segmented-memory-port.js";
+
+// Independent regression coverage for the "post-publication failure"
+// contract of SegmentedMemoryPort: once the manifest has been atomically
+// replaced, any failure while finishing the commit must declare the commit
+// committed and the reopened authority must still read the new state. A
+// failure before publication must NOT declare the commit committed.
+const roots = [];
+function location() {
+  const root = mkdtempSync(join(tmpdir(), "cc-verify22-"));
+  roots.push(root);
+  return join(root, "authority.json");
+}
+function transitionFor(state) {
+  const record = Object.values(state.records)[0];
+  return applyMemoryCommand(record, {
+    type: "reinforce",
+    expectedRevision: record.revision,
+    confidenceDelta: 0.01,
+    authority: "test",
+    at: "2026-10-04T00:00:00.000Z",
+  });
+}
+async function seeded(recordCount = 2) {
+  const filePath = location();
+  const port = new SegmentedMemoryPort({ filePath });
+  await port.importSnapshot(createDurableMemoryFixture(recordCount));
+  return { filePath, port };
+}
+afterEach(() => {
+  vi.restoreAllMocks();
+  syncBuiltinESMExports();
+  while (roots.length) rmSync(roots.pop(), { recursive: true, force: true });
+});
+
+describe("Memory post-publication failure semantics", () => {
+  it("reports a committed failure when post-rename garbage collection throws and the reopen reads the new state", async () => {
+    const { filePath, port } = await seeded();
+    const transition = transitionFor(await port.exportSnapshot());
+    const publishedRevision = (await port.getRevision()) + 1;
+    let published = false;
+    const rename = fs.renameSync;
+    vi.spyOn(fs, "renameSync").mockImplementation((from, to) => {
+      rename(from, to);
+      if (to === filePath) published = true;
+    });
+    const collect = port._collect.bind(port);
+    vi.spyOn(port, "_collect").mockImplementation((manifest) => {
+      if (published) throw new Error("injected post-rename GC failure");
+      return collect(manifest);
+    });
+    syncBuiltinESMExports();
+    const error = await port.commit(transition, 1).catch((cause) => cause);
+    expect(error).toMatchObject({
+      code: "CONTEXT_MEMORY_COMMIT_PUBLISHED",
+      committed: true,
+      storeRevision: publishedRevision,
+      cleanupComplete: false,
+    });
+    expect(error.message).toContain("published but post-commit maintenance failed");
+    vi.restoreAllMocks();
+    syncBuiltinESMExports();
+    const reopened = new SegmentedMemoryPort({ filePath });
+    expect(await reopened.read(transition.record.memoryId)).toEqual(
+      transition.record,
+    );
+    expect(await reopened.getRevision()).toBe(publishedRevision);
+  });
+
+  it.skipIf(process.platform === "win32")(
+    "reports committed when the post-rename directory fsync fails and re-reads the new record",
+    async () => {
+      const { filePath, port } = await seeded();
+      const transition = transitionFor(await port.exportSnapshot());
+      const publishedRevision = (await port.getRevision()) + 1;
+      let published = false;
+      const rename = fs.renameSync;
+      const sync = fs.fsyncSync;
+      vi.spyOn(fs, "renameSync").mockImplementation((from, to) => {
+        rename(from, to);
+        if (to === filePath) published = true;
+      });
+      vi.spyOn(fs, "fsyncSync").mockImplementation((fd) => {
+        if (published && fs.fstatSync(fd).isDirectory())
+          throw new Error("injected post-rename directory fsync");
+        return sync(fd);
+      });
+      syncBuiltinESMExports();
+      const error = await port.commit(transition, 1).catch((cause) => cause);
+      expect(error).toMatchObject({
+        code: "CONTEXT_MEMORY_COMMIT_PUBLISHED",
+        committed: true,
+        storeRevision: publishedRevision,
+      });
+      vi.restoreAllMocks();
+      syncBuiltinESMExports();
+      expect(
+        await new SegmentedMemoryPort({ filePath }).read(
+          transition.record.memoryId,
+        ),
+      ).toEqual(transition.record);
+    },
+  );
+
+  it("does NOT declare the commit committed when the replacement (rename) itself fails", async () => {
+    const { filePath, port } = await seeded();
+    const transition = transitionFor(await port.exportSnapshot());
+    const before = readFileSync(filePath);
+    const rename = fs.renameSync;
+    vi.spyOn(fs, "renameSync").mockImplementation((from, to) => {
+      if (to === filePath)
+        throw Object.assign(new Error("injected rename failure"), {
+          code: "EIO",
+        });
+      return rename(from, to);
+    });
+    syncBuiltinESMExports();
+    const error = await port.commit(transition, 1).catch((cause) => cause);
+    expect(error).not.toMatchObject({ committed: true });
+    expect(error.code).toBe("EIO");
+    expect(readFileSync(filePath)).toEqual(before);
+    vi.restoreAllMocks();
+    syncBuiltinESMExports();
+    const reopened = new SegmentedMemoryPort({ filePath });
+    expect(await reopened.read(transition.record.memoryId)).toEqual(
+      Object.values((await port.exportSnapshot()).records)[0],
+    );
+    expect(await reopened.getRevision()).toBe(
+      (await port.exportSnapshot()).storeRevision,
+    );
+  });
+
+  it("commits cleanly when no maintenance failure is injected", async () => {
+    const { filePath, port } = await seeded();
+    const beforeRevision = await port.getRevision();
+    const transition = transitionFor(await port.exportSnapshot());
+    const result = await port.commit(transition, 1);
+    expect(result).toMatchObject({
+      ok: true,
+      storeRevision: beforeRevision + 1,
+    });
+    expect(await new SegmentedMemoryPort({ filePath }).read(
+      transition.record.memoryId,
+    )).toEqual(transition.record);
+  });
+
+  it("treats a committed failure as authoritative: a stale CAS replay is rejected after reopen", async () => {
+    const { filePath, port } = await seeded();
+    const transition = transitionFor(await port.exportSnapshot());
+    let published = false;
+    const rename = fs.renameSync;
+    vi.spyOn(fs, "renameSync").mockImplementation((from, to) => {
+      rename(from, to);
+      if (to === filePath) published = true;
+    });
+    const collect = port._collect.bind(port);
+    vi.spyOn(port, "_collect").mockImplementation((manifest) => {
+      if (published) throw new Error("injected GC failure");
+      return collect(manifest);
+    });
+    syncBuiltinESMExports();
+    await port.commit(transition, 1).catch(() => {});
+    vi.restoreAllMocks();
+    syncBuiltinESMExports();
+    const reopened = new SegmentedMemoryPort({ filePath });
+    const stale = await reopened.commit(transition, 1);
+    expect(stale).toMatchObject({
+      ok: false,
+      currentRevision: 2,
+      storeRevision: (await reopened.getRevision()),
+    });
+  });
+
+  it("remains writable after a committed failure and persists a subsequent commit", async () => {
+    const { filePath, port } = await seeded();
+    const first = transitionFor(await port.exportSnapshot());
+    let published = false;
+    const rename = fs.renameSync;
+    vi.spyOn(fs, "renameSync").mockImplementation((from, to) => {
+      rename(from, to);
+      if (to === filePath) published = true;
+    });
+    const collect = port._collect.bind(port);
+    vi.spyOn(port, "_collect").mockImplementation((manifest) => {
+      if (published) throw new Error("injected GC failure");
+      return collect(manifest);
+    });
+    syncBuiltinESMExports();
+    const committed = await port.commit(first, 1).catch((cause) => cause);
+    expect(committed.committed).toBe(true);
+    vi.restoreAllMocks();
+    syncBuiltinESMExports();
+    const reopened = new SegmentedMemoryPort({ filePath });
+    const baseRevision = await reopened.getRevision();
+    const second = transitionFor(await reopened.exportSnapshot());
+    const result = await reopened.commit(second, 2);
+    expect(result).toMatchObject({ ok: true, storeRevision: baseRevision + 1 });
+    expect(await reopened.read(second.record.memoryId)).toEqual(
+      second.record,
+    );
+  });
+});

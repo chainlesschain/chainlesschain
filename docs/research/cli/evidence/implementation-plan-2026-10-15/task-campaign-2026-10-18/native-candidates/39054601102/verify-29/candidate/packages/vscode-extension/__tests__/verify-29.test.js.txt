@@ -1,0 +1,154 @@
+/**
+ * verify-29 — 模式 ACK 关联 (permission-mode ACK correlation) regression.
+ *
+ * Independent Vitest coverage for `acceptModeAcknowledgement` /
+ * `modeState` in permission-mode-state.js. Verifies that an ACK is only
+ * accepted when it is bound to the CURRENT mode request and session (old
+ * generation / stale correlation and stale session ACKs are invalid), and
+ * that on any rejection the new mode is NOT reported as effective.
+ *
+ * Resolved source path (relative to this file):
+ *   ../src/chat/permission-mode-state.js
+ */
+import { describe, it, expect } from "vitest";
+import {
+  acceptModeAcknowledgement,
+  modeState,
+} from "../src/chat/permission-mode-state.js";
+
+const hex16 = "a".repeat(16);
+
+function makeConv(mode = "acceptEdits", id = "req-1", session = "sess-1") {
+  return { mode, modeRequestId: id, sessionId: session };
+}
+
+function makeEvent(overrides = {}) {
+  return {
+    session_id: "sess-1",
+    permission_mode_state: {
+      correlation_id: "req-1",
+      requested: "acceptEdits",
+      effective: "acceptEdits",
+      policy_revision: hex16,
+      ...overrides,
+    },
+  };
+}
+
+describe("permission-mode-state — ACK correlation", () => {
+  it("accepts a current-generation ACK and marks the mode effective", () => {
+    const conv = makeConv();
+    const ok = acceptModeAcknowledgement(conv, makeEvent());
+    expect(ok).toBe(true);
+    expect(conv).toMatchObject({
+      effectiveMode: "acceptEdits",
+      policyRevision: hex16,
+      modeStatus: "effective",
+      modeError: "",
+    });
+    expect(modeState(conv).effective).toBe("acceptEdits");
+    expect(modeState(conv).status).toBe("effective");
+  });
+
+  it("rejects an old-generation ACK (stale correlation + old session) without changing state", () => {
+    // A leftover ACK from a previous spawn/request must not surface the new mode.
+    const conv = makeConv("acceptEdits", "req-current", "sess-current");
+    expect(conv.modeStatus).toBeUndefined();
+    const ok = acceptModeAcknowledgement(
+      conv,
+      makeEvent({
+        session_id: "sess-old",
+        permission_mode_state: {
+          correlation_id: "req-old",
+          requested: "acceptEdits",
+          effective: "bypassPermissions",
+          policy_revision: hex16,
+        },
+      }),
+    );
+    expect(ok).toBe(false);
+    // Neither effective nor status is touched: still not marked effective.
+    expect(conv.effectiveMode).toBeUndefined();
+    expect(conv.modeStatus).toBeUndefined();
+    expect(modeState(conv).effective).toBeNull();
+    expect(modeState(conv).status).toBe("pending");
+  });
+
+  it("rejects an ACK whose session_id does not match the current session", () => {
+    // Same correlation but from a different session — treated as stale/foreign.
+    const conv = makeConv();
+    const ok = acceptModeAcknowledgement(conv, makeEvent({ session_id: "other" }));
+    expect(ok).toBe(false);
+    expect(conv.effectiveMode).toBeUndefined();
+    expect(modeState(conv).effective).toBeNull();
+  });
+
+  it("marks the mode unconfirmed (not effective) when the requested mode disagrees", () => {
+    const conv = makeConv("acceptEdits");
+    const ok = acceptModeAcknowledgement(
+      conv,
+      makeEvent({
+        permission_mode_state: {
+          correlation_id: "req-1",
+          requested: "bypassPermissions",
+          effective: "acceptEdits",
+          policy_revision: hex16,
+        },
+      }),
+    );
+    expect(ok).toBe(false);
+    expect(conv).toMatchObject({ modeStatus: "unconfirmed" });
+    // Failure must NOT display the new mode as effective.
+    expect(conv.effectiveMode).toBeUndefined();
+    expect(modeState(conv).effective).toBeNull();
+    expect(modeState(conv).reason).toContain("has not confirmed");
+  });
+
+  it("rejects a malformed ACK (bad effective mode or policy_revision) without going effective", () => {
+    const badEffective = makeConv();
+    expect(
+      acceptModeAcknowledgement(
+        badEffective,
+        makeEvent({
+          permission_mode_state: {
+            correlation_id: "req-1",
+            requested: "acceptEdits",
+            effective: "not-a-mode",
+            policy_revision: hex16,
+          },
+        }),
+      ),
+    ).toBe(false);
+    expect(badEffective.modeStatus).toBe("unconfirmed");
+    expect(badEffective.effectiveMode).toBeUndefined();
+
+    const badRevision = makeConv();
+    expect(
+      acceptModeAcknowledgement(
+        badRevision,
+        makeEvent({
+          permission_mode_state: {
+            correlation_id: "req-1",
+            requested: "acceptEdits",
+            effective: "acceptEdits",
+            policy_revision: "zz",
+          },
+        }),
+      ),
+    ).toBe(false);
+    expect(badRevision.modeStatus).toBe("unconfirmed");
+    expect(badRevision.effectiveMode).toBeUndefined();
+  });
+
+  it("rejects the absence of an ACK and never reports the new mode as effective", () => {
+    const conv = makeConv();
+    expect(acceptModeAcknowledgement(conv, { session_id: "sess-1" })).toBe(
+      false,
+    );
+    expect(conv).toMatchObject({
+      modeStatus: "unconfirmed",
+      effectiveMode: undefined,
+    });
+    expect(modeState(conv).effective).toBeNull();
+  });
+});

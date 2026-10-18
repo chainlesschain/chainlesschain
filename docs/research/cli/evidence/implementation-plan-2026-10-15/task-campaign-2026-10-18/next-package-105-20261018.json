@@ -1,0 +1,486 @@
+{
+  "packageSetPath": "docs/research/cli/verify01-package-sets/2026-10-18-task-quality-105.json",
+  "packageSetDigest": "sha256:2cc81784724fcdc8813434fa8798cce28def3569ff97b07369bb6e16fe6af32f",
+  "versions": {
+    "cli": "0.166.105",
+    "vscode": "0.37.150",
+    "jetbrains": "0.4.167",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "frozenProjectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "ledgerPath": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-105-20261018.json",
+  "archivePrefix": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-105-20261018",
+  "plannedNewSamples": 20,
+  "reusedAcceptedSampleIds": [
+    "first-run-win32-cli",
+    "first-run-win32-vscode",
+    "verify-01",
+    "verify-02",
+    "verify-03",
+    "verify-05",
+    "verify-15",
+    "verify-16",
+    "verify-17",
+    "verify-18",
+    "verify-20",
+    "verify-21",
+    "verify-22",
+    "verify-23",
+    "verify-24",
+    "verify-25",
+    "verify-26",
+    "verify-27",
+    "verify-28",
+    "verify-29",
+    "verify-31",
+    "verify-33",
+    "verify-34",
+    "verify-35",
+    "verify-36"
+  ],
+  "schema": "chainlesschain.native-package-retest-round/v1",
+  "billingAssessed": false,
+  "planPath": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-105-20261018-plan.json",
+  "planDigest": "sha256:2296d637b34f63aff931b5e580da5023df5a47a7e7db3f0f2b314311a3e5579f",
+  "status": "IN_PROGRESS",
+  "runs": [
+    {
+      "shardId": "linux-cli",
+      "group": "linux-cli",
+      "runId": "39106967536",
+      "sourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138",
+      "selectedSampleIds": [
+        "verify-04",
+        "verify-13",
+        "first-run-linux-cli"
+      ],
+      "status": "IN_PROGRESS",
+      "remoteState": {
+        "path": "next-package-105-20261018/39106967536/objects/aeab2722cb9c0e804b34725a8d8adacaba7e7a4b19b46ba8e60ed64ae4fb5cca.gz",
+        "originalDigest": "sha256:aeab2722cb9c0e804b34725a8d8adacaba7e7a4b19b46ba8e60ed64ae4fb5cca",
+        "storedDigest": "sha256:ed5ab533f72b8409ac0aeb5e12430f4d98ea2e0270bc395819d123bbfbaa4922",
+        "originalBytes": 483
+      },
+      "remoteStatus": "queued",
+      "conclusion": null,
+      "activeJobs": [],
+      "evidence": []
+    },
+    {
+      "shardId": "linux-jetbrains--verify-06",
+      "group": "linux-jetbrains",
+      "runId": "39106991066",
+      "sourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138",
+      "selectedSampleIds": [
+        "verify-06"
+      ],
+      "status": "IN_PROGRESS",
+      "remoteState": {
+        "path": "next-package-105-20261018/39106991066/objects/c38edf4e8cde1b71b0ead9316008cd698edc6d89e6777cc4fb5192bb6b3449b7.gz",
+        "originalDigest": "sha256:c38edf4e8cde1b71b0ead9316008cd698edc6d89e6777cc4fb5192bb6b3449b7",
+        "storedDigest": "sha256:507ef2b04b4171491ad2beace6e02b50ad137dc9c0293e64985c3a5876462055",
+        "originalBytes": 483
+      },
+      "remoteStatus": "queued",
+      "conclusion": null,
+      "activeJobs": [],
+      "evidence": []
+    },
+    {
+      "shardId": "linux-jetbrains--first-run-linux-jetbrains",
+      "group": "linux-jetbrains",
+      "runId": "39107016136",
+      "sourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138",
+      "selectedSampleIds": [
+        "first-run-linux-jetbrains"
+      ],
+      "status": "IN_PROGRESS",
+      "remoteState": {
+        "path": "next-package-105-20261018/39107016136/objects/804f0a16353c95f20bd1c92278c6aa38210a7b402153793c142149e3d154662d.gz",
+        "originalDigest": "sha256:804f0a16353c95f20bd1c92278c6aa38210a7b402153793c142149e3d154662d",
+        "storedDigest": "sha256:571cb4a94094a83141b07398c61a9744d746bce45de1b4f26a654a5b3cdf1339",
+        "originalBytes": 483
+      },
+      "remoteStatus": "queued",
+      "conclusion": null,
+      "activeJobs": [],
+      "evidence": []
+    },
+    {
+      "shardId": "darwin-cli",
+      "group": "darwin-cli",
+      "runId": "39107035717",
+      "sourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138",
+      "selectedSampleIds": [
+        "verify-07",
+        "first-run-darwin-cli"
+      ],
+      "status": "IN_PROGRESS",
+      "remoteState": {
+        "path": "next-package-105-20261018/39107035717/objects/d97764409ccce858a996a975743d91c89ec66619b0e14af5230cf947b12db171.gz",
+        "originalDigest": "sha256:d97764409ccce858a996a975743d91c89ec66619b0e14af5230cf947b12db171",
+        "storedDigest": "sha256:2787523ad35e4203981189e886967604dc1ffb83b0a4458af092f5c9b4f21ca3",
+        "originalBytes": 483
+      },
+      "remoteStatus": "queued",
+      "conclusion": null,
+      "activeJobs": [],
+      "evidence": []
+    },
+    {
+      "shardId": "darwin-vscode",
+      "group": "darwin-vscode",
+      "runId": "39107065069",
+      "sourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138",
+      "selectedSampleIds": [
+        "verify-08",
+        "first-run-darwin-vscode"
+      ],
+      "status": "IN_PROGRESS",
+      "remoteState": {
+        "path": "next-package-105-20261018/39107065069/objects/8ac08b56c0f94d4a9bcd9c88d1b073426b0fc7a974b355d16446eaba736134a5.gz",
+        "originalDigest": "sha256:8ac08b56c0f94d4a9bcd9c88d1b073426b0fc7a974b355d16446eaba736134a5",
+        "storedDigest": "sha256:7e02b8890c9f3692d7114f2aaabb05dafaec9dee8f04dcce826e37386aa18603",
+        "originalBytes": 483
+      },
+      "remoteStatus": "queued",
+      "conclusion": null,
+      "activeJobs": [],
+      "evidence": []
+    },
+    {
+      "shardId": "darwin-jetbrains--verify-09",
+      "group": "darwin-jetbrains",
+      "runId": "39107091580",
+      "sourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138",
+      "selectedSampleIds": [
+        "verify-09"
+      ],
+      "status": "IN_PROGRESS",
+      "remoteState": {
+        "path": "next-package-105-20261018/39107091580/objects/a455a6d27b0a7894c1ed5cf3a1bc4897906d77ef42e2685fcd13e1937c6cd5e3.gz",
+        "originalDigest": "sha256:a455a6d27b0a7894c1ed5cf3a1bc4897906d77ef42e2685fcd13e1937c6cd5e3",
+        "storedDigest": "sha256:d19d0ad04ca7f2941e1ad1dcc8a5330c033ca48e47f2651e44922e80477140de",
+        "originalBytes": 483
+      },
+      "remoteStatus": "queued",
+      "conclusion": null,
+      "activeJobs": [],
+      "evidence": []
+    },
+    {
+      "shardId": "darwin-jetbrains--first-run-darwin-jetbrains",
+      "group": "darwin-jetbrains",
+      "runId": "39107110039",
+      "sourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138",
+      "selectedSampleIds": [
+        "first-run-darwin-jetbrains"
+      ],
+      "status": "IN_PROGRESS",
+      "remoteState": {
+        "path": "next-package-105-20261018/39107110039/objects/6f8c9c3d5ec03ec12f14d510c5cbadca6a51c499ccd8eed7ed41b7caf00bc063.gz",
+        "originalDigest": "sha256:6f8c9c3d5ec03ec12f14d510c5cbadca6a51c499ccd8eed7ed41b7caf00bc063",
+        "storedDigest": "sha256:a5a9052697ad186c9e1dced766fdd2260be0b10d87a3ddf621caa62ad1900783",
+        "originalBytes": 483
+      },
+      "remoteStatus": "queued",
+      "conclusion": null,
+      "activeJobs": [],
+      "evidence": []
+    },
+    {
+      "shardId": "win32-cli",
+      "group": "win32-cli",
+      "runId": "39107134691",
+      "sourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138",
+      "selectedSampleIds": [
+        "verify-10",
+        "verify-19"
+      ],
+      "status": "IN_PROGRESS",
+      "remoteState": {
+        "path": "next-package-105-20261018/39107134691/objects/647a1cea2f17e161f9e201e95541b5cefa7525fbc79c8ab60998ff40db60f667.gz",
+        "originalDigest": "sha256:647a1cea2f17e161f9e201e95541b5cefa7525fbc79c8ab60998ff40db60f667",
+        "storedDigest": "sha256:2561778978966e658f6c244cd075d4fa6a0fdb1050a021f95330d0181d9f2e82",
+        "originalBytes": 483
+      },
+      "remoteStatus": "queued",
+      "conclusion": null,
+      "activeJobs": [],
+      "evidence": []
+    },
+    {
+      "shardId": "win32-vscode",
+      "group": "win32-vscode",
+      "runId": "39107156493",
+      "sourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138",
+      "selectedSampleIds": [
+        "verify-11"
+      ],
+      "status": "IN_PROGRESS",
+      "remoteState": {
+        "path": "next-package-105-20261018/39107156493/objects/1d20dae8de2dac8c22f6131eb5d954b203ead81eae85d807573ee6960b6a446d.gz",
+        "originalDigest": "sha256:1d20dae8de2dac8c22f6131eb5d954b203ead81eae85d807573ee6960b6a446d",
+        "storedDigest": "sha256:b79182d144219259bca9f87129745bee1a5ecd9441accfe854f84a62df20f7bc",
+        "originalBytes": 483
+      },
+      "remoteStatus": "queued",
+      "conclusion": null,
+      "activeJobs": [],
+      "evidence": []
+    },
+    {
+      "shardId": "win32-jetbrains--verify-12",
+      "group": "win32-jetbrains",
+      "runId": "39107179320",
+      "sourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138",
+      "selectedSampleIds": [
+        "verify-12"
+      ],
+      "status": "IN_PROGRESS",
+      "remoteState": {
+        "path": "next-package-105-20261018/39107179320/objects/a1b493352e655591a90cd617fe8dc4a210027aaa773bc1e92d8d5f7375efb2fa.gz",
+        "originalDigest": "sha256:a1b493352e655591a90cd617fe8dc4a210027aaa773bc1e92d8d5f7375efb2fa",
+        "storedDigest": "sha256:5e6add434b1ed2c2a84d90093fb21b2a848b0d171616202b50f44f5824f913aa",
+        "originalBytes": 483
+      },
+      "remoteStatus": "queued",
+      "conclusion": null,
+      "activeJobs": [],
+      "evidence": []
+    },
+    {
+      "shardId": "win32-jetbrains--verify-30",
+      "group": "win32-jetbrains",
+      "runId": "39107198745",
+      "sourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138",
+      "selectedSampleIds": [
+        "verify-30"
+      ],
+      "status": "IN_PROGRESS",
+      "remoteState": {
+        "path": "next-package-105-20261018/39107198745/objects/aebc99f197cb1ae1191739c844e066ffb7e911c97a7110120834e5a7b9e6bf9b.gz",
+        "originalDigest": "sha256:aebc99f197cb1ae1191739c844e066ffb7e911c97a7110120834e5a7b9e6bf9b",
+        "storedDigest": "sha256:2b0b217467117cfd1d04c44817c9a2f1f995ae376fcf159ec2d2fadd2656095f",
+        "originalBytes": 483
+      },
+      "remoteStatus": "queued",
+      "conclusion": null,
+      "activeJobs": [],
+      "evidence": []
+    },
+    {
+      "shardId": "win32-jetbrains--first-run-win32-jetbrains",
+      "group": "win32-jetbrains",
+      "runId": "39107223845",
+      "sourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138",
+      "selectedSampleIds": [
+        "first-run-win32-jetbrains"
+      ],
+      "status": "IN_PROGRESS",
+      "remoteState": {
+        "path": "next-package-105-20261018/39107223845/objects/146fe3ccc3472b28009f944630fd16a8896e3f8149f5c88ee265ab752aeefb99.gz",
+        "originalDigest": "sha256:146fe3ccc3472b28009f944630fd16a8896e3f8149f5c88ee265ab752aeefb99",
+        "storedDigest": "sha256:502ce6e0b3ede235dc75a65d3a2f5272bab5f8a109f55d88b378f8ed2fe21598",
+        "originalBytes": 483
+      },
+      "remoteStatus": "queued",
+      "conclusion": null,
+      "activeJobs": [],
+      "evidence": []
+    },
+    {
+      "shardId": "linux-vscode",
+      "group": "linux-vscode",
+      "runId": "39107247624",
+      "sourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138",
+      "selectedSampleIds": [
+        "verify-14",
+        "verify-32",
+        "first-run-linux-vscode"
+      ],
+      "status": "IN_PROGRESS",
+      "remoteState": {
+        "path": "next-package-105-20261018/39107247624/objects/130492472a7abc9afa76486f5f84aa984eac6442753daa817e5f3978846b28c4.gz",
+        "originalDigest": "sha256:130492472a7abc9afa76486f5f84aa984eac6442753daa817e5f3978846b28c4",
+        "storedDigest": "sha256:1d17cc9c925778ce2bf1cc81492d4e2cc25eae6f31080615c14b0e95e0eeede3",
+        "originalBytes": 483
+      },
+      "remoteStatus": "queued",
+      "conclusion": null,
+      "activeJobs": [],
+      "evidence": []
+    }
+  ],
+  "samples": [
+    {
+      "sampleId": "verify-04",
+      "taskId": "verify-04",
+      "kind": "task",
+      "group": "linux-cli",
+      "status": "PENDING_EXECUTION",
+      "generationObserved": false
+    },
+    {
+      "sampleId": "verify-13",
+      "taskId": "verify-13",
+      "kind": "task",
+      "group": "linux-cli",
+      "status": "PENDING_EXECUTION",
+      "generationObserved": false
+    },
+    {
+      "sampleId": "first-run-linux-cli",
+      "taskId": "verify-04",
+      "kind": "first-run",
+      "group": "linux-cli",
+      "status": "PENDING_EXECUTION",
+      "generationObserved": false
+    },
+    {
+      "sampleId": "verify-06",
+      "taskId": "verify-06",
+      "kind": "task",
+      "group": "linux-jetbrains",
+      "status": "PENDING_EXECUTION",
+      "generationObserved": false
+    },
+    {
+      "sampleId": "first-run-linux-jetbrains",
+      "taskId": "verify-06",
+      "kind": "first-run",
+      "group": "linux-jetbrains",
+      "status": "PENDING_EXECUTION",
+      "generationObserved": false
+    },
+    {
+      "sampleId": "verify-07",
+      "taskId": "verify-07",
+      "kind": "task",
+      "group": "darwin-cli",
+      "status": "PENDING_EXECUTION",
+      "generationObserved": false
+    },
+    {
+      "sampleId": "first-run-darwin-cli",
+      "taskId": "verify-07",
+      "kind": "first-run",
+      "group": "darwin-cli",
+      "status": "PENDING_EXECUTION",
+      "generationObserved": false
+    },
+    {
+      "sampleId": "verify-08",
+      "taskId": "verify-08",
+      "kind": "task",
+      "group": "darwin-vscode",
+      "status": "PENDING_EXECUTION",
+      "generationObserved": false
+    },
+    {
+      "sampleId": "first-run-darwin-vscode",
+      "taskId": "verify-08",
+      "kind": "first-run",
+      "group": "darwin-vscode",
+      "status": "PENDING_EXECUTION",
+      "generationObserved": false
+    },
+    {
+      "sampleId": "verify-09",
+      "taskId": "verify-09",
+      "kind": "task",
+      "group": "darwin-jetbrains",
+      "status": "PENDING_EXECUTION",
+      "generationObserved": false
+    },
+    {
+      "sampleId": "first-run-darwin-jetbrains",
+      "taskId": "verify-09",
+      "kind": "first-run",
+      "group": "darwin-jetbrains",
+      "status": "PENDING_EXECUTION",
+      "generationObserved": false
+    },
+    {
+      "sampleId": "verify-10",
+      "taskId": "verify-10",
+      "kind": "task",
+      "group": "win32-cli",
+      "status": "PENDING_EXECUTION",
+      "generationObserved": false
+    },
+    {
+      "sampleId": "verify-19",
+      "taskId": "verify-19",
+      "kind": "task",
+      "group": "win32-cli",
+      "status": "PENDING_EXECUTION",
+      "generationObserved": false
+    },
+    {
+      "sampleId": "verify-11",
+      "taskId": "verify-11",
+      "kind": "task",
+      "group": "win32-vscode",
+      "status": "PENDING_EXECUTION",
+      "generationObserved": false
+    },
+    {
+      "sampleId": "verify-12",
+      "taskId": "verify-12",
+      "kind": "task",
+      "group": "win32-jetbrains",
+      "status": "PENDING_EXECUTION",
+      "generationObserved": false
+    },
+    {
+      "sampleId": "verify-30",
+      "taskId": "verify-30",
+      "kind": "task",
+      "group": "win32-jetbrains",
+      "status": "PENDING_EXECUTION",
+      "generationObserved": false
+    },
+    {
+      "sampleId": "first-run-win32-jetbrains",
+      "taskId": "verify-03",
+      "kind": "first-run",
+      "group": "win32-jetbrains",
+      "status": "PENDING_EXECUTION",
+      "generationObserved": false
+    },
+    {
+      "sampleId": "verify-14",
+      "taskId": "verify-14",
+      "kind": "task",
+      "group": "linux-vscode",
+      "status": "PENDING_EXECUTION",
+      "generationObserved": false
+    },
+    {
+      "sampleId": "verify-32",
+      "taskId": "verify-32",
+      "kind": "task",
+      "group": "linux-vscode",
+      "status": "PENDING_EXECUTION",
+      "generationObserved": false
+    },
+    {
+      "sampleId": "first-run-linux-vscode",
+      "taskId": "verify-05",
+      "kind": "first-run",
+      "group": "linux-vscode",
+      "status": "PENDING_EXECUTION",
+      "generationObserved": false
+    }
+  ],
+  "counts": {
+    "generationRecordsCollected": 0,
+    "acceptanceRecordsCollected": 0,
+    "candidateAcceptancePassed": 0,
+    "endToEndPassed": 0,
+    "reusedAcceptedDeliverables": 25,
+    "cumulativeAcceptedDeliverables": 25
+  }
+}

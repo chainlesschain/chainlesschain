@@ -240,7 +240,13 @@ async function run(context) {
   // Use the normal panel input. The session identity is declared before the
   // raw user write; obtain it through the already-observed init afterwards.
   const submitAt = new Date().toISOString();
-  await call({ action: "send", text: config.prompt });
+  if (config.prompt.length <= 512)
+    await call({ action: "send", text: config.prompt });
+  else
+    await require("./verify01-composer.cjs").sendLongPrompt({
+      config,
+      snapshot,
+    });
   const capture = await wait(
     "one captured CLI session",
     () => call({ action: "captureStatus" }),
@@ -354,6 +360,19 @@ async function run(context) {
       },
     );
     const records = readProtocol(protocolFile);
+    const inputs = records.filter(
+      (record) => record.direction === "input" && record.event?.type === "user",
+    );
+    assert.equal(
+      inputs.length,
+      1,
+      "expected exactly one original prompt submission",
+    );
+    assert.equal(
+      inputs[0].event.text,
+      config.prompt,
+      "captured CLI input differs from the complete original prompt",
+    );
     assert.equal(records.at(-1).direction, "exit");
     assert.equal(records.at(-1).event.stdoutDrained, true);
     save(path.join(config.captureDir, "protocol.json"), records);

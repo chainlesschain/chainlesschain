@@ -1,0 +1,1338 @@
+{
+  "schema": "chainlesschain.windows-jetbrains-task-readiness-review/v1",
+  "generatedAt": "2026-10-17T18:47:25.881116+00:00",
+  "mode": "READ_ONLY_NO_PRODUCT_FIX_NO_MODEL_REQUEST",
+  "generationRunId": "39054601102",
+  "executionSourceCommit": "d572951fc6dd101eaf6d59411b1fee15746bee22",
+  "frozenProjectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "versions": {
+    "cli": "0.166.99",
+    "vscode": "0.37.143",
+    "jetbrains": "0.4.161",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "publicJetBrainsCommit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+  "summaryPath": "C:\\code\\chainlesschain\\.work\\native45-generation\\39054601102\\win32-jetbrains\\summary.json",
+  "summaryDigest": "sha256:4226991298e897dbc3772fcb90c664c81227d9966baa7aa4e3efb08ee16f9375",
+  "artifact": {
+    "runId": "39054601102",
+    "id": 12110581625,
+    "node_id": "MDg6QXJ0aWZhY3QxMjExMDU4MTYyNQ==",
+    "name": "verify01-native-delivery-win32-jetbrains-d572951fc6dd101eaf6d59411b1fee15746bee22",
+    "size_in_bytes": 11395217,
+    "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/12110581625",
+    "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/12110581625/zip",
+    "expired": false,
+    "digest": "sha256:064cc1a157d26c752106b5d18b8188fd9bf902b21ae343da581ff1ee47cb0fe6",
+    "created_at": "2026-10-17T18:32:16Z",
+    "updated_at": "2026-10-17T18:32:16Z",
+    "expires_at": "2026-10-31T18:32:13Z",
+    "workflow_run": {
+      "id": 39054601102,
+      "repository_id": 1107348698,
+      "head_repository_id": 1107348698,
+      "head_branch": "feature/verify01-task-completion-20261017",
+      "head_sha": "d572951fc6dd101eaf6d59411b1fee15746bee22"
+    }
+  },
+  "evidence": [
+    {
+      "member": "first-run-win32-jetbrains/broker/summary.json",
+      "localPath": "C:\\code\\chainlesschain\\.work\\windows-jb-task-evidence\\first-run-win32-jetbrains\\broker\\summary.json",
+      "bytes": 345,
+      "digest": "sha256:30684c589886cf2942a2e50383f35a08dbfdff0d5c9030b4cbd904265f0bc99f",
+      "archived": {
+        "path": "windows-jb-task-evidence/first-run-win32-jetbrains/broker/summary.json.gz",
+        "originalDigest": "sha256:30684c589886cf2942a2e50383f35a08dbfdff0d5c9030b4cbd904265f0bc99f",
+        "storedDigest": "sha256:623f3a66133c5d32e2d7de8601be7f38c21446e56fbb5d85ab3a8bb76cf4bee2",
+        "originalBytes": 345
+      }
+    },
+    {
+      "member": "first-run-win32-jetbrains/capture/action-1.json",
+      "localPath": "C:\\code\\chainlesschain\\.work\\windows-jb-task-evidence\\first-run-win32-jetbrains\\capture\\action-1.json",
+      "bytes": 155,
+      "digest": "sha256:d0a7968d17d87f9a5a59067b782abe808e016018b7843a0fc2f8fd33dfb67c7a",
+      "archived": {
+        "path": "windows-jb-task-evidence/first-run-win32-jetbrains/capture/action-1.json.gz",
+        "originalDigest": "sha256:d0a7968d17d87f9a5a59067b782abe808e016018b7843a0fc2f8fd33dfb67c7a",
+        "storedDigest": "sha256:6a5468d27d66c5288317e87d023b389c07c97ccd677c4511f5ffc22b291faa35",
+        "originalBytes": 155
+      }
+    },
+    {
+      "member": "first-run-win32-jetbrains/capture/action-2.json",
+      "localPath": "C:\\code\\chainlesschain\\.work\\windows-jb-task-evidence\\first-run-win32-jetbrains\\capture\\action-2.json",
+      "bytes": 163,
+      "digest": "sha256:35ab68ebee968cb8673ebde9761c55ceea71ff8daa40a9f243f4b90d195e964f",
+      "archived": {
+        "path": "windows-jb-task-evidence/first-run-win32-jetbrains/capture/action-2.json.gz",
+        "originalDigest": "sha256:35ab68ebee968cb8673ebde9761c55ceea71ff8daa40a9f243f4b90d195e964f",
+        "storedDigest": "sha256:9aa1971c392a62957b455aac87032d9f684cc50fc58ae4143cf9ce0868503408",
+        "originalBytes": 163
+      }
+    },
+    {
+      "member": "first-run-win32-jetbrains/capture/driver-failure-initial.json",
+      "localPath": "C:\\code\\chainlesschain\\.work\\windows-jb-task-evidence\\first-run-win32-jetbrains\\capture\\driver-failure-initial.json",
+      "bytes": 545,
+      "digest": "sha256:85c7378d27babbcc0dfe654861ba8963c48ecb18c33672c897d244a9337a750d",
+      "archived": {
+        "path": "windows-jb-task-evidence/first-run-win32-jetbrains/capture/driver-failure-initial.json.gz",
+        "originalDigest": "sha256:85c7378d27babbcc0dfe654861ba8963c48ecb18c33672c897d244a9337a750d",
+        "storedDigest": "sha256:e0c1c2ac39112a19c34c75426080bfb934ce7d01fc419d2f8d25ae92a9909361",
+        "originalBytes": 545
+      }
+    },
+    {
+      "member": "first-run-win32-jetbrains/capture/protocol-af7daa4a-828d-4a3c-9f9d-efe1e149cc1c.jsonl",
+      "localPath": "C:\\code\\chainlesschain\\.work\\windows-jb-task-evidence\\first-run-win32-jetbrains\\capture\\protocol-af7daa4a-828d-4a3c-9f9d-efe1e149cc1c.jsonl",
+      "bytes": 227,
+      "digest": "sha256:ddcee12bb6220819e204b5d8213a46b6b1fea3e82cd1ab3570085f552476b1cc",
+      "archived": {
+        "path": "windows-jb-task-evidence/first-run-win32-jetbrains/capture/protocol-af7daa4a-828d-4a3c-9f9d-efe1e149cc1c.jsonl.gz",
+        "originalDigest": "sha256:ddcee12bb6220819e204b5d8213a46b6b1fea3e82cd1ab3570085f552476b1cc",
+        "storedDigest": "sha256:237fc2bf3ab911e308df8231b748e88efb36d81204e0a903a31d245219e250a9",
+        "originalBytes": 227
+      }
+    },
+    {
+      "member": "first-run-win32-jetbrains/ide-initial.log",
+      "localPath": "C:\\code\\chainlesschain\\.work\\windows-jb-task-evidence\\first-run-win32-jetbrains\\ide-initial.log",
+      "bytes": 22421,
+      "digest": "sha256:af09d60fbd716f47f896fa113dbf95befab70f63bcdb9bc378bd6ae205110b7a",
+      "archived": {
+        "path": "windows-jb-task-evidence/first-run-win32-jetbrains/ide-initial.log.gz",
+        "originalDigest": "sha256:af09d60fbd716f47f896fa113dbf95befab70f63bcdb9bc378bd6ae205110b7a",
+        "storedDigest": "sha256:f1d342c2862d8b0e95ccb41619b4cffc65084963d8aa6868075b69bebdb00ab5",
+        "originalBytes": 22421
+      }
+    },
+    {
+      "member": "first-run-win32-jetbrains/ide-initial.log.cleanup.json",
+      "localPath": "C:\\code\\chainlesschain\\.work\\windows-jb-task-evidence\\first-run-win32-jetbrains\\ide-initial.log.cleanup.json",
+      "bytes": 1861,
+      "digest": "sha256:07377804954b38cb6535e3b0b2038564f817c4618bfe0307fc8ff18b062047c0",
+      "archived": {
+        "path": "windows-jb-task-evidence/first-run-win32-jetbrains/ide-initial.log.cleanup.json.gz",
+        "originalDigest": "sha256:07377804954b38cb6535e3b0b2038564f817c4618bfe0307fc8ff18b062047c0",
+        "storedDigest": "sha256:e22291e3c7a841ab44b851f1de313eda1f7c8c574e3e4526c7a6fcd62126efbe",
+        "originalBytes": 1861
+      }
+    },
+    {
+      "member": "first-run-win32-jetbrains/test-initial.log",
+      "localPath": "C:\\code\\chainlesschain\\.work\\windows-jb-task-evidence\\first-run-win32-jetbrains\\test-initial.log",
+      "bytes": 2194,
+      "digest": "sha256:657d00ec83b665f9af30ff900cec717d2ed22c086ef9ce8c3705bdd76b28c464",
+      "archived": {
+        "path": "windows-jb-task-evidence/first-run-win32-jetbrains/test-initial.log.gz",
+        "originalDigest": "sha256:657d00ec83b665f9af30ff900cec717d2ed22c086ef9ce8c3705bdd76b28c464",
+        "storedDigest": "sha256:f27227f7b9e52edf6a10d7b84c6b5e7915a34a3af40e1909a6d6073ad3fe6370",
+        "originalBytes": 2194
+      }
+    },
+    {
+      "member": "verify-03/broker/request-1.receipt.json",
+      "localPath": "C:\\code\\chainlesschain\\.work\\windows-jb-task-evidence\\verify-03\\broker\\request-1.receipt.json",
+      "bytes": 1304,
+      "digest": "sha256:ecf73379498cd12819e59592b43c41aa4f6255aa60dd482e63e0bce3a281cf94",
+      "archived": {
+        "path": "windows-jb-task-evidence/verify-03/broker/request-1.receipt.json.gz",
+        "originalDigest": "sha256:ecf73379498cd12819e59592b43c41aa4f6255aa60dd482e63e0bce3a281cf94",
+        "storedDigest": "sha256:4f627ddb1c2cfb6a28101514309a54e7a63df1ca49fd17f2799f6d61c914a07e",
+        "originalBytes": 1304
+      }
+    },
+    {
+      "member": "verify-03/broker/request-2.receipt.json",
+      "localPath": "C:\\code\\chainlesschain\\.work\\windows-jb-task-evidence\\verify-03\\broker\\request-2.receipt.json",
+      "bytes": 1320,
+      "digest": "sha256:f4e75285371eead869d8a0e35a1ec0461038cd08ea9c27886bb1331a4e21ffec",
+      "archived": {
+        "path": "windows-jb-task-evidence/verify-03/broker/request-2.receipt.json.gz",
+        "originalDigest": "sha256:f4e75285371eead869d8a0e35a1ec0461038cd08ea9c27886bb1331a4e21ffec",
+        "storedDigest": "sha256:9a2fbd7593c87da3246e08dd657496ccdc6f71f234a51600e610c9bdc17986a7",
+        "originalBytes": 1320
+      }
+    },
+    {
+      "member": "verify-03/broker/request-3.receipt.json",
+      "localPath": "C:\\code\\chainlesschain\\.work\\windows-jb-task-evidence\\verify-03\\broker\\request-3.receipt.json",
+      "bytes": 1310,
+      "digest": "sha256:85067b466e2d45951a6f21d43070047cc7b75f5ac1676628eb7ccbfa58202a28",
+      "archived": {
+        "path": "windows-jb-task-evidence/verify-03/broker/request-3.receipt.json.gz",
+        "originalDigest": "sha256:85067b466e2d45951a6f21d43070047cc7b75f5ac1676628eb7ccbfa58202a28",
+        "storedDigest": "sha256:1ba8046176980837475ffb00d0f0b392a34bf899c1ea65e432feede129498efc",
+        "originalBytes": 1310
+      }
+    },
+    {
+      "member": "verify-03/broker/request-4.receipt.json",
+      "localPath": "C:\\code\\chainlesschain\\.work\\windows-jb-task-evidence\\verify-03\\broker\\request-4.receipt.json",
+      "bytes": 1311,
+      "digest": "sha256:d5a2d05caace83ce2674a1346d50ff6454ca3feef9dce462fc6fd6cde1ddec48",
+      "archived": {
+        "path": "windows-jb-task-evidence/verify-03/broker/request-4.receipt.json.gz",
+        "originalDigest": "sha256:d5a2d05caace83ce2674a1346d50ff6454ca3feef9dce462fc6fd6cde1ddec48",
+        "storedDigest": "sha256:9f7c6f8b11dd409e70e0afc21a06011974b6903b8ce464d4ac8b44b97228ae0b",
+        "originalBytes": 1311
+      }
+    },
+    {
+      "member": "verify-03/broker/request-5.receipt.json",
+      "localPath": "C:\\code\\chainlesschain\\.work\\windows-jb-task-evidence\\verify-03\\broker\\request-5.receipt.json",
+      "bytes": 1140,
+      "digest": "sha256:739c9dbc7233bdd6ce723cee0f9ec5f0c7e70c8cca0d8d0fcd6ab4055c861201",
+      "archived": {
+        "path": "windows-jb-task-evidence/verify-03/broker/request-5.receipt.json.gz",
+        "originalDigest": "sha256:739c9dbc7233bdd6ce723cee0f9ec5f0c7e70c8cca0d8d0fcd6ab4055c861201",
+        "storedDigest": "sha256:fd776c8405ea20f471319fc4562957eecd4cb19451c22110c642d19931fb42c0",
+        "originalBytes": 1140
+      }
+    },
+    {
+      "member": "verify-03/broker/summary.json",
+      "localPath": "C:\\code\\chainlesschain\\.work\\windows-jb-task-evidence\\verify-03\\broker\\summary.json",
+      "bytes": 376,
+      "digest": "sha256:05a2bf83eaec09e1218e480c94f34629181ae6bd5ed24953faff40f969f108e2",
+      "archived": {
+        "path": "windows-jb-task-evidence/verify-03/broker/summary.json.gz",
+        "originalDigest": "sha256:05a2bf83eaec09e1218e480c94f34629181ae6bd5ed24953faff40f969f108e2",
+        "storedDigest": "sha256:866e4ceb619375cf391fa846b1d17412cb57755087d19e088aeff71797ce865a",
+        "originalBytes": 376
+      }
+    },
+    {
+      "member": "verify-03/capture/action-1.json",
+      "localPath": "C:\\code\\chainlesschain\\.work\\windows-jb-task-evidence\\verify-03\\capture\\action-1.json",
+      "bytes": 139,
+      "digest": "sha256:513a8b652df9dd6fb6d859d8f31991c26982149b83fbb5660eee31ffec4087fb",
+      "archived": {
+        "path": "windows-jb-task-evidence/verify-03/capture/action-1.json.gz",
+        "originalDigest": "sha256:513a8b652df9dd6fb6d859d8f31991c26982149b83fbb5660eee31ffec4087fb",
+        "storedDigest": "sha256:aeb89c26029fcac14baf120bb9d4360fcfe3ddc7650853f19f7f199df6140036",
+        "originalBytes": 139
+      }
+    },
+    {
+      "member": "verify-03/capture/action-2.json",
+      "localPath": "C:\\code\\chainlesschain\\.work\\windows-jb-task-evidence\\verify-03\\capture\\action-2.json",
+      "bytes": 147,
+      "digest": "sha256:76c95a0d08a3f51e316587e52c272a7438b5bfcc78993256e6ccbe96dd54ab4c",
+      "archived": {
+        "path": "windows-jb-task-evidence/verify-03/capture/action-2.json.gz",
+        "originalDigest": "sha256:76c95a0d08a3f51e316587e52c272a7438b5bfcc78993256e6ccbe96dd54ab4c",
+        "storedDigest": "sha256:af22f1cbb12da6f17ca4ca9c7f7a601ba6cb9470fae2640bc66f99cb64b4de20",
+        "originalBytes": 147
+      }
+    },
+    {
+      "member": "verify-03/capture/action-3.json",
+      "localPath": "C:\\code\\chainlesschain\\.work\\windows-jb-task-evidence\\verify-03\\capture\\action-3.json",
+      "bytes": 143,
+      "digest": "sha256:4940afc9cb48b42ecb0b9ba72615580103e889f67c6fab660f5f2c51e5f59645",
+      "archived": {
+        "path": "windows-jb-task-evidence/verify-03/capture/action-3.json.gz",
+        "originalDigest": "sha256:4940afc9cb48b42ecb0b9ba72615580103e889f67c6fab660f5f2c51e5f59645",
+        "storedDigest": "sha256:583599dc8c51251994c857f14e6002c3e8f985b3ee38e0675fedeefa1230df5a",
+        "originalBytes": 143
+      }
+    },
+    {
+      "member": "verify-03/capture/driver-failure-initial.json",
+      "localPath": "C:\\code\\chainlesschain\\.work\\windows-jb-task-evidence\\verify-03\\capture\\driver-failure-initial.json",
+      "bytes": 748,
+      "digest": "sha256:812860fe00b9dbd642407fdd1f1226d53a1f434faac7f817d0e30df6c60356e6",
+      "archived": {
+        "path": "windows-jb-task-evidence/verify-03/capture/driver-failure-initial.json.gz",
+        "originalDigest": "sha256:812860fe00b9dbd642407fdd1f1226d53a1f434faac7f817d0e30df6c60356e6",
+        "storedDigest": "sha256:3850bc5c53e6ebea86a74525d385ab02688ec7d412f18abbce106a00d9a93253",
+        "originalBytes": 748
+      }
+    },
+    {
+      "member": "verify-03/capture/protocol-0721ae75-6ae2-4602-9846-cea0302ab457.jsonl",
+      "localPath": "C:\\code\\chainlesschain\\.work\\windows-jb-task-evidence\\verify-03\\capture\\protocol-0721ae75-6ae2-4602-9846-cea0302ab457.jsonl",
+      "bytes": 358048,
+      "digest": "sha256:70bafbbdc85118e75d3b6f8a3c30c20dfebcfc72a3b9acc964dba858fec17e80",
+      "archived": {
+        "path": "windows-jb-task-evidence/verify-03/capture/protocol-0721ae75-6ae2-4602-9846-cea0302ab457.jsonl.gz",
+        "originalDigest": "sha256:70bafbbdc85118e75d3b6f8a3c30c20dfebcfc72a3b9acc964dba858fec17e80",
+        "storedDigest": "sha256:1b3c54a956ab60f227fd52e1e9910fd4ce51419e8244722f02468db3281ec1c8",
+        "originalBytes": 358048
+      }
+    },
+    {
+      "member": "verify-03/ide-initial.log",
+      "localPath": "C:\\code\\chainlesschain\\.work\\windows-jb-task-evidence\\verify-03\\ide-initial.log",
+      "bytes": 21022,
+      "digest": "sha256:ec7aab7cb16ebd594c7a24fcc7256728be81a21e5d65d8502201e5a4937c7335",
+      "archived": {
+        "path": "windows-jb-task-evidence/verify-03/ide-initial.log.gz",
+        "originalDigest": "sha256:ec7aab7cb16ebd594c7a24fcc7256728be81a21e5d65d8502201e5a4937c7335",
+        "storedDigest": "sha256:39633fc5879eb235ea3829da6c3d42abfd6415f0451c270b5cbc71ddf2818a33",
+        "originalBytes": 21022
+      }
+    },
+    {
+      "member": "verify-03/ide-initial.log.cleanup.json",
+      "localPath": "C:\\code\\chainlesschain\\.work\\windows-jb-task-evidence\\verify-03\\ide-initial.log.cleanup.json",
+      "bytes": 3211,
+      "digest": "sha256:a0bc468bf1905016c4b817abbd9c070852477b6cd19720c58b676ffd6e17612a",
+      "archived": {
+        "path": "windows-jb-task-evidence/verify-03/ide-initial.log.cleanup.json.gz",
+        "originalDigest": "sha256:a0bc468bf1905016c4b817abbd9c070852477b6cd19720c58b676ffd6e17612a",
+        "storedDigest": "sha256:f865fa052cdebbdba355e4ce028aa4e2930881a5c76a17f3e1916b64ba318659",
+        "originalBytes": 3211
+      }
+    },
+    {
+      "member": "verify-03/test-initial.log",
+      "localPath": "C:\\code\\chainlesschain\\.work\\windows-jb-task-evidence\\verify-03\\test-initial.log",
+      "bytes": 2724,
+      "digest": "sha256:4ac8b5c95c3923a07584957a03daf3295cdc659c1cfb273287ff37aca44ca4f0",
+      "archived": {
+        "path": "windows-jb-task-evidence/verify-03/test-initial.log.gz",
+        "originalDigest": "sha256:4ac8b5c95c3923a07584957a03daf3295cdc659c1cfb273287ff37aca44ca4f0",
+        "storedDigest": "sha256:1101e357007e4432198e7c8b326fca6b1716828f5eb2f547119b75e5756cab53",
+        "originalBytes": 2724
+      }
+    },
+    {
+      "member": "verify-12/broker/request-3.receipt.json",
+      "localPath": "C:\\code\\chainlesschain\\.work\\windows-jb-task-evidence\\verify-12\\broker\\request-3.receipt.json",
+      "bytes": 1140,
+      "digest": "sha256:ad478ee50f55c0d749228e92e8a1cb9ee1eca3a2ec9726f446163c105677472f",
+      "archived": {
+        "path": "windows-jb-task-evidence/verify-12/broker/request-3.receipt.json.gz",
+        "originalDigest": "sha256:ad478ee50f55c0d749228e92e8a1cb9ee1eca3a2ec9726f446163c105677472f",
+        "storedDigest": "sha256:1573b127848fd5e88e07f698ba934be68a426539925aa3dbc8bfb64d9cef8bff",
+        "originalBytes": 1140
+      }
+    },
+    {
+      "member": "verify-12/broker/summary.json",
+      "localPath": "C:\\code\\chainlesschain\\.work\\windows-jb-task-evidence\\verify-12\\broker\\summary.json",
+      "bytes": 376,
+      "digest": "sha256:d5ea05948aa3f79565742e60e88adfee464ea8192a772412481032357375d3b0",
+      "archived": {
+        "path": "windows-jb-task-evidence/verify-12/broker/summary.json.gz",
+        "originalDigest": "sha256:d5ea05948aa3f79565742e60e88adfee464ea8192a772412481032357375d3b0",
+        "storedDigest": "sha256:82e1990c4aa10747ec59663ee215d25df39aeac9697ac1080afab7e3dad7f5b0",
+        "originalBytes": 376
+      }
+    },
+    {
+      "member": "verify-12/capture/driver-failure-initial.json",
+      "localPath": "C:\\code\\chainlesschain\\.work\\windows-jb-task-evidence\\verify-12\\capture\\driver-failure-initial.json",
+      "bytes": 748,
+      "digest": "sha256:0522c31dd21919abd2230373db2a3b5bbc89e4a4a71f5a345b4b5de85c5df773",
+      "archived": {
+        "path": "windows-jb-task-evidence/verify-12/capture/driver-failure-initial.json.gz",
+        "originalDigest": "sha256:0522c31dd21919abd2230373db2a3b5bbc89e4a4a71f5a345b4b5de85c5df773",
+        "storedDigest": "sha256:8bc97c30532a86402383e1607997494173330ae153d10006ae567f7de83c7ee1",
+        "originalBytes": 748
+      }
+    },
+    {
+      "member": "verify-21/broker/request-3.receipt.json",
+      "localPath": "C:\\code\\chainlesschain\\.work\\windows-jb-task-evidence\\verify-21\\broker\\request-3.receipt.json",
+      "bytes": 1140,
+      "digest": "sha256:f5fdc0eb02cfa98c50e11d859f6b300c6b0b58fcc95916534bd6b1aeecd9411b",
+      "archived": {
+        "path": "windows-jb-task-evidence/verify-21/broker/request-3.receipt.json.gz",
+        "originalDigest": "sha256:f5fdc0eb02cfa98c50e11d859f6b300c6b0b58fcc95916534bd6b1aeecd9411b",
+        "storedDigest": "sha256:35dfd6034dbf55a762916da81f2f354c1cc085f56c0e5be718dcec3bdb238216",
+        "originalBytes": 1140
+      }
+    },
+    {
+      "member": "verify-21/broker/summary.json",
+      "localPath": "C:\\code\\chainlesschain\\.work\\windows-jb-task-evidence\\verify-21\\broker\\summary.json",
+      "bytes": 376,
+      "digest": "sha256:aa65dfc50db67a3068745d7fd34a795403d93c87b361b3c2c1b25ea10750008f",
+      "archived": {
+        "path": "windows-jb-task-evidence/verify-21/broker/summary.json.gz",
+        "originalDigest": "sha256:aa65dfc50db67a3068745d7fd34a795403d93c87b361b3c2c1b25ea10750008f",
+        "storedDigest": "sha256:1552127a50a3be4ec371bfea51040c88fd5e579e7f1832c03f5587cf16073064",
+        "originalBytes": 376
+      }
+    },
+    {
+      "member": "verify-21/capture/driver-failure-initial.json",
+      "localPath": "C:\\code\\chainlesschain\\.work\\windows-jb-task-evidence\\verify-21\\capture\\driver-failure-initial.json",
+      "bytes": 748,
+      "digest": "sha256:5b41279bbda358539be0c876133775a5113907b51d53e2c3e4d92b2b9258ff30",
+      "archived": {
+        "path": "windows-jb-task-evidence/verify-21/capture/driver-failure-initial.json.gz",
+        "originalDigest": "sha256:5b41279bbda358539be0c876133775a5113907b51d53e2c3e4d92b2b9258ff30",
+        "storedDigest": "sha256:f8cd16ee0a279345ddbd1cde2107db3e6fa1624a04e346683ab546b8c2fbdd29",
+        "originalBytes": 748
+      }
+    },
+    {
+      "member": "verify-30/broker/request-3.receipt.json",
+      "localPath": "C:\\code\\chainlesschain\\.work\\windows-jb-task-evidence\\verify-30\\broker\\request-3.receipt.json",
+      "bytes": 1140,
+      "digest": "sha256:669da91a2a841100eaa7b222acb40e04abe1dced993c192791c8149edb4510da",
+      "archived": {
+        "path": "windows-jb-task-evidence/verify-30/broker/request-3.receipt.json.gz",
+        "originalDigest": "sha256:669da91a2a841100eaa7b222acb40e04abe1dced993c192791c8149edb4510da",
+        "storedDigest": "sha256:6c74d901573952c79a1ef311e5000045d5c88a26e8bfd164c6c00ae720cf85ca",
+        "originalBytes": 1140
+      }
+    },
+    {
+      "member": "verify-30/broker/summary.json",
+      "localPath": "C:\\code\\chainlesschain\\.work\\windows-jb-task-evidence\\verify-30\\broker\\summary.json",
+      "bytes": 376,
+      "digest": "sha256:985384914e6dbb258636e0faceffc4c0cf5456e9c8a65f78676b581f259930e4",
+      "archived": {
+        "path": "windows-jb-task-evidence/verify-30/broker/summary.json.gz",
+        "originalDigest": "sha256:985384914e6dbb258636e0faceffc4c0cf5456e9c8a65f78676b581f259930e4",
+        "storedDigest": "sha256:a0848f0c848ebe2787e538b90d2bdcf334eb306209730b3ffdd4f76a369212f0",
+        "originalBytes": 376
+      }
+    },
+    {
+      "member": "verify-30/capture/driver-failure-initial.json",
+      "localPath": "C:\\code\\chainlesschain\\.work\\windows-jb-task-evidence\\verify-30\\capture\\driver-failure-initial.json",
+      "bytes": 748,
+      "digest": "sha256:0805001a774a5f3507b3f46b08decfde53d0634c31861f5bca8394f5edca4a4e",
+      "archived": {
+        "path": "windows-jb-task-evidence/verify-30/capture/driver-failure-initial.json.gz",
+        "originalDigest": "sha256:0805001a774a5f3507b3f46b08decfde53d0634c31861f5bca8394f5edca4a4e",
+        "storedDigest": "sha256:602f8cb77e16aa74b19c2f7c5a710e5a4aec9b1ce8f7d0c83ad84eb1b1557a97",
+        "originalBytes": 748
+      }
+    }
+  ],
+  "samples": [
+    {
+      "sampleId": "first-run-win32-jetbrains",
+      "startedAt": "2026-10-17T17:39:45.889Z",
+      "finishedAt": "2026-10-17T18:05:07.521Z",
+      "candidateBytes": 27,
+      "candidateDigest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa",
+      "sourceScopePassed": true,
+      "unexpectedChanges": [],
+      "broker": {
+        "formalSample": false,
+        "physicalRequestsStarted": 0,
+        "usageCompleteRequests": 0,
+        "tasks": [
+          {
+            "taskId": "first-run-win32-jetbrains",
+            "requests": 0,
+            "errorCode": null
+          }
+        ],
+        "poisoned": null,
+        "actualBilledCostCny": null,
+        "tokenOnlyEstimateCny": null,
+        "knownTokenOnlyEstimateCny": 0,
+        "fxRate": null
+      },
+      "driverFailure": {
+        "phase": "initial",
+        "at": "2026-10-17T18:04:54.749542900Z",
+        "error": "java.lang.AssertionError: No observed task terminal before deadline",
+        "completedActions": [
+          {
+            "action": "submit",
+            "sampleId": "first-run-win32-jetbrains",
+            "sessionId": "panel-1792259481117-aaeac6",
+            "at": "2026-10-17T17:51:21.789815300Z"
+          },
+          {
+            "action": "background-tab",
+            "sampleId": "first-run-win32-jetbrains",
+            "sessionId": "panel-1792259481117-aaeac6",
+            "at": "2026-10-17T17:51:22.913116500Z"
+          }
+        ]
+      },
+      "protocolDownloaded": true,
+      "protocolBoundary": [
+        {
+          "at": "2026-10-17T17:52:47.819443600Z",
+          "direction": "exit",
+          "event": {
+            "code": 1,
+            "signal": null,
+            "stdoutDrained": true
+          }
+        }
+      ],
+      "inputTypes": [],
+      "toolUses": [],
+      "toolResultErrors": [],
+      "requests": []
+    },
+    {
+      "sampleId": "verify-03",
+      "startedAt": "2026-10-17T18:05:07.525Z",
+      "finishedAt": "2026-10-17T18:13:24.946Z",
+      "candidateBytes": 27,
+      "candidateDigest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa",
+      "sourceScopePassed": true,
+      "unexpectedChanges": [],
+      "broker": {
+        "formalSample": false,
+        "physicalRequestsStarted": 5,
+        "usageCompleteRequests": 4,
+        "tasks": [
+          {
+            "taskId": "verify-03",
+            "requests": 5,
+            "errorCode": null
+          }
+        ],
+        "poisoned": "DIAGNOSTIC_RESPONSE_ABORTED_USAGE_UNKNOWN",
+        "actualBilledCostCny": null,
+        "tokenOnlyEstimateCny": null,
+        "knownTokenOnlyEstimateCny": 0.0862164,
+        "fxRate": null
+      },
+      "driverFailure": {
+        "phase": "initial",
+        "at": "2026-10-17T18:12:53.510685900Z",
+        "error": "org.opentest4j.AssertionFailedError: terminal lacks real text ==> expected: <true> but was: <false>",
+        "completedActions": [
+          {
+            "action": "submit",
+            "sampleId": "verify-03",
+            "sessionId": "panel-1792260610399-d29104",
+            "at": "2026-10-17T18:10:11.723381600Z"
+          },
+          {
+            "action": "background-tab",
+            "sampleId": "verify-03",
+            "sessionId": "panel-1792260610399-d29104",
+            "at": "2026-10-17T18:10:12.828180200Z"
+          },
+          {
+            "action": "return-tab",
+            "sampleId": "verify-03",
+            "sessionId": "panel-1792260610399-d29104",
+            "at": "2026-10-17T18:12:53.508176600Z"
+          }
+        ]
+      },
+      "protocolDownloaded": true,
+      "protocolBoundary": [
+        {
+          "at": "2026-10-17T18:12:01.766677800Z",
+          "direction": "output",
+          "event": {
+            "type": "system",
+            "subtype": "init",
+            "protocol_version": 1,
+            "session_id": "panel-1792260610399-d29104",
+            "session_persistence": true,
+            "input_receipts": {
+              "version": 1
+            },
+            "task_worklog": null,
+            "model": "deepseek-v4-flash-ga-260731",
+            "provider": "volcengine",
+            "permission_mode": "acceptEdits",
+            "permission_mode_state": {
+              "correlation_id": "7762bf43-b42b-4a29-875a-35465908340c",
+              "requested": "acceptEdits",
+              "effective": "acceptEdits",
+              "policy_revision": "b4d0151996d5d9e3"
+            },
+            "tools": [
+              "read_file",
+              "search_files",
+              "list_dir",
+              "write_file",
+              "edit_file",
+              "edit_file_hashed"
+            ],
+            "tools_hash": "eba35f3546a7a50a",
+            "policy_digest": "b4d0151996d5d9e3",
+            "loaded_sources": [
+              "project-memory",
+              "memory-recall",
+              "plugins"
+            ],
+            "slash_commands": [
+              "status",
+              "doctor",
+              "mcp",
+              "hooks",
+              "permissions",
+              "agents",
+              "tasks",
+              "memory"
+            ],
+            "input_format": "stream-json",
+            "additional_directories": [],
+            "resumed_messages": 0,
+            "trace_id": "tr-d53b6f03-90aa-4212-bb6c-28aea0315e0e",
+            "seq": 1
+          }
+        },
+        {
+          "at": "2026-10-17T18:12:01.937226200Z",
+          "direction": "output",
+          "event": {
+            "type": "system",
+            "subtype": "input_accepted",
+            "session_id": "panel-1792260610399-d29104",
+            "client_message_id": "2d6e288e-3d90-484d-bbfc-bda5dfe4a5bf",
+            "receipt": {
+              "sessionId": "panel-1792260610399-d29104",
+              "clientMessageId": "2d6e288e-3d90-484d-bbfc-bda5dfe4a5bf",
+              "inputDigest": "9ef63c9220a902305f91124761db6b1149519e00a3bdbab8d67155ca4c203152",
+              "eventHash": "8ca2ae260a77851852bc5058a4af6e62b45e8b7923c967c148c5f497704ead88",
+              "duplicate": false
+            },
+            "trace_id": "tr-d53b6f03-90aa-4212-bb6c-28aea0315e0e",
+            "seq": 2
+          }
+        },
+        {
+          "at": "2026-10-17T18:12:53.179207100Z",
+          "direction": "output",
+          "event": {
+            "type": "result",
+            "subtype": "interrupted",
+            "is_error": false,
+            "interrupted": true,
+            "session_id": "panel-1792260610399-d29104",
+            "turn": 1,
+            "trace_id": "tr-d53b6f03-90aa-4212-bb6c-28aea0315e0e",
+            "seq": 24
+          }
+        },
+        {
+          "at": "2026-10-17T18:12:58.290376300Z",
+          "direction": "exit",
+          "event": {
+            "code": 1,
+            "signal": null,
+            "stdoutDrained": true
+          }
+        }
+      ],
+      "inputTypes": [
+        "user"
+      ],
+      "toolUses": [
+        {
+          "at": "2026-10-17T18:12:04.594406Z",
+          "tool": "read_file",
+          "args": {
+            "path": "packages/cli/src/lib/llm-pricing.js"
+          }
+        },
+        {
+          "at": "2026-10-17T18:12:08.443792700Z",
+          "tool": "read_file",
+          "args": {
+            "path": "packages/cli/__tests__/unit/llm-pricing.test.js",
+            "limit": 120
+          }
+        },
+        {
+          "at": "2026-10-17T18:12:12.316530900Z",
+          "tool": "read_file",
+          "args": {
+            "path": "packages/cli/__tests__/unit/llm-pricing.test.js",
+            "offset": 121,
+            "limit": 120
+          }
+        },
+        {
+          "at": "2026-10-17T18:12:16.408386400Z",
+          "tool": "read_file",
+          "args": {
+            "path": "packages/cli/__tests__/unit/model-release-contract.test.js",
+            "limit": 80
+          }
+        }
+      ],
+      "toolResultErrors": [
+        false,
+        false,
+        false,
+        false
+      ],
+      "requests": [
+        {
+          "id": 1,
+          "taskId": "verify-03",
+          "startedAt": "2026-10-17T18:12:02.114Z",
+          "usage": {
+            "completion_tokens": 49,
+            "prompt_tokens": 3877,
+            "total_tokens": 3926,
+            "prompt_tokens_details": {
+              "cached_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          },
+          "tokenOnlyEstimateCny": 0.012072,
+          "actualBilledCostCny": null,
+          "errorCode": null,
+          "responseMode": "sse",
+          "finish": "tool_calls",
+          "finishedAt": "2026-10-17T18:12:04.431Z",
+          "transport": {
+            "socketAssignedMs": 15,
+            "dnsLookupMs": 82,
+            "tcpConnectedMs": 312,
+            "tlsConnectedMs": 550,
+            "dispatchStartedMs": 550,
+            "requestFinishedMs": 552,
+            "responseStartedMs": 1999,
+            "dispatchStarted": true,
+            "failureCategory": null,
+            "connectionAttempts": [
+              {
+                "event": "start",
+                "family": 4,
+                "elapsedMs": 82,
+                "errorCode": null
+              }
+            ],
+            "nestedErrorCodes": [],
+            "errorCode": null,
+            "errorSyscall": null
+          },
+          "response": {
+            "storedSha256": "90ad58807c46c18f5108fbd8357d72c583068129f9979c43d5237d14d8000f73",
+            "storedBytes": 6361,
+            "status": 200,
+            "originalSha256": "90ad58807c46c18f5108fbd8357d72c583068129f9979c43d5237d14d8000f73",
+            "originalBytes": 6361,
+            "sensitiveValueRedacted": false
+          }
+        },
+        {
+          "id": 2,
+          "taskId": "verify-03",
+          "startedAt": "2026-10-17T18:12:04.908Z",
+          "usage": {
+            "completion_tokens": 89,
+            "prompt_tokens": 11187,
+            "total_tokens": 11276,
+            "prompt_tokens_details": {
+              "cached_tokens": 2048
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          },
+          "tokenOnlyEstimateCny": 0.028422799999999998,
+          "actualBilledCostCny": null,
+          "errorCode": null,
+          "responseMode": "sse",
+          "finish": "tool_calls",
+          "finishedAt": "2026-10-17T18:12:08.292Z",
+          "transport": {
+            "socketAssignedMs": 1,
+            "dnsLookupMs": 1,
+            "tcpConnectedMs": 236,
+            "tlsConnectedMs": 472,
+            "dispatchStartedMs": 472,
+            "requestFinishedMs": 473,
+            "responseStartedMs": 2759,
+            "dispatchStarted": true,
+            "failureCategory": null,
+            "connectionAttempts": [
+              {
+                "event": "start",
+                "family": 4,
+                "elapsedMs": 1,
+                "errorCode": null
+              }
+            ],
+            "nestedErrorCodes": [],
+            "errorCode": null,
+            "errorSyscall": null
+          },
+          "response": {
+            "storedSha256": "9672755671e5f7b6297d1be4a403018e821d8171d9e809bb39a7863feaa08f0f",
+            "storedBytes": 13809,
+            "status": 200,
+            "originalSha256": "9672755671e5f7b6297d1be4a403018e821d8171d9e809bb39a7863feaa08f0f",
+            "originalBytes": 13809,
+            "sensitiveValueRedacted": false
+          }
+        },
+        {
+          "id": 3,
+          "taskId": "verify-03",
+          "startedAt": "2026-10-17T18:12:08.758Z",
+          "usage": {
+            "completion_tokens": 110,
+            "prompt_tokens": 15526,
+            "total_tokens": 15636,
+            "prompt_tokens_details": {
+              "cached_tokens": 8192
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          },
+          "tokenOnlyEstimateCny": 0.0238112,
+          "actualBilledCostCny": null,
+          "errorCode": null,
+          "responseMode": "sse",
+          "finish": "tool_calls",
+          "finishedAt": "2026-10-17T18:12:12.171Z",
+          "transport": {
+            "socketAssignedMs": 1,
+            "dnsLookupMs": 1,
+            "tcpConnectedMs": 234,
+            "tlsConnectedMs": 467,
+            "dispatchStartedMs": 467,
+            "requestFinishedMs": 467,
+            "responseStartedMs": 2640,
+            "dispatchStarted": true,
+            "failureCategory": null,
+            "connectionAttempts": [
+              {
+                "event": "start",
+                "family": 4,
+                "elapsedMs": 1,
+                "errorCode": null
+              }
+            ],
+            "nestedErrorCodes": [],
+            "errorCode": null,
+            "errorSyscall": null
+          },
+          "response": {
+            "storedSha256": "0dbc2e31924ea74e06a9b5a38385d41d5ed2116b28e4e0f69b59de8154e11c62",
+            "storedBytes": 15835,
+            "status": 200,
+            "originalSha256": "0dbc2e31924ea74e06a9b5a38385d41d5ed2116b28e4e0f69b59de8154e11c62",
+            "originalBytes": 15835,
+            "sensitiveValueRedacted": false
+          }
+        },
+        {
+          "id": 4,
+          "taskId": "verify-03",
+          "startedAt": "2026-10-17T18:12:12.610Z",
+          "usage": {
+            "completion_tokens": 159,
+            "prompt_tokens": 17715,
+            "total_tokens": 17874,
+            "prompt_tokens_details": {
+              "cached_tokens": 11264
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          },
+          "tokenOnlyEstimateCny": 0.0219104,
+          "actualBilledCostCny": null,
+          "errorCode": null,
+          "responseMode": "sse",
+          "finish": "tool_calls",
+          "finishedAt": "2026-10-17T18:12:16.261Z",
+          "transport": {
+            "socketAssignedMs": 1,
+            "dnsLookupMs": 1,
+            "tcpConnectedMs": 238,
+            "tlsConnectedMs": 488,
+            "dispatchStartedMs": 488,
+            "requestFinishedMs": 488,
+            "responseStartedMs": 2343,
+            "dispatchStarted": true,
+            "failureCategory": null,
+            "connectionAttempts": [
+              {
+                "event": "start",
+                "family": 4,
+                "elapsedMs": 1,
+                "errorCode": null
+              }
+            ],
+            "nestedErrorCodes": [],
+            "errorCode": null,
+            "errorSyscall": null
+          },
+          "response": {
+            "storedSha256": "eb750c2f4648711c5835bb3dffa0817ce7bba9b55977498c852b5a1465adf8c9",
+            "storedBytes": 32670,
+            "status": 200,
+            "originalSha256": "eb750c2f4648711c5835bb3dffa0817ce7bba9b55977498c852b5a1465adf8c9",
+            "originalBytes": 32670,
+            "sensitiveValueRedacted": false
+          }
+        },
+        {
+          "id": 5,
+          "taskId": "verify-03",
+          "startedAt": "2026-10-17T18:12:16.711Z",
+          "usage": null,
+          "tokenOnlyEstimateCny": null,
+          "actualBilledCostCny": null,
+          "errorCode": "DIAGNOSTIC_RESPONSE_ABORTED_USAGE_UNKNOWN",
+          "responseMode": "sse",
+          "finishedAt": "2026-10-17T18:12:53.082Z",
+          "transport": {
+            "socketAssignedMs": 1,
+            "dnsLookupMs": 1,
+            "tcpConnectedMs": 229,
+            "tlsConnectedMs": 459,
+            "dispatchStartedMs": 459,
+            "requestFinishedMs": 459,
+            "responseStartedMs": 2944,
+            "dispatchStarted": true,
+            "failureCategory": "DIAGNOSTIC_RESPONSE_ABORTED_USAGE_UNKNOWN",
+            "connectionAttempts": [
+              {
+                "event": "start",
+                "family": 4,
+                "elapsedMs": 1,
+                "errorCode": null
+              }
+            ],
+            "nestedErrorCodes": [],
+            "errorCode": null,
+            "errorSyscall": null
+          },
+          "response": {
+            "storedSha256": "d01148263253a6f826419f9948fc273ed0926d5ce2810322eea251e0609bff74",
+            "storedBytes": 1048537,
+            "status": 200,
+            "originalSha256": "d01148263253a6f826419f9948fc273ed0926d5ce2810322eea251e0609bff74",
+            "originalBytes": 1048537,
+            "sensitiveValueRedacted": false
+          }
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-12",
+      "startedAt": "2026-10-17T18:13:24.950Z",
+      "finishedAt": "2026-10-17T18:19:39.140Z",
+      "candidateBytes": 27,
+      "candidateDigest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa",
+      "sourceScopePassed": true,
+      "unexpectedChanges": [],
+      "broker": {
+        "formalSample": false,
+        "physicalRequestsStarted": 3,
+        "usageCompleteRequests": 2,
+        "tasks": [
+          {
+            "taskId": "verify-12",
+            "requests": 3,
+            "errorCode": null
+          }
+        ],
+        "poisoned": "DIAGNOSTIC_RESPONSE_ABORTED_USAGE_UNKNOWN",
+        "actualBilledCostCny": null,
+        "tokenOnlyEstimateCny": null,
+        "knownTokenOnlyEstimateCny": 0.0342968,
+        "fxRate": null
+      },
+      "driverFailure": {
+        "phase": "initial",
+        "at": "2026-10-17T18:19:07.400307500Z",
+        "error": "org.opentest4j.AssertionFailedError: terminal lacks real text ==> expected: <true> but was: <false>",
+        "completedActions": [
+          {
+            "action": "submit",
+            "sampleId": "verify-12",
+            "sessionId": "panel-1792261005128-9122a0",
+            "at": "2026-10-17T18:16:46.175883400Z"
+          },
+          {
+            "action": "background-tab",
+            "sampleId": "verify-12",
+            "sessionId": "panel-1792261005128-9122a0",
+            "at": "2026-10-17T18:16:47.160945500Z"
+          },
+          {
+            "action": "return-tab",
+            "sampleId": "verify-12",
+            "sessionId": "panel-1792261005128-9122a0",
+            "at": "2026-10-17T18:19:07.396897100Z"
+          }
+        ]
+      },
+      "protocolDownloaded": false,
+      "protocolBoundary": [],
+      "inputTypes": [],
+      "toolUses": [],
+      "toolResultErrors": [],
+      "requests": [
+        {
+          "id": 3,
+          "taskId": "verify-12",
+          "startedAt": "2026-10-17T18:18:32.327Z",
+          "usage": null,
+          "tokenOnlyEstimateCny": null,
+          "actualBilledCostCny": null,
+          "errorCode": "DIAGNOSTIC_RESPONSE_ABORTED_USAGE_UNKNOWN",
+          "responseMode": "sse",
+          "finishedAt": "2026-10-17T18:19:07.075Z",
+          "transport": {
+            "socketAssignedMs": 1,
+            "dnsLookupMs": 1,
+            "tcpConnectedMs": 234,
+            "tlsConnectedMs": 466,
+            "dispatchStartedMs": 466,
+            "requestFinishedMs": 467,
+            "responseStartedMs": 2338,
+            "dispatchStarted": true,
+            "failureCategory": "DIAGNOSTIC_RESPONSE_ABORTED_USAGE_UNKNOWN",
+            "connectionAttempts": [
+              {
+                "event": "start",
+                "family": 4,
+                "elapsedMs": 1,
+                "errorCode": null
+              }
+            ],
+            "nestedErrorCodes": [],
+            "errorCode": null,
+            "errorSyscall": null
+          },
+          "response": {
+            "storedSha256": "c86aa9da9b87d81ba7ae36ad171fd1947bf0abbdb7143f499d312b656b78899b",
+            "storedBytes": 1047943,
+            "status": 200,
+            "originalSha256": "c86aa9da9b87d81ba7ae36ad171fd1947bf0abbdb7143f499d312b656b78899b",
+            "originalBytes": 1047943,
+            "sensitiveValueRedacted": false
+          }
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-21",
+      "startedAt": "2026-10-17T18:19:39.143Z",
+      "finishedAt": "2026-10-17T18:25:56.387Z",
+      "candidateBytes": 27,
+      "candidateDigest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa",
+      "sourceScopePassed": true,
+      "unexpectedChanges": [],
+      "broker": {
+        "formalSample": false,
+        "physicalRequestsStarted": 3,
+        "usageCompleteRequests": 2,
+        "tasks": [
+          {
+            "taskId": "verify-21",
+            "requests": 3,
+            "errorCode": null
+          }
+        ],
+        "poisoned": "DIAGNOSTIC_RESPONSE_ABORTED_USAGE_UNKNOWN",
+        "actualBilledCostCny": null,
+        "tokenOnlyEstimateCny": null,
+        "knownTokenOnlyEstimateCny": 0.0455378,
+        "fxRate": null
+      },
+      "driverFailure": {
+        "phase": "initial",
+        "at": "2026-10-17T18:25:24.520167800Z",
+        "error": "org.opentest4j.AssertionFailedError: terminal lacks real text ==> expected: <true> but was: <false>",
+        "completedActions": [
+          {
+            "action": "submit",
+            "sampleId": "verify-21",
+            "sessionId": "panel-1792261381483-ea7ca3",
+            "at": "2026-10-17T18:23:02.297849300Z"
+          },
+          {
+            "action": "background-tab",
+            "sampleId": "verify-21",
+            "sessionId": "panel-1792261381483-ea7ca3",
+            "at": "2026-10-17T18:23:03.192353500Z"
+          },
+          {
+            "action": "return-tab",
+            "sampleId": "verify-21",
+            "sessionId": "panel-1792261381483-ea7ca3",
+            "at": "2026-10-17T18:25:24.516679600Z"
+          }
+        ]
+      },
+      "protocolDownloaded": false,
+      "protocolBoundary": [],
+      "inputTypes": [],
+      "toolUses": [],
+      "toolResultErrors": [],
+      "requests": [
+        {
+          "id": 3,
+          "taskId": "verify-21",
+          "startedAt": "2026-10-17T18:24:48.296Z",
+          "usage": null,
+          "tokenOnlyEstimateCny": null,
+          "actualBilledCostCny": null,
+          "errorCode": "DIAGNOSTIC_RESPONSE_ABORTED_USAGE_UNKNOWN",
+          "responseMode": "sse",
+          "finishedAt": "2026-10-17T18:25:24.209Z",
+          "transport": {
+            "socketAssignedMs": 1,
+            "dnsLookupMs": 1,
+            "tcpConnectedMs": 234,
+            "tlsConnectedMs": 467,
+            "dispatchStartedMs": 467,
+            "requestFinishedMs": 467,
+            "responseStartedMs": 2376,
+            "dispatchStarted": true,
+            "failureCategory": "DIAGNOSTIC_RESPONSE_ABORTED_USAGE_UNKNOWN",
+            "connectionAttempts": [
+              {
+                "event": "start",
+                "family": 4,
+                "elapsedMs": 1,
+                "errorCode": null
+              }
+            ],
+            "nestedErrorCodes": [],
+            "errorCode": null,
+            "errorSyscall": null
+          },
+          "response": {
+            "storedSha256": "3461b9b6d90781c263a7c3c1bb8ea73fc3fe61c3fb6d83038aa51da1bfed4d9f",
+            "storedBytes": 1048054,
+            "status": 200,
+            "originalSha256": "3461b9b6d90781c263a7c3c1bb8ea73fc3fe61c3fb6d83038aa51da1bfed4d9f",
+            "originalBytes": 1048054,
+            "sensitiveValueRedacted": false
+          }
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-30",
+      "startedAt": "2026-10-17T18:25:56.390Z",
+      "finishedAt": "2026-10-17T18:32:12.627Z",
+      "candidateBytes": 27,
+      "candidateDigest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa",
+      "sourceScopePassed": true,
+      "unexpectedChanges": [],
+      "broker": {
+        "formalSample": false,
+        "physicalRequestsStarted": 3,
+        "usageCompleteRequests": 2,
+        "tasks": [
+          {
+            "taskId": "verify-30",
+            "requests": 3,
+            "errorCode": null
+          }
+        ],
+        "poisoned": "DIAGNOSTIC_RESPONSE_ABORTED_USAGE_UNKNOWN",
+        "actualBilledCostCny": null,
+        "tokenOnlyEstimateCny": null,
+        "knownTokenOnlyEstimateCny": 0.0363818,
+        "fxRate": null
+      },
+      "driverFailure": {
+        "phase": "initial",
+        "at": "2026-10-17T18:31:40.842551100Z",
+        "error": "org.opentest4j.AssertionFailedError: terminal lacks real text ==> expected: <true> but was: <false>",
+        "completedActions": [
+          {
+            "action": "submit",
+            "sampleId": "verify-30",
+            "sessionId": "panel-1792261755148-8b0e28",
+            "at": "2026-10-17T18:29:15.947310700Z"
+          },
+          {
+            "action": "background-tab",
+            "sampleId": "verify-30",
+            "sessionId": "panel-1792261755148-8b0e28",
+            "at": "2026-10-17T18:29:16.810888700Z"
+          },
+          {
+            "action": "return-tab",
+            "sampleId": "verify-30",
+            "sessionId": "panel-1792261755148-8b0e28",
+            "at": "2026-10-17T18:31:40.839552600Z"
+          }
+        ]
+      },
+      "protocolDownloaded": false,
+      "protocolBoundary": [],
+      "inputTypes": [],
+      "toolUses": [],
+      "toolResultErrors": [],
+      "requests": [
+        {
+          "id": 3,
+          "taskId": "verify-30",
+          "startedAt": "2026-10-17T18:31:00.162Z",
+          "usage": null,
+          "tokenOnlyEstimateCny": null,
+          "actualBilledCostCny": null,
+          "errorCode": "DIAGNOSTIC_RESPONSE_ABORTED_USAGE_UNKNOWN",
+          "responseMode": "sse",
+          "finishedAt": "2026-10-17T18:31:40.438Z",
+          "transport": {
+            "socketAssignedMs": 1,
+            "dnsLookupMs": 1,
+            "tcpConnectedMs": 238,
+            "tlsConnectedMs": 476,
+            "dispatchStartedMs": 476,
+            "requestFinishedMs": 477,
+            "responseStartedMs": 2274,
+            "dispatchStarted": true,
+            "failureCategory": "DIAGNOSTIC_RESPONSE_ABORTED_USAGE_UNKNOWN",
+            "connectionAttempts": [
+              {
+                "event": "start",
+                "family": 4,
+                "elapsedMs": 1,
+                "errorCode": null
+              }
+            ],
+            "nestedErrorCodes": [],
+            "errorCode": null,
+            "errorSyscall": null
+          },
+          "response": {
+            "storedSha256": "6efedc1e84f27929d0e65d618838aa1830b22eb720bc480df37688d27e9d5642",
+            "storedBytes": 1048233,
+            "status": 200,
+            "originalSha256": "6efedc1e84f27929d0e65d618838aa1830b22eb720bc480df37688d27e9d5642",
+            "originalBytes": 1048233,
+            "sensitiveValueRedacted": false
+          }
+        }
+      ]
+    }
+  ],
+  "findings": [
+    {
+      "classification": "first-run-child-exit-before-init",
+      "certainty": "observed; underlying exit cause unresolved",
+      "detail": "Submit 17:51:21.789; sole raw record is exit code1 stdoutDrained=true at17:52:47.819, with no init or input. Broker records zero physical requests. Driver waits until18:04:54.749 for a terminal result. This differs from the older nonce session that reached init; do not transfer that inference here. Child stderr/UI error text is absent from artifact."
+    },
+    {
+      "classification": "ordinary-model-requests-interrupted-by-transport",
+      "certainty": "verify03 observed; matching broker+driver receipts corroborate all four ordinary samples",
+      "detail": "verify03 init18:12:01.766, user input18:12:01.821, input_accepted18:12:01.937, four successful read_file tool calls, then request5 abort at18:12:53.082 with1,048,537 stored bytes and unknown usage; CLI result interrupted/is_error=false at18:12:53.179. No input Stop/interrupt exists. Driver fails terminal lacks real text. Other ordinary final responses have1,047,943/1,048,054/1,048,233 bytes and identical broker error/driver assertion."
+    },
+    {
+      "classification": "known-one-mib-broker-boundary-and-abort-misclassification",
+      "certainty": "source plus repeated response-boundary evidence, consistent with prior offline reproduction",
+      "detail": "d572 broker hard limit1MiB destroys IncomingMessage before settling LIMIT; synchronous aborted event can win with ABORTED_USAGE_UNKNOWN. Public-era CLI classifies error text containing abort as user interruption. Ordinary failures are consistent with this already reproduced transport defect; no evidence supports user cancellation. No claim that increased transport limit alone guarantees successful tasks."
+    },
+    {
+      "classification": "secondary-collector-jsonl-blind-spot",
+      "certainty": "source and artifact confirmed",
+      "detail": "On driver failure protocol.json is absent, but protocol-*.jsonl exists. campaign fallback only accepts.ndjson and throws0!==1 before brokerStatus assignment. row.broker remains authoritative from finally/close. This masks observed protocol; it does not mean no child initialized or no billable requests occurred."
+    },
+    {
+      "classification": "encoding-cache-and-acl-boundaries",
+      "certainty": "excluded as the demonstrated ordinary failure mechanism; first-run cause unresolved",
+      "detail": "verify03 successfully read ASCII source/test paths with four is_error=false results. All five sourceScopePassed=true, unexpectedChanges=[]; no cache-pollution tree changes observed. UTF8/OEM frozen-path mismatch remains a separate known source-identity issue and is not excused. Bridge ACL timeout appears in both first-run and verify03; verify03 still initialized and accepted input, so this warning alone cannot establish a chat blocker. IDE Station Unix-domain-path-too-long warnings also coexist with the working ordinary model path. Neither warning is proven to cause first-run exit1."
+    }
+  ],
+  "requestBoundary": {
+    "physicalRequestsStarted": 14,
+    "usageCompleteRequests": 10,
+    "unknownUsageRequests": 4,
+    "firstRunPhysicalRequests": 0,
+    "actualBilledCostKnown": false,
+    "note": "Counts come from raw broker close summaries, not absent brokerStatus. Unknown final requests are not zero cost."
+  },
+  "nextSteps": [
+    "Archive failed-host raw protocol-*.jsonl through the campaign fallback with exactly-one-stream validation; preserve prior failure and generation=false.",
+    "In an offline/no-provider driver regression, treat a captured pre-init child exit as explicit host-startup failure rather than waiting for an impossible task terminal; preserve exit time/code and original record.",
+    "Capture bounded, redacted child stderr and original-tab UI readiness/error snapshot on pre-init exit or driver failure; use a separate bounded diagnostic deadline after task deadline. This is needed to identify first-run exit1 rather than guessing ACL or quoting causes.",
+    "For interrupted/error task results, preserve raw terminal and host evidence even if no textual result exists; fail host journey with actual terminal classification and do not synthesize success or text.",
+    "Use already-authorized canonical UTF8/16MiB campaign results to assess later runs separately. Do not retroactively upgrade d572 candidate completion, source identity, unknown billing, or end-to-end status."
+  ],
+  "sourceAnchors": [
+    {
+      "commit": "d572951fc6dd101eaf6d59411b1fee15746bee22",
+      "file": "packages/cli/scripts/verify01-native-task-campaign.mjs",
+      "digest": "sha256:d11f2b80896d18fbdfc4a1424aca6290db0b5cebee13cafd6eeb365ae9621620",
+      "startLine": 335,
+      "endLine": 365,
+      "text": "  };\n}\n\nexport function protocolStream(captureDir) {\n  const protocol = path.join(captureDir, \"protocol.json\");\n  if (fs.existsSync(protocol))\n    return (\n      json(protocol)\n        .filter((row) => row.direction === \"output\")\n        .map((row) => JSON.stringify(row.event))\n        .join(\"\\n\") + \"\\n\"\n    );\n  const files = fs\n    .readdirSync(captureDir)\n    .filter(\n      (f) =>\n        f.endsWith(\".ndjson\") &&\n        f !== \"ui.ndjson\" &&\n        f !== \"cdp-discovery.ndjson\",\n    );\n  assert.equal(files.length, 1, \"exactly one raw protocol generation required\");\n  return (\n    fs\n      .readFileSync(path.join(captureDir, files[0]), \"utf8\")\n      .split(/\\r?\\n/u)\n      .filter(Boolean)\n      .map(JSON.parse)\n      .filter((row) => row.direction === \"output\")\n      .map((row) => JSON.stringify(row.event))\n      .join(\"\\n\") + \"\\n\"\n  );"
+    },
+    {
+      "commit": "d572951fc6dd101eaf6d59411b1fee15746bee22",
+      "file": "packages/cli/scripts/verify01-native-task-campaign.mjs",
+      "digest": "sha256:d11f2b80896d18fbdfc4a1424aca6290db0b5cebee13cafd6eeb365ae9621620",
+      "startLine": 834,
+      "endLine": 860,
+      "text": "      const stream = result.stdout || protocolStream(result.captureDir);\n      save(`${sample.id}/model-stream.ndjson`, redact(stream));\n      const inspected = inspectionStream(stream, workspace);\n      row.model = inspectModelTrace(\n        inspected.stream,\n        task.expectedFiles,\n        inspected.workspace,\n        { allowSessionEnd: entry !== \"cli\" },\n      );\n      row.model.scopePathComparison =\n        process.platform === \"win32\"\n          ? \"windows-case-insensitive; raw stream retained\"\n          : \"native-case-sensitive\";\n      row.brokerStatus = broker.taskStatus(sample.id);\n      row.generationPassed =\n        result.ok && row.model.pass && row.brokerStatus.passed;\n    } catch (error) {\n      row.failure = redact(\n        [row.host?.failure, error.stack || error.message]\n          .filter(Boolean)\n          .join(\"\\n\"),\n      );\n    } finally {\n      if (broker) {\n        try {\n          row.broker = await broker.close();\n        } catch (error) {"
+    },
+    {
+      "commit": "d572951fc6dd101eaf6d59411b1fee15746bee22",
+      "file": "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs",
+      "digest": "sha256:0a0525421a72ac348edf07fa556f1c10fbc900380f1d409dd2b29c58060a120e",
+      "startLine": 10,
+      "endLine": 18,
+      "text": "export const BROKER = Object.freeze({\n  endpoint: \"https://ark.cn-beijing.volces.com/api/v3/chat/completions\",\n  model: \"deepseek-v4-flash-ga-260731\",\n  maximumRequestsPerTask: 14,\n  maximumRequestBytes: 256 * 1024,\n  maximumResponseBytes: 1024 * 1024,\n  maximumAnswerTokens: 8192,\n  timeoutMs: 45000,\n  connectionAttemptTimeoutMs: 2000,"
+    },
+    {
+      "commit": "d572951fc6dd101eaf6d59411b1fee15746bee22",
+      "file": "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs",
+      "digest": "sha256:0a0525421a72ac348edf07fa556f1c10fbc900380f1d409dd2b29c58060a120e",
+      "startLine": 425,
+      "endLine": 448,
+      "text": "          req.end(payload);\n        } catch (error) {\n          finish(\"DIAGNOSTIC_REQUEST_ERROR_USAGE_UNKNOWN\", error);\n          req.destroy();\n        }\n      });\n    });\n    req.on(\"finish\", () => mark(\"requestFinishedMs\"));\n    req.on(\"response\", (res) => {\n      mark(\"responseStartedMs\");\n      status = res.statusCode;\n      res.on(\"data\", (chunk) => {\n        bytes += chunk.length;\n        if (bytes > BROKER.maximumResponseBytes) {\n          res.destroy();\n          req.destroy();\n          finish(\"DIAGNOSTIC_RESPONSE_LIMIT_USAGE_UNKNOWN\");\n          return;\n        }\n        chunks.push(chunk);\n      });\n      res.on(\"end\", () => finish());\n      res.on(\"error\", () => finish(\"DIAGNOSTIC_RESPONSE_ERROR_USAGE_UNKNOWN\"));\n      res.on(\"aborted\", () =>"
+    },
+    {
+      "commit": "d572951fc6dd101eaf6d59411b1fee15746bee22",
+      "file": "packages/cli/src/runtime/headless-stream.js",
+      "digest": "sha256:8fce53885bd762fba82af62111be3484d657906a1795f63893ffb1d20f2d9559",
+      "startLine": 5620,
+      "endLine": 5645,
+      "text": "          budget_reason: budgetReason,\n          turn: turns,\n        });\n        sawError = true;\n        break;\n      }\n      const isAbort =\n        err?.name === \"AbortError\" || /abort/i.test(err?.message || \"\");\n      if (isAbort && !options.signal?.aborted) {\n        // User-initiated turn interrupt — not an error; no assistant message\n        // is recorded (the dangling user turn is fine for the next exchange).\n        //\n        // BUT if the interrupt landed mid-tool-loop, `messages` now holds an\n        // assistant turn whose tool_calls never got their results — sending\n        // that next turn makes strict providers (Anthropic) reject the whole\n        // request (\"tool_use without tool_result\"), wedging the rest of the\n        // session. Drop the dangling call/result pair in place before\n        // continuing. Always re-balance (not gated on length): a partial\n        // interrupt that trims one assistant turn's tool_calls in place leaves\n        // the array length unchanged. sanitizeToolPairs is idempotent on an\n        // already-balanced array and leaves user/text turns untouched, so the\n        // intentional dangling-user state above is preserved.\n        const balanced = sanitizeToolPairs(messages);\n        messages.length = 0;\n        messages.push(...balanced);\n        emit({"
+    },
+    {
+      "commit": "d572951fc6dd101eaf6d59411b1fee15746bee22",
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/Verify01HostJourney.java",
+      "digest": "sha256:08316af760656e9ac58157027975c836701257844ae1e6d8961c3109a943a3fc",
+      "startLine": 93,
+      "endLine": 119,
+      "text": "        action(\"submit\", null);\n        ui.send(prompt);\n        ui.newTab(); action(\"background-tab\", null);\n        JsonArray records = waitForProtocol(false);\n        JsonObject init = null;\n        for (JsonElement value : records) {\n            JsonObject event = value.getAsJsonObject().getAsJsonObject(\"event\");\n            if (\"system\".equals(string(event,\"type\")) && \"init\".equals(string(event,\"subtype\"))) {\n                assertNull(init, \"multiple task initializations\"); init = event;\n            }\n        }\n        assertNotNull(init); assertEquals(mode, string(init,\"permission_mode\"));\n        JsonObject terminal = terminal(records);\n        ui.select(string(target, \"id\")); action(\"return-tab\", null);\n        String result = terminalText(terminal);\n        boolean knownFailure = terminal.has(\"is_error\") && terminal.get(\"is_error\").getAsBoolean();\n        JsonObject visible;\n        try {\n            visible = ui.waitFor(\"actual final result rendered\", s -> rendered(s, result) != null\n                    || (knownFailure && s.get(\"visible\").getAsBoolean() && !result.isBlank() && string(s,\"text\").contains(result)));\n            action(\"final-result\", result);\n        } finally {\n            gracefulEnd();\n            records = waitForProtocol(true);\n            writeNew(\"protocol.json\", records);\n            assertEquals(records, JsonParser.parseString(Files.readString(root.resolve(\"protocol.json\"))),\n                    \"protocol summary differs from parsed raw JSONL records\");"
+    },
+    {
+      "commit": "d572951fc6dd101eaf6d59411b1fee15746bee22",
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/Verify01HostJourney.java",
+      "digest": "sha256:08316af760656e9ac58157027975c836701257844ae1e6d8961c3109a943a3fc",
+      "startLine": 188,
+      "endLine": 216,
+      "text": "    private JsonArray waitForProtocol(boolean exit) throws Exception {\n        while (System.currentTimeMillis() < deadline) {\n            try (var paths = Files.list(root)) {\n                assertTrue(paths.noneMatch(p -> p.getFileName().toString().startsWith(\"capture-error-\")),\n                        \"raw protocol observer reported a capture failure\");\n            }\n            try (var paths = Files.list(root)) {\n                for (Path path : paths.filter(p -> p.getFileName().toString().matches(\"protocol-[a-f0-9-]{36}\\\\.jsonl\")).toList()) {\n                    assertTrue(Files.size(path) <= 16 * 1024 * 1024);\n                    String raw = Files.readString(path);\n                    int complete = raw.lastIndexOf('\\n');\n                    if (complete < 0) continue;\n                    JsonArray records = new JsonArray();\n                    for (String line : raw.substring(0, complete).split(\"\\n\")) records.add(JsonParser.parseString(line));\n                    if (!owns(records)) continue;\n                    JsonObject terminal = terminal(records);\n                    if (terminal == null) continue;\n                    if (!exit) return records;\n                    JsonObject last = records.get(records.size()-1).getAsJsonObject();\n                    if (!string(last,\"direction\").equals(\"exit\")) continue;\n                    JsonObject actualExit = last.getAsJsonObject(\"event\");\n                    assertTrue(actualExit.get(\"stdoutDrained\").getAsBoolean(), \"stdout was not drained\");\n                    // Preserve the actual exit, including failures, for the independent importer.\n                    return records;\n                }\n            }\n            Thread.sleep(100);\n        }\n        throw new AssertionError(exit ? \"No actual drained process exit after EOF\" : \"No observed task terminal before deadline\");"
+    },
+    {
+      "commit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "file": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/AgentChatSession.java",
+      "digest": "sha256:5dd53c850437974138f674a36822860f0ef9b4850f495f7202ab39f8a8722d79",
+      "startLine": 469,
+      "endLine": 494,
+      "text": "        pump(\"cc-chat-stderr\", proc.getErrorStream(), new LineListener() {\n            @Override\n            public void onLine(String line) {\n                if (opts.onStderr != null) {\n                    try {\n                        opts.onStderr.onLine(line);\n                    } catch (Throwable ignored) {\n                        // listener errors must not kill the pump\n                    }\n                }\n            }\n        });\n        Thread waiter = new Thread(new Runnable() {\n            @Override\n            public void run() {\n                try {\n                    int code = proc.waitFor();\n                    // Process exit can race the final stdout line. Acceptance\n                    // never calls an undrained capture a verified terminal.\n                    if (opts.onProtocolRecord != null) {\n                        stdoutPump.join(2000);\n                        Map<String, Object> exit = MiniJson.obj();\n                        exit.put(\"code\", code);\n                        exit.put(\"signal\", null);\n                        exit.put(\"stdoutDrained\", !stdoutPump.isAlive());\n                        recordProtocol(\"exit\", exit);"
+    },
+    {
+      "commit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "file": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/AgentChatSession.java",
+      "digest": "sha256:5dd53c850437974138f674a36822860f0ef9b4850f495f7202ab39f8a8722d79",
+      "startLine": 605,
+      "endLine": 612,
+      "text": "        if (AgentStreamEventType.USER.getWireValue().equals(type) || planContinuation || correction)\n            pendingTurns.incrementAndGet();\n        try {\n            recordProtocol(\"input\", event);\n            writer.write(MiniJson.stringify(event));\n            writer.write(\"\\n\");\n            writer.flush();\n            return true;"
+    }
+  ],
+  "limitations": [
+    "Only first-run and verify03 full protocol/IDE/test logs downloaded; other three ordinary cases corroborated using broker final request receipts and driver failures.",
+    "No source/candidate changes or reruns were made for this review. Report precedes separately authorized fallback evidence-reader repair.",
+    "First-run child exit cause remains unknown without stderr/UI error evidence."
+  ]
+}

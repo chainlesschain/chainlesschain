@@ -7,6 +7,7 @@
 import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 import org.jetbrains.intellij.platform.gradle.tasks.PrepareSandboxTask
 import org.gradle.api.tasks.WriteProperties
+import java.security.MessageDigest
 
 plugins {
     id("java")
@@ -303,11 +304,12 @@ tasks.register<Test>("uiSmokeTest") {
     systemProperty("ui.journey.phase", System.getProperty("ui.journey.phase") ?: "initial")
     systemProperty("ui.metrics.path", System.getProperty("ui.metrics.path") ?: "")
     systemProperty("ui.recovery.root", System.getProperty("ui.recovery.root") ?: "")
+    systemProperty("ui.archivedReply.root", System.getProperty("ui.archivedReply.root") ?: "")
     systemProperty("ui.onboarding.root", System.getProperty("ui.onboarding.root") ?: "")
     systemProperty("ui.cold.root", System.getProperty("ui.cold.root") ?: "")
     systemProperty("ui.cold.boundaries", System.getProperty("ui.cold.boundaries") ?: "false")
     systemProperty("ui.plugin.archive", System.getProperty("ui.plugin.archive") ?: "")
-    for (name in listOf("captureRoot", "sampleId", "promptFile", "deadlineMs", "permissionMode", "workspace")) {
+    for (name in listOf("captureRoot", "sampleId", "promptFile", "deadlineMs", "permissionMode", "workspace", "pluginVersion")) {
         System.getProperty("ui.verify01.$name")?.let { systemProperty("ui.verify01.$name", it) }
     }
     systemProperty("file.encoding", "UTF-8")
@@ -415,14 +417,18 @@ runCatching {
     // before the GUI host starts; keep Remote Robot as a separate test plugin.
     val uiSandbox = tasks.named<PrepareSandboxTask>("prepareSandbox_runIdeForUiTests")
     val distribution = tasks.named<Zip>("buildPlugin")
+    val publicUiPluginArchive = providers.gradleProperty("publicUiPluginArchive")
+    val publicUiPluginDigest = providers.gradleProperty("publicUiPluginDigest")
     val sandboxRoot = layout.buildDirectory.dir("idea-sandbox")
     val workspaceRoot = layout.projectDirectory.asFile.parentFile.parentFile.canonicalFile
     val installUiJourneyPlugin = tasks.register<Sync>("installUiJourneyPlugin") {
         group = "verification"
         description = "Install exactly the packaged plugin into the isolated GUI sandbox"
-        dependsOn(uiSandbox, distribution)
+        dependsOn(uiSandbox)
+        if (!publicUiPluginArchive.isPresent) dependsOn(distribution)
         into(uiSandbox.flatMap { it.pluginDirectory })
-        from(zipTree(distribution.flatMap { it.archiveFile })) {
+        from(zipTree(if (publicUiPluginArchive.isPresent) file(publicUiPluginArchive.get())
+            else distribution.flatMap { it.archiveFile })) {
             eachFile {
                 val segments = relativePath.segments
                 require(segments.size > 1 && segments.first() == "chainlesschain-ide-bridge") {
@@ -433,6 +439,17 @@ runCatching {
             includeEmptyDirs = false
         }
         doFirst {
+            if (publicUiPluginArchive.isPresent) {
+                val archive = file(publicUiPluginArchive.get())
+                require(archive.isAbsolute && archive.isFile && publicUiPluginDigest.isPresent) {
+                    "Public plugin requires an absolute archive and external SHA-256 binding"
+                }
+                val digest = MessageDigest.getInstance("SHA-256")
+                    .digest(archive.readBytes()).joinToString("") { "%02x".format(it) }
+                require(publicUiPluginDigest.get() == "sha256:$digest") {
+                    "Public plugin archive differs from the external byte binding"
+                }
+            }
             val root = sandboxRoot.get().asFile.canonicalFile.toPath()
             val target = destinationDir.canonicalFile.toPath()
             require(root.startsWith(workspaceRoot.toPath()) && target.startsWith(root)

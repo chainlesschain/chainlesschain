@@ -1,0 +1,97 @@
+// Verify-20: explicit deny and unknown policy results are never downgraded
+// to "allow" by the fallback chain in buildPermissionDecision.
+import { describe, expect, it } from "vitest";
+import { buildPermissionDecision } from "../src/lib/permission-decision.js";
+
+describe("verify-20: deny decision is not degraded to allow", () => {
+  it("keeps an explicit policy deny exactly, never falling back to allow", () => {
+    const d = buildPermissionDecision({
+      toolUseId: "tu-policy-deny",
+      tool: "run_shell",
+      result: {
+        policy: { decision: "deny", via: "managed" },
+        permissionChain: [{ layer: "settings-rules", outcome: "no-match" }],
+      },
+    });
+
+    expect(d).not.toBeNull();
+    expect(d.decision).toBe("deny");
+    expect(d.decision).not.toBe("allow");
+  });
+
+  it("keeps an explicit approval deny even when a chain terminal lacks a decision", () => {
+    const d = buildPermissionDecision({
+      toolUseId: "tu-approval-deny",
+      tool: "run_shell",
+      result: {
+        approval: { decision: "deny", via: "human-gate" },
+        permissionChain: [{ layer: "settings-rules", outcome: "no-match" }],
+      },
+    });
+
+    expect(d.decision).toBe("deny");
+    expect(d.decision).not.toBe("allow");
+  });
+
+  it("propagates a deny from the terminal chain outcome", () => {
+    const d = buildPermissionDecision({
+      toolUseId: "tu-terminal-deny",
+      tool: "run_shell",
+      result: {
+        permissionChain: [
+          { layer: "settings-rules", outcome: "no-match" },
+          { layer: "risk-gate", outcome: "deny", via: "risk-policy" },
+        ],
+      },
+    });
+
+    expect(d.decision).toBe("deny");
+    expect(d.decision).not.toBe("allow");
+  });
+
+  it("negative control: an unknown policy stays null, not allow", () => {
+    const d = buildPermissionDecision({
+      toolUseId: "tu-unknown",
+      tool: "run_shell",
+      result: {
+        policy: { via: "matched-nothing" },
+        permissionChain: [{ layer: "settings-rules", outcome: "no-match" }],
+      },
+    });
+
+    expect(d).not.toBeNull();
+    expect(d.decision).toBeNull();
+    expect(d.decision).not.toBe("allow");
+  });
+
+  it("negative control: a chain with no terminal outcome yields null decision, not allow", () => {
+    const d = buildPermissionDecision({
+      toolUseId: "tu-chain-no-outcome",
+      tool: "run_shell",
+      result: {
+        permissionChain: [
+          { layer: "settings-rules", outcome: "no-match" },
+          { layer: "risk-gate", outcome: "no-match" },
+        ],
+      },
+    });
+
+    expect(d).not.toBeNull();
+    expect(d.decision).toBeNull();
+    expect(d.decision).not.toBe("allow");
+  });
+
+  it("deny keeps precedence over an allow listed later in the chain", () => {
+    const d = buildPermissionDecision({
+      toolUseId: "tu-precedence",
+      tool: "run_shell",
+      result: {
+        policy: { decision: "deny", via: "managed" },
+        approval: { decision: "allow" },
+      },
+    });
+
+    expect(d.decision).toBe("deny");
+    expect(d.decision).not.toBe("allow");
+  });
+});

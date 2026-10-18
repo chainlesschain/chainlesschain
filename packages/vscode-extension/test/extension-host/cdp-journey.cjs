@@ -2200,6 +2200,7 @@ module.exports = {
   isExactIsoTimestamp,
   isInspectableBrowserTarget,
   findWorkbenchWindow,
+  findChatWebview,
   readJsonLines,
   readJourneyResult,
   reserveLoopbackPort,

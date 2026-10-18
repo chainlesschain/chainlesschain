@@ -1,0 +1,69 @@
+[
+  {
+    "schema": "chainlesschain.native45-historical-round/v1",
+    "name": "completed round before account recovery",
+    "sourceReportCommit": "17a27e1dc8fe75bcd40adb66a13af39eab5d043b",
+    "billingAssessed": false,
+    "files": {
+      "results.json": {
+        "path": "historical-rounds/pre-recharge-2026-10-18/results.json.gz",
+        "originalDigest": "sha256:8d9fb20635cc6925072b17949ed2ad0a23b08758964ce3c89474d0e4a9c7d22c",
+        "storedDigest": "sha256:5aa6f912083858a9f0c6e7aaa7ef150ae714abef95852e935d689bcfa2a0df2e",
+        "originalBytes": 965573
+      },
+      "native45-independent-audit.json": {
+        "path": "historical-rounds/pre-recharge-2026-10-18/native45-independent-audit.json.gz",
+        "originalDigest": "sha256:3e3d1969db4e91cb2f80d5e6c23dea2a46760b403c2950a57d27176278f17f64",
+        "storedDigest": "sha256:abf6f2c1b9c41c22390f545ea8d5cd8866ff9d57f70b4f63f02b54126a4b4d81",
+        "originalBytes": 760937
+      },
+      "native45-latest-results.csv": {
+        "path": "historical-rounds/pre-recharge-2026-10-18/native45-latest-results.csv.gz",
+        "originalDigest": "sha256:d234babbe8ebc615dce554d32ca1679a64b3e924a7f65905981003f3ada9c942",
+        "storedDigest": "sha256:cb24ede5ff68878831d3783c2609be1c09f1f735333182a5d0e7f4d61fb6c48c",
+        "originalBytes": 11200
+      },
+      "provider-refusals.json": {
+        "path": "historical-rounds/pre-recharge-2026-10-18/provider-refusals.json.gz",
+        "originalDigest": "sha256:8958955905407f7b6f6d49c8164d5de81eb47dc73faad99b5d2fdaec63ee21d0",
+        "storedDigest": "sha256:13f22dfa8aea020e3b20d88fea5599055a398cdcc008143de8cea72987bb3a70",
+        "originalBytes": 10987
+      },
+      "README.md": {
+        "path": "historical-rounds/pre-recharge-2026-10-18/README.md.gz",
+        "originalDigest": "sha256:934f4f15d0602f6f44fae70ec39f05e9ef511c3b0d35fdddb2f912cde40ea2bb",
+        "storedDigest": "sha256:0239b4d5f8b774c2ec2933a80b80eca4ea0ef75bf74361cdb0dec3926b556db1",
+        "originalBytes": 8598
+      }
+    },
+    "counts": {
+      "generationResultsCollected": 45,
+      "generationPassedIncludingIndependentReassessment": 22,
+      "acceptanceResultsCollected": 45,
+      "ordinaryCandidateAcceptancePassed": 12,
+      "firstRunCandidateAcceptancePassed": 1,
+      "ordinaryEndToEndPassed": 7,
+      "firstRunEndToEndPassed": 1,
+      "missingGenerationIds": []
+    },
+    "selection": {
+      "win32-cli": "39057575738",
+      "win32-vscode": "39057579828",
+      "win32-jetbrains": "39057583779",
+      "linux-cli": "39051952884",
+      "linux-vscode": "39055183659",
+      "linux-jetbrains": "39055189152",
+      "darwin-cli": "39051952884",
+      "darwin-vscode": "39055183659",
+      "darwin-jetbrains": "39055189152"
+    },
+    "providerAffectedSampleIds": [
+      "verify-20",
+      "verify-29",
+      "verify-03",
+      "verify-12",
+      "verify-21",
+      "verify-30"
+    ]
+  }
+]

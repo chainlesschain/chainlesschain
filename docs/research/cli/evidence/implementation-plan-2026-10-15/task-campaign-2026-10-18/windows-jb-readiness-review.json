@@ -1,0 +1,339 @@
+{
+  "schema": "chainlesschain.windows-jetbrains-readiness-review/v1",
+  "reviewedAt": "2026-10-17T17:56:45.064326+00:00",
+  "status": "UNRESOLVED_READ_ONLY_NO_FIX",
+  "codeModified": false,
+  "publicPluginReplaced": false,
+  "paidRequestsDispatched": false,
+  "workflowCancelled": false,
+  "reviewSourceCommit": "b80948213e5cd952a3785734886c9b3f02df5543",
+  "publicPlugin": {
+    "version": "0.4.161",
+    "tag": "ide-jetbrains-v0.4.161",
+    "commit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b"
+  },
+  "nonceRun": {
+    "githubRunId": "39050475855",
+    "sourceCommit": "8f1d9eddb96eb64a8b3242c926dca403b1f2361f",
+    "cliVersion": "0.166.99",
+    "pluginVersion": "0.4.161",
+    "evidence": [
+      {
+        "zip": "C:\\code\\chainlesschain\\.work\\jb-final-windows.zip",
+        "member": "_temp/verify01-public-jetbrains-first-run/capture/action-1.json",
+        "sha256": "sha256:a3c0caac371dc7a41f540966b4cf6d1f10e4b43bc26c1300818787fc00cd6b5e",
+        "bytes": 155,
+        "archivedPath": "windows-jb-readiness/_temp/verify01-public-jetbrains-first-run/capture/action-1.json.gz",
+        "storedDigest": "sha256:ba731a0cbcaf21fd620fb609d81fb1bf9757a9d1664a469c9a2fb19d7fcc25ea"
+      },
+      {
+        "zip": "C:\\code\\chainlesschain\\.work\\jb-final-windows.zip",
+        "member": "_temp/verify01-public-jetbrains-first-run/capture/action-2.json",
+        "sha256": "sha256:39c9d8c23a868846a7db964670673c46d2ee2f737012123e19b04eafcf44ad50",
+        "bytes": 163,
+        "archivedPath": "windows-jb-readiness/_temp/verify01-public-jetbrains-first-run/capture/action-2.json.gz",
+        "storedDigest": "sha256:4854b56c57f7d5493b99ee12a9b35c4511812f888ed6823330e1f8beb3db373d"
+      },
+      {
+        "zip": "C:\\code\\chainlesschain\\.work\\jb-final-windows.zip",
+        "member": "_temp/verify01-public-jetbrains-first-run/capture/driver-failure-initial.json",
+        "sha256": "sha256:863ebfc0eb28790f8c38997b1f2ffd4b05ae061d658a09ab708bcec16e04c749",
+        "bytes": 542,
+        "archivedPath": "windows-jb-readiness/_temp/verify01-public-jetbrains-first-run/capture/driver-failure-initial.json.gz",
+        "storedDigest": "sha256:e60c92e09d202ae009c1ee64fa4aa2614b71eaff18a2fe142616c7da4780d7f0"
+      },
+      {
+        "zip": "C:\\code\\chainlesschain\\.work\\jb-final-windows.zip",
+        "member": "_temp/verify01-public-jetbrains-first-run/capture/protocol-dbbe0157-0de7-42eb-b9d7-dfa1fb7977f0.jsonl",
+        "sha256": "sha256:fcef5ff7c6cf3d24e3e002002fcdf5c0b4996a3880d756411cfce72d10b65c52",
+        "bytes": 1237,
+        "archivedPath": "windows-jb-readiness/_temp/verify01-public-jetbrains-first-run/capture/protocol-dbbe0157-0de7-42eb-b9d7-dfa1fb7977f0.jsonl.gz",
+        "storedDigest": "sha256:bd4724c9287164bd832664d7fc6ff8e88f5140756471498f34cd22d4812b80d9"
+      },
+      {
+        "zip": "C:\\code\\chainlesschain\\.work\\jb-final-windows.zip",
+        "member": "_temp/verify01-public-jetbrains-first-run/broker/summary.json",
+        "sha256": "sha256:30684c589886cf2942a2e50383f35a08dbfdff0d5c9030b4cbd904265f0bc99f",
+        "bytes": 345,
+        "archivedPath": "windows-jb-readiness/_temp/verify01-public-jetbrains-first-run/broker/summary.json.gz",
+        "storedDigest": "sha256:623f3a66133c5d32e2d7de8601be7f38c21446e56fbb5d85ab3a8bb76cf4bee2"
+      },
+      {
+        "zip": "C:\\code\\chainlesschain\\.work\\jb-final-windows.zip",
+        "member": "_temp/verify01-public-jetbrains-first-run/summary.json",
+        "sha256": "sha256:31a7aa1aac3a7c2dc90f3289ded03f27b70467c9788bf1a75a9e72929af604fa",
+        "bytes": 4401,
+        "archivedPath": "windows-jb-readiness/_temp/verify01-public-jetbrains-first-run/summary.json.gz",
+        "storedDigest": "sha256:89e7628286788ac5359a527e3d7f473b18bb189e727cb15154033a229c706eef"
+      },
+      {
+        "zip": "C:\\code\\chainlesschain\\.work\\jb-final-windows.zip",
+        "member": "_temp/verify01-public-jetbrains-first-run/ide-initial.log",
+        "sha256": "sha256:2ac0267e9893e76c1ef10de3db3d87e7c906bbe7226db49b8e31418413d3ba97",
+        "bytes": 6728,
+        "archivedPath": "windows-jb-readiness/_temp/verify01-public-jetbrains-first-run/ide-initial.log.gz",
+        "storedDigest": "sha256:0d3f3db5535089b0f436a31825015aaf8dc0136ee3b50bab64613ad914f649da"
+      }
+    ]
+  },
+  "timeline": [
+    {
+      "at": "2026-10-17T16:52:38.752899100Z",
+      "event": "driver submit action recorded before ui.send(prompt)"
+    },
+    {
+      "at": "2026-10-17T16:52:39.563406100Z",
+      "event": "background tab selected"
+    },
+    {
+      "at": "2026-10-17T16:52:48.246Z",
+      "event": "IDE bridge WindowsOwnerOnlyAcl failed; nested PowerShell ACL command timed out after 30 seconds",
+      "timestampBasis": "IDE runner log local clock; matches UTC runner timestamps, timezone not explicitly encoded in line"
+    },
+    {
+      "at": "2026-10-17T16:54:52.042208600Z",
+      "event": "sole captured protocol record: system/init, correct session and input_receipts.version=1"
+    },
+    {
+      "at": "2026-10-17T17:10:26.243577Z",
+      "event": "driver failed No observed task terminal before deadline"
+    },
+    {
+      "at": "2026-10-17T17:10:29.001Z",
+      "event": "initial real UI capture deadline exceeded"
+    }
+  ],
+  "observations": {
+    "submitToInitSeconds": 133.2893095,
+    "protocolRecordCount": 1,
+    "inputRecords": 0,
+    "brokerPhysicalRequestsStarted": 0,
+    "captureErrorMarkerObserved": false,
+    "initializationWaitSeconds": 120,
+    "permissionAcknowledgementDisplayTimerSeconds": 15,
+    "draftPrepareWaitSeconds": 10,
+    "draftMarkUnknownWaitSeconds": 10,
+    "preInitializationConfigProcessWaitSeconds": 60,
+    "javaWindowsAclTimeoutSeconds": 30,
+    "harnessUiDeadlineMaximumMinutes": 20
+  },
+  "established": [
+    "The CLI process reached a valid init; an unconditional .cmd spawn/quoting failure cannot explain this particular captured session.",
+    "AgentChatSession records input before writing or flushing stdin. No input was captured, and no capture-error marker was present. Evidence points to the host pre-write path, not CLI processing of an accepted user prompt.",
+    "The IDE bridge ACL operation independently timed out after 30 seconds. The log does not show a corresponding chat draft failure.",
+    "The driver waits for a protocol terminal after backgrounding the task tab and does not capture original-tab state on failure; a host-side delivery rejection can therefore consume the remaining 20-minute harness deadline without a CLI terminal.",
+    "The 15-second permission acknowledgement timer changes display status/reason only. It does not change revision/generation, reject input capability, or prevent a late valid init acknowledgement."
+  ],
+  "notEstablished": [
+    "133.289 seconds from driver submit to init is not the awaitReady duration: beginSend, configuration read, binary resolution and session startup precede the 120-second capability wait, and their completion timestamps are absent.",
+    "No evidence proves that optional task worklog caused the block. The native wrapper disabling it is not a verified Windows fix.",
+    "No evidence proves that the bridge ACL timeout also blocked draft preparation. ChatDraftStore storage and bridge lockfile paths are separate.",
+    "The exact pre-write blocker cannot be selected from current records: cancelled init wait, capability callback failure, draft preparation/status persistence failure, changed/disposed generation, or delayed EDT reservation remain possible."
+  ],
+  "excludedFromThisDiagnosis": {
+    "nativeFirstRun": {
+      "path": "C:\\code\\chainlesschain\\.work\\native45-generation\\39051952884\\win32-jetbrains\\summary.json",
+      "sha256": "sha256:42a04eb21250a5d4233546eda4661d6aac3fb4165a44c56bb45848c1bfacb87f",
+      "runId": "39051952884",
+      "sourceCommit": "2b874f2b08c0f87c0df0bc0c3b9d29c11fcfa357",
+      "sampleFailures": [
+        {
+          "sampleId": "first-run-win32-jetbrains",
+          "failure": "Error: Command failed: tar -xf C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-9GFmV6\\frozen.tar -C C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-9GFmV6\\14807a95-6aba-4420-8aba-ef8e81232571\\workspace\ntar: Cannot connect to C: resolve failed\n\n    at genericNodeError (node:internal/errors:983:15)\n    at wrappedFn (node:internal/errors:537:14)\n    at checkExecSyncError (node:child_process:882:11)\n    at execFileSync (node:child_process:918:15)\n    at runNativeCampaign (file:///D:/a/chainlesschain/chainlesschain/packages/cli/scripts/verify01-native-task-campaign.mjs:555:7)\n    at file:///D:/a/chainlesschain/chainlesschain/packages/cli/scripts/verify01-native-task-campaign.mjs:878:25"
+        },
+        {
+          "sampleId": "verify-03",
+          "failure": "Error: Command failed: tar -xf C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-9GFmV6\\frozen.tar -C C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-9GFmV6\\1bab4b5b-52da-4d7c-b606-45f655e0bb15\\workspace\ntar: Cannot connect to C: resolve failed\n\n    at genericNodeError (node:internal/errors:983:15)\n    at wrappedFn (node:internal/errors:537:14)\n    at checkExecSyncError (node:child_process:882:11)\n    at execFileSync (node:child_process:918:15)\n    at runNativeCampaign (file:///D:/a/chainlesschain/chainlesschain/packages/cli/scripts/verify01-native-task-campaign.mjs:555:7)\n    at file:///D:/a/chainlesschain/chainlesschain/packages/cli/scripts/verify01-native-task-campaign.mjs:878:25"
+        },
+        {
+          "sampleId": "verify-12",
+          "failure": "Error: Command failed: tar -xf C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-9GFmV6\\frozen.tar -C C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-9GFmV6\\4cd01fae-b32a-4a7d-903b-fa998c639b1f\\workspace\ntar: Cannot connect to C: resolve failed\n\n    at genericNodeError (node:internal/errors:983:15)\n    at wrappedFn (node:internal/errors:537:14)\n    at checkExecSyncError (node:child_process:882:11)\n    at execFileSync (node:child_process:918:15)\n    at runNativeCampaign (file:///D:/a/chainlesschain/chainlesschain/packages/cli/scripts/verify01-native-task-campaign.mjs:555:7)\n    at file:///D:/a/chainlesschain/chainlesschain/packages/cli/scripts/verify01-native-task-campaign.mjs:878:25"
+        },
+        {
+          "sampleId": "verify-21",
+          "failure": "Error: Command failed: tar -xf C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-9GFmV6\\frozen.tar -C C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-9GFmV6\\e90c349f-6b79-4850-ab52-ee6205e8329f\\workspace\ntar: Cannot connect to C: resolve failed\n\n    at genericNodeError (node:internal/errors:983:15)\n    at wrappedFn (node:internal/errors:537:14)\n    at checkExecSyncError (node:child_process:882:11)\n    at execFileSync (node:child_process:918:15)\n    at runNativeCampaign (file:///D:/a/chainlesschain/chainlesschain/packages/cli/scripts/verify01-native-task-campaign.mjs:555:7)\n    at file:///D:/a/chainlesschain/chainlesschain/packages/cli/scripts/verify01-native-task-campaign.mjs:878:25"
+        },
+        {
+          "sampleId": "verify-30",
+          "failure": "Error: Command failed: tar -xf C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-9GFmV6\\frozen.tar -C C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-9GFmV6\\8e56539a-cf54-4b57-8c01-efa5448d60ef\\workspace\ntar: Cannot connect to C: resolve failed\n\n    at genericNodeError (node:internal/errors:983:15)\n    at wrappedFn (node:internal/errors:537:14)\n    at checkExecSyncError (node:child_process:882:11)\n    at execFileSync (node:child_process:918:15)\n    at runNativeCampaign (file:///D:/a/chainlesschain/chainlesschain/packages/cli/scripts/verify01-native-task-campaign.mjs:555:7)\n    at file:///D:/a/chainlesschain/chainlesschain/packages/cli/scripts/verify01-native-task-campaign.mjs:878:25"
+        }
+      ],
+      "reason": "All five fail tar extraction before JetBrains starts; not readiness evidence."
+    }
+  },
+  "pendingArchives": [
+    {
+      "runId": "39052292630",
+      "sourceCommit": "209135141b4cf39aeb0284e6cf347764e19d2bf3",
+      "group": "win32-jetbrains",
+      "lastObservedState": "in_progress",
+      "taskStepStartedAt": "2026-10-17T17:09:53Z",
+      "localSummaryPresent": false
+    },
+    {
+      "runId": "39055189152",
+      "sourceCommit": "b80948213e5cd952a3785734886c9b3f02df5543",
+      "group": "win32-jetbrains",
+      "lastObservedState": "in_progress",
+      "taskStepStartedAt": "2026-10-17T17:48:12Z",
+      "localSummaryPresent": false
+    }
+  ],
+  "lowRiskHarnessRecommendationsOnly": [
+    "On failure, preserve a bounded original-tab UI snapshot (existing snapshot fields include editable, sendInFlight, receiptReady, childRunning, draftStatus and transcript status text). Keep collection best-effort so its own deadline does not replace the original error.",
+    "Observe definitive host delivery error text and save it separately from the raw CLI protocol; do not fabricate a CLI terminal or input ACK.",
+    "Optionally capture bounded Java thread names/stacks while the send worker is waiting, plus timestamps for initialization/receipt readiness. No resend, synthetic prompt, permission bypass, or published plugin replacement.",
+    "Keep the public plugin and current running jobs unchanged; inspect their archived input/ACK/UI chronology before proposing any readiness fix."
+  ],
+  "codeEvidence": [
+    {
+      "commit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "file": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/InputDispatch.java",
+      "line": 11,
+      "snippet": "    public static final long INITIALIZATION_TIMEOUT_SECONDS = 120;\n\n    public static final class InitializationTimeoutException extends IOException {\n        public InitializationTimeoutException() {\n            super(\"Agent initialization did not finish in time; draft kept for editing. Retry explicitly or press New to restart\");\n        }\n    }\n    private static final int PREPARING = 0, CANCELLED = 1, DISPATCHED = 2;"
+    },
+    {
+      "commit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "file": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/InputDispatch.java",
+      "line": 40,
+      "snippet": "    public <T> T awaitReady(CompletableFuture<T> ready, long timeout, TimeUnit unit) throws Exception {\n        check();\n        try {\n            CompletableFuture.anyOf(ready, cancelled).get(timeout, unit);\n        } catch (TimeoutException error) {\n            // Expire only this submission. A late shared init must never revive it.\n            cancel();\n            throw new InitializationTimeoutException();"
+    },
+    {
+      "commit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "file": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/InputDispatch.java",
+      "line": 46,
+      "snippet": "            cancel();\n            throw new InitializationTimeoutException();\n        }\n        check();\n        return ready.get();\n    }\n}"
+    },
+    {
+      "commit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "file": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/AgentChatSession.java",
+      "line": 594,
+      "snippet": "    public synchronized boolean sendEvent(Map<String, Object> event, InputDispatch dispatch) {\n        BufferedWriter writer = stdin;\n        if (!isRunning() || writer == null || event == null || !opts.canDispatch.getAsBoolean()) return false;\n        if (dispatch != null && !dispatch.reserve()) return false;\n        // Account before flushing: a fast child can finish before the send\n        // callback reaches the EDT. Partial writes stay conservatively pending\n        // until a terminal result or process restart.\n        String type = String.valueOf(event.get(\"type\"));"
+    },
+    {
+      "commit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "file": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/AgentChatSession.java",
+      "line": 608,
+      "snippet": "            recordProtocol(\"input\", event);\n            writer.write(MiniJson.stringify(event));\n            writer.write(\"\\n\");\n            writer.flush();\n            return true;\n        } catch (IOException e) {\n            return false;\n        }"
+    },
+    {
+      "commit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "file": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/AgentChatSession.java",
+      "line": 609,
+      "snippet": "            writer.write(MiniJson.stringify(event));\n            writer.write(\"\\n\");\n            writer.flush();\n            return true;\n        } catch (IOException e) {\n            return false;\n        }\n    }"
+    },
+    {
+      "commit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "file": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/PermissionModeState.java",
+      "line": 105,
+      "snippet": "    public synchronized void acknowledgementTimedOut(Object owner) {\n        if (owner != generation || !\"pending\".equals(status)) return;\n        status = \"unconfirmed\";\n        reason = \"The CLI did not confirm its effective approval mode within 15 seconds\";\n    }\n}"
+    },
+    {
+      "commit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "file": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/WindowsOwnerOnlyAcl.java",
+      "line": 25,
+      "snippet": "    private static final long TIMEOUT_SECONDS = 30;\n    private static final int OUTPUT_LIMIT = 64 * 1024;\n\n    private static final String APPLY_AND_VERIFY_SCRIPT = String.join(\"\\n\",\n            \"param([string]$target)\",\n            \"$ErrorActionPreference = 'Stop'\",\n            \"function Read-OwnerAccessAcl([string]$path) {\",\n            \"  $sections =\","
+    },
+    {
+      "commit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "file": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/LlmConfig.java",
+      "line": 266,
+      "snippet": "            boolean finished = p.waitFor(60, TimeUnit.SECONDS);\n            if (!finished) {\n                stopCliProcess(p);\n                return new CliResult(false, \"cc timed out\", \"CLI process timed out\");\n            }\n            String out = reading.get(5, TimeUnit.SECONDS);\n            String stderr = errors.get(5, TimeUnit.SECONDS);\n            boolean ok = p.exitValue() == 0;"
+    },
+    {
+      "commit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "file": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/LlmConfig.java",
+      "line": 498,
+      "snippet": "    public static String[] readConfiguredLlmBlock() {\n        return readConfiguredLlmBlock((args, stdin) -> runCli(args, stdin));\n    }\n\n    static String[] readConfiguredLlmBlock(CliRunner cli) {\n        // Use the same CLI snapshot as the form: CHAINLESSCHAIN_HOME and other\n        // supported config-root overrides must also apply to the spawned chat.\n        Connection saved = readConnection(cli);"
+    },
+    {
+      "commit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "file": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java",
+      "line": 788,
+      "snippet": "                boolean supported = dispatch.awaitReady(capability, InputDispatch.INITIALIZATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);\n                if (disposed || owner != sessionGeneration || !conv.modeState.current(modeRevision))\n                    throw new IOException(\"Agent changed before input preparation\");\n                prepared = drafts.prepare(text, imgs, history, !turnActive && !s.hasPendingTurns()).get(10, TimeUnit.SECONDS);\n                dispatch.check();\n                drafts.markUnknown(prepared.submission().id()).get(10, TimeUnit.SECONDS);\n                dispatch.check();\n                if (disposed || owner != sessionGeneration || !conv.modeState.current(modeRevision))"
+    },
+    {
+      "commit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "file": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java",
+      "line": 791,
+      "snippet": "                prepared = drafts.prepare(text, imgs, history, !turnActive && !s.hasPendingTurns()).get(10, TimeUnit.SECONDS);\n                dispatch.check();\n                drafts.markUnknown(prepared.submission().id()).get(10, TimeUnit.SECONDS);\n                dispatch.check();\n                if (disposed || owner != sessionGeneration || !conv.modeState.current(modeRevision))\n                    throw new IOException(\"Input saved; agent changed before delivery\");\n                Map<String, Object> event = AgentChatSession.userEvent(text, prepared.paths());\n                if (supported) event.put(\"client_message_id\", prepared.submission().id());"
+    },
+    {
+      "commit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "file": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java",
+      "line": 793,
+      "snippet": "                drafts.markUnknown(prepared.submission().id()).get(10, TimeUnit.SECONDS);\n                dispatch.check();\n                if (disposed || owner != sessionGeneration || !conv.modeState.current(modeRevision))\n                    throw new IOException(\"Input saved; agent changed before delivery\");\n                Map<String, Object> event = AgentChatSession.userEvent(text, prepared.paths());\n                if (supported) event.put(\"client_message_id\", prepared.submission().id());\n                if (history != null) event.put(\"worklog_session_id\", history);\n                final String clientId = prepared.submission().id();"
+    },
+    {
+      "commit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "file": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java",
+      "line": 804,
+      "snippet": "                SwingUtilities.invokeAndWait(() -> {\n                    if (disposed || owner != sessionGeneration || !conv.modeState.current(modeRevision)) return;\n                    try { dispatch.check(); } catch (IOException cancelled) { return; }\n                    String tag = imgs.isEmpty() ? \"\" : (text.isEmpty() ? \"\" : \" \") + \"[📷 \" + imgs.size() + \"]\";\n                    transcript.appendUser(text, tag, clientId, owner, sid);\n                    this.history.liveChanged();\n                });\n                if (disposed || owner != sessionGeneration || !conv.modeState.current(modeRevision))"
+    },
+    {
+      "commit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "file": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java",
+      "line": 813,
+      "snippet": "                sent = s.sendEvent(event, dispatch);\n                dispatch.check();\n                if (sent && history != null) worklogSourceSent = true;\n            } catch (Exception ex) {\n                if (ex instanceof InterruptedException) Thread.currentThread().interrupt();\n                Throwable cause = ex instanceof java.util.concurrent.ExecutionException && ex.getCause() != null\n                        ? ex.getCause() : ex;\n                spawnError = cause instanceof java.util.concurrent.TimeoutException"
+    },
+    {
+      "commit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "file": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java",
+      "line": 1978,
+      "snippet": "        try { llm = com.chainlesschain.ide.LlmConfig.readConfiguredLlmBlock(); }\n        catch (RuntimeException error) {\n            throw new IOException(CcBundle.message(\"llm.form.readFailed\") + \" \" + error.getMessage(), error);\n        }\n        // Declare the session id UP FRONT (VS Code twin fix): anonymous\n        // stream sessions are persistence-free by CLI design, so a first\n        // conversation spawned without an id was never written — an IDE\n        // restart's --resume of the id captured from system/init then"
+    },
+    {
+      "commit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "file": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java",
+      "line": 2007,
+      "snippet": "            modeAcknowledgementTimer = new javax.swing.Timer(15000, e -> {\n                conv.modeState.acknowledgementTimedOut(generation);\n                refreshModeStatus();\n            });\n            modeAcknowledgementTimer.setRepeats(false);\n            modeAcknowledgementTimer.start();\n        });\n        o.extraArgs = SessionArgs.build("
+    },
+    {
+      "commit": "b80948213e5cd952a3785734886c9b3f02df5543",
+      "file": "packages/jetbrains-plugin/scripts/verify01-native-task-adapter.mjs",
+      "line": 72,
+      "snippet": "  const uiDeadline = Math.min(deadline, Date.now() + 20 * 60 * 1000);\n  assert.equal(digest(fs.readFileSync(pluginArchive)), pluginDigest);\n  const captureDir = path.join(outputDir, \"capture\");\n  fs.mkdirSync(captureDir);\n  const promptFile = path.join(outputDir, \"prompt.txt\");"
+    },
+    {
+      "commit": "b80948213e5cd952a3785734886c9b3f02df5543",
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/Verify01HostJourney.java",
+      "line": 47,
+      "snippet": "            failure.add(\"completedActions\", actions.deepCopy());\n            writeNew(\"driver-failure-\" + phase + \".json\", failure);\n            throw error;\n        }\n    }"
+    },
+    {
+      "commit": "b80948213e5cd952a3785734886c9b3f02df5543",
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/Verify01HostJourney.java",
+      "line": 188,
+      "snippet": "    private JsonArray waitForProtocol(boolean exit) throws Exception {\n        while (System.currentTimeMillis() < deadline) {\n            try (var paths = Files.list(root)) {\n                assertTrue(paths.noneMatch(p -> p.getFileName().toString().startsWith(\"capture-error-\")),\n                        \"raw protocol observer reported a capture failure\");"
+    },
+    {
+      "commit": "b80948213e5cd952a3785734886c9b3f02df5543",
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/Verify01HostJourney.java",
+      "line": 216,
+      "snippet": "        throw new AssertionError(exit ? \"No actual drained process exit after EOF\" : \"No observed task terminal before deadline\");\n    }\n\n    private boolean owns(JsonArray records) {\n        for (JsonElement value : records) {"
+    },
+    {
+      "commit": "b80948213e5cd952a3785734886c9b3f02df5543",
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/ConversationRecoveryJourney.java",
+      "line": 81,
+      "snippet": "            initializationTimeoutSeconds:Number(java.lang.Class.forName('com.chainlesschain.ide.InputDispatch',true,loader)\n                .getField('INITIALIZATION_TIMEOUT_SECONDS').get(null)),\n            observedAt:String(java.time.Instant.now()), processId:String(java.lang.ProcessHandle.current().pid()),\n            profile:String(Packages.com.intellij.openapi.application.PathManager.getConfigPath()),\n            id:String(field(conv,'draftKey')), sessionId:String(field(conv,'sessionId')), tabs:tabList,"
+    },
+    {
+      "commit": "b80948213e5cd952a3785734886c9b3f02df5543",
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/ConversationRecoveryJourney.java",
+      "line": 87,
+      "snippet": "            sendInFlight:String(field(view,'sendInFlight')) === 'true', childRunning:child != null && child.isRunning(),\n            childProcessId:process == null ? '' : String(process.pid()),\n            childProcessIds:processIds,\n            turnActive:String(field(view,'turnActive')) === 'true',\n            interruptPending:child != null && field(view,'interruptRequested') != null && field(view,'interruptRequested').equals(child),"
+    },
+    {
+      "commit": "b80948213e5cd952a3785734886c9b3f02df5543",
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/ConversationRecoveryJourney.java",
+      "line": 92,
+      "snippet": "            receiptReady:receipt != null && receipt.isDone() && !receipt.isCompletedExceptionally() && String(receipt.getNow(false)) === 'true',\n            draftStatus:String(field(field(view,'drafts'),'status').getText()),\n            historyStatus:String(field(field(view,'history'),'status').getText()),\n            binaryChoice:String(binaryField.get(null)),\n            text:String(pane.getDocument().getText(0,pane.getDocument().getLength())), visible:pane.isShowing(), savedRows:rows"
+    }
+  ],
+  "limitations": [
+    "Review uses existing artifacts and public-tag source only; no GUI/process reproduction was initiated.",
+    "Pending job status does not reveal which independent sample is active.",
+    "No root-cause fix is asserted; no request to increase plugin timeouts is supported by these logs alone."
+  ]
+}

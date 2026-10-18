@@ -1,0 +1,164 @@
+import { describe, expect, it } from "vitest";
+import {
+  createSessionTranscriptHistoryProjection,
+} from "../src/lib/session-transcript-history.js";
+
+// Independent regression coverage for persistent-body pagination boundary
+// behavior in createSessionTranscriptHistoryProjection:
+//   * cross-page head/tail cursors resume at the correct boundary,
+//   * the final body text is never omitted across pages,
+//   * boundary events are not duplicated between adjacent pages.
+
+const SESSION = "verify-07-boundary";
+const HEX = "0123456789abcdef";
+
+function digest(seed) {
+  // Deterministic 64-char lowercase hex digest (valid per transcript hash).
+  let h = "";
+  for (let i = 0; i < 64; i++) {
+    h += HEX[(seed.charCodeAt(i % seed.length) + i) % 16];
+  }
+  return h;
+}
+
+// user_message / assistant_message / system events each carry a single message.
+function bodyEvent(type, ordinal, text) {
+  return {
+    type,
+    hash: digest(`${type}:${ordinal}`),
+    data: { role: type === "user_message" ? "user" : "assistant", content: text },
+  };
+}
+
+// compact carries a messages array (boundary/snapshot source).
+function compactEvent(ordinal, texts) {
+  return {
+    type: "compact",
+    hash: digest(`compact:${ordinal}`),
+    data: { messages: texts.map((text) => ({ role: "assistant", content: text })) },
+  };
+}
+
+function buildEvents() {
+  // 9 messages: 8 direct body messages + 1 compaction boundary with 1 message.
+  const events = [];
+  for (let i = 1; i <= 4; i++) events.push(bodyEvent("user_message", i, `u${i}`));
+  for (let i = 5; i <= 8; i++) events.push(bodyEvent("assistant_message", i, `a${i}`));
+  events.push(compactEvent(9, ["compacted-last"]));
+  return events;
+}
+
+function decodeCursor(cursor) {
+  return JSON.parse(Buffer.from(cursor, "base64url").toString("utf8"));
+}
+
+function pageFor(events, cursor, limit) {
+  const projection = createSessionTranscriptHistoryProjection(SESSION, {
+    limit,
+    cursor,
+  });
+  events.forEach((event) => projection.accept(event));
+  return projection.finish({
+    headHash: events.at(-1).hash,
+    eventCount: events.length,
+  });
+}
+
+function collectAll(events, limit) {
+  let cursor = null;
+  const pages = [];
+  do {
+    const page = pageFor(events, cursor, limit);
+    pages.push(page);
+    cursor = page.nextCursor ?? null;
+  } while (cursor && pages.at(-1).hasMore);
+  return pages;
+}
+
+describe("persistent body pagination boundary", () => {
+  it("cross-page head/tail cursors resume exactly at the boundary", () => {
+    const events = buildEvents(); // 9 messages total
+    const first = pageFor(events, null, 4);
+    expect(first.messages.map((m) => m.ordinal)).toEqual([1, 2, 3, 4]);
+    expect(first.hasMore).toBe(true);
+    expect(first.nextCursor).toBeTruthy();
+
+    const cursor = decodeCursor(first.nextCursor);
+    expect(cursor.v).toBe(2);
+    expect(cursor.sessionId).toBe(SESSION);
+
+    const second = pageFor(events, first.nextCursor, 4);
+    expect(second.messages.map((m) => m.ordinal)).toEqual([5, 6, 7, 8]);
+    expect(second.hasMore).toBe(true);
+
+    const third = pageFor(events, second.nextCursor, 4);
+    expect(third.messages.map((m) => m.ordinal)).toEqual([9]);
+    expect(third.hasMore).toBe(false);
+    expect(third.nextCursor).toBeNull();
+  });
+
+  it("does not omit the final body text across pages", () => {
+    const events = buildEvents();
+    const pages = collectAll(events, 3);
+    const last = pages.at(-1);
+    const lastMessage = last.messages.at(-1);
+    // The final persistent body text survives every page boundary.
+    expect(lastMessage.text).toBe("compacted-last");
+    expect(pages.flatMap((p) => p.messages.map((m) => m.text))).toContain(
+      "compacted-last",
+    );
+  });
+
+  it("does not duplicate boundary events across adjacent pages", () => {
+    const events = buildEvents();
+    const pages = collectAll(events, 3);
+    const ordinals = pages.flatMap((p) => p.messages.map((m) => m.ordinal));
+    // Every ordinal appears exactly once (no duplicated boundary events) and
+    // no body text is dropped.
+    expect(new Set(ordinals).size).toBe(ordinals.length);
+    expect(ordinals).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    const texts = pages.flatMap((p) => p.messages.map((m) => m.text));
+    expect(new Set(texts).size).toBe(texts.length);
+  });
+
+  it("final page head is the tail cursor and covers the remaining body", () => {
+    const events = buildEvents();
+    const second = pageFor(events, pageFor(events, null, 5).nextCursor, 5);
+    // Tail page continues from ordinal 6 onward; nothing at/beyond the
+    // previous page head is re-emitted.
+    expect(second.messages.map((m) => m.ordinal)).toEqual([6, 7, 8, 9]);
+    expect(second.messages.at(-1).text).toBe("compacted-last");
+  });
+
+  it("a boundary-sized page emits no duplicate when resumed at its tail", () => {
+    const events = buildEvents();
+    const first = pageFor(events, null, 9);
+    expect(first.messages.map((m) => m.ordinal)).toEqual([
+      1, 2, 3, 4, 5, 6, 7, 8, 9,
+    ]);
+    expect(first.hasMore).toBe(false);
+    // Full single page: final body retained, no next cursor to resume from.
+    expect(first.messages.at(-1).text).toBe("compacted-last");
+    expect(first.nextCursor).toBeNull();
+  });
+
+  it("rejects a stale cursor whose revision no longer matches the head", () => {
+    const events = buildEvents();
+    const first = pageFor(events, null, 4);
+    // Fabricate a cursor pointing at a revision that differs from the head.
+    const forged = Buffer.from(
+      JSON.stringify({
+        v: 2,
+        sessionId: SESSION,
+        before: 5,
+        revision: digest("wrong-head"),
+        eventCount: events.length,
+        generation: 0,
+      }),
+    ).toString("base64url");
+    expect(() => pageFor(events, forged, 4)).toThrow(
+      /Transcript history changed/,
+    );
+    void first;
+  });
+});

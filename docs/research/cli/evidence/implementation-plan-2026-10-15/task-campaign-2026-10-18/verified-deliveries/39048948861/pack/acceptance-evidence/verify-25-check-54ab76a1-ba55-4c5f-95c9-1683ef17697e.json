@@ -1,0 +1,125 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-25",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 25,
+      "passed": 25,
+      "failed": 0
+    },
+    {
+      "kind": "candidate",
+      "total": 6,
+      "passed": 6,
+      "failed": 0
+    }
+  ],
+  "mutations": [
+    {
+      "name": "delete-prior-draft-before-atomic-publication",
+      "sourceSha256": "031c95c589d5ab3cadd7746d9d8769086fc93a772167d316e858614690cdd945",
+      "total": 6,
+      "passed": 4,
+      "failed": 2
+    }
+  ],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 126,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 1923,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":4,\"numPassedTestSuites\":4,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":25,\"numPassedTests\":25,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1792255926501,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"durable composer storage\"],\"fullName\":\"durable composer storage commits an empty manifest before image cleanup and completes cleanup after page replacement\",\"status\":\"passed\",\"title\":\"commits an empty manifest before image cleanup and completes cleanup after page replacement\",\"duration\":58.951278,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"durable composer storage\"],\"fullName\":\"durable composer storage rechecks page lifetime before rename and removes an abandoned temporary manifest\",\"status\":\"passed\",\"title\":\"rechecks page lifetime before rename and removes an abandoned temporary manifest\",\"duration\":12.319848999999977,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"durable composer storage\"],\"fullName\":\"durable composer storage recovers text and image snapshots in a fresh store, with no image data in metadata\",\"status\":\"passed\",\"title\":\"recovers text and image snapshots in a fresh store, with no image data in metadata\",\"duration\":38.92316799999992,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"durable composer storage\"],\"fullName\":\"durable composer storage saves a submitted snapshot before clearing the composer, and retains unknown sends\",\"status\":\"passed\",\"title\":\"saves a submitted snapshot before clearing the composer, and retains unknown sends\",\"duration\":77.92763400000001,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"durable composer storage\"],\"fullName\":\"durable composer storage does not silently omit missing attachments or accept a tampered snapshot\",\"status\":\"passed\",\"title\":\"does not silently omit missing attachments or accept a tampered snapshot\",\"duration\":37.94009299999993,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"durable composer storage\"],\"fullName\":\"durable composer storage retains the old draft and cleans new attachments when publishing fails\",\"status\":\"passed\",\"title\":\"retains the old draft and cleans new attachments when publishing fails\",\"duration\":72.92702199999997,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"durable composer storage\"],\"fullName\":\"durable composer storage bounds pending records and does not evict unknown inputs\",\"status\":\"passed\",\"title\":\"bounds pending records and does not evict unknown inputs\",\"duration\":11.861156999999935,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"durable composer storage\"],\"fullName\":\"durable composer storage serializes rapid edits without rewriting attachment snapshots\",\"status\":\"passed\",\"title\":\"serializes rapid edits without rewriting attachment snapshots\",\"duration\":53.69092999999998,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"host durable input lifecycle\"],\"fullName\":\"host durable input lifecycle rejects a replaced page's saves and drops delayed image writes before publication\",\"status\":\"passed\",\"title\":\"rejects a replaced page's saves and drops delayed image writes before publication\",\"duration\":44.38314500000001,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"host durable input lifecycle\"],\"fullName\":\"host durable input lifecycle cancels an undispatched saved input during prepare without losing its recovery record\",\"status\":\"passed\",\"title\":\"cancels an undispatched saved input during prepare without losing its recovery record\",\"duration\":9.523952000000008,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"host durable input lifecycle\"],\"fullName\":\"host durable input lifecycle cancels an undispatched saved input during init without losing its recovery record\",\"status\":\"passed\",\"title\":\"cancels an undispatched saved input during init without losing its recovery record\",\"duration\":8.898266999999919,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"host durable input lifecycle\"],\"fullName\":\"host durable input lifecycle cancels an undispatched saved input during unknown without losing its recovery record\",\"status\":\"passed\",\"title\":\"cancels an undispatched saved input during unknown without losing its recovery record\",\"duration\":14.856454999999983,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"host durable input lifecycle\"],\"fullName\":\"host durable input lifecycle cancels an undispatched saved input during session-stop without losing its recovery record\",\"status\":\"passed\",\"title\":\"cancels an undispatched saved input during session-stop without losing its recovery record\",\"duration\":7.786570999999981,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"host durable input lifecycle\"],\"fullName\":\"host durable input lifecycle does not start the agent when the submission cannot be saved\",\"status\":\"passed\",\"title\":\"does not start the agent when the submission cannot be saved\",\"duration\":2.8220380000000205,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"host durable input lifecycle\"],\"fullName\":\"host durable input lifecycle waits for init, persists UNKNOWN before writing and settles only a correlated ACK\",\"status\":\"passed\",\"title\":\"waits for init, persists UNKNOWN before writing and settles only a correlated ACK\",\"duration\":10.94441699999993,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"host durable input lifecycle\"],\"fullName\":\"host durable input lifecycle reloads a stable draft identity and reconciles read-only without starting a session\",\"status\":\"passed\",\"title\":\"reloads a stable draft identity and reconciles read-only without starting a session\",\"duration\":51.70226099999991,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"host durable input lifecycle\"],\"fullName\":\"host durable input lifecycle keeps legacy CLI and failed pipe writes unknown and recoverable\",\"status\":\"passed\",\"title\":\"keeps legacy CLI and failed pipe writes unknown and recoverable\",\"duration\":9.164167000000134,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"host durable input lifecycle\"],\"fullName\":\"host durable input lifecycle does not dispatch a saved input after its conversation is reset\",\"status\":\"passed\",\"title\":\"does not dispatch a saved input after its conversation is reset\",\"duration\":8.726220000000012,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"host durable input lifecycle\"],\"fullName\":\"host durable input lifecycle keeps closed drafts discoverable and reopens the same draft identity\",\"status\":\"passed\",\"title\":\"keeps closed drafts discoverable and reopens the same draft identity\",\"duration\":3.220444999999927,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"composer recovery in the generated Webview\"],\"fullName\":\"composer recovery in the generated Webview initializes the page and draft handshake without the secure-context randomUUID API\",\"status\":\"passed\",\"title\":\"initializes the page and draft handshake without the secure-context randomUUID API\",\"duration\":29.406351000000086,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"composer recovery in the generated Webview\"],\"fullName\":\"composer recovery in the generated Webview binds recovery actions to the current page and keeps their errors visible\",\"status\":\"passed\",\"title\":\"binds recovery actions to the current page and keeps their errors visible\",\"duration\":19.317798999999923,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"composer recovery in the generated Webview\"],\"fullName\":\"composer recovery in the generated Webview ignores previous-page image ACKs while accepting the current page's background ACK\",\"status\":\"passed\",\"title\":\"ignores previous-page image ACKs while accepting the current page's background ACK\",\"duration\":273.9848740000002,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"composer recovery in the generated Webview\"],\"fullName\":\"composer recovery in the generated Webview restores saved text and images, but never overwrites newer local edits\",\"status\":\"passed\",\"title\":\"restores saved text and images, but never overwrites newer local edits\",\"duration\":7.59393799999998,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"composer recovery in the generated Webview\"],\"fullName\":\"composer recovery in the generated Webview keeps input until a matching saved-submission ACK, including background ACKs\",\"status\":\"passed\",\"title\":\"keeps input until a matching saved-submission ACK, including background ACKs\",\"duration\":9.48414200000002,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"composer recovery in the generated Webview\"],\"fullName\":\"composer recovery in the generated Webview restores the short text backup across Webview reload and blocks missing images\",\"status\":\"passed\",\"title\":\"restores the short text backup across Webview reload and blocks missing images\",\"duration\":9.255174000000125,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1792255927126,\"endTime\":1792255928012.2551,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/vscode-ext-draft-store.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 646,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":6,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1792255928420,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"draft write failure preserves the old record\"],\"fullName\":\"draft write failure preserves the old record positive control: a successful save commits the new text\",\"status\":\"passed\",\"title\":\"positive control: a successful save commits the new text\",\"duration\":6.497410000000002,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"draft write failure preserves the old record\"],\"fullName\":\"draft write failure preserves the old record atomic save failure keeps the previous draft recoverable\",\"status\":\"passed\",\"title\":\"atomic save failure keeps the previous draft recoverable\",\"duration\":4.938581999999997,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"draft write failure preserves the old record\"],\"fullName\":\"draft write failure preserves the old record failed save leaves no stray temporary manifest\",\"status\":\"passed\",\"title\":\"failed save leaves no stray temporary manifest\",\"duration\":3.2108589999999992,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"draft write failure preserves the old record\"],\"fullName\":\"draft write failure preserves the old record positive control: successful send clears the composer and records the submission\",\"status\":\"passed\",\"title\":\"positive control: successful send clears the composer and records the submission\",\"duration\":3.6031389999999988,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"draft write failure preserves the old record\"],\"fullName\":\"draft write failure preserves the old record send write failure does not clear the saved composer early\",\"status\":\"passed\",\"title\":\"send write failure does not clear the saved composer early\",\"duration\":3.3628339999999923,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"draft write failure preserves the old record\"],\"fullName\":\"draft write failure preserves the old record failed send leaves no temporary manifest\",\"status\":\"passed\",\"title\":\"failed send leaves no temporary manifest\",\"duration\":2.880516,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1792255928635,\"endTime\":1792255928659.8806,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/vscode-extension/__tests__/verify-25.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/packages/vscode-extension/src/chat/draft-store.js"
+      ],
+      "setup": false,
+      "ms": 139,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 656,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":0,\"numFailedTestSuites\":2,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":4,\"numFailedTests\":2,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1792255929196,\"success\":false,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"draft write failure preserves the old record\"],\"fullName\":\"draft write failure preserves the old record positive control: a successful save commits the new text\",\"status\":\"passed\",\"title\":\"positive control: a successful save commits the new text\",\"duration\":6.867559,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"draft write failure preserves the old record\"],\"fullName\":\"draft write failure preserves the old record atomic save failure keeps the previous draft recoverable\",\"status\":\"failed\",\"title\":\"atomic save failure keeps the previous draft recoverable\",\"duration\":10.754198000000002,\"failureMessages\":[\"AssertionError: expected '' to be 'keep me' // Object.is equality\\n    at /workspace/packages/vscode-extension/__tests__/verify-25.test.js:49:52\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"draft write failure preserves the old record\"],\"fullName\":\"draft write failure preserves the old record failed save leaves no stray temporary manifest\",\"status\":\"passed\",\"title\":\"failed save leaves no stray temporary manifest\",\"duration\":3.5020370000000014,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"draft write failure preserves the old record\"],\"fullName\":\"draft write failure preserves the old record positive control: successful send clears the composer and records the submission\",\"status\":\"passed\",\"title\":\"positive control: successful send clears the composer and records the submission\",\"duration\":4.6676049999999805,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"draft write failure preserves the old record\"],\"fullName\":\"draft write failure preserves the old record send write failure does not clear the saved composer early\",\"status\":\"failed\",\"title\":\"send write failure does not clear the saved composer early\",\"duration\":3.9463759999999866,\"failureMessages\":[\"AssertionError: expected '' to be 'draft survives' // Object.is equality\\n    at /workspace/packages/vscode-extension/__tests__/verify-25.test.js:97:34\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"draft write failure preserves the old record\"],\"fullName\":\"draft write failure preserves the old record failed send leaves no temporary manifest\",\"status\":\"passed\",\"title\":\"failed send leaves no temporary manifest\",\"duration\":10.534589000000011,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1792255929416,\"endTime\":1792255929455.5347,\"status\":\"failed\",\"message\":\"\",\"name\":\"/workspace/packages/vscode-extension/__tests__/verify-25.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": true,
+  "detail": "Independent operator checks passed; this is not a provider or task-outcome sample."
+}

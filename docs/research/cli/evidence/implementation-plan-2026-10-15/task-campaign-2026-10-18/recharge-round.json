@@ -1,0 +1,48 @@
+{
+  "schema": "chainlesschain.native45-recharge-rerun/v1",
+  "name": "Windows IDE rerun after user-reported account recovery",
+  "startedAt": "2026-10-18T00:08:58Z",
+  "userReportedAccountRestored": true,
+  "billingAssessed": false,
+  "previousReportCommit": "17a27e1dc8fe75bcd40adb66a13af39eab5d043b",
+  "plannedRerunSamples": 10,
+  "originallyProviderRefusedSampleIds": [
+    "verify-03",
+    "verify-12",
+    "verify-20",
+    "verify-21",
+    "verify-29",
+    "verify-30"
+  ],
+  "originalHostStartupFailureSampleId": "first-run-win32-jetbrains",
+  "additionalSamplesRepeatedForWholeGroupIntegrity": [
+    "first-run-win32-vscode",
+    "verify-02",
+    "verify-11"
+  ],
+  "unchangedSamples": 35,
+  "policy": "Repeat each affected five-sample Windows IDE group from clean independent installs/workspaces without candidate seeds or prior feedback. Keep all prior failures. Other seven groups retain their exact bound generations; do not report this as 45 newly executed samples.",
+  "runs": [
+    {
+      "group": "win32-vscode",
+      "runId": "39081688535",
+      "sourceCommit": "17a27e1dc8fe75bcd40adb66a13af39eab5d043b"
+    },
+    {
+      "group": "win32-jetbrains",
+      "runId": "39082074376",
+      "sourceCommit": "6217c89ac4c7735c5f9e08bc01ea885bde14a0b3"
+    }
+  ],
+  "pendingGroups": [],
+  "futureRetryPolicy": {
+    "onlyFailedOrUnexecutedSamples": true,
+    "reuseAcceptedDeliverables": true,
+    "explicitSampleIdsRequiredForFurtherModelRequests": true,
+    "alreadyDispatchedRunIds": ["39081688535", "39082074376"],
+    "previouslyPassedSampleIdsAlreadyIncludedBeforeThisPreference": [
+      "first-run-win32-vscode"
+    ],
+    "policy": "Collect existing in-flight work. Any further paid generation selects only specific failed or unexecuted samples; reuse passing candidate/checker evidence instead of regenerating whole groups."
+  }
+}

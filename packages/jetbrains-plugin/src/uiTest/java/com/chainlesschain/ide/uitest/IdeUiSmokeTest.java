@@ -85,6 +85,14 @@ final class IdeUiSmokeTest {
                 return;
             }
 
+            String archivedRoot = System.getProperty("ui.archivedReply.root", "");
+            if (!archivedRoot.isBlank()) {
+                ensureChatInputVisible(robot);
+                String phase = System.getProperty("ui.journey.phase", "initial");
+                new ArchivedReplyRecoveryJourney(robot, frame, Paths.get(archivedRoot)).run(phase);
+                if ("initial".equals(phase)) saveProjectBeforeRestart(frame);
+                return;
+            }
             String verifyRoot = System.getProperty("ui.verify01.captureRoot", "");
             String coldRoot = System.getProperty("ui.cold.root", "");
             if (!coldRoot.isBlank()) {

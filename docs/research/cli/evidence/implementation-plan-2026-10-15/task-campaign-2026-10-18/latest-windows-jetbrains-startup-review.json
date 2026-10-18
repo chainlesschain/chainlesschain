@@ -1,0 +1,112 @@
+{
+  "schema": "chainlesschain.windows-jetbrains-startup-review/v1",
+  "status": "FAILED_GENERATION_ORIGINAL_EVIDENCE_PRESERVED",
+  "runId": "39087898779",
+  "sourceCommit": "8d5386c7483eac43e522b220d305660cd8ca6965",
+  "versions": {
+    "cli": "0.166.104",
+    "vscode": "0.37.149",
+    "jetbrains": "0.4.166",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "packageSetDigest": "sha256:7eeb5433397a85c2bed67b5164e37bd0a44b9eec0da5ce34e821bb9e6e9952b2",
+  "generationSummary": {
+    "path": "latest-package-round/39087898779/generation/summary.json.gz",
+    "originalDigest": "sha256:bdbd18fdab5f4346f89d495fe06d3e5890d4ed73c22da6c8435a6a4d04e46c3d",
+    "storedDigest": "sha256:c61b6eb3076c01117534f03e7fac79a73d504e065b455081728fda4d9ab7b55d",
+    "originalBytes": 19227
+  },
+  "diagnostics": [
+    {
+      "originalArtifactPath": "first-run-win32-jetbrains/capture/driver-failure-initial.json",
+      "archived": {
+        "path": "latest-package-round/39087898779/generation/first-run-win32-jetbrains/capture/driver-failure-initial.json.gz",
+        "originalDigest": "sha256:1d898471beaf69501fcf36a3f7647bf938e5ef7927ccde91a9cf19d7319b7768",
+        "storedDigest": "sha256:c7bfcdb2525386310791f3be9800b885462725e55aa43949aa2507a21ac59e0f",
+        "originalBytes": 1129
+      }
+    },
+    {
+      "originalArtifactPath": "first-run-win32-jetbrains/cli-stderr-diagnostics/cd54949f-25fe-47f4-90b0-d1ef35d5deb3.stderr-redacted.txt",
+      "archived": {
+        "path": "latest-package-round/39087898779/objects/b86c98cee67bcbaa59fc2c15497c717c58602198b38cb08fd723a4aef04b3f05.gz",
+        "originalDigest": "sha256:dd84deedad1d69523f6a6f7943f2c160d7d5dbfa8ef31ebf49287492eb3a5bb1",
+        "storedDigest": "sha256:2b12451368d1473c23ad904307b2e164d28c2ace2ad0c0fb8c5c30f9c4612df9",
+        "originalBytes": 187
+      }
+    }
+  ],
+  "samples": [
+    {
+      "sampleId": "first-run-win32-jetbrains",
+      "generationPassed": false,
+      "host": {
+        "passed": false,
+        "failure": "Windows process identity snapshot failed: spawnSync C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe ETIMEDOUT",
+        "restartRequired": true
+      },
+      "recordedBrokerRequests": 0,
+      "modelSummaryPresent": true,
+      "brokerStatusPresent": true,
+      "candidates": [
+        {
+          "file": "packages/cli/__tests__/verify-03.test.js",
+          "digest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa",
+          "bytes": 27
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-12",
+      "generationPassed": false,
+      "host": {
+        "passed": false,
+        "failure": "listen EADDRINUSE: address already in use 127.0.0.1:8082",
+        "restartRequired": true
+      },
+      "recordedBrokerRequests": 0,
+      "modelSummaryPresent": false,
+      "brokerStatusPresent": false,
+      "candidates": [
+        {
+          "file": "packages/cli/__tests__/verify-12.test.js",
+          "digest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa",
+          "bytes": 27
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-30",
+      "generationPassed": false,
+      "host": {
+        "passed": false,
+        "failure": "listen EADDRINUSE: address already in use 127.0.0.1:8082",
+        "restartRequired": true
+      },
+      "recordedBrokerRequests": 0,
+      "modelSummaryPresent": false,
+      "brokerStatusPresent": false,
+      "candidates": [
+        {
+          "file": "packages/vscode-extension/__tests__/verify-30.test.js",
+          "digest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa",
+          "bytes": 27
+        }
+      ]
+    }
+  ],
+  "findings": [
+    "The original CLI stderr records an owner-only Windows ACL traversal timeout during repair; the CLI exited before init/input.",
+    "The first sample host summary reports a later Windows process identity snapshot timeout. Both errors are retained; the later cleanup failure must not erase the original startup failure.",
+    "The other two samples report EADDRINUSE on loopback port 8082 and have no model summary. The archived evidence does not identify the process that owned that port.",
+    "All three delivered files are 27-byte original placeholders. None is an acceptable completed task.",
+    "Recorded broker counters are evidence of this run only; billing is not assessed."
+  ],
+  "followup": [
+    "Publish optimized next versions before new model generation, then select only unfinished IDs.",
+    "Isolate JetBrains samples into independent runs and reserve always-upload time.",
+    "Preserve primary failure through bounded cleanup and keep process identity checks.",
+    "Review the product ACL timeout without weakening private-directory ACL validation."
+  ]
+}

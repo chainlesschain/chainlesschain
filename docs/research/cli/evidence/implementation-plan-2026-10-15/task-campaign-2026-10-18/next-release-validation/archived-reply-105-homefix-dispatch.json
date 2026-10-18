@@ -1,0 +1,39 @@
+{
+  "schema": "chainlesschain.archived-reply-retry-dispatch/v1",
+  "scope": "Fixture HOME isolation correction only. Reuse the archived accepted reply, with no model requests or candidate regeneration. Original failed run stays failed; actual public plugin restoration still awaits the new result.",
+  "intent": {
+    "record": {
+      "workflowId": 388186019,
+      "branch": "feature/verify01-task-completion-20261017",
+      "sourceCommit": "04d48ca7feb5f587f3c2495500cd9a2dad0c9e49",
+      "packageSetPath": "docs/research/cli/verify01-package-sets/2026-10-18-task-quality-105.json",
+      "packageSetDigest": "sha256:2cc81784724fcdc8813434fa8798cce28def3569ff97b07369bb6e16fe6af32f",
+      "beforeRunIds": [],
+      "createdAt": "2026-10-18T07:44:07.041365+00:00",
+      "modelRequestsAllowed": false,
+      "reason": "Verified fixture HOME isolation correction only; original failed run 39107288123 remains failed. No accepted candidate regeneration."
+    },
+    "digest": "sha256:4f8a9315ec1d8f79d5d12ff22657f3f26108bb54e93018f3b290bcba3d640bdf",
+    "bytes": 596
+  },
+  "request": {
+    "record": {
+      "outcome": "returned-success"
+    },
+    "digest": "sha256:b122786bb2c902f710addad0e61267915487cb82caecbb21a5cb7f433760b38e",
+    "bytes": 36
+  },
+  "resolved": {
+    "record": {
+      "workflowId": 388186019,
+      "runId": "39108779712",
+      "sourceCommit": "04d48ca7feb5f587f3c2495500cd9a2dad0c9e49",
+      "runUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/39108779712",
+      "packageSetPath": "docs/research/cli/verify01-package-sets/2026-10-18-task-quality-105.json",
+      "modelRequestsAllowed": false,
+      "originalFailedRunId": "39107288123"
+    },
+    "digest": "sha256:86ae45033303b037e218daec9f135c9524f1c34e4d3c73da6154281c8d911334",
+    "bytes": 376
+  }
+}

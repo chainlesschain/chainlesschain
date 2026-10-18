@@ -1,0 +1,729 @@
+{
+  "schema": "chainlesschain.recharge-jetbrains-review/v1",
+  "generatedAt": "2026-10-18T01:18:18.495336+00:00",
+  "scope": "Read-only diagnosis and byte-preserving evidence archive. No candidate regeneration, no workflow/provider dispatch by this review, no original verdict changes.",
+  "generationRunId": "39082074376",
+  "executionSourceCommit": "6217c89ac4c7735c5f9e08bc01ea885bde14a0b3",
+  "frozenProjectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "publicJetBrainsCommit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+  "publicJetBrainsVersion": "0.4.161",
+  "generationSummary": {
+    "digest": "sha256:ae194c9ee2dd9c04a879c7b2930eddde922e1f962c09c2c9f175b8ef702bcdb6",
+    "archived": {
+      "path": "recharge-jetbrains-review/summary.json.gz",
+      "originalDigest": "sha256:ae194c9ee2dd9c04a879c7b2930eddde922e1f962c09c2c9f175b8ef702bcdb6",
+      "storedDigest": "sha256:de38458fd54cfdecc3b55e97ca2456362e0a4782dc1f4a9038e17b21076c7c95",
+      "originalBytes": 352638
+    }
+  },
+  "artifact": {
+    "runId": "39082074376",
+    "id": 12120881024,
+    "node_id": "MDg6QXJ0aWZhY3QxMjEyMDg4MTAyNA==",
+    "name": "verify01-native-delivery-win32-jetbrains-6217c89ac4c7735c5f9e08bc01ea885bde14a0b3",
+    "size_in_bytes": 14463715,
+    "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/12120881024",
+    "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/12120881024/zip",
+    "expired": false,
+    "digest": "sha256:27b9748e408f08210560549ffbb803be771185d533d5c16ea8ee141ff767feee",
+    "created_at": "2026-10-18T01:10:16Z",
+    "updated_at": "2026-10-18T01:10:16Z",
+    "expires_at": "2026-11-01T01:10:12Z",
+    "workflow_run": {
+      "id": 39082074376,
+      "repository_id": 1107348698,
+      "head_repository_id": 1107348698,
+      "head_branch": "feature/verify01-task-completion-20261017",
+      "head_sha": "6217c89ac4c7735c5f9e08bc01ea885bde14a0b3"
+    }
+  },
+  "samples": [
+    {
+      "sampleId": "first-run-win32-jetbrains",
+      "kind": "first-run",
+      "sampleRunId": "164589d7-7b24-4eac-bf9f-5b60713a3d83",
+      "originalHostVerdict": {
+        "passed": false,
+        "failure": "initial native UI task exited 1/null",
+        "restartRequired": true
+      },
+      "originalGenerationPassed": false,
+      "broker": {
+        "physicalRequestsStarted": 0,
+        "usageCompleteRequests": 0,
+        "poisoned": null,
+        "tasks": [
+          {
+            "taskId": "first-run-win32-jetbrains",
+            "requests": 0,
+            "errorCode": null
+          }
+        ]
+      },
+      "driverFailure": "com.chainlesschain.ide.uitest.Verify01HostJourney$HostStartupExit: host-startup-exit: child exited before init/input; code=1; raw=protocol-1e6e6726-ced3-4f34-ba1f-b8aa125df076.jsonl",
+      "evidenceMembers": [
+        "first-run-win32-jetbrains/capture/driver-failure-initial.json",
+        "first-run-win32-jetbrains/capture/driver-failure-initial-snapshot.json",
+        "first-run-win32-jetbrains/test-initial.log",
+        "first-run-win32-jetbrains/capture/protocol-1e6e6726-ced3-4f34-ba1f-b8aa125df076.jsonl",
+        "first-run-win32-jetbrains/ide-initial.log"
+      ],
+      "category": "pre-init-child-exit-underlying-cause-unknown",
+      "rawProtocolRecords": [
+        {
+          "schema": "chainlesschain.ide-protocol-record/v1",
+          "generation": "1e6e6726-ced3-4f34-ba1f-b8aa125df076",
+          "sequence": 1,
+          "at": "2026-10-18T00:30:24.924378Z",
+          "direction": "exit",
+          "event": {
+            "code": 1,
+            "signal": null,
+            "stdoutDrained": true
+          }
+        }
+      ],
+      "driverFailureAt": "2026-10-18T00:30:25.003863400Z",
+      "snapshotObservedAt": "2026-10-18T00:30:25.037862400Z",
+      "originalTabIdentityVerified": true,
+      "actualUiText": "ℹ approval mode → auto (accept edits) — next message applies\n\n── agent exited (1) — next message restarts ──\n⚠ could not send message: Agent exited before input acknowledgement\n",
+      "observedState": {
+        "childRunning": false,
+        "receiptReady": false,
+        "sendInFlight": false,
+        "savedRows": []
+      },
+      "previousRunComparison": {
+        "runId": "39057583779",
+        "sameObservedPattern": true,
+        "pattern": "one drained exit record, code 1, no init/input, zero model requests",
+        "sameUnderlyingCauseProven": false
+      },
+      "stderrAvailable": false,
+      "causeLimit": "UI confirms pre-acknowledgement child exit only. ACL timeout and Station socket-path warnings are not proven causes."
+    },
+    {
+      "sampleId": "verify-03",
+      "kind": "task",
+      "sampleRunId": "0d80395e-299f-4095-aad5-b8b344fdc46d",
+      "originalHostVerdict": {
+        "passed": false,
+        "failure": "restart native UI task exited 1/null",
+        "restartRequired": true
+      },
+      "originalGenerationPassed": false,
+      "broker": {
+        "physicalRequestsStarted": 7,
+        "usageCompleteRequests": 7,
+        "poisoned": null,
+        "tasks": [
+          {
+            "taskId": "verify-03",
+            "requests": 7,
+            "errorCode": null
+          }
+        ]
+      },
+      "driverFailure": "org.opentest4j.AssertionFailedError: rendered final body changed on reload ==> expected: <The deliverable is complete and verified as written. The placeholder has been replaced with the full regression suite.\n\nLet me review my work against the requirements:\n\nDeliverable: packages/cli/__tests__/verify-03.test.js (the only allowed mutation target) — written successfully.\n\nImport resolution: The deliverable lives directly in packages/cli/__tests__/, so the source resolves via ../src/lib/llm-pricing.js (confirmed by directory listing: verify-03.test.js is a sibling of unit/, not inside it). This matches the existing suite's unit/llm-pricing.test.js → ../../src/lib/llm-pricing.js resolving to the same file.\n\n6 focused cases (at most 6 allowed):\n1. Positive control — lookupRate prices known models (gpt-4o → 2.5/10, claude-sonnet-4-6 → sonnet 3/15).\n2. Negative — unknown new-family ids (claude-mythos-6-beta, gpt-next-gen-001, deepseek-next-7) are null (unpriced), not inheriting an old-family rate. I deliberately avoided deepseek-reasoner-x-9 since it would substring-match the reasoner catch-all — an implementation that must be preserved, not a defect.\n3. Negative — brand-new Opus ≥5 (claude-opus-5-snapshot) does not fall back to the guarded bare-opus rate → null.\n4. Negative — estimateCost on unknown → matched:false, rate:null, zero cost.\n5. Positive — estimateCost on known sonnet → correct 3/15/18.\n6. Positive+negative — priceRollup prices only the known gpt-4o row (2.5) and lists the unknown mythos-6 row as unpriced.\n\nNo imports of existing suites, no assertions on source text, no evaluation-plan modification, no assertion lowering.\n\nLimitations: I cannot execute tests in this environment (no shell/network, network-disabled Linux Docker runs later). All expectations were verified by tracing the actual source logic (provider-scoped, longest-first, case-insensitive substring matching; the opus guard N>=5 skip; documented-model exact entries), and the existing test file confirms the exported API names and return shapes (pattern, in/out, matched, free, rate, inputCost/outputCost/totalCost, unpriced, cost.unpricedCount). I claim correctness by source tracing, not a test run.\n\nImplementation defects found (none requiring modification): The source already implements the \"unknown → unpriced, not guessed\" contract correctly (its docstring states it, and the existing suite's \"returns null for unknown\" and \"unknown model → unmatched, zero cost\" tests pass). The opus ≥5 guard already prevents a new Opus from inheriting the current $5/$25 rate. No defect was found, so no fix was warranted — consistent with \"仅在反例证明需要时最小修复实现\" (only fix when a counterexample proves it). I did not fabricate a defect.> but was: <The deliverable is complete and verified as written. The placeholder has been replaced with the full regression suite.\n\nLet me review my work against the requirements:\n\n**Deliverable:** `packages/cli/__tests__/verify-03.test.js` (the only allowed mutation target) — written successfully.\n\n**Import resolution:** The deliverable lives directly in `packages/cli/__tests__/`, so the source resolves via `../src/lib/llm-pricing.js` (confirmed by directory listing: `verify-03.test.js` is a sibling of `unit/`, not inside it). This matches the existing suite's `unit/llm-pricing.test.js` → `../../src/lib/llm-pricing.js` resolving to the same file.\n\n**6 focused cases (at most 6 allowed):**\n1. Positive control — `lookupRate` prices known models (`gpt-4o` → 2.5/10, `claude-sonnet-4-6` → sonnet 3/15).\n2. Negative — unknown new-family ids (`claude-mythos-6-beta`, `gpt-next-gen-001`, `deepseek-next-7`) are `null` (unpriced), not inheriting an old-family rate. I deliberately avoided `deepseek-reasoner-x-9` since it would substring-match the `reasoner` catch-all — an implementation that must be preserved, not a defect.\n3. Negative — brand-new Opus ≥5 (`claude-opus-5-snapshot`) does not fall back to the guarded bare-opus rate → `null`.\n4. Negative — `estimateCost` on unknown → `matched:false`, `rate:null`, zero cost.\n5. Positive — `estimateCost` on known sonnet → correct 3/15/18.\n6. Positive+negative — `priceRollup` prices only the known gpt-4o row (2.5) and lists the unknown mythos-6 row as `unpriced`.\n\nNo imports of existing suites, no assertions on source text, no evaluation-plan modification, no assertion lowering.\n\n**Limitations:** I cannot execute tests in this environment (no shell/network, network-disabled Linux Docker runs later). All expectations were verified by tracing the actual source logic (provider-scoped, longest-first, case-insensitive substring matching; the opus guard `N>=5` skip; documented-model exact entries), and the existing test file confirms the exported API names and return shapes (`pattern`, `in`/`out`, `matched`, `free`, `rate`, `inputCost`/`outputCost`/`totalCost`, `unpriced`, `cost.unpricedCount`). I claim correctness by source tracing, not a test run.\n\n**Implementation defects found (none requiring modification):** The source already implements the \"unknown → unpriced, not guessed\" contract correctly (its docstring states it, and the existing suite's \"returns null for unknown\" and \"unknown model → unmatched, zero cost\" tests pass). The opus ≥5 guard already prevents a new Opus from inheriting the current $5/$25 rate. No defect was found, so no fix was warranted — consistent with \"仅在反例证明需要时最小修复实现\" (only fix when a counterexample proves it). I did not fabricate a defect.>",
+      "evidenceMembers": [
+        "verify-03/capture/driver-failure-restart.json",
+        "verify-03/capture/driver-failure-restart-snapshot.json",
+        "verify-03/test-restart.log",
+        "verify-03/capture/restart-state.json",
+        "verify-03/capture/ui-initial.json"
+      ],
+      "category": "saved-history-markdown-rendering-mismatch",
+      "comparison": {
+        "sameSession": true,
+        "sameSavedRowId": true,
+        "sameCanonicalSource": true,
+        "restoredBodyEqualsRawMarkdown": true,
+        "sameRenderedBody": false,
+        "agentRunningAfterRestart": false
+      },
+      "sessionId": "panel-1792283715500-c41af2",
+      "savedRowId": "panel-1792283715500-c41af2:42aa6a41ecafc0d29d275b989beac59b0ba2e947913829efc9425adf5099287e:0",
+      "savedRowsCount": 2,
+      "historyStatus": " Saved messages 1–2 of 2",
+      "textDigests": {
+        "canonicalResult": "sha256:e2eac54660e6a4083836fa4ea7dc895e123e54f53a3be2fd4d5d9ea88f631630",
+        "initialRenderedBody": "sha256:ffc2dc9b5e902c334991a5209284210e90c64407d4fe297301928976f66e3c15",
+        "restoredCanonicalSource": "sha256:e2eac54660e6a4083836fa4ea7dc895e123e54f53a3be2fd4d5d9ea88f631630",
+        "restoredRenderedBody": "sha256:e2eac54660e6a4083836fa4ea7dc895e123e54f53a3be2fd4d5d9ea88f631630"
+      },
+      "interpretation": "Saved identity and original content survived. Restored display contains raw Markdown whereas the live body was rendered; this is not lost history or a regenerated answer."
+    },
+    {
+      "sampleId": "verify-12",
+      "kind": "task",
+      "sampleRunId": "fede81fa-4ace-4f91-8afe-7323900814c8",
+      "originalHostVerdict": {
+        "passed": false,
+        "failure": "restart native UI task exited 1/null",
+        "restartRequired": true
+      },
+      "originalGenerationPassed": false,
+      "broker": {
+        "physicalRequestsStarted": 5,
+        "usageCompleteRequests": 5,
+        "poisoned": null,
+        "tasks": [
+          {
+            "taskId": "verify-12",
+            "requests": 5,
+            "errorCode": null
+          }
+        ]
+      },
+      "driverFailure": "org.opentest4j.AssertionFailedError: rendered final body changed on reload ==> expected: <The deliverable is complete and verified. Let me confirm my analysis of each test case's correctness against the source before finishing.\n\nVerified logic traces:\n\n1. transform [\"agent\",\"--title\",\"my \\\"quoted\\\" title\",\"--add-dir\",\"old\"] → --title (required) consumes the quoted/spaced token as one value; --add-dir is dropped (long matches); new directory appended as [\"--add-dir\",\"a path with spaces\"]. ✓\n2. canonicalize empty --title and empty --session values are correctly consumed (empty string fails looksLikeOption, not --), session replaced. ✓\n3. stripFirstTurn metachars *, $HOME, backticks stay byte-for-byte (no shell involved). ✓\n4. agentPrintArgument(\"two words\") returns a single --print=two words token that survives transform. ✓\n5. transform appends empty directory [\"--add-dir\",\"\"]. ✓\n6. assertBackgroundArgvDurable returns true for non-ephemeral argv; literal --ephemeral after -- is not flagged. ✓\n\nNo counterexamples found — the source correctly maintains argv boundaries; no implementation defect exists for the \"spaces in args\" requirement. Per instructions (\"仅在反例证明需要时最小修复实现\"), no source change was needed, and source is read-only anyway.\n\nThe file is self-contained (own OPTION_SPECS, does not import the existing unit suite), has exactly 6 focused cases, and imports via the resolved path ../src/lib/background-command-argv.js.\n\n---\n\n完成情况说明：\n\n已交付补丁： packages/cli/__tests__/verify-12.test.js — 一个独立、自包含的 Vitest 回归测试文件（6 个用例），聚焦「含空格参数完整性」。\n\n覆盖的行为（正/负对照）：\n- 含空格与引号的值在 transformBackgroundLaunchArgv 中保持单一 argv 令牌边界\n- 空字符串选项值与空会话值在 canonicalizeBackgroundSessionArgv 中被正确消费并重建\n- shell 元字符（*、$HOME、反引号）在 stripFirstTurnPromptArgv 中不被展开，逐字保留\n- agentPrintArgument(\"two words\") 生成单个 --print= 令牌并完整穿过启动变换\n- 空路径作为单个空 --add-dir 令牌追加\n- 引号值与非终结符后的字面 --ephemeral 不被 assertBackgroundArgvDurable 误判\n\n导入路径： 从交付物 packages/cli/__tests__/verify-12.test.js 解析为 ../src/lib/background-command-argv.js（已显式核对，区别于单元测试目录下的 ../../）。\n\n实现缺陷： 未发现缺陷。这些函数都在 argv 令牌数组层面操作，空格/引号/空串/元字符天然保持为单个数组元素，不触发 shell 展开；反例无一失败，因此按「仅在反例证明需要时最小修复」原则未对只读源码做任何改动。\n\n限制： 本环境无 shell/执行工具，测试未实际运行；独立检查器稍后会在 Linux Docker 中执行 baseline、候选与行为覆盖测试。因此我不能断言测试通过——本交付为静态核对通过的回归覆盖。> but was: <The deliverable is complete and verified. Let me confirm my analysis of each test case's correctness against the source before finishing.\n\n**Verified logic traces:**\n\n1. **transform** `[\"agent\",\"--title\",\"my \\\"quoted\\\" title\",\"--add-dir\",\"old\"]` → `--title` (required) consumes the quoted/spaced token as one value; `--add-dir` is dropped (long matches); new directory appended as `[\"--add-dir\",\"a path with spaces\"]`. ✓\n2. **canonicalize** empty `--title` and empty `--session` values are correctly consumed (empty string fails `looksLikeOption`, not `--`), session replaced. ✓\n3. **stripFirstTurn** metachars `*`, `$HOME`, backticks stay byte-for-byte (no shell involved). ✓\n4. **agentPrintArgument(\"two words\")** returns a single `--print=two words` token that survives transform. ✓\n5. **transform** appends empty directory `[\"--add-dir\",\"\"]`. ✓\n6. **assertBackgroundArgvDurable** returns `true` for non-ephemeral argv; literal `--ephemeral` after `--` is not flagged. ✓\n\n**No counterexamples found** — the source correctly maintains argv boundaries; no implementation defect exists for the \"spaces in args\" requirement. Per instructions (\"仅在反例证明需要时最小修复实现\"), no source change was needed, and source is read-only anyway.\n\nThe file is self-contained (own OPTION_SPECS, does not import the existing unit suite), has exactly 6 focused cases, and imports via the resolved path `../src/lib/background-command-argv.js`.\n\n---\n\n**完成情况说明：**\n\n**已交付补丁：** `packages/cli/__tests__/verify-12.test.js` — 一个独立、自包含的 Vitest 回归测试文件（6 个用例），聚焦「含空格参数完整性」。\n\n**覆盖的行为（正/负对照）：**\n- 含空格与引号的值在 `transformBackgroundLaunchArgv` 中保持单一 argv 令牌边界\n- 空字符串选项值与空会话值在 `canonicalizeBackgroundSessionArgv` 中被正确消费并重建\n- shell 元字符（`*`、`$HOME`、反引号）在 `stripFirstTurnPromptArgv` 中不被展开，逐字保留\n- `agentPrintArgument(\"two words\")` 生成单个 `--print=` 令牌并完整穿过启动变换\n- 空路径作为单个空 `--add-dir` 令牌追加\n- 引号值与非终结符后的字面 `--ephemeral` 不被 `assertBackgroundArgvDurable` 误判\n\n**导入路径：** 从交付物 `packages/cli/__tests__/verify-12.test.js` 解析为 `../src/lib/background-command-argv.js`（已显式核对，区别于单元测试目录下的 `../../`）。\n\n**实现缺陷：** 未发现缺陷。这些函数都在 argv 令牌数组层面操作，空格/引号/空串/元字符天然保持为单个数组元素，不触发 shell 展开；反例无一失败，因此按「仅在反例证明需要时最小修复」原则未对只读源码做任何改动。\n\n**限制：** 本环境无 shell/执行工具，测试未实际运行；独立检查器稍后会在 Linux Docker 中执行 baseline、候选与行为覆盖测试。因此我不能断言测试通过——本交付为静态核对通过的回归覆盖。>",
+      "evidenceMembers": [
+        "verify-12/capture/driver-failure-restart.json",
+        "verify-12/capture/driver-failure-restart-snapshot.json",
+        "verify-12/test-restart.log",
+        "verify-12/capture/restart-state.json",
+        "verify-12/capture/ui-initial.json"
+      ],
+      "category": "saved-history-markdown-rendering-mismatch",
+      "comparison": {
+        "sameSession": true,
+        "sameSavedRowId": true,
+        "sameCanonicalSource": true,
+        "restoredBodyEqualsRawMarkdown": true,
+        "sameRenderedBody": false,
+        "agentRunningAfterRestart": false
+      },
+      "sessionId": "panel-1792284310935-a955cc",
+      "savedRowId": "panel-1792284310935-a955cc:63242f20f0d77ad31233eb0121839850e39d466b4966c1fd3dca4c711efea855:0",
+      "savedRowsCount": 2,
+      "historyStatus": " Saved messages 1–2 of 2",
+      "textDigests": {
+        "canonicalResult": "sha256:9c059fb1543a6e2c8923185dc83eb855dde0802ece3bad996e1a7efad6fa3f98",
+        "initialRenderedBody": "sha256:cb2271c40fe3e18368b65ea0fe73a33cb69dc34a2bac8b5e876bca9dacb01cd8",
+        "restoredCanonicalSource": "sha256:9c059fb1543a6e2c8923185dc83eb855dde0802ece3bad996e1a7efad6fa3f98",
+        "restoredRenderedBody": "sha256:9c059fb1543a6e2c8923185dc83eb855dde0802ece3bad996e1a7efad6fa3f98"
+      },
+      "interpretation": "Saved identity and original content survived. Restored display contains raw Markdown whereas the live body was rendered; this is not lost history or a regenerated answer."
+    },
+    {
+      "sampleId": "verify-21",
+      "kind": "task",
+      "sampleRunId": "49fd4ecd-db2c-4e2c-84e0-c8acfac7624f",
+      "originalHostVerdict": {
+        "passed": false,
+        "failure": "restart native UI task exited 1/null",
+        "restartRequired": true
+      },
+      "originalGenerationPassed": false,
+      "broker": {
+        "physicalRequestsStarted": 15,
+        "usageCompleteRequests": 15,
+        "poisoned": null,
+        "tasks": [
+          {
+            "taskId": "verify-21",
+            "requests": 15,
+            "errorCode": null
+          }
+        ]
+      },
+      "driverFailure": "org.opentest4j.AssertionFailedError: rendered final body changed on reload ==> expected: <The deliverable is complete and validated against the source. I'm confident in the final result.\n\nThe file is intact at 143 lines with 6 focused tests. Let me give my final account.\n\n## Deliverable\n\nWrote packages/cli/__tests__/verify-21.test.js — 6 independent Vitest regression cases covering Memory shadow read performs no writes for both v1 legacy and v2 segmented stores.\n\nAPI/fixture verification (from frozen source):\n- SegmentedMemoryPort({ filePath, readOnly: true }) is the shadow constructor (confirmed in _loadManifest).\n- Public methods used: query(), read(memoryId), getRevision(), exportSnapshot(), commit(transition, expectedRevision), putReconciliation(operation) — all verified present in the source.\n- Import resolution from packages/cli/__tests__/ → ../scripts/persistent-capacity-benchmark.mjs and ../src/lib/context-memory-kernel/segmented-memory-port.js resolves correctly (mirrors the existing unit/ suite which goes up two levels).\n- applyMemoryCommand (@chainlesschain/context-memory-kernel), createDurableMemoryFixture, SegmentedMemoryPort, SEGMENTED_STORE_SCHEMA are all real exports used identically by the existing suite.\n- Shard dir = filePath + \".shards\"; shard naming ${bucket}-${digest.slice(7)}.json; owned-regex ^[a-f0-9]{2}-[a-f0-9]{64}\\.json$ — used to plant a GC-meaningful orphan.\n\nSource behavior confirming the acceptance criteria (found no defect — no fix needed):\n- v1 shadow: _loadManifest() returns legacy directly when readOnly, without calling _installSnapshot → no migration.\n- v2 shadow: _collect(manifest) (GC) runs only when !this.readOnly → shadow skips GC entirely.\n- No read path mutates the authority file or shard directory.\n\nTests (≤6 cases, focused +/− controls):\n1. v1 shadow read → authority byte-identical, schema stays v1, no .shards dir created.\n2. v1 shadow preserves records/revision; a positive control writable port over the same file *does* migrate to v2 — proving migration exists for writable but is skipped by shadow.\n3. v2 shadow query/exportSnapshot/getRevision → manifest bytes + shard directory entries/bytes unchanged.\n4. v2 shadow never GCs: an owned-format orphan shard survives.\n5. Shadow write methods reject with CONTEXT_MEMORY_READ_ONLY, leaving v2 untouched.\n6. v2 shadow read returns the record with no directory entries gained.\n\nValidation: Cannot run tests — this environment has no shell/code-execution tools and the environment notes that native generation does not imply native test execution. A network-disabled Linux Docker checker will run baseline + candidate + behavioral coverage later. I did not claim tests passed; I verified APIs and expected source paths against the frozen source and existing tests.\n\nLimitations: Could not execute Vitest here to confirm green; the exportSnapshot().records assertion (rather than deep toEqual(state)) is intentionally relaxed to avoid brittle equality on incidental normalizeState fields, while still verifying the v1 shadow read returns data without migrating.> but was: <The deliverable is complete and validated against the source. I'm confident in the final result.\n\nThe file is intact at 143 lines with 6 focused tests. Let me give my final account.\n\n## Deliverable\n\nWrote `packages/cli/__tests__/verify-21.test.js` — 6 independent Vitest regression cases covering **Memory shadow read performs no writes** for both v1 legacy and v2 segmented stores.\n\n**API/fixture verification (from frozen source):**\n- `SegmentedMemoryPort({ filePath, readOnly: true })` is the shadow constructor (confirmed in `_loadManifest`).\n- Public methods used: `query()`, `read(memoryId)`, `getRevision()`, `exportSnapshot()`, `commit(transition, expectedRevision)`, `putReconciliation(operation)` — all verified present in the source.\n- Import resolution from `packages/cli/__tests__/` → `../scripts/persistent-capacity-benchmark.mjs` and `../src/lib/context-memory-kernel/segmented-memory-port.js` resolves correctly (mirrors the existing `unit/` suite which goes up two levels).\n- `applyMemoryCommand` (`@chainlesschain/context-memory-kernel`), `createDurableMemoryFixture`, `SegmentedMemoryPort`, `SEGMENTED_STORE_SCHEMA` are all real exports used identically by the existing suite.\n- Shard dir = `filePath + \".shards\"`; shard naming `${bucket}-${digest.slice(7)}.json`; owned-regex `^[a-f0-9]{2}-[a-f0-9]{64}\\.json$` — used to plant a GC-meaningful orphan.\n\n**Source behavior confirming the acceptance criteria (found no defect — no fix needed):**\n- v1 shadow: `_loadManifest()` returns `legacy` directly when `readOnly`, **without** calling `_installSnapshot` → no migration.\n- v2 shadow: `_collect(manifest)` (GC) runs only when `!this.readOnly` → shadow skips GC entirely.\n- No read path mutates the authority file or shard directory.\n\n**Tests (≤6 cases, focused +/− controls):**\n1. v1 shadow read → authority byte-identical, schema stays v1, no `.shards` dir created.\n2. v1 shadow preserves records/revision; a **positive control** writable port over the same file *does* migrate to v2 — proving migration exists for writable but is skipped by shadow.\n3. v2 shadow `query`/`exportSnapshot`/`getRevision` → manifest bytes + shard directory entries/bytes unchanged.\n4. v2 shadow never GCs: an owned-format orphan shard survives.\n5. Shadow write methods reject with `CONTEXT_MEMORY_READ_ONLY`, leaving v2 untouched.\n6. v2 shadow `read` returns the record with no directory entries gained.\n\n**Validation:** Cannot run tests — this environment has no shell/code-execution tools and the environment notes that native generation does not imply native test execution. A network-disabled Linux Docker checker will run baseline + candidate + behavioral coverage later. I did not claim tests passed; I verified APIs and expected source paths against the frozen source and existing tests.\n\n**Limitations:** Could not execute Vitest here to confirm green; the `exportSnapshot().records` assertion (rather than deep `toEqual(state)`) is intentionally relaxed to avoid brittle equality on incidental `normalizeState` fields, while still verifying the v1 shadow read returns data without migrating.>",
+      "evidenceMembers": [
+        "verify-21/capture/driver-failure-restart.json",
+        "verify-21/capture/driver-failure-restart-snapshot.json",
+        "verify-21/test-restart.log",
+        "verify-21/capture/restart-state.json",
+        "verify-21/capture/ui-initial.json"
+      ],
+      "category": "saved-history-markdown-rendering-mismatch",
+      "comparison": {
+        "sameSession": true,
+        "sameSavedRowId": true,
+        "sameCanonicalSource": true,
+        "restoredBodyEqualsRawMarkdown": true,
+        "sameRenderedBody": false,
+        "agentRunningAfterRestart": false
+      },
+      "sessionId": "panel-1792284833303-ecb618",
+      "savedRowId": "panel-1792284833303-ecb618:2d5d0ee8d7696ae458edb7531e5d3604a0147049ac8f69b8f7e2d6e9603397fd:0",
+      "savedRowsCount": 2,
+      "historyStatus": " Saved messages 1–2 of 2",
+      "textDigests": {
+        "canonicalResult": "sha256:308f24cd54b7513773ac17b8f0b5f9edf5d7fc451a783ef7c8ba7fccb92a07ba",
+        "initialRenderedBody": "sha256:d7a24dccd9308d535a39dea57990622a375bf17ca08e74b7ba2c7d6f4a26058b",
+        "restoredCanonicalSource": "sha256:308f24cd54b7513773ac17b8f0b5f9edf5d7fc451a783ef7c8ba7fccb92a07ba",
+        "restoredRenderedBody": "sha256:308f24cd54b7513773ac17b8f0b5f9edf5d7fc451a783ef7c8ba7fccb92a07ba"
+      },
+      "interpretation": "Saved identity and original content survived. Restored display contains raw Markdown whereas the live body was rendered; this is not lost history or a regenerated answer."
+    },
+    {
+      "sampleId": "verify-30",
+      "kind": "task",
+      "sampleRunId": "91ce633a-4ba5-4dd5-a46e-8f4e7266fc2b",
+      "originalHostVerdict": {
+        "passed": false,
+        "failure": "restart native UI task exited 1/null",
+        "restartRequired": true
+      },
+      "originalGenerationPassed": false,
+      "broker": {
+        "physicalRequestsStarted": 5,
+        "usageCompleteRequests": 5,
+        "poisoned": null,
+        "tasks": [
+          {
+            "taskId": "verify-30",
+            "requests": 5,
+            "errorCode": null
+          }
+        ]
+      },
+      "driverFailure": "org.opentest4j.AssertionFailedError: rendered final body changed on reload ==> expected: <The deliverable file is complete and correctly written. Let me verify the import path resolution and the fixture construction are sound against the source I already read.\n\nVerification of the deliverable:\n\n- Import path: The file is at packages/vscode-extension/__tests__/verify-30.test.js, so ../src/chat/image-decode-budget.js resolves to packages/vscode-extension/src/chat/image-decode-budget.js, which is exactly the frozen source. ✓\n\n- Exported API: inspectImageBudget is the only export (module.exports = { inspectImageBudget }). It accepts a Uint8Array/Buffer, throws Error on budget violations, and returns { format, width, height, frames, extraCanvases, decodedPixels }. All assertions use these real fields. ✓\n\n- Fixture construction: I use the same base64 GIF bytes and the same 19-byte-header + frame-subarray builder pattern already proven valid by the existing suite (their animated() passes with frames=3 / decodedPixels=30000 for canvas=100). Only the screen width/height (offsets 6/8) are scaled; each frame remains 1×1 so individual frames stay under the per-image cap. ✓\n\n- Behavioral coverage (six it cases, each focused):\n  1. Negative: multiFrameGif(41, 1000) → 1000²×41 = 41M > 40M → throws \"decoded canvas pixels\".\n  2. Positive boundary: multiFrameGif(40, 1000) → exactly 40M → accepted with frames 40, decodedPixels 40_000_000.\n  3. Negative cumulative-vs-delta: multiFrameGif(3, 4000) → 16M×3 = 48M > 40M despite 1×1 delta frames.\n  4. Frame-cap boundary: multiFrameGif(200, 447) → 39,961,800 ≤ 40M accepted; multiFrameGif(201, 1) → 201 pixels but 201 > 200 → throws \"200 frames\" (isolates the frame-count rule).\n  5. Single-canvas boundary: multiFrameGif(1, 6324) → 39,992,976 accepted; multiFrameGif(1, 6325) → 40,005,625 → throws \"megapixels\".\n  6. Baseline: multiFrameGif(1, 1) → frames 1, extraCanvases 0, decodedPixels 1.\n\nThe deliverable only touches the allowed path (packages/vscode-extension/__tests__/verify-30.test.js), imports nothing from the existing suite, asserts on behavior rather than source text, and doesn't modify the read-only source.\n\nImplementation defects observed: None. The frame() helper enforces the cumulative budget as pixels(width, height) * frames > 40_000_000 using the full canvas, so tiny delta frames still accumulate against the whole canvas (case 3), the 40M bound is inclusive (case 2), and the 200-frame cap is separate from the pixel cap (case 4). All acceptance criteria hold against the current implementation — no minimal fix was required, so none was made.\n\nI did not run the tests (no shell/code-execution tools available; the checker will run them in network-disabled Docker). I cannot claim the tests pass; I can only confirm the deliverable is complete and consistent with the source's real API and semantics.> but was: <The deliverable file is complete and correctly written. Let me verify the import path resolution and the fixture construction are sound against the source I already read.\n\n**Verification of the deliverable:**\n\n- **Import path**: The file is at `packages/vscode-extension/__tests__/verify-30.test.js`, so `../src/chat/image-decode-budget.js` resolves to `packages/vscode-extension/src/chat/image-decode-budget.js`, which is exactly the frozen source. ✓\n\n- **Exported API**: `inspectImageBudget` is the only export (`module.exports = { inspectImageBudget }`). It accepts a `Uint8Array`/`Buffer`, throws `Error` on budget violations, and returns `{ format, width, height, frames, extraCanvases, decodedPixels }`. All assertions use these real fields. ✓\n\n- **Fixture construction**: I use the same base64 GIF bytes and the same 19-byte-header + frame-subarray builder pattern already proven valid by the existing suite (their `animated()` passes with frames=3 / decodedPixels=30000 for canvas=100). Only the screen width/height (offsets 6/8) are scaled; each frame remains 1×1 so individual frames stay under the per-image cap. ✓\n\n- **Behavioral coverage** (six `it` cases, each focused):\n  1. Negative: `multiFrameGif(41, 1000)` → 1000²×41 = 41M > 40M → throws \"decoded canvas pixels\".\n  2. Positive boundary: `multiFrameGif(40, 1000)` → exactly 40M → accepted with frames 40, decodedPixels 40_000_000.\n  3. Negative cumulative-vs-delta: `multiFrameGif(3, 4000)` → 16M×3 = 48M > 40M despite 1×1 delta frames.\n  4. Frame-cap boundary: `multiFrameGif(200, 447)` → 39,961,800 ≤ 40M accepted; `multiFrameGif(201, 1)` → 201 pixels but 201 > 200 → throws \"200 frames\" (isolates the frame-count rule).\n  5. Single-canvas boundary: `multiFrameGif(1, 6324)` → 39,992,976 accepted; `multiFrameGif(1, 6325)` → 40,005,625 → throws \"megapixels\".\n  6. Baseline: `multiFrameGif(1, 1)` → frames 1, extraCanvases 0, decodedPixels 1.\n\nThe deliverable only touches the allowed path (`packages/vscode-extension/__tests__/verify-30.test.js`), imports nothing from the existing suite, asserts on behavior rather than source text, and doesn't modify the read-only source.\n\n**Implementation defects observed:** None. The `frame()` helper enforces the cumulative budget as `pixels(width, height) * frames > 40_000_000` using the full canvas, so tiny delta frames still accumulate against the whole canvas (case 3), the 40M bound is inclusive (case 2), and the 200-frame cap is separate from the pixel cap (case 4). All acceptance criteria hold against the current implementation — no minimal fix was required, so none was made.\n\nI did not run the tests (no shell/code-execution tools available; the checker will run them in network-disabled Docker). I cannot claim the tests pass; I can only confirm the deliverable is complete and consistent with the source's real API and semantics.>",
+      "evidenceMembers": [
+        "verify-30/capture/driver-failure-restart.json",
+        "verify-30/capture/driver-failure-restart-snapshot.json",
+        "verify-30/test-restart.log",
+        "verify-30/capture/restart-state.json",
+        "verify-30/capture/ui-initial.json"
+      ],
+      "category": "saved-history-markdown-rendering-mismatch",
+      "comparison": {
+        "sameSession": true,
+        "sameSavedRowId": true,
+        "sameCanonicalSource": true,
+        "restoredBodyEqualsRawMarkdown": true,
+        "sameRenderedBody": false,
+        "agentRunningAfterRestart": false
+      },
+      "sessionId": "panel-1792285462848-f95e49",
+      "savedRowId": "panel-1792285462848-f95e49:60cbd3926d1debd00238a79d7a8279996914ef5472c144ef5e119a6a7c433092:0",
+      "savedRowsCount": 2,
+      "historyStatus": " Saved messages 1–2 of 2",
+      "textDigests": {
+        "canonicalResult": "sha256:c973488f371fea6e8bdbc52175c9a511a01400cf64924491706fb135a8b0ece7",
+        "initialRenderedBody": "sha256:aece3deea35ff1450074a83bbfe441838ad5fdca87e4322642feee3a5e305a45",
+        "restoredCanonicalSource": "sha256:c973488f371fea6e8bdbc52175c9a511a01400cf64924491706fb135a8b0ece7",
+        "restoredRenderedBody": "sha256:c973488f371fea6e8bdbc52175c9a511a01400cf64924491706fb135a8b0ece7"
+      },
+      "interpretation": "Saved identity and original content survived. Restored display contains raw Markdown whereas the live body was rendered; this is not lost history or a regenerated answer."
+    }
+  ],
+  "sourceAnchors": [
+    {
+      "commit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "file": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ChatTranscriptHistory.java",
+      "line": 210,
+      "meaning": "Public saved-history insertion uses raw Markdown as plain text.",
+      "evidenceMember": "source/311e01a5ec34a8e433c7abde0e4b6b05bce4513b/ChatTranscriptHistory.java"
+    },
+    {
+      "commit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "file": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ChatTranscript.java",
+      "line": 439,
+      "meaning": "Public live assistant rendering parses Markdown.",
+      "evidenceMember": "source/311e01a5ec34a8e433c7abde0e4b6b05bce4513b/ChatTranscript.java"
+    }
+  ],
+  "knownSourceFix": {
+    "commit": "10d662c150db6f31abe8bd9760649c1a1b607122",
+    "description": "Shared live/history Markdown rendering fix already exists in later source; it was not part of the evaluated public 0.4.161 and cannot upgrade this run."
+  },
+  "minimalNextStep": {
+    "startup": "Only the independent first-run diagnostic subset needs real chat-process stderr, captured by the bounded redacted adapter tee. Preserve protocol, original-tab snapshot and diagnostic metadata. No whole-group regeneration.",
+    "alreadyDispatchedSeparateSubset": {
+      "runId": "39085805519",
+      "sourceCommitPrefix": "69b002",
+      "sampleId": "first-run-win32-jetbrains",
+      "includedIn45Denominator": false,
+      "resultsAssessedByThisReview": false
+    },
+    "ordinary": "Keep all four candidate artifacts and checker results. Do not regenerate qualified tasks. A later recovery-only validation must reuse saved evidence and assess the corrected product separately."
+  },
+  "limitations": [
+    "Matching startup symptoms do not establish the same underlying cause.",
+    "Complete model responses do not imply candidate or end-to-end acceptance.",
+    "This review does not reassess candidate tests, billing, or the separate stderr diagnostic subset."
+  ],
+  "evidence": [
+    {
+      "member": "summary.json",
+      "originalArtifactPath": "summary.json",
+      "origin": "exact ZIP member bytes",
+      "bytes": 352638,
+      "digest": "sha256:ae194c9ee2dd9c04a879c7b2930eddde922e1f962c09c2c9f175b8ef702bcdb6",
+      "archived": {
+        "path": "recharge-jetbrains-review/summary.json.gz",
+        "originalDigest": "sha256:ae194c9ee2dd9c04a879c7b2930eddde922e1f962c09c2c9f175b8ef702bcdb6",
+        "storedDigest": "sha256:de38458fd54cfdecc3b55e97ca2456362e0a4782dc1f4a9038e17b21076c7c95",
+        "originalBytes": 352638
+      }
+    },
+    {
+      "member": "artifact.json",
+      "originalArtifactPath": null,
+      "origin": "GitHub artifact metadata",
+      "bytes": 936,
+      "digest": "sha256:7af075d6c079bc6b3f0b074f6b6932a516c39f4ccf138abbeebc17228e58e2f7",
+      "archived": {
+        "path": "recharge-jetbrains-review/artifact.json.gz",
+        "originalDigest": "sha256:7af075d6c079bc6b3f0b074f6b6932a516c39f4ccf138abbeebc17228e58e2f7",
+        "storedDigest": "sha256:c98ed3b3584cbf5b08df0e8eb85c6819fd392fc9a4248e9bddbaaf8d01a6e5a7",
+        "originalBytes": 936
+      }
+    },
+    {
+      "member": "first-run-win32-jetbrains/capture/driver-failure-initial.json",
+      "originalArtifactPath": "first-run-win32-jetbrains/capture/driver-failure-initial.json",
+      "origin": "exact ZIP member bytes",
+      "bytes": 1129,
+      "digest": "sha256:b7a664bf2c393d9f94b42e053e3ccbb81c6bb60ee957d2f46871b13dc605d245",
+      "archived": {
+        "path": "recharge-jetbrains-review/first-run-win32-jetbrains/capture/driver-failure-initial.json.gz",
+        "originalDigest": "sha256:b7a664bf2c393d9f94b42e053e3ccbb81c6bb60ee957d2f46871b13dc605d245",
+        "storedDigest": "sha256:40725969462a1db9e4e1535f3387ea862881537e6589d5e8e98e3c897c073a92",
+        "originalBytes": 1129
+      }
+    },
+    {
+      "member": "first-run-win32-jetbrains/capture/driver-failure-initial-snapshot.json",
+      "originalArtifactPath": "first-run-win32-jetbrains/capture/driver-failure-initial-snapshot.json",
+      "origin": "exact ZIP member bytes",
+      "bytes": 3790,
+      "digest": "sha256:428101a92d1ef88029f5f8c003cd76257cfe28ef30081b834226beebad233da9",
+      "archived": {
+        "path": "recharge-jetbrains-review/first-run-win32-jetbrains/capture/driver-failure-initial-snapshot.json.gz",
+        "originalDigest": "sha256:428101a92d1ef88029f5f8c003cd76257cfe28ef30081b834226beebad233da9",
+        "storedDigest": "sha256:591cf00ec4e16280d4558ea5e8a481c012b6ff6790b6d9c708cb826ab314fb90",
+        "originalBytes": 3790
+      }
+    },
+    {
+      "member": "first-run-win32-jetbrains/test-initial.log",
+      "originalArtifactPath": "first-run-win32-jetbrains/test-initial.log",
+      "origin": "exact ZIP member bytes",
+      "bytes": 3176,
+      "digest": "sha256:30fb65ed72ba09095620c2f02747a0a58a1abe4a5d9afa3bff5ff0a5e4010758",
+      "archived": {
+        "path": "recharge-jetbrains-review/first-run-win32-jetbrains/test-initial.log.gz",
+        "originalDigest": "sha256:30fb65ed72ba09095620c2f02747a0a58a1abe4a5d9afa3bff5ff0a5e4010758",
+        "storedDigest": "sha256:83247a3ed3043591900c45f0abe5d12e59fa6461f21169091457eed1f522a90a",
+        "originalBytes": 3176
+      }
+    },
+    {
+      "member": "first-run-win32-jetbrains/capture/protocol-1e6e6726-ced3-4f34-ba1f-b8aa125df076.jsonl",
+      "originalArtifactPath": "first-run-win32-jetbrains/capture/protocol-1e6e6726-ced3-4f34-ba1f-b8aa125df076.jsonl",
+      "origin": "exact ZIP member bytes",
+      "bytes": 224,
+      "digest": "sha256:b8d9470a351edf52fae8f9550540b14e1158847a528c996f0cce9d5c834256cd",
+      "archived": {
+        "path": "recharge-jetbrains-review/first-run-win32-jetbrains/capture/protocol-1e6e6726-ced3-4f34-ba1f-b8aa125df076.jsonl.gz",
+        "originalDigest": "sha256:b8d9470a351edf52fae8f9550540b14e1158847a528c996f0cce9d5c834256cd",
+        "storedDigest": "sha256:fc06d3061db1f15cc7039e78ec97707da343f30876a60293a49fb38f5b3ba6f9",
+        "originalBytes": 224
+      }
+    },
+    {
+      "member": "first-run-win32-jetbrains/ide-initial.log",
+      "originalArtifactPath": "first-run-win32-jetbrains/ide-initial.log",
+      "origin": "exact ZIP member bytes",
+      "bytes": 21039,
+      "digest": "sha256:cf0f0db6a8e385048e344fafc47ff162f072e4fc116d7a51db064ddcba54954d",
+      "archived": {
+        "path": "recharge-jetbrains-review/first-run-win32-jetbrains/ide-initial.log.gz",
+        "originalDigest": "sha256:cf0f0db6a8e385048e344fafc47ff162f072e4fc116d7a51db064ddcba54954d",
+        "storedDigest": "sha256:bc0860f811da0ff4e799016e8901b700877e828c0480d59eba71c731171a32c4",
+        "originalBytes": 21039
+      }
+    },
+    {
+      "member": "verify-03/capture/driver-failure-restart.json",
+      "originalArtifactPath": "verify-03/capture/driver-failure-restart.json",
+      "origin": "exact ZIP member bytes",
+      "bytes": 6781,
+      "digest": "sha256:ab2b92846c74a14f36ceeb5d1590d1a6b6b2bb8bde053cb7fe73427484b98bb7",
+      "archived": {
+        "path": "recharge-jetbrains-review/verify-03/capture/driver-failure-restart.json.gz",
+        "originalDigest": "sha256:ab2b92846c74a14f36ceeb5d1590d1a6b6b2bb8bde053cb7fe73427484b98bb7",
+        "storedDigest": "sha256:1510bed9931237098a091e45597a84502f9ad293f6a752696f3e3b561029fe5c",
+        "originalBytes": 6781
+      }
+    },
+    {
+      "member": "verify-03/capture/driver-failure-restart-snapshot.json",
+      "originalArtifactPath": "verify-03/capture/driver-failure-restart-snapshot.json",
+      "origin": "exact ZIP member bytes",
+      "bytes": 22123,
+      "digest": "sha256:8b42721772568fd330c0c7a70ad0b7cf2b5fc0a70e803cf49885576788d81e74",
+      "archived": {
+        "path": "recharge-jetbrains-review/verify-03/capture/driver-failure-restart-snapshot.json.gz",
+        "originalDigest": "sha256:8b42721772568fd330c0c7a70ad0b7cf2b5fc0a70e803cf49885576788d81e74",
+        "storedDigest": "sha256:0f62daa6eabfe31be10cfb0414f61caf8b8c0aad1540327349b9d05843bf14e3",
+        "originalBytes": 22123
+      }
+    },
+    {
+      "member": "verify-03/test-restart.log",
+      "originalArtifactPath": "verify-03/test-restart.log",
+      "origin": "exact ZIP member bytes",
+      "bytes": 8882,
+      "digest": "sha256:9ca5f79307c7c3481c7129b504185d8f702c435318dd3b4460f726222c27b1b5",
+      "archived": {
+        "path": "recharge-jetbrains-review/verify-03/test-restart.log.gz",
+        "originalDigest": "sha256:9ca5f79307c7c3481c7129b504185d8f702c435318dd3b4460f726222c27b1b5",
+        "storedDigest": "sha256:763d466158a996991d344f9d03f5690c5defceb9ace6ea990c6155013a1eb91b",
+        "originalBytes": 8882
+      }
+    },
+    {
+      "member": "verify-03/capture/restart-state.json",
+      "originalArtifactPath": "verify-03/capture/restart-state.json",
+      "origin": "exact ZIP member bytes",
+      "bytes": 49090,
+      "digest": "sha256:1a6c1089c1ac4a639175db1a8bd1278cd7d03839f8486715ceb8b64fb1bd5cfc",
+      "archived": {
+        "path": "recharge-jetbrains-review/verify-03/capture/restart-state.json.gz",
+        "originalDigest": "sha256:1a6c1089c1ac4a639175db1a8bd1278cd7d03839f8486715ceb8b64fb1bd5cfc",
+        "storedDigest": "sha256:62b2c1b8205d51a7f66fa0862f3bf190d916a15454ebb9577b9ce279d52f4926",
+        "originalBytes": 49090
+      }
+    },
+    {
+      "member": "verify-03/capture/ui-initial.json",
+      "originalArtifactPath": "verify-03/capture/ui-initial.json",
+      "origin": "exact ZIP member bytes",
+      "bytes": 724,
+      "digest": "sha256:d3f6b9ed029cc1c89d6a9cfe51f8e4d219e3d81fe2965c71703e2d6914e10b82",
+      "archived": {
+        "path": "recharge-jetbrains-review/verify-03/capture/ui-initial.json.gz",
+        "originalDigest": "sha256:d3f6b9ed029cc1c89d6a9cfe51f8e4d219e3d81fe2965c71703e2d6914e10b82",
+        "storedDigest": "sha256:c9ef1c33514b7d069a8f0c3926db7b71001a3f80c157b8da8930edd37af76efe",
+        "originalBytes": 724
+      }
+    },
+    {
+      "member": "verify-12/capture/driver-failure-restart.json",
+      "originalArtifactPath": "verify-12/capture/driver-failure-restart.json",
+      "origin": "exact ZIP member bytes",
+      "bytes": 7269,
+      "digest": "sha256:280da91e9ee47c556cdb18cbf78a737a222d8b0490741bdc3faf4f622066af38",
+      "archived": {
+        "path": "recharge-jetbrains-review/verify-12/capture/driver-failure-restart.json.gz",
+        "originalDigest": "sha256:280da91e9ee47c556cdb18cbf78a737a222d8b0490741bdc3faf4f622066af38",
+        "storedDigest": "sha256:987f5af13a3ef4727e21a9b6d8b433e4f9b493832ff9a40767c6422ddd1f90c3",
+        "originalBytes": 7269
+      }
+    },
+    {
+      "member": "verify-12/capture/driver-failure-restart-snapshot.json",
+      "originalArtifactPath": "verify-12/capture/driver-failure-restart-snapshot.json",
+      "origin": "exact ZIP member bytes",
+      "bytes": 23007,
+      "digest": "sha256:5869daa5e265654069176353b214aa4fb315173cb1286c262ae783e7202486a1",
+      "archived": {
+        "path": "recharge-jetbrains-review/verify-12/capture/driver-failure-restart-snapshot.json.gz",
+        "originalDigest": "sha256:5869daa5e265654069176353b214aa4fb315173cb1286c262ae783e7202486a1",
+        "storedDigest": "sha256:81ef56181877fe11616b8f2122b20598f583af751c6c0bff0779db152909e26d",
+        "originalBytes": 23007
+      }
+    },
+    {
+      "member": "verify-12/test-restart.log",
+      "originalArtifactPath": "verify-12/test-restart.log",
+      "origin": "exact ZIP member bytes",
+      "bytes": 8012,
+      "digest": "sha256:f89929b461aa5d50d32d68d9455b6cabe1114048b5e486fb003dd2cfc0bde21f",
+      "archived": {
+        "path": "recharge-jetbrains-review/verify-12/test-restart.log.gz",
+        "originalDigest": "sha256:f89929b461aa5d50d32d68d9455b6cabe1114048b5e486fb003dd2cfc0bde21f",
+        "storedDigest": "sha256:ea8abc04812f7de1497c4ea4e85b777412092b1b9b500c89b1f375fce037e794",
+        "originalBytes": 8012
+      }
+    },
+    {
+      "member": "verify-12/capture/restart-state.json",
+      "originalArtifactPath": "verify-12/capture/restart-state.json",
+      "origin": "exact ZIP member bytes",
+      "bytes": 43883,
+      "digest": "sha256:81a242ee3cbffb7f083bc18452dc7c0b85ca96eccd7bd50ae38f5a78fff330fc",
+      "archived": {
+        "path": "recharge-jetbrains-review/verify-12/capture/restart-state.json.gz",
+        "originalDigest": "sha256:81a242ee3cbffb7f083bc18452dc7c0b85ca96eccd7bd50ae38f5a78fff330fc",
+        "storedDigest": "sha256:2e383f1f89c052ca99bd5fc6bd60024281080263b829016d0750ba8e90f2698d",
+        "originalBytes": 43883
+      }
+    },
+    {
+      "member": "verify-12/capture/ui-initial.json",
+      "originalArtifactPath": "verify-12/capture/ui-initial.json",
+      "origin": "exact ZIP member bytes",
+      "bytes": 724,
+      "digest": "sha256:cce65945d93c3d10f08d15f0ce770ade8c530f442752035cab7ba7271a4ee90b",
+      "archived": {
+        "path": "recharge-jetbrains-review/verify-12/capture/ui-initial.json.gz",
+        "originalDigest": "sha256:cce65945d93c3d10f08d15f0ce770ade8c530f442752035cab7ba7271a4ee90b",
+        "storedDigest": "sha256:994dc85f77a3675eca9d1c8ab98cf3218eb346ed4242f54f3fa1a8ea763ca038",
+        "originalBytes": 724
+      }
+    },
+    {
+      "member": "verify-21/capture/driver-failure-restart.json",
+      "originalArtifactPath": "verify-21/capture/driver-failure-restart.json",
+      "origin": "exact ZIP member bytes",
+      "bytes": 7417,
+      "digest": "sha256:5ed5e7e7cdaacce69aa9b0d31409d58a8fee25d643987fc7064dda37e6d75e6c",
+      "archived": {
+        "path": "recharge-jetbrains-review/verify-21/capture/driver-failure-restart.json.gz",
+        "originalDigest": "sha256:5ed5e7e7cdaacce69aa9b0d31409d58a8fee25d643987fc7064dda37e6d75e6c",
+        "storedDigest": "sha256:89e187cb3d22a7ee8b8f365678ddd0b05cce2800c2a1fcdc6d15108d36840aec",
+        "originalBytes": 7417
+      }
+    },
+    {
+      "member": "verify-21/capture/driver-failure-restart-snapshot.json",
+      "originalArtifactPath": "verify-21/capture/driver-failure-restart-snapshot.json",
+      "origin": "exact ZIP member bytes",
+      "bytes": 23420,
+      "digest": "sha256:15d79c2ba0237839b5590de740c977eeb8a402be239140b62d35c322a4a10bd5",
+      "archived": {
+        "path": "recharge-jetbrains-review/verify-21/capture/driver-failure-restart-snapshot.json.gz",
+        "originalDigest": "sha256:15d79c2ba0237839b5590de740c977eeb8a402be239140b62d35c322a4a10bd5",
+        "storedDigest": "sha256:0770a57f5b8daef752f186f1e557bc7dff0d3bb8eaf174a7aaab2b22a0896ce8",
+        "originalBytes": 23420
+      }
+    },
+    {
+      "member": "verify-21/test-restart.log",
+      "originalArtifactPath": "verify-21/test-restart.log",
+      "origin": "exact ZIP member bytes",
+      "bytes": 9704,
+      "digest": "sha256:7de9bf65dbb9bdd6f5cb6748f1daa62f6c210cb674ed93d82e0da14a5f85fe0f",
+      "archived": {
+        "path": "recharge-jetbrains-review/verify-21/test-restart.log.gz",
+        "originalDigest": "sha256:7de9bf65dbb9bdd6f5cb6748f1daa62f6c210cb674ed93d82e0da14a5f85fe0f",
+        "storedDigest": "sha256:f75f31a47a791598adc9aec38b7720b2dd811b389cda305f5ef2e8bf036d2a05",
+        "originalBytes": 9704
+      }
+    },
+    {
+      "member": "verify-21/capture/restart-state.json",
+      "originalArtifactPath": "verify-21/capture/restart-state.json",
+      "origin": "exact ZIP member bytes",
+      "bytes": 55113,
+      "digest": "sha256:6ab36c0d1ed6742015122ae6d8db794ef47f1b6515bec18f9b243872d88451e6",
+      "archived": {
+        "path": "recharge-jetbrains-review/verify-21/capture/restart-state.json.gz",
+        "originalDigest": "sha256:6ab36c0d1ed6742015122ae6d8db794ef47f1b6515bec18f9b243872d88451e6",
+        "storedDigest": "sha256:406fa677a29183abed7d069535560148f4fa31b2d5e9f8d3531928ce998b0541",
+        "originalBytes": 55113
+      }
+    },
+    {
+      "member": "verify-21/capture/ui-initial.json",
+      "originalArtifactPath": "verify-21/capture/ui-initial.json",
+      "origin": "exact ZIP member bytes",
+      "bytes": 724,
+      "digest": "sha256:3b70d806ec700ffa65890716de7a62a1a49504ee530cce5a4f0a4fc1bcf08048",
+      "archived": {
+        "path": "recharge-jetbrains-review/verify-21/capture/ui-initial.json.gz",
+        "originalDigest": "sha256:3b70d806ec700ffa65890716de7a62a1a49504ee530cce5a4f0a4fc1bcf08048",
+        "storedDigest": "sha256:5021807375f8429268dd0b58a78c98fd2557e2bff442e5f6d43db39d85bbd292",
+        "originalBytes": 724
+      }
+    },
+    {
+      "member": "verify-30/capture/driver-failure-restart.json",
+      "originalArtifactPath": "verify-30/capture/driver-failure-restart.json",
+      "origin": "exact ZIP member bytes",
+      "bytes": 7081,
+      "digest": "sha256:171f2ab1d30cfc3468afcdf402a3e1845a521beeb0d166e10769b39a67c6a5bb",
+      "archived": {
+        "path": "recharge-jetbrains-review/verify-30/capture/driver-failure-restart.json.gz",
+        "originalDigest": "sha256:171f2ab1d30cfc3468afcdf402a3e1845a521beeb0d166e10769b39a67c6a5bb",
+        "storedDigest": "sha256:6aa09a2edc339f16c5aecebd6507c6d3a8241b051b8d1b4c51c8b083e133e340",
+        "originalBytes": 7081
+      }
+    },
+    {
+      "member": "verify-30/capture/driver-failure-restart-snapshot.json",
+      "originalArtifactPath": "verify-30/capture/driver-failure-restart-snapshot.json",
+      "origin": "exact ZIP member bytes",
+      "bytes": 22643,
+      "digest": "sha256:8271a3d1097f86bc7e2588ef65cc5791440c8b4a9181a463100a706150ee1b84",
+      "archived": {
+        "path": "recharge-jetbrains-review/verify-30/capture/driver-failure-restart-snapshot.json.gz",
+        "originalDigest": "sha256:8271a3d1097f86bc7e2588ef65cc5791440c8b4a9181a463100a706150ee1b84",
+        "storedDigest": "sha256:287860f910a7d7906844bfba4e8a3aa7a0377aa5e5337db03cdfec8ca1310a87",
+        "originalBytes": 22643
+      }
+    },
+    {
+      "member": "verify-30/test-restart.log",
+      "originalArtifactPath": "verify-30/test-restart.log",
+      "origin": "exact ZIP member bytes",
+      "bytes": 9172,
+      "digest": "sha256:466e5bff0dc59b84b47801eabbf263c871d8f725e3a19f9b82cc7d9ba04a3a83",
+      "archived": {
+        "path": "recharge-jetbrains-review/verify-30/test-restart.log.gz",
+        "originalDigest": "sha256:466e5bff0dc59b84b47801eabbf263c871d8f725e3a19f9b82cc7d9ba04a3a83",
+        "storedDigest": "sha256:9e66b4bf800970f68ce30af900f7366affebb8255f91c3a69689de7c9aa18e1a",
+        "originalBytes": 9172
+      }
+    },
+    {
+      "member": "verify-30/capture/restart-state.json",
+      "originalArtifactPath": "verify-30/capture/restart-state.json",
+      "origin": "exact ZIP member bytes",
+      "bytes": 46918,
+      "digest": "sha256:aa0018927209757764cf7dfa52ad713acff3cbc231d6c8fe2de1d004aa749eb4",
+      "archived": {
+        "path": "recharge-jetbrains-review/verify-30/capture/restart-state.json.gz",
+        "originalDigest": "sha256:aa0018927209757764cf7dfa52ad713acff3cbc231d6c8fe2de1d004aa749eb4",
+        "storedDigest": "sha256:5d0cb7e2e74a238945cf0ba813354200cc827df6131a339a0118347fecedcec3",
+        "originalBytes": 46918
+      }
+    },
+    {
+      "member": "verify-30/capture/ui-initial.json",
+      "originalArtifactPath": "verify-30/capture/ui-initial.json",
+      "origin": "exact ZIP member bytes",
+      "bytes": 724,
+      "digest": "sha256:848b963b3fd679e415d3605def5089318ba6e162f0b1867059cc446e7e8319be",
+      "archived": {
+        "path": "recharge-jetbrains-review/verify-30/capture/ui-initial.json.gz",
+        "originalDigest": "sha256:848b963b3fd679e415d3605def5089318ba6e162f0b1867059cc446e7e8319be",
+        "storedDigest": "sha256:dfe8b3d3eb98195478914ba5780078331174e2718a8b6b6ebc42a481ea0f555a",
+        "originalBytes": 724
+      }
+    },
+    {
+      "member": "source/311e01a5ec34a8e433c7abde0e4b6b05bce4513b/ChatTranscriptHistory.java",
+      "originalArtifactPath": null,
+      "origin": "exact Git blob bytes",
+      "bytes": 13378,
+      "digest": "sha256:ed799287c85931baa3b3f92566432718372b1c4ebab8e6843e82a410bb8e20da",
+      "archived": {
+        "path": "recharge-jetbrains-review/source/311e01a5ec34a8e433c7abde0e4b6b05bce4513b/ChatTranscriptHistory.java.gz",
+        "originalDigest": "sha256:ed799287c85931baa3b3f92566432718372b1c4ebab8e6843e82a410bb8e20da",
+        "storedDigest": "sha256:03f3abcc03e79c3b8c77d0ad10319fefb4047975efe2914986c48c3c7d5bc9c2",
+        "originalBytes": 13378
+      },
+      "originalGitPath": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ChatTranscriptHistory.java",
+      "sourceCommit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b"
+    },
+    {
+      "member": "source/311e01a5ec34a8e433c7abde0e4b6b05bce4513b/ChatTranscript.java",
+      "originalArtifactPath": null,
+      "origin": "exact Git blob bytes",
+      "bytes": 26855,
+      "digest": "sha256:05af8442d8b4af69d0735675c16132d88f3aa02fa14f68041ec0a481eb34957e",
+      "archived": {
+        "path": "recharge-jetbrains-review/source/311e01a5ec34a8e433c7abde0e4b6b05bce4513b/ChatTranscript.java.gz",
+        "originalDigest": "sha256:05af8442d8b4af69d0735675c16132d88f3aa02fa14f68041ec0a481eb34957e",
+        "storedDigest": "sha256:9c0bfa8c143eb9ff784e82a723691cb5ebcd87942a05b7ccaba71a4c7ab3040a",
+        "originalBytes": 26855
+      },
+      "originalGitPath": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ChatTranscript.java",
+      "sourceCommit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b"
+    }
+  ]
+}

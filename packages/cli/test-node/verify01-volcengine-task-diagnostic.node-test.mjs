@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import { createHash } from "node:crypto";
 import {
   DIAGNOSTIC,
   changedFiles,
@@ -9,6 +10,7 @@ import {
   modelEnvironment,
   redactDiagnostic,
   taskPrompt,
+  selectDiagnosticTasks,
 } from "../scripts/verify01-volcengine-task-diagnostic.mjs";
 
 const workspace = path.resolve("task-workspace");
@@ -265,7 +267,23 @@ test("redacts literal and JSON-escaped key bytes and detects unexpected workspac
   );
 });
 
-test("prompt discloses constrained task and independent checker without injecting an answer", () => {
+test("task selection preserves an explicit supported denominator", () => {
+  assert.deepEqual(selectDiagnosticTasks(), ["verify-04", "verify-22"]);
+  assert.deepEqual(selectDiagnosticTasks("verify-04"), ["verify-04"]);
+  assert.deepEqual(selectDiagnosticTasks("verify-22"), ["verify-22"]);
+  for (const selection of [
+    "",
+    "verify-99",
+    "../verify-04",
+    "verify-04,verify-22",
+  ])
+    assert.throws(
+      () => selectDiagnosticTasks(selection),
+      /unsupported diagnostic task selection/u,
+    );
+});
+
+test("prompt preserves checker constraints and discloses repair provenance", () => {
   const prompt = taskPrompt(
     { prompt: "Frozen task", sourcePaths: ["source.js"], expectedFiles },
     { baselineTests: ["baseline.test.js"] },
@@ -274,7 +292,44 @@ test("prompt discloses constrained task and independent checker without injectin
   assert.match(prompt, /do not claim that tests passed/u);
   assert.match(prompt, /implementation defect/u);
   assert.match(prompt, /repository-relative paths for every mutation/u);
-  assert.match(prompt, /at most 14 model turns/u);
+  assert.match(prompt, /at most 10 model turns/u);
+  const retryPrompt = taskPrompt(
+    {
+      id: "verify-04",
+      prompt: "Frozen task",
+      sourcePaths: ["source.js"],
+      expectedFiles,
+    },
+    { baselineTests: ["baseline.test.js"] },
+  );
+  assert.match(retryPrompt, /Ordinary checker feedback/u);
+  assert.match(retryPrompt, /not a first-attempt or formal sample/u);
+  assert.match(
+    retryPrompt,
+    /rate.terms\?\.cacheReadMultiplier before the provider fallback/u,
+  );
+  const faultPrompt = taskPrompt(
+    {
+      id: "verify-22",
+      prompt: "Frozen fault task",
+      sourcePaths: ["source.js"],
+      expectedFiles,
+    },
+    { baselineTests: ["baseline.test.js"] },
+  );
+  assert.match(faultPrompt, /THIRD time after manifest replacement/u);
+  assert.match(faultPrompt, /include a successful control/u);
+  assert.match(faultPrompt, /bounded repair/u);
+  assert.match(faultPrompt, /first-attempt or formal sample/u);
+  for (const seed of Object.values(DIAGNOSTIC.repairSeeds)) {
+    const bytes = fs.readFileSync(
+      new URL(`../../../${seed.file}`, import.meta.url),
+    );
+    assert.equal(
+      `sha256:${createHash("sha256").update(bytes).digest("hex")}`,
+      seed.digest,
+    );
+  }
 });
 
 test("workflow requires explicit dispatch or a branch-scoped paid-run marker, and always uploads", () => {

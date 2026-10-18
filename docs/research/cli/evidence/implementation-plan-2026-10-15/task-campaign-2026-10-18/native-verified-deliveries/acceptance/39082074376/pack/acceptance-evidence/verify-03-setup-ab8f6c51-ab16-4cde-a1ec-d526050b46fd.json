@@ -1,0 +1,119 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-03",
+  "stage": "setup",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 31,
+      "passed": 31,
+      "failed": 0
+    }
+  ],
+  "mutations": [],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 717,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "npm",
+        "ci",
+        "--workspace",
+        "packages/cli",
+        "--workspace",
+        "desktop-app-vue",
+        "--include-workspace-root=false",
+        "--legacy-peer-deps",
+        "--ignore-scripts",
+        "--no-audit",
+        "--no-fund",
+        "--cache",
+        "/tmp/npm-cache",
+        "--userconfig",
+        "/dev/null"
+      ],
+      "setup": true,
+      "ms": 56320,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "\nadded 2535 packages in 56s\n",
+      "stderr": "npm warn EBADENGINE Unsupported engine {\nnpm warn EBADENGINE   package: 'eslint-visitor-keys@5.0.1',\nnpm warn EBADENGINE   required: { node: '^20.19.0 || ^22.13.0 || >=24' },\nnpm warn EBADENGINE   current: { node: 'v22.12.0', npm: '10.9.0' }\nnpm warn EBADENGINE }\nnpm warn EBADENGINE Unsupported engine {\nnpm warn EBADENGINE   package: 'pdfjs-dist@5.7.284',\nnpm warn EBADENGINE   required: { node: '>=22.13.0 || >=24' },\nnpm warn EBADENGINE   current: { node: 'v22.12.0', npm: '10.9.0' }\nnpm warn EBADENGINE }\nnpm warn skipping integrity check for git dependency ssh://git@github.com/electron/node-gyp.git\nnpm warn deprecated whatwg-encoding@3.1.1: Use @exodus/bytes instead for a more spec-conformant and faster implementation\nnpm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported\nnpm warn deprecated prebuild-install@7.1.3: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.\nnpm warn deprecated npmlog@6.0.2: This package is no longer supported.\nnpm warn deprecated lodash.isequal@4.5.0: This package is deprecated. Use require('node:util').isDeepStrictEqual instead.\nnpm warn deprecated lodash.get@4.4.2: This package is deprecated. Use the optional chaining (?.) operator instead.\nnpm warn deprecated uuid@9.0.1: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).\nnpm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead\nnpm warn deprecated multiaddr@10.0.1: This module is deprecated, please upgrade to @multiformats/multiaddr\nnpm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.\nnpm warn deprecated gar@1.0.4: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.\nnpm warn deprecated gauge@4.0.4: This package is no longer supported.\nnpm warn deprecated fstream@1.0.12: This package is no longer supported.\nnpm warn deprecated vue-i18n@9.14.5: v9 and v10 no longer supported. please migrate to v11. about maintenance status, see https://vue-i18n.intlify.dev/guide/maintenance.html\nnpm warn deprecated are-we-there-yet@3.0.1: This package is no longer supported.\nnpm warn deprecated boolean@3.2.0: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.\nnpm warn deprecated @npmcli/move-file@2.0.1: This functionality has been moved to @npmcli/fs\nnpm warn deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead\nnpm warn deprecated @humanwhocodes/config-array@0.13.0: Use @eslint/config-array instead\nnpm warn deprecated rimraf@2.6.3: Rimraf versions prior to v4 are no longer supported\nnpm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated npmlog@4.1.2: This package is no longer supported.\nnpm warn deprecated are-we-there-yet@1.1.7: This package is no longer supported.\nnpm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated prebuild-install@5.3.6: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.\nnpm warn deprecated gauge@2.7.4: This package is no longer supported.\nnpm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated rimraf@2.7.1: Rimraf versions prior to v4 are no longer supported\nnpm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated glob@8.1.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated glob@8.1.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).\nnpm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).\nnpm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated eslint@8.57.1: This version is no longer supported. Please see https://eslint.org/version-support for other options.\nnpm warn deprecated fluent-ffmpeg@2.1.3: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.\n",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--input-type=commonjs",
+        "--eval",
+        "process.chdir(\"/workspace/node_modules/better-sqlite3\"); require(\"/workspace/node_modules/prebuild-install/bin.js\");"
+      ],
+      "setup": true,
+      "ms": 423,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--input-type=commonjs",
+        "--eval",
+        "const fs=require(\"node:fs\"),crypto=require(\"node:crypto\"),Database=require(\"/workspace/node_modules/better-sqlite3\"); const db=new Database(\":memory:\"); if(db.prepare(\"select 42 as value\").get().value!==42) throw new Error(\"SQLite native probe failed\"); db.close(); const bytes=fs.readFileSync(\"/workspace/node_modules/better-sqlite3/build/Release/better_sqlite3.node\"); console.log(JSON.stringify({sha256:crypto.createHash(\"sha256\").update(bytes).digest(\"hex\"),sqliteVerified:true}));"
+      ],
+      "setup": false,
+      "ms": 185,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"sha256\":\"df9fbd0d061f360d81fb51e265c53c9605020bd68219e34f33c07c85de15719a\",\"sqliteVerified\":true}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 1408,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":7,\"numPassedTestSuites\":7,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":31,\"numPassedTests\":31,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1792286013116,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"llm-pricing — lookupRate\"],\"fullName\":\"llm-pricing — lookupRate treats local providers as free\",\"status\":\"passed\",\"title\":\"treats local providers as free\",\"duration\":2.5313440000000185,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — lookupRate\"],\"fullName\":\"llm-pricing — lookupRate matches the most specific pattern first (gpt-4o-mini before gpt-4o)\",\"status\":\"passed\",\"title\":\"matches the most specific pattern first (gpt-4o-mini before gpt-4o)\",\"duration\":0.5913140000000112,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — lookupRate\"],\"fullName\":\"llm-pricing — lookupRate is case-insensitive on provider and model\",\"status\":\"passed\",\"title\":\"is case-insensitive on provider and model\",\"duration\":0.296102999999988,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — lookupRate\"],\"fullName\":\"llm-pricing — lookupRate resolves the GPT-5 family without shadowing (5.5 not caught by 5)\",\"status\":\"passed\",\"title\":\"resolves the GPT-5 family without shadowing (5.5 not caught by 5)\",\"duration\":1.3222379999999987,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — lookupRate\"],\"fullName\":\"llm-pricing — lookupRate uses current Opus pricing ($5/$25) and prices Fable 5 / Opus 4.x snapshots\",\"status\":\"passed\",\"title\":\"uses current Opus pricing ($5/$25) and prices Fable 5 / Opus 4.x snapshots\",\"duration\":0.7630640000000142,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — lookupRate\"],\"fullName\":\"llm-pricing — lookupRate prices Doubao Seed 2.0 above the generic seed fallback\",\"status\":\"passed\",\"title\":\"prices Doubao Seed 2.0 above the generic seed fallback\",\"duration\":0.5226350000000082,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — lookupRate\"],\"fullName\":\"llm-pricing — lookupRate prices the DeepSeek V4 models used by protected quality evals\",\"status\":\"passed\",\"title\":\"prices the DeepSeek V4 models used by protected quality evals\",\"duration\":0.30883600000001366,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — lookupRate\"],\"fullName\":\"llm-pricing — lookupRate returns null for an unknown provider or model\",\"status\":\"passed\",\"title\":\"returns null for an unknown provider or model\",\"duration\":0.2502969999999891,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — estimateCost\"],\"fullName\":\"llm-pricing — estimateCost computes input/output cost from MTok rates\",\"status\":\"passed\",\"title\":\"computes input/output cost from MTok rates\",\"duration\":0.8336450000000184,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — estimateCost\"],\"fullName\":\"llm-pricing — estimateCost preserves sub-microdollar charges for hard budget decisions\",\"status\":\"passed\",\"title\":\"preserves sub-microdollar charges for hard budget decisions\",\"duration\":0.3332720000000222,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — estimateCost\"],\"fullName\":\"llm-pricing — estimateCost local model costs nothing but is matched+free\",\"status\":\"passed\",\"title\":\"local model costs nothing but is matched+free\",\"duration\":0.30352600000000507,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — estimateCost\"],\"fullName\":\"llm-pricing — estimateCost unknown model → unmatched, zero cost (never guessed)\",\"status\":\"passed\",\"title\":\"unknown model → unmatched, zero cost (never guessed)\",\"duration\":0.23651100000000724,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — priceRollup\"],\"fullName\":\"llm-pricing — priceRollup sums priced rows and lists unpriced ones separately\",\"status\":\"passed\",\"title\":\"sums priced rows and lists unpriced ones separately\",\"duration\":0.5720570000000009,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — priceRollup\"],\"fullName\":\"llm-pricing — priceRollup handles an empty aggregate\",\"status\":\"passed\",\"title\":\"handles an empty aggregate\",\"duration\":0.28396000000000754,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — priceRollup\"],\"fullName\":\"llm-pricing — priceRollup threads a custom table through priceRollup\",\"status\":\"passed\",\"title\":\"threads a custom table through priceRollup\",\"duration\":0.43569299999998634,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — mergePricing (config overrides)\"],\"fullName\":\"llm-pricing — mergePricing (config overrides) adds a brand-new provider rate usable by lookupRate\",\"status\":\"passed\",\"title\":\"adds a brand-new provider rate usable by lookupRate\",\"duration\":0.23684199999999578,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — mergePricing (config overrides)\"],\"fullName\":\"llm-pricing — mergePricing (config overrides) normalizes a mixed-case provider key so the override applies\",\"status\":\"passed\",\"title\":\"normalizes a mixed-case provider key so the override applies\",\"duration\":0.5782389999999964,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — mergePricing (config overrides)\"],\"fullName\":\"llm-pricing — mergePricing (config overrides) a user entry replaces a built-in pattern of the same match\",\"status\":\"passed\",\"title\":\"a user entry replaces a built-in pattern of the same match\",\"duration\":0.349332000000004,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — mergePricing (config overrides)\"],\"fullName\":\"llm-pricing — mergePricing (config overrides) skips malformed override entries without throwing\",\"status\":\"passed\",\"title\":\"skips malformed override entries without throwing\",\"duration\":0.24769299999999816,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — mergePricing (config overrides)\"],\"fullName\":\"llm-pricing — mergePricing (config overrides) rejects negative and Infinity rates (a price can't be < 0 or unbounded)\",\"status\":\"passed\",\"title\":\"rejects negative and Infinity rates (a price can't be < 0 or unbounded)\",\"duration\":0.3426499999999919,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — mergePricing (config overrides)\"],\"fullName\":\"llm-pricing — mergePricing (config overrides) returns the base table untouched when overrides are absent/invalid\",\"status\":\"passed\",\"title\":\"returns the base table untouched when overrides are absent/invalid\",\"duration\":0.1943629999999814,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1792286013376,\"endTime\":1792286013388.3425,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/llm-pricing.test.js\"},{\"assertionResults\":[{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts preserves request pricing through durable projection, budget and Eval\",\"status\":\"passed\",\"title\":\"preserves request pricing through durable projection, budget and Eval\",\"duration\":9.592610000000036,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts preserves pricing conditions in crash-recovery settlements\",\"status\":\"passed\",\"title\":\"preserves pricing conditions in crash-recovery settlements\",\"duration\":3.8356979999999794,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts resolves gpt-6-astra only at the official endpoint\",\"status\":\"passed\",\"title\":\"resolves gpt-6-astra only at the official endpoint\",\"duration\":3.0498510000001033,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts resolves gpt-6-sol only at the official endpoint\",\"status\":\"passed\",\"title\":\"resolves gpt-6-sol only at the official endpoint\",\"duration\":0.953689000000054,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts resolves gpt-6-luna only at the official endpoint\",\"status\":\"passed\",\"title\":\"resolves gpt-6-luna only at the official endpoint\",\"duration\":0.9474579999999833,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts resolves Opus 5.5 without changing a custom gateway's assumptions\",\"status\":\"passed\",\"title\":\"resolves Opus 5.5 without changing a custom gateway's assumptions\",\"duration\":1.4703230000000076,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts prices cached tokens and long prompts at the request boundary\",\"status\":\"passed\",\"title\":\"prices cached tokens and long prompts at the request boundary\",\"duration\":0.6315389999999752,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts keeps separate request tiers when aggregating one or many sessions\",\"status\":\"passed\",\"title\":\"keeps separate request tiers when aggregating one or many sessions\",\"duration\":3.132445999999959,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts preserves response service tier for budget settlement\",\"status\":\"passed\",\"title\":\"preserves response service tier for budget settlement\",\"duration\":0.829097000000047,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts uses the same prices in the legacy database, preserving unknown as NULL\",\"status\":\"passed\",\"title\":\"uses the same prices in the legacy database, preserving unknown as NULL\",\"duration\":3.692690000000084,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1792286014010,\"endTime\":1792286014038.6926,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/model-release-contract.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "nativeDependency": {
+    "sha256": "df9fbd0d061f360d81fb51e265c53c9605020bd68219e34f33c07c85de15719a",
+    "sqliteVerified": true
+  },
+  "pass": true,
+  "detail": "Independent operator checks passed; this is not a provider or task-outcome sample."
+}

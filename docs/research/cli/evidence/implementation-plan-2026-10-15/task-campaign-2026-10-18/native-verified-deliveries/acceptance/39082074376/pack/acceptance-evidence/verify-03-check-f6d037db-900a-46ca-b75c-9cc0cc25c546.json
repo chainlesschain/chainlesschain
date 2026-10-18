@@ -1,0 +1,125 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-03",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 31,
+      "passed": 31,
+      "failed": 0
+    },
+    {
+      "kind": "candidate",
+      "total": 6,
+      "passed": 6,
+      "failed": 0
+    }
+  ],
+  "mutations": [
+    {
+      "name": "unknown-opus-inherits-legacy-price",
+      "sourceSha256": "ba23b5f8b81c1697f549d2b0dd9285f9e7294bfe35f1058d358700816937b538",
+      "total": 6,
+      "passed": 5,
+      "failed": 1
+    }
+  ],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 148,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 1364,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":7,\"numPassedTestSuites\":7,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":31,\"numPassedTests\":31,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1792286014690,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"llm-pricing — lookupRate\"],\"fullName\":\"llm-pricing — lookupRate treats local providers as free\",\"status\":\"passed\",\"title\":\"treats local providers as free\",\"duration\":2.578760999999986,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — lookupRate\"],\"fullName\":\"llm-pricing — lookupRate matches the most specific pattern first (gpt-4o-mini before gpt-4o)\",\"status\":\"passed\",\"title\":\"matches the most specific pattern first (gpt-4o-mini before gpt-4o)\",\"duration\":0.5994179999999858,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — lookupRate\"],\"fullName\":\"llm-pricing — lookupRate is case-insensitive on provider and model\",\"status\":\"passed\",\"title\":\"is case-insensitive on provider and model\",\"duration\":0.2667380000000037,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — lookupRate\"],\"fullName\":\"llm-pricing — lookupRate resolves the GPT-5 family without shadowing (5.5 not caught by 5)\",\"status\":\"passed\",\"title\":\"resolves the GPT-5 family without shadowing (5.5 not caught by 5)\",\"duration\":1.2157479999999907,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — lookupRate\"],\"fullName\":\"llm-pricing — lookupRate uses current Opus pricing ($5/$25) and prices Fable 5 / Opus 4.x snapshots\",\"status\":\"passed\",\"title\":\"uses current Opus pricing ($5/$25) and prices Fable 5 / Opus 4.x snapshots\",\"duration\":0.6903480000000002,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — lookupRate\"],\"fullName\":\"llm-pricing — lookupRate prices Doubao Seed 2.0 above the generic seed fallback\",\"status\":\"passed\",\"title\":\"prices Doubao Seed 2.0 above the generic seed fallback\",\"duration\":0.48642800000001785,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — lookupRate\"],\"fullName\":\"llm-pricing — lookupRate prices the DeepSeek V4 models used by protected quality evals\",\"status\":\"passed\",\"title\":\"prices the DeepSeek V4 models used by protected quality evals\",\"duration\":0.3226319999999987,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — lookupRate\"],\"fullName\":\"llm-pricing — lookupRate returns null for an unknown provider or model\",\"status\":\"passed\",\"title\":\"returns null for an unknown provider or model\",\"duration\":0.2249299999999721,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — estimateCost\"],\"fullName\":\"llm-pricing — estimateCost computes input/output cost from MTok rates\",\"status\":\"passed\",\"title\":\"computes input/output cost from MTok rates\",\"duration\":0.829498000000001,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — estimateCost\"],\"fullName\":\"llm-pricing — estimateCost preserves sub-microdollar charges for hard budget decisions\",\"status\":\"passed\",\"title\":\"preserves sub-microdollar charges for hard budget decisions\",\"duration\":0.35910999999998694,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — estimateCost\"],\"fullName\":\"llm-pricing — estimateCost local model costs nothing but is matched+free\",\"status\":\"passed\",\"title\":\"local model costs nothing but is matched+free\",\"duration\":0.3014529999999809,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — estimateCost\"],\"fullName\":\"llm-pricing — estimateCost unknown model → unmatched, zero cost (never guessed)\",\"status\":\"passed\",\"title\":\"unknown model → unmatched, zero cost (never guessed)\",\"duration\":0.20697699999999486,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — priceRollup\"],\"fullName\":\"llm-pricing — priceRollup sums priced rows and lists unpriced ones separately\",\"status\":\"passed\",\"title\":\"sums priced rows and lists unpriced ones separately\",\"duration\":0.6086360000000184,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — priceRollup\"],\"fullName\":\"llm-pricing — priceRollup handles an empty aggregate\",\"status\":\"passed\",\"title\":\"handles an empty aggregate\",\"duration\":0.2662470000000212,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — priceRollup\"],\"fullName\":\"llm-pricing — priceRollup threads a custom table through priceRollup\",\"status\":\"passed\",\"title\":\"threads a custom table through priceRollup\",\"duration\":0.4814189999999883,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — mergePricing (config overrides)\"],\"fullName\":\"llm-pricing — mergePricing (config overrides) adds a brand-new provider rate usable by lookupRate\",\"status\":\"passed\",\"title\":\"adds a brand-new provider rate usable by lookupRate\",\"duration\":0.24446600000001695,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — mergePricing (config overrides)\"],\"fullName\":\"llm-pricing — mergePricing (config overrides) normalizes a mixed-case provider key so the override applies\",\"status\":\"passed\",\"title\":\"normalizes a mixed-case provider key so the override applies\",\"duration\":0.5458789999999851,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — mergePricing (config overrides)\"],\"fullName\":\"llm-pricing — mergePricing (config overrides) a user entry replaces a built-in pattern of the same match\",\"status\":\"passed\",\"title\":\"a user entry replaces a built-in pattern of the same match\",\"duration\":0.37065199999997844,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — mergePricing (config overrides)\"],\"fullName\":\"llm-pricing — mergePricing (config overrides) skips malformed override entries without throwing\",\"status\":\"passed\",\"title\":\"skips malformed override entries without throwing\",\"duration\":0.23598000000001207,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — mergePricing (config overrides)\"],\"fullName\":\"llm-pricing — mergePricing (config overrides) rejects negative and Infinity rates (a price can't be < 0 or unbounded)\",\"status\":\"passed\",\"title\":\"rejects negative and Infinity rates (a price can't be < 0 or unbounded)\",\"duration\":0.30987900000002355,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"llm-pricing — mergePricing (config overrides)\"],\"fullName\":\"llm-pricing — mergePricing (config overrides) returns the base table untouched when overrides are absent/invalid\",\"status\":\"passed\",\"title\":\"returns the base table untouched when overrides are absent/invalid\",\"duration\":0.21813800000001038,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1792286014948,\"endTime\":1792286014960.3098,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/llm-pricing.test.js\"},{\"assertionResults\":[{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts preserves request pricing through durable projection, budget and Eval\",\"status\":\"passed\",\"title\":\"preserves request pricing through durable projection, budget and Eval\",\"duration\":9.760614000000032,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts preserves pricing conditions in crash-recovery settlements\",\"status\":\"passed\",\"title\":\"preserves pricing conditions in crash-recovery settlements\",\"duration\":3.890058999999951,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts resolves gpt-6-astra only at the official endpoint\",\"status\":\"passed\",\"title\":\"resolves gpt-6-astra only at the official endpoint\",\"duration\":3.077583000000004,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts resolves gpt-6-sol only at the official endpoint\",\"status\":\"passed\",\"title\":\"resolves gpt-6-sol only at the official endpoint\",\"duration\":0.9556029999999964,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts resolves gpt-6-luna only at the official endpoint\",\"status\":\"passed\",\"title\":\"resolves gpt-6-luna only at the official endpoint\",\"duration\":1.002040000000079,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts resolves Opus 5.5 without changing a custom gateway's assumptions\",\"status\":\"passed\",\"title\":\"resolves Opus 5.5 without changing a custom gateway's assumptions\",\"duration\":1.4815250000000333,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts prices cached tokens and long prompts at the request boundary\",\"status\":\"passed\",\"title\":\"prices cached tokens and long prompts at the request boundary\",\"duration\":0.6778249999999844,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts keeps separate request tiers when aggregating one or many sessions\",\"status\":\"passed\",\"title\":\"keeps separate request tiers when aggregating one or many sessions\",\"duration\":3.170376000000033,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts preserves response service tier for budget settlement\",\"status\":\"passed\",\"title\":\"preserves response service tier for budget settlement\",\"duration\":0.8279149999999618,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"September model release contracts\"],\"fullName\":\"September model release contracts uses the same prices in the legacy database, preserving unknown as NULL\",\"status\":\"passed\",\"title\":\"uses the same prices in the legacy database, preserving unknown as NULL\",\"duration\":3.8964010000000826,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1792286015570,\"endTime\":1792286015599.8965,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/model-release-contract.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 750,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":6,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1792286016081,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"verify-03 — new-family unknown pricing\"],\"fullName\":\"verify-03 — new-family unknown pricing prices known models (positive control)\",\"status\":\"passed\",\"title\":\"prices known models (positive control)\",\"duration\":3.0389310000000194,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-03 — new-family unknown pricing\"],\"fullName\":\"verify-03 — new-family unknown pricing an unknown new-family id is unpriced, not an old-family price\",\"status\":\"passed\",\"title\":\"an unknown new-family id is unpriced, not an old-family price\",\"duration\":0.5171149999999898,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-03 — new-family unknown pricing\"],\"fullName\":\"verify-03 — new-family unknown pricing a brand-new Opus version (>=5) does not fall back to the current opus rate\",\"status\":\"passed\",\"title\":\"a brand-new Opus version (>=5) does not fall back to the current opus rate\",\"duration\":0.2702240000000131,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-03 — new-family unknown pricing\"],\"fullName\":\"verify-03 — new-family unknown pricing estimateCost marks an unknown model unmatched with zero cost\",\"status\":\"passed\",\"title\":\"estimateCost marks an unknown model unmatched with zero cost\",\"duration\":0.7207549999999969,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-03 — new-family unknown pricing\"],\"fullName\":\"verify-03 — new-family unknown pricing estimateCost still prices a known model\",\"status\":\"passed\",\"title\":\"estimateCost still prices a known model\",\"duration\":0.4623229999999978,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-03 — new-family unknown pricing\"],\"fullName\":\"verify-03 — new-family unknown pricing priceRollup keeps known rows priced and lists unknown new-family rows unpriced\",\"status\":\"passed\",\"title\":\"priceRollup keeps known rows priced and lists unknown new-family rows unpriced\",\"duration\":0.689596999999992,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1792286016327,\"endTime\":1792286016332.6897,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-03.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/packages/cli/src/lib/llm-pricing.js"
+      ],
+      "setup": false,
+      "ms": 157,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 734,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":0,\"numFailedTestSuites\":2,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":5,\"numFailedTests\":1,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1792286016978,\"success\":false,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"verify-03 — new-family unknown pricing\"],\"fullName\":\"verify-03 — new-family unknown pricing prices known models (positive control)\",\"status\":\"passed\",\"title\":\"prices known models (positive control)\",\"duration\":3.023822000000024,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-03 — new-family unknown pricing\"],\"fullName\":\"verify-03 — new-family unknown pricing an unknown new-family id is unpriced, not an old-family price\",\"status\":\"passed\",\"title\":\"an unknown new-family id is unpriced, not an old-family price\",\"duration\":0.5151409999999998,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-03 — new-family unknown pricing\"],\"fullName\":\"verify-03 — new-family unknown pricing a brand-new Opus version (>=5) does not fall back to the current opus rate\",\"status\":\"failed\",\"title\":\"a brand-new Opus version (>=5) does not fall back to the current opus rate\",\"duration\":6.894876000000011,\"failureMessages\":[\"AssertionError: expected { in: 5, out: 25, pattern: 'opus' } to be null\\n    at /workspace/packages/cli/__tests__/verify-03.test.js:45:63\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-03 — new-family unknown pricing\"],\"fullName\":\"verify-03 — new-family unknown pricing estimateCost marks an unknown model unmatched with zero cost\",\"status\":\"passed\",\"title\":\"estimateCost marks an unknown model unmatched with zero cost\",\"duration\":0.8934270000000026,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-03 — new-family unknown pricing\"],\"fullName\":\"verify-03 — new-family unknown pricing estimateCost still prices a known model\",\"status\":\"passed\",\"title\":\"estimateCost still prices a known model\",\"duration\":0.5216629999999896,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"verify-03 — new-family unknown pricing\"],\"fullName\":\"verify-03 — new-family unknown pricing priceRollup keeps known rows priced and lists unknown new-family rows unpriced\",\"status\":\"passed\",\"title\":\"priceRollup keeps known rows priced and lists unknown new-family rows unpriced\",\"duration\":0.7324669999999855,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1792286017220,\"endTime\":1792286017232.7324,\"status\":\"failed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-03.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": true,
+  "detail": "Independent operator checks passed; this is not a provider or task-outcome sample."
+}

@@ -1,0 +1,137 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import {
+  SCOPED_PERMISSION_ERROR_CODES,
+  ScopedPermissionStore,
+} from "../src/lib/scoped-permission-store.js";
+
+let root;
+let workspace;
+let stateFile;
+let now;
+
+function store(options = {}) {
+  return new ScopedPermissionStore({
+    cwd: workspace,
+    filePath: stateFile,
+    now: () => now,
+    randomId: () => "spr_0123456789abcdef0123456789abcdef",
+    ...options,
+  });
+}
+
+function readState() {
+  return JSON.parse(fs.readFileSync(stateFile, "utf8"));
+}
+
+beforeEach(() => {
+  root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-scoped-perm-overflow-"));
+  workspace = path.join(root, "workspace");
+  fs.mkdirSync(workspace, { recursive: true });
+  stateFile = path.join(root, "security", "rules.json");
+  now = Date.UTC(2026, 7, 15, 0, 0, 0);
+});
+
+afterEach(() => {
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+describe("scoped permission version-overflow rejection", () => {
+  it("refuses add when generation is already exhausted without relaxing old rules", () => {
+    store().add({ decision: "allow", rule: "Read", expiresAt: now + 60_000 });
+    const state = readState();
+    state.generation = Number.MAX_SAFE_INTEGER;
+    fs.writeFileSync(stateFile, JSON.stringify(state));
+
+    const attempt = store({
+      randomId: () => "spr_fedcba9876543210fedcba9876543210",
+    });
+    expect(() =>
+      attempt.add({
+        decision: "deny",
+        rule: "Write",
+        expiresAt: now + 60_000,
+        expectedGeneration: Number.MAX_SAFE_INTEGER,
+      }),
+    ).toThrow(
+      expect.objectContaining({ code: SCOPED_PERMISSION_ERROR_CODES.INVALID }),
+    );
+
+    // The write must not have relaxed the retained rule or left a
+    // non-advancing generation in place.
+    const listed = attempt.list();
+    expect(listed.generation).toBe(Number.MAX_SAFE_INTEGER);
+    expect(listed.rules).toHaveLength(1);
+    expect(listed.rules[0]).toMatchObject({
+      decision: "allow",
+      status: "active",
+      revision: 1,
+    });
+  });
+
+  it("refuses revoke when the record revision is exhausted without loosening the permission", () => {
+    const created = store().add({
+      decision: "allow",
+      rule: "Bash(git status:*)",
+      expiresAt: now + 60_000,
+    });
+    const state = readState();
+    state.rules[0].revision = Number.MAX_SAFE_INTEGER;
+    fs.writeFileSync(stateFile, JSON.stringify(state));
+
+    expect(() => store().revoke({ id: created.id })).toThrow(
+      expect.objectContaining({ code: SCOPED_PERMISSION_ERROR_CODES.INVALID }),
+    );
+
+    // A would-be silent non-advancing revoke must not mark the rule revoked
+    // nor advance the store generation.
+    const listed = store().list();
+    expect(listed.generation).toBe(1);
+    expect(listed.rules[0]).toMatchObject({
+      decision: "allow",
+      status: "active",
+      revision: Number.MAX_SAFE_INTEGER,
+    });
+  });
+
+  it("refuses add when the exhausted generation is also needed by revoke", () => {
+    const created = store().add({
+      decision: "deny",
+      rule: "Write",
+      expiresAt: now + 60_000,
+    });
+    const state = readState();
+    state.generation = Number.MAX_SAFE_INTEGER;
+    fs.writeFileSync(stateFile, JSON.stringify(state));
+
+    // Even a revoke bumps generation, so it too must be refused at the cap.
+    expect(() => store().revoke({ id: created.id })).toThrow(
+      expect.objectContaining({ code: SCOPED_PERMISSION_ERROR_CODES.INVALID }),
+    );
+    const listed = store().list();
+    expect(listed.generation).toBe(Number.MAX_SAFE_INTEGER);
+    expect(listed.rules[0]).toMatchObject({ status: "active", decision: "deny" });
+  });
+
+  it("still advances a pre-boundary revoke, so only the cap is rejected", () => {
+    const created = store().add({
+      decision: "allow",
+      rule: "Read",
+      expiresAt: now + 60_000,
+    });
+    const state = readState();
+    state.rules[0].revision = Number.MAX_SAFE_INTEGER - 1;
+    fs.writeFileSync(stateFile, JSON.stringify(state));
+
+    const revoked = store().revoke({ id: created.id });
+    expect(revoked).toMatchObject({
+      status: "revoked",
+      revision: Number.MAX_SAFE_INTEGER,
+    });
+    const listed = store().list();
+    expect(listed.generation).toBe(2);
+    expect(listed.rules[0].revision).toBe(Number.MAX_SAFE_INTEGER);
+  });
+});
