@@ -1,0 +1,248 @@
+{
+  "schema": "chainlesschain.archived-reply-diagnosis/v1",
+  "observedRun": "39108779712",
+  "sourceCommit": "04d48ca7feb5f587f3c2495500cd9a2dad0c9e49",
+  "conclusion": "failure",
+  "originalEvidencePreserved": true,
+  "originalResult": {
+    "passed": 7,
+    "node": "22.12.0",
+    "realHost": "IntelliJ IDEA 2025.2",
+    "savedRows": 0,
+    "agentLaunches": 1,
+    "tests": 7,
+    "publicZipDigest": "sha256:4c5984d525e86a3d3ff27e085b5f4e27d4f47c8a76d8b73ec9251f73a13a7a7b",
+    "restartReached": false,
+    "publicPlugin": "0.4.167",
+    "phase": "initial",
+    "replies": 1,
+    "liveBodyOccurrences": 2,
+    "modelRequests": 0
+  },
+  "diagnoses": [
+    "Stopped process intentionally cancels automatic saved history load; explicit Latest is required.",
+    "Asynchronous composer acceptance notice splits the live assistant span and duplicates final body; reproduced before fix.",
+    "Without protocol observer, process exit overtakes the final stdout callback; reproduced before fix.",
+    "Two unknown rejected peer invocations remain unknown in original artifact; config get llm.provider is independently required by plugin source."
+  ],
+  "product": {
+    "focusedTests": 38,
+    "tree": "C:/code/chainlesschain/.worktrees/task-quality-followup",
+    "suites": {
+      "ChatComposerDraftsTest": 5,
+      "ChatHistoryViewTest": 9,
+      "ChatTranscriptSyncTest": 9,
+      "AgentChatSessionTest": 15
+    },
+    "changes": [
+      "Keep asynchronous acceptance visible in separate accessible status label.",
+      "Always wait up to two seconds for stdout pump on background process waiter.",
+      "Schedule exit UI callback with the same IDE queue as result rendering."
+    ],
+    "passed": 38
+  },
+  "fixture": {
+    "windowsPlatformSkip": 1,
+    "uiCompilation": "passed",
+    "linuxNode": "22.22.2",
+    "tree": "C:/code/chainlesschain/.worktrees/v17",
+    "changes": [
+      "Retain pre-history live snapshot and reject duplicate archived body.",
+      "Click actual Latest button after stopped/idle and keep canonical/restart identity oracle.",
+      "Allow only exact read-only config get llm.provider and retain controlled category-only rejection diagnostics.",
+      "Bind workflow, runner, verifier and Java UI expected version to strict public manifest metadata."
+    ],
+    "public168Execution": "NOT_RUN"
+  },
+  "releasesDispatched": 0,
+  "commitsCreated": 0,
+  "artifacts": [
+    {
+      "path": "job.log",
+      "digest": "sha256:8a6730e2841275f93e036a0bc442e0ab62b60f961b32bd9320ca3e7433b4b3aa"
+    },
+    {
+      "path": "artifact/_temp/verify-33-archived-recovery/recovery-failure-initial.json",
+      "digest": "sha256:232fc7b0b388f676c4c8544858e8017634bf232158d0fd02c08af90d58dcc5ae"
+    },
+    {
+      "path": "artifact/_temp/verify-33-archived-recovery/peer.jsonl",
+      "digest": "sha256:1080f58b077c078776e4b6f13fd285e8c8910ecb4efcfcf27e5ce0228038e8b8"
+    },
+    {
+      "path": "artifact/_temp/verify-33-archived-recovery/binding.json",
+      "digest": "sha256:cf7e3151c91d941d863db02f07e586baaf3231388d69970b0d06a56ebfcb66f5"
+    },
+    {
+      "path": "composer-before.xml",
+      "digest": "sha256:881f84fe2f6fcbf03de119e4495a86b95eb878ca6831f2f100470725ec9f2d1d"
+    },
+    {
+      "path": "exit-before.xml",
+      "digest": "sha256:febaf369915a2357660596f87be197addb528f7afafbc1ee0576f7e21cafca91"
+    },
+    {
+      "path": "product-after-all.log",
+      "digest": "sha256:42b39139d524811ca5130853b4916742fca7a45fc905204bcad17f6b639e6413"
+    },
+    {
+      "path": "after-TEST-com.chainlesschain.ide.AgentChatSessionTest.xml",
+      "digest": "sha256:1e3df121efa652ff207fd8fa2bf5cb7f6ff0f789c1d089a2f4e3e4f0345e7fbc"
+    },
+    {
+      "path": "after-TEST-com.chainlesschain.ide.intellij.ChatComposerDraftsTest.xml",
+      "digest": "sha256:b4933dd88a628027b7e679578d664698780d77e8dcfc751d8c8dec086b9e395d"
+    },
+    {
+      "path": "after-TEST-com.chainlesschain.ide.intellij.ChatHistoryViewTest.xml",
+      "digest": "sha256:20b723954fd569874709dd66db3b79652712da0e16699fb241409aef6e1a25a1"
+    },
+    {
+      "path": "after-TEST-com.chainlesschain.ide.intellij.ChatTranscriptSyncTest.xml",
+      "digest": "sha256:7f16ee3b888e04a5243884fb73475eb96e497348369bb3ce8edfaa89e0e26151"
+    },
+    {
+      "path": "fixture-windows-final.log",
+      "digest": "sha256:ed0b8101b20ce0374904023371f9a0012823c748c86f97916af8eac0e7648765"
+    },
+    {
+      "path": "fixture-linux-final.log",
+      "digest": "sha256:9588b8c5c25c407429d919d7d223b0f6755d294034b878b487dda884da8449c8"
+    },
+    {
+      "path": "fixture-ui-compile-after.log",
+      "digest": "sha256:990789b0577336c5127b0629d705afd490ba29ea42fce919f512a5adbd5316d8"
+    }
+  ],
+  "archivedArtifacts": [
+    {
+      "sourcePath": "job.log",
+      "archive": {
+        "path": "followup-106-job.log.gz",
+        "originalDigest": "sha256:8a6730e2841275f93e036a0bc442e0ab62b60f961b32bd9320ca3e7433b4b3aa",
+        "storedDigest": "sha256:b90df7027b239d9cc90e4ef6b986e344aba1afdcb25a244169c7ee5a48853121",
+        "originalBytes": 69268
+      }
+    },
+    {
+      "sourcePath": "artifact/_temp/verify-33-archived-recovery/recovery-failure-initial.json",
+      "archive": {
+        "path": "followup-106-artifact--_temp--verify-33-archived-recovery--recovery-failure-initial.json.gz",
+        "originalDigest": "sha256:232fc7b0b388f676c4c8544858e8017634bf232158d0fd02c08af90d58dcc5ae",
+        "storedDigest": "sha256:1dc4006594060235590eeabe864ef6e879ec8acea88ffbc9cb65a95454c9e39e",
+        "originalBytes": 15096
+      }
+    },
+    {
+      "sourcePath": "artifact/_temp/verify-33-archived-recovery/peer.jsonl",
+      "archive": {
+        "path": "followup-106-artifact--_temp--verify-33-archived-recovery--peer.jsonl.gz",
+        "originalDigest": "sha256:1080f58b077c078776e4b6f13fd285e8c8910ecb4efcfcf27e5ce0228038e8b8",
+        "storedDigest": "sha256:47a3a960731eace32d71310e0d82df35adfc5a764ebbe8f5e27af7f7c1c4f3b4",
+        "originalBytes": 1917
+      }
+    },
+    {
+      "sourcePath": "artifact/_temp/verify-33-archived-recovery/binding.json",
+      "archive": {
+        "path": "followup-106-artifact--_temp--verify-33-archived-recovery--binding.json.gz",
+        "originalDigest": "sha256:cf7e3151c91d941d863db02f07e586baaf3231388d69970b0d06a56ebfcb66f5",
+        "storedDigest": "sha256:2b6d35ff8e13eaba4cbd7dc71bb1eb82de53ec80e4418ed0e98a30b42f9aeb97",
+        "originalBytes": 2561
+      }
+    },
+    {
+      "sourcePath": "composer-before.xml",
+      "archive": {
+        "path": "followup-106-composer-before.xml.gz",
+        "originalDigest": "sha256:881f84fe2f6fcbf03de119e4495a86b95eb878ca6831f2f100470725ec9f2d1d",
+        "storedDigest": "sha256:6ce32674f5443ee1099bd3d3d09b4b64a3571a0926402935e83b35978b78a6ea",
+        "originalBytes": 2960
+      }
+    },
+    {
+      "sourcePath": "exit-before.xml",
+      "archive": {
+        "path": "followup-106-exit-before.xml.gz",
+        "originalDigest": "sha256:febaf369915a2357660596f87be197addb528f7afafbc1ee0576f7e21cafca91",
+        "storedDigest": "sha256:c61df2c1593c8ae256eeaecf17351646a5e65f89cf7d23b133d4d36432c4a526",
+        "originalBytes": 1605
+      }
+    },
+    {
+      "sourcePath": "product-after-all.log",
+      "archive": {
+        "path": "followup-106-product-after-all.log.gz",
+        "originalDigest": "sha256:42b39139d524811ca5130853b4916742fca7a45fc905204bcad17f6b639e6413",
+        "storedDigest": "sha256:7d25697637b756115e6be60d6005df5765cd1e01f5cbc125bf5405c95431e152",
+        "originalBytes": 26114
+      }
+    },
+    {
+      "sourcePath": "after-TEST-com.chainlesschain.ide.AgentChatSessionTest.xml",
+      "archive": {
+        "path": "followup-106-after-TEST-com.chainlesschain.ide.AgentChatSessionTest.xml.gz",
+        "originalDigest": "sha256:1e3df121efa652ff207fd8fa2bf5cb7f6ff0f789c1d089a2f4e3e4f0345e7fbc",
+        "storedDigest": "sha256:c4845b5096a5df2958101317bf669b28fa16c27a5ebd304b8330cca767bbd40e",
+        "originalBytes": 2423
+      }
+    },
+    {
+      "sourcePath": "after-TEST-com.chainlesschain.ide.intellij.ChatComposerDraftsTest.xml",
+      "archive": {
+        "path": "followup-106-after-TEST-com.chainlesschain.ide.intellij.ChatComposerDraftsTest.xml.gz",
+        "originalDigest": "sha256:b4933dd88a628027b7e679578d664698780d77e8dcfc751d8c8dec086b9e395d",
+        "storedDigest": "sha256:9509d25780157346ce06c6729c6cda2f8cc98cf54abb40fcdd3036c77dc8ef3d",
+        "originalBytes": 1189
+      }
+    },
+    {
+      "sourcePath": "after-TEST-com.chainlesschain.ide.intellij.ChatHistoryViewTest.xml",
+      "archive": {
+        "path": "followup-106-after-TEST-com.chainlesschain.ide.intellij.ChatHistoryViewTest.xml.gz",
+        "originalDigest": "sha256:20b723954fd569874709dd66db3b79652712da0e16699fb241409aef6e1a25a1",
+        "storedDigest": "sha256:22bb4d415655429a9ba4473485dfe29c686dabad8bbca58bac635a6b18930936",
+        "originalBytes": 1786
+      }
+    },
+    {
+      "sourcePath": "after-TEST-com.chainlesschain.ide.intellij.ChatTranscriptSyncTest.xml",
+      "archive": {
+        "path": "followup-106-after-TEST-com.chainlesschain.ide.intellij.ChatTranscriptSyncTest.xml.gz",
+        "originalDigest": "sha256:7f16ee3b888e04a5243884fb73475eb96e497348369bb3ce8edfaa89e0e26151",
+        "storedDigest": "sha256:b0d6ac37f5376f67db20a70f315e21eea3bbc61f161ca3d90c992b7b354d30ae",
+        "originalBytes": 1836
+      }
+    },
+    {
+      "sourcePath": "fixture-windows-final.log",
+      "archive": {
+        "path": "followup-106-fixture-windows-final.log.gz",
+        "originalDigest": "sha256:ed0b8101b20ce0374904023371f9a0012823c748c86f97916af8eac0e7648765",
+        "storedDigest": "sha256:47b7403b20717ea5e2055588ad3eeb50b9811ef839fc45cbd1254d1315ad1268",
+        "originalBytes": 4026
+      }
+    },
+    {
+      "sourcePath": "fixture-linux-final.log",
+      "archive": {
+        "path": "followup-106-fixture-linux-final.log.gz",
+        "originalDigest": "sha256:9588b8c5c25c407429d919d7d223b0f6755d294034b878b487dda884da8449c8",
+        "storedDigest": "sha256:c4550d1bfd283e90bab473399ab71b805aafb18c508be3303f6d41a6a735002e",
+        "originalBytes": 4018
+      }
+    },
+    {
+      "sourcePath": "fixture-ui-compile-after.log",
+      "archive": {
+        "path": "followup-106-fixture-ui-compile-after.log.gz",
+        "originalDigest": "sha256:990789b0577336c5127b0629d705afd490ba29ea42fce919f512a5adbd5316d8",
+        "storedDigest": "sha256:3f8a7060fc986f126791b73b8ed5952269f508bd1ee680c5e5b610b271244174",
+        "originalBytes": 1796
+      }
+    }
+  ],
+  "productSourceCommit": "e01eb3a92212a69140559d8ec304ddd0dce99274",
+  "productPullRequest": "https://github.com/chainlesschain/chainlesschain/pull/462",
+  "note": "Diagnosis captured before commit; added source binding does not change any original failure or test result. Public .168 recovery remains NOT_RUN."
+}

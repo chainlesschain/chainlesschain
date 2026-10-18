@@ -9,9 +9,8 @@ on:
   workflow_dispatch:
     inputs:
       versions_file:
-        description: Committed public package manifest binding the approved 0.4.167 ZIP
+        description: Committed public package manifest binding the exact approved plugin version and ZIP
         required: true
-        default: docs/research/cli/verify01-package-sets/2026-10-18-task-quality-105.json
         type: string
 
 permissions:
@@ -53,21 +52,17 @@ jobs:
           node --input-type=module <<'NODE'
           import assert from 'node:assert/strict';
           import fs from 'node:fs';
-          import { validateNativePackageSetFile } from './packages/cli/scripts/verify01-native-retest-plan.mjs';
-          import { validatePublicPlugin } from './packages/jetbrains-plugin/scripts/archived-reply-evidence.mjs';
-          const selected = validateNativePackageSetFile(process.env.REPLAY_VERSIONS_FILE);
-          const manifest = JSON.parse(selected.bytes);
-          assert.equal(manifest.versions.jetbrains, '0.4.167');
-          const origin = manifest.origin?.jetbrains;
-          assert.equal(origin.approved, true); assert.equal(origin.listed, true); assert.equal(origin.hidden, false);
-          assert.ok(Number.isSafeInteger(origin.updateId) && origin.updateId > 0);
-          assert.equal(origin.file, `32208/${origin.updateId}/chainlesschain-ide-bridge-0.4.167.zip`);
+          import { readPublicPluginBinding, validatePublicPlugin } from './packages/jetbrains-plugin/scripts/archived-reply-evidence.mjs';
+          const plugin = readPublicPluginBinding(process.env.REPLAY_VERSIONS_FILE);
+          const origin = plugin.publicOrigin;
           const response = await fetch(`https://plugins.jetbrains.com/files/${origin.file}`, { signal: AbortSignal.timeout(120000) });
           assert.equal(response.status, 200);
           const parts = []; let size = 0;
           for await (const part of response.body) { size += part.length; assert.ok(size <= 256 * 1024 * 1024); parts.push(part); }
           fs.writeFileSync(process.env.REPLAY_ZIP, Buffer.concat(parts), { flag: 'wx' });
-          console.log(JSON.stringify(validatePublicPlugin(process.env.REPLAY_VERSIONS_FILE, process.env.REPLAY_ZIP)));
+          const verified = validatePublicPlugin(process.env.REPLAY_VERSIONS_FILE, process.env.REPLAY_ZIP);
+          assert.deepEqual(verified, plugin);
+          console.log(JSON.stringify(verified));
           NODE
       - name: Prepare fixed host toolchain and display
         timeout-minutes: 15
@@ -76,7 +71,7 @@ jobs:
           sudo apt-get install -y xvfb
           chmod +x packages/jetbrains-plugin/gradlew
           node scripts/lib/verify01-gradle-bootstrap.mjs --project-dir packages/jetbrains-plugin --artifact-dir "$RUNNER_TEMP/archived-reply-gradle"
-      - name: Replay archived verify-33 through public .167 and restart the real IDE
+      - name: Replay archived verify-33 through the bound public plugin and restart the real IDE
         timeout-minutes: 30
         # No provider credentials are configured. The runner passes an explicit
         # credential-free environment and a fixed deterministic CLI peer.

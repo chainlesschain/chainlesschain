@@ -119,6 +119,12 @@ export function verifyArchivedReplyOutput(output) {
   const initial = JSON.parse(
     fs.readFileSync(path.join(output, "recovery-initial.json")),
   );
+  assert.deepEqual(
+    initial.liveSnapshot,
+    JSON.parse(
+      fs.readFileSync(path.join(output, "recovery-live-initial.json")),
+    ),
+  );
   const restart = JSON.parse(
     fs.readFileSync(path.join(output, "recovery-restart.json")),
   );
@@ -146,6 +152,7 @@ export function verifyArchivedReplyOutput(output) {
   result.evidence = [
     "fixture.json",
     "binding.json",
+    "recovery-live-initial.json",
     "recovery-initial.json",
     "recovery-restart.json",
     "peer.jsonl",
@@ -224,7 +231,7 @@ export async function runArchivedReplyRecovery({
     "--no-configuration-cache",
     "--console=plain",
     `-PuiJourneyRunId=${journey}`,
-    "-PhostIdeVersion=2025.2",
+    `-PhostIdeVersion=${plugin.ideVersion}`,
     `-PpublicUiPluginArchive=${pluginArchive}`,
     `-PpublicUiPluginDigest=${plugin.digest}`,
   ];
@@ -346,10 +353,10 @@ if (
     --plugin-archive /absolute/public-readback/chainlesschain-jetbrains.zip \\
     --output /absolute/existing-parent/verify-33-recovery-new
 
-The manifest must bind approved public 0.4.167 ZIP bytes. The output must not exist.
+The manifest must bind the exact approved public plugin version and ZIP bytes. The output must not exist.
 Add --prepare-only to bind evidence without launching an IDE. Use a fresh output for the real run.
 Offline readback: node packages/jetbrains-plugin/scripts/verify01-archived-reply-recovery.mjs --verify /absolute/evidence-output
-Scope: deterministic archived reply and real plugin restoration only; no model requests, new task execution or public CLI .105 verification. Original verdicts stay unchanged.`);
+Scope: deterministic archived reply and real plugin restoration only; no model requests, new task execution or public CLI verification. Original verdicts stay unchanged.`);
     process.exit(0);
   }
   assert.ok(

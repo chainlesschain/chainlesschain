@@ -1,0 +1,162 @@
+{
+  "schema": "chainlesschain.task-quality-product-followup/v1",
+  "recordedAt": "2026-10-18T08:08:11.704944+00:00",
+  "billingAssessed": false,
+  "versionsObserved": {
+    "cli": "0.166.105",
+    "vscode": "0.37.150",
+    "jetbrains": "0.4.167"
+  },
+  "generationRunId": "39107035717",
+  "generationJobId": "117618846330",
+  "artifactId": "12128874126",
+  "artifactZipDigest": "sha256:9c8d651191663941168bb18721be446a72007fe9fb2849d584d76ed741761c8a",
+  "executionSourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138",
+  "responses": [
+    {
+      "sampleId": "first-run-darwin-cli",
+      "request": 1,
+      "originalArtifactPath": "first-run-darwin-cli/broker/response-1.json",
+      "originalDigest": "sha256:bd34917cfd3fed50d9664a286c3ad778a670b11af4415007271bbbc7df861d2b",
+      "archive": {
+        "path": "native-105-darwin-cli-first-run-darwin-cli-response-1.json.gz",
+        "digest": "sha256:7ec986788857a7ad75a7c2fdfda89a9c7c5cd67e40e55bce5cfececfff531cf0",
+        "bytes": 447
+      },
+      "finishReason": "tool_calls",
+      "contentCharacters": 69,
+      "reasoningContentCharacters": 0,
+      "toolCallNames": [
+        "read_file"
+      ],
+      "completionTokens": 62,
+      "reasoningTokens": 0
+    },
+    {
+      "sampleId": "first-run-darwin-cli",
+      "request": 2,
+      "originalArtifactPath": "first-run-darwin-cli/broker/response-2.json",
+      "originalDigest": "sha256:c6537f919efbaf532e8df2a7086c27663b4a10527fa99cd6542a6f4a8bc90a3d",
+      "archive": {
+        "path": "native-105-darwin-cli-first-run-darwin-cli-response-2.json.gz",
+        "digest": "sha256:79fd51195d2764e7cd272b0075e75c2c187efe251f210c0a1b6dae7b3cf5ccb2",
+        "bytes": 482
+      },
+      "finishReason": "tool_calls",
+      "contentCharacters": 112,
+      "reasoningContentCharacters": 0,
+      "toolCallNames": [
+        "read_file"
+      ],
+      "completionTokens": 72,
+      "reasoningTokens": 0
+    },
+    {
+      "sampleId": "first-run-darwin-cli",
+      "request": 3,
+      "originalArtifactPath": "first-run-darwin-cli/broker/response-3.json",
+      "originalDigest": "sha256:e4559589b6d7234657389f44a0389ffa93aaec57d4012182deaf2e7851b84af3",
+      "archive": {
+        "path": "native-105-darwin-cli-first-run-darwin-cli-response-3.json.gz",
+        "digest": "sha256:64cf1f664c153e335e5b1bca8425a2b95cd3e56ed4ed4fc7d713de893c9e32af",
+        "bytes": 11016
+      },
+      "finishReason": "length",
+      "contentCharacters": 32554,
+      "reasoningContentCharacters": 0,
+      "toolCallNames": [],
+      "completionTokens": 8192,
+      "reasoningTokens": 0
+    },
+    {
+      "sampleId": "verify-07",
+      "request": 1,
+      "originalArtifactPath": "verify-07/broker/response-1.json",
+      "originalDigest": "sha256:86e15a0829217b46b0c5ae6f38263d82cd47e98dd8a5712bdf82f94144a9c680",
+      "archive": {
+        "path": "native-105-darwin-cli-verify-07-response-1.json.gz",
+        "digest": "sha256:779315ea01e2b6ffc98b8db702cff3b1d9beed15a8776a3a46c25b72221fd986",
+        "bytes": 442
+      },
+      "finishReason": "tool_calls",
+      "contentCharacters": 59,
+      "reasoningContentCharacters": 0,
+      "toolCallNames": [
+        "read_file"
+      ],
+      "completionTokens": 60,
+      "reasoningTokens": 0
+    },
+    {
+      "sampleId": "verify-07",
+      "request": 2,
+      "originalArtifactPath": "verify-07/broker/response-2.json",
+      "originalDigest": "sha256:0f9ae1a0ad36b52e2941e918c7678de077ed4f3b75c2a6833633590da3bb0c05",
+      "archive": {
+        "path": "native-105-darwin-cli-verify-07-response-2.json.gz",
+        "digest": "sha256:4439b15d010feef2de4bf7be4f504a7470d1b213dcf957349eea3f560d5bd002",
+        "bytes": 464
+      },
+      "finishReason": "tool_calls",
+      "contentCharacters": 80,
+      "reasoningContentCharacters": 0,
+      "toolCallNames": [
+        "read_file"
+      ],
+      "completionTokens": 67,
+      "reasoningTokens": 0
+    },
+    {
+      "sampleId": "verify-07",
+      "request": 3,
+      "originalArtifactPath": "verify-07/broker/response-3.json",
+      "originalDigest": "sha256:7b642b15639ec34652ac54427d7f8c2873a74d1d2e72fd825cb027356df6a806",
+      "archive": {
+        "path": "native-105-darwin-cli-verify-07-response-3.json.gz",
+        "digest": "sha256:6a9c6f2f82ce771c2f9b601547b5930b939e9ef850d9933666569889d3993744",
+        "bytes": 11621
+      },
+      "finishReason": "length",
+      "contentCharacters": 33581,
+      "reasoningContentCharacters": 0,
+      "toolCallNames": [],
+      "completionTokens": 8192,
+      "reasoningTokens": 0
+    }
+  ],
+  "findings": [
+    "Each sample made two read_file calls, followed by ordinary assistant content without a tool call.",
+    "The third response hit finish_reason=length at 8192 output tokens; no write_file JSON was attempted or truncated.",
+    "Both destination files retained the original 27-byte placeholder. Generation failed and independent acceptance remains required.",
+    "The broker correctly refused the truncated output. The CLI then appended unrelated credential/balance troubleshooting to the explicit 403 reason."
+  ],
+  "productChangesPrepared": {
+    "targetCli": "0.166.106",
+    "sourceBranch": "feature/task-quality-followup-20261018",
+    "status": "UNCOMMITTED_CANDIDATE_NOT_PUBLISHED",
+    "changes": [
+      "Generic guidance now directs concise progress and prompt file-tool action once the relevant API is understood.",
+      "Large file writes use complete small sections and unique-anchor edit_file extensions, waiting for every tool result.",
+      "Explicit non-authentication/non-billing HTTP 403 causes retain their actual diagnosis and redaction."
+    ],
+    "focusedValidation": {
+      "testFiles": [
+        "packages/cli/__tests__/unit/agent-core-stream-resilience.test.js",
+        "packages/cli/__tests__/unit/stream-retry-provider-verdict.test.js"
+      ],
+      "testFileCount": 2,
+      "passedTests": 58,
+      "log": {
+        "path": "followup-106-cli-focused-tests.log.gz",
+        "digest": "sha256:79b1999f3a0859154cea68dc0660ccb42505563acff8e8b85becdcf2741a97c9",
+        "bytes": 281
+      },
+      "scope": "Local focused regression evidence only; no new model generation and no task acceptance claim."
+    }
+  },
+  "preservedConstraints": [
+    "No broker relaxation or automatic replay.",
+    "No tool schema, execution semantics, output budget, task-specific solution or acceptance change.",
+    "The failed .105 attempts remain independent historical records."
+  ]
+}

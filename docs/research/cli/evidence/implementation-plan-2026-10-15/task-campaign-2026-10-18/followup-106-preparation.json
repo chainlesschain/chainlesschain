@@ -1,0 +1,52 @@
+{
+  "schema": "chainlesschain.task-quality-next-version-preparation/v1",
+  "recordedAt": "2026-10-18T08:16:55.683049+00:00",
+  "status": "SOURCE_COMMITTED_OFFICIAL_GATES_STARTED_ADDITIONAL_FAILURE_REVIEW_REQUIRED",
+  "billingAssessed": false,
+  "sourceCommit": "e01eb3a92212a69140559d8ec304ddd0dce99274",
+  "pullRequest": "https://github.com/chainlesschain/chainlesschain/pull/462",
+  "candidateVersions": {
+    "cli": "0.166.106",
+    "vscode": "0.37.151",
+    "jetbrains": "0.4.168"
+  },
+  "published": false,
+  "currentRoundLedger": "next-package-105-20261018.json",
+  "currentRoundSnapshot": {
+    "generationRecordsCollected": 18,
+    "acceptanceRecordsCollected": 7,
+    "candidateAcceptancePassed": 1,
+    "endToEndPassed": 1,
+    "reusedAcceptedDeliverables": 25,
+    "cumulativeAcceptedDeliverables": 26
+  },
+  "newlyAcceptedSampleIds": [
+    "first-run-darwin-vscode"
+  ],
+  "focusedRegressions": {
+    "cliPassed": 58,
+    "jetbrainsPassed": 38,
+    "linuxFixturePassed": 8,
+    "windowsFixturePassed": 7,
+    "windowsFixtureSkipped": 1,
+    "uiJavaCompile": "passed"
+  },
+  "evidence": [
+    "next-release-validation/native-105-darwin-cli-product-followup.json",
+    "next-release-validation/native-105-new-failures-review.json",
+    "next-release-validation/followup-106-archived-reply-regressions.json"
+  ],
+  "remaining": [
+    "Collect every already-dispatched .105 generation and independent acceptance record, without re-dispatch.",
+    "Review the new Windows JetBrains ACL verification timeout and candidate mutation-test failures.",
+    "Finish fixes and require complete official release gates for the exact final source commit.",
+    "Publish through established CLI OIDC and IDE workflows, verify public artifacts, then retest only unfinished samples.",
+    "After complete strict .105 collection, bind the full round chain so newly accepted samples are skipped.",
+    "Run the archived-reply no-model recovery with the new public .168 manifest; preserve both old .167 failures."
+  ],
+  "releaseLimits": [
+    "No old checks qualify a later source commit.",
+    "Never move previous release tags.",
+    "Accepted candidate files and native end-to-end results retain separate verdicts."
+  ]
+}

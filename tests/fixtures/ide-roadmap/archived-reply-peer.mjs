@@ -42,6 +42,7 @@ try {
   const bytes = fs.readFileSync(file);
   assert.equal(digest(bytes), process.env.CC_ARCHIVED_REPLY_MANIFEST_DIGEST);
   const fixture = validateReplyFixture(JSON.parse(bytes));
+  stage = "validate-invocation";
   if (argv.length === 1 && argv[0] === "--version") {
     trace({ command: "archived-peer-version" });
     process.stdout.write("0.999.0-archived-reply\n");
@@ -56,6 +57,16 @@ try {
         apiKey: null,
       },
     });
+    await done();
+  }
+  if (
+    argv.length === 3 &&
+    argv[0] === "config" &&
+    argv[1] === "get" &&
+    argv[2] === "llm.provider"
+  ) {
+    trace({ command: "archived-peer-config-provider" });
+    process.stdout.write("ollama\n");
     await done();
   }
   if (argv[0] === "context") {
@@ -149,6 +160,11 @@ try {
     command: "archived-peer-rejected",
     reason: error.code || "INVALID_REPLAY",
     stage,
+    invocation: ["--version", "config", "context", "agent", "session"].includes(
+      argv[0],
+    )
+      ? argv[0]
+      : "unsupported",
   });
   process.stderr.write(
     `Archived reply fixture rejected the invocation or input at ${stage} (${error.code || error.name || "Error"}).\n`,

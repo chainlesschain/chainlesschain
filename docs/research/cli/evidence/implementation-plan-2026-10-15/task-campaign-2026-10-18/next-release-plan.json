@@ -1004,5 +1004,6 @@
       },
       "scope": "Job start is not a model request receipt or candidate acceptance."
     }
-  }
+  },
+  "followup106Preparation": "followup-106-preparation.json"
 }

@@ -122,10 +122,14 @@ export function validateReplyFixture(value) {
   return value;
 }
 
-export function validatePublicPlugin(versionsFile, archiveFile) {
-  const selected = validateNativePackageSetFile(versionsFile);
+export function readPublicPluginBinding(
+  versionsFile,
+  repositoryRoot = repository,
+) {
+  const selected = validateNativePackageSetFile(versionsFile, repositoryRoot);
   const manifest = JSON.parse(selected.bytes);
-  assert.equal(manifest.versions.jetbrains, "0.4.167");
+  const version = manifest.versions.jetbrains;
+  assert.match(version, /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/u);
   assert.equal(manifest.versions.jetbrainsHost, "2025.2");
   const origin = manifest.origin?.jetbrains;
   assert.equal(
@@ -135,28 +139,47 @@ export function validatePublicPlugin(versionsFile, archiveFile) {
   assert.equal(origin.approved, true);
   assert.equal(origin.listed, true);
   assert.equal(origin.hidden, false);
+  assert.ok(Number.isSafeInteger(origin.updateId) && origin.updateId > 0);
   assert.equal(
     origin.file,
-    `32208/${origin.updateId}/chainlesschain-ide-bridge-0.4.167.zip`,
+    `32208/${origin.updateId}/chainlesschain-ide-bridge-${version}.zip`,
   );
+  const artifact = manifest.publicArtifacts?.jetbrains;
+  assert.ok(artifact, "independently verified public readback required");
+  assert.match(artifact.digest, /^sha256:[a-f0-9]{64}$/u);
+  assert.ok(
+    Number.isSafeInteger(artifact.bytes) &&
+      artifact.bytes > 0 &&
+      artifact.bytes <= 256 * 1024 * 1024,
+  );
+  return {
+    version,
+    ideVersion: manifest.versions.jetbrainsHost,
+    digest: artifact.digest,
+    bytes: artifact.bytes,
+    packageSetPath: versionsFile,
+    packageSetDigest: selected.packageSetDigest,
+    publicOrigin: origin,
+  };
+}
+
+export function validatePublicPlugin(
+  versionsFile,
+  archiveFile,
+  repositoryRoot = repository,
+) {
+  const plugin = readPublicPluginBinding(versionsFile, repositoryRoot);
   assert.ok(
     path.isAbsolute(archiveFile) && !fs.lstatSync(archiveFile).isSymbolicLink(),
   );
   const bytes = fs.readFileSync(archiveFile);
   assert.equal(
     digest(bytes),
-    manifest.publicArtifacts?.jetbrains?.digest,
+    plugin.digest,
     "ZIP must match independently verified public readback",
   );
-  assert.equal(bytes.length, manifest.publicArtifacts.jetbrains.bytes);
-  return {
-    version: "0.4.167",
-    ideVersion: "2025.2",
-    digest: digest(bytes),
-    packageSetPath: versionsFile,
-    packageSetDigest: selected.packageSetDigest,
-    publicOrigin: origin,
-  };
+  assert.equal(bytes.length, plugin.bytes);
+  return plugin;
 }
 
 export function assertRecoveryEvidence({
@@ -167,6 +190,22 @@ export function assertRecoveryEvidence({
   plugin,
 }) {
   validateReplyFixture(fixture);
+  const live = initial.liveSnapshot;
+  assert.ok(
+    live,
+    "retain the initial live snapshot before loading saved history",
+  );
+  assert.equal(live.visible, true);
+  assert.equal(live.childRunning, false);
+  assert.equal(live.turnActive, false);
+  assert.ok(live.draftStatus.includes("Input accepted and stored by the CLI"));
+  assert.equal(
+    live.text.split(fixture.rendered).length - 1,
+    1,
+    "the live reply must appear exactly once before loading saved history",
+  );
+  for (const key of ["id", "sessionId", "profile", "processId"])
+    assert.equal(live[key], initial.snapshot[key]);
   for (const [phase, value] of [
     ["initial", initial],
     ["restart", restart],
@@ -176,8 +215,8 @@ export function assertRecoveryEvidence({
     assert.equal(value.sampleId, "verify-33");
     assert.equal(value.sourceDigest, fixture.sourceDigest);
     assert.equal(value.renderedDigest, fixture.renderedDigest);
-    assert.equal(value.pluginVersion, "0.4.167");
-    assert.equal(value.ideVersion, "2025.2");
+    assert.equal(value.pluginVersion, plugin.version);
+    assert.equal(value.ideVersion, plugin.ideVersion);
     assert.equal(value.platform, "linux");
     assert.equal(value.installation.exactZipContents, true);
     assert.equal(value.installation.archiveSha256, plugin.digest);
@@ -198,6 +237,11 @@ export function assertRecoveryEvidence({
     assert.equal(row.sourceText, fixture.source);
     assert.equal(row.bodyText, fixture.rendered);
     assert.ok(row.text.includes(row.bodyText) && s.text.includes(row.text));
+    assert.equal(
+      s.text.split(fixture.rendered).length - 1,
+      1,
+      "saved history must not leave a duplicate live reply",
+    );
   }
   for (const key of ["id", "sessionId", "profile"])
     assert.equal(initial.snapshot[key], restart.snapshot[key]);

@@ -1,0 +1,270 @@
+{
+  "schema": "chainlesschain.native-failure-readonly-review/v1",
+  "reviewedAt": "2026-10-18T08:12:03.261762+00:00",
+  "publishedCliVersion": "0.166.105",
+  "releaseSourceCommit": "d4065008bb4eff84cfc09f9361f4ae4e9de2140f",
+  "evaluationSourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138",
+  "scope": "New generation failures inspected from cached original broker receipts; independent acceptance results are tracked separately.",
+  "failures": [
+    {
+      "runId": "39106967536",
+      "artifactId": "12129768749",
+      "sampleId": "verify-04",
+      "receiptMember": "verify-04/broker/request-16.receipt.json",
+      "errorCode": "DIAGNOSTIC_REQUEST_NOT_DISPATCHED",
+      "finishReason": null,
+      "transport": {
+        "socketAssignedMs": 0,
+        "dnsLookupMs": 1,
+        "tcpConnectedMs": 259,
+        "tlsConnectedMs": null,
+        "dispatchStartedMs": null,
+        "requestFinishedMs": null,
+        "responseStartedMs": null,
+        "dispatchStarted": false,
+        "failureCategory": "DIAGNOSTIC_TIMEOUT_USAGE_UNKNOWN",
+        "connectionAttempts": [
+          {
+            "event": "start",
+            "family": 4,
+            "elapsedMs": 1,
+            "errorCode": null
+          }
+        ],
+        "nestedErrorCodes": [],
+        "errorCode": null,
+        "errorSyscall": null
+      },
+      "finding": "Upstream network failure before HTTP dispatch; TCP connected but TLS never completed.",
+      "productFollowup": "No additional CLI/IDE execution defect established. Explicit non-auth HTTP reason rendering already prepared for 106. Do not change broker rejection or replay requests.",
+      "originalReceiptArchive": {
+        "path": "native-105-verify-04-request-16.receipt.json.gz",
+        "originalDigest": "sha256:bc9bc8ee6a4858e9850c4e88eb0b653fee1ae5691e265801273f811004a713f3",
+        "storedDigest": "sha256:1c0b41a658f45357cdefbe3997c43498e4c6c0e72500cd26aa8c1a4ef15e78bb",
+        "originalBytes": 1118
+      }
+    },
+    {
+      "runId": "39106991066",
+      "artifactId": "12128959663",
+      "sampleId": "verify-06",
+      "receiptMember": "verify-06/broker/request-1.receipt.json",
+      "errorCode": "DIAGNOSTIC_REQUEST_NOT_DISPATCHED",
+      "finishReason": null,
+      "transport": {
+        "socketAssignedMs": 4,
+        "dnsLookupMs": 137,
+        "tcpConnectedMs": null,
+        "tlsConnectedMs": null,
+        "dispatchStartedMs": null,
+        "requestFinishedMs": null,
+        "responseStartedMs": null,
+        "dispatchStarted": false,
+        "failureCategory": "DIAGNOSTIC_REQUEST_ERROR_USAGE_UNKNOWN",
+        "connectionAttempts": [
+          {
+            "event": "start",
+            "family": 4,
+            "elapsedMs": 137,
+            "errorCode": null
+          },
+          {
+            "event": "timeout",
+            "family": 4,
+            "elapsedMs": 2139,
+            "errorCode": null
+          },
+          {
+            "event": "start",
+            "family": 6,
+            "elapsedMs": 2140,
+            "errorCode": null
+          },
+          {
+            "event": "failed",
+            "family": 6,
+            "elapsedMs": 2140,
+            "errorCode": "ENETUNREACH"
+          }
+        ],
+        "nestedErrorCodes": [
+          "ETIMEDOUT",
+          "ENETUNREACH"
+        ],
+        "errorCode": "ETIMEDOUT",
+        "errorSyscall": null
+      },
+      "finding": "Upstream connection failure before HTTP dispatch: IPv4 timeout and unreachable IPv6.",
+      "productFollowup": "No additional CLI/IDE execution defect established. Explicit non-auth HTTP reason rendering already prepared for 106. Do not change broker rejection or replay requests.",
+      "originalReceiptArchive": {
+        "path": "native-105-verify-06-request-1.receipt.json.gz",
+        "originalDigest": "sha256:9c5b71d361e4b89bf8d6eb249682c88750edc9b5ed7974987970675503ad68b3",
+        "storedDigest": "sha256:8aee3096d3252b9ae2d82c208a8eabe3b93dd08e3675d46719d583776c6b7818",
+        "originalBytes": 1541
+      }
+    },
+    {
+      "runId": "39107065069",
+      "artifactId": "12129259384",
+      "sampleId": "verify-08",
+      "receiptMember": "verify-08/broker/request-1.receipt.json",
+      "errorCode": "DIAGNOSTIC_REQUEST_NOT_DISPATCHED",
+      "finishReason": null,
+      "transport": {
+        "socketAssignedMs": 2,
+        "dnsLookupMs": 31,
+        "tcpConnectedMs": 198,
+        "tlsConnectedMs": null,
+        "dispatchStartedMs": null,
+        "requestFinishedMs": null,
+        "responseStartedMs": null,
+        "dispatchStarted": false,
+        "failureCategory": "DIAGNOSTIC_TIMEOUT_USAGE_UNKNOWN",
+        "connectionAttempts": [
+          {
+            "event": "start",
+            "family": 4,
+            "elapsedMs": 31,
+            "errorCode": null
+          }
+        ],
+        "nestedErrorCodes": [],
+        "errorCode": null,
+        "errorSyscall": null
+      },
+      "finding": "Upstream network failure before HTTP dispatch; TCP connected but TLS never completed.",
+      "productFollowup": "No additional CLI/IDE execution defect established. Explicit non-auth HTTP reason rendering already prepared for 106. Do not change broker rejection or replay requests.",
+      "originalReceiptArchive": {
+        "path": "native-105-verify-08-request-1.receipt.json.gz",
+        "originalDigest": "sha256:ab3b17c5c05ead03a7a212b820ed061bba30473729368f77e951989f2dfce5bf",
+        "storedDigest": "sha256:f221c0b64128165b939f4b66af18f6eebb596f3033df17670f9d6ea02b9f7bda",
+        "originalBytes": 1118
+      }
+    },
+    {
+      "runId": "39107091580",
+      "artifactId": "12129458781",
+      "sampleId": "verify-09",
+      "receiptMember": "verify-09/broker/request-4.receipt.json",
+      "errorCode": "DIAGNOSTIC_OUTPUT_TRUNCATED",
+      "finishReason": "length",
+      "transport": {
+        "socketAssignedMs": 4,
+        "dnsLookupMs": 14,
+        "tcpConnectedMs": 205,
+        "tlsConnectedMs": 397,
+        "dispatchStartedMs": 397,
+        "requestFinishedMs": 400,
+        "responseStartedMs": 3278,
+        "dispatchStarted": true,
+        "failureCategory": null,
+        "connectionAttempts": [
+          {
+            "event": "start",
+            "family": 4,
+            "elapsedMs": 14,
+            "errorCode": null
+          }
+        ],
+        "nestedErrorCodes": [],
+        "errorCode": null,
+        "errorSyscall": null
+      },
+      "responseShape": {
+        "member": "verify-09/broker/response-4.sse",
+        "contentCharacters": 33134,
+        "toolCallFragments": 0
+      },
+      "finding": "Ordinary assistant analysis exhausted the output allowance before any write call; same failure family as macOS CLI.",
+      "productFollowup": "Shared concise action and bounded write guidance already prepared for 106; preserve truncation rejection.",
+      "originalReceiptArchive": {
+        "path": "native-105-verify-09-request-4.receipt.json.gz",
+        "originalDigest": "sha256:e990ebf452103708da5b0d7b13a99c71bb7a5292dc94f549d753b1976e3497cd",
+        "storedDigest": "sha256:82ab1c74b4fd81f2c53c6274dc0bd6d1bec53af9e0b0513c5e43f1a82aca599a",
+        "originalBytes": 1338
+      }
+    },
+    {
+      "runId": "39107110039",
+      "artifactId": "12129727016",
+      "sampleId": "first-run-darwin-jetbrains",
+      "receiptMember": "first-run-darwin-jetbrains/broker/request-2.receipt.json",
+      "errorCode": "DIAGNOSTIC_REQUEST_NOT_DISPATCHED",
+      "finishReason": null,
+      "transport": {
+        "socketAssignedMs": 1,
+        "dnsLookupMs": 3,
+        "tcpConnectedMs": 196,
+        "tlsConnectedMs": null,
+        "dispatchStartedMs": null,
+        "requestFinishedMs": null,
+        "responseStartedMs": null,
+        "dispatchStarted": false,
+        "failureCategory": "DIAGNOSTIC_TIMEOUT_USAGE_UNKNOWN",
+        "connectionAttempts": [
+          {
+            "event": "start",
+            "family": 4,
+            "elapsedMs": 3,
+            "errorCode": null
+          }
+        ],
+        "nestedErrorCodes": [],
+        "errorCode": null,
+        "errorSyscall": null
+      },
+      "finding": "Upstream network failure before HTTP dispatch; TCP connected but TLS never completed.",
+      "productFollowup": "No additional CLI/IDE execution defect established. Explicit non-auth HTTP reason rendering already prepared for 106. Do not change broker rejection or replay requests.",
+      "originalReceiptArchive": {
+        "path": "native-105-first-run-darwin-jetbrains-request-2.receipt.json.gz",
+        "originalDigest": "sha256:a0fd777b844923dd9a7a71ef5933c8852ed38cfcbe222dee9c79137842ca9c02",
+        "storedDigest": "sha256:36eb3043aa96c65b00f8f59b06fc3f57d72ee218186ecea57e273c9059f69baf",
+        "originalBytes": 1133
+      }
+    },
+    {
+      "runId": "39107134691",
+      "artifactId": "12129637199",
+      "sampleId": "verify-19",
+      "receiptMember": "verify-19/broker/request-15.receipt.json",
+      "errorCode": "DIAGNOSTIC_TIMEOUT_USAGE_UNKNOWN",
+      "finishReason": null,
+      "transport": {
+        "socketAssignedMs": 1,
+        "dnsLookupMs": 4,
+        "tcpConnectedMs": 273,
+        "tlsConnectedMs": 545,
+        "dispatchStartedMs": 545,
+        "requestFinishedMs": 546,
+        "responseStartedMs": null,
+        "dispatchStarted": true,
+        "failureCategory": "DIAGNOSTIC_TIMEOUT_USAGE_UNKNOWN",
+        "connectionAttempts": [
+          {
+            "event": "start",
+            "family": 4,
+            "elapsedMs": 4,
+            "errorCode": null
+          }
+        ],
+        "nestedErrorCodes": [],
+        "errorCode": null,
+        "errorSyscall": null
+      },
+      "finding": "TLS and HTTP dispatch completed; no response arrived before timeout. Outcome remains unknown.",
+      "productFollowup": "Do not classify as unsent or replay. Explicit non-auth HTTP reason rendering already prepared for 106.",
+      "originalReceiptArchive": {
+        "path": "native-105-verify-19-request-15.receipt.json.gz",
+        "originalDigest": "sha256:8cd99d3001bb1c4aade247323f139e47c9e420ab95dceb06aa6429dee50573c4",
+        "storedDigest": "sha256:b5282f8f2f0ab4536bdfe68c59e701e06038530c77f0b986b9c962c2246a7217",
+        "originalBytes": 1113
+      }
+    }
+  ],
+  "limitations": [
+    "No candidate execution or model request performed.",
+    "No new product execution defect beyond shared response discipline and HTTP error wording is established by these receipts.",
+    "Candidate content acceptance remains independent of generation status."
+  ],
+  "rawReceiptNote": "Original broker receipts are retained byte-for-byte for provenance; no billing assessment or cost estimate was added or used in this review."
+}
