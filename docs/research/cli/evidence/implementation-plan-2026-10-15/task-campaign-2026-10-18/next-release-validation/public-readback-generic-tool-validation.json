@@ -1,0 +1,39 @@
+{
+    "schema":  "chainlesschain.public-readback-tool-validation/v1",
+    "scope":  "Offline tool preparation only; no live downloads, package manifest creation, model requests or workflow dispatch",
+    "command":  "python -B packages/cli/scripts/verify-public-readback.test.py",
+    "cwd":  "C:/code/chainlesschain/.worktrees/v17",
+    "tests":  7,
+    "passed":  7,
+    "durationSeconds":  11.502,
+    "checks":  [
+                   "Explicit full source SHA and source package identities",
+                   "CLI-only stage before IDE receipts",
+                   "Same-source staged receipt binding",
+                   "npm SHA-512 SRI and gitHead",
+                   "Controlled manifest paths",
+                   "Committed previous manifest preservation",
+                   "Atomic exclusive new manifest creation"
+               ],
+    "packageVersionsSource":  "Exact Git object bytes; no current-checkout fallback",
+    "hostVersionsSource":  "Explicit committed previous manifest; supported-host allowlist",
+    "officialReleaseGates":  "Not replaced by these tools",
+    "files":  [
+                  {
+                      "path":  "packages/cli/scripts/verify-public-package-set.py",
+                      "digest":  "sha256:836f9cb0cf0c7e306beb0b0ff7ee686b8fb72628700abc163521300de29fa1d5"
+                  },
+                  {
+                      "path":  "packages/cli/scripts/verify-public-cli.py",
+                      "digest":  "sha256:5d207c3a68ea32d5f3e230602a74bf479e4c0485e55c73d77958779750f639bc"
+                  },
+                  {
+                      "path":  "packages/cli/scripts/verify-public-vscode.py",
+                      "digest":  "sha256:eaccd9cc22400f90f183324d60b446030197037a855074aad545f5124c4188f0"
+                  },
+                  {
+                      "path":  "packages/cli/scripts/verify-public-readback.test.py",
+                      "digest":  "sha256:dfdf372a436edcf1c28594e54beed2fa595de738da87470630f5ccb1686e77fc"
+                  }
+              ]
+}

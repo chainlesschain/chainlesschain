@@ -8,6 +8,7 @@ import {
   loadVerify33Reply,
   validateReplyFixture,
   validatePublicPlugin,
+  readPublicPluginBinding,
   assertRecoveryEvidence,
   digest,
   repository,
@@ -53,6 +54,12 @@ function evidence() {
       text: row.text,
     },
   };
+  initial.liveSnapshot = {
+    ...structuredClone(initial.snapshot),
+    savedRows: [],
+    draftStatus:
+      "Input accepted and stored by the CLI; task completion is separate",
+  };
   const restart = structuredClone(initial);
   restart.phase = "restart";
   restart.at = "2026-10-18T05:01:00Z";
@@ -61,7 +68,11 @@ function evidence() {
     fixture,
     initial,
     restart,
-    plugin: { digest: installation.archiveSha256 },
+    plugin: {
+      version: initial.pluginVersion,
+      ideVersion: initial.ideVersion,
+      digest: installation.archiveSha256,
+    },
     records: [
       { command: "archived-agent-start" },
       {
@@ -96,15 +107,80 @@ test("fixture is bound to accepted verify-33 bytes and original rendered Markdow
   );
 });
 
-test("older public plugin manifest cannot substitute for the required .167 package", () => {
+test("public plugin manifest without independently verified artifact bytes is rejected", () => {
   assert.throws(
     () =>
       validatePublicPlugin(
         "docs/research/cli/verify01-package-sets/2026-10-18-latest.json",
         path.resolve("not-used.zip"),
       ),
-    /0\.4\.166|0\.4\.167/,
+    /public readback required/,
   );
+});
+
+test("the selected manifest binds version, public origin, ZIP bytes and both IDE phases", (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-replay-binding-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const relative = "docs/research/cli/verify01-package-sets/selected.json";
+  const file = path.join(root, relative),
+    archive = path.join(root, "public.zip");
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  const bytes = Buffer.from("fixed archive byte binding fixture");
+  fs.writeFileSync(archive, bytes);
+  const manifest = JSON.parse(
+    fs.readFileSync(
+      path.join(
+        repository,
+        "docs/research/cli/verify01-package-sets/2026-10-18-latest.json",
+      ),
+    ),
+  );
+  manifest.versions.jetbrains = "0.4.168";
+  manifest.origin.jetbrains.file = `32208/${manifest.origin.jetbrains.updateId}/chainlesschain-ide-bridge-0.4.168.zip`;
+  manifest.publicArtifacts = {
+    jetbrains: { digest: digest(bytes), bytes: bytes.length },
+  };
+  const save = (value) => fs.writeFileSync(file, JSON.stringify(value));
+  save(manifest);
+  assert.equal(
+    validatePublicPlugin(relative, archive, root).version,
+    "0.4.168",
+  );
+  for (const mutate of [
+    (m) => {
+      m.versions.jetbrains = "0.4.167";
+    },
+    (m) => {
+      m.origin.jetbrains.approved = false;
+    },
+    (m) => {
+      m.origin.jetbrains.hidden = true;
+    },
+    (m) => {
+      m.origin.jetbrains.updateId = 0;
+    },
+    (m) => {
+      m.publicArtifacts.jetbrains.digest = digest("different bytes");
+    },
+    (m) => {
+      m.publicArtifacts.jetbrains.bytes++;
+    },
+  ]) {
+    const changed = structuredClone(manifest);
+    mutate(changed);
+    save(changed);
+    assert.throws(() => validatePublicPlugin(relative, archive, root));
+  }
+  save(manifest);
+  const bound = readPublicPluginBinding(relative, root);
+  assert.equal(bound.packageSetDigest, digest(fs.readFileSync(file)));
+  const e = evidence();
+  e.plugin.version = "0.4.168";
+  assert.throws(() => assertRecoveryEvidence(e));
+  e.initial.pluginVersion = "0.4.168";
+  assert.throws(() => assertRecoveryEvidence(e));
+  e.restart.pluginVersion = "0.4.168";
+  assertRecoveryEvidence(e);
 });
 
 test("separate result preserves old verdict and makes no task/public-CLI claim", () => {
@@ -117,6 +193,21 @@ test("separate result preserves old verdict and makes no task/public-CLI claim",
 
 test("raw Markdown on both sides, identity loss, wrong host and restart agent are rejected", () => {
   for (const mutate of [
+    (e) => {
+      delete e.initial.liveSnapshot;
+    },
+    (e) => {
+      e.initial.liveSnapshot.text += fixture.rendered;
+    },
+    (e) => {
+      e.initial.liveSnapshot.childRunning = true;
+    },
+    (e) => {
+      e.initial.liveSnapshot.sessionId = "different";
+    },
+    (e) => {
+      e.initial.snapshot.text += fixture.rendered;
+    },
     (e) => {
       for (const phase of [e.initial, e.restart]) {
         phase.snapshot.savedRows[0].bodyText = fixture.source;
@@ -189,7 +280,8 @@ test("fixture child environment separates OS home from data and excludes secrets
 });
 
 test("peer rejects unsupported commands and changed archive before persistence", (t) => {
-  const { env, output } = prepare(t);
+  const { env, output, canonical } = prepare(t);
+  const canonicalBefore = fs.readdirSync(canonical, { recursive: true });
   const peer = path.join(
     repository,
     "tests/fixtures/ide-roadmap/archived-reply-peer.mjs",
@@ -203,6 +295,32 @@ test("peer rejects unsupported commands and changed archive before persistence",
   const version = run(["--version"]);
   assert.equal(version.status, 0, version.stderr);
   assert.match(version.stdout, /archived-reply/);
+  const provider = run(["config", "get", "llm.provider"]);
+  assert.equal(provider.status, 0, provider.stderr);
+  assert.equal(provider.stdout.trim(), "ollama");
+  assert.deepEqual(
+    fs.readdirSync(canonical, { recursive: true }),
+    canonicalBefore,
+  );
+  assert.deepEqual(fs.readdirSync(path.join(canonical, "home")), []);
+  assert.equal(
+    fs
+      .readFileSync(path.join(output, "peer.jsonl"), "utf8")
+      .includes("archived-agent-start"),
+    false,
+  );
+  assert.equal(run(["config", "get", "llm.apiKey"]).status, 1);
+  assert.equal(run(["config", "get", "llm.provider", "extra"]).status, 1);
+  assert.equal(
+    run(["config", "set", "llm.apiKey", "do-not-log-secret"]).status,
+    1,
+  );
+  assert.equal(
+    fs
+      .readFileSync(path.join(output, "peer.jsonl"), "utf8")
+      .includes("do-not-log-secret"),
+    false,
+  );
   const forbidden = run(["llm", "configure"]);
   assert.equal(forbidden.status, 1);
   fs.appendFileSync(path.join(output, "fixture.json"), " ");

@@ -50,12 +50,29 @@ final class ArchivedReplyRecoveryJourney {
             String plugin = String.valueOf((Object) frame.callJs("String(Packages.com.intellij.ide.plugins.PluginManagerCore.getPlugin(Packages.com.intellij.openapi.extensions.PluginId.getId('com.chainlesschain.ide')).getVersion());", true));
             String ide = String.valueOf((Object) frame.callJs("String(Packages.com.intellij.openapi.application.ApplicationInfo.getInstance().getFullVersion());", true));
             String os = String.valueOf((Object) frame.callJs("String(java.lang.System.getProperty('os.name'));", true));
-            assertEquals("0.4.167", plugin); assertEquals("2025.2", ide); assertEquals("Linux", os);
+            JsonObject binding = JsonParser.parseString(Files.readString(root.resolve("binding.json"))).getAsJsonObject();
+            JsonObject expectedPlugin = binding.getAsJsonObject("plugin");
+            assertEquals(text(expectedPlugin,"version"), plugin);
+            assertEquals(text(expectedPlugin,"ideVersion"), ide); assertEquals("Linux", os);
             JsonObject installation = ui.verifyInstalledArchive();
+            assertEquals(text(expectedPlugin,"digest"), text(installation,"archiveSha256"));
             JsonObject baseline = null;
+            JsonObject liveSnapshot = null;
             if (phase.equals("initial")) {
                 assertFalse(Files.exists(root.resolve("recovery-initial.json")));
                 ui.newTab(); ui.send(text(fixture,"prompt"));
+                liveSnapshot = ui.waitFor("archived live reply, receipt and stopped fixture child", s ->
+                        s.get("visible").getAsBoolean() && !s.get("childRunning").getAsBoolean()
+                        && !s.get("turnActive").getAsBoolean()
+                        && text(s,"draftStatus").contains("Input accepted and stored by the CLI")
+                        && text(s,"text").contains(rendered));
+                Files.writeString(root.resolve("recovery-live-initial.json"), JSON.toJson(liveSnapshot)+"\n", StandardOpenOption.CREATE_NEW);
+                String liveText = text(liveSnapshot,"text");
+                assertEquals(liveText.indexOf(rendered), liveText.lastIndexOf(rendered),
+                        "the archived reply must appear exactly once before loading saved history");
+                // A stopped process preserves exit diagnostics until the user explicitly
+                // selects Latest. Exercise that real control before the canonical-row oracle.
+                ui.click("Latest");
             } else {
                 baseline = JsonParser.parseString(Files.readString(root.resolve("recovery-initial.json"))).getAsJsonObject();
                 JsonObject original = baseline.getAsJsonObject("snapshot");
@@ -79,6 +96,7 @@ final class ArchivedReplyRecoveryJourney {
             proof.addProperty("pluginVersion", plugin); proof.addProperty("ideVersion", ide);
             proof.addProperty("sourceDigest", digest(source)); proof.addProperty("renderedDigest", digest(rendered));
             proof.add("installation", installation); proof.add("snapshot", snapshot);
+            if (liveSnapshot != null) proof.add("liveSnapshot", liveSnapshot);
             Files.writeString(root.resolve("recovery-" + phase + ".json"), JSON.toJson(proof)+"\n", StandardOpenOption.CREATE_NEW);
         } catch (Exception | AssertionError error) {
             JsonObject failure = new JsonObject(); failure.addProperty("phase", phase); failure.addProperty("error", error.toString());

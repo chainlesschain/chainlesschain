@@ -1,6 +1,14 @@
 # 最新 CLI / IDE：36+9 实际任务结果
 
-评测版本：CLI **0.166.104**、VS Code **0.37.149**、JetBrains **0.4.166**。
+当前公开包补测使用 CLI **0.166.105**、VS Code **0.37.150**、JetBrains **0.4.167**。[本轮账本](./next-package-105-20261018.json) 已完整收取生成 **20/20**、独立验收 **20/20**，新增 **6** 项候选及全流程通过。累计候选合格 **31/45**（普通 **26/36**、首次 **5/9**），剩余 **14** 项；完整性严格校验通过，原生任务没有重复派发。逐项及原因见[本轮复核](./next-package-105-20261018-review.json)，状态 `COMPLETED` 表示证据收齐。
+
+下一候选 **.106/.151/.168** 的代码和版本信息已提交至最终候选 `4317bf01a4`，见 [PR #462](https://github.com/chainlesschain/chainlesschain/pull/462) 和[准备记录](./followup-106-preparation.json)。CLI 聚焦回归 **58** 项、JetBrains 聚焦回归 **38** 项通过；通用边界指导已根据真实失败补全，最终提交的正式跨系统门禁进行中。候选尚未发布，也未进行新版模型补测。Windows JetBrains 的 ACL 遍历和校验超时仍未定位，单独分支的有界阶段诊断未纳入本次发行源码；本地未复现不能证明问题解决。
+
+新增合格为 `verify-12`、`verify-14`、`verify-32`、`first-run-linux-jetbrains`、`first-run-linux-vscode` 和 `first-run-darwin-vscode`。已将完整轮次摘要登记至[累计轮次链](./next-package-round-chain.json)，新计划会严格排除全部 31 项合格样本。可下载[31 项交付包](./next-package-105-20261018-accepted-deliverables.tar.gz)及[索引](./next-package-105-20261018-accepted-deliverables.json)，原 25 项产物和收据按字节复用，原包保持不变；打包没有重新执行模型或候选测试。累计跨版本的文件合格与原生全流程结论分别保留。
+
+## 已收齐的上一轮
+
+评测版本：CLI **0.166.104**、VS Code **0.37.149**、JetBrains **0.4.166**。以下保留上一轮原始结果，累计和当前补测状态以上方账本为准。
 
 固定条件：thinking disabled、六种文件工具、20 turns、24 requests、180 秒请求期限及 8192 输出 token；模型不执行测试，生成后由独立验收器检查。这些结果对应本组固定条件。
 
@@ -71,7 +79,7 @@ CLI **0.166.105**、VS Code **0.37.150** 与 JetBrains **0.4.167** 均已正式�
 
 修复覆盖静态导入错误反馈、真实 API 与 fixture 检查指导、延迟写入未完成时的终态、上游中止分类、安全传输原因代码，以及 JetBrains 重启后的 Markdown 渲染。新版公开后仅补未合格项；已有合格文件用于界面恢复核验时直接复用，不重新生成。
 
-已准备 [verify-33 归档回复恢复检查](./next-package-archived-reply-recovery-plan.json)：复用原合格文件与原 Markdown，在公开 `.167` 的 Linux 2025.2 真实 IDE 验证重启后正文、会话和行身份，不调用模型。当前仅完成本地回归与 UI 编译，真实公开插件检查尚未运行；旧全流程失败判定保持不变。
+已执行 [verify-33 归档回复恢复检查](./next-package-archived-reply-recovery-plan.json)：复用原合格文件与原 Markdown，不调用模型。公开 `.167` 第二次检查已通过正式 Node 22.12 的 **7/7** canonical 回归并进入 Linux 2025.2 真实 IDE，但在初始阶段出现正文重复，未进入重启阶段。已分别复现并修复异步输入回执打断回复、退出回调抢先于最终 stdout 的产品缺陷；[修复前后证据](./next-release-validation/followup-106-archived-reply-regressions.json) 保留原失败。修正的夹具先保留独立 live 快照并检查正文唯一，再点击实际 Latest 按钮读取历史；公开 `.168` 的真实恢复检查尚未运行。
 
 费用未评估、未推算。旧轮完整报告见 [README](./README.md)。
 
@@ -98,6 +106,6 @@ python -X utf8 packages/cli/scripts/verify01-package-native-deliveries.py --roun
 
 ## 持续修复与发布要求
 
-评测隔离修复已提交并推送为 `04d48ca7fe`。新的零模型恢复检查 [`39108779712`](https://github.com/chainlesschain/chainlesschain/actions/runs/39108779712) 已唯一派发，固定该提交并继续使用公开 `.167`，仅验证既有合格回复的恢复；原失败 `39107288123` 保留。13 个真实任务分片仍固定原评测来源 `a48e13fc30`，没有重新派发。
+评测隔离修复已提交并推送为 `04d48ca7fe`。零模型恢复检查 [`39108779712`](https://github.com/chainlesschain/chainlesschain/actions/runs/39108779712) 固定该提交并使用公开 `.167`，已结束失败；它与原失败 `39107288123` 均保留。后续工具严格从明确选择的公开 manifest 派生插件版本、ZIP 摘要和大小，保留公开批准、安装树、正文唯一及重启身份检查；Linux **8/8**、Windows **7 通过 / 1 平台跳过**，UI Java 编译通过。没有对旧 `.167` 再次派发。13 个真实任务分片仍固定原评测来源 `a48e13fc30`，没有重新派发。
 
 用户明确要求继续修复不合格项，重新发布 CLI 和 IDE 插件，直到普通 **36** 项与首次 **9** 项均合格。每轮根据实际失败修复产品，经精确提交的正式门禁、发布与公开包核验后，再补测未合格项；已合格的文件和收据直接复用。每次记录失败原因、修复、版本和验收结论。候选文件通过与原生全流程通过分别保留，宿主、终态及恢复失败继续跟踪，历史失败不能被改写或用局部检查通过替代。
