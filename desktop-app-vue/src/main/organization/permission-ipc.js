@@ -408,6 +408,10 @@ class PermissionIPC {
     // Apply permission template
     ipcMain.handle("permission:apply-template", async (event, args) => {
       try {
+        // Role permissions are a security authority, not a generic template sink.
+        // Use authenticated org:update-role and its synchronous transaction.
+        if (args?.targetType === "role")
+          throw new Error("ORG_ROLE_CONTROLLED_WRITE_REQUIRED");
         // Check if user has manage permission
         await this.middleware.requireRole(["owner", "admin"])(event, args);
 
@@ -431,18 +435,7 @@ class PermissionIPC {
         const permissions = JSON.parse(template.permissions);
 
         // Apply permissions based on target type
-        if (targetType === "role") {
-          // Update role permissions
-          // organization_roles schema columns: id, org_id, name, description,
-          // permissions, is_builtin, created_at — no role_name, no updated_at.
-          db.prepare(
-            `
-            UPDATE organization_roles
-            SET permissions = ?
-            WHERE org_id = ? AND name = ?
-          `,
-          ).run(JSON.stringify(permissions), orgId, targetId);
-        } else if (targetType === "folder") {
+        if (targetType === "folder") {
           // Update folder permissions
           await this.permissionManager.updateFolderPermissions(
             orgId,

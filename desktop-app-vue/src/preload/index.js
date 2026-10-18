@@ -724,10 +724,12 @@ const FIXED_RENDERER_IPC_CHANNELS = new Set([
   "nostr:publish-reaction",
   "notification:get-all",
   "notification:get-goals",
+  "notification:get-tasks",
   "notification:invalidated",
   "notification:mark-all-read",
   "notification:mark-read",
   "notification:open-goal",
+  "notification:open-task",
   "notification:send-desktop",
   "ops:acknowledge",
   "ops:configure-alerts",
@@ -1173,6 +1175,18 @@ const FIXED_RENDERER_IPC_CHANNELS = new Set([
   "system:minimize",
   "system:open-external",
   "system:restart",
+  "task:add-label",
+  "task:board-create-cancel",
+  "task:board-create-execute",
+  "task:board-create-preview",
+  "task:board-create-runs",
+  "task:board-create-source",
+  "task:board-edit-source",
+  "task:board-update-cancel",
+  "task:board-update-execute",
+  "task:board-update-preview",
+  "task:board-update-runs",
+  "task:cancel-summary",
   "task:complete-sprint",
   "task:controlled-create-execute",
   "task:controlled-create-preview",
@@ -1183,29 +1197,42 @@ const FIXED_RENDERER_IPC_CHANNELS = new Set([
   "task:controlled-description-runs",
   "task:controlled-list",
   "task:controlled-read",
+  "task:convert-to-subtask",
   "task:create-board",
   "task:create-column",
   "task:create-label",
   "task:create-report",
   "task:create-sprint",
-  "task:create-task",
+  "task:create-subtask",
+  "task:delete-attachment",
   "task:delete-board",
+  "task:delete-checklist-item",
+  "task:delete-comment",
   "task:delete-task",
+  "task:edit-comment",
   "task:generate-ai-summary",
+  "task:get-activity",
+  "task:get-attachments",
   "task:get-board",
   "task:get-board-analytics",
   "task:get-boards",
+  "task:get-comments",
   "task:get-labels",
   "task:get-reports",
   "task:get-sprints",
+  "task:get-summary-status",
   "task:get-task",
   "task:get-tasks",
-  "task:move-task",
+  "task:link-tasks",
+  "task:mention-user",
+  "task:preview-attachment",
+  "task:reorder-checklist",
   "task:reorder-columns",
   "task:start-sprint",
+  "task:toggle-checklist-item",
   "task:update-board",
   "task:update-column",
-  "task:update-task",
+  "task:upload-attachment",
   "tasks:assign",
   "tasks:board:create",
   "tasks:board:list",
@@ -4306,6 +4333,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
     getGoals: (options) =>
       ipcRenderer.invoke("notification:get-goals", options),
     openGoal: (id) => ipcRenderer.invoke("notification:open-goal", id),
+    getTasks: (options) =>
+      ipcRenderer.invoke("notification:get-tasks", options),
+    openTask: (id) => ipcRenderer.invoke("notification:open-task", id),
     onInvalidated: (callback) => {
       const listener = () => callback();
       ipcRenderer.on("notification:invalidated", listener);
@@ -4886,6 +4916,26 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // Task Management (任务管理)
   // ==========================================
   task: {
+    getBoardEditSource: (params) =>
+      ipcRenderer.invoke("task:board-edit-source", removeUndefined(params)),
+    previewBoardUpdate: (params) =>
+      ipcRenderer.invoke("task:board-update-preview", removeUndefined(params)),
+    executeBoardUpdate: (params) =>
+      ipcRenderer.invoke("task:board-update-execute", removeUndefined(params)),
+    getBoardUpdateRuns: (params) =>
+      ipcRenderer.invoke("task:board-update-runs", removeUndefined(params)),
+    cancelBoardUpdate: (params) =>
+      ipcRenderer.invoke("task:board-update-cancel", removeUndefined(params)),
+    getBoardCreateSource: (params) =>
+      ipcRenderer.invoke("task:board-create-source", removeUndefined(params)),
+    previewBoardCreate: (params) =>
+      ipcRenderer.invoke("task:board-create-preview", removeUndefined(params)),
+    executeBoardCreate: (params) =>
+      ipcRenderer.invoke("task:board-create-execute", removeUndefined(params)),
+    getBoardCreateRuns: (params) =>
+      ipcRenderer.invoke("task:board-create-runs", removeUndefined(params)),
+    cancelBoardCreate: (params) =>
+      ipcRenderer.invoke("task:board-create-cancel", removeUndefined(params)),
     // Board Management
     createBoard: (params) =>
       ipcRenderer.invoke("task:create-board", removeUndefined(params)),
@@ -4906,6 +4956,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
     // Task CRUD
     createTask: (params) =>
       ipcRenderer.invoke("task:create-task", removeUndefined(params)),
+    linkTasks: (params) =>
+      ipcRenderer.invoke("task:link-tasks", removeUndefined(params)),
+    createSubtask: (params) =>
+      ipcRenderer.invoke("task:create-subtask", removeUndefined(params)),
+    convertToSubtask: (params) =>
+      ipcRenderer.invoke("task:convert-to-subtask", removeUndefined(params)),
     updateTask: (params) =>
       ipcRenderer.invoke("task:update-task", removeUndefined(params)),
     previewDescriptionUpdate: (params) =>
@@ -4953,14 +5009,31 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke("task:delete-checklist", params),
     toggleChecklistItem: (params) =>
       ipcRenderer.invoke("task:toggle-checklist-item", removeUndefined(params)),
+    deleteChecklistItem: (params) =>
+      ipcRenderer.invoke("task:delete-checklist-item", removeUndefined(params)),
+    reorderChecklist: (params) =>
+      ipcRenderer.invoke("task:reorder-checklist", removeUndefined(params)),
     // Comments
     addComment: (params) =>
       ipcRenderer.invoke("task:add-comment", removeUndefined(params)),
     updateComment: (params) =>
-      ipcRenderer.invoke("task:update-comment", removeUndefined(params)),
+      ipcRenderer.invoke("task:edit-comment", removeUndefined(params)),
+    editComment: (params) =>
+      ipcRenderer.invoke("task:edit-comment", removeUndefined(params)),
     deleteComment: (params) =>
       ipcRenderer.invoke("task:delete-comment", params),
     getComments: (params) => ipcRenderer.invoke("task:get-comments", params),
+    getActivity: (params) => ipcRenderer.invoke("task:get-activity", params),
+    uploadAttachment: (params) =>
+      ipcRenderer.invoke("task:upload-attachment", removeUndefined(params)),
+    deleteAttachment: (params) =>
+      ipcRenderer.invoke("task:delete-attachment", removeUndefined(params)),
+    getAttachments: (params) =>
+      ipcRenderer.invoke("task:get-attachments", removeUndefined(params)),
+    previewAttachment: (params) =>
+      ipcRenderer.invoke("task:preview-attachment", removeUndefined(params)),
+    mentionUser: (params) =>
+      ipcRenderer.invoke("task:mention-user", removeUndefined(params)),
     // Sprint Management
     createSprint: (params) =>
       ipcRenderer.invoke("task:create-sprint", removeUndefined(params)),
@@ -4973,6 +5046,14 @@ contextBridge.exposeInMainWorld("electronAPI", {
     moveToSprint: (params) =>
       ipcRenderer.invoke("task:move-to-sprint", removeUndefined(params)),
     // Reports and Analytics
+    getReports: (params) =>
+      ipcRenderer.invoke("task:get-reports", removeUndefined(params)),
+    generateAISummary: (params) =>
+      ipcRenderer.invoke("task:generate-ai-summary", removeUndefined(params)),
+    getSummaryStatus: (params) =>
+      ipcRenderer.invoke("task:get-summary-status", removeUndefined(params)),
+    cancelSummary: (params) =>
+      ipcRenderer.invoke("task:cancel-summary", removeUndefined(params)),
     getBoardAnalytics: (params) =>
       ipcRenderer.invoke("task:get-board-analytics", params),
     exportBoard: (params) => ipcRenderer.invoke("task:export-board", params),

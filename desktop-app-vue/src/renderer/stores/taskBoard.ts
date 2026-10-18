@@ -7,6 +7,8 @@
  */
 
 import { defineStore } from "pinia";
+import { useAppStore } from "./app";
+import { useIdentityStore } from "./identity";
 
 // ==================== 类型定义 ====================
 
@@ -24,6 +26,8 @@ export type SortOrder = "asc" | "desc";
  * 任务状态
  */
 export type TaskStatus =
+  | "open"
+  | "review"
   | "todo"
   | "in_progress"
   | "done"
@@ -33,7 +37,7 @@ export type TaskStatus =
 /**
  * 任务优先级
  */
-export type TaskPriority = "low" | "medium" | "high" | "urgent";
+export type TaskPriority = "low" | "medium" | "high" | "critical";
 
 /**
  * Sprint 状态
@@ -78,10 +82,12 @@ export interface Task {
   description?: string;
   status: TaskStatus;
   priority: TaskPriority;
-  assigneeDid?: string;
+  assigneeDid?: string | null;
   reporterDid?: string;
   labels?: string[];
-  dueDate?: number;
+  dueDate?: number | null;
+  estimatedHours?: number | null;
+  actualHours?: number | null;
   sprintId?: string;
   position: number;
   createdAt: number;
@@ -714,27 +720,120 @@ export const useTaskBoardStore = defineStore("taskBoard", {
      * 创建任务
      */
     async createTask(taskData: Partial<Task>): Promise<TaskBoardApiResult> {
-      this.loading.task = true;
-
+      const fields = [
+        "boardId",
+        "columnId",
+        "title",
+        "description",
+        "priority",
+        "assigneeDid",
+        "dueDate",
+        "estimatedHours",
+        "actualHours",
+        "position",
+        "parentTaskId",
+      ];
+      if (
+        !taskData ||
+        typeof taskData !== "object" ||
+        Array.isArray(taskData) ||
+        Object.keys(taskData).some((key) => !fields.includes(key)) ||
+        typeof taskData.boardId !== "string" ||
+        !taskData.boardId
+      )
+        return { success: false, error: "BOARD_ACTION_INVALID_CREATE" };
+      const { boardId, ...data } = taskData;
+      const app = useAppStore(),
+        identity = useIdentityStore();
+      const selectedBoard = this.currentBoard,
+        selectedTask = this.currentTask,
+        selectedTasks = this.tasks;
+      let active = app.isAuthenticated;
+      const invalidate = () => {
+        active = false;
+      };
+      const cleanup = [
+        app.$subscribe(invalidate, { flush: "sync", detached: true }),
+        identity.$subscribe(invalidate, { flush: "sync", detached: true }),
+        this.$subscribe(
+          (_mutation, state) => {
+            if (
+              state.currentBoard !== selectedBoard ||
+              state.currentTask !== selectedTask ||
+              state.tasks !== selectedTasks
+            )
+              invalidate();
+          },
+          { flush: "sync", detached: true },
+        ),
+      ];
+      const unsubscribe = (
+        window as any
+      ).electronAPI?.notification?.onInvalidated?.(invalidate);
+      const current = () =>
+        active &&
+        app.isAuthenticated &&
+        this.currentBoard === selectedBoard &&
+        this.currentTask === selectedTask &&
+        this.tasks === selectedTasks;
       try {
-        const result: TaskBoardApiResult = await (
-          window as any
-        ).electronAPI.invoke("task:create-task", taskData);
-
-        if (result.success && result.taskId) {
-          this.tasks.push({
-            id: result.taskId,
-            ...taskData,
-            createdAt: Date.now(),
-          } as Task);
-        }
-
-        return result;
-      } catch (error) {
-        console.error("[TaskBoardStore] 创建任务失败:", error);
-        throw error;
+        if (!current() || (selectedBoard && selectedBoard.id !== boardId))
+          return { success: false, error: "BOARD_ACTION_CONTEXT_CHANGED" };
+        const api = (window as any).electronAPI?.task;
+        const prepared = await api?.previewBoardCreate({
+          boardId,
+          taskData: data,
+          idempotencyKey: crypto.randomUUID(),
+        });
+        if (!current())
+          return { success: false, error: "BOARD_ACTION_CONTEXT_CHANGED" };
+        if (
+          prepared?.success !== true ||
+          typeof prepared.taskId !== "string" ||
+          !prepared.taskId ||
+          prepared.request?.actionType !== "board-task.create" ||
+          prepared.request.actionVersion !== 1 ||
+          prepared.request.target?.id !== prepared.taskId
+        )
+          return { success: false, error: "BOARD_ACTION_PREVIEW_FAILED" };
+        const result = await api.executeBoardCreate({
+          request: prepared.request,
+        });
+        if (!current())
+          return { success: false, error: "BOARD_ACTION_CONTEXT_CHANGED" };
+        if (
+          result?.success !== true ||
+          result.run?.status !== "succeeded" ||
+          result.run.target?.id !== prepared.taskId
+        )
+          return { success: false, error: "BOARD_ACTION_NOT_APPLIED" };
+        const taskId = prepared.taskId;
+        const fresh = await api.getTask({ taskId });
+        if (!current())
+          return { success: false, error: "BOARD_ACTION_CONTEXT_CHANGED" };
+        if (
+          fresh?.success !== true ||
+          fresh.task?.id !== taskId ||
+          fresh.task.boardId !== boardId
+        )
+          return { success: false, error: "BOARD_ACTION_REFRESH_FAILED" };
+        const list = await api.getTasks({ boardId });
+        if (!current())
+          return { success: false, error: "BOARD_ACTION_CONTEXT_CHANGED" };
+        if (
+          list?.success !== true ||
+          !Array.isArray(list.tasks) ||
+          !list.tasks.some((task: Task) => task.id === taskId) ||
+          list.tasks.some((task: Task) => task.boardId !== boardId)
+        )
+          return { success: false, error: "BOARD_ACTION_REFRESH_FAILED" };
+        this.tasks = list.tasks;
+        return { success: true, taskId };
+      } catch {
+        return { success: false, error: "BOARD_ACTION_OPERATION_FAILED" };
       } finally {
-        this.loading.task = false;
+        cleanup.forEach((stop) => stop());
+        unsubscribe?.();
       }
     },
 
@@ -745,29 +844,45 @@ export const useTaskBoardStore = defineStore("taskBoard", {
       taskId: string,
       updates: Partial<Task>,
     ): Promise<TaskBoardApiResult> {
+      const fields = [
+        "title",
+        "description",
+        "status",
+        "priority",
+        "assigneeDid",
+        "dueDate",
+        "estimatedHours",
+        "actualHours",
+      ];
+      if (
+        !updates ||
+        typeof updates !== "object" ||
+        Array.isArray(updates) ||
+        !Object.keys(updates).length ||
+        Object.keys(updates).some((key) => !fields.includes(key))
+      )
+        return { success: false, error: "BOARD_ACTION_INVALID_UPDATE" };
       try {
-        const result: TaskBoardApiResult = await (
-          window as any
-        ).electronAPI.invoke("task:update-task", {
+        const api = (window as any).electronAPI?.task;
+        const prepared = await api?.previewBoardUpdate({
           taskId,
           updates,
+          idempotencyKey: crypto.randomUUID(),
         });
-
-        if (result.success) {
-          const index = this.tasks.findIndex((t) => t.id === taskId);
-          if (index !== -1) {
-            this.tasks[index] = { ...this.tasks[index], ...updates };
-          }
-
-          if (this.currentTask?.id === taskId) {
-            this.currentTask = { ...this.currentTask, ...updates };
-          }
-        }
-
-        return result;
-      } catch (error) {
-        console.error("[TaskBoardStore] 更新任务失败:", error);
-        throw error;
+        if (
+          prepared?.success !== true ||
+          prepared.request?.actionType !== "board-task.update-fields" ||
+          prepared.request.actionVersion !== 1
+        )
+          return { success: false, error: "BOARD_ACTION_PREVIEW_FAILED" };
+        const result = await api.executeBoardUpdate({
+          request: prepared.request,
+        });
+        return result?.success === true && result.run?.status === "succeeded"
+          ? { success: true, taskId }
+          : { success: false, error: "BOARD_ACTION_NOT_APPLIED" };
+      } catch {
+        return { success: false, error: "BOARD_ACTION_OPERATION_FAILED" };
       }
     },
 
@@ -776,30 +891,108 @@ export const useTaskBoardStore = defineStore("taskBoard", {
      */
     async moveTask(
       taskId: string,
-      targetColumnId: string,
+      columnId: string,
       position: number,
     ): Promise<TaskBoardApiResult> {
+      if (
+        typeof columnId !== "string" ||
+        !columnId ||
+        !Number.isSafeInteger(position) ||
+        position < 0 ||
+        position > 1000000
+      )
+        return { success: false, error: "BOARD_ACTION_INVALID_UPDATE" };
+      const app = useAppStore(),
+        identity = useIdentityStore();
+      const selectedBoard = this.currentBoard,
+        selectedTask = this.currentTask,
+        selectedTasks = this.tasks;
+      const selectedBoardId =
+        selectedBoard?.id ??
+        selectedTasks.find((task) => task.id === taskId)?.boardId ??
+        (selectedTask?.id === taskId ? selectedTask.boardId : undefined);
+      let active = app.isAuthenticated;
+      const invalidate = () => {
+        active = false;
+      };
+      const cleanup = [
+        app.$subscribe(invalidate, { flush: "sync", detached: true }),
+        identity.$subscribe(invalidate, { flush: "sync", detached: true }),
+        this.$subscribe(
+          (_mutation, state) => {
+            if (
+              state.currentBoard !== selectedBoard ||
+              state.currentTask !== selectedTask ||
+              state.tasks !== selectedTasks
+            )
+              invalidate();
+          },
+          { flush: "sync", detached: true },
+        ),
+      ];
+      const unsubscribe = (
+        window as any
+      ).electronAPI?.notification?.onInvalidated?.(invalidate);
+      const current = () =>
+        active &&
+        app.isAuthenticated &&
+        this.currentBoard === selectedBoard &&
+        this.currentTask === selectedTask &&
+        this.tasks === selectedTasks;
       try {
-        const result: TaskBoardApiResult = await (
-          window as any
-        ).electronAPI.invoke("task:move-task", {
+        if (!current())
+          return { success: false, error: "BOARD_ACTION_CONTEXT_CHANGED" };
+        const api = (window as any).electronAPI?.task;
+        const prepared = await api?.previewBoardUpdate({
           taskId,
-          targetColumnId,
-          position,
+          updates: { columnId, position },
+          idempotencyKey: crypto.randomUUID(),
         });
-
-        if (result.success) {
-          const task = this.tasks.find((t) => t.id === taskId);
-          if (task) {
-            task.columnId = targetColumnId;
-            task.position = position;
-          }
-        }
-
-        return result;
-      } catch (error) {
-        console.error("[TaskBoardStore] 移动任务失败:", error);
-        throw error;
+        if (!current())
+          return { success: false, error: "BOARD_ACTION_CONTEXT_CHANGED" };
+        if (
+          prepared?.success !== true ||
+          prepared.request?.actionType !== "board-task.move" ||
+          prepared.request.actionVersion !== 1
+        )
+          return { success: false, error: "BOARD_ACTION_PREVIEW_FAILED" };
+        const result = await api.executeBoardUpdate({
+          request: prepared.request,
+        });
+        if (!current())
+          return { success: false, error: "BOARD_ACTION_CONTEXT_CHANGED" };
+        if (result?.success !== true || result.run?.status !== "succeeded")
+          return { success: false, error: "BOARD_ACTION_NOT_APPLIED" };
+        const fresh = await api.getTask({ taskId });
+        if (!current())
+          return { success: false, error: "BOARD_ACTION_CONTEXT_CHANGED" };
+        const boardId = fresh?.task?.boardId;
+        if (
+          fresh?.success !== true ||
+          fresh.task?.id !== taskId ||
+          typeof boardId !== "string" ||
+          !boardId ||
+          (selectedBoardId && selectedBoardId !== boardId)
+        )
+          return { success: false, error: "BOARD_ACTION_REFRESH_FAILED" };
+        const list = await api.getTasks({ boardId });
+        if (!current())
+          return { success: false, error: "BOARD_ACTION_CONTEXT_CHANGED" };
+        if (
+          list?.success !== true ||
+          !Array.isArray(list.tasks) ||
+          !list.tasks.some((task: Task) => task.id === taskId) ||
+          list.tasks.some((task: Task) => task.boardId !== boardId)
+        )
+          return { success: false, error: "BOARD_ACTION_REFRESH_FAILED" };
+        this.tasks = list.tasks;
+        if (selectedTask?.id === taskId) this.currentTask = fresh.task;
+        return { success: true, taskId };
+      } catch {
+        return { success: false, error: "BOARD_ACTION_OPERATION_FAILED" };
+      } finally {
+        cleanup.forEach((stop) => stop());
+        unsubscribe?.();
       }
     },
 
@@ -1036,13 +1229,12 @@ export const useTaskBoardStore = defineStore("taskBoard", {
      */
     async generateAISummary(reportId: string): Promise<TaskBoardApiResult> {
       try {
-        return await (window as any).electronAPI.invoke(
-          "task:generate-ai-summary",
-          { reportId },
-        );
-      } catch (error) {
-        console.error("[TaskBoardStore] 生成 AI 摘要失败:", error);
-        throw error;
+        return await (window as any).electronAPI.task.generateAISummary({
+          reportId,
+          requestId: crypto.randomUUID(),
+        });
+      } catch {
+        return { success: false, error: "BOARD_SUMMARY_OPERATION_FAILED" };
       }
     },
 

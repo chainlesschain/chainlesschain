@@ -174,6 +174,27 @@ describe("useSocialStore", () => {
   // -------------------------------------------------------------------------
 
   describe("pure actions", () => {
+    it.each([
+      { id: "cc-board-mention:orphan", data: null },
+      {
+        data: JSON.stringify({ schema: "chainlesschain.board-notice-ref/v1" }),
+      },
+      { data: JSON.stringify({ eventId: "cc-board-mention:protected" }) },
+    ])(
+      "does not cache or send protected board notices to the desktop %j",
+      (reference) => {
+        const store = useSocialStore();
+        store.addNotification({
+          ...reference,
+          type: "system",
+          title: "SECRET",
+          content: "BODY",
+        });
+        expect(store.notifications).toEqual([]);
+        expect(store.unreadNotifications).toBe(0);
+        expect(mockInvoke).not.toHaveBeenCalled();
+      },
+    );
     it("setFriendOnlineStatus updates the map", () => {
       const store = useSocialStore();
       store.setFriendOnlineStatus("did:f1", "online");

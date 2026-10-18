@@ -287,6 +287,13 @@ module.exports = {
 
   async applyChange(orgId, change) {
     const { action, resource_type, resource_id, metadata } = change;
+    // This legacy incremental payload has no verified authority proof. It must
+    // not mutate the membership rows trusted by local role/board authorization.
+    if (
+      ["update_member_role", "remove_member", "add_member"].includes(action)
+    ) {
+      throw new Error("ORG_ROLE_CONTROLLED_WRITE_REQUIRED");
+    }
 
     logger.info(
       "[OrganizationManager] 应用变更:",

@@ -1,0 +1,661 @@
+{
+  "schema_version": 1,
+  "batch": 18,
+  "collected_at": "2026-10-18T03:56:53.419Z",
+  "scope": "Governed persistent native SQLite attachments: bounded native selection, atomic metadata/BLOB/activity, source-authorized reads, quotas, safe preview/download, actual process crash recovery and legacy whole-vault transfer boundaries",
+  "baseline_commit": "7111f3f78725c82c35927fd5bada0e0b1be5983c",
+  "validation_head": "7111f3f78725c82c35927fd5bada0e0b1be5983c",
+  "branch": "feature/palantir-board-write-authority",
+  "previous_evidence": {
+    "path": "docs/research/palantir/evidence/palantir-gap-board-mention-notifications-2026-10-18.json",
+    "sha256": "bba1abf04fda813338a89f390b09c193c582bfea2b686e00b6301c1a9f4d2b83"
+  },
+  "source_state": "Uncommitted selected workspace sources, individually hash-bound and archived; unrelated concurrent changes excluded",
+  "environment": {
+    "platform": "win32",
+    "architecture": "x64",
+    "node": "v22.22.2",
+    "native": {
+      "package": "better-sqlite3",
+      "version": "12.11.1",
+      "sqlite_version": "3.53.2"
+    },
+    "renderer": {
+      "runtime": "C:/Users/longfa/AppData/Local/Temp/cc-palantir-board-notice-renderer-runtime",
+      "packages": {
+        "vue": "3.5.13",
+        "pinia": "2.3.0",
+        "@vue/test-utils": "2.4.6",
+        "@vitejs/plugin-vue": "5.2.1",
+        "@vue/compiler-sfc": "3.5.13",
+        "vue-router": "4.5.0",
+        "dayjs": "1.11.13",
+        "vite": "6.0.6"
+      },
+      "test_runner": "4.1.10",
+      "dom": "20.11.1"
+    },
+    "sqlcipher": {
+      "status": "not_validated",
+      "reason": "Native multiple-ciphers binding unavailable in prior preflight; no SQLCipher pass claimed"
+    }
+  },
+  "review": "Astra implemented renderer and legacy whole-vault transfer hardening, reviewed native storage/host and synchronous projections. Source-finalization review found no remaining blocker in this slice.",
+  "implemented_board_actions": 35,
+  "guarded_board_write_channels": 36,
+  "new_local_actions": ["upload-attachment", "delete-attachment"],
+  "unavailable_board_actions": ["generate-ai-summary"],
+  "exact_renderer_channels": 1346,
+  "denied_unregistered_renderer_channels": 156,
+  "tests": [
+    {
+      "name": "node-sqlite",
+      "command": "C:\\nvm4w\\nodejs\\node.exe",
+      "arguments": [
+        "--test",
+        "--test-reporter=tap",
+        "desktop-app-vue/src/main/task/__tests__/board-read-authority.test.cjs",
+        "desktop-app-vue/src/main/task/__tests__/board-write-authority.test.cjs",
+        "desktop-app-vue/src/main/task/__tests__/board-attachments.test.cjs",
+        "desktop-app-vue/src/main/organization/__tests__/organization-role-write-authority.test.cjs",
+        "desktop-app-vue/src/main/notification/__tests__/legacy-notification-filter.test.cjs",
+        "desktop-app-vue/src/main/database/__tests__/database-transfer-boundary.test.cjs"
+      ],
+      "cwd": "C:/code/chainlesschain",
+      "environment": {},
+      "exit_code": 0,
+      "report": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-palantir-board-attachments-20261018\\node-sqlite.log",
+      "report_sha256": "0b762037818c323c23775b9e071856b32423e4b8eec464ba7024d52fa1616aa3",
+      "tests": 130,
+      "pass": 130,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0
+    },
+    {
+      "name": "better-sqlite3",
+      "command": "C:\\nvm4w\\nodejs\\node.exe",
+      "arguments": [
+        "--test",
+        "--test-reporter=tap",
+        "desktop-app-vue/src/main/task/__tests__/board-write-authority.test.cjs",
+        "desktop-app-vue/src/main/task/__tests__/board-attachments.test.cjs",
+        "desktop-app-vue/src/main/organization/__tests__/organization-role-write-authority.test.cjs",
+        "desktop-app-vue/src/main/notification/__tests__/legacy-notification-filter.test.cjs",
+        "desktop-app-vue/src/main/database/__tests__/database-transfer-boundary.test.cjs"
+      ],
+      "cwd": "C:/code/chainlesschain",
+      "environment": {
+        "CC_BOARD_TEST_SQLITE": "better-sqlite3"
+      },
+      "exit_code": 0,
+      "report": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-palantir-board-attachments-20261018\\better-sqlite3.log",
+      "report_sha256": "b4e9ef00694e42991aaac5f29e23d34f936eb43fcc0e37e34565d582efb18542",
+      "tests": 125,
+      "pass": 125,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0
+    },
+    {
+      "name": "legacy-sqljs",
+      "command": "C:\\nvm4w\\nodejs\\node.exe",
+      "arguments": [
+        "--test",
+        "--test-reporter=tap",
+        "desktop-app-vue/src/main/notification/__tests__/legacy-notification-filter.test.cjs"
+      ],
+      "cwd": "C:/code/chainlesschain",
+      "environment": {
+        "CC_BOARD_TEST_SQLITE": "sql.js"
+      },
+      "exit_code": 0,
+      "report": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-palantir-board-attachments-20261018\\legacy-sqljs.log",
+      "report_sha256": "8af2f4b2a33c6401310ebdf8fcaa3626f2d33495fe26e1ea8112bff309fe0cc2",
+      "tests": 6,
+      "pass": 6,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0
+    },
+    {
+      "name": "notification-regression",
+      "command": "C:\\nvm4w\\nodejs\\node.exe",
+      "arguments": [
+        "../node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "vitest.board-notifications.config.mjs",
+        "--reporter=json",
+        "--outputFile=C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-palantir-board-attachments-20261018\\notification-regression.json"
+      ],
+      "cwd": "C:\\code\\chainlesschain\\desktop-app-vue",
+      "environment": {},
+      "exit_code": 0,
+      "report": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-palantir-board-attachments-20261018\\notification-regression.log",
+      "report_sha256": "21e9e8a6dea56db8fa8b51836295a0dc08254c344637e71928cdca55bff1ad26",
+      "tests": 137,
+      "pass": 137,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "name": "canonical-adjunct",
+      "command": "C:\\nvm4w\\nodejs\\node.exe",
+      "arguments": [
+        "desktop-app-vue/scripts/verify-canonical-task-adjunct-ipc.cjs"
+      ],
+      "cwd": "C:/code/chainlesschain",
+      "environment": {},
+      "exit_code": 0,
+      "report": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-palantir-board-attachments-20261018\\canonical-adjunct.log",
+      "report_sha256": "252c3aaaa38076083449174d12bd72c1181f9e08a92e0e5b132aafc6305b7dd5"
+    },
+    {
+      "name": "exact-ipc-manifest",
+      "command": "C:\\nvm4w\\nodejs\\node.exe",
+      "arguments": ["desktop-app-vue/scripts/verify-fixed-renderer-ipc.mjs"],
+      "cwd": "C:/code/chainlesschain",
+      "environment": {},
+      "exit_code": 0,
+      "report": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-palantir-board-attachments-20261018\\exact-ipc-manifest.log",
+      "report_sha256": "abdef8d7b634a537aea24897407108f1fe37fb5ff771fd3642d82e8d0b067099"
+    },
+    {
+      "name": "renderer",
+      "command": "C:\\nvm4w\\nodejs\\node.exe",
+      "arguments": [
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "desktop-app-vue/vitest.board-notifications-renderer.config.mjs",
+        "--reporter=default",
+        "--reporter=json",
+        "--outputFile.json=C:/Users/longfa/AppData/Local/Temp/cc-palantir-board-attachments-20261018/renderer-vitest.json"
+      ],
+      "environment": {
+        "CC_BOARD_RENDERER_RUNTIME": "C:/Users/longfa/AppData/Local/Temp/cc-palantir-board-notice-renderer-runtime"
+      },
+      "cwd": "C:\\code\\chainlesschain",
+      "exit_code": 0,
+      "report": "C:/Users/longfa/AppData/Local/Temp/cc-palantir-board-attachments-20261018/renderer-vitest.json",
+      "report_sha256": "5b5ec885dabb6c9f4e20aa1e57dbcbcf9c2b5f85038f94a533a5fa344a6d07d0",
+      "tests": 129,
+      "pass": 129,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "name": "exact-ipc-manifest-final",
+      "command": "C:\\nvm4w\\nodejs\\node.exe",
+      "arguments": ["desktop-app-vue/scripts/verify-fixed-renderer-ipc.mjs"],
+      "exit_code": 0,
+      "report": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-palantir-board-attachments-20261018\\exact-ipc-manifest-final.log",
+      "report_sha256": "abdef8d7b634a537aea24897407108f1fe37fb5ff771fd3642d82e8d0b067099"
+    },
+    {
+      "name": "prettier",
+      "command": "C:\\nvm4w\\nodejs\\node.exe",
+      "arguments": [
+        "node_modules/prettier/bin/prettier.cjs",
+        "--check",
+        "desktop-app-vue/package.json",
+        "desktop-app-vue/scripts/verify-canonical-task-adjunct-ipc.cjs",
+        "desktop-app-vue/scripts/verify-fixed-renderer-ipc.mjs",
+        "desktop-app-vue/src/main/database/__tests__/database-transfer-boundary.test.cjs",
+        "desktop-app-vue/src/main/database/database-ipc.js",
+        "desktop-app-vue/src/main/database/database-schema.js",
+        "desktop-app-vue/src/main/ipc/ipc-sender-guard.js",
+        "desktop-app-vue/src/main/notification/__tests__/legacy-notification-filter.test.cjs",
+        "desktop-app-vue/src/main/notification/__tests__/notification-authority-ipc.test.js",
+        "desktop-app-vue/src/main/notification/__tests__/project-goal-notification-journey.test.js",
+        "desktop-app-vue/src/main/notification/legacy-notification-filter.js",
+        "desktop-app-vue/src/main/notification/notification-ipc.js",
+        "desktop-app-vue/src/main/organization/__tests__/organization-role-write-authority.test.cjs",
+        "desktop-app-vue/src/main/organization/organization-ipc.js",
+        "desktop-app-vue/src/main/organization/organization-manager-members.js",
+        "desktop-app-vue/src/main/organization/organization-manager-p2pSync.js",
+        "desktop-app-vue/src/main/organization/organization-role-write-authority.js",
+        "desktop-app-vue/src/main/organization/permission-ipc.js",
+        "desktop-app-vue/src/main/permission/permission-ipc.js",
+        "desktop-app-vue/src/main/sync/mobile-bridge-sync.js",
+        "desktop-app-vue/src/main/sync/p2p-sync-engine.js",
+        "desktop-app-vue/src/main/system/notification-manager.js",
+        "desktop-app-vue/src/main/task/__tests__/board-attachment-crash-worker.cjs",
+        "desktop-app-vue/src/main/task/__tests__/board-attachments.test.cjs",
+        "desktop-app-vue/src/main/task/__tests__/board-authority-fixture.cjs",
+        "desktop-app-vue/src/main/task/__tests__/board-read-authority.test.cjs",
+        "desktop-app-vue/src/main/task/__tests__/board-write-authority.test.cjs",
+        "desktop-app-vue/src/main/task/board-attachment-host.js",
+        "desktop-app-vue/src/main/task/board-attachment-store.js",
+        "desktop-app-vue/src/main/task/board-notice-projection.js",
+        "desktop-app-vue/src/main/task/board-read-authority.js",
+        "desktop-app-vue/src/main/task/board-write-authority.js",
+        "desktop-app-vue/src/main/task/project-goal-auth-session.js",
+        "desktop-app-vue/src/main/task/task-board-manager.js",
+        "desktop-app-vue/src/main/task/task-ipc.js",
+        "desktop-app-vue/src/main/task/team-report-manager.js",
+        "desktop-app-vue/src/main/task/team-task-manager.js",
+        "desktop-app-vue/src/main/web-shell/__tests__/notification-handlers.test.js",
+        "desktop-app-vue/src/main/web-shell/handlers/notification-handlers.js",
+        "desktop-app-vue/src/preload/index.js",
+        "desktop-app-vue/src/preload/renderer-ipc-capabilities.json",
+        "desktop-app-vue/src/renderer/components/common/NotificationCenter.vue",
+        "desktop-app-vue/src/renderer/components/common/TaskNotificationList.vue",
+        "desktop-app-vue/src/renderer/components/common/__tests__/goal-notification-list.test.ts",
+        "desktop-app-vue/src/renderer/components/common/__tests__/task-notification-list.test.ts",
+        "desktop-app-vue/src/renderer/components/social/NotificationCenter.vue",
+        "desktop-app-vue/src/renderer/components/task/BoardAttachments.vue",
+        "desktop-app-vue/src/renderer/components/task/__tests__/board-attachments.test.ts",
+        "desktop-app-vue/src/renderer/pages/tasks/TaskBoardPage.vue",
+        "desktop-app-vue/src/renderer/pages/tasks/__tests__/notification-ant-stub.js",
+        "desktop-app-vue/src/renderer/pages/tasks/__tests__/notification-icons-stub.js",
+        "desktop-app-vue/src/renderer/pages/tasks/__tests__/task-notice-route.test.ts",
+        "desktop-app-vue/src/renderer/stores/__tests__/goal-notifications.test.ts",
+        "desktop-app-vue/src/renderer/stores/__tests__/social.test.ts",
+        "desktop-app-vue/src/renderer/stores/__tests__/task-notifications.test.ts",
+        "desktop-app-vue/src/renderer/stores/social.ts",
+        "desktop-app-vue/src/renderer/stores/task-notifications.ts",
+        "desktop-app-vue/tests/unit/database/database-ipc.test.js",
+        "desktop-app-vue/vitest.board-notifications-renderer.config.mjs",
+        "desktop-app-vue/vitest.board-notifications.config.mjs",
+        "docs/research/palantir/chainlesschain-palantir-gap-analysis-2026-10-06.md",
+        "docs/research/palantir/palantir-gap-implementation-progress-2026-10-06.md"
+      ],
+      "exit_code": 0,
+      "report": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-palantir-board-attachments-20261018\\prettier.log",
+      "report_sha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20"
+    },
+    {
+      "name": "node-syntax",
+      "files": 42,
+      "exit_code": 0
+    },
+    {
+      "name": "git-diff-check",
+      "command": "git",
+      "arguments": [
+        "diff",
+        "--check",
+        "--",
+        "desktop-app-vue/package.json",
+        "desktop-app-vue/scripts/verify-canonical-task-adjunct-ipc.cjs",
+        "desktop-app-vue/scripts/verify-fixed-renderer-ipc.mjs",
+        "desktop-app-vue/src/main/database/__tests__/database-transfer-boundary.test.cjs",
+        "desktop-app-vue/src/main/database/database-ipc.js",
+        "desktop-app-vue/src/main/database/database-schema.js",
+        "desktop-app-vue/src/main/ipc/ipc-sender-guard.js",
+        "desktop-app-vue/src/main/notification/__tests__/legacy-notification-filter.test.cjs",
+        "desktop-app-vue/src/main/notification/__tests__/notification-authority-ipc.test.js",
+        "desktop-app-vue/src/main/notification/__tests__/project-goal-notification-journey.test.js",
+        "desktop-app-vue/src/main/notification/legacy-notification-filter.js",
+        "desktop-app-vue/src/main/notification/notification-ipc.js",
+        "desktop-app-vue/src/main/organization/__tests__/organization-role-write-authority.test.cjs",
+        "desktop-app-vue/src/main/organization/organization-ipc.js",
+        "desktop-app-vue/src/main/organization/organization-manager-members.js",
+        "desktop-app-vue/src/main/organization/organization-manager-p2pSync.js",
+        "desktop-app-vue/src/main/organization/organization-role-write-authority.js",
+        "desktop-app-vue/src/main/organization/permission-ipc.js",
+        "desktop-app-vue/src/main/permission/permission-ipc.js",
+        "desktop-app-vue/src/main/sync/mobile-bridge-sync.js",
+        "desktop-app-vue/src/main/sync/p2p-sync-engine.js",
+        "desktop-app-vue/src/main/system/notification-manager.js",
+        "desktop-app-vue/src/main/task/__tests__/board-attachment-crash-worker.cjs",
+        "desktop-app-vue/src/main/task/__tests__/board-attachments.test.cjs",
+        "desktop-app-vue/src/main/task/__tests__/board-authority-fixture.cjs",
+        "desktop-app-vue/src/main/task/__tests__/board-read-authority.test.cjs",
+        "desktop-app-vue/src/main/task/__tests__/board-write-authority.test.cjs",
+        "desktop-app-vue/src/main/task/board-attachment-host.js",
+        "desktop-app-vue/src/main/task/board-attachment-store.js",
+        "desktop-app-vue/src/main/task/board-notice-projection.js",
+        "desktop-app-vue/src/main/task/board-read-authority.js",
+        "desktop-app-vue/src/main/task/board-write-authority.js",
+        "desktop-app-vue/src/main/task/project-goal-auth-session.js",
+        "desktop-app-vue/src/main/task/task-board-manager.js",
+        "desktop-app-vue/src/main/task/task-ipc.js",
+        "desktop-app-vue/src/main/task/team-report-manager.js",
+        "desktop-app-vue/src/main/task/team-task-manager.js",
+        "desktop-app-vue/src/main/web-shell/__tests__/notification-handlers.test.js",
+        "desktop-app-vue/src/main/web-shell/handlers/notification-handlers.js",
+        "desktop-app-vue/src/preload/index.js",
+        "desktop-app-vue/src/preload/renderer-ipc-capabilities.json",
+        "desktop-app-vue/src/renderer/components/common/NotificationCenter.vue",
+        "desktop-app-vue/src/renderer/components/common/TaskNotificationList.vue",
+        "desktop-app-vue/src/renderer/components/common/__tests__/goal-notification-list.test.ts",
+        "desktop-app-vue/src/renderer/components/common/__tests__/task-notification-list.test.ts",
+        "desktop-app-vue/src/renderer/components/social/NotificationCenter.vue",
+        "desktop-app-vue/src/renderer/components/task/BoardAttachments.vue",
+        "desktop-app-vue/src/renderer/components/task/__tests__/board-attachments.test.ts",
+        "desktop-app-vue/src/renderer/pages/tasks/TaskBoardPage.vue",
+        "desktop-app-vue/src/renderer/pages/tasks/__tests__/notification-ant-stub.js",
+        "desktop-app-vue/src/renderer/pages/tasks/__tests__/notification-icons-stub.js",
+        "desktop-app-vue/src/renderer/pages/tasks/__tests__/task-notice-route.test.ts",
+        "desktop-app-vue/src/renderer/stores/__tests__/goal-notifications.test.ts",
+        "desktop-app-vue/src/renderer/stores/__tests__/social.test.ts",
+        "desktop-app-vue/src/renderer/stores/__tests__/task-notifications.test.ts",
+        "desktop-app-vue/src/renderer/stores/social.ts",
+        "desktop-app-vue/src/renderer/stores/task-notifications.ts",
+        "desktop-app-vue/tests/unit/database/database-ipc.test.js",
+        "desktop-app-vue/vitest.board-notifications-renderer.config.mjs",
+        "desktop-app-vue/vitest.board-notifications.config.mjs",
+        "docs/research/palantir/chainlesschain-palantir-gap-analysis-2026-10-06.md",
+        "docs/research/palantir/palantir-gap-implementation-progress-2026-10-06.md"
+      ],
+      "exit_code": 0,
+      "report": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-palantir-board-attachments-20261018\\git-diff-check.log",
+      "report_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "source_snapshot": {
+    "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-palantir-board-attachments-20261018\\source-snapshot.json.gz",
+    "sha256": "ce4209401aebc85043f0303ced524dd35e06478cbf2122e9903e57356c208d9a",
+    "format": "gzip JSON containing relative paths, SHA-256 and base64 file bytes",
+    "files": 62
+  },
+  "storage_limits": {
+    "file_bytes": 8388608,
+    "task_bytes": 33554432,
+    "vault_bytes": 209715200,
+    "task_count": 64,
+    "vault_count": 1024,
+    "inline_text_bytes": 65536
+  },
+  "native_crash_scenarios": [
+    "upload-before-commit",
+    "upload-after-commit",
+    "delete-before-commit",
+    "delete-after-commit"
+  ],
+  "closed_legacy_transfer_channels": [
+    "db:backup",
+    "database:migrate",
+    "database:restore-backup",
+    "database:set-path"
+  ],
+  "boundaries": [
+    "All attachment entries require a persistent native SQLite connection with synchronous transaction support, journaling, synchronous >= NORMAL, foreign keys enabled. sql.js, volatile DBs and missing transaction wrappers are explicitly unsupported.",
+    "Actual SIGKILL worker tests cover four WAL commit boundary states and integrity_check. Power failure, arbitrary multi-process races and production SQLCipher were not tested.",
+    "File source stability uses bounded fd reads, lstat/realpath, hardlink count and identity/timestamp checks. No claim of complete resistance to same-OS-user malicious Windows reparse races.",
+    "No persistent disk attachment copy or source path is created. Metadata, BLOB and activity commit atomically. Legacy file_path rows are not opened, imported or unlinked.",
+    "Strict bounded text is rendered through Vue interpolation; other bytes require explicit download using octet-stream Blob. Exported files cannot be remotely revoked.",
+    "Native tests execute actual production DDL, managers, IPC and preload with injected window/identity/picker boundaries. Renderer uses actual Vue/Pinia plus shell/IPC/router substitutes. No real Electron GUI or full production build validation.",
+    "Four uncontrolled whole-vault transfers now fail closed; valid context switches and main-process managed backups remain. Authenticated native whole-vault import/export/migration and a general database authorization overhaul remain pending.",
+    "Object-specific grants, approvals, version CAS, durable action idempotency/ActionRun, canonical adjuncts, real model outbound integration and external business/release acceptance remain pending.",
+    "One initial native test expected journal_mode=OFF to take effect; SQLite defensive mode ignored the setting. The test now disables synchronous and checks the actual safety gate. The original failed log is preserved separately; final matrices rerun.",
+    "Uncommitted and unpublished. Previous batch 15/16/17 evidence is preserved; unrelated concurrent CLI/IDE/session-core/RRSI work is excluded."
+  ],
+  "sources": [
+    {
+      "path": "desktop-app-vue/package.json",
+      "sha256": "7176f454aaf9550c93199b5531850b73c951e9eb6017e4c16fdd9741ba66c2a8"
+    },
+    {
+      "path": "desktop-app-vue/scripts/verify-canonical-task-adjunct-ipc.cjs",
+      "sha256": "848b458a6f972d9c6e8b001de21b930c32a95172aa315cc183acbd1ac5495cf7"
+    },
+    {
+      "path": "desktop-app-vue/scripts/verify-fixed-renderer-ipc.mjs",
+      "sha256": "6cddb2e356562cdef27d6a34de1dcb56c7a74622962bd543ece857f9ed794d1c"
+    },
+    {
+      "path": "desktop-app-vue/src/main/database/__tests__/database-transfer-boundary.test.cjs",
+      "sha256": "aa63c6c1eb26a5dac93a7476c2d528433584b08fe32912d52357667a483ac913"
+    },
+    {
+      "path": "desktop-app-vue/src/main/database/database-ipc.js",
+      "sha256": "a0e96f948174699695e0cf18e953fe68271869fba857bff20f38d8e4ec4ba215"
+    },
+    {
+      "path": "desktop-app-vue/src/main/database/database-schema.js",
+      "sha256": "a59a507c26e58f29fa893bcc46ebc2d58c4bf47e96b4026727eb3425864c22ee"
+    },
+    {
+      "path": "desktop-app-vue/src/main/ipc/ipc-sender-guard.js",
+      "sha256": "ddbe73a932fbef0af0880398795642ba017f8994e1d9acb89083e46d57c9712c"
+    },
+    {
+      "path": "desktop-app-vue/src/main/notification/__tests__/legacy-notification-filter.test.cjs",
+      "sha256": "a1b8d3813519e1de5027fbe1d4de6ee2e0fec56592e8722b79467ffdd0b0f8e2"
+    },
+    {
+      "path": "desktop-app-vue/src/main/notification/__tests__/notification-authority-ipc.test.js",
+      "sha256": "9e829d6886c70ebc936506b20338e3650c7ade472ff5c77cd88042483549cfb1"
+    },
+    {
+      "path": "desktop-app-vue/src/main/notification/__tests__/project-goal-notification-journey.test.js",
+      "sha256": "8428e2ae93ed185a3abc9a59ca9bf68218fe4d091d657fc4a8f5cc1ee4c57858"
+    },
+    {
+      "path": "desktop-app-vue/src/main/notification/legacy-notification-filter.js",
+      "sha256": "e795f8bf77b4779c8a67708a26d89e999c84d07c1d00f367078ed60dcd781136"
+    },
+    {
+      "path": "desktop-app-vue/src/main/notification/notification-ipc.js",
+      "sha256": "5f016d6ec42f290ffa0ae69cb7fee50f8a9bf321e4e5ec31ace2b05e01830090"
+    },
+    {
+      "path": "desktop-app-vue/src/main/organization/__tests__/organization-role-write-authority.test.cjs",
+      "sha256": "c53c702ade84ae32d5f581a4183f834bc17223992132c0d728d1e2cb11a60a0b"
+    },
+    {
+      "path": "desktop-app-vue/src/main/organization/organization-ipc.js",
+      "sha256": "da2c4feb9d0c298cc6560746e475318cbe9404c62d3bba34c5ea84136623057a"
+    },
+    {
+      "path": "desktop-app-vue/src/main/organization/organization-manager-members.js",
+      "sha256": "0d6940f62a947a2fbb788fb09cf43e30135f62e2a50f59a649b5c6077f352d2b"
+    },
+    {
+      "path": "desktop-app-vue/src/main/organization/organization-manager-p2pSync.js",
+      "sha256": "615ec48c75b4171378d965d1f7fe26e75ebee159008a3ad42649acca0a4b8549"
+    },
+    {
+      "path": "desktop-app-vue/src/main/organization/organization-role-write-authority.js",
+      "sha256": "14d007f7e7169a4c56e16759d1336e65199ed58d2160f3b248a956645f65b63a"
+    },
+    {
+      "path": "desktop-app-vue/src/main/organization/permission-ipc.js",
+      "sha256": "c3e141e5fd974e5090b0149b9dbcce8fbd3f75389910990341613453d77fc3d2"
+    },
+    {
+      "path": "desktop-app-vue/src/main/permission/permission-ipc.js",
+      "sha256": "d70ae52b7f368e1e9f394b9bd994a73b866c16b0863b946356f20edc4e68106c"
+    },
+    {
+      "path": "desktop-app-vue/src/main/sync/mobile-bridge-sync.js",
+      "sha256": "acd7aea681e78db53e432732c6acb795c7c9bd71f1d3f532a7757c52f2582693"
+    },
+    {
+      "path": "desktop-app-vue/src/main/sync/p2p-sync-engine.js",
+      "sha256": "e25e1cd1a633dec9e51c4790134f2aabb69b909782e9a81227272c16bd5efb74"
+    },
+    {
+      "path": "desktop-app-vue/src/main/system/notification-manager.js",
+      "sha256": "25e4dde928dce115142b5821e7f6427af5ced1bd121dc5aaa07f755d32813f46"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/__tests__/board-attachment-crash-worker.cjs",
+      "sha256": "6703d919c6fcec58a504d16107592b7b56ad6c8f2778ae6627b4e4aa798f8c51"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/__tests__/board-attachments.test.cjs",
+      "sha256": "eb4388ae64c7e8cbd0968212f09832a9569165009c54c3945f79b05c7b7420be"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/__tests__/board-authority-fixture.cjs",
+      "sha256": "d8484004272cb5776a32d2363529a9e5edab5e7586fe63c20310926a1d32b9cb"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/__tests__/board-read-authority.test.cjs",
+      "sha256": "8d7d853d5b5f420f2f57ef94614c1a11806eccb6574c8511c559cd2ac6b0a1cb"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/__tests__/board-write-authority.test.cjs",
+      "sha256": "90cd38f437df8155932573accbd790fe540ffd788d6984f256c3f226179c149f"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/board-attachment-host.js",
+      "sha256": "3e704ab55546b47bd4120d6ece514cae2503062a08d9c40fa7ec5fde6ee73c74"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/board-attachment-store.js",
+      "sha256": "3519b58955f45855032933389018cc63abd6e2c071d54440d9ba0329165b7054"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/board-notice-projection.js",
+      "sha256": "d9cb5ba3d7d43e2a5926b89cf24d9abd68a7b6b534bb01d3e56fb74743ea2fe1"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/board-read-authority.js",
+      "sha256": "a063f34eae5b470e5dd2d3ef660e69accf5390638f8422939c6b623b4eb7310d"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/board-write-authority.js",
+      "sha256": "2708ceff5f01c3bc1b805fe72df24dde0a58188f2486d31d53ecadd3d662cbd7"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/project-goal-auth-session.js",
+      "sha256": "c2e81e219c34c8ffb480dad823d605eadc80964dd2403d17f18d87195b3b5226"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/task-board-manager.js",
+      "sha256": "5bec837a8bb825af17bd4c3312914177c680ae52d31d78ebae4917d14777675a"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/task-ipc.js",
+      "sha256": "b06fd821732c067796dec98a6dde5b9d9b39b9e36d8bdee6f937bfcd28193ae4"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/team-report-manager.js",
+      "sha256": "dc02ba6342798e26e90d4dcd5b7d282250a4bf57bac44607030ba69bcbb2f03a"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/team-task-manager.js",
+      "sha256": "ae7da7a34eee11dc561dc48f93bf99ad54a4c7929654ff109734101d8961e5a1"
+    },
+    {
+      "path": "desktop-app-vue/src/main/web-shell/__tests__/notification-handlers.test.js",
+      "sha256": "cfb1b60f78e46e66b92bd607bbb30fbf51c642caf7e037c1bee54e66c42a8a46"
+    },
+    {
+      "path": "desktop-app-vue/src/main/web-shell/handlers/notification-handlers.js",
+      "sha256": "3250704acbb23a2447add5df616bf7d9c469dd733d0c9bb3a68a233dee76d18c"
+    },
+    {
+      "path": "desktop-app-vue/src/preload/index.js",
+      "sha256": "4de7f6cddfbdc76b933af2da6bd5eb9e2fd49a7d1b4e6719a3a35020f4e0fd88"
+    },
+    {
+      "path": "desktop-app-vue/src/preload/renderer-ipc-capabilities.json",
+      "sha256": "f4985bcb4ba608f15a22c2b844fddae59514184d99e4a88c8bb12641720c5fcf"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/components/common/NotificationCenter.vue",
+      "sha256": "55aee9f914f4d46a70227c8928fca34c4fb26e8f4b111ef890ad02df0ef67865"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/components/common/TaskNotificationList.vue",
+      "sha256": "211e89c9618ef8c4da1b45b6350f17648d038ec2503d27f76b1561cb83831162"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/components/common/__tests__/goal-notification-list.test.ts",
+      "sha256": "a4fcaa72fab61fc87cc924586e7d4807619ae44f21d242a51235cf5aac8e1665"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/components/common/__tests__/task-notification-list.test.ts",
+      "sha256": "1ae24f38e984885bd92d63106e2bf6789b03875a648b270a6615c50bc5487955"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/components/social/NotificationCenter.vue",
+      "sha256": "ae0ad1a52825b8d539cb732f119d66d77eed01ea90a56dac9ed758ef4a6d3b39"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/components/task/BoardAttachments.vue",
+      "sha256": "c0eb0ee71fb3011a63b63d730c42c7fa2c0d541ffd011ab6713ea50db11e0118"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/components/task/__tests__/board-attachments.test.ts",
+      "sha256": "d07e59ba6d9d628d37aa115ec4d05228992ea73ec0f9a68c71b21d8c197daf31"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/pages/tasks/TaskBoardPage.vue",
+      "sha256": "43fe31e748efd09fddbe6b6bdd58866348e3ddeb3729839c7fb1b01207b8dca5"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/pages/tasks/__tests__/notification-ant-stub.js",
+      "sha256": "5162e025ddd058f6fa9a8a1ab9823b7c8aa89b749f8625243f25425cdf651631"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/pages/tasks/__tests__/notification-icons-stub.js",
+      "sha256": "be061eb46bfdb974a156928e1248805aa2639cb50c093aa7056f992b8f3be474"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/pages/tasks/__tests__/task-notice-route.test.ts",
+      "sha256": "4db27c531665df78517e0bbe247c35d88f0f43c2c827cef5b48ebc2789ca520d"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/stores/__tests__/goal-notifications.test.ts",
+      "sha256": "59359e5a98779eb0d2cdf3fbf7245c4fc95d5620e6abd3788a67f6f72414edff"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/stores/__tests__/social.test.ts",
+      "sha256": "d2ea9acc48a2d98df1eaef424df40792b77f4a5212636dbdebf43d24a64318a8"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/stores/__tests__/task-notifications.test.ts",
+      "sha256": "51a3360890a4eabe6ec3cd3098be6ebfe6cba01d3d02de07951fe12b8fc572c2"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/stores/social.ts",
+      "sha256": "d94358592de6201eb4eb6a59a7f2006afed88720cd13226b565223d9f31a45dc"
+    },
+    {
+      "path": "desktop-app-vue/src/renderer/stores/task-notifications.ts",
+      "sha256": "45540136cb988fe8883eae6b6d72abfe878c2b1f213f520046b237b87072bd7a"
+    },
+    {
+      "path": "desktop-app-vue/tests/unit/database/database-ipc.test.js",
+      "sha256": "ea384a8ade86f0b97f34ac7b6a048dcbae120323c2f366c6c109f945cea03aa0"
+    },
+    {
+      "path": "desktop-app-vue/vitest.board-notifications-renderer.config.mjs",
+      "sha256": "0e887dcbc1cd87357974122a053f662d0f0fa40e894aae5c2cb87b4383467265"
+    },
+    {
+      "path": "desktop-app-vue/vitest.board-notifications.config.mjs",
+      "sha256": "ae1f6095bc9fb4e25bcb657fe9a4c777789b6a5e6907cdee9e03fe54cf453c54"
+    }
+  ],
+  "documentation": [
+    {
+      "path": "docs/research/palantir/chainlesschain-palantir-gap-analysis-2026-10-06.md",
+      "sha256": "56c9bdd5fd4fed12dd95f009a474482603602830d15f831b9352d5e258735d59"
+    },
+    {
+      "path": "docs/research/palantir/palantir-gap-implementation-progress-2026-10-06.md",
+      "sha256": "d9ff70fcff93f453671a9c23ee0cd0fec7ab6aa21419c6d3e5db2e3c19634427"
+    }
+  ],
+  "validation_assets": [
+    {
+      "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-palantir-board-attachments-20261018\\verify.cjs",
+      "sha256": "5a3476096b844e638566f674d4f3575c75832fa0a31823bb6060dfd3a4f7e458"
+    },
+    {
+      "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-palantir-board-attachments-20261018\\finalize.cjs",
+      "sha256": "92501fe4fb867f41cc3cb2e730614983ddf7f27b2f3ca100bf918c69a9f9c5cd"
+    },
+    {
+      "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-palantir-board-attachments-20261018\\renderer-vitest.json",
+      "sha256": "5b5ec885dabb6c9f4e20aa1e57dbcbcf9c2b5f85038f94a533a5fa344a6d07d0"
+    },
+    {
+      "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-palantir-board-attachments-20261018\\renderer-results.log",
+      "sha256": "34f49b75fccb6e0387f4508beca1aca03b10177d1d6ce22aab678adabe288110"
+    },
+    {
+      "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-palantir-board-attachments-20261018\\better-sqlite3.initial.log",
+      "sha256": "7c95c4b1dc5d2724a82c7a1a39bbde9e1b07dc10180c6946725bdecc2d4f0242"
+    }
+  ]
+}

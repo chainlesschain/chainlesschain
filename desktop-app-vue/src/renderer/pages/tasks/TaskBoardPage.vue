@@ -21,7 +21,7 @@
             </template>
             筛选
           </a-button>
-          <a-button type="primary" @click="showCreateTask = true">
+          <a-button type="primary" @click="createTaskInColumn(null)">
             <template #icon>
               <PlusOutlined />
             </template>
@@ -52,6 +52,7 @@
             allow-clear
             style="width: 100%"
           >
+            <a-select-option value="critical"> 紧急 </a-select-option>
             <a-select-option value="high"> 高 </a-select-option>
             <a-select-option value="medium"> 中 </a-select-option>
             <a-select-option value="low"> 低 </a-select-option>
@@ -96,13 +97,9 @@
                   {{ task.title }}
                 </div>
                 <div class="task-meta">
-                  <a-tag v-if="task.priority === 'high'" color="red">
-                    高
+                  <a-tag :color="getPriorityColor(task.priority)">
+                    {{ getPriorityLabel(task.priority) }}
                   </a-tag>
-                  <a-tag v-else-if="task.priority === 'medium'" color="orange">
-                    中
-                  </a-tag>
-                  <a-tag v-else color="blue"> 低 </a-tag>
                   <span v-if="task.dueDate" class="due-date">
                     {{ formatDate(task.dueDate) }}
                   </span>
@@ -152,56 +149,25 @@
       </a-table>
     </div>
 
+    <TaskReportsPanel
+      v-if="currentBoard?.id === boardId && currentBoard?.orgId"
+      :org-id="currentBoard.orgId"
+      :board-id="boardId"
+    />
+
     <!-- 创建任务对话框 -->
     <a-modal
       v-model:open="showCreateTask"
       title="新建任务"
-      :confirm-loading="creating"
+      :footer="null"
       width="600px"
-      @ok="handleCreateTask"
     >
-      <a-form :model="newTask" layout="vertical">
-        <a-form-item label="标题" required>
-          <a-input v-model:value="newTask.title" placeholder="任务标题" />
-        </a-form-item>
-        <a-form-item label="描述">
-          <a-textarea
-            v-model:value="newTask.description"
-            :rows="4"
-            placeholder="任务描述"
-          />
-        </a-form-item>
-        <a-row :gutter="16">
-          <a-col :span="12">
-            <a-form-item label="优先级">
-              <a-select v-model:value="newTask.priority" style="width: 100%">
-                <a-select-option value="high"> 高 </a-select-option>
-                <a-select-option value="medium"> 中 </a-select-option>
-                <a-select-option value="low"> 低 </a-select-option>
-              </a-select>
-            </a-form-item>
-          </a-col>
-          <a-col :span="12">
-            <a-form-item label="截止日期">
-              <a-date-picker
-                v-model:value="newTask.dueDate"
-                style="width: 100%"
-              />
-            </a-form-item>
-          </a-col>
-        </a-row>
-        <a-form-item label="所属列">
-          <a-select v-model:value="newTask.columnId" style="width: 100%">
-            <a-select-option
-              v-for="col in columns"
-              :key="col.id"
-              :value="col.id"
-            >
-              {{ col.name }}
-            </a-select-option>
-          </a-select>
-        </a-form-item>
-      </a-form>
+      <BoardTaskCreator
+        v-if="showCreateTask"
+        :board-id="boardId"
+        :initial-column-id="initialCreateColumn"
+        @created="refreshCreatedTask"
+      />
     </a-modal>
 
     <!-- 任务详情抽屉 -->
@@ -233,13 +199,36 @@
         <a-divider />
         <h4>描述</h4>
         <p>{{ currentTask.description || "无描述" }}</p>
+        <BoardTaskEditor
+          :task-id="currentTask.id"
+          @updated="refreshEditedTask"
+        />
+        <BoardAttachments :task-id="currentTask.id" />
+        <a-divider />
+        <a-form layout="vertical" @submit.prevent="mentionMember">
+          <a-form-item label="提及成员">
+            <a-input
+              v-model:value="mentionDid"
+              placeholder="输入成员 DID"
+              :maxlength="1024"
+            />
+          </a-form-item>
+          <a-button
+            :loading="mentioning"
+            :disabled="!mentionDid.trim()"
+            @click="mentionMember"
+          >
+            发送任务通知
+          </a-button>
+          <p v-if="mentionError" role="alert">{{ mentionError }}</p>
+        </a-form>
       </template>
     </a-drawer>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { message } from "ant-design-vue";
 import {
@@ -249,19 +238,30 @@ import {
 } from "@ant-design/icons-vue";
 import { useTaskBoardStore } from "@/stores/taskBoard";
 import { useAuthStore } from "@/stores/auth";
+import { useAppStore } from "@/stores/app";
+import { useIdentityStore } from "@/stores/identity";
+import BoardAttachments from "@/components/task/BoardAttachments.vue";
+import BoardTaskEditor from "@/components/task/BoardTaskEditor.vue";
+import BoardTaskCreator from "@/components/task/BoardTaskCreator.vue";
+import TaskReportsPanel from "@/components/task/TaskReportsPanel.vue";
 import dayjs from "dayjs";
 
 const route = useRoute();
 const router = useRouter();
 const taskBoardStore = useTaskBoardStore();
 const authStore = useAuthStore();
+const appStore = useAppStore();
+const identityStore = useIdentityStore();
 
 const boardId = computed(() => route.params.id);
 const loading = ref(false);
-const creating = ref(false);
+const initialCreateColumn = ref(null);
 const showFilters = ref(false);
 const showCreateTask = ref(false);
 const viewMode = ref("kanban");
+const mentionDid = ref("");
+const mentioning = ref(false);
+const mentionError = ref("");
 
 const currentBoard = computed(() => taskBoardStore.currentBoard);
 const columns = computed(() => taskBoardStore.columns);
@@ -270,14 +270,6 @@ const filteredTasks = computed(() => taskBoardStore.filteredTasks);
 const currentTask = computed(() => taskBoardStore.currentTask);
 const taskDetailVisible = computed(() => taskBoardStore.taskDetailVisible);
 const filters = computed(() => taskBoardStore.filters);
-
-const newTask = ref({
-  title: "",
-  description: "",
-  priority: "medium",
-  dueDate: null,
-  columnId: null,
-});
 
 const tableColumns = [
   { title: "标题", dataIndex: "title", key: "title" },
@@ -294,17 +286,25 @@ const getColumnTasks = (columnId) => {
 const formatDate = (timestamp) => dayjs(timestamp).format("MM-DD");
 
 const getPriorityColor = (priority) => {
-  const colors = { high: "red", medium: "orange", low: "blue" };
+  const colors = {
+    critical: "magenta",
+    high: "red",
+    medium: "orange",
+    low: "blue",
+  };
   return colors[priority] || "default";
 };
 
 const getPriorityLabel = (priority) => {
-  const labels = { high: "高", medium: "中", low: "低" };
+  const labels = { critical: "紧急", high: "高", medium: "中", low: "低" };
   return labels[priority] || priority;
 };
 
 const getStatusColor = (status) => {
   const colors = {
+    open: "default",
+    review: "warning",
+    cancelled: "default",
     todo: "default",
     in_progress: "processing",
     done: "success",
@@ -313,7 +313,14 @@ const getStatusColor = (status) => {
 };
 
 const getStatusLabel = (status) => {
-  const labels = { todo: "待办", in_progress: "进行中", done: "已完成" };
+  const labels = {
+    open: "待处理",
+    todo: "待办",
+    in_progress: "进行中",
+    review: "待审核",
+    done: "已完成",
+    cancelled: "已取消",
+  };
   return labels[status] || status;
 };
 
@@ -326,49 +333,227 @@ const openTaskDetail = async (taskId) => {
 };
 
 const createTaskInColumn = (columnId) => {
-  newTask.value.columnId = columnId;
+  initialCreateColumn.value = columnId;
   showCreateTask.value = true;
 };
 
-const handleCreateTask = async () => {
-  if (!newTask.value.title) {
-    message.warning("请输入任务标题");
+async function refreshCreatedTask(taskId) {
+  const selectedBoard = boardId.value,
+    stamp = noticeEpoch,
+    createStamp = createEpoch;
+  if (!appStore.isAuthenticated || typeof taskId !== "string" || !taskId)
     return;
-  }
-
-  creating.value = true;
+  const current = () =>
+    stamp === noticeEpoch &&
+    createStamp === createEpoch &&
+    appStore.isAuthenticated &&
+    boardId.value === selectedBoard &&
+    showCreateTask.value;
   try {
-    const result = await taskBoardStore.createTask({
-      ...newTask.value,
-      boardId: boardId.value,
-      dueDate: newTask.value.dueDate?.valueOf(),
+    const list = await window.electronAPI?.task?.getTasks({
+      boardId: selectedBoard,
     });
-
-    if (result.success) {
-      message.success("任务创建成功");
-      showCreateTask.value = false;
-      newTask.value = {
-        title: "",
-        description: "",
-        priority: "medium",
-        dueDate: null,
-        columnId: null,
-      };
-    }
-  } catch (_error) {
-    message.error("创建失败");
-  } finally {
-    creating.value = false;
+    if (!current()) return;
+    if (
+      list?.success !== true ||
+      !Array.isArray(list.tasks) ||
+      !list.tasks.some((task) => task.id === taskId) ||
+      list.tasks.some((task) => task.boardId !== selectedBoard)
+    )
+      throw new Error("TASK_REFRESH_DENIED");
+    taskBoardStore.tasks = list.tasks;
+    showCreateTask.value = false;
+    message.success("任务创建成功");
+  } catch {
+    if (current()) message.error("任务已创建，列表刷新失败，请重新读取看板。");
   }
-};
+}
+
+let noticeEpoch = 0;
+let createEpoch = 0;
+watch(
+  () => [showCreateTask.value, initialCreateColumn.value],
+  () => {
+    createEpoch++;
+  },
+  { flush: "sync" },
+);
+let unsubscribeNotice;
+async function refreshEditedTask() {
+  const taskId = currentTask.value?.id,
+    selectedBoard = boardId.value,
+    stamp = noticeEpoch;
+  if (!taskId || !appStore.isAuthenticated) return;
+  const current = () =>
+    stamp === noticeEpoch &&
+    appStore.isAuthenticated &&
+    boardId.value === selectedBoard &&
+    currentTask.value?.id === taskId;
+  try {
+    const task = await window.electronAPI?.task?.getTask({ taskId });
+    if (!current()) return;
+    const list = await window.electronAPI?.task?.getTasks({
+      boardId: selectedBoard,
+    });
+    if (!current()) return;
+    if (
+      task?.success !== true ||
+      task.task?.id !== taskId ||
+      task.task?.boardId !== selectedBoard ||
+      list?.success !== true ||
+      !Array.isArray(list.tasks) ||
+      !list.tasks.some((item) => item.id === taskId) ||
+      list.tasks.some((item) => item.boardId !== selectedBoard)
+    )
+      throw new Error("TASK_REFRESH_DENIED");
+    taskBoardStore.currentTask = task.task;
+    taskBoardStore.tasks = list.tasks;
+  } catch {
+    if (current()) taskBoardStore.closeTaskDetail();
+  }
+}
+watch(
+  () => currentTask.value?.id,
+  () => {
+    mentionDid.value = "";
+    mentionError.value = "";
+    mentioning.value = false;
+  },
+);
+async function mentionMember() {
+  const taskId = currentTask.value?.id,
+    userDid = mentionDid.value.trim();
+  if (!taskId || !userDid || mentioning.value) return;
+  const stamp = noticeEpoch;
+  mentioning.value = true;
+  mentionError.value = "";
+  try {
+    const result = await window.electronAPI?.task?.mentionUser({
+      taskId,
+      userDid,
+    });
+    if (stamp !== noticeEpoch || currentTask.value?.id !== taskId) return;
+    if (result?.success !== true) throw new Error("MENTION_DENIED");
+    mentionDid.value = "";
+    message.success("任务通知已发送");
+  } catch {
+    if (stamp === noticeEpoch && currentTask.value?.id === taskId)
+      mentionError.value = "无法发送任务通知，请检查成员 DID 与当前权限。";
+  } finally {
+    if (stamp === noticeEpoch) mentioning.value = false;
+  }
+}
+function invalidateNotice() {
+  noticeEpoch++;
+  showCreateTask.value = false;
+  mentionDid.value = "";
+  mentioning.value = false;
+  mentionError.value = "";
+  taskBoardStore.closeTaskDetail();
+}
+let authentication = appStore.isAuthenticated,
+  deviceId = appStore.deviceId;
+appStore.$subscribe(
+  (_mutation, state) => {
+    if (
+      state.isAuthenticated !== authentication ||
+      state.deviceId !== deviceId
+    ) {
+      authentication = state.isAuthenticated;
+      deviceId = state.deviceId;
+      invalidateNotice();
+    }
+  },
+  { flush: "sync" },
+);
+watch(
+  () => [
+    identityStore.primaryDID,
+    identityStore.currentContext,
+    identityStore.currentIdentity.localDB,
+    route.params.id,
+    route.query.taskNoticeId,
+    route.query.taskId,
+  ],
+  invalidateNotice,
+  { flush: "sync" },
+);
+onBeforeUnmount(() => {
+  noticeEpoch++;
+  unsubscribeNotice?.();
+  taskBoardStore.closeTaskDetail();
+});
+
+async function openNoticeTask() {
+  const noticeId = route.query.taskNoticeId;
+  if (
+    !appStore.isAuthenticated ||
+    typeof noticeId !== "string" ||
+    !noticeId.startsWith("cc-board-mention:")
+  )
+    return;
+  const stamp = ++noticeEpoch;
+  taskBoardStore.closeTaskDetail();
+  try {
+    const result = await window.electronAPI?.notification?.openTask(noticeId);
+    if (
+      stamp !== noticeEpoch ||
+      result?.success !== true ||
+      result.target?.boardId !== boardId.value ||
+      result.target?.taskId !== route.query.taskId
+    )
+      return;
+    const board = await window.electronAPI.invoke("task:get-board", {
+      boardId: result.target.boardId,
+    });
+    if (
+      stamp !== noticeEpoch ||
+      board?.success !== true ||
+      board.board?.id !== result.target.boardId ||
+      board.board?.orgId !== result.target.orgId
+    )
+      return;
+    const task = await window.electronAPI.invoke("task:get-task", {
+      taskId: result.target.taskId,
+    });
+    if (
+      stamp !== noticeEpoch ||
+      task?.success !== true ||
+      task.task?.id !== result.target.taskId ||
+      task.task?.boardId !== result.target.boardId
+    )
+      return;
+    const checked = await window.electronAPI.notification.openTask(noticeId);
+    if (
+      stamp !== noticeEpoch ||
+      checked?.success !== true ||
+      JSON.stringify(checked.target) !== JSON.stringify(result.target)
+    )
+      return;
+    taskBoardStore.currentTask = task.task;
+    taskBoardStore.taskDetailVisible = true;
+  } catch {
+    if (stamp === noticeEpoch) taskBoardStore.closeTaskDetail();
+  }
+}
+
+watch(
+  () => route.query.taskNoticeId,
+  () => {
+    void openNoticeTask();
+  },
+);
 
 onMounted(async () => {
+  unsubscribeNotice =
+    window.electronAPI?.notification?.onInvalidated?.(invalidateNotice);
   loading.value = true;
   try {
     await taskBoardStore.loadBoard(boardId.value);
     if (columns.value.length > 0) {
       newTask.value.columnId = columns.value[0].id;
     }
+    await openNoticeTask();
   } catch (_error) {
     message.error("加载看板失败");
   } finally {

@@ -1017,6 +1017,12 @@ class P2PSyncEngine extends EventEmitter {
    * @returns {Promise<void>}
    */
   async applyResourceChange(resourceType, resourceId, action, data) {
+    // A signed sync message establishes sender identity, not permission to
+    // replace local membership/role authority. Aggregated changes do not carry
+    // an independently verifiable organization authorization proof.
+    if (resourceType === "member" || resourceType === "role") {
+      throw new Error("ORG_ROLE_CONTROLLED_WRITE_REQUIRED");
+    }
     const tableMap = {
       knowledge: "knowledge_items",
       project: "projects",

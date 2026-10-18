@@ -7,7 +7,7 @@
  */
 
 const { logger } = require("../utils/logger.js");
-const { v4: uuidv4 } = require("uuid");
+const { randomUUID: uuidv4 } = require("node:crypto");
 
 class TeamReportManager {
   constructor(database) {
@@ -18,6 +18,10 @@ class TeamReportManager {
    * Create a team report
    */
   async createReport(reportData) {
+    return this.createReportSync(reportData);
+  }
+
+  createReportSync(reportData) {
     try {
       const db = this.database.getDatabase();
       const now = Date.now();
@@ -59,7 +63,23 @@ class TeamReportManager {
    * Get reports for an organization
    */
   async getReports(orgId, options = {}) {
+    return this.getReportsSync(orgId, options);
+  }
+
+  getReportsSync(orgId, options = {}) {
     try {
+      if (
+        !options ||
+        typeof options !== "object" ||
+        Array.isArray(options) ||
+        (options.limit != null &&
+          (!Number.isSafeInteger(options.limit) ||
+            options.limit < 1 ||
+            options.limit > 100))
+      )
+        throw Object.assign(new Error("BOARD_READ_INVALID_REQUEST"), {
+          code: "BOARD_READ_INVALID_REQUEST",
+        });
       const db = this.database.getDatabase();
 
       let query = `SELECT * FROM team_reports WHERE org_id = ?`;
@@ -95,9 +115,18 @@ class TeamReportManager {
       if (options.limit) {
         query += ` LIMIT ?`;
         params.push(options.limit);
+      } else {
+        query += ` LIMIT 100`;
       }
 
-      const reports = db.prepare(query).all(...params);
+      const {
+        validScope,
+        currentSummary,
+      } = require("./board-report-summary-store");
+      const reports = db
+        .prepare(query)
+        .all(...params)
+        .filter((r) => validScope(db, r));
 
       return {
         success: true,
@@ -112,7 +141,7 @@ class TeamReportManager {
           todayPlan: r.today_plan,
           blockers: r.blockers,
           notes: r.notes,
-          aiSummary: r.ai_summary,
+          aiSummary: currentSummary(db, r),
           reportDate: r.report_date,
           createdAt: r.created_at,
           updatedAt: r.updated_at,
@@ -128,58 +157,18 @@ class TeamReportManager {
    * Generate AI summary for a report
    */
   async generateAISummary(reportId) {
-    try {
-      const db = this.database.getDatabase();
-      const now = Date.now();
-
-      const report = db
-        .prepare(`SELECT * FROM team_reports WHERE id = ?`)
-        .get(reportId);
-
-      if (!report) {
-        return { success: false, error: "REPORT_NOT_FOUND" };
-      }
-
-      // Generate summary using LLM
-      const summary = await this._generateSummary(report);
-
-      // Update report with AI summary
-      db.prepare(
-        `
-        UPDATE team_reports SET ai_summary = ?, updated_at = ? WHERE id = ?
-      `,
-      ).run(summary, now, reportId);
-
-      logger.info(`[TeamReport] Generated AI summary for report ${reportId}`);
-
-      return { success: true, summary };
-    } catch (error) {
-      logger.error("[TeamReport] Error generating AI summary:", error);
-      throw error;
-    }
+    throw Object.assign(new Error("BOARD_SUMMARY_NATIVE_HOST_REQUIRED"), {
+      code: "BOARD_SUMMARY_NATIVE_HOST_REQUIRED",
+    });
   }
 
   /**
    * Generate summary using LLM
    */
   async _generateSummary(report) {
-    // This would integrate with the LLM service
-    // For now, return a placeholder
-    const parts = [];
-
-    if (report.yesterday_work) {
-      parts.push(`完成工作: ${report.yesterday_work.substring(0, 100)}...`);
-    }
-
-    if (report.today_plan) {
-      parts.push(`今日计划: ${report.today_plan.substring(0, 100)}...`);
-    }
-
-    if (report.blockers) {
-      parts.push(`阻塞项: ${report.blockers.substring(0, 50)}...`);
-    }
-
-    return parts.join(" | ") || "无摘要";
+    throw Object.assign(new Error("BOARD_SUMMARY_NATIVE_HOST_REQUIRED"), {
+      code: "BOARD_SUMMARY_NATIVE_HOST_REQUIRED",
+    });
   }
 }
 

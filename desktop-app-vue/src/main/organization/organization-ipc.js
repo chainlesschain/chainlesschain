@@ -9,6 +9,9 @@
 const { logger } = require("../utils/logger.js");
 const fs = require("fs").promises;
 const path = require("path");
+const {
+  executeOrganizationRoleWrite,
+} = require("./organization-role-write-authority");
 
 /**
  * 注册所有 Organization IPC 处理器
@@ -39,6 +42,12 @@ function registerOrganizationIPC({
   // fs.promises (injectable for tests; vi.mock("fs") is unreliable for CJS in
   // Vitest's forks pool). Defaults to the module-level require("fs").promises.
   const fsp = injectedFs || fs;
+  const roleDatabase = {
+    getDatabase() {
+      const source = dbManager || organizationManager?.db;
+      return source?.getDatabase ? source.getDatabase() : source;
+    },
+  };
 
   logger.info("[Organization IPC] Registering Organization IPC handlers...");
   logger.info("[Organization IPC] organizationManager初始化状态:", {
@@ -263,14 +272,17 @@ function registerOrganizationIPC({
    */
   ipcMain.handle(
     "org:update-member-role",
-    async (_event, orgId, memberDID, newRole) => {
+    async (event, orgId, memberDID, newRole) => {
       try {
         if (!organizationManager) {
           throw new Error("组织管理器未初始化");
         }
 
-        await organizationManager.updateMemberRole(orgId, memberDID, newRole);
-        return { success: true };
+        return executeOrganizationRoleWrite(roleDatabase, event, "assign", {
+          orgId,
+          memberDID,
+          newRole,
+        });
       } catch (error) {
         logger.error("[Organization IPC] 更新成员角色失败:", error);
         throw error;
@@ -351,13 +363,16 @@ function registerOrganizationIPC({
    * 创建邀请
    * Channel: 'org:create-invitation'
    */
-  safeHandle("org:create-invitation", async (_event, orgId, inviteData) => {
+  safeHandle("org:create-invitation", async (event, orgId, inviteData) => {
     try {
       if (!organizationManager) {
         throw new Error("组织管理器未初始化");
       }
 
-      return await organizationManager.createInvitation(orgId, inviteData);
+      return executeOrganizationRoleWrite(roleDatabase, event, "invite", {
+        orgId,
+        inviteData,
+      });
     } catch (error) {
       logger.error("[Organization IPC] 创建邀请失败:", error);
       throw error;
@@ -374,11 +389,9 @@ function registerOrganizationIPC({
         throw new Error("组织管理器未初始化");
       }
 
-      const invitation = await organizationManager.inviteByDID(
-        orgId,
-        inviteData,
-      );
-      return invitation;
+      // Legacy DID invitations await identity/network work without a guarded
+      // permission commit. Use the authenticated local invitation-code route.
+      throw new Error("ORG_ROLE_CONTROLLED_WRITE_REQUIRED");
     } catch (error) {
       logger.error("[Organization IPC] 通过DID邀请失败:", error);
       throw error;
@@ -554,11 +567,7 @@ function registerOrganizationIPC({
         throw new Error("邀请管理器未初始化");
       }
 
-      const invitationLink =
-        await organizationManager.didInvitationManager.createInvitationLink(
-          params,
-        );
-      return { success: true, invitationLink };
+      throw new Error("ORG_ROLE_CONTROLLED_WRITE_REQUIRED");
     } catch (error) {
       logger.error("[Organization IPC] 创建邀请链接失败:", error);
       throw error;
@@ -934,18 +943,16 @@ function registerOrganizationIPC({
    */
   ipcMain.handle(
     "org:create-custom-role",
-    async (_event, orgId, roleData, creatorDID) => {
+    async (event, orgId, roleData, _creatorDID) => {
       try {
         if (!organizationManager) {
           throw new Error("组织管理器未初始化");
         }
 
-        const role = await organizationManager.createCustomRole(
+        return executeOrganizationRoleWrite(roleDatabase, event, "create", {
           orgId,
           roleData,
-          creatorDID,
-        );
-        return role;
+        });
       } catch (error) {
         logger.error("[Organization IPC] 创建自定义角色失败:", error);
         throw error;
@@ -959,18 +966,16 @@ function registerOrganizationIPC({
    */
   ipcMain.handle(
     "org:update-role",
-    async (_event, roleId, updates, updaterDID) => {
+    async (event, roleId, updates, _updaterDID) => {
       try {
         if (!organizationManager) {
           throw new Error("组织管理器未初始化");
         }
 
-        const role = await organizationManager.updateRole(
+        return executeOrganizationRoleWrite(roleDatabase, event, "update", {
           roleId,
           updates,
-          updaterDID,
-        );
-        return role;
+        });
       } catch (error) {
         logger.error("[Organization IPC] 更新角色失败:", error);
         throw error;
@@ -982,14 +987,15 @@ function registerOrganizationIPC({
    * 删除角色
    * Channel: 'org:delete-role'
    */
-  safeHandle("org:delete-role", async (_event, roleId, deleterDID) => {
+  safeHandle("org:delete-role", async (event, roleId, _deleterDID) => {
     try {
       if (!organizationManager) {
         throw new Error("组织管理器未初始化");
       }
 
-      await organizationManager.deleteRole(roleId, deleterDID);
-      return { success: true };
+      return executeOrganizationRoleWrite(roleDatabase, event, "delete", {
+        roleId,
+      });
     } catch (error) {
       logger.error("[Organization IPC] 删除角色失败:", error);
       throw error;

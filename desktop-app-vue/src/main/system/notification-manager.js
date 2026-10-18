@@ -7,6 +7,10 @@ const { logger } = require("../utils/logger.js");
 const { Notification, app } = require("electron");
 const path = require("path");
 const EventEmitter = require("events");
+const {
+  legacyNotificationPredicate,
+  isBoardNoticeReference,
+} = require("../notification/legacy-notification-filter");
 
 class NotificationManager extends EventEmitter {
   constructor(database) {
@@ -105,6 +109,9 @@ class NotificationManager extends EventEmitter {
   async createNotification(options) {
     try {
       const { type, title, content, userDid, data } = options;
+      if (isBoardNoticeReference(data)) {
+        throw new Error("Board notices require authorized source projection");
+      }
 
       // 保存到数据库
       const notificationId = `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -156,6 +163,9 @@ class NotificationManager extends EventEmitter {
    */
   async showDesktopNotification(title, body, data = {}) {
     try {
+      if (isBoardNoticeReference(data)) {
+        return;
+      }
       if (!Notification.isSupported()) {
         logger.warn("[NotificationManager] 系统不支持桌面通知");
         return;
@@ -222,7 +232,9 @@ class NotificationManager extends EventEmitter {
     try {
       const db = this.database.getDatabase();
       const notifications = db
-        .prepare("SELECT * FROM notifications ORDER BY created_at DESC LIMIT ?")
+        .prepare(
+          `SELECT * FROM notifications WHERE ${legacyNotificationPredicate(db)} ORDER BY created_at DESC LIMIT ?`,
+        )
         .all(limit);
 
       return notifications;
@@ -240,7 +252,7 @@ class NotificationManager extends EventEmitter {
       const db = this.database.getDatabase();
       const notifications = db
         .prepare(
-          "SELECT * FROM notifications WHERE is_read = 0 ORDER BY created_at DESC",
+          `SELECT * FROM notifications WHERE is_read = 0 AND ${legacyNotificationPredicate(db)} ORDER BY created_at DESC`,
         )
         .all();
 
@@ -259,7 +271,7 @@ class NotificationManager extends EventEmitter {
       const db = this.database.getDatabase();
       const result = db
         .prepare(
-          "SELECT COUNT(*) as count FROM notifications WHERE is_read = 0",
+          `SELECT COUNT(*) as count FROM notifications WHERE is_read = 0 AND ${legacyNotificationPredicate(db)}`,
         )
         .get();
 
@@ -276,9 +288,14 @@ class NotificationManager extends EventEmitter {
   async markAsRead(notificationId) {
     try {
       const db = this.database.getDatabase();
-      db.prepare("UPDATE notifications SET is_read = 1 WHERE id = ?").run(
-        notificationId,
-      );
+      const result = db
+        .prepare(
+          `UPDATE notifications SET is_read = 1 WHERE id = ? AND ${legacyNotificationPredicate(db)}`,
+        )
+        .run(notificationId);
+      if (!result.changes) {
+        return false;
+      }
       this.database.saveToFile();
 
       this.emit("notification-read", notificationId);
@@ -295,7 +312,9 @@ class NotificationManager extends EventEmitter {
   async markAllAsRead() {
     try {
       const db = this.database.getDatabase();
-      db.prepare("UPDATE notifications SET is_read = 1").run();
+      db.prepare(
+        `UPDATE notifications SET is_read = 1 WHERE ${legacyNotificationPredicate(db)}`,
+      ).run();
       this.database.saveToFile();
 
       this.emit("all-notifications-read");
@@ -312,7 +331,14 @@ class NotificationManager extends EventEmitter {
   async deleteNotification(notificationId) {
     try {
       const db = this.database.getDatabase();
-      db.prepare("DELETE FROM notifications WHERE id = ?").run(notificationId);
+      const result = db
+        .prepare(
+          `DELETE FROM notifications WHERE id = ? AND ${legacyNotificationPredicate(db)}`,
+        )
+        .run(notificationId);
+      if (!result.changes) {
+        return false;
+      }
       this.database.saveToFile();
 
       this.emit("notification-deleted", notificationId);
@@ -329,7 +355,9 @@ class NotificationManager extends EventEmitter {
   async clearAllNotifications() {
     try {
       const db = this.database.getDatabase();
-      db.prepare("DELETE FROM notifications").run();
+      db.prepare(
+        `DELETE FROM notifications WHERE ${legacyNotificationPredicate(db)}`,
+      ).run();
       this.database.saveToFile();
 
       this.emit("all-notifications-cleared");
@@ -348,7 +376,7 @@ class NotificationManager extends EventEmitter {
       const db = this.database.getDatabase();
       const notifications = db
         .prepare(
-          "SELECT * FROM notifications WHERE type = ? ORDER BY created_at DESC",
+          `SELECT * FROM notifications WHERE type = ? AND ${legacyNotificationPredicate(db)} ORDER BY created_at DESC`,
         )
         .all(type);
 

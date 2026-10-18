@@ -19,6 +19,7 @@ function listSourceFiles(directory) {
 // New built-in egress must be added here with an explicit ingress boundary or
 // a deliberately fail-closed guard; this makes the P0-4 audit enforceable.
 const MODEL_EGRESS = [
+  ["evolution/desktop-report-summary-model.js", "prepareDesktopModelRequest"],
   ["llm/openai-client.js", "prepareDesktopModelRequest"],
   ["llm/ollama-client.js", "runDesktopOllamaRequest"],
   ["llm/anthropic-client.js", "prepareDesktopModelRequest"],
@@ -50,7 +51,10 @@ const MODEL_EGRESS = [
   ["rag/reranker.js", "assertGovernedRerankerIngress"],
   ["rag/bge-reranker-client.js", "assertGovernedBgeRerankerIngress"],
   ["fine-tuning/fine-tuning-manager.js", "assertGovernedFineTuningIngress"],
-  ["ai-engine/extended-tools-datascience.js", "assertGovernedModelTrainingIngress"],
+  [
+    "ai-engine/extended-tools-datascience.js",
+    "assertGovernedModelTrainingIngress",
+  ],
   ["project/http-client.js", "assertGovernedProjectAiIngress"],
   ["project/project-ai-ipc-chat.js", "assertGovernedProjectAiIngress"],
   ["plugins/plugin-api.js", "assertNoDirectPluginModelEgress"],
@@ -112,7 +116,9 @@ describe("Desktop model egress inventory", () => {
           )
         );
       })
-      .map((filePath) => filePath.slice(mainRoot.length + 1).replaceAll("\\", "/"))
+      .map((filePath) =>
+        filePath.slice(mainRoot.length + 1).replaceAll("\\", "/"),
+      )
       .sort();
 
     expect(actual).toEqual([...TESSERACT_EGRESS].sort());

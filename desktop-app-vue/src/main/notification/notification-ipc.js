@@ -4,6 +4,11 @@ const { logger } = require("../utils/logger.js");
 const path = require("node:path");
 const GOAL_NOTICE_SCHEMA = "chainlesschain.goal-notice-ref/v1";
 const SCAN_BATCH = 100;
+const { isProtectedBoardNotice } = require("./legacy-notification-filter");
+const {
+  BOARD_NOTICE_SCHEMA,
+  readBoardNoticeProjection,
+} = require("../task/board-notice-projection");
 
 function fail(code) {
   throw Object.assign(new Error(code), { code });
@@ -15,10 +20,12 @@ function errorCode(error) {
     : "NOTIFICATION_OPERATION_FAILED";
 }
 function notificationId(value) {
-  if (!(
-    (typeof value === "string" && value.length > 0 && value.length <= 256) ||
-    (Number.isSafeInteger(value) && value >= 0)
-  ))
+  if (
+    !(
+      (typeof value === "string" && value.length > 0 && value.length <= 256) ||
+      (Number.isSafeInteger(value) && value >= 0)
+    )
+  )
     fail("NOTIFICATION_INVALID_REQUEST");
   return String(value);
 }
@@ -140,12 +147,24 @@ function registerNotificationIPC({
         getActor: authorize,
       });
     }
-    return { db, actor, authorize, projectionService };
+    return { db, actor, authorize, projectionService, boardRows: new Set() };
   }
 
   function authorizedRow(context, row) {
     context.authorize();
     if (!row || row.user_did !== context.actor) return null;
+    // Ledger ownership and the reserved ID survive reference/schema damage.
+    // Such a row must never downgrade to the ordinary cached-text path.
+    if (isProtectedBoardNotice(context.db, row)) {
+      const projected = readBoardNoticeProjection({
+        db: context.db,
+        id: row.id,
+        getActor: context.authorize,
+      });
+      context.authorize();
+      if (projected) context.boardRows.add(row.id);
+      return projected;
+    }
     let data = row.data;
     if (data !== null && data !== undefined && data !== "") {
       try {
@@ -190,6 +209,18 @@ function registerNotificationIPC({
       .transaction(() => {
         context.authorize();
         const value = operation(context);
+        if (persist) {
+          for (const id of context.boardRows) {
+            if (
+              !readBoardNoticeProjection({
+                db: context.db,
+                id,
+                getActor: context.authorize,
+              })
+            )
+              fail("NOTIFICATION_NOT_FOUND_OR_DENIED");
+          }
+        }
         context.authorize();
         return value;
       })
@@ -202,6 +233,46 @@ function registerNotificationIPC({
     }
     context.authorize();
     return result;
+  }
+
+  function listAuthorized(context, options, schema = null) {
+    const { limit, offset, isRead } = listOptions(options);
+    const notifications = [];
+    let after = null,
+      skipped = 0;
+    while (notifications.length < limit) {
+      context.authorize();
+      const rows = context.db
+        .prepare(
+          `SELECT * FROM notifications WHERE user_did=?${after ? " AND (created_at < ? OR (created_at = ? AND id < ?))" : ""} ORDER BY created_at DESC,id DESC LIMIT ?`,
+        )
+        .all(
+          context.actor,
+          ...(after ? [after.created_at, after.created_at, after.id] : []),
+          SCAN_BATCH,
+        );
+      for (const row of rows) {
+        const projected = authorizedRow(context, row);
+        if (
+          !projected ||
+          (isRead !== undefined && projected.is_read !== (isRead ? 1 : 0))
+        )
+          continue;
+        if (schema) {
+          const data =
+            typeof projected.data === "string"
+              ? JSON.parse(projected.data || "null")
+              : projected.data;
+          if (data?.schema !== schema) continue;
+        }
+        if (skipped++ < offset) continue;
+        notifications.push(projected);
+        if (notifications.length === limit) break;
+      }
+      if (rows.length < SCAN_BATCH) break;
+      after = rows.at(-1);
+    }
+    return { success: true, notifications };
   }
 
   function forEachUnread(context, visit) {
@@ -226,27 +297,9 @@ function registerNotificationIPC({
     "notification:get-all",
     async (event, options = {}) => {
       try {
-        const { limit, offset, isRead } = listOptions(options);
-        return transaction(event, (context) => {
-          const rows = context.db
-            .prepare(
-              `SELECT * FROM notifications WHERE user_did = ?${isRead === undefined ? "" : " AND is_read = ?"} ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`,
-            )
-            .all(
-              context.actor,
-              ...(isRead === undefined ? [] : [isRead ? 1 : 0]),
-              limit,
-              offset,
-            );
-          const notifications = rows
-            .map((row) => authorizedRow(context, row))
-            .filter(
-              (row) =>
-                row &&
-                (isRead === undefined || row.is_read === (isRead ? 1 : 0)),
-            );
-          return { success: true, notifications };
-        });
+        return transaction(event, (context) =>
+          listAuthorized(context, options),
+        );
       } catch (error) {
         return { success: false, notifications: [], error: errorCode(error) };
       }
@@ -312,6 +365,39 @@ function registerNotificationIPC({
         });
       } catch (error) {
         return { success: false, notifications: [], error: errorCode(error) };
+      }
+    },
+  );
+  platform.ipcMain.handle(
+    "notification:get-tasks",
+    async (event, options = {}) => {
+      try {
+        return transaction(event, (context) =>
+          listAuthorized(context, options, BOARD_NOTICE_SCHEMA),
+        );
+      } catch (error) {
+        return { success: false, notifications: [], error: errorCode(error) };
+      }
+    },
+  );
+  platform.ipcMain.handle(
+    "notification:open-task",
+    async (event, value, ...extra) => {
+      try {
+        if (extra.length) fail("NOTIFICATION_INVALID_REQUEST");
+        const id = notificationId(value);
+        return transaction(event, (context) => {
+          const projected = readBoardNoticeProjection({
+            db: context.db,
+            id,
+            getActor: context.authorize,
+          });
+          if (!projected) fail("NOTIFICATION_NOT_FOUND_OR_DENIED");
+          const { taskId, boardId, orgId } = JSON.parse(projected.data);
+          return { success: true, target: { taskId, boardId, orgId } };
+        });
+      } catch (error) {
+        return { success: false, error: errorCode(error) };
       }
     },
   );
@@ -437,7 +523,7 @@ function registerNotificationIPC({
     },
   );
   logger.info(
-    "[Notification IPC] Registered 7 authenticated notification handlers",
+    "[Notification IPC] Registered 9 authenticated notification handlers",
   );
 }
 

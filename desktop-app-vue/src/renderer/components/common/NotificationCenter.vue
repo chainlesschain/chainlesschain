@@ -53,6 +53,7 @@
       <!-- 通知列表 -->
       <div class="notification-list">
         <GoalNotificationList :unread-only="filter === 'unread'" />
+        <TaskNotificationList :unread-only="filter === 'unread'" />
         <a-empty
           v-if="filteredNotifications.length === 0"
           description="暂无通知"
@@ -146,6 +147,8 @@ import {
 } from "@ant-design/icons-vue";
 import { useNotifications } from "@/utils/notificationManager";
 import GoalNotificationList from "./GoalNotificationList.vue";
+import TaskNotificationList from "./TaskNotificationList.vue";
+import { useTaskNotificationsStore } from "../../stores/task-notifications";
 import { useGoalNotificationsStore } from "../../stores/goal-notifications";
 
 // 使用通知管理器
@@ -158,8 +161,12 @@ const {
   clearRead,
 } = useNotifications();
 const goalNotifications = useGoalNotificationsStore();
+const taskNotifications = useTaskNotificationsStore();
 const unreadCount = computed(
-  () => ordinaryUnreadCount.value + goalNotifications.unreadCount,
+  () =>
+    ordinaryUnreadCount.value +
+    goalNotifications.unreadCount +
+    taskNotifications.unreadCount,
 );
 
 // 面板状态

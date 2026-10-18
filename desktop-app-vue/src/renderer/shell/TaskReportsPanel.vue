@@ -78,10 +78,6 @@
                         <strong>阻塞项：</strong>
                         <p>{{ truncate(item.blockers, 50) }}</p>
                       </div>
-                      <div v-if="item.aiSummary" class="tr-ai-summary">
-                        <a-tag color="blue">AI 摘要</a-tag>
-                        <span>{{ item.aiSummary }}</span>
-                      </div>
                     </div>
                     <template #actions>
                       <a-button
@@ -89,16 +85,7 @@
                         size="small"
                         @click="viewReport(item)"
                       >
-                        查看详情
-                      </a-button>
-                      <a-button
-                        v-if="!item.aiSummary"
-                        type="link"
-                        size="small"
-                        :loading="generatingSummary === item.id"
-                        @click="generateSummary(item.id)"
-                      >
-                        生成摘要
+                        查看详情与 AI 摘要
                       </a-button>
                     </template>
                   </a-list-item>
@@ -201,25 +188,26 @@
           </p>
         </div>
 
-        <div v-if="selectedReport.aiSummary" class="tr-detail-section">
-          <h4><RobotOutlined /> AI 摘要</h4>
-          <a-alert type="info" :message="selectedReport.aiSummary" />
-        </div>
+        <TaskReportSummary
+          v-if="open && showReportDetail"
+          :key="selectedReport.id"
+          :report-id="selectedReport.id"
+          @updated="loadReports"
+        />
       </template>
     </a-modal>
   </a-modal>
 </template>
 
 <script setup>
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
 import { message } from "ant-design-vue";
-import {
-  FileTextOutlined,
-  ReloadOutlined,
-  RobotOutlined,
-} from "@ant-design/icons-vue";
+import { FileTextOutlined, ReloadOutlined } from "@ant-design/icons-vue";
 import { useTaskBoardStore } from "@/stores/taskBoard";
 import { useAuthStore } from "@/stores/auth";
+import { useAppStore } from "@/stores/app";
+import { useIdentityStore } from "@/stores/identity";
+import TaskReportSummary from "@/components/task/TaskReportSummary.vue";
 import dayjs from "dayjs";
 
 const props = defineProps({
@@ -230,12 +218,13 @@ defineEmits(["update:open"]);
 
 const taskBoardStore = useTaskBoardStore();
 const authStore = useAuthStore();
+const app = useAppStore();
+const identity = useIdentityStore();
 
 const orgId = computed(() => authStore.currentOrg?.id);
 
 const loading = ref(false);
 const submitting = ref(false);
-const generatingSummary = ref(null);
 const showReportDetail = ref(false);
 const reportType = ref("all");
 const selectedReport = ref(null);
@@ -247,7 +236,49 @@ const quickReport = ref({
   blockers: "",
 });
 
-const reports = computed(() => taskBoardStore.reports);
+const reports = ref([]);
+let epoch = 0;
+let submitEpoch = 0;
+let unsubscribe;
+function invalidate() {
+  epoch++;
+  submitEpoch++;
+  reports.value = [];
+  selectedReport.value = null;
+  showReportDetail.value = false;
+  loading.value = false;
+  submitting.value = false;
+  quickReport.value = {
+    reportType: "daily_standup",
+    yesterdayWork: "",
+    todayPlan: "",
+    blockers: "",
+  };
+}
+let authentication = app.isAuthenticated,
+  deviceId = app.deviceId;
+app.$subscribe(
+  (_mutation, state) => {
+    if (
+      state.isAuthenticated !== authentication ||
+      state.deviceId !== deviceId
+    ) {
+      authentication = state.isAuthenticated;
+      deviceId = state.deviceId;
+      invalidate();
+    }
+  },
+  { flush: "sync" },
+);
+watch(
+  () => [
+    identity.primaryDID,
+    identity.currentContext,
+    identity.currentIdentity.localDB,
+  ],
+  invalidate,
+  { flush: "sync" },
+);
 const filteredReports = computed(() => {
   if (reportType.value === "all") {
     return reports.value;
@@ -276,30 +307,21 @@ const viewReport = (report) => {
   showReportDetail.value = true;
 };
 
-const generateSummary = async (reportId) => {
-  generatingSummary.value = reportId;
-  try {
-    const result = await taskBoardStore.generateAISummary(reportId);
-    if (result.success) {
-      message.success("AI 摘要生成成功");
-      await loadReports();
-    } else {
-      message.error(result.error || "生成摘要失败");
-    }
-  } catch (_error) {
-    message.error("生成摘要失败");
-  } finally {
-    generatingSummary.value = null;
-  }
-};
-
 const submitQuickReport = async () => {
+  if (!app.isAuthenticated || !props.open || submitting.value) return;
   if (!quickReport.value.yesterdayWork && !quickReport.value.todayPlan) {
     message.warning("请至少填写完成工作或计划工作");
     return;
   }
 
   submitting.value = true;
+  const stamp = submitEpoch,
+    organization = orgId.value;
+  const current = () =>
+    stamp === submitEpoch &&
+    props.open &&
+    app.isAuthenticated &&
+    orgId.value === organization;
   try {
     const result = await taskBoardStore.createReport({
       ...quickReport.value,
@@ -309,6 +331,7 @@ const submitQuickReport = async () => {
       reportDate: Date.now(),
     });
 
+    if (!current()) return;
     if (result.success) {
       message.success("报告提交成功");
       quickReport.value = {
@@ -319,26 +342,77 @@ const submitQuickReport = async () => {
       };
       await loadReports();
     } else {
-      message.error(result.error || "提交失败");
+      message.error("提交失败");
     }
   } catch (_error) {
-    message.error("提交失败");
+    if (current()) message.error("提交失败");
   } finally {
-    submitting.value = false;
+    if (current()) submitting.value = false;
   }
 };
 
 const loadReports = async () => {
-  if (!orgId.value) {
+  if (!orgId.value || !props.open || !app.isAuthenticated) {
+    invalidate();
     return;
   }
+  const stamp = ++epoch,
+    organization = orgId.value;
+  const current = () =>
+    stamp === epoch &&
+    props.open &&
+    app.isAuthenticated &&
+    orgId.value === organization;
+  reports.value = [];
+  selectedReport.value = null;
+  showReportDetail.value = false;
   loading.value = true;
   try {
-    await taskBoardStore.loadReports(orgId.value, { limit: 50 });
+    const result = await window.electronAPI?.task?.getReports({
+      orgId: organization,
+      options: { limit: 50 },
+    });
+    if (!current()) return;
+    if (
+      result?.success !== true ||
+      !Array.isArray(result.reports) ||
+      result.reports.length > 50
+    )
+      throw new Error("REPORTS_UNAVAILABLE");
+    const rows = result.reports.map((row) => {
+      if (
+        !row ||
+        typeof row.id !== "string" ||
+        !row.id ||
+        row.orgId !== organization
+      )
+        throw new Error("REPORT_SCOPE_CHANGED");
+      const text = (value) => {
+        if (value == null) return "";
+        if (typeof value !== "string" || value.length > 65536)
+          throw new Error("INVALID_REPORT");
+        return value;
+      };
+      return {
+        id: row.id,
+        orgId: organization,
+        reportDate: Number.isSafeInteger(row.reportDate)
+          ? row.reportDate
+          : null,
+        reportType: text(row.reportType),
+        authorName: text(row.authorName),
+        yesterdayWork: text(row.yesterdayWork),
+        todayPlan: text(row.todayPlan),
+        blockers: text(row.blockers),
+      };
+    });
+    if (new Set(rows.map((row) => row.id)).size !== rows.length)
+      throw new Error("DUPLICATE_REPORTS");
+    reports.value = rows;
   } catch (_error) {
-    message.error("加载报告失败");
+    if (current()) message.error("加载报告失败");
   } finally {
-    loading.value = false;
+    if (current()) loading.value = false;
   }
 };
 
@@ -347,10 +421,25 @@ watch(
   (isOpen) => {
     if (isOpen) {
       loadReports();
-    }
+    } else invalidate();
   },
   { immediate: true },
 );
+watch(
+  orgId,
+  () => {
+    invalidate();
+    if (props.open) void loadReports();
+  },
+  { flush: "sync" },
+);
+onMounted(() => {
+  unsubscribe = window.electronAPI?.notification?.onInvalidated?.(invalidate);
+});
+onBeforeUnmount(() => {
+  unsubscribe?.();
+  invalidate();
+});
 </script>
 
 <style scoped>

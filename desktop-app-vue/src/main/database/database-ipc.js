@@ -10,6 +10,12 @@ const { logger } = require("../utils/logger.js");
 const defaultIpcMain = require("electron").ipcMain;
 const defaultIpcGuard = require("../ipc/ipc-guard");
 
+function requireNativeDatabaseTransfer(code) {
+  // Whole-vault transfers bypass per-source authorization. Renderer-provided
+  // paths cannot grant authority to export bytes or replace the active vault.
+  throw Object.assign(new Error(code), { code });
+}
+
 /**
  * 注册所有数据库 IPC 处理器
  * @param {Object} dependencies - 依赖对象
@@ -267,6 +273,15 @@ function registerDatabaseIPC({
   ipcMain.handle(
     "db:switch-database",
     async (_event, contextId, options = {}) => {
+      if (
+        typeof contextId !== "string" ||
+        (contextId !== "personal" &&
+          !/^org_[A-Za-z0-9_-]{1,128}$/u.test(contextId))
+      ) {
+        throw Object.assign(new Error("DATABASE_INVALID_CONTEXT"), {
+          code: "DATABASE_INVALID_CONTEXT",
+        });
+      }
       try {
         if (!database) {
           throw new Error("数据库管理器未初始化");
@@ -301,20 +316,8 @@ function registerDatabaseIPC({
    * 备份数据库到指定路径
    * Channel: 'db:backup'
    */
-  ipcMain.handle("db:backup", async (_event, backupPath) => {
-    try {
-      // Don't claim success when there is no database: `await database?.backup()`
-      // would skip the backup yet still return true, telling the caller a backup
-      // exists when none was written (silent data-loss footgun on restore).
-      if (!database) {
-        throw new Error("数据库未初始化");
-      }
-      await database.backup(backupPath);
-      return true;
-    } catch (error) {
-      logger.error("[Database IPC] 备份数据库失败:", error);
-      return false;
-    }
+  ipcMain.handle("db:backup", async () => {
+    requireNativeDatabaseTransfer("DATABASE_NATIVE_EXPORT_REQUIRED");
   });
 
   /**
@@ -350,18 +353,8 @@ function registerDatabaseIPC({
    * 从备份恢复数据库
    * Channel: 'database:restore-backup'
    */
-  ipcMain.handle("database:restore-backup", async (_event, backupPath) => {
-    try {
-      const appConfig = getAppConfig();
-      appConfig.restoreFromBackup(backupPath);
-
-      // 需要重启应用才能加载恢复的数据库
-      logger.info("[Database IPC] ✓ 数据库恢复成功，需要重启应用");
-      return { success: true, needsRestart: true };
-    } catch (error) {
-      logger.error("[Database IPC] 恢复数据库失败:", error);
-      throw error;
-    }
+  ipcMain.handle("database:restore-backup", async () => {
+    requireNativeDatabaseTransfer("DATABASE_NATIVE_IMPORT_REQUIRED");
   });
 
   // ============================================================
@@ -392,44 +385,16 @@ function registerDatabaseIPC({
    * 设置数据库路径（需要重启应用）
    * Channel: 'database:set-path'
    */
-  ipcMain.handle("database:set-path", async (_event, newPath) => {
-    try {
-      const appConfig = getAppConfig();
-      appConfig.setDatabasePath(newPath);
-      logger.info(`[Database IPC] 数据库路径已设置为: ${newPath}`);
-      return true;
-    } catch (error) {
-      logger.error("[Database IPC] 设置数据库路径失败:", error);
-      throw error;
-    }
+  ipcMain.handle("database:set-path", async () => {
+    requireNativeDatabaseTransfer("DATABASE_NATIVE_IMPORT_REQUIRED");
   });
 
   /**
    * 迁移数据库到新位置
    * Channel: 'database:migrate'
    */
-  ipcMain.handle("database:migrate", async (_event, newPath) => {
-    try {
-      const appConfig = getAppConfig();
-
-      // 先备份当前数据库
-      const backupPath = appConfig.createDatabaseBackup();
-      logger.info(`[Database IPC] 已创建备份: ${backupPath}`);
-
-      // 执行迁移
-      await appConfig.migrateDatabaseTo(newPath);
-
-      logger.info(`[Database IPC] 数据库已迁移到: ${newPath}`);
-
-      return {
-        success: true,
-        newPath,
-        backupPath,
-      };
-    } catch (error) {
-      logger.error("[Database IPC] 数据库迁移失败:", error);
-      throw error;
-    }
+  ipcMain.handle("database:migrate", async () => {
+    requireNativeDatabaseTransfer("DATABASE_NATIVE_EXPORT_REQUIRED");
   });
 
   // 标记模块为已注册

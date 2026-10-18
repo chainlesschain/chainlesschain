@@ -7,6 +7,9 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import Module, { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
 
 describe("database-ipc", () => {
   let handlers;
@@ -91,9 +94,22 @@ describe("database-ipc", () => {
 
     mockGetAppConfig = vi.fn(() => mockAppConfig);
 
-    // Dynamic import
-    const module = await import("../../../src/main/database/database-ipc.js");
-    registerDatabaseIPC = module.registerDatabaseIPC;
+    // All handler dependencies are injected. Stub only the native default
+    // imports while loading this CommonJS module in a plain Node test worker.
+    const originalLoad = Module._load;
+    Module._load = function (id, parent, ...rest) {
+      if (id === "electron") return { ipcMain: mockIpcMain };
+      if (id.endsWith("ipc/ipc-guard")) return mockIpcGuard;
+      if (id.endsWith("utils/logger.js"))
+        return { logger: { info() {}, warn() {}, error() {} } };
+      return originalLoad.call(this, id, parent, ...rest);
+    };
+    try {
+      registerDatabaseIPC =
+        require("../../../src/main/database/database-ipc.js").registerDatabaseIPC;
+    } finally {
+      Module._load = originalLoad;
+    }
   });
 
   /**
@@ -546,7 +562,7 @@ describe("database-ipc", () => {
         registerWithDeps();
         const result = await getHandler("db:switch-database")(
           {},
-          "context-1",
+          "org_context-1",
           {},
         );
         expect(result).toEqual({ success: true, path: "/test/db.sqlite" });
@@ -556,14 +572,14 @@ describe("database-ipc", () => {
       it("应该在数据库未初始化时抛出错误", async () => {
         registerWithDeps({ database: null });
         await expect(
-          getHandler("db:switch-database")({}, "context-1"),
+          getHandler("db:switch-database")({}, "org_context-1"),
         ).rejects.toThrow("数据库管理器未初始化");
       });
 
       it("应该支持选项参数", async () => {
         registerWithDeps();
         const options = { createIfNotExists: true };
-        await getHandler("db:switch-database")({}, "context-1", options);
+        await getHandler("db:switch-database")({}, "org_context-1", options);
         expect(mockDatabase.switchDatabase).toHaveBeenCalledWith(
           "/test/db.sqlite",
           options,
@@ -576,7 +592,7 @@ describe("database-ipc", () => {
         );
         registerWithDeps();
         await expect(
-          getHandler("db:switch-database")({}, "context-1"),
+          getHandler("db:switch-database")({}, "org_context-1"),
         ).rejects.toThrow("Switch failed");
       });
     });
@@ -584,26 +600,18 @@ describe("database-ipc", () => {
 
   describe("备份与恢复", () => {
     describe("db:backup", () => {
-      it("应该备份数据库到指定路径", async () => {
+      it("requires a native export flow before using a renderer path", async () => {
         registerWithDeps();
-        const result = await getHandler("db:backup")({}, "/backup/path.db");
-        expect(result).toBe(true);
-        expect(mockDatabase.backup).toHaveBeenCalledWith("/backup/path.db");
+        await expect(
+          getHandler("db:backup")({}, "/backup/path.db"),
+        ).rejects.toMatchObject({ code: "DATABASE_NATIVE_EXPORT_REQUIRED" });
+        expect(mockDatabase.backup).not.toHaveBeenCalled();
       });
-
-      it("应该在错误时返回false", async () => {
-        mockDatabase.backup.mockRejectedValue(new Error("Backup failed"));
-        registerWithDeps();
-        const result = await getHandler("db:backup")({}, "/backup/path.db");
-        expect(result).toBe(false);
-      });
-
-      it("应该在数据库未初始化时返回false（不谎报备份成功）", async () => {
-        // Regression: `await database?.backup()` skipped the backup when database
-        // was null but still returned true, claiming a backup that never ran.
+      it("still rejects when the database is unavailable", async () => {
         registerWithDeps({ database: null });
-        const result = await getHandler("db:backup")({}, "/backup/path.db");
-        expect(result).toBe(false);
+        await expect(
+          getHandler("db:backup")({}, "/backup/path.db"),
+        ).rejects.toMatchObject({ code: "DATABASE_NATIVE_EXPORT_REQUIRED" });
       });
     });
 
@@ -651,31 +659,15 @@ describe("database-ipc", () => {
     });
 
     describe("database:restore-backup", () => {
-      it("应该从备份恢复数据库", async () => {
-        registerWithDeps();
-        await getHandler("database:restore-backup")({}, "/backup/restore.db");
-        expect(mockAppConfig.restoreFromBackup).toHaveBeenCalledWith(
-          "/backup/restore.db",
-        );
-      });
-
-      it("应该返回需要重启的标识", async () => {
-        registerWithDeps();
-        const result = await getHandler("database:restore-backup")(
-          {},
-          "/backup/restore.db",
-        );
-        expect(result).toEqual({ success: true, needsRestart: true });
-      });
-
-      it("应该在错误时抛出异常", async () => {
-        mockAppConfig.restoreFromBackup.mockImplementation(() => {
-          throw new Error("Restore failed");
-        });
+      it("rejects renderer-controlled vault paths before configuration or filesystem access", async () => {
         registerWithDeps();
         await expect(
-          getHandler("database:restore-backup")({}, "/backup/restore.db"),
-        ).rejects.toThrow("Restore failed");
+          getHandler("database:restore-backup")({}, "/renderer/path.db"),
+        ).rejects.toMatchObject({ code: "DATABASE_NATIVE_IMPORT_REQUIRED" });
+        expect(mockGetAppConfig).not.toHaveBeenCalled();
+        expect(mockAppConfig.restoreFromBackup).not.toHaveBeenCalled();
+        expect(mockAppConfig.createDatabaseBackup).not.toHaveBeenCalled();
+        expect(mockDatabase.backup).not.toHaveBeenCalled();
       });
     });
   });
@@ -711,63 +703,28 @@ describe("database-ipc", () => {
     });
 
     describe("database:set-path", () => {
-      it("应该设置数据库路径", async () => {
-        registerWithDeps();
-        const result = await getHandler("database:set-path")(
-          {},
-          "/new/path.db",
-        );
-        expect(result).toBe(true);
-        expect(mockAppConfig.setDatabasePath).toHaveBeenCalledWith(
-          "/new/path.db",
-        );
-      });
-
-      it("应该在错误时抛出异常", async () => {
-        mockAppConfig.setDatabasePath.mockImplementation(() => {
-          throw new Error("Set path failed");
-        });
+      it("rejects renderer-controlled vault paths before configuration or filesystem access", async () => {
         registerWithDeps();
         await expect(
-          getHandler("database:set-path")({}, "/bad/path"),
-        ).rejects.toThrow("Set path failed");
+          getHandler("database:set-path")({}, "/renderer/path.db"),
+        ).rejects.toMatchObject({ code: "DATABASE_NATIVE_IMPORT_REQUIRED" });
+        expect(mockGetAppConfig).not.toHaveBeenCalled();
+        expect(mockAppConfig.setDatabasePath).not.toHaveBeenCalled();
+        expect(mockAppConfig.createDatabaseBackup).not.toHaveBeenCalled();
+        expect(mockDatabase.backup).not.toHaveBeenCalled();
       });
     });
 
     describe("database:migrate", () => {
-      it("应该迁移数据库到新路径", async () => {
-        registerWithDeps();
-        const result = await getHandler("database:migrate")({}, "/new/path.db");
-        expect(result.success).toBe(true);
-        expect(mockAppConfig.migrateDatabaseTo).toHaveBeenCalledWith(
-          "/new/path.db",
-        );
-      });
-
-      it("应该先创建备份", async () => {
-        registerWithDeps();
-        await getHandler("database:migrate")({}, "/new/path.db");
-        expect(mockAppConfig.createDatabaseBackup).toHaveBeenCalled();
-      });
-
-      it("应该返回新路径和备份路径", async () => {
-        registerWithDeps();
-        const result = await getHandler("database:migrate")({}, "/new/path.db");
-        expect(result).toEqual({
-          success: true,
-          newPath: "/new/path.db",
-          backupPath: "/backup/db-backup.sqlite",
-        });
-      });
-
-      it("应该在错误时抛出异常", async () => {
-        mockAppConfig.migrateDatabaseTo.mockRejectedValue(
-          new Error("Migrate failed"),
-        );
+      it("rejects renderer-controlled vault paths before configuration or filesystem access", async () => {
         registerWithDeps();
         await expect(
-          getHandler("database:migrate")({}, "/new/path.db"),
-        ).rejects.toThrow("Migrate failed");
+          getHandler("database:migrate")({}, "/renderer/path.db"),
+        ).rejects.toMatchObject({ code: "DATABASE_NATIVE_EXPORT_REQUIRED" });
+        expect(mockGetAppConfig).not.toHaveBeenCalled();
+        expect(mockAppConfig.migrateDatabaseTo).not.toHaveBeenCalled();
+        expect(mockAppConfig.createDatabaseBackup).not.toHaveBeenCalled();
+        expect(mockDatabase.backup).not.toHaveBeenCalled();
       });
     });
   });

@@ -44,6 +44,10 @@
         v-if="['all', 'unread'].includes(currentFilter)"
         :unread-only="currentFilter === 'unread'"
       />
+      <TaskNotificationList
+        v-if="['all', 'unread'].includes(currentFilter)"
+        :unread-only="currentFilter === 'unread'"
+      />
       <a-spin :spinning="loading">
         <a-empty
           v-if="filteredNotifications.length === 0"
@@ -113,6 +117,7 @@ import { logger } from "@/utils/logger";
 import { ref, computed, onMounted, watch } from "vue";
 import { useSocialStore } from "../../stores/social";
 import GoalNotificationList from "../common/GoalNotificationList.vue";
+import TaskNotificationList from "../common/TaskNotificationList.vue";
 import {
   BellOutlined,
   UserAddOutlined,

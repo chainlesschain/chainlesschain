@@ -28,6 +28,11 @@ const externalStore = require("./sync-external-store");
 const { logger } = require("../utils/logger.js");
 const crypto = require("crypto");
 const didSigner = require("../did/did-signer");
+const {
+  legacyNotificationPredicate,
+  isProtectedLegacyNotification,
+  isBoardNoticeReference,
+} = require("../notification/legacy-notification-filter");
 
 const PROVIDER_ID = "mobile";
 
@@ -255,6 +260,11 @@ class MobileBridgeSync {
         timestamp: ts.deleted_at,
         data: "{}",
       };
+      if (this._isProtectedNotification(item)) {
+        // Discard transport bookkeeping only; never transmit protected notice IDs.
+        externalStoreApi.deleteTombstone(this.dbManager, ts.id);
+        continue;
+      }
       const res = await this._sendItem(deviceId, item);
       if (res?.status === "applied") {
         externalStoreApi.deleteTombstone(this.dbManager, ts.id);
@@ -935,15 +945,16 @@ class MobileBridgeSync {
    * notifications walker。schema 无 updated_at，用 created_at 作 cursor。
    */
   async _fetchNotifications(dbManager, sinceMs, sinceId, limit) {
+    const visible = legacyNotificationPredicate(dbManager);
     const sql = sinceId
       ? `SELECT id, user_did, type, title, content, data, is_read, created_at
          FROM notifications
-         WHERE created_at > ? OR (created_at = ? AND id > ?)
+         WHERE (created_at > ? OR (created_at = ? AND id > ?)) AND ${visible}
          ORDER BY created_at ASC, id ASC
          LIMIT ?`
       : `SELECT id, user_did, type, title, content, data, is_read, created_at
          FROM notifications
-         WHERE created_at > ?
+         WHERE created_at > ? AND ${visible}
          ORDER BY created_at ASC, id ASC
          LIMIT ?`;
     const params = sinceId
@@ -1192,6 +1203,9 @@ class MobileBridgeSync {
 
   async _applyItemLocal(item, deviceId) {
     try {
+      if (this._isProtectedNotification(item)) {
+        return { status: "failed", error: "Protected notification" };
+      }
       const local = await this._readLocalItem(
         item.resourceType,
         item.resourceId,
@@ -1442,6 +1456,10 @@ class MobileBridgeSync {
    */
   async _applyNotification(item) {
     const data = JSON.parse(item.data || "{}");
+    // Recheck after the conflict-read await and before either SQL mutation.
+    if (this._isProtectedNotification(item)) {
+      throw new Error("Protected notification");
+    }
     if (item.operation === SyncOperation.DELETE) {
       this.dbManager.run(`DELETE FROM notifications WHERE id = ?`, [
         item.resourceId,
@@ -1929,7 +1947,7 @@ class MobileBridgeSync {
       }
       case ResourceType.NOTIFICATION: {
         const row = this.dbManager.get(
-          `SELECT id, created_at FROM notifications WHERE id = ?`,
+          `SELECT id, created_at FROM notifications WHERE id = ? AND ${legacyNotificationPredicate(this.dbManager)}`,
           [resourceId],
         );
         return row
@@ -2017,7 +2035,22 @@ class MobileBridgeSync {
   // ============================================================
 
   async _sendItem(deviceId, item) {
+    if (this._isProtectedNotification(item)) {
+      return { status: "failed", error: "Protected notification" };
+    }
     return await this._invokeRemote(deviceId, "sync.push", { item, deviceId });
+  }
+
+  _isProtectedNotification(item) {
+    if (item.resourceType !== ResourceType.NOTIFICATION) {
+      return false;
+    }
+    const data =
+      typeof item.data === "string" ? JSON.parse(item.data || "{}") : item.data;
+    return (
+      isProtectedLegacyNotification(this.dbManager, item.resourceId, data) ||
+      isBoardNoticeReference(data?.data)
+    );
   }
 
   /**

@@ -984,43 +984,11 @@ function registerPermissionIPC(database) {
 
   ipcMain.handle("permission:apply-template", async (_event, params) => {
     try {
-      const db = (await resolveDatabase(database)).getDatabase();
-      const { orgId, templateId, targetType, targetId, userDID } = params;
-
-      const template = db
-        .prepare("SELECT * FROM permission_templates WHERE id = ?")
-        .get(templateId);
-      if (!template) {
-        throw new Error("Permission template not found");
-      }
-
-      const permissions = JSON.parse(template.permissions);
-
-      if (targetType === "role") {
-        db.prepare(
-          "UPDATE organization_roles SET permissions = ?, updated_at = ? WHERE org_id = ? AND role_name = ?",
-        ).run(JSON.stringify(permissions), Date.now(), orgId, targetId);
-      } else {
-        throw new Error(
-          `Unsupported target type for template application: ${targetType}`,
-        );
-      }
-
-      logPermissionActivity(
-        db,
-        orgId,
-        userDID,
-        "apply_permission_template",
-        "permission",
-        null,
-        {
-          templateId,
-          templateName: template.template_name,
-          targetType,
-          targetId,
-        },
+      if (params?.targetType === "role")
+        throw new Error("ORG_ROLE_CONTROLLED_WRITE_REQUIRED");
+      throw new Error(
+        `Unsupported target type for template application: ${params?.targetType}`,
       );
-      return { success: true };
     } catch (error) {
       logger.error("[IPC] permission:apply-template failed:", error);
       return { success: false, error: error.message };

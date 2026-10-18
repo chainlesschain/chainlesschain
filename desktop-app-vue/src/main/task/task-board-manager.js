@@ -50,6 +50,10 @@ class TaskBoardManager extends EventEmitter {
    * Create a new task board
    */
   async createBoard(boardData) {
+    return this.createBoardSync(boardData);
+  }
+
+  createBoardSync(boardData) {
     try {
       const db = this.database.getDatabase();
       const now = Date.now();
@@ -76,7 +80,7 @@ class TaskBoardManager extends EventEmitter {
       // Create default columns based on board type
       const defaultColumns = this._getDefaultColumns(boardData.boardType);
       for (let i = 0; i < defaultColumns.length; i++) {
-        await this.createColumn(boardId, {
+        this.createColumnSync(boardId, {
           name: defaultColumns[i].name,
           position: i,
           wipLimit: defaultColumns[i].wipLimit,
@@ -91,7 +95,7 @@ class TaskBoardManager extends EventEmitter {
       return {
         success: true,
         boardId,
-        board: await this.getBoard(boardId),
+        board: this.getBoardSync(boardId),
       };
     } catch (error) {
       logger.error("[TaskBoard] Error creating board:", error);
@@ -103,6 +107,10 @@ class TaskBoardManager extends EventEmitter {
    * Get a task board by ID
    */
   async getBoard(boardId) {
+    return this.getBoardSync(boardId);
+  }
+
+  getBoardSync(boardId) {
     try {
       const db = this.database.getDatabase();
 
@@ -216,6 +224,10 @@ class TaskBoardManager extends EventEmitter {
    * Update a task board
    */
   async updateBoard(boardId, updates) {
+    return this.updateBoardSync(boardId, updates);
+  }
+
+  updateBoardSync(boardId, updates) {
     try {
       const db = this.database.getDatabase();
       const now = Date.now();
@@ -259,6 +271,10 @@ class TaskBoardManager extends EventEmitter {
    * Delete a task board
    */
   async deleteBoard(boardId) {
+    return this.deleteBoardSync(boardId);
+  }
+
+  deleteBoardSync(boardId) {
     try {
       const db = this.database.getDatabase();
 
@@ -294,6 +310,10 @@ class TaskBoardManager extends EventEmitter {
    * Archive a task board
    */
   async archiveBoard(boardId) {
+    return this.archiveBoardSync(boardId);
+  }
+
+  archiveBoardSync(boardId) {
     try {
       const db = this.database.getDatabase();
       const now = Date.now();
@@ -321,6 +341,10 @@ class TaskBoardManager extends EventEmitter {
    * Create a board column
    */
   async createColumn(boardId, columnData) {
+    return this.createColumnSync(boardId, columnData);
+  }
+
+  createColumnSync(boardId, columnData) {
     try {
       const db = this.database.getDatabase();
       const now = Date.now();
@@ -358,6 +382,10 @@ class TaskBoardManager extends EventEmitter {
    * Update a board column
    */
   async updateColumn(columnId, updates) {
+    return this.updateColumnSync(columnId, updates);
+  }
+
+  updateColumnSync(columnId, updates) {
     try {
       const db = this.database.getDatabase();
       const now = Date.now();
@@ -405,6 +433,10 @@ class TaskBoardManager extends EventEmitter {
    * Reorder columns
    */
   async reorderColumns(boardId, columnOrder) {
+    return this.reorderColumnsSync(boardId, columnOrder);
+  }
+
+  reorderColumnsSync(boardId, columnOrder) {
     try {
       const db = this.database.getDatabase();
       const now = Date.now();
@@ -432,6 +464,10 @@ class TaskBoardManager extends EventEmitter {
    * Create a sprint
    */
   async createSprint(boardId, sprintData) {
+    return this.createSprintSync(boardId, sprintData);
+  }
+
+  createSprintSync(boardId, sprintData) {
     try {
       const db = this.database.getDatabase();
       const now = Date.now();
@@ -469,6 +505,10 @@ class TaskBoardManager extends EventEmitter {
    * Start a sprint
    */
   async startSprint(sprintId) {
+    return this.startSprintSync(sprintId);
+  }
+
+  startSprintSync(sprintId) {
     try {
       const db = this.database.getDatabase();
       const now = Date.now();
@@ -529,6 +569,10 @@ class TaskBoardManager extends EventEmitter {
    * Complete a sprint
    */
   async completeSprint(sprintId) {
+    return this.completeSprintSync(sprintId);
+  }
+
+  completeSprintSync(sprintId) {
     try {
       const db = this.database.getDatabase();
       const now = Date.now();
@@ -682,6 +726,10 @@ class TaskBoardManager extends EventEmitter {
    * Move tasks to sprint
    */
   async moveToSprint(taskIds, sprintId) {
+    return this.moveToSprintSync(taskIds, sprintId);
+  }
+
+  moveToSprintSync(taskIds, sprintId) {
     try {
       const db = this.database.getDatabase();
       const now = Date.now();
@@ -1101,6 +1149,10 @@ class TaskBoardManager extends EventEmitter {
    * Create a new label
    */
   async createLabel(orgId, labelData) {
+    return this.createLabelSync(orgId, labelData);
+  }
+
+  createLabelSync(orgId, labelData) {
     try {
       const db = this.database.getDatabase();
       const now = Date.now();

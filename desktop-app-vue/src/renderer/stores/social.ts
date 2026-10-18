@@ -7,11 +7,17 @@ import { logger } from "@/utils/logger";
 import { defineStore } from "pinia";
 import { createRetryableIPC } from "../utils/ipc";
 
-function isGoalNotification(data: unknown): boolean {
+function isProtectedNotification(data: unknown, id?: string): boolean {
+  if (id?.startsWith("cc-board-mention:")) return true;
   try {
+    const ref = typeof data === "string" ? JSON.parse(data) : data;
     return (
-      (typeof data === "string" ? JSON.parse(data) : data)?.schema ===
-      "chainlesschain.goal-notice-ref/v1"
+      [
+        "chainlesschain.goal-notice-ref/v1",
+        "chainlesschain.board-notice-ref/v1",
+      ].includes(ref?.schema) ||
+      (typeof ref?.eventId === "string" &&
+        ref.eventId.startsWith("cc-board-mention:"))
     );
   } catch {
     return false;
@@ -130,7 +136,11 @@ export interface Post {
  * 通知类型
  */
 export type NotificationType =
-  "system" | "message" | "friend_request" | "like" | "comment";
+  | "system"
+  | "message"
+  | "friend_request"
+  | "like"
+  | "comment";
 
 /**
  * 通知
@@ -150,6 +160,7 @@ export interface Notification {
  * 添加通知参数
  */
 export interface AddNotificationParams {
+  id?: string;
   type: NotificationType;
   title: string;
   content: string;
@@ -846,7 +857,7 @@ export const useSocialStore = defineStore("social", {
 
         // Goal references have a separate, identity-fenced authoritative panel.
         this.notifications = notifications.filter(
-          (item) => !isGoalNotification(item.data),
+          (item) => !isProtectedNotification(item.data, item.id),
         );
         this.unreadNotifications = this.notifications.filter(
           (n) => n.is_read === 0,
@@ -896,7 +907,7 @@ export const useSocialStore = defineStore("social", {
      * 添加通知
      */
     addNotification(notification: AddNotificationParams): void {
-      if (isGoalNotification(notification.data)) return;
+      if (isProtectedNotification(notification.data, notification.id)) return;
       const notificationData: Notification = {
         id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         type: notification.type,

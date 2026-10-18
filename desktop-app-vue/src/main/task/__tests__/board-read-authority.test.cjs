@@ -189,10 +189,40 @@ test("board read IPC channels enforce membership before manager access", async (
     if (request === "./task-board-manager")
       return { getTaskBoardManager: () => manager };
     if (request === "./team-task-manager")
-      return { getTeamTaskManager: () => manager };
+      return {
+        getTeamTaskManager: () => manager,
+        TeamTaskManager: class {
+          constructor() {
+            return manager;
+          }
+        },
+      };
     if (request === "./task-manager") return { getTaskManager: () => manager };
+    if (request === "./board-attachment-host")
+      return {
+        readBoardAttachment: (database, event, kind, params) =>
+          withBoardReadAccess(
+            database,
+            event,
+            kind === "list"
+              ? { taskId: params.taskId }
+              : { attachmentId: params.attachmentId },
+            () =>
+              kind === "list"
+                ? manager.getAttachments()
+                : manager.previewAttachment(),
+            f.dependencies,
+          ),
+      };
     if (request === "./team-report-manager")
-      return { getTeamReportManager: () => manager };
+      return {
+        TeamReportManager: class {
+          getReportsSync() {
+            managerCalls++;
+            return result;
+          }
+        },
+      };
     return originalLoad.call(this, request, ...args);
   };
   const ipcPath = path.resolve(__dirname, "../task-ipc.js");

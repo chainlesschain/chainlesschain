@@ -82,12 +82,12 @@ const cases = [
       name,
     );
   }
-  assert.deepEqual(
-    await handlers.get("task:create-checklist")({}, { taskId: "other-task" }),
-    { success: true },
+  await assert.rejects(
+    handlers.get("task:create-checklist")({}, { taskId: "other-task" }),
+    /BOARD_WRITE_NOT_FOUND_OR_DENIED/,
   );
   process.stdout.write(
-    `Passed ${cases.length} guarded IPC cases and team task path\n`,
+    `Passed ${cases.length} guarded IPC cases and unauthenticated board task denial\n`,
   );
 })()
   .catch((error) => {

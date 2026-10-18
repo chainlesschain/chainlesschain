@@ -10,6 +10,16 @@ const { v4: uuidv4 } = require("uuid");
 
 module.exports = {
   async addMember(orgId, memberData) {
+    // Invitations and sync must never manufacture a second organization owner.
+    // Organization bootstrap inserts organization_info before adding its owner.
+    if (memberData.role === "owner") {
+      const owner = this.db
+        .prepare("SELECT owner_did FROM organization_info WHERE org_id=?")
+        .get(orgId);
+      if (owner?.owner_did !== memberData.memberDID) {
+        throw new Error("ORG_ROLE_OWNER_PROTECTED");
+      }
+    }
     const memberId = uuidv4();
     const now = Date.now();
 

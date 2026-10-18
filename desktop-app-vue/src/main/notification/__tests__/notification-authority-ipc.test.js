@@ -375,8 +375,18 @@ describe("notification IPC actor and projection authority", () => {
   it("broadcasts a body-free invalidation on host auth changes and unsubscribes at quit", () => {
     const send = vi.fn();
     let quit;
-    electron.BrowserWindow.getAllWindows = () => [{ isDestroyed: () => false, webContents: { isDestroyed: () => false, send } }];
-    electron.app = { once: (name, listener) => { expect(name).toBe("will-quit"); quit = listener; } };
+    electron.BrowserWindow.getAllWindows = () => [
+      {
+        isDestroyed: () => false,
+        webContents: { isDestroyed: () => false, send },
+      },
+    ];
+    electron.app = {
+      once: (name, listener) => {
+        expect(name).toBe("will-quit");
+        quit = listener;
+      },
+    };
     register();
     auth.clearProjectGoalAuth();
     expect(send).toHaveBeenCalledWith("notification:invalidated", {});

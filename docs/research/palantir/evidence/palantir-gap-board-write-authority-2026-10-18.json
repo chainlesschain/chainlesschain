@@ -1,0 +1,228 @@
+{
+  "schema_version": 1,
+  "collected_at": "2026-10-18T02:09:20.881Z",
+  "scope": "PAL POLICY / PAL ONT batch 15: board write authority and organization role/invitation authority sources",
+  "baseline_commit": "7111f3f78725c82c35927fd5bada0e0b1be5983c",
+  "validation_head": "7111f3f78725c82c35927fd5bada0e0b1be5983c",
+  "branch": "feature/palantir-board-write-authority",
+  "source_state": "uncommitted workspace files bound individually by SHA-256; unrelated concurrent changes excluded",
+  "environment": {
+    "platform": "win32",
+    "architecture": "x64",
+    "node": "v22.22.2",
+    "native": {
+      "package": "better-sqlite3",
+      "version": "12.11.1",
+      "sqlite_version": "3.53.2"
+    },
+    "sqlcipher": {
+      "status": "unavailable",
+      "reason": "Could not locate the bindings file. Tried:"
+    }
+  },
+  "implemented_board_actions": 23,
+  "guarded_board_write_channels": 36,
+  "unavailable_board_actions": 13,
+  "board_read_channels": 14,
+  "board_identity_denial_invocations": 216,
+  "tests": [
+    {
+      "name": "node-sqlite",
+      "command": "C:\\nvm4w\\nodejs\\node.exe",
+      "arguments": [
+        "--test",
+        "--test-reporter=tap",
+        "desktop-app-vue/src/main/task/__tests__/board-read-authority.test.cjs",
+        "desktop-app-vue/src/main/task/__tests__/board-write-authority.test.cjs",
+        "desktop-app-vue/src/main/organization/__tests__/organization-role-write-authority.test.cjs"
+      ],
+      "exit_code": 0,
+      "report": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-palantir-board-20261018\\node-sqlite.log",
+      "report_sha256": "c44911d4c2bd15900b77dd1ad5b0e27b08f75646b9e340708a1e52cf311a4ee3",
+      "tests": 57,
+      "pass": 57,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0
+    },
+    {
+      "name": "better-sqlite3",
+      "command": "C:\\nvm4w\\nodejs\\node.exe",
+      "arguments": [
+        "--test",
+        "--test-reporter=tap",
+        "desktop-app-vue/src/main/task/__tests__/board-write-authority.test.cjs",
+        "desktop-app-vue/src/main/organization/__tests__/organization-role-write-authority.test.cjs"
+      ],
+      "exit_code": 0,
+      "report": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-palantir-board-20261018\\better-sqlite3.log",
+      "report_sha256": "b8db71ae4adc94cb071168e5915e9ad83b4b1fe68e6ad7af705ed564cfa76c39",
+      "tests": 52,
+      "pass": 52,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0
+    },
+    {
+      "name": "canonical-adjunct",
+      "command": "C:\\nvm4w\\nodejs\\node.exe",
+      "arguments": [
+        "desktop-app-vue/scripts/verify-canonical-task-adjunct-ipc.cjs"
+      ],
+      "exit_code": 0,
+      "report": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-palantir-board-20261018\\canonical-adjunct.log",
+      "report_sha256": "5ccae83cb0933c2fcd847a4ce3812850cb20e3f1297c3ee9a7f11e677448800d"
+    },
+    {
+      "name": "exact-ipc-manifest",
+      "command": "C:\\nvm4w\\nodejs\\node.exe",
+      "arguments": ["desktop-app-vue/scripts/verify-fixed-renderer-ipc.mjs"],
+      "exit_code": 0,
+      "report": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-palantir-board-20261018\\exact-ipc-manifest.log",
+      "report_sha256": "8f82a110ab44add31bf4a92a57dc9391c4675c001ecabd9d6cc5b2381ba9b0a5"
+    },
+    {
+      "name": "node-syntax",
+      "files": 21,
+      "exit_code": 0
+    },
+    {
+      "name": "prettier",
+      "command": "C:\\nvm4w\\nodejs\\node.exe",
+      "arguments": [
+        "node_modules/prettier/bin/prettier.cjs",
+        "--check",
+        "desktop-app-vue/package.json",
+        "desktop-app-vue/scripts/verify-canonical-task-adjunct-ipc.cjs",
+        "desktop-app-vue/src/main/task/board-write-authority.js",
+        "desktop-app-vue/src/main/task/board-read-authority.js",
+        "desktop-app-vue/src/main/task/task-ipc.js",
+        "desktop-app-vue/src/main/task/task-board-manager.js",
+        "desktop-app-vue/src/main/task/team-task-manager.js",
+        "desktop-app-vue/src/main/task/team-report-manager.js",
+        "desktop-app-vue/src/main/task/__tests__/board-write-authority.test.cjs",
+        "desktop-app-vue/src/main/task/__tests__/board-read-authority.test.cjs",
+        "desktop-app-vue/src/main/organization/organization-role-write-authority.js",
+        "desktop-app-vue/src/main/organization/organization-ipc.js",
+        "desktop-app-vue/src/main/organization/organization-manager-members.js",
+        "desktop-app-vue/src/main/organization/organization-manager-p2pSync.js",
+        "desktop-app-vue/src/main/organization/permission-ipc.js",
+        "desktop-app-vue/src/main/permission/permission-ipc.js",
+        "desktop-app-vue/src/main/sync/p2p-sync-engine.js",
+        "desktop-app-vue/src/main/organization/__tests__/organization-role-write-authority.test.cjs",
+        "docs/research/palantir/chainlesschain-palantir-gap-analysis-2026-10-06.md",
+        "docs/research/palantir/palantir-gap-implementation-progress-2026-10-06.md"
+      ],
+      "exit_code": 0,
+      "report": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-palantir-board-20261018\\prettier.log",
+      "report_sha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20"
+    },
+    {
+      "name": "git-diff-check",
+      "command": "git",
+      "arguments": ["diff", "--check"],
+      "exit_code": 0,
+      "report": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-palantir-board-20261018\\git-diff-check.log",
+      "report_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "boundaries": [
+    "Native Electron window, completed login providers, logger and UUID v4 provider are injected in IPC tests.",
+    "SQLite tables and synchronous business methods execute production code. Native driver results overlap the Node SQLite cases and are not additive.",
+    "No production SQLCipher validation, complete existing Vitest regression, real Electron GUI, Linux/macOS exact-commit release matrix or external tenant/model/business acceptance was run.",
+    "Board object-level grants, approvals, version CAS, durable idempotency/action ledger and 13 unavailable board actions remain pending.",
+    "DID/link invitation creation and legacy role/member template/sync writes fail closed pending controlled adapters.",
+    "Historical member/admin invitations lack verified issuance history; review and revocation/reissue remain necessary. Existing historical invitation rows were not automatically changed.",
+    "No publication or remote push performed by this task."
+  ],
+  "sources": [
+    {
+      "path": "desktop-app-vue/package.json",
+      "sha256": "9facc0dd61cf9cf8a0b21d68a4a2a7e790f2240f0fba19f7424461eca066049f"
+    },
+    {
+      "path": "desktop-app-vue/scripts/verify-canonical-task-adjunct-ipc.cjs",
+      "sha256": "848b458a6f972d9c6e8b001de21b930c32a95172aa315cc183acbd1ac5495cf7"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/board-write-authority.js",
+      "sha256": "5ae0b58debabd839fdb791440150abb59eb11b414322590fe58a067076fc564a"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/board-read-authority.js",
+      "sha256": "a063f34eae5b470e5dd2d3ef660e69accf5390638f8422939c6b623b4eb7310d"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/project-goal-auth-session.js",
+      "sha256": "c2e81e219c34c8ffb480dad823d605eadc80964dd2403d17f18d87195b3b5226"
+    },
+    {
+      "path": "desktop-app-vue/src/main/ipc/ipc-sender-guard.js",
+      "sha256": "ddbe73a932fbef0af0880398795642ba017f8994e1d9acb89083e46d57c9712c"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/task-ipc.js",
+      "sha256": "7154db1e65fe9c79c4de3d9648f4ecb9a9326396c0dbdc3f9f391a74aa22de0e"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/task-board-manager.js",
+      "sha256": "5bec837a8bb825af17bd4c3312914177c680ae52d31d78ebae4917d14777675a"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/team-task-manager.js",
+      "sha256": "f685697786a41217b95a031f486be129853620948228e10a7233cecd413ed70c"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/team-report-manager.js",
+      "sha256": "dc02ba6342798e26e90d4dcd5b7d282250a4bf57bac44607030ba69bcbb2f03a"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/__tests__/board-write-authority.test.cjs",
+      "sha256": "621ab1122b22ee18e424f2d0e0587aedca03e0e12d3687b41aca25dc0cbb3cb4"
+    },
+    {
+      "path": "desktop-app-vue/src/main/task/__tests__/board-read-authority.test.cjs",
+      "sha256": "d8e8b868fef7fed57b6842eb891bfed6865e2b7455008e4885d3da9a9b63db7b"
+    },
+    {
+      "path": "desktop-app-vue/src/main/organization/organization-role-write-authority.js",
+      "sha256": "14d007f7e7169a4c56e16759d1336e65199ed58d2160f3b248a956645f65b63a"
+    },
+    {
+      "path": "desktop-app-vue/src/main/organization/organization-ipc.js",
+      "sha256": "da2c4feb9d0c298cc6560746e475318cbe9404c62d3bba34c5ea84136623057a"
+    },
+    {
+      "path": "desktop-app-vue/src/main/organization/organization-manager-members.js",
+      "sha256": "0d6940f62a947a2fbb788fb09cf43e30135f62e2a50f59a649b5c6077f352d2b"
+    },
+    {
+      "path": "desktop-app-vue/src/main/organization/organization-manager-p2pSync.js",
+      "sha256": "615ec48c75b4171378d965d1f7fe26e75ebee159008a3ad42649acca0a4b8549"
+    },
+    {
+      "path": "desktop-app-vue/src/main/organization/permission-ipc.js",
+      "sha256": "c3e141e5fd974e5090b0149b9dbcce8fbd3f75389910990341613453d77fc3d2"
+    },
+    {
+      "path": "desktop-app-vue/src/main/permission/permission-ipc.js",
+      "sha256": "d70ae52b7f368e1e9f394b9bd994a73b866c16b0863b946356f20edc4e68106c"
+    },
+    {
+      "path": "desktop-app-vue/src/main/sync/p2p-sync-engine.js",
+      "sha256": "e25e1cd1a633dec9e51c4790134f2aabb69b909782e9a81227272c16bd5efb74"
+    },
+    {
+      "path": "desktop-app-vue/src/main/organization/__tests__/organization-role-write-authority.test.cjs",
+      "sha256": "c53c702ade84ae32d5f581a4183f834bc17223992132c0d728d1e2cb11a60a0b"
+    },
+    {
+      "path": "desktop-app-vue/src/main/database/database-schema.js",
+      "sha256": "47f18b8588beac511aa3eaf32c761bd4caf6739272d6b8b24f8de7683e321c13"
+    },
+    {
+      "path": "desktop-app-vue/src/preload/index.js",
+      "sha256": "ad3230c59df627c51e10dbb9830a8a9bbd12b28d6261803f71f2c70f28e2b576"
+    }
+  ]
+}

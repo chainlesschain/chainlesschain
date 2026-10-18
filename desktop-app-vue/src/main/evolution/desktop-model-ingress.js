@@ -699,6 +699,10 @@ async function prepareDesktopModelRequest(client, body, protocol = "openai") {
     if (Object.hasOwn(captured, "tools")) captured.tools = projected.tools;
     return {
       body: captured,
+      evidence: Object.freeze({
+        runId: ingress.runId,
+        tenantId: ingress.tenantId,
+      }),
       async complete(message, result) {
         try {
           const desktopResult =

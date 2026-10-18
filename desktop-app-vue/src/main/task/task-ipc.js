@@ -16,7 +16,11 @@
 
 const { ipcMain } = require("electron");
 const { logger } = require("../utils/logger.js");
-const { withBoardReadAccess } = require("./board-read-authority");
+const {
+  withBoardReadAccess,
+  createBoardReadCheck,
+} = require("./board-read-authority");
+const { executeBoardWrite } = require("./board-write-authority");
 
 function resolveDatabase(database) {
   if (database?.getDatabase) {
@@ -41,6 +45,8 @@ function rejectLegacyProjectTaskAccess(database, params) {
     params?.taskId,
     params?.parentTaskId,
     params?.dependsOnTaskId,
+    params?.subtaskData?.parentTaskId,
+    ...(Array.isArray(params?.taskIds) ? params.taskIds : []),
   ];
   const childRefs = [
     ["checklistId", "SELECT task_id FROM task_checklists WHERE id=?"],
@@ -79,6 +85,40 @@ function rejectLegacyProjectTaskAccess(database, params) {
  * Register all team task management IPC handlers
  */
 function registerTaskIPC(database) {
+  const boardUpdates =
+    require("./board-task-update-host").createBoardTaskUpdateHost({
+      database: resolveDatabase(database),
+    });
+  ipcMain.handle("task:board-edit-source", (event, params) =>
+    boardUpdates.getBoardEditSource(event, params),
+  );
+  ipcMain.handle("task:board-update-preview", (event, params) =>
+    boardUpdates.previewBoardUpdate(event, params),
+  );
+  ipcMain.handle("task:board-update-execute", (event, params) =>
+    boardUpdates.executeBoardUpdate(event, params),
+  );
+  ipcMain.handle("task:board-update-runs", (event, params) =>
+    boardUpdates.getBoardUpdateRuns(event, params),
+  );
+  ipcMain.handle("task:board-update-cancel", (event, params) =>
+    boardUpdates.cancelBoardUpdate(event, params),
+  );
+  ipcMain.handle("task:board-create-source", (event, params) =>
+    boardUpdates.getBoardCreateSource(event, params),
+  );
+  ipcMain.handle("task:board-create-preview", (event, params) =>
+    boardUpdates.previewBoardCreate(event, params),
+  );
+  ipcMain.handle("task:board-create-execute", (event, params) =>
+    boardUpdates.executeBoardCreate(event, params),
+  );
+  ipcMain.handle("task:board-create-runs", (event, params) =>
+    boardUpdates.getBoardCreateRuns(event, params),
+  );
+  ipcMain.handle("task:board-create-cancel", (event, params) =>
+    boardUpdates.cancelBoardCreate(event, params),
+  );
   logger.info("[IPC] 注册团队任务管理IPC处理器 (49个handlers)");
   require("./task-description-ipc").registerTaskDescriptionIPC(
     resolveDatabase(database),
@@ -95,11 +135,14 @@ function registerTaskIPC(database) {
   // Board Management (8 handlers)
   // ========================================
 
-  ipcMain.handle("task:create-board", async (_event, params) => {
+  ipcMain.handle("task:create-board", async (event, params) => {
     try {
-      const { getTaskBoardManager } = require("./task-board-manager");
-      const manager = getTaskBoardManager(resolveDatabase(database));
-      return await manager.createBoard(params);
+      return executeBoardWrite(
+        resolveDatabase(database),
+        event,
+        "create-board",
+        params,
+      );
     } catch (error) {
       logger.error("[IPC] task:create-board failed:", error);
       throw error;
@@ -139,66 +182,84 @@ function registerTaskIPC(database) {
     }
   });
 
-  ipcMain.handle("task:update-board", async (_event, params) => {
+  ipcMain.handle("task:update-board", async (event, params) => {
     try {
-      const { getTaskBoardManager } = require("./task-board-manager");
-      const manager = getTaskBoardManager(resolveDatabase(database));
-      return await manager.updateBoard(params.boardId, params.updates);
+      return executeBoardWrite(
+        resolveDatabase(database),
+        event,
+        "update-board",
+        params,
+      );
     } catch (error) {
       logger.error("[IPC] task:update-board failed:", error);
       throw error;
     }
   });
 
-  ipcMain.handle("task:delete-board", async (_event, params) => {
+  ipcMain.handle("task:delete-board", async (event, params) => {
     try {
-      const { getTaskBoardManager } = require("./task-board-manager");
-      const manager = getTaskBoardManager(resolveDatabase(database));
-      return await manager.deleteBoard(params.boardId);
+      return executeBoardWrite(
+        resolveDatabase(database),
+        event,
+        "delete-board",
+        params,
+      );
     } catch (error) {
       logger.error("[IPC] task:delete-board failed:", error);
       throw error;
     }
   });
 
-  ipcMain.handle("task:archive-board", async (_event, params) => {
+  ipcMain.handle("task:archive-board", async (event, params) => {
     try {
-      const { getTaskBoardManager } = require("./task-board-manager");
-      const manager = getTaskBoardManager(resolveDatabase(database));
-      return await manager.archiveBoard(params.boardId);
+      return executeBoardWrite(
+        resolveDatabase(database),
+        event,
+        "archive-board",
+        params,
+      );
     } catch (error) {
       logger.error("[IPC] task:archive-board failed:", error);
       throw error;
     }
   });
 
-  ipcMain.handle("task:create-column", async (_event, params) => {
+  ipcMain.handle("task:create-column", async (event, params) => {
     try {
-      const { getTaskBoardManager } = require("./task-board-manager");
-      const manager = getTaskBoardManager(resolveDatabase(database));
-      return await manager.createColumn(params.boardId, params.columnData);
+      return executeBoardWrite(
+        resolveDatabase(database),
+        event,
+        "create-column",
+        params,
+      );
     } catch (error) {
       logger.error("[IPC] task:create-column failed:", error);
       throw error;
     }
   });
 
-  ipcMain.handle("task:update-column", async (_event, params) => {
+  ipcMain.handle("task:update-column", async (event, params) => {
     try {
-      const { getTaskBoardManager } = require("./task-board-manager");
-      const manager = getTaskBoardManager(resolveDatabase(database));
-      return await manager.updateColumn(params.columnId, params.updates);
+      return executeBoardWrite(
+        resolveDatabase(database),
+        event,
+        "update-column",
+        params,
+      );
     } catch (error) {
       logger.error("[IPC] task:update-column failed:", error);
       throw error;
     }
   });
 
-  ipcMain.handle("task:reorder-columns", async (_event, params) => {
+  ipcMain.handle("task:reorder-columns", async (event, params) => {
     try {
-      const { getTaskBoardManager } = require("./task-board-manager");
-      const manager = getTaskBoardManager(resolveDatabase(database));
-      return await manager.reorderColumns(params.boardId, params.columnOrder);
+      return executeBoardWrite(
+        resolveDatabase(database),
+        event,
+        "reorder-columns",
+        params,
+      );
     } catch (error) {
       logger.error("[IPC] task:reorder-columns failed:", error);
       throw error;
@@ -271,11 +332,14 @@ function registerTaskIPC(database) {
     }
   });
 
-  ipcMain.handle("task:create-label", async (_event, params) => {
+  ipcMain.handle("task:create-label", async (event, params) => {
     try {
-      const { getTaskBoardManager } = require("./task-board-manager");
-      const manager = getTaskBoardManager(resolveDatabase(database));
-      return await manager.createLabel(params.orgId, params);
+      return executeBoardWrite(
+        resolveDatabase(database),
+        event,
+        "create-label",
+        params,
+      );
     } catch (error) {
       logger.error("[IPC] task:create-label failed:", error);
       throw error;
@@ -288,17 +352,20 @@ function registerTaskIPC(database) {
 
   ipcMain.handle("task:create-task", async (event, params) => {
     try {
-      // If boardId is provided, create a team task (board task)
-      if (params.boardId) {
-        const { getTeamTaskManager } = require("./team-task-manager");
-        const manager = getTeamTaskManager(resolveDatabase(database));
-        return await manager.createTask(params);
-      } else {
-        if (!params.request) throw new Error("ACTION_CONTROLLED_TASK_REQUIRED");
+      if (!params?.boardId) {
+        if (!params?.request)
+          throw new Error("ACTION_CONTROLLED_TASK_REQUIRED");
         return await require("./task-description-ipc")
           .createTaskDescriptionHost({ database: resolveDatabase(database) })
           .executeCreate(event, { request: params.request });
       }
+      rejectLegacyProjectTaskAccess(database, params);
+      return executeBoardWrite(
+        resolveDatabase(database),
+        event,
+        "create-task",
+        params,
+      );
     } catch (error) {
       logger.error("[IPC] task:create-task failed:", error);
       throw error;
@@ -357,199 +424,101 @@ function registerTaskIPC(database) {
           .execute(event, { request: params.request });
       }
       rejectLegacyProjectTaskAccess(database, params);
-      // Try team task first (check if task exists in team_tasks)
-      const db = resolveDatabase(database).getDatabase();
-      const isTeamTask = db
-        .prepare("SELECT id FROM team_tasks WHERE id = ?")
-        .get(params.taskId);
-
-      if (isTeamTask) {
-        const { getTeamTaskManager } = require("./team-task-manager");
-        const manager = getTeamTaskManager(resolveDatabase(database));
-        return await manager.updateTask(
-          params.taskId,
-          params.updates,
-          params.actorDid,
-        );
-      } else {
-        const { getTaskManager } = require("./task-manager");
-        const manager = getTaskManager(resolveDatabase(database));
-        return await manager.updateTask(
-          params.taskId,
-          params.updates,
-          params.actorDid,
-        );
-      }
+      return executeBoardWrite(
+        resolveDatabase(database),
+        event,
+        "update-task",
+        params,
+      );
     } catch (error) {
       logger.error("[IPC] task:update-task failed:", error);
       throw error;
     }
   });
 
-  ipcMain.handle("task:delete-task", async (_event, params) => {
+  ipcMain.handle("task:delete-task", async (event, params) => {
     try {
       rejectLegacyProjectTaskAccess(database, params);
-      const db = resolveDatabase(database).getDatabase();
-      const isTeamTask = db
-        .prepare("SELECT id FROM team_tasks WHERE id = ?")
-        .get(params.taskId);
-
-      if (isTeamTask) {
-        const { getTeamTaskManager } = require("./team-task-manager");
-        const manager = getTeamTaskManager(resolveDatabase(database));
-        return await manager.deleteTask(params.taskId);
-      }
-
-      const { getTaskManager } = require("./task-manager");
-      const manager = getTaskManager(resolveDatabase(database));
-      return await manager.deleteTask(params.taskId);
+      return executeBoardWrite(
+        resolveDatabase(database),
+        event,
+        "delete-task",
+        params,
+      );
     } catch (error) {
       logger.error("[IPC] task:delete-task failed:", error);
       throw error;
     }
   });
 
-  ipcMain.handle("task:move-task", async (_event, params) => {
+  ipcMain.handle("task:move-task", async (event, params) => {
     try {
       rejectLegacyProjectTaskAccess(database, params);
-      // Check which table the task is in
-      const db = resolveDatabase(database).getDatabase();
-      const isTeamTask = db
-        .prepare("SELECT id FROM team_tasks WHERE id = ?")
-        .get(params.taskId);
-
-      if (isTeamTask) {
-        const { getTeamTaskManager } = require("./team-task-manager");
-        const manager = getTeamTaskManager(resolveDatabase(database));
-        return await manager.moveTask(
-          params.taskId,
-          params.columnId,
-          params.position,
-          params.actorDid,
-        );
-      } else {
-        const { getTaskManager } = require("./task-manager");
-        const manager = getTaskManager(resolveDatabase(database));
-        return await manager.moveTask(
-          params.taskId,
-          params.columnId,
-          params.position,
-          params.actorDid,
-        );
-      }
+      return executeBoardWrite(
+        resolveDatabase(database),
+        event,
+        "move-task",
+        params,
+      );
     } catch (error) {
       logger.error("[IPC] task:move-task failed:", error);
       throw error;
     }
   });
 
-  ipcMain.handle("task:assign-task", async (_event, params) => {
+  ipcMain.handle("task:assign-task", async (event, params) => {
     try {
       rejectLegacyProjectTaskAccess(database, params);
-      // Check if it's a team task
-      const db = resolveDatabase(database).getDatabase();
-      const isTeamTask = db
-        .prepare("SELECT id FROM team_tasks WHERE id = ?")
-        .get(params.taskId);
-
-      if (isTeamTask) {
-        const { getTeamTaskManager } = require("./team-task-manager");
-        const manager = getTeamTaskManager(resolveDatabase(database));
-        return await manager.assignTask(
-          params.taskId,
-          params.userDid,
-          params.role,
-          params.assignedBy,
-        );
-      } else {
-        const { getTaskManager } = require("./task-manager");
-        const manager = getTaskManager(resolveDatabase(database));
-        return await manager.assignTask(
-          params.taskId,
-          params.userDid,
-          params.role,
-          params.assignedBy,
-        );
-      }
+      return executeBoardWrite(
+        resolveDatabase(database),
+        event,
+        "assign-task",
+        params,
+      );
     } catch (error) {
       logger.error("[IPC] task:assign-task failed:", error);
       throw error;
     }
   });
 
-  ipcMain.handle("task:set-priority", async (_event, params) => {
+  ipcMain.handle("task:set-priority", async (event, params) => {
     try {
       rejectLegacyProjectTaskAccess(database, params);
-      // Check which table the task is in
-      const db = resolveDatabase(database).getDatabase();
-      const isTeamTask = db
-        .prepare("SELECT id FROM team_tasks WHERE id = ?")
-        .get(params.taskId);
-
-      if (isTeamTask) {
-        const { getTeamTaskManager } = require("./team-task-manager");
-        const manager = getTeamTaskManager(resolveDatabase(database));
-        return await manager.setPriority(
-          params.taskId,
-          params.priority,
-          params.actorDid,
-        );
-      } else {
-        const { getTaskManager } = require("./task-manager");
-        const manager = getTaskManager(resolveDatabase(database));
-        return await manager.setPriority(
-          params.taskId,
-          params.priority,
-          params.actorDid,
-        );
-      }
+      return executeBoardWrite(
+        resolveDatabase(database),
+        event,
+        "set-priority",
+        params,
+      );
     } catch (error) {
       logger.error("[IPC] task:set-priority failed:", error);
       throw error;
     }
   });
 
-  ipcMain.handle("task:set-due-date", async (_event, params) => {
+  ipcMain.handle("task:set-due-date", async (event, params) => {
     try {
       rejectLegacyProjectTaskAccess(database, params);
-      // Check which table the task is in
-      const db = resolveDatabase(database).getDatabase();
-      const isTeamTask = db
-        .prepare("SELECT id FROM team_tasks WHERE id = ?")
-        .get(params.taskId);
-
-      if (isTeamTask) {
-        const { getTeamTaskManager } = require("./team-task-manager");
-        const manager = getTeamTaskManager(resolveDatabase(database));
-        return await manager.setDueDate(
-          params.taskId,
-          params.dueDate,
-          params.actorDid,
-        );
-      } else {
-        const { getTaskManager } = require("./task-manager");
-        const manager = getTaskManager(resolveDatabase(database));
-        return await manager.setDueDate(
-          params.taskId,
-          params.dueDate,
-          params.actorDid,
-        );
-      }
+      return executeBoardWrite(
+        resolveDatabase(database),
+        event,
+        "set-due-date",
+        params,
+      );
     } catch (error) {
       logger.error("[IPC] task:set-due-date failed:", error);
       throw error;
     }
   });
 
-  ipcMain.handle("task:add-label", async (_event, params) => {
+  ipcMain.handle("task:add-label", async (event, params) => {
     try {
       rejectLegacyProjectTaskAccess(database, params);
-      const { getTaskManager } = require("./task-manager");
-      const manager = getTaskManager(resolveDatabase(database));
-      return await manager.addLabel(
-        params.taskId,
-        params.labelId,
-        params.actorDid,
+      return executeBoardWrite(
+        resolveDatabase(database),
+        event,
+        "add-label",
+        params,
       );
     } catch (error) {
       logger.error("[IPC] task:add-label failed:", error);
@@ -557,16 +526,14 @@ function registerTaskIPC(database) {
     }
   });
 
-  ipcMain.handle("task:link-tasks", async (_event, params) => {
+  ipcMain.handle("task:link-tasks", async (event, params) => {
     try {
       rejectLegacyProjectTaskAccess(database, params);
-      const { getTaskManager } = require("./task-manager");
-      const manager = getTaskManager(resolveDatabase(database));
-      return await manager.linkTasks(
-        params.taskId,
-        params.dependsOnTaskId,
-        params.dependencyType,
-        params.actorDid,
+      return executeBoardWrite(
+        resolveDatabase(database),
+        event,
+        "link-tasks",
+        params,
       );
     } catch (error) {
       logger.error("[IPC] task:link-tasks failed:", error);
@@ -574,14 +541,14 @@ function registerTaskIPC(database) {
     }
   });
 
-  ipcMain.handle("task:create-subtask", async (_event, params) => {
+  ipcMain.handle("task:create-subtask", async (event, params) => {
     try {
       rejectLegacyProjectTaskAccess(database, params);
-      const { getTaskManager } = require("./task-manager");
-      const manager = getTaskManager(resolveDatabase(database));
-      return await manager.createSubtask(
-        params.parentTaskId,
-        params.subtaskData,
+      return executeBoardWrite(
+        resolveDatabase(database),
+        event,
+        "create-subtask",
+        params,
       );
     } catch (error) {
       logger.error("[IPC] task:create-subtask failed:", error);
@@ -589,15 +556,14 @@ function registerTaskIPC(database) {
     }
   });
 
-  ipcMain.handle("task:convert-to-subtask", async (_event, params) => {
+  ipcMain.handle("task:convert-to-subtask", async (event, params) => {
     try {
       rejectLegacyProjectTaskAccess(database, params);
-      const { getTaskManager } = require("./task-manager");
-      const manager = getTaskManager(resolveDatabase(database));
-      return await manager.convertToSubtask(
-        params.taskId,
-        params.parentTaskId,
-        params.actorDid,
+      return executeBoardWrite(
+        resolveDatabase(database),
+        event,
+        "convert-to-subtask",
+        params,
       );
     } catch (error) {
       logger.error("[IPC] task:convert-to-subtask failed:", error);
@@ -609,79 +575,44 @@ function registerTaskIPC(database) {
   // Checklists (5 handlers)
   // ========================================
 
-  ipcMain.handle("task:create-checklist", async (_event, params) => {
+  ipcMain.handle("task:create-checklist", async (event, params) => {
     try {
       rejectLegacyProjectTaskAccess(database, params);
-      // Check which table the task is in
-      const db = resolveDatabase(database).getDatabase();
-      const isTeamTask = db
-        .prepare("SELECT id FROM team_tasks WHERE id = ?")
-        .get(params.taskId);
-
-      if (isTeamTask) {
-        const { getTeamTaskManager } = require("./team-task-manager");
-        const manager = getTeamTaskManager(resolveDatabase(database));
-        return await manager.createChecklist(params.taskId, params.title);
-      } else {
-        const { getTaskManager } = require("./task-manager");
-        const manager = getTaskManager(resolveDatabase(database));
-        return await manager.createChecklist(params.taskId, params.title);
-      }
+      return executeBoardWrite(
+        resolveDatabase(database),
+        event,
+        "create-checklist",
+        params,
+      );
     } catch (error) {
       logger.error("[IPC] task:create-checklist failed:", error);
       throw error;
     }
   });
 
-  ipcMain.handle("task:add-checklist-item", async (_event, params) => {
+  ipcMain.handle("task:add-checklist-item", async (event, params) => {
     try {
       rejectLegacyProjectTaskAccess(database, params);
-      // Get the task_id from the checklist
-      const db = resolveDatabase(database).getDatabase();
-      const checklist = db
-        .prepare("SELECT task_id FROM task_checklists WHERE id = ?")
-        .get(params.checklistId);
-
-      if (!checklist) {
-        throw new Error(`Checklist not found: ${params.checklistId}`);
-      }
-
-      // Check which table the task is in
-      const isTeamTask = db
-        .prepare("SELECT id FROM team_tasks WHERE id = ?")
-        .get(checklist.task_id);
-
-      if (isTeamTask) {
-        const { getTeamTaskManager } = require("./team-task-manager");
-        const manager = getTeamTaskManager(resolveDatabase(database));
-        return await manager.addChecklistItem(
-          params.checklistId,
-          params.content,
-          params.assigneeDid,
-        );
-      } else {
-        const { getTaskManager } = require("./task-manager");
-        const manager = getTaskManager(resolveDatabase(database));
-        return await manager.addChecklistItem(
-          params.checklistId,
-          params.content,
-          params.assigneeDid,
-        );
-      }
+      return executeBoardWrite(
+        resolveDatabase(database),
+        event,
+        "add-checklist-item",
+        params,
+      );
     } catch (error) {
       logger.error("[IPC] task:add-checklist-item failed:", error);
       throw error;
     }
   });
 
-  ipcMain.handle("task:toggle-checklist-item", async (_event, params) => {
+  ipcMain.handle("task:toggle-checklist-item", async (event, params) => {
     try {
       rejectLegacyProjectTaskAccess(database, params);
-      const { getTaskManager } = require("./task-manager");
-      const manager = getTaskManager(resolveDatabase(database));
-      return await manager.toggleChecklistItem(
-        params.itemId,
-        params.completedBy,
+      return executeBoardWrite(
+        resolveDatabase(database),
+        event,
+        "toggle-checklist-item",
+        params,
       );
     } catch (error) {
       logger.error("[IPC] task:toggle-checklist-item failed:", error);
@@ -689,26 +620,29 @@ function registerTaskIPC(database) {
     }
   });
 
-  ipcMain.handle("task:delete-checklist-item", async (_event, params) => {
+  ipcMain.handle("task:delete-checklist-item", async (event, params) => {
     try {
       rejectLegacyProjectTaskAccess(database, params);
-      const { getTaskManager } = require("./task-manager");
-      const manager = getTaskManager(resolveDatabase(database));
-      return await manager.deleteChecklistItem(params.itemId);
+      return executeBoardWrite(
+        resolveDatabase(database),
+        event,
+        "delete-checklist-item",
+        params,
+      );
     } catch (error) {
       logger.error("[IPC] task:delete-checklist-item failed:", error);
       throw error;
     }
   });
 
-  ipcMain.handle("task:reorder-checklist", async (_event, params) => {
+  ipcMain.handle("task:reorder-checklist", async (event, params) => {
     try {
       rejectLegacyProjectTaskAccess(database, params);
-      const { getTaskManager } = require("./task-manager");
-      const manager = getTaskManager(resolveDatabase(database));
-      return await manager.reorderChecklist(
-        params.checklistId,
-        params.itemOrder,
+      return executeBoardWrite(
+        resolveDatabase(database),
+        event,
+        "reorder-checklist",
+        params,
       );
     } catch (error) {
       logger.error("[IPC] task:reorder-checklist failed:", error);
@@ -720,39 +654,29 @@ function registerTaskIPC(database) {
   // Comments and Activity (6 handlers)
   // ========================================
 
-  ipcMain.handle("task:add-comment", async (_event, params) => {
+  ipcMain.handle("task:add-comment", async (event, params) => {
     try {
       rejectLegacyProjectTaskAccess(database, params);
-      // Check which table the task is in
-      const db = resolveDatabase(database).getDatabase();
-      const isTeamTask = db
-        .prepare("SELECT id FROM team_tasks WHERE id = ?")
-        .get(params.taskId);
-
-      if (isTeamTask) {
-        const { getTeamTaskManager } = require("./team-task-manager");
-        const manager = getTeamTaskManager(resolveDatabase(database));
-        return await manager.addComment(params.taskId, params.comment);
-      } else {
-        const { getTaskManager } = require("./task-manager");
-        const manager = getTaskManager(resolveDatabase(database));
-        return await manager.addComment(params.taskId, params.comment);
-      }
+      return executeBoardWrite(
+        resolveDatabase(database),
+        event,
+        "add-comment",
+        params,
+      );
     } catch (error) {
       logger.error("[IPC] task:add-comment failed:", error);
       throw error;
     }
   });
 
-  ipcMain.handle("task:edit-comment", async (_event, params) => {
+  ipcMain.handle("task:edit-comment", async (event, params) => {
     try {
       rejectLegacyProjectTaskAccess(database, params);
-      const { getTaskManager } = require("./task-manager");
-      const manager = getTaskManager(resolveDatabase(database));
-      return await manager.editComment(
-        params.commentId,
-        params.content,
-        params.editorDid,
+      return executeBoardWrite(
+        resolveDatabase(database),
+        event,
+        "edit-comment",
+        params,
       );
     } catch (error) {
       logger.error("[IPC] task:edit-comment failed:", error);
@@ -760,12 +684,15 @@ function registerTaskIPC(database) {
     }
   });
 
-  ipcMain.handle("task:delete-comment", async (_event, params) => {
+  ipcMain.handle("task:delete-comment", async (event, params) => {
     try {
       rejectLegacyProjectTaskAccess(database, params);
-      const { getTaskManager } = require("./task-manager");
-      const manager = getTaskManager(resolveDatabase(database));
-      return await manager.deleteComment(params.commentId, params.deleterDid);
+      return executeBoardWrite(
+        resolveDatabase(database),
+        event,
+        "delete-comment",
+        params,
+      );
     } catch (error) {
       logger.error("[IPC] task:delete-comment failed:", error);
       throw error;
@@ -775,8 +702,8 @@ function registerTaskIPC(database) {
   ipcMain.handle("task:get-comments", async (event, params) => {
     try {
       rejectLegacyProjectTaskAccess(database, params);
-      const { getTaskManager } = require("./task-manager");
-      const manager = getTaskManager(resolveDatabase(database));
+      const { TeamTaskManager } = require("./team-task-manager");
+      const manager = new TeamTaskManager(resolveDatabase(database));
       return await withBoardReadAccess(
         database,
         event,
@@ -792,8 +719,8 @@ function registerTaskIPC(database) {
   ipcMain.handle("task:get-activity", async (event, params) => {
     try {
       rejectLegacyProjectTaskAccess(database, params);
-      const { getTaskManager } = require("./task-manager");
-      const manager = getTaskManager(resolveDatabase(database));
+      const { TeamTaskManager } = require("./team-task-manager");
+      const manager = new TeamTaskManager(resolveDatabase(database));
       return await withBoardReadAccess(
         database,
         event,
@@ -806,15 +733,14 @@ function registerTaskIPC(database) {
     }
   });
 
-  ipcMain.handle("task:mention-user", async (_event, params) => {
+  ipcMain.handle("task:mention-user", async (event, params) => {
     try {
       rejectLegacyProjectTaskAccess(database, params);
-      const { getTaskManager } = require("./task-manager");
-      const manager = getTaskManager(resolveDatabase(database));
-      return await manager.mentionUser(
-        params.taskId,
-        params.userDid,
-        params.mentionedBy,
+      return executeBoardWrite(
+        resolveDatabase(database),
+        event,
+        "mention-user",
+        params,
       );
     } catch (error) {
       logger.error("[IPC] task:mention-user failed:", error);
@@ -826,16 +752,14 @@ function registerTaskIPC(database) {
   // Attachments (4 handlers)
   // ========================================
 
-  ipcMain.handle("task:upload-attachment", async (_event, params) => {
+  ipcMain.handle("task:upload-attachment", async (event, params) => {
     try {
       rejectLegacyProjectTaskAccess(database, params);
-      const { getTaskManager } = require("./task-manager");
-      const manager = getTaskManager(resolveDatabase(database));
-      return await manager.uploadAttachment(
-        params.taskId,
-        params.file,
-        params.uploaderDid,
-        params.uploaderName,
+      return await require("./board-attachment-host").mutateBoardAttachment(
+        resolveDatabase(database),
+        event,
+        "upload-attachment",
+        params,
       );
     } catch (error) {
       logger.error("[IPC] task:upload-attachment failed:", error);
@@ -843,14 +767,14 @@ function registerTaskIPC(database) {
     }
   });
 
-  ipcMain.handle("task:delete-attachment", async (_event, params) => {
+  ipcMain.handle("task:delete-attachment", async (event, params) => {
     try {
       rejectLegacyProjectTaskAccess(database, params);
-      const { getTaskManager } = require("./task-manager");
-      const manager = getTaskManager(resolveDatabase(database));
-      return await manager.deleteAttachment(
-        params.attachmentId,
-        params.deleterDid,
+      return await require("./board-attachment-host").mutateBoardAttachment(
+        resolveDatabase(database),
+        event,
+        "delete-attachment",
+        params,
       );
     } catch (error) {
       logger.error("[IPC] task:delete-attachment failed:", error);
@@ -861,13 +785,11 @@ function registerTaskIPC(database) {
   ipcMain.handle("task:get-attachments", async (event, params) => {
     try {
       rejectLegacyProjectTaskAccess(database, params);
-      const { getTaskManager } = require("./task-manager");
-      const manager = getTaskManager(resolveDatabase(database));
-      return await withBoardReadAccess(
-        database,
+      return require("./board-attachment-host").readBoardAttachment(
+        resolveDatabase(database),
         event,
-        { taskId: params?.taskId },
-        () => manager.getAttachments(params.taskId),
+        "list",
+        params,
       );
     } catch (error) {
       logger.error("[IPC] task:get-attachments failed:", error);
@@ -878,13 +800,11 @@ function registerTaskIPC(database) {
   ipcMain.handle("task:preview-attachment", async (event, params) => {
     try {
       rejectLegacyProjectTaskAccess(database, params);
-      const { getTaskManager } = require("./task-manager");
-      const manager = getTaskManager(resolveDatabase(database));
-      return await withBoardReadAccess(
-        database,
+      return require("./board-attachment-host").readBoardAttachment(
+        resolveDatabase(database),
         event,
-        { attachmentId: params?.attachmentId },
-        () => manager.previewAttachment(params.attachmentId),
+        "preview",
+        params,
       );
     } catch (error) {
       logger.error("[IPC] task:preview-attachment failed:", error);
@@ -896,33 +816,42 @@ function registerTaskIPC(database) {
   // Sprint Management (5 handlers)
   // ========================================
 
-  ipcMain.handle("task:create-sprint", async (_event, params) => {
+  ipcMain.handle("task:create-sprint", async (event, params) => {
     try {
-      const { getTaskBoardManager } = require("./task-board-manager");
-      const manager = getTaskBoardManager(resolveDatabase(database));
-      return await manager.createSprint(params.boardId, params.sprintData);
+      return executeBoardWrite(
+        resolveDatabase(database),
+        event,
+        "create-sprint",
+        params,
+      );
     } catch (error) {
       logger.error("[IPC] task:create-sprint failed:", error);
       throw error;
     }
   });
 
-  ipcMain.handle("task:start-sprint", async (_event, params) => {
+  ipcMain.handle("task:start-sprint", async (event, params) => {
     try {
-      const { getTaskBoardManager } = require("./task-board-manager");
-      const manager = getTaskBoardManager(resolveDatabase(database));
-      return await manager.startSprint(params.sprintId);
+      return executeBoardWrite(
+        resolveDatabase(database),
+        event,
+        "start-sprint",
+        params,
+      );
     } catch (error) {
       logger.error("[IPC] task:start-sprint failed:", error);
       throw error;
     }
   });
 
-  ipcMain.handle("task:complete-sprint", async (_event, params) => {
+  ipcMain.handle("task:complete-sprint", async (event, params) => {
     try {
-      const { getTaskBoardManager } = require("./task-board-manager");
-      const manager = getTaskBoardManager(resolveDatabase(database));
-      return await manager.completeSprint(params.sprintId);
+      return executeBoardWrite(
+        resolveDatabase(database),
+        event,
+        "complete-sprint",
+        params,
+      );
     } catch (error) {
       logger.error("[IPC] task:complete-sprint failed:", error);
       throw error;
@@ -945,11 +874,15 @@ function registerTaskIPC(database) {
     }
   });
 
-  ipcMain.handle("task:move-to-sprint", async (_event, params) => {
+  ipcMain.handle("task:move-to-sprint", async (event, params) => {
     try {
-      const { getTaskBoardManager } = require("./task-board-manager");
-      const manager = getTaskBoardManager(resolveDatabase(database));
-      return await manager.moveToSprint(params.taskIds, params.sprintId);
+      rejectLegacyProjectTaskAccess(database, params);
+      return executeBoardWrite(
+        resolveDatabase(database),
+        event,
+        "move-to-sprint",
+        params,
+      );
     } catch (error) {
       logger.error("[IPC] task:move-to-sprint failed:", error);
       throw error;
@@ -960,11 +893,14 @@ function registerTaskIPC(database) {
   // Reports and Analytics (5 handlers)
   // ========================================
 
-  ipcMain.handle("task:create-report", async (_event, params) => {
+  ipcMain.handle("task:create-report", async (event, params) => {
     try {
-      const { getTeamReportManager } = require("./team-report-manager");
-      const manager = getTeamReportManager(resolveDatabase(database));
-      return await manager.createReport(params);
+      return executeBoardWrite(
+        resolveDatabase(database),
+        event,
+        "create-report",
+        params,
+      );
     } catch (error) {
       logger.error("[IPC] task:create-report failed:", error);
       throw error;
@@ -973,30 +909,69 @@ function registerTaskIPC(database) {
 
   ipcMain.handle("task:get-reports", async (event, params) => {
     try {
-      const { getTeamReportManager } = require("./team-report-manager");
-      const manager = getTeamReportManager(resolveDatabase(database));
-      return await withBoardReadAccess(
-        database,
-        event,
-        { orgId: params?.orgId },
-        () => manager.getReports(params.orgId, params.options || {}),
-      );
+      const resolved = resolveDatabase(database);
+      const check = createBoardReadCheck(resolved, event, {
+        orgId: params?.orgId,
+      });
+      const { TeamReportManager } = require("./team-report-manager");
+      const manager = new TeamReportManager(resolved);
+      const db = resolved.getDatabase();
+      const savepoint = `board_reports_${require("node:crypto").randomUUID().replaceAll("-", "")}`;
+      let released = false;
+      db.exec(`SAVEPOINT ${savepoint}`);
+      try {
+        // One SQLite snapshot covers membership, report/board scope and the
+        // successful-run projection, including writes from other processes.
+        check();
+        const result = manager.getReportsSync(
+          params.orgId,
+          params.options || {},
+        );
+        check();
+        db.exec(`RELEASE ${savepoint}`);
+        released = true;
+        check();
+        return result;
+      } catch (error) {
+        if (!released) {
+          db.exec(`ROLLBACK TO ${savepoint}`);
+          db.exec(`RELEASE ${savepoint}`);
+        }
+        throw error;
+      }
     } catch (error) {
       logger.error("[IPC] task:get-reports failed:", error);
       throw error;
     }
   });
 
-  ipcMain.handle("task:generate-ai-summary", async (_event, params) => {
+  ipcMain.handle("task:generate-ai-summary", async (event, params) => {
     try {
-      const { getTeamReportManager } = require("./team-report-manager");
-      const manager = getTeamReportManager(resolveDatabase(database));
-      return await manager.generateAISummary(params.reportId);
+      return await require("./board-report-summary-host").generateAISummary(
+        resolveDatabase(database),
+        event,
+        params,
+      );
     } catch (error) {
       logger.error("[IPC] task:generate-ai-summary failed:", error);
       throw error;
     }
   });
+
+  const summaryOperation = (method, event, params) => {
+    const host = require("./board-report-summary-host");
+    try {
+      return host[method](resolveDatabase(database), event, params);
+    } catch (error) {
+      return { success: false, error: host.safeCode(error) };
+    }
+  };
+  ipcMain.handle("task:get-summary-status", (event, params) =>
+    summaryOperation("getSummaryStatus", event, params),
+  );
+  ipcMain.handle("task:cancel-summary", (event, params) =>
+    summaryOperation("cancelSummary", event, params),
+  );
 
   ipcMain.handle("task:get-board-analytics", async (event, params) => {
     try {

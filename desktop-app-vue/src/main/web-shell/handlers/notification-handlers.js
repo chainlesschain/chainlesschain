@@ -18,6 +18,9 @@
  */
 
 const path = require("path");
+const {
+  legacyNotificationPredicate,
+} = require("../../notification/legacy-notification-filter");
 
 function loadNotificationModule(options) {
   if (options.notificationModule) {
@@ -67,6 +70,7 @@ function createNotificationListHandler({ database }) {
         query += " WHERE is_read = ?";
         params.push(isReadFilter ? 1 : 0);
       }
+      query += `${isReadFilter === undefined ? " WHERE " : " AND "}${legacyNotificationPredicate(db)}`;
       query += " ORDER BY created_at DESC LIMIT ? OFFSET ?";
       params.push(limit, offset);
 
@@ -91,7 +95,7 @@ function createNotificationUnreadCountHandler({ database }) {
     try {
       const row = db
         .prepare(
-          "SELECT COUNT(*) as count FROM notifications WHERE is_read = 0",
+          `SELECT COUNT(*) as count FROM notifications WHERE is_read = 0 AND ${legacyNotificationPredicate(db)}`,
         )
         .get();
       return { success: true, count: row?.count ?? 0 };
@@ -112,7 +116,9 @@ function createNotificationMarkReadHandler({ database }) {
       return { success: false, error: "缺少 id" };
     }
     try {
-      db.prepare("UPDATE notifications SET is_read = 1 WHERE id = ?").run(id);
+      db.prepare(
+        `UPDATE notifications SET is_read = 1 WHERE id = ? AND ${legacyNotificationPredicate(db)}`,
+      ).run(id);
       _persist(database);
       return { success: true };
     } catch (err) {
@@ -128,7 +134,9 @@ function createNotificationMarkAllReadHandler({ database }) {
       return { success: false, error: "数据库未初始化" };
     }
     try {
-      db.prepare("UPDATE notifications SET is_read = 1").run();
+      db.prepare(
+        `UPDATE notifications SET is_read = 1 WHERE ${legacyNotificationPredicate(db)}`,
+      ).run();
       _persist(database);
       return { success: true };
     } catch (err) {

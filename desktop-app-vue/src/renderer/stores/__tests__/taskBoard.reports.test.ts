@@ -17,7 +17,13 @@ const invokeMock = vi.fn();
 beforeEach(() => {
   setActivePinia(createPinia());
   invokeMock.mockReset();
-  (window as any).electronAPI = { invoke: invokeMock };
+  (window as any).electronAPI = {
+    invoke: invokeMock,
+    task: {
+      generateAISummary: (params: unknown) =>
+        invokeMock("task:generate-ai-summary", params),
+    },
+  };
 });
 
 describe("taskBoard store — report actions", () => {
@@ -83,6 +89,7 @@ describe("taskBoard store — report actions", () => {
 
     expect(invokeMock).toHaveBeenCalledWith("task:generate-ai-summary", {
       reportId: "r-9",
+      requestId: expect.stringMatching(/^[0-9a-f-]{36}$/),
     });
     expect(result.success).toBe(true);
   });

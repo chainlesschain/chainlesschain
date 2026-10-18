@@ -2183,6 +2183,90 @@ function createTables(dbManager, logger) {
         FOREIGN KEY (parent_task_id) REFERENCES team_tasks(id) ON DELETE CASCADE
       );
 
+      -- Board structure tombstones invalidate task previews after metadata or
+      -- column ABA, including delete/recreate and cross-board column moves.
+      CREATE TABLE IF NOT EXISTS task_board_structure_revisions (
+        board_id TEXT PRIMARY KEY,
+        revision INTEGER NOT NULL CHECK(typeof(revision)='integer' AND revision BETWEEN 1 AND 9007199254740991)
+      );
+      INSERT OR IGNORE INTO task_board_structure_revisions(board_id,revision)
+        SELECT id,1 FROM task_boards;
+      CREATE TRIGGER IF NOT EXISTS trg_board_structure_insert AFTER INSERT ON task_boards BEGIN
+        INSERT INTO task_board_structure_revisions(board_id,revision) VALUES(NEW.id,1)
+          ON CONFLICT(board_id) DO UPDATE SET revision=revision+1;
+      END;
+      CREATE TRIGGER IF NOT EXISTS trg_board_structure_update AFTER UPDATE ON task_boards BEGIN
+        INSERT INTO task_board_structure_revisions(board_id,revision) VALUES(OLD.id,1)
+          ON CONFLICT(board_id) DO UPDATE SET revision=revision+1;
+        INSERT INTO task_board_structure_revisions(board_id,revision) SELECT NEW.id,1 WHERE NEW.id<>OLD.id
+          ON CONFLICT(board_id) DO UPDATE SET revision=revision+1;
+      END;
+      CREATE TRIGGER IF NOT EXISTS trg_board_structure_delete AFTER DELETE ON task_boards BEGIN
+        INSERT INTO task_board_structure_revisions(board_id,revision) VALUES(OLD.id,1)
+          ON CONFLICT(board_id) DO UPDATE SET revision=revision+1;
+      END;
+      CREATE TRIGGER IF NOT EXISTS trg_board_column_insert AFTER INSERT ON task_board_columns BEGIN
+        INSERT INTO task_board_structure_revisions(board_id,revision) VALUES(NEW.board_id,1)
+          ON CONFLICT(board_id) DO UPDATE SET revision=revision+1;
+      END;
+      CREATE TRIGGER IF NOT EXISTS trg_board_column_update AFTER UPDATE ON task_board_columns BEGIN
+        INSERT INTO task_board_structure_revisions(board_id,revision) VALUES(OLD.board_id,1)
+          ON CONFLICT(board_id) DO UPDATE SET revision=revision+1;
+        INSERT INTO task_board_structure_revisions(board_id,revision) SELECT NEW.board_id,1 WHERE NEW.board_id<>OLD.board_id
+          ON CONFLICT(board_id) DO UPDATE SET revision=revision+1;
+      END;
+      CREATE TRIGGER IF NOT EXISTS trg_board_column_delete AFTER DELETE ON task_board_columns BEGIN
+        INSERT INTO task_board_structure_revisions(board_id,revision) VALUES(OLD.board_id,1)
+          ON CONFLICT(board_id) DO UPDATE SET revision=revision+1;
+      END;
+
+      -- Durable task revision tombstones survive deletion/ID reuse. All SQL
+      -- writers, including legacy board actions, invalidate source-bound edits.
+      CREATE TABLE IF NOT EXISTS task_board_task_revisions (
+        task_id TEXT PRIMARY KEY,
+        revision INTEGER NOT NULL CHECK(typeof(revision)='integer' AND revision BETWEEN 1 AND 9007199254740991)
+      );
+      INSERT OR IGNORE INTO task_board_task_revisions(task_id,revision)
+        SELECT id,1 FROM team_tasks;
+      CREATE TRIGGER IF NOT EXISTS trg_board_task_revision_insert AFTER INSERT ON team_tasks BEGIN
+        INSERT INTO task_board_task_revisions(task_id,revision) VALUES(NEW.id,1)
+          ON CONFLICT(task_id) DO UPDATE SET revision=revision+1;
+      END;
+      CREATE TRIGGER IF NOT EXISTS trg_board_task_revision_update AFTER UPDATE ON team_tasks BEGIN
+        INSERT INTO task_board_task_revisions(task_id,revision) VALUES(OLD.id,1)
+          ON CONFLICT(task_id) DO UPDATE SET revision=revision+1;
+        INSERT INTO task_board_task_revisions(task_id,revision) SELECT NEW.id,1 WHERE NEW.id<>OLD.id
+          ON CONFLICT(task_id) DO UPDATE SET revision=revision+1;
+      END;
+      CREATE TRIGGER IF NOT EXISTS trg_board_task_revision_delete AFTER DELETE ON team_tasks BEGIN
+        INSERT INTO task_board_task_revisions(task_id,revision) VALUES(OLD.id,1)
+          ON CONFLICT(task_id) DO UPDATE SET revision=revision+1;
+      END;
+
+      -- Metadata-only standard ActionRuns. No source or proposed body is kept.
+      CREATE TABLE IF NOT EXISTS task_board_update_runs (
+        id TEXT PRIMARY KEY,
+        preview_id TEXT NOT NULL UNIQUE,
+        task_id TEXT NOT NULL,
+        board_id TEXT NOT NULL,
+        org_id TEXT NOT NULL,
+        actor_did TEXT NOT NULL,
+        auth_generation INTEGER NOT NULL,
+        idempotency_digest TEXT NOT NULL UNIQUE,
+        invocation_digest TEXT NOT NULL,
+        status TEXT NOT NULL CHECK(status IN ('queued','running','succeeded','failed','cancelled','unknown','denied')),
+        expected_version TEXT NOT NULL,
+        expires_at INTEGER NOT NULL,
+        created_at INTEGER NOT NULL,
+        run_json TEXT NOT NULL CHECK(length(CAST(run_json AS BLOB))<=16384),
+        evidence_json TEXT NOT NULL CHECK(length(CAST(evidence_json AS BLOB))<=16384),
+        error_code TEXT
+      );
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_board_update_unresolved
+        ON task_board_update_runs(task_id) WHERE status IN ('running','unknown');
+      CREATE INDEX IF NOT EXISTS idx_board_update_task
+        ON task_board_update_runs(task_id,created_at DESC,id);
+
       -- 任务分配表（多人分配）
       CREATE TABLE IF NOT EXISTS task_assignees (
         id TEXT PRIMARY KEY,
@@ -2278,6 +2362,39 @@ function createTables(dbManager, logger) {
         FOREIGN KEY (task_id) REFERENCES team_tasks(id) ON DELETE CASCADE
       );
 
+      -- Bounded managed attachment bytes share the metadata transaction.
+      CREATE TABLE IF NOT EXISTS task_board_attachment_payloads (
+        attachment_id TEXT PRIMARY KEY,
+        task_id TEXT NOT NULL,
+        board_id TEXT NOT NULL,
+        org_id TEXT NOT NULL,
+        uploader_did TEXT NOT NULL,
+        file_name TEXT NOT NULL,
+        content BLOB NOT NULL CHECK(typeof(content)='blob' AND length(content)<=8388608),
+        sha256 TEXT NOT NULL CHECK(length(sha256)=64),
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY (attachment_id) REFERENCES task_attachments(id) ON DELETE CASCADE
+      );
+      CREATE INDEX IF NOT EXISTS idx_board_attachment_task
+        ON task_board_attachment_payloads(task_id);
+
+      -- Task notice references: bodies stay in the authorized source, never here.
+      CREATE TABLE IF NOT EXISTS task_board_notice_events (
+        id TEXT PRIMARY KEY,
+        task_id TEXT NOT NULL,
+        board_id TEXT NOT NULL,
+        org_id TEXT NOT NULL,
+        actor_did TEXT NOT NULL,
+        recipient_did TEXT NOT NULL,
+        activity_id TEXT NOT NULL UNIQUE,
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY (task_id) REFERENCES team_tasks(id) ON DELETE CASCADE,
+        FOREIGN KEY (board_id) REFERENCES task_boards(id) ON DELETE CASCADE,
+        FOREIGN KEY (activity_id) REFERENCES task_activity_log(id) ON DELETE CASCADE
+      );
+      CREATE INDEX IF NOT EXISTS idx_task_board_notice_recipient
+        ON task_board_notice_events(recipient_did, created_at DESC, id);
+
       -- 任务依赖表
       CREATE TABLE IF NOT EXISTS task_dependencies (
         id TEXT PRIMARY KEY,
@@ -2327,6 +2444,34 @@ function createTables(dbManager, logger) {
         updated_at INTEGER NOT NULL,
         FOREIGN KEY (board_id) REFERENCES task_boards(id) ON DELETE SET NULL
       );
+
+      -- Report model attempts retain metadata after source deletion. No body or
+      -- automatic network recovery is stored in this business ledger.
+      CREATE TABLE IF NOT EXISTS task_report_summary_runs (
+        request_id TEXT PRIMARY KEY,
+        report_id TEXT NOT NULL,
+        org_id TEXT NOT NULL,
+        board_id TEXT,
+        actor_did TEXT NOT NULL,
+        source_hash TEXT NOT NULL CHECK(length(source_hash)=64),
+        version_hash TEXT NOT NULL CHECK(length(version_hash)=64),
+        provider TEXT NOT NULL CHECK(provider='ollama'),
+        model TEXT NOT NULL,
+        endpoint TEXT NOT NULL,
+        evidence_run_id TEXT,
+        evidence_tenant_id TEXT,
+        status TEXT NOT NULL CHECK(status IN ('prepared','dispatched','succeeded','cancelled','stale','failed','unknown')),
+        summary_hash TEXT,
+        prompt_tokens INTEGER,
+        completion_tokens INTEGER,
+        error_code TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_report_summary_active
+        ON task_report_summary_runs(report_id) WHERE status IN ('prepared','dispatched');
+      CREATE INDEX IF NOT EXISTS idx_report_summary_history
+        ON task_report_summary_runs(report_id,created_at DESC,request_id);
 
       -- 任务工作流规则表
       CREATE TABLE IF NOT EXISTS task_workflow_rules (
