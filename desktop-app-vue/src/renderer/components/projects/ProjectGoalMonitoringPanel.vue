@@ -162,6 +162,10 @@
           </button>
         </li>
       </ul>
+      <ProjectGoalCliConnectionPanel
+        :goal="item.goal"
+        :identity-key="identityKey"
+      />
       <ProjectGoalActionsPanel
         :goal="item.goal"
         :identity-key="identityKey"
@@ -204,6 +208,7 @@
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { actionCode, isAuthorityError } from "./task-description-ui";
 import ProjectGoalActionsPanel from "./ProjectGoalActionsPanel.vue";
+import ProjectGoalCliConnectionPanel from "./ProjectGoalCliConnectionPanel.vue";
 import ProjectGoalAcceptancePanel from "./ProjectGoalAcceptancePanel.vue";
 import ProjectGoalMemoryPanel from "./ProjectGoalMemoryPanel.vue";
 import ProjectGoalNotificationPolicyPanel from "./ProjectGoalNotificationPolicyPanel.vue";

@@ -12,6 +12,7 @@ const { fail } = require("./board-action-storage");
 const ACTION_TYPE = "board-task.update-fields",
   MOVE_ACTION_TYPE = "board-task.move",
   CREATE_ACTION_TYPE = "board-task.create",
+  LABEL_ACTION_TYPE = "board-task.add-label",
   LEGACY_ACTION_TYPE = "board-task.update",
   SOURCE_KIND = "desktop.board-task";
 const LEGACY_FIELDS = Object.freeze(["title", "description", "status"]);
@@ -32,8 +33,9 @@ const MOVE_COLUMNS = Object.freeze({
 });
 const MOVE_FIELDS = Object.freeze(Object.keys(MOVE_COLUMNS));
 const isMove = (value) => MOVE_FIELDS.some((key) => Object.hasOwn(value, key));
+const isLabel = (value) => Object.hasOwn(value, "labelId");
 const actionTypeFor = (patch) =>
-  isMove(patch) ? MOVE_ACTION_TYPE : ACTION_TYPE;
+  isLabel(patch) ? LABEL_ACTION_TYPE : isMove(patch) ? MOVE_ACTION_TYPE : ACTION_TYPE;
 const CREATE_FIELDS = Object.freeze([
   "columnId",
   "title",
@@ -202,7 +204,12 @@ function updates(value, allowed = FIELDS) {
   return value;
 }
 function patch(value) {
-  fields(value, [], [...FIELDS, ...MOVE_FIELDS]);
+  fields(value, [], [...FIELDS, ...MOVE_FIELDS, "labelId"]);
+  if (isLabel(value)) {
+    fields(value, ["labelId"]);
+    id(value.labelId);
+    return value;
+  }
   if (!isMove(value)) return updates(value);
   fields(value, MOVE_FIELDS);
   id(value.columnId);
@@ -425,7 +432,9 @@ const moveProjection = (task) => ({
   position: task.position,
 });
 const projectionFor = (task, actionType) =>
-  actionType === MOVE_ACTION_TYPE ? moveProjection(task) : projection(task);
+  actionType === LABEL_ACTION_TYPE
+    ? { labels: task.labels === null ? [] : JSON.parse(task.labels) }
+    : actionType === MOVE_ACTION_TYPE ? moveProjection(task) : projection(task);
 function requestFor(source, patch, key, previewId) {
   return createBusinessActionRequest({
     actionType: actionTypeFor(patch),
@@ -449,6 +458,7 @@ function request(value) {
       LEGACY_ACTION_TYPE,
       MOVE_ACTION_TYPE,
       CREATE_ACTION_TYPE,
+      LABEL_ACTION_TYPE,
     ].includes(result.actionType) ||
     result.actionVersion !== 1 ||
     !/^sha256:[0-9a-f]{64}$/u.test(result.expectedVersion) ||
@@ -467,7 +477,10 @@ function request(value) {
       fail("BOARD_ACTION_INVALID_REQUEST");
   } else {
     fields(result.input, ["updates", "previewId"]);
-    if (result.actionType === MOVE_ACTION_TYPE) {
+    if (result.actionType === LABEL_ACTION_TYPE) {
+      fields(result.input.updates, ["labelId"]);
+      id(result.input.updates.labelId);
+    } else if (result.actionType === MOVE_ACTION_TYPE) {
       patch(result.input.updates);
       if (!isMove(result.input.updates)) fail("BOARD_ACTION_INVALID_REQUEST");
     } else
@@ -503,6 +516,13 @@ function sourceEvidence(source, request, actor, generation) {
       ? {
           parentTaskId: source.parentTaskId,
           parentVersion: source.parentVersion,
+        }
+      : {}),
+    ...(request.actionType === LABEL_ACTION_TYPE
+      ? {
+          labelId: source.label.id,
+          labelRevision: source.labels.find((label) => label.id === source.label.id).revision,
+          labelsDigest: digest(source.labels),
         }
       : {}),
   };
@@ -561,6 +581,7 @@ function readRun(row) {
         LEGACY_ACTION_TYPE,
         MOVE_ACTION_TYPE,
         CREATE_ACTION_TYPE,
+        LABEL_ACTION_TYPE,
       ].includes(run.actionType) ||
       run.actionVersion !== 1 ||
       !/^sha256:[0-9a-f]{64}$/u.test(run.expectedVersion) ||
@@ -610,7 +631,7 @@ function readRun(row) {
         "expectedVersion",
         "revision",
       ],
-      ["boardRevision", "parentTaskId", "parentVersion"],
+      ["boardRevision", "parentTaskId", "parentVersion", "labelId", "labelRevision", "labelsDigest"],
     );
     if (
       source.kind !==
@@ -638,10 +659,15 @@ function readRun(row) {
       (run.actionType !== CREATE_ACTION_TYPE &&
         (Object.hasOwn(source, "parentTaskId") ||
           Object.hasOwn(source, "parentVersion"))) ||
+      (run.actionType === LABEL_ACTION_TYPE
+        ? typeof source.labelId !== "string" ||
+          !Number.isSafeInteger(source.labelRevision) || source.labelRevision < 1 ||
+          !/^sha256:[0-9a-f]{64}$/u.test(source.labelsDigest)
+        : ["labelId", "labelRevision", "labelsDigest"].some((key) => Object.hasOwn(source, key))) ||
       (Object.hasOwn(source, "boardRevision") &&
         (!Number.isSafeInteger(source.boardRevision) ||
           source.boardRevision < 1)) ||
-      ([MOVE_ACTION_TYPE, CREATE_ACTION_TYPE].includes(run.actionType) &&
+      ([MOVE_ACTION_TYPE, CREATE_ACTION_TYPE, LABEL_ACTION_TYPE].includes(run.actionType) &&
         !Object.hasOwn(source, "boardRevision")) ||
       !Number.isSafeInteger(row.auth_generation) ||
       !Number.isSafeInteger(row.created_at) ||
@@ -771,6 +797,8 @@ function readRun(row) {
         execution?.kind !==
           (run.actionType === CREATE_ACTION_TYPE
             ? "sqlite-board-task-create"
+            : run.actionType === LABEL_ACTION_TYPE
+              ? "sqlite-board-task-add-label"
             : run.actionType === MOVE_ACTION_TYPE
               ? "sqlite-board-task-move"
               : "sqlite-board-task-update") ||
@@ -812,6 +840,7 @@ module.exports = {
   ACTION_TYPE,
   MOVE_ACTION_TYPE,
   CREATE_ACTION_TYPE,
+  LABEL_ACTION_TYPE,
   LEGACY_ACTION_TYPE,
   SOURCE_KIND,
   FIELDS,
@@ -819,6 +848,7 @@ module.exports = {
   MOVE_COLUMNS,
   MOVE_FIELDS,
   isMove,
+  isLabel,
   actionTypeFor,
   validField,
   STATUSES,

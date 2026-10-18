@@ -23,6 +23,360 @@ public final class PluginManager {
         return new ArrayList<String>(Arrays.asList("plugin", "installed", "--json"));
     }
 
+    public static List<String> buildCliGoalPanelsArgs(String id, String name, String scope) {
+        return buildCliGoalPanelsArgs(id, name, scope, null);
+    }
+
+    public static List<String> buildCliGoalCatalogArgs(String after) {
+        return buildCliGoalCatalogArgs(after, null);
+    }
+
+    private static void addConnection(List<String> args, String connection) {
+        if (connection == null) return;
+        if (connection.isEmpty() || connection.length() > 4096 || java.util.regex.Pattern.compile("[\\x00-\\x1f]").matcher(connection).find())
+            throw new IllegalArgumentException("Invalid goal connection file");
+        args.add("--connection=" + connection);
+    }
+
+    public static List<String> buildCliGoalCatalogArgs(String after, String connection) {
+        List<String> args = new ArrayList<String>(Arrays.asList("goal", "catalog", "--json"));
+        if (after != null) {
+            if (!after.matches("[A-Za-z0-9_-]{1,1024}")) throw new IllegalArgumentException("Invalid goal catalog cursor");
+            args.add("--after=" + after);
+        }
+        addConnection(args, connection);
+        return args;
+    }
+
+    public static Map<String, Object> parseCliGoalCatalog(String text, String expectedStore) {
+        return parseCliGoalCatalog(text, expectedStore, null);
+    }
+
+    public static Map<String, Object> parseCliGoalCatalog(String text, String expectedStore, String connection) {
+        if (text == null || text.length() > 32768
+                || text.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 32768) return null;
+        try {
+            Map<?, ?> raw = map(MiniJson.parse(text));
+            if (raw == null || !"chainlesschain.goal-catalog.v1".equals(raw.get("schema"))
+                    || !Boolean.TRUE.equals(raw.get("snapshot"))
+                    || !validText(raw.get("storeId"), 256) || !(connection == null
+                        ? raw.get("source") == null && ((String) raw.get("storeId")).matches("cli-goals-[a-f0-9]{64}")
+                        : "desktop-project".equals(raw.get("source")) && ((String) raw.get("storeId")).matches("project-goals-[a-f0-9-]{36}"))
+                    || (expectedStore != null && !expectedStore.equals(raw.get("storeId")))
+                    || !validText(raw.get("observedAt"), 64)
+                    || !(raw.get("entries") instanceof List) || ((List<?>) raw.get("entries")).size() > 20
+                    || !validCounter(raw.get("scannedCount"), 0) || ((Number) raw.get("scannedCount")).longValue() > 20
+                    || !validCounter(raw.get("skippedCount"), 0) || ((Number) raw.get("skippedCount")).longValue() > 20
+                    || ((Number) raw.get("scannedCount")).intValue() != ((List<?>) raw.get("entries")).size() + ((Number) raw.get("skippedCount")).intValue()
+                    || !validCounter(raw.get("invalidNameCount"), 0) || ((Number) raw.get("invalidNameCount")).longValue() > 2048
+                    || !raw.containsKey("nextCursor") || (raw.get("nextCursor") != null && (!validText(raw.get("nextCursor"), 1024)
+                        || !((String) raw.get("nextCursor")).matches("[A-Za-z0-9_-]+") || ((Number) raw.get("scannedCount")).intValue() == 0))) return null;
+            java.time.Instant.parse((String) raw.get("observedAt"));
+            List<Map<String, Object>> entries = new ArrayList<Map<String, Object>>();
+            String prior = "";
+            for (Object value : (List<?>) raw.get("entries")) {
+                Map<?, ?> entry = map(value);
+                if (entry == null || !validText(entry.get("id"), 256)
+                        || !((String) entry.get("id")).matches("[A-Za-z0-9][A-Za-z0-9._-]{0,255}")
+                        || ((String) entry.get("id")).contains("..") || ((String) entry.get("id")).compareTo(prior) <= 0
+                        || !(entry.get("title") instanceof String) || ((String) entry.get("title")).length() > 160
+                        || java.util.regex.Pattern.compile("[\\x00-\\x1f\\x7f-\\x9f\\u200e\\u200f\\u202a-\\u202e\\u2066-\\u2069]").matcher((String) entry.get("title")).find()
+                        || !Arrays.asList("active", "paused", "done", "abandoned").contains(entry.get("status"))
+                        || !validCounter(entry.get("revision"), 1) || !validCounter(entry.get("controlGeneration"), 0)) return null;
+                prior = (String) entry.get("id");
+                Map<String, Object> row = new LinkedHashMap<String, Object>();
+                for (String key : Arrays.asList("id", "title", "status", "revision", "controlGeneration")) row.put(key, entry.get(key));
+                entries.add(row);
+            }
+            Map<String, Object> result = new LinkedHashMap<String, Object>();
+            for (String key : Arrays.asList("storeId", "observedAt", "scannedCount", "skippedCount", "invalidNameCount", "nextCursor")) result.put(key, raw.get(key));
+            result.put("entries", entries);
+            return result;
+        } catch (RuntimeException error) { return null; }
+    }
+
+    public static List<String> buildCliGoalPanelsArgs(String id, String name, String scope, String expectedStore) {
+        return buildCliGoalPanelsArgs(id, name, scope, expectedStore, null);
+    }
+
+    public static List<String> buildCliGoalPanelsArgs(String id, String name, String scope, String expectedStore, String connection) {
+        if (id == null || !id.matches("[A-Za-z0-9][A-Za-z0-9._-]{0,255}") || id.contains(".."))
+            throw new IllegalArgumentException("Enter a standalone CLI goal ID");
+        if (name == null || name.isEmpty() || name.length() > 256
+                || !Arrays.asList("user", "project", "local").contains(scope))
+            throw new IllegalArgumentException("Invalid plugin selection");
+        if (expectedStore != null && !expectedStore.matches(connection == null ? "cli-goals-[a-f0-9]{64}" : "project-goals-[a-f0-9-]{36}"))
+            throw new IllegalArgumentException("Invalid selected goal store");
+        List<String> args = new ArrayList<String>(Arrays.asList("goal", "panels", id,
+                "--plugin=" + name, "--scope", scope, "--json"));
+        if (expectedStore != null) args.add("--expected-store=" + expectedStore);
+        addConnection(args, connection);
+        return args;
+    }
+
+    /** Bounded snapshot parser. CLI authorization is never inferred locally. */
+    public static Map<String, Object> parseCliGoalPanels(
+            String text, String goalId, String pluginName, String scope) {
+        return parseCliGoalPanels(text, goalId, pluginName, scope, null);
+    }
+
+    public static Map<String, Object> parseCliGoalPanels(
+            String text, String goalId, String pluginName, String scope, String expectedStore) {
+        return parseCliGoalPanels(text, goalId, pluginName, scope, expectedStore, null);
+    }
+
+    public static Map<String, Object> parseCliGoalPanels(
+            String text, String goalId, String pluginName, String scope, String expectedStore, String connection) {
+        if (text == null || text.length() > 131072
+                || text.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 131072) return null;
+        try {
+            Map<?, ?> raw = map(MiniJson.parse(text));
+            Map<?, ?> ref = raw == null ? null : map(raw.get("goalRef"));
+            if (raw == null || ref == null
+                    || !"chainlesschain.goal-extension-panels.v1".equals(raw.get("schema"))
+                    || !Boolean.TRUE.equals(raw.get("snapshot"))
+                    || (connection == null ? raw.get("source") != null : !"desktop-project".equals(raw.get("source")))
+                    || !validText(ref.get("id"), 256) || !validText(ref.get("storeId"), 256)
+                    || !validCounter(ref.get("revision"), 1) || !validCounter(ref.get("controlGeneration"), 0)
+                    || !goalId.equals(ref.get("id")) || !validText(raw.get("observedAt"), 64)
+                    || (expectedStore != null && !expectedStore.equals(ref.get("storeId")))
+                    || !(raw.get("panels") instanceof List) || ((List<?>) raw.get("panels")).size() > 16
+                    || !(raw.get("dropped") instanceof List) || ((List<?>) raw.get("dropped")).size() > 256) return null;
+            java.time.Instant.parse((String) raw.get("observedAt"));
+            List<Map<String, Object>> panels = new ArrayList<Map<String, Object>>();
+            for (Object value : (List<?>) raw.get("panels")) {
+                Map<?, ?> panel = map(value);
+                Map<?, ?> plugin = panel == null ? null : map(panel.get("plugin"));
+                if (plugin == null || !pluginName.equals(plugin.get("name")) || !scope.equals(plugin.get("scope"))
+                        || !validText(plugin.get("name"), 256) || !validText(plugin.get("version"), 256)
+                        || !Arrays.asList("user", "project", "local").contains(plugin.get("scope"))
+                        || !validText(panel.get("id"), 64) || !((String) panel.get("id")).matches("[a-z][a-z0-9-]{0,63}")
+                        || !("goal.summary".equals(panel.get("slot")) || (connection != null && "goal.evidence".equals(panel.get("slot")))) || !"text".equals(panel.get("format"))
+                        || !(panel.get("text") instanceof String) || ((String) panel.get("text")).length() > 32768) return null;
+                Map<String, Object> pluginRef = new LinkedHashMap<String, Object>();
+                for (String key : Arrays.asList("name", "scope", "version")) pluginRef.put(key, plugin.get(key));
+                Map<String, Object> row = new LinkedHashMap<String, Object>();
+                row.put("plugin", pluginRef);
+                row.put("id", panel.get("id"));
+                row.put("text", panel.get("text"));
+                panels.add(row);
+            }
+            List<Map<String, Object>> dropped = new ArrayList<Map<String, Object>>();
+            for (Object value : (List<?>) raw.get("dropped")) {
+                Map<?, ?> entry = map(value);
+                Map<String, Object> row = new LinkedHashMap<String, Object>();
+                row.put("name", bounded(entry == null ? null : entry.get("name"), 256));
+                row.put("reason", bounded(entry == null ? null : entry.get("reason"), 128));
+                dropped.add(row);
+            }
+            Map<String, Object> goalRef = new LinkedHashMap<String, Object>();
+            for (String key : Arrays.asList("id", "storeId", "revision", "controlGeneration")) goalRef.put(key, ref.get(key));
+            Map<String, Object> result = new LinkedHashMap<String, Object>();
+            result.put("goalRef", goalRef);
+            result.put("observedAt", raw.get("observedAt"));
+            result.put("panels", panels);
+            result.put("dropped", dropped);
+            return result;
+        } catch (RuntimeException error) { return null; }
+    }
+
+    public static List<String> buildCliGoalDraftRequestArgs(String id,String name,String scope,String expectedStore,String connection,String source,String requestId,String title,String descriptionFile,String out) {
+        buildCliGoalPanelsArgs(id,name,scope,expectedStore,connection);
+        if(connection==null || source==null || !source.matches("goal-proposal-[a-f0-9]{64}") || !validText(requestId,128) || !validText(title,256) || !validText(descriptionFile,4096) || !validText(out,4096))throw new IllegalArgumentException("Invalid draft request selection");
+        for(String value:Arrays.asList(requestId,title,descriptionFile,out))if(java.util.regex.Pattern.compile("[\\x00-\\x1f]").matcher(value).find())throw new IllegalArgumentException("Invalid draft request selection");
+        List<String> args=new ArrayList<String>(Arrays.asList("goal","draft-request",id,"--plugin="+name,"--scope",scope,"--connection="+connection,"--source="+source,"--request-id="+requestId,"--title="+title,"--description-file="+descriptionFile,"--out="+out,"--json"));
+        if(expectedStore!=null)args.add("--expected-store="+expectedStore);
+        return args;
+    }
+    public static Map<String,Object> parseCliGoalDraftExport(String text,String goalId,String name,String scope,String store,String out,String requestId) {
+        if(text==null||text.getBytes(java.nio.charset.StandardCharsets.UTF_8).length>16384)return null;
+        try {
+            Map<?,?> value=map(MiniJson.parse(text));
+            Map<?,?> goal=value==null?null:map(value.get("goalRef")),plugin=value==null?null:map(value.get("declaredPlugin"));
+            if(goal==null||plugin==null||!"chainlesschain.goal-draft-export/v1".equals(value.get("schema"))||!"request-exported".equals(value.get("state"))||!goalId.equals(goal.get("id"))||!store.equals(goal.get("storeId"))||!name.equals(plugin.get("name"))||!scope.equals(plugin.get("scope"))||!out.equals(value.get("file"))||!requestId.equals(value.get("requestId"))||!validText(value.get("contentDigest"),71)||!((String)value.get("contentDigest")).matches("sha256:[a-f0-9]{64}"))return null;
+            Map<String,Object> result=new LinkedHashMap<String,Object>();for(String key:Arrays.asList("file","requestId","contentDigest"))result.put(key,value.get(key));return result;
+        } catch(RuntimeException error){return null;}
+    }
+    private static boolean draftText(Object value, int max) {
+        return validText(value, max) && !((String) value).trim().isEmpty()
+                && !java.util.regex.Pattern.compile("[\\x00-\\x1f\\x7f-\\x9f]").matcher((String) value).find();
+    }
+
+    private static boolean draftHash(Object value) {
+        return value instanceof String && ((String) value).matches("sha256:[a-f0-9]{64}");
+    }
+
+    private static boolean exactDraftKeys(Map<?, ?> value, String... keys) {
+        return value != null && value.size() == keys.length && value.keySet().containsAll(Arrays.asList(keys));
+    }
+
+    private static Map<String, Object> draftJson(String text) {
+        if (text == null || text.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 32768) return null;
+        Object value = MiniJson.parse(text);
+        if (!(value instanceof Map)) return null;
+        Map<String, Object> result = new LinkedHashMap<>();
+        for (Map.Entry<?, ?> entry : ((Map<?, ?>) value).entrySet()) {
+            if (!(entry.getKey() instanceof String)) return null;
+            result.put((String) entry.getKey(), entry.getValue());
+        }
+        return result;
+    }
+
+    private static boolean draftPlugin(Object value, String name, String scope) {
+        Map<?, ?> plugin = map(value);
+        return exactDraftKeys(plugin, "name", "scope", "version") && name.equals(plugin.get("name"))
+                && scope.equals(plugin.get("scope")) && draftText(plugin.get("name"), 256)
+                && draftText(plugin.get("version"), 256) && Arrays.asList("user", "project", "local").contains(scope);
+    }
+
+    private static boolean draftBinding(Map<?, ?> raw, String id, String name, String scope, String store, Map<String, Object> expected) {
+        Map<?, ?> ref = raw == null ? null : map(raw.get("goalRef"));
+        Map<?, ?> grant = raw == null ? null : map(raw.get("grantRef"));
+        if (!exactDraftKeys(ref, "id", "storeId", "revision", "controlGeneration")
+                || !id.equals(ref.get("id")) || !store.equals(ref.get("storeId"))
+                || !validCounter(ref.get("revision"), 1) || !validCounter(ref.get("controlGeneration"), 0)
+                || !draftPlugin(raw.get("plugin"), name, scope) || !draftHash(raw.get("declarationDigest"))
+                || !exactDraftKeys(grant, "id", "epoch") || !draftText(grant.get("id"), 256)
+                || !((String) grant.get("id")).matches("goal-external-grant-[a-f0-9]{64}")
+                || !validCounter(grant.get("epoch"), 1)) return false;
+        if (expected != null) for (String key : Arrays.asList("goalRef", "plugin", "grantRef", "declarationDigest"))
+            if (!raw.get(key).equals(expected.get(key))) return false;
+        return true;
+    }
+
+    public static List<String> buildCliGoalDraftAccessArgs(String name, String scope, String out) {
+        if (!draftText(name, 256) || !Arrays.asList("user", "project", "local").contains(scope) || !draftText(out, 4096))
+            throw new IllegalArgumentException("Invalid draft access selection");
+        return new ArrayList<>(Arrays.asList("goal", "draft-access", "--plugin=" + name, "--scope=" + scope, "--out=" + out, "--json"));
+    }
+
+    private static List<String> draftCommand(String command, String id, String name, String scope, String store, String connection) {
+        if (!draftText(name, 256) || !draftText(connection, 4096) || store == null)
+            throw new IllegalArgumentException("Select a native v3 draft connection");
+        buildCliGoalPanelsArgs(id, name, scope, store, connection);
+        return new ArrayList<>(Arrays.asList("goal", command, id, "--plugin=" + name, "--scope=" + scope,
+                "--expected-store=" + store, "--connection=" + connection, "--json"));
+    }
+
+    public static List<String> buildCliGoalDraftSourcesArgs(String id, String name, String scope, String store, String connection, String after) {
+        List<String> args = draftCommand("draft-sources", id, name, scope, store, connection);
+        if (after != null) {
+            if (!after.matches("goal-proposal-[a-f0-9]{64}")) throw new IllegalArgumentException("Invalid draft source cursor");
+            args.add("--after=" + after);
+        }
+        return args;
+    }
+
+    public static List<String> buildCliGoalDraftSendArgs(String id, String name, String scope, String store, String connection,
+            String source, String requestId, String title, String descriptionFile, String record) {
+        List<String> args = draftCommand("draft-send", id, name, scope, store, connection);
+        if (source == null || !source.matches("goal-proposal-[a-f0-9]{64}") || !draftText(requestId, 128)
+                || !draftText(title, 256) || !draftText(descriptionFile, 4096) || !draftText(record, 4096))
+            throw new IllegalArgumentException("Invalid pending draft submission");
+        args.addAll(Arrays.asList("--source=" + source, "--request-id=" + requestId, "--title=" + title,
+                "--description-file=" + descriptionFile, "--record=" + record));
+        return args;
+    }
+
+    public static List<String> buildCliGoalDraftReceiptArgs(String id, String name, String scope, String store, String connection, String record) {
+        List<String> args = draftCommand("draft-receipt", id, name, scope, store, connection);
+        if (!draftText(record, 4096)) throw new IllegalArgumentException("Select the original submission reference");
+        args.add("--record=" + record);
+        return args;
+    }
+
+    public static Map<String, Object> parseCliGoalDraftAccess(String text, String name, String scope, String out) {
+        try {
+            Map<String, Object> raw = draftJson(text);
+            if (!exactDraftKeys(raw, "schema", "state", "plugin", "declarationDigest", "file")
+                    || !"chainlesschain.goal-draft-access-export/v1".equals(raw.get("schema"))
+                    || !"access-exported".equals(raw.get("state")) || !out.equals(raw.get("file"))
+                    || !draftPlugin(raw.get("plugin"), name, scope) || !draftHash(raw.get("declarationDigest"))) return null;
+            return raw;
+        } catch (RuntimeException error) { return null; }
+    }
+
+    public static Map<String, Object> parseCliGoalDraftSources(String text, String id, String name, String scope, String store, Map<String, Object> expected) {
+        try {
+            Map<String, Object> raw = draftJson(text);
+            if (!exactDraftKeys(raw, "schema", "goalRef", "plugin", "declarationDigest", "grantRef", "sources")
+                    || !"chainlesschain.goal-draft-source-page/v1".equals(raw.get("schema")) || !draftBinding(raw, id, name, scope, store, expected)) return null;
+            Map<?, ?> sources = map(raw.get("sources"));
+            if (!exactDraftKeys(sources, "entries", "scannedCount", "unavailableCount", "nextCursor")
+                    || !(sources.get("entries") instanceof List) || ((List<?>) sources.get("entries")).size() > 20
+                    || !validCounter(sources.get("scannedCount"), 0) || ((Number) sources.get("scannedCount")).longValue() > 20
+                    || !validCounter(sources.get("unavailableCount"), 0) || ((Number) sources.get("unavailableCount")).longValue() > 20
+                    || ((Number) sources.get("scannedCount")).longValue() != ((List<?>) sources.get("entries")).size() + ((Number) sources.get("unavailableCount")).longValue()) return null;
+            String previous = "";
+            for (Object item : (List<?>) sources.get("entries")) {
+                Map<?, ?> row = map(item);
+                if (!exactDraftKeys(row, "id", "sourceTaskId", "reviewId", "reviewDigest") || !draftText(row.get("id"), 256)
+                        || !((String) row.get("id")).matches("goal-proposal-[a-f0-9]{64}") || ((String) row.get("id")).compareTo(previous) <= 0
+                        || !draftText(row.get("sourceTaskId"), 256) || !draftText(row.get("reviewId"), 256) || !draftHash(row.get("reviewDigest"))) return null;
+                previous = (String) row.get("id");
+            }
+            if (sources.get("nextCursor") != null && (!(sources.get("nextCursor") instanceof String)
+                    || !((String) sources.get("nextCursor")).matches("goal-proposal-[a-f0-9]{64}")
+                    || ((Number) sources.get("scannedCount")).longValue() == 0)) return null;
+            return raw;
+        } catch (RuntimeException error) { return null; }
+    }
+
+    public static Map<String, Object> parseCliGoalDraftSubmission(String text, String id, String name, String scope, String store,
+            String record, String requestId, Map<String, Object> expected) {
+        try {
+            Map<String, Object> raw = draftJson(text);
+            if (!exactDraftKeys(raw, "schema", "state", "goalRef", "plugin", "declarationDigest", "grantRef", "requestId", "inputDigest", "proposalId", "record")
+                    || !"chainlesschain.goal-draft-submission/v1".equals(raw.get("schema")) || !draftBinding(raw, id, name, scope, store, expected)
+                    || !record.equals(raw.get("record")) || !draftText(raw.get("requestId"), 128)
+                    || (requestId != null && !requestId.equals(raw.get("requestId"))) || !draftHash(raw.get("inputDigest"))
+                    || !Arrays.asList("saved", "not-found", "unknown").contains(raw.get("state"))) return null;
+            if ("saved".equals(raw.get("state")) ? !(raw.get("proposalId") instanceof String)
+                    || !((String) raw.get("proposalId")).matches("goal-extension-[a-f0-9]{64}") : raw.get("proposalId") != null) return null;
+            return raw;
+        } catch (RuntimeException error) { return null; }
+    }
+
+    public static String formatCliGoalDraftSubmission(Map<String, Object> result) {
+        String lead = "saved".equals(result.get("state"))
+                ? "Pending suggestion saved: " + result.get("proposalId") + ". Task modification still requires native preview and confirmation."
+                : "not-found".equals(result.get("state")) ? "No matching submission existed at query time. No automatic resend was performed."
+                : "Submission result unknown. No automatic resend was performed.";
+        return lead + "\nReference: " + result.get("record") + "\nRequest ID: " + result.get("requestId")
+                + "\nInput digest: " + result.get("inputDigest") + "\nUse Look up draft receipt with this same reference to reconcile.";
+    }
+
+    public static String formatCliGoalPanels(Map<String, Object> result) {
+        Map<?, ?> ref = map(result.get("goalRef"));
+        StringBuilder out = new StringBuilder("CLI goal snapshot: ")
+                .append(ref.get("id")).append(" (revision ").append(ref.get("revision")).append(")\nObserved: ")
+                .append(result.get("observedAt"));
+        List<?> panels = (List<?>) result.get("panels");
+        for (Object value : panels) {
+            Map<?, ?> panel = map(value);
+            Map<?, ?> plugin = map(panel.get("plugin"));
+            out.append("\n\n").append(plugin.get("name")).append(" [").append(plugin.get("scope"))
+                    .append("]\n").append(panel.get("text"));
+        }
+        if (panels.isEmpty()) out.append("\nNo authorized goal panels are available.");
+        for (Object value : (List<?>) result.get("dropped")) {
+            Map<?, ?> entry = map(value);
+            out.append('\n').append(str(entry.get("name")).isEmpty() ? "plugins" : entry.get("name"))
+                    .append(": ").append(entry.get("reason"));
+        }
+        return out.toString();
+    }
+
+    private static boolean validText(Object value, int max) {
+        return value instanceof String && !((String) value).isEmpty() && ((String) value).length() <= max;
+    }
+
+    private static boolean validCounter(Object value, long minimum) {
+        if (!(value instanceof Number)) return false;
+        double number = ((Number) value).doubleValue();
+        return Double.isFinite(number) && number >= minimum && number <= 9007199254740991d && number == Math.floor(number);
+    }
+
     public static List<String> buildPluginTrustArgs(String name, boolean trusted, String scope) {
         List<String> args = new ArrayList<String>(Arrays.asList(
                 "plugin", trusted ? "trust" : "untrust", String.valueOf(name)));
@@ -221,8 +575,31 @@ public final class PluginManager {
             p.put("source", parsePluginSource(r.get("source")));
             p.put("integrity", parsePluginIntegrity(r.get("integrity")));
             p.put("policy", parsePluginPolicy(r.get("policy")));
+            if (r.containsKey("goalExtension")) {
+                p.put("goalExtension", parseGoalExtension(r.get("goalExtension")));
+            }
             out.add(p);
         }
+        return out;
+    }
+
+    private static Map<String, Object> parseGoalExtension(Object value) {
+        Map<?, ?> raw = map(value);
+        Map<String, Object> out = new LinkedHashMap<String, Object>();
+        String status = raw == null ? "unknown" : str(raw.get("status"));
+        out.put("status", Arrays.asList("legacy", "invalid", "declaration-only").contains(status)
+                ? status : "unknown");
+        out.put("apiVersion", raw == null ? "" : bounded(raw.get("apiVersion"), 128));
+        out.put("apiCompatible", raw != null && Boolean.TRUE.equals(raw.get("apiCompatible")));
+        out.put("runtimeAvailable", false); // management data is never admission
+        Map<?, ?> rawHosts = raw == null ? null : map(raw.get("hosts"));
+        Map<String, Object> hosts = new LinkedHashMap<String, Object>();
+        for (String host : Arrays.asList("cli", "vscode", "jetbrains", "desktop")) {
+            if (rawHosts != null && rawHosts.get(host) instanceof String) {
+                hosts.put(host, bounded(rawHosts.get(host), 128));
+            }
+        }
+        out.put("hosts", hosts);
         return out;
     }
 
@@ -280,10 +657,22 @@ public final class PluginManager {
                 ? (Boolean.FALSE.equals(policy.get("allowed"))
                         ? " policy-blocked" : " managed")
                 : "";
+        Map<?, ?> goal = map(p.get("goalExtension"));
+        String goalState = "";
+        if (goal != null && !"legacy".equals(goal.get("status"))) {
+            Map<?, ?> hosts = map(goal.get("hosts"));
+            String support = !"declaration-only".equals(goal.get("status"))
+                    ? str(goal.get("status"))
+                    : !Boolean.TRUE.equals(goal.get("apiCompatible")) ? "unsupported API"
+                    : hosts != null && hosts.containsKey("jetbrains")
+                            ? "declared for JetBrains" : "JetBrains undeclared";
+            goalState = " Goal SDK " + str(goal.get("apiVersion")) + " (" + support
+                    + "; runtime unavailable)";
+        }
         return (Boolean.TRUE.equals(p.get("ok")) ? "✔ " : "✖ ")
                 + p.get("name")
                 + (str(p.get("version")).isEmpty() ? "" : " v" + p.get("version"))
-                + "  [" + p.get("scope") + "] " + state + " " + signed + managed;
+                + "  [" + p.get("scope") + "] " + state + " " + signed + managed + goalState;
     }
 
     /** One JList row for an MCP server: {@code "name (http) url  [blocked: …]"}. */

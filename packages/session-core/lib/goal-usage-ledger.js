@@ -1,4 +1,5 @@
 "use strict";
+const { isReadOnlyNativeDatabase } = require("./read-only-native-database.js");
 
 const { goalError, validateGoalRecord } = require("./goal-contract.js");
 const {
@@ -91,12 +92,13 @@ class GoalUsageLedger {
         ? "cc_organization_project_goal_checks"
         : "cc_project_goal_checks";
     if (db.inTransaction) fail("GOAL_USAGE_TRANSACTION_REQUIRED");
-    db.transaction(() =>
-      db.exec(`CREATE TABLE IF NOT EXISTS ${this.table} (
+    if (!isReadOnlyNativeDatabase(db))
+      db.transaction(() =>
+        db.exec(`CREATE TABLE IF NOT EXISTS ${this.table} (
       operation_id TEXT PRIMARY KEY,goal_id TEXT NOT NULL,actor_did TEXT NOT NULL,
       record_json TEXT NOT NULL,content_digest TEXT NOT NULL);
       CREATE INDEX IF NOT EXISTS idx_${this.table}_goal ON ${this.table}(goal_id,actor_did);`),
-    ).immediate();
+      ).immediate();
   }
   _transaction() {
     if (!this.db.inTransaction) fail("GOAL_USAGE_TRANSACTION_REQUIRED");

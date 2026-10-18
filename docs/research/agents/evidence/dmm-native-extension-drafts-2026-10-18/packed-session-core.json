@@ -1,0 +1,12 @@
+﻿{
+    "name":  "@chainlesschain/session-core",
+    "version":  "0.3.19",
+    "archive":  "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-dmm-core-pack-2d5b808527634225af70021209b71de4\\chainlesschain-session-core-0.3.19.tgz",
+    "sha256":  "0ef8edf0c21ca9f4cbe76bc273fb70b53995c9505f468d0ef2bc87646a4b7929",
+    "fileCount":  67,
+    "probe":  {
+                  "publicExportsLoaded":  true,
+                  "sourceCheckLoaded":  true,
+                  "noExecutionPort":  true
+              }
+}

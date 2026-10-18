@@ -686,6 +686,7 @@ function authorizeBoardWrite(
       ["dueDate", "board.task.set-due-date"],
       ["columnId", "board.task.move"],
       ["position", "board.task.move"],
+      ["labelId", "board.task.label"],
     ]) {
       if (params.updates && Object.hasOwn(params.updates, field))
         requiredPermissions.push(permission);
@@ -757,6 +758,7 @@ function executeBoardWrite(database, event, action, params, dependencies = {}) {
       "move-task",
       "create-task",
       "create-subtask",
+      "add-label",
     ].includes(action)
   )
     fail("BOARD_ACTION_CONTROLLED_UPDATE_REQUIRED");

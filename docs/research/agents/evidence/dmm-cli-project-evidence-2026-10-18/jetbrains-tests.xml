@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.chainlesschain.ide.PluginManagerTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-10-18T05:32:03" hostname="DESKTOP-MTMV2RE" time="0.182">
+  <properties/>
+  <testcase name="goalDeclarationsNeverImplyRuntimeAdmission()" classname="com.chainlesschain.ide.PluginManagerTest" time="0.062"/>
+  <testcase name="parsesTransactionalUpgradeActivationAndRollback()" classname="com.chainlesschain.ide.PluginManagerTest" time="0.004"/>
+  <testcase name="parsesMcpServersWithPolicyAnnotations()" classname="com.chainlesschain.ide.PluginManagerTest" time="0.003"/>
+  <testcase name="distinguishesUnreadableFromEmpty()" classname="com.chainlesschain.ide.PluginManagerTest" time="0.013"/>
+  <testcase name="desktopConnectionRequiresExplicitSelectionAndPinsNativeStore()" classname="com.chainlesschain.ide.PluginManagerTest" time="0.045"/>
+  <testcase name="targetsUnifiedRuntimeCommands()" classname="com.chainlesschain.ide.PluginManagerTest" time="0.003"/>
+  <testcase name="parsesAndFiltersSkills()" classname="com.chainlesschain.ide.PluginManagerTest" time="0.005"/>
+  <testcase name="boundedCatalogProjectsMetadataAndPinsTheStore()" classname="com.chainlesschain.ide.PluginManagerTest" time="0.009"/>
+  <testcase name="cliGoalPanelsAreScopedPlainTextSnapshots()" classname="com.chainlesschain.ide.PluginManagerTest" time="0.007"/>
+  <testcase name="parsesPluginRowsAndFormatsLines()" classname="com.chainlesschain.ide.PluginManagerTest" time="0.007"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

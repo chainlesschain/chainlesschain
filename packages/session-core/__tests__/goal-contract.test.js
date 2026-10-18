@@ -13,6 +13,21 @@ const {
 const stamp = "2026-10-07T00:00:00.000Z";
 const later = "2026-10-07T00:01:00.000Z";
 const actor = "did:chainless:owner";
+
+it("upgrades legacy goals with omitted optional title and creation time without rewriting input", () => {
+  const raw = {
+    id: "old-goal",
+    objective: "Keep following up",
+    status: "paused",
+  };
+  const upgraded = upgradeLegacyGoal(raw, "store-one");
+  expect(upgraded.title).toBe(raw.objective);
+  expect(Number.isFinite(Date.parse(upgraded.createdAt))).toBe(true);
+  expect(upgraded.status).toBe("paused");
+  expect(upgraded.ownerRef).toBeNull();
+  expect(raw).not.toHaveProperty("createdAt");
+  expect(raw).not.toHaveProperty("title");
+});
 function goal(extra = {}) {
   return createGoalRecord({
     id: "g1",

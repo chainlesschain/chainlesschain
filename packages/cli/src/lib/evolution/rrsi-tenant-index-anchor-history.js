@@ -133,6 +133,10 @@ export function verifyRrsiTenantIndexAnchorHistory(input) {
           snapshot.artifactStoreDirectoryBoundaryDigest,
         artifactStoreDirectoryBoundaryRechecked: true,
         artifactStoreBoundaryScope: "root-and-files-directories",
+        sourceJournalDirectoryBoundaryDigest:
+          snapshot.sourceJournalDirectoryBoundaryDigest,
+        sourceJournalDirectoryBoundaryRechecked: true,
+        sourceJournalBoundaryScope: "source-journal-four-directories",
         previous: snapshot.prefixes[0],
         current: snapshot.current,
         signaturesVerifiedRelativeToExplicitKey: true,
@@ -141,6 +145,7 @@ export function verifyRrsiTenantIndexAnchorHistory(input) {
         localRetainedHistoryReplayed: true,
         selectedContextOnly: true,
         storageGraphDigestVerified: false,
+        fullPhysicalStorageGraphVerified: false,
         rootAuthorityVerified: false,
         installationBindingSignatureVerified: false,
         routingPinVerified: false,

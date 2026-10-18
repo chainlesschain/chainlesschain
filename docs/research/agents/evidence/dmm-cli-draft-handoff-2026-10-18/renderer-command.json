@@ -1,0 +1,28 @@
+{
+  "command": [
+    "node",
+    "../node_modules/vitest/vitest.mjs",
+    "run",
+    "--config",
+    "vitest.business-actions-renderer.config.mjs",
+    "src/renderer/components/projects/__tests__/project-goal-actions-panel.test.ts",
+    "src/renderer/components/projects/__tests__/project-goal-actions-panel.test.ts",
+    "src/renderer/components/projects/__tests__/project-goal-cli-connection-panel.test.ts",
+    "src/renderer/components/projects/__tests__/project-goal-extension-drafts-panel.test.ts",
+    "src/renderer/components/projects/__tests__/project-goal-monitoring-panel.test.ts",
+    "src/renderer/components/projects/__tests__/project-goal-draft-imports-panel.test.ts",
+    "--reporter=json",
+    "--outputFile=C:\\code\\chainlesschain\\docs\\research\\agents\\evidence\\dmm-cli-draft-handoff-2026-10-18\\renderer-tests.json"
+  ],
+  "cwd": "C:\\code\\chainlesschain\\desktop-app-vue",
+  "exitCode": 0,
+  "stdout": "JSON report written to C:/code/chainlesschain/docs/research/agents/evidence/dmm-cli-draft-handoff-2026-10-18/renderer-tests.json\n",
+  "stderr": "",
+  "files": [
+    "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-actions-panel.test.ts",
+    "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-cli-connection-panel.test.ts",
+    "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-extension-drafts-panel.test.ts",
+    "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-monitoring-panel.test.ts",
+    "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-draft-imports-panel.test.ts"
+  ]
+}

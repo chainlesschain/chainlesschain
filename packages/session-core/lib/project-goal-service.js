@@ -1,6 +1,7 @@
 "use strict";
 
 const { randomUUID } = require("node:crypto");
+const { isReadOnlyNativeDatabase } = require("./read-only-native-database.js");
 const {
   hasOrganizationProjectBinding,
 } = require("./organization-project-authority");
@@ -60,16 +61,18 @@ class SqliteProjectGoalAdapter {
     this.db = db;
     this.getActor = getActor;
     this._transaction(() => {
-      db.exec(`CREATE TABLE IF NOT EXISTS cc_project_goal_store_meta (
+      if (!isReadOnlyNativeDatabase(db)) {
+        db.exec(`CREATE TABLE IF NOT EXISTS cc_project_goal_store_meta (
         singleton INTEGER PRIMARY KEY CHECK(singleton=1),store_id TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS cc_project_goals (
         id TEXT PRIMARY KEY,actor_did TEXT NOT NULL,project_id TEXT NOT NULL,
         revision INTEGER NOT NULL CHECK(revision>=1),goal_json TEXT NOT NULL);
         CREATE INDEX IF NOT EXISTS idx_cc_project_goals_actor_project
         ON cc_project_goals(actor_did,project_id,id);`);
-      db.prepare(
-        "INSERT OR IGNORE INTO cc_project_goal_store_meta VALUES (1,?)",
-      ).run(`project-goals-${randomUUID()}`);
+        db.prepare(
+          "INSERT OR IGNORE INTO cc_project_goal_store_meta VALUES (1,?)",
+        ).run(`project-goals-${randomUUID()}`);
+      }
       this.storeId = identifier(
         db
           .prepare(

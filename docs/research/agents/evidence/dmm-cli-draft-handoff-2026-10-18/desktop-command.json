@@ -1,0 +1,34 @@
+{
+  "command": [
+    "node",
+    "../node_modules/vitest/vitest.mjs",
+    "run",
+    "--config",
+    "vitest.business-actions.config.mjs",
+    "src/preload/__tests__/legacy-ipc-policy.test.js",
+    "src/preload/__tests__/legacy-ipc-policy.test.js",
+    "src/main/ipc/__tests__/ipc-sender-guard.test.js",
+    "src/main/task/__tests__/project-goal-auth-session.test.js",
+    "src/main/task/__tests__/project-goal-cli-bridge.test.js",
+    "src/main/task/__tests__/project-goal-delivery-drafts-ipc.test.js",
+    "src/main/task/__tests__/project-goal-ipc.test.js",
+    "src/main/task/__tests__/project-goal-workflow-ipc.test.js",
+    "src/main/task/__tests__/project-goal-draft-imports-ipc.test.js",
+    "--reporter=json",
+    "--outputFile=C:\\code\\chainlesschain\\docs\\research\\agents\\evidence\\dmm-cli-draft-handoff-2026-10-18\\desktop-tests.json"
+  ],
+  "cwd": "C:\\code\\chainlesschain\\desktop-app-vue",
+  "exitCode": 1,
+  "stdout": "JSON report written to C:/code/chainlesschain/docs/research/agents/evidence/dmm-cli-draft-handoff-2026-10-18/desktop-tests.json\n",
+  "stderr": "",
+  "files": [
+    "desktop-app-vue/src/preload/__tests__/legacy-ipc-policy.test.js",
+    "desktop-app-vue/src/main/ipc/__tests__/ipc-sender-guard.test.js",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-auth-session.test.js",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-cli-bridge.test.js",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-delivery-drafts-ipc.test.js",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-ipc.test.js",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-workflow-ipc.test.js",
+    "desktop-app-vue/src/main/task/__tests__/project-goal-draft-imports-ipc.test.js"
+  ]
+}

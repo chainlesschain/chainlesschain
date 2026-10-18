@@ -7,6 +7,9 @@ import com.chainlesschain.ide.PluginQuality;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.fileChooser.FileChooser;
+import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogBuilder;
 import com.intellij.openapi.ui.Messages;
@@ -31,6 +34,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Plugin / MCP manager dialog (Tools menu, P1 #7 + gap #11) — four tabs over
@@ -57,6 +61,7 @@ public final class PluginManagerAction extends AnAction {
         final AtomicReference<List<Map<String, Object>>> plugins = new AtomicReference<>();
         final AtomicReference<List<Map<String, Object>>> mcp = new AtomicReference<>();
         final AtomicReference<List<Map<String, Object>>> skills = new AtomicReference<>();
+        final AtomicInteger goalPanelGeneration = new AtomicInteger();
 
         DefaultListModel<String> pluginModel = new DefaultListModel<>();
         DefaultListModel<String> mcpModel = new DefaultListModel<>();
@@ -75,6 +80,7 @@ public final class PluginManagerAction extends AnAction {
         JLabel qualitySummary = new JLabel(" ");
 
         Runnable refresh = () -> {
+            goalPanelGeneration.incrementAndGet();
             status.setText("loading…");
             ApplicationManager.getApplication().executeOnPooledThread(() -> {
                 String pluginsOut = AgentChatSession.runCapture(
@@ -161,6 +167,11 @@ public final class PluginManagerAction extends AnAction {
         JButton versions = new JButton("Versions…");
         JButton capabilities = new JButton("Capabilities…");
         JButton details = new JButton("Supply-chain details…");
+        JButton goalPanels = new JButton("CLI goal panels…");
+        JButton goalDraftRequest = new JButton("Export goal draft request…");
+        JButton goalDraftAccess = new JButton("Export draft access…");
+        JButton goalDraftSend = new JButton("Send online draft…");
+        JButton goalDraftReceipt = new JButton("Look up draft receipt…");
         JButton uninstall = new JButton("Uninstall…");
         JButton add = new JButton("Add…");
         // Thread the row's install scope through — CLI trust/untrust default to
@@ -264,6 +275,19 @@ public final class PluginManagerAction extends AnAction {
         details.addActionListener(ev ->
                 withSelectedPlugin(project, pluginList, plugins.get(), p ->
                         showPluginDetails(project, p)));
+        goalPanels.addActionListener(ev ->
+                withSelectedPlugin(project, pluginList, plugins.get(), p -> {
+                    int generation = goalPanelGeneration.incrementAndGet();
+                    chooseGoalPage(project, cwd, String.valueOf(p.get("name")), scopeOf(p),
+                            generation, goalPanelGeneration, status, null, null, new java.util.HashSet<String>());
+                }));
+        goalDraftRequest.addActionListener(ev -> withSelectedPlugin(project,pluginList,plugins.get(),p -> exportGoalDraftRequest(project,cwd,p,goalPanelGeneration.incrementAndGet(),goalPanelGeneration,status)));
+        goalDraftAccess.addActionListener(ev -> withSelectedPlugin(project, pluginList, plugins.get(), p ->
+                exportDraftAccess(project, cwd, String.valueOf(p.get("name")), scopeOf(p), goalPanelGeneration.incrementAndGet(), goalPanelGeneration, status)));
+        goalDraftSend.addActionListener(ev -> withSelectedPlugin(project, pluginList, plugins.get(), p ->
+                chooseDraftConnection(project, cwd, String.valueOf(p.get("name")), scopeOf(p), false, goalPanelGeneration.incrementAndGet(), goalPanelGeneration, status)));
+        goalDraftReceipt.addActionListener(ev -> withSelectedPlugin(project, pluginList, plugins.get(), p ->
+                chooseDraftConnection(project, cwd, String.valueOf(p.get("name")), scopeOf(p), true, goalPanelGeneration.incrementAndGet(), goalPanelGeneration, status)));
         uninstall.addActionListener(ev -> withSelectedPlugin(project, pluginList, plugins.get(), p -> {
             String name = String.valueOf(p.get("name"));
             String scope = String.valueOf(p.get("scope"));
@@ -289,7 +313,11 @@ public final class PluginManagerAction extends AnAction {
         });
         JPanel pluginTab = tab(
                 pluginList, lifecycle, upgrade, trust, untrust, versions,
-                capabilities, details, uninstall, add);
+                capabilities, details, goalPanels, goalDraftRequest, goalDraftAccess, goalDraftSend, goalDraftReceipt, uninstall, add);
+        for (JButton mutation : java.util.Arrays.asList(
+                lifecycle, upgrade, trust, untrust, versions, capabilities, uninstall, add)) {
+            mutation.addActionListener(ev -> goalPanelGeneration.incrementAndGet());
+        }
 
         // ---- MCP tab -----------------------------------------------------
         JButton test = new JButton("Test connect");
@@ -364,6 +392,312 @@ public final class PluginManagerAction extends AnAction {
         b.setCenterPanel(root);
         b.addOkAction().setText("Close");
         b.show();
+        goalPanelGeneration.incrementAndGet();
+    }
+
+    private static boolean goalRequestCurrent(Project project, int generation, AtomicInteger current) {
+        return generation == current.get() && (project == null || !project.isDisposed());
+    }
+
+    private static void chooseGoalPage(Project project, File cwd, String name, String scope,
+            int generation, AtomicInteger current, JLabel status, String after, String expectedStore,
+            java.util.Set<String> seen) {
+        if (!goalRequestCurrent(project, generation, current)) return;
+        status.setText("reading CLI goal catalog…");
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            String output = AgentChatSession.runCapture(PluginManager.buildCliGoalCatalogArgs(after), cwd, CLI_TIMEOUT_MS);
+            Map<String, Object> parsed = PluginManager.parseCliGoalCatalog(output, expectedStore);
+            final Map<String, Object> page = parsed != null && parsed.get("nextCursor") != null
+                    && seen.contains(String.valueOf(parsed.get("nextCursor"))) ? null : parsed;
+            ApplicationManager.getApplication().invokeLater(() -> {
+                if (!goalRequestCurrent(project, generation, current)) return;
+                status.setText(" ");
+                Map<String, String> ids = new LinkedHashMap<String, String>();
+                if (page != null) for (Object value : (List<?>) page.get("entries")) {
+                    Map<?, ?> entry = asMap(value);
+                    String id = String.valueOf(entry.get("id"));
+                    ids.put(id + " [" + entry.get("status") + "] " + entry.get("title"), id);
+                }
+                String next = "Next page…", manual = "Enter goal ID…", desktop = "Open desktop goal connection…";
+                List<String> choices = new ArrayList<String>(ids.keySet());
+                if (page != null && page.get("nextCursor") != null) choices.add(next);
+                choices.add(manual);
+                choices.add(desktop);
+                String choice = ChoiceDialog.choose(project, "CLI Goal Panels",
+                        page == null ? "Goal catalog unavailable. Enter a standalone goal ID from cc goal list."
+                                : "Select a standalone goal. Invalid sources on this page: " + page.get("skippedCount")
+                                    + "; invalid names in directory: " + page.get("invalidNameCount"),
+                        choices, choices.get(0));
+                if (choice == null || !goalRequestCurrent(project, generation, current)) return;
+                if (choice.equals(desktop)) {
+                    VirtualFile file = FileChooser.chooseFile(FileChooserDescriptorFactory.createSingleFileDescriptor("json"), project, null);
+                    if (file == null || !goalRequestCurrent(project, generation, current)) return;
+                    String connection = file.getPath();
+                    status.setText("reading desktop goal connection…");
+                    ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                        String connectedOutput = AgentChatSession.runCapture(PluginManager.buildCliGoalCatalogArgs(null, connection), cwd, CLI_TIMEOUT_MS);
+                        Map<String, Object> connected = PluginManager.parseCliGoalCatalog(connectedOutput, null, connection);
+                        ApplicationManager.getApplication().invokeLater(() -> {
+                            if (!goalRequestCurrent(project, generation, current)) return;
+                            status.setText(" ");
+                            if (connected == null || ((List<?>) connected.get("entries")).size() != 1 || connected.get("nextCursor") != null) {
+                                Messages.showErrorDialog(project, "Desktop goal connection unavailable or expired", "CLI Goal Panels");
+                                return;
+                            }
+                            Map<?, ?> entry = asMap(((List<?>) connected.get("entries")).get(0));
+                            readGoalPanels(project, cwd, String.valueOf(entry.get("id")), name, scope,
+                                    String.valueOf(connected.get("storeId")), generation, current, status, connection);
+                        });
+                    });
+                    return;
+                }
+                if (choice.equals(next)) {
+                    String cursor = String.valueOf(page.get("nextCursor"));
+                    seen.add(cursor);
+                    chooseGoalPage(project, cwd, name, scope, generation, current, status,
+                            cursor, String.valueOf(page.get("storeId")), seen);
+                    return;
+                }
+                String id = choice.equals(manual) ? Messages.showInputDialog(project,
+                        "Standalone CLI goal ID (from cc goal list)", "CLI Goal Panels", null) : ids.get(choice);
+                if (id == null || id.trim().isEmpty() || !goalRequestCurrent(project, generation, current)) return;
+                readGoalPanels(project, cwd, id.trim(), name, scope,
+                        page == null ? expectedStore : String.valueOf(page.get("storeId")), generation, current, status);
+            });
+        });
+    }
+
+    private static void exportGoalDraftRequest(Project project,File cwd,Map<String,Object> plugin,int generation,AtomicInteger current,JLabel status) {
+        VirtualFile connectionFile=FileChooser.chooseFile(FileChooserDescriptorFactory.createSingleFileDescriptor("json"),project,null);
+        if(connectionFile==null||!goalRequestCurrent(project,generation,current))return;
+        String connection=connectionFile.getPath();
+        ApplicationManager.getApplication().executeOnPooledThread(()->{
+            Map<String,Object> catalog=PluginManager.parseCliGoalCatalog(AgentChatSession.runCapture(PluginManager.buildCliGoalCatalogArgs(null,connection),cwd,CLI_TIMEOUT_MS),null,connection);
+            ApplicationManager.getApplication().invokeLater(()->{
+                if(!goalRequestCurrent(project,generation,current))return;
+                if(catalog==null||((List<?>)catalog.get("entries")).size()!=1){status.setText("Desktop goal connection unavailable or expired");return;}
+                String id=String.valueOf(((Map<?,?>)((List<?>)catalog.get("entries")).get(0)).get("id")),store=String.valueOf(catalog.get("storeId"));
+                String source=Messages.showInputDialog(project,"Exact native risk proposal ID copied from the desktop","Export Goal Draft Request",null);
+                if(source==null||!goalRequestCurrent(project,generation,current))return;
+                String title=Messages.showInputDialog(project,"Request title","Export Goal Draft Request",null);
+                if(title==null||!goalRequestCurrent(project,generation,current))return;
+                VirtualFile description=FileChooser.chooseFile(FileChooserDescriptorFactory.createSingleFileDescriptor(),project,null);
+                if(description==null||!goalRequestCurrent(project,generation,current))return;
+                com.intellij.openapi.vfs.VirtualFileWrapper destination=com.intellij.openapi.fileChooser.FileChooserFactory.getInstance().createSaveFileDialog(new com.intellij.openapi.fileChooser.FileSaverDescriptor("Export untrusted goal request","Choose a new JSON file; this does not submit a native draft","json"),project).save((VirtualFile)null,"goal-draft-request.json");
+                if(destination==null||!goalRequestCurrent(project,generation,current))return;
+                String out=destination.getFile().getAbsolutePath(),requestId=java.util.UUID.randomUUID().toString(),name=String.valueOf(plugin.get("name")),scope=scopeOf(plugin);
+                final List<String> args;
+                try{args=PluginManager.buildCliGoalDraftRequestArgs(id,name,scope,store,connection,source.trim(),requestId,title,description.getPath(),out);}catch(IllegalArgumentException error){status.setText(error.getMessage());return;}
+                status.setText("exporting request file…");
+                ApplicationManager.getApplication().executeOnPooledThread(()->{
+                    Map<String,Object> result=PluginManager.parseCliGoalDraftExport(AgentChatSession.runCapture(args,cwd,CLI_TIMEOUT_MS),id,name,scope,store,out,requestId);
+                    ApplicationManager.getApplication().invokeLater(()->{
+                        if(!goalRequestCurrent(project,generation,current))return;
+                        if(result==null){status.setText("Export result unavailable; inspect the selected file before retrying");return;}
+                        status.setText("Request exported; native adoption still required");
+                        Messages.showInfoMessage(project,"Request exported: "+out+"\nRequest ID: "+requestId+"\nNo native draft has been saved. Import this same file in the desktop and review its full text.","Goal Draft Request Exported");
+                    });
+                });
+            });
+        });
+    }
+
+    private static String saveDraftFile(Project project, String title, String description, String suggested) {
+        com.intellij.openapi.vfs.VirtualFileWrapper chosen = com.intellij.openapi.fileChooser.FileChooserFactory.getInstance()
+                .createSaveFileDialog(new com.intellij.openapi.fileChooser.FileSaverDescriptor(title, description, "json"), project)
+                .save((VirtualFile) null, suggested);
+        return chosen == null ? null : chosen.getFile().getAbsolutePath();
+    }
+
+    private static void showDraftResult(Project project, String title, String message) {
+        JTextArea text = new JTextArea(message, 12, 80);
+        text.setEditable(false); text.setLineWrap(true); text.setWrapStyleWord(true); text.setCaretPosition(0);
+        DialogBuilder dialog = new DialogBuilder(project);
+        dialog.setTitle(title); dialog.setCenterPanel(new JScrollPane(text)); dialog.addOkAction().setText("Close"); dialog.show();
+    }
+
+    private static void exportDraftAccess(Project project, File cwd, String name, String scope, int generation, AtomicInteger current, JLabel status) {
+        String out = saveDraftFile(project, "Export draft access", "Export an untrusted plugin label for separate desktop authorization", "goal-draft-access.json");
+        if (out == null || !goalRequestCurrent(project, generation, current)) return;
+        final List<String> args;
+        try { args = PluginManager.buildCliGoalDraftAccessArgs(name, scope, out); }
+        catch (IllegalArgumentException error) { status.setText(error.getMessage()); return; }
+        status.setText("exporting draft access request…");
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            if (!goalRequestCurrent(project, generation, current)) return;
+            Map<String, Object> result = PluginManager.parseCliGoalDraftAccess(AgentChatSession.runCapture(args, cwd, CLI_TIMEOUT_MS), name, scope, out);
+            ApplicationManager.getApplication().invokeLater(() -> {
+                if (!goalRequestCurrent(project, generation, current)) return;
+                if (result == null) { status.setText("Access export unavailable; check trust, consent and the selected new file"); return; }
+                status.setText("Access request exported; separate native authorization required");
+                showDraftResult(project, "Draft access request", "Exported: " + out
+                        + "\nThis file is a plugin label and declaration digest, not permission or code authentication."
+                        + "\nOpen it in the desktop and explicitly authorize a v3 pending-draft connection. Existing read connections cannot submit drafts.");
+            });
+        });
+    }
+
+    private static void chooseDraftConnection(Project project, File cwd, String name, String scope, boolean receipt,
+            int generation, AtomicInteger current, JLabel status) {
+        com.intellij.openapi.fileChooser.FileChooserDescriptor descriptor = FileChooserDescriptorFactory.createSingleFileDescriptor("json");
+        descriptor.setTitle("Select separately authorized v3 draft connection");
+        VirtualFile selected = FileChooser.chooseFile(descriptor, project, null);
+        if (selected == null || !goalRequestCurrent(project, generation, current)) return;
+        String connection = selected.getPath();
+        status.setText("reading selected desktop connection…");
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            if (!goalRequestCurrent(project, generation, current)) return;
+            Map<String, Object> catalog = PluginManager.parseCliGoalCatalog(
+                    AgentChatSession.runCapture(PluginManager.buildCliGoalCatalogArgs(null, connection), cwd, CLI_TIMEOUT_MS), null, connection);
+            ApplicationManager.getApplication().invokeLater(() -> {
+                if (!goalRequestCurrent(project, generation, current)) return;
+                if (catalog == null || ((List<?>) catalog.get("entries")).size() != 1 || catalog.get("nextCursor") != null) {
+                    status.setText("Desktop connection unavailable or expired"); return;
+                }
+                Map<?, ?> entry = asMap(((List<?>) catalog.get("entries")).get(0));
+                String id = String.valueOf(entry.get("id")), store = String.valueOf(catalog.get("storeId"));
+                if (receipt) lookupDraftReceipt(project, cwd, id, name, scope, store, connection, generation, current, status);
+                else chooseDraftSource(project, cwd, id, name, scope, store, connection, null, null,
+                        new java.util.HashSet<String>(), generation, current, status);
+            });
+        });
+    }
+
+    private static void chooseDraftSource(Project project, File cwd, String id, String name, String scope, String store,
+            String connection, String after, Map<String, Object> expected, java.util.Set<String> seen,
+            int generation, AtomicInteger current, JLabel status) {
+        if (!goalRequestCurrent(project, generation, current)) return;
+        final List<String> args;
+        try { args = PluginManager.buildCliGoalDraftSourcesArgs(id, name, scope, store, connection, after); }
+        catch (IllegalArgumentException error) { status.setText(error.getMessage()); return; }
+        status.setText("reading currently authorized native source IDs…");
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            if (!goalRequestCurrent(project, generation, current)) return;
+            Map<String, Object> page = PluginManager.parseCliGoalDraftSources(AgentChatSession.runCapture(args, cwd, CLI_TIMEOUT_MS), id, name, scope, store, expected);
+            ApplicationManager.getApplication().invokeLater(() -> {
+                if (!goalRequestCurrent(project, generation, current)) return;
+                if (page == null) { status.setText("Draft sources unavailable; select a v3 connection for this exact admitted plugin"); return; }
+                Map<?, ?> sources = asMap(page.get("sources"));
+                String next = sources.get("nextCursor") == null ? null : String.valueOf(sources.get("nextCursor"));
+                if (next != null && (seen.contains(next) || (after != null && next.compareTo(after) <= 0))) {
+                    status.setText("Draft source cursor did not advance"); return;
+                }
+                Map<String, String> ids = new LinkedHashMap<>();
+                for (Object value : (List<?>) sources.get("entries")) {
+                    Map<?, ?> row = asMap(value); String source = String.valueOf(row.get("id"));
+                    if (after != null && source.compareTo(after) <= 0) { status.setText("Draft source page did not advance"); return; }
+                    ids.put(source + " · task " + row.get("sourceTaskId") + " · review " + row.get("reviewId"), source);
+                }
+                List<String> choices = new ArrayList<>(ids.keySet());
+                String more = "Next source page…";
+                if (next != null) choices.add(more);
+                if (choices.isEmpty()) { status.setText("No current native description source is available"); return; }
+                String choice = ChoiceDialog.choose(project, "Choose native draft source",
+                        "Read-only native candidates; unavailable on this page: " + sources.get("unavailableCount"), choices, choices.get(0));
+                if (choice == null || !goalRequestCurrent(project, generation, current)) return;
+                if (more.equals(choice)) {
+                    seen.add(next);
+                    chooseDraftSource(project, cwd, id, name, scope, store, connection, next, page, seen, generation, current, status);
+                    return;
+                }
+                submitOnlineDraft(project, cwd, id, name, scope, store, connection, ids.get(choice), page, generation, current, status);
+            });
+        });
+    }
+
+    private static void submitOnlineDraft(Project project, File cwd, String id, String name, String scope, String store,
+            String connection, String source, Map<String, Object> expected, int generation, AtomicInteger current, JLabel status) {
+        String title = Messages.showInputDialog(project, "Pending suggestion title", "Send online draft", null);
+        if (title == null || !goalRequestCurrent(project, generation, current)) return;
+        com.intellij.openapi.fileChooser.FileChooserDescriptor descriptor = FileChooserDescriptorFactory.createSingleFileDescriptor();
+        descriptor.setTitle("Select proposed UTF-8 task description (at most 8192 bytes)");
+        VirtualFile description = FileChooser.chooseFile(descriptor, project, null);
+        if (description == null || !goalRequestCurrent(project, generation, current)) return;
+        String requestId = java.util.UUID.randomUUID().toString();
+        String record = saveDraftFile(project, "Save submission reference before sending",
+                "Choose a new file. Keep it to query unknown results; this file contains no connection credentials.", "goal-draft-submission-" + requestId + ".json");
+        if (record == null || !goalRequestCurrent(project, generation, current)) return;
+        final List<String> args;
+        try { args = PluginManager.buildCliGoalDraftSendArgs(id, name, scope, store, connection, source, requestId, title, description.getPath(), record); }
+        catch (IllegalArgumentException error) { status.setText(error.getMessage()); return; }
+        status.setText("saving pending suggestion; preserve reference " + record);
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            if (!goalRequestCurrent(project, generation, current)) return;
+            Map<String, Object> result = PluginManager.parseCliGoalDraftSubmission(AgentChatSession.runCapture(args, cwd, CLI_TIMEOUT_MS),
+                    id, name, scope, store, record, requestId, expected);
+            ApplicationManager.getApplication().invokeLater(() -> {
+                if (!goalRequestCurrent(project, generation, current)) return;
+                status.setText(result == null ? "Submission result unavailable; query the retained reference" : "Draft submission: " + result.get("state"));
+                showDraftResult(project, "Pending draft submission", result == null
+                        ? "Submission result unavailable. Keep the original reference: " + record + "\nRequest ID: " + requestId
+                            + "\nUse Look up draft receipt with that file. No automatic resend was performed; this does not establish whether a draft was saved."
+                        : PluginManager.formatCliGoalDraftSubmission(result));
+            });
+        });
+    }
+
+    private static void lookupDraftReceipt(Project project, File cwd, String id, String name, String scope, String store,
+            String connection, int generation, AtomicInteger current, JLabel status) {
+        com.intellij.openapi.fileChooser.FileChooserDescriptor descriptor = FileChooserDescriptorFactory.createSingleFileDescriptor("json");
+        descriptor.setTitle("Select the original draft submission reference");
+        VirtualFile selected = FileChooser.chooseFile(descriptor, project, null);
+        if (selected == null || !goalRequestCurrent(project, generation, current)) return;
+        String record = selected.getPath();
+        final List<String> args;
+        try { args = PluginManager.buildCliGoalDraftReceiptArgs(id, name, scope, store, connection, record); }
+        catch (IllegalArgumentException error) { status.setText(error.getMessage()); return; }
+        status.setText("querying submission receipt without resending…");
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            if (!goalRequestCurrent(project, generation, current)) return;
+            Map<String, Object> result = PluginManager.parseCliGoalDraftSubmission(AgentChatSession.runCapture(args, cwd, CLI_TIMEOUT_MS),
+                    id, name, scope, store, record, null, null);
+            ApplicationManager.getApplication().invokeLater(() -> {
+                if (!goalRequestCurrent(project, generation, current)) return;
+                status.setText(result == null ? "Receipt unavailable; keep the original reference" : "Draft receipt: " + result.get("state"));
+                showDraftResult(project, "Draft submission receipt", result == null
+                        ? "Receipt unavailable. Keep the original reference: " + record + "\nNo automatic resend was performed. Use a currently authorized connection for the same grant epoch."
+                        : PluginManager.formatCliGoalDraftSubmission(result));
+            });
+        });
+    }
+
+    private static void readGoalPanels(Project project, File cwd, String goalId, String name, String scope,
+            String expectedStore, int generation, AtomicInteger current, JLabel status) {
+        readGoalPanels(project, cwd, goalId, name, scope, expectedStore, generation, current, status, null);
+    }
+
+    private static void readGoalPanels(Project project, File cwd, String goalId, String name, String scope,
+            String expectedStore, int generation, AtomicInteger current, JLabel status, String connection) {
+        final List<String> args;
+        try { args = PluginManager.buildCliGoalPanelsArgs(goalId, name, scope, expectedStore, connection); }
+        catch (IllegalArgumentException error) {
+            Messages.showErrorDialog(project, error.getMessage(), "CLI Goal Panels");
+            return;
+        }
+        status.setText("reading CLI goal panels…");
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            String output = AgentChatSession.runCapture(args, cwd, CLI_TIMEOUT_MS);
+            Map<String, Object> result = PluginManager.parseCliGoalPanels(output, goalId, name, scope, expectedStore, connection);
+            ApplicationManager.getApplication().invokeLater(() -> {
+                if (!goalRequestCurrent(project, generation, current)) return;
+                status.setText(" ");
+                if (result == null) {
+                    Messages.showErrorDialog(project,
+                            "CLI goal panels unavailable; check the selected CLI and goal ID.", "CLI Goal Panels");
+                    return;
+                }
+                JTextArea text = new JTextArea(PluginManager.formatCliGoalPanels(result), 20, 80);
+                text.setEditable(false);
+                text.setLineWrap(true);
+                text.setWrapStyleWord(true);
+                text.setCaretPosition(0);
+                DialogBuilder snapshot = new DialogBuilder(project);
+                snapshot.setTitle("CLI Goal Snapshot");
+                snapshot.setCenterPanel(new JScrollPane(text));
+                snapshot.addOkAction().setText("Close");
+                snapshot.show();
+            });
+        });
     }
 
     private static JPanel tab(JList<String> list, JButton... buttons) {

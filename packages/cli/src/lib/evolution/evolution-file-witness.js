@@ -4,8 +4,7 @@ import path from "node:path";
 import { types } from "node:util";
 import { ensurePrivateDirectory, ensurePrivateFile } from "../secure-fs.js";
 import { withFileLock } from "../with-file-lock.js";
-import { readBoundedDescriptor } from "./bounded-descriptor-read.js";
-import { withEvolutionFileIdentity } from "./evolution-file-identity.js";
+import { createEvolutionPhysicalStateReader } from "./evolution-physical-state-reader.js";
 import {
   createEvolutionWitnessSegments,
   EVOLUTION_SEGMENTED_WITNESS_SCHEMA,
@@ -17,6 +16,8 @@ import {
 
 export const EVOLUTION_FILE_WITNESS_STORE_SCHEMA =
   "chainlesschain.evolution-file-witness-store/v1";
+export const EVOLUTION_WITNESS_STATE_READ_FAILED_CODE =
+  "CC_EVOLUTION_WITNESS_STATE_READ_FAILED";
 
 const WITNESS_DOMAIN = `${EVOLUTION_LEDGER_WITNESS_SCHEMA}\0`;
 const ANCESTRY_DOMAIN = `${EVOLUTION_LEDGER_WITNESS_ANCESTRY_SCHEMA}\0`;
@@ -247,6 +248,63 @@ export function createEvolutionFileWitness({
   }
   const secureOptions = { deps: { fs: fsImpl }, failIfUnavailable: true };
   ensurePrivateDirectory(directory, secureOptions);
+  const readerOptions = {
+    fsImpl,
+    maximumBytes,
+    minimumBytes: 2,
+    directoryMode: process.platform === "win32" ? null : 0o700n,
+    sizeError: "store size is invalid",
+    label: "witness",
+    errorCode: EVOLUTION_WITNESS_STATE_READ_FAILED_CODE,
+    readFailureMessage: "witness bounded read failed",
+  };
+  const rootReader = createEvolutionPhysicalStateReader({
+    ...readerOptions,
+    directoryPath: directory,
+  });
+  const segmentDirectory = `${target}.segments-v2`;
+  let segmentReader = null;
+  const captureSegments = () => {
+    rootReader.recheck();
+    segmentReader = createEvolutionPhysicalStateReader({
+      ...readerOptions,
+      label: "witness segment",
+      readFailureMessage: "witness segment bounded read failed",
+      directoryPath: segmentDirectory,
+    });
+    rootReader.recheck();
+    return segmentReader;
+  };
+  // A constructor may secure existing local storage. Read paths never create
+  // or repair a missing segment directory; first publication retains that job.
+  let existingSegments = false;
+  try {
+    fsImpl.lstatSync(segmentDirectory, { bigint: true });
+    existingSegments = true;
+  } catch (cause) {
+    if (cause?.code !== "ENOENT") throw cause;
+  }
+  if (existingSegments) {
+    ensurePrivateDirectory(segmentDirectory, secureOptions);
+    captureSegments();
+  }
+  const checkSegments = () => {
+    const reader = segmentReader ?? captureSegments();
+    rootReader.recheck();
+    reader.recheck();
+    return reader;
+  };
+  const prepareSegments = () => {
+    rootReader.recheck();
+    if (segmentReader !== null) return segmentReader.recheck();
+    ensurePrivateDirectory(segmentDirectory, secureOptions);
+    captureSegments();
+  };
+  const recheckStorage = () => {
+    rootReader.recheck();
+    segmentReader?.recheck();
+    rootReader.recheck();
+  };
   // Cache immutable encodings, never an authority decision. Keep the earliest
   // entries when full so full-history scans cannot churn the bounded cache.
   const recordEncodings = new Map();
@@ -587,67 +645,25 @@ export function createEvolutionFileWitness({
     return store;
   };
 
-  const readBytes = (file, byteLimit = maximumBytes) =>
-    withEvolutionFileIdentity(fsImpl, file, (samePathHandle) =>
-      readBytesWithIdentity(
-        file,
-        Math.min(maximumBytes, byteLimit),
-        samePathHandle,
-      ),
-    );
-
-  const readBytesWithIdentity = (file, byteLimit, samePathHandle) => {
-    ensurePrivateFile(file, secureOptions);
-    const stat = fsImpl.lstatSync(file);
-    if (
-      !stat.isFile() ||
-      stat.isSymbolicLink() ||
-      stat.nlink !== 1 ||
-      stat.size < 2 ||
-      stat.size > byteLimit
-    ) {
-      throw new Error("witness store size is invalid");
-    }
-    let descriptor;
-    const sameFile = (observed) =>
-      observed.isFile() &&
-      observed.nlink === 1 &&
-      observed.dev === stat.dev &&
-      observed.ino === stat.ino &&
-      observed.size === stat.size &&
-      observed.mtimeMs === stat.mtimeMs &&
-      observed.ctimeMs === stat.ctimeMs;
-    try {
-      descriptor = fsImpl.openSync(
-        file,
-        fsImpl.constants.O_RDONLY | (fsImpl.constants.O_NOFOLLOW || 0),
-      );
-      if (!samePathHandle(stat, fsImpl.fstatSync(descriptor))) {
-        throw new Error("witness store changed while opening");
-      }
-      const bytes = readBoundedDescriptor(
-        fsImpl,
-        descriptor,
-        stat.size,
-        byteLimit,
-      );
-      const afterPath = fsImpl.lstatSync(file);
-      if (
-        !samePathHandle(stat, fsImpl.fstatSync(descriptor)) ||
-        afterPath.isSymbolicLink() ||
-        !sameFile(afterPath)
-      ) {
-        throw new Error("witness store changed while reading");
-      }
-      return bytes;
-    } finally {
-      if (descriptor !== undefined) fsImpl.closeSync(descriptor);
-    }
+  const readBytes = (file, byteLimit = maximumBytes, allowAbsent = false) => {
+    recheckStorage();
+    const reader = file === target ? rootReader : checkSegments();
+    const bytes = reader.read(file, {
+      maximumBytes: byteLimit,
+      allowAbsent,
+      prepareFile: (name) => ensurePrivateFile(name, secureOptions),
+    });
+    recheckStorage();
+    return bytes;
   };
 
   const readStore = (options = {}) => {
-    if (!fsImpl.existsSync(target)) return emptyStore();
-    const bytes = readBytes(target, maximumHistoryBytes);
+    const bytes = readBytes(target, maximumHistoryBytes, true);
+    if (bytes === null) {
+      const store = emptyStore();
+      recheckStorage();
+      return store;
+    }
     const parsed = JSON.parse(
       new TextDecoder("utf-8", { fatal: true }).decode(bytes),
     );
@@ -660,7 +676,10 @@ export function createEvolutionFileWitness({
               headBytes: bytes.length,
             })
           : validateStore(parsed, trustEpoch);
-      if (trustEpoch === currentTrustEpoch()) return store;
+      if (trustEpoch === currentTrustEpoch()) {
+        recheckStorage();
+        return store;
+      }
     }
     throw new Error("witness verifier trust epoch changed while reading");
   };
@@ -716,6 +735,8 @@ export function createEvolutionFileWitness({
   const segments = createEvolutionWitnessSegments({
     filePath: target,
     fsImpl,
+    checkDirectory: checkSegments,
+    prepareDirectory: prepareSegments,
     readBytes,
     writeBytes,
     validateStore,
@@ -760,8 +781,10 @@ export function createEvolutionFileWitness({
     return store.current;
   };
 
-  const underLock = (operation) =>
-    lock(target, operation, { failIfUnavailable: true, _fs: fsImpl });
+  const underLock = (operation) => {
+    recheckStorage();
+    return lock(target, operation, { failIfUnavailable: true, _fs: fsImpl });
+  };
   const discarded = (store, snapshot) =>
     segments.isDiscarded(store, snapshot) ||
     store.discardedAnchors.some(

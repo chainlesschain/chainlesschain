@@ -4,6 +4,9 @@
 
 按评估日期排列；同名的早期报告以日期区分，原有正文保留。
 
+CLI / IDE 持续目标扩展的独立在线草稿连接、来源选择与未知结果查询，见 [Dots / Muse / Mods 实施进度](../agents/dots-muse-mods-implementation-progress-2026-10-07.md#cliide-在线待审草稿连接2026-10-18)。该能力仍为本地未发布实现。
+
+- [VERIFY-01：36+9 具体任务清单（火山引擎 v3）](./verify01-36-plus-9-task-list.md)
 - [对照 Claude Code CLI 的补齐与优化建议](./CLAUDE_CODE_CLI_GAP_ANALYSIS_2026-07-09.md)
 - [ChainlessChain CLI 对照 Claude Code CLI 差距与优化建议](./CLAUDE_CODE_CLI_GAP_ANALYSIS.md)
 - [ChainlessChain CLI 对照 Claude Code v2.1.207 增量差距分析](./CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md)

@@ -17,6 +17,7 @@
  */
 
 import fs from "fs";
+import { summarizeGoalExtension } from "./goal-extension-contract.js";
 import os from "os";
 import path from "path";
 import crypto from "node:crypto";
@@ -2115,6 +2116,7 @@ export function listInstalled(opts = {}) {
       scope: p.scope,
       dir: p.root,
       ok: p.manifest?.ok === true,
+      goalExtension: summarizeGoalExtension(p.manifest),
       enabled: p.enabled !== false,
       runtimeBlocked: p.runtimeBlocked === true,
       activePointer: {
@@ -3388,17 +3390,17 @@ function sameSourceAuthority(current, candidate) {
   if (current.type === "registry") {
     return Boolean(
       current.sourceDigest &&
-      candidate.sourceDigest &&
-      current.sourceDigest === candidate.sourceDigest &&
-      current.resolvedSourceDigest &&
-      candidate.resolvedSourceDigest &&
-      current.resolvedSourceDigest === candidate.resolvedSourceDigest,
+        candidate.sourceDigest &&
+        current.sourceDigest === candidate.sourceDigest &&
+        current.resolvedSourceDigest &&
+        candidate.resolvedSourceDigest &&
+        current.resolvedSourceDigest === candidate.resolvedSourceDigest,
     );
   }
   return Boolean(
     current.sourceDigest &&
-    candidate.sourceDigest &&
-    current.sourceDigest === candidate.sourceDigest,
+      candidate.sourceDigest &&
+      current.sourceDigest === candidate.sourceDigest,
   );
 }
 
@@ -3661,11 +3663,7 @@ function normalizeSourceMetadata(value) {
               value.resolvedSource,
               catalogAuthority.commandSource,
             )
-          : pluginSourceAuthorityDigest(
-              value.resolvedSource,
-              "git",
-              value.ref,
-            )
+          : pluginSourceAuthorityDigest(value.resolvedSource, "git", value.ref)
       : null);
   const policyDigest = normalizeSourceAuthorityDigest(value.policyDigest);
   if (resolvedSourceDigest) {
@@ -3998,8 +3996,8 @@ function assertCatalogRemoteArtifactBindings(metadata) {
   const expectedSignature = expectations.signature || {};
   const expectsRemoteSignature = Boolean(
     expectedSignature.url &&
-    expectedSignature.publicKeyUrl &&
-    expectedSignature.publicKeySha256,
+      expectedSignature.publicKeyUrl &&
+      expectedSignature.publicKeySha256,
   );
   if (expectsRemoteSignature !== Boolean(evidence.signature)) {
     throw new Error(
@@ -5628,9 +5626,9 @@ function samePointerState(left, right) {
   if (!left.present) return true;
   return Boolean(
     Buffer.isBuffer(left.bytes) &&
-    Buffer.isBuffer(right.bytes) &&
-    left.bytes.equals(right.bytes) &&
-    sameFileGeneration(left.generation, right.generation),
+      Buffer.isBuffer(right.bytes) &&
+      left.bytes.equals(right.bytes) &&
+      sameFileGeneration(left.generation, right.generation),
   );
 }
 
@@ -5668,9 +5666,9 @@ function sameLifecycleFileState(left, right) {
   if (!left.present) return true;
   return Boolean(
     Buffer.isBuffer(left.bytes) &&
-    Buffer.isBuffer(right.bytes) &&
-    left.bytes.equals(right.bytes) &&
-    sameFileGeneration(left.generation, right.generation),
+      Buffer.isBuffer(right.bytes) &&
+      left.bytes.equals(right.bytes) &&
+      sameFileGeneration(left.generation, right.generation),
   );
 }
 
@@ -5718,11 +5716,11 @@ function serializePluginNameState(state) {
 function samePluginNameState(left, right) {
   return Boolean(
     left &&
-    right &&
-    sameFileGeneration(left.generation, right.generation) &&
-    left.payloadDigest === right.payloadDigest &&
-    left.fileCount === right.fileCount &&
-    left.totalBytes === right.totalBytes,
+      right &&
+      sameFileGeneration(left.generation, right.generation) &&
+      left.payloadDigest === right.payloadDigest &&
+      left.fileCount === right.fileCount &&
+      left.totalBytes === right.totalBytes,
   );
 }
 
@@ -5745,8 +5743,8 @@ function lifecycleFileContentMatches(left, right) {
   if (!left.present) return true;
   return Boolean(
     Buffer.isBuffer(left.bytes) &&
-    Buffer.isBuffer(right.bytes) &&
-    left.bytes.equals(right.bytes),
+      Buffer.isBuffer(right.bytes) &&
+      left.bytes.equals(right.bytes),
   );
 }
 
@@ -5812,7 +5810,9 @@ function hasRetainedLifecycleRecovery(nameDir) {
 function authoritativeTransactionCleanupPending(cleanup) {
   return Boolean(
     cleanup?.cleanupPending === true &&
-    /^\.(?:install|uninstall)-/u.test(path.basename(cleanup.cleanupPath || "")),
+      /^\.(?:install|uninstall)-/u.test(
+        path.basename(cleanup.cleanupPath || ""),
+      ),
   );
 }
 
@@ -5902,22 +5902,22 @@ function fileGeneration(stat) {
 function sameFileGeneration(left, right) {
   return Boolean(
     left &&
-    right &&
-    left.dev === right.dev &&
-    left.ino === right.ino &&
-    left.birthtimeMs === right.birthtimeMs &&
-    left.mtimeMs === right.mtimeMs &&
-    left.size === right.size,
+      right &&
+      left.dev === right.dev &&
+      left.ino === right.ino &&
+      left.birthtimeMs === right.birthtimeMs &&
+      left.mtimeMs === right.mtimeMs &&
+      left.size === right.size,
   );
 }
 
 function sameInstalledVersionState(left, right) {
   return Boolean(
     left &&
-    right &&
-    sameFileGeneration(left.generation, right.generation) &&
-    left.payloadDigest === right.payloadDigest &&
-    left.sourceDigest === right.sourceDigest,
+      right &&
+      sameFileGeneration(left.generation, right.generation) &&
+      left.payloadDigest === right.payloadDigest &&
+      left.sourceDigest === right.sourceDigest,
   );
 }
 
@@ -5999,8 +5999,8 @@ function activePointerMatchesSnapshot(transaction) {
   if (!snapshot.present) return true;
   return Boolean(
     Buffer.isBuffer(current.bytes) &&
-    Buffer.isBuffer(snapshot.bytes) &&
-    current.bytes.equals(snapshot.bytes),
+      Buffer.isBuffer(snapshot.bytes) &&
+      current.bytes.equals(snapshot.bytes),
   );
 }
 

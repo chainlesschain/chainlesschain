@@ -116,3 +116,93 @@ See the [project task workbench guide](../../docs/research/palantir/project-task
 ```bash
 npm test --workspace packages/session-core
 ```
+
+The working tree also exports `./goal-extension-proposal-contract` and
+`./project-goal-extension-queue`. The shared proposal contract maps SDK
+`task.description.update` to native `task.update-description` explicitly.
+`ProjectGoalExtensionQueue` requires a trusted native `ProjectGoalWorkflow` and a
+synchronous live admission callback. It stores pending suggestions, binding the
+current actor, goal revision/control generation, native risk proposal and exact
+review digest. Repeated request IDs replay the same draft; changed input conflicts.
+Reads recheck source and admission, including after disable/re-enable.
+
+Trusted hosts can call `prepareDraft({ id })` to bind a persisted draft to one
+immutable conversion, native request and intent ID. Reopening after a crash or
+retrying a lost response resumes those IDs. Native preview, explicit approval
+and action evidence retain the exact draft/conversion digests in `extensionRef`.
+Install a synchronous `verifyExtensionIntent` callback on `ProjectGoalWorkflow`
+and delegate it to `queue.verifyIntentInTransaction(context)` before use; missing
+or asynchronous verifiers cannot admit converted work. Ordinary intent APIs also
+recheck current grants and source for pending work. Existing running/terminal
+receipts remain readable after revocation without executing again.
+
+The adapter currently accepts description suggestions only: `task.create` still
+needs a task-type contract. Plugins receive only the pending enqueue port; the
+queue has no execution port. Native descriptions are limited to 8192 UTF-8 bytes
+before conversion; conversion records are limited to 8 KiB.
+Storage is bounded to 100 drafts per actor/goal/plugin, 48 KiB per record and 20
+candidates per page. The desktop's fixed built-in rule uses a separate native
+consent namespace; it does not establish CLI plugin trust or a live CLI project
+connection. These exports require a corresponding Session Core child release
+before downstream CLI or desktop distribution.
+
+The working tree also exports `./project-goal-evidence-reader` and
+`./goal-evidence-contract`. `ProjectGoalEvidenceReader({ db, getActor, clock })`
+offers `readSummary(goalRef)` and `read(goalRef)` for an exact active personal
+project goal. It reuses native goal, risk-check and action-receipt integrity
+validators through an internal read-only SQLite facade. Native statement
+`readonly`/`reader` flags are required; only deferred read transactions run.
+Construction and reads never initialize schemas, recover actions or settle usage.
+
+Evidence contains the newest persisted check (including incomplete results) and
+the last 20 real action receipts ordered by native run insertion, with `hasMore`.
+Recent drafts cannot hide receipts. Missing stores remain unavailable, unknown
+risk remains null, and running actions remain unresolved. Projections contain
+bounded metadata only, explicitly historical, with no task bodies or approvals.
+The shared contract strictly validates fields and formats bounded plaintext.
+Hosts must still provide current authenticated identity and explicit evidence
+consent; the desktop uses a distinct capability-bound connection rather than
+expanding an existing summary lease. These exports are not yet published.
+
+`./goal-draft-request-contract` and `./project-goal-draft-imports` add explicit
+offline request handoff. The strict envelope contains a declared plugin label,
+declaration digest and exact versioned description proposal, with a 16 KiB total
+and 8192 UTF-8 byte description limit. Neither digest authenticates plugin code.
+`ProjectGoalDraftImports` requires a trusted native workflow and confirmation
+callback. It binds each adoption to the current native actor, source and exact
+payload; the queue uses a fixed native importer identity with `user-edited`
+origin. Metadata cannot select a privileged plugin or grant.
+
+Adoption and pending draft insertion share one native immediate transaction via
+the queue's trusted `enqueueInTransaction` composition entry. Reimport is
+idempotent, conflicting payloads are rejected, and lost responses/restarts reuse
+the same persisted identity. Revocation advances the per-record epoch and cannot
+be undone by importing again. Pending conversion/execution verifies the exact
+adoption payload and epoch; completed history stays available. Native hosts must
+route verified imported drafts to this verifier and preserve the ordinary native
+preview/approval flow. The desktop provides explicit import/list/read/prepare/
+revoke endpoints; no online write authority is added to existing read leases.
+
+`./goal-draft-connection-contract` and `./project-goal-external-drafts` add the
+independent v3 online pending-draft capability. `ProjectGoalExternalDrafts`
+requires a native `ProjectGoalWorkflow`; only the trusted host may call
+`grant({ goalRef, access, expectedEpoch })` after native consent. Grants persist
+across disconnect/restart and bind actor/store/project/goal/full plugin identity,
+declaration digest and epoch. CAS prevents delayed consent from undoing revoke.
+Revocation invalidates old pending drafts and converted intents, while completed
+action history remains readable under existing business permissions.
+
+`sourcePage` scans at most 20 native proposal IDs with unavailable counts.
+`enqueue` inserts pending drafts only, atomically and idempotently; current native
+source and authorization checks still apply. `submissionReceipt` validates exact
+request/digest and current grant epoch without requiring the source to remain
+fresh. These read operations use deferred transactions and support SQLite
+`query_only`; writes use immediate transactions. Unknown/corrupt evidence fails.
+Native list/read/prepare methods continue the existing conversion and action
+workflow; no HTTP caller receives prepare, approval or execute authority.
+
+The contract also validates body-free, credential-free submission references.
+Clients must persist the exact request identity before dispatch and reconcile
+unknown outcomes without automatic resend. Metadata hashes ensure consistency,
+not plugin code authentication. These exports remain unpublished; downstream
+distribution requires a corresponding child-package release first.

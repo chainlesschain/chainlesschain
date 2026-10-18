@@ -45,6 +45,7 @@ export function loadManagedPluginPolicy(opts = {}) {
   const key = String(
     opts.managedSettingsFile || env.CC_MANAGED_SETTINGS || "<default>",
   );
+  if (opts.fresh === true) _cache.delete(key);
   if (_cache.has(key)) {
     const cached = _cache.get(key);
     // A cached failure sentinel must re-throw on EVERY call — otherwise the

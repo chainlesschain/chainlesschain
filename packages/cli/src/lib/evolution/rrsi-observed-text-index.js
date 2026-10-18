@@ -2,7 +2,10 @@
 import { createHash } from "node:crypto";
 import { isProxy } from "node:util/types";
 import { captureRrsiRegistryStorePolicy } from "./rrsi-registry-store-policy.js";
-import { captureEvolutionLedgerFileBackend } from "./evolution-ledger-file-backend.js";
+import {
+  captureEvolutionLedgerFileBackend,
+  captureEvolutionLedgerFileBackendSourceDirectoryBoundary,
+} from "./evolution-ledger-file-backend.js";
 import {
   EvolutionArtifactPorts,
   EVOLUTION_DURABLE_ARTIFACT_RECORD_SCHEMA,
@@ -172,6 +175,12 @@ export function createRrsiObservedTextIndex(input) {
   )
     hold("text index requires the original policy storage graph");
   const ledger = backend.ledger;
+  const sourceJournalBoundary =
+    captureEvolutionLedgerFileBackendSourceDirectoryBoundary(backend);
+  const sourceJournalDirectoryBoundaryDigest = rrsiHash(
+    "chainlesschain.rrsi-source-journal-directory-boundary/v1",
+    sourceJournalBoundary.descriptor,
+  );
   const artifactBoundary = captureEvolutionArtifactStoreDirectoryBoundary(
     options.artifactPorts,
   );
@@ -597,6 +606,7 @@ export function createRrsiObservedTextIndex(input) {
       hold("preparation declaration reference differs");
   }
   function load() {
+    sourceJournalBoundary.recheck();
     artifactBoundary.recheck();
     const before = head(methods.verify());
     if (!same(identity(before), originalIdentity))
@@ -683,6 +693,7 @@ export function createRrsiObservedTextIndex(input) {
     if (!same(before, head(methods.verify())))
       hold("text index journal changed during authenticated readback");
     artifactBoundary.recheck();
+    sourceJournalBoundary.recheck();
     return { head: before, events, records, entries, operations };
   }
   function historyPrefix(state, checkpoint) {
@@ -778,6 +789,9 @@ export function createRrsiObservedTextIndex(input) {
         artifactStoreDirectoryBoundaryDigest,
         artifactStoreDirectoryBoundaryRechecked: true,
         artifactStoreBoundaryScope: "root-and-files-directories",
+        sourceJournalDirectoryBoundaryDigest,
+        sourceJournalDirectoryBoundaryRechecked: true,
+        sourceJournalBoundaryScope: "source-journal-four-directories",
         fullPhysicalStorageGraphVerified: false,
         tenantWideIndexAuthorityVerified: false,
         generationProvenanceVerified: false,
@@ -787,10 +801,12 @@ export function createRrsiObservedTextIndex(input) {
     );
     const recheck = () =>
       guarded(() => {
+        sourceJournalBoundary.recheck();
         artifactBoundary.recheck();
         if (!same(state.head, head(methods.verify())))
           hold("observed history head changed after prefix capture");
         artifactBoundary.recheck();
+        sourceJournalBoundary.recheck();
         return true;
       });
     recheck();

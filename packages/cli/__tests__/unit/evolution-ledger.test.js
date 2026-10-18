@@ -84,23 +84,23 @@ function signingPorts() {
     verifySignature: vi.fn(({ message, signature, trust }) =>
       Boolean(
         trust.algorithm === TRUST.algorithm &&
-        trust.keyId === TRUST.keyId &&
-        trust.trustPolicyDigest === TRUST.trustPolicyDigest &&
-        signature.algorithm === TRUST.algorithm &&
-        signature.keyId === TRUST.keyId &&
-        signature.trustPolicyDigest === TRUST.trustPolicyDigest &&
-        signature.value === hmac(message),
+          trust.keyId === TRUST.keyId &&
+          trust.trustPolicyDigest === TRUST.trustPolicyDigest &&
+          signature.algorithm === TRUST.algorithm &&
+          signature.keyId === TRUST.keyId &&
+          signature.trustPolicyDigest === TRUST.trustPolicyDigest &&
+          signature.value === hmac(message),
       ),
     ),
     verifyWitnessSignature: vi.fn(({ message, signature, trust }) =>
       Boolean(
         trust.algorithm === WITNESS_TRUST.algorithm &&
-        trust.keyId === WITNESS_TRUST.keyId &&
-        trust.trustPolicyDigest === WITNESS_TRUST.trustPolicyDigest &&
-        signature.algorithm === WITNESS_TRUST.algorithm &&
-        signature.keyId === WITNESS_TRUST.keyId &&
-        signature.trustPolicyDigest === WITNESS_TRUST.trustPolicyDigest &&
-        signature.value === witnessHmac(message),
+          trust.keyId === WITNESS_TRUST.keyId &&
+          trust.trustPolicyDigest === WITNESS_TRUST.trustPolicyDigest &&
+          signature.algorithm === WITNESS_TRUST.algorithm &&
+          signature.keyId === WITNESS_TRUST.keyId &&
+          signature.trustPolicyDigest === WITNESS_TRUST.trustPolicyDigest &&
+          signature.value === witnessHmac(message),
       ),
     ),
   };
@@ -1050,8 +1050,9 @@ function incarnationBlindFilesystem() {
       );
       return new Proxy(stat, {
         get(object, property, receiver) {
-          if (property === "dev") return 4242;
-          if (property === "ino") return stableInode;
+          if (property === "dev") return options?.bigint ? 4242n : 4242;
+          if (property === "ino")
+            return options?.bigint ? BigInt(stableInode) : stableInode;
           return Reflect.get(object, property, receiver);
         },
       });
