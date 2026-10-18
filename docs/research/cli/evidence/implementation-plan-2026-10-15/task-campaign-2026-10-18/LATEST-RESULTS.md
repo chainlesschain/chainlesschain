@@ -104,6 +104,10 @@ python -X utf8 packages/cli/scripts/verify01-package-native-deliveries.py --roun
 
 收集器和归档读取器只读取已有任务；严格完整验收后才能把轮次及摘要显式加入 `next-package-round-chain.json`。交付包工具默认预览，确认链尾轮次后添加 `--pack` 才在共享 `.work/accepted-round-exports/` 创建独立包；原 25 项产物和收据按字节复用，原包不覆盖。原子创建交付目录目前限 Windows。以上工具及记录属于评测分支，发行源码仍固定 `d4065008bb`。
 
+派发器现支持 `--submit --max-new-dispatches 2`，每次最多提交两个尚未请求的分片。只有等待本批生成结束后再提交下一批，才能减少同时执行量；全部批次必须保持同一已提交计划及评测 HEAD，未解析 intent 仍须先只读解析。只有全部分片完整绑定后才创建正式账本。19 项派发回归通过，见[验证记录](./next-release-validation/native-dispatch-batch-validation.json)；未调用模型、未改变请求预算或验收规则，并发也未被确定为此前网络失败的原因。
+
+公开回读入口已保存为 `packages/cli/scripts/verify-public-cli.py`、`verify-public-vscode.py` 和 `verify-public-package-set.py`。它们要求显式完整产品 SHA、新 manifest 及前轮 manifest，按 CLI → VS Code → 三包清单依序复验；版本从固定 Git 对象读取，最终清单使用独占创建。7 项离线回归通过；源码绑定见[记录](./next-release-validation/public-readback-generic-tool-git-binding.json)。
+
 ## 持续修复与发布要求
 
 评测隔离修复已提交并推送为 `04d48ca7fe`。零模型恢复检查 [`39108779712`](https://github.com/chainlesschain/chainlesschain/actions/runs/39108779712) 固定该提交并使用公开 `.167`，已结束失败；它与原失败 `39107288123` 均保留。后续工具严格从明确选择的公开 manifest 派生插件版本、ZIP 摘要和大小，保留公开批准、安装树、正文唯一及重启身份检查；Linux **8/8**、Windows **7 通过 / 1 平台跳过**，UI Java 编译通过。没有对旧 `.167` 再次派发。13 个真实任务分片仍固定原评测来源 `a48e13fc30`，没有重新派发。

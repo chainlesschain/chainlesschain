@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "status": "DISPATCH_REQUEST_ACCEPTED",
+  "sourceCommit": "2ceaa8421901fbdc68bec4d4c2395f6af089602d",
+  "workflow": "cli-windows-diagnostics.yml",
+  "ref": "feature/windows-acl-startup-diagnostics-20261018",
+  "inputs": {
+    "acl_progress_only": true,
+    "run_parent_worker": false
+  },
+  "createdAt": "2026-10-18T08:43:23.555397+00:00",
+  "modelCalls": 0,
+  "releaseGate": false,
+  "taskAcceptance": false,
+  "clientExitCode": 0,
+  "clientOutput": "",
+  "runId": "39112546523",
+  "runUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/39112546523",
+  "bindingStatus": "UNIQUE_EXACT_SOURCE_RUN_BOUND"
+}
