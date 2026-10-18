@@ -1,3 +1,21 @@
+# 当前组件发布状态：JetBrains 已上传，待商店审核/上架
+
+产品修复 [PR #462](https://github.com/chainlesschain/chainlesschain/pull/462) 已于 **2026-10-18 13:59:50 UTC** 合并，merge commit 为 `38756541a6da5515908ee5b1807ef0b8e8c2ec5c`；发行标签继续固定在原发行提交 `dca47fd91a209642b6536afd5bc9e99ec74c7d06`，没有移动。PR 合并不改变 `.168` 尚未公开的状态。
+
+JetBrains **0.4.168** 的[正式发行流程 39131605961](https://github.com/chainlesschain/chainlesschain/actions/runs/39131605961) 已 `completed/success`：**13** 个任务成功，包含 **6** 个真实宿主任务，Marketplace 上传步骤成功。但发布后核验的实际结果为 **`pending / version-not-visible / 12 attempts`**，保存的公开 API 响应仍无 `.168`；绿色工作流不表示商店已经公开。原始官方记录、商店日志/API 以及官方插件制品见[JetBrains 上传与待审核证据](./next-release-validation/followup-106-jetbrains-upload-final-review.json)。
+
+| 组件 | 版本 | 当前状态 |
+| --- | --- | --- |
+| CLI | 0.166.106 | npm 已发布并公开核验 |
+| VS Code | 0.37.151 | Open VSX 已发布并公开核验；微软 Marketplace 未核验 |
+| JetBrains | 0.4.168 | 已上传，待商店审核/上架，尚未公开核验 |
+
+官方 GitHub 制品 **12139490322** 已下载归档并核对摘要，未执行；它不替代获批的公开商店 ZIP。全套 `published` 仍为 **false**，累计 **31/45** 不变，剩余 **14** 项尚未补测，新版三包 manifest 未创建，`verify-33` 的 `.168` 归档回复恢复检查未运行。31 项合格产物和旧失败证据均保留；本次没有重新下载公开包、运行测试或调用模型。
+
+以下保留此前进度原文；旧状态对应当时观察。
+
+---
+
 # 当前组件发布状态：CLI 与 VS Code 已公开核验
 
 VS Code **0.37.151** 的[正式发布流程 39131607926](https://github.com/chainlesschain/chainlesschain/actions/runs/39131607926) 已 `completed/success`，**11** 个必需任务成功；独立回读状态为 `VERIFIED_PUBLIC_VSCODE_ONLY`，Open VSX 公开 VSIX 与官方 candidate **12138485629** 字节完全一致，绑定发行提交 `dca47fd91a209642b6536afd5bc9e99ec74c7d06`，推荐 CLI **0.166.106**。全部既有原始证据和最终官方记录见[VS Code 发布归档](./next-release-validation/followup-106-vscode-publication-final-review.json)。

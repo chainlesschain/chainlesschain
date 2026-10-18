@@ -1,7 +1,7 @@
 {
   "schema": "chainlesschain.task-quality-next-version-preparation/v1",
   "recordedAt": "2026-10-18T08:16:55.683049+00:00",
-  "status": "CLI_VSCODE_PUBLIC_VERIFIED_JETBRAINS_PUBLICATION_PENDING",
+  "status": "CLI_VSCODE_PUBLIC_VERIFIED_JETBRAINS_UPLOADED_MARKETPLACE_PENDING",
   "billingAssessed": false,
   "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
   "pullRequest": "https://github.com/chainlesschain/chainlesschain/pull/462",
@@ -46,10 +46,11 @@
     "next-release-validation/followup-106-dca47-evidence-review.json",
     "next-release-validation/followup-106-cli-publication-final-review.json",
     "next-release-validation/followup-106-cli-publication-final-ide-tag-resolution.json",
-    "next-release-validation/followup-106-vscode-publication-final-review.json"
+    "next-release-validation/followup-106-vscode-publication-final-review.json",
+    "next-release-validation/followup-106-jetbrains-upload-final-review.json"
   ],
   "remaining": [
-    "Complete official fixed-SHA tag publication and public verification for JetBrains 0.4.168; CLI 0.166.106 and VS Code/Open VSX 0.37.151 are already publicly byte-verified. Microsoft Marketplace publication remains unverified.",
+    "Wait for JetBrains Marketplace approval/listing of 0.4.168, then publicly download and verify the approved plugin bytes. Official upload succeeded; the public API still omits this version. CLI/npm and VS Code/Open VSX are publicly verified; Microsoft Marketplace remains unverified.",
     "Create a strict public package manifest and retest only the remaining 14 sample IDs, reusing all 31 accepted deliverables.",
     "Run the existing archived-reply zero-model recovery against the new approved public .168 ZIP.",
     "Diagnose Windows ACL traversal/verify timeouts without weakening protection; Java lifecycle tests and the separate 2ceaa diagnostic run do not establish the native timeout root cause."
@@ -67,7 +68,7 @@
     "reusedAcceptedDeliverables": 25,
     "cumulativeAcceptedDeliverables": 26
   },
-  "updatedAt": "2026-10-18T13:52:34.619789+00:00",
+  "updatedAt": "2026-10-18T14:01:26.370878+00:00",
   "supersededSourceCommits": [
     "e01eb3a92212a69140559d8ec304ddd0dce99274",
     "52f882ffa891f0683120eff6399701378a617ae7",
@@ -332,25 +333,41 @@
     "jetbrains": {
       "version": "0.4.168",
       "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
-      "status": "OFFICIAL_RELEASE_IN_PROGRESS_PENDING_PUBLIC_VERIFICATION",
+      "status": "UPLOADED_MARKETPLACE_APPROVAL_OR_LISTING_PENDING",
       "published": false,
       "publicVerified": false,
       "runId": 39131605961,
       "tag": "ide-jetbrains-v0.4.168",
       "hostJobsPassed": 6,
-      "buildJobStatus": "in_progress",
+      "buildJobStatus": "completed",
       "latestOfficialObservation": {
-        "path": "followup-106-vscode-publication-final-jetbrains-progress-39131605961.json.gz",
-        "source": "Single official JetBrains progress observation; no public availability claim",
-        "originalDigest": "sha256:8176a40ee64aa748787d5c2f07b83dbed3eebb83a3d878669271e138bfa5e9b0",
-        "storedDigest": "sha256:6f38531a5638a7f80929452aa5cd9a67d6a85fab251d279a90b9fa7a68113e0b",
-        "originalBytes": 39433,
-        "storedBytes": 3173
-      }
+        "path": "followup-106-jetbrains-upload-final-official-run-39131605961.json.gz",
+        "source": "Official final GitHub run metadata and latest jobs",
+        "originalDigest": "sha256:2caf481ad93f764ba792c15c37bdc9436d580da9ecb72a24dfd998487bfebb37",
+        "storedDigest": "sha256:d19dcd655b50a41866303897383ec37dd5ce21e533a8e301e81b3eaa5abb772b",
+        "originalBytes": 41130,
+        "storedBytes": 3306
+      },
+      "uploaded": true,
+      "workflowStatus": "completed",
+      "workflowConclusion": "success",
+      "requiredJobsPassed": 13,
+      "marketplaceStatus": {
+        "channel": "jetbrains",
+        "endpoint": "https://plugins.jetbrains.com/api/plugins/32208/updates",
+        "status": "pending",
+        "version": "0.4.168",
+        "approve": null,
+        "listed": null,
+        "hidden": null,
+        "reason": "version-not-visible",
+        "attempts": 12
+      },
+      "review": "next-release-validation/followup-106-jetbrains-upload-final-review.json"
     }
   },
   "idePublication": {
-    "status": "VSCODE_OPEN_VSX_PUBLIC_VERIFIED_JETBRAINS_PENDING",
+    "status": "VSCODE_OPEN_VSX_PUBLIC_VERIFIED_JETBRAINS_UPLOADED_PENDING_MARKETPLACE",
     "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
     "publicVerified": false,
     "resolutionEvidence": "next-release-validation/followup-106-cli-publication-final-ide-tag-resolution.json",
@@ -391,8 +408,8 @@
         "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
         "tag": "ide-jetbrains-v0.4.168",
         "event": "push",
-        "workflowStatus": "in_progress",
-        "workflowConclusion": "",
+        "workflowStatus": "completed",
+        "workflowConclusion": "success",
         "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39131605961",
         "publicVerified": false,
         "archive": {
@@ -404,15 +421,28 @@
           "storedBytes": 2175
         },
         "hostJobsPassed": 6,
-        "buildJobStatus": "in_progress",
+        "buildJobStatus": "completed",
         "latestOfficialRun": {
-          "path": "followup-106-vscode-publication-final-jetbrains-progress-39131605961.json.gz",
-          "source": "Single official JetBrains progress observation; no public availability claim",
-          "originalDigest": "sha256:8176a40ee64aa748787d5c2f07b83dbed3eebb83a3d878669271e138bfa5e9b0",
-          "storedDigest": "sha256:6f38531a5638a7f80929452aa5cd9a67d6a85fab251d279a90b9fa7a68113e0b",
-          "originalBytes": 39433,
-          "storedBytes": 3173
-        }
+          "path": "followup-106-jetbrains-upload-final-official-run-39131605961.json.gz",
+          "source": "Official final GitHub run metadata and latest jobs",
+          "originalDigest": "sha256:2caf481ad93f764ba792c15c37bdc9436d580da9ecb72a24dfd998487bfebb37",
+          "storedDigest": "sha256:d19dcd655b50a41866303897383ec37dd5ce21e533a8e301e81b3eaa5abb772b",
+          "originalBytes": 41130,
+          "storedBytes": 3306
+        },
+        "uploadSucceeded": true,
+        "marketplaceStatus": {
+          "channel": "jetbrains",
+          "endpoint": "https://plugins.jetbrains.com/api/plugins/32208/updates",
+          "status": "pending",
+          "version": "0.4.168",
+          "approve": null,
+          "listed": null,
+          "hidden": null,
+          "reason": "version-not-visible",
+          "attempts": 12
+        },
+        "uploadReview": "next-release-validation/followup-106-jetbrains-upload-final-review.json"
       }
     ]
   },
@@ -443,5 +473,68 @@
       "storedBytes": 3245
     },
     "review": "next-release-validation/followup-106-vscode-publication-final-review.json"
+  },
+  "jetbrainsPublication": {
+    "version": "0.4.168",
+    "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+    "tag": "ide-jetbrains-v0.4.168",
+    "runId": 39131605961,
+    "status": "UPLOADED_MARKETPLACE_APPROVAL_OR_LISTING_PENDING",
+    "workflowStatus": "completed",
+    "workflowConclusion": "success",
+    "requiredJobsPassed": 13,
+    "hostJobsPassed": 6,
+    "uploadSucceeded": true,
+    "published": false,
+    "publicVerified": false,
+    "marketplaceStatus": {
+      "channel": "jetbrains",
+      "endpoint": "https://plugins.jetbrains.com/api/plugins/32208/updates",
+      "status": "pending",
+      "version": "0.4.168",
+      "approve": null,
+      "listed": null,
+      "hidden": null,
+      "reason": "version-not-visible",
+      "attempts": 12
+    },
+    "officialArtifactId": 12139490322,
+    "officialArtifactDigest": "sha256:97175bd14f5f0bb57588e968680a64da454b92a7a45c09c471678267bdce7033",
+    "officialArtifactIsPublicMarketplaceReceipt": false,
+    "finalOfficialRun": {
+      "path": "followup-106-jetbrains-upload-final-official-run-39131605961.json.gz",
+      "source": "Official final GitHub run metadata and latest jobs",
+      "originalDigest": "sha256:2caf481ad93f764ba792c15c37bdc9436d580da9ecb72a24dfd998487bfebb37",
+      "storedDigest": "sha256:d19dcd655b50a41866303897383ec37dd5ce21e533a8e301e81b3eaa5abb772b",
+      "originalBytes": 41130,
+      "storedBytes": 3306
+    },
+    "review": "next-release-validation/followup-106-jetbrains-upload-final-review.json"
+  },
+  "nextVersionValidation": {
+    "remainingRetestStatus": "NOT_RUN",
+    "remainingSamples": 14,
+    "threePackageManifestCreated": false,
+    "archivedReplyVerify33RecoveryStatus": "NOT_RUN_ON_0.4.168",
+    "acceptedDeliverablesRetained": 31,
+    "requiresPublicJetbrainsArtifact": true
+  },
+  "productMerge": {
+    "pullRequest": 462,
+    "url": "https://github.com/chainlesschain/chainlesschain/pull/462",
+    "state": "MERGED",
+    "mergedAt": "2026-10-18T13:59:50Z",
+    "mergeCommit": "38756541a6da5515908ee5b1807ef0b8e8c2ec5c",
+    "mergedHeadCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+    "releaseSourceCommitUnchanged": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+    "releaseTagsMoved": false,
+    "archive": {
+      "path": "followup-106-jetbrains-upload-final-product-pr-462-merged.json.gz",
+      "source": "Official gh pr view 462 final merge metadata",
+      "originalDigest": "sha256:7853a27a43c5e8e120682e816a9ca73a68f394abff5cfec2ff1ccbfc948953ba",
+      "storedDigest": "sha256:fbb2b12e12a3e4b454a521856891e304ce601858a84de4661d275713bce7e7b5",
+      "originalBytes": 274,
+      "storedBytes": 227
+    }
   }
 }
