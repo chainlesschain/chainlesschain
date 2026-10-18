@@ -25,13 +25,15 @@ jobs:
     env:
       GRADLE_USER_HOME: ${{ github.workspace }}/.gradle-archived-reply
       REPLAY_VERSIONS_FILE: ${{ inputs.versions_file }}
-      REPLAY_OUTPUT: ${{ runner.temp }}/verify-33-archived-recovery
-      REPLAY_ZIP: ${{ runner.temp }}/chainlesschain-jetbrains.zip
     steps:
       - uses: actions/checkout@v5
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
+      - name: Set isolated replay paths
+        run: |
+          echo "REPLAY_OUTPUT=$RUNNER_TEMP/verify-33-archived-recovery" >> "$GITHUB_ENV"
+          echo "REPLAY_ZIP=$RUNNER_TEMP/chainlesschain-jetbrains.zip" >> "$GITHUB_ENV"
       - uses: actions/setup-node@v5
         with:
           node-version: "22.12.0"
