@@ -5,7 +5,8 @@
   "userDecisions": [
     "不合格的需要代码优化 下一个版本进行补测",
     "需要发布新的cli或ide插件的下一个版本再测试",
-    "记得把结论记录起来"
+    "记得把结论记录起来",
+    "可以先发布后合并"
   ],
   "releaseAuthorized": true,
   "billingAssessed": false,
@@ -106,12 +107,12 @@
       {
         "name": "IDE ARM64 Host Validation",
         "runId": 39095758682,
-        "status": "queued",
-        "conclusion": ""
+        "status": "completed",
+        "conclusion": "success"
       }
     ],
     "supersededChecksCancelled": true,
-    "remoteChecksObservedAt": "2026-10-18T04:33:39.433560+00:00",
+    "remoteChecksObservedAt": "2026-10-18T04:42:09.121485+00:00",
     "resolvedGateFailures": [
       {
         "workflow": "Docs-Site Build Gate",
@@ -179,7 +180,28 @@
       "runtimeCodeChanged": false,
       "priorSourceSuccessesNotUsedAsNewExactSHAGates": true,
       "requiresNewFullMatrices": true
-    }
+    },
+    "publishBeforeMergeAuthorized": true,
+    "releaseTagsTargetExactVerifiedCommit": true,
+    "mergeAfterPublicationSubjectToBranchProtection": true,
+    "currentCandidateGateEvidence": [
+      {
+        "name": "IDE ARM64 Host Validation",
+        "runId": 39095758682,
+        "status": "completed",
+        "conclusion": "success",
+        "sourceCommit": "d4065008bb4eff84cfc09f9361f4ae4e9de2140f",
+        "jobCount": 10,
+        "jobConclusions": {
+          "success": 10
+        },
+        "archive": {
+          "path": "next-release-validation/ide-arm64-d4065008bb.json.gz",
+          "storedDigest": "sha256:5dafc6cec0e65510cad8205c0587bbbc2f914f2eb11bbe831dfb9cc6ba855151",
+          "originalDigest": "sha256:3239acc205472c62b417405582ce86c72fb68aaabf67fd1f8ce84382a0ea5efd"
+        }
+      }
+    ]
   },
   "retestPolicy": {
     "newPublishedVersionsRequired": true,
