@@ -7,6 +7,7 @@ on:
       - packages/session-core/lib/private-storage.js
       - packages/cli/src/lib/execution-location-failure-site.js
       - packages/cli/scripts/windows-acl-progress-probe.mjs
+      - packages/cli/scripts/windows-acl-diagnostic-mode.mjs
       - packages/cli/test-node/windows-acl-progress.node-test.mjs
   workflow_dispatch:
     inputs:
@@ -24,15 +25,23 @@ concurrency:
 
 jobs:
   native-acl:
-    name: "Windows ACL cold profile ${{ matrix.sample }} (not a release gate)"
+    name: "Windows ACL paired sample ${{ matrix.sample }} (not a release gate)"
     runs-on: windows-latest
     timeout-minutes: 10
     env:
       SOURCE_SHA: ${{ inputs.source_sha || github.event.pull_request.head.sha }}
+      ACL_FIRST_MODE: ${{ matrix.first }}
+      ACL_SECOND_MODE: ${{ matrix.second }}
     strategy:
       fail-fast: false
       matrix:
-        sample: [1, 2, 3]
+        include:
+          - sample: 1
+            first: inherited
+            second: builtin
+          - sample: 2
+            first: builtin
+            second: inherited
     steps:
       - name: Require an exact commit
         shell: pwsh
@@ -57,13 +66,18 @@ jobs:
           CC_ACL_DIAGNOSTIC_SOURCE_SHA: ${{ env.SOURCE_SHA }}
         run: |
           New-Item -ItemType Directory -Force -Path .work/acl-startup | Out-Null
-          node packages/cli/scripts/windows-acl-progress-probe.mjs --output .work/acl-startup/report.json
+          $probeFailure = 0
+          foreach ($mode in @($env:ACL_FIRST_MODE, $env:ACL_SECOND_MODE)) {
+            node packages/cli/scripts/windows-acl-progress-probe.mjs --output ".work/acl-startup/report-$mode.json" --module-path-mode $mode
+            if ($LASTEXITCODE -ne 0) { $probeFailure = 1 }
+          }
+          exit $probeFailure
       - name: Upload bounded observations, including failures
         if: always()
         uses: actions/upload-artifact@v6
         with:
           name: windows-acl-startup-${{ env.SOURCE_SHA }}-${{ matrix.sample }}
-          path: .work/acl-startup/report.json
+          path: .work/acl-startup/*.json
           include-hidden-files: true
           if-no-files-found: warn
           retention-days: 30

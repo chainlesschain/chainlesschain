@@ -9,10 +9,12 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
 import storage from "../../session-core/lib/private-storage.js";
+import { diagnosticAclCommandArgs } from "./windows-acl-diagnostic-mode.mjs";
 
 if (process.platform !== "win32") throw new Error("Windows host required");
 const args = process.argv.slice(2);
 if (args[0] === "--child") {
+  const modulePathMode = process.env.CC_ACL_MODULE_PATH_MODE;
   const profile = process.env.CHAINLESSCHAIN_HOME;
   const anchor = path.join(
     process.env.LOCALAPPDATA,
@@ -27,6 +29,7 @@ if (args[0] === "--child") {
     releaseGate: false,
     modelCalls: 0,
     sourceCommit: process.env.CC_ACL_DIAGNOSTIC_SOURCE_SHA || null,
+    modulePathMode,
     sourceSha256: createHash("sha256")
       .update(
         fs.readFileSync(
@@ -46,8 +49,9 @@ if (args[0] === "--child") {
     fs,
     platform: () => process.platform,
     spawnSync(exe, commandArgs, options) {
+      const command = diagnosticAclCommandArgs(commandArgs, modulePathMode);
       const start = performance.now();
-      const result = spawnSync(exe, commandArgs, options);
+      const result = spawnSync(exe, command.args, options);
       const stages = [
         ...String(result.stderr || "")
           .slice(0, 8192)
@@ -58,6 +62,8 @@ if (args[0] === "--child") {
         .map((m) => ({ stage: m[1], elapsedMs: Number(m[2]) }))
         .filter((m) => m.elapsedMs <= 300000);
       calls.push({
+        originalScriptSha256: command.originalScriptSha256,
+        executedScriptSha256: command.executedScriptSha256,
         elapsedMs: Math.round(performance.now() - start),
         timeoutMs: options.timeout,
         cwdIsProfile: options.cwd === profile,
@@ -136,6 +142,9 @@ if (args[0] === "--child") {
   };
   const output = value("--output");
   if (!output) throw new Error("--output is required");
+  const modulePathMode = value("--module-path-mode") || "inherited";
+  if (!["inherited", "builtin"].includes(modulePathMode))
+    throw new Error("--module-path-mode must be inherited or builtin");
   const root = fs.mkdtempSync(
     path.join(
       path.resolve(value("--root-parent") || os.tmpdir()),
@@ -160,6 +169,7 @@ if (args[0] === "--child") {
     CC_FORMAL_QUALITY_EVAL_HERMETIC: "1",
     CC_FORMAL_QUALITY_EVAL_ISOLATION_ROOT: root,
     CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS: "60000",
+    CC_ACL_MODULE_PATH_MODE: modulePathMode,
     PSModuleAnalysisCachePath: path.join(
       root,
       "powershell-cache",

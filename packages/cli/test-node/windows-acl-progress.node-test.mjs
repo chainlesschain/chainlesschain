@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import storage from "../../session-core/lib/private-storage.js";
+import { diagnosticAclCommandArgs } from "../scripts/windows-acl-diagnostic-mode.mjs";
 import {
   readExecutionLocationStorageFailure,
   readExecutionLocationStorageLaunchFailure,
@@ -173,5 +174,44 @@ test("unknown stages and native failure payloads stay excluded", () => {
       "[windows-acl:verify-read:private-secret]",
     ),
     null,
+  );
+});
+
+test("diagnostic module-path comparison changes only the declared initialization", () => {
+  const source =
+    "& { param([string]$target)\n$ErrorActionPreference = 'Stop'\n[Console]::Error.WriteLine('CC_WINDOWS_ACL_STAGE=initialize')\nGet-Item -LiteralPath $target }";
+  const args = ["-NoProfile", "-Command", source, "C:\\private-fixture"];
+  const baseline = diagnosticAclCommandArgs(args, "inherited");
+  assert.deepEqual(baseline.args, args);
+  assert.equal(baseline.originalScriptSha256, baseline.executedScriptSha256);
+  const candidate = diagnosticAclCommandArgs(args, "builtin");
+  assert.notEqual(
+    candidate.originalScriptSha256,
+    candidate.executedScriptSha256,
+  );
+  assert.equal(candidate.originalScriptSha256, baseline.originalScriptSha256);
+  assert.equal(
+    candidate.args[2].replace(
+      "\n$env:PSModulePath = [System.IO.Path]::Combine($PSHOME, 'Modules')",
+      "",
+    ),
+    source,
+  );
+  assert.equal(args[2], source, "input command remains unmodified");
+  assert.equal(candidate.args[3], args[3]);
+});
+
+test("diagnostic overlay rejects ambiguous commands and arbitrary modes", () => {
+  for (const args of [
+    [],
+    ["-Command", "Get-Item"],
+    [
+      "-Command",
+      "$ErrorActionPreference = 'Stop'\n$ErrorActionPreference = 'Stop'\nCC_WINDOWS_ACL_STAGE=",
+    ],
+  ])
+    assert.throws(() => diagnosticAclCommandArgs(args, "builtin"));
+  assert.throws(() =>
+    diagnosticAclCommandArgs(["-Command", "unused"], "arbitrary"),
   );
 });
