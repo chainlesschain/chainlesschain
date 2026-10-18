@@ -367,6 +367,139 @@ if (fs.existsSync(path.join(root, "recharge-vscode-final-error.json"))) {
     } else assert.equal(value.recoveryRequired, false);
   }
 }
+if (fs.existsSync(path.join(root, "recharge-jetbrains-review.json"))) {
+  const review = json("recharge-jetbrains-review.json");
+  const source = raw.get(review.generationSummary.digest);
+  assert.equal(source?.batch.runId, review.generationRunId);
+  assert.equal(
+    source.batch.executionSourceCommit,
+    review.executionSourceCommit,
+  );
+  assert.equal(
+    hash(verifyArchive(review.generationSummary.archived)),
+    review.generationSummary.digest,
+  );
+  const members = new Map();
+  for (const entry of review.evidence) {
+    const bytes = verifyArchive(entry.archived);
+    assert.equal(hash(bytes), entry.digest);
+    assert.equal(bytes.length, entry.bytes);
+    assert.ok(!members.has(entry.member));
+    members.set(entry.member, bytes);
+    files++;
+  }
+  const member = (name) => JSON.parse(members.get(name));
+  assert.equal(
+    member("artifact.json").workflow_run.head_sha,
+    review.executionSourceCommit,
+  );
+  for (const row of review.samples) {
+    const original = source.summary.samples.find(
+      (item) => item.sampleId === row.sampleId,
+    );
+    assert.ok(original);
+    assert.deepEqual(row.originalHostVerdict, original.host);
+    assert.equal(row.originalGenerationPassed, original.generationPassed);
+    for (const [key, value] of Object.entries(row.broker))
+      assert.deepEqual(value, original.broker[key]);
+    const prefix = row.sampleId + "/capture/";
+    const phase = row.kind === "first-run" ? "initial" : "restart";
+    assert.equal(
+      member(prefix + `driver-failure-${phase}.json`).error,
+      row.driverFailure,
+    );
+    const snap = member(
+      prefix + `driver-failure-${phase}-snapshot.json`,
+    ).snapshot;
+    if (phase === "initial") {
+      assert.equal(row.broker.physicalRequestsStarted, 0);
+      assert.equal(row.actualUiText, snap.text);
+      assert.equal(row.observedState.receiptReady, snap.receiptReady);
+      assert.equal(row.observedState.childRunning, snap.childRunning);
+      assert.deepEqual(row.observedState.savedRows, snap.savedRows);
+      assert.equal(row.stderrAvailable, false);
+      assert.equal(row.previousRunComparison.sameUnderlyingCauseProven, false);
+    } else {
+      const state = member(prefix + "restart-state.json");
+      const saved = snap.savedRows.filter(
+        (item) => item.id === state.savedRowId,
+      );
+      assert.equal(saved.length, 1);
+      const restored = saved[0];
+      assert.deepEqual(row.comparison, {
+        sameSession: snap.sessionId === state.sessionId,
+        sameSavedRowId: restored.id === state.savedRowId,
+        sameCanonicalSource: restored.sourceText === state.result,
+        restoredBodyEqualsRawMarkdown:
+          restored.bodyText === restored.sourceText,
+        sameRenderedBody: restored.bodyText === state.renderedText,
+        agentRunningAfterRestart: snap.childRunning,
+      });
+      assert.deepEqual(row.textDigests, {
+        canonicalResult: hash(Buffer.from(state.result)),
+        initialRenderedBody: hash(Buffer.from(state.renderedText)),
+        restoredCanonicalSource: hash(Buffer.from(restored.sourceText)),
+        restoredRenderedBody: hash(Buffer.from(restored.bodyText)),
+      });
+      assert.equal(row.comparison.sameRenderedBody, false);
+      assert.equal(row.comparison.sameCanonicalSource, true);
+    }
+  }
+}
+if (fs.existsSync(path.join(root, "targeted-retries.json"))) {
+  for (const retry of json("targeted-retries.json").runs) {
+    assert.ok(retry.selectedSampleIds.length > 0);
+    assert.equal(
+      new Set(retry.selectedSampleIds).size,
+      retry.selectedSampleIds.length,
+    );
+    if (process.argv.includes("--require-retries-complete"))
+      assert.equal(retry.status, "COMPLETED");
+    if (!retry.generation) continue;
+    const generated = JSON.parse(verifyArchive(retry.generation.rawSummary));
+    assert.equal(generated.executionSourceCommit, retry.sourceCommit);
+    assert.equal(generated.group, retry.group);
+    assert.equal(generated.selectionScope, "operator-subset");
+    assert.deepEqual(generated.selectedSampleIds, retry.selectedSampleIds);
+    assert.deepEqual(
+      generated.samples.map((item) => item.sampleId),
+      retry.selectedSampleIds,
+    );
+    const accepted = retry.acceptance
+      ? JSON.parse(verifyArchive(retry.acceptance.rawSummary))
+      : null;
+    if (accepted) {
+      assert.equal(
+        accepted.sourceSummaryDigest,
+        retry.generation.rawSummary.originalDigest,
+      );
+      assert.equal(accepted.deliverySourceCommit, retry.sourceCommit);
+      assert.equal(accepted.executionSourceCommit, retry.sourceCommit);
+      assert.deepEqual(
+        accepted.samples.map((item) => item.sampleId),
+        retry.selectedSampleIds,
+      );
+    }
+    for (const entry of retry.evidence) {
+      const bytes = verifyArchive(entry.archived);
+      const summary = entry.stage === "generation" ? generated : accepted;
+      assert.ok(summary);
+      const candidate = summary.samples
+        .flatMap((item) => item.candidates ?? [])
+        .find((item) => item.path === entry.originalArtifactPath);
+      if (candidate) assert.equal(hash(bytes), candidate.digest);
+      if (entry.stage === "acceptance") {
+        const step = summary.samples
+          .flatMap((item) => [item.setup, item.check])
+          .find((item) => item?.receiptPath === entry.originalArtifactPath);
+        assert.ok(step);
+        assert.equal(hash(bytes), step.receiptDigest);
+        assert.equal(JSON.parse(bytes).pass, step.pass);
+      }
+      files++;
+    }
+  }
+}
 if (results.providerAvailability) {
   const provider = results.providerAvailability;
   assert.equal(hash(read(provider.path)), provider.digest);

@@ -1,0 +1,25 @@
+{
+  "schema": "chainlesschain.native45-targeted-retries/v1",
+  "policy": "Supplemental explicit unfinished samples only. Preserve the declared full 36+9 round and all prior failures; never replace it with subset artifacts. Reuse accepted deliverables without new model generation.",
+  "billingAssessed": false,
+  "runs": [
+    {
+      "runId": "39085805519",
+      "sourceCommit": "69b00213a75cd9509de63e3c5249291d94fceb76",
+      "group": "win32-jetbrains",
+      "selectedSampleIds": [
+        "first-run-win32-jetbrains"
+      ],
+      "startedAt": "2026-10-18T01:15:13Z",
+      "status": "IN_PROGRESS",
+      "reason": "The independent first-run has not reached model execution: pre-init exit 1, zero broker requests, unchanged placeholder. Capture bounded redacted stderr to identify the actual startup failure.",
+      "priorGenerationRunId": "39082074376",
+      "acceptedOtherCandidatesReused": true,
+      "generation": null,
+      "acceptance": null,
+      "evidence": [],
+      "remoteStatus": "in_progress",
+      "conclusion": null
+    }
+  ]
+}

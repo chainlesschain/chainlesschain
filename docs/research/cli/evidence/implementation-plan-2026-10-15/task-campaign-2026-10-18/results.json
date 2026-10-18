@@ -1,7 +1,7 @@
 {
   "schema": "chainlesschain.actual-task-campaign-results/v1",
-  "generatedAt": "2026-10-18T00:43:32.207021+00:00",
-  "status": "IN_PROGRESS",
+  "generatedAt": "2026-10-18T01:19:08.688704+00:00",
+  "status": "COMPLETED",
   "billingAssessed": false,
   "formalFrozenObservations": {
     "tasks": 0,
@@ -3784,7 +3784,7 @@
       "generationPassedIncludingIndependentReassessment": 24,
       "samplesWithObservedProviderResponses": 44,
       "acceptanceResultsCollected": 45,
-      "ordinaryCandidateAcceptancePassed": 16,
+      "ordinaryCandidateAcceptancePassed": 18,
       "firstRunCandidateAcceptancePassed": 2,
       "ordinaryEndToEndPassed": 9,
       "firstRunEndToEndPassed": 1
@@ -9644,6 +9644,223 @@
                 "path": "verify-29/candidate/packages/vscode-extension/__tests__/verify-29.test.js",
                 "digest": "sha256:abc0daad2d92ad53168964a538086938a705a6894f62854d39a5bb0a77567641",
                 "bytes": 4250
+              }
+            ],
+            "modelFailureCategory": null,
+            "providerResponsesObserved": 5
+          }
+        ]
+      },
+      {
+        "stage": "generation",
+        "runId": "39082074376",
+        "group": "win32-jetbrains",
+        "executionSourceCommit": "6217c89ac4c7735c5f9e08bc01ea885bde14a0b3",
+        "deliverySourceCommit": "6217c89ac4c7735c5f9e08bc01ea885bde14a0b3",
+        "sourceSummaryDigest": null,
+        "finishedAt": "2026-10-18T01:10:11.681Z",
+        "generationHost": {
+          "platform": "win32",
+          "arch": "x64",
+          "entry": "jetbrains"
+        },
+        "rawSummary": {
+          "path": "raw-summaries/39082074376-native45-generation-win32-jetbrains.json.gz",
+          "originalDigest": "sha256:ae194c9ee2dd9c04a879c7b2930eddde922e1f962c09c2c9f175b8ef702bcdb6",
+          "storedDigest": "sha256:de38458fd54cfdecc3b55e97ca2456362e0a4782dc1f4a9038e17b21076c7c95",
+          "originalBytes": 352638
+        },
+        "samples": [
+          {
+            "sampleId": "first-run-win32-jetbrains",
+            "taskId": "verify-03",
+            "kind": "first-run",
+            "originalGenerationPassed": null,
+            "frozenSourceAssessment": null,
+            "generationFailure": null,
+            "generationPassed": false,
+            "generationAssessment": null,
+            "candidateAcceptancePassed": null,
+            "passed": false,
+            "failure": null,
+            "host": {
+              "passed": false,
+              "failure": "initial native UI task exited 1/null",
+              "restartRequired": true
+            },
+            "sourceScopePassed": true,
+            "unexpectedChanges": [],
+            "brokerStatus": {
+              "physicalRequestsStarted": 0,
+              "usageCompleteRequests": 0,
+              "passed": false,
+              "poisoned": null,
+              "errorCode": null
+            },
+            "setup": null,
+            "check": null,
+            "candidates": [
+              {
+                "file": "packages/cli/__tests__/verify-03.test.js",
+                "path": "first-run-win32-jetbrains/candidate/packages/cli/__tests__/verify-03.test.js",
+                "digest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa",
+                "bytes": 27
+              }
+            ],
+            "modelFailureCategory": "missing-terminal",
+            "providerResponsesObserved": 0
+          },
+          {
+            "sampleId": "verify-03",
+            "taskId": "verify-03",
+            "kind": "task",
+            "originalGenerationPassed": null,
+            "frozenSourceAssessment": null,
+            "generationFailure": null,
+            "generationPassed": false,
+            "generationAssessment": null,
+            "candidateAcceptancePassed": null,
+            "passed": false,
+            "failure": null,
+            "host": {
+              "passed": false,
+              "failure": "restart native UI task exited 1/null",
+              "restartRequired": true
+            },
+            "sourceScopePassed": true,
+            "unexpectedChanges": [],
+            "brokerStatus": {
+              "physicalRequestsStarted": 7,
+              "usageCompleteRequests": 7,
+              "passed": true,
+              "poisoned": null,
+              "errorCode": null
+            },
+            "setup": null,
+            "check": null,
+            "candidates": [
+              {
+                "file": "packages/cli/__tests__/verify-03.test.js",
+                "path": "verify-03/candidate/packages/cli/__tests__/verify-03.test.js",
+                "digest": "sha256:d917f8c6026377add5c5fed0d57e8d1961b4e9c443f9d344938e69b5fba8a68e",
+                "bytes": 3571
+              }
+            ],
+            "modelFailureCategory": null,
+            "providerResponsesObserved": 7
+          },
+          {
+            "sampleId": "verify-12",
+            "taskId": "verify-12",
+            "kind": "task",
+            "originalGenerationPassed": null,
+            "frozenSourceAssessment": null,
+            "generationFailure": null,
+            "generationPassed": false,
+            "generationAssessment": null,
+            "candidateAcceptancePassed": null,
+            "passed": false,
+            "failure": null,
+            "host": {
+              "passed": false,
+              "failure": "restart native UI task exited 1/null",
+              "restartRequired": true
+            },
+            "sourceScopePassed": true,
+            "unexpectedChanges": [],
+            "brokerStatus": {
+              "physicalRequestsStarted": 5,
+              "usageCompleteRequests": 5,
+              "passed": true,
+              "poisoned": null,
+              "errorCode": null
+            },
+            "setup": null,
+            "check": null,
+            "candidates": [
+              {
+                "file": "packages/cli/__tests__/verify-12.test.js",
+                "path": "verify-12/candidate/packages/cli/__tests__/verify-12.test.js",
+                "digest": "sha256:9b56be2a02fdd4b83c16394c2c1d4d51033f3c7bbf18c51645ac043a92e5ab9a",
+                "bytes": 2647
+              }
+            ],
+            "modelFailureCategory": null,
+            "providerResponsesObserved": 5
+          },
+          {
+            "sampleId": "verify-21",
+            "taskId": "verify-21",
+            "kind": "task",
+            "originalGenerationPassed": null,
+            "frozenSourceAssessment": null,
+            "generationFailure": null,
+            "generationPassed": false,
+            "generationAssessment": null,
+            "candidateAcceptancePassed": null,
+            "passed": false,
+            "failure": null,
+            "host": {
+              "passed": false,
+              "failure": "restart native UI task exited 1/null",
+              "restartRequired": true
+            },
+            "sourceScopePassed": true,
+            "unexpectedChanges": [],
+            "brokerStatus": {
+              "physicalRequestsStarted": 15,
+              "usageCompleteRequests": 15,
+              "passed": true,
+              "poisoned": null,
+              "errorCode": null
+            },
+            "setup": null,
+            "check": null,
+            "candidates": [
+              {
+                "file": "packages/cli/__tests__/verify-21.test.js",
+                "path": "verify-21/candidate/packages/cli/__tests__/verify-21.test.js",
+                "digest": "sha256:a207b3f08a645ad2cbfbdeed11f5ae2e78c825374ca5e0e84fdaf6f30c647b6d",
+                "bytes": 6219
+              }
+            ],
+            "modelFailureCategory": null,
+            "providerResponsesObserved": 15
+          },
+          {
+            "sampleId": "verify-30",
+            "taskId": "verify-30",
+            "kind": "task",
+            "originalGenerationPassed": null,
+            "frozenSourceAssessment": null,
+            "generationFailure": null,
+            "generationPassed": false,
+            "generationAssessment": null,
+            "candidateAcceptancePassed": null,
+            "passed": false,
+            "failure": null,
+            "host": {
+              "passed": false,
+              "failure": "restart native UI task exited 1/null",
+              "restartRequired": true
+            },
+            "sourceScopePassed": true,
+            "unexpectedChanges": [],
+            "brokerStatus": {
+              "physicalRequestsStarted": 5,
+              "usageCompleteRequests": 5,
+              "passed": true,
+              "poisoned": null,
+              "errorCode": null
+            },
+            "setup": null,
+            "check": null,
+            "candidates": [
+              {
+                "file": "packages/vscode-extension/__tests__/verify-30.test.js",
+                "path": "verify-30/candidate/packages/vscode-extension/__tests__/verify-30.test.js",
+                "digest": "sha256:7eabe91c99dba2e4976fd800dccb3e8c7143beeda16aaa7904d18f15d25e8c5b",
+                "bytes": 3342
               }
             ],
             "modelFailureCategory": null,
@@ -22472,17 +22689,496 @@
             "providerResponsesObserved": 5
           }
         ]
+      },
+      {
+        "stage": "acceptance",
+        "runId": "39082074376",
+        "group": "win32-jetbrains",
+        "executionSourceCommit": "6217c89ac4c7735c5f9e08bc01ea885bde14a0b3",
+        "deliverySourceCommit": "6217c89ac4c7735c5f9e08bc01ea885bde14a0b3",
+        "sourceSummaryDigest": "sha256:ae194c9ee2dd9c04a879c7b2930eddde922e1f962c09c2c9f175b8ef702bcdb6",
+        "finishedAt": "2026-10-18T01:16:49.564Z",
+        "generationHost": {
+          "platform": "win32",
+          "entry": "jetbrains",
+          "arch": "x64"
+        },
+        "rawSummary": {
+          "path": "raw-summaries/39082074376-native45-acceptance-win32-jetbrains.json.gz",
+          "originalDigest": "sha256:fcf36497a78cc64b00b686643afa002e0aedb5b0bb38779106d2ff10bd2f5fbf",
+          "storedDigest": "sha256:37f8f8cd3c00e7ec93f651d1a0786c63d4540856021a7a70a45a4a14a5517408",
+          "originalBytes": 344348
+        },
+        "samples": [
+          {
+            "sampleId": "first-run-win32-jetbrains",
+            "taskId": "verify-03",
+            "kind": "first-run",
+            "originalGenerationPassed": false,
+            "frozenSourceAssessment": {
+              "exact": true,
+              "contentVerified": true,
+              "filenameEncoding": "utf8"
+            },
+            "generationFailure": null,
+            "generationPassed": false,
+            "generationAssessment": {
+              "passed": false,
+              "originalGenerationPassed": false,
+              "originalTerminalVerified": false,
+              "terminal": {
+                "terminalVerified": false,
+                "observedFallback": false,
+                "usage": null,
+                "totalCostUsd": null
+              },
+              "dialect": "persistent-IDE-with-validated-session-end"
+            },
+            "candidateAcceptancePassed": false,
+            "passed": false,
+            "failure": null,
+            "host": {
+              "passed": false,
+              "failure": "initial native UI task exited 1/null",
+              "restartRequired": true
+            },
+            "sourceScopePassed": true,
+            "unexpectedChanges": [],
+            "brokerStatus": {
+              "physicalRequestsStarted": 0,
+              "usageCompleteRequests": 0,
+              "passed": false,
+              "poisoned": null,
+              "errorCode": null
+            },
+            "setup": {
+              "pass": true,
+              "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+              "receipt": "verify-03-setup-8dee9f80-2c9a-49e0-94e3-23564db03593.json",
+              "receiptDigest": "sha256:c5f41ae9df0c6132e28261e3d900ec11de4a35c5bf252fb360d6e698c121c939",
+              "scriptDigest": "sha256:d8ef9a34a4cdac320e9bb0ad9d5067f09a889663d10f2f789399bf771c1cbf4c",
+              "receiptPath": "pack/acceptance-evidence/verify-03-setup-8dee9f80-2c9a-49e0-94e3-23564db03593.json",
+              "tests": [
+                {
+                  "kind": "baseline",
+                  "total": 31,
+                  "passed": 31,
+                  "failed": 0
+                }
+              ],
+              "mutations": []
+            },
+            "check": {
+              "pass": false,
+              "detail": "acceptance requires executed test cases",
+              "receipt": "verify-03-check-38b7b730-b7eb-4ae5-8961-1cc416e1e193.json",
+              "receiptDigest": "sha256:af43a775cef876140a40b23f27dc65de2cf91d22500268fc592b17f9b2c62290",
+              "scriptDigest": "sha256:aff384fba3e49accaab8f322f27dcc318f18498c2c393b028d45a4bd486c4df2",
+              "receiptPath": "pack/acceptance-evidence/verify-03-check-38b7b730-b7eb-4ae5-8961-1cc416e1e193.json",
+              "tests": [
+                {
+                  "kind": "baseline",
+                  "total": 31,
+                  "passed": 31,
+                  "failed": 0
+                }
+              ],
+              "mutations": []
+            },
+            "candidates": null,
+            "modelFailureCategory": "missing-terminal",
+            "providerResponsesObserved": 0
+          },
+          {
+            "sampleId": "verify-03",
+            "taskId": "verify-03",
+            "kind": "task",
+            "originalGenerationPassed": false,
+            "frozenSourceAssessment": {
+              "exact": true,
+              "contentVerified": true,
+              "filenameEncoding": "utf8"
+            },
+            "generationFailure": null,
+            "generationPassed": false,
+            "generationAssessment": {
+              "passed": false,
+              "originalGenerationPassed": false,
+              "originalTerminalVerified": true,
+              "terminal": {
+                "terminalVerified": true,
+                "observedFallback": false,
+                "usage": {
+                  "inputTokens": 69697,
+                  "outputTokens": 7622,
+                  "cacheReadInputTokens": 63232,
+                  "cacheCreationInputTokens": 0
+                },
+                "totalCostUsd": null
+              },
+              "dialect": "persistent-IDE-with-validated-session-end"
+            },
+            "candidateAcceptancePassed": true,
+            "passed": false,
+            "failure": null,
+            "host": {
+              "passed": false,
+              "failure": "restart native UI task exited 1/null",
+              "restartRequired": true
+            },
+            "sourceScopePassed": true,
+            "unexpectedChanges": [],
+            "brokerStatus": {
+              "physicalRequestsStarted": 7,
+              "usageCompleteRequests": 7,
+              "passed": true,
+              "poisoned": null,
+              "errorCode": null
+            },
+            "setup": {
+              "pass": true,
+              "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+              "receipt": "verify-03-setup-ab8f6c51-ab16-4cde-a1ec-d526050b46fd.json",
+              "receiptDigest": "sha256:8a18ed914f23803f69a7a65616300eec0d5ecfc11b3d40652d761c314362b150",
+              "scriptDigest": "sha256:d8ef9a34a4cdac320e9bb0ad9d5067f09a889663d10f2f789399bf771c1cbf4c",
+              "receiptPath": "pack/acceptance-evidence/verify-03-setup-ab8f6c51-ab16-4cde-a1ec-d526050b46fd.json",
+              "tests": [
+                {
+                  "kind": "baseline",
+                  "total": 31,
+                  "passed": 31,
+                  "failed": 0
+                }
+              ],
+              "mutations": []
+            },
+            "check": {
+              "pass": true,
+              "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+              "receipt": "verify-03-check-f6d037db-900a-46ca-b75c-9cc0cc25c546.json",
+              "receiptDigest": "sha256:13a81096b06c29947044c931bb7644849a58577c423e4a001572fa900bd5b24a",
+              "scriptDigest": "sha256:aff384fba3e49accaab8f322f27dcc318f18498c2c393b028d45a4bd486c4df2",
+              "receiptPath": "pack/acceptance-evidence/verify-03-check-f6d037db-900a-46ca-b75c-9cc0cc25c546.json",
+              "tests": [
+                {
+                  "kind": "baseline",
+                  "total": 31,
+                  "passed": 31,
+                  "failed": 0
+                },
+                {
+                  "kind": "candidate",
+                  "total": 6,
+                  "passed": 6,
+                  "failed": 0
+                }
+              ],
+              "mutations": [
+                {
+                  "name": "unknown-opus-inherits-legacy-price",
+                  "sourceSha256": "ba23b5f8b81c1697f549d2b0dd9285f9e7294bfe35f1058d358700816937b538",
+                  "total": 6,
+                  "passed": 5,
+                  "failed": 1
+                }
+              ]
+            },
+            "candidates": null,
+            "modelFailureCategory": null,
+            "providerResponsesObserved": 7
+          },
+          {
+            "sampleId": "verify-12",
+            "taskId": "verify-12",
+            "kind": "task",
+            "originalGenerationPassed": false,
+            "frozenSourceAssessment": {
+              "exact": true,
+              "contentVerified": true,
+              "filenameEncoding": "utf8"
+            },
+            "generationFailure": null,
+            "generationPassed": false,
+            "generationAssessment": {
+              "passed": false,
+              "originalGenerationPassed": false,
+              "originalTerminalVerified": true,
+              "terminal": {
+                "terminalVerified": true,
+                "observedFallback": false,
+                "usage": {
+                  "inputTokens": 35300,
+                  "outputTokens": 5057,
+                  "cacheReadInputTokens": 32256,
+                  "cacheCreationInputTokens": 0
+                },
+                "totalCostUsd": null
+              },
+              "dialect": "persistent-IDE-with-validated-session-end"
+            },
+            "candidateAcceptancePassed": false,
+            "passed": false,
+            "failure": null,
+            "host": {
+              "passed": false,
+              "failure": "restart native UI task exited 1/null",
+              "restartRequired": true
+            },
+            "sourceScopePassed": true,
+            "unexpectedChanges": [],
+            "brokerStatus": {
+              "physicalRequestsStarted": 5,
+              "usageCompleteRequests": 5,
+              "passed": true,
+              "poisoned": null,
+              "errorCode": null
+            },
+            "setup": {
+              "pass": true,
+              "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+              "receipt": "verify-12-setup-55b5664b-e303-4c9a-b4e6-41d2e4b6f067.json",
+              "receiptDigest": "sha256:3259684fe18809436b5621af64c90d0688609af7aadbcb222feb3eb250b77b93",
+              "scriptDigest": "sha256:7563cf317fe59a7c22e4a65d0cc119bdaa623a9933d8c35f5b8cbbed525c8bd0",
+              "receiptPath": "pack/acceptance-evidence/verify-12-setup-55b5664b-e303-4c9a-b4e6-41d2e4b6f067.json",
+              "tests": [
+                {
+                  "kind": "baseline",
+                  "total": 11,
+                  "passed": 11,
+                  "failed": 0
+                }
+              ],
+              "mutations": []
+            },
+            "check": {
+              "pass": false,
+              "detail": "candidate or baseline regression failed",
+              "receipt": "verify-12-check-3e8cc2a8-ebb3-4b7f-8a12-e880653e00bc.json",
+              "receiptDigest": "sha256:22e1b863f94e7b2b160d5f8acb82f6d31b822f882b23a182a1cb9d68a733669f",
+              "scriptDigest": "sha256:9c07b06a7d016854dec4c61920979c121c31d6b65c27a19260d46c332f4051cc",
+              "receiptPath": "pack/acceptance-evidence/verify-12-check-3e8cc2a8-ebb3-4b7f-8a12-e880653e00bc.json",
+              "tests": [
+                {
+                  "kind": "baseline",
+                  "total": 11,
+                  "passed": 11,
+                  "failed": 0
+                }
+              ],
+              "mutations": []
+            },
+            "candidates": null,
+            "modelFailureCategory": null,
+            "providerResponsesObserved": 5
+          },
+          {
+            "sampleId": "verify-21",
+            "taskId": "verify-21",
+            "kind": "task",
+            "originalGenerationPassed": false,
+            "frozenSourceAssessment": {
+              "exact": true,
+              "contentVerified": true,
+              "filenameEncoding": "utf8"
+            },
+            "generationFailure": null,
+            "generationPassed": false,
+            "generationAssessment": {
+              "passed": false,
+              "originalGenerationPassed": false,
+              "originalTerminalVerified": true,
+              "terminal": {
+                "terminalVerified": true,
+                "observedFallback": false,
+                "usage": {
+                  "inputTokens": 201430,
+                  "outputTokens": 10759,
+                  "cacheReadInputTokens": 122368,
+                  "cacheCreationInputTokens": 0
+                },
+                "totalCostUsd": null
+              },
+              "dialect": "persistent-IDE-with-validated-session-end"
+            },
+            "candidateAcceptancePassed": true,
+            "passed": false,
+            "failure": null,
+            "host": {
+              "passed": false,
+              "failure": "restart native UI task exited 1/null",
+              "restartRequired": true
+            },
+            "sourceScopePassed": true,
+            "unexpectedChanges": [],
+            "brokerStatus": {
+              "physicalRequestsStarted": 15,
+              "usageCompleteRequests": 15,
+              "passed": true,
+              "poisoned": null,
+              "errorCode": null
+            },
+            "setup": {
+              "pass": true,
+              "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+              "receipt": "verify-21-setup-a5e9ac1f-cdf2-4203-a9f4-278ee29aa98b.json",
+              "receiptDigest": "sha256:d078a4a5b1e5a74112692e485d9662cf8f56280f846ca32d1daf03a47ee042c5",
+              "scriptDigest": "sha256:6adaf4a1bbede0d3f6c78e2b16cbca048161f70e9336f3a6bdde56dcdf7849c3",
+              "receiptPath": "pack/acceptance-evidence/verify-21-setup-a5e9ac1f-cdf2-4203-a9f4-278ee29aa98b.json",
+              "tests": [
+                {
+                  "kind": "baseline",
+                  "total": 19,
+                  "passed": 19,
+                  "failed": 0
+                }
+              ],
+              "mutations": []
+            },
+            "check": {
+              "pass": true,
+              "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+              "receipt": "verify-21-check-318fd5c8-9738-45f5-a841-360bbcac89d7.json",
+              "receiptDigest": "sha256:b46872a56fd7f8cdbf5d5b19751a448c207faa27eb8fae6ccee1805388cc0222",
+              "scriptDigest": "sha256:d4a515f65c012a8ac58cc7201261972ed9d5ef62dea77f0f5e4a9a3b50a417ba",
+              "receiptPath": "pack/acceptance-evidence/verify-21-check-318fd5c8-9738-45f5-a841-360bbcac89d7.json",
+              "tests": [
+                {
+                  "kind": "baseline",
+                  "total": 19,
+                  "passed": 19,
+                  "failed": 0
+                },
+                {
+                  "kind": "candidate",
+                  "total": 6,
+                  "passed": 6,
+                  "failed": 0
+                }
+              ],
+              "mutations": [
+                {
+                  "name": "shadow-read-collects-authority-shards",
+                  "sourceSha256": "059ca9e226fa552cdb38bafa05ba490a4f49685c56247c5c0d3157f713061a23",
+                  "total": 6,
+                  "passed": 5,
+                  "failed": 1
+                }
+              ]
+            },
+            "candidates": null,
+            "modelFailureCategory": null,
+            "providerResponsesObserved": 15
+          },
+          {
+            "sampleId": "verify-30",
+            "taskId": "verify-30",
+            "kind": "task",
+            "originalGenerationPassed": false,
+            "frozenSourceAssessment": {
+              "exact": true,
+              "contentVerified": true,
+              "filenameEncoding": "utf8"
+            },
+            "generationFailure": null,
+            "generationPassed": false,
+            "generationAssessment": {
+              "passed": false,
+              "originalGenerationPassed": false,
+              "originalTerminalVerified": true,
+              "terminal": {
+                "terminalVerified": true,
+                "observedFallback": false,
+                "usage": {
+                  "inputTokens": 38160,
+                  "outputTokens": 6628,
+                  "cacheReadInputTokens": 41472,
+                  "cacheCreationInputTokens": 0
+                },
+                "totalCostUsd": null
+              },
+              "dialect": "persistent-IDE-with-validated-session-end"
+            },
+            "candidateAcceptancePassed": false,
+            "passed": false,
+            "failure": null,
+            "host": {
+              "passed": false,
+              "failure": "restart native UI task exited 1/null",
+              "restartRequired": true
+            },
+            "sourceScopePassed": true,
+            "unexpectedChanges": [],
+            "brokerStatus": {
+              "physicalRequestsStarted": 5,
+              "usageCompleteRequests": 5,
+              "passed": true,
+              "poisoned": null,
+              "errorCode": null
+            },
+            "setup": {
+              "pass": true,
+              "detail": "Independent operator checks passed; this is not a provider or task-outcome sample.",
+              "receipt": "verify-30-setup-78637530-b94f-4583-9822-af5bfbee664f.json",
+              "receiptDigest": "sha256:5c0660a48bb36ad0da9c0c73e796f34ed7b8a830045f12e997f5bc60a7315957",
+              "scriptDigest": "sha256:df6170c2b785dd1011b99bb9d16ad84780f7c04e4d154f67630c881e5c1dd36a",
+              "receiptPath": "pack/acceptance-evidence/verify-30-setup-78637530-b94f-4583-9822-af5bfbee664f.json",
+              "tests": [
+                {
+                  "kind": "baseline",
+                  "total": 13,
+                  "passed": 13,
+                  "failed": 0
+                }
+              ],
+              "mutations": []
+            },
+            "check": {
+              "pass": false,
+              "detail": "candidate tests did not reject the behavioral mutant",
+              "receipt": "verify-30-check-028bef9d-706a-4b04-adc1-ee752c3a5ece.json",
+              "receiptDigest": "sha256:38cbcf6de57a35f76d42aece3b1999cf1fc745c3ec41257c7c0d4cff97f9d98e",
+              "scriptDigest": "sha256:523d0bcb7f1255b63dcabf75e6d9b182c739891c92afb00ade98b425e5f7fb35",
+              "receiptPath": "pack/acceptance-evidence/verify-30-check-028bef9d-706a-4b04-adc1-ee752c3a5ece.json",
+              "tests": [
+                {
+                  "kind": "baseline",
+                  "total": 13,
+                  "passed": 13,
+                  "failed": 0
+                },
+                {
+                  "kind": "candidate",
+                  "total": 6,
+                  "passed": 6,
+                  "failed": 0
+                }
+              ],
+              "mutations": [
+                {
+                  "name": "collapse-animation-frame-count-and-cumulative-budget",
+                  "sourceSha256": "24ae42225ca67212f70c8ce93ccdbbf5bdd17e29b1775c817e2c03ad015ad2f7",
+                  "total": 6,
+                  "passed": 2,
+                  "failed": 4
+                }
+              ]
+            },
+            "candidates": null,
+            "modelFailureCategory": null,
+            "providerResponsesObserved": 5
+          }
+        ]
       }
     ],
     "countingPolicy": "Primary results, historical ever-pass counts and the explicitly declared latest round are separate. Missing latest results are never filled with old passes. Candidate and end-to-end passage always bind to the same generation summary digest.",
     "independentAudit": {
       "path": "native45-independent-audit.json",
-      "digest": "sha256:959590f244e403b05fa0f1057b13ada6d15a4263f762efda893ae6ec7a3cec49",
+      "digest": "sha256:25b13bcb31da744371759f687c4ab5ce55d0c035082314e7f39fc013bc741657",
       "bindingCheckCounts": {
-        "generationSummaries": 28,
-        "acceptanceSummaries": 38,
-        "acceptanceSourceDigestsUniquelyResolved": 38,
-        "gitSourceFileBindingsChecked": 317,
+        "generationSummaries": 29,
+        "acceptanceSummaries": 39,
+        "acceptanceSourceDigestsUniquelyResolved": 39,
+        "gitSourceFileBindingsChecked": 332,
         "invalidBatches": 0,
         "errors": 0,
         "legacyWarnings": 17
@@ -24488,22 +25184,16 @@
       "win32-vscode": "17a27e1dc8fe75bcd40adb66a13af39eab5d043b",
       "win32-jetbrains": "6217c89ac4c7735c5f9e08bc01ea885bde14a0b3"
     },
-    "latestDeclaredRoundComplete": false,
+    "latestDeclaredRoundComplete": true,
     "counts": {
-      "generationResultsCollected": 40,
+      "generationResultsCollected": 45,
       "generationPassedIncludingIndependentReassessment": 23,
-      "acceptanceResultsCollected": 40,
-      "ordinaryCandidateAcceptancePassed": 15,
+      "acceptanceResultsCollected": 45,
+      "ordinaryCandidateAcceptancePassed": 17,
       "firstRunCandidateAcceptancePassed": 1,
       "ordinaryEndToEndPassed": 9,
       "firstRunEndToEndPassed": 1,
-      "missingGenerationIds": [
-        "verify-03",
-        "verify-12",
-        "verify-21",
-        "verify-30",
-        "first-run-win32-jetbrains"
-      ]
+      "missingGenerationIds": []
     }
   },
   "providerAvailability": {
@@ -24518,13 +25208,17 @@
     "digest": "sha256:b9d42e93ccfc52aa2975102bbb9df1b036134386d795ef12ca7904485c8c37ec",
     "plannedRerunSamples": 10,
     "unchangedSamples": 35,
-    "newGenerationRecordsCollected": 5,
-    "newAcceptanceRecordsCollected": 5,
+    "newGenerationRecordsCollected": 10,
+    "newAcceptanceRecordsCollected": 10,
     "originallyRefusedSamplesRetestedWithObservedResponses": [
+      "verify-03",
+      "verify-12",
       "verify-20",
-      "verify-29"
+      "verify-21",
+      "verify-29",
+      "verify-30"
     ],
-    "allOriginalProviderRefusalsRetested": false,
+    "allOriginalProviderRefusalsRetested": true,
     "providerRecoveryVerified": true
   }
 }
