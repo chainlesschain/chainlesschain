@@ -304,6 +304,7 @@ tasks.register<Test>("uiSmokeTest") {
     systemProperty("ui.journey.phase", System.getProperty("ui.journey.phase") ?: "initial")
     systemProperty("ui.metrics.path", System.getProperty("ui.metrics.path") ?: "")
     systemProperty("ui.recovery.root", System.getProperty("ui.recovery.root") ?: "")
+    systemProperty("ui.archivedReply.root", System.getProperty("ui.archivedReply.root") ?: "")
     systemProperty("ui.onboarding.root", System.getProperty("ui.onboarding.root") ?: "")
     systemProperty("ui.cold.root", System.getProperty("ui.cold.root") ?: "")
     systemProperty("ui.cold.boundaries", System.getProperty("ui.cold.boundaries") ?: "false")

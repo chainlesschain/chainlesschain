@@ -1,0 +1,38 @@
+{
+  "schema": "chainlesschain.archived-reply-recovery-plan/v1",
+  "status": "PREPARED_NOT_EXECUTED",
+  "sampleId": "verify-33",
+  "originalRunId": "39087930713",
+  "publicPluginVersionRequired": "0.4.167",
+  "platformRequired": "linux",
+  "ideVersionRequired": "2025.2",
+  "packageSetFileRequired": "docs/research/cli/verify01-package-sets/2026-10-18-task-quality-105.json",
+  "workflow": ".github/workflows/verify01-archived-reply-recovery.yml",
+  "runner": "packages/jetbrains-plugin/scripts/verify01-archived-reply-recovery.mjs",
+  "verifier": "packages/jetbrains-plugin/scripts/archived-reply-evidence.mjs",
+  "sourceDigest": "sha256:8f1a927835bb8bbfe0d3f3904294eb622c99c843678cb9b36103282d0545503c",
+  "originalRenderedDigest": "sha256:3ba50b15d06ed9bb259b33383ea416c11bb11fbb97c34664379d8ed4027e9655",
+  "originalVerdict": {
+    "candidateAcceptancePassed": true,
+    "endToEndPassed": false
+  },
+  "modelRequestsAllowed": false,
+  "candidateRegenerationAllowed": false,
+  "billingAssessed": false,
+  "requiredEvidence": [
+    "Original accepted candidate and independent receipts remain byte-identical.",
+    "Public .167 ZIP matches the independently verified manifest digest and the actual installed plugin tree.",
+    "One deterministic archived reply has the original canonical source and original rendered body.",
+    "A new IDE process restores the same profile, session, tab and row ID.",
+    "Restored source and body equal the archived canonical source and rendered body; raw Markdown cannot satisfy the rendering oracle.",
+    "No agent is started by restoration."
+  ],
+  "localSupplementaryValidation": {
+    "nodeTestsPassed": 6,
+    "nodeTestsSkipped": 1,
+    "skippedScope": "Linux-only canonical persistence; the Linux workflow runs it before the real IDE journey.",
+    "javaUiCompilation": "PASSED with existing JDK 21 in offline compileUiTestJava",
+    "realPublicPluginExecution": "NOT_RUN"
+  },
+  "scope": "Independent restoration regression using a deterministic archived reply and repository canonical storage/history. It does not establish public .105 CLI execution, a new model task, or new-version end-to-end task acceptance. Original failed native verdict remains unchanged."
+}

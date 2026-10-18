@@ -284,7 +284,7 @@ final class ConversationRecoveryJourney {
     private static String digest(byte[] bytes) throws Exception {
         return "sha256:" + java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(bytes));
     }
-    private JsonObject verifyInstalledArchive() throws Exception {
+    JsonObject verifyInstalledArchive() throws Exception {
         Object location = frame.callJs("String(Packages.com.intellij.ide.plugins.PluginManagerCore.getPlugin("
                 + "Packages.com.intellij.openapi.extensions.PluginId.getId('com.chainlesschain.ide')).getPluginPath());");
         Path installed = Paths.get(String.valueOf(location)).toRealPath();
