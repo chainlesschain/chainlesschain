@@ -1,5 +1,11 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.167] - Task-quality candidate (2026-10-18)
+
+- Restore saved assistant Markdown with the live renderer, preserving canonical source and identities. Recommend CLI 0.166.105 for coding guidance and safe diagnostics.
+- Pending exact-commit CLI/IDE/ARM64 gates, npm OIDC publication and public CLI availability. Published-package retesting follows release.
+- Existing failures remain failures; this candidate does not claim all 36+9 samples passed.
+
 ## [0.4.166] - Session recovery and CLI 0.166.104 pairing (2026-10-17)
 
 - Recommend CLI `0.166.104` after its exact-commit npm release and readback.

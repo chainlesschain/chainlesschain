@@ -1,6 +1,6 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
-## 2026-10-17 最新代码与公开发行
+2026-10-18：当前公开仍为 CLI **0.166.104**、Open VSX **0.37.149**、JetBrains **0.4.166**。下一版候选为 CLI **0.166.105**、VS Code **0.37.150**、JetBrains **0.4.167**，两个候选插件推荐 CLI `.105`；尚待最终提交完整 CI 矩阵、npm OIDC 发布与公开包回读，插件在 CLI 可获取后发行。36+9 活动已执行，累计候选合格 **25/45**；最新补测已收齐 **22/25**，其中 **4 项全流程通过**，另有 **3 项 Windows JetBrains 进行中**。候选合格不等于全流程通过，新版尚未发布或补测，不能声称全部合格。 详见[升级指南](docs-site/docs/chainlesschain/cli-ide-update-2026-10-18.md)。
 
 2026-10-17：公开 CLI **0.166.104**、Open VSX **0.37.149** 与 JetBrains **0.4.166**，两个 IDE 均推荐 CLI `.104`。CLI 与 VS Code 发行源码为 `93792f6520`，JetBrains 为 `4c3e5cfd56`；主线核对至 `ef26f20b28`。Agent SDK **0.2.15**，Session Core **0.3.19**、Kernel **0.1.10**、PDH **0.4.65**；原生产品 **v5.0.3.140** 独立发行。正式预算 **NOT_PAID_READY**，36+9 **NOT_RUN（0/36、0/9）**、native **NOT_ADMITTED**、自动晋升 **HOLD**。
 

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.105: task delivery quality and safe diagnostics (candidate, 2026-10-18)
+
+- Add general coding guidance and static relative-import feedback without executing candidate code or injecting task-specific answers.
+- Do not report completion while deferred writes remain; distinguish provider transport aborts from owned cancellation.
+- Preserve bounded allowlisted transport cause details without changing original errors, exits, fetch, retries or replay.
+- Pair candidate VS Code 0.37.150 and JetBrains 0.4.167 with CLI 0.166.105 after exact-commit matrices, OIDC publishing and public readback. JetBrains restores saved Markdown consistently with live rendering.
+- Campaign: 25/45 cumulative candidate acceptances; latest 22/25 collected, 4 end-to-end passes, 3 Windows JetBrains samples ongoing. New versions are not yet published or retested.
+
 ### Fixed - cc CLI 0.166.104: recover governed sessions safely
 
 - Verify Jev model usage starts and settlements before resuming a durable

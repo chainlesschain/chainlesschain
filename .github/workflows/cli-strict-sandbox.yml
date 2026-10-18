@@ -565,6 +565,11 @@ jobs:
           __tests__/unit/event-runtime-host.test.js
           __tests__/unit/headless-runner.test.js
           __tests__/unit/headless-stream.test.js
+          __tests__/unit/headless-stream-abort-classification.test.js
+          __tests__/unit/headless-deferred-mutation.test.js
+          __tests__/unit/agent-core-deferred-mutation.test.js
+          __tests__/unit/agent-core-import-feedback.test.js
+          __tests__/unit/file-import-diagnostics.test.js
           __tests__/unit/headless-stream-session-budget-root.test.js
           __tests__/unit/headless-hook-events.test.js
           __tests__/unit/remote-control-lib.test.js

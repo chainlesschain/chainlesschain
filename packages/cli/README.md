@@ -2,11 +2,13 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
-## Current release and source (2026-10-17)
+## Current release and next candidate (2026-10-18)
 
-Public npm is **chainlesschain@0.166.104**. Open VSX **0.37.149** and JetBrains Marketplace **0.4.166** recommend this CLI. Agent SDK **0.2.15** was published first; Session Core **0.3.19**, Context/Memory Kernel **0.1.10** and Personal Data Hub **0.4.65** retain independent versions. CLI and VS Code release source is `93792f6520`; JetBrains is `4c3e5cfd56`. The exact-release GitHub Actions gates, OIDC publication and public package readback are recorded in the [release evidence](../../docs/research/cli/evidence/implementation-plan-2026-10-15/formal-paid-release-gate/README.md).
+As of 2026-10-18, public versions remain CLI **0.166.104**, Open VSX **0.37.149** and JetBrains **0.4.166**. Next candidates are CLI **0.166.105**, VS Code **0.37.150** and JetBrains **0.4.167**; both candidate plugins recommend CLI `.105`. Publication awaits the final commit full CI matrices, npm OIDC publishing and public package readback; IDE publication follows publicly fetchable CLI availability. The 36-task plus 9-first-run campaign has executed: **25/45 cumulative accepted candidates**, **22/25 latest retests collected**, **4 latest end-to-end passes**, and **3 Windows JetBrains samples still running**. Candidate acceptance is distinct from end-to-end success. The new versions have not yet been published or retested.
 
-CLI .104 verifies Jev usage reservation and settlement, keeps the original budget root when resuming headless, stream-json or REPL sessions, and rejects model dispatch if the budget lock cannot persist. Agent SDK .15 validates background session IDs and frames. The IDE bridge refreshes the MCP catalog after reconnection without replaying unknown tool results. Formal paid evaluation remains **NOT_PAID_READY / NOT_RUN (0/36, 0/9)**; native review remains **NOT_ADMITTED**. See the [upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-17.html).
+Candidate `.105` adds general coding guidance, static relative-import feedback, safe transport error details, provider-abort classification and protection against reporting completion while deferred writes remain. JetBrains `.167` restores saved Markdown with the live renderer while retaining canonical source and row identity. Child package versions remain unchanged.
+
+Only after public readback, install with `npm i -g chainlesschain@0.166.105 --registry https://registry.npmjs.org`. Until then the public installation command remains `.104`. [Upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-18.html).
 
 ## Release snapshot (2026-10-12, historical)
 

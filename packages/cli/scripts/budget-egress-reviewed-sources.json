@@ -1,6 +1,6 @@
 {
   "schema": "chainlesschain.budget-egress-source-review/v1",
-  "reviewedAt": "2026-10-15",
+  "reviewedAt": "2026-10-18",
   "scope": ["packages/cli/src", "packages/cli/scripts"],
   "basis": "Implementation source inspection; byte-bound classifications only. Not an independent financial/OS admission decision.",
   "entries": [
@@ -432,9 +432,9 @@
     },
     {
       "path": "packages/cli/src/runtime/agent-core.js",
-      "digest": "sha256:5d027f85d7bb78f12e69bdf41f9794a2a1592539007faf6363dd8362f1f144ba",
+      "digest": "sha256:c89bac6e9a3b1c2039ada319d5646a5cdf5b86e6a73c52557a0d704593235a22",
       "category": "MODEL_REQUEST",
-      "rationale": "Canonical model requests including streaming, summaries and child paths; explicit scope required. Formal-scope tools reject centrally, and parallel read batches propagate budget failures."
+      "rationale": "Canonical model requests including streaming, summaries and child paths; explicit scope required. Formal-scope tools reject centrally, and parallel read batches propagate budget failures. The 2026-10-18 task-quality changes add bounded local metadata-only import feedback and completion checks for unresolved file writes; no network call, retry, tool authority or provider scope is added."
     },
     {
       "path": "packages/cli/src/runtime/diagnostics.js",

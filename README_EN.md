@@ -1,6 +1,6 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
-## Current source and public release (2026-10-17)
+As of 2026-10-18, public versions remain CLI **0.166.104**, Open VSX **0.37.149** and JetBrains **0.4.166**. Next candidates are CLI **0.166.105**, VS Code **0.37.150** and JetBrains **0.4.167**; both candidate plugins recommend CLI `.105`. Publication awaits the final commit full CI matrices, npm OIDC publishing and public package readback; IDE publication follows publicly fetchable CLI availability. The 36-task plus 9-first-run campaign has executed: **25/45 cumulative accepted candidates**, **22/25 latest retests collected**, **4 latest end-to-end passes**, and **3 Windows JetBrains samples still running**. Candidate acceptance is distinct from end-to-end success. The new versions have not yet been published or retested.
 
 As of 2026-10-17, CLI **0.166.104**, Open VSX **0.37.149** and JetBrains Marketplace **0.4.166** are public. Both IDEs recommend CLI `.104`. The CLI and VS Code release source is `93792f6520`; JetBrains is `4c3e5cfd56`; main was reviewed through `ef26f20b28`. Agent SDK **0.2.15**, Session Core **0.3.19**, Context/Memory Kernel **0.1.10**, PDH **0.4.65**, and native product **v5.0.3.140** retain separate release identities. Formal paid evaluation remains **NOT_PAID_READY / NOT_RUN (0/36, 0/9)**, native review **NOT_ADMITTED**, and automatic promotion **HOLD**.
 
