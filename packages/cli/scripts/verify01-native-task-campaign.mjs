@@ -37,6 +37,35 @@ const json = (file) => JSON.parse(fs.readFileSync(file, "utf8"));
 const mkdir = (directory) => fs.mkdirSync(directory, { recursive: true });
 const stamp = () => new Date().toISOString();
 
+export function loadNativePackageSet(versionsFile) {
+  if (versionsFile === undefined) return { versions: VERSIONS };
+  const bytes = fs.readFileSync(versionsFile);
+  const manifest = JSON.parse(bytes.toString("utf8"));
+  assert.equal(manifest.schema, "chainlesschain.native-package-set/v1");
+  assert.ok(manifest.versions && typeof manifest.versions === "object");
+  assert.deepEqual(
+    Object.keys(manifest.versions).sort(),
+    Object.keys(VERSIONS).sort(),
+  );
+  const exact =
+    /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/u;
+  for (const [name, version] of Object.entries(manifest.versions)) {
+    assert.equal(typeof version, "string", `exact ${name} version required`);
+    assert.match(
+      version,
+      name === "jetbrainsHost"
+        ? /^(0|[1-9]\d*)\.(0|[1-9]\d*)(?:\.(0|[1-9]\d*))?$/u
+        : exact,
+      `exact ${name} version required`,
+    );
+  }
+  return {
+    versions: Object.freeze({ ...manifest.versions }),
+    packageSetDigest: hash(bytes),
+    bytes,
+  };
+}
+
 /** Git Bash may put GNU tar first, which parses C: as a remote archive host. */
 export function archiveExtractor(
   platform = process.platform,
@@ -437,8 +466,15 @@ export async function runNativeCampaign({
   sourceSha,
   confirmLive,
   sampleIds,
+  versionsFile,
   key = process.env.VOLCENGINE_API_KEY,
 }) {
+  const {
+    versions,
+    packageSetDigest,
+    bytes: packageSetBytes,
+  } = loadNativePackageSet(versionsFile);
+  const packageBinding = packageSetDigest ? { packageSetDigest } : {};
   assert.equal(confirmLive, true);
   assert.ok(key?.trim());
   assert.match(sourceSha || "", /^[a-f0-9]{40}$/u);
@@ -500,6 +536,10 @@ export async function runNativeCampaign({
   const output = path.resolve(outputDir);
   assert.ok(!fs.existsSync(output), "new output directory required");
   mkdir(output);
+  if (packageSetBytes)
+    fs.writeFileSync(path.join(output, "package-set.json"), packageSetBytes, {
+      flag: "wx",
+    });
   const plan = json(path.join(repository, planRoot, "plan.json")),
     catalog = json(path.join(repository, planRoot, "tasks.json"));
   assert.equal(plan.commitSha, DIAGNOSTIC.projectCommit);
@@ -535,7 +575,8 @@ export async function runNativeCampaign({
     projectCommit: DIAGNOSTIC.projectCommit,
     planDigest: DIAGNOSTIC.planDigest,
     frozenArchiveDigest: hash(fs.readFileSync(archive)),
-    versions: VERSIONS,
+    versions,
+    ...packageBinding,
     actualPlatform: process.platform,
     actualArch: process.arch,
     actualEntry: entry,
@@ -613,7 +654,8 @@ export async function runNativeCampaign({
       executionSourceCommit: sourceSha,
       projectCommit: DIAGNOSTIC.projectCommit,
       planDigest: DIAGNOSTIC.planDigest,
-      versions: VERSIONS,
+      versions,
+      ...packageBinding,
       expectedFiles: task.expectedFiles,
       startedAt: stamp(),
       deadline: new Date(deadline).toISOString(),
@@ -677,7 +719,7 @@ export async function runNativeCampaign({
           [
             npmEntrypoint(),
             "install",
-            `chainlesschain@${VERSIONS.cli}`,
+            `chainlesschain@${versions.cli}`,
             "--omit=dev",
             "--no-audit",
             "--no-fund",
@@ -688,7 +730,7 @@ export async function runNativeCampaign({
         assert.ok(installed.ok, "public CLI install failed");
         const lock = json(path.join(install, "package-lock.json")),
           locked = lock.packages["node_modules/chainlesschain"];
-        assert.equal(locked.version, VERSIONS.cli);
+        assert.equal(locked.version, versions.cli);
         assert.ok(
           !locked.link &&
             locked.integrity &&
@@ -705,7 +747,7 @@ export async function runNativeCampaign({
           install,
         );
         assert.ok(
-          identity.ok && identity.stdout.includes(VERSIONS.cli),
+          identity.ok && identity.stdout.includes(versions.cli),
           "installed CLI identity mismatch",
         );
         if (entry !== "cli") {
@@ -713,10 +755,10 @@ export async function runNativeCampaign({
           if (entry === "vscode") {
             metadata = await (
               await publicFetch(
-                `https://open-vsx.org/api/chainlesschain/chainlesschain-ide/${VERSIONS.vscode}`,
+                `https://open-vsx.org/api/chainlesschain/chainlesschain-ide/${versions.vscode}`,
               )
             ).json();
-            assert.equal(metadata.version, VERSIONS.vscode);
+            assert.equal(metadata.version, versions.vscode);
             assert.equal(metadata.namespace, "chainlesschain");
             assert.equal(metadata.name, "chainlesschain-ide");
             url = metadata.files.download;
@@ -726,7 +768,7 @@ export async function runNativeCampaign({
                 "https://plugins.jetbrains.com/api/plugins/32208/updates?size=100",
               )
             ).json();
-            metadata = updates.find((r) => r.version === VERSIONS.jetbrains);
+            metadata = updates.find((r) => r.version === versions.jetbrains);
             assert.ok(metadata?.file);
             url = `https://plugins.jetbrains.com/files/${metadata.file}`;
           }
@@ -830,7 +872,8 @@ export async function runNativeCampaign({
         environment,
         pluginArchive,
         pluginDigest,
-        versions: VERSIONS,
+        versions,
+        ...packageBinding,
       };
       let result;
       if (entry === "cli")
@@ -985,6 +1028,7 @@ if (
       "source-sha": { type: "string" },
       "confirm-live": { type: "boolean" },
       samples: { type: "string" },
+      "versions-file": { type: "string" },
     },
   });
   const summary = await runNativeCampaign({
@@ -993,6 +1037,7 @@ if (
     sourceSha: values["source-sha"],
     confirmLive: values["confirm-live"],
     sampleIds: parseNativeSampleIds(values.samples),
+    versionsFile: values["versions-file"],
   });
   console.log(
     JSON.stringify({

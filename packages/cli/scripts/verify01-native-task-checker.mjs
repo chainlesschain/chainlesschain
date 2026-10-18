@@ -18,7 +18,7 @@ import {
   parseNativeSampleIds,
   inspectNativeScope,
   snapshotNativeTree,
-  VERSIONS,
+  loadNativePackageSet,
 } from "./verify01-native-task-campaign.mjs";
 import { runCaptured } from "./verify01-first-run-cli-diagnostic.mjs";
 import { verifyAgentTerminal } from "../src/lib/eval/stream-terminal.js";
@@ -199,6 +199,33 @@ export function validateNativeSelection(plan, source, sampleIds) {
   return selected;
 }
 
+export function assertNativePackageSet(source, versionsFile) {
+  const packageSet = loadNativePackageSet(versionsFile);
+  assert.deepEqual(
+    source.versions,
+    packageSet.versions,
+    "generation package versions differ from checker selection",
+  );
+  assert.equal(
+    source.packageSetDigest,
+    packageSet.packageSetDigest,
+    "generation package-set digest differs from checker selection",
+  );
+  for (const row of source.samples) {
+    assert.deepEqual(
+      row.versions,
+      packageSet.versions,
+      `sample ${row.sampleId} package versions differ`,
+    );
+    assert.equal(
+      row.packageSetDigest,
+      packageSet.packageSetDigest,
+      `sample ${row.sampleId} package-set digest differs`,
+    );
+  }
+  return packageSet;
+}
+
 export async function checkNativeCampaign({
   inputDir,
   outputDir,
@@ -206,6 +233,7 @@ export async function checkNativeCampaign({
   checkerSourceSha = sourceSha,
   imageId,
   sampleIds,
+  versionsFile,
 }) {
   assert.equal(
     process.platform,
@@ -235,7 +263,17 @@ export async function checkNativeCampaign({
   );
   assert.equal(source.projectCommit, DIAGNOSTIC.projectCommit);
   assert.equal(source.planDigest, DIAGNOSTIC.planDigest);
-  assert.deepEqual(source.versions, VERSIONS);
+  const { versions, packageSetDigest } = assertNativePackageSet(
+    source,
+    versionsFile,
+  );
+  const packageBinding = packageSetDigest ? { packageSetDigest } : {};
+  if (packageSetDigest)
+    assert.equal(
+      hash(fs.readFileSync(artifactFile(input, "package-set.json"))),
+      packageSetDigest,
+      "archived package set differs",
+    );
   const selected = validateNativeSelection(plan, source, sampleIds);
   const image = JSON.parse(
     execFileSync("docker", ["image", "inspect", imageId], { encoding: "utf8" }),
@@ -266,6 +304,8 @@ export async function checkNativeCampaign({
     deliverySourceCommit: sourceSha,
     projectCommit: source.projectCommit,
     planDigest: source.planDigest,
+    versions,
+    ...packageBinding,
     group: source.group,
     actualGenerationHost: {
       platform: source.platform,
@@ -292,6 +332,8 @@ export async function checkNativeCampaign({
       sampleId: sample.id,
       taskId: task.id,
       kind: sample.kind,
+      versions,
+      ...packageBinding,
       originalGenerationPassed: native.generationPassed === true,
       generationPassed: false,
       host: native.host,
@@ -472,6 +514,7 @@ if (
       "checker-source-sha": { type: "string" },
       "image-id": { type: "string" },
       samples: { type: "string" },
+      "versions-file": { type: "string" },
     },
   });
   checkNativeCampaign({
@@ -481,6 +524,7 @@ if (
     checkerSourceSha: values["checker-source-sha"],
     imageId: values["image-id"],
     sampleIds: parseNativeSampleIds(values.samples),
+    versionsFile: values["versions-file"],
   })
     .then((r) => {
       if (!r.passed) process.exitCode = 1;

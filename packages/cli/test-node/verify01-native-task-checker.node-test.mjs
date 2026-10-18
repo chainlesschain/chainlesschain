@@ -9,7 +9,67 @@ import {
   validateNativeCandidate,
   assertFrozenBefore,
   assessFrozenBefore,
+  assertNativePackageSet,
 } from "../scripts/verify01-native-task-checker.mjs";
+import {
+  loadNativePackageSet,
+  VERSIONS,
+} from "../scripts/verify01-native-task-campaign.mjs";
+
+test("package set checker independently rejects missing, changed or mismatched version bindings", (t) => {
+  const root = fs.mkdtempSync(
+    path.join(os.tmpdir(), "native-check-package-set-"),
+  );
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const file = path.join(root, "versions.json");
+  const manifest = {
+    schema: "chainlesschain.native-package-set/v1",
+    versions: {
+      ...VERSIONS,
+      cli: "0.166.104",
+      vscode: "0.37.149",
+      jetbrains: "0.4.166",
+    },
+  };
+  fs.writeFileSync(file, JSON.stringify(manifest));
+  const { versions, packageSetDigest } = loadNativePackageSet(file);
+  const source = {
+    versions,
+    packageSetDigest,
+    samples: [{ sampleId: "verify-03", versions, packageSetDigest }],
+  };
+  assert.doesNotThrow(() => assertNativePackageSet(source, file));
+  assert.throws(() => assertNativePackageSet(source));
+  assert.throws(() =>
+    assertNativePackageSet({ ...source, packageSetDigest: undefined }, file),
+  );
+  assert.throws(() =>
+    assertNativePackageSet({ ...source, versions: VERSIONS }, file),
+  );
+  assert.throws(() =>
+    assertNativePackageSet(
+      { ...source, samples: [{ ...source.samples[0], versions: VERSIONS }] },
+      file,
+    ),
+  );
+  assert.throws(() =>
+    assertNativePackageSet(
+      {
+        ...source,
+        samples: [{ ...source.samples[0], packageSetDigest: undefined }],
+      },
+      file,
+    ),
+  );
+  const legacy = {
+    versions: VERSIONS,
+    samples: [{ sampleId: "verify-03", versions: VERSIONS }],
+  };
+  assert.doesNotThrow(() => assertNativePackageSet(legacy));
+  assert.throws(() => assertNativePackageSet(legacy, file));
+  fs.appendFileSync(file, "\n");
+  assert.throws(() => assertNativePackageSet(source, file));
+});
 
 test("accepts only exact bounded candidate bytes at the catalog path", (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "native-check-test-"));

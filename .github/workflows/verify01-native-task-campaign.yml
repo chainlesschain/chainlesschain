@@ -26,6 +26,12 @@ on:
         required: true
         default: all
         options: [all, cli, vscode, jetbrains]
+      package_set:
+        description: "Latest public packages for unfinished tasks; frozen is only for account-free historical acceptance"
+        type: choice
+        required: true
+        default: latest
+        options: [latest, frozen]
       sample_ids:
         description: "Optional comma-separated unfinished sample IDs; requires one host and one entry. Subset artifacts stay separate from full 36+9 rounds."
         type: string
@@ -42,6 +48,10 @@ on:
 permissions:
   contents: read
   actions: read
+
+env:
+  NATIVE_PACKAGE_SET: ${{ inputs.package_set || 'latest' }}
+  NATIVE_PACKAGE_SET_FILE: docs/research/cli/verify01-package-sets/2026-10-18-latest.json
 
 concurrency:
   group: verify01-native-36-plus-9-${{ inputs.hosts || 'all' }}-${{ inputs.entries || 'all' }}-${{ inputs.accept_existing_run || 'generate' }}
@@ -81,12 +91,17 @@ jobs:
           DELIVERY_RUN: ${{ inputs.accept_existing_run }}
           DELIVERY_COMMIT: ${{ inputs.accept_existing_commit }}
           SAMPLE_SELECTION: ${{ inputs.sample_ids }}
+          PACKAGE_SET_SELECTION: ${{ inputs.package_set || 'latest' }}
         run: |
           node --input-type=module -e '
             import fs from "node:fs";
-            import {parseNativeSampleIds, selectNativeSamples} from "./packages/cli/scripts/verify01-native-task-campaign.mjs";
+            import {parseNativeSampleIds, selectNativeSamples, loadNativePackageSet} from "./packages/cli/scripts/verify01-native-task-campaign.mjs";
             const run = process.env.DELIVERY_RUN, commit = process.env.DELIVERY_COMMIT;
             if (!!run !== !!commit || (run && (!/^[1-9][0-9]+$/.test(run) || !/^[a-f0-9]{40}$/.test(commit)))) throw new Error("paired exact delivery run and commit required");
+            const packageSet = process.env.PACKAGE_SET_SELECTION || "latest";
+            if (!["latest", "frozen"].includes(packageSet)) throw new Error("unknown package set");
+            if (!run && packageSet !== "latest") throw new Error("Further model execution must use latest public packages");
+            if (packageSet === "latest") loadNativePackageSet(process.env.NATIVE_PACKAGE_SET_FILE || "docs/research/cli/verify01-package-sets/2026-10-18-latest.json");
             const hosts = {windows: ["win32", "windows-latest"], linux: ["linux", "ubuntu-24.04"], macos: ["darwin", "macos-15"]};
             const selected = process.env.HOST_SELECTION;
             if (selected !== "all" && !Object.hasOwn(hosts, selected)) throw new Error("unknown host");
@@ -170,6 +185,10 @@ jobs:
         run: |
           display=()
           selection=()
+          package=()
+          if [[ "$NATIVE_PACKAGE_SET" == "latest" ]]; then
+            package=(--versions-file "$NATIVE_PACKAGE_SET_FILE")
+          fi
           if [[ -n "$NATIVE_SAMPLES" ]]; then
             selection=(--samples "$NATIVE_SAMPLES")
           fi
@@ -178,7 +197,7 @@ jobs:
           fi
           "${display[@]}" node packages/cli/scripts/verify01-native-task-campaign.mjs \
             --entry "$NATIVE_ENTRY" --source-sha "$EXECUTION_SOURCE_SHA" \
-            --confirm-live --output-dir "$RUNNER_TEMP/verify01-native-tasks" "${selection[@]}"
+            --confirm-live --output-dir "$RUNNER_TEMP/verify01-native-tasks" "${selection[@]}" "${package[@]}"
       - name: Preserve all candidates, native traces, UI and broker failures
         if: always()
         uses: actions/upload-artifact@v6
@@ -227,6 +246,10 @@ jobs:
         shell: bash
         run: |
           selection=()
+          package=()
+          if [[ "$NATIVE_PACKAGE_SET" == "latest" ]]; then
+            package=(--versions-file "$NATIVE_PACKAGE_SET_FILE")
+          fi
           if [[ -n "$NATIVE_SAMPLES" ]]; then
             selection=(--samples "$NATIVE_SAMPLES")
           fi
@@ -234,7 +257,7 @@ jobs:
             --input-dir "$RUNNER_TEMP/native-delivery" \
             --output-dir "$RUNNER_TEMP/native-acceptance" \
             --source-sha "$EXECUTION_SOURCE_SHA" --checker-source-sha "$CHECKER_SOURCE_SHA" \
-            --image-id "$REVIEW_IMAGE_ID" "${selection[@]}"
+            --image-id "$REVIEW_IMAGE_ID" "${selection[@]}" "${package[@]}"
       - name: Preserve independent checker receipts including failures
         if: always()
         uses: actions/upload-artifact@v6

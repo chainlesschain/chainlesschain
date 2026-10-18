@@ -17,7 +17,52 @@ import {
   VERSIONS,
   archiveExtractor,
   extractNativeArchive,
+  loadNativePackageSet,
 } from "../scripts/verify01-native-task-campaign.mjs";
+
+test("package set selects exact complete versions and binds original manifest bytes", (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "native-package-set-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const file = path.join(root, "versions.json");
+  const versions = {
+    ...VERSIONS,
+    cli: "0.166.104",
+    vscode: "0.37.149",
+    jetbrains: "0.4.166",
+  };
+  const manifest = {
+    schema: "chainlesschain.native-package-set/v1",
+    versions,
+    registryEvidence: "independent lookup",
+  };
+  fs.writeFileSync(file, JSON.stringify(manifest));
+  const selected = loadNativePackageSet(file);
+  assert.deepEqual(selected.versions, versions);
+  assert.deepEqual(selected.bytes, fs.readFileSync(file));
+  assert.match(selected.packageSetDigest, /^sha256:[a-f0-9]{64}$/u);
+  fs.appendFileSync(file, "\n");
+  assert.notEqual(
+    loadNativePackageSet(file).packageSetDigest,
+    selected.packageSetDigest,
+  );
+  assert.deepEqual(loadNativePackageSet(), { versions: VERSIONS });
+  for (const invalid of [
+    { ...manifest, schema: "wrong" },
+    { ...manifest, versions: { ...versions, cli: "latest" } },
+    { ...manifest, versions: { ...versions, vscode: "^0.37.149" } },
+    { ...manifest, versions: { ...versions, jetbrains: "0.4.x" } },
+    { ...manifest, versions: { ...versions, vscodeHost: "stable" } },
+    {
+      ...manifest,
+      versions: { ...versions, jetbrainsHost: "LATEST-EAP-SNAPSHOT" },
+    },
+    { ...manifest, versions: { cli: versions.cli } },
+    { ...manifest, versions: { ...versions, unexpected: "1.0.0" } },
+  ]) {
+    fs.writeFileSync(file, JSON.stringify(invalid));
+    assert.throws(() => loadNativePackageSet(file));
+  }
+});
 import { VERIFY01_REVIEW_SPECS } from "../scripts/verify01-review-specs.mjs";
 const require = createRequire(import.meta.url);
 const {

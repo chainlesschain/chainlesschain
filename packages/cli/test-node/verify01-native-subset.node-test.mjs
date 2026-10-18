@@ -173,6 +173,16 @@ test("workflow validates a single matching host and entry before subset dispatch
   assert.notEqual(run({ HOST_SELECTION: "all" }).status, 0);
   assert.notEqual(run({ ENTRY_SELECTION: "all" }).status, 0);
   assert.notEqual(run({ SAMPLE_SELECTION: "verify-20" }).status, 0);
+  assert.equal(run({ PACKAGE_SET_SELECTION: "frozen" }).status, 0);
+  assert.notEqual(run({ PACKAGE_SET_SELECTION: "unknown" }).status, 0);
+  assert.notEqual(
+    run({
+      PACKAGE_SET_SELECTION: "frozen",
+      DELIVERY_RUN: "",
+      DELIVERY_COMMIT: "",
+    }).status,
+    0,
+  );
   const policy = JSON.parse(
     fs.readFileSync(
       path.join(
