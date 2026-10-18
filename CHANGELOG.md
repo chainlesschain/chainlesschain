@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed - cc CLI 0.166.106: task delivery follow-up (candidate, 2026-10-18)
 
 - Guide coding tasks toward brief action statements and complete file writes split into bounded segments.
+- Ground regression expectations and defaults in the source contract, exercise actual boundaries with valid fault-injection fixtures, and use independent expected values or authoritative state.
 - Preserve the explicit provider reason for HTTP 403 responses that are not authentication or billing errors.
 - Keep JetBrains asynchronous draft-save receipts in a separate status update so they do not interrupt the assistant reply.
 - Wait up to two seconds for final JetBrains stdout callbacks on the background process waiter and schedule exit alongside result rendering on the IDE event queue.
