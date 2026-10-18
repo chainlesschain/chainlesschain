@@ -1,6 +1,5 @@
 package com.chainlesschain.ide.intellij;
 
-import com.chainlesschain.ide.MarkdownLite;
 import com.chainlesschain.ide.TranscriptCap;
 
 import javax.swing.JTextPane;
@@ -30,6 +29,7 @@ final class ChatTranscript {
     private final SimpleAttributeSet styleCode = new SimpleAttributeSet();
     private final SimpleAttributeSet styleBold = new SimpleAttributeSet();
     private final SimpleAttributeSet styleDim = new SimpleAttributeSet(); // extended-thinking
+    private final ChatTranscriptRendering rendering = new ChatTranscriptRendering(stylePlain, styleCode, styleBold);
     // The active assistant turn keeps its stable heading at
     // [assistantHeadingStart, assistantRunStart) and its streamed markdown at
     // [assistantRunStart, doc end). Both ranges are protected until finalize.
@@ -90,7 +90,7 @@ final class ChatTranscript {
         StyleConstants.setForeground(styleDim, new com.intellij.ui.JBColor(
                 new Color(0x80, 0x80, 0x80), new Color(0x9A, 0x9A, 0x9A))); // gray thinking
         StyleConstants.setItalic(styleDim, true);
-        savedHistory = new ChatTranscriptHistory(pane, stylePlain, styleBold, styleDim, this::historyEdit);
+        savedHistory = new ChatTranscriptHistory(pane, rendering, styleBold, styleDim, this::historyEdit);
         pane.addCaretListener(event -> {
             if (pane.getSelectionStart() == pane.getSelectionEnd()) javax.swing.SwingUtilities.invokeLater(() -> historyReady.run());
         });
@@ -191,7 +191,7 @@ final class ChatTranscript {
                 String role = "user".equals(row.role()) ? "User message"
                         : "assistant".equals(row.role()) ? "Assistant response" : "Tool result";
                 document.insertString(document.getLength(), "\nMessage " + (row.ordinal() + 1) + ", " + role + "\n", styleBold);
-                document.insertString(document.getLength(), row.text(), stylePlain);
+                rendering.insert(document, document.getLength(), row.role(), row.text());
                 if (row.truncated()) document.insertString(document.getLength(),
                         "\n[Message shortened for display; the saved session retains its original content.]", styleDim);
                 document.insertString(document.getLength(), "\n", stylePlain);
@@ -436,13 +436,7 @@ final class ChatTranscript {
                     && pane.getSelectionStart() != pane.getSelectionEnd();
             if (!selected) {
             d.remove(start, end - start);
-            for (MarkdownLite.Span span : MarkdownLite.parse(text)) {
-                javax.swing.text.AttributeSet st =
-                        span.kind == MarkdownLite.Kind.CODE ? styleCode
-                        : span.kind == MarkdownLite.Kind.BOLD ? styleBold
-                        : stylePlain;
-                d.insertString(d.getLength(), span.text, st);
-            }
+            rendering.insert(d, d.getLength(), "assistant", text);
             }
             lastFinalizedSpan = savedHistory.add(spanStart, d.getLength(), "assistant", text, liveSessionId, null, liveOwner);
             stickToBottomIfFollowing(following && !selected);

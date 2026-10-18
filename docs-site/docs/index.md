@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: "v5.0.3.140 | Agent Platform CLI 0.166.104 | Open VSX 0.37.149 | 桌面与移动端"
+  tagline: "v5.0.3.140 | CLI 0.166.105 已公开 | IDE 发布中 | 桌面与移动端"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -21,9 +21,9 @@ hero:
 
 features:
   - icon: 🛡️
-    title: 会话预算恢复与 IDE 桥接
-    details: CLI .104、Open VSX .149 与 JetBrains .166 已公开；会话预算恢复与后台协议已加固。正式预算仍 NOT_PAID_READY，36+9 未运行。
-    link: /chainlesschain/cli-ide-update-2026-10-17
+    title: CLI .105 已公开，IDE 发布中
+    details: CLI .105 已经 OIDC 发布与公开回读；Open VSX .150、JetBrains .167 标签已提交，市场可获取性待核验。新版补测 NOT_RUN。
+    link: /chainlesschain/cli-ide-update-2026-10-18
   - icon: 🏢
     title: 组织目标、授权记忆与站内通知（主线）
     details: 产品 .140 已包含显式巡检、多级审批、独立验收、共享记忆与授权通知；记忆不自动注入模型。
@@ -37,12 +37,12 @@ features:
     details: 统计 v2、耐久预注册及真实后端关联已实现；必需回执固定 HOLD，真实效果实验未运行，生产来源门仍在实施。
     link: /chainlesschain/rrsi-current
   - icon: 🧩
-    title: Agent Platform 0.166.104
-    details: 有界 Retry-After 与可见输出防重放、文件字节保护、稳定缓存前缀和工作树登记重读；正式 36+9 仍未运行。
+    title: Agent Platform 0.166.105
+    details: 通用编码指导、静态导入反馈、延迟写入完成保护与安全传输诊断；原轮次25/25记录收齐，累计25/45，新版未补测。
     link: /chainlesschain/agent-platform-release
   - icon: 📝
     title: IDE 任务记录与新会话接力
-    details: Open VSX 0.37.149 与 JetBrains 0.4.166 均公开并推荐 CLI 0.166.104；IDE 桥接重连不重放结果未知的工具调用。
+    details: Open VSX 0.37.150 与 JetBrains 0.4.167 推荐公开 CLI 0.166.105，IDE 发布中；桥接重连不重放结果未知的工具调用。
     link: /chainlesschain/ide-task-worklog
   - icon: 🎯
     title: Skill 决策模型试点
@@ -66,7 +66,7 @@ features:
     link: /chainlesschain/desktop-model-governance
   - icon: 🧑‍💻
     title: IDE Bridge 突破 6 万下载
-    details: Open VSX 0.37.149 与 JetBrains 0.4.166 均公开并推荐 CLI 0.166.104；Microsoft Marketplace 未发行。
+    details: Open VSX .150 与 JetBrains .167 发布中，公开制品待核验；Microsoft Marketplace 未发行。
     link: /chainlesschain/ide-plugin
   - icon: 🔐
     title: 安全优先
@@ -76,12 +76,12 @@ features:
     details: 公开版支持规范化实体与投影意图同事务保存、KG/BM25 独立确认、分批恢复与退休临时 consumer 回执维护；未知运行投递仍受保护，当前宿主没有连接向量目的地。
   - icon: 🧪
     title: 发布证据分层
-    details: npm latest 为 CLI 0.166.104@93792f6520；准确源码 CLI CI/Strict、OIDC 与公开 npm 回读已完成；两个 IDE 的市场发布单独核验。
+    details: CLI 0.166.105@d4065008bb 已公开回读；同提交 CLI CI、Strict、IDE、ARM64 门禁全过；IDE 市场公开与任务验收分别核验。
 ---
 
-> 2026-10-17：CLI **0.166.104**、Open VSX **0.37.149** 与 JetBrains **0.4.166** 已公开，两个 IDE 均推荐 CLI `.104`。CLI 与 VS Code 发行提交 `93792f6520`，JetBrains `4c3e5cfd56`。Session Core **0.3.19**、Kernel **0.1.10**、PDH **0.4.65** 与原生产品 **v5.0.3.140** 保持独立版本。预算仍 **NOT_PAID_READY**，正式 36+9 **NOT_RUN**。详见[升级指南](/chainlesschain/cli-ide-update-2026-10-17)。
+> 2026-10-18：CLI **0.166.105** 已通过 GitHub Actions OIDC 发布并完成公开 metadata、tarball SRI 与源码字节回读，发行提交为 `d4065008bb`。同一提交的 CLI CI **71/71**、Strict Sandbox **5/5**、IDE **18 成功 / 1 条件跳过**、ARM64 **10/10** 均通过。VS Code **0.37.150** 与 JetBrains **0.4.167** 标签已提交，两个插件推荐 CLI `.105`；**IDE 发布中**，公开上架及下载尚待完整回读。原公开包轮次的生成与验收记录均已收齐 **25/25**，累计候选合格 **25/45**，原轮次 **4 项端到端通过**，剩余 **20** 项待补测。**新版补测为 NOT_RUN**；候选合格不等于端到端通过，发布和 CI 不证明新版任务质量提高。Microsoft Marketplace 未发布。
 
-> **验收范围**：正式 36+9 为 **NOT_RUN**，完整 native review 为 **NOT_ADMITTED**，自动晋升 **HOLD**。耐久预算 authority 代码已包含，仍为 **NOT_PAID_READY**。产品 .140 的独立发行提交为 `f733f92cb9`；详见[最新设计](https://design.chainlesschain.com/release-runtime-update-2026-10-17.html)。
+> **验收范围**：原公开包轮次已执行并收齐生成与验收各 **25/25**；累计候选合格 **25/45**，原轮次端到端通过 **4** 项，剩余 **20** 项。新版任务补测 **NOT_RUN**，完整 native review 与自动晋升仍单独验收，自动晋升 **HOLD**。产品 .140 独立发行；详见[当前升级指南](/chainlesschain/cli-ide-update-2026-10-18)。
 
 ## 2026-10-08 历史增量
 

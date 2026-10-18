@@ -48,6 +48,7 @@ import { GoalConditionEngine } from "../../src/lib/goal-condition-engine.js";
 import { currentHostHooksV2WorkspaceRoot } from "../../src/lib/hooks-v2-workspace-context.js";
 import { computeEventHash } from "../../src/harness/transcript-integrity.js";
 import { HostResourceBudget } from "../../src/lib/host-resource-budget.js";
+import { HERMETIC_CODING_SYSTEM_PROMPT } from "../../src/lib/coding-task-guidance.js";
 import { createPermissionRulesProvider } from "../../src/lib/permission-authority.js";
 
 const runAgentHeadless = (options = {}, deps = {}) =>
@@ -99,6 +100,56 @@ const replyText = (content) =>
     message: { role: "assistant", content },
     usage: { input_tokens: 7, output_tokens: 3 },
   }));
+
+describe("bounded transport terminal details", () => {
+  it.each(["json", "stream-json"])(
+    "preserves %s failure outcome without another loop call",
+    async (outputFormat) => {
+      const failure = new TypeError("fetch failed", {
+        cause: Object.assign(new Error("private endpoint"), {
+          code: "ECONNRESET",
+        }),
+      });
+      const { deps, out } = makeDeps(replyText("unused"));
+      deps.agentLoop = vi.fn(async function* () {
+        throw failure;
+      });
+      const outcome = await runAgentHeadless(
+        {
+          prompt: "go",
+          outputFormat,
+          ephemeral: true,
+          useRegisteredMcp: false,
+        },
+        deps,
+      );
+      expect(outcome).toMatchObject({
+        exitCode: 5,
+        isError: true,
+        result: "fetch failed",
+      });
+      expect(deps.agentLoop).toHaveBeenCalledTimes(1);
+      const terminal = out
+        .join("")
+        .trim()
+        .split("\n")
+        .map((line) => JSON.parse(line))
+        .find((row) => row.type === "result");
+      expect(terminal).toMatchObject({
+        subtype: "error",
+        is_error: true,
+        error_details: {
+          kind: "transport",
+          name: "TypeError",
+          causeCode: "ECONNRESET",
+        },
+      });
+      expect(terminal.error ?? terminal.result).toBe("fetch failed");
+      expect(JSON.stringify(terminal)).not.toContain("private endpoint");
+      expect(failure.cause.code).toBe("ECONNRESET");
+    },
+  );
+});
 
 describe("headless pre-execution denial correlation", () => {
   it("retains a real absolute-path rejection between a successful read and relative write", async () => {
@@ -631,8 +682,10 @@ describe("headless-runner — exact delivery fixer authority", () => {
     const { deps } = makeDeps(replyText("done"));
     deps.bootstrap = vi.fn(async () => ({ db: null }));
     let captured = null;
+    let capturedMessages = null;
     deps.agentLoop = async function* (_messages, loopOptions) {
       captured = loopOptions;
+      capturedMessages = _messages;
       yield { type: "response-complete", content: "done" };
     };
     process.env.CC_FORMAL_QUALITY_EVAL_HERMETIC = "1";
@@ -659,6 +712,10 @@ describe("headless-runner — exact delivery fixer authority", () => {
       });
       expect(captured.enabledToolNames).not.toContain("run_shell");
       expect(captured.enabledToolNames).not.toContain("run_code");
+      expect(capturedMessages[0]).toMatchObject({
+        role: "system",
+        content: HERMETIC_CODING_SYSTEM_PROMPT,
+      });
       expect(deps.bootstrap).not.toHaveBeenCalled();
     } finally {
       for (const [name, value] of [
@@ -2680,8 +2737,9 @@ describe("headless-runner — background phase reporter wiring", () => {
   // child, the human-blocking confirmers must surface their pending window as
   // phase waiting_permission + pendingApprovals in the background state.
   it("wraps the remote-control confirmer so its pending window hits the state file", async () => {
-    const { createBackgroundPhaseReporter } =
-      await import("../../src/lib/background-phase-reporter.js");
+    const { createBackgroundPhaseReporter } = await import(
+      "../../src/lib/background-phase-reporter.js"
+    );
     const confirmers = [];
     const gate = {
       setSessionPolicy: () => {},
@@ -2749,8 +2807,9 @@ describe("headless-runner — background phase reporter wiring", () => {
   });
 
   it("foreground runs (no CC_BACKGROUND_AGENT_ID) keep the confirmer object identity", async () => {
-    const { createBackgroundPhaseReporter } =
-      await import("../../src/lib/background-phase-reporter.js");
+    const { createBackgroundPhaseReporter } = await import(
+      "../../src/lib/background-phase-reporter.js"
+    );
     const confirmers = [];
     const gate = {
       setSessionPolicy: () => {},

@@ -34,12 +34,13 @@ final class ChatTranscriptHistory {
     }
     private final JTextPane pane;
     private final StyledDocument document;
-    private final AttributeSet plain, bold, dim;
+    private final AttributeSet bold, dim;
+    private final ChatTranscriptRendering rendering;
     private final EditObserver observer;
     private final List<Span> spans = new ArrayList<>();
     private boolean merging;
-    ChatTranscriptHistory(JTextPane pane, AttributeSet plain, AttributeSet bold, AttributeSet dim, EditObserver observer) {
-        this.pane = pane; this.document = pane.getStyledDocument(); this.plain = plain; this.bold = bold; this.dim = dim;
+    ChatTranscriptHistory(JTextPane pane, ChatTranscriptRendering rendering, AttributeSet bold, AttributeSet dim, EditObserver observer) {
+        this.pane = pane; this.document = pane.getStyledDocument(); this.rendering = rendering; this.bold = bold; this.dim = dim;
         this.observer = observer;
         document.addDocumentListener(new DocumentListener() {
             public void changedUpdate(DocumentEvent event) { }
@@ -205,14 +206,15 @@ final class ChatTranscriptHistory {
     }
     private Span insert(int offset, SessionTranscriptPage.Row row, String session) throws BadLocationException {
         String heading = heading(row), suffix = suffix(row);
-        observer.edit(offset, 0, heading.length() + row.text().length() + suffix.length());
+        int bodyLength = ChatTranscriptRendering.length(row.role(), row.text());
+        observer.edit(offset, 0, heading.length() + bodyLength + suffix.length());
         document.insertString(offset, heading, bold);
-        document.insertString(offset + heading.length(), row.text(), plain);
-        document.insertString(offset + heading.length() + row.text().length(), suffix, dim);
-        Span span = add(offset, offset + heading.length() + row.text().length() + suffix.length(), row.role(), row.text(), session, null, null);
+        rendering.insert(document, offset + heading.length(), row.role(), row.text());
+        document.insertString(offset + heading.length() + bodyLength, suffix, dim);
+        Span span = add(offset, offset + heading.length() + bodyLength + suffix.length(), row.role(), row.text(), session, null, null);
         span.saved = row; return span;
     }
     private static String heading(SessionTranscriptPage.Row row) { return "\nMessage " + (row.ordinal() + 1) + ", " + row.role() + " (saved)\n"; }
     private static String suffix(SessionTranscriptPage.Row row) { return row.truncated() ? "\n[Message shortened for display; the saved session retains its original content.]\n" : "\n"; }
-    private static int renderedLength(SessionTranscriptPage.Row row) { return heading(row).length() + row.text().length() + suffix(row).length(); }
+    private static int renderedLength(SessionTranscriptPage.Row row) { return heading(row).length() + ChatTranscriptRendering.length(row.role(), row.text()) + suffix(row).length(); }
 }

@@ -49,6 +49,7 @@ import { ReadFileLoopGuard } from "../lib/read-file-loop-guard.js";
 import { gitToolInputError } from "../lib/git-tool-input.js";
 import { shellOutputPage, shellOutputPreview } from "../lib/shell-output.js";
 import { DIAGNOSTIC_WORKFLOW_GUIDANCE } from "../lib/diagnostic-workflow.js";
+import { CODING_TASK_QUALITY_GUIDANCE } from "../lib/coding-task-guidance.js";
 import { RemoteReadLoopGuard } from "../lib/remote-read-loop-guard.js";
 import {
   isPrActionRequest,
@@ -1167,6 +1168,8 @@ export function getBaseSystemPrompt(cwd) {
 You have access to tools that let you read files, write files, edit files, run shell commands, and search the codebase. When the user asks you to do something, USE THE TOOLS to actually do it — don't just describe what should be done.
 
 Key behaviors:
+${CODING_TASK_QUALITY_GUIDANCE}
+
 - A new user message may arrive before the previous task finishes. Incorporate corrections and added requests while preserving unfinished authorized work, unless the user cancels or replaces it. Use the completed tool results already in history; do not restart the investigation.
 - When asked to modify code, read the file first, then edit it
 - When asked to create something, use write_file to create it
@@ -4927,19 +4930,63 @@ export async function _withPostEditDiagnostics(
   cwd,
   additionalDirectories,
   managedCheckpoint = false,
+  writtenContent = null,
 ) {
+  // Parsing the bytes we just wrote is safe even when starting a language
+  // server is forbidden. Feed definite local import mistakes back in the same
+  // tool result; a successful write still means persistence, not test success.
+  let enriched = result;
+  if (
+    result?.success === true &&
+    typeof writtenContent === "string" &&
+    /\.(?:js|mjs|cjs)$/i.test(filePath) &&
+    process.env.CC_EDIT_DIAGNOSTICS !== "0"
+  ) {
+    try {
+      const root = pickRootForFile(
+        path.resolve(cwd || process.cwd(), filePath),
+        workspaceRootsFor(cwd, additionalDirectories),
+      );
+      if (root) {
+        const { collectFileImportDiagnostics } = await import(
+          "../lib/file-import-diagnostics.js"
+        );
+        const checked = collectFileImportDiagnostics({
+          filePath,
+          content: writtenContent,
+          workspaceRoot: root,
+        });
+        if (checked.diagnostics.length) {
+          enriched = {
+            ...result,
+            newDiagnostics: [
+              ...(result.newDiagnostics || []),
+              ...checked.diagnostics.slice(0, 8),
+            ],
+          };
+        }
+      }
+    } catch {
+      // Optional diagnostics must not turn a persisted edit into a failed one.
+    }
+  }
   // A cold language server is a long-lived child process. Starting one inside
   // a managed workspace transaction would keep a writer bound past tool
   // settlement and make commit/rollback unverifiable. Managed edits therefore
   // skip this best-effort enrichment; callers can request diagnostics after the
   // checkpoint has sealed.
-  if (managedCheckpoint) return result;
+  if (managedCheckpoint) return enriched;
   const newDiagnostics = await _postEditDiagnostics(
     filePath,
     cwd,
     additionalDirectories,
   );
-  return newDiagnostics ? { ...result, newDiagnostics } : result;
+  return newDiagnostics
+    ? {
+        ...enriched,
+        newDiagnostics: [...(enriched.newDiagnostics || []), ...newDiagnostics],
+      }
+    : enriched;
 }
 
 // ─── Lazy subtree instruction injection (large-monorepo lever) ─────────────
@@ -5791,6 +5838,7 @@ async function executeToolInner(
             cwd,
             additionalDirectories,
             managedCheckpoint || hermeticExecution,
+            args.content,
           ),
           filePath,
           cwd,
@@ -5992,6 +6040,7 @@ async function executeToolInner(
             cwd,
             additionalDirectories,
             managedCheckpoint || hermeticExecution,
+            newContent,
           ),
           filePath,
           cwd,
@@ -6094,6 +6143,7 @@ async function executeToolInner(
             cwd,
             additionalDirectories,
             managedCheckpoint || hermeticExecution,
+            result.content,
           ),
           filePath,
           cwd,
@@ -14622,6 +14672,53 @@ export async function* agentLoop(messages, options) {
     options.hostResourceBudget || new HostResourceBudget();
   const taskProgressTracker =
     options.taskProgressTracker || new TaskProgressTracker();
+  // A subtree preflight is deliberately not an executed mutation. Keep this
+  // obligation outside transcript compaction and never replay it automatically.
+  const pendingSubtreeMutations = new Map();
+  let subtreeMutationReprompted = false;
+  const recordSubtreeMutation = (tool, args, result) => {
+    if (!GUARDED_FILE_MUTATION_TOOLS.has(tool)) return;
+    if (!args || typeof args !== "object" || Array.isArray(args)) return;
+    // Invalid tool arguments/results must retain their existing error path;
+    // bookkeeping must not introduce a new exception or completion verdict.
+    const requestedPaths = fileMutationPaths(tool, args);
+    if (
+      !requestedPaths.length ||
+      requestedPaths.some((target) => typeof target !== "string")
+    )
+      return;
+    const targets = [
+      ...new Set(
+        requestedPaths.map((target) =>
+          path.resolve(options.cwd || process.cwd(), target),
+        ),
+      ),
+    ].sort();
+    // These tools are alternative ways to deliver content to the same target.
+    // A successful explicit replacement must settle a deferred edit (and vice
+    // versa); move/delete/notebook effects retain their distinct obligations.
+    const effect = ["write_file", "edit_file", "edit_file_hashed"].includes(tool)
+      ? "file-content"
+      : tool;
+    const key = JSON.stringify([effect, targets]);
+    if (
+      result?.policy?.via === "subtree-instructions" &&
+      result.policy.decision === "deferred" &&
+      result.mutationPerformed === false
+    ) {
+      pendingSubtreeMutations.set(key, { tool, targets });
+    } else if (
+      result &&
+      !result.error &&
+      result.success === true &&
+      result.isError !== true &&
+      result.policy?.decision !== "deny" &&
+      result.policy?.decision !== "deferred" &&
+      result.mutationPerformed !== false
+    ) {
+      pendingSubtreeMutations.delete(key);
+    }
+  };
   const signal = options.signal || null;
   const workflowEffectId = _normalizeWorkflowEffectId(options.workflowEffectId);
   // Optional OpenTelemetry recorder (TelemetryRecorder). When present, the loop
@@ -16397,6 +16494,42 @@ export async function* agentLoop(messages, options) {
         }
         continue;
       }
+      if (pendingSubtreeMutations.size) {
+        const pending = [...pendingSubtreeMutations.values()];
+        if (!subtreeMutationReprompted && budget.remaining() > 0) {
+          subtreeMutationReprompted = true;
+          messages.push({ role: "assistant", content: msg.content || "" });
+          messages.push({
+            role: "user",
+            content:
+              "Runtime status: these mutations were deferred before any effect: " +
+              JSON.stringify(pending) +
+              ". Review the authoritative subtree instructions already returned. " +
+              "If still authorized and appropriate, explicitly issue the required tool call. " +
+              "Do not bypass rules or perform a prohibited write. Otherwise report the unfinished work and its blocker. " +
+              "A promise to retry does not execute the mutation.",
+          });
+          yield {
+            type: "iteration-warning",
+            message:
+              "Subtree-deferred mutations remain unexecuted; one recovery turn requested.",
+          };
+          continue;
+        }
+        yield {
+          type: "response-complete",
+          content:
+            (msg.content ? msg.content + "\n\n" : "") +
+            "Incomplete: subtree-deferred mutations remain unexecuted.",
+        };
+        yield {
+          type: "run-ended",
+          runId,
+          reason: "deferred-mutation-unresolved",
+          pendingMutations: pending,
+        };
+        return;
+      }
       // Surface the final answer's extended-thinking reasoning (Anthropic, when
       // --think is on) so non-streaming consumers (the REPL) can show it. The
       // streaming path forwards reasoning live via onThinking instead.
@@ -16638,6 +16771,7 @@ export async function* agentLoop(messages, options) {
         } = await promise;
         if (fatalError) throw fatalError;
         throwIfAborted(signal);
+        recordSubtreeMutation(call.function.name, toolArgs, toolResult);
         const taskAdvanced = taskProgressTracker.record(
           call.function.name,
           toolResult,
@@ -17181,6 +17315,7 @@ export async function* agentLoop(messages, options) {
         // context — but tell the model when we cut it (no more silent
         // mid-content slice). See MAX_TOOL_RESULT_CHARS / capToolResultString.
         const resultStr = toolResultForModel(toolName, toolResult, messages);
+        recordSubtreeMutation(toolName, toolArgs, toolResult);
         const taskAdvanced = taskProgressTracker.record(
           toolName,
           toolResult,

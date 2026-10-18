@@ -1,6 +1,6 @@
 {
   "name": "chainlesschain",
-  "version": "0.166.104",
+  "version": "0.166.105",
   "description": "CLI for ChainlessChain - install, configure, and manage your personal AI management system",
   "type": "module",
   "bin": {
@@ -113,6 +113,7 @@
     "@inquirer/prompts": "^7.2.0",
     "@noble/curves": "^1.9.7",
     "@tootallnate/quickjs-emscripten": "^0.23.0",
+    "acorn": "8.17.0",
     "ajv": "^8.20.0",
     "ajv-formats": "^3.0.1",
     "chalk": "^5.4.1",

@@ -17,6 +17,7 @@
  */
 
 import { randomUUID } from "node:crypto";
+import { transportErrorDetails } from "../lib/transport-error-details.js";
 import { captureAgentExecutionPolicy } from "../lib/agent-execution-policy.js";
 import { TaskWorklog } from "../lib/context-memory-kernel/task-worklog-port.js";
 import { isProxy } from "node:util/types";
@@ -5546,6 +5547,7 @@ async function runAgentHeadlessStreamInWorkspace(
         },
       );
     } catch (err) {
+      const turnWasAborted = currentAbort?.signal.aborted === true;
       currentAbort = null;
       if (err?.code === AGENT_EVOLUTION_INGRESS_FAILED_CODE) {
         emit({
@@ -5623,8 +5625,9 @@ async function runAgentHeadlessStreamInWorkspace(
         sawError = true;
         break;
       }
-      const isAbort =
-        err?.name === "AbortError" || /abort/i.test(err?.message || "");
+      // Providers can abort their own transport/timeouts, even with AbortError
+      // or ABORT_ERR. Only our owned signals establish user/caller cancellation.
+      const isAbort = turnWasAborted || options.signal?.aborted === true;
       if (isAbort && !options.signal?.aborted) {
         // User-initiated turn interrupt — not an error; no assistant message
         // is recorded (the dangling user turn is fine for the next exchange).
@@ -5653,11 +5656,13 @@ async function runAgentHeadlessStreamInWorkspace(
         continue;
       }
       if (isAbort) break; // outer options.signal — caller is shutting down
+      const transportDetails = transportErrorDetails(err);
       emit({
         type: "result",
         subtype: "error",
         is_error: true,
         error: err?.message || String(err),
+        ...(transportDetails ? { error_details: transportDetails } : {}),
         turn: turns,
       });
       sawError = true;
@@ -5770,6 +5775,7 @@ async function runAgentHeadlessStreamInWorkspace(
       exhausted ||
       costStopped ||
       outcome.endReason === "no-response" ||
+      outcome.endReason === "deferred-mutation-unresolved" ||
       Boolean(persistenceFailure);
     if (isError) sawError = true;
     const transcriptRefs = !persistenceFailure

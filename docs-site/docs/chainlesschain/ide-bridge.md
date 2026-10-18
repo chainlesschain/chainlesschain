@@ -1,6 +1,10 @@
 # IDE 桥接（IDE Bridge）
 
-> 2026-10-17：公开 CLI **0.166.104**、Open VSX **0.37.149** 与 JetBrains **0.4.166**，两个 IDE 均推荐 CLI `.104`。CLI 与 VS Code 发行源码为 `93792f6520`，JetBrains 为 `4c3e5cfd56`；主线核对至 `ef26f20b28`。Agent SDK **0.2.15**，Session Core **0.3.19**、Kernel **0.1.10**、PDH **0.4.65**；原生产品 **v5.0.3.140** 独立发行。正式预算 **NOT_PAID_READY**，36+9 **NOT_RUN（0/36、0/9）**、native **NOT_ADMITTED**、自动晋升 **HOLD**。 详见[升级指南](./cli-ide-update-2026-10-17)。下方日期内容为历史记录。
+> 2026-10-18：CLI **0.166.105** 已通过 GitHub Actions OIDC 发布并完成公开 metadata、tarball SRI 与源码字节回读，发行提交为 `d4065008bb`。同一提交的 CLI CI **71/71**、Strict Sandbox **5/5**、IDE **18 成功 / 1 条件跳过**、ARM64 **10/10** 均通过。VS Code **0.37.150** 与 JetBrains **0.4.167** 标签已提交，两个插件推荐 CLI `.105`；**IDE 发布中**，公开上架及下载尚待完整回读。原公开包轮次的生成与验收记录均已收齐 **25/25**，累计候选合格 **25/45**，原轮次 **4 项端到端通过**，剩余 **20** 项待补测。**新版补测为 NOT_RUN**；候选合格不等于端到端通过，发布和 CI 不证明新版任务质量提高。Microsoft Marketplace 未发布。
+
+当前安装：`npm i -g chainlesschain@0.166.105 --registry https://registry.npmjs.org`。新版 IDE 公开核验后升级并重启宿主，运行 Doctor 核对实际 CLI。详见[本轮升级指南](./cli-ide-update-2026-10-18)。
+
+以下带日期的发布和验收记录为历史快照。
 
 > 2026-10-16 当前公开版本：CLI **0.166.103**、Open VSX **0.37.148**、JetBrains **0.4.165**；两个 IDE 均推荐 CLI `.103`。Session Core **0.3.19**、Kernel **0.1.10**、PDH **0.4.65**，原生产品 **v5.0.3.140** 独立发行。正式预算 **NOT_PAID_READY**，36+9 **NOT_RUN（0/36、0/9）**。 见[升级与故障排查](./cli-ide-update-2026-10-16)。以下带日期的早期记录保留历史范围。
 
@@ -138,18 +142,18 @@ Activity Bar → **ChainlessChain IDE → Chat**:不开终端直接和 agent 对
 **1. 安装/升级 `cc` CLI**(实时感知/diff 审批需 ≥ 0.162.39):
 
 ```bash
-npm i -g chainlesschain@0.166.84
-cc --version          # 生产推荐 0.166.84；该桥接路径最低 0.162.39
+npm i -g chainlesschain@0.166.105 --registry https://registry.npmjs.org
+cc --version          # 当前公开 0.166.105；该桥接路径最低 0.162.39
 cc ide --help         # 确认有 ide 子命令
 ```
 
-**2. 安装编辑器扩展（已上架）:**
+**2. 安装编辑器扩展（本轮 IDE 发布中）:**
 
 **VS Code 及兼容编辑器**（VSCodium / Cursor / Gitpod / 通义灵码 …）
 
-- **已发布到 [Open VSX Registry](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide)**。在用 Open VSX 的编辑器里,扩展面板搜 **ChainlessChain IDE** 一键装。
+- **通过 [Open VSX Registry](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide)**。版本 `0.37.150` 正在发布，公开核验后在扩展面板搜 **ChainlessChain IDE** 安装。
   > 官方 VS Code Marketplace 暂未上架(发布受 Azure 订阅限制),所以**官方版 VS Code 里搜不到**——用上面那些兼容编辑器,或本地 `.vsix` 装(见下)。
-- _（官方 VS Code）_ 不要使用 Open VSX 页面的通用 **Install** 链接（它会跳到未上架的 Microsoft Marketplace）。请直接下载 [0.37.148 VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.148/file/chainlesschain.chainlesschain-ide-0.37.148.vsix)，再运行 **Extensions: Install from VSIX...**。
+- _（官方 VS Code）_ 不要使用 Open VSX 页面的通用 **Install** 链接（它会跳到未上架的 Microsoft Marketplace）。待版本公开后下载 [0.37.150 VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.150/file/chainlesschain.chainlesschain-ide-0.37.150.vsix)，再运行 **Extensions: Install from VSIX...**。
 - _（源码 / 离线）_ 从源码打本地 `.vsix` 安装：
   ```bash
   cd packages/vscode-extension
@@ -159,7 +163,7 @@ cc ide --help         # 确认有 ide 子命令
 
 **JetBrains（IDEA / PyCharm / WebStorm …）**
 
-- **已过审上架 JetBrains Marketplace**（`com.chainlesschain.ide`，当前 v0.4.165）：IDE 的 _Settings → Plugins → Marketplace_ 搜 **ChainlessChain IDE** 一键装（2024.2+），或访问 [plugin 32208](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge)。
+- **通过 JetBrains Marketplace**（`com.chainlesschain.ide`）：版本 `0.4.167` 正在发布，确认批准、上架及 ZIP 公开下载后，在 IDE 的 _Settings → Plugins → Marketplace_ 搜 **ChainlessChain IDE** 安装（2024.2+），或访问 [plugin 32208](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge)。
 - 离线/源码装:`./gradlew buildPlugin` 出 `build/distributions/*.zip` → _Settings → Plugins → ⚙ → Install Plugin from Disk_。
 
 **3. 配置大模型(首次)**:VS Code 系用**命令面板**跑 **ChainlessChain: Configure LLM**

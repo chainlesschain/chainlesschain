@@ -2,6 +2,12 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.150] - Task-quality candidate (2026-10-18)
+
+- Recommend CLI 0.166.105 for coding guidance, static import feedback and truthful completion with safe transport diagnostics.
+- Pending exact-commit CLI/IDE/ARM64 gates, npm OIDC publication and public CLI availability. Published-package retesting follows release.
+- Existing failures remain failures; this candidate does not claim all 36+9 samples passed.
+
 ## [0.37.149] - Session recovery and CLI 0.166.104 pairing (2026-10-17)
 
 - Recommend CLI `0.166.104` after its exact-commit npm release and readback.

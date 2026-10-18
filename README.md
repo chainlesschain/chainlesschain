@@ -1,6 +1,18 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
-## 2026-10-17 最新代码与公开发行
+2026-10-18：CLI **0.166.105** 已通过 GitHub Actions OIDC 发布并完成公开 metadata、tarball SRI 与源码字节回读，发行提交为 `d4065008bb`。同一提交的 CLI CI **71/71**、Strict Sandbox **5/5**、IDE **18 成功 / 1 条件跳过**、ARM64 **10/10** 均通过。VS Code **0.37.150** 与 JetBrains **0.4.167** 标签已提交，两个插件推荐 CLI `.105`；**IDE 发布中**，公开上架及下载尚待完整回读。原公开包轮次的生成与验收记录均已收齐 **25/25**，累计候选合格 **25/45**，原轮次 **4 项端到端通过**，剩余 **20** 项待补测。**新版补测为 NOT_RUN**；候选合格不等于端到端通过，发布和 CI 不证明新版任务质量提高。Microsoft Marketplace 未发布。
+
+现在可安装公开 CLI；配套 IDE 制品公开核验后再升级，重启聊天宿主并运行 Doctor。
+
+```bash
+npm i -g chainlesschain@0.166.105 --registry https://registry.npmjs.org
+cc --version
+cc doctor
+```
+
+详见[当前升级指南](docs-site/docs/chainlesschain/cli-ide-update-2026-10-18.md)和[OIDC 发布记录](https://github.com/chainlesschain/chainlesschain/actions/runs/39102818482)。
+
+## 2026-10-17 发布与升级（历史快照）
 
 2026-10-17：公开 CLI **0.166.104**、Open VSX **0.37.149** 与 JetBrains **0.4.166**，两个 IDE 均推荐 CLI `.104`。CLI 与 VS Code 发行源码为 `93792f6520`，JetBrains 为 `4c3e5cfd56`；主线核对至 `ef26f20b28`。Agent SDK **0.2.15**，Session Core **0.3.19**、Kernel **0.1.10**、PDH **0.4.65**；原生产品 **v5.0.3.140** 独立发行。正式预算 **NOT_PAID_READY**，36+9 **NOT_RUN（0/36、0/9）**、native **NOT_ADMITTED**、自动晋升 **HOLD**。
 
@@ -3017,7 +3029,7 @@ signals, reason, recommendedConcurrency, suggestedRoles }`。支持 monorepo 边
 ![Tests](https://img.shields.io/badge/tests-30000%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-146-blue.svg)
 ![Commands](https://img.shields.io/badge/CLI%20commands-175-blue.svg)
-![CLI](https://img.shields.io/badge/cli-0.166.104-blue.svg)
+![CLI](https://img.shields.io/badge/cli-0.166.105-blue.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 
 **去中心化 · 隐私优先 · AI原生**
