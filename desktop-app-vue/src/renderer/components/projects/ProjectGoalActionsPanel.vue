@@ -20,6 +20,73 @@
       刷新建议与回执
     </button>
     <p v-if="!items.length && !busy">检查发现风险后，会显示待核对的建议。</p>
+    <ProjectGoalExtensionDraftsPanel
+      :goal="goal"
+      :identity-key="identityKey"
+      :sources="
+        items
+          .filter(
+            (item) =>
+              item.current &&
+              !item.intent &&
+              !item.intentUnavailable &&
+              item.proposal.actionType === 'task.update-description',
+          )
+          .map((item) => ({
+            id: item.proposal.id,
+            sourceTaskId: item.proposal.sourceTaskId,
+            reviewId: item.proposal.reviewId,
+            reviewDigest: item.proposal.reviewDigest,
+          }))
+      "
+      @authority-error="emit('authority-error')"
+      @extension-invalidated="invalidateExtensions"
+      @intent-prepared="reloadPreparedIntent"
+    />
+    <ProjectGoalDraftImportsPanel
+      :goal="goal"
+      :identity-key="identityKey"
+      :source-refs="
+        items
+          .filter(
+            (item) =>
+              item.current &&
+              !item.intent &&
+              !item.intentUnavailable &&
+              item.proposal.actionType === 'task.update-description',
+          )
+          .map((item) => item.proposal.id)
+      "
+      :source-key="
+        JSON.stringify(
+          items.map((item) => [
+            item.proposal.id,
+            item.proposal.reviewId,
+            item.proposal.reviewDigest,
+            item.proposal.signalDigest,
+          ]),
+        )
+      "
+      @authority-error="emit('authority-error')"
+      @extension-invalidated="invalidateExtensions"
+      @intent-prepared="reloadPreparedIntent"
+    />
+    <ProjectGoalExternalDraftsPanel
+      :goal="goal"
+      :identity-key="identityKey"
+      :source-key="
+        JSON.stringify(
+          items.map((item) => [
+            item.proposal.id,
+            item.proposal.reviewId,
+            item.proposal.reviewDigest,
+          ]),
+        )
+      "
+      @authority-error="emit('authority-error')"
+      @extension-invalidated="invalidateExtensions"
+      @intent-prepared="reloadPreparedIntent"
+    />
     <article
       v-for="item in items"
       :key="item.proposal.id"
@@ -76,8 +143,19 @@
           结果尚未确认，保留本次操作；刷新回执核查。
         </p>
       </template>
+      <p
+        v-else-if="item.intentUnavailable"
+        data-testid="goal-extension-intent-unavailable"
+      >
+        扩展授权或来源已变化，当前无法读取该预览。
+      </p>
       <form
-        v-else-if="item.current && goal.status === 'active' && inScope"
+        v-else-if="
+          item.current &&
+          !item.intentUnavailable &&
+          goal.status === 'active' &&
+          inScope
+        "
         @submit.prevent="prepare(item)"
       >
         <label
@@ -108,9 +186,14 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from "vue";
+import ProjectGoalExtensionDraftsPanel from "./ProjectGoalExtensionDraftsPanel.vue";
+import ProjectGoalDraftImportsPanel from "./ProjectGoalDraftImportsPanel.vue";
+import ProjectGoalExternalDraftsPanel from "./ProjectGoalExternalDraftsPanel.vue";
 import { actionCode, isAuthorityError } from "./task-description-ui";
 type Goal = {
   id: string;
+  storeId?: string;
+  controlGeneration?: number;
   revision: number;
   status: string;
   allowedActionTypes?: string[];
@@ -122,6 +205,7 @@ type Intent = {
     requestId?: string;
     description?: string;
     taskType?: string | null;
+    extensionRef?: { draftId: string };
     preview: null | {
       before: { description: string };
       after: { description: string };
@@ -137,10 +221,12 @@ type Item = {
     goalRevision: number;
     actionType: string;
     reviewId: string;
+    reviewDigest: string;
     sourceTaskId: string;
   };
   current: boolean;
   intent: Intent | null;
+  intentUnavailable?: boolean;
 };
 type Api = {
   listGoalProposals(input: {
@@ -164,6 +250,7 @@ type Api = {
     intentId: string;
   }): Promise<{ run: { status: string } }>;
   readGoalIntent(input: { intentId: string }): Promise<Intent>;
+  prepareGoalDeliveryDraft?(input: { id: string }): Promise<Intent>;
   reviseGoal(input: {
     id: string;
     expectedRevision: number;
@@ -213,11 +300,43 @@ function reset() {
   error.value = "";
   omittedCount.value = 0;
 }
+function invalidateExtensions() {
+  epoch++;
+  busy.value = false;
+  items.value = items.value.map((item) => {
+    if (
+      !item.intent?.intent.extensionRef ||
+      !["draft", "prepared"].includes(item.intent.intent.status)
+    )
+      return item;
+    delete texts.value[item.proposal.id];
+    delete requests.value[item.proposal.id];
+    return { ...item, intent: null, intentUnavailable: true };
+  });
+}
+function reloadPreparedIntent() {
+  epoch++;
+  busy.value = false;
+  void load();
+}
 function failure(value: unknown, message: string) {
   if (isAuthorityError(value)) {
     reset();
     emit("authority-error");
     error.value = "当前身份已无法读取这些建议。";
+  } else if (
+    /^(ACTION_GOAL_EXTENSION_|GOAL_EXTENSION_|GOAL_EXTERNAL_)/.test(
+      actionCode(value),
+    ) ||
+    (items.value.some((item) => item.intent?.intent.extensionRef) &&
+      [
+        "PROJECT_RISK_REVIEW_STALE",
+        "ACTION_GOAL_SOURCE_CONFLICT",
+        "ACTION_GOAL_REVISION_CONFLICT",
+      ].includes(actionCode(value)))
+  ) {
+    invalidateExtensions();
+    error.value = "扩展授权或来源已变化，请刷新后核对原意图。";
   } else
     error.value =
       actionCode(value) === "ACTION_GOAL_REVISION_CONFLICT"
@@ -302,16 +421,24 @@ async function prepare(item: Item) {
     draft?.requestId ?? requests.value[item.proposal.id] ?? crypto.randomUUID();
   requests.value[item.proposal.id] = requestId;
   try {
-    const intent = await api()!.prepareGoalIntent({
-      goalId: props.goal.id,
-      proposalId: item.proposal.id,
-      expectedRevision: props.goal.revision,
-      requestId,
-      description,
-      ...(item.proposal.actionType === "task.create"
-        ? { taskType: draft?.taskType ?? "query_info" }
-        : {}),
-    });
+    const intent = draft?.extensionRef
+      ? await (() => {
+          if (typeof api()?.prepareGoalDeliveryDraft !== "function")
+            throw new Error("GOAL_EXTENSION_HOST_UNAVAILABLE");
+          return api()!.prepareGoalDeliveryDraft!({
+            id: draft.extensionRef!.draftId,
+          });
+        })()
+      : await api()!.prepareGoalIntent({
+          goalId: props.goal.id,
+          proposalId: item.proposal.id,
+          expectedRevision: props.goal.revision,
+          requestId,
+          description,
+          ...(item.proposal.actionType === "task.create"
+            ? { taskType: draft?.taskType ?? "query_info" }
+            : {}),
+        });
     if (!current(stamp)) return;
     items.value = items.value.map((old) =>
       old.proposal.id === item.proposal.id ? { ...old, intent } : old,
@@ -352,7 +479,9 @@ async function execute(item: Item) {
 watch(
   () => [
     props.goal.id,
+    props.goal.storeId,
     props.goal.revision,
+    props.goal.controlGeneration,
     props.goal.status,
     props.identityKey,
   ],

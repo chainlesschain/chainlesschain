@@ -1,0 +1,273 @@
+{
+  "taskIds": [
+    "DMM-07",
+    "DMM-08"
+  ],
+  "recordedAt": "2026-10-18T03:53:29.376344+00:00",
+  "result": "Shared pending-only project extension queue and explicit action mapping; trusted desktop built-in rule has native consent, durable grants and a real draft UI. CLI native-store adapter is integration-tested but no authenticated CLI/IDE project bridge exists.",
+  "source": {
+    "baseCommit": "7111f3f78725c82c35927fd5bada0e0b1be5983c",
+    "state": "uncommitted shared worktree with unrelated concurrent changes preserved",
+    "sha256": {
+      "packages/session-core/lib/goal-extension-proposal-contract.js": "46712616a2e6ec0ea7055f72e165684f2bdcb505b19042bad3925c1308c7a521",
+      "packages/session-core/lib/project-goal-extension-queue.js": "16b85f319023362a7c42461bf58fbb068a48fa6e402f27167773417d963b1e70",
+      "packages/session-core/lib/project-goal-workflow.js": "9be1fed4febad0074e5a823e7327f5c7f85703798d477c7f08cfa1a99a1f436e",
+      "packages/session-core/package.json": "c93aa2798218899fd40dcbc3dcb36b7b9607345c148855c81205f7e1092b5a19",
+      "packages/session-core/README.md": "0db8de9f80151ac4d0bd0f03c08fdd2a244a9b3ab79f9d1f9ba1ba698b56da3f",
+      "packages/session-core/lib/project-goal-service.js": "d98793c8588596bd9b93308199746de77e61615caebcddd39b494f1349bbc279",
+      "packages/session-core/lib/project-risk-review-service.js": "3b1702d681a238635f6edaec1c7448124a988da66245e8dafc7c34e275d59580",
+      "packages/session-core/lib/business-object-contract.js": "2ff7af4d125ab4e585277f2308e454bbfc81929cabeab07465fb23af69adf133",
+      "packages/cli/src/lib/plugin-runtime/goal-extensions.js": "c481936f30abab17353044d133ddd22d12a1879d5d1bb8257750a789cdf0e2f8",
+      "packages/cli/src/lib/plugin-runtime/goal-extension-contract.js": "dc514a9b07388859e4431bb480b88f55f344e28d4b0687f7dc6df4379b8b6b10",
+      "packages/cli/src/lib/plugin-runtime/trust.js": "d9a092642d2065c0dd4ca2f3525d1870eb5b668ba5bedce2cc78335aac4c1b99",
+      "packages/cli/src/lib/plugin-runtime/capability-consent.js": "c06ba6e26d80ded2ee16fdb234677bb9ec608947ea4725d189225014c776d10a",
+      "packages/cli/src/lib/plugin-runtime/scopes.js": "3d65410ae0edeb14587a0cf63ce91c968fd8fe652a4e0cb4bc8d0970f78cc6e9",
+      "packages/cli/__tests__/unit/project-goal-extension-queue.test.js": "8ce8754b70484115bec2ce0db1dfdde4b74f876625b8038401d44fda7707e974",
+      "packages/cli/README.md": "889d11e72c507fd4e76d08f7fef226b2266642462cd8ac4d6b7d505e72be5169",
+      "desktop-app-vue/src/main/task/project-goal-delivery-drafts.js": "ea544e2c8459994670a65ce9a52cd353e92a794307b066bb6edc143b14b3dd7f",
+      "desktop-app-vue/src/main/task/project-goal-ipc.js": "e6dcfbaee87dad4707eb9961f5654bcb1886c4f3cf044be83c442d3569566946",
+      "desktop-app-vue/src/main/task/project-goal-auth-session.js": "c2e81e219c34c8ffb480dad823d605eadc80964dd2403d17f18d87195b3b5226",
+      "desktop-app-vue/src/main/task/__tests__/project-goal-delivery-drafts-ipc.test.js": "745836553ac725c3521a35b5aa4dbd904fbab16df7aaed1eb090faacec1d576e",
+      "desktop-app-vue/src/renderer/components/projects/ProjectGoalExtensionDraftsPanel.vue": "41015f0dc42bcd21dc86f1dd3399a5d86a3a530af3c9e024f9e7d5cc79362f57",
+      "desktop-app-vue/src/renderer/components/projects/ProjectGoalActionsPanel.vue": "731979ebf371b2338b0506d90e98e6eb5dfb3accfcbb48de85eefb3fe91a03f6",
+      "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-extension-drafts-panel.test.ts": "42f9a16b6f31cd0786689e2c2eb615c456e2739e942646acdd1efa6b46a5f310",
+      "desktop-app-vue/src/preload/index.js": "4de7f6cddfbdc76b933af2da6bd5eb9e2fd49a7d1b4e6719a3a35020f4e0fd88",
+      "desktop-app-vue/src/preload/renderer-ipc-capabilities.json": "f4985bcb4ba608f15a22c2b844fddae59514184d99e4a88c8bb12641720c5fcf",
+      "desktop-app-vue/scripts/verify-fixed-renderer-ipc.mjs": "6cddb2e356562cdef27d6a34de1dcb56c7a74622962bd543ece857f9ed794d1c",
+      "desktop-app-vue/vitest.business-actions.config.mjs": "e4d18dc6203dc494efbe6c01fca26f4cbf8a7259880bbb4572133f89a29bebd8",
+      "desktop-app-vue/vitest.business-actions-renderer.config.mjs": "9db2f598a1017082a1045058d0ed9b9c10212b9a72fa774d18cee136d8937169",
+      "docs/research/agents/chainlesschain-dots-muse-mods-analysis-2026-10-06.md": "16aa1ed6a9b63e8efdc2fea421bee1e08f6945475200de227454b4197992ff8a",
+      "docs/research/agents/dots-muse-mods-implementation-progress-2026-10-07.md": "76829043a815c9af38b321f18ddd6410c323a15521155ffa7a51fdce45801a78",
+      "package-lock.json": "da2e2c5be32960ad275293022b1d49e3b676704618a4b626864d2ff67c47b432"
+    }
+  },
+  "environment": {
+    "os": "Windows-10-10.0.19045-SP0",
+    "node": "v22.22.2",
+    "npm": "10.9.7",
+    "vitest": "4.1.10",
+    "prettier": "3.6.2",
+    "sqliteDriver": "better-sqlite3 (native)",
+    "rendererDependencies": {
+      "@vitejs/plugin-vue": "6.0.8",
+      "vue": "3.5.40",
+      "@vue/test-utils": "2.4.11",
+      "vite": "7.3.6"
+    },
+    "rendererDependencySetup": {
+      "location": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-dmm-renderer-deps-20261018",
+      "method": "npm install --prefer-offline --ignore-scripts --no-audit --no-fund --package-lock=false --workspaces=false with exact versions; junctions only for missing desktop node_modules/@vue, @vitejs, vue",
+      "repositoryDependencyDeclarationsAndLockUnchanged": true
+    }
+  },
+  "verification": {
+    "cli": {
+      "files": [
+        "packages/cli/__tests__/integration/cli-goal-panels.test.js",
+        "packages/cli/__tests__/unit/cli-goal-catalog.test.js",
+        "packages/cli/__tests__/unit/cli-goal-extension-host.test.js",
+        "packages/cli/__tests__/unit/goal-repository.test.js",
+        "packages/cli/__tests__/unit/goal-store.test.js",
+        "packages/cli/__tests__/unit/plugin-consent-command.test.js",
+        "packages/cli/__tests__/unit/plugin-goal-extension.test.js",
+        "packages/cli/__tests__/unit/plugin-lifecycle-command.test.js",
+        "packages/cli/__tests__/unit/plugin-runtime-capabilities.test.js",
+        "packages/cli/__tests__/unit/plugin-runtime-capability-consent.test.js",
+        "packages/cli/__tests__/unit/plugin-runtime-consent-enforce.test.js",
+        "packages/cli/__tests__/unit/plugin-runtime-install.test.js",
+        "packages/cli/__tests__/unit/plugin-runtime-manifest.test.js",
+        "packages/cli/__tests__/unit/plugin-runtime-policy.test.js",
+        "packages/cli/__tests__/unit/plugin-runtime-scopes.test.js",
+        "packages/cli/__tests__/unit/plugin-runtime-trust.test.js",
+        "packages/cli/__tests__/unit/project-goal-extension-queue.test.js",
+        "packages/cli/__tests__/unit/project-goal-service.test.js",
+        "packages/cli/__tests__/unit/project-goal-workflow.test.js",
+        "packages/cli/__tests__/unit/project-risk-lineage.test.js",
+        "packages/cli/__tests__/unit/project-risk-review-service.test.js",
+        "packages/cli/__tests__/unit/vscode-ext-goal-panels-view.test.js",
+        "packages/cli/__tests__/unit/vscode-ext-plugin-manager.test.js"
+      ],
+      "passed": 510,
+      "failed": 0,
+      "skipped": 4,
+      "cwd": "packages/cli",
+      "command": "node ../../node_modules/vitest/vitest.mjs run __tests__/integration/cli-goal-panels.test.js __tests__/unit/cli-goal-catalog.test.js __tests__/unit/cli-goal-extension-host.test.js __tests__/unit/goal-repository.test.js __tests__/unit/goal-store.test.js __tests__/unit/plugin-consent-command.test.js __tests__/unit/plugin-goal-extension.test.js __tests__/unit/plugin-lifecycle-command.test.js __tests__/unit/plugin-runtime-capabilities.test.js __tests__/unit/plugin-runtime-capability-consent.test.js __tests__/unit/plugin-runtime-consent-enforce.test.js __tests__/unit/plugin-runtime-install.test.js __tests__/unit/plugin-runtime-manifest.test.js __tests__/unit/plugin-runtime-policy.test.js __tests__/unit/plugin-runtime-scopes.test.js __tests__/unit/plugin-runtime-trust.test.js __tests__/unit/project-goal-extension-queue.test.js __tests__/unit/project-goal-service.test.js __tests__/unit/project-goal-workflow.test.js __tests__/unit/project-risk-lineage.test.js __tests__/unit/project-risk-review-service.test.js __tests__/unit/vscode-ext-goal-panels-view.test.js __tests__/unit/vscode-ext-plugin-manager.test.js --reporter=json --outputFile=../../docs/research/agents/evidence/dmm-native-extension-drafts-2026-10-18/cli-tests.json"
+    },
+    "desktop": {
+      "files": [
+        "desktop-app-vue/src/preload/__tests__/legacy-ipc-policy.test.js",
+        "desktop-app-vue/src/main/ipc/__tests__/ipc-sender-guard.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-auth-session.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-delivery-drafts-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-workflow-ipc.test.js"
+      ],
+      "passed": 95,
+      "failed": 0,
+      "skipped": 0,
+      "cwd": "desktop-app-vue",
+      "command": "node ../node_modules/vitest/vitest.mjs run --config vitest.business-actions.config.mjs src/preload/__tests__/legacy-ipc-policy.test.js src/main/ipc/__tests__/ipc-sender-guard.test.js src/main/task/__tests__/project-goal-auth-session.test.js src/main/task/__tests__/project-goal-delivery-drafts-ipc.test.js src/main/task/__tests__/project-goal-ipc.test.js src/main/task/__tests__/project-goal-workflow-ipc.test.js --reporter=json --outputFile=../docs/research/agents/evidence/dmm-native-extension-drafts-2026-10-18/desktop-tests.json"
+    },
+    "renderer": {
+      "files": [
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-actions-panel.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-extension-drafts-panel.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-monitoring-panel.test.ts"
+      ],
+      "passed": 47,
+      "failed": 0,
+      "skipped": 0,
+      "cwd": "desktop-app-vue",
+      "command": "node ../node_modules/vitest/vitest.mjs run --config vitest.business-actions-renderer.config.mjs src/renderer/components/projects/__tests__/project-goal-actions-panel.test.ts src/renderer/components/projects/__tests__/project-goal-extension-drafts-panel.test.ts src/renderer/components/projects/__tests__/project-goal-monitoring-panel.test.ts --reporter=json --outputFile=../docs/research/agents/evidence/dmm-native-extension-drafts-2026-10-18/renderer-tests.json"
+    }
+  },
+  "controls": [
+    {
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "cwd": ".",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "warning: in the working copy of 'docs/research/agents/chainlesschain-dots-muse-mods-analysis-2026-10-06.md', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/PluginManager.java', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/PluginManagerAction.java', CRLF will be replaced by LF the next time Git touches it\n"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/gen-command-manifest.mjs",
+        "--check"
+      ],
+      "cwd": "packages/cli",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "scripts/gen-command-help-index.mjs",
+        "--check"
+      ],
+      "cwd": "packages/cli",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "scripts/gen-shell-completions.mjs",
+        "--check"
+      ],
+      "cwd": "packages/cli",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "Shell completions are current (196 command tokens).\n"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/verify-fixed-renderer-ipc.mjs"
+      ],
+      "cwd": "desktop-app-vue",
+      "exitCode": 0,
+      "stdout": "Fixed renderer IPC manifest is current (1346 exact channels; 156 unregistered renderer channels denied).\n",
+      "stderr": ""
+    }
+  ],
+  "prettier": {
+    "passed": true,
+    "scope": "all changed shared/CLI/main/renderer source and tests plus package READMEs and configs; preload final write unchanged"
+  },
+  "packedSessionCore": {
+    "name": "@chainlesschain/session-core",
+    "version": "0.3.19",
+    "archive": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-dmm-core-pack-2d5b808527634225af70021209b71de4\\chainlesschain-session-core-0.3.19.tgz",
+    "sha256": "0ef8edf0c21ca9f4cbe76bc273fb70b53995c9505f468d0ef2bc87646a4b7929",
+    "fileCount": 67,
+    "probe": {
+      "publicExportsLoaded": true,
+      "sourceCheckLoaded": true,
+      "noExecutionPort": true
+    }
+  },
+  "counts": {
+    "distinctFiles": 32,
+    "passed": 652,
+    "skipped": 4,
+    "overlapsPreviousBatches": true
+  },
+  "boundaries": {
+    "proposalTypesAccepted": [
+      "task.description.update"
+    ],
+    "nativeActionMapping": {
+      "task.description.update": "task.update-description"
+    },
+    "queueRecordBytes": 49152,
+    "maxDraftsPerActorGoalPlugin": 100,
+    "maxPageCandidates": 20,
+    "nativeGrantBytes": 4096,
+    "origin": "builtin-rule for fixed desktop template; renderer cannot submit text/plugin/actor/admitted",
+    "nativeNamespace": "desktop-builtin:project-delivery-drafts@0.1.0",
+    "grantDefault": "disabled; native dialog required before enable",
+    "binding": "actor/store/project/goal/fixed plugin version/capability digest/epoch plus native proposal and exact risk-review digest",
+    "disabledHistory": "retained; reads and enqueue denied; re-enable advances epoch and requires explicit new request",
+    "conversion": "no draft-to-intent preparation, task writes or ActionRun execution port"
+  },
+  "scenarios": [
+    "current actor/source checks inside native immediate transaction",
+    "SDK trust and capability consent independent from project authority",
+    "pending-only persisted records and reopen idempotency",
+    "request content conflicts",
+    "goal pause/revision/ownership/source-change rejection",
+    "same proposal ID with refreshed risk review rejected",
+    "native prepared proposal rejected",
+    "disabled and re-enabled grant epoch rejection with retained history",
+    "grant changes while consent dialog open",
+    "same DID authentication generation, frame, window and database invalidation",
+    "project archive and expiry before/during native dialog",
+    "bounded corrupt/oversized data and capped paging",
+    "UI plaintext, no execution call, uncertain request reuse",
+    "UI same-ID new-review and source-removal late-result rejection",
+    "UI new epoch clears stale request keys, pages and cursors",
+    "isolated packed public export and no-execution-port probe"
+  ],
+  "review": {
+    "agent": "astra_review",
+    "mode": "independent read-only architecture and security reviews; no duplicate test run",
+    "fixed": [
+      "source-review fingerprint omitted from UI invalidation",
+      "unknown save request key retained after re-enable",
+      "old pages and cursors retained after new epoch",
+      "live project/expiry recheck and SQL grant read limit confirmed"
+    ],
+    "final": "No remaining blocking findings."
+  },
+  "notRun": [
+    "real Electron/VS Code/JetBrains GUI",
+    "real business effectiveness samples",
+    "authenticated live CLI/IDE project bridge",
+    "event subscriptions",
+    "persistent draft-to-intent conversion",
+    "full application build",
+    "exact-commit release OS matrices",
+    "publishing",
+    "ESLint"
+  ],
+  "release": {
+    "versionBump": false,
+    "published": false,
+    "archive": "local uncommitted-source test artifact only",
+    "requiredOrder": "new Session Core child release via OIDC after exact-commit checks, then CLI, then IDE; CLI CI and CLI Strict Sandbox complete OS matrices"
+  },
+  "evidenceSha256": {
+    "cli-tests.json": "381ee56409baf2ca73c4222f8aebef9ddf25f04ad1a00b251335c9fe9be0b1eb",
+    "desktop-tests.json": "3ee80e3683c5093833599bbe9fe928e681281f5029f160680be77c892f1b953f",
+    "renderer-tests.json": "bf63f15ee44112b47a3cca2b6f943307e81a9749d27734bbedd78f8e925ad52e",
+    "checks.json": "7c73739033909d93f33c295b1f79f5f059f5ebcf76a47c4d9612837092fd1289",
+    "packed-session-core.json": "cc1c1554abdb5103ebe786f97a1d420a07d752d845d5e0da977224e57c779b40"
+  }
+}

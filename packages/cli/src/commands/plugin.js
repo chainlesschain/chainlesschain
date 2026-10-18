@@ -169,10 +169,12 @@ async function fetchRegistryRemoteArtifacts(
       : null;
   if (!signature && !sbom) return null;
   const config = await loadOptionalPluginConfig();
-  const { resolveRegistryToken } =
-    await import("../lib/plugin-runtime/remote-source.js");
-  const { fetchPluginMarketplaceRemoteArtifacts } =
-    await import("../lib/plugin-runtime/marketplace-remote-artifacts.js");
+  const { resolveRegistryToken } = await import(
+    "../lib/plugin-runtime/remote-source.js"
+  );
+  const { fetchPluginMarketplaceRemoteArtifacts } = await import(
+    "../lib/plugin-runtime/marketplace-remote-artifacts.js"
+  );
   return fetchPluginMarketplaceRemoteArtifacts({
     registryUrl,
     token: resolveRegistryToken(registryUrl, { token, config }),
@@ -432,8 +434,9 @@ async function materializeRegistrySelection(
 
 async function buildRegistryInstallPreflight(url, resolved, cwd) {
   const { VERSION } = await import("../constants.js");
-  const { buildPluginMarketplaceInstallPreflight } =
-    await import("../lib/plugin-runtime/marketplace-catalog.js");
+  const { buildPluginMarketplaceInstallPreflight } = await import(
+    "../lib/plugin-runtime/marketplace-catalog.js"
+  );
   const installed = await discoverInstalledPluginVersions(cwd);
   return buildPluginMarketplaceInstallPreflight({
     registryUrl: url,
@@ -582,8 +585,9 @@ async function installedCatalogAuthorityMatches(
 }
 
 async function buildInstalledMarketplaceSnapshot(name, scope, cwd) {
-  const { listInstalled, readSourceMetadataStrict } =
-    await import("../lib/plugin-runtime/install.js");
+  const { listInstalled, readSourceMetadataStrict } = await import(
+    "../lib/plugin-runtime/install.js"
+  );
   const { discoverPlugins } = await import("../lib/plugin-runtime/scopes.js");
   const row = listInstalled({ cwd, scopes: [scope] }).find(
     (candidate) => candidate.name === name && candidate.scope === scope,
@@ -708,10 +712,12 @@ async function buildInstalledMarketplaceSnapshot(name, scope, cwd) {
 }
 
 async function buildRegistryUpdateImpact(preflight, name, scope, cwd) {
-  const { buildPluginMarketplaceUpdateImpact } =
-    await import("../lib/plugin-runtime/marketplace-impact.js");
-  const { listInstalledAllScopes } =
-    await import("../lib/plugin-runtime/install.js");
+  const { buildPluginMarketplaceUpdateImpact } = await import(
+    "../lib/plugin-runtime/marketplace-impact.js"
+  );
+  const { listInstalledAllScopes } = await import(
+    "../lib/plugin-runtime/install.js"
+  );
   const inventory = listInstalledAllScopes({ cwd }).filter(
     (entry) => entry.name === name,
   );
@@ -752,8 +758,9 @@ async function resolvePluginCapabilityNotice(
 ) {
   try {
     const { discoverPlugins } = await import("../lib/plugin-runtime/scopes.js");
-    const { describeCapabilities } =
-      await import("../lib/plugin-runtime/capabilities.js");
+    const { describeCapabilities } = await import(
+      "../lib/plugin-runtime/capabilities.js"
+    );
     const consent = await import("../lib/plugin-runtime/capability-consent.js");
     const installed = discoverPlugins({
       cwd,
@@ -1140,8 +1147,9 @@ export function registerPluginCommand(program) {
     .action(async (name, options) => {
       try {
         if (options.scope) {
-          const { setPluginEnabled } =
-            await import("../lib/plugin-runtime/install.js");
+          const { setPluginEnabled } = await import(
+            "../lib/plugin-runtime/install.js"
+          );
           const result = setPluginEnabled(name, true, {
             scope: options.scope,
             cwd: process.cwd(),
@@ -1197,8 +1205,9 @@ export function registerPluginCommand(program) {
     .action(async (name, options) => {
       try {
         if (options.scope) {
-          const { setPluginEnabled } =
-            await import("../lib/plugin-runtime/install.js");
+          const { setPluginEnabled } = await import(
+            "../lib/plugin-runtime/install.js"
+          );
           const result = setPluginEnabled(name, false, {
             scope: options.scope,
             cwd: process.cwd(),
@@ -1603,9 +1612,14 @@ export function registerPluginCommand(program) {
     .option("--public-key <path>", "Public key for signature verification")
     .option("--json", "Output as JSON")
     .action(async (dir, options) => {
-      const { parsePluginManifest, summarizeComponents } =
-        await import("../lib/plugin-runtime/manifest.js");
+      const { parsePluginManifest, summarizeComponents } = await import(
+        "../lib/plugin-runtime/manifest.js"
+      );
       const manifest = parsePluginManifest(dir);
+      const { summarizeGoalExtension } = await import(
+        "../lib/plugin-runtime/goal-extension-contract.js"
+      );
+      const goalExtensionSummary = summarizeGoalExtension(manifest);
 
       // Optional integrity/signature check on the manifest file itself.
       // verifyPluginManifest THROWS on any mismatch/failure and returns a
@@ -1651,8 +1665,9 @@ export function registerPluginCommand(program) {
         if (rawManifest && rawManifest.dependencies) {
           const { checkPluginDependencies, formatDependencyIssues } =
             await import("../lib/plugin-runtime/governance.js");
-          const { discoverPlugins } =
-            await import("../lib/plugin-runtime/scopes.js");
+          const { discoverPlugins } = await import(
+            "../lib/plugin-runtime/scopes.js"
+          );
           const { VERSION } = await import("../constants.js");
           const installed = {};
           try {
@@ -1685,6 +1700,7 @@ export function registerPluginCommand(program) {
             {
               ...manifest,
               componentCounts: counts,
+              goalExtensionSummary,
               verification,
               dependencyCheck,
             },
@@ -1731,12 +1747,28 @@ export function registerPluginCommand(program) {
       // so a user can compare against the components it ships (the audit findings
       // for an under-declared manifest already surface in manifest.warnings).
       if (manifest.capabilitiesDeclared) {
-        const { describeCapabilities } =
-          await import("../lib/plugin-runtime/capabilities.js");
+        const { describeCapabilities } = await import(
+          "../lib/plugin-runtime/capabilities.js"
+        );
         const capLines = describeCapabilities(manifest.capabilities);
         logger.log(chalk.bold("\nCapabilities (declared):"));
         if (capLines.length === 0) logger.log(chalk.gray("  (none)"));
         for (const l of capLines) logger.log(`  ${chalk.magenta(l)}`);
+      }
+      if (manifest.goalExtensionDeclared) {
+        logger.log(chalk.bold("\nGoal extension (declaration only):"));
+        logger.log(
+          `  API: ${goalExtensionSummary.apiVersion || "invalid"}; runtime: unavailable`,
+        );
+        if (goalExtensionSummary.hosts) {
+          for (const [host, range] of Object.entries(
+            goalExtensionSummary.hosts,
+          )) {
+            logger.log(`  ${host}: ${range}`);
+          }
+        }
+        if (goalExtensionSummary.apiCompatible === false)
+          logger.log(chalk.yellow("  unsupported goal extension API version"));
       }
       for (const w of manifest.warnings) logger.log(chalk.yellow(`  ⚠ ${w}`));
       for (const e of manifest.errors) logger.log(chalk.red(`  ✖ ${e}`));
@@ -1839,8 +1871,9 @@ export function registerPluginCommand(program) {
       let commandSourceAuthority = null;
       let registryResolutionAuthority = null;
       const registryUrls = normalizeRegistryUrls(options.registry);
-      const { isRemoteSource, resolveRemoteSource } =
-        await import("../lib/plugin-runtime/remote-source.js");
+      const { isRemoteSource, resolveRemoteSource } = await import(
+        "../lib/plugin-runtime/remote-source.js"
+      );
       if (
         options.offline === true &&
         registryUrls.length === 0 &&
@@ -2407,8 +2440,9 @@ export function registerPluginCommand(program) {
         return;
       }
 
-      const { fetchRegistry, resolveRegistryToken } =
-        await import("../lib/plugin-runtime/remote-source.js");
+      const { fetchRegistry, resolveRegistryToken } = await import(
+        "../lib/plugin-runtime/remote-source.js"
+      );
       const { buildPluginMarketplaceCatalog, MAX_MARKETPLACE_CATALOG_SOURCES } =
         await import("../lib/plugin-runtime/marketplace-catalog.js");
       if (registryUrls.length > MAX_MARKETPLACE_CATALOG_SOURCES) {
@@ -2429,8 +2463,9 @@ export function registerPluginCommand(program) {
         process.exitCode = 1;
         return;
       }
-      const { discoverPlugins } =
-        await import("../lib/plugin-runtime/scopes.js");
+      const { discoverPlugins } = await import(
+        "../lib/plugin-runtime/scopes.js"
+      );
       const { VERSION } = await import("../constants.js");
       let config = null;
       try {
@@ -2795,8 +2830,9 @@ export function registerPluginCommand(program) {
     )
     .option("--json", "Output as JSON")
     .action(async (options) => {
-      const { listInstalled, listInstalledAllScopes } =
-        await import("../lib/plugin-runtime/install.js");
+      const { listInstalled, listInstalledAllScopes } = await import(
+        "../lib/plugin-runtime/install.js"
+      );
       const rows = options.allScopes
         ? listInstalledAllScopes({ cwd: process.cwd() })
         : listInstalled({ cwd: process.cwd() });
@@ -2808,8 +2844,9 @@ export function registerPluginCommand(program) {
         logger.info("No plugins installed. Add one with: cc plugin add <dir>");
         return;
       }
-      const { isPluginTrusted } =
-        await import("../lib/plugin-runtime/trust.js");
+      const { isPluginTrusted } = await import(
+        "../lib/plugin-runtime/trust.js"
+      );
       logger.log(chalk.bold(`Installed plugins (${rows.length}):`));
       for (const r of rows) {
         if (r.runtimeBlocked === true) {
@@ -2843,6 +2880,13 @@ export function registerPluginCommand(program) {
         logger.log(
           `  ${ok} ${chalk.cyan(r.name)} v${r.version} ${chalk.gray(`[${r.scope}]`)} ${state} ${trust} ${signed}${policy ? ` ${policy}` : ""}`,
         );
+        if (r.goalExtension?.status === "declaration-only") {
+          logger.log(
+            chalk.gray(
+              `    goal SDK ${r.goalExtension.apiVersion}: declaration only; runtime unavailable`,
+            ),
+          );
+        }
       }
     });
 
@@ -2855,8 +2899,9 @@ export function registerPluginCommand(program) {
     .option("--json", "Output the redacted transaction authority as JSON")
     .action(async (name, options) => {
       try {
-        const { inspectPluginTransaction } =
-          await import("../lib/plugin-runtime/install.js");
+        const { inspectPluginTransaction } = await import(
+          "../lib/plugin-runtime/install.js"
+        );
         const transaction = inspectPluginTransaction(name, {
           scope: options.scope,
           cwd: process.cwd(),
@@ -2899,8 +2944,9 @@ export function registerPluginCommand(program) {
     .option("--json", "Output the recovery result as JSON")
     .action(async (name, options) => {
       try {
-        const { recoverPluginTransaction } =
-          await import("../lib/plugin-runtime/install.js");
+        const { recoverPluginTransaction } = await import(
+          "../lib/plugin-runtime/install.js"
+        );
         const recovery = recoverPluginTransaction(name, {
           scope: options.scope,
           cwd: process.cwd(),
@@ -2940,8 +2986,9 @@ export function registerPluginCommand(program) {
     )
     .action(async (name, options) => {
       try {
-        const { planPluginProvenanceMigration } =
-          await import("../lib/plugin-runtime/install.js");
+        const { planPluginProvenanceMigration } = await import(
+          "../lib/plugin-runtime/install.js"
+        );
         const plan = planPluginProvenanceMigration(name, {
           scope: options.scope,
           cwd: process.cwd(),
@@ -2983,8 +3030,9 @@ export function registerPluginCommand(program) {
             "refusing provenance mutation without --yes after reviewing the signed plan",
           );
         }
-        const { migratePluginProvenance } =
-          await import("../lib/plugin-runtime/install.js");
+        const { migratePluginProvenance } = await import(
+          "../lib/plugin-runtime/install.js"
+        );
         const result = migratePluginProvenance(name, {
           scope: options.scope,
           cwd: process.cwd(),
@@ -3028,8 +3076,9 @@ export function registerPluginCommand(program) {
     .option("--json", "Output the versioned artifact readback as JSON")
     .action(async (name, options) => {
       try {
-        const { listInstalled, readSourceMetadataStrict } =
-          await import("../lib/plugin-runtime/install.js");
+        const { listInstalled, readSourceMetadataStrict } = await import(
+          "../lib/plugin-runtime/install.js"
+        );
         const installed = listInstalled({
           cwd: process.cwd(),
           scopes: [options.scope],
@@ -3049,8 +3098,9 @@ export function registerPluginCommand(program) {
           required: true,
           requireRegistryAuthority: true,
         });
-        const { buildPluginMarketplaceArtifactReadback } =
-          await import("../lib/plugin-runtime/marketplace-artifact-readback.js");
+        const { buildPluginMarketplaceArtifactReadback } = await import(
+          "../lib/plugin-runtime/marketplace-artifact-readback.js"
+        );
         const evidence = buildPluginMarketplaceArtifactReadback({
           root: installed.dir,
           scope: installed.scope,
@@ -3123,10 +3173,12 @@ export function registerPluginCommand(program) {
     .option("--scope <scope>", "Scope of the plugin", "project")
     .option("--list", "List all trusted plugins instead")
     .action(async (name, options) => {
-      const { trustPlugin, listTrust } =
-        await import("../lib/plugin-runtime/trust.js");
-      const { getActiveVersion } =
-        await import("../lib/plugin-runtime/install.js");
+      const { trustPlugin, listTrust } = await import(
+        "../lib/plugin-runtime/trust.js"
+      );
+      const { getActiveVersion } = await import(
+        "../lib/plugin-runtime/install.js"
+      );
       if (options.list) {
         for (const t of listTrust()) {
           logger.log(`  ${chalk.cyan(t.name)} v${t.version} [${t.scope}]`);
@@ -3181,10 +3233,12 @@ export function registerPluginCommand(program) {
     .option("--list", "List all capability consent entries")
     .option("--json", "Output as JSON")
     .action(async (name, options) => {
-      const consent =
-        await import("../lib/plugin-runtime/capability-consent.js");
-      const { describeCapabilities } =
-        await import("../lib/plugin-runtime/capabilities.js");
+      const consent = await import(
+        "../lib/plugin-runtime/capability-consent.js"
+      );
+      const { describeCapabilities } = await import(
+        "../lib/plugin-runtime/capabilities.js"
+      );
 
       if (!name || options.list) {
         const rows = consent.listCapabilityConsent();
@@ -3221,8 +3275,9 @@ export function registerPluginCommand(program) {
       }
 
       // Resolve the installed plugin + its declared capabilities.
-      const { discoverPlugins } =
-        await import("../lib/plugin-runtime/scopes.js");
+      const { discoverPlugins } = await import(
+        "../lib/plugin-runtime/scopes.js"
+      );
       let installed = null;
       try {
         installed = discoverPlugins({
@@ -3339,8 +3394,9 @@ export function registerPluginCommand(program) {
     )
     .option("--json", "Output as JSON")
     .action(async (name, options) => {
-      const { discoverPlugins } =
-        await import("../lib/plugin-runtime/scopes.js");
+      const { discoverPlugins } = await import(
+        "../lib/plugin-runtime/scopes.js"
+      );
       const optsMod = await import("../lib/plugin-runtime/plugin-options.js");
 
       let installed = null;
@@ -3442,8 +3498,9 @@ export function registerPluginCommand(program) {
     .option("--run", "Actually run the monitors for a few seconds, then reap")
     .option("--seconds <n>", "With --run: how long to run", "3")
     .action(async (options) => {
-      const { collectPluginMonitors } =
-        await import("../lib/plugin-runtime/monitors.js");
+      const { collectPluginMonitors } = await import(
+        "../lib/plugin-runtime/monitors.js"
+      );
       const monitors = collectPluginMonitors({ cwd: process.cwd() });
       if (options.json && !options.run) {
         console.log(JSON.stringify(monitors, null, 2));
@@ -3467,8 +3524,9 @@ export function registerPluginCommand(program) {
       }
       if (!options.run) return;
 
-      const { PluginMonitorSupervisor } =
-        await import("../lib/plugin-monitor-supervisor.js");
+      const { PluginMonitorSupervisor } = await import(
+        "../lib/plugin-monitor-supervisor.js"
+      );
       const secs = Math.max(1, parseInt(options.seconds, 10) || 3);
       const sup = new PluginMonitorSupervisor();
       const started = sup.start(monitors);
@@ -3498,8 +3556,9 @@ export function registerPluginCommand(program) {
       "Approve a different-source fallback when removing the active version",
     )
     .action(async (name, options) => {
-      const { listInstalled, uninstall } =
-        await import("../lib/plugin-runtime/install.js");
+      const { listInstalled, uninstall } = await import(
+        "../lib/plugin-runtime/install.js"
+      );
       try {
         const blockedRow = listInstalled({
           cwd: process.cwd(),
@@ -3607,8 +3666,9 @@ export function registerPluginCommand(program) {
       let commandSourceAuthority = null;
       let registryResolutionAuthority = null;
       const registryUrls = normalizeRegistryUrls(options.registry);
-      const { isRemoteSource, resolveRemoteSource } =
-        await import("../lib/plugin-runtime/remote-source.js");
+      const { isRemoteSource, resolveRemoteSource } = await import(
+        "../lib/plugin-runtime/remote-source.js"
+      );
       if (
         options.offline === true &&
         registryUrls.length === 0 &&
@@ -4090,8 +4150,9 @@ export function registerPluginCommand(program) {
       "Approve activating an installed version from a different source",
     )
     .action(async (name, version, options) => {
-      const { setActiveVersion } =
-        await import("../lib/plugin-runtime/install.js");
+      const { setActiveVersion } = await import(
+        "../lib/plugin-runtime/install.js"
+      );
       try {
         setActiveVersion(name, version, {
           scope: options.scope,

@@ -1,0 +1,85 @@
+[
+  {
+    "command": [
+      "git",
+      "diff",
+      "--check"
+    ],
+    "cwd": ".",
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": "warning: in the working copy of 'docs/research/agents/chainlesschain-dots-muse-mods-analysis-2026-10-06.md', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/PluginManager.java', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/PluginManagerAction.java', CRLF will be replaced by LF the next time Git touches it\n"
+  },
+  {
+    "command": [
+      "node",
+      "scripts/gen-command-manifest.mjs",
+      "--check"
+    ],
+    "cwd": "packages/cli",
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "node",
+      "scripts/gen-command-help-index.mjs",
+      "--check"
+    ],
+    "cwd": "packages/cli",
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "node",
+      "scripts/gen-shell-completions.mjs",
+      "--check"
+    ],
+    "cwd": "packages/cli",
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": "Shell completions are current (196 command tokens).\n"
+  },
+  {
+    "command": [
+      "node",
+      "scripts/verify-fixed-renderer-ipc.mjs"
+    ],
+    "cwd": "desktop-app-vue",
+    "exitCode": 0,
+    "stdout": "Fixed renderer IPC manifest is current (1357 exact channels; 156 unregistered renderer channels denied).\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "node",
+      "node_modules/prettier/bin/prettier.cjs",
+      "--check",
+      "desktop-app-vue/src/main/task/project-goal-cli-bridge.js",
+      "desktop-app-vue/src/main/task/project-goal-ipc.js",
+      "desktop-app-vue/src/main/task/__tests__/project-goal-cli-bridge.test.js",
+      "desktop-app-vue/src/preload/index.js",
+      "desktop-app-vue/scripts/verify-fixed-renderer-ipc.mjs",
+      "desktop-app-vue/src/renderer/components/projects/ProjectGoalCliConnectionPanel.vue",
+      "desktop-app-vue/src/renderer/components/projects/ProjectGoalMonitoringPanel.vue",
+      "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-cli-connection-panel.test.ts",
+      "desktop-app-vue/vitest.business-actions.config.mjs",
+      "desktop-app-vue/vitest.business-actions-renderer.config.mjs",
+      "packages/cli/src/lib/project-goal-connection.js",
+      "packages/cli/src/lib/plugin-runtime/cli-goal-extension-host.js",
+      "packages/cli/src/commands/goal.js",
+      "packages/cli/README.md",
+      "packages/vscode-extension/src/plugin-manager.js",
+      "packages/vscode-extension/src/ui/plugin-manager-view.js",
+      "packages/cli/__tests__/unit/vscode-ext-goal-panels-view.test.js",
+      "packages/cli/__tests__/unit/cli-goal-extension-host.test.js"
+    ],
+    "cwd": ".",
+    "exitCode": 0,
+    "stdout": "Checking formatting...\nAll matched files use Prettier code style!\n",
+    "stderr": ""
+  }
+]

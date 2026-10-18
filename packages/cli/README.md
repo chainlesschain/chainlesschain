@@ -2408,6 +2408,8 @@ Cross-session persistent goals / OKRs. Bind a goal into headless runs with `cc a
 chainlesschain goal set "Ship the v2 importer" --title importer   # Create (alias: add)
 chainlesschain goal list --status active                          # List goals
 chainlesschain goal show <id>                                     # Full detail
+chainlesschain goal catalog --limit 20 --json                     # Bounded selection metadata
+chainlesschain goal panels <id> --plugin goal-progress-viewer --scope project --json
 chainlesschain goal kr add <id> "100 tests green" --target 100    # Add key result
 chainlesschain goal kr set <id> <krId> --current 80               # Update key result
 chainlesschain goal progress <id> --pct 60 --note "parser done"   # Record progress
@@ -2415,6 +2417,167 @@ chainlesschain goal link <id> [sessionId]                         # Attach a ses
 chainlesschain goal pause|resume|close|abandon <id>               # Lifecycle
 chainlesschain goal rm <id>                                       # Delete (alias: delete)
 ```
+
+`goal panels` reads an explicitly selected standalone CLI goal through trusted,
+consented declarative plugins. The included `goal-progress-viewer` shows the
+objective and lifecycle status as a text snapshot. From a repository checkout:
+
+```bash
+cc plugin add packages/cli/src/lib/plugin-runtime/examples/goal-progress-viewer --scope project --json
+cc plugin trust goal-progress-viewer --scope project
+cc plugin consent goal-progress-viewer --scope project --grant --json
+cc goal panels <id> --plugin goal-progress-viewer --scope project
+```
+
+VS Code and JetBrains expose **CLI goal panels…** in the plugin manager. Select
+a goal from the native paged picker, or choose **Enter goal ID…**. The picker uses
+`goal catalog --json`; its opaque `nextCursor` continues with `--after <cursor>`.
+Each fresh page inspects at most 20 candidate files, reports invalid sources and
+names, and returns only bounded metadata. Directories with more than 2,048 entries
+require manual ID selection. The chosen catalog store is pinned with
+`goal panels <id> --expected-store <storeId>` before the source is read again.
+These commands require matching working-tree CLI/IDE builds; older CLIs retain
+the manual-ID path when catalog discovery is unavailable.
+
+Refresh or a new read checks current source and plugin authorization. Standalone
+goals provide objective/status snapshots. Historical project risk and receipt
+summaries require the separate desktop evidence connection below. The broader
+`project-delivery-assistant` example still requires a project host adapter.
+
+The working-tree SDK now shares its proposal contract with Session Core's native
+pending-draft queue. A trusted-host SQLite integration verifies source and
+admission checks, idempotency and revocation; the CLI still has no authenticated
+live project write entry. The desktop's separately consented built-in delivery
+draft rule is not an installed CLI plugin or the full `project-delivery-assistant`.
+The trusted desktop host can now explicitly convert a persisted draft into one
+native preview/intent, then use the existing native confirmation and receipt
+flow. Conversion IDs survive restart and lost responses; revocation blocks
+pending previews and writes through ordinary intent APIs too. The plugin SDK
+still submits pending suggestions only. This conversion change is unreleased
+and grants no CLI/IDE project write authority.
+
+The working tree now also supports an explicitly authorized **read-only desktop
+connection**. In the desktop project goal area, choose **连接 CLI / IDE 目标摘要**
+and approve the native dialog. Save a new file in the preselected private
+`goal-connections` directory under desktop user data, then use that file:
+
+```powershell
+cc goal catalog --connection "<connection-file>" --json
+cc goal panels <goal-id> --connection "<connection-file>" --expected-store <store-id> --plugin goal-progress-viewer --scope project --json
+```
+
+Both IDE plugin managers offer **Open desktop goal connection…** in the goal
+picker. This grants holders of the private connection file access to one goal's
+objective, active status and version for at most 15 minutes. Windows DACL or Unix
+owner-only directory/file permissions are verified before writing credentials.
+Mutual HMAC checks bind each fresh nonce to the exact response; the secret is
+never sent over HTTP or included in CLI output. Stop, logout, navigation,
+database/identity changes, goal revision, expiry or project ownership/status
+changes invalidate access. Reads still check installed-plugin trust, consent and
+policy. These are snapshots; refresh reads again. Restart requires a new native
+approval. This summary connection exposes objective/status/version only.
+The connection file contains a temporary secret and must remain private. This
+bridge and its IDE entry points are unreleased working-tree changes.
+
+To read historical risk checks and native action receipts, choose **另行授权风险与回执摘要**
+in the desktop goal area and approve the separate native dialog. This creates a
+new evidence connection; existing summary files retain their original scope.
+Install and separately trust/consent the declarative evidence viewer:
+
+```powershell
+cc plugin add packages/cli/src/lib/plugin-runtime/examples/goal-evidence-viewer --scope project --json
+cc plugin trust goal-evidence-viewer --scope project
+cc plugin consent goal-evidence-viewer --scope project --grant --json
+cc goal catalog --connection "<evidence-connection-file>" --json
+cc goal panels <goal-id> --connection "<evidence-connection-file>" --expected-store <store-id> --plugin goal-evidence-viewer --scope project --json
+```
+
+Both IDEs use the same native connection-file picker. The `goal.evidence` panel
+requires `panel:goal.evidence` consent and an evidence connection. It displays the
+latest recorded native check, including insufficient-data/unknown results, and
+metadata for the latest 20 real action receipts (showing at most five IDs in text).
+Missing storage is reported as unavailable. All results are historical; they do
+not establish current risk or goal completion. Running actions remain unresolved.
+The read path performs no initialization, recovery or usage settlement and
+exposes no task bodies, previews or approval evidence. Summary-only plugins
+cannot read evidence fields. Project writes and event subscriptions remain
+unavailable through either connection. The complete `project-delivery-assistant`
+example still requires those additional host capabilities.
+
+The working tree also supports **request-file handoff** for task descriptions.
+Install the proposal-only example and explicitly trust/consent it:
+
+```powershell
+cc plugin add packages/cli/src/lib/plugin-runtime/examples/goal-description-drafter --scope project --json
+cc plugin trust goal-description-drafter --scope project
+cc plugin consent goal-description-drafter --scope project --grant --json
+cc goal catalog --connection "<connection-file>" --json
+cc goal draft-request <goal-id> --connection "<connection-file>" --expected-store <store-id> --plugin goal-description-drafter --scope project --source <native-proposal-id> --request-id <stable-request-id> --title "Follow up delivery risk" --description-file "<utf8-text-file>" --out "<new-request-file.json>" --json
+```
+
+First allow task-description suggestions on the desktop goal and run a current
+risk check. Copy an exact proposal ID from **采纳外部任务说明请求** in the goal
+actions area. Proposed description files are limited to 8192 UTF-8 bytes;
+the request envelope is limited to 16 KiB. Export requires current plugin trust,
+capability consent, policy and a live summary/evidence connection, and refuses
+to overwrite an existing output. It exports a request, without saving a native
+draft or modifying a task. VS Code and JetBrains expose **Export goal draft
+request…** in their plugin managers; connection, description and output paths
+come from native pickers.
+
+On the desktop, choose **选择文件并原生采纳**, inspect the full proposed description,
+then explicitly adopt it as your own pending draft. Plugin labels in the file
+are untrusted metadata; the content digest is not plugin authentication. Native
+adoption is separate from CLI plugin trust: disabling that plugin does not revoke
+an already adopted request. Use **撤销此份采纳** for that record. Adoption and
+pending insertion commit together; duplicates return the same record, changed
+content under the same request identity conflicts, and revoked requests cannot
+be revived by reimport. To recover a lost response, reimport the same file.
+A saved request with a changed source is still reported as saved and unavailable.
+Native preview and a second explicit native confirmation remain required before
+task modification. Revoking adoption invalidates pending previews; it does not
+undo completed task changes. No versions have been published for this flow.
+
+The working tree additionally supports a separately authorized **online pending
+draft connection**. Export an access request for the same installed/trusted/
+consented proposal-only plugin:
+
+```powershell
+cc goal draft-access --plugin goal-description-drafter --scope project --out "<new-access.json>" --json
+# Desktop: choose “另行授权在线待审草稿连接”, select that access request,
+# then confirm and save a new private connection file.
+cc goal draft-sources <goal-id> --connection "<draft-connection.json>" --plugin goal-description-drafter --scope project --expected-store <store-id> --json
+cc goal draft-send <goal-id> --connection "<draft-connection.json>" --plugin goal-description-drafter --scope project --expected-store <store-id> --source <selected-native-proposal-id> --request-id <stable-id> --title "Follow up delivery risk" --description-file "<utf8-text-file>" --record "<new-submission-record.json>" --json
+cc goal draft-receipt <goal-id> --connection "<draft-connection.json>" --plugin goal-description-drafter --scope project --expected-store <store-id> --record "<submission-record.json>" --json
+```
+
+`draft-sources` scans at most 20 native sources; pass `--after <nextCursor>` for
+the next page. No task bodies or approvals are exported. The v3 connection is
+separate from summary/evidence connections and cannot prepare or execute tasks.
+The label in its access request does not authenticate plugin code. A current
+native grant binds the actor, project goal, full plugin identity, declaration
+digest and authorization epoch. CLI trust and native authorization are separate.
+
+`--record` is required: an immutable, body-free reference is created and fsynced
+before the submission POST. Keep it even if the IDE closes or a response is lost.
+`saved` means a pending draft was saved; `unknown` requires receipt lookup.
+`not-found` only means no receipt was found at lookup time: a late submission
+may still complete. Sending with an existing identical record only queries its
+receipt and never automatically resubmits. Changed content conflicts with the
+record. Receipt lookup does not require the original risk source to remain fresh.
+If the connection expires, reconnect the same unchanged native grant; a revoked
+or replaced authorization cannot query through its old epoch. Native history
+remains the fallback when the grant or local plugin admission has changed.
+
+VS Code and JetBrains provide **Export online draft access…**, **Submit pending
+draft…** and **Look up draft receipt…** with native connection/source/body/record
+pickers. On the desktop, **在线来源授权与待审草稿** lists saved counts and allows
+review, native preview and explicit source revocation. Disconnecting preserves
+saved drafts and the grant across application restarts. Revoking the source
+invalidates its old drafts and pending previews; completed task receipts remain.
+Actual changes require a current preview and separate native confirmation.
+Event subscriptions, the complete delivery assistant and real GUI acceptance
+remain open. See [local implementation evidence](../../docs/research/agents/evidence/dmm-cli-online-drafts-2026-10-18/README.md).
 
 ### `chainlesschain permissions <action>` (alias: `perms`)
 

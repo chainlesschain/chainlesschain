@@ -1,0 +1,13 @@
+{
+  "version": "0.37.149",
+  "localArchive": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-dmm-cli-project-vsix-3eea679e6197498daeaa5faf9f1567f2\\chainlesschain-ide-0.37.149-local.vsix",
+  "sha256": "4e7d5746ccea29fa41c0b48442711e0d9535e9b761f2a94d47a84346f45ceba6",
+  "command": "node node_modules/@vscode/vsce/vsce package --no-dependencies --out <temporary-file>",
+  "vsceVersion": "3.9.2",
+  "packagedSourceMatches": {
+    "src/plugin-manager.js": true,
+    "src/ui/plugin-manager-view.js": true
+  },
+  "published": false,
+  "realGuiRun": false
+}

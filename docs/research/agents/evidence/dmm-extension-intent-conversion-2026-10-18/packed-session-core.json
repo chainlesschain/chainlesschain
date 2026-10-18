@@ -1,0 +1,17 @@
+{
+  "name": "@chainlesschain/session-core",
+  "version": "0.3.19",
+  "archive": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-dmm-conversion-pack-jfbpizp4\\chainlesschain-session-core-0.3.19.tgz",
+  "sha256": "473dbcde74590354d273c605ba12cdc4b1058aea2709c9d4887aa8120dfbb149",
+  "fileCount": 68,
+  "internalConversionIncluded": true,
+  "probe": {
+    "publicExportsLoaded": true,
+    "convertedReferenceValidated": true,
+    "forgedAuthorityRejected": true,
+    "trustedHostPreparePort": true,
+    "liveVerifierPort": true,
+    "noQueueExecutionPort": true
+  },
+  "published": false
+}

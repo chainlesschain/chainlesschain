@@ -377,9 +377,9 @@ function upgradeLegacyGoal(input, storeId) {
     id: old.id,
     storeId,
     objective: old.objective,
-    title: old.title,
+    ...(old.title !== undefined ? { title: old.title } : {}),
     keyResults: old.keyResults ?? [],
-    createdAt: old.createdAt,
+    ...(old.createdAt !== undefined ? { createdAt: old.createdAt } : {}),
   });
   return validateGoalRecord({
     ...base,

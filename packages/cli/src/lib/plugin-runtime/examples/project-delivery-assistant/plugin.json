@@ -1,0 +1,38 @@
+{
+  "name": "project-delivery-assistant",
+  "version": "0.1.0",
+  "description": "Declarative project delivery assistant prototype; requires a goal extension host adapter",
+  "permissions": {
+    "goalExtension": [
+      "event:goal.status.changed",
+      "event:risk.review.completed",
+      "event:action.receipt.updated",
+      "panel:goal.evidence",
+      "proposal:task.create",
+      "proposal:task.description.update"
+    ]
+  },
+  "goalExtension": {
+    "apiVersion": "1.0.0",
+    "hosts": {
+      "cli": ">=0.166.104",
+      "vscode": ">=0.37.149",
+      "jetbrains": ">=0.4.166"
+    },
+    "events": [
+      "goal.status.changed",
+      "risk.review.completed",
+      "action.receipt.updated"
+    ],
+    "panels": [
+      {
+        "id": "delivery-evidence",
+        "title": "Project delivery evidence",
+        "slot": "goal.evidence",
+        "fields": ["objective", "status", "riskSummary", "receiptSummary"],
+        "fallback": "text"
+      }
+    ],
+    "proposals": ["task.create", "task.description.update"]
+  }
+}

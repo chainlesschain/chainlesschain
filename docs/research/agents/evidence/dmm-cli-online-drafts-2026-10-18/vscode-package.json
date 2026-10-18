@@ -1,0 +1,24 @@
+{
+  "localArchive": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-dmm-online-vsix-ougsaj__\\chainlesschain-online-drafts-local.vsix",
+  "sha256": "347e4155563ff54831af08443cbfe8b1029d7075f5b83cf42b670c909e7d4419",
+  "packagedSourceMatches": {
+    "src/plugin-manager.js": true,
+    "src/goal-drafts.js": true,
+    "src/ui/plugin-manager-view.js": true
+  },
+  "command": {
+    "command": [
+      "node",
+      "node_modules/@vscode/vsce/vsce",
+      "package",
+      "--no-dependencies",
+      "--out",
+      "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-dmm-online-vsix-ougsaj__\\chainlesschain-online-drafts-local.vsix"
+    ],
+    "exitCode": 0,
+    "stdout": " INFO  Files included in the VSIX:\nchainlesschain-online-drafts-local.vsix\n\u251c\u2500 [Content_Types].xml \n\u251c\u2500 extension.vsixmanifest \n\u2514\u2500 extension/\n   \u251c\u2500 LICENSE.txt [1.05 KB]\n   \u251c\u2500 changelog.md [159.58 KB]\n   \u251c\u2500 package.json [24.03 KB]\n   \u251c\u2500 package.nls.json [9.66 KB]\n   \u251c\u2500 package.nls.zh-cn.json [9.52 KB]\n   \u251c\u2500 readme.md [39.84 KB]\n   \u251c\u2500 docs/ (2 files) [19.51 KB]\n   \u251c\u2500 l10n/ (1 file) [7.87 KB]\n   \u251c\u2500 media/ (9 files) [58.78 KB]\n   \u251c\u2500 scripts/ (6 files) [51.67 KB]\n   \u2514\u2500 src/ (153 files) [1.95 MB]\n\n=> Run vsce ls --tree to see all included files.\n\n DONE  Packaged: C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-dmm-online-vsix-ougsaj__\\chainlesschain-online-drafts-local.vsix (179 files, 711.22 KB)\n",
+    "stderr": " WARNING  This extension consists of 179 files, out of which 143 are JavaScript files. For performance reasons, you should bundle your extension: https://aka.ms/vscode-bundle-extension. You should also exclude unnecessary files by adding them to your .vscodeignore: https://aka.ms/vscode-vscodeignore.\n\n"
+  },
+  "published": false,
+  "realGuiRun": false
+}

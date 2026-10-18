@@ -1,0 +1,18 @@
+{
+    "file":  "packages/jetbrains-plugin/build/distributions/chainlesschain-ide-bridge-0.4.166.zip",
+    "bytes":  1532485,
+    "sha256":  "9ab705f1e6031576d05ce5217b3409ddae8afefe81f95e223710abf87d526225",
+    "classes":  {
+                    "com/chainlesschain/ide/PluginManager.class":  {
+                                                                       "goalPanelsMethodPresent":  true,
+                                                                       "jar":  "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.166.jar"
+                                                                   },
+                    "com/chainlesschain/ide/intellij/PluginManagerAction.class":  {
+                                                                                      "goalPanelsMethodPresent":  true,
+                                                                                      "jar":  "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.166.jar"
+                                                                                  }
+                },
+    "buildCommand":  ".\\gradlew.bat -Dorg.gradle.java.installations.paths=\u003cIDE-jbr-21.0.8\u003e --offline --no-daemon buildPlugin --console=plain",
+    "exitCode":  0,
+    "published":  false
+}

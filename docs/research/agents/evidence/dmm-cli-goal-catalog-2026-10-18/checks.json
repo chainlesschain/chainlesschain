@@ -1,0 +1,46 @@
+[
+  {
+    "command": [
+      "git",
+      "diff",
+      "--check"
+    ],
+    "cwd": ".",
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": "warning: in the working copy of 'packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/PluginManager.java', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/PluginManagerAction.java', CRLF will be replaced by LF the next time Git touches it\n"
+  },
+  {
+    "command": [
+      "node",
+      "scripts/gen-command-manifest.mjs",
+      "--check"
+    ],
+    "cwd": "packages/cli",
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "node",
+      "scripts/gen-command-help-index.mjs",
+      "--check"
+    ],
+    "cwd": "packages/cli",
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "node",
+      "scripts/gen-shell-completions.mjs",
+      "--check"
+    ],
+    "cwd": "packages/cli",
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": "Shell completions are current (196 command tokens).\n"
+  }
+]

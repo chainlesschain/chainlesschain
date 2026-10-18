@@ -1,0 +1,336 @@
+{
+  "taskIds": [
+    "DMM-07",
+    "DMM-08"
+  ],
+  "recordedAt": "2026-10-18T05:11:19.438984+00:00",
+  "result": "Explicit native-consented, single-goal authenticated read-only desktop summary connection available through CLI and both IDE file pickers; no project write/risk/receipt/event port.",
+  "source": {
+    "baseCommit": "7111f3f78725c82c35927fd5bada0e0b1be5983c",
+    "state": "uncommitted shared worktree; unrelated concurrent changes preserved; 31 critical source hashes matched the in-test snapshot after final test completion",
+    "sha256": {
+      "desktop-app-vue/src/main/task/project-goal-cli-bridge.js": "2be27c9847da5d87f893d95d433aa730ceea97ebc07fa14844c35857f6ca4672",
+      "desktop-app-vue/src/main/task/project-goal-ipc.js": "9f0f080ccaddbfd7c3a260a15733aed3d12feccda8cf65ef8fc5a66b81297afe",
+      "desktop-app-vue/src/main/task/project-goal-auth-session.js": "c2e81e219c34c8ffb480dad823d605eadc80964dd2403d17f18d87195b3b5226",
+      "desktop-app-vue/src/main/task/__tests__/project-goal-cli-bridge.test.js": "a00464c159ed2286b42ec68633811772bc72ed9b23646a6105e2a175e8d6d5fc",
+      "desktop-app-vue/src/preload/index.js": "341574fe09aefcc7e8026109bbcbfe6230a64e2e1b0907eb656300271fd671cc",
+      "desktop-app-vue/src/preload/renderer-ipc-capabilities.json": "fe866c8ddf436afc2673170af7dd3bdd6255c9c4a7ccfb8cf22a5cef01967cb0",
+      "desktop-app-vue/scripts/verify-fixed-renderer-ipc.mjs": "dfe27cb896e25417a3205e24964169d6dfb4d3a2fd4e5ee4668d57d5ed747ca3",
+      "desktop-app-vue/src/renderer/components/projects/ProjectGoalCliConnectionPanel.vue": "354c9bc8e38e70f1eae79d50bce0d427aa40c65dd5e18cf16946b521fe6c65fe",
+      "desktop-app-vue/src/renderer/components/projects/ProjectGoalMonitoringPanel.vue": "28b83accb287d9522d5a724abe8ca21a335296f90271e7636608661bfb26cd67",
+      "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-cli-connection-panel.test.ts": "ef6fe69783a933e40f44b33dff1cb3f1235a96810e9ba2b276319e9617f5a2d2",
+      "desktop-app-vue/vitest.business-actions.config.mjs": "5ac9d30c2e65b2bce75a7de42e779a7987076552dd81170095e74e246bcc45d8",
+      "desktop-app-vue/vitest.business-actions-renderer.config.mjs": "09d57dff862af4715e8821d36c4b9a38ddcc43caaec26e57355426fb0c4eeb73",
+      "packages/cli/src/lib/project-goal-connection.js": "b602b11032bd526cc301cd5e1c379e719d6f53b0846b5d3e57c7e8af34a9c739",
+      "packages/cli/src/lib/plugin-runtime/cli-goal-extension-host.js": "0c325335b06007ceb2d62462bb3339851cff10e116ad3271c81ad7bef7c223cb",
+      "packages/cli/src/lib/plugin-runtime/goal-extensions.js": "c481936f30abab17353044d133ddd22d12a1879d5d1bb8257750a789cdf0e2f8",
+      "packages/cli/src/lib/plugin-runtime/goal-extension-contract.js": "dc514a9b07388859e4431bb480b88f55f344e28d4b0687f7dc6df4379b8b6b10",
+      "packages/cli/src/commands/goal.js": "cfd1b15731365c51a3bbc9c62a39b8ad8f8b275cbb69fc43974b98140f17eb18",
+      "packages/cli/src/command-help-index.json": "603571768b0c94d99ce7279fd446b33c2babb2e1e3030c1204f873f77d7aaf31",
+      "packages/cli/__tests__/unit/cli-goal-extension-host.test.js": "b9d272eb20efdf9d45f080ba34081ac85e7c6a18121a8639904bd0c44798d3ce",
+      "packages/cli/__tests__/unit/vscode-ext-goal-panels-view.test.js": "baf937708db128137e181ea24016f7312eb0c607cfccb6c354a5e1ef2ef81838",
+      "packages/vscode-extension/src/plugin-manager.js": "d1be38be47228d1643179698fafb535bd027060a4921f9f9f10e1cd795465aa5",
+      "packages/vscode-extension/src/ui/plugin-manager-view.js": "f40071043556e0e3c0caaca9a86e4be1a7890e8fa55dca99750477fe326a192c",
+      "packages/vscode-extension/package.json": "66749b353c4c37a2e756c06ec308087e605778c5d5f21885f5fb79ad5870ea0d",
+      "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/PluginManager.java": "424b6e3624756f7073742f588c070f4431cce5bc8c5b1cd2f3bd3fd1dab0e784",
+      "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/PluginManagerAction.java": "f466013388e3d8dfd2d6b402962c28986161fdee267f86c99455b6bc7ab1a656",
+      "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/PluginManagerTest.java": "ac0e74add2c54284efaae10bba7c1081c662e3c2ac42b79d6fbc789f8c5f3f96",
+      "packages/jetbrains-plugin/build.gradle.kts": "43b01244be42b58ed2bbd031dc497e276421e3a1b47a378534101595dbd5d737",
+      "packages/session-core/lib/private-storage.js": "c9e7f476f4dde9051cb5be501e1a522f28e62a6b956fcf446abe2e30c0677eaf",
+      "packages/session-core/lib/project-goal-service.js": "d98793c8588596bd9b93308199746de77e61615caebcddd39b494f1349bbc279",
+      "packages/session-core/lib/project-goal-workflow.js": "6c3f036d4b34ac3d32813b62ddd372ddaf1e0810c831dd27df1585dd95b20fe1",
+      "packages/session-core/lib/goal-extension-proposal-contract.js": "5a09daf79280101dd8e8a656e292854cc52de08b57f917e999d05d4116394c49",
+      "packages/cli/README.md": "c8fb0e9b809b8a3cbcc13d262a8a4781ce223ade32e4cd8a30ff0dc36c106771",
+      "docs/research/agents/chainlesschain-dots-muse-mods-analysis-2026-10-06.md": "fb67afad279b588ce1f414c150f1f7f142aba6dcb05ae13e1a0d1a3bbb73f2f3",
+      "docs/research/agents/dots-muse-mods-implementation-progress-2026-10-07.md": "5939543694da421235ed70cccc9454ae8e49ee436cff9408f9f7873585fece37"
+    }
+  },
+  "environment": {
+    "os": "Windows 10 19045",
+    "node": "22.22.2",
+    "vitest": "4.1.10",
+    "prettier": "3.6.2",
+    "database": "real better-sqlite3",
+    "rendererDependencies": "existing temporary exact-version Vue 3.5.40 / @vue/test-utils 2.4.11 / @vitejs/plugin-vue 6.0.8 setup reused; no repository dependency changes",
+    "java": "JBR 21.0.8 compiler toolchain; Gradle launcher default JDK 17",
+    "intellijSdk": "cached IntelliJ Community 2024.2",
+    "vsce": "3.9.2"
+  },
+  "verification": {
+    "cli": {
+      "files": [
+        "packages/cli/__tests__/integration/cli-goal-panels.test.js",
+        "packages/cli/__tests__/unit/cli-goal-catalog.test.js",
+        "packages/cli/__tests__/unit/cli-goal-extension-host.test.js",
+        "packages/cli/__tests__/unit/goal-store.test.js",
+        "packages/cli/__tests__/unit/plugin-goal-extension.test.js",
+        "packages/cli/__tests__/unit/vscode-ext-goal-panels-view.test.js",
+        "packages/cli/__tests__/unit/vscode-ext-plugin-manager.test.js"
+      ],
+      "passed": 124,
+      "failed": 0,
+      "skipped": 3,
+      "cwd": "packages/cli",
+      "command": "node ../../node_modules/vitest/vitest.mjs run __tests__/integration/cli-goal-panels.test.js __tests__/unit/cli-goal-catalog.test.js __tests__/unit/cli-goal-extension-host.test.js __tests__/unit/goal-store.test.js __tests__/unit/plugin-goal-extension.test.js __tests__/unit/vscode-ext-goal-panels-view.test.js __tests__/unit/vscode-ext-plugin-manager.test.js --reporter=json --outputFile=../../docs/research/agents/evidence/dmm-cli-project-summary-bridge-2026-10-18/cli-tests.json"
+    },
+    "desktop": {
+      "files": [
+        "desktop-app-vue/src/preload/__tests__/legacy-ipc-policy.test.js",
+        "desktop-app-vue/src/main/ipc/__tests__/ipc-sender-guard.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-auth-session.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-cli-bridge.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-delivery-drafts-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-ipc.test.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-workflow-ipc.test.js"
+      ],
+      "passed": 123,
+      "failed": 0,
+      "skipped": 0,
+      "cwd": "desktop-app-vue",
+      "command": "node ../node_modules/vitest/vitest.mjs run --config vitest.business-actions.config.mjs src/preload/__tests__/legacy-ipc-policy.test.js src/main/ipc/__tests__/ipc-sender-guard.test.js src/main/task/__tests__/project-goal-auth-session.test.js src/main/task/__tests__/project-goal-cli-bridge.test.js src/main/task/__tests__/project-goal-delivery-drafts-ipc.test.js src/main/task/__tests__/project-goal-ipc.test.js src/main/task/__tests__/project-goal-workflow-ipc.test.js --reporter=json --outputFile=../docs/research/agents/evidence/dmm-cli-project-summary-bridge-2026-10-18/desktop-tests.json"
+    },
+    "renderer": {
+      "files": [
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-actions-panel.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-cli-connection-panel.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-extension-drafts-panel.test.ts",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-monitoring-panel.test.ts"
+      ],
+      "passed": 65,
+      "failed": 0,
+      "skipped": 0,
+      "cwd": "desktop-app-vue",
+      "command": "node ../node_modules/vitest/vitest.mjs run --config vitest.business-actions-renderer.config.mjs src/renderer/components/projects/__tests__/project-goal-actions-panel.test.ts src/renderer/components/projects/__tests__/project-goal-cli-connection-panel.test.ts src/renderer/components/projects/__tests__/project-goal-extension-drafts-panel.test.ts src/renderer/components/projects/__tests__/project-goal-monitoring-panel.test.ts --reporter=json --outputFile=../docs/research/agents/evidence/dmm-cli-project-summary-bridge-2026-10-18/renderer-tests.json"
+    }
+  },
+  "jetbrains": {
+    "files": [
+      "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/PluginManagerTest.java"
+    ],
+    "passed": 10,
+    "failed": 0,
+    "skipped": 0,
+    "command": ".\\gradlew.bat -Porg.gradle.java.installations.paths=C:/Users/longfa/AppData/Local/Programs/idea-2025.3/jbr --offline --no-daemon test --tests com.chainlesschain.ide.PluginManagerTest compileJava --console=plain",
+    "nativeSourceCompiled": true
+  },
+  "counts": {
+    "distinctFiles": 19,
+    "passed": 322,
+    "failed": 0,
+    "skipped": 3,
+    "overlapsPreviousBatches": true
+  },
+  "controls": [
+    {
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "cwd": ".",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "warning: in the working copy of 'docs/research/agents/chainlesschain-dots-muse-mods-analysis-2026-10-06.md', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/PluginManager.java', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/PluginManagerAction.java', CRLF will be replaced by LF the next time Git touches it\n"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/gen-command-manifest.mjs",
+        "--check"
+      ],
+      "cwd": "packages/cli",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "scripts/gen-command-help-index.mjs",
+        "--check"
+      ],
+      "cwd": "packages/cli",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "scripts/gen-shell-completions.mjs",
+        "--check"
+      ],
+      "cwd": "packages/cli",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "Shell completions are current (196 command tokens).\n"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/verify-fixed-renderer-ipc.mjs"
+      ],
+      "cwd": "desktop-app-vue",
+      "exitCode": 0,
+      "stdout": "Fixed renderer IPC manifest is current (1357 exact channels; 156 unregistered renderer channels denied).\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "node_modules/prettier/bin/prettier.cjs",
+        "--check",
+        "desktop-app-vue/src/main/task/project-goal-cli-bridge.js",
+        "desktop-app-vue/src/main/task/project-goal-ipc.js",
+        "desktop-app-vue/src/main/task/__tests__/project-goal-cli-bridge.test.js",
+        "desktop-app-vue/src/preload/index.js",
+        "desktop-app-vue/scripts/verify-fixed-renderer-ipc.mjs",
+        "desktop-app-vue/src/renderer/components/projects/ProjectGoalCliConnectionPanel.vue",
+        "desktop-app-vue/src/renderer/components/projects/ProjectGoalMonitoringPanel.vue",
+        "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-cli-connection-panel.test.ts",
+        "desktop-app-vue/vitest.business-actions.config.mjs",
+        "desktop-app-vue/vitest.business-actions-renderer.config.mjs",
+        "packages/cli/src/lib/project-goal-connection.js",
+        "packages/cli/src/lib/plugin-runtime/cli-goal-extension-host.js",
+        "packages/cli/src/commands/goal.js",
+        "packages/cli/README.md",
+        "packages/vscode-extension/src/plugin-manager.js",
+        "packages/vscode-extension/src/ui/plugin-manager-view.js",
+        "packages/cli/__tests__/unit/vscode-ext-goal-panels-view.test.js",
+        "packages/cli/__tests__/unit/cli-goal-extension-host.test.js"
+      ],
+      "cwd": ".",
+      "exitCode": 0,
+      "stdout": "Checking formatting...\nAll matched files use Prettier code style!\n",
+      "stderr": ""
+    }
+  ],
+  "packages": {
+    "vscode": {
+      "version": "0.37.149",
+      "localArchive": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-dmm-cli-project-vsix-3eea679e6197498daeaa5faf9f1567f2\\chainlesschain-ide-0.37.149-local.vsix",
+      "sha256": "4e7d5746ccea29fa41c0b48442711e0d9535e9b761f2a94d47a84346f45ceba6",
+      "command": "node node_modules/@vscode/vsce/vsce package --no-dependencies --out <temporary-file>",
+      "vsceVersion": "3.9.2",
+      "packagedSourceMatches": {
+        "src/plugin-manager.js": true,
+        "src/ui/plugin-manager-view.js": true
+      },
+      "published": false,
+      "realGuiRun": false
+    },
+    "jetbrains": {
+      "version": "0.4.166",
+      "localArchive": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-dmm-cli-project-ide-0p2scphw\\chainlesschain-ide-bridge-0.4.166.zip",
+      "sha256": "398f375b94fb75371c9f45289b0ade8331d09c356fb0da47cfcde41fb385bf64",
+      "packagedConnectionClassesVerified": {
+        "com/chainlesschain/ide/PluginManager.class": true,
+        "com/chainlesschain/ide/intellij/PluginManagerAction.class": true
+      },
+      "nativeSourceCompiled": true,
+      "tests": 10,
+      "failed": 0,
+      "skipped": 0,
+      "testCommand": ".\\gradlew.bat -Porg.gradle.java.installations.paths=C:/Users/longfa/AppData/Local/Programs/idea-2025.3/jbr --offline --no-daemon test --tests com.chainlesschain.ide.PluginManagerTest compileJava --console=plain",
+      "buildCommand": ".\\gradlew.bat -Porg.gradle.java.installations.paths=C:/Users/longfa/AppData/Local/Programs/idea-2025.3/jbr --offline --no-daemon buildPlugin --console=plain",
+      "jdk": "JBR 21.0.8 compiler toolchain; Gradle launcher default JDK 17",
+      "intellijSdk": "cached IntelliJ Community 2024.2",
+      "initialAttempts": "JAVA_HOME=JBR21 triggered missing offline installer resolution; -Dorg.gradle.java.installations.paths did not select the JDK21 compiler; resolved with -Porg.gradle.java.installations.paths under default JDK17 launcher",
+      "published": false,
+      "realGuiRun": false
+    }
+  },
+  "boundaries": {
+    "authority": "native consent grants credential holders read access to one exact active goal; it does not authenticate a plugin; CLI independently rechecks installed-plugin trust, capability consent, policy and host compatibility",
+    "projection": [
+      "objective (bounded plain text)",
+      "active status",
+      "goalRef (id/storeId/revision/controlGeneration)"
+    ],
+    "transport": "fixed GET /goal-summary on numeric 127.0.0.1; mutual HMAC-SHA256 with fresh 256-bit nonce; original key never transmitted; response MAC covers exact nonce and body; no redirects, Origin or browser fetch requests",
+    "limits": {
+      "ttlMs": 900000,
+      "deadline": "absolute clock and monotonic time",
+      "authenticatedRequestsPerLease": 512,
+      "connections": 8,
+      "responseBytes": 16384,
+      "descriptorBytes": 4096,
+      "clientNetworkDeadlineMs": 5000
+    },
+    "credentialStorage": "only desktop userData/goal-connections; directory owner-only DACL/mode verified before file creation and after save dialog; file wx, owner-only ACL, FD/path dev/ino and single-link check before secret write; client reads through bounded pinned FD after actual owner-only inspection",
+    "credentialLifecycle": "one live lease per host; disabled until native confirmation; no restart restoration; logout/auth generation, same-URL navigation, window/frame/database/goal version changes, project ownership/status and expiry deny subsequent reads; stopping invalidates pending native dialogs; dead files are retained but cannot restore authority",
+    "renderer": "returns enabled/expiresAt/goalRef only; no key/endpoint/file path; no renderer-controlled actor/plugin approval",
+    "ide": "native file picker selects path, catalog selects one goal and store; fixed argv passes file path, no key; responses remain timestamped plaintext snapshots; failure clears prior view and does not fall back to standalone goals",
+    "ipcManifest": "1357 exact channels / 156 unregistered renderer channels denied at final check; includes unrelated concurrent changes; this slice adds three fixed connection channels"
+  },
+  "realAndStubbed": {
+    "real": [
+      "native SQLite and current business-source checks",
+      "Windows owner-only DACL repair/inspection",
+      "loopback HTTP with mutual request/response authentication",
+      "fresh actual CLI child processes",
+      "installed plugin discovery/trust/workspace trust/capability consent/lifecycle",
+      "Vue components",
+      "cached SDK native IntelliJ source compilation",
+      "VSIX and JetBrains packaging"
+    ],
+    "stubbed": [
+      "Electron BrowserWindow and native dialogs",
+      "trusted actor/auth-generation fixtures in native host tests",
+      "security-store locations in fresh CLI children",
+      "IDE/Vue UI harnesses"
+    ],
+    "notEstablished": "No real user login/Electron or IDE GUI session was exercised."
+  },
+  "diagnostics": {
+    "initialFailures": [
+      "test fixture missing closing brace, corrected before collection",
+      "native-dialog duration assertion checked detail instead of message, corrected",
+      "pinnedContext refactor omitted actorDid used by prior delivery-draft confirmation, restored and all existing regressions passed",
+      "real Windows DACL cases took 32-45 seconds and exceeded the normal 30s host-test timeout; only this suite uses 90s functional timeout; native CLI journey has 180s budget; complete final rerun passed"
+    ],
+    "priorTimeoutReport": "desktop-before-timeout-budget.json",
+    "performanceClaim": false,
+    "productTimeoutsRaised": false,
+    "gradleResolution": "JAVA_HOME=JBR21 triggered missing offline installer resolution; -Dorg.gradle.java.installations.paths did not select the JDK21 compiler; resolved with -Porg.gradle.java.installations.paths under default JDK17 launcher"
+  },
+  "review": {
+    "agent": "astra_review",
+    "mode": "independent read-only architecture/security/UI review; no duplicated test execution",
+    "fixed": [
+      "server impersonation after loopback port reuse addressed with non-secret-transmitting mutual HMAC",
+      "Windows inherited-DACL open-handle window addressed by pre-secured fixed private directory",
+      "navigation listener and pending-dialog operation generation verified"
+    ],
+    "final": "No remaining blocking findings after permission-window and lifecycle review."
+  },
+  "notRun": [
+    "real Electron/VS Code/JetBrains GUI",
+    "real business-effectiveness samples",
+    "authenticated project proposal/write bridge",
+    "risk/receipt projections",
+    "event subscriptions",
+    "full installable project-delivery-assistant package",
+    "full desktop build",
+    "exact-commit release OS matrices",
+    "publishing",
+    "ESLint"
+  ],
+  "release": {
+    "versionBump": false,
+    "published": false,
+    "artifacts": "local uncommitted-source packages at unchanged version labels; not published releases",
+    "requiredOrder": "child npm packages then CLI then IDE, via GitHub Actions OIDC and exact-commit configured-OS checks including all CLI CI / CLI Strict Sandbox matrices"
+  },
+  "evidenceSha256": {
+    "checks.json": "5f8de25c35d00b2460b13c04f4b8f534687f3abba844c8ca7f0ef77e3ee263fb",
+    "cli-tests.json": "833f626c714183e9b160d753b81c8d884d5030968e6c423b1960e9fa7010b0e9",
+    "desktop-before-timeout-budget.json": "84ff1129111722713110121e3beb85fce6caa80469b44077593fb9fe4c45cf6e",
+    "desktop-tests.json": "c2b2187aad9314d3a546e34db968dd84e0823cd645cd866c19edaba91f3e4a51",
+    "jetbrains-package.json": "c241db20982e0caf302deb36e1400e8535c19603e30d66f56b6ba3687b8473ce",
+    "jetbrains-tests.xml": "352616afdc171a147f48f2e7325c4c0e843596f1e98928cc91e5d8c150a54777",
+    "renderer-tests.json": "c8e5485de5b58f789cfb7154bdf53b12a0bc4f7ecc571f66c6279556623cda94",
+    "source-snapshot.json": "f2f4cba9d1237722d7484a74bfa961787bfa2ce0472935ed9d6f23fd863c4601",
+    "vscode-package.json": "be261dd0852ca21e844e106e9fc03b894b029835c7f76c8c7cf34a957101347d"
+  }
+}

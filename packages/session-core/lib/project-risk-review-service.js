@@ -1,6 +1,7 @@
 "use strict";
 
 const { createHash, randomUUID } = require("node:crypto");
+const { isReadOnlyNativeDatabase } = require("./read-only-native-database.js");
 const {
   hasOrganizationProjectBinding,
 } = require("./organization-project-authority");
@@ -139,8 +140,9 @@ class ProjectRiskReviewService {
     this.db = db;
     this.getActor = getActor;
     this.now = now;
-    this._transaction(() =>
-      this.db.exec(`CREATE TABLE IF NOT EXISTS cc_project_risk_reviews (
+    if (!isReadOnlyNativeDatabase(db))
+      this._transaction(() =>
+        this.db.exec(`CREATE TABLE IF NOT EXISTS cc_project_risk_reviews (
       id TEXT PRIMARY KEY,
       actor_did TEXT NOT NULL,
       project_id TEXT NOT NULL,
@@ -170,7 +172,7 @@ class ProjectRiskReviewService {
     );
     CREATE INDEX IF NOT EXISTS idx_cc_project_risk_feedback_review
       ON cc_project_risk_feedback(review_id,actor_did)`),
-    );
+      );
   }
 
   _transaction(operation) {

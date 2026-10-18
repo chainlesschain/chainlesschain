@@ -1,0 +1,115 @@
+[
+  {
+    "command": [
+      "git",
+      "diff",
+      "--check"
+    ],
+    "cwd": "C:\\code\\chainlesschain",
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": "warning: in the working copy of 'docs/research/agents/chainlesschain-dots-muse-mods-analysis-2026-10-06.md', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/PluginManager.java', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/PluginManagerAction.java', CRLF will be replaced by LF the next time Git touches it\n"
+  },
+  {
+    "command": [
+      "node",
+      "scripts/gen-command-manifest.mjs",
+      "--check"
+    ],
+    "cwd": "C:\\code\\chainlesschain\\packages\\cli",
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "node",
+      "scripts/gen-command-help-index.mjs",
+      "--check"
+    ],
+    "cwd": "C:\\code\\chainlesschain\\packages\\cli",
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "node",
+      "scripts/gen-shell-completions.mjs",
+      "--check"
+    ],
+    "cwd": "C:\\code\\chainlesschain\\packages\\cli",
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": "Shell completions are current (196 command tokens).\n"
+  },
+  {
+    "command": [
+      "node",
+      "scripts/verify-fixed-renderer-ipc.mjs"
+    ],
+    "cwd": "C:\\code\\chainlesschain\\desktop-app-vue",
+    "exitCode": 0,
+    "stdout": "Fixed renderer IPC manifest is current (1360 exact channels; 156 unregistered renderer channels denied).\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "node",
+      "node_modules/prettier/bin/prettier.cjs",
+      "--check",
+      "desktop-app-vue/src/main/task/__tests__/project-goal-cli-bridge.test.js",
+      "desktop-app-vue/src/main/task/__tests__/project-goal-draft-imports-ipc.test.js",
+      "desktop-app-vue/src/main/task/project-goal-auth-session.js",
+      "desktop-app-vue/src/main/task/project-goal-cli-bridge.js",
+      "desktop-app-vue/src/main/task/project-goal-draft-request-file.js",
+      "desktop-app-vue/src/main/task/project-goal-ipc.js",
+      "desktop-app-vue/src/preload/index.js",
+      "desktop-app-vue/src/preload/renderer-ipc-capabilities.json",
+      "desktop-app-vue/src/renderer/components/projects/ProjectGoalActionsPanel.vue",
+      "desktop-app-vue/src/renderer/components/projects/ProjectGoalCliConnectionPanel.vue",
+      "desktop-app-vue/src/renderer/components/projects/ProjectGoalDraftImportsPanel.vue",
+      "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-cli-connection-panel.test.ts",
+      "desktop-app-vue/src/renderer/components/projects/__tests__/project-goal-draft-imports-panel.test.ts",
+      "packages/cli/__tests__/unit/cli-goal-draft-request.test.js",
+      "packages/cli/__tests__/unit/cli-goal-evidence-host.test.js",
+      "packages/cli/__tests__/unit/goal-evidence-contract.test.js",
+      "packages/cli/__tests__/unit/project-goal-evidence-reader.test.js",
+      "packages/cli/__tests__/unit/vscode-ext-goal-draft-request-view.test.js",
+      "packages/cli/__tests__/unit/vscode-ext-plugin-manager.test.js",
+      "packages/cli/package.json",
+      "packages/cli/src/command-help-index.json",
+      "packages/cli/src/command-manifest.json",
+      "packages/cli/src/commands/goal.js",
+      "packages/cli/src/lib/plugin-runtime/cli-goal-draft-request.js",
+      "packages/cli/src/lib/plugin-runtime/cli-goal-extension-host.js",
+      "packages/cli/src/lib/plugin-runtime/examples/goal-description-drafter/plugin.json",
+      "packages/cli/src/lib/plugin-runtime/examples/goal-evidence-viewer/plugin.json",
+      "packages/cli/src/lib/plugin-runtime/goal-extension-contract.js",
+      "packages/cli/src/lib/plugin-runtime/goal-extensions.js",
+      "packages/cli/src/lib/project-goal-connection.js",
+      "packages/session-core/lib/goal-draft-request-contract.js",
+      "packages/session-core/lib/goal-evidence-contract.js",
+      "packages/session-core/lib/goal-usage-ledger.js",
+      "packages/session-core/lib/project-goal-draft-imports.js",
+      "packages/session-core/lib/project-goal-evidence-reader.js",
+      "packages/session-core/lib/project-goal-extension-queue.js",
+      "packages/session-core/lib/project-goal-monitoring.js",
+      "packages/session-core/lib/project-goal-service.js",
+      "packages/session-core/lib/project-goal-workflow.js",
+      "packages/session-core/lib/project-risk-review-service.js",
+      "packages/session-core/lib/read-only-native-database.js",
+      "packages/session-core/lib/task-description-action-service.js",
+      "packages/session-core/package.json",
+      "packages/vscode-extension/package.json",
+      "packages/vscode-extension/src/plugin-manager.js",
+      "packages/vscode-extension/src/ui/plugin-manager-view.js",
+      "packages/cli/README.md",
+      "packages/session-core/README.md"
+    ],
+    "cwd": "C:\\code\\chainlesschain",
+    "exitCode": 0,
+    "stdout": "Checking formatting...\nAll matched files use Prettier code style!\n",
+    "stderr": ""
+  }
+]

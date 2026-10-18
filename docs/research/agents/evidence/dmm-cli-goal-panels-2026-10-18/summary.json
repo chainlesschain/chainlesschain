@@ -1,0 +1,207 @@
+{
+    "taskIds":  [
+                    "DMM-07",
+                    "DMM-08"
+                ],
+    "recordedAt":  "2026-10-18T02:54:58.1556119Z",
+    "date":  "2026-10-18",
+    "source":  {
+                   "baseCommit":  "7111f3f78725c82c35927fd5bada0e0b1be5983c",
+                   "sha256":  {
+                                  "packages/cli/src/commands/goal.js":  "46ea18b929ecf71355b7b13453f018960af6c5a20d171729f05612314cfc8b75",
+                                  "packages/cli/src/lib/goal-store.js":  "a3633db0ed1773d86aff8fb6f419d035046a18a0b6a028b2adc684bf5bb68542",
+                                  "packages/cli/src/lib/plugin-runtime/cli-goal-extension-host.js":  "20f3ec06a0397a4cb5d38cc5679ef32b8af1cc7bd027627737096854fffd68a2",
+                                  "packages/cli/src/lib/plugin-runtime/goal-extension-contract.js":  "dc514a9b07388859e4431bb480b88f55f344e28d4b0687f7dc6df4379b8b6b10",
+                                  "packages/cli/src/lib/plugin-runtime/goal-extensions.js":  "fff7aa22095835563ec8084e0302302d77e570020ab94b46e89296c73f17d4d3",
+                                  "packages/cli/src/lib/plugin-runtime/capabilities.js":  "25dc65054e788234730421470a31b6867e152cf34b3be20f6fef0435742abbc4",
+                                  "packages/cli/src/lib/plugin-runtime/capability-consent.js":  "c06ba6e26d80ded2ee16fdb234677bb9ec608947ea4725d189225014c776d10a",
+                                  "packages/cli/src/lib/plugin-runtime/trust.js":  "d9a092642d2065c0dd4ca2f3525d1870eb5b668ba5bedce2cc78335aac4c1b99",
+                                  "packages/cli/src/lib/plugin-runtime/scopes.js":  "3d65410ae0edeb14587a0cf63ce91c968fd8fe652a4e0cb4bc8d0970f78cc6e9",
+                                  "packages/cli/src/lib/plugin-runtime/policy.js":  "308c949dbb84ffda053e481728a6748441568523da7b15958aa8675768ef787e",
+                                  "packages/cli/src/lib/plugin-runtime/manifest.js":  "b02c4365e6f6a5614fa9f5fd30dbe07e76df7c14f4d66042aa910188c3a8db3e",
+                                  "packages/cli/src/lib/plugin-runtime/examples/goal-progress-viewer/plugin.json":  "d2765cedefb177d319c588b854015d20478ae690c3683f873750fa39a893fdb1",
+                                  "packages/cli/src/lib/plugin-runtime/examples/project-delivery-assistant/plugin.json":  "87750a364168b4c7616f602460e93181fd844865b126604f36ec850680fabbb2",
+                                  "packages/cli/__tests__/unit/cli-goal-extension-host.test.js":  "cd5b36550b4aa822556ea93fb4adea06f1a3dd32d8d6c6c6df583dce6228b536",
+                                  "packages/cli/__tests__/unit/plugin-goal-extension.test.js":  "d3b9f3f8f928bee398bff5850b8a82e4545c3c0d1a666883dee94e86262635a7",
+                                  "packages/cli/__tests__/unit/vscode-ext-plugin-manager.test.js":  "305bb9a1e0a1a7c7cf4a9e214650a489d6e0154edd29bcba9567a875aab9f132",
+                                  "packages/cli/__tests__/unit/vscode-ext-goal-panels-view.test.js":  "611741cc98b99564679fe70eaafcede4d4feca649d9c4426a6a01fe179174ef2",
+                                  "packages/cli/__tests__/integration/cli-goal-panels.test.js":  "a6c6dea6337797de5565472ad1dacf319e246fdadff11f8c9792f805e9a2fdcb",
+                                  "packages/vscode-extension/src/plugin-manager.js":  "f5146db097b079aefbe1ca828b353d97c06e979c360e40ce57b579895e17231f",
+                                  "packages/vscode-extension/src/ui/plugin-manager-view.js":  "b2920f21660426298682cfef49099ff7e969c1218e853a00e6d53c5fb41fed7a",
+                                  "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/PluginManager.java":  "629dffcac7683cf3bbe17fba6303f91223b048453d24e740e82c189f2220c8de",
+                                  "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/PluginManagerAction.java":  "3a359348f7e3a1fc9e6cb873c536f5b0b1f2765d7b990a96a1ed96cd820bb7b1",
+                                  "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/PluginManagerTest.java":  "cbc92a474829ef80f48f6d4c4cd85543df38648dc64f866113f8ffd79a4ce33a",
+                                  "packages/session-core/lib/goal-contract.js":  "1be40a2a686ce8ae1a21afd31882677f1bd66dbd8858a86326500694315f9479",
+                                  "packages/session-core/__tests__/goal-contract.test.js":  "bfae7558b5ec33f0db89c01f9db342361f54eb18b0c6336e135840b9e3b9eb84",
+                                  "packages/cli/src/command-help-index.json":  "23fb75e96027291cd34200c3ef528027f6e1261707fb407df704ce9df99f3dd5",
+                                  "packages/cli/README.md":  "04ad5b63a7eeda354f8b57d2bc2ea790df82ea39ac44f9acec10cfc59a4b493b",
+                                  "docs/research/agents/chainlesschain-dots-muse-mods-analysis-2026-10-06.md":  "4890a07b20a039e826cb384d9c7862a5a7715611aff58cb6819c957850925dfa",
+                                  "docs/research/agents/dots-muse-mods-implementation-progress-2026-10-07.md":  "37982af897141f091cd518dc325db06190ace0009792bf3a397d79bbf77665e8"
+                              },
+                   "state":  "uncommitted worktree with concurrent unrelated changes"
+               },
+    "result":  "standalone CLI read-only goal panels and IDE viewing entrypoints connected; project host remains incomplete",
+    "environment":  {
+                        "java":  "JetBrains JBR 21.0.8+9-1163.69-jcef",
+                        "intellijSdk":  "2024.2",
+                        "node":  "22.22.2",
+                        "os":  "Windows x64",
+                        "gradle":  "8.7",
+                        "javaHome":  "C:/Users/longfa/AppData/Local/Programs/idea-2025.3/jbr",
+                        "vitest":  "4.1.10",
+                        "prettier":  "3.6.2",
+                        "npm":  "10.9.7"
+                    },
+    "verification":  {
+                         "finalControlsOverlapCli":  true,
+                         "cli":  {
+                                     "passed":  365,
+                                     "files":  [
+                                                   "packages/cli/__tests__/integration/cli-goal-panels.test.js",
+                                                   "packages/cli/__tests__/unit/cli-goal-extension-host.test.js",
+                                                   "packages/cli/__tests__/unit/goal-repository.test.js",
+                                                   "packages/cli/__tests__/unit/goal-store.test.js",
+                                                   "packages/cli/__tests__/unit/plugin-consent-command.test.js",
+                                                   "packages/cli/__tests__/unit/plugin-goal-extension.test.js",
+                                                   "packages/cli/__tests__/unit/plugin-lifecycle-command.test.js",
+                                                   "packages/cli/__tests__/unit/plugin-runtime-capabilities.test.js",
+                                                   "packages/cli/__tests__/unit/plugin-runtime-capability-consent.test.js",
+                                                   "packages/cli/__tests__/unit/plugin-runtime-consent-enforce.test.js",
+                                                   "packages/cli/__tests__/unit/plugin-runtime-install.test.js",
+                                                   "packages/cli/__tests__/unit/plugin-runtime-manifest.test.js",
+                                                   "packages/cli/__tests__/unit/plugin-runtime-policy.test.js",
+                                                   "packages/cli/__tests__/unit/plugin-runtime-scopes.test.js",
+                                                   "packages/cli/__tests__/unit/plugin-runtime-trust.test.js",
+                                                   "packages/cli/__tests__/unit/vscode-ext-goal-panels-view.test.js",
+                                                   "packages/cli/__tests__/unit/vscode-ext-plugin-manager.test.js"
+                                               ],
+                                     "fileCount":  17,
+                                     "skippedTests":  [
+
+                                                      ],
+                                     "skipped":  2,
+                                     "report":  "cli-tests.json",
+                                     "total":  367,
+                                     "failed":  0
+                                 },
+                         "finalControlsReason":  "Reran the native host and subprocess journey after final CLI diagnostic terminal-escape filtering; do not add overlapping counts",
+                         "finalControls":  {
+                                               "passed":  18,
+                                               "files":  [
+                                                             "packages/cli/__tests__/integration/cli-goal-panels.test.js",
+                                                             "packages/cli/__tests__/unit/cli-goal-extension-host.test.js"
+                                                         ],
+                                               "fileCount":  2,
+                                               "skippedTests":  [
+
+                                                                ],
+                                               "skipped":  1,
+                                               "report":  "cli-final-controls.json",
+                                               "total":  19,
+                                               "failed":  0
+                                           },
+                         "package":  {
+                                         "file":  "packages/jetbrains-plugin/build/distributions/chainlesschain-ide-bridge-0.4.166.zip",
+                                         "bytes":  1532485,
+                                         "sha256":  "9ab705f1e6031576d05ce5217b3409ddae8afefe81f95e223710abf87d526225",
+                                         "classes":  {
+                                                         "com/chainlesschain/ide/PluginManager.class":  {
+                                                                                                            "goalPanelsMethodPresent":  true,
+                                                                                                            "jar":  "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.166.jar"
+                                                                                                        },
+                                                         "com/chainlesschain/ide/intellij/PluginManagerAction.class":  {
+                                                                                                                           "goalPanelsMethodPresent":  true,
+                                                                                                                           "jar":  "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.166.jar"
+                                                                                                                       }
+                                                     },
+                                         "buildCommand":  ".\\gradlew.bat -Dorg.gradle.java.installations.paths=\u003cIDE-jbr-21.0.8\u003e --offline --no-daemon buildPlugin --console=plain",
+                                         "exitCode":  0,
+                                         "published":  false
+                                     },
+                         "goalContract":  {
+                                              "passed":  19,
+                                              "files":  [
+                                                            "packages/session-core/__tests__/goal-contract.test.js"
+                                                        ],
+                                              "fileCount":  1,
+                                              "skippedTests":  [
+
+                                                               ],
+                                              "skipped":  0,
+                                              "report":  "goal-contract-tests.json",
+                                              "total":  19,
+                                              "failed":  0
+                                          },
+                         "jetbrains":  {
+                                           "workdir":  "packages/jetbrains-plugin",
+                                           "failures":  0,
+                                           "report":  "jetbrains-plugin-manager.xml",
+                                           "command":  ".\\gradlew.bat -Dorg.gradle.java.installations.paths=\u003cIDE-jbr-21.0.8\u003e --offline --no-daemon test --tests com.chainlesschain.ide.PluginManagerTest --console=plain",
+                                           "skipped":  0,
+                                           "tests":  8,
+                                           "fullSourceCompilation":  true,
+                                           "exitCode":  0,
+                                           "guiJourney":  false,
+                                           "errors":  0
+                                       },
+                         "checks":  {
+                                        "eslint":  "not run in this batch",
+                                        "prettier":  "passed",
+                                        "npmPackDryRun":  {
+                                                              "included":  [
+                                                                               "src/lib/plugin-runtime/cli-goal-extension-host.js",
+                                                                               "src/lib/plugin-runtime/examples/goal-progress-viewer/plugin.json"
+                                                                           ],
+                                                              "command":  "npm.cmd pack --dry-run --ignore-scripts --json",
+                                                              "package":  "chainlesschain@0.166.104"
+                                                          },
+                                        "gitDiffCheck":  "passed",
+                                        "commandHelpIndex":  "regenerated and check passed",
+                                        "commandManifest":  "passed",
+                                        "shellCompletions":  "passed"
+                                    }
+                     },
+    "environmentKinds":  {
+                             "vscodeView":  "VM with VS Code API and CLI process test doubles; actual view message handler",
+                             "subprocessJourney":  "actual CLI bin in fresh Node children; bootstrap relocates only trust/consent state to test files; actual install, trust, consent and lifecycle logic",
+                             "jetbrains":  "actual Gradle source compile, JUnit and local plugin ZIP; no interactive GUI journey",
+                             "cliHostTests":  "real temporary goal/plugin files, workspace trust and durable capability consent; selected fault injections after actual projection",
+                             "sdkUnitTests":  "host callbacks replaced by test doubles for protocol controls"
+                         },
+    "assertions":  [
+                       "explicit source selection; no bulk body scan or model egress",
+                       "single bounded FD read supplied to legacy normalization; raw project ownership rejected before upgrade",
+                       "original-byte digest covers unshown tails and ignores synthetic normalization timestamps",
+                       "goal revision, deletion, plugin lifecycle, policy, trust and consent changes reject old projections",
+                       "CLI human text strips terminal escapes; IDE renders plain text",
+                       "VS Code clear/refresh/dispose discards late results and uses explicit workspace cwd",
+                       "local subprocess install/consent/disable/enable/uninstall journey retains original goal bytes",
+                       "packaged PluginManager and PluginManagerAction contain goal panel entrypoints"
+                   ],
+    "limits":  {
+                   "sourceBytes":  65536,
+                   "capabilities":  [
+                                        "panel:goal.summary"
+                                    ],
+                   "fields":  [
+                                  "objective",
+                                  "status"
+                              ],
+                   "outputPanels":  16,
+                   "outputBytes":  131072,
+                   "snapshotOnly":  true
+               },
+    "notVerified":  [
+                        "native project risk/receipt adapter or pending-proposal transaction",
+                        "background event subscriptions and project delivery assistant lifecycle",
+                        "interactive VS Code/JetBrains/Electron GUI journey",
+                        "Linux/macOS matrix and two Windows-skipped POSIX symlink tests",
+                        "independent business outcomes",
+                        "exact-commit GitHub Actions release gates"
+                    ],
+    "publication":  {
+                        "publicVersionsChanged":  false,
+                        "requiredOrder":  "Session Core child package compatibility fix, CLI, then IDE extensions; OIDC and exact-commit matrices still required",
+                        "attempted":  false
+                    }
+}

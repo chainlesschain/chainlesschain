@@ -32,6 +32,7 @@ export const CAPABILITY_KINDS = Object.freeze([
   "mcp",
   "monitor",
   "credential",
+  "goalExtension",
 ]);
 
 function toBool(v) {
@@ -92,6 +93,10 @@ export function normalizeCapabilities(raw) {
     mcp: toBool(r.mcp),
     monitor: toBool(r.monitor ?? r.monitors),
     credential: { names: toList(r.credential ?? r.credentials) },
+    // Keep old normalized records unchanged; missing goal grants are deny-all.
+    ...(Object.hasOwn(r, "goalExtension")
+      ? { goalExtension: toList(r.goalExtension) }
+      : {}),
   };
 }
 
@@ -137,6 +142,7 @@ export function diffCapabilities(prev, next) {
   };
   listCap("filesystem", "filesystem", (c) => c.filesystem.roots);
   listCap("credential", "credential", (c) => c.credential.names);
+  listCap("goalExtension", "goalExtension", (c) => c.goalExtension || []);
 
   return { added, removed, widened: added.length > 0 };
 }
@@ -168,6 +174,10 @@ export function describeCapabilities(caps) {
   if (c.monitor) lines.push("monitor: may run background monitors");
   if (c.credential.names.length)
     lines.push(`credential: ${c.credential.names.join(", ")}`);
+  if (c.goalExtension?.length)
+    lines.push(
+      `goalExtension: ${c.goalExtension.join(", ")} (host authorization required)`,
+    );
   return lines;
 }
 

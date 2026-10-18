@@ -51,6 +51,8 @@ export function goalFileStoreId(root = defaultRoot()) {
 }
 
 function fileRecord(value, root) {
+  if (value?.ownerRef != null || value?.projectRef != null)
+    throw goalError("GOAL_PROJECT_STORE_REQUIRED");
   const record = upgradeLegacyGoal(value, goalFileStoreId(root));
   if (record.storeId !== goalFileStoreId(root))
     throw goalError("GOAL_STORE_MISMATCH");
@@ -537,13 +539,18 @@ export function resolveActiveGoal(sel = {}, opts = {}) {
 export function createGoalFileAdapter(opts = {}) {
   const root = opts.root || defaultRoot();
   const storeId = goalFileStoreId(root);
+  const readJson =
+    opts.readJson === undefined
+      ? (file) => JSON.parse(fs.readFileSync(file, "utf8"))
+      : opts.readJson;
+  if (typeof readJson !== "function") throw goalError("GOAL_INVALID_ADAPTER");
   function read(id) {
     if (isUnsafeGoalId(id)) throw goalError("GOAL_INVALID_ID");
     const file = goalFile(root, id);
     if (!fs.existsSync(file)) return null;
     let value;
     try {
-      value = JSON.parse(fs.readFileSync(file, "utf8"));
+      value = readJson(file);
     } catch {
       throw goalError("GOAL_RECORD_CORRUPT");
     }
