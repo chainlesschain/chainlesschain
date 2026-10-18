@@ -8,6 +8,8 @@
 
 旧提交 `4317bf01a48a7ec612e12000936a81851c6febf3` 已被新提交取代；其正式 ARM64 工作流独立失败为 VS Code README 一致性检查，原始汇总 **274/275** 通过，未进入 VSIX 打包，聚合随后拒绝不完整矩阵。[原失败证据](./next-release-validation/followup-106-vscode-contract-failure-review.json) 与[补充归档](./next-release-validation/followup-106-dca47-evidence-review.json) 均保留；旧结果不能放行新提交，原失败没有改写为成功。
 
+按用户“取消和发布无关的 runner”授权，已逐项核验并取消 **9** 个辅助或旧源码 CI 流程，官方回读均为 `completed/cancelled`；另一个已自行结束的流程没有重复取消。当前发行提交的四项发布门禁及三个保护流程均保留，未取消任何 36+9 原生任务或正在发布的流程，未重新调用模型。清理后的观察为 CLI **15 项通过、10 项运行**，Strict **5/5 通过**，IDE **14 项通过、1 项运行**，ARM64 **8 项通过、1 项运行**，其余必需的后续任务仍须收齐，候选尚未发布。取消的辅助检查不记作通过；[取消回执、最终状态、保留清单及容量提示](./next-release-validation/followup-106-release-priority-cleanup-review.json) 已归档。GitHub 直接提示 macOS ARM 容量紧张，不能据此推断其他平台或账户计费原因。
+
 Windows JetBrains 的原生 ACL 超时根因仍未解决。新产品提交包含插件 Java 子进程生命周期修复，本地 JUnit **9/9**（含 **5** 个真实子进程测试）通过：关闭未使用 stdin、完整排空输出、共用单一 **5 秒**清理等待预算，仅回收自身子进程并保留中断；原操作 **30 秒**期限与 ACL 脚本不变。执行时记录的生产源码摘要与新 git 对象一致，原始源码、测试源码及各自摘要已归档；未执行的 Node 原型不作为测试结果。继承管道未关闭时 daemon reader/closer 仍可能晚于调用方结束，这不证明原生超时根因已修复。
 
 独立阶段诊断运行 [39112546523](https://github.com/chainlesschain/chainlesschain/actions/runs/39112546523) 精确绑定 `2ceaa8421901fbdc68bec4d4c2395f6af089602d`，完成 **16** 项测试和 **3** 个 probe。约 **22–29 秒**为阶段区间，包含间隔工作，不是精确 native call 用时；未重现 IDE/Gradle/CEF 并发负载，也未向产品提交引入 session-core 修改。[诊断及原始/存储 SHA-256 清单](./next-release-validation/followup-106-dca47-evidence-review.json) 保留这些限制及候选版本尚不可用的只读快照。
