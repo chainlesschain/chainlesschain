@@ -1,3 +1,21 @@
+# 当前组件发布状态
+
+CLI **0.166.106 已正式发布并完成独立公开回读**：[GitHub Actions OIDC 发布流程 39130542725](https://github.com/chainlesschain/chainlesschain/actions/runs/39130542725) 已 `completed/success`，固定标签 `v-npm-0-166-106` 对应提交 `dca47fd91a209642b6536afd5bc9e99ec74c7d06`。已保存公开 npm 元数据、包原文及 `VERIFIED_PUBLIC_CLI_ONLY` 回执，校验包摘要、SRI 和回执列明的源码字节；没有重复下载、安装、执行包或调用模型。见[CLI 最终发布与公开回读证据](./next-release-validation/followup-106-cli-publication-final-review.json)。
+
+| 组件 | 版本 | 当前状态 |
+| --- | --- | --- |
+| CLI | 0.166.106 | 已发布，公开回读通过 |
+| VS Code | 0.37.151 | [官方发行中](https://github.com/chainlesschain/chainlesschain/actions/runs/39131607926)，尚未完成公开核验 |
+| JetBrains | 0.4.168 | [官方发行中](https://github.com/chainlesschain/chainlesschain/actions/runs/39131605961)，尚未完成公开核验 |
+
+两个 IDE 固定标签已由独立远端查询确认均指向上述提交，官方运行均由标签 `push` 触发。原客户端因 Python `Path.write_text(newline=)` 兼容错误未写回最终收据；原 intent 保持原文，另存[远端标签及官方运行核验](./next-release-validation/followup-106-cli-publication-final-ide-tag-resolution.json)，不伪造客户端响应，也未重推标签。
+
+全套 `published` 仍为 **false**；此 CLI 单组件回执不代表三包齐备，也不授权开始新版原生模型评测。累计仍为 **31/45**（普通 **26/36**、首次 **5/9**），剩余 **14** 项，31 项合格产物及原结果全部复用。本次只归档已取得的发布和回读证据。
+
+以下为此前过程记录，原文按字节保留；其中“发布中”“尚未发布”等描述对应当时观察。
+
+---
+
 # 最新 CLI / IDE：36+9 实际任务结果
 
 当前公开包补测使用 CLI **0.166.105**、VS Code **0.37.150**、JetBrains **0.4.167**。[本轮账本](./next-package-105-20261018.json) 已完整收取生成 **20/20**、独立验收 **20/20**，新增 **6** 项候选及全流程通过。累计候选合格 **31/45**（普通 **26/36**、首次 **5/9**），剩余 **14** 项；完整性严格校验通过，原生任务没有重复派发。逐项及原因见[本轮复核](./next-package-105-20261018-review.json)，状态 `COMPLETED` 表示证据收齐。
