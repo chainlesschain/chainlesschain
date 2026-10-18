@@ -1,0 +1,74 @@
+{
+  "vscode": {
+    "ref": {
+      "ref": "refs/tags/ide-vscode-v0.37.150",
+      "node_id": "REF_kwDOQgDM2r5yZWZzL3RhZ3MvaWRlLXZzY29kZS12MC4zNy4xNTA",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/refs/tags/ide-vscode-v0.37.150",
+      "object": {
+        "sha": "32ea6bc6ae5dff59b3b8e128ba2b8943816f7e7f",
+        "type": "tag",
+        "url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/tags/32ea6bc6ae5dff59b3b8e128ba2b8943816f7e7f"
+      }
+    },
+    "tagObject": {
+      "node_id": "TA_kwDOQgDM2toAKDMyZWE2YmM2YWU1ZGZmNTliM2I4ZTEyOGJhMmI4OTQzODE2ZjdlN2Y",
+      "sha": "32ea6bc6ae5dff59b3b8e128ba2b8943816f7e7f",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/tags/32ea6bc6ae5dff59b3b8e128ba2b8943816f7e7f",
+      "tagger": {
+        "name": "longfa",
+        "email": "zhanglongfa@chainleschain.com",
+        "date": "2026-10-18T06:25:42Z"
+      },
+      "object": {
+        "sha": "d4065008bb4eff84cfc09f9361f4ae4e9de2140f",
+        "type": "commit",
+        "url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/commits/d4065008bb4eff84cfc09f9361f4ae4e9de2140f"
+      },
+      "tag": "ide-vscode-v0.37.150",
+      "message": "Release VS Code 0.37.150 paired with public CLI 0.166.105\n",
+      "verification": {
+        "verified": false,
+        "reason": "unsigned",
+        "signature": null,
+        "payload": null,
+        "verified_at": null
+      }
+    }
+  },
+  "jetbrains": {
+    "ref": {
+      "ref": "refs/tags/ide-jetbrains-v0.4.167",
+      "node_id": "REF_kwDOQgDM2toAIHJlZnMvdGFncy9pZGUtamV0YnJhaW5zLXYwLjQuMTY3",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/refs/tags/ide-jetbrains-v0.4.167",
+      "object": {
+        "sha": "ac92316f5a2d76fe4896f4683a7635757ceebc5f",
+        "type": "tag",
+        "url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/tags/ac92316f5a2d76fe4896f4683a7635757ceebc5f"
+      }
+    },
+    "tagObject": {
+      "node_id": "TA_kwDOQgDM2toAKGFjOTIzMTZmNWEyZDc2ZmU0ODk2ZjQ2ODNhNzYzNTc1N2NlZWJjNWY",
+      "sha": "ac92316f5a2d76fe4896f4683a7635757ceebc5f",
+      "url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/tags/ac92316f5a2d76fe4896f4683a7635757ceebc5f",
+      "tagger": {
+        "name": "longfa",
+        "email": "zhanglongfa@chainleschain.com",
+        "date": "2026-10-18T06:25:45Z"
+      },
+      "object": {
+        "sha": "d4065008bb4eff84cfc09f9361f4ae4e9de2140f",
+        "type": "commit",
+        "url": "https://api.github.com/repos/chainlesschain/chainlesschain/git/commits/d4065008bb4eff84cfc09f9361f4ae4e9de2140f"
+      },
+      "tag": "ide-jetbrains-v0.4.167",
+      "message": "Release JetBrains 0.4.167 paired with public CLI 0.166.105\n",
+      "verification": {
+        "verified": false,
+        "reason": "unsigned",
+        "signature": null,
+        "payload": null,
+        "verified_at": null
+      }
+    }
+  }
+}

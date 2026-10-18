@@ -1,7 +1,7 @@
 {
   "schema": "chainlesschain.next-release-task-optimization/v1",
   "recordedDate": "2026-10-18",
-  "status": "CLI_OIDC_PUBLICATION_IN_PROGRESS",
+  "status": "CLI_PUBLIC_IDE_PUBLICATION_IN_PROGRESS",
   "userDecisions": [
     "不合格的需要代码优化 下一个版本进行补测",
     "需要发布新的cli或ide插件的下一个版本再测试",
@@ -303,7 +303,15 @@
       "foundBy": "Astra independent source review"
     }
   ],
-  "publishedPackages": [],
+  "publishedPackages": [
+    {
+      "kind": "cli",
+      "version": "0.166.105",
+      "sourceCommit": "d4065008bb4eff84cfc09f9361f4ae4e9de2140f",
+      "publicFetchVerified": true,
+      "modelTaskRetestPerformed": false
+    }
+  ],
   "nextVersionRetestRuns": [],
   "candidateVersions": {
     "cli": "0.166.105",
@@ -464,13 +472,113 @@
       "workflowUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/39102818482",
       "method": "GitHub Actions OIDC Trusted Publishing",
       "createdAt": "2026-10-18T06:05:39Z",
-      "statusObserved": "in_progress",
+      "statusObserved": "completed",
       "runArchive": {
-        "path": "next-release-validation/cli-publication-start-39102818482.json.gz",
-        "digest": "sha256:3cae5090d39bfdddb97193000450f014db3f11026e6ebdd955722ddf84bc8be0",
-        "bytes": 1548
+        "path": "next-release-validation/cli-publication-39102818482-initial.json.gz",
+        "digest": "sha256:2ec58d280427d6ef4031a850327e59368158af87427b8d1cad91629f808bd394",
+        "bytes": 2087
+      },
+      "publicFetchVerified": true,
+      "conclusionObserved": "success",
+      "publicReadback": {
+        "path": "next-release-validation/cli-public-readback/readback.json",
+        "digest": "sha256:611de63ae5eb821f8e395b2b7ec15c7b4329ad003d52816c0f4f337d10c5939f",
+        "bytes": 5151
+      },
+      "npmProvenanceVerified": true,
+      "publicReadbackEvidence": {
+        "readback.json": {
+          "path": "next-release-validation/cli-public-readback/readback.json",
+          "digest": "sha256:611de63ae5eb821f8e395b2b7ec15c7b4329ad003d52816c0f4f337d10c5939f",
+          "bytes": 5151
+        },
+        "npm-metadata.json": {
+          "path": "next-release-validation/cli-public-readback/npm-metadata.json",
+          "digest": "sha256:9cd478149a722694ac061cf9f828844cde260d63ffc17455b7eacd8e61428829",
+          "bytes": 7696
+        },
+        "official/agent-protocol-npm-provenance.json": {
+          "path": "next-release-validation/cli-official-readback/agent-protocol-npm-provenance.json",
+          "digest": "sha256:a95321f70fbb6b51d0cbb8f5062f8be6d16ded54f73c98709fa02bd427e67bd6",
+          "bytes": 1207
+        },
+        "official/agent-sdk-npm-provenance.json": {
+          "path": "next-release-validation/cli-official-readback/agent-sdk-npm-provenance.json",
+          "digest": "sha256:01f3bed76c988ff37719b8f8b838fdab229f7d1d333cf2495cb3d242ef1713c2",
+          "bytes": 1199
+        },
+        "official/chainlesschain-npm-provenance.json": {
+          "path": "next-release-validation/cli-official-readback/chainlesschain-npm-provenance.json",
+          "digest": "sha256:3e38568b03845ef98360ad430b149bc8625a33d2d500ba8c1062969d9f4cff5b",
+          "bytes": 833
+        },
+        "official/chainlesschain-release.json": {
+          "path": "next-release-validation/cli-official-readback/chainlesschain-release.json",
+          "digest": "sha256:72e4f3a20a33c1be0e0139a83d7e30ca52ab0b4fb2c7d510276f1907c70da940",
+          "bytes": 2610
+        },
+        "official/cli-public-child-install.json": {
+          "path": "next-release-validation/cli-official-readback/cli-public-child-install.json",
+          "digest": "sha256:acd37b0bc480bb21b420b3b9d701d2ae590b38d84271df6c740a8a6d339920ad",
+          "bytes": 3285
+        },
+        "official/context-memory-kernel-npm-provenance.json": {
+          "path": "next-release-validation/cli-official-readback/context-memory-kernel-npm-provenance.json",
+          "digest": "sha256:da57e39488d87ce0e495ac5e36f54b1ccbbb17a33ddc58543e1d70f8d6f9b858",
+          "bytes": 1223
+        },
+        "tools/verify-public-cli-105.py": {
+          "path": "next-release-validation/public-readback-tools/verify-public-cli-105.py",
+          "digest": "sha256:e514f8a90adc29335dfa0347b2e7aece29ca57a5678d123bc0c03bb9b12c8395",
+          "bytes": 10051
+        },
+        "tools/resolve-next-task-package-set.py": {
+          "path": "next-release-validation/public-readback-tools/resolve-next-task-package-set.py",
+          "digest": "sha256:7d20e168e7a504d9d1ec6ff584619cf4fa4615e129110655a31cb72370daeff2",
+          "bytes": 25792
+        }
+      }
+    },
+    "vscode": {
+      "workflowRunId": "39104012121",
+      "workflowUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/39104012121",
+      "statusObserved": "in_progress",
+      "conclusionObserved": "",
+      "runArchive": {
+        "path": "next-release-validation/vscode-publication-39104012121-initial.json.gz",
+        "digest": "sha256:b9e5602eb9377e9e972a87a83b60ea79f5944ea47ca0d16fb93ff137945d0d62",
+        "bytes": 1488
+      },
+      "version": "0.37.150",
+      "tag": "ide-vscode-v0.37.150",
+      "tagCommit": "d4065008bb4eff84cfc09f9361f4ae4e9de2140f",
+      "tagArchive": {
+        "path": "next-release-validation/ide-release-tags-d406.json",
+        "digest": "sha256:b29e6cb47cbcfd091d6a98669338ecd6fa350b91e6e84c8af54d0f65a73dcbd8",
+        "bytes": 2964
       },
       "publicFetchVerified": false
-    }
+    },
+    "jetbrains": {
+      "workflowRunId": "39104011767",
+      "workflowUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/39104011767",
+      "statusObserved": "queued",
+      "conclusionObserved": "",
+      "runArchive": {
+        "path": "next-release-validation/jetbrains-publication-39104011767-initial.json.gz",
+        "digest": "sha256:e845edf39bac1564ccc6fe6e2bbffb27251e28c8ed549d41be82f7658eb0b929",
+        "bytes": 1850
+      },
+      "version": "0.4.167",
+      "tag": "ide-jetbrains-v0.4.167",
+      "tagCommit": "d4065008bb4eff84cfc09f9361f4ae4e9de2140f",
+      "tagArchive": {
+        "path": "next-release-validation/ide-release-tags-d406.json",
+        "digest": "sha256:b29e6cb47cbcfd091d6a98669338ecd6fa350b91e6e84c8af54d0f65a73dcbd8",
+        "bytes": 2964
+      },
+      "publicFetchVerified": false
+    },
+    "observedAt": "2026-10-18T06:27:17.908574+00:00"
   }
 }

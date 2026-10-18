@@ -1,0 +1,137 @@
+{
+  "schema": "chainlesschain.cli-only-public-readback/v1",
+  "status": "VERIFIED_PUBLIC_CLI_ONLY",
+  "verifiedAt": "2026-10-18T06:25:15.812592+00:00",
+  "version": "0.166.105",
+  "releaseSourceCommit": "d4065008bb4eff84cfc09f9361f4ae4e9de2140f",
+  "records": {
+    "npm-metadata.json": {
+      "path": "npm-metadata.json",
+      "digest": "sha256:9cd478149a722694ac061cf9f828844cde260d63ffc17455b7eacd8e61428829",
+      "bytes": 7696,
+      "url": "https://registry.npmjs.org/chainlesschain/0.166.105",
+      "finalUrlWithoutQuery": "https://registry.npmjs.org/chainlesschain/0.166.105",
+      "httpStatus": 200
+    },
+    "chainlesschain.tgz": {
+      "path": "chainlesschain.tgz",
+      "digest": "sha256:a8b627111003192b2b40a8c99fbe98acc8fb13ccda16ee70ac8c3474d010ffd9",
+      "bytes": 9417259,
+      "url": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.105.tgz",
+      "finalUrlWithoutQuery": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.105.tgz",
+      "httpStatus": 200
+    }
+  },
+  "checks": {
+    "packageVersion": "0.166.105",
+    "sriVerified": true,
+    "releaseSourceCommit": "d4065008bb4eff84cfc09f9361f4ae4e9de2140f",
+    "sourceMatches": [
+      {
+        "path": "src/lib/file-import-diagnostics.js",
+        "digest": "sha256:4b20a10efd8ca15281c0295f1c73cab13dc4d5c54dddfe2a9e7d5325694b098c",
+        "bytes": 8099
+      },
+      {
+        "path": "src/lib/coding-task-guidance.js",
+        "digest": "sha256:a9c105b44f4cdc045d789bc8b5c560dec5f31c6a28861922a208d61f05545df0",
+        "bytes": 1992
+      },
+      {
+        "path": "src/lib/transport-error-details.js",
+        "digest": "sha256:d9e3c3f98fb2f466dfce7753a3641d58f93d8a82c3df502c2e403e22ef769751",
+        "bytes": 2312
+      },
+      {
+        "path": "src/runtime/agent-core.js",
+        "digest": "sha256:5102a6adb6e3c799c1d34ed00ce9c6465292e197827524f0073c0c5030571699",
+        "bytes": 658034
+      },
+      {
+        "path": "src/runtime/headless-runner.js",
+        "digest": "sha256:7213f4b63f62578487a12e879d58130f82dcfdb7712c0c4b26ec2ce540a0dcf8",
+        "bytes": 173750
+      },
+      {
+        "path": "src/runtime/headless-stream.js",
+        "digest": "sha256:b8a312bbed59a49fe0cb8383aa5eaba9fb3af3c99a254ef7fe74b2d479b83698",
+        "bytes": 214033
+      }
+    ],
+    "helpers": [
+      {
+        "path": "src/lib/file-import-diagnostics.js",
+        "digest": "sha256:4b20a10efd8ca15281c0295f1c73cab13dc4d5c54dddfe2a9e7d5325694b098c",
+        "bytes": 8099
+      },
+      {
+        "path": "src/lib/coding-task-guidance.js",
+        "digest": "sha256:a9c105b44f4cdc045d789bc8b5c560dec5f31c6a28861922a208d61f05545df0",
+        "bytes": 1992
+      },
+      {
+        "path": "src/lib/transport-error-details.js",
+        "digest": "sha256:d9e3c3f98fb2f466dfce7753a3641d58f93d8a82c3df502c2e403e22ef769751",
+        "bytes": 2312
+      }
+    ],
+    "metadataGitHead": null,
+    "tarballGitHead": null,
+    "sourcePackageJsonDigest": "sha256:3fe9ffe0ab56b2a6b811eb5ad23ab24dfede4adda8f0cbec202650660c3caa1c",
+    "publishedPackageJsonDigest": "sha256:3fe9ffe0ab56b2a6b811eb5ad23ab24dfede4adda8f0cbec202650660c3caa1c",
+    "manifestFieldsCompared": [
+      "dependencies",
+      "optionalDependencies",
+      "peerDependencies",
+      "peerDependenciesMeta",
+      "engines",
+      "bin",
+      "chainlesschain"
+    ],
+    "dependencies": {
+      "@aws-sdk/client-s3": "^3.700.0",
+      "@chainlesschain/context-memory-kernel": "0.1.10",
+      "@chainlesschain/core-config": "0.1.2",
+      "@chainlesschain/core-db": "0.1.5",
+      "@chainlesschain/core-env": "0.1.2",
+      "@chainlesschain/core-infra": "0.1.1",
+      "@chainlesschain/core-mtc": "0.2.3",
+      "@chainlesschain/core-multisig": "0.1.4",
+      "@chainlesschain/personal-data-hub": "0.4.65",
+      "@chainlesschain/session-core": "0.3.19",
+      "@chainlesschain/shared-logger": "0.1.1",
+      "@inquirer/prompts": "^7.2.0",
+      "@noble/curves": "^1.9.7",
+      "@tootallnate/quickjs-emscripten": "^0.23.0",
+      "acorn": "8.17.0",
+      "ajv": "^8.20.0",
+      "ajv-formats": "^3.0.1",
+      "chalk": "^5.4.1",
+      "commander": "^12.1.0",
+      "esbuild-wasm": "0.28.1",
+      "js-yaml": "^3.15.1",
+      "ora": "^8.1.1",
+      "pac-resolver": "^7.0.1",
+      "semver": "^7.6.3",
+      "sql.js": "^1.14.1",
+      "undici": "^7.29.0",
+      "webdav": "^5.10.0",
+      "ws": "^8.14.2"
+    },
+    "optionalDependencies": {
+      "better-sqlite3": "^12.1.0",
+      "node-pty": "^1.0.0",
+      "pdf-parse": "^1.1.1"
+    },
+    "recommendedPairing": {},
+    "idePublicationVerified": false
+  },
+  "idePublicationVerified": false,
+  "limitations": [
+    "CLI-only public metadata and artifact byte verification; IDE publication is not verified.",
+    "No installation, package execution, model request, runtime acceptance, or IDE acceptance.",
+    "No three-package manifest is created; this receipt cannot authorize a native package campaign.",
+    "Only the six specified runtime/helper files are compared byte-for-byte with the release commit.",
+    "Saved HTTPS responses and byte digests are evidence, not a separate publisher signature."
+  ]
+}
