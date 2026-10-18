@@ -8,6 +8,7 @@ import java.nio.file.*;
 import java.security.MessageDigest;
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 /** One operator-authorized task through real Swing controls, then a separate IDE restart.
@@ -21,6 +22,7 @@ final class Verify01HostJourney {
     private final long deadline;
     private final JsonArray actions = new JsonArray();
     private String session;
+    private String targetTabId;
 
     Verify01HostJourney(RemoteRobot robot, ComponentFixture frame, Path root, String sample) throws Exception {
         this.frame = frame;
@@ -45,7 +47,20 @@ final class Verify01HostJourney {
             failure.addProperty("phase", phase); failure.addProperty("at", Instant.now().toString());
             failure.addProperty("error", error.toString());
             failure.add("completedActions", actions.deepCopy());
+            if (error instanceof HostStartupExit startup) {
+                failure.addProperty("category", "host-startup-exit");
+                failure.addProperty("rawProtocolFile", startup.file);
+                failure.add("rawProtocolRecords", startup.records.deepCopy());
+            }
+            // Commit the actual failure before attempting optional UI diagnostics.
             writeNew("driver-failure-" + phase + ".json", failure);
+            if (targetTabId != null) {
+                JsonObject observed = boundedFailureSnapshot(() -> ui.snapshotForFailure(targetTabId), 5000);
+                observed.addProperty("targetTabId", targetTabId);
+                observed.addProperty("phase", phase);
+                try { writeNew("driver-failure-" + phase + "-snapshot.json", observed); }
+                catch (Exception diagnosticError) { error.addSuppressed(diagnosticError); }
+            }
             throw error;
         }
     }
@@ -77,6 +92,7 @@ final class Verify01HostJourney {
         String prompt = Files.readString(promptFile);
         assertFalse(prompt.isBlank(), "empty task prompt");
         JsonObject target = ui.newTab();
+        targetTabId = string(target, "id");
         session = string(target, "sessionId");
         assertFalse(session.equals("null") || session.isBlank());
         String mode = System.getProperty("ui.verify01.permissionMode", "");
@@ -162,6 +178,7 @@ final class Verify01HostJourney {
     private void restart() throws Exception {
         JsonObject state = JsonParser.parseString(Files.readString(root.resolve("restart-state.json"))).getAsJsonObject();
         assertEquals(sample, string(state, "sampleId")); session = string(state, "sessionId");
+        targetTabId = string(state, "tabId");
         assertEquals(deadline, state.get("deadlineMs").getAsLong(), "restart cannot reset the task deadline");
         assertEquals(state.get("rawProtocolDigests"), rawProtocolDigests(), "protocol changed or a new agent started before reload observation");
         JsonArray previous = JsonParser.parseString(Files.readString(root.resolve("ui-initial.json"))).getAsJsonArray();
@@ -187,36 +204,83 @@ final class Verify01HostJourney {
 
     private JsonArray waitForProtocol(boolean exit) throws Exception {
         while (System.currentTimeMillis() < deadline) {
-            try (var paths = Files.list(root)) {
-                assertTrue(paths.noneMatch(p -> p.getFileName().toString().startsWith("capture-error-")),
-                        "raw protocol observer reported a capture failure");
-            }
-            try (var paths = Files.list(root)) {
-                for (Path path : paths.filter(p -> p.getFileName().toString().matches("protocol-[a-f0-9-]{36}\\.jsonl")).toList()) {
-                    assertTrue(Files.size(path) <= 16 * 1024 * 1024);
-                    String raw = Files.readString(path);
-                    int complete = raw.lastIndexOf('\n');
-                    if (complete < 0) continue;
-                    JsonArray records = new JsonArray();
-                    for (String line : raw.substring(0, complete).split("\n")) records.add(JsonParser.parseString(line));
-                    if (!owns(records)) continue;
-                    JsonObject terminal = terminal(records);
-                    if (terminal == null) continue;
-                    if (!exit) return records;
-                    JsonObject last = records.get(records.size()-1).getAsJsonObject();
-                    if (!string(last,"direction").equals("exit")) continue;
-                    JsonObject actualExit = last.getAsJsonObject("event");
-                    assertTrue(actualExit.get("stdoutDrained").getAsBoolean(), "stdout was not drained");
-                    // Preserve the actual exit, including failures, for the independent importer.
-                    return records;
-                }
-            }
+            JsonArray records = pollProtocol(root, session, exit);
+            if (records != null) return records;
             Thread.sleep(100);
         }
         throw new AssertionError(exit ? "No actual drained process exit after EOF" : "No observed task terminal before deadline");
     }
 
-    private boolean owns(JsonArray records) {
+    static final class HostStartupExit extends AssertionError {
+        final String file;
+        final JsonArray records;
+        HostStartupExit(Path file, JsonArray records) {
+            super("host-startup-exit: child exited before init/input; code="
+                    + records.get(0).getAsJsonObject().getAsJsonObject("event").get("code")
+                    + "; raw=" + file.getFileName());
+            this.file = file.getFileName().toString(); this.records = records.deepCopy();
+        }
+    }
+
+    /** One nonblocking read of real observer records. No synthetic init/result. */
+    static JsonArray pollProtocol(Path root, String session, boolean exit) throws Exception {
+        List<Path> files;
+        try (var paths = Files.list(root)) {
+            List<Path> all = paths.toList();
+            assertTrue(all.stream().noneMatch(p -> p.getFileName().toString().startsWith("capture-error-")),
+                    "raw protocol observer reported a capture failure");
+            files = all.stream().filter(p -> p.getFileName().toString().matches("protocol-[a-f0-9-]{36}\\.jsonl")).toList();
+        }
+        assertTrue(files.size() <= 1, "ambiguous raw protocol generations");
+        if (files.isEmpty()) return null;
+        Path path = files.get(0);
+        assertFalse(Files.isSymbolicLink(path), "protocol file is a link");
+        assertTrue(Files.size(path) <= 16 * 1024 * 1024);
+        String raw = Files.readString(path);
+        int complete = raw.lastIndexOf('\n');
+        if (complete < 0) return null;
+        JsonArray records = new JsonArray();
+        for (String line : raw.substring(0, complete).split("\n")) records.add(JsonParser.parseString(line));
+        // The fresh capture root and exactly one generation establish ownership
+        // before any session init exists. Require a sole fully drained exit;
+        // partial output, input, or any init must never become a startup verdict.
+        if (records.size() == 1 && complete == raw.length() - 1) {
+            JsonObject record = records.get(0).getAsJsonObject();
+            JsonObject event = record.getAsJsonObject("event");
+            if ("exit".equals(string(record, "direction")) && event != null
+                    && event.has("code") && !event.get("code").isJsonNull()
+                    && event.has("stdoutDrained") && event.get("stdoutDrained").getAsBoolean())
+                throw new HostStartupExit(path, records);
+        }
+        if (!owns(records, session)) return null;
+        JsonObject terminal = terminal(records);
+        if (terminal == null) return null;
+        if (!exit) return records;
+        JsonObject last = records.get(records.size()-1).getAsJsonObject();
+        if (!string(last,"direction").equals("exit")) return null;
+        assertTrue(last.getAsJsonObject("event").get("stdoutDrained").getAsBoolean(), "stdout was not drained");
+        return records;
+    }
+
+    /** Failure evidence has its own short budget, never more task execution. */
+    static JsonObject boundedFailureSnapshot(Callable<JsonObject> capture, long budgetMs) {
+        ExecutorService worker = Executors.newSingleThreadExecutor(task -> {
+            Thread thread = new Thread(task, "verify01-failure-snapshot");
+            thread.setDaemon(true); return thread;
+        });
+        Future<JsonObject> pending = worker.submit(capture);
+        JsonObject result = new JsonObject();
+        result.addProperty("at", Instant.now().toString());
+        result.addProperty("diagnosticOnly", true);
+        try { result.add("snapshot", pending.get(budgetMs, TimeUnit.MILLISECONDS)); }
+        catch (Exception error) {
+            if (error instanceof InterruptedException) Thread.currentThread().interrupt();
+            result.addProperty("captureError", error.toString());
+        } finally { pending.cancel(true); worker.shutdownNow(); }
+        return result;
+    }
+
+    private static boolean owns(JsonArray records, String session) {
         for (JsonElement value : records) {
             JsonObject record = value.getAsJsonObject(), event = record.getAsJsonObject("event");
             if ("output".equals(string(record,"direction")) && "system".equals(string(event,"type"))

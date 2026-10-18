@@ -449,6 +449,11 @@ export async function runNativeCampaign({
   if (entry === "jetbrains")
     bindingFiles.push(
       "packages/jetbrains-plugin/scripts/verify01-native-task-adapter.mjs",
+      "packages/jetbrains-plugin/build.gradle.kts",
+      "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java",
+      "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/UiFailureDiagnostics.java",
+      "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/ConversationRecoveryJourney.java",
+      "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/Verify01HostJourney.java",
     );
   for (const file of bindingFiles) {
     const bytes = fs.readFileSync(path.join(repository, file));
