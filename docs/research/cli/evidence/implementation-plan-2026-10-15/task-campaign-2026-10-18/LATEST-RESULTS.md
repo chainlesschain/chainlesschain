@@ -2,6 +2,8 @@
 
 评测版本：CLI **0.166.104**、VS Code **0.37.149**、JetBrains **0.4.166**。
 
+固定条件：thinking disabled、六种文件工具、20 turns、24 requests、180 秒请求期限及 8192 输出 token；模型不执行测试，生成后由独立验收器检查。这些结果对应本组固定条件。
+
 历史合格的 **20 项直接复用**，仅对余下 **25 项**使用最新公开包。最新轮已收取生成 **22/25**、独立验收 **22/25**；新增候选合格 **5**、全流程通过 **4**。状态 `IN_PROGRESS` 仅描述记录是否收齐，不代表全部任务成功。
 
 | 类别         | 历史合格复用 | 本次新增合格 | 累计合格交付 |
@@ -44,6 +46,8 @@
 所有候选在原生系统生成；执行验收统一使用 Linux 无网 Docker。生成完成和单独测试通过均不能替代全部验收。
 
 完整绑定见 [轮次清单](./latest-package-round.json)，具体失败断言、候选摘要及收据见 [只读质量复核](./latest-package-task-quality-review.json)。离线核验命令：`node verify-latest-package-round.mjs --require-complete`（尚未收齐时会失败）。
+
+已验收的 **25 项产物及原始收据**可直接下载 [交付包](./accepted-deliverables.tar.gz)，对应 [文件清单及摘要](./accepted-deliverables.json)。每项按样本单独存放，包内保留历史版本、最新版本和全流程判定；仅适用于固定项目快照。打包未重新生成或执行测试。
 
 Astra 对最新 Linux VS Code 五项的 [源码与收据专项复核](./latest-linux-vscode-review.json) 已确认两项全流程通过；其余三项分别漏测拒绝行为、导入路径错误和使用了旧 worker。
 
