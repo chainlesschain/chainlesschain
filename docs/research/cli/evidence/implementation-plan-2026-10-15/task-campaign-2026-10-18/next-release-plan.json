@@ -78,8 +78,15 @@
       {
         "name": "IDE ARM64 Host Validation",
         "runId": 39093458574,
-        "status": "queued",
-        "conclusion": ""
+        "status": "completed",
+        "conclusion": "success",
+        "jobsPassed": 10,
+        "evidence": {
+          "path": "next-release-validation/ide-arm64-78f41dba01.json.gz",
+          "originalDigest": "sha256:60ac9eef5311650ff2b9b1c427886fde67c9c02a4167d8f3aa54d930e2a021e4",
+          "storedDigest": "sha256:027ddf2f4ab26dee280c4a338aeabeaac7985053e6b3c4577f209ba3da4f4f96",
+          "originalBytes": 46952
+        }
       },
       {
         "name": "CLI CI",
@@ -96,12 +103,19 @@
       {
         "name": "CLI Strict Sandbox",
         "runId": 39093458609,
-        "status": "queued",
-        "conclusion": ""
+        "status": "completed",
+        "conclusion": "success",
+        "jobsPassed": 5,
+        "evidence": {
+          "path": "next-release-validation/cli-strict-sandbox-78f41dba01.json.gz",
+          "originalDigest": "sha256:b7e31d2393c8e4409c7b15dc6be7db5f3bd5261eafebbe741970b076743ec134",
+          "storedDigest": "sha256:ec94148c498da80d122b13385c701ba5b097e20d722bec0e0c448386a59d0756",
+          "originalBytes": 27823
+        }
       }
     ],
     "supersededChecksCancelled": true,
-    "remoteChecksObservedAt": "2026-10-18T03:25:48.294492+00:00",
+    "remoteChecksObservedAt": "2026-10-18T03:57:56.941441+00:00",
     "resolvedGateFailures": [
       {
         "workflow": "Docs-Site Build Gate",
