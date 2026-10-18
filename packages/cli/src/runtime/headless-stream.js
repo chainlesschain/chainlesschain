@@ -17,6 +17,7 @@
  */
 
 import { randomUUID } from "node:crypto";
+import { transportErrorDetails } from "../lib/transport-error-details.js";
 import { captureAgentExecutionPolicy } from "../lib/agent-execution-policy.js";
 import { TaskWorklog } from "../lib/context-memory-kernel/task-worklog-port.js";
 import { isProxy } from "node:util/types";
@@ -5655,11 +5656,13 @@ async function runAgentHeadlessStreamInWorkspace(
         continue;
       }
       if (isAbort) break; // outer options.signal — caller is shutting down
+      const transportDetails = transportErrorDetails(err);
       emit({
         type: "result",
         subtype: "error",
         is_error: true,
         error: err?.message || String(err),
+        ...(transportDetails ? { error_details: transportDetails } : {}),
         turn: turns,
       });
       sawError = true;
