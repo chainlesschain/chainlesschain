@@ -678,5 +678,16 @@
       "mergeRequiresJetBrainsListing": false,
       "reason": "All release workflows succeeded; market listing remains an external availability gate for native retesting. User authorized publication before merge. Normal branch protection remains enforced and the verified release tags do not move."
     }
+  },
+  "versionControlledRetestTools": {
+    "validation": {
+      "path": "next-release-validation/native-retest-tool-offline-validation.json",
+      "digest": "sha256:4994bfd768e60ab37f7a9a9c20e2012bdaf2a1cb910df7d87c5ac90eced3c957",
+      "bytes": 2978
+    },
+    "offlineChecksPassed": 30,
+    "modelRequests": 0,
+    "usage": "LATEST-RESULTS.md#????????",
+    "publishedArtifactSourceUnchanged": "d4065008bb4eff84cfc09f9361f4ae4e9de2140f"
   }
 }

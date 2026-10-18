@@ -74,3 +74,22 @@ CLI **0.166.105** 已通过正式 OIDC 发布、签名溯源和公开 tarball �
 已准备 [verify-33 归档回复恢复检查](./next-package-archived-reply-recovery-plan.json)：复用原合格文件与原 Markdown，在公开 `.167` 的 Linux 2025.2 真实 IDE 验证重启后正文、会话和行身份，不调用模型。当前仅完成本地回归与 UI 编译，真实公开插件检查尚未运行；旧全流程失败判定保持不变。
 
 费用未评估、未推算。旧轮完整报告见 [README](./README.md)。
+
+## 已保存的补测工具
+
+派发、证据收集和累计交付包工具已迁入 `packages/cli/scripts/`，不再依赖 `.work` 内的未跟踪脚本。派发 14 项、交付包 8 项、收集 8 项离线检查全部通过；此次工具验证未调用模型、未派发真实任务、未执行候选。七个 Python 文件语法检查及三个入口的 `--help` 检查通过。
+
+在评测工作树根目录运行以下命令；`<plan>` 为已提交的补测计划，`<runs.json>` 为派发器完整解析后输出的绑定文件：
+
+```powershell
+python -X utf8 packages/cli/scripts/verify01-dispatch-native-retest.py --plan <plan>
+python -X utf8 packages/cli/scripts/verify01-dispatch-native-retest.py --plan <plan> --submit
+python -X utf8 packages/cli/scripts/verify01-dispatch-native-retest.py --plan <plan> --resolve
+python -X utf8 packages/cli/scripts/verify01-collect-native-retest.py --plan <plan> --runs-file <runs.json>
+node packages/cli/scripts/verify01-native-retest-round.mjs --plan <plan> --require-complete
+python -X utf8 packages/cli/scripts/verify01-package-native-deliveries.py --round-name <next-package-round>
+```
+
+派发默认仅预览；`--submit` 才发送请求，`--resolve` 只读解析已有请求。所有关联工作树共用 Git common directory 对应的 `.work/next-package-dispatch/` 日志；未解析 intent 必须保留，不得删除或盲目重发。派发至所有 run 绑定完成期间应保持评测分支 HEAD 不变。GitHub 凭据只通过进程环境 `GH_TOKEN` 传入，不放入参数或文件。
+
+收集器和归档读取器只读取已有任务；严格完整验收后才能把轮次及摘要显式加入 `next-package-round-chain.json`。交付包工具默认预览，确认链尾轮次后添加 `--pack` 才在共享 `.work/accepted-round-exports/` 创建独立包；原 25 项产物和收据按字节复用，原包不覆盖。原子创建交付目录目前限 Windows。以上工具及记录属于评测分支，发行源码仍固定 `d4065008bb`。
