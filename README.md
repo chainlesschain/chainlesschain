@@ -1,8 +1,8 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
-当前公开版本为 CLI **0.166.106**、Open VSX **0.37.151**、JetBrains **0.4.168**，两个插件均推荐 CLI `.106`。三包公开制品已严格回读，发行源码为 `dca47fd91a209642b6536afd5bc9e99ec74c7d06`；该提交完整官方门禁 CLI CI **71/71**、CLI Strict Sandbox **5/5**、IDE Extensions **18/18**、ARM64 **10/10** 通过，发行门禁不等于任务合格。公开 `.105` 轮已严格完成生成 **20/20**、验收 **20/20**，新增候选合格 **6** 项、全流程通过 **6** 项；累计合格 **31/45**（普通任务 **26/36**、首次使用 **5/9**），剩余 **14** 项。原 25 份合格产物按字节复用；跨版本累计结果不等于单轮 **45/45** 全部成功。剩余 **14** 项尚未使用 `.106/.151/.168` 补测，旧失败记录保持不变。Microsoft Marketplace 未发布。
+当前公开版本为 CLI **0.166.106**、Open VSX **0.37.151**、JetBrains **0.4.168**，两个插件均推荐 CLI `.106`。三包公开制品已严格回读，发行源码为 `dca47fd91a209642b6536afd5bc9e99ec74c7d06`；该提交完整官方门禁 CLI CI **71/71**、CLI Strict Sandbox **5/5**、IDE Extensions **18/18**、ARM64 **10/10** 通过，发行门禁不等于任务合格。公开 `.105` 轮已严格完成生成 **20/20**、验收 **20/20**，新增候选合格 **6** 项、全流程通过 **6** 项；累计合格 **31/45**（普通任务 **26/36**、首次使用 **5/9**），剩余 **14** 项。原 25 份合格产物按字节复用；跨版本累计结果不等于单轮 **45/45** 全部成功。剩余 **14** 项尚未完成 `.106/.151/.168` 补测，旧失败记录保持不变。Microsoft Marketplace 未发布。
 
-安装公开 CLI 与配套 Open VSX 0.37.151 / JetBrains 0.4.168，重启聊天宿主并运行 Doctor。
+安装公开 CLI 与配套 Open VSX 0.37.151 / JetBrains 0.4.168，重启聊天宿主并运行 Doctor。开发源码快照 `f21eac547e`（不在本次远端主线文档基线中）新增目标目录、插件面板、离线草稿采纳、独立在线待审连接、看板标签来源保护及演化存储边界；这些源码能力尚未随公开包或产品 .140 发行，新 Session Core 出口须先完成子包发行。
 
 ```bash
 npm i -g chainlesschain@0.166.106 --registry https://registry.npmjs.org
@@ -10,7 +10,7 @@ cc --version
 cc doctor
 ```
 
-详见[当前升级指南](docs-site/docs/chainlesschain/cli-ide-update-2026-10-18.md)和[OIDC 发布记录](https://github.com/chainlesschain/chainlesschain/actions/runs/39130542725)。
+详见[本轮设计](docs/design/release-runtime-update-2026-10-18.md)、[目标草稿使用指南](docs-site/docs/chainlesschain/goal-drafts-current.md)、[当前升级指南](docs-site/docs/chainlesschain/cli-ide-update-2026-10-18.md)、[公开制品回读](docs/research/cli/evidence/documentation-release-status-2026-10-18.json)和[OIDC 发布记录](https://github.com/chainlesschain/chainlesschain/actions/runs/39130542725)。
 
 ## 2026-10-17 发布与升级（历史快照）
 
