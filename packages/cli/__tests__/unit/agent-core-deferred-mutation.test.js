@@ -26,6 +26,26 @@ const write = (target) => ({
     ],
   },
 });
+const edit = (target, oldString = "original") => ({
+  message: {
+    role: "assistant",
+    content: "",
+    tool_calls: [
+      {
+        id: "edit",
+        type: "function",
+        function: {
+          name: "edit_file",
+          arguments: JSON.stringify({
+            path: target,
+            old_string: oldString,
+            new_string: "delivered",
+          }),
+        },
+      },
+    ],
+  },
+});
 describe("subtree deferred mutation termination", () => {
   let root;
   beforeEach(() => {
@@ -45,7 +65,7 @@ describe("subtree deferred mutation termination", () => {
     _resetSubtreeInstructionLoaders();
     fs.rmSync(root, { recursive: true, force: true });
   });
-  async function run(replies, limit = 10) {
+  async function run(replies, limit = 10, overrides = {}) {
     const chatFn = vi.fn(async () => replies.shift() || text());
     const events = [];
     for await (const event of agentLoop(
@@ -61,6 +81,7 @@ describe("subtree deferred mutation termination", () => {
         permissionMode: "acceptEdits",
         contextMemorySkipPlanning: true,
         iterationBudget: new IterationBudget({ limit }),
+        ...overrides,
       },
     ))
       events.push(event);
@@ -108,6 +129,92 @@ describe("subtree deferred mutation termination", () => {
     expect(fs.existsSync(path.join(root, "other.txt"))).toBe(true);
     expect(fs.existsSync(path.join(root, "a/out.txt"))).toBe(false);
   });
+  it.each(["edit-to-write", "write-to-edit"])(
+    "settles same-target content using %s",
+    async (direction) => {
+      fs.writeFileSync(path.join(root, "a/out.txt"), "original");
+      const calls =
+        direction === "edit-to-write"
+          ? [edit("a/out.txt"), write("a/out.txt")]
+          : [write("a/out.txt"), edit("a/out.txt")];
+      const r = await run([...calls, text("done")]);
+      expect(r.reason).toBe("complete");
+      expect(fs.readFileSync(path.join(root, "a/out.txt"), "utf8")).toBe(
+        "delivered",
+      );
+      expect(
+        r.events.filter((e) => e.type === "tool-result")[0].result
+          .mutationPerformed,
+      ).toBe(false);
+    },
+  );
+  it("keeps a deferred edit when the replacement write is denied", async () => {
+    fs.writeFileSync(path.join(root, "a/out.txt"), "original");
+    const r = await run(
+      [edit("a/out.txt"), write("a/out.txt"), text(), text()],
+      10,
+      {
+        permissionRules: { allow: [], ask: [], deny: ["Write"] },
+      },
+    );
+    expect(r.reason).toBe("deferred-mutation-unresolved");
+    const results = r.events.filter((e) => e.type === "tool-result");
+    expect(results[0].result.mutationPerformed).toBe(false);
+    expect(results[1].result.error).toBeTruthy();
+    expect(fs.readFileSync(path.join(root, "a/out.txt"), "utf8")).toBe(
+      "original",
+    );
+  });
+  it("does not settle deferred writes through failed edits or another path", async () => {
+    fs.writeFileSync(path.join(root, "a/out.txt"), "original");
+    fs.writeFileSync(path.join(root, "other.txt"), "original");
+    const r = await run([
+      write("a/out.txt"),
+      edit("a/out.txt", "absent"),
+      edit("other.txt"),
+      text(),
+      text(),
+    ]);
+    expect(r.reason).toBe("deferred-mutation-unresolved");
+    expect(fs.readFileSync(path.join(root, "a/out.txt"), "utf8")).toBe(
+      "original",
+    );
+    expect(fs.readFileSync(path.join(root, "other.txt"), "utf8")).toBe(
+      "delivered",
+    );
+  });
+  it.each(["move_file", "delete_file"])(
+    "does not settle deferred %s through content writes",
+    async (name) => {
+      fs.writeFileSync(path.join(root, "a/out.txt"), "original");
+      const operation = {
+        message: {
+          role: "assistant",
+          content: "",
+          tool_calls: [
+            {
+              id: "effect",
+              type: "function",
+              function: {
+                name,
+                arguments: JSON.stringify({
+                  path: "a/out.txt",
+                  ...(name === "move_file" ? { target_path: "dest.txt" } : {}),
+                }),
+              },
+            },
+          ],
+        },
+      };
+      const r = await run([operation, write("a/out.txt"), text(), text()]);
+      expect(r.reason).toBe("deferred-mutation-unresolved");
+      expect(r.events.at(-1).pendingMutations[0].tool).toBe(name);
+      expect(fs.readFileSync(path.join(root, "a/out.txt"), "utf8")).toBe(
+        "delivered",
+      );
+      expect(fs.existsSync(path.join(root, "dest.txt"))).toBe(false);
+    },
+  );
   it("retains multiple targets independently", async () => {
     const r = await run([
       write("a/out.txt"),
