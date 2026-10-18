@@ -1,5 +1,7 @@
 # 当前组件发布状态
 
+发行队列补充：按用户授权，两个 IDE 标签额外触发的辅助 `Context Memory Kernel CI` 流程 **39131607809 / 39131605982** 已由官方回读确认 `completed/cancelled`；取消不记作测试通过。正式 IDE 发行流程 **39131607926 / 39131605961**、既有发布门禁、保护检查及原生任务均保留。审核及请求收据另存[标签辅助流程清理证据](./next-release-validation/followup-106-ide-tag-runner-cleanup-review.json)。此更新不改变 CLI 已公开核验、IDE 尚待公开核验、全套 `published=false` 和累计 **31/45**。
+
 CLI **0.166.106 已正式发布并完成独立公开回读**：[GitHub Actions OIDC 发布流程 39130542725](https://github.com/chainlesschain/chainlesschain/actions/runs/39130542725) 已 `completed/success`，固定标签 `v-npm-0-166-106` 对应提交 `dca47fd91a209642b6536afd5bc9e99ec74c7d06`。已保存公开 npm 元数据、包原文及 `VERIFIED_PUBLIC_CLI_ONLY` 回执，校验包摘要、SRI 和回执列明的源码字节；没有重复下载、安装、执行包或调用模型。见[CLI 最终发布与公开回读证据](./next-release-validation/followup-106-cli-publication-final-review.json)。
 
 | 组件 | 版本 | 当前状态 |
