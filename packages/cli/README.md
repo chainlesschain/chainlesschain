@@ -2,13 +2,15 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
-## Current release and next candidate (2026-10-18)
+## Package version and IDE pairing
 
-As of 2026-10-18, public versions remain CLI **0.166.104**, Open VSX **0.37.149** and JetBrains **0.4.166**. Next candidates are CLI **0.166.105**, VS Code **0.37.150** and JetBrains **0.4.167**; both candidate plugins recommend CLI `.105`. Publication awaits the final commit full CI matrices, npm OIDC publishing and public package readback; IDE publication follows publicly fetchable CLI availability. The 36-task plus 9-first-run campaign has executed: **25/45 cumulative accepted candidates**, **22/25 latest retests collected**, **4 latest end-to-end passes**, and **3 Windows JetBrains samples still running**. Candidate acceptance is distinct from end-to-end success. The new versions have not yet been published or retested.
+This package is **chainlesschain@0.166.105**, paired with VS Code **0.37.150** and JetBrains **0.4.167**. Both plugins recommend CLI `.105`. Confirm each version is available from its public registry before upgrading; source metadata alone does not establish publication. Release gates, public readback and task acceptance are recorded separately in the [upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-18.html).
 
 Candidate `.105` adds general coding guidance, static relative-import feedback, safe transport error details, provider-abort classification and protection against reporting completion while deferred writes remain. JetBrains `.167` restores saved Markdown with the live renderer while retaining canonical source and row identity. Child package versions remain unchanged.
 
-Only after public readback, install with `npm i -g chainlesschain@0.166.105 --registry https://registry.npmjs.org`. Until then the public installation command remains `.104`. [Upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-18.html).
+### Evaluation snapshot before publication (2026-10-18)
+
+At this snapshot, public versions were CLI **0.166.104**, Open VSX **0.37.149** and JetBrains **0.4.166**. The 36-task plus 9-first-run campaign had **25/45 cumulative accepted candidates**, **22/25 latest retests collected**, **4 latest end-to-end passes**, and **3 Windows JetBrains samples still running**. These observations precede publication and retesting of this package. Candidate acceptance is distinct from end-to-end success; no new-version task improvement is claimed by this snapshot.
 
 ## Release snapshot (2026-10-12, historical)
 
@@ -64,8 +66,10 @@ Explicit Linux durable permissions require administrator provisioning. Cross-pro
 
 ## Quick Start
 
+After this exact package is publicly available:
+
 ```bash
-npm install -g chainlesschain@0.166.104 --registry https://registry.npmjs.org
+npm install -g chainlesschain@0.166.105 --registry https://registry.npmjs.org
 chainlesschain setup
 ```
 
