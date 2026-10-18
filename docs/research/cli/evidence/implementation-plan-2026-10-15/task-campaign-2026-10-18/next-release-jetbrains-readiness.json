@@ -1,0 +1,211 @@
+{
+  "schema": "chainlesschain.next-release-jetbrains-readiness/v1",
+  "decision": "Existing fix covers the observed restart rendering defect; no additional product patch justified.",
+  "published": {
+    "version": "0.4.166",
+    "tag": "ide-jetbrains-v0.4.166",
+    "sourceCommit": "3cd370d1628f45975148601c67f11451a4910a25",
+    "comparison": "Release-tag source comparison; downloaded public JAR bytecode was not inspected in this review."
+  },
+  "requiredFixCommit": "10d662c150db6f31abe8bd9760649c1a1b607122",
+  "cherryPickScope": "One six-file JetBrains source/test commit, containing no evaluation ledger or report. Preserve its product fix and regression tests in the next release.",
+  "files": [
+    {
+      "file": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ChatTranscript.java",
+      "fixBlobDigest": "sha256:db0313f0825981289d9e3e73efef32afcd89ad79966636d0169c9546306a2ea6",
+      "currentHeadBlobDigest": "sha256:db0313f0825981289d9e3e73efef32afcd89ad79966636d0169c9546306a2ea6",
+      "currentHeadMatchesFix": true,
+      "publishedTagBlobDigest": "sha256:05af8442d8b4af69d0735675c16132d88f3aa02fa14f68041ec0a481eb34957e",
+      "publishedTagMatchesFix": false
+    },
+    {
+      "file": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ChatTranscriptHistory.java",
+      "fixBlobDigest": "sha256:0d27868c087947b6929c96f22bbfc35105e18d0f386cce04e9469c38db609115",
+      "currentHeadBlobDigest": "sha256:0d27868c087947b6929c96f22bbfc35105e18d0f386cce04e9469c38db609115",
+      "currentHeadMatchesFix": true,
+      "publishedTagBlobDigest": "sha256:ed799287c85931baa3b3f92566432718372b1c4ebab8e6843e82a410bb8e20da",
+      "publishedTagMatchesFix": false
+    },
+    {
+      "file": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ChatTranscriptRendering.java",
+      "fixBlobDigest": "sha256:203d6ede6fade392d9ef8dede253e67b321fb2c5814ca0974864648df6b6e7da",
+      "currentHeadBlobDigest": "sha256:203d6ede6fade392d9ef8dede253e67b321fb2c5814ca0974864648df6b6e7da",
+      "currentHeadMatchesFix": true,
+      "publishedTagBlobDigest": null,
+      "publishedTagMatchesFix": false
+    },
+    {
+      "file": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/ChatTranscriptRenderingTest.java",
+      "fixBlobDigest": "sha256:81d3f8adf9cae19b930a78c118cebeeab61bbfe20a799137f603ff324415ce26",
+      "currentHeadBlobDigest": "sha256:81d3f8adf9cae19b930a78c118cebeeab61bbfe20a799137f603ff324415ce26",
+      "currentHeadMatchesFix": true,
+      "publishedTagBlobDigest": null,
+      "publishedTagMatchesFix": false
+    },
+    {
+      "file": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/intellij/ChatTranscriptSyncTest.java",
+      "fixBlobDigest": "sha256:7ba883510f58d2572b2ffb17ef21a8408ac510af811aaee3636bfa147be3fba2",
+      "currentHeadBlobDigest": "sha256:7ba883510f58d2572b2ffb17ef21a8408ac510af811aaee3636bfa147be3fba2",
+      "currentHeadMatchesFix": true,
+      "publishedTagBlobDigest": "sha256:444a8a5f5d82daab9848e35e6b4e29875a7744ca2d2a83baeaa72a487e199a37",
+      "publishedTagMatchesFix": false
+    },
+    {
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/Verify01HostJourney.java",
+      "fixBlobDigest": "sha256:08316af760656e9ac58157027975c836701257844ae1e6d8961c3109a943a3fc",
+      "currentHeadBlobDigest": "sha256:ad6e59cfb2fa56f7376aaf776a226006232156f8ea0f2096a863a42022215cd8",
+      "currentHeadMatchesFix": false,
+      "publishedTagBlobDigest": "sha256:022f06efd03aa69b9fedb117ff5d3b5d3daebcce2b3561144c832c61fafc851a",
+      "publishedTagMatchesFix": false
+    }
+  ],
+  "latestEvidence": {
+    "path": "latest-jetbrains-restart-review.json",
+    "digest": "sha256:2350e0de6e5ce5b1632692dfd076fd06c5d8fa257a358e25649051de37119d23",
+    "samples": [
+      {
+        "sampleId": "first-run-linux-jetbrains",
+        "runId": "39087930713",
+        "canonicalSourcePreserved": true,
+        "sessionPreserved": true,
+        "savedRowIdPreserved": true,
+        "restoredBodyEqualsCanonicalMarkdown": true,
+        "renderedBodyPreserved": false
+      },
+      {
+        "sampleId": "verify-06",
+        "runId": "39087930713",
+        "canonicalSourcePreserved": true,
+        "sessionPreserved": true,
+        "savedRowIdPreserved": true,
+        "restoredBodyEqualsCanonicalMarkdown": true,
+        "renderedBodyPreserved": false
+      },
+      {
+        "sampleId": "verify-33",
+        "runId": "39087930713",
+        "canonicalSourcePreserved": true,
+        "sessionPreserved": true,
+        "savedRowIdPreserved": true,
+        "restoredBodyEqualsCanonicalMarkdown": true,
+        "renderedBodyPreserved": false
+      },
+      {
+        "sampleId": "first-run-darwin-jetbrains",
+        "runId": "39087957391",
+        "canonicalSourcePreserved": true,
+        "sessionPreserved": true,
+        "savedRowIdPreserved": true,
+        "restoredBodyEqualsCanonicalMarkdown": true,
+        "renderedBodyPreserved": false
+      },
+      {
+        "sampleId": "verify-09",
+        "runId": "39087957391",
+        "canonicalSourcePreserved": true,
+        "sessionPreserved": true,
+        "savedRowIdPreserved": true,
+        "restoredBodyEqualsCanonicalMarkdown": true,
+        "renderedBodyPreserved": false
+      }
+    ]
+  },
+  "sourceFindings": [
+    "Published .166 history inserts raw row.text and computes raw offsets; fixed history renders assistant Markdown using the same projection as live output and calculates rendered lengths.",
+    "Both mergeHistory restart recovery and replaceHistory browsing use ChatTranscriptRendering. Canonical source and row identities stay separate from display.",
+    "ChatHistoryView, MarkdownLite and SessionTranscriptPage are unchanged between the .166 tag and fix; no newer alternate recovery route was found.",
+    "All three product rendering files and two unit-test files exactly match the fix commit. The sixth file, Verify01HostJourney.java, subsequently gained diagnostic collection in 6217c89ac4c7735c5f9e08bc01ea885bde14a0b3; that evaluator change is not required to ship the rendering correction."
+  ],
+  "existingValidation": {
+    "path": "optimization-validation.json",
+    "digest": "sha256:4ff0ac070bf24f2379035786c793c6b4a37af37773336b2631f4c8477b54a57b",
+    "tests": [
+      {
+        "class": "com.chainlesschain.ide.intellij.ChatTranscriptRenderingTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "localRawXmlDigest": "sha256:50d231b746dd322264bea20425ab7b6fccccbf5c1b6ab3415101e52b37e222aa",
+        "cases": [
+          "livePromotionAndNewTranscriptKeepCanonicalSourceAndSavedIdentitySeparateFromDisplay()",
+          "liveMergedAndReplacedHistoryShareCodeBoldLinkAndUnicodeDisplay()",
+          "renderedOffsetsPreserveFollowingSelectionAndRejectConflictingReplacement()",
+          "userAndToolMarkdownRemainLiteralAndTruncatedAssistantSuffixStaysOutsideBody()"
+        ],
+        "rawXml": {
+          "path": "optimization-receipts/TEST-com.chainlesschain.ide.intellij.ChatTranscriptRenderingTest.xml.gz",
+          "originalDigest": "sha256:50d231b746dd322264bea20425ab7b6fccccbf5c1b6ab3415101e52b37e222aa",
+          "storedDigest": "sha256:a9a3f1f5520b2244e2c9b285bc9cf918fd50e6a39963b4a833cf6f5c0458cc54"
+        }
+      },
+      {
+        "class": "com.chainlesschain.ide.intellij.ChatTranscriptSyncTest",
+        "tests": 9,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "localRawXmlDigest": "sha256:07a1fa06e6903a466f8e1d436c04e3399f9613f7d8e53fda11cfd19acbc0e192",
+        "cases": [
+          "mergesSourceBoundFinalSegmentsAndRepeatedTextWithoutLosingToolsOrDiagnostics()",
+          "preservesActualSelectionWhenRowsAreInsertedBeforeIt()",
+          "savedRowBudgetEvictsTextAndSelectionDefersEviction()",
+          "metadataEvictionDuringMergeCannotOrphanAnIdentifiedSavedCandidate()",
+          "cancellingUndispatchedInputRemovesOnlyItsUnconfirmedReservation()",
+          "verifiedRewindWaitsForConflictingSelectionAndRetainsUnassociatedText()",
+          "anAppendAtSelectionEndDoesNotExtendTheSelection()",
+          "neverAssociatesByEqualTextOrWrongChildAndCanAssociateARepeatedReceiptLater()",
+          "selectionCannotAllowTheDocumentToGrowBeyondItsBudget()"
+        ],
+        "rawXml": {
+          "path": "optimization-receipts/TEST-com.chainlesschain.ide.intellij.ChatTranscriptSyncTest.xml.gz",
+          "originalDigest": "sha256:07a1fa06e6903a466f8e1d436c04e3399f9613f7d8e53fda11cfd19acbc0e192",
+          "storedDigest": "sha256:ee2f499a08c427d6077dfbd752291e7ea285fc1b01fc671c0f468c5fddb8ae2c"
+        }
+      },
+      {
+        "class": "com.chainlesschain.ide.MarkdownLiteTest",
+        "tests": 8,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "localRawXmlDigest": "sha256:070dd90c179e3dea56f5bacc6687e4a6a722fced53db595ddb2493785257c8fd",
+        "cases": [
+          "boldIsTokenized()",
+          "fencedCodeDropsLanguageTagKeepsBody()",
+          "spansLoseOnlyTheMarkers()",
+          "emptyAndNullYieldNoSpans()",
+          "inlineCodeIsTokenized()",
+          "unclosedInlineCodeDegradesToPlain()",
+          "unclosedBoldDegradesToPlain()",
+          "plainTextYieldsOneTextSpan()"
+        ],
+        "rawXml": {
+          "path": "optimization-receipts/TEST-com.chainlesschain.ide.MarkdownLiteTest.xml.gz",
+          "originalDigest": "sha256:070dd90c179e3dea56f5bacc6687e4a6a722fced53db595ddb2493785257c8fd",
+          "storedDigest": "sha256:da9e82831651d0873ab0be6b47f66e80cc665217feaf69b07f91d6f02dc6846e"
+        }
+      }
+    ],
+    "totalPassed": 21,
+    "uiTestCompilationPassed": true,
+    "reexecuted": false
+  },
+  "nextReleaseGate": [
+    "Validate the actual release commit containing the rendering fix; archived local JUnit does not replace CI.",
+    "Inspect the next published plugin for ChatTranscriptRendering and both history call sites before authorized failed-sample retesting.",
+    "Verify canonical source/session/saved row identity plus identical rendered final body after restart. Do not rewrite prior failure outcomes.",
+    "Reuse accepted candidate deliveries where supported; do not regenerate them merely to diagnose restoration."
+  ],
+  "actions": {
+    "productFilesChanged": false,
+    "versionChanged": false,
+    "published": false,
+    "modelInvoked": false,
+    "testsRerun": false
+  },
+  "limits": [
+    "Current source coverage does not constitute a passed native GUI rerun of the next published version.",
+    "Tag-source comparison is not downloaded-public-JAR bytecode verification."
+  ]
+}

@@ -32,6 +32,10 @@ on:
         required: true
         default: latest
         options: [latest, frozen]
+      package_set_file:
+        description: "Committed exact package-set manifest for this round; keep prior manifests unchanged"
+        type: string
+        default: "docs/research/cli/verify01-package-sets/2026-10-18-latest.json"
       sample_ids:
         description: "Optional comma-separated unfinished sample IDs; requires one host and one entry. Subset artifacts stay separate from full 36+9 rounds."
         type: string
@@ -56,7 +60,7 @@ permissions:
 
 env:
   NATIVE_PACKAGE_SET: ${{ inputs.package_set || 'latest' }}
-  NATIVE_PACKAGE_SET_FILE: docs/research/cli/verify01-package-sets/2026-10-18-latest.json
+  NATIVE_PACKAGE_SET_FILE: ${{ inputs.package_set_file || 'docs/research/cli/verify01-package-sets/2026-10-18-latest.json' }}
 
 concurrency:
   group: verify01-native-36-plus-9-${{ inputs.hosts || 'all' }}-${{ inputs.entries || 'all' }}-${{ inputs.accept_existing_run || 'generate' }}
@@ -81,6 +85,7 @@ jobs:
           node --test
           packages/cli/test-node/verify01-native-task-campaign.node-test.mjs
           packages/cli/test-node/verify01-native-subset.node-test.mjs
+          packages/cli/test-node/verify01-native-retest-plan.node-test.mjs
           packages/cli/test-node/verify01-native-task-checker.node-test.mjs
           packages/cli/test-node/verify01-fetch-diagnostics.node-test.mjs
           packages/cli/test-node/verify01-legacy-windows-tar.node-test.mjs
@@ -102,13 +107,14 @@ jobs:
         run: |
           node --input-type=module -e '
             import fs from "node:fs";
-            import {parseNativeSampleIds, selectNativeSamples, loadNativePackageSet} from "./packages/cli/scripts/verify01-native-task-campaign.mjs";
+            import {parseNativeSampleIds, selectNativeSamples} from "./packages/cli/scripts/verify01-native-task-campaign.mjs";
+            import {validateNativePackageSetFile, assertUnfinishedNativeSamples} from "./packages/cli/scripts/verify01-native-retest-plan.mjs";
             const run = process.env.DELIVERY_RUN, commit = process.env.DELIVERY_COMMIT;
             if (!!run !== !!commit || (run && (!/^[1-9][0-9]+$/.test(run) || !/^[a-f0-9]{40}$/.test(commit)))) throw new Error("paired exact delivery run and commit required");
             const packageSet = process.env.PACKAGE_SET_SELECTION || "latest";
             if (!["latest", "frozen"].includes(packageSet)) throw new Error("unknown package set");
             if (!run && packageSet !== "latest") throw new Error("Further model execution must use latest public packages");
-            if (packageSet === "latest") loadNativePackageSet(process.env.NATIVE_PACKAGE_SET_FILE || "docs/research/cli/verify01-package-sets/2026-10-18-latest.json");
+            if (packageSet === "latest") validateNativePackageSetFile(process.env.NATIVE_PACKAGE_SET_FILE || undefined);
             const hosts = {windows: ["win32", "windows-latest"], linux: ["linux", "ubuntu-24.04"], macos: ["darwin", "macos-15"]};
             const selected = process.env.HOST_SELECTION;
             if (selected !== "all" && !Object.hasOwn(hosts, selected)) throw new Error("unknown host");
@@ -124,20 +130,8 @@ jobs:
               const plan = JSON.parse(fs.readFileSync("docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.json", "utf8"));
               selectNativeSamples(plan, rows[0].group.split("-")[0], rows[0].entry, ids);
             }
-            const evidence = "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/";
-            const retryPolicy = fs.existsSync(evidence + "recharge-round.json")
-              ? JSON.parse(fs.readFileSync(evidence + "recharge-round.json", "utf8")).futureRetryPolicy : null;
-            if (!run && retryPolicy?.explicitSampleIdsRequiredForFurtherModelRequests) {
-              if (!ids) throw new Error("Further model requests require explicit unfinished sample_ids; do not rerun whole groups");
-              const deliveries = JSON.parse(fs.readFileSync(evidence + "native-verified-deliveries.json", "utf8"));
-              const completed = new Set(deliveries.filter(row => row.candidateAcceptancePassed === true).map(row => row.sampleId));
-              for (const ledger of ["latest-package-round.json", "fetch-diagnostics-followup.json"]) {
-                if (!fs.existsSync(evidence + ledger)) continue;
-                const recorded = JSON.parse(fs.readFileSync(evidence + ledger, "utf8"));
-                for (const sample of recorded.samples) if (sample.candidateAcceptancePassed === true) completed.add(sample.sampleId);
-              }
-              const repeated = ids.filter(id => completed.has(id));
-              if (repeated.length) throw new Error("Reuse already accepted deliverables instead of model generation: " + repeated.join(","));
+            if (!run) {
+              assertUnfinishedNativeSamples(ids, {versionsFile: process.env.NATIVE_PACKAGE_SET_FILE || undefined});
             }
             fs.appendFileSync(process.env.GITHUB_OUTPUT, `matrix=${JSON.stringify({include: rows})}\ngroups=${JSON.stringify(rows.map(row => row.group))}\n`);
           '

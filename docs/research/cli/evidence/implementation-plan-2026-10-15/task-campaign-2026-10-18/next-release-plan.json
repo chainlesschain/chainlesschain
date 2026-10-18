@@ -1,0 +1,169 @@
+{
+  "schema": "chainlesschain.next-release-task-optimization/v1",
+  "recordedDate": "2026-10-18",
+  "status": "EXACT_COMMIT_CI_PENDING",
+  "userDecisions": [
+    "不合格的需要代码优化 下一个版本进行补测",
+    "需要发布新的cli或ide插件的下一个版本再测试",
+    "记得把结论记录起来"
+  ],
+  "releaseAuthorized": true,
+  "billingAssessed": false,
+  "currentPublicVersionsEvaluated": {
+    "cli": "0.166.104",
+    "vscode": "0.37.149",
+    "jetbrains": "0.4.166"
+  },
+  "currentFindings": {
+    "provisional": true,
+    "latestPackageGenerationRecords": 22,
+    "latestPackageAcceptanceRecords": 22,
+    "plannedLatestPackageSamples": 25,
+    "historicallyAcceptedReused": 20,
+    "newCandidateAcceptancePassed": 5,
+    "newEndToEndPassed": 4,
+    "cumulativeCandidateAccepted": 25,
+    "ordinaryCandidateAccepted": 23,
+    "firstRunCandidateAccepted": 2,
+    "pendingRun": "39087898779",
+    "pendingSampleIds": ["verify-12", "verify-30", "first-run-win32-jetbrains"],
+    "failedCandidateCategoriesAmong22Collected": {
+      "relativeImportErrors": 3,
+      "assertionOrFixtureErrors": 9,
+      "behavioralCoverageMissing": 3,
+      "noCompletedDelivery": 2
+    },
+    "jetbrainsRestoration": "Five collected latest-package restart failures preserve the session, row ID and original Markdown; the restored body displays raw Markdown instead of preserving the live rendered body. verify-33 passes candidate acceptance but fails native end-to-end restoration.",
+    "fetchDiagnostic": "The separate verify-19 follow-up completed 19/19 request receipts with passive diagnostics enabled and did not reproduce fetch failed. Baseline 17/17 and candidate 5/5 passed, but the behavioral mutant also passed 5/5; candidate acceptance remains false and the original transport cause remains unknown.",
+    "scope": "Thinking disabled, six file tools, fixed project snapshot and request/turn/output limits. Generation runs on native hosts; all candidate execution acceptance runs in Linux offline Docker. Historical accepted files are reused and are not new latest-version runs."
+  },
+  "evidence": {
+    "latestRound": "latest-package-round.json",
+    "latestQualityReview": "latest-package-task-quality-review.json",
+    "linuxVSCodeReview": "latest-linux-vscode-review.json",
+    "jetbrainsRestartReview": "latest-jetbrains-restart-review.json",
+    "fetchFollowup": "fetch-diagnostics-followup.json",
+    "fetchFollowupReview": "fetch-diagnostic-followup-review.json",
+    "acceptedDeliveryIndex": "accepted-deliverables.json",
+    "existingSourceFixValidation": "optimization-validation.json"
+  },
+  "implementationRequirements": [
+    "Improve product code and general task-completion feedback for observed failures; preserve original candidates and original verdicts.",
+    "Include and verify the JetBrains restoration source fix in the next published plugin.",
+    "Improve generic code-writing verification for relative import mistakes and false completion claims without injecting task-specific solutions or weakening acceptance.",
+    "Preserve bounded structured transport causes without logging credentials or blindly replaying model requests.",
+    "Record each product fix, exact source commit, focused regression evidence, released version, package fetch proof and later task result."
+  ],
+  "releaseRequirements": {
+    "method": "GitHub Actions OIDC Trusted Publishing for npm; established IDE release workflows",
+    "exactReleaseCommit": "372334d2136a69a4d313bc460c1a73d051773bcb",
+    "requiredMatrices": [
+      "Linux, Windows and macOS checks for the exact release commit",
+      "CLI CI on every configured OS",
+      "CLI Strict Sandbox on every configured OS"
+    ],
+    "publishOrder": [
+      "Required child npm packages in dependency order",
+      "CLI after every required child package is fetchable and downstream versions align",
+      "VS Code and JetBrains extensions after the CLI release is available"
+    ],
+    "noReleaseFromPartialOldOrTimedOutChecks": true,
+    "pullRequest": "https://github.com/chainlesschain/chainlesschain/pull/461"
+  },
+  "retestPolicy": {
+    "newPublishedVersionsRequired": true,
+    "currentVersionAdditionalPaidRetries": false,
+    "finishAlreadyDispatchedWindowsSamples": true,
+    "selection": "After all current results are collected, select only still-unqualified or unexecuted sample IDs. Reuse accepted candidate files and their bound receipts.",
+    "acceptedFilesMustNotBeRegeneratedForUIValidation": true,
+    "preserveAllPriorFailures": true,
+    "mustNotReportLocalRegressionsAsPublishedNativeTaskPasses": true
+  },
+  "fixes": [
+    {
+      "kind": "jetbrains-markdown-restoration",
+      "releaseFixCommit": "bb872750745ef70446fb8312d7a3a0b61e482c13",
+      "status": "IMPLEMENTED_PENDING_PUBLISHED_NATIVE_RETEST",
+      "scope": "Live and restored assistant rows share Markdown renderer; canonical source and row identity retained."
+    },
+    {
+      "kind": "unresolved-deferred-mutation-completion",
+      "releaseFixCommit": "1e107a0ba222b2ba0a2b7aa06c7d003c8dbc0167",
+      "status": "IMPLEMENTED_LOCAL_REGRESSION_PASSED",
+      "scope": "Pending write/edit work cannot settle as successful completion."
+    },
+    {
+      "kind": "owned-cancellation-classification",
+      "releaseFixCommit": "2ba4306dffe20c91f6430aebe25d19ff5b70664a",
+      "status": "IMPLEMENTED_LOCAL_REGRESSION_PASSED",
+      "scope": "Only owned cancellation signals mark interruption; upstream abort remains error."
+    },
+    {
+      "kind": "coding-guidance-import-feedback-and-safe-transport-details",
+      "releaseFixCommit": "d500d87dcf",
+      "developmentCommit": "b893f45762",
+      "status": "IMPLEMENTED_LOCAL_REGRESSION_PASSED",
+      "scope": "General source/API/fixture guidance, bounded static metadata-only relative import feedback in all three mutation tools, and optional allowlisted transport causes without replay/retry."
+    }
+  ],
+  "publishedPackages": [],
+  "nextVersionRetestRuns": [],
+  "candidateVersions": {
+    "cli": "0.166.105",
+    "vscode": "0.37.150",
+    "jetbrains": "0.4.167"
+  },
+  "localSupplementaryValidation": {
+    "sourceCommitBeforeVersionBump": "d500d87dcf",
+    "environment": "Windows; existing matching root and CLI dependencies; no paid model calls",
+    "results": [
+      {
+        "session": 66846,
+        "files": 5,
+        "passed": 190,
+        "failed": 0,
+        "scope": "headless-runner, headless-stream, abort classification, headless deferred mutations, agent deferred mutations"
+      },
+      {
+        "session": 84916,
+        "files": 2,
+        "passed": 33,
+        "failed": 0,
+        "scope": "file-import diagnostics and exact-scope mutation feedback"
+      },
+      {
+        "suite": "transport-error-details.node-test.mjs",
+        "passed": 3,
+        "failed": 0,
+        "scope": "safe data-only projection and one real local disconnected fetch"
+      },
+      {
+        "check": "command manifest and public IDE capability manifest",
+        "status": "PASSED"
+      },
+      {
+        "check": "budget egress reviewed source identities",
+        "status": "PASSED",
+        "networkCandidates": 73,
+        "unclassified": 0,
+        "parseErrors": 0,
+        "paidAdmissionGranted": false
+      },
+      {
+        "check": "JetBrains release metadata; VS Code marketplace overview; version consistency",
+        "status": "PASSED"
+      }
+    ],
+    "environmentFailure": "First attempt could not import chalk in the new worktree. After linking existing matching CLI dependencies, all five affected suites ran and passed. No assertion failure was ignored.",
+    "limitation": "Local checks are supplementary; final exact-SHA full CI matrices and public artifact/native task retests remain required."
+  },
+  "selectiveRetestPreparation": {
+    "workflowInput": "package_set_file",
+    "helper": "packages/cli/scripts/verify01-native-retest-plan.mjs",
+    "testsPassed": 13,
+    "modelCalls": 0,
+    "requiresOriginalRoundComplete": true,
+    "requiresNewerCLI": true,
+    "mustUseIndependentLedger": true
+  }
+}
