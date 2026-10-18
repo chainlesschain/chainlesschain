@@ -1,3 +1,17 @@
+# 当前状态：三包公开发布完成，同源插件内容已核实
+
+CLI **0.166.106**（npm）、VS Code **0.37.151**（Open VSX）、JetBrains **0.4.168**（Marketplace）均已严格公开核验，`published=true`。JetBrains update **1197255** 已获批并公开；[106 manifest](../../../verify01-package-sets/2026-10-18-task-quality-106.json) 固定三包公开字节摘要。发行源码仍为 `dca47fd91a209642b6536afd5bc9e99ec74c7d06`；VS Code 的微软 Marketplace 发布未核验。
+
+JetBrains 官方与公开 ZIP 原始字节**不同**，同源插件内容及全部容器差异已完成[独立复核](./next-release-validation/followup-106-public-package-set-review.json)：公开 ZIP 插入唯一 **5660** 字节的 Marketplace ZIP 签名块（8 字节头、5628 字节完整 protobuf、24 字节尾）；删除该块并恢复 EOCD 的4字节目录偏移字段后，整个 ZIP 与官方原件逐字节相同，未知差异为 **0**。4个 entry（含两个完整 JAR）保持一致。格式解析使用固定的 JetBrains 官方源码，**没有验证密码签名或证书链信任**，不声称两个原始 ZIP 的摘要相同。初始 `ZIP_BYTES_DIFFER_REVIEW_REQUIRED` 及此前商店待审核证据永久保留。
+
+[106 离线补测计划](./next-package-106-20261018-plan.json) 为 `PREPARED_NOT_DISPATCHED`：仅 **14** 项未通过样本、**8** 组、**10** 个执行 shard，排除并复用全部 **31** 项已合格样本。累计仍为 **31/45**，未派发、未请求模型、未运行新增任务测试。`verify-33` 保留原交付物，`.168` 零模型归档回复恢复尚未执行。
+
+主合并后的11个辅助流程已 `completed/cancelled`，正式门禁和保护流程保留；[审计与最终收据](./next-release-validation/followup-106-main-merge-runner-cleanup-review.json) 不计作通过结果。本批证据、manifest和计划统一提交后冻结评测 HEAD，直到主代理收齐14项补测结果。
+
+以下保留此前发布及评测原文；待审核、未公开等旧描述对应当时观察。
+
+---
+
 # 当前组件发布状态：JetBrains 已上传，待商店审核/上架
 
 产品修复 [PR #462](https://github.com/chainlesschain/chainlesschain/pull/462) 已于 **2026-10-18 13:59:50 UTC** 合并，merge commit 为 `38756541a6da5515908ee5b1807ef0b8e8c2ec5c`；发行标签继续固定在原发行提交 `dca47fd91a209642b6536afd5bc9e99ec74c7d06`，没有移动。PR 合并不改变 `.168` 尚未公开的状态。

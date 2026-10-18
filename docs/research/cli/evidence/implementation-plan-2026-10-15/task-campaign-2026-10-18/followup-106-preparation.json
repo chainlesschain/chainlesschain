@@ -1,7 +1,7 @@
 {
   "schema": "chainlesschain.task-quality-next-version-preparation/v1",
   "recordedAt": "2026-10-18T08:16:55.683049+00:00",
-  "status": "CLI_VSCODE_PUBLIC_VERIFIED_JETBRAINS_UPLOADED_MARKETPLACE_PENDING",
+  "status": "ALL_THREE_PACKAGES_PUBLIC_VERIFIED_SOURCE_PAYLOAD_VERIFIED_RETEST_PREPARED",
   "billingAssessed": false,
   "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
   "pullRequest": "https://github.com/chainlesschain/chainlesschain/pull/462",
@@ -10,7 +10,7 @@
     "vscode": "0.37.151",
     "jetbrains": "0.4.168"
   },
-  "published": false,
+  "published": true,
   "currentRoundLedger": "next-package-105-20261018.json",
   "currentRoundSnapshot": {
     "generationRecordsCollected": 20,
@@ -47,12 +47,13 @@
     "next-release-validation/followup-106-cli-publication-final-review.json",
     "next-release-validation/followup-106-cli-publication-final-ide-tag-resolution.json",
     "next-release-validation/followup-106-vscode-publication-final-review.json",
-    "next-release-validation/followup-106-jetbrains-upload-final-review.json"
+    "next-release-validation/followup-106-jetbrains-upload-final-review.json",
+    "next-release-validation/followup-106-public-package-set-review.json",
+    "next-release-validation/followup-106-main-merge-runner-cleanup-review.json"
   ],
   "remaining": [
-    "Wait for JetBrains Marketplace approval/listing of 0.4.168, then publicly download and verify the approved plugin bytes. Official upload succeeded; the public API still omits this version. CLI/npm and VS Code/Open VSX are publicly verified; Microsoft Marketplace remains unverified.",
-    "Create a strict public package manifest and retest only the remaining 14 sample IDs, reusing all 31 accepted deliverables.",
-    "Run the existing archived-reply zero-model recovery against the new approved public .168 ZIP.",
+    "Use the prepared offline 106 plan to retest only the remaining 14 sample IDs, reusing all 31 accepted deliverables; no dispatch has occurred.",
+    "Run the existing archived-reply zero-model recovery against the approved public 0.4.168 ZIP; retain the accepted verify-33 deliverable without regenerating it.",
     "Diagnose Windows ACL traversal/verify timeouts without weakening protection; Java lifecycle tests and the separate 2ceaa diagnostic run do not establish the native timeout root cause."
   ],
   "releaseLimits": [
@@ -68,7 +69,7 @@
     "reusedAcceptedDeliverables": 25,
     "cumulativeAcceptedDeliverables": 26
   },
-  "updatedAt": "2026-10-18T14:01:26.370878+00:00",
+  "updatedAt": "2026-10-18T14:15:52.601151+00:00",
   "supersededSourceCommits": [
     "e01eb3a92212a69140559d8ec304ddd0dce99274",
     "52f882ffa891f0683120eff6399701378a617ae7",
@@ -333,9 +334,9 @@
     "jetbrains": {
       "version": "0.4.168",
       "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
-      "status": "UPLOADED_MARKETPLACE_APPROVAL_OR_LISTING_PENDING",
-      "published": false,
-      "publicVerified": false,
+      "status": "PUBLISHED_MARKETPLACE_PUBLIC_VERIFIED_SOURCE_PAYLOAD_VERIFIED",
+      "published": true,
+      "publicVerified": true,
       "runId": 39131605961,
       "tag": "ide-jetbrains-v0.4.168",
       "hostJobsPassed": 6,
@@ -353,23 +354,57 @@
       "workflowConclusion": "success",
       "requiredJobsPassed": 13,
       "marketplaceStatus": {
-        "channel": "jetbrains",
-        "endpoint": "https://plugins.jetbrains.com/api/plugins/32208/updates",
-        "status": "pending",
-        "version": "0.4.168",
-        "approve": null,
-        "listed": null,
-        "hidden": null,
-        "reason": "version-not-visible",
-        "attempts": 12
+        "status": "approved-and-public",
+        "approved": true,
+        "listed": true,
+        "hidden": false
       },
-      "review": "next-release-validation/followup-106-jetbrains-upload-final-review.json"
+      "review": "next-release-validation/followup-106-jetbrains-upload-final-review.json",
+      "publicUpdateId": 1197255,
+      "publicReadbackReview": "next-release-validation/followup-106-public-package-set-review.json",
+      "sourcePackagingReview": {
+        "status": "SAME_SOURCE_PLUGIN_PAYLOAD_CONTAINER_DIFFERENCES_FULLY_EXPLAINED",
+        "sameSourcePluginPayloadEstablished": true,
+        "allContainerDifferencesExplained": true,
+        "originalZipBytesEqual": false,
+        "publicZipExtraBytes": 5660,
+        "allEntryNamesContentsMetadataAndOrderEqual": true,
+        "initialComparisonStatus": "ZIP_BYTES_DIFFER_REVIEW_REQUIRED",
+        "initialComparisonPreserved": true,
+        "reviewNotReplacedByEntryEquality": true,
+        "reconstructionByteForByteEqualToOfficial": true,
+        "unexplainedBytes": 0,
+        "containerChange": "One 5660-byte JetBrains Marketplace ZIP signing block inserted before the central directory; only the 4-byte EOCD central-directory-offset field changes after removal.",
+        "signatureBlock": {
+          "name": "JetBrains Marketplace ZIP signing block",
+          "version": 1,
+          "headerBytes": 8,
+          "protobufBytes": 5628,
+          "footerBytes": 24,
+          "protobufUnknownFields": 0,
+          "protobufFullyConsumed": true,
+          "formatSourceCommit": "d8e450f45e303485d81eb5546026d058a5bd6822"
+        },
+        "cryptographicSignatureVerified": false,
+        "certificateChainTrustVerified": false,
+        "signatureTrustClaimed": false,
+        "reviewDigest": "sha256:31ed5a476c644e431eef194a6d9890de240887833016d4ef7237e6b5ea5d503e",
+        "reviewArchive": {
+          "path": "followup-106-jetbrains-signature-review-review.json.gz",
+          "source": ".work/release106-jetbrains-signature-review/review.json",
+          "originalDigest": "sha256:31ed5a476c644e431eef194a6d9890de240887833016d4ef7237e6b5ea5d503e",
+          "storedDigest": "sha256:99f097c79abe371d2bcf80ad6f3553ff85210fbe7671ba38d8b22c56a9c58816",
+          "originalBytes": 7032,
+          "storedBytes": 2607
+        },
+        "modelDispatchPerformed": false
+      }
     }
   },
   "idePublication": {
-    "status": "VSCODE_OPEN_VSX_PUBLIC_VERIFIED_JETBRAINS_UPLOADED_PENDING_MARKETPLACE",
+    "status": "OPEN_VSX_AND_JETBRAINS_PUBLIC_VERIFIED_SOURCE_PAYLOAD_VERIFIED",
     "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
-    "publicVerified": false,
+    "publicVerified": true,
     "resolutionEvidence": "next-release-validation/followup-106-cli-publication-final-ide-tag-resolution.json",
     "runs": [
       {
@@ -411,7 +446,7 @@
         "workflowStatus": "completed",
         "workflowConclusion": "success",
         "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39131605961",
-        "publicVerified": false,
+        "publicVerified": true,
         "archive": {
           "path": "followup-106-cli-publication-final-ide-jetbrains-run-39131605961.json.gz",
           "source": "Independent official GitHub push workflow run metadata",
@@ -432,19 +467,54 @@
         },
         "uploadSucceeded": true,
         "marketplaceStatus": {
-          "channel": "jetbrains",
-          "endpoint": "https://plugins.jetbrains.com/api/plugins/32208/updates",
-          "status": "pending",
-          "version": "0.4.168",
-          "approve": null,
-          "listed": null,
-          "hidden": null,
-          "reason": "version-not-visible",
-          "attempts": 12
+          "status": "approved-and-public",
+          "approved": true,
+          "listed": true,
+          "hidden": false
         },
-        "uploadReview": "next-release-validation/followup-106-jetbrains-upload-final-review.json"
+        "uploadReview": "next-release-validation/followup-106-jetbrains-upload-final-review.json",
+        "publicUpdateId": 1197255,
+        "publicReadbackReview": "next-release-validation/followup-106-public-package-set-review.json",
+        "sourcePackagingReview": {
+          "status": "SAME_SOURCE_PLUGIN_PAYLOAD_CONTAINER_DIFFERENCES_FULLY_EXPLAINED",
+          "sameSourcePluginPayloadEstablished": true,
+          "allContainerDifferencesExplained": true,
+          "originalZipBytesEqual": false,
+          "publicZipExtraBytes": 5660,
+          "allEntryNamesContentsMetadataAndOrderEqual": true,
+          "initialComparisonStatus": "ZIP_BYTES_DIFFER_REVIEW_REQUIRED",
+          "initialComparisonPreserved": true,
+          "reviewNotReplacedByEntryEquality": true,
+          "reconstructionByteForByteEqualToOfficial": true,
+          "unexplainedBytes": 0,
+          "containerChange": "One 5660-byte JetBrains Marketplace ZIP signing block inserted before the central directory; only the 4-byte EOCD central-directory-offset field changes after removal.",
+          "signatureBlock": {
+            "name": "JetBrains Marketplace ZIP signing block",
+            "version": 1,
+            "headerBytes": 8,
+            "protobufBytes": 5628,
+            "footerBytes": 24,
+            "protobufUnknownFields": 0,
+            "protobufFullyConsumed": true,
+            "formatSourceCommit": "d8e450f45e303485d81eb5546026d058a5bd6822"
+          },
+          "cryptographicSignatureVerified": false,
+          "certificateChainTrustVerified": false,
+          "signatureTrustClaimed": false,
+          "reviewDigest": "sha256:31ed5a476c644e431eef194a6d9890de240887833016d4ef7237e6b5ea5d503e",
+          "reviewArchive": {
+            "path": "followup-106-jetbrains-signature-review-review.json.gz",
+            "source": ".work/release106-jetbrains-signature-review/review.json",
+            "originalDigest": "sha256:31ed5a476c644e431eef194a6d9890de240887833016d4ef7237e6b5ea5d503e",
+            "storedDigest": "sha256:99f097c79abe371d2bcf80ad6f3553ff85210fbe7671ba38d8b22c56a9c58816",
+            "originalBytes": 7032,
+            "storedBytes": 2607
+          },
+          "modelDispatchPerformed": false
+        }
       }
-    ]
+    ],
+    "microsoftMarketplacePublicationVerified": false
   },
   "vscodePublication": {
     "version": "0.37.151",
@@ -479,24 +549,19 @@
     "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
     "tag": "ide-jetbrains-v0.4.168",
     "runId": 39131605961,
-    "status": "UPLOADED_MARKETPLACE_APPROVAL_OR_LISTING_PENDING",
+    "status": "MARKETPLACE_PUBLIC_VERIFIED_SOURCE_PAYLOAD_VERIFIED",
     "workflowStatus": "completed",
     "workflowConclusion": "success",
     "requiredJobsPassed": 13,
     "hostJobsPassed": 6,
     "uploadSucceeded": true,
-    "published": false,
-    "publicVerified": false,
+    "published": true,
+    "publicVerified": true,
     "marketplaceStatus": {
-      "channel": "jetbrains",
-      "endpoint": "https://plugins.jetbrains.com/api/plugins/32208/updates",
-      "status": "pending",
-      "version": "0.4.168",
-      "approve": null,
-      "listed": null,
-      "hidden": null,
-      "reason": "version-not-visible",
-      "attempts": 12
+      "status": "approved-and-public",
+      "approved": true,
+      "listed": true,
+      "hidden": false
     },
     "officialArtifactId": 12139490322,
     "officialArtifactDigest": "sha256:97175bd14f5f0bb57588e968680a64da454b92a7a45c09c471678267bdce7033",
@@ -509,15 +574,58 @@
       "originalBytes": 41130,
       "storedBytes": 3306
     },
-    "review": "next-release-validation/followup-106-jetbrains-upload-final-review.json"
+    "review": "next-release-validation/followup-106-jetbrains-upload-final-review.json",
+    "publicUpdateId": 1197255,
+    "originalZipBytesEqual": false,
+    "publicReadbackReview": "next-release-validation/followup-106-public-package-set-review.json",
+    "sourcePackagingReview": {
+      "status": "SAME_SOURCE_PLUGIN_PAYLOAD_CONTAINER_DIFFERENCES_FULLY_EXPLAINED",
+      "sameSourcePluginPayloadEstablished": true,
+      "allContainerDifferencesExplained": true,
+      "originalZipBytesEqual": false,
+      "publicZipExtraBytes": 5660,
+      "allEntryNamesContentsMetadataAndOrderEqual": true,
+      "initialComparisonStatus": "ZIP_BYTES_DIFFER_REVIEW_REQUIRED",
+      "initialComparisonPreserved": true,
+      "reviewNotReplacedByEntryEquality": true,
+      "reconstructionByteForByteEqualToOfficial": true,
+      "unexplainedBytes": 0,
+      "containerChange": "One 5660-byte JetBrains Marketplace ZIP signing block inserted before the central directory; only the 4-byte EOCD central-directory-offset field changes after removal.",
+      "signatureBlock": {
+        "name": "JetBrains Marketplace ZIP signing block",
+        "version": 1,
+        "headerBytes": 8,
+        "protobufBytes": 5628,
+        "footerBytes": 24,
+        "protobufUnknownFields": 0,
+        "protobufFullyConsumed": true,
+        "formatSourceCommit": "d8e450f45e303485d81eb5546026d058a5bd6822"
+      },
+      "cryptographicSignatureVerified": false,
+      "certificateChainTrustVerified": false,
+      "signatureTrustClaimed": false,
+      "reviewDigest": "sha256:31ed5a476c644e431eef194a6d9890de240887833016d4ef7237e6b5ea5d503e",
+      "reviewArchive": {
+        "path": "followup-106-jetbrains-signature-review-review.json.gz",
+        "source": ".work/release106-jetbrains-signature-review/review.json",
+        "originalDigest": "sha256:31ed5a476c644e431eef194a6d9890de240887833016d4ef7237e6b5ea5d503e",
+        "storedDigest": "sha256:99f097c79abe371d2bcf80ad6f3553ff85210fbe7671ba38d8b22c56a9c58816",
+        "originalBytes": 7032,
+        "storedBytes": 2607
+      },
+      "modelDispatchPerformed": false
+    }
   },
   "nextVersionValidation": {
     "remainingRetestStatus": "NOT_RUN",
     "remainingSamples": 14,
-    "threePackageManifestCreated": false,
+    "threePackageManifestCreated": true,
     "archivedReplyVerify33RecoveryStatus": "NOT_RUN_ON_0.4.168",
     "acceptedDeliverablesRetained": 31,
-    "requiresPublicJetbrainsArtifact": true
+    "requiresPublicJetbrainsArtifact": false,
+    "packagingReviewPending": false,
+    "dispatchPerformed": false,
+    "sourcePayloadVerified": true
   },
   "productMerge": {
     "pullRequest": 462,
@@ -536,5 +644,80 @@
       "originalBytes": 274,
       "storedBytes": 227
     }
-  }
+  },
+  "publicPackageSet": {
+    "path": "docs/research/cli/verify01-package-sets/2026-10-18-task-quality-106.json",
+    "digest": "sha256:6b3d69597bcfae51aeafbb5a4e1be1d9da8def3e3f10b7ca59c6a60a4360f34b",
+    "readbackDigest": "sha256:a665c897a655aa7e471bcb4ec0a1cff9f186ac80bdc0d27e47d1fdeb7f5afe99",
+    "status": "VERIFIED_PUBLIC_ARTIFACTS",
+    "review": "next-release-validation/followup-106-public-package-set-review.json"
+  },
+  "sourcePackagingReview": {
+    "status": "SAME_SOURCE_PLUGIN_PAYLOAD_CONTAINER_DIFFERENCES_FULLY_EXPLAINED",
+    "sameSourcePluginPayloadEstablished": true,
+    "allContainerDifferencesExplained": true,
+    "originalZipBytesEqual": false,
+    "publicZipExtraBytes": 5660,
+    "allEntryNamesContentsMetadataAndOrderEqual": true,
+    "initialComparisonStatus": "ZIP_BYTES_DIFFER_REVIEW_REQUIRED",
+    "initialComparisonPreserved": true,
+    "reviewNotReplacedByEntryEquality": true,
+    "reconstructionByteForByteEqualToOfficial": true,
+    "unexplainedBytes": 0,
+    "containerChange": "One 5660-byte JetBrains Marketplace ZIP signing block inserted before the central directory; only the 4-byte EOCD central-directory-offset field changes after removal.",
+    "signatureBlock": {
+      "name": "JetBrains Marketplace ZIP signing block",
+      "version": 1,
+      "headerBytes": 8,
+      "protobufBytes": 5628,
+      "footerBytes": 24,
+      "protobufUnknownFields": 0,
+      "protobufFullyConsumed": true,
+      "formatSourceCommit": "d8e450f45e303485d81eb5546026d058a5bd6822"
+    },
+    "cryptographicSignatureVerified": false,
+    "certificateChainTrustVerified": false,
+    "signatureTrustClaimed": false,
+    "reviewDigest": "sha256:31ed5a476c644e431eef194a6d9890de240887833016d4ef7237e6b5ea5d503e",
+    "reviewArchive": {
+      "path": "followup-106-jetbrains-signature-review-review.json.gz",
+      "source": ".work/release106-jetbrains-signature-review/review.json",
+      "originalDigest": "sha256:31ed5a476c644e431eef194a6d9890de240887833016d4ef7237e6b5ea5d503e",
+      "storedDigest": "sha256:99f097c79abe371d2bcf80ad6f3553ff85210fbe7671ba38d8b22c56a9c58816",
+      "originalBytes": 7032,
+      "storedBytes": 2607
+    },
+    "modelDispatchPerformed": false
+  },
+  "offlineRetestPlan": {
+    "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-plan.json",
+    "digest": "sha256:0f9ec118c5a36b82be594eac87883e31319741c682c7e7baedb1c2dc595d2ca8",
+    "status": "PREPARED_NOT_DISPATCHED",
+    "plannedNewSamples": 14,
+    "reusedAcceptedSamples": 31,
+    "groups": 8,
+    "executionShards": 10,
+    "plannedSampleIds": [
+      "verify-04",
+      "verify-13",
+      "first-run-linux-cli",
+      "verify-06",
+      "verify-07",
+      "first-run-darwin-cli",
+      "verify-08",
+      "verify-09",
+      "first-run-darwin-jetbrains",
+      "verify-10",
+      "verify-19",
+      "verify-11",
+      "verify-30",
+      "first-run-win32-jetbrains"
+    ],
+    "acceptedIdsExcluded": true,
+    "verify33ReusedNotRegenerated": true,
+    "ledgerCreated": false,
+    "dispatchPerformed": false
+  },
+  "mainMergeRunnerCleanupReview": "next-release-validation/followup-106-main-merge-runner-cleanup-review.json",
+  "evaluationHeadPolicy": "Freeze the resulting committed evaluation HEAD until the parent collects the 14-sample round. No later commits or autonomous dispatch from this agent."
 }
