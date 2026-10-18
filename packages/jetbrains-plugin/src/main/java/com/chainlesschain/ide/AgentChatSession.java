@@ -483,10 +483,11 @@ public final class AgentChatSession {
             public void run() {
                 try {
                     int code = proc.waitFor();
-                    // Process exit can race the final stdout line. Acceptance
-                    // never calls an undrained capture a verified terminal.
+                    // Ordinary UI callbacks need the same terminal-before-exit
+                    // ordering as acceptance capture. Keep this wait bounded and
+                    // on the background waiter, never the EDT.
+                    stdoutPump.join(2000);
                     if (opts.onProtocolRecord != null) {
-                        stdoutPump.join(2000);
                         Map<String, Object> exit = MiniJson.obj();
                         exit.put("code", code);
                         exit.put("signal", null);

@@ -1,12 +1,16 @@
 # IDE 插件使用指南（VS Code / JetBrains）
 
-> 2026-10-15 当前版本：Open VSX **0.37.145** 配对 CLI **0.166.101**；JetBrains Marketplace 列出 **0.4.162**，源码候选 `.163` 尚待公开核验。草稿恢复与连接诊断见[最新指南](./cli-ide-update-2026-10-15)。以下带日期的早期记录保留历史范围。
+> 2026-10-18：当前公开版本为 CLI **0.166.105**、Open VSX **0.37.150**、JetBrains **0.4.167**。下一候选为 CLI **0.166.106**、VS Code **0.37.151**、JetBrains **0.4.168**，候选插件均推荐 CLI `.106`；候选尚未发布，须通过最终提交完整矩阵、CLI OIDC 发布及公开制品回读，再发行 IDE 并补测未合格项。已验收基线保持 **25/45**；公开 `.105` 补测正在进行且已出现失败，候选合格与端到端成功分别记账，不宣称 **45/45** 全部合格。Microsoft Marketplace 未发布。
+
+详见[当前升级指南](./cli-ide-update-2026-10-18)。以下带日期记录为历史快照。
+
+> 2026-10-15 历史版本：Open VSX **0.37.145** 配对 CLI **0.166.101**；JetBrains Marketplace 列出 **0.4.162**，源码候选 `.163` 尚待公开核验。草稿恢复与连接诊断见[最新指南](./cli-ide-update-2026-10-15)。以下带日期的早期记录保留历史范围。
 
 > 2026-10-13：CLI **0.166.100** 与 Open VSX **0.37.144** 已公开，发行源码 `6a8db627c8`，文档核对主线 `283634169a`。JetBrains **0.4.162** 已上传，公开上架与下载待核验；已核验公开 **0.4.161** 推荐 CLI `.99`。Session Core **0.3.19**、Kernel **0.1.9**、SDK **0.2.14**、PDH **0.4.64** 与产品 **v5.0.3.140** 保持独立版本。 参见[本轮升级与诊断](./cli-ide-update-2026-10-13)。正式 36+9 保持 **NOT_RUN**，完整 native review 为 **NOT_ADMITTED**，自动晋升 **HOLD**；预算 PR #436 未进入本次发行，仍为 **NOT_PAID_READY**。
 
 ## 安装与升级
 
-从 Open VSX 安装 `0.37.145`，或下载 VSIX 在官方 VS Code 中使用“从 VSIX 安装”。安装 `chainlesschain@0.166.101` 后重启聊天宿主并运行 Doctor。JetBrains Marketplace 已列出 `.162`，配对 CLI `.100`；`.163` 尚待公开核验。详见[升级与故障排查](./cli-ide-update-2026-10-15)。
+CLI `0.166.105` 已公开。配套 Open VSX `0.37.150` 与 JetBrains `0.4.167` 发布中；确认对应制品公开后升级，重启聊天宿主并运行 Doctor。详见[升级与故障排查](./cli-ide-update-2026-10-18)。
 
 ## 重复调查与证据总结（公开 .93）
 
@@ -70,8 +74,8 @@ VS Code / VSCodium 扩展 `0.37.118` 支持 `chainlesschain.chat.maxTurns`。默
 ### 1. 安装 / 升级 `cc` CLI
 
 ```bash
-npm i -g chainlesschain@0.166.89 --registry https://registry.npmjs.org # Node ≥ 22.12.0
-cc --version                # 本次核验版本 0.166.89
+npm i -g chainlesschain@0.166.105 --registry https://registry.npmjs.org # Node ≥ 22.12.0
+cc --version                # 本次公开核验版本 0.166.105
 cc ide --help               # 确认有 ide 子命令
 ```
 
@@ -79,8 +83,8 @@ cc ide --help               # 确认有 ide 子命令
 
 **VS Code 及兼容编辑器**（VSCodium / Cursor / Gitpod / 通义灵码 …）
 
-- **已发布到 [Open VSX Registry](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide)**（扩展 ID `chainlesschain.chainlesschain-ide`，需 VS Code ≥ 1.85）。在使用 Open VSX 的编辑器里，扩展面板搜 **ChainlessChain IDE** 一键安装。
-  > 官方 VS Code Marketplace（marketplace.visualstudio.com）**暂未上架**。官方版 VS Code 不查询 Open VSX，不要点 Open VSX 的通用 **Install** 链接；请直接下载 [0.37.134 VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.134/file/chainlesschain.chainlesschain-ide-0.37.134.vsix)，再运行 **Extensions: Install from VSIX...**。也可从源码打包：
+- **通过 [Open VSX Registry](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide)**（扩展 ID `chainlesschain.chainlesschain-ide`，需 VS Code ≥ 1.85）。版本 `0.37.150` 正在发布，确认该版本公开后，在扩展面板搜 **ChainlessChain IDE** 安装。
+  > 官方 VS Code Marketplace（marketplace.visualstudio.com）**暂未上架**。官方版 VS Code 不查询 Open VSX，不要点 Open VSX 的通用 **Install** 链接；待版本公开后下载 [0.37.150 VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.150/file/chainlesschain.chainlesschain-ide-0.37.150.vsix)，再运行 **Extensions: Install from VSIX...**。也可从源码打包：
   ```bash
   cd packages/vscode-extension
   npx @vscode/vsce package --no-dependencies
@@ -89,10 +93,10 @@ cc ide --help               # 确认有 ide 子命令
 
 **JetBrains（IDEA / PyCharm / WebStorm / GoLand …，2024.2+）**
 
-- **已上架 [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge)**（插件 ID `com.chainlesschain.ide`）：_Settings → Plugins → Marketplace_ 搜 **ChainlessChain IDE** 一键安装。2026-10-15 API 列出 `0.4.162`，配对 CLI `0.166.100`。仅依赖 platform 模块，非 Java IDE 同样可装。
+- **通过 [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge)**（插件 ID `com.chainlesschain.ide`）：_Settings → Plugins → Marketplace_ 搜 **ChainlessChain IDE** 一键安装。版本 `0.4.167` 正在发布，配对 CLI `0.166.105`；须确认已批准、已列出且 ZIP 可公开下载后升级。仅依赖 platform 模块，非 Java IDE 同样可装。
 - 离线 / 源码安装：`./gradlew buildPlugin` 得 `build/distributions/*.zip` → _Settings → Plugins → ⚙ → Install Plugin from Disk_。
 
-当前 Open VSX `0.37.145` 配对 CLI `0.166.101`；JetBrains Marketplace 列出 `0.4.162`，配对 CLI `0.166.100`。IDE 继续只提交审阅决定、读取有界投影，不拥有 CLI writer、评测、发布或 Skill 执行 authority。TypeSafe/Laya/System One 决策仍仅限耐久、单 prompt、headless CLI。下方标注 `0.166.77/0.37.118/0.4.138` 的能力说明保留历史首次核对版本，当前版继承这些行为。
+配套 Open VSX `0.37.150` 与 JetBrains `0.4.167` 均推荐公开 CLI `0.166.105`；IDE 市场发布尚待完整回读。IDE 继续只提交审阅决定、读取有界投影，不拥有 CLI writer、评测、发布或 Skill 执行 authority。TypeSafe/Laya/System One 决策仍仅限耐久、单 prompt、headless CLI。下方标注 `0.166.77/0.37.118/0.4.138` 的能力说明保留历史首次核对版本，当前版继承这些行为。
 
 ### 3. 配置大模型（首次）
 

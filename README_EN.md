@@ -1,6 +1,18 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
-## Current source and public release (2026-10-17)
+As of 2026-10-18, current public versions are CLI **0.166.105**, Open VSX **0.37.150** and JetBrains **0.4.167**. The next candidates are CLI **0.166.106**, VS Code **0.37.151** and JetBrains **0.4.168**; both candidate plugins recommend CLI `.106`. These candidates are not published and require complete exact-commit release gates, CLI OIDC publication and public artifact readback before IDE release and unfinished-sample retesting. The accepted baseline remains **25/45**. Public `.105` retesting is in progress with observed failures; candidate acceptance and end-to-end success remain separate. No 45/45 success is claimed. Microsoft Marketplace remains unpublished.
+
+Install the public CLI now. Upgrade the paired IDE only after its public artifact is verified, then restart the chat host and run Doctor.
+
+```bash
+npm i -g chainlesschain@0.166.105 --registry https://registry.npmjs.org
+cc --version
+cc doctor
+```
+
+See the [current upgrade guide](docs-site/docs/chainlesschain/cli-ide-update-2026-10-18.md) and [OIDC release](https://github.com/chainlesschain/chainlesschain/actions/runs/39102818482).
+
+## Release snapshot (2026-10-17, historical)
 
 As of 2026-10-17, CLI **0.166.104**, Open VSX **0.37.149** and JetBrains Marketplace **0.4.166** are public. Both IDEs recommend CLI `.104`. The CLI and VS Code release source is `93792f6520`; JetBrains is `4c3e5cfd56`; main was reviewed through `ef26f20b28`. Agent SDK **0.2.15**, Session Core **0.3.19**, Context/Memory Kernel **0.1.10**, PDH **0.4.65**, and native product **v5.0.3.140** retain separate release identities. Formal paid evaluation remains **NOT_PAID_READY / NOT_RUN (0/36, 0/9)**, native review **NOT_ADMITTED**, and automatic promotion **HOLD**.
 
@@ -2673,7 +2685,7 @@ Design, protocol, and test matrix: [docs/design/modules/79_Coding_Agent系统.md
 ![Tests](https://img.shields.io/badge/tests-30000%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-146-blue.svg)
 ![Commands](https://img.shields.io/badge/CLI%20commands-175-blue.svg)
-![CLI](https://img.shields.io/badge/cli-0.166.104-blue.svg)
+![CLI](https://img.shields.io/badge/cli-0.166.105-blue.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 
 **Decentralized · Privacy First · AI Native**

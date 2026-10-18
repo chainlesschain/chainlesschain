@@ -1,5 +1,17 @@
 # 版本更新 (update)
 
+> 2026-10-18：当前公开版本为 CLI **0.166.105**、Open VSX **0.37.150**、JetBrains **0.4.167**。下一候选为 CLI **0.166.106**、VS Code **0.37.151**、JetBrains **0.4.168**，候选插件均推荐 CLI `.106`；候选尚未发布，须通过最终提交完整矩阵、CLI OIDC 发布及公开制品回读，再发行 IDE 并补测未合格项。已验收基线保持 **25/45**；公开 `.105` 补测正在进行且已出现失败，候选合格与端到端成功分别记账，不宣称 **45/45** 全部合格。Microsoft Marketplace 未发布。
+
+CLI npm 包升级使用：
+
+```bash
+npm i -g chainlesschain@0.166.105 --registry https://registry.npmjs.org
+cc --version
+cc doctor
+```
+
+配套 IDE 仍在发布，公开核验后再升级。`cc update` 的其他下载渠道与 CLI npm 版本分别核验。详见[本轮升级指南](./cli-ide-update-2026-10-18)。
+
 > 检查 ChainlessChain 新版本并下载更新。支持多发布渠道和仅检查模式。
 
 ## 概述

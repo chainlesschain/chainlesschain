@@ -2,11 +2,13 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
-## Current release and source (2026-10-17)
+## Package version and IDE pairing
 
-Public npm is **chainlesschain@0.166.104**. Open VSX **0.37.149** and JetBrains Marketplace **0.4.166** recommend this CLI. Agent SDK **0.2.15** was published first; Session Core **0.3.19**, Context/Memory Kernel **0.1.10** and Personal Data Hub **0.4.65** retain independent versions. CLI and VS Code release source is `93792f6520`; JetBrains is `4c3e5cfd56`. The exact-release GitHub Actions gates, OIDC publication and public package readback are recorded in the [release evidence](../../docs/research/cli/evidence/implementation-plan-2026-10-15/formal-paid-release-gate/README.md).
+As of 2026-10-18, current public versions are CLI **0.166.105**, Open VSX **0.37.150** and JetBrains **0.4.167**. The next candidates are CLI **0.166.106**, VS Code **0.37.151** and JetBrains **0.4.168**; both candidate plugins recommend CLI `.106`. These candidates are not published and require complete exact-commit release gates, CLI OIDC publication and public artifact readback before IDE release and unfinished-sample retesting. The accepted baseline remains **25/45**. Public `.105` retesting is in progress with observed failures; candidate acceptance and end-to-end success remain separate. No 45/45 success is claimed. Microsoft Marketplace remains unpublished.
 
-CLI .104 verifies Jev usage reservation and settlement, keeps the original budget root when resuming headless, stream-json or REPL sessions, and rejects model dispatch if the budget lock cannot persist. Agent SDK .15 validates background session IDs and frames. The IDE bridge refreshes the MCP catalog after reconnection without replaying unknown tool results. Formal paid evaluation remains **NOT_PAID_READY / NOT_RUN (0/36, 0/9)**; native review remains **NOT_ADMITTED**. See the [upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-17.html).
+Release `.105` adds general coding guidance, static relative-import feedback, safe transport error details, provider-abort classification and protection against reporting completion while deferred writes remain. JetBrains `.167` includes the saved-Markdown renderer change; its public-package restart acceptance remains pending. Child package versions remain unchanged.
+
+Install the public CLI with `npm i -g chainlesschain@0.166.105 --registry https://registry.npmjs.org`. Public IDE pairing is Open VSX 0.37.150 / JetBrains 0.4.167. Candidate CLI 0.166.106 is not yet an installation target; restart the chat host and run Doctor after a verified upgrade. The original completed round used CLI `.104`, Open VSX `.149` and JetBrains `.166`; it does not establish `.105` task acceptance. [Current upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-18.html).
 
 ## Release snapshot (2026-10-12, historical)
 
@@ -28,7 +30,7 @@ Core **0.3.19**, Personal Data Hub **0.4.64** and Context/Memory Kernel **0.1.9*
 Open VSX **0.37.143** and JetBrains **0.4.161** recommend that CLI; public
 artifacts and the original exact-source release receipts have been read back.
 
-Windows native review remains NOT_ADMITTED and formal 36+9 evaluation NOT_RUN.
+Windows native review requires separate admission. Public-package 36+9 retesting is in progress; the accepted baseline remains 25/45.
 The original macOS needs-input performance failure and all unfinished native,
 durable, human, billing and long-term acceptance remain separately recorded.
 
@@ -54,7 +56,7 @@ Pages contain `entries` and `nextCursor` (`null` at the end). Keep category and 
 
 ### Reviewed project evaluation (public 0.166.88)
 
-`cc eval --suite verify01` requires pinned plan/review digests, an exact project checkout, and independently reviewed setup/check scripts outside the project. `--samples` keeps the fixed 36+9 denominator; unselected samples remain missing. Raw output and full diffs are retained with `--evidence-dir`. `--trend --strict` requires complete, comparable, recent evidence. Formal samples are still `NOT_RUN`; capture/import, fixtures, and dry runs are not formal observations. [Evaluation guide](https://docs.chainlesschain.com/chainlesschain/cli-eval.html).
+`cc eval --suite verify01` requires pinned plan/review digests, an exact project checkout, and independently reviewed setup/check scripts outside the project. `--samples` keeps the fixed 36+9 denominator; unselected samples remain missing. Raw output and full diffs are retained with `--evidence-dir`. `--trend --strict` requires complete, comparable, recent evidence. Track formal sample status in the current campaign evidence; capture/import, fixtures, and dry runs are not formal observations. [Evaluation guide](https://docs.chainlesschain.com/chainlesschain/cli-eval.html).
 
 ### Recovery and acceptance scope
 
@@ -62,8 +64,11 @@ Explicit Linux durable permissions require administrator provisioning. Cross-pro
 
 ## Quick Start
 
+After candidate CLI `0.166.106` passes release gates and becomes publicly available
+(use the public `.105` installation command above until then):
+
 ```bash
-npm install -g chainlesschain@0.166.104 --registry https://registry.npmjs.org
+npm install -g chainlesschain@0.166.106 --registry https://registry.npmjs.org
 chainlesschain setup
 ```
 

@@ -84,11 +84,10 @@ export function formatProviderHttpError(
     );
   }
   if (status === 403) {
-    return (
-      `${base} — access forbidden` +
-      (detailSentence ? `: ${detailSentence}` : "") +
-      ". Check the API key, model access permissions, and account status/balance."
-    );
+    // Gateways can use 403 for request/output policy failures. An explicit
+    // reason without auth/billing evidence must not imply a credential fix.
+    if (detailSentence) return `${base} — ${detailSentence}.`;
+    return `${base} — access forbidden. Check the API key, model access permissions, and account status/balance.`;
   }
   if (status === 429) return `${base} — rate limited; please retry shortly.`;
   return detailSentence ? `${base} — ${detailSentence}` : base;

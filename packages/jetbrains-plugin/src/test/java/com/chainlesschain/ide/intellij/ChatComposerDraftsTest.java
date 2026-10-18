@@ -12,6 +12,34 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class ChatComposerDraftsTest {
     @TempDir Path temp;
+    @Test void asynchronousAcceptanceDoesNotSplitTheStreamingAssistantBeforeFinalAndExit() throws Exception {
+        ChatDraftStore store = new ChatDraftStore(temp.resolve("receipt-during-stream"));
+        String key = ChatDraftStore.newKey();
+        Harness h = create(store, key); drain();
+        ChatDraftStore.Prepared prepared = h.drafts.prepare("question", List.of(), null).get(5, TimeUnit.SECONDS);
+        String id = prepared.submission().id(), answer = "One **complete** answer.";
+        Object owner = new Object();
+        SwingUtilities.invokeAndWait(() -> {
+            h.transcript.appendUser("question", "", id, owner, "s1");
+            h.transcript.appendAssistantDelta(answer);
+            h.drafts.accept(id, Map.of("sessionId", "s1", "clientMessageId", id,
+                    "inputDigest", "b".repeat(64), "eventHash", "a".repeat(64)));
+        });
+        drain(); // The actual async receipt callback lands between delta and result.
+        SwingUtilities.invokeAndWait(() -> {
+            h.transcript.referencedAssistant(answer, new TranscriptReferences("s1", "c".repeat(64), "a".repeat(64), id), owner, "s1");
+            h.transcript.append("\nagent exited (0)\n");
+            String visible = h.transcript.pane().getText();
+            assertEquals(1, visible.split("One complete answer\\.", -1).length - 1, visible);
+            assertTrue(visible.contains("agent exited (0)"));
+            assertTrue(h.drafts.label().getText().contains("Input accepted and stored by the CLI"));
+            assertTrue(h.drafts.label().getText().contains("task completion is separate"));
+            assertEquals("Saved input status", h.drafts.label().getAccessibleContext().getAccessibleName());
+            h.drafts.dispose();
+        });
+        drain();
+        assertEquals("accepted", store.load(key).submissions().get(0).status());
+    }
     @Test void cancelledPreparedInputRestoresComposerAndKeepsItsSavedRecordRejected() throws Exception {
         for (boolean unknown : List.of(false, true)) {
             Path root = temp.resolve("drafts-" + unknown);
@@ -42,10 +70,11 @@ class ChatComposerDraftsTest {
         final ChatComposerImages images = new ChatComposerImages(input);
         final ConversationManager.Conversation conv = new ConversationManager().create(null, "s1", true);
         final AtomicBoolean busy = new AtomicBoolean();
+        final ChatTranscript transcript = new ChatTranscript();
         ChatComposerDrafts drafts;
         Harness(ChatDraftStore store, String key) {
             conv.draftKey = key;
-            drafts = new ChatComposerDrafts(null, conv, store, input, images, busy::get, () -> null, ignored -> {});
+            drafts = new ChatComposerDrafts(null, conv, store, input, images, busy::get, () -> null, transcript::append);
         }
     }
     private Harness create(ChatDraftStore store, String key) throws Exception {

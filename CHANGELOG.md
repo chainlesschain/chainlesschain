@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.106: task delivery follow-up (candidate, 2026-10-18)
+
+- Guide coding tasks toward brief action statements and complete file writes split into bounded segments.
+- Preserve the explicit provider reason for HTTP 403 responses that are not authentication or billing errors.
+- Keep JetBrains asynchronous draft-save receipts in a separate status update so they do not interrupt the assistant reply.
+- Wait up to two seconds for final JetBrains stdout callbacks on the background process waiter and schedule exit alongside result rendering on the IDE event queue.
+- Pair candidate VS Code 0.37.151 and JetBrains 0.4.168 with CLI 0.166.106; retain the existing published child-package versions.
+- Current public versions remain CLI 0.166.105, Open VSX 0.37.150 and JetBrains 0.4.167. Publish this candidate only after complete exact-commit gates, npm OIDC and public artifact readback, then retest unfinished samples.
+- Preserve the accepted 25/45 baseline. The .105 retest is in progress and has observed failures; this candidate is not published or accepted and does not claim 45/45 success.
+
+### Fixed - cc CLI 0.166.105: task delivery quality and safe diagnostics (candidate, 2026-10-18)
+
+- Add general coding guidance and static relative-import feedback without executing candidate code or injecting task-specific answers.
+- Do not report completion while deferred writes remain; distinguish provider transport aborts from owned cancellation.
+- Preserve bounded allowlisted transport cause details without changing original errors, exits, fetch, retries or replay.
+- Pair candidate VS Code 0.37.150 and JetBrains 0.4.167 with CLI 0.166.105 after exact-commit matrices, OIDC publishing and public readback. JetBrains restores saved Markdown consistently with live rendering.
+- Campaign: 25/45 cumulative candidate acceptances; latest 22/25 collected, 4 end-to-end passes, 3 Windows JetBrains samples ongoing. New versions are not yet published or retested.
+
 ### Fixed - cc CLI 0.166.104: recover governed sessions safely
 
 - Verify Jev model usage starts and settlements before resuming a durable

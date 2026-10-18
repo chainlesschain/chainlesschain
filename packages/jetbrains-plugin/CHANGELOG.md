@@ -1,5 +1,19 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.168] - Task-delivery follow-up candidate (2026-10-18)
+
+- Recommend candidate CLI 0.166.106 for brief action guidance, complete file writes in bounded segments, and accurate reasons for explicit HTTP 403 errors outside authentication or billing.
+- Wait up to two seconds for final stdout callbacks on the background process waiter and schedule exit alongside result rendering on the IDE event queue.
+- Report asynchronous draft-save receipts through a separate status update without interrupting the assistant reply.
+- Keep current public CLI 0.166.105 and IDE pairing unchanged until exact-commit gates, CLI npm OIDC publication and public artifact readback pass.
+- Published-package retesting remains a separate requirement. Existing failed samples are not accepted by this version bump.
+
+## [0.4.167] - Task-quality candidate (2026-10-18)
+
+- Restore saved assistant Markdown with the live renderer, preserving canonical source and identities. Recommend CLI 0.166.105 for coding guidance and safe diagnostics.
+- Pending exact-commit CLI/IDE/ARM64 gates, npm OIDC publication and public CLI availability. Published-package retesting follows release.
+- Existing failures remain failures; this candidate does not claim all 36+9 samples passed.
+
 ## [0.4.166] - Session recovery and CLI 0.166.104 pairing (2026-10-17)
 
 - Recommend CLI `0.166.104` after its exact-commit npm release and readback.

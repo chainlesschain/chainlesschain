@@ -21,6 +21,45 @@ import org.junit.jupiter.api.Test;
 class AgentChatSessionTest {
 
     @Test
+    void ordinaryExitWaitsForTheFinalStdoutCallbackWithoutAnObserver() throws Exception {
+        var entered = new java.util.concurrent.CountDownLatch(1);
+        var release = new java.util.concurrent.CountDownLatch(1);
+        var exited = new java.util.concurrent.CountDownLatch(1);
+        BlockingQueue<String> order = new LinkedBlockingQueue<>();
+        AgentChatSession.Options options = new AgentChatSession.Options();
+        options.baseCommandOverride = List.of(
+                java.nio.file.Path.of(System.getProperty("java.home"), "bin", "java").toString(),
+                "-cp", System.getProperty("java.class.path"), ImmediateExitAgent.class.getName());
+        options.onEvent = event -> {
+            entered.countDown();
+            try { release.await(5, TimeUnit.SECONDS); }
+            catch (InterruptedException error) { Thread.currentThread().interrupt(); }
+            order.add(String.valueOf(event.get("type")));
+        };
+        options.onExit = code -> { order.add("exit:" + code); exited.countDown(); };
+        assertNull(options.onProtocolRecord);
+        AgentChatSession session = new AgentChatSession(options);
+        try {
+            session.start();
+            assertTrue(entered.await(10, TimeUnit.SECONDS));
+            assertFalse(exited.await(200, TimeUnit.MILLISECONDS), "exit overtook the terminal stdout callback");
+            release.countDown();
+            assertTrue(exited.await(10, TimeUnit.SECONDS));
+            assertEquals(List.of("result", "exit:0"), List.copyOf(order));
+        } finally {
+            release.countDown();
+            session.stopAndWait().get(10, TimeUnit.SECONDS);
+        }
+    }
+
+    public static final class ImmediateExitAgent {
+        public static void main(String[] args) {
+            System.out.println("{\"type\":\"result\",\"subtype\":\"success\",\"result\":\"final answer\"}");
+            System.out.flush();
+        }
+    }
+
+    @Test
     void capturesIndependentProtocolSnapshotsAndDrainedExit() throws Exception {
         BlockingQueue<Map<String, Object>> records = new LinkedBlockingQueue<>();
         BlockingQueue<Map<String, Object>> events = new LinkedBlockingQueue<>();

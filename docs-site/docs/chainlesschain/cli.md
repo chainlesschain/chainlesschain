@@ -1,6 +1,10 @@
 # CLI 命令行工具
 
-> 2026-10-17：公开 CLI **0.166.104**、Open VSX **0.37.149** 与 JetBrains **0.4.166**，两个 IDE 均推荐 CLI `.104`。CLI 与 VS Code 发行源码为 `93792f6520`，JetBrains 为 `4c3e5cfd56`；主线核对至 `ef26f20b28`。Agent SDK **0.2.15**，Session Core **0.3.19**、Kernel **0.1.10**、PDH **0.4.65**；原生产品 **v5.0.3.140** 独立发行。正式预算 **NOT_PAID_READY**，36+9 **NOT_RUN（0/36、0/9）**、native **NOT_ADMITTED**、自动晋升 **HOLD**。 详见[升级指南](./cli-ide-update-2026-10-17)。下方日期内容为历史记录。
+> 2026-10-18：当前公开版本为 CLI **0.166.105**、Open VSX **0.37.150**、JetBrains **0.4.167**。下一候选为 CLI **0.166.106**、VS Code **0.37.151**、JetBrains **0.4.168**，候选插件均推荐 CLI `.106`；候选尚未发布，须通过最终提交完整矩阵、CLI OIDC 发布及公开制品回读，再发行 IDE 并补测未合格项。已验收基线保持 **25/45**；公开 `.105` 补测正在进行且已出现失败，候选合格与端到端成功分别记账，不宣称 **45/45** 全部合格。Microsoft Marketplace 未发布。
+
+当前安装：`npm i -g chainlesschain@0.166.105 --registry https://registry.npmjs.org`。新版 IDE 公开核验后升级并重启宿主，运行 Doctor 核对实际 CLI。详见[本轮升级指南](./cli-ide-update-2026-10-18)。
+
+以下带日期的发布和验收记录为历史快照。
 
 > 2026-10-16 当前公开版本：CLI **0.166.103**、Open VSX **0.37.148**、JetBrains **0.4.165**；两个 IDE 均推荐 CLI `.103`。Session Core **0.3.19**、Kernel **0.1.10**、PDH **0.4.65**，原生产品 **v5.0.3.140** 独立发行。正式预算 **NOT_PAID_READY**，36+9 **NOT_RUN（0/36、0/9）**。 见[升级与故障排查](./cli-ide-update-2026-10-16)。以下带日期的早期记录保留历史范围。
 
@@ -148,7 +152,7 @@ CLI 主配置文件位于 `~/.chainlesschain/config.json`，支持通过 `chainl
 ## 快速开始
 
 ```bash
-npm install -g chainlesschain@0.166.103 --registry https://registry.npmjs.org
+npm install -g chainlesschain@0.166.105 --registry https://registry.npmjs.org
 chainlesschain setup
 chainlesschain start
 ```
@@ -165,7 +169,7 @@ chainlesschain start
 ### 全局安装
 
 ```bash
-npm install -g chainlesschain@0.166.103 --registry https://registry.npmjs.org
+npm install -g chainlesschain@0.166.105 --registry https://registry.npmjs.org
 ```
 
 安装后提供 4 个等价命令：

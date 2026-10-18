@@ -1,6 +1,6 @@
 # ChainlessChain 安装部署
 
-> 2026-10-15 当前版本：公开 CLI **0.166.101**、Open VSX **0.37.145**；JetBrains Marketplace 列出 **0.4.162**，原生产品仍为独立 **v5.0.3.140**。见[最新升级指南](./cli-ide-update-2026-10-15)。下方带日期的早期记录保留历史范围。
+> 2026-10-18：当前公开版本为 CLI **0.166.105**、Open VSX **0.37.150**、JetBrains **0.4.167**。下一候选为 CLI **0.166.106**、VS Code **0.37.151**、JetBrains **0.4.168**，候选插件均推荐 CLI `.106`；候选尚未发布，须通过最终提交完整矩阵、CLI OIDC 发布及公开制品回读，再发行 IDE 并补测未合格项。已验收基线保持 **25/45**；公开 `.105` 补测正在进行且已出现失败，候选合格与端到端成功分别记账，不宣称 **45/45** 全部合格。Microsoft Marketplace 未发布。
 
 > **快速开始 | 支持 Windows / macOS / Linux | Electron + Vue3 桌面端 | Docker 后端服务**
 
@@ -17,7 +17,7 @@
 - 🖥️ **多平台支持**: Windows / macOS / Linux 桌面端
 - 📱 **移动端**: Android APK 直装
 - 🐳 **Docker 服务**: 一键启动 Ollama / Qdrant / PostgreSQL / Redis
-- ⚡ **CLI 安装**: `npm install -g chainlesschain@0.166.101` 一行命令（支持 `cc` / `clc` / `clchain` 短命令别名）
+- ⚡ **CLI 安装**: `npm install -g chainlesschain@0.166.105` 一行命令（支持 `cc` / `clc` / `clchain` 短命令别名）
 - 🔧 **交互式向导**: `chainlesschain setup`（或 `cc setup`）引导完成配置
 - 🩺 **环境诊断**: `chainlesschain doctor`（或 `cc doctor`）自动检测问题
 
@@ -26,7 +26,7 @@
 ```
                    安装部署架构
 ┌─────────────────────────────────────────┐
-│  npm install -g chainlesschain@0.166.101  │  CLI 工具
+│  npm install -g chainlesschain@0.166.105  │  CLI 工具
 │         │                               │
 │         ▼                               │
 │  chainlesschain setup (交互式向导)       │

@@ -163,7 +163,7 @@ class ChatTranscriptSyncTest {
         edt(() -> {
             javax.swing.JTextPane pane = new javax.swing.JTextPane();
             var style = new javax.swing.text.SimpleAttributeSet();
-            var history = new ChatTranscriptHistory(pane, style, style, style, (offset, removed, added) -> {});
+            var history = new ChatTranscriptHistory(pane, new ChatTranscriptRendering(style, style, style), style, style, (offset, removed, added) -> {});
             var document = pane.getStyledDocument();
             try {
                 document.insertString(0, "same", style);
