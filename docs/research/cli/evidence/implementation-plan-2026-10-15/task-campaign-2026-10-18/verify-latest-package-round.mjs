@@ -28,6 +28,80 @@ function unique(items, label) {
   return items;
 }
 
+export function validateDocumentReceipt(task, receipt, body, plan, planDigest) {
+  assert.equal(task.id, "verify-34");
+  assert.equal(receipt.taskId, task.id);
+  assert.equal(receipt.stage, "check");
+  assert.equal(receipt.pass, true);
+  assert.deepEqual(task.expectedFiles, [
+    "docs/development/verify-34-outcome-runbook.md",
+  ]);
+  assert.ok(body.trim().length >= 300);
+  for (const expression of [
+    "task-outcome-report\\.mjs",
+    "--fingerprint",
+    "INSUFFICIENT_EVIDENCE",
+    "(?:null|unknown|未知)",
+    "(?:退出|exit|code)[^\\n]{0,40}2",
+    "(?:不得|禁止|not|never)[^\\n]{0,60}(?:PASS|改善)",
+  ])
+    assert.match(body, new RegExp(expression, "iu"));
+  assert.deepEqual(receipt.document, {
+    fingerprint: planDigest,
+    missingTaskSamples: 36,
+    missingFirstRunSamples: 9,
+  });
+  const command = [
+    "node",
+    "packages/cli/scripts/task-outcome-report.mjs",
+    "--plan",
+    "/review/plan.json",
+  ];
+  const executions = receipt.executions.filter((e) =>
+    e.command?.includes(command[1]),
+  );
+  assert.equal(executions.length, 2);
+  const [fingerprint, empty] = executions;
+  assert.deepEqual(fingerprint.command, [...command, "--fingerprint"]);
+  assert.deepEqual(empty.command, [...command, "--plan-digest", planDigest]);
+  for (const e of executions) {
+    assert.equal(e.setup, false);
+    assert.equal(e.error, null);
+    assert.equal(e.signal, null);
+  }
+  assert.equal(fingerprint.exitCode, 0);
+  assert.equal(fingerprint.stdout.trim(), planDigest);
+  assert.equal(empty.exitCode, 2);
+  const report = JSON.parse(empty.stdout);
+  assert.equal(report.schema, "chainlesschain.outcome-report/v1");
+  assert.equal(report.planDigest, planDigest);
+  assert.equal(report.commitSha, plan.commitSha);
+  assert.equal(report.status, "INSUFFICIENT_EVIDENCE");
+  assert.equal(report.improvementVerdict, "NOT_EVALUATED");
+  assert.equal(report.productionAttested, false);
+  for (const [key, count] of [
+    ["task", 36],
+    ["firstRun", 9],
+  ]) {
+    assert.equal(report[key].planned, count);
+    assert.equal(report[key].observed, 0);
+    assert.equal(report[key].missing, count);
+    assert.equal(report[key].succeeded, 0);
+    assert.equal(report[key].totalCost, null);
+    assert.equal(report[key].costPerSuccess, null);
+  }
+  assert.deepEqual(
+    sorted(report.rows.map((s) => s.sampleId)),
+    sorted(plan.samples.map((s) => s.id)),
+  );
+  for (const row of report.rows) {
+    assert.equal(row.observed, false);
+    assert.equal(row.succeeded, false);
+    assert.equal(row.cost, null);
+    assert.ok(row.reasons.includes("missing_observation"));
+  }
+}
+
 export function verifyLatestPackageRound(options = {}) {
   const root = path.resolve(options.root ?? here);
   const repository = path.resolve(
@@ -219,7 +293,7 @@ export function verifyLatestPackageRound(options = {}) {
       );
     return oldRaw.get(batch.rawSummary.originalDigest);
   }
-  function validateReceipts(row, getFile) {
+  function validateReceipts(row, getFile, getCandidate) {
     for (const stage of ["setup", "check"]) {
       const step = row[stage];
       if (!step) continue;
@@ -242,7 +316,16 @@ export function verifyLatestPackageRound(options = {}) {
           assert.equal(t.failed, 0);
           assert.equal(t.passed, t.total);
         }
-        if (stage === "check") {
+        if (stage === "check" && row.taskId === "verify-34") {
+          const task = catalog.tasks.find((t) => t.id === row.taskId);
+          validateDocumentReceipt(
+            task,
+            receipt,
+            getCandidate(task.expectedFiles[0]).toString("utf8"),
+            plan,
+            planDigest,
+          );
+        } else if (stage === "check") {
           assert.ok(
             receipt.tests.some((t) => t.kind === "candidate" && t.total > 0),
           );
@@ -331,11 +414,15 @@ export function verifyLatestPackageRound(options = {}) {
       assert.equal(hash(raw), candidate.digest);
       assert.equal(raw.length, candidate.bytes);
     }
-    validateReceipts(checked, (p) => {
-      const raw = fileMap.get("acceptance/" + p);
-      assert.ok(raw);
-      return raw;
-    });
+    validateReceipts(
+      checked,
+      (p) => {
+        const raw = fileMap.get("acceptance/" + p);
+        assert.ok(raw);
+        return raw;
+      },
+      (p) => fileMap.get(`generation/${sample.sampleId}/candidate/${p}`),
+    );
   }
   assert.equal(data.runs.length, 9);
   unique(
@@ -513,7 +600,11 @@ export function verifyLatestPackageRound(options = {}) {
     if (acc) {
       counts.newAcceptanceRecordsCollected += acc.samples.length;
       for (const row of acc.samples) {
-        validateReceipts(row, (member) => getFile("acceptance", member));
+        validateReceipts(
+          row,
+          (member) => getFile("acceptance", member),
+          (p) => getFile("generation", `${row.sampleId}/candidate/${p}`),
+        );
         const native = gen.samples.find((s) => s.sampleId === row.sampleId);
         assert.equal(
           row.originalGenerationPassed,

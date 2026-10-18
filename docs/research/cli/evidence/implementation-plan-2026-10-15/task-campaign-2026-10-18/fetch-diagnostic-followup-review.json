@@ -1,0 +1,74 @@
+{
+  "schema": "chainlesschain.fetch-diagnostic-followup-review/v1",
+  "method": "Read-only bound archived summaries and checker receipts; no additional model or test execution.",
+  "runId": "39089395770",
+  "sourceCommit": "7c8eef91b9a54ed71e3565cce330fee04bebf614",
+  "sampleId": "verify-19",
+  "versions": {
+    "cli": "0.166.104",
+    "vscode": "0.37.149",
+    "jetbrains": "0.4.166",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "generationSummary": {
+    "path": "fetch-diagnostics-followup/39089395770/generation/summary.json.gz",
+    "originalDigest": "sha256:fb42bd9bc1d3446d904833b07bffe94ae43364cf3d9b6c6232d54ea136ec8c5b",
+    "storedDigest": "sha256:101fb304a285848025e77c69597ef5819fc00d94e8a50ddff3f91225437b7a99",
+    "originalBytes": 194424
+  },
+  "acceptanceSummary": {
+    "path": "fetch-diagnostics-followup/39089395770/acceptance/summary.json.gz",
+    "originalDigest": "sha256:136adad550e72bf4d10df047c85e108c887dba3b21ae8eb6c50a5881b5b90fd0",
+    "storedDigest": "sha256:9640d38e92781cdebf900bdc065fb9c60e660fa95787cd3835ecf652d8b5722f",
+    "originalBytes": 187592
+  },
+  "generationPassed": true,
+  "candidateAcceptancePassed": false,
+  "endToEndPassed": false,
+  "brokerStatus": {
+    "physicalRequestsStarted": 19,
+    "usageCompleteRequests": 19,
+    "passed": true,
+    "poisoned": null,
+    "errorCode": null
+  },
+  "fetchDiagnostics": {
+    "enabled": true,
+    "preload": {
+      "path": "operator-fetch-diagnostics.cjs",
+      "digest": "sha256:c23111913c838a81c949946547e7ce7760634c973d219a7c69bd8c6bf47fa49f",
+      "bytes": 4041
+    },
+    "logPath": "verify-19/commands/fetch-diagnostics.jsonl",
+    "log": {
+      "path": "verify-19/commands/fetch-diagnostics.jsonl",
+      "digest": "sha256:fcc6f6d6959a943d7a41617d4528f7543a48d153d5bd7607f3956abc3ee7ff25",
+      "bytes": 161
+    }
+  },
+  "check": {
+    "pass": false,
+    "detail": "candidate tests did not reject the behavioral mutant",
+    "receipt": "verify-19-check-acfd504c-2bf7-40cf-8e3e-1b08392b7401.json",
+    "receiptDigest": "sha256:943727ca19ebb2b1b5b8670a1ebfe3e47c2697820e2c22ed0d3a6eb0b7496cdd",
+    "scriptDigest": "sha256:85bd49f750080b13e712f75c8234e70c00786f88d2df559518516118ecb1578e",
+    "receiptPath": "pack/acceptance-evidence/verify-19-check-acfd504c-2bf7-40cf-8e3e-1b08392b7401.json",
+    "tests": [
+      {
+        "kind": "baseline",
+        "total": 17,
+        "passed": 17,
+        "failed": 0
+      },
+      {
+        "kind": "candidate",
+        "total": 5,
+        "passed": 5,
+        "failed": 0
+      }
+    ],
+    "mutations": []
+  },
+  "conclusion": "The passive log has only its enabled marker and all 19 requests have complete usage. The original fetch failure was not reproduced and its cause remains unknown. Baseline 17/17 and candidate 5/5 pass, but the behavioral mutant also passes 5/5, so the delivered tests do not satisfy acceptance. No accepted peer was regenerated."
+}

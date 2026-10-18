@@ -1,5 +1,7 @@
 # CLI / IDE 原生 36+9 实际任务评测（2026-10-18）
 
+最新版本的逐项交付、验收结果及失败证据见 [最新结果](./LATEST-RESULTS.md)。
+
 状态：**旧版本 45 项记录已归档；最新公开版本补测 IN_PROGRESS**。按用户授权继续测试实际交付与验收，费用未评估、未推算。
 
 ## 充值后的两组补测
@@ -23,44 +25,53 @@
 
 使用 CLI **0.166.104**、VS Code **0.37.149**、JetBrains **0.4.166**，版本来自本次查询的公开注册表并以 [精确版本清单](../../../verify01-package-sets/2026-10-18-latest.json) 原始字节摘要绑定。仅对 **25 项**未合格或未执行任务发起新模型执行；其余 **20 项历史已验收产物**及收据直接复用。这 20 项不是最新包上的新模型执行，不能将混合来源覆盖率冒充统一最新版本通过率。
 
-最新包生成已收集 **5/25**、独立验收 **0/25**。逐项来源、复用产物和运行状态见 [最新包轮次](./latest-package-round.json)。
+最新包生成已收集 **22/25**、独立验收 **22/25**。逐项来源、复用产物和运行状态见 [最新包轮次](./latest-package-round.json)。
 
-| 原生入口 | Run | 显式待补样本 | 状态 |
-| --- | --- | --- | --- |
-| linux-cli | 39087910738 | verify-04, verify-13, first-run-linux-cli | IN_PROGRESS |
-| linux-vscode | 39087921211 | verify-05, verify-14, verify-23, verify-32, first-run-linux-vscode | IN_PROGRESS |
-| linux-jetbrains | 39087930713 | verify-06, verify-33, first-run-linux-jetbrains | IN_PROGRESS |
-| darwin-cli | 39087938110 | verify-07, verify-25, verify-34, first-run-darwin-cli | IN_PROGRESS |
-| darwin-vscode | 39087946196 | verify-08, first-run-darwin-vscode | IN_PROGRESS |
-| darwin-jetbrains | 39087957391 | verify-09, first-run-darwin-jetbrains | IN_PROGRESS |
-| win32-cli | 39087878780 | verify-10, verify-19 | IN_PROGRESS |
-| win32-vscode | 39087886976 | verify-11 | IN_PROGRESS |
-| win32-jetbrains | 39087898779 | verify-12, verify-30, first-run-win32-jetbrains | IN_PROGRESS |
+| 原生入口         | Run         | 显式待补样本                                                       | 状态        |
+| ---------------- | ----------- | ------------------------------------------------------------------ | ----------- |
+| linux-cli        | 39087910738 | verify-04, verify-13, first-run-linux-cli                          | COMPLETED   |
+| linux-vscode     | 39087921211 | verify-05, verify-14, verify-23, verify-32, first-run-linux-vscode | COMPLETED   |
+| linux-jetbrains  | 39087930713 | verify-06, verify-33, first-run-linux-jetbrains                    | COMPLETED   |
+| darwin-cli       | 39087938110 | verify-07, verify-25, verify-34, first-run-darwin-cli              | COMPLETED   |
+| darwin-vscode    | 39087946196 | verify-08, first-run-darwin-vscode                                 | COMPLETED   |
+| darwin-jetbrains | 39087957391 | verify-09, first-run-darwin-jetbrains                              | COMPLETED   |
+| win32-cli        | 39087878780 | verify-10, verify-19                                               | COMPLETED   |
+| win32-vscode     | 39087886976 | verify-11                                                          | COMPLETED   |
+| win32-jetbrains  | 39087898779 | verify-12, verify-30, first-run-win32-jetbrains                    | IN_PROGRESS |
+
+最新补测目前候选合格 **5/25**、全程通过 **4/25**；连同 20 项历史复用，累计已有 **25/45** 项合格交付。该累计覆盖不表示 45 项均在最新包上重新执行或全流程通过。
+
+| 任务类别     | 历史合格复用 | 最新补测新增合格 | 累计合格交付 |
+| ------------ | ------------ | ---------------- | ------------ |
+| 普通任务     | 18           | 5/18             | 23/36        |
+| 独立首次任务 | 2            | 0/7              | 2/9          |
+
+累计覆盖包含不同版本与多次尝试，保留全部历史失败，不作为单轮或统一最新版本的成功率。
 
 ## 固定旧版本对照轮次（已归档）
 
 本轮从各真实入口执行 36 项原始项目任务及 9 次独立首次安装项目任务。每次 first-run 使用独立安装流程、profile、workspace 和 run ID；同层普通任务不能替代它。九入口的 nonce 冒烟结果另列保存。
 
-| 样本 | 候选通过独立验收 | 生成、宿主与验收全程通过 |
-| --- | --- | --- |
-| 普通任务 | 17/36 | 9/36 |
-| 独立首次任务 | 1/9 | 1/9 |
+| 样本         | 候选通过独立验收 | 生成、宿主与验收全程通过 |
+| ------------ | ---------------- | ------------------------ |
+| 普通任务     | 17/36            | 9/36                     |
+| 独立首次任务 | 1/9              | 1/9                      |
 
 已收集当前指定轮次生成 45/45、验收 45/45。未收齐时，上表仅是当前观察值。
 
 各入口下列三项依次为：生成通过 / 候选验收通过 / 全程通过。生成包含真实模型终态、工具范围、来源范围、代理状态，以及 IDE 的 UI 观察和重启恢复；候选验收在重建的冻结项目上执行。
 
-| 原生入口 | 普通任务（各 4 项） | 独立首次任务（各 1 项） |
-| --- | --- | --- |
-| win32-cli | 4/4 / 2/4 / 2/4 | 1/1 / 0/1 / 0/1 |
-| win32-vscode | 3/4 / 3/4 / 2/4 | 1/1 / 1/1 / 1/1 |
-| win32-jetbrains | 0/4 / 2/4 / 0/4 | 0/1 / 0/1 / 0/1 |
-| linux-cli | 2/4 / 2/4 / 1/4 | 1/1 / 0/1 / 0/1 |
-| linux-vscode | 4/4 / 0/4 / 0/4 | 1/1 / 0/1 / 0/1 |
-| linux-jetbrains | 0/4 / 2/4 / 0/4 | 0/1 / 0/1 / 0/1 |
-| darwin-cli | 2/4 / 1/4 / 1/4 | 1/1 / 0/1 / 0/1 |
-| darwin-vscode | 3/4 / 3/4 / 3/4 | 0/1 / 0/1 / 0/1 |
-| darwin-jetbrains | 0/4 / 2/4 / 0/4 | 0/1 / 0/1 / 0/1 |
+| 原生入口         | 普通任务（各 4 项） | 独立首次任务（各 1 项） |
+| ---------------- | ------------------- | ----------------------- |
+| win32-cli        | 4/4 / 2/4 / 2/4     | 1/1 / 0/1 / 0/1         |
+| win32-vscode     | 3/4 / 3/4 / 2/4     | 1/1 / 1/1 / 1/1         |
+| win32-jetbrains  | 0/4 / 2/4 / 0/4     | 0/1 / 0/1 / 0/1         |
+| linux-cli        | 2/4 / 2/4 / 1/4     | 1/1 / 0/1 / 0/1         |
+| linux-vscode     | 4/4 / 0/4 / 0/4     | 1/1 / 0/1 / 0/1         |
+| linux-jetbrains  | 0/4 / 2/4 / 0/4     | 0/1 / 0/1 / 0/1         |
+| darwin-cli       | 2/4 / 1/4 / 1/4     | 1/1 / 0/1 / 0/1         |
+| darwin-vscode    | 3/4 / 3/4 / 3/4     | 0/1 / 0/1 / 0/1         |
+| darwin-jetbrains | 0/4 / 2/4 / 0/4     | 0/1 / 0/1 / 0/1         |
 
 精确逐项结果见 [CSV](./native45-latest-results.csv)，完整失败、基线、候选测试与行为变异控制记录见 [results.json](./results.json) 及其引用的原始压缩摘要。即使候选文件合格，网络失败、越界变化、宿主或恢复失败仍阻止全程通过。
 
@@ -87,13 +98,13 @@
 
 [Linux VS Code 五项逐一复核](./linux-vscode-task-quality-review.json) 已比对候选、checker receipt 与冻结源码：五项基线全部通过，候选真实落盘，23 个已执行测试中 15 过、8 败，另 6 个测试体被导入错误阻止执行。行为变异阶段均未进入。
 
-| 样本 | 已证实的候选错误 |
-| --- | --- |
+| 样本           | 已证实的候选错误                                 |
+| -------------- | ------------------------------------------------ |
 | 首次 verify-05 | 调用不存在的 `createAgentRouter`，并误读返回结构 |
-| 普通 verify-05 | `_runSingleTask` 少传独立 backend 参数 |
-| verify-14 | 相对导入多退一层，未执行候选测试 |
-| verify-23 | 缺少 maintenance 证据，却断言完整 baseline 成功 |
-| verify-32 | 忽略帧延迟最小 20ms，提前推进计时器 |
+| 普通 verify-05 | `_runSingleTask` 少传独立 backend 参数           |
+| verify-14      | 相对导入多退一层，未执行候选测试                 |
+| verify-23      | 缺少 maintenance 证据，却断言完整 baseline 成功  |
+| verify-32      | 忽略帧延迟最小 20ms，提前推进计时器              |
 
 JetBrains 存在候选通过但重启恢复失败的情况，不能按文件通过数宣称插件完成任务。部分样本仍遇 8192 token 输出截断；传输上限修复不等于输出截断已解决。
 
@@ -114,7 +125,7 @@ JetBrains 存在候选通过但重启恢复失败的情况，不能按文件通�
 ## 证据与边界
 
 - 冻结项目：`b2aa3aba082873570e85dce39b00754e5504ff37`；计划 digest：`sha256:04b90d1a93cfd6556f91688a39508c69e4423671a7b6bcb85fac4dc7e82c0e13`。
-- 公开版本：CLI `0.166.99`、VS Code `0.37.143`（host `1.132.0`）、JetBrains `0.4.161`（IntelliJ `2025.2`）；模型为 `volcengine/deepseek-v4-flash-ga-260731`，Node `22.12.0`。
+- 固定旧版本对照轮公开版本：CLI `0.166.99`、VS Code `0.37.143`（host `1.132.0`）、JetBrains `0.4.161`（IntelliJ `2025.2`）；模型为 `volcengine/deepseek-v4-flash-ga-260731`，Node `22.12.0`。
 - 这是 thinking disabled、六文件工具的诊断；Windows 使用 hosted runner。生成在原生系统完成，所有候选执行验收均在 Linux、无网络 Docker 中完成，不表示 Windows/macOS 原生测试通过。
 - 通过候选与收据按原始字节校验 SHA-256，分别归档到 [原生候选索引](./native-verified-deliveries.json) 和 [较早 Linux 诊断索引](./verified-deliveries.json)。归档测试追加 `.txt`，避免测试发现；内容与 digest 保持不变。
 - [所有已收集原生候选](./native-candidates.json) 同时保留失败文件和未改动占位，不能视作通过列表。证据完整性可用 `node verify-evidence.mjs` 在此目录离线核验。
