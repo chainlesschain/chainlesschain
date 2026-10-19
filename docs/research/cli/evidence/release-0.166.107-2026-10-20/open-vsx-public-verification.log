@@ -1,0 +1,27 @@
+﻿2026-10-19T21:35:50.8610176Z ##[group]Run set -euo pipefail
+2026-10-19T21:35:50.8610604Z [36;1mset -euo pipefail[0m
+2026-10-19T21:35:50.8611332Z [36;1mversion="$(node -p "require('./package.json').version")"[0m
+2026-10-19T21:35:50.8612028Z [36;1mresult="$(node ../../scripts/verify-ide-marketplace.mjs open-vsx "$version" --artifact chainlesschain-ide.vsix)"[0m
+2026-10-19T21:35:50.8612595Z [36;1mecho "$result"[0m
+2026-10-19T21:35:50.8612832Z [36;1m{[0m
+2026-10-19T21:35:50.8613060Z [36;1m  echo "### Open VSX verification"[0m
+2026-10-19T21:35:50.8613349Z [36;1m  echo[0m
+2026-10-19T21:35:50.8613559Z [36;1m  echo '```json'[0m
+2026-10-19T21:35:50.8613804Z [36;1m  echo "$result"[0m
+2026-10-19T21:35:50.8614037Z [36;1m  echo '```'[0m
+2026-10-19T21:35:50.8614275Z [36;1m} >> "$GITHUB_STEP_SUMMARY"[0m
+2026-10-19T21:35:50.8678218Z shell: /usr/bin/bash -e {0}
+2026-10-19T21:35:50.8678516Z env:
+2026-10-19T21:35:50.8678743Z   CC_UI_STREAM_PROFILE: 1
+2026-10-19T21:35:50.8679078Z   IDE_RELEASE_COMMIT: 94429fada419e8f3e01a794516096ea554120556
+2026-10-19T21:35:50.8679559Z   CC_RELEASE_COMMIT: 94429fada419e8f3e01a794516096ea554120556
+2026-10-19T21:35:50.8679916Z   CC_MARKETPLACE_VERIFY_ATTEMPTS: 90
+2026-10-19T21:35:50.8680208Z   CC_MARKETPLACE_VERIFY_DELAY_MS: 30000
+2026-10-19T21:35:50.8680511Z   CC_OPEN_VSX_LISTING_VERIFY_ATTEMPTS: 75
+2026-10-19T21:35:50.8680821Z   CC_OPEN_VSX_LISTING_VERIFY_DELAY_MS: 60000
+2026-10-19T21:35:50.8681109Z ##[endgroup]
+2026-10-19T21:35:51.1580844Z [verify-ide-marketplace] exact activation attempt 1/90 failed: Open VSX version endpoint returned HTTP 404; retrying in 30000ms
+2026-10-19T21:36:21.3471543Z [verify-ide-marketplace] exact activation attempt 2/90 failed: Open VSX version endpoint returned HTTP 404; retrying in 30000ms
+2026-10-19T21:36:51.5178616Z [verify-ide-marketplace] exact activation attempt 3/90 failed: Open VSX version endpoint returned HTTP 404; retrying in 30000ms
+2026-10-19T21:37:21.8623701Z [verify-ide-marketplace] exact activation attempt 4/90 failed: Open VSX version endpoint returned HTTP 404; retrying in 30000ms
+2026-10-19T21:37:52.7365546Z {"channel":"open-vsx","endpoint":"https://open-vsx.org/api/chainlesschain/chainlesschain-ide","status":"ready","version":"0.37.152","latest":"0.37.152","downloadable":true,"listed":true,"registryArchiveSha256":"4b37bf2a34a40c2a408ae14995f47eaad3d9931b15635ada0559bd2200bea0c2","localArchiveSha256":"4b37bf2a34a40c2a408ae14995f47eaad3d9931b15635ada0559bd2200bea0c2","contentSha256":"7d803b58aac1765f0becca594ecfec4e96065cee88e749ca9f216701b26fe454"}

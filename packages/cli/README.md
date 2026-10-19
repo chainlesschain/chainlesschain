@@ -4,9 +4,9 @@ Command-line interface for installing, configuring, and managing [ChainlessChain
 
 ## Package version and IDE pairing
 
-Public npm release: CLI **0.166.107** with Session Core **0.3.20**, published through OIDC from `6775d7a2de`. Its complete CLI CI and Strict Sandbox matrices, public dependency install and signed provenance checks passed. Paired IDE candidates are VS Code **0.37.152** and JetBrains **0.4.169**; their release checks are in progress. Public Open VSX **0.37.151** and JetBrains **0.4.168** retain their CLI `.106` recommendation.
+Public npm release: CLI **0.166.107** with Session Core **0.3.20**, published through OIDC from `6775d7a2de`. Its complete CLI CI and Strict Sandbox matrices, public dependency install and signed provenance checks passed. Open VSX **0.37.152** and JetBrains **0.4.169** are publicly listed, with both downloaded artifact payloads matching their tagged builds. Both new plugins recommend CLI `.107`; source `94429fada4` passed the complete IDE checks and both tagged publishing workflows.
 
-The `.105/.150/.167` task retest collected all **20/20** generation and acceptance records and added **6** candidate and end-to-end passes. Cumulative cross-version accepted deliveries are **31/45** (**26/36** ordinary, **5/9** first-run), with **14** unaccepted. The newer `.106/.151/.168` model retest has not run; cumulative coverage is not a latest-version single-round success rate. Microsoft Marketplace remains unpublished.
+The `.105/.150/.167` task retest collected all **20/20** generation and acceptance records and added **6** candidate and end-to-end passes. Cumulative cross-version accepted deliveries are **31/45** (**26/36** ordinary, **5/9** first-run), with **14** unaccepted. No new model task retest accompanied the `.107/.152/.169` release; cumulative coverage is not a latest-version single-round success rate. Microsoft Marketplace remains unpublished.
 
 Install this release with `npm i -g chainlesschain@0.166.107 --registry https://registry.npmjs.org`. After upgrading, restart the IDE chat host and run Doctor. The original completed round used CLI `.104`, Open VSX `.149` and JetBrains `.166`; it does not establish `.105` task acceptance. [Current upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-18.html).
 

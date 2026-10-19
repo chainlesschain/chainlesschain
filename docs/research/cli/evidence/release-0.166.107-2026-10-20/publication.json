@@ -1,6 +1,6 @@
 {
   "schema": "chainlesschain.release-publication/v1",
-  "checkedAt": "2026-10-19T21:17:16.591Z",
+  "checkedAt": "2026-10-19T22:00:43.252Z",
   "releaseCommit": "6775d7a2deb093ec1979430fa63d61d7b1fc8705",
   "cli": {
     "name": "chainlesschain",
@@ -29,18 +29,41 @@
   },
   "ide": {
     "preReleaseWorkflow": 39322021242,
-    "status": "tag-publishing-in-progress",
+    "status": "public",
     "openVsx": {
       "version": "0.37.152",
       "recommendedCliVersion": "0.166.107",
-      "status": "unpublished",
-      "tag": "ide-vscode-v0.37.152"
+      "status": "public",
+      "tag": "ide-vscode-v0.37.152",
+      "workflowRun": 39326212411,
+      "workflowUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/39326212411",
+      "publicArtifactVerified": true,
+      "workflowStatus": "success",
+      "publicArtifactReceipt": "open-vsx-public-verification.json"
     },
     "jetbrains": {
       "version": "0.4.169",
       "recommendedCliVersion": "0.166.107",
-      "status": "unpublished",
-      "tag": "ide-jetbrains-v0.4.169"
+      "status": "public",
+      "tag": "ide-jetbrains-v0.4.169",
+      "workflowRun": 39326213042,
+      "workflowStatus": "success",
+      "workflowUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/39326213042",
+      "uploadStatus": "success",
+      "publicArtifactVerified": true,
+      "latestPublicVersion": "0.4.169",
+      "publicReadback": "jetbrains-public-verification.json",
+      "taggedArtifactVersionAndPairingVerified": true,
+      "approve": true,
+      "listed": true,
+      "hidden": false,
+      "updateId": 1198232,
+      "publicArchive": {
+        "downloadUrl": "https://plugins.jetbrains.com/files/32208/1198232/chainlesschain-ide-bridge-0.4.169.zip",
+        "bytes": 1556078,
+        "sha256": "1944658a3eda706cb3faa116eeada2b9c89396eb99ca8a4f164e0a720b554950",
+        "taggedPayloadVerified": true
+      }
     },
     "microsoftMarketplace": {
       "status": "unpublished",
@@ -70,5 +93,25 @@
     "diagnosticDryRun": 39315137115,
     "diagnostic": "GitHub ID token request succeeded; npm exchange rejected the workspace workflow. The established npm-publish.yml route published child packages before the CLI successfully."
   },
-  "modelTaskRetest": "NOT_RUN_THIS_RELEASE"
+  "modelTaskRetest": "NOT_RUN_THIS_RELEASE",
+  "runnerRestoration": {
+    "schema": "chainlesschain.release-ci-restoration/v1",
+    "checkedAt": "2026-10-19T22:00:43.250Z",
+    "status": "restored",
+    "publicationWorkflows": [
+      39326212411,
+      39326213042
+    ],
+    "sourceSha": "94429fada419e8f3e01a794516096ea554120556",
+    "restorationStartedAt": "2026-10-19T21:50:21.671Z",
+    "restorationFinishedAt": "2026-10-19T21:59:25.771Z",
+    "workflowDefinitionsRestored": 30,
+    "recordedRuns": 51,
+    "rerunsConfirmed": 49,
+    "alreadyCompleted": 2,
+    "alreadyRunning": 0,
+    "issues": [],
+    "detail": "runner-pause-plan.json",
+    "reason": "Both tagged publishing workflows completed successfully. All target npm and IDE versions are now public and their artifacts verified; no release runner remains active."
+  }
 }

@@ -2,11 +2,11 @@
 
 ## 概述
 
-2026-10-20 实时核对：npm CLI **0.166.107** 与 Session Core **0.3.20** 已公开，发行提交为 `6775d7a2deb093ec1979430fa63d61d7b1fc8705`。IDE 候选 Open VSX **0.37.152**、JetBrains **0.4.169** 推荐 CLI `.107`，完整发行检查进行中；当前公开 `.151/.168` 保留 CLI `.106` 配对。公开 `.105/.150/.167` 任务补测已收齐生成与独立验收各 **20/20**，新增 **6** 项候选及全流程通过；跨版本累计候选合格交付 **31/45**（普通 **26/36**、首次 **5/9**），剩余 **14** 项。本次 npm 发行未运行新的模型任务补测，累计覆盖不等于新版单轮成功率。Microsoft Marketplace 未发布。
+2026-10-20 实时核对：npm CLI **0.166.107** 与 Session Core **0.3.20** 已公开，发行提交为 `6775d7a2deb093ec1979430fa63d61d7b1fc8705`。Open VSX **0.37.152** 与 JetBrains **0.4.169** 均已公开上架，下载制品的内容与标签构建一致。两个新插件均推荐 CLI `.107`。公开 `.105/.150/.167` 任务补测已收齐生成与独立验收各 **20/20**，新增 **6** 项候选及全流程通过；跨版本累计候选合格交付 **31/45**（普通 **26/36**、首次 **5/9**），剩余 **14** 项。本次 npm 发行未运行新的模型任务补测，累计覆盖不等于新版单轮成功率。Microsoft Marketplace 未发布。
 
 ## .107 npm 发行与 IDE 发布进度
 
-Session Core 0.3.20 先于 CLI .107 发布并完成公共包字节核对。该提交完整 CLI CI 与 Strict Sandbox 跨平台矩阵通过，[npm OIDC 发布运行 39315709208](https://github.com/chainlesschain/chainlesschain/actions/runs/39315709208) 成功；公共依赖安装、CLI 签名来源及 Windows 公开安装回读通过。IDE .152/.169 正在运行同一提交的完整宿主检查，随后按各自不可变标签发布。
+Session Core 0.3.20 先于 CLI .107 发布并完成公共包字节核对。该提交完整 CLI CI 与 Strict Sandbox 跨平台矩阵通过，[npm OIDC 发布运行 39315709208](https://github.com/chainlesschain/chainlesschain/actions/runs/39315709208) 成功；公共依赖安装、CLI 签名来源及 Windows 公开安装回读通过。IDE 发行源码 `94429fada419e8f3e01a794516096ea554120556` 的[完整预检 39322021242](https://github.com/chainlesschain/chainlesschain/actions/runs/39322021242) 有 18 项成功；两个不可变标签均绑定该源码。[Open VSX 发布 39326212411](https://github.com/chainlesschain/chainlesschain/actions/runs/39326212411) 和 [JetBrains 发布 39326213042](https://github.com/chainlesschain/chainlesschain/actions/runs/39326213042) 均成功结束。Open VSX .152 的公开 VSIX 与标签构建摘要一致。JetBrains .169 已批准、已列出、未隐藏（更新 ID `1198232`）；公开 ZIP 的原始摘要与构建 ZIP 不同，但逐项核对的制品内容与标签构建一致，插件版本和 CLI .107 配对也已核验。
 
 ```bash
 npm i -g chainlesschain@0.166.107 --registry https://registry.npmjs.org
@@ -60,11 +60,11 @@ IDE 通过同一 CLI 完成模型与文件工具调用；CLI 在文件写入结�
 
 ## 配置参考
 
-需要 Node.js 22.12.0+ 和 npm 10.0.0+。公共 npm CLI 为 .107；IDE 候选 .152/.169 推荐 .107，已公开 .151/.168 保留 .106 配对。升级后通过 Doctor 核对实际 CLI 路径。`CC_EDIT_DIAGNOSTICS=0` 可关闭编辑后诊断；诊断不执行测试，也不替代验收。
+需要 Node.js 22.12.0+ 和 npm 10.0.0+。公共 npm CLI 为 .107；已公开 Open VSX .152 和 JetBrains .169 均推荐 .107。升级后通过 Doctor 核对实际 CLI 路径。`CC_EDIT_DIAGNOSTICS=0` 可关闭编辑后诊断；诊断不执行测试，也不替代验收。
 
 ## 使用示例
 
-复现 .105 已完成补测的固定版本命令（当前升级使用上方 .106）：
+复现 .105 已完成补测的固定版本命令（当前升级使用上方 .107）：
 
 ```bash
 npm i -g chainlesschain@0.166.105 --registry https://registry.npmjs.org
@@ -72,7 +72,7 @@ cc --version
 cc doctor
 ```
 
-安装公开配对后重启 IDE，确认 Doctor 指向同一 CLI。对剩余 14 项使用核验后的新公开包补测；保留已合格候选的原始证据，不因诊断重复生成。原失败记录不改写。候选验收、宿主恢复和全流程结果分别报告；CLI .107 与 Session Core 0.3.20 已公开，IDE .152/.169 的发行检查进行中，新一轮模型补测尚未运行。
+安装公开配对后重启 IDE，确认 Doctor 指向同一 CLI。对剩余 14 项使用核验后的新公开包补测；保留已合格候选的原始证据，不因诊断重复生成。原失败记录不改写。候选验收、宿主恢复和全流程结果分别报告；CLI .107、Session Core 0.3.20、Open VSX .152 和 JetBrains .169 均已公开并完成制品回读，新一轮模型补测尚未运行。
 
 ## 性能指标
 
