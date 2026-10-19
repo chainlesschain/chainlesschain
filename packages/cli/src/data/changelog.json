@@ -3,14 +3,27 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.107",
+      "cliVersions": ["0.166.107"],
+      "date": "2026-10-19",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.107: preserve coding context and session authority (2026-10-19)",
+          "body": "- Settle complete assistant/tool exchanges into append-only verified session history before canonical compaction and at turn completion. Preserve provenance and compare-and-swap checks against concurrent durable input.\n- Recover bounded source ranges when the successful provider request no longer contains an earlier read. Keep existing tool, request and output limits.\n- Build fallback handoffs from paired successful tool observations, preserve negative constraints and exact write digests, and avoid interpreting source examples as test results.\n- Report file persistence separately from static import checks and test execution. Coding guidance requires independent attribution and source-grounded failure expectations.\n- Pin PDH's mailparser dependency to the verified 3.9.45 archive. Prepare Session Core 0.3.20 and PDH 0.4.66 before CLI 0.166.107, then VS Code 0.37.152 and JetBrains 0.4.169.\n- Older CLI readers ignore the new `tool_round` event and may omit tool context when resuming a session written by .107. Preserve the session and use a compatible CLI when resuming it.\n- All .106 retest generation and independent acceptance records returned (14/14 each), adding one candidate and full-flow pass (`first-run-win32-jetbrains`). Cross-version accepted deliveries are 32/45 (ordinary 26/36, first-use 6/9), with 13 remaining. These totals do not establish a same-version success rate.\n- Publication requires exact-source complete Linux/Windows/macOS CLI CI, CLI Strict Sandbox and relevant IDE/ARM64 gates before OIDC child publication, public child readback, CLI publication, public CLI readback, and IDE publication. Retest only the 13 unfinished samples after the new public pairing is verified.\n- Restrict single and batch Windows ACL helper module discovery to that PowerShell process's built-in module directory. Same-runner diagnostics found 22–29 seconds of first-cmdlet overhead with inherited discovery, while the bounded mode retained ACL verification and completed the three probes in 3.9/0.6/0.8 seconds. The original intermittent 60-second startup failure still requires published-package acceptance; deadlines, retries and security checks are unchanged."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.106",
-      "cliVersions": ["0.166.105", "0.166.106"],
+      "cliVersions": ["0.166.106"],
       "date": "2026-10-18",
       "title": "",
       "sections": [
         {
-          "heading": "Fixed - cc CLI 0.166.106: task delivery follow-up (candidate, 2026-10-18)",
-          "body": "- Guide coding tasks toward brief action statements and complete file writes split into bounded segments.\n- Ground regression expectations and defaults in the source contract, exercise actual boundaries with valid fault-injection fixtures, and use independent expected values or authoritative state.\n- Preserve the explicit provider reason for HTTP 403 responses that are not authentication or billing errors.\n- Keep JetBrains asynchronous draft-save receipts in a separate status update so they do not interrupt the assistant reply.\n- Wait up to two seconds for final JetBrains stdout callbacks on the background process waiter and schedule exit alongside result rendering on the IDE event queue.\n- Close unused Windows ACL subprocess input, require complete output before success, and share one bounded drain/cleanup deadline; native ACL startup timeouts remain under investigation.\n- Pair candidate VS Code 0.37.151 and JetBrains 0.4.168 with CLI 0.166.106; retain the existing published child-package versions.\n- Current public versions remain CLI 0.166.105, Open VSX 0.37.150 and JetBrains 0.4.167. Publish this candidate only after complete exact-commit gates, npm OIDC and public artifact readback, then retest unfinished samples.\n- Public .105 retesting completed generation 20/20 and acceptance 20/20, adding 6 candidate acceptances and 6 full-flow passes. Cumulative acceptance is 31/45 (ordinary 26/36, first-use 5/9), with 14 remaining. The original 25 accepted artifacts were reused byte-for-byte; cross-version cumulative acceptance is not a single-round 45/45 success. Candidates .106/.151/.168 remain unpublished and have not been retested."
+          "heading": "Fixed - cc CLI 0.166.106: task delivery follow-up (published, 2026-10-18)",
+          "body": "- Guide coding tasks toward brief action statements and complete file writes split into bounded segments.\n- Ground regression expectations and defaults in the source contract, exercise actual boundaries with valid fault-injection fixtures, and use independent expected values or authoritative state.\n- Preserve the explicit provider reason for HTTP 403 responses that are not authentication or billing errors.\n- Keep JetBrains asynchronous draft-save receipts separate from the assistant reply, and drain final stdout callbacks within the existing bounded wait.\n- Close unused Windows ACL subprocess input, require complete output before success, and share one bounded drain/cleanup deadline; this does not establish the cause of native ACL startup timeouts.\n- Public CLI 0.166.106, Open VSX 0.37.151 and JetBrains 0.4.168 are verified and paired. Their source is `dca47fd91a209642b6536afd5bc9e99ec74c7d06`; publication and public readback followed that source's release gates. The completed retest is recorded above."
         }
       ]
     },
