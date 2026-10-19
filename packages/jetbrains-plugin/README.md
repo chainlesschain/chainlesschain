@@ -35,13 +35,23 @@ See the [upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-u
 
 ## Release compatibility
 
-Plugin **0.4.169** is this source release and recommends CLI
+Plugin **0.4.169** is the current release candidate and recommends CLI
 `chainlesschain@0.166.107`. Installation requires exact-commit validation and public availability.
 Publish required child npm packages through GitHub Actions OIDC first and verify
 their public archives and downstream versions. Publish and read back the CLI
 before releasing this plugin. The final exact release commit must pass the
 Linux/Windows/macOS matrices, including both `CLI CI` and `CLI Strict Sandbox`
 on every configured operating system; local or older-commit checks are insufficient.
+
+Restart the IDE and run Doctor after a verified upgrade. Native task quality
+and restart acceptance require separate published-package evidence.
+
+CLI `.107` adds durable `tool_round` session events. CLI versions before
+`0.166.107` ignore those events and can omit their tool context during resume.
+Use a compatible CLI to resume sessions written by this release. This recovery
+limitation does not change the base bridge compatibility floor.
+
+## CLI dependency notes
 
 The 2026-10-19 preparation baseline paired public CLI `.106`
 with Session Core `0.3.19` and Personal Data Hub `0.4.65`. This release's CLI `.107`
@@ -52,13 +62,6 @@ running PowerShell process's built-in `$PSHOME/Modules` before the first cmdlet,
 preserving ACL checks, traversal, security boundaries, timeouts and retries.
 Paired Windows CI supports this optimization; published-package acceptance of
 the original timeout remains pending.
-Restart the IDE and run Doctor after a verified upgrade. Native task quality
-and restart acceptance require separate published-package evidence.
-
-CLI `.107` adds durable `tool_round` session events. CLI versions before
-`0.166.107` ignore those events and can omit their tool context during resume.
-Use a compatible CLI to resume sessions written by this release. This recovery
-limitation does not change the base bridge compatibility floor.
 
 ## Earlier releases and retained capabilities
 
