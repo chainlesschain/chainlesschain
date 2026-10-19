@@ -36,6 +36,7 @@ const {
   appendToolResult,
   appendCompactEvent,
   appendCompactEventIfMessagesMatch,
+  appendToolRoundsIfMessagesMatch,
   appendEvent,
   appendWsTurnIfHead,
   claimWsTurnIfHead,
@@ -87,17 +88,20 @@ const {
   SESSION_GENERATION_AUTHORITY_FIELD,
   SESSION_GENERATION_AUTHORITY_SCHEMA,
 } = await import("../../src/lib/jsonl-session-store.js");
-const { computeEventHash } =
-  await import("../../src/harness/transcript-integrity.js");
-const { readSessionHostResumeState } =
-  await import("../../src/lib/session-host-snapshot.js");
+const { computeEventHash } = await import(
+  "../../src/harness/transcript-integrity.js"
+);
+const { readSessionHostResumeState } = await import(
+  "../../src/lib/session-host-snapshot.js"
+);
 const {
   _registerTestScopedSessionAntiRollbackDirectory,
   _sessionAntiRollbackFaultHooks,
   readSessionAntiRollbackAnchor,
 } = await import("../../src/lib/session-anti-rollback-anchor.js");
-const { _sessionScaleFaultHooks: sessionListIndexFaultHooks } =
-  await import("../../src/harness/session-list-index.js");
+const { _sessionScaleFaultHooks: sessionListIndexFaultHooks } = await import(
+  "../../src/harness/session-list-index.js"
+);
 _registerTestScopedSessionAntiRollbackDirectory({
   homeDir: testDir,
   anchorBase: securityAnchorDir,
@@ -2126,6 +2130,83 @@ describe("jsonl-session-store", () => {
         kind: DURABLE_SYSTEM_MESSAGE_KINDS.COMPACT_SUMMARY,
       });
       expect(verifySession(id).status).toBe("verified");
+    });
+
+    it("fingerprints long replay histories without the scheduler payload limit", () => {
+      const id = startSession("large-replay-fingerprint", { title: "large" });
+      const messageBytes = 32 * 1024;
+      for (let index = 0; index < 40; index += 1) {
+        appendUserMessage(id, `${index}:${"x".repeat(messageBytes)}`);
+      }
+
+      const expected = readVerifiedMessages(id);
+      appendUserMessage(id, "concurrent turn");
+      const staleSummary = {
+        strategy: "auto",
+        messages: [
+          markDurableSystemMessage(
+            { role: "system", content: "stale summary" },
+            DURABLE_SYSTEM_MESSAGE_KINDS.COMPACT_SUMMARY,
+          ),
+        ],
+      };
+      expect(() =>
+        appendCompactEventIfMessagesMatch(id, staleSummary, expected),
+      ).toThrow(expect.objectContaining({ code: "SESSION_REVISION_STALE" }));
+      expect(readEvents(id).some((event) => event.type === "compact")).toBe(
+        false,
+      );
+
+      const current = readVerifiedMessages(id);
+      const committed = appendCompactEventIfMessagesMatch(
+        id,
+        {
+          strategy: "auto",
+          messages: [
+            markDurableSystemMessage(
+              { role: "system", content: "current summary" },
+              DURABLE_SYSTEM_MESSAGE_KINDS.COMPACT_SUMMARY,
+            ),
+          ],
+        },
+        current,
+      );
+      expect(committed.hash).toMatch(/^[a-f0-9]{64}$/);
+      expect(readVerifiedMessages(id)).toEqual([
+        { role: "system", content: "current summary" },
+      ]);
+    });
+
+    it("fingerprints a single message larger than the scheduler payload limit", () => {
+      const id = startSession("large-replay-message", { title: "large" });
+      appendUserMessage(id, "x".repeat(1024 * 1024 + 128));
+      const messages = readVerifiedMessages(id);
+
+      const settled = appendToolRoundsIfMessagesMatch(id, messages, messages);
+      expect(settled.hash).toMatch(/^[a-f0-9]{64}$/);
+      expect(verifySession(id).status).toBe("verified");
+    });
+
+    it("keeps replay fingerprints key-order independent and field sensitive", () => {
+      const id = startSession("replay-fingerprint-canonical-keys", {
+        title: "verified",
+      });
+      appendUserMessage(id, { nested: { b: 2, a: 1 } });
+      const expected = readVerifiedMessages(id);
+      const reordered = [
+        { ...expected[0], content: { nested: { a: 1, b: 2 } } },
+      ];
+
+      expect(() =>
+        appendToolRoundsIfMessagesMatch(id, reordered, expected),
+      ).not.toThrow();
+      expect(() =>
+        appendToolRoundsIfMessagesMatch(
+          id,
+          [{ ...expected[0], content: { nested: { a: 1, b: 3 } } }],
+          expected,
+        ),
+      ).toThrow(expect.objectContaining({ code: "SESSION_REVISION_STALE" }));
     });
 
     it("keeps resume heap to the compact checkpoint and suffix", () => {
