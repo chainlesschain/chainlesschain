@@ -2,11 +2,38 @@
 
 All notable changes to this extension are documented here.
 
-## [0.37.151] - Task-delivery follow-up candidate (2026-10-18)
+## [0.37.152] - Context recovery pairing (2026-10-19)
 
-- Recommend candidate CLI 0.166.106 for brief action guidance, complete file writes in bounded segments, and accurate reasons for explicit HTTP 403 errors outside authentication or billing.
-- Keep current public CLI 0.166.105 and IDE pairing unchanged until exact-commit gates, CLI npm OIDC publication and public artifact readback pass.
-- Published-package retesting remains a separate requirement. Existing failed samples are not accepted by this version bump.
+- Target CLI `0.166.107` for bounded recovery of missing file evidence,
+  structured fallback summaries and durable tool rounds. The dated preparation
+  baseline was public CLI `0.166.106` and Open VSX `0.37.151`.
+- Required child releases are Session Core `0.3.20` and Personal Data Hub
+  `0.4.66`; their preparation baseline was `0.3.19` and `0.4.65`. Session Core
+  adds ACL progress diagnostics and restricts module search to the running
+  PowerShell process's built-in `$PSHOME/Modules` before the first cmdlet,
+  preserving ACL checks, traversal, security boundaries, timeouts and retries.
+  Paired Windows CI supports this optimization; published-package acceptance
+  of the original timeout remains pending. Personal Data Hub pins `mailparser`
+  to `3.9.45` without downgrading it.
+- Require the exact release commit's Linux/Windows/macOS gates, including full
+  `CLI CI` and `CLI Strict Sandbox` matrices. Publish and verify child packages
+  through GitHub Actions npm OIDC before the CLI, then publish IDE packages after
+  public CLI readback. Microsoft Marketplace remains unpublished.
+- All 14 remaining `.106` samples returned generation and independent acceptance
+  records. Only `first-run-win32-jetbrains` added an accepted full-flow delivery:
+  cumulative cross-version coverage is `32/45` (`26/36` ordinary, `6/9` first-use),
+  with 13 remaining. These are not a single-round success rate or 14 passing tasks.
+- CLI versions before `.107` ignore `tool_round` events and may omit their tool
+  context on resume. The base bridge compatibility floor is unchanged.
+
+## [0.37.151] - Task-delivery follow-up (2026-10-18, published on Open VSX)
+
+- Pair with public CLI `0.166.106` for brief action guidance, complete file writes
+  in bounded segments, and accurate reasons for explicit HTTP 403 errors outside
+  authentication or billing.
+- This former candidate is now the current public Open VSX release. Task
+  acceptance remains separately tracked; publication alone does not accept a
+  previously failed sample.
 
 ## [0.37.150] - Task-quality candidate (2026-10-18)
 

@@ -1,0 +1,119 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-16",
+  "stage": "setup",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 25,
+      "passed": 25,
+      "failed": 0
+    }
+  ],
+  "mutations": [],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 690,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "npm",
+        "ci",
+        "--workspace",
+        "packages/cli",
+        "--workspace",
+        "desktop-app-vue",
+        "--include-workspace-root=false",
+        "--legacy-peer-deps",
+        "--ignore-scripts",
+        "--no-audit",
+        "--no-fund",
+        "--cache",
+        "/tmp/npm-cache",
+        "--userconfig",
+        "/dev/null"
+      ],
+      "setup": true,
+      "ms": 51242,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "\nadded 2535 packages in 51s\n",
+      "stderr": "npm warn EBADENGINE Unsupported engine {\nnpm warn EBADENGINE   package: 'eslint-visitor-keys@5.0.1',\nnpm warn EBADENGINE   required: { node: '^20.19.0 || ^22.13.0 || >=24' },\nnpm warn EBADENGINE   current: { node: 'v22.12.0', npm: '10.9.0' }\nnpm warn EBADENGINE }\nnpm warn EBADENGINE Unsupported engine {\nnpm warn EBADENGINE   package: 'pdfjs-dist@5.7.284',\nnpm warn EBADENGINE   required: { node: '>=22.13.0 || >=24' },\nnpm warn EBADENGINE   current: { node: 'v22.12.0', npm: '10.9.0' }\nnpm warn EBADENGINE }\nnpm warn skipping integrity check for git dependency ssh://git@github.com/electron/node-gyp.git\nnpm warn deprecated whatwg-encoding@3.1.1: Use @exodus/bytes instead for a more spec-conformant and faster implementation\nnpm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported\nnpm warn deprecated prebuild-install@7.1.3: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.\nnpm warn deprecated uuid@9.0.1: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).\nnpm warn deprecated npmlog@6.0.2: This package is no longer supported.\nnpm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead\nnpm warn deprecated vue-i18n@9.14.5: v9 and v10 no longer supported. please migrate to v11. about maintenance status, see https://vue-i18n.intlify.dev/guide/maintenance.html\nnpm warn deprecated multiaddr@10.0.1: This module is deprecated, please upgrade to @multiformats/multiaddr\nnpm warn deprecated lodash.isequal@4.5.0: This package is deprecated. Use require('node:util').isDeepStrictEqual instead.\nnpm warn deprecated lodash.get@4.4.2: This package is deprecated. Use the optional chaining (?.) operator instead.\nnpm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.\nnpm warn deprecated gar@1.0.4: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.\nnpm warn deprecated gauge@4.0.4: This package is no longer supported.\nnpm warn deprecated fstream@1.0.12: This package is no longer supported.\nnpm warn deprecated boolean@3.2.0: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.\nnpm warn deprecated are-we-there-yet@3.0.1: This package is no longer supported.\nnpm warn deprecated @npmcli/move-file@2.0.1: This functionality has been moved to @npmcli/fs\nnpm warn deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead\nnpm warn deprecated @humanwhocodes/config-array@0.13.0: Use @eslint/config-array instead\nnpm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated rimraf@2.6.3: Rimraf versions prior to v4 are no longer supported\nnpm warn deprecated npmlog@4.1.2: This package is no longer supported.\nnpm warn deprecated are-we-there-yet@1.1.7: This package is no longer supported.\nnpm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated prebuild-install@5.3.6: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.\nnpm warn deprecated gauge@2.7.4: This package is no longer supported.\nnpm warn deprecated rimraf@2.7.1: Rimraf versions prior to v4 are no longer supported\nnpm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated glob@8.1.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated glob@8.1.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).\nnpm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).\nnpm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated eslint@8.57.1: This version is no longer supported. Please see https://eslint.org/version-support for other options.\nnpm warn deprecated fluent-ffmpeg@2.1.3: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.\n",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--input-type=commonjs",
+        "--eval",
+        "process.chdir(\"/workspace/node_modules/better-sqlite3\"); require(\"/workspace/node_modules/prebuild-install/bin.js\");"
+      ],
+      "setup": true,
+      "ms": 590,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--input-type=commonjs",
+        "--eval",
+        "const fs=require(\"node:fs\"),crypto=require(\"node:crypto\"),Database=require(\"/workspace/node_modules/better-sqlite3\"); const db=new Database(\":memory:\"); if(db.prepare(\"select 42 as value\").get().value!==42) throw new Error(\"SQLite native probe failed\"); db.close(); const bytes=fs.readFileSync(\"/workspace/node_modules/better-sqlite3/build/Release/better_sqlite3.node\"); console.log(JSON.stringify({sha256:crypto.createHash(\"sha256\").update(bytes).digest(\"hex\"),sqliteVerified:true}));"
+      ],
+      "setup": false,
+      "ms": 159,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"sha256\":\"df9fbd0d061f360d81fb51e265c53c9605020bd68219e34f33c07c85de15719a\",\"sqliteVerified\":true}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 759,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":25,\"numPassedTests\":25,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1792255690361,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations derives immutable settings and digest from one descriptor's exact bytes\",\"status\":\"passed\",\"title\":\"derives immutable settings and digest from one descriptor's exact bytes\",\"duration\":5.854123999999985,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations binds missing directories and a future physical target instead of dropping a candidate\",\"status\":\"passed\",\"title\":\"binds missing directories and a future physical target instead of dropping a candidate\",\"duration\":1.7107670000000041,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations accepts atomic replacement between observations without pinning a permanent file inode\",\"status\":\"passed\",\"title\":\"accepts atomic replacement between observations without pinning a permanent file inode\",\"duration\":1.0820730000000083,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations rejects creation of a previously missing parent during the absence check\",\"status\":\"passed\",\"title\":\"rejects creation of a previously missing parent during the absence check\",\"duration\":0.9766099999999938,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations closes every opened descriptor even if a close fails, preserving the original read error\",\"status\":\"passed\",\"title\":\"closes every opened descriptor even if a close fails, preserving the original read error\",\"duration\":1.3008939999999996,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations rejects an in-place edit while the source is being inspected\",\"status\":\"passed\",\"title\":\"rejects an in-place edit while the source is being inspected\",\"duration\":0.7847030000000075,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations rejects a concurrent replacement or an OS refusal to perform it while the descriptor is open\",\"status\":\"passed\",\"title\":\"rejects a concurrent replacement or an OS refusal to perform it while the descriptor is open\",\"duration\":0.8312420000000031,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations keeps logical directory aliases while checking the canonical physical parent\",\"status\":\"passed\",\"title\":\"keeps logical directory aliases while checking the canonical physical parent\",\"duration\":1.1967470000000162,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations rejects a directory alias rebound to another target during the read\",\"status\":\"passed\",\"title\":\"rejects a directory alias rebound to another target during the read\",\"duration\":1.1940859999999986,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations rejects hard links and directories as settings sources\",\"status\":\"passed\",\"title\":\"rejects hard links and directories as settings sources\",\"duration\":0.6025009999999895,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations rejects a real final file symlink\",\"status\":\"passed\",\"title\":\"rejects a real final file symlink\",\"duration\":0.4877529999999979,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations rejects a dangling parent link rather than accepting its source as missing\",\"status\":\"passed\",\"title\":\"rejects a dangling parent link rather than accepting its source as missing\",\"duration\":0.49139099999999303,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations only treats ENOENT as absence and preserves other filesystem failure classifications\",\"status\":\"passed\",\"title\":\"only treats ENOENT as absence and preserves other filesystem failure classifications\",\"duration\":0.6354290000000162,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations bounds both a declared large file and growth after opening\",\"status\":\"passed\",\"title\":\"bounds both a declared large file and growth after opening\",\"duration\":0.745350000000002,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations rejects invalid UTF-8, malformed JSON or a non-object top level (0)\",\"status\":\"passed\",\"title\":\"rejects invalid UTF-8, malformed JSON or a non-object top level (0)\",\"duration\":0.5899469999999951,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations rejects invalid UTF-8, malformed JSON or a non-object top level (1)\",\"status\":\"passed\",\"title\":\"rejects invalid UTF-8, malformed JSON or a non-object top level (1)\",\"duration\":0.42610799999999927,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations rejects invalid UTF-8, malformed JSON or a non-object top level (2)\",\"status\":\"passed\",\"title\":\"rejects invalid UTF-8, malformed JSON or a non-object top level (2)\",\"duration\":0.40001000000000886,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations rejects invalid UTF-8, malformed JSON or a non-object top level (3)\",\"status\":\"passed\",\"title\":\"rejects invalid UTF-8, malformed JSON or a non-object top level (3)\",\"duration\":0.4047070000000019,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations rejects invalid UTF-8, malformed JSON or a non-object top level (4)\",\"status\":\"passed\",\"title\":\"rejects invalid UTF-8, malformed JSON or a non-object top level (4)\",\"duration\":2.1561279999999954,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations rejects invalid UTF-8, malformed JSON or a non-object top level (5)\",\"status\":\"passed\",\"title\":\"rejects invalid UTF-8, malformed JSON or a non-object top level (5)\",\"duration\":0.7461320000000171,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations rejects invalid UTF-8, malformed JSON or a non-object top level (6)\",\"status\":\"passed\",\"title\":\"rejects invalid UTF-8, malformed JSON or a non-object top level (6)\",\"duration\":0.7418619999999976,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations freezes a wide JSON object without spreading an unbounded argument list\",\"status\":\"passed\",\"title\":\"freezes a wide JSON object without spreading an unbounded argument list\",\"duration\":19.178055999999998,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations includes the complete discovered and managed inventory, including non-contributing documents\",\"status\":\"passed\",\"title\":\"includes the complete discovered and managed inventory, including non-contributing documents\",\"duration\":3.8428919999999778,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations resolves all relative candidates before a reentrant cwd change in a real Node process\",\"status\":\"passed\",\"title\":\"resolves all relative candidates before a reentrant cwd change in a real Node process\",\"duration\":28.94311099999996,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"strict settings source observations\"],\"fullName\":\"strict settings source observations bounds the inventory and validates paths before making any observations\",\"status\":\"passed\",\"title\":\"bounds the inventory and validates paths before making any observations\",\"duration\":0.4623589999999922,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1792255690622,\"endTime\":1792255690697.4624,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/settings-source-observation.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "nativeDependency": {
+    "sha256": "df9fbd0d061f360d81fb51e265c53c9605020bd68219e34f33c07c85de15719a",
+    "sqliteVerified": true
+  },
+  "pass": true,
+  "detail": "Independent operator checks passed; this is not a provider or task-outcome sample."
+}

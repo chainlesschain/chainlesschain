@@ -1,0 +1,73 @@
+{
+  "schema": 2,
+  "package": "chainlesschain",
+  "version": "0.166.105",
+  "commit": "d4065008bb4eff84cfc09f9361f4ae4e9de2140f",
+  "workflowRun": "https://github.com/chainlesschain/chainlesschain/actions/runs/39102818482",
+  "artifact": "chainlesschain-0.166.105.tgz",
+  "bytes": 9417259,
+  "sha256": "a8b627111003192b2b40a8c99fbe98acc8fb13ccda16ee70ac8c3474d010ffd9",
+  "sha512": "7cec3082321d35d7595ed1bd0643afd734bac5ad2474a0efd4766dc6cf2c7a32305c5edacee8e61c70c23a932bd5485628178e8084a549d280a76db29315ff26",
+  "createdAt": "2026-10-18T06:09:25.528Z",
+  "provenance": "npm --provenance",
+  "releaseIdentity": {
+    "packageJson": {
+      "path": "package/package.json",
+      "bytes": 7381,
+      "sha256": "3fe9ffe0ab56b2a6b811eb5ad23ab24dfede4adda8f0cbec202650660c3caa1c",
+      "name": "chainlesschain",
+      "version": "0.166.105"
+    },
+    "changelog": {
+      "path": "package/src/data/changelog.json",
+      "bytes": 339315,
+      "sha256": "09648a54f0e17fadba2dceee23f5b9d902435c39561b4f9416cc0441d3c28038",
+      "cliVersion": "0.166.105"
+    }
+  },
+  "webPanel": {
+    "index": "package/src/assets/web-panel/index.html",
+    "indexBytes": 661,
+    "indexSha256": "4b96be0e97c2640e99dc09effba4e440410a31a514ada509cb1db9551bc6dcac",
+    "assets": [
+      {
+        "path": "package/src/assets/web-panel/assets/icons-DG5UD-6K.js",
+        "bytes": 209034
+      },
+      {
+        "path": "package/src/assets/web-panel/assets/index-BHg9NoJ5.js",
+        "bytes": 436752
+      },
+      {
+        "path": "package/src/assets/web-panel/assets/index-Cq93VfoF.css",
+        "bytes": 7215
+      },
+      {
+        "path": "package/src/assets/web-panel/assets/vendor-Bn1JzzAn.js",
+        "bytes": 170958
+      }
+    ]
+  },
+  "linuxSubreapers": [
+    {
+      "schema": "chainlesschain.linux-subreaper-artifact/v1",
+      "platform": "linux",
+      "arch": "x64",
+      "sourceDigest": "sha256:e920e24b4a79121484f2e8e97886755f88eaa1af93b55326dfa68c7a7f571424",
+      "imageDigest": "sha256:f162e55ad3f3f72f8a52e9d7f12b5b8db44506c2ca66a14d7d62d5cd4f12498e",
+      "bytes": 934160,
+      "linkage": "static",
+      "commit": "d4065008bb4eff84cfc09f9361f4ae4e9de2140f"
+    },
+    {
+      "schema": "chainlesschain.linux-subreaper-artifact/v1",
+      "platform": "linux",
+      "arch": "arm64",
+      "sourceDigest": "sha256:e920e24b4a79121484f2e8e97886755f88eaa1af93b55326dfa68c7a7f571424",
+      "imageDigest": "sha256:6395a47a5bd9b038303e94a5e93754258c8480dab64635460f973eb93dc6f4d8",
+      "bytes": 778808,
+      "linkage": "static",
+      "commit": "d4065008bb4eff84cfc09f9361f4ae4e9de2140f"
+    }
+  ]
+}

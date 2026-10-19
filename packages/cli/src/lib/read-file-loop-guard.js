@@ -32,6 +32,79 @@ export class ReadFileLoopGuard {
     this.batch = null;
     this.largeOutputs = new Set();
     this.editRecoveryReads = new Map();
+    this.visiblePages = null;
+    this.visibleRequest = 0;
+  }
+
+  /** Observe only the request actually selected for the provider, not history. */
+  observeVisibleMessages(messages) {
+    this.visibleRequest++;
+    this.visiblePages = [];
+    const retain = (value) => {
+      if (
+        typeof value?.path !== "string" ||
+        typeof value.fileVersion !== "string"
+      )
+        return;
+      if (typeof value.content === "string" && !value.contentOmitted) {
+        this.visiblePages.push(value);
+      }
+      for (const excerpt of Array.isArray(value.excerpts)
+        ? value.excerpts
+        : []) {
+        if (typeof excerpt?.content === "string")
+          this.visiblePages.push({
+            ...excerpt,
+            path: value.path,
+            fileVersion: value.fileVersion,
+          });
+      }
+    };
+    const retainContext = (context) => {
+      if (
+        typeof context !== "string" ||
+        !context.startsWith("[File excerpts retained across compaction")
+      )
+        return;
+      try {
+        const entries = JSON.parse(context.slice(context.indexOf("\n") + 1));
+        if (Array.isArray(entries)) entries.forEach(retain);
+      } catch {
+        /* A truncated hint provides no confirmed source evidence. */
+      }
+    };
+    for (const message of messages || []) {
+      if (message.role === "assistant") retainContext(message.content);
+      if (message.role !== "tool") continue;
+      let value;
+      try {
+        value =
+          typeof message.content === "string"
+            ? JSON.parse(message.content.split("\n\n[Budget ")[0])
+            : message.content;
+      } catch {
+        continue;
+      }
+      retain(value);
+      for (const context of Array.isArray(value?.retainedReadContext)
+        ? value.retainedReadContext
+        : []) {
+        retainContext(context);
+      }
+    }
+  }
+
+  isPageVisible(page) {
+    return (
+      this.visiblePages?.some(
+        (visible) =>
+          keyFor(visible.path, {}) === keyFor(page.path, {}) &&
+          visible.fileVersion === page.fileVersion &&
+          typeof page.content === "string" &&
+          page.content.length > 0 &&
+          visible.content.includes(page.content),
+      ) === true
+    );
   }
 
   recordEditRecovery(result) {
@@ -94,6 +167,7 @@ export class ReadFileLoopGuard {
         rereads: new Set(),
         summary: null,
         excerpts: [],
+        contextRestoreOffered: false,
       };
     }
     let page = readPage(args);
@@ -108,11 +182,11 @@ export class ReadFileLoopGuard {
         readProgress: { newContent: false },
       };
     }
-    const span = page.readSpan;
+    let span = page.readSpan;
     const covered = entry.spans.some(
       ([start, end]) => start <= span.start && end >= span.end,
     );
-    const targeted =
+    let targeted =
       Number(args.offset) > 0 &&
       Number(args.limit) > 0 &&
       Number(args.limit) <= 200 &&
@@ -122,20 +196,52 @@ export class ReadFileLoopGuard {
     );
     let newContent = !covered;
     const hadOutline = !!entry.summary?.outline;
+    // A planner can evict a read without compacting the transcript. Give one
+    // bounded landing page for that version, then require explicit ranges.
+    // Dropping the same evidence repeatedly must not reopen full-file scans.
+    if (
+      covered &&
+      entry.summary?.reachedEnd === true &&
+      !targeted &&
+      this.visiblePages !== null &&
+      entry.lastReadRequest < this.visibleRequest &&
+      !this.isPageVisible(page) &&
+      !entry.contextRestoreOffered &&
+      entry.rereads.size < 3
+    ) {
+      const offset =
+        Number.isSafeInteger(Number(args.offset)) && Number(args.offset) > 0
+          ? Number(args.offset)
+          : 1;
+      const bounded = readPage({ ...args, offset, limit: 80 });
+      if (!bounded.error && bounded.readSpan && !this.isPageVisible(bounded)) {
+        page = bounded;
+        span = page.readSpan;
+        targeted = true;
+        entry.contextRestoreOffered = true;
+      }
+    }
     if (covered || (coveredPrefix && !targeted)) {
       // Permit a bounded, explicit reread for editing or lost context. Broad
       // rescans and subsequent repeats recover automatically, including when
       // the model varies offset/limit inside an already covered region.
-      const fingerprint = createHash("sha256")
-        .update(JSON.stringify(span))
-        .digest("hex");
+      const restoring =
+        this.visiblePages !== null &&
+        entry.lastReadRequest < this.visibleRequest &&
+        !this.isPageVisible(page);
+      const fingerprint =
+        (restoring ? "restore:" : "review:") +
+        createHash("sha256").update(JSON.stringify(span)).digest("hex");
       if (
         targeted &&
         !entry.rereads.has(fingerprint) &&
         entry.rereads.size < 3
       ) {
         entry.rereads.add(fingerprint);
-        page.readRecovery = { action: "targeted-review" };
+        page.readRecovery = {
+          action: restoring ? "context-restore" : "targeted-review",
+        };
+        if (restoring) page.readRecovery.fileVersion = fileVersion;
       } else {
         const unread = entry.spans[0]?.[0] === 0 ? entry.spans[0][1] : 0;
         if (unread < span.total) {
@@ -162,12 +268,20 @@ export class ReadFileLoopGuard {
             ...(entry.summary?.outline
               ? { outline: entry.summary.outline }
               : {}),
-            hint: "The entire unchanged file has already been read during this run. Do not restart the scan. Use the retained outline/findings to perform the user's task; use search_files and a small explicit offset/limit only for missing details. Reading the file is not task completion.",
+            recoveryRead: {
+              path: filePath,
+              offset: 1,
+              limit: 80,
+              ...(args.hashed === true ? { hashed: true } : {}),
+              ...(args.raw === true ? { raw: true } : {}),
+            },
+            hint: "The unchanged file was read earlier, but historical coverage does not mean its source is visible now. Use any source excerpts actually present in this request. For missing details, use search_files or read_file with a specific offset and limit (at most 80 lines); recoveryRead is a bounded starting range, not permission to restart a full scan. Reading the file is not task completion.",
           };
         }
       }
     }
     entry.spans = mergeSpan(entry.spans, page.readSpan);
+    entry.lastReadRequest = this.visibleRequest;
     // Coverage alone cannot restore source code after compaction. Keep bounded
     // observed pages for every file type, not only large Markdown outlines.
     // Label truncation explicitly; a retained prefix is not the whole range.
@@ -231,6 +345,8 @@ export class ReadFileLoopGuard {
       return;
     if (tool === "read_file") {
       if (result?.readRecovery?.action === "edit-anchor-refresh")
+        this.batch.advanced = true;
+      if (result?.readRecovery?.action === "context-restore")
         this.batch.advanced = true;
       if (result?.readProgress?.newContent === true) this.batch.advanced = true;
       if (result?.readProgress?.newContent === false) this.batch.duplicates++;
@@ -308,7 +424,7 @@ export class ReadFileLoopGuard {
 
   get recoveryHint() {
     return this.repeatedBatches >= 1
-      ? "Repeated file reads or identical large command outputs detected. Do not switch to run_code/run_shell to dump the same file again. Filter/count locally and print only relevant rows, totals and source line numbers, or use a focused search. The runtime continues unfinished read_file scans automatically and returns use-findings after EOF. Use the retained outline to perform the user's task. Do not restart a whole-file scan after context compaction; answer once the requested evidence is sufficient."
+      ? "Repeated file reads or identical large command outputs detected. Do not switch to run_code/run_shell to dump the same file again. Filter/count locally and print only relevant rows, totals and source line numbers, or use a focused search. The runtime continues unfinished read_file scans automatically and returns use-findings after EOF. Use source evidence actually visible in this request; recover missing details with a specific offset and limit of at most 80 lines. Do not restart a whole-file scan after context compaction; answer once the requested evidence is sufficient."
       : null;
   }
 

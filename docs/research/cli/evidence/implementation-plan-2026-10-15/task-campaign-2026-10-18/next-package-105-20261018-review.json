@@ -1,0 +1,143 @@
+{
+  "schema": "chainlesschain.native-task-round-quality-review/v1",
+  "recordedAt": "2026-10-18T08:40:45.362500+00:00",
+  "status": "COMPLETED",
+  "billingAssessed": false,
+  "ledgerPath": "next-package-105-20261018.json",
+  "ledgerDigest": "sha256:c18c59578e28d0f6faca1edd34d4ffeea5f302bf21678b69ae0dcf10ca3eab4a",
+  "counts": {
+    "generationRecordsCollected": 20,
+    "acceptanceRecordsCollected": 20,
+    "candidateAcceptancePassed": 6,
+    "endToEndPassed": 6,
+    "reusedAcceptedDeliverables": 25,
+    "cumulativeAcceptedDeliverables": 31
+  },
+  "cumulativeOrdinaryAccepted": 26,
+  "cumulativeFirstRunAccepted": 5,
+  "newAcceptedSampleIds": [
+    "first-run-linux-jetbrains",
+    "first-run-darwin-vscode",
+    "verify-12",
+    "verify-14",
+    "verify-32",
+    "first-run-linux-vscode"
+  ],
+  "remainingSampleIds": [
+    "verify-04",
+    "verify-13",
+    "first-run-linux-cli",
+    "verify-06",
+    "verify-07",
+    "first-run-darwin-cli",
+    "verify-08",
+    "verify-09",
+    "first-run-darwin-jetbrains",
+    "verify-10",
+    "verify-19",
+    "verify-11",
+    "verify-30",
+    "first-run-win32-jetbrains"
+  ],
+  "failureCategories": [
+    {
+      "category": "Network failure before HTTP dispatch",
+      "samples": [
+        "verify-04",
+        "verify-06",
+        "verify-08",
+        "first-run-darwin-jetbrains"
+      ],
+      "productAction": "Explicit reason rendering already changed; preserve broker restrictions and do not replay."
+    },
+    {
+      "category": "Request dispatched; response timeout and outcome unknown",
+      "samples": [
+        "verify-19"
+      ],
+      "productAction": "No replay or usage assumption. Explicit reason rendering already changed."
+    },
+    {
+      "category": "Ordinary assistant analysis exhausted response allowance before write",
+      "samples": [
+        "first-run-darwin-cli",
+        "verify-07",
+        "verify-09"
+      ],
+      "productAction": "Shared concise action and bounded-write guidance already changed."
+    },
+    {
+      "category": "Windows owner-only ACL helper startup failure",
+      "samples": [
+        "verify-30",
+        "first-run-win32-jetbrains"
+      ],
+      "productAction": "Independent transport review owns source diagnosis; no timeout increase or verification bypass."
+    },
+    {
+      "category": "Candidate fixture or unsupported expected-value failure",
+      "samples": [
+        "first-run-linux-cli",
+        "verify-04",
+        "verify-13"
+      ],
+      "productAction": "Consolidated generic boundary guidance proposed; candidates and acceptance unchanged."
+    },
+    {
+      "category": "Negative controls do not isolate target behavior",
+      "samples": [
+        "verify-10",
+        "verify-11"
+      ],
+      "productAction": "Consolidated generic boundary guidance proposed; candidates and acceptance unchanged."
+    }
+  ],
+  "failureCategoryOverlap": "verify-04 has both a generation transport failure and an independently established candidate assertion failure; category counts must not be summed as disjoint samples.",
+  "astraReview": {
+    "path": "native-105-complete-quality-review-original.json.gz",
+    "originalDigest": "sha256:4643a27928752482d1c3163eb0f10130b86b5aa362a90fca935a04d092859ad7",
+    "storedDigest": "sha256:40ec920ac5904d5dd02cdd7c6269c783c5baf497acee9c5025c626a42663cc74",
+    "originalBytes": 35960
+  },
+  "astraReviewScope": "Original qualitative review captured before the last acceptance state update; the complete strictly verified ledger above is authoritative for final status.",
+  "exportIndex": "next-package-105-20261018-accepted-deliverables.json",
+  "exportArchive": "next-package-105-20261018-accepted-deliverables.tar.gz",
+  "exportDigest": "sha256:f7e11c6d567bcc75202f8edac336f0c63969aac802c42cede27f8a2521848b34",
+  "original25ByteReuse": true,
+  "taskGenerationRepeated": false,
+  "followupSourceCommit": "4317bf01a48a7ec612e12000936a81851c6febf3",
+  "followupPublic": false,
+  "unresolvedWindowsACL": {
+    "samples": [
+      "verify-30",
+      "first-run-win32-jetbrains"
+    ],
+    "stages": [
+      "verify",
+      "traversal"
+    ],
+    "localProbesReproducedTimeout": false,
+    "candidateDiagnosticsOnly": true,
+    "evidence": [
+      {
+        "path": "windows-acl-isolated-probe-source.cjs.gz",
+        "originalDigest": "sha256:ff47b5a407a9086d46bde398bc711680f488d9d75b14c2ca7f05e145d1ae443b",
+        "storedDigest": "sha256:77d867ab3009195fda8f84d62f0b727134f65fb916a9c80ce5f12a03d54b3201",
+        "originalBytes": 1840
+      },
+      {
+        "path": "windows-acl-isolated-probe-result.json.gz",
+        "originalDigest": "sha256:b6791bf876c692f14ea3af4d50e6155c305ef3cba194c9bcd29e584768fdd3df",
+        "storedDigest": "sha256:c428cd391b3158b9768e1e6412fe58d01092c6c371f94b0663104ceccc682484",
+        "originalBytes": 2242
+      },
+      {
+        "path": "windows-acl-progress-local-result.json.gz",
+        "originalDigest": "sha256:2893b768388aaf1f20c04b9daacfd1ea65a848486e82fc343bd0b4930807ee18",
+        "storedDigest": "sha256:9915abaf42b8b42924d3bc5176168a34b53429f0fda4abacf1a400283ea3e5fd",
+        "originalBytes": 5413
+      }
+    ],
+    "releaseNote": "A session-core implementation change requires a new child package and aligned CLI dependency before publication; diagnostics remain on a separate branch."
+  }
+}

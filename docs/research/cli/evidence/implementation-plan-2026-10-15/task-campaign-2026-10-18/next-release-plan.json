@@ -1,0 +1,1047 @@
+{
+  "schema": "chainlesschain.next-release-task-optimization/v1",
+  "recordedDate": "2026-10-18",
+  "status": "105_RETEST_COMPLETE_FOLLOWUP_RELEASE_IN_VALIDATION",
+  "userDecisions": [
+    "不合格的需要代码优化 下一个版本进行补测",
+    "需要发布新的cli或ide插件的下一个版本再测试",
+    "记得把结论记录起来",
+    "可以先发布后合并",
+    "不合格的要继续修复 重新发布cli和ide插件直到全部任务合格"
+  ],
+  "releaseAuthorized": true,
+  "billingAssessed": false,
+  "currentPublicVersionsEvaluated": {
+    "cli": "0.166.104",
+    "vscode": "0.37.149",
+    "jetbrains": "0.4.166"
+  },
+  "currentFindings": {
+    "provisional": false,
+    "latestPackageGenerationRecords": 25,
+    "latestPackageAcceptanceRecords": 25,
+    "plannedLatestPackageSamples": 25,
+    "historicallyAcceptedReused": 20,
+    "newCandidateAcceptancePassed": 5,
+    "newEndToEndPassed": 4,
+    "cumulativeCandidateAccepted": 25,
+    "ordinaryCandidateAccepted": 23,
+    "firstRunCandidateAccepted": 2,
+    "pendingRun": null,
+    "pendingSampleIds": [],
+    "jetbrainsRestoration": "Five collected latest-package restart failures preserve the session, row ID and original Markdown; the restored body displays raw Markdown instead of preserving the live rendered body. verify-33 passes candidate acceptance but fails native end-to-end restoration.",
+    "fetchDiagnostic": "The separate verify-19 follow-up completed 19/19 request receipts with passive diagnostics enabled and did not reproduce fetch failed. Baseline 17/17 and candidate 5/5 passed, but the behavioral mutant also passed 5/5; candidate acceptance remains false and the original transport cause remains unknown.",
+    "scope": "Thinking disabled, six file tools, fixed project snapshot and request/turn/output limits. Generation runs on native hosts; all candidate execution acceptance runs in Linux offline Docker. Historical accepted files are reused and are not new latest-version runs.",
+    "prior22CollectedFailureCategories": {
+      "relativeImportErrors": 3,
+      "assertionOrFixtureErrors": 9,
+      "behavioralCoverageMissing": 3,
+      "noCompletedDelivery": 2
+    },
+    "failedCandidateCategoriesAmong25Collected": {
+      "relativeImportErrors": 3,
+      "assertionOrFixtureErrors": 9,
+      "behavioralCoverageMissing": 3,
+      "noCompletedDelivery": 5
+    },
+    "windowsJetbrainsStartup": "All three original Windows JetBrains records and independent acceptance receipts are collected and failed. The first CLI exited after a private-directory ACL traversal timeout; a later cleanup identity snapshot timeout masked that startup error. The next two samples failed with EADDRINUSE on 127.0.0.1:8082. All candidate files remain original 27-byte placeholders; no port owner is established by the archive. The test environment placed its profile outside the child os.tmpdir boundary. This layout is corrected in the next harness, with all product ACL checks retained. The actual hosted timeout is not reproduced or declared fixed."
+  },
+  "evidence": {
+    "latestRound": "latest-package-round.json",
+    "latestQualityReview": "latest-package-task-quality-review.json",
+    "linuxVSCodeReview": "latest-linux-vscode-review.json",
+    "jetbrainsRestartReview": "latest-jetbrains-restart-review.json",
+    "fetchFollowup": "fetch-diagnostics-followup.json",
+    "fetchFollowupReview": "fetch-diagnostic-followup-review.json",
+    "acceptedDeliveryIndex": "accepted-deliverables.json",
+    "existingSourceFixValidation": "optimization-validation.json",
+    "windowsJetbrainsStartupReview": "latest-windows-jetbrains-startup-review.json",
+    "windowsACLPreflight": "next-package-windows-acl-preflight.json",
+    "archivedReplyRecoveryPlan": "next-package-archived-reply-recovery-plan.json"
+  },
+  "implementationRequirements": [
+    "Improve product code and general task-completion feedback for observed failures; preserve original candidates and original verdicts.",
+    "Include and verify the JetBrains restoration source fix in the next published plugin.",
+    "Improve generic code-writing verification for relative import mistakes and false completion claims without injecting task-specific solutions or weakening acceptance.",
+    "Preserve bounded structured transport causes without logging credentials or blindly replaying model requests.",
+    "Record each product fix, exact source commit, focused regression evidence, released version, package fetch proof and later task result."
+  ],
+  "releaseRequirements": {
+    "method": "GitHub Actions OIDC Trusted Publishing for npm; established IDE release workflows",
+    "exactReleaseCommit": "d4065008bb4eff84cfc09f9361f4ae4e9de2140f",
+    "requiredMatrices": [
+      "Linux, Windows and macOS checks for the exact release commit",
+      "CLI CI on every configured OS",
+      "CLI Strict Sandbox on every configured OS"
+    ],
+    "publishOrder": [
+      "Required child npm packages in dependency order",
+      "CLI after every required child package is fetchable and downstream versions align",
+      "VS Code and JetBrains extensions after the CLI release is available"
+    ],
+    "noReleaseFromPartialOldOrTimedOutChecks": true,
+    "pullRequest": "https://github.com/chainlesschain/chainlesschain/pull/461",
+    "supersededCandidateCommits": [
+      "372334d2136a69a4d313bc460c1a73d051773bcb",
+      "f5fa3c23cf02e0a80b15750717fac866515bfb07",
+      "25782a535ea296548f0f8347544da378e8fdf738",
+      "78f41dba010e18d0ae2f1b7756ecff5f1232ab2a"
+    ],
+    "remoteRuns": [
+      {
+        "name": "CLI Strict Sandbox",
+        "runId": 39095758657,
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "IDE Extensions",
+        "runId": 39095758578,
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "IDE ARM64 Host Validation",
+        "runId": 39095758682,
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "CLI CI",
+        "runId": 39095758702,
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ],
+    "supersededChecksCancelled": true,
+    "remoteChecksObservedAt": "2026-10-18T06:06:47.665038+00:00",
+    "resolvedGateFailures": [
+      {
+        "workflow": "Docs-Site Build Gate",
+        "runId": "39092688943",
+        "reason": "New upgrade guide lacked the repository required section headings.",
+        "fixCommit": "25782a535ea296548f0f8347544da378e8fdf738",
+        "localValidation": "315 user documents all have 11 nonempty required sections; full remote docs build still required."
+      },
+      {
+        "workflow": "CLI Strict Sandbox",
+        "runId": "39093031334",
+        "failedJobs": [
+          "117573650636",
+          "117573650709"
+        ],
+        "reason": "Reviewed producer digest for headless-runner.test.js was stale after added quality/transport assertions.",
+        "fixCommit": "78f41dba010e18d0ae2f1b7756ecff5f1232ab2a",
+        "unchangedMappedTest": "rejects bypassPermissions when managed policy disables it",
+        "localValidation": {
+          "selectedPassed": 29,
+          "failed": 0,
+          "unselected": 948,
+          "rawReport": {
+            "path": "next-release-validation/security-map-tests.json.gz",
+            "originalDigest": "sha256:e64ad233dd3785f51eb0d8caca054843da67e000192e80e36c259695563db6ac",
+            "storedDigest": "sha256:34d29d45dbee7af18ee47d87e164f33b9cef492ce9a78e944b408390bb8f66bc",
+            "originalBytes": 305089
+          },
+          "sourceReview": "next-release-validation/security-map-review.json"
+        },
+        "scope": "Only one producer hash was rebound; tests, disposition, thresholds and permission order were not weakened. Final exact-SHA remote gates remain required."
+      }
+    ],
+    "priorCandidateGateEvidence": [
+      {
+        "name": "IDE ARM64 Host Validation",
+        "runId": 39093458574,
+        "status": "completed",
+        "conclusion": "success",
+        "jobsPassed": 10,
+        "evidence": {
+          "path": "next-release-validation/ide-arm64-78f41dba01.json.gz",
+          "originalDigest": "sha256:60ac9eef5311650ff2b9b1c427886fde67c9c02a4167d8f3aa54d930e2a021e4",
+          "storedDigest": "sha256:027ddf2f4ab26dee280c4a338aeabeaac7985053e6b3c4577f209ba3da4f4f96",
+          "originalBytes": 46952
+        }
+      },
+      {
+        "name": "CLI Strict Sandbox",
+        "runId": 39093458609,
+        "status": "completed",
+        "conclusion": "success",
+        "jobsPassed": 5,
+        "evidence": {
+          "path": "next-release-validation/cli-strict-sandbox-78f41dba01.json.gz",
+          "originalDigest": "sha256:b7e31d2393c8e4409c7b15dc6be7db5f3bd5261eafebbe741970b076743ec134",
+          "storedDigest": "sha256:ec94148c498da80d122b13385c701ba5b097e20d722bec0e0c448386a59d0756",
+          "originalBytes": 27823
+        }
+      }
+    ],
+    "readmeAlignment": {
+      "commit": "d4065008bb4eff84cfc09f9361f4ae4e9de2140f",
+      "reason": "The packed CLI Quick Start still pinned .104. The package version/pairing and Quick Start now match .105, with a clearly historical prepublication evaluation snapshot.",
+      "runtimeCodeChanged": false,
+      "priorSourceSuccessesNotUsedAsNewExactSHAGates": true,
+      "requiresNewFullMatrices": true
+    },
+    "publishBeforeMergeAuthorized": true,
+    "releaseTagsTargetExactVerifiedCommit": true,
+    "mergeAfterPublicationSubjectToBranchProtection": true,
+    "currentCandidateGateEvidence": [
+      {
+        "name": "CLI CI",
+        "runId": 39095758702,
+        "status": "completed",
+        "conclusion": "success",
+        "sourceCommit": "d4065008bb4eff84cfc09f9361f4ae4e9de2140f",
+        "jobCount": 71,
+        "jobConclusions": {
+          "success": 71
+        },
+        "archive": {
+          "path": "next-release-validation/cli-ci-d4065008bb.json.gz",
+          "storedDigest": "sha256:74736a140f4205698f19a3e3d71eabee961827fa8b9de7f6cb2bc2e86bba0ea5",
+          "originalDigest": "sha256:4a5f91e953fcf739053ee207388031d2991002dbdeaf3dc294736425d6b231a7"
+        }
+      },
+      {
+        "name": "CLI Strict Sandbox",
+        "runId": 39095758657,
+        "status": "completed",
+        "conclusion": "success",
+        "sourceCommit": "d4065008bb4eff84cfc09f9361f4ae4e9de2140f",
+        "jobCount": 5,
+        "jobConclusions": {
+          "success": 5
+        },
+        "archive": {
+          "path": "next-release-validation/cli-strict-sandbox-d4065008bb.json.gz",
+          "storedDigest": "sha256:5ba0c68b268bf83c48bcc268d8f539c39e6ea1abba94daa8456beb158325e3eb",
+          "originalDigest": "sha256:0208bb99d548916e5b3c2c2078a8694b3d062251cfd8fb774ceea4e56dd5daa6"
+        }
+      },
+      {
+        "name": "IDE Extensions",
+        "runId": 39095758578,
+        "status": "completed",
+        "conclusion": "success",
+        "sourceCommit": "d4065008bb4eff84cfc09f9361f4ae4e9de2140f",
+        "jobCount": 19,
+        "jobConclusions": {
+          "success": 18,
+          "skipped": 1
+        },
+        "archive": {
+          "path": "next-release-validation/ide-extensions-d4065008bb.json.gz",
+          "storedDigest": "sha256:7b5deef6bf258c4bb5170c80b55071b3d3bbe235771ed67b7a18503c3c6ef214",
+          "originalDigest": "sha256:44208e93e947a990ca56b379dba0900112aa5cc2bdb5ccd4da5922d1325fd30c"
+        }
+      },
+      {
+        "name": "IDE ARM64 Host Validation",
+        "runId": 39095758682,
+        "status": "completed",
+        "conclusion": "success",
+        "sourceCommit": "d4065008bb4eff84cfc09f9361f4ae4e9de2140f",
+        "jobCount": 10,
+        "jobConclusions": {
+          "success": 10
+        },
+        "archive": {
+          "path": "next-release-validation/ide-arm64-d4065008bb.json.gz",
+          "storedDigest": "sha256:5dafc6cec0e65510cad8205c0587bbbc2f914f2eb11bbe831dfb9cc6ba855151",
+          "originalDigest": "sha256:3239acc205472c62b417405582ce86c72fb68aaabf67fd1f8ce84382a0ea5efd"
+        }
+      }
+    ],
+    "officialCliGateAttestation": {
+      "path": "next-release-validation/cli-release-gate-d4065008bb.json",
+      "digest": "sha256:99ec588540b236b223f48ae3d9d1e9916e77ed1427742607560fc74d205cedad",
+      "bytes": 923
+    }
+  },
+  "retestPolicy": {
+    "newPublishedVersionsRequired": true,
+    "currentVersionAdditionalPaidRetries": false,
+    "finishAlreadyDispatchedWindowsSamples": true,
+    "selection": "Original latest-package generation and acceptance are complete. After publishing and verifying the newer package set, generate only the 20 still-unqualified sample IDs. Reuse all 25 accepted candidate files and receipts.",
+    "acceptedFilesMustNotBeRegeneratedForUIValidation": true,
+    "preserveAllPriorFailures": true,
+    "mustNotReportLocalRegressionsAsPublishedNativeTaskPasses": true
+  },
+  "fixes": [
+    {
+      "kind": "jetbrains-markdown-restoration",
+      "releaseFixCommit": "bb872750745ef70446fb8312d7a3a0b61e482c13",
+      "status": "IMPLEMENTED_PENDING_PUBLISHED_NATIVE_RETEST",
+      "scope": "Live and restored assistant rows share Markdown renderer; canonical source and row identity retained."
+    },
+    {
+      "kind": "unresolved-deferred-mutation-completion",
+      "releaseFixCommit": "1e107a0ba222b2ba0a2b7aa06c7d003c8dbc0167",
+      "status": "IMPLEMENTED_LOCAL_REGRESSION_PASSED",
+      "scope": "Pending write/edit work cannot settle as successful completion."
+    },
+    {
+      "kind": "owned-cancellation-classification",
+      "releaseFixCommit": "2ba4306dffe20c91f6430aebe25d19ff5b70664a",
+      "status": "IMPLEMENTED_LOCAL_REGRESSION_PASSED",
+      "scope": "Only owned cancellation signals mark interruption; upstream abort remains error."
+    },
+    {
+      "kind": "coding-guidance-import-feedback-and-safe-transport-details",
+      "releaseFixCommit": "d500d87dcf",
+      "developmentCommit": "b893f45762",
+      "status": "IMPLEMENTED_LOCAL_REGRESSION_PASSED",
+      "scope": "General source/API/fixture guidance, bounded static metadata-only relative import feedback in all three mutation tools, and optional allowlisted transport causes without replay/retry."
+    },
+    {
+      "kind": "equivalent-successful-content-mutation",
+      "releaseFixCommit": "f5fa3c23cf02e0a80b15750717fac866515bfb07",
+      "developmentCommit": "adcf329166",
+      "status": "IMPLEMENTED_LOCAL_REGRESSION_PASSED",
+      "scope": "Successful write/edit/hashed-edit operations settle the same content target; denied, failed and deferred operations do not settle it; move/delete remain independent.",
+      "focusedTestsPassed": 14,
+      "foundBy": "Astra independent source review"
+    }
+  ],
+  "publishedPackages": [
+    {
+      "kind": "cli",
+      "version": "0.166.105",
+      "sourceCommit": "d4065008bb4eff84cfc09f9361f4ae4e9de2140f",
+      "publicFetchVerified": true,
+      "modelTaskRetestPerformed": false
+    },
+    {
+      "kind": "vscode",
+      "version": "0.37.150",
+      "sourceCommit": "d4065008bb4eff84cfc09f9361f4ae4e9de2140f",
+      "publicFetchVerified": true,
+      "officialCandidateBytesMatch": true,
+      "modelTaskRetestPerformed": false
+    },
+    {
+      "kind": "jetbrains",
+      "version": "0.4.167",
+      "sourceCommit": "d4065008bb4eff84cfc09f9361f4ae4e9de2140f",
+      "publicFetchVerified": true,
+      "modelTaskRetestPerformed": false
+    }
+  ],
+  "nextVersionRetestRuns": [
+    {
+      "shardId": "linux-cli",
+      "group": "linux-cli",
+      "runId": "39106967536",
+      "sourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39106967536"
+    },
+    {
+      "shardId": "linux-jetbrains--verify-06",
+      "group": "linux-jetbrains",
+      "runId": "39106991066",
+      "sourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39106991066"
+    },
+    {
+      "shardId": "linux-jetbrains--first-run-linux-jetbrains",
+      "group": "linux-jetbrains",
+      "runId": "39107016136",
+      "sourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39107016136"
+    },
+    {
+      "shardId": "darwin-cli",
+      "group": "darwin-cli",
+      "runId": "39107035717",
+      "sourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39107035717"
+    },
+    {
+      "shardId": "darwin-vscode",
+      "group": "darwin-vscode",
+      "runId": "39107065069",
+      "sourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39107065069"
+    },
+    {
+      "shardId": "darwin-jetbrains--verify-09",
+      "group": "darwin-jetbrains",
+      "runId": "39107091580",
+      "sourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39107091580"
+    },
+    {
+      "shardId": "darwin-jetbrains--first-run-darwin-jetbrains",
+      "group": "darwin-jetbrains",
+      "runId": "39107110039",
+      "sourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39107110039"
+    },
+    {
+      "shardId": "win32-cli",
+      "group": "win32-cli",
+      "runId": "39107134691",
+      "sourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39107134691"
+    },
+    {
+      "shardId": "win32-vscode",
+      "group": "win32-vscode",
+      "runId": "39107156493",
+      "sourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39107156493"
+    },
+    {
+      "shardId": "win32-jetbrains--verify-12",
+      "group": "win32-jetbrains",
+      "runId": "39107179320",
+      "sourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39107179320"
+    },
+    {
+      "shardId": "win32-jetbrains--verify-30",
+      "group": "win32-jetbrains",
+      "runId": "39107198745",
+      "sourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39107198745"
+    },
+    {
+      "shardId": "win32-jetbrains--first-run-win32-jetbrains",
+      "group": "win32-jetbrains",
+      "runId": "39107223845",
+      "sourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39107223845"
+    },
+    {
+      "shardId": "linux-vscode",
+      "group": "linux-vscode",
+      "runId": "39107247624",
+      "sourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39107247624"
+    }
+  ],
+  "candidateVersions": {
+    "cli": "0.166.105",
+    "vscode": "0.37.150",
+    "jetbrains": "0.4.167"
+  },
+  "localSupplementaryValidation": {
+    "sourceCommitBeforeVersionBump": "d500d87dcf",
+    "environment": "Windows; existing matching root and CLI dependencies; no paid model calls",
+    "results": [
+      {
+        "session": 66846,
+        "files": 5,
+        "passed": 190,
+        "failed": 0,
+        "scope": "headless-runner, headless-stream, abort classification, headless deferred mutations, agent deferred mutations"
+      },
+      {
+        "session": 84916,
+        "files": 2,
+        "passed": 33,
+        "failed": 0,
+        "scope": "file-import diagnostics and exact-scope mutation feedback"
+      },
+      {
+        "suite": "transport-error-details.node-test.mjs",
+        "passed": 3,
+        "failed": 0,
+        "scope": "safe data-only projection and one real local disconnected fetch"
+      },
+      {
+        "check": "command manifest and public IDE capability manifest",
+        "status": "PASSED"
+      },
+      {
+        "check": "budget egress reviewed source identities",
+        "status": "PASSED",
+        "networkCandidates": 73,
+        "unclassified": 0,
+        "parseErrors": 0,
+        "paidAdmissionGranted": false
+      },
+      {
+        "check": "JetBrains release metadata; VS Code marketplace overview; version consistency",
+        "status": "PASSED"
+      }
+    ],
+    "environmentFailure": "First attempt could not import chalk in the new worktree. After linking existing matching CLI dependencies, all five affected suites ran and passed. No assertion failure was ignored.",
+    "limitation": "Local checks are supplementary; final exact-SHA full CI matrices and public artifact/native task retests remain required.",
+    "followup": {
+      "fixCommit": "f5fa3c23cf02e0a80b15750717fac866515bfb07",
+      "focusedDeferredMutationTestsPassed": 14,
+      "sourceReviewPassed": true,
+      "checksFromEarlierSourceNotRecastAsFinalSHAFullMatrix": true
+    }
+  },
+  "selectiveRetestPreparation": {
+    "workflowInput": "package_set_file",
+    "helper": "packages/cli/scripts/verify01-native-retest-plan.mjs",
+    "testsPassed": 13,
+    "modelCalls": 0,
+    "requiresOriginalRoundComplete": true,
+    "requiresNewerCLI": true,
+    "mustUseIndependentLedger": true,
+    "roundVerifier": "packages/cli/scripts/verify01-native-retest-round.mjs",
+    "roundVerifierTestsPassed": 8,
+    "collector": "packages/cli/scripts/verify01-collect-native-retest.py",
+    "collectorStatus": "EXERCISED_ON_REAL_QUEUED_RUNS_NO_RESULTS_YET",
+    "originalRoundComplete": true,
+    "originalStrictCompleteVerificationPassed": true,
+    "expectedUnfinishedSamples": 20,
+    "reusedAcceptedSamples": 25,
+    "executionShards": "JetBrains: one sample per run; other entries: one explicit unfinished subset per group",
+    "noTerminalExceptionUsed": true,
+    "dispatchConcurrency": "No global pending replacement; group, canonical sample selection and run ID key",
+    "generationStepLimitMinutes": 115,
+    "jobLimitMinutes": 145,
+    "alwaysUploadStepLimitMinutes": 15,
+    "acceptedReplyRecovery": {
+      "status": "HOME_FIX_OFFICIAL_REPLAY_DISPATCHED",
+      "modelRequestsAllowed": false,
+      "sampleId": "verify-33",
+      "pluginVersionRequired": "0.4.167",
+      "platform": "linux",
+      "ideVersion": "2025.2",
+      "plan": "next-package-archived-reply-recovery-plan.json",
+      "sourceCommit": "d602df64d3",
+      "nodePassed": 6,
+      "workflowSchemaFixCommit": "bc9f645880",
+      "workflowActionlintPassed": true,
+      "nodeLinuxOnlySkipped": 1,
+      "jdk21UiCompilationPassed": true,
+      "runId": "39108779712",
+      "executionSourceCommit": "04d48ca7feb5f587f3c2495500cd9a2dad0c9e49",
+      "originalAttempt": {
+        "runId": "39107288123",
+        "executionSourceCommit": "a48e13fc30bd9e74ca5c6c262f8b1b470e47a138",
+        "metadata": {
+          "path": "next-release-validation/archived-reply-105-first-attempt-failure.json.gz",
+          "digest": "sha256:12c696c841aa69d40e68d6ef5e22c805d29777bf3b6ff1e13da7775fa4411037",
+          "bytes": 3423,
+          "originalDigest": "sha256:3b7433801fd6f8d67e1730cd74f7ffc3edfd98a78eb372420ed3007108510c64",
+          "originalBytes": 26603
+        },
+        "failedStepLog": {
+          "path": "next-release-validation/archived-reply-105-first-attempt-failed-step.log.gz",
+          "digest": "sha256:1f6d370dc103995ec6ec21fae7a1dbdd2986bcbd7d4ab74cc2858bb2ac65d8d6",
+          "bytes": 1741,
+          "originalDigest": "sha256:1405b9f07aa1ad0484ef2daa3ed752c1669808f2131039bf9a142f45c177c84c",
+          "originalBytes": 11307
+        },
+        "failedStep": "Verify local replay and canonical persistence regressions",
+        "failedTest": "one deterministic reply persists exact bytes and the real history command reads them",
+        "passedUnitCases": 6,
+        "failedUnitCases": 1,
+        "realIdeReplayStarted": false,
+        "modelRequests": 0
+      },
+      "identifiedHarnessCause": "Linux fixture HOME equals CHAINLESSCHAIN_HOME; canonical storage correctly rejects using os.homedir itself with CONFIG_HOME_UNSAFE. WSL reproduction confirms failure at start-canonical-session. Product protection stays enabled.",
+      "implementedHarnessFix": "Separate the fixture HOME from its unchanged root/home canonical data and root/security directories; verify affected environment and canonical persistence regressions before retrying the no-model replay.",
+      "homeIsolationSupplementaryValidation": {
+        "status": "PASSED_AFFECTED_FIXTURE_TESTS_ONLY",
+        "platform": "WSL Ubuntu",
+        "nodeVersion": "22.22.2",
+        "affectedCasesPassed": 2,
+        "modelRequests": 0,
+        "ideStarted": false,
+        "officialNode22120CheckPending": true,
+        "publicPluginRecoveryVerified": false,
+        "evidence": {
+          "archived-reply-home-isolation-before.json": {
+            "path": "next-release-validation/archived-reply-home-isolation-before.json.gz",
+            "digest": "sha256:1abdc2555f91c267edec70450783d752880a6da032cf167da57297d3c2857c40",
+            "bytes": 785,
+            "originalDigest": "sha256:fbc74c6b95263d69444cee82e31f1a045bf697a67a60de706d56a8de4fa62678",
+            "originalBytes": 1282
+          },
+          "archived-reply-home-isolation-after.json": {
+            "path": "next-release-validation/archived-reply-home-isolation-after.json.gz",
+            "digest": "sha256:c4b6d330f9a0be5ee822961db2b727767463e8e816e02b859da5462248f6d6a5",
+            "bytes": 1030,
+            "originalDigest": "sha256:b148a2ca0e1c6ff4e8295e6cd3261965eaf7eb5854ed7ed35f9f39e912f60234",
+            "originalBytes": 1881
+          },
+          "archived-reply-home-isolation-env-after.log": {
+            "path": "next-release-validation/archived-reply-home-isolation-env-after.log.gz",
+            "digest": "sha256:55d4f4037d10b788c99a61be638ae5a6c451b214692638a0694ccb8188a17982",
+            "bytes": 287,
+            "originalDigest": "sha256:a9492ccf7f593bb19d01013091d753fcc04e29e3ea276f240c0f587774ef20df",
+            "originalBytes": 758
+          },
+          "archived-reply-home-isolation-canonical-after.log": {
+            "path": "next-release-validation/archived-reply-home-isolation-canonical-after.log.gz",
+            "digest": "sha256:81569b427ff852ccca893e04b3a7fffe38f861ab9f5f664076a485d9cf726269",
+            "bytes": 290,
+            "originalDigest": "sha256:6531b7ef728bb6062d593a167b2f6332aab51cead1b3c7e1add164a80f92500e",
+            "originalBytes": 750
+          },
+          "archived-reply-home-isolation-launch-error.log": {
+            "path": "next-release-validation/archived-reply-home-isolation-launch-error.log.gz",
+            "digest": "sha256:ca8a9918c1a02d8ffdc8f6c8ba85ce0a5403a195793aec9ea32d2ea925292fe5",
+            "bytes": 340,
+            "originalDigest": "sha256:d30070c0979ec0ce4e1539d5a5b85f6edc4e46c3155a79d5b9b8cdbcab19c6ac",
+            "originalBytes": 794
+          }
+        }
+      },
+      "homeFixDispatch": {
+        "path": "next-release-validation/archived-reply-105-homefix-dispatch.json",
+        "digest": "sha256:6bf04223a23d5066b459aa661ee391d0681dbc911f76e5d6c60a56756b1bc631",
+        "bytes": 1811
+      }
+    },
+    "dispatcher": "packages/cli/scripts/verify01-dispatch-native-retest.py",
+    "preparedPlan": {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-105-20261018-plan.json",
+      "digest": "sha256:2296d637b34f63aff931b5e580da5023df5a47a7e7db3f0f2b314311a3e5579f",
+      "status": "PREPARED_NOT_DISPATCHED",
+      "newSamples": 20,
+      "reusedAcceptedSamples": 25,
+      "executionShards": 13,
+      "dispatchStatus": "DISPATCHED"
+    },
+    "dispatchReceipt": {
+      "path": "next-release-validation/native-105-dispatch-receipt.json",
+      "digest": "sha256:04926589c0cd8c8dd7b51b7dfd187ddfb0c11429ecfe56fd583a61cce2bbe5bc",
+      "bytes": 2847
+    }
+  },
+  "nativeHarnessFollowup": {
+    "status": "IMPLEMENTED_LOCAL_REGRESSION_PASSED_PENDING_PUBLISHED_NATIVE_RETEST",
+    "sourceCommit": "e56bd0236c7abad37a4dee4d193648f2abdd1e56",
+    "changes": [
+      "Align child temporary directory and isolated profile containment without changing ACL validation or its 60000ms bound.",
+      "Preserve primary failure and attach bounded cleanup failure diagnostics.",
+      "Keep PID and creation-time identity checks; never kill an unverified process.",
+      "Bound Windows cleanup by one shared deadline and release only the owned Node child reference on failure.",
+      "Prevent later samples from starting after unconfirmed host cleanup or broker shutdown.",
+      "Preserve missing optional summary fields rather than changing them to JSON null in the collectors."
+    ],
+    "validation": [
+      {
+        "scope": "plan and native campaign including actual child storage boundary",
+        "passed": 21
+      },
+      {
+        "scope": "diagnostic process lifecycle",
+        "passed": 6
+      },
+      {
+        "scope": "cleanup error preservation and exhausted Windows cleanup budget",
+        "passed": 2
+      },
+      {
+        "scope": "JetBrains native adapter",
+        "passed": 8
+      }
+    ],
+    "productACLChanged": false,
+    "hostedTimeoutReproducedLocally": false,
+    "windowsCleanupDeadlineMs": 60000,
+    "windowsIdentitySnapshotLimitMs": 30000,
+    "limitation": "Local probes and harness regressions do not establish success of the next public CLI/IDE task run."
+  },
+  "acceptedRoundChain": {
+    "status": "IMPLEMENTED_OFFLINE_VALIDATED_NOT_YET_POPULATED",
+    "registry": "next-package-round-chain.json",
+    "scope": "Evaluation tooling only; release source d4065008bb4eff84cfc09f9361f4ae4e9de2140f is unchanged.",
+    "reason": "A later package round must reuse newly accepted candidate files from completed prior rounds, including candidates whose IDE end-to-end verdict failed.",
+    "rules": [
+      "No arbitrary ledger discovery: append explicit plan and ledger paths and SHA-256 digests only after complete strict verification.",
+      "Each plan binds its immutable prior-round prefix; dispatch requires the complete currently registered prefix.",
+      "Every prior round is verified with its own prefix, archived candidate and acceptance evidence before acceptance flags contribute.",
+      "Compare a new CLI version against the verified chain tail; reject duplicate runs, repeated accepted candidates and cyclic references."
+    ],
+    "validation": {
+      "command": "node --test packages/cli/test-node/verify01-native-retest-plan.node-test.mjs packages/cli/test-node/verify01-native-retest-round.node-test.mjs",
+      "passed": 21,
+      "failed": 0,
+      "exitCode": 0,
+      "toolOutputChunk": "41389d",
+      "modelRequests": 0
+    },
+    "originalEvidenceModified": false,
+    "actualPriorRoundsRegistered": 0
+  },
+  "publication": {
+    "cli": {
+      "version": "0.166.105",
+      "tag": "v-npm-0-166-105",
+      "tagCommit": "d4065008bb4eff84cfc09f9361f4ae4e9de2140f",
+      "workflowRunId": "39102818482",
+      "workflowUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/39102818482",
+      "method": "GitHub Actions OIDC Trusted Publishing",
+      "createdAt": "2026-10-18T06:05:39Z",
+      "statusObserved": "completed",
+      "runArchive": {
+        "path": "next-release-validation/cli-publication-39102818482-initial.json.gz",
+        "digest": "sha256:2ec58d280427d6ef4031a850327e59368158af87427b8d1cad91629f808bd394",
+        "bytes": 2087
+      },
+      "publicFetchVerified": true,
+      "conclusionObserved": "success",
+      "publicReadback": {
+        "path": "next-release-validation/cli-public-readback/readback.json",
+        "digest": "sha256:611de63ae5eb821f8e395b2b7ec15c7b4329ad003d52816c0f4f337d10c5939f",
+        "bytes": 5151
+      },
+      "npmProvenanceVerified": true,
+      "publicReadbackEvidence": {
+        "readback.json": {
+          "path": "next-release-validation/cli-public-readback/readback.json",
+          "digest": "sha256:611de63ae5eb821f8e395b2b7ec15c7b4329ad003d52816c0f4f337d10c5939f",
+          "bytes": 5151
+        },
+        "npm-metadata.json": {
+          "path": "next-release-validation/cli-public-readback/npm-metadata.json",
+          "digest": "sha256:9cd478149a722694ac061cf9f828844cde260d63ffc17455b7eacd8e61428829",
+          "bytes": 7696
+        },
+        "official/agent-protocol-npm-provenance.json": {
+          "path": "next-release-validation/cli-official-readback/agent-protocol-npm-provenance.json",
+          "digest": "sha256:a95321f70fbb6b51d0cbb8f5062f8be6d16ded54f73c98709fa02bd427e67bd6",
+          "bytes": 1207
+        },
+        "official/agent-sdk-npm-provenance.json": {
+          "path": "next-release-validation/cli-official-readback/agent-sdk-npm-provenance.json",
+          "digest": "sha256:01f3bed76c988ff37719b8f8b838fdab229f7d1d333cf2495cb3d242ef1713c2",
+          "bytes": 1199
+        },
+        "official/chainlesschain-npm-provenance.json": {
+          "path": "next-release-validation/cli-official-readback/chainlesschain-npm-provenance.json",
+          "digest": "sha256:3e38568b03845ef98360ad430b149bc8625a33d2d500ba8c1062969d9f4cff5b",
+          "bytes": 833
+        },
+        "official/chainlesschain-release.json": {
+          "path": "next-release-validation/cli-official-readback/chainlesschain-release.json",
+          "digest": "sha256:72e4f3a20a33c1be0e0139a83d7e30ca52ab0b4fb2c7d510276f1907c70da940",
+          "bytes": 2610
+        },
+        "official/cli-public-child-install.json": {
+          "path": "next-release-validation/cli-official-readback/cli-public-child-install.json",
+          "digest": "sha256:acd37b0bc480bb21b420b3b9d701d2ae590b38d84271df6c740a8a6d339920ad",
+          "bytes": 3285
+        },
+        "official/context-memory-kernel-npm-provenance.json": {
+          "path": "next-release-validation/cli-official-readback/context-memory-kernel-npm-provenance.json",
+          "digest": "sha256:da57e39488d87ce0e495ac5e36f54b1ccbbb17a33ddc58543e1d70f8d6f9b858",
+          "bytes": 1223
+        },
+        "tools/verify-public-cli-105.py": {
+          "path": "next-release-validation/public-readback-tools/verify-public-cli-105.py",
+          "digest": "sha256:e514f8a90adc29335dfa0347b2e7aece29ca57a5678d123bc0c03bb9b12c8395",
+          "bytes": 10051
+        },
+        "tools/resolve-next-task-package-set.py": {
+          "path": "next-release-validation/public-readback-tools/resolve-next-task-package-set.py",
+          "digest": "sha256:7d20e168e7a504d9d1ec6ff584619cf4fa4615e129110655a31cb72370daeff2",
+          "bytes": 25792
+        }
+      }
+    },
+    "vscode": {
+      "workflowRunId": "39104012121",
+      "workflowUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/39104012121",
+      "statusObserved": "completed",
+      "conclusionObserved": "success",
+      "runArchive": {
+        "path": "next-release-validation/vscode-publication-39104012121-initial.json.gz",
+        "digest": "sha256:b9e5602eb9377e9e972a87a83b60ea79f5944ea47ca0d16fb93ff137945d0d62",
+        "bytes": 1488
+      },
+      "version": "0.37.150",
+      "tag": "ide-vscode-v0.37.150",
+      "tagCommit": "d4065008bb4eff84cfc09f9361f4ae4e9de2140f",
+      "tagArchive": {
+        "path": "next-release-validation/ide-release-tags-d406.json",
+        "digest": "sha256:b29e6cb47cbcfd091d6a98669338ecd6fa350b91e6e84c8af54d0f65a73dcbd8",
+        "bytes": 2964
+      },
+      "publicFetchVerified": true,
+      "jobsSuccessful": 11,
+      "finalRunArchive": {
+        "path": "next-release-validation/vscode-publication-39104012121-final.json.gz",
+        "digest": "sha256:e91022004fb439766e4ee5b100de83fc813f27f642cfd203098b2ac85af76ae8",
+        "bytes": 3340
+      },
+      "publicReadback": {
+        "path": "next-release-validation/vscode-public-readback/readback.json",
+        "digest": "sha256:eed3f835cd9c4f4c1d3d5751a68c9dc16307e0c80eceac4138a9f01ae1efbcdd",
+        "bytes": 1562
+      },
+      "publicReadbackEvidence": {
+        "readback.json": {
+          "path": "next-release-validation/vscode-public-readback/readback.json",
+          "digest": "sha256:eed3f835cd9c4f4c1d3d5751a68c9dc16307e0c80eceac4138a9f01ae1efbcdd",
+          "bytes": 1562
+        },
+        "openvsx-metadata.json": {
+          "path": "next-release-validation/vscode-public-readback/openvsx-metadata.json",
+          "digest": "sha256:2fa745255f066ef8693229c3bc5fa1f884aea14974fbc47047e5886da4e10c0f",
+          "bytes": 10905
+        },
+        "official-manifest.json": {
+          "path": "next-release-validation/vscode-public-readback/official-manifest.json",
+          "digest": "sha256:ba3ebd02eeefb28145d409aff5a9e6f2649031c3219380fbaf7ecb9c9a078ae4",
+          "bytes": 714
+        },
+        "run.json": {
+          "path": "next-release-validation/vscode-public-readback/run.json",
+          "digest": "sha256:3a318bcb778b7d9ba978df28c75d3678e82acb09e21c5c758e1f56a0fc9ae1f0",
+          "bytes": 13191
+        },
+        "artifact.json": {
+          "path": "next-release-validation/vscode-public-readback/artifact.json",
+          "digest": "sha256:3743614c1a7129534256fbd126422118e9bacb8e431b976401b37d440eee00ce",
+          "bytes": 737
+        },
+        "response-records.json": {
+          "path": "next-release-validation/vscode-public-readback/response-records.json",
+          "digest": "sha256:4f9cdd0e01caae1bf0242bf012dd7b3562a54bdb8a5cd17dc7d1b00530149205",
+          "bytes": 1860
+        }
+      },
+      "publicVsixDigest": "sha256:505b95e7fe2dbfae329600400046d1ea3e916b58068b4b1eaec980915abfb720",
+      "officialCandidateBytesMatch": true
+    },
+    "jetbrains": {
+      "workflowRunId": "39104011767",
+      "workflowUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/39104011767",
+      "statusObserved": "completed",
+      "conclusionObserved": "success",
+      "runArchive": {
+        "path": "next-release-validation/jetbrains-publication-39104011767-initial.json.gz",
+        "digest": "sha256:e845edf39bac1564ccc6fe6e2bbffb27251e28c8ed549d41be82f7658eb0b929",
+        "bytes": 1850
+      },
+      "version": "0.4.167",
+      "tag": "ide-jetbrains-v0.4.167",
+      "tagCommit": "d4065008bb4eff84cfc09f9361f4ae4e9de2140f",
+      "tagArchive": {
+        "path": "next-release-validation/ide-release-tags-d406.json",
+        "digest": "sha256:b29e6cb47cbcfd091d6a98669338ecd6fa350b91e6e84c8af54d0f65a73dcbd8",
+        "bytes": 2964
+      },
+      "publicFetchVerified": true,
+      "jobsSuccessful": 13,
+      "finalRunArchive": {
+        "path": "next-release-validation/jetbrains-publication-39104011767-final.json.gz",
+        "digest": "sha256:29ab9f14c1801d74414dee801f49b8a34deb1a26b77b309e730796194c779466",
+        "bytes": 3492
+      },
+      "uploadSucceeded": true,
+      "marketplacePublicMetadataReady": true,
+      "publicListingCheck": {
+        "path": "next-release-validation/jetbrains-public-listing-20261018T070120Z-check.json",
+        "digest": "sha256:cf54ddcecd7905303e7ddf891adf0394e8cdd9854ce773864bebd998d5c51d7a",
+        "bytes": 574
+      },
+      "scope": "Public approved listing and ZIP byte binding are verified. Static packaged renderer classes and CLI recommendation do not establish UI restoration or new model task acceptance.",
+      "publicListingObservedAt": "2026-10-18T07:12:52.855299+00:00",
+      "publicUpdateId": 1197193,
+      "approved": true,
+      "listed": true,
+      "hidden": false,
+      "publicReadback": {
+        "path": "next-release-validation/task-quality-105-public-readback/readback.json",
+        "digest": "sha256:88f4123a4eccb5b312e0f947199fdab95505d36be1b5dfe0cbe6dcbe77237e5a",
+        "bytes": 7885
+      },
+      "publicZipDigest": "sha256:4c5984d525e86a3d3ff27e085b5f4e27d4f47c8a76d8b73ec9251f73a13a7a7b"
+    },
+    "observedAt": "2026-10-18T07:12:52.855299+00:00",
+    "documentationFollowup": {
+      "commit": "e4b30a8cb8f3281be12f5f04ebde66ab97f8b999",
+      "files": 13,
+      "markdownOnly": true,
+      "publishedArtifactSourceUnchanged": "d4065008bb4eff84cfc09f9361f4ae4e9de2140f",
+      "localValidation": {
+        "prettier": "PASSED",
+        "requiredDocumentSections": "315 documents passed",
+        "diffCheck": "PASSED"
+      },
+      "duplicateAutomaticChecks": {
+        "path": "next-release-validation/documentation-ci-trim-e4b30a8cb8.json",
+        "digest": "sha256:03fdd3a65619cbc8b54fb8932e8efa294718dff32d56de364fdf189304bf239f",
+        "bytes": 7061
+      },
+      "mergeProtectedContextsPreserved": [
+        "PDH Data Hub Tests (ubuntu-latest)",
+        "PDH Data Hub Tests (windows-latest)",
+        "Quality Gate",
+        "Run All Tests (ubuntu-latest)",
+        "Run All Tests (windows-latest)",
+        "Lint & Format Check"
+      ],
+      "allPublishedSourceMatricesRemainSuccessful": true,
+      "normalAutoMergeRequested": true,
+      "autoMergeEnabledAt": "2026-10-18T07:02:04Z",
+      "mergeMethod": "MERGE",
+      "mergeStillPendingRequiredChecks": false,
+      "mergeRequiresJetBrainsListing": false,
+      "reason": "Normal auto-merge completed after all six protected contexts passed. User authorized publication before merge. All verified release tags remain on d4065008bb.",
+      "mergedAt": "2026-10-18T07:11:03Z",
+      "mergeCommit": "ea49733d5d3ac76de17552f83faf2f8a764b6b7e",
+      "mergedReadback": {
+        "path": "next-release-validation/release-pr461-merged.json.gz",
+        "digest": "sha256:ce039b8d99929aa7b9c15f67623f22392dc17a57e87bb673df1eaa26b883c67f",
+        "bytes": 6122
+      },
+      "postMergeDuplicateCheckCleanup": {
+        "path": "next-release-validation/documentation-prtests-postmerge-cleanup.json.gz",
+        "digest": "sha256:de9a5cd156fe5510cbc1cfa1a5c38e5633df202aa73a63c5180af1e801c3a785",
+        "bytes": 2128,
+        "originalDigest": "sha256:01082758f9155cba1fb5857588e178ba2a39f684a10fc21a630576f861ae501c",
+        "originalBytes": 16266
+      }
+    },
+    "allPackagePublicReadback": {
+      "status": "VERIFIED_PUBLIC_ARTIFACTS",
+      "versions": {
+        "cli": "0.166.105",
+        "vscode": "0.37.150",
+        "jetbrains": "0.4.167",
+        "vscodeHost": "1.132.0",
+        "jetbrainsHost": "2025.2"
+      },
+      "verifiedAt": "2026-10-18T07:12:52.855299+00:00",
+      "evidence": {
+        "readback.json": {
+          "path": "next-release-validation/task-quality-105-public-readback/readback.json",
+          "digest": "sha256:88f4123a4eccb5b312e0f947199fdab95505d36be1b5dfe0cbe6dcbe77237e5a",
+          "bytes": 7885
+        },
+        "package-set.json": {
+          "path": "next-release-validation/task-quality-105-public-readback/package-set.json",
+          "digest": "sha256:2cc81784724fcdc8813434fa8798cce28def3569ff97b07369bb6e16fe6af32f",
+          "bytes": 1606
+        },
+        "original-package-set.json": {
+          "path": "next-release-validation/task-quality-105-public-readback/original-package-set.json",
+          "digest": "sha256:7eeb5433397a85c2bed67b5164e37bd0a44b9eec0da5ce34e821bb9e6e9952b2",
+          "bytes": 1095
+        },
+        "npm-metadata.json": {
+          "path": "next-release-validation/task-quality-105-public-readback/npm-metadata.json",
+          "digest": "sha256:9cd478149a722694ac061cf9f828844cde260d63ffc17455b7eacd8e61428829",
+          "bytes": 7696
+        },
+        "openvsx-metadata.json": {
+          "path": "next-release-validation/task-quality-105-public-readback/openvsx-metadata.json",
+          "digest": "sha256:2fa745255f066ef8693229c3bc5fa1f884aea14974fbc47047e5886da4e10c0f",
+          "bytes": 10905
+        },
+        "jetbrains-updates.json": {
+          "path": "next-release-validation/task-quality-105-public-readback/jetbrains-updates.json.gz",
+          "digest": "sha256:44a5559cc0c5fb87e45f2b6abe9e9a2dfbfc5a8e0936a0761485078c7d2d29a1",
+          "bytes": 47191,
+          "originalDigest": "sha256:618e817dac3225a8a9208bf85a084a63cce691c11c7a4a49d68c572783653c58",
+          "originalBytes": 552768
+        }
+      },
+      "packageSet": {
+        "path": "docs/research/cli/verify01-package-sets/2026-10-18-task-quality-105.json",
+        "digest": "sha256:2cc81784724fcdc8813434fa8798cce28def3569ff97b07369bb6e16fe6af32f",
+        "bytes": 1606
+      },
+      "originalManifestUnchanged": {
+        "path": "docs/research/cli/verify01-package-sets/2026-10-18-latest.json",
+        "digest": "sha256:7eeb5433397a85c2bed67b5164e37bd0a44b9eec0da5ce34e821bb9e6e9952b2",
+        "bytes": 1095
+      },
+      "modelRequests": 0
+    }
+  },
+  "versionControlledRetestTools": {
+    "validation": {
+      "path": "next-release-validation/native-retest-tool-offline-validation.json",
+      "digest": "sha256:4994bfd768e60ab37f7a9a9c20e2012bdaf2a1cb910df7d87c5ac90eced3c957",
+      "bytes": 2978
+    },
+    "offlineChecksPassed": 30,
+    "modelRequests": 0,
+    "usage": "LATEST-RESULTS.md#已保存的补测工具",
+    "publishedArtifactSourceUnchanged": "d4065008bb4eff84cfc09f9361f4ae4e9de2140f"
+  },
+  "continuousQualityIteration": {
+    "authorized": true,
+    "targetOrdinaryTasks": 36,
+    "targetFirstRunTasks": 9,
+    "continueUntilAllTasksQualified": true,
+    "newPublishedProductVersionBeforeUnqualifiedRetest": true,
+    "reuseAcceptedFilesAndReceiptsWithoutModelRegeneration": true,
+    "preserveOriginalFailuresAndNativeVerdicts": true,
+    "acceptanceMustNotBeWeakened": true,
+    "recordFixesVersionsPublicProofAndRetestResults": true,
+    "waitForDispatchedRoundBeforeSelectingFurtherModelRuns": true,
+    "releaseGate": "GitHub Actions exact-commit full required OS matrices; npm via OIDC, CLI public before IDE publication."
+  },
+  "nativeRetestQueueObservation": {
+    "evidence": {
+      "path": "next-release-validation/native-105-queue-observation-20261018T074003Z.json.gz",
+      "digest": "sha256:cda47c122f0d4bf520f8dbd18102543f765963a2fd266995937450d505bc551b",
+      "bytes": 363,
+      "originalDigest": "sha256:8959658b197a880e37d0ecc8a925749cd48d5520c15687225d0ed03df84d408a",
+      "originalBytes": 2731
+    },
+    "status": "WAITING_FOR_UBUNTU_24_04_RUNNERS",
+    "noWorkflowConcurrencyConflictFound": true,
+    "existingRunsPreserved": true,
+    "scope": "Run-level queued does not imply validation never ran. Some validate jobs have passed; generation jobs wait for runner assignment. No account-quota cause is inferred.",
+    "firstGenerationStarted": {
+      "group": "darwin-cli",
+      "runId": "39107035717",
+      "jobId": "117618846330",
+      "runnerAssigned": true,
+      "startedAt": "2026-10-18T07:40:49Z",
+      "evidence": {
+        "path": "next-release-validation/native-105-first-generation-started-20261018T074140Z.json.gz",
+        "digest": "sha256:11cda4c3ec6d15cf79005a80db9f63dde7c3ade7d174fe21ececc4b3a86cd0c9",
+        "bytes": 663
+      },
+      "scope": "Job start is not a model request receipt or candidate acceptance."
+    }
+  },
+  "followup106Preparation": "followup-106-preparation.json",
+  "latestNativeRetest": {
+    "review": "next-package-105-20261018-review.json",
+    "counts": {
+      "generationRecordsCollected": 20,
+      "acceptanceRecordsCollected": 20,
+      "candidateAcceptancePassed": 6,
+      "endToEndPassed": 6,
+      "reusedAcceptedDeliverables": 25,
+      "cumulativeAcceptedDeliverables": 31
+    },
+    "remainingSampleIds": [
+      "verify-04",
+      "verify-13",
+      "first-run-linux-cli",
+      "verify-06",
+      "verify-07",
+      "first-run-darwin-cli",
+      "verify-08",
+      "verify-09",
+      "first-run-darwin-jetbrains",
+      "verify-10",
+      "verify-19",
+      "verify-11",
+      "verify-30",
+      "first-run-win32-jetbrains"
+    ]
+  },
+  "followupReleaseRequirements": {
+    "sourceCommit": "4317bf01a48a7ec612e12000936a81851c6febf3",
+    "versions": {
+      "cli": "0.166.106",
+      "vscode": "0.37.151",
+      "jetbrains": "0.4.168"
+    },
+    "pullRequest": "https://github.com/chainlesschain/chainlesschain/pull/462",
+    "published": false,
+    "requireExactFinalSourceAllMatrices": true
+  }
+}

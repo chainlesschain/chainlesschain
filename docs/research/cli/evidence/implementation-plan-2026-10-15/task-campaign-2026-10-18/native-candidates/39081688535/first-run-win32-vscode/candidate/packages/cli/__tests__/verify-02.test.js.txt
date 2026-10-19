@@ -1,0 +1,109 @@
+import { describe, expect, it } from "vitest";
+import { resolveModelCapabilityProfile } from "../src/lib/model-capabilities.js";
+
+const SEPT_MODELS = ["gpt-6-astra", "gpt-6-sol", "gpt-6-luna"];
+
+describe("exact model capability lookup for Astra/Sol/Luna", () => {
+  it.each(SEPT_MODELS)(
+    "resolves the exact %s at the official endpoint as a documented tool model",
+    (model) => {
+      const profile = resolveModelCapabilityProfile({
+        provider: "openai",
+        model,
+        baseUrl: "https://api.openai.com/v1",
+      });
+      expect(profile).toMatchObject({
+        provider: "openai",
+        model,
+        contextWindowTokens: 1050000,
+        windowSource: "official-model-docs",
+        windowAssumed: false,
+        runtimeProtocol: "openai-responses",
+        runtimeVerified: false,
+        advertisedMaxOutputTokens: 128000,
+      });
+      expect(profile.reasoningEfforts).toContain("high");
+      expect(profile.sources.length).toBeGreaterThan(0);
+    },
+  );
+
+  it("treats an exact official model as certified only at the official endpoint", () => {
+    const profile = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-6-sol",
+      baseUrl: "https://gateway.example/v1",
+    });
+    expect(profile).toMatchObject({
+      windowAssumed: true,
+      windowSource: "provider-default",
+      runtimeProtocol: "chat-completions",
+      advertisedMaxOutputTokens: null,
+    });
+    expect(profile.reasoningEfforts).toBeUndefined();
+    expect(profile.sources).toEqual([]);
+  });
+
+  it.each(SEPT_MODELS)(
+    "does not certify a suffixed variant of %s as a tool model",
+    (model) => {
+      for (const variant of [`${model}-custom`, `${model}-future`]) {
+        const profile = resolveModelCapabilityProfile({
+          provider: "openai",
+          model: variant,
+          baseUrl: "https://api.openai.com/v1",
+        });
+        expect(profile).toMatchObject({
+          windowAssumed: true,
+          runtimeProtocol: "chat-completions",
+          advertisedMaxOutputTokens: null,
+        });
+        expect(profile.windowSource).not.toBe("official-model-docs");
+        expect(profile.reasoningEfforts).toBeUndefined();
+        expect(profile.sources).toEqual([]);
+      }
+    },
+  );
+
+  it("keeps request ids exact and does not certify case or whitespace variants", () => {
+    for (const model of ["GPT-6-ASTRA", " gpt-6-sol", "gpt-6-luna "]) {
+      const profile = resolveModelCapabilityProfile({
+        provider: "openai",
+        model,
+      });
+      expect(profile.windowSource).not.toBe("official-model-docs");
+      expect(profile.windowAssumed).toBe(true);
+      expect(profile.advertisedMaxOutputTokens).toBeNull();
+    }
+  });
+
+  it("does not certify an arbitrary future snapshot sharing a family prefix", () => {
+    for (const model of ["gpt-6-astra-next", "gpt-6-sol-2", "gpt-6-luna-x"]) {
+      const profile = resolveModelCapabilityProfile({
+        provider: "openai",
+        model,
+        baseUrl: "https://api.openai.com/v1",
+      });
+      expect(profile.windowSource).not.toBe("official-model-docs");
+      expect(profile.windowAssumed).toBe(true);
+      expect(profile.runtimeProtocol).toBe("chat-completions");
+      expect(profile.sources).toEqual([]);
+    }
+  });
+
+  it("keeps an exact model's profile distinct from an unknown-suffix one", () => {
+    const exact = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-6-luna",
+      baseUrl: "https://api.openai.com/v1",
+    });
+    const unknown = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-6-luna-future",
+      baseUrl: "https://api.openai.com/v1",
+    });
+    expect(unknown.digest).not.toBe(exact.digest);
+    expect(unknown.contextWindowTokens).not.toBe(exact.contextWindowTokens);
+    expect(unknown.runtimeProtocol).not.toBe(exact.runtimeProtocol);
+    expect(unknown.advertisedMaxOutputTokens).toBeNull();
+  });
+});

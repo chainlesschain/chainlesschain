@@ -2,15 +2,24 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   ACCESSIBILITY_WORKFLOW_PATH,
+  createBrowserProcessTracker,
   DIAGNOSTIC_PRODUCER_PATHS,
   DIAGNOSTICS_PROFILE,
+  evaluateWindowsBrowserClose,
+  isObservedWithinWindow,
+  killOwnedWindowsProcessTree,
+  newOrObservedOwnedProcesses,
   PROFILE,
   REQUIRED_FILES,
+  parseLinuxProcessStat,
+  parseMacProcessLine,
+  parseWindowsProcessSnapshot,
   summarizeSamples,
   validateAtProbe,
+  waitForBrowserProcessesToSettle,
   verifyAccessibilityWorkflowAuthority,
 } from "../../scripts/ide-roadmap-accessibility-performance.mjs";
 import { appendAxTranscriptFragments } from "../../scripts/ax-transcript-audit-fragment.mjs";
@@ -36,6 +45,23 @@ function digest(bytes) {
 
 function writeJson(directory, file, value) {
   fs.writeFileSync(path.join(directory, file), `${JSON.stringify(value)}\n`);
+}
+
+function processSnapshot(records, complete = true) {
+  return {
+    platform: "linux",
+    complete,
+    errors: complete ? [] : ["snapshot-incomplete"],
+    records: new Map(records.map((record) => [record.pid, record])),
+  };
+}
+
+function refreshManifestEntry(directory, file) {
+  const manifestPath = path.join(directory, "manifest.json");
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+  const bytes = fs.readFileSync(path.join(directory, file));
+  manifest.files[file] = { sha256: digest(bytes), bytes: bytes.length };
+  writeJson(directory, "manifest.json", manifest);
 }
 
 function jetbrainsEvidence() {
@@ -373,6 +399,92 @@ function createCell() {
       ],
       descriptorOrHandleDelta: 1,
       orphanProcessCount: 0,
+      processLifecycle: {
+        schema: "chainlesschain.browser-process-lifecycle.v1",
+        identityPrecision: "linux-proc-start-time-ticks",
+        processTreeIdentityPrecision: "proc-parent-and-start-time",
+        observationComplete: true,
+        ownedDescendantIdentityComplete: true,
+        rootDescendantTrackingComplete: true,
+        baselineIdentityComplete: true,
+        finalObservationComplete: true,
+        finalObservationErrors: [],
+        passed: true,
+        shutdownSettled: true,
+        shutdownSettleTimeoutMs: 5_000,
+        shutdownSettleElapsedMs: 750,
+        shutdownSettleCleanSampleCount: 3,
+        browserCloseSucceeded: true,
+        browserCloseTimedOut: false,
+        browserServerCloseSucceeded: true,
+        browserServerCloseTimedOut: false,
+        browserServerKillSucceeded: false,
+        browserServerKillTimedOut: false,
+        rootProcessHandleObserved: true,
+        rootProcessPid: 42,
+        rootProcessIdentity: "42:4200",
+        rootProcessRecord: {
+          pid: 42,
+          ppid: 1,
+          pgrp: 42,
+          session: 42,
+          state: "S",
+          name: "node",
+          startIdentity: "4200",
+          stage: "launched",
+        },
+        rootProcessExitObserved: true,
+        rootProcessCloseObserved: true,
+        forcedCleanupAttempted: false,
+        cleanupErrorCount: 0,
+        cleanupErrorDigests: [],
+        observationErrors: [],
+        sampleCount: 7,
+        baselineBrowserProcesses: [],
+        observations: [
+          { stage: "initial", complete: true, browserProcessCount: 0 },
+          { stage: "launched", complete: true, browserProcessCount: 0 },
+          {
+            stage: "shutdown-pre-close",
+            complete: true,
+            terminalClean: true,
+            survivorCount: 0,
+            browserProcessCount: 0,
+          },
+          {
+            stage: "shutdown-settle",
+            complete: true,
+            terminalClean: true,
+            survivorCount: 0,
+            browserProcessCount: 0,
+          },
+          {
+            stage: "shutdown-settle",
+            complete: true,
+            terminalClean: true,
+            survivorCount: 0,
+            browserProcessCount: 0,
+          },
+          {
+            stage: "shutdown-settle",
+            complete: true,
+            terminalClean: true,
+            survivorCount: 0,
+            browserProcessCount: 0,
+          },
+          {
+            stage: "campaign-final",
+            complete: true,
+            terminalClean: true,
+            survivorCount: 0,
+            browserProcessCount: 0,
+          },
+        ],
+        observedNewBrowserProcesses: [],
+        observedOwnedDescendantProcesses: [],
+        settledBrowserProcesses: [],
+        orphanProcessCount: 0,
+      },
     },
     "diagnostics-scale.json": {
       schema: "chainlesschain.claude-code-increment-audit-fragment.v1",
@@ -425,6 +537,7 @@ function createCell() {
       uiHangCount: 0,
       credentialLeakCount: 0,
       orphanProcessCount: 0,
+      browserProcessLifecyclePassed: true,
       pageErrorCount: 0,
       requiredMeasurementsComplete: true,
       exactCommitBound: true,
@@ -467,6 +580,571 @@ afterEach(() => {
 });
 
 describe("P2-4 accessibility/performance matrix", () => {
+  it("parses stable Linux and macOS process identities with state and parent", () => {
+    const linuxFields = [
+      "S",
+      "21",
+      "20",
+      "19",
+      ...Array(15).fill("0"),
+      "12345",
+    ];
+    expect(
+      parseLinuxProcessStat(22, `22 (chrome) ${linuxFields.join(" ")}`),
+    ).toMatchObject({
+      pid: 22,
+      ppid: 21,
+      pgrp: 20,
+      session: 19,
+      state: "S",
+      name: "chrome",
+      startIdentity: "12345",
+    });
+    expect(
+      parseMacProcessLine(
+        " 123 1 Z Mon Oct 19 09:20:30 2026 /Applications/Chromium.app/Contents/MacOS/Chromium",
+      ),
+    ).toMatchObject({
+      pid: 123,
+      ppid: 1,
+      state: "Z",
+      startIdentity: "Mon Oct 19 09:20:30 2026",
+      name: "Chromium",
+    });
+  });
+
+  it("parses Windows parent and creation identities from CIM records", () => {
+    const snapshot = parseWindowsProcessSnapshot(
+      JSON.stringify([
+        {
+          ProcessId: 52,
+          ParentProcessId: 42,
+          Name: "chrome.exe",
+          CreationDate: "20261019102030.123456+480",
+        },
+      ]),
+    );
+    expect(snapshot.errors).toEqual([]);
+    expect(snapshot.records.get(52)).toMatchObject({
+      pid: 52,
+      ppid: 42,
+      name: "chrome.exe",
+      startIdentity: "20261019102030.123456+480",
+    });
+  });
+
+  it("marks Windows process snapshots incomplete when creation identity is missing", () => {
+    const snapshot = parseWindowsProcessSnapshot(
+      JSON.stringify([
+        {
+          ProcessId: 53,
+          ParentProcessId: 42,
+          Name: "worker.exe",
+          CreationDate: null,
+        },
+      ]),
+    );
+
+    expect(snapshot.records.get(53).startIdentity).toBeNull();
+    expect(snapshot.errors).toEqual(["missing-win32-process-creation-time:53"]);
+  });
+
+  it("bounds Windows cleanup to the owned Playwright PID and its tree", () => {
+    const execute = vi
+      .fn()
+      .mockReturnValue({ stdout: "", stderr: "", status: 0 });
+
+    expect(killOwnedWindowsProcessTree(42, execute)).toEqual({
+      stdout: "",
+      stderr: "",
+      status: 0,
+    });
+    expect(execute).toHaveBeenCalledWith(
+      path.join(
+        process.env.SystemRoot || "C:\\Windows",
+        "System32",
+        "taskkill.exe",
+      ),
+      ["/PID", "42", "/T", "/F"],
+      expect.objectContaining({
+        timeout: 5_000,
+        stdio: ["ignore", "pipe", "pipe"],
+      }),
+    );
+  });
+
+  it("refuses Windows tree cleanup without an owned PID", () => {
+    const execute = vi.fn();
+
+    expect(() => killOwnedWindowsProcessTree(null, execute)).toThrow(
+      "Cannot safely terminate Playwright without its owned root PID",
+    );
+    expect(execute).not.toHaveBeenCalled();
+  });
+
+  it("requires a clean root exit before accepting a Windows browser close", () => {
+    const expectedDisconnect = {
+      ok: false,
+      error: new Error("Target page, context or browser has been closed"),
+    };
+    const closeEvidence = {
+      closeCommandIssued: true,
+      closeCommandOutcome: expectedDisconnect,
+      closeEventsObservedWithinDeadline: true,
+    };
+
+    expect(
+      evaluateWindowsBrowserClose({
+        ...closeEvidence,
+        browserProcess: { exitCode: 0, signalCode: null },
+      }),
+    ).toEqual({
+      cleanProcessExit: true,
+      expectedCloseDisconnect: true,
+      succeeded: true,
+    });
+    expect(
+      evaluateWindowsBrowserClose({
+        ...closeEvidence,
+        browserProcess: { exitCode: 1, signalCode: null },
+      }),
+    ).toEqual({
+      cleanProcessExit: false,
+      expectedCloseDisconnect: false,
+      succeeded: false,
+    });
+    expect(
+      evaluateWindowsBrowserClose({
+        ...closeEvidence,
+        browserProcess: { exitCode: null, signalCode: "SIGTERM" },
+      }).succeeded,
+    ).toBe(false);
+  });
+
+  it("accepts Windows close events only after the command and within its deadline", () => {
+    const observer = { observed: true, observedAt: 200 };
+
+    expect(isObservedWithinWindow(observer, true, 100, 200)).toBe(true);
+    expect(isObservedWithinWindow(observer, false, 100, 200)).toBe(false);
+    expect(isObservedWithinWindow(observer, true, 200, 300)).toBe(false);
+    expect(
+      isObservedWithinWindow({ ...observer, observedAt: 201 }, true, 100, 200),
+    ).toBe(false);
+  });
+
+  it("retains a browser process identity after reparenting and reports zombies", () => {
+    const baseline = processSnapshot([
+      {
+        pid: 10,
+        ppid: 1,
+        pgrp: 10,
+        session: 10,
+        state: "S",
+        name: "chrome",
+        startIdentity: "100",
+      },
+    ]);
+    const tracker = createBrowserProcessTracker(baseline);
+    tracker.observe(
+      processSnapshot([
+        {
+          pid: 10,
+          ppid: 1,
+          pgrp: 10,
+          session: 10,
+          state: "S",
+          name: "chrome",
+          startIdentity: "100",
+        },
+        {
+          pid: 30,
+          ppid: 25,
+          pgrp: 30,
+          session: 30,
+          state: "S",
+          name: "chromium",
+          startIdentity: "300",
+        },
+      ]),
+      "journey",
+    );
+    const reparented = {
+      pid: 30,
+      ppid: 1,
+      pgrp: 30,
+      session: 30,
+      state: "Z",
+      name: "chromium",
+      startIdentity: "300",
+    };
+    const finalSnapshot = processSnapshot([
+      baseline.records.get(10),
+      reparented,
+    ]);
+    tracker.observe(finalSnapshot, "shutdown-settle");
+
+    expect(tracker.survivors(finalSnapshot)).toEqual([reparented]);
+    expect([...tracker.ledger.values()][0]).toMatchObject({
+      identity: "30:300",
+      firstRecord: { ppid: 25, state: "S" },
+      lastRecord: { ppid: 1, state: "Z" },
+      ownership: "unresolved",
+    });
+  });
+
+  it("retains non-browser descendants after the Playwright root exits", () => {
+    const tracker = createBrowserProcessTracker(processSnapshot([]));
+    const root = {
+      pid: 42,
+      ppid: 1,
+      pgrp: 42,
+      session: 42,
+      state: "S",
+      name: "node",
+      startIdentity: "4200",
+    };
+    const browser = {
+      pid: 51,
+      ppid: 42,
+      pgrp: 42,
+      session: 42,
+      state: "S",
+      name: "chrome",
+      startIdentity: "5100",
+    };
+    const worker = {
+      pid: 52,
+      ppid: 51,
+      pgrp: 42,
+      session: 42,
+      state: "S",
+      name: "worker",
+      startIdentity: "5200",
+    };
+    tracker.setRootProcess(42, root);
+    tracker.observe(processSnapshot([root, browser, worker]), "launched");
+
+    const reparentedWorker = { ...worker, ppid: 1 };
+    const finalSnapshot = processSnapshot([reparentedWorker]);
+    tracker.observe(finalSnapshot, "shutdown-settle");
+
+    expect(tracker.survivors(finalSnapshot)).toEqual([reparentedWorker]);
+    expect([...tracker.ownedDescendantLedger.values()]).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          identity: "52:5200",
+          firstRecord: { ...worker, stage: "launched" },
+        }),
+      ]),
+    );
+  });
+
+  it("tracks children of a known descendant after it is reparented", () => {
+    const tracker = createBrowserProcessTracker(processSnapshot([]));
+    const root = {
+      pid: 42,
+      ppid: 1,
+      pgrp: 42,
+      session: 42,
+      state: "S",
+      name: "node",
+      startIdentity: "4200",
+    };
+    const knownDescendant = {
+      pid: 43,
+      ppid: 42,
+      pgrp: 42,
+      session: 42,
+      state: "S",
+      name: "worker",
+      startIdentity: "4300",
+    };
+    tracker.setRootProcess(42, root);
+    tracker.observe(processSnapshot([root, knownDescendant]), "journey");
+
+    const reparentedDescendant = { ...knownDescendant, ppid: 1 };
+    const newChild = {
+      pid: 44,
+      ppid: 43,
+      pgrp: 42,
+      session: 42,
+      state: "S",
+      name: "worker-child",
+      startIdentity: "4400",
+    };
+    const snapshot = processSnapshot([reparentedDescendant, newChild]);
+    tracker.observe(snapshot, "shutdown-settle");
+
+    expect(tracker.survivors(snapshot)).toEqual([
+      reparentedDescendant,
+      newChild,
+    ]);
+    expect([...tracker.ownedDescendantLedger.keys()]).toEqual(
+      expect.arrayContaining(["43:4300", "44:4400"]),
+    );
+  });
+
+  it("does not count a baseline process whose stale parent PID is reused", () => {
+    const baselineRoot = {
+      pid: 42,
+      ppid: 1,
+      pgrp: 42,
+      session: 42,
+      state: "S",
+      name: "node",
+      startIdentity: "old-root",
+    };
+    const baselineChild = {
+      pid: 43,
+      ppid: 42,
+      pgrp: 42,
+      session: 42,
+      state: "S",
+      name: "worker",
+      startIdentity: "baseline-child",
+    };
+    const baseline = processSnapshot([baselineRoot, baselineChild]);
+    const tracker = createBrowserProcessTracker(baseline);
+    const reusedRoot = {
+      ...baselineRoot,
+      name: "node",
+      startIdentity: "new-root",
+    };
+    tracker.setRootProcess(42, reusedRoot);
+    const snapshot = processSnapshot([reusedRoot, baselineChild]);
+    tracker.observe(snapshot, "launched");
+
+    expect(tracker.survivors(snapshot)).toEqual([]);
+    expect(tracker.ownedDescendantLedger.size).toBe(0);
+  });
+
+  it("does not discard a new process when the baseline PID lacked identity", () => {
+    const baselineProcess = {
+      pid: 43,
+      ppid: 1,
+      pgrp: 43,
+      session: 43,
+      state: "S",
+      name: "worker",
+      startIdentity: null,
+    };
+    const baseline = processSnapshot([baselineProcess], false);
+    const tracker = createBrowserProcessTracker(baseline);
+    const root = {
+      pid: 42,
+      ppid: 1,
+      pgrp: 42,
+      session: 42,
+      state: "S",
+      name: "node",
+      startIdentity: "4200",
+    };
+    const newWorker = { ...baselineProcess, ppid: 42, startIdentity: "4300" };
+    tracker.setRootProcess(42, root);
+    const snapshot = processSnapshot([root, newWorker]);
+    tracker.observe(snapshot, "launched");
+
+    expect(tracker.baselineIdentityComplete).toBe(false);
+    expect(tracker.survivors(snapshot)).toEqual([newWorker]);
+    expect(
+      newOrObservedOwnedProcesses(snapshot, baseline, new Set(), root),
+    ).toEqual([newWorker]);
+  });
+
+  it("keeps a known descendant as a survivor when a later identity is missing", () => {
+    const tracker = createBrowserProcessTracker(processSnapshot([]));
+    const root = {
+      pid: 42,
+      ppid: 1,
+      pgrp: 42,
+      session: 42,
+      state: "S",
+      name: "node",
+      startIdentity: "4200",
+    };
+    const descendant = {
+      pid: 43,
+      ppid: 42,
+      pgrp: 42,
+      session: 42,
+      state: "S",
+      name: "worker",
+      startIdentity: "4300",
+    };
+    tracker.setRootProcess(42, root);
+    tracker.observe(processSnapshot([root, descendant]), "journey");
+
+    const identityMissing = { ...descendant, ppid: 1, startIdentity: null };
+    const snapshot = processSnapshot([identityMissing], false);
+    tracker.observe(snapshot, "shutdown-settle");
+
+    expect(tracker.survivors(snapshot)).toEqual([identityMissing]);
+    expect(tracker.observationErrors).toContain("snapshot-incomplete");
+    expect(
+      newOrObservedOwnedProcesses(
+        snapshot,
+        processSnapshot([]),
+        new Set(["43:4300"]),
+        root,
+      ),
+    ).toEqual([identityMissing]);
+  });
+
+  it("excludes baseline identities from the final campaign process set", () => {
+    const baselineRoot = {
+      pid: 42,
+      ppid: 1,
+      pgrp: 42,
+      session: 42,
+      state: "S",
+      name: "node",
+      startIdentity: "old-root",
+    };
+    const baselineChild = {
+      pid: 43,
+      ppid: 42,
+      pgrp: 42,
+      session: 42,
+      state: "S",
+      name: "worker",
+      startIdentity: "baseline-child",
+    };
+    const baseline = processSnapshot([baselineRoot, baselineChild]);
+    const reusedRoot = { ...baselineRoot, startIdentity: "new-root" };
+    const finalSnapshot = processSnapshot([reusedRoot, baselineChild]);
+
+    expect(
+      newOrObservedOwnedProcesses(
+        finalSnapshot,
+        baseline,
+        new Set(),
+        reusedRoot,
+      ),
+    ).toEqual([]);
+  });
+
+  it("finds new children of known descendants in the final campaign sample", () => {
+    const baseline = processSnapshot([]);
+    const reparentedDescendant = {
+      pid: 43,
+      ppid: 1,
+      pgrp: 42,
+      session: 42,
+      state: "S",
+      name: "worker",
+      startIdentity: "4300",
+    };
+    const newChild = {
+      pid: 44,
+      ppid: 43,
+      pgrp: 42,
+      session: 42,
+      state: "S",
+      name: "worker-child",
+      startIdentity: "4400",
+    };
+
+    expect(
+      newOrObservedOwnedProcesses(
+        processSnapshot([reparentedDescendant, newChild]),
+        baseline,
+        new Set(["43:4300"]),
+        { pid: 42, startIdentity: "4200" },
+      ),
+    ).toEqual([reparentedDescendant, newChild]);
+  });
+
+  it("continues tracking a browser process after its executable name changes", () => {
+    const tracker = createBrowserProcessTracker(processSnapshot([]));
+    tracker.observe(
+      processSnapshot([
+        {
+          pid: 44,
+          ppid: 1,
+          pgrp: 44,
+          session: 44,
+          state: "S",
+          name: "chrome",
+          startIdentity: "4400",
+        },
+      ]),
+      "journey",
+    );
+    const renamed = {
+      pid: 44,
+      ppid: 1,
+      pgrp: 44,
+      session: 44,
+      state: "S",
+      name: "worker",
+      startIdentity: "4400",
+    };
+    const snapshot = processSnapshot([renamed]);
+    tracker.observe(snapshot, "shutdown-settle");
+
+    expect(tracker.survivors(snapshot)).toEqual([renamed]);
+    expect(tracker.observations.at(-1)).toMatchObject({
+      terminalClean: false,
+      survivorCount: 1,
+      previouslyObservedProcesses: [{ name: "worker", pid: 44 }],
+    });
+  });
+
+  it("waits for transient browser shutdown but leaves persistent processes failing", async () => {
+    const baseline = processSnapshot([]);
+    const transient = {
+      pid: 31,
+      ppid: 1,
+      pgrp: 31,
+      session: 31,
+      state: "S",
+      name: "headless_shell",
+      startIdentity: "310",
+    };
+    const transientTracker = createBrowserProcessTracker(baseline);
+    const samples = [
+      processSnapshot([transient]),
+      processSnapshot([]),
+      processSnapshot([]),
+      processSnapshot([]),
+    ];
+    const settled = await waitForBrowserProcessesToSettle(transientTracker, {
+      timeoutMs: 1_000,
+      intervalMs: 1,
+      stableSamples: 3,
+      snapshotReader: () => samples.shift() || processSnapshot([]),
+    });
+    expect(settled.settled).toBe(true);
+    expect(transientTracker.ledger.size).toBe(1);
+
+    const persistentTracker = createBrowserProcessTracker(baseline);
+    const blocked = await waitForBrowserProcessesToSettle(persistentTracker, {
+      timeoutMs: 8,
+      intervalMs: 1,
+      stableSamples: 2,
+      snapshotReader: () => processSnapshot([transient]),
+    });
+    expect(blocked.settled).toBe(false);
+    expect(persistentTracker.survivors(blocked.finalSnapshot)).toHaveLength(1);
+  });
+
+  it("does not accept a clean sample that completes after the settle deadline", async () => {
+    const tracker = createBrowserProcessTracker(processSnapshot([]));
+    const blocked = await waitForBrowserProcessesToSettle(tracker, {
+      timeoutMs: 10,
+      intervalMs: 1,
+      stableSamples: 1,
+      wait: async () => {},
+      snapshotReader: () => {
+        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 30);
+        return processSnapshot([]);
+      },
+    });
+
+    expect(blocked.settled).toBe(false);
+    expect(blocked.sampleCount).toBe(1);
+  });
+
   it("binds the executed workflow bytes to the exact release commit", () => {
     const workflowSha = "c".repeat(40);
     const workflowRef = `owner/repo/${ACCESSIBILITY_WORKFLOW_PATH}@refs/heads/feature`;
@@ -616,6 +1294,54 @@ describe("P2-4 accessibility/performance matrix", () => {
       }),
     ).toMatchObject({ suffix: "linux" });
     fs.appendFileSync(path.join(directory, "performance-samples.json"), " ");
+    expect(() =>
+      verifyCell(directory, {
+        suffix: "linux",
+        operatingSystem: "linux",
+        releaseCommit: COMMIT,
+        provenance,
+        producerReader,
+      }),
+    ).toThrow();
+  });
+
+  it("rejects lifecycle evidence that did not settle cleanly", () => {
+    const { directory, producerReader, provenance } = createCell();
+    const file = "resource-trajectory.json";
+    const resources = JSON.parse(
+      fs.readFileSync(path.join(directory, file), "utf8"),
+    );
+    resources.processLifecycle.shutdownSettled = false;
+    writeJson(directory, file, resources);
+    refreshManifestEntry(directory, file);
+
+    expect(() =>
+      verifyCell(directory, {
+        suffix: "linux",
+        operatingSystem: "linux",
+        releaseCommit: COMMIT,
+        provenance,
+        producerReader,
+      }),
+    ).toThrow();
+  });
+
+  it("rejects fewer than three clean shutdown-settle samples", () => {
+    const { directory, producerReader, provenance } = createCell();
+    const file = "resource-trajectory.json";
+    const resources = JSON.parse(
+      fs.readFileSync(path.join(directory, file), "utf8"),
+    );
+    resources.processLifecycle.observations =
+      resources.processLifecycle.observations.filter(
+        (sample, index) => !(sample.stage === "shutdown-settle" && index === 4),
+      );
+    resources.processLifecycle.sampleCount =
+      resources.processLifecycle.observations.length;
+    resources.processLifecycle.shutdownSettleCleanSampleCount = 2;
+    writeJson(directory, file, resources);
+    refreshManifestEntry(directory, file);
+
     expect(() =>
       verifyCell(directory, {
         suffix: "linux",

@@ -1,0 +1,160 @@
+{
+  "schema": "chainlesschain.fetch-diagnostic-followup/v1",
+  "status": "COMPLETED",
+  "billingAssessed": false,
+  "purpose": "Separate single-task follow-up of a failed latest-package fetch. Passive diagnostics do not change fetch, retries, prompts, tool policy, or original verdicts.",
+  "versions": {
+    "cli": "0.166.104",
+    "vscode": "0.37.149",
+    "jetbrains": "0.4.166",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "packageSetPath": "docs/research/cli/verify01-package-sets/2026-10-18-latest.json",
+  "packageSetDigest": "sha256:7eeb5433397a85c2bed67b5164e37bd0a44b9eec0da5ce34e821bb9e6e9952b2",
+  "runs": [
+    {
+      "group": "win32-cli",
+      "runId": "39089395770",
+      "sourceCommit": "7c8eef91b9a54ed71e3565cce330fee04bebf614",
+      "selectedSampleIds": [
+        "verify-19"
+      ],
+      "status": "COMPLETED",
+      "dispatchSubmitted": true,
+      "originalFailedAttempt": {
+        "runId": "39087878780",
+        "sampleId": "verify-19",
+        "generationSummaryDigest": "sha256:7684eddf9c4383438a510134c8afc0c1e39aa342512d7a9b3f7162c363fbdf70",
+        "acceptanceSummaryDigest": "sha256:5ef8c472de3e60a15810e09f5601a510e41e5ce70c01f710d1e34159c6f2d5c2"
+      },
+      "startedAt": "2026-10-18T02:14:48Z",
+      "remoteStatus": "completed",
+      "conclusion": "failure",
+      "activeJobs": [],
+      "evidence": [
+        {
+          "stage": "acceptance",
+          "originalArtifactPath": "pack/acceptance-evidence/verify-19-check-acfd504c-2bf7-40cf-8e3e-1b08392b7401.json",
+          "archived": {
+            "path": "fetch-diagnostics-followup/39089395770/objects/462c571c160dd43a9d0852343b4ca59e77137317788352426ab2b85d54b9c6a0.gz",
+            "originalDigest": "sha256:943727ca19ebb2b1b5b8670a1ebfe3e47c2697820e2c22ed0d3a6eb0b7496cdd",
+            "storedDigest": "sha256:5b279e8ec6f879c5f668f769019cc07930030f911d4ac6bfef331162f64db58f",
+            "originalBytes": 15493
+          }
+        },
+        {
+          "stage": "acceptance",
+          "originalArtifactPath": "pack/acceptance-evidence/verify-19-setup-24fa0c61-673d-4ba0-abca-1cc51b8c5cac.json",
+          "archived": {
+            "path": "fetch-diagnostics-followup/39089395770/objects/f13253d1fed90791a45efe85d0e2d3525ae4bdf99d660dab9be23948deb781a6.gz",
+            "originalDigest": "sha256:f850cef95c1ab45834a0b43526f5f60d42b716d0b9228272a4354b2d06ed263c",
+            "storedDigest": "sha256:4f5ba601605419829dd57f8bf0692d2c72da3ee20f047af85f97d875dc6e1d32",
+            "originalBytes": 17187
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "operator-fetch-diagnostics.cjs",
+          "archived": {
+            "path": "fetch-diagnostics-followup/39089395770/generation/operator-fetch-diagnostics.cjs.gz",
+            "originalDigest": "sha256:c23111913c838a81c949946547e7ce7760634c973d219a7c69bd8c6bf47fa49f",
+            "storedDigest": "sha256:2eabc0210873833a61c17873134545bd24676849a4f9bc801fe3d35392203055",
+            "originalBytes": 4041
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "package-set.json",
+          "archived": {
+            "path": "fetch-diagnostics-followup/39089395770/generation/package-set.json.gz",
+            "originalDigest": "sha256:7eeb5433397a85c2bed67b5164e37bd0a44b9eec0da5ce34e821bb9e6e9952b2",
+            "storedDigest": "sha256:c5a455bb155ad86095f62babbcb7a8c4ab665a682de70a0ccd6dab302fa04387",
+            "originalBytes": 1095
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "verify-19/candidate/packages/cli/__tests__/verify-19.test.js",
+          "archived": {
+            "path": "fetch-diagnostics-followup/39089395770/generation/verify-19/candidate/packages/cli/__tests__/verify-19.test.js.gz",
+            "originalDigest": "sha256:f17026c87f6fd1ffa688edfe7b14e0723f509f68795a8a1ceaf54cad17b3c245",
+            "storedDigest": "sha256:368bd74073e23e81bfeca0e35f049e99f7433786362671d867940326a189a4be",
+            "originalBytes": 9877
+          }
+        },
+        {
+          "stage": "generation",
+          "originalArtifactPath": "verify-19/commands/fetch-diagnostics.jsonl",
+          "archived": {
+            "path": "fetch-diagnostics-followup/39089395770/generation/verify-19/commands/fetch-diagnostics.jsonl.gz",
+            "originalDigest": "sha256:fcc6f6d6959a943d7a41617d4528f7543a48d153d5bd7607f3956abc3ee7ff25",
+            "storedDigest": "sha256:fc4798bd013d82a53373b4734e03d2a9f79f1eec96fea3ce4e5840ab2dcf7474",
+            "originalBytes": 161
+          }
+        }
+      ],
+      "generation": {
+        "artifactId": 12121834950,
+        "artifactName": "verify01-native-subset-delivery-win32-cli-7c8eef91b9a54ed71e3565cce330fee04bebf614",
+        "rawSummary": {
+          "path": "fetch-diagnostics-followup/39089395770/generation/summary.json.gz",
+          "originalDigest": "sha256:fb42bd9bc1d3446d904833b07bffe94ae43364cf3d9b6c6232d54ea136ec8c5b",
+          "storedDigest": "sha256:101fb304a285848025e77c69597ef5819fc00d94e8a50ddff3f91225437b7a99",
+          "originalBytes": 194424
+        },
+        "sampleIds": [
+          "verify-19"
+        ]
+      },
+      "acceptance": {
+        "artifactId": 12122900420,
+        "artifactName": "verify01-native-subset-acceptance-win32-cli-7c8eef91b9a54ed71e3565cce330fee04bebf614",
+        "rawSummary": {
+          "path": "fetch-diagnostics-followup/39089395770/acceptance/summary.json.gz",
+          "originalDigest": "sha256:136adad550e72bf4d10df047c85e108c887dba3b21ae8eb6c50a5881b5b90fd0",
+          "storedDigest": "sha256:9640d38e92781cdebf900bdc065fb9c60e660fa95787cd3835ecf652d8b5722f",
+          "originalBytes": 187592
+        },
+        "sampleIds": [
+          "verify-19"
+        ]
+      }
+    }
+  ],
+  "samples": [
+    {
+      "sampleId": "verify-19",
+      "taskId": "verify-19",
+      "kind": "task",
+      "group": "win32-cli",
+      "status": "DIAGNOSTIC_ATTEMPT_FAILED",
+      "newModelGenerationRequired": true,
+      "latestPackageGenerationObserved": true,
+      "latestGenerationRunId": "39089395770",
+      "sourceSummaryDigest": "sha256:fb42bd9bc1d3446d904833b07bffe94ae43364cf3d9b6c6232d54ea136ec8c5b",
+      "generationPassed": true,
+      "modelFailureCategory": null,
+      "brokerStatus": {
+        "physicalRequestsStarted": 19,
+        "usageCompleteRequests": 19,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": false
+      },
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false
+    }
+  ],
+  "counts": {
+    "generationRecordsCollected": 1,
+    "acceptanceRecordsCollected": 1,
+    "candidateAcceptancePassed": 0,
+    "endToEndPassed": 0
+  }
+}

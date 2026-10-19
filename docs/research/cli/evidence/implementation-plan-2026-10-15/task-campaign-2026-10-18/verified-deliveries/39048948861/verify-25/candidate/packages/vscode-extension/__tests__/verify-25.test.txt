@@ -1,0 +1,119 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+import fs from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { randomUUID } from "node:crypto";
+import { DraftStore } from "../src/chat/draft-store.js";
+
+const roots = [];
+afterEach(async () => {
+  for (const root of roots.splice(0))
+    await fs.rm(root, { recursive: true, force: true });
+  vi.restoreAllMocks();
+});
+
+async function storage() {
+  const root = await fs.mkdtemp(path.join(tmpdir(), "verify25-"));
+  roots.push(root);
+  return root;
+}
+
+const manifest = (root, key) => path.join(root, key, "draft.json");
+
+describe("draft write failure preserves the old record", () => {
+  it("positive control: a successful save commits the new text", async () => {
+    const root = await storage();
+    const key = randomUUID();
+    const store = new DraftStore(root);
+    await store.save(key, { text: "first" });
+    await store.save(key, { text: "second" });
+    const record = JSON.parse(await fs.readFile(manifest(root, key), "utf8"));
+    expect(record.composer.text).toBe("second");
+  });
+
+  it("atomic save failure keeps the previous draft recoverable", async () => {
+    const root = await storage();
+    const key = randomUUID();
+    const store = new DraftStore(root);
+    await store.save(key, { text: "keep me" });
+    const spy = vi
+      .spyOn(fs, "rename")
+      .mockRejectedValue(new Error("write failed"));
+    try {
+      await expect(
+        store.save(key, { text: "replacement" }),
+      ).rejects.toThrow("write failed");
+    } finally {
+      spy.mockRestore();
+    }
+    expect((await store._read(key)).composer.text).toBe("keep me");
+    expect(
+      JSON.parse(await fs.readFile(manifest(root, key), "utf8")).composer.text,
+    ).toBe("keep me");
+  });
+
+  it("failed save leaves no stray temporary manifest", async () => {
+    const root = await storage();
+    const key = randomUUID();
+    const store = new DraftStore(root);
+    await store.save(key, { text: "base" });
+    const spy = vi.spyOn(fs, "rename").mockRejectedValue(new Error("boom"));
+    try {
+      await store.save(key, { text: "replacement" }).catch(() => {});
+    } finally {
+      spy.mockRestore();
+    }
+    const names = await fs.readdir(path.join(root, key));
+    expect(names.filter((n) => n.endsWith(".tmp"))).toEqual([]);
+  });
+
+  it("positive control: successful send clears the composer and records the submission", async () => {
+    const root = await storage();
+    const key = randomUUID();
+    const store = new DraftStore(root);
+    await store.save(key, { text: "ready to send" });
+    await store.prepare(key, "s1", "m1", { text: "hello" });
+    const record = await store._read(key);
+    expect(record.composer.text).toBe("");
+    expect(record.pending.map((p) => p.id)).toEqual(["m1"]);
+  });
+
+  it("send write failure does not clear the saved composer early", async () => {
+    const root = await storage();
+    const key = randomUUID();
+    const store = new DraftStore(root);
+    await store.save(key, { text: "draft survives" });
+    const spy = vi
+      .spyOn(fs, "rename")
+      .mockRejectedValue(new Error("send failed"));
+    try {
+      await expect(
+        store.prepare(key, "s1", "m1", { text: "message" }),
+      ).rejects.toThrow("send failed");
+    } finally {
+      spy.mockRestore();
+    }
+    const record = await store._read(key);
+    expect(record.composer.text).toBe("draft survives");
+    expect(record.pending).toEqual([]);
+  });
+
+  it("failed send leaves no temporary manifest", async () => {
+    const root = await storage();
+    const key = randomUUID();
+    const store = new DraftStore(root);
+    await store.save(key, { text: "draft survives" });
+    const spy = vi
+      .spyOn(fs, "rename")
+      .mockRejectedValue(new Error("send failed"));
+    try {
+      await store
+        .prepare(key, "s1", "m1", { text: "message" })
+        .catch(() => {});
+    } finally {
+      spy.mockRestore();
+    }
+    const names = await fs.readdir(path.join(root, key));
+    expect(names.filter((n) => n.endsWith(".tmp"))).toEqual([]);
+  });
+});

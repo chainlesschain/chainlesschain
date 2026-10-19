@@ -1,0 +1,145 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+import fs from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { randomUUID } from "node:crypto";
+import { DraftStore } from "../src/chat/draft-store.js";
+
+const roots = [];
+afterEach(async () => {
+  for (const root of roots.splice(0))
+    await fs.rm(root, { recursive: true, force: true });
+  vi.restoreAllMocks();
+});
+
+async function storage() {
+  const root = await fs.mkdtemp(path.join(tmpdir(), "cc-verify25-"));
+  roots.push(root);
+  return root;
+}
+
+const image = {
+  data: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+};
+
+describe("draft write failure retains the old record", () => {
+  it("restores the previous composer after the atomic rename fails", async () => {
+    const root = await storage();
+    const key = randomUUID();
+    const store = new DraftStore(root);
+    await store.save(key, { text: "original", images: [image] });
+    const before = (await fs.readdir(path.join(root, key))).sort();
+
+    const rename = vi.spyOn(fs, "rename").mockRejectedValueOnce(
+      Object.assign(new Error("ENOSPC"), { code: "ENOSPC" }),
+    );
+    await expect(
+      store.save(key, { text: "new", images: [image] }),
+    ).rejects.toThrow("ENOSPC");
+    rename.mockRestore();
+
+    // Old draft is fully recoverable: text and image intact.
+    const restored = await new DraftStore(root).view(key);
+    expect(restored.composer.text).toBe("original");
+    expect(restored.composer.images).toHaveLength(1);
+    expect(restored.composer.images[0].data).toBe(image.data);
+    // Directory is left exactly as before the failed publish: no temp litter,
+    // no new owned images leaked.
+    expect((await fs.readdir(path.join(root, key))).sort()).toEqual(before);
+  });
+
+  it("keeps the old record when writing the temporary manifest fails mid-save", async () => {
+    const root = await storage();
+    const key = randomUUID();
+    const store = new DraftStore(root);
+    await store.save(key, { text: "stable" });
+    const original = await fs.readFile(path.join(root, key, "draft.json"));
+
+    // The temporary manifest write fails before any rename is attempted.
+    const handleSpy = vi.spyOn(fs, "open").mockImplementationOnce(async () => ({
+      writeFile: () => Promise.reject(new Error("EIO")),
+      sync: () => Promise.resolve(),
+      close: () => Promise.resolve(),
+    }));
+    await expect(store.save(key, { text: "overwrite" })).rejects.toThrow(
+      "EIO",
+    );
+    handleSpy.mockRestore();
+
+    // The committed manifest is untouched and no temp litter remains.
+    expect(
+      await fs.readFile(path.join(root, key, "draft.json"), "utf8"),
+    ).toBe(original.toString("utf8"));
+    expect((await store.view(key)).composer.text).toBe("stable");
+    expect(
+      (await fs.readdir(path.join(root, key))).filter((n) => n.endsWith(".tmp")),
+    ).toEqual([]);
+  });
+
+  it("recovers the old record even when a later save re-uses the key", async () => {
+    const root = await storage();
+    const key = randomUUID();
+    const store = new DraftStore(root);
+    await store.save(key, { text: "first" });
+    const rename = vi
+      .spyOn(fs, "rename")
+      .mockRejectedValueOnce(Object.assign(new Error("ENOSPC"), { code: "ENOSPC" }));
+    await expect(store.save(key, { text: "second" })).rejects.toThrow(
+      "ENOSPC",
+    );
+    rename.mockRestore();
+    // The interrupted write did not corrupt or clear the durable record.
+    expect((await store.view(key)).composer.text).toBe("first");
+    // A fresh successful save proceeds from the retained record.
+    await store.save(key, { text: "third" });
+    expect((await store.view(key)).composer.text).toBe("third");
+  });
+
+  it("does not clear the composer when the send is rejected before publication", async () => {
+    const root = await storage();
+    const key = randomUUID();
+    const store = new DraftStore(root);
+    await store.save(key, { text: "kept", images: [image] });
+    const before = (await fs.readdir(path.join(root, key))).sort();
+
+    // Clearing the composer commits an empty manifest by removing draft.json;
+    // a failure here must leave the prior draft recoverable.
+    const originalUnlink = fs.unlink;
+    const unlink = vi.spyOn(fs, "unlink").mockImplementation(async (file) => {
+      if (String(file).endsWith("draft.json"))
+        throw Object.assign(new Error("EIO"), { code: "EIO" });
+      return originalUnlink(file);
+    });
+    await expect(
+      store.save(key, { text: "", images: [] }),
+    ).rejects.toThrow("EIO");
+    unlink.mockRestore();
+
+    // Old text and attachment remain recoverable after the failed send.
+    expect((await store.view(key)).composer.text).toBe("kept");
+    expect((await store.view(key)).composer.images).toHaveLength(1);
+    expect(
+      (await fs.readdir(path.join(root, key))).filter((n) => n.endsWith(".png")),
+    ).toEqual(before.filter((n) => n.endsWith(".png")));
+  });
+
+  it("retains prior text when clearing the composer fails on an empty-draft commit", async () => {
+    const root = await storage();
+    const key = randomUUID();
+    const store = new DraftStore(root);
+    await store.save(key, { text: "persist me" });
+
+    const originalUnlink = fs.unlink;
+    const unlink = vi.spyOn(fs, "unlink").mockImplementation(async (file) => {
+      if (String(file).endsWith("draft.json"))
+        throw Object.assign(new Error("EACCES"), { code: "EACCES" });
+      return originalUnlink(file);
+    });
+    await expect(
+      store.save(key, { text: "", images: [] }),
+    ).rejects.toThrow("EACCES");
+    unlink.mockRestore();
+
+    expect((await store.view(key)).composer.text).toBe("persist me");
+  });
+});

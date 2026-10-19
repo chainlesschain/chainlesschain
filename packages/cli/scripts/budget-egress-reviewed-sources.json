@@ -432,9 +432,9 @@
     },
     {
       "path": "packages/cli/src/runtime/agent-core.js",
-      "digest": "sha256:5102a6adb6e3c799c1d34ed00ce9c6465292e197827524f0073c0c5030571699",
+      "digest": "sha256:0c4dd161ead8a9f173cb8200d534349fdcc8fc2ee86f315f276540e707a861e1",
       "category": "MODEL_REQUEST",
-      "rationale": "Canonical model requests including streaming, summaries and child paths; explicit scope required. Formal-scope tools reject centrally, and parallel read batches propagate budget failures. The 2026-10-18 task-quality changes add bounded local metadata-only import feedback and completion checks for unresolved file writes; no network call, retry, tool authority or provider scope is added. Successful equivalent content tools settle only the same target obligation, while denied, deferred and failed mutations do not settle it; move and delete remain independent."
+      "rationale": "Canonical model requests including streaming, summaries and child paths; explicit scope required. Formal-scope tools reject centrally, and parallel read batches propagate budget failures. The 2026-10-18 task-quality changes add bounded local metadata-only import feedback and completion checks for unresolved file writes. Runtime-only continuation messages are excluded from durable replay. No network call, retry, tool authority or provider scope is added. Successful equivalent content tools settle only the same target obligation, while denied, deferred and failed mutations do not settle it; move and delete remain independent."
     },
     {
       "path": "packages/cli/src/runtime/diagnostics.js",

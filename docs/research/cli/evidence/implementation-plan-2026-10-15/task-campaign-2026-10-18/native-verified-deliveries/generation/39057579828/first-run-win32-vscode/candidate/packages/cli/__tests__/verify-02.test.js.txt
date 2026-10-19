@@ -1,0 +1,95 @@
+import { describe, expect, it } from "vitest";
+import { resolveModelCapabilityProfile } from "../src/lib/model-capabilities.js";
+
+// Independent regression coverage for precise model-capability lookup:
+// documented Astra/Sol/Luna identifiers are recognised exactly and certified
+// as Responses tool models, while unknown suffixes are never elevated to a
+// certified tool model.
+
+describe("verify-02: precise model capability lookup", () => {
+  it.each([
+    ["gpt-6-astra"],
+    ["gpt-6-sol"],
+    ["gpt-6-luna"],
+  ])("certifies the documented official tool model %s", (model) => {
+    const profile = resolveModelCapabilityProfile({ provider: "openai", model });
+    expect(profile).toMatchObject({
+      provider: "openai",
+      model,
+      contextWindowTokens: 1050000,
+      windowSource: "official-model-docs",
+      windowAssumed: false,
+      runtimeProtocol: "openai-responses",
+      advertisedMaxOutputTokens: 128000,
+    });
+    expect(profile.runtimeVerified).toBe(false);
+    expect(profile.sources).toContain(
+      "https://developers.openai.com/api/docs/models/" + model,
+    );
+  });
+
+  it.each([
+    "gpt-6-astra-custom",
+    "gpt-6-sol-v2",
+    "gpt-6-luna-future",
+    "gpt-6-nova",
+  ])(
+    "never treats an unknown suffix %s as a certified tool model",
+    (model) => {
+      const profile = resolveModelCapabilityProfile({
+        provider: "openai",
+        model,
+      });
+      expect(profile.model).toBe(model);
+      expect(profile.windowSource).toBe("provider-default");
+      expect(profile.windowAssumed).toBe(true);
+      expect(profile.contextWindowTokens).toBe(128000);
+      expect(profile.advertisedMaxOutputTokens).toBeNull();
+      expect(profile.runtimeProtocol).toBe("chat-completions");
+      expect(profile.sources).toEqual([]);
+    },
+  );
+
+  it("distinguishes an unknown model from the documented baseline", () => {
+    const unknown = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-6-sol-extra",
+    });
+    const documented = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-6-sol",
+    });
+    expect(unknown.profileId).not.toBe(documented.profileId);
+    expect(unknown.digest).not.toBe(documented.digest);
+    expect(unknown.windowSource).not.toBe(documented.windowSource);
+  });
+
+  it("does not infer a tool model from a shared prefix on a custom endpoint", () => {
+    for (const model of ["gpt-6-astra", "gpt-6-sol", "gpt-6-luna"]) {
+      const profile = resolveModelCapabilityProfile({
+        provider: "openai",
+        model,
+        baseUrl: "https://gateway.example/v1",
+      });
+      expect(profile.windowSource).toBe("provider-default");
+      expect(profile.windowAssumed).toBe(true);
+      expect(profile.advertisedMaxOutputTokens).toBeNull();
+      expect(profile.runtimeProtocol).toBe("chat-completions");
+      expect(profile.sources).toEqual([]);
+    }
+  });
+
+  it("keeps identities exact: aliases and case variants are not certified", () => {
+    for (const model of [
+      " gpt-6-luna",
+      "gpt-6-luna ",
+      "GPT-6-LUNA",
+      "gpt6luna",
+    ]) {
+      expect(
+        resolveModelCapabilityProfile({ provider: "openai", model })
+          .windowSource,
+      ).toBe("provider-default");
+    }
+  });
+});

@@ -1,0 +1,125 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-22",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 19,
+      "passed": 19,
+      "failed": 0
+    },
+    {
+      "kind": "candidate",
+      "total": 6,
+      "passed": 6,
+      "failed": 0
+    }
+  ],
+  "mutations": [
+    {
+      "name": "published-commit-reported-uncommitted",
+      "sourceSha256": "515e1028de9a8d6e6e676fa85e70ccae48f8812267d97e1a20906f59e2530512",
+      "total": 6,
+      "passed": 3,
+      "failed": 3
+    }
+  ],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 125,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 2796,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":19,\"numPassedTests\":19,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1792257851212,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority reports post-publication failure when durable removal of superseded shards cannot be synced\",\"status\":\"passed\",\"title\":\"reports post-publication failure when durable removal of superseded shards cannot be synced\",\"duration\":15.733345999999983,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority exports concentrated legacy audit without an argument-count limit\",\"status\":\"passed\",\"title\":\"exports concentrated legacy audit without an argument-count limit\",\"duration\":1021.3641940000002,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority keeps the manifest bound independent from smaller bucket limits on reopen\",\"status\":\"passed\",\"title\":\"keeps the manifest bound independent from smaller bucket limits on reopen\",\"duration\":35.587860999999975,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority rejects a symlink or junction parent before creating authority directories through it\",\"status\":\"passed\",\"title\":\"rejects a symlink or junction parent before creating authority directories through it\",\"duration\":0.8829430000000684,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority never confuses inherited object keys with stored record or reconciliation entries\",\"status\":\"passed\",\"title\":\"never confuses inherited object keys with stored record or reconciliation entries\",\"duration\":3.8482679999997345,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority keeps shadow reads write-free for v1 and v2, including orphan collection\",\"status\":\"passed\",\"title\":\"keeps shadow reads write-free for v1 and v2, including orphan collection\",\"duration\":15.008831999999984,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority validates a captured generation after concurrent commit and GC without mixing generations\",\"status\":\"passed\",\"title\":\"validates a captured generation after concurrent commit and GC without mixing generations\",\"duration\":21.11294399999997,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority migrates v1 losslessly, preserves global audit order and rejects old writers\",\"status\":\"passed\",\"title\":\"migrates v1 losslessly, preserves global audit order and rejects old writers\",\"duration\":48.60245400000031,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority commits record, event and differently sharded reconciliation atomically; rejects stale CAS\",\"status\":\"passed\",\"title\":\"commits record, event and differently sharded reconciliation atomically; rejects stale CAS\",\"duration\":13.768690999999762,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority preserves old authority and removes unpublished shards on migration rename failure\",\"status\":\"passed\",\"title\":\"preserves old authority and removes unpublished shards on migration rename failure\",\"duration\":27.27904099999978,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority preserves old authority and removes unpublished shards on commit rename failure\",\"status\":\"passed\",\"title\":\"preserves old authority and removes unpublished shards on commit rename failure\",\"duration\":9.259293999999954,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority enforces maxTotalBytes before replacing authority\",\"status\":\"passed\",\"title\":\"enforces maxTotalBytes before replacing authority\",\"duration\":4.95292500000005,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority enforces maxEvents before replacing authority\",\"status\":\"passed\",\"title\":\"enforces maxEvents before replacing authority\",\"duration\":4.226850000000013,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority enforces maxStoreBytes before replacing authority\",\"status\":\"passed\",\"title\":\"enforces maxStoreBytes before replacing authority\",\"duration\":3.733624999999847,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority reports published state after post-rename fsync failure and never replays stale CAS\",\"status\":\"passed\",\"title\":\"reports published state after post-rename fsync failure and never replays stale CAS\",\"duration\":8.677466999999979,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority reports published state after post-rename gc failure and never replays stale CAS\",\"status\":\"passed\",\"title\":\"reports published state after post-rename gc failure and never replays stale CAS\",\"duration\":10.06211600000006,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority detects corrupt shards and hard-linked authorities without mutating them\",\"status\":\"passed\",\"title\":\"detects corrupt shards and hard-linked authorities without mutating them\",\"duration\":2.5978009999998903,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority collects crash leftovers under the authority lock and retains unknown files\",\"status\":\"passed\",\"title\":\"collects crash leftovers under the authority lock and retains unknown files\",\"duration\":2.915770000000066,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"segmented memory authority\"],\"fullName\":\"segmented memory authority point reads only open their hash bucket; listing retains production sort semantics\",\"status\":\"passed\",\"title\":\"point reads only open their hash bucket; listing retains production sort semantics\",\"duration\":72.9318330000001,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1792257852297,\"endTime\":1792257853619.932,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/segmented-memory-port.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 1502,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":6,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1792257854007,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"Memory post-publication failure semantics\"],\"fullName\":\"Memory post-publication failure semantics reports a committed failure when post-rename garbage collection throws and the reopen reads the new state\",\"status\":\"passed\",\"title\":\"reports a committed failure when post-rename garbage collection throws and the reopen reads the new state\",\"duration\":18.456267000000025,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Memory post-publication failure semantics\"],\"fullName\":\"Memory post-publication failure semantics reports committed when the post-rename directory fsync fails and re-reads the new record\",\"status\":\"passed\",\"title\":\"reports committed when the post-rename directory fsync fails and re-reads the new record\",\"duration\":9.586990999999898,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Memory post-publication failure semantics\"],\"fullName\":\"Memory post-publication failure semantics does NOT declare the commit committed when the replacement (rename) itself fails\",\"status\":\"passed\",\"title\":\"does NOT declare the commit committed when the replacement (rename) itself fails\",\"duration\":14.781856000000062,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Memory post-publication failure semantics\"],\"fullName\":\"Memory post-publication failure semantics commits cleanly when no maintenance failure is injected\",\"status\":\"passed\",\"title\":\"commits cleanly when no maintenance failure is injected\",\"duration\":6.501864000000069,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Memory post-publication failure semantics\"],\"fullName\":\"Memory post-publication failure semantics treats a committed failure as authoritative: a stale CAS replay is rejected after reopen\",\"status\":\"passed\",\"title\":\"treats a committed failure as authoritative: a stale CAS replay is rejected after reopen\",\"duration\":6.63992200000007,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Memory post-publication failure semantics\"],\"fullName\":\"Memory post-publication failure semantics remains writable after a committed failure and persists a subsequent commit\",\"status\":\"passed\",\"title\":\"remains writable after a committed failure and persists a subsequent commit\",\"duration\":11.192959999999857,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1792257855070,\"endTime\":1792257855137.1929,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-22.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js"
+      ],
+      "setup": false,
+      "ms": 135,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 1517,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":0,\"numFailedTestSuites\":2,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":3,\"numFailedTests\":3,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1792257855654,\"success\":false,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"Memory post-publication failure semantics\"],\"fullName\":\"Memory post-publication failure semantics reports a committed failure when post-rename garbage collection throws and the reopen reads the new state\",\"status\":\"failed\",\"title\":\"reports a committed failure when post-rename garbage collection throws and the reopen reads the new state\",\"duration\":22.405168999999887,\"failureMessages\":[\"AssertionError: expected Error: Context/Memory commit was publishe… { …(5) } to match object { …(4) }\\n(1 matching property omitted from actual)\\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1283:10)\\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1156:15)\\n    at Proxy.methodWrapper (file:///workspace/node_modules/chai/index.js:1700:25)\\n    at /workspace/packages/cli/__tests__/verify-22.test.js:62:19\\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Memory post-publication failure semantics\"],\"fullName\":\"Memory post-publication failure semantics reports committed when the post-rename directory fsync fails and re-reads the new record\",\"status\":\"failed\",\"title\":\"reports committed when the post-rename directory fsync fails and re-reads the new record\",\"duration\":7.581895000000031,\"failureMessages\":[\"AssertionError: expected Error: Context/Memory commit was publishe… { …(5) } to match object { …(3) }\\n(2 matching properties omitted from actual)\\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1283:10)\\n    at Proxy.<anonymous> (file:///workspace/node_modules/@vitest/expect/dist/index.js:1156:15)\\n    at Proxy.methodWrapper (file:///workspace/node_modules/chai/index.js:1700:25)\\n    at /workspace/packages/cli/__tests__/verify-22.test.js:98:21\\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Memory post-publication failure semantics\"],\"fullName\":\"Memory post-publication failure semantics does NOT declare the commit committed when the replacement (rename) itself fails\",\"status\":\"passed\",\"title\":\"does NOT declare the commit committed when the replacement (rename) itself fails\",\"duration\":14.222487000000001,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Memory post-publication failure semantics\"],\"fullName\":\"Memory post-publication failure semantics commits cleanly when no maintenance failure is injected\",\"status\":\"passed\",\"title\":\"commits cleanly when no maintenance failure is injected\",\"duration\":6.6723910000000615,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Memory post-publication failure semantics\"],\"fullName\":\"Memory post-publication failure semantics treats a committed failure as authoritative: a stale CAS replay is rejected after reopen\",\"status\":\"passed\",\"title\":\"treats a committed failure as authoritative: a stale CAS replay is rejected after reopen\",\"duration\":8.177634000000126,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"Memory post-publication failure semantics\"],\"fullName\":\"Memory post-publication failure semantics remains writable after a committed failure and persists a subsequent commit\",\"status\":\"failed\",\"title\":\"remains writable after a committed failure and persists a subsequent commit\",\"duration\":5.665410999999949,\"failureMessages\":[\"AssertionError: expected false to be true // Object.is equality\\n    at /workspace/packages/cli/__tests__/verify-22.test.js:198:33\\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20\"],\"meta\":{},\"tags\":[]}],\"startTime\":1792257856731,\"endTime\":1792257856795.6655,\"status\":\"failed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-22.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": true,
+  "detail": "Independent operator checks passed; this is not a provider or task-outcome sample."
+}

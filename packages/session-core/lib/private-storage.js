@@ -237,6 +237,20 @@ function assertNoLinkTraversal(
   return target;
 }
 
+// Fixed progress labels and a bounded monotonic clock contain no filesystem or
+// identity data. Completion marks the output call returning, not process exit
+// or ACL admission. This clock excludes PowerShell startup before the script.
+const WINDOWS_ACL_PROGRESS = String.raw`
+$script:ccAclClock = [System.Diagnostics.Stopwatch]::StartNew()
+function Write-CcAclProgress([string]$stage) {
+  if ($stage -notin @('initialize', 'traversal', 'lookup', 'repair-lock', 'repair-inspect', 'repair-write', 'repair-wait', 'repair-traversal', 'repair-read', 'repair-owner', 'repair-protect', 'repair-rules', 'repair-persist', 'repair-unlock', 'verify', 'verify-read', 'verify-rules', 'serialize', 'output-complete')) { throw 'Invalid ACL progress stage' }
+  $script:ccAclStage = $stage
+  $elapsed = [Math]::Min(300000, [Math]::Max(0, $script:ccAclClock.ElapsedMilliseconds))
+  [Console]::Error.WriteLine('CC_WINDOWS_ACL_STAGE=' + $stage)
+  [Console]::Error.WriteLine('CC_WINDOWS_ACL_ELAPSED_MS=' + $stage + ':' + $elapsed.ToString([System.Globalization.CultureInfo]::InvariantCulture))
+}
+`;
+
 // Reapplying an unchanged directory DACL propagates to existing children on
 // Windows and changes their ctime, invalidating otherwise intact session
 // witnesses. Serialize check-and-repair across processes and skip a verified
@@ -260,27 +274,33 @@ function Test-CcOwnerOnlySecurity($item, $security) {
 }
 function Write-CcOwnerOnlyAcl($item, [string]$path) {
   $script:ccAclStage = 'repair-lock'
-  [Console]::Error.WriteLine('CC_WINDOWS_ACL_STAGE=repair-lock')
+  Write-CcAclProgress 'repair-lock'
   $digest = [System.Security.Cryptography.SHA256]::Create()
   try {
     $key = [System.BitConverter]::ToString($digest.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($sid.Value + ':' + [System.IO.Path]::GetFullPath($path).ToUpperInvariant()))).Replace('-', '')
   } finally { $digest.Dispose() }
   $mutex = [System.Threading.Mutex]::new($false, ('Global\ChainlessChain.PrivateAcl.' + $key))
   $held = $false
+  $repairComplete = $false
   try {
+    Write-CcAclProgress 'repair-wait'
     try { $held = $mutex.WaitOne(10000) }
     catch [System.Threading.AbandonedMutexException] { $held = $true }
     if (-not $held) { throw 'Timed out waiting for owner-only ACL repair' }
+    Write-CcAclProgress 'repair-traversal'
     Assert-CcNoReparseTraversal $path
     $script:ccAclStage = 'repair-inspect'
-    [Console]::Error.WriteLine('CC_WINDOWS_ACL_STAGE=repair-inspect')
+    Write-CcAclProgress 'repair-inspect'
     $current = Get-Item -LiteralPath $path -Force
     $security = Read-CcAcl $path
-    if (Test-CcOwnerOnlySecurity $current $security) { return }
+    if (Test-CcOwnerOnlySecurity $current $security) { $repairComplete = $true; return }
     $script:ccAclStage = 'repair-write'
-    [Console]::Error.WriteLine('CC_WINDOWS_ACL_STAGE=repair-write')
+    Write-CcAclProgress 'repair-write'
     Write-CcOwnerOnlyAclImpl $current $path
+    $repairComplete = $true
   } finally {
+    # Preserve the original operation stage when unwinding an ACL failure.
+    if ($repairComplete) { Write-CcAclProgress 'repair-unlock' }
     if ($held) { $mutex.ReleaseMutex() }
     $mutex.Dispose()
   }
@@ -290,9 +310,13 @@ function Write-CcOwnerOnlyAcl($item, [string]$path) {
 const WINDOWS_ACL_SCRIPT = String.raw`
 param([string]$target, [string]$operation)
 $ErrorActionPreference = 'Stop'
+# ACL helpers use only Windows PowerShell modules. Bound discovery before the
+# first cmdlet to avoid scanning inherited third-party/user module locations.
+$env:PSModulePath = [System.IO.Path]::Combine($PSHOME, 'Modules')
+${WINDOWS_ACL_PROGRESS}
 $script:ccAclStage = 'initialize'
 try {
-[Console]::Error.WriteLine('CC_WINDOWS_ACL_STAGE=initialize')
+Write-CcAclProgress 'initialize'
 $utf8 = [System.Text.UTF8Encoding]::new($false)
 [Console]::OutputEncoding = $utf8
 $sections =
@@ -319,10 +343,10 @@ function Assert-CcNoReparseTraversal([string]$path) {
 }
 
 $script:ccAclStage = 'traversal'
-[Console]::Error.WriteLine('CC_WINDOWS_ACL_STAGE=traversal')
+Write-CcAclProgress 'traversal'
 Assert-CcNoReparseTraversal $target
 $script:ccAclStage = 'lookup'
-[Console]::Error.WriteLine('CC_WINDOWS_ACL_STAGE=lookup')
+Write-CcAclProgress 'lookup'
 $item = Get-Item -LiteralPath $target -Force
 
 function Read-CcAcl([string]$path) {
@@ -334,7 +358,9 @@ function Read-CcAcl([string]$path) {
 
 ${WINDOWS_ACL_IDEMPOTENT_REPAIR}
 function Write-CcOwnerOnlyAclImpl($item, [string]$path) {
+  Write-CcAclProgress 'repair-read'
   $security = Read-CcAcl $path
+  Write-CcAclProgress 'repair-owner'
   $owner = $security.GetOwner([System.Security.Principal.SecurityIdentifier])
   if ($owner.Value -ne $sid.Value) {
     # Elevated/service tokens can create files whose owner is the token's
@@ -347,7 +373,9 @@ function Write-CcOwnerOnlyAclImpl($item, [string]$path) {
     }
     $security.SetOwner($sid)
   }
+  Write-CcAclProgress 'repair-protect'
   $security.SetAccessRuleProtection($true, $false)
+  Write-CcAclProgress 'repair-rules'
   $existingRules = @($security.GetAccessRules($true, $false, [System.Security.Principal.SecurityIdentifier]))
   foreach ($existingRule in $existingRules) {
     $security.RemoveAccessRuleAll($existingRule)
@@ -364,6 +392,7 @@ function Write-CcOwnerOnlyAclImpl($item, [string]$path) {
       [System.Security.AccessControl.AccessControlType]::Allow
     )
     $security.AddAccessRule($rule) | Out-Null
+    Write-CcAclProgress 'repair-persist'
     [System.IO.DirectoryInfo]::new($path).SetAccessControl($security)
   } else {
     $rule = [System.Security.AccessControl.FileSystemAccessRule]::new(
@@ -374,6 +403,7 @@ function Write-CcOwnerOnlyAclImpl($item, [string]$path) {
       [System.Security.AccessControl.AccessControlType]::Allow
     )
     $security.AddAccessRule($rule) | Out-Null
+    Write-CcAclProgress 'repair-persist'
     [System.IO.FileInfo]::new($path).SetAccessControl($security)
   }
 }
@@ -383,8 +413,10 @@ if ($operation -eq 'repair') {
 }
 
 $script:ccAclStage = 'verify'
-[Console]::Error.WriteLine('CC_WINDOWS_ACL_STAGE=verify')
+Write-CcAclProgress 'verify'
+Write-CcAclProgress 'verify-read'
 $acl = Read-CcAcl $target
+Write-CcAclProgress 'verify-rules'
 $owner = $acl.GetOwner([System.Security.Principal.SecurityIdentifier]).Value
 $rules = @($acl.GetAccessRules($true, $true, [System.Security.Principal.SecurityIdentifier]))
 $protectionOk = -not $item.PSIsContainer -or $acl.AreAccessRulesProtected
@@ -418,6 +450,7 @@ if ($ownerOnly) {
     }
   }
 }
+Write-CcAclProgress 'serialize'
 [pscustomobject]@{
   ownerOnly = [bool]$ownerOnly
   isDirectory = [bool]$item.PSIsContainer
@@ -427,6 +460,7 @@ if ($ownerOnly) {
   protected = [bool]$acl.AreAccessRulesProtected
   aceCount = $rules.Count
 } | ConvertTo-Json -Compress
+Write-CcAclProgress 'output-complete'
 if (-not $ownerOnly) { exit 4 }
 } catch {
   # Emit only a fixed stage and the deepest native HRESULT. Never emit the
@@ -444,7 +478,10 @@ if (-not $ownerOnly) { exit 4 }
 
 const WINDOWS_ACL_BATCH_SCRIPT = String.raw`
 $ErrorActionPreference = 'Stop'
-[Console]::Error.WriteLine('CC_WINDOWS_ACL_STAGE=initialize')
+# Keep batch JSON parsing and ACL cmdlets on the same built-in module path.
+$env:PSModulePath = [System.IO.Path]::Combine($PSHOME, 'Modules')
+${WINDOWS_ACL_PROGRESS}
+Write-CcAclProgress 'initialize'
 $utf8 = [System.Text.UTF8Encoding]::new($false)
 [Console]::InputEncoding = $utf8
 [Console]::OutputEncoding = $utf8
@@ -488,9 +525,9 @@ if ($operation -eq 'repair' -or $operation -eq 'preflight') {
   $preflightFailures = @()
   foreach ($target in $targets) {
     try {
-      [Console]::Error.WriteLine('CC_WINDOWS_ACL_STAGE=traversal')
+      Write-CcAclProgress 'traversal'
       Assert-CcNoReparseTraversal $target
-      [Console]::Error.WriteLine('CC_WINDOWS_ACL_STAGE=lookup')
+      Write-CcAclProgress 'lookup'
       $candidate = Get-Item -LiteralPath $target -Force
       $kindMismatch =
         ($expectedKind -eq 'file' -and $candidate.PSIsContainer) -or
@@ -524,7 +561,9 @@ if ($operation -eq 'repair' -or $operation -eq 'preflight') {
         errorCode = $firstFailure.errorCode
       }
     })
+    Write-CcAclProgress 'serialize'
     [Console]::Write((ConvertTo-Json -InputObject $output -Compress -Depth 4))
+    Write-CcAclProgress 'output-complete'
     exit 4
   }
   if ($operation -eq 'preflight') {
@@ -546,7 +585,9 @@ if ($operation -eq 'repair' -or $operation -eq 'preflight') {
         error = $null
       }
     })
+    Write-CcAclProgress 'serialize'
     [Console]::Write((ConvertTo-Json -InputObject $output -Compress -Depth 4))
+    Write-CcAclProgress 'output-complete'
     exit 0
   }
 }
@@ -560,7 +601,9 @@ function Read-CcAcl([string]$path) {
 
 ${WINDOWS_ACL_IDEMPOTENT_REPAIR}
 function Write-CcOwnerOnlyAclImpl($item, [string]$path) {
+  Write-CcAclProgress 'repair-read'
   $security = Read-CcAcl $path
+  Write-CcAclProgress 'repair-owner'
   $owner = $security.GetOwner([System.Security.Principal.SecurityIdentifier])
   if ($owner.Value -ne $sid.Value) {
     if ($null -eq $tokenOwner -or $owner.Value -ne $tokenOwner.Value) {
@@ -568,7 +611,9 @@ function Write-CcOwnerOnlyAclImpl($item, [string]$path) {
     }
     $security.SetOwner($sid)
   }
+  Write-CcAclProgress 'repair-protect'
   $security.SetAccessRuleProtection($true, $false)
+  Write-CcAclProgress 'repair-rules'
   $existingRules = @($security.GetAccessRules($true, $false, [System.Security.Principal.SecurityIdentifier]))
   foreach ($existingRule in $existingRules) {
     $security.RemoveAccessRuleAll($existingRule)
@@ -585,6 +630,7 @@ function Write-CcOwnerOnlyAclImpl($item, [string]$path) {
       [System.Security.AccessControl.AccessControlType]::Allow
     )
     $security.AddAccessRule($rule) | Out-Null
+    Write-CcAclProgress 'repair-persist'
     [System.IO.DirectoryInfo]::new($path).SetAccessControl($security)
   } else {
     $rule = [System.Security.AccessControl.FileSystemAccessRule]::new(
@@ -595,6 +641,7 @@ function Write-CcOwnerOnlyAclImpl($item, [string]$path) {
       [System.Security.AccessControl.AccessControlType]::Allow
     )
     $security.AddAccessRule($rule) | Out-Null
+    Write-CcAclProgress 'repair-persist'
     [System.IO.FileInfo]::new($path).SetAccessControl($security)
   }
 }
@@ -602,9 +649,9 @@ function Write-CcOwnerOnlyAclImpl($item, [string]$path) {
 $results = foreach ($target in $targets) {
   $item = $null
   try {
-    [Console]::Error.WriteLine('CC_WINDOWS_ACL_STAGE=traversal')
+    Write-CcAclProgress 'traversal'
     Assert-CcNoReparseTraversal $target
-    [Console]::Error.WriteLine('CC_WINDOWS_ACL_STAGE=lookup')
+    Write-CcAclProgress 'lookup'
     $item = Get-Item -LiteralPath $target -Force
     $kindMismatch =
       ($expectedKind -eq 'file' -and $item.PSIsContainer) -or
@@ -624,8 +671,10 @@ $results = foreach ($target in $targets) {
       Write-CcOwnerOnlyAcl $item $target
     }
 
-    [Console]::Error.WriteLine('CC_WINDOWS_ACL_STAGE=verify')
+    Write-CcAclProgress 'verify'
+    Write-CcAclProgress 'verify-read'
     $acl = Read-CcAcl $target
+    Write-CcAclProgress 'verify-rules'
     $owner = $acl.GetOwner([System.Security.Principal.SecurityIdentifier]).Value
     $rules = @($acl.GetAccessRules($true, $true, [System.Security.Principal.SecurityIdentifier]))
     $protectionOk = -not $item.PSIsContainer -or $acl.AreAccessRulesProtected
@@ -684,7 +733,9 @@ $results = foreach ($target in $targets) {
   }
 }
 $output = [array]@($results)
+Write-CcAclProgress 'serialize'
 [Console]::Write((ConvertTo-Json -InputObject $output -Compress -Depth 4))
+Write-CcAclProgress 'output-complete'
 if (@($output | Where-Object { -not $_.ok }).Count -gt 0) { exit 4 }
 `;
 
@@ -789,9 +840,26 @@ function windowsAclProcessFailure(result, operation) {
       ...String(result?.stderr || "")
         .slice(0, 8192)
         .matchAll(
-          /^CC_WINDOWS_ACL_STAGE=(initialize|traversal|lookup|repair-lock|repair-inspect|repair-write|verify)\r?$/gmu,
+          /^CC_WINDOWS_ACL_STAGE=(initialize|traversal|lookup|repair-lock|repair-inspect|repair-write|repair-wait|repair-traversal|repair-read|repair-owner|repair-protect|repair-rules|repair-persist|repair-unlock|verify|verify-read|verify-rules|serialize|output-complete)\r?$/gmu,
         ),
     ].at(-1)?.[1] || "startup";
+  // Timing is diagnostic only. Ignore malformed, unbounded or regressing
+  // records, and attach it only to the matching final admitted stage.
+  const timings = [
+    ...String(result?.stderr || "")
+      .slice(0, 8192)
+      .matchAll(
+        /^CC_WINDOWS_ACL_ELAPSED_MS=(initialize|traversal|lookup|repair-lock|repair-inspect|repair-write|repair-wait|repair-traversal|repair-read|repair-owner|repair-protect|repair-rules|repair-persist|repair-unlock|verify|verify-read|verify-rules|serialize|output-complete):(0|[1-9][0-9]{0,5})\r?$/gmu,
+      ),
+  ];
+  const validTimings = timings.every(
+    (entry, index) =>
+      Number(entry[2]) <= 300000 &&
+      (index === 0 || Number(entry[2]) >= Number(timings[index - 1][2])),
+  );
+  const lastTiming = validTimings ? timings.at(-1) : null;
+  const elapsedMs =
+    lastTiming?.[1] === progressStage ? Number(lastTiming[2]) : null;
   const allowedCodes = new Set([
     "EACCES",
     "EPERM",
@@ -826,13 +894,14 @@ function windowsAclProcessFailure(result, operation) {
     code,
     errno: nativeErrno,
     syscall,
+    ...(elapsedMs === null ? {} : { elapsedMs }),
   };
   const stage =
     failureStage === "timeout" ? `timeout-${progressStage}` : "spawn";
   return {
     ok: false,
     platform: "win32",
-    error: `owner-only ACL process failed [windows-acl:${stage}] [windows-acl-launch:${operation}:${failureStage}:${progressStage}:${code}:${nativeErrno ?? "unknown"}:${syscall}]`,
+    error: `owner-only ACL process failed [windows-acl:${stage}] [windows-acl-launch:${operation}:${failureStage}:${progressStage}:${code}:${nativeErrno ?? "unknown"}:${syscall}]${elapsedMs === null ? "" : ` [windows-acl-elapsed:${progressStage}:${elapsedMs}]`}`,
     launchFailure: diagnostic,
   };
 }
@@ -897,7 +966,19 @@ function windowsAclFailureMarker(details) {
     "repair-lock",
     "repair-inspect",
     "repair-write",
+    "repair-wait",
+    "repair-traversal",
+    "repair-read",
+    "repair-owner",
+    "repair-protect",
+    "repair-rules",
+    "repair-persist",
+    "repair-unlock",
     "verify",
+    "verify-read",
+    "verify-rules",
+    "serialize",
+    "output-complete",
   ]);
   if (
     allowedStages.has(details?.failureStage) &&

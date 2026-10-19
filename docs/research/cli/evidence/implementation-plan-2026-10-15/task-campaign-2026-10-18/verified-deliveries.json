@@ -1,0 +1,233 @@
+[
+  {
+    "runId": "39048948861",
+    "sourceCommit": "121f904fa0d484788f8e4707c4c985e9a8f23b3a",
+    "originalArtifactPath": "verify-16/candidate/packages/cli/__tests__/verify-16.test.js",
+    "path": "verified-deliveries/39048948861/verify-16/candidate/packages/cli/__tests__/verify-16.test.txt",
+    "digest": "sha256:e3c114c47d2017503fe32c9f2158e3ecdf6435c1888a7fe2ab54e36adffbeada"
+  },
+  {
+    "runId": "39048948861",
+    "sourceCommit": "121f904fa0d484788f8e4707c4c985e9a8f23b3a",
+    "originalArtifactPath": "pack/acceptance-evidence/verify-16-check-9e2dd42f-ec4a-4045-b90b-d805dc4f4285.json",
+    "path": "verified-deliveries/39048948861/pack/acceptance-evidence/verify-16-check-9e2dd42f-ec4a-4045-b90b-d805dc4f4285.json",
+    "digest": "sha256:1e72fa775b627db8ea7d2abc2ea837d95711940db906d8fa162ac3b8595d9450"
+  },
+  {
+    "runId": "39048948861",
+    "sourceCommit": "121f904fa0d484788f8e4707c4c985e9a8f23b3a",
+    "originalArtifactPath": "pack/acceptance-evidence/verify-16-setup-4bd734bc-5999-4433-9b6c-44ff7fedbdda.json",
+    "path": "verified-deliveries/39048948861/pack/acceptance-evidence/verify-16-setup-4bd734bc-5999-4433-9b6c-44ff7fedbdda.json",
+    "digest": "sha256:54fddbc77addad9d7ac70f9113bfbaa28ffc3f531e1b69162401d7fa4040600d"
+  },
+  {
+    "runId": "39048948861",
+    "sourceCommit": "121f904fa0d484788f8e4707c4c985e9a8f23b3a",
+    "originalArtifactPath": "verify-25/candidate/packages/vscode-extension/__tests__/verify-25.test.js",
+    "path": "verified-deliveries/39048948861/verify-25/candidate/packages/vscode-extension/__tests__/verify-25.test.txt",
+    "digest": "sha256:f571007871a3a989d6d6f3658fa8dba747955c9714a2907d9408d9a9570b7511"
+  },
+  {
+    "runId": "39048948861",
+    "sourceCommit": "121f904fa0d484788f8e4707c4c985e9a8f23b3a",
+    "originalArtifactPath": "pack/acceptance-evidence/verify-25-check-54ab76a1-ba55-4c5f-95c9-1683ef17697e.json",
+    "path": "verified-deliveries/39048948861/pack/acceptance-evidence/verify-25-check-54ab76a1-ba55-4c5f-95c9-1683ef17697e.json",
+    "digest": "sha256:6b2aa6a52c7729f136a0975bc787e67862a78d4d318831d09d62826f8d324223"
+  },
+  {
+    "runId": "39048948861",
+    "sourceCommit": "121f904fa0d484788f8e4707c4c985e9a8f23b3a",
+    "originalArtifactPath": "pack/acceptance-evidence/verify-25-setup-f5f9e4df-40f9-47a9-9515-cdee84ab1994.json",
+    "path": "verified-deliveries/39048948861/pack/acceptance-evidence/verify-25-setup-f5f9e4df-40f9-47a9-9515-cdee84ab1994.json",
+    "digest": "sha256:703d7e5790a8d05667052fd6053cf099c3fe5c0372484e3700f71cad987312a1"
+  },
+  {
+    "runId": "39048948861",
+    "sourceCommit": "121f904fa0d484788f8e4707c4c985e9a8f23b3a",
+    "originalArtifactPath": "verify-17/candidate/packages/cli/__tests__/verify-17.test.js",
+    "path": "verified-deliveries/39048948861/verify-17/candidate/packages/cli/__tests__/verify-17.test.txt",
+    "digest": "sha256:2a46dd5bd3230d60ff908e78d6e00c91d59386a03ffeaef66ae22110cf1ad875"
+  },
+  {
+    "runId": "39048948861",
+    "sourceCommit": "121f904fa0d484788f8e4707c4c985e9a8f23b3a",
+    "originalArtifactPath": "pack/acceptance-evidence/verify-17-check-844533c8-142c-4332-82e2-5666e744b181.json",
+    "path": "verified-deliveries/39048948861/pack/acceptance-evidence/verify-17-check-844533c8-142c-4332-82e2-5666e744b181.json",
+    "digest": "sha256:6397efd8e24ebb7b7bf35b3cc00276a2ac0932f0834ee2e06d412a97ff6cc5c2"
+  },
+  {
+    "runId": "39048948861",
+    "sourceCommit": "121f904fa0d484788f8e4707c4c985e9a8f23b3a",
+    "originalArtifactPath": "pack/acceptance-evidence/verify-17-setup-63492a5d-b4e0-4f4b-a7fc-b8e5f7b09346.json",
+    "path": "verified-deliveries/39048948861/pack/acceptance-evidence/verify-17-setup-63492a5d-b4e0-4f4b-a7fc-b8e5f7b09346.json",
+    "digest": "sha256:9ef532e3760377ac6160a3c99515e3748514de428f8941b75b8606f31e48eab2"
+  },
+  {
+    "runId": "39048948861",
+    "sourceCommit": "121f904fa0d484788f8e4707c4c985e9a8f23b3a",
+    "originalArtifactPath": "verify-15/candidate/packages/cli/__tests__/verify-15.test.js",
+    "path": "verified-deliveries/39048948861/verify-15/candidate/packages/cli/__tests__/verify-15.test.txt",
+    "digest": "sha256:072939e245578e9fe173c8bc658df6198233c1b9859c1db96ceadf1b0480de36"
+  },
+  {
+    "runId": "39048948861",
+    "sourceCommit": "121f904fa0d484788f8e4707c4c985e9a8f23b3a",
+    "originalArtifactPath": "pack/acceptance-evidence/verify-15-check-c97a29b5-6313-4153-bc2c-3f5a9fb1ba42.json",
+    "path": "verified-deliveries/39048948861/pack/acceptance-evidence/verify-15-check-c97a29b5-6313-4153-bc2c-3f5a9fb1ba42.json",
+    "digest": "sha256:82859ad53add0ec54f51e1969b8fba01b819d9b698ac0c6df5461b68d290ca08"
+  },
+  {
+    "runId": "39048948861",
+    "sourceCommit": "121f904fa0d484788f8e4707c4c985e9a8f23b3a",
+    "originalArtifactPath": "pack/acceptance-evidence/verify-15-setup-76266ed5-7c27-44bf-ae58-5e0dd5460266.json",
+    "path": "verified-deliveries/39048948861/pack/acceptance-evidence/verify-15-setup-76266ed5-7c27-44bf-ae58-5e0dd5460266.json",
+    "digest": "sha256:ae61ffba9b8dd46d08c27697f898224842c06bb102c5ccad04e53f7449e2f3c0"
+  },
+  {
+    "runId": "39048948861",
+    "sourceCommit": "121f904fa0d484788f8e4707c4c985e9a8f23b3a",
+    "originalArtifactPath": "verify-24/candidate/packages/cli/__tests__/verify-24.test.js",
+    "path": "verified-deliveries/39048948861/verify-24/candidate/packages/cli/__tests__/verify-24.test.txt",
+    "digest": "sha256:e8ae9f683730c28acf940a2ac0bd591980b63ea29d01e6a3f44cbb2751c0326a"
+  },
+  {
+    "runId": "39048948861",
+    "sourceCommit": "121f904fa0d484788f8e4707c4c985e9a8f23b3a",
+    "originalArtifactPath": "pack/acceptance-evidence/verify-24-check-e8972497-2767-4389-afa7-8d7c27fad2b9.json",
+    "path": "verified-deliveries/39048948861/pack/acceptance-evidence/verify-24-check-e8972497-2767-4389-afa7-8d7c27fad2b9.json",
+    "digest": "sha256:44b457c03f48097e8bde6024132487fe68f3a034619e1f0a519547ed62f478f1"
+  },
+  {
+    "runId": "39048948861",
+    "sourceCommit": "121f904fa0d484788f8e4707c4c985e9a8f23b3a",
+    "originalArtifactPath": "pack/acceptance-evidence/verify-24-setup-8575b320-c247-4692-81b2-6f29941cfda1.json",
+    "path": "verified-deliveries/39048948861/pack/acceptance-evidence/verify-24-setup-8575b320-c247-4692-81b2-6f29941cfda1.json",
+    "digest": "sha256:e552cd5823ea34fb8776c0b1040af5ff60cc27af29affd0af3b83ece400686d6"
+  },
+  {
+    "runId": "39048948861",
+    "sourceCommit": "121f904fa0d484788f8e4707c4c985e9a8f23b3a",
+    "originalArtifactPath": "verify-33/candidate/packages/vscode-extension/__tests__/verify-33.test.js",
+    "path": "verified-deliveries/39048948861/verify-33/candidate/packages/vscode-extension/__tests__/verify-33.test.txt",
+    "digest": "sha256:129749bc6ea79e14a5cffdeb60fafd8bd17282d7707b5c0cf5a324070eec8afb"
+  },
+  {
+    "runId": "39048948861",
+    "sourceCommit": "121f904fa0d484788f8e4707c4c985e9a8f23b3a",
+    "originalArtifactPath": "pack/acceptance-evidence/verify-33-check-02efddbc-5915-43c0-b204-e2c838fe15c4.json",
+    "path": "verified-deliveries/39048948861/pack/acceptance-evidence/verify-33-check-02efddbc-5915-43c0-b204-e2c838fe15c4.json",
+    "digest": "sha256:93820ad1a85a2c135a95f341e2f3bfd649c9cc1b89ff97f4f3c52668a37bfb45"
+  },
+  {
+    "runId": "39048948861",
+    "sourceCommit": "121f904fa0d484788f8e4707c4c985e9a8f23b3a",
+    "originalArtifactPath": "pack/acceptance-evidence/verify-33-setup-a0303a9a-d313-4d6f-9f35-7961c18c111f.json",
+    "path": "verified-deliveries/39048948861/pack/acceptance-evidence/verify-33-setup-a0303a9a-d313-4d6f-9f35-7961c18c111f.json",
+    "digest": "sha256:ebccea8f06867f3dc1093a57c2143ec79b1586bddffe3629403543e8a85d0e5a"
+  },
+  {
+    "runId": "39048948861",
+    "sourceCommit": "121f904fa0d484788f8e4707c4c985e9a8f23b3a",
+    "originalArtifactPath": "verify-14/candidate/packages/cli/__tests__/verify-14.test.js",
+    "path": "verified-deliveries/39048948861/verify-14/candidate/packages/cli/__tests__/verify-14.test.txt",
+    "digest": "sha256:481d5f200180aead568c1b0d0795a68a21028d8c032d0f7e54c5ee8da8b56de3"
+  },
+  {
+    "runId": "39048948861",
+    "sourceCommit": "121f904fa0d484788f8e4707c4c985e9a8f23b3a",
+    "originalArtifactPath": "pack/acceptance-evidence/verify-14-check-19e14fd8-8e94-41a2-8f36-94fb99e626f5.json",
+    "path": "verified-deliveries/39048948861/pack/acceptance-evidence/verify-14-check-19e14fd8-8e94-41a2-8f36-94fb99e626f5.json",
+    "digest": "sha256:ee911137790bc3f189b4010f327985095424c63d7a850a393f840549cb1e4d0d"
+  },
+  {
+    "runId": "39048948861",
+    "sourceCommit": "121f904fa0d484788f8e4707c4c985e9a8f23b3a",
+    "originalArtifactPath": "pack/acceptance-evidence/verify-14-setup-cd878042-8a85-416f-9451-1f26a3b6981b.json",
+    "path": "verified-deliveries/39048948861/pack/acceptance-evidence/verify-14-setup-cd878042-8a85-416f-9451-1f26a3b6981b.json",
+    "digest": "sha256:09044ce86d1b9801474e89e06e7acc03962c530ace5847ccb6b1d4f661950c04"
+  },
+  {
+    "runId": "39048948861",
+    "sourceCommit": "121f904fa0d484788f8e4707c4c985e9a8f23b3a",
+    "originalArtifactPath": "verify-32/candidate/packages/vscode-extension/__tests__/verify-32.test.js",
+    "path": "verified-deliveries/39048948861/verify-32/candidate/packages/vscode-extension/__tests__/verify-32.test.txt",
+    "digest": "sha256:1ee2194c4b49e66eb5e7977e7f6d33758a32a26038b7ecba16c18c209ca86485"
+  },
+  {
+    "runId": "39048948861",
+    "sourceCommit": "121f904fa0d484788f8e4707c4c985e9a8f23b3a",
+    "originalArtifactPath": "pack/acceptance-evidence/verify-32-check-28cb78c9-e8cb-4c5b-8175-1e9c52d47539.json",
+    "path": "verified-deliveries/39048948861/pack/acceptance-evidence/verify-32-check-28cb78c9-e8cb-4c5b-8175-1e9c52d47539.json",
+    "digest": "sha256:e70a6f513726a77556a39c11b9d54905e5b12412ed3e97d7c2ac4e1891a05749"
+  },
+  {
+    "runId": "39048948861",
+    "sourceCommit": "121f904fa0d484788f8e4707c4c985e9a8f23b3a",
+    "originalArtifactPath": "pack/acceptance-evidence/verify-32-setup-5a032f34-2904-4bf2-bacf-2efeb6ea9d59.json",
+    "path": "verified-deliveries/39048948861/pack/acceptance-evidence/verify-32-setup-5a032f34-2904-4bf2-bacf-2efeb6ea9d59.json",
+    "digest": "sha256:573bf5cd4047cdeb13b255dd43aad102daa1c30e3d02705828c68f33f0618f72"
+  },
+  {
+    "runId": "39050644319",
+    "sourceCommit": "802d57fd5b822838b75e755266cebaf9576aadca",
+    "originalArtifactPath": "verify-12/candidate/packages/cli/__tests__/verify-12.test.js",
+    "path": "verified-deliveries/39050644319/verify-12/candidate/packages/cli/__tests__/verify-12.test.txt",
+    "digest": "sha256:bd81a2b327b40f47cb69dbfd529c83ed577be8b3d27f7ca3572352e9d5bae3ec"
+  },
+  {
+    "runId": "39050644319",
+    "sourceCommit": "802d57fd5b822838b75e755266cebaf9576aadca",
+    "originalArtifactPath": "pack/acceptance-evidence/verify-12-check-10805a35-0880-4838-8c55-bf9279f42152.json",
+    "path": "verified-deliveries/39050644319/pack/acceptance-evidence/verify-12-check-10805a35-0880-4838-8c55-bf9279f42152.json",
+    "digest": "sha256:a846382e007d02e438200b4bf9a61e1128d60427a5086824371b2657e3468bd5"
+  },
+  {
+    "runId": "39050644319",
+    "sourceCommit": "802d57fd5b822838b75e755266cebaf9576aadca",
+    "originalArtifactPath": "pack/acceptance-evidence/verify-12-setup-9d524270-2bbf-48e5-9424-f76b51682f11.json",
+    "path": "verified-deliveries/39050644319/pack/acceptance-evidence/verify-12-setup-9d524270-2bbf-48e5-9424-f76b51682f11.json",
+    "digest": "sha256:a9dbb1b65bc8e3a31c53cfebaf0363388814c10f240345e07bdf131ccad171bd"
+  },
+  {
+    "runId": "39051218933",
+    "sourceCommit": "f8fbe69cb486bdac5313845c45ec658db41cd16d",
+    "originalArtifactPath": "verify-20/candidate/packages/cli/__tests__/verify-20.test.js",
+    "path": "verified-deliveries/39051218933/verify-20/candidate/packages/cli/__tests__/verify-20.test.txt",
+    "digest": "sha256:31e84af5e93e6ffc46b22a3e97365271c08d44e72b0be33c9ecab6c942112e00"
+  },
+  {
+    "runId": "39051218933",
+    "sourceCommit": "f8fbe69cb486bdac5313845c45ec658db41cd16d",
+    "originalArtifactPath": "pack/acceptance-evidence/verify-20-check-65f388eb-16cc-4cda-a052-9ed1eb8d43ab.json",
+    "path": "verified-deliveries/39051218933/pack/acceptance-evidence/verify-20-check-65f388eb-16cc-4cda-a052-9ed1eb8d43ab.json",
+    "digest": "sha256:d7ab7765c46ef5bcff59a4a3fe80b5a4d01129afdce55898774db31f3c7a4e4a"
+  },
+  {
+    "runId": "39051218933",
+    "sourceCommit": "f8fbe69cb486bdac5313845c45ec658db41cd16d",
+    "originalArtifactPath": "pack/acceptance-evidence/verify-20-setup-086ed680-7493-4741-81f3-8aacbfbdeb7e.json",
+    "path": "verified-deliveries/39051218933/pack/acceptance-evidence/verify-20-setup-086ed680-7493-4741-81f3-8aacbfbdeb7e.json",
+    "digest": "sha256:124cc7ec7c8525ae7ea986671f5fcf75be748d627b5566070361c975ac682e50"
+  },
+  {
+    "runId": "39051218933",
+    "sourceCommit": "f8fbe69cb486bdac5313845c45ec658db41cd16d",
+    "originalArtifactPath": "verify-29/candidate/packages/vscode-extension/__tests__/verify-29.test.js",
+    "path": "verified-deliveries/39051218933/verify-29/candidate/packages/vscode-extension/__tests__/verify-29.test.txt",
+    "digest": "sha256:0283fdea0e65c27f099f6717b4ddf49e48b755465e72c8bb19019670e832d453"
+  },
+  {
+    "runId": "39051218933",
+    "sourceCommit": "f8fbe69cb486bdac5313845c45ec658db41cd16d",
+    "originalArtifactPath": "pack/acceptance-evidence/verify-29-check-d00c291e-33b9-4733-85d0-ecc22374124d.json",
+    "path": "verified-deliveries/39051218933/pack/acceptance-evidence/verify-29-check-d00c291e-33b9-4733-85d0-ecc22374124d.json",
+    "digest": "sha256:40a484b4766d5b43122dbc538eb29b687a816fdf4cbd4e783d895f86e488be3a"
+  },
+  {
+    "runId": "39051218933",
+    "sourceCommit": "f8fbe69cb486bdac5313845c45ec658db41cd16d",
+    "originalArtifactPath": "pack/acceptance-evidence/verify-29-setup-22ac6c6c-cf83-4628-9768-745862c2a047.json",
+    "path": "verified-deliveries/39051218933/pack/acceptance-evidence/verify-29-setup-22ac6c6c-cf83-4628-9768-745862c2a047.json",
+    "digest": "sha256:189987f39dc277df0600dc22724118a2108ba30c11aebbd653a79ca9256c6801"
+  }
+]

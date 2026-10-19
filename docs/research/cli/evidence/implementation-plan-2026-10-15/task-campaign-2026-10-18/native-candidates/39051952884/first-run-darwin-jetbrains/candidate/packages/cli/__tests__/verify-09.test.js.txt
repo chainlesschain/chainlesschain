@@ -1,0 +1,110 @@
+import { describe, expect, it } from "vitest";
+import {
+  createSessionHistoryOrigins,
+  HISTORY_PREFIX_SCHEMA,
+} from "../src/lib/session-history-origins.js";
+import { encodePersistedMessage } from "../src/lib/session-message-provenance.js";
+
+const HEAD = "a".repeat(64);
+const OTHER_HEAD = "b".repeat(64);
+
+/**
+ * Independent regression coverage for "history source tampering rejection":
+ * a rewind may only draw a prefix from the exact session/source that the
+ * current context was built from. A wrong source identity (head, message
+ * count, content, action, retained window) must be rejected outright, while
+ * the correct source identity remains readable (positive control).
+ */
+function sourceEvent(messages, retainedMessageCount, overrides = {}) {
+  return {
+    prevHash: overrides.prevHash ?? HEAD,
+    data: {
+      action: overrides.action ?? "restore-conversation",
+      messages: overrides.messages ?? messages.slice(0, retainedMessageCount),
+      historyPrefix: {
+        schema: HISTORY_PREFIX_SCHEMA,
+        sourceHead: overrides.sourceHead ?? HEAD,
+        sourceMessageCount: overrides.sourceMessageCount ?? messages.length,
+        retainedMessageCount:
+          overrides.retainedMessageCount ?? retainedMessageCount,
+      },
+    },
+  };
+}
+
+function buildMessages() {
+  return [
+    { role: "user", content: "first" },
+    { role: "assistant", content: "answer" },
+    { role: "user", content: "second" },
+    { role: "assistant", content: "answer" },
+  ];
+}
+
+describe("history source tampering rejection", () => {
+  it("accepts the correct source identity and returns the readable cutoff", () => {
+    const messages = buildMessages();
+    const origins = createSessionHistoryOrigins();
+    origins.snapshot(messages.map(encodePersistedMessage));
+    expect(origins.rewind(sourceEvent(messages, 2), 4)).toBe(2);
+  });
+
+  it("rejects a rewind whose historyPrefix sourceHead differs from the event head", () => {
+    const messages = buildMessages();
+    const origins = createSessionHistoryOrigins();
+    origins.snapshot(messages.map(encodePersistedMessage));
+    const event = sourceEvent(messages, 2, { sourceHead: OTHER_HEAD });
+    expect(event.data.historyPrefix.sourceHead).not.toBe(event.prevHash);
+    expect(origins.rewind(event, 4)).toBeNull();
+  });
+
+  it("rejects a rewind whose event prevHash does not match the recorded sourceHead", () => {
+    const messages = buildMessages();
+    const origins = createSessionHistoryOrigins();
+    origins.snapshot(messages.map(encodePersistedMessage));
+    const event = sourceEvent(messages, 2, { prevHash: OTHER_HEAD });
+    expect(event.prevHash).not.toBe(event.data.historyPrefix.sourceHead);
+    expect(origins.rewind(event, 4)).toBeNull();
+  });
+
+  it("rejects a rewind whose sourceMessageCount does not match the current context", () => {
+    const messages = buildMessages();
+    const origins = createSessionHistoryOrigins();
+    origins.snapshot(messages.map(encodePersistedMessage));
+    const event = sourceEvent(messages, 2, { sourceMessageCount: 3 });
+    expect(event.data.historyPrefix.sourceMessageCount).not.toBe(
+      messages.length,
+    );
+    expect(origins.rewind(event, 4)).toBeNull();
+  });
+
+  it("rejects a rewind whose retained source content was tampered", () => {
+    const messages = buildMessages();
+    const origins = createSessionHistoryOrigins();
+    origins.snapshot(messages.map(encodePersistedMessage));
+    const event = sourceEvent(messages, 2);
+    event.data.messages[0] = encodePersistedMessage({
+      role: "user",
+      content: "tampered",
+    });
+    expect(origins.rewind(event, 4)).toBeNull();
+  });
+
+  it("rejects a rewind with an out-of-range retained window or unsupported action", () => {
+    const messages = buildMessages();
+    const oversized = createSessionHistoryOrigins();
+    oversized.snapshot(messages.map(encodePersistedMessage));
+    expect(
+      oversized.rewind(
+        sourceEvent(messages, 4, { retainedMessageCount: 4 }),
+        4,
+      ),
+    ).toBeNull();
+
+    const wrongAction = createSessionHistoryOrigins();
+    wrongAction.snapshot(messages.map(encodePersistedMessage));
+    expect(
+      wrongAction.rewind(sourceEvent(messages, 2, { action: "summary-to" }), 4),
+    ).toBeNull();
+  });
+});

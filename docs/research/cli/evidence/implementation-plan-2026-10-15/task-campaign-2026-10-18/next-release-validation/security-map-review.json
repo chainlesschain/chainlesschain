@@ -1,0 +1,23 @@
+{
+  "sourceCommit": "25782a535ea296548f0f8347544da378e8fdf738",
+  "changes": [
+    {
+      "id": "cc-2.1.223-agent-org-policy-ceiling",
+      "oldDigest": "sha256:22ae4c901b87c11840e33da82def0b58ce425b06d674c467b17485a0082c8697",
+      "newDigest": "sha256:f05b830810a0c0141473ffcfed9bf4cf8376fd7e5b4d489bab5f999cff058d6f"
+    }
+  ],
+  "review": "The mapped managed-policy rejection test is unchanged relative to published .104 source 3cd370d1628f45975148601c67f11451a4910a25. assertManagedPermissionMode still precedes permission resolution and agent execution. Producer changes add transport failure tests, assert hermetic coding system guidance, and formatting. No policy bypass, mapped test removal, weaker assertions, gate changes, disposition changes, or threshold changes.",
+  "rowsReviewed": 32,
+  "producerFiles": 21,
+  "validation": {
+    "command": "node packages/cli/scripts/run-claude-security-map-tests.mjs --output C:/code/chainlesschain/.work/task-quality-security-map-tests-20261018.json",
+    "exitCode": 0,
+    "success": true,
+    "passed": 29,
+    "failed": 0,
+    "unselected": 948
+  },
+  "localDependency": "Untracked node_modules/vitest junction to root installed vitest; no tracked dependency changes",
+  "releaseStatus": "Local supplementary check only; exact release commit GitHub matrix still required"
+}

@@ -1,0 +1,90 @@
+import { describe, it, expect } from "vitest";
+import {
+  lookupRate,
+  estimateCost,
+  priceRollup,
+} from "../../src/lib/llm-pricing.js";
+
+// Regression coverage for "new-family unknown pricing": a brand-new Opus
+// family version (claude-opus-5, claude-opus-6, …) has no table entry, so it
+// must resolve to unpriced (null / matched:false / listed in `unpriced`)
+// rather than inherit the bare "opus" catch-all rate. Known models must keep
+// pricing through the same entry points.
+
+describe("verify-03 — new-family unknown pricing", () => {
+  it("an unrecognized new Opus family id is unpriced, not the bare opus catch-all", () => {
+    // These version numbers have no explicit table entry and are >= 5, so they
+    // must NOT inherit the $5/$25 "opus" price.
+    expect(lookupRate("anthropic", "claude-opus-5")).toBeNull();
+    expect(lookupRate("anthropic", "claude-opus-5-7")).toBeNull();
+    expect(lookupRate("anthropic", "claude-opus-6")).toBeNull();
+    expect(lookupRate("anthropic", "claude-opus-10")).toBeNull();
+  });
+
+  it("a versioned new-family suffix stays unpriced", () => {
+    // A dated/variant id of a future family must not fall through to opus.
+    expect(lookupRate("anthropic", "claude-opus-5-20260901")).toBeNull();
+    expect(lookupRate("anthropic", "claude-opus-6-4")).toBeNull();
+  });
+
+  it("estimateCost reports an unknown new-family model as unmatched with zero cost", () => {
+    const c = estimateCost({
+      provider: "anthropic",
+      model: "claude-opus-5",
+      inputTokens: 1_000_000,
+      outputTokens: 500_000,
+    });
+    expect(c.matched).toBe(false);
+    expect(c.rate).toBeNull();
+    expect(c.totalCost).toBe(0);
+  });
+
+  it("priceRollup lists an unknown new-family model as unpriced and excludes its cost", () => {
+    const r = priceRollup({
+      total: {},
+      byModel: [
+        {
+          provider: "anthropic",
+          model: "claude-opus-6",
+          inputTokens: 1_000_000,
+          outputTokens: 0,
+          totalTokens: 1_000_000,
+          calls: 1,
+        },
+      ],
+    });
+    expect(r.cost.totalCost).toBe(0);
+    expect(r.cost.unpricedCount).toBe(1);
+    expect(r.unpriced).toEqual([
+      { provider: "anthropic", model: "claude-opus-6", totalTokens: 1_000_000 },
+    ]);
+  });
+
+  it("known models still price (positive controls)", () => {
+    // Bare "opus" and the documented opus-4-x snapshots resolve to a real rate.
+    expect(lookupRate("anthropic", "claude-opus")).toMatchObject({
+      in: 5,
+      out: 25,
+    });
+    expect(lookupRate("anthropic", "claude-opus-4-5-20251101")).toMatchObject({
+      in: 5,
+      out: 25,
+    });
+    // Sonnet still resolves too.
+    expect(lookupRate("anthropic", "claude-3-5-sonnet")).toMatchObject({
+      in: 3,
+      out: 15,
+    });
+  });
+
+  it("estimateCost keeps pricing a known model (positive control)", () => {
+    const c = estimateCost({
+      provider: "anthropic",
+      model: "claude-3-5-sonnet",
+      inputTokens: 1_000_000,
+      outputTokens: 0,
+    });
+    expect(c.matched).toBe(true);
+    expect(c.totalCost).toBeCloseTo(3, 6);
+  });
+});

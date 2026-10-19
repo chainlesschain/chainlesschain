@@ -10,8 +10,8 @@ import {
  * produced no assistant response. In that case the persisted transcript ends
  * with a bare `user` turn; splicing the new resume prompt after it would, before
  * the fix, send two consecutive `user` messages — which Anthropic/Bedrock reject
- * as "roles must alternate". runAgentHeadless now merges consecutive same-role
- * turns before the loop, so the payload always alternates.
+ * as "roles must alternate". runAgentHeadless projects consecutive same-role
+ * turns for the provider while retaining separate durable authority messages.
  */
 
 function fakeGate() {
@@ -24,8 +24,9 @@ function fakeGate() {
 
 /** A fake agentLoop that records the messages it was handed, then completes. */
 function capturingLoop(captured) {
-  return async function* (messages) {
-    captured.messages = messages;
+  return async function* (messages, options) {
+    captured.authorityMessages = [...messages];
+    captured.messages = options.projectProviderMessages(messages);
     yield { type: "response-complete", content: "ok" };
     yield { type: "run-ended", reason: "complete" };
   };
@@ -95,6 +96,7 @@ describe("headless-runner — resume role alternation (2.1.187)", () => {
     expect(roles(captured.messages)).toEqual(["user"]);
     const user = captured.messages.find((m) => m.role === "user");
     expect(user.content).toBe("original task\n\ncontinue please");
+    expect(roles(captured.authorityMessages)).toEqual(["user", "user"]);
   });
 
   it("leaves a healthy alternating transcript untouched", async () => {
@@ -111,6 +113,7 @@ describe("headless-runner — resume role alternation (2.1.187)", () => {
     expect(roles(captured.messages)).toEqual(["user", "assistant", "user"]);
     const users = captured.messages.filter((m) => m.role === "user");
     expect(users.map((m) => m.content)).toEqual(["a", "c"]);
+    expect(captured.authorityMessages).toEqual(captured.messages);
   });
 
   it("never produces two adjacent same-role non-system messages", async () => {
@@ -133,6 +136,13 @@ describe("headless-runner — resume role alternation (2.1.187)", () => {
     }
     // u3 + u4 merge into the final user turn.
     expect(seq).toEqual(["user", "assistant", "user"]);
+    expect(roles(captured.authorityMessages)).toEqual([
+      "user",
+      "user",
+      "assistant",
+      "user",
+      "user",
+    ]);
   });
 
   it("round-trips a verified durable system summary only to model input", async () => {

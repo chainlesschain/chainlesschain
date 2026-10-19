@@ -1,0 +1,110 @@
+/**
+ * verify-05 — Install vs admission separation.
+ *
+ * Independent regression coverage for the "安装与准入分离" guarantee: a CLI
+ * backend may be *installed*, but that does NOT admit it for real execution —
+ * an un-attested external model CLI stays blocked (dispatchable:false,
+ * runnable:false, AGENT_ROUTER_EXTERNAL_MODEL_INGRESS_UNATTESTED), while
+ * available API backends remain preserved and dispatchable.
+ *
+ * Uses focused positive/negative behavioral controls over the public
+ * AgentRouter surface (summary(), assertDispatchAvailable(), _runSingleTask()).
+ * No network calls are made.
+ */
+import { describe, it, expect } from "vitest";
+import {
+  AgentRouter,
+  BACKEND_TYPE,
+  AGENT_ROUTER_ERROR,
+} from "../src/lib/agent-router.js";
+
+describe("verify-05: install vs admission separation", () => {
+  it("preserves an available API backend as dispatchable (positive)", () => {
+    const router = new AgentRouter({ backends: [{ type: BACKEND_TYPE.OPENAI }] });
+    expect(router.summary()[0]).toMatchObject({
+      type: BACKEND_TYPE.OPENAI,
+      kind: "api",
+      installed: null,
+      governanceAdmitted: null,
+      configured: true,
+      dispatchable: true,
+      runnable: false,
+      executionMode: "text-only",
+    });
+  });
+
+  it("keeps an installed-but-unattested CLI backend blocked (negative)", () => {
+    const router = new AgentRouter({
+      backends: [{ type: BACKEND_TYPE.CLAUDE, installed: true }],
+    });
+    expect(router.summary()[0]).toMatchObject({
+      type: BACKEND_TYPE.CLAUDE,
+      kind: "cli",
+      installed: true,
+      configured: true,
+      governanceAdmitted: false,
+      dispatchable: false,
+      runnable: false,
+      executionMode: "blocked",
+      blockedReason: AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED,
+    });
+  });
+
+  it("admits mixed routers because an API backend is preserved (positive)", () => {
+    const router = new AgentRouter({
+      backends: [
+        { type: BACKEND_TYPE.CLAUDE, installed: true },
+        { type: BACKEND_TYPE.OPENAI },
+      ],
+    });
+    expect(() => router.assertDispatchAvailable()).not.toThrow();
+    const summary = router.summary();
+    // CLI stays blocked; API stays dispatchable — two independent verdicts.
+    expect(summary[0]).toMatchObject({ dispatchable: false, runnable: false });
+    expect(summary[1]).toMatchObject({ dispatchable: true });
+  });
+
+  it("rejects a CLI-only router at preflight (negative)", () => {
+    const router = new AgentRouter({
+      backends: [{ type: BACKEND_TYPE.CODEX, installed: true }],
+    });
+    expect(() => router.assertDispatchAvailable()).toThrowError(
+      expect.objectContaining({
+        code: AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED,
+      }),
+    );
+  });
+
+  it("still refuses an installed CLI backend at execution (negative)", async () => {
+    const router = new AgentRouter({
+      backends: [{ type: BACKEND_TYPE.CLAUDE, installed: true }],
+    });
+    const cliBackend = router._backends[0];
+    await expect(
+      router._runSingleTask(
+        { id: "t1", description: "task" },
+        cliBackend,
+        { cwd: "/tmp", evolutionIngress: {} },
+      ),
+    ).rejects.toMatchObject({
+      code: AGENT_ROUTER_ERROR.EXTERNAL_MODEL_INGRESS_UNATTESTED,
+    });
+  });
+
+  it("keeps installation and admission as independent axes (contrast)", () => {
+    // Uninstalled CLI and installed API both resolve; only admission matters.
+    const router = new AgentRouter({
+      backends: [
+        { type: BACKEND_TYPE.CODEX }, // installed:false/unset
+        { type: BACKEND_TYPE.OPENAI, installed: true },
+      ],
+    });
+    const summary = router.summary();
+    expect(summary[0]).toMatchObject({ kind: "cli", dispatchable: false });
+    expect(summary[1]).toMatchObject({
+      kind: "api",
+      installed: true,
+      dispatchable: true,
+    });
+  });
+});

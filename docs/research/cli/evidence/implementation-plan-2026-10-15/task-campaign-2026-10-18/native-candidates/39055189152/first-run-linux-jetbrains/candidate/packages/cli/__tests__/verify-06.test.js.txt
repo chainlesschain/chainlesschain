@@ -1,0 +1,198 @@
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import {
+  Orchestrator,
+  TASK_STATUS,
+  TASK_SOURCE,
+} from "../src/lib/orchestrator.js";
+import { _deps as bridgeDeps } from "../src/lib/claude-code-bridge.js";
+import { _deps as orchDeps } from "../src/lib/orchestrator.js";
+import { createTestEvolutionCompositionFactory } from "../helpers/test-model-egress.js";
+
+/**
+ * verify-06 — 付费分解前预检 (paid-decomposition pre-check).
+ *
+ * Orchestrator.addTask must reject an opaque external CLI backend *before*
+ * any paid LLM decomposition and *before* any notification side effect. A
+ * denied backend terminates the task with decomposition and notify spies both
+ * zero; an admitted (attested) backend proceeds to decomposition and start
+ * notification. All external deps (LLM, CI, spawn) are mocked; orchestration
+ * logic runs for real.
+ */
+
+function makeChildProcess(stdout = "", exitCode = 0) {
+  const { EventEmitter } = require("events");
+  const proc = new EventEmitter();
+  proc.stdout = new EventEmitter();
+  proc.stderr = new EventEmitter();
+  proc.kill = vi.fn();
+  process.nextTick(() => {
+    if (stdout) proc.stdout.emit("data", Buffer.from(stdout));
+    proc.emit("close", exitCode);
+  });
+  return proc;
+}
+
+const AGENT_SUCCESS_OUTPUT =
+  JSON.stringify({ type: "result", result: "Fixed!" }) + "\n";
+
+function makeNotifier() {
+  return {
+    isConfigured: true,
+    notifyStart: vi.fn(() => Promise.resolve({ ok: true })),
+    notifySuccess: vi.fn(() => Promise.resolve({ ok: true })),
+    notifyFailure: vi.fn(() => Promise.resolve({ ok: true })),
+  };
+}
+
+/**
+ * Orchestrator whose router refuses opaque external CLI backends, so the paid
+ * decomposition pre-check must deny the task before any work or notify.
+ */
+function buildDeniedOrchestrator() {
+  return new Orchestrator({
+    agents: { backends: [{ type: "claude" }, { type: "codex" }] },
+    notifier: makeNotifier(),
+  });
+}
+
+/**
+ * Orchestrator with attested (test-only) model egress, so the pre-check lets
+ * the task through and the decomposition pipeline runs for real.
+ */
+function buildAdmittedOrchestrator() {
+  const orch = new Orchestrator({
+    cwd: "/tmp/verify06",
+    maxParallel: 2,
+    maxRetries: 1,
+    ciCommand: "npm test",
+  });
+  orch._evolutionCompositionFactory = createTestEvolutionCompositionFactory();
+  orch._llmOptions = {
+    ...orch._llmOptions,
+    provider: "ollama",
+    callWrapper: async () => ({ content: await orch._chat() }),
+  };
+  orch._chat = vi.fn(async () =>
+    JSON.stringify([{ id: "sub-1", description: "fix" }]),
+  );
+  orch._router.dispatch = vi.fn(async (subtasks) =>
+    subtasks.map((subtask) => ({
+      taskId: subtask.id,
+      agentId: "test-agent",
+      backendType: "test",
+      success: true,
+      status: "completed",
+      output: "Fixed!",
+      exitCode: 0,
+      duration: 0,
+    })),
+  );
+  return orch;
+}
+
+describe("verify-06: paid-decomposition pre-check", () => {
+  let originalBridgeDeps;
+  let originalOrchDeps;
+
+  beforeEach(() => {
+    originalBridgeDeps = { ...bridgeDeps };
+    originalOrchDeps = { ...orchDeps };
+    bridgeDeps.spawn = vi.fn(() => makeChildProcess(AGENT_SUCCESS_OUTPUT, 0));
+    orchDeps.execSync = vi.fn(() => "All tests passed");
+  });
+
+  afterEach(() => {
+    Object.assign(bridgeDeps, originalBridgeDeps);
+    Object.assign(orchDeps, originalOrchDeps);
+    vi.clearAllMocks();
+  });
+
+  it("denies an opaque external CLI backend before any paid decomposition or notify", async () => {
+    const orch = buildDeniedOrchestrator();
+    // orch.notifier is the object passed via the constructor.
+    const notifier = orch.notifier;
+    const decompose = vi.spyOn(orch, "_decompose");
+
+    await expect(orch.addTask("sensitive fix")).rejects.toMatchObject({
+      code: "AGENT_ROUTER_EXTERNAL_MODEL_INGRESS_UNATTESTED",
+    });
+
+    // 被拒绝后端在分解前终止：paid decomposition never runs.
+    expect(decompose).not.toHaveBeenCalled();
+    // 通知 spy 均为零：no start/success/failure side effects.
+    expect(notifier.notifyStart).not.toHaveBeenCalled();
+    expect(notifier.notifySuccess).not.toHaveBeenCalled();
+    expect(notifier.notifyFailure).not.toHaveBeenCalled();
+    // No Run/task is created either.
+    expect(orch._tasks.size).toBe(0);
+  });
+
+  it("denies before decomposition and notify even when notify is requested", async () => {
+    const orch = buildDeniedOrchestrator();
+    const notifier = orch.notifier;
+    const decompose = vi.spyOn(orch, "_decompose");
+
+    await expect(
+      orch.addTask("sensitive fix", { notify: true }),
+    ).rejects.toThrow();
+    expect(decompose).not.toHaveBeenCalled();
+    expect(notifier.notifyStart).not.toHaveBeenCalled();
+    expect(notifier.notifySuccess).not.toHaveBeenCalled();
+    expect(notifier.notifyFailure).not.toHaveBeenCalled();
+  });
+
+  it("denial surfaces before any Run is created in the status map", async () => {
+    const orch = buildDeniedOrchestrator();
+    await expect(orch.addTask("sensitive fix")).rejects.toThrow();
+    expect(orch._tasks.size).toBe(0);
+  });
+
+  it("denies the same opaque CLI regardless of notify toggle", async () => {
+    const orch = buildDeniedOrchestrator();
+    const notifier = orch.notifier;
+    const decompose = vi.spyOn(orch, "_decompose");
+    await expect(
+      orch.addTask("sensitive fix", { notify: true }),
+    ).rejects.toMatchObject({
+      code: "AGENT_ROUTER_EXTERNAL_MODEL_INGRESS_UNATTESTED",
+    });
+    expect(decompose).not.toHaveBeenCalled();
+    expect(notifier.notifyStart).not.toHaveBeenCalled();
+    expect(notifier.notifySuccess).not.toHaveBeenCalled();
+    expect(notifier.notifyFailure).not.toHaveBeenCalled();
+  });
+
+  it("admits an attested backend: decomposition runs and notifyStart fires", async () => {
+    const orch = buildAdmittedOrchestrator();
+    const notifier = makeNotifier();
+    orch.notifier.add("mock", notifier);
+    const decompose = vi.spyOn(orch, "_decompose");
+
+    const task = await orch.addTask("task", {
+      source: TASK_SOURCE.CLI,
+      notify: true,
+      runCI: false,
+    });
+
+    expect(task.status).toBe(TASK_STATUS.COMPLETED);
+    expect(decompose).toHaveBeenCalledTimes(1);
+    expect(orch._chat).toHaveBeenCalled();
+    expect(notifier.notifyStart).toHaveBeenCalledTimes(1);
+    expect(notifier.notifyFailure).not.toHaveBeenCalled();
+  });
+
+  it("does not deny an attested backend (preflight only gates opaque external CLIs)", async () => {
+    const orch = buildAdmittedOrchestrator();
+    const notifier = makeNotifier();
+    orch.notifier.add("mock", notifier);
+
+    const task = await orch.addTask("task", {
+      source: TASK_SOURCE.CLI,
+      notify: true,
+      runCI: false,
+    });
+    expect(task.status).toBe(TASK_STATUS.COMPLETED);
+    expect(orch._chat).toHaveBeenCalled();
+    expect(notifier.notifyFailure).not.toHaveBeenCalled();
+  });
+});

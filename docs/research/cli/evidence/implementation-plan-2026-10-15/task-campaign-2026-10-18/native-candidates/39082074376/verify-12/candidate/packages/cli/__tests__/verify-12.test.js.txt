@@ -1,0 +1,87 @@
+import { describe, expect, it } from "vitest";
+
+import {
+  agentPrintArgument,
+  assertBackgroundArgvDurable,
+  canonicalizeBackgroundSessionArgv,
+  stripFirstTurnPromptArgv,
+  transformBackgroundLaunchArgv,
+} from "../src/lib/background-command-argv.js";
+
+const OPTION_SPECS = [
+  { long: "--model", required: true },
+  { long: "--title", required: true },
+  { short: "-p", long: "--print", optional: true },
+  { long: "--session", required: true },
+  { long: "--add-dir", required: true },
+];
+
+describe("verify-12: whitespace-aware argv boundaries", () => {
+  it("keeps spaces and quotes inside one value token and one add-dir path", () => {
+    expect(
+      transformBackgroundLaunchArgv(
+        ["agent", "--title", "my \"quoted\" title", "--add-dir", "old"],
+        {
+          directories: ["a path with spaces"],
+          optionSpecs: OPTION_SPECS,
+        },
+      ),
+    ).toEqual([
+      "agent",
+      "--title",
+      "my \"quoted\" title",
+      "--add-dir",
+      "a path with spaces",
+    ]);
+  });
+
+  it("preserves empty-string option values and re-emits a resolved session", () => {
+    expect(
+      canonicalizeBackgroundSessionArgv(
+        ["agent", "--title", "", "--session", ""],
+        { sessionId: "resolved", optionSpecs: OPTION_SPECS },
+      ),
+    ).toEqual(["agent", "--title", "", "--session", "resolved"]);
+  });
+
+  it("never shell-expands metacharacters inside literal option values", () => {
+    expect(
+      stripFirstTurnPromptArgv(
+        ["agent", "--title", "a*b $HOME `cmd`", "--session", "s"],
+        { optionSpecs: OPTION_SPECS },
+      ),
+    ).toEqual(["agent", "--title", "a*b $HOME `cmd`"]);
+  });
+
+  it("keeps a prompt with spaces as one --print token through launch transform", () => {
+    const printArg = agentPrintArgument("two words");
+    expect(printArg).toBe("--print=two words");
+    expect(
+      transformBackgroundLaunchArgv(
+        ["agent", printArg, "--session", "s"],
+        { directories: [], optionSpecs: OPTION_SPECS },
+      ),
+    ).toEqual(["agent", "--print=two words", "--session", "s"]);
+  });
+
+  it("appends an empty add-dir path as a single empty token", () => {
+    expect(
+      transformBackgroundLaunchArgv(
+        ["agent", "--session", "s"],
+        { directories: [""], optionSpecs: OPTION_SPECS },
+      ),
+    ).toEqual(["agent", "--session", "s", "--add-dir", ""]);
+  });
+
+  it("treats a quoted value and post-terminator literal as durable, not ephemeral", () => {
+    expect(
+      assertBackgroundArgvDurable([
+        "agent",
+        "--title",
+        "quoted \"path\"",
+        "--",
+        "--ephemeral",
+      ]),
+    ).toBe(true);
+  });
+});

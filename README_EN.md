@@ -1,11 +1,11 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
-As of 2026-10-18, current public versions are CLI **0.166.105**, Open VSX **0.37.150** and JetBrains **0.4.167**. The next candidates are CLI **0.166.106**, VS Code **0.37.151** and JetBrains **0.4.168**; both candidate plugins recommend CLI `.106`. These candidates are not published and require complete exact-commit release gates, CLI OIDC publication and public artifact readback before IDE release and unfinished-sample retesting. The public `.105` round completed generation and acceptance for **20/20** samples each, adding **6** candidate acceptances and **6** full-flow passes. Cumulative acceptance is **31/45** (**26/36** ordinary tasks and **5/9** first-use tasks), with **14** remaining. The original 25 accepted artifacts were reused byte-for-byte; this cross-version cumulative result is not a single-round 45/45 success. Candidates `.106/.151/.168` remain unpublished and untested on the unfinished samples. Microsoft Marketplace remains unpublished.
+As of 2026-10-19, verified public versions are CLI **0.166.106**, Open VSX **0.37.151** and JetBrains **0.4.168**, paired with CLI `.106`. The `.106` retest returned generation and independent acceptance records for all **14/14** remaining samples, adding **1** candidate acceptance and full-flow pass. Cumulative accepted deliveries are **32/45** (**26/36** ordinary tasks and **6/9** first-use tasks), leaving **13**; this cross-version coverage is not a single-round success rate. Source candidates CLI **0.166.107**, VS Code **0.37.152** and JetBrains **0.4.169** remain unpublished while fixes are prepared. The final exact-commit Linux/Windows/macOS gates and OIDC child-package publication must precede CLI publication, public-byte verification, IDE publication and retesting only unfinished samples. Microsoft Marketplace remains unpublished.
 
 Install the public CLI now. Upgrade the paired IDE only after its public artifact is verified, then restart the chat host and run Doctor.
 
 ```bash
-npm i -g chainlesschain@0.166.105 --registry https://registry.npmjs.org
+npm i -g chainlesschain@0.166.106 --registry https://registry.npmjs.org
 cc --version
 cc doctor
 ```
@@ -2685,7 +2685,7 @@ Design, protocol, and test matrix: [docs/design/modules/79_Coding_Agent系统.md
 ![Tests](https://img.shields.io/badge/tests-30000%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-146-blue.svg)
 ![Commands](https://img.shields.io/badge/CLI%20commands-175-blue.svg)
-![CLI](https://img.shields.io/badge/cli-0.166.105-blue.svg)
+![CLI](https://img.shields.io/badge/cli-0.166.106-blue.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 
 **Decentralized · Privacy First · AI Native**

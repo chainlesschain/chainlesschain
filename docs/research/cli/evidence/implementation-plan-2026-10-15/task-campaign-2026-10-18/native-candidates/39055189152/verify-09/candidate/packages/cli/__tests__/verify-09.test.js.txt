@@ -1,0 +1,119 @@
+import { describe, expect, it } from "vitest";
+import {
+  createSessionHistoryOrigins,
+  HISTORY_PREFIX_SCHEMA,
+} from "../../src/lib/session-history-origins.js";
+import {
+  messagesToContextItems,
+  contextItemsToMessages,
+} from "../../src/lib/context-memory-kernel/message-adapter.js";
+
+const head = "a".repeat(64);
+
+function event(messages, retainedMessageCount) {
+  return {
+    prevHash: head,
+    data: {
+      action: "restore-conversation",
+      messages: messages.slice(0, retainedMessageCount),
+      historyPrefix: {
+        schema: HISTORY_PREFIX_SCHEMA,
+        sourceHead: head,
+        sourceMessageCount: messages.length,
+        retainedMessageCount,
+      },
+    },
+  };
+}
+
+describe("verify-09: historical source tampering rejection", () => {
+  it("reads the retained cutoff for a correct source identity", () => {
+    const messages = [
+      { role: "user", content: "first" },
+      { role: "assistant", content: "answer" },
+      { role: "user", content: "selected" },
+    ];
+    const origins = createSessionHistoryOrigins();
+    origins.snapshot(messages);
+    expect(origins.rewind(event(messages, 2), 3)).toBe(2);
+  });
+
+  it("rejects a foreign sourceHead that does not match the predecessor hash", () => {
+    const messages = [
+      { role: "user", content: "first" },
+      { role: "assistant", content: "answer" },
+      { role: "user", content: "selected" },
+    ];
+    const origins = createSessionHistoryOrigins();
+    origins.snapshot(messages);
+    const forged = event(messages, 2);
+    forged.data.historyPrefix.sourceHead = "b".repeat(64);
+    expect(origins.rewind(forged, 3)).toBeNull();
+    expect(origins.rewind(event(messages, 2), 3)).toBe(2);
+  });
+
+  it("rejects a tampered source message count", () => {
+    const messages = [
+      { role: "user", content: "first" },
+      { role: "assistant", content: "answer" },
+      { role: "user", content: "selected" },
+    ];
+    const origins = createSessionHistoryOrigins();
+    origins.snapshot(messages);
+    const forged = event(messages, 2);
+    forged.data.historyPrefix.sourceMessageCount -= 1;
+    expect(origins.rewind(forged, 3)).toBeNull();
+    expect(origins.rewind(event(messages, 2), 3)).toBe(2);
+  });
+
+  it("rejects tampered retained message content via fingerprint", () => {
+    const messages = [
+      { role: "user", content: "one" },
+      { role: "user", content: "two" },
+    ];
+    const origins = createSessionHistoryOrigins();
+    origins.snapshot(messages);
+    const forged = event(messages, 1);
+    forged.data.messages[0] = { role: "user", content: "replacement" };
+    expect(origins.rewind(forged, 2)).toBeNull();
+  });
+
+  it("reads readable entries with origins for a correct branchPrefix source", () => {
+    const messages = [
+      { role: "user", content: "first" },
+      { role: "assistant", content: "answer" },
+      { role: "user", content: "selected" },
+    ];
+    const origins = createSessionHistoryOrigins();
+    origins.snapshot(messages);
+    const prefix = origins.branchPrefix(messages.slice(0, 2), head, 3);
+    expect(prefix).not.toBeNull();
+    expect(prefix.cutoff).toBe(2);
+    expect(prefix.entries.map((entry) => entry.message.content)).toEqual([
+      "first",
+      "answer",
+    ]);
+    expect(prefix.entries[0].origin).toEqual({ first: 0, last: 0 });
+    expect(prefix.entries[1].origin).toEqual({ first: 1, last: 1 });
+  });
+
+  it("drops an origin for a tampered compaction source ref digest", () => {
+    const messages = [
+      { role: "user", content: "first" },
+      { role: "user", content: "second" },
+    ];
+    const origins = createSessionHistoryOrigins();
+    origins.snapshot(messages);
+    const items = messagesToContextItems(messages, {
+      sessionId: "session",
+    });
+    items[0].sourceRef = { ...items[0].sourceRef, digest: "0".repeat(64) };
+    const outputItems = items;
+    const output = contextItemsToMessages(outputItems);
+    origins.compact({
+      messages: output,
+      canonical: { sessionId: "session", outputItems },
+    });
+    expect(origins.rewind(event(output, 1), 2)).toBeNull();
+  });
+});

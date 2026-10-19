@@ -1,0 +1,137 @@
+import { describe, expect, it } from "vitest";
+import {
+  createEvalComparison,
+  createEvalHistoryRecord,
+  EVAL_CONTEXT_SCHEMA,
+  EVAL_EXECUTION_PROTOCOL,
+  evaluateStrictEvalGate,
+} from "../../src/lib/eval/evidence.js";
+
+const NOW = Date.parse("2026-09-12T12:00:00.000Z");
+const D = (character) => `sha256:${character.repeat(64)}`;
+const identity = (overrides = {}) => ({
+  schema: EVAL_CONTEXT_SCHEMA,
+  provider: "openai",
+  model: "test-model",
+  modelRevision: "test-model@revision-1",
+  environmentDigest: D("a"),
+  permissionDigest: D("b"),
+  inferenceDigest: D("c"),
+  ...overrides,
+});
+const comparison = (ctxOverrides = {}, compOverrides = {}) => {
+  const ctx = identity(ctxOverrides);
+  return createEvalComparison({
+    suite: "builtin",
+    corpusDigest: D("d"),
+    provider: ctx.provider,
+    model: ctx.model,
+    context: ctx,
+    platform: "linux",
+    arch: "x64",
+    node: "v22.22.2",
+    ...compOverrides,
+  });
+};
+
+function record(index, pairs, comp, ranAtOffsetMs = 1000) {
+  const passed = pairs.filter(([, pass]) => pass).length;
+  return createEvalHistoryRecord(
+    {
+      total: pairs.length,
+      passed,
+      failed: pairs.length - passed,
+      passRate: passed / pairs.length,
+      unrelatedChangeRate: 0,
+      results: pairs.map(([id, pass]) => ({
+        id,
+        pass,
+        artifactCheckPassed: pass,
+        executionSucceeded: true,
+        agentOk: true,
+        executionEvidence: {
+          protocol: EVAL_EXECUTION_PROTOCOL,
+          exitCode: 0,
+          signal: null,
+          terminalVerified: true,
+          observedFallback: false,
+        },
+        error: null,
+        detail: "checked",
+        changedFiles: [],
+        unrelatedChanges: [],
+      })),
+    },
+    {
+      comparison: comp,
+      runId: `run-${index}`,
+      ranAt: new Date(NOW - ranAtOffsetMs).toISOString(),
+    },
+  );
+}
+
+const gate = (runs) => evaluateStrictEvalGate({ runs, issues: [] }, { now: NOW });
+const ALL_PASS = [
+  ["a", true],
+  ["b", true],
+];
+
+describe("comparison identity strict isolation (verify-24)", () => {
+  it("same task but a different model cannot be a comparable improvement", () => {
+    const baseline = record(1, ALL_PASS, comparison());
+    const candidate = record(2, ALL_PASS, comparison({ model: "other-model" }));
+    expect(gate([baseline, candidate]).reasons).toContain(
+      "comparison_identity_changed",
+    );
+  });
+
+  it("same task but a different permission set cannot be a comparable improvement", () => {
+    const baseline = record(1, ALL_PASS, comparison());
+    const candidate = record(2, ALL_PASS, comparison({ permissionDigest: D("e") }));
+    expect(gate([baseline, candidate]).reasons).toContain(
+      "comparison_identity_changed",
+    );
+  });
+
+  it("same task but a different runtime identity cannot be a comparable improvement", () => {
+    const baseline = record(1, ALL_PASS, comparison());
+    const candidate = record(2, ALL_PASS, comparison({}, { node: "v24.0.0" }));
+    expect(gate([baseline, candidate]).reasons).toContain(
+      "comparison_identity_changed",
+    );
+  });
+
+  it("a better-looking candidate with a different identity never yields PASS", () => {
+    const baseline = record(1, ALL_PASS, comparison());
+    const candidate = record(
+      2,
+      [
+        ["a", true],
+        ["b", true],
+        ["c", true],
+      ],
+      comparison({ inferenceDigest: D("f") }),
+    );
+    expect(gate([baseline, candidate]).passed).toBe(false);
+    expect(gate([baseline, candidate]).status).toBe("INSUFFICIENT_EVIDENCE");
+  });
+
+  it("same task and identical identity is comparable (positive control)", () => {
+    const result = gate([record(1, ALL_PASS, comparison()), record(2, ALL_PASS, comparison())]);
+    expect(result.reasons).not.toContain("comparison_identity_changed");
+    expect(result.passed).toBe(true);
+    expect(result.status).toBe("PASS");
+  });
+
+  it("identity mismatch is reported even when every task already passes", () => {
+    const baseline = record(1, ALL_PASS, comparison());
+    const candidate = record(
+      2,
+      ALL_PASS,
+      comparison({ environmentDigest: D("g") }),
+    );
+    expect(gate([baseline, candidate]).reasons).toContain(
+      "comparison_identity_changed",
+    );
+  });
+});

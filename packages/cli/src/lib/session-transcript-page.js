@@ -1,3 +1,4 @@
+import { projectToolRoundMessages } from "./session-tool-round.js";
 import { createHash } from "node:crypto";
 import {
   readVerifiedProjection,
@@ -120,7 +121,9 @@ export function createSessionTranscriptPageProjection(
         ["user_message", "assistant_message", "system"].includes(event.type)
       )
         append(event.data);
-      else if (event.type === "ws_turn") {
+      else if (event.type === "tool_round") {
+        for (const message of projectToolRoundMessages(event)) append(message);
+      } else if (event.type === "ws_turn") {
         const pair = projectWsTurnMessages(event);
         if (pair) {
           append(pair.user);

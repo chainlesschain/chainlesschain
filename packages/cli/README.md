@@ -4,11 +4,27 @@ Command-line interface for installing, configuring, and managing [ChainlessChain
 
 ## Package version and IDE pairing
 
-As of 2026-10-18, current public versions are CLI **0.166.105**, Open VSX **0.37.150** and JetBrains **0.4.167**. The next candidates are CLI **0.166.106**, VS Code **0.37.151** and JetBrains **0.4.168**; both candidate plugins recommend CLI `.106`. These candidates are not published and require complete exact-commit release gates, CLI OIDC publication and public artifact readback before IDE release and unfinished-sample retesting. The public `.105` round completed generation and acceptance for **20/20** samples each, adding **6** candidate acceptances and **6** full-flow passes. Cumulative acceptance is **31/45** (**26/36** ordinary tasks and **5/9** first-use tasks), with **14** remaining. The original 25 accepted artifacts were reused byte-for-byte; this cross-version cumulative result is not a single-round 45/45 success. Candidates `.106/.151/.168` remain unpublished and untested on the unfinished samples. Microsoft Marketplace remains unpublished.
+This source package is **chainlesschain 0.166.107**, paired with **Open VSX 0.37.152** and **JetBrains 0.4.169**. It pins **Session Core 0.3.20** and **Personal Data Hub 0.4.66**; Agent SDK 0.2.15 and Context/Memory Kernel 0.1.10 retain their independent versions.
 
-Release `.105` adds general coding guidance, static relative-import feedback, safe transport error details, provider-abort classification and protection against reporting completion while deferred writes remain. JetBrains `.167` includes the saved-Markdown renderer change; its public-package restart acceptance remains pending. Child package versions remain unchanged.
+The release preserves complete tool exchanges in verified session history, restores bounded source context when earlier reads leave the model request, and keeps negative constraints and observed writes in fallback summaries. File-save feedback distinguishes persistence, static import checks and test execution. Windows ACL helpers restrict module discovery to PowerShell's built-in modules while preserving permission checks and time limits. PDH pins the verified `mailparser@3.9.45` archive.
 
-Install the public CLI with `npm i -g chainlesschain@0.166.105 --registry https://registry.npmjs.org`. Public IDE pairing is Open VSX 0.37.150 / JetBrains 0.4.167. Candidate CLI 0.166.106 is not yet an installation target; restart the chat host and run Doctor after a verified upgrade. The original completed round used CLI `.104`, Open VSX `.149` and JetBrains `.166`; it does not establish `.105` task acceptance. [Current upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-18.html).
+Install this version after its public package and IDE pairing have completed release verification:
+
+```bash
+npm i -g chainlesschain@0.166.107 --registry https://registry.npmjs.org
+chainlesschain --version
+chainlesschain doctor
+```
+
+Release order is **required child npm packages → CLI → IDE extensions**. The final source must pass the complete configured Linux/Windows/macOS `CLI CI` and `CLI Strict Sandbox` matrices and relevant IDE/ARM64 gates. GitHub Actions OIDC publishes required children first, verifies their public bytes and registry-only dependency resolution, and then publishes the CLI. IDE publication follows verified public CLI availability. Microsoft Marketplace publication is tracked separately.
+
+At preparation on 2026-10-19, the verified public baseline was CLI **0.166.106**, Open VSX **0.37.151** and JetBrains **0.4.168**. Its retest returned generation and independent acceptance records for **14/14** samples, adding **one** candidate and full-flow pass (`first-run-win32-jetbrains`). Cumulative accepted deliveries are **32/45** (**26/36** ordinary, **6/9** first-use), with **13** remaining. These are cross-version deliveries, not this release's success rate. The 32 accepted artifacts are retained; only unfinished samples are retested after the new public pairing is verified. [Current release and retest status](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-18.html).
+
+The observed Windows module-discovery overhead has a source-bound diagnostic comparison; the original intermittent 60-second startup failure still requires published-package acceptance. Existing task budgets, thinking configuration, tool surface and independent acceptance criteria are unchanged. A successful save or static check is not a passing test.
+
+## Session format compatibility
+
+CLI `.107` introduces an append-only `tool_round` event for complete assistant/tool exchanges. Earlier CLI readers ignore this event and can omit tool context when resuming sessions written by `.107`. Keep the session files and resume with a compatible CLI. Durable provenance and concurrent-update checks remain required.
 
 ## Release snapshot (2026-10-12, historical)
 
@@ -64,11 +80,10 @@ Explicit Linux durable permissions require administrator provisioning. Cross-pro
 
 ## Quick Start
 
-After candidate CLI `0.166.106` passes release gates and becomes publicly available
-(use the public `.105` installation command above until then):
+Install this release after public verification:
 
 ```bash
-npm install -g chainlesschain@0.166.106 --registry https://registry.npmjs.org
+npm install -g chainlesschain@0.166.107 --registry https://registry.npmjs.org
 chainlesschain setup
 ```
 

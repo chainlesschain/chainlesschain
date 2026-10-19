@@ -1,0 +1,55 @@
+{
+  "schema": "chainlesschain.recharge-vscode-final-error/v1",
+  "sampleId": "verify-20",
+  "generationRunId": "39081688535",
+  "sourceSummaryDigest": "sha256:fd0f698bdf56dd66be3719cd6affdd5a11c54a957849ad95c871fae88389ea5e",
+  "acceptanceSummaryDigest": "sha256:f0946dd0820f491d1213314ebfc6a45be99b6b98f2ae790d832fa0a965582cee",
+  "modelFailureCategory": "provider-fetch-failed",
+  "brokerStatus": {
+    "physicalRequestsStarted": 5,
+    "usageCompleteRequests": 5,
+    "passed": true,
+    "poisoned": null,
+    "errorCode": null
+  },
+  "candidateAcceptancePassed": true,
+  "endToEndPassed": false,
+  "policy": "Reuse the independently accepted candidate and receipts; do not regenerate it for the final fetch error. Keep the failed native terminal.",
+  "limits": [
+    "This confirms the final CLI fetch error, not the underlying network cause.",
+    "Broker observed five usage-complete responses; no account-overdue refusal was observed.",
+    "Recovery was not attempted after the model error; absence of restart evidence does not establish an IDE restoration defect."
+  ],
+  "evidence": [
+    {
+      "originalArtifactPath": "verify-20/capture/terminal.json",
+      "archived": {
+        "path": "recharge-terminal-evidence/vscode-verify20-terminal.json.gz",
+        "originalDigest": "sha256:8411ad8a9bc86be67e3b575d9b4dac06a5053772c494d8997dc638a1021b89bc",
+        "storedDigest": "sha256:ea6f9b242d243086404abecd453e9b938612edcce6412c6ff0fa4d401dced8ba",
+        "originalBytes": 232
+      }
+    },
+    {
+      "originalArtifactPath": "verify-20/capture/vscode-initial.json",
+      "archived": {
+        "path": "recharge-terminal-evidence/vscode-verify20-vscode-initial.json.gz",
+        "originalDigest": "sha256:c13258ab7d1a4920171b3e1f127cd12015f195b160083a207bf69c125c59cd51",
+        "storedDigest": "sha256:59d43abbf941728956ba0dadc648ba9c1eefbd704c53cf30c296c0dbccb37c89",
+        "originalBytes": 42263
+      }
+    }
+  ],
+  "terminal": {
+    "text": "fetch failed",
+    "event": {
+      "type": "result",
+      "subtype": "error",
+      "is_error": true,
+      "error": "fetch failed",
+      "turn": 1,
+      "trace_id": "tr-ac8e378f-e5c5-44c4-80bc-f1615e90ed34",
+      "seq": 30
+    }
+  }
+}

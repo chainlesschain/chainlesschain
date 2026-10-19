@@ -1,0 +1,220 @@
+{
+  "schema": "chainlesschain.latest-jetbrains-restart-review/v1",
+  "method": "Read-only equality and digest comparison of archived native before/restart/failure UI snapshots; no model, IDE or test execution.",
+  "versions": {
+    "cli": "0.166.104",
+    "vscode": "0.37.149",
+    "jetbrains": "0.4.166",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "scope": "Only collected latest-package JetBrains failures with complete before and after snapshots.",
+  "conclusion": "Rendered final bodies changed on reload. Per-sample equality fields distinguish preserved source/session/row IDs from the visible body. Original host failures remain failures; no accepted candidate is regenerated to diagnose restoration.",
+  "samples": [
+    {
+      "sampleId": "first-run-linux-jetbrains",
+      "group": "linux-jetbrains",
+      "runId": "39087930713",
+      "generationSummary": {
+        "path": "latest-package-round/39087930713/generation/summary.json.gz",
+        "originalDigest": "sha256:a334cd3571e0d66b0cc8b9ece5881cf8ce38fa8ec4e3d9ca8e05599e7d3d33ee",
+        "storedDigest": "sha256:52c165930881f7c6a500f9e27e03ad6bb4e44c2dc821ce12af8486bd10f042c4",
+        "originalBytes": 498459
+      },
+      "hostPassed": false,
+      "failureIsRenderedBodyChange": true,
+      "sessionPreserved": true,
+      "savedRowIdPreserved": true,
+      "canonicalResultDigest": "sha256:a563d5c9ddeef60766b64fce7fbfc20658c11144c88cd3e8243d07a42af88875",
+      "originalRenderedBodyDigest": "sha256:d946bb05f2308d3cd514cb80c29aadc7e71d8aa48b0ffd57e70ee875189d39c5",
+      "evidence": {
+        "restart-state.json": {
+          "path": "latest-package-round/39087930713/generation/first-run-linux-jetbrains/capture/restart-state.json.gz",
+          "originalDigest": "sha256:5735aeea5b2092735b8f4ef7212478453f066c4b7b9922390777e367102e0805",
+          "storedDigest": "sha256:ccfa25439a7b9bd016c5c48160b24033d4dcc220f779ef9a7251232c8d74abf0",
+          "originalBytes": 47571
+        },
+        "driver-failure-restart-snapshot.json": {
+          "path": "latest-package-round/39087930713/generation/first-run-linux-jetbrains/capture/driver-failure-restart-snapshot.json.gz",
+          "originalDigest": "sha256:a6f7b009ea2379c04c546b9f8ec763cbe63c8a90d856d5816f4056ebb2f5024e",
+          "storedDigest": "sha256:f72fc42bd7d08908be84fd7a8ab57f1871ed487abe1281bcd7b993dcf67e6fee",
+          "originalBytes": 21942
+        },
+        "driver-failure-restart.json": {
+          "path": "latest-package-round/39087930713/generation/first-run-linux-jetbrains/capture/driver-failure-restart.json.gz",
+          "originalDigest": "sha256:2468da317a07a6b89b497c60d90920c0143e5b591ab6b590718d3e791f786743",
+          "storedDigest": "sha256:a091832c8e05966439ebc2a44275da0a112e4bc0a807924740191ab7ce5158a8",
+          "originalBytes": 6843
+        }
+      },
+      "canonicalSourcePreserved": true,
+      "restoredBodyEqualsCanonicalMarkdown": true,
+      "renderedBodyPreserved": false,
+      "restoredBodyDigest": "sha256:a563d5c9ddeef60766b64fce7fbfc20658c11144c88cd3e8243d07a42af88875"
+    },
+    {
+      "sampleId": "verify-06",
+      "group": "linux-jetbrains",
+      "runId": "39087930713",
+      "generationSummary": {
+        "path": "latest-package-round/39087930713/generation/summary.json.gz",
+        "originalDigest": "sha256:a334cd3571e0d66b0cc8b9ece5881cf8ce38fa8ec4e3d9ca8e05599e7d3d33ee",
+        "storedDigest": "sha256:52c165930881f7c6a500f9e27e03ad6bb4e44c2dc821ce12af8486bd10f042c4",
+        "originalBytes": 498459
+      },
+      "hostPassed": false,
+      "failureIsRenderedBodyChange": true,
+      "sessionPreserved": true,
+      "savedRowIdPreserved": true,
+      "canonicalResultDigest": "sha256:a8654db276ac58bc89bdcb5ab651d4d1f3bd334d029305e3b31f88a79a6997a5",
+      "originalRenderedBodyDigest": "sha256:d31e356d93827be8d293f8dd26388496e9cc24e80890296bc17aca0978ac931b",
+      "evidence": {
+        "restart-state.json": {
+          "path": "latest-package-round/39087930713/generation/verify-06/capture/restart-state.json.gz",
+          "originalDigest": "sha256:e3bc820e12e005926652f1f591969acc46623842c09e9fd85ff468285df2f943",
+          "storedDigest": "sha256:ceee8644f3deceaf3317566bf2a3a08c7f04f1c3e67c6af525bdf3527a1a5320",
+          "originalBytes": 46615
+        },
+        "driver-failure-restart-snapshot.json": {
+          "path": "latest-package-round/39087930713/generation/verify-06/capture/driver-failure-restart-snapshot.json.gz",
+          "originalDigest": "sha256:2adc973a1f8fe76e81b5ea3da974c7d5fc4c12cfc726721b762f454622e8e9bb",
+          "storedDigest": "sha256:17e1d21d7046b3d13e8d7b6c3621f652b41177c4dcab141bae39ade5012e0c60",
+          "originalBytes": 21498
+        },
+        "driver-failure-restart.json": {
+          "path": "latest-package-round/39087930713/generation/verify-06/capture/driver-failure-restart.json.gz",
+          "originalDigest": "sha256:35197b857450de954d209c48c66a1458800f253a3bb0e0bf14a27433408086be",
+          "storedDigest": "sha256:4dc2d076666ff375c3427e2b050ab8fbd45b8e90a727aa6f28746034b4a112e8",
+          "originalBytes": 6571
+        }
+      },
+      "canonicalSourcePreserved": true,
+      "restoredBodyEqualsCanonicalMarkdown": true,
+      "renderedBodyPreserved": false,
+      "restoredBodyDigest": "sha256:a8654db276ac58bc89bdcb5ab651d4d1f3bd334d029305e3b31f88a79a6997a5"
+    },
+    {
+      "sampleId": "verify-33",
+      "group": "linux-jetbrains",
+      "runId": "39087930713",
+      "generationSummary": {
+        "path": "latest-package-round/39087930713/generation/summary.json.gz",
+        "originalDigest": "sha256:a334cd3571e0d66b0cc8b9ece5881cf8ce38fa8ec4e3d9ca8e05599e7d3d33ee",
+        "storedDigest": "sha256:52c165930881f7c6a500f9e27e03ad6bb4e44c2dc821ce12af8486bd10f042c4",
+        "originalBytes": 498459
+      },
+      "hostPassed": false,
+      "failureIsRenderedBodyChange": true,
+      "sessionPreserved": true,
+      "savedRowIdPreserved": true,
+      "canonicalResultDigest": "sha256:8f1a927835bb8bbfe0d3f3904294eb622c99c843678cb9b36103282d0545503c",
+      "originalRenderedBodyDigest": "sha256:3ba50b15d06ed9bb259b33383ea416c11bb11fbb97c34664379d8ed4027e9655",
+      "evidence": {
+        "restart-state.json": {
+          "path": "latest-package-round/39087930713/generation/verify-33/capture/restart-state.json.gz",
+          "originalDigest": "sha256:df23531f9b5ec38492a3a8c5db15c2b2736626c49e9624372c4fda8ad7a07c3c",
+          "storedDigest": "sha256:4bb5f0a55ae884ffea944eb98dfe61842db77044362f94dc741eb1c6c6255223",
+          "originalBytes": 43747
+        },
+        "driver-failure-restart-snapshot.json": {
+          "path": "latest-package-round/39087930713/generation/verify-33/capture/driver-failure-restart-snapshot.json.gz",
+          "originalDigest": "sha256:77259675d34f2356b3d157ea05ff1025b98e03e066a32358b92967f3831bb29c",
+          "storedDigest": "sha256:b5e7ef2d39e5fa36cdf1254fa849156098242881c0a2bb35751f07e9064ddc6b",
+          "originalBytes": 23266
+        },
+        "driver-failure-restart.json": {
+          "path": "latest-package-round/39087930713/generation/verify-33/capture/driver-failure-restart.json.gz",
+          "originalDigest": "sha256:4b66e5cf9d4d41cb74b7087a348f1c40dfce9d8ee663955ae6a0d23de0602955",
+          "storedDigest": "sha256:cf71ef532fa461cbe24797ac11b27605185409300e3e669a584c9a5b456524f9",
+          "originalBytes": 7245
+        }
+      },
+      "canonicalSourcePreserved": true,
+      "restoredBodyEqualsCanonicalMarkdown": true,
+      "renderedBodyPreserved": false,
+      "restoredBodyDigest": "sha256:8f1a927835bb8bbfe0d3f3904294eb622c99c843678cb9b36103282d0545503c"
+    },
+    {
+      "sampleId": "first-run-darwin-jetbrains",
+      "group": "darwin-jetbrains",
+      "runId": "39087957391",
+      "generationSummary": {
+        "path": "latest-package-round/39087957391/generation/summary.json.gz",
+        "originalDigest": "sha256:9abd34c56a7309c7167d329567b2e9a4cfc7cc04ca377a951329ef5f43878a76",
+        "storedDigest": "sha256:afbd3311ee0219ddcb37c2fe9336d0828df5637263e6a985ec1433f32dbf2a9e",
+        "originalBytes": 136702
+      },
+      "hostPassed": false,
+      "failureIsRenderedBodyChange": true,
+      "sessionPreserved": true,
+      "savedRowIdPreserved": true,
+      "canonicalResultDigest": "sha256:a7fb2140ff84dad5b644840166aaa60177793b9a2b2bcdb995f50a47e9788169",
+      "originalRenderedBodyDigest": "sha256:437ebaa8cbc586a2314c69b522a48356e94d577f3090e19655b1d53db4f408e1",
+      "evidence": {
+        "restart-state.json": {
+          "path": "latest-package-round/39087957391/generation/first-run-darwin-jetbrains/capture/restart-state.json.gz",
+          "originalDigest": "sha256:bef4c8d74dab55934b708927f5ca7caf38e97677b833b98ef7b0d9832d0c402f",
+          "storedDigest": "sha256:670a272d75a9a17cbf64c5283d0cd3531b301b6b8f15cebcd7974a6b36978785",
+          "originalBytes": 38147
+        },
+        "driver-failure-restart-snapshot.json": {
+          "path": "latest-package-round/39087957391/generation/first-run-darwin-jetbrains/capture/driver-failure-restart-snapshot.json.gz",
+          "originalDigest": "sha256:41e30881f9e9767c5e7429a8149e88d0c48ab6d0615e3763ca4973ca56114f7b",
+          "storedDigest": "sha256:f6eb0662ebc1840419940ea1cf705b5afdfc64eb706735940ee02f391e8cc6ef",
+          "originalBytes": 21939
+        },
+        "driver-failure-restart.json": {
+          "path": "latest-package-round/39087957391/generation/first-run-darwin-jetbrains/capture/driver-failure-restart.json.gz",
+          "originalDigest": "sha256:2beb58453c172361e3b7e1fbc2925213fc8ce605f30827b402df104bb37909e4",
+          "storedDigest": "sha256:6b07486a6f569b36ce2438ea6bd0ddb6cc7d226dbae634f9d7369cad54127dd0",
+          "originalBytes": 6778
+        }
+      },
+      "canonicalSourcePreserved": true,
+      "restoredBodyEqualsCanonicalMarkdown": true,
+      "renderedBodyPreserved": false,
+      "restoredBodyDigest": "sha256:a7fb2140ff84dad5b644840166aaa60177793b9a2b2bcdb995f50a47e9788169"
+    },
+    {
+      "sampleId": "verify-09",
+      "group": "darwin-jetbrains",
+      "runId": "39087957391",
+      "generationSummary": {
+        "path": "latest-package-round/39087957391/generation/summary.json.gz",
+        "originalDigest": "sha256:9abd34c56a7309c7167d329567b2e9a4cfc7cc04ca377a951329ef5f43878a76",
+        "storedDigest": "sha256:afbd3311ee0219ddcb37c2fe9336d0828df5637263e6a985ec1433f32dbf2a9e",
+        "originalBytes": 136702
+      },
+      "hostPassed": false,
+      "failureIsRenderedBodyChange": true,
+      "sessionPreserved": true,
+      "savedRowIdPreserved": true,
+      "canonicalResultDigest": "sha256:5298a136ca11a7a5ee5df4c03b01dd229ca27c6dc688c83549052116fe007d3f",
+      "originalRenderedBodyDigest": "sha256:3bb52f52cdbf9a6fdb68200d80123f8041ab05213f81ee21e45e983fe8d8c12c",
+      "evidence": {
+        "restart-state.json": {
+          "path": "latest-package-round/39087957391/generation/verify-09/capture/restart-state.json.gz",
+          "originalDigest": "sha256:e1a1f0de26dd2d2efb95efd821664fa8774c90fd9d66cd0e98af42170893e744",
+          "storedDigest": "sha256:4cb5280404cc5fa4f459674f3f7fbca294926e1861c3cf29978c52acad7d2ca7",
+          "originalBytes": 46300
+        },
+        "driver-failure-restart-snapshot.json": {
+          "path": "latest-package-round/39087957391/generation/verify-09/capture/driver-failure-restart-snapshot.json.gz",
+          "originalDigest": "sha256:22779228310a172da9ffdf5b820867ac8bfd9bc51fddd0e26dddffaabe934981",
+          "storedDigest": "sha256:250b9f082b6c2578c64d45e3ecaac6949fb4de8bcaf637cf7af533eabacf0f83",
+          "originalBytes": 24442
+        },
+        "driver-failure-restart.json": {
+          "path": "latest-package-round/39087957391/generation/verify-09/capture/driver-failure-restart.json.gz",
+          "originalDigest": "sha256:609392b6bee20304f248a9ff5ee46790156357914465ba33756076e357ff4b0d",
+          "storedDigest": "sha256:12e092701c999406e2d1303659f1846fc21a5d27c546b0d7ee1023de469170a0",
+          "originalBytes": 7993
+        }
+      },
+      "canonicalSourcePreserved": true,
+      "restoredBodyEqualsCanonicalMarkdown": true,
+      "renderedBodyPreserved": false,
+      "restoredBodyDigest": "sha256:5298a136ca11a7a5ee5df4c03b01dd229ca27c6dc688c83549052116fe007d3f"
+    }
+  ]
+}

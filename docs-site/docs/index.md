@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: "v5.0.3.140 | CLI .105 / IDE .150/.167 已公开 | .106 候选 | 桌面与移动端"
+  tagline: "v5.0.3.140 | CLI .106 / IDE .151/.168 已公开 | .107 候选 | 桌面与移动端"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -21,8 +21,8 @@ hero:
 
 features:
   - icon: 🛡️
-    title: CLI .105 已公开，.106 候选待验证
-    details: 公开 CLI .105、Open VSX .150、JetBrains .167；下一候选 .106/.151/.168 尚未发布，须通过最终提交门禁和公开回读。
+    title: CLI .106 已公开，.107 候选待验证
+    details: 公开 CLI .106、Open VSX .151、JetBrains .168；下一候选 .107/.152/.169 尚未发布，须通过最终精确提交门禁，按子包、CLI、IDE 顺序发布并公开回读。
     link: /chainlesschain/cli-ide-update-2026-10-18
   - icon: 🏢
     title: 组织目标、授权记忆与站内通知（主线）
@@ -37,12 +37,12 @@ features:
     details: 统计 v2、耐久预注册及真实后端关联已实现；必需回执固定 HOLD，真实效果实验未运行，生产来源门仍在实施。
     link: /chainlesschain/rrsi-current
   - icon: 🧩
-    title: Agent Platform 0.166.105
-    details: 通用编码指导、静态导入反馈、延迟写入完成保护与安全传输诊断；.105轮生成和验收各20/20，新增6项，累计31/45、剩14；.106候选尚未发布或补测。
+    title: Agent Platform 0.166.106
+    details: .106轮14/14项生成与独立验收记录均返回，仅首次使用Windows JetBrains新增通过；跨版本累计32/45（普通26/36、首次6/9），剩13；.107候选尚未发布。
     link: /chainlesschain/agent-platform-release
   - icon: 📝
     title: IDE 任务记录与新会话接力
-    details: Open VSX 0.37.150 与 JetBrains 0.4.167 推荐公开 CLI 0.166.105；下一候选 .151/.168 推荐候选 CLI .106；桥接重连不重放结果未知的工具调用。
+    details: Open VSX 0.37.151 与 JetBrains 0.4.168 配对公开 CLI 0.166.106；下一候选 .152/.169 配对候选 CLI .107；桥接重连不重放结果未知的工具调用。
     link: /chainlesschain/ide-task-worklog
   - icon: 🎯
     title: Skill 决策模型试点
@@ -66,7 +66,7 @@ features:
     link: /chainlesschain/desktop-model-governance
   - icon: 🧑‍💻
     title: IDE Bridge 突破 6 万下载
-    details: Open VSX .150 与 JetBrains .167 已公开；下一候选 .151/.168 尚未发布；Microsoft Marketplace 未发行。
+    details: Open VSX .151 与 JetBrains .168 已公开；下一候选 .152/.169 尚未发布；Microsoft Marketplace 未发行。
     link: /chainlesschain/ide-plugin
   - icon: 🔐
     title: 安全优先
@@ -76,12 +76,12 @@ features:
     details: 公开版支持规范化实体与投影意图同事务保存、KG/BM25 独立确认、分批恢复与退休临时 consumer 回执维护；未知运行投递仍受保护，当前宿主没有连接向量目的地。
   - icon: 🧪
     title: 发布证据分层
-    details: CLI 0.166.105@d4065008bb 已公开回读；同提交 CLI CI、Strict、IDE、ARM64 门禁全过；IDE 市场公开与任务验收分别核验。
+    details: CLI 0.166.106 与配对IDE已公开核验；下一候选须通过最终精确提交的三平台正式矩阵，经OIDC依次发布子包、CLI、IDE；公开制品与任务验收分别核验。
 ---
 
-> 2026-10-18：当前公开版本为 CLI **0.166.105**、Open VSX **0.37.150**、JetBrains **0.4.167**。下一候选为 CLI **0.166.106**、VS Code **0.37.151**、JetBrains **0.4.168**，候选插件均推荐 CLI `.106`；候选尚未发布，须通过最终提交完整矩阵、CLI OIDC 发布及公开制品回读，再发行 IDE 并补测未合格项。公开 `.105` 轮已严格完成生成 **20/20**、验收 **20/20**，新增候选合格 **6** 项、全流程通过 **6** 项；累计合格 **31/45**（普通任务 **26/36**、首次使用 **5/9**），剩余 **14** 项。原 25 份合格产物按字节复用；跨版本累计结果不等于单轮 **45/45** 全部成功。候选 `.106/.151/.168` 尚未发布、尚未补测。Microsoft Marketplace 未发布。
+> 2026-10-19：当前已核验公开版本为 CLI **0.166.106**、Open VSX **0.37.151**、JetBrains **0.4.168**，插件配对 CLI `.106`。本轮 **14/14** 项的生成与独立验收记录均已返回，仅 **first-run-win32-jetbrains** 新增合格交付及全流程通过；累计 **32/45**（普通 **26/36**、首次 **6/9**），剩余 **13** 项。记录返回不代表 14 项全部通过，跨版本累计不等于同一版本单轮成功率。下一源码候选 CLI **0.166.107**、VS Code **0.37.152**、JetBrains **0.4.169** 尚未发布。候选子包 Session Core **0.3.20**、PDH **0.4.66** 的当前公开版本分别仍为 **0.3.19**、**0.4.65**；PDH 锁定 `mailparser@3.9.45`，Session Core 增加 ACL 进度诊断，并在首个 cmdlet 前将模块搜索限定为当前 PowerShell 进程的内置 `$PSHOME/Modules`，保持 ACL 检查、遍历、安全边界、超时和重试不变。Windows CI 配对样本支持此优化，但未复现原始 60 秒超时，该案例的公开包验收仍待完成，不能宣称所有启动超时已修复。须通过最终精确提交的 Linux/Windows/macOS 正式矩阵（CLI CI 与 CLI Strict Sandbox 均须全过），按 GitHub Actions OIDC 子包发布及核验 → CLI 发布及公开回读 → IDE 发布 → 未合格项补测执行。Microsoft Marketplace 未发布。
 
-> **验收范围**：公开 `.105` 轮生成与验收各 **20/20**，新增候选合格 **6** 项、全流程通过 **6** 项；累计候选合格 **31/45**（普通 **26/36**、首次 **5/9**），剩余 **14** 项。原 25 份合格产物按字节复用，跨版本累计不等于单轮 45/45。下一候选 `.106/.151/.168` 尚未发布、尚未补测；完整 native review 与自动晋升仍单独验收，自动晋升 **HOLD**。产品 .140 独立发行；详见[当前升级指南](/chainlesschain/cli-ide-update-2026-10-18)。
+> **验收范围**：公开 `.106` 轮 **14/14** 项的生成与独立验收记录均已返回，新增合格交付 **1** 项（`first-run-win32-jetbrains`）；跨版本累计 **32/45**（普通 **26/36**、首次 **6/9**），剩余 **13** 项。既有合格产物按字节复用，记录完整不等于全部通过，累计覆盖不等于单轮 45/45。下一候选 `.107/.152/.169` 尚未发布；完整 native review 与自动晋升仍单独验收，自动晋升 **HOLD**。产品 .140 独立发行；详见[当前升级指南](/chainlesschain/cli-ide-update-2026-10-18)。
 
 ## 2026-10-08 历史增量
 

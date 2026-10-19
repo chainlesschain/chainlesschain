@@ -1,0 +1,109 @@
+import { describe, it, expect } from "vitest";
+import {
+  lookupRate,
+  estimateCost,
+  priceRollup,
+} from "../src/lib/llm-pricing.js";
+
+// verify-03 — "new-family unknown pricing"
+//
+// Guarantee under test: an unknown (not-yet-tabulated) model id must be
+// reported as unpriced and must NOT inherit a rate from an older family it
+// happens to resemble, while known models keep pricing correctly.
+//
+// Resolution of the deliverable's import: the source module lives at
+//   packages/cli/src/lib/llm-pricing.js
+// and this test file lives directly at packages/cli/__tests__/, so the
+// repository-relative specifier is ../src/lib/llm-pricing.js.
+
+describe("verify-03 — new-family unknown pricing", () => {
+  it("prices known models (positive control)", () => {
+    expect(lookupRate("openai", "gpt-4o-2024-05-13")).toMatchObject({
+      pattern: "gpt-4o",
+      in: 2.5,
+      out: 10,
+    });
+    expect(lookupRate("anthropic", "claude-sonnet-4-6")).toMatchObject({
+      pattern: "sonnet",
+      in: 3,
+      out: 15,
+    });
+  });
+
+  it("an unknown new-family id is unpriced, not an old-family price", () => {
+    // Each resembles an existing family (mythos-*, gpt-*, deepseek-*) but is
+    // not in the table; it must resolve to no rate at all rather than inherit
+    // an older family's price.
+    expect(lookupRate("anthropic", "claude-mythos-6-beta")).toBeNull();
+    expect(lookupRate("openai", "gpt-next-gen-001")).toBeNull();
+    expect(lookupRate("deepseek", "deepseek-next-7")).toBeNull();
+  });
+
+  it("a brand-new Opus version (>=5) does not fall back to the current opus rate", () => {
+    // The bare "opus" catch-all is guarded for unreleased Opus 5+ ids so a
+    // future snapshot is not silently billed the known $5/$25 rate.
+    expect(lookupRate("anthropic", "claude-opus-5-snapshot")).toBeNull();
+  });
+
+  it("estimateCost marks an unknown model unmatched with zero cost", () => {
+    const c = estimateCost({
+      provider: "openai",
+      model: "brand-new-model-9000",
+      inputTokens: 1_000_000,
+      outputTokens: 1_000_000,
+    });
+    expect(c.matched).toBe(false);
+    expect(c.free).toBe(false);
+    expect(c.rate).toBeNull();
+    expect(c.inputCost).toBe(0);
+    expect(c.outputCost).toBe(0);
+    expect(c.totalCost).toBe(0);
+  });
+
+  it("estimateCost still prices a known model", () => {
+    const c = estimateCost({
+      provider: "anthropic",
+      model: "claude-sonnet-4-6",
+      inputTokens: 1_000_000,
+      outputTokens: 1_000_000,
+    });
+    expect(c.matched).toBe(true);
+    expect(c.inputCost).toBeCloseTo(3, 6);
+    expect(c.outputCost).toBeCloseTo(15, 6);
+    expect(c.totalCost).toBeCloseTo(18, 6);
+  });
+
+  it("priceRollup keeps known rows priced and lists unknown new-family rows unpriced", () => {
+    const r = priceRollup({
+      total: {},
+      byModel: [
+        {
+          provider: "openai",
+          model: "gpt-4o",
+          inputTokens: 1_000_000,
+          outputTokens: 0,
+          totalTokens: 1_000_000,
+          calls: 1,
+        },
+        {
+          provider: "anthropic",
+          model: "claude-mythos-6-beta",
+          inputTokens: 500,
+          outputTokens: 500,
+          totalTokens: 1000,
+          calls: 1,
+        },
+      ],
+    });
+    // Only the known gpt-4o row contributes (2.5 USD for 1M input tokens).
+    expect(r.cost.totalCost).toBeCloseTo(2.5, 6);
+    expect(r.cost.unpricedCount).toBe(1);
+    expect(r.unpriced).toEqual([
+      {
+        provider: "anthropic",
+        model: "claude-mythos-6-beta",
+        totalTokens: 1000,
+      },
+    ]);
+  });
+});

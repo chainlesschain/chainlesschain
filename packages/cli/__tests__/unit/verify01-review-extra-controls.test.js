@@ -118,11 +118,15 @@ vi.mock("./packages/cli/src/lib/evolution/agent-evolution-ingress.js", () => ({
 `;
   }
   if (taskId === "verify-11") {
-    for (const file of [
-      "interaction-binding.js",
-      "session-transcript-structure.js",
-    ])
-      copySource(root, `packages/cli/src/lib/${file}`);
+    const transcriptStructurePath =
+      "packages/cli/src/lib/session-transcript-structure.js";
+    copySource(root, "packages/cli/src/lib/interaction-binding.js");
+    const transcriptStructure = sourceBytes(transcriptStructurePath);
+    write(root, transcriptStructurePath, transcriptStructure);
+    // Historical source commits used by the frozen audit may predate tool
+    // rounds. Copy this dependency only when the selected source needs it.
+    if (/from\s+["']\.\/session-tool-round\.js["']/.test(transcriptStructure))
+      copySource(root, "packages/cli/src/lib/session-tool-round.js");
     copySource(root, "packages/cli/src/harness/jsonl-session-store.js");
     return `
 import { vi } from "vitest";

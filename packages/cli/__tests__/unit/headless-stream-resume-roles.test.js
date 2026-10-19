@@ -5,15 +5,15 @@ import "../helpers/test-model-egress.js";
  * When a resumed session's persisted transcript ends with a bare `user` turn
  * (the prior run produced NO assistant response), splicing the first live
  * prompt after it would send two adjacent `user` messages — which
- * Anthropic/Bedrock reject as "roles must alternate". The stream merges
- * consecutive same-role turns for the FIRST model call only.
+ * Anthropic/Bedrock reject as "roles must alternate". The stream captures
+ * resumed same-role pairs and normalizes only provider request projections.
  *
  * Crucially the merge is GATED to the resume boundary: the live turn loop
  * legitimately produces consecutive `user` messages (an interrupted turn's
  * dangling prompt, a PDH §3.5.13 feedback note) that must reach the model
  * distinctly. Those cases are covered by headless-stream-interrupt /
  * headless-stream-pdh; this file pins the resume-degenerate path so the
- * one-shot gate can't regress back into "merge every turn".
+ * captured-pair projection cannot regress into merging every new role run.
  */
 import { describe, it, expect } from "vitest";
 import { runAgentHeadlessStream } from "../../src/runtime/headless-stream.js";
@@ -72,8 +72,14 @@ function noConsecutiveSameRole(msgs) {
 
 async function runResume(history, liveText, output = []) {
   const captured = [];
-  const agentLoop = async function* (messages) {
-    captured.push(messages.map((m) => ({ role: m.role, content: m.content })));
+  const agentLoop = async function* (messages, options) {
+    const authority = [...messages];
+    const providerMessages =
+      options.projectProviderMessages?.(messages) || messages;
+    expect(messages).toEqual(authority);
+    captured.push(
+      providerMessages.map((m) => ({ role: m.role, content: m.content })),
+    );
     yield { type: "response-complete", content: "ok" };
     yield { type: "run-ended", reason: "complete" };
   };
@@ -136,13 +142,17 @@ describe("stream resume role sanitation", () => {
   });
 
   it("keeps EVERY later turn alternating after a degenerate resume (2nd-turn corner)", async () => {
-    // The fold must fix the PERSISTENT history, not just the first turn's
-    // payload — otherwise the dangling `[user, user]` pair lingers and the
+    // The request projection must persist across turns without changing history.
+    // Otherwise the second turn's payload — otherwise the dangling `[user, user]` pair lingers and the
     // SECOND live turn re-sends consecutive users → "roles must alternate".
     const captured = [];
-    const agentLoop = async function* (messages) {
+    const agentLoop = async function* (messages, options) {
+      const authority = [...messages];
+      const providerMessages =
+        options.projectProviderMessages?.(messages) || messages;
+      expect(messages).toEqual(authority);
       captured.push(
-        messages.map((m) => ({ role: m.role, content: m.content })),
+        providerMessages.map((m) => ({ role: m.role, content: m.content })),
       );
       yield { type: "response-complete", content: "reply" };
       yield { type: "run-ended", reason: "complete" };

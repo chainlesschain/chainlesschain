@@ -1,0 +1,60 @@
+import { describe, expect, it } from "vitest";
+import { resolveModelCapabilityProfile } from "../src/lib/model-capabilities.js";
+
+// Regression coverage for precise, exact model capability identification of
+// the documented gpt-6 family (Astra / Sol / Luna) and the guarantee that an
+// unknown or suffixed model id is never certified as a tool model.
+describe("precise gpt-6 family capability identification", () => {
+  it.each(["gpt-6-astra", "gpt-6-sol", "gpt-6-luna"])(
+    "certifies the exact documented tool model %s",
+    (model) => {
+      const profile = resolveModelCapabilityProfile({
+        provider: "openai",
+        model,
+      });
+      expect(profile).toMatchObject({
+        provider: "openai",
+        model,
+        contextWindowTokens: 1050000,
+        windowSource: "official-model-docs",
+        windowAssumed: false,
+        advertisedMaxOutputTokens: 128000,
+        runtimeProtocol: "openai-responses",
+        runtimeVerified: false,
+      });
+      expect(profile.sources.length).toBeGreaterThan(0);
+    },
+  );
+
+  it.each([
+    "gpt-6-astra-custom",
+    "gpt-6-astra-gpu",
+    "gpt-6-sol-pro",
+    "gpt-6-luna-2",
+    "gpt-6-astra-fc",
+  ])("does not infer a certified tool model from a suffixed id: %s", (model) => {
+    const profile = resolveModelCapabilityProfile({
+      provider: "openai",
+      model,
+    });
+    expect(profile.windowSource).toBe("provider-default");
+    expect(profile.contextWindowTokens).toBe(128000);
+    expect(profile.windowAssumed).toBe(true);
+    expect(profile.advertisedMaxOutputTokens).toBeNull();
+    expect(profile.sources).toEqual([]);
+    expect(profile.runtimeProtocol).toBe("chat-completions");
+  });
+
+  it("does not treat a suffixed Sol/Luna id as the Responses tool model", () => {
+    for (const model of ["gpt-6-sol-2", "gpt-6-luna-x", "gpt-6-sol-vision"]) {
+      const profile = resolveModelCapabilityProfile({
+        provider: "openai",
+        model,
+      });
+      expect(profile.runtimeProtocol).toBe("chat-completions");
+      expect(profile.advertisedMaxOutputTokens).toBeNull();
+      expect(profile.sources).toEqual([]);
+      expect(profile.windowSource).toBe("provider-default");
+    }
+  });
+});

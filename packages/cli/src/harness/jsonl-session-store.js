@@ -73,6 +73,12 @@ import { createSessionPersistenceFailure } from "../lib/session-persistence-fail
 import { withSessionHostWriteAuthority } from "../lib/session-host-lease.js";
 import { createSessionTranscriptStructureProjection } from "../lib/session-transcript-structure.js";
 import {
+  TOOL_ROUND_EVENT,
+  TOOL_ROUND_SCHEMA,
+  assertCompleteToolRounds,
+  projectToolRoundMessages,
+} from "../lib/session-tool-round.js";
+import {
   computeExecutionLocationTargetFactsDigest,
   createExecutionLocationTargetAttestation,
   normalizeExecutionLocationBinding,
@@ -3339,12 +3345,125 @@ export function appendCompactEvent(sessionId, stats) {
   appendEvent(sessionId, "compact", stats);
 }
 
+function updateCanonicalReplayValue(
+  hash,
+  value,
+  ancestors = new Set(),
+  depth = 0,
+) {
+  if (depth > 64)
+    throw new TypeError("Session replay exceeds maximum JSON depth");
+  if (
+    value === null ||
+    typeof value === "string" ||
+    typeof value === "boolean"
+  ) {
+    hash.update(JSON.stringify(value), "utf8");
+    return;
+  }
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) {
+      throw new TypeError("Session replay contains a non-finite number");
+    }
+    hash.update(JSON.stringify(Object.is(value, -0) ? 0 : value), "utf8");
+    return;
+  }
+  if (!value || typeof value !== "object") {
+    throw new TypeError("Session replay contains a non-JSON value");
+  }
+  if (ancestors.has(value))
+    throw new TypeError("Session replay contains a cycle");
+
+  ancestors.add(value);
+  try {
+    if (Array.isArray(value)) {
+      hash.update("[", "utf8");
+      for (let index = 0; index < value.length; index += 1) {
+        if (index > 0) hash.update(",", "utf8");
+        updateCanonicalReplayValue(hash, value[index], ancestors, depth + 1);
+      }
+      hash.update("]", "utf8");
+      return;
+    }
+
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype !== Object.prototype && prototype !== null) {
+      throw new TypeError("Session replay objects must be plain data");
+    }
+    hash.update("{", "utf8");
+    const keys = Object.keys(value).sort();
+    for (let index = 0; index < keys.length; index += 1) {
+      if (index > 0) hash.update(",", "utf8");
+      const key = keys[index];
+      hash.update(JSON.stringify(key), "utf8");
+      hash.update(":", "utf8");
+      updateCanonicalReplayValue(hash, value[key], ancestors, depth + 1);
+    }
+    hash.update("}", "utf8");
+  } finally {
+    ancestors.delete(value);
+  }
+}
+
 function canonicalReplayFingerprint(messages) {
-  return JSON.stringify(
-    projectCanonicalResumeMessages(messages, { strict: true }).map(
-      encodePersistedMessage,
-    ),
-  );
+  // This compares a complete replay, which can exceed scheduler payload limits.
+  // Stream canonical JSON into the digest so memory and scheduler envelope
+  // bounds do not depend on total transcript size. Object key order is ignored;
+  // array order, every field and durable provenance remain significant.
+  const canonicalMessages = projectCanonicalResumeMessages(messages, {
+    strict: true,
+  }).map(encodePersistedMessage);
+  const hash = createHash("sha256");
+  hash.update("chainlesschain.session-replay-fingerprint.v1\0", "utf8");
+  updateCanonicalReplayValue(hash, canonicalMessages);
+  return hash.digest("hex");
+}
+
+/** Settle only complete host-owned tool exchanges after the verified prefix.
+ * Both prefix comparisons are required: sampling a newer durable head must
+ * never authorize hiding concurrent input absent from the host's live array. */
+export function appendToolRoundsIfMessagesMatch(
+  sessionId,
+  liveMessages,
+  expectedMessages,
+) {
+  const live = projectCanonicalResumeMessages(liveMessages, { strict: true });
+  const expected = projectCanonicalResumeMessages(expectedMessages, {
+    strict: true,
+  });
+  const expectedFingerprint = canonicalReplayFingerprint(expected);
+  const stale = () =>
+    Object.assign(
+      new Error(
+        `Session messages changed for ${sessionId}; refresh before settling tools`,
+      ),
+      { code: "SESSION_REVISION_STALE" },
+    );
+  if (
+    canonicalReplayFingerprint(live.slice(0, expected.length)) !==
+    expectedFingerprint
+  )
+    throw stale();
+  const suffix = live.slice(expected.length);
+  if (suffix.length) assertCompleteToolRounds(suffix);
+  return withVerifiedWsTurnLock(sessionId, (filePath) => {
+    const verification = verifyTranscriptFile(filePath);
+    assertVerifiedTranscriptAnchor(sessionId, verification);
+    const actual = rebuildVerifiedMessagesFromFile(filePath);
+    if (canonicalReplayFingerprint(actual) !== expectedFingerprint)
+      throw stale();
+    if (!suffix.length) return { hash: verification.lastHash };
+    return appendVerifiedWsAuthorityEventLocked(
+      sessionId,
+      filePath,
+      TOOL_ROUND_EVENT,
+      {
+        schema: TOOL_ROUND_SCHEMA,
+        messages: suffix.map(encodePersistedMessage),
+      },
+      verification.lastHash,
+    );
+  });
 }
 
 /**
@@ -5848,6 +5967,10 @@ function rebuildMessagesFromFile(
       isReplayableMessage(event.data)
     ) {
       suffix.push(decodeMessage(event.data));
+    } else if (event?.type === TOOL_ROUND_EVENT) {
+      suffix.push(
+        ...projectToolRoundMessages(event).map(decodeMessage).reverse(),
+      );
     } else if (event?.type === WS_TURN_EVENT) {
       const turn = projectWsTurnMessages(event);
       if (turn) {

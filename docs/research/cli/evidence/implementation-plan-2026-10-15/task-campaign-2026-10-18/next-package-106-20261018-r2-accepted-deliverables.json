@@ -1,0 +1,60 @@
+{
+  "schema": "chainlesschain.accepted-native-export-index/v2",
+  "archive": "next-package-106-20261018-r2-accepted-deliverables.tar.gz",
+  "digest": "sha256:e653418df712228843a694903299f71ff3c6e422b3d0309a448d0db136b72ea7",
+  "bytes": 1015328,
+  "manifestDigest": "sha256:5e41f107a84f3fda460c7dfa99ab4ec82c32cecb22f88a90b13d1ae79a3207b6",
+  "acceptedCandidates": 32,
+  "baseAcceptedCandidates": 25,
+  "newAcceptedCandidates": 7,
+  "sampleIds": [
+    "verify-01",
+    "verify-02",
+    "verify-03",
+    "verify-05",
+    "verify-15",
+    "verify-16",
+    "verify-17",
+    "verify-18",
+    "verify-20",
+    "verify-21",
+    "verify-22",
+    "verify-23",
+    "verify-24",
+    "verify-25",
+    "verify-26",
+    "verify-27",
+    "verify-28",
+    "verify-29",
+    "verify-31",
+    "verify-33",
+    "verify-34",
+    "verify-35",
+    "verify-36",
+    "first-run-win32-cli",
+    "first-run-win32-vscode",
+    "first-run-linux-jetbrains",
+    "first-run-darwin-vscode",
+    "verify-12",
+    "verify-14",
+    "verify-32",
+    "first-run-linux-vscode",
+    "first-run-win32-jetbrains"
+  ],
+  "baseIndexDigest": "sha256:1842cf3a19551cbb927d3f1b024f10726c9771da0c36e126138e17b8d5a8ec9c",
+  "baseArchiveDigest": "sha256:9e06e9cb5876d7daf5deb8a2f0dbe23bffb85cf471bdf16562d274a72c62d18b",
+  "priorRounds": [
+    {
+      "planPath": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-105-20261018-plan.json",
+      "planDigest": "sha256:2296d637b34f63aff931b5e580da5023df5a47a7e7db3f0f2b314311a3e5579f",
+      "ledgerPath": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-105-20261018.json",
+      "ledgerDigest": "sha256:c18c59578e28d0f6faca1edd34d4ffeea5f302bf21678b69ae0dcf10ca3eab4a"
+    },
+    {
+      "planPath": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-plan.json",
+      "planDigest": "sha256:ce3852ed914c903fa3de6dc6255354e33ab2c53f803c126fe990272904d12718",
+      "ledgerPath": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2.json",
+      "ledgerDigest": "sha256:4ad3a6bba5b4da41a2374854c6dc833edf694b8637734df7724b2d459e649607"
+    }
+  ]
+}

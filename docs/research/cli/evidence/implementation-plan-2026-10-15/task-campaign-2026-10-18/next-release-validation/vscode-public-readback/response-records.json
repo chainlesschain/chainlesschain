@@ -1,0 +1,41 @@
+{
+  "run.json": {
+    "path": "run.json",
+    "digest": "sha256:3a318bcb778b7d9ba978df28c75d3678e82acb09e21c5c758e1f56a0fc9ae1f0",
+    "bytes": 13191,
+    "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/runs/39104012121"
+  },
+  "artifact.json": {
+    "path": "artifact.json",
+    "digest": "sha256:3743614c1a7129534256fbd126422118e9bacb8e431b976401b37d440eee00ce",
+    "bytes": 737,
+    "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/12127523866"
+  },
+  "official-candidate.zip": {
+    "path": "official-candidate.zip",
+    "digest": "sha256:4d51797e9490c467e189a8122efb3c1c9691c7638d8c93d0ba9314c1d8c991ba",
+    "bytes": 704412,
+    "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/12127523866/zip"
+  },
+  "official-manifest.json": {
+    "path": "official-manifest.json",
+    "digest": "sha256:ba3ebd02eeefb28145d409aff5a9e6f2649031c3219380fbaf7ecb9c9a078ae4",
+    "bytes": 714
+  },
+  "openvsx-metadata.json": {
+    "path": "openvsx-metadata.json",
+    "digest": "sha256:2fa745255f066ef8693229c3bc5fa1f884aea14974fbc47047e5886da4e10c0f",
+    "bytes": 10905,
+    "url": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.150",
+    "finalUrlWithoutQuery": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.150",
+    "httpStatus": 200
+  },
+  "chainlesschain.vsix": {
+    "path": "chainlesschain.vsix",
+    "digest": "sha256:505b95e7fe2dbfae329600400046d1ea3e916b58068b4b1eaec980915abfb720",
+    "bytes": 720635,
+    "url": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.150/file/chainlesschain.chainlesschain-ide-0.37.150.vsix",
+    "finalUrlWithoutQuery": "https://openvsx.eclipsecontent.org/chainlesschain/chainlesschain-ide/0.37.150/chainlesschain.chainlesschain-ide-0.37.150.vsix",
+    "httpStatus": 200
+  }
+}

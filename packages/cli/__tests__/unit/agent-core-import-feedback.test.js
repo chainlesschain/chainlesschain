@@ -62,6 +62,12 @@ describe("file mutation import feedback", () => {
         specifier: "../../src/value.js",
       }),
     ]);
+    expect(result.validation).toMatchObject({
+      persisted: true,
+      testsExecuted: false,
+      relativeImports: "checked",
+      checkedReferences: 1,
+    });
     expect(lsp.probe).not.toHaveBeenCalled();
   });
 
@@ -95,6 +101,14 @@ describe("file mutation import feedback", () => {
     );
     expect(repaired.success).toBe(true);
     expect(repaired.newDiagnostics).toBeUndefined();
+    expect(repaired.validation).toMatchObject({
+      persisted: true,
+      testsExecuted: false,
+      relativeImports: "checked",
+      checkedReferences: 1,
+      uncheckedReferences: 0,
+    });
+    expect(repaired.validation.message).toContain("does not establish");
     expect(fs.readFileSync(target, "utf8")).toBe(correct);
     expect(lsp.probe).not.toHaveBeenCalled();
   });
@@ -137,6 +151,11 @@ describe("file mutation import feedback", () => {
     );
     expect(second.success).toBe(true);
     expect(second.newDiagnostics).toBeUndefined();
+    expect(second.validation).toMatchObject({
+      persisted: true,
+      testsExecuted: false,
+      relativeImports: "not-checked",
+    });
     expect(fs.readFileSync(target, "utf8")).toBe(broken);
     expect(lsp.probe).not.toHaveBeenCalled();
   });
@@ -154,5 +173,6 @@ describe("file mutation import feedback", () => {
     });
     expect(fs.existsSync(forbidden)).toBe(false);
     expect(result.newDiagnostics).toBeUndefined();
+    expect(result.validation).toBeUndefined();
   });
 });

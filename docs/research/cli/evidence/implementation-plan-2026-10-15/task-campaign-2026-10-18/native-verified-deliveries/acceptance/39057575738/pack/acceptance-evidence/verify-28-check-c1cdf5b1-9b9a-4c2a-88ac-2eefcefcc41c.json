@@ -1,0 +1,125 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-28",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 14,
+      "passed": 14,
+      "failed": 0
+    },
+    {
+      "kind": "candidate",
+      "total": 6,
+      "passed": 6,
+      "failed": 0
+    }
+  ],
+  "mutations": [
+    {
+      "name": "late-snapshot-overwrites-new-input",
+      "sourceSha256": "da0308218a5d31c1afd5202b6f035cb88cbce758f6fe5320c5aec0b8739e8f5f",
+      "total": 6,
+      "passed": 4,
+      "failed": 2
+    }
+  ],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 151,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 1482,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":4,\"numPassedTestSuites\":4,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":14,\"numPassedTests\":14,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1792262899981,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"question recovery authority and persistence\"],\"fullName\":\"question recovery authority and persistence recovers an unfinished bound question in a fresh host without sending an answer\",\"status\":\"passed\",\"title\":\"recovers an unfinished bound question in a fresh host without sending an answer\",\"duration\":12.35257700000011,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"question recovery authority and persistence\"],\"fullName\":\"question recovery authority and persistence archives cancellations, schema changes and late edits without reviving the request\",\"status\":\"passed\",\"title\":\"archives cancellations, schema changes and late edits without reviving the request\",\"duration\":6.630310000000009,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"question recovery authority and persistence\"],\"fullName\":\"question recovery authority and persistence does not restore unbound or already submitted answers as a new live form\",\"status\":\"passed\",\"title\":\"does not restore unbound or already submitted answers as a new live form\",\"duration\":6.7567960000000085,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"question recovery authority and persistence\"],\"fullName\":\"question recovery authority and persistence reserves one response, persists before writing, and leaves failed delivery unknown\",\"status\":\"passed\",\"title\":\"reserves one response, persists before writing, and leaves failed delivery unknown\",\"duration\":2.634260999999924,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"question recovery authority and persistence\"],\"fullName\":\"question recovery authority and persistence does not dispatch on storage failure or a reset during the save\",\"status\":\"passed\",\"title\":\"does not dispatch on storage failure or a reset during the save\",\"duration\":54.47772399999997,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"question recovery authority and persistence\"],\"fullName\":\"question recovery authority and persistence keeps deferred questions across turn end and bounds stored questions\",\"status\":\"passed\",\"title\":\"keeps deferred questions across turn end and bounds stored questions\",\"duration\":23.949479999999994,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"generated question forms\"],\"fullName\":\"generated question forms retains multiselect edits when switching between conversation tabs\",\"status\":\"passed\",\"title\":\"retains multiselect edits when switching between conversation tabs\",\"duration\":38.397379,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"generated question forms\"],\"fullName\":\"generated question forms preserves partial form values through Webview reconstruction, omitting write-only secrets\",\"status\":\"passed\",\"title\":\"preserves partial form values through Webview reconstruction, omitting write-only secrets\",\"duration\":38.008624000000054,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"generated question forms\"],\"fullName\":\"generated question forms restores the last keystroke backup and never overwrites a newer edit\",\"status\":\"passed\",\"title\":\"restores the last keystroke backup and never overwrites a newer edit\",\"duration\":17.590462000000002,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"generated question forms\"],\"fullName\":\"generated question forms disables duplicate clicks and marks completion only on the host resolution\",\"status\":\"passed\",\"title\":\"disables duplicate clicks and marks completion only on the host resolution\",\"duration\":9.417825999999991,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"generated question forms\"],\"fullName\":\"generated question forms excludes unsupported JSON fallback values and rejects oversized draft structures\",\"status\":\"passed\",\"title\":\"excludes unsupported JSON fallback values and rejects oversized draft structures\",\"duration\":1.1024449999999888,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ChatView question owner routing\"],\"fullName\":\"ChatView question owner routing keeps a rejected response unresolved and exposes archived text without sending it\",\"status\":\"passed\",\"title\":\"keeps a rejected response unresolved and exposes archived text without sending it\",\"duration\":9.02502400000003,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ChatView question owner routing\"],\"fullName\":\"ChatView question owner routing routes an asynchronous URL answer to its original session after tab switching\",\"status\":\"passed\",\"title\":\"routes an asynchronous URL answer to its original session after tab switching\",\"duration\":54.85115099999996,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ChatView question owner routing\"],\"fullName\":\"ChatView question owner routing ignores callbacks after the owning session is stopped and replacement requests appear\",\"status\":\"passed\",\"title\":\"ignores callbacks after the owning session is stopped and replacement requests appear\",\"duration\":53.492770000000064,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1792262900689,\"endTime\":1792262901018.4927,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/vscode-ext-question-drafts.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 702,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":6,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1792262901467,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"late draft loading must not overwrite edits\"],\"fullName\":\"late draft loading must not overwrite edits preserves new text input when a late snapshot arrives\",\"status\":\"passed\",\"title\":\"preserves new text input when a late snapshot arrives\",\"duration\":2.4890299999999854,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"late draft loading must not overwrite edits\"],\"fullName\":\"late draft loading must not overwrite edits preserves new select/checkbox edits when a late snapshot arrives\",\"status\":\"passed\",\"title\":\"preserves new select/checkbox edits when a late snapshot arrives\",\"duration\":0.5167830000000038,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"late draft loading must not overwrite edits\"],\"fullName\":\"late draft loading must not overwrite edits still restores untouched forms from a late snapshot (positive control)\",\"status\":\"passed\",\"title\":\"still restores untouched forms from a late snapshot (positive control)\",\"duration\":0.49765800000000127,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"late draft loading must not overwrite edits\"],\"fullName\":\"late draft loading must not overwrite edits maps snapshot fields by key regardless of their arrival order\",\"status\":\"passed\",\"title\":\"maps snapshot fields by key regardless of their arrival order\",\"duration\":0.36424900000000093,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"late draft loading must not overwrite edits\"],\"fullName\":\"late draft loading must not overwrite edits captures select/checkbox controls in declaration order\",\"status\":\"passed\",\"title\":\"captures select/checkbox controls in declaration order\",\"duration\":0.9516639999999938,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"late draft loading must not overwrite edits\"],\"fullName\":\"late draft loading must not overwrite edits does not let a dirty form receive a late non-draft snapshot over edits\",\"status\":\"passed\",\"title\":\"does not let a dirty form receive a late non-draft snapshot over edits\",\"duration\":0.41420300000001475,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1792262901696,\"endTime\":1792262901701.4143,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/vscode-extension/__tests__/verify-28.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/packages/vscode-extension/src/chat/question-form-drafts.js"
+      ],
+      "setup": false,
+      "ms": 158,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 702,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":0,\"numFailedTestSuites\":2,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":4,\"numFailedTests\":2,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1792262902341,\"success\":false,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"late draft loading must not overwrite edits\"],\"fullName\":\"late draft loading must not overwrite edits preserves new text input when a late snapshot arrives\",\"status\":\"failed\",\"title\":\"preserves new text input when a late snapshot arrives\",\"duration\":10.397762999999998,\"failureMessages\":[\"AssertionError: expected 'stale text' to be 'fresh text' // Object.is equality\\n    at /workspace/packages/vscode-extension/__tests__/verify-28.test.js:116:24\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"late draft loading must not overwrite edits\"],\"fullName\":\"late draft loading must not overwrite edits preserves new select/checkbox edits when a late snapshot arrives\",\"status\":\"failed\",\"title\":\"preserves new select/checkbox edits when a late snapshot arrives\",\"duration\":1.3786499999999933,\"failureMessages\":[\"AssertionError: expected 'red' to be 'blue' // Object.is equality\\n    at /workspace/packages/vscode-extension/__tests__/verify-28.test.js:131:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"late draft loading must not overwrite edits\"],\"fullName\":\"late draft loading must not overwrite edits still restores untouched forms from a late snapshot (positive control)\",\"status\":\"passed\",\"title\":\"still restores untouched forms from a late snapshot (positive control)\",\"duration\":0.48776000000000863,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"late draft loading must not overwrite edits\"],\"fullName\":\"late draft loading must not overwrite edits maps snapshot fields by key regardless of their arrival order\",\"status\":\"passed\",\"title\":\"maps snapshot fields by key regardless of their arrival order\",\"duration\":0.5712550000000078,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"late draft loading must not overwrite edits\"],\"fullName\":\"late draft loading must not overwrite edits captures select/checkbox controls in declaration order\",\"status\":\"passed\",\"title\":\"captures select/checkbox controls in declaration order\",\"duration\":0.710314000000011,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"late draft loading must not overwrite edits\"],\"fullName\":\"late draft loading must not overwrite edits does not let a dirty form receive a late non-draft snapshot over edits\",\"status\":\"passed\",\"title\":\"does not let a dirty form receive a late non-draft snapshot over edits\",\"duration\":0.5288559999999904,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1792262902563,\"endTime\":1792262902576.7102,\"status\":\"failed\",\"message\":\"\",\"name\":\"/workspace/packages/vscode-extension/__tests__/verify-28.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": true,
+  "detail": "Independent operator checks passed; this is not a provider or task-outcome sample."
+}

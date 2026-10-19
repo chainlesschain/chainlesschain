@@ -1,0 +1,182 @@
+import {
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { loadBackgroundAgentListIndex } from "../src/lib/background-agent-list-index.js";
+
+let directory;
+
+function writeState(id, state) {
+  writeFileSync(
+    join(directory, `${id}.json`),
+    JSON.stringify({ id, startedAt: 1, status: "completed", ...state }),
+    "utf8",
+  );
+}
+
+function removeState(id) {
+  rmSync(join(directory, `${id}.json`), { force: true });
+}
+
+function reader() {
+  return vi.fn((id) =>
+    JSON.parse(readFileSync(join(directory, `${id}.json`), "utf8")),
+  );
+}
+
+// Deterministic pagination over the sorted-by-name entries the authority scan
+// would produce. The last page must exactly reach the end of the list.
+function paginate(entries, pageSize) {
+  const pages = [];
+  for (let offset = 0; offset < entries.length; offset += pageSize) {
+    pages.push(entries.slice(offset, offset + pageSize));
+  }
+  return pages;
+}
+
+function ids(entries) {
+  return entries.map((entry) => entry.id);
+}
+
+beforeEach(() => {
+  directory = mkdtempSync(join(tmpdir(), "cc-verify10-index-"));
+});
+
+afterEach(() => {
+  rmSync(directory, { recursive: true, force: true });
+});
+
+describe("pagination index invalidation on writes and deletes", () => {
+  it("rebuilds after adding state files so every page matches the full list", () => {
+    writeState("bg-a");
+    writeState("bg-b");
+    loadBackgroundAgentListIndex({ directory, readState: reader() });
+
+    writeState("bg-c");
+    writeState("bg-d");
+    const reloaded = loadBackgroundAgentListIndex({
+      directory,
+      readState: reader(),
+    });
+    expect(reloaded.source).toBe("rebuilt");
+    expect(ids(reloaded.entries)).toEqual([
+      "bg-a",
+      "bg-b",
+      "bg-c",
+      "bg-d",
+    ]);
+
+    const pages = paginate(reloaded.entries, 2);
+    expect(pages.length).toBe(2);
+    expect(pages[1]).toEqual(reloaded.entries.slice(2));
+    expect(pages.flat().map((entry) => entry.id)).toEqual(ids(reloaded.entries));
+    expect(pages[1]).toHaveLength(2); // last page is fully populated
+  });
+
+  it("rebuilds after deleting state files and the last page reflects the shrunken list", () => {
+    for (const id of ["bg-a", "bg-b", "bg-c", "bg-d", "bg-e"]) writeState(id);
+    loadBackgroundAgentListIndex({ directory, readState: reader() });
+
+    removeState("bg-b");
+    removeState("bg-d");
+    const reloaded = loadBackgroundAgentListIndex({
+      directory,
+      readState: reader(),
+    });
+    expect(reloaded.source).toBe("rebuilt");
+    expect(ids(reloaded.entries)).toEqual(["bg-a", "bg-c", "bg-e"]);
+
+    const pages = paginate(reloaded.entries, 2);
+    expect(pages.length).toBe(2);
+    expect(ids(pages[1])).toEqual(["bg-e"]);
+    expect(pages.flat().map((entry) => entry.id)).toEqual(ids(reloaded.entries));
+  });
+
+  it("reuses a cached index whose pagination still matches the unchanged full list", () => {
+    for (const id of ["bg-a", "bg-b", "bg-c"]) writeState(id);
+    const first = loadBackgroundAgentListIndex({
+      directory,
+      readState: reader(),
+    });
+    expect(first.source).toBe("rebuilt");
+
+    const cachedReader = reader();
+    const cached = loadBackgroundAgentListIndex({
+      directory,
+      readState: cachedReader,
+    });
+    expect(cached.source).toBe("index");
+    expect(cachedReader).not.toHaveBeenCalled();
+
+    const pages = paginate(cached.entries, 1);
+    expect(pages.length).toBe(3);
+    expect(ids(pages[2])).toEqual(["bg-c"]);
+    expect(pages.flat()).toEqual(cached.entries);
+    expect(cached.entries).toEqual(first.entries);
+  });
+
+  it("keeps the index file pagination in sync after write then delete", () => {
+    writeState("bg-a");
+    writeState("bg-b");
+    loadBackgroundAgentListIndex({ directory, readState: reader() });
+
+    writeState("bg-c");
+    removeState("bg-b");
+    const reloaded = loadBackgroundAgentListIndex({
+      directory,
+      readState: reader(),
+    });
+    expect(reloaded.source).toBe("rebuilt");
+    expect(ids(reloaded.entries)).toEqual(["bg-a", "bg-c"]);
+
+    const pages = paginate(reloaded.entries, 2);
+    expect(pages.length).toBe(1);
+    expect(ids(pages[0])).toEqual(["bg-a", "bg-c"]);
+  });
+
+  it("invalidates a stale cached index so later pages still match the full list", () => {
+    writeState("bg-a");
+    writeState("bg-b");
+    loadBackgroundAgentListIndex({ directory, readState: reader() });
+
+    writeState("bg-c");
+    removeState("bg-a");
+    const invalidated = loadBackgroundAgentListIndex({
+      directory,
+      readState: reader(),
+    });
+    expect(invalidated.source).toBe("rebuilt");
+    expect(ids(invalidated.entries)).toEqual(["bg-b", "bg-c"]);
+
+    // A second load must read the freshly rebuilt index, not the stale one.
+    const secondReader = reader();
+    const again = loadBackgroundAgentListIndex({
+      directory,
+      readState: secondReader,
+    });
+    expect(again.source).toBe("index");
+    expect(secondReader).not.toHaveBeenCalled();
+    const pages = paginate(again.entries, 1);
+    expect(ids(pages[1])).toEqual(["bg-c"]);
+    expect(pages.flat()).toEqual(again.entries);
+  });
+
+  it("survives empty inventory after deleting all state files", () => {
+    writeState("bg-a");
+    loadBackgroundAgentListIndex({ directory, readState: reader() });
+
+    removeState("bg-a");
+    const reloaded = loadBackgroundAgentListIndex({
+      directory,
+      readState: reader(),
+    });
+    expect(reloaded.source).toBe("rebuilt");
+    expect(reloaded.entries).toEqual([]);
+    expect(paginate(reloaded.entries, 2)).toEqual([]);
+  });
+});

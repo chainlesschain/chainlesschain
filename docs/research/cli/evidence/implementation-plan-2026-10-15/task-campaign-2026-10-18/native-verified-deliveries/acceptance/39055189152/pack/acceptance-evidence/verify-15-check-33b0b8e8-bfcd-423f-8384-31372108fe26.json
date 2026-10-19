@@ -1,0 +1,125 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-15",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 12,
+      "passed": 12,
+      "failed": 0
+    },
+    {
+      "kind": "candidate",
+      "total": 4,
+      "passed": 4,
+      "failed": 0
+    }
+  ],
+  "mutations": [
+    {
+      "name": "wrap-exhausted-permission-counter",
+      "sourceSha256": "19bab723619f9066dc771c07237bccb6c225654803397bf3b06a2ab909f691b3",
+      "total": 4,
+      "passed": 1,
+      "failed": 3
+    }
+  ],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 130,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 586,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":3,\"numPassedTestSuites\":3,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":12,\"numPassedTests\":12,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1792263160679,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"ScopedPermissionStore\"],\"fullName\":\"ScopedPermissionStore persists an active workspace-bound rule with provenance and TTL\",\"status\":\"passed\",\"title\":\"persists an active workspace-bound rule with provenance and TTL\",\"duration\":4.556736999999998,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ScopedPermissionStore\"],\"fullName\":\"ScopedPermissionStore expires a rule without mutating durable history\",\"status\":\"passed\",\"title\":\"expires a rule without mutating durable history\",\"duration\":1.0246009999999899,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ScopedPermissionStore\"],\"fullName\":\"ScopedPermissionStore revokes with record-level CAS and rejects a stale revision\",\"status\":\"passed\",\"title\":\"revokes with record-level CAS and rejects a stale revision\",\"duration\":1.7461079999999924,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ScopedPermissionStore\"],\"fullName\":\"ScopedPermissionStore rejects a stale store generation on create\",\"status\":\"passed\",\"title\":\"rejects a stale store generation on create\",\"duration\":0.9735540000000071,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ScopedPermissionStore\"],\"fullName\":\"ScopedPermissionStore refuses an unsafe persisted generation instead of accepting a non-advancing version\",\"status\":\"passed\",\"title\":\"refuses an unsafe persisted generation instead of accepting a non-advancing version\",\"duration\":0.7457300000000089,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ScopedPermissionStore\"],\"fullName\":\"ScopedPermissionStore refuses an unsafe persisted revision instead of accepting a non-advancing version\",\"status\":\"passed\",\"title\":\"refuses an unsafe persisted revision instead of accepting a non-advancing version\",\"duration\":0.6994929999999897,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ScopedPermissionStore\"],\"fullName\":\"ScopedPermissionStore advances the last safe generation on add and keeps stale generation CAS\",\"status\":\"passed\",\"title\":\"advances the last safe generation on add and keeps stale generation CAS\",\"duration\":1.3755759999999952,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ScopedPermissionStore\"],\"fullName\":\"ScopedPermissionStore advances the last safe revision on revoke and keeps stale revision CAS\",\"status\":\"passed\",\"title\":\"advances the last safe revision on revoke and keeps stale revision CAS\",\"duration\":1.1942769999999996,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ScopedPermissionStore\"],\"fullName\":\"ScopedPermissionStore fails closed on corrupt state or a different workspace binding\",\"status\":\"passed\",\"title\":\"fails closed on corrupt state or a different workspace binding\",\"duration\":1.441834,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ScopedPermissionStore\"],\"fullName\":\"ScopedPermissionStore isolates permission authority at the nearest nested repository\",\"status\":\"passed\",\"title\":\"isolates permission authority at the nearest nested repository\",\"duration\":6.095093999999989,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"loadPermissionAuthority\"],\"fullName\":\"loadPermissionAuthority includes only active scoped rules and preserves deny precedence\",\"status\":\"passed\",\"title\":\"includes only active scoped rules and preserves deny precedence\",\"duration\":3.2283879999999954,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"loadPermissionAuthority\"],\"fullName\":\"loadPermissionAuthority suppresses workspace rules under managed-only policy\",\"status\":\"passed\",\"title\":\"suppresses workspace rules under managed-only policy\",\"duration\":1.3201850000000093,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1792263160905,\"endTime\":1792263160930.32,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/scoped-permission-store.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 561,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":4,\"numPassedTests\":4,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1792263161260,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"scoped permission version-overflow rejection\"],\"fullName\":\"scoped permission version-overflow rejection refuses add when generation is already exhausted without relaxing old rules\",\"status\":\"passed\",\"title\":\"refuses add when generation is already exhausted without relaxing old rules\",\"duration\":5.271323999999993,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"scoped permission version-overflow rejection\"],\"fullName\":\"scoped permission version-overflow rejection refuses revoke when the record revision is exhausted without loosening the permission\",\"status\":\"passed\",\"title\":\"refuses revoke when the record revision is exhausted without loosening the permission\",\"duration\":1.6395969999999807,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"scoped permission version-overflow rejection\"],\"fullName\":\"scoped permission version-overflow rejection refuses add when the exhausted generation is also needed by revoke\",\"status\":\"passed\",\"title\":\"refuses add when the exhausted generation is also needed by revoke\",\"duration\":1.3180399999999963,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"scoped permission version-overflow rejection\"],\"fullName\":\"scoped permission version-overflow rejection still advances a pre-boundary revoke, so only the cap is rejected\",\"status\":\"passed\",\"title\":\"still advances a pre-boundary revoke, so only the cap is rejected\",\"duration\":1.1409620000000018,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1792263161464,\"endTime\":1792263161474.1409,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-15.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/packages/cli/src/lib/scoped-permission-store.js"
+      ],
+      "setup": false,
+      "ms": 141,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 566,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":0,\"numFailedTestSuites\":2,\"numPendingTestSuites\":0,\"numTotalTests\":4,\"numPassedTests\":1,\"numFailedTests\":3,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1792263161979,\"success\":false,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"scoped permission version-overflow rejection\"],\"fullName\":\"scoped permission version-overflow rejection refuses add when generation is already exhausted without relaxing old rules\",\"status\":\"failed\",\"title\":\"refuses add when generation is already exhausted without relaxing old rules\",\"duration\":6.916648000000009,\"failureMessages\":[\"AssertionError: expected function to throw an error, but it didn't\\n    at /workspace/packages/cli/__tests__/verify-15.test.js:58:7\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"scoped permission version-overflow rejection\"],\"fullName\":\"scoped permission version-overflow rejection refuses revoke when the record revision is exhausted without loosening the permission\",\"status\":\"failed\",\"title\":\"refuses revoke when the record revision is exhausted without loosening the permission\",\"duration\":4.1058909999999855,\"failureMessages\":[\"AssertionError: expected error to match asymmetric matcher\\n    at /workspace/packages/cli/__tests__/verify-15.test.js:84:54\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"scoped permission version-overflow rejection\"],\"fullName\":\"scoped permission version-overflow rejection refuses add when the exhausted generation is also needed by revoke\",\"status\":\"failed\",\"title\":\"refuses add when the exhausted generation is also needed by revoke\",\"duration\":2.313992000000013,\"failureMessages\":[\"AssertionError: expected function to throw an error, but it didn't\\n    at /workspace/packages/cli/__tests__/verify-15.test.js:110:54\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"scoped permission version-overflow rejection\"],\"fullName\":\"scoped permission version-overflow rejection still advances a pre-boundary revoke, so only the cap is rejected\",\"status\":\"passed\",\"title\":\"still advances a pre-boundary revoke, so only the cap is rejected\",\"duration\":1.8780029999999783,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1792263162179,\"endTime\":1792263162194.878,\"status\":\"failed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/verify-15.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": true,
+  "detail": "Independent operator checks passed; this is not a provider or task-outcome sample."
+}

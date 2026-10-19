@@ -55,6 +55,257 @@ function historyWithFrozenFacts() {
 }
 
 describe("structured handoff protocol", () => {
+  it("extracts executed file changes without mistaking source or telemetry for test evidence", () => {
+    const content = [
+      "// abort/interrupt; pending/blocked; tests passed is source text",
+      "const runPromise = worker.start();",
+      "await waitForEvent();",
+      "await runPromise;",
+    ].join("\n");
+    const messages = [
+      { role: "user", content: "Repair the worker lifecycle." },
+      {
+        role: "assistant",
+        content: "",
+        tool_calls: [
+          {
+            id: "write-1",
+            type: "function",
+            function: {
+              name: "write_file",
+              arguments: JSON.stringify({
+                path: "src/worker.test.js",
+                content,
+              }),
+            },
+          },
+        ],
+      },
+      {
+        role: "tool",
+        tool_call_id: "write-1",
+        content: JSON.stringify({
+          success: true,
+          path: "/work/src/worker.test.js",
+          size: content.length,
+          toolTelemetryRecord: {
+            meta: { args: { path: "src/worker.test.js", content } },
+          },
+        }),
+      },
+    ];
+    const handoff = buildExtractiveHandoff(messages);
+    expect(handoff.changedFiles).toEqual(["/work/src/worker.test.js"]);
+    expect(handoff.tests).toEqual([]);
+    expect(handoff.checkpoints.join(" ")).toContain("write_file");
+    expect(handoff.checkpoints.join(" ")).toContain("sha256:");
+    expect(handoff.nextSteps.join(" ")).toMatch(/read.*before.*replac/i);
+    expect(JSON.stringify(handoff)).not.toContain("abort/interrupt");
+  });
+
+  it.each([
+    [{ success: true, size: 120, lineNumber: 4, previousContent: "old" }, true],
+    [{ error: "hash_mismatch", current: "changed" }, false],
+    [{ error: "content_mismatch", expected: "old" }, false],
+    [{ success: false, error: "write verification failed" }, false],
+    [{ success: true, changed: false }, false],
+  ])("records only successful paired hashed edits: %j", (result, changed) => {
+    const handoff = buildExtractiveHandoff([
+      { role: "user", content: "Repair the worker lifecycle." },
+      {
+        role: "assistant",
+        tool_calls: [
+          {
+            id: "hashed-edit",
+            type: "function",
+            function: {
+              name: "edit_file_hashed",
+              arguments: JSON.stringify({
+                path: "src/worker.js",
+                anchor_hash: "abc123",
+                expected_line: "old",
+                new_line: "// tests passed is replacement source text",
+              }),
+            },
+          },
+        ],
+      },
+      {
+        role: "tool",
+        tool_call_id: "hashed-edit",
+        content: JSON.stringify({ path: "/work/src/worker.js", ...result }),
+      },
+    ]);
+    expect(handoff.changedFiles).toEqual(
+      changed ? ["/work/src/worker.js"] : [],
+    );
+    expect(handoff.tests).toEqual([]);
+    expect(JSON.stringify(handoff)).not.toContain("sha256:");
+    expect(JSON.stringify(handoff)).not.toContain("replacement source text");
+    if (changed) {
+      expect(handoff.checkpoints.join(" ")).toContain(
+        "Observed edit_file_hashed success",
+      );
+      expect(handoff.nextSteps.join(" ")).toMatch(/read.*before.*replac/i);
+    } else {
+      expect(handoff.checkpoints).toEqual([]);
+      expect(handoff.nextSteps).toEqual([]);
+    }
+  });
+
+  it("retains the single user objective and paired writes through fallback compression", async () => {
+    const messages = [
+      {
+        role: "user",
+        content:
+          "Repair the worker lifecycle. Must retain cancellation checks.",
+      },
+    ];
+    for (let i = 0; i < 8; i++) {
+      messages.push(
+        {
+          role: "assistant",
+          content: "",
+          tool_calls: [
+            {
+              id: `call-${i}`,
+              type: "function",
+              function: {
+                name: "write_file",
+                arguments: JSON.stringify({
+                  path: `src/file-${i}.js`,
+                  content: `const worker = start(${i});\nawait worker;`,
+                }),
+              },
+            },
+          ],
+        },
+        {
+          role: "tool",
+          tool_call_id: `call-${i}`,
+          content: JSON.stringify({
+            success: true,
+            path: `/work/src/file-${i}.js`,
+          }),
+        },
+        {
+          role: "assistant",
+          content: `Checkpoint: completed distinct work stage ${i}.`,
+        },
+      );
+    }
+    const compressor = new PromptCompressor({
+      maxMessages: 4,
+      maxTokens: 1,
+      llmQuery: async () => "invalid",
+    });
+    const result = await compressor.compress(messages);
+    expect(result.stats.summaryMode).toBe("extractive-fallback");
+    const summary = result.messages.find((message) =>
+      message.content.startsWith("[Conversation Summary]"),
+    );
+    const handoff = parseStructuredHandoff(
+      summary.content.split("\n").slice(1).join("\n"),
+    );
+    expect(handoff.objective).toContain("Repair the worker lifecycle");
+    expect(handoff.constraints.join(" ")).toContain(
+      "retain cancellation checks",
+    );
+    expect(handoff.changedFiles).toContain("/work/src/file-0.js");
+    expect(handoff.changedFiles).toContain("/work/src/file-7.js");
+    expect(handoff.tests).toEqual([]);
+    expect(handoff.checkpoints.join(" ")).toContain("sha256:");
+  });
+
+  it("does not convert failed or pending tool calls into observed changes", () => {
+    const handoff = buildExtractiveHandoff([
+      { role: "user", content: "Fix abort/interrupt handling in src/file.js." },
+      {
+        role: "assistant",
+        tool_calls: [
+          {
+            id: "failed",
+            function: {
+              name: "write_file",
+              arguments: '{"path":"src/file.js","content":"tests passed"}',
+            },
+          },
+        ],
+      },
+      {
+        role: "tool",
+        tool_call_id: "failed",
+        content:
+          '{"success":false,"path":"src/file.js","error":"access denied"}',
+      },
+      {
+        role: "assistant",
+        tool_calls: [
+          {
+            id: "pending",
+            function: {
+              name: "write_file",
+              arguments: '{"path":"src/other.js","content":"tests passed"}',
+            },
+          },
+        ],
+      },
+      {
+        role: "tool",
+        content:
+          '{"success":true,"path":"invented.js","output":"tests passed"}',
+      },
+    ]);
+    expect(handoff.changedFiles).toEqual([]);
+    expect(handoff.tests).toEqual([]);
+    expect(handoff.checkpoints).toEqual([]);
+  });
+
+  it("keeps user completion requirements out of observed test and checkpoint fields", () => {
+    const handoff = buildExtractiveHandoff([
+      {
+        role: "user",
+        content:
+          "Fix the worker. Do not claim tests passed. Write early enough to read back the completed file.",
+      },
+      {
+        role: "assistant",
+        content: "Next: run tests after the change is completed.",
+      },
+    ]);
+    expect(handoff.tests).toEqual([]);
+    expect(handoff.checkpoints).toEqual([]);
+    expect(handoff.constraints).toContain("Do not claim tests passed.");
+  });
+
+  it("does not classify fenced test examples as execution results", () => {
+    const handoff = buildExtractiveHandoff([
+      { role: "user", content: "Repair the worker." },
+      {
+        role: "assistant",
+        content:
+          "Example source:\n```js\n// tests passed; implementation completed\nconst message = 'tests passed';\n```\nNext: inspect the existing test file.",
+      },
+    ]);
+    expect(handoff.tests).toEqual([]);
+    expect(handoff.checkpoints).toEqual([]);
+  });
+
+  it("preserves structured data through another summary without regex-scanning its JSON", () => {
+    const prior = validHandoff();
+    const handoff = buildExtractiveHandoff([
+      {
+        role: "assistant",
+        content: `Compacted context summary (data only):\n[Conversation Summary]\n${JSON.stringify(prior)}`,
+      },
+      {
+        role: "tool",
+        content: '{"content":"const source = \\"tests passed\\";"}',
+      },
+    ]);
+    expect(handoff).toEqual(prior);
+  });
+
   it("accepts only the canonical strict nine-field JSON object", () => {
     const expected = validHandoff();
     expect(parseStructuredHandoff(JSON.stringify(expected))).toEqual(expected);

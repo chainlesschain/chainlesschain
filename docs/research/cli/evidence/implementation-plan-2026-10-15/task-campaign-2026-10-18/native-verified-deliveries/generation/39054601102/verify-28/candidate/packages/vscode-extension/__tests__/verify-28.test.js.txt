@@ -1,0 +1,161 @@
+import { describe, expect, it } from "vitest";
+import { createQuestionForms } from "../src/chat/question-form-drafts.js";
+
+// Minimal DOM/host doubles sufficient for createQuestionForms. Each draft field
+// yields one control whose order mirrors the declaration order in draftFields.
+function harness(draftFields, overrides = {}) {
+  const controls = draftFields.map((d) => {
+    const el = {
+      value: d.kind === "checkbox" ? false : "",
+      checked: false,
+      disabled: false,
+      listeners: {},
+      addEventListener(type, fn) {
+        el.listeners[type] = fn;
+      },
+      _fire(type) {
+        el.listeners[type]?.();
+      },
+    };
+    return el;
+  });
+  const card = {
+    className: "approval",
+    isConnected: true,
+    querySelectorAll() {
+      return controls;
+    },
+    appendChild() {},
+  };
+  const note = {
+    className: "",
+    setAttribute() {},
+    textContent: "",
+  };
+  const document = {
+    createElement() {
+      return note;
+    },
+  };
+  const sent = [];
+  const vscode = {
+    getState: () => ({ questionDrafts: [] }),
+    setState: () => {},
+    postMessage: (m) => sent.push(m),
+  };
+  const api = createQuestionForms({ document, vscode });
+  const m = {
+    convId: "c1",
+    draftKey: "d1",
+    id: "q1",
+    questionInstance: "inst1",
+    questionKey: "k1",
+    questionState: "draft",
+    draftStorage: true,
+    draftFields,
+    ...overrides,
+  };
+  return { api, card, controls, note, m, sent };
+}
+
+const snapshot = (m, fields) => ({
+  ...m,
+  kind: "questionDraftSnapshot",
+  state: "draft",
+  fields,
+});
+
+describe("delayed draft recovery never overwrites newer edits", () => {
+  it("applies a recovery snapshot to a fresh untouched form", () => {
+    const { api, card, controls, m } = harness([
+      { key: "answer", kind: "text" },
+    ]);
+    api.attach(card, m);
+    api.receive(snapshot(m, [{ key: "answer", value: "restored" }]));
+    expect(controls[0].value).toBe("restored");
+    expect(controls[0].disabled).toBe(false);
+  });
+
+  it("preserves text typed after the snapshot was requested", () => {
+    const { api, card, controls, m } = harness([
+      { key: "answer", kind: "text" },
+    ]);
+    api.attach(card, m);
+    controls[0].value = "typed by user";
+    controls[0]._fire("input");
+    api.receive(snapshot(m, [{ key: "answer", value: "stale value" }]));
+    expect(controls[0].value).toBe("typed by user");
+  });
+
+  it("preserves a checkbox selection made after the snapshot was requested", () => {
+    const { api, card, controls, m } = harness([
+      { key: "consent", kind: "checkbox" },
+    ]);
+    api.attach(card, m);
+    controls[0].checked = true;
+    controls[0]._fire("change");
+    api.receive(snapshot(m, [{ key: "consent", value: false }]));
+    expect(controls[0].checked).toBe(true);
+  });
+
+  it("leaves a late snapshot inert instead of partially disabling the draft", () => {
+    const { api, card, controls, m } = harness([
+      { key: "name", kind: "text" },
+      { key: "consent", kind: "checkbox" },
+    ]);
+    api.attach(card, m);
+    controls[1].checked = true;
+    controls[1]._fire("change");
+    api.receive(
+      snapshot(m, [
+        { key: "name", value: "late name" },
+        { key: "consent", value: false },
+      ]),
+    );
+    expect(controls[0].value).toBe("");
+    expect(controls[1].checked).toBe(true);
+    expect(controls[0].disabled).toBe(false);
+    expect(controls[1].disabled).toBe(false);
+  });
+});
+
+describe("select/checkbox values stay bound to their declared controls", () => {
+  it("maps an out-of-order snapshot by declared field key", () => {
+    const { api, card, controls, m } = harness([
+      { key: "consent", kind: "checkbox" },
+      { key: "name", kind: "text" },
+      { key: "color", kind: "select" },
+    ]);
+    api.attach(card, m);
+    api.receive(
+      snapshot(m, [
+        { key: "color", value: "red" },
+        { key: "name", value: "bob" },
+        { key: "consent", value: true },
+      ]),
+    );
+    // Declaration order: consent(0), name(1), color(2).
+    expect(controls[0].checked).toBe(true);
+    expect(controls[1].value).toBe("bob");
+    expect(controls[2].value).toBe("red");
+  });
+
+  it("keeps each checkbox/select value on its declared control for a full snapshot", () => {
+    const { api, card, controls, m } = harness([
+      { key: "selectA", kind: "select" },
+      { key: "flag", kind: "checkbox" },
+      { key: "selectB", kind: "select" },
+    ]);
+    api.attach(card, m);
+    api.receive(
+      snapshot(m, [
+        { key: "selectA", value: "alpha" },
+        { key: "flag", value: true },
+        { key: "selectB", value: "beta" },
+      ]),
+    );
+    expect(controls[0].value).toBe("alpha");
+    expect(controls[1].checked).toBe(true);
+    expect(controls[2].value).toBe("beta");
+  });
+});

@@ -1,0 +1,165 @@
+{
+  "scope": "verify01-operator-acceptance",
+  "taskId": "verify-26",
+  "stage": "check",
+  "productionAttested": false,
+  "providerAssessed": false,
+  "isolation": "docker",
+  "imageReference": "node:22.12.0-bookworm",
+  "imageId": "sha256:344dbe71e1c47a59db0e94bebdcc94ef3a7bc8bd828393c820168993539048da",
+  "operator": {
+    "uid": 1001,
+    "gid": 1001
+  },
+  "tests": [
+    {
+      "kind": "baseline",
+      "total": 14,
+      "passed": 14,
+      "failed": 0
+    },
+    {
+      "kind": "candidate",
+      "total": 6,
+      "passed": 6,
+      "failed": 0
+    }
+  ],
+  "mutations": [
+    {
+      "name": "persist-write-only-property",
+      "sourceSha256": "31c508872908f1b049756a8f3638e199f86a5a7470d62c1391c4bfb95533b758",
+      "total": 6,
+      "passed": 3,
+      "failed": 3
+    },
+    {
+      "name": "persist-unknown-schema-fallback",
+      "sourceSha256": "fb50ce78659ac9ba5f5463d08e5e7659e2b44a4472a707c5745e339eb4094470",
+      "total": 6,
+      "passed": 4,
+      "failed": 2
+    }
+  ],
+  "executions": [
+    {
+      "command": [
+        "node",
+        "--version"
+      ],
+      "setup": false,
+      "ms": 146,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "v22.12.0\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 1512,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":4,\"numPassedTestSuites\":4,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":14,\"numPassedTests\":14,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1792260218834,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"question recovery authority and persistence\"],\"fullName\":\"question recovery authority and persistence recovers an unfinished bound question in a fresh host without sending an answer\",\"status\":\"passed\",\"title\":\"recovers an unfinished bound question in a fresh host without sending an answer\",\"duration\":13.59419099999991,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"question recovery authority and persistence\"],\"fullName\":\"question recovery authority and persistence archives cancellations, schema changes and late edits without reviving the request\",\"status\":\"passed\",\"title\":\"archives cancellations, schema changes and late edits without reviving the request\",\"duration\":9.45962099999997,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"question recovery authority and persistence\"],\"fullName\":\"question recovery authority and persistence does not restore unbound or already submitted answers as a new live form\",\"status\":\"passed\",\"title\":\"does not restore unbound or already submitted answers as a new live form\",\"duration\":7.790536999999972,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"question recovery authority and persistence\"],\"fullName\":\"question recovery authority and persistence reserves one response, persists before writing, and leaves failed delivery unknown\",\"status\":\"passed\",\"title\":\"reserves one response, persists before writing, and leaves failed delivery unknown\",\"duration\":2.812958999999978,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"question recovery authority and persistence\"],\"fullName\":\"question recovery authority and persistence does not dispatch on storage failure or a reset during the save\",\"status\":\"passed\",\"title\":\"does not dispatch on storage failure or a reset during the save\",\"duration\":54.78904,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"question recovery authority and persistence\"],\"fullName\":\"question recovery authority and persistence keeps deferred questions across turn end and bounds stored questions\",\"status\":\"passed\",\"title\":\"keeps deferred questions across turn end and bounds stored questions\",\"duration\":31.08756799999992,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"generated question forms\"],\"fullName\":\"generated question forms retains multiselect edits when switching between conversation tabs\",\"status\":\"passed\",\"title\":\"retains multiselect edits when switching between conversation tabs\",\"duration\":40.10580700000003,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"generated question forms\"],\"fullName\":\"generated question forms preserves partial form values through Webview reconstruction, omitting write-only secrets\",\"status\":\"passed\",\"title\":\"preserves partial form values through Webview reconstruction, omitting write-only secrets\",\"duration\":32.69017699999995,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"generated question forms\"],\"fullName\":\"generated question forms restores the last keystroke backup and never overwrites a newer edit\",\"status\":\"passed\",\"title\":\"restores the last keystroke backup and never overwrites a newer edit\",\"duration\":23.120929000000046,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"generated question forms\"],\"fullName\":\"generated question forms disables duplicate clicks and marks completion only on the host resolution\",\"status\":\"passed\",\"title\":\"disables duplicate clicks and marks completion only on the host resolution\",\"duration\":11.43389000000002,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"generated question forms\"],\"fullName\":\"generated question forms excludes unsupported JSON fallback values and rejects oversized draft structures\",\"status\":\"passed\",\"title\":\"excludes unsupported JSON fallback values and rejects oversized draft structures\",\"duration\":1.1602949999999055,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ChatView question owner routing\"],\"fullName\":\"ChatView question owner routing keeps a rejected response unresolved and exposes archived text without sending it\",\"status\":\"passed\",\"title\":\"keeps a rejected response unresolved and exposes archived text without sending it\",\"duration\":9.462356999999997,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ChatView question owner routing\"],\"fullName\":\"ChatView question owner routing routes an asynchronous URL answer to its original session after tab switching\",\"status\":\"passed\",\"title\":\"routes an asynchronous URL answer to its original session after tab switching\",\"duration\":55.48599200000001,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"ChatView question owner routing\"],\"fullName\":\"ChatView question owner routing ignores callbacks after the owning session is stopped and replacement requests appear\",\"status\":\"passed\",\"title\":\"ignores callbacks after the owning session is stopped and replacement requests appear\",\"duration\":53.716409,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1792260219547,\"endTime\":1792260219894.7163,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/cli/__tests__/unit/vscode-ext-question-drafts.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 695,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":2,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":6,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1792260220344,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"sensitive question field exclusion (verify-26)\"],\"fullName\":\"sensitive question field exclusion (verify-26) marks writeOnly schema fields as password, keeping plain text as text\",\"status\":\"passed\",\"title\":\"marks writeOnly schema fields as password, keeping plain text as text\",\"duration\":2.7082420000000127,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"sensitive question field exclusion (verify-26)\"],\"fullName\":\"sensitive question field exclusion (verify-26) drops writeOnly values from the persisted projection but keeps text\",\"status\":\"passed\",\"title\":\"drops writeOnly values from the persisted projection but keeps text\",\"duration\":0.829954000000015,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"sensitive question field exclusion (verify-26)\"],\"fullName\":\"sensitive question field exclusion (verify-26) also excludes password fields from draft text rendering\",\"status\":\"passed\",\"title\":\"also excludes password fields from draft text rendering\",\"duration\":0.4357909999999947,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"sensitive question field exclusion (verify-26)\"],\"fullName\":\"sensitive question field exclusion (verify-26) uses a password-kind JSON fallback for an unsupported/unknown schema\",\"status\":\"passed\",\"title\":\"uses a password-kind JSON fallback for an unsupported/unknown schema\",\"duration\":0.5951420000000098,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"sensitive question field exclusion (verify-26)\"],\"fullName\":\"sensitive question field exclusion (verify-26) does not persist unknown-schema JSON fallback values\",\"status\":\"passed\",\"title\":\"does not persist unknown-schema JSON fallback values\",\"duration\":0.5971549999999866,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"sensitive question field exclusion (verify-26)\"],\"fullName\":\"sensitive question field exclusion (verify-26) persists an ordinary text answer for a schema-less question (positive control)\",\"status\":\"passed\",\"title\":\"persists an ordinary text answer for a schema-less question (positive control)\",\"duration\":0.41098400000001334,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1792260220579,\"endTime\":1792260220584.5972,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/packages/vscode-extension/__tests__/verify-26.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/packages/vscode-extension/src/chat/question-draft-contract.js"
+      ],
+      "setup": false,
+      "ms": 159,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 724,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":0,\"numFailedTestSuites\":2,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":3,\"numFailedTests\":3,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1792260221232,\"success\":false,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"sensitive question field exclusion (verify-26)\"],\"fullName\":\"sensitive question field exclusion (verify-26) marks writeOnly schema fields as password, keeping plain text as text\",\"status\":\"failed\",\"title\":\"marks writeOnly schema fields as password, keeping plain text as text\",\"duration\":13.569725000000005,\"failureMessages\":[\"AssertionError: expected { '[\\\"note\\\"]': 'text', …(1) } to deeply equal { '[\\\"note\\\"]': 'text', …(1) }\\n    at /workspace/packages/vscode-extension/__tests__/verify-26.test.js:30:56\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"sensitive question field exclusion (verify-26)\"],\"fullName\":\"sensitive question field exclusion (verify-26) drops writeOnly values from the persisted projection but keeps text\",\"status\":\"failed\",\"title\":\"drops writeOnly values from the persisted projection but keeps text\",\"duration\":2.2283780000000206,\"failureMessages\":[\"AssertionError: expected [ { key: '[\\\"note\\\"]', …(1) }, …(1) ] to deeply equal [ { key: '[\\\"note\\\"]', …(1) } ]\\n    at /workspace/packages/vscode-extension/__tests__/verify-26.test.js:42:23\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"sensitive question field exclusion (verify-26)\"],\"fullName\":\"sensitive question field exclusion (verify-26) also excludes password fields from draft text rendering\",\"status\":\"failed\",\"title\":\"also excludes password fields from draft text rendering\",\"duration\":1.8318009999999845,\"failureMessages\":[\"AssertionError: expected 'note: hello\\\\ntoken: secret-writeonly' not to contain 'secret-writeonly'\\n    at /workspace/packages/vscode-extension/__tests__/verify-26.test.js:54:22\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"sensitive question field exclusion (verify-26)\"],\"fullName\":\"sensitive question field exclusion (verify-26) uses a password-kind JSON fallback for an unsupported/unknown schema\",\"status\":\"passed\",\"title\":\"uses a password-kind JSON fallback for an unsupported/unknown schema\",\"duration\":0.7944770000000005,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"sensitive question field exclusion (verify-26)\"],\"fullName\":\"sensitive question field exclusion (verify-26) does not persist unknown-schema JSON fallback values\",\"status\":\"passed\",\"title\":\"does not persist unknown-schema JSON fallback values\",\"duration\":0.49240699999998583,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"sensitive question field exclusion (verify-26)\"],\"fullName\":\"sensitive question field exclusion (verify-26) persists an ordinary text answer for a schema-less question (positive control)\",\"status\":\"passed\",\"title\":\"persists an ordinary text answer for a schema-less question (positive control)\",\"duration\":0.49852999999998815,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1792260221462,\"endTime\":1792260221481.4985,\"status\":\"failed\",\"message\":\"\",\"name\":\"/workspace/packages/vscode-extension/__tests__/verify-26.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/packages/vscode-extension/src/chat/question-draft-contract.js"
+      ],
+      "setup": false,
+      "ms": 158,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "/review/vitest.config.mjs",
+        "--configLoader",
+        "native",
+        "--reporter=json"
+      ],
+      "setup": false,
+      "ms": 710,
+      "exitCode": 1,
+      "signal": null,
+      "stdout": "{\"numTotalTestSuites\":2,\"numPassedTestSuites\":0,\"numFailedTestSuites\":2,\"numPendingTestSuites\":0,\"numTotalTests\":6,\"numPassedTests\":4,\"numFailedTests\":2,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1792260222095,\"success\":false,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[\"sensitive question field exclusion (verify-26)\"],\"fullName\":\"sensitive question field exclusion (verify-26) marks writeOnly schema fields as password, keeping plain text as text\",\"status\":\"passed\",\"title\":\"marks writeOnly schema fields as password, keeping plain text as text\",\"duration\":2.6596000000000117,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"sensitive question field exclusion (verify-26)\"],\"fullName\":\"sensitive question field exclusion (verify-26) drops writeOnly values from the persisted projection but keeps text\",\"status\":\"passed\",\"title\":\"drops writeOnly values from the persisted projection but keeps text\",\"duration\":0.9031219999999962,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"sensitive question field exclusion (verify-26)\"],\"fullName\":\"sensitive question field exclusion (verify-26) also excludes password fields from draft text rendering\",\"status\":\"passed\",\"title\":\"also excludes password fields from draft text rendering\",\"duration\":0.46549699999999916,\"failureMessages\":[],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"sensitive question field exclusion (verify-26)\"],\"fullName\":\"sensitive question field exclusion (verify-26) uses a password-kind JSON fallback for an unsupported/unknown schema\",\"status\":\"failed\",\"title\":\"uses a password-kind JSON fallback for an unsupported/unknown schema\",\"duration\":7.325972000000007,\"failureMessages\":[\"AssertionError: expected 'text' to be 'password' // Object.is equality\\n    at /workspace/packages/vscode-extension/__tests__/verify-26.test.js:67:27\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"sensitive question field exclusion (verify-26)\"],\"fullName\":\"sensitive question field exclusion (verify-26) does not persist unknown-schema JSON fallback values\",\"status\":\"failed\",\"title\":\"does not persist unknown-schema JSON fallback values\",\"duration\":3.4791549999999916,\"failureMessages\":[\"AssertionError: expected [ { key: 'answer-json', …(1) } ] to deeply equal []\\n    at /workspace/packages/vscode-extension/__tests__/verify-26.test.js:89:23\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\\n    at new Promise (<anonymous>)\\n    at runWithCancel (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\\n    at new Promise (<anonymous>)\\n    at runWithTimeout (file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\\n    at file:///workspace/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64\"],\"meta\":{},\"tags\":[]},{\"ancestorTitles\":[\"sensitive question field exclusion (verify-26)\"],\"fullName\":\"sensitive question field exclusion (verify-26) persists an ordinary text answer for a schema-less question (positive control)\",\"status\":\"passed\",\"title\":\"persists an ordinary text answer for a schema-less question (positive control)\",\"duration\":0.5459180000000003,\"failureMessages\":[],\"meta\":{},\"tags\":[]}],\"startTime\":1792260222326,\"endTime\":1792260222341.546,\"status\":\"failed\",\"message\":\"\",\"name\":\"/workspace/packages/vscode-extension/__tests__/verify-26.test.js\"}]}\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "pass": true,
+  "detail": "Independent operator checks passed; this is not a provider or task-outcome sample."
+}

@@ -4,19 +4,34 @@ Shared session lifecycle, trace, agent definition, memory, approval, sandbox,
 evolution receipt, and recovery primitives used by ChainlessChain Desktop and
 the CLI.
 
-The `0.3.15` release candidate adds business-object contracts, controlled task
-description actions and readers, offline risk rules and saved project risk
-reviews. CLI `0.166.90` pins this exact version. At candidate preparation, npm
-latest is `0.3.14`, which supplies monotonic ApprovalGate policy revisions and
-synchronous revision events. The release workflow requires exact-commit CI,
-publishes the child before the CLI and verifies the public archive byte-for-byte.
+This source release is `@chainlesschain/session-core@0.3.20`, intended for
+CLI `0.166.107`, subject to the release gates and public availability below.
+The **2026-10-19 preparation baseline** was public Session Core `0.3.19`
+with CLI `0.166.106`. This release's Windows ACL helpers add progress diagnostics
+and restrict `PSModulePath` to the running PowerShell process's built-in
+`$PSHOME/Modules` before the first cmdlet. ACL checks, traversal, security
+boundaries, timeouts and retries remain unchanged. Paired Windows CI samples
+support this module-search optimization; the original 60-second timeout was
+not reproduced, and acceptance of that case against the published package
+remains pending. This does not establish that all startup timeouts are fixed.
+
+Publication requires the relevant Linux, Windows and macOS CI matrix for the
+exact release commit and GitHub Actions npm OIDC Trusted Publishing. Publish
+and verify this child package before CLI `0.166.107`, then publish the paired
+IDE extensions only after the CLI is publicly available. The CLI requires both
+`CLI CI` and `CLI Strict Sandbox` to pass on every configured operating system.
+
+The published `0.3.15` release introduced business-object contracts, controlled
+task description actions and readers, offline risk rules and saved project risk
+reviews with CLI `0.166.90`. Earlier `0.3.14` supplied monotonic ApprovalGate
+policy revisions and synchronous revision events.
 
 The package exports its public modules through `package.json`, including
 `./runtime-claims`, `./evolvable-artifact`,
 `./structured-evolution-memory`, and the session, approval, policy, and
 recovery contracts used by the host products.
 
-The unreleased DMM foundation adds public `./scheduler-contract`,
+The DMM foundation exports public `./scheduler-contract`,
 `./scheduler-service`, `./scheduler-runtime`, `./scheduler-store`,
 `./scheduler-source-path`, `./private-storage` and `./host-storage-environment`
 entry points for CommonJS hosts and ESM consumers. CLI compatibility entries

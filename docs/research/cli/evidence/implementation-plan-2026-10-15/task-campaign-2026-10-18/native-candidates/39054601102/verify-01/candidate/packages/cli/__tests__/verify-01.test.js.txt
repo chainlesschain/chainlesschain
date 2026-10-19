@@ -1,0 +1,99 @@
+import { describe, expect, it } from "vitest";
+import { resolveModelCapabilityProfile } from "../src/lib/model-capabilities.js";
+
+// verify-01: official endpoint vs a same-named custom gateway must be isolated.
+// A model name served through a custom endpoint must never share the official
+// provider's recognized capability profile, and unknown models must keep an
+// unknown (assumed, undocumented) window rather than inheriting a neighbor.
+
+describe("official endpoint vs same-named custom gateway isolation", () => {
+  it("grants the documented window only at the official endpoint", () => {
+    const official = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-6-astra",
+    });
+    expect(official).toMatchObject({
+      contextWindowTokens: 1050000,
+      windowSource: "official-model-docs",
+      windowAssumed: false,
+      runtimeProtocol: "openai-responses",
+      advertisedMaxOutputTokens: 128000,
+    });
+    expect(official.sources.length).toBeGreaterThan(0);
+  });
+
+  it("refuses official recognition to the same-named model at a custom gateway", () => {
+    const gateway = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-6-astra",
+      baseUrl: "https://gateway.example/v1",
+    });
+    expect(gateway).toMatchObject({
+      contextWindowTokens: 128000,
+      windowSource: "provider-default",
+      windowAssumed: true,
+      runtimeProtocol: "chat-completions",
+      advertisedMaxOutputTokens: null,
+    });
+    expect(gateway.sources).toEqual([]);
+    expect(gateway.reasoningEfforts).toBeUndefined();
+  });
+
+  it("isolates a same-named volcengine model at a custom gateway from official identity", () => {
+    const gateway = resolveModelCapabilityProfile({
+      provider: "volcengine",
+      model: "doubao-seed-1-6-251015",
+      baseUrl: "https://gateway.example/v1",
+    });
+    expect(gateway.contextWindowTokens).toBe(32768);
+    expect(gateway.windowAssumed).toBe(true);
+    expect(gateway.sources).toEqual([]);
+    expect(gateway.advertisedMaxOutputTokens).toBeNull();
+  });
+
+  it("keeps official and custom resolutions as distinct profile identities", () => {
+    const official = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-6-astra",
+    });
+    const gateway = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-6-astra",
+      baseUrl: "https://gateway.example/v1",
+    });
+    expect(gateway.profileId).not.toBe(official.profileId);
+    expect(gateway.digest).not.toBe(official.digest);
+    expect(official).not.toEqual(gateway);
+  });
+
+  it("keeps an unknown model's window unknown at the official endpoint", () => {
+    const profile = resolveModelCapabilityProfile({
+      provider: "volcengine",
+      model: "seed-model-9",
+    });
+    expect(profile).toMatchObject({
+      contextWindowTokens: 32768,
+      windowSource: "provider-default",
+      windowAssumed: true,
+      runtimeVerified: false,
+    });
+    expect(profile.sources).toEqual([]);
+    expect(profile.advertisedMaxOutputTokens).toBeNull();
+  });
+
+  it("keeps an unknown model's window unknown at a custom gateway too", () => {
+    const profile = resolveModelCapabilityProfile({
+      provider: "volcengine",
+      model: "seed-model-9",
+      baseUrl: "https://gateway.example/v1",
+    });
+    expect(profile).toMatchObject({
+      contextWindowTokens: 32768,
+      windowSource: "provider-default",
+      windowAssumed: true,
+      runtimeVerified: false,
+    });
+    expect(profile.sources).toEqual([]);
+    expect(profile.advertisedMaxOutputTokens).toBeNull();
+  });
+});

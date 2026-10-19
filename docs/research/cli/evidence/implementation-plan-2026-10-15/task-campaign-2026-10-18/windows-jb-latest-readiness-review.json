@@ -1,0 +1,587 @@
+{
+  "schema": "chainlesschain.windows-jetbrains-latest-readiness-review/v1",
+  "generatedAt": "2026-10-17T19:16:07.139160+00:00",
+  "scope": "Read-only investigation; no source changes, no workflow/provider dispatch, no account refusal reassessment.",
+  "status": "PRE_INIT_CHILD_EXIT_CONFIRMED_UNDERLYING_EXIT_CAUSE_UNKNOWN",
+  "generationRunId": "39057583779",
+  "executionSourceCommit": "cbd532e51f53deb3c5f4470627f9ad7c86a41d3e",
+  "frozenProjectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "publicJetBrainsCommit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+  "versions": {
+    "cli": "0.166.99",
+    "vscode": "0.37.143",
+    "jetbrains": "0.4.161",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "sampleId": "first-run-win32-jetbrains",
+  "sampleRunId": "d0b2359d-6850-4784-9af2-6333d9c3aadc",
+  "generationSummary": {
+    "path": "C:\\code\\chainlesschain\\.work\\native45-generation\\39057583779\\win32-jetbrains\\summary.json",
+    "digest": "sha256:122745699550745e0b37cbd207fe7002fe11607b95d701682ef7c7115be29d97"
+  },
+  "artifact": {
+    "runId": "39057583779",
+    "id": 12111318281,
+    "node_id": "MDg6QXJ0aWZhY3QxMjExMTMxODI4MQ==",
+    "name": "verify01-native-delivery-win32-jetbrains-cbd532e51f53deb3c5f4470627f9ad7c86a41d3e",
+    "size_in_bytes": 10880291,
+    "url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/12111318281",
+    "archive_download_url": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/12111318281/zip",
+    "expired": false,
+    "digest": "sha256:0d71881820fb1221859e4c361814d2f4bd5fd11a2eaaf2ce20a6c93a81bea35f",
+    "created_at": "2026-10-17T19:11:08Z",
+    "updated_at": "2026-10-17T19:11:08Z",
+    "expires_at": "2026-10-31T19:11:06Z",
+    "workflow_run": {
+      "id": 39057583779,
+      "repository_id": 1107348698,
+      "head_repository_id": 1107348698,
+      "head_branch": "feature/verify01-task-completion-20261017",
+      "head_sha": "cbd532e51f53deb3c5f4470627f9ad7c86a41d3e"
+    }
+  },
+  "evidence": [
+    {
+      "member": "archive-members.txt",
+      "localPath": "C:\\code\\chainlesschain\\.work\\windows-jb-latest-review\\archive-members.txt",
+      "bytes": 8921,
+      "digest": "sha256:cfd01b1d012493f9f9f224937e4f4fd7ff1bf7859635228d4a40e9a2873190f7",
+      "origin": "ZIP central-directory inventory",
+      "archived": {
+        "path": "windows-jb-latest-evidence/archive-members.txt.gz",
+        "originalDigest": "sha256:cfd01b1d012493f9f9f224937e4f4fd7ff1bf7859635228d4a40e9a2873190f7",
+        "storedDigest": "sha256:166ac786c05e61f3123f13fa278ecc301a5174a270620854341052b97d4a8752",
+        "originalBytes": 8921
+      }
+    },
+    {
+      "member": "first-run-win32-jetbrains/broker/summary.json",
+      "localPath": "C:\\code\\chainlesschain\\.work\\windows-jb-latest-review\\first-run-win32-jetbrains\\broker\\summary.json",
+      "bytes": 345,
+      "digest": "sha256:30684c589886cf2942a2e50383f35a08dbfdff0d5c9030b4cbd904265f0bc99f",
+      "origin": "exact ZIP member bytes",
+      "archived": {
+        "path": "windows-jb-latest-evidence/first-run-win32-jetbrains/broker/summary.json.gz",
+        "originalDigest": "sha256:30684c589886cf2942a2e50383f35a08dbfdff0d5c9030b4cbd904265f0bc99f",
+        "storedDigest": "sha256:623f3a66133c5d32e2d7de8601be7f38c21446e56fbb5d85ab3a8bb76cf4bee2",
+        "originalBytes": 345
+      }
+    },
+    {
+      "member": "first-run-win32-jetbrains/capture/action-1.json",
+      "localPath": "C:\\code\\chainlesschain\\.work\\windows-jb-latest-review\\first-run-win32-jetbrains\\capture\\action-1.json",
+      "bytes": 155,
+      "digest": "sha256:25492e24974219d41de9104a8a84be9979865e24a203c5928a59fdb7164fa2f2",
+      "origin": "exact ZIP member bytes",
+      "archived": {
+        "path": "windows-jb-latest-evidence/first-run-win32-jetbrains/capture/action-1.json.gz",
+        "originalDigest": "sha256:25492e24974219d41de9104a8a84be9979865e24a203c5928a59fdb7164fa2f2",
+        "storedDigest": "sha256:12e842367e0a2bba7c6e3cb0b8b56d10c22b5c942f7664b415d8efba7171ec1c",
+        "originalBytes": 155
+      }
+    },
+    {
+      "member": "first-run-win32-jetbrains/capture/action-2.json",
+      "localPath": "C:\\code\\chainlesschain\\.work\\windows-jb-latest-review\\first-run-win32-jetbrains\\capture\\action-2.json",
+      "bytes": 163,
+      "digest": "sha256:b36469f9330462ee41be50cb935eae7aebf6bdf918d3f9df2b7bfd0d793c5668",
+      "origin": "exact ZIP member bytes",
+      "archived": {
+        "path": "windows-jb-latest-evidence/first-run-win32-jetbrains/capture/action-2.json.gz",
+        "originalDigest": "sha256:b36469f9330462ee41be50cb935eae7aebf6bdf918d3f9df2b7bfd0d793c5668",
+        "storedDigest": "sha256:fb876901d53e75d269813dd570dcfcdab59fd02f7895890d3b250af72399dd7c",
+        "originalBytes": 163
+      }
+    },
+    {
+      "member": "first-run-win32-jetbrains/capture/driver-failure-initial.json",
+      "localPath": "C:\\code\\chainlesschain\\.work\\windows-jb-latest-review\\first-run-win32-jetbrains\\capture\\driver-failure-initial.json",
+      "bytes": 545,
+      "digest": "sha256:a705445ba7087b51f105874c8fdfa23a47ac5722b828d27eef14b23a1ce901dd",
+      "origin": "exact ZIP member bytes",
+      "archived": {
+        "path": "windows-jb-latest-evidence/first-run-win32-jetbrains/capture/driver-failure-initial.json.gz",
+        "originalDigest": "sha256:a705445ba7087b51f105874c8fdfa23a47ac5722b828d27eef14b23a1ce901dd",
+        "storedDigest": "sha256:ae702a011cc3fd20e9a7fba0f565d15231ce2c87be12d8f342ec027a0fb3f545",
+        "originalBytes": 545
+      }
+    },
+    {
+      "member": "first-run-win32-jetbrains/capture/installed-plugin.json",
+      "localPath": "C:\\code\\chainlesschain\\.work\\windows-jb-latest-review\\first-run-win32-jetbrains\\capture\\installed-plugin.json",
+      "bytes": 67,
+      "digest": "sha256:e24c4f5fcbdeca6252d9d02aa2f2f79292a7105c7fbd69ad3b219b342a6b2ccb",
+      "origin": "exact ZIP member bytes",
+      "archived": {
+        "path": "windows-jb-latest-evidence/first-run-win32-jetbrains/capture/installed-plugin.json.gz",
+        "originalDigest": "sha256:e24c4f5fcbdeca6252d9d02aa2f2f79292a7105c7fbd69ad3b219b342a6b2ccb",
+        "storedDigest": "sha256:4235af08554745205b9f3b273303c193fe8cb3c05ad3803de1625b945c2c26bc",
+        "originalBytes": 67
+      }
+    },
+    {
+      "member": "first-run-win32-jetbrains/capture/protocol-6468eeff-1212-4430-a8c9-a186f7e2303f.jsonl",
+      "localPath": "C:\\code\\chainlesschain\\.work\\windows-jb-latest-review\\first-run-win32-jetbrains\\capture\\protocol-6468eeff-1212-4430-a8c9-a186f7e2303f.jsonl",
+      "bytes": 227,
+      "digest": "sha256:3956af5a9a54d771e0a9fb76bd056bf33f82e07e01d208987bbbf277c982ccf0",
+      "origin": "exact ZIP member bytes",
+      "archived": {
+        "path": "windows-jb-latest-evidence/first-run-win32-jetbrains/capture/protocol-6468eeff-1212-4430-a8c9-a186f7e2303f.jsonl.gz",
+        "originalDigest": "sha256:3956af5a9a54d771e0a9fb76bd056bf33f82e07e01d208987bbbf277c982ccf0",
+        "storedDigest": "sha256:634736d7b343e6852612cdb9ea7c52c4eeefb6ac405497d7ca3dcfab9c0279cb",
+        "originalBytes": 227
+      }
+    },
+    {
+      "member": "first-run-win32-jetbrains/commands/cli-identity.process.json",
+      "localPath": "C:\\code\\chainlesschain\\.work\\windows-jb-latest-review\\first-run-win32-jetbrains\\commands\\cli-identity.process.json",
+      "bytes": 462,
+      "digest": "sha256:edbad248c986c4be01dd3eec1f3546095c76391f85618d86680f51ff0e7bed8d",
+      "origin": "exact ZIP member bytes",
+      "archived": {
+        "path": "windows-jb-latest-evidence/first-run-win32-jetbrains/commands/cli-identity.process.json.gz",
+        "originalDigest": "sha256:edbad248c986c4be01dd3eec1f3546095c76391f85618d86680f51ff0e7bed8d",
+        "storedDigest": "sha256:4140b45e9827a431620a751a98d90c24c18768f0d2084332a361033574eeb938",
+        "originalBytes": 462
+      }
+    },
+    {
+      "member": "first-run-win32-jetbrains/commands/cli-identity.stderr.log",
+      "localPath": "C:\\code\\chainlesschain\\.work\\windows-jb-latest-review\\first-run-win32-jetbrains\\commands\\cli-identity.stderr.log",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "origin": "exact ZIP member bytes",
+      "archived": {
+        "path": "windows-jb-latest-evidence/first-run-win32-jetbrains/commands/cli-identity.stderr.log.gz",
+        "originalDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "storedDigest": "sha256:9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+        "originalBytes": 0
+      }
+    },
+    {
+      "member": "first-run-win32-jetbrains/commands/cli-identity.stdout.log",
+      "localPath": "C:\\code\\chainlesschain\\.work\\windows-jb-latest-review\\first-run-win32-jetbrains\\commands\\cli-identity.stdout.log",
+      "bytes": 9,
+      "digest": "sha256:bcf66d79b6c2b85504dbe4341a1fbbdba5bcb219ac51ab10a6c88c44b0e7fff9",
+      "origin": "exact ZIP member bytes",
+      "archived": {
+        "path": "windows-jb-latest-evidence/first-run-win32-jetbrains/commands/cli-identity.stdout.log.gz",
+        "originalDigest": "sha256:bcf66d79b6c2b85504dbe4341a1fbbdba5bcb219ac51ab10a6c88c44b0e7fff9",
+        "storedDigest": "sha256:6ff873a080e5e8e6d35fd65cb0b7fff9ce1c076e5d57ac628d4a60a7ae2652f6",
+        "originalBytes": 9
+      }
+    },
+    {
+      "member": "first-run-win32-jetbrains/commands/config-readback.process.json",
+      "localPath": "C:\\code\\chainlesschain\\.work\\windows-jb-latest-review\\first-run-win32-jetbrains\\commands\\config-readback.process.json",
+      "bytes": 495,
+      "digest": "sha256:6d6d8d0b06f3b65375bc604111f5ba51c7f65b6ff9cfc04e294112e0c20b3aff",
+      "origin": "exact ZIP member bytes",
+      "archived": {
+        "path": "windows-jb-latest-evidence/first-run-win32-jetbrains/commands/config-readback.process.json.gz",
+        "originalDigest": "sha256:6d6d8d0b06f3b65375bc604111f5ba51c7f65b6ff9cfc04e294112e0c20b3aff",
+        "storedDigest": "sha256:8484ec479ff291c451cdbb55531cd846e7599d48cdca49307c2528e2cc3b0b18",
+        "originalBytes": 495
+      }
+    },
+    {
+      "member": "first-run-win32-jetbrains/commands/config-readback.stderr.log",
+      "localPath": "C:\\code\\chainlesschain\\.work\\windows-jb-latest-review\\first-run-win32-jetbrains\\commands\\config-readback.stderr.log",
+      "bytes": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "origin": "exact ZIP member bytes",
+      "archived": {
+        "path": "windows-jb-latest-evidence/first-run-win32-jetbrains/commands/config-readback.stderr.log.gz",
+        "originalDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "storedDigest": "sha256:9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+        "originalBytes": 0
+      }
+    },
+    {
+      "member": "first-run-win32-jetbrains/commands/config-readback.stdout.log",
+      "localPath": "C:\\code\\chainlesschain\\.work\\windows-jb-latest-review\\first-run-win32-jetbrains\\commands\\config-readback.stdout.log",
+      "bytes": 211,
+      "digest": "sha256:51e9757fe49cbce8a672b211e2891527c3ebcda4213b1ae073c2be52aaef5d1a",
+      "origin": "exact ZIP member bytes",
+      "archived": {
+        "path": "windows-jb-latest-evidence/first-run-win32-jetbrains/commands/config-readback.stdout.log.gz",
+        "originalDigest": "sha256:51e9757fe49cbce8a672b211e2891527c3ebcda4213b1ae073c2be52aaef5d1a",
+        "storedDigest": "sha256:2511730d3c52b292466b9fce4f0dd05aa3459dfa3f94f67046be574f458822d2",
+        "originalBytes": 211
+      }
+    },
+    {
+      "member": "first-run-win32-jetbrains/ide-initial.log",
+      "localPath": "C:\\code\\chainlesschain\\.work\\windows-jb-latest-review\\first-run-win32-jetbrains\\ide-initial.log",
+      "bytes": 22427,
+      "digest": "sha256:332dcb2e0f3edf42f61255e276db5e0ce42dc3f9cbab3aa6f0319c7bed4fb18e",
+      "origin": "exact ZIP member bytes",
+      "archived": {
+        "path": "windows-jb-latest-evidence/first-run-win32-jetbrains/ide-initial.log.gz",
+        "originalDigest": "sha256:332dcb2e0f3edf42f61255e276db5e0ce42dc3f9cbab3aa6f0319c7bed4fb18e",
+        "storedDigest": "sha256:0e2b2d3052815364f223542667a801fbc92c530a8784f3230aafbfe14b78336f",
+        "originalBytes": 22427
+      }
+    },
+    {
+      "member": "first-run-win32-jetbrains/ide-initial.log.cleanup.json",
+      "localPath": "C:\\code\\chainlesschain\\.work\\windows-jb-latest-review\\first-run-win32-jetbrains\\ide-initial.log.cleanup.json",
+      "bytes": 1866,
+      "digest": "sha256:e7e272829204589c9642cf10acc7333bed091de91c6b263ec348b1512d5ea7c3",
+      "origin": "exact ZIP member bytes",
+      "archived": {
+        "path": "windows-jb-latest-evidence/first-run-win32-jetbrains/ide-initial.log.cleanup.json.gz",
+        "originalDigest": "sha256:e7e272829204589c9642cf10acc7333bed091de91c6b263ec348b1512d5ea7c3",
+        "storedDigest": "sha256:e8bbee48fcfe5adacb840246f86fa0b469ccfde6a341bc50415d62b54a4d5354",
+        "originalBytes": 1866
+      }
+    },
+    {
+      "member": "first-run-win32-jetbrains/prepare.log",
+      "localPath": "C:\\code\\chainlesschain\\.work\\windows-jb-latest-review\\first-run-win32-jetbrains\\prepare.log",
+      "bytes": 21713,
+      "digest": "sha256:aee43dd2734370731d44ff4bda8c7f5683c80468c3c2fad8485102ae957f5880",
+      "origin": "exact ZIP member bytes",
+      "archived": {
+        "path": "windows-jb-latest-evidence/first-run-win32-jetbrains/prepare.log.gz",
+        "originalDigest": "sha256:aee43dd2734370731d44ff4bda8c7f5683c80468c3c2fad8485102ae957f5880",
+        "storedDigest": "sha256:d36fce0bff1e305bbe92dcf09000204e2ea3dd512e6d7134f13114722dc49bb9",
+        "originalBytes": 21713
+      }
+    },
+    {
+      "member": "first-run-win32-jetbrains/test-initial.log",
+      "localPath": "C:\\code\\chainlesschain\\.work\\windows-jb-latest-review\\first-run-win32-jetbrains\\test-initial.log",
+      "bytes": 2193,
+      "digest": "sha256:e7a6b3496027c9df94cf26232b411d067576daad75a6e261868e717c545b1964",
+      "origin": "exact ZIP member bytes",
+      "archived": {
+        "path": "windows-jb-latest-evidence/first-run-win32-jetbrains/test-initial.log.gz",
+        "originalDigest": "sha256:e7a6b3496027c9df94cf26232b411d067576daad75a6e261868e717c545b1964",
+        "storedDigest": "sha256:ca763f18f43ba4edc3cbe4cc35f7e77064f179873a6b87dac02897a5aa465534",
+        "originalBytes": 2193
+      }
+    }
+  ],
+  "firstRunArchiveMembers": [
+    "first-run-win32-jetbrains/broker/policy.json",
+    "first-run-win32-jetbrains/broker/summary.json",
+    "first-run-win32-jetbrains/candidate/packages/cli/__tests__/verify-03.test.js",
+    "first-run-win32-jetbrains/capture/action-1.json",
+    "first-run-win32-jetbrains/capture/action-2.json",
+    "first-run-win32-jetbrains/capture/driver-failure-initial.json",
+    "first-run-win32-jetbrains/capture/installed-plugin.json",
+    "first-run-win32-jetbrains/capture/protocol-6468eeff-1212-4430-a8c9-a186f7e2303f.jsonl",
+    "first-run-win32-jetbrains/commands/cli-identity.process.json",
+    "first-run-win32-jetbrains/commands/cli-identity.stderr.log",
+    "first-run-win32-jetbrains/commands/cli-identity.stdout.log",
+    "first-run-win32-jetbrains/commands/config-baseUrl.process.json",
+    "first-run-win32-jetbrains/commands/config-baseUrl.stderr.log",
+    "first-run-win32-jetbrains/commands/config-baseUrl.stdout.log",
+    "first-run-win32-jetbrains/commands/config-model.process.json",
+    "first-run-win32-jetbrains/commands/config-model.stderr.log",
+    "first-run-win32-jetbrains/commands/config-model.stdout.log",
+    "first-run-win32-jetbrains/commands/config-provider.process.json",
+    "first-run-win32-jetbrains/commands/config-provider.stderr.log",
+    "first-run-win32-jetbrains/commands/config-provider.stdout.log",
+    "first-run-win32-jetbrains/commands/config-readback.process.json",
+    "first-run-win32-jetbrains/commands/config-readback.stderr.log",
+    "first-run-win32-jetbrains/commands/config-readback.stdout.log",
+    "first-run-win32-jetbrains/commands/npm-install.process.json",
+    "first-run-win32-jetbrains/commands/npm-install.stderr.log",
+    "first-run-win32-jetbrains/commands/npm-install.stdout.log",
+    "first-run-win32-jetbrains/ide-initial.log",
+    "first-run-win32-jetbrains/ide-initial.log.cleanup.json",
+    "first-run-win32-jetbrains/metadata/.idea/misc.xml",
+    "first-run-win32-jetbrains/metadata/.idea/modules.xml",
+    "first-run-win32-jetbrains/metadata/.idea/workspace.iml",
+    "first-run-win32-jetbrains/metadata/.idea/workspace.xml",
+    "first-run-win32-jetbrains/prepare.log",
+    "first-run-win32-jetbrains/prompt.txt",
+    "first-run-win32-jetbrains/summary.json",
+    "first-run-win32-jetbrains/test-initial.log",
+    "first-run-win32-jetbrains/tree-after.json",
+    "first-run-win32-jetbrains/tree-before.json"
+  ],
+  "protocol": {
+    "member": "first-run-win32-jetbrains/capture/protocol-6468eeff-1212-4430-a8c9-a186f7e2303f.jsonl",
+    "digest": "sha256:3956af5a9a54d771e0a9fb76bd056bf33f82e07e01d208987bbbf277c982ccf0",
+    "recordCount": 1,
+    "records": [
+      {
+        "schema": "chainlesschain.ide-protocol-record/v1",
+        "generation": "6468eeff-1212-4430-a8c9-a186f7e2303f",
+        "sequence": 1,
+        "at": "2026-10-17T18:34:40.177653700Z",
+        "direction": "exit",
+        "event": {
+          "code": 1,
+          "signal": null,
+          "stdoutDrained": true
+        }
+      }
+    ],
+    "initCount": 0,
+    "inputCount": 0,
+    "outputCount": 0,
+    "interpretation": "One exit record exists. The campaign fallback assertion 0!==1 counts recognized .ndjson files, not actual protocol records; JetBrains wrote .jsonl."
+  },
+  "timeline": [
+    {
+      "stage": "sample-start",
+      "at": "2026-10-17T18:21:25.889Z"
+    },
+    {
+      "stage": "install-finished",
+      "at": "2026-10-17T18:25:03.696Z",
+      "passed": true
+    },
+    {
+      "stage": "cli-identity",
+      "process": {
+        "command": "C:\\hostedtoolcache\\windows\\node\\22.12.0\\x64\\node.exe",
+        "args": [
+          "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-cYvRzf\\install\\node_modules\\chainlesschain\\bin\\chainlesschain.js",
+          "--version"
+        ],
+        "startedAt": "2026-10-17T18:25:02.997Z",
+        "finishedAt": "2026-10-17T18:25:03.078Z",
+        "exitCode": 0,
+        "signal": null,
+        "timedOut": false,
+        "outputLimit": false,
+        "aborted": false,
+        "error": null,
+        "ok": true
+      },
+      "stdout": "0.166.99\n",
+      "stderrBytes": 0
+    },
+    {
+      "stage": "config-readback",
+      "process": {
+        "command": "C:\\hostedtoolcache\\windows\\node\\22.12.0\\x64\\node.exe",
+        "args": [
+          "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\cc-native-cYvRzf\\install\\node_modules\\chainlesschain\\bin\\chainlesschain.js",
+          "config",
+          "get",
+          "llm",
+          "--json"
+        ],
+        "startedAt": "2026-10-17T18:26:23.262Z",
+        "finishedAt": "2026-10-17T18:26:23.573Z",
+        "exitCode": 0,
+        "signal": null,
+        "timedOut": false,
+        "outputLimit": false,
+        "aborted": false,
+        "error": null,
+        "ok": true
+      },
+      "config": {
+        "key": "llm",
+        "value": {
+          "provider": "volcengine",
+          "apiKey": null,
+          "baseUrl": "http://127.0.0.1:58417/api/v3",
+          "model": "deepseek-v4-flash-ga-260731",
+          "preferAndroidLocal": false
+        }
+      },
+      "stderrBytes": 0
+    },
+    {
+      "stage": "prepare",
+      "result": "BUILD SUCCESSFUL in 4m 19s",
+      "evidenceMember": "first-run-win32-jetbrains/prepare.log"
+    },
+    {
+      "stage": "ui-submit",
+      "action": "submit",
+      "sampleId": "first-run-win32-jetbrains",
+      "sessionId": "panel-1792261997009-41d3ef",
+      "at": "2026-10-17T18:33:17.719912900Z"
+    },
+    {
+      "stage": "ui-background",
+      "action": "background-tab",
+      "sampleId": "first-run-win32-jetbrains",
+      "sessionId": "panel-1792261997009-41d3ef",
+      "at": "2026-10-17T18:33:19.538216200Z"
+    },
+    {
+      "stage": "child-exit",
+      "schema": "chainlesschain.ide-protocol-record/v1",
+      "generation": "6468eeff-1212-4430-a8c9-a186f7e2303f",
+      "sequence": 1,
+      "at": "2026-10-17T18:34:40.177653700Z",
+      "direction": "exit",
+      "event": {
+        "code": 1,
+        "signal": null,
+        "stdoutDrained": true
+      }
+    },
+    {
+      "stage": "driver-failure",
+      "phase": "initial",
+      "at": "2026-10-17T18:46:23.611148900Z",
+      "error": "java.lang.AssertionError: No observed task terminal before deadline",
+      "completedActions": [
+        {
+          "action": "submit",
+          "sampleId": "first-run-win32-jetbrains",
+          "sessionId": "panel-1792261997009-41d3ef",
+          "at": "2026-10-17T18:33:17.719912900Z"
+        },
+        {
+          "action": "background-tab",
+          "sampleId": "first-run-win32-jetbrains",
+          "sessionId": "panel-1792261997009-41d3ef",
+          "at": "2026-10-17T18:33:19.538216200Z"
+        }
+      ]
+    },
+    {
+      "stage": "sample-finished",
+      "at": "2026-10-17T18:46:47.391Z"
+    }
+  ],
+  "broker": {
+    "formalSample": false,
+    "physicalRequestsStarted": 0,
+    "usageCompleteRequests": 0,
+    "tasks": [
+      {
+        "taskId": "first-run-win32-jetbrains",
+        "requests": 0,
+        "errorCode": null
+      }
+    ],
+    "poisoned": null,
+    "actualBilledCostCny": null,
+    "tokenOnlyEstimateCny": null,
+    "knownTokenOnlyEstimateCny": 0,
+    "fxRate": null
+  },
+  "candidate": {
+    "file": "packages/cli/__tests__/verify-03.test.js",
+    "path": "first-run-win32-jetbrains/candidate/packages/cli/__tests__/verify-03.test.js",
+    "digest": "sha256:72fbf404fca2ae7ca520e83e3a00108ef01918c00f238439b0b28e1db37c40fa",
+    "bytes": 27
+  },
+  "sourceScopePassed": true,
+  "unexpectedChanges": [],
+  "established": [
+    "CLI installation, direct Node --version (0.166.99), configuration readback and plugin preparation succeeded before the native UI task.",
+    "UI submit18:33:17.719912900Z; child exit1/stdoutDrained=true18:34:40.177653700Z, about82.46 seconds later. No init, input acceptance, tool call or task-result output recorded.",
+    "Broker confirms physicalRequestsStarted=0, usageCompleteRequests=0. Later ordinary samples are separate.",
+    "Driver No observed task terminal before deadline18:46:23.611148900Z, about11m43s after known child exit. Harness waited for a task terminal that never occurred.",
+    "Actual chat subprocess stderr is not archived. Empty cli-identity.stderr.log/config-readback.stderr.log belong to separate successful preparatory commands; they do not establish empty chat stderr.",
+    "Public AgentChatSession drains stderr and forwards lines only when opts.onStderr is set. ConversationView contains no onStderr assignment. Its onExit/send failure messages go to conversation UI; no original-tab failure snapshot was saved."
+  ],
+  "notEstablished": [
+    "Underlying child exit1 cause remains unknown without stderr/original-tab failure snapshot.",
+    "Bridge owner-only ACL30s timeout, Station Unix-domain socket path length, and JCEF Vulkan warnings occur but are not proven causal to chat child exit.",
+    "No evidence of model execution, tool lost write, or expiration of the120s init wait; submit-to-exit82.46s does not establish internal wait timing.",
+    "Successful direct Node --version does not prove the IDE launcher command line succeeded; quoting/spawn or CLI-startup causes remain unproven rather than excluded."
+  ],
+  "nextDeterministicDiagnostics": [
+    "On pre-init child exit, report host-startup-exit with code/timestamps instead of waiting for task terminal; retain raw protocol.",
+    "Capture bounded redacted chat stderr at child-session boundary, independently of protocol stdout. Identity/config stderr cannot substitute.",
+    "Capture original-tab text/readiness status before cleanup with separate bounded diagnostics deadline; include receiptReady, childRunning, sendInFlight, draftStatus, mode error text.",
+    "Use offline child stub that exits1 before init and emits known stderr to verify capture/classification; no provider request is required."
+  ],
+  "sourceAnchors": [
+    {
+      "commit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "file": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/AgentChatSession.java",
+      "digest": "sha256:5dd53c850437974138f674a36822860f0ef9b4850f495f7202ab39f8a8722d79",
+      "startLine": 68,
+      "endLine": 77,
+      "text": "        public File cwd;\n        /** Extra environment (put the bridge port/token here). */\n        public Map<String, String> extraEnv = new LinkedHashMap<>();\n        public EventListener onEvent;\n        /** Optional actual-host acceptance observer; never writes files or grants permissions. */\n        public EventListener onProtocolRecord;\n        public LineListener onStderr;\n        public ExitListener onExit;\n        /** Confirmed model configuration at spawn; negative means unmanaged. */\n        public long configurationRevision = -1;",
+      "archived": {
+        "path": "windows-jb-latest-evidence/source/5dd53c850437974138f674a36822860f0ef9b4850f495f7202ab39f8a8722d79.gz",
+        "originalDigest": "sha256:5dd53c850437974138f674a36822860f0ef9b4850f495f7202ab39f8a8722d79",
+        "storedDigest": "sha256:ccd5373993af5498570e818897b56ee733c3eb8b1d0f00a9082fd4e77f498672",
+        "originalBytes": 33539
+      }
+    },
+    {
+      "commit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "file": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/AgentChatSession.java",
+      "digest": "sha256:5dd53c850437974138f674a36822860f0ef9b4850f495f7202ab39f8a8722d79",
+      "startLine": 469,
+      "endLine": 495,
+      "text": "        pump(\"cc-chat-stderr\", proc.getErrorStream(), new LineListener() {\n            @Override\n            public void onLine(String line) {\n                if (opts.onStderr != null) {\n                    try {\n                        opts.onStderr.onLine(line);\n                    } catch (Throwable ignored) {\n                        // listener errors must not kill the pump\n                    }\n                }\n            }\n        });\n        Thread waiter = new Thread(new Runnable() {\n            @Override\n            public void run() {\n                try {\n                    int code = proc.waitFor();\n                    // Process exit can race the final stdout line. Acceptance\n                    // never calls an undrained capture a verified terminal.\n                    if (opts.onProtocolRecord != null) {\n                        stdoutPump.join(2000);\n                        Map<String, Object> exit = MiniJson.obj();\n                        exit.put(\"code\", code);\n                        exit.put(\"signal\", null);\n                        exit.put(\"stdoutDrained\", !stdoutPump.isAlive());\n                        recordProtocol(\"exit\", exit);\n                    }",
+      "archived": {
+        "path": "windows-jb-latest-evidence/source/5dd53c850437974138f674a36822860f0ef9b4850f495f7202ab39f8a8722d79.gz",
+        "originalDigest": "sha256:5dd53c850437974138f674a36822860f0ef9b4850f495f7202ab39f8a8722d79",
+        "storedDigest": "sha256:ccd5373993af5498570e818897b56ee733c3eb8b1d0f00a9082fd4e77f498672",
+        "originalBytes": 33539
+      }
+    },
+    {
+      "commit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "file": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java",
+      "digest": "sha256:b527f49a5e8c15f6e2ce85af18515ae04050815b58ee6ed6b36ec2e201daa55e",
+      "startLine": 2201,
+      "endLine": 2235,
+      "text": "        o.onExit = code -> SwingUtilities.invokeLater(() ->\n        {\n            capabilities.completeExceptionally(new IOException(\"Agent exited before input acknowledgement\"));\n            if (disposed || sessionGeneration != generation) return;\n            questions.detach(\"Agent exited; saved answers require review\");\n            conv.modeState.exited(generation, code);\n            refreshModeStatus();\n            try {\n                sendExecutor.execute(() -> {\n                    if (disposed || sessionGeneration != generation || !conv.modeState.current(modeRevision)) return;\n                    try {\n                        stopCurrentSession(modeRevision);\n                        if (code != 0) conv.modeState.failed(modeRevision, \"Agent exited (\" + code + \")\");\n                    } catch (IOException ignored) { /* barrier already records the failure */ }\n                    refreshModeStatus();\n                });\n            } catch (java.util.concurrent.RejectedExecutionException ignored) { /* disposing */ }\n            pendingApprovalGrantCommands.clear();\n            invalidateApprovalCards();\n            indexConversation(\"stopped\");\n            append(\"\\n── agent exited (\" + code + \") — next message restarts ──\\n\");\n            transcript.announce(\"Status\", \"stopped\", \"status:stopped:\" + code);\n            turnActive = false;\n            history.stopped();\n        });\n\n        AgentChatSession session = new AgentChatSession(o);\n        conv.session = session;\n        questions.bind(session, generation, conv.sessionId);\n        session.start();\n        if (!o.canDispatch.getAsBoolean()) {\n            session.stopAndWait();\n            throw new IOException(\"Approval mode changed during agent launch; input was not dispatched\");\n        }\n        indexConversation(\"running\");",
+      "archived": {
+        "path": "windows-jb-latest-evidence/source/b527f49a5e8c15f6e2ce85af18515ae04050815b58ee6ed6b36ec2e201daa55e.gz",
+        "originalDigest": "sha256:b527f49a5e8c15f6e2ce85af18515ae04050815b58ee6ed6b36ec2e201daa55e",
+        "storedDigest": "sha256:8d19636651ca6f8b080616a6c6d2ffdd026063eae56a8f2ea937b2f71a2887c0",
+        "originalBytes": 166701
+      }
+    },
+    {
+      "commit": "311e01a5ec34a8e433c7abde0e4b6b05bce4513b",
+      "file": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java",
+      "digest": "sha256:b527f49a5e8c15f6e2ce85af18515ae04050815b58ee6ed6b36ec2e201daa55e",
+      "startLine": 816,
+      "endLine": 845,
+      "text": "            } catch (Exception ex) {\n                if (ex instanceof InterruptedException) Thread.currentThread().interrupt();\n                Throwable cause = ex instanceof java.util.concurrent.ExecutionException && ex.getCause() != null\n                        ? ex.getCause() : ex;\n                spawnError = cause instanceof java.util.concurrent.TimeoutException\n                        ? \"Saving input did not finish in time; draft kept for editing\"\n                        : cause.getMessage() != null ? cause.getMessage() : cause.getClass().getSimpleName();\n            } finally {\n                if (prepared != null && !dispatch.dispatched()) {\n                    try { drafts.rejectUndispatched(prepared.submission().id()).get(10, TimeUnit.SECONDS); }\n                    catch (Exception error) {\n                        if (error instanceof InterruptedException) Thread.currentThread().interrupt();\n                        spawnError = \"Input was not dispatched; saved status update failed: \" + error.getMessage();\n                    }\n                }\n                final boolean ok = sent;\n                final String err = spawnError;\n                final Object sentOwner = dispatchOwner;\n                final com.chainlesschain.ide.ChatDraftStore.Prepared saved = prepared;\n                SwingUtilities.invokeLater(() -> {\n                    if (pendingInputDispatch == dispatch) pendingInputDispatch = null;\n                    sendInFlight = false;\n                    if (disposed) return;\n                    if (saved != null && !dispatch.dispatched())\n                        transcript.inputNotDispatched(saved.submission().id(), sentOwner);\n                    drafts.finishSend(dispatch.dispatched() ? saved : null, draftRevision);\n                    if (!conv.modeState.current(modeRevision)) {\n                        append(\"⚠ Approval mode changed during delivery. Check Saved inputs and the conversation before resending.\\n\");\n                    } else if (err != null) {\n                        append(\"⚠ could not send message: \" + err + \"\\n\");",
+      "archived": {
+        "path": "windows-jb-latest-evidence/source/b527f49a5e8c15f6e2ce85af18515ae04050815b58ee6ed6b36ec2e201daa55e.gz",
+        "originalDigest": "sha256:b527f49a5e8c15f6e2ce85af18515ae04050815b58ee6ed6b36ec2e201daa55e",
+        "storedDigest": "sha256:8d19636651ca6f8b080616a6c6d2ffdd026063eae56a8f2ea937b2f71a2887c0",
+        "originalBytes": 166701
+      }
+    },
+    {
+      "commit": "cbd532e51f53deb3c5f4470627f9ad7c86a41d3e",
+      "file": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/Verify01HostJourney.java",
+      "digest": "sha256:08316af760656e9ac58157027975c836701257844ae1e6d8961c3109a943a3fc",
+      "startLine": 188,
+      "endLine": 216,
+      "text": "    private JsonArray waitForProtocol(boolean exit) throws Exception {\n        while (System.currentTimeMillis() < deadline) {\n            try (var paths = Files.list(root)) {\n                assertTrue(paths.noneMatch(p -> p.getFileName().toString().startsWith(\"capture-error-\")),\n                        \"raw protocol observer reported a capture failure\");\n            }\n            try (var paths = Files.list(root)) {\n                for (Path path : paths.filter(p -> p.getFileName().toString().matches(\"protocol-[a-f0-9-]{36}\\\\.jsonl\")).toList()) {\n                    assertTrue(Files.size(path) <= 16 * 1024 * 1024);\n                    String raw = Files.readString(path);\n                    int complete = raw.lastIndexOf('\\n');\n                    if (complete < 0) continue;\n                    JsonArray records = new JsonArray();\n                    for (String line : raw.substring(0, complete).split(\"\\n\")) records.add(JsonParser.parseString(line));\n                    if (!owns(records)) continue;\n                    JsonObject terminal = terminal(records);\n                    if (terminal == null) continue;\n                    if (!exit) return records;\n                    JsonObject last = records.get(records.size()-1).getAsJsonObject();\n                    if (!string(last,\"direction\").equals(\"exit\")) continue;\n                    JsonObject actualExit = last.getAsJsonObject(\"event\");\n                    assertTrue(actualExit.get(\"stdoutDrained\").getAsBoolean(), \"stdout was not drained\");\n                    // Preserve the actual exit, including failures, for the independent importer.\n                    return records;\n                }\n            }\n            Thread.sleep(100);\n        }\n        throw new AssertionError(exit ? \"No actual drained process exit after EOF\" : \"No observed task terminal before deadline\");",
+      "archived": {
+        "path": "windows-jb-latest-evidence/source/08316af760656e9ac58157027975c836701257844ae1e6d8961c3109a943a3fc.gz",
+        "originalDigest": "sha256:08316af760656e9ac58157027975c836701257844ae1e6d8961c3109a943a3fc",
+        "storedDigest": "sha256:d40679a57e022da12c816b7ee791549c1f9d43c32db64fcd0821f2332c6c14b8",
+        "originalBytes": 17553
+      }
+    },
+    {
+      "commit": "cbd532e51f53deb3c5f4470627f9ad7c86a41d3e",
+      "file": "packages/cli/scripts/verify01-native-task-campaign.mjs",
+      "digest": "sha256:3264c1c01cfe7f3b2a87d0ca08b02a157ce783a9fe6de493ae8675f0c61fb24e",
+      "startLine": 345,
+      "endLine": 375,
+      "text": "          .map((file) => json(file).error.message)\n          .join(\"; \") || \"VSCode initial/UI/restart validation failed\",\n  };\n}\n\nexport function protocolStream(captureDir) {\n  const protocol = path.join(captureDir, \"protocol.json\");\n  if (fs.existsSync(protocol))\n    return (\n      json(protocol)\n        .filter((row) => row.direction === \"output\")\n        .map((row) => JSON.stringify(row.event))\n        .join(\"\\n\") + \"\\n\"\n    );\n  const files = fs\n    .readdirSync(captureDir)\n    .filter(\n      (f) =>\n        f.endsWith(\".ndjson\") &&\n        f !== \"ui.ndjson\" &&\n        f !== \"cdp-discovery.ndjson\",\n    );\n  assert.equal(files.length, 1, \"exactly one raw protocol generation required\");\n  return (\n    fs\n      .readFileSync(path.join(captureDir, files[0]), \"utf8\")\n      .split(/\\r?\\n/u)\n      .filter(Boolean)\n      .map(JSON.parse)\n      .filter((row) => row.direction === \"output\")\n      .map((row) => JSON.stringify(row.event))",
+      "archived": {
+        "path": "windows-jb-latest-evidence/source/3264c1c01cfe7f3b2a87d0ca08b02a157ce783a9fe6de493ae8675f0c61fb24e.gz",
+        "originalDigest": "sha256:3264c1c01cfe7f3b2a87d0ca08b02a157ce783a9fe6de493ae8675f0c61fb24e",
+        "storedDigest": "sha256:4a6d792bc1ef11e72efc4dc5d4ded5ea4d6e06563b34b90a2841215fa4790905",
+        "originalBytes": 33303
+      }
+    }
+  ],
+  "limitations": [
+    "Missing stderr cannot be reconstructed from archived bytes. Review identifies exact failure boundary and diagnostic gap, not unsupported startup root cause.",
+    "Inventory is a derived ZIP-member listing; all other evidence entries are original member bytes.",
+    "prepare.log contains non-UTF8 bytes; digest covers original bytes and quoted status was read with replacement decoding."
+  ]
+}

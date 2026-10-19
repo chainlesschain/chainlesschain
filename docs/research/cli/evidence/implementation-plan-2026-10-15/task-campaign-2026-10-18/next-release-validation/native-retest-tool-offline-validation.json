@@ -1,0 +1,73 @@
+{
+  "schema": "chainlesschain.native-retest-tool-validation/v1",
+  "recordedAt": "2026-10-18T07:11:01.096145+00:00",
+  "status": "PASSED_OFFLINE",
+  "sourceFiles": {
+    "packages/cli/scripts/verify01-dispatch-native-retest.py": {
+      "digest": "sha256:25a521a014edb802dbbd7d99851abf7a3fa287151f3f003f79865cd5a3f41b42",
+      "bytes": 17568
+    },
+    "packages/cli/scripts/verify01-collect-native-retest.py": {
+      "digest": "sha256:8450590bd3aa5ec1b9830f5c19df08e4c158f5a78faa3f78f051fe8538de680b",
+      "bytes": 19121
+    },
+    "packages/cli/scripts/verify01-read-diagnostic-artifact.py": {
+      "digest": "sha256:123cc80e1ef052239bb04dc61e7d66c799c6571bc3d4b2826361bce0e69f2eaf",
+      "bytes": 4480
+    },
+    "packages/cli/scripts/verify01-package-native-deliveries.py": {
+      "digest": "sha256:494330b2520efecc8028bcacaefb9bd06ec5d670c2c64002f21b1b77a6d27c12",
+      "bytes": 17772
+    },
+    "packages/cli/test-python/test_verify01_dispatch_native_retest.py": {
+      "digest": "sha256:65d5bfef424994d8ce2720c694996e2dcb9f67f6b2d3ebd4e4a9875a0c9b14c4",
+      "bytes": 11580
+    },
+    "packages/cli/test-python/test_verify01_collect_native_retest.py": {
+      "digest": "sha256:821fc132dc92d3748a77f3c78601e7e3de49d1cd8d5c5370970ca8230225b541",
+      "bytes": 3529
+    },
+    "packages/cli/test-python/test_verify01_package_native_deliveries.py": {
+      "digest": "sha256:1fb898835a7554eabbf72d9bbf42e5624d47a1044d2f7d8535788011dc09c775",
+      "bytes": 10254
+    }
+  },
+  "offlineRegressions": {
+    "dispatch": {
+      "passed": 14,
+      "failed": 0
+    },
+    "packageDeliveries": {
+      "passed": 8,
+      "failed": 0
+    },
+    "collection": {
+      "passed": 8,
+      "failed": 0
+    },
+    "total": {
+      "passed": 30,
+      "failed": 0
+    },
+    "execution": "Previously completed in this session; outcomes preserved without repeating the tests."
+  },
+  "migrationChecks": {
+    "pythonAstFilesPassed": 7,
+    "helpEntrypointsPassed": 3,
+    "sharedJournalRoot": "Git common directory parent/.work"
+  },
+  "invariants": [
+    "Shared dispatch journal and exclusive exports across linked worktrees; Git resolution failure has no local fallback.",
+    "No automatic resend after an uncertain dispatch; read-only resolution requires a unique run.",
+    "Exact source SHA, package digests, shard sample coverage and acceptance provenance stay bound.",
+    "Existing accepted bytes and original native failure verdicts remain unchanged.",
+    "Collector keeps absent JSON properties distinct from explicit null and refuses evidence replacement.",
+    "Pack creates a separate exclusive Windows export only after strict complete chain verification."
+  ],
+  "modelRequests": 0,
+  "workflowDispatches": 0,
+  "candidateExecutions": 0,
+  "actualCampaignPackCreated": false,
+  "scope": "Offline tool verification only; no new task acceptance or published artifact changes.",
+  "publishedArtifactSourceUnchanged": "d4065008bb4eff84cfc09f9361f4ae4e9de2140f"
+}

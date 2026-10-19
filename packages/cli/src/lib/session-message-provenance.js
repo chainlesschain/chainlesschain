@@ -26,6 +26,7 @@ export const DURABLE_SYSTEM_MESSAGE_KINDS = Object.freeze({
 
 const DURABLE_KINDS = new Set(Object.values(DURABLE_SYSTEM_MESSAGE_KINDS));
 const RUNTIME_PROVENANCE = new WeakMap();
+const RUNTIME_ONLY_MESSAGES = new WeakSet();
 const INVALID_DATA = Symbol("invalid-session-message-data");
 const MAX_DATA_DEPTH = 100;
 const MAX_DATA_NODES = 100_000;
@@ -227,11 +228,11 @@ function validWireTag(value) {
   const snapshot = plainDataSnapshot(value);
   return Boolean(
     snapshot &&
-    snapshot.keys.length === 2 &&
-    snapshot.keys.includes("schema") &&
-    snapshot.keys.includes("kind") &&
-    dataValue(snapshot, "schema") === SESSION_MESSAGE_PROVENANCE_SCHEMA &&
-    DURABLE_KINDS.has(dataValue(snapshot, "kind")),
+      snapshot.keys.length === 2 &&
+      snapshot.keys.includes("schema") &&
+      snapshot.keys.includes("kind") &&
+      dataValue(snapshot, "schema") === SESSION_MESSAGE_PROVENANCE_SCHEMA &&
+      DURABLE_KINDS.has(dataValue(snapshot, "kind")),
   );
 }
 
@@ -246,6 +247,23 @@ export function markDurableSystemMessage(message, kind) {
     throw new TypeError("Only system messages can carry durable provenance");
   }
   return attachRuntimeTag(message, canonicalTag(kind));
+}
+
+// Only host-created retry/result-delivery messages can be excluded from replay.
+// There is deliberately no wire tag: a provider field or a serialized copy
+// cannot suppress a real user message from authority comparison.
+export function markRuntimeOnlySessionMessage(message) {
+  const snapshot = plainDataSnapshot(message);
+  if (!snapshot || !["user", "assistant"].includes(dataValue(snapshot, "role")))
+    throw new TypeError(
+      "Runtime-only nudges must be user or assistant messages",
+    );
+  RUNTIME_ONLY_MESSAGES.add(message);
+  return message;
+}
+
+export function isRuntimeOnlySessionMessage(message) {
+  return RUNTIME_ONLY_MESSAGES.has(message);
 }
 
 export function getDurableSystemMessageProvenance(message) {
@@ -422,6 +440,7 @@ export function projectCanonicalResumeMessages(messages, options = {}) {
       invalid("Canonical resume message must contain JSON-safe data");
       continue;
     }
+    if (isRuntimeOnlySessionMessage(raw)) continue;
     if (role !== "system") {
       projected.push(clean);
     } else if (runtimeTag) {

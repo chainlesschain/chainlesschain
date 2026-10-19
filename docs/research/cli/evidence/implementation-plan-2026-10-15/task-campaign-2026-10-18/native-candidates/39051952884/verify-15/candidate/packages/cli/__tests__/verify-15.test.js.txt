@@ -1,0 +1,157 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { describe, expect, it } from "vitest";
+import {
+  SCOPED_PERMISSION_ERROR_CODES,
+  ScopedPermissionStore,
+} from "../src/lib/scoped-permission-store.js";
+
+const MAX = Number.MAX_SAFE_INTEGER;
+
+let root;
+let workspace;
+let stateFile;
+let now;
+
+function makeStore(options = {}) {
+  return new ScopedPermissionStore({
+    cwd: workspace,
+    filePath: stateFile,
+    now: () => now,
+    randomId: () => "spr_0123456789abcdef0123456789abcdef",
+    ...options,
+  });
+}
+
+function readState() {
+  return JSON.parse(fs.readFileSync(stateFile, "utf8"));
+}
+
+describe("scoped permission generation/revision overflow rejection", () => {
+  it("setup: temp workspace and state file", () => {
+    root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-verify-15-"));
+    workspace = path.join(root, "workspace");
+    fs.mkdirSync(workspace, { recursive: true });
+    stateFile = path.join(root, "security", "rules.json");
+    now = Date.UTC(2026, 7, 15, 0, 0, 0);
+  });
+
+  it("add fails when generation is exhausted and preserves the old rule", () => {
+    const s = makeStore();
+    s.add({ decision: "allow", rule: "Read", expiresAt: now + 60_000 });
+    const state = readState();
+    state.generation = MAX;
+    fs.writeFileSync(stateFile, JSON.stringify(state));
+
+    const second = makeStore({
+      randomId: () => "spr_fedcba9876543210fedcba9876543210",
+    });
+    expect(() =>
+      second.add({ decision: "deny", rule: "Bash", expiresAt: now + 60_000 }),
+    ).toThrow(
+      expect.objectContaining({ code: SCOPED_PERMISSION_ERROR_CODES.INVALID }),
+    );
+
+    const after = readState();
+    expect(after.generation).toBe(MAX);
+    expect(after.rules).toHaveLength(1);
+    expect(after.rules[0].rule).toBe("Read");
+    expect(after.rules[0].status).toBeUndefined();
+  });
+
+  it("add overflow leaves listed permissions unchanged", () => {
+    const s = makeStore();
+    s.add({ decision: "allow", rule: "Read", expiresAt: now + 60_000 });
+    const state = readState();
+    state.generation = MAX;
+    fs.writeFileSync(stateFile, JSON.stringify(state));
+
+    const second = makeStore({
+      randomId: () => "spr_fedcba9876543210fedcba9876543210",
+    });
+    expect(() =>
+      second.add({ decision: "deny", rule: "Bash", expiresAt: now + 60_000 }),
+    ).toThrow(
+      expect.objectContaining({ code: SCOPED_PERMISSION_ERROR_CODES.INVALID }),
+    );
+
+    const listed = second.list();
+    expect(listed.generation).toBe(MAX);
+    expect(listed.rules).toHaveLength(1);
+    expect(listed.rules[0]).toMatchObject({ rule: "Read", status: "active" });
+  });
+
+  it("revoke fails when the record revision is exhausted and keeps the rule active", () => {
+    const s = makeStore();
+    const created = s.add({
+      decision: "allow",
+      rule: "Read",
+      expiresAt: now + 60_000,
+    });
+    const state = readState();
+    state.rules[0].revision = MAX;
+    state.generation = MAX;
+    fs.writeFileSync(stateFile, JSON.stringify(state));
+
+    expect(() =>
+      s.revoke({ id: created.id, expectedRevision: MAX }),
+    ).toThrow(
+      expect.objectContaining({ code: SCOPED_PERMISSION_ERROR_CODES.INVALID }),
+    );
+
+    const after = readState();
+    expect(after.rules[0].revision).toBe(MAX);
+    expect(after.rules[0].revokedAt).toBeNull();
+    expect(after.generation).toBe(MAX);
+  });
+
+  it("revoke overflow does not loosen the persisted permission", () => {
+    const s = makeStore();
+    const created = s.add({
+      decision: "allow",
+      rule: "Read",
+      expiresAt: now + 60_000,
+    });
+    const state = readState();
+    state.rules[0].revision = MAX;
+    state.generation = MAX;
+    fs.writeFileSync(stateFile, JSON.stringify(state));
+
+    expect(() =>
+      s.revoke({ id: created.id, expectedRevision: MAX }),
+    ).toThrow(
+      expect.objectContaining({ code: SCOPED_PERMISSION_ERROR_CODES.INVALID }),
+    );
+
+    const listed = s.list();
+    expect(listed.generation).toBe(MAX);
+    expect(listed.rules[0]).toMatchObject({
+      rule: "Read",
+      revision: MAX,
+      status: "active",
+    });
+  });
+
+  it("positive control: sub-maximum generation still advances then overflow blocks", () => {
+    const s = makeStore();
+    s.add({ decision: "allow", rule: "Read", expiresAt: now + 60_000 });
+    const state = readState();
+    state.generation = MAX - 1;
+    fs.writeFileSync(stateFile, JSON.stringify(state));
+
+    const second = makeStore({
+      randomId: () => "spr_fedcba9876543210fedcba9876543210",
+    });
+    second.add({ decision: "deny", rule: "Bash", expiresAt: now + 60_000 });
+    expect(second.list().generation).toBe(MAX);
+
+    expect(() =>
+      second.add({ decision: "ask", rule: "Write", expiresAt: now + 60_000 }),
+    ).toThrow(
+      expect.objectContaining({ code: SCOPED_PERMISSION_ERROR_CODES.INVALID }),
+    );
+    expect(second.list().rules).toHaveLength(2);
+    expect(second.list().generation).toBe(MAX);
+  });
+});

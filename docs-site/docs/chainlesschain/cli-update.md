@@ -1,16 +1,16 @@
 # 版本更新 (update)
 
-> 2026-10-18：当前公开版本为 CLI **0.166.105**、Open VSX **0.37.150**、JetBrains **0.4.167**。下一候选为 CLI **0.166.106**、VS Code **0.37.151**、JetBrains **0.4.168**，候选插件均推荐 CLI `.106`；候选尚未发布，须通过最终提交完整矩阵、CLI OIDC 发布及公开制品回读，再发行 IDE 并补测未合格项。公开 `.105` 轮已严格完成生成 **20/20**、验收 **20/20**，新增候选合格 **6** 项、全流程通过 **6** 项；累计合格 **31/45**（普通任务 **26/36**、首次使用 **5/9**），剩余 **14** 项。原 25 份合格产物按字节复用；跨版本累计结果不等于单轮 **45/45** 全部成功。候选 `.106/.151/.168` 尚未发布、尚未补测。Microsoft Marketplace 未发布。
+> 2026-10-19：当前已核验公开版本为 CLI **0.166.106**、Open VSX **0.37.151**、JetBrains **0.4.168**，插件配对 CLI `.106`。本轮 **14/14** 项的生成与独立验收记录均已返回，仅 **first-run-win32-jetbrains** 新增合格交付及全流程通过；累计 **32/45**（普通 **26/36**、首次 **6/9**），剩余 **13** 项。记录返回不代表 14 项全部通过，跨版本累计不等于同一版本单轮成功率。下一源码候选 CLI **0.166.107**、VS Code **0.37.152**、JetBrains **0.4.169** 尚未发布。候选子包 Session Core **0.3.20**、PDH **0.4.66** 的当前公开版本分别仍为 **0.3.19**、**0.4.65**；PDH 锁定 `mailparser@3.9.45`，Session Core 增加 ACL 进度诊断，并在首个 cmdlet 前将模块搜索限定为当前 PowerShell 进程的内置 `$PSHOME/Modules`，保持 ACL 检查、遍历、安全边界、超时和重试不变。Windows CI 配对样本支持此优化，但未复现原始 60 秒超时，该案例的公开包验收仍待完成，不能宣称所有启动超时已修复。须通过最终精确提交的 Linux/Windows/macOS 正式矩阵（CLI CI 与 CLI Strict Sandbox 均须全过），按 GitHub Actions OIDC 子包发布及核验 → CLI 发布及公开回读 → IDE 发布 → 未合格项补测执行。Microsoft Marketplace 未发布。
 
 CLI npm 包升级使用：
 
 ```bash
-npm i -g chainlesschain@0.166.105 --registry https://registry.npmjs.org
+npm i -g chainlesschain@0.166.106 --registry https://registry.npmjs.org
 cc --version
 cc doctor
 ```
 
-配套 IDE 仍在发布，公开核验后再升级。`cc update` 的其他下载渠道与 CLI npm 版本分别核验。详见[本轮升级指南](./cli-ide-update-2026-10-18)。
+配套 Open VSX `.151` 与 JetBrains `.168` 已公开核验，可升级后重启宿主并运行 Doctor；下一候选 `.107/.152/.169` 尚未发布。`cc update` 的其他下载渠道与 CLI npm 版本分别核验。详见[本轮升级指南](./cli-ide-update-2026-10-18)。
 
 > 检查 ChainlessChain 新版本并下载更新。支持多发布渠道和仅检查模式。
 

@@ -1,0 +1,149 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { randomUUID } from "node:crypto";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import {
+  ProcessOwnershipJournal,
+  PROCESS_OWNERSHIP_PENDING,
+  PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE,
+} from "../src/lib/process-execution-broker/process-ownership-journal.js";
+
+// Independent regression coverage for verify-17: a corrupted journal must be
+// reported UNAVAILABLE (never treated as idle/available), while a legitimate
+// pending record retained by an owner must survive across fresh instances.
+describe.skipIf(process.platform !== "linux")(
+  "verify-17 durable process ownership journal contract",
+  () => {
+    let root;
+    let directory;
+    let journal;
+
+    beforeEach(() => {
+      root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-verify17-"));
+      directory = path.join(root, "authority");
+      journal = () => path.join(directory, "journal.json");
+    });
+
+    afterEach(() => {
+      fs.rmSync(root, { recursive: true, force: true });
+    });
+
+    // Positive control: an absent / empty journal is genuinely idle, so a fresh
+    // instance is allowed and reports no pending work. This is the contrast to
+    // every corrupted-journal case below.
+    it("treats an absent journal as idle on a fresh instance", () => {
+      const peer = new ProcessOwnershipJournal(directory);
+      expect(fs.existsSync(directory)).toBe(false);
+      expect(() => peer.assertAvailable()).not.toThrow();
+      expect(peer.inspect()).toEqual({
+        pendingExecutionIds: [],
+        blocked: false,
+      });
+    });
+
+    // A corrupt JSON payload must throw UNAVAILABLE and must not be read as an
+    // empty journal, and the peer must stay faulted on later calls.
+    it("reports a malformed JSON journal as unavailable, not idle", () => {
+      const owner = new ProcessOwnershipJournal(directory);
+      owner.prepare(randomUUID()).settle();
+      fs.writeFileSync(journal(), "{");
+      const peer = new ProcessOwnershipJournal(directory);
+      expect(() => peer.assertAvailable()).toThrow(
+        expect.objectContaining({ code: PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE }),
+      );
+      expect(() => peer.inspect()).toThrow(
+        expect.objectContaining({ code: PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE }),
+      );
+      expect(() => peer.assertAvailable()).toThrow(
+        expect.objectContaining({ code: PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE }),
+      );
+    });
+
+    // Structurally valid JSON whose schema marker is wrong must not be treated
+    // as an empty/available journal.
+    it("reports a schema-mismatched journal as unavailable, not idle", () => {
+      const owner = new ProcessOwnershipJournal(directory);
+      owner.prepare(randomUUID()).settle();
+      fs.writeFileSync(
+        journal(),
+        '{"schema":"old","pending":[]}',
+      );
+      const peer = new ProcessOwnershipJournal(directory);
+      expect(() => peer.assertAvailable()).toThrow(
+        expect.objectContaining({ code: PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE }),
+      );
+    });
+
+    // A structurally valid journal carrying a duplicate executionId violates
+    // entry validation and must not be treated as idle.
+    it("reports a duplicate-executionId journal as unavailable, not idle", () => {
+      const owner = new ProcessOwnershipJournal(directory);
+      owner.prepare(randomUUID()).settle();
+      const id = randomUUID();
+      fs.writeFileSync(
+        journal(),
+        JSON.stringify({
+          schema: "chainlesschain.process-ownership-journal/v1",
+          pending: [
+            { executionId: id, ownerPid: 1, token: randomUUID() },
+            { executionId: id, ownerPid: 2, token: randomUUID() },
+          ],
+        }),
+      );
+      const peer = new ProcessOwnershipJournal(directory);
+      expect(() => peer.assertAvailable()).toThrow(
+        expect.objectContaining({ code: PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE }),
+      );
+    });
+
+    // A structurally valid journal with a non-positive / non-integer ownerPid is
+    // an invalid record and must not be treated as idle.
+    it("reports an invalid ownerPid journal as unavailable, not idle", () => {
+      const owner = new ProcessOwnershipJournal(directory);
+      owner.prepare(randomUUID()).settle();
+      fs.writeFileSync(
+        journal(),
+        JSON.stringify({
+          schema: "chainlesschain.process-ownership-journal/v1",
+          pending: [
+            { executionId: randomUUID(), ownerPid: 0, token: randomUUID() },
+          ],
+        }),
+      );
+      const peer = new ProcessOwnershipJournal(directory);
+      expect(() => peer.assertAvailable()).toThrow(
+        expect.objectContaining({ code: PROCESS_OWNERSHIP_JOURNAL_UNAVAILABLE }),
+      );
+    });
+
+    // A valid pending record retained by an owner survives across fresh
+    // instances: a new instance must be fenced as PENDING until real recovery,
+    // and the durable record must remain intact.
+    it("preserves a retained pending record across fresh instances", () => {
+      const owner = new ProcessOwnershipJournal(directory);
+      const id = randomUUID();
+      const lease = owner.prepare(id);
+      lease.retain();
+      const before = JSON.parse(fs.readFileSync(journal(), "utf8"));
+      expect(before.pending).toHaveLength(1);
+      expect(before.pending[0].executionId).toBe(id);
+
+      const peer = new ProcessOwnershipJournal(directory);
+      expect(() => peer.assertAvailable()).toThrow(
+        expect.objectContaining({ code: PROCESS_OWNERSHIP_PENDING }),
+      );
+      expect(() => peer.prepare(randomUUID())).toThrow(
+        expect.objectContaining({ code: PROCESS_OWNERSHIP_PENDING }),
+      );
+      expect(peer.inspect().blocked).toBe(true);
+      expect(peer.inspect().pendingExecutionIds).toContain(id);
+
+      // The durable record is not erased by the fresh instance merely reading it.
+      const after = JSON.parse(fs.readFileSync(journal(), "utf8"));
+      expect(after.pending).toHaveLength(1);
+      expect(after.pending[0].executionId).toBe(id);
+      expect(after.pending[0].token).toBe(before.pending[0].token);
+    });
+  },
+);

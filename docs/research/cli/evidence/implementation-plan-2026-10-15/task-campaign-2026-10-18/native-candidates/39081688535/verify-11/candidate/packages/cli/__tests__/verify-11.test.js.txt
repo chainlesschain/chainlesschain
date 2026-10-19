@@ -1,0 +1,220 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  BackgroundInteractionJournal,
+  _deps,
+  classifyLateBackgroundInteractionSettlement,
+  loadBackgroundInteractionJournal,
+  updateBackgroundInteractionJournal,
+} from "../src/lib/background-interaction-journal.js";
+
+const AGENT = "verify-11-agent";
+const bindingFor = (sessionId, toolUseId, turnId = "turn-1") => ({
+  backgroundAgentId: AGENT,
+  sessionId,
+  turnId,
+  toolUseId,
+  sequence: 1,
+});
+
+describe("verify-11 problem persistent-record attribution", () => {
+  let originalAppend;
+  let originalPresence;
+  let originalReadVerified;
+  let events;
+
+  beforeEach(() => {
+    originalAppend = _deps.appendEventWithVerifiedProjection;
+    originalPresence = _deps.getSessionPresence;
+    originalReadVerified = _deps.readVerifiedEvents;
+    events = [{ type: "session_start", data: {} }];
+    _deps.appendEventWithVerifiedProjection = vi.fn(
+      (sessionId, type, data, { createProjection, validateProjection }) => {
+        const projection = createProjection();
+        for (const event of events) projection.accept(structuredClone(event));
+        validateProjection(projection.finish(), {
+          headHash: null,
+          eventCount: events.length,
+        });
+        events.push({ sessionId, type, data: structuredClone(data) });
+        return { hash: "mock-hash" };
+      },
+    );
+    _deps.readVerifiedEvents = vi.fn(() =>
+      events.map(({ type, data }) => ({ type, data: structuredClone(data) })),
+    );
+    _deps.getSessionPresence = vi.fn(() => "present");
+  });
+
+  afterEach(() => {
+    _deps.appendEventWithVerifiedProjection = originalAppend;
+    _deps.getSessionPresence = originalPresence;
+    _deps.readVerifiedEvents = originalReadVerified;
+  });
+
+  it("records the same request name independently across sessions in the durable journal", () => {
+    let journalA = new BackgroundInteractionJournal({
+      backgroundAgentId: AGENT,
+      sessionId: "session-a",
+      now: () => 100,
+    });
+    journalA = updateBackgroundInteractionJournal(
+      "session-a",
+      journalA,
+      (draft) =>
+        draft.recordPending({
+          requestId: "question-deploy",
+          binding: bindingFor("session-a", "tool-a"),
+          payload: { question: "Deploy?" },
+        }),
+    ).journal;
+    expect(journalA.get("question-deploy").status).toBe("pending");
+    const persisted = events.at(-1).data.records[0];
+    expect(persisted.requestId).toBe("question-deploy");
+    expect(persisted.binding.sessionId).toBe("session-a");
+
+    journalA = updateBackgroundInteractionJournal(
+      "session-a",
+      journalA,
+      (draft) =>
+        draft.settle("question-deploy", bindingFor("session-a", "tool-a"), {
+          status: "resolved",
+          answer: "yes",
+        }),
+      { now: () => 200 },
+    ).journal;
+    const reloaded = loadBackgroundInteractionJournal(
+      "session-a",
+      AGENT,
+    );
+    expect(reloaded.get("question-deploy")).toMatchObject({
+      status: "resolved",
+      settledAt: 200,
+      settlement: { status: "resolved", answer: "yes", error: null },
+    });
+  });
+
+  it("rejects recording a request bound to a different session", () => {
+    const journal = new BackgroundInteractionJournal({
+      backgroundAgentId: AGENT,
+      sessionId: "session-a",
+    });
+    expect(() =>
+      updateBackgroundInteractionJournal("session-a", journal, (draft) =>
+        draft.recordPending({
+          requestId: "question-deploy",
+          binding: bindingFor("session-b", "tool-b"),
+          payload: { question: "Deploy?" },
+        }),
+      ),
+    ).toThrow(/complete interaction binding/);
+    expect(_deps.appendEventWithVerifiedProjection).not.toHaveBeenCalled();
+  });
+
+  it("keeps same-name requests isolated per session and never rebuilds execution for a settled one", () => {
+    const journalA = new BackgroundInteractionJournal({
+      backgroundAgentId: AGENT,
+      sessionId: "session-a",
+      now: () => 100,
+    });
+    const journalB = new BackgroundInteractionJournal({
+      backgroundAgentId: AGENT,
+      sessionId: "session-b",
+      now: () => 100,
+    });
+
+    journalA.recordPending({
+      requestId: "question-deploy",
+      binding: bindingFor("session-a", "tool-a"),
+      payload: { question: "Deploy?" },
+    });
+    journalB.recordPending({
+      requestId: "question-deploy",
+      binding: bindingFor("session-b", "tool-b"),
+      payload: { question: "Ship it?" },
+    });
+
+    expect(journalA.get("question-deploy").payload.question).toBe("Deploy?");
+    expect(journalB.get("question-deploy").payload.question).toBe("Ship it?");
+    expect(journalA.get("question-deploy").binding.sessionId).toBe("session-a");
+    expect(journalB.get("question-deploy").binding.sessionId).toBe("session-b");
+
+    const settled = journalA.settle(
+      "question-deploy",
+      bindingFor("session-a", "tool-a"),
+      { status: "resolved", answer: "yes" },
+    );
+    expect(settled.applied).toBe(true);
+    expect(journalA.get("question-deploy").status).toBe("resolved");
+    expect(journalB.get("question-deploy").status).toBe("pending");
+    expect(journalA.pending()).toEqual([]);
+    expect(journalB.pending()).toHaveLength(1);
+  });
+
+  it("does not let a same-named re-entry corrupt or overwrite the recorded value", () => {
+    const journal = new BackgroundInteractionJournal({
+      backgroundAgentId: AGENT,
+      sessionId: "session-a",
+    });
+    journal.recordPending({
+      requestId: "question-deploy",
+      binding: bindingFor("session-a", "tool-a"),
+      payload: { question: "Deploy?" },
+    });
+    const noop = journal.recordPending({
+      requestId: "question-deploy",
+      binding: bindingFor("session-a", "tool-a"),
+      payload: { question: "Deploy?" },
+    });
+    expect(noop.applied).toBe(false);
+    expect(journal.get("question-deploy").payload.question).toBe("Deploy?");
+    expect(() =>
+      journal.recordPending({
+        requestId: "question-deploy",
+        binding: bindingFor("session-a", "tool-a"),
+        payload: { question: "Deploy NOW?" },
+      }),
+    ).toThrow(/replayed with different binding or payload/);
+    expect(journal.get("question-deploy").payload.question).toBe("Deploy?");
+  });
+
+  it("classifies a settled record as a non-redeliverable duplicate and leaves pending live", () => {
+    const journal = new BackgroundInteractionJournal({
+      backgroundAgentId: AGENT,
+      sessionId: "session-a",
+    });
+    journal.recordPending({
+      requestId: "question-deploy",
+      binding: bindingFor("session-a", "tool-a"),
+      payload: { question: "Deploy?" },
+    });
+    const live = classifyLateBackgroundInteractionSettlement(
+      journal,
+      "question-deploy",
+      bindingFor("session-a", "tool-a"),
+      { status: "resolved", answer: "yes" },
+    );
+    expect(live).toMatchObject({
+      accepted: false,
+      duplicate: false,
+      delivered: false,
+      reason: "interaction_no_live_child",
+    });
+
+    journal.settle("question-deploy", bindingFor("session-a", "tool-a"), {
+      status: "resolved",
+      answer: "yes",
+    });
+    const replay = classifyLateBackgroundInteractionSettlement(
+      journal,
+      "question-deploy",
+      bindingFor("session-a", "tool-a"),
+      { status: "resolved", answer: "yes" },
+    );
+    expect(replay).toEqual({
+      accepted: true,
+      duplicate: true,
+      delivered: false,
+    });
+    expect(journal.get("question-deploy").status).toBe("resolved");
+  });
+});

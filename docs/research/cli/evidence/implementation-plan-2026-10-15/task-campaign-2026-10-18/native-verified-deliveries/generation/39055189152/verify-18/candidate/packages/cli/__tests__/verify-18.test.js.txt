@@ -1,0 +1,101 @@
+import { EventEmitter } from "node:events";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const SOURCE =
+  "../src/lib/process-execution-broker/process-ownership-quarantine.js";
+
+beforeEach(() => vi.resetModules());
+
+function child(pid = 456) {
+  return Object.assign(new EventEmitter(), {
+    pid,
+    ownedProcessTreeClosed: new Promise(() => {}),
+  });
+}
+
+function lease() {
+  return { retain: vi.fn(), settle: vi.fn() };
+}
+
+function lostOwnerError() {
+  return Object.assign(new Error("supervisor unreachable"), {
+    code: "EXTERNAL_AGENT_CLEANUP_UNCONFIRMED",
+  });
+}
+
+describe("verify-18: supervisor loss blocks later execution; root exit is not tree exit", () => {
+  it("blocks subsequent execution after the supervisor is lost", async () => {
+    const ledger = await import(SOURCE);
+    const proc = child();
+    ledger.observeProcessOwnership(proc, "lost");
+    proc.ownedProcessTreeEvidence = { cleanup: { confirmed: false } };
+    proc.emit("error", lostOwnerError());
+    const status = ledger.getProcessOwnershipStatus();
+    expect(status.blocked).toBe(true);
+    expect(status.unresolvedExecutionIds).toEqual(["lost"]);
+    expect(() => ledger.assertProcessOwnershipAvailable()).toThrow(
+      expect.objectContaining({
+        code: ledger.PROCESS_OWNERSHIP_UNCONFIRMED,
+        recoveryRequired: true,
+        executionStarted: false,
+      }),
+    );
+  });
+
+  it("does not treat root process disappearance as complete tree exit", async () => {
+    const ledger = await import(SOURCE);
+    const proc = child();
+    const l = lease();
+    ledger.observeProcessOwnership(proc, "root-gone", l);
+    // supervisor becomes unreachable before the tree cleanup is confirmed
+    proc.ownedProcessTreeEvidence = { cleanup: { confirmed: false } };
+    proc.emit("error", lostOwnerError());
+    expect(ledger.getProcessOwnershipStatus().blocked).toBe(true);
+    expect(l.retain).toHaveBeenCalled();
+    // the root process disappears (close) — must not settle an unconfirmed tree
+    proc.emit("close", 0);
+    expect(l.settle).not.toHaveBeenCalled();
+    expect(ledger.getProcessOwnershipStatus().blocked).toBe(true);
+    expect(() => ledger.assertProcessOwnershipAvailable()).toThrow(
+      expect.objectContaining({ code: ledger.PROCESS_OWNERSHIP_UNCONFIRMED }),
+    );
+  });
+
+  it("root close alone is not enough to settle an unconfirmed tree, which still blocks later runs", async () => {
+    const ledger = await import(SOURCE);
+    const proc = child();
+    const l = lease();
+    ledger.observeProcessOwnership(proc, "early-close", l);
+    // the root process disappears while cleanup is unconfirmed (no evidence)
+    proc.emit("close", 0);
+    expect(l.settle).not.toHaveBeenCalled();
+    // a later unconfirmed cleanup must still establish the block
+    proc.ownedProcessTreeEvidence = { cleanup: { confirmed: false } };
+    proc.emit("cleanup:unconfirmed", proc.ownedProcessTreeEvidence);
+    expect(ledger.getProcessOwnershipStatus().blocked).toBe(true);
+    expect(() => ledger.assertProcessOwnershipAvailable()).toThrow(
+      expect.objectContaining({ code: ledger.PROCESS_OWNERSHIP_UNCONFIRMED }),
+    );
+  });
+
+  it("settles and does not block once tree cleanup is confirmed on close", async () => {
+    const ledger = await import(SOURCE);
+    const proc = child();
+    const l = lease();
+    ledger.observeProcessOwnership(proc, "confirmed", l);
+    proc.ownedProcessTreeEvidence = { cleanup: { confirmed: true } };
+    proc.emit("close", 0);
+    expect(l.settle).toHaveBeenCalledTimes(1);
+    expect(ledger.getProcessOwnershipStatus().blocked).toBe(false);
+    expect(() => ledger.assertProcessOwnershipAvailable()).not.toThrow();
+  });
+
+  it("does not confuse ordinary signal errors with lost ownership", async () => {
+    const ledger = await import(SOURCE);
+    const proc = child();
+    ledger.observeProcessOwnership(proc, "signal");
+    proc.emit("error", new Error("signal failed"));
+    expect(ledger.getProcessOwnershipStatus().blocked).toBe(false);
+    expect(() => ledger.assertProcessOwnershipAvailable()).not.toThrow();
+  });
+});

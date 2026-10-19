@@ -1,0 +1,115 @@
+import { describe, expect, it } from "vitest";
+import { resolveModelCapabilityProfile } from "../src/lib/model-capabilities.js";
+import { lookupRate } from "../src/lib/llm-pricing.js";
+
+// Isolation between the official endpoint and a same-named custom gateway:
+// the same model string must not carry official authentication (documented
+// window, official sources, native protocol) into a custom endpoint profile,
+// and unknown windows must remain unknown rather than being invented.
+
+describe("official endpoint vs same-named custom gateway isolation", () => {
+  it("grants official authentication only at the official endpoint", () => {
+    const profile = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-4o",
+      baseUrl: "https://api.openai.com/v1",
+    });
+    expect(profile).toMatchObject({
+      contextWindowTokens: 128000,
+      windowSource: "official-model-docs",
+      windowAssumed: false,
+      runtimeProtocol: "chat-completions",
+      advertisedMaxOutputTokens: 16384,
+    });
+    expect(profile.sources).toContain(
+      "https://developers.openai.com/api/docs/models/gpt-4o",
+    );
+  });
+
+  it("does not share official authentication into the same-named custom gateway", () => {
+    const profile = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-4o",
+      baseUrl: "https://gateway.example/v1",
+    });
+    expect(profile).toMatchObject({
+      contextWindowTokens: 128000,
+      windowAssumed: true,
+      advertisedMaxOutputTokens: null,
+      sources: [],
+    });
+    expect(profile.windowSource).not.toBe("official-model-docs");
+  });
+
+  it("keeps official and custom profiles for the same name strictly separate", () => {
+    const official = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-6-astra",
+      baseUrl: "https://api.openai.com/v1",
+    });
+    const custom = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-6-astra",
+      baseUrl: "https://gateway.example/v1",
+    });
+    expect(official).toMatchObject({
+      contextWindowTokens: 1050000,
+      windowAssumed: false,
+      runtimeProtocol: "openai-responses",
+    });
+    expect(custom).toMatchObject({
+      contextWindowTokens: 128000,
+      windowAssumed: true,
+      runtimeProtocol: "chat-completions",
+    });
+    expect(custom.sources).toEqual([]);
+    expect(custom.windowSource).not.toBe(official.windowSource);
+  });
+
+  it("leaves an unknown window unknown at the official endpoint", () => {
+    const profile = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "gpt-4o-customized-future",
+      baseUrl: "https://api.openai.com/v1",
+    });
+    expect(profile).toMatchObject({
+      contextWindowTokens: 128000,
+      windowSource: "provider-default",
+      windowAssumed: true,
+      sources: [],
+    });
+    expect(lookupRate("openai", "gpt-4o-customized-future")).toBeNull();
+  });
+
+  it("leaves an unknown window unknown at a custom gateway", () => {
+    const profile = resolveModelCapabilityProfile({
+      provider: "openai",
+      model: "internal-proxy-model",
+      baseUrl: "https://gateway.example/v1",
+    });
+    expect(profile).toMatchObject({
+      contextWindowTokens: 128000,
+      windowSource: "provider-default",
+      windowAssumed: true,
+      advertisedMaxOutputTokens: null,
+      sources: [],
+    });
+    expect(lookupRate("openai", "internal-proxy-model")).toBeNull();
+  });
+
+  it("does not inherit openai official data for the same name at another provider", () => {
+    const profile = resolveModelCapabilityProfile({
+      provider: "ollama",
+      model: "gpt-4o",
+      baseUrl: "http://localhost:11434",
+    });
+    expect(profile).toMatchObject({
+      contextWindowTokens: 32768,
+      windowSource: "provider-default",
+      windowAssumed: true,
+      runtimeProtocol: "ollama-chat",
+    });
+    expect(profile.sources).toEqual([]);
+    expect(lookupRate("ollama", "gpt-4o")).toBeNull();
+  });
+});
