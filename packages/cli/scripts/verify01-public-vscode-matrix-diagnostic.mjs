@@ -17,6 +17,7 @@ import {
   createVolcengineDiagnosticBroker,
 } from "./verify01-volcengine-diagnostic-broker.mjs";
 import { DIAGNOSTIC } from "./verify01-volcengine-task-diagnostic.mjs";
+import { requireUnscopedModelTransport } from "../src/lib/formal-budget-provider-scope.js";
 
 const repository = fileURLToPath(new URL("../../../", import.meta.url));
 const digest = (bytes) =>
@@ -38,11 +39,13 @@ export function publicCliAdapterSource(node, cli) {
   return `const {spawn}=require('node:child_process');const args=process.argv.slice(2);if(args[0]==='agent')args.push(...${JSON.stringify(flags)});const child=spawn(${JSON.stringify(node)},[${JSON.stringify(cli)},...args],{stdio:'inherit',env:process.env});child.on('error',e=>{console.error(e.message);process.exitCode=1});child.on('exit',(code)=>{process.exitCode=code??1});`;
 }
 
-export async function runPublicVSCode({
-  outputDir,
-  confirmLive,
-  key = process.env.VOLCENGINE_API_KEY,
-}) {
+export async function runPublicVSCode(options) {
+  requireUnscopedModelTransport();
+  const {
+    outputDir,
+    confirmLive,
+    key = process.env.VOLCENGINE_API_KEY,
+  } = options;
   assert.equal(confirmLive, true);
   assert.ok(key?.trim());
   assert.ok(ARTIFACT_PROMPT.length <= 512);
