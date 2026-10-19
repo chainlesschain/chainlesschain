@@ -1394,6 +1394,60 @@ export function mutateBackgroundAgentState(id, updater, options = {}) {
   );
 }
 
+export async function mutateBackgroundAgentStateWithLockRetry(
+  id,
+  updater,
+  options = {},
+) {
+  const now = options.now || Date.now;
+  const sleep =
+    options.sleep ||
+    ((milliseconds) =>
+      new Promise((resolvePromise) =>
+        setTimeout(resolvePromise, milliseconds),
+      ));
+  const mutate = options.mutate || mutateBackgroundAgentState;
+  const numericOption = (value, fallback, minimum) => {
+    const number = Number(value);
+    return Number.isFinite(number) ? Math.max(minimum, number) : fallback;
+  };
+  const timeoutMs = numericOption(options.timeoutMs ?? 30_000, 30_000, 0);
+  const lockTimeoutMs = numericOption(
+    options.lockTimeoutMs ?? 10_000,
+    10_000,
+    0,
+  );
+  const initialRetryMs = numericOption(options.initialRetryMs ?? 100, 100, 1);
+  const maxRetryMs = Math.max(
+    initialRetryMs,
+    numericOption(options.maxRetryMs ?? 1_000, 1_000, 1),
+  );
+  const deadline = now() + timeoutMs;
+  let attempts = 0;
+
+  for (;;) {
+    attempts += 1;
+    try {
+      return mutate(id, updater, {
+        timeoutMs: Math.min(lockTimeoutMs, Math.max(0, deadline - now())),
+      });
+    } catch (error) {
+      if (error?.code !== "STATE_LOCK_UNAVAILABLE") throw error;
+      const remainingMs = deadline - now();
+      if (remainingMs <= 0) {
+        error.attempts = attempts;
+        throw error;
+      }
+      const retryMs = Math.min(
+        maxRetryMs,
+        initialRetryMs * 2 ** Math.min(attempts - 1, 4),
+        remainingMs,
+      );
+      await sleep(retryMs);
+    }
+  }
+}
+
 export function writeBackgroundAgentState(state, options = {}) {
   return mutateBackgroundAgentState(state.id, () => state, {
     createIfMissing: options.createIfMissing === true,
