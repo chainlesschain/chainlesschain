@@ -119,7 +119,7 @@ jobs:
             fi
 
             if [ "$DRY_RUN" = "true" ]; then
-              (cd "packages/$pkg_dir" && npm publish --dry-run --access public) || { echo "  ✗ Dry-run failed for $PKG_NAME"; exit 1; }
+              (cd "packages/$pkg_dir" && npm publish --dry-run --access public --loglevel verbose) || { echo "  ✗ Dry-run failed for $PKG_NAME"; exit 1; }
               echo "  ✓ Dry-run OK for $PKG_NAME@$PKG_VER"
             else
               (cd "packages/$pkg_dir" && npm publish --access public --provenance) || { echo "  ✗ Publish FAILED for $PKG_NAME"; exit 1; }
