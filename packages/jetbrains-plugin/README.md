@@ -31,9 +31,11 @@ See the [upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-u
 
 ## Release compatibility
 
-Plugin **0.4.169** is the release target and recommends
-`chainlesschain@0.166.107`. Both await exact-commit validation and publication.
-Publish and verify the CLI through npm OIDC before releasing this plugin.
+Plugin **0.4.169** is the current release candidate and recommends
+`chainlesschain@0.166.107`, which is already public through npm OIDC with
+verified public dependency installation and signed provenance. Plugin
+publication follows its complete exact-commit IDE release gates and public
+artifact readback.
 
 The current public pairing above remains applicable until the
 candidate passes release gates and public artifact readback. Session Core
