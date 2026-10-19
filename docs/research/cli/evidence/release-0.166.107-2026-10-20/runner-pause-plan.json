@@ -1,0 +1,142 @@
+{
+  "schema": "chainlesschain.release-runner-pause/v1",
+  "createdAt": "2026-10-19T21:14:11.362Z",
+  "reason": "User requested release priority: cancel unrelated Actions runs now and rerun them after publishing completes.",
+  "protectedRuns": [
+    39322021242,
+    39326212411,
+    39326213042
+  ],
+  "resumeAfterRelease": true,
+  "status": "paused",
+  "runs": [
+    {
+      "runId": 39322448808,
+      "workflow": "IDE Extensions",
+      "branch": "release/cli-0.166.106",
+      "sha": "d8e4703260e9561a5f36a4e3e5098fb2f6c94158",
+      "event": "workflow_dispatch",
+      "originalStatus": "in_progress",
+      "cancelRequestedAt": "2026-10-19T21:14:13.640Z",
+      "cancelCommandSucceeded": true,
+      "forceCancelRequestedAt": "2026-10-19T21:16:13.242Z",
+      "forceCancelCommandSucceeded": false,
+      "forceCancelError": "Cannot cancel a workflow run that is completed",
+      "confirmedStatus": "completed",
+      "confirmedConclusion": "cancelled",
+      "confirmedAttempt": 1
+    },
+    {
+      "runId": 39322411968,
+      "workflow": "CLI CI",
+      "branch": "release/cli-0.166.106",
+      "sha": "d8e4703260e9561a5f36a4e3e5098fb2f6c94158",
+      "event": "workflow_dispatch",
+      "originalStatus": "queued",
+      "cancelRequestedAt": "2026-10-19T21:14:15.840Z",
+      "cancelCommandSucceeded": true,
+      "forceCancelRequestedAt": "2026-10-19T21:16:15.113Z",
+      "forceCancelCommandSucceeded": false,
+      "forceCancelError": "Cannot cancel a workflow run that is completed",
+      "confirmedStatus": "completed",
+      "confirmedConclusion": "cancelled",
+      "confirmedAttempt": 1
+    },
+    {
+      "runId": 39137971452,
+      "workflow": "CI Tests",
+      "branch": "feature/release106-public-docs-20261018",
+      "sha": "3bf8955c0442455e2cc7b9b7ee40ac563f01aabb",
+      "event": "pull_request",
+      "originalStatus": "in_progress",
+      "cancelRequestedAt": "2026-10-19T21:14:18.115Z",
+      "cancelCommandSucceeded": true,
+      "confirmedStatus": "completed",
+      "confirmedConclusion": "cancelled",
+      "confirmedAttempt": 2
+    },
+    {
+      "runId": 39137971528,
+      "workflow": "Full Test Automation with Diagnostics",
+      "branch": "feature/release106-public-docs-20261018",
+      "sha": "3bf8955c0442455e2cc7b9b7ee40ac563f01aabb",
+      "event": "pull_request",
+      "originalStatus": "in_progress",
+      "cancelRequestedAt": "2026-10-19T21:14:20.227Z",
+      "cancelCommandSucceeded": true,
+      "confirmedStatus": "completed",
+      "confirmedConclusion": "cancelled",
+      "confirmedAttempt": 2,
+      "unexpectedRestart": {
+        "attempt": 3,
+        "observedAt": "2026-10-19T21:20:00.039Z",
+        "cancelRequested": true
+      }
+    },
+    {
+      "runId": 39326212441,
+      "workflow": "Context Memory Kernel CI",
+      "branch": "ide-vscode-v0.37.152",
+      "sha": "94429fada419e8f3e01a794516096ea554120556",
+      "event": "push",
+      "originalStatus": "in_progress",
+      "reason": "Tag-triggered check outside the IDE publishing dependency graph",
+      "cancelRequestedAt": "2026-10-19T21:17:46.439Z",
+      "cancelCommandSucceeded": true
+    },
+    {
+      "runId": 39326212324,
+      "workflow": "Desktop Signed Skill Qualification",
+      "branch": "ide-vscode-v0.37.152",
+      "sha": "94429fada419e8f3e01a794516096ea554120556",
+      "event": "push",
+      "originalStatus": "in_progress",
+      "reason": "Tag-triggered check outside the IDE publishing dependency graph",
+      "cancelRequestedAt": "2026-10-19T21:17:48.481Z",
+      "cancelCommandSucceeded": false,
+      "cancelError": "Cannot cancel a workflow run that is completed"
+    },
+    {
+      "runId": 39326213090,
+      "workflow": "Context Memory Kernel CI",
+      "branch": "ide-jetbrains-v0.4.169",
+      "sha": "94429fada419e8f3e01a794516096ea554120556",
+      "event": "push",
+      "originalStatus": "in_progress",
+      "reason": "Tag-triggered check outside the IDE publishing dependency graph",
+      "cancelRequestedAt": "2026-10-19T21:17:50.821Z",
+      "cancelCommandSucceeded": true
+    },
+    {
+      "runId": 39326213029,
+      "workflow": "Desktop Signed Skill Qualification",
+      "branch": "ide-jetbrains-v0.4.169",
+      "sha": "94429fada419e8f3e01a794516096ea554120556",
+      "event": "push",
+      "originalStatus": "in_progress",
+      "reason": "Tag-triggered check outside the IDE publishing dependency graph",
+      "cancelRequestedAt": "2026-10-19T21:17:52.969Z",
+      "cancelCommandSucceeded": false,
+      "cancelError": "Cannot cancel a workflow run that is completed"
+    }
+  ],
+  "confirmedAt": "2026-10-19T21:17:16.590Z",
+  "disabledWorkflows": [
+    {
+      "workflowId": 219114919,
+      "name": "Full Test Automation with Diagnostics",
+      "path": ".github/workflows/test-automation-full.yml",
+      "originalState": "active",
+      "disableRequestedAt": "2026-10-19T21:19:57.414Z",
+      "disableCommandSucceeded": true
+    },
+    {
+      "workflowId": 218674722,
+      "name": "CI Tests",
+      "path": ".github/workflows/test.yml",
+      "originalState": "active",
+      "disableRequestedAt": "2026-10-19T21:20:00.037Z",
+      "disableCommandSucceeded": true
+    }
+  ]
+}
