@@ -1,10 +1,11 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
-## [0.4.169] - Session Core 0.3.20 and CLI 0.166.107 pairing (2026-10-19)
+## [0.4.169] - Governed goal workflows and CLI 0.166.107 (2026-10-19)
 
-- Recommend CLI 0.166.107 and update the JetBrains release target to 0.4.169.
-- Publish and verify changed CLI child packages before the CLI, then release this plugin after public CLI readback.
-- The .106/.151/.168 task retest remains outstanding; this version does not claim new task acceptance.
+- Add CLI goal snapshots to the plugin manager. Browse goals with a paged picker or enter a standalone goal ID, or select an explicit desktop goal connection, then view bounded text panels from trusted and consented plugins.
+- Add goal-description handoff actions: export a proposal request for native desktop review, or use a separately authorized draft connection to select a native proposal, submit a pending draft, and look up its receipt. Keep the submission record to reconcile an unknown result; task changes still require desktop preview and confirmation.
+- Use `deepseek-v4-1-flash-260910` as the default Volcengine model for new plugin configurations.
+- Pair with CLI `0.166.107` (using Session Core `0.3.20`) for the goal catalog, panel, and draft commands and faster Wiki pruning journal recovery.
 
 ## [0.4.168] - Task-delivery follow-up candidate (2026-10-18)
 

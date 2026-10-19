@@ -7,11 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed - cc CLI 0.166.107: bounded ledger recovery and Session Core 0.3.20 (candidate, 2026-10-19)
+### Added and improved - cc CLI 0.166.107: governed goal workflows and ledger recovery (candidate, 2026-10-19)
 
-- Reuse one authenticated parent-directory window while validating cached immutable ledger files. Keep per-file bounded reads, physical identity, fingerprints, digests and boundary checks intact; the six Wiki pruning recovery scenarios now complete in 49–55 seconds on Windows.
-- Publish Session Core 0.3.20 before the CLI package. Pair CLI 0.166.107 with VS Code 0.37.152 and JetBrains 0.4.169 after the exact-commit CLI CI and Strict Sandbox gates pass.
-- The current public pairing remains CLI 0.166.106, Open VSX 0.37.151 and JetBrains 0.4.168 until this release completes. Existing .105 task retest results remain separate; the .106/.151/.168 model retest is still outstanding.
+- Add bounded `goal catalog` and `goal panels` commands to browse goals and read text snapshots from trusted, consented plugins, including explicitly connected desktop project goals.
+- Add `goal draft-request`, `goal draft-access`, `goal draft-sources`, `goal draft-send`, and `goal draft-receipt` for native-reviewed description requests and separately authorized pending drafts. Submission records support receipt reconciliation without automatic duplicate sends; task changes still require native desktop preview and confirmation.
+- Use `deepseek-v4-1-flash-260910` as the default Volcengine model for new CLI, agent, and task-model configurations.
+- Reuse an authenticated parent-directory boundary while validating cached immutable ledger files, preserving per-file bounded reads, identity, fingerprints, digests, and boundary checks. Resolve Wiki pruning journal artifacts in batches of four; six cross-process recovery scenarios complete in 49–55 seconds on Windows.
 
 ### Fixed - cc CLI 0.166.106: task delivery follow-up (candidate, 2026-10-18)
 

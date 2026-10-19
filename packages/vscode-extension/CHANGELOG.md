@@ -2,11 +2,12 @@
 
 All notable changes to this extension are documented here.
 
-## [0.37.152] - Session Core 0.3.20 and CLI 0.166.107 pairing (2026-10-19)
+## [0.37.152] - Governed goal workflows and CLI 0.166.107 (2026-10-19)
 
-- Recommend CLI 0.166.107 and update the extension release target to 0.37.152.
-- Publish and verify changed CLI child packages before the CLI; publish this extension only after the CLI is public and its exact release artifact is read back.
-- The .106/.151/.168 task retest remains outstanding; this version does not claim new task acceptance.
+- Add CLI goal snapshots to the plugin manager. Browse goals through a paged picker or select an explicit desktop goal connection, then view bounded text panels from trusted and consented plugins.
+- Add goal-description handoff actions: export a proposal request for native desktop review, or use a separately authorized draft connection to select a native proposal, submit a pending draft, and look up its receipt. Keep the submission record to reconcile an unknown result; task changes still require desktop preview and confirmation.
+- Use `deepseek-v4-1-flash-260910` as the default Volcengine model for new extension configurations.
+- Pair with CLI `0.166.107` (using Session Core `0.3.20`) for the goal catalog, panels, draft commands, and faster Wiki pruning journal recovery.
 
 ## [0.37.151] - Task-delivery follow-up candidate (2026-10-18)
 
