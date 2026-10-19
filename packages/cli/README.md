@@ -4,7 +4,7 @@ Command-line interface for installing, configuring, and managing [ChainlessChain
 
 ## Package version and IDE pairing
 
-Release target: CLI **0.166.107**, paired with VS Code **0.37.152** and JetBrains **0.4.169**. This CLI release uses Session Core **0.3.20**; changed child packages must be published and read back before the CLI, and IDE extensions follow the public CLI release. The current public versions remain CLI **0.166.106**, Open VSX **0.37.151** and JetBrains **0.4.168** until this candidate passes its exact-commit gates and publication readback.
+Public npm release: CLI **0.166.107** with Session Core **0.3.20**, published through OIDC from `6775d7a2de`. Its complete CLI CI and Strict Sandbox matrices, public dependency install and signed provenance checks passed. Paired IDE candidates are VS Code **0.37.152** and JetBrains **0.4.169**; their release checks are in progress. Public Open VSX **0.37.151** and JetBrains **0.4.168** retain their CLI `.106` recommendation.
 
 The `.105/.150/.167` task retest collected all **20/20** generation and acceptance records and added **6** candidate and end-to-end passes. Cumulative cross-version accepted deliveries are **31/45** (**26/36** ordinary, **5/9** first-run), with **14** unaccepted. The newer `.106/.151/.168` model retest has not run; cumulative coverage is not a latest-version single-round success rate. Microsoft Marketplace remains unpublished.
 
@@ -12,7 +12,7 @@ Install this release with `npm i -g chainlesschain@0.166.107 --registry https://
 
 ## Development snapshot capabilities (2026-10-18)
 
-Development snapshot `f21eac547e`, outside this remote documentation baseline, adds goal catalogs and authorized panels, offline description request export, online pending drafts and receipt reconciliation. The current public .106 package does not include these new commands. Session Core 0.3.20 adds the exports used by the .107 release. Pending suggestions still require desktop preview and native confirmation. See the [goal draft guide](https://docs.chainlesschain.com/chainlesschain/goal-drafts-current.html).
+Public CLI .107 includes the goal catalogs and authorized panels, offline description request export, online pending drafts and receipt reconciliation introduced by development snapshot `f21eac547e`. Session Core 0.3.20 supplies the required public exports. IDE and desktop integration require matching builds; pending suggestions still require desktop preview and native confirmation. See the [goal draft guide](https://docs.chainlesschain.com/chainlesschain/goal-drafts-current.html).
 
 ## Release snapshot (2026-10-12, historical)
 

@@ -2,6 +2,8 @@
 
 ## 核对范围
 
+2026-10-20 发行回读：CLI **0.166.107** 与 Session Core **0.3.20** 已通过 GitHub Actions OIDC 公开发布，源码为 `6775d7a2deb093ec1979430fa63d61d7b1fc8705`。完整 CLI CI / Strict Sandbox 矩阵、公共依赖安装、签名来源及 Windows 安装回读通过。IDE 候选 **0.37.152 / 0.4.169** 的完整发行检查进行中，目标配对 CLI .107。桌面与产品 .140 仍保持独立发行；下文保留 2026-10-18 的历史核对范围。
+
 本次核对开发源码快照 `f21eac547e`（不在本次远端主线文档基线中），包含 `ddabc1ee3a` 的目标草稿与演化边界合并、`2ceaa84219` 的 Windows ACL 阶段诊断，以及 `4317bf01a4` 的通用编码回归指导。实时公开版本为 CLI **0.166.106**、Open VSX **0.37.151**、JetBrains **0.4.167**。Open VSX .151 推荐 CLI .106；JetBrains .167 仍推荐 .105，.168 的公开上架与下载待核验。CLI .106 / Open VSX .151 的发行提交为 `dca47fd91a209642b6536afd5bc9e99ec74c7d06`，完整 CLI CI / Strict、IDE / ARM64 门和 OIDC 发布成功。开发快照能力不能由相同版本号推断为已发行。
 
 CLI `.105` 的发行提交为 `d4065008bb4eff84cfc09f9361f4ae4e9de2140f`，通过准确提交的 CLI CI、Strict Sandbox 与 OIDC 发布。Session Core **0.3.19**、Context/Memory Kernel **0.1.10**、Agent SDK **0.2.15**、PDH **0.4.65** 独立发行。新目标连接所需的 Session Core 公共出口仍是未发布源码；复用旧子包版本不能发行新增能力。Desktop / Android / iOS 仍从产品 **v5.0.3.140** 单独下载，未包含本轮全部开发快照更新。
