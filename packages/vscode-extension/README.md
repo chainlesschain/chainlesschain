@@ -6,18 +6,18 @@ MCP bridge.
 
 ## Current release
 
-This source package **0.37.151** targets CLI `0.166.106`; both are unpublished candidates. The current public pairing is Open VSX **0.37.150** with CLI **0.166.105**. Stock VS Code can install the public versioned VSIX using the upgrade guide below; Microsoft Marketplace remains unpublished.
+This source package targets CLI `0.166.107` as extension **0.37.152**. The current public pairing is Open VSX **0.37.151** with CLI **0.166.106**; JetBrains **0.4.168** also targets CLI `.106`. Publish the CLI and verify its public npm artifact before releasing this extension. Microsoft Marketplace remains unpublished.
 [Release and upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-18.html).
 
-As of 2026-10-18, current public versions are CLI **0.166.105**, Open VSX **0.37.150** and JetBrains **0.4.167**. The next candidates are CLI **0.166.106**, VS Code **0.37.151** and JetBrains **0.4.168**; both candidate plugins recommend CLI `.106`. These candidates are not published and require complete exact-commit release gates, CLI OIDC publication and public artifact readback before IDE release and unfinished-sample retesting. The public `.105` round completed generation and acceptance for **20/20** samples each, adding **6** candidate acceptances and **6** full-flow passes. Cumulative acceptance is **31/45** (**26/36** ordinary tasks and **5/9** first-use tasks), with **14** remaining. The original 25 accepted artifacts were reused byte-for-byte; this cross-version cumulative result is not a single-round 45/45 success. Candidates `.106/.151/.168` remain unpublished and untested on the unfinished samples. Microsoft Marketplace remains unpublished.
+As of 2026-10-19, current public versions are CLI **0.166.106**, Open VSX **0.37.151** and JetBrains **0.4.168**; all pair with CLI `.106`. The next release targets CLI **0.166.107**, VS Code **0.37.152** and JetBrains **0.4.169** and requires complete exact-commit gates, CLI OIDC publication and public artifact readback before IDE release. The public `.105` round completed generation and acceptance for **20/20** samples each, adding **6** candidate acceptances and **6** full-flow passes. Cumulative acceptance is **31/45** (**26/36** ordinary tasks and **5/9** first-use tasks), with **14** remaining. The original 25 accepted artifacts were reused byte-for-byte; this cross-version cumulative result is not a single-round 45/45 success. The `.106/.151/.168` task retest remains outstanding. Microsoft Marketplace remains unpublished.
 
-This pairing uses Agent SDK 0.2.15, Session Core 0.3.19 and Memory Kernel 0.1.10.
+This release pairing uses Agent SDK 0.2.15, Session Core 0.3.20 and Memory Kernel 0.1.10.
 Formal evaluation and full native review retain their separate acceptance status.
 
 | Component                 | Current status                                            |
 | ------------------------- | --------------------------------------------------------- |
-| VS Code extension         | **0.37.151**; candidate, not published                    |
-| Recommended CLI           | **`chainlesschain@0.166.106`**; candidate, not published  |
+| VS Code extension         | **0.37.152**; release target                              |
+| Recommended CLI           | **`chainlesschain@0.166.107`**; release target             |
 | Base bridge compatibility | `cc >= 0.162.190`; newer features can require a newer CLI |
 | Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors       |
 | Distribution              | Open VSX; versioned VSIX for stock Microsoft VS Code      |

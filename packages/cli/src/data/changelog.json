@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.107",
+      "cliVersions": ["0.166.106", "0.166.107"],
+      "date": "2026-10-19",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.107: bounded ledger recovery and Session Core 0.3.20 (candidate, 2026-10-19)",
+          "body": "- Reuse one authenticated parent-directory window while validating cached immutable ledger files. Keep per-file bounded reads, physical identity, fingerprints, digests and boundary checks intact; the six Wiki pruning recovery scenarios now complete in 49–55 seconds on Windows.\n- Publish Session Core 0.3.20 before the CLI package. Pair CLI 0.166.107 with VS Code 0.37.152 and JetBrains 0.4.169 after the exact-commit CLI CI and Strict Sandbox gates pass.\n- The current public pairing remains CLI 0.166.106, Open VSX 0.37.151 and JetBrains 0.4.168 until this release completes. Existing .105 task retest results remain separate; the .106/.151/.168 model retest is still outstanding."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.106",
       "cliVersions": ["0.166.105", "0.166.106"],
       "date": "2026-10-18",

@@ -162,7 +162,7 @@ jobs:
       # hosted-runner false reds without weakening the test gate.
       - name: vitest integration shard ${{ matrix.shard }}/8
         working-directory: packages/cli
-        run: node scripts/run-vitest-with-worker-retry.mjs -- run --shard=${{ matrix.shard }}/8 --reporter=default --reporter=junit --outputFile.junit=test-results/integration-${{ matrix.shard }}.xml --silent=passed-only __tests__/integration/
+        run: node scripts/run-vitest-with-worker-retry.mjs -- run --shard=${{ matrix.shard }}/8 --reporter=default --reporter=junit --outputFile.junit=test-results/integration-${{ matrix.shard }}.xml --silent=passed-only ${{ startsWith(inputs.runs-on, 'windows') && '--maxWorkers=1 --no-file-parallelism' || '' }} __tests__/integration/
       - name: Upload failed integration report
         if: failure()
         uses: actions/upload-artifact@v4

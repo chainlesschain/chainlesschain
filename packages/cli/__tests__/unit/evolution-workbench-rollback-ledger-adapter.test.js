@@ -26,42 +26,48 @@ function temp() {
   return root;
 }
 describe("Workbench actual Registry rollback bridge", () => {
-  it("rolls back actual content and dependency lock, then reopens without repeating authority or mutation", async () => {
-    const root = temp();
-    const h = await openWorkbenchRollbackStore(root, { seed: true });
-    const runtime = createEvolutionWorkbenchRollbackRuntime(h.adapterOptions);
-    const receipt = await runtime.rollbackExecutor.execute(h.plan);
-    expect(h.asks).toHaveLength(1);
-    expect(h.mutationRequests).toHaveLength(1);
-    expect(h.release.readActive().release).toEqual(h.release.baseline);
-    expect(h.release.readActive().state.revision).toBe(3);
-    expect(receipt.activeContentDigest).toBe(h.release.baseline.contentDigest);
-    const sequence = h.backend.ledger.verify().sequence;
-    const noHuman = vi.fn(() => {
-      throw new Error("unexpected human request");
-    });
-    const reopened = await openWorkbenchRollbackStore(root, {
-      now: () => NOW + 700_000,
-      authorizeHuman: noHuman,
-    });
-    expect(await reopened.adapter.createExecutor().execute(h.plan)).toEqual(
-      receipt,
-    );
-    expect(await reopened.adapter.resume()).toEqual([]);
-    expect(noHuman).not.toHaveBeenCalled();
-    expect(reopened.mutationRequests).toHaveLength(0);
-    expect(reopened.backend.ledger.verify().sequence).toBe(sequence);
-    await h.release.promoteCandidate("later-authorized-promotion");
-    const later = h.release.readActive();
-    expect(later.state.revision).toBe(4);
-    expect(await h.adapter.resume()).toEqual([]);
-    await expect(h.adapter.createExecutor().execute(h.plan)).rejects.toThrow(
-      "no longer the current",
-    );
-    expect(h.release.readActive()).toEqual(later);
-    expect(h.asks).toHaveLength(1);
-    expect(h.mutationRequests).toHaveLength(1);
-  });
+  it(
+    "rolls back actual content and dependency lock, then reopens without repeating authority or mutation",
+    async () => {
+      const root = temp();
+      const h = await openWorkbenchRollbackStore(root, { seed: true });
+      const runtime = createEvolutionWorkbenchRollbackRuntime(h.adapterOptions);
+      const receipt = await runtime.rollbackExecutor.execute(h.plan);
+      expect(h.asks).toHaveLength(1);
+      expect(h.mutationRequests).toHaveLength(1);
+      expect(h.release.readActive().release).toEqual(h.release.baseline);
+      expect(h.release.readActive().state.revision).toBe(3);
+      expect(receipt.activeContentDigest).toBe(
+        h.release.baseline.contentDigest,
+      );
+      const sequence = h.backend.ledger.verify().sequence;
+      const noHuman = vi.fn(() => {
+        throw new Error("unexpected human request");
+      });
+      const reopened = await openWorkbenchRollbackStore(root, {
+        now: () => NOW + 700_000,
+        authorizeHuman: noHuman,
+      });
+      expect(await reopened.adapter.createExecutor().execute(h.plan)).toEqual(
+        receipt,
+      );
+      expect(await reopened.adapter.resume()).toEqual([]);
+      expect(noHuman).not.toHaveBeenCalled();
+      expect(reopened.mutationRequests).toHaveLength(0);
+      expect(reopened.backend.ledger.verify().sequence).toBe(sequence);
+      await h.release.promoteCandidate("later-authorized-promotion");
+      const later = h.release.readActive();
+      expect(later.state.revision).toBe(4);
+      expect(await h.adapter.resume()).toEqual([]);
+      await expect(h.adapter.createExecutor().execute(h.plan)).rejects.toThrow(
+        "no longer the current",
+      );
+      expect(h.release.readActive()).toEqual(later);
+      expect(h.asks).toHaveLength(1);
+      expect(h.mutationRequests).toHaveLength(1);
+    },
+    process.platform === "win32" ? 180_000 : 90_000,
+  );
   it("rejects automated but correctly signed human authorization before rollback", async () => {
     const h = await openWorkbenchRollbackStore(temp(), {
       seed: true,

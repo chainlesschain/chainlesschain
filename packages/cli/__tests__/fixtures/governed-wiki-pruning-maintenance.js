@@ -26,7 +26,7 @@ const sign = (core) =>
 // independent file witness. realRetrieval opts into the real projection provider;
 // other effects remain explicit test fixtures, not production rollback/KMS.
 export function openPruningMaintenanceStore(root, hooks = {}) {
-  const resources = openEvolutionDurableStore(root);
+  const resources = hooks.resources ?? openEvolutionDurableStore(root);
   const ledger = resources.backend.ledger;
   const descriptor = {
     tenantId: resources.descriptor.tenantId,
@@ -281,7 +281,10 @@ export function openPruningMaintenanceStore(root, hooks = {}) {
     return controller.execute({ plan: restored.state?.plan ?? (await plan()) });
   }
   async function inspect() {
-    const restored = await journal.load({ tenantId: descriptor.tenantId });
+    const inspectionJournal = hooks.journalForInspection?.() ?? journal;
+    const restored = await inspectionJournal.load({
+      tenantId: descriptor.tenantId,
+    });
     const current = wiki.loadWiki();
     return {
       phase: restored.state?.phase ?? null,
@@ -295,7 +298,7 @@ export function openPruningMaintenanceStore(root, hooks = {}) {
       patternStatuses: Object.values(current.state.patterns).map(
         (pattern) => pattern.status,
       ),
-      ledgerSequence: ledger.verify().sequence,
+      ledgerSequence: restored.ledgerHead.sequence,
       wikiReceipt: restored.state?.operationReceipts[1] ?? null,
       ...(hooks.realDependencies
         ? { dependencyReceipt: restored.state?.operationReceipts[0] ?? null }

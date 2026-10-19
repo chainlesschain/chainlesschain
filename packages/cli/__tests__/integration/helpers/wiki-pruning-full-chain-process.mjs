@@ -4,6 +4,10 @@ const [root, mode, crashPoint = "none"] = process.argv.slice(2);
 if (!root || !["seed", "execute"].includes(mode))
   throw new Error("invalid full-chain worker arguments");
 const started = Date.now();
+const profile = process.env.CC_WIKI_PRUNING_PROFILE === "1";
+function mark(label) {
+  if (profile) process.stderr.write(`${label}=${Date.now() - started}ms\n`);
+}
 const h = await openPruningFullChain(root, {
   seed: mode === "seed",
   crashPoint:
@@ -40,9 +44,25 @@ const h = await openPruningFullChain(root, {
       process.exit(90);
   },
 });
-if (mode === "execute") await h.execute();
+mark("open");
+if (mode === "execute") {
+  if (profile) {
+    const resumed = await h.runtime.resume();
+    mark("resume");
+    if (resumed == null) {
+      const plan = await h.plan();
+      mark("plan");
+      await h.runtime.execute({ plan });
+      mark("execute");
+    }
+  } else {
+    await h.execute();
+  }
+}
 const snapshot = await h.inspect();
+mark("inspect");
 const release = h.release.inspect();
+mark("release-inspect");
 let decryptable = true;
 try {
   h.keyAuthority.decrypt();
@@ -50,6 +70,7 @@ try {
   if (error.code !== "ENOENT") throw error;
   decryptable = false;
 }
+mark("decrypt");
 process.stdout.write(
   JSON.stringify({
     pid: process.pid,

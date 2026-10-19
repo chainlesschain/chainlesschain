@@ -2,6 +2,12 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.152] - Session Core 0.3.20 and CLI 0.166.107 pairing (2026-10-19)
+
+- Recommend CLI 0.166.107 and update the extension release target to 0.37.152.
+- Publish and verify changed CLI child packages before the CLI; publish this extension only after the CLI is public and its exact release artifact is read back.
+- The .106/.151/.168 task retest remains outstanding; this version does not claim new task acceptance.
+
 ## [0.37.151] - Task-delivery follow-up candidate (2026-10-18)
 
 - Recommend candidate CLI 0.166.106 for brief action guidance, complete file writes in bounded segments, and accurate reasons for explicit HTTP 403 errors outside authentication or billing.

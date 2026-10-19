@@ -1,6 +1,7 @@
 import {
   EVOLUTION_DURABLE_ARTIFACT_RECORD_SCHEMA,
   isEvolutionLedgerArtifactResolver,
+  captureEvolutionLedgerBatchResolver,
 } from "./evolution-artifact-ports.js";
 import {
   EVOLUTION_ARTIFACT_RESOLUTION_SCHEMA,
@@ -17,6 +18,7 @@ import {
 
 export const WIKI_PRUNING_JOURNAL_EVENT_TYPE = "wiki.pruning.journal-committed";
 export const WIKI_PRUNING_JOURNAL_ARTIFACT_TYPE = "wiki-pruning-journal";
+const JOURNAL_ARTIFACT_RESOLVE_BATCH_SIZE = 4;
 const STORES = new WeakMap();
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 function currentContext(head) {
@@ -98,7 +100,7 @@ export class GovernedWikiPruningLedgerAdapter {
   #read;
   #verifyLedger;
   #append;
-  #resolve;
+  #resolveBatch;
   #verifyPlan;
   #verifyOperation;
   #verifyOperations;
@@ -122,7 +124,9 @@ export class GovernedWikiPruningLedgerAdapter {
     this.#read = capture(ledger, "read");
     this.#verifyLedger = capture(ledger, "verify");
     this.#append = capture(ledger, "appendDomainEvent");
-    this.#resolve = ledgerArtifactResolver;
+    this.#resolveBatch = captureEvolutionLedgerBatchResolver(
+      ledgerArtifactResolver,
+    );
     this.#verifyPlan = capture(planVerifier, "verify");
     this.#verifyOperation = capture(operationReceiptVerifier, "verify");
     this.#verifyOperations =
@@ -215,74 +219,96 @@ export class GovernedWikiPruningLedgerAdapter {
         event.tenantId === this.descriptor.tenantId &&
         event.correlationId === this.descriptor.streamId,
     );
-    const history = [];
-    const plans = new Set();
+    let previousEvent = null;
     for (const event of events) {
-      const previous = history.at(-1) ?? null;
       if (
         event.artifactTenantId !== this.descriptor.artifactTenantId ||
         event.decision !== "committed" ||
         event.skillName !== null ||
         !Array.isArray(event.sourceRefs) ||
-        event.sourceRefs.length !== (previous ? 1 : 0) ||
-        (previous &&
+        event.sourceRefs.length !== (previousEvent ? 1 : 0) ||
+        (previousEvent &&
           pruningCanonical(event.sourceRefs[0]) !==
-            pruningCanonical(previous.event.subjectRef))
+            pruningCanonical(previousEvent.subjectRef))
       )
         fail("pruning journal event lineage is invalid");
-      const resolution = this.#resolve({
-        epoch: head.epoch,
-        ledgerId: head.ledgerId,
-        ref: event.subjectRef,
-        tenantId: this.descriptor.artifactTenantId,
-      });
-      if (
-        resolution?.schema !== EVOLUTION_ARTIFACT_RESOLUTION_SCHEMA ||
-        resolution.authenticated !== true ||
-        resolution.found !== true ||
-        resolution.ref !== event.subjectRef.ref ||
-        resolution.digest !== event.subjectRef.digest ||
-        !DIGEST.test(resolution.receiptDigest) ||
-        !Buffer.isBuffer(resolution.bytes) ||
-        resolution.bytes.length > WIKI_PRUNING_JOURNAL_MAX_BYTES
-      )
-        fail("pruning journal artifact resolution is invalid");
-      const record = JSON.parse(
-        new TextDecoder("utf-8", { fatal: true }).decode(resolution.bytes),
+      previousEvent = event;
+    }
+    const history = [];
+    const plans = new Set();
+    for (
+      let offset = 0;
+      offset < events.length;
+      offset += JOURNAL_ARTIFACT_RESOLVE_BATCH_SIZE
+    ) {
+      const batchEvents = events.slice(
+        offset,
+        offset + JOURNAL_ARTIFACT_RESOLVE_BATCH_SIZE,
+      );
+      const resolutions = this.#resolveBatch(
+        batchEvents.map((event) => ({
+          epoch: head.epoch,
+          ledgerId: head.ledgerId,
+          ref: event.subjectRef,
+          tenantId: this.descriptor.artifactTenantId,
+        })),
       );
       if (
-        record?.schema !== EVOLUTION_DURABLE_ARTIFACT_RECORD_SCHEMA ||
-        record.tenantId !== this.descriptor.artifactTenantId ||
-        record.audience !== this.descriptor.audience ||
-        record.purpose !== this.descriptor.purpose ||
-        record.retention !== "ledger" ||
-        record.type !== WIKI_PRUNING_JOURNAL_ARTIFACT_TYPE
+        !Array.isArray(resolutions) ||
+        resolutions.length !== batchEvents.length
       )
-        fail("pruning journal durable artifact binding is invalid");
-      const state = verifyWikiPruningJournal(
-        record.value,
-        this.descriptor.tenantId,
-      );
-      if (
-        event.eventId !==
-        `${WIKI_PRUNING_JOURNAL_EVENT_TYPE}.${state.journalDigest.slice(7)}`
-      )
-        fail("pruning journal event identity is invalid");
-      assertPruningJournalTransition(previous?.state ?? null, state);
-      if (previous?.state.plan.planDigest !== state.plan.planDigest) {
-        if (plans.has(state.plan.planDigest))
-          fail("pruning journal restarted a historical plan");
-        plans.add(state.plan.planDigest);
+        fail("pruning journal artifact batch resolution is incomplete");
+      for (const [batchIndex, event] of batchEvents.entries()) {
+        const previous = history.at(-1) ?? null;
+        const resolution = resolutions[batchIndex];
+        if (
+          resolution?.schema !== EVOLUTION_ARTIFACT_RESOLUTION_SCHEMA ||
+          resolution.authenticated !== true ||
+          resolution.found !== true ||
+          resolution.ref !== event.subjectRef.ref ||
+          resolution.digest !== event.subjectRef.digest ||
+          !DIGEST.test(resolution.receiptDigest) ||
+          !Buffer.isBuffer(resolution.bytes) ||
+          resolution.bytes.length > WIKI_PRUNING_JOURNAL_MAX_BYTES
+        )
+          fail("pruning journal artifact resolution is invalid");
+        const record = JSON.parse(
+          new TextDecoder("utf-8", { fatal: true }).decode(resolution.bytes),
+        );
+        if (
+          record?.schema !== EVOLUTION_DURABLE_ARTIFACT_RECORD_SCHEMA ||
+          record.tenantId !== this.descriptor.artifactTenantId ||
+          record.audience !== this.descriptor.audience ||
+          record.purpose !== this.descriptor.purpose ||
+          record.retention !== "ledger" ||
+          record.type !== WIKI_PRUNING_JOURNAL_ARTIFACT_TYPE
+        )
+          fail("pruning journal durable artifact binding is invalid");
+        const state = verifyWikiPruningJournal(
+          record.value,
+          this.descriptor.tenantId,
+        );
+        if (
+          event.eventId !==
+          `${WIKI_PRUNING_JOURNAL_EVENT_TYPE}.${state.journalDigest.slice(7)}`
+        )
+          fail("pruning journal event identity is invalid");
+        assertPruningJournalTransition(previous?.state ?? null, state);
+        if (previous?.state.plan.planDigest !== state.plan.planDigest) {
+          if (plans.has(state.plan.planDigest))
+            fail("pruning journal restarted a historical plan");
+          plans.add(state.plan.planDigest);
+        }
+        const samePlan =
+          previous?.state.plan.planDigest === state.plan.planDigest;
+        const entry = {
+          event,
+          state,
+          prepared: samePlan ? previous.prepared : { event, state },
+        };
+        if (samePlan) history[history.length - 1] = entry;
+        else history.push(entry);
       }
-      const samePlan =
-        previous?.state.plan.planDigest === state.plan.planDigest;
-      const entry = {
-        event,
-        state,
-        prepared: samePlan ? previous.prepared : { event, state },
-      };
-      if (samePlan) history[history.length - 1] = entry;
-      else history.push(entry);
     }
     // Every immutable event/transition above is checked. Per plan, authenticate
     // its source at preparation and its full retained receipt prefix at the
