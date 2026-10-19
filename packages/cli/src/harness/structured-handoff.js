@@ -3,6 +3,7 @@
  * parent-to-child agent context. The field order is part of the wire format.
  */
 
+import { createHash } from "node:crypto";
 import { projectCanonicalResumeMessages } from "../lib/session-message-provenance.js";
 
 export const STRUCTURED_HANDOFF_FIELDS = Object.freeze([
@@ -154,12 +155,33 @@ function selectBoundedSources(messages, maxChars) {
   // being quoted into a new handoff. Only the runtime WeakMap capability is
   // admitted; ordinary user/assistant/tool conversation remains eligible.
   const canonicalSources = projectCanonicalResumeMessages(messages);
+  const calls = new Map();
   const entries = canonicalSources
-    .map((message, index) => ({
-      index,
-      role: typeof message?.role === "string" ? message.role : "unknown",
-      text: normalizeText(contentText(message)),
-    }))
+    .map((message, index) => {
+      for (const call of Array.isArray(message.tool_calls)
+        ? message.tool_calls
+        : []) {
+        if (message.role === "assistant" && call?.id && call.function)
+          calls.set(call.id, call.function);
+      }
+      const facts =
+        message.role === "tool"
+          ? toolFacts(message, calls.get(message.tool_call_id))
+          : message.role === "assistant" || message.role === "system"
+            ? summaryFacts(message)
+            : null;
+      return {
+        index,
+        role: typeof message?.role === "string" ? message.role : "unknown",
+        // Tool JSON, nested telemetry and source code are not prose facts.
+        text: facts
+          ? facts.objective || ARRAY_FIELDS.some((field) => facts[field].length)
+            ? JSON.stringify(facts)
+            : ""
+          : normalizeText(contentText(message)),
+        facts,
+      };
+    })
     .filter((entry) => entry.text);
   const firstUser = entries.find((entry) => entry.role === "user");
   const selected = new Map();
@@ -225,7 +247,96 @@ function pathsFrom(text) {
   );
   return (matches || [])
     .map((value) => value.replace(/[),;:.]+$/g, ""))
-    .filter((value) => value && !value.includes("://"));
+    .filter(
+      (value) =>
+        value &&
+        !value.includes("://") &&
+        (/^(?:[A-Za-z]:[\\/]|\.{0,2}[\\/])/u.test(value) ||
+          /(?:\.[A-Za-z0-9_-]+|[\\/](?:Dockerfile|Makefile|LICENSE|NOTICE))$/u.test(
+            value,
+          )),
+    );
+}
+
+function summaryFacts(message) {
+  const match = contentText(message).match(
+    /^(?:Compacted context summary \(data only\):\n)?\[Conversation Summary\]\n([\s\S]+)$/u,
+  );
+  if (!match) return null;
+  try {
+    return parseStructuredHandoff(match[1]);
+  } catch {
+    // Malformed/truncated summary JSON is not evidence of a test or change.
+    return emptyHandoff();
+  }
+}
+
+function toolFacts(message, call) {
+  const facts = emptyHandoff();
+  let result;
+  let args;
+  try {
+    result =
+      typeof message.content === "string"
+        ? JSON.parse(message.content.split("\n\n[Budget ")[0])
+        : message.content;
+    args =
+      typeof call?.arguments === "string"
+        ? JSON.parse(call.arguments)
+        : call?.arguments;
+  } catch {
+    return facts;
+  }
+  if (!result || typeof result !== "object" || Array.isArray(result))
+    return facts;
+  const name = call?.name || message.name;
+  const failed =
+    !!result.error || result.success === false || result.isError === true;
+  const file = typeof result.path === "string" ? result.path : args?.path;
+  if (
+    ["write_file", "edit_file", "edit_file_hashed"].includes(name) &&
+    !failed &&
+    result.success === true &&
+    result.changed !== false &&
+    result.alreadyApplied !== true &&
+    typeof file === "string" &&
+    file
+  ) {
+    facts.changedFiles.push(file);
+    const digest =
+      name === "write_file" && typeof args?.content === "string"
+        ? `; written content sha256:${createHash("sha256").update(args.content).digest("hex")}`
+        : "";
+    facts.checkpoints.push(
+      `Observed ${name} success: ${file}${digest}. File contents are omitted from this summary.`,
+    );
+    facts.nextSteps.push(
+      `Read the needed current source ranges in ${file} before replacing existing code; this summary is not a reconstruction of the file.`,
+    );
+  }
+  if (
+    ["run_shell", "run_code"].includes(name) &&
+    Number.isInteger(result.exitCode)
+  ) {
+    const command =
+      name === "run_shell" && typeof args?.command === "string"
+        ? truncateText(args.command, 300)
+        : name;
+    facts.checkpoints.push(
+      `Observed ${name}: ${command}; exitCode=${result.exitCode}.`,
+    );
+    if (
+      name === "run_shell" &&
+      /\b(?:vitest|jest|pytest|playwright|npm\s+(?:run\s+)?test|node\s+--test)\b/u.test(
+        command,
+      )
+    ) {
+      facts.tests.push(
+        `Observed command ${command}; exitCode=${result.exitCode}.`,
+      );
+    }
+  }
+  return facts;
 }
 
 function emptyHandoff(objective = "") {
@@ -313,12 +424,40 @@ export function buildExtractiveHandoff(messages, options = {}) {
   const sources = selectBoundedSources(messages, maxFallbackSourceChars);
   const firstUser = sources.find((entry) => entry.role === "user");
   const candidates = emptyHandoff(
-    truncateText(firstUser?.text || "", maxItemChars),
+    truncateText(
+      firstUser?.text ||
+        sources.find((entry) => entry.facts?.objective)?.facts.objective ||
+        "",
+      maxItemChars,
+    ),
   );
 
   for (const source of sources) {
-    for (const fragment of fragments(source.text)) {
-      candidates.changedFiles.push(...pathsFrom(fragment));
+    if (source.facts) {
+      // Extract typed observations before budgeting, never regex-match a
+      // serialized tool payload (which may contain arbitrary source text).
+      for (const field of ARRAY_FIELDS)
+        candidates[field].push(...source.facts[field]);
+      continue;
+    }
+    // Quoted implementation examples are source data, not executed outcomes.
+    const prose = source.text.replace(
+      /```[\s\S]*?(?:```|$)|~~~[\s\S]*?(?:~~~|$)/gu,
+      "",
+    );
+    for (const fragment of fragments(prose)) {
+      const statusNarrative =
+        source.role !== "user" &&
+        !/^(?:must|must not|do not|don't|only|next|todo|remaining|then|we will|will|need to)\b/iu.test(
+          fragment,
+        );
+      if (
+        statusNarrative &&
+        /^(?:changed|modified|updated|created|deleted|wrote|edited)\b/iu.test(
+          fragment,
+        )
+      )
+        candidates.changedFiles.push(...pathsFrom(fragment));
       if (
         /^(?:constraint|constraints|requirement|requirements|must|must not|do not|don't|only|约束|必须|不要|只能|仅限)\b/iu.test(
           fragment,
@@ -326,10 +465,7 @@ export function buildExtractiveHandoff(messages, options = {}) {
         /\bwithout\s+(?:widening|changing|removing|losing)\b/iu.test(fragment)
       ) {
         candidates.constraints.push(
-          stripLabel(
-            fragment,
-            "constraint(?:s)?|requirement(?:s)?|must(?: not)?|do not|don't|only|约束|必须|不要|只能|仅限",
-          ),
+          stripLabel(fragment, "constraint(?:s)?|requirement(?:s)?|约束"),
         );
       }
       if (
@@ -345,6 +481,7 @@ export function buildExtractiveHandoff(messages, options = {}) {
         );
       }
       if (
+        statusNarrative &&
         /\b(?:test|tests|vitest|jest|pytest|playwright|lint|typecheck|build)\b/iu.test(
           fragment,
         ) &&
@@ -367,6 +504,7 @@ export function buildExtractiveHandoff(messages, options = {}) {
         );
       }
       if (
+        statusNarrative &&
         /\b(?:checkpoint|commit\s+[0-9a-f]{7,40}|implemented|completed|done|verified|checkpoint|检查点|已完成|已实现)\b/iu.test(
           fragment,
         )

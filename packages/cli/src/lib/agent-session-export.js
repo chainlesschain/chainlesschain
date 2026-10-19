@@ -1,3 +1,4 @@
+import { projectToolRoundMessages } from "./session-tool-round.js";
 /**
  * Agent-session Markdown export — Claude-Code `/export` parity for the JSONL
  * headless/agent session store (`~/.../sessions/<id>.jsonl`, the `--resume`
@@ -63,6 +64,25 @@ export function renderAgentSessionMarkdown(sessionId, events, opts = {}) {
   for (const ev of events) {
     if (!ev || typeof ev !== "object") continue;
     switch (ev.type) {
+      case "tool_round":
+        for (const message of projectToolRoundMessages(ev)) {
+          L.push(
+            message.role === "assistant"
+              ? "## Assistant tool calls"
+              : `### Tool result ${message.tool_call_id}`,
+          );
+          L.push(
+            "",
+            fence(
+              message.role === "assistant"
+                ? message.tool_calls
+                : message.content,
+              "json",
+            ),
+            "",
+          );
+        }
+        break;
       case "user_message":
         users += 1;
         L.push("## 👤 User");

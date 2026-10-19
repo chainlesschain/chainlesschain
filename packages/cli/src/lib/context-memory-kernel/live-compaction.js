@@ -13,6 +13,11 @@ import {
 import { JsonlSessionContextPort } from "./jsonl-session-context-port.js";
 import { createCliContextMemoryRuntime } from "./runtime.js";
 import { projectRuntimeTokenUsage } from "../runtime-usage-ledger.js";
+import {
+  projectCanonicalResumeMessages,
+  getDurableSystemMessageProvenance,
+  isRuntimeOnlySessionMessage,
+} from "../session-message-provenance.js";
 
 const rejectedCompactionUsage = new WeakMap();
 
@@ -138,7 +143,7 @@ class CallbackSessionContextPort extends InMemorySessionContextPort {
   }
 }
 
-function kernelBudget(compressor) {
+function kernelBudget(compressor, ephemeralTokens = 0) {
   const inputBudget = Math.max(
     256,
     Math.trunc(Number(compressor?.maxTokens)) || 16_384,
@@ -150,7 +155,9 @@ function kernelBudget(compressor) {
   return {
     modelWindowTokens: inputBudget + reservedOutputTokens,
     reservedOutputTokens,
-    safetyMarginTokens: 0,
+    // Live host policy/retry text still consumes the provider window even
+    // though it is deliberately absent from the durable authority partition.
+    safetyMarginTokens: ephemeralTokens,
     recoveryReserveTokens: Math.min(
       256,
       Math.max(1, Math.floor(inputBudget * 0.05)),
@@ -202,7 +209,7 @@ export async function compactLiveMessagesCanonical(
   messagesInput,
   options = {},
 ) {
-  const messages = Array.isArray(messagesInput) ? [...messagesInput] : [];
+  const liveMessages = Array.isArray(messagesInput) ? [...messagesInput] : [];
   const sessionId = String(options.sessionId || `live-${randomUUID()}`);
   const operationId = String(options.operationId || `compact-${randomUUID()}`);
   const trigger = options.trigger || "auto";
@@ -224,6 +231,24 @@ export async function compactLiveMessagesCanonical(
     options.persist !== false &&
     Boolean(options.sessionId) &&
     sessionExists(sessionId);
+  // Host policy is live-only. Durable summary/lineage systems retain their
+  // private provenance and remain part of the exact authority comparison.
+  const messages = persistentSession
+    ? projectCanonicalResumeMessages(liveMessages, { strict: true })
+    : liveMessages;
+  const ephemeralMessages = [];
+  if (persistentSession) {
+    let sequence = 0;
+    for (const message of liveMessages) {
+      if (
+        isRuntimeOnlySessionMessage(message) ||
+        (message.role === "system" &&
+          !getDurableSystemMessageProvenance(message))
+      )
+        ephemeralMessages.push({ sequence, message });
+      else sequence += 1;
+    }
+  }
   if (typeof options.commit === "function") {
     const bootstrapRuntime = createCliContextMemoryRuntime({
       sessionId,
@@ -323,12 +348,29 @@ export async function compactLiveMessagesCanonical(
   const provider = options.provider || "provider.local";
   const model = options.model || "default";
   const memoryRevision = await runtime.memoryPort.getRevision();
+  let settledOutputItems = null;
+  if (ephemeralMessages.length) {
+    const appendCompaction = runtime.sessionPort.appendCompaction.bind(
+      runtime.sessionPort,
+    );
+    runtime.sessionPort.appendCompaction = async (event, expectedHead) => {
+      const result = await appendCompaction(event, expectedHead);
+      if (result?.ok === true) settledOutputItems = event.outputItems;
+      return result;
+    };
+  }
   let receipt;
   try {
     receipt = await runtime.kernel.compactContext({
       operationId,
       sessionId,
-      ...kernelBudget(compressor),
+      ...kernelBudget(
+        compressor,
+        messagesToContextItems(
+          ephemeralMessages.map(({ message }) => message),
+          { sessionId },
+        ).reduce((total, item) => total + item.tokenEstimate, 0),
+      ),
       sink: provider,
       scopeAdmissions: [{ scope: "session", scopeId: sessionId }],
       policyVersion: "cli-context-policy-v1",
@@ -421,7 +463,7 @@ export async function compactLiveMessagesCanonical(
   }
   if (!["committed", "degraded"].includes(receipt.status)) {
     return {
-      messages,
+      messages: liveMessages,
       stats: {
         ...(summaryStats || {}),
         strategy: "none",
@@ -433,20 +475,41 @@ export async function compactLiveMessagesCanonical(
     };
   }
   const snapshot = await runtime.sessionPort.readSnapshot(sessionId);
-  const outputMessages = contextItemsToMessages(snapshot.items);
+  // Reattach host policy and private retry nudges at their durable sequence
+  // boundaries. They remain live, never enter the receipt, and do not move a
+  // retry instruction behind tool exchanges that happened after that retry.
+  const restoredMessages = [];
+  let ephemeralIndex = 0;
+  for (const item of [...(settledOutputItems || snapshot.items)].sort(
+    (left, right) =>
+      (left.sourceRef.eventSequence ?? Number.MAX_SAFE_INTEGER) -
+        (right.sourceRef.eventSequence ?? Number.MAX_SAFE_INTEGER) ||
+      left.itemId.localeCompare(right.itemId, "en"),
+  )) {
+    const sequence = item.sourceRef.eventSequence ?? Number.MAX_SAFE_INTEGER;
+    while (
+      ephemeralIndex < ephemeralMessages.length &&
+      ephemeralMessages[ephemeralIndex].sequence <= sequence
+    )
+      restoredMessages.push(ephemeralMessages[ephemeralIndex++].message);
+    restoredMessages.push(...contextItemsToMessages([item]));
+  }
+  restoredMessages.push(
+    ...ephemeralMessages.slice(ephemeralIndex).map(({ message }) => message),
+  );
   return {
-    messages: outputMessages,
+    messages: restoredMessages,
     stats: {
       ...(summaryStats || {}),
       strategy:
         receipt.status === "degraded" ? "deterministic-fallback" : "canonical",
-      originalMessages: messages.length,
-      compressedMessages: outputMessages.length,
-      originalTokens: estimatedTokens(messages),
-      compressedTokens: estimatedTokens(outputMessages),
+      originalMessages: liveMessages.length,
+      compressedMessages: restoredMessages.length,
+      originalTokens: estimatedTokens(liveMessages),
+      compressedTokens: estimatedTokens(restoredMessages),
       saved: Math.max(
         0,
-        estimatedTokens(messages) - estimatedTokens(outputMessages),
+        estimatedTokens(liveMessages) - estimatedTokens(restoredMessages),
       ),
       canonicalAlreadySettled: true,
       canonicalReceipt: receipt,

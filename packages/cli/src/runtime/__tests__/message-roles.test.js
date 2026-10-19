@@ -2,8 +2,37 @@ import { describe, it, expect } from "vitest";
 import {
   mergeConsecutiveMessages,
   collapseConsecutiveMessagesInPlace,
+  createResumeRoleProjection,
   _internal,
 } from "../message-roles.js";
+
+describe("createResumeRoleProjection", () => {
+  it("normalizes retained resume pairs across clones without folding later feedback", () => {
+    const initial = [
+      { role: "system", content: "policy" },
+      { role: "user", content: "unanswered" },
+      { role: "user", content: "resume" },
+    ];
+    const project = createResumeRoleProjection(initial);
+    const request = [
+      ...structuredClone(initial),
+      { role: "assistant", content: "reply" },
+      { role: "user", content: "feedback" },
+      { role: "user", content: "next input" },
+    ];
+    const before = structuredClone(request);
+    const projected = project(request);
+    expect(request).toEqual(before);
+    expect(initial).toHaveLength(3);
+    expect(
+      projected
+        .filter((message) => message.role === "user")
+        .map((message) => message.content),
+    ).toEqual(["unanswered\n\nresume", "feedback", "next input"]);
+    expect(projected.at(-1)).toBe(request.at(-1));
+    expect(project(request)).toEqual(projected);
+  });
+});
 
 describe("mergeConsecutiveMessages", () => {
   it("is a no-op on a healthy alternating transcript", () => {

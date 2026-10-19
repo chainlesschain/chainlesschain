@@ -23,6 +23,7 @@
  */
 
 import { randomUUID } from "node:crypto";
+import { isProxy } from "node:util/types";
 import { transportErrorDetails } from "../lib/transport-error-details.js";
 import { captureAgentExecutionPolicy } from "../lib/agent-execution-policy.js";
 import { HERMETIC_CODING_SYSTEM_PROMPT } from "../lib/coding-task-guidance.js";
@@ -55,6 +56,8 @@ import {
   appendToolCallCompact as jsonlAppendToolCallCompact,
   appendLlmRetryCompact as jsonlAppendLlmRetryCompact,
   appendCompactEvent as jsonlAppendCompactEvent,
+  appendCompactEventIfMessagesMatch as jsonlAppendCompactEventIfMessagesMatch,
+  appendToolRoundsIfMessagesMatch as jsonlAppendToolRoundsIfMessagesMatch,
   appendEvent as jsonlAppendEvent,
   appendAuthorityEvent as jsonlAppendAuthorityEvent,
   readEvents as jsonlReadEvents,
@@ -68,6 +71,10 @@ import {
   getLastSessionId as jsonlGetLastSessionId,
   verifySession as jsonlVerifySession,
 } from "../harness/jsonl-session-store.js";
+import {
+  markRuntimeOnlySessionMessage,
+  projectCanonicalResumeMessages,
+} from "../lib/session-message-provenance.js";
 import { classifyStreamRetryReason } from "../lib/stream-retry.js";
 import {
   SideEffectLedger,
@@ -106,7 +113,7 @@ import { CLISkillLoader } from "../lib/skill-loader.js";
 import { expandFileRefsAsync } from "./file-ref-expander.js";
 import { composeSystemPrompt } from "./system-prompt.js";
 import { buildUserContent } from "../lib/image-input.js";
-import { mergeConsecutiveMessages } from "./message-roles.js";
+import { createResumeRoleProjection } from "./message-roles.js";
 import { isHeadlessConfigCommand } from "../lib/headless-config-command.js";
 import {
   STREAM_PROTOCOL_VERSION,
@@ -1356,6 +1363,21 @@ async function runAgentHeadlessInWorkspace(
         ? () => null
         : jsonlFindLatestEvent);
   const store = {
+    appendToolRoundsIfMessagesMatch:
+      deps.appendToolRoundsIfMessagesMatch ||
+      (hasInjectedSessionStore
+        ? unavailableAuthorityCapability("appendToolRoundsIfMessagesMatch")
+        : jsonlAppendToolRoundsIfMessagesMatch),
+    appendCompactEventIfMessagesMatch:
+      deps.appendCompactEventIfMessagesMatch ||
+      (hasInjectedSessionStore
+        ? unavailableAuthorityCapability("appendCompactEventIfMessagesMatch")
+        : jsonlAppendCompactEventIfMessagesMatch),
+    readVerifiedProjection:
+      deps.readVerifiedProjection ||
+      (hasInjectedSessionStore
+        ? unavailableAuthorityCapability("readVerifiedProjection")
+        : jsonlReadVerifiedProjection),
     sessionExists: deps.sessionExists || jsonlSessionExists,
     rebuildMessages: deps.rebuildMessages || jsonlRebuildMessages,
     startSession: deps.startSession || jsonlStartSession,
@@ -2150,12 +2172,14 @@ async function runAgentHeadlessInWorkspace(
   // content array (agent-core converts it per-provider for ollama/anthropic).
   const userMessageContent = buildUserContent(userContent, options.images);
 
-  // Merge consecutive same-role turns so a resumed session whose previous run
+  // Project consecutive same-role turns only at the provider boundary. A
+  // resumed session whose previous run
   // produced NO assistant response (history ends with a bare `user` turn) does
   // not yield two adjacent `user` messages — which Anthropic/Bedrock reject as
   // "roles must alternate", failing the resume (Claude Code 2.1.187 parity).
   // No-op on a healthy alternating transcript.
-  const messages = mergeConsecutiveMessages([
+  // Keep the authority array identical to the durable transcript for CAS.
+  const messages = [
     { role: "system", content: systemContent },
     ...(instructionsLoadedContext
       ? [{ role: "system", content: instructionsLoadedContext }]
@@ -2174,7 +2198,7 @@ async function runAgentHeadlessInWorkspace(
       : []),
     ...history,
     { role: "user", content: userMessageContent },
-  ]);
+  ];
 
   // Persist the user turn before model/tool side effects. A full or read-only
   // session disk is a recoverability contract failure, so it fails closed
@@ -2199,7 +2223,7 @@ async function runAgentHeadlessInWorkspace(
       }
       // Persist the expanded content so a resumed session faithfully replays
       // what the model actually saw (the file snapshot, not just the @token).
-      store.appendUserMessage(sessionId, userContent);
+      store.appendUserMessage(sessionId, userMessageContent);
     } catch (error) {
       const persistenceError = createSessionPersistenceFailure(error, {
         sessionId,
@@ -2393,19 +2417,20 @@ async function runAgentHeadlessInWorkspace(
 
   // IDE live context (Claude-Code parity): when an IDE bridge is connected,
   // share the editor's selection/active file/open tabs with this turn. Appended
-  // to the in-flight user message only — AFTER persistence — so a resumed
+  // as private live context only — AFTER persistence — so a resumed
   // session replays the prompt, not a stale editor snapshot. Best-effort with
   // a short timeout; CC_IDE_CONTEXT=0 disables.
   if (!hermeticExecution) {
     try {
-      const { buildIdePromptContext, appendTextToContent, expandIdeMentions } =
-        await import("../lib/ide-context.js");
-      const last = messages[messages.length - 1];
+      const { buildIdePromptContext, expandIdeMentions } = await import(
+        "../lib/ide-context.js"
+      );
+      const ideBlocks = [];
       const ideCtx = await (
         deps.buildIdePromptContext || buildIdePromptContext
       )(hostMcp);
       if (ideCtx) {
-        last.content = appendTextToContent(last.content, ideCtx);
+        ideBlocks.push(ideCtx);
       }
       // Explicit @selection / @diagnostics mentions in the user's prompt
       // (Claude-Code parity). Scan the ORIGINAL prompt so injected file-ref
@@ -2414,7 +2439,15 @@ async function runAgentHeadlessInWorkspace(
       const mentioned = await expandIdeMentions(prompt, hostMcp);
       for (const w of mentioned.warnings) writeErr(`  @ide: ${w}\n`);
       if (mentioned.block) {
-        last.content = appendTextToContent(last.content, mentioned.block);
+        ideBlocks.push(mentioned.block);
+      }
+      if (ideBlocks.length) {
+        messages.push(
+          markRuntimeOnlySessionMessage({
+            role: "user",
+            content: ideBlocks.join("\n\n"),
+          }),
+        );
       }
     } catch {
       // IDE context is optional polish — never fail the run over it.
@@ -2811,10 +2844,65 @@ async function runAgentHeadlessInWorkspace(
   }
 
   const childToolExecs = new Map();
+  const synchronousAuthorityResult = (value, capability) => {
+    if (isProxy(value)) {
+      throw Object.assign(
+        new Error(`${capability} must return non-Proxy authority`),
+        {
+          code: "SESSION_AUTHORITY_CAPABILITY_INVALID",
+        },
+      );
+    }
+    if (value && typeof value.then === "function") {
+      void Promise.resolve(value).catch(() => {});
+      throw Object.assign(
+        new Error(`${capability} must settle synchronously`),
+        {
+          code: "SESSION_AUTHORITY_CAPABILITY_INVALID",
+        },
+      );
+    }
+    return value;
+  };
+  const settleToolRounds = () => {
+    if (
+      !persist ||
+      !messages.some(
+        (message) => message.role === "assistant" && message.tool_calls?.length,
+      )
+    )
+      return;
+    return persistRuntimeLedgerWrite(() => {
+      sessionHostLease?.assert?.();
+      const expected = synchronousAuthorityResult(
+        store.readVerifiedProjection(sessionId, () => ({
+          accept() {},
+          finish(authority) {
+            return authority.readMessages();
+          },
+        })),
+        "readVerifiedProjection",
+      );
+      const appended = synchronousAuthorityResult(
+        store.appendToolRoundsIfMessagesMatch(sessionId, messages, expected),
+        "appendToolRoundsIfMessagesMatch",
+      );
+      if (typeof appended?.hash !== "string" || !appended.hash) {
+        throw Object.assign(
+          new Error("Tool round settlement did not return its durable head"),
+          {
+            code: "CC_SESSION_TOOL_ROUND_SETTLEMENT_HEAD_UNKNOWN",
+          },
+        );
+      }
+      return appended;
+    });
+  };
   const loopOptions = {
     ...(evolutionIngress === null ? {} : { evolutionIngress }),
     model,
     provider,
+    projectProviderMessages: createResumeRoleProjection(messages),
     recorder: _otlpRecorder,
     // --otlp-content: opt in to stamping prompt CONTENT onto --otlp spans. Off by
     // default → content stays redacted (agent-core omits it entirely, so default
@@ -2916,6 +3004,28 @@ async function runAgentHeadlessInWorkspace(
     mcpDispatchAdmission: hermeticExecution
       ? null
       : sessionHostLease?.admitMcpDispatch || null,
+    persistCompaction: persist,
+    onBeforeCompaction: settleToolRounds,
+    onCompaction: persist
+      ? (stats, compacted, settlement = {}) =>
+          persistRuntimeLedgerWrite(() => {
+            sessionHostLease?.assert?.();
+            return synchronousAuthorityResult(
+              store.appendCompactEventIfMessagesMatch(
+                sessionId,
+                {
+                  ...stats,
+                  trigger: settlement.trigger || "auto",
+                  messages: projectCanonicalResumeMessages(compacted, {
+                    strict: true,
+                  }),
+                },
+                settlement.expectedMessages,
+              ),
+              "appendCompactEventIfMessagesMatch",
+            );
+          })
+      : undefined,
     // chatFn passthrough lets tests drive the loop deterministically.
     chatFn: deps.chatFn || options.chatFn || undefined,
     signal: options.signal || undefined,
@@ -3870,12 +3980,14 @@ async function runAgentHeadlessInWorkspace(
                 `${rw.error ? `: ${rw.error}` : ""}`,
             )
             .join("\n");
-          messages.push({
-            role: "user",
-            content:
-              `A background check flagged a problem after your last turn:\n${detail}\n` +
-              `Investigate and fix it, then confirm it passes.`,
-          });
+          messages.push(
+            markRuntimeOnlySessionMessage({
+              role: "user",
+              content:
+                `A background check flagged a problem after your last turn:\n${detail}\n` +
+                `Investigate and fix it, then confirm it passes.`,
+            }),
+          );
           if (isText)
             writeErr(
               `  ↻ async-hook rewake — re-engaging agent (${rewakeBudget} re-drive(s) left)\n`,
@@ -3983,13 +4095,15 @@ async function runAgentHeadlessInWorkspace(
         // and the next turn still resumes at the right point.
         persistGoalSnapshot();
         if (decision === _goalHelpers.GOAL_DECISION.CONTINUE) {
-          messages.push({
-            role: "user",
-            content:
-              `The completion condition is not yet met: ${evaluation.reason}.\n` +
-              `Keep working toward: "${cond.source}". When you believe it is ` +
-              `satisfied, make sure it actually passes.`,
-          });
+          messages.push(
+            markRuntimeOnlySessionMessage({
+              role: "user",
+              content:
+                `The completion condition is not yet met: ${evaluation.reason}.\n` +
+                `Keep working toward: "${cond.source}". When you believe it is ` +
+                `satisfied, make sure it actually passes.`,
+            }),
+          );
           finalText = "";
           endReason = "complete";
           if (isText)
@@ -4005,6 +4119,22 @@ async function runAgentHeadlessInWorkspace(
   } catch (err) {
     const runtimeLedgerPersistenceFailed =
       err?.runtimeLedgerPersistence === true;
+    const persistence = runtimeLedgerPersistenceFailed
+      ? projectSessionPersistenceFailure(
+          createSessionPersistenceFailure(err, {
+            sessionId,
+            operation: "append-event",
+          }),
+          { phase: "after-model" },
+        )
+      : null;
+    if (persistence) {
+      try {
+        deps.onPersistenceFailure?.(persistence);
+      } catch {
+        // Observability cannot change persistence semantics.
+      }
+    }
     const sessionBudgetFailed =
       err?.code === "CC_SESSION_BUDGET_EXHAUSTED" ||
       err?.code === "CC_SESSION_BUDGET_USAGE_UNKNOWN" ||
@@ -4028,7 +4158,12 @@ async function runAgentHeadlessInWorkspace(
       errorSubtype === "error" ? transportErrorDetails(err) : undefined;
     const diagnosticFields = transportDetails
       ? { error_details: transportDetails }
-      : {};
+      : {
+          ...(runtimeLedgerPersistenceFailed && err.code
+            ? { code: err.code }
+            : {}),
+          ...(persistence ? { persistence } : {}),
+        };
     if (isStream) {
       emitStream({
         type: "result",
@@ -4067,6 +4202,8 @@ async function runAgentHeadlessInWorkspace(
           : classifyLoopError(err),
       result: message,
       isError: true,
+      ...(persistence ? { persistence } : {}),
+      ...(runtimeLedgerPersistenceFailed && err.code ? { code: err.code } : {}),
     };
   } finally {
     // Capture body-cache hits/misses caused by list_skills/run_skill during the
@@ -4250,16 +4387,21 @@ async function runAgentHeadlessInWorkspace(
         : "success";
   const durationMs = (deps.now ? deps.now() : Date.now()) - startedAt;
   let persistenceFailure = null;
+  let sessionPersistenceCode = null;
 
-  // Persist the assistant turn so a later --resume / --continue replays it.
-  // The user turn was already recorded up front; only append on a clean run.
-  if (persist && !isError) {
+  // Complete tool evidence survives a clean budget stop. Only a successful
+  // run appends a final assistant answer; settlement failure is always terminal.
+  if (persist) {
+    let persistenceOperation = "append-event";
     try {
-      if (finalText) store.appendAssistantMessage(sessionId, finalText);
+      settleToolRounds();
+      persistenceOperation = "assistant-turn-append";
+      if (!isError && finalText)
+        store.appendAssistantMessage(sessionId, finalText);
     } catch (error) {
       const persistenceError = createSessionPersistenceFailure(error, {
         sessionId,
-        operation: "assistant-turn-append",
+        operation: persistenceOperation,
       });
       persistenceFailure = projectSessionPersistenceFailure(persistenceError, {
         phase: "after-model",
@@ -4277,6 +4419,15 @@ async function runAgentHeadlessInWorkspace(
             `CC_SESSION_PERSISTENCE_FAILED: assistant turn durability is ${persistenceFailure.commit_state} (${persistenceFailure.fs_code})\n`,
           );
         }
+      } else if (error?.runtimeLedgerPersistence === true) {
+        isError = true;
+        subtype = "error_session_persistence";
+        sessionPersistenceCode =
+          error.code || "CC_SESSION_TOOL_ROUND_PERSISTENCE_FAILED";
+        if (isText)
+          writeErr(
+            `${sessionPersistenceCode}: completed tool rounds could not be settled; refresh the session before continuing\n`,
+          );
       }
       // Preserve legacy best-effort handling for errors outside the explicit
       // ENOSPC/EROFS durability contract.
@@ -4416,11 +4567,12 @@ async function runAgentHeadlessInWorkspace(
         ? { compaction_degradations: compactionDegradations }
         : {}),
       ...(persistenceFailure ? { persistence: persistenceFailure } : {}),
+      ...(sessionPersistenceCode ? { code: sessionPersistenceCode } : {}),
     });
   } else if (isJson) {
     writeOut(
-      JSON.stringify(
-        buildResultEnvelope({
+      JSON.stringify({
+        ...buildResultEnvelope({
           subtype,
           isError,
           result: finalText,
@@ -4434,7 +4586,8 @@ async function runAgentHeadlessInWorkspace(
           compactionDegradations,
           persistence: persistenceFailure,
         }),
-      ) + "\n",
+        ...(sessionPersistenceCode ? { code: sessionPersistenceCode } : {}),
+      }) + "\n",
     );
   } else {
     // text: just the final answer on stdout.
@@ -4475,10 +4628,14 @@ async function runAgentHeadlessInWorkspace(
   // Exit-code taxonomy: max-turns → 3, cost cap → 4 (both still non-zero, so
   // "any failure" checks keep working; scripts can now tell exhaustion apart).
   return {
-    exitCode: exitCodeForEndReason(endReason, isError),
+    exitCode:
+      persistenceFailure || sessionPersistenceCode
+        ? 1
+        : exitCodeForEndReason(endReason, isError),
     result: finalText,
     isError,
     ...(persistenceFailure ? { persistence: persistenceFailure } : {}),
+    ...(sessionPersistenceCode ? { code: sessionPersistenceCode } : {}),
   };
 }
 

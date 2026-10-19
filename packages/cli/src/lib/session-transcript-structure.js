@@ -1,3 +1,4 @@
+import { projectToolRoundMessages } from "./session-tool-round.js";
 /**
  * Streaming structural authority for canonical session transcripts.
  *
@@ -72,6 +73,9 @@ export function createSessionTranscriptStructureProjection(
 
   return Object.freeze({
     accept(event) {
+      // Unknown versions and malformed/orphan results fail closed at every
+      // verified projection, even if that projection does not display tools.
+      if (event?.type === "tool_round") projectToolRoundMessages(event);
       const index = eventCount;
       eventCount += 1;
       if (event?.type === "session_start") {
