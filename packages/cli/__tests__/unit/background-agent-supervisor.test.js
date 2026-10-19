@@ -32,6 +32,7 @@ import {
   listBackgroundAgentsPage,
   logPath,
   mutateBackgroundAgentState,
+  mutateBackgroundAgentStateWithLockRetry,
   normalizeBackgroundAgentTitle,
   parseLinuxProcStat,
   PROCESS_START_TIME_CACHE_MAX_ENTRIES,
@@ -510,6 +511,219 @@ describe("background agent supervisor", () => {
     ).toThrow(expect.objectContaining({ code: "STATE_LOCK_UNAVAILABLE" }));
     expect(readBackgroundAgentState(id)).toMatchObject({ title: "before" });
   });
+
+  it("retries final-state mutations after transient lock contention", async () => {
+    let retryClock = 0;
+    const lockUnavailable = Object.assign(
+      new Error("state lock is temporarily unavailable"),
+      { code: "STATE_LOCK_UNAVAILABLE" },
+    );
+    const updater = vi.fn((current) => ({ ...current, status: "completed" }));
+    const mutation = {
+      applied: true,
+      state: { id: "bg-finalize-lock-retry", status: "completed" },
+    };
+    const mutate = vi
+      .fn()
+      .mockImplementationOnce(() => {
+        throw lockUnavailable;
+      })
+      .mockImplementationOnce(() => {
+        throw lockUnavailable;
+      })
+      .mockReturnValue(mutation);
+    const sleep = vi.fn(async (milliseconds) => {
+      retryClock += milliseconds;
+    });
+
+    await expect(
+      mutateBackgroundAgentStateWithLockRetry(
+        "bg-finalize-lock-retry",
+        updater,
+        {
+          timeoutMs: 25,
+          initialRetryMs: 10,
+          maxRetryMs: 10,
+          now: () => retryClock,
+          sleep,
+          mutate,
+        },
+      ),
+    ).resolves.toBe(mutation);
+
+    expect(mutate).toHaveBeenCalledTimes(3);
+    expect(mutate).toHaveBeenNthCalledWith(
+      1,
+      "bg-finalize-lock-retry",
+      updater,
+      { timeoutMs: 25 },
+    );
+    expect(mutate).toHaveBeenNthCalledWith(
+      2,
+      "bg-finalize-lock-retry",
+      updater,
+      { timeoutMs: 15 },
+    );
+    expect(mutate).toHaveBeenNthCalledWith(
+      3,
+      "bg-finalize-lock-retry",
+      updater,
+      { timeoutMs: 5 },
+    );
+    expect(sleep.mock.calls.map(([milliseconds]) => milliseconds)).toEqual([
+      10, 10,
+    ]);
+  });
+
+  it("does not retry non-lock failures while persisting final state", async () => {
+    const diskFailure = Object.assign(new Error("disk is read-only"), {
+      code: "EACCES",
+    });
+    const mutate = vi.fn(() => {
+      throw diskFailure;
+    });
+    const sleep = vi.fn();
+
+    await expect(
+      mutateBackgroundAgentStateWithLockRetry(
+        "bg-finalize-disk-error",
+        () => ({
+          status: "completed",
+        }),
+        {
+          sleep,
+          mutate,
+        },
+      ),
+    ).rejects.toBe(diskFailure);
+
+    expect(mutate).toHaveBeenCalledTimes(1);
+    expect(sleep).not.toHaveBeenCalled();
+  });
+
+  it("bounds retries for a state lock that never becomes available", async () => {
+    let retryClock = 0;
+    const lockUnavailable = Object.assign(
+      new Error("state lock is permanently occupied"),
+      { code: "STATE_LOCK_UNAVAILABLE" },
+    );
+    const mutate = vi.fn(() => {
+      throw lockUnavailable;
+    });
+    const sleep = vi.fn(async (milliseconds) => {
+      retryClock += milliseconds;
+    });
+
+    await expect(
+      mutateBackgroundAgentStateWithLockRetry(
+        "bg-finalize-lock-timeout",
+        () => ({
+          status: "completed",
+        }),
+        {
+          timeoutMs: 15,
+          initialRetryMs: 10,
+          maxRetryMs: 10,
+          now: () => retryClock,
+          sleep,
+          mutate,
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: "STATE_LOCK_UNAVAILABLE",
+      attempts: 3,
+    });
+
+    expect(sleep.mock.calls.map(([milliseconds]) => milliseconds)).toEqual([
+      10, 5,
+    ]);
+  });
+
+  it("rejects prompt admission once worker finalization starts", async () => {
+    const {
+      assertBackgroundAgentWorkerAcceptsPrompt,
+      isBackgroundAgentWorkerClosing,
+    } = await import("../../src/workers/background-agent-worker.js");
+
+    expect(isBackgroundAgentWorkerClosing(false, false)).toBe(false);
+    expect(isBackgroundAgentWorkerClosing(false, true)).toBe(true);
+    expect(isBackgroundAgentWorkerClosing(true, false)).toBe(true);
+    expect(() =>
+      assertBackgroundAgentWorkerAcceptsPrompt(false, false),
+    ).not.toThrow();
+    expect(() =>
+      assertBackgroundAgentWorkerAcceptsPrompt(false, true),
+    ).toThrow(/session is closing/);
+  });
+
+  it.each([
+    ["stop fence", (current) => ({ ...current, stopRequestedAt: 123 })],
+    ["worker generation", (current) => ({ ...current, workerGeneration: "g2" })],
+  ])(
+    "honors a %s that appears during a final-state lock retry",
+    async (_fenceName, addFence) => {
+      const {
+        createBackgroundAgentWorkerFinalStateUpdater,
+        isBackgroundAgentWorkerFinalStateSettledOrSuperseded,
+      } = await import("../../src/workers/background-agent-worker.js");
+      let retryClock = 0;
+      let current = {
+        id: "bg-finalize-fence-retry",
+        status: "running",
+        workerPid: 4321,
+        workerClaimedPid: 4321,
+        workerGeneration: "g1",
+      };
+      let attempts = 0;
+      const lockUnavailable = Object.assign(
+        new Error("state lock is temporarily unavailable"),
+        { code: "STATE_LOCK_UNAVAILABLE" },
+      );
+      const updater = createBackgroundAgentWorkerFinalStateUpdater({
+        id: current.id,
+        workerPid: 4321,
+        workerGeneration: "g1",
+        code: 0,
+        signal: null,
+        now: () => 456,
+      });
+      const mutate = vi.fn((_id, update) => {
+        attempts += 1;
+        if (attempts === 1) throw lockUnavailable;
+        current = addFence(current);
+        const requested = update(current);
+        return {
+          applied: Boolean(requested),
+          state: requested || current,
+          previous: current,
+        };
+      });
+
+      const mutation = await mutateBackgroundAgentStateWithLockRetry(
+        current.id,
+        updater,
+        {
+          timeoutMs: 25,
+          initialRetryMs: 10,
+          maxRetryMs: 10,
+          now: () => retryClock,
+          sleep: async (milliseconds) => {
+            retryClock += milliseconds;
+          },
+          mutate,
+        },
+      );
+
+      expect(mutation.applied).toBe(false);
+      expect(current.status).toBe("running");
+      expect(
+        isBackgroundAgentWorkerFinalStateSettledOrSuperseded(mutation, {
+          workerPid: 4321,
+          workerGeneration: "g1",
+        }),
+      ).toBe(true);
+    },
+  );
 
   it("uses a nonblocking heartbeat lock without probing or reclaiming its owner", () => {
     const id = "bg-heartbeat-bounded-lock";

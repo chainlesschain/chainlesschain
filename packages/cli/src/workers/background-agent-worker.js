@@ -24,6 +24,7 @@ import {
   deliverBackgroundNeedsInputNotification,
   insertArgumentsBeforeOptionTerminator,
   mutateBackgroundAgentState,
+  mutateBackgroundAgentStateWithLockRetry,
   openBackgroundLogFile,
   readBackgroundAgentState,
   removeJobFile,
@@ -88,6 +89,7 @@ let server = null;
 let child = null;
 let heartbeat = null;
 let finalized = false;
+let finalizing = false;
 let phase = "turn";
 let turnCount = 0;
 let lastExit = { code: 0, signal: null };
@@ -111,6 +113,79 @@ const pendingInteractions = new Map();
 // future agent turn. Past the cap the prompt is REJECTED (the transport
 // relays the throw as {type:"error", message}) instead of silently queued.
 const MAX_PROMPT_QUEUE = 100;
+
+export function isBackgroundAgentWorkerClosing(isFinalized, isFinalizing) {
+  return isFinalized === true || isFinalizing === true;
+}
+
+export function assertBackgroundAgentWorkerAcceptsPrompt(
+  isFinalized,
+  isFinalizing,
+) {
+  if (isBackgroundAgentWorkerClosing(isFinalized, isFinalizing)) {
+    throw new Error("this background session is closing");
+  }
+}
+
+function ownsBackgroundAgentWorkerRecord(current, workerPid, workerGeneration) {
+  return Boolean(
+    current &&
+      (!current.workerGeneration ||
+        current.workerGeneration === workerGeneration) &&
+      (Number(current.workerClaimedPid) === workerPid ||
+        (current.workerClaimedPid == null &&
+          Number(current.workerPid ?? current.pid) === workerPid)),
+  );
+}
+
+export function createBackgroundAgentWorkerFinalStateUpdater({
+  id,
+  workerPid,
+  workerGeneration,
+  code,
+  signal,
+  errorMessage,
+  now = Date.now,
+}) {
+  return (current) => {
+    if (!current || !ownsBackgroundAgentWorkerRecord(
+      current,
+      workerPid,
+      workerGeneration,
+    )) {
+      return null;
+    }
+    if (current.status !== "running") {
+      return { ...current, phase: null, transport: null };
+    }
+    if (current.stopRequestedAt) return null;
+    return {
+      ...current,
+      id,
+      status: errorMessage ? "failed" : code === 0 ? "completed" : "failed",
+      endedAt: now(),
+      exitCode: errorMessage ? (code ?? 1) : code,
+      signal: signal || null,
+      ...(errorMessage ? { error: errorMessage } : {}),
+      phase: null,
+      transport: null,
+    };
+  };
+}
+
+export function isBackgroundAgentWorkerFinalStateSettledOrSuperseded(
+  mutation,
+  { workerPid, workerGeneration },
+) {
+  if (mutation.applied) return true;
+  const current = mutation.state;
+  return (
+    !current ||
+    current.status !== "running" ||
+    Boolean(current.stopRequestedAt) ||
+    !ownsBackgroundAgentWorkerRecord(current, workerPid, workerGeneration)
+  );
+}
 
 /**
  * Bind one idempotent termination settlement to a turn child.
@@ -576,36 +651,38 @@ function finalize(code, signal, errorMessage) {
   // worker and heartbeat alive until its fresh-lease reload either settles
   // every disk-visible pending request or persists retry evidence.
   if (interactionFinalSweep) return;
-  if (finalized) return;
-  finalized = true;
-  clearInterval(heartbeat);
-  try {
-    mutateBackgroundAgentState(job.id, (current) => {
-      if (!current) return null;
-      const ownsRecord =
-        (!current.workerGeneration ||
-          current.workerGeneration === job.workerGeneration) &&
-        (Number(current.workerClaimedPid) === process.pid ||
-          (current.workerClaimedPid == null &&
-            Number(current.workerPid ?? current.pid) === process.pid));
-      if (!ownsRecord) return null;
-      // An external stop/remove owns an already-terminal or deleted record.
-      if (current.status !== "running") {
-        return { ...current, phase: null, transport: null };
+  if (finalized || finalizing) return;
+  finalizing = true;
+
+  const workerIdentity = {
+    workerPid: process.pid,
+    workerGeneration: job.workerGeneration,
+  };
+  const finish = (persistenceFailed) => {
+    finalized = true;
+    finalizing = false;
+    clearInterval(heartbeat);
+    const done = () => {
+      keeperClient?.close();
+      keeperClient = null;
+      try {
+        log?.close();
+      } catch {
+        /* log fd already closed */
       }
-      return {
-        ...current,
-        id: job.id,
-        status: errorMessage ? "failed" : code === 0 ? "completed" : "failed",
-        endedAt: Date.now(),
-        exitCode: errorMessage ? (code ?? 1) : code,
-        signal: signal || null,
-        ...(errorMessage ? { error: errorMessage } : {}),
-        phase: null,
-        transport: null,
-      };
-    });
-  } catch (error) {
+      const originalExitCode = errorMessage ? 1 : (code ?? 1);
+      process.exit(
+        persistenceFailed && originalExitCode === 0 ? 1 : originalExitCode,
+      );
+    };
+    if (server) {
+      server.broadcast({ type: "closing" });
+      server.close().then(done, done);
+    } else {
+      done();
+    }
+  };
+  const reportPersistenceFailure = (error) => {
     try {
       writeSync(
         2,
@@ -616,23 +693,39 @@ function finalize(code, signal, errorMessage) {
     } catch {
       /* inherited stderr may already be closed */
     }
-  }
-  const done = () => {
-    keeperClient?.close();
-    keeperClient = null;
-    try {
-      log?.close();
-    } catch {
-      /* log fd already closed */
-    }
-    process.exit(errorMessage ? 1 : (code ?? 1));
   };
-  if (server) {
-    server.broadcast({ type: "closing" });
-    server.close().then(done, done);
-  } else {
-    done();
-  }
+
+  void mutateBackgroundAgentStateWithLockRetry(
+    job.id,
+    createBackgroundAgentWorkerFinalStateUpdater({
+      id: job.id,
+      ...workerIdentity,
+      code,
+      signal,
+      errorMessage,
+    }),
+  )
+    .then((mutation) => {
+      if (
+        isBackgroundAgentWorkerFinalStateSettledOrSuperseded(
+          mutation,
+          workerIdentity,
+        )
+      ) {
+        finish(false);
+        return;
+      }
+      const error = new Error(
+        "The active worker still owns a nonterminal state after finalization",
+      );
+      error.code = "BACKGROUND_AGENT_FINAL_STATE_UNRESOLVED";
+      reportPersistenceFailure(error);
+      finish(true);
+    })
+    .catch((error) => {
+      reportPersistenceFailure(error);
+      finish(true);
+    });
 }
 
 function scheduleTurnLaunchSettlementRetry(context, delayMs = 250) {
@@ -946,7 +1039,12 @@ function beginTurnLaunchSettlement({
 }
 
 function startTurn(argv, promptText) {
-  if (!writeHeartbeat()) return false;
+  if (
+    isBackgroundAgentWorkerClosing(finalized, finalizing) ||
+    !writeHeartbeat()
+  ) {
+    return false;
+  }
   const nextTurn = turnCount + 1;
   const turnLaunchToken = randomBytes(16).toString("hex");
   // Private spawn-generation binding for the dedicated child IPC channel.
@@ -1483,7 +1581,7 @@ function startTurn(argv, promptText) {
 }
 
 function maybeContinue() {
-  if (finalized) return;
+  if (isBackgroundAgentWorkerClosing(finalized, finalizing)) return;
   // External stop marked the session terminal while a turn was in flight —
   // don't start another turn against a stopped session.
   const current = readBackgroundAgentState(job.id);
@@ -1696,6 +1794,7 @@ async function main() {
       token,
       getStatus,
       onPrompt: (text) => {
+        assertBackgroundAgentWorkerAcceptsPrompt(finalized, finalizing);
         if (!Array.isArray(job.followUpArgv)) {
           throw new Error(
             "this session was launched without follow-up support — start a new one with cc agent --bg",
