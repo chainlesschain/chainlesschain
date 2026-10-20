@@ -1,5 +1,5 @@
 import "../helpers/test-model-egress.js";
-import { describe, it, expect, afterEach, vi } from "vitest";
+import { describe, it, expect, afterAll, afterEach, vi } from "vitest";
 import {
   executeTool as executeToolWithoutGate,
   listBackgroundShellTasks,
@@ -30,6 +30,58 @@ const executeTool = (name, args, context = {}) =>
 // the commands are short, deterministic Node one-liners that work on any OS.
 
 const NODE = process.execPath; // absolute path to the running node binary
+
+const pendingTaskkillHelpers = new Set();
+const originalBackgroundProcessRun = _backgroundProcessDeps.run;
+
+function trackTaskkillHelper(child, closeFence) {
+  if (child && typeof child.once === "function") {
+    if (child.closed === true) return;
+    const pending = { pid: child.pid ?? null };
+    const close = () => pendingTaskkillHelpers.delete(pending);
+    pendingTaskkillHelpers.add(pending);
+    child.once("close", close);
+    if (closeFence && typeof closeFence.then === "function") {
+      Promise.resolve(closeFence).then(
+        (result) => {
+          if (result?.observed === true) close();
+        },
+        () => {},
+      );
+    }
+    if (child.closed === true) close();
+    return;
+  }
+
+  if (closeFence && typeof closeFence.then === "function") {
+    const pending = { pid: null };
+    pendingTaskkillHelpers.add(pending);
+    Promise.resolve(closeFence).then(
+      (result) => {
+        if (result?.observed === true) pendingTaskkillHelpers.delete(pending);
+      },
+      () => {},
+    );
+  }
+}
+
+_backgroundProcessDeps.run = (command, args, options) => {
+  if (
+    command !== "taskkill" ||
+    options?.origin !== "agent-core:background-taskkill"
+  ) {
+    return originalBackgroundProcessRun(command, args, options);
+  }
+
+  try {
+    const child = originalBackgroundProcessRun(command, args, options);
+    trackTaskkillHelper(child);
+    return child;
+  } catch (error) {
+    trackTaskkillHelper(error?.spawnedProcess, error?.workspaceProcessClosed);
+    throw error;
+  }
+};
 
 describe("agent-core Windows taskkill process broker adapter", () => {
   it("routes async and sync tree kills with literal argv", () => {
@@ -85,21 +137,52 @@ async function pollUntilDone(taskId, { tries = 150, intervalMs = 20 } = {}) {
   return { ...last, stdout, stderr };
 }
 
-// Kill every background task and wait until none are still running. Killing is
-// async (the process tree dies, then its 'close' event flips status), so a
-// synchronous killAll alone leaves tasks transiently "running" — tests that
-// assert a clean registry must await this.
-async function drainAllTasks({ tries = 200, intervalMs = 20 } = {}) {
-  killAllBackgroundShellTasks();
-  for (let i = 0; i < tries; i++) {
+// Kill every background task and wait for the registry and Windows taskkill
+// helper to settle before suite-level sandbox artifacts are removed.
+async function drainAllTasks({ timeoutMs = 10000, intervalMs = 20 } = {}) {
+  const deadline = Date.now() + timeoutMs;
+  let nextKillAt = Date.now() + 200;
+  if (pendingTaskkillHelpers.size === 0) {
+    killAllBackgroundShellTasks();
+    nextKillAt = Date.now() + 200;
+  }
+  while (Date.now() < deadline) {
     const running = listBackgroundShellTasks().filter(
       (t) => t.status === "running",
     );
-    if (running.length === 0) return;
-    killAllBackgroundShellTasks(); // re-signal any that haven't died yet
-    await new Promise((r) => setTimeout(r, intervalMs));
+    if (running.length === 0 && pendingTaskkillHelpers.size === 0) return;
+    if (
+      running.length > 0 &&
+      pendingTaskkillHelpers.size === 0 &&
+      Date.now() >= nextKillAt
+    ) {
+      // Retry only after a prior taskkill helper has closed, avoiding a burst
+      // of competing helpers while preserving recovery from a failed launch.
+      killAllBackgroundShellTasks();
+      nextKillAt = Date.now() + 200;
+    }
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
   }
+
+  const runningIds = listBackgroundShellTasks()
+    .filter((task) => task.status === "running")
+    .map((task) => task.id);
+  const helperPids = [...pendingTaskkillHelpers].map(
+    (helper) => helper.pid ?? "unknown",
+  );
+  throw new Error(
+    `Background process cleanup timed out; running tasks: ${runningIds.join(", ") || "none"}; ` +
+      `taskkill helpers awaiting close: ${helperPids.join(", ") || "none"}`,
+  );
 }
+
+afterAll(async () => {
+  try {
+    await drainAllTasks();
+  } finally {
+    _backgroundProcessDeps.run = originalBackgroundProcessRun;
+  }
+});
 
 describe("agent-core run_shell background + check_shell", () => {
   afterEach(async () => {
