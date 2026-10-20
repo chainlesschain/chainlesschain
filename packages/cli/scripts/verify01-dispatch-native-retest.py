@@ -2,6 +2,10 @@
 
 Default: --plan <committed repo-relative plan> prints a read-only preview.
 --submit explicitly authorizes dispatch of still-unrequested shards.
+--submit --max-new-dispatches N submits at most N new shards per invocation.
+Resume with the same committed plan and evaluation HEAD; resolved shards are skipped.
+This limits batch size, not concurrent runs: wait for the current batch's generation
+jobs to finish before submitting another batch when limiting concurrency.
 --resolve only reads GitHub, appends local resolutions, and never dispatches.
 An unresolved intent always blocks --submit, including after a crashed request.
 Journal: shared Git common-directory parent's .work/next-package-dispatch/
@@ -253,9 +257,13 @@ def resolve_intent(directory, context, shard, runs):
     return binding
 
 
-def execute(context, directory, submit=False, resolve=False, dispatch=None):
+def execute(context, directory, submit=False, resolve=False, dispatch=None, max_new_dispatches=None):
     require(submit != resolve, 'Choose submit OR read-only resolve')
+    require(max_new_dispatches is None or
+            (submit and type(max_new_dispatches) is int and max_new_dispatches > 0),
+            'max-new-dispatches requires --submit and a positive integer')
     dispatch = dispatch or (lambda args: subprocess.run(args, cwd=TREE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=120))
+    new_dispatches = 0
     with journal_lock(directory):
         atomic_new(directory / 'context.json', context)
         if submit:
@@ -276,6 +284,10 @@ def execute(context, directory, submit=False, resolve=False, dispatch=None):
                 continue
             if resolve:
                 continue
+            # Stop before creating an intent for an unsubmitted shard. The cap
+            # is invocation-local; it must not change the bound plan/context.
+            if max_new_dispatches is not None and new_dispatches >= max_new_dispatches:
+                break
             assert_remote_head(context)
             before = list_runs(context)
             intent = {'binding': context, 'shard': shard, 'beforeRunIds': sorted(str(run['id']) for run in before),
@@ -297,6 +309,7 @@ def execute(context, directory, submit=False, resolve=False, dispatch=None):
             require(response.returncode == 0, 'Dispatch returned failure; intent retained, use --resolve')
             assert_remote_head(context)
             resolve_intent(directory, context, shard, list_runs(context))
+            new_dispatches += 1
         bindings = []
         for shard in context['executionShards']:
             file = directory / (shard['shardId'] + '.resolved.json')
@@ -316,7 +329,11 @@ def main():
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument('--submit', action='store_true')
     mode.add_argument('--resolve', action='store_true')
+    parser.add_argument('--max-new-dispatches', type=int, metavar='N',
+                        help='Submit at most N new shards (positive integer, --submit only; default: unlimited). Wait for this batch generation to finish before the next batch to limit concurrency.')
     args = parser.parse_args()
+    if args.max_new_dispatches is not None and (not args.submit or args.max_new_dispatches <= 0):
+        parser.error('--max-new-dispatches requires --submit and a positive integer')
     context, manifest = load_context(args.plan)
     directory = WORK / 'next-package-dispatch' / context['planDigest'].split(':')[1]
     if directory.exists() and (directory / 'context.json').exists():
@@ -328,7 +345,8 @@ def main():
         return
     if args.submit:
         verify_public(manifest)
-    print(json.dumps(execute(context, directory, submit=args.submit, resolve=args.resolve), indent=2))
+    print(json.dumps(execute(context, directory, submit=args.submit, resolve=args.resolve,
+                             max_new_dispatches=args.max_new_dispatches), indent=2))
 
 
 if __name__ == '__main__':
