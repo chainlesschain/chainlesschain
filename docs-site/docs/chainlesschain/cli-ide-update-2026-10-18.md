@@ -2,7 +2,7 @@
 
 <!-- release108-status -->
 
-> **2026-10-21 当前升级入口：** npm CLI 0.166.108 已公开，精确提交发行门与公开制品回读通过；Open VSX 0.37.153 已公开，精确提交发行门与公开制品回读通过；JetBrains Marketplace 0.4.170 已上传，Marketplace 审核与公开制品回读待完成。当前已核验配对、安装命令与精确来源见[10 月 20 日当前升级指南](./cli-ide-update-2026-10-20)及[不可变发布回执](https://github.com/chainlesschain/chainlesschain/blob/71ea0edd90e9d8d155db06308af95284adc68147/docs/research/cli/evidence/release108/publication.json)。
+> **2026-10-21 当前升级入口：** npm CLI 0.166.108 已公开，精确提交发行门与公开制品回读通过；Open VSX 0.37.153 已公开，精确提交发行门与公开制品回读通过；JetBrains Marketplace 0.4.170 已公开，精确提交发行门与公开制品回读通过。当前已核验配对、安装命令与精确来源见[10 月 20 日当前升级指南](./cli-ide-update-2026-10-20)及[不可变发布回执](https://github.com/chainlesschain/chainlesschain/blob/08ffc589ec0f0c7ad5af87eb54c5efcce739a2f9/docs/research/cli/evidence/release108-public/publication.json)。
 > 下文的“当前”指旧文记录时点；历史版本、固定复现命令与补测证据保持原样，日常升级以上方链接为准。
 
 ## 概述
