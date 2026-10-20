@@ -766,8 +766,10 @@ function executeBoardWrite(database, event, action, params, dependencies = {}) {
   // attempt ledger. It cannot use a synchronous manager or caller payload.
   if (action === "generate-ai-summary")
     fail("BOARD_SUMMARY_NATIVE_HOST_REQUIRED");
+  // SQLite identifiers cannot be bound. This name uses only a fixed prefix
+  // and UUID hex digits, never caller input.
   const savepoint = `board_write_${randomUUID().replaceAll("-", "")}`;
-  db.exec(`SAVEPOINT ${savepoint}`);
+  db.prepare(`SAVEPOINT ${savepoint}`).run();
   try {
     checkAuthority();
     const currentScope = scopeFor(db, referenceKind, params[kind]);
@@ -813,13 +815,13 @@ function executeBoardWrite(database, event, action, params, dependencies = {}) {
         fail("BOARD_WRITE_SCOPE_CONFLICT");
     }
     if (result?.success !== true) {
-      db.exec(`ROLLBACK TO ${savepoint}`);
+      db.prepare(`ROLLBACK TO ${savepoint}`).run();
     }
-    db.exec(`RELEASE ${savepoint}`);
+    db.prepare(`RELEASE ${savepoint}`).run();
     return result;
   } catch (error) {
-    db.exec(`ROLLBACK TO ${savepoint}`);
-    db.exec(`RELEASE ${savepoint}`);
+    db.prepare(`ROLLBACK TO ${savepoint}`).run();
+    db.prepare(`RELEASE ${savepoint}`).run();
     throw error;
   }
 }

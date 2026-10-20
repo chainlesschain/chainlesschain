@@ -18,6 +18,7 @@ import {
   launchElectronApp,
   closeElectronApp,
   callIPC,
+  createControlledBoardTask,
   createPmOrganizationFixture,
   type ElectronTestContext,
 } from "./helpers";
@@ -62,7 +63,7 @@ test.describe.serial("Project Management Journey (Full Lifecycle)", () => {
 
   // Launch Electron app once for all tests
   test.beforeAll(async () => {
-    const ctx = await launchElectronApp();
+    const ctx = await launchElectronApp({ durableDatabase: true });
     app = ctx.app;
     window = ctx.window;
     const fixture = await createPmOrganizationFixture(
@@ -292,16 +293,18 @@ test.describe.serial("Project Management Journey (Full Lifecycle)", () => {
   // ========================================
 
   test("Phase 4.1: Create task", async () => {
-    const createResult: any = await callIPC(window, "task:create-task", {
+    const createResult: any = await createControlledBoardTask(
+      app,
+      window,
       boardId,
-      columnId: columnIds.todo,
-      title: "Implement user authentication",
-      description: "Add login/logout functionality with JWT tokens",
-      priority: "high",
-      estimatedHours: 8,
-      createdBy: testUserDid,
-      creatorName: TEST_USER_NAME,
-    });
+      {
+        columnId: columnIds.todo,
+        title: "Implement user authentication",
+        description: "Add login/logout functionality with JWT tokens",
+        priority: "high",
+        estimatedHours: 8,
+      },
+    );
 
     expect(createResult).toBeDefined();
     expect(createResult.success).toBe(true);

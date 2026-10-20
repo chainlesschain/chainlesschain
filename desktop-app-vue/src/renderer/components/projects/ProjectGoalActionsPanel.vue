@@ -222,6 +222,7 @@ type Item = {
     actionType: string;
     reviewId: string;
     reviewDigest: string;
+    signalDigest: string;
     sourceTaskId: string;
   };
   current: boolean;

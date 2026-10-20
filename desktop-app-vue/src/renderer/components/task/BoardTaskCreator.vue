@@ -509,6 +509,7 @@ function taskData(): Data {
     (value.parentTaskId !== "" && !validId(value.parentTaskId)) ||
     (value.assigneeDid !== "" &&
       (!source.value.optionalFields.assigneeDid ||
+        // eslint-disable-next-line no-control-regex -- Reject control characters in assignee DIDs.
         !/^did:[^\s\u0000-\u001f\u007f]+$/u.test(value.assigneeDid) ||
         bytes(value.assigneeDid) > 256))
   )
@@ -606,7 +607,7 @@ async function preview() {
       {
         id: result.runId,
         taskId: result.taskId,
-        status: "queued",
+        status: "queued" as const,
         invocationDigest: request.invocationDigest,
       },
       ...runs.value,

@@ -455,6 +455,7 @@ function textFields(value: any): Fields {
     !(
       value.assigneeDid === null ||
       (typeof value.assigneeDid === "string" &&
+        // eslint-disable-next-line no-control-regex -- Reject control characters in assignee DIDs.
         /^did:[^\s\u0000-\u001f\u007f]+$/u.test(value.assigneeDid) &&
         new TextEncoder().encode(value.assigneeDid).byteLength <= 256)
     ) ||
@@ -788,7 +789,7 @@ async function preview(mode: "fields" | "move" | "label" = "fields") {
     if (isLabel) {
       const previous = previewLabelIds(result.before), next = previewLabelIds(result.after), label = projectLabel(result.label);
       const proposed = request.input?.updates;
-      if (!proposed || Object.keys(proposed).length !== 1 || proposed.labelId !== updates.labelId || label.id !== updates.labelId || previous.includes(label.id) || next.length !== previous.length + 1 || !next.includes(label.id) || previous.some(id => !next.includes(id)))
+      if (!proposed || !("labelId" in updates) || Object.keys(proposed).length !== 1 || proposed.labelId !== updates.labelId || label.id !== updates.labelId || previous.includes(label.id) || next.length !== previous.length + 1 || !next.includes(label.id) || previous.some(id => !next.includes(id)))
         throw new Error("MISMATCHED_LABEL");
       labelBefore.value = previous;
       labelAfter.value = next;
@@ -826,7 +827,7 @@ async function preview(mode: "fields" | "move" | "label" = "fields") {
     runs.value = [
       {
         id: result.runId,
-        status: "queued",
+        status: "queued" as const,
         invocationDigest: request.invocationDigest,
       },
       ...runs.value,
