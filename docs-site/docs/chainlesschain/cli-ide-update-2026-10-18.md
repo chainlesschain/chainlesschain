@@ -1,5 +1,10 @@
 # CLI / IDE 10 月 18 日发行与补测记录（历史）
 
+<!-- release108-status -->
+
+> **2026-10-21 当前升级入口：** npm CLI 0.166.108 已公开，精确提交发行门与公开制品回读通过；Open VSX 0.37.153 已公开，精确提交发行门与公开制品回读通过；JetBrains Marketplace 0.4.170 已公开，精确提交发行门与公开制品回读通过。当前已核验配对、安装命令与精确来源见[10 月 20 日当前升级指南](./cli-ide-update-2026-10-20)及[不可变发布回执](https://github.com/chainlesschain/chainlesschain/blob/08ffc589ec0f0c7ad5af87eb54c5efcce739a2f9/docs/research/cli/evidence/release108-public/publication.json)。
+> 下文的“当前”指旧文记录时点；历史版本、固定复现命令与补测证据保持原样，日常升级以上方链接为准。
+
 ## 概述
 
 本页保留 2026-10-18 的 .105 / .106 发行与补测快照。**当前公开 CLI .107、Open VSX .152、JetBrains .169** 的安装步骤和完整状态见[10 月 20 日升级指南](./cli-ide-update-2026-10-20)。两个当前 IDE 均推荐 CLI .107，Session Core .20 已公开；历史的“候选”和“待核验”不表示当前状态。

@@ -1,0 +1,269 @@
+{
+  "schema": "chainlesschain.release108-support/v1",
+  "sourceSha": "e77c7ba85783576ac523dd73bc760bda63d91f3b",
+  "run": {
+    "sourceSha": "e77c7ba85783576ac523dd73bc760bda63d91f3b",
+    "observedAt": "2026-10-20T20:11:02.9151818Z",
+    "runId": 39486919504,
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39486919504",
+    "attempt": 1,
+    "conclusion": "success",
+    "counts": {
+      "success": 11,
+      "skipped": 3
+    },
+    "workflow": ".github/workflows/ide-extensions.yml",
+    "event": "push",
+    "ref": "ide-vscode-v0.37.153",
+    "jobs": [
+      {
+        "id": 118849610555,
+        "name": "Public IDE capability manifest (drift gate)",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39486919504/job/118849610555",
+        "started_at": "2026-10-20T19:50:53Z",
+        "completed_at": "2026-10-20T19:51:22Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118849869834,
+        "name": "VS Code extension (immutable candidate)",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39486919504/job/118849869834",
+        "started_at": "2026-10-20T19:51:25Z",
+        "completed_at": "2026-10-20T19:52:09Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118849869958,
+        "name": "Browser evidence (windows)",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39486919504/job/118849869958",
+        "started_at": "2026-10-20T19:51:24Z",
+        "completed_at": "2026-10-20T19:53:39Z",
+        "labels": ["windows-latest"]
+      },
+      {
+        "id": 118849870118,
+        "name": "Browser evidence (linux)",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39486919504/job/118849870118",
+        "started_at": "2026-10-20T19:51:25Z",
+        "completed_at": "2026-10-20T19:53:30Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118849870264,
+        "name": "Browser evidence (macos)",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39486919504/job/118849870264",
+        "started_at": "2026-10-20T19:51:31Z",
+        "completed_at": "2026-10-20T19:55:05Z",
+        "labels": ["macos-latest"]
+      },
+      {
+        "id": 118849873426,
+        "name": "JetBrains real host (${{ matrix.os }}, ${{ matrix.ide.version }})",
+        "conclusion": "skipped",
+        "run_attempt": 1,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39486919504/job/118849873426",
+        "started_at": "2026-10-20T19:51:22Z",
+        "completed_at": "2026-10-20T19:51:22Z",
+        "labels": []
+      },
+      {
+        "id": 118850256747,
+        "name": "VS Code Remote-SSH container (scoped trusted cell)",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39486919504/job/118850256747",
+        "started_at": "2026-10-20T19:52:12Z",
+        "completed_at": "2026-10-20T19:53:24Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118850256827,
+        "name": "VS Code extension (Windows host gate)",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39486919504/job/118850256827",
+        "started_at": "2026-10-20T19:52:12Z",
+        "completed_at": "2026-10-20T19:57:13Z",
+        "labels": ["windows-latest"]
+      },
+      {
+        "id": 118850256836,
+        "name": "VS Code extension (macOS host gate)",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39486919504/job/118850256836",
+        "started_at": "2026-10-20T19:52:43Z",
+        "completed_at": "2026-10-20T20:03:42Z",
+        "labels": ["macos-15-intel"]
+      },
+      {
+        "id": 118850874820,
+        "name": "IDE roadmap evidence (trusted scoped aggregate)",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39486919504/job/118850874820",
+        "started_at": "2026-10-20T19:53:27Z",
+        "completed_at": "2026-10-20T19:54:00Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118851717965,
+        "name": "Browser evidence (three-OS required aggregate)",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39486919504/job/118851717965",
+        "started_at": "2026-10-20T19:55:08Z",
+        "completed_at": "2026-10-20T19:56:25Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118852368403,
+        "name": "JetBrains plugin (build + publish)",
+        "conclusion": "skipped",
+        "run_attempt": 1,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39486919504/job/118852368403",
+        "started_at": "2026-10-20T19:56:25Z",
+        "completed_at": "2026-10-20T19:56:25Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118852368905,
+        "name": "JetBrains Marketplace (post-publish verification)",
+        "conclusion": "skipped",
+        "run_attempt": 1,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39486919504/job/118852368905",
+        "started_at": "2026-10-20T19:56:25Z",
+        "completed_at": "2026-10-20T19:56:25Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118855935417,
+        "name": "VS Code extension (Linux host gate + publish)",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39486919504/job/118855935417",
+        "started_at": "2026-10-20T20:03:45Z",
+        "completed_at": "2026-10-20T20:10:50Z",
+        "labels": ["ubuntu-latest"]
+      }
+    ]
+  },
+  "artifact": {
+    "id": 12294515769,
+    "name": "chainlesschain-ide-vscode-candidate",
+    "size_in_bytes": 713410,
+    "digest": "sha256:56a470bfbff33888f13a625dc9e72b5b99fb51bd1671dfe95a1866584846a4e7",
+    "created_at": "2026-10-20T19:52:07Z",
+    "updated_at": "2026-10-20T19:52:07Z",
+    "workflow_run": {
+      "id": 39486919504,
+      "repository_id": 1107348698,
+      "head_repository_id": 1107348698,
+      "head_branch": "ide-vscode-v0.37.153",
+      "head_sha": "e77c7ba85783576ac523dd73bc760bda63d91f3b"
+    }
+  },
+  "currentAttempt": {
+    "checkedAt": "2026-10-20T20:11:19.1338482Z",
+    "sourceSha": "e77c7ba85783576ac523dd73bc760bda63d91f3b",
+    "runId": 39486919504,
+    "runAttempt": 1,
+    "artifactId": 12294515769,
+    "artifactName": "chainlesschain-ide-vscode-candidate",
+    "artifactDigest": "sha256:56a470bfbff33888f13a625dc9e72b5b99fb51bd1671dfe95a1866584846a4e7",
+    "artifactCreatedAt": "2026-10-20T19:52:07Z",
+    "producerJobId": 118849869834,
+    "producerAttempt": 1,
+    "producerStarted": "2026-10-20T19:51:25Z",
+    "producerCompleted": "2026-10-20T19:52:09Z",
+    "producerConclusion": "success"
+  },
+  "listing": {
+    "channel": "open-vsx",
+    "endpoint": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide",
+    "status": "ready",
+    "version": "0.37.153",
+    "latest": "0.37.153",
+    "downloadable": true,
+    "listed": true,
+    "registryArchiveSha256": "97db0249d542728e85ea3ccc52fe2bf7b64c00c7407ef8f942abd7a1c07a58c2",
+    "localArchiveSha256": "97db0249d542728e85ea3ccc52fe2bf7b64c00c7407ef8f942abd7a1c07a58c2",
+    "contentSha256": "c6eaeb7c635b38cec8f5cf1689a3a602a9d9954592fcbfdc399f077f982ef738"
+  },
+  "publicReadback": {
+    "schema": "chainlesschain.vscode-only-public-readback/v1",
+    "status": "VERIFIED_PUBLIC_VSCODE_ONLY",
+    "version": "0.37.153",
+    "releaseBinding": {
+      "releaseSourceCommit": "e77c7ba85783576ac523dd73bc760bda63d91f3b",
+      "versions": {
+        "cli": "0.166.108",
+        "vscode": "0.37.153",
+        "jetbrains": "0.4.170",
+        "vscodeHost": "1.132.0",
+        "jetbrainsHost": "2025.2"
+      },
+      "newManifest": "docs/research/cli/verify01-package-sets/2026-10-21-release108.json",
+      "previousManifest": {
+        "path": "docs/research/cli/verify01-package-sets/2026-10-18-task-quality-105.json",
+        "digest": "sha256:2cc81784724fcdc8813434fa8798cce28def3569ff97b07369bb6e16fe6af32f",
+        "bytes": 1606
+      },
+      "sourceIdentities": [
+        {
+          "path": "packages/cli/package.json",
+          "digest": "sha256:e74185b3ebe92e50d6847cf192e8437a65bea83488403648672d50d4eaac638e"
+        },
+        {
+          "path": "packages/vscode-extension/package.json",
+          "digest": "sha256:1821b58f48ba038d51816b103eb7e7b99f7b0c78d4dcdf16808105c06828c27f"
+        },
+        {
+          "path": "packages/jetbrains-plugin/build.gradle.kts",
+          "digest": "sha256:5c2c49249d1c6c69901ad9725b1765de0a1501c78e9b726296c90673800c3a45"
+        },
+        {
+          "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/CliVersionCheck.java",
+          "digest": "sha256:dcb0e53379ecce3ac600e712287b6668173c7566475418d8d625fa1eeca70303"
+        }
+      ]
+    },
+    "workflowRunId": 39486919504,
+    "artifactId": 12294515769,
+    "cliReadbackDigest": "sha256:c680de6d5f19a71eeabe1e95ac3ca2e3ca1f320a84aff723cec1ff7797cd771a",
+    "recommendedCliVersion": "0.166.108",
+    "releaseSourceCommit": "e77c7ba85783576ac523dd73bc760bda63d91f3b",
+    "workflowRun": "https://github.com/chainlesschain/chainlesschain/actions/runs/39486919504",
+    "publicVsixDigest": "sha256:97db0249d542728e85ea3ccc52fe2bf7b64c00c7407ef8f942abd7a1c07a58c2",
+    "publicVsixBytes": 729974,
+    "officialManifestDigest": "sha256:14a9359e5dd757fbe2f5589da038d09a6fa9e7425e54cb39b9ff2d178735e100",
+    "officialCandidateBytesMatch": true,
+    "checks": {
+      "packageVersion": "0.37.153",
+      "manifestVersion": "0.37.153",
+      "recommendedCliVersion": "0.166.108",
+      "packageManifestDigest": "sha256:1821b58f48ba038d51816b103eb7e7b99f7b0c78d4dcdf16808105c06828c27f",
+      "vsixManifestDigest": "sha256:989f0e3c3ee4a53b88fce5f7c184469eb7b02e67a2bffa92ffdb1761a827c42d"
+    },
+    "jetbrainsPublicationVerified": false,
+    "microsoftMarketplacePublicationVerified": false,
+    "newVersionTaskRetest": "NOT_RUN",
+    "limitations": [
+      "VS Code/Open VSX only; JetBrains and Microsoft Marketplace publication are not verified.",
+      "No package installation, module execution, IDE startup, candidate execution, or model request.",
+      "No full three-package manifest or new-version task acceptance is created.",
+      "GitHub artifact/API and HTTPS byte bindings are verified; no additional publisher signature is asserted."
+    ],
+    "verifiedAt": "2026-10-20T20:11:33.914821+00:00"
+  }
+}

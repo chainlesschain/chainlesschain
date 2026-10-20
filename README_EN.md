@@ -1,5 +1,31 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+<!-- release108-status -->
+
+Checked on 2026-10-21:
+
+npm CLI **0.166.108**: public; exact-source gates and public artifact readback verified; source `e77c7ba85783576ac523dd73bc760bda63d91f3b`; [Actions 1](https://github.com/chainlesschain/chainlesschain/actions/runs/39484583983); [receipt](https://github.com/chainlesschain/chainlesschain/blob/08ffc589ec0f0c7ad5af87eb54c5efcce739a2f9/docs/research/cli/evidence/release108-public/publication.json).
+
+Open VSX **0.37.153**: public; exact-source gates and public artifact readback verified; source `e77c7ba85783576ac523dd73bc760bda63d91f3b`; [Actions 1](https://github.com/chainlesschain/chainlesschain/actions/runs/39486919504); [receipt](https://github.com/chainlesschain/chainlesschain/blob/08ffc589ec0f0c7ad5af87eb54c5efcce739a2f9/docs/research/cli/evidence/release108-public/publication.json).
+
+JetBrains Marketplace **0.4.170**: public; exact-source gates and public artifact readback verified; source `e77c7ba85783576ac523dd73bc760bda63d91f3b`; [Actions 1](https://github.com/chainlesschain/chainlesschain/actions/runs/39486921296/attempts/2); [receipt](https://github.com/chainlesschain/chainlesschain/blob/08ffc589ec0f0c7ad5af87eb54c5efcce739a2f9/docs/research/cli/evidence/release108-public/publication.json).
+
+No new model-task retest was run for this release. Historical `.105/.150/.167` generation and independent acceptance each collected **20/20** records and added **6** passes. Cumulative cross-version accepted deliveries remain **31/45** (**26/36** ordinary, **5/9** first-run), with **14** unaccepted; this is not a .108 single-round success rate. **NOT_PAID_READY**, **NOT_ADMITTED** and automatic promotion **HOLD** remain. Microsoft Marketplace remains unpublished. Native product **v5.0.3.140** is a separate release; desktop integration still requires matching builds, desktop authorization and native confirmation.
+
+CLI 0.166.108 preserves complete tool rounds during session recovery and compaction, adds bounded repeated-read guidance, and persists background-worker terminal results under state-lock contention. IDE 0.37.153 / 0.4.170 pair with CLI 0.166.108. Repository Python dispatch diagnostics are excluded from the npm package. Child versions remain unchanged: Agent SDK 0.2.15, Session Core 0.3.20, Context/Memory Kernel 0.1.10 and Personal Data Hub 0.4.65.
+
+Public Open VSX 0.37.153 and JetBrains Marketplace 0.4.170 recommend public CLI 0.166.108. All three channels have passed exact-source release gates and public artifact verification.
+
+```bash
+npm i -g chainlesschain@0.166.108 --registry https://registry.npmjs.org
+cc --version
+cc doctor
+```
+
+Restart the IDE chat host and run Doctor after upgrading. [Current upgrade guide](docs-site/docs/chainlesschain/cli-ide-update-2026-10-20.md).
+
+## Public snapshot before .108 (historical)
+
 Checked on 2026-10-20: npm CLI **0.166.107**, Session Core **0.3.20**, Open VSX **0.37.152** and JetBrains **0.4.169** are public. Both IDEs recommend CLI `.107`. CLI release source is `6775d7a2de`; IDE source is `94429fada4`. Complete release gates and public artifact readback passed. The historical `.105/.150/.167` retest collected **20/20** generation and independent acceptance records and added **6** passes. Cumulative cross-version accepted deliveries are **31/45** (**26/36** ordinary, **5/9** first-run), with **14** unaccepted. This release has no new model task retest; cumulative coverage is not a .107 single-round success rate. Microsoft Marketplace remains unpublished.
 
 CLI .107 and Session Core 0.3.20 include the CLI and shared contracts for goal catalogs, authorized plugin panels, offline draft handoff, online pending drafts and evolution storage checks. IDE plugins are public; desktop integration still requires a matching source build, desktop authorization and native confirmation. Native product .140 retains its separate release identity. Restart the IDE chat host after upgrading and run Doctor.
