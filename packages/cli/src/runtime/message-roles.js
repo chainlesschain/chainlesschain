@@ -1,3 +1,5 @@
+import { canonicalJson } from "@chainlesschain/context-memory-kernel";
+
 /**
  * Conversation role sanitation shared by the headless runner and the
  * stream-json runtime.
@@ -109,6 +111,47 @@ export function mergeConsecutiveMessages(messages) {
     }
   }
   return out;
+}
+
+/**
+ * Capture only the adjacent plain-role pairs present at resume. Reapply their
+ * provider normalization on later requests without mutating canonical history
+ * or folding newly added interrupt/feedback turns. Canonical fingerprints also
+ * recognize the same retained messages after compaction recreates objects.
+ */
+export function createResumeRoleProjection(messages) {
+  const pairs = new Map();
+  const pairKey = (left, right) => canonicalJson([left, right]);
+  for (let index = 1; index < messages.length; index++) {
+    const left = messages[index - 1];
+    const right = messages[index];
+    if (
+      left &&
+      right &&
+      MERGEABLE_ROLES.has(left.role) &&
+      left.role === right.role &&
+      !hasToolCalls(left) &&
+      !hasToolCalls(right)
+    ) {
+      const key = pairKey(left, right);
+      pairs.set(key, (pairs.get(key) || 0) + 1);
+    }
+  }
+  return (requestMessages) => {
+    const remaining = new Map(pairs);
+    const projected = [];
+    for (let index = 0; index < requestMessages.length; index++) {
+      const message = requestMessages[index];
+      const key =
+        index > 0 ? pairKey(requestMessages[index - 1], message) : null;
+      if (key && remaining.get(key) > 0) {
+        const previous = projected.pop();
+        projected.push(...mergeConsecutiveMessages([previous, message]));
+        remaining.set(key, remaining.get(key) - 1);
+      } else projected.push(message);
+    }
+    return projected;
+  };
 }
 
 /**

@@ -193,6 +193,9 @@ jobs:
           distribution: temurin
           java-version: "21"
       - uses: ./.github/actions/setup-node-deps
+      - name: Verify provider role projection without changing session authority
+        working-directory: packages/cli
+        run: npx vitest run src/runtime/__tests__/message-roles.test.js
       - name: Verify calibration capture accounting and public install identity
         run: >-
           node --test

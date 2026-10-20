@@ -407,9 +407,9 @@ export class PromptCompressor {
     if (
       this.llmQuery &&
       (currentTokens > this.maxTokens || result.length > this.maxMessages) &&
-      result.length > 4
+      messages.length > 4
     ) {
-      const summarized = await this._summarize(result);
+      const summarized = await this._summarize(result, messages);
       result = summarized.messages;
       summaryStats = summarized.stats;
       if (summaryStats.summaryMode !== "none") {
@@ -565,7 +565,7 @@ export class PromptCompressor {
     return result;
   }
 
-  async _summarize(messages) {
+  async _summarize(messages, sourceMessages = messages) {
     // Compaction summaries and collapsed tool groups are derived history, not
     // immutable host instructions. Fold them into the next summary so a long
     // session cannot retain one additional durable system message per cycle.
@@ -573,11 +573,11 @@ export class PromptCompressor {
       (m) => m.role === "system" && !isCompactionArtifact(m),
     );
     const last = [...messages].reverse().find((m) => m.role === "user");
-    const toSummarize = messages.filter(
-      (m) => (m.role !== "system" || isCompactionArtifact(m)) && m !== last,
-    );
-
-    if (toSummarize.length < 3) {
+    if (
+      sourceMessages.filter(
+        (m) => m.role !== "system" || isCompactionArtifact(m),
+      ).length < 3
+    ) {
       return {
         messages,
         stats: {
@@ -590,7 +590,15 @@ export class PromptCompressor {
       };
     }
 
-    const prompt = summaryPrompt(toSummarize, this.summaryInputMaxChars);
+    // The pinned request remains in the output, but the summarizer also needs
+    // it to retain the objective/constraints when there is only one user turn.
+    // Pair tool observations against the original history: deduplication and
+    // collapse may already have removed empty assistant tool-call messages.
+    // The same bounded summary input budget applies to this source history.
+    const summarySources = sourceMessages.filter(
+      (m) => m.role !== "system" || isCompactionArtifact(m),
+    );
+    const prompt = summaryPrompt(summarySources, this.summaryInputMaxChars);
     let summary;
     let summaryMode = "llm-structured";
     let degraded = false;
@@ -713,7 +721,7 @@ export class PromptCompressor {
       }
     }
     if (degraded) {
-      summary = buildExtractiveHandoff(toSummarize, {
+      summary = buildExtractiveHandoff(summarySources, {
         maxFallbackSourceChars: Math.min(
           this.summaryInputMaxChars,
           SUMMARY_INPUT_DEFAULT_MAX_CHARS,

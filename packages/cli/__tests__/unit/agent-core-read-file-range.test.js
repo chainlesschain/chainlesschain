@@ -84,6 +84,110 @@ describe("read_file offset/limit line ranges", () => {
   const read = (args) =>
     executeTool("read_file", { path: "f.txt", ...args }, { cwd: dir });
 
+  it("does not count a rejected model request as visible file evidence", async () => {
+    const observation = vi.spyOn(
+      ReadFileLoopGuard.prototype,
+      "observeVisibleMessages",
+    );
+    try {
+      const run = async () => {
+        for await (const _event of agentLoop(
+          [{ role: "user", content: "Inspect f.txt." }],
+          {
+            cwd: dir,
+            contextMemorySkipPlanning: true,
+            autoMicroCompact: false,
+            chatFn: async () => {
+              throw new Error("request rejected before dispatch");
+            },
+          },
+        )) {
+          /* Drain the failure boundary without invoking a provider. */
+        }
+      };
+      await expect(run()).rejects.toThrow("request rejected before dispatch");
+      expect(observation).not.toHaveBeenCalled();
+    } finally {
+      observation.mockRestore();
+    }
+  });
+
+  it("restores only a bounded source range after the selected context loses a full read", async () => {
+    const source = Array.from(
+      { length: 160 },
+      (_, i) => `const line${i} = "${"source".repeat(8)}";`,
+    ).join("\n");
+    writeFileSync(join(dir, "source.js"), source);
+    let compacted = false;
+    let calls = 0;
+    const reads = [];
+    for await (const event of agentLoop(
+      [
+        {
+          role: "user",
+          content: "Inspect source.js for the requested change.",
+        },
+      ],
+      {
+        cwd: dir,
+        contextMemorySkipPlanning: true,
+        autoMicroCompact: false,
+        _autoCompactor: {
+          shouldAutoCompact: (messages) =>
+            !compacted && messages.some((message) => message.role === "tool"),
+          compress: async (messages) => {
+            compacted = true;
+            return {
+              messages: [messages[0]],
+              stats: {
+                originalMessages: messages.length,
+                compressedMessages: 1,
+                saved: 1,
+              },
+            };
+          },
+        },
+        chatFn: async () => {
+          calls++;
+          if (calls > 3)
+            return {
+              message: {
+                role: "assistant",
+                content: "Source range recovered.",
+              },
+            };
+          return {
+            message: {
+              role: "assistant",
+              tool_calls: [
+                {
+                  id: `recover-${calls}`,
+                  type: "function",
+                  function: {
+                    name: calls === 2 ? "list_dir" : "read_file",
+                    arguments:
+                      calls === 2 ? '{"path":"."}' : '{"path":"source.js"}',
+                  },
+                },
+              ],
+            },
+          };
+        },
+      },
+    )) {
+      if (event.type === "tool-result" && event.tool === "read_file")
+        reads.push(event.result);
+    }
+    expect(compacted).toBe(true);
+    expect(reads).toHaveLength(2);
+    expect(reads[0].content).toBe(source);
+    expect(reads[1].readRecovery.action).toBe("context-restore");
+    expect(reads[1].fileVersion).toBe(reads[0].fileVersion);
+    expect(reads[1].range.endLine).toBeLessThanOrEqual(80);
+    expect(reads[1].content.length).toBeLessThan(source.length);
+    expect(calls).toBe(4);
+  });
+
   it.each(["git", "script"])(
     "recovers from repeated %s inspection after compaction with usable source evidence",
     async (route) => {

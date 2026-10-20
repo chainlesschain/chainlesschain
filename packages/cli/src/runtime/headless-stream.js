@@ -66,14 +66,17 @@ import {
   agentLoop as coreAgentLoop,
 } from "./agent-core.js";
 import { composeSystemPrompt } from "./system-prompt.js";
-import { collapseConsecutiveMessagesInPlace } from "./message-roles.js";
+import { createResumeRoleProjection } from "./message-roles.js";
 import {
   estimateMessagesTokens,
   sanitizeToolPairs,
 } from "../harness/prompt-compressor.js";
 import { compactConversationWithProvider } from "../harness/provider-backed-compaction.js";
 import { HostResourceBudget } from "../lib/host-resource-budget.js";
-import { projectCanonicalResumeMessages } from "../lib/session-message-provenance.js";
+import {
+  projectCanonicalResumeMessages,
+  markRuntimeOnlySessionMessage,
+} from "../lib/session-message-provenance.js";
 import { isAbortError } from "../lib/abort-utils.js";
 import { expandFileRefsAsync } from "./file-ref-expander.js";
 // Per-turn helpers resolved at module load (not re-`await import`ed inside the
@@ -137,6 +140,7 @@ import {
   appendToolCallCompact as jsonlAppendToolCallCompact,
   appendLlmRetryCompact as jsonlAppendLlmRetryCompact,
   appendCompactEventIfMessagesMatch as jsonlAppendCompactEventIfMessagesMatch,
+  appendToolRoundsIfMessagesMatch as jsonlAppendToolRoundsIfMessagesMatch,
   appendEvent as jsonlAppendEvent,
   appendAuthorityEvent as jsonlAppendAuthorityEvent,
   readEvents as jsonlReadEvents,
@@ -965,28 +969,6 @@ async function runTurn(
     sideEffects?.ledger,
   );
 
-  // Collapse consecutive same-role turns before the model call ONLY when the
-  // caller flags a resume-degenerate transcript (`mergeRoles`): a resumed
-  // session whose previous run produced NO assistant response leaves a trailing
-  // bare `user` turn, so splicing the first live prompt after it sends two
-  // adjacent `user` messages — which Anthropic/Bedrock reject as "roles must
-  // alternate" (Claude Code 2.1.187 parity). It is GATED rather than applied
-  // every turn because the live turn loop legitimately produces consecutive
-  // `user` messages — an interrupted turn's dangling prompt, a PDH feedback
-  // note (§3.5.13) — that must reach the model distinctly and must not be
-  // folded (folding the interrupt-dangling turn even resurrects the abandoned
-  // request).
-  //
-  // Collapse IN PLACE (not a folded copy): the persistent `messages` array is
-  // reused for every later turn, so leaving the `[user, user]` pair in it would
-  // re-break the SECOND live turn (which re-sends the lingering pair). The gated
-  // turn is the first after resume, still tool-free (resumed history is
-  // user/assistant/system only), so an in-place fold is safe and the helper
-  // never folds `tool` turns regardless. Un-gated later turns are untouched, so
-  // the intentional interrupt/feedback consecutive-`user` states are preserved.
-  if (loopOptions.mergeRoles) {
-    collapseConsecutiveMessagesInPlace(messages);
-  }
   for await (const event of runLoop(messages, loopOptions)) {
     if (evolutionIngress !== null) {
       await evolutionIngress.ingestAgentEvent(event);
@@ -2292,6 +2274,11 @@ async function runAgentHeadlessStreamInWorkspace(
         ? () => null
         : jsonlFindLatestEvent);
   const store = {
+    appendToolRoundsIfMessagesMatch:
+      deps.appendToolRoundsIfMessagesMatch ||
+      (hasInjectedSessionStore
+        ? unavailableAuthorityCapability("appendToolRoundsIfMessagesMatch")
+        : jsonlAppendToolRoundsIfMessagesMatch),
     sessionExists: deps.sessionExists || jsonlSessionExists,
     startSession: deps.startSession || jsonlStartSession,
     appendUserMessage: deps.appendUserMessage || jsonlAppendUserMessage,
@@ -3280,14 +3267,12 @@ async function runAgentHeadlessStreamInWorkspace(
     }
   }
 
-  // Resume-degenerate role sanitation (Claude Code 2.1.187 parity): when the
-  // replayed history ends with a bare `user` turn (the prior run produced no
-  // assistant response), the FIRST live prompt would make two adjacent `user`
-  // messages. Arm a one-shot flag consumed by the first model call so the merge
-  // fires exactly once — the live turn loop's intentional consecutive-`user`
-  // states (interrupt-dangling turn, PDH feedback note) are never folded.
+  // Capture the first resumed request's adjacent role pairs, then normalize
+  // those pairs in provider projections across later turns. Canonical history
+  // and new feedback/interrupt message pairs retain their original structure.
   let sanitizeRolesNextTurn =
     resumedMessages > 0 && messages[messages.length - 1]?.role === "user";
+  let projectProviderMessages;
 
   if (
     options.taskWorklog === true ||
@@ -3778,6 +3763,63 @@ async function runAgentHeadlessStreamInWorkspace(
     };
   }
 
+  const settleToolRounds = () => {
+    if (
+      !persist ||
+      !messages.some(
+        (message) => message.role === "assistant" && message.tool_calls?.length,
+      )
+    )
+      return;
+    sessionHostLease?.assert?.();
+    const expected = requireSynchronousRecoveryResult(
+      store.readVerifiedProjection(sessionId, () => ({
+        accept() {},
+        finish(authority) {
+          return authority.readMessages();
+        },
+      })),
+      "readVerifiedProjection",
+    );
+    return requireSynchronousRecoveryResult(
+      store.appendToolRoundsIfMessagesMatch(sessionId, messages, expected),
+      "appendToolRoundsIfMessagesMatch",
+    );
+  };
+  const settleToolRoundsForHost = (phase, clientMessageId = null) => {
+    try {
+      settleToolRounds();
+      return true;
+    } catch (error) {
+      const persistence = projectSessionPersistenceFailure(
+        createSessionPersistenceFailure(error, {
+          sessionId,
+          operation: "append-event",
+        }),
+        { phase },
+      );
+      if (persistence) terminalPersistenceFailure = persistence;
+      emit({
+        type: "result",
+        is_error: true,
+        session_id: sessionId,
+        subtype: clientMessageId
+          ? "error_input_receipt"
+          : persistence
+            ? "error_persistence"
+            : "error_session_persistence",
+        code: error?.code || "CC_SESSION_TOOL_ROUND_PERSISTENCE_FAILED",
+        error:
+          "Cannot settle completed tool rounds; refresh the session before continuing",
+        ...(clientMessageId
+          ? { client_message_id: clientMessageId, acceptance: "unknown" }
+          : {}),
+        ...(persistence ? { persistence } : {}),
+      });
+      sawError = true;
+      return false;
+    }
+  };
   const loopOptionsBase = {
     ...(evolutionIngress === null ? {} : { evolutionIngress }),
     model,
@@ -3848,8 +3890,14 @@ async function runAgentHeadlessStreamInWorkspace(
     mcpCallLedger: mcpRecoveryRuntime.ledger,
     mcpDispatchAdmission: sessionHostLease?.admitMcpDispatch || null,
     getTaskWorklogContext: () => taskWorklog?.context() || null,
-    onBeforeCompaction: () =>
-      updateWorklog((log) => log.record({ type: "before-compaction" })),
+    onBeforeCompaction: () => {
+      updateWorklog((log) => log.record({ type: "before-compaction" }));
+      try {
+        settleToolRounds();
+      } catch (error) {
+        throw markRuntimeLedgerPersistenceError(error);
+      }
+    },
     onCompaction: persist
       ? (stats, compacted, settlement = {}) => {
           sessionHostLease?.assert?.();
@@ -4449,6 +4497,7 @@ async function runAgentHeadlessStreamInWorkspace(
       continue;
     }
     if (parsed.compact) {
+      if (!settleToolRoundsForHost("before-model")) break;
       updateWorklog((log) => log.record({ type: "before-compaction" }));
       const before = messages.length;
       const expectedMessages = [...messages];
@@ -5076,10 +5125,42 @@ async function runAgentHeadlessStreamInWorkspace(
         // fall through into the normal turn machinery with the correction prompt
       } else {
         const tag = kind === "positive" ? "认可" : "不满意";
-        messages.push({
+        const feedbackMessage = {
           role: "user",
           content: `（用户反馈：对上一轮回复表示${tag}。请在后续回复中延续/修正此偏好。）`,
-        });
+        };
+        if (persist) {
+          if (!settleToolRoundsForHost("before-model")) break;
+          try {
+            sessionHostLease?.assert?.();
+            requireSynchronousRecoveryResult(
+              store.appendUserMessage(sessionId, feedbackMessage.content),
+              "appendUserMessage",
+            );
+          } catch (error) {
+            const persistence = projectSessionPersistenceFailure(
+              createSessionPersistenceFailure(error, {
+                sessionId,
+                operation: "user-turn-append",
+              }),
+              { phase: "before-model" },
+            );
+            if (persistence) terminalPersistenceFailure = persistence;
+            emit({
+              type: "result",
+              subtype: "error_persistence",
+              is_error: true,
+              session_id: sessionId,
+              code: error?.code || "CC_SESSION_FEEDBACK_PERSISTENCE_FAILED",
+              error:
+                "Feedback could not be saved; refresh the session before retrying",
+              ...(persistence ? { persistence } : {}),
+            });
+            sawError = true;
+            break;
+          }
+        }
+        messages.push(feedbackMessage);
         continue;
       }
     }
@@ -5357,6 +5438,8 @@ async function runAgentHeadlessStreamInWorkspace(
     let inputReceipt = null;
     let userEventId = null;
     if (persist) {
+      if (!settleToolRoundsForHost("before-model", parsed.clientMessageId))
+        break;
       try {
         if (parsed.clientMessageId) {
           if (!store.appendInputWithReceipt)
@@ -5451,11 +5534,12 @@ async function runAgentHeadlessStreamInWorkspace(
       ? AbortSignal.any([options.signal, currentAbort.signal])
       : currentAbort.signal;
 
-    // Consume the one-shot resume-degeneracy flag for THIS turn (see
-    // sanitizeRolesNextTurn) so the role merge fires exactly once, whether the
-    // model call completes or is interrupted.
-    const mergeRolesThisTurn = sanitizeRolesNextTurn;
-    sanitizeRolesNextTurn = false;
+    // Capture the resumed pairs once, then normalize those same pairs only in
+    // every provider request. The live authority array retains separate turns.
+    if (sanitizeRolesNextTurn) {
+      projectProviderMessages = createResumeRoleProjection(messages);
+      sanitizeRolesNextTurn = false;
+    }
 
     let outcome;
     try {
@@ -5522,8 +5606,7 @@ async function runAgentHeadlessStreamInWorkspace(
                   event.text.trim().length > 0 &&
                   !event.text.trimStart().startsWith("/")),
             ),
-          // Resume-degenerate role merge for the first live model call only.
-          mergeRoles: mergeRolesThisTurn,
+          projectProviderMessages,
         },
         {
           runLoop,
@@ -5640,9 +5723,21 @@ async function runAgentHeadlessStreamInWorkspace(
         // the array length unchanged. sanitizeToolPairs is idempotent on an
         // already-balanced array and leaves user/text turns untouched, so the
         // intentional dangling-user state above is preserved.
+        const originalMessages = new Set(messages);
         const balanced = sanitizeToolPairs(messages);
+        // Only the sanitizer's newly-created commentary for discarded calls
+        // is ephemeral. Existing real messages retain their authority.
+        for (const message of balanced) {
+          if (
+            !originalMessages.has(message) &&
+            message.role === "assistant" &&
+            !message.tool_calls?.length
+          )
+            markRuntimeOnlySessionMessage(message);
+        }
         messages.length = 0;
         messages.push(...balanced);
+        if (!settleToolRoundsForHost("after-model")) break;
         emit({
           type: "result",
           subtype: "interrupted",
@@ -5654,6 +5749,7 @@ async function runAgentHeadlessStreamInWorkspace(
         continue;
       }
       if (isAbort) break; // outer options.signal — caller is shutting down
+      if (!settleToolRoundsForHost("after-model")) break;
       const transportDetails = transportErrorDetails(err);
       emit({
         type: "result",
@@ -5676,6 +5772,7 @@ async function runAgentHeadlessStreamInWorkspace(
     currentAbort = null;
 
     if (outcome.endReason === "user-input-pending") {
+      if (!settleToolRoundsForHost("after-model")) break;
       emit({
         type: "result",
         subtype: "interrupted",
@@ -5738,9 +5835,9 @@ async function runAgentHeadlessStreamInWorkspace(
     }
 
     // Grow the conversation so the next turn has context.
-    messages.push({ role: "assistant", content: outcome.finalText });
     let assistantEventId = null;
     if (persist) {
+      if (!settleToolRoundsForHost("after-model")) break;
       try {
         assistantEventId = transcriptMessageEventId(
           store.appendAssistantMessage(sessionId, outcome.finalText),
@@ -5764,6 +5861,7 @@ async function runAgentHeadlessStreamInWorkspace(
         }
       }
     }
+    messages.push({ role: "assistant", content: outcome.finalText });
 
     const exhausted =
       outcome.endReason === "budget-exhausted" ||

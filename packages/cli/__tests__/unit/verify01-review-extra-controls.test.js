@@ -123,6 +123,14 @@ vi.mock("./packages/cli/src/lib/evolution/agent-evolution-ingress.js", () => ({
       "session-transcript-structure.js",
     ])
       copySource(root, `packages/cli/src/lib/${file}`);
+    // Frozen source audits may predate complete provider tool-round replay.
+    if (
+      sourceBytes("packages/cli/src/lib/session-transcript-structure.js").includes(
+        '"./session-tool-round.js"',
+      )
+    ) {
+      copySource(root, "packages/cli/src/lib/session-tool-round.js");
+    }
     copySource(root, "packages/cli/src/harness/jsonl-session-store.js");
     return `
 import { vi } from "vitest";

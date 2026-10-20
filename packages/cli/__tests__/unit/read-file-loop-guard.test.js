@@ -41,6 +41,84 @@ function fixture() {
 }
 
 describe("ReadFileLoopGuard recovery", () => {
+  it("restores a bounded source page when the planner dropped the original read", () => {
+    const { guard, read } = fixture();
+    const source = "const start = () => work();\nawait start();";
+    const original = read({ path: "/work/task.js" }, source);
+    guard.observeVisibleMessages?.([
+      { role: "user", content: "Continue the requested change." },
+    ]);
+    const restored = read({ path: "/work/task.js" }, source);
+    expect(restored.content).toBe(original.content);
+    expect(restored.readRecovery.action).toBe("context-restore");
+    expect(restored.fileVersion).toBe("v1");
+    expect(restored.range.startLine).toBe(1);
+    guard.observeVisibleMessages?.([
+      { role: "tool", content: JSON.stringify(restored) },
+    ]);
+    expect(read({ path: "/work/task.js" }, source).contentOmitted).toBe(true);
+  });
+
+  it("does not reopen broad scans when the planner repeatedly drops the same page", () => {
+    const { guard, batch } = fixture();
+    const source = "one\ntwo\nthree";
+    batch({}, source);
+    guard.observeVisibleMessages([]);
+    expect(batch({}, source).readRecovery.action).toBe("context-restore");
+    expect(guard.repeatedBatches).toBe(0);
+    for (let i = 0; i < 6; i++) {
+      guard.observeVisibleMessages([]);
+      expect(batch({}, source).contentOmitted).toBe(true);
+    }
+    expect(guard.stalled).toBe(true);
+  });
+
+  it("requires the actual source and version, not an outline or truncated prefix", () => {
+    const { guard, read } = fixture();
+    const args = { path: "/work/task.js", offset: 1, limit: 2 };
+    const source = "const worker = start();\nawait worker;";
+    const page = read(args, source);
+    guard.observeVisibleMessages([
+      {
+        role: "tool",
+        content: JSON.stringify({
+          ...page,
+          content: "const worker",
+          outline: { headings: [] },
+        }),
+      },
+      {
+        role: "tool",
+        content: JSON.stringify({ ...page, fileVersion: "older" }),
+      },
+    ]);
+    expect(read(args, source).readRecovery.action).toBe("context-restore");
+    guard.observeVisibleMessages([
+      { role: "tool", content: JSON.stringify(page) },
+    ]);
+    expect(guard.isPageVisible(page)).toBe(true);
+    expect(guard.isPageVisible({ ...page, fileVersion: "v2" })).toBe(false);
+  });
+
+  it("recognizes retained excerpts only when they survive provider selection", () => {
+    const { guard, read } = fixture();
+    const page = read({}, "const x = 1;");
+    const context = guard.findingsHint;
+    guard.observeVisibleMessages([
+      {
+        role: "tool",
+        content: JSON.stringify({ retainedReadContext: [context] }),
+      },
+    ]);
+    expect(guard.isPageVisible(page)).toBe(true);
+    guard.observeVisibleMessages([
+      { role: "assistant", content: "The file was already read." },
+    ]);
+    expect(guard.isPageVisible(page)).toBe(false);
+    const recovered = read({}, "const x = 1;");
+    expect(recovered.readRecovery.action).toBe("context-restore");
+  });
+
   it("preserves the last document outline when excerpts exceed the context budget", () => {
     const guard = new ReadFileLoopGuard();
     const content = Array.from(

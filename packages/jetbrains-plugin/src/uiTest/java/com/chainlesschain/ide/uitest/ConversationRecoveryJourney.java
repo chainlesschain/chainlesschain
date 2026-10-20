@@ -80,7 +80,7 @@ final class ConversationRecoveryJourney {
         JSON.stringify({
             initializationTimeoutSeconds:Number(java.lang.Class.forName('com.chainlesschain.ide.InputDispatch',true,loader)
                 .getField('INITIALIZATION_TIMEOUT_SECONDS').get(null)),
-            observedAt:String(java.time.Instant.now()), processId:String(java.lang.ProcessHandle.current().pid()),
+            processId:String(java.lang.ProcessHandle.current().pid()),
             profile:String(Packages.com.intellij.openapi.application.PathManager.getConfigPath()),
             id:String(field(conv,'draftKey')), sessionId:String(field(conv,'sessionId')), tabs:tabList,
             inputText:String(field(view,'input').getText()), editable:field(view,'input').isEditable(),
@@ -93,7 +93,8 @@ final class ConversationRecoveryJourney {
             draftStatus:String(field(field(view,'drafts'),'status').getText()),
             historyStatus:String(field(field(view,'history'),'status').getText()),
             binaryChoice:String(binaryField.get(null)),
-            text:String(pane.getDocument().getText(0,pane.getDocument().getLength())), visible:pane.isShowing(), savedRows:rows
+            text:String(pane.getDocument().getText(0,pane.getDocument().getLength())), visible:pane.isShowing(), savedRows:rows,
+            observedAt:String(java.time.Instant.now())
         });
         """;
 
