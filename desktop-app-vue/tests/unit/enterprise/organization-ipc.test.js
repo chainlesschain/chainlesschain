@@ -668,26 +668,18 @@ describe("Organization IPC 处理器", () => {
         expect(handlers["org:update-member-role"]).toBeDefined();
       });
 
-      it("should call organizationManager.updateMemberRole on success", async () => {
-        const mockOrgId = "org_123";
-        const mockMemberDID = "did:key:z6MkTest123";
-        const mockNewRole = "admin";
-
-        mockOrganizationManager.updateMemberRole.mockResolvedValue();
-
-        const result = await handlers["org:update-member-role"](
-          {},
-          mockOrgId,
-          mockMemberDID,
-          mockNewRole,
-        );
-
-        expect(mockOrganizationManager.updateMemberRole).toHaveBeenCalledWith(
-          mockOrgId,
-          mockMemberDID,
-          mockNewRole,
-        );
-        expect(result).toEqual({ success: true });
+      it("should reject role writes without an authoritative database and session", async () => {
+        // Real authorized SQLite writes are covered by organization-role-write-authority.test.cjs.
+        // This legacy manager-only fixture cannot grant controlled write authority.
+        await expect(
+          handlers["org:update-member-role"](
+            {},
+            "org_123",
+            "did:key:z6MkTest123",
+            "admin",
+          ),
+        ).rejects.toThrow("ORG_ROLE_WRITE_DENIED");
+        expect(mockOrganizationManager.updateMemberRole).not.toHaveBeenCalled();
       });
 
       it("should throw error when organizationManager is not initialized", async () => {
@@ -888,24 +880,16 @@ describe("Organization IPC 处理器", () => {
         expect(handlers["org:create-invitation"]).toBeDefined();
       });
 
-      it("should call organizationManager.createInvitation on success", async () => {
-        const mockOrgId = "org_123";
-        const mockInviteData = { role: "member", expiresIn: 86400000 };
-        const mockResult = { invitation_id: "inv_123", code: "INVITE123" };
-
-        mockOrganizationManager.createInvitation.mockResolvedValue(mockResult);
-
-        const result = await handlers["org:create-invitation"](
-          {},
-          mockOrgId,
-          mockInviteData,
-        );
-
-        expect(mockOrganizationManager.createInvitation).toHaveBeenCalledWith(
-          mockOrgId,
-          mockInviteData,
-        );
-        expect(result).toEqual(mockResult);
+      it("should reject role writes without an authoritative database and session", async () => {
+        // Real authorized SQLite writes are covered by organization-role-write-authority.test.cjs.
+        // This legacy manager-only fixture cannot grant controlled write authority.
+        await expect(
+          handlers["org:create-invitation"]({}, "org_123", {
+            role: "member",
+            expiresIn: 86400000,
+          }),
+        ).rejects.toThrow("ORG_ROLE_WRITE_DENIED");
+        expect(mockOrganizationManager.createInvitation).not.toHaveBeenCalled();
       });
 
       it("should throw error when organizationManager is not initialized", async () => {
@@ -935,27 +919,16 @@ describe("Organization IPC 处理器", () => {
         expect(handlers["org:invite-by-did"]).toBeDefined();
       });
 
-      it("should call organizationManager.inviteByDID on success", async () => {
-        const mockOrgId = "org_123";
-        const mockInviteData = {
-          targetDID: "did:key:z6MkTest123",
-          role: "member",
-        };
-        const mockResult = { invitation_id: "inv_123" };
-
-        mockOrganizationManager.inviteByDID.mockResolvedValue(mockResult);
-
-        const result = await handlers["org:invite-by-did"](
-          {},
-          mockOrgId,
-          mockInviteData,
-        );
-
-        expect(mockOrganizationManager.inviteByDID).toHaveBeenCalledWith(
-          mockOrgId,
-          mockInviteData,
-        );
-        expect(result).toEqual(mockResult);
+      it("should reject legacy invitation writes without calling the manager", async () => {
+        // Real authorized SQLite writes are covered by organization-role-write-authority.test.cjs.
+        // This legacy manager-only fixture cannot grant controlled write authority.
+        await expect(
+          handlers["org:invite-by-did"]({}, "org_123", {
+            targetDID: "did:key:z6MkTest123",
+            role: "member",
+          }),
+        ).rejects.toThrow("ORG_ROLE_CONTROLLED_WRITE_REQUIRED");
+        expect(mockOrganizationManager.inviteByDID).not.toHaveBeenCalled();
       });
 
       it("should throw error when organizationManager is not initialized", async () => {
@@ -1267,27 +1240,18 @@ describe("Organization IPC 处理器", () => {
         expect(handlers["org:create-invitation-link"]).toBeDefined();
       });
 
-      it("should call didInvitationManager.createInvitationLink on success", async () => {
-        const mockParams = { orgId: "org_123", maxUses: 10 };
-        const mockResult = {
-          token: "token123",
-          url: "https://example.com/invite/token123",
-        };
-
-        mockOrganizationManager.didInvitationManager.createInvitationLink.mockResolvedValue(
-          mockResult,
-        );
-
-        const result = await handlers["org:create-invitation-link"](
-          {},
-          mockParams,
-        );
-
+      it("should reject legacy invitation writes without calling the manager", async () => {
+        // Real authorized SQLite writes are covered by organization-role-write-authority.test.cjs.
+        // This legacy manager-only fixture cannot grant controlled write authority.
+        await expect(
+          handlers["org:create-invitation-link"](
+            {},
+            { orgId: "org_123", maxUses: 10 },
+          ),
+        ).rejects.toThrow("ORG_ROLE_CONTROLLED_WRITE_REQUIRED");
         expect(
           mockOrganizationManager.didInvitationManager.createInvitationLink,
-        ).toHaveBeenCalledWith(mockParams);
-        expect(result.success).toBe(true);
-        expect(result.invitationLink).toEqual(mockResult);
+        ).not.toHaveBeenCalled();
       });
 
       it("should throw error when didInvitationManager is not initialized", async () => {
@@ -2131,30 +2095,18 @@ describe("Organization IPC 处理器", () => {
         expect(handlers["org:create-custom-role"]).toBeDefined();
       });
 
-      it("should call organizationManager.createCustomRole on success", async () => {
-        const mockOrgId = "org_123";
-        const mockRoleData = {
-          name: "Custom Role",
-          permissions: ["read_knowledge"],
-        };
-        const mockCreatorDID = "did:key:z6MkTest123";
-        const mockRole = { role_id: "role_123", ...mockRoleData };
-
-        mockOrganizationManager.createCustomRole.mockResolvedValue(mockRole);
-
-        const result = await handlers["org:create-custom-role"](
-          {},
-          mockOrgId,
-          mockRoleData,
-          mockCreatorDID,
-        );
-
-        expect(mockOrganizationManager.createCustomRole).toHaveBeenCalledWith(
-          mockOrgId,
-          mockRoleData,
-          mockCreatorDID,
-        );
-        expect(result).toEqual(mockRole);
+      it("should reject role writes without an authoritative database and session", async () => {
+        // Real authorized SQLite writes are covered by organization-role-write-authority.test.cjs.
+        // This legacy manager-only fixture cannot grant controlled write authority.
+        await expect(
+          handlers["org:create-custom-role"](
+            {},
+            "org_123",
+            { name: "Custom Role", permissions: ["project.read"] },
+            "did:key:forged",
+          ),
+        ).rejects.toThrow("ORG_ROLE_WRITE_DENIED");
+        expect(mockOrganizationManager.createCustomRole).not.toHaveBeenCalled();
       });
 
       it("should throw error when organizationManager is not initialized", async () => {
@@ -2189,27 +2141,18 @@ describe("Organization IPC 处理器", () => {
         expect(handlers["org:update-role"]).toBeDefined();
       });
 
-      it("should call organizationManager.updateRole on success", async () => {
-        const mockRoleId = "role_123";
-        const mockUpdates = { name: "Updated Role" };
-        const mockUpdaterDID = "did:key:z6MkTest123";
-        const mockRole = { role_id: mockRoleId, ...mockUpdates };
-
-        mockOrganizationManager.updateRole.mockResolvedValue(mockRole);
-
-        const result = await handlers["org:update-role"](
-          {},
-          mockRoleId,
-          mockUpdates,
-          mockUpdaterDID,
-        );
-
-        expect(mockOrganizationManager.updateRole).toHaveBeenCalledWith(
-          mockRoleId,
-          mockUpdates,
-          mockUpdaterDID,
-        );
-        expect(result).toEqual(mockRole);
+      it("should reject role writes without an authoritative database and session", async () => {
+        // Real authorized SQLite writes are covered by organization-role-write-authority.test.cjs.
+        // This legacy manager-only fixture cannot grant controlled write authority.
+        await expect(
+          handlers["org:update-role"](
+            {},
+            "role_123",
+            { name: "Updated Role" },
+            "did:key:forged",
+          ),
+        ).rejects.toThrow("ORG_ROLE_WRITE_DENIED");
+        expect(mockOrganizationManager.updateRole).not.toHaveBeenCalled();
       });
 
       it("should throw error when organizationManager is not initialized", async () => {
@@ -2239,23 +2182,13 @@ describe("Organization IPC 处理器", () => {
         expect(handlers["org:delete-role"]).toBeDefined();
       });
 
-      it("should call organizationManager.deleteRole on success", async () => {
-        const mockRoleId = "role_123";
-        const mockDeleterDID = "did:key:z6MkTest123";
-
-        mockOrganizationManager.deleteRole.mockResolvedValue();
-
-        const result = await handlers["org:delete-role"](
-          {},
-          mockRoleId,
-          mockDeleterDID,
-        );
-
-        expect(mockOrganizationManager.deleteRole).toHaveBeenCalledWith(
-          mockRoleId,
-          mockDeleterDID,
-        );
-        expect(result).toEqual({ success: true });
+      it("should reject role writes without an authoritative database and session", async () => {
+        // Real authorized SQLite writes are covered by organization-role-write-authority.test.cjs.
+        // This legacy manager-only fixture cannot grant controlled write authority.
+        await expect(
+          handlers["org:delete-role"]({}, "role_123", "did:key:forged"),
+        ).rejects.toThrow("ORG_ROLE_WRITE_DENIED");
+        expect(mockOrganizationManager.deleteRole).not.toHaveBeenCalled();
       });
 
       it("should throw error when organizationManager is not initialized", async () => {

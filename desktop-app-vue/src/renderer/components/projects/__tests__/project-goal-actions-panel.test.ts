@@ -165,7 +165,7 @@ describe("personal goal suggestions, native confirmation entry and receipts", ()
     });
     expect(api.prepareGoalIntent).not.toHaveBeenCalled();
     expect(api.executeGoalIntent).not.toHaveBeenCalled();
-    expect(wrapper.get('[data-testid="execute-goal-intent"]').exists()).toBe(
+    expect(wrapper.find('[data-testid="execute-goal-intent"]').exists()).toBe(
       true,
     );
   });

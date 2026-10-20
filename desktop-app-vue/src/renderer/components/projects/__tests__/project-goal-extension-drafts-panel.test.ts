@@ -1,5 +1,13 @@
 import { mount, flushPromises, type VueWrapper } from "@vue/test-utils";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  type Mock,
+} from "vitest";
 import Panel from "../ProjectGoalExtensionDraftsPanel.vue";
 const goal = {
   id: "goal1",
@@ -36,7 +44,7 @@ function draft() {
   };
 }
 describe("native delivery draft UI", () => {
-  let wrapper: VueWrapper, api: Record<string, ReturnType<typeof vi.fn>>;
+  let wrapper: VueWrapper, api: Record<string, Mock<(...args: any[]) => any>>;
   beforeEach(() => {
     api = {
       getGoalDeliveryDraftStatus: vi.fn(async () => ({

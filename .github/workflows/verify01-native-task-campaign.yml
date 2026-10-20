@@ -103,7 +103,7 @@ jobs:
           PACKAGE_SET_SELECTION: ${{ inputs.package_set || 'latest' }}
           FETCH_DIAGNOSTICS: ${{ inputs.fetch_diagnostics && 'true' || 'false' }}
         run: |
-          node --input-type=module -e '
+          node --input-type=module <<'NODE'
             import fs from "node:fs";
             import {parseNativeSampleIds, selectNativeSamples} from "./packages/cli/scripts/verify01-native-task-campaign.mjs";
             import {validateNativePackageSetFile, assertUnfinishedNativeSamples} from "./packages/cli/scripts/verify01-native-retest-plan.mjs";
@@ -136,7 +136,7 @@ jobs:
             }
             fs.appendFileSync(process.env.GITHUB_OUTPUT, `matrix=${JSON.stringify({include: rows})}\ngroups=${JSON.stringify(rows.map(row => row.group))}\n`);
             fs.appendFileSync(process.env.GITHUB_OUTPUT, `sample_key=${sampleKey}\n`);
-          '
+          NODE
 
   generate:
     needs: validate

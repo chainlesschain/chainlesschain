@@ -96,6 +96,11 @@ jobs:
           node-version: "22.x"
           cache: "npm"
 
+      - name: Setup Python 3.11 for node-gyp
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
       - name: Download build artifacts
         uses: actions/download-artifact@v7
         with:
@@ -104,6 +109,24 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Install standalone desktop dependencies
+        working-directory: desktop-app-vue
+        shell: bash
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh" npm ci --workspaces=false
+
+      - name: Rebuild SQLite for Electron
+        working-directory: desktop-app-vue
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Playwright launches the Electron installed by the root test install.
+          ELECTRON_VER=$(node -p "require('../node_modules/electron/package.json').version")
+          echo "Rebuilding SQLite for Playwright Electron $ELECTRON_VER"
+          npx --yes @electron/rebuild@^4 \
+            --version "$ELECTRON_VER" \
+            --only better-sqlite3-multiple-ciphers \
+            --force
 
       - name: Install Playwright browsers
         run: npx playwright install chromium --with-deps
@@ -233,6 +256,11 @@ jobs:
           node-version: "22.x"
           cache: "npm"
 
+      - name: Setup Python 3.11 for node-gyp
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
       - name: Download build artifacts
         uses: actions/download-artifact@v7
         with:
@@ -241,6 +269,24 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Install standalone desktop dependencies
+        working-directory: desktop-app-vue
+        shell: bash
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/ci-npm-retry.sh" npm ci --workspaces=false
+
+      - name: Rebuild SQLite for Electron
+        working-directory: desktop-app-vue
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Playwright launches the Electron installed by the root test install.
+          ELECTRON_VER=$(node -p "require('../node_modules/electron/package.json').version")
+          echo "Rebuilding SQLite for Playwright Electron $ELECTRON_VER"
+          npx --yes @electron/rebuild@^4 \
+            --version "$ELECTRON_VER" \
+            --only better-sqlite3-multiple-ciphers \
+            --force
 
       - name: Install Playwright browsers
         run: npx playwright install chromium --with-deps

@@ -41,9 +41,11 @@ const pending = () => {
 };
 
 describe("task notice route and manual mention", () => {
+  let pinia: ReturnType<typeof createPinia>;
   let wrapper: any, api: any;
   beforeEach(() => {
-    setActivePinia(createPinia());
+    pinia = createPinia();
+    setActivePinia(pinia);
     useAppStore().isAuthenticated = true;
     route.value = reactive({
       params: { id: "board-1" },
@@ -88,6 +90,7 @@ describe("task notice route and manual mention", () => {
   function render() {
     wrapper = mount(Page, {
       global: {
+        plugins: [pinia],
         stubs: {
           BoardTaskCreator: {
             name: "BoardTaskCreator",
@@ -135,6 +138,7 @@ describe("task notice route and manual mention", () => {
     return flushPromises();
   }
   it("opens fresh task only after matching board/org and a final notice recheck", async () => {
+    boardStore.columns = [{ id: "column-1", name: "Todo" }];
     await render();
     expect(api.notification.openTask).toHaveBeenCalledTimes(2);
     expect(boardStore.currentTask.title).toBe("Fresh task");
