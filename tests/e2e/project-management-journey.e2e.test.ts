@@ -19,6 +19,7 @@ import {
   closeElectronApp,
   callIPC,
   createControlledBoardTask,
+  updateControlledBoardTask,
   createPmOrganizationFixture,
   type ElectronTestContext,
 } from "./helpers";
@@ -40,7 +41,7 @@ const REQUIREMENTS_CONTENT =
 let testOrgId: string;
 let testUserDid: string;
 const TEST_USER_NAME = "PM Journey User";
-const TEST_MEMBER_DID = `did:key:pm-journey-member-${Date.now()}`;
+let testMemberDid: string;
 const TEST_MEMBER_NAME = "PM Journey Member";
 const TEST_PROJECT_NAME = "PM Journey Delivery Project";
 
@@ -101,9 +102,49 @@ test.describe.serial("Project Management Journey (Full Lifecycle)", () => {
   });
 
   test("Phase 1.2: Add team member", async () => {
+    // A team assignee must also be an active organization member. Join using
+    // a real local identity and an owner-authorized invitation before adding
+    // the member to the team; restore the owner session for subsequent writes.
+    const invitation: any = await callIPC(
+      window,
+      "organization.createInvitation",
+      testOrgId,
+      { role: "member", maxUses: 1 },
+    );
+    expect(invitation.invite_code).toBeTruthy();
+    try {
+      const identity: any = await callIPC(
+        window,
+        "did:create-identity",
+        { nickname: TEST_MEMBER_NAME },
+        { setAsDefault: true },
+      );
+      expect(identity.did).toMatch(/^did:/);
+      testMemberDid = identity.did;
+      const joined: any = await callIPC(
+        window,
+        "organization.join",
+        invitation.invite_code,
+      );
+      expect(joined.org_id).toBe(testOrgId);
+    } finally {
+      const restored: any = await callIPC(
+        window,
+        "did:set-default-identity",
+        testUserDid,
+      );
+      expect(restored.success).toBe(true);
+      const authentication: any = await callIPC(
+        window,
+        "auth:verify-password",
+        process.env.DEFAULT_USERNAME || "admin",
+        process.env.DEFAULT_PASSWORD || "123456",
+      );
+      expect(authentication.success).toBe(true);
+    }
     const addResult: any = await callIPC(window, "team:add-member", {
       teamId,
-      memberDid: TEST_MEMBER_DID,
+      memberDid: testMemberDid,
       memberName: TEST_MEMBER_NAME,
       role: "member",
       invitedBy: testUserDid,
@@ -129,7 +170,7 @@ test.describe.serial("Project Management Journey (Full Lifecycle)", () => {
     const grantResult: any = await callIPC(window, "perm:grant-permission", {
       orgId: testOrgId,
       granteeType: "user",
-      granteeId: TEST_MEMBER_DID,
+      granteeId: testMemberDid,
       resourceType: "project",
       resourceId: "*",
       permission: "write",
@@ -314,11 +355,8 @@ test.describe.serial("Project Management Journey (Full Lifecycle)", () => {
   });
 
   test("Phase 4.2: Assign task to team member", async () => {
-    const assignResult: any = await callIPC(window, "task:assign-task", {
-      taskId,
-      userDid: TEST_MEMBER_DID,
-      role: "assignee",
-      assignedBy: testUserDid,
+    const assignResult = await updateControlledBoardTask(app, window, taskId, {
+      assigneeDid: testMemberDid,
     });
 
     expect(assignResult).toBeDefined();
@@ -329,18 +367,19 @@ test.describe.serial("Project Management Journey (Full Lifecycle)", () => {
     const dueDate = new Date();
     dueDate.setDate(dueDate.getDate() + 7); // Due in 7 days
 
-    const dueDateResult: any = await callIPC(window, "task:set-due-date", {
-      taskId,
-      dueDate: dueDate.toISOString(),
-      actorDid: testUserDid,
+    const dueDateResult = await updateControlledBoardTask(app, window, taskId, {
+      dueDate: dueDate.getTime(),
     });
     expect(dueDateResult.success).toBe(true);
 
-    const priorityResult: any = await callIPC(window, "task:set-priority", {
+    const priorityResult = await updateControlledBoardTask(
+      app,
+      window,
       taskId,
-      priority: "high",
-      actorDid: testUserDid,
-    });
+      {
+        priority: "high",
+      },
+    );
     expect(priorityResult.success).toBe(true);
   });
 
@@ -370,7 +409,7 @@ test.describe.serial("Project Management Journey (Full Lifecycle)", () => {
       const itemResult: any = await callIPC(window, "task:add-checklist-item", {
         checklistId,
         content: item,
-        assigneeDid: TEST_MEMBER_DID,
+        assigneeDid: testMemberDid,
       });
       expect(itemResult.success).toBe(true);
     }
@@ -392,11 +431,9 @@ test.describe.serial("Project Management Journey (Full Lifecycle)", () => {
   });
 
   test("Phase 4.6: Move task to In Progress", async () => {
-    const moveResult: any = await callIPC(window, "task:move-task", {
-      taskId,
+    const moveResult = await updateControlledBoardTask(app, window, taskId, {
       columnId: columnIds.inProgress,
       position: 0,
-      actorDid: TEST_MEMBER_DID,
     });
 
     expect(moveResult).toBeDefined();
@@ -453,22 +490,16 @@ test.describe.serial("Project Management Journey (Full Lifecycle)", () => {
 
   test("Phase 5.4: Complete task and move to Done", async () => {
     // Update task status to done
-    const updateResult: any = await callIPC(window, "task:update-task", {
-      taskId,
-      updates: {
-        status: "done",
-        actualHours: 7,
-      },
-      actorDid: TEST_MEMBER_DID,
+    const updateResult = await updateControlledBoardTask(app, window, taskId, {
+      status: "done",
+      actualHours: 7,
     });
     expect(updateResult.success).toBe(true);
 
     // Move to Done column
-    const moveResult: any = await callIPC(window, "task:move-task", {
-      taskId,
+    const moveResult = await updateControlledBoardTask(app, window, taskId, {
       columnId: columnIds.done,
       position: 0,
-      actorDid: TEST_MEMBER_DID,
     });
     expect(moveResult.success).toBe(true);
   });
