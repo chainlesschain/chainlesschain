@@ -34,9 +34,11 @@ const result = (status = "succeeded", extra = {}) => ({
 });
 
 describe("task report summary", () => {
+  let pinia: ReturnType<typeof createPinia>;
   let wrapper: any, api: any, invalidate: () => void, unsubscribe: any;
   beforeEach(() => {
-    setActivePinia(createPinia());
+    pinia = createPinia();
+    setActivePinia(pinia);
     useAppStore().isAuthenticated = true;
     useAppStore().deviceId = "device-1";
     api = {
@@ -70,6 +72,7 @@ describe("task report summary", () => {
     wrapper = mount(Component, {
       props: { reportId: "report-1" },
       global: {
+        plugins: [pinia],
         stubs: { "a-button": { template: "<button><slot /></button>" } },
       },
     });
