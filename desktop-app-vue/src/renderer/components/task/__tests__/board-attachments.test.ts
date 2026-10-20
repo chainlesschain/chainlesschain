@@ -39,7 +39,6 @@ describe("board attachment component", () => {
   let wrapper: any, api: any, invalidate: () => void, unsubscribe: any;
   let createObjectURL: any, revokeObjectURL: any, click: any;
   let originalCreate: any, originalRevoke: any;
-  let pinia: ReturnType<typeof createPinia>;
   beforeEach(() => {
     vi.useFakeTimers();
     pinia = createPinia();

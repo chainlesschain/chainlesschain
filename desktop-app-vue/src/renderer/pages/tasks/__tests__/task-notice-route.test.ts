@@ -43,7 +43,6 @@ const pending = () => {
 describe("task notice route and manual mention", () => {
   let pinia: ReturnType<typeof createPinia>;
   let wrapper: any, api: any;
-  let pinia: ReturnType<typeof createPinia>;
   beforeEach(() => {
     pinia = createPinia();
     setActivePinia(pinia);
