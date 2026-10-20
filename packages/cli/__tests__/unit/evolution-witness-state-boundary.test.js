@@ -267,6 +267,8 @@ describe.each(["head", "segment"])(
         bytes = fs.readFileSync(value.target);
       fs.renameSync(value.directory, saved);
       fs.cpSync(saved, value.directory, { recursive: true });
+      if (process.platform !== "win32")
+        fs.chmodSync(value.directory, fs.statSync(saved).mode & 0o7777);
       const names = fs.readdirSync(value.directory);
       held(
         () => value.witness.read(),
@@ -448,6 +450,8 @@ describe.each(["head", "segment"])(
         fired = true;
         fs.renameSync(value.directory, saved);
         fs.cpSync(saved, value.directory, { recursive: true });
+        if (process.platform !== "win32")
+          fs.chmodSync(value.directory, fs.statSync(saved).mode & 0o7777);
       };
       held(
         () => value.witness.read(),

@@ -79,8 +79,10 @@ function pending() {
 
 describe("controlled board task editor", () => {
   let wrapper: any, api: any, invalidate: () => void, unsubscribe: any;
+  let pinia: ReturnType<typeof createPinia>;
   beforeEach(() => {
-    setActivePinia(createPinia());
+    pinia = createPinia();
+    setActivePinia(pinia);
     useAppStore().isAuthenticated = true;
     useAppStore().deviceId = "device-1";
     api = {
@@ -118,6 +120,7 @@ describe("controlled board task editor", () => {
     wrapper = mount(Component, {
       props: { taskId: "task-1" },
       global: {
+        plugins: [pinia],
         stubs: { "a-button": { template: "<button><slot /></button>" } },
       },
     });
@@ -252,10 +255,29 @@ describe("controlled board task editor", () => {
     expect(api.previewBoardUpdate).not.toHaveBeenCalled();
   });
   it("accepts exact UTF8 metadata bounds and uses raw catalog bytes", async () => {
-    enableLabeling({ labels: Array.from({ length: 60 }, (_, i) => ({ id: `label-${i}`, name: "\\".repeat(1024), color: "x".repeat(64) })) });
+    const labels = Array.from({ length: 60 }, (_, i) => ({
+      id: `label-${i}`,
+      name: "\\".repeat(1000),
+      color: "x".repeat(64),
+    }));
+    const byteLength = (value: string) =>
+      new TextEncoder().encode(value).byteLength;
+    const rawBytes = labels.reduce(
+      (sum, label) =>
+        sum +
+        byteLength(label.id) +
+        byteLength(label.name) +
+        byteLength(label.color),
+      0,
+    );
+    expect(rawBytes).toBeLessThanOrEqual(65536);
+    expect(byteLength(JSON.stringify(labels))).toBeGreaterThan(65536);
+    enableLabeling({ labels });
     await render();
-    expect(wrapper.find('[data-label-field]').attributes("disabled")).toBeUndefined();
-    expect(wrapper.findAll('[data-label-field] option')).toHaveLength(61);
+    expect(
+      wrapper.find("[data-label-field]").attributes("disabled"),
+    ).toBeUndefined();
+    expect(wrapper.findAll("[data-label-field] option")).toHaveLength(61);
   });
   it.each([
     (result: any) => { result.request.actionType = "board-task.update-fields"; },
