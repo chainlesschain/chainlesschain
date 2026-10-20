@@ -1,0 +1,547 @@
+{
+  "schema": "chainlesschain.release108-support/v1",
+  "sourceSha": "e77c7ba85783576ac523dd73bc760bda63d91f3b",
+  "run": {
+    "sourceSha": "e77c7ba85783576ac523dd73bc760bda63d91f3b",
+    "observedAt": "2026-10-20T20:36:25.0904487Z",
+    "runId": 39486921296,
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39486921296",
+    "attempt": 2,
+    "conclusion": "success",
+    "counts": {
+      "success": 13,
+      "skipped": 6
+    },
+    "workflow": ".github/workflows/ide-extensions.yml",
+    "event": "push",
+    "ref": "ide-jetbrains-v0.4.170",
+    "jobs": [
+      {
+        "id": 118856882630,
+        "name": "Public IDE capability manifest (drift gate)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39486921296/job/118856882630",
+        "started_at": "2026-10-20T20:05:40Z",
+        "completed_at": "2026-10-20T20:06:08Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118857153393,
+        "name": "Browser evidence (windows)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39486921296/job/118857153393",
+        "started_at": "2026-10-20T20:06:12Z",
+        "completed_at": "2026-10-20T20:09:21Z",
+        "labels": ["windows-latest"]
+      },
+      {
+        "id": 118857153447,
+        "name": "JetBrains real host (windows-latest, 2024.2)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39486921296/job/118857153447",
+        "started_at": "2026-10-20T20:06:13Z",
+        "completed_at": "2026-10-20T20:20:36Z",
+        "labels": ["windows-latest"]
+      },
+      {
+        "id": 118857153448,
+        "name": "JetBrains real host (windows-latest, 2025.2)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39486921296/job/118857153448",
+        "started_at": "2026-10-20T20:06:12Z",
+        "completed_at": "2026-10-20T20:26:19Z",
+        "labels": ["windows-latest"]
+      },
+      {
+        "id": 118857153453,
+        "name": "Browser evidence (linux)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39486921296/job/118857153453",
+        "started_at": "2026-10-20T20:06:13Z",
+        "completed_at": "2026-10-20T20:10:08Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118857153454,
+        "name": "Browser evidence (macos)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39486921296/job/118857153454",
+        "started_at": "2026-10-20T20:06:17Z",
+        "completed_at": "2026-10-20T20:08:53Z",
+        "labels": ["macos-latest"]
+      },
+      {
+        "id": 118857153472,
+        "name": "JetBrains real host (macos-latest, 2024.2)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39486921296/job/118857153472",
+        "started_at": "2026-10-20T20:06:18Z",
+        "completed_at": "2026-10-20T20:25:43Z",
+        "labels": ["macos-latest"]
+      },
+      {
+        "id": 118857153496,
+        "name": "JetBrains real host (ubuntu-latest, 2025.2)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39486921296/job/118857153496",
+        "started_at": "2026-10-20T20:06:12Z",
+        "completed_at": "2026-10-20T20:16:12Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118857153529,
+        "name": "JetBrains real host (ubuntu-latest, 2024.2)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39486921296/job/118857153529",
+        "started_at": "2026-10-20T20:06:12Z",
+        "completed_at": "2026-10-20T20:16:02Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118857153579,
+        "name": "JetBrains real host (macos-latest, 2025.2)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39486921296/job/118857153579",
+        "started_at": "2026-10-20T20:06:18Z",
+        "completed_at": "2026-10-20T20:27:59Z",
+        "labels": ["macos-latest"]
+      },
+      {
+        "id": 118857155265,
+        "name": "VS Code extension (immutable candidate)",
+        "conclusion": "skipped",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39486921296/job/118857155265",
+        "started_at": "2026-10-20T20:06:09Z",
+        "completed_at": "2026-10-20T20:06:09Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118857156668,
+        "name": "VS Code extension (Windows host gate)",
+        "conclusion": "skipped",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39486921296/job/118857156668",
+        "started_at": "2026-10-20T20:06:09Z",
+        "completed_at": "2026-10-20T20:06:09Z",
+        "labels": ["windows-latest"]
+      },
+      {
+        "id": 118857156910,
+        "name": "VS Code Remote-SSH container (scoped trusted cell)",
+        "conclusion": "skipped",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39486921296/job/118857156910",
+        "started_at": "2026-10-20T20:06:09Z",
+        "completed_at": "2026-10-20T20:06:09Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118857157483,
+        "name": "VS Code extension (macOS host gate)",
+        "conclusion": "skipped",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39486921296/job/118857157483",
+        "started_at": "2026-10-20T20:06:09Z",
+        "completed_at": "2026-10-20T20:06:09Z",
+        "labels": ["macos-15-intel"]
+      },
+      {
+        "id": 118857158283,
+        "name": "IDE roadmap evidence (trusted scoped aggregate)",
+        "conclusion": "skipped",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39486921296/job/118857158283",
+        "started_at": "2026-10-20T20:06:09Z",
+        "completed_at": "2026-10-20T20:06:09Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118859150907,
+        "name": "Browser evidence (three-OS required aggregate)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39486921296/job/118859150907",
+        "started_at": "2026-10-20T20:10:11Z",
+        "completed_at": "2026-10-20T20:11:14Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118859697146,
+        "name": "VS Code extension (Linux host gate + publish)",
+        "conclusion": "skipped",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39486921296/job/118859697146",
+        "started_at": "2026-10-20T20:11:14Z",
+        "completed_at": "2026-10-20T20:11:14Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118867975981,
+        "name": "JetBrains plugin (build + publish)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39486921296/job/118867975981",
+        "started_at": "2026-10-20T20:28:02Z",
+        "completed_at": "2026-10-20T20:33:46Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118870842533,
+        "name": "JetBrains Marketplace (post-publish verification)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39486921296/job/118870842533",
+        "started_at": "2026-10-20T20:33:49Z",
+        "completed_at": "2026-10-20T20:36:11Z",
+        "labels": ["ubuntu-latest"]
+      }
+    ]
+  },
+  "artifact": {
+    "id": 12295742739,
+    "name": "chainlesschain-ide-jetbrains-2",
+    "size_in_bytes": 1550938,
+    "digest": "sha256:239410eaaa980dbac253b4e2708878fb25c59cbb731a4361682aa901de6c77d6",
+    "created_at": "2026-10-20T20:33:09Z",
+    "updated_at": "2026-10-20T20:33:09Z",
+    "workflow_run": {
+      "id": 39486921296,
+      "repository_id": 1107348698,
+      "head_repository_id": 1107348698,
+      "head_branch": "ide-jetbrains-v0.4.170",
+      "head_sha": "e77c7ba85783576ac523dd73bc760bda63d91f3b"
+    }
+  },
+  "verification": {
+    "status": "VERIFIED_PUBLIC_PAYLOAD_MATCH",
+    "checkedAt": "2026-10-20T20:48:57.249180+00:00",
+    "sourceSha": "e77c7ba85783576ac523dd73bc760bda63d91f3b",
+    "tag": "ide-jetbrains-v0.4.170",
+    "runId": 39486921296,
+    "runAttempt": 2,
+    "artifactId": 12295742739,
+    "version": "0.4.170",
+    "recommendedCliVersion": "0.166.108",
+    "updateId": 1198979,
+    "approve": true,
+    "listed": true,
+    "hidden": false,
+    "officialSha256": "sha256:a70aecf55b47e5bbdaa2d2bcbefd42670cb0b15cee1f67e43057d1a0dea39ac1",
+    "publicSha256": "sha256:83715b2dce66e03b7b02dcd8123775f020848308e1c1e2a2ac7235ccefaee5ea",
+    "originalZipBytesEqual": false,
+    "reconstructedBytesEqual": true,
+    "dosTimestampNormalizedBytesEqual": true,
+    "canonicalSha256": "sha256:fcf742bbdddb4cf6102e8fc34aaf64e6778094b3ec902577780239b7bf6afe07",
+    "marketplaceSignatureBlock": {
+      "scheme": 1,
+      "bytes": 5660,
+      "sha256": "sha256:92201a715403053016710aacf45cfd24ba046a9368c4511ff58c212fcac5af37",
+      "digests": [
+        {
+          "algorithmId": 1,
+          "bytes": 261,
+          "sha256": "sha256:80e8e9b3888a986b04cb9f1f0552d2a0449590cff0b6e3af0e37b0c3cb60ee22"
+        }
+      ],
+      "signers": [
+        {
+          "certificates": [
+            "sha256:c8f2ccb9b541292dfd3f68855935a0803b30a774a1954d6b9c188fd084cf8855",
+            "sha256:82b55616584dd004c829f1784bcbf2c96bb1a69933a2b3de7e9bab99f7f58268",
+            "sha256:69f9cf4e57198db4a346f6eff75b192f16bf146cf0640fbb80d0c495bcc005d3"
+          ],
+          "signatures": [
+            {
+              "algorithmId": 2,
+              "sha256": "sha256:4b763a1bc622297b42d25fc519c110a35f24b6c9d5eb65e6ef409164f4b17f68"
+            }
+          ]
+        }
+      ],
+      "unknownFields": 0,
+      "fullyConsumed": true,
+      "cryptographicSignatureVerified": false,
+      "certificateTrustVerified": false,
+      "start": 1550301,
+      "endExclusive": 1555961,
+      "reconstructedSha256": "sha256:a70aecf55b47e5bbdaa2d2bcbefd42670cb0b15cee1f67e43057d1a0dea39ac1"
+    },
+    "entryComparison": {
+      "official": {
+        "archiveCommentHex": "",
+        "entries": {
+          "chainlesschain-ide-bridge/": {
+            "directory": true,
+            "bytes": 0,
+            "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "metadata": {
+              "dateTime": [2026, 10, 20, 20, 31, 52],
+              "compression": 8,
+              "compressedBytes": 2,
+              "crc32": 0,
+              "flags": 2048,
+              "createSystem": 3,
+              "createVersion": 20,
+              "extractVersion": 20,
+              "internalAttributes": 0,
+              "externalAttributes": 1106051088,
+              "extraHex": "",
+              "commentHex": ""
+            }
+          },
+          "chainlesschain-ide-bridge/lib/": {
+            "directory": true,
+            "bytes": 0,
+            "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "metadata": {
+              "dateTime": [2026, 10, 20, 20, 31, 42],
+              "compression": 8,
+              "compressedBytes": 2,
+              "crc32": 0,
+              "flags": 2048,
+              "createSystem": 3,
+              "createVersion": 20,
+              "extractVersion": 20,
+              "internalAttributes": 0,
+              "externalAttributes": 1106051088,
+              "extraHex": "",
+              "commentHex": ""
+            }
+          },
+          "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.170.jar": {
+            "directory": false,
+            "bytes": 1644770,
+            "digest": "sha256:fe148c1cbdcfb336479afdb3124906754506d9a5dfddf2436d4cbf31f7db20fb",
+            "metadata": {
+              "dateTime": [2026, 10, 20, 20, 31, 42],
+              "compression": 8,
+              "compressedBytes": 1548885,
+              "crc32": 548759079,
+              "flags": 2048,
+              "createSystem": 3,
+              "createVersion": 20,
+              "extractVersion": 20,
+              "internalAttributes": 0,
+              "externalAttributes": 2175008768,
+              "extraHex": "",
+              "commentHex": ""
+            }
+          },
+          "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.170-searchableOptions.jar": {
+            "directory": false,
+            "bytes": 1263,
+            "digest": "sha256:b1c9279604fb2753836c1fd0be01c020c29d115586c7f492d0820dded233da40",
+            "metadata": {
+              "dateTime": [2026, 10, 20, 20, 31, 52],
+              "compression": 8,
+              "compressedBytes": 1084,
+              "crc32": 765671863,
+              "flags": 2048,
+              "createSystem": 3,
+              "createVersion": 20,
+              "extractVersion": 20,
+              "internalAttributes": 0,
+              "externalAttributes": 2175008768,
+              "extraHex": "",
+              "commentHex": ""
+            }
+          }
+        }
+      },
+      "public": {
+        "archiveCommentHex": "",
+        "entries": {
+          "chainlesschain-ide-bridge/": {
+            "directory": true,
+            "bytes": 0,
+            "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "metadata": {
+              "dateTime": [2026, 10, 20, 20, 31, 52],
+              "compression": 8,
+              "compressedBytes": 2,
+              "crc32": 0,
+              "flags": 2048,
+              "createSystem": 3,
+              "createVersion": 20,
+              "extractVersion": 20,
+              "internalAttributes": 0,
+              "externalAttributes": 1106051088,
+              "extraHex": "",
+              "commentHex": ""
+            }
+          },
+          "chainlesschain-ide-bridge/lib/": {
+            "directory": true,
+            "bytes": 0,
+            "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "metadata": {
+              "dateTime": [2026, 10, 20, 20, 31, 42],
+              "compression": 8,
+              "compressedBytes": 2,
+              "crc32": 0,
+              "flags": 2048,
+              "createSystem": 3,
+              "createVersion": 20,
+              "extractVersion": 20,
+              "internalAttributes": 0,
+              "externalAttributes": 1106051088,
+              "extraHex": "",
+              "commentHex": ""
+            }
+          },
+          "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.170.jar": {
+            "directory": false,
+            "bytes": 1644770,
+            "digest": "sha256:fe148c1cbdcfb336479afdb3124906754506d9a5dfddf2436d4cbf31f7db20fb",
+            "metadata": {
+              "dateTime": [2026, 10, 20, 20, 31, 42],
+              "compression": 8,
+              "compressedBytes": 1548885,
+              "crc32": 548759079,
+              "flags": 2048,
+              "createSystem": 3,
+              "createVersion": 20,
+              "extractVersion": 20,
+              "internalAttributes": 0,
+              "externalAttributes": 2175008768,
+              "extraHex": "",
+              "commentHex": ""
+            }
+          },
+          "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.170-searchableOptions.jar": {
+            "directory": false,
+            "bytes": 1263,
+            "digest": "sha256:b1c9279604fb2753836c1fd0be01c020c29d115586c7f492d0820dded233da40",
+            "metadata": {
+              "dateTime": [2026, 10, 20, 20, 31, 52],
+              "compression": 8,
+              "compressedBytes": 1084,
+              "crc32": 765671863,
+              "flags": 2048,
+              "createSystem": 3,
+              "createVersion": 20,
+              "extractVersion": 20,
+              "internalAttributes": 0,
+              "externalAttributes": 2175008768,
+              "extraHex": "",
+              "commentHex": ""
+            }
+          }
+        }
+      },
+      "onlyOfficial": [],
+      "onlyPublic": [],
+      "contentChanges": [],
+      "metadataChanges": [],
+      "archiveCommentChanged": false,
+      "entryOrderChanged": false,
+      "entryNamesAndContentsEqual": true,
+      "excludedEntries": [],
+      "nestedArchives": "JAR/ZIP entries are compared as complete original byte payloads, not normalized or recursively filtered.",
+      "limits": "ZIP container layout, headers, data descriptors, prefix/trailing bytes and encoding can differ beyond parsed metadata. No unmatched original-byte difference is automatically accepted."
+    },
+    "ignoredEntries": [],
+    "nestedJarBytesComparedExactly": true,
+    "unexplainedBusinessBytes": 0,
+    "signatureTrustClaimed": false,
+    "identities": {
+      "official": {
+        "pluginVersion": "0.4.170",
+        "jarPath": "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.170.jar",
+        "jarDigest": "sha256:fe148c1cbdcfb336479afdb3124906754506d9a5dfddf2436d4cbf31f7db20fb",
+        "pluginXmlDigest": "sha256:23b5ecd1d9942449536f2f98fca8f267767b991b1f69f1de0279edd7938cce0b",
+        "recommendedCliConstant": {
+          "field": "RECOMMENDED_CLI_VERSION",
+          "value": "0.166.108",
+          "accessFlags": 25
+        },
+        "classes": [
+          {
+            "path": "com/chainlesschain/ide/CliVersionCheck.class",
+            "digest": "sha256:b1e94620cf6db920ed473e4db73b087d6d1cec51c741f78df962cdc242bf6cfe",
+            "bytes": 3569,
+            "className": "com/chainlesschain/ide/CliVersionCheck",
+            "majorVersion": 65
+          },
+          {
+            "path": "com/chainlesschain/ide/MarkdownLite.class",
+            "digest": "sha256:4e2a034f92f350fd4f010cc4a3f4656e2caf9a6dad98169093b393795a0a1433",
+            "bytes": 2724,
+            "className": "com/chainlesschain/ide/MarkdownLite",
+            "majorVersion": 65
+          },
+          {
+            "path": "com/chainlesschain/ide/intellij/ChatTranscriptRendering.class",
+            "digest": "sha256:720f9d80a79e91cf91034dfe3701a08f39424169558d66b762f7e31e3ae43b0b",
+            "bytes": 3463,
+            "className": "com/chainlesschain/ide/intellij/ChatTranscriptRendering",
+            "majorVersion": 65
+          },
+          {
+            "path": "com/chainlesschain/ide/intellij/ConversationView.class",
+            "digest": "sha256:876115924f863f49f7d6e215bb39071a4f3aa4621e478407ed184f6d2521d949",
+            "bytes": 157355,
+            "className": "com/chainlesschain/ide/intellij/ConversationView",
+            "majorVersion": 65
+          }
+        ]
+      },
+      "public": {
+        "pluginVersion": "0.4.170",
+        "jarPath": "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.170.jar",
+        "jarDigest": "sha256:fe148c1cbdcfb336479afdb3124906754506d9a5dfddf2436d4cbf31f7db20fb",
+        "pluginXmlDigest": "sha256:23b5ecd1d9942449536f2f98fca8f267767b991b1f69f1de0279edd7938cce0b",
+        "recommendedCliConstant": {
+          "field": "RECOMMENDED_CLI_VERSION",
+          "value": "0.166.108",
+          "accessFlags": 25
+        },
+        "classes": [
+          {
+            "path": "com/chainlesschain/ide/CliVersionCheck.class",
+            "digest": "sha256:b1e94620cf6db920ed473e4db73b087d6d1cec51c741f78df962cdc242bf6cfe",
+            "bytes": 3569,
+            "className": "com/chainlesschain/ide/CliVersionCheck",
+            "majorVersion": 65
+          },
+          {
+            "path": "com/chainlesschain/ide/MarkdownLite.class",
+            "digest": "sha256:4e2a034f92f350fd4f010cc4a3f4656e2caf9a6dad98169093b393795a0a1433",
+            "bytes": 2724,
+            "className": "com/chainlesschain/ide/MarkdownLite",
+            "majorVersion": 65
+          },
+          {
+            "path": "com/chainlesschain/ide/intellij/ChatTranscriptRendering.class",
+            "digest": "sha256:720f9d80a79e91cf91034dfe3701a08f39424169558d66b762f7e31e3ae43b0b",
+            "bytes": 3463,
+            "className": "com/chainlesschain/ide/intellij/ChatTranscriptRendering",
+            "majorVersion": 65
+          },
+          {
+            "path": "com/chainlesschain/ide/intellij/ConversationView.class",
+            "digest": "sha256:876115924f863f49f7d6e215bb39071a4f3aa4621e478407ed184f6d2521d949",
+            "bytes": 157355,
+            "className": "com/chainlesschain/ide/intellij/ConversationView",
+            "majorVersion": 65
+          }
+        ]
+      }
+    },
+    "downloadedCodeExecuted": false,
+    "modelOrTaskAcceptanceClaimed": false,
+    "inspectorSourceSha256": "sha256:836f9cb0cf0c7e306beb0b0ff7ee686b8fb72628700abc163521300de29fa1d5"
+  },
+  "comparisonScope": "Existing helper: all ZIP entries and raw nested JAR bytes; differences limited to DOS timestamps and a fully parsed scheme-1 signing block. No certificate/signature trust claim and no runtime/model acceptance."
+}
