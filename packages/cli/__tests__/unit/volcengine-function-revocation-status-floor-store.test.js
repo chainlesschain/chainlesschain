@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import fs, { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -15,6 +15,7 @@ import {
 
 const roots = [];
 const NOW = Date.parse("2026-09-21T03:00:00.000Z");
+const temporaryRoot = fs.realpathSync.native(tmpdir());
 
 afterEach(() => {
   for (const root of roots.splice(0)) {
@@ -27,7 +28,7 @@ function sha(value) {
 }
 
 function root() {
-  const value = mkdtempSync(join(tmpdir(), "cc-revocation-status-floor-"));
+  const value = mkdtempSync(join(temporaryRoot, "cc-revocation-status-floor-"));
   roots.push(value);
   return value;
 }

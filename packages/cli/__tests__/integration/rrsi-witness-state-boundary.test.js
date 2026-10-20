@@ -161,8 +161,7 @@ describe.sequential(
           names = fs.readdirSync(directory);
         fs.renameSync(directory, saved);
         fs.cpSync(saved, directory, { recursive: true });
-        if (process.platform !== "win32")
-          fs.chmodSync(directory, fs.statSync(saved).mode & 0o7777);
+        fs.chmodSync(directory, fs.statSync(saved).mode & 0o7777);
         try {
           let error;
           try {

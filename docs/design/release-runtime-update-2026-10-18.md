@@ -1,8 +1,10 @@
 # 目标草稿互通、演化存储与发行边界（2026-10-18）
 
-## 核对范围
+> 本页为 10 月 18 日历史设计快照。CLI .107、Session Core .20、Open VSX .152 与 JetBrains .169 后来均已公开；当前架构、精确发行源码和诊断预算边界见[10 月 20 日设计](./release-runtime-update-2026-10-20.md)。下方“未公开”“待核验”均保留历史含义。
 
-本次核对开发源码快照 `f21eac547e`（不在本次远端主线文档基线中），包含 `ddabc1ee3a` 的目标草稿与演化边界合并、`2ceaa84219` 的 Windows ACL 阶段诊断，以及 `4317bf01a4` 的通用编码回归指导。实时公开版本为 CLI **0.166.106**、Open VSX **0.37.151**、JetBrains **0.4.167**。Open VSX .151 推荐 CLI .106；JetBrains .167 仍推荐 .105，.168 的公开上架与下载待核验。CLI .106 / Open VSX .151 的发行提交为 `dca47fd91a209642b6536afd5bc9e99ec74c7d06`，完整 CLI CI / Strict、IDE / ARM64 门和 OIDC 发布成功。开发快照能力不能由相同版本号推断为已发行。
+## 10 月 18 日历史核对范围
+
+10 月 18 日当时核对开发源码快照 `f21eac547e`（不在本次远端主线文档基线中），包含 `ddabc1ee3a` 的目标草稿与演化边界合并、`2ceaa84219` 的 Windows ACL 阶段诊断，以及 `4317bf01a4` 的通用编码回归指导。当时公开版本为 CLI **0.166.106**、Open VSX **0.37.151**、JetBrains **0.4.167**。Open VSX .151 推荐 CLI .106；JetBrains .167 仍推荐 .105，.168 的公开上架与下载待核验。CLI .106 / Open VSX .151 的发行提交为 `dca47fd91a209642b6536afd5bc9e99ec74c7d06`，完整 CLI CI / Strict、IDE / ARM64 门和 OIDC 发布成功。开发快照能力不能由相同版本号推断为已发行。
 
 CLI `.105` 的发行提交为 `d4065008bb4eff84cfc09f9361f4ae4e9de2140f`，通过准确提交的 CLI CI、Strict Sandbox 与 OIDC 发布。Session Core **0.3.19**、Context/Memory Kernel **0.1.10**、Agent SDK **0.2.15**、PDH **0.4.65** 独立发行。新目标连接所需的 Session Core 公共出口仍是未发布源码；复用旧子包版本不能发行新增能力。Desktop / Android / iOS 仍从产品 **v5.0.3.140** 单独下载，未包含本轮全部开发快照更新。
 

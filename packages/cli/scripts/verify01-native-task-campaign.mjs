@@ -19,6 +19,7 @@ import {
 } from "./verify01-volcengine-task-diagnostic.mjs";
 import { createVolcengineDiagnosticBroker } from "./verify01-volcengine-diagnostic-broker.mjs";
 import { VERIFY01_REVIEW_SPECS } from "./verify01-review-specs.mjs";
+import { requireUnscopedModelTransport } from "../src/lib/formal-budget-provider-scope.js";
 
 const repository = fileURLToPath(new URL("../../../", import.meta.url));
 const planRoot = "docs/research/cli/verify01-plan-2026-10-13-volcengine";
@@ -497,16 +498,18 @@ export function nativeFetchDiagnosticLaunch(name, args, env, diagnostics) {
   };
 }
 
-export async function runNativeCampaign({
-  entry,
-  outputDir,
-  sourceSha,
-  confirmLive,
-  sampleIds,
-  versionsFile,
-  fetchDiagnostics = false,
-  key = process.env.VOLCENGINE_API_KEY,
-}) {
+export async function runNativeCampaign(options) {
+  requireUnscopedModelTransport();
+  const {
+    entry,
+    outputDir,
+    sourceSha,
+    confirmLive,
+    sampleIds,
+    versionsFile,
+    fetchDiagnostics = false,
+    key = process.env.VOLCENGINE_API_KEY,
+  } = options;
   assert.equal(typeof fetchDiagnostics, "boolean");
   assert.ok(
     !fetchDiagnostics || entry === "cli",

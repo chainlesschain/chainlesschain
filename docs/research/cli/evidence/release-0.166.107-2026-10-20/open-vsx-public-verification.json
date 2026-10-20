@@ -1,0 +1,12 @@
+{
+  "channel": "open-vsx",
+  "endpoint": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide",
+  "status": "ready",
+  "version": "0.37.152",
+  "latest": "0.37.152",
+  "downloadable": true,
+  "listed": true,
+  "registryArchiveSha256": "4b37bf2a34a40c2a408ae14995f47eaad3d9931b15635ada0559bd2200bea0c2",
+  "localArchiveSha256": "4b37bf2a34a40c2a408ae14995f47eaad3d9931b15635ada0559bd2200bea0c2",
+  "contentSha256": "7d803b58aac1765f0becca594ecfec4e96065cee88e749ca9f216701b26fe454"
+}

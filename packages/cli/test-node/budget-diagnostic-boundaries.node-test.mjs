@@ -10,6 +10,8 @@ import { runContextTokenLiveProbe } from "../scripts/context-token-volcengine-li
 import { runVolcenginePlanDiagnostic } from "../scripts/implementation-plan-volcengine-live.mjs";
 import { runPmExplorationLiveProbe } from "../scripts/pm-exploration-volcengine-live-probe.mjs";
 import { createVolcengineDiagnosticBroker } from "../scripts/verify01-volcengine-diagnostic-broker.mjs";
+import { runNativeCampaign } from "../scripts/verify01-native-task-campaign.mjs";
+import { runPublicVSCode } from "../scripts/verify01-public-vscode-matrix-diagnostic.mjs";
 import { runTaskDiagnostic } from "../scripts/verify01-volcengine-task-diagnostic.mjs";
 
 const repository = fileURLToPath(new URL("../../../", import.meta.url));
@@ -31,6 +33,8 @@ for (const [name, run] of [
   ["implementation plan diagnostic", runVolcenginePlanDiagnostic],
   ["native diagnostic broker", createVolcengineDiagnosticBroker],
   ["native task diagnostic launcher", runTaskDiagnostic],
+  ["native task campaign", runNativeCampaign],
+  ["public VS Code matrix diagnostic", runPublicVSCode],
 ]) {
   test(`${name} rejects before resolving credentials, paths or injected transports`, async () => {
     let reads = 0;
