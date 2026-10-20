@@ -208,20 +208,18 @@ describe("explicit desktop goal connection", { timeout: 90_000 }, () => {
         /PRIVATE BODY|PRIVATE ACTION BODY|approvalRef|preview/,
       );
       expect(db.prepare("SELECT total_changes() AS n").get().n).toBe(before);
-      const cliRoot = new URL("../../../../../packages/cli/", import.meta.url);
-      const { readCliGoalExtensionPanels } = await import(
-        new URL("src/lib/plugin-runtime/cli-goal-extension-host.js", cliRoot)
-          .href
+      // Build a filesystem URL: Vite rewrites static import.meta URL assets in jsdom.
+      const cliRoot = pathToFileURL(
+        path.resolve(__dirname, "../../../../../packages/cli") + path.sep,
       );
-      const { trustPlugin, _deps: trustDeps } = await import(
-        new URL("src/lib/plugin-runtime/trust.js", cliRoot).href
-      );
-      const { consentPluginCapabilities, _deps: consentDeps } = await import(
-        new URL("src/lib/plugin-runtime/capability-consent.js", cliRoot).href
-      );
-      const { normalizeCapabilities } = await import(
-        new URL("src/lib/plugin-runtime/capabilities.js", cliRoot).href
-      );
+      const { readCliGoalExtensionPanels } =
+        await import("../../../../../packages/cli/src/lib/plugin-runtime/cli-goal-extension-host.js");
+      const { trustPlugin, _deps: trustDeps } =
+        await import("../../../../../packages/cli/src/lib/plugin-runtime/trust.js");
+      const { consentPluginCapabilities, _deps: consentDeps } =
+        await import("../../../../../packages/cli/src/lib/plugin-runtime/capability-consent.js");
+      const { normalizeCapabilities } =
+        await import("../../../../../packages/cli/src/lib/plugin-runtime/capabilities.js");
       const sample = JSON.parse(
         fs.readFileSync(
           new URL(
@@ -311,7 +309,10 @@ describe("explicit desktop goal connection", { timeout: 90_000 }, () => {
   });
   it("runs fresh CLI children through native HTTP, real plugin trust/consent and revocation", async () => {
     await open();
-    const cliRoot = new URL("../../../../../packages/cli/", import.meta.url);
+    // Build a filesystem URL: Vite rewrites static import.meta URL assets in jsdom.
+    const cliRoot = pathToFileURL(
+      path.resolve(__dirname, "../../../../../packages/cli") + path.sep,
+    );
     const workspace = path.join(dir, "workspace");
     fs.mkdirSync(workspace);
     const bootstrap = path.join(dir, "security-stores.mjs");
