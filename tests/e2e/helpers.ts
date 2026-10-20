@@ -17,6 +17,10 @@ export interface ElectronTestContext {
 }
 
 let hasResetTestProfile = false;
+const boardConfirmationQueues = new WeakMap<
+  ElectronApplication,
+  Promise<void>
+>();
 
 /**
  * 启动Electron应用
@@ -742,7 +746,31 @@ export async function updateControlledBoardTask(
   return { success: true, taskId };
 }
 
-async function executeConfirmedBoardAction(
+function executeConfirmedBoardAction(
+  app: ElectronApplication,
+  window: Page,
+  action: { request: any; taskId: string; create: boolean },
+): Promise<any> {
+  // Concurrent submissions can prepare together, but native reviews are
+  // single-flight. Queue these simulated user confirmations per app without
+  // retrying requests or changing the host's busy/unknown-outcome guards.
+  const previous = boardConfirmationQueues.get(app) || Promise.resolve();
+  const operation = previous.then(() =>
+    confirmBoardAction(app, window, action),
+  );
+  const completed = operation.then(
+    () => {},
+    () => {},
+  );
+  boardConfirmationQueues.set(app, completed);
+  void completed.then(() => {
+    if (boardConfirmationQueues.get(app) === completed)
+      boardConfirmationQueues.delete(app);
+  });
+  return operation;
+}
+
+async function confirmBoardAction(
   app: ElectronApplication,
   window: Page,
   action: { request: any; taskId: string; create: boolean },

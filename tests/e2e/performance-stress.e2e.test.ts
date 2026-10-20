@@ -374,7 +374,7 @@ test.describe.serial("Performance & Stress Tests", () => {
   // Phase 5: Concurrent Operations
   // ========================================
 
-  test("Phase 5.1: Concurrent task creation (10 tasks simultaneously)", async () => {
+  test("Phase 5.1: Submit 10 tasks concurrently with serialized native reviews", async () => {
     const { app, window } = await launchElectronApp();
 
     try {
@@ -400,12 +400,15 @@ test.describe.serial("Performance & Stress Tests", () => {
       results.forEach((result: any) => {
         expect(result.success).toBe(true);
       });
+      expect(new Set(results.map((result) => result.taskId)).size).toBe(
+        CONCURRENT_COUNT,
+      );
 
       console.log(
         `Created ${CONCURRENT_COUNT} tasks concurrently in ${duration}ms`,
       );
 
-      // Concurrent should be faster than sequential
+      // Include the host's required single-flight native confirmations.
       expect(duration).toBeLessThan(5000); // Under 5 seconds
     } finally {
       await closeElectronApp(app);

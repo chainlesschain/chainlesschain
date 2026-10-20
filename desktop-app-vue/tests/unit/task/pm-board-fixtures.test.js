@@ -134,6 +134,46 @@ describe("PM board fixture governed writes", () => {
     expect(Object.getOwnPropertySymbols(f.dialog)).toHaveLength(0);
   });
 
+  it("serializes native reviews for concurrent submissions to the same app", async () => {
+    const f = fixture();
+    let release;
+    let started;
+    const firstStarted = new Promise((resolve) => {
+      started = resolve;
+    });
+    const pendingConfirmation = new Promise((resolve) => {
+      release = resolve;
+    });
+    f.execute.mockImplementationOnce(async () => {
+      expect((await f.dialog.showMessageBox({}, f.confirmation)).response).toBe(
+        1,
+      );
+      started();
+      await pendingConfirmation;
+      return f.result;
+    });
+    const first = updateControlledBoardTask(
+      f.app,
+      f.window,
+      f.taskId,
+      f.updates,
+    );
+    await firstStarted;
+    const second = updateControlledBoardTask(
+      f.app,
+      f.window,
+      f.taskId,
+      f.updates,
+    );
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(f.execute).toHaveBeenCalledTimes(1);
+    release();
+    await Promise.all([first, second]);
+    expect(f.execute).toHaveBeenCalledTimes(2);
+    expect(f.dialog.showMessageBox).toBe(f.original);
+  });
+
   it("rejects a preview bound to a different task before execution", async () => {
     const f = fixture();
     f.request.target.id = "other-task";
