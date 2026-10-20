@@ -28,6 +28,7 @@ function pending() {
   return { resolve, promise };
 }
 describe("task reports panel", () => {
+  let pinia: ReturnType<typeof createPinia>;
   let wrapper: any, api: any, invalidate: () => void, unsubscribe: any;
   let pinia: ReturnType<typeof createPinia>;
   beforeEach(() => {

@@ -35,6 +35,7 @@ function pending() {
 }
 
 describe("board attachment component", () => {
+  let pinia: ReturnType<typeof createPinia>;
   let wrapper: any, api: any, invalidate: () => void, unsubscribe: any;
   let createObjectURL: any, revokeObjectURL: any, click: any;
   let originalCreate: any, originalRevoke: any;

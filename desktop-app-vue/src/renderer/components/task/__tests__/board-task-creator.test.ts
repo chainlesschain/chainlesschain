@@ -92,6 +92,7 @@ function deferred() {
   return { promise, resolve };
 }
 describe("controlled board task creator", () => {
+  let pinia: ReturnType<typeof createPinia>;
   let wrapper: any, api: any, invalidate: () => void, unsubscribe: any;
   let pinia: ReturnType<typeof createPinia>;
   beforeEach(() => {

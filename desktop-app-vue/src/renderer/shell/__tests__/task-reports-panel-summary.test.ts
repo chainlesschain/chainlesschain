@@ -40,6 +40,7 @@ function pending() {
   return { resolve, promise };
 }
 describe("shell reports use governed summary component", () => {
+  let pinia: ReturnType<typeof createPinia>;
   let wrapper: any, api: any, invalidate: () => void;
   let pinia: ReturnType<typeof createPinia>;
   beforeEach(() => {
