@@ -4976,9 +4976,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
     getBoardEditSource: (params) =>
       ipcRenderer.invoke("task:board-edit-source", removeUndefined(params)),
     previewBoardUpdate: (params) =>
-      ipcRenderer.invoke("task:board-update-preview", removeUndefined(params)),
+      // Null means clear a nullable field; it is distinct from an omitted field.
+      ipcRenderer.invoke("task:board-update-preview", params),
     executeBoardUpdate: (params) =>
-      ipcRenderer.invoke("task:board-update-execute", removeUndefined(params)),
+      // Preserve the preview's digest-bound payload, including explicit nulls.
+      ipcRenderer.invoke("task:board-update-execute", params),
     getBoardUpdateRuns: (params) =>
       ipcRenderer.invoke("task:board-update-runs", removeUndefined(params)),
     cancelBoardUpdate: (params) =>
@@ -4988,7 +4990,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     previewBoardCreate: (params) =>
       ipcRenderer.invoke("task:board-create-preview", removeUndefined(params)),
     executeBoardCreate: (params) =>
-      ipcRenderer.invoke("task:board-create-execute", removeUndefined(params)),
+      // Keep the preview's digest-bound payload intact, including explicit nulls.
+      ipcRenderer.invoke("task:board-create-execute", params),
     getBoardCreateRuns: (params) =>
       ipcRenderer.invoke("task:board-create-runs", removeUndefined(params)),
     cancelBoardCreate: (params) =>
