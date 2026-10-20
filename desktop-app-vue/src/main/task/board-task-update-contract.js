@@ -174,6 +174,7 @@ const validField = (key, value) => {
     case "assigneeDid":
       return (
         value === null ||
+        // eslint-disable-next-line no-control-regex -- Reject control characters in assignee DIDs.
         (text(value, 256) && /^did:[^\s\u0000-\u001f\u007f]+$/u.test(value))
       );
     case "dueDate":

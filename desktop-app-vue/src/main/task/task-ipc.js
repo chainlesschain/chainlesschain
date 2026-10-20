@@ -916,9 +916,11 @@ function registerTaskIPC(database) {
       const { TeamReportManager } = require("./team-report-manager");
       const manager = new TeamReportManager(resolved);
       const db = resolved.getDatabase();
+      // SQLite identifiers cannot be bound. This name uses only a fixed prefix
+      // and UUID hex digits, never caller input.
       const savepoint = `board_reports_${require("node:crypto").randomUUID().replaceAll("-", "")}`;
       let released = false;
-      db.exec(`SAVEPOINT ${savepoint}`);
+      db.prepare(`SAVEPOINT ${savepoint}`).run();
       try {
         // One SQLite snapshot covers membership, report/board scope and the
         // successful-run projection, including writes from other processes.
@@ -928,14 +930,14 @@ function registerTaskIPC(database) {
           params.options || {},
         );
         check();
-        db.exec(`RELEASE ${savepoint}`);
+        db.prepare(`RELEASE ${savepoint}`).run();
         released = true;
         check();
         return result;
       } catch (error) {
         if (!released) {
-          db.exec(`ROLLBACK TO ${savepoint}`);
-          db.exec(`RELEASE ${savepoint}`);
+          db.prepare(`ROLLBACK TO ${savepoint}`).run();
+          db.prepare(`RELEASE ${savepoint}`).run();
         }
         throw error;
       }

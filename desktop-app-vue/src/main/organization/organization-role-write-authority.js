@@ -106,8 +106,10 @@ function executeOrganizationRoleWrite(
     return { held, owner: row.owner_did === actor && row.role === "owner" };
   };
   authority();
+  // SQLite identifiers cannot be bound. This name uses only a fixed prefix
+  // and UUID hex digits, never caller input.
   const savepoint = `org_role_${randomUUID().replaceAll("-", "")}`;
-  db.exec(`SAVEPOINT ${savepoint}`);
+  db.prepare(`SAVEPOINT ${savepoint}`).run();
   try {
     const auth = authority();
     if (role) {
@@ -331,11 +333,11 @@ function executeOrganizationRoleWrite(
       now,
     );
     authority();
-    db.exec(`RELEASE ${savepoint}`);
+    db.prepare(`RELEASE ${savepoint}`).run();
     return result;
   } catch (error) {
-    db.exec(`ROLLBACK TO ${savepoint}`);
-    db.exec(`RELEASE ${savepoint}`);
+    db.prepare(`ROLLBACK TO ${savepoint}`).run();
+    db.prepare(`RELEASE ${savepoint}`).run();
     throw error;
   }
 }

@@ -550,9 +550,6 @@ onMounted(async () => {
   loading.value = true;
   try {
     await taskBoardStore.loadBoard(boardId.value);
-    if (columns.value.length > 0) {
-      newTask.value.columnId = columns.value[0].id;
-    }
     await openNoticeTask();
   } catch (_error) {
     message.error("加载看板失败");

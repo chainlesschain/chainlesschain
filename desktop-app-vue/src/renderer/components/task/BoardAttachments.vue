@@ -235,6 +235,7 @@ function downloadName(name: string) {
   return (
     name
       .replace(
+        // eslint-disable-next-line no-control-regex -- Strip control and direction characters from attachment names.
         /[\\/\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g,
         "_",
       )

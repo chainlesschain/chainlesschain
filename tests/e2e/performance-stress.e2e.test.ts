@@ -16,6 +16,7 @@ import {
   launchElectronApp as launchFreshElectronApp,
   closeElectronApp as closeFreshElectronApp,
   callIPC,
+  createControlledBoardTask,
   createPmOrganizationFixture,
   type ElectronTestContext,
 } from "./helpers";
@@ -41,7 +42,7 @@ test.describe.serial("Performance & Stress Tests", () => {
   };
 
   test.beforeAll(async () => {
-    sharedContext = await launchFreshElectronApp();
+    sharedContext = await launchFreshElectronApp({ durableDatabase: true });
     const fixture = await createPmOrganizationFixture(
       sharedContext.window,
       "performance-stress",
@@ -105,16 +106,18 @@ test.describe.serial("Performance & Stress Tests", () => {
       const TASK_COUNT = 100;
 
       for (let i = 0; i < TASK_COUNT; i++) {
-        const result: any = await callIPC(window, "task:create-task", {
+        const result: any = await createControlledBoardTask(
+          app,
+          window,
           boardId,
-          columnId,
-          title: `Bulk Task ${i + 1}`,
-          description: `Performance test task number ${i + 1}`,
-          priority: i % 3 === 0 ? "high" : i % 3 === 1 ? "medium" : "low",
-          estimatedHours: Math.floor(Math.random() * 16) + 1,
-          createdBy: testUserDid,
-          creatorName: "Perf Test User",
-        });
+          {
+            columnId,
+            title: `Bulk Task ${i + 1}`,
+            description: `Performance test task number ${i + 1}`,
+            priority: i % 3 === 0 ? "high" : i % 3 === 1 ? "medium" : "low",
+            estimatedHours: Math.floor(Math.random() * 16) + 1,
+          },
+        );
 
         expect(result.success).toBe(true);
         taskIds.push(result.taskId);
@@ -384,13 +387,10 @@ test.describe.serial("Performance & Stress Tests", () => {
       const promises = [];
       for (let i = 0; i < CONCURRENT_COUNT; i++) {
         promises.push(
-          callIPC(window, "task:create-task", {
-            boardId,
+          createControlledBoardTask(app, window, boardId, {
             columnId,
             title: `Concurrent Task ${i + 1}`,
             description: `Created concurrently`,
-            createdBy: testUserDid,
-            creatorName: "Perf Test User",
           }),
         );
       }
