@@ -545,7 +545,7 @@ export async function createControlledBoardTask(
   },
 ): Promise<{ success: true; taskId: string }> {
   const idempotencyKey = await window.evaluate(() => crypto.randomUUID());
-  const preview: any = await callIPC(window, "task:board-create-preview", {
+  const preview: any = await callIPC(window, "task.previewBoardCreate", {
     boardId,
     taskData,
     idempotencyKey,
@@ -593,7 +593,7 @@ export async function createControlledBoardTask(
   );
   let result: any;
   try {
-    result = await callIPC(window, "task:board-create-execute", {
+    result = await callIPC(window, "task.executeBoardCreate", {
       request: preview.request,
     });
   } finally {
