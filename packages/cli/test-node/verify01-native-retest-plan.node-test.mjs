@@ -180,7 +180,10 @@ test("strict existing validators bind accepted files before selecting unfinished
   assert.equal(ids.length + state.acceptedIds.size, 45);
   assert.equal(new Set(ids).size, ids.length);
   for (const id of state.acceptedIds) assert.ok(!ids.includes(id));
-  assert.equal(state.baselineEvidence.length, 3);
+  assert.equal(
+    state.baselineEvidence.length,
+    3 + state.priorRounds.length * 2,
+  );
   for (const row of state.baselineEvidence)
     assert.match(row.digest, /^sha256:[a-f0-9]{64}$/u);
   assert.throws(
@@ -300,7 +303,7 @@ test("next-round preparation cannot overwrite an old round name or reuse the ori
         versionsFile: DEFAULT_NATIVE_PACKAGE_SET,
         roundName: "next-package-retest",
       }),
-    /latest package round incomplete|require a new package set/,
+    /latest package round incomplete|require a new package set|newer published CLI version/,
   );
   assert.equal(
     fs.existsSync(
