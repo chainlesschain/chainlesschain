@@ -5,7 +5,7 @@ JetBrains counterpart of the [VS Code extension](../vscode-extension/): it lets
 the ChainlessChain **`cc` agent CLI** read editor context and propose native
 diffs inside IntelliJ-platform IDEs (IDEA, PyCharm, WebStorm, …).
 
-Public plugin **0.4.169** recommends public CLI **0.166.107**. Configure an explicit ChainlessChain CLI path when the system `cc` is a C compiler.
+Source candidate **0.4.170** recommends CLI candidate **0.166.108** after its public release. The verified public snapshot remains plugin **0.4.169** paired with CLI **0.166.107**. Configure an explicit ChainlessChain CLI path when the system `cc` is a C compiler.
 
 Checked on 2026-10-20: npm CLI **0.166.107**, Session Core **0.3.20**, Open VSX **0.37.152** and JetBrains **0.4.169** are public. Both IDEs recommend CLI `.107`. CLI release source is `6775d7a2de`; IDE source is `94429fada4`. Complete release gates and public artifact readback passed. The historical `.105/.150/.167` retest collected **20/20** generation and independent acceptance records and added **6** passes. Cumulative cross-version accepted deliveries are **31/45** (**26/36** ordinary, **5/9** first-run), with **14** unaccepted. This release has no new model task retest; cumulative coverage is not a .107 single-round success rate. Microsoft Marketplace remains unpublished.
 
@@ -31,9 +31,11 @@ See the [upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-u
 
 ## Release compatibility
 
-Plugin **0.4.169** is the current release candidate that passed the release
-gates and is now publicly available. It recommends `chainlesschain@0.166.107`.
-The CLI was published through npm OIDC before this plugin. Session Core
+Plugin **0.4.170** is the current release candidate. It recommends
+`chainlesschain@0.166.108` after the CLI passes its exact-commit gates, is
+published through npm OIDC, and is publicly verified. This plugin also awaits
+complete IDE and ARM64 gates, tagged publication, and Marketplace approval
+and public artifact readback. Session Core
 `0.3.20` and Context/Memory Kernel `0.1.10` retain independent versions.
 Restart the IDE and run Doctor after upgrading. Native task quality and
 restart acceptance still require separate published-package evidence.

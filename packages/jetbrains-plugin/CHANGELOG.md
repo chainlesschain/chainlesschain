@@ -1,5 +1,11 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.170] - Session recovery and CLI 0.166.108 candidate (2026-10-20)
+
+- Recommend CLI candidate `0.166.108` for complete tool-round recovery and compaction, bounded repeated-read guidance, and durable background-worker final-state recovery.
+- Preserve child package versions, including Session Core `0.3.20`. Diagnostic dispatch improvements do not establish new model-task acceptance.
+- Await exact-commit CLI, IDE and ARM64 gates, npm OIDC publication and public CLI readback before tagged IDE publication. Public availability remains subject to registry verification and JetBrains Marketplace approval.
+
 ## [0.4.169] - Governed goal workflows and CLI 0.166.107 (2026-10-19)
 
 - Add CLI goal snapshots to the plugin manager. Browse goals with a paged picker or enter a standalone goal ID, or select an explicit desktop goal connection, then view bounded text panels from trusted and consented plugins.
