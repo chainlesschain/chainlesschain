@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added, improved and fixed - cc CLI 0.166.107: governed goals, ledger recovery and safe diagnostics (candidate, 2026-10-20)
+
+- Add bounded `goal catalog` and `goal panels` commands to browse goals and read text snapshots from trusted, consented plugins, including explicitly connected desktop project goals.
+- Add `goal draft-request`, `goal draft-access`, `goal draft-sources`, `goal draft-send`, and `goal draft-receipt` for native-reviewed description requests and separately authorized pending drafts. Submission records support receipt reconciliation without automatic duplicate sends; task changes still require native desktop preview and confirmation.
+- Use `deepseek-v4-1-flash-260910` as the default Volcengine model for new CLI, agent, and task-model configurations.
+- Reuse an authenticated parent-directory boundary while validating cached immutable ledger files, preserving per-file bounded reads, identity, fingerprints, digests, and boundary checks. Resolve Wiki pruning journal artifacts in batches of four; six cross-process recovery scenarios complete in 49–55 seconds on Windows.
+- Reject formal-budget-scoped calls to the native campaign and public VS Code diagnostic before reading options or credentials, touching files, downloading packages, launching hosts, or sending provider requests.
+
 ### Fixed - cc CLI 0.166.106: task delivery follow-up (candidate, 2026-10-18)
 
 - Guide coding tasks toward brief action statements and complete file writes split into bounded segments.
