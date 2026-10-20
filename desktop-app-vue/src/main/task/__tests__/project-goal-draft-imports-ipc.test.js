@@ -4,6 +4,7 @@ import { EventEmitter } from "node:events";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 const require = createRequire(import.meta.url),
   Database = require("better-sqlite3");
 const {
@@ -135,19 +136,18 @@ afterEach(() => {
 describe("explicit native adoption of untrusted goal requests", () => {
   it("exports through real authenticated HTTP and real plugin admission, then adopts and executes through separate native confirmations", async () => {
     await host.openCliConnection(event, { goalRef: ref() });
-    const cliRoot = new URL("../../../../../packages/cli/", import.meta.url);
-    const { exportCliGoalDraftRequest } = await import(
-      new URL("src/lib/plugin-runtime/cli-goal-draft-request.js", cliRoot).href
+    // Build a filesystem URL: Vite rewrites static import.meta URL assets in jsdom.
+    const cliRoot = pathToFileURL(
+      path.resolve(__dirname, "../../../../../packages/cli") + path.sep,
     );
-    const { trustPlugin, _deps: trustDeps } = await import(
-      new URL("src/lib/plugin-runtime/trust.js", cliRoot).href
-    );
-    const { consentPluginCapabilities, _deps: consentDeps } = await import(
-      new URL("src/lib/plugin-runtime/capability-consent.js", cliRoot).href
-    );
-    const { normalizeCapabilities } = await import(
-      new URL("src/lib/plugin-runtime/capabilities.js", cliRoot).href
-    );
+    const { exportCliGoalDraftRequest } =
+      await import("../../../../../packages/cli/src/lib/plugin-runtime/cli-goal-draft-request.js");
+    const { trustPlugin, _deps: trustDeps } =
+      await import("../../../../../packages/cli/src/lib/plugin-runtime/trust.js");
+    const { consentPluginCapabilities, _deps: consentDeps } =
+      await import("../../../../../packages/cli/src/lib/plugin-runtime/capability-consent.js");
+    const { normalizeCapabilities } =
+      await import("../../../../../packages/cli/src/lib/plugin-runtime/capabilities.js");
     const sample = JSON.parse(
       fs.readFileSync(
         new URL(

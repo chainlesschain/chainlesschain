@@ -17,6 +17,7 @@ import {
   closeElectronApp as closeFreshElectronApp,
   callIPC,
   createControlledBoardTask,
+  updateControlledBoardTask,
   createPmOrganizationFixture,
   type ElectronTestContext,
 } from "./helpers";
@@ -179,10 +180,8 @@ test.describe.serial("Performance & Stress Tests", () => {
       const tasksToUpdate = taskIds.slice(0, 50);
 
       for (const taskId of tasksToUpdate) {
-        await callIPC(window, "task:set-priority", {
-          taskId,
+        await updateControlledBoardTask(app, window, taskId, {
           priority: "high",
-          actorDid: testUserDid,
         });
       }
 
@@ -215,11 +214,9 @@ test.describe.serial("Performance & Stress Tests", () => {
       const tasksToMove = taskIds.slice(0, 30);
 
       for (let i = 0; i < tasksToMove.length; i++) {
-        await callIPC(window, "task:move-task", {
-          taskId: tasksToMove[i],
+        await updateControlledBoardTask(app, window, tasksToMove[i], {
           columnId: newColumnId,
           position: i,
-          actorDid: testUserDid,
         });
       }
 

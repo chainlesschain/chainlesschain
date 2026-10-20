@@ -93,8 +93,10 @@ function deferred() {
 }
 describe("controlled board task creator", () => {
   let wrapper: any, api: any, invalidate: () => void, unsubscribe: any;
+  let pinia: ReturnType<typeof createPinia>;
   beforeEach(() => {
-    setActivePinia(createPinia());
+    pinia = createPinia();
+    setActivePinia(pinia);
     useAppStore().isAuthenticated = true;
     api = {
       getBoardCreateSource: vi.fn().mockResolvedValue(source()),
@@ -128,7 +130,10 @@ describe("controlled board task creator", () => {
     delete (window as any).electronAPI;
   });
   async function render(props = {}) {
-    wrapper = mount(Component, { props: { boardId: "board-1", ...props } });
+    wrapper = mount(Component, {
+      props: { boardId: "board-1", ...props },
+      global: { plugins: [pinia] },
+    });
     await flushPromises();
   }
   async function action(name: string) {

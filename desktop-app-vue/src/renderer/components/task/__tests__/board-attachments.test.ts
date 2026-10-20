@@ -38,9 +38,11 @@ describe("board attachment component", () => {
   let wrapper: any, api: any, invalidate: () => void, unsubscribe: any;
   let createObjectURL: any, revokeObjectURL: any, click: any;
   let originalCreate: any, originalRevoke: any;
+  let pinia: ReturnType<typeof createPinia>;
   beforeEach(() => {
     vi.useFakeTimers();
-    setActivePinia(createPinia());
+    pinia = createPinia();
+    setActivePinia(pinia);
     useAppStore().isAuthenticated = true;
     useAppStore().deviceId = "device-1";
     api = {
@@ -86,6 +88,7 @@ describe("board attachment component", () => {
     wrapper = mount(Component, {
       props: { taskId: "task-1" },
       global: {
+        plugins: [pinia],
         stubs: { "a-button": { template: "<button><slot /></button>" } },
       },
     });

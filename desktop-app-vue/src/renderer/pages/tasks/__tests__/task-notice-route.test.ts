@@ -42,8 +42,10 @@ const pending = () => {
 
 describe("task notice route and manual mention", () => {
   let wrapper: any, api: any;
+  let pinia: ReturnType<typeof createPinia>;
   beforeEach(() => {
-    setActivePinia(createPinia());
+    pinia = createPinia();
+    setActivePinia(pinia);
     useAppStore().isAuthenticated = true;
     route.value = reactive({
       params: { id: "board-1" },
@@ -88,6 +90,7 @@ describe("task notice route and manual mention", () => {
   function render() {
     wrapper = mount(Page, {
       global: {
+        plugins: [pinia],
         stubs: {
           BoardTaskCreator: {
             name: "BoardTaskCreator",

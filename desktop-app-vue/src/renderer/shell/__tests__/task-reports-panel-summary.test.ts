@@ -41,8 +41,10 @@ function pending() {
 }
 describe("shell reports use governed summary component", () => {
   let wrapper: any, api: any, invalidate: () => void;
+  let pinia: ReturnType<typeof createPinia>;
   beforeEach(() => {
-    setActivePinia(createPinia());
+    pinia = createPinia();
+    setActivePinia(pinia);
     useAppStore().isAuthenticated = true;
     useAppStore().deviceId = "device-1";
     mocks.auth = reactive({
@@ -115,7 +117,10 @@ describe("shell reports use governed summary component", () => {
       "a-divider",
     ])
       stubs[name] = pass;
-    wrapper = mount(Component, { props: { open: true }, global: { stubs } });
+    wrapper = mount(Component, {
+      props: { open: true },
+      global: { plugins: [pinia], stubs },
+    });
     await flushPromises();
   }
   it("reads scoped reports and never displays shared cached or legacy summaries", async () => {

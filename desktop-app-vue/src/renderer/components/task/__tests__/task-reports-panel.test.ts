@@ -29,8 +29,10 @@ function pending() {
 }
 describe("task reports panel", () => {
   let wrapper: any, api: any, invalidate: () => void, unsubscribe: any;
+  let pinia: ReturnType<typeof createPinia>;
   beforeEach(() => {
-    setActivePinia(createPinia());
+    pinia = createPinia();
+    setActivePinia(pinia);
     useAppStore().isAuthenticated = true;
     useAppStore().deviceId = "device-1";
     api = { getReports: vi.fn().mockResolvedValue(result()) };
@@ -53,6 +55,7 @@ describe("task reports panel", () => {
     wrapper = mount(Component, {
       props: { orgId: "org-1", boardId: "board-1" },
       global: {
+        plugins: [pinia],
         stubs: {
           TaskReportSummary: true,
           "a-button": { template: "<button><slot /></button>" },

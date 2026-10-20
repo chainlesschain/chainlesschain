@@ -4,6 +4,7 @@ import { EventEmitter } from "node:events";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 const require = createRequire(import.meta.url),
   Database = require("better-sqlite3");
 const {
@@ -129,24 +130,23 @@ afterEach(() => {
 
 describe("native online pending draft connection", () => {
   it("connects the real CLI SDK admission to HTTP, SQLite, native preview and confirmation", async () => {
-    const cliRoot = new URL("../../../../../packages/cli/", import.meta.url);
+    // Build a filesystem URL: Vite rewrites static import.meta URL assets in jsdom.
+    const cliRoot = pathToFileURL(
+      path.resolve(__dirname, "../../../../../packages/cli") + path.sep,
+    );
     const {
       exportCliGoalDraftAccess,
       sendCliGoalDraft,
       readCliGoalDraftReceipt,
       readCliGoalDraftSources,
-    } = await import(
-      new URL("src/lib/plugin-runtime/cli-goal-drafts.js", cliRoot).href
-    );
-    const { trustPlugin, _deps: trustDeps } = await import(
-      new URL("src/lib/plugin-runtime/trust.js", cliRoot).href
-    );
-    const { consentPluginCapabilities, _deps: consentDeps } = await import(
-      new URL("src/lib/plugin-runtime/capability-consent.js", cliRoot).href
-    );
-    const { normalizeCapabilities } = await import(
-      new URL("src/lib/plugin-runtime/capabilities.js", cliRoot).href
-    );
+    } =
+      await import("../../../../../packages/cli/src/lib/plugin-runtime/cli-goal-drafts.js");
+    const { trustPlugin, _deps: trustDeps } =
+      await import("../../../../../packages/cli/src/lib/plugin-runtime/trust.js");
+    const { consentPluginCapabilities, _deps: consentDeps } =
+      await import("../../../../../packages/cli/src/lib/plugin-runtime/capability-consent.js");
+    const { normalizeCapabilities } =
+      await import("../../../../../packages/cli/src/lib/plugin-runtime/capabilities.js");
     const sample = JSON.parse(
       fs.readFileSync(
         new URL(
@@ -248,9 +248,8 @@ describe("native online pending draft connection", () => {
     ).toBe("saved");
   }, 180000);
   it("uses authenticated v3 pending-only submission, survives disconnect/restart, and requires separate native task confirmation", async () => {
-    const { createProjectGoalConnection } = await import(
-      "../../../../../packages/cli/src/lib/project-goal-connection.js"
-    );
+    const { createProjectGoalConnection } =
+      await import("../../../../../packages/cli/src/lib/project-goal-connection.js");
     const {
       digestBusinessObjectContent: digest,
     } = require("@chainlesschain/session-core/business-object-contract");
