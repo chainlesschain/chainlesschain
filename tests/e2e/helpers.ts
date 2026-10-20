@@ -21,7 +21,9 @@ let hasResetTestProfile = false;
 /**
  * 启动Electron应用
  */
-export async function launchElectronApp(): Promise<ElectronTestContext> {
+export async function launchElectronApp(
+  options: { durableDatabase?: boolean } = {},
+): Promise<ElectronTestContext> {
   // 确定主进程入口文件路径
   const mainPath = path.join(
     __dirname,
@@ -87,9 +89,28 @@ export async function launchElectronApp(): Promise<ElectronTestContext> {
   // Belt-and-braces: settings pre-write above is the load-bearing fix; argv
   // + env below are the secondary opt-out paths shouldRunWebShell honours
   // when settings is unset (kept for defence-in-depth).
+  // PM controlled writes require real file-backed SQLite transactions. Keep
+  // NODE_ENV=test for the packaged renderer and isolate this adapter selection
+  // in a generated test entrypoint; production boot behavior stays unchanged.
+  let entryPath = mainPath;
+  if (options.durableDatabase) {
+    entryPath = path.join(userDataPath, "pm-durable-main.cjs");
+    fs.writeFileSync(
+      entryPath,
+      `"use strict";
+if (process.env.NODE_ENV !== "test") throw new Error("PM fixture requires NODE_ENV=test");
+require("electron").app.setAppPath(${JSON.stringify(path.dirname(mainPath))});
+const { DatabaseManager } = require(${JSON.stringify(path.join(path.dirname(mainPath), "database.js"))});
+DatabaseManager.prototype.initializeWithSqlJs = DatabaseManager.prototype.initializeWithBetterSQLite;
+require(${JSON.stringify(mainPath)});
+`,
+      "utf8",
+    );
+  }
+
   const app = await electron.launch({
     args: [
-      mainPath,
+      entryPath,
       `--user-data-dir=${userDataPath}`,
       // Force V5/V6 desktop renderer (NOT web-shell HTTP server). Both the
       // env and the flag are checked; we set both for belt-and-braces.
@@ -114,11 +135,13 @@ export async function launchElectronApp(): Promise<ElectronTestContext> {
       SKIP_SLOW_INIT: "true",
       MOCK_HARDWARE: "true",
       MOCK_LLM: "true",
-      CHAINLESSCHAIN_DISABLE_NATIVE_DB: "1",
+      CHAINLESSCHAIN_DISABLE_NATIVE_DB: options.durableDatabase ? "0" : "1",
       // The serial PM journeys share one sql.js process. Avoid exporting the
       // full fixture database after every INSERT; production is unaffected
       // because DatabaseManager honours this flag only in NODE_ENV=test.
-      CHAINLESSCHAIN_DISABLE_DB_PERSISTENCE: "1",
+      CHAINLESSCHAIN_DISABLE_DB_PERSISTENCE: options.durableDatabase
+        ? "0"
+        : "1",
       // These journeys include synthetic secondary-member DIDs. Actor/RBAC
       // enforcement has dedicated security tests; board reads still require
       // the authenticated owner created by createPmOrganizationFixture().
@@ -212,7 +235,7 @@ export async function launchElectronApp(): Promise<ElectronTestContext> {
   );
   if (setupCompletedDuringLaunch) {
     await app.close();
-    return launchElectronApp();
+    return launchElectronApp(options);
   }
   await loginIfNeeded(window);
   await waitForTeamIpcReady(window);
@@ -506,4 +529,108 @@ export async function takeScreenshot(
   await window.screenshot({
     path: `test-results/screenshots/${name}.png`,
   });
+}
+
+/** Create through the same preview/execute capability used by the board UI. */
+export async function createControlledBoardTask(
+  app: ElectronApplication,
+  window: Page,
+  boardId: string,
+  taskData: {
+    columnId: string;
+    title: string;
+    description?: string;
+    priority?: string;
+    estimatedHours?: number;
+  },
+): Promise<{ success: true; taskId: string }> {
+  const idempotencyKey = await window.evaluate(() => crypto.randomUUID());
+  const preview: any = await callIPC(window, "task:board-create-preview", {
+    boardId,
+    taskData,
+    idempotencyKey,
+  });
+  if (
+    preview?.success !== true ||
+    !preview.taskId ||
+    preview.request?.actionType !== "board-task.create" ||
+    preview.request?.idempotencyKey !== idempotencyKey ||
+    preview.request?.input?.boardId !== boardId
+  ) {
+    throw new Error(
+      `Controlled task preview failed: ${JSON.stringify(preview)}`,
+    );
+  }
+  // Automate only the native confirmation for this exact preview. The host
+  // still performs its real sender, membership, capability and SQLite checks.
+  await app.evaluate(
+    ({ dialog }, expected) => {
+      const host = dialog as any;
+      const key = Symbol.for("cc.e2e.board-create-confirmations");
+      if (!host[key]) {
+        const original = host.showMessageBox;
+        const allowed = new Map<string, string>();
+        host[key] = { original, allowed };
+        host.showMessageBox = async (...args: any[]) => {
+          const options = args.at(-1);
+          for (const [digest, taskId] of allowed) {
+            if (
+              options?.title === "确认创建看板任务" &&
+              options?.buttons?.[1] === "确认创建" &&
+              options?.detail?.includes(`操作摘要：${digest}`) &&
+              options?.detail?.includes(`任务ID：${JSON.stringify(taskId)}`)
+            ) {
+              allowed.delete(digest);
+              return { response: 1, checkboxChecked: false };
+            }
+          }
+          return original.apply(host, args);
+        };
+      }
+      host[key].allowed.set(expected.digest, expected.taskId);
+    },
+    { digest: preview.request.actionDigest, taskId: preview.taskId },
+  );
+  let result: any;
+  try {
+    result = await callIPC(window, "task:board-create-execute", {
+      request: preview.request,
+    });
+  } finally {
+    await app.evaluate(({ dialog }, digest) => {
+      const host = dialog as any;
+      const key = Symbol.for("cc.e2e.board-create-confirmations");
+      const registered = host[key];
+      if (!registered) return;
+      registered.allowed.delete(digest);
+      if (registered.allowed.size === 0) {
+        host.showMessageBox = registered.original;
+        delete host[key];
+      }
+    }, preview.request.actionDigest);
+  }
+  if (
+    result?.success !== true ||
+    result.run?.status !== "succeeded" ||
+    result.run?.id !== preview.runId ||
+    result.run?.target?.id !== preview.taskId
+  ) {
+    throw new Error(
+      `Controlled task creation failed: ${JSON.stringify(result)}`,
+    );
+  }
+  const stored: any = await callIPC(window, "task:get-task", {
+    taskId: preview.taskId,
+  });
+  if (
+    stored?.success !== true ||
+    stored.task?.id !== preview.taskId ||
+    stored.task?.board_id !== boardId ||
+    stored.task?.title !== taskData.title
+  ) {
+    throw new Error(
+      `Controlled task readback failed: ${JSON.stringify(stored)}`,
+    );
+  }
+  return { success: true, taskId: preview.taskId };
 }

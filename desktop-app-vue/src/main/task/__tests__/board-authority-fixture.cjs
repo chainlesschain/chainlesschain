@@ -33,7 +33,7 @@ function fixture(filename = ":memory:") {
   );
   native.exec(
     schema.match(
-      /CREATE TABLE IF NOT EXISTS notifications \([\s\S]*?\n      \);/,
+      /CREATE TABLE IF NOT EXISTS notifications \([\s\S]*?\n {6}\);/,
     )[0],
   );
   native.exec(`

@@ -135,6 +135,7 @@ describe("task notice route and manual mention", () => {
     return flushPromises();
   }
   it("opens fresh task only after matching board/org and a final notice recheck", async () => {
+    boardStore.columns = [{ id: "column-1", name: "Todo" }];
     await render();
     expect(api.notification.openTask).toHaveBeenCalledTimes(2);
     expect(boardStore.currentTask.title).toBe("Fresh task");
