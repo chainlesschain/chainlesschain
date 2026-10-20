@@ -6,7 +6,7 @@
 
 ## .106 公开发行与 IDE 配对（历史记录）
 
-CLI .106 和 Open VSX .151 来自 `dca47fd91a209642b6536afd5bc9e99ec74c7d06`；该提交完整配置的 CLI CI、CLI Strict Sandbox、IDE 与 ARM64 门均成功，[npm OIDC 发布 39130542725](https://github.com/chainlesschain/chainlesschain/actions/runs/39130542725) 成功。Open VSX .151 推荐 CLI .106。JetBrains .168 标签绑定相同提交，但公开市场尚未核验，因此当前公开 .167 保留其 .105 推荐。
+截至 2026-10-18 14:11 UTC，CLI .106、Open VSX .151 和 JetBrains .168 已公开，两个 IDE 均推荐 CLI .106。发行源码为 `dca47fd91a209642b6536afd5bc9e99ec74c7d06`；完整 CLI CI 71/71、CLI Strict Sandbox 5/5、IDE 18/18 和 ARM64 10/10 门禁通过，[npm OIDC 发布 39130542725](https://github.com/chainlesschain/chainlesschain/actions/runs/39130542725) 成功。早先 JetBrains .168 等待上架的状态已由公开制品回读更新：update `1197255` 已批准、已列出且未隐藏，三个公开包均完成回读。见[当时的完整门禁记录](https://github.com/chainlesschain/chainlesschain/blob/380d9926c2930045834e73b5025465f4d7414903/docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-release-validation/followup-106-final-gates-review.json)及[公开包核验记录](https://github.com/chainlesschain/chainlesschain/blob/380d9926c2930045834e73b5025465f4d7414903/docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-release-validation/followup-106-public-package-set-review.json)。这是历史发布状态；当前安装仍使用上方 .107 升级指南。
 
 ```bash
 npm i -g chainlesschain@0.166.106 --registry https://registry.npmjs.org

@@ -9,11 +9,12 @@ All notable changes to this extension are documented here.
 - Use `deepseek-v4-1-flash-260910` as the default Volcengine model for new extension configurations.
 - Pair with CLI `0.166.107` (using Session Core `0.3.20`) for the goal catalog, panels, draft commands, and faster Wiki pruning journal recovery.
 
-## [0.37.151] - Task-delivery follow-up candidate (2026-10-18)
+## [0.37.151] - Task-delivery follow-up release (2026-10-18)
 
-- Recommend candidate CLI 0.166.106 for brief action guidance, complete file writes in bounded segments, and accurate reasons for explicit HTTP 403 errors outside authentication or billing.
-- Keep current public CLI 0.166.105 and IDE pairing unchanged until exact-commit gates, CLI npm OIDC publication and public artifact readback pass.
-- Published-package retesting remains a separate requirement. Existing failed samples are not accepted by this version bump.
+- Recommend public CLI 0.166.106 for brief action guidance, complete file writes in bounded segments, and accurate reasons for explicit HTTP 403 errors outside authentication or billing.
+- Historical public pairing on 2026-10-18: CLI 0.166.106, Open VSX 0.37.151 and JetBrains 0.4.168, all strictly read back. Source `dca47fd91a209642b6536afd5bc9e99ec74c7d06` passed CLI CI 71/71, Strict 5/5, IDE 18/18 and ARM64 10/10; CLI npm OIDC publication preceded IDE publication. Microsoft Marketplace remains unpublished.
+- Cumulative acceptance remains 31/45 across versions (ordinary 26/36, first-use 5/9); the remaining 14 tasks have not been retested on this pairing. Old failures remain recorded; release checks do not establish task acceptance.
+- Historical evidence: [exact-source gates](https://github.com/chainlesschain/chainlesschain/blob/380d9926c2930045834e73b5025465f4d7414903/docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-release-validation/followup-106-final-gates-review.json) and [public artifact readback](https://github.com/chainlesschain/chainlesschain/blob/380d9926c2930045834e73b5025465f4d7414903/docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-release-validation/followup-106-public-package-set-review.json).
 
 ## [0.37.150] - Task-quality candidate (2026-10-18)
 
