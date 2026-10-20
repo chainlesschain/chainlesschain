@@ -1,8 +1,8 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
-Live check on 2026-10-20: npm CLI **0.166.107** and Session Core **0.3.20** are public. Commit `6775d7a2de` passed CLI CI, Strict Sandbox and the OIDC publishing workflow. Open VSX **0.37.152** and JetBrains **0.4.169** are publicly listed, with both downloaded artifact payloads matching their tagged builds. Both new plugins recommend CLI `.107`. Their source `94429fada4` passed the complete IDE checks and both tagged publishing workflows. The `.105/.150/.167` retest collected all **20/20** generation and acceptance records and added **6** candidate and end-to-end passes. Cumulative cross-version accepted deliveries are **31/45** (**26/36** ordinary, **5/9** first-run), with **14** unaccepted. No new model task retest accompanied this npm release; cumulative coverage is not a latest-version single-round success rate. Microsoft Marketplace remains unpublished.
+Checked on 2026-10-20: npm CLI **0.166.107**, Session Core **0.3.20**, Open VSX **0.37.152** and JetBrains **0.4.169** are public. Both IDEs recommend CLI `.107`. CLI release source is `6775d7a2de`; IDE source is `94429fada4`. Complete release gates and public artifact readback passed. The historical `.105/.150/.167` retest collected **20/20** generation and independent acceptance records and added **6** passes. Cumulative cross-version accepted deliveries are **31/45** (**26/36** ordinary, **5/9** first-run), with **14** unaccepted. This release has no new model task retest; cumulative coverage is not a .107 single-round success rate. Microsoft Marketplace remains unpublished.
 
-CLI .107 and Session Core 0.3.20 include the CLI and shared contracts for goal catalogs, authorized plugin panels, offline draft handoff, online pending drafts and evolution storage checks. IDE and desktop integration require matching builds, desktop authorization and native confirmation. Native product .140 retains its separate release identity. Restart the IDE chat host after upgrading and run Doctor.
+CLI .107 and Session Core 0.3.20 include the CLI and shared contracts for goal catalogs, authorized plugin panels, offline draft handoff, online pending drafts and evolution storage checks. IDE plugins are public; desktop integration still requires a matching source build, desktop authorization and native confirmation. Native product .140 retains its separate release identity. Restart the IDE chat host after upgrading and run Doctor.
 
 ```bash
 npm i -g chainlesschain@0.166.107 --registry https://registry.npmjs.org
@@ -10,7 +10,7 @@ cc --version
 cc doctor
 ```
 
-See the [architecture update](docs/design/release-runtime-update-2026-10-18.md), [goal draft guide](docs-site/docs/chainlesschain/goal-drafts-current.md), [current upgrade guide](docs-site/docs/chainlesschain/cli-ide-update-2026-10-18.md), [release and public install readback](docs/research/cli/evidence/release-0.166.107-2026-10-20/), and [OIDC release](https://github.com/chainlesschain/chainlesschain/actions/runs/39315709208).
+See the [architecture update](docs/design/release-runtime-update-2026-10-20.md), [goal draft guide](docs-site/docs/chainlesschain/goal-drafts-current.md), [current upgrade guide](docs-site/docs/chainlesschain/cli-ide-update-2026-10-20.md), [release and public install readback](https://github.com/chainlesschain/chainlesschain/blob/feature/docs-sites-20261020/docs/research/cli/evidence/documentation-release-status-2026-10-20.json), and [OIDC release](https://github.com/chainlesschain/chainlesschain/actions/runs/39315709208).
 
 ## Release snapshot (2026-10-17, historical)
 

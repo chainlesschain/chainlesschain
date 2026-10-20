@@ -180,7 +180,7 @@ export default defineConfig({
 
       "/chainlesschain/": [
         {
-          text: "🧩 Agent Platform 0.166.100（npm latest）",
+          text: "🧩 Agent Platform 0.166.107（npm latest）",
           collapsed: false,
           items: [
             {
@@ -196,16 +196,16 @@ export default defineConfig({
               link: "/chainlesschain/rrsi-current",
             },
             {
-              text: "CLI .106 / IDE 公开配对与补测",
-              link: "/chainlesschain/cli-ide-update-2026-10-18",
+              text: "CLI .107 / IDE .152 与 .169 升级",
+              link: "/chainlesschain/cli-ide-update-2026-10-20",
             },
             {
-              text: "目标草稿互通（开发快照）",
+              text: "目标草稿互通与桌面授权",
               link: "/chainlesschain/goal-drafts-current",
             },
             {
-              text: "2026-10-18 目标与演化边界",
-              link: "/design/release-runtime-update-2026-10-18",
+              text: "2026-10-20 目标互通与诊断预算边界",
+              link: "/design/release-runtime-update-2026-10-20",
             },
             {
               text: "CLI .104 / IDE 会话恢复（历史）",

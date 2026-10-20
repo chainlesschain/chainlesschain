@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: "v5.0.3.140 | CLI .105 / IDE .150/.167 已公开 | .106 候选 | 桌面与移动端"
+  tagline: "v5.0.3.140 | CLI 0.166.107 | Open VSX 0.37.152 | JetBrains 0.4.169 已公开"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -21,13 +21,13 @@ hero:
 
 features:
   - icon: 🔗
-    title: CLI / IDE 与桌面目标草稿（开发快照）
-    details: 目标目录、授权面板、离线采纳与独立在线待审连接；修改任务仍需桌面原生预览和确认，开发快照尚未纳入远端文档基线或公开发行。
+    title: CLI / IDE 与桌面目标草稿
+    details: CLI .107 / Session Core .20 与 IDE 已公开目标草稿能力；桌面互通需匹配源码构建、单独授权及原生预览确认。
     link: /chainlesschain/goal-drafts-current
   - icon: 🛡️
-    title: CLI .105 已公开，.106 候选待验证
-    details: 公开 CLI .105、Open VSX .150、JetBrains .167；下一候选 .106/.151/.168 尚未发布，须通过最终提交门禁和公开回读。
-    link: /chainlesschain/cli-ide-update-2026-10-18
+    title: CLI .107 与 IDE .152 / .169 已公开
+    details: 两个 IDE 均推荐 CLI .107；完整发行门与公开制品回读通过。Microsoft Marketplace 未发行。
+    link: /chainlesschain/cli-ide-update-2026-10-20
   - icon: 🏢
     title: 组织目标、授权记忆与站内通知（主线）
     details: 产品 .140 已包含显式巡检、多级审批、独立验收、共享记忆与授权通知；记忆不自动注入模型。
@@ -41,12 +41,12 @@ features:
     details: 统计 v2、耐久预注册及真实后端关联已实现；必需回执固定 HOLD，真实效果实验未运行，生产来源门仍在实施。
     link: /chainlesschain/rrsi-current
   - icon: 🧩
-    title: Agent Platform 0.166.106
+    title: Agent Platform 0.166.107
     details: 通用编码指导、静态导入反馈、延迟写入完成保护与安全传输诊断；累计合格交付31/45，剩余14项；.105补测新增6项合格，新配对模型补测未运行。
     link: /chainlesschain/agent-platform-release
   - icon: 📝
     title: IDE 任务记录与新会话接力
-    details: Open VSX 0.37.151 推荐公开 CLI .106；JetBrains .167 仍推荐 .105，.168 待公开核验；桥接重连不重放结果未知的工具调用。
+    details: Open VSX .152 和 JetBrains .169 均推荐公开 CLI .107；桥接重连不重放结果未知的工具调用。
     link: /chainlesschain/ide-task-worklog
   - icon: 🎯
     title: Skill 决策模型试点
@@ -70,7 +70,7 @@ features:
     link: /chainlesschain/desktop-model-governance
   - icon: 🧑‍💻
     title: IDE Bridge 突破 6 万下载
-    details: Open VSX .150 与 JetBrains .167 已公开；下一候选 .151/.168 尚未发布；Microsoft Marketplace 未发行。
+    details: Open VSX .152 与 JetBrains .169 已公开，均推荐 CLI .107；Microsoft Marketplace 未发行。
     link: /chainlesschain/ide-plugin
   - icon: 🔐
     title: 安全优先
@@ -80,12 +80,12 @@ features:
     details: 公开版支持规范化实体与投影意图同事务保存、KG/BM25 独立确认、分批恢复与退休临时 consumer 回执维护；未知运行投递仍受保护，当前宿主没有连接向量目的地。
   - icon: 🧪
     title: 发布证据分层
-    details: CLI 0.166.105@d4065008bb 已公开回读；同提交 CLI CI、Strict、IDE、ARM64 门禁全过；IDE 市场公开与任务验收分别核验。
+    details: CLI .107@6775d7a2de 与 IDE .152/.169@94429fada4 已公开回读；发行门、模型任务与原生验收分别记账。
 ---
 
-> 2026-10-18 实时核对：npm CLI **0.166.106**、Open VSX **0.37.151** 已公开，Open VSX 推荐 CLI `.106`，发行提交 `dca47fd91a`。JetBrains 当前已核验公开 **0.4.167**，仍推荐 CLI `.105`；`.168` 的公开上架与下载待核验。公开 `.105/.150/.167` 任务补测已收齐生成与独立验收各 **20/20**，新增 **6** 项候选及全流程通过；跨版本累计候选合格交付 **31/45**（普通 **26/36**、首次 **5/9**），剩余 **14** 项。`.106/.151/.168` 新轮模型补测尚未运行，累计覆盖不等于新版单轮成功率。Microsoft Marketplace 未发布。
+> 2026-10-20 核对：npm CLI **0.166.107**、Session Core **0.3.20**、Open VSX **0.37.152** 与 JetBrains **0.4.169** 已公开，两个 IDE 均推荐 CLI `.107`。CLI 发行源码为 `6775d7a2de`，IDE 为 `94429fada4`，完整发行门与公开制品回读通过。历史 `.105/.150/.167` 补测生成和独立验收各 **20/20**，新增通过 **6** 项；跨版本累计候选合格交付 **31/45**（普通 **26/36**、首次 **5/9**），剩余 **14** 项。本轮未运行新的模型任务补测，累计覆盖不是 .107 单轮成功率。Microsoft Marketplace 未发行。
 
-> **验收范围**：公开 .105 轮生成与验收各 **20/20**，新增候选及全流程通过 **6** 项；累计候选合格交付 **31/45**（普通26/36、首次5/9），剩余 **14** 项。累计跨版本结果不代表新版单轮成功率；正式付费准入、完整 native review 与自动晋升单独验收，自动晋升 **HOLD**。产品 .140 独立发行；详见[当前升级指南](/chainlesschain/cli-ide-update-2026-10-18)。
+> **验收范围**：公开 .105 轮生成与验收各 **20/20**，新增候选及全流程通过 **6** 项；累计候选合格交付 **31/45**（普通26/36、首次5/9），剩余 **14** 项。累计跨版本结果不代表新版单轮成功率；正式付费准入、完整 native review 与自动晋升单独验收，自动晋升 **HOLD**。产品 .140 独立发行；详见[当前升级指南](/chainlesschain/cli-ide-update-2026-10-20)。
 
 ## 2026-10-08 历史增量
 
