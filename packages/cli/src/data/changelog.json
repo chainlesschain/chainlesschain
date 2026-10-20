@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.108",
+      "cliVersions": ["0.166.108"],
+      "date": "2026-10-20",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.108: recover complete tool history and durable worker results (candidate, 2026-10-20)",
+          "body": "- Preserve canonical assistant/tool rounds, complete tool results and provenance through compaction, history paging, export and session recovery, including interactive and headless resumes.\n- Restore bounded read-file loop history so a resumed or compacted conversation can use its prior reads instead of repeating the same loop.\n- Retry background worker final-state persistence on bounded state-lock contention while keeping its heartbeat alive; retain stop and worker-generation ownership checks and fail the process if the final state cannot be saved.\n- Limit new diagnostic retest dispatches per invocation while retaining existing submissions and accepted deliverables for subsequent batches. This repository diagnostic option is separate from the installed CLI command surface.\n- Restore desktop controlled-write and PM journey fixtures without relaxing authorization, native confirmation or durable SQLite requirements.\n- Pair CLI 0.166.108 with VS Code 0.37.153 and JetBrains 0.4.170 after complete exact-commit release gates and public CLI verification. Child npm package versions remain unchanged.\n- No new model-task retest accompanies this candidate. Historical cumulative acceptance and outstanding native, formal-budget and long-term acceptance limits remain unchanged."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.107",
       "cliVersions": ["0.166.107"],
       "date": "2026-10-20",

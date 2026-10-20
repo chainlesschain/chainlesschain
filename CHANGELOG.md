@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.108: recover complete tool history and durable worker results (candidate, 2026-10-20)
+
+- Preserve canonical assistant/tool rounds, complete tool results and provenance through compaction, history paging, export and session recovery, including interactive and headless resumes.
+- Restore bounded read-file loop history so a resumed or compacted conversation can use its prior reads instead of repeating the same loop.
+- Retry background worker final-state persistence on bounded state-lock contention while keeping its heartbeat alive; retain stop and worker-generation ownership checks and fail the process if the final state cannot be saved.
+- Limit new diagnostic retest dispatches per invocation while retaining existing submissions and accepted deliverables for subsequent batches. This repository diagnostic option is separate from the installed CLI command surface.
+- Restore desktop controlled-write and PM journey fixtures without relaxing authorization, native confirmation or durable SQLite requirements.
+- Pair CLI 0.166.108 with VS Code 0.37.153 and JetBrains 0.4.170 after complete exact-commit release gates and public CLI verification. Child npm package versions remain unchanged.
+- No new model-task retest accompanies this candidate. Historical cumulative acceptance and outstanding native, formal-budget and long-term acceptance limits remain unchanged.
+
 ### Added, improved and fixed - cc CLI 0.166.107: governed goals, ledger recovery and safe diagnostics (candidate, 2026-10-20)
 
 - Add bounded `goal catalog` and `goal panels` commands to browse goals and read text snapshots from trusted, consented plugins, including explicitly connected desktop project goals.
