@@ -17,6 +17,10 @@ export interface ElectronTestContext {
 }
 
 let hasResetTestProfile = false;
+const boardConfirmationQueues = new WeakMap<
+  ElectronApplication,
+  Promise<void>
+>();
 
 /**
  * 启动Electron应用
@@ -120,7 +124,9 @@ if (process.env.NODE_ENV !== "test" || process.env.CC_PM_E2E_DURABLE_SQLITE !== 
 }
 require("electron").app.setAppPath(${JSON.stringify(path.dirname(mainPath))});
 const { DatabaseManager } = require(${JSON.stringify(path.join(path.dirname(mainPath), "database.js"))});
+// initialize() tries the encrypted adapter before its sql.js fallback in test mode.
 const initializeWithBetterSQLite = DatabaseManager.prototype.initializeWithBetterSQLite;
+DatabaseManager.prototype.initializeWithAdapter = initializeWithBetterSQLite;
 DatabaseManager.prototype.initializeWithSqlJs = initializeWithBetterSQLite;
 require(${JSON.stringify(mainPath)});
 `,
@@ -636,54 +642,11 @@ export async function createControlledBoardTask(
       `Controlled task preview failed: ${JSON.stringify(preview)}`,
     );
   }
-  // Automate only the native confirmation for this exact preview. The host
-  // still performs its real sender, membership, capability and SQLite checks.
-  await app.evaluate(
-    ({ dialog }, expected) => {
-      const host = dialog as any;
-      const key = Symbol.for("cc.e2e.board-create-confirmations");
-      if (!host[key]) {
-        const original = host.showMessageBox;
-        const allowed = new Map<string, string>();
-        host[key] = { original, allowed };
-        host.showMessageBox = async (...args: any[]) => {
-          const options = args.at(-1);
-          for (const [digest, taskId] of allowed) {
-            if (
-              options?.title === "确认创建看板任务" &&
-              options?.buttons?.[1] === "确认创建" &&
-              options?.detail?.includes(`操作摘要：${digest}`) &&
-              options?.detail?.includes(`任务ID：${JSON.stringify(taskId)}`)
-            ) {
-              allowed.delete(digest);
-              return { response: 1, checkboxChecked: false };
-            }
-          }
-          return original.apply(host, args);
-        };
-      }
-      host[key].allowed.set(expected.digest, expected.taskId);
-    },
-    { digest: preview.request.actionDigest, taskId: preview.taskId },
-  );
-  let result: any;
-  try {
-    result = await callIPC(window, "task.executeBoardCreate", {
-      request: preview.request,
-    });
-  } finally {
-    await app.evaluate(({ dialog }, digest) => {
-      const host = dialog as any;
-      const key = Symbol.for("cc.e2e.board-create-confirmations");
-      const registered = host[key];
-      if (!registered) return;
-      registered.allowed.delete(digest);
-      if (registered.allowed.size === 0) {
-        host.showMessageBox = registered.original;
-        delete host[key];
-      }
-    }, preview.request.actionDigest);
-  }
+  const result = await executeConfirmedBoardAction(app, window, {
+    request: preview.request,
+    taskId: preview.taskId,
+    create: true,
+  });
   if (
     result?.success !== true ||
     result.run?.status !== "succeeded" ||
@@ -700,7 +663,7 @@ export async function createControlledBoardTask(
   if (
     stored?.success !== true ||
     stored.task?.id !== preview.taskId ||
-    stored.task?.board_id !== boardId ||
+    stored.task?.boardId !== boardId ||
     stored.task?.title !== taskData.title
   ) {
     throw new Error(
@@ -708,4 +671,173 @@ export async function createControlledBoardTask(
     );
   }
   return { success: true, taskId: preview.taskId };
+}
+
+/** Update fields or move a task through the board's governed capability. */
+export async function updateControlledBoardTask(
+  app: ElectronApplication,
+  window: Page,
+  taskId: string,
+  updates: {
+    status?: string;
+    priority?: string;
+    assigneeDid?: string;
+    dueDate?: number;
+    actualHours?: number;
+    columnId?: string;
+    position?: number;
+  },
+): Promise<{ success: true; taskId: string }> {
+  const idempotencyKey = await window.evaluate(() => crypto.randomUUID());
+  const preview: any = await callIPC(window, "task.previewBoardUpdate", {
+    taskId,
+    updates,
+    idempotencyKey,
+  });
+  const actionType = Object.hasOwn(updates, "columnId")
+    ? "board-task.move"
+    : "board-task.update-fields";
+  if (
+    preview?.success !== true ||
+    preview.request?.actionType !== actionType ||
+    preview.request?.target?.id !== taskId ||
+    preview.request?.idempotencyKey !== idempotencyKey ||
+    !preview.request?.input?.updates ||
+    Object.keys(preview.request.input.updates).length !==
+      Object.keys(updates).length ||
+    Object.entries(updates).some(
+      ([key, value]) => preview.request.input.updates[key] !== value,
+    )
+  ) {
+    throw new Error(
+      `Controlled task update preview failed: ${JSON.stringify(preview)}`,
+    );
+  }
+  const result = await executeConfirmedBoardAction(app, window, {
+    request: preview.request,
+    taskId,
+    create: false,
+  });
+  if (
+    result?.success !== true ||
+    result.run?.status !== "succeeded" ||
+    result.run?.id !== preview.runId ||
+    result.run?.target?.id !== taskId
+  ) {
+    throw new Error(`Controlled task update failed: ${JSON.stringify(result)}`);
+  }
+  const stored: any = await callIPC(window, "task.getBoardEditSource", {
+    taskId,
+  });
+  if (
+    stored?.success !== true ||
+    stored.task?.id !== taskId ||
+    Object.entries(updates).some(
+      ([key, value]) =>
+        (actionType === "board-task.move"
+          ? stored.movement?.[key]
+          : stored.task[key]) !== value,
+    )
+  ) {
+    throw new Error(
+      `Controlled task update readback failed: ${JSON.stringify(stored)}`,
+    );
+  }
+  return { success: true, taskId };
+}
+
+function executeConfirmedBoardAction(
+  app: ElectronApplication,
+  window: Page,
+  action: { request: any; taskId: string; create: boolean },
+): Promise<any> {
+  // Concurrent submissions can prepare together, but native reviews are
+  // single-flight. Queue these simulated user confirmations per app without
+  // retrying requests or changing the host's busy/unknown-outcome guards.
+  const previous = boardConfirmationQueues.get(app) || Promise.resolve();
+  const operation = previous.then(() =>
+    confirmBoardAction(app, window, action),
+  );
+  const completed = operation.then(
+    () => {},
+    () => {},
+  );
+  boardConfirmationQueues.set(app, completed);
+  void completed.then(() => {
+    if (boardConfirmationQueues.get(app) === completed)
+      boardConfirmationQueues.delete(app);
+  });
+  return operation;
+}
+
+async function confirmBoardAction(
+  app: ElectronApplication,
+  window: Page,
+  action: { request: any; taskId: string; create: boolean },
+): Promise<any> {
+  // Automate only the native confirmation for this exact preview. The host
+  // still performs its real sender, membership, capability and SQLite checks.
+  await app.evaluate(
+    ({ dialog }, expected) => {
+      const host = dialog as any;
+      const key = Symbol.for("cc.e2e.board-action-confirmations");
+      if (!host[key]) {
+        const original = host.showMessageBox;
+        const allowed = new Map<
+          string,
+          { taskId: string; title: string; button: string; taskLabel: string }
+        >();
+        host[key] = { original, allowed };
+        host.showMessageBox = async (...args: any[]) => {
+          const options = args.at(-1);
+          for (const [digest, confirmation] of allowed) {
+            if (
+              options?.title === confirmation.title &&
+              options?.buttons?.[1] === confirmation.button &&
+              options?.detail?.includes(`操作摘要：${digest}`) &&
+              options?.detail?.includes(
+                `${confirmation.taskLabel}${JSON.stringify(confirmation.taskId)}`,
+              )
+            ) {
+              allowed.delete(digest);
+              return { response: 1, checkboxChecked: false };
+            }
+          }
+          return original.apply(host, args);
+        };
+      }
+      host[key].allowed.set(expected.digest, {
+        taskId: expected.taskId,
+        title: expected.create ? "确认创建看板任务" : "确认修改看板任务",
+        button: expected.create ? "确认创建" : "确认保存",
+        taskLabel: expected.create ? "任务ID：" : "任务：",
+      });
+    },
+    {
+      digest: action.request.actionDigest,
+      taskId: action.taskId,
+      create: action.create,
+    },
+  );
+  let result: any;
+  try {
+    result = await callIPC(
+      window,
+      action.create ? "task.executeBoardCreate" : "task.executeBoardUpdate",
+      { request: action.request },
+    );
+  } finally {
+    await app.evaluate(({ dialog }, digest) => {
+      const host = dialog as any;
+      const key = Symbol.for("cc.e2e.board-action-confirmations");
+      const registered = host[key];
+      if (!registered) return;
+      registered.allowed.delete(digest);
+      if (registered.allowed.size === 0) {
+        host.showMessageBox = registered.original;
+        delete host[key];
+      }
+    }, action.request.actionDigest);
+  }
+  return result;
 }

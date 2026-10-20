@@ -132,7 +132,7 @@ jobs:
         run: npx playwright install chromium --with-deps
 
       - name: Run Project Management Journey tests
-        run: xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" npx playwright test tests/e2e/project-management-journey.e2e.test.ts --timeout=180000 --reporter=html,json
+        run: xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" npx playwright test tests/e2e/project-management-journey.e2e.test.ts --timeout=180000
         env:
           NODE_ENV: test
 
@@ -183,7 +183,7 @@ jobs:
         run: npx playwright install chromium --with-deps
 
       - name: Run Approval Workflow tests
-        run: xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" npx playwright test tests/e2e/approval-workflow-journey.e2e.test.ts --timeout=180000 --reporter=html,json
+        run: xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" npx playwright test tests/e2e/approval-workflow-journey.e2e.test.ts --timeout=180000
         env:
           NODE_ENV: test
 
@@ -226,7 +226,7 @@ jobs:
         run: npx playwright install chromium --with-deps
 
       - name: Run Error Scenario tests
-        run: xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" npx playwright test tests/e2e/error-scenarios.e2e.test.ts --timeout=180000 --reporter=html,json
+        run: xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" npx playwright test tests/e2e/error-scenarios.e2e.test.ts --timeout=180000
         env:
           NODE_ENV: test
 
@@ -292,7 +292,7 @@ jobs:
         run: npx playwright install chromium --with-deps
 
       - name: Run Performance tests
-        run: xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" npx playwright test tests/e2e/performance-stress.e2e.test.ts --timeout=180000 --reporter=html,json
+        run: xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" npx playwright test tests/e2e/performance-stress.e2e.test.ts --timeout=180000
         env:
           NODE_ENV: test
 
