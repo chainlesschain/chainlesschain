@@ -1,0 +1,17 @@
+﻿JetBrains plugin (build + publish)	Pure-logic smoke (smokeTest)	2026-10-19T21:42:37.8069258Z BUILD SUCCESSFUL in 2m 28s
+JetBrains plugin (build + publish)	Unit tests (JUnit)	2026-10-19T21:43:49.3688508Z BUILD SUCCESSFUL in 1m 11s
+JetBrains plugin (build + publish)	Build plugin	2026-10-19T21:44:17.0164811Z BUILD SUCCESSFUL in 27s
+JetBrains plugin (build + publish)	Verify plugin structure and project configuration	2026-10-19T21:44:30.5176359Z BUILD SUCCESSFUL in 13s
+JetBrains plugin (build + publish)	Verify plugin compatibility	2026-10-19T21:45:42.9648143Z BUILD SUCCESSFUL in 1m 12s
+JetBrains plugin (build + publish)	Upload plugin artifact	2026-10-19T21:45:43.6015664Z With the provided path, there will be 1 file uploaded
+JetBrains plugin (build + publish)	Upload plugin artifact	2026-10-19T21:45:44.3857960Z Uploaded bytes 1550645
+JetBrains plugin (build + publish)	Upload plugin artifact	2026-10-19T21:45:44.4211179Z SHA256 digest of uploaded artifact zip is 21c47bcf57fff21e39eda5fa71687095a7873800bbb7e18f8cc27dab99f97869
+JetBrains plugin (build + publish)	Upload plugin artifact	2026-10-19T21:45:44.7506257Z Artifact chainlesschain-ide-jetbrains-1 has been successfully uploaded! Final size is 1550645 bytes. Artifact ID is 12223562440
+JetBrains plugin (build + publish)	Require published CLI before JetBrains release	2026-10-19T21:46:07.6800748Z With the provided path, there will be 1 file uploaded
+JetBrains plugin (build + publish)	Require published CLI before JetBrains release	2026-10-19T21:46:08.1188095Z Uploaded bytes 1425
+JetBrains plugin (build + publish)	Require published CLI before JetBrains release	2026-10-19T21:46:08.1564009Z SHA256 digest of uploaded artifact zip is bd7804d9cdc257a74cdb2d06578f51bfee37bc1931e899a8615834e5f83e8c61
+JetBrains plugin (build + publish)	Require published CLI before JetBrains release	2026-10-19T21:46:08.4762156Z Artifact ide-cli-prerequisite-jetbrains-1 has been successfully uploaded! Final size is 1425 bytes. Artifact ID is 12223873164
+JetBrains plugin (build + publish)	Publish to JetBrains Marketplace	2026-10-19T21:46:08.4912451Z [36;1m./gradlew publishPlugin --no-daemon --stacktrace[0m
+JetBrains plugin (build + publish)	Publish to JetBrains Marketplace	2026-10-19T21:46:11.3139200Z Calculating task graph as no cached configuration is available for tasks: publishPlugin
+JetBrains plugin (build + publish)	Publish to JetBrains Marketplace	2026-10-19T21:46:29.7869106Z > Task :publishPlugin
+JetBrains plugin (build + publish)	Publish to JetBrains Marketplace	2026-10-19T21:46:29.7898418Z BUILD SUCCESSFUL in 21s
