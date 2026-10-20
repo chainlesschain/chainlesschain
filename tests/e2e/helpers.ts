@@ -90,18 +90,38 @@ export async function launchElectronApp(
   // + env below are the secondary opt-out paths shouldRunWebShell honours
   // when settings is unset (kept for defence-in-depth).
   // PM controlled writes require real file-backed SQLite transactions. Keep
-  // NODE_ENV=test for the packaged renderer and isolate this adapter selection
-  // in a generated test entrypoint; production boot behavior stays unchanged.
+  // NODE_ENV=test and disable encryption only for this disposable profile;
+  // the generated entrypoint then maps the sql.js fallback to Better SQLite.
   let entryPath = mainPath;
   if (options.durableDatabase) {
+    // Do not let an inherited CI encryption opt-in select the SQLCipher
+    // wrapper, which does not expose the transaction API used by this gate.
+    fs.writeFileSync(
+      path.join(userDataPath, "encryption-config.json"),
+      JSON.stringify(
+        {
+          encryptionEnabled: false,
+          encryptionMethod: "password",
+          autoMigrate: true,
+          firstTimeSetup: false,
+          developmentMode: false,
+        },
+        null,
+        2,
+      ),
+      "utf8",
+    );
     entryPath = path.join(userDataPath, "pm-durable-main.cjs");
     fs.writeFileSync(
       entryPath,
       `"use strict";
-if (process.env.NODE_ENV !== "test") throw new Error("PM fixture requires NODE_ENV=test");
+if (process.env.NODE_ENV !== "test" || process.env.CC_PM_E2E_DURABLE_SQLITE !== "1") {
+  throw new Error("PM durable SQLite entrypoint requires its test-only environment");
+}
 require("electron").app.setAppPath(${JSON.stringify(path.dirname(mainPath))});
 const { DatabaseManager } = require(${JSON.stringify(path.join(path.dirname(mainPath), "database.js"))});
-DatabaseManager.prototype.initializeWithSqlJs = DatabaseManager.prototype.initializeWithBetterSQLite;
+const initializeWithBetterSQLite = DatabaseManager.prototype.initializeWithBetterSQLite;
+DatabaseManager.prototype.initializeWithSqlJs = initializeWithBetterSQLite;
 require(${JSON.stringify(mainPath)});
 `,
       "utf8",
@@ -142,6 +162,12 @@ require(${JSON.stringify(mainPath)});
       CHAINLESSCHAIN_DISABLE_DB_PERSISTENCE: options.durableDatabase
         ? "0"
         : "1",
+      ...(options.durableDatabase
+        ? {
+            CC_PM_E2E_DURABLE_SQLITE: "1",
+            CHAINLESSCHAIN_ENABLE_DB_ENCRYPTION: "0",
+          }
+        : {}),
       // These journeys include synthetic secondary-member DIDs. Actor/RBAC
       // enforcement has dedicated security tests; board reads still require
       // the authenticated owner created by createPmOrganizationFixture().
@@ -239,6 +265,55 @@ require(${JSON.stringify(mainPath)});
   }
   await loginIfNeeded(window);
   await waitForTeamIpcReady(window);
+
+  if (options.durableDatabase) {
+    const diagnostics = await app.evaluate(
+      ({ app }, modules) => {
+        const { getDatabase } = require(modules.database);
+        const { assertStorage, databaseFile } = require(
+          modules.boardActionStorage,
+        );
+        const manager = getDatabase();
+        const db = manager.getDatabase();
+        assertStorage(manager, db);
+        return {
+          adapter:
+            manager.adapter?.getEngine?.() ??
+            manager.adapter?.constructor?.name ??
+            "unknown",
+          file: databaseFile(db),
+          userDataPath: app.getPath("userData"),
+          journalMode: db.prepare("PRAGMA journal_mode").get()?.journal_mode,
+          synchronous: db.prepare("PRAGMA synchronous").get()?.synchronous,
+          foreignKeys: db.prepare("PRAGMA foreign_keys").get()?.foreign_keys,
+        };
+      },
+      {
+        database: path.join(path.dirname(mainPath), "database.js"),
+        boardActionStorage: path.join(
+          path.dirname(mainPath),
+          "task",
+          "board-action-storage.js",
+        ),
+      },
+    );
+    const relativeDatabasePath = path.relative(
+      diagnostics.userDataPath,
+      diagnostics.file,
+    );
+    if (
+      !relativeDatabasePath ||
+      relativeDatabasePath === "." ||
+      relativeDatabasePath === ".." ||
+      relativeDatabasePath.startsWith(`..${path.sep}`) ||
+      path.isAbsolute(relativeDatabasePath)
+    ) {
+      throw new Error(
+        `PM durable SQLite database escaped its isolated userData profile: ${JSON.stringify(diagnostics)}`,
+      );
+    }
+    console.info(`[PM E2E durable SQLite] ${JSON.stringify(diagnostics)}`);
+  }
 
   return { app, window };
 }
