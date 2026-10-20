@@ -4,13 +4,11 @@ Command-line interface for installing, configuring, and managing [ChainlessChain
 
 ## Package version and IDE pairing
 
-Public npm release: CLI **0.166.107** with Session Core **0.3.20**, published through OIDC from `6775d7a2de`. Its complete CLI CI and Strict Sandbox matrices, public dependency install and signed provenance checks passed. Paired IDE candidates are VS Code **0.37.152** and JetBrains **0.4.169**; their release checks are in progress. Public Open VSX **0.37.151** and JetBrains **0.4.168** retain their CLI `.106` recommendation.
+Checked on 2026-10-20: npm CLI **0.166.107**, Session Core **0.3.20**, Open VSX **0.37.152** and JetBrains **0.4.169** are public. Both IDEs recommend CLI `.107`. CLI release source is `6775d7a2de`; IDE source is `94429fada4`. Complete release gates and public artifact readback passed. The historical `.105/.150/.167` retest collected **20/20** generation and independent acceptance records and added **6** passes. Cumulative cross-version accepted deliveries are **31/45** (**26/36** ordinary, **5/9** first-run), with **14** unaccepted. This release has no new model task retest; cumulative coverage is not a .107 single-round success rate. Microsoft Marketplace remains unpublished.
 
-The `.105/.150/.167` task retest collected all **20/20** generation and acceptance records and added **6** candidate and end-to-end passes. Cumulative cross-version accepted deliveries are **31/45** (**26/36** ordinary, **5/9** first-run), with **14** unaccepted. The newer `.106/.151/.168` model retest has not run; cumulative coverage is not a latest-version single-round success rate. Microsoft Marketplace remains unpublished.
+Install this release with `npm i -g chainlesschain@0.166.107 --registry https://registry.npmjs.org`. After upgrading, restart the IDE chat host and run Doctor. The original completed round used CLI `.104`, Open VSX `.149` and JetBrains `.166`; it does not establish `.105` task acceptance. [Current upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-20.html).
 
-Install this release with `npm i -g chainlesschain@0.166.107 --registry https://registry.npmjs.org`. After upgrading, restart the IDE chat host and run Doctor. The original completed round used CLI `.104`, Open VSX `.149` and JetBrains `.166`; it does not establish `.105` task acceptance. [Current upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-18.html).
-
-## Development snapshot capabilities (2026-10-18)
+## Goal draft capabilities (public CLI .107)
 
 Public CLI .107 includes the goal catalogs and authorized panels, offline description request export, online pending drafts and receipt reconciliation introduced by development snapshot `f21eac547e`. Session Core 0.3.20 supplies the required public exports. IDE and desktop integration require matching builds; pending suggestions still require desktop preview and native confirmation. See the [goal draft guide](https://docs.chainlesschain.com/chainlesschain/goal-drafts-current.html).
 
@@ -27,7 +25,7 @@ GitHub Actions release gates and OIDC child-package verification; IDE publicatio
 follows public CLI availability. Child versions remain unchanged and require
 public-byte, source-tree and provenance checks before reuse.
 
-### Last published pairing
+### Published pairing at the 2026-10-12 snapshot
 
 Public npm is **chainlesschain@0.166.99**, with Agent SDK **0.2.14**, Session
 Core **0.3.19**, Personal Data Hub **0.4.64** and Context/Memory Kernel **0.1.9**.
