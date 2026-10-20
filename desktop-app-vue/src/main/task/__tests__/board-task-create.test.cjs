@@ -13,6 +13,7 @@ const {
 } = require("./board-authority-fixture.cjs");
 const { createBoardTaskUpdateHost } = require("../board-task-update-host");
 const C = require("../board-task-update-contract");
+const { preloadBoardHost } = require("./board-preload-fixture.cjs");
 function setup() {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "cc-board-create-")),
     f = fixture(path.join(directory, "vault.sqlite")),
@@ -87,6 +88,53 @@ const activityCount = (f) =>
       "SELECT COUNT(*) AS n FROM task_activity_log WHERE action='controlled_task_create'",
     )
     .get().n;
+
+test("preload executeBoardCreate preserves nullable creation input and request digests", async () => {
+  const f = setup();
+  try {
+    const bridge = preloadBoardHost(f);
+    const prepared = await bridge.task.previewBoardCreate({
+      boardId: "board-1",
+      taskData: { columnId: "column-1", title: "Created through preload" },
+      idempotencyKey: randomUUID(),
+    });
+    assert.equal(prepared.success, true);
+    assert.equal(prepared.request.input.taskData.assigneeDid, null);
+    assert.equal(prepared.request.input.taskData.dueDate, null);
+    const originalRequest = structuredClone(prepared.request);
+    const result = await bridge.task.executeBoardCreate({
+      request: prepared.request,
+    });
+    assert.deepEqual(bridge.calls.at(-1).params.request, originalRequest);
+    assert.equal(result.success, true);
+    assert.equal(result.run.status, "succeeded");
+    assert.equal(task(f, prepared.taskId).title, "Created through preload");
+    assert.equal(task(f, prepared.taskId).assignee_did, null);
+    assert.equal(f.createState.confirmations, 1);
+  } finally {
+    f.cleanup();
+  }
+});
+
+test("preload transport leaves tampered creation requests for the host to reject", async () => {
+  const f = setup();
+  try {
+    const bridge = preloadBoardHost(f);
+    const prepared = f.preview();
+    assert.equal(prepared.success, true);
+    const request = structuredClone(prepared.request);
+    delete request.input.taskData.dueDate;
+    const result = await bridge.task.executeBoardCreate({
+      request,
+    });
+    assert.equal(result.success, false);
+    assert.equal(result.error, "BOARD_ACTION_INVALID_REQUEST");
+    assert.equal(count(f), 3);
+    assert.equal(f.createState.confirmations, 0);
+  } finally {
+    f.cleanup();
+  }
+});
 
 test("create histories keep unresolved attempts beyond pagination and count every creation against the board quota", () => {
   const f = setup();

@@ -9,6 +9,7 @@ const { spawnSync } = require("node:child_process");
 const { fixture, withHost } = require("./board-authority-fixture.cjs");
 const { createBoardTaskUpdateHost } = require("../board-task-update-host");
 const C = require("../board-task-update-contract");
+const { preloadBoardHost } = require("./board-preload-fixture.cjs");
 const {
   validateBusinessActionRequest,
   validateBusinessActionRun,
@@ -71,6 +72,51 @@ function setup() {
     },
   });
 }
+
+test("preload executeBoardUpdate previews and executes explicit null field resets", async () => {
+  const f = setup();
+  try {
+    f.native
+      .prepare(
+        "UPDATE team_tasks SET assignee_did='did:member', due_date=1800000000000, estimated_hours=8, actual_hours=2 WHERE id='task-1'",
+      )
+      .run();
+    const bridge = preloadBoardHost(f);
+    const updates = {
+      assigneeDid: null,
+      dueDate: null,
+      estimatedHours: null,
+      actualHours: null,
+    };
+    const prepared = await bridge.task.previewBoardUpdate({
+      taskId: "task-1",
+      updates,
+      idempotencyKey: randomUUID(),
+    });
+    assert.equal(prepared.success, true);
+    assert.deepEqual(prepared.request.input.updates, updates);
+    const originalRequest = structuredClone(prepared.request);
+    const result = await bridge.task.executeBoardUpdate({
+      request: prepared.request,
+    });
+    assert.deepEqual(bridge.calls.at(-1).params.request, originalRequest);
+    assert.equal(result.success, true);
+    assert.equal(result.run.status, "succeeded");
+    const stored = f.native
+      .prepare("SELECT * FROM team_tasks WHERE id='task-1'")
+      .get();
+    for (const field of [
+      "assignee_did",
+      "due_date",
+      "estimated_hours",
+      "actual_hours",
+    ])
+      assert.equal(stored[field], null, field);
+    assert.equal(f.updateState.confirmations, 1);
+  } finally {
+    f.cleanup();
+  }
+});
 const task = (f) =>
   f.native.prepare("SELECT * FROM team_tasks WHERE id='task-1'").get();
 const revision = (f) =>

@@ -29,8 +29,10 @@ test.describe.serial("Performance & Stress Tests", () => {
   let sharedContext!: ElectronTestContext;
   let boardId: string;
   let columnId: string;
+  let concurrentBoardId: string;
   let teamId: string;
   const taskIds: string[] = [];
+  const concurrentTaskIds: string[] = [];
   const memberDids: string[] = [];
 
   // Performance phases build on the same board, tasks, and team. A single
@@ -378,14 +380,30 @@ test.describe.serial("Performance & Stress Tests", () => {
     const { app, window } = await launchElectronApp();
 
     try {
+      // The bulk board has reached its 100-entry creation history limit.
+      // Exercise concurrent submissions on another board under the same owner.
+      const boardResult: any = await callIPC(window, "task:create-board", {
+        orgId: testOrgId,
+        name: "Concurrent Performance Test Board",
+        boardType: "kanban",
+        ownerDid: testUserDid,
+      });
+      expect(boardResult.success).toBe(true);
+      concurrentBoardId = boardResult.boardId;
+      const columnResult: any = await callIPC(window, "task:create-column", {
+        boardId: concurrentBoardId,
+        columnData: { name: "Todo", position: 0 },
+      });
+      expect(columnResult.success).toBe(true);
+
       const startTime = Date.now();
       const CONCURRENT_COUNT = 10;
 
       const promises = [];
       for (let i = 0; i < CONCURRENT_COUNT; i++) {
         promises.push(
-          createControlledBoardTask(app, window, boardId, {
-            columnId,
+          createControlledBoardTask(app, window, concurrentBoardId, {
+            columnId: columnResult.columnId,
             title: `Concurrent Task ${i + 1}`,
             description: `Created concurrently`,
           }),
@@ -403,6 +421,7 @@ test.describe.serial("Performance & Stress Tests", () => {
       expect(new Set(results.map((result) => result.taskId)).size).toBe(
         CONCURRENT_COUNT,
       );
+      concurrentTaskIds.push(...results.map((result) => result.taskId));
 
       console.log(
         `Created ${CONCURRENT_COUNT} tasks concurrently in ${duration}ms`,
@@ -451,7 +470,7 @@ test.describe.serial("Performance & Stress Tests", () => {
   // Phase 6: Export Performance
   // ========================================
 
-  test("Phase 6.1: Export board with 100+ tasks", async () => {
+  test("Phase 6.1: Export bulk board with 100 tasks", async () => {
     const { app, window } = await launchElectronApp();
 
     try {
@@ -467,11 +486,14 @@ test.describe.serial("Performance & Stress Tests", () => {
 
       expect(result.success).toBe(true);
       expect(result.data).toBeDefined();
+      expect(result.data.tasks.map((task: any) => task.id).sort()).toEqual(
+        [...taskIds].sort(),
+      );
 
       const dataSize = JSON.stringify(result.data).length;
 
       console.log(
-        `Exported board with ${taskIds.length}+ tasks in ${duration}ms (${(dataSize / 1024).toFixed(2)} KB)`,
+        `Exported board with ${taskIds.length} tasks in ${duration}ms (${(dataSize / 1024).toFixed(2)} KB)`,
       );
 
       expect(duration).toBeLessThan(10000); // Under 10 seconds
@@ -579,6 +601,11 @@ test.describe.serial("Performance & Stress Tests", () => {
         boardId,
         options: {},
       });
+      const concurrentTasksResult: any = await callIPC(
+        window,
+        "task:get-tasks",
+        { boardId: concurrentBoardId, options: {} },
+      );
 
       const membersResult: any = await callIPC(
         window,
@@ -589,13 +616,25 @@ test.describe.serial("Performance & Stress Tests", () => {
       );
 
       console.log("\n=== Performance Test Summary ===");
-      console.log(`Remaining tasks: ${tasksResult.tasks.length}`);
+      console.log(`Remaining bulk board tasks: ${tasksResult.tasks.length}`);
+      console.log(
+        `Remaining concurrent board tasks: ${concurrentTasksResult.tasks.length}`,
+      );
       console.log(`Remaining team members: ${membersResult.members.length}`);
-      console.log(`Total tasks created: ${taskIds.length + 10}`); // +10 from concurrent test
+      console.log(
+        `Total tasks created across both boards: ${taskIds.length + concurrentTaskIds.length}`,
+      );
       console.log(`Total members added: ${memberDids.length}`);
       console.log("================================\n");
 
       expect(tasksResult.success).toBe(true);
+      expect(concurrentTasksResult.success).toBe(true);
+      expect(tasksResult.tasks.map((task: any) => task.id).sort()).toEqual(
+        taskIds.slice(50).sort(),
+      );
+      expect(
+        concurrentTasksResult.tasks.map((task: any) => task.id).sort(),
+      ).toEqual([...concurrentTaskIds].sort());
       expect(membersResult.success).toBe(true);
     } finally {
       await closeElectronApp(app);
