@@ -42,6 +42,7 @@ export async function openPruningRollbackStore(
     realDependencies: true,
     dependencyDeletion: true,
     skillRollbackProvider: rollback,
+    resources,
     ...hooks,
   });
   if (seed) {

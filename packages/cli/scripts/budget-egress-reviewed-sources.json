@@ -1,6 +1,6 @@
 {
   "schema": "chainlesschain.budget-egress-source-review/v1",
-  "reviewedAt": "2026-10-18",
+  "reviewedAt": "2026-10-20",
   "scope": ["packages/cli/src", "packages/cli/scripts"],
   "basis": "Implementation source inspection; byte-bound classifications only. Not an independent financial/OS admission decision.",
   "entries": [
@@ -77,16 +77,28 @@
       "rationale": "GitHub checks/status readback. API responses are evidence inputs, not publication or financial admission."
     },
     {
+      "path": "packages/cli/scripts/verify01-native-task-campaign.mjs",
+      "digest": "sha256:7a499dddb8d044824349d636847022d7a4c5cde10e9d4537189231ff3e923086",
+      "category": "MODEL_REQUEST",
+      "rationale": "Downloads public package and artifact data, installs the exact npm CLI, launches native CLI/IDE hosts, and sends paid model requests through the Volcengine diagnostic broker. Live confirmation and a key are required. The entry point rejects formal scope before reading options, credentials, paths, downloads, host processes, or model transport; this campaign remains paid model egress, not a local-only test."
+    },
+    {
       "path": "packages/cli/scripts/verify01-native-toolchain-prepare.mjs",
       "digest": "sha256:7d1424de87da2609548287ce33a03fed2e2c5b10d095c0caadc97a96ea8aea4b",
       "category": "DISTRIBUTION",
       "rationale": "Bounded registry artifact download and toolchain preparation; no provider inference. Artifact identity and native admission are independently checked."
     },
     {
-      "path": "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs",
-      "digest": "sha256:e7ccb8e8b73de6f34460435959db28ff760eb07425baa5439ec3f8a22b3e7fb4",
+      "path": "packages/cli/scripts/verify01-public-vscode-matrix-diagnostic.mjs",
+      "digest": "sha256:e327be6615d3c71d53cc92848e0003f9eaf273ab58149168e01a70aa787b426a",
       "category": "MODEL_REQUEST",
-      "rationale": "HTTPS model diagnostic rewrites thinking/output policy and estimates CNY usage. Formal scope rejects creation, beginTask and direct dispatch. An externally running IPC/network broker is not contained by AsyncLocalStorage."
+      "rationale": "Downloads public Open VSX metadata, VSIX and npm CLI artifacts, launches the installed VS Code host, and sends paid model requests through the Volcengine diagnostic broker. Live confirmation and a key are required. The entry point rejects formal scope before reading options, credentials, paths, downloads, host processes, or model transport; this is a live model diagnostic rather than free/local verification."
+    },
+    {
+      "path": "packages/cli/scripts/verify01-volcengine-diagnostic-broker.mjs",
+      "digest": "sha256:276b97788a56b2f2958f8e9ad223888764d04c501c5796999737cfe80ff1f6df",
+      "category": "MODEL_REQUEST",
+      "rationale": "The HTTPS Volcengine model broker caps request bytes, response bytes, time, answer tokens and per-task requests; disables thinking; sends only after TLS; records connection attempts and dispatch certainty; and treats incomplete usage or truncated output as unusable. Formal scope rejects creation, task start and direct dispatch. A separately running IPC/network broker is not contained by AsyncLocalStorage, and the diagnostic does not grant formal paid admission."
     },
     {
       "path": "packages/cli/src/commands/agenda.js",
@@ -324,9 +336,21 @@
     },
     {
       "path": "packages/cli/src/lib/llm-providers.js",
-      "digest": "sha256:372d1f65e64f5c96c9907c5f28b0d92f83f29f1bf91f70ae68c5629a056430c2",
+      "digest": "sha256:83914b595abace940fc895e5cf220dba57b488bba3d69f6ab1f7368c77490955",
       "category": "MODEL_REQUEST",
-      "rationale": "Legacy connectivity tests send model inference through the scoped fetch wrapper."
+      "rationale": "Built-in provider model identifiers include the new Volcengine model deepseek-v4-1-flash-260910. Runtime model requests use the scoped fetch wrapper; standalone connectivity probes remain model inference, not free health checks."
+    },
+    {
+      "path": "packages/cli/src/lib/project-goal-connection.js",
+      "digest": "sha256:0f17956415810f8fa76ba4c7b10b2141e148af7ea642128940e010b84671a269",
+      "category": "LOCAL_IPC",
+      "rationale": "Reads a bounded private descriptor, then authenticates short-lived 127.0.0.1 HTTP requests with HMAC, nonce and descriptor identity checks for project-goal summaries or evidence. A v3 descriptor delegates to the draft client, which also supports draft operations. This is local desktop IPC, not remote model egress."
+    },
+    {
+      "path": "packages/cli/src/lib/project-goal-draft-connection.js",
+      "digest": "sha256:eafe20d253a344f77f88b8c5c09889ef1e941234603e4ff1f685caef4c023d47",
+      "category": "LOCAL_IPC",
+      "rationale": "Sends HMAC-authenticated, bounded and time-limited GET/POST requests to the desktop loopback goal-drafts endpoint. Reads and receipt/source POSTs are local IPC; enqueue POST persists a user-authorized pending draft, and a missing response after dispatch is reported as an unknown outcome. It does not invoke a provider."
     },
     {
       "path": "packages/cli/src/lib/mcp-oauth.js",
@@ -432,9 +456,9 @@
     },
     {
       "path": "packages/cli/src/runtime/agent-core.js",
-      "digest": "sha256:5102a6adb6e3c799c1d34ed00ce9c6465292e197827524f0073c0c5030571699",
+      "digest": "sha256:fbbe17d3d08863cb29a6633f1a4bc9f442b7a39ed882c6e7901d30a709352271",
       "category": "MODEL_REQUEST",
-      "rationale": "Canonical model requests including streaming, summaries and child paths; explicit scope required. Formal-scope tools reject centrally, and parallel read batches propagate budget failures. The 2026-10-18 task-quality changes add bounded local metadata-only import feedback and completion checks for unresolved file writes; no network call, retry, tool authority or provider scope is added. Successful equivalent content tools settle only the same target obligation, while denied, deferred and failed mutations do not settle it; move and delete remain independent."
+      "rationale": "Canonical model requests including streaming, summaries and child paths; explicit scope required. Formal-scope tools reject centrally, and parallel read batches propagate budget failures. The Volcengine default model changed to deepseek-v4-1-flash-260910 without adding another transport. The 2026-10-18 task-quality changes add bounded local metadata-only import feedback and completion checks for unresolved file writes; no network call, retry, tool authority or provider scope is added. Successful equivalent content tools settle only the same target obligation, while denied, deferred and failed mutations do not settle it; move and delete remain independent."
     },
     {
       "path": "packages/cli/src/runtime/diagnostics.js",

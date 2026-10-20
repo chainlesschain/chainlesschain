@@ -167,74 +167,81 @@ afterEach(() => {
 });
 
 describe("RRSI signed native query enrollment", () => {
-  it("carries preregistration through every signed sibling, actual admission and seal on a v2 journal", async () => {
-    const value = fixture({ journalV2: true, statisticsPreregistered: true });
-    const enrolled = value.enrollAll();
-    expect(enrolled).toHaveLength(12);
-    const statistics = value.resolution.statisticsRegistration;
-    // Enrollment is complete and these assertions do not mutate the journal.
-    // Read its authenticated snapshot once instead of replaying it per sibling.
-    const enrollmentEvents = value.store.backend.ledger.read({
-      afterSequence: 0,
-      limit: 1000,
-    });
-    for (const enrollment of enrolled) {
-      expect(enrollment.evidence.plan.schema).toBe(
-        "chainlesschain.rrsi-cohort-plan/v2",
+  it(
+    "carries preregistration through every signed sibling, actual admission and seal on a v2 journal",
+    async () => {
+      const value = fixture({ journalV2: true, statisticsPreregistered: true });
+      const enrolled = value.enrollAll();
+      expect(enrolled).toHaveLength(12);
+      const statistics = value.resolution.statisticsRegistration;
+      // Enrollment is complete and these assertions do not mutate the journal.
+      // Read its authenticated snapshot once instead of replaying it per sibling.
+      const enrollmentEvents = value.store.backend.ledger.read({
+        afterSequence: 0,
+        limit: 1000,
+      });
+      for (const enrollment of enrolled) {
+        expect(enrollment.evidence.plan.schema).toBe(
+          "chainlesschain.rrsi-cohort-plan/v2",
+        );
+        expect(enrollment.evidence.manifest.schema).toBe(
+          "chainlesschain.rrsi-cohort-manifest/v2",
+        );
+        expect(
+          enrollment.evidence.manifest.statisticsRegistration
+            .statisticsPlanDigest,
+        ).toBe(statistics.statisticsPlanDigest);
+        const event = enrollmentEvents.find(
+          (item) => item.sequence === enrollment.enrollmentSequence,
+        );
+        expect(event.sourceRefs).toHaveLength(4);
+        expect(event.sourceRefs.map((ref) => ref.ref)).toEqual(
+          expect.arrayContaining([
+            statistics.scopeRegistrationRecord.ref.ref,
+            statistics.planRegistrationRecord.ref.ref,
+          ]),
+        );
+      }
+      const authority = value.slot({ freshChild: value.fresh });
+      const admitted = await admitEvolutionEvalLaunch(
+        authority,
+        value.request(),
       );
-      expect(enrollment.evidence.manifest.schema).toBe(
-        "chainlesschain.rrsi-cohort-manifest/v2",
+      const first = enrolled.find(
+        (entry) => entry.evidence.cohortId === value.first.cohortId,
       );
+      expect(admitted.evidence.enrollmentDigest).toBe(first.enrollmentDigest);
+      const request = value.request();
       expect(
-        enrollment.evidence.manifest.statisticsRegistration
-          .statisticsPlanDigest,
-      ).toBe(statistics.statisticsPlanDigest);
-      const event = enrollmentEvents.find(
-        (item) => item.sequence === enrollment.enrollmentSequence,
+        await resolveEvolutionEvalLaunch(authority, {
+          runId: request.runId,
+          runNonce: request.runNonce,
+          requestDigest: request.requestDigest,
+        }),
+      ).toMatchObject({ admissionDigest: admitted.admissionDigest });
+      await sealEvolutionEvalCohort(value.authority, {
+        cohortId: value.first.cohortId,
+      });
+      const reconciled = await resolveEvolutionEvalCohortReconciliation(
+        value.authority,
+        { cohortId: value.first.cohortId },
       );
-      expect(event.sourceRefs).toHaveLength(4);
-      expect(event.sourceRefs.map((ref) => ref.ref)).toEqual(
-        expect.arrayContaining([
-          statistics.scopeRegistrationRecord.ref.ref,
-          statistics.planRegistrationRecord.ref.ref,
-        ]),
+      expect(reconciled.inventory.admissions).toHaveLength(1);
+      const substituted = clone(first.evidence);
+      const registration = {
+        plan: substituted.plan,
+        manifest: substituted.manifest,
+        slots: substituted.slots,
+      };
+      registration.plan.statisticsRegistration.statisticsPlanDigest = digest(
+        "TEST unrelated statistics plan",
       );
-    }
-    const authority = value.slot({ freshChild: value.fresh });
-    const admitted = await admitEvolutionEvalLaunch(authority, value.request());
-    const first = enrolled.find(
-      (entry) => entry.evidence.cohortId === value.first.cohortId,
-    );
-    expect(admitted.evidence.enrollmentDigest).toBe(first.enrollmentDigest);
-    const request = value.request();
-    expect(
-      await resolveEvolutionEvalLaunch(authority, {
-        runId: request.runId,
-        runNonce: request.runNonce,
-        requestDigest: request.requestDigest,
-      }),
-    ).toMatchObject({ admissionDigest: admitted.admissionDigest });
-    await sealEvolutionEvalCohort(value.authority, {
-      cohortId: value.first.cohortId,
-    });
-    const reconciled = await resolveEvolutionEvalCohortReconciliation(
-      value.authority,
-      { cohortId: value.first.cohortId },
-    );
-    expect(reconciled.inventory.admissions).toHaveLength(1);
-    const substituted = clone(first.evidence);
-    const registration = {
-      plan: substituted.plan,
-      manifest: substituted.manifest,
-      slots: substituted.slots,
-    };
-    registration.plan.statisticsRegistration.statisticsPlanDigest = digest(
-      "TEST unrelated statistics plan",
-    );
-    expect(() =>
-      enrollEvolutionEvalCohort(value.authority, registration),
-    ).toThrow(/differs from committed History/);
-  }, 300000);
+      expect(() =>
+        enrollEvolutionEvalCohort(value.authority, registration),
+      ).toThrow(/differs from committed History/);
+    },
+    process.platform === "win32" ? 600_000 : 300_000,
+  );
   it("enrolls a new candidate query after the previous stream admission without refreshing consumed quota", async () => {
     const value = fixture();
     value.enrollAll();

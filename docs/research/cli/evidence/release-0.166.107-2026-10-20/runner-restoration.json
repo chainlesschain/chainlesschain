@@ -1,0 +1,20 @@
+{
+  "schema": "chainlesschain.release-ci-restoration/v1",
+  "checkedAt": "2026-10-19T22:00:43.250Z",
+  "status": "restored",
+  "publicationWorkflows": [
+    39326212411,
+    39326213042
+  ],
+  "sourceSha": "94429fada419e8f3e01a794516096ea554120556",
+  "restorationStartedAt": "2026-10-19T21:50:21.671Z",
+  "restorationFinishedAt": "2026-10-19T21:59:25.771Z",
+  "workflowDefinitionsRestored": 30,
+  "recordedRuns": 51,
+  "rerunsConfirmed": 49,
+  "alreadyCompleted": 2,
+  "alreadyRunning": 0,
+  "issues": [],
+  "detail": "runner-pause-plan.json",
+  "reason": "Both tagged publishing workflows completed successfully. All target npm and IDE versions are now public and their artifacts verified; no release runner remains active."
+}

@@ -5,11 +5,11 @@ JetBrains counterpart of the [VS Code extension](../vscode-extension/): it lets
 the ChainlessChain **`cc` agent CLI** read editor context and propose native
 diffs inside IntelliJ-platform IDEs (IDEA, PyCharm, WebStorm, …).
 
-Candidate plugin **0.4.168** recommends candidate CLI **0.166.106** and is not yet published. Current public plugin **0.4.167** pairs with CLI **0.166.105**. Configure an explicit ChainlessChain CLI path when the system `cc` is a C compiler.
+Public plugin **0.4.169** recommends public CLI **0.166.107**. Configure an explicit ChainlessChain CLI path when the system `cc` is a C compiler.
 
-As of 2026-10-18, current public versions are CLI **0.166.105**, Open VSX **0.37.150** and JetBrains **0.4.167**. The next candidates are CLI **0.166.106**, VS Code **0.37.151** and JetBrains **0.4.168**; both candidate plugins recommend CLI `.106`. These candidates are not published and require complete exact-commit release gates, CLI OIDC publication and public artifact readback before IDE release and unfinished-sample retesting. The public `.105` round completed generation and acceptance for **20/20** samples each, adding **6** candidate acceptances and **6** full-flow passes. Cumulative acceptance is **31/45** (**26/36** ordinary tasks and **5/9** first-use tasks), with **14** remaining. The original 25 accepted artifacts were reused byte-for-byte; this cross-version cumulative result is not a single-round 45/45 success. Candidates `.106/.151/.168` remain unpublished and untested on the unfinished samples. Microsoft Marketplace remains unpublished.
+Checked on 2026-10-20: npm CLI **0.166.107**, Session Core **0.3.20**, Open VSX **0.37.152** and JetBrains **0.4.169** are public. Both IDEs recommend CLI `.107`. CLI release source is `6775d7a2de`; IDE source is `94429fada4`. Complete release gates and public artifact readback passed. The historical `.105/.150/.167` retest collected **20/20** generation and independent acceptance records and added **6** passes. Cumulative cross-version accepted deliveries are **31/45** (**26/36** ordinary, **5/9** first-run), with **14** unaccepted. This release has no new model task retest; cumulative coverage is not a .107 single-round success rate. Microsoft Marketplace remains unpublished.
 
-The public 0.4.167 release restores assistant Markdown with the live renderer while preserving canonical text, session and saved-row identity. CLI 0.166.105 supplies coding guidance and safe transport diagnostics. Restart the IDE and run Doctor after upgrading. Native task and restart acceptance still require published-package retesting.
+The public 0.4.169 release recommends CLI 0.166.107. Restart the IDE and run Doctor after upgrading. Native task and restart acceptance still require published-package retesting.
 
 [Task notes and fresh-conversation handoff](../../docs/features/ide-task-worklog-user-guide.md) explains automatic Markdown checkpoints and `Continue in new chat`, introduced in `0.4.126`.
 
@@ -26,20 +26,17 @@ the _same_ lockfile and speaks the _same_ MCP protocol as the VS Code
 extension; only `ide` differs (`"jetbrains"`). Feature controls still require
 the corresponding exact-gated CLI command, as documented below.
 
-Install the public CLI with `npm i -g chainlesschain@0.166.105 --registry https://registry.npmjs.org`.
-See the [upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-18.html).
+Install the paired CLI with `npm i -g chainlesschain@0.166.107 --registry https://registry.npmjs.org`.
+See the [upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-20.html).
 
 ## Release compatibility
 
-Plugin **0.4.168** is the current release candidate and recommends candidate CLI
-`chainlesschain@0.166.106`. Both await exact-commit validation and publication.
-Publish and verify the CLI through npm OIDC before releasing this plugin.
-
-The current public pairing above remains applicable until the
-candidate passes release gates and public artifact readback. Session Core
-`0.3.19` and Context/Memory Kernel `0.1.10` retain their independent versions.
-Restart the IDE and run Doctor after a verified upgrade. Native task quality
-and restart acceptance require separate published-package evidence.
+Plugin **0.4.169** is the current release candidate that passed the release
+gates and is now publicly available. It recommends `chainlesschain@0.166.107`.
+The CLI was published through npm OIDC before this plugin. Session Core
+`0.3.20` and Context/Memory Kernel `0.1.10` retain independent versions.
+Restart the IDE and run Doctor after upgrading. Native task quality and
+restart acceptance still require separate published-package evidence.
 
 ## Previous candidates and development notes
 

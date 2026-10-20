@@ -5,10 +5,12 @@ import { WIKI_PRUNING_JOURNAL_EVENT_TYPE } from "../../src/lib/evolution/governe
 
 export async function openPruningFullChain(root, options = {}) {
   const keyAuthority = openPruningKeyAuthority(root, options);
+  let journalForInspection = null;
   const h = await openPruningRollbackStore(root, {
     ...options,
     keyAuthority,
     realRetrieval: true,
+    journalForInspection: () => journalForInspection,
   });
   const ledger = h.resources.backend.ledger;
   const runtime = createGovernedWikiPruningRuntime({
@@ -37,6 +39,7 @@ export async function openPruningFullChain(root, options = {}) {
       },
     },
   });
+  journalForInspection = runtime.journal;
   return {
     ...h,
     ...runtime,
