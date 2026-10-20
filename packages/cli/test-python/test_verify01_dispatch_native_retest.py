@@ -63,13 +63,117 @@ class DispatcherTests(unittest.TestCase):
         resolved = json.loads((self.directory / (self.shards[0]['shardId'] + '.resolved.json')).read_bytes())
         self.assertEqual(resolved['runId'], '99')
 
+    def test_limited_batches_resume_without_changing_context_or_replaying(self):
+        self.shards.append({'shardId': 'win32-jetbrains--verify-3',
+                            'group': 'win32-jetbrains', 'sampleIds': ['verify-3']})
+        original = copy.deepcopy(self.context)
+        first = m.execute(self.context, self.directory, submit=True,
+                          dispatch=self.dispatch, max_new_dispatches=1)
+        self.assertEqual(first['status'], 'INCOMPLETE')
+        self.assertEqual(len(self.calls), 1)
+        self.assertFalse((self.directory / 'runs.json').exists())
+        for shard in self.shards[1:]:
+            self.assertFalse((self.directory / (shard['shardId'] + '.intent.json')).exists())
+        first_intent = self.directory / (self.shards[0]['shardId'] + '.intent.json')
+        before = first_intent.read_bytes()
+
+        # Read-only resolution does not fill the remaining unrequested shards.
+        result = m.execute(self.context, self.directory, resolve=True,
+                           dispatch=lambda args: self.fail('resolve must not dispatch'))
+        self.assertEqual(result['status'], 'INCOMPLETE')
+        second = m.execute(self.context, self.directory, submit=True,
+                           dispatch=self.dispatch, max_new_dispatches=1)
+        self.assertEqual(second['status'], 'INCOMPLETE')
+        self.assertEqual(len(self.calls), 2)
+        self.assertEqual(first_intent.read_bytes(), before)
+        self.assertFalse((self.directory / (self.shards[2]['shardId'] + '.intent.json')).exists())
+        self.assertFalse((self.directory / 'runs.json').exists())
+
+        final = m.execute(self.context, self.directory, submit=True,
+                          dispatch=self.dispatch, max_new_dispatches=2)
+        self.assertEqual(final['status'], 'RESOLVED')
+        self.assertEqual([row['runId'] for row in final['runs']], ['101', '102', '103'])
+        self.assertEqual(json.loads((self.directory / 'runs.json').read_bytes()), final['runs'])
+        self.assertEqual(self.context, original)
+        self.assertEqual(json.loads((self.directory / 'context.json').read_bytes()), original)
+        snapshot = {file.name: file.read_bytes() for file in self.directory.glob('*.json')}
+        m.execute(self.context, self.directory, submit=True,
+                  dispatch=self.dispatch, max_new_dispatches=1)
+        self.assertEqual(len(self.calls), 3)
+        self.assertEqual(snapshot, {file.name: file.read_bytes() for file in self.directory.glob('*.json')})
+
+    def test_limited_uncertain_dispatch_still_requires_readonly_resolution(self):
+        def uncertain(args):
+            self.calls.append(args)
+            self.runs.append({'id': 99})
+            raise subprocess.TimeoutExpired(args, 120)
+        with self.assertRaisesRegex(RuntimeError, 'intent retained'):
+            m.execute(self.context, self.directory, submit=True,
+                      dispatch=uncertain, max_new_dispatches=1)
+        with self.assertRaisesRegex(RuntimeError, 'Unresolved intent'):
+            m.execute(self.context, self.directory, submit=True,
+                      dispatch=uncertain, max_new_dispatches=2)
+        self.assertEqual(len(self.calls), 1)
+        self.assertFalse((self.directory / (self.shards[1]['shardId'] + '.intent.json')).exists())
+        m.execute(self.context, self.directory, resolve=True,
+                  dispatch=lambda args: self.fail('resolve must not dispatch'))
+        final = m.execute(self.context, self.directory, submit=True,
+                          dispatch=self.dispatch, max_new_dispatches=1)
+        self.assertEqual([row['runId'] for row in final['runs']], ['99', '102'])
+        self.assertEqual(len(self.calls), 2)
+
+    def test_invalid_limits_fail_before_journal_or_dispatch(self):
+        for value in (0, -1, 1.5, True, '1'):
+            with self.subTest(value=value):
+                target = self.directory / 'must-not-exist'
+                with self.assertRaisesRegex(RuntimeError, 'positive integer'):
+                    m.execute(self.context, target, submit=True, max_new_dispatches=value,
+                              dispatch=lambda args: self.fail('invalid limit dispatched'))
+                self.assertFalse(target.exists())
+        with self.assertRaisesRegex(RuntimeError, 'requires --submit'):
+            m.execute(self.context, self.directory / 'must-not-exist',
+                      resolve=True, max_new_dispatches=1)
+        self.assertEqual(list(self.directory.iterdir()), [])
+
+    def test_cli_invalid_limits_and_modes_fail_before_context_loading(self):
+        for arguments in (['--submit', '--max-new-dispatches', '0'],
+                          ['--submit', '--max-new-dispatches', '-1'],
+                          ['--submit', '--max-new-dispatches', '1.5'],
+                          ['--resolve', '--max-new-dispatches', '1'],
+                          ['--max-new-dispatches', '1']):
+            with self.subTest(arguments=arguments), \
+                 patch.object(m, 'load_context', side_effect=AssertionError('invalid CLI loaded context')), \
+                 patch.object(m.sys, 'argv', ['dispatcher', '--plan', 'docs/plan.json', *arguments]), \
+                 contextlib.redirect_stderr(io.StringIO()):
+                with self.assertRaises(SystemExit) as exit:
+                    m.main()
+                self.assertEqual(exit.exception.code, 2)
+        self.assertEqual(list(self.directory.iterdir()), [])
+
+    def test_cli_forwards_limit_without_changing_bound_context(self):
+        original = copy.deepcopy(self.context)
+        with patch.object(m, 'load_context', return_value=(self.context, {})), \
+             patch.object(m, 'WORK', self.directory), \
+             patch.object(m, 'verify_public') as verify, \
+             patch.object(m, 'execute', return_value={'status': 'INCOMPLETE'}) as execute, \
+             patch.object(m.sys, 'argv', ['dispatcher', '--plan', 'docs/plan.json',
+                                         '--submit', '--max-new-dispatches', '2']), \
+             contextlib.redirect_stdout(io.StringIO()):
+            m.main()
+        verify.assert_called_once_with({})
+        self.assertEqual(execute.call_args.args[0], original)
+        self.assertEqual(execute.call_args.kwargs,
+                         {'submit': True, 'resolve': False, 'max_new_dispatches': 2})
+        self.assertEqual(self.context, original)
+
     def test_ambiguous_new_runs_halt_without_next_dispatch(self):
         def ambiguous(args):
             self.calls.append(args)
             self.runs.extend([{'id': 101}, {'id': 102}])
             return subprocess.CompletedProcess(args, 0, b'created', b'')
         with self.assertRaisesRegex(RuntimeError, 'ambiguous'):
-            m.execute(self.context, self.directory, submit=True, dispatch=ambiguous)
+            m.execute(self.context, self.directory, submit=True, dispatch=ambiguous,
+                      max_new_dispatches=1)
         self.assertEqual(len(self.calls), 1)
         with self.assertRaisesRegex(RuntimeError, 'ambiguous'):
             m.execute(self.context, self.directory, resolve=True)
