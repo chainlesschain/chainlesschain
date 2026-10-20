@@ -1,0 +1,1321 @@
+{
+  "schema": "chainlesschain.release108-support/v1",
+  "sourceSha": "e77c7ba85783576ac523dd73bc760bda63d91f3b",
+  "officialReleaseGate": {
+    "schema": 1,
+    "verifiedAt": "2026-10-20T19:33:30.585Z",
+    "repository": "chainlesschain/chainlesschain",
+    "sha": "e77c7ba85783576ac523dd73bc760bda63d91f3b",
+    "gates": [
+      {
+        "workflow": "cli-ci.yml",
+        "name": "CLI CI",
+        "sha": "e77c7ba85783576ac523dd73bc760bda63d91f3b",
+        "runId": 39464414573,
+        "runUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573",
+        "conclusion": "success",
+        "platforms": ["linux", "macos", "windows"]
+      },
+      {
+        "workflow": "cli-strict-sandbox.yml",
+        "name": "CLI Strict Sandbox",
+        "sha": "e77c7ba85783576ac523dd73bc760bda63d91f3b",
+        "runId": 39464431564,
+        "runUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464431564",
+        "conclusion": "success",
+        "platforms": ["linux", "macos", "windows"]
+      }
+    ]
+  },
+  "cli": {
+    "sourceSha": "e77c7ba85783576ac523dd73bc760bda63d91f3b",
+    "observedAt": "2026-10-20T19:33:34.6707095Z",
+    "runId": 39464414573,
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573",
+    "attempt": 2,
+    "conclusion": "success",
+    "counts": {
+      "success": 70,
+      "skipped": 1
+    },
+    "workflow": ".github/workflows/cli-ci.yml",
+    "event": "workflow_dispatch",
+    "ref": "feature/release108-source-review-20261021",
+    "jobs": [
+      {
+        "id": 118828514929,
+        "name": "test-macos / e2e (macos-latest, shard 4/4)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828514929",
+        "started_at": "2026-10-20T19:13:00Z",
+        "completed_at": "2026-10-20T19:15:09Z",
+        "labels": ["macos-latest"]
+      },
+      {
+        "id": 118828516170,
+        "name": "PDH native release tests (ubuntu-latest)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828516170",
+        "started_at": "2026-10-20T17:15:09Z",
+        "completed_at": "2026-10-20T17:17:33Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118828516679,
+        "name": "linux-subreaper / Linux packaged subreaper (arm64)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828516679",
+        "started_at": "2026-10-20T17:15:11Z",
+        "completed_at": "2026-10-20T17:15:54Z",
+        "labels": ["ubuntu-24.04-arm"]
+      },
+      {
+        "id": 118828517030,
+        "name": "test-macos / unit (macos-latest, shard 1/4)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828517030",
+        "started_at": "2026-10-20T17:15:15Z",
+        "completed_at": "2026-10-20T17:32:42Z",
+        "labels": ["macos-latest"]
+      },
+      {
+        "id": 118828517045,
+        "name": "test-macos / e2e (macos-latest, shard 2/4)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828517045",
+        "started_at": "2026-10-20T17:54:02Z",
+        "completed_at": "2026-10-20T17:57:39Z",
+        "labels": ["macos-latest"]
+      },
+      {
+        "id": 118828517114,
+        "name": "test-windows / e2e (windows-latest, shard 4/4)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828517114",
+        "started_at": "2026-10-20T17:34:21Z",
+        "completed_at": "2026-10-20T17:39:53Z",
+        "labels": ["windows-latest"]
+      },
+      {
+        "id": 118828517222,
+        "name": "test-macos / unit (macos-latest, shard 3/4)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828517222",
+        "started_at": "2026-10-20T18:07:08Z",
+        "completed_at": "2026-10-20T18:20:49Z",
+        "labels": ["macos-latest"]
+      },
+      {
+        "id": 118828517295,
+        "name": "test-ubuntu / integration (ubuntu-latest, shard 5/8)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828517295",
+        "started_at": "2026-10-20T17:41:19Z",
+        "completed_at": "2026-10-20T17:49:49Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118828517304,
+        "name": "test-windows / integration (windows-latest, shard 2/8)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828517304",
+        "started_at": "2026-10-20T17:15:25Z",
+        "completed_at": "2026-10-20T17:33:25Z",
+        "labels": ["windows-latest"]
+      },
+      {
+        "id": 118828517313,
+        "name": "test-windows / unit (windows-latest, shard 7/16)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828517313",
+        "started_at": "2026-10-20T17:41:17Z",
+        "completed_at": "2026-10-20T17:50:43Z",
+        "labels": ["windows-latest"]
+      },
+      {
+        "id": 118828517520,
+        "name": "test-windows / integration (windows-latest, shard 5/8)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828517520",
+        "started_at": "2026-10-20T18:08:58Z",
+        "completed_at": "2026-10-20T18:52:15Z",
+        "labels": ["windows-latest"]
+      },
+      {
+        "id": 118828517561,
+        "name": "test-windows / integration (windows-latest, shard 7/8)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828517561",
+        "started_at": "2026-10-20T18:17:23Z",
+        "completed_at": "2026-10-20T18:41:14Z",
+        "labels": ["windows-latest"]
+      },
+      {
+        "id": 118828517570,
+        "name": "PDH native release tests (macos-latest)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828517570",
+        "started_at": "2026-10-20T17:15:16Z",
+        "completed_at": "2026-10-20T17:18:29Z",
+        "labels": ["macos-latest"]
+      },
+      {
+        "id": 118828517618,
+        "name": "test-windows / integration (windows-latest, shard 6/8)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828517618",
+        "started_at": "2026-10-20T18:10:52Z",
+        "completed_at": "2026-10-20T18:17:20Z",
+        "labels": ["windows-latest"]
+      },
+      {
+        "id": 118828517647,
+        "name": "test-ubuntu / integration (ubuntu-latest, shard 8/8)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828517647",
+        "started_at": "2026-10-20T17:49:52Z",
+        "completed_at": "2026-10-20T17:55:44Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118828517708,
+        "name": "test-windows / integration (windows-latest, shard 3/8)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828517708",
+        "started_at": "2026-10-20T17:41:02Z",
+        "completed_at": "2026-10-20T18:10:49Z",
+        "labels": ["windows-latest"]
+      },
+      {
+        "id": 118828517747,
+        "name": "test-macos / unit (macos-latest, shard 4/4)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828517747",
+        "started_at": "2026-10-20T18:25:33Z",
+        "completed_at": "2026-10-20T18:44:29Z",
+        "labels": ["macos-latest"]
+      },
+      {
+        "id": 118828517786,
+        "name": "test-windows / unit (windows-latest, shard 8/16)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828517786",
+        "started_at": "2026-10-20T17:43:00Z",
+        "completed_at": "2026-10-20T17:51:52Z",
+        "labels": ["windows-latest"]
+      },
+      {
+        "id": 118828517812,
+        "name": "test-ubuntu / integration (ubuntu-latest, shard 7/8)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828517812",
+        "started_at": "2026-10-20T17:46:29Z",
+        "completed_at": "2026-10-20T17:50:39Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118828517819,
+        "name": "test-macos / integration (macos-latest, shard 5/8)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828517819",
+        "started_at": "2026-10-20T18:21:40Z",
+        "completed_at": "2026-10-20T18:34:57Z",
+        "labels": ["macos-latest"]
+      },
+      {
+        "id": 118828517821,
+        "name": "PDH native release tests (windows-latest)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828517821",
+        "started_at": "2026-10-20T17:15:18Z",
+        "completed_at": "2026-10-20T17:21:31Z",
+        "labels": ["windows-latest"]
+      },
+      {
+        "id": 118828517910,
+        "name": "test-ubuntu / integration (ubuntu-latest, shard 6/8)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828517910",
+        "started_at": "2026-10-20T17:44:30Z",
+        "completed_at": "2026-10-20T17:46:26Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118828517956,
+        "name": "test-ubuntu / integration (ubuntu-latest, shard 4/8)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828517956",
+        "started_at": "2026-10-20T17:39:49Z",
+        "completed_at": "2026-10-20T17:42:21Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118828517967,
+        "name": "test-windows / unit (windows-latest, shard 6/16)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828517967",
+        "started_at": "2026-10-20T17:39:07Z",
+        "completed_at": "2026-10-20T17:54:04Z",
+        "labels": ["windows-latest"]
+      },
+      {
+        "id": 118828517968,
+        "name": "test-macos / integration (macos-latest, shard 7/8)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828517968",
+        "started_at": "2026-10-20T18:34:47Z",
+        "completed_at": "2026-10-20T18:41:15Z",
+        "labels": ["macos-latest"]
+      },
+      {
+        "id": 118828518000,
+        "name": "test-macos / integration (macos-latest, shard 8/8)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828518000",
+        "started_at": "2026-10-20T18:35:06Z",
+        "completed_at": "2026-10-20T18:45:51Z",
+        "labels": ["macos-latest"]
+      },
+      {
+        "id": 118828518006,
+        "name": "test-ubuntu / e2e (ubuntu-latest, shard 4/4)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828518006",
+        "started_at": "2026-10-20T17:20:09Z",
+        "completed_at": "2026-10-20T17:22:14Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118828518039,
+        "name": "test-macos / integration (macos-latest, shard 6/8)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828518039",
+        "started_at": "2026-10-20T18:30:58Z",
+        "completed_at": "2026-10-20T18:34:40Z",
+        "labels": ["macos-latest"]
+      },
+      {
+        "id": 118828518265,
+        "name": "test-windows / unit (windows-latest, shard 5/16)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828518265",
+        "started_at": "2026-10-20T17:38:45Z",
+        "completed_at": "2026-10-20T17:54:46Z",
+        "labels": ["windows-latest"]
+      },
+      {
+        "id": 118828518796,
+        "name": "test-windows / unit (windows-latest, shard 9/16)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828518796",
+        "started_at": "2026-10-20T17:50:46Z",
+        "completed_at": "2026-10-20T18:08:50Z",
+        "labels": ["windows-latest"]
+      },
+      {
+        "id": 118828518834,
+        "name": "test-windows / integration (windows-latest, shard 8/8)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828518834",
+        "started_at": "2026-10-20T18:41:17Z",
+        "completed_at": "2026-10-20T19:06:41Z",
+        "labels": ["windows-latest"]
+      },
+      {
+        "id": 118828519298,
+        "name": "test-windows / unit (windows-latest, shard 12/16)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828519298",
+        "started_at": "2026-10-20T17:54:48Z",
+        "completed_at": "2026-10-20T18:08:03Z",
+        "labels": ["windows-latest"]
+      },
+      {
+        "id": 118828519299,
+        "name": "test-windows / unit (windows-latest, shard 10/16)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828519299",
+        "started_at": "2026-10-20T17:51:56Z",
+        "completed_at": "2026-10-20T18:03:43Z",
+        "labels": ["windows-latest"]
+      },
+      {
+        "id": 118828519331,
+        "name": "test-windows / unit (windows-latest, shard 11/16)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828519331",
+        "started_at": "2026-10-20T17:54:07Z",
+        "completed_at": "2026-10-20T18:11:44Z",
+        "labels": ["windows-latest"]
+      },
+      {
+        "id": 118828519915,
+        "name": "test-windows / unit (windows-latest, shard 13/16)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828519915",
+        "started_at": "2026-10-20T18:03:47Z",
+        "completed_at": "2026-10-20T18:33:21Z",
+        "labels": ["windows-latest"]
+      },
+      {
+        "id": 118828520086,
+        "name": "test-windows / unit (windows-latest, shard 15/16)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828520086",
+        "started_at": "2026-10-20T18:08:53Z",
+        "completed_at": "2026-10-20T18:20:00Z",
+        "labels": ["windows-latest"]
+      },
+      {
+        "id": 118828520104,
+        "name": "test-windows / unit (windows-latest, shard 16/16)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828520104",
+        "started_at": "2026-10-20T18:11:47Z",
+        "completed_at": "2026-10-20T18:27:13Z",
+        "labels": ["windows-latest"]
+      },
+      {
+        "id": 118828520412,
+        "name": "pack-linux-dryrun",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828520412",
+        "started_at": "2026-10-20T17:55:48Z",
+        "completed_at": "2026-10-20T17:57:25Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118828520768,
+        "name": "test-windows / unit (windows-latest, shard 14/16)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828520768",
+        "started_at": "2026-10-20T18:08:06Z",
+        "completed_at": "2026-10-20T18:23:35Z",
+        "labels": ["windows-latest"]
+      },
+      {
+        "id": 118828521595,
+        "name": "dry-run-publish",
+        "conclusion": "skipped",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828521595",
+        "started_at": "2026-10-20T19:07:53Z",
+        "completed_at": "2026-10-20T17:55:45Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118828558022,
+        "name": "test-ubuntu / integration (ubuntu-latest, shard 2/8)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828558022",
+        "started_at": "2026-10-20T17:15:09Z",
+        "completed_at": "2026-10-20T17:21:08Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118828558930,
+        "name": "test-ubuntu / e2e (ubuntu-latest, shard 1/4)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828558930",
+        "started_at": "2026-10-20T17:15:08Z",
+        "completed_at": "2026-10-20T17:17:26Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118828559880,
+        "name": "test-macos / integration (macos-latest, shard 1/8)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828559880",
+        "started_at": "2026-10-20T18:06:10Z",
+        "completed_at": "2026-10-20T18:12:56Z",
+        "labels": ["macos-latest"]
+      },
+      {
+        "id": 118828563655,
+        "name": "test-windows / e2e (windows-latest, shard 3/4)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828563655",
+        "started_at": "2026-10-20T17:32:50Z",
+        "completed_at": "2026-10-20T17:38:26Z",
+        "labels": ["windows-latest"]
+      },
+      {
+        "id": 118828566633,
+        "name": "test-windows / unit (windows-latest, shard 1/16)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828566633",
+        "started_at": "2026-10-20T17:19:57Z",
+        "completed_at": "2026-10-20T17:40:59Z",
+        "labels": ["windows-latest"]
+      },
+      {
+        "id": 118828568252,
+        "name": "test-macos / unit (macos-latest, shard 2/4)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828568252",
+        "started_at": "2026-10-20T18:07:11Z",
+        "completed_at": "2026-10-20T18:17:11Z",
+        "labels": ["macos-latest"]
+      },
+      {
+        "id": 118828568409,
+        "name": "test-windows / integration (windows-latest, shard 1/8)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828568409",
+        "started_at": "2026-10-20T17:39:06Z",
+        "completed_at": "2026-10-20T18:00:14Z",
+        "labels": ["windows-latest"]
+      },
+      {
+        "id": 118828569181,
+        "name": "test-windows / unit (windows-latest, shard 2/16)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828569181",
+        "started_at": "2026-10-20T17:21:18Z",
+        "completed_at": "2026-10-20T17:31:25Z",
+        "labels": ["windows-latest"]
+      },
+      {
+        "id": 118828569214,
+        "name": "test-windows / e2e (windows-latest, shard 2/4)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828569214",
+        "started_at": "2026-10-20T17:15:12Z",
+        "completed_at": "2026-10-20T17:20:10Z",
+        "labels": ["windows-latest"]
+      },
+      {
+        "id": 118828570811,
+        "name": "test-windows / unit (windows-latest, shard 4/16)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828570811",
+        "started_at": "2026-10-20T17:15:15Z",
+        "completed_at": "2026-10-20T17:22:30Z",
+        "labels": ["windows-latest"]
+      },
+      {
+        "id": 118828572178,
+        "name": "test-macos / integration (macos-latest, shard 3/8)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828572178",
+        "started_at": "2026-10-20T18:21:51Z",
+        "completed_at": "2026-10-20T18:30:47Z",
+        "labels": ["macos-latest"]
+      },
+      {
+        "id": 118828572956,
+        "name": "test-ubuntu / unit (ubuntu-latest, shard 2/4)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828572956",
+        "started_at": "2026-10-20T17:15:09Z",
+        "completed_at": "2026-10-20T17:21:23Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118828572985,
+        "name": "test-ubuntu / e2e (ubuntu-latest, shard 3/4)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828572985",
+        "started_at": "2026-10-20T17:19:11Z",
+        "completed_at": "2026-10-20T17:21:14Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118828576063,
+        "name": "test-ubuntu / unit (ubuntu-latest, shard 3/4)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828576063",
+        "started_at": "2026-10-20T17:38:29Z",
+        "completed_at": "2026-10-20T17:49:40Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118828577194,
+        "name": "linux-subreaper / Linux packaged subreaper (x64)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828577194",
+        "started_at": "2026-10-20T17:15:09Z",
+        "completed_at": "2026-10-20T17:15:52Z",
+        "labels": ["ubuntu-24.04"]
+      },
+      {
+        "id": 118828579258,
+        "name": "test-macos / integration (macos-latest, shard 4/8)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828579258",
+        "started_at": "2026-10-20T18:17:21Z",
+        "completed_at": "2026-10-20T18:21:23Z",
+        "labels": ["macos-latest"]
+      },
+      {
+        "id": 118828579409,
+        "name": "test-ubuntu / unit (ubuntu-latest, shard 1/4)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828579409",
+        "started_at": "2026-10-20T17:15:09Z",
+        "completed_at": "2026-10-20T17:28:57Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118828579492,
+        "name": "test-windows / integration (windows-latest, shard 4/8)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828579492",
+        "started_at": "2026-10-20T18:00:57Z",
+        "completed_at": "2026-10-20T18:08:55Z",
+        "labels": ["windows-latest"]
+      },
+      {
+        "id": 118828579662,
+        "name": "test-ubuntu / e2e (ubuntu-latest, shard 2/4)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828579662",
+        "started_at": "2026-10-20T17:15:08Z",
+        "completed_at": "2026-10-20T17:17:02Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118828580015,
+        "name": "test-windows / e2e (windows-latest, shard 1/4)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828580015",
+        "started_at": "2026-10-20T17:15:18Z",
+        "completed_at": "2026-10-20T17:20:10Z",
+        "labels": ["windows-latest"]
+      },
+      {
+        "id": 118828580318,
+        "name": "test-macos / integration (macos-latest, shard 2/8)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828580318",
+        "started_at": "2026-10-20T18:05:54Z",
+        "completed_at": "2026-10-20T18:15:23Z",
+        "labels": ["macos-latest"]
+      },
+      {
+        "id": 118828581107,
+        "name": "test-macos / e2e (macos-latest, shard 3/4)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828581107",
+        "started_at": "2026-10-20T18:13:05Z",
+        "completed_at": "2026-10-20T18:16:35Z",
+        "labels": ["macos-latest"]
+      },
+      {
+        "id": 118828581355,
+        "name": "test-macos / e2e (macos-latest, shard 1/4)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828581355",
+        "started_at": "2026-10-20T17:15:14Z",
+        "completed_at": "2026-10-20T17:18:59Z",
+        "labels": ["macos-latest"]
+      },
+      {
+        "id": 118828586916,
+        "name": "test-windows / unit (windows-latest, shard 3/16)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828586916",
+        "started_at": "2026-10-20T17:15:13Z",
+        "completed_at": "2026-10-20T17:34:07Z",
+        "labels": ["windows-latest"]
+      },
+      {
+        "id": 118828592998,
+        "name": "test-ubuntu / unit (ubuntu-latest, shard 4/4)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828592998",
+        "started_at": "2026-10-20T17:41:12Z",
+        "completed_at": "2026-10-20T17:52:35Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118828594624,
+        "name": "test-ubuntu / integration (ubuntu-latest, shard 3/8)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828594624",
+        "started_at": "2026-10-20T17:22:32Z",
+        "completed_at": "2026-10-20T17:27:07Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118828595998,
+        "name": "test-ubuntu / integration (ubuntu-latest, shard 1/8)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118828595998",
+        "started_at": "2026-10-20T17:15:09Z",
+        "completed_at": "2026-10-20T17:21:28Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118832134352,
+        "name": "verify-cli (macos-latest)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118832134352",
+        "started_at": "2026-10-20T19:15:16Z",
+        "completed_at": "2026-10-20T19:20:18Z",
+        "labels": ["macos-latest"]
+      },
+      {
+        "id": 118832134378,
+        "name": "verify-cli (ubuntu-latest)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118832134378",
+        "started_at": "2026-10-20T19:15:13Z",
+        "completed_at": "2026-10-20T19:30:43Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118832134639,
+        "name": "verify-cli (windows-latest)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118832134639",
+        "started_at": "2026-10-20T19:15:13Z",
+        "completed_at": "2026-10-20T19:24:16Z",
+        "labels": ["windows-latest"]
+      },
+      {
+        "id": 118839835862,
+        "name": "Test-only PM exploration recovery three-OS aggregate",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464414573/job/118839835862",
+        "started_at": "2026-10-20T19:30:46Z",
+        "completed_at": "2026-10-20T19:33:12Z",
+        "labels": ["ubuntu-latest"]
+      }
+    ]
+  },
+  "strict": {
+    "sourceSha": "e77c7ba85783576ac523dd73bc760bda63d91f3b",
+    "observedAt": "2026-10-20T18:01:53.3540556Z",
+    "runId": 39464431564,
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464431564",
+    "attempt": 2,
+    "conclusion": "success",
+    "counts": {
+      "success": 5,
+      "skipped": 0
+    },
+    "retryReason": "Hosted macOS arm64 runner not acquired in attempt1; target capability job passed in attempt2, other four passing results retained",
+    "jobs": [
+      {
+        "id": 118790447204,
+        "name": "macOS latest native capability",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464431564/job/118790447204",
+        "started_at": "2026-10-20T17:52:10Z",
+        "completed_at": "2026-10-20T17:54:55Z",
+        "labels": ["macos-latest"]
+      },
+      {
+        "id": 118790448716,
+        "name": "strict native boundary (ubuntu-24.04)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464431564/job/118790448716",
+        "started_at": "2026-10-20T17:15:54Z",
+        "completed_at": "2026-10-20T17:19:59Z",
+        "labels": ["ubuntu-24.04"]
+      },
+      {
+        "id": 118790449867,
+        "name": "strict native boundary (macos-15)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464431564/job/118790449867",
+        "started_at": "2026-10-20T17:20:17Z",
+        "completed_at": "2026-10-20T17:24:04Z",
+        "labels": ["macos-15"]
+      },
+      {
+        "id": 118790500602,
+        "name": "strict native boundary (windows-latest)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464431564/job/118790500602",
+        "started_at": "2026-10-20T17:18:58Z",
+        "completed_at": "2026-10-20T17:28:03Z",
+        "labels": ["windows-latest"]
+      },
+      {
+        "id": 118790515082,
+        "name": "strict native boundary (ubuntu-24.04-arm)",
+        "conclusion": "success",
+        "run_attempt": 2,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464431564/job/118790515082",
+        "started_at": "2026-10-20T17:20:15Z",
+        "completed_at": "2026-10-20T17:23:13Z",
+        "labels": ["ubuntu-24.04-arm"]
+      }
+    ]
+  },
+  "prepublicationIde": {
+    "sourceSha": "e77c7ba85783576ac523dd73bc760bda63d91f3b",
+    "observedAt": "2026-10-20T18:29:11.1058516Z",
+    "runId": 39464441522,
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464441522",
+    "attempt": 1,
+    "conclusion": "success",
+    "counts": {
+      "success": 18,
+      "skipped": 1
+    },
+    "event": "workflow_dispatch",
+    "ref": "feature/release108-source-review-20261021",
+    "jobs": [
+      {
+        "id": 118772044072,
+        "name": "Public IDE capability manifest (drift gate)",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464441522/job/118772044072",
+        "started_at": "2026-10-20T17:15:57Z",
+        "completed_at": "2026-10-20T17:16:21Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118772609471,
+        "name": "Browser evidence (linux)",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464441522/job/118772609471",
+        "started_at": "2026-10-20T17:17:29Z",
+        "completed_at": "2026-10-20T17:19:52Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118772609551,
+        "name": "Browser evidence (windows)",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464441522/job/118772609551",
+        "started_at": "2026-10-20T17:22:01Z",
+        "completed_at": "2026-10-20T17:25:40Z",
+        "labels": ["windows-latest"]
+      },
+      {
+        "id": 118772609614,
+        "name": "Browser evidence (macos)",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464441522/job/118772609614",
+        "started_at": "2026-10-20T17:44:59Z",
+        "completed_at": "2026-10-20T17:48:29Z",
+        "labels": ["macos-latest"]
+      },
+      {
+        "id": 118772609691,
+        "name": "JetBrains real host (windows-latest, 2025.2)",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464441522/job/118772609691",
+        "started_at": "2026-10-20T17:30:16Z",
+        "completed_at": "2026-10-20T17:49:51Z",
+        "labels": ["windows-latest"]
+      },
+      {
+        "id": 118772609717,
+        "name": "VS Code extension (immutable candidate)",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464441522/job/118772609717",
+        "started_at": "2026-10-20T17:33:36Z",
+        "completed_at": "2026-10-20T17:34:19Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118772609769,
+        "name": "JetBrains real host (ubuntu-latest, 2024.2)",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464441522/job/118772609769",
+        "started_at": "2026-10-20T17:20:02Z",
+        "completed_at": "2026-10-20T17:30:13Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118772609788,
+        "name": "JetBrains real host (macos-latest, 2025.2)",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464441522/job/118772609788",
+        "started_at": "2026-10-20T17:34:06Z",
+        "completed_at": "2026-10-20T18:01:01Z",
+        "labels": ["macos-latest"]
+      },
+      {
+        "id": 118772609879,
+        "name": "JetBrains real host (ubuntu-latest, 2025.2)",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464441522/job/118772609879",
+        "started_at": "2026-10-20T17:24:02Z",
+        "completed_at": "2026-10-20T17:36:05Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118772609972,
+        "name": "JetBrains real host (windows-latest, 2024.2)",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464441522/job/118772609972",
+        "started_at": "2026-10-20T17:22:17Z",
+        "completed_at": "2026-10-20T17:39:39Z",
+        "labels": ["windows-latest"]
+      },
+      {
+        "id": 118772696879,
+        "name": "JetBrains real host (macos-latest, 2024.2)",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464441522/job/118772696879",
+        "started_at": "2026-10-20T18:02:50Z",
+        "completed_at": "2026-10-20T18:21:07Z",
+        "labels": ["macos-latest"]
+      },
+      {
+        "id": 118781734911,
+        "name": "VS Code Remote-SSH container (scoped trusted cell)",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464441522/job/118781734911",
+        "started_at": "2026-10-20T17:39:58Z",
+        "completed_at": "2026-10-20T17:41:14Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118781734937,
+        "name": "VS Code extension (Windows host gate)",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464441522/job/118781734937",
+        "started_at": "2026-10-20T17:36:07Z",
+        "completed_at": "2026-10-20T17:41:09Z",
+        "labels": ["windows-latest"]
+      },
+      {
+        "id": 118781735212,
+        "name": "VS Code extension (macOS host gate)",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464441522/job/118781735212",
+        "started_at": "2026-10-20T17:37:53Z",
+        "completed_at": "2026-10-20T17:47:54Z",
+        "labels": ["macos-15-intel"]
+      },
+      {
+        "id": 118785172819,
+        "name": "IDE roadmap evidence (trusted scoped aggregate)",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464441522/job/118785172819",
+        "started_at": "2026-10-20T17:42:23Z",
+        "completed_at": "2026-10-20T17:42:58Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118788753947,
+        "name": "Browser evidence (three-OS required aggregate)",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464441522/job/118788753947",
+        "started_at": "2026-10-20T17:48:32Z",
+        "completed_at": "2026-10-20T17:49:38Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118789313264,
+        "name": "VS Code extension (Linux host gate + publish)",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464441522/job/118789313264",
+        "started_at": "2026-10-20T17:49:41Z",
+        "completed_at": "2026-10-20T17:53:04Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118805000367,
+        "name": "JetBrains plugin (build + publish)",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464441522/job/118805000367",
+        "started_at": "2026-10-20T18:21:11Z",
+        "completed_at": "2026-10-20T18:27:24Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118808144147,
+        "name": "JetBrains Marketplace (post-publish verification)",
+        "conclusion": "skipped",
+        "run_attempt": 1,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464441522/job/118808144147",
+        "started_at": "2026-10-20T18:27:24Z",
+        "completed_at": "2026-10-20T18:27:24Z",
+        "labels": ["ubuntu-latest"]
+      }
+    ]
+  },
+  "background": {
+    "sourceSha": "e77c7ba85783576ac523dd73bc760bda63d91f3b",
+    "observedAt": "2026-10-20T17:55:46.7613815Z",
+    "runId": 39464463950,
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464463950",
+    "attempt": 1,
+    "conclusion": "success",
+    "counts": {
+      "success": 3,
+      "skipped": 0
+    },
+    "jobs": [
+      {
+        "id": 118772109749,
+        "name": "disconnect/reconnect same turn (macos-latest)",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464463950/job/118772109749",
+        "started_at": "2026-10-20T17:48:05Z",
+        "completed_at": "2026-10-20T17:52:00Z",
+        "labels": ["macos-latest"]
+      },
+      {
+        "id": 118772110252,
+        "name": "disconnect/reconnect same turn (ubuntu-latest)",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464463950/job/118772110252",
+        "started_at": "2026-10-20T17:21:31Z",
+        "completed_at": "2026-10-20T17:23:34Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118772110258,
+        "name": "disconnect/reconnect same turn (windows-latest)",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464463950/job/118772110258",
+        "started_at": "2026-10-20T17:29:49Z",
+        "completed_at": "2026-10-20T17:34:17Z",
+        "labels": ["windows-latest"]
+      }
+    ]
+  },
+  "arm64": {
+    "sourceSha": "e77c7ba85783576ac523dd73bc760bda63d91f3b",
+    "observedAt": "2026-10-20T17:47:30.9951058Z",
+    "runId": 39464454244,
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464454244",
+    "attempt": 1,
+    "conclusion": "success",
+    "counts": {
+      "success": 10,
+      "skipped": 0
+    },
+    "jobs": [
+      {
+        "id": 118772074067,
+        "name": "VS Code architecture-neutral candidate",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464454244/job/118772074067",
+        "started_at": "2026-10-20T17:21:11Z",
+        "completed_at": "2026-10-20T17:22:29Z",
+        "labels": ["ubuntu-latest"]
+      },
+      {
+        "id": 118772074742,
+        "name": "JetBrains ARM64 (linux, 2025.2)",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464454244/job/118772074742",
+        "started_at": "2026-10-20T17:22:34Z",
+        "completed_at": "2026-10-20T17:33:33Z",
+        "labels": ["ubuntu-24.04-arm"]
+      },
+      {
+        "id": 118772074774,
+        "name": "JetBrains ARM64 (macos, 2024.2)",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464454244/job/118772074774",
+        "started_at": "2026-10-20T17:25:45Z",
+        "completed_at": "2026-10-20T17:36:31Z",
+        "labels": ["macos-15"]
+      },
+      {
+        "id": 118772074932,
+        "name": "JetBrains ARM64 (macos, 2025.2)",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464454244/job/118772074932",
+        "started_at": "2026-10-20T17:28:42Z",
+        "completed_at": "2026-10-20T17:44:50Z",
+        "labels": ["macos-15"]
+      },
+      {
+        "id": 118772074964,
+        "name": "JetBrains ARM64 (linux, 2024.2)",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464454244/job/118772074964",
+        "started_at": "2026-10-20T17:23:18Z",
+        "completed_at": "2026-10-20T17:31:33Z",
+        "labels": ["ubuntu-24.04-arm"]
+      },
+      {
+        "id": 118772074995,
+        "name": "JetBrains ARM64 (windows, 2026.2.0.1)",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464454244/job/118772074995",
+        "started_at": "2026-10-20T17:17:06Z",
+        "completed_at": "2026-10-20T17:38:41Z",
+        "labels": ["windows-11-arm"]
+      },
+      {
+        "id": 118775732604,
+        "name": "VS Code ARM64 (linux)",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464454244/job/118775732604",
+        "started_at": "2026-10-20T17:24:11Z",
+        "completed_at": "2026-10-20T17:27:56Z",
+        "labels": ["ubuntu-24.04-arm"]
+      },
+      {
+        "id": 118775732748,
+        "name": "VS Code ARM64 (windows)",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464454244/job/118775732748",
+        "started_at": "2026-10-20T17:28:06Z",
+        "completed_at": "2026-10-20T17:35:51Z",
+        "labels": ["windows-11-arm"]
+      },
+      {
+        "id": 118775733788,
+        "name": "VS Code ARM64 (macos)",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464454244/job/118775733788",
+        "started_at": "2026-10-20T17:39:15Z",
+        "completed_at": "2026-10-20T17:43:49Z",
+        "labels": ["macos-15"]
+      },
+      {
+        "id": 118786937323,
+        "name": "Aggregate 11-cell IDE ARM64 evidence",
+        "conclusion": "success",
+        "run_attempt": 1,
+        "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39464454244/job/118786937323",
+        "started_at": "2026-10-20T17:45:22Z",
+        "completed_at": "2026-10-20T17:46:18Z",
+        "labels": ["ubuntu-latest"]
+      }
+    ]
+  },
+  "arm64Aggregate": {
+    "schema": "chainlesschain.ide-arm64-validation.v1",
+    "releaseCommit": "e77c7ba85783576ac523dd73bc760bda63d91f3b",
+    "result": "passed",
+    "required": true,
+    "architecture": "arm64",
+    "operatingSystems": ["darwin", "linux", "win32"],
+    "vscodeVersionsPerOs": 2,
+    "jetbrainsVersionsByOs": {
+      "darwin": ["2024.2", "2025.2"],
+      "linux": ["2024.2", "2025.2"],
+      "win32": ["2026.2.0.1"]
+    },
+    "vendorSupportBoundaries": {
+      "jetbrainsWindowsArm64": {
+        "validatedNativeVersion": "2026.2.0.1",
+        "distributionKey": "windowsARM64",
+        "source": "https://data.services.jetbrains.com/products/releases?code=IIU&type=release"
+      }
+    },
+    "evidenceCount": 11,
+    "matrix": [
+      {
+        "key": "jetbrains:darwin:2024.2",
+        "host": "jetbrains",
+        "operatingSystem": "darwin",
+        "version": "2024.2",
+        "slot": "2024.2",
+        "sourceRunAttempt": 1,
+        "evidenceDigest": "sha256:81efcfeda612731fedca7bca55ec0a5298edea875910903e7bee36ae8ccac49f",
+        "evidenceSha256": "sha256:2f3da81fa9ddb74b683a035f0496f76c9bd867ccddfb5cdf2930b82e3e815bb8"
+      },
+      {
+        "key": "jetbrains:darwin:2025.2",
+        "host": "jetbrains",
+        "operatingSystem": "darwin",
+        "version": "2025.2",
+        "slot": "2025.2",
+        "sourceRunAttempt": 1,
+        "evidenceDigest": "sha256:887e88edab27c486e068e5bfd79c5226fb3ad0ddf2a106428f4058267525eb17",
+        "evidenceSha256": "sha256:3910c0ff66d60b9489138a21e0c4568632bdb978c2e10d4f2ec83cba786aa165"
+      },
+      {
+        "key": "jetbrains:linux:2024.2",
+        "host": "jetbrains",
+        "operatingSystem": "linux",
+        "version": "2024.2",
+        "slot": "2024.2",
+        "sourceRunAttempt": 1,
+        "evidenceDigest": "sha256:33ab662921e416a5747c56382cc36e8d8612424af03456169b8baf6b226a0ed4",
+        "evidenceSha256": "sha256:d34cea7412962c47b71ca425813b00fd293ebdd2f1afb1d8b66eb037d85df0f6"
+      },
+      {
+        "key": "jetbrains:linux:2025.2",
+        "host": "jetbrains",
+        "operatingSystem": "linux",
+        "version": "2025.2",
+        "slot": "2025.2",
+        "sourceRunAttempt": 1,
+        "evidenceDigest": "sha256:b0dcbc821f513d52f554b9bcfdfd6319335cf90e910e3f9cee7bd7d3be4a3416",
+        "evidenceSha256": "sha256:9bbcf52286f12f8b2da1a1531a7be089fed2e86cf0a9c300931e9b7f4f2db2fd"
+      },
+      {
+        "key": "jetbrains:win32:2026.2.0.1",
+        "host": "jetbrains",
+        "operatingSystem": "win32",
+        "version": "2026.2.0.1",
+        "slot": "2026.2.0.1",
+        "sourceRunAttempt": 1,
+        "evidenceDigest": "sha256:e37ce9fd84da5a4dc2929b30965564580a22d7cc696794429a28653ca03a8c2d",
+        "evidenceSha256": "sha256:0a3a0cf8f8e5836eb2b72ce5c0b8b1637c33e512ce6f3c9aacb7f3c04e631e32"
+      },
+      {
+        "key": "vscode:darwin:minimum",
+        "host": "vscode",
+        "operatingSystem": "darwin",
+        "version": "1.85.2",
+        "slot": "minimum",
+        "sourceRunAttempt": 1,
+        "evidenceDigest": "sha256:21c4c4af9f2d373ef74ed55b489440d11e7d69b4ce9ef42e9fa7011175242138",
+        "evidenceSha256": "sha256:fd716b47974c3d97ffe912536a30640d9ddf54cb901de4313b0c8d71d99c9194"
+      },
+      {
+        "key": "vscode:darwin:stable",
+        "host": "vscode",
+        "operatingSystem": "darwin",
+        "version": "1.142.0",
+        "slot": "stable",
+        "sourceRunAttempt": 1,
+        "evidenceDigest": "sha256:3f4c9c1c76ac938150409827656905d93c3cd4feacaf944f567b92e1efa48094",
+        "evidenceSha256": "sha256:5cd1c4335e6a692bcce92512b3e91720b418f0216eb606732c6e58edfb41875d"
+      },
+      {
+        "key": "vscode:linux:minimum",
+        "host": "vscode",
+        "operatingSystem": "linux",
+        "version": "1.85.2",
+        "slot": "minimum",
+        "sourceRunAttempt": 1,
+        "evidenceDigest": "sha256:495d41c6cc24a62f82d0d34407ce7744763b0d7910b6f66379484b690e821f3e",
+        "evidenceSha256": "sha256:1236eb970627d8fa628ab794e51a4dc13ae2d99d427f8a038ab630fc85bfd681"
+      },
+      {
+        "key": "vscode:linux:stable",
+        "host": "vscode",
+        "operatingSystem": "linux",
+        "version": "1.142.0",
+        "slot": "stable",
+        "sourceRunAttempt": 1,
+        "evidenceDigest": "sha256:a372872edccd4bba915f05403d222d54b5d771da201b0a793bb625ef5eee3d21",
+        "evidenceSha256": "sha256:4d306ec4a2b44acf83549fd2edd0e2de6dfbf5785611daa4bcdd30efe2c71629"
+      },
+      {
+        "key": "vscode:win32:minimum",
+        "host": "vscode",
+        "operatingSystem": "win32",
+        "version": "1.85.2",
+        "slot": "minimum",
+        "sourceRunAttempt": 1,
+        "evidenceDigest": "sha256:81ede8b35692d94e5dc5ddd28cb4d6755dfb0b8169b66f268488da3bf550dfd9",
+        "evidenceSha256": "sha256:a15ccc8ea69fff9f40d854fe20d3062549b97636ada2df2910cc1da611e31eb3"
+      },
+      {
+        "key": "vscode:win32:stable",
+        "host": "vscode",
+        "operatingSystem": "win32",
+        "version": "1.142.0",
+        "slot": "stable",
+        "sourceRunAttempt": 1,
+        "evidenceDigest": "sha256:c3927536858da8da53128266fb17ef26fe18adc40a3ad94f924ddfe82a26f448",
+        "evidenceSha256": "sha256:b588980c98b626163987f9e6beb37e20ef30837de8be9ffb1a4d7a961d22647e"
+      }
+    ],
+    "aggregateDigest": "sha256:fea9b77b209a3904dab5155b61070588621f55d21523f76281d90f2f00a508d2"
+  }
+}

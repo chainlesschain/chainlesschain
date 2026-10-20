@@ -1,0 +1,272 @@
+{
+  "schema": "chainlesschain.release108-pending-publication/v1",
+  "asOf": "2026-10-21",
+  "assembledAt": "2026-10-20T20:41:05.454Z",
+  "status": "CLI_AND_OPEN_VSX_PUBLIC_JETBRAINS_UPLOADED_PENDING_APPROVAL",
+  "repository": "chainlesschain/chainlesschain",
+  "sourceSha": "e77c7ba85783576ac523dd73bc760bda63d91f3b",
+  "channels": {
+    "cli": {
+      "status": "public",
+      "version": "0.166.108",
+      "tag": "v-npm-0-166-108",
+      "sourceSha": "e77c7ba85783576ac523dd73bc760bda63d91f3b",
+      "runId": 39484583983,
+      "attempt": 1,
+      "workflowUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/39484583983",
+      "sha256": "42df55bec0295ec63abfabaf3855fdd7af71c1eae49ec6a723d8deefcc629d77",
+      "bytes": 9459317,
+      "receipt": "cli.json"
+    },
+    "openVsx": {
+      "status": "public",
+      "version": "0.37.153",
+      "recommendedCliVersion": "0.166.108",
+      "tag": "ide-vscode-v0.37.153",
+      "sourceSha": "e77c7ba85783576ac523dd73bc760bda63d91f3b",
+      "runId": 39486919504,
+      "attempt": 1,
+      "workflowUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/39486919504",
+      "artifactId": 12294515769,
+      "publicDigest": "sha256:97db0249d542728e85ea3ccc52fe2bf7b64c00c7407ef8f942abd7a1c07a58c2",
+      "receipt": "open-vsx.json"
+    },
+    "jetbrains": {
+      "status": "pending-approval",
+      "version": "0.4.170",
+      "recommendedCliVersion": "0.166.108",
+      "sourceSha": "e77c7ba85783576ac523dd73bc760bda63d91f3b",
+      "tag": "ide-jetbrains-v0.4.170",
+      "runId": 39486921296,
+      "attempt": 2,
+      "workflowUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/39486921296",
+      "artifactId": 12295742739,
+      "publicReadbackVerified": false,
+      "publicVersion": "0.4.169",
+      "publicRecommendedCliVersion": "0.166.107",
+      "receipt": "jetbrains-pending.json"
+    }
+  },
+  "evidenceScope": "Summary of successful formal CI, public CLI/Open VSX readbacks and a successful JetBrains upload whose .170 public artifact remains UNVERIFIED. The official uploaded ZIP binding and static identity are checked locally; no public .170 payload verification, publication, deployment, native package-set admission, or model-task retest is performed by this generator.",
+  "historicalAcceptance": {
+    "accepted": 31,
+    "total": 45,
+    "ordinary": "26/36",
+    "firstRun": "5/9",
+    "remainingUnaccepted": 14,
+    "historical105Generation": "20/20",
+    "historical105IndependentAcceptance": "20/20",
+    "historicalNewAccepted": 6,
+    "latestReleaseSingleRoundRateClaimed": false
+  },
+  "limits": {
+    "modelTaskRetest": "NOT_RUN_THIS_RELEASE",
+    "newVersionTaskRetest": "NOT_RUN",
+    "paidReadiness": "NOT_PAID_READY",
+    "nativeAdmission": "NOT_ADMITTED",
+    "automaticPromotion": "HOLD",
+    "microsoftMarketplace": "unpublished",
+    "nativeProduct": "v5.0.3.140",
+    "nativeProductSource": "f733f92cb953fffaafea9f91024bbf1c8846406d",
+    "nativeProductRepublished": false,
+    "legacyMissingGitHead": [
+      "@chainlesschain/core-db",
+      "@chainlesschain/session-core"
+    ]
+  },
+  "supportingReceipts": [
+    {
+      "path": "gates.json",
+      "digest": "sha256:a7fcad2607f29d2b44dac888e371acb5c8dda4e2e8bd612995447830ccb2b1d0",
+      "bytes": 53079
+    },
+    {
+      "path": "cli.json",
+      "digest": "sha256:11154e50f7ace23ad7e987822bc290ac93f1fb6df0bc5fdcbf083b13ed2be550",
+      "bytes": 23140
+    },
+    {
+      "path": "open-vsx.json",
+      "digest": "sha256:3d0f8bba52783ea6a636d2343dbe83ebb89eee4ddc8e245a7a87ad27a1711a12",
+      "bytes": 11140
+    },
+    {
+      "path": "jetbrains-pending.json",
+      "digest": "sha256:15982319f9e998e5658ea0c02927f0b140957e5e519d07bed4e4a366f167cbdc",
+      "bytes": 12572
+    },
+    {
+      "path": "children.json",
+      "digest": "sha256:cec4b111d961c52f2c0b186018321ed1cbf2af0b53440b1ae522fb201a2b76d1",
+      "bytes": 20483
+    }
+  ],
+  "jetbrainsPendingAsOf": "2026-10-20T20:36:08.6580959Z",
+  "originalReceiptBindings": [
+    {
+      "label": "jetbrains-pending-input/failure.json",
+      "digest": "sha256:30a0dc29b45ee5fea4e6164d9b62add7a9f65a6fd44a751095a08ee1fd56f662",
+      "bytes": 108
+    },
+    {
+      "label": "jetbrains-pending-input/official-run.json",
+      "digest": "sha256:781fab90f6e7d9238e63871686794fa3edf152f45a741365a8520934ec928acd",
+      "bytes": 13283
+    },
+    {
+      "label": "jetbrains-pending-input/official-artifact.json",
+      "digest": "sha256:e803018bab94fdd0b3ca87c1a3cc1921bbf68f1c6d4ed8dab4d42affbab61c80",
+      "bytes": 735
+    },
+    {
+      "label": "release108-jetbrains-job-snapshot.json",
+      "digest": "sha256:9e8ce6375f9a1d33e373b0ee11f3d07978c563244a8efbb4984d2fd80dd8f57f",
+      "bytes": 157516
+    },
+    {
+      "label": "release108-jetbrains-job-snapshot.json",
+      "digest": "sha256:9e8ce6375f9a1d33e373b0ee11f3d07978c563244a8efbb4984d2fd80dd8f57f",
+      "bytes": 157516
+    },
+    {
+      "label": "jetbrains-pending-input/official-artifact.zip",
+      "digest": "sha256:239410eaaa980dbac253b4e2708878fb25c59cbb731a4361682aa901de6c77d6",
+      "bytes": 1550938
+    },
+    {
+      "label": "jetbrains-pending-input/official-plugin.zip",
+      "digest": "sha256:a70aecf55b47e5bbdaa2d2bcbefd42670cb0b15cee1f67e43057d1a0dea39ac1",
+      "bytes": 1550715
+    },
+    {
+      "label": "jetbrains-pending-input/public-updates.json",
+      "digest": "sha256:5277473cea31e2112e58057788b0ebec2d4d67062623dcd70f1ccc7c0acc0db7",
+      "bytes": 541635
+    },
+    {
+      "label": "jetbrains-post-publish-job-118870842533.log",
+      "digest": "sha256:9f154c00c7661751450753bb54d8f97e75212f43dfac1951e5aa3d99a0fb0062",
+      "bytes": 21598
+    },
+    {
+      "label": "release108-e77-official-release-gates.json",
+      "digest": "sha256:459d5bc353dd0aabb8a9059bb282906cd29c33a70b471b663a8904461a3edfa7",
+      "bytes": 923
+    },
+    {
+      "label": "release108-e77-cli-job-snapshot.json",
+      "digest": "sha256:dce52d4ce6e4e6b5d42a1c3382250d18eb38992f278703729d0fc9d7e914e0f9",
+      "bytes": 549256
+    },
+    {
+      "label": "release108-e77-strict-gate.json",
+      "digest": "sha256:9effb803b59a7a3899369f5fe3bb7c4c7c0ffb5be71c5c011abbb33de78d9a15",
+      "bytes": 56857
+    },
+    {
+      "label": "release108-e77-ide-gate.json",
+      "digest": "sha256:fb80d93b8c70a3d522c5d86613957ba0c8506981ea52067582e63e4223fb7a35",
+      "bytes": 174873
+    },
+    {
+      "label": "release108-e77-background-gate.json",
+      "digest": "sha256:f43030bcf1a813694264d47f11e0d2d0e34422d0c67a44d8ade717f44dbdb4ac",
+      "bytes": 22090
+    },
+    {
+      "label": "arm64-release108-e77/workflow-readback.json",
+      "digest": "sha256:e88ff4c467ac0eea95bcc50e83a855f60bd3a31049e2c7deef98e6d863fe6971",
+      "bytes": 112560
+    },
+    {
+      "label": "arm64-release108-e77/ide-arm64-validation-aggregate.json",
+      "digest": "sha256:583b69cb1ab1bf4617c6f6dffd8d762e86a2d1ca62367c17d4704eebd8d14059",
+      "bytes": 5140
+    },
+    {
+      "label": "cli108-public-readback-20261021-2/readback.json",
+      "digest": "sha256:c680de6d5f19a71eeabe1e95ac3ca2e3ca1f320a84aff723cec1ff7797cd771a",
+      "bytes": 6862
+    },
+    {
+      "label": "cli108-public-byte-readback.json",
+      "digest": "sha256:72bfde597c0f8b1401a503bb0d73bf0de8258a4e2c00d5719fb7145ae19aa79a",
+      "bytes": 582
+    },
+    {
+      "label": "npm108-oidc-readback/chainlesschain-release.json",
+      "digest": "sha256:0bdecaf08c5458dd8a8e8e15bd109ab1ce98f05cd471341e1b80d0b104c10917",
+      "bytes": 2610
+    },
+    {
+      "label": "npm108-oidc-readback/chainlesschain-npm-provenance.json",
+      "digest": "sha256:1c22bc99b77a5ee7f0ddfe18f5a1f20aefa0c3f153c91c1eb2ec809e29787228",
+      "bytes": 833
+    },
+    {
+      "label": "release108-npm-publish-job-snapshot.json",
+      "digest": "sha256:2d3126d899cf2918f11504c0ccbcfaaae360974b9669c1956184cf5429d913a4",
+      "bytes": 74276
+    },
+    {
+      "label": "release108-npm-artifacts.json",
+      "digest": "sha256:2bfc180bb504aa66807376a29bceaf12efb719e0d549d2162e8272e83e4a95fc",
+      "bytes": 10356
+    },
+    {
+      "label": "cli108-windows-public-install.json",
+      "digest": "sha256:e8730e1088a46f98b0f385d70e3aea29d35e3a9b2e23ccdbb0b49b1211f8df42",
+      "bytes": 3509
+    },
+    {
+      "label": "npm108-oidc-readback/cli-public-child-install.json",
+      "digest": "sha256:f03b9876d2526fe8b78efe6993dbe82c06af8c91da64f3721add7d001e6fb4a2",
+      "bytes": 3285
+    },
+    {
+      "label": "vscode153-public-readback-20261021-1/readback.json",
+      "digest": "sha256:e7935488fc7aa2527d75603e1f26c99f37343e5e4157c9297115aee7d75b4251",
+      "bytes": 3020
+    },
+    {
+      "label": "vscode153-public-listing.json",
+      "digest": "sha256:61b93d30a83eff7e2a43c1f306fe9a65b001b82218b399fdfc04976e5dc2a390",
+      "bytes": 450
+    },
+    {
+      "label": "vscode153-current-attempt-artifact.json",
+      "digest": "sha256:93d914fc65fcc80eeb1190978f5500823b77fd70aae63f159fecaa85cb1edcfa",
+      "bytes": 621
+    },
+    {
+      "label": "release108-openvsx-job-snapshot.json",
+      "digest": "sha256:581287e063db3a7b3637f92506fee241613ca38b73eda7949000f22f74496864",
+      "bytes": 126463
+    },
+    {
+      "label": "release108-openvsx-artifacts.json",
+      "digest": "sha256:975c9b5b139ccf2e64d5f2cfe60b4ca133269203b8dc4ac3a84e0d13def83ce1",
+      "bytes": 24951
+    },
+    {
+      "label": "child-npm-audit-108-e77.json",
+      "digest": "sha256:c331a99f71cc2ffb1d8338ed86833c5d464392ff7003793ffdb4e7eda411dc53",
+      "bytes": 40334
+    },
+    {
+      "label": "npm108-oidc-readback/agent-protocol-npm-provenance.json",
+      "digest": "sha256:d27d95582f04705c78fca1cce87d07843742229525863cd728b6caaa5a078a8f",
+      "bytes": 1207
+    },
+    {
+      "label": "npm108-oidc-readback/agent-sdk-npm-provenance.json",
+      "digest": "sha256:3dcc94694f28199692ad7a39afc1d166de77336881efb67be79c6bb6cb80c6ea",
+      "bytes": 1199
+    },
+    {
+      "label": "npm108-oidc-readback/context-memory-kernel-npm-provenance.json",
+      "digest": "sha256:60981209d77b979cef8f9171fe4d1de6f802164d245de7df745ae7ed6bad1f07",
+      "bytes": 1223
+    }
+  ]
+}
