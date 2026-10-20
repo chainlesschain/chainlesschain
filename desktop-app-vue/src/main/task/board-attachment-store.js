@@ -20,6 +20,7 @@ function safeName(name) {
     typeof name !== "string" ||
     !name ||
     name.length > 255 ||
+    // eslint-disable-next-line no-control-regex -- Reject control characters in attachment names.
     /[\x00-\x1f\x7f/\\<>:"|?*]/u.test(name) ||
     name === "." ||
     name === ".." ||
@@ -225,6 +226,7 @@ class BoardAttachmentStore {
     ) {
       try {
         const text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+        // eslint-disable-next-line no-control-regex -- Keep binary control characters out of text previews.
         if (!/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/u.test(text)) {
           preview.kind = "text";
           preview.text = text;
