@@ -275,6 +275,9 @@ require(${JSON.stringify(mainPath)});
   if (options.durableDatabase) {
     const diagnostics = await app.evaluate(
       ({ app }, modules) => {
+        const require = process
+          .getBuiltinModule("module")
+          .createRequire(modules.database);
         const { getDatabase } = require(modules.database);
         const { assertStorage, databaseFile } = require(
           modules.boardActionStorage,
