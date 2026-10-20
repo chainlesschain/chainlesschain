@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.107",
+      "cliVersions": ["0.166.107"],
+      "date": "2026-10-20",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added, improved and fixed - cc CLI 0.166.107: governed goals, ledger recovery and safe diagnostics (candidate, 2026-10-20)",
+          "body": "- Add bounded `goal catalog` and `goal panels` commands to browse goals and read text snapshots from trusted, consented plugins, including explicitly connected desktop project goals.\n- Add `goal draft-request`, `goal draft-access`, `goal draft-sources`, `goal draft-send`, and `goal draft-receipt` for native-reviewed description requests and separately authorized pending drafts. Submission records support receipt reconciliation without automatic duplicate sends; task changes still require native desktop preview and confirmation.\n- Use `deepseek-v4-1-flash-260910` as the default Volcengine model for new CLI, agent, and task-model configurations.\n- Reuse an authenticated parent-directory boundary while validating cached immutable ledger files, preserving per-file bounded reads, identity, fingerprints, digests, and boundary checks. Resolve Wiki pruning journal artifacts in batches of four; six cross-process recovery scenarios complete in 49–55 seconds on Windows.\n- Reject formal-budget-scoped calls to the native campaign and public VS Code diagnostic before reading options or credentials, touching files, downloading packages, launching hosts, or sending provider requests."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.106",
       "cliVersions": ["0.166.105", "0.166.106"],
       "date": "2026-10-18",

@@ -3625,30 +3625,19 @@ export class EvolutionLedger {
     );
   }
 
-  #matchesCachedFile(filePath, expected) {
-    try {
-      return withEvolutionFileIdentity(
-        this.#identityFs,
-        filePath,
-        (samePathHandle) =>
-          this.#matchesCachedFileWithIdentity(
-            filePath,
-            expected,
-            samePathHandle,
-          ),
-      );
-    } catch {
-      return false;
-    }
-  }
-
-  #matchesCachedFileWithIdentity(filePath, expected, samePathHandle) {
+  #matchesCachedFileWithIdentity(
+    filePath,
+    expected,
+    samePathHandle,
+    trustedParentPath,
+  ) {
     const file = this.#readPhysicalFileWithIdentity(
       filePath,
       EVOLUTION_LEDGER_MAX_EVENT_BYTES,
       "cached ledger file",
       false,
       samePathHandle,
+      { trustedParentPath },
     );
     return (
       file.fingerprint === expected.fingerprint &&
@@ -4015,27 +4004,52 @@ export class EvolutionLedger {
     ) {
       return null;
     }
-    for (const name of cached.anchorNames) {
-      if (
-        !this.#matchesCachedFile(
-          path.join(this.#paths.anchorDir, name),
-          cached.anchorFingerprints[name],
-        )
-      ) {
-        return null;
-      }
+    const matchesDirectory = (directoryPath, names, fingerprints) => {
+      let matches = true;
+      withEvolutionDirectoryFileIdentity(
+        this.#identityFs,
+        directoryPath,
+        (samePathHandle, _sameStableHandle, { parentPath }) => {
+          for (const name of names) {
+            if (
+              !this.#matchesCachedFileWithIdentity(
+                path.join(directoryPath, name),
+                fingerprints[name],
+                samePathHandle,
+                parentPath,
+              )
+            ) {
+              matches = false;
+              break;
+            }
+          }
+        },
+      );
+      return matches;
+    };
+
+    // Keep one boundary check around the entire cached-prefix validation. The
+    // retained directory identity authenticates each child while avoiding a
+    // full store-boundary walk and path realpath for every immutable file.
+    this.#assertBoundaries();
+    let matches = false;
+    try {
+      matches =
+        matchesDirectory(
+          this.#paths.anchorDir,
+          cached.anchorNames,
+          cached.anchorFingerprints,
+        ) &&
+        matchesDirectory(
+          this.#paths.segmentDir,
+          cached.segmentNames,
+          cached.segmentFingerprints,
+        );
+    } catch {
+      matches = false;
     }
-    for (const name of cached.segmentNames) {
-      if (
-        !this.#matchesCachedFile(
-          path.join(this.#paths.segmentDir, name),
-          cached.segmentFingerprints[name],
-        )
-      ) {
-        return null;
-      }
-    }
-    return cached;
+    this.#assertBoundaries();
+    return matches ? cached : null;
   }
 
   #rememberState(

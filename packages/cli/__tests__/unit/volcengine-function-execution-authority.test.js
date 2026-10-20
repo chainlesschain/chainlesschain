@@ -53,6 +53,7 @@ import {
 
 const NOW = Date.parse("2026-09-20T12:00:00.000Z");
 const REPLAY_RETENTION_MS = 65_000;
+const temporaryRoot = fs.realpathSync.native(tmpdir());
 const temporaryRoots = [];
 const {
   privateKey: REVOCATION_ROOT_SIGNING_KEY,
@@ -324,7 +325,8 @@ function responseFor(value, toolResult, overrides = {}) {
 }
 
 function createReplayStore(authorityDescriptor, rootDir) {
-  const root = rootDir || mkdtempSync(join(tmpdir(), "cc-function-replay-"));
+  const root =
+    rootDir || mkdtempSync(join(temporaryRoot, "cc-function-replay-"));
   if (!rootDir) temporaryRoots.push(root);
   return createVolcengineFunctionReplayStore({
     rootDir: root,
@@ -404,7 +406,7 @@ function createRevocationPort(
     evidenceOverrides.signerRevocationsBytes || signerRevocationsBytes();
   const statusFloorRoot =
     evidenceOverrides.statusFloorRoot ||
-    mkdtempSync(join(tmpdir(), "cc-function-revocation-status-floor-"));
+    mkdtempSync(join(temporaryRoot, "cc-function-revocation-status-floor-"));
   if (!evidenceOverrides.statusFloorRoot) temporaryRoots.push(statusFloorRoot);
   const statusFloorDescriptor = {
     schema: VOLCENGINE_FUNCTION_REVOCATION_STATUS_FLOOR_STORE_SCHEMA,
@@ -596,7 +598,9 @@ describe("Volcengine function execution authority", () => {
   });
 
   it("durably revokes an authority and rejects execution after restart", async () => {
-    const root = mkdtempSync(join(tmpdir(), "cc-function-revocation-reopen-"));
+    const root = mkdtempSync(
+      join(temporaryRoot, "cc-function-revocation-reopen-"),
+    );
     temporaryRoots.push(root);
     const authorityDescriptor = descriptor();
     const first = setup({
@@ -629,7 +633,9 @@ describe("Volcengine function execution authority", () => {
   });
 
   it("propagates durable revocation to an in-flight sibling authority", async () => {
-    const root = mkdtempSync(join(tmpdir(), "cc-function-revocation-live-"));
+    const root = mkdtempSync(
+      join(temporaryRoot, "cc-function-revocation-live-"),
+    );
     temporaryRoots.push(root);
     const authorityDescriptor = descriptor();
     const publisher = setup({
@@ -894,7 +900,7 @@ describe("Volcengine function execution authority", () => {
 
   it("rejects signer status revision rollback and same-revision substitution", () => {
     const statusFloorRoot = mkdtempSync(
-      join(tmpdir(), "cc-function-revocation-status-reopen-"),
+      join(temporaryRoot, "cc-function-revocation-status-reopen-"),
     );
     temporaryRoots.push(statusFloorRoot);
     const revisionTwo = signerRevocationsBytes([], { revision: 2 });
@@ -1044,7 +1050,9 @@ describe("Volcengine function execution authority", () => {
   });
 
   it("fails closed when durable revocation status cannot be verified", async () => {
-    const root = mkdtempSync(join(tmpdir(), "cc-function-revocation-corrupt-"));
+    const root = mkdtempSync(
+      join(temporaryRoot, "cc-function-revocation-corrupt-"),
+    );
     temporaryRoots.push(root);
     const authorityDescriptor = descriptor();
     const instance = setup({
@@ -1114,7 +1122,7 @@ describe("Volcengine function execution authority", () => {
   });
 
   it("rejects a replay after the authority and replay store are reopened", async () => {
-    const root = mkdtempSync(join(tmpdir(), "cc-function-replay-reopen-"));
+    const root = mkdtempSync(join(temporaryRoot, "cc-function-replay-reopen-"));
     temporaryRoots.push(root);
     const authorityDescriptor = descriptor();
     const first = setup({

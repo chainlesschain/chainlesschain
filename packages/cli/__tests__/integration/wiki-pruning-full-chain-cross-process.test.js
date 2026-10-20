@@ -8,6 +8,8 @@ import { afterEach, describe, expect, it } from "vitest";
 const worker = fileURLToPath(
   new URL("./helpers/wiki-pruning-full-chain-process.mjs", import.meta.url),
 );
+const CHILD_TIMEOUT_MS = process.platform === "win32" ? 180_000 : 60_000;
+const CASE_TIMEOUT_MS = process.platform === "win32" ? 300_000 : 180_000;
 const roots = [];
 afterEach(() => {
   for (const root of roots.splice(0))
@@ -19,7 +21,7 @@ function run(root, mode, crash = "none", status = 0) {
     ["--max-old-space-size=256", worker, root, mode, crash],
     {
       encoding: "utf8",
-      timeout: 60_000,
+      timeout: CHILD_TIMEOUT_MS,
       maxBuffer: 1024 * 1024,
       windowsHide: true,
     },
@@ -70,6 +72,6 @@ describe("complete pruning real process recovery", () => {
       expect(again.snapshot).toEqual(resumed.snapshot);
       process.stdout.write(`Pruning full chain ${crash}: ${elapsedMs}ms\n`);
     },
-    180_000,
+    CASE_TIMEOUT_MS,
   );
 });

@@ -1,0 +1,35 @@
+{
+  "schema": "chainlesschain.jetbrains-publication-readback/v1",
+  "checkedAt": "2026-10-19T21:59:00.268Z",
+  "channel": "jetbrains",
+  "endpoint": "https://plugins.jetbrains.com/api/plugins/32208/updates?size=10",
+  "version": "0.4.169",
+  "status": "ready",
+  "uploadStatus": "success",
+  "workflowRun": 39326213042,
+  "workflowUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/39326213042",
+  "sourceSha": "94429fada419e8f3e01a794516096ea554120556",
+  "approve": true,
+  "listed": true,
+  "hidden": false,
+  "updateId": 1198232,
+  "file": "32208/1198232/chainlesschain-ide-bridge-0.4.169.zip",
+  "reason": "approved-listed-and-public-archive-verified",
+  "latestPublic": "0.4.169",
+  "publicArtifactVerified": true,
+  "taggedArtifact": {
+    "filename": "chainlesschain-ide-bridge-0.4.169.zip",
+    "sha256": "db16c9cf38ffd09fb028a4319cd53cf35e696032a29d3a5f22ad3c2af8350b56",
+    "bytes": 1550418,
+    "mainJar": "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.169.jar",
+    "pluginVersion": "0.4.169",
+    "recommendedCliVersion": "0.166.107",
+    "versionAndPairingVerified": true
+  },
+  "publicArchive": {
+    "downloadUrl": "https://plugins.jetbrains.com/files/32208/1198232/chainlesschain-ide-bridge-0.4.169.zip",
+    "bytes": 1556078,
+    "sha256": "1944658a3eda706cb3faa116eeada2b9c89396eb99ca8a4f164e0a720b554950",
+    "taggedPayloadVerified": true
+  }
+}

@@ -4,6 +4,12 @@ Shared session lifecycle, trace, agent definition, memory, approval, sandbox,
 evolution receipt, and recovery primitives used by ChainlessChain Desktop and
 the CLI.
 
+## Release 0.3.20
+
+Publishes the governed goal drafting, evidence, extension proposal, and draft
+import APIs as public package entry points. These exports keep host-owned
+authorization and completion checks in the calling application.
+
 The `0.3.15` release candidate adds business-object contracts, controlled task
 description actions and readers, offline risk rules and saved project risk
 reviews. CLI `0.166.90` pins this exact version. At candidate preparation, npm

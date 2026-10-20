@@ -1,16 +1,16 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
-2026-10-18 实时核对：npm CLI **0.166.106**、Open VSX **0.37.151** 已公开，Open VSX 推荐 CLI `.106`，发行提交 `dca47fd91a`。JetBrains 当前已核验公开 **0.4.167**，仍推荐 CLI `.105`；`.168` 的公开上架与下载待核验。公开 `.105/.150/.167` 任务补测已收齐生成与独立验收各 **20/20**，新增 **6** 项候选及全流程通过；跨版本累计候选合格交付 **31/45**（普通 **26/36**、首次 **5/9**），剩余 **14** 项。`.106/.151/.168` 新轮模型补测尚未运行，累计覆盖不等于新版单轮成功率。Microsoft Marketplace 未发布。
+2026-10-20 核对：npm CLI **0.166.107**、Session Core **0.3.20**、Open VSX **0.37.152** 与 JetBrains **0.4.169** 已公开，两个 IDE 均推荐 CLI `.107`。CLI 发行源码为 `6775d7a2de`，IDE 为 `94429fada4`，完整发行门与公开制品回读通过。历史 `.105/.150/.167` 补测生成和独立验收各 **20/20**，新增通过 **6** 项；跨版本累计候选合格交付 **31/45**（普通 **26/36**、首次 **5/9**），剩余 **14** 项。本轮未运行新的模型任务补测，累计覆盖不是 .107 单轮成功率。Microsoft Marketplace 未发行。
 
-CLI .106 与 Open VSX .151 可安装升级，随后重启 IDE 聊天宿主并运行 Doctor。JetBrains .167 保留其 .105 推荐，等待 .168 公开核验。开发源码快照 `f21eac547e`（不在本次远端主线文档基线中）新增目标目录、插件面板、离线草稿采纳、独立在线待审连接、看板标签来源保护及演化存储边界；这些源码能力尚未随公开包或产品 .140 发行，新 Session Core 出口须先完成子包发行。
+CLI .107 与 Session Core 0.3.20 已包含目标目录、插件面板、离线草稿移交、独立在线待审连接及演化存储边界的 CLI 与共享契约代码。CLI 与 IDE 已公开；桌面互通仍需匹配源码构建、桌面授权与原生确认；产品 .140 保持独立发行。升级后重启 IDE 聊天宿主并运行 Doctor。
 
 ```bash
-npm i -g chainlesschain@0.166.106 --registry https://registry.npmjs.org
+npm i -g chainlesschain@0.166.107 --registry https://registry.npmjs.org
 cc --version
 cc doctor
 ```
 
-详见[本轮设计](docs/design/release-runtime-update-2026-10-18.md)、[目标草稿使用指南](docs-site/docs/chainlesschain/goal-drafts-current.md)、[当前升级指南](docs-site/docs/chainlesschain/cli-ide-update-2026-10-18.md)、[公开制品回读](docs/research/cli/evidence/documentation-release-status-2026-10-18.json)和[OIDC 发布记录](https://github.com/chainlesschain/chainlesschain/actions/runs/39130542725)。
+详见[本轮设计](docs/design/release-runtime-update-2026-10-20.md)、[目标草稿使用指南](docs-site/docs/chainlesschain/goal-drafts-current.md)、[当前升级指南](docs-site/docs/chainlesschain/cli-ide-update-2026-10-20.md)、[发行与公开安装回读](https://github.com/chainlesschain/chainlesschain/blob/feature/docs-sites-20261020/docs/research/cli/evidence/documentation-release-status-2026-10-20.json)和[OIDC 发布记录](https://github.com/chainlesschain/chainlesschain/actions/runs/39315709208)。
 
 ## 2026-10-17 发布与升级（历史快照）
 
