@@ -1,12 +1,24 @@
-# CLI .107 / IDE .152 与 .169 升级指南
+# CLI .108 / IDE .153 与 .170 发行状态与升级指南
 
 ## 概述
 
-2026-10-20 核对：npm CLI **0.166.107**、Session Core **0.3.20**、Open VSX **0.37.152** 与 JetBrains Marketplace **0.4.169** 已公开，两个 IDE 均推荐 CLI `.107`。Microsoft Marketplace 未发行；使用 Microsoft VS Code 时可从 Open VSX 获取对应版本的 VSIX 安装。
+<!-- release108-status -->
 
-CLI 发行源码为 `6775d7a2de`，两个 IDE 为 `94429fada4`。原生产品 **v5.0.3.140** 独立下载；升级 CLI 或 IDE 不会升级桌面、Android 或 iOS。
+2026-10-21 核对：
+
+npm CLI **0.166.108**: 已公开，精确提交发行门与公开制品回读通过; source `e77c7ba85783576ac523dd73bc760bda63d91f3b`; [Actions 1](https://github.com/chainlesschain/chainlesschain/actions/runs/39484583983); [receipt](https://github.com/chainlesschain/chainlesschain/blob/71ea0edd90e9d8d155db06308af95284adc68147/docs/research/cli/evidence/release108/publication.json).
+
+Open VSX **0.37.153**: 已公开，精确提交发行门与公开制品回读通过; source `e77c7ba85783576ac523dd73bc760bda63d91f3b`; [Actions 1](https://github.com/chainlesschain/chainlesschain/actions/runs/39486919504); [receipt](https://github.com/chainlesschain/chainlesschain/blob/71ea0edd90e9d8d155db06308af95284adc68147/docs/research/cli/evidence/release108/publication.json).
+
+JetBrains Marketplace **0.4.170**: 已上传，Marketplace 审核与公开制品回读待完成; source `e77c7ba85783576ac523dd73bc760bda63d91f3b`; [Actions 1](https://github.com/chainlesschain/chainlesschain/actions/runs/39486921296/attempts/2); [receipt](https://github.com/chainlesschain/chainlesschain/blob/71ea0edd90e9d8d155db06308af95284adc68147/docs/research/cli/evidence/release108/publication.json).
+
+本轮没有新的模型任务补测。历史 `.105/.150/.167` 轮生成和独立验收各 **20/20**，新增通过 **6** 项；跨版本累计候选合格交付 **31/45**（普通 **26/36**、首次 **5/9**），剩余 **14** 项；这不是 .108 单轮成功率。**NOT_PAID_READY**、**NOT_ADMITTED** 与自动晋升 **HOLD** 保留。Microsoft Marketplace 未发行。原生产品 **v5.0.3.140** 独立发行；桌面互通仍需匹配构建、桌面授权和原生确认。
+
+源码候选 IDE .153 / .170 推荐 CLI .108；仅上述标记已公开的渠道完成公开制品回读。尚未公开的新 IDE 应继续使用原已验证 .152/.169 与 CLI .107 配对，待新版本公开回读后再切换。
 
 ## 核心特性
+
+CLI .108 在会话恢复与压缩时保留完整工具轮次，提供有界重复读取提示，并在状态锁竞争时持久保存后台 worker 的终态。IDE .153 / .170 配对 CLI .108。仓库 Python 调度诊断不包含在 npm 包中。子包版本不变：Agent SDK 0.2.15、Session Core 0.3.20、Context/Memory Kernel 0.1.10、Personal Data Hub 0.4.65。
 
 - CLI、共享契约与 IDE 包含目标目录、授权插件面板、离线说明请求、在线待审草稿和回执查询。
 - 演化存储核对 journal、witness、manifest 和索引一致性，任务修改保留标签来源。
@@ -19,14 +31,14 @@ IDE 使用配对 CLI 执行模型和文件工具。CLI 文件目标与桌面项�
 
 ## 配置参考
 
-需要 Node.js **22.12.0+**、npm **10.0.0+**。安装 CLI `.107` 后，分别升级 Open VSX `.152` 或 JetBrains `.169`，重启 IDE 聊天宿主，再用 Doctor 核对实际 CLI 路径。
+需要 Node.js **22.12.0+**、npm **10.0.0+**。下方安装命令使用已公开回读的 CLI 0.166.108。按上方各渠道状态选择 IDE；升级后重启聊天宿主并用 Doctor 核对实际 CLI 路径。
 
 目标草稿互通还需要匹配桌面源码构建及授权连接，不能假设产品 .140 已包含全部新增面板。连接文件包含凭据，请保存在本机私有目录。
 
 ## 使用示例
 
 ```bash
-npm i -g chainlesschain@0.166.107 --registry https://registry.npmjs.org
+npm i -g chainlesschain@0.166.108 --registry https://registry.npmjs.org
 cc --version
 cc doctor
 cc goal --help
@@ -42,9 +54,9 @@ cc goal --help
 
 ## 测试覆盖
 
-CLI 发行提交通过三平台 CLI CI、Strict Sandbox、OIDC、公开依赖安装与签名来源验证；IDE 完整发行门通过，Open VSX VSIX 和 JetBrains 已批准上架的 ZIP 均完成公开回读。
+各渠道的精确提交、Actions 和不可变回执见上方；只有标记已公开的渠道完成公开制品回读。npm CLI 0.166.108 已公开，精确提交发行门与公开制品回读通过；Open VSX 0.37.153 已公开，精确提交发行门与公开制品回读通过；JetBrains Marketplace 0.4.170 已上传，Marketplace 审核与公开制品回读待完成。
 
-本轮没有新的模型任务补测。历史 `.105/.150/.167` 轮生成和独立验收各 **20/20**，新增通过 **6** 项；跨版本累计候选合格交付 **31/45**，剩余 **14** 项。不能把累计覆盖当成 .107 单轮成功率。正式付费准入 **NOT_PAID_READY**、完整 native review **NOT_ADMITTED**、自动晋升 **HOLD** 保留。
+本轮没有新的模型任务补测。历史 `.105/.150/.167` 轮生成和独立验收各 **20/20**，新增通过 **6** 项；跨版本累计候选合格交付 **31/45**，剩余 **14** 项。不能把累计覆盖当成 .108 单轮成功率。正式付费准入 **NOT_PAID_READY**、完整 native review **NOT_ADMITTED**、自动晋升 **HOLD** 保留。
 
 ## 安全考虑
 
@@ -52,7 +64,7 @@ CLI 发行提交通过三平台 CLI CI、Strict Sandbox、OIDC、公开依赖安
 
 ## 故障排查
 
-- **IDE 显示旧版**：重启聊天宿主，运行 Doctor，检查插件版本、CLI 路径和 `.107` 配对。
+- **IDE 显示旧版**：重启聊天宿主，运行 Doctor，检查插件版本、CLI 路径和上方已公开版本的配对。
 - **找不到目标面板**：核对桌面构建、项目所有者、目标、插件安装范围、信任和对应能力同意。
 - **草稿已保存但未修改任务**：到桌面打开待审草稿，重新核对来源、预览差异并逐次确认。
 - **提交结果未知**：保留原引用并查询回执，不自动重发。
@@ -65,4 +77,4 @@ CLI 命令位于 `packages/cli/src/commands/goal.js`，共享契约由 Session C
 
 ## 相关文档
 
-参见[目标草稿操作](./goal-drafts-current)、[发布与升级](./agent-platform-release)、[本轮设计](/design/release-runtime-update-2026-10-20)、[10 月 18 日历史记录](./cli-ide-update-2026-10-18)及[公开发行状态](https://github.com/chainlesschain/chainlesschain/blob/feature/docs-sites-20261020/docs/research/cli/evidence/documentation-release-status-2026-10-20.json)。
+参见[目标草稿操作](./goal-drafts-current)、[发布与升级](./agent-platform-release)、[本轮设计](/design/release-runtime-update-2026-10-20)、[10 月 18 日历史记录](./cli-ide-update-2026-10-18)及[公开发行状态](https://github.com/chainlesschain/chainlesschain/blob/71ea0edd90e9d8d155db06308af95284adc68147/docs/research/cli/evidence/release108/publication.json)。

@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 系统设计文档
-  tagline: "v5.0.3.140 | CLI 0.166.107 | Open VSX 0.37.152 | JetBrains 0.4.169 已公开"
+  tagline: "v5.0.3.140 | npm CLI 0.166.108 已公开，精确提交发行门与公开制品回读通过；Open VSX 0.37.153 已公开，精确提交发行门与公开制品回读通过；JetBrains Marketplace 0.4.170 已上传，Marketplace 审核与公开制品回读待完成"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -22,7 +22,7 @@ hero:
 features:
   - icon: 🛡️
     title: 目标草稿互通与发行边界
-    details: CLI .107 / Session Core .20 与 IDE .152/.169 已公开；目标草稿互通仍需匹配桌面源码构建、授权与原生确认；本轮模型补测未运行。
+    details: "目标草稿能力自 CLI .107 引入；npm CLI 0.166.108 已公开，精确提交发行门与公开制品回读通过；Open VSX 0.37.153 已公开，精确提交发行门与公开制品回读通过；JetBrains Marketplace 0.4.170 已上传，Marketplace 审核与公开制品回读待完成。Session Core .20 保持独立公开版本；互通仍需匹配桌面源码构建、授权与原生确认；本轮模型补测未运行。"
     link: /release-runtime-update-2026-10-20
   - icon: 🏢
     title: 组织目标、授权记忆与站内通知（主线）
@@ -41,7 +41,7 @@ features:
     details: 覆盖知识库、社交、交易、AI引擎、安全、企业、去中心化基础设施、Web3、低代码平台、自进化AI、CLI分发系统、CLI高级功能、AI媒体创作、AI文档创作、Web管理界面、Personal Data Hub、iOS Phase 1-6、远程操控 Plan A/B/C、MTC v0.11 联邦等全部子系统的详细设计
 
   - icon: 🏗️
-    title: Agent Platform 0.166.107
+    title: Agent Platform 0.166.108
     details: 公开 CLI 包含投影恢复、回执维护、离线任务预览与风险检查；本轮桌面源码提供个人项目受控修改，产品安装包单独验收。
     link: /modules/112-governed-skill-evolution-design
   - icon: 📝
@@ -80,6 +80,24 @@ features:
     title: 企业级功能
     details: RBAC权限、SOC2合规、SCIM用户配置、DLP数据防泄漏、SIEM安全信息管理
 ---
+
+<!-- release108-status -->
+
+2026-10-21 核对：
+
+npm CLI **0.166.108**: 已公开，精确提交发行门与公开制品回读通过; source `e77c7ba85783576ac523dd73bc760bda63d91f3b`; [Actions 1](https://github.com/chainlesschain/chainlesschain/actions/runs/39484583983); [receipt](https://github.com/chainlesschain/chainlesschain/blob/71ea0edd90e9d8d155db06308af95284adc68147/docs/research/cli/evidence/release108/publication.json).
+
+Open VSX **0.37.153**: 已公开，精确提交发行门与公开制品回读通过; source `e77c7ba85783576ac523dd73bc760bda63d91f3b`; [Actions 1](https://github.com/chainlesschain/chainlesschain/actions/runs/39486919504); [receipt](https://github.com/chainlesschain/chainlesschain/blob/71ea0edd90e9d8d155db06308af95284adc68147/docs/research/cli/evidence/release108/publication.json).
+
+JetBrains Marketplace **0.4.170**: 已上传，Marketplace 审核与公开制品回读待完成; source `e77c7ba85783576ac523dd73bc760bda63d91f3b`; [Actions 1](https://github.com/chainlesschain/chainlesschain/actions/runs/39486921296/attempts/2); [receipt](https://github.com/chainlesschain/chainlesschain/blob/71ea0edd90e9d8d155db06308af95284adc68147/docs/research/cli/evidence/release108/publication.json).
+
+本轮没有新的模型任务补测。历史 `.105/.150/.167` 轮生成和独立验收各 **20/20**，新增通过 **6** 项；跨版本累计候选合格交付 **31/45**（普通 **26/36**、首次 **5/9**），剩余 **14** 项；这不是 .108 单轮成功率。**NOT_PAID_READY**、**NOT_ADMITTED** 与自动晋升 **HOLD** 保留。Microsoft Marketplace 未发行。原生产品 **v5.0.3.140** 独立发行；桌面互通仍需匹配构建、桌面授权和原生确认。
+
+CLI .108 在会话恢复与压缩时保留完整工具轮次，提供有界重复读取提示，并在状态锁竞争时持久保存后台 worker 的终态。IDE .153 / .170 配对 CLI .108。仓库 Python 调度诊断不包含在 npm 包中。子包版本不变：Agent SDK 0.2.15、Session Core 0.3.20、Context/Memory Kernel 0.1.10、Personal Data Hub 0.4.65。
+
+源码候选 IDE .153 / .170 推荐 CLI .108；仅上述标记已公开的渠道完成公开制品回读。尚未公开的新 IDE 应继续使用原已验证 .152/.169 与 CLI .107 配对，待新版本公开回读后再切换。
+
+当前安装见[CLI / IDE 升级指南](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-20.html)。下方带日期内容保留原始历史范围。
 
 > 2026-10-17 核对：CLI **0.166.104**、Open VSX **0.37.149** 与 JetBrains **0.4.166** 已公开，均配对 CLI `.104`。CLI 与 VS Code 发行提交 `93792f6520`，JetBrains `4c3e5cfd56`。Kernel **0.1.10**、PDH **0.4.65** 与产品 **v5.0.3.140** 保持独立版本。预算仍 **NOT_PAID_READY**；正式 36+9 **NOT_RUN**、完整 native review **NOT_ADMITTED**、自动晋升 **HOLD**。详见[本轮设计](/release-runtime-update-2026-10-17)。
 

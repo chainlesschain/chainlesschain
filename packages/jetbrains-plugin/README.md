@@ -5,11 +5,30 @@ JetBrains counterpart of the [VS Code extension](../vscode-extension/): it lets
 the ChainlessChain **`cc` agent CLI** read editor context and propose native
 diffs inside IntelliJ-platform IDEs (IDEA, PyCharm, WebStorm, …).
 
-Source candidate **0.4.170** recommends CLI candidate **0.166.108** after its public release. The verified public snapshot remains plugin **0.4.169** paired with CLI **0.166.107**. Configure an explicit ChainlessChain CLI path when the system `cc` is a C compiler.
+<!-- release108-status -->
+
+Source candidate **0.4.170** recommends CLI **0.166.108**. Configure an explicit CLI path when system `cc` is a C compiler.
+
+Checked on 2026-10-21:
+
+npm CLI **0.166.108**: public; exact-source gates and public artifact readback verified; source `e77c7ba85783576ac523dd73bc760bda63d91f3b`; [Actions 1](https://github.com/chainlesschain/chainlesschain/actions/runs/39484583983); [receipt](https://github.com/chainlesschain/chainlesschain/blob/71ea0edd90e9d8d155db06308af95284adc68147/docs/research/cli/evidence/release108/publication.json).
+
+Open VSX **0.37.153**: public; exact-source gates and public artifact readback verified; source `e77c7ba85783576ac523dd73bc760bda63d91f3b`; [Actions 1](https://github.com/chainlesschain/chainlesschain/actions/runs/39486919504); [receipt](https://github.com/chainlesschain/chainlesschain/blob/71ea0edd90e9d8d155db06308af95284adc68147/docs/research/cli/evidence/release108/publication.json).
+
+JetBrains Marketplace **0.4.170**: uploaded; Marketplace approval and public artifact verification pending; source `e77c7ba85783576ac523dd73bc760bda63d91f3b`; [Actions 1](https://github.com/chainlesschain/chainlesschain/actions/runs/39486921296/attempts/2); [receipt](https://github.com/chainlesschain/chainlesschain/blob/71ea0edd90e9d8d155db06308af95284adc68147/docs/research/cli/evidence/release108/publication.json).
+
+No new model-task retest was run for this release. Historical `.105/.150/.167` generation and independent acceptance each collected **20/20** records and added **6** passes. Cumulative cross-version accepted deliveries remain **31/45** (**26/36** ordinary, **5/9** first-run), with **14** unaccepted; this is not a .108 single-round success rate. **NOT_PAID_READY**, **NOT_ADMITTED** and automatic promotion **HOLD** remain. Microsoft Marketplace remains unpublished. Native product **v5.0.3.140** is a separate release; desktop integration still requires matching builds, desktop authorization and native confirmation.
+
+Source IDE candidates 0.37.153 / 0.4.170 recommend CLI 0.166.108. Only channels marked public above have completed public artifact verification. CLI 0.166.108 is available for installation. For any unpublished IDE candidate, keep the previously verified .152/.169 with their .107 pairing until the new IDE is publicly verified.
+
+<details>
+<summary>Public snapshot before .108 (historical)</summary>
 
 Checked on 2026-10-20: npm CLI **0.166.107**, Session Core **0.3.20**, Open VSX **0.37.152** and JetBrains **0.4.169** are public. Both IDEs recommend CLI `.107`. CLI release source is `6775d7a2de`; IDE source is `94429fada4`. Complete release gates and public artifact readback passed. The historical `.105/.150/.167` retest collected **20/20** generation and independent acceptance records and added **6** passes. Cumulative cross-version accepted deliveries are **31/45** (**26/36** ordinary, **5/9** first-run), with **14** unaccepted. This release has no new model task retest; cumulative coverage is not a .107 single-round success rate. Microsoft Marketplace remains unpublished.
 
 The public 0.4.169 release recommends CLI 0.166.107. Restart the IDE and run Doctor after upgrading. Native task and restart acceptance still require published-package retesting.
+
+</details>
 
 [Task notes and fresh-conversation handoff](../../docs/features/ide-task-worklog-user-guide.md) explains automatic Markdown checkpoints and `Continue in new chat`, introduced in `0.4.126`.
 
@@ -31,12 +50,12 @@ See the [upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-u
 
 ## Release compatibility
 
-Plugin **0.4.170** is the current release candidate. It recommends
-`chainlesschain@0.166.108` after the CLI passes its exact-commit gates, is
-published through npm OIDC, and is publicly verified. This plugin also awaits
-complete IDE and ARM64 gates, tagged publication, and Marketplace approval
-and public artifact readback. Session Core
-`0.3.20` and Context/Memory Kernel `0.1.10` retain independent versions.
+Plugin **0.4.170** is the current release candidate. This identifies the source
+candidate for tag `ide-jetbrains-v0.4.170`; its observed channel status is:
+**uploaded; Marketplace approval and public artifact verification pending**.
+It recommends `chainlesschain@0.166.108`; that CLI's observed status is
+**public; exact-source gates and public artifact readback verified**. See the exact-source Actions and immutable receipts above.
+Session Core `0.3.20` and Context/Memory Kernel `0.1.10` retain independent versions.
 Restart the IDE and run Doctor after upgrading. Native task quality and
 restart acceptance still require separate published-package evidence.
 

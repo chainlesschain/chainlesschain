@@ -180,7 +180,8 @@ export default defineConfig({
 
       "/chainlesschain/": [
         {
-          text: "🧩 Agent Platform 0.166.107（npm latest）",
+          // <!-- release108-status -->
+          text: "🧩 Agent Platform 0.166.108（公开发行）",
           collapsed: false,
           items: [
             {

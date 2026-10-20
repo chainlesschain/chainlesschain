@@ -6,26 +6,44 @@ MCP bridge.
 
 ## Current release
 
-Source extension candidate **0.37.153** recommends CLI candidate **0.166.108** and pairs with JetBrains candidate **0.4.170**. CLI `0.166.108` must pass its exact-commit gates, npm OIDC publication and public readback before the IDE candidates can publish. The verified public snapshot remains Open VSX **0.37.152**, CLI **0.166.107** and JetBrains **0.4.169**. Microsoft Marketplace remains unpublished.
-[Release and upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-20.html).
+<!-- release108-status -->
+
+Open VSX extension **0.37.153** recommends public CLI `0.166.108`.
+
+Checked on 2026-10-21:
+
+npm CLI **0.166.108**: public; exact-source gates and public artifact readback verified; source `e77c7ba85783576ac523dd73bc760bda63d91f3b`; [Actions 1](https://github.com/chainlesschain/chainlesschain/actions/runs/39484583983); [receipt](https://github.com/chainlesschain/chainlesschain/blob/71ea0edd90e9d8d155db06308af95284adc68147/docs/research/cli/evidence/release108/publication.json).
+
+Open VSX **0.37.153**: public; exact-source gates and public artifact readback verified; source `e77c7ba85783576ac523dd73bc760bda63d91f3b`; [Actions 1](https://github.com/chainlesschain/chainlesschain/actions/runs/39486919504); [receipt](https://github.com/chainlesschain/chainlesschain/blob/71ea0edd90e9d8d155db06308af95284adc68147/docs/research/cli/evidence/release108/publication.json).
+
+JetBrains Marketplace **0.4.170**: uploaded; Marketplace approval and public artifact verification pending; source `e77c7ba85783576ac523dd73bc760bda63d91f3b`; [Actions 1](https://github.com/chainlesschain/chainlesschain/actions/runs/39486921296/attempts/2); [receipt](https://github.com/chainlesschain/chainlesschain/blob/71ea0edd90e9d8d155db06308af95284adc68147/docs/research/cli/evidence/release108/publication.json).
+
+No new model-task retest was run for this release. Historical `.105/.150/.167` generation and independent acceptance each collected **20/20** records and added **6** passes. Cumulative cross-version accepted deliveries remain **31/45** (**26/36** ordinary, **5/9** first-run), with **14** unaccepted; this is not a .108 single-round success rate. **NOT_PAID_READY**, **NOT_ADMITTED** and automatic promotion **HOLD** remain. Microsoft Marketplace remains unpublished. Native product **v5.0.3.140** is a separate release; desktop integration still requires matching builds, desktop authorization and native confirmation.
+
+Source IDE candidates 0.37.153 / 0.4.170 recommend CLI 0.166.108. Only channels marked public above have completed public artifact verification. CLI 0.166.108 is available for installation. For any unpublished IDE candidate, keep the previously verified .152/.169 with their .107 pairing until the new IDE is publicly verified.
+
+<details>
+<summary>Public snapshot before .108 (historical)</summary>
 
 Checked on 2026-10-20: npm CLI **0.166.107**, Session Core **0.3.20**, Open VSX **0.37.152** and JetBrains **0.4.169** are public. Both IDEs recommend CLI `.107`. CLI release source is `6775d7a2de`; IDE source is `94429fada4`. Complete release gates and public artifact readback passed. The historical `.105/.150/.167` retest collected **20/20** generation and independent acceptance records and added **6** passes. Cumulative cross-version accepted deliveries are **31/45** (**26/36** ordinary, **5/9** first-run), with **14** unaccepted. This release has no new model task retest; cumulative coverage is not a .107 single-round success rate. Microsoft Marketplace remains unpublished.
+
+</details>
 
 This release pairing uses Agent SDK 0.2.15, Session Core 0.3.20 and Memory Kernel 0.1.10.
 Formal evaluation and full native review retain their separate acceptance status.
 
-| Component                 | Current status                                            |
-| ------------------------- | --------------------------------------------------------- |
-| VS Code extension         | **0.37.153**; release candidate awaiting publication      |
-| Recommended CLI           | **`chainlesschain@0.166.108`**; paired release candidate  |
-| Base bridge compatibility | `cc >= 0.162.190`; newer features can require a newer CLI |
-| Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors       |
-| Distribution              | Open VSX; versioned VSIX for stock Microsoft VS Code      |
+| Component                 | Current status                                                                                   |
+| ------------------------- | ------------------------------------------------------------------------------------------------ |
+| VS Code extension         | **0.37.153**; public; exact-source gates and public artifact readback verified                   |
+| Recommended CLI           | **`chainlesschain@0.166.108`**; public; exact-source gates and public artifact readback verified |
+| Base bridge compatibility | `cc >= 0.162.190`; newer features can require a newer CLI                                        |
+| Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors                                              |
+| Distribution              | Open VSX; versioned VSIX for stock Microsoft VS Code                                             |
 
-### What's new in candidate 0.37.153
+### What's new in 0.37.153
 
 - Pair with CLI 0.166.108 for complete tool-round recovery and compaction, bounded repeated-read guidance, and durable background-worker final-state recovery.
-- Await complete exact-commit CLI, IDE and ARM64 gates and public artifact verification. Existing native task acceptance remains separately recorded.
+- Release state: public; exact-source gates and public artifact readback verified. See the exact-source Actions and receipt links above. Existing native task acceptance remains separately recorded.
 
 ### Changes carried from 0.37.150
 
@@ -315,13 +333,11 @@ Formal evaluation and full native review retain their separate acceptance status
 > [!IMPORTANT]
 > Stock Microsoft VS Code does not query Open VSX. The Microsoft Marketplace
 > backfill stopped before upload because its publishing credential was not
-> configured, so no Microsoft listing is claimed. After candidate publication
-> and public verification, download the
+> configured, so no Microsoft listing is claimed. Download the publicly verified
 > [0.37.153 VSIX directly](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.153/file/chainlesschain.chainlesschain-ide-0.37.153.vsix)
-> and run **Extensions: Install from VSIX...**. Until then, use the verified
-> public pairing in the upgrade guide. Open VSX editors can install by extension ID.
+> and run **Extensions: Install from VSIX...**. Open VSX editors can install by extension ID.
 
-Public CLI `0.166.107` is paired with public extension `0.37.152`.
+Historical pairing before .108: public CLI `0.166.107` with extension `0.37.152`.
 CLI `0.166.107` retains its routing of Graph, Team,
 distributed-team, Cowork, Scheduler, Context/Memory, and
 App Server entry points through persisted Graph Kernel cutover authority. It
@@ -385,17 +401,16 @@ with durable, retry-safe TeamMailbox v3 receipts. Team Monitor shows only
 bounded delivery health (retained/pending/processed/dead-letter counts,
 follow-ups, recipients, bytes, and pressure); message content and attempt
 credentials never enter the Webview. For those reasons, `0.166.34` is the
-retained compatibility floor. This source package recommends CLI candidate
-`0.166.108` after its public verification. The dated public snapshot for CLI
+retained compatibility floor. This source package recommends CLI
+`0.166.108`; its observed status is public; exact-source gates and public artifact readback verified. The dated public snapshot for CLI
 `0.166.107` and extension `0.37.152` passed its exact-commit gates and public
-artifact readback; those receipts do not validate the new candidate.
+artifact readback; current .108/.153 evidence is linked in Current release above.
 
 The release package excludes local Extension Host evidence and diagnostics
 under `build/`; those files remain CI artifacts and are not installed on user
 machines.
 
-The planned immutable publication tag for this candidate is
-`ide-vscode-v0.37.153`, to be created only on its fully validated release commit.
+The immutable publication tag is `ide-vscode-v0.37.153`, source `e77c7ba85783576ac523dd73bc760bda63d91f3b`; its public artifact verification is recorded above.
 The previous public extension 0.37.152 used source `94429fada4`.
 The tag workflow validates the exact packaged VSIX in stable and minimum VS Code
 hosts on Windows, Linux, and macOS before publishing it to Open VSX and reading
@@ -466,12 +481,10 @@ Open VSX listing remains the public registry source.
 ### 1. Install the paired CLI
 
 Node.js `>= 22.12.0` and npm `>= 10.0.0` are required.
-This source package pairs CLI candidate `0.166.108` with Open VSX candidate
-`0.37.153`; publication and public verification remain pending at preparation.
-For the current public installation, use the
-[release and upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-20.html).
-Run the instructions below only after this exact candidate pairing is publicly
-verified. Until then, the guide retains the verified public .107/.152 pairing.
+This source package pairs CLI `0.166.108` with Open VSX `0.37.153`.
+Source IDE candidates 0.37.153 / 0.4.170 recommend CLI 0.166.108. Only channels marked public above have completed public artifact verification. CLI 0.166.108 is available for installation. For any unpublished IDE candidate, keep the previously verified .152/.169 with their .107 pairing until the new IDE is publicly verified.
+
+The following command installs this publicly verified pairing's CLI.
 
 ```bash
 npm i -g chainlesschain@0.166.108 --registry https://registry.npmjs.org
@@ -489,9 +502,9 @@ runtime capabilities. A matching version alone does not establish readiness.
 ### 2. Install the extension
 
 The extension uses [Open VSX](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide);
-candidate version `0.37.153` awaits release gates and public artifact verification.
+Version `0.37.153` is public; its exact-source release gates and public artifact verification are recorded above.
 It is not currently published on the Microsoft VS Code Marketplace.
-After publication is verified:
+Install the publicly verified version:
 
 - In VSCodium and
   other Open VSX-compatible editors, search for **ChainlessChain IDE**

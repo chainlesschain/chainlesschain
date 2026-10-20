@@ -2,7 +2,21 @@
 
 ## 概述
 
-2026-10-20，公开 CLI **0.166.107** 与 Session Core **0.3.20** 已包含开发快照 `f21eac547e` 的 CLI 目标目录、授权插件面板、离线请求、在线待审草稿及回执代码。Open VSX **0.37.152** 与 JetBrains **0.4.169** 已公开，均推荐 CLI `.107`；桌面互通仍需匹配源码构建，产品 **v5.0.3.140** 保持独立发行。以下命令需要相应桌面连接与授权；日常安装见[升级指南](./cli-ide-update-2026-10-20)。
+<!-- release108-status -->
+
+2026-10-21 核对：
+
+npm CLI **0.166.108**: 已公开，精确提交发行门与公开制品回读通过; source `e77c7ba85783576ac523dd73bc760bda63d91f3b`; [Actions 1](https://github.com/chainlesschain/chainlesschain/actions/runs/39484583983); [receipt](https://github.com/chainlesschain/chainlesschain/blob/71ea0edd90e9d8d155db06308af95284adc68147/docs/research/cli/evidence/release108/publication.json).
+
+Open VSX **0.37.153**: 已公开，精确提交发行门与公开制品回读通过; source `e77c7ba85783576ac523dd73bc760bda63d91f3b`; [Actions 1](https://github.com/chainlesschain/chainlesschain/actions/runs/39486919504); [receipt](https://github.com/chainlesschain/chainlesschain/blob/71ea0edd90e9d8d155db06308af95284adc68147/docs/research/cli/evidence/release108/publication.json).
+
+JetBrains Marketplace **0.4.170**: 已上传，Marketplace 审核与公开制品回读待完成; source `e77c7ba85783576ac523dd73bc760bda63d91f3b`; [Actions 1](https://github.com/chainlesschain/chainlesschain/actions/runs/39486921296/attempts/2); [receipt](https://github.com/chainlesschain/chainlesschain/blob/71ea0edd90e9d8d155db06308af95284adc68147/docs/research/cli/evidence/release108/publication.json).
+
+本轮没有新的模型任务补测。历史 `.105/.150/.167` 轮生成和独立验收各 **20/20**，新增通过 **6** 项；跨版本累计候选合格交付 **31/45**（普通 **26/36**、首次 **5/9**），剩余 **14** 项；这不是 .108 单轮成功率。**NOT_PAID_READY**、**NOT_ADMITTED** 与自动晋升 **HOLD** 保留。Microsoft Marketplace 未发行。原生产品 **v5.0.3.140** 独立发行；桌面互通仍需匹配构建、桌面授权和原生确认。
+
+源码候选 IDE .153 / .170 推荐 CLI .108；仅上述标记已公开的渠道完成公开制品回读。尚未公开的新 IDE 应继续使用原已验证 .152/.169 与 CLI .107 配对，待新版本公开回读后再切换。
+
+已公开 CLI 0.166.108 与 Session Core **0.3.20** 包含目标目录、授权插件面板、离线请求、在线待审草稿与回执代码。以下命令仍需对应桌面连接与授权；日常安装见[升级指南](./cli-ide-update-2026-10-20)。
 
 ## 核心特性
 
@@ -18,7 +32,7 @@
 
 ## 配置参考
 
-需要 CLI **0.166.107**、Session Core **0.3.20** 及匹配的 IDE / 桌面构建，Node.js **22.12.0+**、npm **10.0.0+**。共享契约出口已随 npm 公开，桌面授权与原生确认仍是互通前提。
+目标草稿能力自 CLI **0.166.107** 起提供；当前公开推荐安装 CLI **0.166.108**，需要 Session Core **0.3.20** 及匹配的 IDE / 桌面构建，Node.js **22.12.0+**、npm **10.0.0+**。共享契约出口已随 npm 公开，桌面授权与原生确认仍是互通前提。
 
 先在桌面登录当前项目所有者账号，打开项目目标与风险建议面板，选择目标并创建所需连接。插件必须已安装、可信且已获所需能力同意。参数中的目标、插件、安装范围和来源 ID 必须来自当前面板；`user`、`project`、`local` 是不同的安装范围。
 
@@ -66,7 +80,7 @@ cc goal draft-receipt GOAL_ID --connection .\draft-connection.json --plugin PLUG
 
 ## 故障排查
 
-- 找不到新命令：先通过 `cc --version` 确认实际调用 CLI `.107`，再用 Doctor 核对路径；IDE 和桌面连接需匹配相应构建。
+- 找不到新命令：先通过 `cc --version` 确认实际调用 CLI `0.166.108`，再用 Doctor 核对路径；IDE 和桌面连接需匹配相应构建。
 - 没有可用面板：检查目标所属存储、插件安装范围、信任和能力同意；只读摘要授权不包含历史证据或待审写入。
 - 已保存但不能继续：来源、目标版本或授权已变化，回到桌面重新读取当前风险建议；旧结果不能覆盖当前状态。
 - 来源授权过期或已撤销：重新核对并由桌面显式授权，原连接不会自动获得新权限。

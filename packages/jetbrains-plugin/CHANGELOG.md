@@ -1,10 +1,13 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
-## [0.4.170] - Session recovery and CLI 0.166.108 candidate (2026-10-20)
+## [0.4.170] - Session recovery and CLI 0.166.108 (2026-10-21)
 
-- Recommend CLI candidate `0.166.108` for complete tool-round recovery and compaction, bounded repeated-read guidance, and durable background-worker final-state recovery.
-- Preserve child package versions, including Session Core `0.3.20`. Diagnostic dispatch improvements do not establish new model-task acceptance.
-- Await exact-commit CLI, IDE and ARM64 gates, npm OIDC publication and public CLI readback before tagged IDE publication. Public availability remains subject to registry verification and JetBrains Marketplace approval.
+<!-- release108-status -->
+
+- CLI 0.166.108 preserves complete tool rounds during session recovery and compaction, adds bounded repeated-read guidance, and persists background-worker terminal results under state-lock contention. IDE 0.37.153 / 0.4.170 pair with CLI 0.166.108. Repository Python dispatch diagnostics are excluded from the npm package. Child versions remain unchanged: Agent SDK 0.2.15, Session Core 0.3.20, Context/Memory Kernel 0.1.10 and Personal Data Hub 0.4.65.
+- Channel status: **uploaded; Marketplace approval and public artifact verification pending**. CLI status: **public; exact-source gates and public artifact readback verified**.
+- Source `e77c7ba85783576ac523dd73bc760bda63d91f3b`; [Actions](https://github.com/chainlesschain/chainlesschain/actions/runs/39486921296/attempts/2); [immutable receipt](https://github.com/chainlesschain/chainlesschain/blob/71ea0edd90e9d8d155db06308af95284adc68147/docs/research/cli/evidence/release108/publication.json).
+- No new model-task retest was run for this release. Historical `.105/.150/.167` generation and independent acceptance each collected **20/20** records and added **6** passes. Cumulative cross-version accepted deliveries remain **31/45** (**26/36** ordinary, **5/9** first-run), with **14** unaccepted; this is not a .108 single-round success rate. **NOT_PAID_READY**, **NOT_ADMITTED** and automatic promotion **HOLD** remain. Microsoft Marketplace remains unpublished. Native product **v5.0.3.140** is a separate release; desktop integration still requires matching builds, desktop authorization and native confirmation.
 
 ## [0.4.169] - Governed goal workflows and CLI 0.166.107 (2026-10-19)
 

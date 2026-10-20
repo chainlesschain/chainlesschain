@@ -4,9 +4,23 @@ Command-line interface for installing, configuring, and managing [ChainlessChain
 
 ## Package version and IDE pairing
 
-This package version is **0.166.108**, paired with Open VSX candidate **0.37.153** and JetBrains candidate **0.4.170**. It preserves complete tool rounds during session recovery and compaction and persists background-worker terminal results while state locks contend. Repository diagnostic tooling also improves dispatch batching; that Python tool is not included in the npm package. Child package versions remain unchanged.
+<!-- release108-status -->
 
-At preparation, this release candidate awaits exact-commit GitHub Actions gates, npm OIDC publication and public artifact readback; IDE publication follows public CLI availability. These changes do not establish new model-task acceptance.
+This package version is **0.166.108**.
+
+Checked on 2026-10-21:
+
+npm CLI **0.166.108**: public; exact-source gates and public artifact readback verified; source `e77c7ba85783576ac523dd73bc760bda63d91f3b`; [Actions 1](https://github.com/chainlesschain/chainlesschain/actions/runs/39484583983); [receipt](https://github.com/chainlesschain/chainlesschain/blob/71ea0edd90e9d8d155db06308af95284adc68147/docs/research/cli/evidence/release108/publication.json).
+
+Open VSX **0.37.153**: public; exact-source gates and public artifact readback verified; source `e77c7ba85783576ac523dd73bc760bda63d91f3b`; [Actions 1](https://github.com/chainlesschain/chainlesschain/actions/runs/39486919504); [receipt](https://github.com/chainlesschain/chainlesschain/blob/71ea0edd90e9d8d155db06308af95284adc68147/docs/research/cli/evidence/release108/publication.json).
+
+JetBrains Marketplace **0.4.170**: uploaded; Marketplace approval and public artifact verification pending; source `e77c7ba85783576ac523dd73bc760bda63d91f3b`; [Actions 1](https://github.com/chainlesschain/chainlesschain/actions/runs/39486921296/attempts/2); [receipt](https://github.com/chainlesschain/chainlesschain/blob/71ea0edd90e9d8d155db06308af95284adc68147/docs/research/cli/evidence/release108/publication.json).
+
+No new model-task retest was run for this release. Historical `.105/.150/.167` generation and independent acceptance each collected **20/20** records and added **6** passes. Cumulative cross-version accepted deliveries remain **31/45** (**26/36** ordinary, **5/9** first-run), with **14** unaccepted; this is not a .108 single-round success rate. **NOT_PAID_READY**, **NOT_ADMITTED** and automatic promotion **HOLD** remain. Microsoft Marketplace remains unpublished. Native product **v5.0.3.140** is a separate release; desktop integration still requires matching builds, desktop authorization and native confirmation.
+
+CLI 0.166.108 preserves complete tool rounds during session recovery and compaction, adds bounded repeated-read guidance, and persists background-worker terminal results under state-lock contention. IDE 0.37.153 / 0.4.170 pair with CLI 0.166.108. Repository Python dispatch diagnostics are excluded from the npm package. Child versions remain unchanged: Agent SDK 0.2.15, Session Core 0.3.20, Context/Memory Kernel 0.1.10 and Personal Data Hub 0.4.65.
+
+Source IDE candidates 0.37.153 / 0.4.170 recommend CLI 0.166.108. Only channels marked public above have completed public artifact verification. CLI 0.166.108 is available for installation. For any unpublished IDE candidate, keep the previously verified .152/.169 with their .107 pairing until the new IDE is publicly verified.
 
 ### Verified public snapshot (2026-10-20, before .108 publication)
 
@@ -14,9 +28,9 @@ Checked on 2026-10-20: npm CLI **0.166.107**, Session Core **0.3.20**, Open VSX 
 
 The snapshot installation command was `npm i -g chainlesschain@0.166.107 --registry https://registry.npmjs.org`. After upgrading, restart the IDE chat host and run Doctor. The original completed round used CLI `.104`, Open VSX `.149` and JetBrains `.166`; it does not establish `.105` task acceptance. [Current upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-20.html).
 
-## Goal draft capabilities (public CLI .107)
+## Goal draft capabilities (public CLI .108)
 
-Public CLI .107 includes the goal catalogs and authorized panels, offline description request export, online pending drafts and receipt reconciliation introduced by development snapshot `f21eac547e`. Session Core 0.3.20 supplies the required public exports. IDE and desktop integration require matching builds; pending suggestions still require desktop preview and native confirmation. See the [goal draft guide](https://docs.chainlesschain.com/chainlesschain/goal-drafts-current.html).
+Public CLI .108 includes the goal catalogs and authorized panels, offline description request export, online pending drafts and receipt reconciliation introduced by development snapshot `f21eac547e`. Session Core 0.3.20 supplies the required public exports. IDE and desktop integration require matching builds; pending suggestions still require desktop preview and native confirmation. See the [goal draft guide](https://docs.chainlesschain.com/chainlesschain/goal-drafts-current.html).
 
 ## Release snapshot (2026-10-12, historical)
 
@@ -72,8 +86,7 @@ Explicit Linux durable permissions require administrator provisioning. Cross-pro
 
 ## Quick Start
 
-Install this exact package version after its release gates and public
-verification complete:
+Install the publicly verified CLI version:
 
 ```bash
 npm install -g chainlesschain@0.166.108 --registry https://registry.npmjs.org
