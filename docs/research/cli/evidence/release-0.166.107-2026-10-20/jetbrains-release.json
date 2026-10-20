@@ -1,0 +1,109 @@
+{
+  "schema": "chainlesschain.ide-tagged-release/v1",
+  "runId": 39326213042,
+  "sourceSha": "94429fada419e8f3e01a794516096ea554120556",
+  "tag": "ide-jetbrains-v0.4.169",
+  "event": "push",
+  "status": "completed",
+  "conclusion": "success",
+  "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39326213042",
+  "createdAt": "2026-10-19T21:16:41Z",
+  "updatedAt": "2026-10-19T21:48:56Z",
+  "jobs": [
+    {
+      "name": "Public IDE capability manifest (drift gate)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Browser evidence (windows)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Browser evidence (macos)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Browser evidence (linux)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "JetBrains real host (ubuntu-latest, 2024.2)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "JetBrains real host (windows-latest, 2025.2)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "JetBrains real host (ubuntu-latest, 2025.2)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "JetBrains real host (macos-latest, 2024.2)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "JetBrains real host (macos-latest, 2025.2)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "JetBrains real host (windows-latest, 2024.2)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "VS Code extension (immutable candidate)",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "VS Code extension (Windows host gate)",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "VS Code extension (macOS host gate)",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "IDE roadmap evidence (trusted scoped aggregate)",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "VS Code Remote-SSH container (scoped trusted cell)",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Browser evidence (three-OS required aggregate)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "VS Code extension (Linux host gate + publish)",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "JetBrains plugin (build + publish)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "JetBrains Marketplace (post-publish verification)",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ]
+}

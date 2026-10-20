@@ -1,0 +1,83 @@
+{
+  "schema": "chainlesschain.ide-marketplace-release/v1",
+  "checkedAt": "2026-10-19T21:41:07.292Z",
+  "marketplace": "open-vsx",
+  "version": "0.37.152",
+  "recommendedCliVersion": "0.166.107",
+  "runId": 39326212411,
+  "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39326212411",
+  "sourceSha": "94429fada419e8f3e01a794516096ea554120556",
+  "conclusion": "success",
+  "jobs": [
+    {
+      "name": "Public IDE capability manifest (drift gate)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "VS Code extension (immutable candidate)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Browser evidence (windows)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Browser evidence (linux)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Browser evidence (macos)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "JetBrains real host (${{ matrix.os }}, ${{ matrix.ide.version }})",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "VS Code Remote-SSH container (scoped trusted cell)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "VS Code extension (Windows host gate)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "VS Code extension (macOS host gate)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "IDE roadmap evidence (trusted scoped aggregate)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Browser evidence (three-OS required aggregate)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "JetBrains plugin (build + publish)",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "JetBrains Marketplace (post-publish verification)",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "VS Code extension (Linux host gate + publish)",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ]
+}
