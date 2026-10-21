@@ -213,7 +213,9 @@ describe("default local UI Evolution deployment", () => {
     );
     expect(turn.governed).toBe(true);
     await turn.complete("hello");
-  }, 180_000);
+    // This case creates several real signed runtimes with Windows ACLs.
+    // Its aggregate test budget does not change command/provider deadlines.
+  }, 300_000);
 
   it("migrates the signed UI-only host without replacing its keys, old files or data", async () => {
     const { config, deployment, directory } = await legacyLocalConfig();
