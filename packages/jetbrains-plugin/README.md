@@ -64,8 +64,7 @@ Push the immutable release tag below to publish JetBrains Marketplace plugin 0.4
 
 Plugin **0.4.171** is the current release candidate in the source metadata;
 this label identifies the source selected for that tag; the tagged workflow uploads it and checks whether Marketplace makes it public or holds it for review..
-Its verified channel status is:
-**upload and public artifact readback verified; listing may be pending marketplace review**.
+The tagged release workflow verifies the uploaded artifact and public listing state; Marketplace review can still keep the new version pending..
 It recommends `chainlesschain@0.166.109`; that CLI's observed status is
 **public; exact-source gates and public artifact readback verified**. See the exact-source Actions and immutable receipts above.
 Session Core `0.3.20` and Context/Memory Kernel `0.1.10` retain independent versions.

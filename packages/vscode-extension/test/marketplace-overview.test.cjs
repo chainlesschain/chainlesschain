@@ -95,6 +95,7 @@ test("rejects README metadata that drifts from the declared recommendation", asy
     /missing current release metadata/u,
   );
 });
+
 test("allows historical release references outside the current overview", async () => {
   const { verifyMarketplaceOverview } = await verifier();
   const historicalReadme = overview().concat(
