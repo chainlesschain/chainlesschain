@@ -8,7 +8,7 @@ the CLI.
 
 Fixes Windows PowerShell ACL operations for long local paths by using extended
 Windows paths internally while preserving the caller-facing paths. CLI
-0.166.111 pins this release for signed local Quick Ask evidence storage.
+0.166.112 pins this release for signed local Quick Ask evidence storage.
 
 ## Release 0.3.20
 

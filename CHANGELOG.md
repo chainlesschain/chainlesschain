@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.112: retain generated Evolution test signing keys (candidate, 2026-10-21)
+
+- Preserve the supplied private signing-key path when saving an explicit Evolution test deployment, so generated test deployments remain usable after configuration.
+- Align Windows ACL fixtures with Session Core's extended-path PowerShell protocol while keeping CLI-facing paths unchanged.
+- Pair VS Code 0.37.155 and JetBrains 0.4.172 with CLI 0.166.112. Publish Session Core 0.3.21 first, then CLI through the exact-SHA GitHub Actions OIDC workflow; publish IDE extensions only after npm readback succeeds.
+
 ### Fixed - cc CLI 0.166.111: route every configured provider correctly (candidate, 2026-10-21)
 
 - Route Gemini Quick Ask, `cc ask`, interactive chat and `cc stream` through Google's native `generateContent` API; keep agent and Hub compatibility clients on Google's `/v1beta/openai` endpoint.

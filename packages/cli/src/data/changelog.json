@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.112",
+      "cliVersions": ["0.166.112"],
+      "date": "2026-10-21",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.112: retain generated Evolution test signing keys (candidate, 2026-10-21)",
+          "body": "- Preserve the supplied private signing-key path when saving an explicit Evolution test deployment, so generated test deployments remain usable after configuration.\n- Align Windows ACL fixtures with Session Core's extended-path PowerShell protocol while keeping CLI-facing paths unchanged.\n- Pair VS Code 0.37.155 and JetBrains 0.4.172 with CLI 0.166.112. Publish Session Core 0.3.21 first, then CLI through the exact-SHA GitHub Actions OIDC workflow; publish IDE extensions only after npm readback succeeds."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.111",
       "cliVersions": ["0.166.111"],
       "date": "2026-10-21",

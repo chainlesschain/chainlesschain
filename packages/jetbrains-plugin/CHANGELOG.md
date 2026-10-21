@@ -1,9 +1,9 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
-## [0.4.172] - CLI 0.166.111 pairing (candidate, 2026-10-21)
+## [0.4.172] - CLI 0.166.112 pairing (candidate, 2026-10-21)
 
-- Recommend CLI 0.166.111 for native Gemini and Anthropic Quick Ask routing and provider URL normalization.
-- Candidate tag: `ide-jetbrains-v0.4.172`. Publish after CLI 0.166.111 is available on npm and the exact-source IDE gates pass.
+- Recommend CLI 0.166.112 for native Gemini and Anthropic Quick Ask routing and provider URL normalization.
+- Candidate tag: `ide-jetbrains-v0.4.172`. Publish after CLI 0.166.112 is available on npm and the exact-source IDE gates pass.
 
 ## [0.4.171] - CLI 0.166.109 pairing (2026-10-21)
 

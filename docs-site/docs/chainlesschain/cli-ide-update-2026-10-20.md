@@ -14,7 +14,7 @@ Install the paired CLI with `npm i -g chainlesschain@0.166.109 --registry https:
 
 ## Next release candidate: CLI .111 / IDE .155 and .172
 
-These source candidates are not published. Session Core **0.3.21** must publish before CLI **0.166.111**. The IDE extensions pair with that CLI and will publish only after its exact-commit Linux, Windows, and macOS gates pass and npm readback verifies the package.
+These source candidates are not published. Session Core **0.3.21** must publish before CLI **0.166.112**. The IDE extensions pair with that CLI and will publish only after its exact-commit Linux, Windows, and macOS gates pass and npm readback verifies the package.
 
 ## Previous verified snapshot: CLI .108 / IDE .153 and .170
 

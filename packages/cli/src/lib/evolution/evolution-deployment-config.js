@@ -278,7 +278,12 @@ export async function configureEvolutionDeployment(
           : preserveTestMode
             ? "test"
             : deploymentMode || "managed",
-      testPrivateKeyPath: preserveTestMode ? current.testPrivateKeyPath : null,
+      testPrivateKeyPath:
+        deploymentMode === "test"
+          ? testPrivateKeyPath || null
+          : preserveTestMode
+            ? current.testPrivateKeyPath
+            : null,
     };
   }, options);
   return getEvolutionDeploymentStatus(options);

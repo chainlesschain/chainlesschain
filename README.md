@@ -18,7 +18,7 @@ See the [current release and upgrade guide](docs-site/docs/chainlesschain/agent-
 
 ### Next release candidate (.111 / .155 / .172)
 
-The source candidate is CLI **0.166.111**, paired with VS Code **0.37.155** and JetBrains **0.4.172**. These versions are unpublished. Session Core **0.3.21** must publish first; CLI publication requires the exact commit's full Linux, Windows, and macOS CLI CI and Strict Sandbox gates, and IDE publication follows the verified npm release.
+The source candidate is CLI **0.166.112**, paired with VS Code **0.37.155** and JetBrains **0.4.172**. These versions are unpublished. Session Core **0.3.21** must publish first; CLI publication requires the exact commit's full Linux, Windows, and macOS CLI CI and Strict Sandbox gates, and IDE publication follows the verified npm release.
 
 ### Previous verified snapshot (.108 / .153 / .170)
 

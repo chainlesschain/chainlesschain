@@ -6,7 +6,7 @@ MCP bridge.
 
 ## Next release candidate
 
-Source candidate **0.37.155** recommends CLI **0.166.111** for provider protocol fixes. It has not been published. Publish only after CLI 0.166.111 is available on npm and the exact-source IDE gates pass.
+Source candidate **0.37.155** recommends CLI **0.166.112** for provider protocol fixes. It has not been published. Publish only after CLI 0.166.112 is available on npm and the exact-source IDE gates pass.
 
 ## Current release
 

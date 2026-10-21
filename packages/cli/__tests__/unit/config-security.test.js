@@ -40,6 +40,9 @@ import {
 } from "../../src/lib/secure-fs.js";
 import { appendSecurityAuditEvent } from "../../src/lib/security-audit.js";
 import { prepareConfigForEdit } from "../../src/commands/config.js";
+import privateStorage from "@chainlesschain/session-core/private-storage";
+
+const { _windowsExtendedPath } = privateStorage;
 
 describe("versioned typed config schema", () => {
   it("publishes schema metadata and secret annotations", () => {
@@ -755,7 +758,7 @@ describe("owner-only filesystem helpers", () => {
     expect(args).not.toContain(targets[0]);
     expect(JSON.parse(options.input)).toEqual({
       operation: "inspect",
-      targets,
+      targets: targets.map(_windowsExtendedPath),
     });
   });
 
@@ -887,7 +890,9 @@ describe("owner-only filesystem helpers", () => {
     const target = "C:\\private";
     const spawnSync = vi.fn(() => ({
       status: 4,
-      stdout: JSON.stringify([{ target, exists: true, ok: true }]),
+      stdout: JSON.stringify([
+        { target: _windowsExtendedPath(target), exists: true, ok: true },
+      ]),
       stderr: "",
     }));
     expect(
@@ -927,7 +932,7 @@ describe("owner-only filesystem helpers", () => {
       500,
     );
     expect(JSON.parse(spawnSync.mock.calls[1][2].input).targets).toEqual([
-      targets[500],
+      _windowsExtendedPath(targets[500]),
     ]);
   });
 
@@ -1372,14 +1377,14 @@ describe("owner-only filesystem helpers", () => {
       const request = JSON.parse(options.input);
       expect(request).toEqual({
         operation: "repair",
-        targets: [target],
+        targets: [_windowsExtendedPath(target)],
         expectedKind: "file",
       });
       return {
         status: 0,
         stdout: JSON.stringify([
           {
-            target,
+            target: _windowsExtendedPath(target),
             exists: true,
             isDirectory: false,
             ok: true,
@@ -1415,7 +1420,7 @@ describe("owner-only filesystem helpers", () => {
         status: 4,
         stdout: JSON.stringify([
           {
-            target,
+            target: _windowsExtendedPath(target),
             exists: true,
             isDirectory: true,
             ok: false,
@@ -1742,7 +1747,14 @@ describe("owner-only filesystem helpers", () => {
       }
       return {
         status: 0,
-        stdout: JSON.stringify({ ownerOnly: true, aceCount: 1 }),
+        stdout: JSON.stringify(
+          JSON.parse(options.input).targets.map((candidate) => ({
+            target: candidate,
+            exists: true,
+            isDirectory: true,
+            ok: true,
+          })),
+        ),
         stderr: "",
       };
     });
@@ -1757,7 +1769,7 @@ describe("owner-only filesystem helpers", () => {
     ).toBe(target);
     expect(JSON.parse(spawnSync.mock.calls[0][2].input)).toEqual({
       operation: "preflight",
-      targets: [target],
+      targets: [_windowsExtendedPath(target)],
     });
     expect(spawnSync).toHaveBeenCalledTimes(2);
   });

@@ -7,7 +7,7 @@ diffs inside IntelliJ-platform IDEs (IDEA, PyCharm, WebStorm, …).
 
 ## Next release candidate
 
-Source candidate **0.4.172** recommends CLI **0.166.111** for provider protocol fixes. It has not been published. Publish only after CLI 0.166.111 is available on npm and the exact-source IDE gates pass.
+Source candidate **0.4.172** recommends CLI **0.166.112** for provider protocol fixes. It has not been published. Publish only after CLI 0.166.112 is available on npm and the exact-source IDE gates pass.
 
 ## Current release
 
@@ -65,7 +65,7 @@ See the [upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-u
 ## Release compatibility
 
 Plugin **0.4.172** is the current release candidate in the source metadata.
-It recommends `chainlesschain@0.166.111`, which must be publicly available before
+It recommends `chainlesschain@0.166.112`, which must be publicly available before
 the immutable `ide-jetbrains-v0.4.172` tag is published. The tagged workflow
 validates the exact plugin source, uploads it to JetBrains Marketplace, and
 reports whether its listing is public or pending review. Session Core `0.3.21`
