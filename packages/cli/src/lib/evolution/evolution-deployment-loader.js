@@ -1,6 +1,6 @@
 import { createHash, createPublicKey, verify } from "node:crypto";
 import { readFile, realpath } from "node:fs/promises";
-import { dirname, isAbsolute, join, resolve } from "node:path";
+import { dirname, isAbsolute, join } from "node:path";
 import { types as utilTypes } from "node:util";
 import {
   assertEvolutionDeploymentActiveTrustRoot,
@@ -1116,10 +1116,11 @@ export async function loadEvolutionDeploymentCommandDependencies(
       "local-ui-host",
       "ui-host.mjs",
     );
+    const canonicalLocalHostPath = await realpath(localHostPath);
     if (
       descriptor.commands.length !== 1 ||
       descriptor.commands[0] !== "ui" ||
-      resolve(verified.modulePath) !== resolve(localHostPath)
+      verified.modulePath !== canonicalLocalHostPath
     ) {
       throw new Error("Local Evolution deployment is not the protected UI host");
     }

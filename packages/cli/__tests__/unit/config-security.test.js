@@ -1747,14 +1747,7 @@ describe("owner-only filesystem helpers", () => {
       }
       return {
         status: 0,
-        stdout: JSON.stringify(
-          JSON.parse(options.input).targets.map((candidate) => ({
-            target: candidate,
-            exists: true,
-            isDirectory: true,
-            ok: true,
-          })),
-        ),
+        stdout: JSON.stringify({ ownerOnly: true, aceCount: 1 }),
         stderr: "",
       };
     });

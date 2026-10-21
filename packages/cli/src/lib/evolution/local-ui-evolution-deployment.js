@@ -647,11 +647,20 @@ export async function loadLocalUiEvolutionDeployment(
     throw new Error("Local Evolution profile points to another host directory");
   }
   const deployment = await verifyLocalDeployment(directory, expectedDirectory);
+  const [
+    profileDescriptorPath,
+    profileTrustRootPath,
+    deploymentDescriptorPath,
+    deploymentTrustRootPath,
+  ] = await Promise.all([
+    fs.promises.realpath(saved.profile.descriptorPath),
+    fs.promises.realpath(saved.profile.trustRootPath),
+    fs.promises.realpath(deployment.descriptorPath),
+    fs.promises.realpath(deployment.trustRootPath),
+  ]);
   if (
-    path.resolve(saved.profile.descriptorPath) !==
-      path.resolve(deployment.descriptorPath) ||
-    path.resolve(saved.profile.trustRootPath) !==
-      path.resolve(deployment.trustRootPath) ||
+    profileDescriptorPath !== deploymentDescriptorPath ||
+    profileTrustRootPath !== deploymentTrustRootPath ||
     saved.profile.activeTrustRootDigest !==
       deployment.descriptor.trustRootDigest
   ) {
