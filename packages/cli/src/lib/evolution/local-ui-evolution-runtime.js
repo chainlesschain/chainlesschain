@@ -9,7 +9,8 @@ import {
   sign,
   verify,
 } from "node:crypto";
-import { join } from "node:path";
+import fs from "node:fs";
+import { join, resolve } from "node:path";
 import { resolveConfigDataRoot } from "../paths.js";
 import {
   EVOLUTION_ARTIFACT_AUTHORITY_DECISION_SCHEMA,
@@ -28,6 +29,38 @@ import { createLocalUiEvolutionFileSystem } from "./evolution-windows-directory-
 const SOURCE_ENVELOPE_SCHEMA = "chainlesschain.local-ui-source-envelope/v1";
 const TRUST_POLICY_REVISION = 1;
 const DECISION_TTL_MS = 30_000;
+
+function localUiStateStorageRoot(root) {
+  const absoluteRoot = resolve(root);
+  if (
+    process.platform !== "darwin" ||
+    (absoluteRoot !== "/var" && !absoluteRoot.startsWith("/var/"))
+  ) {
+    return absoluteRoot;
+  }
+
+  // macOS exposes the temporary tree through the root-owned /var alias.
+  // Translate only that exact system prefix; leave the user-controlled suffix
+  // intact so ArtifactStore can still reject links below the deployment root.
+  const alias = fs.lstatSync("/var");
+  const canonical = fs.realpathSync("/var");
+  const target = fs.lstatSync(canonical);
+  if (
+    !alias.isSymbolicLink() ||
+    Number(alias.uid) !== 0 ||
+    canonical !== "/private/var" ||
+    target.isSymbolicLink() ||
+    !target.isDirectory() ||
+    Number(target.uid) !== 0 ||
+    (Number(target.mode) & 0o022) !== 0
+  ) {
+    throw new Error("Local Evolution host has an unsafe macOS /var alias");
+  }
+
+  return absoluteRoot === "/var"
+    ? canonical
+    : join(canonical, absoluteRoot.slice("/var/".length));
+}
 
 function canonical(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -537,7 +570,7 @@ export async function createLocalUiEvolutionComposition({
     deployment.keys.witness.privateKey,
   );
   const fsImpl = createLocalUiEvolutionFileSystem();
-  const stateRootDir = join(root, "state");
+  const stateRootDir = join(localUiStateStorageRoot(root), "state");
   return createAgentEvolutionRuntimeComposition({
     tenantId: identity.tenantId,
     runId: context.runId,
