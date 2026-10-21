@@ -124,6 +124,10 @@ import {
 } from "./artifact-protocol.js";
 import { executionBroker } from "../../lib/process-execution-broker/index.js";
 import { collectWorkspacePluginBinSandboxPolicy } from "../../lib/plugin-runtime/bin.js";
+import {
+  loadConfig,
+  loadUserConfig,
+} from "../../lib/config-manager.js";
 
 export const _deps = {
   spawn: (...args) => executionBroker.spawn(...args),
@@ -193,6 +197,47 @@ function boundedInteger(value, fallback, maximum = Number.MAX_SAFE_INTEGER) {
   const parsed = Number(value);
   if (!Number.isSafeInteger(parsed) || parsed <= 0) return fallback;
   return Math.min(parsed, maximum);
+}
+
+function loadCurrentLlmConfig() {
+  const savedLlm =
+    loadUserConfig({ failIfUnavailable: true }).llm || {};
+  const resolvedLlm = loadConfig({ failIfUnavailable: true }).llm || {};
+  const confirmedLlm =
+    loadUserConfig({ failIfUnavailable: true }).llm || {};
+  const provider =
+    typeof savedLlm.provider === "string" && savedLlm.provider.trim()
+      ? savedLlm.provider.trim()
+      : null;
+  const routingIdentity = (llm) =>
+    JSON.stringify([
+      llm.provider ?? null,
+      llm.baseUrl ?? null,
+      llm.apiKey ?? null,
+      llm.model ?? null,
+    ]);
+
+  // Config writes are atomic, but a save can land between reads. Never pair
+  // a key or route from different saved versions in that case.
+  if (
+    routingIdentity(savedLlm) !== routingIdentity(confirmedLlm) ||
+    (provider && provider !== resolvedLlm.provider)
+  ) {
+    throw new Error("LLM configuration changed while being read");
+  }
+
+  return {
+    provider,
+    model:
+      typeof savedLlm.model === "string" && savedLlm.model.trim()
+        ? savedLlm.model.trim()
+        : null,
+    baseUrl:
+      typeof savedLlm.baseUrl === "string" && savedLlm.baseUrl.trim()
+        ? savedLlm.baseUrl.trim()
+        : null,
+    apiKey: provider ? resolvedLlm.apiKey || null : null,
+  };
 }
 
 function frameByteLength(data) {
@@ -368,6 +413,8 @@ export class ChainlessChainWSServer extends EventEmitter {
 
     /** Session manager for stateful agent/chat sessions */
     this.sessionManager = options.sessionManager || null;
+    /** Read current saved LLM settings for stateless chat requests. */
+    this._loadLlmConfig = options.loadLlmConfig || loadCurrentLlmConfig;
     this.projectRoot = options.projectRoot || process.cwd();
 
     /** Session handlers: sessionId → WSAgentHandler | WSChatHandler */

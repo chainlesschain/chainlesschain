@@ -282,7 +282,7 @@ describe("resolveVisionLlm", () => {
         flags: { provider: "openai" },
         llm: { ...llm, model: "deepseek-v4-1-flash-260910" },
       }).model,
-    ).toBe(llm.visionModel);
+    ).toBe("gpt-4o-mini");
   });
 
   it("honors an explicit vision override even for a multimodal main model", () => {

@@ -108,13 +108,13 @@
     },
     {
       "path": "packages/cli/src/commands/ask.js",
-      "digest": "sha256:76db41dcd27b2c1b1a619775bf25877131d299b49cbabe158d8a20b013961e9b",
+      "digest": "sha256:9caba52ec41206d4989d5d2ed373bebaf5696a9d321af42071b7eae8e64335ed",
       "category": "MODEL_REQUEST",
       "rationale": "Single-shot inference through providerFetch after evolution admission."
     },
     {
       "path": "packages/cli/src/commands/llm.js",
-      "digest": "sha256:68d5633ecd318ae0107cc137e26a1de0f40122cfc1766a032c868db9d2dcc961",
+      "digest": "sha256:d0b796ff3fcea86ce108c2aede0ebc55a3954bb264e893a62d0daf56010ebfa5",
       "category": "LOCAL_DIAGNOSTIC",
       "rationale": "Ollama /api/tags model-list GET, distinct from an inference probe."
     },
@@ -222,7 +222,7 @@
     },
     {
       "path": "packages/cli/src/lib/chat-core.js",
-      "digest": "sha256:75badcbad571c266cf7592a79d5ad77f2f0f6d318ee4594da1195c405811a4e2",
+      "digest": "sha256:c12c9c158c23a704494a12cdf982a97c6cd50cbe415fa92fe21efe2f82787f33",
       "category": "MODEL_REQUEST",
       "rationale": "Streaming model inference; explicit provider scope mediates supported contracts."
     },
@@ -240,7 +240,7 @@
     },
     {
       "path": "packages/cli/src/lib/cowork-adapter.js",
-      "digest": "sha256:43e3e086af7bbd964df40f6f02488fd87ed43704d495ed6ce6e196db55f28b2d",
+      "digest": "sha256:6d4b7a5bf833e826944c9cb5445cbfbed45b38c22334847e32dc7ed4332d0eb5",
       "category": "MODEL_REQUEST",
       "rationale": "Cowork model requests through providerFetch; no OS descendant containment claim."
     },
@@ -258,7 +258,7 @@
     },
     {
       "path": "packages/cli/src/lib/evolution/governed-hub-llm.js",
-      "digest": "sha256:d252bbfcd50b6ffbca9a95893d9aee6b83afa1bbdb33a22da9ebdeec4fc9bfd5",
+      "digest": "sha256:8c91426671efc5a234df860be02ddc21cb9fcdcc89a8fef4dd0b1b89c63ad981",
       "category": "MODEL_REQUEST",
       "rationale": "Governed Hub model inference; scoped Chat dispatch or opaque SDK rejection."
     },
@@ -324,19 +324,19 @@
     },
     {
       "path": "packages/cli/src/lib/hub-llm-client.js",
-      "digest": "sha256:9e83456cdb0f55941b82f00fbc9d49e357edeafcc7c58677d0ffeac17cbc2828",
+      "digest": "sha256:c2967eead0a1cf23b44bacf2e53c3f71d0380c995f997be1373179a659971119",
       "category": "MODEL_REQUEST",
       "rationale": "Hub model inference through providerFetch, preserving unconfirmed pricing."
     },
     {
       "path": "packages/cli/src/lib/llm-connection-probe.js",
-      "digest": "sha256:4910c204d06e3ed63618bc568dfff788f583b82f1c9fb6df16881b557f91fb4d",
+      "digest": "sha256:869a71f754f674af577f5191adb8688deddd9bd716adb0c97b1eada7df28127b",
       "category": "MODEL_REQUEST",
       "rationale": "A connectivity probe sends inference, not a free health GET; provider scope governs the physical request."
     },
     {
       "path": "packages/cli/src/lib/llm-providers.js",
-      "digest": "sha256:83914b595abace940fc895e5cf220dba57b488bba3d69f6ab1f7368c77490955",
+      "digest": "sha256:db24b893de8386443e61a9c4159647a6d48aeaf99bce6bd8799b389ee19338ba",
       "category": "MODEL_REQUEST",
       "rationale": "Built-in provider model identifiers include the new Volcengine model deepseek-v4-1-flash-260910. Runtime model requests use the scoped fetch wrapper; standalone connectivity probes remain model inference, not free health checks."
     },
@@ -420,7 +420,7 @@
     },
     {
       "path": "packages/cli/src/lib/provider-stream.js",
-      "digest": "sha256:a3663c1c909840369df9774e95bb4e831a860df9e407bfb19bd25d52d4a7d633",
+      "digest": "sha256:066a327dd55b20b34a6bfc2f39c1fc0528a764f4d9bce540f53fe82a664c7bfd",
       "category": "MODEL_REQUEST",
       "rationale": "Direct provider streaming adapter through providerFetch and verified EOF."
     },
@@ -456,7 +456,7 @@
     },
     {
       "path": "packages/cli/src/runtime/agent-core.js",
-      "digest": "sha256:c868c59f5df0c2bf5c10778e3ecb8de20d6046b059a3212171b195bc9eec4d6d",
+      "digest": "sha256:da39bb9a918c8fbb27efebc53034df74cacfd094f676338c1f8a4629600a37fe",
       "category": "MODEL_REQUEST",
       "rationale": "Canonical model requests including streaming, summaries and child paths; explicit scope required. Formal-scope tools reject centrally, and parallel read batches propagate budget failures. The Volcengine default model changed to deepseek-v4-1-flash-260910 without adding another transport. The 2026-10-18 task-quality changes add bounded local metadata-only import feedback and completion checks for unresolved file writes; no network call, retry, tool authority or provider scope is added. Successful equivalent content tools settle only the same target obligation, while denied, deferred and failed mutations do not settle it; move and delete remain independent. The 2026-10-20 tool-history recovery changes project only provider-request role normalization while preserving canonical durable history, track read-file visibility only after successful model responses, and mark host-created transient messages with non-serializable runtime provenance. Post-edit validation distinguishes persistence and bounded import feedback from test acceptance. These changes add no provider transport, retry branch or tool authority and retain existing usage admission and conservative settlement boundaries. Source classification does not establish complete runtime budget containment or paid admission."
     },

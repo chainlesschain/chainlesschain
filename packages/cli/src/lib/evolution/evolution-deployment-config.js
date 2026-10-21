@@ -103,6 +103,9 @@ function withDeploymentReadiness(status) {
   return Object.freeze({
     ...status,
     readiness: Object.freeze({
+      ui: assessEvolutionDeploymentReadiness(status, {
+        requiredCommands: ["ui"],
+      }),
       ask: assessEvolutionDeploymentReadiness(status, {
         requiredCommands: ["ask"],
       }),
@@ -197,6 +200,13 @@ export async function configureEvolutionDeployment(
     options,
   );
   updateEvolutionDeploymentProfile((current) => {
+    if (options.expectedProfileAbsent === true && current) {
+      const error = new Error(
+        "Evolution deployment profile was configured during local initialization",
+      );
+      error.code = "EVOLUTION_DEPLOYMENT_PROFILE_ALREADY_CONFIGURED";
+      throw error;
+    }
     if (
       current?.activeTrustRootDigest &&
       current.activeTrustRootDigest !== verified.descriptor.trustRootDigest
@@ -245,6 +255,11 @@ export async function configureEvolutionDeployment(
         verified.descriptor.revision,
       ),
     };
+    const preserveLocalMode =
+      deploymentMode === undefined &&
+      current?.deploymentMode === "local" &&
+      current.descriptorPath === verified.descriptorPath &&
+      current.trustRootPath === verified.trustRootPath;
     const preserveTestMode =
       deploymentMode === undefined &&
       current?.deploymentMode === "test" &&
@@ -257,10 +272,18 @@ export async function configureEvolutionDeployment(
       revisionFloors,
       activeTrustRootDigest: verified.descriptor.trustRootDigest,
       revokedDescriptorRevisions,
-      deploymentMode: preserveTestMode ? "test" : deploymentMode || "managed",
-      testPrivateKeyPath: preserveTestMode
-        ? current.testPrivateKeyPath
-        : testPrivateKeyPath || null,
+      deploymentMode:
+        preserveLocalMode
+          ? "local"
+          : preserveTestMode
+            ? "test"
+            : deploymentMode || "managed",
+      testPrivateKeyPath:
+        deploymentMode === "test"
+          ? testPrivateKeyPath || null
+          : preserveTestMode
+            ? current.testPrivateKeyPath
+            : null,
     };
   }, options);
   return getEvolutionDeploymentStatus(options);

@@ -36,6 +36,7 @@ import {
   deleteSession as dbDeleteSession,
 } from "../../lib/session-manager.js";
 import { buildSystemPrompt } from "../../runtime/agent-core.js";
+import { resolveLlmConnection } from "../../lib/llm-connection-resolution.js";
 import { createHostToolPolicyAuthority } from "../../lib/host-tool-policy-authority.js";
 import { SubAgentRegistry } from "../../lib/sub-agent-registry.js";
 import {
@@ -518,14 +519,13 @@ export class WSSessionManager {
         ? this._hooksV2HostWorkspaceRoot
         : null;
     const cfgLlm = this.config?.llm || {};
-    const provider = options.provider || cfgLlm.provider || "ollama";
-    const model =
-      options.model ||
-      cfgLlm.model ||
-      (provider === "ollama" ? "qwen2.5:7b" : null);
-    const baseUrl =
-      options.baseUrl || cfgLlm.baseUrl || "http://localhost:11434";
-    const apiKey = options.apiKey || cfgLlm.apiKey || null;
+    const connection = resolveLlmConnection(options, [cfgLlm], {
+      defaultModel:
+        (options.provider || cfgLlm.provider || "ollama") === "ollama"
+          ? "qwen2.5:7b"
+          : null,
+    });
+    const { provider, model, baseUrl, apiKey } = connection;
     const worktreeIsolationRequested = options.worktreeIsolation === true;
     const enabledToolNames = this._normalizeEnabledToolNames(
       options.enabledToolNames,
@@ -839,15 +839,29 @@ export class WSSessionManager {
         // Non-critical
       }
 
+      const connection = resolveLlmConnection(
+        {
+          provider: dbSession.provider || "ollama",
+          model: dbSession.model || null,
+          baseUrl: metadata.baseUrl || null,
+        },
+        [this.config?.llm || {}],
+        {
+          defaultModel:
+            (dbSession.provider || "ollama") === "ollama"
+              ? "qwen2.5:7b"
+              : null,
+        },
+      );
       const session = {
         id: dbSession.id,
         type: metadata.sessionType || "agent",
         status: "active",
         messages,
-        provider: dbSession.provider || "ollama",
-        model: dbSession.model || null,
-        apiKey: null,
-        baseUrl: metadata.baseUrl || "http://localhost:11434",
+        provider: connection.provider,
+        model: connection.model,
+        apiKey: connection.apiKey,
+        baseUrl: connection.baseUrl,
         mcpClient: this.mcpClient,
         enabledToolNames: this._normalizeEnabledToolNames(
           metadata.enabledToolNames,

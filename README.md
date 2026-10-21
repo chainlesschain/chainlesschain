@@ -1,5 +1,27 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+<!-- release109-status -->
+
+## Current public releases (2026-10-21)
+
+npm CLI **0.166.109** is public; its exact-source release gate and npm registry readback passed on source `2f14fd409bdf1fd39abc4b0a94cc6db280feae48` ([Actions](https://github.com/chainlesschain/chainlesschain/actions/runs/39545080716), [npm registry](https://www.npmjs.com/package/chainlesschain/v/0.166.109)).
+
+Open VSX **0.37.154** and JetBrains Marketplace **0.4.171** are released from [`ide-vscode-v0.37.154`](https://github.com/chainlesschain/chainlesschain/tree/ide-vscode-v0.37.154) and [`ide-jetbrains-v0.4.171`](https://github.com/chainlesschain/chainlesschain/tree/ide-jetbrains-v0.4.171); both pair with CLI **0.166.109**. Marketplace listing and artifact verification are reported by their tagged workflows. The official Microsoft VS Code Marketplace remains unpublished.
+
+```bash
+npm i -g chainlesschain@0.166.109 --registry https://registry.npmjs.org
+cc --version
+cc doctor
+```
+
+See the [current release and upgrade guide](docs-site/docs/chainlesschain/agent-platform-release.md).
+
+### Next release candidate (.111 / .155 / .172)
+
+The source candidate is CLI **0.166.112**, paired with VS Code **0.37.155** and JetBrains **0.4.172**. These versions are unpublished. Session Core **0.3.21** must publish first; CLI publication requires the exact commit's full Linux, Windows, and macOS CLI CI and Strict Sandbox gates, and IDE publication follows the verified npm release.
+
+### Previous verified snapshot (.108 / .153 / .170)
+
 <!-- release108-status -->
 
 2026-10-21 核对：

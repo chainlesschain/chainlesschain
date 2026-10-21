@@ -17,6 +17,7 @@ import { randomUUID } from "node:crypto";
 import { types as utilTypes } from "node:util";
 import { captureAgentEvolutionRuntimeComposition } from "../lib/evolution/agent-evolution-runtime-composition-brand.js";
 import { resolveOllamaBaseUrl, queryLLM } from "./ask.js";
+import { resolveLlmConnection } from "../lib/llm-connection-resolution.js";
 
 /** Hard cap so a runaway model can't flood the editor with a whole file. */
 export const MAX_COMPLETION_CHARS = 2000;
@@ -135,19 +136,22 @@ export function registerCompleteCommand(program, dependencies = {}) {
         return;
       }
 
-      const provider = options.provider || config.llm?.provider || "ollama";
+      const connection = resolveLlmConnection(options, [config.llm || {}], {
+        defaultModel:
+          (options.provider || config.llm?.provider || "ollama") === "ollama"
+            ? "qwen2.5-coder"
+            : null,
+      });
+      const provider = connection.provider;
       const resolvedOptions = {
         provider,
-        model:
-          options.model ||
-          config.llm?.model ||
-          (provider === "ollama" ? "qwen2.5-coder" : undefined),
-        apiKey: options.apiKey || config.llm?.apiKey,
+        model: connection.model || (provider === "ollama" ? "qwen2.5-coder" : undefined),
+        apiKey: connection.apiKey,
+        baseUrl: connection.baseUrl,
       };
-      resolvedOptions.baseUrl =
-        provider === "ollama"
-          ? resolveOllamaBaseUrl({ options, config })
-          : options.baseUrl || config.llm?.baseUrl;
+      if (provider === "ollama" && config.llm?.provider === "ollama") {
+        resolvedOptions.baseUrl = resolveOllamaBaseUrl({ options, config });
+      }
 
       try {
         const prompt = buildFimPrompt(prefix, suffix, language);

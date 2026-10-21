@@ -9,8 +9,13 @@ import {
 } from "./evolution-file-identity.js";
 import { artifactPhysicalIdentity } from "./evolution-artifact-identity.js";
 import { getHomeDir } from "../paths.js";
-import { ensurePrivateDirectory, ensurePrivateFile } from "../secure-fs.js";
+import {
+  ensurePrivateDirectory,
+  ensurePrivateFile,
+  repairPrivatePaths,
+} from "../secure-fs.js";
 import { withFileLock } from "../with-file-lock.js";
+import { isLocalUiEvolutionFileSystem } from "./evolution-windows-directory-durability.js";
 import {
   assertKnowledgeWikiSourceAdmission,
   WIKI_SOURCE_ADMISSION_INVALID_CODE,
@@ -148,9 +153,12 @@ const DECISIONS = new Set([
 const REVOCATION_STATES = new Set(["not-revoked", "revoked", "tombstoned"]);
 const DURABILITY_MECHANISMS = new Set([
   "authenticated-witness-cas",
+  "authenticated-witness-cas-windows-directory-flush",
   "authenticated-witness-batch-cas",
+  "authenticated-witness-batch-cas-windows-directory-flush",
   "directory-fsync",
   "verified-existing",
+  "windows-directory-flush",
 ]);
 const EMPTY_DISCARD_ACCUMULATOR_DIGEST = domainDigest(
   DISCARD_ACCUMULATOR_DOMAIN,
@@ -1809,6 +1817,21 @@ function captureFs(fsImpl) {
       Reflect.apply(implementation, undefined, args),
     );
   }
+  const directorySync = Object.getOwnPropertyDescriptor(
+    fsImpl,
+    "syncDirectorySync",
+  );
+  if (directorySync) {
+    if (typeof directorySync.value !== "function") {
+      throw ledgerError(
+        "CC_EVOLUTION_LEDGER_STORE_UNSAFE",
+        "syncDirectorySync must be a data function",
+      );
+    }
+    captured.syncDirectorySync = Object.freeze((...args) =>
+      Reflect.apply(directorySync.value, fsImpl, args),
+    );
+  }
   if (!fsImpl.constants || typeof fsImpl.constants !== "object") {
     throw ledgerError(
       "CC_EVOLUTION_LEDGER_STORE_UNSAFE",
@@ -1832,6 +1855,9 @@ function realpath(fsPort, value) {
 }
 
 function syncDirectory(fsPort, directory) {
+  if (typeof fsPort.syncDirectorySync === "function") {
+    return fsPort.syncDirectorySync(directory);
+  }
   let descriptor = null;
   try {
     descriptor = fsPort.openSync(directory, "r");
@@ -1898,6 +1924,15 @@ function defaultAuthorityRoot(rootDir) {
   );
 }
 
+function sameArtifactIdentity(stat, expected) {
+  const identity = artifactPhysicalIdentity(stat);
+  return (
+    identity.dev === expected.dev &&
+    identity.ino === expected.ino &&
+    identity.birthtimeMs === expected.birthtimeMs
+  );
+}
+
 export class EvolutionLedger {
   #artifactResolver;
   #boundaries;
@@ -1909,6 +1944,8 @@ export class EvolutionLedger {
   #lock;
   #lockClock;
   #lockTimeoutMs;
+  #localUiWindowsDurability;
+  #pendingWindowsAclFiles;
   #paths;
   #random;
   #secure;
@@ -1971,6 +2008,9 @@ export class EvolutionLedger {
       );
     }
 
+    this.#localUiWindowsDurability =
+      process.platform === "win32" && isLocalUiEvolutionFileSystem(fsImpl);
+    this.#pendingWindowsAclFiles = new Map();
     this.#fs = captureFs(fsImpl);
     // Identity helpers only open parent/volume directories through this port.
     this.#identityFs = Object.freeze({
@@ -2022,19 +2062,68 @@ export class EvolutionLedger {
     };
 
     try {
-      for (const directory of [
+      const directories = [
         requestedPaths.rootDir,
         requestedPaths.authorityRootDir,
         requestedPaths.segmentDir,
         requestedPaths.anchorDir,
-      ]) {
-        if (this.#secure) {
+      ];
+      if (this.#secure && this.#localUiWindowsDurability) {
+        const roots = [
+          requestedPaths.rootDir,
+          requestedPaths.authorityRootDir,
+        ];
+        const children = [
+          requestedPaths.segmentDir,
+          requestedPaths.anchorDir,
+        ];
+        // Secure each parent before creating children so inherited Windows
+        // ACLs are private throughout setup. Batch only the child repair.
+        for (const directory of roots) {
           ensurePrivateDirectory(directory, {
             applyWindowsAcl: true,
             failIfUnavailable: true,
           });
-        } else {
-          this.#fs.mkdirSync(directory, { recursive: true, mode: 0o700 });
+        }
+        for (const directory of children) {
+          ensurePrivateDirectory(directory, {
+            applyWindowsAcl: false,
+            failIfUnavailable: true,
+          });
+        }
+        const repaired = repairPrivatePaths(children);
+        if (
+          repaired.length !== children.length ||
+          repaired.some((entry) => entry.ok !== true || entry.exists === false)
+        ) {
+          throw new Error("Could not verify private ledger directories");
+        }
+        for (const directory of children) {
+          const stat = this.#fs.lstatSync(directory);
+          if (!stat.isDirectory() || stat.isSymbolicLink()) {
+            throw new Error("Private ledger directory changed during setup");
+          }
+        }
+      } else {
+        for (const directory of directories) {
+          if (this.#secure) {
+            ensurePrivateDirectory(directory, {
+              applyWindowsAcl: true,
+              failIfUnavailable: true,
+            });
+          } else {
+            this.#fs.mkdirSync(directory, { recursive: true, mode: 0o700 });
+          }
+        }
+      }
+      if (typeof this.#fs.syncDirectorySync === "function") {
+        for (const directory of new Set([
+          path.dirname(requestedPaths.rootDir),
+          requestedPaths.rootDir,
+          path.dirname(requestedPaths.authorityRootDir),
+          requestedPaths.authorityRootDir,
+        ])) {
+          this.#fs.syncDirectorySync(directory);
         }
       }
 
@@ -3185,7 +3274,7 @@ export class EvolutionLedger {
       descriptor = null;
       if (this.#secure) {
         ensurePrivateFile(temporaryPath, {
-          applyWindowsAcl: true,
+          applyWindowsAcl: !this.#localUiWindowsDurability,
           failIfUnavailable: true,
         });
       }
@@ -3194,12 +3283,6 @@ export class EvolutionLedger {
       if (onPublished) onPublished(temporaryPath);
       this.#fs.unlinkSync(temporaryPath);
       temporaryExists = false;
-      if (this.#secure) {
-        ensurePrivateFile(filePath, {
-          applyWindowsAcl: true,
-          failIfUnavailable: true,
-        });
-      }
       const finalStat = this.#fs.lstatSync(filePath);
       if (
         !finalStat.isFile() ||
@@ -3212,6 +3295,7 @@ export class EvolutionLedger {
           `${label} publication did not produce a single-link artifact`,
         );
       }
+      this.#securePublishedFile(filePath, finalStat);
       descriptor = this.#fs.openSync(
         filePath,
         this.#fs.constants.O_RDWR | (this.#fs.constants.O_NOFOLLOW || 0),
@@ -3219,7 +3303,9 @@ export class EvolutionLedger {
       this.#fs.fsyncSync(descriptor);
       this.#fs.closeSync(descriptor);
       descriptor = null;
-      return syncDirectory(this.#fs, directory);
+      return this.#localUiWindowsDurability
+        ? "windows-directory-flush-deferred"
+        : syncDirectory(this.#fs, directory);
     } catch (cause) {
       if (cause instanceof EvolutionLedgerError) throw cause;
       throw ledgerError(
@@ -3271,18 +3357,12 @@ export class EvolutionLedger {
       descriptor = null;
       if (this.#secure) {
         ensurePrivateFile(temporaryPath, {
-          applyWindowsAcl: true,
+          applyWindowsAcl: !this.#localUiWindowsDurability,
           failIfUnavailable: true,
         });
       }
       this.#fs.renameSync(temporaryPath, this.#paths.headPath);
       renamed = true;
-      if (this.#secure) {
-        ensurePrivateFile(this.#paths.headPath, {
-          applyWindowsAcl: true,
-          failIfUnavailable: true,
-        });
-      }
       const headStat = this.#fs.lstatSync(this.#paths.headPath);
       if (
         !headStat.isFile() ||
@@ -3295,6 +3375,7 @@ export class EvolutionLedger {
           "HEAD replacement did not produce a single-link artifact",
         );
       }
+      this.#securePublishedFile(this.#paths.headPath, headStat);
       descriptor = this.#fs.openSync(
         this.#paths.headPath,
         this.#fs.constants.O_RDWR | (this.#fs.constants.O_NOFOLLOW || 0),
@@ -3302,7 +3383,9 @@ export class EvolutionLedger {
       this.#fs.fsyncSync(descriptor);
       this.#fs.closeSync(descriptor);
       descriptor = null;
-      return syncDirectory(this.#fs, this.#paths.authorityRootDir);
+      return this.#localUiWindowsDurability
+        ? "windows-directory-flush-deferred"
+        : syncDirectory(this.#fs, this.#paths.authorityRootDir);
     } catch (cause) {
       if (cause instanceof EvolutionLedgerError) throw cause;
       throw ledgerError(
@@ -3332,8 +3415,108 @@ export class EvolutionLedger {
     }
   }
 
+  #securePublishedFile(filePath, stat) {
+    if (!this.#secure) return;
+    if (this.#localUiWindowsDurability) {
+      this.#pendingWindowsAclFiles.set(path.resolve(filePath), {
+        identity: artifactPhysicalIdentity(stat),
+        size: stat.size,
+      });
+      return;
+    }
+    ensurePrivateFile(filePath, {
+      applyWindowsAcl: true,
+      failIfUnavailable: true,
+    });
+  }
+
+  #assertPendingWindowsAclFile(filePath, expected) {
+    const stat = this.#fs.lstatSync(filePath);
+    if (
+      !stat.isFile() ||
+      stat.isSymbolicLink() ||
+      stat.nlink !== 1 ||
+      stat.size !== expected.size ||
+      !sameArtifactIdentity(stat, expected.identity)
+    ) {
+      throw ledgerError(
+        "CC_EVOLUTION_LEDGER_STORE_UNSAFE",
+        "published ledger file changed before Windows ACL verification",
+      );
+    }
+    return stat;
+  }
+
+  #flushPendingWindowsAclFiles() {
+    if (
+      !this.#localUiWindowsDurability ||
+      this.#pendingWindowsAclFiles.size === 0
+    ) {
+      return [];
+    }
+    const entries = [...this.#pendingWindowsAclFiles.entries()];
+    const files = entries.map(([filePath]) => filePath);
+    const directories = [...new Set(files.map((filePath) => path.dirname(filePath)))];
+    try {
+      this.#assertBoundaries();
+      for (const [filePath, expected] of entries) {
+        this.#assertPendingWindowsAclFile(filePath, expected);
+      }
+      const repaired = repairPrivatePaths(files);
+      if (
+        repaired.length !== files.length ||
+        repaired.some(
+          (entry, index) =>
+            entry.target !== files[index] ||
+            entry.ok !== true ||
+            entry.exists === false,
+        )
+      ) {
+        throw new Error("Windows ACL batch did not verify every ledger file");
+      }
+      for (const [filePath, expected] of entries) {
+        this.#assertPendingWindowsAclFile(filePath, expected);
+        const descriptor = this.#fs.openSync(
+          filePath,
+          this.#fs.constants.O_RDWR | (this.#fs.constants.O_NOFOLLOW || 0),
+        );
+        try {
+          const opened = this.#fs.fstatSync(descriptor);
+          if (
+            !opened.isFile() ||
+            opened.nlink !== 1 ||
+            opened.size !== expected.size ||
+            !sameArtifactIdentity(opened, expected.identity)
+          ) {
+            throw ledgerError(
+              "CC_EVOLUTION_LEDGER_STORE_UNSAFE",
+              "ledger file identity changed during Windows ACL verification",
+            );
+          }
+          this.#fs.fsyncSync(descriptor);
+        } finally {
+          this.#fs.closeSync(descriptor);
+        }
+      }
+      this.#assertBoundaries();
+      for (const filePath of files) this.#pendingWindowsAclFiles.delete(filePath);
+      return directories;
+    } catch (cause) {
+      if (cause instanceof EvolutionLedgerError) throw cause;
+      throw ledgerError(
+        "CC_EVOLUTION_LEDGER_WRITE_FAILED",
+        "published ledger files could not be secured before witness commit",
+        { cause, commitState: "not-committed", published: true },
+      );
+    }
+  }
+
   #requireDirectoryDurability(directories) {
-    for (const directory of directories) {
+    const mechanisms = new Set();
+    const durableDirectories = [
+      ...new Set([...directories, ...this.#flushPendingWindowsAclFiles()]),
+    ];
+    for (const directory of durableDirectories) {
       let mechanism;
       try {
         mechanism = syncDirectory(this.#fs, directory);
@@ -3344,14 +3527,21 @@ export class EvolutionLedger {
           { cause, commitState: "not-committed" },
         );
       }
-      if (mechanism !== "directory-fsync") {
+      if (
+        mechanism !== "directory-fsync" &&
+        mechanism !== "windows-directory-flush"
+      ) {
         throw ledgerError(
           "CC_EVOLUTION_LEDGER_DURABILITY_UNAVAILABLE",
           "the platform cannot durably publish ledger objects before witness CAS",
           { commitState: "not-committed", mechanism },
         );
       }
+      mechanisms.add(mechanism);
     }
+    return mechanisms.has("windows-directory-flush")
+      ? "windows-directory-flush"
+      : "directory-fsync";
   }
 
   #cleanupDirectoryDebris(directory, targetPattern) {
@@ -3566,6 +3756,11 @@ export class EvolutionLedger {
       serializeRecord(storeMarker, 64 * 1024, "store marker"),
       "store incarnation marker",
     );
+    if (this.#localUiWindowsDurability) {
+      this.#requireDirectoryDurability([
+        path.dirname(this.#paths.storeMarkerPath),
+      ]);
+    }
     const storeMarkerFile = this.#readCanonicalFile(
       this.#paths.storeMarkerPath,
       64 * 1024,
@@ -4881,6 +5076,7 @@ export class EvolutionLedger {
         state.event = state.events.at(-1);
         const witnessedStates = [];
         let currentWitness = current.witness;
+        let platformDurabilityMechanism = "directory-fsync";
         for (const entry of planned) {
           const { anchor, anchorBytes, event, eventBytes, segmentDigest } =
             entry;
@@ -4922,7 +5118,7 @@ export class EvolutionLedger {
             anchorDigest: anchor.anchorDigest,
             eventDigest: event.eventDigest,
           });
-          this.#requireDirectoryDurability([
+          platformDurabilityMechanism = this.#requireDirectoryDurability([
             this.#paths.segmentDir,
             this.#paths.anchorDir,
           ]);
@@ -4946,6 +5142,12 @@ export class EvolutionLedger {
             anchorDigest: anchor.anchorDigest,
             eventDigest: event.eventDigest,
           });
+        }
+
+        if (this.#localUiWindowsDurability) {
+          platformDurabilityMechanism = this.#requireDirectoryDurability([
+            this.#paths.authorityRootDir,
+          ]);
         }
 
         const persisted = this.#loadState({
@@ -4973,9 +5175,13 @@ export class EvolutionLedger {
             { ...persisted, witness: witnessedStates[index] },
             event,
             planned[index].anchor,
-            batch
-              ? "authenticated-witness-batch-cas"
-              : "authenticated-witness-cas",
+            platformDurabilityMechanism === "windows-directory-flush"
+              ? batch
+                ? "authenticated-witness-batch-cas-windows-directory-flush"
+                : "authenticated-witness-cas-windows-directory-flush"
+              : batch
+                ? "authenticated-witness-batch-cas"
+                : "authenticated-witness-cas",
           ),
         );
         state.receipt = state.receipts.at(-1);
@@ -5152,6 +5358,9 @@ export class EvolutionLedger {
         "state snapshot",
       );
       this.#writeImmutable(snapshotPath, bytes, "state snapshot");
+      if (this.#localUiWindowsDurability) {
+        this.#requireDirectoryDurability([path.dirname(snapshotPath)]);
+      }
       const persisted = this.#readCanonicalFile(
         snapshotPath,
         MAX_STATE_SNAPSHOT_BYTES,

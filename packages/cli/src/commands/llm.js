@@ -43,6 +43,7 @@ import {
   autoFailStuckRequestsV2,
   getLlmProvidersStatsV2,
 } from "../lib/llm-providers.js";
+import { normalizeOllamaBaseUrl } from "../lib/ollama-base-url.js";
 import {
   readLlmConnectionInput,
   saveLlmConnection,
@@ -52,6 +53,7 @@ import {
   llmProbeReceipt,
 } from "../lib/llm-connection-probe.js";
 import { resolveModelCapabilityProfile } from "../lib/model-capabilities.js";
+import { resolveLlmConnection } from "../lib/llm-connection-resolution.js";
 
 /**
  * Resolve the effective `cc llm test` target from CLI flags + persisted config.
@@ -75,46 +77,27 @@ export function resolveLlmTestTarget(
 ) {
   const llm = config.llm || {};
   const provider = options.provider || llm.provider || "ollama";
-  const sameProvider = provider === (llm.provider || "ollama");
   const isOllama = provider === "ollama";
   const builtIn = builtIns[provider];
-
-  const model =
-    options.model ||
-    (sameProvider ? llm.model : undefined) ||
-    (isOllama ? "qwen2:7b" : builtIn?.models?.[0] || "gpt-4o-mini");
-
-  let baseUrl;
-  if (isOllama) {
-    // Only inherit config.baseUrl when the CONFIGURED provider is also ollama —
-    // otherwise `--provider ollama` would probe another provider's endpoint.
-    const configOllamaBase =
-      llm.provider === "ollama" ? llm.baseUrl : undefined;
-    baseUrl = options.baseUrl || configOllamaBase || "http://localhost:11434";
-  } else {
-    baseUrl =
-      options.baseUrl ||
-      (sameProvider ? llm.baseUrl : undefined) ||
-      builtIn?.baseUrl ||
-      "https://api.openai.com/v1";
-  }
-
-  const apiKey = isOllama
-    ? undefined
-    : options.apiKey ||
-      (sameProvider ? llm.apiKey : undefined) ||
-      (builtIn?.apiKeyEnv ? env[builtIn.apiKeyEnv] : undefined);
-
+  const connection = resolveLlmConnection(options, [llm], {
+    env,
+    builtIns,
+    defaultProvider: provider,
+    defaultModel: isOllama
+      ? "qwen2:7b"
+      : builtIn?.models?.[0] || "gpt-4o-mini",
+  });
   return {
-    provider,
-    model,
-    baseUrl,
-    apiKey,
+    provider: connection.provider,
+    model: connection.model,
+    baseUrl:
+      connection.baseUrl ||
+      (isOllama ? "http://localhost:11434" : "https://api.openai.com/v1"),
+    apiKey: isOllama ? undefined : connection.apiKey || undefined,
     isOllama,
     label: builtIn?.displayName || (isOllama ? "Ollama" : provider),
   };
 }
-
 /** Resolve a static profile without reading credentials or provider key envs. */
 export function resolveLlmCapabilities(
   options = {},
@@ -253,7 +236,9 @@ export function registerLlmCommand(program) {
       const spinner = ora("Fetching models...").start();
       try {
         if (options.provider === "ollama") {
-          const response = await fetch(`${options.baseUrl}/api/tags`);
+          const response = await fetch(
+            `${normalizeOllamaBaseUrl(options.baseUrl)}/api/tags`,
+          );
           if (!response.ok) {
             throw new Error(`Ollama not reachable: ${response.status}`);
           }
@@ -300,13 +285,10 @@ export function registerLlmCommand(program) {
 
   // llm test - test connectivity
   //
-  // Defaults to the CONFIGURED provider/model/baseUrl/apiKey (config.llm.*),
-  // NOT a hard-coded ollama. Previously this always probed ollama unless you
-  // passed --provider, so a user on volcengine/openai/etc. (and the JetBrains
-  // "Configure LLM" wizard, which calls `cc llm test`) got a spurious
-  // "fetch failed" against a local ollama they never ran. Any non-ollama
-  // built-in provider is OpenAI-compatible, so they share one /chat/completions
-  // probe instead of only special-casing openai.
+  // Defaults to the configured provider/model/baseUrl/apiKey (config.llm.*),
+  // not a hard-coded Ollama endpoint. The probe routes Ollama, Anthropic, and
+  // Gemini through their native protocols and uses chat/completions for the
+  // remaining OpenAI-compatible providers.
   llm
     .command("test")
     .description(

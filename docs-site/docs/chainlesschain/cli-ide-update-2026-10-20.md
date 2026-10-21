@@ -1,6 +1,22 @@
-# CLI .108 / IDE .153 与 .170 发行状态与升级指南
+# CLI .109 / IDE .154 与 .171 发行状态与升级指南
 
 ## 概述
+
+本文记录 CLI 0.166.109 与 IDE 0.37.154 / 0.4.171 的当前配套发布状态和升级步骤。
+
+## Current release: CLI .109 / IDE .154 and .171
+
+npm CLI **0.166.109** is public; exact-source gates and registry readback passed on source `2f14fd409bdf1fd39abc4b0a94cc6db280feae48` ([Actions](https://github.com/chainlesschain/chainlesschain/actions/runs/39545080716), [npm registry](https://www.npmjs.com/package/chainlesschain/v/0.166.109)).
+
+The immutable IDE tags ide-vscode-v0.37.154 and ide-jetbrains-v0.4.171 define the Open VSX and JetBrains artifacts paired with public CLI 0.166.109. Each tag workflow publishes its artifact and verifies marketplace state after the exact-commit IDE gates pass. JetBrains may remain pending review after a successful upload. Microsoft VS Code Marketplace remains unpublished.
+
+Install the paired CLI with `npm i -g chainlesschain@0.166.109 --registry https://registry.npmjs.org`, then restart the IDE chat host and run `cc doctor`.
+
+## Next release candidate: CLI .111 / IDE .155 and .172
+
+These source candidates are not published. Session Core **0.3.21** must publish before CLI **0.166.112**. The IDE extensions pair with that CLI and will publish only after its exact-commit Linux, Windows, and macOS gates pass and npm readback verifies the package.
+
+## Previous verified snapshot: CLI .108 / IDE .153 and .170
 
 <!-- release108-status -->
 

@@ -215,7 +215,7 @@ describe("chat-core — onUsage callback", () => {
         { role: "user", content: "hi" },
       ],
       "claude-opus-4-6",
-      "https://api.anthropic.com/v1",
+      "https://api.anthropic.com/v1/",
       "sk-ant-test",
       (t) => tokens.push(t),
       (u) => usages.push(u),
@@ -250,6 +250,9 @@ describe("chat-core — onUsage callback", () => {
       () => {},
     );
     const body = JSON.parse(fetchSpy.mock.calls[0][1].body);
+    expect(fetchSpy.mock.calls[0][0]).toBe(
+      "https://api.anthropic.com/v1/messages",
+    );
     expect(body.system).toBe("sys prompt");
     expect(body.messages).toEqual([{ role: "user", content: "hi" }]);
     const headers = fetchSpy.mock.calls[0][1].headers;

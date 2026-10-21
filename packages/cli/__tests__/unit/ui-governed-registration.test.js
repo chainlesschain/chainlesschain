@@ -5,9 +5,16 @@ const runtime = vi.hoisted(() => ({
   create: vi.fn(),
   ui: vi.fn(),
   start: vi.fn(),
+  load: vi.fn(),
 }));
 vi.mock("../../src/runtime/runtime-factory.js", () => ({
   createAgentRuntimeFactory: runtime.create,
+}));
+vi.mock("../../src/lib/evolution/evolution-deployment-loader.js", () => ({
+  loadEvolutionDeploymentCommandDependencies: runtime.load,
+}));
+vi.mock("../../src/lib/logger.js", () => ({
+  logger: { error: vi.fn(), warn: vi.fn() },
 }));
 import { registerUiCommand } from "../../src/commands/ui.js";
 
@@ -21,6 +28,7 @@ describe("governed UI registration", () => {
       runtime.ui.mockReturnValue({ startUiServer: runtime.start });
       runtime.start.mockResolvedValue(undefined);
       const factory = vi.fn();
+      runtime.load.mockResolvedValue({ evolutionCompositionFactory: factory });
       const program = new Command();
       registerUiCommand(
         program,
@@ -28,8 +36,14 @@ describe("governed UI registration", () => {
       );
       await program.parseAsync(["node", "cc", "ui", "--no-open"]);
       expect(runtime.create).toHaveBeenCalledWith({
-        deps: configured ? { evolutionCompositionFactory: factory } : {},
+        deps: { evolutionCompositionFactory: factory },
       });
+      expect(runtime.load).toHaveBeenCalledTimes(configured ? 0 : 1);
+      if (!configured) {
+        expect(runtime.load).toHaveBeenCalledWith("ui", {
+          initializeDefaultLocalUi: true,
+        });
+      }
       expect(runtime.ui).toHaveBeenCalledWith(
         expect.objectContaining({ open: false }),
       );

@@ -9,6 +9,13 @@ import {
  */
 
 import { BUILT_IN_PROVIDERS } from "./llm-providers.js";
+import { normalizeOllamaBaseUrl } from "./ollama-base-url.js";
+import {
+  geminiGenerateContentUrl,
+  geminiRequestBody,
+  normalizeProviderBaseUrl,
+  openAICompatibleBaseUrl,
+} from "./provider-protocol.js";
 
 async function* responseLines(body) {
   const reader = body.getReader();
@@ -51,8 +58,9 @@ export async function* ollamaTokenStream({
   signal,
   requireCompletion = false,
 }) {
+  const normalizedBaseUrl = normalizeOllamaBaseUrl(baseUrl);
   const res = await providerFetch(
-    `${baseUrl}/api/${messages ? "chat" : "generate"}`,
+    `${normalizedBaseUrl}/api/${messages ? "chat" : "generate"}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -96,7 +104,9 @@ export async function* openAIStream({
   requireCompletion = false,
 }) {
   const governed = hasFormalBudgetProviderScope();
-  const res = await providerFetch(`${baseUrl}/chat/completions`, {
+  const res = await providerFetch(
+    `${normalizeProviderBaseUrl(baseUrl)}/chat/completions`,
+    {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -109,7 +119,8 @@ export async function* openAIStream({
       ...(governed ? { stream_options: { include_usage: true } } : {}),
     }),
     signal,
-  });
+    },
+  );
   if (!res.ok || !res.body) {
     throw new Error(`${res.status} ${res.statusText}`);
   }
@@ -137,6 +148,126 @@ export async function* openAIStream({
   }
   if (requireCompletion && !completed)
     throw new Error("OpenAI stream ended before its completion marker");
+}
+
+export async function* geminiTokenStream({
+  baseUrl,
+  apiKey,
+  model,
+  prompt,
+  messages,
+  signal,
+  requireCompletion = false,
+}) {
+  const requestMessages = messages ?? [{ role: "user", content: prompt }];
+  const res = await providerFetch(
+    geminiGenerateContentUrl(baseUrl, model, { stream: true }),
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": apiKey,
+      },
+      body: JSON.stringify(geminiRequestBody(requestMessages)),
+      signal,
+    },
+  );
+  if (!res.ok || !res.body) {
+    throw new Error(`Gemini ${res.status} ${res.statusText}`);
+  }
+
+  let completed = false;
+  for await (const raw of responseLines(res.body)) {
+    const line = raw.trim();
+    if (!line.startsWith("data:")) continue;
+    const payload = line.slice(5).trim();
+    if (!payload || payload === "[DONE]") continue;
+    try {
+      const data = JSON.parse(payload);
+      if (requireCompletion && data.error)
+        throw new Error("Gemini stream returned an error");
+      const candidate = data.candidates?.[0];
+      if (candidate?.finishReason || data.promptFeedback?.blockReason)
+        completed = true;
+      for (const part of candidate?.content?.parts || []) {
+        if (part?.thought !== true && typeof part?.text === "string")
+          yield part.text;
+      }
+    } catch (error) {
+      if (requireCompletion) throw error;
+      /* skip malformed chunks when completion isn't enforced */
+    }
+  }
+  if (requireCompletion && !completed)
+    throw new Error("Gemini stream ended before its completion marker");
+}
+
+export async function* anthropicTokenStream({
+  baseUrl,
+  apiKey,
+  model,
+  prompt,
+  messages,
+  signal,
+  requireCompletion = false,
+}) {
+  const requestMessages = messages ?? [{ role: "user", content: prompt }];
+  const system = requestMessages
+    .filter((message) => message.role === "system")
+    .map((message) => message.content)
+    .join("\n\n");
+  const turns = requestMessages
+    .filter((message) => message.role !== "system")
+    .map((message) => ({
+      role: message.role === "assistant" ? "assistant" : "user",
+      content: message.content,
+    }));
+  const res = await providerFetch(
+    `${normalizeProviderBaseUrl(baseUrl)}/messages`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: 4096,
+        stream: true,
+        ...(system ? { system } : {}),
+        messages: turns,
+      }),
+      signal,
+    },
+  );
+  if (!res.ok || !res.body) {
+    throw new Error(`Anthropic ${res.status} ${res.statusText}`);
+  }
+
+  let completed = false;
+  for await (const raw of responseLines(res.body)) {
+    const line = raw.trim();
+    if (!line.startsWith("data:")) continue;
+    const payload = line.slice(5).trim();
+    if (!payload) continue;
+    try {
+      const data = JSON.parse(payload);
+      if (requireCompletion && (data.error || data.type === "error"))
+        throw new Error("Anthropic stream returned an error");
+      if (data.type === "message_stop") completed = true;
+      if (
+        data.type === "content_block_delta" &&
+        typeof data.delta?.text === "string"
+      )
+        yield data.delta.text;
+    } catch (error) {
+      if (requireCompletion) throw error;
+      /* skip malformed chunks when completion isn't enforced */
+    }
+  }
+  if (requireCompletion && !completed)
+    throw new Error("Anthropic stream ended before its completion marker");
 }
 
 /**
@@ -172,8 +303,36 @@ export function buildProviderSource(provider, opts = {}) {
       `API key required for ${provider} (--api-key or ${def.apiKeyEnv})`,
     );
   }
+  if (provider === "anthropic") {
+    return anthropicTokenStream({
+      baseUrl: baseUrl || def.baseUrl,
+      apiKey: finalKey,
+      model: model || def.models[0],
+      prompt,
+      messages,
+      signal,
+      requireCompletion,
+    });
+  }
+  if (provider === "gemini") {
+    return geminiTokenStream({
+      baseUrl:
+        baseUrl ||
+        def.baseUrl ||
+        "https://generativelanguage.googleapis.com/v1beta",
+      apiKey: finalKey,
+      model: model || def.models[0],
+      prompt,
+      messages,
+      signal,
+      requireCompletion,
+    });
+  }
   return openAIStream({
-    baseUrl: baseUrl || def.baseUrl,
+    baseUrl: openAICompatibleBaseUrl(
+      provider,
+      normalizeProviderBaseUrl(baseUrl || def.baseUrl),
+    ),
     apiKey: finalKey,
     model: model || def.models[0],
     prompt,

@@ -760,9 +760,9 @@ export function registerSessionCommand(program, dependencies = {}) {
         const ingress = composition.evolutionIngress;
         await ingress.start();
         const lifecycle = await startChatRepl({
-          model: options.model || sess.model || "qwen2:7b",
+          model: options.model || sess.model,
           provider: options.provider || sess.provider || "ollama",
-          baseUrl: options.baseUrl || "http://localhost:11434",
+          baseUrl: options.baseUrl,
           resumeMessages: sess.messages,
           sessionId: sess.id,
           evolutionIngress: ingress,

@@ -518,11 +518,13 @@ describe("authenticated fresh Registry provisioning before Registry construction
             typeof options?.input === "string"
               ? JSON.parse(options.input)
               : null;
+          const nativeParentDir = path.toNamespacedPath(request.parentDir);
+          // secure-fs uses an extended path for native Windows inspection.
           if (
             !injected &&
             inspection?.operation === "inspect" &&
             inspection.targets.length === 1 &&
-            inspection.targets[0] === request.parentDir
+            inspection.targets[0] === nativeParentDir
           ) {
             expect(result.error).toBeUndefined();
             expect(result.status, result.stderr).toBe(0);
@@ -530,7 +532,7 @@ describe("authenticated fresh Registry provisioning before Registry construction
             const entries = Array.isArray(parsed) ? parsed : [parsed];
             expect(entries).toEqual([
               expect.objectContaining({
-                target: request.parentDir,
+                target: nativeParentDir,
                 exists: true,
                 ok: true,
               }),

@@ -22,6 +22,7 @@ import { EvolutionRunLedgerAdapter } from "./evolution-run-ledger-adapter.js";
 import { createEvolutionRunWikiEvidenceResolver } from "./evolution-run-wiki-evidence-resolver.js";
 import { WikiMaintainerLedgerAdapter } from "./wiki-maintainer-ledger-adapter.js";
 import { EvidenceBackedWikiMaintainer } from "./evidence-backed-wiki-maintainer.js";
+import { ensureDirectoryTreeDurable } from "./evolution-windows-directory-durability.js";
 import { createWikiEvidenceCommitGuard } from "./wiki-evidence-commit-guard.js";
 import { EvolutionWorkbenchMetricsLedgerAdapter } from "./evolution-workbench-metrics-ledger-adapter.js";
 import { EvolutionReleaseTrainLedgerAdapter } from "./evolution-release-train-ledger-adapter.js";
@@ -158,7 +159,7 @@ function normalizeClock(clock) {
   });
 }
 
-function layout(stateRootDir, tenantId, runId, initialize = true) {
+function layout(stateRootDir, tenantId, runId, initialize = true, fsImpl = fs) {
   if (typeof stateRootDir !== "string" || stateRootDir.trim() === "") {
     throw new TypeError("stateRootDir is required");
   }
@@ -176,11 +177,12 @@ function layout(stateRootDir, tenantId, runId, initialize = true) {
     ledgerAuthorityRootDir: path.join(scope, "ledger-authority"),
     witnessFilePath: path.join(scope, "witness", "checkpoint.json"),
   });
-  if (initialize)
-    fs.mkdirSync(path.dirname(result.witnessFilePath), {
-      recursive: true,
-      mode: 0o700,
-    });
+  if (initialize) {
+    ensureDirectoryTreeDurable(
+      fsImpl,
+      path.dirname(result.witnessFilePath),
+    );
+  }
   return result;
 }
 
@@ -408,7 +410,7 @@ export function createAgentEvolutionRuntimeComposition({
   capture(authorities.witness?.signer, "sign", "witness signer");
   capture(authorities.witness?.verifier, "verify", "witness verifier");
   assertIndependentSigningAuthorities(authorities.ledger, authorities.witness);
-  const storage = layout(stateRootDir, tenantId, runId);
+  const storage = layout(stateRootDir, tenantId, runId, true, fsImpl ?? fs);
   const artifactPorts = new EvolutionArtifactPorts({
     tenantId,
     audience,
@@ -712,6 +714,7 @@ export function createAgentEvolutionRuntimeComposition({
         tenantId,
         sourceRunId,
         false,
+        fsImpl ?? fs,
       );
       if (!fs.existsSync(sourceStorage.witnessFilePath))
         throw new Error("Cache source Run witness does not exist");

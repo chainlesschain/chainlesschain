@@ -3,6 +3,58 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.112",
+      "cliVersions": ["0.166.112"],
+      "date": "2026-10-21",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.112: retain generated Evolution test signing keys (candidate, 2026-10-21)",
+          "body": "- Preserve the supplied private signing-key path when saving an explicit Evolution test deployment, so generated test deployments remain usable after configuration.\n- Align Windows ACL fixtures with Session Core's extended-path PowerShell protocol while keeping CLI-facing paths unchanged.\n- Pair VS Code 0.37.155 and JetBrains 0.4.172 with CLI 0.166.112. Publish Session Core 0.3.21 first, then CLI through the exact-SHA GitHub Actions OIDC workflow; publish IDE extensions only after npm readback succeeds."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
+      "cliVersion": "0.166.111",
+      "cliVersions": ["0.166.111"],
+      "date": "2026-10-21",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.111: route every configured provider correctly (candidate, 2026-10-21)",
+          "body": "- Route Gemini Quick Ask, `cc ask`, interactive chat and `cc stream` through Google's native `generateContent` API; keep agent and Hub compatibility clients on Google's `/v1beta/openai` endpoint.\n- Send Anthropic through its native Messages API in `cc ask` and `cc stream`; keep OpenAI-compatible providers and configured proxies on `/chat/completions`.\n- Remove trailing slashes before provider endpoint paths, send Gemini credentials in headers, and avoid reusing a different provider's saved model, URL or API key after a provider override.\n- Publish Session Core 0.3.21 before this CLI release for the Windows long-path ACL fix used by signed local Quick Ask storage.\n- Pair IDE candidates VS Code 0.37.155 and JetBrains 0.4.172 with CLI 0.166.111 after the public CLI package is available."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
+      "cliVersion": "0.166.110",
+      "cliVersions": ["0.166.110"],
+      "date": "2026-10-21",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.110: normalize Ollama native API URLs (candidate, 2026-10-21)",
+          "body": "- Strip an optional trailing `/v1` from Ollama base URLs before native `/api/*` requests across agent chat, streaming chat, model probes, and provider checks, preventing requests such as `/v1/api/chat` from returning 404.\n- Save Ollama connection settings with the native API base URL while preserving `/v1` on OpenAI-compatible providers.\n- Initialize a user-scoped signed Evolution host on the first `cc ui` launch when no deployment exists, removing manual signature setup from Quick Ask while keeping the local authority limited to UI model turns and bound to each run.\n- Add a verified Windows local NTFS directory flush for local UI evidence before witness CAS; unsupported profile storage fails during initialization rather than after starting Quick Ask.\n- Child npm package versions remain unchanged. IDE extensions are not part of this CLI release."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
+      "cliVersion": "0.166.109",
+      "cliVersions": ["0.166.109"],
+      "date": "2026-10-21",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.109: use saved LLM settings for Web Panel Quick Ask (candidate, 2026-10-21)",
+          "body": "- Resolve the selected provider, endpoint, model, and API key from current saved CLI settings for Web Panel Quick Ask requests.\n- Avoid pairing credentials with a different saved endpoint during concurrent config updates, and keep provider/environment fallback behavior explicit.\n- Normalize Ollama endpoints that include the OpenAI-compatible `/v1` suffix before sending Ollama requests.\n- Child npm package versions remain unchanged. IDE extensions are not part of this CLI release."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.108",
       "cliVersions": ["0.166.108"],
       "date": "2026-10-20",

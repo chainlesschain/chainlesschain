@@ -11,6 +11,13 @@ import { providerFetch } from "./formal-budget-provider-scope.js";
  */
 
 import { BUILT_IN_PROVIDERS } from "./llm-providers.js";
+import { normalizeOllamaBaseUrl } from "./ollama-base-url.js";
+import {
+  geminiGenerateContentUrl,
+  geminiRequestBody,
+  geminiUsage,
+  normalizeProviderBaseUrl,
+} from "./provider-protocol.js";
 import { appendTokenUsage } from "../harness/jsonl-session-store.js";
 import {
   isRetryableStreamError,
@@ -134,18 +141,21 @@ export async function streamOllama(
   guard.bump();
   let response;
   try {
-    response = await providerFetch(`${baseUrl}/api/chat`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model,
-        messages,
-        stream: true,
-      }),
-      signal: options.signal
-        ? AbortSignal.any([guard.signal, options.signal])
-        : guard.signal,
-    });
+    response = await providerFetch(
+      `${normalizeOllamaBaseUrl(baseUrl)}/api/chat`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model,
+          messages,
+          stream: true,
+        }),
+        signal: options.signal
+          ? AbortSignal.any([guard.signal, options.signal])
+          : guard.signal,
+      },
+    );
   } catch (e) {
     guard.stop();
     throw guard.stalled() && !isFormalBudgetError(e)
@@ -249,7 +259,9 @@ export async function streamOpenAI(
   guard.bump();
   let response;
   try {
-    response = await providerFetch(`${baseUrl}/chat/completions`, {
+    response = await providerFetch(
+      `${normalizeProviderBaseUrl(baseUrl)}/chat/completions`,
+      {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -266,7 +278,8 @@ export async function streamOpenAI(
       signal: options.signal
         ? AbortSignal.any([guard.signal, options.signal])
         : guard.signal,
-    });
+      },
+    );
   } catch (e) {
     guard.stop();
     throw guard.stalled() && !isFormalBudgetError(e)
@@ -394,7 +407,9 @@ export async function streamAnthropic(
   guard.bump();
   let response;
   try {
-    response = await providerFetch(`${baseUrl}/messages`, {
+    response = await providerFetch(
+      `${normalizeProviderBaseUrl(baseUrl)}/messages`,
+      {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -411,7 +426,8 @@ export async function streamAnthropic(
       signal: options.signal
         ? AbortSignal.any([guard.signal, options.signal])
         : guard.signal,
-    });
+      },
+    );
   } catch (e) {
     guard.stop();
     throw guard.stalled() && !isFormalBudgetError(e)
@@ -517,6 +533,128 @@ export async function streamAnthropic(
   return fullResponse;
 }
 
+/** Stream Google's native Gemini generateContent SSE API. */
+export async function streamGemini(
+  messages,
+  model,
+  baseUrl,
+  apiKey,
+  onToken,
+  onUsage,
+  onStall,
+  options = {},
+) {
+  const guard = makeStallGuard(STREAM_STALL_MS, { onHint: onStall });
+  guard.bump();
+  let response;
+  try {
+    response = await providerFetch(
+      geminiGenerateContentUrl(baseUrl, model, { stream: true }),
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey,
+        },
+        body: JSON.stringify(geminiRequestBody(messages)),
+        signal: options.signal
+          ? AbortSignal.any([guard.signal, options.signal])
+          : guard.signal,
+      },
+    );
+  } catch (error) {
+    guard.stop();
+    throw guard.stalled() && !isFormalBudgetError(error)
+      ? new Error(
+          `Gemini request stalled (no response in ${STREAM_STALL_MS / 1000}s)`,
+        )
+      : error;
+  }
+
+  if (!response.ok || !response.body) {
+    guard.stop();
+    throw attachStreamRetryMetadata(
+      new Error(`Gemini error: ${response.status} ${response.statusText}`),
+      captureStreamRetryMetadata(response),
+    );
+  }
+
+  const retryMetadata = captureStreamRetryMetadata(response);
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let fullResponse = "";
+  let completed = false;
+  let latestUsage = null;
+
+  const consumeLine = async (raw) => {
+    const line = raw.trim();
+    if (!line.startsWith("data:")) return;
+    const payload = line.slice(5).trim();
+    if (!payload || payload === "[DONE]") return;
+    const data = JSON.parse(payload);
+    if (data.error) {
+      throw new Error(
+        typeof data.error.message === "string"
+          ? data.error.message
+          : "Gemini stream returned an error",
+      );
+    }
+    const candidate = data.candidates?.[0];
+    if (candidate?.finishReason || data.promptFeedback?.blockReason)
+      completed = true;
+    const usage = geminiUsage(data);
+    if (usage) latestUsage = usage;
+    for (const part of candidate?.content?.parts || []) {
+      if (part?.thought === true || typeof part?.text !== "string") continue;
+      fullResponse += part.text;
+      await _deliverToken(onToken, part.text, guard, options);
+    }
+  };
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      guard.bump();
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+      for (const line of lines) {
+        try {
+          await consumeLine(line);
+        } catch (error) {
+          if (
+            options.requireCompletion ||
+            error?.isOutputBackpressureFailure === true
+          )
+            throw error;
+          // Non-governed streaming keeps its historical best-effort parsing.
+        }
+      }
+    }
+    buffer += decoder.decode();
+    if (buffer.trim()) await consumeLine(buffer);
+  } catch (error) {
+    throw attachStreamRetryMetadata(
+      guard.stalled() && !isFormalBudgetError(error)
+        ? new Error(
+            `Gemini stream stalled (no data in ${STREAM_STALL_MS / 1000}s)`,
+          )
+        : error,
+      retryMetadata,
+    );
+  } finally {
+    guard.stop();
+  }
+
+  if (latestUsage && onUsage) onUsage(latestUsage);
+  options.signal?.throwIfAborted();
+  if (options.requireCompletion && !completed)
+    throw new Error("Model stream ended before its completion marker");
+  return fullResponse;
+}
+
 /**
  * Async generator that streams a chat response.
  *
@@ -578,10 +716,9 @@ export async function* chatStream(messages, options) {
       );
   } else if (provider === "anthropic") {
     const providerDef = BUILT_IN_PROVIDERS.anthropic;
-    const url =
-      baseUrl && baseUrl !== "http://localhost:11434"
-        ? baseUrl
-        : providerDef?.baseUrl || "https://api.anthropic.com/v1";
+    const url = normalizeProviderBaseUrl(
+      baseUrl || providerDef?.baseUrl || "https://api.anthropic.com/v1",
+    );
     const key =
       apiKey ||
       (providerDef?.apiKeyEnv ? process.env[providerDef.apiKeyEnv] : null);
@@ -601,12 +738,37 @@ export async function* chatStream(messages, options) {
         options.onStall,
         options,
       );
+  } else if (provider === "gemini") {
+    const providerDef = BUILT_IN_PROVIDERS.gemini;
+    const url = normalizeProviderBaseUrl(
+      baseUrl ||
+        providerDef?.baseUrl ||
+        "https://generativelanguage.googleapis.com/v1beta",
+    );
+    const key =
+      apiKey ||
+      (providerDef?.apiKeyEnv ? process.env[providerDef.apiKeyEnv] : null);
+    if (!key) {
+      throw new Error(
+        `API key required for gemini (set ${providerDef?.apiKeyEnv || "GEMINI_API_KEY"})`,
+      );
+    }
+    providerCall = () =>
+      streamGemini(
+        messages,
+        model,
+        url,
+        key,
+        onToken,
+        onUsage,
+        options.onStall,
+        options,
+      );
   } else {
     const providerDef = BUILT_IN_PROVIDERS[provider];
-    const url =
-      baseUrl !== "http://localhost:11434"
-        ? baseUrl
-        : providerDef?.baseUrl || "https://api.openai.com/v1";
+    const url = normalizeProviderBaseUrl(
+      baseUrl || providerDef?.baseUrl || "https://api.openai.com/v1",
+    );
     const key =
       apiKey ||
       (providerDef?.apiKeyEnv ? process.env[providerDef.apiKeyEnv] : null);

@@ -198,6 +198,7 @@ export function makeRunnableProviderFallback(
     // swap ONLY the model to the provider's own default so the call succeeds.
     if (
       nonEmpty(options.provider) &&
+      inferProviderFromBaseUrl(options.baseUrl) === options.provider &&
       modelForeignToProvider(options.provider, options.model)
     ) {
       const def = defaultModelFor(options.provider);

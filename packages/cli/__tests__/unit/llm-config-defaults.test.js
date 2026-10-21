@@ -11,6 +11,7 @@ import {
   reconcileConfigLlmProvider,
   inheritedModelCompatible,
 } from "../../src/lib/llm-config-defaults.js";
+import { resolveLlmConnection } from "../../src/lib/llm-connection-resolution.js";
 
 const CFG = {
   provider: "volcengine",
@@ -56,6 +57,18 @@ describe("applyConfigLlmDefaults", () => {
     );
     expect(o.baseUrl).toBe("http://my-proxy");
     expect(o.apiKey).toBe("sk-mine");
+  });
+
+  it("does not reuse a saved key or model when the same provider targets another endpoint", () => {
+    const resolved = resolveLlmConnection(
+      { provider: "volcengine", baseUrl: "http://127.0.0.1:8787/v1" },
+      [CFG],
+      { env: {} },
+    );
+    expect(resolved.endpointSources).toEqual([]);
+    expect(resolved.apiKey).toBeNull();
+    expect(resolved.model).toBe("deepseek-v4-1-flash-260910");
+    expect(resolved.baseUrl).toBe("http://127.0.0.1:8787/v1");
   });
 
   it("an explicit --model survives; a settings-leaked model is replaced", () => {

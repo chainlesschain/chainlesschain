@@ -685,6 +685,16 @@ export function createEvolutionFileWitness({
   };
 
   const syncDirectory = (directoryPath = directory) => {
+    const directorySync = Object.getOwnPropertyDescriptor(
+      fsImpl,
+      "syncDirectorySync",
+    );
+    if (directorySync) {
+      if (typeof directorySync.value !== "function") {
+        throw new Error("syncDirectorySync must be a data function");
+      }
+      return Reflect.apply(directorySync.value, fsImpl, [directoryPath]);
+    }
     let descriptor;
     try {
       descriptor = fsImpl.openSync(directoryPath, "r");

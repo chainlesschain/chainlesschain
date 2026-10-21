@@ -56,26 +56,12 @@ export async function reconcileConfigLlmProvider(cfgLlm = {}) {
   return { llm: corrected, changed: true };
 }
 
-import { resolveApiKeyFromHelper } from "./api-key-helper.js";
 import { modelForeignToProvider } from "./runnable-provider.js";
-
-/**
- * Key backfill order: config llm.apiKey (plaintext, legacy) first, then
- * llm.apiKeyHelper (external command → OS credential store). The helper only
- * runs when no key is otherwise present, so configured setups never pay a
- * subprocess spawn.
- */
-function backfillApiKey(options, cfgLlm) {
-  if (options.apiKey) return;
-  if (cfgLlm.apiKey) {
-    options.apiKey = cfgLlm.apiKey;
-  } else if (cfgLlm.apiKeyHelper) {
-    const key = resolveApiKeyFromHelper(cfgLlm.apiKeyHelper);
-    if (key) options.apiKey = key;
-  }
-}
+import { resolveLlmConnection } from "./llm-connection-resolution.js";
 
 export function applyConfigLlmDefaults(options = {}, cfgLlm = {}, opts = {}) {
+  const connection = resolveLlmConnection(options, [cfgLlm]);
+  const configMatchesTarget = connection.endpointSources.includes(cfgLlm);
   // The IDE chat panel pins --provider/--model (read from config) but DROPS
   // --base-url/--api-key. With an explicit --provider the block below bails, so
   // a cloud provider would lose its endpoint + key → a 401, or a silent
@@ -84,31 +70,34 @@ export function applyConfigLlmDefaults(options = {}, cfgLlm = {}, opts = {}) {
   // baseUrl/apiKey (and model) from config — it's the SAME provider, so its
   // credentials are exactly right. Mixing config into a DIFFERENT explicit
   // provider is still avoided (handled by the early return below).
-  if (
-    options.provider &&
-    cfgLlm.provider &&
-    options.provider === cfgLlm.provider
-  ) {
-    if (!options.baseUrl && cfgLlm.baseUrl) options.baseUrl = cfgLlm.baseUrl;
+  if (options.provider && configMatchesTarget) {
+    if (!options.baseUrl && cfgLlm.baseUrl) options.baseUrl = connection.baseUrl;
     if (options.serviceTier == null && cfgLlm.serviceTier != null)
       options.serviceTier = cfgLlm.serviceTier;
-    backfillApiKey(options, cfgLlm);
+    if (!options.apiKey && connection.apiKey) options.apiKey = connection.apiKey;
     if (!options.model && !opts.explicitModel && cfgLlm.model) {
       options.model = cfgLlm.model;
     }
     return options;
   }
-  if (options.provider || !cfgLlm.provider) return options;
-  options.provider = cfgLlm.provider;
-  if (options.serviceTier == null && cfgLlm.serviceTier != null)
+  if (options.provider) {
+    if (!options.apiKey && connection.apiKey) options.apiKey = connection.apiKey;
+    return options;
+  }
+  if (!cfgLlm.provider) return options;
+  options.provider = connection.provider;
+  if (configMatchesTarget && options.serviceTier == null && cfgLlm.serviceTier != null)
     options.serviceTier = cfgLlm.serviceTier;
   if (opts.explicitModel) {
     options.model = opts.explicitModel;
-  } else if (cfgLlm.model) {
+  } else if (configMatchesTarget && cfgLlm.model) {
     options.model = cfgLlm.model;
+  } else if (!configMatchesTarget) {
+    options.model = connection.model;
   }
-  if (!options.baseUrl && cfgLlm.baseUrl) options.baseUrl = cfgLlm.baseUrl;
-  backfillApiKey(options, cfgLlm);
+  if (configMatchesTarget && !options.baseUrl && cfgLlm.baseUrl)
+    options.baseUrl = connection.baseUrl;
+  if (!options.apiKey && connection.apiKey) options.apiKey = connection.apiKey;
   return options;
 }
 

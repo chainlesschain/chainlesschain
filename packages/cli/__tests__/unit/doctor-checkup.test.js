@@ -20,6 +20,9 @@ import {
 import { tmpdir } from "node:os";
 import { generateKeyPairSync, sign as signBytes } from "node:crypto";
 import * as deploymentConfig from "../../src/lib/evolution/evolution-deployment-config.js";
+import privateStorage from "@chainlesschain/session-core/private-storage";
+
+const { _windowsExtendedPath } = privateStorage;
 
 /** Dir-agnostic fake fs deps: nothing exists except what the test opts into. */
 function fakeDeps(overrides = {}) {
@@ -478,7 +481,9 @@ describe("doctor-checkup", () => {
       fix: { id: "repair-private-storage", safe: true },
     });
     expect(powershellCalls).toHaveLength(1);
-    expect(powershellCalls[0].request.targets).toContain(sessionFile);
+    expect(powershellCalls[0].request.targets).toContain(
+      _windowsExtendedPath(sessionFile),
+    );
 
     const results = await runCheckupFixes(sections, { deps });
     expect(results).toContainEqual(

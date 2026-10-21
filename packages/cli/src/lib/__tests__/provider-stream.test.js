@@ -4,10 +4,9 @@
  * provider-stream tests (previously untested) — the token-stream parsers behind
  * `cc stream` and the Hosted Session stream.run route. Pins the bug-prone
  * streaming parse logic: Ollama NDJSON (yield response, stop on done, line
- * buffering across chunk boundaries, skip malformed) and OpenAI-style SSE
- * (yield delta.content, stop on [DONE], skip non-data/empty), error on non-ok,
- * plus buildProviderSource routing (ollama defaults / known-provider endpoint +
- * Authorization / unsupported / missing-key). fetch is stubbed; no network.
+ * buffering across chunk boundaries, skip malformed), OpenAI-style SSE, and
+ * native Anthropic/Gemini SSE. Also pins protocol routing, completion markers,
+ * authentication headers, and URL normalization. fetch is stubbed; no network.
  */
 
 import { describe, it, expect, afterEach, vi } from "vitest";
@@ -171,6 +170,73 @@ describe("buildProviderSource", () => {
         headers: expect.objectContaining({ Authorization: "Bearer sk-x" }),
       }),
     );
+  });
+
+  it("normalizes a trailing slash on OpenAI-compatible provider bases", async () => {
+    const fetchMock = mockFetch(["data: [DONE]\n"]);
+    vi.stubGlobal("fetch", fetchMock);
+    await collect(
+      buildProviderSource("deepseek", {
+        baseUrl: "https://api.deepseek.com/v1/",
+        apiKey: "sk-x",
+        prompt: "hi",
+      }),
+    );
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      "https://api.deepseek.com/v1/chat/completions",
+    );
+  });
+
+  it("routes Gemini through its native SSE API without putting the key in the URL", async () => {
+    const fetchMock = mockFetch([
+      'data: {"candidates":[{"content":{"parts":[{"thought":true,"text":"private"},{"text":"hello"}]}}]}\n',
+      'data: {"candidates":[{"finishReason":"STOP"}]}\n',
+    ]);
+    vi.stubGlobal("fetch", fetchMock);
+    const out = await collect(
+      buildProviderSource("gemini", {
+        apiKey: "secret",
+        model: "gemini-2.0-flash",
+        baseUrl: "https://generativelanguage.googleapis.com/v1beta/",
+        prompt: "hello",
+        requireCompletion: true,
+      }),
+    );
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(url).toBe(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent?alt=sse",
+    );
+    expect(url).not.toContain("secret");
+    expect(options.headers["x-goog-api-key"]).toBe("secret");
+    expect(out).toEqual(["hello"]);
+  });
+
+  it("routes Anthropic through native Messages SSE with a trimmed base URL", async () => {
+    const fetchMock = mockFetch([
+      'data: {"type":"content_block_delta","delta":{"text":"hello"}}\n',
+      'data: {"type":"message_stop"}\n',
+    ]);
+    vi.stubGlobal("fetch", fetchMock);
+    const out = await collect(
+      buildProviderSource("anthropic", {
+        apiKey: "secret",
+        model: "claude-haiku-4-5-20251001",
+        baseUrl: "https://api.anthropic.com/v1/",
+        messages: [
+          { role: "system", content: "be concise" },
+          { role: "user", content: "hello" },
+        ],
+        requireCompletion: true,
+      }),
+    );
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(url).toBe("https://api.anthropic.com/v1/messages");
+    expect(options.headers["x-api-key"]).toBe("secret");
+    expect(JSON.parse(options.body)).toMatchObject({
+      system: "be concise",
+      messages: [{ role: "user", content: "hello" }],
+    });
+    expect(out).toEqual(["hello"]);
   });
 
   it("throws for an unsupported provider", () => {

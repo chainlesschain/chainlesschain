@@ -29,7 +29,16 @@ import { captureAgentEvolutionRuntimeComposition } from "../lib/evolution/agent-
 import { captureAgentEvolutionIngress } from "../lib/evolution/agent-evolution-ingress.js";
 import { logger } from "../lib/logger.js";
 import { BUILT_IN_PROVIDERS } from "../lib/llm-providers.js";
+import { normalizeOllamaBaseUrl } from "../lib/ollama-base-url.js";
+import {
+  geminiGenerateContentUrl,
+  geminiRequestBody,
+  geminiResponseText,
+  normalizeProviderBaseUrl,
+  openAICompatibleBaseUrl,
+} from "../lib/provider-protocol.js";
 import { loadConfig } from "../lib/config-manager.js";
+import { resolveLlmConnection } from "../lib/llm-connection-resolution.js";
 import { expandFileRefs } from "../runtime/file-ref-expander.js";
 
 const ANDROID_LOCAL_OLLAMA_URL = "http://127.0.0.1:18484";
@@ -71,6 +80,33 @@ export function resolveOllamaBaseUrl({
   }
   if (config.llm && config.llm.baseUrl) return config.llm.baseUrl;
   return "http://localhost:11434";
+}
+
+export function resolveAskOptions(
+  options = {},
+  config = {},
+  env = process.env,
+) {
+  const connection = resolveLlmConnection(options, [config.llm || {}], { env });
+  const provider = connection.provider;
+  const resolved = {
+    model: connection.model || (provider === "ollama" ? "qwen2:7b" : null),
+    provider,
+    apiKey: connection.apiKey,
+    baseUrl: connection.baseUrl,
+  };
+  if (provider === "ollama") {
+    resolved.baseUrl = resolveOllamaBaseUrl({
+      options,
+      env,
+      config:
+        config.llm?.provider === "ollama" &&
+        connection.endpointSources.includes(config.llm)
+          ? config
+          : {},
+    });
+  }
+  return resolved;
 }
 
 /**
@@ -115,7 +151,8 @@ export async function queryLLM(
     throw error;
   }
   const provider = options.provider || "ollama";
-  const model = options.model || "qwen2:7b";
+  const model =
+    options.model || BUILT_IN_PROVIDERS[provider]?.models?.[0] || "qwen2:7b";
   const messages = [{ role: "user", content: question }];
   const providerMessages = (
     await captureAgentEvolutionIngress(evolutionIngress).prepareModelRequest({
@@ -139,7 +176,7 @@ export async function queryLLM(
   }
 
   if (provider === "ollama") {
-    const baseUrl = options.baseUrl || "http://localhost:11434";
+    const baseUrl = normalizeOllamaBaseUrl(options.baseUrl);
     // Use /api/chat (modern Ollama API + only endpoint Android LocalLlmServer
     // implements). Non-streaming mode keeps the response shape simple.
     const response = await providerFetch(`${baseUrl}/api/chat`, {
@@ -167,7 +204,6 @@ export async function queryLLM(
     return data.message?.content ?? "";
   }
 
-  // OpenAI-compatible providers (openai, volcengine, deepseek, dashscope, mistral, gemini)
   const providerDef = BUILT_IN_PROVIDERS[provider];
   if (!providerDef) {
     throw new Error(
@@ -185,7 +221,59 @@ export async function queryLLM(
   }
 
   const apiBase = options.baseUrl || providerDef.baseUrl;
-  const response = await providerFetch(`${apiBase}/chat/completions`, {
+  if (provider === "anthropic") {
+    const response = await providerFetch(
+      `${normalizeProviderBaseUrl(apiBase)}/messages`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: 4096,
+          messages: providerMessages,
+        }),
+      },
+    );
+    if (!response.ok) {
+      throw new Error(
+        `anthropic error: ${response.status} ${response.statusText}`,
+      );
+    }
+    const data = await response.json();
+    return (
+      data.content
+        ?.filter((part) => part.type === "text")
+        .map((part) => part.text)
+        .join("") || ""
+    );
+  }
+
+  if (provider === "gemini") {
+    const response = await providerFetch(
+      geminiGenerateContentUrl(apiBase, model),
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey,
+        },
+        body: JSON.stringify(geminiRequestBody(providerMessages)),
+      },
+    );
+    if (!response.ok) {
+      throw new Error(`gemini error: ${response.status} ${response.statusText}`);
+    }
+    const data = await response.json();
+    return geminiResponseText(data);
+  }
+
+  const response = await providerFetch(
+    `${openAICompatibleBaseUrl(provider, apiBase)}/chat/completions`,
+    {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -195,7 +283,8 @@ export async function queryLLM(
       model: model || providerDef.models[0],
       messages: providerMessages,
     }),
-  });
+    },
+  );
 
   if (!response.ok) {
     throw new Error(
@@ -252,26 +341,12 @@ export function registerAskCommand(program, dependencies = {}) {
     .option("--json", "Output as JSON")
     .action(async (question, options) => {
       const config = loadConfig();
-      const provider = options.provider || config.llm?.provider || "ollama";
-      const resolvedOptions = {
-        model: options.model || config.llm?.model || "qwen2:7b",
-        provider,
-        apiKey: options.apiKey || config.llm?.apiKey,
-      };
+      const resolvedOptions = resolveAskOptions(options, config);
+      const { provider } = resolvedOptions;
       // baseUrl resolution only applies the Android-local override path for
       // provider=ollama (LocalLlmServer is Ollama-compat). For other providers
       // we use the existing precedence: --base-url > config.llm.baseUrl >
       // provider default.
-      if (provider === "ollama") {
-        resolvedOptions.baseUrl = resolveOllamaBaseUrl({
-          options,
-          env: process.env,
-          config,
-        });
-      } else {
-        resolvedOptions.baseUrl = options.baseUrl || config.llm?.baseUrl;
-      }
-
       // Expand @path references (e.g. `cc ask "summarize @notes.md"`) before
       // sending to the model. The original question is preserved for --json
       // output; only the LLM sees the injected file contents.

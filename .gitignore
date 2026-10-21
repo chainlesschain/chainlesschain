@@ -19,6 +19,9 @@ dist/
 build/
 out/
 
+.w/
+.tmp/
+
 # Scratch / debug artifacts dumped at repo root (screenshots, UI dumps, etc.)
 build_tmp*
 

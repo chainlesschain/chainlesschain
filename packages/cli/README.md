@@ -4,23 +4,17 @@ Command-line interface for installing, configuring, and managing [ChainlessChain
 
 ## Package version and IDE pairing
 
-<!-- release108-status -->
+<!-- release112-status -->
 
-This package version is **0.166.108**.
+This package source prepares **0.166.112** for release; it is not public until the exact-commit GitHub Actions gates and OIDC npm workflow finish.
 
-Checked on 2026-10-21:
+CLI 0.166.112 retains the generated signing-key path for explicit Evolution test deployments. It also includes the provider routing fixes prepared in 0.166.111: Gemini uses its native API for Quick Ask and one-shot/streaming chat, while Gemini's OpenAI-compatible agent and Hub clients use the `/v1beta/openai` path. Anthropic uses native Messages APIs; OpenAI-compatible providers and proxies use `/chat/completions`. Endpoint paths trim trailing slashes, Gemini keys stay in headers, and explicit provider overrides do not inherit another provider's saved credentials. Session Core 0.3.21 contains the Windows long-path ACL fix needed by signed local Quick Ask storage. CLI 0.166.110 also normalizes Ollama `/v1` suffixes and initializes the signed local Quick Ask host. Repository Python dispatch diagnostics are excluded from the npm package.
 
-npm CLI **0.166.108**: public; exact-source gates and public artifact readback verified; source `e77c7ba85783576ac523dd73bc760bda63d91f3b`; [Actions 1](https://github.com/chainlesschain/chainlesschain/actions/runs/39484583983); [receipt](https://github.com/chainlesschain/chainlesschain/blob/08ffc589ec0f0c7ad5af87eb54c5efcce739a2f9/docs/research/cli/evidence/release108-public/publication.json).
+The latest public pairing remains CLI **0.166.109**, Open VSX **0.37.154** and JetBrains Marketplace **0.4.171**. Source candidates VS Code **0.37.155** and JetBrains **0.4.172** recommend CLI **0.166.112** and must publish after the CLI is available. The CLI candidate pins Session Core **0.3.21**; Agent SDK 0.2.15, Context/Memory Kernel 0.1.10 and Personal Data Hub 0.4.65 stay unchanged.
 
-Open VSX **0.37.153**: public; exact-source gates and public artifact readback verified; source `e77c7ba85783576ac523dd73bc760bda63d91f3b`; [Actions 1](https://github.com/chainlesschain/chainlesschain/actions/runs/39486919504); [receipt](https://github.com/chainlesschain/chainlesschain/blob/08ffc589ec0f0c7ad5af87eb54c5efcce739a2f9/docs/research/cli/evidence/release108-public/publication.json).
+To install the current public CLI release, run `npm i -g chainlesschain@0.166.109 --registry https://registry.npmjs.org`. The candidate remains subject to the exact-commit Linux, Windows, and macOS CLI CI and Strict Sandbox gates, followed by the GitHub Actions OIDC npm workflow. Do not publish the IDE candidates until the CLI version is available from npm.
 
-JetBrains Marketplace **0.4.170**: public; exact-source gates and public artifact readback verified; source `e77c7ba85783576ac523dd73bc760bda63d91f3b`; [Actions 1](https://github.com/chainlesschain/chainlesschain/actions/runs/39486921296/attempts/2); [receipt](https://github.com/chainlesschain/chainlesschain/blob/08ffc589ec0f0c7ad5af87eb54c5efcce739a2f9/docs/research/cli/evidence/release108-public/publication.json).
-
-No new model-task retest was run for this release. Historical `.105/.150/.167` generation and independent acceptance each collected **20/20** records and added **6** passes. Cumulative cross-version accepted deliveries remain **31/45** (**26/36** ordinary, **5/9** first-run), with **14** unaccepted; this is not a .108 single-round success rate. **NOT_PAID_READY**, **NOT_ADMITTED** and automatic promotion **HOLD** remain. Microsoft Marketplace remains unpublished. Native product **v5.0.3.140** is a separate release; desktop integration still requires matching builds, desktop authorization and native confirmation.
-
-CLI 0.166.108 preserves complete tool rounds during session recovery and compaction, adds bounded repeated-read guidance, and persists background-worker terminal results under state-lock contention. IDE 0.37.153 / 0.4.170 pair with CLI 0.166.108. Repository Python dispatch diagnostics are excluded from the npm package. Child versions remain unchanged: Agent SDK 0.2.15, Session Core 0.3.20, Context/Memory Kernel 0.1.10 and Personal Data Hub 0.4.65.
-
-Public Open VSX 0.37.153 and JetBrains Marketplace 0.4.170 recommend public CLI 0.166.108. All three channels have passed exact-source release gates and public artifact verification.
+No new model-task retest was run for this release. Historical `.105/.150/.167` generation and independent acceptance each collected **20/20** records and added **6** passes. Cumulative cross-version accepted deliveries remain **31/45** (**26/36** ordinary, **5/9** first-run), with **14** unaccepted; this is not a .109 single-round success rate. **NOT_PAID_READY**, **NOT_ADMITTED** and automatic promotion **HOLD** remain. Microsoft Marketplace remains unpublished. Native product **v5.0.3.140** is a separate release; desktop integration still requires matching builds, desktop authorization and native confirmation.
 
 ### Verified public snapshot (2026-10-20, before .108 publication)
 
@@ -86,10 +80,10 @@ Explicit Linux durable permissions require administrator provisioning. Cross-pro
 
 ## Quick Start
 
-Install the publicly verified CLI version:
+Install the CLI version published by this release:
 
 ```bash
-npm install -g chainlesschain@0.166.108 --registry https://registry.npmjs.org
+npm install -g chainlesschain@0.166.109 --registry https://registry.npmjs.org
 chainlesschain setup
 ```
 

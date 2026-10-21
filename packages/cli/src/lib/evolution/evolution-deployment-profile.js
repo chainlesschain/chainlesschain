@@ -124,7 +124,7 @@ function normalizeProfile(value) {
   const deploymentMode = beforeDeploymentMode
     ? "managed"
     : value.deploymentMode;
-  if (!["managed", "test"].includes(deploymentMode))
+  if (!["managed", "test", "local"].includes(deploymentMode))
     throw new TypeError("evolution deployment profile mode is invalid");
   const testPrivateKeyPath = beforeDeploymentMode
     ? null
@@ -133,7 +133,7 @@ function normalizeProfile(value) {
     (deploymentMode === "test" &&
       (typeof testPrivateKeyPath !== "string" ||
         !isAbsolute(testPrivateKeyPath))) ||
-    (deploymentMode === "managed" && testPrivateKeyPath !== null)
+    (deploymentMode !== "test" && testPrivateKeyPath !== null)
   ) {
     throw new TypeError(
       "evolution deployment profile test private key path is invalid",

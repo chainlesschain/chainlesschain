@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { MockDatabase } from "../helpers/mock-db.js";
 import {
   BUILT_IN_PROVIDERS,
@@ -109,6 +109,34 @@ describe("LLM Providers", () => {
       const ollama = registry.get("ollama");
       expect(ollama).toBeTruthy();
       expect(ollama.name).toBe("ollama");
+    });
+
+    it("tests Gemini with a header key and its native generateContent URL", async () => {
+      const previousFetch = globalThis.fetch;
+      const previousKey = process.env.GEMINI_API_KEY;
+      const fetchMock = vi.fn(async () => ({
+        ok: true,
+        json: async () => ({
+          candidates: [{ content: { parts: [{ text: "Hi" }] } }],
+        }),
+      }));
+      process.env.GEMINI_API_KEY = "gemini-secret";
+      globalThis.fetch = fetchMock;
+      try {
+        await expect(
+          registry.testProvider("gemini", "gemini-2.0-flash"),
+        ).resolves.toMatchObject({ ok: true, response: "Hi" });
+        const [url, options] = fetchMock.mock.calls[0];
+        expect(url).toBe(
+          "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+        );
+        expect(url).not.toContain("gemini-secret");
+        expect(options.headers["x-goog-api-key"]).toBe("gemini-secret");
+      } finally {
+        globalThis.fetch = previousFetch;
+        if (previousKey === undefined) delete process.env.GEMINI_API_KEY;
+        else process.env.GEMINI_API_KEY = previousKey;
+      }
     });
 
     it("should return null for unknown provider", () => {

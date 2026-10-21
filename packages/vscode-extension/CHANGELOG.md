@@ -2,6 +2,16 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.155] - CLI 0.166.112 pairing (candidate, 2026-10-21)
+
+- Recommend CLI 0.166.112 for native Gemini and Anthropic Quick Ask routing and provider URL normalization.
+- Candidate tag: `ide-vscode-v0.37.155`. Publish after CLI 0.166.112 is available on npm and the exact-source IDE gates pass.
+
+## [0.37.154] - CLI 0.166.109 pairing (2026-10-21)
+
+- Recommend CLI 0.166.109, which fixes saved LLM settings routing for Web Panel Quick Ask. This extension release updates its compatible CLI recommendation; it does not change extension runtime behavior.
+- Release tag: `ide-vscode-v0.37.154`. The exact-source IDE gates and Open VSX artifact readback are recorded by the tagged workflow.
+
 ## [0.37.153] - Session recovery and CLI 0.166.108 (2026-10-21)
 
 <!-- release108-status -->
