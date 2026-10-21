@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.109",
+      "cliVersions": ["0.166.109"],
+      "date": "2026-10-21",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.109: use saved LLM settings for Web Panel Quick Ask (candidate, 2026-10-21)",
+          "body": "- Resolve the selected provider, endpoint, model, and API key from current saved CLI settings for Web Panel Quick Ask requests.\n- Avoid pairing credentials with a different saved endpoint during concurrent config updates, and keep provider/environment fallback behavior explicit.\n- Normalize Ollama endpoints that include the OpenAI-compatible `/v1` suffix before sending Ollama requests.\n- Child npm package versions remain unchanged. IDE extensions are not part of this CLI release."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.108",
       "cliVersions": ["0.166.108"],
       "date": "2026-10-20",

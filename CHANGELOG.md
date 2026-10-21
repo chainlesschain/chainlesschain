@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.109: use saved LLM settings for Web Panel Quick Ask (candidate, 2026-10-21)
+
+- Resolve the selected provider, endpoint, model, and API key from current saved CLI settings for Web Panel Quick Ask requests.
+- Avoid pairing credentials with a different saved endpoint during concurrent config updates, and keep provider/environment fallback behavior explicit.
+- Normalize Ollama endpoints that include the OpenAI-compatible `/v1` suffix before sending Ollama requests.
+- Child npm package versions remain unchanged. IDE extensions are not part of this CLI release.
+
 ### Fixed - cc CLI 0.166.108: recover complete tool history and durable worker results (candidate, 2026-10-20)
 
 - Preserve canonical assistant/tool rounds, complete tool results and provenance through compaction, history paging, export and session recovery, including interactive and headless resumes.
