@@ -2,6 +2,7 @@ import { formatProviderResponseError } from "./provider-http-error.js";
 import { estimateCost } from "./llm-pricing.js";
 import { providerFetch } from "./formal-budget-provider-scope.js";
 import { isFormalBudgetError } from "./formal-budget-errors.js";
+import { normalizeOllamaBaseUrl } from "./ollama-base-url.js";
 
 // Reasoning models spend the same output allowance on thinking before the
 // final answer. A 16-token probe can therefore receive HTTP 200 with only
@@ -139,7 +140,10 @@ export async function probeLlmConnection(
   target,
   { fetchImpl = fetch, timeoutMs = 20_000, includeUsage = false } = {},
 ) {
-  const base = target.baseUrl.replace(/\/+$/, "");
+  const base =
+    target.provider === "ollama"
+      ? normalizeOllamaBaseUrl(target.baseUrl)
+      : target.baseUrl.replace(/\/+$/, "");
   const headers = { "Content-Type": "application/json" };
   let url, body;
   if (target.provider === "ollama") {

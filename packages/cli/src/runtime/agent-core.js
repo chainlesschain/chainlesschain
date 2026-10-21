@@ -3,6 +3,11 @@ import {
   requireUnscopedToolExecution,
 } from "../lib/formal-budget-provider-scope.js";
 import { isFormalBudgetError } from "../lib/formal-budget-errors.js";
+import { normalizeOllamaBaseUrl } from "../lib/ollama-base-url.js";
+import {
+  normalizeProviderBaseUrl,
+  openAICompatibleBaseUrl,
+} from "../lib/provider-protocol.js";
 /**
  * Agent Core — transport-independent agentic logic
  *
@@ -12143,7 +12148,7 @@ export async function chatWithTools(rawMessages, options) {
   await options.onProviderCallStart?.();
 
   if (provider === "ollama") {
-    const apiUrl = `${baseUrl}/api/chat`;
+    const apiUrl = `${normalizeOllamaBaseUrl(baseUrl)}/api/chat`;
     // Multimodal (`cc agent --image`): ollama wants `{content, images:[base64]}`
     // not OpenAI-style `image_url` blocks. Convert only when an image part is
     // present so text-only runs keep the identical request shape.
@@ -12307,10 +12312,11 @@ export async function chatWithTools(rawMessages, options) {
         : systemText;
     }
 
-    const url =
+    const url = normalizeProviderBaseUrl(
       baseUrl && baseUrl !== "http://localhost:11434"
         ? baseUrl
-        : "https://api.anthropic.com/v1";
+        : "https://api.anthropic.com/v1",
+    );
 
     // Real token streaming (--include-partial-messages): stream the SSE response
     // and forward text deltas live, assembling tool_use blocks back into the
@@ -12419,10 +12425,12 @@ export async function chatWithTools(rawMessages, options) {
     volcengine: "VOLCENGINE_API_KEY",
   };
 
-  const url =
+  const url = openAICompatibleBaseUrl(
+    provider,
     baseUrl && baseUrl !== "http://localhost:11434"
       ? baseUrl
-      : providerUrls[provider];
+      : providerUrls[provider],
+  );
 
   if (!url) {
     throw new Error(

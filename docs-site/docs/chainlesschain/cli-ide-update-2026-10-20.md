@@ -12,6 +12,10 @@ The immutable IDE tags ide-vscode-v0.37.154 and ide-jetbrains-v0.4.171 define th
 
 Install the paired CLI with `npm i -g chainlesschain@0.166.109 --registry https://registry.npmjs.org`, then restart the IDE chat host and run `cc doctor`.
 
+## Next release candidate: CLI .111 / IDE .155 and .172
+
+These source candidates are not published. Session Core **0.3.21** must publish before CLI **0.166.111**. The IDE extensions pair with that CLI and will publish only after its exact-commit Linux, Windows, and macOS gates pass and npm readback verifies the package.
+
 ## Previous verified snapshot: CLI .108 / IDE .153 and .170
 
 <!-- release108-status -->

@@ -5,6 +5,7 @@ import {
   providerFetch,
   requireUnscopedModelTransport,
 } from "../formal-budget-provider-scope.js";
+import { normalizeOllamaBaseUrl } from "../ollama-base-url.js";
 
 const { createAuthenticatedEvolutionModelClient } = createRequire(
   import.meta.url,
@@ -102,7 +103,7 @@ function captureHubTransport(llm, sdk) {
             ? AbortSignal.any([controller.signal, options.signal])
             : controller.signal;
           const response = await providerFetch(
-            `${baseUrl}/api/chat`,
+            `${normalizeOllamaBaseUrl(baseUrl)}/api/chat`,
             {
               method: "POST",
               headers: { "Content-Type": "application/json" },

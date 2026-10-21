@@ -12,6 +12,11 @@ import { LLMProviderRegistry, BUILT_IN_PROVIDERS } from "./llm-providers.js";
 import { loadConfig } from "./config-manager.js";
 import { applyConfigLlmDefaults } from "./llm-config-defaults.js";
 import { captureAgentEvolutionIngress } from "./evolution/agent-evolution-ingress.js";
+import { normalizeOllamaBaseUrl } from "./ollama-base-url.js";
+import {
+  normalizeProviderBaseUrl,
+  openAICompatibleBaseUrl,
+} from "./provider-protocol.js";
 
 function plainUsage(value) {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -175,17 +180,20 @@ export function createChatFn(options = {}) {
         currentModel,
         async ({ signal = opts.signal || resolved.signal } = {}) => {
           const modelMessages = await prepareMessages();
-          const res = await providerFetch(`${baseUrl}/api/chat`, {
-            method: "POST",
-            signal: requestSignal(signal),
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              model: currentModel,
-              messages: modelMessages,
-              stream: false,
-              options: { num_predict: maxTokens },
-            }),
-          });
+          const res = await providerFetch(
+            `${normalizeOllamaBaseUrl(baseUrl)}/api/chat`,
+            {
+              method: "POST",
+              signal: requestSignal(signal),
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                model: currentModel,
+                messages: modelMessages,
+                stream: false,
+                options: { num_predict: maxTokens },
+              }),
+            },
+          );
           if (!res.ok) throw new Error(`Ollama error: ${res.status}`);
           const data = await res.json();
           return chatEnvelope(
@@ -215,7 +223,9 @@ export function createChatFn(options = {}) {
               ? { system: systemMsgs.map((m) => m.content).join("\n") }
               : {}),
           };
-          const res = await providerFetch(`${baseUrl}/messages`, {
+          const res = await providerFetch(
+            `${normalizeProviderBaseUrl(baseUrl)}/messages`,
+            {
             method: "POST",
             signal: requestSignal(signal),
             headers: {
@@ -224,7 +234,8 @@ export function createChatFn(options = {}) {
               "anthropic-version": "2023-06-01",
             },
             body: JSON.stringify(body),
-          });
+            },
+          );
           if (!res.ok) throw new Error(`Anthropic error: ${res.status}`);
           const data = await res.json();
           return chatEnvelope(
@@ -246,7 +257,9 @@ export function createChatFn(options = {}) {
       currentModel,
       async ({ signal = opts.signal || resolved.signal } = {}) => {
         const modelMessages = await prepareMessages();
-        const res = await providerFetch(`${baseUrl}/chat/completions`, {
+        const res = await providerFetch(
+          `${openAICompatibleBaseUrl(provider, baseUrl)}/chat/completions`,
+          {
           method: "POST",
           signal: requestSignal(signal),
           headers: {
@@ -258,7 +271,8 @@ export function createChatFn(options = {}) {
             messages: modelMessages,
             max_tokens: maxTokens,
           }),
-        });
+          },
+        );
         if (!res.ok) throw new Error(`API error: ${res.status}`);
         const data = await res.json();
         return chatEnvelope(

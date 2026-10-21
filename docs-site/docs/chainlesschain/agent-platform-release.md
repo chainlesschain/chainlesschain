@@ -20,6 +20,10 @@ cc doctor
 
 The Microsoft VS Code Marketplace remains unpublished; the VS Code release channel is Open VSX.
 
+## Next release candidate: CLI .111 / IDE .155 and .172
+
+The source candidate adds provider-specific routing for Gemini, Anthropic, OpenAI-compatible providers, and configured proxies across CLI chat paths. It has not been published. Session Core **0.3.21** must publish before CLI **0.166.111**; VS Code **0.37.155** and JetBrains **0.4.172** follow only after the exact CLI release commit passes the required Linux, Windows, and macOS gates and the npm artifact is verified.
+
 ## Previous verified release: CLI .108 / IDE .153 and .170
 
 <!-- release108-status -->

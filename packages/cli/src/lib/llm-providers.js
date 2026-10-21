@@ -7,6 +7,11 @@
  */
 import { providerFetch } from "./formal-budget-provider-scope.js";
 import { isFormalBudgetError } from "./formal-budget-errors.js";
+import { normalizeOllamaBaseUrl } from "./ollama-base-url.js";
+import {
+  geminiGenerateContentUrl,
+  normalizeProviderBaseUrl,
+} from "./provider-protocol.js";
 export const BUILT_IN_PROVIDERS = {
   ollama: {
     name: "ollama",
@@ -345,11 +350,18 @@ export class LLMProviderRegistry {
     const testModel = model || provider.models[0];
 
     if (name === "ollama") {
-      const res = await _fetchWithTimeout(`${provider.baseUrl}/api/generate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: testModel, prompt: "Hi", stream: false }),
-      });
+      const res = await _fetchWithTimeout(
+        `${normalizeOllamaBaseUrl(provider.baseUrl)}/api/generate`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: testModel,
+            prompt: "Hi",
+            stream: false,
+          }),
+        },
+      );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       return {
@@ -363,23 +375,32 @@ export class LLMProviderRegistry {
       const key = this.getApiKey(name);
       if (!key) throw new Error("GEMINI_API_KEY not set");
       const res = await _fetchWithTimeout(
-        `${provider.baseUrl}/models/${testModel}:generateContent?key=${key}`,
+        geminiGenerateContentUrl(provider.baseUrl, testModel),
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": key,
+          },
           body: JSON.stringify({ contents: [{ parts: [{ text: "Hi" }] }] }),
         },
       );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      const text =
+        data.candidates?.[0]?.content?.parts
+          ?.filter((part) => part?.thought !== true)
+          ?.map((part) => part?.text || "")
+          ?.join("") || "";
       return { ok: true, elapsed: Date.now() - start, response: text.trim() };
     }
 
     if (name === "anthropic") {
       const key = this.getApiKey(name);
       if (!key) throw new Error("ANTHROPIC_API_KEY not set");
-      const res = await _fetchWithTimeout(`${provider.baseUrl}/messages`, {
+      const res = await _fetchWithTimeout(
+        `${normalizeProviderBaseUrl(provider.baseUrl)}/messages`,
+        {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -391,7 +412,8 @@ export class LLMProviderRegistry {
           max_tokens: 10,
           messages: [{ role: "user", content: "Hi" }],
         }),
-      });
+        },
+      );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       const text = data.content?.[0]?.text || "";
@@ -402,7 +424,7 @@ export class LLMProviderRegistry {
     const key = this.getApiKey(name);
     if (!key) throw new Error(`${provider.apiKeyEnv} not set`);
     const res = await _fetchWithTimeout(
-      `${provider.baseUrl}/chat/completions`,
+      `${normalizeProviderBaseUrl(provider.baseUrl)}/chat/completions`,
       {
         method: "POST",
         headers: {

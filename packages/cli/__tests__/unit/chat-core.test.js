@@ -14,11 +14,26 @@ vi.mock("../../src/lib/llm-providers.js", () => ({
       baseUrl: "https://api.openai.com/v1",
       apiKeyEnv: "OPENAI_API_KEY",
     },
+    anthropic: {
+      name: "anthropic",
+      baseUrl: "https://api.anthropic.com/v1",
+      apiKeyEnv: "ANTHROPIC_API_KEY",
+    },
+    gemini: {
+      name: "gemini",
+      baseUrl: "https://generativelanguage.googleapis.com/v1beta",
+      apiKeyEnv: "GEMINI_API_KEY",
+    },
   },
 }));
 
-const { chatStream, chatWithStreaming, streamOllama, streamOpenAI } =
-  await import("../../src/lib/chat-core.js");
+const {
+  chatStream,
+  chatWithStreaming,
+  streamOllama,
+  streamOpenAI,
+  streamGemini,
+} = await import("../../src/lib/chat-core.js");
 
 /**
  * Helper: build a ReadableStream from an array of string chunks.
@@ -62,10 +77,13 @@ describe("streamOllama", () => {
     const result = await streamOllama(
       [{ role: "user", content: "hi" }],
       "test-model",
-      "http://localhost:11434",
+      "http://localhost:11434/v1/",
       (token) => tokens.push(token),
     );
 
+    expect(globalThis.fetch.mock.calls[0][0]).toBe(
+      "http://localhost:11434/api/chat",
+    );
     expect(tokens).toEqual(["Hello", " world"]);
     expect(result).toBe("Hello world");
   });
@@ -104,13 +122,16 @@ describe("streamOpenAI", () => {
     const result = await streamOpenAI(
       [{ role: "user", content: "hello" }],
       "gpt-4o",
-      "https://api.openai.com/v1",
+      "https://api.openai.com/v1/",
       "sk-test",
       (token) => tokens.push(token),
     );
 
     expect(tokens).toEqual(["Hi", " there"]);
     expect(result).toBe("Hi there");
+    expect(globalThis.fetch.mock.calls[0][0]).toBe(
+      "https://api.openai.com/v1/chat/completions",
+    );
   });
 
   it("handles [DONE] marker", async () => {
@@ -152,6 +173,59 @@ describe("streamOpenAI", () => {
         () => {},
       ),
     ).rejects.toThrow("API error: 401");
+  });
+});
+
+describe("streamGemini", () => {
+  const originalFetch = globalThis.fetch;
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it("uses Gemini's native streaming protocol, filters thoughts, and records usage", async () => {
+    const chunks = [
+      'data: {"candidates":[{"content":{"parts":[{"thought":true,"text":"private"},{"text":"Hi"}]}}]}\n',
+      'data: {"candidates":[{"content":{"parts":[{"text":" there"}]},"finishReason":"STOP"}],"usageMetadata":{"promptTokenCount":7,"candidatesTokenCount":2,"thoughtsTokenCount":1,"cachedContentTokenCount":3}}\n\n',
+    ];
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      body: makeReadableStream(chunks),
+    });
+    const tokens = [];
+    const usage = [];
+    const result = await streamGemini(
+      [
+        { role: "system", content: "Follow the system rule" },
+        { role: "user", content: "hello" },
+        { role: "assistant", content: "previous reply" },
+      ],
+      "gemini-2.0-flash",
+      "https://generativelanguage.googleapis.com/v1beta/",
+      "secret",
+      (token) => tokens.push(token),
+      (value) => usage.push(value),
+      undefined,
+      { requireCompletion: true },
+    );
+    const [url, request] = globalThis.fetch.mock.calls[0];
+    expect(url).toBe(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent?alt=sse",
+    );
+    expect(request.headers["x-goog-api-key"]).toBe("secret");
+    expect(url).not.toContain("secret");
+    expect(JSON.parse(request.body)).toMatchObject({
+      systemInstruction: { parts: [{ text: "Follow the system rule" }] },
+      contents: [
+        { role: "user", parts: [{ text: "hello" }] },
+        { role: "model", parts: [{ text: "previous reply" }] },
+      ],
+    });
+    expect(tokens).toEqual(["Hi", " there"]);
+    expect(result).toBe("Hi there");
+    expect(usage).toEqual([
+      { inputTokens: 4, outputTokens: 3, cacheReadTokens: 3 },
+    ]);
   });
 });
 
@@ -207,6 +281,31 @@ describe("chatStream", () => {
     const completeEvent = events.find((e) => e.type === "response-complete");
     expect(completeEvent).toBeDefined();
     expect(completeEvent.content).toBe("Full response");
+  });
+
+  it("dispatches Gemini through the native generateContent stream", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      body: makeReadableStream([
+        'data: {"candidates":[{"content":{"parts":[{"text":"Gemini"}]},"finishReason":"STOP"}]}\n',
+      ]),
+    });
+    const events = [];
+    for await (const event of chatStream([{ role: "user", content: "hi" }], {
+      provider: "gemini",
+      model: "gemini-2.0-flash",
+      baseUrl: "https://generativelanguage.googleapis.com/v1beta/",
+      apiKey: "test-key",
+    })) {
+      events.push(event);
+    }
+    expect(globalThis.fetch.mock.calls[0][0]).toContain(
+      "/models/gemini-2.0-flash:streamGenerateContent?alt=sse",
+    );
+    expect(events.at(-1)).toMatchObject({
+      type: "response-complete",
+      content: "Gemini",
+    });
   });
 
   it("requires API key for non-ollama providers", async () => {

@@ -1,4 +1,4 @@
-import "../../../helpers/test-model-egress.js";
+import { createTestEvolutionCompositionFactory } from "../../../helpers/test-model-egress.js";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { EventEmitter } from "node:events";
 
@@ -8,6 +8,10 @@ vi.mock("../../../../src/lib/chat-core.js", () => ({
   streamOllama: vi.fn(),
   streamOpenAI: vi.fn(),
   streamAnthropic: vi.fn(),
+  streamGemini: vi.fn(),
+}));
+vi.mock("../../../../src/lib/logger.js", () => ({
+  logger: new Proxy({}, { get: () => () => {} }),
 }));
 
 import { handleLlmChat } from "../../../../src/gateways/ws/llm-chat-protocol.js";
@@ -15,15 +19,20 @@ import {
   streamOllama,
   streamOpenAI,
   streamAnthropic,
+  streamGemini,
 } from "../../../../src/lib/chat-core.js";
 
-function makeServer({ session = null } = {}) {
+function makeServer({
+  session = null,
+  evolutionCompositionFactory = createTestEvolutionCompositionFactory(),
+} = {}) {
   const sent = [];
   return {
     _send: (_ws, frame) => sent.push(frame),
     sessionManager: session
       ? { getSession: () => session }
       : { getSession: () => null },
+    evolutionCompositionFactory,
     _sent: sent,
   };
 }
@@ -121,6 +130,29 @@ describe("handleLlmChat — frame protocol", () => {
     expect(streamOpenAI).not.toHaveBeenCalled();
   });
 
+  it("fails closed when the host did not provide an evolution factory", async () => {
+    const server = makeServer({ evolutionCompositionFactory: null });
+    const enableKey = Symbol.for("chainlesschain.test.model-egress-enabled");
+    const wasEnabled = globalThis[enableKey];
+    globalThis[enableKey] = false;
+    try {
+      await handleLlmChat(server, "id-no-host", null, {
+        messages: [{ role: "user", content: "hello" }],
+        options: { provider: "ollama" },
+      });
+    } finally {
+      globalThis[enableKey] = wasEnabled;
+    }
+    expect(server._sent.at(-1)).toMatchObject({
+      type: "llm.chat.result",
+      ok: false,
+      error: expect.stringContaining(
+        "Model egress requires an authenticated evolution composition factory",
+      ),
+    });
+    expect(streamOllama).not.toHaveBeenCalled();
+  });
+
   it("explicit options.provider w/o apiKey for cloud → missing_api_key", async () => {
     const server = makeServer();
     await handleLlmChat(server, "id-mk", null, {
@@ -197,6 +229,95 @@ describe("handleLlmChat — frame protocol", () => {
         provider: "volcengine",
         message: { role: "assistant", content: "我是豆包" },
       },
+    });
+  });
+
+  it.each([
+    "openai",
+    "openai-proxy",
+    "deepseek",
+    "dashscope",
+    "mistral",
+    "volcengine",
+    "kimi",
+    "minimax",
+    "anthropic-proxy",
+    "gemini-proxy",
+    "custom",
+  ])("routes %s through the OpenAI-compatible adapter", async (provider) => {
+    streamOpenAI.mockImplementationOnce(
+      async (_messages, _model, url, apiKey, onToken) => {
+        expect(url).toBe("https://proxy.example/v1");
+        expect(apiKey).toBe("proxy-key");
+        onToken("ok");
+        return "ok";
+      },
+    );
+    const server = makeServer();
+    await handleLlmChat(server, `route-${provider}`, null, {
+      messages: [{ role: "user", content: "hello" }],
+      options: {
+        provider,
+        model: "test-model",
+        baseUrl: "https://proxy.example/v1/",
+        apiKey: "proxy-key",
+      },
+    });
+    expect(streamOpenAI).toHaveBeenCalledOnce();
+    expect(streamAnthropic).not.toHaveBeenCalled();
+    expect(streamGemini).not.toHaveBeenCalled();
+    expect(server._sent.at(-1)).toMatchObject({ ok: true });
+  });
+
+  it("routes Anthropic through its native Messages adapter", async () => {
+    streamAnthropic.mockImplementationOnce(
+      async (_messages, _model, url, apiKey, onToken) => {
+        expect(url).toBe("https://api.anthropic.com/v1");
+        expect(apiKey).toBe("anthropic-key");
+        onToken("native");
+        return "native";
+      },
+    );
+    const server = makeServer();
+    await handleLlmChat(server, "route-anthropic", null, {
+      messages: [{ role: "user", content: "hello" }],
+      options: {
+        provider: "anthropic",
+        model: "claude-haiku-4-5-20251001",
+        baseUrl: "https://api.anthropic.com/v1/",
+        apiKey: "anthropic-key",
+      },
+    });
+    expect(streamAnthropic).toHaveBeenCalledOnce();
+    expect(streamOpenAI).not.toHaveBeenCalled();
+    expect(server._sent.at(-1)).toMatchObject({ ok: true });
+  });
+
+  it("uses Gemini's native streaming protocol and provider base URL", async () => {
+    streamGemini.mockImplementation(async (_m, _model, url, key, onToken) => {
+      expect(url).toBe("https://generativelanguage.googleapis.com/v1beta");
+      expect(key).toBe("gemini-key");
+      onToken("native");
+      return "native";
+    });
+    const server = makeServer();
+    await handleLlmChat(server, "id-ge", null, {
+      id: "id-ge",
+      messages: [{ role: "user", content: "hello" }],
+      options: {
+        provider: "gemini",
+        apiKey: "gemini-key",
+        model: "gemini-2.0-flash",
+        baseUrl: "https://generativelanguage.googleapis.com/v1beta/",
+      },
+    });
+    expect(streamGemini).toHaveBeenCalledOnce();
+    expect(streamOpenAI).not.toHaveBeenCalled();
+    const result = server._sent.at(-1);
+    expect(result, result.error).toMatchObject({
+      type: "llm.chat.result",
+      ok: true,
+      result: { provider: "gemini", message: { content: "native" } },
     });
   });
 

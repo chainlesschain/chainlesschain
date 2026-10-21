@@ -76,6 +76,17 @@ describe("LLM custom connection", () => {
     ).toBe("http://localhost:1234/v1");
     expect(() => normalizeLlmConnection({ ...draft, other: true })).toThrow();
   });
+  it("normalizes an Ollama OpenAI-compatible /v1 URL to its native API base", () => {
+    expect(
+      normalizeLlmConnection({
+        ...draft,
+        provider: "ollama",
+        model: "deepseek-r1:7b",
+        baseUrl: "http://localhost:11434/v1/",
+        apiKey: "",
+      }).baseUrl,
+    ).toBe("http://localhost:11434");
+  });
   it("bounds stdin and rejects malformed JSON without echoing it", async () => {
     await expect(
       readLlmConnectionInput(Readable.from([JSON.stringify(draft)])),
@@ -125,14 +136,21 @@ describe("LLM custom connection", () => {
           {
             provider,
             model: "custom",
-            baseUrl: "https://relay.example/v1/",
+            baseUrl:
+              provider === "ollama"
+                ? "http://localhost:11434/v1/"
+                : "https://relay.example/v1/",
             apiKey: "secret",
           },
           { fetchImpl },
         ),
       ).resolves.toBe("Hi");
       const [url, options] = fetchImpl.mock.calls[0];
-      expect(url).toBe("https://relay.example/v1" + suffix);
+      expect(url).toBe(
+        provider === "ollama"
+          ? "http://localhost:11434" + suffix
+          : "https://relay.example/v1" + suffix,
+      );
       expect(url).not.toContain("secret");
       expect(options.redirect).toBe("error");
       if (header) expect(options.headers[header]).toContain("secret");

@@ -1,6 +1,6 @@
 import { createHash, createPublicKey, verify } from "node:crypto";
 import { readFile, realpath } from "node:fs/promises";
-import { isAbsolute } from "node:path";
+import { dirname, isAbsolute, join, resolve } from "node:path";
 import { types as utilTypes } from "node:util";
 import {
   assertEvolutionDeploymentActiveTrustRoot,
@@ -840,6 +840,15 @@ function bindFactoriesToModule(factories, moduleDigest) {
       return factories[name](options);
     };
   }
+  if (typeof factories.createLocalUiEvolutionComposition === "function") {
+    result.createLocalUiEvolutionComposition = (options = {}) => {
+      if (options?.handlerArtifactDigest !== moduleDigest)
+        throw new Error(
+          "Local UI Evolution host digest must equal the authenticated deployment module digest",
+        );
+      return factories.createLocalUiEvolutionComposition(options);
+    };
+  }
   for (const name of [
     "createSkillEvaluatedPromotionProvider",
     "createSkillPromotionReviewProvider",
@@ -1012,19 +1021,32 @@ export async function loadEvolutionDeploymentCommandDependencies(
   commandName,
   {
     env = process.env,
+    cwd = process.cwd(),
     read = readFile,
     resolveRealPath = realpath,
     importModule = (url) => import(url),
     additionalFactories = {},
+    initializeDefaultLocalUi = false,
   } = {},
 ) {
   if (!SUPPORTED_COMMANDS.has(commandName)) return null;
   let descriptorPath = env.CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_DESCRIPTOR;
   let trustRootPath = env.CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_TRUST_ROOT;
+  if (
+    initializeDefaultLocalUi === true &&
+    commandName === "ui" &&
+    !descriptorPath &&
+    !trustRootPath
+  ) {
+    const { initializeDefaultLocalUiEvolutionDeployment } = await import(
+      "./local-ui-evolution-deployment.js"
+    );
+    await initializeDefaultLocalUiEvolutionDeployment({ env, cwd });
+  }
   let fromSavedProfile = false;
   let saved = null;
   if (!descriptorPath && !trustRootPath) {
-    saved = await readEvolutionDeploymentProfile({ env });
+    saved = await readEvolutionDeploymentProfile({ env, cwd });
     if (saved.error) {
       return deniedAgentDependencies(
         commandName,
@@ -1086,6 +1108,23 @@ export async function loadEvolutionDeploymentCommandDependencies(
     throw error;
   }
   const { descriptor, moduleBytes } = verified;
+  const localProfile =
+    fromSavedProfile && saved.profile.deploymentMode === "local";
+  if (localProfile) {
+    const localHostPath = join(
+      dirname(saved.filePath),
+      "local-ui-host",
+      "ui-host.mjs",
+    );
+    if (
+      commandName !== "ui" ||
+      descriptor.commands.length !== 1 ||
+      descriptor.commands[0] !== "ui" ||
+      resolve(verified.modulePath) !== resolve(localHostPath)
+    ) {
+      throw new Error("Local Evolution deployment is not the protected UI host");
+    }
+  }
   if (!descriptor.commands.includes(commandName)) {
     return deniedAgentDependencies(
       commandName,
@@ -1105,8 +1144,24 @@ export async function loadEvolutionDeploymentCommandDependencies(
     throw new Error(
       "evolution deployment module must export createChainlessChainCommandDependencies",
     );
+  const builtIn = await loadBuiltInFactories(commandName);
+  let localFactories = null;
+  if (localProfile) {
+    const { createLocalUiEvolutionComposition } = await import(
+      "./local-ui-evolution-runtime.js"
+    );
+    localFactories = {
+      createLocalUiEvolutionComposition: (options = {}) =>
+        createLocalUiEvolutionComposition({
+          ...options,
+          localDirectory: join(dirname(saved.filePath), "local-ui-host"),
+          env,
+          cwd,
+        }),
+    };
+  }
   const builtInFactories = bindFactoriesToModule(
-    await loadBuiltInFactories(commandName),
+    { ...builtIn, ...(localFactories || {}) },
     descriptor.moduleDigest,
   );
   if (

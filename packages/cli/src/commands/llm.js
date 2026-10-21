@@ -43,6 +43,7 @@ import {
   autoFailStuckRequestsV2,
   getLlmProvidersStatsV2,
 } from "../lib/llm-providers.js";
+import { normalizeOllamaBaseUrl } from "../lib/ollama-base-url.js";
 import {
   readLlmConnectionInput,
   saveLlmConnection,
@@ -253,7 +254,9 @@ export function registerLlmCommand(program) {
       const spinner = ora("Fetching models...").start();
       try {
         if (options.provider === "ollama") {
-          const response = await fetch(`${options.baseUrl}/api/tags`);
+          const response = await fetch(
+            `${normalizeOllamaBaseUrl(options.baseUrl)}/api/tags`,
+          );
           if (!response.ok) {
             throw new Error(`Ollama not reachable: ${response.status}`);
           }
@@ -300,13 +303,10 @@ export function registerLlmCommand(program) {
 
   // llm test - test connectivity
   //
-  // Defaults to the CONFIGURED provider/model/baseUrl/apiKey (config.llm.*),
-  // NOT a hard-coded ollama. Previously this always probed ollama unless you
-  // passed --provider, so a user on volcengine/openai/etc. (and the JetBrains
-  // "Configure LLM" wizard, which calls `cc llm test`) got a spurious
-  // "fetch failed" against a local ollama they never ran. Any non-ollama
-  // built-in provider is OpenAI-compatible, so they share one /chat/completions
-  // probe instead of only special-casing openai.
+  // Defaults to the configured provider/model/baseUrl/apiKey (config.llm.*),
+  // not a hard-coded Ollama endpoint. The probe routes Ollama, Anthropic, and
+  // Gemini through their native protocols and uses chat/completions for the
+  // remaining OpenAI-compatible providers.
   llm
     .command("test")
     .description(

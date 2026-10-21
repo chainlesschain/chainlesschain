@@ -44,6 +44,7 @@ import { providerFetch } from "./formal-budget-provider-scope.js";
 ("use strict");
 
 import { BUILT_IN_PROVIDERS } from "./llm-providers.js";
+import { openAICompatibleBaseUrl } from "./provider-protocol.js";
 
 const LOCAL_SENTINELS = new Set([
   "",
@@ -123,7 +124,10 @@ export function buildCliHubLLM({ config = {}, env = process.env } = {}) {
   if (!provider || provider === "ollama") return null;
 
   const def = BUILT_IN_PROVIDERS[provider] || null;
-  const resolvedBase = baseUrl || (def && def.baseUrl) || null;
+  const resolvedBase = openAICompatibleBaseUrl(
+    provider,
+    baseUrl || (def && def.baseUrl) || null,
+  );
   const resolvedModel = model || (def && def.models && def.models[0]) || null;
   const resolvedKey =
     apiKey || (def && def.apiKeyEnv ? env[def.apiKeyEnv] : null) || null;

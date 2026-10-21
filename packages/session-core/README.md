@@ -4,6 +4,12 @@ Shared session lifecycle, trace, agent definition, memory, approval, sandbox,
 evolution receipt, and recovery primitives used by ChainlessChain Desktop and
 the CLI.
 
+## Release 0.3.21
+
+Fixes Windows PowerShell ACL operations for long local paths by using extended
+Windows paths internally while preserving the caller-facing paths. CLI
+0.166.111 pins this release for signed local Quick Ask evidence storage.
+
 ## Release 0.3.20
 
 Publishes the governed goal drafting, evidence, extension proposal, and draft

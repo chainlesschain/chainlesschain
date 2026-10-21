@@ -5,7 +5,7 @@
  * Ollama (privacy promise), and the OpenAI-compat / Anthropic chat shapes
  * map onto the hub LLMClient contract `{ text, usage?, model? }`.
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import {
   buildCliHubLLM,
   isCloudHubConfigured,
@@ -21,6 +21,8 @@ const VOLC_CFG = {
     apiKey: "sk-volc",
   },
 };
+
+afterEach(() => vi.unstubAllGlobals());
 
 describe("buildCliHubLLM — opt-in resolution", () => {
   it("returns null when CC_HUB_LLM is unset (keeps local Ollama default)", () => {
@@ -71,6 +73,26 @@ describe("buildCliHubLLM — opt-in resolution", () => {
     expect(llm).toBeTruthy();
     // default deepseek model + its own baseUrl, NOT volcengine's creds
     expect(llm.name.startsWith("deepseek:")).toBe(true);
+  });
+
+  it("uses Google's OpenAI-compatible subpath when Hub selects Gemini", async () => {
+    const fetch = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        choices: [{ message: { content: "hello" } }],
+      }),
+    }));
+    vi.stubGlobal("fetch", fetch);
+    const llm = buildCliHubLLM({
+      config: {},
+      env: { CC_HUB_LLM: "gemini", GEMINI_API_KEY: "gemini-key" },
+    });
+    await expect(
+      llm.chat([{ role: "user", content: "hello" }]),
+    ).resolves.toMatchObject({ text: "hello" });
+    expect(fetch.mock.calls[0][0]).toBe(
+      "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+    );
   });
 
   it("returns null when a cloud provider has no key (→ safe local fallback)", () => {

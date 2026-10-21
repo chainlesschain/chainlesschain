@@ -1,4 +1,5 @@
 import { BUILT_IN_PROVIDERS } from "./llm-providers.js";
+import { normalizeOllamaBaseUrl } from "./ollama-base-url.js";
 import {
   setSecretConfigValue,
   updateConfigAtomically,
@@ -65,6 +66,9 @@ export function normalizeLlmConnection(input) {
       "Use the API base path, not a completion/messages endpoint",
     );
   value.baseUrl = url.href.replace(/\/+$/, "");
+  if (value.provider === "ollama") {
+    value.baseUrl = normalizeOllamaBaseUrl(value.baseUrl);
+  }
   return value;
 }
 

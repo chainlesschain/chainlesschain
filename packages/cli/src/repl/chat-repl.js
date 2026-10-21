@@ -46,6 +46,7 @@ import {
   streamOllama,
   streamOpenAI,
   streamAnthropic,
+  streamGemini,
 } from "../lib/chat-core.js";
 import {
   startSession,
@@ -366,8 +367,31 @@ export async function startChatRepl(options = {}) {
           onUsage,
           onStall,
         );
+      } else if (provider === "gemini") {
+        const providerDef = BUILT_IN_PROVIDERS.gemini;
+        const url =
+          baseUrl && baseUrl !== "http://localhost:11434"
+            ? baseUrl
+            : providerDef?.baseUrl ||
+              "https://generativelanguage.googleapis.com/v1beta";
+        const key =
+          apiKey ||
+          (providerDef?.apiKeyEnv ? process.env[providerDef.apiKeyEnv] : null);
+        if (!key)
+          throw new Error(
+            `API key required for gemini (set ${providerDef?.apiKeyEnv || "GEMINI_API_KEY"})`,
+          );
+        response = await streamGemini(
+          providerMessages,
+          model,
+          url,
+          key,
+          onToken,
+          onUsage,
+          onStall,
+        );
       } else {
-        // OpenAI-compatible providers (openai, volcengine, deepseek, dashscope, mistral, gemini, anthropic-proxy)
+        // OpenAI-compatible providers (openai, volcengine, deepseek, dashscope, mistral, anthropic-proxy)
         const providerDef = BUILT_IN_PROVIDERS[provider];
         const url =
           baseUrl !== "http://localhost:11434"

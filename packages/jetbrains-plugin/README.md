@@ -5,6 +5,10 @@ JetBrains counterpart of the [VS Code extension](../vscode-extension/): it lets
 the ChainlessChain **`cc` agent CLI** read editor context and propose native
 diffs inside IntelliJ-platform IDEs (IDEA, PyCharm, WebStorm, …).
 
+## Next release candidate
+
+Source candidate **0.4.172** recommends CLI **0.166.111** for provider protocol fixes. It has not been published. Publish only after CLI 0.166.111 is available on npm and the exact-source IDE gates pass.
+
 ## Current release
 
 <!-- release171-status -->
@@ -60,14 +64,12 @@ See the [upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-u
 
 ## Release compatibility
 
-Push the immutable release tag below to publish JetBrains Marketplace plugin 0.4.171.
-
-Plugin **0.4.171** is the current release candidate in the source metadata;
-this label identifies the source selected for that tag; the tagged workflow uploads it and checks whether Marketplace makes it public or holds it for review..
-The tagged release workflow verifies the uploaded artifact and public listing state; Marketplace review can still keep the new version pending..
-It recommends `chainlesschain@0.166.109`; that CLI's observed status is
-**public; exact-source gates and public artifact readback verified**. See the exact-source Actions and immutable receipts above.
-Session Core `0.3.20` and Context/Memory Kernel `0.1.10` retain independent versions.
+Plugin **0.4.172** is the current release candidate in the source metadata.
+It recommends `chainlesschain@0.166.111`, which must be publicly available before
+the immutable `ide-jetbrains-v0.4.172` tag is published. The tagged workflow
+validates the exact plugin source, uploads it to JetBrains Marketplace, and
+reports whether its listing is public or pending review. Session Core `0.3.21`
+is published before the paired CLI; Context/Memory Kernel `0.1.10` is unchanged.
 Restart the IDE and run Doctor after upgrading. Native task quality and
 restart acceptance still require separate published-package evidence.
 

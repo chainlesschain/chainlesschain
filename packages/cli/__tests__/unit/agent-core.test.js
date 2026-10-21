@@ -22,6 +22,10 @@ import {
   SESSION_MESSAGE_PROVENANCE_SCHEMA,
 } from "../../src/lib/session-message-provenance.js";
 
+vi.mock("../../src/lib/logger.js", () => ({
+  logger: new Proxy({}, { get: () => () => {} }),
+}));
+
 // agent-core accepts only an ingress minted by the production composition
 // root. These unit tests isolate tool-loop behavior, so provide a minimal
 // branded boundary double; production authentication is covered separately.
@@ -1613,7 +1617,7 @@ describe("chatWithTools", () => {
     expect(toolNames).not.toContain("run_code");
   });
 
-  it("Ollama provider: fetch URL contains /api/chat with tools", async () => {
+  it("Ollama provider: strips an OpenAI-style /v1 suffix before /api/chat", async () => {
     let capturedUrl, capturedBody;
     globalThis.fetch = vi.fn().mockImplementation(async (url, opts) => {
       capturedUrl = url;
@@ -1629,10 +1633,10 @@ describe("chatWithTools", () => {
     await chatWithTools([{ role: "user", content: "test" }], {
       provider: "ollama",
       model: "qwen2.5:7b",
-      baseUrl: "http://localhost:11434",
+      baseUrl: "http://localhost:11434/v1/",
     });
 
-    expect(capturedUrl).toContain("/api/chat");
+    expect(capturedUrl).toBe("http://localhost:11434/api/chat");
     expect(capturedBody.tools).toBeDefined();
     expect(capturedBody.tools.length).toBe(28);
     expect(capturedBody.model).toBe("qwen2.5:7b");
@@ -1653,11 +1657,15 @@ describe("chatWithTools", () => {
     await chatWithTools([{ role: "user", content: "test" }], {
       provider: "anthropic",
       model: "claude-sonnet-4-20250514",
+      baseUrl: "https://api.anthropic.com/v1/",
       apiKey: "test-key-123",
     });
 
     expect(capturedHeaders["x-api-key"]).toBe("test-key-123");
     expect(capturedHeaders["anthropic-version"]).toBe("2023-06-01");
+    expect(globalThis.fetch.mock.calls[0][0]).toBe(
+      "https://api.anthropic.com/v1/messages",
+    );
   });
 
   it("OpenAI provider: includes Authorization Bearer header", async () => {
@@ -1681,6 +1689,27 @@ describe("chatWithTools", () => {
     });
 
     expect(capturedHeaders["Authorization"]).toBe("Bearer sk-test-key");
+  });
+
+  it("Gemini provider: resolves the native API root to Google's OpenAI endpoint for agent tools", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        choices: [{ message: { role: "assistant", content: "Hi from Gemini" } }],
+      }),
+    });
+    await chatWithTools([{ role: "user", content: "test" }], {
+      provider: "gemini",
+      model: "gemini-2.0-flash",
+      baseUrl: "https://generativelanguage.googleapis.com/v1beta/",
+      apiKey: "gemini-key",
+      contextMemorySkipPlanning: true,
+    });
+    const [url, options] = globalThis.fetch.mock.calls[0];
+    expect(url).toBe(
+      "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+    );
+    expect(options.headers.Authorization).toBe("Bearer gemini-key");
   });
 
   it("replays a provider tool call without leaking reasoning_content into the next turn", async () => {

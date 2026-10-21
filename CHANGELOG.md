@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.111: route every configured provider correctly (candidate, 2026-10-21)
+
+- Route Gemini Quick Ask, `cc ask`, interactive chat and `cc stream` through Google's native `generateContent` API; keep agent and Hub compatibility clients on Google's `/v1beta/openai` endpoint.
+- Send Anthropic through its native Messages API in `cc ask` and `cc stream`; keep OpenAI-compatible providers and configured proxies on `/chat/completions`.
+- Remove trailing slashes before provider endpoint paths, send Gemini credentials in headers, and avoid reusing a different provider's saved model, URL or API key after a provider override.
+- Publish Session Core 0.3.21 before this CLI release for the Windows long-path ACL fix used by signed local Quick Ask storage.
+- Pair IDE candidates VS Code 0.37.155 and JetBrains 0.4.172 with CLI 0.166.111 after the public CLI package is available.
+
+### Fixed - cc CLI 0.166.110: normalize Ollama native API URLs (candidate, 2026-10-21)
+
+- Strip an optional trailing `/v1` from Ollama base URLs before native `/api/*` requests across agent chat, streaming chat, model probes, and provider checks, preventing requests such as `/v1/api/chat` from returning 404.
+- Save Ollama connection settings with the native API base URL while preserving `/v1` on OpenAI-compatible providers.
+- Initialize a user-scoped signed Evolution host on the first `cc ui` launch when no deployment exists, removing manual signature setup from Quick Ask while keeping the local authority limited to UI model turns and bound to each run.
+- Add a verified Windows local NTFS directory flush for local UI evidence before witness CAS; unsupported profile storage fails during initialization rather than after starting Quick Ask.
+- Child npm package versions remain unchanged. IDE extensions are not part of this CLI release.
+
 ### Fixed - cc CLI 0.166.109: use saved LLM settings for Web Panel Quick Ask (candidate, 2026-10-21)
 
 - Resolve the selected provider, endpoint, model, and API key from current saved CLI settings for Web Panel Quick Ask requests.

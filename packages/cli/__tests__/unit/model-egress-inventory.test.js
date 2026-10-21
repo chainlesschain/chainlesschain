@@ -34,7 +34,6 @@ function importsSourceModule(source, basename) {
 
 const ENDPOINT_CANDIDATES = new Set([
   "commands/ask.js",
-  "commands/llm.js",
   "harness/remote-session-push-fcm.js",
   "harness/remote-session-push-huawei.js",
   "lib/chat-core.js",
@@ -86,7 +85,6 @@ const RAW_TRANSPORT_IMPORTERS = new Map([
 ]);
 
 const PROBE_ONLY = new Set([
-  "commands/llm.js",
   "lib/llm-connection-probe.js",
   "lib/llm-providers.js",
 ]);
@@ -156,7 +154,7 @@ describe("CLI model egress inventory", () => {
         expect(source, importer).toContain(boundary);
         if (importer === "commands/chat.js") {
           expect(source).not.toMatch(
-            /\b(?:chatStream|chatWithStreaming|streamOllama|streamOpenAI|streamAnthropic)\s*\(/u,
+            /\b(?:chatStream|chatWithStreaming|streamOllama|streamOpenAI|streamAnthropic|streamGemini)\s*\(/u,
           );
         }
         if (importer === "commands/hub.js") {

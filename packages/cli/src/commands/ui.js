@@ -1,6 +1,8 @@
 import { logger } from "../lib/logger.js";
 import { createAgentRuntimeFactory } from "../runtime/runtime-factory.js";
 import { readEvolutionCompositionFactory } from "../lib/evolution/governed-model-turn.js";
+import { loadEvolutionDeploymentCommandDependencies } from "../lib/evolution/evolution-deployment-loader.js";
+import { getEvolutionDeploymentStatus } from "../lib/evolution/evolution-deployment-config.js";
 
 export function registerUiCommand(program, dependencies = {}) {
   const evolutionCompositionFactory =
@@ -27,6 +29,29 @@ export function registerUiCommand(program, dependencies = {}) {
     )
     .action(async (opts) => {
       try {
+        let activeEvolutionCompositionFactory = evolutionCompositionFactory;
+        if (activeEvolutionCompositionFactory === null) {
+          let deploymentDependencies = null;
+          let localTrustSetupError = null;
+          try {
+            deploymentDependencies =
+              await loadEvolutionDeploymentCommandDependencies("ui", {
+                initializeDefaultLocalUi: true,
+              });
+          } catch (error) {
+            localTrustSetupError = error;
+          }
+          activeEvolutionCompositionFactory = readEvolutionCompositionFactory(
+            deploymentDependencies || {},
+          );
+          if (activeEvolutionCompositionFactory === null) {
+            const status = await getEvolutionDeploymentStatus();
+            const readiness = status.readiness.ui;
+            logger.warn(
+              `Quick Ask model egress is unavailable (${readiness.code}): ${localTrustSetupError?.message || readiness.detail}. ${readiness.remediation || "Review cc evolution deployment status."}`,
+            );
+          }
+        }
         // Allow env vars to override CLI defaults — host/token/port/uiMode.
         // Use case: Android local terminal app pre-injects CC_UI_HOST=0.0.0.0
         // + a per-install CC_UI_TOKEN so `cc ui` is reachable from other
@@ -47,9 +72,12 @@ export function registerUiCommand(program, dependencies = {}) {
         );
         const runtime = createAgentRuntimeFactory({
           deps:
-            evolutionCompositionFactory === null
+            activeEvolutionCompositionFactory === null
               ? {}
-              : { evolutionCompositionFactory },
+              : {
+                  evolutionCompositionFactory:
+                    activeEvolutionCompositionFactory,
+                },
         }).createUiRuntime({
           port,
           wsPort: parseInt(opts.wsPort, 10),

@@ -329,7 +329,7 @@ function Assert-CcNoReparseTraversal([string]$path) {
     if (($entry.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
       throw "symbolic links and reparse points are not allowed: $($entry.FullName)"
     }
-    $entry = $entry.Parent
+    $entry = if ($entry.PSIsContainer) { $entry.Parent } else { $entry.Directory }
   }
 }
 
@@ -497,7 +497,7 @@ function Assert-CcNoReparseTraversal([string]$path) {
     if (($entry.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
       throw "symbolic links and reparse points are not allowed: $($entry.FullName)"
     }
-    $entry = $entry.Parent
+    $entry = if ($entry.PSIsContainer) { $entry.Parent } else { $entry.Directory }
   }
 }
 
@@ -792,6 +792,19 @@ function _resolveWindowsAclTimeout(
   );
 }
 
+// Windows PowerShell 5 and its .NET Framework provider still applies legacy
+// MAX_PATH handling to ordinary paths, even when Node can access the same
+// object. Keep the caller's path for API results, but use an extended path for
+// every native PowerShell filesystem operation.
+function _windowsExtendedPath(target) {
+  const original = String(target);
+  if (/^\\\\\?\\/u.test(original)) return original;
+  const value = original.replaceAll("/", "\\");
+  if (/^\\\\/u.test(value)) return `\\\\?\\UNC\\${value.slice(2)}`;
+  if (/^[a-z]:\\/iu.test(value)) return `\\\\?\\${value}`;
+  return original;
+}
+
 // Give one cold PowerShell process the full bounded operation budget. Splitting
 // it into two shorter spawns repeatedly kills a slow startup before it can
 // finish (and can leave less time than the native mutex's 10-second wait).
@@ -894,6 +907,7 @@ function repairWindowsAclOnce(target, deps, options) {
 }
 
 function windowsAcl(target, operation, deps) {
+  const nativeTarget = _windowsExtendedPath(target);
   const workingDirectory = _windowsAclWorkingDirectory(process.env, deps.fs);
   const result = runWindowsAclCommand(
     deps,
@@ -905,7 +919,7 @@ function windowsAcl(target, operation, deps) {
       "Bypass",
       "-Command",
       `& { ${WINDOWS_ACL_SCRIPT} }`,
-      target,
+      nativeTarget,
       operation,
     ],
     {
@@ -962,6 +976,7 @@ function windowsAclFailureMarker(details) {
 
 function windowsAclBatch(targets, operation, deps, expectedKind = null) {
   if (targets.length === 0) return [];
+  const nativeTargets = targets.map(_windowsExtendedPath);
   const workingDirectory = _windowsAclWorkingDirectory(process.env, deps.fs);
   const result = runWindowsAclCommand(
     deps,
@@ -978,7 +993,7 @@ function windowsAclBatch(targets, operation, deps, expectedKind = null) {
       encoding: "utf8",
       input: JSON.stringify({
         operation,
-        targets,
+        targets: nativeTargets,
         ...(expectedKind ? { expectedKind } : {}),
       }),
       windowsHide: true,
@@ -1004,7 +1019,8 @@ function windowsAclBatch(targets, operation, deps, expectedKind = null) {
   if (
     !statusOk ||
     details.length !== targets.length ||
-    uniqueDetailTargets.size !== targets.length
+    uniqueDetailTargets.size !== targets.length ||
+    nativeTargets.some((target) => !uniqueDetailTargets.has(target))
   ) {
     const error =
       String(result?.stderr || "").trim() ||
@@ -1017,14 +1033,14 @@ function windowsAclBatch(targets, operation, deps, expectedKind = null) {
     }));
   }
   const byTarget = new Map(details.map((entry) => [entry.target, entry]));
-  return targets.map((target) => {
-    const entry = byTarget.get(target);
+  return targets.map((target, index) => {
+    const entry = byTarget.get(nativeTargets[index]);
     return {
       target,
       exists: entry?.exists !== false,
       ok: entry?.ok === true,
       platform: "win32",
-      details: entry || null,
+      details: entry ? { ...entry, target } : null,
       ...(entry?.errorCode ? { errorCode: entry.errorCode } : {}),
       ...(entry?.ok === true
         ? {}
@@ -1427,6 +1443,7 @@ module.exports = {
   _deps,
   _windowsAclWorkingDirectory,
   _resolveWindowsAclTimeout,
+  _windowsExtendedPath,
   inspectPrivatePaths,
   repairPrivatePaths,
   inspectPrivatePath,

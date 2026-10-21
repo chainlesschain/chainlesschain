@@ -1,6 +1,17 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+vi.mock("ora", () => ({ default: () => ({ start() {}, fail() {}, succeed() {} }) }));
+vi.mock("../../src/lib/logger.js", () => ({ logger: {} }));
+vi.mock("../../src/lib/evolution/agent-evolution-ingress.js", () => ({
+  captureAgentEvolutionIngress: (ingress) => ingress,
+}));
+vi.mock(
+  "../../src/lib/evolution/agent-evolution-runtime-composition-brand.js",
+  () => ({ captureAgentEvolutionRuntimeComposition: (composition) => composition }),
+);
 import {
   resolveOllamaBaseUrl,
+  resolveAskOptions,
+  queryLLM,
   extractCompletion,
   registerAskCommand,
 } from "../../src/commands/ask.js";
@@ -116,6 +127,52 @@ describe("ask command — resolveOllamaBaseUrl precedence", () => {
   });
 });
 
+describe("ask command saved provider selection", () => {
+  it("does not reuse a different provider's model, URL, API key, or local endpoint", () => {
+    expect(
+      resolveAskOptions(
+        { provider: "gemini" },
+        {
+          llm: {
+            provider: "volcengine",
+            model: "doubao-model",
+            baseUrl: "https://ark.example/api/v3",
+            apiKey: "volc-secret",
+            preferAndroidLocal: true,
+          },
+        },
+        { CC_HUB_OLLAMA_URL: "http://127.0.0.1:18484" },
+      ),
+    ).toEqual({
+      provider: "gemini",
+      model: "gemini-2.0-flash",
+      baseUrl: "https://generativelanguage.googleapis.com/v1beta",
+      apiKey: null,
+    });
+  });
+
+  it("keeps a matching provider's saved settings", () => {
+    expect(
+      resolveAskOptions(
+        {},
+        {
+          llm: {
+            provider: "anthropic",
+            model: "claude-custom",
+            baseUrl: "https://proxy.example/v1/",
+            apiKey: "anthropic-secret",
+          },
+        },
+      ),
+    ).toMatchObject({
+      provider: "anthropic",
+      model: "claude-custom",
+      baseUrl: "https://proxy.example/v1/",
+      apiKey: "anthropic-secret",
+    });
+  });
+});
+
 describe("ask command — queryLLM hits /api/chat for ollama", () => {
   let fetchSpy;
 
@@ -179,4 +236,63 @@ describe("ask command — extractCompletion", () => {
     const data = { error: { message: "content filtered" } };
     expect(() => extractCompletion(data, "openai")).toThrow(/content filtered/);
   });
+});
+
+describe("ask command provider protocols", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it.each([
+    [
+      "anthropic",
+      "https://api.anthropic.com/v1/",
+      "claude-haiku-4-5-20251001",
+      {
+        content: [
+          { type: "thinking", thinking: "private" },
+          { type: "text", text: "hello" },
+        ],
+      },
+      "https://api.anthropic.com/v1/messages",
+      "x-api-key",
+    ],
+    [
+      "gemini",
+      "https://generativelanguage.googleapis.com/v1beta/",
+      "gemini-2.0-flash",
+      {
+        candidates: [
+          {
+            content: {
+              parts: [
+                { thought: true, text: "private" },
+                { text: "hello" },
+              ],
+            },
+          },
+        ],
+      },
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+      "x-goog-api-key",
+    ],
+  ])(
+    "routes %s through its native API and keeps the key out of the URL",
+    async (provider, baseUrl, model, payload, expectedUrl, keyHeader) => {
+      const fetch = vi.fn(async () => ({
+        ok: true,
+        json: async () => payload,
+      }));
+      vi.stubGlobal("fetch", fetch);
+      await expect(
+        queryLLM(
+          "hello",
+          { provider, baseUrl, model, apiKey: "secret" },
+          { prepareModelRequest: async ({ messages }) => ({ messages }) },
+        ),
+      ).resolves.toBe("hello");
+      const [url, options] = fetch.mock.calls[0];
+      expect(url).toBe(expectedUrl);
+      expect(url).not.toContain("secret");
+      expect(options.headers[keyHeader]).toBe("secret");
+    },
+  );
 });

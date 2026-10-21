@@ -37,16 +37,13 @@ import {
   streamOllama,
   streamOpenAI,
   streamAnthropic,
+  streamGemini,
 } from "../../lib/chat-core.js";
 import { BUILT_IN_PROVIDERS } from "../../lib/llm-providers.js";
 import { resolveLlmCreds } from "./llm-creds.js";
 import { prepareGovernedModelTurn } from "../../lib/evolution/governed-model-turn.js";
-
-function normalizeOllamaBaseUrl(value) {
-  return String(value || "http://localhost:11434")
-    .replace(/\/v1\/?$/i, "")
-    .replace(/\/+$/, "");
-}
+import { normalizeOllamaBaseUrl } from "../../lib/ollama-base-url.js";
+import { normalizeProviderBaseUrl } from "../../lib/provider-protocol.js";
 
 function validateMessages(messages) {
   if (!Array.isArray(messages) || messages.length === 0)
@@ -136,7 +133,9 @@ export async function handleLlmChat(server, id, ws, message) {
     const baseUrl =
       creds.provider === "ollama"
         ? normalizeOllamaBaseUrl(creds.baseUrl)
-        : creds.baseUrl || "http://localhost:11434";
+        : normalizeProviderBaseUrl(
+            creds.baseUrl || "http://localhost:11434",
+          );
     if (creds.provider === "ollama") {
       await streamOllama(
         turn.messages,
@@ -151,6 +150,19 @@ export async function handleLlmChat(server, id, ws, message) {
       const def = BUILT_IN_PROVIDERS.anthropic;
       const url = baseUrl !== "http://localhost:11434" ? baseUrl : def.baseUrl;
       await streamAnthropic(
+        turn.messages,
+        creds.model,
+        url,
+        creds.apiKey,
+        onToken,
+        onUsage,
+        undefined,
+        streamOptions,
+      );
+    } else if (creds.provider === "gemini") {
+      const def = BUILT_IN_PROVIDERS.gemini;
+      const url = baseUrl !== "http://localhost:11434" ? baseUrl : def.baseUrl;
+      await streamGemini(
         turn.messages,
         creds.model,
         url,
