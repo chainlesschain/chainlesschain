@@ -1,5 +1,10 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.171] - CLI 0.166.109 pairing (2026-10-21)
+
+- Recommend CLI 0.166.109, which fixes saved LLM settings routing for Web Panel Quick Ask. This release updates the plugin version and compatible CLI recommendation; it does not change plugin runtime behavior.
+- Release tag: `ide-jetbrains-v0.4.171`. The exact-source IDE gates and Marketplace artifact readback are recorded by the tagged workflow.
+
 ## [0.4.170] - Session recovery and CLI 0.166.108 (2026-10-21)
 
 <!-- release108-status -->

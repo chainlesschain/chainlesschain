@@ -1,5 +1,27 @@
 # Agent Platform 发布与升级指南
 
+<!-- release109-status -->
+
+## Current release: CLI .109 / IDE .154 and .171
+
+Checked 2026-10-21:
+
+npm CLI **0.166.109** is public; exact-source gates and npm registry readback passed on source `2f14fd409bdf1fd39abc4b0a94cc6db280feae48` ([Actions](https://github.com/chainlesschain/chainlesschain/actions/runs/39545080716), [npm registry](https://www.npmjs.com/package/chainlesschain/v/0.166.109)).
+
+Open VSX **0.37.154** is released from tag [`ide-vscode-v0.37.154`](https://github.com/chainlesschain/chainlesschain/tree/ide-vscode-v0.37.154). JetBrains Marketplace **0.4.171** is released from tag [`ide-jetbrains-v0.4.171`](https://github.com/chainlesschain/chainlesschain/tree/ide-jetbrains-v0.4.171); its listing may be pending marketplace review after successful upload.
+
+Both IDE versions recommend CLI **0.166.109**. The CLI release fixes Web Panel Quick Ask routing to use saved provider, endpoint, model, and API key settings. Install the paired CLI with:
+
+```bash
+npm i -g chainlesschain@0.166.109 --registry https://registry.npmjs.org
+cc --version
+cc doctor
+```
+
+The Microsoft VS Code Marketplace remains unpublished; the VS Code release channel is Open VSX.
+
+## Previous verified release: CLI .108 / IDE .153 and .170
+
 <!-- release108-status -->
 
 ## 2026-10-21 CLI .108 / IDE .153 与 .170 状态

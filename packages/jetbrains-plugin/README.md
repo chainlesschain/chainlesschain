@@ -5,6 +5,16 @@ JetBrains counterpart of the [VS Code extension](../vscode-extension/): it lets
 the ChainlessChain **`cc` agent CLI** read editor context and propose native
 diffs inside IntelliJ-platform IDEs (IDEA, PyCharm, WebStorm, …).
 
+## Current release
+
+<!-- release171-status -->
+
+JetBrains Marketplace plugin **0.4.171** recommends public CLI `0.166.109`. Configure an explicit CLI path when system `cc` is a C compiler.
+
+The immutable release tag is [`ide-jetbrains-v0.4.171`](https://github.com/chainlesschain/chainlesschain/tree/ide-jetbrains-v0.4.171). Its tagged workflow validates the exact plugin source, uploads it to JetBrains Marketplace, and reports whether the listing is public or pending review.
+
+## Previous verified release (.170 / .153 / .108)
+
 <!-- release108-status -->
 
 JetBrains Marketplace plugin **0.4.170** recommends public CLI `0.166.108`. Configure an explicit CLI path when system `cc` is a C compiler.
@@ -19,7 +29,7 @@ JetBrains Marketplace **0.4.170**: public; exact-source gates and public artifac
 
 No new model-task retest was run for this release. Historical `.105/.150/.167` generation and independent acceptance each collected **20/20** records and added **6** passes. Cumulative cross-version accepted deliveries remain **31/45** (**26/36** ordinary, **5/9** first-run), with **14** unaccepted; this is not a .108 single-round success rate. **NOT_PAID_READY**, **NOT_ADMITTED** and automatic promotion **HOLD** remain. Microsoft Marketplace remains unpublished. Native product **v5.0.3.140** is a separate release; desktop integration still requires matching builds, desktop authorization and native confirmation.
 
-Public Open VSX 0.37.153 and JetBrains Marketplace 0.4.170 recommend public CLI 0.166.108. All three channels have passed exact-source release gates and public artifact verification.
+Public Open VSX 0.37.154 and JetBrains Marketplace 0.4.171 recommend public CLI 0.166.109. The tagged release workflows verify exact-source gates and public artifacts.
 
 <details>
 <summary>Public snapshot before .108 (historical)</summary>
@@ -45,18 +55,18 @@ the _same_ lockfile and speaks the _same_ MCP protocol as the VS Code
 extension; only `ide` differs (`"jetbrains"`). Feature controls still require
 the corresponding exact-gated CLI command, as documented below.
 
-Install the paired CLI with `npm i -g chainlesschain@0.166.108 --registry https://registry.npmjs.org`.
+Install the paired CLI with `npm i -g chainlesschain@0.166.109 --registry https://registry.npmjs.org`.
 See the [upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-20.html).
 
 ## Release compatibility
 
-JetBrains Marketplace 0.4.170 is publicly available.
+JetBrains Marketplace 0.4.171 is released from the immutable tag below.
 
-Plugin **0.4.170** is the current release candidate in the source metadata;
-this label identifies the source published under tag `ide-jetbrains-v0.4.170`.
+Plugin **0.4.171** is the current release in the source metadata;
+this label identifies the source published under tag `ide-jetbrains-v0.4.171`.
 Its verified channel status is:
-**public; exact-source gates and public artifact readback verified**.
-It recommends `chainlesschain@0.166.108`; that CLI's observed status is
+**upload and public artifact readback verified; listing may be pending marketplace review**.
+It recommends `chainlesschain@0.166.109`; that CLI's observed status is
 **public; exact-source gates and public artifact readback verified**. See the exact-source Actions and immutable receipts above.
 Session Core `0.3.20` and Context/Memory Kernel `0.1.10` retain independent versions.
 Restart the IDE and run Doctor after upgrading. Native task quality and
