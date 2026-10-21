@@ -106,25 +106,7 @@ function releaseSection(readme, headingText) {
 }
 
 function publishedReleasePair(readme) {
-  const lines = markdownLinesOutsideFences(readme);
-  const currentHeading = lines.find((entry) =>
-    /^## Current release[ \t]*$/u.test(entry.line),
-  );
-  assert.ok(currentHeading, "README must contain a Current release heading");
-  const statusMarker = lines.find(
-    (entry) =>
-      entry.start > currentHeading.start &&
-      /^<!-- release\d+-status -->[ \t]*$/u.test(entry.line),
-  );
-  assert.ok(
-    statusMarker,
-    "Current release section must contain its release status marker",
-  );
-  const currentOverview = readme.slice(
-    currentHeading.end,
-    statusMarker.start,
-  );
-  const pairMatch = currentOverview.match(
+  const pairMatch = currentReleaseStatus(readme).match(
     /Open VSX version \*\*(0\.37\.\d+)\*\* pairs with public CLI `(0\.\d+\.\d+)`\./u,
   );
   assert.ok(

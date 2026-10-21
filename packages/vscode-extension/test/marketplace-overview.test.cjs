@@ -17,9 +17,9 @@ Canonical extension description.
 
 ## Current release
 
-Open VSX version **${extensionVersion}** pairs with public CLI `${cliVersion}`.
-
 <!-- release79-status -->
+
+Open VSX version **${extensionVersion}** pairs with public CLI \`${cliVersion}\`.
 
 | VS Code extension         | **${extensionVersion}**; immutable release |
 | Recommended CLI           | **\`chainlesschain@${cliVersion}\`** public npm release |
@@ -190,8 +190,8 @@ test("rejects a candidate heading duplicated, moved after Current release, or hi
       verifyMarketplaceOverview({
         ...args,
         readme: overview().replace(
-          "## Current release",
-          "```md\n## Next release candidate\nSource candidate **0.37.80** recommends CLI **0.166.11**.\n```\n\n## Current release",
+          "## Highlights",
+          "```md\n## Next release candidate\nSource candidate **0.37.80** recommends CLI **0.166.11**.\n```\n\n## Highlights",
         ),
       }),
     /manifest must match the current public release/u,
@@ -207,7 +207,7 @@ test("requires the current public pair to agree with its release metadata", asyn
 
   assert.throws(
     () => verifyMarketplaceOverview({ ...manifests(), readme }),
-    /missing current release metadata|stale VS Code release metadata/u,
+    /Without a candidate section, the extension manifest must match the current public release/u,
   );
 });
 
@@ -253,7 +253,7 @@ test("rejects README metadata that drifts from the declared recommendation", asy
         ...manifests(),
         readme: overview({ cliVersion: "0.166.6" }),
       }),
-    /missing current release metadata/u,
+    /Without a candidate section, the recommended CLI must match the current public release/u,
   );
 });
 
