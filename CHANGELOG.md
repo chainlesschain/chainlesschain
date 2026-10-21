@@ -7,11 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed - cc CLI 0.166.112: retain generated Evolution test signing keys (candidate, 2026-10-21)
+### Fixed - cc CLI 0.166.112: retain generated Evolution test signing keys (published, 2026-10-22)
 
 - Preserve the supplied private signing-key path when saving an explicit Evolution test deployment, so generated test deployments remain usable after configuration.
 - Align Windows ACL fixtures with Session Core's extended-path PowerShell protocol while keeping CLI-facing paths unchanged.
-- Pair VS Code 0.37.155 and JetBrains 0.4.172 with CLI 0.166.112. Publish Session Core 0.3.21 first, then CLI through the exact-SHA GitHub Actions OIDC workflow; publish IDE extensions only after npm readback succeeds.
+- Public pairing: CLI 0.166.112, Open VSX 0.37.155 and JetBrains 0.4.172. Session Core 0.3.21 preceded the CLI; exact-source CLI CI and Strict Sandbox passed before OIDC npm publication, and both IDE channels followed verified npm readback. [Publication evidence](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release112-public/publication.json).
 
 ### Fixed - cc CLI 0.166.111: route every configured provider correctly (candidate, 2026-10-21)
 

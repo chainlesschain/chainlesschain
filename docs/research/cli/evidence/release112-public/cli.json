@@ -1,0 +1,237 @@
+{
+  "observedAt": "2026-10-21T22:33:15.971Z",
+  "status": "public",
+  "sourceSha": "35a2508d156152a61d74fbf8135fcfa1225fe235",
+  "latest": "0.166.112",
+  "name": "chainlesschain",
+  "version": "0.166.112",
+  "endpoint": "https://registry.npmjs.org/chainlesschain/0.166.112",
+  "tarball": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.112.tgz",
+  "bytes": 9482338,
+  "sha256": "091af7c00350fe71928ca40ac0d6c8d3a88a75e83904318f6e30f7cf7cacd02b",
+  "integrity": "sha512-yqAXYhipTl/ls2C0EE4DUvSILCxuzeQ7CdGmrKNpbFI+G70+GAqav9HyX0wnrt8hWUdgRuREvjXFegm82hTjlw==",
+  "manifestVersion": "0.166.112",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.700.0",
+    "@chainlesschain/context-memory-kernel": "0.1.10",
+    "@chainlesschain/core-config": "0.1.2",
+    "@chainlesschain/core-db": "0.1.5",
+    "@chainlesschain/core-env": "0.1.2",
+    "@chainlesschain/core-infra": "0.1.1",
+    "@chainlesschain/core-mtc": "0.2.3",
+    "@chainlesschain/core-multisig": "0.1.4",
+    "@chainlesschain/personal-data-hub": "0.4.65",
+    "@chainlesschain/session-core": "0.3.21",
+    "@chainlesschain/shared-logger": "0.1.1",
+    "@inquirer/prompts": "^7.2.0",
+    "@noble/curves": "^1.9.7",
+    "@tootallnate/quickjs-emscripten": "^0.23.0",
+    "acorn": "8.17.0",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
+    "chalk": "^5.4.1",
+    "commander": "^12.1.0",
+    "esbuild-wasm": "0.28.1",
+    "js-yaml": "^3.15.1",
+    "koffi": "^2.16.3",
+    "ora": "^8.1.1",
+    "pac-resolver": "^7.0.1",
+    "semver": "^7.6.3",
+    "sql.js": "^1.14.1",
+    "undici": "^7.29.0",
+    "webdav": "^5.10.0",
+    "ws": "^8.14.2"
+  },
+  "children": [
+    {
+      "name": "@chainlesschain/context-memory-kernel",
+      "version": "0.1.10",
+      "endpoint": "https://registry.npmjs.org/@chainlesschain%2fcontext-memory-kernel/0.1.10",
+      "tarball": "https://registry.npmjs.org/@chainlesschain/context-memory-kernel/-/context-memory-kernel-0.1.10.tgz",
+      "bytes": 50535,
+      "sha256": "66c035472a78af50fcaa979ea6aa5e54f625c7b3a7a809e1057bc86e6ab552d5",
+      "integrity": "sha512-7ZGy4N2x2jonrvjkLQ8AFT60hxzm2KTzM4GEoougj15b5itsm+ETvuXr19EHyr9R2XjCr3lCs2G4LbzbemXp5w==",
+      "manifestVersion": "0.1.10"
+    },
+    {
+      "name": "@chainlesschain/core-config",
+      "version": "0.1.2",
+      "endpoint": "https://registry.npmjs.org/@chainlesschain%2fcore-config/0.1.2",
+      "tarball": "https://registry.npmjs.org/@chainlesschain/core-config/-/core-config-0.1.2.tgz",
+      "bytes": 3991,
+      "sha256": "922f8641b73531e53d0980ffdbe057e999da2d59bca0be987c4e76ca21e44632",
+      "integrity": "sha512-6Qc4oxojh4G5OindihhupQDlEvHij9kOEkxLoqZEt/V4HTCOpaDFJUkIq1zzTrgm/qdEBpgq1L4Jlwm6s74Hpg==",
+      "manifestVersion": "0.1.2"
+    },
+    {
+      "name": "@chainlesschain/core-db",
+      "version": "0.1.5",
+      "endpoint": "https://registry.npmjs.org/@chainlesschain%2fcore-db/0.1.5",
+      "tarball": "https://registry.npmjs.org/@chainlesschain/core-db/-/core-db-0.1.5.tgz",
+      "bytes": 10302,
+      "sha256": "0e17729db9336476b7523af6819991884f54c4675cf1f2dd42eaae6e46c73752",
+      "integrity": "sha512-3vjD+llIhaNAe4ePYP+fySOPCgHBwJzMIo5tdVkJ7uI2ngTrK2VkODvvPXVskjUN5+2uTQH/RMWGre+OaNquiA==",
+      "manifestVersion": "0.1.5"
+    },
+    {
+      "name": "@chainlesschain/core-env",
+      "version": "0.1.2",
+      "endpoint": "https://registry.npmjs.org/@chainlesschain%2fcore-env/0.1.2",
+      "tarball": "https://registry.npmjs.org/@chainlesschain/core-env/-/core-env-0.1.2.tgz",
+      "bytes": 2600,
+      "sha256": "5f99ffa9db042d7dc1e6a097215c82c5367dad82741d14e8c9165b785e5e07a3",
+      "integrity": "sha512-H5BwptqoaVqAnlGKubyYMHc5WNlSrctZag/0VU30FwHpkeNqS43CTr9tsOCSO8+KCdWe2eko1Zr8BFeF2svj0Q==",
+      "manifestVersion": "0.1.2"
+    },
+    {
+      "name": "@chainlesschain/core-infra",
+      "version": "0.1.1",
+      "endpoint": "https://registry.npmjs.org/@chainlesschain%2fcore-infra/0.1.1",
+      "tarball": "https://registry.npmjs.org/@chainlesschain/core-infra/-/core-infra-0.1.1.tgz",
+      "bytes": 3482,
+      "sha256": "09d2f7982172430f401257cd5f5d5fa8006c2e25a59f5741e489333e2061e155",
+      "integrity": "sha512-DwhqG9zLbPPcKVo68QBEVLboRjXUA71u+rX86MHIBMmOr/8NabrisEsnr3AJ61FkFjdVDSVUxEk6XDoAwOMLpA==",
+      "manifestVersion": "0.1.1"
+    },
+    {
+      "name": "@chainlesschain/core-mtc",
+      "version": "0.2.3",
+      "endpoint": "https://registry.npmjs.org/@chainlesschain%2fcore-mtc/0.2.3",
+      "tarball": "https://registry.npmjs.org/@chainlesschain/core-mtc/-/core-mtc-0.2.3.tgz",
+      "bytes": 38297,
+      "sha256": "6887d3385a3662ab33478cbe66364a5dec20273047179ef6ba123332b501ea23",
+      "integrity": "sha512-xm6gZoJ8HqOFih1b5RlNPyQWNGRxokWq/hsV1oVTuCnNsxRmihTrxx40h10APiOKtKYPAEFDvMHcBfTEsB5tlA==",
+      "manifestVersion": "0.2.3"
+    },
+    {
+      "name": "@chainlesschain/core-multisig",
+      "version": "0.1.4",
+      "endpoint": "https://registry.npmjs.org/@chainlesschain%2fcore-multisig/0.1.4",
+      "tarball": "https://registry.npmjs.org/@chainlesschain/core-multisig/-/core-multisig-0.1.4.tgz",
+      "bytes": 13952,
+      "sha256": "605136fb8b17a2832eb31db09c0668adfeb5a930994bf3e85a94573f266d4be5",
+      "integrity": "sha512-5YSmIQa1DRZYnCOeByb0Z8+vcrL8Qg62AMciK6YJQYwrjEiFwtdjhQ3GbQCcpepW1CvtGDiwrdyG5ufBYDwLxg==",
+      "manifestVersion": "0.1.4"
+    },
+    {
+      "name": "@chainlesschain/personal-data-hub",
+      "version": "0.4.65",
+      "endpoint": "https://registry.npmjs.org/@chainlesschain%2fpersonal-data-hub/0.4.65",
+      "tarball": "https://registry.npmjs.org/@chainlesschain/personal-data-hub/-/personal-data-hub-0.4.65.tgz",
+      "bytes": 891431,
+      "sha256": "d13fed0ecd40c91e87752858a75c2b0c3ffa8811fef918fffe62c25d6b55e8b0",
+      "integrity": "sha512-xq0/WjHjg81HdK4uA1LEKN03Nb8O0UWMbehDPZKGZcSeNoxn9vQKzDnIk9YWikiOwOtT3fPgZivvIJn2itdjzA==",
+      "manifestVersion": "0.4.65"
+    },
+    {
+      "name": "@chainlesschain/session-core",
+      "version": "0.3.21",
+      "endpoint": "https://registry.npmjs.org/@chainlesschain%2fsession-core/0.3.21",
+      "tarball": "https://registry.npmjs.org/@chainlesschain/session-core/-/session-core-0.3.21.tgz",
+      "bytes": 306909,
+      "sha256": "ad5ec0f5dadf555f45ca445cbcd5c79e8e1afe10dcff31c39f826e081553e4d7",
+      "integrity": "sha512-nrq0MnxhczzyqJsBcQdxM3isW37fbvAs8IkNKIHYsRKDgJ6sc/dU4wkcghu2Gld9P8ikvXNX5FOVyK6dJhvdHw==",
+      "manifestVersion": "0.3.21"
+    },
+    {
+      "name": "@chainlesschain/shared-logger",
+      "version": "0.1.1",
+      "endpoint": "https://registry.npmjs.org/@chainlesschain%2fshared-logger/0.1.1",
+      "tarball": "https://registry.npmjs.org/@chainlesschain/shared-logger/-/shared-logger-0.1.1.tgz",
+      "bytes": 4058,
+      "sha256": "e2380a41c10555101c8443242be7f68dec04decf2454d491d72e094076635bfd",
+      "integrity": "sha512-owHSbZT79tYkkZEgaMoP5iuS6iuNqzmyya/TIp6ChFlQ7Ws87oBN0xlBlV1mo6cxpge/5jDMDLgH1TCzy0ZhHg==",
+      "manifestVersion": "0.1.1"
+    },
+    {
+      "name": "@chainlesschain/agent-protocol",
+      "version": "0.1.12",
+      "endpoint": "https://registry.npmjs.org/@chainlesschain%2fagent-protocol/0.1.12",
+      "tarball": "https://registry.npmjs.org/@chainlesschain/agent-protocol/-/agent-protocol-0.1.12.tgz",
+      "bytes": 43144,
+      "sha256": "4b94c9a7f3ab8e92853ee51f59953e34c61b42de540bf72256afbd30f8d7b4cc",
+      "integrity": "sha512-1lJgYtL+mwPsWlPzRRi6zbBdTqFv1g6cD2oUzrOWoUdXkvd696SuCBr6uzkX24NY3oEYwFk+QqKsKrkSvvSLmQ==",
+      "manifestVersion": "0.1.12"
+    },
+    {
+      "name": "@chainlesschain/agent-sdk",
+      "version": "0.2.15",
+      "endpoint": "https://registry.npmjs.org/@chainlesschain%2fagent-sdk/0.2.15",
+      "tarball": "https://registry.npmjs.org/@chainlesschain/agent-sdk/-/agent-sdk-0.2.15.tgz",
+      "bytes": 89350,
+      "sha256": "d5ea6cce3da6a44a6da83c554629a4816ddf89ddffebb5beb2789ed163db90d2",
+      "integrity": "sha512-CLeMAxSkULCdlae9geCdx27CzVcJZp1JM4y5h59g7nrWOAZ69dB/ZZwdwvu5F5PwkRhjn4iGZDgN8bvhe9OaDQ==",
+      "manifestVersion": "0.2.15"
+    }
+  ],
+  "provenance": {
+    "endpoint": "https://registry.npmjs.org/-/npm/v1/attestations/chainlesschain@0.166.112",
+    "statements": [
+      {
+        "_type": "https://in-toto.io/Statement/v0.1",
+        "subject": [
+          {
+            "name": "pkg:npm/chainlesschain@0.166.112",
+            "digest": {
+              "sha512": "caa0176218a94e5fe5b360b4104e0352f4882c2c6ecde43b09d1a6aca3696c523e1bbd3e180a9abfd1f25f4c27aedf2159476046e444be35c57a09bcda14e397"
+            }
+          }
+        ],
+        "predicateType": "https://github.com/npm/attestation/tree/main/specs/publish/v0.1",
+        "predicate": {
+          "name": "chainlesschain",
+          "version": "0.166.112",
+          "registry": "https://registry.npmjs.org"
+        }
+      },
+      {
+        "_type": "https://in-toto.io/Statement/v1",
+        "subject": [
+          {
+            "name": "pkg:npm/chainlesschain@0.166.112",
+            "digest": {
+              "sha512": "caa0176218a94e5fe5b360b4104e0352f4882c2c6ecde43b09d1a6aca3696c523e1bbd3e180a9abfd1f25f4c27aedf2159476046e444be35c57a09bcda14e397"
+            }
+          }
+        ],
+        "predicateType": "https://slsa.dev/provenance/v1",
+        "predicate": {
+          "buildDefinition": {
+            "buildType": "https://slsa-framework.github.io/github-actions-buildtypes/workflow/v1",
+            "externalParameters": {
+              "workflow": {
+                "ref": "refs/tags/v-npm-0-166-112",
+                "repository": "https://github.com/chainlesschain/chainlesschain",
+                "path": ".github/workflows/npm-publish.yml"
+              }
+            },
+            "internalParameters": {
+              "github": {
+                "event_name": "push",
+                "repository_id": "1107348698",
+                "repository_owner_id": "247070867"
+              }
+            },
+            "resolvedDependencies": [
+              {
+                "uri": "git+https://github.com/chainlesschain/chainlesschain@refs/tags/v-npm-0-166-112",
+                "digest": {
+                  "gitCommit": "35a2508d156152a61d74fbf8135fcfa1225fe235"
+                }
+              }
+            ]
+          },
+          "runDetails": {
+            "builder": {
+              "id": "https://github.com/actions/runner/github-hosted"
+            },
+            "metadata": {
+              "invocationId": "https://github.com/chainlesschain/chainlesschain/actions/runs/39661868416/attempts/1"
+            }
+          }
+        }
+      }
+    ],
+    "signatureVerification": "Authoritative GitHub npm publish job: Verify published CLI npm provenance = success. This readback matches statement source, invocation, and artifact digest; it does not rerun the cryptographic verifier."
+  }
+}

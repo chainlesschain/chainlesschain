@@ -1,0 +1,20 @@
+{
+  "observedAt": "2026-10-21T22:33:15.971Z",
+  "status": "public",
+  "sourceSha": "ae27ef6dfc8cf1e45bf084030816b02c77dc2a34",
+  "endpoint": "https://plugins.jetbrains.com/api/plugins/32208/updates",
+  "version": "0.4.172",
+  "updateId": 1199737,
+  "approve": true,
+  "listed": true,
+  "hidden": false,
+  "download": "https://plugins.jetbrains.com/files/32208/1199737/chainlesschain-ide-bridge-0.4.172.zip",
+  "bytes": 1556828,
+  "sha256": "fd8504e3276b692d963b30d66e5217318ea27ef61da4a30c5a9be701321ad2c3",
+  "embedded": {
+    "jar": "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.172.jar",
+    "pluginVersion": "0.4.172",
+    "versionProperties": "version=0.4.172",
+    "recommendedCliVersionConstantPresent": "0.166.112"
+  }
+}

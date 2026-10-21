@@ -1,0 +1,14 @@
+{
+  "observedAt": "2026-10-21T22:33:15.971Z",
+  "status": "public",
+  "sourceSha": "ae27ef6dfc8cf1e45bf084030816b02c77dc2a34",
+  "endpoint": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.155",
+  "version": "0.37.155",
+  "latest": "0.37.155",
+  "downloadable": true,
+  "recommendedCliVersion": "0.166.112",
+  "download": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.155/file/chainlesschain.chainlesschain-ide-0.37.155.vsix",
+  "bytes": 732545,
+  "sha256": "67d17e4e492e4f7c220f9aa4aa5390bfb98d4324b079abc0fefb507daf5bec82",
+  "registrySha256Matches": true
+}

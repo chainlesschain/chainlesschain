@@ -5,17 +5,19 @@ JetBrains counterpart of the [VS Code extension](../vscode-extension/): it lets
 the ChainlessChain **`cc` agent CLI** read editor context and propose native
 diffs inside IntelliJ-platform IDEs (IDEA, PyCharm, WebStorm, …).
 
-## Next release candidate
-
-Source candidate **0.4.172** recommends CLI **0.166.112** for provider protocol fixes. The plugin has not been published; CLI 0.166.112 is available on npm, and the exact-source IDE gates must pass before publication.
-
 ## Current release
 
-<!-- release171-status -->
+<!-- release172-status -->
 
-JetBrains source version **0.4.171** pairs with public CLI `0.166.109`. Configure an explicit CLI path when system `cc` is a C compiler.
+JetBrains Marketplace **0.4.172** is approved, publicly listed and downloadable. It recommends public CLI `0.166.112`. Configure an explicit CLI path when system `cc` is a C compiler.
 
-Pushing the immutable release tag for this version triggers a workflow that validates the exact plugin source, uploads it to JetBrains Marketplace, and reports whether the listing is public or pending review.
+Checked on **2026-10-22**: npm CLI **0.166.112**, Open VSX **0.37.155** and JetBrains Marketplace **0.4.172** are public and downloadable. Both IDE artifacts recommend CLI **0.166.112**.
+
+npm publication used GitHub Actions OIDC from source `35a2508d156152a61d74fbf8135fcfa1225fe235` ([publish run](https://github.com/chainlesschain/chainlesschain/actions/runs/39661868416)); all 71 CLI CI jobs and all 5 Strict Sandbox jobs passed on that exact source. The public tarball integrity and npm provenance source/run binding were read back. Session Core **0.3.21** was available before CLI publication.
+
+The IDE tags `ide-vscode-v0.37.155` and `ide-jetbrains-v0.4.172` point to `ae27ef6dfc8cf1e45bf084030816b02c77dc2a34`. [Open VSX publication](https://github.com/chainlesschain/chainlesschain/actions/runs/39673804362) passed. [JetBrains publication, attempt 2](https://github.com/chainlesschain/chainlesschain/actions/runs/39676899944/attempts/2) passed after one bounded macOS 2024.2 rerun; the original performance failure is retained. JetBrains now reports `approve=true`, `listed=true`, `hidden=false`. Both public IDE archives were downloaded and their embedded version and CLI pairing checked. [Public readback evidence](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release112-public/publication.json).
+
+No new model-task retest was run for this release; local Ollama model validation is left to the user after upgrading. Historical cross-version accepted deliveries remain **31/45** (**26/36** ordinary, **5/9** first-run), with **14** unaccepted. This is not a .112 single-round success rate. **NOT_PAID_READY**, **NOT_ADMITTED** and automatic promotion **HOLD** remain. Microsoft VS Code Marketplace remains unpublished; stock VS Code users can install the public Open VSX VSIX. Native product **v5.0.3.140** is a separate release; desktop integration requires matching builds, authorization and native confirmation.
 
 ## Previous verified release (.170 / .153 / .108)
 
@@ -32,8 +34,6 @@ Open VSX **0.37.153**: public; exact-source gates and public artifact readback v
 JetBrains Marketplace **0.4.170**: public; exact-source gates and public artifact readback verified; source `e77c7ba85783576ac523dd73bc760bda63d91f3b`; [Actions 1](https://github.com/chainlesschain/chainlesschain/actions/runs/39486921296/attempts/2); [receipt](https://github.com/chainlesschain/chainlesschain/blob/08ffc589ec0f0c7ad5af87eb54c5efcce739a2f9/docs/research/cli/evidence/release108-public/publication.json).
 
 No new model-task retest was run for this release. Historical `.105/.150/.167` generation and independent acceptance each collected **20/20** records and added **6** passes. Cumulative cross-version accepted deliveries remain **31/45** (**26/36** ordinary, **5/9** first-run), with **14** unaccepted; this is not a .108 single-round success rate. **NOT_PAID_READY**, **NOT_ADMITTED** and automatic promotion **HOLD** remain. Microsoft Marketplace remains unpublished. Native product **v5.0.3.140** is a separate release; desktop integration still requires matching builds, desktop authorization and native confirmation.
-
-The source versions pair Open VSX 0.37.154 and JetBrains 0.4.171 with public CLI 0.166.109. Their immutable tag workflows publish each artifact and verify its marketplace state.
 
 <details>
 <summary>Public snapshot before .108 (historical)</summary>
@@ -59,19 +59,12 @@ the _same_ lockfile and speaks the _same_ MCP protocol as the VS Code
 extension; only `ide` differs (`"jetbrains"`). Feature controls still require
 the corresponding exact-gated CLI command, as documented below.
 
-Install the paired CLI with `npm i -g chainlesschain@0.166.109 --registry https://registry.npmjs.org`.
+Install the paired CLI with `npm i -g chainlesschain@0.166.112 --registry https://registry.npmjs.org`.
 See the [upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-20.html).
 
 ## Release compatibility
 
-Plugin **0.4.172** is the current release candidate in the source metadata.
-It recommends `chainlesschain@0.166.112`, which must be publicly available before
-the immutable `ide-jetbrains-v0.4.172` tag is published. The tagged workflow
-validates the exact plugin source, uploads it to JetBrains Marketplace, and
-reports whether its listing is public or pending review. Session Core `0.3.21`
-is published before the paired CLI; Context/Memory Kernel `0.1.10` is unchanged.
-Restart the IDE and run Doctor after upgrading. Native task quality and
-restart acceptance still require separate published-package evidence.
+Plugin **0.4.172** is the current public release. It recommends `chainlesschain@0.166.112`. The immutable `ide-jetbrains-v0.4.172` tag passed the exact-source IDE gates and Marketplace upload; public readback confirms approval and listing. Session Core `0.3.21` was published before the paired CLI; Context/Memory Kernel `0.1.10` is unchanged. Restart the IDE and run Doctor after upgrading. Native task quality and restart acceptance still require separate published-package evidence.
 
 ## Previous candidates and development notes
 

@@ -1,5 +1,27 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+<!-- release112-status -->
+
+## Current public releases (2026-10-22)
+
+Checked on **2026-10-22**: npm CLI **0.166.112**, Open VSX **0.37.155** and JetBrains Marketplace **0.4.172** are public and downloadable. Both IDE artifacts recommend CLI **0.166.112**.
+
+npm publication used GitHub Actions OIDC from source `35a2508d156152a61d74fbf8135fcfa1225fe235` ([publish run](https://github.com/chainlesschain/chainlesschain/actions/runs/39661868416)); all 71 CLI CI jobs and all 5 Strict Sandbox jobs passed on that exact source. The public tarball integrity and npm provenance source/run binding were read back. Session Core **0.3.21** was available before CLI publication.
+
+The IDE tags `ide-vscode-v0.37.155` and `ide-jetbrains-v0.4.172` point to `ae27ef6dfc8cf1e45bf084030816b02c77dc2a34`. [Open VSX publication](https://github.com/chainlesschain/chainlesschain/actions/runs/39673804362) passed. [JetBrains publication, attempt 2](https://github.com/chainlesschain/chainlesschain/actions/runs/39676899944/attempts/2) passed after one bounded macOS 2024.2 rerun; the original performance failure is retained. JetBrains now reports `approve=true`, `listed=true`, `hidden=false`. Both public IDE archives were downloaded and their embedded version and CLI pairing checked. [Public readback evidence](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release112-public/publication.json).
+
+```bash
+npm i -g chainlesschain@0.166.112 --registry https://registry.npmjs.org
+cc --version
+cc doctor
+```
+
+Restart the IDE chat host after upgrading and use Doctor to confirm the actual CLI path. No new model-task retest was run for this release; local Ollama model validation is left to the user after upgrading. Historical cross-version accepted deliveries remain **31/45** (**26/36** ordinary, **5/9** first-run), with **14** unaccepted. This is not a .112 single-round success rate. **NOT_PAID_READY**, **NOT_ADMITTED** and automatic promotion **HOLD** remain. Microsoft VS Code Marketplace remains unpublished; stock VS Code users can install the public Open VSX VSIX. Native product **v5.0.3.140** is a separate release; desktop integration requires matching builds, authorization and native confirmation.
+
+See the [current release and upgrade guide](docs-site/docs/chainlesschain/agent-platform-release.md).
+
+## Public snapshot before .112 (historical)
+
 <!-- release108-status -->
 
 Checked on 2026-10-21:

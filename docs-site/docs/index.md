@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: "v5.0.3.140 | npm CLI 0.166.109 已公开，精确提交发行门与 npm registry 回读通过；Open VSX 0.37.154 已公开，精确提交发行门与公开制品回读通过；JetBrains Marketplace 0.4.171 已上传，Marketplace 列表状态经回读核验"
+  tagline: "v5.0.3.140 | npm CLI 0.166.112 已公开，精确提交发行门与 npm registry 回读通过；Open VSX 0.37.155 已公开，精确提交发行门与公开制品回读通过；JetBrains Marketplace 0.4.172 已批准并公开，制品下载与配套版本回读通过"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -22,11 +22,11 @@ hero:
 features:
   - icon: 🔗
     title: CLI / IDE 与桌面目标草稿
-    details: "npm CLI 0.166.109 已公开，精确提交发行门与 npm registry 回读通过；Open VSX 0.37.154 已公开，精确提交发行门与公开制品回读通过；JetBrains Marketplace 0.4.171 已上传，Marketplace 列表状态经回读核验。源码新配对为 CLI .109 / IDE .154 与 .171；Microsoft Marketplace 未发行。桌面互通仍需匹配构建、授权及原生确认。"
+    details: "npm CLI 0.166.112 已公开，精确提交发行门与 npm registry 回读通过；Open VSX 0.37.155 已公开，精确提交发行门与公开制品回读通过；JetBrains Marketplace 0.4.172 已批准并公开，制品下载与配套版本回读通过。公开配对为 CLI .112 / IDE .155 与 .172；Microsoft Marketplace 未发行。桌面互通仍需匹配构建、授权及原生确认。"
     link: /chainlesschain/goal-drafts-current
   - icon: 🛡️
-    title: CLI .109 与 IDE .154 / .171 发行状态
-    details: "npm CLI 0.166.109 已公开，精确提交发行门与 npm registry 回读通过；Open VSX 0.37.154 已公开，精确提交发行门与公开制品回读通过；JetBrains Marketplace 0.4.171 已上传，Marketplace 列表状态经回读核验。源码新配对为 CLI .109 / IDE .154 与 .171；Microsoft Marketplace 未发行。桌面互通仍需匹配构建、授权及原生确认。"
+    title: CLI .112 与 IDE .155 / .172 发行状态
+    details: "npm CLI 0.166.112 已公开，精确提交发行门与 npm registry 回读通过；Open VSX 0.37.155 已公开，精确提交发行门与公开制品回读通过；JetBrains Marketplace 0.4.172 已批准并公开，制品下载与配套版本回读通过。公开配对为 CLI .112 / IDE .155 与 .172；Microsoft Marketplace 未发行。桌面互通仍需匹配构建、授权及原生确认。"
     link: /chainlesschain/cli-ide-update-2026-10-20
   - icon: 🏢
     title: 组织目标、授权记忆与站内通知（主线）
@@ -41,12 +41,12 @@ features:
     details: 统计 v2、耐久预注册及真实后端关联已实现；必需回执固定 HOLD，真实效果实验未运行，生产来源门仍在实施。
     link: /chainlesschain/rrsi-current
   - icon: 🧩
-    title: Agent Platform 0.166.109
-    details: Web Panel Quick Ask 使用已保存的 LLM 提供方设置；IDE .154 / .171 推荐 CLI .109；累计合格交付31/45，剩余14项；新配对模型补测未运行。
+    title: Agent Platform 0.166.112
+    details: Web Panel Quick Ask 使用已保存的 LLM 提供方设置；IDE .155 / .172 推荐 CLI .112；累计合格交付31/45，剩余14项；新配对模型补测未运行。
     link: /chainlesschain/agent-platform-release
   - icon: 📝
     title: IDE 任务记录与新会话接力
-    details: "npm CLI 0.166.109 已公开，精确提交发行门与 npm registry 回读通过；Open VSX 0.37.154 已公开，精确提交发行门与公开制品回读通过；JetBrains Marketplace 0.4.171 已上传，Marketplace 列表状态经回读核验。源码新配对为 CLI .109 / IDE .154 与 .171；Microsoft Marketplace 未发行。桌面互通仍需匹配构建、授权及原生确认。"
+    details: "npm CLI 0.166.112 已公开，精确提交发行门与 npm registry 回读通过；Open VSX 0.37.155 已公开，精确提交发行门与公开制品回读通过；JetBrains Marketplace 0.4.172 已批准并公开，制品下载与配套版本回读通过。公开配对为 CLI .112 / IDE .155 与 .172；Microsoft Marketplace 未发行。桌面互通仍需匹配构建、授权及原生确认。"
     link: /chainlesschain/ide-task-worklog
   - icon: 🎯
     title: Skill 决策模型试点
@@ -70,7 +70,7 @@ features:
     link: /chainlesschain/desktop-model-governance
   - icon: 🧑‍💻
     title: IDE Bridge 突破 6 万下载
-    details: "npm CLI 0.166.109 已公开，精确提交发行门与 npm registry 回读通过；Open VSX 0.37.154 已公开，精确提交发行门与公开制品回读通过；JetBrains Marketplace 0.4.171 已上传，Marketplace 列表状态经回读核验。源码新配对为 CLI .109 / IDE .154 与 .171；Microsoft Marketplace 未发行。桌面互通仍需匹配构建、授权及原生确认。"
+    details: "npm CLI 0.166.112 已公开，精确提交发行门与 npm registry 回读通过；Open VSX 0.37.155 已公开，精确提交发行门与公开制品回读通过；JetBrains Marketplace 0.4.172 已批准并公开，制品下载与配套版本回读通过。公开配对为 CLI .112 / IDE .155 与 .172；Microsoft Marketplace 未发行。桌面互通仍需匹配构建、授权及原生确认。"
     link: /chainlesschain/ide-plugin
   - icon: 🔐
     title: 安全优先
@@ -80,12 +80,26 @@ features:
     details: 公开版支持规范化实体与投影意图同事务保存、KG/BM25 独立确认、分批恢复与退休临时 consumer 回执维护；未知运行投递仍受保护，当前宿主没有连接向量目的地。
   - icon: 🧪
     title: 发布证据分层
-    details: "npm CLI 0.166.109 已公开，精确提交发行门与 npm registry 回读通过；Open VSX 0.37.154 已公开，精确提交发行门与公开制品回读通过；JetBrains Marketplace 0.4.171 已上传，Marketplace 列表状态经回读核验。源码新配对为 CLI .109 / IDE .154 与 .171；Microsoft Marketplace 未发行。桌面互通仍需匹配构建、授权及原生确认。"
+    details: "npm CLI 0.166.112 已公开，精确提交发行门与 npm registry 回读通过；Open VSX 0.37.155 已公开，精确提交发行门与公开制品回读通过；JetBrains Marketplace 0.4.172 已批准并公开，制品下载与配套版本回读通过。公开配对为 CLI .112 / IDE .155 与 .172；Microsoft Marketplace 未发行。桌面互通仍需匹配构建、授权及原生确认。"
 ---
+
+<!-- release112-status -->
+
+## ???????2026-10-22?
+
+CLI **0.166.112**?Open VSX **0.37.155** ? JetBrains Marketplace **0.4.172** ?????????? CLI ?????????
+
+```bash
+npm i -g chainlesschain@0.166.112 --registry https://registry.npmjs.org
+cc --version
+cc doctor
+```
+
+??[????](/chainlesschain/cli-ide-update-2026-10-20)?[??????](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release112-public/publication.json)?
 
 <!-- release108-status -->
 
-## Previous verified release snapshot: CLI .108 / IDE .153 and .170
+## Previous release snapshots (.108 / .109, historical)
 
 2026-10-21 核对：
 

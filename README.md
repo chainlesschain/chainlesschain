@@ -1,24 +1,24 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
-<!-- release109-status -->
+<!-- release112-status -->
 
-## Current public releases (2026-10-21)
+## Current public releases (2026-10-22)
 
-npm CLI **0.166.109** is public; its exact-source release gate and npm registry readback passed on source `2f14fd409bdf1fd39abc4b0a94cc6db280feae48` ([Actions](https://github.com/chainlesschain/chainlesschain/actions/runs/39545080716), [npm registry](https://www.npmjs.com/package/chainlesschain/v/0.166.109)).
+2026-10-22 ???npm CLI **0.166.112**?Open VSX **0.37.155** ? JetBrains Marketplace **0.4.172** ????????????????? IDE ????? CLI **0.166.112**?
 
-Open VSX **0.37.154** and JetBrains Marketplace **0.4.171** are released from [`ide-vscode-v0.37.154`](https://github.com/chainlesschain/chainlesschain/tree/ide-vscode-v0.37.154) and [`ide-jetbrains-v0.4.171`](https://github.com/chainlesschain/chainlesschain/tree/ide-jetbrains-v0.4.171); both pair with CLI **0.166.109**. Marketplace listing and artifact verification are reported by their tagged workflows. The official Microsoft VS Code Marketplace remains unpublished.
+CLI ????? `35a2508d156152a61d74fbf8135fcfa1225fe235`????? CLI CI **71** ? job ? Strict Sandbox **5** ??? job ???????? [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/39661868416) ????? tarball ???? npm provenance ????run ??????Session Core **0.3.21** ?? CLI ???
+
+?? IDE ?? `ide-vscode-v0.37.155`?`ide-jetbrains-v0.4.172` ??? `ae27ef6dfc8cf1e45bf084030816b02c77dc2a34`?[Open VSX ??](https://github.com/chainlesschain/chainlesschain/actions/runs/39673804362)???[JetBrains ?? attempt 2](https://github.com/chainlesschain/chainlesschain/actions/runs/39676899944/attempts/2) ?????? macOS 2024.2 ????????????????JetBrains ??? `approve=true`?`listed=true`?`hidden=false`??? IDE ?????????? CLI ???????[??????](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release112-public/publication.json)?
 
 ```bash
-npm i -g chainlesschain@0.166.109 --registry https://registry.npmjs.org
+npm i -g chainlesschain@0.166.112 --registry https://registry.npmjs.org
 cc --version
 cc doctor
 ```
 
+Restart the IDE chat host after upgrading and use Doctor to confirm the actual CLI path. ???????????????? Ollama ????????????????????????? **31/45**??? **26/36**??? **5/9**???? **14** ?????? .112 ??????**NOT_PAID_READY**?**NOT_ADMITTED** ????? **HOLD** ???Microsoft VS Code Marketplace ?????? VS Code ???????? Open VSX VSIX????? **v5.0.3.140** ????????????????????????
+
 See the [current release and upgrade guide](docs-site/docs/chainlesschain/agent-platform-release.md).
-
-### Next release candidate (.111 / .155 / .172)
-
-The source candidate is CLI **0.166.112**, paired with VS Code **0.37.155** and JetBrains **0.4.172**. These versions are unpublished. Session Core **0.3.21** must publish first; CLI publication requires the exact commit's full Linux, Windows, and macOS CLI CI and Strict Sandbox gates, and IDE publication follows the verified npm release.
 
 ### Previous verified snapshot (.108 / .153 / .170)
 

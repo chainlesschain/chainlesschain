@@ -6,15 +6,17 @@ Command-line interface for installing, configuring, and managing [ChainlessChain
 
 <!-- release112-status -->
 
-This package source prepares **0.166.112** for release; it is not public until the exact-commit GitHub Actions gates and OIDC npm workflow finish.
+Checked on **2026-10-22**: npm CLI **0.166.112**, Open VSX **0.37.155** and JetBrains Marketplace **0.4.172** are public and downloadable. Both IDE artifacts recommend CLI **0.166.112**.
 
-CLI 0.166.112 retains the generated signing-key path for explicit Evolution test deployments. It also includes the provider routing fixes prepared in 0.166.111: Gemini uses its native API for Quick Ask and one-shot/streaming chat, while Gemini's OpenAI-compatible agent and Hub clients use the `/v1beta/openai` path. Anthropic uses native Messages APIs; OpenAI-compatible providers and proxies use `/chat/completions`. Endpoint paths trim trailing slashes, Gemini keys stay in headers, and explicit provider overrides do not inherit another provider's saved credentials. Session Core 0.3.21 contains the Windows long-path ACL fix needed by signed local Quick Ask storage. CLI 0.166.110 also normalizes Ollama `/v1` suffixes and initializes the signed local Quick Ask host. Repository Python dispatch diagnostics are excluded from the npm package.
+npm publication used GitHub Actions OIDC from source `35a2508d156152a61d74fbf8135fcfa1225fe235` ([publish run](https://github.com/chainlesschain/chainlesschain/actions/runs/39661868416)); all 71 CLI CI jobs and all 5 Strict Sandbox jobs passed on that exact source. The public tarball integrity and npm provenance source/run binding were read back. Session Core **0.3.21** was available before CLI publication.
 
-The latest public pairing remains CLI **0.166.109**, Open VSX **0.37.154** and JetBrains Marketplace **0.4.171**. Source candidates VS Code **0.37.155** and JetBrains **0.4.172** recommend CLI **0.166.112** and must publish after the CLI is available. The CLI candidate pins Session Core **0.3.21**; Agent SDK 0.2.15, Context/Memory Kernel 0.1.10 and Personal Data Hub 0.4.65 stay unchanged.
+The IDE tags `ide-vscode-v0.37.155` and `ide-jetbrains-v0.4.172` point to `ae27ef6dfc8cf1e45bf084030816b02c77dc2a34`. [Open VSX publication](https://github.com/chainlesschain/chainlesschain/actions/runs/39673804362) passed. [JetBrains publication, attempt 2](https://github.com/chainlesschain/chainlesschain/actions/runs/39676899944/attempts/2) passed after one bounded macOS 2024.2 rerun; the original performance failure is retained. JetBrains now reports `approve=true`, `listed=true`, `hidden=false`. Both public IDE archives were downloaded and their embedded version and CLI pairing checked. [Public readback evidence](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release112-public/publication.json).
 
-To install the current public CLI release, run `npm i -g chainlesschain@0.166.109 --registry https://registry.npmjs.org`. The candidate remains subject to the exact-commit Linux, Windows, and macOS CLI CI and Strict Sandbox gates, followed by the GitHub Actions OIDC npm workflow. Do not publish the IDE candidates until the CLI version is available from npm.
+CLI 0.166.112 retains generated signing-key paths for explicit Evolution test deployments and the provider routing fixes prepared in 0.166.111. Gemini Quick Ask and chat use its native API; the Gemini agent and Hub compatibility clients use `/v1beta/openai`. Anthropic uses native Messages APIs, while OpenAI-compatible providers use `/chat/completions`. Provider overrides resolve their own endpoint, model and credentials. Ollama base URLs normalize an optional `/v1` suffix, and first-use local Quick Ask initializes its user-scoped signed host. Session Core 0.3.21 supplies the Windows extended-path ACL fix.
 
-No new model-task retest was run for this release. Historical `.105/.150/.167` generation and independent acceptance each collected **20/20** records and added **6** passes. Cumulative cross-version accepted deliveries remain **31/45** (**26/36** ordinary, **5/9** first-run), with **14** unaccepted; this is not a .109 single-round success rate. **NOT_PAID_READY**, **NOT_ADMITTED** and automatic promotion **HOLD** remain. Microsoft Marketplace remains unpublished. Native product **v5.0.3.140** is a separate release; desktop integration still requires matching builds, desktop authorization and native confirmation.
+Install the verified public CLI with `npm i -g chainlesschain@0.166.112 --registry https://registry.npmjs.org`. Pair it with Open VSX **0.37.155** or JetBrains **0.4.172**, then restart the IDE chat host and run Doctor.
+
+No new model-task retest was run for this release; local Ollama model validation is left to the user after upgrading. Historical cross-version accepted deliveries remain **31/45** (**26/36** ordinary, **5/9** first-run), with **14** unaccepted. This is not a .112 single-round success rate. **NOT_PAID_READY**, **NOT_ADMITTED** and automatic promotion **HOLD** remain. Microsoft VS Code Marketplace remains unpublished; stock VS Code users can install the public Open VSX VSIX. Native product **v5.0.3.140** is a separate release; desktop integration requires matching builds, authorization and native confirmation.
 
 ### Verified public snapshot (2026-10-20, before .108 publication)
 
@@ -83,7 +85,7 @@ Explicit Linux durable permissions require administrator provisioning. Cross-pro
 Install the CLI version published by this release:
 
 ```bash
-npm install -g chainlesschain@0.166.109 --registry https://registry.npmjs.org
+npm install -g chainlesschain@0.166.112 --registry https://registry.npmjs.org
 chainlesschain setup
 ```
 

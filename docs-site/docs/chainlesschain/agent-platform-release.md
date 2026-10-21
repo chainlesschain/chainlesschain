@@ -1,28 +1,24 @@
 # Agent Platform 发布与升级指南
 
-<!-- release109-status -->
+<!-- release112-status -->
 
-## Current release: CLI .109 / IDE .154 and .171
+## Current release: CLI .112 / IDE .155 and .172
 
-Checked 2026-10-21:
+2026-10-22 ???npm CLI **0.166.112**?Open VSX **0.37.155** ? JetBrains Marketplace **0.4.172** ????????????????? IDE ????? CLI **0.166.112**?
 
-npm CLI **0.166.109** is public; exact-source gates and npm registry readback passed on source `2f14fd409bdf1fd39abc4b0a94cc6db280feae48` ([Actions](https://github.com/chainlesschain/chainlesschain/actions/runs/39545080716), [npm registry](https://www.npmjs.com/package/chainlesschain/v/0.166.109)).
+CLI ????? `35a2508d156152a61d74fbf8135fcfa1225fe235`????? CLI CI **71** ? job ? Strict Sandbox **5** ??? job ???????? [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/39661868416) ????? tarball ???? npm provenance ????run ??????Session Core **0.3.21** ?? CLI ???
 
-Open VSX **0.37.154** is released from tag [`ide-vscode-v0.37.154`](https://github.com/chainlesschain/chainlesschain/tree/ide-vscode-v0.37.154). JetBrains Marketplace **0.4.171** is released from tag [`ide-jetbrains-v0.4.171`](https://github.com/chainlesschain/chainlesschain/tree/ide-jetbrains-v0.4.171); its listing may be pending marketplace review after successful upload.
+?? IDE ?? `ide-vscode-v0.37.155`?`ide-jetbrains-v0.4.172` ??? `ae27ef6dfc8cf1e45bf084030816b02c77dc2a34`?[Open VSX ??](https://github.com/chainlesschain/chainlesschain/actions/runs/39673804362)???[JetBrains ?? attempt 2](https://github.com/chainlesschain/chainlesschain/actions/runs/39676899944/attempts/2) ?????? macOS 2024.2 ????????????????JetBrains ??? `approve=true`?`listed=true`?`hidden=false`??? IDE ?????????? CLI ???????[??????](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release112-public/publication.json)?
 
-Both IDE versions recommend CLI **0.166.109**. The CLI release fixes Web Panel Quick Ask routing to use saved provider, endpoint, model, and API key settings. Install the paired CLI with:
+CLI .112 resolves saved model provider settings, native Gemini/Anthropic protocol routing, Ollama URL normalization, and generated local signing-key paths.
 
 ```bash
-npm i -g chainlesschain@0.166.109 --registry https://registry.npmjs.org
+npm i -g chainlesschain@0.166.112 --registry https://registry.npmjs.org
 cc --version
 cc doctor
 ```
 
-The Microsoft VS Code Marketplace remains unpublished; the VS Code release channel is Open VSX.
-
-## Next release candidate: CLI .111 / IDE .155 and .172
-
-The source candidate adds provider-specific routing for Gemini, Anthropic, OpenAI-compatible providers, and configured proxies across CLI chat paths, and preserves generated Evolution test signing keys. It has not been published. Session Core **0.3.21** must publish before CLI **0.166.112**; VS Code **0.37.155** and JetBrains **0.4.172** follow only after the exact CLI release commit passes the required Linux, Windows, and macOS gates and the npm artifact is verified.
+Restart the IDE chat host and run Doctor after upgrading. ???????????????? Ollama ????????????????????????? **31/45**??? **26/36**??? **5/9**???? **14** ?????? .112 ??????**NOT_PAID_READY**?**NOT_ADMITTED** ????? **HOLD** ???Microsoft VS Code Marketplace ?????? VS Code ???????? Open VSX VSIX????? **v5.0.3.140** ????????????????????????
 
 ## Previous verified release: CLI .108 / IDE .153 and .170
 
@@ -444,7 +440,7 @@ Open VSX `0.37.92` 与 JetBrains Marketplace `0.4.119` 已公开并推荐 CLI `0
 全新安装后先核对版本与能力面，再按需进入交互 Agent：
 
 ```bash
-npm install --global chainlesschain@0.166.90 --registry https://registry.npmjs.org
+npm install --global chainlesschain@0.166.112 --registry https://registry.npmjs.org
 cc --version
 cc agent --capabilities
 cc agent
@@ -455,12 +451,12 @@ cc agent
 ### CLI
 
 ```bash
-npm install --global chainlesschain@0.166.90 --registry https://registry.npmjs.org
+npm install --global chainlesschain@0.166.112 --registry https://registry.npmjs.org
 cc --version
 cc agent --capabilities
 ```
 
-`cc --version` 预期输出 `0.166.90`。`cc agent --capabilities` 应能执行，但其中某项显示 disabled/unavailable 可能只是当前宿主没有注入生产 authority，不应以测试密钥或环境变量绕过。
+`cc --version` 预期输出 `0.166.112`。`cc agent --capabilities` 应能执行，但其中某项显示 disabled/unavailable 可能只是当前宿主没有注入生产 authority，不应以测试密钥或环境变量绕过。
 
 ### SDK 与协议
 
@@ -530,7 +526,7 @@ PDH 三平台各 4482 项通过、0 失败，125 项显式停用的历史测试�
 **npm 镜像返回 E404**：显式使用官方 registry：
 
 ```bash
-npm install --global chainlesschain@0.166.90 --registry https://registry.npmjs.org
+npm install --global chainlesschain@0.166.112 --registry https://registry.npmjs.org
 ```
 
 **官方 VS Code 搜不到扩展**：Microsoft Marketplace 尚未公开；从 Open VSX 下载 `0.37.135` VSIX。
