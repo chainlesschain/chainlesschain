@@ -20,6 +20,7 @@ import {
   EVIDENCE_JSON_POLICY,
   isAgentToolArgumentsPath,
 } from "./evidence-json-text.js";
+import { formatLocalUiTenantReferenceId } from "./opaque-hex-id.js";
 
 export const EVOLUTION_SOURCE_VERIFICATION_SCHEMA =
   "chainlesschain.evolution-source-verification/v1";
@@ -89,6 +90,9 @@ const SOURCE_SCHEMES = new Set(["rollout", "tool", "outcome", "recording"]);
 const SOURCE_COMMITMENT_PURPOSE = "chainlesschain.evolution-source-payload/v1";
 const TRUSTED_PAYLOAD_COMMITMENT_PURPOSE =
   "chainlesschain.evolution-trusted-payload/v1";
+const LEGACY_LOCAL_UI_TENANT_ID_PATTERN = /^local-ui-[a-f0-9]{32}$/u;
+const FORMATTED_LOCAL_UI_TENANT_ID_PATTERN =
+  /^local-ui-(?:[a-f0-9]{8}-){3}[a-f0-9]{8}$/u;
 
 const INPUT_KEYS = new Set(["sourceEnvelope", "payload"]);
 const SOURCE_VERIFICATION_KEYS = new Set([
@@ -873,6 +877,17 @@ function normalizeId(value, label, maximum = 256) {
   return value;
 }
 
+function normalizeTenantId(value, label) {
+  if (
+    typeof value === "string" &&
+    (LEGACY_LOCAL_UI_TENANT_ID_PATTERN.test(value) ||
+      FORMATTED_LOCAL_UI_TENANT_ID_PATTERN.test(value))
+  ) {
+    return value;
+  }
+  return normalizeId(value, label);
+}
+
 function normalizeDigest(
   value,
   label,
@@ -970,7 +985,7 @@ function normalizeOpaqueUri(value, { label, schemes, tenantId }) {
     parsed.port ||
     parsed.search ||
     parsed.hash ||
-    parsed.hostname !== tenantId ||
+    parsed.hostname !== formatLocalUiTenantReferenceId(tenantId) ||
     !decodedPath.startsWith("/") ||
     decodedPath
       .split("/")
@@ -1635,7 +1650,7 @@ function validateSourceVerification(
       { failures },
     );
   }
-  const tenantId = normalizeId(value.tenantId, "source tenantId");
+  const tenantId = normalizeTenantId(value.tenantId, "source tenantId");
   const principalId = normalizeId(value.principalId, "source principalId");
   const sourceRef = normalizeOpaqueUri(value.sourceRef, {
     label: "sourceRef",
@@ -2737,7 +2752,7 @@ function validateRawMetadata(raw, receipt) {
   }
   const createdAtMs = new Date(createdAt).getTime();
   normalizeId(raw.evidenceId, "Raw evidenceId");
-  normalizeId(raw.tenantId, "Raw tenantId");
+  normalizeTenantId(raw.tenantId, "Raw tenantId");
   normalizeId(raw.principalId, "Raw principalId");
   normalizeOpaqueUri(raw.sourceRef, {
     label: "Raw sourceRef",

@@ -169,20 +169,22 @@ describe("default local UI Evolution deployment", () => {
     const { deployment } = await initializeDefaultLocalUiEvolutionDeployment(
       config,
     );
-    const runA = "ws-llm-chat-run-a";
+    const runA = "ws-llm-chat-probe-270";
     const runB = "ws-llm-chat-run-b";
+    const tenantId = "local-ui-16754727681abcdef0123456789abcde";
+    const legacyDeployment = { ...deployment, tenantId };
     const authoritiesA = createLocalUiEvolutionAuthorities(
-      deployment,
+      legacyDeployment,
       runA,
     ).authorities;
     const authoritiesB = createLocalUiEvolutionAuthorities(
-      deployment,
+      legacyDeployment,
       runB,
     ).authorities;
     const evidence = { messages: [{ role: "user", content: "hello" }] };
     const occurredAt = new Date().toISOString();
     const sourceEnvelope = authoritiesA.sourceEnvelope.issue({
-      tenantId: deployment.tenantId,
+      tenantId,
       runId: runA,
       eventId: "agent:ingress-event-a",
       kind: "user-prompt",
@@ -198,7 +200,7 @@ describe("default local UI Evolution deployment", () => {
         evidence,
         "chainlesschain.evolution-raw-plaintext/v2",
       ),
-      tenantId: deployment.tenantId,
+      tenantId,
       payload: evidence,
       requestNonce: "nonce-a",
       requestedAt: occurredAt,
@@ -207,17 +209,23 @@ describe("default local UI Evolution deployment", () => {
     const verification = await authoritiesA.sourceVerifier.verify(request);
     expect(verification).toMatchObject({
       verified: true,
-      tenantId: deployment.tenantId,
+      tenantId,
     });
     expect(verification.sourceRef).toMatch(
-      new RegExp(`^rollout://${deployment.tenantId}/quick-ask/[a-f0-9]{64}/[a-f0-9]{64}$`, "u"),
+      new RegExp(
+        `^rollout://local-ui-(?:[a-f0-9]{8}-){3}[a-f0-9]{8}/quick-ask/(?:[a-f0-9]{8}-){7}[a-f0-9]{8}/(?:[a-f0-9]{8}-){7}[a-f0-9]{8}$`,
+        "u",
+      ),
+    );
+    expect(verification.sourceRef).not.toMatch(
+      /(?<!\d)(?:\+?86[- ]?)?1[3-9]\d{9}(?!\d)/u,
     );
     await expect(authoritiesB.sourceVerifier.verify(request)).rejects.toThrow(
       /not bound to this evidence/u,
     );
     expect(() =>
       authoritiesB.sourceEnvelope.issue({
-        tenantId: deployment.tenantId,
+        tenantId,
         runId: runA,
         eventId: "event-b",
         kind: "user-prompt",

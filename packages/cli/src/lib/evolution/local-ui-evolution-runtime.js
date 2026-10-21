@@ -25,6 +25,10 @@ import {
 import { createAgentEvolutionRuntimeComposition } from "./agent-evolution-runtime-composition.js";
 import { loadLocalUiEvolutionDeployment } from "./local-ui-evolution-deployment.js";
 import { createLocalUiEvolutionFileSystem } from "./evolution-windows-directory-durability.js";
+import {
+  formatLocalUiTenantReferenceId,
+  formatOpaqueHexId,
+} from "./opaque-hex-id.js";
 
 const SOURCE_ENVELOPE_SCHEMA = "chainlesschain.local-ui-source-envelope/v1";
 const TRUST_POLICY_REVISION = 1;
@@ -82,9 +86,14 @@ function sha256(value) {
 }
 
 function sourceRefSegment(value, purpose) {
-  return createHash("sha256")
-    .update(`chainlesschain.local-ui-source-ref/v1\0${purpose}\0${value}`, "utf8")
-    .digest("hex");
+  return formatOpaqueHexId(
+    createHash("sha256")
+      .update(
+        `chainlesschain.local-ui-source-ref/v1\0${purpose}\0${value}`,
+        "utf8",
+      )
+      .digest("hex"),
+  );
 }
 
 function dateAfter(iso, durationMs = DECISION_TTL_MS) {
@@ -274,7 +283,7 @@ export function createLocalUiEvolutionAuthorities(identity, runId) {
         sourceKind,
         trust: "untrusted",
         authenticated: true,
-        sourceRef: `rollout://${tenantId}/quick-ask/${sourceRefSegment(body.runId, "run")}/${sourceRefSegment(body.eventId, "event")}`,
+        sourceRef: `rollout://${formatLocalUiTenantReferenceId(tenantId)}/quick-ask/${sourceRefSegment(body.runId, "run")}/${sourceRefSegment(body.eventId, "event")}`,
         sensitivity: "internal",
         schemaDigest: null,
         compilable: false,
@@ -582,8 +591,10 @@ export async function createLocalUiEvolutionComposition({
       ledger,
       witness,
     },
-    evidenceIdGenerator: async () => `evidence-${randomUUID()}`,
-    ingressIdGenerator: () => `ingress-${randomUUID()}`,
+    evidenceIdGenerator: async () =>
+      `evidence-${formatOpaqueHexId(randomUUID().replaceAll("-", ""))}`,
+    ingressIdGenerator: () =>
+      `ingress-${formatOpaqueHexId(randomUUID().replaceAll("-", ""))}`,
     secure: true,
     fsImpl,
   });
