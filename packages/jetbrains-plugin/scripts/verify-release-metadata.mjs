@@ -99,10 +99,11 @@ export function verifyReleaseMetadata({
   );
   const section = compatibility[1];
   assert.ok(
-    section.includes(
+    [
       `Plugin **${pluginVersion}** is the current release candidate`,
-    ),
-    "README must identify the current plugin release candidate",
+      `Plugin **${pluginVersion}** is the current public release`,
+    ].some((declaration) => section.includes(declaration)),
+    "README must identify the current plugin release or release candidate",
   );
   assert.ok(
     section.includes(`chainlesschain@${recommendedCliVersion}`),

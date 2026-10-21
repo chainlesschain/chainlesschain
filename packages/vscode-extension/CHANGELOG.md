@@ -2,10 +2,10 @@
 
 All notable changes to this extension are documented here.
 
-## [0.37.155] - CLI 0.166.112 pairing (candidate, 2026-10-21)
+## [0.37.155] - CLI 0.166.112 pairing (2026-10-22)
 
 - Recommend CLI 0.166.112 for native Gemini and Anthropic Quick Ask routing and provider URL normalization.
-- Candidate tag: `ide-vscode-v0.37.155`. Publish after CLI 0.166.112 is available on npm and the exact-source IDE gates pass.
+- Release tag: `ide-vscode-v0.37.155`. Public after the exact-source IDE gates and [publication workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/39673804362) passed; the public archive and paired CLI version were read back.
 
 ## [0.37.154] - CLI 0.166.109 pairing (2026-10-21)
 

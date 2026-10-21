@@ -1,0 +1,43 @@
+{
+  "schema": "chainlesschain.release112-publication/v1",
+  "observedAt": "2026-10-21T22:33:15.971Z",
+  "status": "ALL_THREE_PUBLIC",
+  "repository": "chainlesschain/chainlesschain",
+  "channels": {
+    "cli": {
+      "version": "0.166.112",
+      "status": "public",
+      "sourceSha": "35a2508d156152a61d74fbf8135fcfa1225fe235",
+      "runId": 39661868416,
+      "receipt": "cli.json"
+    },
+    "openVsx": {
+      "version": "0.37.155",
+      "status": "public",
+      "recommendedCliVersion": "0.166.112",
+      "sourceSha": "ae27ef6dfc8cf1e45bf084030816b02c77dc2a34",
+      "runId": 39673804362,
+      "receipt": "open-vsx.json"
+    },
+    "jetbrains": {
+      "version": "0.4.172",
+      "status": "public",
+      "recommendedCliVersion": "0.166.112",
+      "sourceSha": "ae27ef6dfc8cf1e45bf084030816b02c77dc2a34",
+      "runId": 39676899944,
+      "attempt": 2,
+      "receipt": "jetbrains.json"
+    }
+  },
+  "gates": "gates.json",
+  "limits": {
+    "modelTaskRetest": "NOT_RUN_THIS_RELEASE",
+    "paidReadiness": "NOT_PAID_READY",
+    "nativeAdmission": "NOT_ADMITTED",
+    "automaticPromotion": "HOLD",
+    "microsoftMarketplace": "unpublished",
+    "nativeProduct": "v5.0.3.140",
+    "localOllamaLiveValidation": "USER_WILL_TEST_AFTER_RELEASE"
+  },
+  "evidenceScope": "Current official GitHub run/job/tag readback and public registry artifact GETs with integrity and embedded-version checks. Existing exact-source CI/Strict Sandbox results were inspected, not rerun. Original macOS performance failure retained. No new model-task acceptance, native admission, or Microsoft Marketplace publication is claimed."
+}

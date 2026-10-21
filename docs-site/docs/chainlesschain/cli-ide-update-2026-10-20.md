@@ -1,20 +1,26 @@
-# CLI .109 / IDE .154 与 .171 发行状态与升级指南
+# CLI .112 / IDE .155 与 .172 发布状态与升级指南
 
 ## 概述
 
-本文记录 CLI 0.166.109 与 IDE 0.37.154 / 0.4.171 的当前配套发布状态和升级步骤。
+本文记录 CLI 0.166.112 与 IDE 0.37.155 / 0.4.172 的公开配套版本、回读证据和升级步骤。
 
-## Current release: CLI .109 / IDE .154 and .171
+<!-- release112-status -->
 
-npm CLI **0.166.109** is public; exact-source gates and registry readback passed on source `2f14fd409bdf1fd39abc4b0a94cc6db280feae48` ([Actions](https://github.com/chainlesschain/chainlesschain/actions/runs/39545080716), [npm registry](https://www.npmjs.com/package/chainlesschain/v/0.166.109)).
+## Current release: CLI .112 / IDE .155 and .172
 
-The immutable IDE tags ide-vscode-v0.37.154 and ide-jetbrains-v0.4.171 define the Open VSX and JetBrains artifacts paired with public CLI 0.166.109. Each tag workflow publishes its artifact and verifies marketplace state after the exact-commit IDE gates pass. JetBrains may remain pending review after a successful upload. Microsoft VS Code Marketplace remains unpublished.
+2026-10-22 ???npm CLI **0.166.112**?Open VSX **0.37.155** ? JetBrains Marketplace **0.4.172** ????????????????? IDE ????? CLI **0.166.112**?
 
-Install the paired CLI with `npm i -g chainlesschain@0.166.109 --registry https://registry.npmjs.org`, then restart the IDE chat host and run `cc doctor`.
+CLI ????? `35a2508d156152a61d74fbf8135fcfa1225fe235`????? CLI CI **71** ? job ? Strict Sandbox **5** ??? job ???????? [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/39661868416) ????? tarball ???? npm provenance ????run ??????Session Core **0.3.21** ?? CLI ???
 
-## Next release candidate: CLI .111 / IDE .155 and .172
+?? IDE ?? `ide-vscode-v0.37.155`?`ide-jetbrains-v0.4.172` ??? `ae27ef6dfc8cf1e45bf084030816b02c77dc2a34`?[Open VSX ??](https://github.com/chainlesschain/chainlesschain/actions/runs/39673804362)???[JetBrains ?? attempt 2](https://github.com/chainlesschain/chainlesschain/actions/runs/39676899944/attempts/2) ?????? macOS 2024.2 ????????????????JetBrains ??? `approve=true`?`listed=true`?`hidden=false`??? IDE ?????????? CLI ???????[??????](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release112-public/publication.json)?
 
-These source candidates are not published. Session Core **0.3.21** must publish before CLI **0.166.112**. The IDE extensions pair with that CLI and will publish only after its exact-commit Linux, Windows, and macOS gates pass and npm readback verifies the package.
+```bash
+npm i -g chainlesschain@0.166.112 --registry https://registry.npmjs.org
+cc --version
+cc doctor
+```
+
+升级后重启 IDE 聊天宿主并运行 Doctor。???????????????? Ollama ????????????????????????? **31/45**??? **26/36**??? **5/9**???? **14** ?????? .112 ??????**NOT_PAID_READY**?**NOT_ADMITTED** ????? **HOLD** ???Microsoft VS Code Marketplace ?????? VS Code ???????? Open VSX VSIX????? **v5.0.3.140** ????????????????????????
 
 ## Previous verified snapshot: CLI .108 / IDE .153 and .170
 
@@ -34,7 +40,9 @@ JetBrains Marketplace **0.4.170**: 已公开，精确提交发行门与公开制
 
 ## 核心特性
 
-CLI .108 在会话恢复与压缩时保留完整工具轮次，提供有界重复读取提示，并在状态锁竞争时持久保存后台 worker 的终态。IDE .153 / .170 配对 CLI .108。仓库 Python 调度诊断不包含在 npm 包中。子包版本不变：Agent SDK 0.2.15、Session Core 0.3.20、Context/Memory Kernel 0.1.10、Personal Data Hub 0.4.65。
+CLI .112 修复本地 Ollama URL、Gemini/Anthropic 协议选择和提供方配置路由；首次启动 Web Quick Ask 自动初始化本地签名宿主，显式 Evolution 测试部署保存生成的签名密钥路径。
+
+CLI .112 在会话恢复与压缩时保留完整工具轮次，提供有界重复读取提示，并在状态锁竞争时持久保存后台 worker 的终态。IDE .155 / .172 配对 CLI .112。仓库 Python 调度诊断不包含在 npm 包中。子包版本不变：Agent SDK 0.2.15、Session Core 0.3.21、Context/Memory Kernel 0.1.10、Personal Data Hub 0.4.65。
 
 - CLI、共享契约与 IDE 包含目标目录、授权插件面板、离线说明请求、在线待审草稿和回执查询。
 - 演化存储核对 journal、witness、manifest 和索引一致性，任务修改保留标签来源。
@@ -47,14 +55,14 @@ IDE 使用配对 CLI 执行模型和文件工具。CLI 文件目标与桌面项�
 
 ## 配置参考
 
-需要 Node.js **22.12.0+**、npm **10.0.0+**。下方安装命令使用已公开回读的 CLI 0.166.108。按上方各渠道状态选择 IDE；升级后重启聊天宿主并用 Doctor 核对实际 CLI 路径。
+需要 Node.js **22.12.0+**、npm **10.0.0+**。下方安装命令使用已公开回读的 CLI 0.166.112。按上方各渠道状态选择 IDE；升级后重启聊天宿主并用 Doctor 核对实际 CLI 路径。
 
 目标草稿互通还需要匹配桌面源码构建及授权连接，不能假设产品 .140 已包含全部新增面板。连接文件包含凭据，请保存在本机私有目录。
 
 ## 使用示例
 
 ```bash
-npm i -g chainlesschain@0.166.108 --registry https://registry.npmjs.org
+npm i -g chainlesschain@0.166.112 --registry https://registry.npmjs.org
 cc --version
 cc doctor
 cc goal --help
@@ -70,9 +78,9 @@ cc goal --help
 
 ## 测试覆盖
 
-各渠道的精确提交、Actions 和不可变回执见上方；只有标记已公开的渠道完成公开制品回读。npm CLI 0.166.108 已公开，精确提交发行门与公开制品回读通过；Open VSX 0.37.153 已公开，精确提交发行门与公开制品回读通过；JetBrains Marketplace 0.4.170 已公开，精确提交发行门与公开制品回读通过。
+各渠道的精确提交、Actions 和不可变回执见上方；只有标记已公开的渠道完成公开制品回读。npm CLI 0.166.112 已公开，精确提交发行门与公开制品回读通过；Open VSX 0.37.155 已公开，精确提交发行门与公开制品回读通过；JetBrains Marketplace 0.4.172 已公开，精确提交发行门与公开制品回读通过。
 
-本轮没有新的模型任务补测。历史 `.105/.150/.167` 轮生成和独立验收各 **20/20**，新增通过 **6** 项；跨版本累计候选合格交付 **31/45**，剩余 **14** 项。不能把累计覆盖当成 .108 单轮成功率。正式付费准入 **NOT_PAID_READY**、完整 native review **NOT_ADMITTED**、自动晋升 **HOLD** 保留。
+本轮没有新的模型任务补测。历史 `.105/.150/.167` 轮生成和独立验收各 **20/20**，新增通过 **6** 项；跨版本累计候选合格交付 **31/45**，剩余 **14** 项。不能把累计覆盖当成 .112 单轮成功率。正式付费准入 **NOT_PAID_READY**、完整 native review **NOT_ADMITTED**、自动晋升 **HOLD** 保留。
 
 ## 安全考虑
 
