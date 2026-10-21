@@ -1,4 +1,5 @@
 import { captureAgentExecutionPolicy } from "../../lib/agent-execution-policy.js";
+import { resolveLlmConnection } from "../../lib/llm-connection-resolution.js";
 
 export function resolveAgentPolicy({
   config = null,
@@ -7,20 +8,25 @@ export function resolveAgentPolicy({
 } = {}) {
   const llm = config?.llm || {};
   const executionPolicy = captureAgentExecutionPolicy(overrides);
+  const provider =
+    overrides.provider || llm.provider || defaults.provider || "ollama";
+  const connection = resolveLlmConnection(overrides, [llm, defaults], {
+    defaultProvider: provider,
+    defaultModel:
+      defaults.model ||
+      (provider === "anthropic"
+        ? "claude-sonnet-4-6"
+        : provider === "ollama"
+          ? "qwen2:7b"
+          : null),
+  });
 
   return {
-    model: overrides.model || llm.model || defaults.model || "qwen2:7b",
+    model: connection.model || defaults.model || "qwen2:7b",
     visionModel: overrides.visionModel,
-    provider:
-      overrides.provider || llm.provider || defaults.provider || "ollama",
-    baseUrl:
-      overrides.baseUrl !== undefined
-        ? overrides.baseUrl
-        : llm.baseUrl || defaults.baseUrl,
-    apiKey:
-      overrides.apiKey !== undefined
-        ? overrides.apiKey
-        : llm.apiKey || defaults.apiKey || null,
+    provider: connection.provider,
+    baseUrl: connection.baseUrl,
+    apiKey: connection.apiKey || null,
     sessionId: overrides.sessionId || null,
     agentId: overrides.agentId || null,
     recallMemory:

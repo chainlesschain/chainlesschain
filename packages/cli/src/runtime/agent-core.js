@@ -8,6 +8,8 @@ import {
   normalizeProviderBaseUrl,
   openAICompatibleBaseUrl,
 } from "../lib/provider-protocol.js";
+import { BUILT_IN_PROVIDERS } from "../lib/llm-providers.js";
+import { resolveLlmConnection } from "../lib/llm-connection-resolution.js";
 /**
  * Agent Core — transport-independent agentic logic
  *
@@ -12078,6 +12080,14 @@ export async function chatWithTools(rawMessages, options) {
     options.evolutionIngress == null
       ? null
       : captureAgentEvolutionIngress(options.evolutionIngress);
+  const providerHint = options.provider || "ollama";
+  const legacyDefaultModels = {
+    anthropic: "claude-sonnet-4-6",
+  };
+  const connection = resolveLlmConnection(options, [], {
+    defaultProvider: providerHint,
+    defaultModel: legacyDefaultModels[providerHint],
+  });
   const {
     provider,
     model,
@@ -12085,7 +12095,7 @@ export async function chatWithTools(rawMessages, options) {
     apiKey,
     contextEngine: ce,
     signal,
-  } = options;
+  } = { ...options, ...connection };
 
   const providerRequestId = _normalizeProviderRequestId(
     options.providerRequestId,
@@ -12229,7 +12239,7 @@ export async function chatWithTools(rawMessages, options) {
   }
 
   if (provider === "anthropic") {
-    const key = apiKey || process.env.ANTHROPIC_API_KEY;
+    const key = apiKey;
     if (!key) throw new Error("ANTHROPIC_API_KEY required");
 
     const systemMsgs = messages.filter((m) => m.role === "system");
@@ -12312,11 +12322,7 @@ export async function chatWithTools(rawMessages, options) {
         : systemText;
     }
 
-    const url = normalizeProviderBaseUrl(
-      baseUrl && baseUrl !== "http://localhost:11434"
-        ? baseUrl
-        : "https://api.anthropic.com/v1",
-    );
+    const url = normalizeProviderBaseUrl(baseUrl);
 
     // Real token streaming (--include-partial-messages): stream the SSE response
     // and forward text deltas live, assembling tool_use blocks back into the
@@ -12407,34 +12413,12 @@ export async function chatWithTools(rawMessages, options) {
   }
 
   // OpenAI-compatible providers
-  const providerUrls = {
-    openai: "https://api.openai.com/v1",
-    deepseek: "https://api.deepseek.com/v1",
-    dashscope: "https://dashscope.aliyuncs.com/compatible-mode/v1",
-    mistral: "https://api.mistral.ai/v1",
-    gemini: "https://generativelanguage.googleapis.com/v1beta/openai",
-    volcengine: "https://ark.cn-beijing.volces.com/api/v3",
-  };
+  const providerDefinition = BUILT_IN_PROVIDERS[provider];
+  const url = openAICompatibleBaseUrl(provider, baseUrl);
 
-  const providerApiKeyEnvs = {
-    openai: "OPENAI_API_KEY",
-    deepseek: "DEEPSEEK_API_KEY",
-    dashscope: "DASHSCOPE_API_KEY",
-    mistral: "MISTRAL_API_KEY",
-    gemini: "GEMINI_API_KEY",
-    volcengine: "VOLCENGINE_API_KEY",
-  };
-
-  const url = openAICompatibleBaseUrl(
-    provider,
-    baseUrl && baseUrl !== "http://localhost:11434"
-      ? baseUrl
-      : providerUrls[provider],
-  );
-
-  if (!url) {
+  if (!providerDefinition || !url) {
     throw new Error(
-      `Unsupported provider: ${provider}. Supported: ollama, anthropic, openai, deepseek, dashscope, mistral, gemini, volcengine`,
+      `Unsupported provider: ${provider}. Supported: ${Object.keys(BUILT_IN_PROVIDERS).join(", ")}`,
     );
   }
   const supportsOpenAIRequestIdentity = _isOfficialOpenAIEndpoint(
@@ -12442,19 +12426,10 @@ export async function chatWithTools(rawMessages, options) {
     url,
   );
 
-  const envKey = providerApiKeyEnvs[provider] || "OPENAI_API_KEY";
-  const key = apiKey || process.env[envKey];
+  const envKey = providerDefinition.apiKeyEnv;
+  const key = apiKey;
   if (!key) throw new Error(`${envKey} required for provider ${provider}`);
-
-  const defaultModels = {
-    openai: "gpt-4o",
-    deepseek: "deepseek-chat",
-    dashscope: "qwen-turbo",
-    mistral: "mistral-large-latest",
-    gemini: "gemini-2.0-flash",
-    volcengine: "deepseek-v4-1-flash-260910",
-  };
-  const effectiveModel = model || defaultModels[provider] || "gpt-4o-mini";
+  const effectiveModel = model || providerDefinition.models?.[0];
   const modelProfile = resolveModelCapabilityProfile({
     provider,
     model: effectiveModel,

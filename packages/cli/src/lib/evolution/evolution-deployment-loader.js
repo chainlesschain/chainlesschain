@@ -1117,7 +1117,6 @@ export async function loadEvolutionDeploymentCommandDependencies(
       "ui-host.mjs",
     );
     if (
-      commandName !== "ui" ||
       descriptor.commands.length !== 1 ||
       descriptor.commands[0] !== "ui" ||
       resolve(verified.modulePath) !== resolve(localHostPath)

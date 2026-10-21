@@ -41,6 +41,8 @@ import readline from "readline";
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
 import { BUILT_IN_PROVIDERS } from "../lib/llm-providers.js";
+import { loadConfig } from "../lib/config-manager.js";
+import { resolveLlmConnection } from "../lib/llm-connection-resolution.js";
 import { expandFileRefsAsync } from "../runtime/file-ref-expander.js";
 import {
   streamOllama,
@@ -112,10 +114,19 @@ export async function startChatRepl(options = {}) {
     ? assertChatSessionUsageAdmission(options.sessionId)
     : null;
   const evolutionSession = createAgentEvolutionSessionLifecycle(evolutionIngress);
-  let model = options.model || "qwen2:7b";
-  let provider = options.provider || "ollama";
-  const baseUrl = options.baseUrl || "http://localhost:11434";
-  const apiKey = options.apiKey || null;
+  const llmConfig = loadConfig().llm || {};
+  const connection = resolveLlmConnection(options, [llmConfig], {
+    defaultModel:
+      (options.provider || llmConfig.provider || "ollama") === "anthropic"
+        ? "claude-sonnet-4-6"
+        : (options.provider || llmConfig.provider || "ollama") === "ollama"
+          ? "qwen2:7b"
+          : null,
+  });
+  let provider = connection.provider;
+  let model = connection.model || (provider === "ollama" ? "qwen2:7b" : "");
+  let baseUrl = connection.baseUrl;
+  let apiKey = connection.apiKey;
 
   const messages = [];
   const stdout = options.stdout || process.stdout;
@@ -220,6 +231,23 @@ export async function startChatRepl(options = {}) {
 
         case "/provider":
           if (arg) {
+            if (arg !== provider) {
+              const nextConnection = resolveLlmConnection(
+                { provider: arg },
+                [llmConfig],
+                {
+                  defaultModel:
+                    arg === "anthropic"
+                      ? "claude-sonnet-4-6"
+                      : arg === "ollama"
+                        ? "qwen2:7b"
+                        : null,
+                },
+              );
+              model = nextConnection.model || "";
+              baseUrl = nextConnection.baseUrl;
+              apiKey = nextConnection.apiKey;
+            }
             provider = arg;
             logger.info(`Provider changed to: ${chalk.cyan(provider)}`);
           } else {
@@ -348,9 +376,7 @@ export async function startChatRepl(options = {}) {
       } else if (provider === "anthropic") {
         const providerDef = BUILT_IN_PROVIDERS.anthropic;
         const url =
-          baseUrl !== "http://localhost:11434"
-            ? baseUrl
-            : providerDef?.baseUrl || "https://api.anthropic.com/v1";
+          baseUrl || providerDef?.baseUrl || "https://api.anthropic.com/v1";
         const key =
           apiKey ||
           (providerDef?.apiKeyEnv ? process.env[providerDef.apiKeyEnv] : null);
@@ -370,10 +396,9 @@ export async function startChatRepl(options = {}) {
       } else if (provider === "gemini") {
         const providerDef = BUILT_IN_PROVIDERS.gemini;
         const url =
-          baseUrl && baseUrl !== "http://localhost:11434"
-            ? baseUrl
-            : providerDef?.baseUrl ||
-              "https://generativelanguage.googleapis.com/v1beta";
+          baseUrl ||
+          providerDef?.baseUrl ||
+          "https://generativelanguage.googleapis.com/v1beta";
         const key =
           apiKey ||
           (providerDef?.apiKeyEnv ? process.env[providerDef.apiKeyEnv] : null);
@@ -394,9 +419,7 @@ export async function startChatRepl(options = {}) {
         // OpenAI-compatible providers (openai, volcengine, deepseek, dashscope, mistral, anthropic-proxy)
         const providerDef = BUILT_IN_PROVIDERS[provider];
         const url =
-          baseUrl !== "http://localhost:11434"
-            ? baseUrl
-            : providerDef?.baseUrl || "https://api.openai.com/v1";
+          baseUrl || providerDef?.baseUrl || "https://api.openai.com/v1";
         const key =
           apiKey ||
           (providerDef?.apiKeyEnv ? process.env[providerDef.apiKeyEnv] : null);

@@ -1530,7 +1530,7 @@ export class WSAgentHandler {
             }),
         provider: session.provider,
         model: activeModel,
-        baseUrl: session.baseUrl || "http://localhost:11434",
+        baseUrl: session.baseUrl,
         apiKey: session.apiKey,
         contextEngine: session.contextEngine,
         hookDb: this.db,

@@ -53,6 +53,7 @@ import {
   llmProbeReceipt,
 } from "../lib/llm-connection-probe.js";
 import { resolveModelCapabilityProfile } from "../lib/model-capabilities.js";
+import { resolveLlmConnection } from "../lib/llm-connection-resolution.js";
 
 /**
  * Resolve the effective `cc llm test` target from CLI flags + persisted config.
@@ -76,46 +77,27 @@ export function resolveLlmTestTarget(
 ) {
   const llm = config.llm || {};
   const provider = options.provider || llm.provider || "ollama";
-  const sameProvider = provider === (llm.provider || "ollama");
   const isOllama = provider === "ollama";
   const builtIn = builtIns[provider];
-
-  const model =
-    options.model ||
-    (sameProvider ? llm.model : undefined) ||
-    (isOllama ? "qwen2:7b" : builtIn?.models?.[0] || "gpt-4o-mini");
-
-  let baseUrl;
-  if (isOllama) {
-    // Only inherit config.baseUrl when the CONFIGURED provider is also ollama —
-    // otherwise `--provider ollama` would probe another provider's endpoint.
-    const configOllamaBase =
-      llm.provider === "ollama" ? llm.baseUrl : undefined;
-    baseUrl = options.baseUrl || configOllamaBase || "http://localhost:11434";
-  } else {
-    baseUrl =
-      options.baseUrl ||
-      (sameProvider ? llm.baseUrl : undefined) ||
-      builtIn?.baseUrl ||
-      "https://api.openai.com/v1";
-  }
-
-  const apiKey = isOllama
-    ? undefined
-    : options.apiKey ||
-      (sameProvider ? llm.apiKey : undefined) ||
-      (builtIn?.apiKeyEnv ? env[builtIn.apiKeyEnv] : undefined);
-
+  const connection = resolveLlmConnection(options, [llm], {
+    env,
+    builtIns,
+    defaultProvider: provider,
+    defaultModel: isOllama
+      ? "qwen2:7b"
+      : builtIn?.models?.[0] || "gpt-4o-mini",
+  });
   return {
-    provider,
-    model,
-    baseUrl,
-    apiKey,
+    provider: connection.provider,
+    model: connection.model,
+    baseUrl:
+      connection.baseUrl ||
+      (isOllama ? "http://localhost:11434" : "https://api.openai.com/v1"),
+    apiKey: isOllama ? undefined : connection.apiKey || undefined,
     isOllama,
     label: builtIn?.displayName || (isOllama ? "Ollama" : provider),
   };
 }
-
 /** Resolve a static profile without reading credentials or provider key envs. */
 export function resolveLlmCapabilities(
   options = {},

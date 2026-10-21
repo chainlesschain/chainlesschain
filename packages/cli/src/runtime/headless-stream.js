@@ -19,6 +19,7 @@
 import { randomUUID } from "node:crypto";
 import { transportErrorDetails } from "../lib/transport-error-details.js";
 import { captureAgentExecutionPolicy } from "../lib/agent-execution-policy.js";
+import { resolveLlmConnection } from "../lib/llm-connection-resolution.js";
 import { TaskWorklog } from "../lib/context-memory-kernel/task-worklog-port.js";
 import { isProxy } from "node:util/types";
 import {
@@ -1777,10 +1778,15 @@ async function runAgentHeadlessStreamInWorkspace(
   ) {
     throw new TypeError("Agent retrieval authorities must share one tenant");
   }
-  const model = options.model || "qwen2.5:7b";
-  const provider = options.provider || "ollama";
-  const baseUrl = options.baseUrl || "http://localhost:11434";
-  const apiKey = options.apiKey || null;
+  const connection = resolveLlmConnection(options, [], {
+    defaultModel:
+      (options.provider || "ollama") === "anthropic"
+        ? "claude-sonnet-4-6"
+        : (options.provider || "ollama") === "ollama"
+          ? "qwen2.5:7b"
+          : null,
+  });
+  const { model, provider, baseUrl, apiKey } = connection;
   const writeOut = deps.writeOut;
   const writeErr = deps.writeErr;
 

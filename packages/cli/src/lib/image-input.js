@@ -276,6 +276,17 @@ export function imageUrlBlockToAnthropic(block) {
  * to pin a different snapshot.
  */
 export const DEFAULT_VISION_MODEL = "doubao-seed-2-0-lite-260215";
+const DEFAULT_VISION_MODELS = Object.freeze({
+  ollama: "qwen2.5vl:7b",
+  openai: "gpt-4o-mini",
+  anthropic: "claude-sonnet-4-6",
+  gemini: "gemini-2.5-flash",
+  volcengine: DEFAULT_VISION_MODEL,
+  dashscope: "qwen-vl-plus",
+  kimi: "kimi-k2.5",
+  minimax: "MiniMax-VL-01",
+  mistral: "pixtral-12b-2409",
+});
 
 // Recognize image-input families, including dated snapshots and local tags.
 // Unknown models keep using the configured vision fallback. Do not infer
@@ -327,15 +338,20 @@ export function resolveVisionLlm({ hasImage, flags = {}, llm = {} } = {}) {
       apiKey: undefined,
     };
   }
+  const provider = flags.provider || llm.provider;
+  const sameProvider = !flags.provider || !llm.provider || flags.provider === llm.provider;
   const mainModel =
-    !flags.provider || !llm.provider || flags.provider === llm.provider
+    sameProvider
       ? llm.model
       : undefined;
   const visionModel = supportsVisionModel(mainModel)
     ? mainModel
-    : llm.visionModel || DEFAULT_VISION_MODEL;
+    : (sameProvider ? llm.visionModel : null) ||
+      DEFAULT_VISION_MODELS[provider] ||
+      mainModel ||
+      DEFAULT_VISION_MODEL;
   return {
-    provider: flags.provider || llm.provider,
+    provider,
     model: flags.model || flags.visionModel || visionModel,
     baseUrl: flags.baseUrl || llm.baseUrl,
     apiKey: flags.apiKey || llm.apiKey,

@@ -13,6 +13,7 @@
 import { logger } from "../lib/logger.js";
 import { loadConfig } from "../lib/config-manager.js";
 import { buildProviderSource } from "../lib/provider-stream.js";
+import { resolveLlmConnection } from "../lib/llm-connection-resolution.js";
 import {
   readEvolutionCompositionFactory,
   prepareGovernedModelTurn,
@@ -29,16 +30,19 @@ export function registerStreamCommand(program, dependencies = {}) {
     )
     .argument("<prompt>", "The prompt to stream")
     .option("--model <model>", "Model name")
-    .option("--provider <provider>", "LLM provider", "ollama")
+    .option("--provider <provider>", "LLM provider (default: configured)")
     .option("--base-url <url>", "API base URL")
     .option("--api-key <key>", "API key")
     .option("--text", "Emit concatenated final text instead of NDJSON events")
     .action(async (prompt, options) => {
       const config = loadConfig();
-      const provider = options.provider || config.llm?.provider || "ollama";
-      const baseUrl = options.baseUrl || config.llm?.baseUrl;
-      const apiKey = options.apiKey || config.llm?.apiKey;
-      const model = options.model || config.llm?.model;
+      const connection = resolveLlmConnection(options, [config.llm || {}], {
+        defaultModel:
+          (options.provider || config.llm?.provider || "ollama") === "ollama"
+            ? "qwen2:7b"
+            : null,
+      });
+      const { provider, baseUrl, apiKey, model } = connection;
 
       try {
         const { createStreamRouter } =

@@ -38,6 +38,7 @@ import {
   openAICompatibleBaseUrl,
 } from "../lib/provider-protocol.js";
 import { loadConfig } from "../lib/config-manager.js";
+import { resolveLlmConnection } from "../lib/llm-connection-resolution.js";
 import { expandFileRefs } from "../runtime/file-ref-expander.js";
 
 const ANDROID_LOCAL_OLLAMA_URL = "http://127.0.0.1:18484";
@@ -86,30 +87,24 @@ export function resolveAskOptions(
   config = {},
   env = process.env,
 ) {
-  const provider = options.provider || config.llm?.provider || "ollama";
-  const sameConfiguredProvider = config.llm?.provider === provider;
-  const providerDefault = BUILT_IN_PROVIDERS[provider];
+  const connection = resolveLlmConnection(options, [config.llm || {}], { env });
+  const provider = connection.provider;
   const resolved = {
-    model:
-      options.model ||
-      (sameConfiguredProvider ? config.llm?.model : null) ||
-      providerDefault?.models?.[0] ||
-      "qwen2:7b",
+    model: connection.model || (provider === "ollama" ? "qwen2:7b" : null),
     provider,
-    apiKey:
-      options.apiKey || (sameConfiguredProvider ? config.llm?.apiKey : null),
+    apiKey: connection.apiKey,
+    baseUrl: connection.baseUrl,
   };
   if (provider === "ollama") {
     resolved.baseUrl = resolveOllamaBaseUrl({
       options,
       env,
-      config: sameConfiguredProvider ? config : {},
+      config:
+        config.llm?.provider === "ollama" &&
+        connection.endpointSources.includes(config.llm)
+          ? config
+          : {},
     });
-  } else {
-    resolved.baseUrl =
-      options.baseUrl ||
-      (sameConfiguredProvider ? config.llm?.baseUrl : null) ||
-      providerDefault?.baseUrl;
   }
   return resolved;
 }

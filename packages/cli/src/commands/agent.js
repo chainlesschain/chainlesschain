@@ -23,6 +23,7 @@ import {
   normalizeFallbackModels,
 } from "../runtime/fallback-model.js";
 import { resolveImages, resolveVisionLlm } from "../lib/image-input.js";
+import { resolveLlmConnection } from "../lib/llm-connection-resolution.js";
 import { loadConfig } from "../lib/config-manager.js";
 import { captureUnattendedActionPolicy } from "../lib/unattended-action-policy.js";
 import {
@@ -1480,18 +1481,24 @@ export function registerAgentCommand(program, dependencies = {}) {
         }
       }
 
+      const configuredLlm = loadConfig().llm || {};
+      const visionConnection = resolveLlmConnection(options, [configuredLlm]);
       const visionLlm = resolveVisionLlm({
         hasImage: images.length > 0,
         flags: {
           model: explicitCliModel,
           visionModel: options.visionModel,
+          provider: options.provider,
         },
         llm: {
-          ...loadConfig().llm,
-          provider: options.provider,
-          model: options.model,
-          baseUrl: options.baseUrl,
-          apiKey: options.apiKey,
+          ...configuredLlm,
+          provider: visionConnection.provider,
+          model: visionConnection.model,
+          baseUrl: visionConnection.baseUrl,
+          apiKey: visionConnection.apiKey,
+          visionModel: visionConnection.endpointSources.includes(configuredLlm)
+            ? configuredLlm.visionModel
+            : undefined,
         },
       });
 

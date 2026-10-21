@@ -26,6 +26,7 @@ import { randomUUID } from "node:crypto";
 import { isProxy } from "node:util/types";
 import { transportErrorDetails } from "../lib/transport-error-details.js";
 import { captureAgentExecutionPolicy } from "../lib/agent-execution-policy.js";
+import { resolveLlmConnection } from "../lib/llm-connection-resolution.js";
 import { HERMETIC_CODING_SYSTEM_PROMPT } from "../lib/coding-task-guidance.js";
 import { bootstrap } from "./bootstrap.js";
 import {
@@ -1159,10 +1160,16 @@ async function runAgentHeadlessInWorkspace(
   // `let` (not const): a custom-command macro's `model:` frontmatter may
   // override it below (when the user passed no explicit --model), mirroring
   // `cc command run`.
-  let model = options.model || "qwen2.5:7b";
-  const provider = options.provider || "ollama";
-  const baseUrl = options.baseUrl || "http://localhost:11434";
-  const apiKey = options.apiKey || null;
+  const connection = resolveLlmConnection(options, [], {
+    defaultModel:
+      (options.provider || "ollama") === "anthropic"
+        ? "claude-sonnet-4-6"
+        : (options.provider || "ollama") === "ollama"
+          ? "qwen2.5:7b"
+          : null,
+  });
+  let model = connection.model;
+  const { provider, baseUrl, apiKey } = connection;
   const cwd = options.cwd || process.cwd();
   const formalQualityHermetic = isFormalQualityHermeticRuntime(process.env);
   const hermeticExecution =

@@ -45,6 +45,7 @@ import { providerFetch } from "./formal-budget-provider-scope.js";
 
 import { BUILT_IN_PROVIDERS } from "./llm-providers.js";
 import { openAICompatibleBaseUrl } from "./provider-protocol.js";
+import { resolveLlmConnection } from "./llm-connection-resolution.js";
 
 const LOCAL_SENTINELS = new Set([
   "",
@@ -88,7 +89,6 @@ export function buildCliHubLLM({ config = {}, env = process.env } = {}) {
   if (!spec) return null;
 
   const cfgLlm = (config && config.llm) || {};
-  const sameAs = (p) => String(cfgLlm.provider || "").toLowerCase() === p;
   let provider, model, baseUrl, apiKey;
 
   if (spec.kind === "object") {
@@ -100,37 +100,41 @@ export function buildCliHubLLM({ config = {}, env = process.env } = {}) {
     apiKey =
       o.apiKey ||
       (o.apiKeyEnv ? env[o.apiKeyEnv] : null) ||
-      (sameAs(provider) ? cfgLlm.apiKey : null);
-    model = o.model || (sameAs(provider) ? cfgLlm.model : null);
-    baseUrl = o.baseUrl || (sameAs(provider) ? cfgLlm.baseUrl : null);
+      null;
+    model = o.model || null;
+    baseUrl = o.baseUrl || null;
   } else {
     const raw = spec.value;
     if (LOCAL_SENTINELS.has(raw)) return null;
     if (CONFIG_SENTINELS.has(raw)) {
       provider = String(cfgLlm.provider || "").toLowerCase();
-      model = cfgLlm.model;
-      baseUrl = cfgLlm.baseUrl;
-      apiKey = cfgLlm.apiKey;
+      model = null;
+      baseUrl = null;
+      apiKey = null;
     } else {
       provider = raw;
       // Reuse the saved credentials only when they belong to the requested
       // provider; otherwise fall back to provider defaults + env key.
-      model = sameAs(provider) ? cfgLlm.model : null;
-      baseUrl = sameAs(provider) ? cfgLlm.baseUrl : null;
-      apiKey = sameAs(provider) ? cfgLlm.apiKey : null;
+      model = null;
+      baseUrl = null;
+      apiKey = null;
     }
   }
 
   if (!provider || provider === "ollama") return null;
 
+  const connection = resolveLlmConnection(
+    { provider, model, baseUrl, apiKey },
+    [cfgLlm],
+    { env },
+  );
   const def = BUILT_IN_PROVIDERS[provider] || null;
   const resolvedBase = openAICompatibleBaseUrl(
     provider,
-    baseUrl || (def && def.baseUrl) || null,
+    connection.baseUrl || (def && def.baseUrl) || null,
   );
-  const resolvedModel = model || (def && def.models && def.models[0]) || null;
-  const resolvedKey =
-    apiKey || (def && def.apiKeyEnv ? env[def.apiKeyEnv] : null) || null;
+  const resolvedModel = connection.model || null;
+  const resolvedKey = connection.apiKey || null;
 
   if (!resolvedBase || !resolvedModel) return null;
   if (!resolvedKey) return null; // every supported cloud provider needs a key

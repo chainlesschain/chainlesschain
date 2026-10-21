@@ -171,6 +171,28 @@ describe("ask command saved provider selection", () => {
       apiKey: "anthropic-secret",
     });
   });
+
+  it("does not send a same-provider saved key to an explicitly different endpoint", () => {
+    expect(
+      resolveAskOptions(
+        { provider: "anthropic", baseUrl: "http://127.0.0.1:9010/v1" },
+        {
+          llm: {
+            provider: "anthropic",
+            model: "saved-model",
+            baseUrl: "https://api.anthropic.com/v1",
+            apiKey: "saved-anthropic-key",
+          },
+        },
+        {},
+      ),
+    ).toMatchObject({
+      provider: "anthropic",
+      model: "claude-opus-4-6",
+      baseUrl: "http://127.0.0.1:9010/v1",
+      apiKey: null,
+    });
+  });
 });
 
 describe("ask command — queryLLM hits /api/chat for ollama", () => {

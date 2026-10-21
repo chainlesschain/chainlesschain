@@ -3756,6 +3756,11 @@ export class EvolutionLedger {
       serializeRecord(storeMarker, 64 * 1024, "store marker"),
       "store incarnation marker",
     );
+    if (this.#localUiWindowsDurability) {
+      this.#requireDirectoryDurability([
+        path.dirname(this.#paths.storeMarkerPath),
+      ]);
+    }
     const storeMarkerFile = this.#readCanonicalFile(
       this.#paths.storeMarkerPath,
       64 * 1024,

@@ -133,9 +133,7 @@ export async function handleLlmChat(server, id, ws, message) {
     const baseUrl =
       creds.provider === "ollama"
         ? normalizeOllamaBaseUrl(creds.baseUrl)
-        : normalizeProviderBaseUrl(
-            creds.baseUrl || "http://localhost:11434",
-          );
+        : normalizeProviderBaseUrl(creds.baseUrl);
     if (creds.provider === "ollama") {
       await streamOllama(
         turn.messages,
@@ -147,8 +145,7 @@ export async function handleLlmChat(server, id, ws, message) {
         streamOptions,
       );
     } else if (creds.provider === "anthropic") {
-      const def = BUILT_IN_PROVIDERS.anthropic;
-      const url = baseUrl !== "http://localhost:11434" ? baseUrl : def.baseUrl;
+      const url = baseUrl;
       await streamAnthropic(
         turn.messages,
         creds.model,
@@ -160,8 +157,7 @@ export async function handleLlmChat(server, id, ws, message) {
         streamOptions,
       );
     } else if (creds.provider === "gemini") {
-      const def = BUILT_IN_PROVIDERS.gemini;
-      const url = baseUrl !== "http://localhost:11434" ? baseUrl : def.baseUrl;
+      const url = baseUrl;
       await streamGemini(
         turn.messages,
         creds.model,
@@ -177,7 +173,7 @@ export async function handleLlmChat(server, id, ws, message) {
       // kimi / minimax / mistral / custom. baseUrl from creds; default-from
       // BUILT_IN_PROVIDERS already applied above.
       const def = BUILT_IN_PROVIDERS[creds.provider];
-      const url = baseUrl !== "http://localhost:11434" ? baseUrl : def?.baseUrl;
+      const url = baseUrl || def?.baseUrl;
       await streamOpenAI(
         turn.messages,
         creds.model,

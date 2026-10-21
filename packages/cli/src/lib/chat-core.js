@@ -717,9 +717,7 @@ export async function* chatStream(messages, options) {
   } else if (provider === "anthropic") {
     const providerDef = BUILT_IN_PROVIDERS.anthropic;
     const url = normalizeProviderBaseUrl(
-      baseUrl && baseUrl !== "http://localhost:11434"
-        ? baseUrl
-        : providerDef?.baseUrl || "https://api.anthropic.com/v1",
+      baseUrl || providerDef?.baseUrl || "https://api.anthropic.com/v1",
     );
     const key =
       apiKey ||
@@ -743,10 +741,9 @@ export async function* chatStream(messages, options) {
   } else if (provider === "gemini") {
     const providerDef = BUILT_IN_PROVIDERS.gemini;
     const url = normalizeProviderBaseUrl(
-      baseUrl && baseUrl !== "http://localhost:11434"
-        ? baseUrl
-        : providerDef?.baseUrl ||
-            "https://generativelanguage.googleapis.com/v1beta",
+      baseUrl ||
+        providerDef?.baseUrl ||
+        "https://generativelanguage.googleapis.com/v1beta",
     );
     const key =
       apiKey ||
@@ -770,9 +767,7 @@ export async function* chatStream(messages, options) {
   } else {
     const providerDef = BUILT_IN_PROVIDERS[provider];
     const url = normalizeProviderBaseUrl(
-      baseUrl && baseUrl !== "http://localhost:11434"
-        ? baseUrl
-        : providerDef?.baseUrl || "https://api.openai.com/v1",
+      baseUrl || providerDef?.baseUrl || "https://api.openai.com/v1",
     );
     const key =
       apiKey ||

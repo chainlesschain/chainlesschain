@@ -132,6 +132,28 @@ describe("resolveLlmTestTarget", () => {
     });
   });
 
+  it("does not reuse same-provider config credentials on a different endpoint", () => {
+    const target = resolveLlmTestTarget(
+      { provider: "openai", baseUrl: "http://127.0.0.1:8899/v1" },
+      {
+        llm: {
+          provider: "openai",
+          model: "saved-model",
+          baseUrl: "https://api.openai.com/v1",
+          apiKey: "saved-openai-key",
+        },
+      },
+      BUILT_INS,
+      {},
+    );
+    expect(target).toMatchObject({
+      provider: "openai",
+      model: "gpt-4o-mini",
+      baseUrl: "http://127.0.0.1:8899/v1",
+      apiKey: undefined,
+    });
+  });
+
   it("explicit flags win over everything", () => {
     const cfg = {
       llm: { provider: "volcengine", model: "m1", baseUrl: "b1", apiKey: "k1" },
