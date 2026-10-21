@@ -2,6 +2,8 @@
 
 ## 概述
 
+本文记录 CLI 0.166.109 与 IDE 0.37.154 / 0.4.171 的当前配套发布状态和升级步骤。
+
 ## Current release: CLI .109 / IDE .154 and .171
 
 npm CLI **0.166.109** is public; exact-source gates and registry readback passed on source `2f14fd409bdf1fd39abc4b0a94cc6db280feae48` ([Actions](https://github.com/chainlesschain/chainlesschain/actions/runs/39545080716), [npm registry](https://www.npmjs.com/package/chainlesschain/v/0.166.109)).

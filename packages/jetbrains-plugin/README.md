@@ -62,7 +62,7 @@ See the [upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-u
 
 JetBrains Marketplace 0.4.171 is released from the immutable tag below.
 
-Plugin **0.4.171** is the current release in the source metadata;
+Plugin **0.4.171** is the current release candidate in the source metadata;
 this label identifies the source published under tag `ide-jetbrains-v0.4.171`.
 Its verified channel status is:
 **upload and public artifact readback verified; listing may be pending marketplace review**.
