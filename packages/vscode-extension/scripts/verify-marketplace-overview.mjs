@@ -78,6 +78,62 @@ function currentReleaseStatus(readme) {
   return status;
 }
 
+function releaseSection(readme, headingText) {
+  const lines = markdownLinesOutsideFences(readme);
+  const matchingHeadings = lines.filter(
+    (entry) => entry.line === headingText,
+  );
+  assert.ok(
+    matchingHeadings.length <= 1,
+    `README must contain at most one ${headingText} section`,
+  );
+  const heading = matchingHeadings[0];
+  if (!heading) return null;
+  if (headingText === "## Next release candidate") {
+    const currentHeading = lines.find((entry) =>
+      /^## Current release[ \t]*$/u.test(entry.line),
+    );
+    assert.ok(
+      !currentHeading || heading.start < currentHeading.start,
+      "Next release candidate section must appear before Current release",
+    );
+  }
+
+  const nextHeading = lines.find(
+    (entry) => entry.start > heading.start && /^## [^#]/u.test(entry.line),
+  );
+  return readme.slice(heading.end, nextHeading?.start ?? readme.length).trim();
+}
+
+function publishedReleasePair(readme) {
+  const lines = markdownLinesOutsideFences(readme);
+  const currentHeading = lines.find((entry) =>
+    /^## Current release[ \t]*$/u.test(entry.line),
+  );
+  assert.ok(currentHeading, "README must contain a Current release heading");
+  const statusMarker = lines.find(
+    (entry) =>
+      entry.start > currentHeading.start &&
+      /^<!-- release\d+-status -->[ \t]*$/u.test(entry.line),
+  );
+  assert.ok(
+    statusMarker,
+    "Current release section must contain its release status marker",
+  );
+  const currentOverview = readme.slice(
+    currentHeading.end,
+    statusMarker.start,
+  );
+  const pairMatch = currentOverview.match(
+    /Open VSX version \*\*(0\.37\.\d+)\*\* pairs with public CLI `(0\.\d+\.\d+)`\./u,
+  );
+  assert.ok(
+    pairMatch,
+    "Current release section must declare its published Open VSX and CLI versions",
+  );
+  return { extensionVersion: pairMatch[1], cliVersion: pairMatch[2] };
+}
+
 function compareVersions(left, right) {
   const leftParts = left.split(".").map(Number);
   const rightParts = right.split(".").map(Number);
@@ -111,7 +167,12 @@ export function verifyMarketplaceOverview({
     "README introduction must match the Marketplace package description",
   );
 
-  const releaseSection = currentReleaseStatus(readme);
+  const releaseStatus = currentReleaseStatus(readme);
+  const currentPair = publishedReleasePair(readme);
+  const candidateSection = releaseSection(
+    readme,
+    "## Next release candidate",
+  );
   const extensionVersion = extensionManifest.version;
   const sourceCliVersion = cliManifest.version;
   const cliVersion = extensionManifest.chainlesschain?.recommendedCliVersion;
@@ -129,18 +190,65 @@ export function verifyMarketplaceOverview({
     compareVersions(cliVersion, sourceCliVersion) <= 0,
     "Recommended public CLI cannot be newer than the checked-out CLI source",
   );
+
+  if (candidateSection !== null) {
+    const candidateMatch = candidateSection.match(
+      /Source candidate \*\*(0\.37\.\d+)\*\* recommends CLI \*\*`?(0\.\d+\.\d+)`?\*\*/u,
+    );
+    assert.ok(
+      candidateMatch,
+      "Next release candidate must declare its VS Code and recommended CLI versions",
+    );
+    assert.equal(
+      candidateMatch[1],
+      extensionVersion,
+      "Next release candidate VS Code version must match the extension manifest",
+    );
+    assert.equal(
+      candidateMatch[2],
+      cliVersion,
+      "Next release candidate CLI version must match the extension manifest",
+    );
+    assert.match(
+      candidateSection,
+      /The extension has not been published\b/iu,
+      "Next release candidate must say the extension has not been published",
+    );
+    assert.ok(
+      compareVersions(extensionVersion, currentPair.extensionVersion) > 0,
+      "Next release candidate must be newer than the current public VS Code extension",
+    );
+    assert.ok(
+      compareVersions(cliVersion, currentPair.cliVersion) >= 0,
+      "Next release candidate CLI cannot be older than the current public CLI pairing",
+    );
+  } else {
+    assert.equal(
+      currentPair.extensionVersion,
+      extensionVersion,
+      "Without a candidate section, the extension manifest must match the current public release",
+    );
+    assert.equal(
+      currentPair.cliVersion,
+      cliVersion,
+      "Without a candidate section, the recommended CLI must match the current public release",
+    );
+  }
+
+  const publicExtensionVersion = currentPair.extensionVersion;
+  const publicCliVersion = currentPair.cliVersion;
   const vsixUrl =
-    `https://open-vsx.org/api/chainlesschain/chainlesschain-ide/${extensionVersion}` +
-    `/file/chainlesschain.chainlesschain-ide-${extensionVersion}.vsix`;
+    `https://open-vsx.org/api/chainlesschain/chainlesschain-ide/${publicExtensionVersion}` +
+    `/file/chainlesschain.chainlesschain-ide-${publicExtensionVersion}.vsix`;
 
   for (const snippet of [
-    `| VS Code extension         | **${extensionVersion}**;`,
-    `| Recommended CLI           | **\`chainlesschain@${cliVersion}\`**`,
-    `ide-vscode-v${extensionVersion}`,
+    `| VS Code extension         | **${publicExtensionVersion}**;`,
+    `| Recommended CLI           | **\`chainlesschain@${publicCliVersion}\`**`,
+    `ide-vscode-v${publicExtensionVersion}`,
     vsixUrl,
-    `npm i -g chainlesschain@${cliVersion}`,
-    `Using \`@${cliVersion}\``,
-    `chainlesschain-ide-${extensionVersion}.vsix`,
+    `npm i -g chainlesschain@${publicCliVersion}`,
+    `Using \`@${publicCliVersion}\``,
+    `chainlesschain-ide-${publicExtensionVersion}.vsix`,
   ]) {
     assert.ok(
       readme.includes(snippet),
@@ -149,7 +257,7 @@ export function verifyMarketplaceOverview({
   }
 
   assert.ok(
-    releaseSection.includes(`ide-vscode-v${extensionVersion}`),
+    releaseStatus.includes(`ide-vscode-v${publicExtensionVersion}`),
     "Current release status must name its immutable VS Code tag",
   );
   for (const pattern of [
@@ -158,24 +266,31 @@ export function verifyMarketplaceOverview({
     /chainlesschain-ide-(0\.37\.\d+)\.vsix/gu,
   ]) {
     assert.ok(
-      capturedVersions(releaseSection, pattern).every(
-        (version) => version === extensionVersion,
+      capturedVersions(releaseStatus, pattern).every(
+        (version) => version === publicExtensionVersion,
       ),
       "Current release status contains stale VS Code release metadata",
     );
   }
   assert.ok(
-    capturedVersions(releaseSection, /chainlesschain@(0\.\d+\.\d+)/gu).every(
-      (version) => version === cliVersion,
+    capturedVersions(releaseStatus, /chainlesschain@(0\.\d+\.\d+)/gu).every(
+      (version) => version === publicCliVersion,
     ),
     "Current release status contains a stale recommended CLI package version",
   );
   assert.ok(
-    releaseSection.includes(`CLI \`${cliVersion}\``),
+    releaseStatus.includes(`CLI \`${publicCliVersion}\``),
     "Current release narrative must describe the recommended CLI",
   );
 
-  return { extensionVersion, cliVersion, sourceCliVersion, vsixUrl };
+  return {
+    extensionVersion,
+    cliVersion,
+    sourceCliVersion,
+    publicExtensionVersion,
+    publicCliVersion,
+    vsixUrl,
+  };
 }
 
 function main() {
