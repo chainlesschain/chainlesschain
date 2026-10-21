@@ -7,7 +7,7 @@ diffs inside IntelliJ-platform IDEs (IDEA, PyCharm, WebStorm, …).
 
 ## Next release candidate
 
-Source candidate **0.4.172** recommends CLI **0.166.112** for provider protocol fixes. It has not been published. Publish only after CLI 0.166.112 is available on npm and the exact-source IDE gates pass.
+Source candidate **0.4.172** recommends CLI **0.166.112** for provider protocol fixes. The plugin has not been published; CLI 0.166.112 is available on npm, and the exact-source IDE gates must pass before publication.
 
 ## Current release
 

@@ -99,7 +99,7 @@ export function verifyMarketplaceOverview({
   assert.equal(cliManifest.name, "chainlesschain");
 
   const introMatch = readme.match(
-    /^# [^\n]+\n\n([\s\S]*?)\n\n## Current release/mu,
+    /^# [^\n]+\n\n([\s\S]*?)\n\n## [^\n]+/mu,
   );
   assert.ok(
     introMatch,
