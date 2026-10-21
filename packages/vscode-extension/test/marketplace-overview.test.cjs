@@ -95,3 +95,17 @@ test("rejects README metadata that drifts from the declared recommendation", asy
     /missing current release metadata/u,
   );
 });
+test("allows historical release references outside the current overview", async () => {
+  const { verifyMarketplaceOverview } = await verifier();
+  const historicalReadme = overview().concat(
+    "\n\n## Historical releases\n\n",
+    "Tag ide-vscode-v0.37.78.\n",
+    "Artifact https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.78/file/chainlesschain.chainlesschain-ide-0.37.78.vsix.\n",
+    "Install chainlesschain@0.166.9.\n",
+  );
+
+  verifyMarketplaceOverview({
+    ...manifests(),
+    readme: historicalReadme,
+  });
+});

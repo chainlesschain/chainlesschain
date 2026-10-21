@@ -98,7 +98,7 @@ export function verifyMarketplaceOverview({
     /chainlesschain-ide-(0\.37\.\d+)\.vsix/gu,
   ]) {
     assert.deepEqual(
-      capturedVersions(readme, pattern),
+      capturedVersions(releaseSection, pattern),
       [extensionVersion],
       "README contains stale VS Code release metadata",
     );
@@ -106,7 +106,7 @@ export function verifyMarketplaceOverview({
   assert.deepEqual(
     [
       ...new Set(
-        [...readme.matchAll(/chainlesschain@(0\.\d+\.\d+)/gu)].map(
+        [...releaseSection.matchAll(/chainlesschain@(0\.\d+\.\d+)/gu)].map(
           (match) => match[1],
         ),
       ),

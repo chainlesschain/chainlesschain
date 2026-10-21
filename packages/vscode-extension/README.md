@@ -8,15 +8,15 @@ MCP bridge.
 
 <!-- release154-status -->
 
-Open VSX extension **0.37.154** recommends public CLI `0.166.109`.
+Open VSX version **0.37.154** pairs with public CLI `0.166.109`.
 
 Checked on 2026-10-21:
 
 npm CLI **0.166.109**: public; exact-source gates and public artifact readback verified; source `2f14fd409bdf1fd39abc4b0a94cc6db280feae48`; [Actions](https://github.com/chainlesschain/chainlesschain/actions/runs/39545080716); [npm registry](https://www.npmjs.com/package/chainlesschain/v/0.166.109).
 
-Open VSX **0.37.154** is released from tag [`ide-vscode-v0.37.154`](https://github.com/chainlesschain/chainlesschain/tree/ide-vscode-v0.37.154); its tagged workflow verifies the public VSIX against the built artifact.
+Tag ide-vscode-v0.37.154 publishes Open VSX version **0.37.154** after its exact-source gates pass; the workflow verifies the listing and compares the public VSIX with its built artifact.
 
-JetBrains Marketplace **0.4.171** is released from tag [`ide-jetbrains-v0.4.171`](https://github.com/chainlesschain/chainlesschain/tree/ide-jetbrains-v0.4.171); its tagged workflow verifies the Marketplace upload and public listing state.
+Tag ide-jetbrains-v0.4.171 publishes JetBrains Marketplace version **0.4.171** after its exact-source gates pass; the workflow verifies the upload and reports whether the listing is public or pending review.
 
 ### Previous verified release (.153 / .170 / .108)
 
@@ -48,7 +48,7 @@ Formal evaluation and full native review retain their separate acceptance status
 
 | Component                 | Current status                                                                                   |
 | ------------------------- | ------------------------------------------------------------------------------------------------ |
-| VS Code extension         | **0.37.154**; tagged release; exact-source gates and public artifact readback verified           |
+| VS Code extension         | **0.37.154**; immutable tag selects the source; tagged workflow publishes and verifies its public artifact |
 | Recommended CLI           | **`chainlesschain@0.166.109`**; public; exact-source gates and public artifact readback verified |
 | Base bridge compatibility | `cc >= 0.162.190`; newer features can require a newer CLI                                        |
 | Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors                                              |
@@ -348,7 +348,7 @@ Formal evaluation and full native review retain their separate acceptance status
 > Stock Microsoft VS Code does not query Open VSX. The Microsoft Marketplace
 > backfill stopped before upload because its publishing credential was not
 > configured, so no Microsoft listing is claimed. Download the publicly verified
-> [0.37.154 VSIX directly](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.154/file/chainlesschain.chainlesschain-ide-0.37.154.vsix)
+> [0.37.154 VSIX after publication](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.154/file/chainlesschain.chainlesschain-ide-0.37.154.vsix)
 > and run **Extensions: Install from VSIX...**. Open VSX editors can install by extension ID.
 
 Historical pairing before .108: public CLI `0.166.107` with extension `0.37.152`.
@@ -418,7 +418,7 @@ credentials never enter the Webview. For those reasons, `0.166.34` is the
 retained compatibility floor. This source package recommends CLI
 `0.166.109`; its observed status is public; exact-source gates and public artifact readback verified. The dated previous snapshot for CLI
 `0.166.107` and extension `0.37.152` passed its exact-commit gates and public
-artifact readback; current .109/.154 and previous .108/.153 evidence is linked above.
+artifact readback; CLI .109 and previous .108/.153 evidence is linked above; the .154 tagged workflow records artifact verification.
 
 The release package excludes local Extension Host evidence and diagnostics
 under `build/`; those files remain CI artifacts and are not installed on user
@@ -496,7 +496,7 @@ Open VSX listing remains the public registry source.
 
 Node.js `>= 22.12.0` and npm `>= 10.0.0` are required.
 This source package pairs CLI `0.166.109` with Open VSX `0.37.154`.
-Public Open VSX 0.37.154 and JetBrains Marketplace 0.4.171 recommend public CLI 0.166.109. All three channels have passed exact-source release gates and public artifact verification.
+This source package targets Open VSX 0.37.154 and JetBrains Marketplace 0.4.171, paired with public CLI 0.166.109. Each IDE tag triggers its own publication and exact-artifact verification workflow.
 
 The following command installs this publicly verified pairing's CLI.
 
@@ -516,14 +516,14 @@ runtime capabilities. A matching version alone does not establish readiness.
 ### 2. Install the extension
 
 The extension uses [Open VSX](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide);
-Version `0.37.154` is the current tagged release; its exact-source gates and public artifact verification are recorded above.
+Tag ide-vscode-v0.37.154 selects the source for publication; its workflow performs exact-source gates and public artifact verification.
 It is not currently published on the Microsoft VS Code Marketplace.
 Install the publicly verified version:
 
 - In VSCodium and
   other Open VSX-compatible editors, search for **ChainlessChain IDE**
-  (`chainlesschain.chainlesschain-ide`) and verify version `0.37.154`.
-- In stock Microsoft VS Code, download the `0.37.154`
+  (`chainlesschain.chainlesschain-ide`) and verify version 0.37.154 after its listing becomes public.
+- After Open VSX lists version 0.37.154, stock Microsoft VS Code users can download it.
   [versioned `.vsix`](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.154/file/chainlesschain.chainlesschain-ide-0.37.154.vsix)
   and run **Extensions: Install from VSIX...**.
 - JetBrains users can install the sibling plugin from the

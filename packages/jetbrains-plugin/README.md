@@ -9,9 +9,9 @@ diffs inside IntelliJ-platform IDEs (IDEA, PyCharm, WebStorm, …).
 
 <!-- release171-status -->
 
-JetBrains Marketplace plugin **0.4.171** recommends public CLI `0.166.109`. Configure an explicit CLI path when system `cc` is a C compiler.
+JetBrains source version **0.4.171** pairs with public CLI `0.166.109`. Configure an explicit CLI path when system `cc` is a C compiler.
 
-The immutable release tag is [`ide-jetbrains-v0.4.171`](https://github.com/chainlesschain/chainlesschain/tree/ide-jetbrains-v0.4.171). Its tagged workflow validates the exact plugin source, uploads it to JetBrains Marketplace, and reports whether the listing is public or pending review.
+Pushing the immutable release tag for this version triggers a workflow that validates the exact plugin source, uploads it to JetBrains Marketplace, and reports whether the listing is public or pending review.
 
 ## Previous verified release (.170 / .153 / .108)
 
@@ -29,7 +29,7 @@ JetBrains Marketplace **0.4.170**: public; exact-source gates and public artifac
 
 No new model-task retest was run for this release. Historical `.105/.150/.167` generation and independent acceptance each collected **20/20** records and added **6** passes. Cumulative cross-version accepted deliveries remain **31/45** (**26/36** ordinary, **5/9** first-run), with **14** unaccepted; this is not a .108 single-round success rate. **NOT_PAID_READY**, **NOT_ADMITTED** and automatic promotion **HOLD** remain. Microsoft Marketplace remains unpublished. Native product **v5.0.3.140** is a separate release; desktop integration still requires matching builds, desktop authorization and native confirmation.
 
-Public Open VSX 0.37.154 and JetBrains Marketplace 0.4.171 recommend public CLI 0.166.109. The tagged release workflows verify exact-source gates and public artifacts.
+The source versions pair Open VSX 0.37.154 and JetBrains 0.4.171 with public CLI 0.166.109. Their immutable tag workflows publish each artifact and verify its marketplace state.
 
 <details>
 <summary>Public snapshot before .108 (historical)</summary>
@@ -60,10 +60,10 @@ See the [upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-u
 
 ## Release compatibility
 
-JetBrains Marketplace 0.4.171 is released from the immutable tag below.
+Push the immutable release tag below to publish JetBrains Marketplace plugin 0.4.171.
 
 Plugin **0.4.171** is the current release candidate in the source metadata;
-this label identifies the source published under tag `ide-jetbrains-v0.4.171`.
+this label identifies the source selected for that tag; the tagged workflow uploads it and checks whether Marketplace makes it public or holds it for review..
 Its verified channel status is:
 **upload and public artifact readback verified; listing may be pending marketplace review**.
 It recommends `chainlesschain@0.166.109`; that CLI's observed status is

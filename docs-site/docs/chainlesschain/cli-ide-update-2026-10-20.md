@@ -8,7 +8,7 @@
 
 npm CLI **0.166.109** is public; exact-source gates and registry readback passed on source `2f14fd409bdf1fd39abc4b0a94cc6db280feae48` ([Actions](https://github.com/chainlesschain/chainlesschain/actions/runs/39545080716), [npm registry](https://www.npmjs.com/package/chainlesschain/v/0.166.109)).
 
-Open VSX **0.37.154** and JetBrains Marketplace **0.4.171** are released from tags [`ide-vscode-v0.37.154`](https://github.com/chainlesschain/chainlesschain/tree/ide-vscode-v0.37.154) and [`ide-jetbrains-v0.4.171`](https://github.com/chainlesschain/chainlesschain/tree/ide-jetbrains-v0.4.171), and both recommend CLI **0.166.109**. JetBrains may report pending marketplace review after a successful upload. Microsoft VS Code Marketplace remains unpublished.
+The immutable IDE tags ide-vscode-v0.37.154 and ide-jetbrains-v0.4.171 define the Open VSX and JetBrains artifacts paired with public CLI 0.166.109. Each tag workflow publishes its artifact and verifies marketplace state after the exact-commit IDE gates pass. JetBrains may remain pending review after a successful upload. Microsoft VS Code Marketplace remains unpublished.
 
 Install the paired CLI with `npm i -g chainlesschain@0.166.109 --registry https://registry.npmjs.org`, then restart the IDE chat host and run `cc doctor`.
 
