@@ -8,7 +8,8 @@
  * Resolution order (first non-null wins):
  *   1. Explicit `message.options.{provider,model,baseUrl,apiKey}` from client.
  *   2. WS session creds via `server.sessionManager.getSession(sessionId)`.
- *   3. Process env — first BUILT_IN_PROVIDERS entry whose apiKeyEnv is set.
+ *   3. Current saved `config.llm` (refreshed per request by the WS server).
+ *   4. Process env — first BUILT_IN_PROVIDERS entry whose apiKeyEnv is set.
  *
  * Fall-throughs:
  *   - Provider with `free: true` (ollama) doesn't need apiKey; a session
@@ -41,15 +42,48 @@ export function resolveLlmCreds(server, message) {
   const optModel = opts.model;
   const optBaseUrl = opts.baseUrl;
   const optApiKey = opts.apiKey;
+  let cfgLlm = {};
+  if (typeof server?._loadLlmConfig === "function") {
+    try {
+      const configured = server._loadLlmConfig();
+      cfgLlm = configured?.llm || configured || {};
+    } catch {
+      // If the saved config cannot be refreshed, continue with explicit
+      // options, session credentials, or environment credentials. The
+      // session manager snapshot may contain merged defaults rather than
+      // values the user actually saved.
+    }
+  } else {
+    cfgLlm = server?.sessionManager?.config?.llm || {};
+  }
+
+  const buildCreds = (provider, inherited = {}) => {
+    const def = BUILT_IN_PROVIDERS[provider];
+    const sameConfiguredProvider = provider === cfgLlm.provider;
+    return {
+      provider,
+      model:
+        optModel ||
+        inherited.model ||
+        (sameConfiguredProvider ? cfgLlm.model : null) ||
+        def?.models?.[0] ||
+        null,
+      baseUrl:
+        optBaseUrl ||
+        inherited.baseUrl ||
+        (sameConfiguredProvider ? cfgLlm.baseUrl : null) ||
+        def?.baseUrl ||
+        (provider === "ollama" ? "http://localhost:11434" : null),
+      apiKey:
+        optApiKey ||
+        inherited.apiKey ||
+        (sameConfiguredProvider ? cfgLlm.apiKey : null) ||
+        (def?.apiKeyEnv ? process.env[def.apiKeyEnv] : null),
+    };
+  };
 
   if (optProvider) {
-    const def = BUILT_IN_PROVIDERS[optProvider];
-    return {
-      provider: optProvider,
-      model: optModel || def?.models?.[0] || null,
-      baseUrl: optBaseUrl || def?.baseUrl || null,
-      apiKey: optApiKey || (def?.apiKeyEnv ? process.env[def.apiKeyEnv] : null),
-    };
+    return buildCreds(optProvider);
   }
 
   const sessionId = message?.sessionId;
@@ -61,31 +95,25 @@ export function resolveLlmCreds(server, message) {
       session = null;
     }
     if (session?.provider) {
-      const def = BUILT_IN_PROVIDERS[session.provider];
       // Don't default baseUrl to ollama — that breaks every cloud provider
       // when the session was created without an explicit baseUrl. Fall back
       // to the provider's own default endpoint instead.
-      const fallbackBase =
-        def?.baseUrl ||
-        (session.provider === "ollama" ? "http://localhost:11434" : null);
-      return {
-        provider: session.provider,
-        model: optModel || session.model,
-        baseUrl: session.baseUrl || fallbackBase,
+      return buildCreds(session.provider, {
+        model: session.model,
+        baseUrl: session.baseUrl,
         apiKey: session.apiKey,
-      };
+      });
     }
+  }
+
+  if (cfgLlm.provider) {
+    return buildCreds(cfgLlm.provider);
   }
 
   for (const name of ENV_PREFERRED_ORDER) {
     const def = BUILT_IN_PROVIDERS[name];
     if (def?.apiKeyEnv && process.env[def.apiKeyEnv]) {
-      return {
-        provider: name,
-        model: optModel || def.models?.[0] || null,
-        baseUrl: def.baseUrl,
-        apiKey: process.env[def.apiKeyEnv],
-      };
+      return buildCreds(name);
     }
   }
 

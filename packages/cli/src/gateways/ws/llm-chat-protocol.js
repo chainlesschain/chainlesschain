@@ -26,7 +26,8 @@
  * Provider resolution (first non-null wins):
  *   1. message.options — explicit provider/model/apiKey from the client
  *   2. server.sessionManager.getSession(sessionId) — set via `cc auth llm`
- *   3. process.env[BUILT_IN_PROVIDERS[provider].apiKeyEnv]
+ *   3. Current saved `config.llm`
+ *   4. process.env[BUILT_IN_PROVIDERS[provider].apiKeyEnv]
  *
  * Without any source of credentials we send a clean ok:false frame instantly
  * — the user sees an actionable error rather than a 60s hang.
@@ -40,6 +41,12 @@ import {
 import { BUILT_IN_PROVIDERS } from "../../lib/llm-providers.js";
 import { resolveLlmCreds } from "./llm-creds.js";
 import { prepareGovernedModelTurn } from "../../lib/evolution/governed-model-turn.js";
+
+function normalizeOllamaBaseUrl(value) {
+  return String(value || "http://localhost:11434")
+    .replace(/\/v1\/?$/i, "")
+    .replace(/\/+$/, "");
+}
 
 function validateMessages(messages) {
   if (!Array.isArray(messages) || messages.length === 0)
@@ -126,7 +133,10 @@ export async function handleLlmChat(server, id, ws, message) {
       requireCompletion: turn.governed,
       signal: controller.signal,
     };
-    const baseUrl = creds.baseUrl || "http://localhost:11434";
+    const baseUrl =
+      creds.provider === "ollama"
+        ? normalizeOllamaBaseUrl(creds.baseUrl)
+        : creds.baseUrl || "http://localhost:11434";
     if (creds.provider === "ollama") {
       await streamOllama(
         turn.messages,
