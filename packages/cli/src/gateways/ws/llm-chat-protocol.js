@@ -38,12 +38,35 @@ import {
   streamOpenAI,
   streamAnthropic,
   streamGemini,
+  STREAM_STALL_MS,
 } from "../../lib/chat-core.js";
 import { BUILT_IN_PROVIDERS } from "../../lib/llm-providers.js";
 import { resolveLlmCreds } from "./llm-creds.js";
 import { prepareGovernedModelTurn } from "../../lib/evolution/governed-model-turn.js";
 import { normalizeOllamaBaseUrl } from "../../lib/ollama-base-url.js";
 import { normalizeProviderBaseUrl } from "../../lib/provider-protocol.js";
+import { raceWithAbort } from "../../lib/abort-utils.js";
+
+const activeChats = new WeakMap();
+const CHAT_SETUP_TIMEOUT_MS = 60_000;
+
+/** A request id is scoped to its originating socket, never another client. */
+export function cancelLlmChat(ws, id) {
+  activeChats.get(ws)?.get(id)?.abort(new Error("Chat cancelled"));
+}
+
+async function waitForChatPhase(operation, controller, phase) {
+  const timer = setTimeout(
+    () => controller.abort(new Error(`Chat ${phase} timed out after 60s`)),
+    CHAT_SETUP_TIMEOUT_MS,
+  );
+  timer.unref?.();
+  try {
+    return await raceWithAbort(operation, controller.signal);
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 function validateMessages(messages) {
   if (!Array.isArray(messages) || messages.length === 0)
@@ -77,7 +100,17 @@ export async function handleLlmChat(server, id, ws, message) {
     return;
   }
 
-  const creds = resolveLlmCreds(server, message);
+  let creds;
+  try {
+    creds = resolveLlmCreds(server, message);
+  } catch (error) {
+    send({
+      type: `${topic}.result`,
+      ok: false,
+      error: error?.message || String(error),
+    });
+    return;
+  }
   if (!creds || !creds.provider) {
     send({
       type: `${topic}.result`,
@@ -100,6 +133,7 @@ export async function handleLlmChat(server, id, ws, message) {
 
   let accumulator = "";
   const onToken = (token) => {
+    controller.signal.throwIfAborted();
     if (typeof token !== "string" || token.length === 0) return;
     accumulator += token;
     send({
@@ -114,59 +148,99 @@ export async function handleLlmChat(server, id, ws, message) {
   };
 
   const controller = new AbortController();
+  let requests = null;
+  if (ws && (typeof ws === "object" || typeof ws === "function")) {
+    requests = activeChats.get(ws);
+    if (!requests) activeChats.set(ws, (requests = new Map()));
+    if (requests.has(id)) {
+      send({
+        type: `${topic}.result`,
+        ok: false,
+        error: "Chat request is already active",
+      });
+      return;
+    }
+    requests.set(id, controller);
+  }
   const disconnect = () =>
     controller.abort(new Error("Chat connection closed"));
+  const onStall = (elapsedMs, timeoutMs) => {
+    if (controller.signal.aborted) return;
+    send({
+      type: `${topic}.status`,
+      status: {
+        stage: "waiting",
+        provider: creds.provider,
+        model: creds.model,
+        elapsedMs,
+        timeoutMs,
+      },
+    });
+  };
   ws?.once?.("close", disconnect);
   try {
-    const turn = await prepareGovernedModelTurn(
-      server.evolutionCompositionFactory ?? null,
-      {
+    const turn = await waitForChatPhase(
+      prepareGovernedModelTurn(server.evolutionCompositionFactory ?? null, {
         mode: "ws-llm-chat",
         messages: message.messages,
         signal: controller.signal,
-      },
+      }),
+      controller,
+      "initialization",
     );
     const streamOptions = {
       requireCompletion: turn.governed,
       signal: controller.signal,
     };
+    // Tell the browser the configured deadline even when waiting hints are
+    // disabled, so a slow local model gets its full loading budget.
+    onStall(0, STREAM_STALL_MS);
     const baseUrl =
       creds.provider === "ollama"
         ? normalizeOllamaBaseUrl(creds.baseUrl)
         : normalizeProviderBaseUrl(creds.baseUrl);
     if (creds.provider === "ollama") {
-      await streamOllama(
-        turn.messages,
-        creds.model,
-        baseUrl,
-        onToken,
-        onUsage,
-        undefined,
-        streamOptions,
+      await raceWithAbort(
+        streamOllama(
+          turn.messages,
+          creds.model,
+          baseUrl,
+          onToken,
+          onUsage,
+          onStall,
+          streamOptions,
+        ),
+        controller.signal,
       );
     } else if (creds.provider === "anthropic") {
       const url = baseUrl;
-      await streamAnthropic(
-        turn.messages,
-        creds.model,
-        url,
-        creds.apiKey,
-        onToken,
-        onUsage,
-        undefined,
-        streamOptions,
+      await raceWithAbort(
+        streamAnthropic(
+          turn.messages,
+          creds.model,
+          url,
+          creds.apiKey,
+          onToken,
+          onUsage,
+          onStall,
+          streamOptions,
+        ),
+        controller.signal,
       );
     } else if (creds.provider === "gemini") {
       const url = baseUrl;
-      await streamGemini(
-        turn.messages,
-        creds.model,
-        url,
-        creds.apiKey,
-        onToken,
-        onUsage,
-        undefined,
-        streamOptions,
+      await raceWithAbort(
+        streamGemini(
+          turn.messages,
+          creds.model,
+          url,
+          creds.apiKey,
+          onToken,
+          onUsage,
+          onStall,
+          streamOptions,
+        ),
+        controller.signal,
       );
     } else {
       // OpenAI-compatible — covers openai / volcengine / deepseek / dashscope /
@@ -174,19 +248,26 @@ export async function handleLlmChat(server, id, ws, message) {
       // BUILT_IN_PROVIDERS already applied above.
       const def = BUILT_IN_PROVIDERS[creds.provider];
       const url = baseUrl || def?.baseUrl;
-      await streamOpenAI(
-        turn.messages,
-        creds.model,
-        url,
-        creds.apiKey,
-        onToken,
-        onUsage,
-        undefined,
-        streamOptions,
+      await raceWithAbort(
+        streamOpenAI(
+          turn.messages,
+          creds.model,
+          url,
+          creds.apiKey,
+          onToken,
+          onUsage,
+          onStall,
+          streamOptions,
+        ),
+        controller.signal,
       );
     }
 
-    await turn.complete(accumulator);
+    await waitForChatPhase(
+      turn.complete(accumulator),
+      controller,
+      "completion",
+    );
     send({
       type: `${topic}.result`,
       ok: true,
@@ -205,6 +286,8 @@ export async function handleLlmChat(server, id, ws, message) {
       error: err?.message || String(err),
     });
   } finally {
+    requests?.delete(id);
+    if (requests?.size === 0) activeChats.delete(ws);
     ws?.removeListener?.("close", disconnect);
   }
 }

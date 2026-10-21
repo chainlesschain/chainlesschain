@@ -57,7 +57,7 @@
         </span>
       </template>
       <pre v-if="answer" style="margin: 0; white-space: pre-wrap; font-family: var(--font-body, system-ui); font-size: 13px;">{{ answer }}</pre>
-      <a-empty v-else-if="running" :description="$t('quickAsk.waitingFirstToken')" />
+      <a-empty v-else-if="running" :description="waitingStatus || $t('quickAsk.waitingFirstToken')" />
       <div v-if="error" style="background: #2a1517; border: 1px solid #5c2426; padding: 8px; border-radius: 4px; margin-top: 8px;">
         <pre style="color: #ff7875; font-size: 11px; margin: 0; white-space: pre-wrap;">{{ error }}</pre>
       </div>
@@ -66,11 +66,13 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onBeforeUnmount } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { SendOutlined, SyncOutlined, CheckCircleOutlined, CloseOutlined } from '@ant-design/icons-vue'
 import { useLlmChat } from '../composables/useLlmChat.js'
 
 const llm = useLlmChat()
+const { t } = useI18n()
 
 const prompt = ref('')
 const model = ref('')
@@ -78,6 +80,7 @@ const answer = ref('')
 const running = ref(false)
 const error = ref('')
 const finalMeta = ref(null)
+const waitingStatus = ref('')
 let activeChat = null   // { cancel } from useLlmChat.chat() while running
 
 async function run() {
@@ -86,6 +89,7 @@ async function run() {
   answer.value = ''
   error.value = ''
   finalMeta.value = null
+  waitingStatus.value = ''
 
   try {
     const messages = [{ role: 'user', content: prompt.value }]
@@ -95,7 +99,19 @@ async function run() {
 
     // Use chat() (not chatTo) so we have a cancel handle. Manually drain
     // the stream into the answer ref — same shape chatTo would produce.
-    const handle = llm.chat({ messages, options })
+    const handle = llm.chat({
+      messages,
+      options,
+      onStatus: (status) => {
+        if (status?.stage === 'waiting') {
+          waitingStatus.value = t('quickAsk.waitingForProvider', {
+            provider: status.provider || '',
+            model: status.model || '',
+            seconds: Math.ceil((status.timeoutMs || 180000) / 1000),
+          })
+        }
+      },
+    })
     activeChat = handle
     try {
       for await (const chunk of handle.stream) {
@@ -135,4 +151,6 @@ function reset() {
   error.value = ''
   finalMeta.value = null
 }
+
+onBeforeUnmount(cancel)
 </script>

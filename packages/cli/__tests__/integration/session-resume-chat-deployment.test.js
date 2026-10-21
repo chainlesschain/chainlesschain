@@ -58,10 +58,24 @@ it.each(["none", "agent", "chat"])(
     expect(history.status, history.stderr).toBe(0);
     expect(history.stdout).toContain("saved user input");
     const resumed = run(["session", "resume", "resume-auth-test"], "/exit\n");
-    if (mode === "chat") {
+    if (mode === "chat" || mode === "none") {
       expect(resumed.status, resumed.stderr).toBe(0);
       expect(resumed.stdout).toContain("ChainlessChain AI Chat");
       expect(resumed.stdout).toContain("Goodbye!");
+      if (mode === "none") {
+        const profile = JSON.parse(
+          fs.readFileSync(
+            path.join(
+              env.CHAINLESSCHAIN_HOME,
+              "evolution",
+              "deployment-profile.json",
+            ),
+            "utf8",
+          ),
+        );
+        expect(profile.deploymentMode).toBe("local");
+        expect(profile.enabled).toBe(true);
+      }
     } else {
       expect(resumed.status).toBe(1);
       expect(resumed.stderr).toContain(

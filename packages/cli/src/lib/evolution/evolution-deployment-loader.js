@@ -622,7 +622,9 @@ async function loadBuiltInFactories(commandName) {
       import("./evolution-eval-process-supervisor.js"),
       import("./governed-skill-synthesis-attestor-trust-approval-client.js"),
       import("./governed-skill-synthesis-attestor-trust-operations-client.js"),
-      import("./governed-skill-synthesis-attestor-trust-operations-cli-host.js"),
+      import(
+        "./governed-skill-synthesis-attestor-trust-operations-cli-host.js"
+      ),
     ]);
     factories.createEvolutionWorkbenchCliHost = createEvolutionWorkbenchCliHost;
     factories.createEvolutionWorkbenchReviewRuntime =
@@ -1027,9 +1029,39 @@ export async function loadEvolutionDeploymentCommandDependencies(
     importModule = (url) => import(url),
     additionalFactories = {},
     initializeDefaultLocalUi = false,
+    initializeDefaultLocalModels = true,
   } = {},
 ) {
   if (!SUPPORTED_COMMANDS.has(commandName)) return null;
+  const localModelDependencies = () =>
+    dependencies(
+      {
+        evolutionCompositionFactory: async (context) => {
+          const { initializeDefaultLocalUiEvolutionDeployment } = await import(
+            "./local-ui-evolution-deployment.js"
+          );
+          await initializeDefaultLocalUiEvolutionDeployment({ env, cwd });
+          const admitted = await loadEvolutionDeploymentCommandDependencies(
+            commandName,
+            {
+              env,
+              cwd,
+              read,
+              resolveRealPath,
+              importModule,
+              additionalFactories,
+              initializeDefaultLocalModels: false,
+            },
+          );
+          if (typeof admitted?.evolutionCompositionFactory !== "function")
+            throw new Error(
+              "Local model command requires an authenticated Evolution deployment",
+            );
+          return admitted.evolutionCompositionFactory(context);
+        },
+      },
+      commandName,
+    );
   let descriptorPath = env.CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_DESCRIPTOR;
   let trustRootPath = env.CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_TRUST_ROOT;
   if (
@@ -1060,6 +1092,15 @@ export async function loadEvolutionDeploymentCommandDependencies(
         "EVOLUTION_DEPLOYMENT_DISABLED",
         "Saved evolution deployment profile is disabled",
       );
+    }
+    if (
+      initializeDefaultLocalModels &&
+      ["agent", "ask", "chat"].includes(commandName) &&
+      !saved.profile
+    ) {
+      // Registration/help is read-only. Bootstrap only when a real command
+      // requests its authenticated composition, then re-read current policy.
+      return localModelDependencies();
     }
     if (!saved.error && saved.profile?.enabled) {
       descriptorPath = saved.profile.descriptorPath;
@@ -1111,19 +1152,35 @@ export async function loadEvolutionDeploymentCommandDependencies(
   const localProfile =
     fromSavedProfile && saved.profile.deploymentMode === "local";
   if (localProfile) {
+    const generation = saved.profile.descriptorPath.endsWith(
+      "deployment-v2.json",
+    )
+      ? 2
+      : 1;
     const localHostPath = join(
       dirname(saved.filePath),
       "local-ui-host",
-      "ui-host.mjs",
+      generation === 2 ? "ui-host-v2.mjs" : "ui-host.mjs",
     );
     const canonicalLocalHostPath = await realpath(localHostPath);
     if (
-      descriptor.commands.length !== 1 ||
-      descriptor.commands[0] !== "ui" ||
+      !(
+        ["ui"].join(",") === descriptor.commands.join(",") ||
+        "agent,ask,chat,ui" === descriptor.commands.join(",")
+      ) ||
       verified.modulePath !== canonicalLocalHostPath
     ) {
-      throw new Error("Local Evolution deployment is not the protected UI host");
+      throw new Error(
+        "Local Evolution deployment is not the protected UI host",
+      );
     }
+    if (
+      initializeDefaultLocalModels &&
+      ["agent", "ask", "chat", "ui"].includes(commandName) &&
+      descriptor.commands.length === 1 &&
+      descriptor.commands[0] === "ui"
+    )
+      return localModelDependencies();
   }
   if (!descriptor.commands.includes(commandName)) {
     return deniedAgentDependencies(
@@ -1154,6 +1211,7 @@ export async function loadEvolutionDeploymentCommandDependencies(
       createLocalUiEvolutionComposition: (options = {}) =>
         createLocalUiEvolutionComposition({
           ...options,
+          commandName,
           localDirectory: join(dirname(saved.filePath), "local-ui-host"),
           env,
           cwd,

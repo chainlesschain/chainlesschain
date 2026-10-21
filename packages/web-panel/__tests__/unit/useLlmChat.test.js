@@ -45,10 +45,16 @@ describe('chat — validation + request shaping', () => {
     expect(() => useLlmChat().chat({ messages: 'x' })).toThrow(/messages array is required/)
   })
 
-  it('sends llm.chat with messages, default options and a 60s idle', () => {
+  it('allows the provider 180s silence deadline to reach the client', () => {
     useLlmChat().chat({ messages: MESSAGES })
     expect(captured.msg).toEqual({ type: 'llm.chat', messages: MESSAGES, options: {} })
-    expect(captured.opts.idleMs).toBe(60000)
+    expect(captured.opts.idleMs).toBeGreaterThan(180000)
+  })
+
+  it('forwards status updates without placing them in the token queue', () => {
+    const onStatus = vi.fn()
+    useLlmChat().chat({ messages: MESSAGES, onStatus })
+    expect(captured.opts.onStatus).toBe(onStatus)
   })
 
   it('honors a custom idleMs and options', () => {

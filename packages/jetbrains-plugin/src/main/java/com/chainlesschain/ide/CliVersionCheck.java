@@ -18,8 +18,8 @@ public final class CliVersionCheck {
     /** The shell command that upgrades the global CLI to the latest npm. */
     public static final String UPGRADE_COMMAND = "npm i -g chainlesschain@latest";
 
-    /** Exact public CLI paired with this plugin release. */
-    public static final String RECOMMENDED_CLI_VERSION = "0.166.112";
+    /** CLI version recommended by this plugin source. */
+    public static final String RECOMMENDED_CLI_VERSION = "0.166.113";
 
     /** Keep consumers from inlining a previous release through transitive constants. */
     public static String recommendedCliVersion() {

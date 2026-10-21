@@ -30,6 +30,7 @@ import {
   handleRemoteSessionTerminal,
 } from "./remote-session-protocol.js";
 import { RemoteCommandLedger } from "../../harness/remote-command-ledger.js";
+import { cancelLlmChat } from "./llm-chat-protocol.js";
 
 /**
  * Reconnect-safe command execution. When a message carries a stable
@@ -293,6 +294,7 @@ export function createWsMessageDispatcher(server) {
         "chat.intent.classify-followup": () =>
           server._handleChatIntentClassifyFollowup(id, ws, message),
         "llm.chat": () => server._handleLlmChat(id, ws, message),
+        "llm.chat.cancel": () => cancelLlmChat(ws, id),
       };
 
       // Static core routes take precedence and are dispatched directly. The

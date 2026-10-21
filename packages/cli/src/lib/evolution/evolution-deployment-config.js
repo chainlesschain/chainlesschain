@@ -200,6 +200,16 @@ export async function configureEvolutionDeployment(
     options,
   );
   updateEvolutionDeploymentProfile((current) => {
+    if (
+      options.expectedProfile &&
+      JSON.stringify(current) !== JSON.stringify(options.expectedProfile)
+    ) {
+      const error = new Error(
+        "Evolution deployment profile changed during local migration",
+      );
+      error.code = "EVOLUTION_DEPLOYMENT_PROFILE_CHANGED";
+      throw error;
+    }
     if (options.expectedProfileAbsent === true && current) {
       const error = new Error(
         "Evolution deployment profile was configured during local initialization",
@@ -272,12 +282,11 @@ export async function configureEvolutionDeployment(
       revisionFloors,
       activeTrustRootDigest: verified.descriptor.trustRootDigest,
       revokedDescriptorRevisions,
-      deploymentMode:
-        preserveLocalMode
-          ? "local"
-          : preserveTestMode
-            ? "test"
-            : deploymentMode || "managed",
+      deploymentMode: preserveLocalMode
+        ? "local"
+        : preserveTestMode
+          ? "test"
+          : deploymentMode || "managed",
       testPrivateKeyPath:
         deploymentMode === "test"
           ? testPrivateKeyPath || null

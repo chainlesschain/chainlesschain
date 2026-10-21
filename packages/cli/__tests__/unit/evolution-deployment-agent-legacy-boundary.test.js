@@ -99,13 +99,17 @@ afterEach(() => {
 });
 
 describe("Agent deployment legacy boundary", () => {
-  it("uses legacy Agent only when no deployment profile exists", async () => {
+  it("lazily provisions authenticated Agent when no deployment profile exists", async () => {
     const fixture = temporaryHome();
     await expect(
       loadEvolutionDeploymentCommandDependencies("agent", {
         env: fixture.env,
       }),
-    ).resolves.toBeNull();
+    ).resolves.toEqual({
+      evolutionCompositionFactory: expect.any(Function),
+      skillRuntimeAdmissionRequired: true,
+    });
+    expect(fs.existsSync(fixture.profilePath)).toBe(false);
   });
 
   it("denies Agent for an invalid or disabled saved profile without blocking recovery commands", async () => {

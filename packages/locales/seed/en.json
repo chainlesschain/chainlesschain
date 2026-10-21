@@ -40,7 +40,8 @@
     "answerCardTitle": "Reply",
     "streaming": "Streaming...",
     "done": "Done",
-    "waitingFirstToken": "Waiting for first token..."
+    "waitingFirstToken": "Waiting for first token...",
+    "waitingForProvider": "Waiting for {provider} / {model}. Local models may still be loading; the request will time out after {seconds}s without data."
   },
   "compliance": {
     "title": "Compliance & Threat Intel",

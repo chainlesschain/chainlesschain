@@ -1,5 +1,10 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.173] - CLI 0.166.113 pairing (candidate, 2026-10-22)
+
+- Recommend unreleased CLI 0.166.113 for Quick Ask waiting and terminal error reporting, cancellation, bounded governed chat setup, and local signed Evolution recovery.
+- Source candidate only; this plugin has not been published. Exact-source IDE gates and public artifact readback are pending.
+
 ## [0.4.172] - CLI 0.166.112 pairing (2026-10-22)
 
 - Recommend CLI 0.166.112 for native Gemini and Anthropic Quick Ask routing and provider URL normalization.

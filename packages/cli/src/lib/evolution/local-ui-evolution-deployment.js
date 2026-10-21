@@ -43,6 +43,35 @@ export const LOCAL_UI_EVOLUTION_SCHEMA =
   "chainlesschain.local-ui-evolution-host/v1";
 const LOCAL_UI_BOOTSTRAP_STATE_SCHEMA =
   "chainlesschain.local-ui-evolution-bootstrap-state/v1";
+export const LOCAL_EVOLUTION_COMMANDS = Object.freeze([
+  "agent",
+  "ask",
+  "chat",
+  "ui",
+]);
+const LEGACY_UI_HOST_DIGESTS = new Set([
+  "sha256:1bf2aa3c68ff65eaf42423e28e0ba17d4cb1393c3bf7358eb901cff454e7abec",
+  "sha256:fbf9cab066ee700e7881b5e0bceab58f175c19ee1806dd2126e7217d48991efd",
+]);
+
+function identityFiles(generation = 1) {
+  if (![1, 2].includes(generation))
+    throw new Error("Invalid local host generation");
+  const suffix = generation === 1 ? "" : "-v2";
+  return {
+    descriptor: `deployment${suffix}.json`,
+    module: `ui-host${suffix}.mjs`,
+    manifest: `local-host-manifest${suffix}.json`,
+    state: `local-ui-host${suffix}.state.json`,
+  };
+}
+
+function profileGeneration(profile) {
+  const name = path.basename(profile.descriptorPath);
+  if (name === "deployment.json") return 1;
+  if (name === "deployment-v2.json") return 2;
+  throw new Error("Local Evolution profile has an unknown identity generation");
+}
 
 const LOCAL_UI_HOST_MODULE_PATH = fileURLToPath(
   new URL("./local-ui-evolution-host.mjs", import.meta.url),
@@ -200,8 +229,12 @@ function readKeys(directory) {
     keys[name] = Object.freeze({ privateKey, publicKey });
   }
   for (const name of SECRET_KEY_NAMES) {
-    const raw = Buffer.from(readPrivateFile(paths.secrets[name]).trim(), "base64");
-    if (raw.length !== 32) throw new Error("Local Evolution secret key is invalid");
+    const raw = Buffer.from(
+      readPrivateFile(paths.secrets[name]).trim(),
+      "base64",
+    );
+    if (raw.length !== 32)
+      throw new Error("Local Evolution secret key is invalid");
     keys[name] = raw;
   }
   return Object.freeze({ paths, keys: Object.freeze(keys) });
@@ -231,9 +264,11 @@ function keyBindings(keys) {
 }
 
 function signedValue(privateKeyPem, value) {
-  return sign(null, Buffer.from(canonical(value), "utf8"), privateKeyPem).toString(
-    "base64url",
-  );
+  return sign(
+    null,
+    Buffer.from(canonical(value), "utf8"),
+    privateKeyPem,
+  ).toString("base64url");
 }
 
 function verifySignedValue(publicKeyPem, value, signature) {
@@ -282,8 +317,8 @@ function secureLocalPaths(paths) {
   }
 }
 
-function bootstrapStatePath(profilePath) {
-  return path.join(path.dirname(profilePath), "local-ui-host.state.json");
+function bootstrapStatePath(profilePath, generation = 1) {
+  return path.join(path.dirname(profilePath), identityFiles(generation).state);
 }
 
 function bootstrapStateValue(deployment, phase) {
@@ -296,45 +331,52 @@ function bootstrapStateValue(deployment, phase) {
   };
   return {
     ...core,
-    signature: signedValue(
-      deployment.keys["deployment-root"].privateKey,
-      core,
-    ),
+    signature: signedValue(deployment.keys["deployment-root"].privateKey, core),
   };
 }
 
 function writeBootstrapState(profilePath, deployment, phase) {
   writePrivateFile(
-    bootstrapStatePath(profilePath),
+    bootstrapStatePath(profilePath, deployment.generation || 1),
     `${JSON.stringify(bootstrapStateValue(deployment, phase), null, 2)}\n`,
   );
 }
 
-function writeDeployment(directory, finalDirectory, tenantId) {
-  const { keys } = writeKeys(directory);
+function writeDeployment(
+  directory,
+  finalDirectory,
+  tenantId,
+  { identity = null, generation = 1 } = {},
+) {
+  const { keys } = identity || writeKeys(directory);
+  const names = identityFiles(generation);
   const publicRoot = keys["deployment-root"].publicKey;
   const publicRootPath = path.join(finalDirectory, "deployment-public.pem");
-  const descriptorPath = path.join(finalDirectory, "deployment.json");
-  const modulePath = path.join(finalDirectory, "ui-host.mjs");
+  const descriptorPath = path.join(finalDirectory, names.descriptor);
+  const modulePath = path.join(finalDirectory, names.module);
   const moduleBytes = fs.readFileSync(LOCAL_UI_HOST_MODULE_PATH);
-  writePrivateFile(path.join(directory, "ui-host.mjs"), moduleBytes);
+  writePrivateFile(path.join(directory, names.module), moduleBytes);
   const descriptor = {
     schema: EVOLUTION_DEPLOYMENT_DESCRIPTOR_SCHEMA,
-    revision: 1,
+    revision: identity ? identity.descriptor.revision + 1 : 1,
     modulePath,
     moduleDigest: computeEvolutionDeploymentDigest(moduleBytes),
     trustRootDigest: computeEvolutionDeploymentDigest(publicRoot),
-    commands: ["ui"],
+    commands: [...LOCAL_EVOLUTION_COMMANDS],
   };
   descriptor.signature = sign(
     null,
-    Buffer.from(serializeEvolutionDeploymentDescriptorPayload(descriptor), "utf8"),
+    Buffer.from(
+      serializeEvolutionDeploymentDescriptorPayload(descriptor),
+      "utf8",
+    ),
     keys["deployment-root"].privateKey,
   ).toString("base64");
 
-  writePrivateFile(path.join(directory, "deployment-public.pem"), publicRoot);
+  if (!identity)
+    writePrivateFile(path.join(directory, "deployment-public.pem"), publicRoot);
   writePrivateFile(
-    path.join(directory, "deployment.json"),
+    path.join(directory, names.descriptor),
     `${JSON.stringify(descriptor, null, 2)}\n`,
   );
   const core = {
@@ -353,11 +395,12 @@ function writeDeployment(directory, finalDirectory, tenantId) {
     signature: signedValue(keys["deployment-root"].privateKey, core),
   };
   writePrivateFile(
-    path.join(directory, "local-host-manifest.json"),
+    path.join(directory, names.manifest),
     `${JSON.stringify(manifest, null, 2)}\n`,
   );
   const deployment = Object.freeze({
-    descriptorPath: path.join(finalDirectory, "deployment.json"),
+    descriptorPath,
+    generation,
     trustRootPath: publicRootPath,
     tenantId,
     moduleDigest: descriptor.moduleDigest,
@@ -375,16 +418,18 @@ function writeDeployment(directory, finalDirectory, tenantId) {
 async function verifyLocalDeployment(
   directory,
   expectedDirectory,
-  { repairPermissions = true } = {},
+  { repairPermissions = true, generation = 1 } = {},
 ) {
-  const descriptorPath = path.join(directory, "deployment.json");
+  const names = identityFiles(generation);
+  const descriptorPath = path.join(directory, names.descriptor);
   const trustRootPath = path.join(directory, "deployment-public.pem");
-  const manifestPath = path.join(directory, "local-host-manifest.json");
+  const manifestPath = path.join(directory, names.manifest);
   const paths = keyPaths(directory);
-  const modulePath = path.join(expectedDirectory, "ui-host.mjs");
-  const storedModulePath = path.join(directory, "ui-host.mjs");
+  const modulePath = path.join(expectedDirectory, names.module);
+  const storedModulePath = path.join(directory, names.module);
   const statePath = bootstrapStatePath(
     path.join(path.dirname(expectedDirectory), "deployment-profile.json"),
+    generation,
   );
   const protectedPaths = [
     directory,
@@ -411,7 +456,9 @@ async function verifyLocalDeployment(
       sign(null, keyChallenge, rootPrivate),
     )
   ) {
-    throw new Error("Local Evolution root signing key does not match its trust root");
+    throw new Error(
+      "Local Evolution root signing key does not match its trust root",
+    );
   }
   const manifest = JSON.parse(readPrivateFile(manifestPath));
   const { signature, ...core } = manifest;
@@ -468,17 +515,24 @@ async function verifyLocalDeployment(
     manifest.modulePath !== modulePath ||
     manifest.moduleDigest !== moduleDigest ||
     manifest.trustRootDigest !== descriptor.trustRootDigest ||
-    canonical(manifest.keyBindings) !== canonical(keyBindings(loadedKeys.keys)) ||
-    manifest.descriptorDigest !== computeEvolutionDeploymentDigest(descriptorBytes) ||
+    canonical(manifest.keyBindings) !==
+      canonical(keyBindings(loadedKeys.keys)) ||
+    manifest.descriptorDigest !==
+      computeEvolutionDeploymentDigest(descriptorBytes) ||
     descriptor.modulePath !== modulePath ||
     descriptor.moduleDigest !== moduleDigest ||
-    descriptor.commands.length !== 1 ||
-    descriptor.commands[0] !== "ui"
+    !(
+      canonical(descriptor.commands) === canonical(LOCAL_EVOLUTION_COMMANDS) ||
+      (generation === 1 && canonical(descriptor.commands) === '["ui"]')
+    )
   ) {
-    throw new Error("Local Evolution host files do not match their signed identity");
+    throw new Error(
+      "Local Evolution host files do not match their signed identity",
+    );
   }
   return Object.freeze({
     descriptorPath,
+    generation,
     trustRootPath,
     tenantId: manifest.tenantId,
     descriptor,
@@ -517,8 +571,10 @@ function removeIncompleteStage(stagePath, expectedParent) {
   flushDeploymentDirectory(resolvedParent);
 }
 
-/** Create a per-user, locally signed UI host only for a genuinely empty profile. */
-export async function initializeDefaultLocalUiEvolutionDeployment(options = {}) {
+/** Initialize a local model host or upgrade an authenticated built-in UI host. */
+export async function initializeDefaultLocalUiEvolutionDeployment(
+  options = {},
+) {
   const env = options.env || process.env;
   const cwd = options.cwd || process.cwd();
   if (hasDeploymentOverrides(env)) return null;
@@ -527,14 +583,6 @@ export async function initializeDefaultLocalUiEvolutionDeployment(options = {}) 
   if (profileResult.profile) {
     if (profileResult.profile.deploymentMode !== "local") return null;
     if (!profileResult.profile.enabled) return null;
-    const current = await loadLocalUiEvolutionDeployment(
-      localDirectory(profileResult.filePath),
-      { env, cwd },
-    );
-    return Object.freeze({
-      status: await getEvolutionDeploymentStatus({ env, cwd }),
-      deployment: current,
-    });
   }
 
   const profilePath = profileResult.filePath;
@@ -554,10 +602,41 @@ export async function initializeDefaultLocalUiEvolutionDeployment(options = {}) 
           !latest.profile.enabled
         )
           return null;
-        const current = await loadLocalUiEvolutionDeployment(destination, {
+        let current = await loadLocalUiEvolutionDeployment(destination, {
           env,
           cwd,
         });
+        if (canonical(current.descriptor.commands) === '["ui"]') {
+          // Only migrate the authenticated, built-in UI-only host. Retain its
+          // keys, state and all old identity files until the profile CAS commits.
+          if (!LEGACY_UI_HOST_DIGESTS.has(current.moduleDigest))
+            throw new Error(
+              "Local Evolution UI host is not a supported built-in version",
+            );
+          writeDeployment(destination, destination, current.tenantId, {
+            identity: current,
+            generation: 2,
+          });
+          const upgraded = await verifyLocalDeployment(
+            destination,
+            destination,
+            { generation: 2 },
+          );
+          await configureEvolutionDeployment(
+            {
+              descriptorPath: upgraded.descriptorPath,
+              trustRootPath: upgraded.trustRootPath,
+              deploymentMode: "local",
+              enabled: true,
+            },
+            { env, cwd, expectedProfile: latest.profile },
+          );
+          writeBootstrapState(profilePath, upgraded, "active");
+          current = await loadLocalUiEvolutionDeployment(destination, {
+            env,
+            cwd,
+          });
+        }
         return Object.freeze({
           status: await getEvolutionDeploymentStatus({ env, cwd }),
           deployment: current,
@@ -595,7 +674,9 @@ export async function initializeDefaultLocalUiEvolutionDeployment(options = {}) 
           deployment.descriptorPath !== paths.descriptorPath ||
           deployment.trustRootPath !== paths.trustRootPath
         ) {
-          throw new Error("Local Evolution deployment paths changed during initialization");
+          throw new Error(
+            "Local Evolution deployment paths changed during initialization",
+          );
         }
       }
       if (deployment.bootstrapPhase !== "prepared") return null;
@@ -613,9 +694,7 @@ export async function initializeDefaultLocalUiEvolutionDeployment(options = {}) 
         );
         flushDeploymentDirectory(parent);
       } catch (error) {
-        if (
-          error?.code === "EVOLUTION_DEPLOYMENT_PROFILE_ALREADY_CONFIGURED"
-        ) {
+        if (error?.code === "EVOLUTION_DEPLOYMENT_PROFILE_ALREADY_CONFIGURED") {
           return null;
         }
         throw error;
@@ -649,7 +728,9 @@ export async function loadLocalUiEvolutionDeployment(
   if (path.resolve(directory) !== path.resolve(expectedDirectory)) {
     throw new Error("Local Evolution profile points to another host directory");
   }
-  const deployment = await verifyLocalDeployment(directory, expectedDirectory);
+  const deployment = await verifyLocalDeployment(directory, expectedDirectory, {
+    generation: profileGeneration(saved.profile),
+  });
   const [
     profileDescriptorPath,
     profileTrustRootPath,
@@ -667,9 +748,14 @@ export async function loadLocalUiEvolutionDeployment(
     saved.profile.activeTrustRootDigest !==
       deployment.descriptor.trustRootDigest
   ) {
-    throw new Error("Local Evolution profile identity does not match its signed host");
+    throw new Error(
+      "Local Evolution profile identity does not match its signed host",
+    );
   }
-  assertEvolutionDeploymentActiveTrustRoot(saved.profile, deployment.descriptor);
+  assertEvolutionDeploymentActiveTrustRoot(
+    saved.profile,
+    deployment.descriptor,
+  );
   assertEvolutionDeploymentDescriptorNotRevoked(
     saved.profile,
     deployment.descriptor,

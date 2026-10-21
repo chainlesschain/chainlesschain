@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.113: Quick Ask streaming and local Evolution setup (candidate, 2026-10-22)
+
+- Surface provider waiting status, credential errors, and terminal streaming failures in Quick Ask; bound governed chat initialization and completion to 60 seconds and support cancellation of active requests.
+- Migrate a supported signed UI-only local Evolution host to admit `agent`, `ask`, `chat`, and `ui`, retaining its signing identity and detecting concurrent profile changes.
+- Prepare VS Code 0.37.156 and JetBrains 0.4.173 to recommend CLI 0.166.113. These versions are unreleased candidates; publication still requires the exact release commit's GitHub Actions gates, OIDC npm publication and public readback before IDE publication.
+
 ### Fixed - cc CLI 0.166.112: retain generated Evolution test signing keys (published, 2026-10-22)
 
 - Preserve the supplied private signing-key path when saving an explicit Evolution test deployment, so generated test deployments remain usable after configuration.

@@ -79,7 +79,7 @@ export function useLlmChat() {
    * Caller-supplied `signal` is honoured too (composes with cancel()).
    * Closing the WS still aborts the stream via sendStream's reject path.
    *
-   * @param {{ messages: any[], options?: object, idleMs?: number, signal?: AbortSignal }} args
+   * @param {{ messages: any[], options?: object, idleMs?: number, signal?: AbortSignal, onStatus?: Function }} args
    */
   function chat(args) {
     if (!args || !Array.isArray(args.messages)) {
@@ -101,7 +101,11 @@ export function useLlmChat() {
         { type: 'llm.chat', messages: args.messages, options: args.options || {} },
         {
           onChunk: (chunk) => queue.push(chunk),
-          idleMs: args.idleMs ?? 60000,
+          onStatus: args.onStatus,
+          // cc ui allows 180s of provider silence for local model loading.
+          // Keep the client alive long enough to receive its timeout result.
+          idleMs: args.idleMs ?? 210000,
+          followServerTimeout: args.idleMs == null,
           signal: internal.signal,
         },
       )

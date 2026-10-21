@@ -1,6 +1,7 @@
 import { createTestEvolutionCompositionFactory } from "../../../helpers/test-model-egress.js";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { EventEmitter } from "node:events";
+import * as llmCreds from "../../../../src/gateways/ws/llm-creds.js";
 
 // Hoist mocks above the SUT import — chat-core's stream* are the seam we
 // stub so we can simulate token-by-token producers without real HTTP.
@@ -9,12 +10,16 @@ vi.mock("../../../../src/lib/chat-core.js", () => ({
   streamOpenAI: vi.fn(),
   streamAnthropic: vi.fn(),
   streamGemini: vi.fn(),
+  STREAM_STALL_MS: 180000,
 }));
 vi.mock("../../../../src/lib/logger.js", () => ({
   logger: new Proxy({}, { get: () => () => {} }),
 }));
 
-import { handleLlmChat } from "../../../../src/gateways/ws/llm-chat-protocol.js";
+import {
+  handleLlmChat,
+  cancelLlmChat,
+} from "../../../../src/gateways/ws/llm-chat-protocol.js";
 import {
   streamOllama,
   streamOpenAI,
@@ -63,6 +68,126 @@ afterEach(() => {
 });
 
 describe("handleLlmChat — frame protocol", () => {
+  it("reports credential resolution failures through the chat result", async () => {
+    const server = makeServer();
+    const resolver = vi
+      .spyOn(llmCreds, "resolveLlmCreds")
+      .mockImplementationOnce(() => {
+        throw new Error("Could not resolve saved credentials");
+      });
+    try {
+      await handleLlmChat(server, "bad-config", null, {
+        messages: [{ role: "user", content: "hello" }],
+      });
+    } finally {
+      resolver.mockRestore();
+    }
+    expect(server._sent.at(-1)).toMatchObject({
+      type: "llm.chat.result",
+      ok: false,
+      error: "Could not resolve saved credentials",
+    });
+    expect(streamOpenAI).not.toHaveBeenCalled();
+    expect(streamOllama).not.toHaveBeenCalled();
+  });
+
+  it("cancels initialization before any model request and isolates sockets", async () => {
+    const socket = new EventEmitter();
+    const server = makeServer({
+      evolutionCompositionFactory: () => new Promise(() => {}),
+    });
+    const pending = handleLlmChat(server, "cancel-init", socket, {
+      messages: [{ role: "user", content: "hello" }],
+      options: { provider: "ollama" },
+    });
+    cancelLlmChat(new EventEmitter(), "cancel-init");
+    expect(server._sent).toHaveLength(0);
+    cancelLlmChat(socket, "cancel-init");
+    await pending;
+    expect(server._sent.at(-1)).toMatchObject({
+      ok: false,
+      error: "Chat cancelled",
+    });
+    expect(streamOllama).not.toHaveBeenCalled();
+    expect(socket.listenerCount("close")).toBe(0);
+  });
+
+  it("bounds an initialization factory that never settles", async () => {
+    vi.useFakeTimers();
+    try {
+      const server = makeServer({
+        evolutionCompositionFactory: () => new Promise(() => {}),
+      });
+      const pending = handleLlmChat(server, "stuck-init", new EventEmitter(), {
+        messages: [{ role: "user", content: "hello" }],
+        options: { provider: "ollama" },
+      });
+      await vi.advanceTimersByTimeAsync(60001);
+      await pending;
+      expect(server._sent.at(-1)).toMatchObject({
+        ok: false,
+        error: "Chat initialization timed out after 60s",
+      });
+      expect(streamOllama).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("aborts a running provider when the user cancels", async () => {
+    let signal;
+    streamOllama.mockImplementationOnce(async (...args) => {
+      signal = args.at(-1).signal;
+      await new Promise(() => {});
+    });
+    const socket = new EventEmitter();
+    const server = makeServer();
+    const pending = handleLlmChat(server, "cancel-provider", socket, {
+      messages: [{ role: "user", content: "hello" }],
+      options: { provider: "ollama" },
+    });
+    await vi.waitFor(() => expect(signal).toBeDefined());
+    cancelLlmChat(socket, "cancel-provider");
+    await pending;
+    expect(signal.aborted).toBe(true);
+    expect(server._sent.at(-1)).toMatchObject({
+      ok: false,
+      error: "Chat cancelled",
+    });
+    expect(socket.listenerCount("close")).toBe(0);
+  });
+
+  it.each(["ollama", "openai", "anthropic", "gemini"])(
+    "reports %s provider silence separately from answer tokens",
+    async (provider) => {
+      const adapter = {
+        ollama: streamOllama,
+        openai: streamOpenAI,
+        anthropic: streamAnthropic,
+        gemini: streamGemini,
+      }[provider];
+      adapter.mockImplementationOnce(async (...args) => {
+        args.at(-2)(20000, 180000);
+        const tokenIndex = provider === "ollama" ? 3 : 4;
+        args[tokenIndex]("ok");
+        return "ok";
+      });
+      const server = makeServer();
+      await handleLlmChat(server, `waiting-${provider}`, null, {
+        messages: [{ role: "user", content: "hello" }],
+        options: { provider, apiKey: "fake" },
+      });
+      expect(server._sent[0]).toMatchObject({
+        type: "llm.chat.status",
+        status: { stage: "waiting", provider, timeoutMs: 180000 },
+      });
+      expect(server._sent.at(-1)).toMatchObject({
+        ok: true,
+        result: { message: { content: "ok" } },
+      });
+    },
+  );
+
   it("aborts a disconnected socket and removes its listener", async () => {
     const socket = new EventEmitter();
     const server = makeServer();
@@ -182,7 +307,9 @@ describe("handleLlmChat — frame protocol", () => {
       messages: [{ role: "user", content: "hi" }],
       options: { provider: "ollama", model: "qwen2.5:7b" },
     });
-    const sent = server._sent;
+    const sent = server._sent.filter(
+      (frame) => frame.type !== "llm.chat.status",
+    );
     expect(sent[0]).toEqual({
       id: "id-ol",
       type: "llm.chat.chunk",

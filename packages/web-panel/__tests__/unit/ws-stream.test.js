@@ -65,6 +65,70 @@ async function connectStore() {
 }
 
 describe('ws.sendStream', () => {
+  it.each(['AUTH_REQUIRED', 'OVERLOADED', 'INTERNAL_ERROR', 'UNKNOWN_TYPE'])(
+    'surfaces a correlated %s error immediately and clears the stream',
+    async (code) => {
+      const ws = await connectStore()
+      const controller = new AbortController()
+      const onChunk = vi.fn()
+      const p = ws.sendStream({ type: 'llm.chat', messages: [] }, {
+        onChunk, idleMs: 60000, signal: controller.signal,
+      })
+      const id = fakeWs.sent[0].id
+      fakeWs.emit({ id, type: 'error', code, message: `Request failed: ${code}` })
+      await expect(p).rejects.toMatchObject({ message: `Request failed: ${code}`, code })
+      fakeWs.emit({ id, type: 'llm.chat.chunk', chunk: { delta: 'late' } })
+      controller.abort()
+      expect(onChunk).not.toHaveBeenCalled()
+      expect(fakeWs.sent).toHaveLength(1)
+    },
+  )
+
+  it('ignores errors for another request and results for another topic', async () => {
+    const ws = await connectStore()
+    const p = ws.sendStream({ type: 'llm.chat' }, { idleMs: 0 })
+    const id = fakeWs.sent[0].id
+    fakeWs.emit({ id: 'other', type: 'error', message: 'unrelated' })
+    fakeWs.emit({ id, type: 'other.result', ok: false, error: 'wrong topic' })
+    fakeWs.emit({ id, type: 'llm.chat.result', ok: true, result: { text: 'ok' } })
+    await expect(p).resolves.toEqual({ text: 'ok' })
+  })
+
+  it('delivers waiting status separately from answer tokens', async () => {
+    const ws = await connectStore()
+    const onStatus = vi.fn()
+    const onChunk = vi.fn()
+    const p = ws.sendStream({ type: 'llm.chat' }, { onStatus, onChunk, idleMs: 0 })
+    const id = fakeWs.sent[0].id
+    const status = { stage: 'waiting', provider: 'ollama', timeoutMs: 180000 }
+    fakeWs.emit({ id, type: 'llm.chat.status', status })
+    fakeWs.emit({ id, type: 'llm.chat.result', ok: true, result: {} })
+    await p
+    expect(onStatus).toHaveBeenCalledWith(status)
+    expect(onChunk).not.toHaveBeenCalled()
+  })
+
+  it.each([true, false])('honors a longer server deadline only when requested (%s)', async (followServerTimeout) => {
+    const ws = await connectStore()
+    vi.useFakeTimers()
+    try {
+      const p = ws.sendStream({ type: 'llm.chat' }, { idleMs: 210000, followServerTimeout })
+      const id = fakeWs.sent[0].id
+      fakeWs.emit({ id, type: 'llm.chat.status', status: { stage: 'waiting', timeoutMs: 300000 } })
+      vi.advanceTimersByTime(240000)
+      if (followServerTimeout) {
+        fakeWs.emit({ id, type: 'llm.chat.chunk', chunk: { delta: 'first token' } })
+        vi.advanceTimersByTime(240000)
+        fakeWs.emit({ id, type: 'llm.chat.result', ok: true, result: { text: 'loaded' } })
+        await expect(p).resolves.toEqual({ text: 'loaded' })
+      } else {
+        await expect(p).rejects.toThrow('Stream idle timeout')
+      }
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('dispatches .chunk frames into onChunk and resolves on .result', async () => {
     const ws = await connectStore()
     const seen = []
@@ -132,6 +196,7 @@ describe('ws.sendStream', () => {
       )
       vi.advanceTimersByTime(100)
       await expect(p).rejects.toThrow('Stream idle timeout')
+      expect(fakeWs.sent[1]).toEqual({ type: 'llm.chat.cancel', id: fakeWs.sent[0].id })
     } finally {
       vi.useRealTimers()
     }

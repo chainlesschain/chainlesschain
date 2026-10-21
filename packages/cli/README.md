@@ -2,6 +2,10 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
+## Next release candidate
+
+CLI **0.166.113** is an unreleased source candidate paired with VS Code **0.37.156** and JetBrains **0.4.173** candidates. Quick Ask surfaces provider waiting status and terminal errors, bounds governed chat setup and completion, and supports cancellation. A supported signed UI-only local Evolution host migrates to admit `agent`, `ask`, `chat`, and `ui` while retaining its signing identity. No publication or public artifact readback is claimed for these candidates.
+
 ## Package version and IDE pairing
 
 <!-- release112-status -->

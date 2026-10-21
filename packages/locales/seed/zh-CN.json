@@ -40,7 +40,8 @@
     "answerCardTitle": "回复",
     "streaming": "流式接收中...",
     "done": "完成",
-    "waitingFirstToken": "等待第一个 token..."
+    "waitingFirstToken": "等待第一个 token...",
+    "waitingForProvider": "正在等待 {provider} / {model}。本地模型可能仍在加载；连续 {seconds} 秒没有数据将超时。"
   },
   "compliance": {
     "title": "合规与威胁情报",

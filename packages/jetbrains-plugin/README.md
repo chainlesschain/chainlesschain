@@ -5,6 +5,10 @@ JetBrains counterpart of the [VS Code extension](../vscode-extension/): it lets
 the ChainlessChain **`cc` agent CLI** read editor context and propose native
 diffs inside IntelliJ-platform IDEs (IDEA, PyCharm, WebStorm, …).
 
+## Next release candidate
+
+Plugin **0.4.173** is an unreleased source candidate recommending CLI **`0.166.113`**. VS Code **0.37.156** is the paired unreleased candidate. The recommended CLI improves Quick Ask waiting and terminal error reporting, cancellation, bounded governed chat setup, and local signed Evolution recovery. Publication requires exact-source gates and public artifact readback.
+
 ## Current release
 
 <!-- release172-status -->
@@ -16,6 +20,8 @@ Checked on **2026-10-22**: npm CLI **0.166.112**, Open VSX **0.37.155** and JetB
 npm publication used GitHub Actions OIDC from source `35a2508d156152a61d74fbf8135fcfa1225fe235` ([publish run](https://github.com/chainlesschain/chainlesschain/actions/runs/39661868416)); all 71 CLI CI jobs and all 5 Strict Sandbox jobs passed on that exact source. The public tarball integrity and npm provenance source/run binding were read back. Session Core **0.3.21** was available before CLI publication.
 
 The IDE tags `ide-vscode-v0.37.155` and `ide-jetbrains-v0.4.172` point to `ae27ef6dfc8cf1e45bf084030816b02c77dc2a34`. [Open VSX publication](https://github.com/chainlesschain/chainlesschain/actions/runs/39673804362) passed. [JetBrains publication, attempt 2](https://github.com/chainlesschain/chainlesschain/actions/runs/39676899944/attempts/2) passed after one bounded macOS 2024.2 rerun; the original performance failure is retained. JetBrains now reports `approve=true`, `listed=true`, `hidden=false`. Both public IDE archives were downloaded and their embedded version and CLI pairing checked. [Public readback evidence](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release112-public/publication.json).
+
+Plugin **0.4.172** is the current public release. It recommends `chainlesschain@0.166.112`. The immutable `ide-jetbrains-v0.4.172` tag passed the exact-source IDE gates and Marketplace upload; public readback confirms approval and listing. Session Core `0.3.21` was published before the paired CLI; Context/Memory Kernel `0.1.10` is unchanged. Restart the IDE and run Doctor after upgrading. Native task quality and restart acceptance still require separate published-package evidence.
 
 No new model-task retest was run for this release; local Ollama model validation is left to the user after upgrading. Historical cross-version accepted deliveries remain **31/45** (**26/36** ordinary, **5/9** first-run), with **14** unaccepted. This is not a .112 single-round success rate. **NOT_PAID_READY**, **NOT_ADMITTED** and automatic promotion **HOLD** remain. Microsoft VS Code Marketplace remains unpublished; stock VS Code users can install the public Open VSX VSIX. Native product **v5.0.3.140** is a separate release; desktop integration requires matching builds, authorization and native confirmation.
 
@@ -64,7 +70,7 @@ See the [upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-u
 
 ## Release compatibility
 
-Plugin **0.4.172** is the current public release. It recommends `chainlesschain@0.166.112`. The immutable `ide-jetbrains-v0.4.172` tag passed the exact-source IDE gates and Marketplace upload; public readback confirms approval and listing. Session Core `0.3.21` was published before the paired CLI; Context/Memory Kernel `0.1.10` is unchanged. Restart the IDE and run Doctor after upgrading. Native task quality and restart acceptance still require separate published-package evidence.
+Plugin **0.4.173** is the current release candidate. It recommends `chainlesschain@0.166.113`; neither candidate has been published. The plugin updates its CLI recommendation and version. Exact-source IDE gates and Marketplace publication remain pending. Session Core `0.3.21` and Context/Memory Kernel `0.1.10` are unchanged. Native task quality and restart acceptance still require separate published-package evidence.
 
 ## Previous candidates and development notes
 

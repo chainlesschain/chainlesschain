@@ -12,9 +12,7 @@ import {
 import fs from "node:fs";
 import { join, resolve } from "node:path";
 import { resolveConfigDataRoot } from "../paths.js";
-import {
-  EVOLUTION_ARTIFACT_AUTHORITY_DECISION_SCHEMA,
-} from "./evolution-artifact-ports.js";
+import { EVOLUTION_ARTIFACT_AUTHORITY_DECISION_SCHEMA } from "./evolution-artifact-ports.js";
 import {
   EVOLUTION_KEYED_COMMITMENT_SCHEMA,
   EVOLUTION_PROJECTION_ATTESTATION_SCHEMA,
@@ -268,10 +266,14 @@ export function createLocalUiEvolutionAuthorities(identity, runId) {
         body.evidenceDigest !== expectedInputDigest ||
         expectedInputDigest !== request.sourceInputDigest
       ) {
-        throw new Error("Local UI source envelope is not bound to this evidence");
+        throw new Error(
+          "Local UI source envelope is not bound to this evidence",
+        );
       }
       const sourceKind =
-        body.kind === "response-completed" ? "model-inference" : "user-statement";
+        body.kind === "response-completed"
+          ? "model-inference"
+          : "user-statement";
       const requestedAt = request.requestedAt;
       const core = {
         schema: EVOLUTION_SOURCE_VERIFICATION_SCHEMA,
@@ -343,9 +345,7 @@ export function createLocalUiEvolutionAuthorities(identity, runId) {
         requestedAt: request.requestedAt,
         checkedAt: request.requestedAt,
         decisionExpiresAt: dateAfter(request.requestedAt),
-        policyDigest: sha256(
-          "chainlesschain.local-ui.commitment.policy/v1",
-        ),
+        policyDigest: sha256("chainlesschain.local-ui.commitment.policy/v1"),
         policyRevision: TRUST_POLICY_REVISION,
       };
       return {
@@ -378,7 +378,9 @@ export function createLocalUiEvolutionAuthorities(identity, runId) {
           request.sourceVerificationReceiptDigest,
         sensitivity: request.sensitivity,
         retention: {
-          expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+          expiresAt: new Date(
+            Date.now() + 365 * 24 * 60 * 60 * 1000,
+          ).toISOString(),
           deletionClass: "user-delete",
         },
         acl: [request.principalId, "service-evolution"],
@@ -546,28 +548,48 @@ export function createLocalUiEvolutionAuthorities(identity, runId) {
 
 export async function createLocalUiEvolutionComposition({
   context,
+  commandName = "ui",
   handlerArtifactDigest,
   localDirectory,
   env = process.env,
   cwd = process.cwd(),
 } = {}) {
   if (
-    context?.mode !== "ws-llm-chat" ||
+    !(
+      {
+        ui: [
+          "ws-llm-chat",
+          "ws-stream",
+          "ws-chat-session",
+          "legacy-websocket",
+          "intent-understand",
+          "intent-understand-stream",
+          "intent-classify",
+        ],
+        agent: ["interactive", "headless", "headless-stream"],
+        ask: ["ask"],
+        chat: ["chat", "chat-agent"],
+      }[commandName] || []
+    ).includes(context?.mode) ||
     typeof context.runId !== "string" ||
-    !context.runId.startsWith("ws-llm-chat-")
+    !/^[A-Za-z0-9][A-Za-z0-9._:-]{0,255}$/u.test(context.runId)
   ) {
-    throw new Error("Local Evolution host only admits Quick Ask model turns");
+    throw new Error(
+      "Local Evolution host does not admit this command mode or Run",
+    );
   }
-  const root = localDirectory ||
+  const root =
+    localDirectory ||
     join(resolveConfigDataRoot().path, "evolution", "local-ui-host");
   const deployment = await loadLocalUiEvolutionDeployment(root, { env, cwd });
+  if (!deployment.descriptor.commands.includes(commandName))
+    throw new Error("Local Evolution deployment does not admit this command");
   if (deployment.moduleDigest !== handlerArtifactDigest) {
-    throw new Error("Local Evolution handler digest does not match its signed deployment");
+    throw new Error(
+      "Local Evolution handler digest does not match its signed deployment",
+    );
   }
-  const identity = createLocalUiEvolutionAuthorities(
-    deployment,
-    context.runId,
-  );
+  const identity = createLocalUiEvolutionAuthorities(deployment, context.runId);
   const ledger = ed25519Authority(
     "ledger",
     deployment.tenantId,
@@ -583,7 +605,8 @@ export async function createLocalUiEvolutionComposition({
   return createAgentEvolutionRuntimeComposition({
     tenantId: identity.tenantId,
     runId: context.runId,
-    audience: "local-ui-quick-ask",
+    audience:
+      commandName === "ui" ? "local-ui-quick-ask" : `local-${commandName}`,
     stateRootDir,
     witnessId: `local-ui-witness-${identity.tenantId}`,
     authorities: {
