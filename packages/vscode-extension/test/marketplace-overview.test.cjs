@@ -17,18 +17,20 @@ Canonical extension description.
 
 ## Current release
 
+<!-- release79-status -->
+
 | VS Code extension         | **${extensionVersion}**; immutable release |
 | Recommended CLI           | **\`chainlesschain@${cliVersion}\`** public npm release |
 
 CLI \`${cliVersion}\` is the recommended public release.
-
-## Highlights
 
 Tag ide-vscode-v${extensionVersion}
 Download ${vsixUrl}
 Install npm i -g chainlesschain@${cliVersion}
 Using \`@${cliVersion}\`
 Artifact chainlesschain-ide-${extensionVersion}.vsix
+
+## Highlights
 `;
 }
 
@@ -98,15 +100,40 @@ test("rejects README metadata that drifts from the declared recommendation", asy
 
 test("allows historical release references outside the current overview", async () => {
   const { verifyMarketplaceOverview } = await verifier();
-  const historicalReadme = overview().concat(
-    "\n\n## Historical releases\n\n",
-    "Tag ide-vscode-v0.37.78.\n",
-    "Artifact https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.78/file/chainlesschain.chainlesschain-ide-0.37.78.vsix.\n",
-    "Install chainlesschain@0.166.9.\n",
+  const historicalReadme = overview().replace(
+    "\n## Highlights\n",
+    "\n### Previous verified release (historical)\n\n" +
+      "Tag ide-vscode-v0.37.78.\n" +
+      "Artifact https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.78/file/chainlesschain.chainlesschain-ide-0.37.78.vsix.\n" +
+      "Install chainlesschain@0.166.9.\n\n" +
+      "## Highlights\n",
   );
 
   verifyMarketplaceOverview({
     ...manifests(),
     readme: historicalReadme,
   });
+});
+
+test("rejects historical tags inside the current status block", async () => {
+  const { verifyMarketplaceOverview } = await verifier();
+  const readme = overview().replace(
+    "Tag ide-vscode-v0.37.79",
+    "Tag ide-vscode-v0.37.79; previous tag ide-vscode-v0.37.78",
+  );
+
+  assert.throws(
+    () => verifyMarketplaceOverview({ ...manifests(), readme }),
+    /stale VS Code release metadata/u,
+  );
+});
+
+test("requires a nonempty current release status marker", async () => {
+  const { verifyMarketplaceOverview } = await verifier();
+  const readme = overview().replace("<!-- release79-status -->\n\n", "");
+
+  assert.throws(
+    () => verifyMarketplaceOverview({ ...manifests(), readme }),
+    /current release status marker/u,
+  );
 });

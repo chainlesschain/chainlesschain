@@ -15,6 +15,69 @@ function capturedVersions(value, pattern) {
   return [...new Set([...value.matchAll(pattern)].map((match) => match[1]))];
 }
 
+function markdownLinesOutsideFences(markdown) {
+  const lines = [];
+  let offset = 0;
+  let fenceCharacter = null;
+  let fenceLength = 0;
+
+  for (const rawLine of markdown.match(/.*(?:\r?\n|$)/gu) ?? []) {
+    if (rawLine.length === 0) continue;
+    const line = rawLine.replace(/\r?\n$/u, "");
+    const fence = line.match(/^ {0,3}(`{3,}|~{3,})/u);
+
+    if (fenceCharacter) {
+      const closingFence = new RegExp(
+        `^ {0,3}${fenceCharacter}{${fenceLength},}\\s*$`,
+        "u",
+      );
+      if (closingFence.test(line)) {
+        fenceCharacter = null;
+        fenceLength = 0;
+      }
+    } else if (fence) {
+      fenceCharacter = fence[1][0];
+      fenceLength = fence[1].length;
+    } else {
+      lines.push({ line, start: offset, end: offset + line.length });
+    }
+
+    offset += rawLine.length;
+  }
+
+  return lines;
+}
+
+function currentReleaseStatus(readme) {
+  const lines = markdownLinesOutsideFences(readme);
+  const currentHeading = lines.find((entry) =>
+    /^## Current release[ \t]*$/u.test(entry.line),
+  );
+  assert.ok(currentHeading, "README must contain a Current release heading");
+
+  const isReleaseMarker = (line) =>
+    /^<!-- release\d+-status -->[ \t]*$/u.test(line);
+  const isBoundary = (line) =>
+    /^### Previous verified release(?:[ \t]+.*)?$/u.test(line) ||
+    /^## Highlights[ \t]*$/u.test(line) ||
+    isReleaseMarker(line);
+  const firstEvent = lines.find(
+    (entry) => entry.start > currentHeading.start && isBoundary(entry.line),
+  );
+  assert.ok(
+    firstEvent && isReleaseMarker(firstEvent.line),
+    "README must contain a current release status marker before history or Highlights",
+  );
+
+  const nextBoundary = lines.find(
+    (entry) => entry.start > firstEvent.start && isBoundary(entry.line),
+  );
+  const sectionEnd = nextBoundary?.start ?? readme.length;
+  const status = readme.slice(firstEvent.end, sectionEnd).trim();
+  assert.ok(status, "Current release status block must not be empty");
+  return status;
+}
+
 function compareVersions(left, right) {
   const leftParts = left.split(".").map(Number);
   const rightParts = right.split(".").map(Number);
@@ -48,14 +111,7 @@ export function verifyMarketplaceOverview({
     "README introduction must match the Marketplace package description",
   );
 
-  const releaseMatch = readme.match(
-    /## Current release\n\n([\s\S]*?)\n\n## Highlights/mu,
-  );
-  assert.ok(
-    releaseMatch,
-    "README must contain a bounded Current release section",
-  );
-  const releaseSection = releaseMatch[1];
+  const releaseSection = currentReleaseStatus(readme);
   const extensionVersion = extensionManifest.version;
   const sourceCliVersion = cliManifest.version;
   const cliVersion = extensionManifest.chainlesschain?.recommendedCliVersion;
@@ -92,27 +148,27 @@ export function verifyMarketplaceOverview({
     );
   }
 
+  assert.ok(
+    releaseSection.includes(`ide-vscode-v${extensionVersion}`),
+    "Current release status must name its immutable VS Code tag",
+  );
   for (const pattern of [
     /ide-vscode-v(0\.37\.\d+)/gu,
     /chainlesschain-ide\/(0\.37\.\d+)\/file/gu,
     /chainlesschain-ide-(0\.37\.\d+)\.vsix/gu,
   ]) {
-    assert.deepEqual(
-      capturedVersions(releaseSection, pattern),
-      [extensionVersion],
-      "README contains stale VS Code release metadata",
+    assert.ok(
+      capturedVersions(releaseSection, pattern).every(
+        (version) => version === extensionVersion,
+      ),
+      "Current release status contains stale VS Code release metadata",
     );
   }
-  assert.deepEqual(
-    [
-      ...new Set(
-        [...releaseSection.matchAll(/chainlesschain@(0\.\d+\.\d+)/gu)].map(
-          (match) => match[1],
-        ),
-      ),
-    ],
-    [cliVersion],
-    "README contains a stale recommended CLI package version",
+  assert.ok(
+    capturedVersions(releaseSection, /chainlesschain@(0\.\d+\.\d+)/gu).every(
+      (version) => version === cliVersion,
+    ),
+    "Current release status contains a stale recommended CLI package version",
   );
   assert.ok(
     releaseSection.includes(`CLI \`${cliVersion}\``),
