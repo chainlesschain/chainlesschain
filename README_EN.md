@@ -2,7 +2,7 @@
 
 ## Release candidate notice (2026-10-23)
 
-CLI **0.166.116** is a source candidate fixing Python/JavaScript `run_code` literals being rejected as malformed JSON at Evolution ingress, and preserving completed tool rounds before an ingress failure terminates the Run. The current public npm CLI is **0.166.115** ([OIDC publication](https://github.com/chainlesschain/chainlesschain/actions/runs/39791145970)); install it with `npm i -g chainlesschain@0.166.115 --registry https://registry.npmjs.org`. The matching VS Code **0.37.158** and JetBrains **0.4.175** source candidates recommend CLI **0.166.116**. IDE publication follows verified public CLI availability. The `.112 / .155 / .172` section below preserves historical releases and limits.
+CLI **0.166.117** is a source candidate fixing Python/JavaScript `run_code` literals being rejected as malformed JSON at Evolution ingress, and preserving completed tool rounds before an ingress failure terminates the Run. The current public npm CLI is **0.166.115** ([OIDC publication](https://github.com/chainlesschain/chainlesschain/actions/runs/39791145970)); install it with `npm i -g chainlesschain@0.166.115 --registry https://registry.npmjs.org`. The matching VS Code **0.37.158** and JetBrains **0.4.175** source candidates recommend CLI **0.166.117**. IDE publication follows verified public CLI availability. The `.112 / .155 / .172` section below preserves historical releases and limits.
 
 <!-- release112-status -->
 

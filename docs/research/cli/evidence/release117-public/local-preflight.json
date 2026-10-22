@@ -1,0 +1,131 @@
+{
+  "schema": "chainlesschain.release-local-preflight/v1",
+  "capturedAt": "2026-10-22T17:32:28.252Z",
+  "candidate": "0.166.117",
+  "authoritativeReleaseGate": "GitHub Actions exact release SHA: CLI CI + CLI Strict Sandbox, all configured operating systems",
+  "localChecks": [
+    {
+      "scope": "Evidence parser, model snapshot and projector",
+      "files": 3,
+      "passed": 147
+    },
+    {
+      "scope": "Real composition image ingress messages and REPL content shapes",
+      "passed": 4
+    },
+    {
+      "scope": "Tool output bounds and read/file/code/git regressions",
+      "files": 5,
+      "passed": 106
+    },
+    {
+      "scope": "Real JSONL terminal tool-round recovery",
+      "passed": 8
+    },
+    {
+      "scope": "Context Memory Kernel node tests",
+      "passed": 25
+    },
+    {
+      "scope": "Image token/provider transport and text pressure with actual compaction",
+      "files": 2,
+      "passed": 11
+    },
+    {
+      "scope": "Final Context Memory Kernel node tests after explicit persistence/scope wiring",
+      "passed": 25
+    },
+    {
+      "scope": "IDE metadata, recommendation and neutral source pairing",
+      "passed": 27
+    },
+    {
+      "scope": "Independent image bundle fault/recovery",
+      "passed": 6,
+      "skipped": 1,
+      "skipReason": "POSIX directory fsync; Windows host has no directory fsync"
+    },
+    {
+      "scope": "Repaired JSONL paths fixtures: deletion, prune, migration, hash chain and other real deletion paths",
+      "passed": 54
+    },
+    {
+      "scope": "Durable image bundle generation, restart, real persistent compaction and deletion",
+      "passed": 5
+    },
+    {
+      "scope": "History origins with genuine live JSONL session and contentRef equality",
+      "passed": 12
+    },
+    {
+      "scope": "Current v4 budget denial fixture follow-up",
+      "passed": 2
+    },
+    {
+      "scope": "PDH resolver, interests and Hub analysis after correcting duplicate local dependency",
+      "passed": 19
+    },
+    {
+      "scope": "Session Core 0.3.22 full suite",
+      "files": 30,
+      "passed": 733
+    },
+    {
+      "scope": "Personal Data Hub 0.4.66 local suite",
+      "files": 215,
+      "passed": 3897,
+      "skipped": 74,
+      "failed": 187,
+      "limitation": "Failed tests require a Node v127 better-sqlite3-multiple-ciphers native binding absent on this local host. Authoritative three-OS CI builds native bindings and must pass."
+    },
+    {
+      "scope": "CLI and child workspace lock graph exact dependency alignment",
+      "passed": true
+    }
+  ],
+  "childRegistryReadback": "../release116-public/child-registry-readback.json",
+  "childrenFetchedAndIntegrityVerified": 13,
+  "packageDryRun": {
+    "version": "0.166.117",
+    "files": 1817,
+    "unpackedSize": 37303709,
+    "requiredNewSourcesFound": true,
+    "requiredNewSources": [
+      "src/lib/context-memory-kernel/message-bundle-store.js",
+      "src/lib/context-memory-kernel/context-image-transport.js",
+      "src/lib/image-token-estimate.js",
+      "src/lib/tool-result-preview.js"
+    ]
+  },
+  "limitations": {
+    "publication": false,
+    "localChecksAreNotPublicationAuthority": true,
+    "persistentImageContentRef": "Implemented and functional/fault regressions pass; Linux/macOS directory fsync fault case awaits exact-SHA matrix.",
+    "durableSessionEventBytes": 16777216,
+    "textInputBytes": 1048576,
+    "modelVisibleContentBytes": 917504,
+    "imageBytesPerMessage": 20971520,
+    "imageCountPerMessage": 8,
+    "imageBytesPerModelRequest": 41943040,
+    "imageTokenReservesAreEstimates": true,
+    "supplementaryRegression": "Initial wider run: 294 passed, 14 failed, 2 skipped. Missing mock exports repaired; 54 selected follow-up tests pass, including the isolated original ACL-timeout test. Full exact-SHA CI remains authoritative.",
+    "finalFocusedRegression": {
+      "initialPassed": 403,
+      "initialFailed": 43,
+      "followup": "Two stale budget fixtures corrected; temporary store snapshot failure no longer present and origins now passes; all 19 selected PDH tests pass after removing duplicate local dependency. 26 local desktop cases require axios/node-fetch supplied by the clean CI install.",
+      "fullExactShaCiRequired": true
+    }
+  },
+  "ideSourcePair": {
+    "vscode": "0.37.158",
+    "jetbrains": "0.4.175",
+    "recommendedCli": "0.166.117",
+    "publication": false
+  },
+  "supersedesUnpublishedCandidate": "0.166.116",
+  "reusedChildrenSourceReadback": "reused-children-source-readback.json",
+  "newChildren": {
+    "@chainlesschain/session-core": "0.3.22",
+    "@chainlesschain/personal-data-hub": "0.4.66"
+  }
+}

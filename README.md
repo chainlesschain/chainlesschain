@@ -2,7 +2,7 @@
 
 ## 发布候选提示（2026-10-23）
 
-CLI **0.166.116** 正作为修复候选准备，解决 `run_code` 的 Python/JavaScript 代码被 Evolution ingress 误判为损坏 JSON，以及 ingress 失败退出前遗漏已完成工具轮次结算的问题。npm 当前公开版本为 **0.166.115**（[OIDC 发布记录](https://github.com/chainlesschain/chainlesschain/actions/runs/39791145970)），安装命令为 `npm i -g chainlesschain@0.166.115 --registry https://registry.npmjs.org`。配套候选 VS Code **0.37.158** 和 JetBrains **0.4.175** 源码版本均推荐 CLI **0.166.116**；确认 CLI 可从 npm 下载后再发布 IDE。下方 `.112 / .155 / .172` 为历史发行和限制记录。
+CLI **0.166.117** 正作为修复候选准备，解决 `run_code` 的 Python/JavaScript 代码被 Evolution ingress 误判为损坏 JSON，以及 ingress 失败退出前遗漏已完成工具轮次结算的问题。npm 当前公开版本为 **0.166.115**（[OIDC 发布记录](https://github.com/chainlesschain/chainlesschain/actions/runs/39791145970)），安装命令为 `npm i -g chainlesschain@0.166.115 --registry https://registry.npmjs.org`。配套候选 VS Code **0.37.158** 和 JetBrains **0.4.175** 源码版本均推荐 CLI **0.166.117**；确认 CLI 可从 npm 下载后再发布 IDE。下方 `.112 / .155 / .172` 为历史发行和限制记录。
 
 <!-- release112-status -->
 

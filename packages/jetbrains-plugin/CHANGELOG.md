@@ -1,8 +1,8 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
-## [0.4.175] - CLI 0.166.116 pairing (2026-10-23)
+## [0.4.175] - CLI 0.166.117 pairing (2026-10-23)
 
-- Recommend CLI 0.166.116 for source and command evidence projection, complete bounded JSON tool previews, cumulative evidence budgets, and separate image and provider token accounting.
+- Recommend CLI 0.166.117 for source and command evidence projection, complete bounded JSON tool previews, cumulative evidence budgets, and separate image and provider token accounting.
 - Update the package version and CLI pairing. Release verification uses the exact source commit and public artifact readback after the paired CLI and its dependencies are available.
 
 ## [0.4.174] - CLI 0.166.115 pairing (candidate, 2026-10-22)

@@ -4,6 +4,12 @@ Shared session lifecycle, trace, agent definition, memory, approval, sandbox,
 evolution receipt, and recovery primitives used by ChainlessChain Desktop and
 the CLI.
 
+## Release 0.3.22
+
+Restricts Windows PowerShell ACL script module discovery to the built-in
+Windows module directory. CLI `0.166.117` pins this release for private storage
+ACL operations.
+
 ## Release 0.3.21
 
 Fixes Windows PowerShell ACL operations for long local paths by using extended

@@ -2,7 +2,7 @@
 
 ## 发布候选提示（2026-10-23）
 
-CLI **0.166.116** 为修复候选：处理 `run_code` 的 Python/JavaScript 字面量误触严格 JSON 校验，并在 ingress 失败退出前结算已完成工具轮次。npm 当前公开 CLI 为 **0.166.115**（[OIDC 发布记录](https://github.com/chainlesschain/chainlesschain/actions/runs/39791145970)），安装命令为 `npm i -g chainlesschain@0.166.115 --registry https://registry.npmjs.org`。配套候选 VS Code **0.37.158** 与 JetBrains **0.4.175** 源码均推荐 CLI **0.166.116**；确认 CLI 可从 npm 下载后再发布 IDE。以下 `.112 / .155 / .172` 内容保留为历史发行和限制记录。
+CLI **0.166.117** 为修复候选：处理 `run_code` 的 Python/JavaScript 字面量误触严格 JSON 校验，并在 ingress 失败退出前结算已完成工具轮次。npm 当前公开 CLI 为 **0.166.115**（[OIDC 发布记录](https://github.com/chainlesschain/chainlesschain/actions/runs/39791145970)），安装命令为 `npm i -g chainlesschain@0.166.115 --registry https://registry.npmjs.org`。配套候选 VS Code **0.37.158** 与 JetBrains **0.4.175** 源码均推荐 CLI **0.166.117**；确认 CLI 可从 npm 下载后再发布 IDE。以下 `.112 / .155 / .172` 内容保留为历史发行和限制记录。
 
 <!-- release112-status -->
 

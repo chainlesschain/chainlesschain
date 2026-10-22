@@ -1,0 +1,11 @@
+{
+  "candidate": "0.166.116",
+  "sha": "ca64ea9009f1164f29fcb97c73edeff5a0479a19",
+  "tag": "v-npm-0-166-116",
+  "publication": false,
+  "runId": 39822459252,
+  "action": "Publication workflow cancelled before release. Immutable tag retained; never moved.",
+  "reason": "Current Session Core source and Personal Data Hub README differ from their immutable public packages. Release moves to CLI 0.166.117 with Session Core 0.3.22 and Personal Data Hub 0.4.66.",
+  "replacementCandidate": "0.166.117",
+  "capturedAt": "2026-10-22T17:28:09.544Z"
+}

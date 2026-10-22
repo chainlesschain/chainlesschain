@@ -1,6 +1,6 @@
 # @chainlesschain/personal-data-hub
 
-Package version: `@chainlesschain/personal-data-hub@0.4.65`. Current CLI pairing
+Package version: `@chainlesschain/personal-data-hub@0.4.66`. Current CLI pairing
 and public release status are recorded in the
 [release and upgrade guide](../../docs-site/docs/chainlesschain/agent-platform-release.md).
 
