@@ -23,10 +23,20 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  docs-scope:
+    name: Scoped documentation check
+    uses: ./.github/workflows/_scoped-docs-check.yml
+    permissions:
+      contents: read
+    with:
+      target_sha: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+
   # 健康检查 (advisory only — failures here do not block run-all-tests; see
   # issue #7 where a transient ECONNRESET in this job filed a false-positive
   # bug ticket).
   health-check:
+    needs: [docs-scope]
+    if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
     name: System Health Check
     runs-on: ubuntu-latest
     continue-on-error: true
@@ -51,6 +61,8 @@ jobs:
 
   # 综合测试运行器
   run-all-tests:
+    needs: [docs-scope]
+    if: ${{ always() && !cancelled() }}
     name: Run All Tests
     runs-on: ${{ matrix.os }}
 
@@ -60,9 +72,34 @@ jobs:
       fail-fast: false
 
     steps:
+      - name: Enforce exact-source documentation decision
+        if: always()
+        uses: actions/github-script@v8
+        env:
+          DOCS_RESULT: ${{ needs.docs-scope.result }}
+          DOCS_ONLY: ${{ needs.docs-scope.outputs.docs_only }}
+          DOCS_VALIDATED: ${{ needs.docs-scope.outputs.docs_validated }}
+          DOCS_TARGET: ${{ needs.docs-scope.outputs.target_sha }}
+          EXPECTED_TARGET: ${{ github.event.pull_request.head.sha || github.sha }}
+        with:
+          script: |
+            const e = process.env;
+            if (e.DOCS_RESULT !== 'success' || e.DOCS_TARGET !== e.EXPECTED_TARGET ||
+                !['true', 'false'].includes(e.DOCS_ONLY) ||
+                (e.DOCS_ONLY === 'true' && e.DOCS_VALIDATED !== 'true')) {
+              throw new Error('Missing, failed or wrong-source documentation decision');
+            }
+            await core.summary.addHeading('Required check decision').addRaw(
+              e.DOCS_ONLY === 'true'
+                ? `Validated scoped documentation and locked Prettier at ${e.DOCS_TARGET}; code tests are not applicable and were not run. This is not a copied prior test result.`
+                : `Full code checks required at ${e.DOCS_TARGET}; original job steps follow.`
+            ).write();
+
       - uses: actions/checkout@v5
+        if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
 
       - name: Setup Node.js
+        if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
         uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -75,11 +112,13 @@ jobs:
       # even if PATH ordering changes. The suite also uses a hosted-runner-safe
       # process deadline while still failing closed when the verdict hangs.
       - name: Setup Python
+        if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install dependencies
+        if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
         working-directory: ./desktop-app-vue
         shell: bash
         run: |
@@ -90,12 +129,12 @@ jobs:
       # Playwright Chromium. npm installs the driver but intentionally does not
       # guarantee that the matching browser binary or Linux libraries exist.
       - name: Install Chromium with system dependencies (Linux)
-        if: runner.os == 'Linux'
+        if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' && (runner.os == 'Linux') }}
         working-directory: ./desktop-app-vue
         run: npm exec -- playwright install --with-deps chromium
 
       - name: Install Chromium (Windows)
-        if: runner.os == 'Windows'
+        if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' && (runner.os == 'Windows') }}
         working-directory: ./desktop-app-vue
         run: npm exec -- playwright install chromium
 
@@ -103,25 +142,28 @@ jobs:
       # standalone production dependency topology; a workspace-hoisted install
       # is not equivalent to the files shipped under Resources/packages/cli.
       - name: Install packages/cli production dependencies standalone
+        if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
         working-directory: ./packages/cli
         shell: bash
         run: bash "$GITHUB_WORKSPACE/.github/scripts/ci-install-cli-production-deps.sh"
 
       - name: Verify CI gate integrity contracts
+        if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
         run: >-
           node --test
           scripts/__tests__/ci-gate-integrity.test.mjs
           scripts/__tests__/detect-publishable-packages.test.mjs
 
       - name: Run comprehensive test suite
+        if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
         id: primary-tests
         working-directory: ./desktop-app-vue
         run: node scripts/test-runner.js
         continue-on-error: true
 
       - name: Collect failure diagnostics (non-mutating)
+        if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' && (steps.primary-tests.outcome == 'failure') }}
         id: failure-diagnostics
-        if: steps.primary-tests.outcome == 'failure'
         working-directory: ./desktop-app-vue
         run: node scripts/auto-fix-runner.js
         continue-on-error: true
@@ -130,8 +172,8 @@ jobs:
       # never turns a failed primary gate green. Its reports use a distinct
       # suffix so the primary failure evidence remains immutable.
       - name: Re-run tests for failure diagnosis
+        if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' && (steps.primary-tests.outcome == 'failure') }}
         id: retry-tests
-        if: steps.primary-tests.outcome == 'failure'
         working-directory: ./desktop-app-vue
         env:
           TEST_REPORT_SUFFIX: retry
@@ -139,7 +181,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload test results
-        if: always()
+        if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' && (always()) }}
         uses: actions/upload-artifact@v6
         with:
           name: test-results-${{ matrix.os }}
@@ -148,7 +190,7 @@ jobs:
             desktop-app-vue/coverage/
 
       - name: Enforce comprehensive test result
-        if: always()
+        if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' && (always()) }}
         env:
           PRIMARY_TEST_OUTCOME: ${{ steps.primary-tests.outcome }}
           RETRY_TEST_OUTCOME: ${{ steps.retry-tests.outcome }}
@@ -157,10 +199,10 @@ jobs:
 
   # 创建Issue如果测试失败
   create-issue-on-failure:
+    needs: [docs-scope, run-all-tests]
+    if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' && (failure()) }}
     name: Create Issue on Failure
     runs-on: ubuntu-latest
-    needs: run-all-tests
-    if: failure()
 
     steps:
       - uses: actions/github-script@v8

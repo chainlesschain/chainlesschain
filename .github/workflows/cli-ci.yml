@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
     paths:
+      - ".github/workflows/_scoped-docs-check.yml"
+      - "scripts/ci/scoped-docs-check.mjs"
       - "packages/cli/**"
       - "packages/core-db/**"
       - "packages/session-core/**"
@@ -52,6 +54,8 @@ on:
   pull_request:
     branches: [main]
     paths:
+      - ".github/workflows/_scoped-docs-check.yml"
+      - "scripts/ci/scoped-docs-check.mjs"
       - "packages/cli/**"
       - "packages/core-db/**"
       - "packages/session-core/**"
@@ -104,7 +108,17 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  docs-scope:
+    name: Scoped documentation check
+    uses: ./.github/workflows/_scoped-docs-check.yml
+    permissions:
+      contents: read
+    with:
+      target_sha: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+
   pdh-native-tests:
+    needs: [docs-scope]
+    if: ${{ always() && !cancelled() }}
     name: PDH native release tests (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 25
@@ -115,25 +129,53 @@ jobs:
     env:
       PDH_EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
+      - name: Enforce exact-source documentation decision
+        if: always()
+        uses: actions/github-script@v8
+        env:
+          DOCS_RESULT: ${{ needs.docs-scope.result }}
+          DOCS_ONLY: ${{ needs.docs-scope.outputs.docs_only }}
+          DOCS_VALIDATED: ${{ needs.docs-scope.outputs.docs_validated }}
+          DOCS_TARGET: ${{ needs.docs-scope.outputs.target_sha }}
+          EXPECTED_TARGET: ${{ github.event.pull_request.head.sha || github.sha }}
+        with:
+          script: |
+            const e = process.env;
+            if (e.DOCS_RESULT !== 'success' || e.DOCS_TARGET !== e.EXPECTED_TARGET ||
+                !['true', 'false'].includes(e.DOCS_ONLY) ||
+                (e.DOCS_ONLY === 'true' && e.DOCS_VALIDATED !== 'true')) {
+              throw new Error('Missing, failed or wrong-source documentation decision');
+            }
+            await core.summary.addHeading('Required check decision').addRaw(
+              e.DOCS_ONLY === 'true'
+                ? `Validated scoped documentation and locked Prettier at ${e.DOCS_TARGET}; code tests are not applicable and were not run. This is not a copied prior test result.`
+                : `Full code checks required at ${e.DOCS_TARGET}; original job steps follow.`
+            ).write();
+
       - uses: actions/checkout@v5
+        if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Verify exact source identity
+        if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
         shell: bash
         run: test "$(git rev-parse HEAD)" = "$PDH_EXPECTED_SHA"
       - uses: actions/setup-node@v5
+        if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
         with:
           node-version: "22.22.2"
       - uses: actions/setup-python@v6
+        if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
         with:
           python-version: "3.12"
       - name: Test complete PDH suite with host-native drivers
+        if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
         shell: bash
         env:
           PDH_EVIDENCE_DIR: ${{ runner.temp }}/pdh-native-evidence
         run: bash .github/scripts/ci-test-pdh.sh
       - name: Upload PDH native identity and full test report
-        if: always()
+        if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' && (always()) }}
         uses: actions/upload-artifact@v6
         with:
           name: pdh-native-${{ matrix.os }}-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_attempt }}
@@ -142,6 +184,8 @@ jobs:
           retention-days: 90
 
   linux-subreaper:
+    needs: [docs-scope]
+    if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
     uses: ./.github/workflows/_cli-linux-subreaper.yml
     with:
       commit_sha: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -149,12 +193,16 @@ jobs:
   # Per-OS test fan-out via the shared reusable workflow.
   # Each call spawns its own (suite × shard) matrix internally — see _cli-test.yml.
   test-ubuntu:
+    needs: [docs-scope]
+    if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
     uses: ./.github/workflows/_cli-test.yml
     with:
       commit_sha: ${{ github.event.pull_request.head.sha || github.sha }}
       runs-on: ubuntu-latest
 
   test-windows:
+    needs: [docs-scope]
+    if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
     uses: ./.github/workflows/_cli-test.yml
     with:
       commit_sha: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -162,13 +210,16 @@ jobs:
       unit-shards: 16
 
   test-macos:
+    needs: [docs-scope]
+    if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
     uses: ./.github/workflows/_cli-test.yml
     with:
       commit_sha: ${{ github.event.pull_request.head.sha || github.sha }}
       runs-on: macos-latest
 
   verify-cli:
-    needs: [test-ubuntu, test-windows, test-macos]
+    needs: [docs-scope, test-ubuntu, test-windows, test-macos]
+    if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
     strategy:
       fail-fast: false
       matrix:
@@ -414,9 +465,9 @@ jobs:
         run: npm run startup:check
 
   pm-exploration-recovery-aggregate:
+    needs: [docs-scope, verify-cli]
+    if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' && (always() && (github.event_name == 'workflow_dispatch' || !cancelled())) }}
     name: Test-only PM exploration recovery three-OS aggregate
-    if: always() && (github.event_name == 'workflow_dispatch' || !cancelled())
-    needs: verify-cli
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -471,7 +522,8 @@ jobs:
   # A full pkg + smoke run would need CC_PACK_E2E=1 and ~30s of pkg download
   # on every PR — out of scope for this job; use the manual e2e suite instead.
   pack-linux-dryrun:
-    needs: [test-ubuntu]
+    needs: [docs-scope, test-ubuntu]
+    if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -519,9 +571,9 @@ jobs:
             --no-smoke-test
 
   dry-run-publish:
-    needs: [test-ubuntu]
+    needs: [docs-scope, test-ubuntu]
+    if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' && (github.event_name == 'pull_request') }}
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
     steps:
       - name: Checkout code
         uses: actions/checkout@v5

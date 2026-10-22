@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
     paths:
+      - ".github/workflows/_scoped-docs-check.yml"
+      - "scripts/ci/scoped-docs-check.mjs"
       - "packages/cli/src/**"
       - "packages/context-memory-kernel/**"
       - "packages/agent-protocol/**"
@@ -223,6 +225,8 @@ on:
   pull_request:
     branches: [main]
     paths:
+      - ".github/workflows/_scoped-docs-check.yml"
+      - "scripts/ci/scoped-docs-check.mjs"
       - "packages/cli/src/**"
       - "packages/context-memory-kernel/**"
       - "packages/agent-protocol/**"
@@ -446,7 +450,17 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  docs-scope:
+    name: Scoped documentation check
+    uses: ./.github/workflows/_scoped-docs-check.yml
+    permissions:
+      contents: read
+    with:
+      target_sha: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+
   macos-latest-capability:
+    needs: [docs-scope]
+    if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
     name: "macOS latest native capability"
     runs-on: macos-latest
     timeout-minutes: 25
@@ -480,6 +494,8 @@ jobs:
           retention-days: 7
 
   strict-platform:
+    needs: [docs-scope]
+    if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
     name: "strict native boundary (${{ matrix.os }})"
     strategy:
       fail-fast: false
@@ -726,6 +742,8 @@ jobs:
           npx vitest run --reporter=default __tests__/integration/sandbox-docker-egress-live.test.js
 
   strict-linux-arm64:
+    needs: [docs-scope]
+    if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
     name: strict native boundary (ubuntu-24.04-arm)
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 35

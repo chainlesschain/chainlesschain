@@ -2,6 +2,8 @@ name: Desktop Signed Skill Qualification
 
 on:
   push:
+    # Release tags use their dedicated publishing workflows.
+    branches: ["**"]
     paths:
       - ".github/workflows/desktop-signed-skill-qualification.yml"
       - ".github/workflows/desktop-signed-skill-platform.yml"

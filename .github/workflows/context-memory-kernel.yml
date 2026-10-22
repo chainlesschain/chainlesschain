@@ -3,6 +3,8 @@ name: Context Memory Kernel CI
 on:
   workflow_dispatch:
   push:
+    # Release tags use their dedicated publishing workflows.
+    branches: ["**"]
     paths:
       - ".github/workflows/context-memory-*.yml"
       - ".github/actions/setup-node-deps/action.yml"
@@ -46,7 +48,7 @@ on:
 permissions:
   contents: read
 
-# Supersede obsolete PR/feature checks; preserve main, tags, and manual runs.
+# Supersede obsolete PR/feature checks; preserve main and manual runs.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.event_name == 'push' && startsWith(github.ref, 'refs/heads/feature/') && format('branch-{0}', github.ref) || format('run-{0}', github.run_id) }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' || github.event_name == 'push' && startsWith(github.ref, 'refs/heads/feature/') }}

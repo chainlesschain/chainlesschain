@@ -11,8 +11,18 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  docs-scope:
+    name: Scoped documentation check
+    uses: ./.github/workflows/_scoped-docs-check.yml
+    permissions:
+      contents: read
+    with:
+      target_sha: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+
   # Detect changed files for conditional job execution
   detect-changes:
+    needs: [docs-scope]
+    if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
     name: Detect Changed Files
     runs-on: ubuntu-latest
     outputs:
@@ -33,6 +43,8 @@ jobs:
               - 'backend/ai-service/**'
 
   validate-rules:
+    needs: [docs-scope]
+    if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
     name: Validate Coding Rules
     runs-on: ubuntu-latest
 
@@ -77,6 +89,8 @@ jobs:
           retention-days: 30
 
   security-audit:
+    needs: [docs-scope]
+    if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
     name: Security Audit
     runs-on: ubuntu-latest
 
@@ -108,14 +122,41 @@ jobs:
           node scripts/audit-check.js --audit-level=critical
 
   lint-and-format:
+    needs: [docs-scope]
+    if: ${{ always() && !cancelled() }}
     name: Lint & Format Check
     runs-on: ubuntu-latest
 
     steps:
+      - name: Enforce exact-source documentation decision
+        if: always()
+        uses: actions/github-script@v8
+        env:
+          DOCS_RESULT: ${{ needs.docs-scope.result }}
+          DOCS_ONLY: ${{ needs.docs-scope.outputs.docs_only }}
+          DOCS_VALIDATED: ${{ needs.docs-scope.outputs.docs_validated }}
+          DOCS_TARGET: ${{ needs.docs-scope.outputs.target_sha }}
+          EXPECTED_TARGET: ${{ github.event.pull_request.head.sha || github.sha }}
+        with:
+          script: |
+            const e = process.env;
+            if (e.DOCS_RESULT !== 'success' || e.DOCS_TARGET !== e.EXPECTED_TARGET ||
+                !['true', 'false'].includes(e.DOCS_ONLY) ||
+                (e.DOCS_ONLY === 'true' && e.DOCS_VALIDATED !== 'true')) {
+              throw new Error('Missing, failed or wrong-source documentation decision');
+            }
+            await core.summary.addHeading('Required check decision').addRaw(
+              e.DOCS_ONLY === 'true'
+                ? `Validated scoped documentation and locked Prettier at ${e.DOCS_TARGET}; code tests are not applicable and were not run. This is not a copied prior test result.`
+                : `Full code checks required at ${e.DOCS_TARGET}; original job steps follow.`
+            ).write();
+
       - name: Checkout code
+        if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
         uses: actions/checkout@v5
 
       - name: Validate GitHub Actions workflows
+        if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
         shell: bash
         env:
           ACTIONLINT_VERSION: "1.7.12"
@@ -137,6 +178,7 @@ jobs:
           "${install_dir}/actionlint" -no-color -config-file .github/actionlint.yaml
 
       - name: Setup Node.js
+        if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
         uses: actions/setup-node@v5
         with:
           node-version: "22"
@@ -146,11 +188,13 @@ jobs:
             desktop-app-vue/package-lock.json
 
       - name: Install dependencies (workspace-aware)
+        if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
         uses: ./.github/actions/setup-node-deps
         with:
           install-desktop-app-vue: "true"
 
       - name: Check code style
+        if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
         working-directory: ./desktop-app-vue
         # No `|| echo`: an ESLint **error** must fail the job so the required
         # "Lint & Format Check" status actually gates merges. As of 2026-06-06
@@ -159,6 +203,8 @@ jobs:
         run: npm run lint
 
   test-database:
+    needs: [docs-scope]
+    if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
     name: Database Tests
     runs-on: ubuntu-latest
 
@@ -188,6 +234,8 @@ jobs:
         run: npm run test:db
 
   build-check:
+    needs: [docs-scope]
+    if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
     name: Build Check
     runs-on: ubuntu-latest
 
@@ -234,12 +282,10 @@ jobs:
 
   # 后端服务检查
   backend-java-check:
+    needs: [docs-scope, detect-changes]
+    if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' && (needs.detect-changes.outputs.backend-java == 'true' || github.event_name == 'push') }}
     name: Java Backend Check
     runs-on: ubuntu-latest
-    needs: detect-changes
-    if: |
-      needs.detect-changes.outputs.backend-java == 'true' ||
-      github.event_name == 'push'
 
     steps:
       - name: Checkout code
@@ -263,12 +309,10 @@ jobs:
 
   # Python AI 服务检查
   backend-python-check:
+    needs: [docs-scope, detect-changes]
+    if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' && (needs.detect-changes.outputs.backend-python == 'true' || github.event_name == 'push') }}
     name: Python Backend Check
     runs-on: ubuntu-latest
-    needs: detect-changes
-    if: |
-      needs.detect-changes.outputs.backend-python == 'true' ||
-      github.event_name == 'push'
 
     steps:
       - name: Checkout code
@@ -296,15 +340,39 @@ jobs:
 
   # 汇总报告
   quality-gate:
+    needs: [docs-scope, validate-rules, security-audit, build-check]
+    if: ${{ always() && !cancelled() }}
     name: Quality Gate
     runs-on: ubuntu-latest
-    needs: [validate-rules, security-audit, build-check]
     # Continue to fail closed for completed prerequisites, while preserving an
     # operator-requested workflow cancellation as cancelled instead of failure.
-    if: ${{ always() && !cancelled() }}
 
     steps:
+      - name: Enforce exact-source documentation decision
+        if: always()
+        uses: actions/github-script@v8
+        env:
+          DOCS_RESULT: ${{ needs.docs-scope.result }}
+          DOCS_ONLY: ${{ needs.docs-scope.outputs.docs_only }}
+          DOCS_VALIDATED: ${{ needs.docs-scope.outputs.docs_validated }}
+          DOCS_TARGET: ${{ needs.docs-scope.outputs.target_sha }}
+          EXPECTED_TARGET: ${{ github.event.pull_request.head.sha || github.sha }}
+        with:
+          script: |
+            const e = process.env;
+            if (e.DOCS_RESULT !== 'success' || e.DOCS_TARGET !== e.EXPECTED_TARGET ||
+                !['true', 'false'].includes(e.DOCS_ONLY) ||
+                (e.DOCS_ONLY === 'true' && e.DOCS_VALIDATED !== 'true')) {
+              throw new Error('Missing, failed or wrong-source documentation decision');
+            }
+            await core.summary.addHeading('Required check decision').addRaw(
+              e.DOCS_ONLY === 'true'
+                ? `Validated scoped documentation and locked Prettier at ${e.DOCS_TARGET}; code tests are not applicable and were not run. This is not a copied prior test result.`
+                : `Full code checks required at ${e.DOCS_TARGET}; original job steps follow.`
+            ).write();
+
       - name: Check quality gate status
+        if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
         run: |
           if [ "${{ needs.validate-rules.result }}" != "success" ]; then
             echo "❌ Rules validation failed"
