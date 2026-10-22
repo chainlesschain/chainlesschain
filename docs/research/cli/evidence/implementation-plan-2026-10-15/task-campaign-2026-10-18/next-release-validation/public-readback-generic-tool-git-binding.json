@@ -1,0 +1,33 @@
+{
+  "schema": "chainlesschain.public-readback-tool-git-binding/v1",
+  "toolSourceCommit": "339f025d9cca92a6fac7bac19686c7369a5c151b",
+  "localValidationRecord": "public-readback-generic-tool-validation.json",
+  "localValidationRecordDigest": "sha256:087d0ba2cd866f69dd44fd65faeea7a5e8f0d21dcf8f52bb4c331ca9c1aaba5a",
+  "note": "Git normalized helper CRLF line endings to LF. Original test-input digests are retained; committed code differs only in line endings, with no behavior change or repeated model/test execution.",
+  "files": [
+    {
+      "path": "packages/cli/scripts/verify-public-package-set.py",
+      "gitBlobDigest": "sha256:836f9cb0cf0c7e306beb0b0ff7ee686b8fb72628700abc163521300de29fa1d5",
+      "localValidationInputDigest": "sha256:836f9cb0cf0c7e306beb0b0ff7ee686b8fb72628700abc163521300de29fa1d5",
+      "lineEndingsOnly": true
+    },
+    {
+      "path": "packages/cli/scripts/verify-public-cli.py",
+      "gitBlobDigest": "sha256:768228923f834a26834d2881a197066c26e04118c686a5fa8256713b1827cb2c",
+      "localValidationInputDigest": "sha256:5d207c3a68ea32d5f3e230602a74bf479e4c0485e55c73d77958779750f639bc",
+      "lineEndingsOnly": true
+    },
+    {
+      "path": "packages/cli/scripts/verify-public-vscode.py",
+      "gitBlobDigest": "sha256:1e27f0f06d2a8664121ef50cf6d444c0c58706cbfeafcdffa56ba481b8b9b3bc",
+      "localValidationInputDigest": "sha256:eaccd9cc22400f90f183324d60b446030197037a855074aad545f5124c4188f0",
+      "lineEndingsOnly": true
+    },
+    {
+      "path": "packages/cli/scripts/verify-public-readback.test.py",
+      "gitBlobDigest": "sha256:dfdf372a436edcf1c28594e54beed2fa595de738da87470630f5ccb1686e77fc",
+      "localValidationInputDigest": "sha256:dfdf372a436edcf1c28594e54beed2fa595de738da87470630f5ccb1686e77fc",
+      "lineEndingsOnly": true
+    }
+  ]
+}

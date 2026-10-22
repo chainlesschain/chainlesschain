@@ -1,0 +1,125 @@
+{
+  "schema": "chainlesschain.ide-tag-auxiliary-runner-cleanup-evidence/v1",
+  "recordedAt": "2026-10-18T13:33:20.966380+00:00",
+  "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+  "status": "VERIFIED_CANCELLED",
+  "authorization": "User explicitly requested cancelling runners unrelated to release; tag-triggered duplicate Context Memory Kernel CI is not a publisher or PR protected check.",
+  "cancelledRuns": [
+    {
+      "runId": 39131607809,
+      "workflow": "Context Memory Kernel CI",
+      "tag": "ide-vscode-v0.37.151",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "jobs": 3,
+      "countedAsPassing": false
+    },
+    {
+      "runId": 39131605982,
+      "workflow": "Context Memory Kernel CI",
+      "tag": "ide-jetbrains-v0.4.168",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "jobs": 3,
+      "countedAsPassing": false
+    }
+  ],
+  "protectedPublisherRunIds": [
+    39131607926,
+    39131605961
+  ],
+  "protectedClasses": [
+    "All four passed release gates",
+    "Product PR CI Tests, Full Test Automation, Code Quality protection checks",
+    "Any native 45-task generation acceptance"
+  ],
+  "triggerEvidence": "Exact-SHA workflow defines push.paths without branch/tag filtering; tag runs have separate run-id concurrency groups.",
+  "capacityLimitation": "Six auxiliary runners observed (two each linux/windows/macos). Publisher macOS jobs queued; account limits unavailable, direct queue causality unproven.",
+  "scope": "Byte-preserving archive of parent-provided audit and official cancellation readback. This archival step did not cancel, poll, dispatch, test or publish.",
+  "published": false,
+  "cliPublicVerified": true,
+  "idePublicVerified": false,
+  "acceptedDeliverables": 31,
+  "totalDeliverables": 45,
+  "newModelCalls": 0,
+  "historyPreservation": {
+    "latestPreviousDigest": "sha256:fc2662d5e883a527e8a922e7cac7069e7770d34d5954120f63f0c85f1769ad68",
+    "latestPreviousBytes": 21974,
+    "existingBytesUnchangedExceptInsertion": true,
+    "oldFailureFilesUnmodified": true
+  },
+  "archives": [
+    {
+      "path": "followup-106-ide-tag-runner-cleanup-audit.json.gz",
+      "source": ".work/task-quality-106-ide-runner-audit/audit.json",
+      "originalDigest": "sha256:19c30c507b06e8984792808022370488cbc44c3948ed1259b985c9fe4a757656",
+      "storedDigest": "sha256:685e0eeae0449892e3ec5c85609d6f4816d4497521404ecb5bc00ac80c9a0ed8",
+      "originalBytes": 12748,
+      "storedBytes": 2144
+    },
+    {
+      "path": "followup-106-ide-tag-runner-cleanup-context-memory-kernel.base64.gz",
+      "source": ".work/task-quality-106-ide-runner-audit/context-memory-kernel.base64",
+      "originalDigest": "sha256:f223c080343d18141c4aaf6cbb5f4bb197f32abac12c908063fbc2a5324f7cd0",
+      "storedDigest": "sha256:91b092d6ec5c34727d88697ad726545674c27e30d65a570fa0d95174365fb4a9",
+      "originalBytes": 10200,
+      "storedBytes": 3846
+    },
+    {
+      "path": "followup-106-ide-tag-runner-cleanup-context-memory-kernel.yml.gz",
+      "source": ".work/task-quality-106-ide-runner-audit/context-memory-kernel.yml",
+      "originalDigest": "sha256:400ced2f0249340dce5c498134c32a331eed1b529635f70e1d90a328c25d5a8b",
+      "storedDigest": "sha256:018b6b47d35ab7939e657d627873f71fa4f9cd8ab5ce5caedbd1322cad94bb75",
+      "originalBytes": 7400,
+      "storedBytes": 1799
+    },
+    {
+      "path": "followup-106-ide-tag-runner-cleanup-jobs-39131605961.json.gz",
+      "source": ".work/task-quality-106-ide-runner-audit/jobs-39131605961.json",
+      "originalDigest": "sha256:f8971d2405eb3f12945938f5379e89aa9adf849bc5b90f0753cf8288a677c449",
+      "storedDigest": "sha256:236edfac932ad2bbb71990ccffceea104361f42d2598b63295a3604c03755eb3",
+      "originalBytes": 39295,
+      "storedBytes": 2643
+    },
+    {
+      "path": "followup-106-ide-tag-runner-cleanup-jobs-39131605982.json.gz",
+      "source": ".work/task-quality-106-ide-runner-audit/jobs-39131605982.json",
+      "originalDigest": "sha256:32a085f8b46959f69b22b5f4c13020f6f4981c11e06df48589134c2c78fd75d6",
+      "storedDigest": "sha256:f000a9b97f109c8093f56fd428865451681f7fd8742f1b7b16df4be56c2528fc",
+      "originalBytes": 15225,
+      "storedBytes": 1533
+    },
+    {
+      "path": "followup-106-ide-tag-runner-cleanup-jobs-39131607809.json.gz",
+      "source": ".work/task-quality-106-ide-runner-audit/jobs-39131607809.json",
+      "originalDigest": "sha256:b88faa03b3c6a28028fcdcc504ed727bfc00742fcf09410d57762103524f4c51",
+      "storedDigest": "sha256:fbd603ee26c74909d6d3d0658394111f0191f4b05c88bbc5bfe52fff8e3ede3a",
+      "originalBytes": 15047,
+      "storedBytes": 1469
+    },
+    {
+      "path": "followup-106-ide-tag-runner-cleanup-jobs-39131607926.json.gz",
+      "source": ".work/task-quality-106-ide-runner-audit/jobs-39131607926.json",
+      "originalDigest": "sha256:f0553a59f88fd42568bac087b175b5fa91eff17b11b6b2288cf5b18182e8b072",
+      "storedDigest": "sha256:36647b03137d5cc87aad4b9c18d43017d28d53b420c56ebcc4843bff91e752f0",
+      "originalBytes": 22409,
+      "storedBytes": 2480
+    },
+    {
+      "path": "followup-106-ide-tag-runner-cleanup-runs.json.gz",
+      "source": ".work/task-quality-106-ide-runner-audit/runs.json",
+      "originalDigest": "sha256:c7ee6ffc745c14601b495ee1ebfefe10125bdea702c8a0a110bd4be6c3571b41",
+      "storedDigest": "sha256:81dcc2b1984c6f59c1b6ed2bff77b1cd9e4b085e6a1d0fd5a21f32f2f06cf15a",
+      "originalBytes": 560012,
+      "storedBytes": 10608
+    },
+    {
+      "path": "followup-106-ide-tag-runner-cleanup-cancellation-receipt.json.gz",
+      "source": ".work/task-quality-106-ide-runner-cancellation.json",
+      "originalDigest": "sha256:0d48b51bd535517519860b869213b150ed65338ef1465869e1856d4aa1f80d7b",
+      "storedDigest": "sha256:2a7ef665048291c02853fd4e7bff515da087420bd45a80c754ac483c1aa61cd6",
+      "originalBytes": 57874,
+      "storedBytes": 2661
+    }
+  ]
+}

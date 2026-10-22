@@ -1,0 +1,378 @@
+{
+  "schema": "chainlesschain.final-public-package-set-evidence/v1",
+  "recordedAt": "2026-10-18T14:11:45.571085+00:00",
+  "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+  "status": "PUBLIC_ARTIFACTS_VERIFIED_SOURCE_PAYLOAD_VERIFIED_OFFLINE_PLAN_READY",
+  "published": true,
+  "publicReadbackStatus": "VERIFIED_PUBLIC_ARTIFACTS",
+  "publicReadbackDigest": "sha256:a665c897a655aa7e471bcb4ec0a1cff9f186ac80bdc0d27e47d1fdeb7f5afe99",
+  "versions": {
+    "cli": "0.166.106",
+    "vscode": "0.37.151",
+    "jetbrains": "0.4.168",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "packageSet": {
+    "path": "docs/research/cli/verify01-package-sets/2026-10-18-task-quality-106.json",
+    "digest": "sha256:6b3d69597bcfae51aeafbb5a4e1be1d9da8def3e3f10b7ca59c6a60a4360f34b",
+    "bytes": 1606
+  },
+  "publicJetbrainsUpdate": {
+    "url": "https://plugins.jetbrains.com/api/plugins/32208/updates?size=100",
+    "updateId": 1197255,
+    "file": "32208/1197255/chainlesschain-ide-bridge-0.4.168.zip",
+    "approved": true,
+    "listed": true,
+    "hidden": false
+  },
+  "microsoftMarketplacePublicationVerified": false,
+  "readbackLimitations": [
+    "No package installation, module execution, JVM launch, candidate execution, or model request.",
+    "Java verification checks class identity and the declared static-final ConstantValue; it is not runtime or UI restoration acceptance.",
+    "Renderer class presence confirms packaging, not that restored conversations render correctly.",
+    "Saved public HTTPS responses and byte digests are reproducible evidence, not a separate publisher signature for IDE artifacts."
+  ],
+  "sourcePackagingReview": {
+    "status": "SAME_SOURCE_PLUGIN_PAYLOAD_CONTAINER_DIFFERENCES_FULLY_EXPLAINED",
+    "sameSourcePluginPayloadEstablished": true,
+    "allContainerDifferencesExplained": true,
+    "originalZipBytesEqual": false,
+    "publicZipExtraBytes": 5660,
+    "allEntryNamesContentsMetadataAndOrderEqual": true,
+    "initialComparisonStatus": "ZIP_BYTES_DIFFER_REVIEW_REQUIRED",
+    "initialComparisonPreserved": true,
+    "reviewNotReplacedByEntryEquality": true,
+    "reconstructionByteForByteEqualToOfficial": true,
+    "unexplainedBytes": 0,
+    "containerChange": "One 5660-byte JetBrains Marketplace ZIP signing block inserted before the central directory; only the 4-byte EOCD central-directory-offset field changes after removal.",
+    "signatureBlock": {
+      "name": "JetBrains Marketplace ZIP signing block",
+      "version": 1,
+      "headerBytes": 8,
+      "protobufBytes": 5628,
+      "footerBytes": 24,
+      "protobufUnknownFields": 0,
+      "protobufFullyConsumed": true,
+      "formatSourceCommit": "d8e450f45e303485d81eb5546026d058a5bd6822"
+    },
+    "cryptographicSignatureVerified": false,
+    "certificateChainTrustVerified": false,
+    "signatureTrustClaimed": false,
+    "reviewDigest": "sha256:31ed5a476c644e431eef194a6d9890de240887833016d4ef7237e6b5ea5d503e",
+    "reviewArchive": {
+      "path": "followup-106-jetbrains-signature-review-review.json.gz",
+      "source": ".work/release106-jetbrains-signature-review/review.json",
+      "originalDigest": "sha256:31ed5a476c644e431eef194a6d9890de240887833016d4ef7237e6b5ea5d503e",
+      "storedDigest": "sha256:99f097c79abe371d2bcf80ad6f3553ff85210fbe7671ba38d8b22c56a9c58816",
+      "originalBytes": 7032,
+      "storedBytes": 2607
+    },
+    "modelDispatchPerformed": false
+  },
+  "offlineRetestPlan": {
+    "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-plan.json",
+    "digest": "sha256:0f9ec118c5a36b82be594eac87883e31319741c682c7e7baedb1c2dc595d2ca8",
+    "status": "PREPARED_NOT_DISPATCHED",
+    "plannedNewSamples": 14,
+    "reusedAcceptedSamples": 31,
+    "groups": 8,
+    "executionShards": 10,
+    "plannedSampleIds": [
+      "verify-04",
+      "verify-13",
+      "first-run-linux-cli",
+      "verify-06",
+      "verify-07",
+      "first-run-darwin-cli",
+      "verify-08",
+      "verify-09",
+      "first-run-darwin-jetbrains",
+      "verify-10",
+      "verify-19",
+      "verify-11",
+      "verify-30",
+      "first-run-win32-jetbrains"
+    ],
+    "acceptedIdsExcluded": true,
+    "verify33ReusedNotRegenerated": true,
+    "ledgerCreated": false,
+    "dispatchPerformed": false
+  },
+  "nativeTaskResults": {
+    "accepted": 31,
+    "total": 45,
+    "remaining": 14,
+    "newTests": 0,
+    "newModelCalls": 0,
+    "newModelDispatches": 0,
+    "verify33RecoveryStatus": "NOT_RUN_ON_0.4.168"
+  },
+  "mainMergeCleanupReview": "next-release-validation/followup-106-main-merge-runner-cleanup-review.json",
+  "publicArchives": [
+    {
+      "path": "followup-106-public-packages-chainlesschain-jetbrains.zip.gz",
+      "source": ".work/public106-packages-20261018/chainlesschain-jetbrains.zip",
+      "originalDigest": "sha256:5f7e9b60f37745e2febfcf934a5960e77413fb7836804af0a02429804a2f1b29",
+      "storedDigest": "sha256:7e3092a1dfbbc0a266213f2698d34006a27743aa2e49f9b813a6d92a0b607e56",
+      "originalBytes": 1535714,
+      "storedBytes": 1534811
+    },
+    {
+      "path": "followup-106-public-packages-chainlesschain.tgz.gz",
+      "source": ".work/public106-packages-20261018/chainlesschain.tgz",
+      "originalDigest": "sha256:036264d2ad883cf3a089440cb5d7e228abdc9efe568c240509aa7bd50b3e6e14",
+      "storedDigest": "sha256:e7771883dd6cb7a739d9a1d49f2828a97e41891e6d44a036ad2962c541ea47e1",
+      "originalBytes": 9421202,
+      "storedBytes": 9420351
+    },
+    {
+      "path": "followup-106-public-packages-chainlesschain.vsix.gz",
+      "source": ".work/public106-packages-20261018/chainlesschain.vsix",
+      "originalDigest": "sha256:0fd07d7fea9c9588f578cd86c9e720c80e442fc01b102d940d15b2546da75888",
+      "storedDigest": "sha256:bcf9386c926e6b402582c95600cd571cc9c50f7c2abbc96a8e0423f1dd4d1e2a",
+      "originalBytes": 720935,
+      "storedBytes": 704105
+    },
+    {
+      "path": "followup-106-public-packages-jetbrains-updates.json.gz",
+      "source": ".work/public106-packages-20261018/jetbrains-updates.json",
+      "originalDigest": "sha256:562a4db6e05d2a4b4e0c7c1d36f999ac20fa4474fffc509056864d69c7a8eaa4",
+      "storedDigest": "sha256:3cda894b75076b02807229769270d1af166229f7d9667cd75b0aafc4abf5af85",
+      "originalBytes": 546131,
+      "storedBytes": 46449
+    },
+    {
+      "path": "followup-106-public-packages-npm-metadata.json.gz",
+      "source": ".work/public106-packages-20261018/npm-metadata.json",
+      "originalDigest": "sha256:71889547ff9fd3d9a0108c702d8b71761d83e6dc872624337d0b5effb7ed497a",
+      "storedDigest": "sha256:8986a21d745843b48922cb979f467686d0b2cb37a0781405e600038f06a53362",
+      "originalBytes": 7696,
+      "storedBytes": 2768
+    },
+    {
+      "path": "followup-106-public-packages-openvsx-metadata.json.gz",
+      "source": ".work/public106-packages-20261018/openvsx-metadata.json",
+      "originalDigest": "sha256:95fafc64584ec5307cd2c99c8a7ec024f295872e31bd5ba0a7d1e238487d57d5",
+      "storedDigest": "sha256:cfcb430af53e21da4ae485e382930442142beff53b6265d7d34e1ad1680fcf13",
+      "originalBytes": 10907,
+      "storedBytes": 1556
+    },
+    {
+      "path": "followup-106-public-packages-original-package-set.json.gz",
+      "source": ".work/public106-packages-20261018/original-package-set.json",
+      "originalDigest": "sha256:2cc81784724fcdc8813434fa8798cce28def3569ff97b07369bb6e16fe6af32f",
+      "storedDigest": "sha256:0d9ce996ed8657f9f8f0a2c1f9156ee5946e32c7acc135869b50693dd6a108f0",
+      "originalBytes": 1606,
+      "storedBytes": 751
+    },
+    {
+      "path": "followup-106-public-packages-package-set.json.gz",
+      "source": ".work/public106-packages-20261018/package-set.json",
+      "originalDigest": "sha256:6b3d69597bcfae51aeafbb5a4e1be1d9da8def3e3f10b7ca59c6a60a4360f34b",
+      "storedDigest": "sha256:8d1983b984665291ceaf6801aa3a1c11c8030e946eb6d026dfa3808e00dd1e6c",
+      "originalBytes": 1606,
+      "storedBytes": 755
+    },
+    {
+      "path": "followup-106-public-packages-readback.json.gz",
+      "source": ".work/public106-packages-20261018/readback.json",
+      "originalDigest": "sha256:a665c897a655aa7e471bcb4ec0a1cff9f186ac80bdc0d27e47d1fdeb7f5afe99",
+      "storedDigest": "sha256:cd6645a9eb30842723e503ca8c0dee69491263c9e329a8f0f04ce87558ddf1b2",
+      "originalBytes": 9856,
+      "storedBytes": 3025
+    }
+  ],
+  "initialComparisonArchives": [
+    {
+      "path": "followup-106-jetbrains-source-comparison-comparison.json.gz",
+      "source": ".work/public106-jetbrains-official-20261018/comparison.json",
+      "originalDigest": "sha256:38a8a699616b4cb44cb748abc46e46fc9e69428680c8cf8d482d6c0d2060b379",
+      "storedDigest": "sha256:36cba146f99120aaa598922968fa8f27dcffb3c100fc3aaa1c5de8ac185869db",
+      "originalBytes": 5057,
+      "storedBytes": 1814
+    },
+    {
+      "path": "followup-106-jetbrains-source-comparison-complete-entry-comparison.json.gz",
+      "source": ".work/public106-jetbrains-official-20261018/complete-entry-comparison.json",
+      "originalDigest": "sha256:a73ae80dc6067fdd6ee13d7c6b21753a1aca69a01521b77d33ef724c821ce282",
+      "storedDigest": "sha256:c282e975ec5f992107cbf7471e318b39cbd270d17b8c691f1b7ad6fe88796a2a",
+      "originalBytes": 6440,
+      "storedBytes": 868
+    },
+    {
+      "path": "followup-106-jetbrains-source-comparison-official-artifact.json.gz",
+      "source": ".work/public106-jetbrains-official-20261018/official-artifact.json",
+      "originalDigest": "sha256:bf08de182e843a616d18cef1dcddf2b02b21b976045bc905c2ffd422e097675d",
+      "storedDigest": "sha256:b50ffc1d7ef693fe48175a7635ce07852c7c27ef99c067df4d342dded336ed03",
+      "originalBytes": 735,
+      "storedBytes": 421
+    },
+    {
+      "path": "followup-106-jetbrains-source-comparison-official-artifact.zip.gz",
+      "source": ".work/public106-jetbrains-official-20261018/official-artifact.zip",
+      "originalDigest": "sha256:97175bd14f5f0bb57588e968680a64da454b92a7a45c09c471678267bdce7033",
+      "storedDigest": "sha256:eb865598237902b5b632efeabde171f3c22b8bdaaee1a0e5ace053dd07a21feb",
+      "originalBytes": 1530276,
+      "storedBytes": 1530764
+    },
+    {
+      "path": "followup-106-jetbrains-source-comparison-official-plugin.zip.gz",
+      "source": ".work/public106-jetbrains-official-20261018/official-plugin.zip",
+      "originalDigest": "sha256:6230036a2709f12eed326433d4ebdcf2622f47bd570230f70535868ff04fc84c",
+      "storedDigest": "sha256:2552e02bd10403d355aeaf1bffb41bdf80f90b450484266a24055847cc2b57b0",
+      "originalBytes": 1530054,
+      "storedBytes": 1530115
+    },
+    {
+      "path": "followup-106-jetbrains-source-comparison-official-run.json.gz",
+      "source": ".work/public106-jetbrains-official-20261018/official-run.json",
+      "originalDigest": "sha256:70dbdaf854004993cb45f374beef3eaca7048cd0eddc5bbe1e4a1718963e1988",
+      "storedDigest": "sha256:09e3f857c262260a575f3474a3b97000c0eafe07d32256c5e1776a7ffb3219e6",
+      "originalBytes": 13211,
+      "storedBytes": 1515
+    },
+    {
+      "path": "followup-106-jetbrains-source-comparison-public-jetbrains-updates.json.gz",
+      "source": ".work/public106-jetbrains-official-20261018/public-jetbrains-updates.json",
+      "originalDigest": "sha256:562a4db6e05d2a4b4e0c7c1d36f999ac20fa4474fffc509056864d69c7a8eaa4",
+      "storedDigest": "sha256:3cda894b75076b02807229769270d1af166229f7d9667cd75b0aafc4abf5af85",
+      "originalBytes": 546131,
+      "storedBytes": 46449
+    },
+    {
+      "path": "followup-106-jetbrains-source-comparison-public-package-set.json.gz",
+      "source": ".work/public106-jetbrains-official-20261018/public-package-set.json",
+      "originalDigest": "sha256:6b3d69597bcfae51aeafbb5a4e1be1d9da8def3e3f10b7ca59c6a60a4360f34b",
+      "storedDigest": "sha256:8d1983b984665291ceaf6801aa3a1c11c8030e946eb6d026dfa3808e00dd1e6c",
+      "originalBytes": 1606,
+      "storedBytes": 755
+    },
+    {
+      "path": "followup-106-jetbrains-source-comparison-public-plugin.zip.gz",
+      "source": ".work/public106-jetbrains-official-20261018/public-plugin.zip",
+      "originalDigest": "sha256:5f7e9b60f37745e2febfcf934a5960e77413fb7836804af0a02429804a2f1b29",
+      "storedDigest": "sha256:7e3092a1dfbbc0a266213f2698d34006a27743aa2e49f9b813a6d92a0b607e56",
+      "originalBytes": 1535714,
+      "storedBytes": 1534811
+    },
+    {
+      "path": "followup-106-jetbrains-source-comparison-public-readback.json.gz",
+      "source": ".work/public106-jetbrains-official-20261018/public-readback.json",
+      "originalDigest": "sha256:a665c897a655aa7e471bcb4ec0a1cff9f186ac80bdc0d27e47d1fdeb7f5afe99",
+      "storedDigest": "sha256:cd6645a9eb30842723e503ca8c0dee69491263c9e329a8f0f04ce87558ddf1b2",
+      "originalBytes": 9856,
+      "storedBytes": 3025
+    }
+  ],
+  "historyPreservation": {
+    "latestOriginalDigest": "sha256:f772b75d71336a21628d2e84d19f71cbc1f6d7a4f739c2e86ca996937897e28e",
+    "latestOriginalBytes": 25863,
+    "latestOriginalBytesAreExactSuffix": true,
+    "prepOriginalDigest": "sha256:2445890c3662535c7b073c6766448389e23986b3cb19a2dab17157a756cf4127",
+    "currentRoundSnapshotUnchanged": true,
+    "remainingSampleIdsUnchanged": true,
+    "priorFailureFilesUnmodified": true
+  },
+  "scope": "Archived existing public evidence, complete source/container comparison and final independent signature-block format review. All differences are explained, original ZIP bytes remain different, cryptographic signature and PKI trust were not verified. Existing offline planner only; no public downloads, package execution, tests, model calls or workflow dispatch.",
+  "updatedAt": "2026-10-18T14:15:52.601151+00:00",
+  "signatureReviewArchives": [
+    {
+      "path": "followup-106-jetbrains-signature-review-content-digest-0.bin.gz",
+      "source": ".work/release106-jetbrains-signature-review/content-digest-0.bin",
+      "originalDigest": "sha256:159cb9dc7a30b772850d38db1ca304d7633cd91906c7dffd7518f7e67c28979a",
+      "storedDigest": "sha256:5efebbd9664275c9a3cf5c84dbf9e60a2967ba69851de005da0aa678d9482420",
+      "originalBytes": 261,
+      "storedBytes": 284
+    },
+    {
+      "path": "followup-106-jetbrains-signature-review-evidence-digests.json.gz",
+      "source": ".work/release106-jetbrains-signature-review/evidence-digests.json",
+      "originalDigest": "sha256:bbd04a086ca76f274bc3d73a66e7f55164f3c085aad4bf3a90482120f4583dfb",
+      "storedDigest": "sha256:65e9712085e9bb8d638f0e69acb542d7c57f4e5ccbb4a10e9cc09606441a0125",
+      "originalBytes": 1611,
+      "storedBytes": 713
+    },
+    {
+      "path": "followup-106-jetbrains-signature-review-README.md.gz",
+      "source": ".work/release106-jetbrains-signature-review/README.md",
+      "originalDigest": "sha256:4d3e4dc5d653a6034761a1301b0a5c6dd1502a40b09d518571b93f128bf67591",
+      "storedDigest": "sha256:a81c8e45507896ef147b459e6b6ed084e5d8e43dd81be8add06c22520df02d3d",
+      "originalBytes": 3859,
+      "storedBytes": 1972
+    },
+    {
+      "path": "followup-106-jetbrains-signature-review-review.json.gz",
+      "source": ".work/release106-jetbrains-signature-review/review.json",
+      "originalDigest": "sha256:31ed5a476c644e431eef194a6d9890de240887833016d4ef7237e6b5ea5d503e",
+      "storedDigest": "sha256:99f097c79abe371d2bcf80ad6f3553ff85210fbe7671ba38d8b22c56a9c58816",
+      "originalBytes": 7032,
+      "storedBytes": 2607
+    },
+    {
+      "path": "followup-106-jetbrains-signature-review-signature-block.bin.gz",
+      "source": ".work/release106-jetbrains-signature-review/signature-block.bin",
+      "originalDigest": "sha256:018d3d17da2be98f655dc98ee434743849efc53bd3034c69043a75940727233d",
+      "storedDigest": "sha256:3ca7ab56ec97d24498e80c34b5d603d83c2c118b7299c3f87ffa88b5c67ba677",
+      "originalBytes": 5660,
+      "storedBytes": 4764
+    },
+    {
+      "path": "followup-106-jetbrains-signature-review-signer-0-certificate-0.der.gz",
+      "source": ".work/release106-jetbrains-signature-review/signer-0-certificate-0.der",
+      "originalDigest": "sha256:c8f2ccb9b541292dfd3f68855935a0803b30a774a1954d6b9c188fd084cf8855",
+      "storedDigest": "sha256:a25fdf2b90264b71adb03d1c1153d1309265ade9143802cd402eb54396e3d6d7",
+      "originalBytes": 1688,
+      "storedBytes": 1578
+    },
+    {
+      "path": "followup-106-jetbrains-signature-review-signer-0-certificate-1.der.gz",
+      "source": ".work/release106-jetbrains-signature-review/signer-0-certificate-1.der",
+      "originalDigest": "sha256:82b55616584dd004c829f1784bcbf2c96bb1a69933a2b3de7e9bab99f7f58268",
+      "storedDigest": "sha256:ed58a872081e1e84d685a9f049aa9670d0438ec5443a7e47cf8ce999a1c42e59",
+      "originalBytes": 1629,
+      "storedBytes": 1518
+    },
+    {
+      "path": "followup-106-jetbrains-signature-review-signer-0-certificate-2.der.gz",
+      "source": ".work/release106-jetbrains-signature-review/signer-0-certificate-2.der",
+      "originalDigest": "sha256:69f9cf4e57198db4a346f6eff75b192f16bf146cf0640fbb80d0c495bcc005d3",
+      "storedDigest": "sha256:60cc0a60a0f9dec48469c40d94f18ac16f0370583eabae56c4fe4e0561b52972",
+      "originalBytes": 1505,
+      "storedBytes": 1384
+    },
+    {
+      "path": "followup-106-jetbrains-signature-review-signer-0-signature-0.bin.gz",
+      "source": ".work/release106-jetbrains-signature-review/signer-0-signature-0.bin",
+      "originalDigest": "sha256:388aca952feee7e819494596a839987bf1d93c9e3ede28ea8d827c5f597ef9e0",
+      "storedDigest": "sha256:2cb21feb0e631c9c0f8feea2a0f0d3cc2e8ce5f3629d0f1c4105d35fa4f7c4f4",
+      "originalBytes": 512,
+      "storedBytes": 535
+    },
+    {
+      "path": "followup-106-jetbrains-signature-review-SigningBlock.proto.gz",
+      "source": ".work/release106-jetbrains-signature-review/SigningBlock.proto",
+      "originalDigest": "sha256:ed2490c709b7afaaf840c1e63717f620222d0a27decc609621f0065f729cb1bb",
+      "storedDigest": "sha256:4e51dae181f923912efb02129b87ee909038ceb6e7a76bb77425f8019a6c0763",
+      "originalBytes": 918,
+      "storedBytes": 363
+    },
+    {
+      "path": "followup-106-jetbrains-signature-review-ZipMetadata.kt.gz",
+      "source": ".work/release106-jetbrains-signature-review/ZipMetadata.kt",
+      "originalDigest": "sha256:72b1f288ff5c5512c39d40a7569f0048cfa044f13c19b02f07a72541279c16a8",
+      "storedDigest": "sha256:65cc07da70f414d1b5f92903c30562e3ff3c0b225e5de1eb9edb9e5b09fe65b1",
+      "originalBytes": 3970,
+      "storedBytes": 1057
+    },
+    {
+      "path": "followup-106-jetbrains-signature-review-review-release106-jetbrains-signature.py.gz",
+      "source": ".work/review-release106-jetbrains-signature.py",
+      "originalDigest": "sha256:f4e5e612e7ddcbbd973fd100d821578600dcd8f3dc81f096f6a80ca4c13f72b8",
+      "storedDigest": "sha256:aeee9b30ffa2ecb3143b8b7aeb5484b9eb185f273d4290c1682933c32bc4b36c",
+      "originalBytes": 9499,
+      "storedBytes": 3557
+    }
+  ],
+  "evaluationHeadPolicy": "Freeze the resulting committed evaluation HEAD until the parent collects the 14-sample round. No later commits or autonomous dispatch from this agent."
+}

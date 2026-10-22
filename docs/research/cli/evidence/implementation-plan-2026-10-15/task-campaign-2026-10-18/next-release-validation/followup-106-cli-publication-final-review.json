@@ -1,0 +1,218 @@
+{
+  "schema": "chainlesschain.cli-publication-final-evidence/v1",
+  "recordedAt": "2026-10-18T13:29:41.619621+00:00",
+  "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+  "status": "CLI_PUBLISHED_PUBLIC_VERIFIED_IDE_OFFICIAL_RELEASE_IN_PROGRESS",
+  "published": false,
+  "cliPublished": true,
+  "cliPublicVerified": true,
+  "idePublicVerified": false,
+  "officialPublication": {
+    "runId": 39130542725,
+    "status": "completed",
+    "conclusion": "success",
+    "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+    "tag": "v-npm-0-166-106",
+    "method": "GitHub Actions OIDC Trusted Publishing",
+    "jobs": [
+      {
+        "name": "exact-sha-gate",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "test",
+        "status": "completed",
+        "conclusion": "skipped"
+      },
+      {
+        "name": "dry-run",
+        "status": "completed",
+        "conclusion": "skipped"
+      },
+      {
+        "name": "linux-subreaper / Linux packaged subreaper (arm64)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "linux-subreaper / Linux packaged subreaper (x64)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "package-cli",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "publish",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ],
+    "archive": {
+      "path": "followup-106-cli-publication-final-official-run-39130542725.json.gz",
+      "source": "GitHub Actions official final run metadata with latest jobs",
+      "originalDigest": "sha256:680a47cf4fba5a1a4219a4d9a3e816f4300805b5fe1f1ac241943bbc978a5754",
+      "storedDigest": "sha256:6f4748b2037dc80d8eba1c091ed19703c2f36ec508d366381d9d727e3e6471c7",
+      "originalBytes": 16020,
+      "storedBytes": 1995
+    }
+  },
+  "publicReadback": {
+    "status": "VERIFIED_PUBLIC_CLI_ONLY",
+    "verifiedAt": "2026-10-18T13:23:19.861718+00:00",
+    "version": "0.166.106",
+    "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+    "sriVerified": true,
+    "recordedSourceMatches": 8,
+    "originalReceiptLimitations": [
+      "CLI-only public metadata and artifact byte verification; IDE publication is not verified.",
+      "No installation, package execution, model request, runtime acceptance, or IDE acceptance.",
+      "No three-package manifest is created; this receipt cannot authorize a native package campaign.",
+      "Only the explicitly listed runtime/helper files are compared byte-for-byte with the release commit.",
+      "Saved HTTPS responses and byte digests are evidence, not a separate publisher signature."
+    ],
+    "archive": [
+      {
+        "path": "followup-106-cli-publication-final-readback.json.gz",
+        "source": ".work/public106-cli-20261018-r2/readback.json",
+        "originalDigest": "sha256:7e8459e953bfa5aab4e7cd816e51fd3da6a62a603d6a219ff6c21e1527d5e732",
+        "storedDigest": "sha256:7ab4bcce4628532c732a1c8353f376ae604b969c3f458414e20c29a0dad8e2d3",
+        "originalBytes": 6868,
+        "storedBytes": 2337
+      },
+      {
+        "path": "followup-106-cli-publication-final-npm-metadata.json.gz",
+        "source": ".work/public106-cli-20261018-r2/npm-metadata.json",
+        "originalDigest": "sha256:71889547ff9fd3d9a0108c702d8b71761d83e6dc872624337d0b5effb7ed497a",
+        "storedDigest": "sha256:8986a21d745843b48922cb979f467686d0b2cb37a0781405e600038f06a53362",
+        "originalBytes": 7696,
+        "storedBytes": 2768
+      },
+      {
+        "path": "followup-106-cli-publication-final-chainlesschain.tgz.gz",
+        "source": ".work/public106-cli-20261018-r2/chainlesschain.tgz",
+        "originalDigest": "sha256:036264d2ad883cf3a089440cb5d7e228abdc9efe568c240509aa7bd50b3e6e14",
+        "storedDigest": "sha256:e7771883dd6cb7a739d9a1d49f2828a97e41891e6d44a036ad2962c541ea47e1",
+        "originalBytes": 9421202,
+        "storedBytes": 9420351
+      }
+    ]
+  },
+  "componentPublicationStatus": {
+    "cli": {
+      "version": "0.166.106",
+      "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+      "status": "PUBLISHED_PUBLIC_VERIFIED",
+      "published": true,
+      "publicVerified": true,
+      "runId": 39130542725,
+      "review": "next-release-validation/followup-106-cli-publication-final-review.json"
+    },
+    "vscode": {
+      "version": "0.37.151",
+      "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+      "status": "OFFICIAL_RELEASE_IN_PROGRESS_PENDING_PUBLIC_VERIFICATION",
+      "published": false,
+      "publicVerified": false,
+      "runId": 39131607926,
+      "tag": "ide-vscode-v0.37.151"
+    },
+    "jetbrains": {
+      "version": "0.4.168",
+      "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+      "status": "OFFICIAL_RELEASE_IN_PROGRESS_PENDING_PUBLIC_VERIFICATION",
+      "published": false,
+      "publicVerified": false,
+      "runId": 39131605961,
+      "tag": "ide-jetbrains-v0.4.168"
+    }
+  },
+  "ideTagResolution": "next-release-validation/followup-106-cli-publication-final-ide-tag-resolution.json",
+  "nativeTaskResults": {
+    "accepted": 31,
+    "total": 45,
+    "remaining": 14,
+    "unchanged": true,
+    "newModelCalls": 0,
+    "newTests": 0
+  },
+  "historyPreservation": {
+    "latestOriginalDigest": "sha256:8b166d19d35eee8d058e874ce75c9dcbaaf54ddd784a7034da9b63225426255b",
+    "latestOriginalBytes": 20079,
+    "latestOriginalBytesAreExactSuffix": true,
+    "prepOriginalDigest": "sha256:d2285077de6564b0b7bcadc19f9310df2d1f3d853f92e6ecad39554e3733194f",
+    "currentRoundSnapshotUnchanged": true,
+    "remainingSampleIdsUnchanged": true,
+    "priorFailureFilesUnmodified": true
+  },
+  "archives": [
+    {
+      "path": "followup-106-cli-publication-final-official-run-39130542725.json.gz",
+      "source": "GitHub Actions official final run metadata with latest jobs",
+      "originalDigest": "sha256:680a47cf4fba5a1a4219a4d9a3e816f4300805b5fe1f1ac241943bbc978a5754",
+      "storedDigest": "sha256:6f4748b2037dc80d8eba1c091ed19703c2f36ec508d366381d9d727e3e6471c7",
+      "originalBytes": 16020,
+      "storedBytes": 1995
+    },
+    {
+      "path": "followup-106-cli-publication-final-readback.json.gz",
+      "source": ".work/public106-cli-20261018-r2/readback.json",
+      "originalDigest": "sha256:7e8459e953bfa5aab4e7cd816e51fd3da6a62a603d6a219ff6c21e1527d5e732",
+      "storedDigest": "sha256:7ab4bcce4628532c732a1c8353f376ae604b969c3f458414e20c29a0dad8e2d3",
+      "originalBytes": 6868,
+      "storedBytes": 2337
+    },
+    {
+      "path": "followup-106-cli-publication-final-npm-metadata.json.gz",
+      "source": ".work/public106-cli-20261018-r2/npm-metadata.json",
+      "originalDigest": "sha256:71889547ff9fd3d9a0108c702d8b71761d83e6dc872624337d0b5effb7ed497a",
+      "storedDigest": "sha256:8986a21d745843b48922cb979f467686d0b2cb37a0781405e600038f06a53362",
+      "originalBytes": 7696,
+      "storedBytes": 2768
+    },
+    {
+      "path": "followup-106-cli-publication-final-chainlesschain.tgz.gz",
+      "source": ".work/public106-cli-20261018-r2/chainlesschain.tgz",
+      "originalDigest": "sha256:036264d2ad883cf3a089440cb5d7e228abdc9efe568c240509aa7bd50b3e6e14",
+      "storedDigest": "sha256:e7771883dd6cb7a739d9a1d49f2828a97e41891e6d44a036ad2962c541ea47e1",
+      "originalBytes": 9421202,
+      "storedBytes": 9420351
+    },
+    {
+      "path": "followup-106-cli-publication-final-ide-original-intent.json.gz",
+      "source": ".work/task-quality-106-ide-publish-intent.json; preserved original intent, not a final client receipt",
+      "originalDigest": "sha256:3325d961a7a94c75f7fc4b1b1a87effbe416fdd09b54e44f23c984583be83475",
+      "storedDigest": "sha256:4157963cc6f27546af6c5ede268ac03f36135cd2a986837bc5d92fde8dc52ff1",
+      "originalBytes": 926,
+      "storedBytes": 540
+    },
+    {
+      "path": "followup-106-cli-publication-final-ide-remote-refs.txt.gz",
+      "source": "Independent read-only git ls-remote github of two exact tag refs",
+      "originalDigest": "sha256:bfbd8b873f3019c25ca4ab7d99357be84c45893550555c03b9aed7c412d57490",
+      "storedDigest": "sha256:472a22a2742a97df5205e616b0c093210d28e259a174cd8dac47c1aea7430b90",
+      "originalBytes": 146,
+      "storedBytes": 105
+    },
+    {
+      "path": "followup-106-cli-publication-final-ide-vscode-run-39131607926.json.gz",
+      "source": "Independent official GitHub push workflow run metadata",
+      "originalDigest": "sha256:8aebfaf6abe2bdcd3a7883adb22042c8fb64df9f2b7255fffab9bf743b7f6551",
+      "storedDigest": "sha256:f5d8dbc7c3480280d1891c67dfcd2af7f133580259a861949746b175a7d3d0b3",
+      "originalBytes": 17450,
+      "storedBytes": 2092
+    },
+    {
+      "path": "followup-106-cli-publication-final-ide-jetbrains-run-39131605961.json.gz",
+      "source": "Independent official GitHub push workflow run metadata",
+      "originalDigest": "sha256:8ea1a83fed54d17d82f02790a84827fe6b3c9da35902be6a9f396db49786076c",
+      "storedDigest": "sha256:fa6869aa496b10468d6c292f743345ed35d801e2cf1ec006e2dd857f3f4d95f5",
+      "originalBytes": 31700,
+      "storedBytes": 2175
+    }
+  ],
+  "scope": "One read-only final official publication metadata query and byte-preserving archival of already-downloaded public CLI evidence. No package download/install/execution, model task, workflow dispatch, release or tag operation."
+}

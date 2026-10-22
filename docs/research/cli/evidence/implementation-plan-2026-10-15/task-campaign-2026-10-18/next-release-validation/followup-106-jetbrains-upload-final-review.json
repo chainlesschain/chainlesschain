@@ -1,0 +1,312 @@
+{
+  "schema": "chainlesschain.jetbrains-upload-marketplace-pending-evidence/v1",
+  "recordedAt": "2026-10-18T14:00:51.456695+00:00",
+  "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+  "status": "UPLOAD_SUCCEEDED_MARKETPLACE_PENDING",
+  "published": false,
+  "cliPublicVerified": true,
+  "vscodeOpenVsxPublicVerified": true,
+  "microsoftMarketplacePublicationVerified": false,
+  "jetbrainsPublicVerified": false,
+  "officialWorkflow": {
+    "runId": 39131605961,
+    "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+    "tag": "ide-jetbrains-v0.4.168",
+    "status": "completed",
+    "conclusion": "success",
+    "successfulJobs": 13,
+    "successfulHostJobs": 6,
+    "publishStep": {
+      "completedAt": "2026-10-18T13:55:06Z",
+      "conclusion": "success",
+      "name": "Publish to JetBrains Marketplace",
+      "number": 15,
+      "startedAt": "2026-10-18T13:54:46Z",
+      "status": "completed"
+    },
+    "jobs": [
+      {
+        "name": "Public IDE capability manifest (drift gate)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Browser evidence (windows)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Browser evidence (macos)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "JetBrains real host (windows-latest, 2025.2)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "JetBrains real host (ubuntu-latest, 2024.2)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Browser evidence (linux)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "JetBrains real host (windows-latest, 2024.2)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "JetBrains real host (macos-latest, 2024.2)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "JetBrains real host (macos-latest, 2025.2)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "JetBrains real host (ubuntu-latest, 2025.2)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "VS Code extension (macOS host gate)",
+        "status": "completed",
+        "conclusion": "skipped"
+      },
+      {
+        "name": "VS Code extension (immutable candidate)",
+        "status": "completed",
+        "conclusion": "skipped"
+      },
+      {
+        "name": "VS Code extension (Windows host gate)",
+        "status": "completed",
+        "conclusion": "skipped"
+      },
+      {
+        "name": "VS Code Remote-SSH container (scoped trusted cell)",
+        "status": "completed",
+        "conclusion": "skipped"
+      },
+      {
+        "name": "IDE roadmap evidence (trusted scoped aggregate)",
+        "status": "completed",
+        "conclusion": "skipped"
+      },
+      {
+        "name": "Browser evidence (three-OS required aggregate)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "VS Code extension (Linux host gate + publish)",
+        "status": "completed",
+        "conclusion": "skipped"
+      },
+      {
+        "name": "JetBrains plugin (build + publish)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "JetBrains Marketplace (post-publish verification)",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ],
+    "archive": {
+      "path": "followup-106-jetbrains-upload-final-official-run-39131605961.json.gz",
+      "source": "Official final GitHub run metadata and latest jobs",
+      "originalDigest": "sha256:2caf481ad93f764ba792c15c37bdc9436d580da9ecb72a24dfd998487bfebb37",
+      "storedDigest": "sha256:d19dcd655b50a41866303897383ec37dd5ce21e533a8e301e81b3eaa5abb772b",
+      "originalBytes": 41130,
+      "storedBytes": 3306
+    }
+  },
+  "marketplace": {
+    "officialPostPublishResult": {
+      "channel": "jetbrains",
+      "endpoint": "https://plugins.jetbrains.com/api/plugins/32208/updates",
+      "status": "pending",
+      "version": "0.4.168",
+      "approve": null,
+      "listed": null,
+      "hidden": null,
+      "reason": "version-not-visible",
+      "attempts": 12
+    },
+    "workflowAllowsPending": true,
+    "listingJobConclusion": "success",
+    "publicApiEntriesObserved": 100,
+    "targetVersionEntriesObserved": 0,
+    "logArchive": {
+      "path": "followup-106-jetbrains-upload-final-marketplace-final.log.gz",
+      "source": ".work/task-quality-106-jetbrains-marketplace-final.log; existing official job log",
+      "originalDigest": "sha256:b47e6710fe2f5038eed5ea6547ba69c9a5e43adf8e147dc3c5244ecb8f794804",
+      "storedDigest": "sha256:9679be326c2dd7b1720ac6eda3909759e5136f6e0ce3cd3a53947fae42972d70",
+      "originalBytes": 42547,
+      "storedBytes": 5891
+    },
+    "publicApiArchive": {
+      "path": "followup-106-jetbrains-upload-final-public-updates-final.json.gz",
+      "source": ".work/task-quality-106-jetbrains-public-updates-final.json; existing public API response, not re-fetched",
+      "originalDigest": "sha256:6e05599d0c9d91d8a9382ab5d2fb261d3557d12913e66b3bb15438f0446ed56d",
+      "storedDigest": "sha256:96dbdc1ef968326c40fb7ab3f292b0fa4a8d9af153ce72336b99ab238e4e26c9",
+      "originalBytes": 552768,
+      "storedBytes": 47188
+    },
+    "scopeLimit": "Successful upload and a green allow-pending verifier are not proof of Marketplace approval, public visibility, or public artifact byte equivalence."
+  },
+  "officialArtifact": {
+    "id": 12139490322,
+    "name": "chainlesschain-ide-jetbrains-1",
+    "bytes": 1530276,
+    "digest": "sha256:97175bd14f5f0bb57588e968680a64da454b92a7a45c09c471678267bdce7033",
+    "digestMatchesOfficialMetadata": true,
+    "metadataArchive": {
+      "path": "followup-106-jetbrains-upload-final-official-artifact-12139490322.json.gz",
+      "source": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/12139490322",
+      "originalDigest": "sha256:bf08de182e843a616d18cef1dcddf2b02b21b976045bc905c2ffd422e097675d",
+      "storedDigest": "sha256:b50ffc1d7ef693fe48175a7635ce07852c7c27ef99c067df4d342dded336ed03",
+      "originalBytes": 735,
+      "storedBytes": 421
+    },
+    "zipArchive": {
+      "path": "followup-106-jetbrains-upload-final-official-artifact-12139490322.zip.gz",
+      "source": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/12139490322/zip",
+      "originalDigest": "sha256:97175bd14f5f0bb57588e968680a64da454b92a7a45c09c471678267bdce7033",
+      "storedDigest": "sha256:eb865598237902b5b632efeabde171f3c22b8bdaaee1a0e5ace053dd07a21feb",
+      "originalBytes": 1530276,
+      "storedBytes": 1530764
+    },
+    "members": [
+      {
+        "name": "chainlesschain-ide-bridge-0.4.168.zip",
+        "bytes": 1530054,
+        "digest": "sha256:6230036a2709f12eed326433d4ebdcf2622f47bd570230f70535868ff04fc84c",
+        "archive": {
+          "path": "followup-106-jetbrains-upload-final-plugin-chainlesschain-ide-bridge-0.4.168.zip.gz",
+          "source": "Immutable official artifact 12139490322 member chainlesschain-ide-bridge-0.4.168.zip; not a public Marketplace download",
+          "originalDigest": "sha256:6230036a2709f12eed326433d4ebdcf2622f47bd570230f70535868ff04fc84c",
+          "storedDigest": "sha256:2552e02bd10403d355aeaf1bffb41bdf80f90b450484266a24055847cc2b57b0",
+          "originalBytes": 1530054,
+          "storedBytes": 1530115
+        }
+      }
+    ],
+    "executed": false,
+    "publicMarketplaceDownload": false
+  },
+  "scope": "Read-only final official metadata and authorized download of this exact GitHub workflow artifact; archived existing official log/public API/preflight bytes. No new public package download, installation, test, model request, workflow dispatch, tag operation or release.",
+  "nativeTaskResults": {
+    "accepted": 31,
+    "total": 45,
+    "remaining": 14,
+    "remainingRetestStatus": "NOT_RUN",
+    "threePackageManifestCreated": false,
+    "archivedReplyVerify33RecoveryStatus": "NOT_RUN_ON_0.4.168",
+    "newModelCalls": 0,
+    "newTests": 0
+  },
+  "historyPreservation": {
+    "latestOriginalDigest": "sha256:e6e7a3ca3cede35ac809bc9077c0d83d0f8893facf447e426e1d9b2be4139fa9",
+    "latestOriginalBytes": 24058,
+    "latestOriginalBytesAreExactSuffix": true,
+    "prepOriginalDigest": "sha256:78c8a0541561c631992f6e768aaa1bb08f3173982bc7203b50bea700ab3e905d",
+    "currentRoundSnapshotUnchanged": true,
+    "remainingSampleIdsUnchanged": true,
+    "priorFailureFilesUnmodified": true
+  },
+  "archives": [
+    {
+      "path": "followup-106-jetbrains-upload-final-official-run-39131605961.json.gz",
+      "source": "Official final GitHub run metadata and latest jobs",
+      "originalDigest": "sha256:2caf481ad93f764ba792c15c37bdc9436d580da9ecb72a24dfd998487bfebb37",
+      "storedDigest": "sha256:d19dcd655b50a41866303897383ec37dd5ce21e533a8e301e81b3eaa5abb772b",
+      "originalBytes": 41130,
+      "storedBytes": 3306
+    },
+    {
+      "path": "followup-106-jetbrains-upload-final-official-artifact-12139490322.json.gz",
+      "source": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/12139490322",
+      "originalDigest": "sha256:bf08de182e843a616d18cef1dcddf2b02b21b976045bc905c2ffd422e097675d",
+      "storedDigest": "sha256:b50ffc1d7ef693fe48175a7635ce07852c7c27ef99c067df4d342dded336ed03",
+      "originalBytes": 735,
+      "storedBytes": 421
+    },
+    {
+      "path": "followup-106-jetbrains-upload-final-official-artifact-12139490322.zip.gz",
+      "source": "https://api.github.com/repos/chainlesschain/chainlesschain/actions/artifacts/12139490322/zip",
+      "originalDigest": "sha256:97175bd14f5f0bb57588e968680a64da454b92a7a45c09c471678267bdce7033",
+      "storedDigest": "sha256:eb865598237902b5b632efeabde171f3c22b8bdaaee1a0e5ace053dd07a21feb",
+      "originalBytes": 1530276,
+      "storedBytes": 1530764
+    },
+    {
+      "path": "followup-106-jetbrains-upload-final-plugin-chainlesschain-ide-bridge-0.4.168.zip.gz",
+      "source": "Immutable official artifact 12139490322 member chainlesschain-ide-bridge-0.4.168.zip; not a public Marketplace download",
+      "originalDigest": "sha256:6230036a2709f12eed326433d4ebdcf2622f47bd570230f70535868ff04fc84c",
+      "storedDigest": "sha256:2552e02bd10403d355aeaf1bffb41bdf80f90b450484266a24055847cc2b57b0",
+      "originalBytes": 1530054,
+      "storedBytes": 1530115
+    },
+    {
+      "path": "followup-106-jetbrains-upload-final-marketplace-final.log.gz",
+      "source": ".work/task-quality-106-jetbrains-marketplace-final.log; existing official job log",
+      "originalDigest": "sha256:b47e6710fe2f5038eed5ea6547ba69c9a5e43adf8e147dc3c5244ecb8f794804",
+      "storedDigest": "sha256:9679be326c2dd7b1720ac6eda3909759e5136f6e0ce3cd3a53947fae42972d70",
+      "originalBytes": 42547,
+      "storedBytes": 5891
+    },
+    {
+      "path": "followup-106-jetbrains-upload-final-public-updates-final.json.gz",
+      "source": ".work/task-quality-106-jetbrains-public-updates-final.json; existing public API response, not re-fetched",
+      "originalDigest": "sha256:6e05599d0c9d91d8a9382ab5d2fb261d3557d12913e66b3bb15438f0446ed56d",
+      "storedDigest": "sha256:96dbdc1ef968326c40fb7ab3f292b0fa4a8d9af153ce72336b99ab238e4e26c9",
+      "originalBytes": 552768,
+      "storedBytes": 47188
+    },
+    {
+      "path": "followup-106-jetbrains-upload-final-public-preflight.json.gz",
+      "source": ".work/task-quality-106-jetbrains-public-preflight.json; original preflight",
+      "originalDigest": "sha256:b9c0d166edab7244a394294fe784785d8289e80c1a53feaa804792731674f81c",
+      "storedDigest": "sha256:5709efdae6c54be3f6297ac260864691e003c008bbbdb582ec5dea30bba854cd",
+      "originalBytes": 1022,
+      "storedBytes": 504
+    },
+    {
+      "path": "followup-106-jetbrains-upload-final-product-pr-462-merged.json.gz",
+      "source": "Official gh pr view 462 final merge metadata",
+      "originalDigest": "sha256:7853a27a43c5e8e120682e816a9ca73a68f394abff5cfec2ff1ccbfc948953ba",
+      "storedDigest": "sha256:fbb2b12e12a3e4b454a521856891e304ce601858a84de4661d275713bce7e7b5",
+      "originalBytes": 274,
+      "storedBytes": 227
+    }
+  ],
+  "productMerge": {
+    "pullRequest": 462,
+    "url": "https://github.com/chainlesschain/chainlesschain/pull/462",
+    "state": "MERGED",
+    "mergedAt": "2026-10-18T13:59:50Z",
+    "mergeCommit": "38756541a6da5515908ee5b1807ef0b8e8c2ec5c",
+    "mergedHeadCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+    "releaseSourceCommitUnchanged": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+    "releaseTagsMoved": false,
+    "archive": {
+      "path": "followup-106-jetbrains-upload-final-product-pr-462-merged.json.gz",
+      "source": "Official gh pr view 462 final merge metadata",
+      "originalDigest": "sha256:7853a27a43c5e8e120682e816a9ca73a68f394abff5cfec2ff1ccbfc948953ba",
+      "storedDigest": "sha256:fbb2b12e12a3e4b454a521856891e304ce601858a84de4661d275713bce7e7b5",
+      "originalBytes": 274,
+      "storedBytes": 227
+    }
+  },
+  "reviewUpdatedAt": "2026-10-18T14:01:26.370878+00:00"
+}

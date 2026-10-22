@@ -1,0 +1,101 @@
+{
+  "schema": "chainlesschain.ide-publication-intent-resolution/v1",
+  "recordedAt": "2026-10-18T13:29:41.619621+00:00",
+  "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+  "status": "REMOTE_TAGS_AND_OFFICIAL_PUSH_RUNS_CONFIRMED",
+  "originalIntentUnchanged": true,
+  "originalIntentStatus": "INTENT_RECORDED",
+  "clientReceiptError": {
+    "reportedBy": "Parent release agent",
+    "runtimeReportedByParent": "Python 3.9",
+    "exceptionType": "TypeError",
+    "reportedCause": "Path.write_text(newline=) is unsupported in that runtime; final client receipt write failed after tag push.",
+    "rawExceptionTranscriptAvailable": false,
+    "originalFinalClientResponseAvailable": false,
+    "originalClientResponseReconstructed": false,
+    "meaning": "Original intent is not proof of final client response. This record independently resolves remote state and official workflow binding without inventing stdout/stderr or rerunning push.",
+    "reportedExceptionText": "Traceback (most recent call last): File \".work/publish-106-ide-tags.py\", line 64, in <module> INTENT.write_text(json.dumps(record, indent=2) + '\\n', encoding='utf-8', newline='\\n'); TypeError: write_text() got an unexpected keyword argument 'newline'",
+    "reportedExceptionTextSource": "Parent agent transcribed its original tool-session output; no original stderr file exists. This is a reported excerpt, not a reconstructed original process receipt."
+  },
+  "remoteRefs": {
+    "refs/tags/ide-jetbrains-v0.4.168": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+    "refs/tags/ide-vscode-v0.37.151": "dca47fd91a209642b6536afd5bc9e99ec74c7d06"
+  },
+  "officialRuns": [
+    {
+      "component": "vscode",
+      "runId": 39131607926,
+      "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+      "tag": "ide-vscode-v0.37.151",
+      "event": "push",
+      "workflowStatus": "queued",
+      "workflowConclusion": "",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39131607926",
+      "publicVerified": false,
+      "archive": {
+        "path": "followup-106-cli-publication-final-ide-vscode-run-39131607926.json.gz",
+        "source": "Independent official GitHub push workflow run metadata",
+        "originalDigest": "sha256:8aebfaf6abe2bdcd3a7883adb22042c8fb64df9f2b7255fffab9bf743b7f6551",
+        "storedDigest": "sha256:f5d8dbc7c3480280d1891c67dfcd2af7f133580259a861949746b175a7d3d0b3",
+        "originalBytes": 17450,
+        "storedBytes": 2092
+      }
+    },
+    {
+      "component": "jetbrains",
+      "runId": 39131605961,
+      "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+      "tag": "ide-jetbrains-v0.4.168",
+      "event": "push",
+      "workflowStatus": "in_progress",
+      "workflowConclusion": "",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39131605961",
+      "publicVerified": false,
+      "archive": {
+        "path": "followup-106-cli-publication-final-ide-jetbrains-run-39131605961.json.gz",
+        "source": "Independent official GitHub push workflow run metadata",
+        "originalDigest": "sha256:8ea1a83fed54d17d82f02790a84827fe6b3c9da35902be6a9f396db49786076c",
+        "storedDigest": "sha256:fa6869aa496b10468d6c292f743345ed35d801e2cf1ec006e2dd857f3f4d95f5",
+        "originalBytes": 31700,
+        "storedBytes": 2175
+      }
+    }
+  ],
+  "publicVerified": false,
+  "newPushes": 0,
+  "newWorkflowDispatches": 0,
+  "archives": [
+    {
+      "path": "followup-106-cli-publication-final-ide-original-intent.json.gz",
+      "source": ".work/task-quality-106-ide-publish-intent.json; preserved original intent, not a final client receipt",
+      "originalDigest": "sha256:3325d961a7a94c75f7fc4b1b1a87effbe416fdd09b54e44f23c984583be83475",
+      "storedDigest": "sha256:4157963cc6f27546af6c5ede268ac03f36135cd2a986837bc5d92fde8dc52ff1",
+      "originalBytes": 926,
+      "storedBytes": 540
+    },
+    {
+      "path": "followup-106-cli-publication-final-ide-remote-refs.txt.gz",
+      "source": "Independent read-only git ls-remote github of two exact tag refs",
+      "originalDigest": "sha256:bfbd8b873f3019c25ca4ab7d99357be84c45893550555c03b9aed7c412d57490",
+      "storedDigest": "sha256:472a22a2742a97df5205e616b0c093210d28e259a174cd8dac47c1aea7430b90",
+      "originalBytes": 146,
+      "storedBytes": 105
+    },
+    {
+      "path": "followup-106-cli-publication-final-ide-vscode-run-39131607926.json.gz",
+      "source": "Independent official GitHub push workflow run metadata",
+      "originalDigest": "sha256:8aebfaf6abe2bdcd3a7883adb22042c8fb64df9f2b7255fffab9bf743b7f6551",
+      "storedDigest": "sha256:f5d8dbc7c3480280d1891c67dfcd2af7f133580259a861949746b175a7d3d0b3",
+      "originalBytes": 17450,
+      "storedBytes": 2092
+    },
+    {
+      "path": "followup-106-cli-publication-final-ide-jetbrains-run-39131605961.json.gz",
+      "source": "Independent official GitHub push workflow run metadata",
+      "originalDigest": "sha256:8ea1a83fed54d17d82f02790a84827fe6b3c9da35902be6a9f396db49786076c",
+      "storedDigest": "sha256:fa6869aa496b10468d6c292f743345ed35d801e2cf1ec006e2dd857f3f4d95f5",
+      "originalBytes": 31700,
+      "storedBytes": 2175
+    }
+  ]
+}

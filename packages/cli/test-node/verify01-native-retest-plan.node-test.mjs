@@ -182,6 +182,7 @@ test("strict existing validators bind accepted files before selecting unfinished
   assert.equal(ids.length + state.acceptedIds.size, 45);
   assert.equal(new Set(ids).size, ids.length);
   for (const id of state.acceptedIds) assert.ok(!ids.includes(id));
+  assert.deepEqual(state.priorRounds, readNativeRetestChain());
   const registered = JSON.parse(
     fs.readFileSync(path.join(repository, NATIVE_RETEST_CHAIN)),
   );
@@ -320,7 +321,10 @@ test("next-round preparation cannot overwrite an old round name or reuse the ori
         versionsFile: DEFAULT_NATIVE_PACKAGE_SET,
         roundName: "next-package-retest",
       }),
-    /next-version retests require a newer published CLI version/,
+    {
+      code: "ERR_ASSERTION",
+      message: "next-version retests require a newer published CLI version",
+    },
   );
   assert.equal(
     fs.existsSync(

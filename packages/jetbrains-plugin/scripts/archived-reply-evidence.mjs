@@ -43,16 +43,25 @@ function archived(record) {
 
 /** Verify the actual accepted bytes and receipts, then bind the old UI result. */
 export function loadVerify33Reply() {
-  // This replay is pinned to the original accepted round. Later retest rounds
-  // intentionally omit already accepted samples and must not replace its ledger.
-  const baseline = loadVerifiedNativeAcceptedSamples({ priorRounds: [] });
+  const baseline = loadVerifiedNativeAcceptedSamples();
   assert.ok(baseline.acceptedIds.has("verify-33"));
-  const sample = baseline.latest.samples.find(
-    (row) => row.sampleId === "verify-33",
+  // Registered retest rounds replace baseline.latest. Select the original
+  // ledger only after the complete chain has passed, and bind its bytes to
+  // that validated snapshot before reading the historical sample and run.
+  const originalPath = `${NATIVE_EVIDENCE_ROOT}/latest-package-round.json`;
+  const originalEvidence = baseline.baselineEvidence.find(
+    (row) => row.path === originalPath,
   );
+  assert.ok(originalEvidence, "original ledger must be strictly verified");
+  const originalBytes = fs.readFileSync(path.join(repository, originalPath));
+  assert.equal(digest(originalBytes), originalEvidence.digest);
+  const original = JSON.parse(originalBytes);
+  const sample = original.samples.find((row) => row.sampleId === "verify-33");
+  assert.ok(sample, "original verify-33 sample is required");
   assert.equal(sample.candidateAcceptancePassed, true);
   assert.equal(sample.endToEndPassed, false);
-  const run = baseline.latest.runs.find((row) => row.runId === "39087930713");
+  const run = original.runs.find((row) => row.runId === "39087930713");
+  assert.ok(run, "original verify-33 generation run is required");
   assert.equal(run.group, "linux-jetbrains");
   const stateRecord = run.evidence.find(
     (row) =>

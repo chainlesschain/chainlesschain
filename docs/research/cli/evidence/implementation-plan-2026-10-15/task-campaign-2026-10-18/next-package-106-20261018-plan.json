@@ -1,0 +1,214 @@
+{
+  "schema": "chainlesschain.native-package-retest-plan/v1",
+  "status": "PREPARED_NOT_DISPATCHED",
+  "billingAssessed": false,
+  "packageSetPath": "docs/research/cli/verify01-package-sets/2026-10-18-task-quality-106.json",
+  "packageSetDigest": "sha256:6b3d69597bcfae51aeafbb5a4e1be1d9da8def3e3f10b7ca59c6a60a4360f34b",
+  "versions": {
+    "cli": "0.166.106",
+    "vscode": "0.37.151",
+    "jetbrains": "0.4.168",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "frozenProjectCommit": "b2aa3aba082873570e85dce39b00754e5504ff37",
+  "baselineEvidence": [
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/latest-package-round.json",
+      "digest": "sha256:a04a442d8b9353bda1954d93d342efccf7e1a748d457bb73f761d2fcfdde2c41"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/fetch-diagnostics-followup.json",
+      "digest": "sha256:d5c4b0bf20c1814d072fdc6d0d0c1537f0cd46767167ca03511a0fae0f4c5602"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/native-verified-deliveries.json",
+      "digest": "sha256:f5fcbcbb8ad32238a7a4f846c9061746dd9218ce6f8488bb1b55f3bce73d97f1"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-105-20261018-plan.json",
+      "digest": "sha256:2296d637b34f63aff931b5e580da5023df5a47a7e7db3f0f2b314311a3e5579f"
+    },
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-105-20261018.json",
+      "digest": "sha256:c18c59578e28d0f6faca1edd34d4ffeea5f302bf21678b69ae0dcf10ca3eab4a"
+    }
+  ],
+  "priorRounds": [
+    {
+      "planPath": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-105-20261018-plan.json",
+      "planDigest": "sha256:2296d637b34f63aff931b5e580da5023df5a47a7e7db3f0f2b314311a3e5579f",
+      "ledgerPath": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-105-20261018.json",
+      "ledgerDigest": "sha256:c18c59578e28d0f6faca1edd34d4ffeea5f302bf21678b69ae0dcf10ca3eab4a"
+    }
+  ],
+  "reusedAcceptedSampleIds": [
+    "first-run-darwin-vscode",
+    "first-run-linux-jetbrains",
+    "first-run-linux-vscode",
+    "first-run-win32-cli",
+    "first-run-win32-vscode",
+    "verify-01",
+    "verify-02",
+    "verify-03",
+    "verify-05",
+    "verify-12",
+    "verify-14",
+    "verify-15",
+    "verify-16",
+    "verify-17",
+    "verify-18",
+    "verify-20",
+    "verify-21",
+    "verify-22",
+    "verify-23",
+    "verify-24",
+    "verify-25",
+    "verify-26",
+    "verify-27",
+    "verify-28",
+    "verify-29",
+    "verify-31",
+    "verify-32",
+    "verify-33",
+    "verify-34",
+    "verify-35",
+    "verify-36"
+  ],
+  "plannedNewSamples": 14,
+  "groups": [
+    {
+      "group": "linux-cli",
+      "sampleIds": [
+        "verify-04",
+        "verify-13",
+        "first-run-linux-cli"
+      ]
+    },
+    {
+      "group": "linux-jetbrains",
+      "sampleIds": [
+        "verify-06"
+      ]
+    },
+    {
+      "group": "darwin-cli",
+      "sampleIds": [
+        "verify-07",
+        "first-run-darwin-cli"
+      ]
+    },
+    {
+      "group": "darwin-vscode",
+      "sampleIds": [
+        "verify-08"
+      ]
+    },
+    {
+      "group": "darwin-jetbrains",
+      "sampleIds": [
+        "verify-09",
+        "first-run-darwin-jetbrains"
+      ]
+    },
+    {
+      "group": "win32-cli",
+      "sampleIds": [
+        "verify-10",
+        "verify-19"
+      ]
+    },
+    {
+      "group": "win32-vscode",
+      "sampleIds": [
+        "verify-11"
+      ]
+    },
+    {
+      "group": "win32-jetbrains",
+      "sampleIds": [
+        "verify-30",
+        "first-run-win32-jetbrains"
+      ]
+    }
+  ],
+  "executionShards": [
+    {
+      "shardId": "linux-cli",
+      "group": "linux-cli",
+      "sampleIds": [
+        "verify-04",
+        "verify-13",
+        "first-run-linux-cli"
+      ]
+    },
+    {
+      "shardId": "linux-jetbrains--verify-06",
+      "group": "linux-jetbrains",
+      "sampleIds": [
+        "verify-06"
+      ]
+    },
+    {
+      "shardId": "darwin-cli",
+      "group": "darwin-cli",
+      "sampleIds": [
+        "verify-07",
+        "first-run-darwin-cli"
+      ]
+    },
+    {
+      "shardId": "darwin-vscode",
+      "group": "darwin-vscode",
+      "sampleIds": [
+        "verify-08"
+      ]
+    },
+    {
+      "shardId": "darwin-jetbrains--verify-09",
+      "group": "darwin-jetbrains",
+      "sampleIds": [
+        "verify-09"
+      ]
+    },
+    {
+      "shardId": "darwin-jetbrains--first-run-darwin-jetbrains",
+      "group": "darwin-jetbrains",
+      "sampleIds": [
+        "first-run-darwin-jetbrains"
+      ]
+    },
+    {
+      "shardId": "win32-cli",
+      "group": "win32-cli",
+      "sampleIds": [
+        "verify-10",
+        "verify-19"
+      ]
+    },
+    {
+      "shardId": "win32-vscode",
+      "group": "win32-vscode",
+      "sampleIds": [
+        "verify-11"
+      ]
+    },
+    {
+      "shardId": "win32-jetbrains--verify-30",
+      "group": "win32-jetbrains",
+      "sampleIds": [
+        "verify-30"
+      ]
+    },
+    {
+      "shardId": "win32-jetbrains--first-run-win32-jetbrains",
+      "group": "win32-jetbrains",
+      "sampleIds": [
+        "first-run-win32-jetbrains"
+      ]
+    }
+  ],
+  "ledgerPath": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018.json",
+  "archivePrefix": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018",
+  "policy": "Publish and verify the pinned package set before dispatch. Generate only these unfinished IDs. Keep original ledgers and accepted files unchanged. This plan does not record execution or acceptance."
+}

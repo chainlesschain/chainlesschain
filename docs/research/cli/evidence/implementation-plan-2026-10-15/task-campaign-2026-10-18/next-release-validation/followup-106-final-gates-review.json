@@ -1,0 +1,347 @@
+{
+  "schema": "chainlesschain.final-exact-source-release-gates/v1",
+  "reviewStartedAt": "2026-10-18T13:13:16.354200+00:00",
+  "reviewCompletedAt": "2026-10-18T13:13:24.493960+00:00",
+  "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+  "status": "ALL_REQUIRED_PREPUBLICATION_GATES_PASSED",
+  "releaseGateEligible": true,
+  "requiredPrepublicationJobs": 104,
+  "observedJobsIncludingConditionalPostPublish": 105,
+  "requiredSuccessCount": 104,
+  "conditionalPostPublishSkippedCount": 1,
+  "workflows": [
+    {
+      "runId": 39114428682,
+      "workflow": "CLI CI",
+      "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+      "event": "pull_request",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39114428682",
+      "observedJobs": 71,
+      "requiredPrepublicationJobs": 71,
+      "jobConclusions": {
+        "success": 71
+      },
+      "missingJobs": [],
+      "extraJobs": [],
+      "allowedSkippedJobs": [],
+      "archive": {
+        "path": "followup-106-final-gates-run-39114428682.json.gz",
+        "source": "GitHub official gh run view metadata and latest jobs; no --attempt override",
+        "originalDigest": "sha256:8b0fd725cf1b926c7845bc7eba2d7c66c20501f7f5a75fac4d61cbaf2814cb40",
+        "storedDigest": "sha256:8f641b2a5271cfc9429951ec04707c1d10bf1f35a48140f0003b9069b8e86bf5",
+        "originalBytes": 157937,
+        "storedBytes": 10603
+      }
+    },
+    {
+      "runId": 39114428621,
+      "workflow": "CLI Strict Sandbox",
+      "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+      "event": "pull_request",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39114428621",
+      "observedJobs": 5,
+      "requiredPrepublicationJobs": 5,
+      "jobConclusions": {
+        "success": 5
+      },
+      "missingJobs": [],
+      "extraJobs": [],
+      "allowedSkippedJobs": [],
+      "archive": {
+        "path": "followup-106-final-gates-run-39114428621.json.gz",
+        "source": "GitHub official gh run view metadata and latest jobs; no --attempt override",
+        "originalDigest": "sha256:bb4cf658c67442d61b9d726717c43984f5a70f6db123cbb559d833b108c7aff4",
+        "storedDigest": "sha256:107ec72d0e8162828189970aeb2aa7d01b972d92e42ad99e01cc2fe03650e9fa",
+        "originalBytes": 18337,
+        "storedBytes": 1925
+      }
+    },
+    {
+      "runId": 39114428636,
+      "workflow": "IDE Extensions",
+      "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+      "event": "pull_request",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39114428636",
+      "observedJobs": 19,
+      "requiredPrepublicationJobs": 18,
+      "jobConclusions": {
+        "success": 18,
+        "skipped": 1
+      },
+      "missingJobs": [],
+      "extraJobs": [],
+      "allowedSkippedJobs": [
+        {
+          "name": "JetBrains Marketplace (post-publish verification)",
+          "jobId": 117649418120,
+          "condition": "github.event_name == 'push' && startsWith(github.ref, 'refs/tags/ide-jetbrains-v')",
+          "observedEvent": "pull_request",
+          "validPrepublicationSkip": true
+        }
+      ],
+      "archive": {
+        "path": "followup-106-final-gates-run-39114428636.json.gz",
+        "source": "GitHub official gh run view metadata and latest jobs; no --attempt override",
+        "originalDigest": "sha256:5eea281557c6baddebfa152867e1ba4bf5e6812c228abacdaa1f18e2a9621b96",
+        "storedDigest": "sha256:c87315e14d52c2072f4486366e5e75f5993d623f6d004e21d944549962992bf1",
+        "originalBytes": 54617,
+        "storedBytes": 4656
+      }
+    },
+    {
+      "runId": 39114428701,
+      "workflow": "IDE ARM64 Host Validation",
+      "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+      "event": "pull_request",
+      "attempt": 2,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39114428701",
+      "observedJobs": 10,
+      "requiredPrepublicationJobs": 10,
+      "jobConclusions": {
+        "success": 10
+      },
+      "missingJobs": [],
+      "extraJobs": [],
+      "allowedSkippedJobs": [],
+      "archive": {
+        "path": "followup-106-final-gates-run-39114428701.json.gz",
+        "source": "GitHub official gh run view metadata and latest jobs; no --attempt override",
+        "originalDigest": "sha256:d9e899508881f0d55d88983aa2fdaeec96775a9a0b1f09547ca4f44b4cc4cc8e",
+        "storedDigest": "sha256:89919a3e6bfa2a166d5431b08d491cc128b8997d5615ebf9985f287782f918d3",
+        "originalBytes": 31591,
+        "storedBytes": 2565
+      },
+      "aggregateEvidence": {
+        "jobId": 117649559866,
+        "verificationStep": {
+          "completedAt": "2026-10-18T10:18:24Z",
+          "conclusion": "success",
+          "name": "Verify exact SHA, architecture, matrix, and artifact digests",
+          "number": 6,
+          "startedAt": "2026-10-18T10:18:24Z",
+          "status": "completed"
+        },
+        "uploadStep": {
+          "completedAt": "2026-10-18T10:18:25Z",
+          "conclusion": "success",
+          "name": "Upload immutable aggregate",
+          "number": 7,
+          "startedAt": "2026-10-18T10:18:24Z",
+          "status": "completed"
+        },
+        "expectedCells": 11,
+        "cellDescription": "VS Code minimum 1.85.2 and stable on Linux/macOS/Windows (6), JetBrains Linux/macOS 2024.2 and 2025.2 plus Windows 2026.2.0.1 (5)",
+        "evidenceBasis": "Official successful fail-closed verifier and upload steps, bound to exact-SHA workflow and verifier source. No large host artifact download or local re-execution.",
+        "priorAttemptFailurePreserved": true
+      }
+    }
+  ],
+  "exactSourceDefinitionBindings": [
+    {
+      "file": ".github/workflows/cli-ci.yml",
+      "exactSourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+      "inventorySourceCommit": "4317bf01a48a7ec612e12000936a81851c6febf3",
+      "bytesIdentical": true,
+      "sha256": "sha256:f1ddac69a1e2925e17c4b092c97e7a1406575cd4303f7d9c4fe9f6a1b97d9f09",
+      "archive": {
+        "path": "followup-106-final-gates-source-cli-ci.yml.gz",
+        "source": "git dca47fd91a209642b6536afd5bc9e99ec74c7d06:.github/workflows/cli-ci.yml",
+        "originalDigest": "sha256:f1ddac69a1e2925e17c4b092c97e7a1406575cd4303f7d9c4fe9f6a1b97d9f09",
+        "storedDigest": "sha256:0bf98c70d2a5a784109216d0887cb52d3852636f4a8df10bf0cabffed1b905be",
+        "originalBytes": 26099,
+        "storedBytes": 5046
+      }
+    },
+    {
+      "file": ".github/workflows/_cli-test.yml",
+      "exactSourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+      "inventorySourceCommit": "4317bf01a48a7ec612e12000936a81851c6febf3",
+      "bytesIdentical": true,
+      "sha256": "sha256:a645c7c93fbbfdbb36ff67564ca6cd23e34cd058a12ec1af10ce5704a2ce60a1",
+      "archive": {
+        "path": "followup-106-final-gates-source-_cli-test.yml.gz",
+        "source": "git dca47fd91a209642b6536afd5bc9e99ec74c7d06:.github/workflows/_cli-test.yml",
+        "originalDigest": "sha256:a645c7c93fbbfdbb36ff67564ca6cd23e34cd058a12ec1af10ce5704a2ce60a1",
+        "storedDigest": "sha256:f9474c4d3f730e1c9da7979b676e314d9695cc47df07ce7328a8441f401cad73",
+        "originalBytes": 10669,
+        "storedBytes": 3424
+      }
+    },
+    {
+      "file": ".github/workflows/_cli-linux-subreaper.yml",
+      "exactSourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+      "inventorySourceCommit": "4317bf01a48a7ec612e12000936a81851c6febf3",
+      "bytesIdentical": true,
+      "sha256": "sha256:e6c5ff47f6c9a8f75d040a2149669188353a07798381affcfe226c19ae071581",
+      "archive": {
+        "path": "followup-106-final-gates-source-_cli-linux-subreaper.yml.gz",
+        "source": "git dca47fd91a209642b6536afd5bc9e99ec74c7d06:.github/workflows/_cli-linux-subreaper.yml",
+        "originalDigest": "sha256:e6c5ff47f6c9a8f75d040a2149669188353a07798381affcfe226c19ae071581",
+        "storedDigest": "sha256:76292aaebffb1ec2722287582b136abd9a7bdeca70fd69a00117cd4bf7a2e92b",
+        "originalBytes": 3588,
+        "storedBytes": 1221
+      }
+    },
+    {
+      "file": ".github/workflows/cli-strict-sandbox.yml",
+      "exactSourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+      "inventorySourceCommit": "4317bf01a48a7ec612e12000936a81851c6febf3",
+      "bytesIdentical": true,
+      "sha256": "sha256:8408ef1e23e7e552ee413514b6d42d71f4e7fc569a843a50b52373977ad7ebba",
+      "archive": {
+        "path": "followup-106-final-gates-source-cli-strict-sandbox.yml.gz",
+        "source": "git dca47fd91a209642b6536afd5bc9e99ec74c7d06:.github/workflows/cli-strict-sandbox.yml",
+        "originalDigest": "sha256:8408ef1e23e7e552ee413514b6d42d71f4e7fc569a843a50b52373977ad7ebba",
+        "storedDigest": "sha256:8dbc8628aec60d544570007428caf697170a1ef1dd5b7f583421bdbe3df75455",
+        "originalBytes": 46348,
+        "storedBytes": 5732
+      }
+    },
+    {
+      "file": ".github/workflows/ide-extensions.yml",
+      "exactSourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+      "inventorySourceCommit": "4317bf01a48a7ec612e12000936a81851c6febf3",
+      "bytesIdentical": true,
+      "sha256": "sha256:c3aa38214e8853a9adddbe2290bb44e0d8d7fa08cf885ba66695e0c00d8ca712",
+      "archive": {
+        "path": "followup-106-final-gates-source-ide-extensions.yml.gz",
+        "source": "git dca47fd91a209642b6536afd5bc9e99ec74c7d06:.github/workflows/ide-extensions.yml",
+        "originalDigest": "sha256:c3aa38214e8853a9adddbe2290bb44e0d8d7fa08cf885ba66695e0c00d8ca712",
+        "storedDigest": "sha256:cb4da21a230e5beb44778963599f437ffd73cf2ad1b34051849e64a6f05d19d2",
+        "originalBytes": 50808,
+        "storedBytes": 8753
+      }
+    },
+    {
+      "file": ".github/workflows/ide-arm64-validation.yml",
+      "exactSourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+      "inventorySourceCommit": "4317bf01a48a7ec612e12000936a81851c6febf3",
+      "bytesIdentical": true,
+      "sha256": "sha256:e7788dee829b80bbbdb9fadffe64e90a7eb5ba50a8c8a379708c1e6da8360b02",
+      "archive": {
+        "path": "followup-106-final-gates-source-ide-arm64-validation.yml.gz",
+        "source": "git dca47fd91a209642b6536afd5bc9e99ec74c7d06:.github/workflows/ide-arm64-validation.yml",
+        "originalDigest": "sha256:e7788dee829b80bbbdb9fadffe64e90a7eb5ba50a8c8a379708c1e6da8360b02",
+        "storedDigest": "sha256:3dd3b153f654ebac81c6af08b362a7e3a3f0ae58604630f0d34044eb0e505795",
+        "originalBytes": 24186,
+        "storedBytes": 6073
+      }
+    }
+  ],
+  "problems": [],
+  "archives": [
+    {
+      "path": "followup-106-final-gates-source-cli-ci.yml.gz",
+      "source": "git dca47fd91a209642b6536afd5bc9e99ec74c7d06:.github/workflows/cli-ci.yml",
+      "originalDigest": "sha256:f1ddac69a1e2925e17c4b092c97e7a1406575cd4303f7d9c4fe9f6a1b97d9f09",
+      "storedDigest": "sha256:0bf98c70d2a5a784109216d0887cb52d3852636f4a8df10bf0cabffed1b905be",
+      "originalBytes": 26099,
+      "storedBytes": 5046
+    },
+    {
+      "path": "followup-106-final-gates-source-_cli-test.yml.gz",
+      "source": "git dca47fd91a209642b6536afd5bc9e99ec74c7d06:.github/workflows/_cli-test.yml",
+      "originalDigest": "sha256:a645c7c93fbbfdbb36ff67564ca6cd23e34cd058a12ec1af10ce5704a2ce60a1",
+      "storedDigest": "sha256:f9474c4d3f730e1c9da7979b676e314d9695cc47df07ce7328a8441f401cad73",
+      "originalBytes": 10669,
+      "storedBytes": 3424
+    },
+    {
+      "path": "followup-106-final-gates-source-_cli-linux-subreaper.yml.gz",
+      "source": "git dca47fd91a209642b6536afd5bc9e99ec74c7d06:.github/workflows/_cli-linux-subreaper.yml",
+      "originalDigest": "sha256:e6c5ff47f6c9a8f75d040a2149669188353a07798381affcfe226c19ae071581",
+      "storedDigest": "sha256:76292aaebffb1ec2722287582b136abd9a7bdeca70fd69a00117cd4bf7a2e92b",
+      "originalBytes": 3588,
+      "storedBytes": 1221
+    },
+    {
+      "path": "followup-106-final-gates-source-cli-strict-sandbox.yml.gz",
+      "source": "git dca47fd91a209642b6536afd5bc9e99ec74c7d06:.github/workflows/cli-strict-sandbox.yml",
+      "originalDigest": "sha256:8408ef1e23e7e552ee413514b6d42d71f4e7fc569a843a50b52373977ad7ebba",
+      "storedDigest": "sha256:8dbc8628aec60d544570007428caf697170a1ef1dd5b7f583421bdbe3df75455",
+      "originalBytes": 46348,
+      "storedBytes": 5732
+    },
+    {
+      "path": "followup-106-final-gates-source-ide-extensions.yml.gz",
+      "source": "git dca47fd91a209642b6536afd5bc9e99ec74c7d06:.github/workflows/ide-extensions.yml",
+      "originalDigest": "sha256:c3aa38214e8853a9adddbe2290bb44e0d8d7fa08cf885ba66695e0c00d8ca712",
+      "storedDigest": "sha256:cb4da21a230e5beb44778963599f437ffd73cf2ad1b34051849e64a6f05d19d2",
+      "originalBytes": 50808,
+      "storedBytes": 8753
+    },
+    {
+      "path": "followup-106-final-gates-source-ide-arm64-validation.yml.gz",
+      "source": "git dca47fd91a209642b6536afd5bc9e99ec74c7d06:.github/workflows/ide-arm64-validation.yml",
+      "originalDigest": "sha256:e7788dee829b80bbbdb9fadffe64e90a7eb5ba50a8c8a379708c1e6da8360b02",
+      "storedDigest": "sha256:3dd3b153f654ebac81c6af08b362a7e3a3f0ae58604630f0d34044eb0e505795",
+      "originalBytes": 24186,
+      "storedBytes": 6073
+    },
+    {
+      "path": "followup-106-final-gates-expected-inventory.json.gz",
+      "source": "Prior expanded inventory, all six defining workflow files verified byte-identical at exact release SHA",
+      "originalDigest": "sha256:e231110e2f38259d544f67f53529a9b65c34bced754f594583946816680999f8",
+      "storedDigest": "sha256:e0237010dfdabe19efff0044590938df7b8e4251529f2d1f63016ec713bbf787",
+      "originalBytes": 21806,
+      "storedBytes": 2296
+    },
+    {
+      "path": "followup-106-final-gates-run-39114428682.json.gz",
+      "source": "GitHub official gh run view metadata and latest jobs; no --attempt override",
+      "originalDigest": "sha256:8b0fd725cf1b926c7845bc7eba2d7c66c20501f7f5a75fac4d61cbaf2814cb40",
+      "storedDigest": "sha256:8f641b2a5271cfc9429951ec04707c1d10bf1f35a48140f0003b9069b8e86bf5",
+      "originalBytes": 157937,
+      "storedBytes": 10603
+    },
+    {
+      "path": "followup-106-final-gates-run-39114428621.json.gz",
+      "source": "GitHub official gh run view metadata and latest jobs; no --attempt override",
+      "originalDigest": "sha256:bb4cf658c67442d61b9d726717c43984f5a70f6db123cbb559d833b108c7aff4",
+      "storedDigest": "sha256:107ec72d0e8162828189970aeb2aa7d01b972d92e42ad99e01cc2fe03650e9fa",
+      "originalBytes": 18337,
+      "storedBytes": 1925
+    },
+    {
+      "path": "followup-106-final-gates-run-39114428636.json.gz",
+      "source": "GitHub official gh run view metadata and latest jobs; no --attempt override",
+      "originalDigest": "sha256:5eea281557c6baddebfa152867e1ba4bf5e6812c228abacdaa1f18e2a9621b96",
+      "storedDigest": "sha256:c87315e14d52c2072f4486366e5e75f5993d623f6d004e21d944549962992bf1",
+      "originalBytes": 54617,
+      "storedBytes": 4656
+    },
+    {
+      "path": "followup-106-final-gates-run-39114428701.json.gz",
+      "source": "GitHub official gh run view metadata and latest jobs; no --attempt override",
+      "originalDigest": "sha256:d9e899508881f0d55d88983aa2fdaeec96775a9a0b1f09547ca4f44b4cc4cc8e",
+      "storedDigest": "sha256:89919a3e6bfa2a166d5431b08d491cc128b8997d5615ebf9985f287782f918d3",
+      "originalBytes": 31591,
+      "storedBytes": 2565
+    },
+    {
+      "path": "followup-106-final-gates-verify-ide-arm64-evidence.mjs.gz",
+      "source": "git dca47fd91a209642b6536afd5bc9e99ec74c7d06:scripts/verify-ide-arm64-evidence.mjs",
+      "originalDigest": "sha256:788f50b3fa860b1246420cf7300461642c3d9e7de395f47e7ead83b40bf3955c",
+      "storedDigest": "sha256:05ee37887171ec20940fbf9cfe57f9c44f3c84b16d80ad23ddd9958157f4932d",
+      "originalBytes": 15019,
+      "storedBytes": 4574
+    }
+  ],
+  "scope": "Read-only four official run views, full latest-job name-set comparison against expanded inventory whose defining workflow files are byte-identical at exact SHA, and ARM64 aggregate step verification. No tests, dispatch, cancellation, product edits, commit or publication.",
+  "limitations": [
+    "This is prepublication gate proof, not proof that npm or IDE artifacts have been published.",
+    "ARM64 evidence conclusion relies on the official successful aggregate verifier; large host artifacts were not downloaded or locally revalidated.",
+    "Failed earlier attempts and previous failure archives remain intact."
+  ]
+}

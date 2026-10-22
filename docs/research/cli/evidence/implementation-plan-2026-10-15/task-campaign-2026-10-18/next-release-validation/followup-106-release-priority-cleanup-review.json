@@ -1,0 +1,303 @@
+{
+  "schema": "chainlesschain.release-priority-cleanup-review/v1",
+  "recordedAt": "2026-10-18T10:08:24.892837+00:00",
+  "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+  "authorization": "User explicitly requested cancellation of runners unrelated to publication and committing completed work to Git.",
+  "cancelledWorkflowCount": 9,
+  "acceptedRequestCount": 9,
+  "allCancellationOutcomesVerified": true,
+  "naturallyCompletedWorkflowCount": 1,
+  "cancelled": [
+    {
+      "runId": "39114428700",
+      "workflow": ".github/workflows/pr-tests.yml",
+      "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+      "reason": "duplicate optional PR suite",
+      "finalStatus": "completed",
+      "finalConclusion": "cancelled"
+    },
+    {
+      "runId": "39114428670",
+      "workflow": ".github/workflows/verify01-host-diagnostics.yml",
+      "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+      "reason": "keyless auxiliary diagnostics; not the 36+9 campaign or publication gate",
+      "finalStatus": "completed",
+      "finalConclusion": "cancelled"
+    },
+    {
+      "runId": "39114428617",
+      "workflow": ".github/workflows/cli-team-fairness-soak.yml",
+      "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+      "reason": "auxiliary fairness soak",
+      "finalStatus": "completed",
+      "finalConclusion": "cancelled"
+    },
+    {
+      "runId": "39114428687",
+      "workflow": ".github/workflows/evolution-ledger-reliability.yml",
+      "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+      "reason": "auxiliary evolution soak",
+      "finalStatus": "completed",
+      "finalConclusion": "cancelled"
+    },
+    {
+      "runId": "39114428675",
+      "workflow": ".github/workflows/cli-reliability-soak.yml",
+      "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+      "reason": "auxiliary reliability soak",
+      "finalStatus": "completed",
+      "finalConclusion": "cancelled"
+    },
+    {
+      "runId": "39114428643",
+      "workflow": ".github/workflows/ide-roadmap-live-provider.yml",
+      "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+      "reason": "PR loopback-only auxiliary trajectory; real-provider jobs require dispatch/schedule",
+      "finalStatus": "completed",
+      "finalConclusion": "cancelled"
+    },
+    {
+      "runId": "39114428692",
+      "workflow": ".github/workflows/cli-scheduler-soak.yml",
+      "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+      "reason": "auxiliary scheduler soak",
+      "finalStatus": "completed",
+      "finalConclusion": "cancelled"
+    },
+    {
+      "runId": "39111986467",
+      "workflow": ".github/workflows/evolution-ledger-reliability.yml",
+      "sourceCommit": "4317bf01a48a7ec612e12000936a81851c6febf3",
+      "reason": "superseded release candidate auxiliary run",
+      "finalStatus": "completed",
+      "finalConclusion": "cancelled"
+    },
+    {
+      "runId": "39106713026",
+      "workflow": ".github/workflows/cli-ci.yml",
+      "sourceCommit": "ea49733d5d3ac76de17552f83faf2f8a764b6b7e",
+      "reason": "old merged-main CI; cannot qualify the current exact release source",
+      "finalStatus": "completed",
+      "finalConclusion": "cancelled"
+    }
+  ],
+  "preserved": [
+    {
+      "runId": "39114428682",
+      "workflow": ".github/workflows/cli-ci.yml",
+      "status": "queued",
+      "conclusion": null
+    },
+    {
+      "runId": "39114428621",
+      "workflow": ".github/workflows/cli-strict-sandbox.yml",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "runId": "39114428636",
+      "workflow": ".github/workflows/ide-extensions.yml",
+      "status": "in_progress",
+      "conclusion": null
+    },
+    {
+      "runId": "39114428701",
+      "workflow": ".github/workflows/ide-arm64-validation.yml",
+      "status": "in_progress",
+      "conclusion": null
+    },
+    {
+      "runId": "39114428631",
+      "workflow": ".github/workflows/test.yml",
+      "status": "in_progress",
+      "conclusion": null
+    },
+    {
+      "runId": "39114428679",
+      "workflow": ".github/workflows/test-automation-full.yml",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "runId": "39114428719",
+      "workflow": ".github/workflows/code-quality.yml",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "protectedContexts": [
+    "Lint & Format Check",
+    "PDH Data Hub Tests (ubuntu-latest)",
+    "PDH Data Hub Tests (windows-latest)",
+    "Quality Gate",
+    "Run All Tests (ubuntu-latest)",
+    "Run All Tests (windows-latest)"
+  ],
+  "sourceBindings": [
+    {
+      "path": "packages/cli/scripts/verify-release-gates.mjs",
+      "digest": "sha256:8ef9b2db9420e4086d89bb569b3d36ddf2b40611e9a883aecbe9f9007b2c59df"
+    },
+    {
+      "path": ".github/workflows/npm-publish.yml",
+      "digest": "sha256:0ab117daafe75c0de7fdbd562b05f70baf4288dfcaf3b7ba3b0b6aa5ac96c2dc"
+    },
+    {
+      "path": ".github/workflows/ide-extensions.yml",
+      "digest": "sha256:c3aa38214e8853a9adddbe2290bb44e0d8d7fa08cf885ba66695e0c00d8ca712"
+    },
+    {
+      "path": ".github/workflows/ide-arm64-validation.yml",
+      "digest": "sha256:e7788dee829b80bbbdb9fadffe64e90a7eb5ba50a8c8a379708c1e6da8360b02"
+    },
+    {
+      "path": ".github/workflows/ide-roadmap-live-provider.yml",
+      "digest": "sha256:a30a5cfc9b8db88290c23abf447f4aa457267cd8d305f0cf7fc865e3396b8677"
+    },
+    {
+      "path": ".github/workflows/verify01-host-diagnostics.yml",
+      "digest": "sha256:f4271c5710832e048defd55349fc235e77aa451e23643c99d50f04da7b6ea547"
+    }
+  ],
+  "childSourcesComparedWith": "d4065008bb4eff84cfc09f9361f4ae4e9de2140f",
+  "childSourcesUnchanged": true,
+  "currentOfficialGates": [
+    {
+      "name": "CLI CI",
+      "runId": 39114428682,
+      "status": "queued",
+      "conclusion": "",
+      "jobs": {
+        "queued": 40,
+        "success": 15,
+        "in_progress": 10
+      }
+    },
+    {
+      "name": "CLI Strict Sandbox",
+      "runId": 39114428621,
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": {
+        "success": 5
+      }
+    },
+    {
+      "name": "IDE Extensions",
+      "runId": 39114428636,
+      "status": "in_progress",
+      "conclusion": "",
+      "jobs": {
+        "success": 14,
+        "in_progress": 1
+      }
+    },
+    {
+      "name": "IDE ARM64 Host Validation",
+      "runId": 39114428701,
+      "status": "in_progress",
+      "conclusion": "",
+      "jobs": {
+        "in_progress": 1,
+        "success": 8
+      }
+    }
+  ],
+  "published": false,
+  "releaseEligible": false,
+  "modelCalls": 0,
+  "taskGenerationDispatched": 0,
+  "nativeTaskRunsCancelled": 0,
+  "limits": [
+    "Cancelled auxiliary checks are cancelled, not passing evidence.",
+    "All four current exact-source release gates and all three protected workflows remain intact.",
+    "All required configured jobs must finish successfully before publication.",
+    "GitHub directly reports macOS ARM capacity pressure; no Windows/Ubuntu or account billing cause is inferred."
+  ],
+  "evidence": [
+    {
+      "path": "followup-106-release-priority-execution.json.gz",
+      "originalDigest": "sha256:1f5fba07608d75026ba9937a71a862b2e07b29d17a79a71454812e6f5e1bf1a0",
+      "storedDigest": "sha256:f8e997c82c7471d49e9fadecc024b4618010353affe27fefa0a1552c3e6b0333",
+      "originalBytes": 710996,
+      "storedBytes": 33516
+    },
+    {
+      "path": "followup-106-release-priority-readback.json.gz",
+      "originalDigest": "sha256:9121ec1ca5f6c0028d5e33efd42990f0e964c4f49b4b152f5437d18f0d3def34",
+      "storedDigest": "sha256:bd02ef67a1be49aff5ab23ceba4a5860729d48e731051546f203073bd04debec",
+      "originalBytes": 277613,
+      "storedBytes": 6645
+    },
+    {
+      "path": "followup-106-release-priority-executor.py.gz",
+      "originalDigest": "sha256:43f621834b92c477d4492c41d4b8e31736cc9594bee1b0d4d8c965c70896d7e7",
+      "storedDigest": "sha256:2d1bdf3135c25ce92f7e33681a813d58c0a03487a06974eff323e85bb303064d",
+      "originalBytes": 6402,
+      "storedBytes": 2540
+    },
+    {
+      "path": "followup-106-release-priority-queue-review.json.gz",
+      "originalDigest": "sha256:7fc875ccb59d5d2c350c662592407222412f9ce4b54acd8f465a13974f488ae8",
+      "storedDigest": "sha256:ab7e11a3335aa7c24d14bd5fa44e59ac78d27540187a5e04fbe471220199515d",
+      "originalBytes": 7740,
+      "storedBytes": 2709
+    },
+    {
+      "path": "followup-106-release-priority-queue-inventory.json.gz",
+      "originalDigest": "sha256:ce62252d202c31691fa2ca4d05849fa084e206371d61903c48648550efc74c63",
+      "storedDigest": "sha256:479db7c62ef5d8ae0b799ad953ea302efa43433658d67ae078cb311d3f219b95",
+      "originalBytes": 45634,
+      "storedBytes": 2934
+    },
+    {
+      "path": "followup-106-release-priority-protected-contexts.json.gz",
+      "originalDigest": "sha256:0b0e04e11b4f751c38517d6090a504677d85f711d643234de4e63f8c81e05d0d",
+      "storedDigest": "sha256:fabe7773373badaf4358d065233147830fcdbbb174d7fb31db763e6d54427047",
+      "originalBytes": 1614,
+      "storedBytes": 357
+    },
+    {
+      "path": "followup-106-release-priority-gate-observation.json.gz",
+      "originalDigest": "sha256:dad77d60c283ad1e75ec429012e0fbd8a6e2816a8ce68a0dd45fa715a2052b38",
+      "storedDigest": "sha256:ea9e05bcaaf97ad146df478cca2527e2436d81dc02d0834b243236310ccf689d",
+      "originalBytes": 243888,
+      "storedBytes": 11425
+    },
+    {
+      "path": "followup-106-release-priority-queue-annotations-117637465216.json.gz",
+      "originalDigest": "sha256:14991e215dd3e7cb33ee728d185aeffe6e4448e414a7aad6b3963976ae00df7a",
+      "storedDigest": "sha256:7ce1baf4cf01abc6c7c97fe3693d1193cbb5f50f75aa723531e78d9f74c5df88",
+      "originalBytes": 450,
+      "storedBytes": 281
+    },
+    {
+      "path": "followup-106-release-priority-queue-annotations-117637465237.json.gz",
+      "originalDigest": "sha256:14991e215dd3e7cb33ee728d185aeffe6e4448e414a7aad6b3963976ae00df7a",
+      "storedDigest": "sha256:7ce1baf4cf01abc6c7c97fe3693d1193cbb5f50f75aa723531e78d9f74c5df88",
+      "originalBytes": 450,
+      "storedBytes": 281
+    },
+    {
+      "path": "followup-106-release-priority-queue-annotations-117629922517.json.gz",
+      "originalDigest": "sha256:7c8ff2ad01c120aece8638ff663c9422b010a3efea7cb116fc660216e073dee8",
+      "storedDigest": "sha256:4548a724c02d0184c7034df9fbab0768d6ce61e7134a3e113f3605261beacd15",
+      "originalBytes": 436,
+      "storedBytes": 275
+    },
+    {
+      "path": "followup-106-release-priority-queue-annotations-117632154080.json.gz",
+      "originalDigest": "sha256:6af0179b62648e2e4715d9387a19ec497bd87f42ed34fe0ce75d421ee16f58a6",
+      "storedDigest": "sha256:80a90833f02db3e789d3233ed0061cb4bda70526e8306610dae2fe32664ecb1a",
+      "originalBytes": 435,
+      "storedBytes": 273
+    },
+    {
+      "path": "followup-106-release-priority-queue-cancelled-job-annotations.json.gz",
+      "originalDigest": "sha256:39aaa70b13276b97f33ede6ff9c0e507972f2455ffb24598806a16d5ec7c3e65",
+      "storedDigest": "sha256:9cd0177d09d780df510ba497e7d942b42fe83d0a58d2beca3c8bd3e63e753615",
+      "originalBytes": 1024,
+      "storedBytes": 374
+    }
+  ]
+}

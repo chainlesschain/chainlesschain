@@ -15,6 +15,7 @@ import {
   RECOVERY_SCHEMA,
 } from "./archived-reply-evidence.mjs";
 import { replyEnvironment } from "./verify01-archived-reply-recovery.mjs";
+import { loadVerifiedNativeAcceptedSamples } from "../../cli/scripts/verify01-native-retest-plan.mjs";
 
 const fixture = loadVerify33Reply();
 function evidence() {
@@ -104,6 +105,40 @@ test("fixture is bound to accepted verify-33 bytes and original rendered Markdow
   assert.notEqual(fixture.source, fixture.rendered);
   assert.throws(() =>
     validateReplyFixture({ ...fixture, source: fixture.source + "\n" }),
+  );
+});
+
+test("historical verify-33 remains recoverable after registered retests replace the latest ledger", () => {
+  const baseline = loadVerifiedNativeAcceptedSamples();
+  assert.ok(baseline.priorRounds.length > 0);
+  assert.ok(baseline.acceptedIds.has("verify-33"));
+  assert.equal(
+    baseline.latest.samples.some((row) => row.sampleId === "verify-33"),
+    false,
+  );
+  assert.equal(
+    baseline.latest.runs.some((row) => row.runId === "39087930713"),
+    false,
+  );
+  const recovered = validateReplyFixture(loadVerify33Reply());
+  assert.deepEqual(recovered.baselineEvidence, baseline.baselineEvidence);
+  assert.equal(recovered.originalRunId, "39087930713");
+  assert.deepEqual(recovered.originalVerdict, {
+    candidateAcceptancePassed: true,
+    endToEndPassed: false,
+  });
+  assert.equal(recovered.reusedCandidates.length, 1);
+  assert.equal(
+    recovered.reusedCandidates[0].archived.originalDigest,
+    "sha256:ca01ddbd6496255273a4ccd7d2f478fcf1939c7778ebbf9d975043738490cea5",
+  );
+  assert.equal(
+    recovered.sourceDigest,
+    "sha256:8f1a927835bb8bbfe0d3f3904294eb622c99c843678cb9b36103282d0545503c",
+  );
+  assert.equal(
+    recovered.renderedDigest,
+    "sha256:3ba50b15d06ed9bb259b33383ea416c11bb11fbb97c34664379d8ed4027e9655",
   );
 });
 

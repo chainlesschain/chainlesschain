@@ -1,0 +1,290 @@
+{
+  "schema": "chainlesschain.main-merge-auxiliary-runner-cleanup-evidence/v1",
+  "recordedAt": "2026-10-18T14:11:45.571085+00:00",
+  "mergeSourceCommit": "38756541a6da5515908ee5b1807ef0b8e8c2ec5c",
+  "releaseSourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+  "status": "VERIFIED_CANCELLED",
+  "cancelledCount": 11,
+  "pendingCount": 0,
+  "authorization": "User authorized cancelling auxiliary runners unrelated to this release; exact merge-source definitions audited.",
+  "cancelledRuns": [
+    {
+      "runId": 39133993335,
+      "status": "completed",
+      "conclusion": "cancelled",
+      "countedAsPassing": false
+    },
+    {
+      "runId": 39133993284,
+      "status": "completed",
+      "conclusion": "cancelled",
+      "countedAsPassing": false
+    },
+    {
+      "runId": 39133993343,
+      "status": "completed",
+      "conclusion": "cancelled",
+      "countedAsPassing": false
+    },
+    {
+      "runId": 39133993327,
+      "status": "completed",
+      "conclusion": "cancelled",
+      "countedAsPassing": false
+    },
+    {
+      "runId": 39133993347,
+      "status": "completed",
+      "conclusion": "cancelled",
+      "countedAsPassing": false
+    },
+    {
+      "runId": 39133993382,
+      "status": "completed",
+      "conclusion": "cancelled",
+      "countedAsPassing": false
+    },
+    {
+      "runId": 39133993396,
+      "status": "completed",
+      "conclusion": "cancelled",
+      "countedAsPassing": false
+    },
+    {
+      "runId": 39133993324,
+      "status": "completed",
+      "conclusion": "cancelled",
+      "countedAsPassing": false
+    },
+    {
+      "runId": 39133993415,
+      "status": "completed",
+      "conclusion": "cancelled",
+      "countedAsPassing": false
+    },
+    {
+      "runId": 39133993334,
+      "status": "completed",
+      "conclusion": "cancelled",
+      "countedAsPassing": false
+    },
+    {
+      "runId": 39133993326,
+      "status": "completed",
+      "conclusion": "cancelled",
+      "countedAsPassing": false
+    }
+  ],
+  "retainedWorkflowNames": [
+    "CI Tests",
+    "Full Test Automation with Diagnostics",
+    "Code Quality & Security",
+    "CLI CI",
+    "CLI Strict Sandbox",
+    "IDE Extensions",
+    "IDE ARM64 Host Validation"
+  ],
+  "retainedRuns": [
+    {
+      "id": 39133993370,
+      "name": "IDE ARM64 Host Validation",
+      "head_branch": "main",
+      "event": "push",
+      "status": "queued",
+      "head_sha": "38756541a6da5515908ee5b1807ef0b8e8c2ec5c",
+      "path": ".github/workflows/ide-arm64-validation.yml",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39133993370",
+      "reason": "Explicitly retained product protection or formal release-gate workflow"
+    },
+    {
+      "id": 39133993287,
+      "name": "Code Quality & Security",
+      "head_branch": "main",
+      "event": "push",
+      "status": "queued",
+      "head_sha": "38756541a6da5515908ee5b1807ef0b8e8c2ec5c",
+      "path": ".github/workflows/code-quality.yml",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39133993287",
+      "reason": "Explicitly retained product protection or formal release-gate workflow"
+    },
+    {
+      "id": 39133993337,
+      "name": "CI Tests",
+      "head_branch": "main",
+      "event": "push",
+      "status": "queued",
+      "head_sha": "38756541a6da5515908ee5b1807ef0b8e8c2ec5c",
+      "path": ".github/workflows/test.yml",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39133993337",
+      "reason": "Explicitly retained product protection or formal release-gate workflow"
+    },
+    {
+      "id": 39133993354,
+      "name": "CLI Strict Sandbox",
+      "head_branch": "main",
+      "event": "push",
+      "status": "queued",
+      "head_sha": "38756541a6da5515908ee5b1807ef0b8e8c2ec5c",
+      "path": ".github/workflows/cli-strict-sandbox.yml",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39133993354",
+      "reason": "Explicitly retained product protection or formal release-gate workflow"
+    },
+    {
+      "id": 39133993403,
+      "name": "IDE Extensions",
+      "head_branch": "main",
+      "event": "push",
+      "status": "queued",
+      "head_sha": "38756541a6da5515908ee5b1807ef0b8e8c2ec5c",
+      "path": ".github/workflows/ide-extensions.yml",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39133993403",
+      "reason": "Explicitly retained product protection or formal release-gate workflow"
+    },
+    {
+      "id": 39133993420,
+      "name": "CLI CI",
+      "head_branch": "main",
+      "event": "push",
+      "status": "queued",
+      "head_sha": "38756541a6da5515908ee5b1807ef0b8e8c2ec5c",
+      "path": ".github/workflows/cli-ci.yml",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39133993420",
+      "reason": "Explicitly retained product protection or formal release-gate workflow"
+    },
+    {
+      "id": 39133993349,
+      "name": "Full Test Automation with Diagnostics",
+      "head_branch": "main",
+      "event": "push",
+      "status": "in_progress",
+      "head_sha": "38756541a6da5515908ee5b1807ef0b8e8c2ec5c",
+      "path": ".github/workflows/test-automation-full.yml",
+      "html_url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39133993349",
+      "reason": "Explicitly retained product protection or formal release-gate workflow"
+    }
+  ],
+  "archives": [
+    {
+      "path": "followup-106-main-merge-runner-cleanup-app-server-overload-soak.yml.gz",
+      "source": ".work/task-quality-106-main-merge-runner-audit/app-server-overload-soak.yml",
+      "originalDigest": "sha256:94cce66801bfc336705c7b8ae21f0d02893c12a64c507aa6a3f3323a634ea9bf",
+      "storedDigest": "sha256:e82aa22bc31ec33c6c624e02464ba334beeba329a6617b0068eba98ac3dafe3e",
+      "originalBytes": 3295,
+      "storedBytes": 1088
+    },
+    {
+      "path": "followup-106-main-merge-runner-cleanup-audit.json.gz",
+      "source": ".work/task-quality-106-main-merge-runner-audit/audit.json",
+      "originalDigest": "sha256:4d11513b584afa6048cd160ea96420decc265c399233852086bd15de67d8271e",
+      "storedDigest": "sha256:9050fda30db6921ed900e29aeb935b0a2a89f76e945eaea1eb4eef5c33573499",
+      "originalBytes": 11005,
+      "storedBytes": 2129
+    },
+    {
+      "path": "followup-106-main-merge-runner-cleanup-cancellation-readback.json.gz",
+      "source": ".work/task-quality-106-main-merge-runner-audit/cancellation-readback.json",
+      "originalDigest": "sha256:40090970434e2180c1a89cac4becbff8739f22251a81ff0c6f25d0792cb510cb",
+      "storedDigest": "sha256:785ad8d24d70acad9a766e208289ba00f59d3177ffebf5087c8e37741835f75e",
+      "originalBytes": 253246,
+      "storedBytes": 5588
+    },
+    {
+      "path": "followup-106-main-merge-runner-cleanup-cli-macos-mcp-launcher-release.yml.gz",
+      "source": ".work/task-quality-106-main-merge-runner-audit/cli-macos-mcp-launcher-release.yml",
+      "originalDigest": "sha256:6c8595d7c3d12d180ea74a025ab95d9d3e4cc3d21518d75c337cf39e942e9cba",
+      "storedDigest": "sha256:4cba5bdf14980891f8818930c9c4c74f5166aa518f36bf1c074cd9d7f08e7621",
+      "originalBytes": 34179,
+      "storedBytes": 7193
+    },
+    {
+      "path": "followup-106-main-merge-runner-cleanup-cli-session-host-consistency.yml.gz",
+      "source": ".work/task-quality-106-main-merge-runner-audit/cli-session-host-consistency.yml",
+      "originalDigest": "sha256:0f548cdca3d2526a2b1497c6b8f5a37622da7c8a96006deaed8767b1fc340f01",
+      "storedDigest": "sha256:e3536c27c1c107bd12061fe95208a26666ee7f868672a86efae82c682857b7c0",
+      "originalBytes": 13723,
+      "storedBytes": 1853
+    },
+    {
+      "path": "followup-106-main-merge-runner-cleanup-context-memory-kernel.yml.gz",
+      "source": ".work/task-quality-106-main-merge-runner-audit/context-memory-kernel.yml",
+      "originalDigest": "sha256:400ced2f0249340dce5c498134c32a331eed1b529635f70e1d90a328c25d5a8b",
+      "storedDigest": "sha256:018b6b47d35ab7939e657d627873f71fa4f9cd8ab5ce5caedbd1322cad94bb75",
+      "originalBytes": 7400,
+      "storedBytes": 1799
+    },
+    {
+      "path": "followup-106-main-merge-runner-cleanup-docs-site-build-gate.yml.gz",
+      "source": ".work/task-quality-106-main-merge-runner-audit/docs-site-build-gate.yml",
+      "originalDigest": "sha256:c658772eeb0669f2dd4f37e2205713fd0a9dc573ca42e71882df498d7038d872",
+      "storedDigest": "sha256:a615e76344ca939425c5d34f47e1f05c61386cb0297aa6f1816225f82898d5a2",
+      "originalBytes": 4250,
+      "storedBytes": 1788
+    },
+    {
+      "path": "followup-106-main-merge-runner-cleanup-e2e-tests.yml.gz",
+      "source": ".work/task-quality-106-main-merge-runner-audit/e2e-tests.yml",
+      "originalDigest": "sha256:b6eeaab0ed5303821c628e84719e1055bdf73a754c4471d88045096450111eaa",
+      "storedDigest": "sha256:6476f2ca430fb027e34b15b4c50d5a3ed8ccd1a57018c59356359edbc28478c1",
+      "originalBytes": 5402,
+      "storedBytes": 1972
+    },
+    {
+      "path": "followup-106-main-merge-runner-cleanup-ide-roadmap-accessibility-performance.yml.gz",
+      "source": ".work/task-quality-106-main-merge-runner-audit/ide-roadmap-accessibility-performance.yml",
+      "originalDigest": "sha256:0f74b6821adc5e642805b9a5741cf97fceb3239be8ff33bbdfa08df9223403c1",
+      "storedDigest": "sha256:07ec442628bd6741fd6911b0688c36ac26023e3485ac3a3bbff37809acb05a15",
+      "originalBytes": 26310,
+      "storedBytes": 4753
+    },
+    {
+      "path": "followup-106-main-merge-runner-cleanup-ide-roadmap-live-provider.yml.gz",
+      "source": ".work/task-quality-106-main-merge-runner-audit/ide-roadmap-live-provider.yml",
+      "originalDigest": "sha256:a30a5cfc9b8db88290c23abf447f4aa457267cd8d305f0cf7fc865e3396b8677",
+      "storedDigest": "sha256:bf99fb41e5d3dfd2af4ee7394fdfa208bd1e4669ffa2b1e7289551805c4e27c5",
+      "originalBytes": 11087,
+      "storedBytes": 2286
+    },
+    {
+      "path": "followup-106-main-merge-runner-cleanup-ide-roadmap-safety.yml.gz",
+      "source": ".work/task-quality-106-main-merge-runner-audit/ide-roadmap-safety.yml",
+      "originalDigest": "sha256:529b9fe24822d8e47763eb5964cffda536cfe9b89403c6b8c6c8501780b52f66",
+      "storedDigest": "sha256:043ef21a6042cd4bd570d6aee7cda465fde64b0a64325f89ac912a2bf466d244",
+      "originalBytes": 13136,
+      "storedBytes": 2294
+    },
+    {
+      "path": "followup-106-main-merge-runner-cleanup-pm-e2e-tests.yml.gz",
+      "source": ".work/task-quality-106-main-merge-runner-audit/pm-e2e-tests.yml",
+      "originalDigest": "sha256:89ce61962f6c1fd7f0c851e05011976fa08ac8844e84cd738ac5beaf8696f75c",
+      "storedDigest": "sha256:5f46219835d37022b9030ccbce304b47e30968ae50f04be829b952a586ad926d",
+      "originalBytes": 13218,
+      "storedBytes": 2526
+    },
+    {
+      "path": "followup-106-main-merge-runner-cleanup-runs.json.gz",
+      "source": ".work/task-quality-106-main-merge-runner-audit/runs.json",
+      "originalDigest": "sha256:95a18a6f07b637f16fdeb0e7fb9dde5b9c0a73af0480a40562af9716f18ae44b",
+      "storedDigest": "sha256:ded9b6926b8bfe1c960a35a3b14bbd2860e56aaf5a0103718ca1e98323b04553",
+      "originalBytes": 253141,
+      "storedBytes": 5512
+    },
+    {
+      "path": "followup-106-main-merge-runner-cleanup-verify01-host-diagnostics.yml.gz",
+      "source": ".work/task-quality-106-main-merge-runner-audit/verify01-host-diagnostics.yml",
+      "originalDigest": "sha256:f4271c5710832e048defd55349fc235e77aa451e23643c99d50f04da7b6ea547",
+      "storedDigest": "sha256:9d7098db86ef49bfbb3ecfc708fb95646b85a8b56a38d37027e1fbab9b92ed8d",
+      "originalBytes": 7104,
+      "storedBytes": 1865
+    },
+    {
+      "path": "followup-106-main-merge-runner-cleanup-cancellation-receipt.json.gz",
+      "source": ".work/task-quality-106-main-merge-runner-cancellation.json",
+      "originalDigest": "sha256:23be6ef362405cd9687f7cce2172e3cac67503c40012a40181ace672ecf12d4d",
+      "storedDigest": "sha256:b23deffc71ffbb8a2c5449b66201dba240aef42d1f8048def6e559b871244de2",
+      "originalBytes": 12208,
+      "storedBytes": 1319
+    }
+  ],
+  "scope": "Read-only archival of existing exact-merge audit and official final cancellation receipts. This step did not cancel or dispatch any run.",
+  "newModelCalls": 0
+}

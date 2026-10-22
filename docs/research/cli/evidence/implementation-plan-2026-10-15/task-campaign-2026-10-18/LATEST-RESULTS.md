@@ -1,8 +1,102 @@
+# Current status: original .106 preflight aborted; independent r2 plan prepared
+
+The four original .106 runs on evaluation source `3aee87b8e4b0943feb9960e520fc4467028c8c84` failed in **validate**, all at attempt **1**. Native generation and acceptance were **skipped**, with **0 artifacts**. Seven selected samples stopped before provider execution; the other seven had no request in the original journal. These are harness validation failures, not model-quality failures. The original `0f9ec118...` plan, intents, resolved run references and failure evidence remain unchanged and are **not** added to the accepted-round chain.
+
+The integrated harness source `bd15b6c9770c5d20596c08d43ddc1ea2006eb74d` fixes two stale test assertions and historical reply lookup. Local Windows combined validation reports **92 passed, 0 failed, 1 Linux-only test skipped**; this is not an official Linux gate or native task acceptance. Historical `verify-33` data loads against the public .168 binding, but native UI archive-reply recovery remains unexecuted. See the [independent review and immutable raw evidence](./next-release-validation/followup-106-r2-preparation-review.json).
+
+The [new r2 plan](./next-package-106-20261018-r2-plan.json) is **PREPARED_NOT_DISPATCHED**: **14** unfinished samples, **8** groups, **10** execution shards, and **31** accepted samples reused. `verify-33` is excluded from generation. Cumulative acceptance remains **31/45** (ordinary **26/36**, first-use **5/9**); no new candidate or acceptance ledger has been created. The public CLI .106 / Open VSX .151 / JetBrains .168 manifest and release source `dca47fd91a209642b6536afd5bc9e99ec74c7d06` are unchanged. Microsoft Marketplace remains unpublished.
+
+Authorized runner cleanup confirmed **12** docs auxiliary runs and **7** duplicate matrices on non-release merge/docs sources cancelled; **1** already-successful matrix was skipped. This later policy supersedes the earlier blanket preservation of those duplicate matrices only. Actual `dca` release gates/publishers, protection checks, the docs build gate and native generation/acceptance/recovery runs were retained. Cancellation is not a passing check.
+
+The parent will commit and freeze a new evaluation source before any r2 dispatch. This bookkeeping performed **0 model requests, 0 workflow dispatches, 0 commits and 0 pushes**. All previous status text below is preserved byte-for-byte as historical observations.
+
+---
+
+# 当前状态：三包公开发布完成，同源插件内容已核实
+
+CLI **0.166.106**（npm）、VS Code **0.37.151**（Open VSX）、JetBrains **0.4.168**（Marketplace）均已严格公开核验，`published=true`。JetBrains update **1197255** 已获批并公开；[106 manifest](../../../verify01-package-sets/2026-10-18-task-quality-106.json) 固定三包公开字节摘要。发行源码仍为 `dca47fd91a209642b6536afd5bc9e99ec74c7d06`；VS Code 的微软 Marketplace 发布未核验。
+
+JetBrains 官方与公开 ZIP 原始字节**不同**，同源插件内容及全部容器差异已完成[独立复核](./next-release-validation/followup-106-public-package-set-review.json)：公开 ZIP 插入唯一 **5660** 字节的 Marketplace ZIP 签名块（8 字节头、5628 字节完整 protobuf、24 字节尾）；删除该块并恢复 EOCD 的4字节目录偏移字段后，整个 ZIP 与官方原件逐字节相同，未知差异为 **0**。4个 entry（含两个完整 JAR）保持一致。格式解析使用固定的 JetBrains 官方源码，**没有验证密码签名或证书链信任**，不声称两个原始 ZIP 的摘要相同。初始 `ZIP_BYTES_DIFFER_REVIEW_REQUIRED` 及此前商店待审核证据永久保留。
+
+[106 离线补测计划](./next-package-106-20261018-plan.json) 为 `PREPARED_NOT_DISPATCHED`：仅 **14** 项未通过样本、**8** 组、**10** 个执行 shard，排除并复用全部 **31** 项已合格样本。累计仍为 **31/45**，未派发、未请求模型、未运行新增任务测试。`verify-33` 保留原交付物，`.168` 零模型归档回复恢复尚未执行。
+
+主合并后的11个辅助流程已 `completed/cancelled`，正式门禁和保护流程保留；[审计与最终收据](./next-release-validation/followup-106-main-merge-runner-cleanup-review.json) 不计作通过结果。本批证据、manifest和计划统一提交后冻结评测 HEAD，直到主代理收齐14项补测结果。
+
+以下保留此前发布及评测原文；待审核、未公开等旧描述对应当时观察。
+
+---
+
+# 当前组件发布状态：JetBrains 已上传，待商店审核/上架
+
+产品修复 [PR #462](https://github.com/chainlesschain/chainlesschain/pull/462) 已于 **2026-10-18 13:59:50 UTC** 合并，merge commit 为 `38756541a6da5515908ee5b1807ef0b8e8c2ec5c`；发行标签继续固定在原发行提交 `dca47fd91a209642b6536afd5bc9e99ec74c7d06`，没有移动。PR 合并不改变 `.168` 尚未公开的状态。
+
+JetBrains **0.4.168** 的[正式发行流程 39131605961](https://github.com/chainlesschain/chainlesschain/actions/runs/39131605961) 已 `completed/success`：**13** 个任务成功，包含 **6** 个真实宿主任务，Marketplace 上传步骤成功。但发布后核验的实际结果为 **`pending / version-not-visible / 12 attempts`**，保存的公开 API 响应仍无 `.168`；绿色工作流不表示商店已经公开。原始官方记录、商店日志/API 以及官方插件制品见[JetBrains 上传与待审核证据](./next-release-validation/followup-106-jetbrains-upload-final-review.json)。
+
+| 组件 | 版本 | 当前状态 |
+| --- | --- | --- |
+| CLI | 0.166.106 | npm 已发布并公开核验 |
+| VS Code | 0.37.151 | Open VSX 已发布并公开核验；微软 Marketplace 未核验 |
+| JetBrains | 0.4.168 | 已上传，待商店审核/上架，尚未公开核验 |
+
+官方 GitHub 制品 **12139490322** 已下载归档并核对摘要，未执行；它不替代获批的公开商店 ZIP。全套 `published` 仍为 **false**，累计 **31/45** 不变，剩余 **14** 项尚未补测，新版三包 manifest 未创建，`verify-33` 的 `.168` 归档回复恢复检查未运行。31 项合格产物和旧失败证据均保留；本次没有重新下载公开包、运行测试或调用模型。
+
+以下保留此前进度原文；旧状态对应当时观察。
+
+---
+
+# 当前组件发布状态：CLI 与 VS Code 已公开核验
+
+VS Code **0.37.151** 的[正式发布流程 39131607926](https://github.com/chainlesschain/chainlesschain/actions/runs/39131607926) 已 `completed/success`，**11** 个必需任务成功；独立回读状态为 `VERIFIED_PUBLIC_VSCODE_ONLY`，Open VSX 公开 VSIX 与官方 candidate **12138485629** 字节完全一致，绑定发行提交 `dca47fd91a209642b6536afd5bc9e99ec74c7d06`，推荐 CLI **0.166.106**。全部既有原始证据和最终官方记录见[VS Code 发布归档](./next-release-validation/followup-106-vscode-publication-final-review.json)。
+
+| 组件 | 版本 | 当前状态 |
+| --- | --- | --- |
+| CLI | 0.166.106 | 已发布，npm 公开回读通过 |
+| VS Code | 0.37.151 | 已发布，Open VSX 公开回读通过；微软 Marketplace 发布尚未核验 |
+| JetBrains | 0.4.168 | 六个真实宿主任务已通过，官方 build + publish 流程仍在推进，尚未公开核验 |
+
+本次 Open VSX 核验不证明微软 Marketplace 已发布。JetBrains [39131605961](https://github.com/chainlesschain/chainlesschain/actions/runs/39131605961) 仍须完成正式发行及公开包回读；全套 `published` 仍为 **false**，累计 **31/45**、剩余 **14** 项不变，既有合格产物全部复用。没有重新下载公开包、安装、运行测试或调用模型，也没有创建新版三包 manifest。
+
+以下保留此前发布进度和评测原文；其中旧状态以当时观察为准。
+
+---
+
+# 当前组件发布状态
+
+发行队列补充：按用户授权，两个 IDE 标签额外触发的辅助 `Context Memory Kernel CI` 流程 **39131607809 / 39131605982** 已由官方回读确认 `completed/cancelled`；取消不记作测试通过。正式 IDE 发行流程 **39131607926 / 39131605961**、既有发布门禁、保护检查及原生任务均保留。审核及请求收据另存[标签辅助流程清理证据](./next-release-validation/followup-106-ide-tag-runner-cleanup-review.json)。此更新不改变 CLI 已公开核验、IDE 尚待公开核验、全套 `published=false` 和累计 **31/45**。
+
+CLI **0.166.106 已正式发布并完成独立公开回读**：[GitHub Actions OIDC 发布流程 39130542725](https://github.com/chainlesschain/chainlesschain/actions/runs/39130542725) 已 `completed/success`，固定标签 `v-npm-0-166-106` 对应提交 `dca47fd91a209642b6536afd5bc9e99ec74c7d06`。已保存公开 npm 元数据、包原文及 `VERIFIED_PUBLIC_CLI_ONLY` 回执，校验包摘要、SRI 和回执列明的源码字节；没有重复下载、安装、执行包或调用模型。见[CLI 最终发布与公开回读证据](./next-release-validation/followup-106-cli-publication-final-review.json)。
+
+| 组件 | 版本 | 当前状态 |
+| --- | --- | --- |
+| CLI | 0.166.106 | 已发布，公开回读通过 |
+| VS Code | 0.37.151 | [官方发行中](https://github.com/chainlesschain/chainlesschain/actions/runs/39131607926)，尚未完成公开核验 |
+| JetBrains | 0.4.168 | [官方发行中](https://github.com/chainlesschain/chainlesschain/actions/runs/39131605961)，尚未完成公开核验 |
+
+两个 IDE 固定标签已由独立远端查询确认均指向上述提交，官方运行均由标签 `push` 触发。原客户端因 Python `Path.write_text(newline=)` 兼容错误未写回最终收据；原 intent 保持原文，另存[远端标签及官方运行核验](./next-release-validation/followup-106-cli-publication-final-ide-tag-resolution.json)，不伪造客户端响应，也未重推标签。
+
+全套 `published` 仍为 **false**；此 CLI 单组件回执不代表三包齐备，也不授权开始新版原生模型评测。累计仍为 **31/45**（普通 **26/36**、首次 **5/9**），剩余 **14** 项，31 项合格产物及原结果全部复用。本次只归档已取得的发布和回读证据。
+
+以下为此前过程记录，原文按字节保留；其中“发布中”“尚未发布”等描述对应当时观察。
+
+---
+
 # 最新 CLI / IDE：36+9 实际任务结果
 
 当前公开包补测使用 CLI **0.166.105**、VS Code **0.37.150**、JetBrains **0.4.167**。[本轮账本](./next-package-105-20261018.json) 已完整收取生成 **20/20**、独立验收 **20/20**，新增 **6** 项候选及全流程通过。累计候选合格 **31/45**（普通 **26/36**、首次 **5/9**），剩余 **14** 项；完整性严格校验通过，原生任务没有重复派发。逐项及原因见[本轮复核](./next-package-105-20261018-review.json)，状态 `COMPLETED` 表示证据收齐。
 
-下一候选 **.106/.151/.168** 的代码和版本信息已提交至最终候选 `4317bf01a4`，见 [PR #462](https://github.com/chainlesschain/chainlesschain/pull/462) 和[准备记录](./followup-106-preparation.json)。CLI 聚焦回归 **58** 项、JetBrains 聚焦回归 **38** 项通过；通用边界指导已根据真实失败补全，最终提交的正式跨系统门禁进行中。候选尚未发布，也未进行新版模型补测。Windows JetBrains 的 ACL 遍历和校验超时仍未定位，单独分支的有界阶段诊断未纳入本次发行源码；本地未复现不能证明问题解决。
+发行提交 `dca47fd91a209642b6536afd5bc9e99ec74c7d06` 的完整正式门禁现已通过：CLI **71/71**、Strict **5/5**、IDE **18/18**、ARM64 **10/10**，共 **104** 个必需任务成功；IDE 唯一条件跳过项为发布标签才触发的 Marketplace 验证，ARM64 第 2 次运行的 **11 格证据聚合**成功。[最终完整复核及原始证据](./next-release-validation/followup-106-final-gates-review.json) 已保存，旧失败均未改写。CLI 固定标签 `v-npm-0-166-106` 已推送同一提交，[OIDC 正式发布流程 39130542725](https://github.com/chainlesschain/chainlesschain/actions/runs/39130542725) 正在运行；公开包尚待严格回读，随后才能发行 IDE，当前不宣称三包已发布。下方排队和失败段落保留为此前过程记录。
+
+下一候选 **.106/.151/.168** 见 [PR #462](https://github.com/chainlesschain/chainlesschain/pull/462) 和[准备记录](./followup-106-preparation.json)。产品提交已更新为 `dca47fd91a209642b6536afd5bc9e99ec74c7d06`。对应官方运行：CLI CI [39114428682](https://github.com/chainlesschain/chainlesschain/actions/runs/39114428682)、CLI Strict Sandbox [39114428621](https://github.com/chainlesschain/chainlesschain/actions/runs/39114428621)、IDE Extensions [39114428636](https://github.com/chainlesschain/chainlesschain/actions/runs/39114428636)、ARM64 [39114428701](https://github.com/chainlesschain/chainlesschain/actions/runs/39114428701)，初始观察均为 queued/pending，尚未完成，不能放行发行。CLI 聚焦 **58** 项、JetBrains 聚焦 **38** 项及 README 定向 **4/4** 通过不替代官方完整矩阵。候选尚未发布，也未进行新版模型补测。
+
+新提交 ARM64 运行 `39114428701` 的 Windows JetBrains `2026.2.0.1` job `117637196667` 首次失败，已由官方日志确认：安装包下载完成，但获取供应商 checksum 时 DNS 解析失败，校验、安装、Gradle 和 IDE journey 均未执行，与新增 Java 测试无关。[失败与原始证据](./next-release-validation/followup-106-dca47-arm64-dns-failure-review.json) 保留早先因原工作流仍运行而被拒绝的请求。原矩阵结束后，监控于 **09:51:38Z** 成功提交唯一一次单项重试，现为同一提交的 **attempt 2**，Windows ARM64 仍在运行，严格 checksum 校验保留；没有新派发模型任务。最新观察中 Strict Sandbox 已 **5/5 通过**，CLI CI 已 **13 项通过**，其余 CLI、IDE 及 ARM64 结果尚未收齐，候选仍未发布。见[重试回执及门禁快照](./next-release-validation/followup-106-dca47-dns-rerun-and-release-progress.json)；初始 queued 快照与原失败均未改写。
+
+旧提交 `4317bf01a48a7ec612e12000936a81851c6febf3` 已被新提交取代；其正式 ARM64 工作流独立失败为 VS Code README 一致性检查，原始汇总 **274/275** 通过，未进入 VSIX 打包，聚合随后拒绝不完整矩阵。[原失败证据](./next-release-validation/followup-106-vscode-contract-failure-review.json) 与[补充归档](./next-release-validation/followup-106-dca47-evidence-review.json) 均保留；旧结果不能放行新提交，原失败没有改写为成功。
+
+按用户“取消和发布无关的 runner”授权，已逐项核验并取消 **9** 个辅助或旧源码 CI 流程，官方回读均为 `completed/cancelled`；另一个已自行结束的流程没有重复取消。当前发行提交的四项发布门禁及三个保护流程均保留，未取消任何 36+9 原生任务或正在发布的流程，未重新调用模型。清理后的观察为 CLI **15 项通过、10 项运行**，Strict **5/5 通过**，IDE **14 项通过、1 项运行**，ARM64 **8 项通过、1 项运行**，其余必需的后续任务仍须收齐，候选尚未发布。取消的辅助检查不记作通过；[取消回执、最终状态、保留清单及容量提示](./next-release-validation/followup-106-release-priority-cleanup-review.json) 已归档。GitHub 直接提示 macOS ARM 容量紧张，不能据此推断其他平台或账户计费原因。
+
+Windows JetBrains 的原生 ACL 超时根因仍未解决。新产品提交包含插件 Java 子进程生命周期修复，本地 JUnit **9/9**（含 **5** 个真实子进程测试）通过：关闭未使用 stdin、完整排空输出、共用单一 **5 秒**清理等待预算，仅回收自身子进程并保留中断；原操作 **30 秒**期限与 ACL 脚本不变。执行时记录的生产源码摘要与新 git 对象一致，原始源码、测试源码及各自摘要已归档；未执行的 Node 原型不作为测试结果。继承管道未关闭时 daemon reader/closer 仍可能晚于调用方结束，这不证明原生超时根因已修复。
+
+独立阶段诊断运行 [39112546523](https://github.com/chainlesschain/chainlesschain/actions/runs/39112546523) 精确绑定 `2ceaa8421901fbdc68bec4d4c2395f6af089602d`，完成 **16** 项测试和 **3** 个 probe。约 **22–29 秒**为阶段区间，包含间隔工作，不是精确 native call 用时；未重现 IDE/Gradle/CEF 并发负载，也未向产品提交引入 session-core 修改。[诊断及原始/存储 SHA-256 清单](./next-release-validation/followup-106-dca47-evidence-review.json) 保留这些限制及候选版本尚不可用的只读快照。
 
 新增合格为 `verify-12`、`verify-14`、`verify-32`、`first-run-linux-jetbrains`、`first-run-linux-vscode` 和 `first-run-darwin-vscode`。已将完整轮次摘要登记至[累计轮次链](./next-package-round-chain.json)，新计划会严格排除全部 31 项合格样本。可下载[31 项交付包](./next-package-105-20261018-accepted-deliverables.tar.gz)及[索引](./next-package-105-20261018-accepted-deliverables.json)，原 25 项产物和收据按字节复用，原包保持不变；打包没有重新执行模型或候选测试。累计跨版本的文件合格与原生全流程结论分别保留。
 
@@ -103,6 +197,10 @@ python -X utf8 packages/cli/scripts/verify01-package-native-deliveries.py --roun
 派发默认仅预览；`--submit` 才发送请求，`--resolve` 只读解析已有请求。所有关联工作树共用 Git common directory 对应的 `.work/next-package-dispatch/` 日志；未解析 intent 必须保留，不得删除或盲目重发。派发至所有 run 绑定完成期间应保持评测分支 HEAD 不变。GitHub 凭据只通过进程环境 `GH_TOKEN` 传入，不放入参数或文件。
 
 收集器和归档读取器只读取已有任务；严格完整验收后才能把轮次及摘要显式加入 `next-package-round-chain.json`。交付包工具默认预览，确认链尾轮次后添加 `--pack` 才在共享 `.work/accepted-round-exports/` 创建独立包；原 25 项产物和收据按字节复用，原包不覆盖。原子创建交付目录目前限 Windows。以上工具及记录属于评测分支，发行源码仍固定 `d4065008bb`。
+
+派发器现支持 `--submit --max-new-dispatches 2`，每次最多提交两个尚未请求的分片。只有等待本批生成结束后再提交下一批，才能减少同时执行量；全部批次必须保持同一已提交计划及评测 HEAD，未解析 intent 仍须先只读解析。只有全部分片完整绑定后才创建正式账本。19 项派发回归通过，见[验证记录](./next-release-validation/native-dispatch-batch-validation.json)；未调用模型、未改变请求预算或验收规则，并发也未被确定为此前网络失败的原因。
+
+公开回读入口已保存为 `packages/cli/scripts/verify-public-cli.py`、`verify-public-vscode.py` 和 `verify-public-package-set.py`。它们要求显式完整产品 SHA、新 manifest 及前轮 manifest，按 CLI → VS Code → 三包清单依序复验；版本从固定 Git 对象读取，最终清单使用独占创建。7 项离线回归通过；源码绑定见[记录](./next-release-validation/public-readback-generic-tool-git-binding.json)。
 
 ## 持续修复与发布要求
 

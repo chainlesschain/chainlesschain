@@ -1,16 +1,16 @@
 {
   "schema": "chainlesschain.task-quality-next-version-preparation/v1",
   "recordedAt": "2026-10-18T08:16:55.683049+00:00",
-  "status": "FINAL_SOURCE_COMMITTED_OFFICIAL_RELEASE_GATES_IN_PROGRESS",
+  "status": "PUBLIC_PACKAGES_VERIFIED_ORIGINAL_PREFLIGHT_ABORTED_R2_PREPARED",
   "billingAssessed": false,
-  "sourceCommit": "4317bf01a48a7ec612e12000936a81851c6febf3",
+  "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
   "pullRequest": "https://github.com/chainlesschain/chainlesschain/pull/462",
   "candidateVersions": {
     "cli": "0.166.106",
     "vscode": "0.37.151",
     "jetbrains": "0.4.168"
   },
-  "published": false,
+  "published": true,
   "currentRoundLedger": "next-package-105-20261018.json",
   "currentRoundSnapshot": {
     "generationRecordsCollected": 20,
@@ -34,19 +34,27 @@
     "linuxFixturePassed": 8,
     "windowsFixturePassed": 7,
     "windowsFixtureSkipped": 1,
-    "uiJavaCompile": "passed"
+    "uiJavaCompile": "passed",
+    "windowsAclLifecyclePassed": 9,
+    "windowsAclRealSubprocessTests": 5,
+    "marketplaceOverviewPassed": 4
   },
   "evidence": [
     "next-release-validation/native-105-darwin-cli-product-followup.json",
     "next-release-validation/native-105-new-failures-review.json",
-    "next-release-validation/followup-106-archived-reply-regressions.json"
+    "next-release-validation/followup-106-archived-reply-regressions.json",
+    "next-release-validation/followup-106-dca47-evidence-review.json",
+    "next-release-validation/followup-106-cli-publication-final-review.json",
+    "next-release-validation/followup-106-cli-publication-final-ide-tag-resolution.json",
+    "next-release-validation/followup-106-vscode-publication-final-review.json",
+    "next-release-validation/followup-106-jetbrains-upload-final-review.json",
+    "next-release-validation/followup-106-public-package-set-review.json",
+    "next-release-validation/followup-106-main-merge-runner-cleanup-review.json"
   ],
   "remaining": [
-    "Require every configured official gate for final source 4317bf01a48a7ec612e12000936a81851c6febf3.",
-    "Publish and verify CLI 0.166.106 through OIDC, then VS Code 0.37.151 / JetBrains 0.4.168.",
-    "Create a strict public package manifest and retest only the remaining 14 sample IDs, reusing all 31 accepted deliverables.",
-    "Run the existing archived-reply zero-model recovery against the new approved public .168 ZIP.",
-    "Diagnose Windows ACL traversal/verify timeouts without weakening protection; the instrumentation branch is not a proven fix."
+    "Use the prepared offline 106 plan to retest only the remaining 14 sample IDs, reusing all 31 accepted deliverables; no dispatch has occurred.",
+    "Run the existing archived-reply zero-model recovery against the approved public 0.4.168 ZIP; retain the accepted verify-33 deliverable without regenerating it.",
+    "Diagnose Windows ACL traversal/verify timeouts without weakening protection; Java lifecycle tests and the separate 2ceaa diagnostic run do not establish the native timeout root cause."
   ],
   "releaseLimits": [
     "No old checks qualify a later source commit.",
@@ -61,10 +69,11 @@
     "reusedAcceptedDeliverables": 25,
     "cumulativeAcceptedDeliverables": 26
   },
-  "updatedAt": "2026-10-18T08:40:45.362500+00:00",
+  "updatedAt": "2026-10-18T14:43:39.642147+00:00",
   "supersededSourceCommits": [
     "e01eb3a92212a69140559d8ec304ddd0dce99274",
-    "52f882ffa891f0683120eff6399701378a617ae7"
+    "52f882ffa891f0683120eff6399701378a617ae7",
+    "4317bf01a48a7ec612e12000936a81851c6febf3"
   ],
   "remainingSampleIds": [
     "verify-04",
@@ -83,12 +92,704 @@
     "first-run-win32-jetbrains"
   ],
   "officialGateObservation": {
-    "path": "followup-106-final-source-initial-gates.json.gz",
-    "originalDigest": "sha256:309aa696044686bf641f67af1c9b78446638fce0dfd815d0f2947b835d614b64",
-    "storedDigest": "sha256:7ba6114dee931b745ca13f82a0b1c3699feaa7b2788e9be3aea73af965c136a4",
-    "originalBytes": 7431
+    "path": "followup-106-dca47-initial-gates.json.gz",
+    "source": ".work/task-quality-106-dca47-initial-gates.json",
+    "originalDigest": "sha256:141ebed9a73112b1361c257d0545fdf626e8ea667c8a14c7fe006834cd88f88f",
+    "storedDigest": "sha256:df57e43a3cd09774ccf8aeb548041a8dda77a4c0fa956f10d2614ea1ed8132d3",
+    "originalBytes": 5090,
+    "storedBytes": 609
   },
   "roundChainRegistered": true,
   "acceptedExportIndex": "next-package-105-20261018-accepted-deliverables.json",
-  "publicReadbackToolsValidation": "next-release-validation/public-readback-generic-tool-validation.json"
+  "publicReadbackToolsValidation": "next-release-validation/public-readback-generic-tool-validation.json",
+  "latestOfficialFailure": "next-release-validation/followup-106-dca47-arm64-dns-failure-review.json",
+  "sourceCommitFailedGate": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+  "supersededOfficialGateObservations": [
+    {
+      "sourceCommit": "4317bf01a48a7ec612e12000936a81851c6febf3",
+      "observation": {
+        "path": "followup-106-final-source-initial-gates.json.gz",
+        "originalDigest": "sha256:309aa696044686bf641f67af1c9b78446638fce0dfd815d0f2947b835d614b64",
+        "storedDigest": "sha256:7ba6114dee931b745ca13f82a0b1c3699feaa7b2788e9be3aea73af965c136a4",
+        "originalBytes": 7431
+      },
+      "failureReview": "next-release-validation/followup-106-vscode-contract-failure-review.json",
+      "releaseEligible": false
+    }
+  ],
+  "officialGateRuns": [
+    {
+      "runId": 39114428682,
+      "name": "CLI CI",
+      "path": ".github/workflows/cli-ci.yml",
+      "status": "queued",
+      "conclusion": null
+    },
+    {
+      "runId": 39114428621,
+      "name": "CLI Strict Sandbox",
+      "path": ".github/workflows/cli-strict-sandbox.yml",
+      "status": "queued",
+      "conclusion": null
+    },
+    {
+      "runId": 39114428636,
+      "name": "IDE Extensions",
+      "path": ".github/workflows/ide-extensions.yml",
+      "status": "queued",
+      "conclusion": null
+    },
+    {
+      "runId": 39114428701,
+      "name": "IDE ARM64 Host Validation",
+      "path": ".github/workflows/ide-arm64-validation.yml",
+      "status": "queued",
+      "conclusion": null
+    }
+  ],
+  "officialGatesCompleted": true,
+  "releaseEligible": true,
+  "windowsAclDiagnostic": {
+    "sourceCommit": "2ceaa8421901fbdc68bec4d4c2395f6af089602d",
+    "runId": "39112546523",
+    "conclusion": "success",
+    "focusedPassed": 16,
+    "probesPassed": 3,
+    "diagnosticOnly": true,
+    "modelCalls": 0,
+    "sessionCoreProductModification": false,
+    "limits": [
+      "Observed roughly 22–29 second stage intervals include intervening work and are not precise native-call timings.",
+      "Standalone probes do not reproduce IDE/Gradle/CEF concurrent load.",
+      "PowerShell stage timing excludes pre-script startup; output-complete is not process exit.",
+      "Native ACL timeout root cause remains unresolved; no acceptance or release gate is replaced."
+    ]
+  },
+  "candidateAvailabilityObservation": "next-release-validation/followup-106-version-availability.json.gz",
+  "currentReportedOfficialFailure": {
+    "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+    "workflow": "IDE ARM64 Host Validation",
+    "runId": "39114428701",
+    "jobId": "117637196667",
+    "job": "Windows JetBrains 2026.2.0.1",
+    "status": "failure",
+    "diagnosis": "Vendor checksum download failed with DNS resolution error. Installer download completed, checksum verification/installation/Gradle/IDE journey did not execute.",
+    "source": "Parent observation; official failure evidence is being reviewed separately.",
+    "releaseEligible": false,
+    "review": "next-release-validation/followup-106-dca47-arm64-dns-failure-review.json",
+    "retryStatus": "RESOLVED_BY_SUCCESSFUL_EXACT_SOURCE_ATTEMPT_2",
+    "productRegressionEstablished": false,
+    "retryEvidence": "next-release-validation/followup-106-dca47-dns-rerun-and-release-progress.json",
+    "resolvedEvidence": "next-release-validation/followup-106-final-gates-review.json",
+    "originalFailurePreserved": true
+  },
+  "latestOfficialGateProgress": "next-release-validation/followup-106-release-priority-cleanup-review.json",
+  "officialGateCurrentSummary": [
+    {
+      "workflow": "CLI CI",
+      "runId": 39114428682,
+      "status": "completed",
+      "conclusion": "success",
+      "requiredPrepublicationJobs": 71,
+      "jobConclusions": {
+        "success": 71
+      }
+    },
+    {
+      "workflow": "CLI Strict Sandbox",
+      "runId": 39114428621,
+      "status": "completed",
+      "conclusion": "success",
+      "requiredPrepublicationJobs": 5,
+      "jobConclusions": {
+        "success": 5
+      }
+    },
+    {
+      "workflow": "IDE Extensions",
+      "runId": 39114428636,
+      "status": "completed",
+      "conclusion": "success",
+      "requiredPrepublicationJobs": 18,
+      "jobConclusions": {
+        "success": 18,
+        "skipped": 1
+      }
+    },
+    {
+      "workflow": "IDE ARM64 Host Validation",
+      "runId": 39114428701,
+      "status": "completed",
+      "conclusion": "success",
+      "requiredPrepublicationJobs": 10,
+      "jobConclusions": {
+        "success": 10
+      }
+    }
+  ],
+  "releasePriorityCleanupReview": "next-release-validation/followup-106-release-priority-cleanup-review.json",
+  "releasePriorityCleanup": {
+    "cancelledWorkflowCount": 9,
+    "allFinalOutcomesVerified": true,
+    "currentReleaseGatesAndProtectedWorkflowsPreserved": true,
+    "nativeTaskRunsCancelled": 0
+  },
+  "finalOfficialGatesReview": "next-release-validation/followup-106-final-gates-review.json",
+  "currentBlockingOfficialFailure": null,
+  "cliPublication": {
+    "version": "0.166.106",
+    "tag": "v-npm-0-166-106",
+    "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+    "runId": 39130542725,
+    "status": "COMPLETED_SUCCESS_PUBLIC_VERIFIED",
+    "method": "GitHub Actions OIDC Trusted Publishing",
+    "publicVerified": true,
+    "evidence": [
+      {
+        "path": "followup-106-cli-verified-release-gates.json.gz",
+        "originalDigest": "sha256:d48cf7e7e0c1f51948ee0b582a4198123432a2544c16993a0a136f04bd780256",
+        "storedDigest": "sha256:7ac2d263632f24727702f5269bac7937b1db30b58875bd0aa24f18c4e6078afe",
+        "originalBytes": 923,
+        "storedBytes": 338
+      },
+      {
+        "path": "followup-106-cli-publish-intent.json.gz",
+        "originalDigest": "sha256:36b0d44e2a188f86dc5e9fd0642f61a104a5aa53d362ddf785f9ee219bbc3a4c",
+        "storedDigest": "sha256:6abb609c88e21550c3a957bc2035db596a69ceb34acfbdaf0bb1cfd58bb47148",
+        "originalBytes": 697,
+        "storedBytes": 434
+      },
+      {
+        "path": "followup-106-cli-initial-publish-runs.json.gz",
+        "originalDigest": "sha256:81835c4d1e9c9b1425a9213a1c4804c525a8be4bbad6ada1b8676c25bee1a69e",
+        "storedDigest": "sha256:1bd1a610eea561170cd1f3e217b4197b26c620e698e4e64257e66ba76d84b7e3",
+        "originalBytes": 542,
+        "storedBytes": 282
+      }
+    ],
+    "workflowStatus": "completed",
+    "workflowConclusion": "success",
+    "published": true,
+    "publicVerifiedAt": "2026-10-18T13:23:19.861718+00:00",
+    "publicReadbackStatus": "VERIFIED_PUBLIC_CLI_ONLY",
+    "finalOfficialRun": {
+      "path": "followup-106-cli-publication-final-official-run-39130542725.json.gz",
+      "source": "GitHub Actions official final run metadata with latest jobs",
+      "originalDigest": "sha256:680a47cf4fba5a1a4219a4d9a3e816f4300805b5fe1f1ac241943bbc978a5754",
+      "storedDigest": "sha256:6f4748b2037dc80d8eba1c091ed19703c2f36ec508d366381d9d727e3e6471c7",
+      "originalBytes": 16020,
+      "storedBytes": 1995
+    },
+    "publicReadbackEvidence": [
+      {
+        "path": "followup-106-cli-publication-final-readback.json.gz",
+        "source": ".work/public106-cli-20261018-r2/readback.json",
+        "originalDigest": "sha256:7e8459e953bfa5aab4e7cd816e51fd3da6a62a603d6a219ff6c21e1527d5e732",
+        "storedDigest": "sha256:7ab4bcce4628532c732a1c8353f376ae604b969c3f458414e20c29a0dad8e2d3",
+        "originalBytes": 6868,
+        "storedBytes": 2337
+      },
+      {
+        "path": "followup-106-cli-publication-final-npm-metadata.json.gz",
+        "source": ".work/public106-cli-20261018-r2/npm-metadata.json",
+        "originalDigest": "sha256:71889547ff9fd3d9a0108c702d8b71761d83e6dc872624337d0b5effb7ed497a",
+        "storedDigest": "sha256:8986a21d745843b48922cb979f467686d0b2cb37a0781405e600038f06a53362",
+        "originalBytes": 7696,
+        "storedBytes": 2768
+      },
+      {
+        "path": "followup-106-cli-publication-final-chainlesschain.tgz.gz",
+        "source": ".work/public106-cli-20261018-r2/chainlesschain.tgz",
+        "originalDigest": "sha256:036264d2ad883cf3a089440cb5d7e228abdc9efe568c240509aa7bd50b3e6e14",
+        "storedDigest": "sha256:e7771883dd6cb7a739d9a1d49f2828a97e41891e6d44a036ad2962c541ea47e1",
+        "originalBytes": 9421202,
+        "storedBytes": 9420351
+      }
+    ],
+    "review": "next-release-validation/followup-106-cli-publication-final-review.json"
+  },
+  "componentPublicationStatus": {
+    "cli": {
+      "version": "0.166.106",
+      "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+      "status": "PUBLISHED_PUBLIC_VERIFIED",
+      "published": true,
+      "publicVerified": true,
+      "runId": 39130542725,
+      "review": "next-release-validation/followup-106-cli-publication-final-review.json"
+    },
+    "vscode": {
+      "version": "0.37.151",
+      "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+      "status": "PUBLISHED_OPEN_VSX_PUBLIC_VERIFIED",
+      "published": true,
+      "publicVerified": true,
+      "runId": 39131607926,
+      "tag": "ide-vscode-v0.37.151",
+      "publicRegistry": "Open VSX",
+      "microsoftMarketplacePublicationVerified": false,
+      "publicVerifiedAt": "2026-10-18T13:49:25.110636+00:00",
+      "review": "next-release-validation/followup-106-vscode-publication-final-review.json"
+    },
+    "jetbrains": {
+      "version": "0.4.168",
+      "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+      "status": "PUBLISHED_MARKETPLACE_PUBLIC_VERIFIED_SOURCE_PAYLOAD_VERIFIED",
+      "published": true,
+      "publicVerified": true,
+      "runId": 39131605961,
+      "tag": "ide-jetbrains-v0.4.168",
+      "hostJobsPassed": 6,
+      "buildJobStatus": "completed",
+      "latestOfficialObservation": {
+        "path": "followup-106-jetbrains-upload-final-official-run-39131605961.json.gz",
+        "source": "Official final GitHub run metadata and latest jobs",
+        "originalDigest": "sha256:2caf481ad93f764ba792c15c37bdc9436d580da9ecb72a24dfd998487bfebb37",
+        "storedDigest": "sha256:d19dcd655b50a41866303897383ec37dd5ce21e533a8e301e81b3eaa5abb772b",
+        "originalBytes": 41130,
+        "storedBytes": 3306
+      },
+      "uploaded": true,
+      "workflowStatus": "completed",
+      "workflowConclusion": "success",
+      "requiredJobsPassed": 13,
+      "marketplaceStatus": {
+        "status": "approved-and-public",
+        "approved": true,
+        "listed": true,
+        "hidden": false
+      },
+      "review": "next-release-validation/followup-106-jetbrains-upload-final-review.json",
+      "publicUpdateId": 1197255,
+      "publicReadbackReview": "next-release-validation/followup-106-public-package-set-review.json",
+      "sourcePackagingReview": {
+        "status": "SAME_SOURCE_PLUGIN_PAYLOAD_CONTAINER_DIFFERENCES_FULLY_EXPLAINED",
+        "sameSourcePluginPayloadEstablished": true,
+        "allContainerDifferencesExplained": true,
+        "originalZipBytesEqual": false,
+        "publicZipExtraBytes": 5660,
+        "allEntryNamesContentsMetadataAndOrderEqual": true,
+        "initialComparisonStatus": "ZIP_BYTES_DIFFER_REVIEW_REQUIRED",
+        "initialComparisonPreserved": true,
+        "reviewNotReplacedByEntryEquality": true,
+        "reconstructionByteForByteEqualToOfficial": true,
+        "unexplainedBytes": 0,
+        "containerChange": "One 5660-byte JetBrains Marketplace ZIP signing block inserted before the central directory; only the 4-byte EOCD central-directory-offset field changes after removal.",
+        "signatureBlock": {
+          "name": "JetBrains Marketplace ZIP signing block",
+          "version": 1,
+          "headerBytes": 8,
+          "protobufBytes": 5628,
+          "footerBytes": 24,
+          "protobufUnknownFields": 0,
+          "protobufFullyConsumed": true,
+          "formatSourceCommit": "d8e450f45e303485d81eb5546026d058a5bd6822"
+        },
+        "cryptographicSignatureVerified": false,
+        "certificateChainTrustVerified": false,
+        "signatureTrustClaimed": false,
+        "reviewDigest": "sha256:31ed5a476c644e431eef194a6d9890de240887833016d4ef7237e6b5ea5d503e",
+        "reviewArchive": {
+          "path": "followup-106-jetbrains-signature-review-review.json.gz",
+          "source": ".work/release106-jetbrains-signature-review/review.json",
+          "originalDigest": "sha256:31ed5a476c644e431eef194a6d9890de240887833016d4ef7237e6b5ea5d503e",
+          "storedDigest": "sha256:99f097c79abe371d2bcf80ad6f3553ff85210fbe7671ba38d8b22c56a9c58816",
+          "originalBytes": 7032,
+          "storedBytes": 2607
+        },
+        "modelDispatchPerformed": false
+      }
+    }
+  },
+  "idePublication": {
+    "status": "OPEN_VSX_AND_JETBRAINS_PUBLIC_VERIFIED_SOURCE_PAYLOAD_VERIFIED",
+    "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+    "publicVerified": true,
+    "resolutionEvidence": "next-release-validation/followup-106-cli-publication-final-ide-tag-resolution.json",
+    "runs": [
+      {
+        "component": "vscode",
+        "runId": 39131607926,
+        "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+        "tag": "ide-vscode-v0.37.151",
+        "event": "push",
+        "workflowStatus": "completed",
+        "workflowConclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39131607926",
+        "publicVerified": true,
+        "archive": {
+          "path": "followup-106-cli-publication-final-ide-vscode-run-39131607926.json.gz",
+          "source": "Independent official GitHub push workflow run metadata",
+          "originalDigest": "sha256:8aebfaf6abe2bdcd3a7883adb22042c8fb64df9f2b7255fffab9bf743b7f6551",
+          "storedDigest": "sha256:f5d8dbc7c3480280d1891c67dfcd2af7f133580259a861949746b175a7d3d0b3",
+          "originalBytes": 17450,
+          "storedBytes": 2092
+        },
+        "publicRegistry": "Open VSX",
+        "microsoftMarketplacePublicationVerified": false,
+        "latestOfficialRun": {
+          "path": "followup-106-vscode-publication-final-official-run-39131607926.json.gz",
+          "source": "Official final GitHub run metadata and latest jobs",
+          "originalDigest": "sha256:493eb13b87603918b02a8b5b90b3e0ff0747d7f57155272669bc3ec44f9f7a77",
+          "storedDigest": "sha256:9e2e1c15d8424239fefffc810feaaba27cbe15b231c76ba16a691524b0f41081",
+          "originalBytes": 32135,
+          "storedBytes": 3245
+        },
+        "publicReadbackReview": "next-release-validation/followup-106-vscode-publication-final-review.json"
+      },
+      {
+        "component": "jetbrains",
+        "runId": 39131605961,
+        "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+        "tag": "ide-jetbrains-v0.4.168",
+        "event": "push",
+        "workflowStatus": "completed",
+        "workflowConclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39131605961",
+        "publicVerified": true,
+        "archive": {
+          "path": "followup-106-cli-publication-final-ide-jetbrains-run-39131605961.json.gz",
+          "source": "Independent official GitHub push workflow run metadata",
+          "originalDigest": "sha256:8ea1a83fed54d17d82f02790a84827fe6b3c9da35902be6a9f396db49786076c",
+          "storedDigest": "sha256:fa6869aa496b10468d6c292f743345ed35d801e2cf1ec006e2dd857f3f4d95f5",
+          "originalBytes": 31700,
+          "storedBytes": 2175
+        },
+        "hostJobsPassed": 6,
+        "buildJobStatus": "completed",
+        "latestOfficialRun": {
+          "path": "followup-106-jetbrains-upload-final-official-run-39131605961.json.gz",
+          "source": "Official final GitHub run metadata and latest jobs",
+          "originalDigest": "sha256:2caf481ad93f764ba792c15c37bdc9436d580da9ecb72a24dfd998487bfebb37",
+          "storedDigest": "sha256:d19dcd655b50a41866303897383ec37dd5ce21e533a8e301e81b3eaa5abb772b",
+          "originalBytes": 41130,
+          "storedBytes": 3306
+        },
+        "uploadSucceeded": true,
+        "marketplaceStatus": {
+          "status": "approved-and-public",
+          "approved": true,
+          "listed": true,
+          "hidden": false
+        },
+        "uploadReview": "next-release-validation/followup-106-jetbrains-upload-final-review.json",
+        "publicUpdateId": 1197255,
+        "publicReadbackReview": "next-release-validation/followup-106-public-package-set-review.json",
+        "sourcePackagingReview": {
+          "status": "SAME_SOURCE_PLUGIN_PAYLOAD_CONTAINER_DIFFERENCES_FULLY_EXPLAINED",
+          "sameSourcePluginPayloadEstablished": true,
+          "allContainerDifferencesExplained": true,
+          "originalZipBytesEqual": false,
+          "publicZipExtraBytes": 5660,
+          "allEntryNamesContentsMetadataAndOrderEqual": true,
+          "initialComparisonStatus": "ZIP_BYTES_DIFFER_REVIEW_REQUIRED",
+          "initialComparisonPreserved": true,
+          "reviewNotReplacedByEntryEquality": true,
+          "reconstructionByteForByteEqualToOfficial": true,
+          "unexplainedBytes": 0,
+          "containerChange": "One 5660-byte JetBrains Marketplace ZIP signing block inserted before the central directory; only the 4-byte EOCD central-directory-offset field changes after removal.",
+          "signatureBlock": {
+            "name": "JetBrains Marketplace ZIP signing block",
+            "version": 1,
+            "headerBytes": 8,
+            "protobufBytes": 5628,
+            "footerBytes": 24,
+            "protobufUnknownFields": 0,
+            "protobufFullyConsumed": true,
+            "formatSourceCommit": "d8e450f45e303485d81eb5546026d058a5bd6822"
+          },
+          "cryptographicSignatureVerified": false,
+          "certificateChainTrustVerified": false,
+          "signatureTrustClaimed": false,
+          "reviewDigest": "sha256:31ed5a476c644e431eef194a6d9890de240887833016d4ef7237e6b5ea5d503e",
+          "reviewArchive": {
+            "path": "followup-106-jetbrains-signature-review-review.json.gz",
+            "source": ".work/release106-jetbrains-signature-review/review.json",
+            "originalDigest": "sha256:31ed5a476c644e431eef194a6d9890de240887833016d4ef7237e6b5ea5d503e",
+            "storedDigest": "sha256:99f097c79abe371d2bcf80ad6f3553ff85210fbe7671ba38d8b22c56a9c58816",
+            "originalBytes": 7032,
+            "storedBytes": 2607
+          },
+          "modelDispatchPerformed": false
+        }
+      }
+    ],
+    "microsoftMarketplacePublicationVerified": false
+  },
+  "vscodePublication": {
+    "version": "0.37.151",
+    "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+    "tag": "ide-vscode-v0.37.151",
+    "runId": 39131607926,
+    "status": "COMPLETED_SUCCESS_OPEN_VSX_PUBLIC_VERIFIED",
+    "workflowStatus": "completed",
+    "workflowConclusion": "success",
+    "requiredJobsPassed": 11,
+    "published": true,
+    "publicVerified": true,
+    "publicRegistry": "Open VSX",
+    "microsoftMarketplacePublicationVerified": false,
+    "readbackDigest": "sha256:549c00efdd298c296a44ce1578dfd55fd8379e972d2ce0765ee37a6d24b848fb",
+    "officialCandidateArtifactId": 12138485629,
+    "officialCandidateBytesMatch": true,
+    "recommendedCliVersion": "0.166.106",
+    "publicVerifiedAt": "2026-10-18T13:49:25.110636+00:00",
+    "finalOfficialRun": {
+      "path": "followup-106-vscode-publication-final-official-run-39131607926.json.gz",
+      "source": "Official final GitHub run metadata and latest jobs",
+      "originalDigest": "sha256:493eb13b87603918b02a8b5b90b3e0ff0747d7f57155272669bc3ec44f9f7a77",
+      "storedDigest": "sha256:9e2e1c15d8424239fefffc810feaaba27cbe15b231c76ba16a691524b0f41081",
+      "originalBytes": 32135,
+      "storedBytes": 3245
+    },
+    "review": "next-release-validation/followup-106-vscode-publication-final-review.json"
+  },
+  "jetbrainsPublication": {
+    "version": "0.4.168",
+    "sourceCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+    "tag": "ide-jetbrains-v0.4.168",
+    "runId": 39131605961,
+    "status": "MARKETPLACE_PUBLIC_VERIFIED_SOURCE_PAYLOAD_VERIFIED",
+    "workflowStatus": "completed",
+    "workflowConclusion": "success",
+    "requiredJobsPassed": 13,
+    "hostJobsPassed": 6,
+    "uploadSucceeded": true,
+    "published": true,
+    "publicVerified": true,
+    "marketplaceStatus": {
+      "status": "approved-and-public",
+      "approved": true,
+      "listed": true,
+      "hidden": false
+    },
+    "officialArtifactId": 12139490322,
+    "officialArtifactDigest": "sha256:97175bd14f5f0bb57588e968680a64da454b92a7a45c09c471678267bdce7033",
+    "officialArtifactIsPublicMarketplaceReceipt": false,
+    "finalOfficialRun": {
+      "path": "followup-106-jetbrains-upload-final-official-run-39131605961.json.gz",
+      "source": "Official final GitHub run metadata and latest jobs",
+      "originalDigest": "sha256:2caf481ad93f764ba792c15c37bdc9436d580da9ecb72a24dfd998487bfebb37",
+      "storedDigest": "sha256:d19dcd655b50a41866303897383ec37dd5ce21e533a8e301e81b3eaa5abb772b",
+      "originalBytes": 41130,
+      "storedBytes": 3306
+    },
+    "review": "next-release-validation/followup-106-jetbrains-upload-final-review.json",
+    "publicUpdateId": 1197255,
+    "originalZipBytesEqual": false,
+    "publicReadbackReview": "next-release-validation/followup-106-public-package-set-review.json",
+    "sourcePackagingReview": {
+      "status": "SAME_SOURCE_PLUGIN_PAYLOAD_CONTAINER_DIFFERENCES_FULLY_EXPLAINED",
+      "sameSourcePluginPayloadEstablished": true,
+      "allContainerDifferencesExplained": true,
+      "originalZipBytesEqual": false,
+      "publicZipExtraBytes": 5660,
+      "allEntryNamesContentsMetadataAndOrderEqual": true,
+      "initialComparisonStatus": "ZIP_BYTES_DIFFER_REVIEW_REQUIRED",
+      "initialComparisonPreserved": true,
+      "reviewNotReplacedByEntryEquality": true,
+      "reconstructionByteForByteEqualToOfficial": true,
+      "unexplainedBytes": 0,
+      "containerChange": "One 5660-byte JetBrains Marketplace ZIP signing block inserted before the central directory; only the 4-byte EOCD central-directory-offset field changes after removal.",
+      "signatureBlock": {
+        "name": "JetBrains Marketplace ZIP signing block",
+        "version": 1,
+        "headerBytes": 8,
+        "protobufBytes": 5628,
+        "footerBytes": 24,
+        "protobufUnknownFields": 0,
+        "protobufFullyConsumed": true,
+        "formatSourceCommit": "d8e450f45e303485d81eb5546026d058a5bd6822"
+      },
+      "cryptographicSignatureVerified": false,
+      "certificateChainTrustVerified": false,
+      "signatureTrustClaimed": false,
+      "reviewDigest": "sha256:31ed5a476c644e431eef194a6d9890de240887833016d4ef7237e6b5ea5d503e",
+      "reviewArchive": {
+        "path": "followup-106-jetbrains-signature-review-review.json.gz",
+        "source": ".work/release106-jetbrains-signature-review/review.json",
+        "originalDigest": "sha256:31ed5a476c644e431eef194a6d9890de240887833016d4ef7237e6b5ea5d503e",
+        "storedDigest": "sha256:99f097c79abe371d2bcf80ad6f3553ff85210fbe7671ba38d8b22c56a9c58816",
+        "originalBytes": 7032,
+        "storedBytes": 2607
+      },
+      "modelDispatchPerformed": false
+    }
+  },
+  "nextVersionValidation": {
+    "remainingRetestStatus": "PREFLIGHT_ABORTED_R2_NOT_DISPATCHED",
+    "remainingSamples": 14,
+    "threePackageManifestCreated": true,
+    "archivedReplyVerify33RecoveryStatus": "LOADER_REPAIRED_NATIVE_UI_RECOVERY_NOT_RUN",
+    "acceptedDeliverablesRetained": 31,
+    "requiresPublicJetbrainsArtifact": false,
+    "packagingReviewPending": false,
+    "dispatchPerformed": true,
+    "sourcePayloadVerified": true,
+    "priorAttemptProviderRequests": 0,
+    "r2DispatchPerformed": false
+  },
+  "productMerge": {
+    "pullRequest": 462,
+    "url": "https://github.com/chainlesschain/chainlesschain/pull/462",
+    "state": "MERGED",
+    "mergedAt": "2026-10-18T13:59:50Z",
+    "mergeCommit": "38756541a6da5515908ee5b1807ef0b8e8c2ec5c",
+    "mergedHeadCommit": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+    "releaseSourceCommitUnchanged": "dca47fd91a209642b6536afd5bc9e99ec74c7d06",
+    "releaseTagsMoved": false,
+    "archive": {
+      "path": "followup-106-jetbrains-upload-final-product-pr-462-merged.json.gz",
+      "source": "Official gh pr view 462 final merge metadata",
+      "originalDigest": "sha256:7853a27a43c5e8e120682e816a9ca73a68f394abff5cfec2ff1ccbfc948953ba",
+      "storedDigest": "sha256:fbb2b12e12a3e4b454a521856891e304ce601858a84de4661d275713bce7e7b5",
+      "originalBytes": 274,
+      "storedBytes": 227
+    }
+  },
+  "publicPackageSet": {
+    "path": "docs/research/cli/verify01-package-sets/2026-10-18-task-quality-106.json",
+    "digest": "sha256:6b3d69597bcfae51aeafbb5a4e1be1d9da8def3e3f10b7ca59c6a60a4360f34b",
+    "readbackDigest": "sha256:a665c897a655aa7e471bcb4ec0a1cff9f186ac80bdc0d27e47d1fdeb7f5afe99",
+    "status": "VERIFIED_PUBLIC_ARTIFACTS",
+    "review": "next-release-validation/followup-106-public-package-set-review.json"
+  },
+  "sourcePackagingReview": {
+    "status": "SAME_SOURCE_PLUGIN_PAYLOAD_CONTAINER_DIFFERENCES_FULLY_EXPLAINED",
+    "sameSourcePluginPayloadEstablished": true,
+    "allContainerDifferencesExplained": true,
+    "originalZipBytesEqual": false,
+    "publicZipExtraBytes": 5660,
+    "allEntryNamesContentsMetadataAndOrderEqual": true,
+    "initialComparisonStatus": "ZIP_BYTES_DIFFER_REVIEW_REQUIRED",
+    "initialComparisonPreserved": true,
+    "reviewNotReplacedByEntryEquality": true,
+    "reconstructionByteForByteEqualToOfficial": true,
+    "unexplainedBytes": 0,
+    "containerChange": "One 5660-byte JetBrains Marketplace ZIP signing block inserted before the central directory; only the 4-byte EOCD central-directory-offset field changes after removal.",
+    "signatureBlock": {
+      "name": "JetBrains Marketplace ZIP signing block",
+      "version": 1,
+      "headerBytes": 8,
+      "protobufBytes": 5628,
+      "footerBytes": 24,
+      "protobufUnknownFields": 0,
+      "protobufFullyConsumed": true,
+      "formatSourceCommit": "d8e450f45e303485d81eb5546026d058a5bd6822"
+    },
+    "cryptographicSignatureVerified": false,
+    "certificateChainTrustVerified": false,
+    "signatureTrustClaimed": false,
+    "reviewDigest": "sha256:31ed5a476c644e431eef194a6d9890de240887833016d4ef7237e6b5ea5d503e",
+    "reviewArchive": {
+      "path": "followup-106-jetbrains-signature-review-review.json.gz",
+      "source": ".work/release106-jetbrains-signature-review/review.json",
+      "originalDigest": "sha256:31ed5a476c644e431eef194a6d9890de240887833016d4ef7237e6b5ea5d503e",
+      "storedDigest": "sha256:99f097c79abe371d2bcf80ad6f3553ff85210fbe7671ba38d8b22c56a9c58816",
+      "originalBytes": 7032,
+      "storedBytes": 2607
+    },
+    "modelDispatchPerformed": false
+  },
+  "offlineRetestPlan": {
+    "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-plan.json",
+    "digest": "sha256:ce3852ed914c903fa3de6dc6255354e33ab2c53f803c126fe990272904d12718",
+    "status": "PREPARED_NOT_DISPATCHED",
+    "plannedNewSamples": 14,
+    "reusedAcceptedSamples": 31,
+    "groups": 8,
+    "executionShards": 10,
+    "verify33ReusedNotRegenerated": true,
+    "dispatchPerformed": false,
+    "ledgerCreated": false,
+    "sourceFreeze": "Parent must commit evidence and freeze resulting evaluation source before any dispatch.",
+    "plannedSampleIds": [
+      "verify-04",
+      "verify-13",
+      "first-run-linux-cli",
+      "verify-06",
+      "verify-07",
+      "first-run-darwin-cli",
+      "verify-08",
+      "verify-09",
+      "first-run-darwin-jetbrains",
+      "verify-10",
+      "verify-19",
+      "verify-11",
+      "verify-30",
+      "first-run-win32-jetbrains"
+    ],
+    "acceptedIdsExcluded": true
+  },
+  "mainMergeRunnerCleanupReview": "next-release-validation/followup-106-main-merge-runner-cleanup-review.json",
+  "evaluationHeadPolicy": "Parent must commit this integrated harness/evidence/r2-plan state, then freeze the resulting exact evaluation HEAD before dispatch. This preparation performed no dispatch.",
+  "supersededOfflineRetestPlans": [
+    {
+      "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-plan.json",
+      "digest": "sha256:0f9ec118c5a36b82be594eac87883e31319741c682c7e7baedb1c2dc595d2ca8",
+      "status": "PREPARED_NOT_DISPATCHED",
+      "plannedNewSamples": 14,
+      "reusedAcceptedSamples": 31,
+      "groups": 8,
+      "executionShards": 10,
+      "plannedSampleIds": [
+        "verify-04",
+        "verify-13",
+        "first-run-linux-cli",
+        "verify-06",
+        "verify-07",
+        "first-run-darwin-cli",
+        "verify-08",
+        "verify-09",
+        "first-run-darwin-jetbrains",
+        "verify-10",
+        "verify-19",
+        "verify-11",
+        "verify-30",
+        "first-run-win32-jetbrains"
+      ],
+      "acceptedIdsExcluded": true,
+      "verify33ReusedNotRegenerated": true,
+      "ledgerCreated": false,
+      "dispatchPerformed": false
+    }
+  ],
+  "original106PreflightAbort": {
+    "evaluationSourceCommit": "3aee87b8e4b0943feb9960e520fc4467028c8c84",
+    "planDigest": "sha256:0f9ec118c5a36b82be594eac87883e31319741c682c7e7baedb1c2dc595d2ca8",
+    "status": "PREFLIGHT_ABORTED_BEFORE_PROVIDER",
+    "runIds": [
+      "39135920734",
+      "39136059726",
+      "39135410669",
+      "39135438416"
+    ],
+    "dispatchedSamples": [
+      "verify-07",
+      "first-run-darwin-cli",
+      "verify-08",
+      "verify-04",
+      "verify-13",
+      "first-run-linux-cli",
+      "verify-06"
+    ],
+    "notRequestedSamples": [
+      "verify-09",
+      "first-run-darwin-jetbrains",
+      "verify-10",
+      "verify-19",
+      "verify-11",
+      "verify-30",
+      "first-run-win32-jetbrains"
+    ],
+    "runAttempt": 1,
+    "providerExecutionReached": false,
+    "generation": "skipped",
+    "acceptance": "skipped",
+    "artifacts": 0,
+    "modelQualityVerdict": null,
+    "registeredInAcceptedRoundChain": false,
+    "originalPlanAndJournalUnchanged": true
+  },
+  "r2PreparationReview": "next-release-validation/followup-106-r2-preparation-review.json"
 }

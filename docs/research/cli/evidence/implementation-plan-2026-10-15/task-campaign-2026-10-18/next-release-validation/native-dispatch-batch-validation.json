@@ -1,0 +1,33 @@
+{
+  "schema": "chainlesschain.native-dispatch-batch-validation/v1",
+  "recordedAt": "2026-10-18T08:52:13.800313+00:00",
+  "tests": 19,
+  "passed": 19,
+  "networkDispatches": 0,
+  "modelRequests": 0,
+  "command": "python -B -m unittest discover -s packages/cli/test-python -p test_verify01_dispatch_native_retest.py -v",
+  "log": {
+    "path": "native-dispatch-batch-limit-tests.log.gz",
+    "originalDigest": "sha256:c382e6b006e45b73b672747efeebe6c2150a85176eaaa8622d754960e0aae79c",
+    "storedDigest": "sha256:93c9b4df9ba9441722ade84c4b990783909cdcb6009c68e088b929a2aca4c1e0"
+  },
+  "sourceFiles": [
+    {
+      "path": "packages/cli/scripts/verify01-dispatch-native-retest.py",
+      "workingCopyDigest": "sha256:a08afea472cb641f83a2aee43fa25a60e33b79f1d826db202c6ad5adfe14aa94",
+      "canonicalLfDigest": "sha256:a08afea472cb641f83a2aee43fa25a60e33b79f1d826db202c6ad5adfe14aa94"
+    },
+    {
+      "path": "packages/cli/test-python/test_verify01_dispatch_native_retest.py",
+      "workingCopyDigest": "sha256:550be0d7a77bcc47ac4ca3165ed3608da5b643ff87b903baf6909c7ee21e7f3b",
+      "canonicalLfDigest": "sha256:550be0d7a77bcc47ac4ca3165ed3608da5b643ff87b903baf6909c7ee21e7f3b"
+    }
+  ],
+  "behavior": [
+    "Positive --max-new-dispatches is valid only with --submit; default remains unlimited.",
+    "Stop before creating the next intent when the invocation limit is reached.",
+    "Shared journal, unresolved-intent blocking, exact source and plan bindings, and final full run mapping remain enforced.",
+    "This controls batch size; wait for generation in the current batch to finish before the next batch to limit concurrency."
+  ],
+  "networkCausation": "Concurrency has not been established as the cause of the prior TLS failures."
+}
