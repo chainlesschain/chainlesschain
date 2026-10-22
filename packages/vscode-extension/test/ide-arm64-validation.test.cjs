@@ -338,11 +338,14 @@ test("the ARM64 workflow binds exact hosts, versions, and aggregate evidence", (
     workflow,
     /IDE_ARM64_RELEASE_COMMIT: \$\{\{ inputs\.commit_sha \|\| github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/u,
   );
-  assert.match(workflow, /needs: \[vscode-arm64-host, jetbrains-arm64-host\]/u);
+  assert.match(
+    workflow,
+    /needs: \[docs-scope, vscode-arm64-host, jetbrains-arm64-host\]/u,
+  );
   assert.match(workflow, /Aggregate 11-cell IDE ARM64 evidence/u);
   assert.match(
     workflow,
-    /aggregate:[\s\S]*?if: \$\{\{ always\(\) && !cancelled\(\) \}\}[\s\S]*?needs: \[vscode-arm64-host, jetbrains-arm64-host\]/u,
+    /aggregate:[\s\S]*?needs: \[docs-scope, vscode-arm64-host, jetbrains-arm64-host\][\s\S]*?if: \$\{\{ needs\.docs-scope\.result == 'success' && needs\.docs-scope\.outputs\.docs_only == 'false' && \(always\(\) && !cancelled\(\)\) \}\}/u,
   );
   assert.equal(
     workflow.match(
