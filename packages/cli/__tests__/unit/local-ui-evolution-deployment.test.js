@@ -157,6 +157,84 @@ afterEach(() => {
 });
 
 describe("default local UI Evolution deployment", () => {
+  it.each([
+    "local-ui-12345678-12344567-81231234-56789012",
+    "local-ui-12345678123445678123123456789012",
+  ])(
+    "retains signed legacy tenant %s through real agent ingress",
+    async (tenantId) => {
+      const config = createConfig();
+      const { deployment } =
+        await initializeDefaultLocalUiEvolutionDeployment(config);
+      const directory = join(config.root, "evolution", "local-ui-host");
+      const key = deployment.keys["deployment-root"].privateKey;
+      const signedFiles = [
+        join(directory, "local-host-manifest.json"),
+        join(config.root, "evolution", "local-ui-host.state.json"),
+      ];
+      for (const file of signedFiles) {
+        const { signature: _oldSignature, ...core } = JSON.parse(
+          readFileSync(file, "utf8"),
+        );
+        core.tenantId = tenantId;
+        const signature = sign(
+          null,
+          Buffer.from(canonical(core)),
+          key,
+        ).toString("base64url");
+        writeFileSync(
+          file,
+          `${JSON.stringify({ ...core, signature }, null, 2)}\n`,
+        );
+      }
+      const original = signedFiles.map((file) => readFileSync(file, "utf8"));
+      const originalProfile = readFileSync(
+        join(config.root, "evolution", "deployment-profile.json"),
+        "utf8",
+      );
+      const originalKey = readFileSync(
+        join(directory, "keys", "deployment-root.private.pem"),
+        "utf8",
+      );
+
+      const deps = await loadEvolutionDeploymentCommandDependencies(
+        "agent",
+        config,
+      );
+      const composition = await deps.evolutionCompositionFactory({
+        mode: "headless-stream",
+        runId: "legacy-numeric-tenant",
+      });
+      expect(composition.tenantId).toBe(tenantId);
+      await composition.evolutionIngress.start();
+      const messages = [{ role: "user", content: "hello" }];
+      await composition.evolutionIngress.ingestUserPrompt({ messages });
+      const prepared = await composition.evolutionIngress.prepareModelRequest({
+        messages,
+        tools: [],
+      });
+      expect(prepared.messages.length).toBeGreaterThan(0);
+      await composition.evolutionIngress.complete();
+
+      expect(signedFiles.map((file) => readFileSync(file, "utf8"))).toEqual(
+        original,
+      );
+      expect(
+        readFileSync(
+          join(config.root, "evolution", "deployment-profile.json"),
+          "utf8",
+        ),
+      ).toBe(originalProfile);
+      expect(
+        readFileSync(
+          join(directory, "keys", "deployment-root.private.pem"),
+          "utf8",
+        ),
+      ).toBe(originalKey);
+    },
+    180_000,
+  );
+
   it("lazily signs a first agent start and authenticates ask, chat and UI session modes", async () => {
     const config = createConfig();
     const dependencies = await loadEvolutionDeploymentCommandDependencies(
@@ -339,6 +417,9 @@ describe("default local UI Evolution deployment", () => {
 
     expect(first.status.deploymentMode).toBe("local");
     expect(first.status.readiness.ui.ready).toBe(true);
+    expect(first.deployment.tenantId).toMatch(
+      /^local-ui-(?:[a-p]{8}-){3}[a-p]{8}$/u,
+    );
     expect(second.deployment.tenantId).toBe(first.deployment.tenantId);
     expect(second.deployment.keys["deployment-root"].privateKey).toBe(
       first.deployment.keys["deployment-root"].privateKey,
@@ -431,7 +512,7 @@ describe("default local UI Evolution deployment", () => {
     });
     expect(verification.sourceRef).toMatch(
       new RegExp(
-        `^rollout://local-ui-(?:[a-f0-9]{8}-){3}[a-f0-9]{8}/quick-ask/(?:[a-f0-9]{8}-){7}[a-f0-9]{8}/(?:[a-f0-9]{8}-){7}[a-f0-9]{8}$`,
+        `^rollout://local-ui-(?:[a-f0-9]{8}-){3}[a-f0-9]{8}/quick-ask/(?:[a-p]{8}-){7}[a-p]{8}/(?:[a-p]{8}-){7}[a-p]{8}$`,
         "u",
       ),
     );

@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Resolve built-in tool descriptor categories from their telemetry metadata and use explicit null for missing optional descriptor values, so successful Git and shell tools do not terminate the Agent's signed Evolution ingress.
 - Omit absent slash-command descriptions, warnings and non-persistent code script paths; represent unknown process exit codes as null. Preserve strict evidence validation.
 - Omit unavailable ranges from repeated-file read recovery and represent missing cell IDs from legacy notebooks as null, keeping successful file tools compatible with signed evidence.
+- Encode new local signing tenant, run and evidence IDs without digits while preserving their entropy, preventing accidental payment-card matches during first use. Retain existing deployment identities and sensitive-content scanning.
 - Prepare VS Code 0.37.157 and JetBrains 0.4.174 to recommend CLI 0.166.115 after exact-source gates and public npm verification.
 
 ### Fixed - cc CLI 0.166.114: Quick Ask streaming and local Evolution setup (published, 2026-10-22)

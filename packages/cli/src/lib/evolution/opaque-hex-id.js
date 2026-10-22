@@ -18,6 +18,14 @@ export function formatOpaqueHexId(value) {
   return groups.join("-");
 }
 
+// Keep every hexadecimal nibble while preventing generated identifiers from
+// resembling payment-card or phone numbers across their group separators.
+export function encodeOpaqueHexId(value) {
+  return formatOpaqueHexId(value).replace(/[0-9]/gu, (digit) =>
+    String.fromCharCode(103 + Number(digit)),
+  );
+}
+
 export function formatLocalUiTenantReferenceId(value) {
   const prefix = "local-ui-";
   if (typeof value !== "string" || !value.startsWith(prefix)) return value;

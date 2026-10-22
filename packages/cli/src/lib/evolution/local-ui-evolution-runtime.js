@@ -25,7 +25,7 @@ import { loadLocalUiEvolutionDeployment } from "./local-ui-evolution-deployment.
 import { createLocalUiEvolutionFileSystem } from "./evolution-windows-directory-durability.js";
 import {
   formatLocalUiTenantReferenceId,
-  formatOpaqueHexId,
+  encodeOpaqueHexId,
 } from "./opaque-hex-id.js";
 
 const SOURCE_ENVELOPE_SCHEMA = "chainlesschain.local-ui-source-envelope/v1";
@@ -84,7 +84,7 @@ function sha256(value) {
 }
 
 function sourceRefSegment(value, purpose) {
-  return formatOpaqueHexId(
+  return encodeOpaqueHexId(
     createHash("sha256")
       .update(
         `chainlesschain.local-ui-source-ref/v1\0${purpose}\0${value}`,
@@ -615,9 +615,9 @@ export async function createLocalUiEvolutionComposition({
       witness,
     },
     evidenceIdGenerator: async () =>
-      `evidence-${formatOpaqueHexId(randomUUID().replaceAll("-", ""))}`,
+      `evidence-${encodeOpaqueHexId(randomUUID().replaceAll("-", ""))}`,
     ingressIdGenerator: () =>
-      `ingress-${formatOpaqueHexId(randomUUID().replaceAll("-", ""))}`,
+      `ingress-${encodeOpaqueHexId(randomUUID().replaceAll("-", ""))}`,
     secure: true,
     fsImpl,
   });

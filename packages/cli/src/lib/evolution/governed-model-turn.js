@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { types } from "node:util";
 import { captureAgentEvolutionRuntimeComposition } from "./agent-evolution-runtime-composition-brand.js";
 import { captureAgentEvolutionIngress } from "./agent-evolution-ingress.js";
-import { formatOpaqueHexId } from "./opaque-hex-id.js";
+import { encodeOpaqueHexId } from "./opaque-hex-id.js";
 
 export function readEvolutionCompositionFactory(dependencies = {}) {
   if (
@@ -44,7 +44,7 @@ export async function prepareGovernedModelTurn(
   }
   if (typeof factory !== "function")
     throw new TypeError("Invalid evolution composition factory");
-  const runId = `${mode}-${formatOpaqueHexId(
+  const runId = `${mode}-${encodeOpaqueHexId(
     randomUUID().replaceAll("-", ""),
   )}`;
   const composition = captureAgentEvolutionRuntimeComposition(

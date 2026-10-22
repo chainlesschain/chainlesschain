@@ -93,6 +93,8 @@ const TRUSTED_PAYLOAD_COMMITMENT_PURPOSE =
 const LEGACY_LOCAL_UI_TENANT_ID_PATTERN = /^local-ui-[a-f0-9]{32}$/u;
 const FORMATTED_LOCAL_UI_TENANT_ID_PATTERN =
   /^local-ui-(?:[a-f0-9]{8}-){3}[a-f0-9]{8}$/u;
+const ENCODED_LOCAL_UI_TENANT_ID_PATTERN =
+  /^local-ui-(?:[a-p]{8}-){3}[a-p]{8}$/u;
 
 const INPUT_KEYS = new Set(["sourceEnvelope", "payload"]);
 const SOURCE_VERIFICATION_KEYS = new Set([
@@ -877,15 +879,30 @@ function normalizeId(value, label, maximum = 256) {
   return value;
 }
 
-function normalizeTenantId(value, label) {
-  if (
+function isLocalUiTenantId(value) {
+  return (
     typeof value === "string" &&
     (LEGACY_LOCAL_UI_TENANT_ID_PATTERN.test(value) ||
-      FORMATTED_LOCAL_UI_TENANT_ID_PATTERN.test(value))
-  ) {
-    return value;
-  }
+      FORMATTED_LOCAL_UI_TENANT_ID_PATTERN.test(value) ||
+      ENCODED_LOCAL_UI_TENANT_ID_PATTERN.test(value))
+  );
+}
+
+function normalizeTenantId(value, label) {
+  if (isLocalUiTenantId(value)) return value;
   return normalizeId(value, label);
+}
+
+function normalizeLocalAttestationId(value, label, tenantId, suffix) {
+  // A bound local identity is already admitted as tenant metadata. Inspect its
+  // fixed reference structure without treating its random digits as content;
+  // preserve the original signed bytes and scan every other identifier fully.
+  const scanValue =
+    isLocalUiTenantId(tenantId) && value === `local-ui-${tenantId}-${suffix}`
+      ? `local-ui-local-identity-${suffix}`
+      : value;
+  normalizeId(scanValue, label);
+  return value;
 }
 
 function normalizeDigest(
@@ -946,7 +963,6 @@ function normalizeOpaqueUri(value, { label, schemes, tenantId }) {
       `${label} is invalid`,
     );
   }
-  assertNoKnownSecrets(value);
   if (
     /[?#@\\%\s]/u.test(value) ||
     hasUriControlOrWhitespace(value) ||
@@ -985,7 +1001,11 @@ function normalizeOpaqueUri(value, { label, schemes, tenantId }) {
     parsed.port ||
     parsed.search ||
     parsed.hash ||
-    parsed.hostname !== formatLocalUiTenantReferenceId(tenantId) ||
+    (parsed.hostname !== formatLocalUiTenantReferenceId(tenantId) &&
+      !(
+        LEGACY_LOCAL_UI_TENANT_ID_PATTERN.test(tenantId) &&
+        parsed.hostname === tenantId
+      )) ||
     !decodedPath.startsWith("/") ||
     decodedPath
       .split("/")
@@ -996,6 +1016,14 @@ function normalizeOpaqueUri(value, { label, schemes, tenantId }) {
       `${label} is outside the tenant-scoped URI policy`,
     );
   }
+  // Only the exact, bound local host is identity metadata. Keep the complete
+  // original path in the scan, and never rewrite persisted URI/digest bytes.
+  const localPrefix = `${scheme}://${parsed.hostname}`;
+  const scanValue =
+    isLocalUiTenantId(tenantId) && value.startsWith(`${localPrefix}/`)
+      ? `${scheme}://local-ui-identity${value.slice(localPrefix.length)}`
+      : value;
+  assertNoKnownSecrets(scanValue);
   return value;
 }
 
@@ -2291,8 +2319,18 @@ function validateAttestation(value, receipt) {
       "projection attestation is invalid or unbound",
     );
   }
-  normalizeId(value.keyId, "attestation keyId");
-  normalizeId(value.issuer, "attestation issuer");
+  normalizeLocalAttestationId(
+    value.keyId,
+    "attestation keyId",
+    receipt.tenantId,
+    "attestation",
+  );
+  normalizeLocalAttestationId(
+    value.issuer,
+    "attestation issuer",
+    receipt.tenantId,
+    "evolution-projector",
+  );
   return deepFreeze(cloneCanonical(value));
 }
 

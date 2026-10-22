@@ -71,7 +71,9 @@ const TRUSTED_PAYLOAD_COMMITMENT_PURPOSE =
 const TENANT_COMMITMENT_KEYS = Object.freeze({
   "tenant-alpha": Buffer.alloc(32, 0xa1),
   "tenant-beta": Buffer.alloc(32, 0xb2),
+  "local-ui-12345678-12344567-81231234-56789012": Buffer.alloc(32, 0xc3),
 });
+const LEGACY_NUMERIC_TENANT = "local-ui-12345678-12344567-81231234-56789012";
 
 function canonicalJson(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -352,7 +354,9 @@ function attestor(overrides = {}) {
   return {
     sign: vi.fn(async (input) => {
       if (overrides.failSign) throw new Error("HSM unavailable");
-      const core = signedCore(input);
+      const core = overrides.mutateSignedCore
+        ? overrides.mutateSignedCore(signedCore(input))
+        : signedCore(input);
       const signature = sign(
         null,
         Buffer.from(canonicalJson(core), "utf8"),
@@ -785,6 +789,7 @@ describe("EvolutionEvidenceProjector", () => {
     const payload = {
       timestamp: 1788680720000,
       card: 4111111111111111,
+      cardText: "4111 1111 1111 1111",
       count: 3,
       ratio: 0.5,
     };
@@ -794,6 +799,7 @@ describe("EvolutionEvidenceProjector", () => {
     expect(bundle.modelProjection.content).toEqual({
       timestamp: "[REDACTED:payment-card]",
       card: "[REDACTED:payment-card]",
+      cardText: "[REDACTED:payment-card]",
       count: 3,
       ratio: 0.5,
     });
@@ -821,6 +827,50 @@ describe("EvolutionEvidenceProjector", () => {
     await expect(h.verifier.verify(historical)).resolves.toMatchObject({
       verified: true,
     });
+  });
+
+  it("keeps exact legacy local identity metadata while rejecting card data in other fields", async () => {
+    const validRef = `outcome://${LEGACY_NUMERIC_TENANT}/run-001/event-001`;
+    const verifiedSource = (sourceRef) =>
+      sourceVerifier({
+        mutate: (core) => ({
+          ...core,
+          tenantId: LEGACY_NUMERIC_TENANT,
+          sourceRef,
+        }),
+      });
+    const accepted = harness({ sourceVerifier: verifiedSource(validRef) });
+    const bundle = await accepted.projector.project(input());
+    expect(bundle.receipt.tenantId).toBe(LEGACY_NUMERIC_TENANT);
+    expect(bundle.rawRecord.sourceRef).toBe(validRef);
+    await expect(accepted.verifier.verify(bundle)).resolves.toMatchObject({
+      verified: true,
+    });
+
+    for (const sourceRef of [
+      "outcome://foreign-host/run-001/event-001",
+      `outcome://${LEGACY_NUMERIC_TENANT}/run-001/4111111111111111`,
+    ]) {
+      const denied = harness({ sourceVerifier: verifiedSource(sourceRef) });
+      await expect(denied.projector.project(input())).rejects.toThrow(
+        /tenant-scoped URI policy|payment-card/u,
+      );
+    }
+
+    for (const field of ["keyId", "issuer"]) {
+      const denied = harness({
+        sourceVerifier: verifiedSource(validRef),
+        attestor: attestor({
+          mutateSignedCore: (core) => ({
+            ...core,
+            [field]: `local-ui-${LEGACY_NUMERIC_TENANT}-attestation-4111111111111111`,
+          }),
+        }),
+      });
+      await expect(denied.projector.project(input())).rejects.toThrow(
+        /payment-card/u,
+      );
+    }
   });
 
   it("retains the exact Agent v1 policy for historical reads without using it for new requests", async () => {

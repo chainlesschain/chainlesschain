@@ -21,7 +21,7 @@ import {
   flushWindowsLocalNtfsDirectory,
 } from "./evolution-windows-directory-durability.js";
 import { withFileLockAsync } from "../with-file-lock.js";
-import { formatOpaqueHexId } from "./opaque-hex-id.js";
+import { encodeOpaqueHexId } from "./opaque-hex-id.js";
 import {
   configureEvolutionDeployment,
   getEvolutionDeploymentStatus,
@@ -660,7 +660,7 @@ export async function initializeDefaultLocalUiEvolutionDeployment(
         removeIncompleteStage(stagePath, parent);
         fs.mkdirSync(stagePath, { mode: 0o700 });
         privateDirectory(stagePath);
-        const tenantId = `local-ui-${formatOpaqueHexId(
+        const tenantId = `local-ui-${encodeOpaqueHexId(
           randomUUID().replaceAll("-", ""),
         )}`;
         const paths = writeDeployment(stagePath, destination, tenantId);
