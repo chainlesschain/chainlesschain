@@ -1,0 +1,137 @@
+{
+  "schema": "chainlesschain.generated-web-assets-source-review/v1",
+  "capturedAt": "2026-10-22T18:04:54Z",
+  "sourceCommit": "ca7f0ea1a3fab6b7668a14a868b4c2bfa71e3d98",
+  "explanation": "These four local generated Web Panel assets are ignored and not tracked clean source. Their reviewed categories, digests and rationales are retained as local-build review facts here, rather than as tracked-source catalogue entries. A clean tracked snapshot does not contain these files; retaining their entries makes the unchanged fail-closed scanner reject REMOVED_OR_NO_LONGER_CANDIDATE.",
+  "assets": [
+    {
+      "path": "packages/cli/src/assets/web-panel/assets/Artifacts-jTncflSf.js",
+      "digest": "sha256:3e358de56dfabc4ab32276c36464a89e0ee5350744f8e3bd0e75b5f3fcedecf8",
+      "category": "SERVICE_API",
+      "rationale": "Bundled web panel artifact download uses the configured same-origin artifact API and server token; downloading a stored artifact does not admit model inference or publication.",
+      "tracked": false,
+      "ignored": true,
+      "ignoreRule": ".gitignore:248:packages/cli/src/assets/web-panel/\tpackages/cli/src/assets/web-panel/assets/Artifacts-jTncflSf.js",
+      "localFilePresent": true,
+      "localBytes": 8224,
+      "localDigestMatchesReview": true
+    },
+    {
+      "path": "packages/cli/src/assets/web-panel/assets/index-D7IYMX7M.js",
+      "digest": "sha256:d1dc4627b0e6d107de34166475ca5d9337d1a13f7073adf79b5bbc52394c06fa",
+      "category": "SERVICE_API",
+      "rationale": "Bundled web panel uses Vite module-preload GET and the configured authenticated App Server WebSocket. Minified component callbacks are conservative alias candidates. The server independently admits commands and model egress; browser transport alone supplies no financial authority.",
+      "tracked": false,
+      "ignored": true,
+      "ignoreRule": ".gitignore:248:packages/cli/src/assets/web-panel/\tpackages/cli/src/assets/web-panel/assets/index-D7IYMX7M.js",
+      "localFilePresent": true,
+      "localBytes": 436812,
+      "localDigestMatchesReview": true
+    },
+    {
+      "path": "packages/cli/src/assets/web-panel/assets/MtcAudit-Brft657_.js",
+      "digest": "sha256:e0e1bf9aa5307142b3005d4ea116fc0ec0ebd6a17afd299d193b8b3554495e19",
+      "category": "SERVICE_API",
+      "rationale": "Bundled MTC audit invokes the envelope composable fetch method, which sends an authenticated MTC envelope read through the App Server WebSocket; the fetch name is a conservative candidate, not a direct provider transport.",
+      "tracked": false,
+      "ignored": true,
+      "ignoreRule": ".gitignore:248:packages/cli/src/assets/web-panel/\tpackages/cli/src/assets/web-panel/assets/MtcAudit-Brft657_.js",
+      "localFilePresent": true,
+      "localBytes": 63686,
+      "localDigestMatchesReview": true
+    },
+    {
+      "path": "packages/cli/src/assets/web-panel/assets/RemoteSession-BdoFWTKc.js",
+      "digest": "sha256:827a11286a886b44fb49c97bbc2ca238514f9b38db4b1f0e0b77572afcb6f72d",
+      "category": "REMOTE_EXECUTION_CONTROL",
+      "rationale": "Bundled remote session uses operator-paired relay/direct WebSocket control, scoped authentication and encrypted envelopes. Minified cryptographic math and callback aliases also match conservatively. Remote command authority and downstream costs remain independently enforced by the host.",
+      "tracked": false,
+      "ignored": true,
+      "ignoreRule": ".gitignore:248:packages/cli/src/assets/web-panel/\tpackages/cli/src/assets/web-panel/assets/RemoteSession-BdoFWTKc.js",
+      "localFilePresent": true,
+      "localBytes": 71810,
+      "localDigestMatchesReview": true
+    }
+  ],
+  "retainedAgentCoreReview": {
+    "path": "packages/cli/src/runtime/agent-core.js",
+    "digest": "sha256:1f6f90a743d927efebe1ac97e0dbf801705441e80d5c89a24ea452de07e5ff4d",
+    "category": "MODEL_REQUEST",
+    "rationale": "Canonical provider/tool execution host retains scoped model egress. Host-created oversized tool results now use complete bounded JSON previews, excerpt omission and private WeakMap output identities; these do not supply model or financial authority. Existing transport admission and usage settlement remain independent."
+  },
+  "catalogueChange": {
+    "path": "packages/cli/scripts/budget-egress-reviewed-sources.json",
+    "beforeDigest": "sha256:6d4b800bf8566523d74249079a18b16e03386590620f8068a4b2e19b51b4f91a",
+    "afterDigest": "sha256:7818e50494bb615d1afcbec6edaac889347228e9822874015ec9cf3103e8740b",
+    "entriesBefore": 81,
+    "entriesAfter": 77,
+    "removedPaths": [
+      "packages/cli/src/assets/web-panel/assets/Artifacts-jTncflSf.js",
+      "packages/cli/src/assets/web-panel/assets/MtcAudit-Brft657_.js",
+      "packages/cli/src/assets/web-panel/assets/RemoteSession-BdoFWTKc.js",
+      "packages/cli/src/assets/web-panel/assets/index-D7IYMX7M.js"
+    ],
+    "otherEntriesUnchanged": true
+  },
+  "cleanValidation": {
+    "snapshotMethod": "git archive --format=tar <sourceCommit> packages/cli; raw tracked Git bytes, no local generated assets copied",
+    "snapshotArchivePaths": ["packages/cli"],
+    "trackedFileCount": 4188,
+    "auditRoots": ["packages/cli/src", "packages/cli/scripts"],
+    "allConfiguredAuditRootsCovered": true,
+    "rootScriptsAuditRootConfigured": false,
+    "command": "node packages/cli/scripts/implementation-plan-budget-egress.mjs --check --include-scripts",
+    "nodeModules": "External junction to existing repository root node_modules for imports; located outside both audit roots.",
+    "gitContext": "Read-only GIT_DIR to the original repository with GIT_WORK_TREE set to the tracked snapshot; scanner-reported sourceCommit checked against the archive commit.",
+    "before": {
+      "exitCode": 1,
+      "categories": 8,
+      "candidateFiles": 77,
+      "unclassifiedFiles": 0,
+      "sourceReviewPassed": false,
+      "reviewIssues": [
+        {
+          "path": "packages/cli/src/assets/web-panel/assets/Artifacts-jTncflSf.js",
+          "status": "REMOVED_OR_NO_LONGER_CANDIDATE"
+        },
+        {
+          "path": "packages/cli/src/assets/web-panel/assets/index-D7IYMX7M.js",
+          "status": "REMOVED_OR_NO_LONGER_CANDIDATE"
+        },
+        {
+          "path": "packages/cli/src/assets/web-panel/assets/MtcAudit-Brft657_.js",
+          "status": "REMOVED_OR_NO_LONGER_CANDIDATE"
+        },
+        {
+          "path": "packages/cli/src/assets/web-panel/assets/RemoteSession-BdoFWTKc.js",
+          "status": "REMOVED_OR_NO_LONGER_CANDIDATE"
+        }
+      ],
+      "parseErrors": 0,
+      "paidReady": false,
+      "runtimeCoverageVerified": false,
+      "filesScanned": 1678,
+      "sourceTreeDigest": "sha256:6b7050af0b1a0e33c04b7ecab42f728196130f47d126630a11b0c9a228b7de95"
+    },
+    "after": {
+      "exitCode": 0,
+      "categories": 8,
+      "candidateFiles": 77,
+      "unclassifiedFiles": 0,
+      "sourceReviewPassed": true,
+      "reviewIssues": [],
+      "parseErrors": 0,
+      "paidReady": false,
+      "runtimeCoverageVerified": false,
+      "filesScanned": 1678,
+      "sourceTreeDigest": "sha256:6b7050af0b1a0e33c04b7ecab42f728196130f47d126630a11b0c9a228b7de95"
+    },
+    "scannerAndWorkflowUnchanged": true,
+    "localGeneratedAssetsPreserved": true
+  },
+  "limitations": [
+    "Validation covers every configured audit root: packages/cli/src and packages/cli/scripts. Repository-root scripts is not an audit root in this command; unrelated repository paths were not archived.",
+    "The dependency junction reuses the existing root node_modules rather than a new npm install. This is static source review only and does not grant paid admission or verify runtime coverage.",
+    "Generated asset review facts describe only the four existing local build files and do not attest future rebuilt assets or published package content."
+  ]
+}

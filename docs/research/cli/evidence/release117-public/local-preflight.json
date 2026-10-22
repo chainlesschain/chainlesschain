@@ -1,6 +1,6 @@
 {
   "schema": "chainlesschain.release-local-preflight/v1",
-  "capturedAt": "2026-10-22T17:54:25.221Z",
+  "capturedAt": "2026-10-22T18:06:27.755Z",
   "candidate": "0.166.117",
   "authoritativeReleaseGate": "GitHub Actions exact release SHA: CLI CI + CLI Strict Sandbox, all configured operating systems",
   "localChecks": [
@@ -91,6 +91,15 @@
       "scope": "REPL and actual structured shell preview/timeout contracts; production and workflow files unchanged",
       "files": 1,
       "passed": 151
+    },
+    {
+      "scope": "Full configured budget inventory roots in an isolated tracked CLI snapshot, with only the four generated asset catalog rows removed",
+      "candidateFiles": 77,
+      "passed": true,
+      "issues": 0,
+      "parseErrors": 0,
+      "skippedPaths": 0,
+      "evidence": "generated-web-assets-review.json"
     }
   ],
   "childRegistryReadback": "../release116-public/child-registry-readback.json",
