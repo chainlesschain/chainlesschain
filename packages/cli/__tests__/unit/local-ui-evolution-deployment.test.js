@@ -1,6 +1,7 @@
 import {
   mkdtempSync,
   readFileSync,
+  realpathSync,
   rmSync,
   unlinkSync,
   writeFileSync,
@@ -238,8 +239,9 @@ describe("default local UI Evolution deployment", () => {
       composition,
     );
     const saved = await readEvolutionDeploymentProfile(config);
+    // Saved profiles canonicalize paths, including macOS /var -> /private/var.
     expect(saved.profile.descriptorPath).toBe(
-      join(directory, "deployment-v2.json"),
+      realpathSync(join(directory, "deployment-v2.json")),
     );
     expect(
       saved.profile.revisionFloors[deployment.descriptor.trustRootDigest],

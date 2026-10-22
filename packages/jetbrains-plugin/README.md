@@ -7,7 +7,7 @@ diffs inside IntelliJ-platform IDEs (IDEA, PyCharm, WebStorm, …).
 
 ## Next release candidate
 
-Plugin **0.4.173** is an unreleased source candidate recommending CLI **`0.166.113`**. VS Code **0.37.156** is the paired unreleased candidate. The recommended CLI improves Quick Ask waiting and terminal error reporting, cancellation, bounded governed chat setup, and local signed Evolution recovery. Publication requires exact-source gates and public artifact readback.
+Plugin **0.4.173** is an unreleased source candidate recommending CLI **`0.166.114`**. VS Code **0.37.156** is the paired unreleased candidate. The recommended CLI improves Quick Ask waiting and terminal error reporting, cancellation, bounded governed chat setup, and local signed Evolution recovery. Publication requires exact-source gates and public artifact readback.
 
 ## Current release
 
@@ -70,7 +70,7 @@ See the [upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-u
 
 ## Release compatibility
 
-Plugin **0.4.173** is the current release candidate. It recommends `chainlesschain@0.166.113`; neither candidate has been published. The plugin updates its CLI recommendation and version. Exact-source IDE gates and Marketplace publication remain pending. Session Core `0.3.21` and Context/Memory Kernel `0.1.10` are unchanged. Native task quality and restart acceptance still require separate published-package evidence.
+Plugin **0.4.173** is the current release candidate. It recommends `chainlesschain@0.166.114`; neither candidate has been published. The plugin updates its CLI recommendation and version. Exact-source IDE gates and Marketplace publication remain pending. Session Core `0.3.21` and Context/Memory Kernel `0.1.10` are unchanged. Native task quality and restart acceptance still require separate published-package evidence.
 
 ## Previous candidates and development notes
 

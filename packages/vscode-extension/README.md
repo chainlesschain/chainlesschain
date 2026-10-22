@@ -6,7 +6,7 @@ MCP bridge.
 
 ## Next release candidate
 
-Source candidate **0.37.156** recommends CLI **`0.166.113`**. The extension has not been published. The CLI and JetBrains **0.4.173** pairing are also unreleased candidates. Quick Ask shows provider waiting status and terminal errors, allows cancellation, and relies on bounded governed chat setup and local Evolution recovery in the paired CLI. Publication requires exact-source gates and public artifact readback.
+Source candidate **0.37.156** recommends CLI **`0.166.114`**. The extension has not been published. The CLI and JetBrains **0.4.173** pairing are also unreleased candidates. Quick Ask shows provider waiting status and terminal errors, allows cancellation, and relies on bounded governed chat setup and local Evolution recovery in the paired CLI. Publication requires exact-source gates and public artifact readback.
 
 ## Current release
 

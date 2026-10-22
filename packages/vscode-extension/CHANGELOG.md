@@ -2,9 +2,9 @@
 
 All notable changes to this extension are documented here.
 
-## [0.37.156] - CLI 0.166.113 pairing (candidate, 2026-10-22)
+## [0.37.156] - CLI 0.166.114 pairing (candidate, 2026-10-22)
 
-- Recommend unreleased CLI 0.166.113 for Quick Ask waiting and terminal error reporting, cancellation, bounded governed chat setup, and local signed Evolution recovery.
+- Recommend unreleased CLI 0.166.114 for Quick Ask waiting and terminal error reporting, cancellation, bounded governed chat setup, and local signed Evolution recovery.
 - Source candidate only; this extension has not been published. Exact-source IDE gates and public artifact readback are pending.
 
 ## [0.37.155] - CLI 0.166.112 pairing (2026-10-22)

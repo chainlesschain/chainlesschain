@@ -218,7 +218,9 @@ describe("4. process tree — workerPid vs agentPid semantics (real spawn)", () 
       isProcessAlive(completed.pid) ? null : true,
     );
     expect(workerGone).toBe(true);
-  }, 45_000);
+    // Allow the existing 60s stage deadlines to report state/log diagnostics
+    // before the outer test budget expires on a busy Windows runner.
+  }, 90_000);
 });
 
 describe("6. needs-input phase — turn → idle → finalize (real spawn)", () => {
@@ -309,7 +311,9 @@ describe("6. needs-input phase — turn → idle → finalize (real spawn)", () 
     expect(final?.transport ?? null).toBe(null);
     expect(final?.phase ?? null).toBe(null);
     expect(final?.title).toBe("renamed-while-idle");
-  }, 45_000);
+    // Keep the outer budget above the existing 60s poll/connect deadlines so
+    // stage assertions can report state/log evidence instead of a test timeout.
+  }, 90_000);
 });
 
 describe("8. log tail — truncation while the worker is appending (real spawn)", () => {
