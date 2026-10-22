@@ -8,11 +8,11 @@ CLI **0.166.115**、VS Code / Open VSX **0.37.157**、JetBrains **0.4.174** 正�
 
 ## Current public releases (2026-10-22)
 
-2026-10-22 ???npm CLI **0.166.112**?Open VSX **0.37.155** ? JetBrains Marketplace **0.4.172** ????????????????? IDE ????? CLI **0.166.112**?
+2026-10-22 核对：npm CLI **0.166.112**、Open VSX **0.37.155** 与 JetBrains Marketplace **0.4.172** 均已公开并可下载，两个 IDE 制品均推荐 CLI **0.166.112**。
 
-CLI ????? `35a2508d156152a61d74fbf8135fcfa1225fe235`????? CLI CI **71** ? job ? Strict Sandbox **5** ??? job ???????? [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/39661868416) ????? tarball ???? npm provenance ????run ??????Session Core **0.3.21** ?? CLI ???
+CLI 发行源码为 `35a2508d156152a61d74fbf8135fcfa1225fe235`，该精确提交的 CLI CI **71** 个 job 与 Strict Sandbox **5** 个 job 全部通过，并通过 [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/39661868416) 发布。公开 tarball 完整性及 npm provenance 的源码与 run 绑定已回读核验；Session Core **0.3.21** 先于 CLI 发布。
 
-?? IDE ?? `ide-vscode-v0.37.155`?`ide-jetbrains-v0.4.172` ??? `ae27ef6dfc8cf1e45bf084030816b02c77dc2a34`?[Open VSX ??](https://github.com/chainlesschain/chainlesschain/actions/runs/39673804362)???[JetBrains ?? attempt 2](https://github.com/chainlesschain/chainlesschain/actions/runs/39676899944/attempts/2) ?????? macOS 2024.2 ????????????????JetBrains ??? `approve=true`?`listed=true`?`hidden=false`??? IDE ?????????? CLI ???????[??????](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release112-public/publication.json)?
+两个 IDE 标签 `ide-vscode-v0.37.155`、`ide-jetbrains-v0.4.172` 均指向 `ae27ef6dfc8cf1e45bf084030816b02c77dc2a34`。[Open VSX 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/39673804362)通过；[JetBrains 发布 attempt 2](https://github.com/chainlesschain/chainlesschain/actions/runs/39676899944/attempts/2) 在一次有界的 macOS 2024.2 重跑后通过，原始性能失败记录保留。JetBrains 当前为 `approve=true`、`listed=true`、`hidden=false`。两个 IDE 的公开归档均已下载，并核对内嵌版本与 CLI 配对。详见[公开回读证据](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release112-public/publication.json)。
 
 ```bash
 npm i -g chainlesschain@0.166.112 --registry https://registry.npmjs.org
@@ -20,7 +20,7 @@ cc --version
 cc doctor
 ```
 
-Restart the IDE chat host after upgrading and use Doctor to confirm the actual CLI path. ???????????????? Ollama ????????????????????????? **31/45**??? **26/36**??? **5/9**???? **14** ?????? .112 ??????**NOT_PAID_READY**?**NOT_ADMITTED** ????? **HOLD** ???Microsoft VS Code Marketplace ?????? VS Code ???????? Open VSX VSIX????? **v5.0.3.140** ????????????????????????
+升级后重启 IDE 聊天宿主，并使用 Doctor 确认实际 CLI 路径。本轮未运行新的模型任务补测，本地 Ollama 模型验证由用户升级后自行进行。历史跨版本累计候选合格交付仍为 **31/45**（普通 **26/36**、首次 **5/9**），剩余 **14** 项；这不是 .112 单轮成功率。**NOT_PAID_READY**、**NOT_ADMITTED** 与自动晋升 **HOLD** 保留。Microsoft VS Code Marketplace 尚未发行，原版 VS Code 用户可安装公开的 Open VSX VSIX。原生产品 **v5.0.3.140** 独立发行；桌面互通仍需匹配构建、授权与原生确认。
 
 See the [current release and upgrade guide](docs-site/docs/chainlesschain/agent-platform-release.md).
 
