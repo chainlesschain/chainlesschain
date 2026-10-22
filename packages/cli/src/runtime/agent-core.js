@@ -4593,7 +4593,7 @@ export function editNotebookCell(notebookText, args = {}) {
   const out = (summary, cellId) => ({
     text: JSON.stringify(nb, null, 1) + "\n",
     summary,
-    cellId,
+    cellId: cellId ?? null,
   });
   const locate = () => {
     if (args.cell_id != null) {

@@ -6,12 +6,12 @@
 import { describe, it, expect } from "vitest";
 import { editNotebookCell } from "../../src/runtime/agent-core.js";
 
-function nb(cells) {
+function nb(cells, minor = 5) {
   return JSON.stringify({
     cells,
     metadata: {},
     nbformat: 4,
-    nbformat_minor: 5,
+    nbformat_minor: minor,
   });
 }
 const codeCell = (id, src, withOutput = false) => ({
@@ -29,6 +29,19 @@ const mdCell = (id, src) => ({
   source: Array.isArray(src) ? src : [src],
 });
 const parse = (res) => JSON.parse(res.text);
+const expectPlainNotebookResult = (res) => {
+  expect(Object.getPrototypeOf(res)).toBe(Object.prototype);
+  expect(Reflect.ownKeys(res)).toEqual(["text", "summary", "cellId"]);
+  for (const key of Reflect.ownKeys(res)) {
+    const property = Object.getOwnPropertyDescriptor(res, key);
+    expect(property.enumerable).toBe(true);
+    expect(Object.hasOwn(property, "value")).toBe(true);
+    expect(property.value).not.toBeUndefined();
+  }
+  expect(typeof res.text).toBe("string");
+  expect(typeof res.summary).toBe("string");
+  expect(res.cellId === null || typeof res.cellId === "string").toBe(true);
+};
 
 describe("editNotebookCell — replace", () => {
   it("replaces a code cell's source and clears stale output", () => {
@@ -53,6 +66,24 @@ describe("editNotebookCell — replace", () => {
     const cell = parse(res).cells[0];
     expect(cell.source).toEqual(["# New\n"]);
     expect(cell.outputs).toBeUndefined();
+  });
+
+  it("replaces a legacy nbformat 4 cell without an id by index", () => {
+    const legacy = codeCell("legacy", "x = 1\n", true);
+    delete legacy.id;
+    const res = editNotebookCell(nb([legacy], 4), {
+      cell_index: 0,
+      edit_mode: "replace",
+      new_source: "x = 2\n",
+    });
+    expect(res.error).toBeUndefined();
+    expect(res.cellId).toBeNull();
+    expectPlainNotebookResult(res);
+    const cell = parse(res).cells[0];
+    expect(cell).not.toHaveProperty("id");
+    expect(cell.source).toEqual(["x = 2\n"]);
+    expect(cell.outputs).toEqual([]);
+    expect(cell.execution_count).toBeNull();
   });
 
   it("trailing-newline-less source becomes a single line", () => {
@@ -116,6 +147,19 @@ describe("editNotebookCell — delete", () => {
     expect(cells).toHaveLength(1);
     expect(cells[0].id).toBe("a");
     expect(res.summary).toMatch(/deleted cell at index 1/);
+  });
+
+  it("deletes a legacy nbformat 4 cell without an id by index", () => {
+    const legacy = mdCell("legacy", "# Old\n");
+    delete legacy.id;
+    const res = editNotebookCell(
+      nb([mdCell("keep", "# Keep\n"), legacy], 4),
+      { edit_mode: "delete", cell_index: 1 },
+    );
+    expect(res.error).toBeUndefined();
+    expect(res.cellId).toBeNull();
+    expectPlainNotebookResult(res);
+    expect(parse(res).cells.map((cell) => cell.id)).toEqual(["keep"]);
   });
 });
 

@@ -10,7 +10,7 @@
       "sections": [
         {
           "heading": "Fixed - cc CLI 0.166.115: JSON-compatible Agent tool evidence (candidate, 2026-10-22)",
-          "body": "- Resolve built-in tool descriptor categories from their telemetry metadata and use explicit null for missing optional descriptor values, so successful Git and shell tools do not terminate the Agent's signed Evolution ingress.\n- Omit absent slash-command descriptions, warnings and non-persistent code script paths; represent unknown process exit codes as null. Preserve strict evidence validation.\n- Prepare VS Code 0.37.157 and JetBrains 0.4.174 to recommend CLI 0.166.115 after exact-source gates and public npm verification."
+          "body": "- Resolve built-in tool descriptor categories from their telemetry metadata and use explicit null for missing optional descriptor values, so successful Git and shell tools do not terminate the Agent's signed Evolution ingress.\n- Omit absent slash-command descriptions, warnings and non-persistent code script paths; represent unknown process exit codes as null. Preserve strict evidence validation.\n- Omit unavailable ranges from repeated-file read recovery and represent missing cell IDs from legacy notebooks as null, keeping successful file tools compatible with signed evidence.\n- Prepare VS Code 0.37.157 and JetBrains 0.4.174 to recommend CLI 0.166.115 after exact-source gates and public npm verification."
         }
       ]
     },

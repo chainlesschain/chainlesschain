@@ -250,7 +250,7 @@ export class ReadFileLoopGuard {
           if (page.error || !page.readSpan) return page;
           page.readRecovery = {
             action: "continued",
-            requestedRange,
+            ...(requestedRange !== undefined ? { requestedRange } : {}),
             resumedRange: page.range,
           };
           newContent = true;
@@ -258,7 +258,7 @@ export class ReadFileLoopGuard {
           return {
             path: filePath,
             fileVersion,
-            range: page.range,
+            ...(page.range !== undefined ? { range: page.range } : {}),
             hashed: args.hashed === true,
             alreadyRead: true,
             contentOmitted: true,

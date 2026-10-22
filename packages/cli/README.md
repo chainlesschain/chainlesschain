@@ -4,7 +4,7 @@ Command-line interface for installing, configuring, and managing [ChainlessChain
 
 ## Next release candidate
 
-CLI **0.166.115** is an unreleased source candidate paired with VS Code **0.37.157** and JetBrains **0.4.174**. It fixes Agent exits after successful tools by producing JSON-compatible tool descriptors and optional result fields. Quick Ask waiting, cancellation and signed local Evolution setup improvements from .114 are retained. Publication requires the exact source commit's GitHub Actions release gates and public artifact readback.
+CLI **0.166.115** is an unreleased source candidate paired with VS Code **0.37.157** and JetBrains **0.4.174**. It fixes Agent exits after successful tools by producing JSON-compatible tool descriptors and optional result fields, including repeated file reads and legacy notebook edits. Quick Ask waiting, cancellation and signed local Evolution setup improvements from .114 are retained. Publication requires the exact source commit's GitHub Actions release gates and public artifact readback.
 
 ### Intermediate .114 release (2026-10-22)
 

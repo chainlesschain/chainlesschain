@@ -14,6 +14,7 @@ import {
   getCodingAgentFunctionToolDefinitions,
 } from "../../src/runtime/coding-agent-contract.js";
 import { SessionResourceBudget } from "../../src/lib/session-resource-budget.js";
+import { ReadFileLoopGuard } from "../../src/lib/read-file-loop-guard.js";
 import { snapshotAgentModelRequest } from "../../src/lib/evolution/agent-model-projection.js";
 import {
   DURABLE_SYSTEM_MESSAGE_KINDS,
@@ -845,6 +846,42 @@ describe("executeTool", () => {
       { cwd: tempDir },
     );
     expect(result.content).toBe("hello world");
+  });
+
+  it("keeps repeated full small-file read recovery plain JSON", async () => {
+    writeFileSync(join(tempDir, "small.txt"), "first\nsecond\n", "utf8");
+    const args = { path: "small.txt" };
+    const fullGuard = new ReadFileLoopGuard();
+    const first = await executeTool("read_file", args, {
+      cwd: tempDir,
+      readFileLoopGuard: fullGuard,
+    });
+    const repeated = await executeTool("read_file", args, {
+      cwd: tempDir,
+      readFileLoopGuard: fullGuard,
+    });
+    expect(first.content).toBe("first\nsecond\n");
+    expect(first).not.toHaveProperty("range");
+    expect(repeated.readRecovery?.action).toBe("use-findings");
+    expect(repeated).not.toHaveProperty("range");
+    assertPlainJsonTree(first);
+    assertPlainJsonTree(repeated);
+
+    // A prior short page leaves unread content. The following full-file
+    // request has no range, so recovery must omit requestedRange entirely.
+    const partialGuard = new ReadFileLoopGuard();
+    await executeTool(
+      "read_file",
+      { ...args, offset: 1, limit: 1 },
+      { cwd: tempDir, readFileLoopGuard: partialGuard },
+    );
+    const continued = await executeTool("read_file", args, {
+      cwd: tempDir,
+      readFileLoopGuard: partialGuard,
+    });
+    expect(continued.readRecovery?.action).toBe("continued");
+    expect(continued.readRecovery).not.toHaveProperty("requestedRange");
+    assertPlainJsonTree(continued);
   });
 
   it("read_file returns error for missing file", async () => {

@@ -6,7 +6,7 @@ MCP bridge.
 
 ## Next release candidate
 
-Source candidate **0.37.157** recommends CLI **`0.166.115`**, which fixes the Agent tool-evidence JSON error after successful commands. JetBrains **0.4.174** is the paired candidate. Publication follows the public CLI and exact-source gates and artifact readback.
+Source candidate **0.37.157** recommends CLI **`0.166.115`**, which fixes the Agent tool-evidence JSON error after successful commands. The extension has not been published. JetBrains **0.4.174** is the paired candidate. Publication follows the public CLI and exact-source gates and artifact readback.
 
 Open VSX **0.37.156** and CLI **0.166.114** were publicly downloaded and verified on 2026-10-22, but that CLI still has the Agent tool-evidence error. Microsoft Marketplace remains unpublished. The previous completely verified three-channel pairing is retained below.
 
