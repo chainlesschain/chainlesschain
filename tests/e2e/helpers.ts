@@ -22,6 +22,49 @@ const boardConfirmationQueues = new WeakMap<
   Promise<void>
 >();
 
+export function buildPmDurableEntrypoint(mainPath: string): string {
+  const mainDirectory = path.dirname(mainPath);
+  return `"use strict";
+if (process.env.NODE_ENV !== "test" || process.env.CC_PM_E2E_DURABLE_SQLITE !== "1") {
+  throw new Error("PM durable SQLite entrypoint requires its test-only environment");
+}
+const { app } = require("electron");
+app.setAppPath(${JSON.stringify(mainDirectory)});
+const { DatabaseManager, getDatabase } = require(${JSON.stringify(path.join(mainDirectory, "database.js"))});
+const { assertStorage, databaseFile } = require(${JSON.stringify(path.join(mainDirectory, "task", "board-action-storage.js"))});
+// initialize() tries the encrypted adapter before its sql.js fallback in test mode.
+const initializeWithBetterSQLite = DatabaseManager.prototype.initializeWithBetterSQLite;
+DatabaseManager.prototype.initializeWithAdapter = initializeWithBetterSQLite;
+DatabaseManager.prototype.initializeWithSqlJs = initializeWithBetterSQLite;
+// Playwright evaluates in a context without CommonJS require. Keep module
+// access in this test-only closure and inspect the live database after startup.
+globalThis[Symbol.for("cc.e2e.pm-storage-diagnostics")] = () => {
+  const manager = getDatabase();
+  const db = manager.getDatabase();
+  assertStorage(manager, db);
+  return {
+    adapter: manager.adapter?.getEngine?.() ?? manager.adapter?.constructor?.name ?? "unknown",
+    file: databaseFile(db),
+    userDataPath: app.getPath("userData"),
+    journalMode: db.prepare("PRAGMA journal_mode").get()?.journal_mode,
+    synchronous: db.prepare("PRAGMA synchronous").get()?.synchronous,
+    foreignKeys: db.prepare("PRAGMA foreign_keys").get()?.foreign_keys,
+  };
+};
+require(${JSON.stringify(mainPath)});
+`;
+}
+
+export function readPmDurableDatabaseDiagnostics() {
+  const probe = (globalThis as any)[
+    Symbol.for("cc.e2e.pm-storage-diagnostics")
+  ];
+  if (typeof probe !== "function") {
+    throw new Error("PM durable SQLite diagnostics entrypoint is unavailable");
+  }
+  return probe();
+}
+
 /**
  * 启动Electron应用
  */
@@ -116,22 +159,7 @@ export async function launchElectronApp(
       "utf8",
     );
     entryPath = path.join(userDataPath, "pm-durable-main.cjs");
-    fs.writeFileSync(
-      entryPath,
-      `"use strict";
-if (process.env.NODE_ENV !== "test" || process.env.CC_PM_E2E_DURABLE_SQLITE !== "1") {
-  throw new Error("PM durable SQLite entrypoint requires its test-only environment");
-}
-require("electron").app.setAppPath(${JSON.stringify(path.dirname(mainPath))});
-const { DatabaseManager } = require(${JSON.stringify(path.join(path.dirname(mainPath), "database.js"))});
-// initialize() tries the encrypted adapter before its sql.js fallback in test mode.
-const initializeWithBetterSQLite = DatabaseManager.prototype.initializeWithBetterSQLite;
-DatabaseManager.prototype.initializeWithAdapter = initializeWithBetterSQLite;
-DatabaseManager.prototype.initializeWithSqlJs = initializeWithBetterSQLite;
-require(${JSON.stringify(mainPath)});
-`,
-      "utf8",
-    );
+    fs.writeFileSync(entryPath, buildPmDurableEntrypoint(mainPath), "utf8");
   }
 
   const app = await electron.launch({
@@ -273,39 +301,7 @@ require(${JSON.stringify(mainPath)});
   await waitForTeamIpcReady(window);
 
   if (options.durableDatabase) {
-    const diagnostics = await app.evaluate(
-      ({ app }, modules) => {
-        const require = process
-          .getBuiltinModule("module")
-          .createRequire(modules.database);
-        const { getDatabase } = require(modules.database);
-        const { assertStorage, databaseFile } = require(
-          modules.boardActionStorage,
-        );
-        const manager = getDatabase();
-        const db = manager.getDatabase();
-        assertStorage(manager, db);
-        return {
-          adapter:
-            manager.adapter?.getEngine?.() ??
-            manager.adapter?.constructor?.name ??
-            "unknown",
-          file: databaseFile(db),
-          userDataPath: app.getPath("userData"),
-          journalMode: db.prepare("PRAGMA journal_mode").get()?.journal_mode,
-          synchronous: db.prepare("PRAGMA synchronous").get()?.synchronous,
-          foreignKeys: db.prepare("PRAGMA foreign_keys").get()?.foreign_keys,
-        };
-      },
-      {
-        database: path.join(path.dirname(mainPath), "database.js"),
-        boardActionStorage: path.join(
-          path.dirname(mainPath),
-          "task",
-          "board-action-storage.js",
-        ),
-      },
-    );
+    const diagnostics = await app.evaluate(readPmDurableDatabaseDiagnostics);
     const relativeDatabasePath = path.relative(
       diagnostics.userDataPath,
       diagnostics.file,
