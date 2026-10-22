@@ -21,6 +21,7 @@ import {
 } from "../../src/lib/session-message-provenance.js";
 import { resolveAgentOutputBudget } from "../../src/lib/model-capabilities.js";
 import { resolveSessionBudgetRootOptions } from "../../src/lib/session-budget-production-root.js";
+import { shellOutputPreview } from "../../src/lib/shell-output.js";
 
 describe("REPL compact persistence fencing", () => {
   it("keeps the REPL terminal after a compaction ledger persistence failure", async () => {
@@ -1279,19 +1280,58 @@ describe("agent-core execution limits (used by agent-repl)", () => {
     "agent-core.js",
   );
 
+  function runShellSource() {
+    const content = readFileSync(agentCorePath, "utf8");
+    const start = content.indexOf('    case "run_shell": {');
+    const end = content.indexOf('    case "check_shell": {', start);
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+    return content.slice(start, end);
+  }
+
   it("uses IterationBudget for iteration limits", () => {
     const content = readFileSync(agentCorePath, "utf8");
     expect(content).toContain("IterationBudget");
   });
 
-  it("run_shell timeout should be 60000ms", () => {
-    const content = readFileSync(agentCorePath, "utf8");
-    expect(content).toMatch(/case "run_shell"[\s\S]*?timeout:\s*60000/);
+  it("run_shell defaults to 60000ms through the bounded timeout resolver", async () => {
+    const { _resolveShellTimeout } = await import(
+      "../../src/runtime/agent-core.js"
+    );
+    const content = runShellSource();
+    expect(content).toContain("timeout: _resolveShellTimeout(args.timeout)");
+    expect(content).toContain("timeoutMs: _resolveShellTimeout(args.timeout)");
+    expect(_resolveShellTimeout(undefined, {})).toBe(60000);
+    expect(_resolveShellTimeout(-1, {})).toBe(60000);
+    expect(_resolveShellTimeout(15000, {})).toBe(15000);
+    expect(_resolveShellTimeout(700000, {})).toBe(600000);
   });
 
-  it("run_shell output truncation should be 30000 chars", () => {
-    const content = readFileSync(agentCorePath, "utf8");
-    expect(content).toMatch(/case "run_shell"[\s\S]*?substring\(0,\s*30000\)/);
+  it("run_shell preserves bounded structured previews for success and failure output", () => {
+    const content = runShellSource();
+    for (const preview of [
+      'shellOutputPreview(result.stdout, "stdout", 24000)',
+      'shellOutputPreview(output, "stdout", 24000)',
+      'shellOutputPreview(err.stdout, "stdout", 16000)',
+      'shellOutputPreview(err.stderr, "stderr", 4000)',
+    ]) {
+      expect(content).toContain(preview);
+    }
+    const output =
+      '"\\\n\u{1f600}'.repeat(10000) + "\nError: late failure at task.js:14:2";
+    for (const [field, budget] of [
+      ["stdout", 24000],
+      ["stdout", 16000],
+      ["stderr", 4000],
+    ]) {
+      const preview = shellOutputPreview(output, field, budget);
+      expect(JSON.stringify(preview[field]).length).toBeLessThanOrEqual(budget);
+      expect(preview[field]).not.toMatch(/[\uD800-\uDBFF]$/u);
+      expect(preview[`${field}_truncated`]).toBe(true);
+      expect(preview[`${field}_total_chars`]).toBe(output.length);
+      expect(preview[`${field}_diagnostics`]).toContain("task.js:14:2");
+      expect(preview.output_hint).toContain("Output is incomplete");
+    }
   });
 
   it("Anthropic max_tokens consumes the centralized model-aware output budget", () => {
