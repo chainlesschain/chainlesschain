@@ -1,5 +1,9 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## Release candidate notice (2026-10-22)
+
+CLI **0.166.115**, VS Code / Open VSX **0.37.157**, and JetBrains **0.4.174** are candidates intended to fix a strict JSON ingress crash when an Agent tool result contains an undefined field; **these candidate versions have not been published**. npm CLI **0.166.114** and Open VSX **0.37.156** have passed public download readback, but still have this known issue. The JetBrains **0.4.173** upload step succeeded before its workflow was cancelled; public listing and download have not been verified. **0.4.172** remains the last verified public JetBrains version. The `.112 / .155 / .172` section below is retained as release history.
+
 <!-- release112-status -->
 
 ## Current public releases (2026-10-22)

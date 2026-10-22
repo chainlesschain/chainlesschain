@@ -132,6 +132,7 @@ const {
   MAX_SUB_AGENTS_PER_RUN,
   buildSubAgentHandoffContext,
   tokenizeShellWords,
+  _agentToolProcessDeps,
   _gitProcessDeps,
 } = await import("../../src/runtime/agent-core.js");
 
@@ -158,6 +159,46 @@ const ALLOWING_APPROVAL_GATE = Object.freeze({
     policy: "autopilot",
   }),
 });
+
+// Evolution ingress accepts plain JSON data. Inspect the live result tree:
+// JSON.stringify would silently remove an undefined object field.
+function assertPlainJsonTree(value, location = "$", ancestors = new WeakSet()) {
+  if (
+    value === null ||
+    typeof value === "string" ||
+    typeof value === "boolean"
+  ) {
+    return;
+  }
+  if (typeof value === "number") {
+    expect(Number.isFinite(value), location).toBe(true);
+    return;
+  }
+  expect(typeof value, location).toBe("object");
+  expect(ancestors.has(value), `${location} must be acyclic`).toBe(false);
+  ancestors.add(value);
+  if (Array.isArray(value)) {
+    expect(Object.getPrototypeOf(value), location).toBe(Array.prototype);
+    const keys = Reflect.ownKeys(value).filter((key) => key !== "length");
+    expect(keys, location).toEqual(value.map((_, index) => String(index)));
+    for (let index = 0; index < value.length; index += 1) {
+      expect(Object.hasOwn(value, index), `${location}[${index}]`).toBe(true);
+      assertPlainJsonTree(value[index], `${location}[${index}]`, ancestors);
+    }
+  } else {
+    expect([Object.prototype, null], location).toContain(
+      Object.getPrototypeOf(value),
+    );
+    for (const key of Reflect.ownKeys(value)) {
+      expect(typeof key, location).toBe("string");
+      const property = Object.getOwnPropertyDescriptor(value, key);
+      expect(property.enumerable, `${location}.${key}`).toBe(true);
+      expect(Object.hasOwn(property, "value"), `${location}.${key}`).toBe(true);
+      assertPlainJsonTree(property.value, `${location}.${key}`, ancestors);
+    }
+  }
+  ancestors.delete(value);
+}
 
 describe("AGENT_TOOLS", () => {
   it("has 28 tool definitions", () => {
@@ -352,6 +393,26 @@ describe("git tool — shell-free (no command injection)", () => {
     }
   });
 
+  it("returns a plain JSON result for git rev-parse with its default descriptor", async () => {
+    const originalRunner = _gitProcessDeps.run;
+    _gitProcessDeps.run = vi.fn(() => ({
+      status: 0,
+      stdout: "/safe/worktree\n",
+      stderr: "",
+    }));
+    try {
+      const result = await executeTool("git", {
+        command: "rev-parse --show-toplevel",
+      });
+      expect(result.stdout).toBe("/safe/worktree\n");
+      expect(result.exitCode).toBe(0);
+      expect(result.toolDescriptor?.name).toBe("git");
+      assertPlainJsonTree(result);
+    } finally {
+      _gitProcessDeps.run = originalRunner;
+    }
+  });
+
   it("tokenizeShellWords keeps quoted args intact (incl. shell metachars)", () => {
     expect(tokenizeShellWords('commit -m "fix: a; b | c"')).toEqual([
       "commit",
@@ -412,6 +473,7 @@ describe("executeTool runtime metadata", () => {
     expect(result.toolDescriptor?.name).toBe("shell");
     expect(result.stdout).toBeDefined();
     expect(result.shellCommandPolicy?.decision).toBeDefined();
+    assertPlainJsonTree(result);
   });
 
   it("attaches a telemetry record for run_shell", async () => {
@@ -914,6 +976,7 @@ describe("executeTool", () => {
     );
     expect(result.error).toBeDefined();
     expect(result.exitCode).toBe(1);
+    assertPlainJsonTree(result);
   });
 
   it("run_code with node language", async () => {
@@ -925,6 +988,56 @@ describe("executeTool", () => {
     expect(result.success).toBe(true);
     expect(result.output).toContain("from-node");
     expect(result.language).toBe("node");
+    expect(result).not.toHaveProperty("scriptPath");
+    assertPlainJsonTree(result);
+  });
+
+  it("uses null for an unknown exit code when code process spawn fails", async () => {
+    const originalRunner = _agentToolProcessDeps.runCode;
+    _agentToolProcessDeps.runCode = vi.fn(() => {
+      const error = new Error("spawn ENOENT");
+      error.code = "ENOENT";
+      throw error;
+    });
+    try {
+      const result = await executeTool(
+        "run_code",
+        { language: "node", code: "console.log('unreachable')" },
+        { cwd: tempDir },
+      );
+      expect(result.error).toContain("spawn ENOENT");
+      expect(result.exitCode).toBeNull();
+      expect(result).not.toHaveProperty("scriptPath");
+      assertPlainJsonTree(result);
+    } finally {
+      _agentToolProcessDeps.runCode = originalRunner;
+    }
+  });
+
+  it("omits absent slash command description and expansion warnings", async () => {
+    const commandsDir = join(tempDir, ".claude", "commands");
+    fs.mkdirSync(commandsDir, { recursive: true });
+    writeFileSync(join(commandsDir, "plain.md"), "Plain command", "utf8");
+
+    const unknown = await executeTool(
+      "slash_command",
+      { command: "/missing" },
+      { cwd: tempDir },
+    );
+    const advertised = unknown.availableCommands.find(
+      (entry) => entry.name === "plain",
+    );
+    expect(advertised).toEqual({ name: "plain", scope: "project" });
+    assertPlainJsonTree(unknown);
+
+    const expanded = await executeTool(
+      "slash_command",
+      { command: "/plain" },
+      { cwd: tempDir },
+    );
+    expect(expanded.expandedPrompt).toBe("Plain command");
+    expect(expanded).not.toHaveProperty("warnings");
+    assertPlainJsonTree(expanded);
   });
 
   it("run_code cleans up temp file", async () => {

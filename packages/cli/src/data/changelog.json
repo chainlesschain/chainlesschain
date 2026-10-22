@@ -3,14 +3,27 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.115",
+      "cliVersions": ["0.166.115"],
+      "date": "2026-10-22",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.115: JSON-compatible Agent tool evidence (candidate, 2026-10-22)",
+          "body": "- Resolve built-in tool descriptor categories from their telemetry metadata and use explicit null for missing optional descriptor values, so successful Git and shell tools do not terminate the Agent's signed Evolution ingress.\n- Omit absent slash-command descriptions, warnings and non-persistent code script paths; represent unknown process exit codes as null. Preserve strict evidence validation.\n- Prepare VS Code 0.37.157 and JetBrains 0.4.174 to recommend CLI 0.166.115 after exact-source gates and public npm verification."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.114",
       "cliVersions": ["0.166.114"],
       "date": "2026-10-22",
       "title": "",
       "sections": [
         {
-          "heading": "Fixed - cc CLI 0.166.114: Quick Ask streaming and local Evolution setup (candidate, 2026-10-22)",
-          "body": "- Surface provider waiting status, credential errors, and terminal streaming failures in Quick Ask; bound governed chat initialization and completion to 60 seconds and support cancellation of active requests.\n- Migrate a supported signed UI-only local Evolution host to admit `agent`, `ask`, `chat`, and `ui`, retaining its signing identity and detecting concurrent profile changes.\n- Prepare VS Code 0.37.156 and JetBrains 0.4.173 to recommend CLI 0.166.114. These versions are unreleased candidates; publication still requires the exact release commit's GitHub Actions gates, OIDC npm publication and public readback before IDE publication."
+          "heading": "Fixed - cc CLI 0.166.114: Quick Ask streaming and local Evolution setup (published, 2026-10-22)",
+          "body": "- Surface provider waiting status, credential errors, and terminal streaming failures in Quick Ask; bound governed chat initialization and completion to 60 seconds and support cancellation of active requests.\n- Migrate a supported signed UI-only local Evolution host to admit `agent`, `ask`, `chat`, and `ui`, retaining its signing identity and detecting concurrent profile changes.\n- CLI 0.166.114 and Open VSX 0.37.156 were published with verified public archives. JetBrains 0.4.173 upload succeeded before cancellation; its public download was not verified. A subsequently reported Agent tool-evidence JSON error is addressed in the .115 candidate."
         }
       ]
     },

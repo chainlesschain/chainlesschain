@@ -60,7 +60,7 @@ vi.mock("../../src/lib/session-manager.js", () => ({
   deleteSession: vi.fn(() => true),
 }));
 
-vi.mock("../../src/lib/agent-core.js", () => ({
+vi.mock("../../src/runtime/agent-core.js", () => ({
   getBaseSystemPrompt: vi.fn(() => "You are a helpful assistant."),
   buildSystemPrompt: vi.fn(() => "You are a helpful assistant."),
 }));

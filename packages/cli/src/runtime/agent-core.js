@@ -5725,8 +5725,17 @@ async function executeToolInner(
     descriptor
       ? {
           name: descriptor.name,
-          kind: descriptor.kind || descriptor.category || descriptor.source,
-          category: descriptor.category,
+          kind:
+            descriptor.kind ||
+            descriptor.category ||
+            descriptor.telemetry?.category ||
+            descriptor.source ||
+            null,
+          category:
+            descriptor.category ??
+            descriptor.telemetry?.category ??
+            descriptor.kind ??
+            null,
         }
       : null;
   const descriptorPayload = buildPayload(runtimeDescriptor);
@@ -7562,7 +7571,7 @@ async function executeToolInner(
               ? shellOutputPreview(err.stdout, "stdout", 16000)
               : {}),
             ...shellOutputPreview(err.stderr, "stderr", 4000),
-            exitCode: err.status,
+            exitCode: err.status ?? null,
             ...(typeof err.code === "string" && err.code
               ? {
                   policy: {
@@ -8000,7 +8009,7 @@ async function executeToolInner(
           const available = discoverCommands(cwd).map((c) => ({
             name: c.name,
             scope: c.scope,
-            description: c.description || undefined,
+            ...(c.description ? { description: c.description } : {}),
           }));
           return attachDescriptor({
             error: `Unknown slash command "${head}".`,
@@ -8023,7 +8032,7 @@ async function executeToolInner(
           command: macro.name,
           scope: macro.scope,
           expandedPrompt: expanded,
-          warnings: warnings && warnings.length ? warnings : undefined,
+          ...(warnings?.length ? { warnings } : {}),
           instructions:
             "The expandedPrompt is the command's instructions. Carry them out " +
             "now using your normal tools.",
@@ -10301,7 +10310,7 @@ async function _executeRunCode(args, cwd) {
               error: `Invalid package name: "${packageName}"`,
               ...classified,
               language: lang,
-              scriptPath: persist ? scriptPath : undefined,
+              ...(persist ? { scriptPath } : {}),
             };
           }
 
@@ -10325,11 +10334,11 @@ async function _executeRunCode(args, cwd) {
             return {
               error: (stderr || message).substring(0, 5000),
               stderr: stderr.substring(0, 5000),
-              exitCode: err.status,
+              exitCode: err.status ?? null,
               language: lang,
               ...classified,
               hint: autoInstallDisabledHint(packageName),
-              scriptPath: persist ? scriptPath : undefined,
+              ...(persist ? { scriptPath } : {}),
             };
           }
           if (!isPackageAllowed(packageName, installPolicy.allowlist)) {
@@ -10342,11 +10351,11 @@ async function _executeRunCode(args, cwd) {
             return {
               error: (stderr || message).substring(0, 5000),
               stderr: stderr.substring(0, 5000),
-              exitCode: err.status,
+              exitCode: err.status ?? null,
               language: lang,
               ...classified,
               hint: `Package "${packageName}" is not in runCode.installAllowlist — install it manually or add it to the allowlist.`,
-              scriptPath: persist ? scriptPath : undefined,
+              ...(persist ? { scriptPath } : {}),
             };
           }
 
@@ -10398,11 +10407,11 @@ async function _executeRunCode(args, cwd) {
             return {
               error: (stderr || message).substring(0, 5000),
               stderr: stderr.substring(0, 5000),
-              exitCode: err.status,
+              exitCode: err.status ?? null,
               language: lang,
               ...classified,
               hint: `Failed to auto-install "${packageName}". ${(installError.stderr || installError.message || "").substring(0, 500)}`,
-              scriptPath: persist ? scriptPath : undefined,
+              ...(persist ? { scriptPath } : {}),
             };
           };
 
@@ -10459,7 +10468,7 @@ async function _executeRunCode(args, cwd) {
               language: lang,
               duration: `${retryDuration}ms`,
               autoInstalled: [packageName],
-              scriptPath: persist ? scriptPath : undefined,
+              ...(persist ? { scriptPath } : {}),
             };
           } catch (retryErr) {
             rethrowRunCodeSandboxFailure(retryErr);
@@ -10474,12 +10483,12 @@ async function _executeRunCode(args, cwd) {
             return {
               error: (retryStderr || retryMessage).substring(0, 5000),
               stderr: retryStderr.substring(0, 5000),
-              exitCode: retryErr.status,
+              exitCode: retryErr.status ?? null,
               language: lang,
               ...retryClassified,
               hint: `Package "${packageName}" was installed, but the script retry failed.`,
               autoInstalled: [packageName],
-              scriptPath: persist ? scriptPath : undefined,
+              ...(persist ? { scriptPath } : {}),
             };
           }
         }
@@ -10488,10 +10497,10 @@ async function _executeRunCode(args, cwd) {
       return {
         error: (stderr || message).substring(0, 5000),
         stderr: stderr.substring(0, 5000),
-        exitCode: err.status,
+        exitCode: err.status ?? null,
         language: lang,
         ...classified,
-        scriptPath: persist ? scriptPath : undefined,
+        ...(persist ? { scriptPath } : {}),
       };
     }
 
@@ -10501,7 +10510,7 @@ async function _executeRunCode(args, cwd) {
       ...boundedCodeOutput(output),
       language: lang,
       duration: `${duration}ms`,
-      scriptPath: persist ? scriptPath : undefined,
+      ...(persist ? { scriptPath } : {}),
     };
   } finally {
     // Only clean up if not persisting

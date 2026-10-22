@@ -1,0 +1,997 @@
+{
+  "schema": "chainlesschain.release114-gates/cli-public-draft-v1",
+  "observedAt": "2026-10-22T03:47:50.703Z",
+  "sourceSha": "be34ceb5fcd3d00375ace4e63307856c0150e87f",
+  "scope": "Exact-source gates and npm readback for .114, plus public Open VSX .156. This intermediate release retains a subsequently discovered Agent tool-evidence JSON incompatibility. JetBrains .173 upload succeeded before cancellation; public download is not verified.",
+  "status": "CLI_AND_OPEN_VSX_PUBLIC_AGENT_TOOL_COMPATIBILITY_FIX_PENDING",
+  "runs": [
+    {
+      "id": 39700360910,
+      "name": "CLI CI",
+      "sourceSha": "be34ceb5fcd3d00375ace4e63307856c0150e87f",
+      "ref": "fix/cli-agent-and-quick-ask",
+      "event": "pull_request",
+      "attempt": 2,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/attempts/2",
+      "createdAt": "2026-10-22T00:33:02Z",
+      "updatedAt": "2026-10-22T03:06:56Z",
+      "jobCount": 71,
+      "successfulJobs": 71,
+      "jobs": [
+        {
+          "id": 119604433624,
+          "name": "test-windows / integration (windows-latest, shard 1/8)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604433624",
+          "startedAt": "2026-10-22T00:44:39Z",
+          "completedAt": "2026-10-22T01:06:54Z"
+        },
+        {
+          "id": 119604433728,
+          "name": "test-macos / integration (macos-latest, shard 2/8)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604433728",
+          "startedAt": "2026-10-22T00:52:44Z",
+          "completedAt": "2026-10-22T01:01:00Z"
+        },
+        {
+          "id": 119604433866,
+          "name": "test-ubuntu / e2e (ubuntu-latest, shard 2/4)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604433866",
+          "startedAt": "2026-10-22T00:53:34Z",
+          "completedAt": "2026-10-22T00:55:21Z"
+        },
+        {
+          "id": 119604433993,
+          "name": "test-windows / unit (windows-latest, shard 16/16)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604433993",
+          "startedAt": "2026-10-22T02:30:27Z",
+          "completedAt": "2026-10-22T02:51:31Z"
+        },
+        {
+          "id": 119604434112,
+          "name": "test-macos / integration (macos-latest, shard 1/8)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604434112",
+          "startedAt": "2026-10-22T00:53:05Z",
+          "completedAt": "2026-10-22T01:02:45Z"
+        },
+        {
+          "id": 119604434219,
+          "name": "test-windows / unit (windows-latest, shard 4/16)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604434219",
+          "startedAt": "2026-10-22T00:46:30Z",
+          "completedAt": "2026-10-22T01:00:42Z"
+        },
+        {
+          "id": 119604434264,
+          "name": "test-windows / unit (windows-latest, shard 8/16)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604434264",
+          "startedAt": "2026-10-22T01:11:28Z",
+          "completedAt": "2026-10-22T01:20:22Z"
+        },
+        {
+          "id": 119604434286,
+          "name": "test-windows / integration (windows-latest, shard 7/8)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604434286",
+          "startedAt": "2026-10-22T01:37:05Z",
+          "completedAt": "2026-10-22T02:03:25Z"
+        },
+        {
+          "id": 119604434331,
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 5/8)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604434331",
+          "startedAt": "2026-10-22T01:01:44Z",
+          "completedAt": "2026-10-22T01:09:27Z"
+        },
+        {
+          "id": 119604434356,
+          "name": "test-macos / integration (macos-latest, shard 7/8)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604434356",
+          "startedAt": "2026-10-22T01:13:34Z",
+          "completedAt": "2026-10-22T01:22:11Z"
+        },
+        {
+          "id": 119604434408,
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 4/8)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604434408",
+          "startedAt": "2026-10-22T01:00:28Z",
+          "completedAt": "2026-10-22T01:02:30Z"
+        },
+        {
+          "id": 119604434453,
+          "name": "test-macos / integration (macos-latest, shard 8/8)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604434453",
+          "startedAt": "2026-10-22T01:18:46Z",
+          "completedAt": "2026-10-22T01:26:27Z"
+        },
+        {
+          "id": 119604434497,
+          "name": "test-windows / unit (windows-latest, shard 6/16)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604434497",
+          "startedAt": "2026-10-22T01:00:44Z",
+          "completedAt": "2026-10-22T01:13:14Z"
+        },
+        {
+          "id": 119604434511,
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 8/8)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604434511",
+          "startedAt": "2026-10-22T01:09:29Z",
+          "completedAt": "2026-10-22T01:14:47Z"
+        },
+        {
+          "id": 119604434580,
+          "name": "test-macos / integration (macos-latest, shard 5/8)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604434580",
+          "startedAt": "2026-10-22T01:06:27Z",
+          "completedAt": "2026-10-22T01:18:43Z"
+        },
+        {
+          "id": 119604434589,
+          "name": "test-windows / integration (windows-latest, shard 6/8)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604434589",
+          "startedAt": "2026-10-22T01:27:02Z",
+          "completedAt": "2026-10-22T01:37:02Z"
+        },
+        {
+          "id": 119604434610,
+          "name": "test-windows / unit (windows-latest, shard 9/16)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604434610",
+          "startedAt": "2026-10-22T01:13:16Z",
+          "completedAt": "2026-10-22T01:32:23Z"
+        },
+        {
+          "id": 119604434613,
+          "name": "test-macos / integration (macos-latest, shard 3/8)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604434613",
+          "startedAt": "2026-10-22T01:01:55Z",
+          "completedAt": "2026-10-22T01:10:50Z"
+        },
+        {
+          "id": 119604434639,
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 6/8)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604434639",
+          "startedAt": "2026-10-22T01:02:33Z",
+          "completedAt": "2026-10-22T01:04:49Z"
+        },
+        {
+          "id": 119604434802,
+          "name": "test-windows / integration (windows-latest, shard 5/8)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604434802",
+          "startedAt": "2026-10-22T01:13:49Z",
+          "completedAt": "2026-10-22T01:59:36Z"
+        },
+        {
+          "id": 119604434829,
+          "name": "test-windows / unit (windows-latest, shard 5/16)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604434829",
+          "startedAt": "2026-10-22T00:56:34Z",
+          "completedAt": "2026-10-22T01:11:25Z"
+        },
+        {
+          "id": 119604434960,
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 7/8)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604434960",
+          "startedAt": "2026-10-22T01:04:51Z",
+          "completedAt": "2026-10-22T01:11:23Z"
+        },
+        {
+          "id": 119604435105,
+          "name": "test-windows / unit (windows-latest, shard 14/16)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604435105",
+          "startedAt": "2026-10-22T01:32:25Z",
+          "completedAt": "2026-10-22T01:48:17Z"
+        },
+        {
+          "id": 119604435133,
+          "name": "test-macos / integration (macos-latest, shard 6/8)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604435133",
+          "startedAt": "2026-10-22T01:10:53Z",
+          "completedAt": "2026-10-22T01:13:30Z"
+        },
+        {
+          "id": 119604435324,
+          "name": "test-windows / integration (windows-latest, shard 8/8)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604435324",
+          "startedAt": "2026-10-22T01:59:39Z",
+          "completedAt": "2026-10-22T02:29:31Z"
+        },
+        {
+          "id": 119604435374,
+          "name": "test-windows / unit (windows-latest, shard 11/16)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604435374",
+          "startedAt": "2026-10-22T01:20:27Z",
+          "completedAt": "2026-10-22T01:40:19Z"
+        },
+        {
+          "id": 119604435453,
+          "name": "test-windows / unit (windows-latest, shard 10/16)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604435453",
+          "startedAt": "2026-10-22T01:16:09Z",
+          "completedAt": "2026-10-22T01:27:18Z"
+        },
+        {
+          "id": 119604435471,
+          "name": "test-windows / unit (windows-latest, shard 12/16)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604435471",
+          "startedAt": "2026-10-22T01:21:59Z",
+          "completedAt": "2026-10-22T01:38:16Z"
+        },
+        {
+          "id": 119604435653,
+          "name": "test-windows / unit (windows-latest, shard 13/16)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604435653",
+          "startedAt": "2026-10-22T01:27:20Z",
+          "completedAt": "2026-10-22T01:57:11Z"
+        },
+        {
+          "id": 119604435693,
+          "name": "test-windows / unit (windows-latest, shard 15/16)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604435693",
+          "startedAt": "2026-10-22T01:38:19Z",
+          "completedAt": "2026-10-22T01:51:55Z"
+        },
+        {
+          "id": 119604436215,
+          "name": "pack-linux-dryrun",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604436215",
+          "startedAt": "2026-10-22T01:14:50Z",
+          "completedAt": "2026-10-22T01:16:22Z"
+        },
+        {
+          "id": 119604436535,
+          "name": "dry-run-publish",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604436535",
+          "startedAt": "2026-10-22T01:14:51Z",
+          "completedAt": "2026-10-22T01:16:56Z"
+        },
+        {
+          "id": 119604459648,
+          "name": "test-macos / e2e (macos-latest, shard 1/4)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604459648",
+          "startedAt": "2026-10-22T00:57:03Z",
+          "completedAt": "2026-10-22T01:01:53Z"
+        },
+        {
+          "id": 119604460809,
+          "name": "PDH native release tests (windows-latest)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604460809",
+          "startedAt": "2026-10-22T00:37:40Z",
+          "completedAt": "2026-10-22T00:44:10Z"
+        },
+        {
+          "id": 119604460877,
+          "name": "linux-subreaper / Linux packaged subreaper (arm64)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604460877",
+          "startedAt": "2026-10-22T00:36:29Z",
+          "completedAt": "2026-10-22T00:37:09Z"
+        },
+        {
+          "id": 119604461565,
+          "name": "linux-subreaper / Linux packaged subreaper (x64)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604461565",
+          "startedAt": "2026-10-22T00:35:04Z",
+          "completedAt": "2026-10-22T00:35:52Z"
+        },
+        {
+          "id": 119604461823,
+          "name": "test-macos / unit (macos-latest, shard 1/4)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604461823",
+          "startedAt": "2026-10-22T00:40:44Z",
+          "completedAt": "2026-10-22T00:57:05Z"
+        },
+        {
+          "id": 119604462758,
+          "name": "test-windows / e2e (windows-latest, shard 4/4)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604462758",
+          "startedAt": "2026-10-22T00:53:41Z",
+          "completedAt": "2026-10-22T00:58:38Z"
+        },
+        {
+          "id": 119604464349,
+          "name": "test-windows / e2e (windows-latest, shard 3/4)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604464349",
+          "startedAt": "2026-10-22T00:53:23Z",
+          "completedAt": "2026-10-22T01:00:46Z"
+        },
+        {
+          "id": 119604464989,
+          "name": "test-ubuntu / e2e (ubuntu-latest, shard 3/4)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604464989",
+          "startedAt": "2026-10-22T00:58:37Z",
+          "completedAt": "2026-10-22T01:00:28Z"
+        },
+        {
+          "id": 119604465167,
+          "name": "test-macos / e2e (macos-latest, shard 3/4)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604465167",
+          "startedAt": "2026-10-22T01:00:51Z",
+          "completedAt": "2026-10-22T01:02:16Z"
+        },
+        {
+          "id": 119604465276,
+          "name": "test-ubuntu / e2e (ubuntu-latest, shard 1/4)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604465276",
+          "startedAt": "2026-10-22T00:52:59Z",
+          "completedAt": "2026-10-22T00:55:04Z"
+        },
+        {
+          "id": 119604465503,
+          "name": "test-windows / unit (windows-latest, shard 7/16)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604465503",
+          "startedAt": "2026-10-22T01:10:45Z",
+          "completedAt": "2026-10-22T01:21:56Z"
+        },
+        {
+          "id": 119604465538,
+          "name": "test-ubuntu / unit (ubuntu-latest, shard 4/4)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604465538",
+          "startedAt": "2026-10-22T01:00:22Z",
+          "completedAt": "2026-10-22T01:08:54Z"
+        },
+        {
+          "id": 119604465625,
+          "name": "test-macos / integration (macos-latest, shard 4/8)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604465625",
+          "startedAt": "2026-10-22T01:02:48Z",
+          "completedAt": "2026-10-22T01:06:24Z"
+        },
+        {
+          "id": 119604467791,
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 3/8)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604467791",
+          "startedAt": "2026-10-22T00:55:24Z",
+          "completedAt": "2026-10-22T01:01:42Z"
+        },
+        {
+          "id": 119604470170,
+          "name": "test-windows / unit (windows-latest, shard 1/16)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604470170",
+          "startedAt": "2026-10-22T00:47:00Z",
+          "completedAt": "2026-10-22T01:10:42Z"
+        },
+        {
+          "id": 119604472043,
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 2/8)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604472043",
+          "startedAt": "2026-10-22T00:54:42Z",
+          "completedAt": "2026-10-22T01:00:25Z"
+        },
+        {
+          "id": 119604473102,
+          "name": "test-macos / e2e (macos-latest, shard 2/4)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604473102",
+          "startedAt": "2026-10-22T00:54:36Z",
+          "completedAt": "2026-10-22T00:56:59Z"
+        },
+        {
+          "id": 119604474079,
+          "name": "test-windows / e2e (windows-latest, shard 1/4)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604474079",
+          "startedAt": "2026-10-22T00:47:07Z",
+          "completedAt": "2026-10-22T00:51:37Z"
+        },
+        {
+          "id": 119604474178,
+          "name": "test-ubuntu / e2e (ubuntu-latest, shard 4/4)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604474178",
+          "startedAt": "2026-10-22T00:58:40Z",
+          "completedAt": "2026-10-22T01:00:29Z"
+        },
+        {
+          "id": 119604475323,
+          "name": "PDH native release tests (ubuntu-latest)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604475323",
+          "startedAt": "2026-10-22T00:37:12Z",
+          "completedAt": "2026-10-22T00:39:39Z"
+        },
+        {
+          "id": 119604476269,
+          "name": "test-windows / integration (windows-latest, shard 3/8)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604476269",
+          "startedAt": "2026-10-22T00:59:30Z",
+          "completedAt": "2026-10-22T01:26:59Z"
+        },
+        {
+          "id": 119604476342,
+          "name": "test-macos / e2e (macos-latest, shard 4/4)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604476342",
+          "startedAt": "2026-10-22T01:02:19Z",
+          "completedAt": "2026-10-22T01:04:06Z"
+        },
+        {
+          "id": 119604477398,
+          "name": "test-windows / integration (windows-latest, shard 2/8)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604477398",
+          "startedAt": "2026-10-22T00:38:56Z",
+          "completedAt": "2026-10-22T00:58:35Z"
+        },
+        {
+          "id": 119604477606,
+          "name": "test-ubuntu / unit (ubuntu-latest, shard 3/4)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604477606",
+          "startedAt": "2026-10-22T00:55:28Z",
+          "completedAt": "2026-10-22T01:02:32Z"
+        },
+        {
+          "id": 119604478496,
+          "name": "test-macos / unit (macos-latest, shard 3/4)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604478496",
+          "startedAt": "2026-10-22T00:57:09Z",
+          "completedAt": "2026-10-22T01:08:46Z"
+        },
+        {
+          "id": 119604478869,
+          "name": "test-windows / unit (windows-latest, shard 3/16)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604478869",
+          "startedAt": "2026-10-22T00:47:06Z",
+          "completedAt": "2026-10-22T01:16:06Z"
+        },
+        {
+          "id": 119604479404,
+          "name": "PDH native release tests (macos-latest)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604479404",
+          "startedAt": "2026-10-22T00:37:12Z",
+          "completedAt": "2026-10-22T00:40:34Z"
+        },
+        {
+          "id": 119604479464,
+          "name": "test-ubuntu / unit (ubuntu-latest, shard 1/4)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604479464",
+          "startedAt": "2026-10-22T00:37:30Z",
+          "completedAt": "2026-10-22T00:47:04Z"
+        },
+        {
+          "id": 119604479935,
+          "name": "test-windows / unit (windows-latest, shard 2/16)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604479935",
+          "startedAt": "2026-10-22T00:40:56Z",
+          "completedAt": "2026-10-22T00:53:39Z"
+        },
+        {
+          "id": 119604480177,
+          "name": "test-windows / integration (windows-latest, shard 4/8)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604480177",
+          "startedAt": "2026-10-22T01:06:57Z",
+          "completedAt": "2026-10-22T01:13:46Z"
+        },
+        {
+          "id": 119604480440,
+          "name": "test-ubuntu / unit (ubuntu-latest, shard 2/4)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604480440",
+          "startedAt": "2026-10-22T00:55:06Z",
+          "completedAt": "2026-10-22T00:59:27Z"
+        },
+        {
+          "id": 119604480883,
+          "name": "test-windows / e2e (windows-latest, shard 2/4)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604480883",
+          "startedAt": "2026-10-22T00:45:24Z",
+          "completedAt": "2026-10-22T00:50:53Z"
+        },
+        {
+          "id": 119604480986,
+          "name": "test-ubuntu / integration (ubuntu-latest, shard 1/8)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604480986",
+          "startedAt": "2026-10-22T00:40:30Z",
+          "completedAt": "2026-10-22T00:46:28Z"
+        },
+        {
+          "id": 119604481071,
+          "name": "test-macos / unit (macos-latest, shard 2/4)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604481071",
+          "startedAt": "2026-10-22T00:45:59Z",
+          "completedAt": "2026-10-22T00:54:33Z"
+        },
+        {
+          "id": 119604483132,
+          "name": "test-macos / unit (macos-latest, shard 4/4)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604483132",
+          "startedAt": "2026-10-22T01:01:04Z",
+          "completedAt": "2026-10-22T01:23:33Z"
+        },
+        {
+          "id": 119610622864,
+          "name": "verify-cli (windows-latest)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119610622864",
+          "startedAt": "2026-10-22T02:51:34Z",
+          "completedAt": "2026-10-22T03:05:40Z"
+        },
+        {
+          "id": 119610622866,
+          "name": "verify-cli (macos-latest)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119610622866",
+          "startedAt": "2026-10-22T02:51:35Z",
+          "completedAt": "2026-10-22T03:03:51Z"
+        },
+        {
+          "id": 119610622937,
+          "name": "verify-cli (ubuntu-latest)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119610622937",
+          "startedAt": "2026-10-22T02:51:35Z",
+          "completedAt": "2026-10-22T03:06:17Z"
+        },
+        {
+          "id": 119614913412,
+          "name": "Test-only PM exploration recovery three-OS aggregate",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119614913412",
+          "startedAt": "2026-10-22T03:06:20Z",
+          "completedAt": "2026-10-22T03:06:55Z"
+        }
+      ],
+      "cachedReadback": {
+        "runJsonSha256": "44c569ae4332d8c96f8c19f64b1ed84191e2608332cfd5a9588480712db548b2",
+        "jobsJsonSha256": "a5431ee4dc5e1461bd4e700c095f8c9268ab879abcc27e492fe8e8df5f9558a2"
+      }
+    },
+    {
+      "id": 39700360676,
+      "name": "CLI Strict Sandbox",
+      "sourceSha": "be34ceb5fcd3d00375ace4e63307856c0150e87f",
+      "ref": "fix/cli-agent-and-quick-ask",
+      "event": "pull_request",
+      "attempt": 2,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360676/attempts/2",
+      "createdAt": "2026-10-22T00:33:02Z",
+      "updatedAt": "2026-10-22T00:59:24Z",
+      "jobCount": 5,
+      "successfulJobs": 5,
+      "jobs": [
+        {
+          "id": 119572769477,
+          "name": "strict native boundary (windows-latest)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360676/job/119572769477",
+          "startedAt": "2026-10-22T00:50:56Z",
+          "completedAt": "2026-10-22T00:59:23Z"
+        },
+        {
+          "id": 119572770740,
+          "name": "strict native boundary (ubuntu-24.04-arm)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360676/job/119572770740",
+          "startedAt": "2026-10-22T00:33:35Z",
+          "completedAt": "2026-10-22T00:36:43Z"
+        },
+        {
+          "id": 119572771360,
+          "name": "macOS latest native capability",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360676/job/119572771360",
+          "startedAt": "2026-10-22T00:34:56Z",
+          "completedAt": "2026-10-22T00:37:37Z"
+        },
+        {
+          "id": 119572813745,
+          "name": "strict native boundary (macos-15)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360676/job/119572813745",
+          "startedAt": "2026-10-22T00:34:08Z",
+          "completedAt": "2026-10-22T00:38:48Z"
+        },
+        {
+          "id": 119572815833,
+          "name": "strict native boundary (ubuntu-24.04)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360676/job/119572815833",
+          "startedAt": "2026-10-22T00:33:06Z",
+          "completedAt": "2026-10-22T00:37:44Z"
+        }
+      ],
+      "cachedReadback": {
+        "runJsonSha256": "754db0036d0a4396f0e552f9ad5589980002497faa5889977287cb800194288a",
+        "jobsJsonSha256": "1707762254aa29f1d0bbbf26eb201ec20bbe9f489d2677619d6ac56b94563ebe"
+      }
+    },
+    {
+      "id": 39700360769,
+      "name": "IDE ARM64 Host Validation",
+      "sourceSha": "be34ceb5fcd3d00375ace4e63307856c0150e87f",
+      "ref": "fix/cli-agent-and-quick-ask",
+      "event": "pull_request",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360769/attempts/1",
+      "createdAt": "2026-10-22T00:33:02Z",
+      "updatedAt": "2026-10-22T01:00:21Z",
+      "jobCount": 10,
+      "successfulJobs": 10,
+      "jobs": [
+        {
+          "id": 119567826913,
+          "name": "VS Code architecture-neutral candidate",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360769/job/119567826913",
+          "startedAt": "2026-10-22T00:35:33Z",
+          "completedAt": "2026-10-22T00:36:34Z"
+        },
+        {
+          "id": 119567827099,
+          "name": "JetBrains ARM64 (linux, 2024.2)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360769/job/119567827099",
+          "startedAt": "2026-10-22T00:35:53Z",
+          "completedAt": "2026-10-22T00:44:36Z"
+        },
+        {
+          "id": 119567827110,
+          "name": "JetBrains ARM64 (macos, 2025.2)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360769/job/119567827110",
+          "startedAt": "2026-10-22T00:36:27Z",
+          "completedAt": "2026-10-22T00:52:57Z"
+        },
+        {
+          "id": 119567827245,
+          "name": "JetBrains ARM64 (linux, 2025.2)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360769/job/119567827245",
+          "startedAt": "2026-10-22T00:36:25Z",
+          "completedAt": "2026-10-22T00:45:13Z"
+        },
+        {
+          "id": 119567827328,
+          "name": "JetBrains ARM64 (macos, 2024.2)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360769/job/119567827328",
+          "startedAt": "2026-10-22T00:36:40Z",
+          "completedAt": "2026-10-22T00:49:19Z"
+        },
+        {
+          "id": 119567827371,
+          "name": "JetBrains ARM64 (windows, 2026.2.0.1)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360769/job/119567827371",
+          "startedAt": "2026-10-22T00:33:06Z",
+          "completedAt": "2026-10-22T00:55:26Z"
+        },
+        {
+          "id": 119568962935,
+          "name": "VS Code ARM64 (macos)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360769/job/119568962935",
+          "startedAt": "2026-10-22T00:39:36Z",
+          "completedAt": "2026-10-22T00:45:57Z"
+        },
+        {
+          "id": 119568962949,
+          "name": "VS Code ARM64 (linux)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360769/job/119568962949",
+          "startedAt": "2026-10-22T00:36:48Z",
+          "completedAt": "2026-10-22T00:40:27Z"
+        },
+        {
+          "id": 119568963143,
+          "name": "VS Code ARM64 (windows)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360769/job/119568963143",
+          "startedAt": "2026-10-22T00:36:39Z",
+          "completedAt": "2026-10-22T00:44:19Z"
+        },
+        {
+          "id": 119575152081,
+          "name": "Aggregate 11-cell IDE ARM64 evidence",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360769/job/119575152081",
+          "startedAt": "2026-10-22T00:59:26Z",
+          "completedAt": "2026-10-22T01:00:20Z"
+        }
+      ],
+      "cachedReadback": {
+        "runJsonSha256": "e266bf6920865cb76a37cfc2e0cffe1f776d8cc81803f1d8ab56345e34e5323f",
+        "jobsJsonSha256": "5ef63b32fd36d5d8c366a90eaa4cdae858f14ff78da43ea4158f4c8dcc5fb698"
+      }
+    },
+    {
+      "id": 39715133167,
+      "name": "Publish CLI release to npm",
+      "sourceSha": "be34ceb5fcd3d00375ace4e63307856c0150e87f",
+      "ref": "v-npm-0-166-114",
+      "event": "push",
+      "attempt": 3,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39715133167/attempts/3",
+      "jobCount": 7,
+      "successfulJobs": 5,
+      "skippedJobs": 2,
+      "jobs": [
+        {
+          "id": 119624985069,
+          "name": "exact-sha-gate",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39715133167/job/119624985069",
+          "startedAt": "2026-10-22T03:07:40Z",
+          "completedAt": "2026-10-22T03:08:21Z"
+        },
+        {
+          "id": 119624985264,
+          "name": "dry-run",
+          "conclusion": "skipped",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39715133167/job/119624985264",
+          "startedAt": "2026-10-22T03:40:12Z",
+          "completedAt": "2026-10-22T03:07:37Z"
+        },
+        {
+          "id": 119624985345,
+          "name": "publish",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39715133167/job/119624985345",
+          "startedAt": "2026-10-22T03:40:15Z",
+          "completedAt": "2026-10-22T03:42:57Z"
+        },
+        {
+          "id": 119624985597,
+          "name": "linux-subreaper / Linux packaged subreaper (arm64)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39715133167/job/119624985597",
+          "startedAt": "2026-10-22T03:08:26Z",
+          "completedAt": "2026-10-22T03:08:57Z"
+        },
+        {
+          "id": 119624986175,
+          "name": "package-cli",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39715133167/job/119624986175",
+          "startedAt": "2026-10-22T03:09:08Z",
+          "completedAt": "2026-10-22T03:11:11Z"
+        },
+        {
+          "id": 119624986342,
+          "name": "linux-subreaper / Linux packaged subreaper (x64)",
+          "conclusion": "success",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39715133167/job/119624986342",
+          "startedAt": "2026-10-22T03:08:24Z",
+          "completedAt": "2026-10-22T03:09:06Z"
+        },
+        {
+          "id": 119625036215,
+          "name": "test",
+          "conclusion": "skipped",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39715133167/job/119625036215",
+          "startedAt": "2026-10-22T03:40:22Z",
+          "completedAt": "2026-10-22T03:07:37Z"
+        }
+      ]
+    }
+  ],
+  "previousFailedAttempts": [
+    {
+      "id": 39700360910,
+      "name": "CLI CI",
+      "sourceSha": "be34ceb5fcd3d00375ace4e63307856c0150e87f",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "failure",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/attempts/1",
+      "jobCount": 69,
+      "successfulJobs": 66,
+      "failedJobs": [
+        {
+          "id": 119568318610,
+          "name": "test-windows / unit (windows-latest, shard 16/16)",
+          "conclusion": "failure",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119568318610",
+          "startedAt": "2026-10-22T01:40:22Z",
+          "completedAt": "2026-10-22T02:01:04Z"
+        },
+        {
+          "id": 119604166043,
+          "name": "Test-only PM exploration recovery three-OS aggregate",
+          "conclusion": "failure",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604166043",
+          "startedAt": "2026-10-22T02:29:35Z",
+          "completedAt": "2026-10-22T02:29:40Z"
+        }
+      ],
+      "skippedJobs": [
+        {
+          "id": 119604166739,
+          "name": "verify-cli",
+          "conclusion": "skipped",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360910/job/119604166739",
+          "startedAt": "2026-10-22T02:29:32Z",
+          "completedAt": "2026-10-22T02:29:32Z"
+        }
+      ],
+      "cachedReadback": {
+        "runJsonSha256": "85ced03c261c44dec5d7a2c999f4497748750970a8bbdda45855c4a68a64bd4e",
+        "jobsJsonSha256": "09e3db5f6e1ddf0d8b5634d6d699eb6f627c259a36514904520ae40e52785c1c",
+        "failureLogSha256": {
+          "cli-attempt-1-unit16.log": "e4299635ebc15aae4d0ccdad1b00b1518ab5f081780788dd3c0a1c6e4b597678",
+          "cli-attempt-1-dependent-aggregate.log": "1e74e7d9e3dea071996f9b2f4490583dfde6c8b2b6c26763d15dae912b745d62"
+        }
+      },
+      "failureSummary": "Windows unit shard 16/16 failed one ws-session-manager session-cap test on its 15,000 ms test timeout; dependent test-only PM recovery three-OS aggregate failed because at least one platform failed or did not finish. The attempt was not a passing release gate.",
+      "failureLogJobIds": [
+        119568318610,
+        119604166043
+      ]
+    },
+    {
+      "id": 39700360676,
+      "name": "CLI Strict Sandbox",
+      "sourceSha": "be34ceb5fcd3d00375ace4e63307856c0150e87f",
+      "attempt": 1,
+      "status": "completed",
+      "conclusion": "failure",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360676/attempts/1",
+      "jobCount": 5,
+      "successfulJobs": 4,
+      "failedJobs": [
+        {
+          "id": 119567826677,
+          "name": "strict native boundary (windows-latest)",
+          "conclusion": "failure",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39700360676/job/119567826677",
+          "startedAt": "2026-10-22T00:36:37Z",
+          "completedAt": "2026-10-22T00:46:07Z"
+        }
+      ],
+      "skippedJobs": [],
+      "cachedReadback": {
+        "runJsonSha256": "70a9d0ff0c65383b075370b3d092eb5c3e572d5ad036c3027327888811f6056a",
+        "jobsJsonSha256": "01bf73579bb67f7da54801cc3c803f1174044dc97e7aae4375f131bb98069fb5",
+        "failureLogSha256": {
+          "strict-attempt-1-windows.log": "1da3465a860336d53d216d88ad9e3c98021c674ae8eebc55dbcd7d9f69e91391"
+        }
+      },
+      "failureSummary": "Windows strict native boundary failed one settings-mutation-authority concurrent-process update test because writer2 could not acquire the live settings.json state lock. The attempt was not a passing release gate.",
+      "failureLogJobIds": [
+        119567826677
+      ]
+    },
+    {
+      "id": 39715133167,
+      "name": "Publish CLI release to npm",
+      "sourceSha": "be34ceb5fcd3d00375ace4e63307856c0150e87f",
+      "attempt": 2,
+      "status": "completed",
+      "conclusion": "failure",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39715133167/attempts/2",
+      "failedJobs": [
+        {
+          "id": 119619323691,
+          "name": "publish",
+          "conclusion": "failure",
+          "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39715133167/job/119619323691",
+          "startedAt": "2026-10-22T03:21:22Z",
+          "completedAt": "2026-10-22T03:34:52Z"
+        }
+      ],
+      "failureSummary": "npm signed provenance statement was published to the transparency log, then registry PUT returned HTTP 503 E503; original same-source publish attempt 2 is retained as failed. Incident xfp75s9j3bp8. Successful attempt 3 and independent readback are recorded separately.",
+      "failureLogJobIds": [
+        119619323691
+      ],
+      "failureLogSha256": "cd07fbf10da7799d6f6532be4f3a5d81ce76a3d6b89430dc5a07fe4327efdd38"
+    }
+  ],
+  "tags": [
+    {
+      "name": "v-npm-0-166-114",
+      "localTagTarget": "be34ceb5fcd3d00375ace4e63307856c0150e87f",
+      "note": "Tag target was read locally; successful publication and public package readback remain separate evidence."
+    },
+    {
+      "name": "v-npm-0-166-113",
+      "localTagTarget": "2561b0cb1f53f7f9b342e0ee4c1b1c85fd2dd53d",
+      "historicalStatus": "UNPUBLISHED_AFTER_MACOS_GATE_FAILURE",
+      "note": "Retained as history. CHANGELOG.md records a failed macOS temporary-path alias assertion; no npm or IDE publication is claimed."
+    }
+  ],
+  "pendingEvidence": [
+    "Open VSX 0.37.156 exact-source release workflow and public VSIX readback",
+    "JetBrains 0.4.173 exact-source release workflow, Marketplace approval/listing and public ZIP readback"
+  ],
+  "independentReadback": {
+    "id": 39718064626,
+    "name": "CLI npm release readback",
+    "workflowHeadSha": "06d34dc9e3ffc1ecd801c7096e189b49f48fd623",
+    "verifiedReleaseSourceSha": "be34ceb5fcd3d00375ace4e63307856c0150e87f",
+    "attempt": 1,
+    "status": "completed",
+    "conclusion": "success",
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39718064626",
+    "jobs": [
+      {
+        "id": 119624864338,
+        "name": "immutable artifact, registry bytes, and signed provenance",
+        "conclusion": "success",
+        "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39718064626/job/119624864338",
+        "startedAt": "2026-10-22T03:39:51Z",
+        "completedAt": "2026-10-22T03:41:51Z"
+      }
+    ],
+    "npmReadbackReceiptSha256": "aa6774d1fb0a6dce08737d8d276edaeece3577203c1c97fbcab794be7c137ea5",
+    "signedProvenanceReceiptSha256": "e2b2319fbd77ba4d979c2a52c93bdb2d1c6798612ebe0e0069aacd7524e8d30f"
+  },
+  "openVsx": {
+    "runId": 39718395871,
+    "attempt": 1,
+    "conclusion": "success",
+    "sourceSha": "be34ceb5fcd3d00375ace4e63307856c0150e87f",
+    "publicReceipt": "open-vsx.json"
+  },
+  "jetbrains": {
+    "runId": 39718396038,
+    "attempt": 1,
+    "conclusion": "cancelled",
+    "uploadStep": "success",
+    "uploadCompletedAt": "2026-10-22T04:10:23Z",
+    "publicDownload": "NOT_VERIFIED"
+  }
+}

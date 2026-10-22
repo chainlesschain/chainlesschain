@@ -403,6 +403,49 @@ describe("EvolutionRunLedgerAdapter", () => {
     expect(evidenceAdapter.projectAndPersist).toHaveBeenCalledTimes(4);
   });
 
+  it("accepts the real agent-core git descriptor result at strict Evolution ingress", async () => {
+    const fixture = backend();
+    const evidenceAdapter = fakeEvidenceAdapter();
+    let id = 0;
+    const ingress = createAgentEvolutionIngress({
+      evidenceAdapter,
+      runAdapter: fixture.makeAdapter(),
+      sourceEnvelopeAuthority: {
+        issue: vi.fn(async ({ kind }) => `signed-source:${kind}`),
+      },
+      now: () => new Date(NOW),
+      idGenerator: () => `git-result-${++id}`,
+    });
+    const { executeTool, _gitProcessDeps } =
+      await import("../../src/runtime/agent-core.js");
+    const originalRunner = _gitProcessDeps.run;
+    _gitProcessDeps.run = vi.fn(() => ({
+      status: 0,
+      stdout: "/safe/worktree\n",
+      stderr: "",
+    }));
+    try {
+      await ingress.start();
+      await ingress.ingestAgentEvent({
+        type: "tool-executing",
+        tool: "git",
+        args: { command: "rev-parse --show-toplevel" },
+      });
+      const result = await executeTool("git", {
+        command: "rev-parse --show-toplevel",
+      });
+      expect(result.toolDescriptor?.name).toBe("git");
+      await expect(
+        ingress.ingestAgentEvent({ type: "tool-result", tool: "git", result }),
+      ).resolves.toBeDefined();
+      expect(
+        fixture.makeAdapter().load().events.at(-1)?.data.evidenceKind,
+      ).toBe("tool-completed");
+    } finally {
+      _gitProcessDeps.run = originalRunner;
+    }
+  });
+
   it("routes headless event boundaries and forwards the same ingress to the core", async () => {
     const fixture = backend();
     const evidenceAdapter = fakeEvidenceAdapter();

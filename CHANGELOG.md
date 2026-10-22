@@ -7,11 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed - cc CLI 0.166.114: Quick Ask streaming and local Evolution setup (candidate, 2026-10-22)
+### Fixed - cc CLI 0.166.115: JSON-compatible Agent tool evidence (candidate, 2026-10-22)
+
+- Resolve built-in tool descriptor categories from their telemetry metadata and use explicit null for missing optional descriptor values, so successful Git and shell tools do not terminate the Agent's signed Evolution ingress.
+- Omit absent slash-command descriptions, warnings and non-persistent code script paths; represent unknown process exit codes as null. Preserve strict evidence validation.
+- Prepare VS Code 0.37.157 and JetBrains 0.4.174 to recommend CLI 0.166.115 after exact-source gates and public npm verification.
+
+### Fixed - cc CLI 0.166.114: Quick Ask streaming and local Evolution setup (published, 2026-10-22)
 
 - Surface provider waiting status, credential errors, and terminal streaming failures in Quick Ask; bound governed chat initialization and completion to 60 seconds and support cancellation of active requests.
 - Migrate a supported signed UI-only local Evolution host to admit `agent`, `ask`, `chat`, and `ui`, retaining its signing identity and detecting concurrent profile changes.
-- Prepare VS Code 0.37.156 and JetBrains 0.4.173 to recommend CLI 0.166.114. These versions are unreleased candidates; publication still requires the exact release commit's GitHub Actions gates, OIDC npm publication and public readback before IDE publication.
+- CLI 0.166.114 and Open VSX 0.37.156 were published with verified public archives. JetBrains 0.4.173 upload succeeded before cancellation; its public download was not verified. A subsequently reported Agent tool-evidence JSON error is addressed in the .115 candidate.
 
 ### cc CLI 0.166.113 release attempt (unpublished, 2026-10-22)
 

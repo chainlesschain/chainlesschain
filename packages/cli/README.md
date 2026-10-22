@@ -4,7 +4,11 @@ Command-line interface for installing, configuring, and managing [ChainlessChain
 
 ## Next release candidate
 
-CLI **0.166.114** is an unreleased source candidate paired with VS Code **0.37.156** and JetBrains **0.4.173** candidates. Quick Ask surfaces provider waiting status and terminal errors, bounds governed chat setup and completion, and supports cancellation. A supported signed UI-only local Evolution host migrates to admit `agent`, `ask`, `chat`, and `ui` while retaining its signing identity. CLI **0.166.113** was not published after its macOS gate failed on a temporary-path alias assertion. No publication or public artifact readback is claimed for these candidates.
+CLI **0.166.115** is an unreleased source candidate paired with VS Code **0.37.157** and JetBrains **0.4.174**. It fixes Agent exits after successful tools by producing JSON-compatible tool descriptors and optional result fields. Quick Ask waiting, cancellation and signed local Evolution setup improvements from .114 are retained. Publication requires the exact source commit's GitHub Actions release gates and public artifact readback.
+
+### Intermediate .114 release (2026-10-22)
+
+CLI **0.166.114** and Open VSX **0.37.156** were published and their public archives verified. CLI .114 improves Quick Ask but still has the Agent tool-evidence JSON error fixed by this candidate. Its installation command is `npm i -g chainlesschain@0.166.114 --registry https://registry.npmjs.org`. JetBrains **0.4.173** was uploaded before cancellation; public approval and download have not been verified. CLI **0.166.113** was not published after its macOS gate failed on a temporary-path alias assertion. The last completely verified three-channel pairing is recorded below.
 
 ## Package version and IDE pairing
 

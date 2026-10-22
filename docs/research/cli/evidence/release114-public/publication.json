@@ -1,0 +1,37 @@
+{
+  "schema": "chainlesschain.release114-publication/v1",
+  "observedAt": "2026-10-22T04:16:17.784034+00:00",
+  "status": "INTERMEDIATE_RELEASE_WITH_KNOWN_AGENT_ISSUE",
+  "sourceSha": "be34ceb5fcd3d00375ace4e63307856c0150e87f",
+  "channels": {
+    "cli": {
+      "version": "0.166.114",
+      "status": "public",
+      "runId": 39715133167,
+      "attempt": 3,
+      "receipt": "cli.json"
+    },
+    "openVsx": {
+      "version": "0.37.156",
+      "status": "public",
+      "recommendedCliVersion": "0.166.114",
+      "runId": 39718395871,
+      "attempt": 1,
+      "receipt": "open-vsx.json"
+    },
+    "jetbrains": {
+      "version": "0.4.173",
+      "status": "uploaded-public-download-not-verified",
+      "runId": 39718396038,
+      "attempt": 1,
+      "workflowConclusion": "cancelled",
+      "uploadStep": "success"
+    }
+  },
+  "knownIssue": "Normal tool results can include undefined descriptor/result fields; strict Agent Evolution ingress rejects them and exits. CLI .115 and IDE .157/.174 are unverified follow-up candidates.",
+  "limits": {
+    "microsoftMarketplace": "unpublished",
+    "localOllamaLiveValidation": "USER_WILL_TEST_AFTER_RELEASE"
+  },
+  "gates": "gates.json"
+}

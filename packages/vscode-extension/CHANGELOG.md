@@ -2,10 +2,15 @@
 
 All notable changes to this extension are documented here.
 
-## [0.37.156] - CLI 0.166.114 pairing (candidate, 2026-10-22)
+## [0.37.157] - CLI 0.166.115 pairing (candidate, 2026-10-22)
 
-- Recommend unreleased CLI 0.166.114 for Quick Ask waiting and terminal error reporting, cancellation, bounded governed chat setup, and local signed Evolution recovery.
-- Source candidate only; this extension has not been published. Exact-source IDE gates and public artifact readback are pending.
+- Recommend CLI 0.166.115 for JSON-compatible Agent tool evidence after Git, shell, code and slash commands.
+- Source candidate; exact-source gates and public artifact verification are pending.
+
+## [0.37.156] - CLI 0.166.114 pairing (2026-10-22)
+
+- Recommend CLI 0.166.114 for Quick Ask waiting and terminal error reporting, cancellation, bounded governed chat setup, and local signed Evolution recovery.
+- Published to Open VSX and publicly downloaded with the exact candidate hash. The paired CLI .114 still has the Agent tool-evidence error addressed in .115. Microsoft Marketplace was not published.
 
 ## [0.37.155] - CLI 0.166.112 pairing (2026-10-22)
 

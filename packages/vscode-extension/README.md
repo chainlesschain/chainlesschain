@@ -6,7 +6,9 @@ MCP bridge.
 
 ## Next release candidate
 
-Source candidate **0.37.156** recommends CLI **`0.166.114`**. The extension has not been published. The CLI and JetBrains **0.4.173** pairing are also unreleased candidates. Quick Ask shows provider waiting status and terminal errors, allows cancellation, and relies on bounded governed chat setup and local Evolution recovery in the paired CLI. Publication requires exact-source gates and public artifact readback.
+Source candidate **0.37.157** recommends CLI **`0.166.115`**, which fixes the Agent tool-evidence JSON error after successful commands. JetBrains **0.4.174** is the paired candidate. Publication follows the public CLI and exact-source gates and artifact readback.
+
+Open VSX **0.37.156** and CLI **0.166.114** were publicly downloaded and verified on 2026-10-22, but that CLI still has the Agent tool-evidence error. Microsoft Marketplace remains unpublished. The previous completely verified three-channel pairing is retained below.
 
 ## Current release
 

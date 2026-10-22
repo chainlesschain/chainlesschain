@@ -1,0 +1,49 @@
+{
+  "schema": "chainlesschain.release114-open-vsx-public/v1",
+  "observedAt": "2026-10-22T04:00:44.497Z",
+  "status": "public",
+  "channel": "open-vsx",
+  "publisher": "chainlesschain",
+  "package": "chainlesschain-ide",
+  "version": "0.37.156",
+  "latest": "0.37.156",
+  "sourceSha": "be34ceb5fcd3d00375ace4e63307856c0150e87f",
+  "sourceShaVerification": "WORKFLOW_HEAD_AND_IMMUTABLE_CANDIDATE_MANIFEST",
+  "endpoint": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.156",
+  "listed": true,
+  "downloadable": true,
+  "recommendedCliVersion": "0.166.114",
+  "bytes": 733063,
+  "sha256": "8abdc82045d5645e262295d25ec936c58cda668cf50c32661a18d5c972734d81",
+  "contentSha256": "a49e31343c94093e95d64b452188c6e2e2deca8c0824be0040d9a41efe8e8863",
+  "registrySha256Matches": true,
+  "verification": {
+    "source": "open-vsx-registry-readback.json",
+    "registryArchiveSha256": "8abdc82045d5645e262295d25ec936c58cda668cf50c32661a18d5c972734d81",
+    "previouslyDownloadedArchiveSha256": "8abdc82045d5645e262295d25ec936c58cda668cf50c32661a18d5c972734d81",
+    "cachedCandidateSha256": "8abdc82045d5645e262295d25ec936c58cda668cf50c32661a18d5c972734d81",
+    "archiveDownloadScope": "Existing public verifier established registry/downloaded archive hash equality; this receipt did not download another VSIX."
+  },
+  "publication": {
+    "runId": 39718395871,
+    "attempt": 1,
+    "runUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/39718395871",
+    "workflow": "IDE Extensions",
+    "conclusion": "success",
+    "openVsxJobId": 119628614676,
+    "openVsxJobConclusion": "success",
+    "publishStep": "success",
+    "listingVerificationStep": "success",
+    "vsCodeMarketplacePublishStep": "skipped",
+    "vsCodeMarketplaceVerificationStep": "skipped"
+  },
+  "otherIdeChannels": {
+    "vsCodeMarketplace": "unpublished; workflow publish and verification steps skipped",
+    "jetBrains": "not-part-of-this-tag; handled by independent workflow run 39718396038. JetBrains jobs skipped in run 39718395871 do not establish its global publication state."
+  },
+  "embedded": {
+    "manifest": "extension/package.json",
+    "version": "0.37.156",
+    "recommendedCliVersion": "0.166.114"
+  }
+}

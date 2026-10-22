@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: "v5.0.3.140 | npm CLI 0.166.112 已公开，精确提交发行门与 npm registry 回读通过；Open VSX 0.37.155 已公开，精确提交发行门与公开制品回读通过；JetBrains Marketplace 0.4.172 已批准并公开，制品下载与配套版本回读通过"
+  tagline: "CLI 0.166.115 / Open VSX 0.37.157 / JetBrains 0.4.174 尚为修复候选；已公开 CLI 0.166.114 / Open VSX 0.37.156 存在 Agent 工具严格 JSON 崩溃问题；JetBrains 0.4.173 公开状态未核验"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -20,6 +20,10 @@ hero:
       link: https://github.com/chainlesschain
 
 features:
+  - icon: ⚠️
+    title: Agent 工具崩溃修复候选
+    details: "CLI 0.166.115、Open VSX 0.37.157、JetBrains 0.4.174 尚未发布，计划修复工具结果未定义字段导致的严格 JSON 输入崩溃。CLI 0.166.114 与 Open VSX 0.37.156 已公开回读但仍有此问题；JetBrains 0.4.173 上传成功后工作流取消，公开状态未核验，已核验公开版仍为 0.4.172。下方 .112 / .155 / .172 为历史发行记录。"
+    link: /chainlesschain/agent-platform-release
   - icon: 🔗
     title: CLI / IDE 与桌面目标草稿
     details: "npm CLI 0.166.112 已公开，精确提交发行门与 npm registry 回读通过；Open VSX 0.37.155 已公开，精确提交发行门与公开制品回读通过；JetBrains Marketplace 0.4.172 已批准并公开，制品下载与配套版本回读通过。公开配对为 CLI .112 / IDE .155 与 .172；Microsoft Marketplace 未发行。桌面互通仍需匹配构建、授权及原生确认。"

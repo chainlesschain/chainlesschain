@@ -1,9 +1,14 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
-## [0.4.173] - CLI 0.166.114 pairing (candidate, 2026-10-22)
+## [0.4.174] - CLI 0.166.115 pairing (candidate, 2026-10-22)
 
-- Recommend unreleased CLI 0.166.114 for Quick Ask waiting and terminal error reporting, cancellation, bounded governed chat setup, and local signed Evolution recovery.
-- Source candidate only; this plugin has not been published. Exact-source IDE gates and public artifact readback are pending.
+- Recommend CLI 0.166.115 for JSON-compatible Agent tool evidence after Git, shell, code and slash commands.
+- Source candidate; exact-source gates and public artifact verification are pending.
+
+## [0.4.173] - CLI 0.166.114 pairing (uploaded, public download unverified, 2026-10-22)
+
+- Recommend CLI 0.166.114 for Quick Ask waiting and terminal error reporting, cancellation, bounded governed chat setup, and local signed Evolution recovery.
+- Marketplace upload succeeded before workflow cancellation after the paired CLI's Agent error was reported. Public approval and ZIP download were not verified.
 
 ## [0.4.172] - CLI 0.166.112 pairing (2026-10-22)
 
