@@ -15,6 +15,7 @@ import { captureEvolutionReleaseTrain } from "./evolution-release-train.js";
 import {
   snapshotAgentModelRequest,
   buildAgentModelRequest,
+  projectAgentOpaqueTransportBlock,
 } from "./agent-model-projection.js";
 import {
   snapshotSkillDecisionRequest,
@@ -28,8 +29,7 @@ export const AGENT_EVOLUTION_INGRESS_SCHEMA =
 export const AGENT_EVOLUTION_INGRESS_FAILED_CODE =
   "CC_AGENT_EVOLUTION_INGRESS_FAILED";
 
-const RESPONSE_CACHE_RECORD_SCHEMA =
-  "chainlesschain.model-response-cache/v2";
+const RESPONSE_CACHE_RECORD_SCHEMA = "chainlesschain.model-response-cache/v2";
 const LEGACY_RESPONSE_CACHE_RECORD_SCHEMA =
   "chainlesschain.model-response-cache/v1";
 const RESPONSE_CACHE_IDENTIFIER_BINDING_SCHEMA =
@@ -294,8 +294,7 @@ export function createAgentEvolutionIngress({
         const payload = cacheRecord
           ? {
               schema: RESPONSE_CACHE_RECORD_SCHEMA,
-              identifierBindingSchema:
-                RESPONSE_CACHE_IDENTIFIER_BINDING_SCHEMA,
+              identifierBindingSchema: RESPONSE_CACHE_IDENTIFIER_BINDING_SCHEMA,
               requestKeyBinding: cacheIdentifierBinding(
                 "request key",
                 evidence.requestKey,
@@ -537,12 +536,11 @@ export function createAgentEvolutionIngress({
             throw new Error(
               "Cache response projection is not safe or request-bound",
             );
-          const responseEvent = loaded.events.find(
-            (item) =>
-              legacyRecord
-                ? item.eventId === record.sourceEventId
-                : cacheIdentifierBinding("source event ID", item.eventId) ===
-                  record.sourceEventIdBinding,
+          const responseEvent = loaded.events.find((item) =>
+            legacyRecord
+              ? item.eventId === record.sourceEventId
+              : cacheIdentifierBinding("source event ID", item.eventId) ===
+                record.sourceEventIdBinding,
           );
           if (
             responseEvent?.data?.evidenceKind !== "response-completed" ||
@@ -589,8 +587,60 @@ export function createAgentEvolutionIngress({
       }
       return ingest("model-input", snapshot, {}, snapshot);
     },
-    ingestUserPrompt: async (input, options) =>
-      ingest("user-prompt", { input: cloneEvidence(input) }, options),
+    ingestUserPrompt: async (input, options) => {
+      const snapshot = cloneEvidence(input);
+      try {
+        if (
+          Array.isArray(snapshot?.messages) &&
+          typeof snapshot.source === "string"
+        ) {
+          const captured = snapshotAgentModelRequest({
+            messages: snapshot.messages,
+            tools: [],
+          });
+          // User-prompt is a small event, not a second image transport. Bind
+          // each image to its complete original block; model-input admission
+          // separately retains the original image in encrypted Raw evidence.
+          snapshot.messages = captured.messages.map(
+            (message, messageIndex) => ({
+              ...message,
+              ...(Array.isArray(message.content)
+                ? {
+                    content: message.content.map((block, blockIndex) =>
+                      block.type === "image_url"
+                        ? projectAgentOpaqueTransportBlock(
+                            block,
+                            `messages.${messageIndex}.content.${blockIndex}`,
+                          )
+                        : block,
+                    ),
+                  }
+                : {}),
+            }),
+          );
+        } else if (Array.isArray(snapshot?.content)) {
+          const captured = snapshotAgentModelRequest({
+            messages: [{ role: "user", content: snapshot.content }],
+            tools: [],
+          });
+          // REPL callers pass the current user content directly, without a
+          // source label or a messages wrapper. Apply the same image binding.
+          snapshot.content = captured.messages[0].content.map(
+            (block, blockIndex) =>
+              block.type === "image_url"
+                ? projectAgentOpaqueTransportBlock(
+                    block,
+                    `messages.0.content.${blockIndex}`,
+                  )
+                : block,
+          );
+        }
+      } catch (error) {
+        admissionFailure ??= ingressFailure(error);
+        throw admissionFailure;
+      }
+      return ingest("user-prompt", { input: snapshot }, options);
+    },
     ingestAgentEvent: async (event, options) => {
       if (admissionFailure !== null) throw admissionFailure;
       let type;

@@ -7,7 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed - cc CLI 0.166.115: JSON-compatible Agent tool evidence (candidate, 2026-10-22)
+### Fixed - cc CLI 0.166.116: code literals at Evolution ingress and completed tool recovery (2026-10-23)
+
+- Recognize Python and JavaScript literals in `run_code` source and results without treating ordinary code as malformed JSON. Continue decoding quoted sensitive keys and values for redaction.
+- Keep genuine JSON validation, duplicate-key rejection, numeric limits and projection budgets; distinguish malformed JSON errors from actual JSON budget failures.
+- Preserve historical Agent projection rulesets while using a new versioned code-text policy for new requests.
+- Coordinate the bounded Agent projection and decoded-JSON node budgets with model-request capacity, and trigger canonical compaction on text byte pressure before the ingress ceiling is reached.
+- Account for image transport separately from text: retain the existing eight-image / 20 MiB message allowance, bound historical request images, and commit image digests in small evidence and context-planning records. Estimate vision tokens separately from base64 bytes.
+- Preview oversized tool results as complete JSON trees and omit incomplete host-created excerpts, retaining status fields, pagination cursors and duplicate-output recovery guards.
+- Settle completed tool rounds before terminating an Agent Run on Evolution ingress failure, retaining verified session prefix checks and removing unanswered calls from replay.
+- Preserve completed rounds on caller cancellation, session-budget exhaustion, unknown compaction usage and independent runtime-ledger failure.
+- Persist large image context bundles as private references bound to the current saved-session generation; verify bytes on restart and clean them up with session deletion. Unsaved sessions do not create persistent image bundles.
+- Publish CLI first; follow with IDE releases recommending CLI 0.166.116 after public npm readback.
+
+### Fixed - cc CLI 0.166.115: JSON-compatible Agent tool evidence (published, 2026-10-22)
 
 - Resolve built-in tool descriptor categories from their telemetry metadata and use explicit null for missing optional descriptor values, so successful Git and shell tools do not terminate the Agent's signed Evolution ingress.
 - Omit absent slash-command descriptions, warnings and non-persistent code script paths; represent unknown process exit codes as null. Preserve strict evidence validation.

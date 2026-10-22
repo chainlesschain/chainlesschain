@@ -12,6 +12,8 @@ const testSecurityAnchor = `${testHome}-security-anchor`;
 vi.mock("../../src/lib/paths.js", async (importOriginal) => ({
   ...(await importOriginal()),
   getHomeDir: () => testHome,
+  getClaudeProjectStorageDir: () => null,
+  getSessionStoreDir: () => join(testHome, "sessions"),
   getStatePath: () => join(testHome, "state"),
   getMachineSecurityAnchorDir: () => testSecurityAnchor,
 }));

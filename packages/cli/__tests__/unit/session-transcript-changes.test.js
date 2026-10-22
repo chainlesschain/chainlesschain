@@ -9,6 +9,7 @@ import { ContextMemoryKernel } from "@chainlesschain/context-memory-kernel";
 const root = mkdtempSync(join(tmpdir(), "cc-history-changes-"));
 vi.mock("../../src/lib/paths.js", () => ({
   getHomeDir: () => join(root, "home"),
+  getSessionStoreDir: () => join(root, "home", "sessions"),
   getClaudeProjectStorageDir: () => null,
   getStatePath: () => join(root, "home", "state"),
   getMachineSecurityAnchorDir: () => join(root, "security"),

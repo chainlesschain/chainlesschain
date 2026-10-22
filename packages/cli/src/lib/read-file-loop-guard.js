@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { EXPLORATION_TOOLS } from "./task-progress-tracker.js";
 import { isToolRecoveryPaused } from "./tool-recovery-result.js";
+import { hostToolOutputIdentity } from "./tool-result-preview.js";
 const MAX_FILES = 12;
 
 function keyFor(filePath, args) {
@@ -353,14 +354,16 @@ export class ReadFileLoopGuard {
     } else if (
       (tool === "run_code" || tool === "run_shell") &&
       typeof result?.output === "string" &&
-      result.output.length >= 8000
+      (result.output.length >= 8000 ||
+        hostToolOutputIdentity(result)?.chars >= 8000)
     ) {
       // Arbitrary code may just dump the same file again. Compare returned
       // evidence, not code spelling or timings. Never cache/skip execution:
       // identical stdout does not imply identical filesystem side effects.
-      const fingerprint = createHash("sha256")
-        .update(result.output)
-        .digest("hex");
+      const identity = hostToolOutputIdentity(result);
+      const fingerprint = identity
+        ? `${identity.chars}:${identity.digest}`
+        : createHash("sha256").update(result.output).digest("hex");
       if (this.largeOutputs.has(fingerprint)) this.batch.duplicates++;
       else {
         this.largeOutputs.add(fingerprint);

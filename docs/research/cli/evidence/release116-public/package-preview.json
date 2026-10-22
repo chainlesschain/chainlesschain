@@ -1,0 +1,12 @@
+{
+  "version": "0.166.116",
+  "files": 1817,
+  "unpackedSize": 37302682,
+  "requiredNewSourcesFound": true,
+  "requiredNewSources": [
+    "src/lib/context-memory-kernel/message-bundle-store.js",
+    "src/lib/context-memory-kernel/context-image-transport.js",
+    "src/lib/image-token-estimate.js",
+    "src/lib/tool-result-preview.js"
+  ]
+}

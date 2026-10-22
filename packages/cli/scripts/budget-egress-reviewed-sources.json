@@ -1,6 +1,6 @@
 {
   "schema": "chainlesschain.budget-egress-source-review/v1",
-  "reviewedAt": "2026-10-21",
+  "reviewedAt": "2026-10-23",
   "scope": ["packages/cli/src", "packages/cli/scripts"],
   "basis": "Implementation source inspection; byte-bound classifications only. Not an independent financial/OS admission decision.",
   "entries": [
@@ -456,15 +456,39 @@
     },
     {
       "path": "packages/cli/src/runtime/agent-core.js",
-      "digest": "sha256:6349529da5b21f8df7b343a68fb994fcbbde4d65896923d572bc81e01abfa77c",
+      "digest": "sha256:1f6f90a743d927efebe1ac97e0dbf801705441e80d5c89a24ea452de07e5ff4d",
       "category": "MODEL_REQUEST",
-      "rationale": "Canonical model requests including streaming, summaries and child paths; explicit scope required. Formal-scope tools reject centrally, and parallel read batches propagate budget failures. The Volcengine default model changed to deepseek-v4-1-flash-260910 without adding another transport. The 2026-10-18 task-quality changes add bounded local metadata-only import feedback and completion checks for unresolved file writes; no network call, retry, tool authority or provider scope is added. Successful equivalent content tools settle only the same target obligation, while denied, deferred and failed mutations do not settle it; move and delete remain independent. The 2026-10-20 tool-history recovery changes project only provider-request role normalization while preserving canonical durable history, track read-file visibility only after successful model responses, and mark host-created transient messages with non-serializable runtime provenance. Post-edit validation distinguishes persistence and bounded import feedback from test acceptance. These changes add no provider transport, retry branch or tool authority and retain existing usage admission and conservative settlement boundaries. The 2026-10-22 tool-result evidence fix supplies JSON-compatible descriptor fallbacks, omits absent optional result fields and uses null for missing notebook cell IDs and exit statuses. It changes result metadata serialization only; no provider dispatch, retry branch, credential scope or tool authority is added. The eight static governed providerFetch candidates remain unchanged. Source classification does not establish complete runtime budget containment or paid admission."
+      "rationale": "Canonical provider/tool execution host retains scoped model egress. Host-created oversized tool results now use complete bounded JSON previews, excerpt omission and private WeakMap output identities; these do not supply model or financial authority. Existing transport admission and usage settlement remain independent."
     },
     {
       "path": "packages/cli/src/runtime/diagnostics.js",
       "digest": "sha256:31a7409e1b5a386bde23aa0040dfd26b01cc5aebb999d0c376580db4bdfc4dba",
       "category": "LOCAL_DIAGNOSTIC",
       "rationale": "TCP reachability diagnostics; a connection probe is not an inference request."
+    },
+    {
+      "path": "packages/cli/src/assets/web-panel/assets/Artifacts-jTncflSf.js",
+      "digest": "sha256:3e358de56dfabc4ab32276c36464a89e0ee5350744f8e3bd0e75b5f3fcedecf8",
+      "category": "SERVICE_API",
+      "rationale": "Bundled web panel artifact download uses the configured same-origin artifact API and server token; downloading a stored artifact does not admit model inference or publication."
+    },
+    {
+      "path": "packages/cli/src/assets/web-panel/assets/index-D7IYMX7M.js",
+      "digest": "sha256:d1dc4627b0e6d107de34166475ca5d9337d1a13f7073adf79b5bbc52394c06fa",
+      "category": "SERVICE_API",
+      "rationale": "Bundled web panel uses Vite module-preload GET and the configured authenticated App Server WebSocket. Minified component callbacks are conservative alias candidates. The server independently admits commands and model egress; browser transport alone supplies no financial authority."
+    },
+    {
+      "path": "packages/cli/src/assets/web-panel/assets/MtcAudit-Brft657_.js",
+      "digest": "sha256:e0e1bf9aa5307142b3005d4ea116fc0ec0ebd6a17afd299d193b8b3554495e19",
+      "category": "SERVICE_API",
+      "rationale": "Bundled MTC audit invokes the envelope composable fetch method, which sends an authenticated MTC envelope read through the App Server WebSocket; the fetch name is a conservative candidate, not a direct provider transport."
+    },
+    {
+      "path": "packages/cli/src/assets/web-panel/assets/RemoteSession-BdoFWTKc.js",
+      "digest": "sha256:827a11286a886b44fb49c97bbc2ca238514f9b38db4b1f0e0b77572afcb6f72d",
+      "category": "REMOTE_EXECUTION_CONTROL",
+      "rationale": "Bundled remote session uses operator-paired relay/direct WebSocket control, scoped authentication and encrypted envelopes. Minified cryptographic math and callback aliases also match conservatively. Remote command authority and downstream costs remain independently enforced by the host."
     }
   ]
 }

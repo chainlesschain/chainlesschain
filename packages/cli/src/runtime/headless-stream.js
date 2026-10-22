@@ -3826,6 +3826,21 @@ async function runAgentHeadlessStreamInWorkspace(
       return false;
     }
   };
+  const repairAndSettleToolRoundsForHost = (phase) => {
+    const originalMessages = new Set(messages);
+    const balanced = sanitizeToolPairs(messages);
+    for (const message of balanced) {
+      if (
+        !originalMessages.has(message) &&
+        message.role === "assistant" &&
+        !message.tool_calls?.length
+      )
+        markRuntimeOnlySessionMessage(message);
+    }
+    messages.length = 0;
+    messages.push(...balanced);
+    return settleToolRoundsForHost(phase);
+  };
   const loopOptionsBase = {
     ...(evolutionIngress === null ? {} : { evolutionIngress }),
     model,
@@ -5637,6 +5652,12 @@ async function runAgentHeadlessStreamInWorkspace(
       const turnWasAborted = currentAbort?.signal.aborted === true;
       currentAbort = null;
       if (err?.code === AGENT_EVOLUTION_INGRESS_FAILED_CODE) {
+        evolutionIngressFailed = true;
+        // Ingress can reject the next model request after a tool round has
+        // already completed. Keep those completed effects in the canonical
+        // session before terminating this Run; incomplete calls are removed
+        // with the same pairing repair used for an interrupted turn.
+        if (!repairAndSettleToolRoundsForHost("after-model")) break;
         emit({
           type: "result",
           subtype: "error_evolution_ingress",
@@ -5646,7 +5667,6 @@ async function runAgentHeadlessStreamInWorkspace(
           turn: turns,
         });
         sawError = true;
-        evolutionIngressFailed = true;
         break;
       }
       if (persist) {
@@ -5677,6 +5697,7 @@ async function runAgentHeadlessStreamInWorkspace(
           break;
         }
         if (err?.runtimeLedgerPersistence === true) {
+          if (!repairAndSettleToolRoundsForHost("after-model")) break;
           emit({
             type: "result",
             subtype: "error_persistence",
@@ -5693,6 +5714,7 @@ async function runAgentHeadlessStreamInWorkspace(
         err?.code === "CC_SESSION_BUDGET_USAGE_UNKNOWN" ||
         options.sessionBudget?.signal?.aborted === true
       ) {
+        if (!repairAndSettleToolRoundsForHost("after-model")) break;
         const budgetReason =
           options.sessionBudget?.reason?.() ||
           err.budgetReason ||
@@ -5729,21 +5751,7 @@ async function runAgentHeadlessStreamInWorkspace(
         // the array length unchanged. sanitizeToolPairs is idempotent on an
         // already-balanced array and leaves user/text turns untouched, so the
         // intentional dangling-user state above is preserved.
-        const originalMessages = new Set(messages);
-        const balanced = sanitizeToolPairs(messages);
-        // Only the sanitizer's newly-created commentary for discarded calls
-        // is ephemeral. Existing real messages retain their authority.
-        for (const message of balanced) {
-          if (
-            !originalMessages.has(message) &&
-            message.role === "assistant" &&
-            !message.tool_calls?.length
-          )
-            markRuntimeOnlySessionMessage(message);
-        }
-        messages.length = 0;
-        messages.push(...balanced);
-        if (!settleToolRoundsForHost("after-model")) break;
+        if (!repairAndSettleToolRoundsForHost("after-model")) break;
         emit({
           type: "result",
           subtype: "interrupted",
@@ -5754,7 +5762,12 @@ async function runAgentHeadlessStreamInWorkspace(
         });
         continue;
       }
-      if (isAbort) break; // outer options.signal — caller is shutting down
+      if (isAbort) {
+        // Caller shutdown terminates the stream, but completed tool effects
+        // from the in-flight turn still belong in the durable transcript.
+        if (!repairAndSettleToolRoundsForHost("after-model")) break;
+        break;
+      }
       if (!settleToolRoundsForHost("after-model")) break;
       const transportDetails = transportErrorDetails(err);
       emit({
@@ -5771,6 +5784,7 @@ async function runAgentHeadlessStreamInWorkspace(
       persistTurnBindingLog();
     }
     if (turnBindingPersistenceError) {
+      if (!repairAndSettleToolRoundsForHost("after-model")) break;
       emitTurnBindingFailure();
       sawError = true;
       break;
@@ -5792,6 +5806,7 @@ async function runAgentHeadlessStreamInWorkspace(
     }
 
     if (outcome.endReason === "compaction-usage-unknown") {
+      if (!repairAndSettleToolRoundsForHost("after-model")) break;
       sawError = true;
       emit({
         type: "result",

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  AGENT_MODEL_IMAGE_LIMITS,
   buildAgentModelRequest,
   projectAgentOpaqueTransportBlock,
   snapshotAgentModelRequest,
@@ -24,6 +25,66 @@ const projection = (content, changes = {}) => ({
 });
 
 describe("Agent model projection protocol boundary", () => {
+  const imageMessage = (bytes, count = 1) => ({
+    role: "user",
+    content: Array.from({ length: count }, () => ({
+      type: "image_url",
+      image_url: {
+        url: `data:image/png;base64,${Buffer.alloc(bytes, 0x5a).toString("base64")}`,
+      },
+    })),
+  });
+
+  it("accounts canonical image bytes separately from the unchanged text budget", () => {
+    const original = {
+      messages: [
+        imageMessage(1024 * 1024, 2),
+        { role: "user", content: "x".repeat(300_000) },
+      ],
+      tools: [],
+    };
+    const captured = snapshotAgentModelRequest(original);
+    expect(captured).toEqual(original);
+    const projected = structuredClone(original);
+    projected.messages[0].content = original.messages[0].content.map(
+      (block, index) =>
+        projectAgentOpaqueTransportBlock(block, `messages.0.content.${index}`),
+    );
+    expect(
+      buildAgentModelRequest(captured, projection(projected)).messages.slice(1),
+    ).toEqual(original.messages);
+    original.messages[1].content = "x".repeat(1024 * 1024);
+    expect(() => snapshotAgentModelRequest(original)).toThrow(/large/u);
+  });
+
+  it("keeps bounded image counts and decoded per-image, per-message and request bytes", () => {
+    for (const messages of [
+      [imageMessage(1, AGENT_MODEL_IMAGE_LIMITS.maxMessageImages + 1)],
+      [imageMessage(AGENT_MODEL_IMAGE_LIMITS.maxImageBytes + 1)],
+      [imageMessage(11 * 1024 * 1024, 2)],
+      Array.from({ length: 3 }, () => imageMessage(14 * 1024 * 1024)),
+    ]) {
+      expect(() => snapshotAgentModelRequest({ messages, tools: [] })).toThrow(
+        /image.*budget/u,
+      );
+    }
+  });
+
+  it("does not let image-shaped paths exempt invalid URLs or metadata", () => {
+    for (const url of [
+      `https://example.com/${"x".repeat(9000)}`,
+      "data:image/png;base64,YR==",
+      "data:text/plain;base64,YQ==",
+    ]) {
+      const original = { messages: [imageMessage(1)], tools: [] };
+      original.messages[0].content[0].image_url.url = url;
+      expect(() => snapshotAgentModelRequest(original)).toThrow(/base64/u);
+    }
+    const original = { messages: [imageMessage(1024 * 1024)], tools: [] };
+    original.messages[0].content[0].image_url.detail = "x".repeat(8193);
+    expect(() => snapshotAgentModelRequest(original)).toThrow(/metadata/u);
+  });
+
   it("captures immutable plain data before any authority await", () => {
     const input = request();
     const captured = snapshotAgentModelRequest(input);

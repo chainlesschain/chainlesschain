@@ -3,13 +3,26 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.116",
+      "cliVersions": ["0.166.116"],
+      "date": "2026-10-23",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.116: code literals at Evolution ingress and completed tool recovery (2026-10-23)",
+          "body": "- Recognize Python and JavaScript literals in `run_code` source and results without treating ordinary code as malformed JSON. Continue decoding quoted sensitive keys and values for redaction.\n- Keep genuine JSON validation, duplicate-key rejection, numeric limits and projection budgets; distinguish malformed JSON errors from actual JSON budget failures.\n- Preserve historical Agent projection rulesets while using a new versioned code-text policy for new requests.\n- Coordinate the bounded Agent projection and decoded-JSON node budgets with model-request capacity, and trigger canonical compaction on text byte pressure before the ingress ceiling is reached.\n- Account for image transport separately from text: retain the existing eight-image / 20 MiB message allowance, bound historical request images, and commit image digests in small evidence and context-planning records. Estimate vision tokens separately from base64 bytes.\n- Preview oversized tool results as complete JSON trees and omit incomplete host-created excerpts, retaining status fields, pagination cursors and duplicate-output recovery guards.\n- Settle completed tool rounds before terminating an Agent Run on Evolution ingress failure, retaining verified session prefix checks and removing unanswered calls from replay.\n- Preserve completed rounds on caller cancellation, session-budget exhaustion, unknown compaction usage and independent runtime-ledger failure.\n- Persist large image context bundles as private references bound to the current saved-session generation; verify bytes on restart and clean them up with session deletion. Unsaved sessions do not create persistent image bundles.\n- Publish CLI first; follow with IDE releases recommending CLI 0.166.116 after public npm readback."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.115",
       "cliVersions": ["0.166.115"],
       "date": "2026-10-22",
       "title": "",
       "sections": [
         {
-          "heading": "Fixed - cc CLI 0.166.115: JSON-compatible Agent tool evidence (candidate, 2026-10-22)",
+          "heading": "Fixed - cc CLI 0.166.115: JSON-compatible Agent tool evidence (published, 2026-10-22)",
           "body": "- Resolve built-in tool descriptor categories from their telemetry metadata and use explicit null for missing optional descriptor values, so successful Git and shell tools do not terminate the Agent's signed Evolution ingress.\n- Omit absent slash-command descriptions, warnings and non-persistent code script paths; represent unknown process exit codes as null. Preserve strict evidence validation.\n- Omit unavailable ranges from repeated-file read recovery and represent missing cell IDs from legacy notebooks as null, keeping successful file tools compatible with signed evidence.\n- Encode new local signing tenant, run and evidence IDs without digits while preserving their entropy, preventing accidental payment-card matches during first use. Retain existing deployment identities and sensitive-content scanning.\n- Prepare VS Code 0.37.157 and JetBrains 0.4.174 to recommend CLI 0.166.115 after exact-source gates and public npm verification."
         }
       ]

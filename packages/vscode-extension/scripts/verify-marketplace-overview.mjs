@@ -80,22 +80,23 @@ function currentReleaseStatus(readme) {
 
 function releaseSection(readme, headingText) {
   const lines = markdownLinesOutsideFences(readme);
-  const matchingHeadings = lines.filter(
-    (entry) => entry.line === headingText,
-  );
+  const matchingHeadings = lines.filter((entry) => entry.line === headingText);
   assert.ok(
     matchingHeadings.length <= 1,
     `README must contain at most one ${headingText} section`,
   );
   const heading = matchingHeadings[0];
   if (!heading) return null;
-  if (headingText === "## Next release candidate") {
+  if (
+    headingText === "## Next release candidate" ||
+    headingText === "## Release pairing"
+  ) {
     const currentHeading = lines.find((entry) =>
       /^## Current release[ \t]*$/u.test(entry.line),
     );
     assert.ok(
       !currentHeading || heading.start < currentHeading.start,
-      "Next release candidate section must appear before Current release",
+      `${headingText.slice(3)} section must appear before Current release`,
     );
   }
 
@@ -136,9 +137,7 @@ export function verifyMarketplaceOverview({
   assert.equal(extensionManifest.name, "chainlesschain-ide");
   assert.equal(cliManifest.name, "chainlesschain");
 
-  const introMatch = readme.match(
-    /^# [^\n]+\n\n([\s\S]*?)\n\n## [^\n]+/mu,
-  );
+  const introMatch = readme.match(/^# [^\n]+\n\n([\s\S]*?)\n\n## [^\n]+/mu);
   assert.ok(
     introMatch,
     "README must contain an introduction before Current release",
@@ -151,9 +150,11 @@ export function verifyMarketplaceOverview({
 
   const releaseStatus = currentReleaseStatus(readme);
   const currentPair = publishedReleasePair(readme);
-  const candidateSection = releaseSection(
-    readme,
-    "## Next release candidate",
+  const candidateSection = releaseSection(readme, "## Next release candidate");
+  const sourceSection = releaseSection(readme, "## Release pairing");
+  assert.ok(
+    candidateSection === null || sourceSection === null,
+    "README must not mix a Release pairing with a Next release candidate section",
   );
   const extensionVersion = extensionManifest.version;
   const sourceCliVersion = cliManifest.version;
@@ -173,7 +174,39 @@ export function verifyMarketplaceOverview({
     "Recommended public CLI cannot be newer than the checked-out CLI source",
   );
 
-  if (candidateSection !== null) {
+  if (sourceSection !== null) {
+    const sourceText = markdownLinesOutsideFences(sourceSection)
+      .map(({ line }) => line)
+      .join("\n");
+    const declarations = [
+      ...sourceText.matchAll(
+        /Version \*\*(0\.37\.\d+)\*\* recommends CLI \*\*`?(0\.\d+\.\d+)`?\*\*/gu,
+      ),
+    ];
+    assert.equal(
+      declarations.length,
+      1,
+      "Release pairing must declare exactly one source VS Code and recommended CLI version",
+    );
+    assert.equal(
+      declarations[0][1],
+      extensionVersion,
+      "Release pairing VS Code version must match the extension manifest",
+    );
+    assert.equal(
+      declarations[0][2],
+      cliVersion,
+      "Release pairing CLI version must match the extension manifest",
+    );
+    assert.ok(
+      compareVersions(extensionVersion, currentPair.extensionVersion) >= 0,
+      "Source release cannot be older than the current public VS Code extension",
+    );
+    assert.ok(
+      compareVersions(cliVersion, currentPair.cliVersion) >= 0,
+      "Source CLI cannot be older than the current public CLI pairing",
+    );
+  } else if (candidateSection !== null) {
     const candidateMatch = candidateSection.match(
       /Source candidate \*\*(0\.37\.\d+)\*\* recommends CLI \*\*`?(0\.\d+\.\d+)`?\*\*/u,
     );

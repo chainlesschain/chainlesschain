@@ -56,6 +56,13 @@ import { ReadFileLoopGuard } from "../lib/read-file-loop-guard.js";
 const READ_FILE_REQUEST_CONTEXT = Symbol("read-file-request-context");
 import { gitToolInputError } from "../lib/git-tool-input.js";
 import { shellOutputPage, shellOutputPreview } from "../lib/shell-output.js";
+import {
+  boundedToolResultText,
+  boundedCommandOutput,
+  safeHostToolResultForModel,
+  registerHostToolOutput,
+  copyHostToolOutputIdentity,
+} from "../lib/tool-result-preview.js";
 import { DIAGNOSTIC_WORKFLOW_GUIDANCE } from "../lib/diagnostic-workflow.js";
 import { CODING_TASK_QUALITY_GUIDANCE } from "../lib/coding-task-guidance.js";
 import { RemoteReadLoopGuard } from "../lib/remote-read-loop-guard.js";
@@ -5741,7 +5748,12 @@ async function executeToolInner(
   const descriptorPayload = buildPayload(runtimeDescriptor);
   const attachDescriptor = (payload, overrideDescriptor = null) => {
     const descriptor = buildPayload(overrideDescriptor || runtimeDescriptor);
-    return descriptor ? { ...payload, toolDescriptor: descriptor } : payload;
+    return descriptor
+      ? copyHostToolOutputIdentity(
+          { ...payload, toolDescriptor: descriptor },
+          payload,
+        )
+      : payload;
   };
   const localToolExecutor =
     externalToolExecutors && typeof externalToolExecutors === "object"
@@ -7706,8 +7718,8 @@ async function executeToolInner(
       ) {
         return attachDescriptor({
           success: true,
-          stdout: String(res.stdout || "").substring(0, 30000),
-          stderr: String(res.stderr || "").substring(0, 2000),
+          ...shellOutputPreview(res.stdout, "stdout", 30000),
+          ...shellOutputPreview(res.stderr, "stderr", 2000),
           exitCode: res.status,
           command: normalizedCommand,
           readOnly: true,
@@ -7716,11 +7728,13 @@ async function executeToolInner(
         });
       }
       if (res.status !== 0) {
-        const stderr = String(res.stderr || "").substring(0, 2000);
+        const stderr = String(res.stderr || "");
         return attachDescriptor({
-          error: stderr || `git exited with code ${res.status}`,
-          stdout: String(res.stdout || "").substring(0, 30000),
-          stderr,
+          error:
+            boundedCommandOutput(stderr, 2000) ||
+            `git exited with code ${res.status}`,
+          ...shellOutputPreview(res.stdout, "stdout", 30000),
+          ...shellOutputPreview(stderr, "stderr", 2000),
           exitCode: res.status,
           command: normalizedCommand,
           readOnly,
@@ -7734,7 +7748,7 @@ async function executeToolInner(
         });
       }
       return attachDescriptor({
-        stdout: String(res.stdout || "").substring(0, 30000),
+        ...shellOutputPreview(res.stdout, "stdout", 30000),
         exitCode: 0,
         command: normalizedCommand,
         readOnly,
@@ -10332,8 +10346,8 @@ async function _executeRunCode(args, cwd) {
               outcome: "disabled",
             });
             return {
-              error: (stderr || message).substring(0, 5000),
-              stderr: stderr.substring(0, 5000),
+              error: boundedCommandOutput(stderr || message, 5000),
+              stderr: boundedCommandOutput(stderr, 5000),
               exitCode: err.status ?? null,
               language: lang,
               ...classified,
@@ -10349,8 +10363,8 @@ async function _executeRunCode(args, cwd) {
               outcome: "blocked",
             });
             return {
-              error: (stderr || message).substring(0, 5000),
-              stderr: stderr.substring(0, 5000),
+              error: boundedCommandOutput(stderr || message, 5000),
+              stderr: boundedCommandOutput(stderr, 5000),
               exitCode: err.status ?? null,
               language: lang,
               ...classified,
@@ -10405,8 +10419,8 @@ async function _executeRunCode(args, cwd) {
               ),
             );
             return {
-              error: (stderr || message).substring(0, 5000),
-              stderr: stderr.substring(0, 5000),
+              error: boundedCommandOutput(stderr || message, 5000),
+              stderr: boundedCommandOutput(stderr, 5000),
               exitCode: err.status ?? null,
               language: lang,
               ...classified,
@@ -10462,14 +10476,13 @@ async function _executeRunCode(args, cwd) {
             );
             const retryDuration = Date.now() - retryStart;
 
-            return {
+            return Object.assign(boundedCodeOutput(retryOutput), {
               success: true,
-              ...boundedCodeOutput(retryOutput),
               language: lang,
               duration: `${retryDuration}ms`,
               autoInstalled: [packageName],
               ...(persist ? { scriptPath } : {}),
-            };
+            });
           } catch (retryErr) {
             rethrowRunCodeSandboxFailure(retryErr);
             const retryStderr = (retryErr.stderr || "").toString();
@@ -10481,8 +10494,8 @@ async function _executeRunCode(args, cwd) {
               lang,
             );
             return {
-              error: (retryStderr || retryMessage).substring(0, 5000),
-              stderr: retryStderr.substring(0, 5000),
+              error: boundedCommandOutput(retryStderr || retryMessage, 5000),
+              stderr: boundedCommandOutput(retryStderr, 5000),
               exitCode: retryErr.status ?? null,
               language: lang,
               ...retryClassified,
@@ -10495,8 +10508,8 @@ async function _executeRunCode(args, cwd) {
       }
 
       return {
-        error: (stderr || message).substring(0, 5000),
-        stderr: stderr.substring(0, 5000),
+        error: boundedCommandOutput(stderr || message, 5000),
+        stderr: boundedCommandOutput(stderr, 5000),
         exitCode: err.status ?? null,
         language: lang,
         ...classified,
@@ -10505,13 +10518,12 @@ async function _executeRunCode(args, cwd) {
     }
 
     const duration = Date.now() - start;
-    return {
+    return Object.assign(boundedCodeOutput(output), {
       success: true,
-      ...boundedCodeOutput(output),
       language: lang,
       duration: `${duration}ms`,
       ...(persist ? { scriptPath } : {}),
-    };
+    });
   } finally {
     // Only clean up if not persisting
     if (!persist) {
@@ -10546,14 +10558,9 @@ export const MAX_SUB_AGENT_DEPTH = 5;
 export const MAX_SUB_AGENTS_PER_RUN = 32;
 
 /**
- * Per-tool-result character cap fed back to the model. One giant tool output (a
- * huge file, a verbose command, an MCP blob) must not blow the context window —
- * but the model is TOLD when output is cut, instead of the old silent
- * `substring(0, 5000)` that sliced mid-content with no marker and undercut even
- * read_file's own 50k self-limit. Tools that self-limit (read_file, notebook
- * render) stay below this; it is the final safety net for the ones that don't
- * (run_shell, search_files, run_code, MCP). CC_MAX_TOOL_RESULT_CHARS may only
- * tighten the host ceiling; it cannot raise or disable it.
+ * Total character cap fed back to the model, including truncation metadata.
+ * Complete JSON previews retain status and small fields while omitting large
+ * leaves. CC_MAX_TOOL_RESULT_CHARS may only tighten the host ceiling.
  */
 export const MAX_TOOL_RESULT_CHARS_HARD_LIMIT = 50000;
 
@@ -10569,47 +10576,38 @@ export const MAX_TOOL_RESULT_CHARS = resolveMaxToolResultChars(
 );
 
 /**
- * Cap a serialized tool result to `max` chars, appending a visible truncation
- * marker (with the original length + how to get the rest) when it overflows —
- * so the model never silently receives a mid-content slice. Pure; exported for
- * tests.
+ * Cap a serialized tool result without splitting JSON values. Plain prefixes
+ * are allowed only when they cannot contain a truncated structured span.
  */
 export function capToolResultString(serialized, max = MAX_TOOL_RESULT_CHARS) {
   const s = String(serialized ?? "");
   const effectiveMax = resolveMaxToolResultChars(max);
-  if (s.length <= effectiveMax) return s;
-  return (
-    s.slice(0, effectiveMax) +
-    `\n…[tool output truncated: showing the first ${effectiveMax} of ${s.length} chars` +
-    ` — narrow the request (read a line range, grep, or paginate) to see the rest]`
-  );
+  return boundedToolResultText(s, effectiveMax);
 }
 
 /** Leave room for JSON escaping and execution metadata, including the hint. */
 export function boundedCodeOutput(value) {
   const output = String(value ?? "");
   const budget = Math.max(0, MAX_TOOL_RESULT_CHARS - 4096);
-  let low = 0;
-  let high = Math.min(output.length, 50000);
-  while (low < high) {
-    const mid = Math.ceil((low + high) / 2);
-    if (JSON.stringify(output.slice(0, mid)).length <= budget) low = mid;
-    else high = mid - 1;
-  }
-  if (low === output.length) return { output };
-  if (low > 0 && /[\uD800-\uDBFF]/.test(output[low - 1])) low--;
-  return {
-    truncated: true,
-    outputChars: output.length,
-    returnedChars: low,
-    hint: "Only an output prefix is shown. Do not rerun the same full-file print: filter/count locally and print a bounded summary with source line numbers, or use read_file with offset/limit for a missing section. This prefix is not evidence of the entire file.",
-    output: output.slice(0, low),
-  };
+  if (JSON.stringify(output).length <= budget) return { output };
+  const preview = boundedCommandOutput(output, Math.max(1, budget));
+  return registerHostToolOutput(
+    {
+      truncated: true,
+      outputChars: output.length,
+      returnedChars: preview.length,
+      hint: "Output is incomplete. Do not rerun the same full-file print: filter/count locally and print a bounded summary with source line numbers, or use read_file with offset/limit for a missing section. Omitted text is not evidence of the entire file.",
+      output: preview,
+    },
+    output,
+  );
 }
 
 /** Avoid injecting the same file page twice while its original is still visible. */
 export function toolResultForModel(tool, result, messages) {
-  const serialized = capToolResultString(safeStringifyToolResult(result));
+  const serialized = capToolResultString(
+    safeStringifyToolResult(safeHostToolResultForModel(tool, result)),
+  );
   if (
     (tool === "run_code" || tool === "run_shell") &&
     !result?.error &&

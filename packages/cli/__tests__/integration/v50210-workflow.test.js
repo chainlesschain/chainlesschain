@@ -25,6 +25,7 @@ const securityAnchorDir = `${testDir}-security-anchors`;
 
 vi.mock("../../src/lib/paths.js", () => ({
   getHomeDir: () => testDir,
+  getSessionStoreDir: () => join(testDir, "sessions"),
   resolveConfigDataRoot: () => ({ path: testDir, source: "chainlesschain" }),
   getClaudeProjectStorageDir: () => null,
   getConfigPath: () => join(testDir, "config.json"),

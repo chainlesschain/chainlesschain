@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 const root = mkdtempSync(join(tmpdir(), "cc-transcript-page-"));
 vi.mock("../../src/lib/paths.js", () => ({
   getHomeDir: () => join(root, "home"),
+  getSessionStoreDir: () => join(root, "home", "sessions"),
   getClaudeProjectStorageDir: () => null,
   getStatePath: () => join(root, "home", "state"),
   getMachineSecurityAnchorDir: () => join(root, "security"),

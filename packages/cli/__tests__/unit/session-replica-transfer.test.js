@@ -29,6 +29,7 @@ let activeAnchorBase = sourceAnchors;
 
 vi.mock("../../src/lib/paths.js", () => ({
   getHomeDir: () => activeHome,
+  getSessionStoreDir: () => join(activeHome, "sessions"),
   getStatePath: () => join(activeHome, "state"),
   getClaudeProjectStorageDir: () => null,
   getMachineSecurityAnchorDir: () => activeAnchorBase,

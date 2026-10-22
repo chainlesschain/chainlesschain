@@ -9,6 +9,7 @@ const securityDir = fs.mkdtempSync(
 );
 vi.mock("../../src/lib/paths.js", () => ({
   getHomeDir: () => testDir,
+  getSessionStoreDir: () => path.join(testDir, "sessions"),
   getClaudeProjectStorageDir: () => null,
   getStatePath: () => path.join(testDir, "state"),
   getMachineSecurityAnchorDir: () => securityDir,

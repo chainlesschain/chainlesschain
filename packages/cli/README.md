@@ -2,15 +2,31 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
-## Next release candidate
+## CLI 0.166.116
 
-CLI **0.166.115** is an unreleased source candidate paired with VS Code **0.37.157** and JetBrains **0.4.174**. It fixes Agent exits after successful tools by producing JSON-compatible tool descriptors and optional result fields, including repeated file reads and legacy notebook edits. Quick Ask waiting, cancellation and signed local Evolution setup improvements from .114 are retained. Publication requires the exact source commit's GitHub Actions release gates and public artifact readback.
+CLI **0.166.116** fixes Python/JavaScript code literals being rejected as malformed JSON at Evolution ingress. It also persists completed tool rounds before an ingress failure terminates the Agent Run. Genuine JSON checks and projection budgets remain enforced. Releases require the exact source commit's Linux, Windows and macOS CLI CI and Strict Sandbox gates, followed by OIDC publication and public artifact readback; a source version alone does not establish public availability.
+
+Image transport has a separate byte budget: up to eight images and 20 MiB per message, with 40 MiB of images across one model request. Base64 bytes do not consume the 1 MiB text-input budget. Vision token planning uses a separate per-image reserve; provider usage receipts determine actual consumption. Text byte pressure triggers canonical compaction before the bounded projection ceiling. Large tool outputs retain complete JSON values or an explicit omission notice, so truncation does not corrupt the next model request.
+
+These image admission ceilings remain subject to the durable session format's **16 MiB per event** limit, including JSON and base64 overhead. This release preserves that existing storage contract; it does not promise that a 20 MiB binary image fits in a durable event. The model-visible text projection is bounded to **896 KiB**, with capacity reserved for its signed record metadata. A protected current user request that exceeds a hard limit must be reduced before continuing.
+
+Large image context bundles use private, session-scoped references during durable compaction. Back up and migrate the session bundle directory together with its JSONL history; copying JSONL alone does not copy referenced images. Persistent bundles require a live saved session and are never created as a fallback for unsaved or ephemeral sessions.
+
+```bash
+npm i -g chainlesschain@0.166.116 --registry https://registry.npmjs.org
+cc --version
+cc doctor
+```
+
+The preceding CLI **0.166.115** was published through [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/39791145970). It fixes undefined tool-evidence fields; the code-literal ingress regression is addressed in .116.
+
+The matching source versions are VS Code **0.37.158** and JetBrains **0.4.175**, both recommending CLI **0.166.116**. IDE publication follows verified public CLI availability. The fully verified historical IDE pairing and release limits below are retained.
 
 ### Intermediate .114 release (2026-10-22)
 
-CLI **0.166.114** and Open VSX **0.37.156** were published and their public archives verified. CLI .114 improves Quick Ask but still has the Agent tool-evidence JSON error fixed by this candidate. Its installation command is `npm i -g chainlesschain@0.166.114 --registry https://registry.npmjs.org`. JetBrains **0.4.173** was uploaded before cancellation; public approval and download have not been verified. CLI **0.166.113** was not published after its macOS gate failed on a temporary-path alias assertion. The last completely verified three-channel pairing is recorded below.
+CLI **0.166.114** and Open VSX **0.37.156** were published and their public archives verified. CLI .114 improves Quick Ask but still has the Agent tool-evidence JSON error fixed by .116. Its installation command is `npm i -g chainlesschain@0.166.114 --registry https://registry.npmjs.org`. JetBrains **0.4.173** was uploaded before cancellation; public approval and download have not been verified. CLI **0.166.113** was not published after its macOS gate failed on a temporary-path alias assertion. The last completely verified three-channel pairing is recorded below.
 
-## Package version and IDE pairing
+## Historical package version and IDE pairing (.112)
 
 <!-- release112-status -->
 

@@ -11,12 +11,15 @@
 
 import { createHash, randomBytes } from "node:crypto";
 import {
+  AGENT_MODEL_REQUEST_LIMITS,
+  AGENT_MODEL_IMAGE_LIMITS,
   projectAgentOpaqueTransportBlock,
   snapshotAgentModelRequest,
 } from "./agent-model-projection.js";
 import { snapshotSkillDecisionPayload } from "./skill-decision-projection.js";
 import {
   createEvidenceJsonTextBoundary,
+  AGENT_CODE_TEXT_RESULT_TOOLS,
   EVIDENCE_JSON_POLICY,
   isAgentToolArgumentsPath,
 } from "./evidence-json-text.js";
@@ -515,12 +518,40 @@ export const EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V2_DIGEST = `sha256:${crea
     "utf8",
   )
   .digest("hex")}`;
-const AGENT_MODEL_RULESET = Object.freeze({
+const AGENT_MODEL_RULESET_V3 = Object.freeze({
   ...AGENT_MODEL_RULESET_V2,
   schema: "chainlesschain.evolution-agent-model-projection-rules/v3",
   version: 3,
   opaqueTransportPolicy:
     "digest-bound-base64-image-and-signed-thinking-no-plaintext-projection-v1",
+});
+export const EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V3_DIGEST = `sha256:${createHash(
+  "sha256",
+)
+  .update(
+    `${AGENT_MODEL_RULESET_V3.schema}\0${JSON.stringify(AGENT_MODEL_RULESET_V3)}`,
+    "utf8",
+  )
+  .digest("hex")}`;
+const AGENT_MODEL_RULESET = Object.freeze({
+  ...AGENT_MODEL_RULESET_V3,
+  schema: "chainlesschain.evolution-agent-model-projection-rules/v4",
+  version: 4,
+  codeTextPolicy: "paired-code-source-and-result-literal-scan-v1",
+  codeTextResultTools: AGENT_CODE_TEXT_RESULT_TOOLS,
+  // ArtifactPorts caps the complete durable record at 1 MiB. Reserve room for
+  // provenance/findings and the record envelope; no storage limit is relaxed.
+  maxModelBytes: AGENT_MODEL_REQUEST_LIMITS.maxBytes - 128 * 1024,
+  maxStringChars: AGENT_MODEL_REQUEST_LIMITS.maxBytes - 128 * 1024,
+  maxNodes: AGENT_MODEL_REQUEST_LIMITS.maxNodes,
+  maxDepth: AGENT_MODEL_REQUEST_LIMITS.maxDepth,
+  decodedDepthPolicy: "independent-bounded-json-depth-v1",
+  imageBudget: AGENT_MODEL_IMAGE_LIMITS,
+  jsonTextPolicy: Object.freeze({
+    ...EVIDENCE_JSON_POLICY,
+    version: 2,
+    maxNodes: AGENT_MODEL_REQUEST_LIMITS.maxNodes,
+  }),
 });
 export const EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_DIGEST = `sha256:${createHash(
   "sha256",
@@ -552,6 +583,7 @@ const SUPPORTED_RULESETS = new Map([
   [RAW_RULESET_V3_DIGEST, RAW_RULESET_V3],
   [AGENT_MODEL_RULESET_V1_DIGEST, AGENT_MODEL_RULESET_V1],
   [EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V2_DIGEST, AGENT_MODEL_RULESET_V2],
+  [EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V3_DIGEST, AGENT_MODEL_RULESET_V3],
   [EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_DIGEST, AGENT_MODEL_RULESET],
 ]);
 
@@ -627,6 +659,7 @@ const AGENT_VALUE_PATTERNS = Object.freeze([
 function valuePatterns(ruleset) {
   return ruleset === SKILL_DECISION_RULESET ||
     ruleset === AGENT_MODEL_RULESET ||
+    ruleset === AGENT_MODEL_RULESET_V3 ||
     ruleset === AGENT_MODEL_RULESET_V2 ||
     ruleset === AGENT_MODEL_RULESET_V1
     ? AGENT_VALUE_PATTERNS
@@ -690,7 +723,12 @@ function assertExactRecord(
   }
 }
 
-function canonicalJson(value, seen = new Set(), depth = 0) {
+function canonicalJson(
+  value,
+  seen = new Set(),
+  depth = 0,
+  maximumBytes = 2 * 1024 * 1024,
+) {
   if (depth > 32) {
     throw projectionError(
       EVOLUTION_PROJECTION_INVALID_CODE,
@@ -712,10 +750,12 @@ function canonicalJson(value, seen = new Set(), depth = 0) {
     output = JSON.stringify(value);
   }
   if (output !== undefined) {
-    if (Buffer.byteLength(output, "utf8") > 2 * 1024 * 1024) {
+    if (Buffer.byteLength(output, "utf8") > maximumBytes) {
       throw projectionError(
         EVOLUTION_PROJECTION_INVALID_CODE,
-        "projection exceeds the 2 MiB admission limit",
+        maximumBytes === 2 * 1024 * 1024
+          ? "projection exceeds the 2 MiB admission limit"
+          : "Agent image transport exceeds its canonical byte budget",
       );
     }
     return output;
@@ -757,7 +797,9 @@ function canonicalJson(value, seen = new Set(), depth = 0) {
           "projection arrays must use enumerable own data entries",
         );
       }
-      entries.push(canonicalJson(descriptor.value, seen, depth + 1));
+      entries.push(
+        canonicalJson(descriptor.value, seen, depth + 1, maximumBytes),
+      );
     }
     output = `[${entries.join(",")}]`;
   } else {
@@ -784,24 +826,29 @@ function canonicalJson(value, seen = new Set(), depth = 0) {
         );
       }
       fields.push(
-        `${JSON.stringify(key)}:${canonicalJson(descriptor.value, seen, depth + 1)}`,
+        `${JSON.stringify(key)}:${canonicalJson(descriptor.value, seen, depth + 1, maximumBytes)}`,
       );
     }
     output = `{${fields.join(",")}}`;
   }
   seen.delete(value);
-  if (Buffer.byteLength(output, "utf8") > 2 * 1024 * 1024) {
+  if (Buffer.byteLength(output, "utf8") > maximumBytes) {
     throw projectionError(
       EVOLUTION_PROJECTION_INVALID_CODE,
-      "projection exceeds the 2 MiB admission limit",
+      maximumBytes === 2 * 1024 * 1024
+        ? "projection exceeds the 2 MiB admission limit"
+        : "Agent image transport exceeds its canonical byte budget",
     );
   }
   return output;
 }
 
-function digest(value, domain) {
+function digest(value, domain, maximumBytes) {
   return `sha256:${createHash("sha256")
-    .update(`${domain}\0${canonicalJson(value)}`, "utf8")
+    .update(
+      `${domain}\0${canonicalJson(value, new Set(), 0, maximumBytes)}`,
+      "utf8",
+    )
     .digest("hex")}`;
 }
 
@@ -1296,6 +1343,43 @@ function sanitizeString(value, path, findings, injections, ruleset, patterns) {
   return output;
 }
 
+function isAgentCodeTextPath(payload, path, resultToolNames) {
+  if (
+    path[0] !== "messages" ||
+    !/^\d+$/u.test(path[1] ?? "") ||
+    !Array.isArray(payload?.messages)
+  ) {
+    return false;
+  }
+  const message = payload.messages[Number(path[1])];
+  if (!message || typeof message !== "object") return false;
+  if (
+    path[2] === "tool_calls" &&
+    /^\d+$/u.test(path[3] ?? "") &&
+    path[4] === "function" &&
+    path[5] === "arguments"
+  ) {
+    const call = message.tool_calls?.[Number(path[3])];
+    const fields = path.slice(6);
+    if (fields[0] === "$json") fields.shift();
+    return call?.function?.name === "run_code" && fields[0] === "code";
+  }
+  if (path[2] === "content" && message.role === "tool") {
+    const callId = message.tool_call_id;
+    return payload.messages.some(
+      (candidate) =>
+        candidate?.role === "assistant" &&
+        Array.isArray(candidate.tool_calls) &&
+        candidate.tool_calls.some(
+          (call) =>
+            call?.id === callId &&
+            resultToolNames.includes(call?.function?.name),
+        ),
+    );
+  }
+  return false;
+}
+
 function sanitizePayload(
   payload,
   ruleset = RULESET,
@@ -1306,8 +1390,10 @@ function sanitizePayload(
   let nodes = 0;
   let truncated = false;
   const jsonText = ruleset.jsonTextPolicy
-    ? createEvidenceJsonTextBoundary((message) =>
-        projectionError(EVOLUTION_PROJECTION_INVALID_CODE, message),
+    ? createEvidenceJsonTextBoundary(
+        (message) =>
+          projectionError(EVOLUTION_PROJECTION_INVALID_CODE, message),
+        ruleset.jsonTextPolicy,
       )
     : null;
   const visit = (value, path, depth, layer = 0) => {
@@ -1323,7 +1409,7 @@ function sanitizePayload(
     }
     const toolArguments = jsonText && isAgentToolArgumentsPath(path);
     const opaqueTransportBlock =
-      ruleset === AGENT_MODEL_RULESET
+      ruleset === AGENT_MODEL_RULESET || ruleset === AGENT_MODEL_RULESET_V3
         ? projectAgentOpaqueTransportBlock(value, path.join("."))
         : null;
     if (opaqueTransportBlock !== null) return opaqueTransportBlock;
@@ -1337,11 +1423,25 @@ function sanitizePayload(
       const plain = (text) =>
         sanitizeString(text, path, findings, injections, ruleset, patterns);
       if (!jsonText) return plain(value);
+      const codeText =
+        ruleset.codeTextPolicy ===
+          "paired-code-source-and-result-literal-scan-v1" &&
+        isAgentCodeTextPath(payload, path, ruleset.codeTextResultTools);
       const output = jsonText(value, {
         layer,
         objectOnly: toolArguments,
+        codeText,
         visit: (decoded, nextLayer) =>
-          visit(decoded, [...path, "$json"], depth + 1, nextLayer),
+          visit(
+            decoded,
+            [...path, "$json"],
+            // Serialized JSON has its own unchanged depth/layer limits. Its
+            // traversal must not charge protocol nesting as decoded depth.
+            ruleset.decodedDepthPolicy === "independent-bounded-json-depth-v1"
+              ? 0
+              : depth + 1,
+            nextLayer,
+          ),
         plain,
         equal: (left, right) => canonicalJson(left) === canonicalJson(right),
       });
@@ -3045,7 +3145,7 @@ function validateBundleIntegrity(bundle) {
   validateRedactionSummary(model.redactionSummary);
   if (
     !Array.isArray(model.injectionFindings) ||
-    model.injectionFindings.length > RULESET.maxNodes * 2
+    model.injectionFindings.length > ruleset.maxNodes * 2
   ) {
     throw projectionError(
       EVOLUTION_PROJECTION_INVALID_CODE,
@@ -3187,12 +3287,14 @@ function validateBundleIntegrity(bundle) {
     }
     if (
       ruleset === AGENT_MODEL_RULESET ||
+      ruleset === AGENT_MODEL_RULESET_V3 ||
       ruleset === AGENT_MODEL_RULESET_V2 ||
       ruleset === AGENT_MODEL_RULESET_V1
     ) {
       snapshotAgentModelRequest(model.content, {
         allowStructuredArgumentText: ruleset !== AGENT_MODEL_RULESET_V1,
-        allowOpaqueTransportBlocks: ruleset === AGENT_MODEL_RULESET,
+        allowOpaqueTransportBlocks:
+          ruleset === AGENT_MODEL_RULESET || ruleset === AGENT_MODEL_RULESET_V3,
       });
       if (
         model.truncated ||
@@ -3477,6 +3579,9 @@ export class EvolutionEvidenceProjector {
     const sourceInputDigest = digest(
       payload,
       "chainlesschain.evolution-raw-plaintext/v2",
+      ruleset === AGENT_MODEL_RULESET
+        ? AGENT_MODEL_IMAGE_LIMITS.maxCanonicalRequestBytes
+        : undefined,
     );
     const sourceEnvelopeDigest = digest(
       input.sourceEnvelope,

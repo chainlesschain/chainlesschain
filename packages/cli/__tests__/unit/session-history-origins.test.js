@@ -1,4 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
   createSessionHistoryOrigins,
   HISTORY_PREFIX_SCHEMA,
@@ -17,6 +20,7 @@ import {
   encodePersistedMessage,
   markDurableSystemMessage,
 } from "../../src/lib/session-message-provenance.js";
+import { startSession } from "../../src/harness/jsonl-session-store.js";
 
 const head = "a".repeat(64);
 function event(messages, retainedMessageCount) {
@@ -261,6 +265,59 @@ describe("display history origins", () => {
       canonical: { sessionId: "session", outputItems: [item] },
     });
     expect(origins.rewind(event(messages, 0), 2)).toBeNull();
+  });
+
+  it("does not infer an origin from a different out-of-line message bundle", () => {
+    const root = mkdtempSync(join(tmpdir(), "cc-history-origin-bundle-"));
+    const previousHome = process.env.CHAINLESSCHAIN_HOME;
+    const previousSecurityHome = process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME;
+    process.env.CHAINLESSCHAIN_HOME = join(root, "home");
+    process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME = join(root, "security");
+    try {
+      const sessionId = "history-origin-image-bundle";
+      startSession(sessionId, { provider: "test", model: "history-origins" });
+      const image = (fill) => ({
+        role: "user",
+        content: [
+          { type: "text", text: "Inspect this image" },
+          {
+            type: "image_url",
+            image_url: {
+              url: `data:image/png;base64,${Buffer.alloc(
+                4 * 1024 * 1024,
+                fill,
+              ).toString("base64")}`,
+            },
+          },
+        ],
+      });
+      const original = image(0);
+      const origins = createSessionHistoryOrigins();
+      origins.snapshot([original]);
+      const replacementItem = messagesToContextItems([image(1)], {
+        sessionId,
+        allowExternalization: true,
+      })[0];
+      const sourceItem = messagesToContextItems([original], {
+        sessionId,
+        allowExternalization: true,
+      })[0];
+      replacementItem.sourceRef.digest = sourceItem.sourceRef.digest;
+
+      origins.compact({
+        messages: [original],
+        canonical: { sessionId, outputItems: [replacementItem] },
+      });
+
+      expect(origins.rewind(event([original], 0), 1)).toBeNull();
+    } finally {
+      if (previousHome === undefined) delete process.env.CHAINLESSCHAIN_HOME;
+      else process.env.CHAINLESSCHAIN_HOME = previousHome;
+      if (previousSecurityHome === undefined)
+        delete process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME;
+      else process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME = previousSecurityHome;
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 
   it("requires every summary parent and refuses a prefix that crosses the selected origin", () => {

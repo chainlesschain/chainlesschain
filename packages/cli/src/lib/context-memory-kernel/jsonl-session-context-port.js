@@ -120,6 +120,7 @@ export class JsonlSessionContextPort {
           items: messagesToContextItems(authority.readMessages(), {
             sessionId,
             allowedSinks: this.allowedSinks,
+            allowExternalization: true,
           }),
         }),
       };
@@ -215,7 +216,9 @@ export class JsonlSessionContextPort {
 
   async appendCompaction(event, expectedHead) {
     this._assertSession(event.sessionId);
-    const messages = contextItemsToMessages(event.outputItems);
+    const messages = contextItemsToMessages(event.outputItems, {
+      sessionId: this.sessionId,
+    });
     const stats = compactStats(event, messages);
     const appendHead = this._appendHead(event.operationId, expectedHead);
     try {

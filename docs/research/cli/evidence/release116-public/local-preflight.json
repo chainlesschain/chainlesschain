@@ -1,0 +1,91 @@
+{
+  "schema": "chainlesschain.release-local-preflight/v1",
+  "capturedAt": "2026-10-22T17:20:39.443Z",
+  "candidate": "0.166.116",
+  "authoritativeReleaseGate": "GitHub Actions exact release SHA: CLI CI + CLI Strict Sandbox, all configured operating systems",
+  "localChecks": [
+    {
+      "scope": "Evidence parser, model snapshot and projector",
+      "files": 3,
+      "passed": 147
+    },
+    {
+      "scope": "Real composition image ingress messages and REPL content shapes",
+      "passed": 4
+    },
+    {
+      "scope": "Tool output bounds and read/file/code/git regressions",
+      "files": 5,
+      "passed": 106
+    },
+    {
+      "scope": "Real JSONL terminal tool-round recovery",
+      "passed": 8
+    },
+    {
+      "scope": "Context Memory Kernel node tests",
+      "passed": 25
+    },
+    {
+      "scope": "Image token/provider transport and text pressure with actual compaction",
+      "files": 2,
+      "passed": 11
+    },
+    {
+      "scope": "Final Context Memory Kernel node tests after explicit persistence/scope wiring",
+      "passed": 25
+    },
+    {
+      "scope": "IDE metadata, recommendation and neutral source pairing",
+      "passed": 27
+    },
+    {
+      "scope": "Independent image bundle fault/recovery",
+      "passed": 6,
+      "skipped": 1,
+      "skipReason": "POSIX directory fsync; Windows host has no directory fsync"
+    },
+    {
+      "scope": "Repaired JSONL paths fixtures: deletion, prune, migration, hash chain and other real deletion paths",
+      "passed": 54
+    }
+  ],
+  "childRegistryReadback": "child-registry-readback.json",
+  "childrenFetchedAndIntegrityVerified": 13,
+  "packageDryRun": {
+    "version": "0.166.116",
+    "files": 1817,
+    "unpackedSize": 37302682,
+    "requiredNewSourcesFound": true,
+    "requiredNewSources": [
+      "src/lib/context-memory-kernel/message-bundle-store.js",
+      "src/lib/context-memory-kernel/context-image-transport.js",
+      "src/lib/image-token-estimate.js",
+      "src/lib/tool-result-preview.js"
+    ]
+  },
+  "limitations": {
+    "publication": false,
+    "localChecksAreNotPublicationAuthority": true,
+    "persistentImageContentRef": "generation, scope, no-save, restart and deletion implementation complete; final functional regression running",
+    "durableSessionEventBytes": 16777216,
+    "textInputBytes": 1048576,
+    "modelVisibleContentBytes": 917504,
+    "imageBytesPerMessage": 20971520,
+    "imageCountPerMessage": 8,
+    "imageBytesPerModelRequest": 41943040,
+    "imageTokenReservesAreEstimates": true,
+    "supplementaryRegression": "Initial wider run: 294 passed, 14 failed, 2 skipped. Missing mock exports repaired; 54 selected follow-up tests pass, including the isolated original ACL-timeout test. Full exact-SHA CI remains authoritative.",
+    "finalFocusedRegression": {
+      "passed": 403,
+      "failed": 43,
+      "notes": "Initial full run hit 26 missing desktop dependency cases, 14 duplicate-local-PDH WeakSet branding cases, two stale v3 budget fixtures and one intermediate store snapshot error. Root preserved and removed the duplicate local PDH package, updated fixtures, and is running targeted follow-ups. Exact-SHA CI must validate the clean dependency install."
+    }
+  },
+  "ideSourcePair": {
+    "vscode": "0.37.158",
+    "jetbrains": "0.4.175",
+    "recommendedCli": "0.166.116",
+    "publication": false
+  }
+}

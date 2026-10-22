@@ -1,9 +1,26 @@
 import { createHash } from "node:crypto";
 import { types } from "node:util";
 import { isAgentToolArgumentsPath } from "./evidence-json-text.js";
+import {
+  MAX_INPUT_IMAGES,
+  MAX_INPUT_IMAGE_BYTES,
+} from "../image-file-boundary.js";
 
-const MAX_NODES = 32_768;
-const MAX_BYTES = 1024 * 1024;
+export const AGENT_MODEL_REQUEST_LIMITS = Object.freeze({
+  maxNodes: 32_768,
+  maxBytes: 1024 * 1024,
+  maxDepth: 24,
+});
+export const AGENT_MODEL_IMAGE_LIMITS = Object.freeze({
+  maxImageBytes: MAX_INPUT_IMAGE_BYTES,
+  maxMessageImageBytes: MAX_INPUT_IMAGE_BYTES,
+  maxMessageImages: MAX_INPUT_IMAGES,
+  maxRequestImageBytes: 40 * 1024 * 1024,
+  // Includes bounded base64 expansion, the text allocation and URL headers.
+  maxCanonicalRequestBytes: 56 * 1024 * 1024,
+});
+const MAX_NODES = AGENT_MODEL_REQUEST_LIMITS.maxNodes;
+const MAX_BYTES = AGENT_MODEL_REQUEST_LIMITS.maxBytes;
 const MESSAGE_KEYS = new Set([
   "role",
   "content",
@@ -59,6 +76,32 @@ function blockDigest(value) {
     .digest("hex")}`;
 }
 
+function imageDataUrlBudget(url) {
+  if (
+    typeof url !== "string" ||
+    url.length > Math.ceil(AGENT_MODEL_IMAGE_LIMITS.maxImageBytes / 3) * 4 + 128
+  )
+    throw new TypeError(
+      `Agent image exceeds its ${AGENT_MODEL_IMAGE_LIMITS.maxImageBytes / 1024 / 1024} MiB image byte budget`,
+    );
+  const match = /^data:([^;,]+);base64,([A-Za-z0-9+/]*={0,2})$/u.exec(url);
+  if (!match || !IMAGE_MEDIA_TYPES.has(match[1]) || match[2].length % 4 !== 0)
+    throw new TypeError(
+      "Agent image block requires a supported base64 data URL",
+    );
+  const decodedBytes =
+    (match[2].length / 4) * 3 -
+    (match[2].endsWith("==") ? 2 : match[2].endsWith("=") ? 1 : 0);
+  if (decodedBytes > AGENT_MODEL_IMAGE_LIMITS.maxImageBytes)
+    throw new TypeError(
+      `Agent image exceeds its ${AGENT_MODEL_IMAGE_LIMITS.maxImageBytes / 1024 / 1024} MiB image byte budget`,
+    );
+  const decoded = Buffer.from(match[2], "base64");
+  if (!decoded.length || decoded.toString("base64") !== match[2])
+    throw new TypeError("Agent image block contains non-canonical base64");
+  return { decodedBytes, encodedBytes: match[2].length };
+}
+
 function imageBlock(value) {
   if (!exactKeys(value, new Set(["type", "image_url"]))) return null;
   const imageKeys = new Set(
@@ -74,18 +117,7 @@ function imageBlock(value) {
   ) {
     throw new TypeError("Agent image block has an unsupported protocol shape");
   }
-  const match = /^data:([^;,]+);base64,([A-Za-z0-9+/]*={0,2})$/u.exec(
-    value.image_url.url,
-  );
-  if (!match || !IMAGE_MEDIA_TYPES.has(match[1]) || match[2].length % 4 !== 0) {
-    throw new TypeError(
-      "Agent image block requires a supported base64 data URL",
-    );
-  }
-  const decoded = Buffer.from(match[2], "base64");
-  if (!decoded.length || decoded.toString("base64") !== match[2]) {
-    throw new TypeError("Agent image block contains non-canonical base64");
-  }
+  imageDataUrlBudget(value.image_url.url);
   return value;
 }
 
@@ -319,18 +351,54 @@ export function snapshotAgentModelRequest(
 ) {
   let nodes = 0;
   let bytes = 0;
+  let imageBytes = 0;
+  let encodedImageBytes = 0;
+  const messageImageBudgets = new Map();
   const seen = new Set();
   const visit = (entry, depth, path = "") => {
-    if (++nodes > MAX_NODES || depth > 24) {
+    if (++nodes > MAX_NODES || depth > AGENT_MODEL_REQUEST_LIMITS.maxDepth) {
       throw new TypeError("Agent model request exceeds the input budget");
     }
     if (typeof entry === "string") {
-      if (entry.length > 8192 && !textPath(path, allowStructuredArgumentText)) {
+      const imageUrl = /^messages\.\d+\.content\.\d+\.image_url\.url$/u.test(
+        path,
+      );
+      let imageBudget = null;
+      if (imageUrl) {
+        imageBudget = imageDataUrlBudget(entry);
+        const messageIndex = path.split(".")[1];
+        const messageBudget = messageImageBudgets.get(messageIndex) ?? {
+          bytes: 0,
+          count: 0,
+        };
+        messageBudget.bytes += imageBudget.decodedBytes;
+        messageBudget.count++;
+        messageImageBudgets.set(messageIndex, messageBudget);
+        if (
+          messageBudget.bytes > AGENT_MODEL_IMAGE_LIMITS.maxMessageImageBytes ||
+          messageBudget.count > AGENT_MODEL_IMAGE_LIMITS.maxMessageImages
+        )
+          throw new TypeError(
+            `Agent images exceed the per-message image budget (${AGENT_MODEL_IMAGE_LIMITS.maxMessageImages} images / ${AGENT_MODEL_IMAGE_LIMITS.maxMessageImageBytes / 1024 / 1024} MiB)`,
+          );
+        imageBytes += imageBudget.decodedBytes;
+        encodedImageBytes += imageBudget.encodedBytes;
+        if (imageBytes > AGENT_MODEL_IMAGE_LIMITS.maxRequestImageBytes)
+          throw new TypeError(
+            `Agent images exceed the ${AGENT_MODEL_IMAGE_LIMITS.maxRequestImageBytes / 1024 / 1024} MiB request image byte budget`,
+          );
+      }
+      if (
+        entry.length > 8192 &&
+        !imageUrl &&
+        !textPath(path, allowStructuredArgumentText)
+      ) {
         throw new TypeError(
           "Agent model protocol metadata exceeds the text budget",
         );
       }
-      bytes += Buffer.byteLength(entry, "utf8");
+      bytes +=
+        Buffer.byteLength(entry, "utf8") - (imageBudget?.encodedBytes ?? 0);
       if (bytes > MAX_BYTES)
         throw new TypeError("Agent model request is too large");
       return entry;
@@ -405,7 +473,11 @@ export function snapshotAgentModelRequest(
   );
   // Include escaping, punctuation and numeric values in the transport/storage
   // budget, not just string values. Whole fields are never split or truncated.
-  if (Buffer.byteLength(JSON.stringify(request), "utf8") > MAX_BYTES) {
+  const canonicalBytes = Buffer.byteLength(JSON.stringify(request), "utf8");
+  if (
+    canonicalBytes - encodedImageBytes > MAX_BYTES ||
+    canonicalBytes > AGENT_MODEL_IMAGE_LIMITS.maxCanonicalRequestBytes
+  ) {
     throw new TypeError("Agent model request is too large");
   }
   return request;

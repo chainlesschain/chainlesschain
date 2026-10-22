@@ -25,6 +25,10 @@ function publicReleaseInputs() {
     `Plugin **${version}** is the current release candidate`,
     `Plugin **${version}** is the current public release`,
   );
+  inputs.readme = inputs.readme.replace(
+    `## Release compatibility\n\nPlugin **${version}** recommends`,
+    `## Release compatibility\n\nPlugin **${version}** is the current public release. It recommends`,
+  );
   return inputs;
 }
 
@@ -55,6 +59,44 @@ test("candidate wording remains valid before the next Marketplace publication", 
     `Plugin **${publicResult.pluginVersion}** is the current release candidate`,
   );
   assert.deepEqual(verifyReleaseMetadata(inputs), publicResult);
+});
+
+test("neutral source pairing preserves exact versions without claiming public availability", () => {
+  const inputs = publicReleaseInputs();
+  const expected = verifyReleaseMetadata(inputs);
+  inputs.readme = inputs.readme.replace(
+    `Plugin **${expected.pluginVersion}** is the current public release. It recommends`,
+    `Plugin **${expected.pluginVersion}** recommends`,
+  );
+  assert.deepEqual(verifyReleaseMetadata(inputs), expected);
+  const section = inputs.readme
+    .split("## Release compatibility\n\n")[1]
+    .split("\n\n## ")[0];
+  assert.doesNotMatch(
+    section,
+    /is the current public release|not been published/,
+  );
+  const altered = {
+    ...inputs,
+    readme: inputs.readme.replace(
+      `## Release compatibility\n\nPlugin **${expected.pluginVersion}** recommends`,
+      "## Release compatibility\n\nPlugin **0.4.0** recommends",
+    ),
+  };
+  assert.throws(() => verifyReleaseMetadata(altered), /README must identify/);
+});
+
+test("neutral source wording cannot change the recommended CLI", () => {
+  const inputs = publicReleaseInputs();
+  const expected = verifyReleaseMetadata(inputs);
+  inputs.readme = inputs.readme.replace(
+    `Plugin **${expected.pluginVersion}** is the current public release. It recommends \`chainlesschain@${expected.cliVersion}\``,
+    `Plugin **${expected.pluginVersion}** recommends \`chainlesschain@0.166.0\``,
+  );
+  assert.throws(
+    () => verifyReleaseMetadata(inputs),
+    /README must identify|stale recommended CLI/,
+  );
 });
 
 test("public wording cannot declare a different plugin version", () => {

@@ -11,6 +11,7 @@ import {
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { crc32, deflateSync } from "node:zlib";
 
 import { describe, expect, it, vi } from "vitest";
 
@@ -41,6 +42,7 @@ import {
   EVOLUTION_PROJECTION_RULESET_V2_DIGEST,
   EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_DIGEST,
   EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V2_DIGEST,
+  EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V3_DIGEST,
   EVOLUTION_SKILL_DECISION_PROJECTION_RULESET_DIGEST,
   EVOLUTION_PROJECTION_SOURCE_DENIED_CODE,
   EVOLUTION_PROJECTION_STORAGE_FAILED_CODE,
@@ -784,6 +786,222 @@ describe("EvolutionEvidenceProjector", () => {
     };
   }
 
+  const runCodeRequest = (text, location = "result") => {
+    const request = jsonRequest(
+      { code: location === "result" ? "pass" : text },
+      true,
+    );
+    const call = request.messages[0].tool_calls[0];
+    call.function.name = "run_code";
+    if (location === "serialized-arguments")
+      call.function.arguments = JSON.stringify(call.function.arguments);
+    if (location === "result")
+      request.messages.push({
+        role: "tool",
+        tool_call_id: call.id,
+        content: text,
+      });
+    return request;
+  };
+
+  it.each(["result", "arguments", "serialized-arguments"])(
+    "admits run_code language literals while scanning secrets and escaped keys (%s)",
+    async (location) => {
+      const h = harness();
+      const text = String.raw`rows = [{'active': True, 'missing': None, 'name': label}]
+selected = [rows[0], None, value]
+window = selected[0:2]
+payload = {"safe": True, "\u0070assword": "verySecretCredentialValue123"}
+password='abc\'VERY_SECRET_SUFFIX'
+contact = 'alice\x40example.com'
+other = {'pa\163sword': 'octalSecretCredentialValue123'}
+status = {'count': 2, 'ok': True}`;
+      const bundle = await h.projector.projectAgentModelRequest(
+        input(runCodeRequest(text, location), "signed-source:free-form-tool"),
+      );
+      const encoded = JSON.stringify(bundle);
+      expect(encoded).not.toContain("verySecretCredentialValue123");
+      expect(encoded).not.toContain("VERY_SECRET_SUFFIX");
+      expect(encoded).not.toContain("octalSecretCredentialValue123");
+      expect(encoded).not.toContain("alice");
+      expect(encoded).toContain("[REDACTED:credential]");
+      expect(encoded).toContain("[REDACTED:email]");
+      expect(encoded).toContain("'active': True");
+      expect(encoded).toContain("selected[0:2]");
+      await expect(h.verifier.verify(bundle)).resolves.toMatchObject({
+        verified: true,
+      });
+    },
+  );
+
+  it.each([
+    ['{"ok":true,"ok":false}', "ambiguous"],
+    ['{"password":"one","\\u0070assword":"two"}', "ambiguous"],
+    ['{"ok":true,}', "malformed"],
+    ['{"note":"bad\\q"}', "malformed"],
+    ['["unclosed"', "malformed"],
+    ["[1e999]", "budget"],
+    ["[9007199254740993]", "budget"],
+    ['{"nested":' + "[".repeat(20) + "true" + "]".repeat(20) + "}", "budget"],
+    [JSON.stringify(Array(33000).fill(true)), "budget"],
+  ])(
+    "keeps strict JSON rejection inside run_code source and output (%#)",
+    async (text, reason) => {
+      for (const location of ["result", "arguments", "serialized-arguments"]) {
+        for (const content of [text, `rows = [None]\nresult = ${text}\n`]) {
+          const h = harness();
+          await expect(
+            h.projector.projectAgentModelRequest(
+              input(
+                runCodeRequest(content, location),
+                "signed-source:free-form-tool",
+              ),
+            ),
+          ).rejects.toThrow(new RegExp(reason, "u"));
+          expect(h.attestor.sign).not.toHaveBeenCalled();
+        }
+      }
+    },
+  );
+
+  it("does not apply code tolerance to another tool or arbitrary free text", async () => {
+    for (const payload of [
+      jsonRequest("{'active': True}"),
+      jsonRequest({ code: "{'active': True}" }, true),
+    ]) {
+      const h = harness();
+      await expect(
+        h.projector.projectAgentModelRequest(
+          input(payload, "signed-source:free-form-tool"),
+        ),
+      ).rejects.toThrow(/malformed/u);
+    }
+  });
+
+  it.each(["read_file", "run_shell", "check_shell", "git", "search_files"])(
+    "admits paired %s source results with strict JSON and decoded-key protection",
+    async (tool) => {
+      const request = runCodeRequest(
+        JSON.stringify({
+          output: String.raw`rows = [{'ok': True, 'missing': None}]
+settings = {'\u0070assword': 'unprefixedSecretValue'}`,
+        }),
+      );
+      request.messages[0].tool_calls[0].function = {
+        name: tool,
+        arguments: {},
+      };
+      const h = harness();
+      const bundle = await h.projector.projectAgentModelRequest(
+        input(request, "signed-source:free-form-tool"),
+      );
+      expect(JSON.stringify(bundle)).not.toContain("unprefixedSecretValue");
+      expect(bundle.modelProjection.content.messages[1].content).toContain(
+        "'ok': True",
+      );
+      await expect(h.verifier.verify(bundle)).resolves.toMatchObject({
+        verified: true,
+      });
+      for (const content of ['{"ok":true,"ok":false}', "[1e999]"]) {
+        request.messages[1].content = content;
+        await expect(
+          h.projector.projectAgentModelRequest(
+            input(request, "signed-source:free-form-tool"),
+          ),
+        ).rejects.toThrow();
+      }
+      request.messages[1].tool_call_id = "unpaired";
+      request.messages[1].content = "{'ok': True}";
+      await expect(
+        h.projector.projectAgentModelRequest(
+          input(request, "signed-source:free-form-tool"),
+        ),
+      ).rejects.toThrow(/malformed/u);
+    },
+  );
+
+  it.each([
+    "{'password': [None, 'unprefixedSecretValue']}",
+    "{'password': 'firstHalf' + 'unprefixedSecretValue'}",
+    "password = 'firstHalf' + 'unprefixedSecretValue'",
+    String.raw`{"\u0070assword": sourceValue("unprefixedSecretValue")}`,
+  ])(
+    "refuses unsupported source expressions under sensitive decoded keys (%s)",
+    async (text) => {
+      const h = harness();
+      await expect(
+        h.projector.projectAgentModelRequest(
+          input(runCodeRequest(text), "signed-source:free-form-tool"),
+        ),
+      ).rejects.toThrow(/sensitive key/u);
+      expect(h.attestor.sign).not.toHaveBeenCalled();
+    },
+  );
+
+  it("retains the exact Agent v3 digest and opaque transport verification", async () => {
+    const h = harness();
+    expect(EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V3_DIGEST).toBe(
+      "sha256:38bd0c4def610959a8295d61c4e6cb547a307baf85a82d4e2f64f99a17e014e3",
+    );
+    const payload = {
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: "Read this image." },
+            {
+              type: "image_url",
+              image_url: { url: "data:image/png;base64,c2FmZQ==" },
+            },
+          ],
+        },
+        {
+          role: "assistant",
+          content: "",
+          _thinkingBlocks: [
+            {
+              type: "thinking",
+              thinking: "private",
+              signature: "provider-signature-1234567890",
+            },
+          ],
+        },
+      ],
+      tools: [],
+    };
+    const current = await h.projector.projectAgentModelRequest(
+      input(payload, "signed-source:free-form-tool"),
+    );
+    const historical = await reattest(
+      h,
+      current,
+      current.modelProjection.content,
+      EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V3_DIGEST,
+    );
+    await expect(h.verifier.verify(historical)).resolves.toMatchObject({
+      verified: true,
+    });
+    const oldCode = await reattest(
+      h,
+      current,
+      runCodeRequest("{'active': True}"),
+      EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V3_DIGEST,
+    );
+    await expect(h.verifier.verify(oldCode)).rejects.toThrow();
+  });
+
+  it.each(['{"ok":true,"ok":false}', "[9007199254740993]"])(
+    "independently rejects unsafe run_code JSON after valid re-signing (%s)",
+    async (text) => {
+      const h = harness();
+      const current = await h.projector.projectAgentModelRequest(
+        input(runCodeRequest("safe"), "signed-source:free-form-tool"),
+      );
+      const forged = await reattest(h, current, runCodeRequest(text));
+      await expect(h.verifier.verify(forged)).rejects.toThrow();
+    },
+  );
+
   it("redacts sensitive raw numeric scalars without rewriting Raw or historical v2", async () => {
     const h = harness();
     const payload = {
@@ -991,7 +1209,7 @@ describe("EvolutionEvidenceProjector", () => {
       ),
       false,
     ],
-    [JSON.stringify(Array(4100).fill(true)), false],
+    [JSON.stringify(Array(33000).fill(true)), false],
   ])(
     "rejects ambiguous or over-budget JSON case %# before signing",
     async (text, args) => {
@@ -1113,7 +1331,7 @@ describe("EvolutionEvidenceProjector", () => {
     const payload = {
       messages: Array.from({ length: 100 }, () => ({
         role: "user",
-        content: JSON.stringify(Array(42).fill(true)),
+        content: JSON.stringify(Array(330).fill(true)),
       })),
       tools: [],
     };
@@ -1378,11 +1596,11 @@ describe("EvolutionEvidenceProjector", () => {
         tools: [],
       };
       if (mode === "whole-field")
-        payload.messages[0].content = "x".repeat(270_000);
+        payload.messages[0].content = "x".repeat(896 * 1024 + 1);
       if (mode === "aggregate")
         payload.messages = Array.from({ length: 3 }, () => ({
           role: "user",
-          content: "x".repeat(90_000),
+          content: "x".repeat(320_000),
         }));
       if (mode === "escaped-bytes")
         payload.messages[0].content = "\u0000".repeat(200_000);
@@ -1397,6 +1615,179 @@ describe("EvolutionEvidenceProjector", () => {
       }
     },
   );
+
+  it("admits bounded long history and schema structure while preserving historical v3 ceilings", async () => {
+    const h = harness();
+    for (const payload of [
+      jsonRequest(JSON.stringify(Array(6000).fill(true))),
+      {
+        messages: Array.from({ length: 6 }, () => ({
+          role: "tool",
+          tool_call_id: "call-1",
+          content: "x".repeat(50_000),
+        })),
+        tools: [],
+      },
+      {
+        messages: Array.from({ length: 1800 }, () => ({
+          role: "user",
+          content: "safe",
+        })),
+        tools: [],
+      },
+    ]) {
+      const current = await h.projector.projectAgentModelRequest(
+        input(payload, "signed-source:free-form-tool"),
+      );
+      expect(current.modelProjection.content).toEqual(payload);
+      await expect(h.verifier.verify(current)).resolves.toMatchObject({
+        verified: true,
+      });
+      const historical = await reattest(
+        h,
+        current,
+        payload,
+        EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V3_DIGEST,
+      );
+      await expect(h.verifier.verify(historical)).rejects.toThrow();
+    }
+  });
+
+  it("budgets protocol depth separately from bounded serialized JSON traversal", async () => {
+    const h = harness();
+    let code = { leaf: "safe" };
+    for (let i = 0; i < 10; i++) code = { nested: code };
+    let args = { text: JSON.stringify(code) };
+    for (let i = 0; i < 10; i++) args = { nested: args };
+    const payload = jsonRequest(args, true);
+    const bundle = await h.projector.projectAgentModelRequest(
+      input(payload, "signed-source:free-form-tool"),
+    );
+    expect(bundle.modelProjection.content).toEqual(payload);
+    await expect(h.verifier.verify(bundle)).resolves.toMatchObject({
+      verified: true,
+    });
+  });
+
+  it("round-trips large text and real PNG transport through encrypted Raw and bounded durable artifacts", async () => {
+    const tempRoot = fs.mkdtempSync(
+      path.join(fs.realpathSync.native(os.tmpdir()), "cc-large-evidence-"),
+    );
+    try {
+      const chunk = (kind, data) => {
+        const body = Buffer.concat([Buffer.from(kind), data]);
+        const size = Buffer.alloc(4);
+        size.writeUInt32BE(data.length);
+        const checksum = Buffer.alloc(4);
+        checksum.writeUInt32BE(crc32(body));
+        return Buffer.concat([size, body, checksum]);
+      };
+      const header = Buffer.alloc(13);
+      header.writeUInt32BE(1024, 0);
+      header.writeUInt32BE(512, 4);
+      header[8] = 8;
+      header[9] = 6;
+      const pixels = randomBytes(512 * (1024 * 4 + 1));
+      for (let row = 0; row < 512; row++) pixels[row * (1024 * 4 + 1)] = 0;
+      const png = Buffer.concat([
+        Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+        chunk("IHDR", header),
+        chunk("IDAT", deflateSync(pixels)),
+        chunk("IEND", Buffer.alloc(0)),
+      ]);
+      const imageUrl = `data:image/png;base64,${png.toString("base64")}`;
+      expect(imageUrl.length).toBeGreaterThan(1024 * 1024);
+      const rawDir = path.join(tempRoot, "raw");
+      const projectionDir = path.join(tempRoot, "projections");
+      const rawStore = new ArtifactStoreEncryptedRawStore({
+        tenantId: "tenant-alpha",
+        artifactStore: new ArtifactStore({
+          dir: rawDir,
+          now: () => Date.parse(NOW),
+        }),
+        encryptor: {
+          encrypt(request) {
+            const iv = randomBytes(12);
+            const cipher = createCipheriv("aes-256-gcm", RAW_KEY, iv);
+            cipher.setAAD(request.aad);
+            const ciphertext = Buffer.concat([
+              cipher.update(request.plaintext),
+              cipher.final(),
+            ]);
+            return {
+              algorithm: "aes-256-gcm",
+              keyRef: "kms://tenant-alpha/evidence-raw-v1",
+              sealedBytes: Buffer.concat([iv, cipher.getAuthTag(), ciphertext]),
+            };
+          },
+        },
+      });
+      const h = harness({ rawStore });
+      const adapter = () =>
+        new EvolutionEvidenceArtifactAdapter({
+          tenantId: "tenant-alpha",
+          audience: "evolution-runtime",
+          projector: h.projector,
+          bundleVerifier: h.verifier,
+          artifactPorts: durableArtifactPorts(projectionDir),
+          ttlMs: 60_000,
+        });
+      const payload = {
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "image_url", image_url: { url: imageUrl } },
+              { type: "image_url", image_url: { url: imageUrl } },
+            ],
+          },
+          ...Array.from({ length: 6 }, () => ({
+            role: "tool",
+            tool_call_id: "call-1",
+            content: "x".repeat(50_000),
+          })),
+          { role: "user", content: "y".repeat(590_000) + " alice@example.com" },
+        ],
+        tools: [],
+      };
+      const persisted = await adapter().projectAndPersistAgentModelRequest(
+        input(payload, "signed-source:free-form-tool"),
+      );
+      const resolved = await adapter().resolve(persisted);
+      const safe = resolved.bundle.modelProjection;
+      expect(safe.truncated).toBe(false);
+      expect(JSON.stringify(safe)).not.toContain(imageUrl);
+      expect(safe.redactionSummary.byType.email).toBe(1);
+      const restored = buildAgentModelRequest(payload, safe);
+      expect(restored.messages[1].content[0].image_url.url).toBe(imageUrl);
+      expect(restored.messages.at(-1).content).toContain("[REDACTED:email]");
+      const projectionStore = new ArtifactStore({ dir: projectionDir });
+      for (const entry of projectionStore.list()) {
+        const bytes = fs.readFileSync(projectionStore.storedPath(entry));
+        expect(bytes.length).toBeLessThanOrEqual(1024 * 1024);
+        expect(bytes.includes(Buffer.from("alice@example.com"))).toBe(false);
+      }
+      expect(new ArtifactStore({ dir: rawDir }).list()).toHaveLength(1);
+      // The content reserve is not permission to exceed the complete record
+      // cap: a large finding table still fails closed at durable publication.
+      const manyFindings = Object.fromEntries(
+        Array.from({ length: 1600 }, (_, index) => [
+          `field-${index}-${"a".repeat(480)}`,
+          "sk-abcdefghijklmnopqrstuvwxyz1234567890",
+        ]),
+      );
+      await expect(
+        adapter().projectAndPersistAgentModelRequest(
+          input(
+            jsonRequest(manyFindings, true),
+            "signed-source:free-form-tool",
+          ),
+        ),
+      ).rejects.toThrow(/canonical JSON exceeds.*bytes/u);
+    } finally {
+      fs.rmSync(tempRoot, { recursive: true, force: true });
+    }
+  }, 60_000);
 
   it("rejects unknown and mixed policies even with a fresh valid attestation", async () => {
     const h = harness();

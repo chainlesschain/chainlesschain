@@ -1,0 +1,112 @@
+{
+  "schema": "chainlesschain.release-child-readback/v1",
+  "capturedAt": "2026-10-22T16:32:00.163Z",
+  "cliVersion": "0.166.116",
+  "registry": "https://registry.npmjs.org",
+  "packages": [
+    {
+      "name": "@chainlesschain/agent-protocol",
+      "version": "0.1.12",
+      "tarball": "https://registry.npmjs.org/@chainlesschain/agent-protocol/-/agent-protocol-0.1.12.tgz",
+      "integrity": "sha512-1lJgYtL+mwPsWlPzRRi6zbBdTqFv1g6cD2oUzrOWoUdXkvd696SuCBr6uzkX24NY3oEYwFk+QqKsKrkSvvSLmQ==",
+      "bytes": 43144,
+      "gitHead": "3400318446dd837790d6b4c28c9a9251875ca6fc"
+    },
+    {
+      "name": "@chainlesschain/agent-sdk",
+      "version": "0.2.15",
+      "tarball": "https://registry.npmjs.org/@chainlesschain/agent-sdk/-/agent-sdk-0.2.15.tgz",
+      "integrity": "sha512-CLeMAxSkULCdlae9geCdx27CzVcJZp1JM4y5h59g7nrWOAZ69dB/ZZwdwvu5F5PwkRhjn4iGZDgN8bvhe9OaDQ==",
+      "bytes": 89350,
+      "gitHead": "93792f65204aec3d25aa3b5abda83013f290d4ca"
+    },
+    {
+      "name": "@chainlesschain/context-memory-kernel",
+      "version": "0.1.10",
+      "tarball": "https://registry.npmjs.org/@chainlesschain/context-memory-kernel/-/context-memory-kernel-0.1.10.tgz",
+      "integrity": "sha512-7ZGy4N2x2jonrvjkLQ8AFT60hxzm2KTzM4GEoougj15b5itsm+ETvuXr19EHyr9R2XjCr3lCs2G4LbzbemXp5w==",
+      "bytes": 50535,
+      "gitHead": "6752b49e1e068c180a645e1e26773303bbb40648"
+    },
+    {
+      "name": "@chainlesschain/core-config",
+      "version": "0.1.2",
+      "tarball": "https://registry.npmjs.org/@chainlesschain/core-config/-/core-config-0.1.2.tgz",
+      "integrity": "sha512-6Qc4oxojh4G5OindihhupQDlEvHij9kOEkxLoqZEt/V4HTCOpaDFJUkIq1zzTrgm/qdEBpgq1L4Jlwm6s74Hpg==",
+      "bytes": 3991,
+      "gitHead": "26d60697f7fac7ad9ea0ef7b41dad307181f743e"
+    },
+    {
+      "name": "@chainlesschain/core-db",
+      "version": "0.1.5",
+      "tarball": "https://registry.npmjs.org/@chainlesschain/core-db/-/core-db-0.1.5.tgz",
+      "integrity": "sha512-3vjD+llIhaNAe4ePYP+fySOPCgHBwJzMIo5tdVkJ7uI2ngTrK2VkODvvPXVskjUN5+2uTQH/RMWGre+OaNquiA==",
+      "bytes": 10302,
+      "gitHead": null
+    },
+    {
+      "name": "@chainlesschain/core-env",
+      "version": "0.1.2",
+      "tarball": "https://registry.npmjs.org/@chainlesschain/core-env/-/core-env-0.1.2.tgz",
+      "integrity": "sha512-H5BwptqoaVqAnlGKubyYMHc5WNlSrctZag/0VU30FwHpkeNqS43CTr9tsOCSO8+KCdWe2eko1Zr8BFeF2svj0Q==",
+      "bytes": 2600,
+      "gitHead": "26d60697f7fac7ad9ea0ef7b41dad307181f743e"
+    },
+    {
+      "name": "@chainlesschain/core-infra",
+      "version": "0.1.1",
+      "tarball": "https://registry.npmjs.org/@chainlesschain/core-infra/-/core-infra-0.1.1.tgz",
+      "integrity": "sha512-DwhqG9zLbPPcKVo68QBEVLboRjXUA71u+rX86MHIBMmOr/8NabrisEsnr3AJ61FkFjdVDSVUxEk6XDoAwOMLpA==",
+      "bytes": 3482,
+      "gitHead": "26d60697f7fac7ad9ea0ef7b41dad307181f743e"
+    },
+    {
+      "name": "@chainlesschain/core-mtc",
+      "version": "0.2.3",
+      "tarball": "https://registry.npmjs.org/@chainlesschain/core-mtc/-/core-mtc-0.2.3.tgz",
+      "integrity": "sha512-xm6gZoJ8HqOFih1b5RlNPyQWNGRxokWq/hsV1oVTuCnNsxRmihTrxx40h10APiOKtKYPAEFDvMHcBfTEsB5tlA==",
+      "bytes": 38297,
+      "gitHead": "26d60697f7fac7ad9ea0ef7b41dad307181f743e"
+    },
+    {
+      "name": "@chainlesschain/core-multisig",
+      "version": "0.1.4",
+      "tarball": "https://registry.npmjs.org/@chainlesschain/core-multisig/-/core-multisig-0.1.4.tgz",
+      "integrity": "sha512-5YSmIQa1DRZYnCOeByb0Z8+vcrL8Qg62AMciK6YJQYwrjEiFwtdjhQ3GbQCcpepW1CvtGDiwrdyG5ufBYDwLxg==",
+      "bytes": 13952,
+      "gitHead": "26d60697f7fac7ad9ea0ef7b41dad307181f743e"
+    },
+    {
+      "name": "@chainlesschain/core-settlement",
+      "version": "0.1.2",
+      "tarball": "https://registry.npmjs.org/@chainlesschain/core-settlement/-/core-settlement-0.1.2.tgz",
+      "integrity": "sha512-8TAd6OKka+UgrOHwX6wHSIU6bxcVtGhnj33G5X2nqPLefITff1r4kXeBneoRmmyk5EyYlj+4QwL4jDEhEblJVg==",
+      "bytes": 9031,
+      "gitHead": "26d60697f7fac7ad9ea0ef7b41dad307181f743e"
+    },
+    {
+      "name": "@chainlesschain/personal-data-hub",
+      "version": "0.4.65",
+      "tarball": "https://registry.npmjs.org/@chainlesschain/personal-data-hub/-/personal-data-hub-0.4.65.tgz",
+      "integrity": "sha512-xq0/WjHjg81HdK4uA1LEKN03Nb8O0UWMbehDPZKGZcSeNoxn9vQKzDnIk9YWikiOwOtT3fPgZivvIJn2itdjzA==",
+      "bytes": 891431,
+      "gitHead": "2c8bfd3b69b10187f769f0e248da9d35f340084b"
+    },
+    {
+      "name": "@chainlesschain/session-core",
+      "version": "0.3.21",
+      "tarball": "https://registry.npmjs.org/@chainlesschain/session-core/-/session-core-0.3.21.tgz",
+      "integrity": "sha512-nrq0MnxhczzyqJsBcQdxM3isW37fbvAs8IkNKIHYsRKDgJ6sc/dU4wkcghu2Gld9P8ikvXNX5FOVyK6dJhvdHw==",
+      "bytes": 306909,
+      "gitHead": null
+    },
+    {
+      "name": "@chainlesschain/shared-logger",
+      "version": "0.1.1",
+      "tarball": "https://registry.npmjs.org/@chainlesschain/shared-logger/-/shared-logger-0.1.1.tgz",
+      "integrity": "sha512-owHSbZT79tYkkZEgaMoP5iuS6iuNqzmyya/TIp6ChFlQ7Ws87oBN0xlBlV1mo6cxpge/5jDMDLgH1TCzy0ZhHg==",
+      "bytes": 4058,
+      "gitHead": "26d60697f7fac7ad9ea0ef7b41dad307181f743e"
+    }
+  ]
+}

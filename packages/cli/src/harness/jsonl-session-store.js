@@ -71,6 +71,7 @@ import {
 } from "./session-list-index.js";
 import { createSessionPersistenceFailure } from "../lib/session-persistence-failure.js";
 import { withSessionHostWriteAuthority } from "../lib/session-host-lease.js";
+import { withSessionMessageBundleDeletion } from "../lib/context-memory-kernel/message-bundle-store.js";
 import { createSessionTranscriptStructureProjection } from "../lib/session-transcript-structure.js";
 import {
   TOOL_ROUND_EVENT,
@@ -6240,18 +6241,20 @@ export function deleteJsonlSession(sessionId) {
               Number(existingMeta.updated_at_ms) ||
               Date.now(),
           ) || Date.now();
-        const tombstone = recordSessionDeleted(
-          getSessionsDir(),
-          sessionId,
-          timestamp,
-        );
-        publishSessionAntiRollbackWitness(
-          sessionId,
-          tombstone,
-          filePath,
-          "deleted",
-        );
-        return externalAnchor?.status !== "deleted";
+        return withSessionMessageBundleDeletion(sessionId, () => {
+          const tombstone = recordSessionDeleted(
+            getSessionsDir(),
+            sessionId,
+            timestamp,
+          );
+          publishSessionAntiRollbackWitness(
+            sessionId,
+            tombstone,
+            filePath,
+            "deleted",
+          );
+          return externalAnchor?.status !== "deleted";
+        });
       }
       if (!transcriptExists && existingMeta === null) {
         return false;
@@ -6276,70 +6279,72 @@ export function deleteJsonlSession(sessionId) {
         rebuildSessionMetaUnlocked(getSessionsDir(), sessionId, filePath);
         existingMeta = readSessionPersistenceWitness(sessionId);
       }
-      if (deletionWitness === null) {
-        assertSessionAntiRollbackBeforeWrite(
-          sessionId,
-          existingMeta,
-          filePath,
-          "live",
-        );
-      } else if (existingMeta?.deleted !== true) {
-        existingMeta = replaceSessionMeta(getSessionsDir(), {
-          ...emptySessionMeta(sessionId),
-          id: sessionId,
-          generation: deletionWitness.generation || null,
-          last_hash: deletionWitness.last_hash || null,
-          event_count: Math.max(0, Number(deletionWitness.event_count) || 0),
-          updated_at_ms: Math.max(
-            0,
-            Number(deletionWitness.deleted_at_ms) || Date.now(),
-          ),
-          deleted_at_ms: Math.max(
-            0,
-            Number(deletionWitness.deleted_at_ms) || Date.now(),
-          ),
-          deleted: true,
-          transcript: null,
-        });
-      }
-      if (transcriptExists) rmSync(filePath, { force: true });
-      // The external tombstone is published only after the absent transcript
-      // directory entry is durable. A retry after an interrupted unlink must
-      // repeat this barrier even though the path is already absent in memory.
-      fsyncParentDirectory(
-        filePath,
-        Object.freeze({ sessionId, filePath, operation: "delete" }),
-        "beforeDeleteDirectoryFsync",
-        "afterDeleteDirectoryFsync",
-      );
-      try {
-        const tombstone = recordSessionDeleted(getSessionsDir(), sessionId);
-        publishSessionAntiRollbackWitness(
-          sessionId,
-          tombstone,
-          filePath,
-          "deleted",
-        );
-      } catch (error) {
-        // A complete anti-rollback record is readable before its fsync. If
-        // rollback also fails, readback alone cannot prove durability. Only
-        // swallow a post-meta failure after an exact replay has settled the
-        // deleted record through the production persistence path.
-        const tombstone = readSessionMeta(getSessionsDir(), sessionId);
-        if (
-          tombstone?.deleted !== true ||
-          readSessionAntiRollbackAnchor(sessionId)?.status !== "deleted"
-        ) {
-          throw error;
+      return withSessionMessageBundleDeletion(sessionId, () => {
+        if (deletionWitness === null) {
+          assertSessionAntiRollbackBeforeWrite(
+            sessionId,
+            existingMeta,
+            filePath,
+            "live",
+          );
+        } else if (existingMeta?.deleted !== true) {
+          existingMeta = replaceSessionMeta(getSessionsDir(), {
+            ...emptySessionMeta(sessionId),
+            id: sessionId,
+            generation: deletionWitness.generation || null,
+            last_hash: deletionWitness.last_hash || null,
+            event_count: Math.max(0, Number(deletionWitness.event_count) || 0),
+            updated_at_ms: Math.max(
+              0,
+              Number(deletionWitness.deleted_at_ms) || Date.now(),
+            ),
+            deleted_at_ms: Math.max(
+              0,
+              Number(deletionWitness.deleted_at_ms) || Date.now(),
+            ),
+            deleted: true,
+            transcript: null,
+          });
         }
-        publishSessionAntiRollbackWitness(
-          sessionId,
-          tombstone,
+        if (transcriptExists) rmSync(filePath, { force: true });
+        // The external tombstone is published only after the absent transcript
+        // directory entry is durable. A retry after an interrupted unlink must
+        // repeat this barrier even though the path is already absent in memory.
+        fsyncParentDirectory(
           filePath,
-          "deleted",
+          Object.freeze({ sessionId, filePath, operation: "delete" }),
+          "beforeDeleteDirectoryFsync",
+          "afterDeleteDirectoryFsync",
         );
-      }
-      return true;
+        try {
+          const tombstone = recordSessionDeleted(getSessionsDir(), sessionId);
+          publishSessionAntiRollbackWitness(
+            sessionId,
+            tombstone,
+            filePath,
+            "deleted",
+          );
+        } catch (error) {
+          // A complete anti-rollback record is readable before its fsync. If
+          // rollback also fails, readback alone cannot prove durability. Only
+          // swallow a post-meta failure after an exact replay has settled the
+          // deleted record through the production persistence path.
+          const tombstone = readSessionMeta(getSessionsDir(), sessionId);
+          if (
+            tombstone?.deleted !== true ||
+            readSessionAntiRollbackAnchor(sessionId)?.status !== "deleted"
+          ) {
+            throw error;
+          }
+          publishSessionAntiRollbackWitness(
+            sessionId,
+            tombstone,
+            filePath,
+            "deleted",
+          );
+        }
+        return true;
+      });
     },
     {
       failIfUnavailable: true,

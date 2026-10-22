@@ -80,6 +80,111 @@ function candidateOverview({
   );
 }
 
+function sourceOverview({
+  extensionVersion = "0.37.80",
+  cliVersion = "0.166.11",
+} = {}) {
+  return overview().replace(
+    "## Current release",
+    "## Release pairing\n\n" +
+      `Version **${extensionVersion}** recommends CLI **\`${cliVersion}\`**.\n\n` +
+      "## Current release",
+  );
+}
+
+test("checks neutral source pairing without declaring a new public release", async () => {
+  const { verifyMarketplaceOverview } = await verifier();
+  const result = verifyMarketplaceOverview({
+    ...manifests({ extensionVersion: "0.37.80", recommended: "0.166.11" }),
+    readme: sourceOverview(),
+  });
+  assert.equal(result.extensionVersion, "0.37.80");
+  assert.equal(result.cliVersion, "0.166.11");
+  assert.equal(result.publicExtensionVersion, "0.37.79");
+  assert.equal(result.publicCliVersion, "0.166.10");
+});
+
+test("neutral pairing still checks exact source versions and public history", async () => {
+  const { verifyMarketplaceOverview } = await verifier();
+  const args = manifests({
+    extensionVersion: "0.37.80",
+    recommended: "0.166.11",
+  });
+  for (const [readme, error] of [
+    [
+      sourceOverview({ extensionVersion: "0.37.81" }),
+      /VS Code version must match/,
+    ],
+    [sourceOverview({ cliVersion: "0.166.12" }), /CLI version must match/],
+    [
+      sourceOverview().replace("ide-vscode-v0.37.79", "ide-vscode-v0.37.78"),
+      /current release metadata/,
+    ],
+  ])
+    assert.throws(() => verifyMarketplaceOverview({ ...args, readme }), error);
+});
+
+test("neutral pairing cannot mix candidate declarations, duplicate headings or hidden declarations", async () => {
+  const { verifyMarketplaceOverview } = await verifier();
+  const args = manifests({
+    extensionVersion: "0.37.80",
+    recommended: "0.166.11",
+  });
+  for (const [readme, error] of [
+    [
+      sourceOverview().replace(
+        "## Release pairing",
+        "## Next release candidate\n\nSource candidate **0.37.80** recommends CLI **0.166.11**. The extension has not been published.\n\n## Release pairing",
+      ),
+      /must not mix/,
+    ],
+    [sourceOverview() + "\n## Release pairing\n", /at most one/],
+    [
+      overview() +
+        "\n## Release pairing\n\nVersion **0.37.80** recommends CLI **0.166.11**.\n",
+      /must appear before/,
+    ],
+    [
+      sourceOverview()
+        .replace("Version **0.37.80**", "````md\nVersion **0.37.80**")
+        .replace("## Current release", "````\n\n## Current release"),
+      /exactly one/,
+    ],
+  ])
+    assert.throws(() => verifyMarketplaceOverview({ ...args, readme }), error);
+});
+
+test("neutral pairing rejects duplicate declarations and downgrades from public versions", async () => {
+  const { verifyMarketplaceOverview } = await verifier();
+  assert.throws(
+    () =>
+      verifyMarketplaceOverview({
+        ...manifests({ extensionVersion: "0.37.80", recommended: "0.166.11" }),
+        readme: sourceOverview().replace(
+          "## Current release",
+          "Version **0.37.80** recommends CLI **0.166.11**.\n\n## Current release",
+        ),
+      }),
+    /exactly one/,
+  );
+  assert.throws(
+    () =>
+      verifyMarketplaceOverview({
+        ...manifests({ extensionVersion: "0.37.78", recommended: "0.166.11" }),
+        readme: sourceOverview({ extensionVersion: "0.37.78" }),
+      }),
+    /Source release cannot be older/,
+  );
+  assert.throws(
+    () =>
+      verifyMarketplaceOverview({
+        ...manifests({ extensionVersion: "0.37.80", recommended: "0.166.9" }),
+        readme: sourceOverview({ cliVersion: "0.166.9" }),
+      }),
+    /Source CLI cannot be older/,
+  );
+});
+
 test("keeps the public recommendation independent from a newer source candidate", async () => {
   const { verifyMarketplaceOverview } = await verifier();
   const result = verifyMarketplaceOverview({

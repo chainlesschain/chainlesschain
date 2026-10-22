@@ -12,6 +12,7 @@ import {
 } from "./message-adapter.js";
 import { JsonlSessionContextPort } from "./jsonl-session-context-port.js";
 import { createCliContextMemoryRuntime } from "./runtime.js";
+import { imageTransportEstimate } from "../image-token-estimate.js";
 import { projectRuntimeTokenUsage } from "../runtime-usage-ledger.js";
 import {
   projectCanonicalResumeMessages,
@@ -37,8 +38,14 @@ function estimatedTokens(messages) {
         typeof message?.content === "string"
           ? message.content
           : JSON.stringify(message?.content ?? "");
+      const image = imageTransportEstimate([message]);
       return (
-        total + Math.max(1, Math.ceil(Buffer.byteLength(content, "utf8") / 4))
+        total +
+        Math.max(
+          1,
+          Math.ceil((Buffer.byteLength(content, "utf8") - image.bytes) / 4) +
+            image.tokens,
+        )
       );
     }, 0),
   );
@@ -75,6 +82,7 @@ class CallbackSessionContextPort extends InMemorySessionContextPort {
     summaryStats,
     head,
     physicalAuthority,
+    allowExternalization = false,
   }) {
     const initialHead =
       head ||
@@ -87,10 +95,14 @@ class CallbackSessionContextPort extends InMemorySessionContextPort {
         sessionId,
         head: initialHead,
         memoryRevision,
-        items: messagesToContextItems(messages, { sessionId }),
+        items: messagesToContextItems(messages, {
+          sessionId,
+          allowExternalization,
+        }),
       },
     ]);
     this.commit = commit;
+    this.sessionId = sessionId;
     this.expectedMessages = [...messages];
     this.trigger = trigger;
     this.summaryStats = summaryStats;
@@ -102,7 +114,9 @@ class CallbackSessionContextPort extends InMemorySessionContextPort {
     if (!snapshot || snapshot.head !== expectedHead) {
       return { ok: false, currentHead: snapshot?.head || null };
     }
-    const outputMessages = contextItemsToMessages(event.outputItems);
+    const outputMessages = contextItemsToMessages(event.outputItems, {
+      sessionId: this.sessionId,
+    });
     const stats = compactionStats(
       event,
       outputMessages,
@@ -143,10 +157,15 @@ class CallbackSessionContextPort extends InMemorySessionContextPort {
   }
 }
 
-function kernelBudget(compressor, ephemeralTokens = 0) {
+function kernelBudget(compressor, ephemeralTokens = 0, messages = []) {
   const inputBudget = Math.max(
     256,
-    Math.trunc(Number(compressor?.maxTokens)) || 16_384,
+    Math.trunc(
+      Number(
+        compressor?.getCompactionTokenBudget?.(messages) ??
+          compressor?.maxTokens,
+      ),
+    ) || 16_384,
   );
   const reservedOutputTokens = Math.max(
     1,
@@ -269,6 +288,7 @@ export async function compactLiveMessagesCanonical(
       commit: options.commit,
       trigger,
       summaryStats: () => summaryStats,
+      allowExternalization: persistentSession,
       ...(verifiedAuthoritySnapshot?.head
         ? { head: verifiedAuthoritySnapshot.head, physicalAuthority: true }
         : {}),
@@ -304,7 +324,10 @@ export async function compactLiveMessagesCanonical(
           "chainlesschain.cli-live-session-head/v1",
         ),
         memoryRevision: await bootstrapRuntime.memoryPort.getRevision(),
-        items: messagesToContextItems(messages, { sessionId }),
+        items: messagesToContextItems(messages, {
+          sessionId,
+          allowExternalization: false,
+        }),
       },
     ]);
     runtime = createCliContextMemoryRuntime({
@@ -327,7 +350,10 @@ export async function compactLiveMessagesCanonical(
     const authority =
       verifiedAuthoritySnapshot ||
       (await runtime.sessionPort.readSnapshot(sessionId));
-    const inputItems = messagesToContextItems(messages, { sessionId });
+    const inputItems = messagesToContextItems(messages, {
+      sessionId,
+      allowExternalization: true,
+    });
     const inputDigest = canonicalDigest(
       inputItems.map((item) => item.digest),
       "chainlesschain.cli-live-message-set/v1",
@@ -368,8 +394,9 @@ export async function compactLiveMessagesCanonical(
         compressor,
         messagesToContextItems(
           ephemeralMessages.map(({ message }) => message),
-          { sessionId },
+          { sessionId, allowExternalization: false },
         ).reduce((total, item) => total + item.tokenEstimate, 0),
+        messages,
       ),
       sink: provider,
       scopeAdmissions: [{ scope: "session", scopeId: sessionId }],
@@ -386,7 +413,9 @@ export async function compactLiveMessagesCanonical(
         model,
       },
       summarizer: async (droppedItems, context) => {
-        const droppedMessages = contextItemsToMessages(droppedItems);
+        const droppedMessages = contextItemsToMessages(droppedItems, {
+          sessionId,
+        });
         const result = await compressor.compress(droppedMessages, {
           preserveToolPairs: true,
           ...(options.compressOptions || {}),
@@ -402,6 +431,7 @@ export async function compactLiveMessagesCanonical(
               parents: droppedItems,
               operationId: context.operationId,
               now: operationNow,
+              allowExternalization: persistentSession,
             })
           : null;
         return {
@@ -492,7 +522,7 @@ export async function compactLiveMessagesCanonical(
       ephemeralMessages[ephemeralIndex].sequence <= sequence
     )
       restoredMessages.push(ephemeralMessages[ephemeralIndex++].message);
-    restoredMessages.push(...contextItemsToMessages([item]));
+    restoredMessages.push(...contextItemsToMessages([item], { sessionId }));
   }
   restoredMessages.push(
     ...ephemeralMessages.slice(ephemeralIndex).map(({ message }) => message),

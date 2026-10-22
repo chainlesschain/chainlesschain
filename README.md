@@ -1,12 +1,12 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
-## 发布候选提示（2026-10-22）
+## 发布候选提示（2026-10-23）
 
-CLI **0.166.115**、VS Code / Open VSX **0.37.157**、JetBrains **0.4.174** 正作为候选准备，计划修复 Agent 工具结果含未定义字段时触发的严格 JSON 输入崩溃；**这些候选版本尚未发布**。npm CLI **0.166.114** 和 Open VSX **0.37.156** 已通过公开下载回读，但仍有上述已知问题。JetBrains **0.4.173** 的上传步骤成功后发布工作流被取消，公开上架与下载尚未核验；已核验的 JetBrains 公开版本仍为 **0.4.172**。下方 `.112 / .155 / .172` 为保留的历史发行记录。
+CLI **0.166.116** 正作为修复候选准备，解决 `run_code` 的 Python/JavaScript 代码被 Evolution ingress 误判为损坏 JSON，以及 ingress 失败退出前遗漏已完成工具轮次结算的问题。npm 当前公开版本为 **0.166.115**（[OIDC 发布记录](https://github.com/chainlesschain/chainlesschain/actions/runs/39791145970)），安装命令为 `npm i -g chainlesschain@0.166.115 --registry https://registry.npmjs.org`。配套候选 VS Code **0.37.158** 和 JetBrains **0.4.175** 源码版本均推荐 CLI **0.166.116**；确认 CLI 可从 npm 下载后再发布 IDE。下方 `.112 / .155 / .172` 为历史发行和限制记录。
 
 <!-- release112-status -->
 
-## Current public releases (2026-10-22)
+## Historical public releases (.112 / .155 / .172)
 
 2026-10-22 核对：npm CLI **0.166.112**、Open VSX **0.37.155** 与 JetBrains Marketplace **0.4.172** 均已公开并可下载，两个 IDE 制品均推荐 CLI **0.166.112**。
 

@@ -1,4 +1,7 @@
-import { canonicalDigest } from "@chainlesschain/context-memory-kernel";
+import {
+  canonicalDigest,
+  canonicalJson,
+} from "@chainlesschain/context-memory-kernel";
 import {
   contextItemsToMessages,
   messagesToContextItems,
@@ -33,6 +36,19 @@ const historyBearing = (entry) =>
   );
 const fingerprint = (messages) =>
   canonicalDigest(messages.map(encodePersistedMessage));
+const sameContextItemContent = (left, right) => {
+  if (typeof left?.content === "string" || typeof right?.content === "string") {
+    return (
+      typeof left?.content === "string" &&
+      typeof right?.content === "string" &&
+      left.content === right.content
+    );
+  }
+  if (left?.contentRef === undefined || right?.contentRef === undefined) {
+    return false;
+  }
+  return canonicalJson(left.contentRef) === canonicalJson(right.contentRef);
+};
 
 /**
  * Origins belong to positions in the current display history, never to equal
@@ -128,7 +144,7 @@ export function createSessionHistoryOrigins() {
         if (context) {
           const originals = messagesToContextItems(
             context.map((entry) => entry.message),
-            { sessionId: canonical.sessionId },
+            { sessionId: canonical.sessionId, allowExternalization: true },
           );
           const byDigest = new Map(
             originals.map((item) => [item.digest, item]),
@@ -140,7 +156,9 @@ export function createSessionHistoryOrigins() {
             context.slice(
               item.sourceRef.eventSequence,
               item.sourceRef.eventSequence +
-                contextItemsToMessages([item]).length,
+                contextItemsToMessages([item], {
+                  sessionId: canonical.sessionId,
+                }).length,
             );
           entries = [...canonical.outputItems]
             .sort(
@@ -150,12 +168,14 @@ export function createSessionHistoryOrigins() {
                 left.itemId.localeCompare(right.itemId, "en"),
             )
             .flatMap((item) => {
-              const messages = contextItemsToMessages([item]);
+              const messages = contextItemsToMessages([item], {
+                sessionId: canonical.sessionId,
+              });
               const source = bySequence.get(item.sourceRef.eventSequence);
               if (
                 item.sourceRef.store === "cli-jsonl-session" &&
                 source?.sourceRef.digest === item.sourceRef.digest &&
-                source.content === item.content
+                sameContextItemContent(source, item)
               ) {
                 return itemEntries(source);
               }

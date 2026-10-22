@@ -1,8 +1,8 @@
 # Agent Platform 发布与升级指南
 
-## 发布候选提示（2026-10-22）
+## 发布候选提示（2026-10-23）
 
-CLI **0.166.115**、Open VSX **0.37.157**、JetBrains **0.4.174** 尚为候选，计划修复 Agent 工具结果的未定义字段引发的严格 JSON 输入崩溃。已公开并回读的 CLI **0.166.114** 与 Open VSX **0.37.156** 仍有此已知问题。JetBrains **0.4.173** 上传步骤成功，但工作流随后取消，公开上架和下载未核验；已核验公开版为 **0.4.172**。以下 `.112 / .155 / .172` 内容保留为历史发行记录。
+CLI **0.166.116** 为修复候选：处理 `run_code` 的 Python/JavaScript 字面量误触严格 JSON 校验，并在 ingress 失败退出前结算已完成工具轮次。npm 当前公开 CLI 为 **0.166.115**（[OIDC 发布记录](https://github.com/chainlesschain/chainlesschain/actions/runs/39791145970)），安装命令为 `npm i -g chainlesschain@0.166.115 --registry https://registry.npmjs.org`。配套候选 VS Code **0.37.158** 与 JetBrains **0.4.175** 源码均推荐 CLI **0.166.116**；确认 CLI 可从 npm 下载后再发布 IDE。以下 `.112 / .155 / .172` 内容保留为历史发行和限制记录。
 
 <!-- release112-status -->
 

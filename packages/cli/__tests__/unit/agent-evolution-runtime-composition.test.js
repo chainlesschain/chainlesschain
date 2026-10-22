@@ -14,6 +14,7 @@ import {
 } from "../fixtures/evolution-ledger-v2-store.js";
 
 import { EVOLUTION_ARTIFACT_AUTHORITY_DECISION_SCHEMA } from "../../src/lib/evolution/evolution-artifact-ports.js";
+import { AGENT_MODEL_REQUEST_LIMITS } from "../../src/lib/evolution/agent-model-projection.js";
 import {
   EVOLUTION_KEYED_COMMITMENT_SCHEMA,
   EVOLUTION_PROJECTION_ATTESTATION_SCHEMA,
@@ -1046,8 +1047,9 @@ describe("Agent evolution runtime production composition", () => {
   ])(
     "governs actual resolver stages and queue outcomes (%s)",
     async (mode) => {
-      const { createGovernedHubResolver } =
-        await import("../../src/lib/evolution/governed-hub-resolver.js");
+      const { createGovernedHubResolver } = await import(
+        "../../src/lib/evolution/governed-hub-resolver.js"
+      );
       const sdk = createRequire(import.meta.url)(
         "../../../personal-data-hub/lib/entity-resolver/index.js",
       );
@@ -1153,8 +1155,9 @@ describe("Agent evolution runtime production composition", () => {
   );
 
   it("governs the actual interests skill prompt through strict projection", async () => {
-    const { runGovernedHubSkill } =
-      await import("../../src/lib/evolution/governed-hub-skill.js");
+    const { runGovernedHubSkill } = await import(
+      "../../src/lib/evolution/governed-hub-skill.js"
+    );
     const { InterestsSkill } = createRequire(import.meta.url)(
       "../../../personal-data-hub/lib/analysis-skills/interests.js",
     );
@@ -1275,8 +1278,9 @@ describe("Agent evolution runtime production composition", () => {
       const engine = new AnalysisEngine({ vault, llm: wrapped });
       let operation;
       if (entry === "skill") {
-        const { runGovernedHubSkill } =
-          await import("../../src/lib/evolution/governed-hub-skill.js");
+        const { runGovernedHubSkill } = await import(
+          "../../src/lib/evolution/governed-hub-skill.js"
+        );
         const { AnalysisSkill } = createRequire(import.meta.url)(
           "../../../personal-data-hub/lib/analysis-skills/base.js",
         );
@@ -3439,6 +3443,102 @@ describe("Agent evolution runtime production composition", () => {
     };
   }
 
+  it.each(["messages", "content"])(
+    "binds large images in user-prompt evidence and encrypts originals at model admission (%s)",
+    async (form) => {
+      const f = modelFixture();
+      const ingress = f.composition.evolutionIngress;
+      const imageUrl = `data:image/png;base64,${Buffer.alloc(2 * 1024 * 1024, 0x5a).toString("base64")}`;
+      const messages = [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: "Read this screenshot for owner@example.com",
+            },
+            { type: "image_url", image_url: { url: imageUrl } },
+          ],
+        },
+      ];
+      await ingress.start();
+      await ingress.ingestUserPrompt({
+        ...(form === "messages"
+          ? { messages, source: "image-regression" }
+          : { content: messages[0].content }),
+        sessionId: "image-session",
+        metadata: { label: "preserved" },
+      });
+      const promptRequest =
+        f.config.authorities.sourceEnvelope.issue.mock.calls.find(
+          ([request]) => request.kind === "user-prompt",
+        )[0];
+      expect(JSON.stringify(promptRequest)).not.toContain(imageUrl);
+      const captured = promptRequest.evidence.input;
+      expect(captured.sessionId).toBe("image-session");
+      expect(captured.metadata).toEqual({ label: "preserved" });
+      expect(
+        (form === "messages"
+          ? captured.messages[0].content
+          : captured.content)[1],
+      ).toMatchObject({
+        schema: "chainlesschain.evolution-agent-opaque-transport-block/v1",
+        kind: "image",
+        digest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/u),
+      });
+      const prepared = await ingress.prepareModelRequest({
+        messages,
+        tools: [],
+      });
+      expect(prepared.messages[1].content[1].image_url.url).toBe(imageUrl);
+      expect(prepared.messages[1].content[0].text).toContain(
+        "[REDACTED:email]",
+      );
+      const rawCalls = f.config.authorities.rawEncryptor.encrypt.mock.calls;
+      expect(rawCalls).toHaveLength(2);
+      expect(rawCalls[0][0].plaintext.includes(Buffer.from(imageUrl))).toBe(
+        false,
+      );
+      expect(rawCalls[1][0].plaintext.includes(Buffer.from(imageUrl))).toBe(
+        true,
+      );
+      expect(messages[0].content[1].image_url.url).toBe(imageUrl);
+      expect(
+        f.composition.loadRun().events.map((event) => event.data?.evidenceKind),
+      ).toEqual([undefined, "user-prompt", "model-input"]);
+    },
+    30_000,
+  );
+
+  it.each(["unsupported-block", "image-count"])(
+    "latches invalid REPL image content before durable evidence (%s)",
+    async (mode) => {
+      const f = modelFixture();
+      const ingress = f.composition.evolutionIngress;
+      await ingress.start();
+      const content =
+        mode === "unsupported-block"
+          ? [
+              {
+                type: "image_url",
+                image_url: { url: "https://example.com/image.png" },
+              },
+            ]
+          : Array.from({ length: 9 }, () => ({
+              type: "image_url",
+              image_url: { url: "data:image/png;base64,QQ==" },
+            }));
+      await expect(
+        ingress.ingestUserPrompt({ content, sessionId: "image-session" }),
+      ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
+      expect(f.config.authorities.rawEncryptor.encrypt).not.toHaveBeenCalled();
+      expect(f.config.authorities.sourceEnvelope.issue).not.toHaveBeenCalled();
+      await expect(ingress.complete()).rejects.toMatchObject({
+        code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+      });
+    },
+  );
+
   function skillDecisionFixture(sensitivity = "internal") {
     const f = modelFixture(sensitivity);
     const events = [];
@@ -4627,8 +4727,9 @@ describe("Agent evolution runtime production composition", () => {
   it.each([false, true])(
     "governs actual Cowork debate admission and completion (denied=%s)",
     async (denied) => {
-      const { runCoworkDebate } =
-        await import("../../src/lib/cowork-task-runner.js");
+      const { runCoworkDebate } = await import(
+        "../../src/lib/cowork-task-runner.js"
+      );
       const f = modelFixture();
       if (denied)
         f.config.authorities.sourceEnvelope.issue.mockRejectedValue(
@@ -4667,8 +4768,9 @@ describe("Agent evolution runtime production composition", () => {
   it.each([false, true])(
     "governs actual sequential Cowork admission and completion (denied=%s)",
     async (denied) => {
-      const { runCoworkTask } =
-        await import("../../src/lib/cowork-task-runner.js");
+      const { runCoworkTask } = await import(
+        "../../src/lib/cowork-task-runner.js"
+      );
       const f = modelFixture();
       if (denied)
         f.config.authorities.sourceEnvelope.issue.mockRejectedValue(
@@ -4700,8 +4802,9 @@ describe("Agent evolution runtime production composition", () => {
   it.each(["cancelled", "no-response", "budget-exhausted"])(
     "does not complete sequential Cowork after %s",
     async (reason) => {
-      const { runCoworkTask } =
-        await import("../../src/lib/cowork-task-runner.js");
+      const { runCoworkTask } = await import(
+        "../../src/lib/cowork-task-runner.js"
+      );
       const f = modelFixture();
       const controller = new AbortController();
       if (reason === "cancelled") controller.abort();
@@ -4747,8 +4850,9 @@ describe("Agent evolution runtime production composition", () => {
   );
 
   it("completes real sequential Cowork with missing IDs and numeric tool telemetry", async () => {
-    const { runCoworkTask } =
-      await import("../../src/lib/cowork-task-runner.js");
+    const { runCoworkTask } = await import(
+      "../../src/lib/cowork-task-runner.js"
+    );
     const f = modelFixture();
     fs.writeFileSync(
       path.join(f.root, "input.txt"),
@@ -4829,8 +4933,9 @@ describe("Agent evolution runtime production composition", () => {
     "governs the real standalone compact command before persisting its session revision (%s, responseDenied=%s)",
     async (stage, denied) => {
       const { Command } = await import("commander");
-      const { registerCompactCommand } =
-        await import("../../src/commands/compact.js");
+      const { registerCompactCommand } = await import(
+        "../../src/commands/compact.js"
+      );
       const sessions = await import("../../src/harness/jsonl-session-store.js");
       const f = modelFixture();
       if (denied) {
@@ -4954,8 +5059,9 @@ describe("Agent evolution runtime production composition", () => {
         expect(events.indexOf(settled[0])).toBeLessThan(
           events.indexOf(commits[1]),
         );
-        const { encodePersistedMessage } =
-          await import("../../src/lib/session-message-provenance.js");
+        const { encodePersistedMessage } = await import(
+          "../../src/lib/session-message-provenance.js"
+        );
         expect(
           sessions.readVerifiedMessages(sessionId).map(encodePersistedMessage),
         ).toEqual(commits[1].data.messages);
@@ -6207,9 +6313,13 @@ describe("Agent evolution runtime production composition", () => {
           [
             {
               role: "user",
-              content: "Useful detail. ".repeat(
-                mode === "budget" ? 20_000 : 2000,
-              ),
+              content:
+                mode === "budget"
+                  ? // v4 reserves 128 KiB of the input budget for record metadata.
+                    "x".repeat(
+                      AGENT_MODEL_REQUEST_LIMITS.maxBytes - 128 * 1024 + 1,
+                    )
+                  : "Useful detail. ".repeat(2000),
             },
           ],
           f.callOptions,
@@ -6564,7 +6674,14 @@ describe("Agent evolution runtime production composition", () => {
     const f = modelFixture();
     await expect(
       chatWithTools(
-        [{ role: "user", content: "x".repeat(300_000) }],
+        [
+          {
+            role: "user",
+            content: "x".repeat(
+              AGENT_MODEL_REQUEST_LIMITS.maxBytes - 128 * 1024 + 1,
+            ),
+          },
+        ],
         f.callOptions,
       ),
     ).rejects.toThrow(/budget/u);

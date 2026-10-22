@@ -7,6 +7,12 @@ import {
   getDurableSystemMessageProvenance,
   markDurableSystemMessage,
 } from "../session-message-provenance.js";
+import { imageTransportEstimate } from "../image-token-estimate.js";
+import {
+  SESSION_MESSAGE_BUNDLE_MAX_INLINE_BYTES,
+  readSessionMessageBundle,
+  storeSessionMessageBundle,
+} from "./message-bundle-store.js";
 
 const MESSAGE_BUNDLE_SCHEMA = "chainlesschain.cli-context-message-bundle/v1";
 const DEFAULT_ALLOWED_SINKS = Object.freeze(["*"]);
@@ -102,6 +108,27 @@ function priorityForBundle(messages, sequence, pendingTool) {
   return Math.min(999_999, rolePriority + Math.min(sequence, 99_999));
 }
 
+function contentStorageFields(
+  content,
+  sessionId,
+  allowExternalization = false,
+) {
+  if (
+    Buffer.byteLength(content, "utf8") <=
+    SESSION_MESSAGE_BUNDLE_MAX_INLINE_BYTES
+  ) {
+    return { content };
+  }
+  if (allowExternalization !== true) {
+    const error = new Error(
+      "Large image context bundles require an explicitly saved session",
+    );
+    error.code = "CC_CONTEXT_IMAGE_TRANSPORT_INVALID";
+    throw error;
+  }
+  return { contentRef: storeSessionMessageBundle({ sessionId, content }) };
+}
+
 function createItem({
   sessionId,
   messages,
@@ -110,9 +137,11 @@ function createItem({
   toolGroupId = null,
   allowedSinks,
   trustedSystemPolicy = false,
+  allowExternalization = false,
 }) {
   const payload = bundlePayload(messages);
   const content = canonicalJson(payload);
+  const image = imageTransportEstimate(messages);
   const sourceDigest = canonicalDigest(
     { sessionId, sequence, content },
     "chainlesschain.cli-context-source/v1",
@@ -142,12 +171,13 @@ function createItem({
     allowedSinks: allowedSinks || DEFAULT_ALLOWED_SINKS,
     tokenEstimate: Math.max(
       1,
-      Math.ceil(Buffer.byteLength(content, "utf8") / 4),
+      Math.ceil((Buffer.byteLength(content, "utf8") - image.bytes) / 4) +
+        image.tokens,
     ),
     priority: priorityForBundle(messages, sequence, pendingTool),
     pinned: false,
     createdAt: new Date(sequence).toISOString(),
-    content,
+    ...contentStorageFields(content, sessionId, allowExternalization),
     ...(pendingTool
       ? {
           binding: {
@@ -212,6 +242,7 @@ export function messagesToContextItems(messagesInput, options = {}) {
           pendingTool: pending,
           toolGroupId: `tool-group-${groupDigest.slice(7, 39)}`,
           allowedSinks,
+          allowExternalization: options.allowExternalization === true,
         }),
       );
       index = cursor - 1;
@@ -231,6 +262,7 @@ export function messagesToContextItems(messagesInput, options = {}) {
           pendingTool: true,
           toolGroupId: `tool-orphan-${orphanDigest.slice(7, 39)}`,
           allowedSinks,
+          allowExternalization: options.allowExternalization === true,
         }),
       );
       continue;
@@ -242,6 +274,7 @@ export function messagesToContextItems(messagesInput, options = {}) {
         messages: [message],
         sequence: index,
         allowedSinks,
+        allowExternalization: options.allowExternalization === true,
         trustedSystemPolicy:
           (options.trustCurrentSystemPolicy === true && index === 0) ||
           trustedSystemIndexes.has(index),
@@ -258,7 +291,7 @@ export function messagesToContextItems(messagesInput, options = {}) {
   );
   const last = items[lastIndex];
   if (last) {
-    const payload = JSON.parse(last.content);
+    const payload = JSON.parse(loadBundleContent(last, sessionId));
     if (payload.messages.at(-1)?.role === "user") {
       const protectedItem = { ...last };
       delete protectedItem.digest;
@@ -326,13 +359,34 @@ export function memoryRecordsToContextItems(recordsInput, options = {}) {
   });
 }
 
-function decodeBundle(item) {
-  if (typeof item?.content !== "string") {
+function loadBundleContent(item, expectedSessionId) {
+  let content = item?.content;
+  if (item?.contentRef !== undefined) {
+    if (
+      item.scope !== "session" ||
+      typeof item.scopeId !== "string" ||
+      (expectedSessionId !== undefined && expectedSessionId !== item.scopeId)
+    ) {
+      throw new TypeError(
+        `ContextItem ${item?.itemId || "unknown"} contentRef is outside its session scope`,
+      );
+    }
+    content = readSessionMessageBundle(
+      item.contentRef,
+      expectedSessionId || item.scopeId,
+    );
+  }
+  if (typeof content !== "string") {
     throw new TypeError(
       `ContextItem ${item?.itemId || "unknown"} has no inline content`,
     );
   }
-  const payload = JSON.parse(item.content);
+  return content;
+}
+
+function decodeBundle(item, expectedSessionId) {
+  const content = loadBundleContent(item, expectedSessionId);
+  const payload = JSON.parse(content);
   if (
     !payload ||
     payload.schema !== MESSAGE_BUNDLE_SCHEMA ||
@@ -357,8 +411,10 @@ function decodeBundle(item) {
 }
 
 /** Restore replay messages in transcript order, independent of planner rank. */
-export function contextItemsToMessages(itemsInput) {
+export function contextItemsToMessages(itemsInput, options = {}) {
   if (!Array.isArray(itemsInput)) throw new TypeError("items must be an array");
+  const expectedSessionId =
+    options.sessionId == null ? undefined : String(options.sessionId);
   return [...itemsInput]
     .map(normalizeContextItem)
     .sort(
@@ -367,7 +423,7 @@ export function contextItemsToMessages(itemsInput) {
           (right.sourceRef.eventSequence ?? Number.MAX_SAFE_INTEGER) ||
         left.itemId.localeCompare(right.itemId, "en"),
     )
-    .flatMap(decodeBundle);
+    .flatMap((item) => decodeBundle(item, expectedSessionId));
 }
 
 function intersectAllowedSinks(items) {
@@ -386,6 +442,7 @@ export function createSummaryContextItem({
   parents: parentInput,
   operationId,
   now,
+  allowExternalization = false,
 }) {
   const parents = parentInput.map(normalizeContextItem);
   if (parents.length === 0) throw new TypeError("summary parents are required");
@@ -410,6 +467,17 @@ export function createSummaryContextItem({
   );
   if (summaryMessages.length === 0) return null;
   const content = canonicalJson(bundlePayload(summaryMessages));
+  const contentFields =
+    scope === "session" && scopeId
+      ? contentStorageFields(content, scopeId, allowExternalization)
+      : Buffer.byteLength(content, "utf8") <=
+          SESSION_MESSAGE_BUNDLE_MAX_INLINE_BYTES
+        ? { content }
+        : (() => {
+            throw new TypeError(
+              "Large compaction summary content is supported only for a session-scoped canonical image bundle",
+            );
+          })();
   const parentDigests = parents.map((item) => item.digest).sort();
   const digest = canonicalDigest(
     { operationId, parentDigests, content },
@@ -434,6 +502,7 @@ export function createSummaryContextItem({
       (item) => item.sourceRef.eventSequence ?? Number.MAX_SAFE_INTEGER,
     ),
   );
+  const image = imageTransportEstimate(summaryMessages);
   return normalizeContextItem({
     schemaVersion: 1,
     itemId: `cli-summary-${digest.slice(7, 39)}`,
@@ -456,12 +525,13 @@ export function createSummaryContextItem({
     allowedSinks,
     tokenEstimate: Math.max(
       1,
-      Math.ceil(Buffer.byteLength(content, "utf8") / 4),
+      Math.ceil((Buffer.byteLength(content, "utf8") - image.bytes) / 4) +
+        image.tokens,
     ),
     priority: Math.max(...parents.map((item) => item.priority)),
     pinned: false,
     createdAt: new Date(now).toISOString(),
-    content,
+    ...contentFields,
   });
 }
 

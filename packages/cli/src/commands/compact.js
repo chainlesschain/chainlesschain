@@ -252,7 +252,9 @@ function buildKernelSummarizer({
       error.code = "SESSION_REVISION_STALE";
       throw error;
     }
-    const droppedMessages = contextItemsToMessages(droppedItems);
+    const droppedMessages = contextItemsToMessages(droppedItems, {
+      sessionId: sessionPort.sessionId,
+    });
     if (droppedMessages.length < 3) {
       return { items: [], usageReceipt: { outcome: "not_metered" } };
     }
@@ -301,6 +303,7 @@ function buildKernelSummarizer({
           parents: droppedItems,
           operationId: context.operationId,
           now: new Date().toISOString(),
+          allowExternalization: true,
         })
       : null;
     const usageReceipt = providerWasCalled
@@ -381,7 +384,9 @@ async function dryRunKernelPlan(runtime, request) {
   });
   return {
     plan,
-    messages: contextItemsToMessages(plan.selected),
+    messages: contextItemsToMessages(plan.selected, {
+      sessionId: request.sessionId,
+    }),
     stats: {
       strategy: "canonical-deterministic-selection",
       originalMessages: snapshot.items.length,

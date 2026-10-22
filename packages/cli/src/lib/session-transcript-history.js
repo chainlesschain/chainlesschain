@@ -77,7 +77,11 @@ function isContextCompaction(data) {
         }));
     return (
       canonicalDigest(
-        content(contextItemsToMessages(canonical.outputItems)),
+        content(
+          contextItemsToMessages(canonical.outputItems, {
+            sessionId: canonical.sessionId,
+          }),
+        ),
       ) === canonicalDigest(content(data.messages))
     );
   } catch {

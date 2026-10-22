@@ -102,6 +102,7 @@ export function verifyReleaseMetadata({
     [
       `Plugin **${pluginVersion}** is the current release candidate`,
       `Plugin **${pluginVersion}** is the current public release`,
+      `Plugin **${pluginVersion}** recommends \`chainlesschain@${recommendedCliVersion}\``,
     ].some((declaration) => section.includes(declaration)),
     "README must identify the current plugin release or release candidate",
   );

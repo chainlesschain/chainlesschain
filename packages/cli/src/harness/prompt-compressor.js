@@ -10,6 +10,7 @@
  */
 
 import { createHash } from "node:crypto";
+import { imageTransportEstimate } from "../lib/image-token-estimate.js";
 import {
   collectFileReadProgress,
   FILE_READ_PROGRESS_PREFIX,
@@ -183,7 +184,25 @@ export function estimateMessagesTokens(messages) {
       typeof msg.content === "string"
         ? msg.content
         : JSON.stringify(msg.content || "");
-    return sum + estimateTokens(content);
+    const image = imageTransportEstimate([msg]);
+    // Base64 is transport, not language tokens. The remaining serialized
+    // content is still charged, including captions and image metadata.
+    return (
+      sum + estimateTokens(content) - Math.ceil(image.bytes / 4) + image.tokens
+    );
+  }, 0);
+}
+
+// Leave space for tool definitions, protocol metadata and projection records
+// before the bounded Evolution input/projected-content ceilings are reached.
+export const AUTO_COMPACT_TEXT_BYTES = 768 * 1024;
+
+export function estimateMessagesTextBytes(messages) {
+  return messages.reduce((sum, message) => {
+    const image = imageTransportEstimate([message]);
+    return (
+      sum + Buffer.byteLength(JSON.stringify(message), "utf8") - image.bytes
+    );
   }, 0);
 }
 
@@ -406,7 +425,9 @@ export class PromptCompressor {
     const currentTokens = estimateMessagesTokens(result);
     if (
       this.llmQuery &&
-      (currentTokens > this.maxTokens || result.length > this.maxMessages) &&
+      (currentTokens > this.maxTokens ||
+        result.length > this.maxMessages ||
+        estimateMessagesTextBytes(result) > AUTO_COMPACT_TEXT_BYTES) &&
       messages.length > 4
     ) {
       const summarized = await this._summarize(result, messages);
@@ -494,7 +515,40 @@ export class PromptCompressor {
     return (
       ((!this._adaptive || this._contextWindow < 128000) &&
         messages.length > this.maxMessages) ||
-      estimateMessagesTokens(messages) > this.maxTokens
+      estimateMessagesTokens(messages) > this.maxTokens ||
+      estimateMessagesTextBytes(messages) > AUTO_COMPACT_TEXT_BYTES
+    );
+  }
+
+  getCompactionTokenBudget(messages) {
+    const textBytes = estimateMessagesTextBytes(messages);
+    if (textBytes <= AUTO_COMPACT_TEXT_BYTES) return this.maxTokens;
+    const imageTokens = imageTransportEstimate(messages).tokens;
+    const lastUser = messages.findLast((message) => message.role === "user");
+    // Historical images may be dropped by the planner. Reserving all of them
+    // would let it satisfy this target by deleting images while retaining the
+    // text that caused the byte overflow.
+    const protectedImageTokens = imageTransportEstimate(
+      messages.filter(
+        (message) =>
+          message === lastUser ||
+          message.pinned === true ||
+          message._pin === true,
+      ),
+    ).tokens;
+    const textTokens = Math.max(
+      0,
+      estimateMessagesTokens(messages) - imageTokens,
+    );
+    return Math.max(
+      1,
+      Math.min(
+        this.maxTokens,
+        Math.floor(
+          protectedImageTokens +
+            textTokens * (AUTO_COMPACT_TEXT_BYTES / textBytes) * 0.75,
+        ),
+      ),
     );
   }
 

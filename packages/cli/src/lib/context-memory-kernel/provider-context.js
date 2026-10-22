@@ -11,6 +11,11 @@ import {
   memoryRecordsToContextItems,
   messagesToContextItems,
 } from "./message-adapter.js";
+import {
+  adjustContextImageTokenEstimates,
+  captureContextImageTransport,
+  restoreContextImageTransport,
+} from "./context-image-transport.js";
 
 export const SEMANTIC_CANDIDATE_REQUEST_SCHEMA =
   "chainlesschain.context-memory-semantic-candidate-request/v1";
@@ -217,12 +222,17 @@ export async function prepareCanonicalProviderContext(
     ),
     ...(semanticCandidates === undefined ? {} : { semanticCandidates }),
   });
-  const messageItems = messagesToContextItems(messages, {
-    sessionId,
-    allowedSinks: [sink],
-    trustCurrentSystemPolicy: true,
-    trustedSystemIndexes: options.contextMemoryTrustedSystemIndexes,
-  });
+  const imageTransport = captureContextImageTransport(messages);
+  const messageItems = adjustContextImageTokenEstimates(
+    messagesToContextItems(imageTransport.messages, {
+      sessionId,
+      allowedSinks: [sink],
+      trustCurrentSystemPolicy: true,
+      trustedSystemIndexes: options.contextMemoryTrustedSystemIndexes,
+      allowExternalization: false,
+    }),
+    imageTransport.captures,
+  );
   const memoryItems = memoryRecordsToContextItems(
     recall.results.map((entry) => entry.record),
     { insertionSequence: Math.max(0, messages.length - 1) },
@@ -290,9 +300,14 @@ export async function prepareCanonicalProviderContext(
     sessionHead,
     memoryRevision: recall.memoryRevision,
   });
+  const selectedMessages = contextItemsToMessages(
+    plan.selected.filter((item) => item.kind !== "tool-schema"),
+    { sessionId },
+  );
   return {
-    messages: contextItemsToMessages(
-      plan.selected.filter((item) => item.kind !== "tool-schema"),
+    messages: restoreContextImageTransport(
+      selectedMessages,
+      imageTransport.captures,
     ),
     selectedToolNames: toolItems
       .filter((item) => plan.selectedItemIds.includes(item.itemId))
