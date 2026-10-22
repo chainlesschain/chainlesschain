@@ -1,0 +1,325 @@
+{
+  "schema": "chainlesschain.release-ide-junit-review/v1",
+  "recordedAt": "2026-10-22T20:47:34.380Z",
+  "release": {
+    "cli": "0.166.117",
+    "vscode": "0.37.159",
+    "jetbrains": "0.4.176"
+  },
+  "source": {
+    "headRevision": "923497374cec3c333099b40535cde95982bd895d",
+    "workingTree": "Includes parent-applied IdeDoctorTest recommendation assertion fix and IDE version metadata updates; no production/test/toolchain/workflow changes made by this audit agent.",
+    "doctorTestSha256": "28b9055cfe126c614b347b46a3e11edec46defd57700258f259b732a6f391e73",
+    "versionTestSha256": "0f85bd726645ccbd69a38dc789e314ef13b119f3b4cccc9fd61fb131791344a6"
+  },
+  "environment": {
+    "platform": "win32",
+    "jdk": "Eclipse Adoptium 17.0.17.10-hotspot",
+    "java": "C:/Program Files/Eclipse Adoptium/jdk-17.0.17.10-hotspot/bin/java.exe",
+    "javac": "C:/Program Files/Eclipse Adoptium/jdk-17.0.17.10-hotspot/bin/javac.exe",
+    "junitStandalone": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-ide-doctor-audit-f40d9d28fa234a13bb31a269eaa68448\\junit-platform-console-standalone-1.10.2.jar",
+    "junitStandaloneSha256": "a1de557821293ce903c213c694165fff532cf92081bac4238b9e05b35f04f43f",
+    "junitVersion": "Platform 1.10.2 / Jupiter 5.10.2"
+  },
+  "originalReproduction": {
+    "testClass": "com.chainlesschain.ide.IdeDoctorTest",
+    "found": 6,
+    "passed": 5,
+    "failed": 1,
+    "failedMethod": "formatReportWhenUpShowsPortAndPassesSectionsThrough",
+    "failureLocation": "IdeDoctorTest.java:44",
+    "assertion": "up.contains(\"Recommended CLI: 0.166.115\")",
+    "actualReportLine": "Recommended CLI: 0.166.117",
+    "result": "expected true but was false",
+    "method": "Compiled original unmodified test and production Java dependencies in Temp and ran real JUnit standalone."
+  },
+  "fixedFocused": {
+    "testClasses": [
+      "com.chainlesschain.ide.IdeDoctorTest",
+      "com.chainlesschain.ide.CliVersionCheckTest"
+    ],
+    "found": 14,
+    "passed": 14,
+    "failed": 0,
+    "skipped": 0,
+    "fix": "assertTrue(up.contains(\"Recommended CLI: \" + CliVersionCheck.RECOMMENDED_CLI_VERSION));",
+    "reportsDir": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-ide-doctor-audit-f40d9d28fa234a13bb31a269eaa68448\\junit-fixed-reports"
+  },
+  "expanded": {
+    "testClassSourceCount": 80,
+    "includedFiles": [
+      "ActivityLogTest.java",
+      "AgentInitFailureTest.java",
+      "ApprovalGrantsTest.java",
+      "ApprovalSettlementRegistryTest.java",
+      "ArtifactsTest.java",
+      "AutoExecGuardTest.java",
+      "AutomationCenterTest.java",
+      "BackgroundAgentsTest.java",
+      "BridgeSecurityPolicyTest.java",
+      "CapabilityNegotiationTest.java",
+      "ChatDraftStoreTest.java",
+      "ChromeConnectorTest.java",
+      "CliVersionCheckTest.java",
+      "ContextCenterTest.java",
+      "ContextExternalSourcesTest.java",
+      "ContextMemoryAuthorityTest.java",
+      "ContextStatusTest.java",
+      "ConversationManagerTest.java",
+      "DashboardHtmlTest.java",
+      "DeepLinkTest.java",
+      "DeliveryWorkflowTest.java",
+      "DiagnosticBundleExportTest.java",
+      "DiagnosticsSnapshotSchedulerTest.java",
+      "DiffApplyGuardTest.java",
+      "DiffHunksTest.java",
+      "DiffReviewAuditTest.java",
+      "ElicitationSchemaTest.java",
+      "EvolutionWorkbenchTest.java",
+      "FixWithCcTest.java",
+      "IdeCapabilitiesTest.java",
+      "IdeContextV2Test.java",
+      "IdeDoctorTest.java",
+      "IdePathGuardTest.java",
+      "IdeQualityToolsTest.java",
+      "IdeSessionIndexTest.java",
+      "IdeToolAdmissionTest.java",
+      "IdeToolsPreviewTest.java",
+      "IdeToolsTerminalTest.java",
+      "ImageAttachmentsTest.java",
+      "ImageFileSnapshotTest.java",
+      "IntrospectArgsTest.java",
+      "LockfileAclTest.java",
+      "MarkdownLiteTest.java",
+      "MentionsTest.java",
+      "MiniJsonTest.java",
+      "MultiDiffTest.java",
+      "NdjsonLineBufferTest.java",
+      "PermissionModeStateTest.java",
+      "PlanReviewTest.java",
+      "PluginManagerTest.java",
+      "PluginQualityTest.java",
+      "PolicyViewerTest.java",
+      "PreviewDetectTest.java",
+      "ProcessTreeTerminationTest.java",
+      "ProjectMemoryTest.java",
+      "PrStatusTest.java",
+      "QrCodeTest.java",
+      "RemoteDoctorFixesTest.java",
+      "RemoteDoctorTest.java",
+      "RemoteHandoffTest.java",
+      "ReviewNoteTest.java",
+      "RewindCommandsTest.java",
+      "RuntimeCompatibilityTest.java",
+      "RuntimeEnvironmentTest.java",
+      "SemanticToolsTest.java",
+      "SessionArgsTest.java",
+      "SessionListTest.java",
+      "SessionProjectionTest.java",
+      "SessionsWorkbenchTest.java",
+      "SkillRetrievalTest.java",
+      "SlashCommandsTest.java",
+      "StatusBarTextTest.java",
+      "TranscriptCapTest.java",
+      "UiEventDiagnosticsTest.java",
+      "UsageReportTest.java",
+      "WhatsNewTest.java",
+      "WindowsOwnerOnlyAclTest.java",
+      "WorkspaceMentionIndexPerformanceTest.java",
+      "WorkspaceMentionIndexTest.java",
+      "WorktreeTasksTest.java"
+    ],
+    "found": 665,
+    "started": 665,
+    "passed": 662,
+    "failed": 0,
+    "skipped": 0,
+    "aborted": 3,
+    "durationMs": 61963,
+    "exitCode": 0,
+    "reportsDir": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-ide-doctor-audit-f40d9d28fa234a13bb31a269eaa68448\\expanded-junit-reports",
+    "compileLog": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-ide-doctor-audit-f40d9d28fa234a13bb31a269eaa68448\\compatible-compile.log",
+    "selectionFile": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-ide-doctor-audit-f40d9d28fa234a13bb31a269eaa68448\\expanded-selection.json",
+    "compileDriver": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-junit-expand.mjs",
+    "compileDriverSha256": "e9b8a5869966651b4230bfb4c7609cbfff079095a26652752c6a5d3a3da8de67",
+    "workingDirectory": "C:\\code\\chainlesschain\\packages\\jetbrains-plugin",
+    "javaCommand": "\"C:/Program Files/Eclipse Adoptium/jdk-17.0.17.10-hotspot/bin/java.exe\" -jar \"C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-ide-doctor-audit-f40d9d28fa234a13bb31a269eaa68448\\junit-platform-console-standalone-1.10.2.jar\" execute --class-path \"C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-ide-doctor-audit-f40d9d28fa234a13bb31a269eaa68448\\compatible-classes\" --scan-class-path --details summary --disable-ansi-colors --reports-dir \"C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-ide-doctor-audit-f40d9d28fa234a13bb31a269eaa68448\\expanded-junit-reports\"",
+    "abortedTests": [
+      {
+        "class": "LockfileAclTest",
+        "method": "posixModesAreExactForDirectoryAndPublishedFile(Path)",
+        "reason": "POSIX attribute view required"
+      },
+      {
+        "class": "LockfileAclTest",
+        "method": "compatibilityProbeDoesNotPretendWindowsAclExistsOnPosix(Path)",
+        "reason": "POSIX-only: no AclFileAttributeView"
+      },
+      {
+        "class": "IdePathGuardTest",
+        "method": "symlinkEscapeIsCaught(Path)",
+        "reason": "symlink creation needs no privilege only on POSIX"
+      }
+    ]
+  },
+  "uncovered": {
+    "pureLayerFiles": [
+      {
+        "file": "AgentChatSessionTest.java",
+        "generated": ["AgentChatSession"],
+        "jdk21": false
+      },
+      {
+        "file": "AgentTerminationTest.java",
+        "generated": ["AgentChatSession"],
+        "jdk21": false
+      },
+      {
+        "file": "ApprovalResponsesTest.java",
+        "generated": ["ApprovalResponses"],
+        "jdk21": false
+      },
+      {
+        "file": "CcAutomaticCompletionPolicyTest.java",
+        "generated": ["AgentChatSession"],
+        "jdk21": false
+      },
+      {
+        "file": "CcCompletionTest.java",
+        "generated": ["AgentChatSession"],
+        "jdk21": false
+      },
+      {
+        "file": "ChatEventsTest.java",
+        "generated": ["ChatEvents"],
+        "jdk21": false
+      },
+      {
+        "file": "CliIdentityProbeTest.java",
+        "generated": ["AgentChatSession"],
+        "jdk21": false
+      },
+      {
+        "file": "ContextMemoryProjectionTest.java",
+        "generated": ["ContextMemoryProjection"],
+        "jdk21": false
+      },
+      {
+        "file": "EvolutionDeploymentConfigTest.java",
+        "generated": ["AgentChatSession"],
+        "jdk21": false
+      },
+      {
+        "file": "EvolutionWorkbenchSessionTest.java",
+        "generated": [],
+        "jdk21": true
+      },
+      {
+        "file": "InputDispatchTest.java",
+        "generated": ["AgentChatSession"],
+        "jdk21": true
+      },
+      {
+        "file": "LlmConfigTest.java",
+        "generated": ["AgentChatSession"],
+        "jdk21": false
+      },
+      {
+        "file": "LlmConnectionPanelTest.java",
+        "generated": ["AgentChatSession"],
+        "jdk21": false
+      },
+      {
+        "file": "ManagedCliTest.java",
+        "generated": ["AgentChatSession"],
+        "jdk21": false
+      },
+      {
+        "file": "ProtocolFixturesTest.java",
+        "generated": ["ChatEvents"],
+        "jdk21": false
+      },
+      {
+        "file": "QuestionDraftContractTest.java",
+        "generated": ["ChatEvents"],
+        "jdk21": false
+      },
+      {
+        "file": "QuestionDraftRegistryTest.java",
+        "generated": [],
+        "jdk21": true
+      },
+      {
+        "file": "QuestionDraftStoreTest.java",
+        "generated": [],
+        "jdk21": true
+      },
+      {
+        "file": "SessionHistoryReaderTest.java",
+        "generated": ["AgentChatSession"],
+        "jdk21": false
+      },
+      {
+        "file": "SessionTranscriptChangesTest.java",
+        "generated": [],
+        "jdk21": true
+      },
+      {
+        "file": "SessionTranscriptPageTest.java",
+        "generated": [],
+        "jdk21": true
+      },
+      {
+        "file": "TeamControlTest.java",
+        "generated": ["ChatEvents", "AgentChatSession"],
+        "jdk21": false
+      },
+      {
+        "file": "TeamMonitorTest.java",
+        "generated": ["ChatEvents"],
+        "jdk21": false
+      },
+      {
+        "file": "TranscriptReferencesTest.java",
+        "generated": [],
+        "jdk21": true
+      },
+      {
+        "file": "Verify01ProtocolCaptureTest.java",
+        "generated": ["AgentChatSession"],
+        "jdk21": true
+      }
+    ],
+    "intellijFiles": [
+      "AccessibilityPerformanceEvidenceTest.java",
+      "ChatCardsLayoutTest.java",
+      "ChatComposerDraftsTest.java",
+      "ChatHistorySyncTest.java",
+      "ChatHistoryViewTest.java",
+      "ChatTranscriptRenderingTest.java",
+      "ChatTranscriptSyncTest.java",
+      "ChatTranscriptTest.java",
+      "QuestionFormViewTest.java",
+      "SessionUxEvidenceTest.java"
+    ],
+    "intellijCompileLog": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-ide-doctor-audit-f40d9d28fa234a13bb31a269eaa68448\\intellij-compile.log",
+    "blockers": [
+      "Generated Kotlin protocol classes are not present on standalone javac classpath (AgentStreamEventType, ApprovalDecision, CcAgentProtocolKt, PermissionGrant).",
+      "JDK 21 APIs are used by existing tests/production dependencies: ExecutorService/ScheduledExecutorService AutoCloseable and List.getFirst/getLast.",
+      "IntelliJ SDK classes are absent on standalone javac classpath: Project, JBColor, ApplicationManager, DialogBuilder/DialogWrapper."
+    ],
+    "notRun": [
+      "Full Gradle/JDK 21 test task",
+      "IntelliJ-host UI journeys",
+      "Plugin compatibility verification",
+      "POSIX-only test behavior"
+    ]
+  },
+  "limitations": [
+    "Supplementary Windows JDK 17 pure-Java verification only; not a replacement for authoritative Gradle/JDK 21 release gates.",
+    "No stubs, Java-version API rewrites, source patches, disabled assertions, or workflow gate changes were used.",
+    "The 14 focused passing tests overlap the expanded set and must not be summed as independent coverage.",
+    "Remote failed job annotations exposed only exit code 1; local reproduction proves a deterministic stale assertion but does not claim a complete remote failure inventory."
+  ],
+  "conclusion": "The stale Doctor recommendation assertion was reproduced and its minimal fix verified. Expanded runnable pure-Java tests found no additional failures; remaining coverage requires the declared Gradle/JDK 21/IDE SDK/Kotlin environment."
+}

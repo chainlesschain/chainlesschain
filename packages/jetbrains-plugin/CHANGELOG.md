@@ -1,6 +1,11 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
-## [0.4.175] - CLI 0.166.117 pairing (2026-10-23)
+## [0.4.176] - CLI 0.166.117 pairing (2026-10-23)
+
+- Pair with public CLI 0.166.117 and VS Code 0.37.159.
+- Verify the Doctor recommendation against the configured CLI version, while preserving the separate exact-version checks. The unpublished 0.4.175 candidate was retired after its stale recommendation assertion failed; its immutable tag is retained.
+
+## [0.4.175] - Unpublished candidate (2026-10-23)
 
 - Recommend CLI 0.166.117 for source and command evidence projection, complete bounded JSON tool previews, cumulative evidence budgets, and separate image and provider token accounting.
 - Update the package version and CLI pairing. Release verification uses the exact source commit and public artifact readback after the paired CLI and its dependencies are available.

@@ -1,0 +1,97 @@
+{
+  "schema": "chainlesschain.release-image-storage-review/v1",
+  "recordedAt": "2026-10-22T18:52:26.453Z",
+  "release": "0.166.117",
+  "sourceRevision": "00e638dd71e7ffa69d2ff366d85f1d209fd38877",
+  "scope": "Read-only production code review plus synthetic boundary fixture in Temp; no production or test files changed.",
+  "command": "node --max-old-space-size=2048 \"C:/Users/longfa/AppData/Local/Temp/cc-raw-40mib-audit.mjs\"",
+  "execution": {
+    "exitCode": 0,
+    "nodeVersion": "v22.22.2",
+    "platform": "win32"
+  },
+  "fixture": {
+    "scriptPath": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-raw-40mib-audit.mjs",
+    "scriptSha256": "25fcaddd4bbc323c42e8a8c41a4fb27bd902f18e0989e8ec4433374d147cf19d",
+    "tempRoot": "C:/Users/longfa/AppData/Local/Temp/cc-raw-40mib-audit-0rizrB",
+    "indexPath": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-raw-40mib-audit-0rizrB\\index.jsonl",
+    "encryptedArtifactPath": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-raw-40mib-audit-0rizrB\\files\\art_mvjw912r_3f7f0e5d.enc",
+    "description": "Four user messages, each containing one canonical base64 image_url carrier encoding a 10 MiB synthetic byte buffer. Ephemeral Ed25519 and AES keys generated in memory.",
+    "limitation": "Synthetic carriers validate ingress shape and encrypted storage byte budgets only. The byte buffers are not decoded PNG images; provider image decoding and acceptance were not tested.",
+    "payloadIncluded": false
+  },
+  "productionPath": [
+    "snapshotAgentModelRequest (packages/cli/src/lib/evolution/agent-model-projection.js)",
+    "createLocalUiEvolutionAuthorities().authorities.rawEncryptor (packages/cli/src/lib/evolution/local-ui-evolution-runtime.js)",
+    "ArtifactStoreEncryptedRawStore.putEncrypted (packages/cli/src/lib/evolution/evolution-evidence-artifact-adapter.js)",
+    "ArtifactStore.publishDataOnce and verifyIntegrity (packages/cli/src/lib/artifact-store.js)"
+  ],
+  "measurements": {
+    "imageCount": 4,
+    "binaryBytesPerImage": 10485760,
+    "totalBinaryImageBytes": 41943040,
+    "perMessageCanonicalBytes": 13981109,
+    "canonicalPayloadBytes": 55924465,
+    "sealedArtifactBytes": 55924493,
+    "encryptionOverheadBytes": 28,
+    "requestImageLimitBytes": 41943040,
+    "canonicalRequestLimitBytes": 58720256,
+    "artifactWriteLimitBytes": 104857600,
+    "expectedSha256": "5f86fbd0391e0c051590ec76fee4264e61a649a2696da94badc115de355da6b9",
+    "actualSha256": "5f86fbd0391e0c051590ec76fee4264e61a649a2696da94badc115de355da6b9"
+  },
+  "assertions": [
+    {
+      "description": "snapshotAgentModelRequest accepted the 40 MiB image request",
+      "passed": true
+    },
+    {
+      "description": "Each message carrier is below 16 MiB",
+      "passed": true
+    },
+    {
+      "description": "Aggregate canonical payload is below the 56 MiB carrier limit",
+      "passed": true
+    },
+    {
+      "description": "Raw receipt stored is true",
+      "passed": true
+    },
+    {
+      "description": "AES-GCM storage overhead is 12-byte IV plus 16-byte tag, without ciphertext base64 or JSON expansion",
+      "passed": true
+    },
+    {
+      "description": "Initial ArtifactStore.verifyIntegrity returned ok",
+      "passed": true
+    },
+    {
+      "description": "New ArtifactStore instance verifyIntegrity returned ok",
+      "passed": true
+    },
+    {
+      "description": "Authenticated AES-GCM decryption is JSON-equivalent to the original payload",
+      "passed": true,
+      "comparison": "isDeepStrictEqual(JSON.parse(plain), JSON.parse(JSON.stringify(payload)))"
+    },
+    {
+      "description": "Evidence file remains present with expected size and hash at report creation",
+      "passed": true
+    },
+    {
+      "description": "Maximum 56 MiB canonical payload plus 28 bytes remains below the 100 MiB artifact limit",
+      "passed": true
+    }
+  ],
+  "reviewFindings": {
+    "rawCiphertextEncoding": "Raw binary Buffer.concat([iv, tag, ciphertext]); publishDataOnce receives Buffer directly.",
+    "readback": "Raw adapter calls verifyIntegrity(entry) without an explicit bounds override; current implementation reads binary file and checks SHA-256.",
+    "unrelated64MiBLimits": "64 MiB constants located in index, ledger, manifest or snapshot paths do not cap this raw ciphertext artifact path.",
+    "conclusion": "No 72 MiB ciphertext-JSON expansion or 64 MiB raw-file limit exists on the inspected production path. No code change required."
+  },
+  "evidenceNotes": [
+    "The final fixture run completed successfully and printed stored=true, both integrity checks ok, and decryptedPayloadMatches=true.",
+    "Earlier scratch comparisons initially compared property insertion order or null-object prototypes; final comparison normalizes both JSON values and compares structurally.",
+    "This review does not replace exact-SHA GitHub Actions release gates or claim end-to-end provider image validation."
+  ]
+}

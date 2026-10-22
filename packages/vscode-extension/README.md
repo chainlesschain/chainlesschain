@@ -6,7 +6,7 @@ MCP bridge.
 
 ## Release pairing
 
-Version **0.37.158** recommends CLI **`0.166.117`** and pairs with JetBrains **0.4.175**. The paired CLI repairs source and command evidence projection, complete bounded JSON tool previews, cumulative evidence budgets, and separate image and provider token accounting. IDE publication follows the paired CLI and dependency graph verification, exact-source release gates, and public artifact readback.
+Version **0.37.159** recommends CLI **`0.166.117`** and pairs with JetBrains **0.4.176**. The paired CLI repairs source and command evidence projection, complete bounded JSON tool previews, cumulative evidence budgets, and separate image and provider token accounting. IDE publication follows the paired CLI and dependency graph verification, exact-source release gates, and public artifact readback.
 
 Open VSX **0.37.156** and CLI **0.166.114** were publicly downloaded and verified on 2026-10-22, but that CLI still has the Agent tool-evidence error. Microsoft Marketplace remains unpublished. The previous completely verified three-channel pairing is retained below.
 
@@ -51,7 +51,7 @@ Checked on 2026-10-20: npm CLI **0.166.107**, Session Core **0.3.20**, Open VSX 
 
 ## Release compatibility
 
-This source release pairs VS Code **0.37.158** and JetBrains **0.4.175** with CLI **`0.166.117`**. Publish the paired CLI and verify its public dependency graph before publishing either IDE package. This metadata update inherits the CLI fixes; native task quality and restart acceptance require separate published-package evidence.
+This source release pairs VS Code **0.37.159** and JetBrains **0.4.176** with CLI **`0.166.117`**. Publish the paired CLI and verify its public dependency graph before publishing either IDE package. This metadata update inherits the CLI fixes; native task quality and restart acceptance require separate published-package evidence.
 The table records the last fully verified public pairing. Formal evaluation and full native review retain their separate acceptance status.
 
 | Component                 | Current status                                                                                             |
@@ -62,7 +62,7 @@ The table records the last fully verified public pairing. Formal evaluation and 
 | Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors                                                        |
 | Distribution              | Open VSX; versioned VSIX for stock Microsoft VS Code                                                       |
 
-### What's new in 0.37.158
+### What's new in 0.37.159
 
 - Pair with CLI 0.166.117 for strict source and command evidence projection, complete JSON output previews, cumulative evidence budgets, and separate image and provider token accounting.
 - Update the package version and recommended CLI pairing. The release workflow verifies the exact source and artifact after the paired CLI becomes publicly available.
@@ -508,7 +508,7 @@ Open VSX listing remains the public registry source.
 ### 1. Install the paired CLI
 
 Node.js `>= 22.12.0` and npm `>= 10.0.0` are required.
-This source release pairs CLI `0.166.117` with Open VSX `0.37.158` and JetBrains Marketplace `0.4.175`. Each IDE tag triggers its own publication and exact-artifact verification workflow after the CLI is publicly available.
+This source release pairs CLI `0.166.117` with Open VSX `0.37.159` and JetBrains Marketplace `0.4.176`. Each IDE tag triggers its own publication and exact-artifact verification workflow after the CLI is publicly available.
 
 The following command installs the last fully verified public pairing's CLI (`0.166.112` / Open VSX `0.37.155` / JetBrains `0.4.172`). Install paired CLI `0.166.117` after verifying its public package and release artifacts.
 

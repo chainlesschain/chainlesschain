@@ -1,0 +1,33 @@
+{
+  "schema": "chainlesschain.retired-ide-candidates/v1",
+  "observedAt": "2026-10-22T20:48:30.840Z",
+  "sourceSha": "923497374cec3c333099b40535cde95982bd895d",
+  "tags": [
+    {
+      "tag": "ide-vscode-v0.37.158",
+      "runId": 39850234356,
+      "cancellationRequested": true,
+      "publicMetadataHttp": 404,
+      "published": false,
+      "workflowStatus": "completed",
+      "workflowConclusion": "cancelled"
+    },
+    {
+      "tag": "ide-jetbrains-v0.4.175",
+      "runId": 39850234042,
+      "cancellationRequested": true,
+      "publicUpdateMatches": 0,
+      "published": false,
+      "workflowStatus": "completed",
+      "workflowConclusion": "cancelled"
+    }
+  ],
+  "cause": "The IDE main preflight failed its JetBrains JUnit step. IdeDoctorTest.java:44 hardcoded CLI .115 while the configured recommendation is .117. Real standalone JUnit reproduced 5 passes and 1 failure; the minimal recommendation-constant fix plus CliVersionCheckTest passed 14/14. Immutable tags are retained; source fixes use new IDE versions.",
+  "originalPreflightRunId": 39845863398,
+  "originalFailedJobId": 120072164050,
+  "replacement": {
+    "vscode": "0.37.159",
+    "jetbrains": "0.4.176",
+    "cli": "0.166.117"
+  }
+}

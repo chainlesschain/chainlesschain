@@ -2,7 +2,12 @@
 
 All notable changes to this extension are documented here.
 
-## [0.37.158] - CLI 0.166.117 pairing (2026-10-23)
+## [0.37.159] - CLI 0.166.117 pairing (2026-10-23)
+
+- Pair with public CLI 0.166.117 and JetBrains 0.4.176.
+- Keep release checks aligned with the configured CLI recommendation. The unpublished 0.37.158 / 0.4.175 candidates were retired after IDE preflight found a stale JetBrains Doctor test assertion; their immutable tags are retained.
+
+## [0.37.158] - Unpublished candidate (2026-10-23)
 
 - Recommend CLI 0.166.117 for source and command evidence projection, complete bounded JSON tool previews, cumulative evidence budgets, and separate image and provider token accounting.
 - Update the package version and CLI pairing. Release verification uses the exact source commit and public artifact readback after the paired CLI and its dependencies are available.

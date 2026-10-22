@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: "CLI 0.166.117 修复候选：代码字面量输入与工具轮次恢复；npm 当前公开 CLI 0.166.115；IDE 在 CLI 公开后发布"
+  tagline: "CLI 0.166.117 已发布：修复 Evolution 代码输入、工具轮次恢复和图片预算"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -21,8 +21,8 @@ hero:
 
 features:
   - icon: ⚠️
-    title: Agent 代码输入与工具恢复修复候选
-    details: "CLI 0.166.117 候选修复 Python/JavaScript 代码被误判为损坏 JSON，并在 ingress 失败退出前结算已完成工具轮次。npm 当前公开 CLI 为 0.166.115；配套候选 VS Code 0.37.158 / JetBrains 0.4.175 均推荐 CLI 0.166.117，将在 CLI 可从 npm 下载后发布。下方 .112 / .155 / .172 为历史发行和限制记录。"
+    title: Agent 输入、工具恢复与图片预算修复
+    details: "CLI 0.166.117 已通过 OIDC 发布并完成公共回读；Session Core 0.3.22 与 Personal Data Hub 0.4.66 已先行发布。修复代码字面量误判、工具轮次结算与图片预算。Open VSX 0.37.159 尚未验证公开下载；JetBrains 0.4.176 尚未发布。两者推荐 CLI 0.166.117。本次未新增真实模型任务验收，历史限制保留。"
     link: /chainlesschain/agent-platform-release
   - icon: 🔗
     title: CLI / IDE 与桌面目标草稿

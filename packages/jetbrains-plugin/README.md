@@ -7,7 +7,7 @@ diffs inside IntelliJ-platform IDEs (IDEA, PyCharm, WebStorm, …).
 
 ## Release pairing
 
-Plugin **0.4.175** recommends CLI **`0.166.117`** and pairs with VS Code **0.37.158**. The paired CLI repairs source and command evidence projection, complete bounded JSON tool previews, cumulative evidence budgets, and separate image and provider token accounting. IDE publication follows the paired CLI and dependency graph verification, exact-source release gates, and public artifact readback.
+Plugin **0.4.176** recommends CLI **`0.166.117`** and pairs with VS Code **0.37.159**. The paired CLI repairs source and command evidence projection, complete bounded JSON tool previews, cumulative evidence budgets, and separate image and provider token accounting. IDE publication follows the paired CLI and dependency graph verification, exact-source release gates, and public artifact readback.
 
 The .173 Marketplace upload succeeded before its workflow was cancelled after discovering the paired CLI .114 Agent error. Public approval and ZIP download have not been verified; the last completely verified pairing remains .172 / CLI .112 below.
 
@@ -72,7 +72,7 @@ See the [upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-u
 
 ## Release compatibility
 
-Plugin **0.4.175** recommends `chainlesschain@0.166.117`. This metadata update inherits the CLI source and command evidence projection, bounded JSON preview, cumulative evidence budget, and image and provider token accounting fixes. Publish the paired CLI and verify its public dependency graph before the IDE release. The release workflow verifies the exact source commit, Marketplace upload and public artifact. Native task quality and restart acceptance still require separate published-package evidence.
+Plugin **0.4.176** recommends `chainlesschain@0.166.117`. This metadata update inherits the CLI source and command evidence projection, bounded JSON preview, cumulative evidence budget, and image and provider token accounting fixes. Publish the paired CLI and verify its public dependency graph before the IDE release. The release workflow verifies the exact source commit, Marketplace upload and public artifact. Native task quality and restart acceptance still require separate published-package evidence.
 
 ## Previous candidates and development notes
 

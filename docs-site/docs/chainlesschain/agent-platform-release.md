@@ -1,8 +1,8 @@
 # Agent Platform 发布与升级指南
 
-## 发布候选提示（2026-10-23）
+## 最新发布（2026-10-23）
 
-CLI **0.166.117** 为修复候选：处理 `run_code` 的 Python/JavaScript 字面量误触严格 JSON 校验，并在 ingress 失败退出前结算已完成工具轮次。npm 当前公开 CLI 为 **0.166.115**（[OIDC 发布记录](https://github.com/chainlesschain/chainlesschain/actions/runs/39791145970)），安装命令为 `npm i -g chainlesschain@0.166.115 --registry https://registry.npmjs.org`。配套候选 VS Code **0.37.158** 与 JetBrains **0.4.175** 源码均推荐 CLI **0.166.117**；确认 CLI 可从 npm 下载后再发布 IDE。以下 `.112 / .155 / .172` 内容保留为历史发行和限制记录。
+CLI **0.166.117** 已通过 [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/39845469661) 发布到 npm，并完成公共制品、签名来源和独立安装回读。修复 Python/JavaScript 代码字面量被 Evolution ingress 误判为损坏 JSON、异常退出时遗漏已完成工具轮次结算，以及图片与文本预算混算和长工具输出截断的问题。Session Core **0.3.22** 与 Personal Data Hub **0.4.66** 已先于 CLI 发布。安装命令：`npm i -g chainlesschain@0.166.117 --registry https://registry.npmjs.org`。Open VSX **0.37.159** 尚未验证公开下载；JetBrains **0.4.176** 尚未发布。两者推荐 CLI **0.166.117**。[发布证据](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release117-public/publication.json)。本次未新增真实模型任务验收；下方历史发行记录与限制继续保留。
 
 <!-- release112-status -->
 

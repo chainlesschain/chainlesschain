@@ -1,0 +1,72 @@
+{
+  "schema": "chainlesschain.release117-publication/v1",
+  "observedAt": "2026-10-22T20:46:06.092Z",
+  "status": "CLI_PUBLIC_IDE_PREPARING",
+  "repository": "chainlesschain/chainlesschain",
+  "channels": {
+    "cli": {
+      "version": "0.166.117",
+      "status": "public",
+      "sourceSha": "00e638dd71e7ffa69d2ff366d85f1d209fd38877",
+      "runId": 39845469661,
+      "attempt": 1,
+      "tag": "v-npm-0-166-117",
+      "receipt": "chainlesschain-provenance.json",
+      "archiveBytes": 9508399,
+      "sha512": "8441e1eaa944e4e9c5fdcf91818c6948f298f5fca70cf5bb60c4cfb0a64d22932b084a319ca538b9cb4100b805c0ed4abf0c718480a4643db14f6a9b80eb279b",
+      "sha256": "f62c6aa2c573f6163e190a3bf997c93d3027a9caf2c2f7e4fe91f51e1270af2c",
+      "publicArchivesVerified": true,
+      "independentRegistryInstallVerified": true
+    },
+    "openVsx": {
+      "version": "0.37.159",
+      "status": "preparing",
+      "recommendedCliVersion": "0.166.117",
+      "sourceSha": null,
+      "runId": null,
+      "tag": "ide-vscode-v0.37.159"
+    },
+    "jetbrains": {
+      "version": "0.4.176",
+      "status": "preparing",
+      "recommendedCliVersion": "0.166.117",
+      "sourceSha": null,
+      "runId": null,
+      "tag": "ide-jetbrains-v0.4.176"
+    }
+  },
+  "childPackages": {
+    "sessionCore": {
+      "version": "0.3.22",
+      "status": "public",
+      "receipt": "session-core-provenance.json"
+    },
+    "personalDataHub": {
+      "version": "0.4.66",
+      "status": "public",
+      "receipt": "personal-data-hub-provenance.json"
+    },
+    "releaseArchiveCount": 13,
+    "directCliRegistryLockPins": 10
+  },
+  "gates": "gates.json",
+  "cliGateJobs": {
+    "success": 71,
+    "skippedOptional": ["dry-run-publish"],
+    "strictSandboxSuccess": 6
+  },
+  "publicArchiveReadback": "registry-readback.json",
+  "publicDependencyInstall": "registry-install.json",
+  "retiredIdeCandidates": "retired-ide-candidates.json",
+  "limits": {
+    "modelTaskRetest": "NOT_RUN_THIS_RELEASE",
+    "paidReadiness": "NOT_PAID_READY",
+    "nativeAdmission": "NOT_ADMITTED",
+    "automaticPromotion": "HOLD",
+    "microsoftMarketplace": "unpublished",
+    "nativeProduct": "v5.0.3.140",
+    "localOllamaLiveValidation": "USER_WILL_TEST_AFTER_RELEASE"
+  },
+  "evidenceScope": "Exact-source GitHub Actions CLI CI and Strict Sandbox release gates; GitHub Actions OIDC child-before-CLI publication; all 13 child archives and the public CLI downloaded with npm SRI and embedded-identity checks; public CLI bytes equal the immutable Actions archive; independent ignore-scripts registry-only install, executable capability and SQL.js binding smoke, public dependency locks and npm signature/attestation audit. IDE publication remains pending. No new live model-task acceptance or native admission is claimed.",
+  "supplementaryIdeJunitReview": "ide-junit-review.json"
+}

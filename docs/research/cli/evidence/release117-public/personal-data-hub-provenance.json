@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "verifiedAt": "2026-10-22T20:35:14.408Z",
+  "verifier": "npm audit signatures --include-attestations",
+  "package": "@chainlesschain/personal-data-hub",
+  "version": "0.4.66",
+  "sha512": "44f7021d5216732d32b48f97b5bac8c4554227c2090af7caa05d2e908dbb893ca92efde4706517ecfb95187d4a020f85d42f6b6d11e8cf31863c8c3e144b75dd",
+  "repository": "https://github.com/chainlesschain/chainlesschain",
+  "workflow": ".github/workflows/npm-publish.yml",
+  "ref": "refs/tags/v-npm-0-166-117",
+  "commit": "00e638dd71e7ffa69d2ff366d85f1d209fd38877",
+  "builder": "https://github.com/actions/runner/github-hosted",
+  "invocationId": "https://github.com/chainlesschain/chainlesschain/actions/runs/39845469661/attempts/1",
+  "runId": 39845469661,
+  "attempt": 1,
+  "anchorMode": "exact-release",
+  "audit": {
+    "invalid": 0,
+    "missing": 0
+  }
+}
