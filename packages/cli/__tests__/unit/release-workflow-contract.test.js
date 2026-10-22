@@ -13,6 +13,16 @@ function workflow(name) {
   );
 }
 
+function workflowJob(text, name) {
+  const lines = text.split(/\r?\n/u);
+  const start = lines.indexOf(`  ${name}:`, lines.indexOf("jobs:") + 1);
+  expect(start, `missing workflow job: ${name}`).toBeGreaterThan(-1);
+  const next = lines.findIndex(
+    (line, index) => index > start && /^  [\w-]+:\s*$/u.test(line),
+  );
+  return lines.slice(start, next === -1 ? undefined : next).join("\n");
+}
+
 function literalRunBlocks(text) {
   const lines = text.split(/\r?\n/u);
   const blocks = [];
@@ -57,9 +67,7 @@ function occurrences(text, needle) {
 describe("CLI release workflow contracts", () => {
   it("gates PDH release source on all three native hosts without filtered suites", () => {
     const text = workflow("cli-ci.yml");
-    const job = text
-      .split("\n  pdh-native-tests:")[1]
-      .split("\n  linux-subreaper:")[0];
+    const job = workflowJob(text, "pdh-native-tests");
     expect(job).toContain("os: [ubuntu-latest, windows-latest, macos-latest]");
     expect(job).toContain("fail-fast: false");
     expect(job).toContain("timeout-minutes: 25");
@@ -73,10 +81,33 @@ describe("CLI release workflow contracts", () => {
     // Runner context is unavailable in job-level env, only after job scheduling.
     expect(job.split("    steps:")[0]).not.toContain("runner.temp");
     expect(job).toMatch(
-      /Test complete PDH suite with host-native drivers\s+shell: bash\s+env:\s+PDH_EVIDENCE_DIR: \$\{\{ runner\.temp \}\}\/pdh-native-evidence/u,
+      /Test complete PDH suite with host-native drivers\s+if: \$\{\{ needs\.docs-scope\.result == 'success' && needs\.docs-scope\.outputs\.docs_only == 'false' \}\}\s+shell: bash\s+env:\s+PDH_EVIDENCE_DIR: \$\{\{ runner\.temp \}\}\/pdh-native-evidence/u,
     );
     expect(job).not.toContain("continue-on-error");
-    expect(job).not.toMatch(/^    (?:if|needs):/mu);
+    expect(job).toContain("needs: [docs-scope]");
+    expect(job).toContain("if: ${{ always() && !cancelled() }}");
+    expect(job).toMatch(
+      /Enforce exact-source documentation decision\s+if: always\(\)/u,
+    );
+    for (const binding of [
+      "DOCS_RESULT: ${{ needs.docs-scope.result }}",
+      "DOCS_ONLY: ${{ needs.docs-scope.outputs.docs_only }}",
+      "DOCS_VALIDATED: ${{ needs.docs-scope.outputs.docs_validated }}",
+      "DOCS_TARGET: ${{ needs.docs-scope.outputs.target_sha }}",
+      "EXPECTED_TARGET: ${{ github.event.pull_request.head.sha || github.sha }}",
+    ]) {
+      expect(job).toContain(binding);
+    }
+    expect(job).toContain(
+      "e.DOCS_RESULT !== 'success' || e.DOCS_TARGET !== e.EXPECTED_TARGET",
+    );
+    expect(job).toContain("!['true', 'false'].includes(e.DOCS_ONLY)");
+    expect(job).toContain(
+      "(e.DOCS_ONLY === 'true' && e.DOCS_VALIDATED !== 'true')",
+    );
+    expect(job).toContain(
+      "throw new Error('Missing, failed or wrong-source documentation decision')",
+    );
     for (const trigger of ["push", "pull_request"]) {
       const paths = text.split(`\n  ${trigger}:`)[1].split(/\n  \w/u)[0];
       for (const input of [
@@ -266,10 +297,7 @@ describe("CLI release workflow contracts", () => {
     expect(reusable).toContain("${{ runner.temp }}/linux-subreaper-tested.tgz");
     expect(reusable).not.toContain("continue-on-error");
     const release = workflow("npm-publish.yml");
-    const packageJob = release.slice(
-      release.indexOf("  package-cli:"),
-      release.indexOf("\n  dry-run:"),
-    );
+    const packageJob = workflowJob(release, "package-cli");
     expect(packageJob).toContain("needs: [exact-sha-gate, linux-subreaper]");
     expect(packageJob).toContain("needs.linux-subreaper.result == 'success'");
     for (const arch of ["x64", "arm64"]) {
@@ -283,12 +311,14 @@ describe("CLI release workflow contracts", () => {
     expect(cliCi).toContain(
       "uses: ./.github/workflows/_cli-linux-subreaper.yml",
     );
-    const pmAggregate = cliCi.slice(
-      cliCi.indexOf("  pm-exploration-recovery-aggregate:"),
-      cliCi.indexOf("\n  pack-linux-dryrun:"),
-    );
+    const pmAggregate = workflowJob(cliCi, "pm-exploration-recovery-aggregate");
+    expect(pmAggregate).toContain("needs: [docs-scope, verify-cli]");
     expect(pmAggregate).toContain(
-      "if: always() && (github.event_name == 'workflow_dispatch' || !cancelled())",
+      "if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' && (always() && (github.event_name == 'workflow_dispatch' || !cancelled())) }}",
+    );
+    expect(pmAggregate).toContain("if: needs.verify-cli.result != 'success'");
+    expect(pmAggregate).toContain(
+      "At least one test-only PM recovery platform failed or did not finish",
     );
   });
 

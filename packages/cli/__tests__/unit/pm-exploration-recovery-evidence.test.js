@@ -287,8 +287,10 @@ describe("PM exploration recovery evidence", () => {
     expect(verifyJob).toContain("if-no-files-found: error");
 
     const aggregateJob = workflow.slice(aggregateStart, nextJob);
-    expect(aggregateJob).toContain("if: always()");
-    expect(aggregateJob).toContain("needs: verify-cli");
+    expect(aggregateJob).toContain(
+      "if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' && (always() && (github.event_name == 'workflow_dispatch' || !cancelled())) }}",
+    );
+    expect(aggregateJob).toContain("needs: [docs-scope, verify-cli]");
     expect(aggregateJob).toContain("if: needs.verify-cli.result != 'success'");
     expect(aggregateJob).toContain("actions/download-artifact@v7");
     expect(aggregateJob).toContain("merge-multiple: true");

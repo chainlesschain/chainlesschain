@@ -1,6 +1,6 @@
 {
   "schema": "chainlesschain.release-local-preflight/v1",
-  "capturedAt": "2026-10-22T17:32:28.252Z",
+  "capturedAt": "2026-10-22T17:40:31.034Z",
   "candidate": "0.166.117",
   "authoritativeReleaseGate": "GitHub Actions exact release SHA: CLI CI + CLI Strict Sandbox, all configured operating systems",
   "localChecks": [
@@ -81,6 +81,11 @@
     {
       "scope": "CLI and child workspace lock graph exact dependency alignment",
       "passed": true
+    },
+    {
+      "scope": "Workflow contracts aligned with existing exact-source scoped-documentation gates; workflow files unchanged",
+      "files": 2,
+      "passed": 30
     }
   ],
   "childRegistryReadback": "../release116-public/child-registry-readback.json",
