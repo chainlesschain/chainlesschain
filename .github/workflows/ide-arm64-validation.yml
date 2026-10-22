@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
     paths:
+      - ".github/workflows/_scoped-docs-check.yml"
+      - "scripts/ci/scoped-docs-check.mjs"
       - ".github/workflows/ide-arm64-validation.yml"
       - "packages/vscode-extension/**"
       - "packages/jetbrains-plugin/**"
@@ -12,6 +14,8 @@ on:
       - "tests/fixtures/ide-roadmap/**"
   pull_request:
     paths:
+      - ".github/workflows/_scoped-docs-check.yml"
+      - "scripts/ci/scoped-docs-check.mjs"
       - ".github/workflows/ide-arm64-validation.yml"
       - "packages/vscode-extension/**"
       - "packages/jetbrains-plugin/**"
@@ -37,7 +41,17 @@ env:
   IDE_ARM64_RELEASE_COMMIT: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
 
 jobs:
+  docs-scope:
+    name: Scoped documentation check
+    uses: ./.github/workflows/_scoped-docs-check.yml
+    permissions:
+      contents: read
+    with:
+      target_sha: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+
   vscode-package:
+    needs: [docs-scope]
+    if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
     name: VS Code architecture-neutral candidate
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -81,8 +95,9 @@ jobs:
           retention-days: 90
 
   vscode-arm64-host:
+    needs: [docs-scope, vscode-package]
+    if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
     name: VS Code ARM64 (${{ matrix.slug }})
-    needs: vscode-package
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 80
     env:
@@ -184,6 +199,8 @@ jobs:
           retention-days: 90
 
   jetbrains-arm64-host:
+    needs: [docs-scope]
+    if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
     name: JetBrains ARM64 (${{ matrix.slug }}, ${{ matrix.ide_version }})
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 130
@@ -459,11 +476,11 @@ jobs:
           retention-days: 90
 
   aggregate:
+    needs: [docs-scope, vscode-arm64-host, jetbrains-arm64-host]
+    if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' && (always() && !cancelled()) }}
     name: Aggregate 11-cell IDE ARM64 evidence
     # Preserve fail-closed aggregation for upstream failures, but do not turn
     # an explicit workflow cancellation into a second, misleading failure.
-    if: ${{ always() && !cancelled() }}
-    needs: [vscode-arm64-host, jetbrains-arm64-host]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

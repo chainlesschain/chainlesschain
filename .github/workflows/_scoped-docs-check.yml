@@ -1,0 +1,42 @@
+name: Scoped documentation validation
+
+on:
+  workflow_call:
+    inputs:
+      target_sha:
+        required: true
+        type: string
+    outputs:
+      docs_only:
+        value: ${{ jobs.validate.outputs.docs_only }}
+      docs_validated:
+        value: ${{ jobs.validate.outputs.docs_validated }}
+      target_sha:
+        value: ${{ jobs.validate.outputs.target_sha }}
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Detect and validate scoped documentation
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      docs_only: ${{ steps.scope.outputs.docs_only }}
+      docs_validated: ${{ steps.scope.outputs.docs_validated }}
+      target_sha: ${{ steps.scope.outputs.target_sha }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.target_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+      - name: Classify complete diff and validate allowed documentation
+        id: scope
+        env:
+          DOCS_TARGET_SHA: ${{ inputs.target_sha }}
+        run: node scripts/ci/scoped-docs-check.mjs

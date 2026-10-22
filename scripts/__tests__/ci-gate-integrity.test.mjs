@@ -2080,6 +2080,65 @@ test("global CLI install smoke verifies the exact three-OS installed runtime", (
   );
 });
 
+test("required documentation decisions reject missing, failed and wrong-source checks", async () => {
+  const target = "a".repeat(40);
+  for (const name of [
+    "cli-ci.yml",
+    "code-quality.yml",
+    "test-automation-full.yml",
+    "test.yml",
+  ]) {
+    const workflow = fs.readFileSync(
+      path.join(repoRoot, ".github", "workflows", name),
+      "utf8",
+    );
+    const script = extractYamlScript(
+      workflow,
+      "name: Enforce exact-source documentation decision",
+    );
+    const run = new Function(
+      "process",
+      "core",
+      `return (async () => { ${script} })();`,
+    );
+    const summary = {
+      addHeading() {
+        return this;
+      },
+      addRaw() {
+        return this;
+      },
+      async write() {},
+    };
+    const valid = {
+      DOCS_RESULT: "success",
+      DOCS_ONLY: "true",
+      DOCS_VALIDATED: "true",
+      DOCS_TARGET: target,
+      EXPECTED_TARGET: target,
+    };
+    await run({ env: valid }, { summary });
+    await run(
+      { env: { ...valid, DOCS_ONLY: "false", DOCS_VALIDATED: "false" } },
+      { summary },
+    );
+    for (const invalid of [
+      {},
+      { ...valid, DOCS_RESULT: "failure" },
+      { ...valid, DOCS_RESULT: "skipped" },
+      { ...valid, DOCS_TARGET: "b".repeat(40) },
+      { ...valid, DOCS_ONLY: "" },
+      { ...valid, DOCS_VALIDATED: "false" },
+    ]) {
+      await assert.rejects(
+        run({ env: invalid }, { summary }),
+        /Missing, failed or wrong-source/,
+        name,
+      );
+    }
+  }
+});
+
 test("workflow uses step outcomes and a final non-zero verdict", () => {
   const workflow = fs.readFileSync(
     path.join(repoRoot, ".github", "workflows", "test-automation-full.yml"),
@@ -2094,11 +2153,11 @@ test("workflow uses step outcomes and a final non-zero verdict", () => {
   );
   assert.match(
     workflow,
-    /name: Install Chromium with system dependencies \(Linux\)\s+if: runner\.os == 'Linux'\s+working-directory: \.\/desktop-app-vue\s+run: npm exec -- playwright install --with-deps chromium/,
+    /name: Install Chromium with system dependencies \(Linux\)\s+if: \$\{\{ needs\.docs-scope\.result == 'success' && needs\.docs-scope\.outputs\.docs_only == 'false' && \(runner\.os == 'Linux'\) \}\}\s+working-directory: \.\/desktop-app-vue\s+run: npm exec -- playwright install --with-deps chromium/,
   );
   assert.match(
     workflow,
-    /name: Install Chromium \(Windows\)\s+if: runner\.os == 'Windows'\s+working-directory: \.\/desktop-app-vue\s+run: npm exec -- playwright install chromium/,
+    /name: Install Chromium \(Windows\)\s+if: \$\{\{ needs\.docs-scope\.result == 'success' && needs\.docs-scope\.outputs\.docs_only == 'false' && \(runner\.os == 'Windows'\) \}\}\s+working-directory: \.\/desktop-app-vue\s+run: npm exec -- playwright install chromium/,
   );
   assert.ok(
     workflow.indexOf("name: Install Chromium (Windows)") <
@@ -2121,7 +2180,7 @@ test("workflow uses step outcomes and a final non-zero verdict", () => {
   assert.match(workflow, /test-results\/auto-fix-report\.json/);
   assert.match(
     workflow,
-    /Verify CI gate integrity contracts\s+run: >-\s+node --test\s+scripts\/__tests__\/ci-gate-integrity\.test\.mjs\s+scripts\/__tests__\/detect-publishable-packages\.test\.mjs/,
+    /Verify CI gate integrity contracts\s+if: \$\{\{ needs\.docs-scope\.result == 'success' && needs\.docs-scope\.outputs\.docs_only == 'false' \}\}\s+run: >-\s+node --test\s+scripts\/__tests__\/ci-gate-integrity\.test\.mjs\s+scripts\/__tests__\/detect-publishable-packages\.test\.mjs/,
   );
   assert.match(
     workflow,
@@ -2129,15 +2188,15 @@ test("workflow uses step outcomes and a final non-zero verdict", () => {
   );
   assert.match(
     workflow,
-    /id: failure-diagnostics\s+if: steps\.primary-tests\.outcome == 'failure'[\s\S]*?continue-on-error: true/,
+    /name: Collect failure diagnostics \(non-mutating\)\s+if: \$\{\{ needs\.docs-scope\.result == 'success' && needs\.docs-scope\.outputs\.docs_only == 'false' && \(steps\.primary-tests\.outcome == 'failure'\) \}\}\s+id: failure-diagnostics[\s\S]*?continue-on-error: true/,
   );
   assert.match(
     workflow,
-    /id: retry-tests\s+if: steps\.primary-tests\.outcome == 'failure'[\s\S]*?continue-on-error: true/,
+    /name: Re-run tests for failure diagnosis\s+if: \$\{\{ needs\.docs-scope\.result == 'success' && needs\.docs-scope\.outputs\.docs_only == 'false' && \(steps\.primary-tests\.outcome == 'failure'\) \}\}\s+id: retry-tests[\s\S]*?continue-on-error: true/,
   );
   assert.match(
     workflow,
-    /name: Enforce comprehensive test result\s+if: always\(\)/,
+    /name: Enforce comprehensive test result\s+if: \$\{\{ needs\.docs-scope\.result == 'success' && needs\.docs-scope\.outputs\.docs_only == 'false' && \(always\(\)\) \}\}/,
   );
   assert.match(
     workflow,

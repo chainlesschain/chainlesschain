@@ -11,7 +11,17 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  docs-scope:
+    name: Scoped documentation check
+    uses: ./.github/workflows/_scoped-docs-check.yml
+    permissions:
+      contents: read
+    with:
+      target_sha: ${{ github.event.pull_request.head.sha || github.sha }}
+
   backend-model-egress:
+    needs: [docs-scope]
+    if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
     name: Backend model-egress and real startup regressions
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -66,6 +76,8 @@ jobs:
 
   # 快速单元测试（排除不稳定测试）
   unit-tests:
+    needs: [docs-scope]
+    if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
     name: Unit Tests
     runs-on: ${{ matrix.os }}
     env:
@@ -211,6 +223,8 @@ jobs:
 
   # 代码质量检查
   lint:
+    needs: [docs-scope]
+    if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
     name: Code Quality
     runs-on: ubuntu-latest
     timeout-minutes: 8
@@ -244,6 +258,8 @@ jobs:
 
   # 构建检查
   build:
+    needs: [docs-scope]
+    if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
     name: Build Check
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
@@ -289,6 +305,8 @@ jobs:
 
   # CLI 全局安装冒烟（验证三系统 postinstall 和实际安装后的治理运行时）
   cli-install-smoke:
+    needs: [docs-scope]
+    if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
     name: CLI Global Install Smoke
     runs-on: ${{ matrix.os }}
     # Windows global installs can spend several minutes resolving native
@@ -363,6 +381,8 @@ jobs:
 
   # 数据库测试（仅 Linux，需要 SQLite）
   database-tests:
+    needs: [docs-scope]
+    if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
     name: Database Tests
     runs-on: ubuntu-latest
     timeout-minutes: 8
@@ -396,6 +416,8 @@ jobs:
   # ——否则 vitest.config.js 的探针会判定 native 不可用而静默 skip 15 个 vault
   # 测试，job 假绿。guard step 再显式断言 native 能加载，杜绝假绿。
   pdh-tests:
+    needs: [docs-scope]
+    if: ${{ always() && !cancelled() }}
     name: PDH Data Hub Tests
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
@@ -406,15 +428,41 @@ jobs:
         os: [ubuntu-latest, windows-latest]
 
     steps:
+      - name: Enforce exact-source documentation decision
+        if: always()
+        uses: actions/github-script@v8
+        env:
+          DOCS_RESULT: ${{ needs.docs-scope.result }}
+          DOCS_ONLY: ${{ needs.docs-scope.outputs.docs_only }}
+          DOCS_VALIDATED: ${{ needs.docs-scope.outputs.docs_validated }}
+          DOCS_TARGET: ${{ needs.docs-scope.outputs.target_sha }}
+          EXPECTED_TARGET: ${{ github.event.pull_request.head.sha || github.sha }}
+        with:
+          script: |
+            const e = process.env;
+            if (e.DOCS_RESULT !== 'success' || e.DOCS_TARGET !== e.EXPECTED_TARGET ||
+                !['true', 'false'].includes(e.DOCS_ONLY) ||
+                (e.DOCS_ONLY === 'true' && e.DOCS_VALIDATED !== 'true')) {
+              throw new Error('Missing, failed or wrong-source documentation decision');
+            }
+            await core.summary.addHeading('Required check decision').addRaw(
+              e.DOCS_ONLY === 'true'
+                ? `Validated scoped documentation and locked Prettier at ${e.DOCS_TARGET}; code tests are not applicable and were not run. This is not a copied prior test result.`
+                : `Full code checks required at ${e.DOCS_TARGET}; original job steps follow.`
+            ).write();
+
       - name: Checkout code
+        if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
         uses: actions/checkout@v5
 
       - name: Setup Node.js
+        if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
         uses: actions/setup-node@v5
         with:
           node-version: "22.x"
 
       - name: Run PDH suite in an isolated install (host-ABI native drivers)
+        if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -473,6 +521,8 @@ jobs:
 
   # 完整测试（可选，手动触发或定时运行）
   full-tests:
+    needs: [docs-scope]
+    if: ${{ needs.docs-scope.result == 'success' && needs.docs-scope.outputs.docs_only == 'false' && (github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')) }}
     name: Full Test Suite
     runs-on: ubuntu-latest
     # 2026-05-28: bump 30 → 60 min. Run all unit tests takes ~17 min and
@@ -481,7 +531,6 @@ jobs:
     # both cancelled at the limit). The coverage step is continue-on-error
     # so it doesn't fail the job, but a JOB-level timeout still cancels it.
     timeout-minutes: 60
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
 
     steps:
       - name: Checkout code
