@@ -20,7 +20,7 @@ cc doctor
 
 The preceding CLI **0.166.115** was published through [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/39791145970). It fixes undefined tool-evidence fields; the code-literal ingress regression is addressed in .117. Candidate .116 was not published after source/public child-package drift was detected. This release aligns Session Core **0.3.22** and Personal Data Hub **0.4.66** before CLI publication.
 
-Open VSX **0.37.159** has no verified public download yet; JetBrains **0.4.176** is not published. Both recommend CLI **0.166.117**. The unpublished IDE .158/.175 candidates were retired after preflight found a stale Doctor recommendation test; their immutable tags are retained. The fully verified historical IDE pairing and release limits below are retained.
+Open VSX **0.37.159** is public and its download verified; JetBrains **0.4.176** was uploaded and awaits Marketplace approval; its public download is not yet verified. Both recommend CLI **0.166.117**. The unpublished IDE .158/.175 candidates were retired after preflight found a stale Doctor recommendation test; their immutable tags are retained. The fully verified historical IDE pairing and release limits below are retained.
 
 ### Intermediate .114 release (2026-10-22)
 

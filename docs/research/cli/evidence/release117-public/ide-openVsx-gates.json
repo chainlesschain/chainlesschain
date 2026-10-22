@@ -1,0 +1,34 @@
+{
+  "schema": "chainlesschain.release117-ide-gates/v1",
+  "observedAt": "2026-10-22T21:26:55.099Z",
+  "sourceSha": "ab31677d6691b4fdd5390e16fae60de5a5895cf1",
+  "channels": [
+    {
+      "channel": "openVsx",
+      "runId": 39852148558,
+      "tag": "ide-vscode-v0.37.159",
+      "sourceSha": "ab31677d6691b4fdd5390e16fae60de5a5895cf1",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39852148558",
+      "requiredSuccessCount": 11,
+      "requiredSuccessfulJobs": [
+        "Public IDE capability manifest (drift gate)",
+        "Browser evidence (linux)",
+        "Browser evidence (windows)",
+        "Browser evidence (macos)",
+        "Browser evidence (three-OS required aggregate)",
+        "VS Code extension (immutable candidate)",
+        "VS Code extension (Windows host gate)",
+        "VS Code extension (macOS host gate)",
+        "VS Code Remote-SSH container (scoped trusted cell)",
+        "IDE roadmap evidence (trusted scoped aggregate)",
+        "VS Code extension (Linux host gate + publish)"
+      ],
+      "skippedOppositeChannelJobs": [
+        "JetBrains real host (${{ matrix.os }}, ${{ matrix.ide.version }})",
+        "JetBrains plugin (build + publish)",
+        "JetBrains Marketplace (post-publish verification)"
+      ],
+      "workflowEvidence": "ide-openVsx-workflow.json"
+    }
+  ]
+}

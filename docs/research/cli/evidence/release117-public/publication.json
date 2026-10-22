@@ -1,7 +1,7 @@
 {
   "schema": "chainlesschain.release117-publication/v1",
-  "observedAt": "2026-10-22T20:46:06.092Z",
-  "status": "CLI_PUBLIC_IDE_PREPARING",
+  "observedAt": "2026-10-22T21:49:33.834Z",
+  "status": "CLI_OPEN_VSX_PUBLIC_JETBRAINS_PENDING_REVIEW",
   "repository": "chainlesschain/chainlesschain",
   "channels": {
     "cli": {
@@ -20,19 +20,33 @@
     },
     "openVsx": {
       "version": "0.37.159",
-      "status": "preparing",
+      "status": "public",
       "recommendedCliVersion": "0.166.117",
-      "sourceSha": null,
-      "runId": null,
-      "tag": "ide-vscode-v0.37.159"
+      "sourceSha": "ab31677d6691b4fdd5390e16fae60de5a5895cf1",
+      "runId": 39852148558,
+      "tag": "ide-vscode-v0.37.159",
+      "receipt": "ide-openVsx-public-readback.json",
+      "gates": "ide-gates.json",
+      "publicArchivesVerified": true,
+      "immutableCandidateMatch": true,
+      "candidateManifest": "ide-vscode-build-manifest.json",
+      "candidateIdentity": "ide-vscode-candidate-identity.json",
+      "sha256": "b771cd6b9ae911a0a62283e4c633b91122da52d252903d4afaa4efb7952abffb"
     },
     "jetbrains": {
       "version": "0.4.176",
-      "status": "preparing",
+      "status": "pending-review",
       "recommendedCliVersion": "0.166.117",
-      "sourceSha": null,
-      "runId": null,
-      "tag": "ide-jetbrains-v0.4.176"
+      "sourceSha": "ab31677d6691b4fdd5390e16fae60de5a5895cf1",
+      "runId": 39852149118,
+      "tag": "ide-jetbrains-v0.4.176",
+      "receipt": "ide-jetbrains-marketplace-readback.json",
+      "candidateVerification": "ide-jetbrains-candidate-verification.json",
+      "independentCandidateIdentityVerified": false,
+      "gates": "ide-gates.json",
+      "uploadVerified": true,
+      "candidateSha256": null,
+      "publicArchivesVerified": false
     }
   },
   "childPackages": {
@@ -67,6 +81,8 @@
     "nativeProduct": "v5.0.3.140",
     "localOllamaLiveValidation": "USER_WILL_TEST_AFTER_RELEASE"
   },
-  "evidenceScope": "Exact-source GitHub Actions CLI CI and Strict Sandbox release gates; GitHub Actions OIDC child-before-CLI publication; all 13 child archives and the public CLI downloaded with npm SRI and embedded-identity checks; public CLI bytes equal the immutable Actions archive; independent ignore-scripts registry-only install, executable capability and SQL.js binding smoke, public dependency locks and npm signature/attestation audit. IDE publication remains pending. No new live model-task acceptance or native admission is claimed.",
-  "supplementaryIdeJunitReview": "ide-junit-review.json"
+  "evidenceScope": "Exact-source GitHub Actions CLI CI and Strict Sandbox matrices; GitHub Actions OIDC child-before-CLI publication; all 13 public child archives and CLI integrity, identity and provenance verification; independent registry-only CLI install, capability and SQL.js binding smoke. Complete exact-source IDE tag host matrices and build gates. The public Open VSX archive matches the immutable candidate. JetBrains Marketplace upload succeeded; manual approval/listing is pending and no public ZIP download is claimed. No new live model-task acceptance was run.",
+  "supplementaryIdeJunitReview": "ide-junit-review.json",
+  "ideGates": "ide-gates.json",
+  "mainIdePreflight": "ide-main-preflight.json"
 }

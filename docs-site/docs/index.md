@@ -22,7 +22,7 @@ hero:
 features:
   - icon: ⚠️
     title: Agent 输入、工具恢复与图片预算修复
-    details: "CLI 0.166.117 已通过 OIDC 发布并完成公共回读；Session Core 0.3.22 与 Personal Data Hub 0.4.66 已先行发布。修复代码字面量误判、工具轮次结算与图片预算。Open VSX 0.37.159 尚未验证公开下载；JetBrains 0.4.176 尚未发布。两者推荐 CLI 0.166.117。本次未新增真实模型任务验收，历史限制保留。"
+    details: "CLI 0.166.117 已通过 OIDC 发布并完成公共回读；Session Core 0.3.22 与 Personal Data Hub 0.4.66 已先行发布。修复代码字面量误判、工具轮次结算与图片预算。Open VSX 0.37.159 已公开并验证下载；JetBrains 0.4.176 已上传，等待 Marketplace 审核，尚未验证公开下载。两者推荐 CLI 0.166.117。本次未新增真实模型任务验收，历史限制保留。"
     link: /chainlesschain/agent-platform-release
   - icon: 🔗
     title: CLI / IDE 与桌面目标草稿

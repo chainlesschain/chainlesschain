@@ -1,0 +1,30 @@
+{
+  "schema": "chainlesschain.release117-jetbrains-candidate-verification/v1",
+  "observedAt": "2026-10-22T21:48:40.474Z",
+  "sourceSha": "ab31677d6691b4fdd5390e16fae60de5a5895cf1",
+  "runId": 39852149118,
+  "version": "0.4.176",
+  "recommendedCliVersion": "0.166.117",
+  "identitySource": "exact-source GitHub Actions metadata checks and compiled JDK 21 tests",
+  "independentArchiveIdentityVerified": false,
+  "sha256": null,
+  "artifact": {
+    "id": 12461710129,
+    "name": "chainlesschain-ide-jetbrains-1",
+    "bytes": 1550096,
+    "digest": "sha256:0c1b1c93a1a70766428912f3ae93f65d9f76bcf38d38c237cc1dd668adbbbcaf",
+    "workflowRun": {
+      "id": 39852149118,
+      "repository_id": 1107348698,
+      "head_repository_id": 1107348698,
+      "head_branch": "ide-jetbrains-v0.4.176",
+      "head_sha": "ab31677d6691b4fdd5390e16fae60de5a5895cf1"
+    }
+  },
+  "artifactDigestScope": "GitHub Actions artifact container, not the inner distributable plugin ZIP",
+  "independentDownload": {
+    "status": "unavailable",
+    "httpStatus": 401,
+    "cause": "Local GitHub OAuth credential expired; confirmed by gh auth status. Existing GitHub SSH identity remains usable for repository push."
+  }
+}

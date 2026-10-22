@@ -9,9 +9,19 @@ diffs inside IntelliJ-platform IDEs (IDEA, PyCharm, WebStorm, …).
 
 Plugin **0.4.176** recommends CLI **`0.166.117`** and pairs with VS Code **0.37.159**. The paired CLI repairs source and command evidence projection, complete bounded JSON tool previews, cumulative evidence budgets, and separate image and provider token accounting. IDE publication follows the paired CLI and dependency graph verification, exact-source release gates, and public artifact readback.
 
-The .173 Marketplace upload succeeded before its workflow was cancelled after discovering the paired CLI .114 Agent error. Public approval and ZIP download have not been verified; the last completely verified pairing remains .172 / CLI .112 below.
+The .173 Marketplace upload succeeded before its workflow was cancelled after discovering the paired CLI .114 Agent error. Public approval and ZIP download have not been verified; the historical .172 / CLI .112 pairing is retained below.
 
 ## Current release
+
+<!-- release176-status -->
+
+JetBrains **0.4.176** was uploaded successfully and is awaiting Marketplace approval/listing; its public ZIP download has not been verified. It recommends public CLI `0.166.117`. The immutable `ide-jetbrains-v0.4.176` tag selects source `ab31677d6691b4fdd5390e16fae60de5a5895cf1`; its [release workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/39852149118) passed both IDE versions across Linux, Windows and macOS, the JDK 21 unit/build/compatibility gates and Marketplace upload. The plugin version and CLI recommendation passed the exact-source metadata and JDK 21 checks. [Publication evidence](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release117-public/publication.json).
+
+Open VSX **0.37.159** is publicly downloadable and recommends the same CLI. Install the paired CLI with `npm i -g chainlesschain@0.166.117 --registry https://registry.npmjs.org`. Restart the IDE and run Doctor after upgrading.
+
+No new live model-task acceptance was run. Historical acceptance remains **31/45** across versions, with **14** unaccepted; **NOT_PAID_READY**, **NOT_ADMITTED** and automatic promotion **HOLD** remain. Microsoft Marketplace remains unpublished. Native product **v5.0.3.140** is a separate release.
+
+## Previous verified release (.172 / .155 / .112)
 
 <!-- release172-status -->
 
@@ -67,7 +77,7 @@ the _same_ lockfile and speaks the _same_ MCP protocol as the VS Code
 extension; only `ide` differs (`"jetbrains"`). Feature controls still require
 the corresponding exact-gated CLI command, as documented below.
 
-Install the paired CLI with `npm i -g chainlesschain@0.166.112 --registry https://registry.npmjs.org`.
+Install the paired CLI with `npm i -g chainlesschain@0.166.117 --registry https://registry.npmjs.org`.
 See the [upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-20.html).
 
 ## Release compatibility

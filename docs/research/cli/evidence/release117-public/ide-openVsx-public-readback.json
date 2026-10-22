@@ -1,0 +1,16 @@
+{
+  "schema": "chainlesschain.release117-open-vsx-readback/v1",
+  "observedAt": "2026-10-22T21:26:41.260Z",
+  "sourceSha": "ab31677d6691b4fdd5390e16fae60de5a5895cf1",
+  "runId": 39852148558,
+  "channel": "open-vsx",
+  "endpoint": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide",
+  "status": "ready",
+  "version": "0.37.159",
+  "latest": "0.37.159",
+  "downloadable": true,
+  "listed": true,
+  "registryArchiveSha256": "b771cd6b9ae911a0a62283e4c633b91122da52d252903d4afaa4efb7952abffb",
+  "localArchiveSha256": "b771cd6b9ae911a0a62283e4c633b91122da52d252903d4afaa4efb7952abffb",
+  "contentSha256": "dd00ab6a1b4dc7e75a04feb6fc08013c2bf3f1348f2a56aef67d32548f8176da"
+}

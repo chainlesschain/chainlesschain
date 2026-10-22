@@ -1,0 +1,9 @@
+{
+  "schema": "chainlesschain.release117-ide-artifact-identity/v1",
+  "observedAt": "2026-10-22T20:55:09.448Z",
+  "channel": "openVsx",
+  "bytes": 733771,
+  "sha256": "b771cd6b9ae911a0a62283e4c633b91122da52d252903d4afaa4efb7952abffb",
+  "version": "0.37.159",
+  "recommendedCliVersion": "0.166.117"
+}

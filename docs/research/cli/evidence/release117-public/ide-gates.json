@@ -1,0 +1,66 @@
+{
+  "schema": "chainlesschain.release117-ide-gates/v1",
+  "observedAt": "2026-10-22T21:49:20.117Z",
+  "sourceSha": "ab31677d6691b4fdd5390e16fae60de5a5895cf1",
+  "channels": [
+    {
+      "channel": "openVsx",
+      "runId": 39852148558,
+      "tag": "ide-vscode-v0.37.159",
+      "sourceSha": "ab31677d6691b4fdd5390e16fae60de5a5895cf1",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39852148558",
+      "requiredSuccessCount": 11,
+      "requiredSuccessfulJobs": [
+        "Public IDE capability manifest (drift gate)",
+        "Browser evidence (linux)",
+        "Browser evidence (windows)",
+        "Browser evidence (macos)",
+        "Browser evidence (three-OS required aggregate)",
+        "VS Code extension (immutable candidate)",
+        "VS Code extension (Windows host gate)",
+        "VS Code extension (macOS host gate)",
+        "VS Code Remote-SSH container (scoped trusted cell)",
+        "IDE roadmap evidence (trusted scoped aggregate)",
+        "VS Code extension (Linux host gate + publish)"
+      ],
+      "skippedOppositeChannelJobs": [
+        "JetBrains real host (${{ matrix.os }}, ${{ matrix.ide.version }})",
+        "JetBrains plugin (build + publish)",
+        "JetBrains Marketplace (post-publish verification)"
+      ],
+      "workflowEvidence": "ide-openVsx-workflow.json"
+    },
+    {
+      "channel": "jetbrains",
+      "runId": 39852149118,
+      "tag": "ide-jetbrains-v0.4.176",
+      "sourceSha": "ab31677d6691b4fdd5390e16fae60de5a5895cf1",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39852149118",
+      "requiredSuccessCount": 13,
+      "requiredSuccessfulJobs": [
+        "Public IDE capability manifest (drift gate)",
+        "Browser evidence (linux)",
+        "Browser evidence (windows)",
+        "Browser evidence (macos)",
+        "Browser evidence (three-OS required aggregate)",
+        "JetBrains real host (windows-latest, 2024.2)",
+        "JetBrains real host (windows-latest, 2025.2)",
+        "JetBrains real host (ubuntu-latest, 2024.2)",
+        "JetBrains real host (ubuntu-latest, 2025.2)",
+        "JetBrains real host (macos-latest, 2024.2)",
+        "JetBrains real host (macos-latest, 2025.2)",
+        "JetBrains plugin (build + publish)",
+        "JetBrains Marketplace (post-publish verification)"
+      ],
+      "skippedOppositeChannelJobs": [
+        "VS Code Remote-SSH container (scoped trusted cell)",
+        "VS Code extension (immutable candidate)",
+        "VS Code extension (macOS host gate)",
+        "IDE roadmap evidence (trusted scoped aggregate)",
+        "VS Code extension (Windows host gate)",
+        "VS Code extension (Linux host gate + publish)"
+      ],
+      "workflowEvidence": "ide-jetbrains-workflow.json"
+    }
+  ]
+}

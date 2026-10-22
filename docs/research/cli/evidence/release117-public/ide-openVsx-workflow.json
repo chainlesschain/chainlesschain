@@ -1,0 +1,1428 @@
+{
+  "conclusion": "success",
+  "databaseId": 39852148558,
+  "event": "push",
+  "headBranch": "ide-vscode-v0.37.159",
+  "headSha": "ab31677d6691b4fdd5390e16fae60de5a5895cf1",
+  "jobs": [
+    {
+      "completedAt": "2026-10-22T20:49:52Z",
+      "conclusion": "success",
+      "databaseId": 120080869234,
+      "name": "Public IDE capability manifest (drift gate)",
+      "startedAt": "2026-10-22T20:49:30Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-10-22T20:49:31Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-10-22T20:49:30Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T20:49:42Z",
+          "conclusion": "success",
+          "name": "Run actions/checkout@v5",
+          "number": 2,
+          "startedAt": "2026-10-22T20:49:31Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T20:49:49Z",
+          "conclusion": "success",
+          "name": "Run actions/setup-node@v5",
+          "number": 3,
+          "startedAt": "2026-10-22T20:49:42Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T20:49:49Z",
+          "conclusion": "success",
+          "name": "Verify JetBrains release metadata before host matrices",
+          "number": 4,
+          "startedAt": "2026-10-22T20:49:49Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T20:49:49Z",
+          "conclusion": "success",
+          "name": "Verify IDE roadmap fixture contract",
+          "number": 5,
+          "startedAt": "2026-10-22T20:49:49Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T20:49:49Z",
+          "conclusion": "success",
+          "name": "Verify commands, actions, Doctor and CLI floor",
+          "number": 6,
+          "startedAt": "2026-10-22T20:49:49Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T20:49:49Z",
+          "conclusion": "success",
+          "name": "Test IDE publication prerequisite verification",
+          "number": 7,
+          "startedAt": "2026-10-22T20:49:49Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T20:49:50Z",
+          "conclusion": "success",
+          "name": "Post Run actions/setup-node@v5",
+          "number": 13,
+          "startedAt": "2026-10-22T20:49:50Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T20:49:50Z",
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@v5",
+          "number": 14,
+          "startedAt": "2026-10-22T20:49:50Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T20:49:50Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 15,
+          "startedAt": "2026-10-22T20:49:50Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39852148558/job/120080869234"
+    },
+    {
+      "completedAt": "2026-10-22T20:50:38Z",
+      "conclusion": "success",
+      "databaseId": 120081075566,
+      "name": "VS Code extension (immutable candidate)",
+      "startedAt": "2026-10-22T20:50:02Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-10-22T20:50:03Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-10-22T20:50:03Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T20:50:13Z",
+          "conclusion": "success",
+          "name": "Run actions/checkout@v5",
+          "number": 2,
+          "startedAt": "2026-10-22T20:50:03Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T20:50:13Z",
+          "conclusion": "skipped",
+          "name": "Reject unsafe VS Code Marketplace backfill",
+          "number": 3,
+          "startedAt": "2026-10-22T20:50:13Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T20:50:18Z",
+          "conclusion": "success",
+          "name": "Run actions/setup-node@v5",
+          "number": 4,
+          "startedAt": "2026-10-22T20:50:13Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T20:50:18Z",
+          "conclusion": "success",
+          "name": "Validate VS Code release tag version",
+          "number": 5,
+          "startedAt": "2026-10-22T20:50:18Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T20:50:21Z",
+          "conclusion": "success",
+          "name": "Unit tests",
+          "number": 6,
+          "startedAt": "2026-10-22T20:50:18Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T20:50:22Z",
+          "conclusion": "success",
+          "name": "Verify Marketplace Overview coherence",
+          "number": 7,
+          "startedAt": "2026-10-22T20:50:21Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T20:50:22Z",
+          "conclusion": "success",
+          "name": "Verify vendored Agent SDK freshness",
+          "number": 8,
+          "startedAt": "2026-10-22T20:50:22Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T20:50:22Z",
+          "conclusion": "success",
+          "name": "Marketplace verifier self-test",
+          "number": 9,
+          "startedAt": "2026-10-22T20:50:22Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T20:50:35Z",
+          "conclusion": "success",
+          "name": "Package .vsix candidate",
+          "number": 10,
+          "startedAt": "2026-10-22T20:50:22Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T20:50:35Z",
+          "conclusion": "success",
+          "name": "Verify .vsix metadata",
+          "number": 11,
+          "startedAt": "2026-10-22T20:50:35Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T20:50:35Z",
+          "conclusion": "success",
+          "name": "Create immutable candidate manifest",
+          "number": 12,
+          "startedAt": "2026-10-22T20:50:35Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T20:50:36Z",
+          "conclusion": "success",
+          "name": "Upload immutable .vsix candidate",
+          "number": 13,
+          "startedAt": "2026-10-22T20:50:35Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T20:50:36Z",
+          "conclusion": "success",
+          "name": "Post Run actions/setup-node@v5",
+          "number": 25,
+          "startedAt": "2026-10-22T20:50:36Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T20:50:37Z",
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@v5",
+          "number": 26,
+          "startedAt": "2026-10-22T20:50:36Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T20:50:37Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 27,
+          "startedAt": "2026-10-22T20:50:37Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39852148558/job/120081075566"
+    },
+    {
+      "completedAt": "2026-10-22T21:02:27Z",
+      "conclusion": "success",
+      "databaseId": 120081075703,
+      "name": "Browser evidence (linux)",
+      "startedAt": "2026-10-22T21:00:36Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-10-22T21:00:37Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-10-22T21:00:36Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:01:10Z",
+          "conclusion": "success",
+          "name": "Run actions/checkout@v5",
+          "number": 2,
+          "startedAt": "2026-10-22T21:00:37Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:01:10Z",
+          "conclusion": "success",
+          "name": "Fetch executed browser workflow authority",
+          "number": 3,
+          "startedAt": "2026-10-22T21:01:10Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:01:21Z",
+          "conclusion": "success",
+          "name": "Run actions/setup-node@v5",
+          "number": 4,
+          "startedAt": "2026-10-22T21:01:10Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:01:29Z",
+          "conclusion": "success",
+          "name": "Install browser evidence dependencies",
+          "number": 5,
+          "startedAt": "2026-10-22T21:01:21Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:01:30Z",
+          "conclusion": "success",
+          "name": "Verify pinned Playwright driver",
+          "number": 6,
+          "startedAt": "2026-10-22T21:01:29Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:01:36Z",
+          "conclusion": "success",
+          "name": "Run browser evidence contract tests",
+          "number": 7,
+          "startedAt": "2026-10-22T21:01:30Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:02:00Z",
+          "conclusion": "success",
+          "name": "Install Chromium with target-side dependencies (Linux)",
+          "number": 8,
+          "startedAt": "2026-10-22T21:01:36Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:02:00Z",
+          "conclusion": "skipped",
+          "name": "Install Chromium (Windows/macOS)",
+          "number": 9,
+          "startedAt": "2026-10-22T21:02:00Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:02:01Z",
+          "conclusion": "success",
+          "name": "Validate actual image codecs and bounded animation workers",
+          "number": 10,
+          "startedAt": "2026-10-22T21:02:00Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:02:03Z",
+          "conclusion": "success",
+          "name": "Upload image codec and animation budget evidence",
+          "number": 11,
+          "startedAt": "2026-10-22T21:02:01Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:02:16Z",
+          "conclusion": "success",
+          "name": "Run Workbench browser and real CLI persistence journey",
+          "number": 12,
+          "startedAt": "2026-10-22T21:02:03Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:02:17Z",
+          "conclusion": "success",
+          "name": "Upload Workbench browser and CLI evidence",
+          "number": 13,
+          "startedAt": "2026-10-22T21:02:16Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:02:23Z",
+          "conclusion": "success",
+          "name": "Run real local two-origin browser evidence journey",
+          "number": 14,
+          "startedAt": "2026-10-22T21:02:17Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:02:25Z",
+          "conclusion": "success",
+          "name": "Upload exact-head browser evidence fragment",
+          "number": 15,
+          "startedAt": "2026-10-22T21:02:23Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:02:25Z",
+          "conclusion": "success",
+          "name": "Post Run actions/setup-node@v5",
+          "number": 29,
+          "startedAt": "2026-10-22T21:02:25Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:02:25Z",
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@v5",
+          "number": 30,
+          "startedAt": "2026-10-22T21:02:25Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:02:25Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 31,
+          "startedAt": "2026-10-22T21:02:25Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39852148558/job/120081075703"
+    },
+    {
+      "completedAt": "2026-10-22T21:07:43Z",
+      "conclusion": "success",
+      "databaseId": 120081075764,
+      "name": "Browser evidence (macos)",
+      "startedAt": "2026-10-22T21:04:59Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-10-22T21:05:00Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-10-22T21:04:59Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:06:12Z",
+          "conclusion": "success",
+          "name": "Run actions/checkout@v5",
+          "number": 2,
+          "startedAt": "2026-10-22T21:05:00Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:06:13Z",
+          "conclusion": "success",
+          "name": "Fetch executed browser workflow authority",
+          "number": 3,
+          "startedAt": "2026-10-22T21:06:12Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:06:25Z",
+          "conclusion": "success",
+          "name": "Run actions/setup-node@v5",
+          "number": 4,
+          "startedAt": "2026-10-22T21:06:13Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:06:36Z",
+          "conclusion": "success",
+          "name": "Install browser evidence dependencies",
+          "number": 5,
+          "startedAt": "2026-10-22T21:06:25Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:06:37Z",
+          "conclusion": "success",
+          "name": "Verify pinned Playwright driver",
+          "number": 6,
+          "startedAt": "2026-10-22T21:06:36Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:06:46Z",
+          "conclusion": "success",
+          "name": "Run browser evidence contract tests",
+          "number": 7,
+          "startedAt": "2026-10-22T21:06:37Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:06:46Z",
+          "conclusion": "skipped",
+          "name": "Install Chromium with target-side dependencies (Linux)",
+          "number": 8,
+          "startedAt": "2026-10-22T21:06:46Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:06:53Z",
+          "conclusion": "success",
+          "name": "Install Chromium (Windows/macOS)",
+          "number": 9,
+          "startedAt": "2026-10-22T21:06:46Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:06:54Z",
+          "conclusion": "success",
+          "name": "Validate actual image codecs and bounded animation workers",
+          "number": 10,
+          "startedAt": "2026-10-22T21:06:53Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:06:56Z",
+          "conclusion": "success",
+          "name": "Upload image codec and animation budget evidence",
+          "number": 11,
+          "startedAt": "2026-10-22T21:06:54Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:07:21Z",
+          "conclusion": "success",
+          "name": "Run Workbench browser and real CLI persistence journey",
+          "number": 12,
+          "startedAt": "2026-10-22T21:06:56Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:07:23Z",
+          "conclusion": "success",
+          "name": "Upload Workbench browser and CLI evidence",
+          "number": 13,
+          "startedAt": "2026-10-22T21:07:21Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:07:35Z",
+          "conclusion": "success",
+          "name": "Run real local two-origin browser evidence journey",
+          "number": 14,
+          "startedAt": "2026-10-22T21:07:23Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:07:37Z",
+          "conclusion": "success",
+          "name": "Upload exact-head browser evidence fragment",
+          "number": 15,
+          "startedAt": "2026-10-22T21:07:35Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:07:37Z",
+          "conclusion": "success",
+          "name": "Post Run actions/setup-node@v5",
+          "number": 29,
+          "startedAt": "2026-10-22T21:07:37Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:07:38Z",
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@v5",
+          "number": 30,
+          "startedAt": "2026-10-22T21:07:37Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:07:39Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 31,
+          "startedAt": "2026-10-22T21:07:38Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39852148558/job/120081075764"
+    },
+    {
+      "completedAt": "2026-10-22T21:03:46Z",
+      "conclusion": "success",
+      "databaseId": 120081075781,
+      "name": "Browser evidence (windows)",
+      "startedAt": "2026-10-22T21:00:07Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-10-22T21:00:12Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-10-22T21:00:08Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:01:03Z",
+          "conclusion": "success",
+          "name": "Run actions/checkout@v5",
+          "number": 2,
+          "startedAt": "2026-10-22T21:00:12Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:01:05Z",
+          "conclusion": "success",
+          "name": "Fetch executed browser workflow authority",
+          "number": 3,
+          "startedAt": "2026-10-22T21:01:03Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:01:17Z",
+          "conclusion": "success",
+          "name": "Run actions/setup-node@v5",
+          "number": 4,
+          "startedAt": "2026-10-22T21:01:05Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:01:36Z",
+          "conclusion": "success",
+          "name": "Install browser evidence dependencies",
+          "number": 5,
+          "startedAt": "2026-10-22T21:01:17Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:01:37Z",
+          "conclusion": "success",
+          "name": "Verify pinned Playwright driver",
+          "number": 6,
+          "startedAt": "2026-10-22T21:01:36Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:01:53Z",
+          "conclusion": "success",
+          "name": "Run browser evidence contract tests",
+          "number": 7,
+          "startedAt": "2026-10-22T21:01:37Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:01:53Z",
+          "conclusion": "skipped",
+          "name": "Install Chromium with target-side dependencies (Linux)",
+          "number": 8,
+          "startedAt": "2026-10-22T21:01:53Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:02:10Z",
+          "conclusion": "success",
+          "name": "Install Chromium (Windows/macOS)",
+          "number": 9,
+          "startedAt": "2026-10-22T21:01:53Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:02:11Z",
+          "conclusion": "success",
+          "name": "Validate actual image codecs and bounded animation workers",
+          "number": 10,
+          "startedAt": "2026-10-22T21:02:10Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:02:12Z",
+          "conclusion": "success",
+          "name": "Upload image codec and animation budget evidence",
+          "number": 11,
+          "startedAt": "2026-10-22T21:02:11Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:03:29Z",
+          "conclusion": "success",
+          "name": "Run Workbench browser and real CLI persistence journey",
+          "number": 12,
+          "startedAt": "2026-10-22T21:02:12Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:03:31Z",
+          "conclusion": "success",
+          "name": "Upload Workbench browser and CLI evidence",
+          "number": 13,
+          "startedAt": "2026-10-22T21:03:29Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:03:41Z",
+          "conclusion": "success",
+          "name": "Run real local two-origin browser evidence journey",
+          "number": 14,
+          "startedAt": "2026-10-22T21:03:31Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:03:42Z",
+          "conclusion": "success",
+          "name": "Upload exact-head browser evidence fragment",
+          "number": 15,
+          "startedAt": "2026-10-22T21:03:41Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:03:42Z",
+          "conclusion": "success",
+          "name": "Post Run actions/setup-node@v5",
+          "number": 29,
+          "startedAt": "2026-10-22T21:03:42Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:03:45Z",
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@v5",
+          "number": 30,
+          "startedAt": "2026-10-22T21:03:42Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:03:45Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 31,
+          "startedAt": "2026-10-22T21:03:45Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39852148558/job/120081075781"
+    },
+    {
+      "completedAt": "2026-10-22T20:49:53Z",
+      "conclusion": "skipped",
+      "databaseId": 120081078663,
+      "name": "JetBrains real host (${{ matrix.os }}, ${{ matrix.ide.version }})",
+      "startedAt": "2026-10-22T20:49:53Z",
+      "status": "completed",
+      "steps": [],
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39852148558/job/120081078663"
+    },
+    {
+      "completedAt": "2026-10-22T21:08:18Z",
+      "conclusion": "success",
+      "databaseId": 120081450282,
+      "name": "VS Code extension (Windows host gate)",
+      "startedAt": "2026-10-22T21:03:19Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-10-22T21:03:21Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-10-22T21:03:20Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:03:51Z",
+          "conclusion": "success",
+          "name": "Run actions/checkout@v5",
+          "number": 2,
+          "startedAt": "2026-10-22T21:03:21Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:04:01Z",
+          "conclusion": "success",
+          "name": "Run actions/setup-node@v5",
+          "number": 3,
+          "startedAt": "2026-10-22T21:03:51Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:04:02Z",
+          "conclusion": "success",
+          "name": "Download immutable .vsix candidate",
+          "number": 4,
+          "startedAt": "2026-10-22T21:04:01Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:04:03Z",
+          "conclusion": "success",
+          "name": "Verify immutable candidate manifest",
+          "number": 5,
+          "startedAt": "2026-10-22T21:04:02Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:04:07Z",
+          "conclusion": "success",
+          "name": "Install Extension Host test runtime",
+          "number": 6,
+          "startedAt": "2026-10-22T21:04:03Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:06:20Z",
+          "conclusion": "success",
+          "name": "Extension Host multi-root + multi-window journey (Windows stable)",
+          "number": 7,
+          "startedAt": "2026-10-22T21:04:07Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:08:12Z",
+          "conclusion": "success",
+          "name": "Extension Host multi-root + multi-window journey (Windows minimum 1.85.2)",
+          "number": 8,
+          "startedAt": "2026-10-22T21:06:20Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:08:14Z",
+          "conclusion": "success",
+          "name": "Upload Windows host journey evidence",
+          "number": 9,
+          "startedAt": "2026-10-22T21:08:12Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:08:14Z",
+          "conclusion": "success",
+          "name": "Post Run actions/setup-node@v5",
+          "number": 17,
+          "startedAt": "2026-10-22T21:08:14Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:08:16Z",
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@v5",
+          "number": 18,
+          "startedAt": "2026-10-22T21:08:14Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:08:16Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 19,
+          "startedAt": "2026-10-22T21:08:16Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39852148558/job/120081450282"
+    },
+    {
+      "completedAt": "2026-10-22T21:07:52Z",
+      "conclusion": "success",
+      "databaseId": 120081450461,
+      "name": "VS Code extension (macOS host gate)",
+      "startedAt": "2026-10-22T20:58:05Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-10-22T20:58:10Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-10-22T20:58:08Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T20:59:16Z",
+          "conclusion": "success",
+          "name": "Run actions/checkout@v5",
+          "number": 2,
+          "startedAt": "2026-10-22T20:58:10Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T20:59:41Z",
+          "conclusion": "success",
+          "name": "Run actions/setup-node@v5",
+          "number": 3,
+          "startedAt": "2026-10-22T20:59:16Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T20:59:43Z",
+          "conclusion": "success",
+          "name": "Download immutable .vsix candidate",
+          "number": 4,
+          "startedAt": "2026-10-22T20:59:41Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T20:59:43Z",
+          "conclusion": "success",
+          "name": "Verify immutable candidate manifest",
+          "number": 5,
+          "startedAt": "2026-10-22T20:59:43Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T20:59:46Z",
+          "conclusion": "success",
+          "name": "Install Extension Host test runtime",
+          "number": 6,
+          "startedAt": "2026-10-22T20:59:43Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:04:01Z",
+          "conclusion": "success",
+          "name": "Extension Host multi-root + multi-window journey (macOS stable)",
+          "number": 7,
+          "startedAt": "2026-10-22T20:59:46Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:07:36Z",
+          "conclusion": "success",
+          "name": "Extension Host multi-root + multi-window journey (macOS minimum 1.85.2)",
+          "number": 8,
+          "startedAt": "2026-10-22T21:04:01Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:07:39Z",
+          "conclusion": "success",
+          "name": "Upload macOS host journey evidence",
+          "number": 9,
+          "startedAt": "2026-10-22T21:07:36Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:07:40Z",
+          "conclusion": "success",
+          "name": "Post Run actions/setup-node@v5",
+          "number": 17,
+          "startedAt": "2026-10-22T21:07:39Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:07:43Z",
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@v5",
+          "number": 18,
+          "startedAt": "2026-10-22T21:07:40Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:07:46Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 19,
+          "startedAt": "2026-10-22T21:07:43Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39852148558/job/120081450461"
+    },
+    {
+      "completedAt": "2026-10-22T21:07:18Z",
+      "conclusion": "success",
+      "databaseId": 120081450519,
+      "name": "VS Code Remote-SSH container (scoped trusted cell)",
+      "startedAt": "2026-10-22T21:05:46Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-10-22T21:05:48Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-10-22T21:05:47Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:06:05Z",
+          "conclusion": "success",
+          "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "number": 2,
+          "startedAt": "2026-10-22T21:05:48Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:06:09Z",
+          "conclusion": "success",
+          "name": "Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "number": 3,
+          "startedAt": "2026-10-22T21:06:05Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:06:10Z",
+          "conclusion": "success",
+          "name": "Download immutable .vsix candidate",
+          "number": 4,
+          "startedAt": "2026-10-22T21:06:09Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:06:11Z",
+          "conclusion": "success",
+          "name": "Verify immutable candidate manifest",
+          "number": 5,
+          "startedAt": "2026-10-22T21:06:10Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:06:11Z",
+          "conclusion": "success",
+          "name": "Verify Remote-SSH driver contract",
+          "number": 6,
+          "startedAt": "2026-10-22T21:06:11Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:06:27Z",
+          "conclusion": "success",
+          "name": "Install exact host-test runtime and Xvfb",
+          "number": 7,
+          "startedAt": "2026-10-22T21:06:11Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:06:27Z",
+          "conclusion": "success",
+          "name": "Download and verify official Remote-SSH transport and install bytes",
+          "number": 8,
+          "startedAt": "2026-10-22T21:06:27Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:07:12Z",
+          "conclusion": "success",
+          "name": "Run installed VSIX in a genuine Remote-SSH container extension host",
+          "number": 9,
+          "startedAt": "2026-10-22T21:06:27Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:07:12Z",
+          "conclusion": "success",
+          "name": "Bridge rehashed journey bytes into the scoped roadmap envelope",
+          "number": 10,
+          "startedAt": "2026-10-22T21:07:12Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:07:14Z",
+          "conclusion": "success",
+          "name": "Upload Remote-SSH diagnostics and trusted evidence",
+          "number": 11,
+          "startedAt": "2026-10-22T21:07:12Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:07:14Z",
+          "conclusion": "success",
+          "name": "Post Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "number": 21,
+          "startedAt": "2026-10-22T21:07:14Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:07:15Z",
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "number": 22,
+          "startedAt": "2026-10-22T21:07:14Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:07:15Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 23,
+          "startedAt": "2026-10-22T21:07:15Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39852148558/job/120081450519"
+    },
+    {
+      "completedAt": "2026-10-22T21:12:05Z",
+      "conclusion": "success",
+      "databaseId": 120089513998,
+      "name": "IDE roadmap evidence (trusted scoped aggregate)",
+      "startedAt": "2026-10-22T21:11:37Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-10-22T21:11:39Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-10-22T21:11:38Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:11:57Z",
+          "conclusion": "success",
+          "name": "Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "number": 2,
+          "startedAt": "2026-10-22T21:11:39Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:12:02Z",
+          "conclusion": "success",
+          "name": "Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "number": 3,
+          "startedAt": "2026-10-22T21:11:57Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:12:02Z",
+          "conclusion": "success",
+          "name": "Download exact producer artifact from this workflow run",
+          "number": 4,
+          "startedAt": "2026-10-22T21:12:02Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:12:03Z",
+          "conclusion": "success",
+          "name": "Rehash artifact bytes and assert release readiness",
+          "number": 5,
+          "startedAt": "2026-10-22T21:12:02Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:12:03Z",
+          "conclusion": "skipped",
+          "name": "Rehash artifact bytes as advisory evidence",
+          "number": 6,
+          "startedAt": "2026-10-22T21:12:03Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:12:04Z",
+          "conclusion": "success",
+          "name": "Upload trusted scoped aggregate",
+          "number": 7,
+          "startedAt": "2026-10-22T21:12:03Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:12:04Z",
+          "conclusion": "success",
+          "name": "Post Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+          "number": 13,
+          "startedAt": "2026-10-22T21:12:04Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:12:04Z",
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+          "number": 14,
+          "startedAt": "2026-10-22T21:12:04Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:12:04Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 15,
+          "startedAt": "2026-10-22T21:12:04Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39852148558/job/120089513998"
+    },
+    {
+      "completedAt": "2026-10-22T21:15:27Z",
+      "conclusion": "success",
+      "databaseId": 120089722350,
+      "name": "Browser evidence (three-OS required aggregate)",
+      "startedAt": "2026-10-22T21:13:36Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-10-22T21:13:37Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-10-22T21:13:36Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:15:08Z",
+          "conclusion": "success",
+          "name": "Run actions/checkout@v5",
+          "number": 2,
+          "startedAt": "2026-10-22T21:13:37Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:15:08Z",
+          "conclusion": "success",
+          "name": "Fetch executed browser workflow authority",
+          "number": 3,
+          "startedAt": "2026-10-22T21:15:08Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:15:14Z",
+          "conclusion": "success",
+          "name": "Run actions/setup-node@v5",
+          "number": 4,
+          "startedAt": "2026-10-22T21:15:08Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:15:22Z",
+          "conclusion": "success",
+          "name": "Install browser evidence aggregate dependencies",
+          "number": 5,
+          "startedAt": "2026-10-22T21:15:14Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:15:23Z",
+          "conclusion": "success",
+          "name": "Download exact-run browser evidence producers",
+          "number": 6,
+          "startedAt": "2026-10-22T21:15:22Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:15:24Z",
+          "conclusion": "success",
+          "name": "Rehash producer source and artifact evidence",
+          "number": 7,
+          "startedAt": "2026-10-22T21:15:23Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:15:25Z",
+          "conclusion": "success",
+          "name": "Upload required browser evidence aggregate",
+          "number": 8,
+          "startedAt": "2026-10-22T21:15:24Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:15:25Z",
+          "conclusion": "success",
+          "name": "Post Run actions/setup-node@v5",
+          "number": 15,
+          "startedAt": "2026-10-22T21:15:25Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:15:25Z",
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@v5",
+          "number": 16,
+          "startedAt": "2026-10-22T21:15:25Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:15:25Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 17,
+          "startedAt": "2026-10-22T21:15:25Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39852148558/job/120089722350"
+    },
+    {
+      "completedAt": "2026-10-22T21:25:21Z",
+      "conclusion": "success",
+      "databaseId": 120093409648,
+      "name": "VS Code extension (Linux host gate + publish)",
+      "startedAt": "2026-10-22T21:20:09Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-10-22T21:20:11Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-10-22T21:20:09Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:20:28Z",
+          "conclusion": "success",
+          "name": "Run actions/checkout@v5",
+          "number": 2,
+          "startedAt": "2026-10-22T21:20:11Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:20:37Z",
+          "conclusion": "success",
+          "name": "Run actions/setup-node@v5",
+          "number": 3,
+          "startedAt": "2026-10-22T21:20:28Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:20:38Z",
+          "conclusion": "success",
+          "name": "Download immutable .vsix candidate",
+          "number": 4,
+          "startedAt": "2026-10-22T21:20:37Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:20:38Z",
+          "conclusion": "success",
+          "name": "Verify immutable candidate manifest before Linux host gates",
+          "number": 5,
+          "startedAt": "2026-10-22T21:20:38Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:22:05Z",
+          "conclusion": "success",
+          "name": "Extension Host multi-root + multi-window journey (Linux stable)",
+          "number": 6,
+          "startedAt": "2026-10-22T21:20:38Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:23:09Z",
+          "conclusion": "success",
+          "name": "Extension Host multi-root + multi-window journey (Linux minimum 1.85.2)",
+          "number": 7,
+          "startedAt": "2026-10-22T21:22:05Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:23:11Z",
+          "conclusion": "success",
+          "name": "Upload Linux host journey evidence",
+          "number": 8,
+          "startedAt": "2026-10-22T21:23:09Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:23:11Z",
+          "conclusion": "success",
+          "name": "Verify immutable candidate manifest before publishing",
+          "number": 9,
+          "startedAt": "2026-10-22T21:23:11Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:23:33Z",
+          "conclusion": "success",
+          "name": "Require published CLI before VS Code release",
+          "number": 10,
+          "startedAt": "2026-10-22T21:23:11Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:23:33Z",
+          "conclusion": "success",
+          "name": "Preflight Open VSX credential",
+          "number": 11,
+          "startedAt": "2026-10-22T21:23:33Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:23:33Z",
+          "conclusion": "skipped",
+          "name": "Preflight VS Code Marketplace credential",
+          "number": 12,
+          "startedAt": "2026-10-22T21:23:33Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:23:45Z",
+          "conclusion": "success",
+          "name": "Publish to Open VSX",
+          "number": 13,
+          "startedAt": "2026-10-22T21:23:33Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:25:17Z",
+          "conclusion": "success",
+          "name": "Verify Open VSX listing",
+          "number": 14,
+          "startedAt": "2026-10-22T21:23:45Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:25:17Z",
+          "conclusion": "skipped",
+          "name": "Publish to VS Code Marketplace",
+          "number": 15,
+          "startedAt": "2026-10-22T21:25:17Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:25:17Z",
+          "conclusion": "skipped",
+          "name": "Verify VS Code Marketplace listing and exact VSIX",
+          "number": 16,
+          "startedAt": "2026-10-22T21:25:17Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:25:17Z",
+          "conclusion": "success",
+          "name": "Post Run actions/setup-node@v5",
+          "number": 31,
+          "startedAt": "2026-10-22T21:25:17Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:25:17Z",
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@v5",
+          "number": 32,
+          "startedAt": "2026-10-22T21:25:17Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-22T21:25:17Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 33,
+          "startedAt": "2026-10-22T21:25:17Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39852148558/job/120093409648"
+    },
+    {
+      "completedAt": "2026-10-22T21:15:27Z",
+      "conclusion": "skipped",
+      "databaseId": 120093412758,
+      "name": "JetBrains plugin (build + publish)",
+      "startedAt": "2026-10-22T21:15:28Z",
+      "status": "completed",
+      "steps": [],
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39852148558/job/120093412758"
+    },
+    {
+      "completedAt": "2026-10-22T21:15:27Z",
+      "conclusion": "skipped",
+      "databaseId": 120093413009,
+      "name": "JetBrains Marketplace (post-publish verification)",
+      "startedAt": "2026-10-22T21:15:28Z",
+      "status": "completed",
+      "steps": [],
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39852148558/job/120093413009"
+    }
+  ],
+  "name": "IDE Extensions",
+  "status": "completed",
+  "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/39852148558",
+  "workflowName": "IDE Extensions"
+}
