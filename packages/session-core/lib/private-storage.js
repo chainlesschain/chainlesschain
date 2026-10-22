@@ -304,6 +304,9 @@ function Write-CcOwnerOnlyAcl($item, [string]$path) {
 const WINDOWS_ACL_SCRIPT = String.raw`
 param([string]$target, [string]$operation)
 $ErrorActionPreference = 'Stop'
+# ACL helpers use only Windows PowerShell modules. Bound discovery before the
+# first cmdlet to avoid scanning inherited third-party/user module locations.
+$env:PSModulePath = [System.IO.Path]::Combine($PSHOME, 'Modules')
 ${WINDOWS_ACL_PROGRESS}
 $script:ccAclStage = 'initialize'
 try {
@@ -463,6 +466,8 @@ if (-not $ownerOnly) { exit 4 }
 
 const WINDOWS_ACL_BATCH_SCRIPT = String.raw`
 $ErrorActionPreference = 'Stop'
+# Keep batch JSON parsing and ACL cmdlets on the same built-in module path.
+$env:PSModulePath = [System.IO.Path]::Combine($PSHOME, 'Modules')
 ${WINDOWS_ACL_PROGRESS}
 Write-CcAclProgress 'initialize'
 $utf8 = [System.Text.UTF8Encoding]::new($false)

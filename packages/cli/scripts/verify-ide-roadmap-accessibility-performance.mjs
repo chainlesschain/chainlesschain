@@ -451,6 +451,102 @@ function verifyCell(directory, expected) {
       PROFILE.thresholds.descriptorOrHandleGrowth,
   );
   assert.equal(resources.orphanProcessCount, 0);
+  const processLifecycle = resources.processLifecycle;
+  assert.equal(
+    processLifecycle.schema,
+    "chainlesschain.browser-process-lifecycle.v1",
+  );
+  assert.match(
+    processLifecycle.identityPrecision || "",
+    /^(linux-proc-start-time-ticks|macos-ps-start-time-seconds|windows-win32-creation-time-cim)$/u,
+  );
+  assert.match(
+    processLifecycle.processTreeIdentityPrecision || "",
+    /^(proc-parent-and-start-time|ps-parent-and-start-time-seconds|win32-cim-parent-and-creation-time)$/u,
+  );
+  assert.equal(processLifecycle.observationComplete, true);
+  assert.equal(processLifecycle.ownedDescendantIdentityComplete, true);
+  assert.equal(processLifecycle.rootDescendantTrackingComplete, true);
+  assert.equal(processLifecycle.baselineIdentityComplete, true);
+  assert.equal(processLifecycle.finalObservationComplete, true);
+  assert.deepEqual(processLifecycle.finalObservationErrors, []);
+  assert.deepEqual(processLifecycle.observationErrors, []);
+  assert.equal(processLifecycle.shutdownSettled, true);
+  const expectedSettleTimeoutMs =
+    processLifecycle.identityPrecision === "windows-win32-creation-time-cim"
+      ? 30_000
+      : 5_000;
+  assert.equal(
+    processLifecycle.shutdownSettleTimeoutMs,
+    expectedSettleTimeoutMs,
+  );
+  assert.ok(
+    Number.isSafeInteger(processLifecycle.shutdownSettleElapsedMs) &&
+      processLifecycle.shutdownSettleElapsedMs <= expectedSettleTimeoutMs,
+  );
+  const shutdownSettleSamples = processLifecycle.observations.filter(
+    (sample) => sample.stage === "shutdown-settle",
+  );
+  assert.ok(shutdownSettleSamples.length >= 3);
+  assert.ok(
+    shutdownSettleSamples
+      .slice(-3)
+      .every(
+        (sample) =>
+          sample.complete === true &&
+          sample.terminalClean === true &&
+          sample.survivorCount === 0,
+      ),
+  );
+  const trailingCleanSettleSampleCount = shutdownSettleSamples
+    .slice()
+    .reverse()
+    .findIndex(
+      (sample) =>
+        sample.complete !== true ||
+        sample.terminalClean !== true ||
+        sample.survivorCount !== 0,
+    );
+  assert.equal(
+    processLifecycle.shutdownSettleCleanSampleCount,
+    trailingCleanSettleSampleCount === -1
+      ? shutdownSettleSamples.length
+      : trailingCleanSettleSampleCount,
+  );
+  assert.ok(processLifecycle.shutdownSettleCleanSampleCount >= 3);
+  assert.equal(processLifecycle.browserCloseSucceeded, true);
+  assert.equal(processLifecycle.browserCloseTimedOut, false);
+  assert.equal(processLifecycle.browserServerCloseSucceeded, true);
+  assert.equal(processLifecycle.browserServerCloseTimedOut, false);
+  assert.equal(processLifecycle.browserServerKillSucceeded, false);
+  assert.equal(processLifecycle.browserServerKillTimedOut, false);
+  assert.equal(processLifecycle.rootProcessHandleObserved, true);
+  assert.ok(Number.isSafeInteger(processLifecycle.rootProcessPid));
+  assert.equal(
+    processLifecycle.rootProcessRecord?.pid,
+    processLifecycle.rootProcessPid,
+  );
+  assert.equal(
+    processLifecycle.rootProcessIdentity,
+    `${processLifecycle.rootProcessPid}:${processLifecycle.rootProcessRecord?.startIdentity}`,
+  );
+  assert.equal(processLifecycle.rootProcessExitObserved, true);
+  assert.equal(processLifecycle.rootProcessCloseObserved, true);
+  assert.equal(processLifecycle.forcedCleanupAttempted, false);
+  assert.equal(processLifecycle.cleanupErrorCount, 0);
+  assert.deepEqual(processLifecycle.cleanupErrorDigests, []);
+  assert.equal(processLifecycle.orphanProcessCount, 0);
+  assert.equal(processLifecycle.passed, true);
+  assert.deepEqual(processLifecycle.settledBrowserProcesses, []);
+  assert.equal(
+    processLifecycle.sampleCount,
+    processLifecycle.observations.length,
+  );
+  assert.ok(processLifecycle.sampleCount >= 5);
+  assert.ok(processLifecycle.observations.every((sample) => sample.complete));
+  assert.equal(processLifecycle.observations.at(-1).stage, "campaign-final");
+  assert.equal(processLifecycle.observations.at(-1).terminalClean, true);
+  assert.equal(processLifecycle.observations.at(-1).survivorCount, 0);
   verifyDiagnosticsFragment(documents["diagnostics-scale.json"], expected);
 
   const outcome = documents["outcome-observations.json"];
@@ -458,6 +554,7 @@ function verifyCell(directory, expected) {
   assert.equal(outcome.requiredMeasurementsComplete, true);
   assert.equal(outcome.exactCommitBound, true);
   assert.equal(outcome.ideInputPerformanceRequiredPassed, true);
+  assert.equal(outcome.browserProcessLifecyclePassed, true);
   assert.equal(outcome.manualSpeechQualityPending, true);
   assert.equal(outcome.continuousEightHourHostSoakPending, true);
   requireZeroFields(

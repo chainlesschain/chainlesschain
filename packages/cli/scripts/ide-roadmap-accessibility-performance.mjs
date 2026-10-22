@@ -593,40 +593,772 @@ function countOwnDescriptorsOrHandles() {
   return -1;
 }
 
-function browserProcessIds() {
-  if (process.platform === "win32") {
-    const output = execFileSync(
-      "powershell.exe",
-      [
-        "-NoProfile",
-        "-NonInteractive",
-        "-Command",
-        "Get-Process | Where-Object { $_.ProcessName -match 'chrome|chromium|headless' } | Select-Object -ExpandProperty Id",
-      ],
-      { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] },
-    );
-    return new Set(
-      output
-        .split(/\r?\n/u)
-        .map((value) => Number.parseInt(value.trim(), 10))
-        .filter(Number.isSafeInteger),
+const BROWSER_PROCESS_RE = /chrome|chromium|headless/iu;
+const BROWSER_PROCESS_SETTLE_TIMEOUT_MS = 5_000;
+const WINDOWS_BROWSER_PROCESS_SETTLE_TIMEOUT_MS = 30_000;
+const BROWSER_PROCESS_SETTLE_INTERVAL_MS = 250;
+const BROWSER_PROCESS_STABLE_SAMPLES = 3;
+const WINDOWS_PROCESS_SNAPSHOT_TIMEOUT_MS = 10_000;
+const WINDOWS_BROWSER_CLOSE_TIMEOUT_MS = 10_000;
+const WINDOWS_PROCESS_TREE_KILL_TIMEOUT_MS = 5_000;
+
+function processIdentity(record) {
+  return record.startIdentity == null
+    ? null
+    : `${record.pid}:${record.startIdentity}`;
+}
+
+function parseLinuxProcessStat(pid, stat) {
+  const close = stat.lastIndexOf(")");
+  if (close < 0) return null;
+  const name = stat.slice(stat.indexOf("(") + 1, close);
+  const fields = stat
+    .slice(close + 1)
+    .trim()
+    .split(/\s+/u);
+  if (fields.length < 20) return null;
+  const ppid = Number.parseInt(fields[1], 10);
+  const pgrp = Number.parseInt(fields[2], 10);
+  const session = Number.parseInt(fields[3], 10);
+  const startTimeTicks = fields[19];
+  if (
+    !Number.isSafeInteger(ppid) ||
+    !Number.isSafeInteger(pgrp) ||
+    !Number.isSafeInteger(session) ||
+    !/^\d+$/u.test(startTimeTicks)
+  ) {
+    return null;
+  }
+  return {
+    pid,
+    ppid,
+    pgrp,
+    session,
+    state: fields[0],
+    name,
+    startIdentity: startTimeTicks,
+  };
+}
+
+function parseMacProcessLine(line) {
+  const match = line.match(
+    /^\s*(\d+)\s+(\d+)\s+(\S+)\s+([A-Za-z]{3}\s+[A-Za-z]{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}\s+\d{4})\s+(.+)$/u,
+  );
+  if (!match) return null;
+  const pid = Number.parseInt(match[1], 10);
+  const ppid = Number.parseInt(match[2], 10);
+  if (!Number.isSafeInteger(pid) || !Number.isSafeInteger(ppid)) return null;
+  return {
+    pid,
+    ppid,
+    pgrp: null,
+    session: null,
+    state: match[3],
+    startIdentity: match[4],
+    name: path.basename(match[5]),
+  };
+}
+
+function parseWindowsProcessSnapshot(output) {
+  const parsed = JSON.parse(output);
+  const rows = Array.isArray(parsed) ? parsed : [parsed];
+  const records = new Map();
+  const errors = [];
+  for (const row of rows) {
+    const pid = Number.parseInt(row.ProcessId, 10);
+    const ppid = Number.parseInt(row.ParentProcessId, 10);
+    if (!Number.isSafeInteger(pid) || !Number.isSafeInteger(ppid)) {
+      errors.push("invalid-win32-process-record");
+      continue;
+    }
+    const startIdentity =
+      row.CreationDate == null || String(row.CreationDate).trim() === ""
+        ? null
+        : String(row.CreationDate);
+    if (!startIdentity) {
+      errors.push(`missing-win32-process-creation-time:${pid}`);
+    }
+    records.set(pid, {
+      pid,
+      ppid,
+      pgrp: null,
+      session: null,
+      state: "running",
+      startIdentity,
+      name: String(row.Name || ""),
+    });
+  }
+  return { records, errors };
+}
+
+function readProcessSnapshot(platform = process.platform) {
+  const records = new Map();
+  const errors = [];
+  if (platform === "linux") {
+    let processIds;
+    try {
+      processIds = fs
+        .readdirSync("/proc")
+        .filter((name) => /^\d+$/u.test(name));
+    } catch (error) {
+      return {
+        platform,
+        complete: false,
+        records,
+        errors: [error.code || "proc-read-failed"],
+      };
+    }
+    for (const value of processIds) {
+      const pid = Number.parseInt(value, 10);
+      try {
+        const stat = fs.readFileSync(`/proc/${value}/stat`, "utf8");
+        const record = parseLinuxProcessStat(pid, stat);
+        if (!record) errors.push(`invalid-stat:${pid}`);
+        else records.set(pid, record);
+      } catch (error) {
+        if (error.code !== "ENOENT" && error.code !== "ESRCH") {
+          errors.push(`${error.code || "stat-read-failed"}:${pid}`);
+        }
+      }
+    }
+  } else if (platform === "win32") {
+    try {
+      const output = execFileSync(
+        "powershell.exe",
+        [
+          "-NoLogo",
+          "-NoProfile",
+          "-NonInteractive",
+          "-Command",
+          "[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false); $ErrorActionPreference = 'Stop'; Get-CimInstance -ClassName Win32_Process | Select-Object ProcessId, ParentProcessId, Name, CreationDate | ConvertTo-Json -Compress",
+        ],
+        {
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "ignore"],
+          timeout: WINDOWS_PROCESS_SNAPSHOT_TIMEOUT_MS,
+          maxBuffer: 8 * 1024 * 1024,
+        },
+      );
+      const parsed = parseWindowsProcessSnapshot(output);
+      for (const [pid, record] of parsed.records) records.set(pid, record);
+      errors.push(...parsed.errors);
+    } catch (error) {
+      errors.push(error.code || "windows-process-query-failed");
+    }
+  } else if (platform === "darwin") {
+    try {
+      const output = execFileSync(
+        "ps",
+        ["-Ao", "pid=,ppid=,state=,lstart=,comm="],
+        {
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "ignore"],
+          timeout: 1_000,
+          env: { ...process.env, LC_ALL: "C" },
+        },
+      );
+      for (const line of output.split(/\r?\n/u)) {
+        if (!line.trim()) continue;
+        const record = parseMacProcessLine(line);
+        if (record) records.set(record.pid, record);
+        else errors.push("invalid-ps-record");
+      }
+    } catch (error) {
+      errors.push(error.code || "mac-process-query-failed");
+    }
+  } else {
+    errors.push("unsupported-process-platform");
+  }
+  return { platform, complete: errors.length === 0, records, errors };
+}
+
+function browserRecords(snapshot) {
+  return [...snapshot.records.values()].filter((record) =>
+    BROWSER_PROCESS_RE.test(record.name),
+  );
+}
+
+function recordIsNewBrowser(record, baseline) {
+  const identity = processIdentity(record);
+  if (identity != null) return !baseline.identities.has(identity);
+  // If the OS did not expose a creation identity, the PID cannot safely prove
+  // that a matching process is the same one observed in the baseline.
+  return !baseline.pids.has(record.pid);
+}
+
+function safeProcessRecord(record, stage) {
+  return {
+    pid: record.pid,
+    ppid: record.ppid,
+    pgrp: record.pgrp,
+    session: record.session,
+    state: record.state,
+    name: record.name,
+    startIdentity: record.startIdentity,
+    stage,
+  };
+}
+
+function processKey(record) {
+  return processIdentity(record) || `unknown:${record.pid}`;
+}
+
+function missingProcessIdentityErrors(snapshot) {
+  return [...snapshot.records.values()]
+    .filter((record) => processIdentity(record) == null)
+    .map((record) => `process-identity-missing:${record.pid}`);
+}
+
+function killOwnedWindowsProcessTree(rootPid, execute = execFileSync) {
+  if (!Number.isSafeInteger(rootPid)) {
+    throw new Error(
+      "Cannot safely terminate Playwright without its owned root PID",
     );
   }
-  const output = execFileSync("ps", ["-Ao", "pid=,comm="], {
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "ignore"],
-  });
-  return new Set(
-    output
-      .split(/\r?\n/u)
-      .map((line) => line.trim().match(/^(\d+)\s+(.+)$/u))
-      .filter(
-        (match) =>
-          match &&
-          /chrome|chromium|headless_shell|headless-shell/iu.test(match[2]),
-      )
-      .map((match) => Number.parseInt(match[1], 10)),
+  return execute(
+    path.join(
+      process.env.SystemRoot || "C:\\Windows",
+      "System32",
+      "taskkill.exe",
+    ),
+    ["/PID", String(rootPid), "/T", "/F"],
+    {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+      timeout: WINDOWS_PROCESS_TREE_KILL_TIMEOUT_MS,
+      maxBuffer: 1024 * 1024,
+    },
   );
+}
+
+function observeEmitterEvent(emitter, eventName) {
+  let observed = false;
+  let observedAt = null;
+  let resolveEvent;
+  const promise = new Promise((resolve) => {
+    resolveEvent = resolve;
+  });
+  const listener = (...args) => {
+    observed = true;
+    observedAt = performance.now();
+    resolveEvent(args);
+  };
+  emitter.once(eventName, listener);
+  return {
+    promise,
+    get observed() {
+      return observed;
+    },
+    get observedAt() {
+      return observedAt;
+    },
+    dispose() {
+      emitter.removeListener(eventName, listener);
+    },
+  };
+}
+
+async function waitForObservedEvent(observer, timeoutMs, label) {
+  if (!observer) return false;
+  if (observer.observed) return true;
+  try {
+    await withTimeout(observer.promise, timeoutMs, label);
+    return true;
+  } catch {
+    return observer.observed;
+  }
+}
+
+function isObservedWithinWindow(
+  observer,
+  waitCompleted,
+  startedAt,
+  deadlineAt,
+) {
+  return (
+    waitCompleted &&
+    observer?.observed === true &&
+    Number.isFinite(startedAt) &&
+    Number.isFinite(deadlineAt) &&
+    observer.observedAt > startedAt &&
+    observer.observedAt <= deadlineAt
+  );
+}
+
+function isExpectedBrowserCloseDisconnect(error) {
+  return /target page, context or browser has been closed|browser has been closed|target closed|websocket (?:is not open|was closed)|socket hang up|econnreset/iu.test(
+    String(error?.message || error || ""),
+  );
+}
+
+function isCleanProcessExit(childProcess) {
+  return childProcess?.exitCode === 0 && childProcess.signalCode == null;
+}
+
+function evaluateWindowsBrowserClose({
+  closeCommandIssued,
+  closeCommandOutcome,
+  closeEventsObservedWithinDeadline,
+  browserProcess,
+}) {
+  const cleanProcessExit = isCleanProcessExit(browserProcess);
+  const expectedCloseDisconnect =
+    closeCommandOutcome?.ok === false &&
+    closeEventsObservedWithinDeadline &&
+    cleanProcessExit &&
+    isExpectedBrowserCloseDisconnect(closeCommandOutcome.error);
+  return {
+    cleanProcessExit,
+    expectedCloseDisconnect,
+    succeeded:
+      closeCommandIssued &&
+      closeEventsObservedWithinDeadline &&
+      cleanProcessExit &&
+      (closeCommandOutcome == null ||
+        closeCommandOutcome.ok === true ||
+        expectedCloseDisconnect),
+  };
+}
+
+function isSameProcessAsBaseline(record, baselineSnapshot) {
+  const baselineRecord = baselineSnapshot?.records.get(record.pid);
+  if (!baselineRecord) return false;
+  const identity = processIdentity(record);
+  const baselineIdentity = processIdentity(baselineRecord);
+  return identity != null && baselineIdentity != null
+    ? identity === baselineIdentity
+    : false;
+}
+
+function matchesKnownProcess(record, knownIdentities) {
+  const key = processKey(record);
+  if (knownIdentities?.has(key)) return true;
+  if (processIdentity(record) != null || !knownIdentities) return false;
+  const prefix = `${record.pid}:`;
+  for (const knownIdentity of knownIdentities) {
+    if (knownIdentity.startsWith(prefix)) return true;
+  }
+  return false;
+}
+
+function isBaselineBrowserDescendant(
+  record,
+  snapshot,
+  baselineSnapshot,
+  ownedIdentities,
+) {
+  const visited = new Set();
+  let current = record;
+  while (current && !visited.has(current.pid)) {
+    visited.add(current.pid);
+    // Known test processes retain their ownership after reparenting. Missing
+    // identities cannot establish that an ancestor is the user's old browser.
+    if (
+      matchesKnownProcess(current, ownedIdentities) ||
+      processIdentity(current) == null
+    ) {
+      return false;
+    }
+    if (
+      BROWSER_PROCESS_RE.test(current.name) &&
+      isSameProcessAsBaseline(current, baselineSnapshot)
+    ) {
+      return true;
+    }
+    current = snapshot.records.get(current.ppid);
+  }
+  return false;
+}
+
+function processDescendants(
+  snapshot,
+  rootPid,
+  rootIdentity,
+  knownIdentities,
+  baselineSnapshot,
+) {
+  const childrenByParent = new Map();
+  for (const record of snapshot.records.values()) {
+    if (!Number.isSafeInteger(record.ppid)) continue;
+    const children = childrenByParent.get(record.ppid) || [];
+    children.push(record);
+    childrenByParent.set(record.ppid, children);
+  }
+  const visited = new Set();
+  const queue = [];
+  const enqueue = (record, expectedIdentity = null) => {
+    if (!record || isSameProcessAsBaseline(record, baselineSnapshot))
+      return false;
+    const key = processKey(record);
+    if (
+      expectedIdentity != null &&
+      key !== expectedIdentity &&
+      processIdentity(record) != null
+    ) {
+      return false;
+    }
+    if (visited.has(key)) return false;
+    visited.add(key);
+    queue.push(record);
+    return true;
+  };
+  if (Number.isSafeInteger(rootPid)) {
+    enqueue(snapshot.records.get(rootPid), rootIdentity);
+  }
+  for (const record of snapshot.records.values()) {
+    if (matchesKnownProcess(record, knownIdentities)) {
+      enqueue(
+        record,
+        processIdentity(record) == null ? null : processKey(record),
+      );
+    }
+  }
+  const descendants = [];
+  while (queue.length > 0) {
+    const parent = queue.shift();
+    for (const child of childrenByParent.get(parent.pid) || []) {
+      if (enqueue(child)) descendants.push(child);
+    }
+  }
+  return descendants;
+}
+
+function newOrObservedOwnedProcesses(
+  snapshot,
+  baselineSnapshot,
+  knownIdentities,
+  rootProcess,
+) {
+  const baselineBrowsers = browserRecords(baselineSnapshot);
+  const baseline = {
+    identities: new Set(
+      baselineBrowsers.map(processIdentity).filter((value) => value != null),
+    ),
+    pids: new Set(baselineBrowsers.map((record) => record.pid)),
+  };
+  const currentDescendantIdentities = new Set(
+    processDescendants(
+      snapshot,
+      rootProcess?.pid,
+      processIdentity(rootProcess || {}),
+      knownIdentities,
+      baselineSnapshot,
+    ).map(processKey),
+  );
+  const ownedIdentities = new Set(
+    [
+      ...knownIdentities,
+      ...currentDescendantIdentities,
+      processIdentity(rootProcess || {}),
+    ].filter((identity) => identity != null),
+  );
+  return [...snapshot.records.values()].filter((record) => {
+    const identity = processKey(record);
+    if (isSameProcessAsBaseline(record, baselineSnapshot)) return false;
+    return (
+      matchesKnownProcess(record, knownIdentities) ||
+      currentDescendantIdentities.has(identity) ||
+      (BROWSER_PROCESS_RE.test(record.name) &&
+        recordIsNewBrowser(record, baseline) &&
+        !isBaselineBrowserDescendant(
+          record,
+          snapshot,
+          baselineSnapshot,
+          ownedIdentities,
+        ))
+    );
+  });
+}
+
+function createBrowserProcessTracker(baselineSnapshot) {
+  const baselineBrowsers = browserRecords(baselineSnapshot);
+  const baseline = {
+    identities: new Set(
+      baselineBrowsers.map(processIdentity).filter((value) => value != null),
+    ),
+    pids: new Set(baselineBrowsers.map((record) => record.pid)),
+  };
+  const ledger = new Map();
+  const ownedDescendantLedger = new Map();
+  let rootProcessPid = null;
+  let rootProcessIdentity = null;
+  const baselineIdentityErrors = missingProcessIdentityErrors(baselineSnapshot);
+  const observationErrors = [
+    ...baselineSnapshot.errors,
+    ...baselineIdentityErrors,
+  ];
+  const baselineIdentityComplete = [...baselineSnapshot.records.values()].every(
+    (record) => processIdentity(record) != null,
+  );
+  const baselineObservationComplete =
+    baselineSnapshot.complete && baselineIdentityComplete;
+  const observations = [
+    {
+      stage: "initial",
+      complete: baselineObservationComplete,
+      browserProcessCount: baselineBrowsers.length,
+      browserProcesses: baselineBrowsers.map((record) =>
+        safeProcessRecord(record, "initial"),
+      ),
+    },
+  ];
+
+  function observe(snapshot, stage) {
+    const identityErrors = missingProcessIdentityErrors(snapshot);
+    if (!snapshot.complete) observationErrors.push(...snapshot.errors);
+    observationErrors.push(...identityErrors);
+    const observationComplete =
+      snapshot.complete && identityErrors.length === 0;
+    const browsers = browserRecords(snapshot);
+    const knownIdentities = new Set([
+      ...ledger.keys(),
+      ...ownedDescendantLedger.keys(),
+    ]);
+    const ownedDescendants = processDescendants(
+      snapshot,
+      rootProcessPid,
+      rootProcessIdentity,
+      knownIdentities,
+      baselineSnapshot,
+    );
+    const ownedIdentities = new Set(
+      [
+        ...knownIdentities,
+        ...ownedDescendants.map(processKey),
+        rootProcessIdentity,
+      ].filter((identity) => identity != null),
+    );
+    const trackedBrowsers = browsers.filter(
+      (record) =>
+        recordIsNewBrowser(record, baseline) &&
+        !isBaselineBrowserDescendant(
+          record,
+          snapshot,
+          baselineSnapshot,
+          ownedIdentities,
+        ),
+    );
+    const browserByPid = new Map(
+      browsers.map((record) => [record.pid, record]),
+    );
+    for (const record of trackedBrowsers) {
+      const key = processIdentity(record) || `unknown:${record.pid}`;
+      const prior = ledger.get(key);
+      const parentBrowser = browserByPid.get(record.ppid);
+      const entry = prior || {
+        identity: key,
+        firstSeen: stage,
+        firstRecord: safeProcessRecord(record, stage),
+        ownership: parentBrowser ? "browser-descendant-observed" : "unresolved",
+        observationCount: 0,
+      };
+      entry.lastSeen = stage;
+      entry.lastRecord = safeProcessRecord(record, stage);
+      entry.observationCount += 1;
+      if (parentBrowser) {
+        entry.parentIdentity = processIdentity(parentBrowser);
+      }
+      ledger.set(key, entry);
+    }
+    for (const record of ownedDescendants) {
+      const key = processIdentity(record) || `unknown:${record.pid}`;
+      const prior = ownedDescendantLedger.get(key);
+      const baselineIdentity = processIdentity(record);
+      const existedAtBaseline =
+        (baselineIdentity != null &&
+          processIdentity(baselineSnapshot.records.get(record.pid) || {}) ===
+            baselineIdentity) ||
+        (baselineIdentity == null && baselineSnapshot.records.has(record.pid));
+      if (!prior && existedAtBaseline) continue;
+      const entry = prior || {
+        identity: key,
+        firstSeen: stage,
+        firstRecord: safeProcessRecord(record, stage),
+        ownership: "launch-server-descendant-observed",
+        observationCount: 0,
+      };
+      entry.lastSeen = stage;
+      entry.lastRecord = safeProcessRecord(record, stage);
+      entry.observationCount += 1;
+      ownedDescendantLedger.set(key, entry);
+    }
+    observations.push({
+      stage,
+      complete: observationComplete,
+      terminalClean: observationComplete && survivors(snapshot).length === 0,
+      survivorCount: survivors(snapshot).length,
+      browserProcessCount: browsers.length,
+      newlyObservedBrowserCount: ledger.size,
+      ownedDescendantCount: ownedDescendants.length,
+      browserProcesses: trackedBrowsers.map((record) =>
+        safeProcessRecord(record, stage),
+      ),
+      ownedDescendants: ownedDescendants.map((record) =>
+        safeProcessRecord(record, stage),
+      ),
+      previouslyObservedProcesses: [...snapshot.records.values()]
+        .filter((record) => {
+          const key = processIdentity(record) || `unknown:${record.pid}`;
+          return (
+            matchesKnownProcess(record, knownIdentities) ||
+            ledger.has(key) ||
+            ownedDescendantLedger.has(key)
+          );
+        })
+        .map((record) => safeProcessRecord(record, stage)),
+    });
+  }
+
+  function survivors(snapshot) {
+    const knownIdentities = new Set([
+      ...ledger.keys(),
+      ...ownedDescendantLedger.keys(),
+    ]);
+    const currentDescendantKeys = new Set(
+      processDescendants(
+        snapshot,
+        rootProcessPid,
+        rootProcessIdentity,
+        knownIdentities,
+        baselineSnapshot,
+      ).map(processKey),
+    );
+    const ownedIdentities = new Set(
+      [
+        ...knownIdentities,
+        ...currentDescendantKeys,
+        rootProcessIdentity,
+      ].filter((identity) => identity != null),
+    );
+    return [...snapshot.records.values()].filter((record) => {
+      const key = processKey(record);
+      if (isSameProcessAsBaseline(record, baselineSnapshot)) return false;
+      const previouslyObserved =
+        matchesKnownProcess(record, knownIdentities) ||
+        ledger.has(key) ||
+        ownedDescendantLedger.has(key);
+      const newlyNamedBrowser =
+        BROWSER_PROCESS_RE.test(record.name) &&
+        recordIsNewBrowser(record, baseline) &&
+        !isBaselineBrowserDescendant(
+          record,
+          snapshot,
+          baselineSnapshot,
+          ownedIdentities,
+        );
+      return (
+        previouslyObserved ||
+        newlyNamedBrowser ||
+        currentDescendantKeys.has(key)
+      );
+    });
+  }
+
+  return {
+    baseline,
+    baselineIdentityComplete,
+    ledger,
+    observations,
+    observationErrors,
+    observe,
+    survivors,
+    baselineBrowsers,
+    ownedDescendantLedger,
+    setRootProcess(pid, record) {
+      rootProcessPid = pid;
+      rootProcessIdentity = processIdentity(record || {});
+    },
+  };
+}
+
+async function waitForBrowserProcessesToSettle(tracker, options = {}) {
+  const timeoutMs = options.timeoutMs ?? BROWSER_PROCESS_SETTLE_TIMEOUT_MS;
+  const intervalMs = options.intervalMs ?? BROWSER_PROCESS_SETTLE_INTERVAL_MS;
+  const stableSamples = options.stableSamples ?? BROWSER_PROCESS_STABLE_SAMPLES;
+  const snapshotReader = options.snapshotReader || readProcessSnapshot;
+  const wait =
+    options.wait ||
+    ((delay) => new Promise((resolve) => setTimeout(resolve, delay)));
+  const deadline = Date.now() + timeoutMs;
+  let consecutiveCleanSamples = 0;
+  let sampleCount = 0;
+  let latest = null;
+  while (Date.now() < deadline && consecutiveCleanSamples < stableSamples) {
+    await wait(Math.min(intervalMs, Math.max(1, deadline - Date.now())));
+    latest = snapshotReader();
+    sampleCount += 1;
+    tracker.observe(latest, "shutdown-settle");
+    const identityComplete = [...latest.records.values()].every(
+      (record) => processIdentity(record) != null,
+    );
+    if (
+      Date.now() <= deadline &&
+      latest.complete &&
+      identityComplete &&
+      tracker.survivors(latest).length === 0
+    ) {
+      consecutiveCleanSamples += 1;
+    } else {
+      consecutiveCleanSamples = 0;
+    }
+  }
+  return {
+    settled: consecutiveCleanSamples >= stableSamples,
+    consecutiveCleanSamples,
+    timeoutMs,
+    elapsedMs: Date.now() - (deadline - timeoutMs),
+    sampleCount,
+    finalSnapshot: latest,
+  };
+}
+
+async function withTimeout(promise, timeoutMs, label) {
+  let timer;
+  try {
+    return await Promise.race([
+      Promise.resolve(promise),
+      new Promise((_, reject) => {
+        timer = setTimeout(() => {
+          const error = new Error(`${label} exceeded ${timeoutMs}ms`);
+          error.code = "ERR_LIFECYCLE_TIMEOUT";
+          reject(error);
+        }, timeoutMs);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function waitForChildProcessExit(childProcess, timeoutMs) {
+  if (!childProcess) return false;
+  if (childProcess.exitCode != null || childProcess.signalCode != null)
+    return true;
+  try {
+    await withTimeout(
+      new Promise((resolve) => childProcess.once("exit", resolve)),
+      timeoutMs,
+      "owned Playwright process exit",
+    );
+    return true;
+  } catch {
+    return childProcess.exitCode != null || childProcess.signalCode != null;
+  }
+}
+
+function destroyOwnedChildProcessStdio(childProcess) {
+  if (!childProcess) return;
+  const streams = new Set([
+    ...(Array.isArray(childProcess.stdio) ? childProcess.stdio : []),
+    childProcess.stdin,
+    childProcess.stdout,
+    childProcess.stderr,
+  ]);
+  for (const stream of streams) {
+    if (stream && typeof stream.destroy === "function" && !stream.destroyed) {
+      stream.destroy();
+    }
+  }
 }
 
 function semanticAxTree(nodes) {
@@ -655,483 +1387,901 @@ function semanticAxTree(nodes) {
     .filter((node) => interestingRoles.has(node.role));
 }
 
-async function runChromiumJourney({ browserExecutable, testSecret }) {
+async function runChromiumJourney({
+  browserExecutable,
+  testSecret,
+  processBaseline = null,
+}) {
   const { chromium } = requireFromCli("playwright");
   const launchOptions = { headless: true };
   if (browserExecutable) launchOptions.executablePath = browserExecutable;
-  const browser = await chromium.launch(launchOptions);
-  const descriptorOrHandleBaseline = countOwnDescriptorsOrHandles();
-  const page = await browser.newPage({
-    viewport: { width: 1_280, height: 900 },
-  });
-  const pageErrors = [];
-  page.on("pageerror", (error) =>
-    pageErrors.push(digest(String(error.message))),
-  );
-  let html = buildChatHtml({
-    cspSource: "vscode-webview:",
-    nonce: "p2nonce",
-    l10n: {},
-  });
-  html = html.replace(
-    "<body>",
-    '<body><script nonce="p2nonce">window.__posted=[];window.acquireVsCodeApi=()=>({postMessage:m=>window.__posted.push(m)});</script>',
-  );
-  // Installed VS Code webviews are secure contexts. about:blank setContent
-  // lacks crypto.randomUUID and cannot exercise the real input receipt path.
-  const fixtureUrl = "https://chainlesschain-a11y.invalid/";
-  await page.route(fixtureUrl, (route) =>
-    route.fulfill({ contentType: "text/html", body: html }),
-  );
-  await page.goto(fixtureUrl, { waitUntil: "load" });
-  await page.evaluate(() => {
-    window.__semanticAnnouncements = [];
-    const announcer = document.getElementById("announcer");
-    let last = "";
-    new window.MutationObserver(() => {
-      const text = announcer?.textContent?.trim() || "";
-      if (text && text !== last) {
-        window.__semanticAnnouncements.push(text);
-        last = text;
-      }
-      if (!text) last = "";
-    }).observe(announcer, {
-      childList: true,
-      characterData: true,
-      subtree: true,
+  const baselineSnapshot = processBaseline || readProcessSnapshot();
+  const processTracker = createBrowserProcessTracker(baselineSnapshot);
+  let browserServer = null;
+  let browser = null;
+  let browserProcess = null;
+  let rootProcessRecord = null;
+  let rootProcessCloseObserver = null;
+  let browserServerCloseObserver = null;
+  let cdp = null;
+  let descriptorOrHandleSettled = null;
+  let browserCloseSucceeded = false;
+  let browserCloseTimedOut = false;
+  let browserServerCloseSucceeded = false;
+  let browserServerCloseTimedOut = false;
+  let browserServerKillSucceeded = false;
+  let browserServerKillTimedOut = false;
+  let rootProcessExitObserved = false;
+  let rootProcessCloseObserved = false;
+  let forcedCleanupAttempted = false;
+  const cleanupErrors = [];
+  let journeyResult = null;
+  let journeyError = null;
+  let shutdownPreCloseSnapshot = null;
+  const processMonitor =
+    process.platform === "linux" || process.platform === "darwin"
+      ? setInterval(() => {
+          try {
+            processTracker.observe(readProcessSnapshot(), "journey");
+          } catch (error) {
+            processTracker.observationErrors.push(
+              error.code || "journey-snapshot-failed",
+            );
+          }
+        }, 1_500)
+      : null;
+  processMonitor?.unref?.();
+  try {
+    browserServer = await chromium.launchServer({
+      ...launchOptions,
+      host: "127.0.0.1",
     });
-  });
-
-  const dispatch = (kind, payload = {}) =>
-    page.evaluate(
-      ({ eventKind, eventPayload }) => {
-        window.dispatchEvent(
-          new MessageEvent("message", {
-            data: { kind: eventKind, ...eventPayload },
-          }),
-        );
-      },
-      { eventKind: kind, eventPayload: payload },
-    );
-
-  await dispatch("tabs", {
-    tabs: [
-      { id: "tab-a", title: "Alpha" },
-      { id: "tab-b", title: "Beta" },
-      { id: "tab-c", title: "Gamma" },
-    ],
-    activeId: "tab-a",
-  });
-  await dispatch("approval", {
-    id: "approval-scale",
-    tool: "write_file",
-    risk: "high",
-    reason: "Review exact side effect",
-    binding: `sha256:${"c".repeat(64)}`,
-  });
-
-  const cdp = await page.context().newCDPSession(page);
-  await cdp.send("Accessibility.enable");
-
-  const keyboardActions = [];
-  const active = () =>
-    page.evaluate(() => ({
-      id: document.activeElement?.id || null,
-      tabId: document.activeElement?.getAttribute("data-tab-id") || null,
-      label:
-        document.activeElement?.getAttribute("aria-label") ||
-        document.activeElement?.textContent?.trim() ||
-        null,
-      visible: Boolean(
-        document.activeElement &&
-        document.activeElement.getClientRects().length > 0 &&
-        getComputedStyle(document.activeElement).visibility !== "hidden",
-      ),
-    }));
-  await page.locator('[data-tab-id="tab-a"]').focus();
-  for (const [key, expected] of [
-    ["ArrowRight", "tab-b"],
-    ["End", "tab-c"],
-    ["Home", "tab-a"],
-  ]) {
-    await page.keyboard.press(key);
-    const observation = await active();
-    keyboardActions.push({ action: key, expected, observation });
-  }
-  await page.locator('[data-tab-id="tab-b"]').focus();
-  await dispatch("tabs", {
-    tabs: [
-      { id: "tab-a", title: "Alpha" },
-      { id: "tab-b", title: "Beta" },
-      { id: "tab-c", title: "Gamma" },
-    ],
-    activeId: "tab-a",
-  });
-  keyboardActions.push({
-    action: "tab-rerender-same-item",
-    expected: "tab-b",
-    observation: await active(),
-  });
-  await dispatch("tabs", {
-    tabs: [
-      { id: "tab-a", title: "Alpha" },
-      { id: "tab-c", title: "Gamma" },
-    ],
-    activeId: "tab-a",
-  });
-  keyboardActions.push({
-    action: "tab-rerender-removed-item",
-    expected: "tab-a",
-    observation: await active(),
-  });
-
-  await page.locator("#log").focus();
-  const approvalTraversal = [];
-  let approvalReached = false;
-  for (let index = 0; index < 20; index += 1) {
-    await page.keyboard.press("Tab");
-    const observation = await active();
-    approvalTraversal.push(observation);
-    if (observation.label === "Approve") {
-      approvalReached = true;
-      break;
+    browserProcess = browserServer.process();
+    if (!browserProcess || !Number.isSafeInteger(browserProcess.pid)) {
+      throw new Error("Playwright did not expose its owned browser process");
     }
-  }
-  if (approvalReached) await page.keyboard.press("Enter");
-  const approvalFocusAfterSettlement = await active();
-  keyboardActions.push({
-    action: "approval-keyboard-activate",
-    expected: "input",
-    observation: approvalFocusAfterSettlement,
-  });
-  const approvalPosted = await page.evaluate(() =>
-    window.__posted.some(
-      (message) =>
-        message.type === "approval" &&
-        message.id === "approval-scale" &&
-        message.approve === true,
-    ),
-  );
+    rootProcessCloseObserver = observeEmitterEvent(browserProcess, "close");
+    browserServerCloseObserver = observeEmitterEvent(browserServer, "close");
+    const launchedSnapshot = readProcessSnapshot();
+    rootProcessRecord =
+      launchedSnapshot.records.get(browserProcess.pid) || null;
+    processTracker.setRootProcess(browserProcess.pid, rootProcessRecord);
+    processTracker.observe(launchedSnapshot, "launched");
+    browser = await chromium.connect(browserServer.wsEndpoint());
+    const descriptorOrHandleBaseline = countOwnDescriptorsOrHandles();
+    const page = await browser.newPage({
+      viewport: { width: 1_280, height: 900 },
+    });
+    const pageErrors = [];
+    page.on("pageerror", (error) =>
+      pageErrors.push(digest(String(error.message))),
+    );
+    let html = buildChatHtml({
+      cspSource: "vscode-webview:",
+      nonce: "p2nonce",
+      l10n: {},
+    });
+    html = html.replace(
+      "<body>",
+      '<body><script nonce="p2nonce">window.__posted=[];window.acquireVsCodeApi=()=>({postMessage:m=>window.__posted.push(m)});</script>',
+    );
+    // Installed VS Code webviews are secure contexts. about:blank setContent
+    // lacks crypto.randomUUID and cannot exercise the real input receipt path.
+    const fixtureUrl = "https://chainlesschain-a11y.invalid/";
+    await page.route(fixtureUrl, (route) =>
+      route.fulfill({ contentType: "text/html", body: html }),
+    );
+    await page.goto(fixtureUrl, { waitUntil: "load" });
+    await page.evaluate(() => {
+      window.__semanticAnnouncements = [];
+      const announcer = document.getElementById("announcer");
+      let last = "";
+      new window.MutationObserver(() => {
+        const text = announcer?.textContent?.trim() || "";
+        if (text && text !== last) {
+          window.__semanticAnnouncements.push(text);
+          last = text;
+        }
+        if (!text) last = "";
+      }).observe(announcer, {
+        childList: true,
+        characterData: true,
+        subtree: true,
+      });
+    });
 
-  // Drive one complete semantic turn. Streaming tokens update only the visual
-  // transcript; the dedicated live region receives one settled reply plus
-  // independently classified permission/error/status events.
-  await page.locator("#input").fill("semantic announcement fixture");
-  await page.locator("#send").click();
-  await dispatch("delta", { text: "Hello " });
-  await dispatch("delta", { text: "world" });
-  await dispatch("tool_done", { tool: "run_shell", isError: true });
-  await dispatch("tool_done", { tool: "run_shell", isError: true });
-  await dispatch("approval", {
-    id: "approval-announcement",
-    tool: "run_shell",
-    command: "npm test",
-    risk: "high",
-    reason: "Review exact command",
-  });
-  await dispatch("approval", {
-    id: "approval-announcement",
-    tool: "run_shell",
-    command: "npm test",
-    risk: "high",
-    reason: "Review exact command",
-  });
-  await dispatch("approval_done", {
-    id: "approval-announcement",
-    approved: false,
-    via: "user",
-  });
-  await dispatch("turn_end", {});
-  await page.waitForTimeout(1_200);
+    const dispatch = (kind, payload = {}) =>
+      page.evaluate(
+        ({ eventKind, eventPayload }) => {
+          window.dispatchEvent(
+            new MessageEvent("message", {
+              data: { kind: eventKind, ...eventPayload },
+            }),
+          );
+        },
+        { eventKind: kind, eventPayload: payload },
+      );
 
-  const semanticProjection = await page.evaluate(() => ({
-    headings: [...document.querySelectorAll("#log .turn-heading")].map(
-      (node) => node.textContent?.trim() || "",
-    ),
-    articleLabels: [...document.querySelectorAll('#log [role="article"]')].map(
-      (node) => node.getAttribute("aria-label") || "",
-    ),
-    announcements: [...window.__semanticAnnouncements],
-    logAriaLive: document.getElementById("log")?.getAttribute("aria-live"),
-    logRole: document.getElementById("log")?.getAttribute("role"),
-    announcerRole: document.getElementById("announcer")?.getAttribute("role"),
-    announcerLive: document
-      .getElementById("announcer")
-      ?.getAttribute("aria-live"),
-    announcerAtomic: document
-      .getElementById("announcer")
-      ?.getAttribute("aria-atomic"),
-  }));
-  const headingKeyboardActions = [];
-  for (const label of ["Turn 1, User message", "Turn 1, Assistant response"]) {
-    const heading = page.getByRole("heading", { name: label, exact: true });
-    await heading.focus();
-    headingKeyboardActions.push({
-      action: "heading-focus",
-      expected: await heading.getAttribute("id"),
+    await dispatch("tabs", {
+      tabs: [
+        { id: "tab-a", title: "Alpha" },
+        { id: "tab-b", title: "Beta" },
+        { id: "tab-c", title: "Gamma" },
+      ],
+      activeId: "tab-a",
+    });
+    await dispatch("approval", {
+      id: "approval-scale",
+      tool: "write_file",
+      risk: "high",
+      reason: "Review exact side effect",
+      binding: `sha256:${"c".repeat(64)}`,
+    });
+
+    cdp = await page.context().newCDPSession(page);
+    await cdp.send("Accessibility.enable");
+
+    const keyboardActions = [];
+    const active = () =>
+      page.evaluate(() => ({
+        id: document.activeElement?.id || null,
+        tabId: document.activeElement?.getAttribute("data-tab-id") || null,
+        label:
+          document.activeElement?.getAttribute("aria-label") ||
+          document.activeElement?.textContent?.trim() ||
+          null,
+        visible: Boolean(
+          document.activeElement &&
+            document.activeElement.getClientRects().length > 0 &&
+            getComputedStyle(document.activeElement).visibility !== "hidden",
+        ),
+      }));
+    await page.locator('[data-tab-id="tab-a"]').focus();
+    for (const [key, expected] of [
+      ["ArrowRight", "tab-b"],
+      ["End", "tab-c"],
+      ["Home", "tab-a"],
+    ]) {
+      await page.keyboard.press(key);
+      const observation = await active();
+      keyboardActions.push({ action: key, expected, observation });
+    }
+    await page.locator('[data-tab-id="tab-b"]').focus();
+    await dispatch("tabs", {
+      tabs: [
+        { id: "tab-a", title: "Alpha" },
+        { id: "tab-b", title: "Beta" },
+        { id: "tab-c", title: "Gamma" },
+      ],
+      activeId: "tab-a",
+    });
+    keyboardActions.push({
+      action: "tab-rerender-same-item",
+      expected: "tab-b",
       observation: await active(),
     });
+    await dispatch("tabs", {
+      tabs: [
+        { id: "tab-a", title: "Alpha" },
+        { id: "tab-c", title: "Gamma" },
+      ],
+      activeId: "tab-a",
+    });
+    keyboardActions.push({
+      action: "tab-rerender-removed-item",
+      expected: "tab-a",
+      observation: await active(),
+    });
+
+    await page.locator("#log").focus();
+    const approvalTraversal = [];
+    let approvalReached = false;
+    for (let index = 0; index < 20; index += 1) {
+      await page.keyboard.press("Tab");
+      const observation = await active();
+      approvalTraversal.push(observation);
+      if (observation.label === "Approve") {
+        approvalReached = true;
+        break;
+      }
+    }
+    if (approvalReached) await page.keyboard.press("Enter");
+    const approvalFocusAfterSettlement = await active();
+    keyboardActions.push({
+      action: "approval-keyboard-activate",
+      expected: "input",
+      observation: approvalFocusAfterSettlement,
+    });
+    const approvalPosted = await page.evaluate(() =>
+      window.__posted.some(
+        (message) =>
+          message.type === "approval" &&
+          message.id === "approval-scale" &&
+          message.approve === true,
+      ),
+    );
+
+    // Drive one complete semantic turn. Streaming tokens update only the visual
+    // transcript; the dedicated live region receives one settled reply plus
+    // independently classified permission/error/status events.
+    await page.locator("#input").fill("semantic announcement fixture");
+    await page.locator("#send").click();
+    await dispatch("delta", { text: "Hello " });
+    await dispatch("delta", { text: "world" });
+    await dispatch("tool_done", { tool: "run_shell", isError: true });
+    await dispatch("tool_done", { tool: "run_shell", isError: true });
+    await dispatch("approval", {
+      id: "approval-announcement",
+      tool: "run_shell",
+      command: "npm test",
+      risk: "high",
+      reason: "Review exact command",
+    });
+    await dispatch("approval", {
+      id: "approval-announcement",
+      tool: "run_shell",
+      command: "npm test",
+      risk: "high",
+      reason: "Review exact command",
+    });
+    await dispatch("approval_done", {
+      id: "approval-announcement",
+      approved: false,
+      via: "user",
+    });
+    await dispatch("turn_end", {});
+    await page.waitForTimeout(1_200);
+
+    const semanticProjection = await page.evaluate(() => ({
+      headings: [...document.querySelectorAll("#log .turn-heading")].map(
+        (node) => node.textContent?.trim() || "",
+      ),
+      articleLabels: [
+        ...document.querySelectorAll('#log [role="article"]'),
+      ].map((node) => node.getAttribute("aria-label") || ""),
+      announcements: [...window.__semanticAnnouncements],
+      logAriaLive: document.getElementById("log")?.getAttribute("aria-live"),
+      logRole: document.getElementById("log")?.getAttribute("role"),
+      announcerRole: document.getElementById("announcer")?.getAttribute("role"),
+      announcerLive: document
+        .getElementById("announcer")
+        ?.getAttribute("aria-live"),
+      announcerAtomic: document
+        .getElementById("announcer")
+        ?.getAttribute("aria-atomic"),
+    }));
+    const headingKeyboardActions = [];
+    for (const label of [
+      "Turn 1, User message",
+      "Turn 1, Assistant response",
+    ]) {
+      const heading = page.getByRole("heading", { name: label, exact: true });
+      await heading.focus();
+      headingKeyboardActions.push({
+        action: "heading-focus",
+        expected: await heading.getAttribute("id"),
+        observation: await active(),
+      });
+    }
+
+    const rawTree = await cdp.send("Accessibility.getFullAXTree");
+    const accessibilityTree = semanticAxTree(rawTree.nodes || []);
+    const unnamedInteractiveControlCount = accessibilityTree.filter(
+      (node) => ["button", "textbox", "tab"].includes(node.role) && !node.name,
+    ).length;
+    const requiredAx = [
+      ["region", "Conversation transcript"],
+      ["status", "Conversation announcements"],
+      ["textbox", "Message the agent"],
+      ["tablist", "Conversation tabs"],
+      ["button", "Approve"],
+      ["button", "Deny"],
+      ["heading", "Turn 1, User message"],
+      ["heading", "Turn 1, Assistant response"],
+      ["article", "Turn 1, Tool error"],
+    ];
+    const axSemanticMissCount = requiredAx.filter(
+      ([role, name]) =>
+        !accessibilityTree.some(
+          (node) => node.role === role && node.name.includes(name),
+        ),
+    ).length;
+    const assistantAnnouncements = semanticProjection.announcements.filter(
+      (text) => text.includes("Assistant response"),
+    );
+    const toolErrorAnnouncements = semanticProjection.announcements.filter(
+      (text) => text.includes("Tool error"),
+    );
+    const permissionAnnouncements = semanticProjection.announcements.filter(
+      (text) => text.includes("Permission request"),
+    );
+    const statusAnnouncements = semanticProjection.announcements.filter(
+      (text) => text.includes("Status"),
+    );
+    const announcementDuplicateCount =
+      semanticProjection.announcements.length -
+      new Set(semanticProjection.announcements).size;
+    const turnHeadingMissCount = [
+      "Turn 1, User message",
+      "Turn 1, Assistant response",
+    ].filter(
+      (heading) => !semanticProjection.headings.includes(heading),
+    ).length;
+    const streamingTokenReplayCount =
+      assistantAnnouncements.length === 1 &&
+      assistantAnnouncements[0].includes("Hello world")
+        ? 0
+        : Math.max(1, assistantAnnouncements.length);
+    const semanticAnnouncementMissCount = [
+      semanticProjection.logAriaLive === null,
+      semanticProjection.logRole === "region",
+      semanticProjection.announcerRole === "status",
+      semanticProjection.announcerLive === "polite",
+      semanticProjection.announcerAtomic === "true",
+      assistantAnnouncements.length === 1,
+      toolErrorAnnouncements.length === 1,
+      permissionAnnouncements.length >= 3,
+      statusAnnouncements.some((text) => text.includes("thinking")),
+      statusAnnouncements.some((text) => text.includes("ready")),
+      announcementDuplicateCount === 0,
+      turnHeadingMissCount === 0,
+      streamingTokenReplayCount === 0,
+    ].filter((passed) => !passed).length;
+    const criticalAnnouncementMissCount =
+      axSemanticMissCount + semanticAnnouncementMissCount;
+
+    const heapTrajectory = [];
+    heapTrajectory.push({
+      stage: "baseline",
+      ...(await cdp.send("Runtime.getHeapUsage")),
+    });
+    const transcript = await page.evaluate(async (messageCount) => {
+      const samples = [];
+      for (let batch = 0; batch < 100; batch += 1) {
+        const started = performance.now();
+        for (let offset = 0; offset < messageCount / 100; offset += 1) {
+          const index = batch * (messageCount / 100) + offset;
+          window.dispatchEvent(
+            new MessageEvent("message", {
+              data: {
+                kind: "info",
+                text: `scale-message-${String(index).padStart(4, "0")}`,
+              },
+            }),
+          );
+        }
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+        samples.push(performance.now() - started);
+      }
+      const nodes = [...document.querySelectorAll("#log > *")];
+      return {
+        samples,
+        renderedNodes: nodes.length,
+        firstText: nodes[0]?.textContent || "",
+        lastText: nodes.at(-1)?.textContent || "",
+      };
+    }, PROFILE.messagesPerSession);
+    heapTrajectory.push({
+      stage: "transcript-2000",
+      ...(await cdp.send("Runtime.getHeapUsage")),
+    });
+
+    const largeInputs = await page.evaluate(
+      async ({ diffBytes, logBytes, secret }) => {
+        const dispatchAndPaint = async (kind, text) => {
+          const started = performance.now();
+          window.dispatchEvent(
+            new MessageEvent("message", { data: { kind, text } }),
+          );
+          await new Promise((resolve) => requestAnimationFrame(resolve));
+          await new Promise((resolve) => requestAnimationFrame(resolve));
+          return performance.now() - started;
+        };
+        const command = `npm publish --//registry.invalid/:_authToken=${secret}`;
+        const makePayload = (total, prefix, suffix, fill) => {
+          const middle = total - prefix.length - suffix.length;
+          const left = Math.floor(
+            (middle - secret.length - command.length) / 2,
+          );
+          const right = middle - secret.length - command.length - left;
+          return (
+            prefix +
+            fill.repeat(left) +
+            secret +
+            command +
+            fill.repeat(right) +
+            suffix
+          );
+        };
+        const diff = makePayload(diffBytes, "DIFF_HEAD", "DIFF_TAIL", "d");
+        const diffPaintMs = await dispatchAndPaint("turn_end", diff);
+        const diffNode = document.querySelector("#log > :last-child");
+        const diffVisible = diffNode?.textContent || "";
+        const log = makePayload(logBytes, "LOG_HEAD", "LOG_TAIL", "l");
+        const logPaintMs = await dispatchAndPaint("info", log);
+        const logNode = document.querySelector("#log > :last-child");
+        const logVisible = logNode?.textContent || "";
+        return {
+          diffPaintMs,
+          logPaintMs,
+          diffVisibleChars: diffVisible.length,
+          logVisibleChars: logVisible.length,
+          diffMarkerVisible: diffVisible.includes("characters omitted"),
+          logMarkerVisible: logVisible.includes("characters omitted"),
+          diffHeadTailVisible:
+            diffVisible.startsWith("DIFF_HEAD") &&
+            diffVisible.endsWith("DIFF_TAIL"),
+          logHeadTailVisible:
+            logVisible.startsWith("LOG_HEAD") &&
+            logVisible.endsWith("LOG_TAIL"),
+          credentialVisible:
+            diffVisible.includes(secret) || logVisible.includes(secret),
+          fullCommandVisible:
+            diffVisible.includes(command) || logVisible.includes(command),
+        };
+      },
+      {
+        diffBytes: PROFILE.diffBytes,
+        logBytes: PROFILE.logBytes,
+        secret: testSecret,
+      },
+    );
+    heapTrajectory.push({
+      stage: "large-diff-log",
+      ...(await cdp.send("Runtime.getHeapUsage")),
+    });
+
+    const rows = Array.from({ length: PROFILE.sessionCount }, (_, index) => ({
+      id: `session-${index}`,
+      kind: index % 2 === 0 ? "chat" : "background",
+      title: `Scale session ${index}`,
+      workspace: `/workspace/${index % 8}`,
+      status: index % 7 === 0 ? "needs_input" : "working",
+      waitingApproval: index % 7 === 0,
+      lastActivity: Date.UTC(2026, 7, 20, 0, 0, index),
+      actions: ["peek", "reply", "stop"],
+    }));
+    const workbenchHtml = renderWorkbenchHtml(rows, {
+      now: Date.UTC(2026, 7, 20, 1, 0, 0),
+    });
+    const workbench = await page.evaluate(
+      async ({ body, sessionCount, sampleCount }) => {
+        document.body.innerHTML =
+          '<main aria-label="Sessions Workbench scale"><div id="scale" style="height:500px;overflow:auto"></div></main>';
+        const container = document.getElementById("scale");
+        const started = performance.now();
+        container.innerHTML = body;
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+        const paintMs = performance.now() - started;
+        const samples = [];
+        for (let index = 0; index < sampleCount; index += 1) {
+          const sampleStarted = performance.now();
+          container.scrollTop =
+            index % 2 === 0
+              ? container.scrollHeight
+              : Math.floor(container.scrollHeight / 3);
+          await new Promise((resolve) => requestAnimationFrame(resolve));
+          samples.push(performance.now() - sampleStarted);
+        }
+        return {
+          paintMs,
+          samples,
+          rowCount: container.querySelectorAll("[data-session-row]").length,
+          ariaRowCount: Number(
+            container.querySelector("table")?.getAttribute("aria-rowcount"),
+          ),
+          namedButtonCount: [...container.querySelectorAll("button")].filter(
+            (button) => button.getAttribute("aria-label"),
+          ).length,
+          expectedSessionCount: sessionCount,
+        };
+      },
+      {
+        body: workbenchHtml,
+        sessionCount: PROFILE.sessionCount,
+        sampleCount: PROFILE.scrollPaintSamples,
+      },
+    );
+    heapTrajectory.push({
+      stage: "workbench-128",
+      ...(await cdp.send("Runtime.getHeapUsage")),
+    });
+    const domCounters = await cdp.send("Memory.getDOMCounters");
+    descriptorOrHandleSettled = countOwnDescriptorsOrHandles();
+
+    const focusFailures =
+      keyboardActions.filter(
+        (entry) =>
+          (entry.expected === "input"
+            ? entry.observation.id !== "input"
+            : entry.observation.tabId !== entry.expected) ||
+          entry.observation.visible !== true,
+      ).length +
+      headingKeyboardActions.filter(
+        (entry) =>
+          entry.observation.id !== entry.expected ||
+          entry.observation.visible !== true,
+      ).length;
+    journeyResult = {
+      accessibilityTree,
+      unnamedInteractiveControlCount,
+      criticalAnnouncementMissCount,
+      keyboardActions,
+      headingKeyboardActions,
+      approvalTraversal,
+      approvalReached,
+      approvalPosted,
+      focusFailures,
+      semanticProjection,
+      announcementDuplicateCount,
+      turnHeadingMissCount,
+      streamingTokenReplayCount,
+      transcript,
+      largeInputs,
+      workbench,
+      heapTrajectory,
+      domCounters,
+      pageErrors,
+      descriptorOrHandleBaseline,
+      descriptorOrHandleSettled,
+    };
+  } catch (error) {
+    journeyError = error;
+  } finally {
+    if (processMonitor) clearInterval(processMonitor);
+    if (browserProcess) {
+      try {
+        shutdownPreCloseSnapshot = readProcessSnapshot();
+        processTracker.observe(shutdownPreCloseSnapshot, "shutdown-pre-close");
+      } catch (error) {
+        processTracker.observationErrors.push(
+          error.code || "shutdown-pre-close-snapshot-failed",
+        );
+      }
+    }
+    if (cdp) {
+      try {
+        await withTimeout(cdp.detach(), 5_000, "CDP detach");
+      } catch (error) {
+        cleanupErrors.push(digest(String(error?.stack || error)));
+      }
+    }
+    if (browser && process.platform === "win32") {
+      let closeCommandIssued = false;
+      let closeCommandOutcome = null;
+      let closeCommandOutcomePromise = null;
+      let closeCommandError = null;
+      let closeCommandStartedAt = null;
+      try {
+        const browserCloseSession = await withTimeout(
+          browser.newBrowserCDPSession(),
+          5_000,
+          "Chromium browser-level CDP session",
+        );
+        closeCommandStartedAt = performance.now();
+        closeCommandOutcomePromise = Promise.resolve(
+          browserCloseSession.send("Browser.close"),
+        ).then(
+          () => ({ ok: true }),
+          (error) => ({ ok: false, error }),
+        );
+        closeCommandIssued = true;
+      } catch (error) {
+        closeCommandError = error;
+      }
+      const [processCloseWaitCompleted, serverCloseWaitCompleted] =
+        await Promise.all([
+          waitForObservedEvent(
+            rootProcessCloseObserver,
+            WINDOWS_BROWSER_CLOSE_TIMEOUT_MS,
+            "owned Chromium process close",
+          ),
+          waitForObservedEvent(
+            browserServerCloseObserver,
+            WINDOWS_BROWSER_CLOSE_TIMEOUT_MS,
+            "Playwright browser server close",
+          ),
+        ]);
+      const closeDeadlineAt =
+        closeCommandStartedAt == null
+          ? null
+          : closeCommandStartedAt + WINDOWS_BROWSER_CLOSE_TIMEOUT_MS;
+      const processCloseObservedAfterCommand = isObservedWithinWindow(
+        rootProcessCloseObserver,
+        processCloseWaitCompleted,
+        closeCommandStartedAt,
+        closeDeadlineAt,
+      );
+      const serverCloseObservedAfterCommand = isObservedWithinWindow(
+        browserServerCloseObserver,
+        serverCloseWaitCompleted,
+        closeCommandStartedAt,
+        closeDeadlineAt,
+      );
+      const closeEventsObservedAfterCommand =
+        closeCommandIssued &&
+        processCloseObservedAfterCommand &&
+        serverCloseObservedAfterCommand;
+      if (closeCommandOutcomePromise) {
+        try {
+          closeCommandOutcome = await withTimeout(
+            closeCommandOutcomePromise,
+            250,
+            "Chromium browser close acknowledgement",
+          );
+        } catch {
+          // Chromium may close the CDP transport before replying to Browser.close.
+        }
+      }
+      const closeEvaluation = evaluateWindowsBrowserClose({
+        closeCommandIssued,
+        closeCommandOutcome,
+        closeEventsObservedWithinDeadline: closeEventsObservedAfterCommand,
+        browserProcess,
+      });
+      if (closeCommandError) {
+        cleanupErrors.push(
+          digest(String(closeCommandError?.stack || closeCommandError)),
+        );
+      } else if (
+        closeCommandOutcome?.ok === false &&
+        !closeEvaluation.expectedCloseDisconnect
+      ) {
+        cleanupErrors.push(
+          digest(
+            String(
+              closeCommandOutcome.error?.stack || closeCommandOutcome.error,
+            ),
+          ),
+        );
+      }
+      browserCloseSucceeded = closeEvaluation.succeeded;
+      browserCloseTimedOut =
+        closeCommandError?.code === "ERR_LIFECYCLE_TIMEOUT" ||
+        !closeCommandIssued ||
+        !processCloseObservedAfterCommand ||
+        !serverCloseObservedAfterCommand;
+      browserServerCloseSucceeded = serverCloseObservedAfterCommand;
+      browserServerCloseTimedOut = !serverCloseObservedAfterCommand;
+    } else if (browser) {
+      try {
+        await withTimeout(browser.close(), 10_000, "Chromium close");
+        browserCloseSucceeded = true;
+      } catch (error) {
+        browserCloseTimedOut = error?.code === "ERR_LIFECYCLE_TIMEOUT";
+        cleanupErrors.push(digest(String(error?.stack || error)));
+      }
+    }
+    if (browserServer && process.platform !== "win32") {
+      try {
+        await withTimeout(
+          browserServer.close(),
+          10_000,
+          "Playwright server close",
+        );
+        browserServerCloseSucceeded = true;
+      } catch (error) {
+        browserServerCloseTimedOut = error?.code === "ERR_LIFECYCLE_TIMEOUT";
+        cleanupErrors.push(digest(String(error?.stack || error)));
+      }
+    }
+    rootProcessExitObserved = await waitForChildProcessExit(
+      browserProcess,
+      2_000,
+    );
+    if (process.platform !== "win32") {
+      rootProcessCloseObserved = await waitForObservedEvent(
+        rootProcessCloseObserver,
+        2_000,
+        "owned Playwright process close",
+      );
+    }
+    rootProcessCloseObserved = rootProcessCloseObserver?.observed === true;
+    if (!rootProcessExitObserved && browserServer) {
+      forcedCleanupAttempted = true;
+      try {
+        if (process.platform === "win32") {
+          killOwnedWindowsProcessTree(browserProcess?.pid);
+        } else {
+          await withTimeout(
+            browserServer.kill(),
+            WINDOWS_PROCESS_TREE_KILL_TIMEOUT_MS,
+            "Playwright server tree kill",
+          );
+        }
+        browserServerKillSucceeded = true;
+      } catch (error) {
+        browserServerKillTimedOut =
+          error?.code === "ETIMEDOUT" ||
+          error?.code === "ERR_LIFECYCLE_TIMEOUT";
+        cleanupErrors.push(digest(String(error?.stack || error)));
+      }
+      rootProcessExitObserved = await waitForChildProcessExit(
+        browserProcess,
+        2_000,
+      );
+    }
+    if (!rootProcessExitObserved && browserProcess) {
+      forcedCleanupAttempted = true;
+      try {
+        if (!browserProcess.kill("SIGKILL")) {
+          cleanupErrors.push(
+            digest("owned Playwright process kill returned false"),
+          );
+        }
+      } catch (error) {
+        cleanupErrors.push(digest(String(error?.stack || error)));
+      }
+      rootProcessExitObserved = await waitForChildProcessExit(
+        browserProcess,
+        2_000,
+      );
+    }
+    if (
+      !rootProcessExitObserved ||
+      !rootProcessCloseObserved ||
+      browserCloseTimedOut ||
+      browserServerCloseTimedOut ||
+      browserServerKillTimedOut
+    ) {
+      destroyOwnedChildProcessStdio(browserProcess);
+    }
+    if (!rootProcessCloseObserver?.observed) {
+      rootProcessCloseObserved = await waitForObservedEvent(
+        rootProcessCloseObserver,
+        1_000,
+        "owned Playwright process close after stdio cleanup",
+      );
+    }
+    rootProcessCloseObserved = rootProcessCloseObserver?.observed === true;
+    if (process.platform === "win32") {
+      browserServerCloseSucceeded =
+        browserServerCloseObserver?.observed === true &&
+        browserServerCloseSucceeded;
+    }
+    rootProcessCloseObserver?.dispose();
+    browserServerCloseObserver?.dispose();
+    try {
+      descriptorOrHandleSettled = countOwnDescriptorsOrHandles();
+    } catch (error) {
+      cleanupErrors.push(digest(String(error?.stack || error)));
+    }
   }
 
-  const rawTree = await cdp.send("Accessibility.getFullAXTree");
-  const accessibilityTree = semanticAxTree(rawTree.nodes || []);
-  const unnamedInteractiveControlCount = accessibilityTree.filter(
-    (node) => ["button", "textbox", "tab"].includes(node.role) && !node.name,
-  ).length;
-  const requiredAx = [
-    ["region", "Conversation transcript"],
-    ["status", "Conversation announcements"],
-    ["textbox", "Message the agent"],
-    ["tablist", "Conversation tabs"],
-    ["button", "Approve"],
-    ["button", "Deny"],
-    ["heading", "Turn 1, User message"],
-    ["heading", "Turn 1, Assistant response"],
-    ["article", "Turn 1, Tool error"],
-  ];
-  const axSemanticMissCount = requiredAx.filter(
-    ([role, name]) =>
-      !accessibilityTree.some(
-        (node) => node.role === role && node.name.includes(name),
+  let settleResult = null;
+  try {
+    settleResult = await waitForBrowserProcessesToSettle(processTracker, {
+      timeoutMs:
+        process.platform === "win32"
+          ? WINDOWS_BROWSER_PROCESS_SETTLE_TIMEOUT_MS
+          : BROWSER_PROCESS_SETTLE_TIMEOUT_MS,
+    });
+  } catch (error) {
+    processTracker.observationErrors.push(
+      error.code || "shutdown-observation-failed",
+    );
+  }
+  const settledSnapshot = settleResult?.finalSnapshot || {
+    platform: process.platform,
+    complete: false,
+    records: new Map(),
+    errors: ["shutdown-final-snapshot-missing"],
+  };
+  processTracker.observe(settledSnapshot, "settled-final");
+  const settledBrowserProcesses = processTracker.survivors(settledSnapshot);
+  const rootProcessIdentity = processIdentity(rootProcessRecord || {});
+  const processLifecycle = {
+    schema: "chainlesschain.browser-process-lifecycle.v1",
+    identityPrecision:
+      process.platform === "linux"
+        ? "linux-proc-start-time-ticks"
+        : process.platform === "darwin"
+          ? "macos-ps-start-time-seconds"
+          : process.platform === "win32"
+            ? "windows-win32-creation-time-cim"
+            : "unsupported",
+    processTreeIdentityPrecision:
+      process.platform === "linux"
+        ? "proc-parent-and-start-time"
+        : process.platform === "darwin"
+          ? "ps-parent-and-start-time-seconds"
+          : process.platform === "win32"
+            ? "win32-cim-parent-and-creation-time"
+            : "unsupported",
+    observationComplete:
+      baselineSnapshot.complete &&
+      settledSnapshot.complete &&
+      shutdownPreCloseSnapshot?.complete === true &&
+      processTracker.baselineIdentityComplete &&
+      [...processTracker.ownedDescendantLedger.values()].every(
+        (entry) =>
+          entry.firstRecord.startIdentity != null &&
+          entry.lastRecord.startIdentity != null,
+      ) &&
+      rootProcessRecord !== null &&
+      rootProcessIdentity !== null &&
+      processTracker.observationErrors.length === 0,
+    ownedDescendantIdentityComplete: [
+      ...processTracker.ownedDescendantLedger.values(),
+    ].every(
+      (entry) =>
+        entry.firstRecord.startIdentity != null &&
+        entry.lastRecord.startIdentity != null,
+    ),
+    rootDescendantTrackingComplete:
+      browserProcess !== null &&
+      rootProcessRecord !== null &&
+      rootProcessIdentity !== null &&
+      shutdownPreCloseSnapshot?.complete === true &&
+      settledSnapshot.complete &&
+      [...processTracker.ownedDescendantLedger.values()].every(
+        (entry) =>
+          entry.firstRecord.startIdentity != null &&
+          entry.lastRecord.startIdentity != null,
       ),
-  ).length;
-  const assistantAnnouncements = semanticProjection.announcements.filter(
-    (text) => text.includes("Assistant response"),
-  );
-  const toolErrorAnnouncements = semanticProjection.announcements.filter(
-    (text) => text.includes("Tool error"),
-  );
-  const permissionAnnouncements = semanticProjection.announcements.filter(
-    (text) => text.includes("Permission request"),
-  );
-  const statusAnnouncements = semanticProjection.announcements.filter((text) =>
-    text.includes("Status"),
-  );
-  const announcementDuplicateCount =
-    semanticProjection.announcements.length -
-    new Set(semanticProjection.announcements).size;
-  const turnHeadingMissCount = [
-    "Turn 1, User message",
-    "Turn 1, Assistant response",
-  ].filter((heading) => !semanticProjection.headings.includes(heading)).length;
-  const streamingTokenReplayCount =
-    assistantAnnouncements.length === 1 &&
-    assistantAnnouncements[0].includes("Hello world")
-      ? 0
-      : Math.max(1, assistantAnnouncements.length);
-  const semanticAnnouncementMissCount = [
-    semanticProjection.logAriaLive === null,
-    semanticProjection.logRole === "region",
-    semanticProjection.announcerRole === "status",
-    semanticProjection.announcerLive === "polite",
-    semanticProjection.announcerAtomic === "true",
-    assistantAnnouncements.length === 1,
-    toolErrorAnnouncements.length === 1,
-    permissionAnnouncements.length >= 3,
-    statusAnnouncements.some((text) => text.includes("thinking")),
-    statusAnnouncements.some((text) => text.includes("ready")),
-    announcementDuplicateCount === 0,
-    turnHeadingMissCount === 0,
-    streamingTokenReplayCount === 0,
-  ].filter((passed) => !passed).length;
-  const criticalAnnouncementMissCount =
-    axSemanticMissCount + semanticAnnouncementMissCount;
+    shutdownSettled:
+      settleResult?.settled === true && settledBrowserProcesses.length === 0,
+    shutdownSettleTimeoutMs: settleResult?.timeoutMs ?? null,
+    shutdownSettleElapsedMs: settleResult?.elapsedMs ?? null,
+    shutdownSettleCleanSampleCount: settleResult?.consecutiveCleanSamples ?? 0,
+    browserCloseSucceeded,
+    browserCloseTimedOut,
+    browserServerCloseSucceeded,
+    browserServerCloseTimedOut,
+    browserServerKillSucceeded,
+    browserServerKillTimedOut,
+    baselineIdentityComplete: processTracker.baselineIdentityComplete,
+    rootProcessHandleObserved: browserProcess !== null,
+    rootProcessPid: browserProcess?.pid ?? null,
+    rootProcessIdentity,
+    rootProcessRecord: rootProcessRecord
+      ? safeProcessRecord(rootProcessRecord, "launched")
+      : null,
+    rootProcessExitObserved,
+    rootProcessCloseObserved,
+    forcedCleanupAttempted,
+    cleanupErrorCount: cleanupErrors.length,
+    cleanupErrorDigests: cleanupErrors,
+    observationErrors: processTracker.observationErrors,
+    sampleCount: processTracker.observations.length,
+    baselineBrowserProcesses: processTracker.baselineBrowsers.map((record) =>
+      safeProcessRecord(record, "initial"),
+    ),
+    observations: processTracker.observations,
+    observedNewBrowserProcesses: [...processTracker.ledger.values()],
+    observedOwnedDescendantProcesses: [
+      ...processTracker.ownedDescendantLedger.values(),
+    ],
+    settledBrowserProcesses: settledBrowserProcesses.map((record) =>
+      safeProcessRecord(record, "settled-final"),
+    ),
+    orphanProcessCount: settledBrowserProcesses.length,
+  };
+  processLifecycle.passed =
+    processLifecycle.observationComplete &&
+    processLifecycle.shutdownSettled &&
+    processLifecycle.rootDescendantTrackingComplete &&
+    processLifecycle.browserCloseSucceeded &&
+    !processLifecycle.browserCloseTimedOut &&
+    processLifecycle.browserServerCloseSucceeded &&
+    !processLifecycle.browserServerCloseTimedOut &&
+    processLifecycle.rootProcessHandleObserved &&
+    processLifecycle.rootProcessExitObserved &&
+    processLifecycle.rootProcessCloseObserved &&
+    !processLifecycle.forcedCleanupAttempted &&
+    processLifecycle.cleanupErrorCount === 0 &&
+    processLifecycle.orphanProcessCount === 0;
 
-  const heapTrajectory = [];
-  heapTrajectory.push({
-    stage: "baseline",
-    ...(await cdp.send("Runtime.getHeapUsage")),
-  });
-  const transcript = await page.evaluate(async (messageCount) => {
-    const samples = [];
-    for (let batch = 0; batch < 100; batch += 1) {
-      const started = performance.now();
-      for (let offset = 0; offset < messageCount / 100; offset += 1) {
-        const index = batch * (messageCount / 100) + offset;
-        window.dispatchEvent(
-          new MessageEvent("message", {
-            data: {
-              kind: "info",
-              text: `scale-message-${String(index).padStart(4, "0")}`,
-            },
-          }),
-        );
-      }
-      await new Promise((resolve) => requestAnimationFrame(resolve));
-      await new Promise((resolve) => requestAnimationFrame(resolve));
-      samples.push(performance.now() - started);
-    }
-    const nodes = [...document.querySelectorAll("#log > *")];
-    return {
-      samples,
-      renderedNodes: nodes.length,
-      firstText: nodes[0]?.textContent || "",
-      lastText: nodes.at(-1)?.textContent || "",
-    };
-  }, PROFILE.messagesPerSession);
-  heapTrajectory.push({
-    stage: "transcript-2000",
-    ...(await cdp.send("Runtime.getHeapUsage")),
-  });
-
-  const largeInputs = await page.evaluate(
-    async ({ diffBytes, logBytes, secret }) => {
-      const dispatchAndPaint = async (kind, text) => {
-        const started = performance.now();
-        window.dispatchEvent(
-          new MessageEvent("message", { data: { kind, text } }),
-        );
-        await new Promise((resolve) => requestAnimationFrame(resolve));
-        await new Promise((resolve) => requestAnimationFrame(resolve));
-        return performance.now() - started;
-      };
-      const command = `npm publish --//registry.invalid/:_authToken=${secret}`;
-      const makePayload = (total, prefix, suffix, fill) => {
-        const middle = total - prefix.length - suffix.length;
-        const left = Math.floor((middle - secret.length - command.length) / 2);
-        const right = middle - secret.length - command.length - left;
-        return (
-          prefix +
-          fill.repeat(left) +
-          secret +
-          command +
-          fill.repeat(right) +
-          suffix
-        );
-      };
-      const diff = makePayload(diffBytes, "DIFF_HEAD", "DIFF_TAIL", "d");
-      const diffPaintMs = await dispatchAndPaint("turn_end", diff);
-      const diffNode = document.querySelector("#log > :last-child");
-      const diffVisible = diffNode?.textContent || "";
-      const log = makePayload(logBytes, "LOG_HEAD", "LOG_TAIL", "l");
-      const logPaintMs = await dispatchAndPaint("info", log);
-      const logNode = document.querySelector("#log > :last-child");
-      const logVisible = logNode?.textContent || "";
-      return {
-        diffPaintMs,
-        logPaintMs,
-        diffVisibleChars: diffVisible.length,
-        logVisibleChars: logVisible.length,
-        diffMarkerVisible: diffVisible.includes("characters omitted"),
-        logMarkerVisible: logVisible.includes("characters omitted"),
-        diffHeadTailVisible:
-          diffVisible.startsWith("DIFF_HEAD") &&
-          diffVisible.endsWith("DIFF_TAIL"),
-        logHeadTailVisible:
-          logVisible.startsWith("LOG_HEAD") && logVisible.endsWith("LOG_TAIL"),
-        credentialVisible:
-          diffVisible.includes(secret) || logVisible.includes(secret),
-        fullCommandVisible:
-          diffVisible.includes(command) || logVisible.includes(command),
-      };
-    },
-    {
-      diffBytes: PROFILE.diffBytes,
-      logBytes: PROFILE.logBytes,
-      secret: testSecret,
-    },
-  );
-  heapTrajectory.push({
-    stage: "large-diff-log",
-    ...(await cdp.send("Runtime.getHeapUsage")),
-  });
-
-  const rows = Array.from({ length: PROFILE.sessionCount }, (_, index) => ({
-    id: `session-${index}`,
-    kind: index % 2 === 0 ? "chat" : "background",
-    title: `Scale session ${index}`,
-    workspace: `/workspace/${index % 8}`,
-    status: index % 7 === 0 ? "needs_input" : "working",
-    waitingApproval: index % 7 === 0,
-    lastActivity: Date.UTC(2026, 7, 20, 0, 0, index),
-    actions: ["peek", "reply", "stop"],
-  }));
-  const workbenchHtml = renderWorkbenchHtml(rows, {
-    now: Date.UTC(2026, 7, 20, 1, 0, 0),
-  });
-  const workbench = await page.evaluate(
-    async ({ body, sessionCount, sampleCount }) => {
-      document.body.innerHTML =
-        '<main aria-label="Sessions Workbench scale"><div id="scale" style="height:500px;overflow:auto"></div></main>';
-      const container = document.getElementById("scale");
-      const started = performance.now();
-      container.innerHTML = body;
-      await new Promise((resolve) => requestAnimationFrame(resolve));
-      await new Promise((resolve) => requestAnimationFrame(resolve));
-      const paintMs = performance.now() - started;
-      const samples = [];
-      for (let index = 0; index < sampleCount; index += 1) {
-        const sampleStarted = performance.now();
-        container.scrollTop =
-          index % 2 === 0
-            ? container.scrollHeight
-            : Math.floor(container.scrollHeight / 3);
-        await new Promise((resolve) => requestAnimationFrame(resolve));
-        samples.push(performance.now() - sampleStarted);
-      }
-      return {
-        paintMs,
-        samples,
-        rowCount: container.querySelectorAll("[data-session-row]").length,
-        ariaRowCount: Number(
-          container.querySelector("table")?.getAttribute("aria-rowcount"),
-        ),
-        namedButtonCount: [...container.querySelectorAll("button")].filter(
-          (button) => button.getAttribute("aria-label"),
-        ).length,
-        expectedSessionCount: sessionCount,
-      };
-    },
-    {
-      body: workbenchHtml,
-      sessionCount: PROFILE.sessionCount,
-      sampleCount: PROFILE.scrollPaintSamples,
-    },
-  );
-  heapTrajectory.push({
-    stage: "workbench-128",
-    ...(await cdp.send("Runtime.getHeapUsage")),
-  });
-  const domCounters = await cdp.send("Memory.getDOMCounters");
-  await cdp.detach();
-  await browser.close();
-  const descriptorOrHandleSettled = countOwnDescriptorsOrHandles();
-
-  const focusFailures =
-    keyboardActions.filter(
-      (entry) =>
-        (entry.expected === "input"
-          ? entry.observation.id !== "input"
-          : entry.observation.tabId !== entry.expected) ||
-        entry.observation.visible !== true,
-    ).length +
-    headingKeyboardActions.filter(
-      (entry) =>
-        entry.observation.id !== entry.expected ||
-        entry.observation.visible !== true,
-    ).length;
+  if (journeyError) {
+    journeyError.browserProcessLifecycle = processLifecycle;
+    throw journeyError;
+  }
   return {
-    accessibilityTree,
-    unnamedInteractiveControlCount,
-    criticalAnnouncementMissCount,
-    keyboardActions,
-    headingKeyboardActions,
-    approvalTraversal,
-    approvalReached,
-    approvalPosted,
-    focusFailures,
-    semanticProjection,
-    announcementDuplicateCount,
-    turnHeadingMissCount,
-    streamingTokenReplayCount,
-    transcript,
-    largeInputs,
-    workbench,
-    heapTrajectory,
-    domCounters,
-    pageErrors,
-    descriptorOrHandleBaseline,
+    ...journeyResult,
     descriptorOrHandleSettled,
+    processLifecycle,
   };
 }
 
@@ -1183,9 +2333,10 @@ async function mainCampaign(options, dependencies = {}) {
   );
   const testSecret = `cc-p2-secret-${crypto.randomBytes(24).toString("hex")}`;
   const descriptorOrHandleBefore = countOwnDescriptorsOrHandles();
-  const browserProcessesBefore = browserProcessIds();
+  const browserProcessesBefore = readProcessSnapshot();
   const rssBefore = process.memoryUsage().rss;
   const started = performance.now();
+  let browserProcessLifecycle = null;
   try {
     const vscodeDiagnosticsRequired = await runDiagnosticsScaleProfile({
       count: DIAGNOSTICS_PROFILE.requiredCount,
@@ -1219,13 +2370,87 @@ async function mainCampaign(options, dependencies = {}) {
     const chromium = await runChromiumJourney({
       browserExecutable: options.browserExecutable || null,
       testSecret,
+      processBaseline: browserProcessesBefore,
     });
     const durationMs = performance.now() - started;
     const rssAfter = process.memoryUsage().rss;
-    const browserProcessesAfter = browserProcessIds();
-    const orphanProcessIds = [...browserProcessesAfter].filter(
-      (processId) => !browserProcessesBefore.has(processId),
+    const browserProcessesAfter = readProcessSnapshot();
+    const observedProcessIdentities = new Set(
+      [
+        ...chromium.processLifecycle.observedNewBrowserProcesses,
+        ...chromium.processLifecycle.observedOwnedDescendantProcesses,
+      ].map((record) => record.identity),
     );
+    const newBrowserProcessesAfter = newOrObservedOwnedProcesses(
+      browserProcessesAfter,
+      browserProcessesBefore,
+      observedProcessIdentities,
+      chromium.processLifecycle.rootProcessRecord,
+    );
+    const settledProcessMap = new Map(
+      newBrowserProcessesAfter.map((record) => [
+        processIdentity(record) || `unknown:${record.pid}`,
+        safeProcessRecord(record, "campaign-final"),
+      ]),
+    );
+    browserProcessLifecycle = {
+      ...chromium.processLifecycle,
+      observationComplete:
+        chromium.processLifecycle.observationComplete &&
+        browserProcessesAfter.complete,
+      shutdownSettled:
+        chromium.processLifecycle.shutdownSettled &&
+        newBrowserProcessesAfter.length === 0,
+      rootDescendantTrackingComplete:
+        chromium.processLifecycle.rootDescendantTrackingComplete &&
+        browserProcessesAfter.complete,
+      finalObservationComplete: browserProcessesAfter.complete,
+      finalObservationErrors: browserProcessesAfter.errors,
+      settledBrowserProcesses: [...settledProcessMap.values()],
+      orphanProcessCount: settledProcessMap.size,
+      sampleCount: chromium.processLifecycle.sampleCount + 1,
+      observations: [
+        ...chromium.processLifecycle.observations,
+        {
+          stage: "campaign-final",
+          complete: browserProcessesAfter.complete,
+          terminalClean: settledProcessMap.size === 0,
+          survivorCount: settledProcessMap.size,
+          browserProcessCount: browserRecords(browserProcessesAfter).length,
+          newlyObservedBrowserCount:
+            chromium.processLifecycle.observedNewBrowserProcesses.length,
+          newlyObservedOwnedDescendantCount:
+            chromium.processLifecycle.observedOwnedDescendantProcesses.length,
+          ownedProcesses: newBrowserProcessesAfter.map((record) =>
+            safeProcessRecord(record, "campaign-final"),
+          ),
+          browserProcesses: newBrowserProcessesAfter.map((record) =>
+            safeProcessRecord(record, "campaign-final"),
+          ),
+          previouslyObservedProcesses: newBrowserProcessesAfter
+            .filter((record) =>
+              observedProcessIdentities.has(
+                processIdentity(record) || `unknown:${record.pid}`,
+              ),
+            )
+            .map((record) => safeProcessRecord(record, "campaign-final")),
+        },
+      ],
+    };
+    browserProcessLifecycle.passed =
+      browserProcessLifecycle.observationComplete &&
+      browserProcessLifecycle.shutdownSettled &&
+      browserProcessLifecycle.rootDescendantTrackingComplete &&
+      browserProcessLifecycle.browserCloseSucceeded &&
+      !browserProcessLifecycle.browserCloseTimedOut &&
+      browserProcessLifecycle.browserServerCloseSucceeded &&
+      !browserProcessLifecycle.browserServerCloseTimedOut &&
+      browserProcessLifecycle.rootProcessHandleObserved &&
+      browserProcessLifecycle.rootProcessExitObserved &&
+      !browserProcessLifecycle.forcedCleanupAttempted &&
+      browserProcessLifecycle.cleanupErrorCount === 0 &&
+      browserProcessLifecycle.orphanProcessCount === 0;
+    const orphanProcessIds = [...settledProcessMap.keys()];
     const inputToPaint = summarizeSamples(chromium.transcript.samples);
     const scrollToPaint = summarizeSamples(chromium.workbench.samples);
     const rendererHeapBefore = chromium.heapTrajectory[0].usedSize;
@@ -1450,6 +2675,7 @@ async function mainCampaign(options, dependencies = {}) {
         chromium.descriptorOrHandleSettled -
         chromium.descriptorOrHandleBaseline,
       orphanProcessCount: orphanProcessIds.length,
+      processLifecycle: browserProcessLifecycle,
       jetbrainsHeapBeforeBytes: jetBrains.heapBeforeBytes,
       jetbrainsHeapAfterBytes: jetBrains.heapAfterBytes,
       jetbrainsOpenFileDescriptorCount: jetBrains.openFileDescriptorCount,
@@ -1517,6 +2743,7 @@ async function mainCampaign(options, dependencies = {}) {
           ? 1
           : 0,
       orphanProcessCount: orphanProcessIds.length,
+      browserProcessLifecyclePassed: browserProcessLifecycle.passed,
       pageErrorCount: chromium.pageErrors.length,
       requiredMeasurementsComplete: true,
       exactCommitBound: true,
@@ -1541,6 +2768,7 @@ async function mainCampaign(options, dependencies = {}) {
       outcome.uiHangCount === 0 &&
       outcome.credentialLeakCount === 0 &&
       outcome.orphanProcessCount === 0 &&
+      outcome.browserProcessLifecyclePassed === true &&
       outcome.pageErrorCount === 0 &&
       outcome.ideInputPerformanceRequiredPassed === true &&
       chromium.approvalPosted === true &&
@@ -1595,6 +2823,8 @@ async function mainCampaign(options, dependencies = {}) {
       releaseCommit,
       operatingSystem: dependencies.platform || process.platform,
       diagnosticDigest: digest(String(error?.stack || error)),
+      browserProcessLifecycle:
+        error.browserProcessLifecycle || browserProcessLifecycle,
     });
     throw error;
   }
@@ -1616,20 +2846,32 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
 
 export {
   ACCESSIBILITY_WORKFLOW_PATH,
+  BROWSER_PROCESS_SETTLE_INTERVAL_MS,
+  BROWSER_PROCESS_SETTLE_TIMEOUT_MS,
   DIAGNOSTIC_PRODUCER_PATHS,
   DIAGNOSTIC_TEST_IDS,
   DIAGNOSTICS_PROFILE,
+  evaluateWindowsBrowserClose,
   GATE_SOURCE_PATHS,
+  isObservedWithinWindow,
   PROFILE,
   REQUIRED_FILES,
+  createBrowserProcessTracker,
   digest,
   mainCampaign,
+  killOwnedWindowsProcessTree,
+  newOrObservedOwnedProcesses,
+  parseLinuxProcessStat,
+  parseMacProcessLine,
+  parseWindowsProcessSnapshot,
   platformSuffix,
+  readProcessSnapshot,
   runDiagnosticsScaleProfile,
   runChromiumJourney,
   summarizeSamples,
   validateAtProbe,
   validateInputPerformanceEvidence,
   validateJetBrainsEvidence,
+  waitForBrowserProcessesToSettle,
   verifyAccessibilityWorkflowAuthority,
 };
