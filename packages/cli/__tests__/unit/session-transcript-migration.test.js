@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { createHash } from "node:crypto";
 
 import {
   SESSION_STORE_MIGRATION_EVENT,
@@ -34,6 +35,43 @@ function memoryTranscriptStore() {
 }
 
 describe("logical session transcript migration", () => {
+  it("retains a completed legacy migration digest that includes receipt metadata", () => {
+    const store = memoryTranscriptStore();
+    const input = {
+      sessionId: "old-receipt-migration",
+      source: "legacy",
+      messages: [
+        {
+          role: "user",
+          content: "old input",
+          clientMessageId: "old-id",
+          inputDigest: "a".repeat(64),
+        },
+      ],
+    };
+    const messagesDigest = `sha256:${createHash("sha256").update(JSON.stringify(input.messages)).digest("hex")}`;
+    store.events.push({
+      type: SESSION_STORE_MIGRATION_EVENT,
+      data: { source: input.source, messagesDigest },
+    });
+    store.messages.push({ role: "user", content: "old input" });
+    expect(
+      ensureCanonicalSessionTranscript(input, store.dependencies),
+    ).toMatchObject({ migrated: false, messagesDigest });
+    expect(store.dependencies.appendEvent).not.toHaveBeenCalled();
+    expect(() =>
+      ensureCanonicalSessionTranscript(
+        {
+          ...input,
+          messages: [{ ...input.messages[0], content: "changed input" }],
+        },
+        store.dependencies,
+      ),
+    ).toThrowError(
+      expect.objectContaining({ code: "CC_SESSION_MIGRATION_CONFLICT" }),
+    );
+  });
+
   it("imports DB-shaped messages once and drops the legacy host prompt", () => {
     const store = memoryTranscriptStore();
     const input = {

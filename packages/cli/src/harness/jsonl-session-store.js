@@ -44,6 +44,7 @@ import {
   markDurableSystemMessage,
   projectCanonicalResumeMessages,
   sanitizePersistedMessage,
+  sanitizeConversationMessage,
   SESSION_FORK_AUTHORITY_FIELD,
 } from "../lib/session-message-provenance.js";
 import {
@@ -5931,7 +5932,7 @@ function isReplayableMessage(m) {
 function rebuildMessagesFromFile(
   filePath,
   options = {},
-  decodeMessage = sanitizePersistedMessage,
+  decodeMessage = sanitizeConversationMessage,
 ) {
   const ioMetrics = options?.ioMetrics ?? null;
   // Scan newest-first and stop at the latest valid compact checkpoint. Memory
