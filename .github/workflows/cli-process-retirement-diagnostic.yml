@@ -1,0 +1,72 @@
+name: CLI Process Retirement Diagnostic
+
+on:
+  push:
+    branches: [feature/cli-process-retirement-diagnostic-20261024]
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: "Exact source commit to diagnose; this is not a release gate"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  retirement:
+    name: Process retirement (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    env:
+      CC_RETIREMENT_SOURCE_SHA: ${{ inputs.commit_sha || github.sha }}
+      CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS: "60000"
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.CC_RETIREMENT_SOURCE_SHA }}
+          persist-credentials: false
+      - name: Verify exact diagnostic source
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$CC_RETIREMENT_SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$CC_RETIREMENT_SOURCE_SHA"
+          test -z "$(git status --porcelain --untracked-files=no)"
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+      - uses: ./.github/actions/setup-node-deps
+      - name: Observe independent resource-holding process trees
+        run: node .github/scripts/diagnose-duplex-retirement.mjs
+      - name: Run focused regression tests without retries
+        if: ${{ !cancelled() }}
+        working-directory: packages/cli
+        run: >-
+          npx vitest run --maxWorkers=1 --no-file-parallelism
+          --reporter=default --reporter=junit
+          --outputFile.junit=test-results/process-retirement.xml
+          __tests__/unit/cli-reliability-duplex-diagnostics.test.js
+          __tests__/unit/soak-host-metrics.test.js
+          __tests__/unit/cli-reliability-soak.test.js
+      - name: Verify tracked source stayed unchanged
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$CC_RETIREMENT_SOURCE_SHA"
+          test -z "$(git status --porcelain --untracked-files=no)"
+      - name: Upload original diagnostics and regression report
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: process-retirement-${{ matrix.os }}-${{ github.sha }}-${{ github.run_attempt }}
+          path: |
+            test-results/process-retirement.json
+            packages/cli/test-results/process-retirement.xml
+          if-no-files-found: error
+          retention-days: 30

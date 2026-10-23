@@ -240,7 +240,7 @@ describe("duplex failure evidence", () => {
       leaf = JSON.parse(String(chunk)).leaf;
       expect(fs.existsSync(path.join(root, "leaf-held.db"))).toBe(true);
       const result = await retireDuplexProcessTree(child, completion, 10_000);
-      expect(result).toMatchObject({
+      expect(result, JSON.stringify(result)).toMatchObject({
         confirmed: true,
         closed: true,
         treeTerminated: true,
@@ -260,6 +260,46 @@ describe("duplex failure evidence", () => {
       }
     }
   }, 20_000);
+
+  it.each(["signal-group", "probe-group"])(
+    "keeps a POSIX %s permission failure unconfirmed with safe diagnostics",
+    async (failureStage) => {
+      const kill = vi.fn((_pid, signal) => {
+        if (failureStage === "signal-group" || signal === 0) {
+          throw Object.assign(new Error(secret), { code: "EPERM" });
+        }
+      });
+      const result = await retireDuplexProcessTree(
+        { pid: 123 },
+        { exit: () => null, wait: async () => {} },
+        10_000,
+        { platform: "darwin", kill },
+      );
+      expect(result).toMatchObject({
+        confirmed: false,
+        closed: true,
+        treeTerminated: false,
+        deadlineExceeded: false,
+        diagnostics: {
+          method: "posix-process-group",
+          initialExitObserved: false,
+          signalAttempted: true,
+          failureStage,
+          errorCode: "EPERM",
+          probeCount: failureStage === "signal-group" ? 0 : 1,
+        },
+      });
+      expect(kill.mock.calls).toEqual(
+        failureStage === "signal-group"
+          ? [[-123, "SIGKILL"]]
+          : [
+              [-123, "SIGKILL"],
+              [-123, 0],
+            ],
+      );
+      expect(JSON.stringify(result)).not.toContain(secret);
+    },
+  );
 
   it("never signals an already exited root PID or claims its descendants are retired", async () => {
     const child = spawn(process.execPath, ["-e", "process.exit(0)"], {

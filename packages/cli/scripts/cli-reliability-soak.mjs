@@ -1224,12 +1224,35 @@ export async function retireDuplexProcessTree(
   child,
   completion,
   cleanupDeadlineMs,
+  { platform = process.platform, kill = process.kill.bind(process) } = {},
 ) {
   const started = performance.now();
   const deadline = started + cleanupDeadlineMs;
   const remaining = () => Math.max(0, deadline - performance.now());
   let closed = false;
   let treeTerminated = false;
+  const initialExit = completion.exit();
+  const diagnostics = {
+    method:
+      platform === "win32" ? "windows-taskkill-tree" : "posix-process-group",
+    initialExitObserved: initialExit !== null,
+    signalAttempted: false,
+    probeCount: 0,
+    failureStage: null,
+    errorCode: null,
+  };
+  const recordFailure = (stage, error) => {
+    diagnostics.failureStage = stage;
+    diagnostics.errorCode = [
+      "ESRCH",
+      "EPERM",
+      "EACCES",
+      "EINVAL",
+      "ENOSYS",
+    ].includes(error?.code)
+      ? error.code
+      : "UNKNOWN";
+  };
   const close = completion.wait(remaining()).then(
     () => {
       closed = true;
@@ -1241,8 +1264,9 @@ export async function retireDuplexProcessTree(
     child.pid > 0 &&
     child.pid !== process.pid;
   try {
-    if (validPid && completion.exit() === null) {
-      if (process.platform === "win32") {
+    if (validPid && initialExit === null) {
+      diagnostics.signalAttempted = true;
+      if (platform === "win32") {
         treeTerminated = await new Promise((resolvePromise) => {
           const killer = spawn(
             "taskkill.exe",
@@ -1253,29 +1277,39 @@ export async function retireDuplexProcessTree(
             },
           );
           const timer = setTimeout(() => {
+            diagnostics.failureStage = "taskkill-timeout";
+            diagnostics.errorCode = "ETIMEDOUT";
             killer.kill("SIGKILL");
             resolvePromise(false);
           }, remaining());
-          killer.once("error", () => {
+          killer.once("error", (error) => {
+            recordFailure("taskkill-spawn", error);
             clearTimeout(timer);
             resolvePromise(false);
           });
           killer.once("close", (code) => {
             clearTimeout(timer);
+            if (code !== 0 && !diagnostics.failureStage) {
+              diagnostics.failureStage = "taskkill-exit";
+              diagnostics.errorCode = "EXIT_NONZERO";
+            }
             resolvePromise(code === 0);
           });
         });
       } else {
         try {
-          process.kill(-child.pid, "SIGKILL");
+          kill(-child.pid, "SIGKILL");
         } catch (error) {
+          recordFailure("signal-group", error);
           if (error?.code !== "ESRCH") throw error;
         }
         while (remaining() > 0) {
           try {
-            process.kill(-child.pid, 0);
+            diagnostics.probeCount += 1;
+            kill(-child.pid, 0);
           } catch (error) {
             treeTerminated = error?.code === "ESRCH";
+            if (!treeTerminated) recordFailure("probe-group", error);
             break;
           }
           await new Promise((resolvePromise) =>
@@ -1295,6 +1329,7 @@ export async function retireDuplexProcessTree(
     treeTerminated,
     confirmed: closed && treeTerminated,
     deadlineExceeded: !(closed && treeTerminated) && remaining() === 0,
+    diagnostics,
   };
 }
 
