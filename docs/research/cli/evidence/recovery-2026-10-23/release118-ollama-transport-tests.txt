@@ -1,0 +1,8 @@
+
+ RUN  v4.1.11 C:/code/chainlesschain/packages/cli
+
+
+ Test Files  4 passed (4)
+      Tests  61 passed (61)
+   Start at  21:53:30
+   Duration  19.83s (transform 9.68s, setup 2.17s, import 16.75s, tests 14.19s, environment 2ms)

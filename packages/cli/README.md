@@ -4,7 +4,7 @@ Command-line interface for installing, configuring, and managing [ChainlessChain
 
 ## CLI 0.166.118
 
-This release follows Agent SDK **0.2.16** and pairs with VS Code **0.37.160** and JetBrains **0.4.177**. It includes the Web Panel DOMPurify security patch, input delivery and Windows draft recovery fixes, and preserves redacted transport receipts for future native task retests. Releases require the exact-source Linux, Windows and macOS Actions gates. Required order: child npm packages → CLI → IDE extensions → mobile / PC clients, verifying public artifacts at each stage.
+This release follows Agent SDK **0.2.16** and pairs with VS Code **0.37.160** and JetBrains **0.4.177**. It includes the Web Panel DOMPurify security patch, input delivery and Windows draft recovery fixes, project-instruction code fence handling, and Windows native directory identity compatibility. It preserves redacted transport receipts for future native task retests. Releases require the exact-source Linux, Windows and macOS Actions gates. Required order: child npm packages → CLI → IDE extensions → mobile / PC clients, verifying public artifacts at each stage.
 
 Install this version after its npm release is available:
 

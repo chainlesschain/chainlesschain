@@ -1,6 +1,6 @@
 {
   "schema": "chainlesschain.cli-ide-release-preparation/v1",
-  "recordedAt": "2026-10-23T12:56:26.991Z",
+  "recordedAt": "2026-10-23T14:00:33.020Z",
   "baseline": "79b7d49841341eb4caf135414183c1311db58b75",
   "pullRequest": "https://github.com/chainlesschain/chainlesschain/pull/483",
   "authorization": {
@@ -121,16 +121,16 @@
       "originalRun": 39946036842,
       "originalJob": 120389223383,
       "originalFailure": "mcpOutput exit 1 before model requests; stdout 0 / stderr 180 bytes, followed by slow-pipe no-output failure",
-      "rootCause": "Windows volume serial width mismatch reproduced with native APIs and simulated old Node stat representation; exact-source CI confirmation still required",
+      "rootCause": "The initial DWORD-width-only normalization did not resolve Windows CI. The new handle-bound fix handles Node 22.12 fast-stat structure layout. Linux/macOS advanced past the original projection error, then failed duplex fetches; a loopback stale-socket reproduction informed the Ollama dispatcher fix. All new runtime fixes still require their own complete exact-source CI.",
       "originalReceipt": "release118-windows-soak-before.json",
       "regressionTests": {
-        "passed": 14,
+        "passed": 16,
         "failed": 0,
         "pending": 0,
         "report": "release118-soak-diagnostics-tests.json"
       },
-      "scope": "Capture bounded startup categories and early child lifecycle/failure snapshots without relaxing failure criteria or deadlines.",
-      "localMcpReproduction": "Earlier malformed JSON error was reproduced in composed repository instructions. ERR_MODULE_NOT_FOUND was prompt prose, not evidence of a module failure. A post-fix local real MCP/pipe attempt timed out before completing MCP and is retained as failed, not counted as passed.",
+      "scope": "Retain bounded startup categories and early child lifecycle/failure snapshots; diagnose MCP result errors without scanning context prose. Deadlines and failure criteria unchanged.",
+      "localMcpReproduction": "Earlier malformed JSON error was reproduced in repository instructions. ERR_MODULE_NOT_FOUND was prompt prose, not evidence of a module failure. A post-fix real local MCP/pipe attempt timed out during MCP and remains failed.",
       "projectInstructions": {
         "relatedTestsPassed": 195,
         "rulesetVersion": 5,
@@ -138,13 +138,436 @@
         "report": "release118-project-instructions-validation.json"
       },
       "windowsDirectory": {
-        "testsPassed": 6,
-        "testsFailed": 0,
-        "skipped": 0,
-        "nativeApiBeforeAfter": "release118-windows-directory-before-after.json",
-        "actualLocalNode": "22.22.2",
-        "simulatedLegacyStatDev": true,
-        "realNode2212LocalPass": false
+        "initialWidthOnlyExperiment": {
+          "status": "INSUFFICIENT_SUPERSEDED",
+          "historicalTestsPassed": 6,
+          "report": "release118-windows-directory-before-after.json",
+          "contradictingExactSourceCi": "release118-windows-soak-a7aa-before.json",
+          "note": "This earlier simulated representation experiment is not final ABI fix validation."
+        },
+        "finalAbiValidation": {
+          "baseHead": "a7aa1393e5e20012af8d84ccdf7d316a44acf131",
+          "scope": "Windows native directory durability; CLI internal only",
+          "correction": "The earlier serial-width normalization is insufficient for the observed CI failure. On the fast ByName path, Node 22.12/libuv 1.49.1 reads FILE_ID_128.HighPart as stat.dev because its FILE_STAT_BASIC_INFORMATION definition reverses VolumeSerialNumber and FileId128. It is not a full volume serial on this path.",
+          "upstream": {
+            "node2212": "node2212-winapi.h",
+            "libuv149": "uv149-winapi.h",
+            "libuv151": "uv151-winapi.h",
+            "node2212Layout": {
+              "fileId128": 80,
+              "volumeSerialNumber": 96
+            },
+            "correctLayout": {
+              "volumeSerialNumber": 80,
+              "fileId128": 88,
+              "totalBytes": 104
+            },
+            "brokerReference": "packages/cli/src/lib/process-execution-broker/windows-sandbox.cs:2210-2274"
+          },
+          "implementation": {
+            "files": [
+              "packages/cli/src/lib/evolution/evolution-windows-directory-durability.js",
+              "packages/cli/__tests__/unit/evolution-windows-directory-durability.test.js"
+            ],
+            "binding": [
+              "GetFileInformationByHandleEx(FileIdInfo): full native volume and 128-bit file ID",
+              "NtQueryInformationFile(FileStatInformation): handle path-stat file ID",
+              "GetFileInformationByName(FileStatBasicByNameInfo): correct layout, same complete volume and IDs, directory/non-reparse"
+            ],
+            "compatibility": "Exact DWORD+inode, or same-handle actual complete native volume serial+inode; Node22 HighPart+path-stat inode is accepted only after full native volume/128-bit/path-stat binding. Arbitrary high bits and unconditional zero-dev fallback are refused.",
+            "preserved": [
+              "fixed-drive and NTFS requirement",
+              "normalized realpath equality",
+              "non-reparse directory attributes",
+              "complete stat.dev and stat.ino before/after equality",
+              "flush checked before and after via pinned directory handle",
+              "close handle on success and failure"
+            ],
+            "genericHighBitFallback": false,
+            "zeroDeviceBypass": false,
+            "extendedPath": "GetFileInformationByName receives win32Path(directory), matching CreateFileW and preserving normalized realpath identity checks."
+          },
+          "validation": {
+            "node22222": {
+              "runtime": "v22.22.2",
+              "tests": 23,
+              "passed": 23,
+              "durationSeconds": 2.95,
+              "rawLog": ".work/cli-ide-recovery-20261023/windows-stat-abi-node22.22.2-native.log"
+            },
+            "node22120": {
+              "runtime": "v22.12.0",
+              "binary": ".work/cli-ide-recovery-20261023/node-22.12.0/node-verified.exe",
+              "sha256": "b3b117a08ee61efee09e6fd523ab33c0c018da1b570bde08e4fd914dc1170ed6",
+              "tests": 23,
+              "passed": 23,
+              "combined": {
+                "status": "failed-partial-stopped",
+                "files": [
+                  "evolution-windows-directory-durability.test.js",
+                  "local-ui-evolution-deployment.test.js",
+                  "agent-evolution-runtime-composition.test.js"
+                ],
+                "failures": [
+                  {
+                    "file": "agent-evolution-runtime-composition.test.js",
+                    "test": "protects the real stream manual compaction (denied=false)",
+                    "reason": "existing 90000ms test deadline exceeded",
+                    "observedMs": 91252
+                  },
+                  {
+                    "file": "local-ui-evolution-deployment.test.js",
+                    "test": "lazily signs a first agent start and authenticates ask, chat and UI session modes",
+                    "reason": "existing 300000ms deadline exceeded",
+                    "observedMs": 344787
+                  }
+                ],
+                "observedCompletedCases": 23,
+                "observedPassedCases": 21,
+                "observedFailedCases": 2,
+                "log": ".work/cli-ide-recovery-20261023/windows-stat-abi-combined-partial.log",
+                "note": "The isolated manual-compaction retry passed under the unchanged deadline; this does not convert the interrupted combination into a pass. The deployment first-agent-start timeout was not isolated or rerun."
+              },
+              "prior21TestResult": "superseded by stricter final source; not final acceptance",
+              "isolated": {
+                "status": "passed",
+                "file": "agent-evolution-runtime-composition.test.js",
+                "test": "protects the real stream manual compaction (denied=false)",
+                "passed": 1,
+                "skipped": 242,
+                "timeoutMs": 90000,
+                "testDurationMs": 83766,
+                "totalDurationSeconds": 103.86,
+                "sourceNote": "Passed before the final narrow ByName extended-path call correction; not rerun with the final long-path-only change."
+              },
+              "durationSeconds": 2.48,
+              "rawLog": ".work/cli-ide-recovery-20261023/windows-stat-abi-node22.12.0-native.log"
+            },
+            "testBreakdown": {
+              "nativeBaseline": 7,
+              "controlledByNameWithRealNativeHandle": 3,
+              "controlledApiCompatibilityAndRejection": 13
+            },
+            "limitation": "This local Windows host does not export GetFileInformationByName. Real Node22.12 uses the slow native path here; successful local tests are not an actual hosted CI fast-path observation. Exact-head Windows CI remains required.",
+            "prettier": "passed",
+            "gitDiffCheck": "passed",
+            "syntax": "passed",
+            "layoutAssertions": {
+              "size": 104,
+              "volumeSerialOffset": 80,
+              "fileId128Offset": 88
+            },
+            "supersededCombinedRun": "terminated on source revision; never counted as final pass",
+            "exactHeadCi": "required; not yet observed for this uncommitted revision",
+            "longPath": {
+              "passed": true,
+              "constructedDirectoryLengthGreaterThan": 260,
+              "expectedByNamePath": "path.toNamespacedPath(root)",
+              "extendedPrefixAsserted": true,
+              "realNativeHandleBinding": true
+            },
+            "previous22TestLogs": "The earlier 22-case runs were reported through tool output only. The archived final 23-case raw logs include those cases plus the long-path regression."
+          },
+          "ciFailure": {
+            "head": "a7aa1393e5e20012af8d84ccdf7d316a44acf131",
+            "artifact": "soak-windows-a7aa/artifact/cli-reliability-result.json",
+            "status": "failed",
+            "stdoutBytes": 0,
+            "stderrBytes": 180,
+            "exitCode": 1,
+            "unchangedAfterSerialWidthNormalization": true
+          }
+        },
+        "report": "release118-windows-stat-abi-validation.json",
+        "actualNode2212LocalNativeFlush": "release118-node2212-native.json"
+      },
+      "ollamaTransport": {
+        "schema": "chainlesschain.ollama-transport-validation.v1",
+        "timestamp": "2026-10-23T13:56:44.366Z",
+        "status": "targeted-tests-passed-exact-sha-ci-required",
+        "node": "v22.12.0",
+        "platform": "win32-x64",
+        "paidModelCalls": 0,
+        "ciBeforeFix": [
+          {
+            "platform": "linux",
+            "headSha": "a7aa1393e5e20012af8d84ccdf7d316a44acf131",
+            "status": "failed",
+            "violations": ["duplexSoak scenario failed"],
+            "allOtherScenariosPass": true,
+            "duplex": {
+              "pass": false,
+              "turns": 10,
+              "warmup": {
+                "configuredTurns": 2,
+                "completedTurns": 2
+              },
+              "configuredDurationSeconds": 5,
+              "continuousDurationSeconds": 178.44486627300003,
+              "schedule": {
+                "mode": "duration-spread",
+                "targetTurns": 10,
+                "targetIntervalMs": 500
+              },
+              "latency": {
+                "p95Ms": 36255.770002000005,
+                "observedCount": 10,
+                "retainedCount": 10,
+                "retention": "rolling-window"
+              },
+              "rss": {
+                "beforeBytes": 225292288,
+                "afterBytes": 289910784,
+                "growthBytes": 64618496,
+                "maximumBytes": 325652480,
+                "peakGrowthBytes": 100360192,
+                "limitGrowthBytes": 134217728
+              },
+              "resources": {
+                "kind": "fd",
+                "before": 32,
+                "after": 31,
+                "delta": -1,
+                "maximum": 32,
+                "peakDelta": 0,
+                "limitGrowth": 8,
+                "requiredMeasurementsAvailable": true
+              },
+              "io": {
+                "available": true,
+                "readBytes": 0,
+                "writeBytes": 29708288,
+                "readChars": 6270705898,
+                "writeChars": 6804998,
+                "source": null
+              },
+              "processDescendants": {
+                "measurementAvailable": true,
+                "beforeSource": "pgrep",
+                "afterSource": "pgrep",
+                "unavailableReason": null,
+                "beforeExit": 0,
+                "observed": 0,
+                "retired": 0,
+                "afterExit": 0,
+                "allRetired": true
+              },
+              "exit": {
+                "code": 1,
+                "signal": null
+              },
+              "results": {
+                "count": 12,
+                "measuredCount": 10,
+                "errorCount": 2,
+                "subtypeCounts": {
+                  "success": 10,
+                  "error": 2
+                },
+                "lengthMinimum": 14,
+                "lengthMaximum": 14
+              },
+              "diagnosticCodes": [],
+              "diagnosticClasses": ["fetch-failed"]
+            }
+          },
+          {
+            "platform": "darwin",
+            "headSha": "a7aa1393e5e20012af8d84ccdf7d316a44acf131",
+            "status": "failed",
+            "violations": ["duplexSoak scenario failed"],
+            "allOtherScenariosPass": true,
+            "duplex": {
+              "pass": false,
+              "turns": 10,
+              "warmup": {
+                "configuredTurns": 2,
+                "completedTurns": 2
+              },
+              "configuredDurationSeconds": 5,
+              "continuousDurationSeconds": 282.187390792,
+              "schedule": {
+                "mode": "duration-spread",
+                "targetTurns": 10,
+                "targetIntervalMs": 500
+              },
+              "latency": {
+                "p95Ms": 51328.35837500001,
+                "observedCount": 10,
+                "retainedCount": 10,
+                "retention": "rolling-window"
+              },
+              "rss": {
+                "beforeBytes": 194035712,
+                "afterBytes": 244924416,
+                "growthBytes": 50888704,
+                "maximumBytes": 284164096,
+                "peakGrowthBytes": 90128384,
+                "limitGrowthBytes": 134217728
+              },
+              "resources": {
+                "kind": "fd",
+                "before": 22,
+                "after": 21,
+                "delta": -1,
+                "maximum": 22,
+                "peakDelta": 0,
+                "limitGrowth": 8,
+                "requiredMeasurementsAvailable": true
+              },
+              "io": {
+                "available": false,
+                "reason": "host-has-no-portable-io-counter"
+              },
+              "processDescendants": {
+                "measurementAvailable": true,
+                "beforeSource": "pgrep",
+                "afterSource": "pgrep",
+                "unavailableReason": null,
+                "beforeExit": 0,
+                "observed": 0,
+                "retired": 0,
+                "afterExit": 0,
+                "allRetired": true
+              },
+              "exit": {
+                "code": 1,
+                "signal": null
+              },
+              "results": {
+                "count": 12,
+                "measuredCount": 10,
+                "errorCount": 1,
+                "subtypeCounts": {
+                  "success": 11,
+                  "error": 1
+                },
+                "lengthMinimum": 14,
+                "lengthMaximum": 14
+              },
+              "diagnosticCodes": [],
+              "diagnosticClasses": ["fetch-failed"]
+            }
+          }
+        ],
+        "diagnosis": {
+          "observedCiFailure": "duplex result errors classified fetch-failed; original CI artifact does not retain native cause; CI equivalence remains to be verified",
+          "reproducedMechanism": "Node 22.12 bundled fetch reuses a retired idle socket before pending FIN/RST is processed after synchronous client work",
+          "baseline": {
+            "callsAttempted": 3,
+            "serverRequests": 2,
+            "failedCall": 2,
+            "error": "fetch failed",
+            "causeCode": "ECONNRESET",
+            "syscall": "read",
+            "serverDefaultIdleTimeoutMs": 5000,
+            "clientBlockMs": 6500,
+            "log": ".work/cli-ide-recovery-20261023/ollama-bundled-fetch-baseline.log"
+          },
+          "fixedStandalone": {
+            "fetch": "unchanged Node global fetch",
+            "dispatcher": "undici 7.30.1 Agent",
+            "callsAttempted": 5,
+            "serverRequests": 5,
+            "successes": 5,
+            "source": ".work/cli-ide-recovery-20261023/soak-linux-a7aa/keepalive-agent-probe.mjs"
+          },
+          "upstreamMechanism": "undici client-h1 scheduleIdleSocketValidation checks pending socket FIN/RST before writing; no application retry added"
+        },
+        "implementation": {
+          "minimumUndici": "^7.30.1",
+          "lockResolved": "7.30.1",
+          "lockMetadataSource": "npm view undici@7.30.1 version dist --json --offline",
+          "path": "default unscoped Ollama nonstream and streaming transports only",
+          "globalFetchInjectionPreserved": true,
+          "explicitDispatcherPreserved": true,
+          "activeBudgetScope": "original init forwarded without adding dispatcher; strict createFormalBudgetTransport allowlist and host-owned fetch remain authoritative",
+          "defaultGlobalDispatcherNote": "No production setGlobalDispatcher calls found; caller init.dispatcher remains authoritative",
+          "retryAdded": false,
+          "sourceFiles": [
+            {
+              "path": "packages/cli/src/lib/ollama-provider-fetch.js",
+              "sha256": "d02fe2a9958d8e955a2511c1158f670834d3ebaa8a276f8e0fedfe7b753fcd60"
+            },
+            {
+              "path": "packages/cli/src/lib/provider-stream.js",
+              "sha256": "fb15900bee86f2628bc63ceb018f804fe62412959d2ecc1cb9a50a10922ea378"
+            },
+            {
+              "path": "packages/cli/src/runtime/agent-core.js",
+              "sha256": "431e138682fe05b90cfc5c094d7fdcd29c12843069fd1995d8d36ef2b13191f5"
+            },
+            {
+              "path": "packages/cli/__tests__/unit/ollama-provider-fetch.test.js",
+              "sha256": "888c8d4215a78696e741fd5aeaa337e3b30a4904f7fb3183e1b070dd154cd373"
+            },
+            {
+              "path": "packages/cli/package.json",
+              "sha256": "2ac78e5933d7ecbdfa1519b3061689ad0f241e2d06e0f014ffe340bddfb7d609"
+            },
+            {
+              "path": "package-lock.json",
+              "sha256": "ae7dbf8003992b2925177186fef13f6effc0f08d478b04df4cb2963b61081829"
+            }
+          ]
+        },
+        "tests": {
+          "vitest": {
+            "passed": 61,
+            "failed": 0,
+            "files": 4,
+            "log": ".work/cli-ide-recovery-20261023/ollama-transport-vitest.log",
+            "suites": [
+              "__tests__/unit/ollama-provider-fetch.test.js",
+              "__tests__/unit/agent-core-stream-resilience.test.js",
+              "__tests__/unit/agent-core-streaming.test.js",
+              "src/lib/__tests__/provider-stream.test.js"
+            ],
+            "realLoopback": {
+              "calls": 3,
+              "dispatches": 3,
+              "requests": 3,
+              "clientBlockMs": 6500,
+              "retiredIdleSocketsValidated": true
+            },
+            "lostResponse": {
+              "requests": 1,
+              "replayed": false
+            },
+            "abort": {
+              "requests": 0
+            },
+            "scopeAndOverrides": true
+          },
+          "realBudget": {
+            "status": "blocked-by-missing-local-native-sqlite-binding",
+            "tests": 102,
+            "passed": 7,
+            "failed": 95,
+            "code": "CC_BUDGET_STORAGE_UNAVAILABLE",
+            "cause": "better-sqlite3 native better_sqlite3.node missing under installed CLI dependency on both official22.12/current22.22",
+            "suites": [
+              "packages/cli/test-node/formal-budget-provider-scope.node-test.mjs",
+              "packages/cli/test-node/formal-budget-authority.test.mjs"
+            ],
+            "log": ".work/cli-ide-recovery-20261023/ollama-budget-boundaries.log"
+          }
+        },
+        "fullCliDiagnostic": {
+          "status": "stopped-before-completion-not-soak-pass",
+          "beforeFix": true,
+          "results": 2,
+          "successes": 2,
+          "requests": 2,
+          "reason": "local full CLI synchronous work about73s per turn; stopped to prioritize deterministic transport tests",
+          "httpLog": ".work/cli-ide-recovery-20261023/soak-linux-a7aa/duplex-http.jsonl"
+        },
+        "gates": {
+          "fullSoakPassed": false,
+          "exactShaCiPassed": false,
+          "publishAuthorizedByThisReport": false,
+          "required": "New exact-source Linux Windows macOS CLI CI, Strict Sandbox, Reliability Soak and all established release gates"
+        }
       }
     },
     "generatedCommandAssets": "manifest, help index and completions checks passed",
@@ -191,7 +614,7 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "9cb15f54ee36816e1078f3baa281ec9cbc3e8e6ff67eca0e26c26bdf65c15683"
+      "sha256": "0f0062bbd85ce07b21f5622cf9de2abfe5005776c109ce9180e2c78b606b7ed1"
     },
     {
       "path": "android-app/app/build.gradle.kts",
@@ -219,7 +642,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "a4e3eac0b3200937105c6372cfbfc7ffaa8336ac2f3db3ee5823a36fdc2f0c3d"
+      "sha256": "ae7dbf8003992b2925177186fef13f6effc0f08d478b04df4cb2963b61081829"
     },
     {
       "path": "package.json",
@@ -247,11 +670,11 @@
     },
     {
       "path": "packages/cli/README.md",
-      "sha256": "09a66cbf9aa24fe11ed1ec0fd438192f3372581ec06b521e6a37c6b7a5c056ff"
+      "sha256": "e536559fd82d0e302ec508dc5d95206e8cead743c27ec95403ce6eaabfaf2550"
     },
     {
       "path": "packages/cli/__tests__/unit/cli-reliability-soak.test.js",
-      "sha256": "ef5ed6476cb763f9a151a200a4fe0eae43ae39447163f145590af112aa740f6b"
+      "sha256": "8cc670a7d98b67118cef5904c9805d70340a8048c86edd06608e86f0a3e8a6e0"
     },
     {
       "path": "packages/cli/__tests__/unit/evolution-evidence-projector.test.js",
@@ -259,7 +682,11 @@
     },
     {
       "path": "packages/cli/__tests__/unit/evolution-windows-directory-durability.test.js",
-      "sha256": "1a4e71ad650ef87cc00f999a73e2117b25776023883edc6665ac1b0af084db80"
+      "sha256": "c377b2a5b473065c1717012330df638129690eec1489c05d040eee9a269f7098"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/ollama-provider-fetch.test.js",
+      "sha256": "888c8d4215a78696e741fd5aeaa337e3b30a4904f7fb3183e1b070dd154cd373"
     },
     {
       "path": "packages/cli/__tests__/unit/release-workflow-contract.test.js",
@@ -271,11 +698,11 @@
     },
     {
       "path": "packages/cli/package.json",
-      "sha256": "eb4ebd3705d5e901fe734cba7820306ddd2c45b0e0b2b1749a2ea3977de201ff"
+      "sha256": "2ac78e5933d7ecbdfa1519b3061689ad0f241e2d06e0f014ffe340bddfb7d609"
     },
     {
       "path": "packages/cli/scripts/cli-reliability-soak.mjs",
-      "sha256": "e0622ecea5e151ac83d5d86f9a247da4f5a51e358a5f799640920684eb686514"
+      "sha256": "0f168fc220f64ad0f60fb56f9abf2aa92e96756112bc0e18fbd607ada57aae82"
     },
     {
       "path": "packages/cli/scripts/verify01-collect-native-retest.py",
@@ -283,7 +710,7 @@
     },
     {
       "path": "packages/cli/src/data/changelog.json",
-      "sha256": "80e52740071bdd3f3e8bddd7c97ea4430cc5aba06cf69e5e2d321788f3b3ebbd"
+      "sha256": "3fb27c4227ded4e4534c4298aacd33eaa0361d770bd885314fe256d07dbadffc"
     },
     {
       "path": "packages/cli/src/lib/evolution/evidence-json-text.js",
@@ -295,7 +722,19 @@
     },
     {
       "path": "packages/cli/src/lib/evolution/evolution-windows-directory-durability.js",
-      "sha256": "28175e33be4e2ad49c635d3fd22c53ea897478b9ff4246d94ff3dcd7a8597250"
+      "sha256": "f5311afa960fe08cafc0d999635a9d1c0c2093dbf1aed6efcebdef7a291d8112"
+    },
+    {
+      "path": "packages/cli/src/lib/ollama-provider-fetch.js",
+      "sha256": "d02fe2a9958d8e955a2511c1158f670834d3ebaa8a276f8e0fedfe7b753fcd60"
+    },
+    {
+      "path": "packages/cli/src/lib/provider-stream.js",
+      "sha256": "c3825a5ecf82bd4c27c485568b878c5f82b0c6cdee2441eb7308a3c25a9216c1"
+    },
+    {
+      "path": "packages/cli/src/runtime/agent-core.js",
+      "sha256": "431e138682fe05b90cfc5c094d7fdcd29c12843069fd1995d8d36ef2b13191f5"
     },
     {
       "path": "packages/cli/test-node/verify01-native-retest-round.node-test.mjs",
@@ -414,8 +853,8 @@
     },
     {
       "path": "release118-contract-tests.json",
-      "sha256": "5eebb919d4d8857e716684071af432d091121f894679484c9cbaecebc1feccd3",
-      "originalSha256": "5eebb919d4d8857e716684071af432d091121f894679484c9cbaecebc1feccd3"
+      "sha256": "bc87de68f2f5402661378cc676ee306685cfe4af30dac36bbd4944a162cac09f",
+      "originalSha256": "bc87de68f2f5402661378cc676ee306685cfe4af30dac36bbd4944a162cac09f"
     },
     {
       "path": "release118-extra-local-checks.json",
@@ -449,8 +888,8 @@
     },
     {
       "path": "release118-soak-diagnostics-tests.json",
-      "sha256": "2de5a447ce7dc37a23fa09e8efc0628d8ec384d163782b6e68ac09e1376c821a",
-      "originalSha256": "2de5a447ce7dc37a23fa09e8efc0628d8ec384d163782b6e68ac09e1376c821a"
+      "sha256": "733dbdc676e9f3d80f3fb2539c0e621eb1d35d6f457892ce02e64f442e926c74",
+      "originalSha256": "733dbdc676e9f3d80f3fb2539c0e621eb1d35d6f457892ce02e64f442e926c74"
     },
     {
       "path": "release118-macos-soak-304-before.json",
@@ -486,6 +925,66 @@
       "path": "release118-local-soak-after.json",
       "sha256": "8e76bc881f0cacea8874541b0a6538db687297b0c472bb85d20d989c4b4df77c",
       "originalSha256": "8e76bc881f0cacea8874541b0a6538db687297b0c472bb85d20d989c4b4df77c"
+    },
+    {
+      "path": "release118-windows-soak-a7aa-before.json",
+      "sha256": "a3990335f3b452885079bf9485a728f1ca91b492fc59c88c63b85fdcb7a7968f",
+      "originalSha256": "a3990335f3b452885079bf9485a728f1ca91b492fc59c88c63b85fdcb7a7968f"
+    },
+    {
+      "path": "release118-node2212-native.json",
+      "sha256": "d94fb1c6a281980d95be41a36b892cf4cd88a82567993b9ae322fb55d65ef5a7",
+      "originalSha256": "d94fb1c6a281980d95be41a36b892cf4cd88a82567993b9ae322fb55d65ef5a7"
+    },
+    {
+      "path": "release118-windows-stat-abi-validation.json",
+      "sha256": "a65a40a028e2859fc365a9b1260cc65f12b2469323b155d9e2a53a6de38b84d8",
+      "originalSha256": "a65a40a028e2859fc365a9b1260cc65f12b2469323b155d9e2a53a6de38b84d8"
+    },
+    {
+      "path": "release118-windows-native-node22.22.2.txt",
+      "sha256": "c0a333359709a185127ce9c6a4f09b92f95bd083cfaa2b40ea2d589c1fcafc56",
+      "originalSha256": "879cac82990217ddcc54473d33c6928dd648daaf222881e3ca6ef150eaf43933"
+    },
+    {
+      "path": "release118-windows-native-node22.12.0.txt",
+      "sha256": "9575e4bfe5980228cbcd72a728533276ee3f85f77373d7cc3f199910cefa591e",
+      "originalSha256": "af49f64ef83af8d1aa37aba28f41ab8c9c2ee71d3de4ffc1a37e41cd0c2b7612"
+    },
+    {
+      "path": "release118-windows-combined-partial.txt",
+      "sha256": "7197b6ca440fdc8cce2f1f6793e4e3e8fba4e198e257129c63bedba7e74864cb",
+      "originalSha256": "7197b6ca440fdc8cce2f1f6793e4e3e8fba4e198e257129c63bedba7e74864cb"
+    },
+    {
+      "path": "release118-linux-soak-a7aa-before.json",
+      "sha256": "81df976242cb83c7cbfe71413bc8deb1b408b782e94cd72569a0a4b383308eb3",
+      "originalSha256": "81df976242cb83c7cbfe71413bc8deb1b408b782e94cd72569a0a4b383308eb3"
+    },
+    {
+      "path": "release118-macos-soak-a7aa-before.json",
+      "sha256": "31d359a0868af1a6dca4971681643931fa90f3bdaa0853d49c4d3daac234ff56",
+      "originalSha256": "31d359a0868af1a6dca4971681643931fa90f3bdaa0853d49c4d3daac234ff56"
+    },
+    {
+      "path": "release118-ollama-transport-validation.json",
+      "sha256": "1e214e32afd3edf74291207a500555683b285f5631492b365c07d43e55a9407b",
+      "originalSha256": "1e214e32afd3edf74291207a500555683b285f5631492b365c07d43e55a9407b"
+    },
+    {
+      "path": "release118-ollama-transport-tests.txt",
+      "sha256": "0a08cc5db90825c415f46294aeb04c819cb6e540d677ea8c4e589196ed3352be",
+      "originalSha256": "02a3b3590e87b75feabb7341886ede9650b5c73566b96f0eb822c6cd1472a7a1"
+    },
+    {
+      "path": "release118-ollama-budget-local-failures.txt",
+      "sha256": "29badf6e69e08b9d4b05ceb7b60edb93516a4081e5e1b50a43aaf8cb86c1efaa",
+      "originalSha256": "856be002c5c67d90ccc2820ac7a51c3e56efb194f72a8814ac5d57b69451dbb4"
+    },
+    {
+      "path": "release118-ollama-keepalive-before.txt",
+      "sha256": "07e4119c3468a20ee0e0049b84c504d8196d60114b720c0170cfb5b620c5bee7",
+      "originalSha256": "69cfcf070c6dfd3308b3f82d78a21eb2335e0d9e229505e20fdffab964fd634b"
     }
   ],
   "rawSecurityAudit": {

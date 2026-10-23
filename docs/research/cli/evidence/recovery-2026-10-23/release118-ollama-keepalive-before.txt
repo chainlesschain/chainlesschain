@@ -1,0 +1,19 @@
+fetch 0 1792763638320
+connection 1792763638475
+server request 1792763638491
+ok
+socket closed 1792763644507
+fetch 1 1792763645032
+{
+  "message": "fetch failed",
+  "cause": {
+    "errno": -4077,
+    "code": "ECONNRESET",
+    "syscall": "read"
+  }
+}
+fetch 2 1792763651567
+connection 1792763651572
+server request 1792763651574
+ok
+socket closed 1792763657578

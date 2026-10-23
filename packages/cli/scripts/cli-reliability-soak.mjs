@@ -706,6 +706,19 @@ export function diskFailureDiagnostics(stderr) {
       ["sandbox-configured", /sandbox mode is explicitly off/u],
       ["fatal-json", /"error"\s*:\s*\{\s*"message"/u],
       ["command-error", /(?:^|\n)Error:/u],
+      ["evolution-ingress-startup", /(?:^|\n)Evolution ingress:/u],
+      [
+        "ntfs-directory-required",
+        /Windows local UI durable storage requires a local NTFS directory/u,
+      ],
+      [
+        "directory-handle-mismatch",
+        /Windows local UI durability handle does not match the requested directory/u,
+      ],
+      [
+        "directory-changed",
+        /Windows local UI durability directory changed during flush/u,
+      ],
       ["owner-only-storage", /owner-only|Could not secure/u],
       ["symbolic-link", /symbolic link|reparse point/u],
       ["module-missing", /Cannot find (?:module|package)/u],
@@ -1174,8 +1187,12 @@ export async function mcpOutputScenario(
     mcpServerPidObserved: Number.isSafeInteger(serverPid),
     mcpServerRetired: serverRetired,
     startupDiagnostics: diskFailureDiagnostics(stderr),
-    diagnosticCodes: diagnosticCodes(stdout, stderr),
-    diagnosticClasses: diagnosticClasses(stdout, stderr),
+    diagnosticCodes: diagnosticCodes(
+      stderr,
+      result?.code || "",
+      result?.error || "",
+    ),
+    diagnosticClasses: diagnosticClasses(stderr, result?.error || ""),
     toolResultProjections: toolResults.map((event) => ({
       isError: event.is_error ?? null,
       code: event.result?.code || event.code || null,

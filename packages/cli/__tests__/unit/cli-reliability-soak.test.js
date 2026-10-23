@@ -48,6 +48,66 @@ function finishChild(child, code, output = "") {
 }
 
 describe("CLI reliability soak gate", () => {
+  it("ignores error-code prose in MCP context while retaining actual result errors", async () => {
+    const home = mkdtempSync(resolve(tmpdir(), "cc-mcp-code-diagnostic-"));
+    try {
+      const report = await mcpOutputScenario(
+        "http://localhost",
+        home,
+        pipeProfile,
+        {
+          mcpObservations: () => ({ requestCount: 0 }),
+        },
+        {
+          spawnChild() {
+            const child = fakeChild();
+            setImmediate(() =>
+              finishChild(
+                child,
+                1,
+                JSON.stringify({
+                  type: "context",
+                  content: "ERR_MODULE_NOT_FOUND",
+                }) +
+                  "\n" +
+                  JSON.stringify({
+                    type: "result",
+                    subtype: "error",
+                    is_error: true,
+                    code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+                    error: "Model request was rejected",
+                  }) +
+                  "\n",
+              ),
+            );
+            return child;
+          },
+        },
+      );
+      expect(report.pass).toBe(false);
+      expect(report.diagnosticCodes).toEqual([
+        "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+      ]);
+      expect(report.stdoutBytes).toBeGreaterThan(0);
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+    }
+  });
+
+  it("classifies fixed Windows startup errors without retaining message content", () => {
+    const report = diskFailureDiagnostics(
+      "Evolution ingress: Windows local UI durable storage requires a local NTFS directory\n" +
+        "private /home/SECRET_CANARY\n",
+    );
+    expect(report.classes).toEqual([
+      "evolution-ingress-startup",
+      "ntfs-directory-required",
+    ]);
+    expect(JSON.stringify(report)).not.toMatch(
+      /SECRET_CANARY|Evolution ingress|\/home/u,
+    );
+  });
+
   it("retains stderr and the failed exit from a real no-output child", async () => {
     let spawned = 0;
     let report;

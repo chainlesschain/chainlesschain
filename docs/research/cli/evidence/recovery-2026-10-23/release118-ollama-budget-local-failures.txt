@@ -1,0 +1,1845 @@
+TAP version 13
+# Subtest: activation refuses missing contract, FX, history and untrusted evidence before creating storage
+ok 1 - activation refuses missing contract, FX, history and untrusted evidence before creating storage
+  ---
+  duration_ms: 37.6337
+  ...
+# Subtest: activation binds exact original lineage and cannot reset existing database
+not ok 2 - activation binds exact original lineage and cannot reset existing database
+  ---
+  duration_ms: 85.5051
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:111:1'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:112:31)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+  ...
+# Subtest: full output plus reasoning reserved with native currency; reasoning not billed twice
+not ok 3 - full output plus reasoning reserved with native currency; reasoning not billed twice
+  ---
+  duration_ms: 20.6357
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:151:1'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:152:17)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+  ...
+# Subtest: max_tokens never reduces reasoning/full-contract reservation
+not ok 4 - max_tokens never reduces reasoning/full-contract reservation
+  ---
+  duration_ms: 27.358
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:169:1'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:170:17)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+  ...
+# Subtest: same task initial and only one remediation retain original spend across reopen
+not ok 5 - same task initial and only one remediation retain original spend across reopen
+  ---
+  duration_ms: 21.2437
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:177:1'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:178:23)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+  ...
+# Subtest: remediation is not a second allowance; over-cap request is rejected before reserve
+not ok 6 - remediation is not a second allowance; over-cap request is rejected before reserve
+  ---
+  duration_ms: 17.6865
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:207:1'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:208:17)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+  ...
+# Subtest: historical unknown liability remains halted even if numeric amount is zero
+not ok 7 - historical unknown liability remains halted even if numeric amount is zero
+  ---
+  duration_ms: 21.7446
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:219:1'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:220:17)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+  ...
+# Subtest: historical task allocations sum to original $99 and are never reset
+not ok 8 - historical task allocations sum to original $99 and are never reset
+  ---
+  duration_ms: 33.7819
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:226:1'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:227:17)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+  ...
+# Subtest: duplicate run resume does not consume remediation and active initial must close
+not ok 9 - duplicate run resume does not consume remediation and active initial must close
+  ---
+  duration_ms: 19.8357
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:237:1'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:238:17)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+  ...
+# Subtest: one physical call ID cannot be redispatched; repeated settlement is idempotent
+not ok 10 - one physical call ID cannot be redispatched; repeated settlement is idempotent
+  ---
+  duration_ms: 22.6968
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:256:1'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:257:17)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+  ...
+# Subtest: invalid usage/model/tier/cache/reasoning permanently retains the whole reservation
+    # Subtest: 0
+    not ok 1 - 0
+      ---
+      duration_ms: 19.2244
+      location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:301:13'
+      failureType: 'testCodeFailure'
+      error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+      code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+      stack: |-
+        budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+        database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+        initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+        FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+        fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+        TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:302:27)
+        Test.runInAsyncScope (node:async_hooks:211:14)
+        Test.run (node:internal/test_runner/test:934:25)
+        Test.start (node:internal/test_runner/test:833:17)
+        TestContext.test (node:internal/test_runner/test:317:20)
+      ...
+    # Subtest: 1
+    not ok 2 - 1
+      ---
+      duration_ms: 27.4824
+      location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:301:13'
+      failureType: 'testCodeFailure'
+      error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+      code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+      stack: |-
+        budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+        database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+        initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+        FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+        fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+        TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:302:27)
+        Test.runInAsyncScope (node:async_hooks:211:14)
+        Test.run (node:internal/test_runner/test:934:25)
+        Test.start (node:internal/test_runner/test:833:17)
+        TestContext.test (node:internal/test_runner/test:317:20)
+      ...
+    # Subtest: 2
+    not ok 3 - 2
+      ---
+      duration_ms: 20.6377
+      location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:301:13'
+      failureType: 'testCodeFailure'
+      error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+      code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+      stack: |-
+        budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+        database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+        initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+        FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+        fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+        TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:302:27)
+        Test.runInAsyncScope (node:async_hooks:211:14)
+        Test.run (node:internal/test_runner/test:934:25)
+        Test.start (node:internal/test_runner/test:833:17)
+        TestContext.test (node:internal/test_runner/test:317:20)
+      ...
+    # Subtest: 3
+    not ok 4 - 3
+      ---
+      duration_ms: 19.6275
+      location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:301:13'
+      failureType: 'testCodeFailure'
+      error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+      code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+      stack: |-
+        budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+        database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+        initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+        FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+        fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+        TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:302:27)
+        Test.runInAsyncScope (node:async_hooks:211:14)
+        Test.run (node:internal/test_runner/test:934:25)
+        Test.start (node:internal/test_runner/test:833:17)
+        TestContext.test (node:internal/test_runner/test:317:20)
+      ...
+    # Subtest: 4
+    not ok 5 - 4
+      ---
+      duration_ms: 26.9121
+      location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:301:13'
+      failureType: 'testCodeFailure'
+      error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+      code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+      stack: |-
+        budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+        database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+        initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+        FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+        fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+        TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:302:27)
+        Test.runInAsyncScope (node:async_hooks:211:14)
+        Test.run (node:internal/test_runner/test:934:25)
+        Test.start (node:internal/test_runner/test:833:17)
+        TestContext.test (node:internal/test_runner/test:317:20)
+      ...
+    # Subtest: 5
+    not ok 6 - 5
+      ---
+      duration_ms: 22.9156
+      location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:301:13'
+      failureType: 'testCodeFailure'
+      error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+      code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+      stack: |-
+        budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+        database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+        initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+        FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+        fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+        TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:302:27)
+        Test.runInAsyncScope (node:async_hooks:211:14)
+        Test.run (node:internal/test_runner/test:934:25)
+        Test.start (node:internal/test_runner/test:833:17)
+        TestContext.test (node:internal/test_runner/test:317:20)
+      ...
+    # Subtest: 6
+    not ok 7 - 6
+      ---
+      duration_ms: 20.3722
+      location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:301:13'
+      failureType: 'testCodeFailure'
+      error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+      code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+      stack: |-
+        budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+        database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+        initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+        FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+        fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+        TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:302:27)
+        Test.runInAsyncScope (node:async_hooks:211:14)
+        Test.run (node:internal/test_runner/test:934:25)
+        Test.start (node:internal/test_runner/test:833:17)
+        TestContext.test (node:internal/test_runner/test:317:20)
+      ...
+    # Subtest: 7
+    not ok 8 - 7
+      ---
+      duration_ms: 18.2472
+      location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:301:13'
+      failureType: 'testCodeFailure'
+      error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+      code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+      stack: |-
+        budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+        database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+        initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+        FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+        fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+        TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:302:27)
+        Test.runInAsyncScope (node:async_hooks:211:14)
+        Test.run (node:internal/test_runner/test:934:25)
+        Test.start (node:internal/test_runner/test:833:17)
+        TestContext.test (node:internal/test_runner/test:317:20)
+      ...
+    1..8
+not ok 11 - invalid usage/model/tier/cache/reasoning permanently retains the whole reservation
+  ---
+  duration_ms: 184.6772
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:275:1'
+  failureType: 'subtestsFailed'
+  error: '8 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: expired contract/FX cannot admit new dispatch
+not ok 12 - expired contract/FX cannot admit new dispatch
+  ---
+  duration_ms: 29.5676
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:322:1'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:324:17)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+  ...
+# Subtest: reserved body mutation cannot consume dispatch authorization
+not ok 13 - reserved body mutation cannot consume dispatch authorization
+  ---
+  duration_ms: 27.2487
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:334:1'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:335:17)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+  ...
+# Subtest: multi-completion, thinking override and paid hosted tools fail before reservation
+not ok 14 - multi-completion, thinking override and paid hosted tools fail before reservation
+  ---
+  duration_ms: 17.448
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:341:1'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:342:17)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+  ...
+# Subtest: concurrent separate processes grant exactly one atomic reservation
+not ok 15 - concurrent separate processes grant exactly one atomic reservation
+  ---
+  duration_ms: 16.9916
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:353:1'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:354:33)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+  ...
+# Subtest: real process kill after reserved preserves durable accounting
+not ok 16 - real process kill after reserved preserves durable accounting
+  ---
+  duration_ms: 15.2278
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:381:3'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:382:41)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+  ...
+# Subtest: real process kill after dispatched preserves durable accounting
+not ok 17 - real process kill after dispatched preserves durable accounting
+  ---
+  duration_ms: 16.0743
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:381:3'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:382:41)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+  ...
+# Subtest: real process kill after settled preserves durable accounting
+not ok 18 - real process kill after settled preserves durable accounting
+  ---
+  duration_ms: 28.5467
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:381:3'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:382:41)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+  ...
+# Subtest: SQLite write failure admits no reservation and transport never calls provider
+not ok 19 - SQLite write failure admits no reservation and transport never calls provider
+  ---
+  duration_ms: 20.4337
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:414:1'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:415:29)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+  ...
+# Subtest: credential-owning JSON transport reserves before fetch, preserves body, never exposes key
+not ok 20 - credential-owning JSON transport reserves before fetch, preserves body, never exposes key
+  ---
+  duration_ms: 16.0514
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:437:1'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:438:17)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+  ...
+# Subtest: successful SSE requires complete terminal usage and settles once
+not ok 21 - successful SSE requires complete terminal usage and settles once
+  ---
+  duration_ms: 18.5746
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:462:1'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:463:17)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+  ...
+# Subtest: disconnect, missing usage, redirect/HTTP error never retry and halt next physical request
+    # Subtest: disconnect
+    not ok 1 - disconnect
+      ---
+      duration_ms: 20.7012
+      location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:482:13'
+      failureType: 'testCodeFailure'
+      error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+      code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+      stack: |-
+        budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+        database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+        initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+        FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+        fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+        TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:483:21)
+        Test.runInAsyncScope (node:async_hooks:211:14)
+        Test.run (node:internal/test_runner/test:934:25)
+        Test.start (node:internal/test_runner/test:833:17)
+        TestContext.test (node:internal/test_runner/test:317:20)
+      ...
+    # Subtest: missing
+    not ok 2 - missing
+      ---
+      duration_ms: 16.9911
+      location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:482:13'
+      failureType: 'testCodeFailure'
+      error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+      code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+      stack: |-
+        budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+        database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+        initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+        FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+        fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+        TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:483:21)
+        Test.runInAsyncScope (node:async_hooks:211:14)
+        Test.run (node:internal/test_runner/test:934:25)
+        Test.start (node:internal/test_runner/test:833:17)
+        TestContext.test (node:internal/test_runner/test:317:20)
+      ...
+    # Subtest: http
+    not ok 3 - http
+      ---
+      duration_ms: 18.3027
+      location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:482:13'
+      failureType: 'testCodeFailure'
+      error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+      code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+      stack: |-
+        budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+        database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+        initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+        FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+        fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+        TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:483:21)
+        Test.runInAsyncScope (node:async_hooks:211:14)
+        Test.run (node:internal/test_runner/test:934:25)
+        Test.start (node:internal/test_runner/test:833:17)
+        TestContext.test (node:internal/test_runner/test:317:20)
+      ...
+    # Subtest: stream-truncated
+    not ok 4 - stream-truncated
+      ---
+      duration_ms: 24.509
+      location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:482:13'
+      failureType: 'testCodeFailure'
+      error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+      code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+      stack: |-
+        budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+        database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+        initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+        FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+        fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+        TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:483:21)
+        Test.runInAsyncScope (node:async_hooks:211:14)
+        Test.run (node:internal/test_runner/test:934:25)
+        Test.start (node:internal/test_runner/test:833:17)
+        TestContext.test (node:internal/test_runner/test:317:20)
+      ...
+    1..4
+not ok 22 - disconnect, missing usage, redirect/HTTP error never retry and halt next physical request
+  ---
+  duration_ms: 82.7533
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:480:1'
+  failureType: 'subtestsFailed'
+  error: '4 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: tool environment excludes provider keys, homes, runtime injection and ledger authority
+ok 23 - tool environment excludes provider keys, homes, runtime injection and ledger authority
+  ---
+  duration_ms: 2.1287
+  ...
+# Subtest: unknown billed usage dimensions halt rather than silently underprice
+not ok 24 - unknown billed usage dimensions halt rather than silently underprice
+  ---
+  duration_ms: 25.2077
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:535:1'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:536:17)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+  ...
+# Subtest: rational FX uses upward integer rounding instead of floating point
+not ok 25 - rational FX uses upward integer rounding instead of floating point
+  ---
+  duration_ms: 18.199
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:548:1'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:549:17)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+  ...
+# Subtest: corrupt durable storage is not silently replaced or initialized
+not ok 26 - corrupt durable storage is not silently replaced or initialized
+  ---
+  duration_ms: 15.5676
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:557:1'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:558:29)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+  ...
+# Subtest: verified receipts cannot silently substitute the frozen 18 plus 18 provider strata
+ok 27 - verified receipts cannot silently substitute the frozen 18 plus 18 provider strata
+  ---
+  duration_ms: 4.885
+  ...
+# Subtest: final dispatch rechecks contract and FX after awaited credential preparation
+    # Subtest: contract
+    not ok 1 - contract
+      ---
+      duration_ms: 29.9831
+      location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:593:13'
+      failureType: 'testCodeFailure'
+      error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+      code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+      stack: |-
+        budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+        database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+        initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+        FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+        fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+        TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:595:21)
+        Test.runInAsyncScope (node:async_hooks:211:14)
+        Test.run (node:internal/test_runner/test:934:25)
+        Test.start (node:internal/test_runner/test:833:17)
+        TestContext.test (node:internal/test_runner/test:317:20)
+      ...
+    # Subtest: fx
+    not ok 2 - fx
+      ---
+      duration_ms: 27.2924
+      location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:593:13'
+      failureType: 'testCodeFailure'
+      error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+      code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+      stack: |-
+        budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+        database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+        initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+        FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+        fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+        TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:595:21)
+        Test.runInAsyncScope (node:async_hooks:211:14)
+        Test.run (node:internal/test_runner/test:934:25)
+        Test.start (node:internal/test_runner/test:833:17)
+        TestContext.test (node:internal/test_runner/test:317:20)
+      ...
+    1..2
+not ok 28 - final dispatch rechecks contract and FX after awaited credential preparation
+  ---
+  duration_ms: 58.1176
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:591:1'
+  failureType: 'subtestsFailed'
+  error: '2 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: accounting JSON parser rejects duplicate/escaped keys and nonfinite numbers
+ok 29 - accounting JSON parser rejects duplicate/escaped keys and nonfinite numbers
+  ---
+  duration_ms: 7.8647
+  ...
+# Subtest: ambiguous JSON, error envelopes and nonfinite usage never settle
+    # Subtest: duplicate
+    not ok 1 - duplicate
+      ---
+      duration_ms: 16.7787
+      location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:670:13'
+      failureType: 'testCodeFailure'
+      error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+      code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+      stack: |-
+        budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+        database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+        initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+        FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+        fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+        TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:671:21)
+        Test.runInAsyncScope (node:async_hooks:211:14)
+        Test.run (node:internal/test_runner/test:934:25)
+        Test.start (node:internal/test_runner/test:833:17)
+        TestContext.test (node:internal/test_runner/test:317:20)
+      ...
+    # Subtest: escapedDuplicate
+    not ok 2 - escapedDuplicate
+      ---
+      duration_ms: 36.9004
+      location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:670:13'
+      failureType: 'testCodeFailure'
+      error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+      code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+      stack: |-
+        budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+        database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+        initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+        FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+        fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+        TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:671:21)
+        Test.runInAsyncScope (node:async_hooks:211:14)
+        Test.run (node:internal/test_runner/test:934:25)
+        Test.start (node:internal/test_runner/test:833:17)
+        TestContext.test (node:internal/test_runner/test:317:20)
+      ...
+    # Subtest: errorAndUsage
+    not ok 3 - errorAndUsage
+      ---
+      duration_ms: 30.1085
+      location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:670:13'
+      failureType: 'testCodeFailure'
+      error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+      code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+      stack: |-
+        budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+        database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+        initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+        FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+        fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+        TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:671:21)
+        Test.runInAsyncScope (node:async_hooks:211:14)
+        Test.run (node:internal/test_runner/test:934:25)
+        Test.start (node:internal/test_runner/test:833:17)
+        TestContext.test (node:internal/test_runner/test:317:20)
+      ...
+    # Subtest: errorNull
+    not ok 4 - errorNull
+      ---
+      duration_ms: 19.0251
+      location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:670:13'
+      failureType: 'testCodeFailure'
+      error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+      code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+      stack: |-
+        budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+        database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+        initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+        FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+        fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+        TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:671:21)
+        Test.runInAsyncScope (node:async_hooks:211:14)
+        Test.run (node:internal/test_runner/test:934:25)
+        Test.start (node:internal/test_runner/test:833:17)
+        TestContext.test (node:internal/test_runner/test:317:20)
+      ...
+    # Subtest: nonfinite
+    not ok 5 - nonfinite
+      ---
+      duration_ms: 23.1012
+      location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:670:13'
+      failureType: 'testCodeFailure'
+      error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+      code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+      stack: |-
+        budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+        database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+        initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+        FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+        fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+        TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:671:21)
+        Test.runInAsyncScope (node:async_hooks:211:14)
+        Test.run (node:internal/test_runner/test:934:25)
+        Test.start (node:internal/test_runner/test:833:17)
+        TestContext.test (node:internal/test_runner/test:317:20)
+      ...
+    1..5
+not ok 30 - ambiguous JSON, error envelopes and nonfinite usage never settle
+  ---
+  duration_ms: 128.3767
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:651:1'
+  failureType: 'subtestsFailed'
+  error: '5 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: SSE requires a completed choice and coherent terminal order
+    # Subtest: incomplete
+    not ok 1 - incomplete
+      ---
+      duration_ms: 21.0577
+      location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:736:13'
+      failureType: 'testCodeFailure'
+      error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+      code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+      stack: |-
+        budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+        database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+        initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+        FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+        fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+        TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:737:21)
+        Test.runInAsyncScope (node:async_hooks:211:14)
+        Test.run (node:internal/test_runner/test:934:25)
+        Test.start (node:internal/test_runner/test:833:17)
+        TestContext.test (node:internal/test_runner/test:317:20)
+      ...
+    # Subtest: usageOnly
+    not ok 2 - usageOnly
+      ---
+      duration_ms: 20.2325
+      location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:736:13'
+      failureType: 'testCodeFailure'
+      error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+      code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+      stack: |-
+        budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+        database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+        initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+        FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+        fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+        TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:737:21)
+        Test.runInAsyncScope (node:async_hooks:211:14)
+        Test.run (node:internal/test_runner/test:934:25)
+        Test.start (node:internal/test_runner/test:833:17)
+        TestContext.test (node:internal/test_runner/test:317:20)
+      ...
+    # Subtest: contentAfterFinish
+    not ok 3 - contentAfterFinish
+      ---
+      duration_ms: 19.7924
+      location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:736:13'
+      failureType: 'testCodeFailure'
+      error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+      code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+      stack: |-
+        budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+        database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+        initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+        FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+        fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+        TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:737:21)
+        Test.runInAsyncScope (node:async_hooks:211:14)
+        Test.run (node:internal/test_runner/test:934:25)
+        Test.start (node:internal/test_runner/test:833:17)
+        TestContext.test (node:internal/test_runner/test:317:20)
+      ...
+    # Subtest: duplicateFinish
+    not ok 4 - duplicateFinish
+      ---
+      duration_ms: 18.2813
+      location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:736:13'
+      failureType: 'testCodeFailure'
+      error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+      code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+      stack: |-
+        budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+        database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+        initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+        FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+        fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+        TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:737:21)
+        Test.runInAsyncScope (node:async_hooks:211:14)
+        Test.run (node:internal/test_runner/test:934:25)
+        Test.start (node:internal/test_runner/test:833:17)
+        TestContext.test (node:internal/test_runner/test:317:20)
+      ...
+    # Subtest: unsupportedFinish
+    not ok 5 - unsupportedFinish
+      ---
+      duration_ms: 18.3127
+      location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:736:13'
+      failureType: 'testCodeFailure'
+      error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+      code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+      stack: |-
+        budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+        database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+        initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+        FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+        fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+        TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:737:21)
+        Test.runInAsyncScope (node:async_hooks:211:14)
+        Test.run (node:internal/test_runner/test:934:25)
+        Test.start (node:internal/test_runner/test:833:17)
+        TestContext.test (node:internal/test_runner/test:317:20)
+      ...
+    # Subtest: errorAndUsage
+    not ok 6 - errorAndUsage
+      ---
+      duration_ms: 24.1155
+      location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:736:13'
+      failureType: 'testCodeFailure'
+      error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+      code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+      stack: |-
+        budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+        database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+        initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+        FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+        fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+        TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:737:21)
+        Test.runInAsyncScope (node:async_hooks:211:14)
+        Test.run (node:internal/test_runner/test:934:25)
+        Test.start (node:internal/test_runner/test:833:17)
+        TestContext.test (node:internal/test_runner/test:317:20)
+      ...
+    # Subtest: duplicateUsageKey
+    not ok 7 - duplicateUsageKey
+      ---
+      duration_ms: 17.3579
+      location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:736:13'
+      failureType: 'testCodeFailure'
+      error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+      code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+      stack: |-
+        budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+        database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+        initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+        FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+        fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+        TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:737:21)
+        Test.runInAsyncScope (node:async_hooks:211:14)
+        Test.run (node:internal/test_runner/test:934:25)
+        Test.start (node:internal/test_runner/test:833:17)
+        TestContext.test (node:internal/test_runner/test:317:20)
+      ...
+    1..7
+not ok 31 - SSE requires a completed choice and coherent terminal order
+  ---
+  duration_ms: 142.7961
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:697:1'
+  failureType: 'subtestsFailed'
+  error: '7 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: noncanonical duplicate settlement restores full liability and halts durably
+not ok 32 - noncanonical duplicate settlement restores full liability and halts durably
+  ---
+  duration_ms: 22.6291
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:760:1'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:761:23)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+  ...
+# Subtest: unpriced input/output dimensions and oversized serialized input fail before fetch
+not ok 33 - unpriced input/output dimensions and oversized serialized input fail before fetch
+  ---
+  duration_ms: 17.3503
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-authority.test.mjs:778:1'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:32:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-authority.test.mjs:779:17)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+  ...
+# Subtest: inclusive input envelope is mandatory verified contract evidence
+ok 34 - inclusive input envelope is mandatory verified contract evidence
+  ---
+  duration_ms: 15.7464
+  ...
+# Subtest: scoped requests use host credentials, a fresh physical ID and durable settlement
+not ok 35 - scoped requests use host credentials, a fresh physical ID and durable settlement
+  ---
+  duration_ms: 71.5536
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-provider-scope.node-test.mjs:175:1'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:115:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:178:7)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.start (node:internal/test_runner/test:833:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: endpoint, schema, header, duplicate JSON and output bounds reject before reservation or credentials
+not ok 36 - endpoint, schema, header, duplicate JSON and output bounds reject before reservation or credentials
+  ---
+  duration_ms: 20.0935
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-provider-scope.node-test.mjs:205:1'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:115:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:206:13)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+  ...
+# Subtest: SSE reaches the consumer before completion and settles only at verified EOF
+not ok 37 - SSE reaches the consumer before completion and settles only at verified EOF
+  ---
+  duration_ms: 21.6444
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-provider-scope.node-test.mjs:245:1'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:115:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:247:13)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+  ...
+# Subtest: consumer mutation cannot alter the private accounting snapshot
+not ok 38 - consumer mutation cannot alter the private accounting snapshot
+  ---
+  duration_ms: 27.2854
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-provider-scope.node-test.mjs:274:1'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:115:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:275:13)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+  ...
+# Subtest: Stop after visible output keeps liability across reopen and prevents any retry
+not ok 39 - Stop after visible output keeps liability across reopen and prevents any retry
+  ---
+  duration_ms: 26.4076
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-provider-scope.node-test.mjs:286:1'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:115:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:287:13)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+  ...
+# Subtest: body cancellation and returning an unread body both halt outstanding liability
+    # Subtest: true
+    not ok 1 - true
+      ---
+      duration_ms: 22.0549
+      location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-provider-scope.node-test.mjs:325:13'
+      failureType: 'testCodeFailure'
+      error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+      code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+      stack: |-
+        budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+        database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+        initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+        FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+        fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:115:44)
+        TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:326:17)
+        Test.runInAsyncScope (node:async_hooks:211:14)
+        Test.run (node:internal/test_runner/test:934:25)
+        Test.start (node:internal/test_runner/test:833:17)
+        TestContext.test (node:internal/test_runner/test:317:20)
+      ...
+    # Subtest: false
+    not ok 2 - false
+      ---
+      duration_ms: 25.2709
+      location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-provider-scope.node-test.mjs:325:13'
+      failureType: 'testCodeFailure'
+      error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+      code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+      stack: |-
+        budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+        database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+        initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+        FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+        fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:115:44)
+        TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:326:17)
+        Test.runInAsyncScope (node:async_hooks:211:14)
+        Test.run (node:internal/test_runner/test:934:25)
+        Test.start (node:internal/test_runner/test:833:17)
+        TestContext.test (node:internal/test_runner/test:317:20)
+      ...
+    1..2
+not ok 40 - body cancellation and returning an unread body both halt outstanding liability
+  ---
+  duration_ms: 49.0982
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-provider-scope.node-test.mjs:323:1'
+  failureType: 'subtestsFailed'
+  error: '2 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: scope isolation preserves ordinary calls and independent concurrent host scopes
+not ok 41 - scope isolation preserves ordinary calls and independent concurrent host scopes
+  ---
+  duration_ms: 28.5916
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-provider-scope.node-test.mjs:340:1'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:115:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:341:16)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+  ...
+# Subtest: nested scopes and detached async work cannot rebind or escape a closed budget scope
+not ok 42 - nested scopes and detached async work cannot rebind or escape a closed budget scope
+  ---
+  duration_ms: 25.2725
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-provider-scope.node-test.mjs:363:1'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:115:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:364:13)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+  ...
+# Subtest: a pre-aborted call creates no liability and no physical request
+not ok 43 - a pre-aborted call creates no liability and no physical request
+  ---
+  duration_ms: 23.7738
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-provider-scope.node-test.mjs:380:1'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:115:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:381:13)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+  ...
+# Subtest: cancellation bounds credential preparation and a physical fetch that ignores AbortSignal
+    # Subtest: credential
+    not ok 1 - credential
+      ---
+      duration_ms: 25.2116
+      location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-provider-scope.node-test.mjs:393:13'
+      failureType: 'testCodeFailure'
+      error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+      code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+      stack: |-
+        budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+        database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+        initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+        FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+        fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:115:44)
+        TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:402:17)
+        Test.runInAsyncScope (node:async_hooks:211:14)
+        Test.run (node:internal/test_runner/test:934:25)
+        Test.start (node:internal/test_runner/test:833:17)
+        TestContext.test (node:internal/test_runner/test:317:20)
+      ...
+    # Subtest: fetch
+    not ok 2 - fetch
+      ---
+      duration_ms: 27.9112
+      location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-provider-scope.node-test.mjs:393:13'
+      failureType: 'testCodeFailure'
+      error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+      code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+      stack: |-
+        budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+        database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+        initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+        FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+        fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:115:44)
+        TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:402:17)
+        Test.runInAsyncScope (node:async_hooks:211:14)
+        Test.run (node:internal/test_runner/test:934:25)
+        Test.start (node:internal/test_runner/test:833:17)
+        TestContext.test (node:internal/test_runner/test:317:20)
+      ...
+    1..2
+not ok 44 - cancellation bounds credential preparation and a physical fetch that ignores AbortSignal
+  ---
+  duration_ms: 54.9804
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-provider-scope.node-test.mjs:391:1'
+  failureType: 'subtestsFailed'
+  error: '2 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: a deadline halts even an unread response
+not ok 45 - a deadline halts even an unread response
+  ---
+  duration_ms: 16.8424
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-provider-scope.node-test.mjs:425:1'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:115:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:426:13)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+  ...
+# Subtest: a late physical response is cancelled after an abort without releasing liability
+not ok 46 - a late physical response is cancelled after an abort without releasing liability
+  ---
+  duration_ms: 25.0056
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-provider-scope.node-test.mjs:435:1'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:115:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:442:13)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+  ...
+# Subtest: a storage error during abort leaves the durable dispatch blocking another request
+not ok 47 - a storage error during abort leaves the durable dispatch blocking another request
+  ---
+  duration_ms: 21.2587
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-provider-scope.node-test.mjs:472:1'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:115:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:473:13)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+  ...
+# Subtest: the response byte ceiling errors the stream and retains the full reservation
+not ok 48 - the response byte ceiling errors the stream and retains the full reservation
+  ---
+  duration_ms: 21.6853
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-provider-scope.node-test.mjs:493:1'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:115:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:494:13)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+  ...
+# Subtest: canonical Agent, compaction and Advisor requests settle in the same host lineage
+not ok 49 - canonical Agent, compaction and Advisor requests settle in the same host lineage
+  ---
+  duration_ms: 22.2569
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-provider-scope.node-test.mjs:502:1'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:115:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:514:13)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+  ...
+# Subtest: Agent streaming preserves early tokens but propagates unresolved accounting after visible output
+    # Subtest: true
+    not ok 1 - true
+      ---
+      duration_ms: 16.9654
+      location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-provider-scope.node-test.mjs:549:13'
+      failureType: 'testCodeFailure'
+      error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+      code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+      stack: |-
+        budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+        database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+        initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+        FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+        fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:115:44)
+        TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:550:17)
+        Test.runInAsyncScope (node:async_hooks:211:14)
+        Test.run (node:internal/test_runner/test:934:25)
+        Test.start (node:internal/test_runner/test:833:17)
+        TestContext.test (node:internal/test_runner/test:317:20)
+      ...
+    # Subtest: false
+    not ok 2 - false
+      ---
+      duration_ms: 18.8984
+      location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-provider-scope.node-test.mjs:549:13'
+      failureType: 'testCodeFailure'
+      error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+      code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+      stack: |-
+        budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+        database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+        initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+        FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+        fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:115:44)
+        TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:550:17)
+        Test.runInAsyncScope (node:async_hooks:211:14)
+        Test.run (node:internal/test_runner/test:934:25)
+        Test.start (node:internal/test_runner/test:833:17)
+        TestContext.test (node:internal/test_runner/test:317:20)
+      ...
+    1..2
+not ok 50 - Agent streaming preserves early tokens but propagates unresolved accounting after visible output
+  ---
+  duration_ms: 36.7721
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-provider-scope.node-test.mjs:547:1'
+  failureType: 'subtestsFailed'
+  error: '2 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: Chat and stream provider consume verified EOF and share the same budget
+not ok 51 - Chat and stream provider consume verified EOF and share the same budget
+  ---
+  duration_ms: 20.6983
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-provider-scope.node-test.mjs:571:1'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:115:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:572:13)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+  ...
+# Subtest: probe and Hub cannot bypass the scope through an injected fetch
+not ok 52 - probe and Hub cannot bypass the scope through an injected fetch
+  ---
+  duration_ms: 19.1872
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-provider-scope.node-test.mjs:600:1'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:115:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:601:13)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+  ...
+# Subtest: uncovered native protocols and typed decision endpoints cannot send in the scope
+not ok 53 - uncovered native protocols and typed decision endpoints cannot send in the scope
+  ---
+  duration_ms: 17.0273
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-provider-scope.node-test.mjs:624:1'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:115:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:625:13)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+  ...
+# Subtest: budget errors cannot trigger stream replay even with misleading network error wording
+ok 54 - budget errors cannot trigger stream replay even with misleading network error wording
+  ---
+  duration_ms: 3.24
+  ...
+# Subtest: compaction and Advisor do not hide unknown provider liability behind optional fallback
+    # Subtest: compaction
+    not ok 1 - compaction
+      ---
+      duration_ms: 17.0522
+      location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-provider-scope.node-test.mjs:678:13'
+      failureType: 'testCodeFailure'
+      error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+      code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+      stack: |-
+        budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+        database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+        initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+        FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+        fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:115:44)
+        TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:679:17)
+        Test.runInAsyncScope (node:async_hooks:211:14)
+        Test.run (node:internal/test_runner/test:934:25)
+        Test.start (node:internal/test_runner/test:833:17)
+        TestContext.test (node:internal/test_runner/test:317:20)
+      ...
+    # Subtest: advisor
+    not ok 2 - advisor
+      ---
+      duration_ms: 19.3231
+      location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-provider-scope.node-test.mjs:678:13'
+      failureType: 'testCodeFailure'
+      error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+      code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+      stack: |-
+        budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+        database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+        initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+        FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+        fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:115:44)
+        TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:679:17)
+        Test.runInAsyncScope (node:async_hooks:211:14)
+        Test.run (node:internal/test_runner/test:934:25)
+        Test.start (node:internal/test_runner/test:833:17)
+        TestContext.test (node:internal/test_runner/test:317:20)
+      ...
+    1..2
+not ok 55 - compaction and Advisor do not hide unknown provider liability behind optional fallback
+  ---
+  duration_ms: 37.2633
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-provider-scope.node-test.mjs:676:1'
+  failureType: 'subtestsFailed'
+  error: '2 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: ask and Cowork use the host budget after real evolution admission
+not ok 56 - ask and Cowork use the host budget after real evolution admission
+  ---
+  duration_ms: 16.6642
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-provider-scope.node-test.mjs:722:1'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:115:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:723:13)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+  ...
+# Subtest: ask and Cowork reject unsupported protocols before an ordinary fetch can run
+not ok 57 - ask and Cowork reject unsupported protocols before an ordinary fetch can run
+  ---
+  duration_ms: 16.8361
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-provider-scope.node-test.mjs:734:1'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:115:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:735:13)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+  ...
+# Subtest: the legacy provider connectivity probe uses the same durable authority
+not ok 58 - the legacy provider connectivity probe uses the same durable authority
+  ---
+  duration_ms: 17.1272
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-provider-scope.node-test.mjs:752:1'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:115:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:753:13)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+  ...
+# Subtest: opaque Hub SDK callbacks are rejected before invoking an ungoverned model
+not ok 59 - opaque Hub SDK callbacks are rejected before invoking an ungoverned model
+  ---
+  duration_ms: 16.3733
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-provider-scope.node-test.mjs:773:1'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:115:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:774:13)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+  ...
+# Subtest: a model grader process is rejected before child launch or credential provisioning
+not ok 60 - a model grader process is rejected before child launch or credential provisioning
+  ---
+  duration_ms: 18.5555
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-provider-scope.node-test.mjs:800:1'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:115:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:801:13)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+  ...
+# Subtest: returning a lazy model generator without consuming it fails at the host boundary
+not ok 61 - returning a lazy model generator without consuming it fails at the host boundary
+  ---
+  duration_ms: 17.5663
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-provider-scope.node-test.mjs:824:1'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:115:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:825:13)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+  ...
+# Subtest: model fallback and auth recovery never reinterpret nested budget errors
+ok 62 - model fallback and auth recovery never reinterpret nested budget errors
+  ---
+  duration_ms: 2.6946
+  ...
+# Subtest: in-process child agents retain unknown budget failures instead of returning a normal summary
+not ok 63 - in-process child agents retain unknown budget failures instead of returning a normal summary
+  ---
+  duration_ms: 22.0242
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-provider-scope.node-test.mjs:866:1'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:115:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:867:13)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+  ...
+# Subtest: an optional prepareCall cannot hide budget failure and initiate the main model
+not ok 64 - an optional prepareCall cannot hide budget failure and initiate the main model
+  ---
+  duration_ms: 20.2887
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-provider-scope.node-test.mjs:890:1'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:115:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:891:13)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+  ...
+# Subtest: a captured Desktop SDK callback cannot bypass the budget authority
+not ok 65 - a captured Desktop SDK callback cannot bypass the budget authority
+  ---
+  duration_ms: 20.6538
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-provider-scope.node-test.mjs:917:1'
+  failureType: 'testCodeFailure'
+  error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+  code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+  stack: |-
+    budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+    database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+    initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+    FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+    fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:115:44)
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:918:13)
+    Test.runInAsyncScope (node:async_hooks:211:14)
+    Test.run (node:internal/test_runner/test:934:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:633:18)
+    Test.postRun (node:internal/test_runner/test:1045:19)
+  ...
+# Subtest: Hub resolver native and custom embeddings cannot send through an unmetered SDK
+    # Subtest: false
+    not ok 1 - false
+      ---
+      duration_ms: 21.048
+      location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-provider-scope.node-test.mjs:948:13'
+      failureType: 'testCodeFailure'
+      error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+      code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+      stack: |-
+        budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+        database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+        initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+        FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+        fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:115:44)
+        TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:949:17)
+        Test.runInAsyncScope (node:async_hooks:211:14)
+        Test.run (node:internal/test_runner/test:934:25)
+        Test.start (node:internal/test_runner/test:833:17)
+        TestContext.test (node:internal/test_runner/test:317:20)
+      ...
+    # Subtest: true
+    not ok 2 - true
+      ---
+      duration_ms: 15.3854
+      location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-provider-scope.node-test.mjs:948:13'
+      failureType: 'testCodeFailure'
+      error: "Durable budget authority requires the CLI's declared better-sqlite3 dependency and writable SQLite storage"
+      code: 'CC_BUDGET_STORAGE_UNAVAILABLE'
+      stack: |-
+        budgetError (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-errors.js:4:24)
+        database (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:34:7)
+        initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:187:18)
+        FormalBudgetAuthority.initialize (file:///C:/code/chainlesschain/packages/cli/src/lib/formal-budget-authority.js:252:12)
+        fixture (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:115:44)
+        TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/cli/test-node/formal-budget-provider-scope.node-test.mjs:949:17)
+        Test.runInAsyncScope (node:async_hooks:211:14)
+        Test.run (node:internal/test_runner/test:934:25)
+        Test.start (node:internal/test_runner/test:833:17)
+        TestContext.test (node:internal/test_runner/test:317:20)
+      ...
+    1..2
+not ok 66 - Hub resolver native and custom embeddings cannot send through an unmetered SDK
+  ---
+  duration_ms: 37.6208
+  location: 'C:\\code\\chainlesschain\\packages\\cli\\test-node\\formal-budget-provider-scope.node-test.mjs:946:1'
+  failureType: 'subtestsFailed'
+  error: '2 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..66
+# tests 102
+# suites 0
+# pass 7
+# fail 95
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 5111.0391

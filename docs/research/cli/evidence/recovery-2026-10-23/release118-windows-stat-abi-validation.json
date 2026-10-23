@@ -1,0 +1,133 @@
+{
+  "baseHead": "a7aa1393e5e20012af8d84ccdf7d316a44acf131",
+  "scope": "Windows native directory durability; CLI internal only",
+  "correction": "The earlier serial-width normalization is insufficient for the observed CI failure. On the fast ByName path, Node 22.12/libuv 1.49.1 reads FILE_ID_128.HighPart as stat.dev because its FILE_STAT_BASIC_INFORMATION definition reverses VolumeSerialNumber and FileId128. It is not a full volume serial on this path.",
+  "upstream": {
+    "node2212": "node2212-winapi.h",
+    "libuv149": "uv149-winapi.h",
+    "libuv151": "uv151-winapi.h",
+    "node2212Layout": {
+      "fileId128": 80,
+      "volumeSerialNumber": 96
+    },
+    "correctLayout": {
+      "volumeSerialNumber": 80,
+      "fileId128": 88,
+      "totalBytes": 104
+    },
+    "brokerReference": "packages/cli/src/lib/process-execution-broker/windows-sandbox.cs:2210-2274"
+  },
+  "implementation": {
+    "files": [
+      "packages/cli/src/lib/evolution/evolution-windows-directory-durability.js",
+      "packages/cli/__tests__/unit/evolution-windows-directory-durability.test.js"
+    ],
+    "binding": [
+      "GetFileInformationByHandleEx(FileIdInfo): full native volume and 128-bit file ID",
+      "NtQueryInformationFile(FileStatInformation): handle path-stat file ID",
+      "GetFileInformationByName(FileStatBasicByNameInfo): correct layout, same complete volume and IDs, directory/non-reparse"
+    ],
+    "compatibility": "Exact DWORD+inode, or same-handle actual complete native volume serial+inode; Node22 HighPart+path-stat inode is accepted only after full native volume/128-bit/path-stat binding. Arbitrary high bits and unconditional zero-dev fallback are refused.",
+    "preserved": [
+      "fixed-drive and NTFS requirement",
+      "normalized realpath equality",
+      "non-reparse directory attributes",
+      "complete stat.dev and stat.ino before/after equality",
+      "flush checked before and after via pinned directory handle",
+      "close handle on success and failure"
+    ],
+    "genericHighBitFallback": false,
+    "zeroDeviceBypass": false,
+    "extendedPath": "GetFileInformationByName receives win32Path(directory), matching CreateFileW and preserving normalized realpath identity checks."
+  },
+  "validation": {
+    "node22222": {
+      "runtime": "v22.22.2",
+      "tests": 23,
+      "passed": 23,
+      "durationSeconds": 2.95,
+      "rawLog": ".work/cli-ide-recovery-20261023/windows-stat-abi-node22.22.2-native.log"
+    },
+    "node22120": {
+      "runtime": "v22.12.0",
+      "binary": ".work/cli-ide-recovery-20261023/node-22.12.0/node-verified.exe",
+      "sha256": "b3b117a08ee61efee09e6fd523ab33c0c018da1b570bde08e4fd914dc1170ed6",
+      "tests": 23,
+      "passed": 23,
+      "combined": {
+        "status": "failed-partial-stopped",
+        "files": [
+          "evolution-windows-directory-durability.test.js",
+          "local-ui-evolution-deployment.test.js",
+          "agent-evolution-runtime-composition.test.js"
+        ],
+        "failures": [
+          {
+            "file": "agent-evolution-runtime-composition.test.js",
+            "test": "protects the real stream manual compaction (denied=false)",
+            "reason": "existing 90000ms test deadline exceeded",
+            "observedMs": 91252
+          },
+          {
+            "file": "local-ui-evolution-deployment.test.js",
+            "test": "lazily signs a first agent start and authenticates ask, chat and UI session modes",
+            "reason": "existing 300000ms deadline exceeded",
+            "observedMs": 344787
+          }
+        ],
+        "observedCompletedCases": 23,
+        "observedPassedCases": 21,
+        "observedFailedCases": 2,
+        "log": ".work/cli-ide-recovery-20261023/windows-stat-abi-combined-partial.log",
+        "note": "The isolated manual-compaction retry passed under the unchanged deadline; this does not convert the interrupted combination into a pass. The deployment first-agent-start timeout was not isolated or rerun."
+      },
+      "prior21TestResult": "superseded by stricter final source; not final acceptance",
+      "isolated": {
+        "status": "passed",
+        "file": "agent-evolution-runtime-composition.test.js",
+        "test": "protects the real stream manual compaction (denied=false)",
+        "passed": 1,
+        "skipped": 242,
+        "timeoutMs": 90000,
+        "testDurationMs": 83766,
+        "totalDurationSeconds": 103.86,
+        "sourceNote": "Passed before the final narrow ByName extended-path call correction; not rerun with the final long-path-only change."
+      },
+      "durationSeconds": 2.48,
+      "rawLog": ".work/cli-ide-recovery-20261023/windows-stat-abi-node22.12.0-native.log"
+    },
+    "testBreakdown": {
+      "nativeBaseline": 7,
+      "controlledByNameWithRealNativeHandle": 3,
+      "controlledApiCompatibilityAndRejection": 13
+    },
+    "limitation": "This local Windows host does not export GetFileInformationByName. Real Node22.12 uses the slow native path here; successful local tests are not an actual hosted CI fast-path observation. Exact-head Windows CI remains required.",
+    "prettier": "passed",
+    "gitDiffCheck": "passed",
+    "syntax": "passed",
+    "layoutAssertions": {
+      "size": 104,
+      "volumeSerialOffset": 80,
+      "fileId128Offset": 88
+    },
+    "supersededCombinedRun": "terminated on source revision; never counted as final pass",
+    "exactHeadCi": "required; not yet observed for this uncommitted revision",
+    "longPath": {
+      "passed": true,
+      "constructedDirectoryLengthGreaterThan": 260,
+      "expectedByNamePath": "path.toNamespacedPath(root)",
+      "extendedPrefixAsserted": true,
+      "realNativeHandleBinding": true
+    },
+    "previous22TestLogs": "The earlier 22-case runs were reported through tool output only. The archived final 23-case raw logs include those cases plus the long-path regression."
+  },
+  "ciFailure": {
+    "head": "a7aa1393e5e20012af8d84ccdf7d316a44acf131",
+    "artifact": "soak-windows-a7aa/artifact/cli-reliability-result.json",
+    "status": "failed",
+    "stdoutBytes": 0,
+    "stderrBytes": 180,
+    "exitCode": 1,
+    "unchangedAfterSerialWidthNormalization": true
+  }
+}

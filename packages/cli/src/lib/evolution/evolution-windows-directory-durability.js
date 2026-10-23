@@ -41,6 +41,56 @@ function loadWindowsApi() {
       fileIndexLow: "uint32_t",
     },
   );
+  const FILE_ID_128 = koffi.struct("ChainlessChainEvolutionFileId128", {
+    low: "uint64_t",
+    high: "uint64_t",
+  });
+  const FILE_ID_INFO = koffi.struct("ChainlessChainEvolutionFileIdInfo", {
+    volumeSerialNumber: "uint64_t",
+    fileId: FILE_ID_128,
+  });
+  const statFields = {
+    fileId: "int64_t",
+    creationTime: "int64_t",
+    lastAccessTime: "int64_t",
+    lastWriteTime: "int64_t",
+    changeTime: "int64_t",
+    allocationSize: "int64_t",
+    endOfFile: "int64_t",
+    fileAttributes: "uint32_t",
+    reparseTag: "uint32_t",
+    numberOfLinks: "uint32_t",
+  };
+  const FILE_STAT_INFORMATION = koffi.struct(
+    "ChainlessChainEvolutionFileStatInformation",
+    { ...statFields, effectiveAccess: "uint32_t" },
+  );
+  const FILE_STAT_BASIC_INFORMATION = koffi.struct(
+    "ChainlessChainEvolutionFileStatBasicInformation",
+    {
+      ...statFields,
+      deviceType: "uint32_t",
+      deviceCharacteristics: "uint32_t",
+      reserved: "uint32_t",
+      // Windows' documented layout; libuv 1.49 placed these in reverse order.
+      volumeSerialNumber: "uint64_t",
+      fileId128: FILE_ID_128,
+    },
+  );
+  const IO_STATUS_BLOCK = koffi.struct("ChainlessChainEvolutionIoStatus", {
+    status: "intptr_t",
+    information: "uintptr_t",
+  });
+  let GetFileInformationByName = null;
+  try {
+    const fileApi = koffi.load("api-ms-win-core-file-l2-1-4.dll");
+    GetFileInformationByName = fileApi.func(
+      "bool __stdcall GetFileInformationByName(str16 fileName, int informationClass, _Out_ ChainlessChainEvolutionFileStatBasicInformation *information, uint32_t size)",
+    );
+  } catch {
+    // Older Windows versions use libuv's handle-based stat path instead.
+  }
+  const ntdll = koffi.load("ntdll.dll");
   windowsApi = Object.freeze({
     koffi,
     HANDLE,
@@ -56,6 +106,13 @@ function loadWindowsApi() {
     GetFileInformationByHandle: kernel32.func(
       "bool __stdcall GetFileInformationByHandle(ChainlessChainEvolutionDirectoryHandle handle, _Out_ ChainlessChainEvolutionDirectoryInformation *information)",
     ),
+    GetFileInformationByHandleEx: kernel32.func(
+      "bool __stdcall GetFileInformationByHandleEx(ChainlessChainEvolutionDirectoryHandle handle, int informationClass, _Out_ ChainlessChainEvolutionFileIdInfo *information, uint32_t size)",
+    ),
+    GetFileInformationByName,
+    NtQueryInformationFile: ntdll.func(
+      "int32_t __stdcall NtQueryInformationFile(ChainlessChainEvolutionDirectoryHandle handle, _Out_ ChainlessChainEvolutionIoStatus *ioStatus, _Out_ ChainlessChainEvolutionFileStatInformation *information, uint32_t size, int informationClass)",
+    ),
     GetLastError: kernel32.func("uint32_t __stdcall GetLastError()"),
     GetVolumeInformationW: kernel32.func(
       "bool __stdcall GetVolumeInformationW(str16 rootPathName, _Out_ uint16_t *volumeName, uint32_t volumeNameSize, _Out_ uint32_t *volumeSerialNumber, _Out_ uint32_t *maximumComponentLength, _Out_ uint32_t *fileSystemFlags, _Out_ uint16_t *fileSystemName, uint32_t fileSystemNameSize)",
@@ -67,6 +124,10 @@ function loadWindowsApi() {
       "bool __stdcall CloseHandle(ChainlessChainEvolutionDirectoryHandle handle)",
     ),
     BY_HANDLE_FILE_INFORMATION,
+    FILE_ID_INFO,
+    FILE_STAT_INFORMATION,
+    FILE_STAT_BASIC_INFORMATION,
+    IO_STATUS_BLOCK,
   });
   return windowsApi;
 }
@@ -137,11 +198,69 @@ function fileId(information) {
   );
 }
 
-// These Win32 APIs expose a DWORD serial. libuv 1.49 (Node 22.12) exposes
-// the full 64-bit serial in stat.dev; newer libuv exposes its low DWORD.
-// Normalize only across those APIs, retaining full stat.dev for path checks.
+// These Win32 APIs expose a DWORD serial. Normalize serial representations
+// only across those APIs, retaining full stat.dev for path-change checks.
+// Node 22.12's fast-stat ABI defect needs a separate, handle-bound projection.
 function windowsVolumeSerial(device) {
   return BigInt.asUintN(32, BigInt(device));
+}
+
+function matchesFastNodeDirectoryIdentity(api, handle, directory, expected) {
+  if (!api.GetFileInformationByName) return false;
+  const handleIdentity = {};
+  requireWindowsSuccess(
+    api,
+    api.GetFileInformationByHandleEx(
+      handle,
+      18,
+      handleIdentity,
+      api.koffi.sizeof(api.FILE_ID_INFO),
+    ),
+  );
+  const handleStat = {};
+  const status = api.NtQueryInformationFile(
+    handle,
+    {},
+    handleStat,
+    api.koffi.sizeof(api.FILE_STAT_INFORMATION),
+    68,
+  );
+  if (status < 0) {
+    throw new Error("Windows local UI native directory identity unavailable");
+  }
+  const pathStat = {};
+  requireWindowsSuccess(
+    api,
+    api.GetFileInformationByName(
+      win32Path(directory),
+      3,
+      pathStat,
+      api.koffi.sizeof(api.FILE_STAT_BASIC_INFORMATION),
+    ),
+  );
+  const pathFileId = BigInt.asUintN(64, BigInt(pathStat.fileId));
+  if (
+    (Number(pathStat.fileAttributes) & DIRECTORY_ATTRIBUTE) === 0 ||
+    (Number(pathStat.fileAttributes) & REPARSE_POINT_ATTRIBUTE) !== 0 ||
+    BigInt(pathStat.volumeSerialNumber) !==
+      BigInt(handleIdentity.volumeSerialNumber) ||
+    BigInt(pathStat.fileId128.low) !== BigInt(handleIdentity.fileId.low) ||
+    BigInt(pathStat.fileId128.high) !== BigInt(handleIdentity.fileId.high) ||
+    pathFileId !== BigInt.asUintN(64, BigInt(handleStat.fileId))
+  ) {
+    throw new Error(
+      "Windows local UI path identity does not match the directory handle",
+    );
+  }
+  // Same projections as windows-sandbox.cs: pair dev and ino from one stat
+  // implementation, only after binding the correctly laid-out path result to
+  // this handle's complete volume/128-bit ID. Never treat dev === 0 as a bypass.
+  return (
+    pathFileId === BigInt(expected.stat.ino) &&
+    (BigInt(expected.stat.dev) ===
+      windowsVolumeSerial(pathStat.volumeSerialNumber) ||
+      BigInt(expected.stat.dev) === BigInt(pathStat.fileId128.high))
+  );
 }
 
 function assertDirectoryHandleIdentity(
@@ -160,10 +279,43 @@ function assertDirectoryHandleIdentity(
   if (
     (attributes & DIRECTORY_ATTRIBUTE) === 0 ||
     (attributes & REPARSE_POINT_ATTRIBUTE) !== 0 ||
-    BigInt(information.volumeSerialNumber) !==
-      windowsVolumeSerial(expected.stat.dev) ||
-    fileId(information) !== BigInt(expected.stat.ino)
+    BigInt(information.volumeSerialNumber) !== expected.volumeSerialNumber
   ) {
+    throw new Error(
+      "Windows local UI durability handle does not match the requested directory",
+    );
+  }
+  const expectedDevice = BigInt(expected.stat.dev);
+  const matchingLegacyFileId =
+    fileId(information) === BigInt(expected.stat.ino);
+  let legacyIdentityMatches =
+    matchingLegacyFileId &&
+    BigInt(information.volumeSerialNumber) === expectedDevice;
+  if (
+    !legacyIdentityMatches &&
+    matchingLegacyFileId &&
+    expectedDevice > 0xffffffffn
+  ) {
+    const fullIdentity = {};
+    requireWindowsSuccess(
+      api,
+      api.GetFileInformationByHandleEx(
+        handle,
+        18,
+        fullIdentity,
+        api.koffi.sizeof(api.FILE_ID_INFO),
+      ),
+    );
+    legacyIdentityMatches =
+      expectedDevice === BigInt(fullIdentity.volumeSerialNumber);
+  }
+  const fastIdentityMatches = matchesFastNodeDirectoryIdentity(
+    api,
+    handle,
+    expected.resolvedPath,
+    expected,
+  );
+  if (!legacyIdentityMatches && !fastIdentityMatches) {
     throw new Error(
       "Windows local UI durability handle does not match the requested directory",
     );
@@ -183,12 +335,15 @@ function assertDirectoryHandleIdentity(
 /** Flush one verified directory on a local NTFS volume using a write handle. */
 export function flushWindowsLocalNtfsDirectory(
   directory,
-  { fsImpl = fs } = {},
+  { fsImpl = fs, nativeApi = null } = {},
 ) {
   if (process.platform !== "win32") {
     throw new Error("Windows directory flush is only available on Windows");
   }
-  const api = loadWindowsApi();
+  const api =
+    typeof nativeApi === "function"
+      ? nativeApi(loadWindowsApi())
+      : nativeApi || loadWindowsApi();
   const before = pathIdentity(fsImpl, directory);
   const volumePath = Buffer.alloc(520);
   requireWindowsSuccess(
@@ -217,13 +372,16 @@ export function flushWindowsLocalNtfsDirectory(
   );
   if (
     driveType !== DRIVE_FIXED ||
-    readWideString(fileSystemName).toLowerCase() !== "ntfs" ||
-    BigInt(volumeSerialNumber[0]) !== windowsVolumeSerial(before.stat.dev)
+    readWideString(fileSystemName).toLowerCase() !== "ntfs"
   ) {
     throw new Error(
       "Windows local UI durable storage requires a local NTFS directory",
     );
   }
+  const expected = {
+    ...before,
+    volumeSerialNumber: BigInt(volumeSerialNumber[0]),
+  };
 
   const invalidHandle = BigInt.asUintN(api.koffi.sizeof("intptr_t") * 8, -1n);
   const handle = api.CreateFileW(
@@ -242,13 +400,13 @@ export function flushWindowsLocalNtfsDirectory(
 
   let operationError = null;
   try {
-    assertDirectoryHandleIdentity(api, handle, fsImpl, directory, before);
+    assertDirectoryHandleIdentity(api, handle, fsImpl, directory, expected);
     const flushed = api.FlushFileBuffers(handle);
     if (!flushed) {
       const errorCode = api.GetLastError();
       throw windowsError("FlushFileBuffers", errorCode);
     }
-    assertDirectoryHandleIdentity(api, handle, fsImpl, directory, before);
+    assertDirectoryHandleIdentity(api, handle, fsImpl, directory, expected);
   } catch (error) {
     operationError = error;
     throw error;

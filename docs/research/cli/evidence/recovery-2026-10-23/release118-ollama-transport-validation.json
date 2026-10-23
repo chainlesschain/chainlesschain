@@ -1,0 +1,296 @@
+{
+  "schema": "chainlesschain.ollama-transport-validation.v1",
+  "timestamp": "2026-10-23T13:56:44.366Z",
+  "status": "targeted-tests-passed-exact-sha-ci-required",
+  "node": "v22.12.0",
+  "platform": "win32-x64",
+  "paidModelCalls": 0,
+  "ciBeforeFix": [
+    {
+      "platform": "linux",
+      "headSha": "a7aa1393e5e20012af8d84ccdf7d316a44acf131",
+      "status": "failed",
+      "violations": [
+        "duplexSoak scenario failed"
+      ],
+      "allOtherScenariosPass": true,
+      "duplex": {
+        "pass": false,
+        "turns": 10,
+        "warmup": {
+          "configuredTurns": 2,
+          "completedTurns": 2
+        },
+        "configuredDurationSeconds": 5,
+        "continuousDurationSeconds": 178.44486627300003,
+        "schedule": {
+          "mode": "duration-spread",
+          "targetTurns": 10,
+          "targetIntervalMs": 500
+        },
+        "latency": {
+          "p95Ms": 36255.770002000005,
+          "observedCount": 10,
+          "retainedCount": 10,
+          "retention": "rolling-window"
+        },
+        "rss": {
+          "beforeBytes": 225292288,
+          "afterBytes": 289910784,
+          "growthBytes": 64618496,
+          "maximumBytes": 325652480,
+          "peakGrowthBytes": 100360192,
+          "limitGrowthBytes": 134217728
+        },
+        "resources": {
+          "kind": "fd",
+          "before": 32,
+          "after": 31,
+          "delta": -1,
+          "maximum": 32,
+          "peakDelta": 0,
+          "limitGrowth": 8,
+          "requiredMeasurementsAvailable": true
+        },
+        "io": {
+          "available": true,
+          "readBytes": 0,
+          "writeBytes": 29708288,
+          "readChars": 6270705898,
+          "writeChars": 6804998,
+          "source": null
+        },
+        "processDescendants": {
+          "measurementAvailable": true,
+          "beforeSource": "pgrep",
+          "afterSource": "pgrep",
+          "unavailableReason": null,
+          "beforeExit": 0,
+          "observed": 0,
+          "retired": 0,
+          "afterExit": 0,
+          "allRetired": true
+        },
+        "exit": {
+          "code": 1,
+          "signal": null
+        },
+        "results": {
+          "count": 12,
+          "measuredCount": 10,
+          "errorCount": 2,
+          "subtypeCounts": {
+            "success": 10,
+            "error": 2
+          },
+          "lengthMinimum": 14,
+          "lengthMaximum": 14
+        },
+        "diagnosticCodes": [],
+        "diagnosticClasses": [
+          "fetch-failed"
+        ]
+      }
+    },
+    {
+      "platform": "darwin",
+      "headSha": "a7aa1393e5e20012af8d84ccdf7d316a44acf131",
+      "status": "failed",
+      "violations": [
+        "duplexSoak scenario failed"
+      ],
+      "allOtherScenariosPass": true,
+      "duplex": {
+        "pass": false,
+        "turns": 10,
+        "warmup": {
+          "configuredTurns": 2,
+          "completedTurns": 2
+        },
+        "configuredDurationSeconds": 5,
+        "continuousDurationSeconds": 282.187390792,
+        "schedule": {
+          "mode": "duration-spread",
+          "targetTurns": 10,
+          "targetIntervalMs": 500
+        },
+        "latency": {
+          "p95Ms": 51328.35837500001,
+          "observedCount": 10,
+          "retainedCount": 10,
+          "retention": "rolling-window"
+        },
+        "rss": {
+          "beforeBytes": 194035712,
+          "afterBytes": 244924416,
+          "growthBytes": 50888704,
+          "maximumBytes": 284164096,
+          "peakGrowthBytes": 90128384,
+          "limitGrowthBytes": 134217728
+        },
+        "resources": {
+          "kind": "fd",
+          "before": 22,
+          "after": 21,
+          "delta": -1,
+          "maximum": 22,
+          "peakDelta": 0,
+          "limitGrowth": 8,
+          "requiredMeasurementsAvailable": true
+        },
+        "io": {
+          "available": false,
+          "reason": "host-has-no-portable-io-counter"
+        },
+        "processDescendants": {
+          "measurementAvailable": true,
+          "beforeSource": "pgrep",
+          "afterSource": "pgrep",
+          "unavailableReason": null,
+          "beforeExit": 0,
+          "observed": 0,
+          "retired": 0,
+          "afterExit": 0,
+          "allRetired": true
+        },
+        "exit": {
+          "code": 1,
+          "signal": null
+        },
+        "results": {
+          "count": 12,
+          "measuredCount": 10,
+          "errorCount": 1,
+          "subtypeCounts": {
+            "success": 11,
+            "error": 1
+          },
+          "lengthMinimum": 14,
+          "lengthMaximum": 14
+        },
+        "diagnosticCodes": [],
+        "diagnosticClasses": [
+          "fetch-failed"
+        ]
+      }
+    }
+  ],
+  "diagnosis": {
+    "observedCiFailure": "duplex result errors classified fetch-failed; original CI artifact does not retain native cause; CI equivalence remains to be verified",
+    "reproducedMechanism": "Node 22.12 bundled fetch reuses a retired idle socket before pending FIN/RST is processed after synchronous client work",
+    "baseline": {
+      "callsAttempted": 3,
+      "serverRequests": 2,
+      "failedCall": 2,
+      "error": "fetch failed",
+      "causeCode": "ECONNRESET",
+      "syscall": "read",
+      "serverDefaultIdleTimeoutMs": 5000,
+      "clientBlockMs": 6500,
+      "log": ".work/cli-ide-recovery-20261023/ollama-bundled-fetch-baseline.log"
+    },
+    "fixedStandalone": {
+      "fetch": "unchanged Node global fetch",
+      "dispatcher": "undici 7.30.1 Agent",
+      "callsAttempted": 5,
+      "serverRequests": 5,
+      "successes": 5,
+      "source": ".work/cli-ide-recovery-20261023/soak-linux-a7aa/keepalive-agent-probe.mjs"
+    },
+    "upstreamMechanism": "undici client-h1 scheduleIdleSocketValidation checks pending socket FIN/RST before writing; no application retry added"
+  },
+  "implementation": {
+    "minimumUndici": "^7.30.1",
+    "lockResolved": "7.30.1",
+    "lockMetadataSource": "npm view undici@7.30.1 version dist --json --offline",
+    "path": "default unscoped Ollama nonstream and streaming transports only",
+    "globalFetchInjectionPreserved": true,
+    "explicitDispatcherPreserved": true,
+    "activeBudgetScope": "original init forwarded without adding dispatcher; strict createFormalBudgetTransport allowlist and host-owned fetch remain authoritative",
+    "defaultGlobalDispatcherNote": "No production setGlobalDispatcher calls found; caller init.dispatcher remains authoritative",
+    "retryAdded": false,
+    "sourceFiles": [
+      {
+        "path": "packages/cli/src/lib/ollama-provider-fetch.js",
+        "sha256": "d02fe2a9958d8e955a2511c1158f670834d3ebaa8a276f8e0fedfe7b753fcd60"
+      },
+      {
+        "path": "packages/cli/src/lib/provider-stream.js",
+        "sha256": "fb15900bee86f2628bc63ceb018f804fe62412959d2ecc1cb9a50a10922ea378"
+      },
+      {
+        "path": "packages/cli/src/runtime/agent-core.js",
+        "sha256": "431e138682fe05b90cfc5c094d7fdcd29c12843069fd1995d8d36ef2b13191f5"
+      },
+      {
+        "path": "packages/cli/__tests__/unit/ollama-provider-fetch.test.js",
+        "sha256": "888c8d4215a78696e741fd5aeaa337e3b30a4904f7fb3183e1b070dd154cd373"
+      },
+      {
+        "path": "packages/cli/package.json",
+        "sha256": "2ac78e5933d7ecbdfa1519b3061689ad0f241e2d06e0f014ffe340bddfb7d609"
+      },
+      {
+        "path": "package-lock.json",
+        "sha256": "ae7dbf8003992b2925177186fef13f6effc0f08d478b04df4cb2963b61081829"
+      }
+    ]
+  },
+  "tests": {
+    "vitest": {
+      "passed": 61,
+      "failed": 0,
+      "files": 4,
+      "log": ".work/cli-ide-recovery-20261023/ollama-transport-vitest.log",
+      "suites": [
+        "__tests__/unit/ollama-provider-fetch.test.js",
+        "__tests__/unit/agent-core-stream-resilience.test.js",
+        "__tests__/unit/agent-core-streaming.test.js",
+        "src/lib/__tests__/provider-stream.test.js"
+      ],
+      "realLoopback": {
+        "calls": 3,
+        "dispatches": 3,
+        "requests": 3,
+        "clientBlockMs": 6500,
+        "retiredIdleSocketsValidated": true
+      },
+      "lostResponse": {
+        "requests": 1,
+        "replayed": false
+      },
+      "abort": {
+        "requests": 0
+      },
+      "scopeAndOverrides": true
+    },
+    "realBudget": {
+      "status": "blocked-by-missing-local-native-sqlite-binding",
+      "tests": 102,
+      "passed": 7,
+      "failed": 95,
+      "code": "CC_BUDGET_STORAGE_UNAVAILABLE",
+      "cause": "better-sqlite3 native better_sqlite3.node missing under installed CLI dependency on both official22.12/current22.22",
+      "suites": [
+        "packages/cli/test-node/formal-budget-provider-scope.node-test.mjs",
+        "packages/cli/test-node/formal-budget-authority.test.mjs"
+      ],
+      "log": ".work/cli-ide-recovery-20261023/ollama-budget-boundaries.log"
+    }
+  },
+  "fullCliDiagnostic": {
+    "status": "stopped-before-completion-not-soak-pass",
+    "beforeFix": true,
+    "results": 2,
+    "successes": 2,
+    "requests": 2,
+    "reason": "local full CLI synchronous work about73s per turn; stopped to prioritize deterministic transport tests",
+    "httpLog": ".work/cli-ide-recovery-20261023/soak-linux-a7aa/duplex-http.jsonl"
+  },
+  "gates": {
+    "fullSoakPassed": false,
+    "exactShaCiPassed": false,
+    "publishAuthorizedByThisReport": false,
+    "required": "New exact-source Linux Windows macOS CLI CI, Strict Sandbox, Reliability Soak and all established release gates"
+  }
+}

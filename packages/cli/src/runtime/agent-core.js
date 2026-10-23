@@ -4,6 +4,7 @@ import {
 } from "../lib/formal-budget-provider-scope.js";
 import { isFormalBudgetError } from "../lib/formal-budget-errors.js";
 import { normalizeOllamaBaseUrl } from "../lib/ollama-base-url.js";
+import { ollamaProviderFetch } from "../lib/ollama-provider-fetch.js";
 import {
   normalizeProviderBaseUrl,
   openAICompatibleBaseUrl,
@@ -12213,7 +12214,7 @@ export async function chatWithTools(rawMessages, options) {
         },
       );
     }
-    const response = await providerFetch(apiUrl, {
+    const response = await ollamaProviderFetch(apiUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       signal,
@@ -13053,7 +13054,7 @@ async function _chatOllamaStreaming(
   stallMs,
   stallTimeoutMs,
 ) {
-  const response = await providerFetch(apiUrl, {
+  const response = await ollamaProviderFetch(apiUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     signal,

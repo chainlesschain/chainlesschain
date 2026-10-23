@@ -10,6 +10,7 @@ import {
 
 import { BUILT_IN_PROVIDERS } from "./llm-providers.js";
 import { normalizeOllamaBaseUrl } from "./ollama-base-url.js";
+import { ollamaProviderFetch } from "./ollama-provider-fetch.js";
 import {
   geminiGenerateContentUrl,
   geminiRequestBody,
@@ -59,7 +60,7 @@ export async function* ollamaTokenStream({
   requireCompletion = false,
 }) {
   const normalizedBaseUrl = normalizeOllamaBaseUrl(baseUrl);
-  const res = await providerFetch(
+  const res = await ollamaProviderFetch(
     `${normalizedBaseUrl}/api/${messages ? "chat" : "generate"}`,
     {
       method: "POST",
@@ -107,18 +108,18 @@ export async function* openAIStream({
   const res = await providerFetch(
     `${normalizeProviderBaseUrl(baseUrl)}/chat/completions`,
     {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model,
-      messages: messages ?? [{ role: "user", content: prompt }],
-      stream: true,
-      ...(governed ? { stream_options: { include_usage: true } } : {}),
-    }),
-    signal,
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages: messages ?? [{ role: "user", content: prompt }],
+        stream: true,
+        ...(governed ? { stream_options: { include_usage: true } } : {}),
+      }),
+      signal,
     },
   );
   if (!res.ok || !res.body) {

@@ -1,0 +1,357 @@
+{
+  "schema": "chainlesschain.cli-reliability-soak.v2",
+  "status": "failed",
+  "startedAt": "2026-10-23T13:34:16.537Z",
+  "seriesStartedAt": "2026-10-23T13:34:16.537Z",
+  "headSha": "a7aa1393e5e20012af8d84ccdf7d316a44acf131",
+  "expectedSha": "a7aa1393e5e20012af8d84ccdf7d316a44acf131",
+  "exactShaVerified": true,
+  "source": {
+    "clean": true,
+    "changeCount": 0
+  },
+  "platform": "darwin",
+  "arch": "arm64",
+  "node": "v22.12.0",
+  "profile": {
+    "mode": "smoke",
+    "durationSeconds": 5,
+    "turns": 10,
+    "warmupTurns": 2,
+    "concurrentAgents": 3,
+    "pipeCases": 2,
+    "disconnectCases": 1,
+    "slowConsumerMs": 250,
+    "checkpointIntervalSeconds": 1,
+    "cleanupDeadlineMs": 10000,
+    "maxRssGrowthMb": 128,
+    "maxResourceGrowth": 8
+  },
+  "scenarios": {
+    "disk": {
+      "pass": true,
+      "configured": false,
+      "required": false,
+      "reason": "real-disk-fixtures-not-configured"
+    },
+    "mcpOutput": {
+      "pass": true,
+      "durationMs": 30437.866708999998,
+      "exit": {
+        "code": 0,
+        "signal": null
+      },
+      "resultSubtype": "success",
+      "resultIsError": false,
+      "toolCalls": 1,
+      "oversizedResultBytes": 1572864,
+      "budgetCodeObservedByModel": true,
+      "privateCanaryObservedByModel": false,
+      "privateCanaryObservedOnWire": false,
+      "modelRequestCount": 2,
+      "modelToolCallResponses": 1,
+      "modelFinalResponses": 1,
+      "mcpServerPidObserved": true,
+      "mcpServerRetired": true,
+      "startupDiagnostics": {
+        "fsCodes": [],
+        "operations": [],
+        "classes": [
+          "database-initialized",
+          "sandbox-configured"
+        ]
+      },
+      "diagnosticCodes": [
+        "ERR_MODULE_NOT_FOUND",
+        "CC_MCP_LEDGER_OUTCOME_UNKNOWN",
+        "CC_MCP_TOOL_RESULT_TOO_LARGE"
+      ],
+      "diagnosticClasses": [],
+      "toolResultProjections": [
+        {
+          "isError": true,
+          "code": "CC_MCP_LEDGER_OUTCOME_UNKNOWN",
+          "incidentCode": "CC_MCP_TOOL_RESULT_TOO_LARGE",
+          "outcomeUnknown": true,
+          "retryable": false
+        }
+      ],
+      "stdoutBytes": 88368,
+      "stderrBytes": 516
+    },
+    "pipe": {
+      "pass": true,
+      "brokenConsumerP95Ms": 2820.097249999999,
+      "slowConsumerP95Ms": 7342.803583000001,
+      "cleanupDeadlineMs": 10000,
+      "brokenConsumers": [
+        {
+          "closed": true,
+          "exitCode": 0,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 2820.097249999999,
+          "descendantsAfterExit": 0,
+          "stderrBytes": 370,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          }
+        },
+        {
+          "closed": true,
+          "exitCode": 0,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 2154.3233330000003,
+          "descendantsAfterExit": 0,
+          "stderrBytes": 328,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          }
+        }
+      ],
+      "slowConsumers": [
+        {
+          "exitCode": 0,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 6791.306792000003,
+          "configuredStallMs": 250,
+          "actualStallMs": 252.7801249999975,
+          "stallObserved": true,
+          "peakReadableBytes": 72884,
+          "outputBytes": 2616619,
+          "resultSubtype": "success",
+          "resultIsError": false,
+          "diagnosticCodes": [],
+          "descendantsAfterExit": 0,
+          "stderrBytes": 328,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          }
+        },
+        {
+          "exitCode": 0,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 7342.803583000001,
+          "configuredStallMs": 250,
+          "actualStallMs": 251.71520800000144,
+          "stallObserved": true,
+          "peakReadableBytes": 72884,
+          "outputBytes": 2616619,
+          "resultSubtype": "success",
+          "resultIsError": false,
+          "diagnosticCodes": [],
+          "descendantsAfterExit": 0,
+          "stderrBytes": 328,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          }
+        }
+      ]
+    },
+    "tty": {
+      "pass": true,
+      "supported": true,
+      "normal": {
+        "pass": true,
+        "durationMs": 6549.140875000005,
+        "exitCode": 0,
+        "signal": 0,
+        "outputBytes": 672,
+        "diagnosticCodes": [],
+        "processRetired": true
+      },
+      "screenReader": {
+        "pass": true,
+        "durationMs": 5203.818874999997,
+        "exitCode": 0,
+        "signal": 0,
+        "readinessObserved": true,
+        "exitRequested": true,
+        "unicodePromptEchoed": true,
+        "responseObserved": true,
+        "ansiColorObserved": false,
+        "repaintObserved": false,
+        "outputBytes": 1044,
+        "diagnosticCodes": [],
+        "processRetired": true
+      },
+      "disconnects": [
+        {
+          "pass": true,
+          "outputObserved": true,
+          "killRequested": true,
+          "protocolEventObserved": true,
+          "processRetired": true,
+          "durationMs": 2236.159332999996,
+          "exitCode": 0,
+          "signal": 1,
+          "outputBytes": 974,
+          "diagnosticCodes": []
+        }
+      ]
+    },
+    "clipboard": {
+      "pass": true,
+      "supported": true,
+      "required": false,
+      "configured": false,
+      "reason": "smoke-opt-in-not-set"
+    },
+    "ssh": {
+      "pass": true,
+      "configured": false,
+      "reason": "target-not-configured"
+    },
+    "concurrentAgents": {
+      "pass": true,
+      "agents": 3,
+      "durationMs": 15601.734417,
+      "exits": [
+        {
+          "code": 0,
+          "signal": null,
+          "resultSubtype": "success",
+          "resultIsError": false,
+          "resultLength": 14,
+          "diagnosticCodes": [],
+          "diagnosticClasses": [],
+          "stdoutBytes": 297,
+          "stderrBytes": 380
+        },
+        {
+          "code": 0,
+          "signal": null,
+          "resultSubtype": "success",
+          "resultIsError": false,
+          "resultLength": 14,
+          "diagnosticCodes": [],
+          "diagnosticClasses": [],
+          "stdoutBytes": 297,
+          "stderrBytes": 380
+        },
+        {
+          "code": 0,
+          "signal": null,
+          "resultSubtype": "success",
+          "resultIsError": false,
+          "resultLength": 14,
+          "diagnosticCodes": [],
+          "diagnosticClasses": [],
+          "stdoutBytes": 297,
+          "stderrBytes": 380
+        }
+      ]
+    },
+    "duplexSoak": {
+      "pass": false,
+      "turns": 10,
+      "warmup": {
+        "configuredTurns": 2,
+        "completedTurns": 2
+      },
+      "configuredDurationSeconds": 5,
+      "continuousDurationSeconds": 282.187390792,
+      "schedule": {
+        "mode": "duration-spread",
+        "targetTurns": 10,
+        "targetIntervalMs": 500
+      },
+      "latency": {
+        "p95Ms": 51328.35837500001,
+        "observedCount": 10,
+        "retainedCount": 10,
+        "retention": "rolling-window"
+      },
+      "rss": {
+        "beforeBytes": 194035712,
+        "afterBytes": 244924416,
+        "growthBytes": 50888704,
+        "maximumBytes": 284164096,
+        "peakGrowthBytes": 90128384,
+        "limitGrowthBytes": 134217728
+      },
+      "resources": {
+        "kind": "fd",
+        "before": 22,
+        "after": 21,
+        "delta": -1,
+        "maximum": 22,
+        "peakDelta": 0,
+        "limitGrowth": 8,
+        "requiredMeasurementsAvailable": true
+      },
+      "io": {
+        "available": false,
+        "reason": "host-has-no-portable-io-counter"
+      },
+      "processDescendants": {
+        "measurementAvailable": true,
+        "beforeSource": "pgrep",
+        "afterSource": "pgrep",
+        "unavailableReason": null,
+        "beforeExit": 0,
+        "observed": 0,
+        "retired": 0,
+        "afterExit": 0,
+        "allRetired": true
+      },
+      "exit": {
+        "code": 1,
+        "signal": null
+      },
+      "results": {
+        "count": 12,
+        "measuredCount": 10,
+        "errorCount": 1,
+        "subtypeCounts": {
+          "success": 11,
+          "error": 1
+        },
+        "lengthMinimum": 14,
+        "lengthMaximum": 14
+      },
+      "diagnosticCodes": [],
+      "diagnosticClasses": [
+        "fetch-failed"
+      ]
+    }
+  },
+  "partialScenarios": {},
+  "activeScenario": null,
+  "resume": {
+    "requested": false,
+    "recovered": false,
+    "priorStatus": null,
+    "attempt": 1,
+    "recoveredScenarios": []
+  },
+  "violations": [
+    "duplexSoak scenario failed"
+  ],
+  "checkpointedAt": "2026-10-23T13:40:31.452Z",
+  "fakeModelCalls": 20,
+  "finishedAt": "2026-10-23T13:40:31.452Z"
+}

@@ -1,0 +1,10 @@
+{
+  "node": "v22.12.0",
+  "uv": "1.49.1",
+  "platform": "win32",
+  "sourceSha": "a7aa1393e5e20012af8d84ccdf7d316a44acf131",
+  "localStatDev": "38182903",
+  "scope": "Actual local Node 22.12 native directory flush, not a hosted Windows fast-stat ABI reproduction or complete release gate",
+  "nativeFlush": "windows-directory-flush",
+  "pass": true
+}

@@ -1,0 +1,13 @@
+Official Node v22.12.0 combined regression, final source. Partial run; stopped after failures, not a complete suite pass.
+Observed completed case lines before the final poll: 18 (17 passed, 1 failed).
+Failure: agent-evolution-runtime-composition.test.js > protects the real stream manual compaction (denied=false), 91252ms, existing 90000ms timeout.
+The following final-poll output adds 4 passes and 1 failure. Total observed completed case lines: 23 (21 passed, 2 failed). Other cases may have been active when stopped and are not counted as passed.
+ ✓ __tests__/unit/agent-evolution-runtime-composition.test.js > Agent evolution runtime production composition > governs actual resolver stages and queue outcomes (model-source-denied) 30347ms
+ ✓ __tests__/unit/agent-evolution-runtime-composition.test.js > Agent evolution runtime production composition > governs actual resolver stages and queue outcomes (model-response-denied) 43220ms
+ ✓ __tests__/unit/agent-evolution-runtime-composition.test.js > Agent evolution runtime production composition > governs actual resolver stages and queue outcomes (wrong-run) 807ms
+ ✓ __tests__/unit/agent-evolution-runtime-composition.test.js > Agent evolution runtime production composition > governs actual resolver stages and queue outcomes (invalid-vector) 10008ms
+[PDH-ASK] ask effMaxFacts=80 effMaxQueryLimit=200 gathered=1 (events=1 persons=0 items=0) adapter=* intent=list
+[PDH-ASK] prompt factCount=1 truncated=0 messages=2 promptChars=2628
+ × __tests__/unit/local-ui-evolution-deployment.test.js > default local UI Evolution deployment > lazily signs a first agent start and authenticates ask, chat and UI session modes 344787ms
+   → Test timed out in 300000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
