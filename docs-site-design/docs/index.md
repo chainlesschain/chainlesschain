@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 系统设计文档
-  tagline: "v5.0.3.140 | npm CLI 0.166.108 已公开，精确提交发行门与公开制品回读通过；Open VSX 0.37.153 已公开，精确提交发行门与公开制品回读通过；JetBrains Marketplace 0.4.170 已公开，精确提交发行门与公开制品回读通过"
+  tagline: "CLI 0.166.117 / Open VSX 0.37.159 / JetBrains 0.4.176 已公开；输入、图片预算与工具轮次恢复"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -21,9 +21,9 @@ hero:
 
 features:
   - icon: 🛡️
-    title: 目标草稿互通与发行边界
-    details: "目标草稿能力自 CLI .107 引入；npm CLI 0.166.108 已公开，精确提交发行门与公开制品回读通过；Open VSX 0.37.153 已公开，精确提交发行门与公开制品回读通过；JetBrains Marketplace 0.4.170 已公开，精确提交发行门与公开制品回读通过。Session Core .20 保持独立公开版本；互通仍需匹配桌面源码构建、授权与原生确认；本轮模型补测未运行。"
-    link: /release-runtime-update-2026-10-20
+    title: Evolution 输入、图片预算与会话恢复
+    details: "CLI .117 修复代码字面量误判、图片与文本预算混算、工具 JSON 截断和异常退出结算。Session Core .22、PDH .66 已先行发布，配对 IDE 均推荐 .117。真实模型任务未新增验收；自动晋升保持 HOLD。"
+    link: /release-runtime-update-2026-10-23
   - icon: 🏢
     title: 组织目标、授权记忆与站内通知（主线）
     details: 产品 .140 已包含显式巡检、多级审批、独立验收、共享记忆与授权通知；记忆不自动注入模型。
@@ -80,6 +80,14 @@ features:
     title: 企业级功能
     details: RBAC权限、SOC2合规、SCIM用户配置、DLP数据防泄漏、SIEM安全信息管理
 ---
+
+## 2026-10-23 当前代码与公开发行
+
+> 2026-10-23 当前核对：CLI **0.166.117**、Open VSX **0.37.159** 和 JetBrains **0.4.176** 均已公开，两个 IDE 均推荐 CLI `.117`。Session Core **0.3.22**、Personal Data Hub **0.4.66** 已先行发布。新增代码输入兼容、独立图片预算、完整 JSON 预览和异常退出工具轮次结算；本轮未新增真实模型任务验收，自动晋升继续 **HOLD**。
+
+[最新设计](/release-runtime-update-2026-10-23) · [升级指南](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-23.html) · [发布证据](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release117-public/publication.json)
+
+## 历史版本与验收记录
 
 <!-- release108-status -->
 

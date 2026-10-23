@@ -1,4 +1,8 @@
-﻿# 会话管理 (session)
+# 会话管理 (session)
+
+> 2026-10-23 当前核对：CLI **0.166.117**、Open VSX **0.37.159** 和 JetBrains **0.4.176** 均已公开，两个 IDE 均推荐 CLI `.117`。Session Core **0.3.22**、Personal Data Hub **0.4.66** 已先行发布。新增代码输入兼容、独立图片预算、完整 JSON 预览和异常退出工具轮次结算；本轮未新增真实模型任务验收，自动晋升继续 **HOLD**。
+
+[输入、图片预算与会话恢复](./agent-input-and-recovery) · [当前升级步骤](./cli-ide-update-2026-10-23)
 
 > Headless 命令。2026-10-02 npm latest 为 CLI `0.166.84@d93c9c9766`；Open VSX `0.37.126` 与 JetBrains `0.4.146` 均公开并推荐该 CLI。Session Core `0.3.14` 提供会话审批单调修订；配套 CLI 已包含 Plan/ApprovalGate、Auto Mode、WS 策略及官方 settings/scoped 写口同步撤销。同一进程/模块实例内恢复原规则不能恢复旧 Shell 许可；跨进程/Worker、外部编辑与 legacy callback 即时通知仍未闭合。结果未知时先核对副作用。`session` 与 App Server Thread 是不同身份，恢复时不要混用。详见[发布指南](./agent-platform-release)。
 

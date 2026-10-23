@@ -2,17 +2,19 @@
 
 ## 最新发布（2026-10-23）
 
-CLI **0.166.117** 已通过 [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/39845469661) 发布到 npm，并完成公共制品、签名来源和独立安装回读。修复 Python/JavaScript 代码字面量被 Evolution ingress 误判为损坏 JSON、异常退出时遗漏已完成工具轮次结算，以及图片与文本预算混算和长工具输出截断的问题。Session Core **0.3.22** 与 Personal Data Hub **0.4.66** 已先于 CLI 发布。安装命令：`npm i -g chainlesschain@0.166.117 --registry https://registry.npmjs.org`。Open VSX **0.37.159** 已公开并验证下载；JetBrains **0.4.176** 已上传，等待 Marketplace 审核，尚未验证公开下载。两者推荐 CLI **0.166.117**。[发布证据](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release117-public/publication.json)。本次未新增真实模型任务验收；下方历史发行记录与限制继续保留。
+CLI **0.166.117** 已通过 [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/39845469661) 发布到 npm，并完成公共制品、签名来源和独立安装回读。修复 Python/JavaScript 代码字面量被 Evolution ingress 误判为损坏 JSON、异常退出时遗漏已完成工具轮次结算，以及图片与文本预算混算和长工具输出截断的问题。Session Core **0.3.22** 与 Personal Data Hub **0.4.66** 已先于 CLI 发布。安装命令：`npm i -g chainlesschain@0.166.117 --registry https://registry.npmjs.org`。Open VSX **0.37.159** 已公开并验证下载；JetBrains **0.4.176** 已批准并验证公开下载。两者推荐 CLI **0.166.117**。[发布证据](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release117-public/publication.json)。本次未新增真实模型任务验收；下方历史发行记录与限制继续保留。
+
+当前操作见[CLI .117 升级指南](./cli-ide-update-2026-10-23)与[输入、图片预算和恢复](./agent-input-and-recovery)。
 
 <!-- release112-status -->
 
-## Current release: CLI .112 / IDE .155 and .172
+## 历史已验证版本：CLI .112 / IDE .155 与 .172
 
-2026-10-22 ???npm CLI **0.166.112**?Open VSX **0.37.155** ? JetBrains Marketplace **0.4.172** ????????????????? IDE ????? CLI **0.166.112**?
+2026-10-22 历史回读：npm CLI **0.166.112**、Open VSX **0.37.155** 与 JetBrains Marketplace **0.4.172** 均已公开下载验证；两个 IDE 均推荐 CLI **0.166.112**。
 
-CLI ????? `35a2508d156152a61d74fbf8135fcfa1225fe235`????? CLI CI **71** ? job ? Strict Sandbox **5** ??? job ???????? [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/39661868416) ????? tarball ???? npm provenance ????run ??????Session Core **0.3.21** ?? CLI ???
+CLI 历史发行源码为 `35a2508d156152a61d74fbf8135fcfa1225fe235`；准确提交的 CLI CI **71** 项和 Strict Sandbox **5** 项作业通过，随后经 [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/39661868416) 发布。公共 tarball 完整性、npm provenance 的源码与 run 绑定已核验；Session Core **0.3.21** 先于 CLI 发布。
 
-?? IDE ?? `ide-vscode-v0.37.155`?`ide-jetbrains-v0.4.172` ??? `ae27ef6dfc8cf1e45bf084030816b02c77dc2a34`?[Open VSX ??](https://github.com/chainlesschain/chainlesschain/actions/runs/39673804362)???[JetBrains ?? attempt 2](https://github.com/chainlesschain/chainlesschain/actions/runs/39676899944/attempts/2) ?????? macOS 2024.2 ????????????????JetBrains ??? `approve=true`?`listed=true`?`hidden=false`??? IDE ?????????? CLI ???????[??????](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release112-public/publication.json)?
+两个历史 IDE 标签 `ide-vscode-v0.37.155` 与 `ide-jetbrains-v0.4.172` 均绑定源码 `ae27ef6dfc8cf1e45bf084030816b02c77dc2a34`。[Open VSX 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/39673804362)和 [JetBrains 发布 attempt 2](https://github.com/chainlesschain/chainlesschain/actions/runs/39676899944/attempts/2)门禁通过，JetBrains 公开状态为 `approve=true`、`listed=true`、`hidden=false`。公开制品的版本与 CLI 推荐值已核验，见[历史发行证据](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release112-public/publication.json)。
 
 CLI .112 resolves saved model provider settings, native Gemini/Anthropic protocol routing, Ollama URL normalization, and generated local signing-key paths.
 
@@ -22,7 +24,7 @@ cc --version
 cc doctor
 ```
 
-Restart the IDE chat host and run Doctor after upgrading. ???????????????? Ollama ????????????????????????? **31/45**??? **26/36**??? **5/9**???? **14** ?????? .112 ??????**NOT_PAID_READY**?**NOT_ADMITTED** ????? **HOLD** ???Microsoft VS Code Marketplace ?????? VS Code ???????? Open VSX VSIX????? **v5.0.3.140** ????????????????????????
+该历史发行没有新增真实模型任务验收；本地 Ollama 验证由用户升级后进行。跨版本历史合格交付 **31/45**（普通 **26/36**、首次 **5/9**），剩余 **14** 项；累计值不代表 .112 的单轮成功率。**NOT_PAID_READY**、**NOT_ADMITTED** 与自动晋升 **HOLD** 保留。Microsoft Marketplace 未发行；原生产品 **v5.0.3.140** 独立安装、授权和验收。
 
 ## Previous verified release: CLI .108 / IDE .153 and .170
 

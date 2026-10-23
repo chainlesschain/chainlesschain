@@ -1,5 +1,18 @@
 # ChainlessChain 文档网站
 
+## 当前文档（2026-10-23）
+
+公开版本为 CLI **0.166.117**、Open VSX **0.37.159**、JetBrains **0.4.176**，两个 IDE 均推荐 CLI `.117`。本轮更新 Evolution 代码输入、独立图片预算、完整 JSON 工具预览和异常退出时的工具轮次结算。
+
+- [当前升级指南](docs/chainlesschain/cli-ide-update-2026-10-23.md)
+- [输入、图片预算和会话恢复](docs/chainlesschain/agent-input-and-recovery.md)
+- [权威设计源](../docs/design/release-runtime-update-2026-10-23.md)
+- [官网与三站部署说明](../docs-website-v2/README.md)
+
+设计文件只编辑仓库根 `docs/design/`；本项目 `docs/design/` 是构建时生成的副本。本轮未新增真实模型任务验收，历史跨版本统计与生产准入限制继续保留。
+
+## 历史文档快照
+
 > 2026-10-18 实时核对：npm CLI **0.166.106**、Open VSX **0.37.151** 已公开，Open VSX 推荐 CLI `.106`，发行提交 `dca47fd91a`。JetBrains 当前已核验公开 **0.4.167**，仍推荐 CLI `.105`；`.168` 的公开上架与下载待核验。公开 `.105/.150/.167` 任务补测已收齐生成与独立验收各 **20/20**，新增 **6** 项候选及全流程通过；跨版本累计候选合格交付 **31/45**（普通 **26/36**、首次 **5/9**），剩余 **14** 项。`.106/.151/.168` 新轮模型补测尚未运行，累计覆盖不等于新版单轮成功率。Microsoft Marketplace 未发布。
 
 > 2026-10-16：公开 CLI **0.166.103**、Open VSX **0.37.148** 与 JetBrains **0.4.165**，两个 IDE 均推荐 CLI `.103`。CLI 发行提交 `b235ac8068`，VS Code `c8a64caa92`，JetBrains `fa64840216`；主线核对至 `920f263e3f`。Session Core **0.3.19**、Kernel **0.1.10**、PDH **0.4.65**；原生产品 **v5.0.3.140** 独立发行。正式预算保持 **NOT_PAID_READY**，36+9 **NOT_RUN（0/36、0/9）**、native **NOT_ADMITTED**、自动晋升 **HOLD**。 参见[本轮升级指南](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-16.html)。较早日期的记录保留历史范围。

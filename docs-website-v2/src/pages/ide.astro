@@ -10,7 +10,7 @@ const VSCODE_CLI_VERSION = releaseStatus.openVsxRecommendedCliVersion;
 const JETBRAINS_CLI_VERSION = releaseStatus.jetBrainsRecommendedCliVersion;
 const OPEN_VSX_DOWNLOADS = releaseStatus.openVsxDownloadsDisplayZh;
 const JETBRAINS_CANDIDATE = releaseStatus.jetBrainsCandidateVersion;
-const JETBRAINS_PENDING = ["pending-approval", "published-unverified"].includes(
+const JETBRAINS_PENDING = ["pending-review", "pending-approval", "published-unverified"].includes(
   releaseStatus.jetBrainsPublicationStatus,
 );
 const CLI_RELEASE_COMMIT = releaseStatus.cliReleaseCommit.slice(0, 10);

@@ -1,6 +1,12 @@
 # 110. Agent Platform 发布与运行时边界设计
 
-> **2026-10-08 当前发行**：CLI `0.166.92`、Session Core `0.3.17`、Memory Kernel `0.1.7`、PDH `0.4.64`、Open VSX `0.37.137`、JetBrains `0.4.155` 与产品 `v5.0.3.139` 已公开，四个发行标签绑定 `e812a89952`。产品含个人目标面板与组织任务工作台；个人记忆 UI、组织目标/转移/风险/验收/记忆、站内通知、IDE 调查恢复与后续 RRSI 读取保护需主线 `381f8018ef`。按实际发行树区分能力，自动晋升继续 HOLD。见[最新设计](../governance-runtime-update-2026-10-08.md)和[发行指南](https://docs.chainlesschain.com/chainlesschain/agent-platform-release.html)。
+> 2026-10-23 当前核对：CLI **0.166.117**、Open VSX **0.37.159** 和 JetBrains **0.4.176** 均已公开，两个 IDE 均推荐 CLI `.117`。Session Core **0.3.22**、Personal Data Hub **0.4.66** 已先行发布。新增代码输入兼容、独立图片预算、完整 JSON 预览和异常退出工具轮次结算；本轮未新增真实模型任务验收，自动晋升继续 **HOLD**。
+
+详见[本轮运行时设计](../release-runtime-update-2026-10-23.md)。文本输入快照 1 MiB、模型可见投影 896 KiB，图片单消息 20 MiB、单请求 40 MiB，视觉 token 预留与实际 usage 分别处理。持久图片消息包须与 JSONL 一起备份。
+
+## 历史架构与发行记录
+
+> **2026-10-08 历史发行**：CLI `0.166.92`、Session Core `0.3.17`、Memory Kernel `0.1.7`、PDH `0.4.64`、Open VSX `0.37.137`、JetBrains `0.4.155` 与产品 `v5.0.3.139` 已公开，四个发行标签绑定 `e812a89952`。产品含个人目标面板与组织任务工作台；个人记忆 UI、组织目标/转移/风险/验收/记忆、站内通知、IDE 调查恢复与后续 RRSI 读取保护需主线 `381f8018ef`。按实际发行树区分能力，自动晋升继续 HOLD。见[最新设计](../governance-runtime-update-2026-10-08.md)和[发行指南](https://docs.chainlesschain.com/chainlesschain/agent-platform-release.html)。
 
 > **2026-10-06 历史发布核对**：CLI `0.166.90`、Session Core `0.3.15`、Agent SDK `0.2.13`、PDH `0.4.63` 和 Open VSX `0.37.135` 已公开，准确提交为 `28cff6adc8`。该提交完整 CLI CI、Strict Sandbox、IDE 宿主及安全门通过；子包先经 OIDC 发布并核验，再发布 CLI 和 Open VSX。JetBrains `0.4.153` 标签发布成功且已批准公开，推荐 CLI `0.166.90`。新增桌面受控任务工作区属于本轮源码，尚未进入独立 `v5.0.3.138` 产品安装包。详见[本轮设计](../data-actions-update-2026-10-06.md)与[发布指南](https://docs.chainlesschain.com/chainlesschain/agent-platform-release.html)。
 

@@ -7,7 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed - cc CLI 0.166.117: code literals at Evolution ingress and completed tool recovery (2026-10-23)
+### Documentation - Runtime budgets, recovery and public release alignment (2026-10-23)
+
+- Update design documentation, user recovery and upgrade guides, both root READMEs and the bilingual official website for CLI 0.166.117, Open VSX 0.37.159 and JetBrains 0.4.176.
+- Record the approved JetBrains public ZIP and compiled CLI recommendation; retain the independent CI archive comparison limitation and historical model-task acceptance boundaries.
+- Align the three-site snapshot deployment checks with the current pages and versions, preserving staging, backups and rollback.
+
+### Fixed - cc CLI 0.166.117: code literals at Evolution ingress and completed tool recovery (published, 2026-10-23)
 
 - Recognize Python and JavaScript literals in `run_code` source and results without treating ordinary code as malformed JSON. Continue decoding quoted sensitive keys and values for redaction.
 - Keep genuine JSON validation, duplicate-key rejection, numeric limits and projection budgets; distinguish malformed JSON errors from actual JSON budget failures.
@@ -18,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Settle completed tool rounds before terminating an Agent Run on Evolution ingress failure, retaining verified session prefix checks and removing unanswered calls from replay.
 - Preserve completed rounds on caller cancellation, session-budget exhaustion, unknown compaction usage and independent runtime-ledger failure.
 - Persist large image context bundles as private references bound to the current saved-session generation; verify bytes on restart and clean them up with session deletion. Unsaved sessions do not create persistent image bundles.
-- Publish CLI first; follow with IDE releases recommending CLI 0.166.117 after public npm readback.
+- Published the child packages before CLI 0.166.117, then Open VSX 0.37.159 and JetBrains 0.4.176; both IDEs publicly recommend CLI 0.166.117.
 - Align Session Core 0.3.22 and Personal Data Hub 0.4.66 with their changed source trees before publishing the CLI. Candidate 0.166.116 was not published; its immutable tag remains unchanged.
 
 ### Fixed - cc CLI 0.166.115: JSON-compatible Agent tool evidence (published, 2026-10-22)

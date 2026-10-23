@@ -18,7 +18,7 @@ Open VSX version **0.37.159** pairs with public CLI `0.166.117`.
 
 The immutable `ide-vscode-v0.37.159` tag selects source `ab31677d6691b4fdd5390e16fae60de5a5895cf1`. Its [release workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/39852148558) passed the Linux, Windows and macOS host gates, three-system browser evidence and Remote SSH checks. The public [versioned VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.159/file/chainlesschain.chainlesschain-ide-0.37.159.vsix) has the same contents as the immutable CI candidate and recommends CLI `0.166.117`. Install the CLI with `npm i -g chainlesschain@0.166.117 --registry https://registry.npmjs.org`.
 
-JetBrains **0.4.176** was uploaded successfully and is awaiting Marketplace approval/listing; its public ZIP download has not been verified. [Publication evidence](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release117-public/publication.json).
+JetBrains **0.4.176** is approved, publicly listed and its public ZIP version and compiled CLI recommendation have been verified. [Publication evidence](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release117-public/publication.json).
 
 No new live model-task acceptance was run. Historical acceptance remains **31/45** across versions, with **14** unaccepted; **NOT_PAID_READY**, **NOT_ADMITTED** and automatic promotion **HOLD** remain. Microsoft Marketplace remains unpublished. Native product **v5.0.3.140** is a separate release.
 

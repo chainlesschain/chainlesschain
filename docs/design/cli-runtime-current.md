@@ -1,5 +1,11 @@
 # CLI Runtime 当前架构与实现
 
+> 2026-10-23 当前核对：CLI **0.166.117**、Open VSX **0.37.159** 和 JetBrains **0.4.176** 均已公开，两个 IDE 均推荐 CLI `.117`。Session Core **0.3.22**、Personal Data Hub **0.4.66** 已先行发布。新增代码输入兼容、独立图片预算、完整 JSON 预览和异常退出工具轮次结算；本轮未新增真实模型任务验收，自动晋升继续 **HOLD**。
+
+详见[本轮运行时设计](./release-runtime-update-2026-10-23.md)。文本输入快照 1 MiB、模型可见投影 896 KiB，图片单消息 20 MiB、单请求 40 MiB，视觉 token 预留与实际 usage 分别处理。持久图片消息包须与 JSONL 一起备份。
+
+## 历史架构与发行记录
+
 > 2026-10-16：公开 CLI **0.166.103**、Open VSX **0.37.148** 与 JetBrains **0.4.165**，两个 IDE 均推荐 CLI `.103`。CLI 发行提交 `b235ac8068`，VS Code `c8a64caa92`，JetBrains `fa64840216`；主线核对至 `920f263e3f`。Session Core **0.3.19**、Kernel **0.1.10**、PDH **0.4.65**；原生产品 **v5.0.3.140** 独立发行。正式预算保持 **NOT_PAID_READY**，36+9 **NOT_RUN（0/36、0/9）**、native **NOT_ADMITTED**、自动晋升 **HOLD**。 详见[本轮设计](release-runtime-update-2026-10-16.md)。下方日期段落为历史快照。
 
 > 2026-10-15：公开 CLI **0.166.101**、Kernel **0.1.10** 与 Open VSX **0.37.145** 对应 `6752b49e1e`；压缩拒绝与 provider 用量结算见[最新增量设计](release-runtime-update-2026-10-15.md)。JetBrains `.163` 仍为源码候选，Marketplace API 列出 `.162`。耐久预算代码已包含，但状态 **NOT_PAID_READY**；正式 36+9 **NOT_RUN**，native review **NOT_ADMITTED**，自动晋升 **HOLD**。

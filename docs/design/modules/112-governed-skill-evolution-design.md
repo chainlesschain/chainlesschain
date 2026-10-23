@@ -1,6 +1,12 @@
 # 112 受治理的 Skill 自进化设计
 
-> **2026-09-28 当前核对**：源码 `main@c2ff6d036e`；公开 CLI `0.166.78@3400318446`、Open VSX `0.37.119@3400318446`、JetBrains `0.4.140@3400318446`。`24f0cb6fb1` 的逐槽签名最终回执与 PM 分母对账已进入公开 CLI 的源码身份，但只核验提交给接口的回执，不构成生产晋升资格；真实 PM 收益、启动覆盖和总成本仍待独立验收。PM 效果证据、Eval 启动准入/cohort 登记及运行时修复见[增量设计](../agent-runtime-update-2026-09-26.md)。下文较早的版本与证据按历史时点阅读。
+> 2026-10-23 当前核对：CLI **0.166.117**、Open VSX **0.37.159** 和 JetBrains **0.4.176** 均已公开，两个 IDE 均推荐 CLI `.117`。Session Core **0.3.22**、Personal Data Hub **0.4.66** 已先行发布。新增代码输入兼容、独立图片预算、完整 JSON 预览和异常退出工具轮次结算；本轮未新增真实模型任务验收，自动晋升继续 **HOLD**。
+
+详见[本轮运行时设计](../release-runtime-update-2026-10-23.md)。文本输入快照 1 MiB、模型可见投影 896 KiB，图片单消息 20 MiB、单请求 40 MiB，视觉 token 预留与实际 usage 分别处理。持久图片消息包须与 JSONL 一起备份。
+
+## 历史架构与发行记录
+
+> **2026-09-28 历史核对**：源码 `main@c2ff6d036e`；公开 CLI `0.166.78@3400318446`、Open VSX `0.37.119@3400318446`、JetBrains `0.4.140@3400318446`。`24f0cb6fb1` 的逐槽签名最终回执与 PM 分母对账已进入公开 CLI 的源码身份，但只核验提交给接口的回执，不构成生产晋升资格；真实 PM 收益、启动覆盖和总成本仍待独立验收。PM 效果证据、Eval 启动准入/cohort 登记及运行时修复见[增量设计](../agent-runtime-update-2026-09-26.md)。下文较早的版本与证据按历史时点阅读。
 
 > 2026-09-20 增量：公开 CLI 已升至 `0.166.68@815fdbc0c4`，Open VSX `0.37.110@5860f1e4a4` 与 JetBrains `0.4.131@5860f1e4a4` 已公开并推荐该 CLI。浏览器观察、导航、标签、历史、键盘与下载均要求显式 action authority；下载字节进入带跨进程锁、认证保留/撤销、崩溃恢复、到期清理与可审计销毁的耐久隔离区。PM runner/reviewer/grader 的证据与恢复快照绑定有界子进程和受治理上下文。Session Core `0.3.13`、Context/Memory Kernel `0.1.5` 与 Personal Data Hub `0.4.62` 已先于 CLI 发布；13 个子包全部通过公共 tarball 字节审计。`readyForExecution:false`、`qualifiesForPromotion:false` 和 automatic promotion `HOLD` 不变。
 >

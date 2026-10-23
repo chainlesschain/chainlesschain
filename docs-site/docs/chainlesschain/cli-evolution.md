@@ -1,8 +1,12 @@
 # 自进化系统 (evolution)
 
+> 2026-10-23 当前核对：CLI **0.166.117**、Open VSX **0.37.159** 和 JetBrains **0.4.176** 均已公开，两个 IDE 均推荐 CLI `.117`。Session Core **0.3.22**、Personal Data Hub **0.4.66** 已先行发布。新增代码输入兼容、独立图片预算、完整 JSON 预览和异常退出工具轮次结算；本轮未新增真实模型任务验收，自动晋升继续 **HOLD**。
+
+[输入、图片预算与会话恢复](./agent-input-and-recovery) · [当前升级步骤](./cli-ide-update-2026-10-23)
+
 > Headless 命令 — 不依赖桌面 GUI，直接使用核心包运行。适用于服务器、CI/CD、容器化等无桌面环境。
 
-> **当前版本（2026-09-07）**：Agent Platform CLI `0.166.30`。既有 `assess`、`diagnose` 和 metrics 子命令仍只记录指标，不训练模型权重或修改 active Skill；`workbench` 与 `knowledge` 子树会向受信部署宿主提交摘要/revision 绑定的治理动作，缺少宿主时失败闭合。`0.166.30` 还提供页面化 Workbench/Skill Library 与聚焦恢复。
+> **历史版本（2026-09-07）**：Agent Platform CLI `0.166.30`。既有 `assess`、`diagnose` 和 metrics 子命令仍只记录指标，不训练模型权重或修改 active Skill；`workbench` 与 `knowledge` 子树会向受信部署宿主提交摘要/revision 绑定的治理动作，缺少宿主时失败闭合。`0.166.30` 还提供页面化 Workbench/Skill Library 与聚焦恢复。
 
 ## 核心特性
 

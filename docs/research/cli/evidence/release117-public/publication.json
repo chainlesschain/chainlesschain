@@ -1,7 +1,7 @@
 {
   "schema": "chainlesschain.release117-publication/v1",
-  "observedAt": "2026-10-22T21:49:33.834Z",
-  "status": "CLI_OPEN_VSX_PUBLIC_JETBRAINS_PENDING_REVIEW",
+  "observedAt": "2026-10-22T23:49:30.042Z",
+  "status": "CLI_AND_IDES_PUBLIC",
   "repository": "chainlesschain/chainlesschain",
   "channels": {
     "cli": {
@@ -35,7 +35,7 @@
     },
     "jetbrains": {
       "version": "0.4.176",
-      "status": "pending-review",
+      "status": "public",
       "recommendedCliVersion": "0.166.117",
       "sourceSha": "ab31677d6691b4fdd5390e16fae60de5a5895cf1",
       "runId": 39852149118,
@@ -46,7 +46,10 @@
       "gates": "ide-gates.json",
       "uploadVerified": true,
       "candidateSha256": null,
-      "publicArchivesVerified": false
+      "publicArchivesVerified": true,
+      "publicReceipt": "ide-jetbrains-public-readback.json",
+      "immutableCandidateMatch": false,
+      "sha256": "200c620c1b61fba064070ee7b9d2769e956eaa9801248fdb95d5db42185c6742"
     }
   },
   "childPackages": {
@@ -81,7 +84,7 @@
     "nativeProduct": "v5.0.3.140",
     "localOllamaLiveValidation": "USER_WILL_TEST_AFTER_RELEASE"
   },
-  "evidenceScope": "Exact-source GitHub Actions CLI CI and Strict Sandbox matrices; GitHub Actions OIDC child-before-CLI publication; all 13 public child archives and CLI integrity, identity and provenance verification; independent registry-only CLI install, capability and SQL.js binding smoke. Complete exact-source IDE tag host matrices and build gates. The public Open VSX archive matches the immutable candidate. JetBrains Marketplace upload succeeded; manual approval/listing is pending and no public ZIP download is claimed. No new live model-task acceptance was run.",
+  "evidenceScope": "Exact-source GitHub Actions CLI CI and Strict Sandbox matrices; GitHub Actions OIDC child-before-CLI publication; all 13 public child archives and CLI integrity, identity and provenance verification; independent registry-only CLI install, capability and SQL.js binding smoke. Complete exact-source IDE tag host matrices and build gates. The public Open VSX archive matches the immutable candidate. JetBrains approval/listing and the public ZIP embedded identity and compiled CLI recommendation are verified. No new live model-task acceptance was run.",
   "supplementaryIdeJunitReview": "ide-junit-review.json",
   "ideGates": "ide-gates.json",
   "mainIdePreflight": "ide-main-preflight.json"

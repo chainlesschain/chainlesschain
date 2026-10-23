@@ -4,6 +4,8 @@ Command-line interface for installing, configuring, and managing [ChainlessChain
 
 ## CLI 0.166.117
 
+[Upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-23.html) · [Image budgets and session recovery](https://docs.chainlesschain.com/chainlesschain/agent-input-and-recovery.html) · [Runtime design](https://design.chainlesschain.com/release-runtime-update-2026-10-23.html)
+
 CLI **0.166.117** was published through [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/39845469661) and its public archive integrity, signed provenance and independent registry-only install have been verified. It fixes Python/JavaScript code literals being rejected as malformed JSON at Evolution ingress and persists completed tool rounds before error exits terminate the Agent Run. Genuine JSON checks and projection budgets remain enforced. The exact source commit passed the complete Linux, Windows and macOS CLI CI and Strict Sandbox gates. [Publication evidence](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release117-public/publication.json).
 
 Image transport has a separate byte budget: up to eight images and 20 MiB per message, with 40 MiB of images across one model request. Base64 bytes do not consume the 1 MiB text-input budget. Vision token planning uses a separate per-image reserve; provider usage receipts determine actual consumption. Text byte pressure triggers canonical compaction before the bounded projection ceiling. Large tool outputs retain complete JSON values or an explicit omission notice, so truncation does not corrupt the next model request.
@@ -20,7 +22,7 @@ cc doctor
 
 The preceding CLI **0.166.115** was published through [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/39791145970). It fixes undefined tool-evidence fields; the code-literal ingress regression is addressed in .117. Candidate .116 was not published after source/public child-package drift was detected. This release aligns Session Core **0.3.22** and Personal Data Hub **0.4.66** before CLI publication.
 
-Open VSX **0.37.159** is public and its download verified; JetBrains **0.4.176** was uploaded and awaits Marketplace approval; its public download is not yet verified. Both recommend CLI **0.166.117**. The unpublished IDE .158/.175 candidates were retired after preflight found a stale Doctor recommendation test; their immutable tags are retained. The fully verified historical IDE pairing and release limits below are retained.
+Open VSX **0.37.159** is public and its download verified; JetBrains **0.4.176** is approved and its public download verified. Both recommend CLI **0.166.117**. The unpublished IDE .158/.175 candidates were retired after preflight found a stale Doctor recommendation test; their immutable tags are retained. The fully verified historical IDE pairing and release limits below are retained.
 
 ### Intermediate .114 release (2026-10-22)
 

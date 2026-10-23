@@ -1,6 +1,10 @@
 # 系统设计文档
 
-- 最新增量：[CLI 上下文压缩、草稿恢复与发行边界（2026-10-15）](/design/release-runtime-update-2026-10-15)。
+> 2026-10-23 当前核对：CLI **0.166.117**、Open VSX **0.37.159** 和 JetBrains **0.4.176** 均已公开，两个 IDE 均推荐 CLI `.117`。Session Core **0.3.22**、Personal Data Hub **0.4.66** 已先行发布。新增代码输入兼容、独立图片预算、完整 JSON 预览和异常退出工具轮次结算；本轮未新增真实模型任务验收，自动晋升继续 **HOLD**。
+
+[最新运行时设计](/design/release-runtime-update-2026-10-23) · [用户恢复指南](https://docs.chainlesschain.com/chainlesschain/agent-input-and-recovery.html)
+
+- 10 月 15 日历史增量：[CLI 上下文压缩、草稿恢复与发行边界（2026-10-15）](/design/release-runtime-update-2026-10-15)。
 
 本目录包含 ChainlessChain 系统的完整设计和架构文档，共 **70 个模块设计文档** + **9 个基础设施文档**。
 

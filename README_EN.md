@@ -2,7 +2,9 @@
 
 ## Latest release (2026-10-23)
 
-CLI **0.166.117** is public on npm through [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/39845469661), with public archive integrity, signed provenance and an independent registry-only install verified. It fixes Evolution ingress rejecting Python/JavaScript code literals as malformed JSON, settles completed tool rounds on error exits, separates image and text budgets, and preserves valid JSON when bounding long tool results. Session Core **0.3.22** and Personal Data Hub **0.4.66** were published before the CLI. Install with `npm i -g chainlesschain@0.166.117 --registry https://registry.npmjs.org`. Open VSX **0.37.159** is public and its download verified; JetBrains **0.4.176** was uploaded and awaits Marketplace approval; its public download is not yet verified. Both recommend CLI **0.166.117**. [Publication evidence](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release117-public/publication.json). No new live model-task acceptance was run; historical release records and limits below remain.
+CLI **0.166.117** is public on npm through [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/39845469661), with public archive integrity, signed provenance and an independent registry-only install verified. It fixes Evolution ingress rejecting Python/JavaScript code literals as malformed JSON, settles completed tool rounds on error exits, separates image and text budgets, and preserves valid JSON when bounding long tool results. Session Core **0.3.22** and Personal Data Hub **0.4.66** were published before the CLI. Install with `npm i -g chainlesschain@0.166.117 --registry https://registry.npmjs.org`. Open VSX **0.37.159** is public and its download verified; JetBrains **0.4.176** is approved and its public download verified. Both recommend CLI **0.166.117**. [Publication evidence](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release117-public/publication.json). No new live model-task acceptance was run; historical release records and limits below remain.
+
+[Upgrade and troubleshooting](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-23.html) · [Image budgets and session recovery](https://docs.chainlesschain.com/chainlesschain/agent-input-and-recovery.html) · [Runtime design](https://design.chainlesschain.com/release-runtime-update-2026-10-23.html)
 
 <!-- release112-status -->
 
@@ -48,7 +50,7 @@ cc --version
 cc doctor
 ```
 
-Restart the IDE chat host and run Doctor after upgrading. [Current upgrade guide](docs-site/docs/chainlesschain/cli-ide-update-2026-10-20.md).
+Restart the IDE chat host and run Doctor after upgrading. [Current upgrade guide](docs-site/docs/chainlesschain/cli-ide-update-2026-10-23.md).
 
 ## Public snapshot before .108 (historical)
 
