@@ -4,9 +4,9 @@ ChainlessChain agent workspace for VS Code-compatible editors with streaming
 chat, inline assistance, governed review, sessions, automation, and a localhost
 MCP bridge.
 
-## Next release candidate
+## Release pairing
 
-Source candidate **0.37.157** recommends CLI **`0.166.115`**, which fixes the Agent tool-evidence JSON error after successful commands. The extension has not been published. JetBrains **0.4.174** is the paired candidate. Publication follows the public CLI and exact-source gates and artifact readback.
+Version **0.37.158** recommends CLI **`0.166.116`** and pairs with JetBrains **0.4.175**. The paired CLI repairs source and command evidence projection, complete bounded JSON tool previews, cumulative evidence budgets, and separate image and provider token accounting. IDE publication follows the paired CLI and dependency graph verification, exact-source release gates, and public artifact readback.
 
 Open VSX **0.37.156** and CLI **0.166.114** were publicly downloaded and verified on 2026-10-22, but that CLI still has the Agent tool-evidence error. Microsoft Marketplace remains unpublished. The previous completely verified three-channel pairing is retained below.
 
@@ -51,18 +51,23 @@ Checked on 2026-10-20: npm CLI **0.166.107**, Session Core **0.3.20**, Open VSX 
 
 ## Release compatibility
 
-This release pairing uses Agent SDK 0.2.15, Session Core 0.3.21 and Memory Kernel 0.1.10.
-Formal evaluation and full native review retain their separate acceptance status.
+This source release pairs VS Code **0.37.158** and JetBrains **0.4.175** with CLI **`0.166.116`**. Publish the paired CLI and verify its public dependency graph before publishing either IDE package. This metadata update inherits the CLI fixes; native task quality and restart acceptance require separate published-package evidence.
+The table records the last fully verified public pairing. Formal evaluation and full native review retain their separate acceptance status.
 
-| Component                 | Current status                                                                                   |
-| ------------------------- | ------------------------------------------------------------------------------------------------ |
+| Component                 | Current status                                                                                             |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | VS Code extension         | **0.37.155**; immutable tag selects the source; tagged workflow publishes and verifies its public artifact |
-| Recommended CLI           | **`chainlesschain@0.166.112`**; public; exact-source gates and public artifact readback verified |
-| Base bridge compatibility | `cc >= 0.162.190`; newer features can require a newer CLI                                        |
-| Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors                                              |
-| Distribution              | Open VSX; versioned VSIX for stock Microsoft VS Code                                             |
+| Recommended CLI           | **`chainlesschain@0.166.112`**; public; exact-source gates and public artifact readback verified           |
+| Base bridge compatibility | `cc >= 0.162.190`; newer features can require a newer CLI                                                  |
+| Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors                                                        |
+| Distribution              | Open VSX; versioned VSIX for stock Microsoft VS Code                                                       |
 
-### What's new in 0.37.155
+### What's new in 0.37.158
+
+- Pair with CLI 0.166.116 for strict source and command evidence projection, complete JSON output previews, cumulative evidence budgets, and separate image and provider token accounting.
+- Update the package version and recommended CLI pairing. The release workflow verifies the exact source and artifact after the paired CLI becomes publicly available.
+
+### Changes carried from 0.37.155
 
 - Pair with CLI 0.166.112 for saved provider settings, native Gemini/Anthropic routing, Ollama URL normalization, and first-use local Quick Ask signing setup.
 - This extension release updates its recommended CLI floor and package version; it does not change extension runtime behavior. The tagged IDE workflow verifies the exact source and public VSIX artifact.
@@ -503,17 +508,16 @@ Open VSX listing remains the public registry source.
 ### 1. Install the paired CLI
 
 Node.js `>= 22.12.0` and npm `>= 10.0.0` are required.
-This source package pairs CLI `0.166.112` with Open VSX `0.37.155`.
-This source package targets Open VSX 0.37.155 and JetBrains Marketplace 0.4.172, paired with public CLI 0.166.112. Each IDE tag triggers its own publication and exact-artifact verification workflow.
+This source release pairs CLI `0.166.116` with Open VSX `0.37.158` and JetBrains Marketplace `0.4.175`. Each IDE tag triggers its own publication and exact-artifact verification workflow after the CLI is publicly available.
 
-The following command installs this publicly verified pairing's CLI.
+The following command installs the last fully verified public pairing's CLI (`0.166.112` / Open VSX `0.37.155` / JetBrains `0.4.172`). Install paired CLI `0.166.116` after verifying its public package and release artifacts.
 
 ```bash
 npm i -g chainlesschain@0.166.112 --registry https://registry.npmjs.org
 cc --version
 ```
 
-Using `@0.166.112` after public verification reproduces this package's CLI pairing,
+Using `@0.166.112` reproduces that historical public CLI pairing,
 including Automation Center v3, scoped permission controls, and the durable
 session, execution-location, and browser-evidence stability fixes described
 above. Use `@latest` only when you intentionally want a newer published CLI.
