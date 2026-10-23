@@ -156,10 +156,15 @@ it("settles a newly executed tool before long-session retention and resumes its 
       .content,
   ).toBe(rounds[1].content);
   expect(readSessionInputReceipt(id, "input-15").accepted).toBe(true);
-  await run(id, "Confirm saved evidence", async (messages) => {
-    expect(messages.filter((message) => message.role === "tool")).toHaveLength(
-      33,
-    );
+  const resumed = await run(id, "Confirm saved evidence", async (messages) => {
+    // Provider context planning may select a bounded subset of old evidence;
+    // the durable transcript must still retain every completed exchange.
+    expect(
+      messages.find(
+        (message) =>
+          message.role === "tool" && message.tool_call_id === "new-read",
+      ),
+    ).toBeDefined();
     expect(
       messages.some(
         (message) =>
@@ -172,6 +177,7 @@ it("settles a newly executed tool before long-session retention and resumes its 
       usage: { input_tokens: 10, output_tokens: 10 },
     };
   });
+  expect(resumed.filter((event) => event.type === "tool_use")).toHaveLength(0);
   expect(
     readVerifiedMessages(id).filter((message) => message.role === "tool"),
   ).toHaveLength(33);

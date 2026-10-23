@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 
 import {
   appendEvent,
+  appendAuthorityEventWithVerifiedProjection,
   findLatestEvent,
   listSessionAuthoritySummaries,
   readVerifiedMessages,
@@ -12,7 +13,10 @@ import {
   getSession as getDatabaseSession,
   listSessions as listDatabaseSessions,
 } from "./session-manager.js";
-import { sanitizePersistedMessages } from "./session-message-provenance.js";
+import {
+  sanitizeConversationMessage,
+  sanitizePersistedMessages,
+} from "./session-message-provenance.js";
 
 export const SESSION_STORE_MIGRATION_EVENT = "session_store_migrated";
 export const SESSION_STORE_MIGRATION_SCHEMA =
@@ -71,6 +75,7 @@ export function ensureCanonicalSessionTranscript(
 ) {
   const deps = {
     appendEvent,
+    appendAuthorityEventWithVerifiedProjection,
     findLatestEvent,
     readVerifiedMessages,
     sessionHasPersistedEvidence,
@@ -113,14 +118,67 @@ export function ensureCanonicalSessionTranscript(
     });
   }
 
+  const migration = {
+    schema: SESSION_STORE_MIGRATION_SCHEMA,
+    source,
+    messagesDigest: digest,
+    messageCount: importedMessages.length,
+  };
+  const conflict = () =>
+    migrationError(
+      "CC_SESSION_MIGRATION_CONFLICT",
+      `canonical transcript already contains different messages: ${id}`,
+      { sessionId: id },
+    );
   const currentMessages = deps.readVerifiedMessages(id);
+  let recoveredImport = false;
   if (currentMessages.length > 0) {
-    if (messagesDigest(currentMessages) !== digest) {
-      throw migrationError(
-        "CC_SESSION_MIGRATION_CONFLICT",
-        `canonical transcript already contains different messages: ${id}`,
-        { sessionId: id },
+    const snapshot = deps.findLatestEvent(id, "compact");
+    if (snapshot?.data?.reason === "physical-store-import") {
+      // Conversation replay omits input receipt metadata. Recover an interrupted
+      // import only from the exact raw snapshot, never normalized equality alone.
+      // Recheck both evidence and live replay under the marker's writer lock.
+      deps.appendAuthorityEventWithVerifiedProjection(
+        id,
+        SESSION_STORE_MIGRATION_EVENT,
+        migration,
+        {
+          createProjection: () => {
+            let latest = null;
+            let completed = false;
+            return {
+              accept(event) {
+                if (event.type === "compact") latest = event.data;
+                if (event.type === SESSION_STORE_MIGRATION_EVENT)
+                  completed = true;
+              },
+              finish: () => ({ latest, completed }),
+            };
+          },
+          validateProjection({ latest, completed }, authority) {
+            if (
+              completed ||
+              latest?.reason !== "physical-store-import" ||
+              !Array.isArray(latest.messages) ||
+              messagesDigest(latest.messages) !== digest ||
+              // Old snapshots did not record a source label. Their exact raw
+              // source bytes remain the only available import identity proof.
+              (Object.hasOwn(latest, "migration") &&
+                (latest.migration?.schema !== migration.schema ||
+                  latest.migration.source !== source ||
+                  latest.migration.messagesDigest !== digest)) ||
+              messagesDigest(authority.readMessages()) !==
+                messagesDigest(
+                  importedMessages.map(sanitizeConversationMessage),
+                )
+            )
+              throw conflict();
+          },
+        },
       );
+      recoveredImport = true;
+    } else if (messagesDigest(currentMessages) !== digest) {
+      throw conflict();
     }
   } else if (importedMessages.length > 0) {
     deps.appendEvent(id, "compact", {
@@ -128,15 +186,12 @@ export function ensureCanonicalSessionTranscript(
       originalMessages: importedMessages.length,
       compressedMessages: importedMessages.length,
       reason: "physical-store-import",
+      migration,
     });
   }
 
-  deps.appendEvent(id, SESSION_STORE_MIGRATION_EVENT, {
-    schema: SESSION_STORE_MIGRATION_SCHEMA,
-    source,
-    messagesDigest: digest,
-    messageCount: importedMessages.length,
-  });
+  if (!recoveredImport)
+    deps.appendEvent(id, SESSION_STORE_MIGRATION_EVENT, migration);
   return Object.freeze({
     sessionId: id,
     migrated: true,

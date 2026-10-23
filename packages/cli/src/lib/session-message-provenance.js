@@ -326,7 +326,7 @@ export function encodePersistedMessage(message) {
  * Decode provenance only after the caller has verified the JSONL hash chain
  * and its independent head/count anchor while holding the session lock.
  */
-export function decodeVerifiedPersistedMessage(message) {
+export function decodeVerifiedRawPersistedMessage(message) {
   if (!message || typeof message !== "object") return message;
   if (!isObjectMessage(message)) return null;
   const snapshot = plainDataSnapshot(message);
@@ -341,7 +341,13 @@ export function decodeVerifiedPersistedMessage(message) {
       canonicalTag(dataValue(tagSnapshot, "kind")),
     );
   }
-  return conversationMessage(clean);
+  return clean;
+}
+
+/** Verified message replay has a conversation projection distinct from the
+ * exact historical payload used to authenticate migration and lineage. */
+export function decodeVerifiedPersistedMessage(message) {
+  return conversationMessage(decodeVerifiedRawPersistedMessage(message));
 }
 
 /** Strip an untrusted wire field without granting runtime replay authority. */

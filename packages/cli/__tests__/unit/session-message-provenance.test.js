@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   decodeVerifiedPersistedMessage,
+  decodeVerifiedRawPersistedMessage,
   DURABLE_SYSTEM_MESSAGE_KINDS,
   encodePersistedMessage,
   getDurableSystemMessageProvenance,
@@ -27,6 +28,9 @@ describe("durable session system-message provenance", () => {
     };
     const { clientMessageId, inputDigest, ...conversation } = receiptBacked;
     expect(encodePersistedMessage(receiptBacked)).toEqual(receiptBacked);
+    expect(decodeVerifiedRawPersistedMessage(receiptBacked)).toEqual(
+      receiptBacked,
+    );
     expect(sanitizePersistedMessage(receiptBacked)).toEqual(receiptBacked);
     for (const projected of [
       decodeVerifiedPersistedMessage(receiptBacked),

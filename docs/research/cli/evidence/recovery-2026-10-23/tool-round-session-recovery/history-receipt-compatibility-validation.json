@@ -1,0 +1,72 @@
+{
+  "schema": "chainlesschain.agent-validation-receipt/v1",
+  "observedAt": "2026-10-23T23:32:41Z",
+  "workspace": "C:/code/chainlesschain/.work/cc118-tool-round-recovery",
+  "scope": [
+    "packages/cli/src/lib/session-history-origins.js",
+    "packages/cli/__tests__/unit/session-history-receipt-compatibility.test.js"
+  ],
+  "sources": {
+    "packages/cli/src/lib/session-history-origins.js": "0d29c8373dfd984b36a1fe164ee5472a603edd65cd27ee4e63fda6f79ca10757",
+    "packages/cli/__tests__/unit/session-history-receipt-compatibility.test.js": "92e35813c0456776ce3fe29e9df2e199d8e894411cf987dcdc69954aec503bee",
+    "packages/cli/src/lib/session-message-provenance.js": "9d5c8a9853d22709f0ae85e19308f325461e5bc701ca314fcd6652cc28d49fd6"
+  },
+  "runtime": {
+    "node": "22.12.0",
+    "path": "C:/code/chainlesschain/.work/cli-ide-recovery-20261023/node-22.12.0/node-verified.exe",
+    "sha256": "b3b117a08ee61efee09e6fd523ab33c0c018da1b570bde08e4fd914dc1170ed6",
+    "vitest": "4.1.11"
+  },
+  "red": {
+    "command": "node-verified.exe C:/code/chainlesschain/node_modules/vitest/vitest.mjs run __tests__/unit/session-history-receipt-compatibility.test.js --maxWorkers=1",
+    "exitCode": 1,
+    "passed": 12,
+    "failed": 3,
+    "failedCases": [
+      "legacy compaction retains rewind origins",
+      "legacy compaction retains branch origins",
+      "legacy summary retains parent origins"
+    ],
+    "note": "Initial harness iteration additionally had 2 content-tamper errors before entering production origins. Corrected tests recompute the public ContextItem digest; the reported RED is the subsequent valid 12-pass/3-fail run."
+  },
+  "green": {
+    "command": "node-verified.exe C:/code/chainlesschain/node_modules/vitest/vitest.mjs run __tests__/unit/session-history-receipt-compatibility.test.js __tests__/unit/session-history-origins.test.js __tests__/unit/session-transcript-history.test.js __tests__/unit/session-transcript-changes.test.js --maxWorkers=1",
+    "cwd": "packages/cli",
+    "exitCode": 0,
+    "suitesPassed": 4,
+    "testsPassed": 77,
+    "durationSeconds": 95.91,
+    "output": "Test Files  4 passed (4)\nTests  77 passed (77)\nStart at  07:30:14\nDuration  95.91s (transform 1.32s, setup 942ms, import 1.85s, tests 91.46s, environment 1ms)"
+  },
+  "assertions": {
+    "positive": [
+      "Legacy raw receipt-bearing compaction: rewind cutoff exactly 2; branch origins exactly [0,0] and [1,1].",
+      "Conversation projected compaction: same exact rewind and branch expectations.",
+      "Legacy and conversation summary parent ancestry: rewind cutoff exactly 2.",
+      "Legacy → conversation → legacy compactions in sequence: final rewind cutoff exactly 2."
+    ],
+    "negative": [
+      "Rehashed ContextItem with altered sourceRef digest, content, or sequence cannot retain rewind authority, for either representation.",
+      "Persisted unknown metadata mismatch cannot retain rewind authority.",
+      "Summary mixing raw first-user and conversation second-user parent digests cannot retain branch authority."
+    ],
+    "interpretation": "Positive tests require exact non-null lineage. Only tampered/mixed-source negative tests require null; fail-closed loss of valid origins is not counted as compatibility success."
+  },
+  "implementation": [
+    "Raw verified context retained for historical source construction.",
+    "Second complete conversation representation created only when user receipt fields are present.",
+    "Kept-item ancestry requires exact sequence, sourceRef.digest and content in one derived representation.",
+    "Summary parent digests must all match one complete representation; no cross-representation union.",
+    "Conversation fingerprint retains system provenance and unknown metadata through encode/decode/encode."
+  ],
+  "checks": {
+    "prettier": "passed on both owned files",
+    "gitDiffCheck": "passed"
+  },
+  "limitations": [
+    "Local targeted validation only; not formal CI qualification.",
+    "No commits, pushes, publications, cancellations or admission-limit changes.",
+    "Formal run40035461160 remains bound to frozen0459 and does not validate these separate uncommitted files."
+  ],
+  "filesFrozen": true
+}

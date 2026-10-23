@@ -1,0 +1,210 @@
+{
+  "schema": "chainlesschain.runtime-retention-readonly-review/v1",
+  "observedAt": "2026-10-23T23:13:33.078988+00:00",
+  "sourceSha": "0459a2bb4ad6e1e3dc4475a46aa2bd2fa2264b4b",
+  "candidateRoot": "C:\\code\\chainlesschain\\.work\\cc118-performance-recovery",
+  "trackedSourceClean": true,
+  "sourceFiles": [
+    {
+      "path": "packages/cli/src/runtime/agent-core.js",
+      "bytes": 660034,
+      "sha256": "431e138682fe05b90cfc5c094d7fdcd29c12843069fd1995d8d36ef2b13191f5",
+      "gitBlob": "906d0009c8d2e5a39d5f43fef4f12d29de40d7a8"
+    },
+    {
+      "path": "packages/cli/src/lib/session-runtime-retention.js",
+      "bytes": 4942,
+      "sha256": "e7ff46b7c4a3d4a0fdae94836f691f060d6c87e2d84dcb7aed7ff4bf16d68b6e",
+      "gitBlob": "6be3e6d5f78788b9a4ed016a5050af8ee624e8eb"
+    },
+    {
+      "path": "packages/cli/src/lib/session-message-provenance.js",
+      "bytes": 13986,
+      "sha256": "1ef61812a3c0d8328df00352140bd83d38465f1513fde3965dfda7131d6620ff",
+      "gitBlob": "4858fb3f994732d3d1eac4ec0440e5011824ab95"
+    },
+    {
+      "path": "packages/cli/src/runtime/headless-stream.js",
+      "bytes": 217455,
+      "sha256": "f30999155affaebe58cc06b2a08575a917f788334cd035a8b2382d5ed2984abd",
+      "gitBlob": "7f469d26d88b839decfd31b9fc80510b26304bf1"
+    },
+    {
+      "path": "packages/cli/src/runtime/headless-runner.js",
+      "bytes": 179414,
+      "sha256": "b52cf11e98e01c47edabcb5e601e8ac5bb27fc261c085573e12656d77f5f74ee",
+      "gitBlob": "81cee88b2ecef38dc2bde3e1289ef52dd436e9b5"
+    },
+    {
+      "path": "packages/cli/src/harness/jsonl-session-store.js",
+      "bytes": 256015,
+      "sha256": "70b4b74b805c49a47c8aa8a25fe4e0c1b354d37c0cf1efc3785da7c41f18d6af",
+      "gitBlob": "ef66657621b3e3ef7d6e83d431aa4d772afdd121"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/session-runtime-retention.test.js",
+      "bytes": 4020,
+      "sha256": "66493f541c827d1c0055ee3ac267c90f0a21329c662eb075dcc9f657526b37d8",
+      "gitBlob": "f7dd0a690ca74188bd5d115cfaee1e7bdf51e589"
+    }
+  ],
+  "scope": {
+    "productionFilesModified": false,
+    "testsAddedOrModified": false,
+    "formalWorkflowCancelled": false,
+    "localDurableSessionCreated": false,
+    "reviewOnly": true
+  },
+  "runtime": {
+    "path": "C:\\code\\chainlesschain\\.work\\cli-ide-recovery-20261023\\node-22.12.0\\node-verified.exe",
+    "version": "v22.12.0",
+    "sha256": "b3b117a08ee61efee09e6fd523ab33c0c018da1b570bde08e4fd914dc1170ed6"
+  },
+  "observations": [
+    {
+      "id": "runtime-only-capability-lost-in-trimmed-clone",
+      "classification": "confirmed-pure-memory-reproduction",
+      "references": [
+        {
+          "file": "packages/cli/src/lib/session-runtime-retention.js",
+          "lines": [
+            21,
+            124,
+            139
+          ]
+        },
+        {
+          "file": "packages/cli/src/lib/session-message-provenance.js",
+          "lines": [
+            255,
+            265,
+            443
+          ]
+        },
+        {
+          "file": "packages/cli/src/runtime/agent-core.js",
+          "lines": [
+            15879,
+            16515
+          ]
+        }
+      ],
+      "conditions": {
+        "eligibleRole": "user",
+        "contentPrefix": "[Background sub-agent \"",
+        "sourceAlreadyMarked": true,
+        "contentExceedsRetainedLimit": true,
+        "outsideRecentResultWindow": true
+      },
+      "observed": "A spread clone has different identity and lacks the source WeakSet capability. Canonical projection changes from zero messages to one.",
+      "durableConsequence": "If the verified durable prefix already equals canonical projection of the original expected messages, the CAS can succeed while the compact candidate includes the newly unmarked runtime-only user message. This durable consequence is inferred from the exact source path; no durable write was performed in this review.",
+      "limits": [
+        "Ordinary role=tool results cannot carry this WeakSet capability.",
+        "Image arrays and ordinary runtime nudges without the background-result prefix are not cloned by this helper.",
+        "This alone does not establish that a particular screenshot SSE turn hit the condition."
+      ]
+    },
+    {
+      "id": "retention-omits-pending-tool-round-settlement",
+      "classification": "source-proven-conditional-CAS-failure-not-executed",
+      "references": [
+        {
+          "file": "packages/cli/src/runtime/agent-core.js",
+          "lines": [
+            15279,
+            15286,
+            15292,
+            15343,
+            14454,
+            14495
+          ]
+        },
+        {
+          "file": "packages/cli/src/runtime/headless-stream.js",
+          "lines": [
+            3772,
+            3914,
+            3926
+          ]
+        },
+        {
+          "file": "packages/cli/src/runtime/headless-runner.js",
+          "lines": [
+            2874,
+            3015
+          ]
+        },
+        {
+          "file": "packages/cli/src/harness/jsonl-session-store.js",
+          "lines": [
+            3426,
+            3476,
+            3487
+          ]
+        }
+      ],
+      "conditions": {
+        "messagesGreaterThan": 32,
+        "atLeastOneReleasedResult": true,
+        "liveCompleteToolRoundNotYetInDurableReplay": true,
+        "persistedHostUsesRealCAS": true
+      },
+      "observed": "Runtime retention invokes onCompaction without first invoking onBeforeCompaction; semantic compaction invokes the hook. Headless hosts use the hook to settle complete tool rounds. Expected live canonical messages can therefore exceed durable replay and the compact CAS rejects SESSION_REVISION_STALE.",
+      "consequence": "Current catch emits session-runtime-retention-degraded and retains the original live array. A stale retention checkpoint is not written by this failed CAS. This condition can recur; it does not itself prove a terminal screenshot error.",
+      "limits": [
+        "An isolated screenshot turn below thresholds cannot trigger retention.",
+        "A screenshot tool result alone is not a WeakSet marker-loss case.",
+        "Actual SSE host routing is still being identified; no claim that a named host reproduction passed."
+      ]
+    }
+  ],
+  "reproduction": {
+    "execution": "read-only Node stdin module; source imports only; no files written",
+    "cwd": "C:\\code\\chainlesschain\\.work\\cc118-performance-recovery\\packages\\cli",
+    "command": [
+      "C:\\code\\chainlesschain\\.work\\cli-ide-recovery-20261023\\node-22.12.0\\node-verified.exe",
+      "--input-type=module"
+    ],
+    "stdinLogicalUtf8": "import { markRuntimeOnlySessionMessage, isRuntimeOnlySessionMessage, projectCanonicalResumeMessages } from './src/lib/session-message-provenance.js';\nimport { releaseOldLiveSessionResults } from './src/lib/session-runtime-retention.js';\nconst original = markRuntimeOnlySessionMessage({role:'user',content:'[Background sub-agent \"worker\" completed]\\n' + 'x'.repeat(2000)});\nconst retained = releaseOldLiveSessionResults([original], {recentResults:0});\nconsole.log(JSON.stringify({released:retained.stats.released,sameObject:original===retained.messages[0],originalRuntimeOnly:isRuntimeOnlySessionMessage(original),retainedRuntimeOnly:isRuntimeOnlySessionMessage(retained.messages[0]),canonicalBefore:projectCanonicalResumeMessages([original],{strict:true}).length,canonicalAfter:projectCanonicalResumeMessages(retained.messages,{strict:true}).length}));\n",
+    "stdinLogicalSha256": "8c5e4ab08608fab3550b91d161fcde0e14fac0ca314e30efdb7ab349f7bf1162",
+    "exitCode": 0,
+    "observedStdout": {
+      "released": 1,
+      "sameObject": false,
+      "originalRuntimeOnly": true,
+      "retainedRuntimeOnly": false,
+      "canonicalBefore": 0,
+      "canonicalAfter": 1
+    },
+    "qualification": false
+  },
+  "reviewOfProposedDirection": {
+    "status": "supported-with-ordering-and-failure-propagation-conditions",
+    "retainExistingMarkerOnly": true,
+    "grantMarkerFromPrefix": false,
+    "preserveRealCAS": true,
+    "ordering": "Run the existing pending-tool settlement before calculating BOTH the retention candidate and expected/live snapshots, or recompute all after the hook. A pre-hook candidate must never commit against post-hook expected authority.",
+    "failures": "Do not swallow a real marked tool-settlement persistence failure in the retention best-effort catch and then admit another model call. Preserve the host fail-closed signal.",
+    "runtimeOnlyDurableReferenceNote": "A runtime-only background result is not itself a durable transcript message; the existing release marker must not be treated as proof that this live-only message was durably stored."
+  },
+  "minimalRegressionSuggestions": [
+    "Pure helper: a marked long background result remains excluded after trim; an unmarked user message with identical prefix remains canonical; short/untrimmed messages preserve identity.",
+    "Real persistence: canonical prior history already settled plus marked background result, trigger retention and verify compact replay still excludes runtime-only message.",
+    "Pending completed tool round plus sufficient old large results: real onBeforeCompaction settles tools before expected snapshot; real compact CAS succeeds; original full tool result remains in prior hash-chained evidence.",
+    "Hook mutates live state: candidate and expected must both reflect post-hook state; never hide the added message.",
+    "Hook throws marked persistence failure: no compact append, no live splice, no next provider request.",
+    "Screenshot SSE integration: seed more than 32 messages and more than configured recent results with at least one old result over512 chars, execute screenshot round, force next provider boundary, and inspect actual persisted tool-round/compact order and degraded events. Add a separate marked background result to exercise marker loss; do not conflate the two."
+  ],
+  "formalRun": {
+    "id": 40035461160,
+    "sourceSha": "0459a2bb4ad6e1e3dc4475a46aa2bd2fa2264b4b",
+    "monitorSession": 51432,
+    "status": "still-monitoring",
+    "formalQualification": false
+  },
+  "supersedes": {
+    "file": "runtime-retention-review-0459.json",
+    "sha256": "a2b64b75d721bc60f0598974e4929cec56a2e0fbb2246942a865a1cca2cee612",
+    "reason": "Correct helper source-coordinate references to the exact clone lines 124 and139; findings, source bindings and reproduction unchanged."
+  }
+}

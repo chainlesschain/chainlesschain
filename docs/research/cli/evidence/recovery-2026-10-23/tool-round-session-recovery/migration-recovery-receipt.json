@@ -1,0 +1,78 @@
+{
+  "schema": "chainlesschain.migration-interruption-review/v1",
+  "worktree": "C:/code/chainlesschain/.work/cc118-tool-round-recovery",
+  "scope": "Only src/lib/session-transcript-migration.js and __tests__/unit/session-transcript-migration.test.js edited. Existing root-authored completed legacy digest regression retained. IDE worktree untouched. No commit/push/publication.",
+  "change": "Interrupted physical import is completed only after exact raw snapshot digest, physical-import reason and current normalized conversation are checked under the same verified writer lock as completion marker append. New snapshots carry migration source/schema/raw digest; existing completed markers keep strict raw digest and source matching.",
+  "historicalLimit": "Old physical-store-import snapshots have no source label. Recovery authenticates exact raw snapshot content, not an unrecorded historic source label; no claim otherwise.",
+  "evidence": [
+    {
+      "log": "migration-red.log",
+      "exitCode": 1,
+      "passed": 10,
+      "failed": 2,
+      "details": "Real verified JSONL store: old receipt-bearing interrupted import conflicts; new snapshot has no source binding."
+    },
+    {
+      "log": "migration-green-initial.log",
+      "exitCode": 0,
+      "passed": 12,
+      "failed": 0
+    },
+    {
+      "log": "migration-green-final.log",
+      "exitCode": 0,
+      "passed": 13,
+      "failed": 0,
+      "durationSeconds": 9.96,
+      "testSeconds": 7.34
+    }
+  ],
+  "coverage": [
+    "Real temporary CHAINLESSCHAIN_HOME and independent security anchor home; production JSONL writer/hash chain/verification, no mocked transcript in new interrupted-import scenarios.",
+    "Old raw receipt snapshot recovers without rewriting snapshot, second call idempotent.",
+    "Different clientMessageId, inputDigest, unknown metadata fail; completed marker also rejects changed source and receipt fields.",
+    "Concurrent input already present or arriving immediately before completion writer lock fails and remains retained.",
+    "Ordinary compact checkpoint cannot substitute for migration evidence.",
+    "New source/digest binding persists across injected interruption before marker and rejects another source."
+  ],
+  "mockBoundary": "Existing original memory-store unit tests remain. New interruption test overrides only marker append to throw; lock race test injects a real user append before invoking the real verified-projection writer.",
+  "checks": [
+    "Prettier write succeeded for both authorized files",
+    "git diff --check limited to both files passed"
+  ],
+  "notRun": [
+    "Complete CLI suite",
+    "Exact-commit GitHub Actions matrices",
+    "Full IDE suite rerun; IDE source unchanged"
+  ],
+  "createdAt": "2026-10-23T23:30:07.121Z",
+  "head": "81a6897d1e57adc6c1ca3629e7ce0d61f1b54650",
+  "files": [
+    {
+      "path": "packages/cli/src/lib/session-transcript-migration.js",
+      "sha256": "5f4347ebe015a931a63c5019895d8d6a332cac0e37467866164c1e6ed7488d93"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/session-transcript-migration.test.js",
+      "sha256": "d99dc7fbad909e6d7d0f0fb578352ca2f369602cdaf9822197c3a8ff6e0d5a89"
+    }
+  ],
+  "provenanceDependency": {
+    "path": "packages/cli/src/lib/session-message-provenance.js",
+    "sha256": "9d5c8a9853d22709f0ae85e19308f325461e5bc701ca314fcd6652cc28d49fd6"
+  },
+  "logs": [
+    {
+      "path": "migration-red.log",
+      "sha256": "fa773ecd15d548c851a0d607046ecdccb0ae44e489474cd34fedb8b93f35353a"
+    },
+    {
+      "path": "migration-green-initial.log",
+      "sha256": "fea37ca256be0db0103c9d239180321b2b7fbf9d9927629a905af9d679f9fff1"
+    },
+    {
+      "path": "migration-green-final.log",
+      "sha256": "ef474f86b063caad26f11a989a85f13ddaed0edf270fc73e9d1847cd56706591"
+    }
+  ]
+}

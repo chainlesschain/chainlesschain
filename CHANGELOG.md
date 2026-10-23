@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Treat Agent SDK stdin backpressure as queued input, reject writes after input failure or process exit, and retain final output through process close.
 - Preserve unknown durable input delivery in both IDEs and retry Windows atomic draft replacement under temporary sharing locks without deleting the previous draft.
+- Exclude only input-acceptance receipt fields from conversation replay and comparison, retaining original authenticated events and receipt deduplication. IDE tool turns no longer mistake their own accepted input for a concurrent session revision.
+- Normalize omitted text in OpenAI-compatible tool responses to JSON-safe null, retaining strict response validation and stream behavior across compatible providers.
+- Settle pending completed tools before long-session result retention, recompute the retained checkpoint after host settlement, and preserve existing private runtime-only message markers across trusted retention clones.
+- Show bounded persistence error codes and known failure phases in VS Code; pause recurring prompts after unknown input delivery or persistence failure and retain process exit diagnostics without automatically replaying tools.
 - Retain redacted broker transport receipts in new native retest evidence archives; keep frozen acceptance criteria and completed rounds unchanged.
 - Retain bounded startup diagnostics and completed pipe samples when a reliability-soak child exits before producing output; preserve the original failure criteria and deadlines.
 - Recognize supported closed JavaScript, TypeScript and Python code fences in project instructions without rejecting ordinary code as malformed JSON. Version the new projection policy while preserving historical verification, secret scanning and cumulative budgets.

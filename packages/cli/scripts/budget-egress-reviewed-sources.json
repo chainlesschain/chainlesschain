@@ -1,7 +1,10 @@
 {
   "schema": "chainlesschain.budget-egress-source-review/v1",
   "reviewedAt": "2026-10-24",
-  "scope": ["packages/cli/src", "packages/cli/scripts"],
+  "scope": [
+    "packages/cli/src",
+    "packages/cli/scripts"
+  ],
   "basis": "Implementation source inspection; byte-bound classifications only. Not an independent financial/OS admission decision.",
   "entries": [
     {
@@ -462,9 +465,9 @@
     },
     {
       "path": "packages/cli/src/runtime/agent-core.js",
-      "digest": "sha256:431e138682fe05b90cfc5c094d7fdcd29c12843069fd1995d8d36ef2b13191f5",
+      "digest": "sha256:8a95306c26d098f49eeb36973bc167e5d9923e76024c98417431a7a32b41a9d7",
       "category": "MODEL_REQUEST",
-      "rationale": "Canonical provider/tool execution host retains scoped model egress. Ollama nonstreaming and streaming POSTs now use ollamaProviderFetch, preserving host-owned formal budget transport and closed-scope refusal while changing only default unscoped connection reuse. Existing caller retry, tool gating, usage settlement and oversized-result identity boundaries are not expanded by this adapter. This source classification does not grant financial or OS admission."
+      "rationale": "Canonical provider/tool execution host retains scoped model egress. Ollama nonstreaming and streaming POSTs now use ollamaProviderFetch, preserving host-owned formal budget transport and closed-scope refusal while changing only default unscoped connection reuse. Existing caller retry, tool gating, usage settlement and oversized-result identity boundaries are not expanded by this adapter. This source classification does not grant financial or OS admission. Tool-only completion text is normalized to JSON-safe null, without changing provider routing or dispatch. Live result retention now settles complete tools through the existing synchronous host hook before deriving a fresh checkpoint; settlement failure stops before provider admission. Provider scope, retry, model/tool gating, usage settlement and financial admission remain unchanged."
     },
     {
       "path": "packages/cli/src/runtime/diagnostics.js",

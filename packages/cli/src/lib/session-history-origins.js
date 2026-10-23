@@ -8,6 +8,7 @@ import {
 } from "./context-memory-kernel/message-adapter.js";
 import {
   decodeVerifiedPersistedMessage,
+  decodeVerifiedRawPersistedMessage,
   encodePersistedMessage,
   getDurableSystemMessageProvenance,
   DURABLE_SYSTEM_MESSAGE_KINDS,
@@ -34,8 +35,15 @@ const historyBearing = (entry) =>
   derivedSystemKinds.has(
     getDurableSystemMessageProvenance(entry.message)?.kind,
   );
+// Compare conversation identity without dropping system messages, their private
+// provenance, or unknown metadata. Raw receipt fields remain available below
+// for authenticating historical ContextItem source digests.
+const conversationMessages = (messages) =>
+  messages.map((message) =>
+    decodeVerifiedPersistedMessage(encodePersistedMessage(message)),
+  );
 const fingerprint = (messages) =>
-  canonicalDigest(messages.map(encodePersistedMessage));
+  canonicalDigest(conversationMessages(messages).map(encodePersistedMessage));
 const sameContextItemContent = (left, right) => {
   if (typeof left?.content === "string" || typeof right?.content === "string") {
     return (
@@ -91,12 +99,12 @@ export function createSessionHistoryOrigins() {
     appendPersisted(message, ordinal) {
       if (!context) return;
       append(
-        decodeVerifiedPersistedMessage(message),
+        decodeVerifiedRawPersistedMessage(message),
         displayable(message) ? { first: ordinal, last: ordinal } : null,
       );
     },
     appendMappedPersisted(message, origin) {
-      append(decodeVerifiedPersistedMessage(message), origin);
+      append(decodeVerifiedRawPersistedMessage(message), origin);
     },
     branchPrefix(messages, head, count) {
       if (!context) return null;
@@ -130,7 +138,7 @@ export function createSessionHistoryOrigins() {
       let ordinal = 0;
       replace(
         messages.map((message) => ({
-          message: decodeVerifiedPersistedMessage(message),
+          message: decodeVerifiedRawPersistedMessage(message),
           origin: displayable(message)
             ? { first: ordinal, last: ordinal++ }
             : null,
@@ -142,16 +150,34 @@ export function createSessionHistoryOrigins() {
       let entries = null;
       try {
         if (context) {
-          const originals = messagesToContextItems(
-            context.map((entry) => entry.message),
-            { sessionId: canonical.sessionId, allowExternalization: true },
-          );
-          const byDigest = new Map(
-            originals.map((item) => [item.digest, item]),
-          );
-          const bySequence = new Map(
-            originals.map((item) => [item.sourceRef.eventSequence, item]),
-          );
+          const rawMessages = context.map((entry) => entry.message);
+          // Old compactions hashed raw receipt-bearing bundles; new ones hash
+          // conversation projections. Derive exactly these two representations
+          // from the same bounded verified context, never from output claims.
+          const representations = [rawMessages];
+          if (
+            rawMessages.some(
+              (message) =>
+                message.role === "user" &&
+                (Object.hasOwn(message, "clientMessageId") ||
+                  Object.hasOwn(message, "inputDigest")),
+            )
+          ) {
+            representations.push(conversationMessages(rawMessages));
+          }
+          const sources = representations.map((messages) => {
+            const items = messagesToContextItems(messages, {
+              sessionId: canonical.sessionId,
+              allowExternalization: true,
+            });
+            return {
+              items,
+              byDigest: new Map(items.map((item) => [item.digest, item])),
+              bySequence: new Map(
+                items.map((item) => [item.sourceRef.eventSequence, item]),
+              ),
+            };
+          });
           const itemEntries = (item) =>
             context.slice(
               item.sourceRef.eventSequence,
@@ -171,12 +197,16 @@ export function createSessionHistoryOrigins() {
               const messages = contextItemsToMessages([item], {
                 sessionId: canonical.sessionId,
               });
-              const source = bySequence.get(item.sourceRef.eventSequence);
-              if (
-                item.sourceRef.store === "cli-jsonl-session" &&
-                source?.sourceRef.digest === item.sourceRef.digest &&
-                sameContextItemContent(source, item)
-              ) {
+              const source = sources
+                .map(({ bySequence }) =>
+                  bySequence.get(item.sourceRef.eventSequence),
+                )
+                .find(
+                  (candidate) =>
+                    candidate?.sourceRef.digest === item.sourceRef.digest &&
+                    sameContextItemContent(candidate, item),
+                );
+              if (item.sourceRef.store === "cli-jsonl-session" && source) {
                 return itemEntries(source);
               }
               let origin = null;
@@ -185,18 +215,26 @@ export function createSessionHistoryOrigins() {
                 item.provenance?.parentDigests?.length > 0
               ) {
                 const digests = item.provenance.parentDigests;
-                if (
-                  digests.length <= originals.length &&
-                  new Set(digests).size === digests.length
-                ) {
-                  const parents = digests.map((digest) => byDigest.get(digest));
-                  if (parents.every(Boolean))
-                    origin = span(parents.flatMap(itemEntries));
+                if (new Set(digests).size === digests.length) {
+                  // A summary must name one complete representation. Mixing
+                  // raw and projected aliases cannot manufacture extra parents.
+                  for (const { items, byDigest } of sources) {
+                    if (digests.length > items.length) continue;
+                    const parents = digests.map((digest) =>
+                      byDigest.get(digest),
+                    );
+                    if (parents.every(Boolean)) {
+                      origin = span(parents.flatMap(itemEntries));
+                      break;
+                    }
+                  }
                 }
               }
               return messages.map((message) => ({ message, origin }));
             });
-          const persisted = data.messages.map(decodeVerifiedPersistedMessage);
+          const persisted = data.messages.map(
+            decodeVerifiedRawPersistedMessage,
+          );
           if (
             fingerprint(entries.map((entry) => entry.message)) !==
             fingerprint(persisted)
@@ -209,7 +247,7 @@ export function createSessionHistoryOrigins() {
       replace(
         entries ||
           data.messages.map((message) => ({
-            message: decodeVerifiedPersistedMessage(message),
+            message: decodeVerifiedRawPersistedMessage(message),
             origin: null,
           })),
       );
@@ -233,13 +271,14 @@ export function createSessionHistoryOrigins() {
           start: certificate.start,
           end: certificate.end,
         });
+        const persisted = data.messages.map(decodeVerifiedRawPersistedMessage);
         if (
           fingerprint(projected.map((entry) => entry.message)) !==
-          fingerprint(data.messages.map(decodeVerifiedPersistedMessage))
+          fingerprint(persisted)
         )
           return false;
-        const entries = projected.map(({ message, sourceIndexes }) => ({
-          message,
+        const entries = projected.map(({ sourceIndexes }, index) => ({
+          message: persisted[index],
           origin: span(sourceIndexes.map((index) => context[index])),
         }));
         replace(entries);

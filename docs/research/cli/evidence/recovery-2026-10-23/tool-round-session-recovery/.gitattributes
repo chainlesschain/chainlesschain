@@ -1,0 +1,3 @@
+# Exact diagnostic and review artifact bytes.
+* -text !eol -whitespace
+*.log -diff

@@ -1,0 +1,219 @@
+{
+  "schema": "chainlesschain.tool-round-session-recovery-preparation/v1",
+  "recordedAt": "2026-10-23T23:36:21.549Z",
+  "baseline": "0459a2bb4ad6e1e3dc4475a46aa2bd2fa2264b4b",
+  "branch": "feature/cli-tool-round-recovery-20261024",
+  "sourceSnapshot": [
+    {
+      "path": "CHANGELOG.md",
+      "sha256": "a54d3579e5c487976b0818828bae47f8d359ce716c8663f1cacdeef35823323f"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/agent-core.test.js",
+      "sha256": "086388968ce284a816bd0ac819a2f3f25c7eb8cd79643145b524a81ecaa56633"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/headless-canonical-tool-round.test.js",
+      "sha256": "fbe854e2fbc619949bac54fadb24e8c7133c763cde155d5369fff4d5696010be"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/headless-receipt-retention.test.js",
+      "sha256": "a62e5e4a8b917c19cd7495d4caa7ba286627bc407c9f2a562a1da93d9d0f0861"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/release-workflow-contract.test.js",
+      "sha256": "3b4a1fccdf72b3fde0df3c5ea6928f2a026ee1e908138e23e5e2bb4b7b042c4c"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/session-history-receipt-compatibility.test.js",
+      "sha256": "92e35813c0456776ce3fe29e9df2e199d8e894411cf987dcdc69954aec503bee"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/session-message-provenance.test.js",
+      "sha256": "0b7090203b8a89763dde83973137c55c85b1de7e94db549e4cf2f57da80a4e46"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/session-receipt-cas.test.js",
+      "sha256": "075f47e044f6f34fc575b1fceaefbd9900671c1793cc7ccccdb970ccba5e52eb"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/session-runtime-retention.test.js",
+      "sha256": "b069b4c32b46baeeca539d3994314b02102519e2045cdba1e00175bbc0ea342e"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/session-transcript-migration.test.js",
+      "sha256": "d99dc7fbad909e6d7d0f0fb578352ca2f369602cdaf9822197c3a8ff6e0d5a89"
+    },
+    {
+      "path": "packages/cli/scripts/budget-egress-reviewed-sources.json",
+      "sha256": "487fe9de7ef2ff5ddea34bcc540ea6e5a5f00930dcaa2a5794b299079dce78e3"
+    },
+    {
+      "path": "packages/cli/src/data/changelog.json",
+      "sha256": "ab5b013066704a0548d0837853b434eca20ab9b69cc11086b8168b1c2f1a7033"
+    },
+    {
+      "path": "packages/cli/src/harness/jsonl-session-store.js",
+      "sha256": "f0f3322c126f2249e47dcc0afced010394f4c30a50e50a94970e926b17ee5146"
+    },
+    {
+      "path": "packages/cli/src/lib/session-history-origins.js",
+      "sha256": "0d29c8373dfd984b36a1fe164ee5472a603edd65cd27ee4e63fda6f79ca10757"
+    },
+    {
+      "path": "packages/cli/src/lib/session-message-provenance.js",
+      "sha256": "9d5c8a9853d22709f0ae85e19308f325461e5bc701ca314fcd6652cc28d49fd6"
+    },
+    {
+      "path": "packages/cli/src/lib/session-runtime-retention.js",
+      "sha256": "d7a4507e9782e323268a8e28397d1504122349191532ec0ad4797c2126e92d1c"
+    },
+    {
+      "path": "packages/cli/src/lib/session-transcript-migration.js",
+      "sha256": "5f4347ebe015a931a63c5019895d8d6a332cac0e37467866164c1e6ed7488d93"
+    },
+    {
+      "path": "packages/cli/src/runtime/agent-core.js",
+      "sha256": "8a95306c26d098f49eeb36973bc167e5d9923e76024c98417431a7a32b41a9d7"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "cc118-tool-round-before.log",
+      "bytes": 310336,
+      "sha256": "521848d0f1b1c7d8aaebbe52c9c19a5a808d5c6214ab6e908fdadae9ec1f3d29"
+    },
+    {
+      "path": "cc118-tool-round-after.log",
+      "bytes": 548,
+      "sha256": "7d4913ad7e76f5ae0bd56ab773bdcd4e39de71d219fea0e67845399318d45d62"
+    },
+    {
+      "path": "cc118-tool-round-expanded.log",
+      "bytes": 570,
+      "sha256": "7837fa66ea2f891182ded210b13b26cce2690e0e2970bc67e55bbc9b6636adb5"
+    },
+    {
+      "path": "cc118-input-receipt-before.log",
+      "bytes": 12624,
+      "sha256": "a519642d1e850ec27f391b0be226670929cf2c6b5509dae36aa6af177ef5e498"
+    },
+    {
+      "path": "cc118-retention-before.log",
+      "bytes": 8718,
+      "sha256": "564c70ea5f5da087a808cda3abba1073f01ba8b07f1d8612258916951e5d90a2"
+    },
+    {
+      "path": "cc118-tool-round-final-regression.log",
+      "bytes": 1362,
+      "sha256": "84abc4d37eb5463563e8aba5da9708a99976c41baa9eafd911bfd9c9814fc37b"
+    },
+    {
+      "path": "cc118-git-retention-final.log",
+      "bytes": 540,
+      "sha256": "9fce9cf5893a296365a438aa1c2e4d1fa54e2ebf4af96d026c6e60330f124823"
+    },
+    {
+      "path": "cc118-receipt-concurrent-final.log",
+      "bytes": 536,
+      "sha256": "81db4a8afc29304b91b79fef87eb744e46b23d870b6ca4a12dc81d1cbf4e5aa9"
+    },
+    {
+      "path": "cc118-tool-round-egress-audit.json",
+      "bytes": 81631,
+      "sha256": "42da9d4fdaa9744e55a460b0e0726179054c88ece2a0d209d790e51b64676a2c"
+    },
+    {
+      "path": "cc118-tool-round-egress-check.log",
+      "bytes": 342,
+      "sha256": "a16dc52babe54251b3d7d1d004e17337cee63959c0dd95a412ad174ba059c76c"
+    },
+    {
+      "path": "migration-recovery-receipt.json",
+      "bytes": 3785,
+      "sha256": "364c93f4fbc56c2b005c3d615971747eb6fcea04fa9a5f8ba819359d4abe6c96"
+    },
+    {
+      "path": "migration-red.log",
+      "bytes": 5224,
+      "sha256": "fa773ecd15d548c851a0d607046ecdccb0ae44e489474cd34fedb8b93f35353a"
+    },
+    {
+      "path": "migration-green-final.log",
+      "bytes": 532,
+      "sha256": "ef474f86b063caad26f11a989a85f13ddaed0edf270fc73e9d1847cd56706591"
+    },
+    {
+      "path": "tool-round-input-receipt-review.json",
+      "bytes": 6007,
+      "sha256": "258e0ca120b99154d23e392fbf1ef318b96c8cbd21505c4f4f44cbd3e4a25232"
+    },
+    {
+      "path": "runtime-retention-review-0459-v2.json",
+      "bytes": 10619,
+      "sha256": "631d2eec3b0b3ddc9f878f38c6bb24df087ccca7d11fd64485cc5e4e330bec38"
+    },
+    {
+      "path": "history-receipt-compatibility-validation.json",
+      "bytes": 4196,
+      "sha256": "ee4d6487691ff0ae8f5d4eecff35d32a2354cb3d93fc821cc1adddb4a117cec2"
+    }
+  ],
+  "rootCause": "IDE receipt-backed input persisted clientMessageId/inputDigest in user_message, while its live conversation contained only role/content. Canonical completed-tool prefix comparison falsely reported SESSION_REVISION_STALE. Six real-adapter/headless offline cases reproduce before the fix, including Volcengine SSE configured like the report.",
+  "changes": [
+    "Normalize only those two top-level user receipt fields at conversation boundaries; retain exact original raw events, input receipt hashes and deduplication.",
+    "Retain strict JSON validation and both live-prefix and locked-durable CAS comparisons; concurrent equal-content inputs with distinct receipts still fail stale.",
+    "Normalize omitted OpenAI-compatible tool-response text to null.",
+    "Settle completed tools before result retention, recompute the candidate after the host hook, propagate hook failure before another provider call, and preserve existing runtime-only capabilities on trusted clones.",
+    "Authenticate historical raw and conversation lineage with separate exact source maps; summary parents must match one complete representation. Preserve legacy rewind/branch origins and raw branch digest authority.",
+    "Recover interrupted physical imports only after exact raw snapshot and current conversation checks under the completion writer lock; preserve old completed migration digests.",
+    "Align the release contract with all four child-package provenance gates."
+  ],
+  "localValidation": {
+    "finalMainSuites": 8,
+    "passed": 392,
+    "existingSkipped": 2,
+    "failed": 0,
+    "historyCompatibility": {
+      "suites": 4,
+      "passed": 77
+    },
+    "migration": {
+      "passed": 13
+    },
+    "concurrentReceiptCas": {
+      "passed": 2
+    },
+    "gitAndRetention": "Two actual headless cases pass: nine local Git tools through mocked Volcengine SSE/checkpoints, and 33 retained tool results with durable full evidence and restart without replay."
+  },
+  "limitations": [
+    "No live model request; local mock transport does not attest provider service reliability.",
+    "Historical physical-import snapshots lack a source label; exact old source bytes are verified, without claiming an absent label.",
+    "Static egress source review passed with paidReady false; no financial/native admission granted.",
+    "Prior0459 CI failed its obsolete release-contract count on all3 OS. Its Strict/Context success and ongoing Formal cannot qualify this changed source."
+  ],
+  "ideSource": {
+    "sha": "376740e3f4bd5d46a741eb92e2c6618beb3c080f",
+    "regularRun": 40040187046,
+    "arm64Run": 40040197734,
+    "published": false
+  },
+  "release": {
+    "qualified": false,
+    "published": false,
+    "tagCreated": false,
+    "order": [
+      "required child npm packages",
+      "CLI",
+      "VS Code / JetBrains",
+      "mobile / PC"
+    ],
+    "required": "Complete exact final source CLI CI and Strict matrices, SDK/Core steps on all3 OS, full unchanged Formal reliability, public archive/provenance readback at each OIDC stage."
+  },
+  "acceptance": {
+    "completed": 32,
+    "total": 45,
+    "unfinished": 13,
+    "newPaidTaskAcceptance": false
+  }
+}

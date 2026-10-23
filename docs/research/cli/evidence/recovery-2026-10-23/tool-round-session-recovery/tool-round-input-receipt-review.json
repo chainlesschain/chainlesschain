@@ -1,0 +1,137 @@
+{
+  "schema": "chainlesschain.read-only-receipt-projection-review/v1",
+  "capturedAt": "2026-10-23T23:18:24.220Z",
+  "sourceSha": "0459a2bb4ad6e1e3dc4475a46aa2bd2fa2264b4b",
+  "installedVersion": "0.166.117",
+  "scope": "Read-only source and raw session metadata inspection. No user session writes, no original bodies, tool commands or credentials in this receipt. Raw session rows were parsed for metadata; no claim of independent transcript-chain authentication.",
+  "observations": [
+    {
+      "sessionId": "panel-ae664e2d-b3ea-4360-a2e1-3e85fb551d23",
+      "bytes": 142866,
+      "sha256": "791322631244d77e553c5b1ff846256b21802ec3d6932895d0bd41ba0853501d",
+      "eventCounts": {
+        "session_start": 1,
+        "context_memory_task_checkpoint": 22,
+        "user_message": 1,
+        "model_usage_started": 3,
+        "token_usage": 3,
+        "tool_call_started": 9,
+        "tool_call": 9,
+        "turn_checkpoint_binding": 1
+      },
+      "comparisons": [
+        {
+          "storedKeys": [
+            "role",
+            "content",
+            "clientMessageId",
+            "inputDigest"
+          ],
+          "liveKeys": [
+            "role",
+            "content"
+          ],
+          "equal": false,
+          "extraStoredKeys": [
+            "clientMessageId",
+            "inputDigest"
+          ]
+        }
+      ]
+    },
+    {
+      "sessionId": "panel-64d6406b-7930-462e-9285-6ae90afa3674",
+      "bytes": 125069,
+      "sha256": "4e79df0de2889e752b8845d5d8848c14d3132a01ffbf3a843ff16ea8ce89c3cf",
+      "eventCounts": {
+        "session_start": 1,
+        "context_memory_task_checkpoint": 18,
+        "user_message": 1,
+        "model_usage_started": 5,
+        "token_usage": 4,
+        "tool_call_started": 7,
+        "tool_call": 7,
+        "llm_retry": 2,
+        "turn_checkpoint_binding": 1
+      },
+      "comparisons": [
+        {
+          "storedKeys": [
+            "role",
+            "content",
+            "clientMessageId",
+            "inputDigest"
+          ],
+          "liveKeys": [
+            "role",
+            "content"
+          ],
+          "equal": false,
+          "extraStoredKeys": [
+            "clientMessageId",
+            "inputDigest"
+          ]
+        }
+      ]
+    }
+  ],
+  "findings": [
+    {
+      "severity": "confirmed-source-path",
+      "finding": "appendSessionInputWithReceipt stores clientMessageId and inputDigest on user_message.data, while headless-stream inserts only role/content into the live array. The strict canonical projection retains the two fields, so the first live-prefix comparison differs for accepted receipt-bearing input.",
+      "source": [
+        "lib/session-input-receipt.js:77",
+        "runtime/headless-stream.js:5528",
+        "harness/jsonl-session-store.js:3426",
+        "harness/jsonl-session-store.js:5965",
+        "lib/session-message-provenance.js:317"
+      ]
+    },
+    {
+      "severity": "compatibility-required",
+      "finding": "Both file replay and legacy event-array host replay must use the same conversation projection; receipt lookup/deduplication must keep the authenticated raw event unchanged.",
+      "source": [
+        "harness/jsonl-session-store.js:5931",
+        "lib/session-host-snapshot.js:72",
+        "lib/session-input-receipt.js:20"
+      ]
+    },
+    {
+      "severity": "compatibility-required",
+      "finding": "History origins hash all message fields and decode direct events and snapshots. A store-only projection change can lose fork/rewind history origin mappings. Apply equivalent message projection at history origins and cover receipt-bearing historical compact/checkpoint snapshots.",
+      "source": [
+        "lib/session-history-origins.js:91",
+        "lib/session-history-origins.js:129",
+        "lib/session-history-origins.js:199",
+        "lib/session-history-origins.js:238",
+        "lib/session-history-origins.js:294",
+        "lib/session-transcript-history.js:322"
+      ]
+    },
+    {
+      "severity": "display-unaffected",
+      "finding": "Page v1/v2 rows and Markdown render role/content only. Raw event export and receipt lookup should continue retaining receipt metadata.",
+      "source": [
+        "lib/session-transcript-page.js:92",
+        "lib/session-transcript-history.js:162",
+        "lib/agent-session-export.js:86"
+      ]
+    },
+    {
+      "severity": "comparison",
+      "finding": "Installed 117 and 0459 have identical LF-normalized headless-stream, provider-stream-state, message-roles, jsonl-session-store, session-message-provenance, session-tool-round, live-compaction, message-adapter and session-runtime-retention. agent-core differs only in the Ollama fetch transport import and two calls; no Volcengine/SSE/Git difference."
+    }
+  ],
+  "recommendation": "Project the two known receipt metadata fields out of conversation messages consistently, after preserving raw authority evidence. Do not skip prefix checks, do not resample/drop concurrent user input, do not remove fields from raw receipt events or loosen malformed-message checks.",
+  "requiredRegression": [
+    "Actual Volcengine SSE plus client_message_id, complete tools once, full durable round and restart replay",
+    "Receipt lookup and duplicate acceptance continue matching original eventHash/inputDigest with unchanged raw event bytes",
+    "Different submission reusing a receipt ID is still rejected",
+    "Verified file replay and legacy event-array host replay agree",
+    "Receipt-bearing history retains paging/export/fork origin identity after canonical compaction and rewind",
+    "Previously persisted compact/checkpoint snapshots containing receipt fields remain compatible",
+    "Concurrent user update still fails both stale paths"
+  ],
+  "limitations": "Source and pure projection comparison establish the deterministic mismatch condition. The installed process raw error code is not available; this receipt alone does not assert which exception was emitted by that terminated process.",
+  "releaseQualified": false
+}
