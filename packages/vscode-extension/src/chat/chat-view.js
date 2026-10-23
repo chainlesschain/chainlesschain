@@ -27,6 +27,11 @@ const {
 } = require("./transcript-sync");
 const { AgentChatSession } = require("./agent-session");
 const {
+  boundedErrorCode,
+  isPersistenceResult,
+  errorDiagnostic,
+} = require("./agent-diagnostics");
+const {
   mapAgentEvent,
   createTurnState,
   buildSessionArgs,
@@ -485,6 +490,12 @@ class ChatViewProvider {
       : crypto.randomUUID();
     let inputCancelRevision = conv.inputCancelRevision || 0;
     const assertInputNotCancelled = () => {
+      if (
+        message.loopToken &&
+        this._loopTimers.get(conv.id) !== message.loopToken
+      ) {
+        throw new Error("Recurring input was paused; input was not dispatched");
+      }
       if ((conv.inputCancelRevision || 0) !== inputCancelRevision) {
         throw new Error(
           "Input preparation was stopped; input was not dispatched",
@@ -562,6 +573,7 @@ class ChatViewProvider {
       return sent;
     } catch (error) {
       if (error === conv.inputInitError) conv.inputInitErrorReported = true;
+      if (dispatched) this._pauseLoopForSessionReview(conv.id);
       if (prepared && !dispatched)
         await this._draftStore.settle(key, id, "rejected").catch(() => {});
       this._post({
@@ -1206,6 +1218,14 @@ class ChatViewProvider {
     return !!state;
   }
 
+  _pauseLoopForSessionReview(convId) {
+    if (!this._stopLoop(convId)) return;
+    this._postFrom(convId, {
+      kind: "error",
+      text: "/loop paused: agent state needs review. Inspect the saved session and input acceptance before restarting /loop. Nothing was resent.",
+    });
+  }
+
   /**
    * Detach a child before stopping it. The token invalidates late stdout/exit
    * callbacks from the old process so they cannot alter a newly spawned child
@@ -1355,6 +1375,13 @@ class ChatViewProvider {
         return;
       acceptTranscriptInputReceipt(conv, evt, sessionToken);
       if (
+        evt?.type === "session_error" ||
+        isPersistenceResult(evt) ||
+        (evt?.type === "result" && evt.acceptance === "unknown")
+      ) {
+        this._pauseLoopForSessionReview(convId);
+      }
+      if (
         conv.inputReceiptVersion === undefined &&
         (evt?.type === "session_error" ||
           (evt?.type === "result" && evt.is_error))
@@ -1477,7 +1504,9 @@ class ChatViewProvider {
       ) {
         conv.modeStatus = "failed";
         conv.modeError = String(
-          evt.error || evt.result || "Agent startup failed",
+          isPersistenceResult(evt)
+            ? errorDiagnostic(evt).text
+            : evt.error || evt.result || "Agent startup failed",
         ).slice(0, 500);
         this._updateModeStatus();
       }
@@ -1486,7 +1515,7 @@ class ChatViewProvider {
       // means setup is needed — surface the guided-setup card instead of a bare
       // error. The auth half mirrors the JetBrains panel's hint so a bare
       // "Anthropic error: 401" (no "api key" text) still triggers the card.
-      if (evt?.type === "result" && evt.is_error) {
+      if (evt?.type === "result" && evt.is_error && !isPersistenceResult(evt)) {
         const reason = String(evt.error || evt.result || "");
         if (
           /fetch failed|ECONNREFUSED|ENOTFOUND|ETIMEDOUT/i.test(reason) ||
@@ -2358,11 +2387,22 @@ class ChatViewProvider {
             this._postFrom(conv.id, { kind: "stderr", text: line });
           }
         },
-        onExit: ({ code }) => {
+        onExit: ({ code, signal }) => {
           exited = true;
           const current = this._convs.get(conv.id);
           if (!current || current._sessionToken !== sessionToken) {
             return;
+          }
+          if (code !== 0 || signal || current.turnActive) {
+            this._pauseLoopForSessionReview(conv.id);
+            const safeSignal = boundedErrorCode(signal);
+            const exitCode = Number.isSafeInteger(code) ? code : "unknown";
+            this._postFrom(conv.id, {
+              kind: "error",
+              code: "CC_AGENT_PROCESS_EXITED",
+              ...(safeSignal ? { signal: safeSignal } : {}),
+              text: `Agent exited [CC_AGENT_PROCESS_EXITED] (exit: ${exitCode}${safeSignal ? `, signal: ${safeSignal}` : ""}). Inspect the saved session before continuing.`,
+            });
           }
           this._questions.archiveConversation(current, {
             reason: "Agent exited; saved answer text remains editable",
@@ -2734,17 +2774,26 @@ class ChatViewProvider {
     );
     const prompt = m[3].trim();
     if (old) this._stopLoop(conv.id);
-    const timer = setInterval(() => {
-      if (!this._convs.has(conv.id)) return;
+    const loop = { timer: null, intervalMs, prompt };
+    const submit = () =>
+      this._handleMessage({
+        type: "send",
+        convId: conv.id,
+        text: prompt,
+        loopToken: loop,
+      });
+    loop.timer = setInterval(() => {
+      if (!this._convs.has(conv.id) || this._loopTimers.get(conv.id) !== loop)
+        return;
       this._handleMessage({ type: "switchTab", id: conv.id });
-      this._handleMessage({ type: "send", text: prompt });
+      submit();
     }, intervalMs);
-    this._loopTimers.set(conv.id, { timer, intervalMs, prompt });
-    this._handleMessage({ type: "send", text: prompt });
+    this._loopTimers.set(conv.id, loop);
     this._post({
       kind: "info",
       text: `/loop started: every ${m[1] || 300}${m[2] || "s"} · /loop stop to stop`,
     });
+    submit();
   }
 
   /**
@@ -2929,6 +2978,8 @@ class ChatViewProvider {
   }
 
   _sendMessage(m, images, sendingConv, dispatch = null) {
+    if (m.loopToken && this._loopTimers.get(sendingConv.id) !== m.loopToken)
+      return false;
     const session = dispatch?.session || this._ensureSession(sendingConv);
     const auto = deriveTabTitle(m.text);
     if (auto && isDefaultTitle(sendingConv.title)) {
@@ -2982,6 +3033,7 @@ class ChatViewProvider {
       turns.push(dispatch ? [] : images);
       this._imgTurns.set(id, turns);
     } else {
+      this._pauseLoopForSessionReview(id);
       if (dispatch) {
         this._postFrom(id, {
           kind: "error",

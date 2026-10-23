@@ -56,6 +56,284 @@ async function waitForInitWaiter(conv) {
   assert.equal(conv.inputInitWaiters?.size, 1);
 }
 
+function makeLoopConversation() {
+  const writes = [],
+    posts = [],
+    sessions = [];
+  const provider = new ChatViewProvider(
+    {
+      workspace: {
+        getConfiguration: () => ({ get: () => undefined }),
+        workspaceFolders: [],
+      },
+    },
+    {
+      deps: {
+        resolveChatLlm: () => ({}),
+        createSession: (callbacks) => {
+          const session = {
+            running: true,
+            send: (text) => {
+              writes.push(text);
+              return true;
+            },
+            sendEvent: (event) => {
+              writes.push(event);
+              return true;
+            },
+          };
+          sessions.push({ callbacks, session });
+          return session;
+        },
+      },
+    },
+  );
+  provider._post = (message) => posts.push(message);
+  provider._persistTabs = () => {};
+  provider._restoreTranscript = () => {};
+  provider._restoreDraft = async () => {};
+  provider._refreshContextStatus = () => {};
+  provider._cliCommand = () => "cc";
+  const conv = provider._activeConv();
+  conv.title = "Existing conversation";
+  provider._ensureSession(conv);
+  const onEvent = sessions[0].callbacks.onEvent;
+  onEvent({
+    type: "system",
+    subtype: "init",
+    session_id: conv.sessionId,
+    input_receipts: { version: 1 },
+  });
+  return { conv, provider, onEvent, posts, writes, sessions };
+}
+
+test("ChatView pauses recurring input on persistence or unknown acceptance and retains completed tool views", (t) => {
+  t.mock.timers.enable({ apis: ["setInterval"] });
+  for (const event of [
+    {
+      type: "result",
+      subtype: "error_persistence",
+      is_error: true,
+      code: "CC_SESSION_PERSISTENCE_FAILED",
+      persistence: { phase: "after-model" },
+    },
+    {
+      type: "result",
+      subtype: "error_session_persistence",
+      is_error: true,
+      code: "SESSION_REVISION_STALE",
+    },
+    {
+      type: "result",
+      is_error: true,
+      code: "CC_SESSION_TOOL_ROUND_PERSISTENCE_FAILED",
+    },
+    {
+      type: "result",
+      subtype: "error_input_receipt",
+      is_error: true,
+      acceptance: "unknown",
+      error: "Cannot verify input acceptance",
+    },
+    { type: "session_error", code: "EPIPE", error: "Input delivery failed" },
+  ]) {
+    const { conv, provider, onEvent, posts, writes, sessions } =
+      makeLoopConversation();
+    t.after(() => provider._stopLoop(conv.id));
+    provider._setLoop("1s inspect progress");
+    assert.equal(writes.length, 1);
+    onEvent({
+      type: "tool_use",
+      tool: "read_file",
+      args: { path: "completed.txt" },
+    });
+    onEvent({
+      type: "tool_result",
+      tool: "read_file",
+      is_error: false,
+      result: { content: "saved output" },
+    });
+    const completedView = conv.transcript.find((row) => row.role === "tool");
+    assert.ok(completedView);
+    onEvent(event);
+    t.mock.timers.tick(5000);
+    assert.equal(writes.length, 1, JSON.stringify(event));
+    assert.equal(sessions.length, 1);
+    assert.ok(conv.transcript.includes(completedView));
+    assert.ok(
+      posts.some(
+        (message) =>
+          /\/loop paused/.test(message?.text) &&
+          /Inspect.*session/.test(message.text),
+      ),
+    );
+    if (event.type === "session_error")
+      assert.ok(
+        posts.some(
+          (message) =>
+            message?.code === "EPIPE" && message.text.includes("EPIPE"),
+        ),
+      );
+    assert.equal(provider._loopTimers.has(conv.id), false);
+  }
+});
+
+test("ChatView successful and ordinary-error turns keep the explicit loop active", (t) => {
+  t.mock.timers.enable({ apis: ["setInterval"] });
+  const { conv, provider, onEvent, posts, writes } = makeLoopConversation();
+  t.after(() => provider._stopLoop(conv.id));
+  provider._setLoop("1s inspect progress");
+  onEvent({ type: "result", is_error: false, result: "Completed" });
+  t.mock.timers.tick(1000);
+  assert.equal(writes.length, 2);
+  onEvent({
+    type: "result",
+    is_error: true,
+    error: "Rate limit exceeded; retry later",
+    code: "RATE_LIMIT",
+  });
+  assert.ok(
+    posts.some(
+      (message) =>
+        message?.kind === "turn_end" &&
+        message.text.includes("Rate limit exceeded; retry later"),
+    ),
+  );
+  t.mock.timers.tick(1000);
+  assert.equal(writes.length, 3);
+  assert.equal(provider._loopTimers.has(conv.id), true);
+});
+
+test("ChatView pauses recurring input on abnormal close and exposes exit diagnostics", (t) => {
+  t.mock.timers.enable({ apis: ["setInterval"] });
+  for (const { code, signal, completed } of [
+    { code: 1, signal: null, completed: true },
+    { code: null, signal: "SIGTERM", completed: false },
+    { code: 0, signal: null, completed: false },
+  ]) {
+    const { conv, provider, onEvent, posts, writes, sessions } =
+      makeLoopConversation();
+    t.after(() => provider._stopLoop(conv.id));
+    provider._setLoop("1s inspect progress");
+    if (completed)
+      onEvent({ type: "result", is_error: false, result: "Completed" });
+    sessions[0].session.running = false;
+    sessions[0].callbacks.onExit({ code, signal });
+    t.mock.timers.tick(5000);
+    assert.equal(writes.length, 1);
+    assert.equal(sessions.length, 1);
+    const diagnostic = posts.find(
+      (message) =>
+        message?.kind === "error" && message.code === "CC_AGENT_PROCESS_EXITED",
+    );
+    assert.ok(diagnostic);
+    assert.ok(diagnostic.text.includes(signal || String(code)));
+    assert.ok(posts.some((message) => /\/loop paused/.test(message?.text)));
+  }
+});
+
+test("ChatView a clean close after a result permits the next scheduled turn", (t) => {
+  t.mock.timers.enable({ apis: ["setInterval"] });
+  const { conv, provider, onEvent, writes, sessions } = makeLoopConversation();
+  t.after(() => provider._stopLoop(conv.id));
+  provider._setLoop("1s inspect progress");
+  onEvent({ type: "result", is_error: false, result: "Completed" });
+  sessions[0].session.running = false;
+  sessions[0].callbacks.onExit({ code: 0, signal: null });
+  t.mock.timers.tick(1000);
+  assert.equal(writes.length, 2);
+  assert.equal(sessions.length, 2);
+  assert.equal(provider._loopTimers.has(conv.id), true);
+});
+
+test("ChatView a paused loop cannot dispatch an already-preparing durable input", async (t) => {
+  t.mock.timers.enable({ apis: ["setInterval", "setTimeout"] });
+  const { conv, provider, onEvent, writes } = makeSubmission();
+  provider._refreshContextStatus = () => {};
+  t.after(() => provider._stopLoop(conv.id));
+  onEvent({ type: "system", subtype: "init", input_receipts: { version: 1 } });
+  let finishPreparation;
+  provider._draftStore.prepare = () =>
+    new Promise((resolve) => {
+      finishPreparation = resolve;
+    });
+  provider._setLoop("1s inspect progress");
+  for (let i = 0; i < 30 && !finishPreparation; i++) await Promise.resolve();
+  assert.equal(typeof finishPreparation, "function");
+  onEvent({
+    type: "result",
+    subtype: "error_persistence",
+    is_error: true,
+    code: "CC_SESSION_PERSISTENCE_FAILED",
+  });
+  finishPreparation({ sessionId: conv.sessionId, paths: [] });
+  for (let i = 0; i < 30; i++) await Promise.resolve();
+  t.mock.timers.tick(5000);
+  for (let i = 0; i < 30; i++) await Promise.resolve();
+  assert.deepEqual(writes, []);
+  assert.equal(provider._loopTimers.has(conv.id), false);
+});
+
+test("ChatView persistence diagnostics do not leak through setup or mode failure channels", () => {
+  const { conv, onEvent, posts } = makeLoopConversation();
+  conv.modeStatus = "pending";
+  onEvent({
+    type: "result",
+    subtype: "error_persistence",
+    is_error: true,
+    code: "CC_SESSION_PERSISTENCE_FAILED",
+    persistence: { phase: "after-model" },
+    error: "HTTP 401 Bearer secret-request-body",
+    result: "secret-request-body",
+  });
+  assert.equal(JSON.stringify(posts).includes("secret-request-body"), false);
+  assert.equal(conv.modeError.includes("secret-request-body"), false);
+  assert.ok(conv.modeError.includes("CC_SESSION_PERSISTENCE_FAILED"));
+  assert.equal(
+    posts.some((message) => message?.kind === "setup"),
+    false,
+  );
+});
+
+test("ChatView stale or other-session failures cannot pause the current loop", (t) => {
+  t.mock.timers.enable({ apis: ["setInterval"] });
+  const { conv, provider, onEvent, posts, writes } = makeLoopConversation();
+  t.after(() => provider._stopLoop(conv.id));
+  provider._setLoop("1s inspect progress");
+  const failure = {
+    type: "result",
+    subtype: "error_persistence",
+    is_error: true,
+  };
+  onEvent({ ...failure, session_id: "another-session" });
+  conv._sessionToken = {};
+  onEvent(failure);
+  assert.equal(provider._loopTimers.has(conv.id), true);
+  t.mock.timers.tick(1000);
+  assert.equal(writes.length, 2);
+  assert.equal(
+    posts.some((message) => /\/loop paused/.test(message?.text)),
+    false,
+  );
+});
+
+test("ChatView unknown durable write pauses a loop without resending", async (t) => {
+  t.mock.timers.enable({ apis: ["setInterval", "setTimeout"] });
+  const { conv, provider, onEvent, writes } = makeSubmission();
+  t.after(() => provider._stopLoop(conv.id));
+  conv.session.sendEvent = (event) => {
+    writes.push(event);
+    return false;
+  };
+  onEvent({ type: "system", subtype: "init", input_receipts: { version: 1 } });
+  provider._setLoop("1s inspect progress");
+  for (let i = 0; i < 30; i++) await Promise.resolve();
+  t.mock.timers.tick(5000);
+  for (let i = 0; i < 30; i++) await Promise.resolve();
+  assert.equal(writes.length, 1);
+  assert.equal(provider._loopTimers.has(conv.id), false);
+});
+
 test("doctor observes the active child and discards stale generation capabilities", () => {
   const { conv, onEvent, provider, writes } = makeSubmission();
   assert.equal(provider.runtimeDiagnostics().state, "initializing");

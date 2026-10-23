@@ -19,6 +19,7 @@
 const {
   CC_AGENT_STREAM_EVENT_TYPES,
 } = require("../vendor/agent-sdk/generated/app-protocol.js");
+const { errorDiagnostic } = require("./agent-diagnostics");
 
 const KNOWN_AGENT_STREAM_EVENT_TYPES = new Set(CC_AGENT_STREAM_EVENT_TYPES);
 const GOAL_STATUS = {
@@ -294,11 +295,9 @@ function mapAgentEvent(evt, state) {
         kind: "turn_end",
         isError: evt.is_error === true,
         // If text streamed via deltas, the final result repeats it — drop it.
-        text: evt.is_error
-          ? evt.error || evt.result || "turn failed"
-          : sawDelta
-            ? null
-            : evt.result || null,
+        ...(evt.is_error === true
+          ? errorDiagnostic(evt)
+          : { text: sawDelta ? null : evt.result || null }),
         usage: evt.usage || null,
       };
     }
@@ -390,7 +389,13 @@ function mapAgentEvent(evt, state) {
         note: evt.note || null,
       };
     case "session_error":
-      return { kind: "error", text: evt.error || "agent session error" };
+      return {
+        kind: "error",
+        ...errorDiagnostic({
+          ...evt,
+          error: evt.error || "agent session error",
+        }),
+      };
     case "token_usage":
       // Per-LLM-call usage mid-turn — the webview accumulates these into a live
       // token counter on the status line (turn_end still carries the

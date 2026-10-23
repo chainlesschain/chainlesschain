@@ -20,6 +20,7 @@ const { spawn } = require("child_process");
 const { randomUUID } = require("node:crypto");
 const { hardenedEnv } = require("../hardened-env");
 const { stopAgentProcess } = require("./stop-agent-process");
+const { boundedErrorCode } = require("./agent-diagnostics");
 // Vendored @chainlesschain/agent-sdk (scripts/sync-agent-sdk.mjs): the
 // protocol argv + NDJSON framing are SDK contracts now, not hand-rolled.
 const { buildAgentArgs } = require("../vendor/agent-sdk/agent-session.js");
@@ -140,7 +141,12 @@ class AgentChatSession {
     });
     this.child.on("error", (err) => {
       // spawn failure (cc not installed / not on PATH) — surface as an event
-      this._emit({ type: "session_error", error: err.message });
+      const code = boundedErrorCode(err.code);
+      this._emit({
+        type: "session_error",
+        error: err.message,
+        ...(code ? { code } : {}),
+      });
     });
     // stdin can emit an ASYNC 'error' (EPIPE) when we write just as the child
     // dies (crash mid-turn, or cc closing stdin) — with no listener it throws
@@ -149,9 +155,11 @@ class AgentChatSession {
     if (this.child.stdin)
       this.child.stdin.on("error", (error) => {
         this._inputFailed = true;
+        const code = boundedErrorCode(error.code);
         this._emit({
           type: "session_error",
           error: `Input delivery failed: ${error.message}`,
+          ...(code ? { code } : {}),
         });
       });
     return this;

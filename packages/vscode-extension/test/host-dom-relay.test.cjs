@@ -33,6 +33,79 @@ const {
 const TOKEN = "ab".repeat(32);
 const temporaryRoots = [];
 
+test("generated turn-end UI displays safe error codes and phases as plain text", () => {
+  const { mapAgentEvent, createTurnState } = require("../src/chat/chat-events");
+  const html = buildChatHtml({
+    cspSource: "vscode-webview:",
+    nonce: "nonce",
+    l10n: {},
+  });
+  const addStart = html.indexOf("  function add(cls, text) {");
+  const addEnd = html.indexOf("  function ensureStream()", addStart);
+  const turnStart = html.indexOf('      case "turn_end": {');
+  const turnEnd = html.indexOf('      case "usage": {', turnStart);
+  assert.ok(
+    addStart >= 0 && addEnd > addStart && turnStart >= 0 && turnEnd > turnStart,
+  );
+  const displayed = [],
+    announcements = [],
+    retained = [];
+  const message = mapAgentEvent(
+    {
+      type: "result",
+      subtype: "error_persistence",
+      is_error: true,
+      code: "CC_SESSION_PERSISTENCE_FAILED",
+      error: "Bearer secret-request-body",
+      persistence: { phase: "before-model", cause: "secret-cause" },
+    },
+    createTurnState(),
+  );
+  vm.runInNewContext(
+    html.slice(addStart, addEnd) +
+      "switch(m.kind) {" +
+      html.slice(turnStart, turnEnd) +
+      "}",
+    {
+      m: message,
+      streamRaw: "",
+      streamEl: null,
+      turnTokens: null,
+      document: {
+        createElement: () => ({
+          dataset: {},
+          setAttribute() {},
+          set innerHTML(_value) {
+            throw new Error("error must remain plain text");
+          },
+        }),
+      },
+      log: {
+        appendChild: (element) => displayed.push(element),
+        setAttribute() {},
+      },
+      currentTurnState: () => ({ number: 1 }),
+      appendBoundedTranscriptText,
+      MAX_ENTRY_CHARS: TRANSCRIPT_ENTRY_MAX_CHARS,
+      trimLog() {},
+      followTranscript() {},
+      ensureAssistantHeading() {},
+      flushStream() {},
+      closeThinking() {},
+      updateStatus() {},
+      rememberTranscriptRow: (_element, row) => retained.push(row),
+      announceTranscript: (_kind, text) => announcements.push(text),
+    },
+  );
+  assert.equal(displayed.length, 1);
+  assert.equal(displayed[0].className, "msg error");
+  assert.match(displayed[0].textContent, /CC_SESSION_PERSISTENCE_FAILED/);
+  assert.match(displayed[0].textContent, /before-model/);
+  assert.equal(displayed[0].textContent.includes("secret"), false);
+  assert.equal(retained[0].text, displayed[0].textContent);
+  assert.equal(announcements[0], displayed[0].textContent);
+});
+
 test("host mode selection uses a fixed permission-mode allowlist", () => {
   assert.deepEqual(
     validateHostDomRequest({ action: "setMode", mode: "acceptEdits" }),

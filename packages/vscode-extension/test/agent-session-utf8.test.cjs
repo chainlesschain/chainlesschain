@@ -95,7 +95,35 @@ test("agent session blocks input after a pipe failure and still drains the final
   child.emit("close", 1, null);
   assert.deepEqual(writes, [input]);
   assert.match(events[0].error, /Input delivery failed/);
+  assert.equal(events[0].code, "EPIPE");
   assert.deepEqual(events[1], receipt);
+});
+
+test("agent spawn errors preserve only bounded machine codes", () => {
+  for (const code of [
+    "ENOENT",
+    "EACCES",
+    "ENOENT\n",
+    "private-request-body",
+    "X".repeat(121),
+  ]) {
+    const child = fakeChild();
+    const events = [];
+    new AgentChatSession({
+      deps: { spawn: () => child },
+      onEvent: (event) => events.push(event),
+    }).start();
+    child.emit(
+      "error",
+      Object.assign(new Error("could not start cc"), { code }),
+    );
+    assert.equal(
+      events[0].code,
+      ["ENOENT", "EACCES"].includes(code) ? code : undefined,
+    );
+    assert.equal(events[0].error, "could not start cc");
+    child.emit("close", 1, null);
+  }
 });
 
 test("agent session refuses input after stdin.end before the process closes", () => {
