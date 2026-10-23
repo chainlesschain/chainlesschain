@@ -708,6 +708,14 @@ export function diskFailureDiagnostics(stderr) {
       ["command-error", /(?:^|\n)Error:/u],
       ["evolution-ingress-startup", /(?:^|\n)Evolution ingress:/u],
       [
+        "ledger-windows-acl-identity",
+        /(?:^|\n)Evolution ingress: ledger file identity changed during Windows ACL verification(?:\r?\n|$)/u,
+      ],
+      [
+        "artifact-index-path-handle-identity",
+        /(?:^|\n)Evolution ingress: ArtifactStore index pathname and descriptor identities differ(?:\r?\n|$)/u,
+      ],
+      [
         "ntfs-directory-required",
         /Windows local UI durable storage requires a local NTFS directory/u,
       ],
@@ -1217,20 +1225,37 @@ async function duplexSoakScenario(
   profile,
   { checkpoint = null } = {},
 ) {
+  const {
+    reliabilityResultFailure,
+    readReliabilityFetchDiagnostics,
+    readReliabilityFetchRuntime,
+  } = await import("./cli-reliability-fetch-diagnostics.mjs");
+  mkdirSync(home, { recursive: true, mode: 0o700 });
+  const fetchDiagnosticsFile = join(home, "fetch-diagnostics.jsonl");
   const child = spawnCli(
     [
+      "--require",
+      join(SCRIPT_DIR, "verify01-fetch-diagnostics-preload.cjs"),
       ...commonArgs(baseUrl),
       "--input-format",
       "stream-json",
       "--output-format",
       "stream-json",
     ],
-    { home, stdio: ["pipe", "pipe", "pipe"] },
+    {
+      home,
+      stdio: ["pipe", "pipe", "pipe"],
+      env: {
+        CC_VERIFY01_FETCH_DIAGNOSTICS_FILE: fetchDiagnosticsFile,
+        CC_VERIFY01_FETCH_BROKER_ORIGIN: baseUrl,
+      },
+    },
   );
   child.stderr.resume();
   let buffer = "";
   let resultCount = 0;
   let resultErrorCount = 0;
+  const resultFailures = [];
   let resultLengthMinimum = null;
   let resultLengthMaximum = null;
   const resultSubtypeCounts = new Map();
@@ -1249,7 +1274,11 @@ async function duplexSoakScenario(
         const event = JSON.parse(line);
         if (event.type === "result") {
           resultCount += 1;
-          if (event.is_error !== false) resultErrorCount += 1;
+          if (event.is_error !== false) {
+            resultErrorCount += 1;
+            if (resultFailures.length < 20)
+              resultFailures.push(reliabilityResultFailure(event, resultCount));
+          }
           const subtype = String(event.subtype || "unknown");
           resultSubtypeCounts.set(
             subtype,
@@ -1511,12 +1540,15 @@ async function duplexSoakScenario(
       count: resultCount,
       measuredCount: Math.max(0, resultCount - profile.warmupTurns),
       errorCount: resultErrorCount,
+      failures: resultFailures,
       subtypeCounts: Object.fromEntries(resultSubtypeCounts),
       lengthMinimum: resultLengthMinimum,
       lengthMaximum: resultLengthMaximum,
     },
     diagnosticCodes: [...observedDiagnosticCodes].slice(0, 20),
     diagnosticClasses: [...observedDiagnosticClasses].slice(0, 20),
+    fetchDiagnostics: readReliabilityFetchDiagnostics(fetchDiagnosticsFile),
+    fetchRuntime: readReliabilityFetchRuntime(),
   };
 }
 

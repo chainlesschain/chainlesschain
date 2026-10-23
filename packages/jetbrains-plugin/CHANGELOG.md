@@ -1,6 +1,6 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
-## [0.4.177] - Input delivery recovery (unreleased candidate, 2026-10-23)
+## [0.4.177] - Input delivery recovery (unreleased candidate, 2026-10-24)
 
 - Reject later submissions before reserving delivery after an input pipe failure, preserving the first attempt's unknown outcome.
 - Guide users to Saved inputs when a write may have been partial.

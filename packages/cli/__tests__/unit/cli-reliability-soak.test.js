@@ -108,6 +108,31 @@ describe("CLI reliability soak gate", () => {
     );
   });
 
+  it.each([
+    [
+      "ledger file identity changed during Windows ACL verification",
+      "ledger-windows-acl-identity",
+    ],
+    [
+      "ArtifactStore index pathname and descriptor identities differ",
+      "artifact-index-path-handle-identity",
+    ],
+  ])(
+    "distinguishes the fixed startup error %s without copying stderr",
+    (message, label) => {
+      const report = diskFailureDiagnostics(
+        `Evolution ingress: ${message}\r\n/private/SECRET_CANARY\n`,
+      );
+      expect(report.classes).toEqual(["evolution-ingress-startup", label]);
+      expect(JSON.stringify(report)).not.toMatch(
+        /SECRET_CANARY|private|Evolution ingress/u,
+      );
+      expect(
+        diskFailureDiagnostics(`Context prose quotes ${message}\n`).classes,
+      ).not.toContain(label);
+    },
+  );
+
   it("retains stderr and the failed exit from a real no-output child", async () => {
     let spawned = 0;
     let report;

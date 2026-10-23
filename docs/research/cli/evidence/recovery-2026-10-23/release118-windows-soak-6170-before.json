@@ -1,0 +1,152 @@
+{
+  "schema": "chainlesschain.cli-reliability-soak.v2",
+  "status": "failed",
+  "startedAt": "2026-10-23T14:06:41.558Z",
+  "seriesStartedAt": "2026-10-23T14:06:41.558Z",
+  "headSha": "61702c7273ee9da8444869db7e7302a12a0af664",
+  "expectedSha": "61702c7273ee9da8444869db7e7302a12a0af664",
+  "exactShaVerified": true,
+  "source": {
+    "clean": true,
+    "changeCount": 0
+  },
+  "platform": "win32",
+  "arch": "x64",
+  "node": "v22.12.0",
+  "profile": {
+    "mode": "smoke",
+    "durationSeconds": 5,
+    "turns": 10,
+    "warmupTurns": 2,
+    "concurrentAgents": 3,
+    "pipeCases": 2,
+    "disconnectCases": 1,
+    "slowConsumerMs": 250,
+    "checkpointIntervalSeconds": 1,
+    "cleanupDeadlineMs": 10000,
+    "maxRssGrowthMb": 128,
+    "maxResourceGrowth": 8
+  },
+  "scenarios": {
+    "disk": {
+      "pass": true,
+      "configured": false,
+      "required": false,
+      "reason": "real-disk-fixtures-not-configured"
+    },
+    "mcpOutput": {
+      "pass": false,
+      "durationMs": 9078.0403,
+      "exit": {
+        "code": 1,
+        "signal": null
+      },
+      "resultSubtype": null,
+      "resultIsError": null,
+      "toolCalls": 0,
+      "oversizedResultBytes": null,
+      "budgetCodeObservedByModel": false,
+      "privateCanaryObservedByModel": false,
+      "privateCanaryObservedOnWire": false,
+      "modelRequestCount": 0,
+      "modelToolCallResponses": 0,
+      "modelFinalResponses": 0,
+      "mcpServerPidObserved": false,
+      "mcpServerRetired": false,
+      "startupDiagnostics": {
+        "fsCodes": [],
+        "operations": [],
+        "classes": [
+          "sandbox-configured",
+          "evolution-ingress-startup"
+        ]
+      },
+      "diagnosticCodes": [],
+      "diagnosticClasses": [],
+      "toolResultProjections": [],
+      "stdoutBytes": 0,
+      "stderrBytes": 176
+    }
+  },
+  "partialScenarios": {
+    "pipe": {
+      "pass": false,
+      "cleanupDeadlineMs": 10000,
+      "brokenConsumers": [
+        {
+          "closed": false,
+          "exitCode": 1,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 8593.201200000001,
+          "descendantsAfterExit": 0,
+          "stderrBytes": 176,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "sandbox-configured",
+              "evolution-ingress-startup"
+            ]
+          }
+        },
+        {
+          "closed": false,
+          "exitCode": 1,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 5839.202700000002,
+          "descendantsAfterExit": 0,
+          "stderrBytes": 176,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "sandbox-configured",
+              "evolution-ingress-startup"
+            ]
+          }
+        }
+      ],
+      "slowConsumers": [
+        {
+          "exitCode": 1,
+          "signal": null,
+          "failureReason": "slow pipe consumer exited before output",
+          "durationMs": 5833.020400000001,
+          "configuredStallMs": 250,
+          "actualStallMs": 0,
+          "stallObserved": false,
+          "peakReadableBytes": 0,
+          "outputBytes": 0,
+          "resultSubtype": null,
+          "resultIsError": null,
+          "diagnosticCodes": [],
+          "descendantsAfterExit": 0,
+          "stderrBytes": 176,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "sandbox-configured",
+              "evolution-ingress-startup"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "activeScenario": null,
+  "resume": {
+    "requested": false,
+    "recovered": false,
+    "priorStatus": null,
+    "attempt": 1,
+    "recoveredScenarios": []
+  },
+  "violations": [
+    "slow pipe consumer exited before output"
+  ],
+  "checkpointedAt": "2026-10-23T14:07:12.262Z",
+  "finishedAt": "2026-10-23T14:07:12.262Z"
+}

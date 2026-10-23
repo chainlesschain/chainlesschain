@@ -1,6 +1,6 @@
 {
   "schema": "chainlesschain.cli-ide-release-preparation/v1",
-  "recordedAt": "2026-10-23T14:00:33.020Z",
+  "recordedAt": "2026-10-23T14:50:32.390Z",
   "baseline": "79b7d49841341eb4caf135414183c1311db58b75",
   "pullRequest": "https://github.com/chainlesschain/chainlesschain/pull/483",
   "authorization": {
@@ -121,10 +121,10 @@
       "originalRun": 39946036842,
       "originalJob": 120389223383,
       "originalFailure": "mcpOutput exit 1 before model requests; stdout 0 / stderr 180 bytes, followed by slow-pipe no-output failure",
-      "rootCause": "The initial DWORD-width-only normalization did not resolve Windows CI. The new handle-bound fix handles Node 22.12 fast-stat structure layout. Linux/macOS advanced past the original projection error, then failed duplex fetches; a loopback stale-socket reproduction informed the Ollama dispatcher fix. All new runtime fixes still require their own complete exact-source CI.",
+      "rootCause": "The handle-bound Windows directory fix advanced HEAD6170 to a later 176-byte startup failure. A real-file/ACL reproduction with affected path-device projection exposes a ledger ACL check bypassing the shared identity bridge; hosted error classification and complete CI remain pending. Linux/macOS HEAD6170 still fail duplex fetches after the dispatcher change, so the independent stale-socket reproduction is not established as the CI root cause. Bounded passive network telemetry is added to diagnose the actual error without changing transport or gates.",
       "originalReceipt": "release118-windows-soak-before.json",
       "regressionTests": {
-        "passed": 16,
+        "passed": 18,
         "failed": 0,
         "pending": 0,
         "report": "release118-soak-diagnostics-tests.json"
@@ -568,6 +568,571 @@
           "publishAuthorizedByThisReport": false,
           "required": "New exact-source Linux Windows macOS CLI CI, Strict Sandbox, Reliability Soak and all established release gates"
         }
+      },
+      "windowsLedgerAcl": {
+        "schema": "chainlesschain.windows-ledger-acl-validation.v1",
+        "generatedAt": "2026-10-23T14:49:11.147Z",
+        "sourceCandidateHead": "61702c7273ee9da8444869db7e7302a12a0af664",
+        "scope": "Windows local UI Evolution ledger pending ACL identity checks only",
+        "code": [
+          {
+            "path": "C:\\code\\chainlesschain\\packages\\cli\\src\\lib\\evolution\\evolution-ledger.js",
+            "sha256": "a4c457a78959ff4cbb46644c952a2ff6b76b8fe066641b050808a02c5023b74e"
+          },
+          {
+            "path": "C:\\code\\chainlesschain\\packages\\cli\\__tests__\\unit\\evolution-windows-ledger-acl.test.js",
+            "sha256": "98eeba4401ec078172755b64fb60831fc67717cb2b8ee816add27d0ea4cd1f8b"
+          }
+        ],
+        "reproducedError": "ledger file identity changed during Windows ACL verification",
+        "reproducedErrorCode": "CC_EVOLUTION_LEDGER_STORE_UNSAFE",
+        "reproducedErrorBytes": 60,
+        "cause": "Pending ACL flush compared fstat handle identity with lstat path identity directly, bypassing the existing affected-libuv trusted-parent device bridge.",
+        "fix": "Retain BigInt inode and exact birthtimeNs; preserve the original Number creation-time projection at publication; use held parent/volume authority for affected path/handle devices; compare complete mutation/owner/creation metadata before and after fsync; close descriptors on all failures.",
+        "simulationLimit": "Local Windows host lacks native ByName API. Tests project regular-file lstat.dev only and temporarily set process.versions.uv in an isolated Vitest worker, restoring its original descriptor after each test. Real files, descriptors, signatures, native directory flush and ACL repair are used.",
+        "ciAttributionLimit": "Original CI reports contain labels/byte count but no raw message; local reproduction identifies a matching real startup defect. Exact-head authoritative CI remains required.",
+        "precisionEvidence": {
+          "path": "C:\\code\\chainlesschain\\.work\\cli-ide-recovery-20261023\\soak-windows-6170\\ledger-acl-birthtime-precision.json",
+          "sha256": "e8b3d2ce3705955b96e5cfcb8491c2b792d8cbc3655be152e4011d512446e298",
+          "sample": {
+            "node": "v22.12.0",
+            "uv": "1.49.1",
+            "path": "packages/cli/src/lib/evolution/evolution-ledger.js",
+            "numberBirthtimeMs": 1791875472495.5957,
+            "bigintBirthtimeMs": "1791875472495",
+            "bigintBirthtimeNs": "1791875472495595600",
+            "legacyProjection": 1791875472495.5957,
+            "legacyProjectionMatches": true,
+            "fullPrecisionRetainedByFix": "birthtimeNs"
+          }
+        },
+        "runs": [
+          {
+            "phase": "before-fix reproduction",
+            "runtime": "Node 22.12.0",
+            "note": "Exact 60-byte ledger ACL identity error reproduced with genuine files/handles/ACL and controlled lstat device projection.",
+            "path": "C:\\code\\chainlesschain\\.work\\cli-ide-recovery-20261023\\soak-windows-6170\\ledger-acl-before.log",
+            "sha256": "4964618614017a9dffc3ec85a5239622c4bad10d7af9c20420cc7b543007e31b",
+            "bytes": 3732,
+            "completed": true,
+            "status": "failed",
+            "passed": 0,
+            "failed": 1,
+            "skipped": 0,
+            "summary": "1 failed (1)",
+            "durationSeconds": 27.07
+          },
+          {
+            "phase": "initial fix",
+            "runtime": "Node 22.12.0",
+            "note": "Four negative cases passed; positive hit existing owner-only ACL process startup ETIMEDOUT before ledger construction. No deadlines changed.",
+            "path": "C:\\code\\chainlesschain\\.work\\cli-ide-recovery-20261023\\soak-windows-6170\\ledger-acl-after-node22.12.0.log",
+            "sha256": "6ea9e288c6ab1315cdd44dbc0ced135143e4f5eb3f9afd84a97fe49ba273a2c7",
+            "bytes": 3576,
+            "completed": true,
+            "status": "failed",
+            "passed": 4,
+            "failed": 1,
+            "skipped": 0,
+            "summary": "1 failed | 4 passed (5)",
+            "durationSeconds": 99.3
+          },
+          {
+            "phase": "initial isolated positive rerun",
+            "runtime": "Node 22.12.0",
+            "note": "Positive rerun passed; this is not a complete suite pass.",
+            "path": "C:\\code\\chainlesschain\\.work\\cli-ide-recovery-20261023\\soak-windows-6170\\ledger-acl-positive-node22.12.0.log",
+            "sha256": "4a952da3a85d7c26ae5d7d6c7f97f9d1d07f15f675277e8df8e1c1df524314e5",
+            "bytes": 492,
+            "completed": true,
+            "status": "passed",
+            "passed": 1,
+            "failed": 0,
+            "skipped": 4,
+            "summary": "1 passed | 4 skipped (5)",
+            "durationSeconds": 28.83
+          },
+          {
+            "phase": "pre-creation-precision fix primary",
+            "runtime": "Node 22.12.0",
+            "note": "Seven cases in one run, before creation nanosecond precision correction.",
+            "path": "C:\\code\\chainlesschain\\.work\\cli-ide-recovery-20261023\\soak-windows-6170\\ledger-acl-final-node22.12.0.log",
+            "sha256": "04c434e9436d6dc77d8ac0b99d9b8cfcb1fe9c40f046a9fc37c6885aaa1ab634",
+            "bytes": 472,
+            "completed": true,
+            "status": "passed",
+            "passed": 7,
+            "failed": 0,
+            "skipped": 0,
+            "summary": "7 passed (7)",
+            "durationSeconds": 167.73
+          },
+          {
+            "phase": "pre-creation-precision owner/birthtime additions",
+            "runtime": "Node 22.12.0",
+            "note": "Two added cases in a separate run; do not combine with preceding seven into a single nine-case run.",
+            "path": "C:\\code\\chainlesschain\\.work\\cli-ide-recovery-20261023\\soak-windows-6170\\ledger-acl-owner-node22.12.0.log",
+            "sha256": "0ba5c444ba1b9692ea3825ee52825f1bf9d8e51683dc58eef48fa5bf85824521",
+            "bytes": 492,
+            "completed": true,
+            "status": "passed",
+            "passed": 2,
+            "failed": 0,
+            "skipped": 7,
+            "summary": "2 passed | 7 skipped (9)",
+            "durationSeconds": 48.65
+          },
+          {
+            "phase": "pre-creation-precision current runtime",
+            "runtime": "Node 22.22.2",
+            "note": "Nine-case complete run before creation nanosecond precision correction.",
+            "path": "C:\\code\\chainlesschain\\.work\\cli-ide-recovery-20261023\\soak-windows-6170\\ledger-acl-final-node22.22.2.log",
+            "sha256": "04cfa0057043674d27011e4e3a27aedb631742bcc2d001922069371f2f361a5b",
+            "bytes": 472,
+            "completed": true,
+            "status": "passed",
+            "passed": 9,
+            "failed": 0,
+            "skipped": 0,
+            "summary": "9 passed (9)",
+            "durationSeconds": 201.56
+          },
+          {
+            "phase": "final precision code first full run",
+            "runtime": "Node 22.12.0",
+            "note": "Nine negative cases passed; positive again blocked by owner-only ACL process startup ETIMEDOUT in createEvolutionFileWitness before ledger construction. No timeout relaxation.",
+            "path": "C:\\code\\chainlesschain\\.work\\cli-ide-recovery-20261023\\soak-windows-6170\\ledger-acl-precision-final-node22.12.0.log",
+            "sha256": "5ebfc42437f0e5327c0d75edba116f72ced51cf1a8185f8bf711d9f886270a60",
+            "bytes": 3586,
+            "completed": true,
+            "status": "failed",
+            "passed": 9,
+            "failed": 1,
+            "skipped": 0,
+            "summary": "1 failed | 9 passed (10)",
+            "durationSeconds": 286.29
+          },
+          {
+            "phase": "final precision code single full rerun",
+            "runtime": "Node 22.12.0",
+            "note": "One authorized full rerun of the same ten-case suite; no automatic retries or deadline changes.",
+            "path": "C:\\code\\chainlesschain\\.work\\cli-ide-recovery-20261023\\soak-windows-6170\\ledger-acl-precision-final-retry-node22.12.0.log",
+            "sha256": "60d4618b2e6cccd9dd0aa6026269c7d6e320d5e1fc3e5ccd519833c0ec1fa953",
+            "bytes": 476,
+            "completed": true,
+            "status": "passed",
+            "passed": 10,
+            "failed": 0,
+            "skipped": 0,
+            "summary": "10 passed (10)",
+            "durationSeconds": 213.86
+          },
+          {
+            "phase": "final precision code current-runtime selected checks",
+            "runtime": "Node 22.22.2",
+            "note": "Only positive bootstrap and new 100-nanosecond creation drift case; not a full ten-case suite.",
+            "path": "C:\\code\\chainlesschain\\.work\\cli-ide-recovery-20261023\\soak-windows-6170\\ledger-acl-precision-selected-node22.22.2.log",
+            "sha256": "58a8a325dad12effc18d738024019c1e6611e7f1b1ba09f507b86add234df9ed",
+            "bytes": 494,
+            "completed": true,
+            "status": "passed",
+            "passed": 2,
+            "failed": 0,
+            "skipped": 8,
+            "summary": "2 passed | 8 skipped (10)",
+            "durationSeconds": 49.2
+          }
+        ],
+        "noTimeoutChanges": true,
+        "noAutomaticRetries": true,
+        "broadCombinationSuitesRun": false,
+        "nonWindowsPathsChanged": false
+      },
+      "fetchDiagnostics": {
+        "schema": "chainlesschain.reliability-fetch-diagnostics-validation.v1",
+        "timestamp": "2026-10-23T14:41:56.117Z",
+        "sourceBase": "61702c7273ee9da8444869db7e7302a12a0af664",
+        "status": "diagnostics-tested-ci-cause-still-unresolved",
+        "paidModelCalls": 0,
+        "priorCi": [
+          {
+            "platform": "linux",
+            "headSha": "61702c7273ee9da8444869db7e7302a12a0af664",
+            "status": "failed",
+            "artifact": ".work/cli-ide-recovery-20261023/soak-linux-6170/artifact/cli-reliability-result.json",
+            "violations": ["duplexSoak scenario failed"],
+            "activeScenario": null,
+            "failedScenarios": {
+              "duplexSoak": {
+                "pass": false,
+                "turns": 10,
+                "warmup": {
+                  "configuredTurns": 2,
+                  "completedTurns": 2
+                },
+                "configuredDurationSeconds": 5,
+                "continuousDurationSeconds": 183.973212365,
+                "schedule": {
+                  "mode": "duration-spread",
+                  "targetTurns": 10,
+                  "targetIntervalMs": 500
+                },
+                "latency": {
+                  "p95Ms": 37347.81675299999,
+                  "observedCount": 10,
+                  "retainedCount": 10,
+                  "retention": "rolling-window"
+                },
+                "rss": {
+                  "beforeBytes": 195342336,
+                  "afterBytes": 236953600,
+                  "growthBytes": 41611264,
+                  "maximumBytes": 298168320,
+                  "peakGrowthBytes": 102825984,
+                  "limitGrowthBytes": 134217728
+                },
+                "resources": {
+                  "kind": "fd",
+                  "before": 32,
+                  "after": 31,
+                  "delta": -1,
+                  "maximum": 32,
+                  "peakDelta": 0,
+                  "limitGrowth": 8,
+                  "requiredMeasurementsAvailable": true
+                },
+                "io": {
+                  "available": true,
+                  "readBytes": 0,
+                  "writeBytes": 29708288,
+                  "readChars": 6270705898,
+                  "writeChars": 6805806,
+                  "source": null
+                },
+                "processDescendants": {
+                  "measurementAvailable": true,
+                  "beforeSource": "pgrep",
+                  "afterSource": "pgrep",
+                  "unavailableReason": null,
+                  "beforeExit": 0,
+                  "observed": 0,
+                  "retired": 0,
+                  "afterExit": 0,
+                  "allRetired": true
+                },
+                "exit": {
+                  "code": 1,
+                  "signal": null
+                },
+                "results": {
+                  "count": 12,
+                  "measuredCount": 10,
+                  "errorCount": 2,
+                  "subtypeCounts": {
+                    "success": 10,
+                    "error": 2
+                  },
+                  "lengthMinimum": 14,
+                  "lengthMaximum": 14
+                },
+                "diagnosticCodes": [],
+                "diagnosticClasses": ["fetch-failed"]
+              }
+            },
+            "partialScenarios": {}
+          },
+          {
+            "platform": "darwin",
+            "headSha": "61702c7273ee9da8444869db7e7302a12a0af664",
+            "status": "failed",
+            "artifact": ".work/cli-ide-recovery-20261023/soak-macos-6170/artifact/cli-reliability-result.json",
+            "violations": ["duplexSoak scenario failed"],
+            "activeScenario": null,
+            "failedScenarios": {
+              "duplexSoak": {
+                "pass": false,
+                "turns": 10,
+                "warmup": {
+                  "configuredTurns": 2,
+                  "completedTurns": 2
+                },
+                "configuredDurationSeconds": 5,
+                "continuousDurationSeconds": 273.33885912499994,
+                "schedule": {
+                  "mode": "duration-spread",
+                  "targetTurns": 10,
+                  "targetIntervalMs": 500
+                },
+                "latency": {
+                  "p95Ms": 48874.92458400002,
+                  "observedCount": 10,
+                  "retainedCount": 10,
+                  "retention": "rolling-window"
+                },
+                "rss": {
+                  "beforeBytes": 207831040,
+                  "afterBytes": 218038272,
+                  "growthBytes": 10207232,
+                  "maximumBytes": 242401280,
+                  "peakGrowthBytes": 34570240,
+                  "limitGrowthBytes": 134217728
+                },
+                "resources": {
+                  "kind": "fd",
+                  "before": 22,
+                  "after": 21,
+                  "delta": -1,
+                  "maximum": 22,
+                  "peakDelta": 0,
+                  "limitGrowth": 8,
+                  "requiredMeasurementsAvailable": true
+                },
+                "io": {
+                  "available": false,
+                  "reason": "host-has-no-portable-io-counter"
+                },
+                "processDescendants": {
+                  "measurementAvailable": true,
+                  "beforeSource": "pgrep",
+                  "afterSource": "pgrep",
+                  "unavailableReason": null,
+                  "beforeExit": 0,
+                  "observed": 0,
+                  "retired": 0,
+                  "afterExit": 0,
+                  "allRetired": true
+                },
+                "exit": {
+                  "code": 1,
+                  "signal": null
+                },
+                "results": {
+                  "count": 12,
+                  "measuredCount": 10,
+                  "errorCount": 1,
+                  "subtypeCounts": {
+                    "success": 11,
+                    "error": 1
+                  },
+                  "lengthMinimum": 14,
+                  "lengthMaximum": 14
+                },
+                "diagnosticCodes": [],
+                "diagnosticClasses": ["fetch-failed"]
+              }
+            },
+            "partialScenarios": {}
+          },
+          {
+            "platform": "win32",
+            "headSha": "61702c7273ee9da8444869db7e7302a12a0af664",
+            "status": "failed",
+            "artifact": ".work/cli-ide-recovery-20261023/soak-windows-6170/artifact/cli-reliability-result.json",
+            "violations": ["slow pipe consumer exited before output"],
+            "activeScenario": null,
+            "failedScenarios": {
+              "mcpOutput": {
+                "pass": false,
+                "durationMs": 9078.0403,
+                "exit": {
+                  "code": 1,
+                  "signal": null
+                },
+                "resultSubtype": null,
+                "resultIsError": null,
+                "toolCalls": 0,
+                "oversizedResultBytes": null,
+                "budgetCodeObservedByModel": false,
+                "privateCanaryObservedByModel": false,
+                "privateCanaryObservedOnWire": false,
+                "modelRequestCount": 0,
+                "modelToolCallResponses": 0,
+                "modelFinalResponses": 0,
+                "mcpServerPidObserved": false,
+                "mcpServerRetired": false,
+                "startupDiagnostics": {
+                  "fsCodes": [],
+                  "operations": [],
+                  "classes": ["sandbox-configured", "evolution-ingress-startup"]
+                },
+                "diagnosticCodes": [],
+                "diagnosticClasses": [],
+                "toolResultProjections": [],
+                "stdoutBytes": 0,
+                "stderrBytes": 176
+              }
+            },
+            "partialScenarios": {
+              "pipe": {
+                "pass": false,
+                "cleanupDeadlineMs": 10000,
+                "brokenConsumers": [
+                  {
+                    "closed": false,
+                    "exitCode": 1,
+                    "signal": null,
+                    "failureReason": null,
+                    "durationMs": 8593.201200000001,
+                    "descendantsAfterExit": 0,
+                    "stderrBytes": 176,
+                    "startupDiagnostics": {
+                      "fsCodes": [],
+                      "operations": [],
+                      "classes": [
+                        "sandbox-configured",
+                        "evolution-ingress-startup"
+                      ]
+                    }
+                  },
+                  {
+                    "closed": false,
+                    "exitCode": 1,
+                    "signal": null,
+                    "failureReason": null,
+                    "durationMs": 5839.202700000002,
+                    "descendantsAfterExit": 0,
+                    "stderrBytes": 176,
+                    "startupDiagnostics": {
+                      "fsCodes": [],
+                      "operations": [],
+                      "classes": [
+                        "sandbox-configured",
+                        "evolution-ingress-startup"
+                      ]
+                    }
+                  }
+                ],
+                "slowConsumers": [
+                  {
+                    "exitCode": 1,
+                    "signal": null,
+                    "failureReason": "slow pipe consumer exited before output",
+                    "durationMs": 5833.020400000001,
+                    "configuredStallMs": 250,
+                    "actualStallMs": 0,
+                    "stallObserved": false,
+                    "peakReadableBytes": 0,
+                    "outputBytes": 0,
+                    "resultSubtype": null,
+                    "resultIsError": null,
+                    "diagnosticCodes": [],
+                    "descendantsAfterExit": 0,
+                    "stderrBytes": 176,
+                    "startupDiagnostics": {
+                      "fsCodes": [],
+                      "operations": [],
+                      "classes": [
+                        "sandbox-configured",
+                        "evolution-ingress-startup"
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "changes": {
+          "scope": "duplexSoakScenario only plus dedicated helper and independent unit tests",
+          "launch": "existing verify01-fetch-diagnostics-preload.cjs via --require, unchanged passive preload; unique private home diagnostics file",
+          "networkRecords": "maximum64KiB and128records; fixed event and endpoint enums; allowlisted transportname/code/causeCode only",
+          "failedResults": "maximum20records with observed turn and fixed error/unknown subtype plus sanitizedtransport details",
+          "sensitiveFieldsExcluded": [
+            "raw error text",
+            "stack",
+            "hostname",
+            "URL",
+            "request path",
+            "body",
+            "headers",
+            "file path"
+          ],
+          "passCriteriaChanged": false,
+          "resourceThresholdsChanged": false,
+          "retriesAdded": false,
+          "transportChanged": false,
+          "budgetScopeAudit": "packages/cli/src has no caller of withFormalBudgetProviderScope; default CLI cannot activate this opt-in hostscope",
+          "cleanup": "canonical native temp root plus parent containment/prefix assertions before recursive test cleanup",
+          "runtimeReadback": "Only validated numeric semver or null; coordinate is parent-shared-binary-and-cli-module-resolution; no filesystem paths; diagnostic only, not a gate"
+        },
+        "tests": {
+          "node": "v22.12.0",
+          "vitest": {
+            "passed": 27,
+            "failed": 0,
+            "suites": 2,
+            "log": ".work/cli-ide-recovery-20261023/reliability-fetch-diagnostics-vitest.log"
+          },
+          "existingPassivePreload": {
+            "passed": 5,
+            "failed": 0,
+            "log": ".work/cli-ide-recovery-20261023/reliability-fetch-preload-node.log"
+          },
+          "realLoopbackFailure": {
+            "observed": "ECONNREFUSED",
+            "endpoint": "loopback-broker",
+            "originalExitAndStdoutUnchanged": true
+          },
+          "diffCheck": "passed",
+          "runtimeReadback": {
+            "coordinate": "parent-shared-binary-and-cli-module-resolution",
+            "node": "22.12.0",
+            "uv": "1.49.1",
+            "bundledUndici": "6.21.0",
+            "ollamaUndici": "7.30.1"
+          }
+        },
+        "sources": [
+          {
+            "path": "packages/cli/scripts/cli-reliability-soak.mjs",
+            "sha256": "addc5b5710ffa09a74b2ea01189aeda637ee35cd8c090a365cd31d09abf9fefa"
+          },
+          {
+            "path": "packages/cli/scripts/cli-reliability-fetch-diagnostics.mjs",
+            "sha256": "5391e5c1302ab0ae7de172d21917aefe4e8520ee24bb5c1a88ce4973b3ea06e1"
+          },
+          {
+            "path": "packages/cli/__tests__/unit/cli-reliability-fetch-diagnostics.test.js",
+            "sha256": "f0717114773e724ecc50b4fd41c29c558de86cc291ccc12493adcecb76065995"
+          }
+        ],
+        "actualCliDiagnostic": {
+          "status": "partial-timed-out-incomplete",
+          "node": "v22.12.0",
+          "loopbackOnly": true,
+          "requestsObserved": 5,
+          "successfulResultsObserved": 5,
+          "transportFailuresObserved": 0,
+          "deadlineSeconds": 600,
+          "exitSignal": "SIGTERM",
+          "rawObserverStdout": ".work/cli-ide-recovery-20261023/duplex-live-6170-stdout.log",
+          "observation": "Five real repository turns completed before the diagnostic deadline; no native transport error captured. Does not replace exact-source Linux or macOS CI.",
+          "nextTurnRequestObserved": false,
+          "nextTurn": 6,
+          "logs": [
+            {
+              "path": ".work/cli-ide-recovery-20261023/duplex-live-6170-stdout.log",
+              "sha256": "d59074fa364a32a8969b97d63e5d755d49f25286ff4bf9bdf9a25950a17baa60"
+            },
+            {
+              "path": ".work/cli-ide-recovery-20261023/soak-linux-a7aa/duplex-http.jsonl",
+              "sha256": "d427f9863b26e3a4d57ffdc55ac9afd8f9c830744ae51254f1df2bb460ad88e2"
+            }
+          ]
+        },
+        "releaseGate": {
+          "passingEvidence": false,
+          "requiresFreshExactShaCi": true
+        },
+        "dispatcherVersionAudit": {
+          "rootOverride": false,
+          "rootLockVersion": "7.28.0",
+          "cliLockVersion": "7.30.1",
+          "cliDeclared": "^7.30.1",
+          "actualLocalHelperResolutionVersion": "7.30.1",
+          "actualCiResolution": "not-recorded-yet",
+          "nextCiReadback": "fetchRuntime.ollamaUndici"
+        }
       }
     },
     "generatedCommandAssets": "manifest, help index and completions checks passed",
@@ -601,6 +1166,10 @@
   },
   "sourceSnapshot": [
     {
+      "path": ".github/workflows/cli-reliability-soak.yml",
+      "sha256": "ae6c34132f822c622938acc9e23e4c39a06a738b15030017383f997d1b269ff3"
+    },
+    {
       "path": ".github/workflows/ide-extensions.yml",
       "sha256": "ff43eb19b6328ca94aad5ccca6f81e5427c9ad8e9a82513a72ee6ecc48857531"
     },
@@ -614,7 +1183,7 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "0f0062bbd85ce07b21f5622cf9de2abfe5005776c109ce9180e2c78b606b7ed1"
+      "sha256": "c5d907f679df2c1e9e174b62b8307c6da85685b8f20feb84c82152726f506a62"
     },
     {
       "path": "android-app/app/build.gradle.kts",
@@ -673,8 +1242,12 @@
       "sha256": "e536559fd82d0e302ec508dc5d95206e8cead743c27ec95403ce6eaabfaf2550"
     },
     {
+      "path": "packages/cli/__tests__/unit/cli-reliability-fetch-diagnostics.test.js",
+      "sha256": "f0717114773e724ecc50b4fd41c29c558de86cc291ccc12493adcecb76065995"
+    },
+    {
       "path": "packages/cli/__tests__/unit/cli-reliability-soak.test.js",
-      "sha256": "8cc670a7d98b67118cef5904c9805d70340a8048c86edd06608e86f0a3e8a6e0"
+      "sha256": "aa34e28356dec5dab6f1ab54023c85bd77217e6c05cb23a818563bbbf785eeac"
     },
     {
       "path": "packages/cli/__tests__/unit/evolution-evidence-projector.test.js",
@@ -683,6 +1256,10 @@
     {
       "path": "packages/cli/__tests__/unit/evolution-windows-directory-durability.test.js",
       "sha256": "c377b2a5b473065c1717012330df638129690eec1489c05d040eee9a269f7098"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/evolution-windows-ledger-acl.test.js",
+      "sha256": "98eeba4401ec078172755b64fb60831fc67717cb2b8ee816add27d0ea4cd1f8b"
     },
     {
       "path": "packages/cli/__tests__/unit/ollama-provider-fetch.test.js",
@@ -701,8 +1278,12 @@
       "sha256": "2ac78e5933d7ecbdfa1519b3061689ad0f241e2d06e0f014ffe340bddfb7d609"
     },
     {
+      "path": "packages/cli/scripts/cli-reliability-fetch-diagnostics.mjs",
+      "sha256": "5391e5c1302ab0ae7de172d21917aefe4e8520ee24bb5c1a88ce4973b3ea06e1"
+    },
+    {
       "path": "packages/cli/scripts/cli-reliability-soak.mjs",
-      "sha256": "0f168fc220f64ad0f60fb56f9abf2aa92e96756112bc0e18fbd607ada57aae82"
+      "sha256": "addc5b5710ffa09a74b2ea01189aeda637ee35cd8c090a365cd31d09abf9fefa"
     },
     {
       "path": "packages/cli/scripts/verify01-collect-native-retest.py",
@@ -710,7 +1291,7 @@
     },
     {
       "path": "packages/cli/src/data/changelog.json",
-      "sha256": "3fb27c4227ded4e4534c4298aacd33eaa0361d770bd885314fe256d07dbadffc"
+      "sha256": "a21ddd62e682ea9c5b16fa73575d9b8ff7833823a72cdc9bef9340273ba31988"
     },
     {
       "path": "packages/cli/src/lib/evolution/evidence-json-text.js",
@@ -719,6 +1300,10 @@
     {
       "path": "packages/cli/src/lib/evolution/evolution-evidence-projector.js",
       "sha256": "9558696ef4e6d648aaf0719b3f6451b909172e80388a546f43d3e0c85f4bf329"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/evolution-ledger.js",
+      "sha256": "a4c457a78959ff4cbb46644c952a2ff6b76b8fe066641b050808a02c5023b74e"
     },
     {
       "path": "packages/cli/src/lib/evolution/evolution-windows-directory-durability.js",
@@ -742,7 +1327,7 @@
     },
     {
       "path": "packages/jetbrains-plugin/CHANGELOG.md",
-      "sha256": "4356d7c757c7256828c57f065c166f00b2aad407b7045c5012968306ade0286b"
+      "sha256": "2f731a91e177fd3c357e21424215c21c73374440a209cb8e0e4a0e2f73996d8a"
     },
     {
       "path": "packages/jetbrains-plugin/README.md",
@@ -782,7 +1367,7 @@
     },
     {
       "path": "packages/vscode-extension/CHANGELOG.md",
-      "sha256": "c701260fa8f694279716c56c62f403a93815981adb807874d48bb65ce03e40d5"
+      "sha256": "e50da1660aeab5d012ee628bd26d52fb87ac1bc1da9da15e4c4893028a1b5ed7"
     },
     {
       "path": "packages/vscode-extension/README.md",
@@ -888,8 +1473,8 @@
     },
     {
       "path": "release118-soak-diagnostics-tests.json",
-      "sha256": "733dbdc676e9f3d80f3fb2539c0e621eb1d35d6f457892ce02e64f442e926c74",
-      "originalSha256": "733dbdc676e9f3d80f3fb2539c0e621eb1d35d6f457892ce02e64f442e926c74"
+      "sha256": "d02b52b5010620f3d3bc4813bb2dc980942e50fa05c86fee2d79aa31eb25f8be",
+      "originalSha256": "d02b52b5010620f3d3bc4813bb2dc980942e50fa05c86fee2d79aa31eb25f8be"
     },
     {
       "path": "release118-macos-soak-304-before.json",
@@ -985,6 +1570,91 @@
       "path": "release118-ollama-keepalive-before.txt",
       "sha256": "07e4119c3468a20ee0e0049b84c504d8196d60114b720c0170cfb5b620c5bee7",
       "originalSha256": "69cfcf070c6dfd3308b3f82d78a21eb2335e0d9e229505e20fdffab964fd634b"
+    },
+    {
+      "path": "release118-windows-soak-6170-before.json",
+      "sha256": "7512bff5b134947aef5d78c734a92fdb247ffa00e47b40377b7083efe6a61883",
+      "originalSha256": "7512bff5b134947aef5d78c734a92fdb247ffa00e47b40377b7083efe6a61883"
+    },
+    {
+      "path": "release118-linux-soak-6170-before.json",
+      "sha256": "29d7b302bbd863499231e64899b29b769dd84c88724f712b0f7b23c14ce6bcdb",
+      "originalSha256": "29d7b302bbd863499231e64899b29b769dd84c88724f712b0f7b23c14ce6bcdb"
+    },
+    {
+      "path": "release118-macos-soak-6170-before.json",
+      "sha256": "2d36df3ade52913ace7e9ee58a3c91576eb2c9857c3cb32a70292bc517fb97a8",
+      "originalSha256": "2d36df3ade52913ace7e9ee58a3c91576eb2c9857c3cb32a70292bc517fb97a8"
+    },
+    {
+      "path": "release118-windows-ledger-acl-validation.json",
+      "sha256": "95174cbf0601b9b162ef2bc76578e04f1c5dd6ab65760c201148f8a507026d40",
+      "originalSha256": "95174cbf0601b9b162ef2bc76578e04f1c5dd6ab65760c201148f8a507026d40"
+    },
+    {
+      "path": "release118-windows-ledger-acl-before.txt",
+      "sha256": "86f920563a513de89d18a0ec628966ca8fee43323116dd25b6f68d0cccc8556c",
+      "originalSha256": "4964618614017a9dffc3ec85a5239622c4bad10d7af9c20420cc7b543007e31b"
+    },
+    {
+      "path": "release118-windows-ledger-acl-first-after.txt",
+      "sha256": "25517b75e92257210afe53dc47828359454f1540a88dc167762b8cde16fafd79",
+      "originalSha256": "6ea9e288c6ab1315cdd44dbc0ced135143e4f5eb3f9afd84a97fe49ba273a2c7"
+    },
+    {
+      "path": "release118-windows-ledger-acl-positive.txt",
+      "sha256": "200592b26e6d0d78bdf3fa07633192bedce7133ac63d80775cdb10095c0df395",
+      "originalSha256": "4a952da3a85d7c26ae5d7d6c7f97f9d1d07f15f675277e8df8e1c1df524314e5"
+    },
+    {
+      "path": "release118-windows-ledger-acl-node22.12.0-seven.txt",
+      "sha256": "3f8e01d27aa662a9909495b1c581aeb2095cfcfcf8e0e78a4acf059f311bbbe3",
+      "originalSha256": "04c434e9436d6dc77d8ac0b99d9b8cfcb1fe9c40f046a9fc37c6885aaa1ab634"
+    },
+    {
+      "path": "release118-windows-ledger-acl-node22.12.0-two.txt",
+      "sha256": "59e77e9eef064a8116aa6da5dfdd53c495e900ceafe5655c5b02a7d56943f170",
+      "originalSha256": "0ba5c444ba1b9692ea3825ee52825f1bf9d8e51683dc58eef48fa5bf85824521"
+    },
+    {
+      "path": "release118-windows-ledger-acl-node22.22.2.txt",
+      "sha256": "6921eed86c612b088dd244380d4eedc15aab03dcfb5fef8299bfc992822ce189",
+      "originalSha256": "04cfa0057043674d27011e4e3a27aedb631742bcc2d001922069371f2f361a5b"
+    },
+    {
+      "path": "release118-windows-ledger-acl-birthtime-precision.json",
+      "sha256": "e8b3d2ce3705955b96e5cfcb8491c2b792d8cbc3655be152e4011d512446e298",
+      "originalSha256": "e8b3d2ce3705955b96e5cfcb8491c2b792d8cbc3655be152e4011d512446e298"
+    },
+    {
+      "path": "release118-windows-ledger-acl-precision-node22.12.0.txt",
+      "sha256": "14918a0c94de19e92b44b1915c1667de586a2a4aedc97bca778dc68bb598d060",
+      "originalSha256": "5ebfc42437f0e5327c0d75edba116f72ced51cf1a8185f8bf711d9f886270a60"
+    },
+    {
+      "path": "release118-windows-ledger-acl-precision-retry-node22.12.0.txt",
+      "sha256": "1a23014f8469c22c80faa6073fdcb023c669b616941d1a8a62114614d93e9a8b",
+      "originalSha256": "60d4618b2e6cccd9dd0aa6026269c7d6e320d5e1fc3e5ccd519833c0ec1fa953"
+    },
+    {
+      "path": "release118-windows-ledger-acl-precision-node22.22.2.txt",
+      "sha256": "ae06f65a51387cd090b7f21c7d6ad7a64c4b786007dc8267daf63762ff8e9363",
+      "originalSha256": "58a8a325dad12effc18d738024019c1e6611e7f1b1ba09f507b86add234df9ed"
+    },
+    {
+      "path": "release118-fetch-diagnostics-validation.json",
+      "sha256": "30fb8566865ccce2d15c18ea30af212e65dc585f161351d1e316fca9a806956f",
+      "originalSha256": "30fb8566865ccce2d15c18ea30af212e65dc585f161351d1e316fca9a806956f"
+    },
+    {
+      "path": "release118-fetch-diagnostics-tests.txt",
+      "sha256": "325d443d2ce81f754b79a628cc230829617562071b51c29b16394135e8fe086f",
+      "originalSha256": "e8918c8d29db59d154e8c89713e7c72aa8763884e423763ab10dc5f5b0abbf0e"
+    },
+    {
+      "path": "release118-fetch-preload-tests.txt",
+      "sha256": "c62d1c6cdbae0514e34c58cd0c37f01fafc8340ccad581fa8458daba60742acc",
+      "originalSha256": "b4cc6b0c2d4a31714689b9c9b6ceaf80ea411ab60a57d9df8834ba3d028cccfe"
     }
   ],
   "rawSecurityAudit": {

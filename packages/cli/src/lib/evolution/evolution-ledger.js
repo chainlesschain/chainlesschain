@@ -1713,6 +1713,16 @@ function assertPhysicalFile(stat, maximum, label) {
   }
 }
 
+function assertWindowsAclPhysicalFile(stat, label) {
+  assertPhysicalFile(stat, Number.MAX_SAFE_INTEGER, label);
+  if (typeof stat.birthtimeNs !== "bigint") {
+    throw ledgerError(
+      "CC_EVOLUTION_LEDGER_CORRUPT",
+      `${label} requires full-precision creation time`,
+    );
+  }
+}
+
 function physicalDirectoryIdentity(stat) {
   if (
     PHYSICAL_DIRECTORY_FIELDS.some(
@@ -2069,14 +2079,8 @@ export class EvolutionLedger {
         requestedPaths.anchorDir,
       ];
       if (this.#secure && this.#localUiWindowsDurability) {
-        const roots = [
-          requestedPaths.rootDir,
-          requestedPaths.authorityRootDir,
-        ];
-        const children = [
-          requestedPaths.segmentDir,
-          requestedPaths.anchorDir,
-        ];
+        const roots = [requestedPaths.rootDir, requestedPaths.authorityRootDir];
+        const children = [requestedPaths.segmentDir, requestedPaths.anchorDir];
         // Secure each parent before creating children so inherited Windows
         // ACLs are private throughout setup. Batch only the child repair.
         for (const directory of roots) {
@@ -3418,9 +3422,27 @@ export class EvolutionLedger {
   #securePublishedFile(filePath, stat) {
     if (!this.#secure) return;
     if (this.#localUiWindowsDurability) {
+      const physical = this.#fs.lstatSync(filePath, { bigint: true });
+      assertWindowsAclPhysicalFile(physical, "published ledger file");
+      // Keep the publication sample consistent, then retain the full-precision
+      // path identity for all ACL checks (the signed legacy binding is unchanged).
+      if (
+        ["dev", "ino", "mode", "size"].some(
+          (field) => Number(physical[field]) !== stat[field],
+        ) ||
+        Number(physical.birthtimeNs / 1_000_000_000n) * 1000 +
+          Number(physical.birthtimeNs % 1_000_000_000n) / 1_000_000 !==
+          stat.birthtimeMs
+      ) {
+        throw ledgerError(
+          "CC_EVOLUTION_LEDGER_STORE_UNSAFE",
+          "published ledger file changed before Windows ACL verification",
+        );
+      }
       this.#pendingWindowsAclFiles.set(path.resolve(filePath), {
-        identity: artifactPhysicalIdentity(stat),
-        size: stat.size,
+        identity: artifactPhysicalIdentity(physical),
+        birthtimeNs: physical.birthtimeNs,
+        size: physical.size,
       });
       return;
     }
@@ -3431,12 +3453,13 @@ export class EvolutionLedger {
   }
 
   #assertPendingWindowsAclFile(filePath, expected) {
-    const stat = this.#fs.lstatSync(filePath);
+    const stat = this.#fs.lstatSync(filePath, { bigint: true });
     if (
       !stat.isFile() ||
       stat.isSymbolicLink() ||
-      stat.nlink !== 1 ||
+      stat.nlink !== 1n ||
       stat.size !== expected.size ||
+      stat.birthtimeNs !== expected.birthtimeNs ||
       !sameArtifactIdentity(stat, expected.identity)
     ) {
       throw ledgerError(
@@ -3456,7 +3479,9 @@ export class EvolutionLedger {
     }
     const entries = [...this.#pendingWindowsAclFiles.entries()];
     const files = entries.map(([filePath]) => filePath);
-    const directories = [...new Set(files.map((filePath) => path.dirname(filePath)))];
+    const directories = [
+      ...new Set(files.map((filePath) => path.dirname(filePath))),
+    ];
     try {
       this.#assertBoundaries();
       for (const [filePath, expected] of entries) {
@@ -3475,31 +3500,73 @@ export class EvolutionLedger {
         throw new Error("Windows ACL batch did not verify every ledger file");
       }
       for (const [filePath, expected] of entries) {
-        this.#assertPendingWindowsAclFile(filePath, expected);
-        const descriptor = this.#fs.openSync(
+        // Affected libuv path stats project dev differently from fstat. Bind
+        // the handle to a separately held parent volume without relaxing the
+        // inode, owner, creation time, or mutation metadata checks.
+        withEvolutionFileIdentity(
+          this.#identityFs,
           filePath,
-          this.#fs.constants.O_RDWR | (this.#fs.constants.O_NOFOLLOW || 0),
-        );
-        try {
-          const opened = this.#fs.fstatSync(descriptor);
-          if (
-            !opened.isFile() ||
-            opened.nlink !== 1 ||
-            opened.size !== expected.size ||
-            !sameArtifactIdentity(opened, expected.identity)
-          ) {
-            throw ledgerError(
-              "CC_EVOLUTION_LEDGER_STORE_UNSAFE",
-              "ledger file identity changed during Windows ACL verification",
+          (samePathHandle) => {
+            const before = this.#assertPendingWindowsAclFile(
+              filePath,
+              expected,
             );
-          }
-          this.#fs.fsyncSync(descriptor);
-        } finally {
-          this.#fs.closeSync(descriptor);
-        }
+            assertWindowsAclPhysicalFile(before, "published ledger file");
+            const descriptor = this.#fs.openSync(
+              filePath,
+              this.#fs.constants.O_RDWR | (this.#fs.constants.O_NOFOLLOW || 0),
+            );
+            try {
+              const opened = this.#fs.fstatSync(descriptor, { bigint: true });
+              assertWindowsAclPhysicalFile(
+                opened,
+                "published ledger descriptor",
+              );
+              if (
+                !opened.isFile() ||
+                opened.nlink !== 1n ||
+                opened.size !== expected.size ||
+                opened.birthtimeNs !== before.birthtimeNs ||
+                !samePathHandle(before, opened) ||
+                !samePhysicalOwner(before, opened)
+              ) {
+                throw ledgerError(
+                  "CC_EVOLUTION_LEDGER_STORE_UNSAFE",
+                  "ledger file identity changed during Windows ACL verification",
+                );
+              }
+              this.#fs.fsyncSync(descriptor);
+              const after = this.#fs.fstatSync(descriptor, { bigint: true });
+              assertWindowsAclPhysicalFile(
+                after,
+                "published ledger descriptor",
+              );
+              const afterPath = this.#assertPendingWindowsAclFile(
+                filePath,
+                expected,
+              );
+              if (
+                !samePhysicalFile(opened, after) ||
+                opened.birthtimeNs !== after.birthtimeNs ||
+                !samePhysicalFile(before, afterPath) ||
+                afterPath.birthtimeNs !== after.birthtimeNs ||
+                !samePathHandle(afterPath, after) ||
+                !samePhysicalOwner(afterPath, after)
+              ) {
+                throw ledgerError(
+                  "CC_EVOLUTION_LEDGER_STORE_UNSAFE",
+                  "ledger file identity changed during Windows ACL verification",
+                );
+              }
+            } finally {
+              this.#fs.closeSync(descriptor);
+            }
+          },
+        );
       }
       this.#assertBoundaries();
-      for (const filePath of files) this.#pendingWindowsAclFiles.delete(filePath);
+      for (const filePath of files)
+        this.#pendingWindowsAclFiles.delete(filePath);
       return directories;
     } catch (cause) {
       if (cause instanceof EvolutionLedgerError) throw cause;

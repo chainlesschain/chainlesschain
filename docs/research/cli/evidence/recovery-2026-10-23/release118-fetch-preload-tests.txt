@@ -1,0 +1,35 @@
+TAP version 13
+# Subtest: fetch diagnostics are default off and affect only actual model child launch
+ok 1 - fetch diagnostics are default off and affect only actual model child launch
+  ---
+  duration_ms: 9.7323
+  ...
+# Subtest: startup marker proves enabled observation without modifying stdout or exit
+ok 2 - startup marker proves enabled observation without modifying stdout or exit
+  ---
+  duration_ms: 479.7272
+  ...
+# Subtest: only allowlisted fields persist, hostile errors cannot leak data, and records are bounded
+ok 3 - only allowlisted fields persist, hostile errors cannot leak data, and records are bounded
+  ---
+  duration_ms: 293.2489
+  ...
+# Subtest: sink open and write failure cannot replace application errors
+ok 4 - sink open and write failure cannot replace application errors
+  ---
+  duration_ms: 594.6606
+  ...
+# Subtest: actual local fetch rejection remains one request with unchanged original cause
+ok 5 - actual local fetch rejection remains one request with unchanged original cause
+  ---
+  duration_ms: 792.5364
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2756.704

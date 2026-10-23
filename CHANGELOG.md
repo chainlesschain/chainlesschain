@@ -14,8 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Retain redacted broker transport receipts in new native retest evidence archives; keep frozen acceptance criteria and completed rounds unchanged.
 - Retain bounded startup diagnostics and completed pipe samples when a reliability-soak child exits before producing output; preserve the original failure criteria and deadlines.
 - Recognize supported closed JavaScript, TypeScript and Python code fences in project instructions without rejecting ordinary code as malformed JSON. Version the new projection policy while preserving historical verification, secret scanning and cumulative budgets.
-- Compare Windows directory volume serials at the Win32 API's DWORD width across old and new Node/libuv versions, preserving full path identities and native directory replacement checks.
 - Bind Node 22.12's legacy Windows fast-stat device projection to the same native directory handle using the correct path structure, complete volume serial and 128-bit file ID; reject unbound or changed identities before and after flushing.
+- Bind Windows ledger ACL verification to a trusted parent volume when path and descriptor device projections differ; retain full-precision publication identities and reject metadata changes before and after fsync.
 - Classify fixed Windows startup errors without storing their content, and exclude request-context prose from MCP failure-code diagnostics.
 - Use Undici 7.30.1 or newer for Ollama's default dispatcher so idle connections are validated before sending after long processing pauses. Preserve explicitly configured dispatchers and existing request budgets.
 - Upgrade DOMPurify to 3.4.17 in desktop and Web Panel dependency graphs, including Monaco's nested copy. Run sanitizer regressions with DOMPurify's supported jsdom environment.

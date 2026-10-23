@@ -1,0 +1,40 @@
+
+ RUN  v4.1.11 C:/code/chainlesschain/packages/cli
+
+ ❯ __tests__/unit/evolution-windows-ledger-acl.test.js (1 test | 1 failed) 23763ms
+     × bootstraps through genuine ACL verification with affected path-device projection 23749ms
+node-verified.exe :
+所在位置 行:2 字符: 1
++ & 'C:\code\chainlesschain\.work\cli-ide-recovery-20261023\node-22.12. ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  __tests__/unit/evolution-windows-ledger-acl.test.js > Windows ledger ACL identity > bootstraps through genuine A
+CL verification with affected path-device projection
+EvolutionLedgerError: ledger file identity changed during Windows ACL verification
+ ❯ ledgerError src/lib/evolution/evolution-ledger.js:515:10
+    513|
+    514| function ledgerError(code, message, details = {}) {
+    515|   return new EvolutionLedgerError(code, message, details);
+       |          ^
+    516| }
+    517|
+ ❯ EvolutionLedger.#flushPendingWindowsAclFiles src/lib/evolution/evolution-ledger.js:3491:19
+ ❯ EvolutionLedger.#requireDirectoryDurability src/lib/evolution/evolution-ledger.js:3517:71
+ ❯ EvolutionLedger.#initializeEmptyLedger src/lib/evolution/evolution-ledger.js:3760:39
+ ❯ EvolutionLedger.#loadState src/lib/evolution/evolution-ledger.js:4340:34
+ ❯ src/lib/evolution/evolution-ledger.js:2198:43
+ ❯ #lock._fs src/lib/evolution/evolution-ledger.js:2348:20
+ ❯ runLocked src/lib/with-file-lock.js:232:14
+ ❯ withFileLock src/lib/with-file-lock.js:34:24
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed (1)
+   Start at  22:20:29
+   Duration  27.07s (transform 1.67s, setup 812ms, import 1.47s, tests 23.76s, environment 0ms)

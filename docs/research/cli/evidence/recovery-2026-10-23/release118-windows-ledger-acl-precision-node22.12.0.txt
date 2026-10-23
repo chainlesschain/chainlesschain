@@ -1,0 +1,37 @@
+
+ RUN  v4.1.11 C:/code/chainlesschain/packages/cli
+
+ ❯ __tests__/unit/evolution-windows-ledger-acl.test.js (10 tests | 1 failed) 280081ms
+     × bootstraps through genuine ACL verification with affected path-device projection 26225ms
+node-verified.exe :
+所在位置 行:2 字符: 1
++ & 'C:\code\chainlesschain\.work\cli-ide-recovery-20261023\node-22.12. ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  __tests__/unit/evolution-windows-ledger-acl.test.js > Windows ledger ACL identity > bootstraps through genuine A
+CL verification with affected path-device projection
+Error: owner-only ACL process failed [windows-acl:timeout-startup] [windows-acl-launch:repair:timeout:startup:ETIMEDOUT
+:-4039:spawnSync]
+ ❯ ensurePrivateDirectory node_modules/@chainlesschain/session-core/lib/private-storage.js:1381:13
+ ❯ createEvolutionFileWitness src/lib/evolution/evolution-file-witness.js:250:25
+    248|   }
+    249|   const secureOptions = { deps: { fs: fsImpl }, failIfUnavailable: tru…
+    250|   ensurePrivateDirectory(directory, secureOptions);
+       |                         ^
+    251|   const readerOptions = {
+    252|     fsImpl,
+ ❯ createEvolutionLedgerFileBackend src/lib/evolution/evolution-ledger-file-backend.js:161:45
+ ❯ ledger __tests__/unit/evolution-windows-ledger-acl.test.js:75:51
+ ❯ __tests__/unit/evolution-windows-ledger-acl.test.js:97:14
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 9 passed (10)
+   Start at  22:37:49
+   Duration  286.29s (transform 2.98s, setup 1.74s, import 2.14s, tests 280.08s, environment 4ms)

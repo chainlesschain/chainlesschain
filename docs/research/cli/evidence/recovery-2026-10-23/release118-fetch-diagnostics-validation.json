@@ -1,0 +1,399 @@
+{
+  "schema": "chainlesschain.reliability-fetch-diagnostics-validation.v1",
+  "timestamp": "2026-10-23T14:41:56.117Z",
+  "sourceBase": "61702c7273ee9da8444869db7e7302a12a0af664",
+  "status": "diagnostics-tested-ci-cause-still-unresolved",
+  "paidModelCalls": 0,
+  "priorCi": [
+    {
+      "platform": "linux",
+      "headSha": "61702c7273ee9da8444869db7e7302a12a0af664",
+      "status": "failed",
+      "artifact": ".work/cli-ide-recovery-20261023/soak-linux-6170/artifact/cli-reliability-result.json",
+      "violations": [
+        "duplexSoak scenario failed"
+      ],
+      "activeScenario": null,
+      "failedScenarios": {
+        "duplexSoak": {
+          "pass": false,
+          "turns": 10,
+          "warmup": {
+            "configuredTurns": 2,
+            "completedTurns": 2
+          },
+          "configuredDurationSeconds": 5,
+          "continuousDurationSeconds": 183.973212365,
+          "schedule": {
+            "mode": "duration-spread",
+            "targetTurns": 10,
+            "targetIntervalMs": 500
+          },
+          "latency": {
+            "p95Ms": 37347.81675299999,
+            "observedCount": 10,
+            "retainedCount": 10,
+            "retention": "rolling-window"
+          },
+          "rss": {
+            "beforeBytes": 195342336,
+            "afterBytes": 236953600,
+            "growthBytes": 41611264,
+            "maximumBytes": 298168320,
+            "peakGrowthBytes": 102825984,
+            "limitGrowthBytes": 134217728
+          },
+          "resources": {
+            "kind": "fd",
+            "before": 32,
+            "after": 31,
+            "delta": -1,
+            "maximum": 32,
+            "peakDelta": 0,
+            "limitGrowth": 8,
+            "requiredMeasurementsAvailable": true
+          },
+          "io": {
+            "available": true,
+            "readBytes": 0,
+            "writeBytes": 29708288,
+            "readChars": 6270705898,
+            "writeChars": 6805806,
+            "source": null
+          },
+          "processDescendants": {
+            "measurementAvailable": true,
+            "beforeSource": "pgrep",
+            "afterSource": "pgrep",
+            "unavailableReason": null,
+            "beforeExit": 0,
+            "observed": 0,
+            "retired": 0,
+            "afterExit": 0,
+            "allRetired": true
+          },
+          "exit": {
+            "code": 1,
+            "signal": null
+          },
+          "results": {
+            "count": 12,
+            "measuredCount": 10,
+            "errorCount": 2,
+            "subtypeCounts": {
+              "success": 10,
+              "error": 2
+            },
+            "lengthMinimum": 14,
+            "lengthMaximum": 14
+          },
+          "diagnosticCodes": [],
+          "diagnosticClasses": [
+            "fetch-failed"
+          ]
+        }
+      },
+      "partialScenarios": {}
+    },
+    {
+      "platform": "darwin",
+      "headSha": "61702c7273ee9da8444869db7e7302a12a0af664",
+      "status": "failed",
+      "artifact": ".work/cli-ide-recovery-20261023/soak-macos-6170/artifact/cli-reliability-result.json",
+      "violations": [
+        "duplexSoak scenario failed"
+      ],
+      "activeScenario": null,
+      "failedScenarios": {
+        "duplexSoak": {
+          "pass": false,
+          "turns": 10,
+          "warmup": {
+            "configuredTurns": 2,
+            "completedTurns": 2
+          },
+          "configuredDurationSeconds": 5,
+          "continuousDurationSeconds": 273.33885912499994,
+          "schedule": {
+            "mode": "duration-spread",
+            "targetTurns": 10,
+            "targetIntervalMs": 500
+          },
+          "latency": {
+            "p95Ms": 48874.92458400002,
+            "observedCount": 10,
+            "retainedCount": 10,
+            "retention": "rolling-window"
+          },
+          "rss": {
+            "beforeBytes": 207831040,
+            "afterBytes": 218038272,
+            "growthBytes": 10207232,
+            "maximumBytes": 242401280,
+            "peakGrowthBytes": 34570240,
+            "limitGrowthBytes": 134217728
+          },
+          "resources": {
+            "kind": "fd",
+            "before": 22,
+            "after": 21,
+            "delta": -1,
+            "maximum": 22,
+            "peakDelta": 0,
+            "limitGrowth": 8,
+            "requiredMeasurementsAvailable": true
+          },
+          "io": {
+            "available": false,
+            "reason": "host-has-no-portable-io-counter"
+          },
+          "processDescendants": {
+            "measurementAvailable": true,
+            "beforeSource": "pgrep",
+            "afterSource": "pgrep",
+            "unavailableReason": null,
+            "beforeExit": 0,
+            "observed": 0,
+            "retired": 0,
+            "afterExit": 0,
+            "allRetired": true
+          },
+          "exit": {
+            "code": 1,
+            "signal": null
+          },
+          "results": {
+            "count": 12,
+            "measuredCount": 10,
+            "errorCount": 1,
+            "subtypeCounts": {
+              "success": 11,
+              "error": 1
+            },
+            "lengthMinimum": 14,
+            "lengthMaximum": 14
+          },
+          "diagnosticCodes": [],
+          "diagnosticClasses": [
+            "fetch-failed"
+          ]
+        }
+      },
+      "partialScenarios": {}
+    },
+    {
+      "platform": "win32",
+      "headSha": "61702c7273ee9da8444869db7e7302a12a0af664",
+      "status": "failed",
+      "artifact": ".work/cli-ide-recovery-20261023/soak-windows-6170/artifact/cli-reliability-result.json",
+      "violations": [
+        "slow pipe consumer exited before output"
+      ],
+      "activeScenario": null,
+      "failedScenarios": {
+        "mcpOutput": {
+          "pass": false,
+          "durationMs": 9078.0403,
+          "exit": {
+            "code": 1,
+            "signal": null
+          },
+          "resultSubtype": null,
+          "resultIsError": null,
+          "toolCalls": 0,
+          "oversizedResultBytes": null,
+          "budgetCodeObservedByModel": false,
+          "privateCanaryObservedByModel": false,
+          "privateCanaryObservedOnWire": false,
+          "modelRequestCount": 0,
+          "modelToolCallResponses": 0,
+          "modelFinalResponses": 0,
+          "mcpServerPidObserved": false,
+          "mcpServerRetired": false,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "sandbox-configured",
+              "evolution-ingress-startup"
+            ]
+          },
+          "diagnosticCodes": [],
+          "diagnosticClasses": [],
+          "toolResultProjections": [],
+          "stdoutBytes": 0,
+          "stderrBytes": 176
+        }
+      },
+      "partialScenarios": {
+        "pipe": {
+          "pass": false,
+          "cleanupDeadlineMs": 10000,
+          "brokenConsumers": [
+            {
+              "closed": false,
+              "exitCode": 1,
+              "signal": null,
+              "failureReason": null,
+              "durationMs": 8593.201200000001,
+              "descendantsAfterExit": 0,
+              "stderrBytes": 176,
+              "startupDiagnostics": {
+                "fsCodes": [],
+                "operations": [],
+                "classes": [
+                  "sandbox-configured",
+                  "evolution-ingress-startup"
+                ]
+              }
+            },
+            {
+              "closed": false,
+              "exitCode": 1,
+              "signal": null,
+              "failureReason": null,
+              "durationMs": 5839.202700000002,
+              "descendantsAfterExit": 0,
+              "stderrBytes": 176,
+              "startupDiagnostics": {
+                "fsCodes": [],
+                "operations": [],
+                "classes": [
+                  "sandbox-configured",
+                  "evolution-ingress-startup"
+                ]
+              }
+            }
+          ],
+          "slowConsumers": [
+            {
+              "exitCode": 1,
+              "signal": null,
+              "failureReason": "slow pipe consumer exited before output",
+              "durationMs": 5833.020400000001,
+              "configuredStallMs": 250,
+              "actualStallMs": 0,
+              "stallObserved": false,
+              "peakReadableBytes": 0,
+              "outputBytes": 0,
+              "resultSubtype": null,
+              "resultIsError": null,
+              "diagnosticCodes": [],
+              "descendantsAfterExit": 0,
+              "stderrBytes": 176,
+              "startupDiagnostics": {
+                "fsCodes": [],
+                "operations": [],
+                "classes": [
+                  "sandbox-configured",
+                  "evolution-ingress-startup"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "changes": {
+    "scope": "duplexSoakScenario only plus dedicated helper and independent unit tests",
+    "launch": "existing verify01-fetch-diagnostics-preload.cjs via --require, unchanged passive preload; unique private home diagnostics file",
+    "networkRecords": "maximum64KiB and128records; fixed event and endpoint enums; allowlisted transportname/code/causeCode only",
+    "failedResults": "maximum20records with observed turn and fixed error/unknown subtype plus sanitizedtransport details",
+    "sensitiveFieldsExcluded": [
+      "raw error text",
+      "stack",
+      "hostname",
+      "URL",
+      "request path",
+      "body",
+      "headers",
+      "file path"
+    ],
+    "passCriteriaChanged": false,
+    "resourceThresholdsChanged": false,
+    "retriesAdded": false,
+    "transportChanged": false,
+    "budgetScopeAudit": "packages/cli/src has no caller of withFormalBudgetProviderScope; default CLI cannot activate this opt-in hostscope",
+    "cleanup": "canonical native temp root plus parent containment/prefix assertions before recursive test cleanup",
+    "runtimeReadback": "Only validated numeric semver or null; coordinate is parent-shared-binary-and-cli-module-resolution; no filesystem paths; diagnostic only, not a gate"
+  },
+  "tests": {
+    "node": "v22.12.0",
+    "vitest": {
+      "passed": 27,
+      "failed": 0,
+      "suites": 2,
+      "log": ".work/cli-ide-recovery-20261023/reliability-fetch-diagnostics-vitest.log"
+    },
+    "existingPassivePreload": {
+      "passed": 5,
+      "failed": 0,
+      "log": ".work/cli-ide-recovery-20261023/reliability-fetch-preload-node.log"
+    },
+    "realLoopbackFailure": {
+      "observed": "ECONNREFUSED",
+      "endpoint": "loopback-broker",
+      "originalExitAndStdoutUnchanged": true
+    },
+    "diffCheck": "passed",
+    "runtimeReadback": {
+      "coordinate": "parent-shared-binary-and-cli-module-resolution",
+      "node": "22.12.0",
+      "uv": "1.49.1",
+      "bundledUndici": "6.21.0",
+      "ollamaUndici": "7.30.1"
+    }
+  },
+  "sources": [
+    {
+      "path": "packages/cli/scripts/cli-reliability-soak.mjs",
+      "sha256": "addc5b5710ffa09a74b2ea01189aeda637ee35cd8c090a365cd31d09abf9fefa"
+    },
+    {
+      "path": "packages/cli/scripts/cli-reliability-fetch-diagnostics.mjs",
+      "sha256": "5391e5c1302ab0ae7de172d21917aefe4e8520ee24bb5c1a88ce4973b3ea06e1"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/cli-reliability-fetch-diagnostics.test.js",
+      "sha256": "f0717114773e724ecc50b4fd41c29c558de86cc291ccc12493adcecb76065995"
+    }
+  ],
+  "actualCliDiagnostic": {
+    "status": "partial-timed-out-incomplete",
+    "node": "v22.12.0",
+    "loopbackOnly": true,
+    "requestsObserved": 5,
+    "successfulResultsObserved": 5,
+    "transportFailuresObserved": 0,
+    "deadlineSeconds": 600,
+    "exitSignal": "SIGTERM",
+    "rawObserverStdout": ".work/cli-ide-recovery-20261023/duplex-live-6170-stdout.log",
+    "observation": "Five real repository turns completed before the diagnostic deadline; no native transport error captured. Does not replace exact-source Linux or macOS CI.",
+    "nextTurnRequestObserved": false,
+    "nextTurn": 6,
+    "logs": [
+      {
+        "path": ".work/cli-ide-recovery-20261023/duplex-live-6170-stdout.log",
+        "sha256": "d59074fa364a32a8969b97d63e5d755d49f25286ff4bf9bdf9a25950a17baa60"
+      },
+      {
+        "path": ".work/cli-ide-recovery-20261023/soak-linux-a7aa/duplex-http.jsonl",
+        "sha256": "d427f9863b26e3a4d57ffdc55ac9afd8f9c830744ae51254f1df2bb460ad88e2"
+      }
+    ]
+  },
+  "releaseGate": {
+    "passingEvidence": false,
+    "requiresFreshExactShaCi": true
+  },
+  "dispatcherVersionAudit": {
+    "rootOverride": false,
+    "rootLockVersion": "7.28.0",
+    "cliLockVersion": "7.30.1",
+    "cliDeclared": "^7.30.1",
+    "actualLocalHelperResolutionVersion": "7.30.1",
+    "actualCiResolution": "not-recorded-yet",
+    "nextCiReadback": "fetchRuntime.ollamaUndici"
+  }
+}

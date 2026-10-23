@@ -2,7 +2,7 @@
 
 All notable changes to this extension are documented here.
 
-## [0.37.160] - Input delivery and draft recovery (unreleased candidate, 2026-10-23)
+## [0.37.160] - Input delivery and draft recovery (unreleased candidate, 2026-10-24)
 
 - Reject writes after input pipe failure, stdin end or process exit while retaining buffered final receipts and results.
 - Preserve unknown durable delivery and return the actual dispatch outcome.
