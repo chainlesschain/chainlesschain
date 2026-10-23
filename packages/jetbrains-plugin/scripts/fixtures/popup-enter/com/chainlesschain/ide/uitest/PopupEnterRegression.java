@@ -1,6 +1,7 @@
 package com.chainlesschain.ide.uitest;
 
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.ui.components.JBList;
 import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
@@ -14,7 +15,7 @@ import javax.swing.JWindow;
 import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 import org.mozilla.javascript.Context;
-import org.mozilla.javascript.Scriptable;
+import org.mozilla.javascript.ImporterTopLevel;
 import org.mozilla.javascript.ScriptableObject;
 
 /** Executes the production-generated scripts in Rhino against real owned Swing windows. */
@@ -22,6 +23,19 @@ public final class PopupEnterRegression {
     private static int passed;
 
     public static void main(String[] args) throws Exception {
+        run("Remote Robot raw binding differs from wrapped hierarchy identity", f -> {
+            equal("false|true", f.eval("""
+                    (function() {
+                      var windows = java.awt.Window.getWindows();
+                      for (var i = 0; i < windows.length; i++) {
+                        if (windows[i].equals(component)) {
+                          return String(windows[i] === component)+'|'+String(windows[i].equals(component));
+                        }
+                      }
+                      throw new Error('Frame missing from actual Swing hierarchy');
+                    })();
+                    """));
+        });
         run("fresh lookup selects replacement that appeared before discovery", f -> {
             Popup old = f.popup("other", "partial  turn-2  checkpoint");
             old.window.dispose();
@@ -49,6 +63,16 @@ public final class PopupEnterRegression {
             ApplicationManager.getApplication().runNext();
             check(f.receipt("Restore code", false, "cancel", target).startsWith("failed:Error: Popup cancelled"), "cancellation must fail");
             equal(0, popup.actions);
+        });
+        run("anonymous JBList subclass remains a selectable popup list", f -> {
+            JBList subclass = new JBList(new String[]{"Restore code"}) {};
+            equal("", subclass.getClass().getSimpleName());
+            Popup popup = new Popup(f.frame, subclass);
+            String target = f.activate("Restore code", false, "subclass");
+            equal(id(subclass), target);
+            ApplicationManager.getApplication().runNext();
+            equal(1, popup.actions);
+            equal("dispatch-returned|hidden", f.receipt("Restore code", false, "subclass", target));
         });
         run("lightweight popup layer is selected without matching a normal tool-window list", f -> {
             JBList normal = new JBList(new String[]{"Restore code"});
@@ -211,15 +235,15 @@ public final class PopupEnterRegression {
         String eval(String script) {
             Context context = Context.enter();
             try {
-                Scriptable scope = context.initStandardObjects();
-                ScriptableObject.putProperty(scope, "component", Context.javaToJS(frame, scope));
+                // Match Remote Robot's RhinoJavaScriptExecutor: component is
+                // defined as a raw Java object, not prewrapped with javaToJS.
+                context.setOptimizationLevel(9);
+                context.setLanguageVersion(Context.VERSION_ES6);
+                ImporterTopLevel scope = new ImporterTopLevel(context);
+                scope.defineProperty("component", frame, ScriptableObject.EMPTY);
                 return Context.toString(context.evaluateString(scope, script, "generated-popup-script", 1, null));
             } finally { Context.exit(); }
         }
-    }
-
-    public static final class JBList extends JList<String> {
-        public JBList(String[] labels) { super(labels); }
     }
 
     /** Real lightweight Swing hierarchy, as used by PopupFactory in POPUP_LAYER. */
@@ -250,8 +274,11 @@ public final class PopupEnterRegression {
         int actions;
         Runnable next;
         Popup(JFrame owner, String... labels) {
+            this(owner, new JBList(labels));
+        }
+        Popup(JFrame owner, JBList popupList) {
             window = new JWindow(owner);
-            list = new JBList(labels);
+            list = popupList;
             list.registerKeyboardAction(new AbstractAction() {
                 @Override public void actionPerformed(ActionEvent event) {
                     check(event.getSource() == list, "Enter source must be the selected list");

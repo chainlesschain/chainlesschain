@@ -16,11 +16,23 @@ final class PopupEnterScripts {
                     while (window != null && !(window instanceof java.awt.Frame)) window = window.getOwner();
                     return window;
                   }
+                  // Remote Robot binds component as a raw Java object, whereas
+                  // hierarchy calls return Rhino wrappers. Compare Java references.
+                  function sameComponent(left, right) {
+                    return left != null && right != null && left.equals(right);
+                  }
+                  function isPopupList(c) {
+                    if (!(c instanceof javax.swing.JList)) return false;
+                    for (var type = c.getClass(); type != null; type = type.getSuperclass()) {
+                      if (String(type.getName()) === 'com.intellij.ui.components.JBList') return true;
+                    }
+                    return false;
+                  }
                   function locate() {
                     var found = null, index = -1, matches = 0;
                     function visit(c) {
                       if (!c.isShowing()) return;
-                      if (c instanceof javax.swing.JList && String(c.getClass().getSimpleName()) === 'JBList') {
+                      if (isPopupList(c)) {
                         var model = c.getModel();
                         for (var i = 0; i < model.getSize(); i++) {
                           var item = String(model.getElementAt(i));
@@ -41,7 +53,7 @@ final class PopupEnterScripts {
                     for (var p = 0; p < lightweight.length; p++) visit(lightweight[p]);
                     var windows = java.awt.Window.getWindows();
                     for (var w = 0; w < windows.length; w++) {
-                      if (windows[w] !== frame && windows[w].isShowing() && ownerFrame(windows[w]) === frame) visit(windows[w]);
+                      if (!sameComponent(windows[w], frame) && windows[w].isShowing() && sameComponent(ownerFrame(windows[w]), frame)) visit(windows[w]);
                     }
                     if (matches > 1) throw new Error('Ambiguous popup item: '+expected);
                     return {target:found, index:index};
@@ -73,9 +85,9 @@ final class PopupEnterScripts {
                       try {
                         state('entered');
                         if (!target.isShowing()) throw new Error('Popup cancelled before Enter dispatch');
-                        if (ownerFrame(javax.swing.SwingUtilities.getWindowAncestor(target)) !== frame) throw new Error('Popup owner changed');
+                        if (!sameComponent(ownerFrame(javax.swing.SwingUtilities.getWindowAncestor(target)), frame)) throw new Error('Popup owner changed');
                         var current = locate();
-                        if (current.target !== target) throw new Error('Popup target changed before Enter dispatch');
+                        if (!sameComponent(current.target, target)) throw new Error('Popup target changed before Enter dispatch');
                         target.setSelectedIndex(current.index); target.ensureIndexIsVisible(current.index);
                         var enter = javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_ENTER, 0);
                         var action = target.getActionForKeyStroke(enter);

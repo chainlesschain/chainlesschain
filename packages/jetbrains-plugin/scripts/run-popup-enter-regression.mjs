@@ -59,6 +59,10 @@ run("javac", [
   ),
   join(
     base,
+    "scripts/fixtures/popup-enter/com/intellij/ui/components/JBList.java",
+  ),
+  join(
+    base,
     "scripts/fixtures/popup-enter/com/chainlesschain/ide/uitest/PopupEnterRegression.java",
   ),
 ]);
