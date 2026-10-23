@@ -1,0 +1,63 @@
+name: CLI Concurrent Startup Diagnostic (non-qualifying)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    name: Windows twenty-agent startup timing (diagnostic only)
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      CC_CONCURRENT_DIAGNOSTIC_SOURCE_SHA: 890510d0311805e591302853f7f348a6d9f6fb66
+      CC_CONCURRENT_DIAGNOSTIC_DRIVER_SHA: ${{ github.sha }}
+      CC_CLI_RELIABILITY_MODE: formal
+      CC_CLI_RELIABILITY_DURATION_SECONDS: "7200"
+      CC_CLI_RELIABILITY_EXPECTED_SHA: 890510d0311805e591302853f7f348a6d9f6fb66
+      CC_CLI_RELIABILITY_CLEANUP_DEADLINE_MS: "10000"
+      CC_CLI_RELIABILITY_MAX_RSS_GROWTH_MB: "128"
+      CC_CLI_RELIABILITY_MAX_RESOURCE_GROWTH: "8"
+    steps:
+      - name: Checkout fixed runtime source
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ env.CC_CONCURRENT_DIAGNOSTIC_SOURCE_SHA }}
+
+      - name: Extract driver from triggering commit outside runtime checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${CC_CONCURRENT_DIAGNOSTIC_SOURCE_SHA}"
+          git fetch --no-tags origin "${CC_CONCURRENT_DIAGNOSTIC_DRIVER_SHA}"
+          driver_dir="${RUNNER_TEMP}/concurrent-startup-driver"
+          mkdir -p "${driver_dir}"
+          git show "${CC_CONCURRENT_DIAGNOSTIC_DRIVER_SHA}:.github/scripts/diagnose-concurrent-startup.mjs" > "${driver_dir}/diagnose-concurrent-startup.mjs"
+          git show "${CC_CONCURRENT_DIAGNOSTIC_DRIVER_SHA}:.github/scripts/concurrent-startup-preload.cjs" > "${driver_dir}/concurrent-startup-preload.cjs"
+          git show "${CC_CONCURRENT_DIAGNOSTIC_DRIVER_SHA}:.github/scripts/concurrent-startup-observer.ps1" > "${driver_dir}/concurrent-startup-observer.ps1"
+          git show "${CC_CONCURRENT_DIAGNOSTIC_DRIVER_SHA}:.github/workflows/cli-concurrent-startup-diagnostic.yml" > "${driver_dir}/cli-concurrent-startup-diagnostic.yml"
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - uses: ./.github/actions/setup-node-deps
+
+      - name: Observe one unchanged twenty-agent cohort without replay
+        shell: bash
+        env:
+          CC_CONCURRENT_DIAGNOSTIC_OUTPUT_DIR: ${{ runner.temp }}/concurrent-startup-evidence
+        run: node "${RUNNER_TEMP}/concurrent-startup-driver/diagnose-concurrent-startup.mjs"
+
+      - name: Upload controlled evidence on success or failure
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: concurrent-startup-windows-${{ env.CC_CONCURRENT_DIAGNOSTIC_SOURCE_SHA }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/concurrent-startup-evidence/*
+          if-no-files-found: error
+          retention-days: 30
