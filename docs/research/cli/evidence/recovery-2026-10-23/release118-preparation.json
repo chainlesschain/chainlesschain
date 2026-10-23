@@ -1,6 +1,6 @@
 {
   "schema": "chainlesschain.cli-ide-release-preparation/v1",
-  "recordedAt": "2026-10-23T17:23:21.990Z",
+  "recordedAt": "2026-10-23T19:22:28.625Z",
   "baseline": "79b7d49841341eb4caf135414183c1311db58b75",
   "pullRequest": "https://github.com/chainlesschain/chainlesschain/pull/483",
   "authorization": {
@@ -1910,6 +1910,13 @@
       "diagnosis": "original Electron main-process access violation during app.quit after successful DOM journey and extension-host exit",
       "localReproduction": "No native crash; performance P95 exceeded the existing threshold and correctly failed. Not a host gate pass.",
       "mitigation": "Only local no-upload dumps and main.log diagnostics added; native exit remains a hard gate."
+    },
+    "egressCatalogueReview": {
+      "review": "release118-egress-source-review.json",
+      "independentReviews": 2,
+      "localCleanSourceAudit": "passed",
+      "fullNewCommitActions": "REQUIRED_PENDING",
+      "paidReady": false
     }
   },
   "taskAcceptance": {
@@ -2209,6 +2216,10 @@
     {
       "path": "packages/web-panel/package.json",
       "sha256": "5ea7dc6dbc4cd239e4e1e3ffa6d7d70f52309515c19f12f931b0f2611b40a49f"
+    },
+    {
+      "path": "packages/cli/scripts/budget-egress-reviewed-sources.json",
+      "sha256": "03728e8a53fdbad12dd65503263aca3a25afb9836f67a1ec483dc23966a68ebe"
     }
   ],
   "artifacts": [
@@ -2511,6 +2522,11 @@
       "path": "release118-darwin-retirement-local-tests.txt",
       "sha256": "1f46867945531a8d3d031ddd4bfbc7ffa6313096165b4822cc417d94aa4f8983",
       "originalSha256": "2a487af341b032defff0a42028d4cedb2058dc2c3eeb262a36308bed34196ee7"
+    },
+    {
+      "path": "release118-egress-source-review.json",
+      "sha256": "2178063eb38c558381805d5b8de50b2726abe8f4cc21cce454bd5d3c85b15cbf",
+      "originalSha256": "2178063eb38c558381805d5b8de50b2726abe8f4cc21cce454bd5d3c85b15cbf"
     }
   ],
   "rawSecurityAudit": {

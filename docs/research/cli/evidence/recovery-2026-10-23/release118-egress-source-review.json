@@ -1,0 +1,122 @@
+{
+  "schema": "chainlesschain.ollama-egress-source-review/v1",
+  "reviewedAt": "2026-10-23T19:20:51.139Z",
+  "reviewedProductionSource": "f680a92e2c8d82f188138959be6d4985835dca63",
+  "failure": {
+    "workflow": "CLI CI",
+    "runId": 39995806250,
+    "jobId": 120605103142,
+    "candidates": 78,
+    "unreviewed": 1,
+    "stale": 2,
+    "parseErrors": 0
+  },
+  "review": {
+    "reviewers": ["root", "astra_linux_soak", "astra_windows_host"],
+    "baselineCallerProof": [
+      {
+        "path": "packages/cli/src/lib/provider-stream.js",
+        "baseline": "61702c7273^",
+        "baselineDigest": "sha256:066a327dd55b20b34a6bfc2f39c1fc0528a764f4d9bce540f53fe82a664c7bfd",
+        "catalogueBaselineMatched": true
+      },
+      {
+        "path": "packages/cli/src/runtime/agent-core.js",
+        "baseline": "61702c7273^",
+        "baselineDigest": "sha256:1f6f90a743d927efebe1ac97e0dbf801705441e80d5c89a24ea452de07e5ff4d",
+        "catalogueBaselineMatched": true
+      }
+    ],
+    "diffSummary": {
+      "providerStream": "One import and Ollama providerFetch to ollamaProviderFetch call substitution, plus OpenAI block formatting only.",
+      "agentCore": "One import and two Ollama providerFetch to ollamaProviderFetch substitutions; request construction and downstream response/usage processing unchanged.",
+      "helper": "New wrapper: active scope forwards unchanged init to providerFetch; unscoped merges only dispatcher with explicit override precedence and lazily constructed Agent({pipelining:0}); no catch/retry loop."
+    },
+    "authorityChecks": {
+      "activeScopeDispatcherOverrideAdded": false,
+      "activeScopeFallbackUsed": false,
+      "closedScopeStillRefuses": true,
+      "unscopedExplicitDispatcherPreserved": true,
+      "unscopedGlobalFetchInjectionPreserved": true,
+      "requestReplayAddedByHelper": false,
+      "endpointsForcedLoopback": false,
+      "newPaidAdmission": false,
+      "newNativeAdmission": false
+    }
+  },
+  "entries": [
+    {
+      "path": "packages/cli/src/lib/ollama-provider-fetch.js",
+      "category": "MODEL_REQUEST",
+      "rationale": "Ollama inference adapter routes through providerFetch. Active formal budget scope receives the original request without an adapter dispatcher override; host-owned scoped transport and closed-scope refusal remain authoritative. Outside scope, explicit dispatchers and injected/global fetch are preserved, and the default undici Agent disables keep-alive without adding replay. Configurable Ollama destinations are not restricted to loopback by this classification; paid or OS admission is not granted.",
+      "digest": "sha256:aa79010f74e2d3fcf27d74ba2810134baf4af3942ea14dc1e84d4445e78db1c4"
+    },
+    {
+      "path": "packages/cli/src/lib/provider-stream.js",
+      "category": "MODEL_REQUEST",
+      "rationale": "Provider streaming adapters retain scoped providerFetch routing and verified EOF. Ollama now delegates its chat/generate POST to ollamaProviderFetch, which preserves active formal budget authority and disables default idle-connection reuse only outside scope. Other provider requests and usage/completion handling are unchanged; classification does not attest paid runtime coverage.",
+      "digest": "sha256:c3825a5ecf82bd4c27c485568b878c5f82b0c6cdee2441eb7308a3c25a9216c1"
+    },
+    {
+      "path": "packages/cli/src/runtime/agent-core.js",
+      "category": "MODEL_REQUEST",
+      "rationale": "Canonical provider/tool execution host retains scoped model egress. Ollama nonstreaming and streaming POSTs now use ollamaProviderFetch, preserving host-owned formal budget transport and closed-scope refusal while changing only default unscoped connection reuse. Existing caller retry, tool gating, usage settlement and oversized-result identity boundaries are not expanded by this adapter. This source classification does not grant financial or OS admission.",
+      "digest": "sha256:431e138682fe05b90cfc5c094d7fdcd29c12843069fd1995d8d36ef2b13191f5"
+    }
+  ],
+  "unchanged": {
+    "scanner": true,
+    "productionSources": true,
+    "transportAdmission": true,
+    "paidReady": false,
+    "runtimeCoverageVerified": false,
+    "nativeAdmission": "NOT_ADMITTED",
+    "promotion": "HOLD",
+    "acceptedTasks": 32,
+    "totalTasks": 45
+  },
+  "verification": "Local clean-source audit and existing scanner/provider/budget regressions are supplementary. A new commit requires fresh complete exact-source CLI CI and CLI Strict Sandbox matrices before any npm tag.",
+  "publication": {
+    "status": "NOT_PUBLISHED",
+    "tagsCreated": []
+  },
+  "localVerification": {
+    "cleanArchivedProductionWithReviewedCatalogue": {
+      "candidateFiles": 78,
+      "sourceReviewPassed": true,
+      "issues": 0,
+      "parseErrors": 0,
+      "skippedPaths": 0,
+      "catalogueDigest": "sha256:03728e8a53fdbad12dd65503263aca3a25afb9836f67a1ec483dc23966a68ebe",
+      "paidReady": false,
+      "runtimeCoverageVerified": false,
+      "note": "Production source archived from f680; reviewed manifest overlaid before candidate commit. This is supplementary local proof, not exact-new-SHA Actions admission."
+    },
+    "scannerRegressions": {
+      "passed": 19,
+      "failed": 0,
+      "skipped": 0,
+      "logSha256": "df389f534053a2271308590a423b7949a01cb312248cb7af6a5ec52327a0228b",
+      "priorSandboxAttempt": {
+        "passed": 11,
+        "failed": 8,
+        "reason": "Sandbox realpath of Windows temporary fixtures returned EPERM; raw failed TAP retained locally. Unrestricted native host rerun passed all 19."
+      }
+    },
+    "ollamaHelperRegressions": {
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0,
+      "runtime": "Official Node 22.12.0",
+      "scope": "Existing injected transports and real loopback HTTP server; no live model calls."
+    },
+    "combinedScannerAndFormalScopeAttempt": {
+      "passed": 21,
+      "failed": 40,
+      "cancelled": 0,
+      "skipped": 0,
+      "failureCode": "CC_BUDGET_STORAGE_UNAVAILABLE",
+      "reason": "Local declared better-sqlite3 native binding unavailable. No test assertion changed; full native budget suite remains required in fresh exact-source GitHub matrices."
+    }
+  }
+}

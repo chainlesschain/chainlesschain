@@ -1,6 +1,6 @@
 {
   "schema": "chainlesschain.budget-egress-source-review/v1",
-  "reviewedAt": "2026-10-23",
+  "reviewedAt": "2026-10-24",
   "scope": ["packages/cli/src", "packages/cli/scripts"],
   "basis": "Implementation source inspection; byte-bound classifications only. Not an independent financial/OS admission decision.",
   "entries": [
@@ -341,6 +341,12 @@
       "rationale": "Built-in provider model identifiers include the new Volcengine model deepseek-v4-1-flash-260910. Runtime model requests use the scoped fetch wrapper; standalone connectivity probes remain model inference, not free health checks."
     },
     {
+      "path": "packages/cli/src/lib/ollama-provider-fetch.js",
+      "category": "MODEL_REQUEST",
+      "rationale": "Ollama inference adapter routes through providerFetch. Active formal budget scope receives the original request without an adapter dispatcher override; host-owned scoped transport and closed-scope refusal remain authoritative. Outside scope, explicit dispatchers and injected/global fetch are preserved, and the default undici Agent disables keep-alive without adding replay. Configurable Ollama destinations are not restricted to loopback by this classification; paid or OS admission is not granted.",
+      "digest": "sha256:aa79010f74e2d3fcf27d74ba2810134baf4af3942ea14dc1e84d4445e78db1c4"
+    },
+    {
       "path": "packages/cli/src/lib/project-goal-connection.js",
       "digest": "sha256:0f17956415810f8fa76ba4c7b10b2141e148af7ea642128940e010b84671a269",
       "category": "LOCAL_IPC",
@@ -420,9 +426,9 @@
     },
     {
       "path": "packages/cli/src/lib/provider-stream.js",
-      "digest": "sha256:066a327dd55b20b34a6bfc2f39c1fc0528a764f4d9bce540f53fe82a664c7bfd",
+      "digest": "sha256:c3825a5ecf82bd4c27c485568b878c5f82b0c6cdee2441eb7308a3c25a9216c1",
       "category": "MODEL_REQUEST",
-      "rationale": "Direct provider streaming adapter through providerFetch and verified EOF."
+      "rationale": "Provider streaming adapters retain scoped providerFetch routing and verified EOF. Ollama now delegates its chat/generate POST to ollamaProviderFetch, which preserves active formal budget authority and disables default idle-connection reuse only outside scope. Other provider requests and usage/completion handling are unchanged; classification does not attest paid runtime coverage."
     },
     {
       "path": "packages/cli/src/lib/sandbox-egress-proxy.js",
@@ -456,9 +462,9 @@
     },
     {
       "path": "packages/cli/src/runtime/agent-core.js",
-      "digest": "sha256:1f6f90a743d927efebe1ac97e0dbf801705441e80d5c89a24ea452de07e5ff4d",
+      "digest": "sha256:431e138682fe05b90cfc5c094d7fdcd29c12843069fd1995d8d36ef2b13191f5",
       "category": "MODEL_REQUEST",
-      "rationale": "Canonical provider/tool execution host retains scoped model egress. Host-created oversized tool results now use complete bounded JSON previews, excerpt omission and private WeakMap output identities; these do not supply model or financial authority. Existing transport admission and usage settlement remain independent."
+      "rationale": "Canonical provider/tool execution host retains scoped model egress. Ollama nonstreaming and streaming POSTs now use ollamaProviderFetch, preserving host-owned formal budget transport and closed-scope refusal while changing only default unscoped connection reuse. Existing caller retry, tool gating, usage settlement and oversized-result identity boundaries are not expanded by this adapter. This source classification does not grant financial or OS admission."
     },
     {
       "path": "packages/cli/src/runtime/diagnostics.js",
