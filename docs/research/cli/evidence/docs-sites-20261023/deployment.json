@@ -1,0 +1,73 @@
+{
+  "schema": "chainlesschain.docs-sites-deployment/v1",
+  "recordedAt": "2026-10-23T00:49:38.613Z",
+  "status": "DEPLOYED_AND_PUBLICLY_VERIFIED",
+  "sourceHeadCommit": "e91ed4f6262b1143589f2177d85cdea2ba89d0a7",
+  "documentedRuntimeBaseline": "57fd80d530f711224aa93628b6673601048fe32c",
+  "stamp": "20261023-004751-e91ed4f626-docs",
+  "method": "scripts/deploy-docs-snapshot.ps1 / scripts/deploy-docs-snapshot.sh",
+  "sourceStatus": "clean-commit",
+  "buildOrder": "All three sites rebuilt after the source commit; download-size cache updated and committed before the final builds.",
+  "builds": {
+    "docs": {
+      "command": "npm run build",
+      "conclusion": "success",
+      "logSha256": "70c577a0305e59c218f2a224bf84ede0b7bad8089b556dca322edff6485dcca0",
+      "duration": "354.19s"
+    },
+    "design": {
+      "command": "npm run build",
+      "conclusion": "success",
+      "logSha256": "50d8f26ae8b070d9cd694f666adebb5f4b274c56f10f719110fdb2fe383ecff1",
+      "duration": "137.62s"
+    },
+    "www": {
+      "command": "npm exec --offline -- astro build",
+      "conclusion": "success",
+      "logSha256": "d71dc34dc06122bebecde72d9257c840ecdd43a17c06e948f52a7ef6ca991f5a",
+      "duration": "6.54s"
+    }
+  },
+  "archives": [
+    {
+      "site": "docs",
+      "sha256": "ff85e1b8fa1aae9abd33f54d054af928dded90807085bbf88f905aa59c3b6ad1",
+      "newHtmlPages": 650,
+      "newFiles": 1977,
+      "backupDirectory": "/www/wwwroot/docs.chainlesschain.com.bak-20261023-004751-e91ed4f626-docs"
+    },
+    {
+      "site": "design",
+      "sha256": "90e929499d1b157c0d32d8fdd2ba70395516a9778ce410cd68e518f1feb70811",
+      "newHtmlPages": 285,
+      "newFiles": 881,
+      "backupDirectory": "/www/wwwroot/design.chainlesschain.com.bak-20261023-004751-e91ed4f626-docs"
+    },
+    {
+      "site": "www",
+      "sha256": "092b5b889549800efb588357a8f3d601d93bf96f5bf246cc1b2090b467b3e23e",
+      "newHtmlPages": 20,
+      "newFiles": 35,
+      "backupDirectory": "/www/wwwroot/www.chainlesschain.com.bak-20261023-004751-e91ed4f626-docs"
+    }
+  ],
+  "serverArchiveChecks": "All three SHA-256 checks passed before switching live directories.",
+  "originReadback": "HTTPS origin reads with --resolve to 127.0.0.1 passed for the current upgrade page, design page and official homepage.",
+  "publicReadback": "public-readback.json",
+  "rollback": {
+    "required": false,
+    "previousSitesRetained": true,
+    "procedure": "Use the retained per-site backup directories listed above; failed transactional switches restore them in reverse order."
+  },
+  "limits": {
+    "runtimeCodeChanged": false,
+    "newNpmOrIdePublication": false,
+    "newRuntimeTestsRun": false,
+    "liveModelTaskAcceptance": "NOT_RUN_THIS_RELEASE",
+    "historicalAcceptedDeliveries": "31/45",
+    "automaticPromotion": "HOLD",
+    "paidReadiness": "NOT_PAID_READY",
+    "nativeAdmission": "NOT_ADMITTED"
+  },
+  "receiptCommitScope": "This receipt is committed after deployment. The deployed source remains sourceHeadCommit; the receipt commit is not represented as a new site build."
+}

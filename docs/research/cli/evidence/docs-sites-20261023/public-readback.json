@@ -1,0 +1,206 @@
+{
+  "schema": "chainlesschain.docs-deployment-public-readback/v1",
+  "startedAt": "2026-10-23T00:49:06.755Z",
+  "completedAt": "2026-10-23T00:49:07.739Z",
+  "sourceHeadCommit": "e91ed4f6262b1143589f2177d85cdea2ba89d0a7",
+  "gitHeadAtReadback": "e91ed4f6262b1143589f2177d85cdea2ba89d0a7",
+  "stamp": "20261023-004751-e91ed4f626-docs",
+  "passed": true,
+  "pages": [
+    {
+      "site": "www",
+      "url": "https://www.chainlesschain.com/",
+      "finalUrl": "https://www.chainlesschain.com/?deployment-readback=e91ed4f626-1792716546755",
+      "status": 200,
+      "bytes": 62382,
+      "sha256": "507f7ea904824ea3eae7d3f0492ffb4c035a0d7439675adc47bc2e63d78a6336",
+      "localSha256": "507f7ea904824ea3eae7d3f0492ffb4c035a0d7439675adc47bc2e63d78a6336",
+      "matchesBuiltPage": true,
+      "versions": {
+        "0.166.117": true,
+        "0.37.159": true,
+        "0.4.176": true
+      },
+      "title": "ChainlessChain 无链之链 — 让数据主权回归个人，AI效率触手可及"
+    },
+    {
+      "site": "www",
+      "url": "https://www.chainlesschain.com/en/",
+      "finalUrl": "https://www.chainlesschain.com/en/?deployment-readback=e91ed4f626-1792716546755",
+      "status": 200,
+      "bytes": 63005,
+      "sha256": "71f877d8f7df7c3474ab4ad9065cc956d57d66564e1af19fae8cecffdb544e33",
+      "localSha256": "71f877d8f7df7c3474ab4ad9065cc956d57d66564e1af19fae8cecffdb544e33",
+      "matchesBuiltPage": true,
+      "versions": {
+        "0.166.117": true,
+        "0.37.159": true,
+        "0.4.176": true
+      },
+      "title": "ChainlessChain — Sovereignty for your data. Productivity at your fingertips."
+    },
+    {
+      "site": "www",
+      "url": "https://www.chainlesschain.com/cli/",
+      "finalUrl": "https://www.chainlesschain.com/cli/?deployment-readback=e91ed4f626-1792716546755",
+      "status": 200,
+      "bytes": 122147,
+      "sha256": "421a28af04757c20cca62766e9721c2544077653040044e13fc3c0748aa568da",
+      "localSha256": "421a28af04757c20cca62766e9721c2544077653040044e13fc3c0748aa568da",
+      "matchesBuiltPage": true,
+      "versions": {
+        "0.166.117": true,
+        "0.37.159": true,
+        "0.4.176": true
+      },
+      "title": "CLI 工具 — 175 命令 · 146 Skills · 你的终端就是 AI 工作台 | ChainlessChain"
+    },
+    {
+      "site": "www",
+      "url": "https://www.chainlesschain.com/en/cli/",
+      "finalUrl": "https://www.chainlesschain.com/en/cli/?deployment-readback=e91ed4f626-1792716546755",
+      "status": 200,
+      "bytes": 123433,
+      "sha256": "5155d8d3e5998e52a1fad8fa5ceade69bf42a8ea83fad885551dc02a40f099ba",
+      "localSha256": "5155d8d3e5998e52a1fad8fa5ceade69bf42a8ea83fad885551dc02a40f099ba",
+      "matchesBuiltPage": true,
+      "versions": {
+        "0.166.117": true,
+        "0.37.159": true,
+        "0.4.176": true
+      },
+      "title": "CLI — 175 commands · 146 skills · Your terminal is the AI workbench | ChainlessChain"
+    },
+    {
+      "site": "www",
+      "url": "https://www.chainlesschain.com/ide/",
+      "finalUrl": "https://www.chainlesschain.com/ide/?deployment-readback=e91ed4f626-1792716546755",
+      "status": 200,
+      "bytes": 43405,
+      "sha256": "2764ec45695833b3d0145ead495e885135ae6049f8cf3f138b748f8a520ab821",
+      "localSha256": "2764ec45695833b3d0145ead495e885135ae6049f8cf3f138b748f8a520ab821",
+      "matchesBuiltPage": true,
+      "versions": {
+        "0.166.117": true,
+        "0.37.159": true,
+        "0.4.176": true
+      },
+      "title": "IDE 集成 — VS Code + JetBrains 双扩展，agent 进编辑器 | ChainlessChain"
+    },
+    {
+      "site": "www",
+      "url": "https://www.chainlesschain.com/en/ide/",
+      "finalUrl": "https://www.chainlesschain.com/en/ide/?deployment-readback=e91ed4f626-1792716546755",
+      "status": 200,
+      "bytes": 45122,
+      "sha256": "c75b9789368085e7067ae80c49e84d4a3270bb72d233a5d63e92ce7344b89121",
+      "localSha256": "c75b9789368085e7067ae80c49e84d4a3270bb72d233a5d63e92ce7344b89121",
+      "matchesBuiltPage": true,
+      "versions": {
+        "0.166.117": true,
+        "0.37.159": true,
+        "0.4.176": true
+      },
+      "title": "IDE Integration — VS Code + JetBrains extensions, agent in your editor | ChainlessChain"
+    },
+    {
+      "site": "docs",
+      "url": "https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-23.html",
+      "finalUrl": "https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-23.html?deployment-readback=e91ed4f626-1792716546755",
+      "status": 200,
+      "bytes": 260884,
+      "sha256": "15905f4f4ac696574fb78c85e2f562f1aa5f76a8ecb7aa1560f369724355c1fa",
+      "localSha256": "15905f4f4ac696574fb78c85e2f562f1aa5f76a8ecb7aa1560f369724355c1fa",
+      "matchesBuiltPage": true,
+      "versions": {
+        "0.166.117": true,
+        "0.37.159": true,
+        "0.4.176": true
+      },
+      "title": "CLI .117 / IDE .159 与 .176 升级指南 | ChainlessChain 文档"
+    },
+    {
+      "site": "docs",
+      "url": "https://docs.chainlesschain.com/chainlesschain/agent-input-and-recovery.html",
+      "finalUrl": "https://docs.chainlesschain.com/chainlesschain/agent-input-and-recovery.html?deployment-readback=e91ed4f626-1792716546755",
+      "status": 200,
+      "bytes": 262365,
+      "sha256": "4f558ef3daae6d80b7300fb8ed4cd14850e99a39ae619d51375b014c1efcfac7",
+      "localSha256": "4f558ef3daae6d80b7300fb8ed4cd14850e99a39ae619d51375b014c1efcfac7",
+      "matchesBuiltPage": true,
+      "versions": {
+        "0.166.117": true,
+        "0.37.159": true,
+        "0.4.176": true
+      },
+      "title": "Agent 输入、图片预算与会话恢复 | ChainlessChain 文档"
+    },
+    {
+      "site": "design",
+      "url": "https://design.chainlesschain.com/release-runtime-update-2026-10-23.html",
+      "finalUrl": "https://design.chainlesschain.com/release-runtime-update-2026-10-23.html?deployment-readback=e91ed4f626-1792716546755",
+      "status": 200,
+      "bytes": 157565,
+      "sha256": "861f41153417c78091b6878a469b1cbb2504daa53f02bfd5ec2b2bd7209368a9",
+      "localSha256": "861f41153417c78091b6878a469b1cbb2504daa53f02bfd5ec2b2bd7209368a9",
+      "matchesBuiltPage": true,
+      "versions": {
+        "0.166.117": true,
+        "0.37.159": true,
+        "0.4.176": true
+      },
+      "title": "CLI .117：Evolution 输入、图片预算与工具轮次恢复（2026-10-23） | ChainlessChain 设计文档"
+    }
+  ],
+  "manifests": [
+    {
+      "site": "www",
+      "url": "https://www.chainlesschain.com/deployment-source.json",
+      "status": 200,
+      "sha256": "7fcf2d44e8dd79eaca45ab34d16eae48d3edf23ec9f73471c7e09c2f0cb9e884",
+      "manifest": {
+        "schema": "chainlesschain.site-deployment/v1",
+        "stamp": "20261023-004751-e91ed4f626-docs",
+        "sourceHeadCommit": "e91ed4f6262b1143589f2177d85cdea2ba89d0a7",
+        "sourceStatus": "clean-commit",
+        "site": "www",
+        "archiveSha256": "092b5b889549800efb588357a8f3d601d93bf96f5bf246cc1b2090b467b3e23e",
+        "newHtmlPages": 20,
+        "newFiles": 35
+      }
+    },
+    {
+      "site": "docs",
+      "url": "https://docs.chainlesschain.com/deployment-source.json",
+      "status": 200,
+      "sha256": "1adae507ccc3a71efd94c2e8373c0a2ea763e51f932438644c9a3475f545734e",
+      "manifest": {
+        "schema": "chainlesschain.site-deployment/v1",
+        "stamp": "20261023-004751-e91ed4f626-docs",
+        "sourceHeadCommit": "e91ed4f6262b1143589f2177d85cdea2ba89d0a7",
+        "sourceStatus": "clean-commit",
+        "site": "docs",
+        "archiveSha256": "ff85e1b8fa1aae9abd33f54d054af928dded90807085bbf88f905aa59c3b6ad1",
+        "newHtmlPages": 650,
+        "newFiles": 1977
+      }
+    },
+    {
+      "site": "design",
+      "url": "https://design.chainlesschain.com/deployment-source.json",
+      "status": 200,
+      "sha256": "d3193f5dbab67e04cd44ca6f178d9600cf84982458688355d4d57afbdecb9599",
+      "manifest": {
+        "schema": "chainlesschain.site-deployment/v1",
+        "stamp": "20261023-004751-e91ed4f626-docs",
+        "sourceHeadCommit": "e91ed4f6262b1143589f2177d85cdea2ba89d0a7",
+        "sourceStatus": "clean-commit",
+        "site": "design",
+        "archiveSha256": "90e929499d1b157c0d32d8fdd2ba70395516a9778ce410cd68e518f1feb70811",
+        "newHtmlPages": 285,
+        "newFiles": 881
+      }
+    }
+  ],
+  "scope": "Public HTTPS status, current versions, byte equality with locally built pages, and all three deployment manifests. No new runtime or live model-task acceptance."
+}
