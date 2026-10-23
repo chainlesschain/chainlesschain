@@ -1,0 +1,34 @@
+ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+2026-10-23T17:01:19.7140810Z
+2026-10-23T17:01:19.7145460Z  FAIL  __tests__/unit/cli-reliability-duplex-diagnostics.test.js > duplex failure evidence > closes a real resource-holding child tree before its files are removed
+2026-10-23T17:01:19.7148380Z AssertionError: expected { deadlineMs: 10000, …(5) } to match object { confirmed: true, closed: true, …(1) }
+2026-10-23T17:01:19.7150620Z (3 matching properties omitted from actual)
+2026-10-23T17:01:19.7152480Z
+2026-10-23T17:01:19.7255820Z - Expected
+2026-10-23T17:01:19.7261630Z + Received
+2026-10-23T17:01:19.7261880Z
+2026-10-23T17:01:19.7262620Z
+2026-10-23T17:01:19.7263000Z   {
+2026-10-23T17:01:19.7264290Z     "closed": true,
+2026-10-23T17:01:19.7265190Z -   "confirmed": true,
+2026-10-23T17:01:19.7265710Z -   "treeTerminated": true,
+2026-10-23T17:01:19.7271230Z +   "confirmed": false,
+2026-10-23T17:01:19.7272190Z +   "treeTerminated": false,
+2026-10-23T17:01:19.7272660Z   }
+2026-10-23T17:01:19.7272910Z
+2026-10-23T17:01:19.7273560Z  ❯ __tests__/unit/cli-reliability-duplex-diagnostics.test.js:243:22
+2026-10-23T17:01:19.7274400Z     241|       expect(fs.existsSync(path.join(root, "leaf-held.db"))).toBe(true…
+2026-10-23T17:01:19.7275370Z     242|       const result = await retireDuplexProcessTree(child, completion, …
+2026-10-23T17:01:19.7276170Z     243|       expect(result).toMatchObject({
+2026-10-23T17:01:19.7276750Z        |                      ^
+2026-10-23T17:01:19.7277380Z     244|         confirmed: true,
+2026-10-23T17:01:19.7278030Z     245|         closed: true,
+2026-10-23T17:01:19.7278400Z
+2026-10-23T17:01:19.7278730Z ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+2026-10-23T17:01:19.7279040Z
+2026-10-23T17:01:19.7283670Z  Test Files  1 failed | 454 passed | 2 skipped (457)
+2026-10-23T17:01:19.7403920Z       Tests  1 failed | 9977 passed | 30 skipped (10008)
+2026-10-23T17:01:19.7404800Z    Start at  16:51:27
+2026-10-23T17:01:19.7408360Z    Duration  592.57s (transform 17.57s, setup 6.19s, import 134.93s, tests 984.24s, environment 38ms)
+2026-10-23T17:01:19.7409460Z
+2026-10-23T17:01:20.6936270Z

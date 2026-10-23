@@ -1224,11 +1224,17 @@ export async function retireDuplexProcessTree(
   child,
   completion,
   cleanupDeadlineMs,
-  { platform = process.platform, kill = process.kill.bind(process) } = {},
+  {
+    platform = process.platform,
+    kill = process.kill.bind(process),
+    now = () => performance.now(),
+    sleep = (delayMs) =>
+      new Promise((resolvePromise) => setTimeout(resolvePromise, delayMs)),
+  } = {},
 ) {
-  const started = performance.now();
+  const started = now();
   const deadline = started + cleanupDeadlineMs;
-  const remaining = () => Math.max(0, deadline - performance.now());
+  const remaining = () => Math.max(0, deadline - now());
   let closed = false;
   let treeTerminated = false;
   const initialExit = completion.exit();
@@ -1238,6 +1244,7 @@ export async function retireDuplexProcessTree(
     initialExitObserved: initialExit !== null,
     signalAttempted: false,
     probeCount: 0,
+    permissionProbeCount: 0,
     failureStage: null,
     errorCode: null,
   };
@@ -1297,8 +1304,11 @@ export async function retireDuplexProcessTree(
           });
         });
       } else {
+        let signalDelivered = false;
+        let pendingPermissionError = null;
         try {
           kill(-child.pid, "SIGKILL");
+          signalDelivered = true;
         } catch (error) {
           recordFailure("signal-group", error);
           if (error?.code !== "ESRCH") throw error;
@@ -1307,14 +1317,36 @@ export async function retireDuplexProcessTree(
           try {
             diagnostics.probeCount += 1;
             kill(-child.pid, 0);
+            pendingPermissionError = null;
           } catch (error) {
             treeTerminated = error?.code === "ESRCH";
-            if (!treeTerminated) recordFailure("probe-group", error);
+            if (treeTerminated) break;
+            if (
+              platform === "darwin" &&
+              signalDelivered &&
+              error?.code === "EPERM"
+            ) {
+              // Darwin may briefly report EPERM after a successful group kill.
+              // Keep observing within the original deadline; only ESRCH proves
+              // retirement. Never resend SIGKILL or treat permission as absence.
+              diagnostics.permissionProbeCount += 1;
+              pendingPermissionError = error;
+            } else {
+              pendingPermissionError = null;
+              recordFailure("probe-group", error);
+              break;
+            }
+          }
+          try {
+            await sleep(Math.min(25, remaining()));
+          } catch (error) {
+            pendingPermissionError = null;
+            recordFailure("wait-group", error);
             break;
           }
-          await new Promise((resolvePromise) =>
-            setTimeout(resolvePromise, Math.min(25, remaining())),
-          );
+        }
+        if (!treeTerminated && pendingPermissionError) {
+          recordFailure("probe-group", pendingPermissionError);
         }
       }
     }
@@ -1324,7 +1356,7 @@ export async function retireDuplexProcessTree(
   await close;
   return {
     deadlineMs: cleanupDeadlineMs,
-    elapsedMs: performance.now() - started,
+    elapsedMs: now() - started,
     closed,
     treeTerminated,
     confirmed: closed && treeTerminated,

@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="39" failures="0" errors="0" time="0.358728208">
+    <testsuite name="__tests__/unit/cli-reliability-duplex-diagnostics.test.js" timestamp="2026-10-23T17:15:51.351Z" hostname="sat12-bq167-0aa02e9f-f400-421e-937a-0205ab31ba15-66D3D78D02A9.local" tests="7" failures="0" errors="0" skipped="0" time="0.207882042">
+        <testcase classname="__tests__/unit/cli-reliability-duplex-diagnostics.test.js" name="duplex failure evidence &gt; retains safe diagnostics on a timeout with 2 warmup turns" time="0.015258166">
+        </testcase>
+        <testcase classname="__tests__/unit/cli-reliability-duplex-diagnostics.test.js" name="duplex failure evidence &gt; retains safe diagnostics on a timeout with 0 warmup turns" time="0.003168792">
+        </testcase>
+        <testcase classname="__tests__/unit/cli-reliability-duplex-diagnostics.test.js" name="duplex failure evidence &gt; retains the primary timeout and prevents root removal when cleanup is unconfirmed" time="0.001170875">
+        </testcase>
+        <testcase classname="__tests__/unit/cli-reliability-duplex-diagnostics.test.js" name="duplex failure evidence &gt; closes a real resource-holding child tree before its files are removed" time="0.13228125">
+        </testcase>
+        <testcase classname="__tests__/unit/cli-reliability-duplex-diagnostics.test.js" name="duplex failure evidence &gt; keeps a POSIX signal-group permission failure unconfirmed with safe diagnostics" time="0.00052925">
+        </testcase>
+        <testcase classname="__tests__/unit/cli-reliability-duplex-diagnostics.test.js" name="duplex failure evidence &gt; keeps a POSIX probe-group permission failure unconfirmed with safe diagnostics" time="0.000340541">
+        </testcase>
+        <testcase classname="__tests__/unit/cli-reliability-duplex-diagnostics.test.js" name="duplex failure evidence &gt; never signals an already exited root PID or claims its descendants are retired" time="0.05332075">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/cli-reliability-soak.test.js" timestamp="2026-10-23T17:15:51.352Z" hostname="sat12-bq167-0aa02e9f-f400-421e-937a-0205ab31ba15-66D3D78D02A9.local" tests="18" failures="0" errors="0" skipped="0" time="0.141521708">
+        <testcase classname="__tests__/unit/cli-reliability-soak.test.js" name="CLI reliability soak gate &gt; ignores error-code prose in MCP context while retaining actual result errors" time="0.005158542">
+        </testcase>
+        <testcase classname="__tests__/unit/cli-reliability-soak.test.js" name="CLI reliability soak gate &gt; classifies fixed Windows startup errors without retaining message content" time="0.000861166">
+        </testcase>
+        <testcase classname="__tests__/unit/cli-reliability-soak.test.js" name="CLI reliability soak gate &gt; distinguishes the fixed startup error ledger file identity changed during Windows ACL verification without copying stderr" time="0.000624708">
+        </testcase>
+        <testcase classname="__tests__/unit/cli-reliability-soak.test.js" name="CLI reliability soak gate &gt; distinguishes the fixed startup error ArtifactStore index pathname and descriptor identities differ without copying stderr" time="0.000250583">
+        </testcase>
+        <testcase classname="__tests__/unit/cli-reliability-soak.test.js" name="CLI reliability soak gate &gt; retains stderr and the failed exit from a real no-output child" time="0.111056583">
+        </testcase>
+        <testcase classname="__tests__/unit/cli-reliability-soak.test.js" name="CLI reliability soak gate &gt; observes completion before a late waiter and drains stderr after exit" time="0.000469416">
+        </testcase>
+        <testcase classname="__tests__/unit/cli-reliability-soak.test.js" name="CLI reliability soak gate &gt; hard fails a no-output exit 0 and retains every executed child" time="0.002076334">
+        </testcase>
+        <testcase classname="__tests__/unit/cli-reliability-soak.test.js" name="CLI reliability soak gate &gt; hard fails a no-output exit 1 and retains every executed child" time="0.00127975">
+        </testcase>
+        <testcase classname="__tests__/unit/cli-reliability-soak.test.js" name="CLI reliability soak gate &gt; accepts valid pipe output when exit precedes the end of the intentional stall" time="0.011641125">
+        </testcase>
+        <testcase classname="__tests__/unit/cli-reliability-soak.test.js" name="CLI reliability soak gate &gt; retains failed spawn evidence without serializing the arbitrary error" time="0.000731375">
+        </testcase>
+        <testcase classname="__tests__/unit/cli-reliability-soak.test.js" name="CLI reliability soak gate &gt; retains allowlisted MCP startup diagnostics after an early failure" time="0.001633875">
+        </testcase>
+        <testcase classname="__tests__/unit/cli-reliability-soak.test.js" name="CLI reliability soak gate &gt; keeps disk startup diagnostics bounded and content-free" time="0.000548875">
+        </testcase>
+        <testcase classname="__tests__/unit/cli-reliability-soak.test.js" name="CLI reliability soak gate &gt; keeps formal duration, turn, concurrency, and pipe floors" time="0.000214166">
+        </testcase>
+        <testcase classname="__tests__/unit/cli-reliability-soak.test.js" name="CLI reliability soak gate &gt; computes an observed nearest-rank p95" time="0.000106083">
+        </testcase>
+        <testcase classname="__tests__/unit/cli-reliability-soak.test.js" name="CLI reliability soak gate &gt; retains a bounded rolling latency sample" time="0.000150042">
+        </testcase>
+        <testcase classname="__tests__/unit/cli-reliability-soak.test.js" name="CLI reliability soak gate &gt; spreads the required turns across the complete soak duration" time="0.000111709">
+        </testcase>
+        <testcase classname="__tests__/unit/cli-reliability-soak.test.js" name="CLI reliability soak gate &gt; walks a bounded process snapshot transitively and cycle-safely" time="0.0001285">
+        </testcase>
+        <testcase classname="__tests__/unit/cli-reliability-soak.test.js" name="CLI reliability soak gate &gt; declares an exact-SHA three-platform artifact workflow with real SSH" time="0.002644125">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/unit/soak-host-metrics.test.js" timestamp="2026-10-23T17:15:51.354Z" hostname="sat12-bq167-0aa02e9f-f400-421e-937a-0205ab31ba15-66D3D78D02A9.local" tests="14" failures="0" errors="0" skipped="0" time="0.009324458">
+        <testcase classname="__tests__/unit/soak-host-metrics.test.js" name="soak host metrics &gt; normalizes Node and runner operating-system names" time="0.001721833">
+        </testcase>
+        <testcase classname="__tests__/unit/soak-host-metrics.test.js" name="soak host metrics &gt; captures Linux RSS and file descriptors without shelling out" time="0.000905292">
+        </testcase>
+        <testcase classname="__tests__/unit/soak-host-metrics.test.js" name="soak host metrics &gt; uses the Linux FD fallback when procfs cannot be read" time="0.000631917">
+        </testcase>
+        <testcase classname="__tests__/unit/soak-host-metrics.test.js" name="soak host metrics &gt; captures macOS RSS and file descriptors with native commands" time="0.000401709">
+        </testcase>
+        <testcase classname="__tests__/unit/soak-host-metrics.test.js" name="soak host metrics &gt; captures Windows RSS and handle counts with PowerShell" time="0.000690208">
+        </testcase>
+        <testcase classname="__tests__/unit/soak-host-metrics.test.js" name="soak host metrics &gt; reports invalid and unsupported measurements as unavailable" time="0.0002265">
+        </testcase>
+        <testcase classname="__tests__/unit/soak-host-metrics.test.js" name="soak host metrics &gt; walks descendant rows transitively and cycle-safely" time="0.000168875">
+        </testcase>
+        <testcase classname="__tests__/unit/soak-host-metrics.test.js" name="soak host metrics &gt; captures a transitive Unix descendant snapshot" time="0.000348042">
+        </testcase>
+        <testcase classname="__tests__/unit/soak-host-metrics.test.js" name="soak host metrics &gt; falls back from WMIC to CIM for a Windows descendant snapshot" time="0.000610791">
+        </testcase>
+        <testcase classname="__tests__/unit/soak-host-metrics.test.js" name="soak host metrics &gt; distinguishes live, retired, and unobservable processes" time="0.000270708">
+        </testcase>
+        <testcase classname="__tests__/unit/soak-host-metrics.test.js" name="soak host metrics &gt; waits for process retirement and reports elapsed time" time="0.000249292">
+        </testcase>
+        <testcase classname="__tests__/unit/soak-host-metrics.test.js" name="soak host metrics &gt; fails closed when retirement cannot be observed by the deadline" time="0.000092208">
+        </testcase>
+        <testcase classname="__tests__/unit/soak-host-metrics.test.js" name="soak host metrics &gt; computes an upward linear trend over the configured sample tail" time="0.000192083">
+        </testcase>
+        <testcase classname="__tests__/unit/soak-host-metrics.test.js" name="soak host metrics &gt; reports no projected growth for a falling or insufficient tail" time="0.000344125">
+        </testcase>
+    </testsuite>
+</testsuites>

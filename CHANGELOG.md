@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Give each default Ollama request a fresh connection so long synchronous turns cannot reuse a retired idle socket; preserve explicit dispatchers, governed transport policy and existing request budgets without replaying requests.
 - Verify the Evolution Run ledger once before and after each history read, retaining individual artifact authentication and rejecting a changed frontier instead of re-verifying the entire ledger for every event.
 - Checkpoint duplex timeout diagnostics before retiring the owned process tree; preserve the original failure and retain temporary storage if cleanup cannot be confirmed.
+- Observe transient Darwin process-group permission probes within the original cleanup deadline after a successful group kill; confirm retirement only after explicit process-group absence and root close, without resending termination signals.
 - Upgrade DOMPurify to 3.4.17 in desktop and Web Panel dependency graphs, including Monaco's nested copy. Run sanitizer regressions with DOMPurify's supported jsdom environment.
 - Prepare Agent SDK 0.2.16, CLI 0.166.118, Open VSX 0.37.160 and JetBrains 0.4.177. Publication requires complete exact-source Actions gates and public readback in that order; mobile and PC clients follow the IDEs.
 - Prepare product v5.0.3.141 with synchronized desktop, Android and iOS versions; require both paired IDE releases to be public before product builds proceed.

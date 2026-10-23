@@ -1,0 +1,208 @@
+{
+  "schema": "chainlesschain.duplex-retirement-host-diagnostic/v1",
+  "sourceSha": "a804afd2e203eb7d6a9a10ed2a4987d3d8243919",
+  "runtime": {
+    "platform": "darwin",
+    "arch": "arm64",
+    "node": "v22.12.0"
+  },
+  "cleanupDeadlineMs": 10000,
+  "samples": [
+    {
+      "index": 0,
+      "ready": true,
+      "confirmed": false,
+      "before": {
+        "status": 0,
+        "errorCode": null,
+        "rows": [
+          {
+            "pid": 6747,
+            "parentPid": 6718,
+            "groupPid": 6747,
+            "state": "S<s"
+          },
+          {
+            "pid": 6767,
+            "parentPid": 6747,
+            "groupPid": 6747,
+            "state": "S<"
+          }
+        ]
+      },
+      "result": {
+        "deadlineMs": 10000,
+        "elapsedMs": 2.706542000000013,
+        "closed": true,
+        "treeTerminated": false,
+        "confirmed": false,
+        "deadlineExceeded": false,
+        "diagnostics": {
+          "method": "posix-process-group",
+          "initialExitObserved": false,
+          "signalAttempted": true,
+          "probeCount": 1,
+          "failureStage": "probe-group",
+          "errorCode": "EPERM"
+        }
+      },
+      "exit": {
+        "code": null,
+        "signal": "SIGKILL"
+      },
+      "after": {
+        "status": 1,
+        "errorCode": null,
+        "rows": []
+      },
+      "directoryRetained": true
+    },
+    {
+      "index": 1,
+      "ready": true,
+      "confirmed": true,
+      "before": {
+        "status": 0,
+        "errorCode": null,
+        "rows": [
+          {
+            "pid": 6830,
+            "parentPid": 6718,
+            "groupPid": 6830,
+            "state": "S<s"
+          },
+          {
+            "pid": 6850,
+            "parentPid": 6830,
+            "groupPid": 6830,
+            "state": "S<"
+          }
+        ]
+      },
+      "result": {
+        "deadlineMs": 10000,
+        "elapsedMs": 27.991791999999975,
+        "closed": true,
+        "treeTerminated": true,
+        "confirmed": true,
+        "deadlineExceeded": false,
+        "diagnostics": {
+          "method": "posix-process-group",
+          "initialExitObserved": false,
+          "signalAttempted": true,
+          "probeCount": 2,
+          "failureStage": null,
+          "errorCode": null
+        }
+      },
+      "exit": {
+        "code": null,
+        "signal": "SIGKILL"
+      },
+      "after": {
+        "status": 1,
+        "errorCode": null,
+        "rows": []
+      },
+      "directoryRetained": false
+    },
+    {
+      "index": 2,
+      "ready": true,
+      "confirmed": false,
+      "before": {
+        "status": 0,
+        "errorCode": null,
+        "rows": [
+          {
+            "pid": 6896,
+            "parentPid": 6718,
+            "groupPid": 6896,
+            "state": "S<s"
+          },
+          {
+            "pid": 6897,
+            "parentPid": 6896,
+            "groupPid": 6896,
+            "state": "S<"
+          }
+        ]
+      },
+      "result": {
+        "deadlineMs": 10000,
+        "elapsedMs": 1.087208999999973,
+        "closed": true,
+        "treeTerminated": false,
+        "confirmed": false,
+        "deadlineExceeded": false,
+        "diagnostics": {
+          "method": "posix-process-group",
+          "initialExitObserved": false,
+          "signalAttempted": true,
+          "probeCount": 1,
+          "failureStage": "probe-group",
+          "errorCode": "EPERM"
+        }
+      },
+      "exit": {
+        "code": null,
+        "signal": "SIGKILL"
+      },
+      "after": {
+        "status": 1,
+        "errorCode": null,
+        "rows": []
+      },
+      "directoryRetained": true
+    },
+    {
+      "index": 3,
+      "ready": true,
+      "confirmed": false,
+      "before": {
+        "status": 0,
+        "errorCode": null,
+        "rows": [
+          {
+            "pid": 6936,
+            "parentPid": 6718,
+            "groupPid": 6936,
+            "state": "S<s"
+          },
+          {
+            "pid": 6937,
+            "parentPid": 6936,
+            "groupPid": 6936,
+            "state": "S<"
+          }
+        ]
+      },
+      "result": {
+        "deadlineMs": 10000,
+        "elapsedMs": 0.9836250000000746,
+        "closed": true,
+        "treeTerminated": false,
+        "confirmed": false,
+        "deadlineExceeded": false,
+        "diagnostics": {
+          "method": "posix-process-group",
+          "initialExitObserved": false,
+          "signalAttempted": true,
+          "probeCount": 1,
+          "failureStage": "probe-group",
+          "errorCode": "EPERM"
+        }
+      },
+      "exit": {
+        "code": null,
+        "signal": "SIGKILL"
+      },
+      "after": {
+        "status": 1,
+        "errorCode": null,
+        "rows": []
+      },
+      "directoryRetained": true
+    }
+  ]
+}

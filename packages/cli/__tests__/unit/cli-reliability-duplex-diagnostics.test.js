@@ -273,7 +273,10 @@ describe("duplex failure evidence", () => {
         { pid: 123 },
         { exit: () => null, wait: async () => {} },
         10_000,
-        { platform: "darwin", kill },
+        {
+          platform: failureStage === "signal-group" ? "darwin" : "linux",
+          kill,
+        },
       );
       expect(result).toMatchObject({
         confirmed: false,
@@ -300,6 +303,219 @@ describe("duplex failure evidence", () => {
       expect(JSON.stringify(result)).not.toContain(secret);
     },
   );
+
+  it("waits through a Darwin permission probe until explicit group absence without resending the signal", async () => {
+    let elapsed = 0;
+    let probes = 0;
+    const kill = vi.fn((_pid, signal) => {
+      if (signal !== 0) return;
+      probes += 1;
+      throw Object.assign(new Error(secret), {
+        code: probes === 1 ? "EPERM" : "ESRCH",
+      });
+    });
+    const wait = vi.fn(async (budget) => expect(budget).toBe(10_000));
+    const result = await retireDuplexProcessTree(
+      { pid: 123 },
+      { exit: () => null, wait },
+      10_000,
+      {
+        platform: "darwin",
+        kill,
+        now: () => elapsed,
+        sleep: async (delay) => {
+          elapsed += delay;
+        },
+      },
+    );
+    expect(result).toMatchObject({
+      confirmed: true,
+      closed: true,
+      treeTerminated: true,
+      deadlineExceeded: false,
+      elapsedMs: 25,
+      diagnostics: {
+        probeCount: 2,
+        permissionProbeCount: 1,
+        failureStage: null,
+        errorCode: null,
+      },
+    });
+    expect(kill.mock.calls).toEqual([
+      [-123, "SIGKILL"],
+      [-123, 0],
+      [-123, 0],
+    ]);
+    expect(wait).toHaveBeenCalledTimes(1);
+    expect(JSON.stringify(result)).not.toContain(secret);
+  });
+
+  it("keeps persistent Darwin permission probes unconfirmed at the original cleanup deadline", async () => {
+    let elapsed = 0;
+    const kill = vi.fn((_pid, signal) => {
+      if (signal === 0)
+        throw Object.assign(new Error(secret), { code: "EPERM" });
+    });
+    const result = await retireDuplexProcessTree(
+      { pid: 123 },
+      { exit: () => null, wait: async () => {} },
+      10_000,
+      {
+        platform: "darwin",
+        kill,
+        now: () => elapsed,
+        sleep: async (delay) => {
+          elapsed += delay;
+        },
+      },
+    );
+    expect(result).toMatchObject({
+      confirmed: false,
+      closed: true,
+      treeTerminated: false,
+      deadlineExceeded: true,
+      elapsedMs: 10_000,
+      diagnostics: {
+        probeCount: 400,
+        permissionProbeCount: 400,
+        failureStage: "probe-group",
+        errorCode: "EPERM",
+      },
+    });
+    expect(
+      kill.mock.calls.filter(([, signal]) => signal === "SIGKILL"),
+    ).toHaveLength(1);
+    expect(JSON.stringify(result)).not.toContain(secret);
+  });
+
+  it("does not poll past an unsuccessful Darwin group signal", async () => {
+    const kill = vi.fn((_pid, signal) => {
+      throw Object.assign(new Error(secret), {
+        code: signal === 0 ? "EPERM" : "ESRCH",
+      });
+    });
+    const sleep = vi.fn();
+    const result = await retireDuplexProcessTree(
+      { pid: 123 },
+      { exit: () => null, wait: async () => {} },
+      10_000,
+      { platform: "darwin", kill, sleep },
+    );
+    expect(result).toMatchObject({
+      confirmed: false,
+      diagnostics: { permissionProbeCount: 0, errorCode: "EPERM" },
+    });
+    expect(sleep).not.toHaveBeenCalled();
+  });
+
+  it("keeps other Darwin probe errors unconfirmed without delaying or exposing their message", async () => {
+    const kill = vi.fn((_pid, signal) => {
+      if (signal === 0)
+        throw Object.assign(new Error(secret), { code: "EINVAL" });
+    });
+    const sleep = vi.fn();
+    const result = await retireDuplexProcessTree(
+      { pid: 123 },
+      { exit: () => null, wait: async () => {} },
+      10_000,
+      { platform: "darwin", kill, sleep },
+    );
+    expect(result).toMatchObject({
+      confirmed: false,
+      diagnostics: {
+        permissionProbeCount: 0,
+        failureStage: "probe-group",
+        errorCode: "EINVAL",
+      },
+    });
+    expect(sleep).not.toHaveBeenCalled();
+    expect(JSON.stringify(result)).not.toContain(secret);
+  });
+
+  it("preserves the terminal error when a Darwin permission probe is followed by a different failure", async () => {
+    let elapsed = 0;
+    let probes = 0;
+    const kill = vi.fn((_pid, signal) => {
+      if (signal !== 0) return;
+      throw Object.assign(new Error(secret), {
+        code: ++probes === 1 ? "EPERM" : "EACCES",
+      });
+    });
+    const result = await retireDuplexProcessTree(
+      { pid: 123 },
+      { exit: () => null, wait: async () => {} },
+      10_000,
+      {
+        platform: "darwin",
+        kill,
+        now: () => elapsed,
+        sleep: async (delay) => {
+          elapsed += delay;
+        },
+      },
+    );
+    expect(result).toMatchObject({
+      confirmed: false,
+      elapsedMs: 25,
+      diagnostics: {
+        probeCount: 2,
+        permissionProbeCount: 1,
+        failureStage: "probe-group",
+        errorCode: "EACCES",
+      },
+    });
+    expect(JSON.stringify(result)).not.toContain(secret);
+  });
+
+  it("does not confirm retirement when group absence is observed but the root close cannot be confirmed", async () => {
+    const kill = vi.fn((_pid, signal) => {
+      if (signal === 0)
+        throw Object.assign(new Error(secret), { code: "ESRCH" });
+    });
+    const result = await retireDuplexProcessTree(
+      { pid: 123 },
+      {
+        exit: () => null,
+        wait: async () => {
+          throw Object.assign(new Error(secret), { code: "ETIMEDOUT" });
+        },
+      },
+      10_000,
+      { platform: "darwin", kill },
+    );
+    expect(result).toMatchObject({
+      confirmed: false,
+      closed: false,
+      treeTerminated: true,
+    });
+    expect(JSON.stringify(result)).not.toContain(secret);
+  });
+
+  it("keeps an observation wait failure unconfirmed with safe diagnostics", async () => {
+    const kill = vi.fn();
+    const result = await retireDuplexProcessTree(
+      { pid: 123 },
+      { exit: () => null, wait: async () => {} },
+      10_000,
+      {
+        platform: "darwin",
+        kill,
+        sleep: async () => {
+          throw Object.assign(new Error(secret), { code: "EACCES" });
+        },
+      },
+    );
+    expect(result).toMatchObject({
+      confirmed: false,
+      treeTerminated: false,
+      diagnostics: { failureStage: "wait-group", errorCode: "EACCES" },
+    });
+    expect(kill.mock.calls).toEqual([
+      [-123, "SIGKILL"],
+      [-123, 0],
+    ]);
+    expect(JSON.stringify(result)).not.toContain(secret);
+  });
 
   it("never signals an already exited root PID or claims its descendants are retired", async () => {
     const child = spawn(process.execPath, ["-e", "process.exit(0)"], {

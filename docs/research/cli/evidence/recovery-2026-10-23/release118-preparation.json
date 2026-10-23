@@ -1,6 +1,6 @@
 {
   "schema": "chainlesschain.cli-ide-release-preparation/v1",
-  "recordedAt": "2026-10-23T15:48:19.018Z",
+  "recordedAt": "2026-10-23T17:23:21.990Z",
   "baseline": "79b7d49841341eb4caf135414183c1311db58b75",
   "pullRequest": "https://github.com/chainlesschain/chainlesschain/pull/483",
   "authorization": {
@@ -1825,6 +1825,75 @@
           "notEstablished": "Whether the optimized exact commit now finishes the CI twelfth turn below the unchanged 60-second deadline."
         },
         "releaseLimitation": "Profile did not finish the full journey: first turn succeeded, second reached model request, local attempt stopped at 240 seconds. No claim that CI turn 12 timeout is fixed; exact new-head Windows soak is required."
+      },
+      "darwinRetirement": {
+        "schema": "chainlesschain.darwin-retirement-fix-validation/v1",
+        "observedAt": "2026-10-23T17:22:50.890Z",
+        "status": "LOCAL_FIX_VERIFIED_REMOTE_FINAL_SOURCE_PENDING",
+        "originalFailure": {
+          "sourceSha": "3f766c03bf7acbf83383576e077b507dbd8c689e",
+          "runId": 39981678727,
+          "jobId": 120510678750,
+          "scope": "One assertion failed; no release",
+          "rawLogSha256": "fe7c3181dd1ca96775bd969cb5101a9bf0e321b193056e6190cfb34a8a7032e7"
+        },
+        "diagnostic": {
+          "sourceSha": "a804afd2e203eb7d6a9a10ed2a4987d3d8243919",
+          "runId": 39993324025,
+          "jobId": 120550360589,
+          "runtime": {
+            "platform": "darwin",
+            "arch": "arm64",
+            "node": "v22.12.0"
+          },
+          "independentSamples": 4,
+          "unconfirmedPermissionProbes": 3,
+          "confirmed": 1,
+          "receiptSha256": "425aa6a50c9b34e93d856ec042022da9dd3303f588a36461db7680859e9636fa",
+          "junit": "39 passed, but independent native samples fail; not an overall pass",
+          "interpretation": "Group signal succeeded, then immediate permission probe stopped observation. Empty ps rows alone are not retirement authority."
+        },
+        "correction": "Only Darwin after successful group SIGKILL continues zero-signal observations through EPERM within the same original deadline. Explicit ESRCH and root close are both required. No signal replay or permission-as-absence.",
+        "boundaries": {
+          "cleanupDeadlineMs": 10000,
+          "turnDeadlineMs": 60000,
+          "persistentPermissionFails": true,
+          "otherErrorsFail": true,
+          "unconfirmedCloseFails": true,
+          "unsafeErrorTextStored": false,
+          "failedDirectoriesRetained": true
+        },
+        "local": {
+          "node": "22.12.0",
+          "platform": "win32",
+          "nativeHostPermissions": true,
+          "files": 3,
+          "passed": 46,
+          "failed": 0,
+          "testLogSha256": "2a487af341b032defff0a42028d4cedb2058dc2c3eeb262a36308bed34196ee7",
+          "toolChunk": "419d2e",
+          "sandboxFailureReceiptSha256": "33e3320a67b55b17c7e555d0d4301119edbb945763c62a38558ccc361a624584",
+          "sandboxScope": "Default sandbox taskkill timeouts retained separately; not a host result"
+        },
+        "sourceSnapshot": [
+          {
+            "path": "packages/cli/scripts/cli-reliability-soak.mjs",
+            "sha256": "0629bd4ce4e9357b0237e50149427662686af4848f9c95ec559377101a62f596"
+          },
+          {
+            "path": "packages/cli/__tests__/unit/cli-reliability-duplex-diagnostics.test.js",
+            "sha256": "fcd5a27f9e78e8fc5a5c91d2b8614d7c13fbd95f7d948753e5dff45251d036f3"
+          },
+          {
+            "path": ".github/scripts/diagnose-duplex-retirement.mjs",
+            "sha256": "3df43ab42a2f2626d875e467fb09108d30e88056ac9c6172489407c217c5a559"
+          },
+          {
+            "path": ".github/workflows/cli-process-retirement-diagnostic.yml",
+            "sha256": "646123efa8c80bd72db382db51995d7b4d5b42671b5ada568aa601a276942769"
+          }
+        ],
+        "remaining": "Fresh exact-source three-OS diagnostic and complete authoritative release matrices. No publication, paid tasks or formal native admission."
       }
     },
     "generatedCommandAssets": "manifest, help index and completions checks passed",
@@ -1858,6 +1927,14 @@
   },
   "sourceSnapshot": [
     {
+      "path": ".github/scripts/diagnose-duplex-retirement.mjs",
+      "sha256": "3df43ab42a2f2626d875e467fb09108d30e88056ac9c6172489407c217c5a559"
+    },
+    {
+      "path": ".github/workflows/cli-process-retirement-diagnostic.yml",
+      "sha256": "646123efa8c80bd72db382db51995d7b4d5b42671b5ada568aa601a276942769"
+    },
+    {
       "path": ".github/workflows/cli-reliability-soak.yml",
       "sha256": "2ee14865837499caf3e6d6706a5b49381ef7817815893f9e391c6a06d048eb10"
     },
@@ -1875,7 +1952,7 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "4e1280692d4bead5a8fd8e0e4ff106cec1fd88646a2999c3993e9b3d49925a37"
+      "sha256": "03fc3d304c3842b9b60ee5bca11eac5c4574ef2a02509d7eb1b91b5c62d94344"
     },
     {
       "path": "android-app/app/build.gradle.kts",
@@ -1935,7 +2012,7 @@
     },
     {
       "path": "packages/cli/__tests__/unit/cli-reliability-duplex-diagnostics.test.js",
-      "sha256": "7ee8b783f5cf12486233716f5fa5b663f8e8b4d33edbe98e3bb1f309cb748456"
+      "sha256": "fcd5a27f9e78e8fc5a5c91d2b8614d7c13fbd95f7d948753e5dff45251d036f3"
     },
     {
       "path": "packages/cli/__tests__/unit/cli-reliability-fetch-diagnostics.test.js",
@@ -1983,7 +2060,7 @@
     },
     {
       "path": "packages/cli/scripts/cli-reliability-soak.mjs",
-      "sha256": "dddcd52c31f9b4435051e3c72fe0ba9fcbefbf17a9f6c990dfa8d205ab39a884"
+      "sha256": "0629bd4ce4e9357b0237e50149427662686af4848f9c95ec559377101a62f596"
     },
     {
       "path": "packages/cli/scripts/verify01-collect-native-retest.py",
@@ -1991,7 +2068,7 @@
     },
     {
       "path": "packages/cli/src/data/changelog.json",
-      "sha256": "63a28bf97f4531a31bccb95d5abd1ce9f73bc251431f431427c12661b1632dbf"
+      "sha256": "a27a6fbebf0afe9587f05dfc1e333360de0b294134c82f5c622f2cc41356890b"
     },
     {
       "path": "packages/cli/src/lib/evolution/evidence-json-text.js",
@@ -2409,6 +2486,31 @@
       "path": "release118-windows-frontier-tests.txt",
       "sha256": "54904479a62cae8ed06883a5487f0b972b1780db5e1990d9748c448888cd9855",
       "originalSha256": "42be3b34f431ab60db273dd5a29fe77595f67abfde7f4da81a133db93a7855f7"
+    },
+    {
+      "path": "release118-darwin-retirement-original-failure.txt",
+      "sha256": "8ea1f68f8badd02ef39d94fea7100251dd7860140b52e4eaed8c280e378816a8",
+      "originalSha256": "c717c080f3da28994defa1cf6ae886d74226b8ef348ee69d21ab7ffa1aa2dfc7"
+    },
+    {
+      "path": "release118-darwin-retirement-a804-before.json",
+      "sha256": "425aa6a50c9b34e93d856ec042022da9dd3303f588a36461db7680859e9636fa",
+      "originalSha256": "425aa6a50c9b34e93d856ec042022da9dd3303f588a36461db7680859e9636fa"
+    },
+    {
+      "path": "release118-darwin-retirement-a804-junit.xml",
+      "sha256": "283aa3a7c7d235eea5d9a88afcaa3e90cab522a343357b63a84a7d2ebaf70aca",
+      "originalSha256": "283aa3a7c7d235eea5d9a88afcaa3e90cab522a343357b63a84a7d2ebaf70aca"
+    },
+    {
+      "path": "release118-darwin-retirement-validation.json",
+      "sha256": "e265dd19965673686dfe3cc024ccae86d651d171e3d67f480a935b4d1c1487f1",
+      "originalSha256": "e265dd19965673686dfe3cc024ccae86d651d171e3d67f480a935b4d1c1487f1"
+    },
+    {
+      "path": "release118-darwin-retirement-local-tests.txt",
+      "sha256": "1f46867945531a8d3d031ddd4bfbc7ffa6313096165b4822cc417d94aa4f8983",
+      "originalSha256": "2a487af341b032defff0a42028d4cedb2058dc2c3eeb262a36308bed34196ee7"
     }
   ],
   "rawSecurityAudit": {

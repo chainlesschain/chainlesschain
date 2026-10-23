@@ -1,0 +1,69 @@
+{
+  "schema": "chainlesschain.darwin-retirement-fix-validation/v1",
+  "observedAt": "2026-10-23T17:22:50.890Z",
+  "status": "LOCAL_FIX_VERIFIED_REMOTE_FINAL_SOURCE_PENDING",
+  "originalFailure": {
+    "sourceSha": "3f766c03bf7acbf83383576e077b507dbd8c689e",
+    "runId": 39981678727,
+    "jobId": 120510678750,
+    "scope": "One assertion failed; no release",
+    "rawLogSha256": "fe7c3181dd1ca96775bd969cb5101a9bf0e321b193056e6190cfb34a8a7032e7"
+  },
+  "diagnostic": {
+    "sourceSha": "a804afd2e203eb7d6a9a10ed2a4987d3d8243919",
+    "runId": 39993324025,
+    "jobId": 120550360589,
+    "runtime": {
+      "platform": "darwin",
+      "arch": "arm64",
+      "node": "v22.12.0"
+    },
+    "independentSamples": 4,
+    "unconfirmedPermissionProbes": 3,
+    "confirmed": 1,
+    "receiptSha256": "425aa6a50c9b34e93d856ec042022da9dd3303f588a36461db7680859e9636fa",
+    "junit": "39 passed, but independent native samples fail; not an overall pass",
+    "interpretation": "Group signal succeeded, then immediate permission probe stopped observation. Empty ps rows alone are not retirement authority."
+  },
+  "correction": "Only Darwin after successful group SIGKILL continues zero-signal observations through EPERM within the same original deadline. Explicit ESRCH and root close are both required. No signal replay or permission-as-absence.",
+  "boundaries": {
+    "cleanupDeadlineMs": 10000,
+    "turnDeadlineMs": 60000,
+    "persistentPermissionFails": true,
+    "otherErrorsFail": true,
+    "unconfirmedCloseFails": true,
+    "unsafeErrorTextStored": false,
+    "failedDirectoriesRetained": true
+  },
+  "local": {
+    "node": "22.12.0",
+    "platform": "win32",
+    "nativeHostPermissions": true,
+    "files": 3,
+    "passed": 46,
+    "failed": 0,
+    "testLogSha256": "2a487af341b032defff0a42028d4cedb2058dc2c3eeb262a36308bed34196ee7",
+    "toolChunk": "419d2e",
+    "sandboxFailureReceiptSha256": "33e3320a67b55b17c7e555d0d4301119edbb945763c62a38558ccc361a624584",
+    "sandboxScope": "Default sandbox taskkill timeouts retained separately; not a host result"
+  },
+  "sourceSnapshot": [
+    {
+      "path": "packages/cli/scripts/cli-reliability-soak.mjs",
+      "sha256": "0629bd4ce4e9357b0237e50149427662686af4848f9c95ec559377101a62f596"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/cli-reliability-duplex-diagnostics.test.js",
+      "sha256": "fcd5a27f9e78e8fc5a5c91d2b8614d7c13fbd95f7d948753e5dff45251d036f3"
+    },
+    {
+      "path": ".github/scripts/diagnose-duplex-retirement.mjs",
+      "sha256": "3df43ab42a2f2626d875e467fb09108d30e88056ac9c6172489407c217c5a559"
+    },
+    {
+      "path": ".github/workflows/cli-process-retirement-diagnostic.yml",
+      "sha256": "646123efa8c80bd72db382db51995d7b4d5b42671b5ada568aa601a276942769"
+    }
+  ],
+  "remaining": "Fresh exact-source three-OS diagnostic and complete authoritative release matrices. No publication, paid tasks or formal native admission."
+}
