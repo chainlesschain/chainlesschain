@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Classify fixed Windows startup errors without storing their content, and exclude request-context prose from MCP failure-code diagnostics.
 - Give each default Ollama request a fresh connection so long synchronous turns cannot reuse a retired idle socket; preserve explicit dispatchers, governed transport policy and existing request budgets without replaying requests.
 - Verify the Evolution Run ledger once before and after each history read, retaining individual artifact authentication and rejecting a changed frontier instead of re-verifying the entire ledger for every event.
+- Reduce repeated Evolution artifact index parsing during long Agent sessions through bounded synchronous reads; retain fresh file identity, byte, payload, signature and current authority checks, and freeze parsed rows before reuse.
+- Secure independent Windows ledger roots in one ACL batch before creating child directories, preserving physical identity checks and private parent permissions.
+- Retain observations for all twenty concurrent reliability children on failure and await bounded cleanup without replacing the original timeout or deleting storage still in use.
 - Checkpoint duplex timeout diagnostics before retiring the owned process tree; preserve the original failure and retain temporary storage if cleanup cannot be confirmed.
 - Observe transient Darwin process-group permission probes within the original cleanup deadline after a successful group kill; confirm retirement only after explicit process-group absence and root close, without resending termination signals.
 - Upgrade DOMPurify to 3.4.17 in desktop and Web Panel dependency graphs, including Monaco's nested copy. Run sanitizer regressions with DOMPurify's supported jsdom environment.

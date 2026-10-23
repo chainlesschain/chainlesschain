@@ -1,0 +1,1258 @@
+{
+  "schema": "chainlesschain.duplex-cpu-attribution/v1",
+  "runId": 40018153592,
+  "runAttempt": 1,
+  "sourceSha": "0e59f8a304996e2597fe1af61b36e4da0551ec2f",
+  "driverSha": "3086cdff4791c49662018857065d5d95898357af",
+  "status": "THREE_OS_DIAGNOSTIC_ATTRIBUTION_NOT_QUALIFYING",
+  "sourceFile": "packages/cli/src/lib/evolution/evolution-artifact-ports.js",
+  "sourceFileSha256": "406620241886185540e44d4a78e9274779e8ec1f89bcf3d1871fe3c5c8e41586",
+  "platforms": [
+    {
+      "platform": "linux",
+      "artifactId": 12529273184,
+      "archiveSha256": "6c8f3e9b339916e133641825da9b7930a6b41e1638ee24c3e4f79cf52304d7f8",
+      "cpuSummarySha256": "2bc62b9845c47810cc1ec5e8a76f62e1ecd652ed5e05466f8228a6e1c2bac149",
+      "reportSha256": "a349f38cf9ad57eb401228d7cde0f144fd8108a24d58f4a868caa19d230b5583",
+      "jobId": 120635480764,
+      "jobLogSha256": "c66908f6749f35477ffe1e4c083309229b0928f86326e50ffdeebcd0f2782218",
+      "sampledMicros": 8366022,
+      "summarizedSamples": 824,
+      "profileDurationMicros": 8366176,
+      "unknownSamples": 217,
+      "unknownTimeSamples": 0,
+      "samplingWindow": {
+        "startTriggerMs": 5741.573095,
+        "recordingStartedMs": 5840.208435,
+        "stopTriggerMs": 14108.375597,
+        "completedMs": 14141.680718
+      },
+      "truncated": {
+        "nodes": false,
+        "samples": false,
+        "edges": false,
+        "depth": true,
+        "self": true,
+        "inclusive": true,
+        "chains": true,
+        "chainAggregation": false,
+        "output": false
+      },
+      "targetFunctions": [
+        {
+          "name": "canonicalWalk",
+          "source": "packages/cli/src/lib/evolution/evolution-artifact-ports.js:706",
+          "self": {
+            "samples": 171,
+            "weightedMicros": 1734890,
+            "weightedSamplePercent": 20.73733490062541,
+            "sampleCountPercent": 20.75242718446602
+          },
+          "inclusive": {
+            "samples": 260,
+            "weightedMicros": 2632513,
+            "weightedSamplePercent": 31.46672337223115,
+            "sampleCountPercent": 31.553398058252426
+          }
+        },
+        {
+          "name": "canonicalJson",
+          "source": "packages/cli/src/lib/evolution/evolution-artifact-ports.js:810",
+          "self": {
+            "samples": 36,
+            "weightedMicros": 373036,
+            "weightedSamplePercent": 4.458941178973711,
+            "sampleCountPercent": 4.368932038834951
+          },
+          "inclusive": {
+            "samples": 298,
+            "weightedMicros": 3025698,
+            "weightedSamplePercent": 36.16650780980495,
+            "sampleCountPercent": 36.16504854368932
+          }
+        },
+        {
+          "name": "indexEntriesFingerprint",
+          "source": "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1424",
+          "self": {
+            "samples": 3,
+            "weightedMicros": 30302,
+            "weightedSamplePercent": 0.3622032072112648,
+            "sampleCountPercent": 0.3640776699029126
+          },
+          "inclusive": {
+            "samples": 314,
+            "weightedMicros": 3186882,
+            "weightedSamplePercent": 38.09315825370768,
+            "sampleCountPercent": 38.10679611650485
+          }
+        },
+        {
+          "name": "parseTrustedIndexBytes",
+          "source": "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1438",
+          "self": {
+            "samples": 115,
+            "weightedMicros": 1170660,
+            "weightedSamplePercent": 13.993030379312891,
+            "sampleCountPercent": 13.95631067961165
+          },
+          "inclusive": {
+            "samples": 391,
+            "weightedMicros": 3966429,
+            "weightedSamplePercent": 47.4111710440159,
+            "sampleCountPercent": 47.45145631067961
+          }
+        },
+        {
+          "name": "readTrustedIndexSnapshot",
+          "source": "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1524",
+          "self": {
+            "rankedRowPresent": false,
+            "samples": null,
+            "weightedMicros": null,
+            "weightedSamplePercent": null,
+            "sampleCountPercent": null
+          },
+          "inclusive": {
+            "samples": 443,
+            "weightedMicros": 4493124,
+            "weightedSamplePercent": 53.706815497257836,
+            "sampleCountPercent": 53.762135922330096
+          }
+        },
+        {
+          "name": "#loadLedgerEntry",
+          "source": "packages/cli/src/lib/evolution/evolution-artifact-ports.js:2386",
+          "self": {
+            "rankedRowPresent": false,
+            "samples": null,
+            "weightedMicros": null,
+            "weightedSamplePercent": null,
+            "sampleCountPercent": null
+          },
+          "inclusive": {
+            "samples": 211,
+            "weightedMicros": 2142054,
+            "weightedSamplePercent": 25.60421189425512,
+            "sampleCountPercent": 25.606796116504853
+          }
+        }
+      ],
+      "windowsAclFunctions": [
+        {
+          "name": "runWindowsAclCommand",
+          "source": "packages/session-core/lib/private-storage.js:818",
+          "self": {
+            "rankedRowPresent": false,
+            "samples": null,
+            "weightedMicros": null,
+            "weightedSamplePercent": null,
+            "sampleCountPercent": null
+          },
+          "inclusive": {
+            "rankedRowPresent": false,
+            "samples": null,
+            "weightedMicros": null,
+            "weightedSamplePercent": null,
+            "sampleCountPercent": null
+          }
+        },
+        {
+          "name": "windowsAclBatch",
+          "source": "packages/session-core/lib/private-storage.js:982",
+          "self": {
+            "rankedRowPresent": false,
+            "samples": null,
+            "weightedMicros": null,
+            "weightedSamplePercent": null,
+            "sampleCountPercent": null
+          },
+          "inclusive": {
+            "rankedRowPresent": false,
+            "samples": null,
+            "weightedMicros": null,
+            "weightedSamplePercent": null,
+            "sampleCountPercent": null
+          }
+        },
+        {
+          "name": "repairPrivatePaths",
+          "source": "packages/session-core/lib/private-storage.js:1197",
+          "self": {
+            "rankedRowPresent": false,
+            "samples": null,
+            "weightedMicros": null,
+            "weightedSamplePercent": null,
+            "sampleCountPercent": null
+          },
+          "inclusive": {
+            "rankedRowPresent": false,
+            "samples": null,
+            "weightedMicros": null,
+            "weightedSamplePercent": null,
+            "sampleCountPercent": null
+          }
+        },
+        {
+          "name": "#flushPendingWindowsAclFiles",
+          "source": "packages/cli/src/lib/evolution/evolution-ledger.js:3473",
+          "self": {
+            "rankedRowPresent": false,
+            "samples": null,
+            "weightedMicros": null,
+            "weightedSamplePercent": null,
+            "sampleCountPercent": null
+          },
+          "inclusive": {
+            "rankedRowPresent": false,
+            "samples": null,
+            "weightedMicros": null,
+            "weightedSamplePercent": null,
+            "sampleCountPercent": null
+          }
+        },
+        {
+          "name": "#requireDirectoryDurability",
+          "source": "packages/cli/src/lib/evolution/evolution-ledger.js:3581",
+          "self": {
+            "rankedRowPresent": false,
+            "samples": null,
+            "weightedMicros": null,
+            "weightedSamplePercent": null,
+            "sampleCountPercent": null
+          },
+          "inclusive": {
+            "rankedRowPresent": false,
+            "samples": null,
+            "weightedMicros": null,
+            "weightedSamplePercent": null,
+            "sampleCountPercent": null
+          }
+        },
+        {
+          "name": "appendDomainEvent",
+          "source": "packages/cli/src/lib/evolution/evolution-ledger.js:4941",
+          "self": {
+            "rankedRowPresent": false,
+            "samples": null,
+            "weightedMicros": null,
+            "weightedSamplePercent": null,
+            "sampleCountPercent": null
+          },
+          "inclusive": {
+            "rankedRowPresent": false,
+            "samples": null,
+            "weightedMicros": null,
+            "weightedSamplePercent": null,
+            "sampleCountPercent": null
+          }
+        }
+      ],
+      "selectedChains": [
+        {
+          "frames": [
+            "root",
+            "node-internal",
+            "unknown-native",
+            "packages/cli/src/lib/evolution/agent-evolution-ingress.js:276:17",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:374:7",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:310:11",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:316:46",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:281:28",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:3624:29",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:3484:24",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:2386:19",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1524:34",
+            "packages/cli/src/lib/evolution/evolution-file-identity.js:14:42",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1528:5",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1533:46",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1438:32"
+          ],
+          "samples": 11,
+          "micros": 111115
+        },
+        {
+          "frames": [
+            "root",
+            "node-internal",
+            "unknown-native",
+            "packages/cli/src/lib/evolution/agent-evolution-ingress.js:276:17",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:389:14",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:310:11",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:316:46",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:281:28",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:3624:29",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:3484:24",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:3028:29",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:2386:19",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1524:34",
+            "packages/cli/src/lib/evolution/evolution-file-identity.js:14:42",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1528:5",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1533:46",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1438:32"
+          ],
+          "samples": 10,
+          "micros": 100991
+        },
+        {
+          "frames": [
+            "root",
+            "node-internal",
+            "unknown-native",
+            "packages/cli/src/lib/evolution/evolution-evidence-artifact-adapter.js:424:17",
+            "packages/cli/src/lib/evolution/evolution-evidence-artifact-adapter.js:403:7",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:3174:15",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:3028:29",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:2351:28",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:2173:23",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1524:34",
+            "packages/cli/src/lib/evolution/evolution-file-identity.js:14:42",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1528:5",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1533:46",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1438:32"
+          ],
+          "samples": 8,
+          "micros": 90466
+        },
+        {
+          "frames": [
+            "root",
+            "node-internal",
+            "unknown-native",
+            "packages/cli/src/lib/evolution/evolution-evidence-artifact-adapter.js:424:17",
+            "packages/cli/src/lib/evolution/evolution-evidence-artifact-adapter.js:403:7",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:3174:15",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:3028:29",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:2340:21",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:2271:24",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:2173:23",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1524:34",
+            "packages/cli/src/lib/evolution/evolution-file-identity.js:14:42",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1528:5",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1533:46",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1438:32"
+          ],
+          "samples": 8,
+          "micros": 80727
+        },
+        {
+          "frames": [
+            "root",
+            "node-internal",
+            "unknown-native",
+            "packages/cli/src/lib/evolution/agent-evolution-ingress.js:276:17",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:389:14",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:374:7",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:310:11",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:316:46",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:281:28",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:3624:29",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:3484:24",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:2386:19",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1524:34",
+            "packages/cli/src/lib/evolution/evolution-file-identity.js:14:42",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1528:5",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1533:46",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1438:32"
+          ],
+          "samples": 7,
+          "micros": 70740
+        }
+      ],
+      "selectedWindowsAclChains": [],
+      "sourceCleanBefore": true,
+      "sourceCleanAfter": true,
+      "unchangedNpmTreeCount": 14,
+      "finalFailure": {
+        "kind": "turn-timeout",
+        "awaitedResultCount": 19,
+        "timeoutMs": 60000
+      },
+      "results": 18,
+      "measuredTurns": 0,
+      "diagnosticMeasurementStarted": false,
+      "diagnosticMeasuredDurationSeconds": 0,
+      "cleanup": {
+        "deadlineMs": 10000,
+        "elapsedMs": 24.734281000040937,
+        "closed": true,
+        "treeTerminated": true,
+        "confirmed": true,
+        "deadlineExceeded": false,
+        "diagnostics": {
+          "method": "posix-process-group",
+          "initialExitObserved": false,
+          "signalAttempted": true,
+          "probeCount": 2,
+          "permissionProbeCount": 0,
+          "failureStage": null,
+          "errorCode": null
+        }
+      }
+    },
+    {
+      "platform": "macos",
+      "artifactId": 12528999215,
+      "archiveSha256": "403a3beaec371f18a0a56c65370a45c7d34e3f3aa91fca0a58eeef4121a501d3",
+      "cpuSummarySha256": "93edbfd4d6ac71f9962dc627e99b81df56e0b3514ce8146db7a2a8d4bf66c48a",
+      "reportSha256": "45f49bbcab4272ffe18fb0045d990e6d54e46685dbe2f549222ccbfd4613d61e",
+      "jobId": 120635480403,
+      "jobLogSha256": "6918d3bdb6346c16a264a8b8f9a578635994434320c4f69e48664463202c3fd7",
+      "sampledMicros": 8000209,
+      "summarizedSamples": 272,
+      "profileDurationMicros": 8034750,
+      "unknownSamples": 73,
+      "unknownTimeSamples": 0,
+      "samplingWindow": {
+        "startTriggerMs": 6006.777834,
+        "recordingStartedMs": 6107.159417,
+        "stopTriggerMs": 14043.028875,
+        "completedMs": 14056.57075
+      },
+      "truncated": {
+        "nodes": false,
+        "samples": false,
+        "edges": false,
+        "depth": false,
+        "self": false,
+        "inclusive": true,
+        "chains": true,
+        "chainAggregation": false,
+        "output": false
+      },
+      "targetFunctions": [
+        {
+          "name": "canonicalWalk",
+          "source": "packages/cli/src/lib/evolution/evolution-artifact-ports.js:706",
+          "self": {
+            "samples": 44,
+            "weightedMicros": 1334665,
+            "weightedSamplePercent": 16.68287665984726,
+            "sampleCountPercent": 16.176470588235293
+          },
+          "inclusive": {
+            "samples": 56,
+            "weightedMicros": 1756083,
+            "weightedSamplePercent": 21.950464044126846,
+            "sampleCountPercent": 20.58823529411765
+          }
+        },
+        {
+          "name": "canonicalJson",
+          "source": "packages/cli/src/lib/evolution/evolution-artifact-ports.js:810",
+          "self": {
+            "samples": 14,
+            "weightedMicros": 418001,
+            "weightedSamplePercent": 5.224876000114497,
+            "sampleCountPercent": 5.147058823529412
+          },
+          "inclusive": {
+            "samples": 71,
+            "weightedMicros": 2211626,
+            "weightedSamplePercent": 27.644602784752248,
+            "sampleCountPercent": 26.102941176470587
+          }
+        },
+        {
+          "name": "indexEntriesFingerprint",
+          "source": "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1424",
+          "self": {
+            "rankedRowPresent": false,
+            "samples": null,
+            "weightedMicros": null,
+            "weightedSamplePercent": null,
+            "sampleCountPercent": null
+          },
+          "inclusive": {
+            "samples": 74,
+            "weightedMicros": 2223250,
+            "weightedSamplePercent": 27.789898988888915,
+            "sampleCountPercent": 27.205882352941178
+          }
+        },
+        {
+          "name": "parseTrustedIndexBytes",
+          "source": "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1438",
+          "self": {
+            "samples": 32,
+            "weightedMicros": 876334,
+            "weightedSamplePercent": 10.953888829654325,
+            "sampleCountPercent": 11.764705882352942
+          },
+          "inclusive": {
+            "samples": 95,
+            "weightedMicros": 2720457,
+            "weightedSamplePercent": 34.00482412396976,
+            "sampleCountPercent": 34.9264705882353
+          }
+        },
+        {
+          "name": "readTrustedIndexSnapshot",
+          "source": "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1524",
+          "self": {
+            "rankedRowPresent": false,
+            "samples": null,
+            "weightedMicros": null,
+            "weightedSamplePercent": null,
+            "sampleCountPercent": null
+          },
+          "inclusive": {
+            "samples": 117,
+            "weightedMicros": 3489584,
+            "weightedSamplePercent": 43.61866046249542,
+            "sampleCountPercent": 43.01470588235294
+          }
+        },
+        {
+          "name": "#loadLedgerEntry",
+          "source": "packages/cli/src/lib/evolution/evolution-artifact-ports.js:2386",
+          "self": {
+            "rankedRowPresent": false,
+            "samples": null,
+            "weightedMicros": null,
+            "weightedSamplePercent": null,
+            "sampleCountPercent": null
+          },
+          "inclusive": {
+            "samples": 57,
+            "weightedMicros": 1577001,
+            "weightedSamplePercent": 19.711997524064685,
+            "sampleCountPercent": 20.955882352941178
+          }
+        }
+      ],
+      "windowsAclFunctions": [
+        {
+          "name": "runWindowsAclCommand",
+          "source": "packages/session-core/lib/private-storage.js:818",
+          "self": {
+            "rankedRowPresent": false,
+            "samples": null,
+            "weightedMicros": null,
+            "weightedSamplePercent": null,
+            "sampleCountPercent": null
+          },
+          "inclusive": {
+            "rankedRowPresent": false,
+            "samples": null,
+            "weightedMicros": null,
+            "weightedSamplePercent": null,
+            "sampleCountPercent": null
+          }
+        },
+        {
+          "name": "windowsAclBatch",
+          "source": "packages/session-core/lib/private-storage.js:982",
+          "self": {
+            "rankedRowPresent": false,
+            "samples": null,
+            "weightedMicros": null,
+            "weightedSamplePercent": null,
+            "sampleCountPercent": null
+          },
+          "inclusive": {
+            "rankedRowPresent": false,
+            "samples": null,
+            "weightedMicros": null,
+            "weightedSamplePercent": null,
+            "sampleCountPercent": null
+          }
+        },
+        {
+          "name": "repairPrivatePaths",
+          "source": "packages/session-core/lib/private-storage.js:1197",
+          "self": {
+            "rankedRowPresent": false,
+            "samples": null,
+            "weightedMicros": null,
+            "weightedSamplePercent": null,
+            "sampleCountPercent": null
+          },
+          "inclusive": {
+            "rankedRowPresent": false,
+            "samples": null,
+            "weightedMicros": null,
+            "weightedSamplePercent": null,
+            "sampleCountPercent": null
+          }
+        },
+        {
+          "name": "#flushPendingWindowsAclFiles",
+          "source": "packages/cli/src/lib/evolution/evolution-ledger.js:3473",
+          "self": {
+            "rankedRowPresent": false,
+            "samples": null,
+            "weightedMicros": null,
+            "weightedSamplePercent": null,
+            "sampleCountPercent": null
+          },
+          "inclusive": {
+            "rankedRowPresent": false,
+            "samples": null,
+            "weightedMicros": null,
+            "weightedSamplePercent": null,
+            "sampleCountPercent": null
+          }
+        },
+        {
+          "name": "#requireDirectoryDurability",
+          "source": "packages/cli/src/lib/evolution/evolution-ledger.js:3581",
+          "self": {
+            "rankedRowPresent": false,
+            "samples": null,
+            "weightedMicros": null,
+            "weightedSamplePercent": null,
+            "sampleCountPercent": null
+          },
+          "inclusive": {
+            "rankedRowPresent": false,
+            "samples": null,
+            "weightedMicros": null,
+            "weightedSamplePercent": null,
+            "sampleCountPercent": null
+          }
+        },
+        {
+          "name": "appendDomainEvent",
+          "source": "packages/cli/src/lib/evolution/evolution-ledger.js:4941",
+          "self": {
+            "rankedRowPresent": false,
+            "samples": null,
+            "weightedMicros": null,
+            "weightedSamplePercent": null,
+            "sampleCountPercent": null
+          },
+          "inclusive": {
+            "rankedRowPresent": false,
+            "samples": null,
+            "weightedMicros": null,
+            "weightedSamplePercent": null,
+            "sampleCountPercent": null
+          }
+        }
+      ],
+      "selectedChains": [
+        {
+          "frames": [
+            "root",
+            "node-internal",
+            "unknown-native",
+            "packages/cli/src/lib/evolution/agent-evolution-ingress.js:276:17",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:389:14",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:310:11",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:316:46",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:281:28",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:3624:29",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:3484:24",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:2386:19",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1524:34",
+            "packages/cli/src/lib/evolution/evolution-file-identity.js:14:42",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1528:5",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1533:46",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1438:32"
+          ],
+          "samples": 6,
+          "micros": 142917
+        },
+        {
+          "frames": [
+            "root",
+            "node-internal",
+            "unknown-native",
+            "packages/cli/src/lib/evolution/agent-evolution-ingress.js:276:17",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:389:14",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:310:11",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:316:46",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:281:28",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:3624:29",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:3484:24",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:3028:29",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:2386:19",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1524:34",
+            "packages/cli/src/lib/evolution/evolution-file-identity.js:14:42",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1528:5",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1533:46",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1438:32"
+          ],
+          "samples": 3,
+          "micros": 90083
+        },
+        {
+          "frames": [
+            "root",
+            "node-internal",
+            "unknown-native",
+            "packages/cli/src/lib/evolution/agent-evolution-ingress.js:276:17",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:389:14",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:310:11",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:316:46",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:281:28",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:3624:29",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:3484:24",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:3028:29",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:2386:19",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1524:34",
+            "packages/cli/src/lib/evolution/evolution-file-identity.js:14:42",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1528:5",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1533:46",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1438:32",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1424:33",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:810:23",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:706:23",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:706:23"
+          ],
+          "samples": 2,
+          "micros": 85750
+        },
+        {
+          "frames": [
+            "root",
+            "node-internal",
+            "unknown-native",
+            "packages/cli/src/lib/evolution/evolution-evidence-artifact-adapter.js:424:17",
+            "packages/cli/src/lib/evolution/evolution-evidence-artifact-adapter.js:403:7",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:3174:15",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1524:34",
+            "packages/cli/src/lib/evolution/evolution-file-identity.js:14:42",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1528:5",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1533:46",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1438:32",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1424:33",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:810:23",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:706:23",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:706:23",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:706:23"
+          ],
+          "samples": 3,
+          "micros": 84042
+        },
+        {
+          "frames": [
+            "root",
+            "node-internal",
+            "unknown-native",
+            "packages/cli/src/lib/evolution/agent-evolution-ingress.js:216:20",
+            "packages/cli/src/lib/evolution/agent-evolution-ingress.js:276:17",
+            "packages/cli/src/lib/evolution/agent-evolution-ingress.js:248:25",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:374:7",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:310:11",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:316:46",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:281:28",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:3624:29",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:3484:24",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:2386:19",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1524:34",
+            "packages/cli/src/lib/evolution/evolution-file-identity.js:14:42",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1528:5",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1533:46",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1438:32",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1424:33",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:810:23"
+          ],
+          "samples": 2,
+          "micros": 77833
+        }
+      ],
+      "selectedWindowsAclChains": [],
+      "sourceCleanBefore": true,
+      "sourceCleanAfter": true,
+      "unchangedNpmTreeCount": 14,
+      "finalFailure": {
+        "kind": "turn-timeout",
+        "awaitedResultCount": 17,
+        "timeoutMs": 60000
+      },
+      "results": 16,
+      "measuredTurns": 0,
+      "diagnosticMeasurementStarted": false,
+      "diagnosticMeasuredDurationSeconds": 0,
+      "cleanup": {
+        "deadlineMs": 10000,
+        "elapsedMs": 25.83079199999338,
+        "closed": true,
+        "treeTerminated": true,
+        "confirmed": true,
+        "deadlineExceeded": false,
+        "diagnostics": {
+          "method": "posix-process-group",
+          "initialExitObserved": false,
+          "signalAttempted": true,
+          "probeCount": 2,
+          "permissionProbeCount": 0,
+          "failureStage": null,
+          "errorCode": null
+        }
+      }
+    },
+    {
+      "platform": "windows",
+      "artifactId": 12530191970,
+      "archiveSha256": "99854aa218b22b06861586fbaf12c8f64f565cf34a686aea0f3eb169b15f3661",
+      "cpuSummarySha256": "747f12b1cd6bce165b220cba73cf580d69b2ed51edaa24ec63ddb43a9ae95083",
+      "reportSha256": "08e79182fe2ec07a924fe89d5e25ebf12bbd8829121ba20e334a24ef169f5ab9",
+      "jobId": 120635480530,
+      "jobLogSha256": "034a97611a466ed74b29ad3a1b6cc79003956c7f1c5a783c5a3fad2483e5ee23",
+      "sampledMicros": 17488790,
+      "summarizedSamples": 1656,
+      "profileDurationMicros": 17489435,
+      "unknownSamples": 1489,
+      "unknownTimeSamples": 0,
+      "samplingWindow": {
+        "startTriggerMs": 22086.8409,
+        "recordingStartedMs": 22180.4359,
+        "stopTriggerMs": 39575.0202,
+        "completedMs": 39619.7384
+      },
+      "truncated": {
+        "nodes": false,
+        "samples": false,
+        "edges": false,
+        "depth": true,
+        "self": false,
+        "inclusive": true,
+        "chains": true,
+        "chainAggregation": false,
+        "output": false
+      },
+      "targetFunctions": [
+        {
+          "name": "canonicalWalk",
+          "source": "packages/cli/src/lib/evolution/evolution-artifact-ports.js:706",
+          "self": {
+            "samples": 34,
+            "weightedMicros": 366555,
+            "weightedSamplePercent": 2.095942600946092,
+            "sampleCountPercent": 2.0531400966183573
+          },
+          "inclusive": {
+            "rankedRowPresent": false,
+            "samples": null,
+            "weightedMicros": null,
+            "weightedSamplePercent": null,
+            "sampleCountPercent": null
+          }
+        },
+        {
+          "name": "canonicalJson",
+          "source": "packages/cli/src/lib/evolution/evolution-artifact-ports.js:810",
+          "self": {
+            "samples": 7,
+            "weightedMicros": 79259,
+            "weightedSamplePercent": 0.4531988776810746,
+            "sampleCountPercent": 0.4227053140096618
+          },
+          "inclusive": {
+            "rankedRowPresent": false,
+            "samples": null,
+            "weightedMicros": null,
+            "weightedSamplePercent": null,
+            "sampleCountPercent": null
+          }
+        },
+        {
+          "name": "indexEntriesFingerprint",
+          "source": "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1424",
+          "self": {
+            "samples": 1,
+            "weightedMicros": 10598,
+            "weightedSamplePercent": 0.06059881787133358,
+            "sampleCountPercent": 0.06038647342995169
+          },
+          "inclusive": {
+            "rankedRowPresent": false,
+            "samples": null,
+            "weightedMicros": null,
+            "weightedSamplePercent": null,
+            "sampleCountPercent": null
+          }
+        },
+        {
+          "name": "parseTrustedIndexBytes",
+          "source": "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1438",
+          "self": {
+            "samples": 6,
+            "weightedMicros": 62316,
+            "weightedSamplePercent": 0.35631967677580895,
+            "sampleCountPercent": 0.36231884057971014
+          },
+          "inclusive": {
+            "rankedRowPresent": false,
+            "samples": null,
+            "weightedMicros": null,
+            "weightedSamplePercent": null,
+            "sampleCountPercent": null
+          }
+        },
+        {
+          "name": "readTrustedIndexSnapshot",
+          "source": "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1524",
+          "self": {
+            "rankedRowPresent": false,
+            "samples": null,
+            "weightedMicros": null,
+            "weightedSamplePercent": null,
+            "sampleCountPercent": null
+          },
+          "inclusive": {
+            "samples": 452,
+            "weightedMicros": 4880552,
+            "weightedSamplePercent": 27.9067448348342,
+            "sampleCountPercent": 27.294685990338163
+          }
+        },
+        {
+          "name": "#loadLedgerEntry",
+          "source": "packages/cli/src/lib/evolution/evolution-artifact-ports.js:2386",
+          "self": {
+            "rankedRowPresent": false,
+            "samples": null,
+            "weightedMicros": null,
+            "weightedSamplePercent": null,
+            "sampleCountPercent": null
+          },
+          "inclusive": {
+            "samples": 206,
+            "weightedMicros": 2236888,
+            "weightedSamplePercent": 12.790410314264166,
+            "sampleCountPercent": 12.439613526570048
+          }
+        }
+      ],
+      "windowsAclFunctions": [
+        {
+          "name": "runWindowsAclCommand",
+          "source": "packages/session-core/lib/private-storage.js:818",
+          "self": {
+            "rankedRowPresent": false,
+            "samples": null,
+            "weightedMicros": null,
+            "weightedSamplePercent": null,
+            "sampleCountPercent": null
+          },
+          "inclusive": {
+            "samples": 627,
+            "weightedMicros": 6537056,
+            "weightedSamplePercent": 37.37854934503759,
+            "sampleCountPercent": 37.86231884057971
+          }
+        },
+        {
+          "name": "windowsAclBatch",
+          "source": "packages/session-core/lib/private-storage.js:982",
+          "self": {
+            "rankedRowPresent": false,
+            "samples": null,
+            "weightedMicros": null,
+            "weightedSamplePercent": null,
+            "sampleCountPercent": null
+          },
+          "inclusive": {
+            "samples": 627,
+            "weightedMicros": 6537056,
+            "weightedSamplePercent": 37.37854934503759,
+            "sampleCountPercent": 37.86231884057971
+          }
+        },
+        {
+          "name": "repairPrivatePaths",
+          "source": "packages/session-core/lib/private-storage.js:1197",
+          "self": {
+            "rankedRowPresent": false,
+            "samples": null,
+            "weightedMicros": null,
+            "weightedSamplePercent": null,
+            "sampleCountPercent": null
+          },
+          "inclusive": {
+            "samples": 628,
+            "weightedMicros": 6547177,
+            "weightedSamplePercent": 37.436420701489354,
+            "sampleCountPercent": 37.92270531400966
+          }
+        },
+        {
+          "name": "#flushPendingWindowsAclFiles",
+          "source": "packages/cli/src/lib/evolution/evolution-ledger.js:3473",
+          "self": {
+            "rankedRowPresent": false,
+            "samples": null,
+            "weightedMicros": null,
+            "weightedSamplePercent": null,
+            "sampleCountPercent": null
+          },
+          "inclusive": {
+            "samples": 639,
+            "weightedMicros": 6661465,
+            "weightedSamplePercent": 38.08991359608069,
+            "sampleCountPercent": 38.58695652173913
+          }
+        },
+        {
+          "name": "#requireDirectoryDurability",
+          "source": "packages/cli/src/lib/evolution/evolution-ledger.js:3581",
+          "self": {
+            "rankedRowPresent": false,
+            "samples": null,
+            "weightedMicros": null,
+            "weightedSamplePercent": null,
+            "sampleCountPercent": null
+          },
+          "inclusive": {
+            "samples": 640,
+            "weightedMicros": 6672020,
+            "weightedSamplePercent": 38.15026654216787,
+            "sampleCountPercent": 38.64734299516908
+          }
+        },
+        {
+          "name": "appendDomainEvent",
+          "source": "packages/cli/src/lib/evolution/evolution-ledger.js:4941",
+          "self": {
+            "rankedRowPresent": false,
+            "samples": null,
+            "weightedMicros": null,
+            "weightedSamplePercent": null,
+            "sampleCountPercent": null
+          },
+          "inclusive": {
+            "samples": 717,
+            "weightedMicros": 7471184,
+            "weightedSamplePercent": 42.71984511221188,
+            "sampleCountPercent": 43.29710144927536
+          }
+        }
+      ],
+      "selectedChains": [
+        {
+          "frames": [
+            "root",
+            "node-internal",
+            "unknown-native",
+            "packages/cli/src/lib/evolution/agent-evolution-ingress.js:276:17",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:389:14",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:310:11",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:316:46",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:281:28",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:3624:29",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:3484:24",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:3028:29",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:2386:19",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1524:34",
+            "packages/cli/src/lib/evolution/evolution-file-identity.js:14:42",
+            "packages/cli/src/lib/secure-file-identity.js:295:42",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:37:14",
+            "node-internal",
+            "unknown-native"
+          ],
+          "samples": 17,
+          "micros": 200037
+        },
+        {
+          "frames": [
+            "root",
+            "node-internal",
+            "unknown-native",
+            "packages/cli/src/lib/evolution/agent-evolution-ingress.js:276:17",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:389:14",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:310:11",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:316:46",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:281:28",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:3624:29",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:3484:24",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:2386:19",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1524:34",
+            "packages/cli/src/lib/evolution/evolution-file-identity.js:14:42",
+            "packages/cli/src/lib/secure-file-identity.js:295:42",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:37:14",
+            "node-internal",
+            "unknown-native"
+          ],
+          "samples": 13,
+          "micros": 144223
+        },
+        {
+          "frames": [
+            "root",
+            "node-internal",
+            "unknown-native",
+            "packages/cli/src/lib/evolution/agent-evolution-ingress.js:276:17",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:374:7",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:310:11",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:316:46",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:281:28",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:3624:29",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:3484:24",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:3028:29",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:2386:19",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1524:34",
+            "packages/cli/src/lib/evolution/evolution-file-identity.js:14:42",
+            "packages/cli/src/lib/secure-file-identity.js:295:42",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:37:14",
+            "node-internal",
+            "unknown-native"
+          ],
+          "samples": 12,
+          "micros": 134193
+        },
+        {
+          "frames": [
+            "root",
+            "node-internal",
+            "unknown-native",
+            "packages/cli/src/lib/evolution/agent-evolution-ingress.js:276:17",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:374:7",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:310:11",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:316:46",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:281:28",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:3624:29",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:3484:24",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:2386:19",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1524:34",
+            "packages/cli/src/lib/evolution/evolution-file-identity.js:14:42",
+            "packages/cli/src/lib/secure-file-identity.js:295:42",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:37:14",
+            "node-internal",
+            "unknown-native"
+          ],
+          "samples": 12,
+          "micros": 132275
+        },
+        {
+          "frames": [
+            "root",
+            "node-internal",
+            "unknown-native",
+            "packages/cli/src/lib/evolution/agent-evolution-ingress.js:276:17",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:389:14",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:374:7",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:310:11",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:316:46",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:281:28",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:3624:29",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:3484:24",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:3028:29",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:2386:19",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1524:34",
+            "packages/cli/src/lib/evolution/evolution-file-identity.js:14:42",
+            "packages/cli/src/lib/secure-file-identity.js:295:42",
+            "packages/cli/src/lib/evolution/evolution-artifact-ports.js:37:14",
+            "node-internal",
+            "unknown-native"
+          ],
+          "samples": 9,
+          "micros": 99522
+        }
+      ],
+      "selectedWindowsAclChains": [
+        {
+          "frames": [
+            "root",
+            "node-internal",
+            "unknown-native",
+            "packages/cli/src/lib/evolution/agent-evolution-ingress.js:276:17",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:389:14",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:55:10",
+            "packages/cli/src/lib/evolution/evolution-ledger.js:4941:20",
+            "packages/cli/src/lib/evolution/evolution-ledger.js:4953:15",
+            "packages/cli/src/lib/evolution/evolution-ledger.js:4957:16",
+            "packages/cli/src/lib/evolution/evolution-ledger.js:2344:12",
+            "packages/cli/src/lib/evolution/evolution-ledger.js:2052:32",
+            "packages/cli/src/lib/with-file-lock.js:31:29",
+            "packages/cli/src/lib/with-file-lock.js:72:20",
+            "packages/cli/src/lib/evolution/evolution-ledger.js:2350:9",
+            "packages/cli/src/lib/evolution/evolution-ledger.js:4979:29",
+            "packages/cli/src/lib/evolution/evolution-ledger.js:3581:30",
+            "packages/cli/src/lib/evolution/evolution-ledger.js:3473:31",
+            "packages/session-core/lib/private-storage.js:1197:28",
+            "packages/session-core/lib/private-storage.js:982:25",
+            "packages/session-core/lib/private-storage.js:818:30",
+            "node-internal",
+            "node-internal",
+            "unknown-native"
+          ],
+          "samples": 547,
+          "micros": 5699384
+        },
+        {
+          "frames": [
+            "root",
+            "packages/cli/src/lib/evolution/agent-evolution-ingress.js:276:17",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:389:14",
+            "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js:55:10",
+            "packages/cli/src/lib/evolution/evolution-ledger.js:4941:20",
+            "packages/cli/src/lib/evolution/evolution-ledger.js:4953:15",
+            "packages/cli/src/lib/evolution/evolution-ledger.js:4957:16",
+            "packages/cli/src/lib/evolution/evolution-ledger.js:2344:12",
+            "packages/cli/src/lib/evolution/evolution-ledger.js:2052:32",
+            "packages/cli/src/lib/with-file-lock.js:31:29",
+            "packages/cli/src/lib/with-file-lock.js:72:20",
+            "packages/cli/src/lib/evolution/evolution-ledger.js:2350:9",
+            "packages/cli/src/lib/evolution/evolution-ledger.js:4979:29",
+            "packages/cli/src/lib/evolution/evolution-ledger.js:3581:30",
+            "packages/cli/src/lib/evolution/evolution-ledger.js:3473:31",
+            "packages/session-core/lib/private-storage.js:1197:28",
+            "packages/session-core/lib/private-storage.js:982:25",
+            "packages/session-core/lib/private-storage.js:818:30",
+            "node-internal",
+            "node-internal",
+            "unknown-native"
+          ],
+          "samples": 79,
+          "micros": 827509
+        }
+      ],
+      "sourceCleanBefore": true,
+      "sourceCleanAfter": true,
+      "unchangedNpmTreeCount": 14,
+      "finalFailure": {
+        "kind": "turn-timeout",
+        "awaitedResultCount": 21,
+        "timeoutMs": 60000
+      },
+      "results": 20,
+      "measuredTurns": 0,
+      "diagnosticMeasurementStarted": true,
+      "diagnosticMeasuredDurationSeconds": 60.22299780000001,
+      "cleanup": {
+        "deadlineMs": 10000,
+        "elapsedMs": 118.06449999997858,
+        "closed": true,
+        "treeTerminated": true,
+        "confirmed": true,
+        "deadlineExceeded": false,
+        "diagnostics": {
+          "method": "windows-taskkill-tree",
+          "initialExitObserved": false,
+          "signalAttempted": true,
+          "probeCount": 0,
+          "permissionProbeCount": 0,
+          "failureStage": null,
+          "errorCode": null
+        }
+      }
+    }
+  ],
+  "additionalSourceFiles": [
+    {
+      "file": "packages/session-core/lib/private-storage.js",
+      "sha256": "5d0cb7e32f1a78b781fd7404a309e85b5461f0b08511583db2ddc4c5daf15bbd"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/evolution-ledger.js",
+      "sha256": "a4c457a78959ff4cbb46644c952a2ff6b76b8fe066641b050808a02c5023b74e"
+    }
+  ],
+  "interpretation": "Linux/macOS early-window samples attribute substantial work to ArtifactStore trusted index reads/parsing and repeated canonical fingerprinting. Chains include ledger entry resolution through #loadLedgerEntry and artifact authentication through readTrustedIndexSnapshot. Windows also spends substantial weighted sampling time in synchronous PowerShell ACL batch waits under ledger durability. These are parent wait frames, not PowerShell helper CPU profiles. This identifies hot paths but does not establish the complete late-turn cost or a safe optimization by itself.",
+  "limits": [
+    "Weighted profiler sampling time is an estimate, not a function CPU counter",
+    "Inclusive percentages overlap and must not be added",
+    "Inclusive rows can omit ancestors beyond the bounded depth; reported truncation applies",
+    "Absent ranked rows mean unreported, not proven zero time",
+    "Unknown/native/external frames deliberately omit identity",
+    "Only the early request2-trailers through request4-create window was sampled",
+    "Sampling itself adds overhead; all hosts completed zero measured turns and this run is never formal qualification"
+  ],
+  "formalQualification": false,
+  "paidReady": false,
+  "nativeAdmission": false
+}

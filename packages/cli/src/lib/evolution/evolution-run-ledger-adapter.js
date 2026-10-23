@@ -2,6 +2,7 @@ import evolutionRun from "@chainlesschain/session-core/evolution-run";
 
 import {
   EVOLUTION_DURABLE_ARTIFACT_RECORD_SCHEMA,
+  captureEvolutionLedgerBatchReadWindow,
   isEvolutionLedgerArtifactResolver,
 } from "./evolution-artifact-ports.js";
 import {
@@ -157,6 +158,8 @@ function parseRecord(resolution, descriptor) {
 }
 
 export class EvolutionRunLedgerAdapter {
+  #readBatches;
+
   constructor({
     descriptor: input,
     artifactPorts,
@@ -177,6 +180,9 @@ export class EvolutionRunLedgerAdapter {
     if (typeof now !== "function")
       throw new TypeError("now must be a function");
     this._resolve = ledgerArtifactResolver;
+    this.#readBatches = captureEvolutionLedgerBatchReadWindow(
+      ledgerArtifactResolver,
+    );
     this._now = now;
     const load = this.load.bind(this);
     const verify = this._verify;
@@ -279,6 +285,13 @@ export class EvolutionRunLedgerAdapter {
   }
 
   #resolveEventWithIdentity(domainEvent, identity) {
+    return this.#parseResolvedEvent(
+      domainEvent,
+      this._resolve(this.#eventRequest(domainEvent, identity)),
+    );
+  }
+
+  #eventRequest(domainEvent, identity) {
     if (
       !domainEvent?.subjectRef ||
       typeof domainEvent.subjectRef.ref !== "string" ||
@@ -289,12 +302,15 @@ export class EvolutionRunLedgerAdapter {
         "EvolutionRun ledger subject reference is invalid",
       );
     }
-    const resolution = this._resolve({
+    return {
       epoch: identity.epoch,
       ledgerId: identity.ledgerId,
       ref: domainEvent.subjectRef,
       tenantId: this.descriptor.artifactTenantId,
-    });
+    };
+  }
+
+  #parseResolvedEvent(domainEvent, resolution) {
     if (
       resolution?.ref !== domainEvent.subjectRef.ref ||
       resolution.digest !== domainEvent.subjectRef.digest
@@ -313,10 +329,59 @@ export class EvolutionRunLedgerAdapter {
     // history. Artifact bytes and current authority are still checked for each
     // item; the identity is scoped to this read and is never caller supplied.
     const { verifiedAt: _beforeObservation, ...before } = clone(this._verify());
-    const entries = this._domainEvents().map((domainEvent) => ({
-      domainEvent,
-      event: this.#resolveEventWithIdentity(domainEvent, before),
-    }));
+    const domainEvents = this._domainEvents();
+    const entries = [];
+    try {
+      // The synchronous read window reattests full index bytes around every
+      // bounded chunk and shares only their identical derived parse. Payloads
+      // and current authority are freshly authenticated for every item.
+      if (domainEvents.length > 0)
+        this.#readBatches((resolveBatch) => {
+          for (let offset = 0; offset < domainEvents.length; offset += 128) {
+            const batch = domainEvents.slice(offset, offset + 128);
+            const resolutions = resolveBatch(
+              batch.map((event) => this.#eventRequest(event, before)),
+            );
+            if (
+              !Array.isArray(resolutions) ||
+              resolutions.length !== batch.length
+            ) {
+              fail(
+                EVOLUTION_RUN_LEDGER_CORRUPT_CODE,
+                "EvolutionRun artifact batch is incomplete",
+              );
+            }
+            entries.push(
+              ...batch.map((domainEvent, index) => ({
+                domainEvent,
+                event: this.#parseResolvedEvent(
+                  domainEvent,
+                  resolutions[index],
+                ),
+              })),
+            );
+          }
+        });
+    } catch (cause) {
+      // A concurrent append can invalidate the batch index before the normal
+      // final frontier check. Preserve the established conflict classification
+      // only when a fresh successful verification proves that frontier changed.
+      let afterFailure = null;
+      try {
+        const { verifiedAt: _observation, ...identity } = clone(this._verify());
+        afterFailure = identity;
+      } catch {
+        /* Unverified state must not reclassify an artifact failure. */
+      }
+      if (afterFailure !== null && !same(before, afterFailure)) {
+        fail(
+          EVOLUTION_RUN_LEDGER_CONFLICT_CODE,
+          "EvolutionRun ledger frontier changed during recovery",
+          { cause },
+        );
+      }
+      throw cause;
+    }
     entries.sort((left, right) => left.event.sequence - right.event.sequence);
     for (let index = 0; index < entries.length; index += 1) {
       const entry = entries[index];

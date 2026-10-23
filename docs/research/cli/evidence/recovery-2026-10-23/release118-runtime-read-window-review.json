@@ -1,0 +1,65 @@
+{
+  "schema": "chainlesschain.independent-source-review/v1",
+  "reviewer": "astra_linux_soak",
+  "reviewedAt": "2026-10-23T20:40:28.162Z",
+  "disposition": "SCOPED_READ_WINDOW_AND_ROOT_ACL_SOURCE_REVIEW_PASS",
+  "worktree": "C:\\code\\chainlesschain\\.work\\cc118-final",
+  "baseCommit": "305dc9f2c94f38db8a21ca71f43602f7dd7c83a3",
+  "files": [
+    {
+      "file": "packages/cli/src/lib/evolution/evolution-artifact-ports.js",
+      "physicalFileSha256": "e1370307938dc0d9ff131a11b329609419f35d2ceebde77d1a9b818173335e61"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js",
+      "physicalFileSha256": "3ca0a9756f6ca1799b0bb2993941ee3c2ca0b46c32c7ab738b006c2643336593"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/evolution-ledger.js",
+      "physicalFileSha256": "d4cf5168f6939eb022b6b659a2a53df8bc8a134a0cd1444db922e669751a0a68"
+    }
+  ],
+  "resolvedFinding": {
+    "issue": "Parsed entries were shallow-frozen and exposed to storedPath and verifyIntegrity hooks, permitting retained mutable views across chunks.",
+    "resolution": "Initial parse validates canonical depth/node/byte budgets, then deepFreeze(entries) freezes rows and lineage. RetainingStore regression checks both hooks, failed Reflect.set mutations and equal repeated chunk results.",
+    "status": "resolved-in-reviewed-source"
+  },
+  "reviewedContracts": [
+    "Every scoped read opens a new initial index snapshot; no snapshot persists into a later adapter load.",
+    "Every chunk and final callback return re-run directory, raw descriptor, identity, mutation metadata, bounded bytes and SHA-256 checks before accepting reuse.",
+    "Index path/descriptor stat comparisons retain bigint device/inode and nanosecond mutation fields; captured physical identity and containment remain enforced.",
+    "Only matching freshly read bytes reuse immutable parse and id/digest lookup maps; duplicate matches are retained rather than overwritten.",
+    "Envelope signatures, current authority, payload bytes and integrity remain individually reauthenticated; no authority or payload cache is introduced.",
+    "Existing item-release and end-of-chunk decision lease barriers remain; no lease duration is extended.",
+    "Captured chunk capability closes in finally after success, throw, promise or thenable rejection; unbranded resolver capture is rejected.",
+    "Per-chunk and legacy batch admission remains 128; the scoped window caps attempted requests at 10000.",
+    "RunAdapter checks frontiers around recovery, resolves in 128-item chunks, and only reclassifies artifact failure as conflict after successful fresh frontier verification establishes change.",
+    "Windows secure/local-UI root preparation creates independent empty roots, batches root ACL verification before descendants, binds ordered results and exact before/after dev/ino/birthtimeNs, then creates children.",
+    "Root ACL failure or identity replacement fails before child directories or ledger objects; non-Windows/general paths do not acquire a permission bypass."
+  ],
+  "validation": {
+    "independentlyExecuted": [
+      "git diff --check"
+    ],
+    "independentlyInspectedTests": [
+      "128/129 authentic adapter artifact boundary and bounded descriptor reads",
+      "cross-chunk and final index tampering",
+      "fresh payload and revocation checks",
+      "callback capability closure and thenable rejection",
+      "retained storedPath/verifyIntegrity entry and lineage immutability",
+      "legacy 129 rejection and cumulative 10001 rejection",
+      "root ACL result failures and dev/ino/birthtimeNs replacement before children"
+    ],
+    "parentReportedOnly": "Root reported 43/43 ACL suite pass; current host frozen-source suite was still running at review time.",
+    "notIndependentlyRerun": "No duplicate runtime suite was launched during concurrent parent testing.",
+    "pendingTestRefinement": "Parent plans exact 10000 allowance (authority denial, not limit error) followed by 10001 limit rejection."
+  },
+  "limits": [
+    "Source review does not establish performance improvement or late-turn timeout resolution.",
+    "Exact final-commit Linux, Windows and macOS CI and strict sandbox checks remain required.",
+    "Physical file hashes apply only to these reviewed bytes and must be refreshed if runtime source changes."
+  ],
+  "formalQualification": false,
+  "paidReady": false,
+  "nativeAdmission": false
+}

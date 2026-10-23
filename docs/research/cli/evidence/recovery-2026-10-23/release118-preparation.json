@@ -1,6 +1,6 @@
 {
   "schema": "chainlesschain.cli-ide-release-preparation/v1",
-  "recordedAt": "2026-10-23T19:22:28.625Z",
+  "recordedAt": "2026-10-23T20:43:42.285Z",
   "baseline": "79b7d49841341eb4caf135414183c1311db58b75",
   "pullRequest": "https://github.com/chainlesschain/chainlesschain/pull/483",
   "authorization": {
@@ -47,7 +47,10 @@
       "passed": 14,
       "failed": 0,
       "skipped": 0,
-      "classes": ["CliVersionCheckTest", "IdeDoctorTest"]
+      "classes": [
+        "CliVersionCheckTest",
+        "IdeDoctorTest"
+      ]
     },
     "jetbrainsBuildPlugin": {
       "result": "passed",
@@ -61,7 +64,9 @@
       "registryIntegrity": "sha512-B/pSlYVHQ58kqISD/yDjuJ1yfzI34m1gF4lAod2bwSRhiN4K5Cl3H8Af7hqB2PmTL911tdEudnnXn5FnhRoz0w==",
       "audit": {
         "dompurify": null,
-        "remainingRawCritical": ["decompress"],
+        "remainingRawCritical": [
+          "decompress"
+        ],
         "existingAuditCheckExitCode": 0,
         "exceptionsChanged": false
       },
@@ -99,7 +104,11 @@
       },
       "officialRationale": {
         "readme": "dompurify-3.4.17/package/README.md",
-        "lines": [96, 100, 562],
+        "lines": [
+          96,
+          100,
+          562
+        ],
         "notes": "DOMPurify recommends jsdom; happy-dom explicitly unsupported and not considered safe."
       },
       "lockUpdate": {
@@ -293,7 +302,9 @@
             "platform": "linux",
             "headSha": "a7aa1393e5e20012af8d84ccdf7d316a44acf131",
             "status": "failed",
-            "violations": ["duplexSoak scenario failed"],
+            "violations": [
+              "duplexSoak scenario failed"
+            ],
             "allOtherScenariosPass": true,
             "duplex": {
               "pass": false,
@@ -368,14 +379,18 @@
                 "lengthMaximum": 14
               },
               "diagnosticCodes": [],
-              "diagnosticClasses": ["fetch-failed"]
+              "diagnosticClasses": [
+                "fetch-failed"
+              ]
             }
           },
           {
             "platform": "darwin",
             "headSha": "a7aa1393e5e20012af8d84ccdf7d316a44acf131",
             "status": "failed",
-            "violations": ["duplexSoak scenario failed"],
+            "violations": [
+              "duplexSoak scenario failed"
+            ],
             "allOtherScenariosPass": true,
             "duplex": {
               "pass": false,
@@ -446,7 +461,9 @@
                 "lengthMaximum": 14
               },
               "diagnosticCodes": [],
-              "diagnosticClasses": ["fetch-failed"]
+              "diagnosticClasses": [
+                "fetch-failed"
+              ]
             }
           }
         ],
@@ -760,7 +777,9 @@
             "headSha": "61702c7273ee9da8444869db7e7302a12a0af664",
             "status": "failed",
             "artifact": ".work/cli-ide-recovery-20261023/soak-linux-6170/artifact/cli-reliability-result.json",
-            "violations": ["duplexSoak scenario failed"],
+            "violations": [
+              "duplexSoak scenario failed"
+            ],
             "activeScenario": null,
             "failedScenarios": {
               "duplexSoak": {
@@ -836,7 +855,9 @@
                   "lengthMaximum": 14
                 },
                 "diagnosticCodes": [],
-                "diagnosticClasses": ["fetch-failed"]
+                "diagnosticClasses": [
+                  "fetch-failed"
+                ]
               }
             },
             "partialScenarios": {}
@@ -846,7 +867,9 @@
             "headSha": "61702c7273ee9da8444869db7e7302a12a0af664",
             "status": "failed",
             "artifact": ".work/cli-ide-recovery-20261023/soak-macos-6170/artifact/cli-reliability-result.json",
-            "violations": ["duplexSoak scenario failed"],
+            "violations": [
+              "duplexSoak scenario failed"
+            ],
             "activeScenario": null,
             "failedScenarios": {
               "duplexSoak": {
@@ -918,7 +941,9 @@
                   "lengthMaximum": 14
                 },
                 "diagnosticCodes": [],
-                "diagnosticClasses": ["fetch-failed"]
+                "diagnosticClasses": [
+                  "fetch-failed"
+                ]
               }
             },
             "partialScenarios": {}
@@ -928,7 +953,9 @@
             "headSha": "61702c7273ee9da8444869db7e7302a12a0af664",
             "status": "failed",
             "artifact": ".work/cli-ide-recovery-20261023/soak-windows-6170/artifact/cli-reliability-result.json",
-            "violations": ["slow pipe consumer exited before output"],
+            "violations": [
+              "slow pipe consumer exited before output"
+            ],
             "activeScenario": null,
             "failedScenarios": {
               "mcpOutput": {
@@ -953,7 +980,10 @@
                 "startupDiagnostics": {
                   "fsCodes": [],
                   "operations": [],
-                  "classes": ["sandbox-configured", "evolution-ingress-startup"]
+                  "classes": [
+                    "sandbox-configured",
+                    "evolution-ingress-startup"
+                  ]
                 },
                 "diagnosticCodes": [],
                 "diagnosticClasses": [],
@@ -1157,8 +1187,12 @@
             },
             "headSha": "ecd2f376eabbd9321f35b50dedf05d62c9510519",
             "status": "failed",
-            "violations": ["duplexSoak scenario failed"],
-            "failedScenarios": ["duplexSoak"],
+            "violations": [
+              "duplexSoak scenario failed"
+            ],
+            "failedScenarios": [
+              "duplexSoak"
+            ],
             "duplex": {
               "results": {
                 "count": 12,
@@ -1262,8 +1296,12 @@
             },
             "headSha": "ecd2f376eabbd9321f35b50dedf05d62c9510519",
             "status": "failed",
-            "violations": ["duplexSoak scenario failed"],
-            "failedScenarios": ["duplexSoak"],
+            "violations": [
+              "duplexSoak scenario failed"
+            ],
+            "failedScenarios": [
+              "duplexSoak"
+            ],
             "duplex": {
               "results": {
                 "count": 12,
@@ -1629,7 +1667,11 @@
               "tty",
               "concurrentAgents"
             ],
-            "unconfigured": ["disk", "ssh", "clipboard"],
+            "unconfigured": [
+              "disk",
+              "ssh",
+              "clipboard"
+            ],
             "duplexViolation": "turn 12 timed out",
             "warmupTurns": 2,
             "completedMeasuredTurns": 9,
@@ -1917,6 +1959,14 @@
       "localCleanSourceAudit": "passed",
       "fullNewCommitActions": "REQUIRED_PENDING",
       "paidReady": false
+    },
+    "runtimeLatencyRecovery": {
+      "report": "release118-runtime-latency-recovery.json",
+      "localRuntimePassed": 78,
+      "localBoundaryPassed": 7,
+      "windowsAclPassed": 43,
+      "formalQualification": false,
+      "fullNewCommitActions": "REQUIRED_PENDING"
     }
   },
   "taskAcceptance": {
@@ -1959,7 +2009,7 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "03fc3d304c3842b9b60ee5bca11eac5c4574ef2a02509d7eb1b91b5c62d94344"
+      "sha256": "ebab52d4b8b7fbdd2e288003c5020af3a2884fc8193598e3f6b09a62a34729af"
     },
     {
       "path": "android-app/app/build.gradle.kts",
@@ -2035,7 +2085,7 @@
     },
     {
       "path": "packages/cli/__tests__/unit/evolution-run-ledger-adapter.test.js",
-      "sha256": "61b8ba3476c25f105b910225373b3d8aeeb928745d97a58b389aeea560d04eb6"
+      "sha256": "167702e541117909af5d3c7817bdf54c9aa2ad0bc5bb9c2df3c75c5a90c76b71"
     },
     {
       "path": "packages/cli/__tests__/unit/evolution-windows-directory-durability.test.js",
@@ -2043,7 +2093,7 @@
     },
     {
       "path": "packages/cli/__tests__/unit/evolution-windows-ledger-acl.test.js",
-      "sha256": "98eeba4401ec078172755b64fb60831fc67717cb2b8ee816add27d0ea4cd1f8b"
+      "sha256": "b057905082f12604fc9168a8507fe7310539de3616f1f02c7124d9f19daebf0a"
     },
     {
       "path": "packages/cli/__tests__/unit/ollama-provider-fetch.test.js",
@@ -2067,7 +2117,7 @@
     },
     {
       "path": "packages/cli/scripts/cli-reliability-soak.mjs",
-      "sha256": "0629bd4ce4e9357b0237e50149427662686af4848f9c95ec559377101a62f596"
+      "sha256": "dcff37dfdb9ba7b96b67cc94d6c82668a0520dc9a63fde69a1fc76e8070b08e6"
     },
     {
       "path": "packages/cli/scripts/verify01-collect-native-retest.py",
@@ -2075,7 +2125,7 @@
     },
     {
       "path": "packages/cli/src/data/changelog.json",
-      "sha256": "a27a6fbebf0afe9587f05dfc1e333360de0b294134c82f5c622f2cc41356890b"
+      "sha256": "d731270de7c14b2c6534db715faa71c77ebbc5baa95fcc58efd1721e309d50b3"
     },
     {
       "path": "packages/cli/src/lib/evolution/evidence-json-text.js",
@@ -2087,11 +2137,11 @@
     },
     {
       "path": "packages/cli/src/lib/evolution/evolution-ledger.js",
-      "sha256": "a4c457a78959ff4cbb46644c952a2ff6b76b8fe066641b050808a02c5023b74e"
+      "sha256": "d4cf5168f6939eb022b6b659a2a53df8bc8a134a0cd1444db922e669751a0a68"
     },
     {
       "path": "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js",
-      "sha256": "d62c045aacf1e042e48dd221025cf0042c4acd5da76de35c56ee52d38a776227"
+      "sha256": "3ca0a9756f6ca1799b0bb2993941ee3c2ca0b46c32c7ab738b006c2643336593"
     },
     {
       "path": "packages/cli/src/lib/evolution/evolution-windows-directory-durability.js",
@@ -2220,6 +2270,18 @@
     {
       "path": "packages/cli/scripts/budget-egress-reviewed-sources.json",
       "sha256": "03728e8a53fdbad12dd65503263aca3a25afb9836f67a1ec483dc23966a68ebe"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/evolution-artifact-ports.js",
+      "sha256": "e1370307938dc0d9ff131a11b329609419f35d2ceebde77d1a9b818173335e61"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/evolution-artifact-ports.test.js",
+      "sha256": "7d609ed0230e4308f78a9c716ad9008c4a1ca12bb2f74f7f710418f3f2b7e087"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/cli-reliability-concurrent-diagnostics.test.js",
+      "sha256": "5654c1be6f5071ebe372816753c7edd542041ad2519c228131249bf6de263c27"
     }
   ],
   "artifacts": [
@@ -2527,6 +2589,37 @@
       "path": "release118-egress-source-review.json",
       "sha256": "2178063eb38c558381805d5b8de50b2726abe8f4cc21cce454bd5d3c85b15cbf",
       "originalSha256": "2178063eb38c558381805d5b8de50b2726abe8f4cc21cce454bd5d3c85b15cbf"
+    },
+    {
+      "path": "release118-cpu-attribution-before.json",
+      "sha256": "6b2121ad6292f050820706be05979d24f7a1f00844420b8f1176aceba30d9713",
+      "originalSha256": "6b2121ad6292f050820706be05979d24f7a1f00844420b8f1176aceba30d9713"
+    },
+    {
+      "path": "release118-cpu-diagnostic-receipt.json",
+      "sha256": "14a66e3c9ab758fb42e41e73282167b0ee4cdc659d55f0bf0aaef9ff30d36751",
+      "originalSha256": "14a66e3c9ab758fb42e41e73282167b0ee4cdc659d55f0bf0aaef9ff30d36751"
+    },
+    {
+      "path": "release118-runtime-read-window-review.json",
+      "sha256": "8a77698b15accc82ea2c148eb46fb048f20b4e95b857b7f966161a91d283f59c",
+      "originalSha256": "8a77698b15accc82ea2c148eb46fb048f20b4e95b857b7f966161a91d283f59c"
+    },
+    {
+      "path": "release118-windows-roots-batch-validation.json",
+      "sha256": "4b1f7e5b592483f133630c9f12a0a7e4b6e265f5a24aa1c994156f4a5ddc2a0d",
+      "originalSha256": "4b1f7e5b592483f133630c9f12a0a7e4b6e265f5a24aa1c994156f4a5ddc2a0d"
+    },
+    {
+      "path": "release118-windows-roots-batch-tests.txt",
+      "sha256": "24847e8800bfd3a117adcc1fc9dc189aa68d5b0b7f3aed9f51cb567574a5c73e",
+      "originalSha256": "e9608576a5ac4719dfe3a1e92ac5ccb85c457fee4a52fb7de3c0229097c5b803",
+      "normalization": "Copied console normalized to LF with one final newline; originalSha256 preserves the captured output bytes."
+    },
+    {
+      "path": "release118-runtime-latency-recovery.json",
+      "sha256": "34ed6e98b0e12fd3661e9b011eb50b6bf90638663e43802c8c436ca0ddd5fa40",
+      "originalSha256": "34ed6e98b0e12fd3661e9b011eb50b6bf90638663e43802c8c436ca0ddd5fa40"
     }
   ],
   "rawSecurityAudit": {

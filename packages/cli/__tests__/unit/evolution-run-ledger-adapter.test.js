@@ -9,6 +9,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { ArtifactStore } from "../../src/lib/artifact-store.js";
 import {
   EVOLUTION_ARTIFACT_AUTHORITY_DECISION_SCHEMA,
+  EVOLUTION_ARTIFACT_AUTHORITY_DENIED_CODE,
+  EVOLUTION_ARTIFACT_EXPIRED_CODE,
+  EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
   EvolutionArtifactPorts,
 } from "../../src/lib/evolution/evolution-artifact-ports.js";
 import { EvolutionEvidenceArtifactAdapter } from "../../src/lib/evolution/evolution-evidence-artifact-adapter.js";
@@ -67,24 +70,35 @@ function backend() {
   const policyDigest = hash("evolution-run-policy");
   const sign = (message) =>
     createHmac("sha256", secret).update(message).digest("base64url");
-  const hooks = { onResolve: null, resolveCalls: 0 };
+  const hooks = {
+    onResolve: null,
+    onVerifyEnvelope: null,
+    resolveCalls: 0,
+    nowMs: Date.parse(NOW),
+    leaseMs: 60_000,
+    revoked: false,
+  };
   const artifactStore = new ArtifactStore({
     dir: path.join(root, "artifacts"),
-    now: () => Date.parse(NOW),
+    now: () => hooks.nowMs,
   });
   const artifactPorts = new EvolutionArtifactPorts({
     artifactStore,
     audience,
     tenantId: artifactTenantId,
-    now: () => Date.parse(NOW),
+    now: () => hooks.nowMs,
     envelopeSigner: {
       sign: ({ message }) => ({ algorithm, keyId, value: sign(message) }),
     },
     envelopeVerifier: {
-      verify: ({ message, signature }) =>
-        signature.algorithm === algorithm &&
-        signature.keyId === keyId &&
-        signature.value === sign(message),
+      verify: ({ message, signature }) => {
+        hooks.onVerifyEnvelope?.();
+        return (
+          signature.algorithm === algorithm &&
+          signature.keyId === keyId &&
+          signature.value === sign(message)
+        );
+      },
     },
     currentAuthorityResolver: {
       resolve(request) {
@@ -95,10 +109,12 @@ function backend() {
         const core = {
           action: request.action,
           algorithm,
-          allowed: true,
+          allowed: !hooks.revoked,
           audience: request.audience,
-          checkedAt: NOW,
-          decisionExpiresAt: "2026-09-03T00:01:00.000Z",
+          checkedAt: new Date(hooks.nowMs).toISOString(),
+          decisionExpiresAt: new Date(
+            hooks.nowMs + hooks.leaseMs,
+          ).toISOString(),
           digest: request.digest,
           issuedAt: request.issuedAt,
           issuedPolicyDigest: request.issuedPolicyDigest,
@@ -111,7 +127,7 @@ function backend() {
           requestedAt: request.requestedAt,
           retention: request.retention,
           revocationRevision: 1,
-          revoked: false,
+          revoked: hooks.revoked,
           schema: EVOLUTION_ARTIFACT_AUTHORITY_DECISION_SCHEMA,
           tenantId: request.tenantId,
           type: request.type,
@@ -246,7 +262,151 @@ function fakeEvidenceAdapter() {
   return adapter;
 }
 
+// Publish through real ArtifactPorts, while populating the existing authenticated
+// ledger fixture directly so fixture setup does not repeatedly reload the Run.
+function seedEvents(fixture, count) {
+  for (
+    let sequence = fixture.state.events.length + 1;
+    sequence <= count;
+    sequence += 1
+  ) {
+    const value = event(
+      sequence,
+      sequence === 1
+        ? EVENT_TYPES.RUN_STARTED
+        : EVENT_TYPES.RAW_EVENT_REFERENCED,
+    );
+    const published = fixture.artifactPorts.putCanonical(
+      "evolution-run-event",
+      value,
+      {
+        audience: fixture.descriptor.audience,
+        purpose: fixture.descriptor.purpose,
+        retention: "ledger",
+      },
+    );
+    const previous = fixture.state.events.at(-1);
+    fixture.ledger.appendDomainEvent(
+      {
+        artifactTenantId: fixture.descriptor.artifactTenantId,
+        correlationId: fixture.descriptor.runId,
+        decision: "committed",
+        eventId: `evolution.run.event.committed.${published.digest.slice("sha256:".length)}`,
+        reason: `EvolutionRun sequence ${sequence} committed`,
+        skillName: null,
+        sourceRefs: previous ? [previous.subjectRef] : [],
+        subjectRef: published.ref,
+        tenantId: fixture.descriptor.tenantId,
+        timestamp: NOW,
+        type: "evolution.run.event.committed",
+      },
+      {
+        expectedHeadDigest: previous?.eventDigest ?? null,
+        expectedSequence: fixture.state.events.length,
+      },
+    );
+  }
+}
+
 describe("EvolutionRunLedgerAdapter", () => {
+  it("resolves 128 and 129 authentic artifacts across the batch boundary with bounded index reads", () => {
+    const fixture = backend();
+    const adapter = fixture.makeAdapter();
+    for (const count of [128, 129]) {
+      seedEvents(fixture, count);
+      fixture.hooks.resolveCalls = 0;
+      fixture.ledger.verify.mockClear();
+      const opened = vi.spyOn(fs, "openSync");
+      try {
+        const loaded = adapter.load();
+        expect(loaded.events.map((value) => value.sequence)).toEqual(
+          Array.from({ length: count }, (_, index) => index + 1),
+        );
+        expect(fixture.hooks.resolveCalls).toBe(count);
+        expect(fixture.ledger.verify).toHaveBeenCalledTimes(2);
+        const indexReads = opened.mock.calls.filter(
+          ([file]) =>
+            typeof file === "string" && path.basename(file) === "index.jsonl",
+        ).length;
+        expect(indexReads).toBeGreaterThan(0);
+        expect(indexReads).toBeLessThanOrEqual(4 * Math.ceil(count / 128));
+      } finally {
+        opened.mockRestore();
+      }
+    }
+  }, 60_000);
+
+  it.each([false, true])(
+    "retains index integrity failures when the ledger frontier did not change (verification fails: %s)",
+    (verificationFails) => {
+      const fixture = backend();
+      seedEvents(fixture, 2);
+      const adapter = fixture.makeAdapter();
+      fixture.hooks.onResolve = () => {
+        fixture.hooks.onResolve = null;
+        if (verificationFails) {
+          fixture.state.onVerifyCall = {
+            call: fixture.state.verifyCalls + 1,
+            action() {
+              throw new Error("secondary frontier verification failed");
+            },
+          };
+        }
+        const index = path.join(fixture.artifactStore.dir, "index.jsonl");
+        const rows = fs
+          .readFileSync(index, "utf8")
+          .trim()
+          .split("\n")
+          .map(JSON.parse);
+        rows.at(-1).title = "modified-index-title";
+        fs.writeFileSync(
+          index,
+          rows.map((row) => JSON.stringify(row)).join("\n") + "\n",
+        );
+      };
+      expect(() => adapter.load()).toThrowError(
+        expect.objectContaining({
+          code: EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
+        }),
+      );
+    },
+  );
+
+  it("does not release a batch whose first authority lease expired during later reads", () => {
+    const fixture = backend();
+    seedEvents(fixture, 2);
+    fixture.hooks.resolveCalls = 0;
+    let envelopeChecks = 0;
+    fixture.hooks.onVerifyEnvelope = () => {
+      // Move time before the second authority request so its own binding stays
+      // valid and only the first item's lease expires at the batch barrier.
+      if (++envelopeChecks === 2) fixture.hooks.nowMs += 10;
+    };
+    fixture.hooks.onResolve = () => {
+      if (fixture.hooks.resolveCalls === 1) fixture.hooks.leaseMs = 5;
+      else fixture.hooks.leaseMs = 60_000;
+    };
+    expect(() => fixture.makeAdapter().load()).toThrowError(
+      expect.objectContaining({
+        code: EVOLUTION_ARTIFACT_EXPIRED_CODE,
+        message: "artifact authority expired before ledger batch release",
+      }),
+    );
+  });
+
+  it("checks current revocation again after a successful load", () => {
+    const fixture = backend();
+    seedEvents(fixture, 2);
+    const adapter = fixture.makeAdapter();
+    expect(adapter.load().events).toHaveLength(2);
+    fixture.hooks.revoked = true;
+    expect(() => adapter.load()).toThrowError(
+      expect.objectContaining({
+        code: EVOLUTION_ARTIFACT_AUTHORITY_DENIED_CODE,
+      }),
+    );
+  });
+
   it("authenticates a bounded pair of frontiers while resolving every artifact anew", () => {
     const fixture = backend();
     const adapter = fixture.makeAdapter();

@@ -23,6 +23,10 @@ import {
 } from "./evolution-ledger.js";
 
 const ARTIFACT_STORE_DIRECTORY_BOUNDARIES = new WeakMap();
+// Derived lookup tables belong only to one freshly read synchronous snapshot.
+// Every reuse reattests identical current descriptor bytes. The next read
+// window creates a new entries array; authority and payloads are never cached.
+const LEDGER_BATCH_INDEX_LOOKUPS = new WeakMap();
 // Capture repository function identity before binding instance methods. Only
 // these exact defaults may skip legacy list/get I/O; overrides still execute
 // and must match the independently authenticated descriptor snapshots.
@@ -406,6 +410,7 @@ const CONSTRUCTOR_REQUIRED_KEYS = new Set([
 const LEDGER_RESOLVER_OPTION_KEYS = new Set(["purpose"]);
 const EVOLUTION_LEDGER_ARTIFACT_RESOLVERS = new WeakSet();
 const EVOLUTION_LEDGER_BATCH_RESOLVERS = new WeakMap();
+const EVOLUTION_LEDGER_BATCH_READ_WINDOWS = new WeakMap();
 const EVOLUTION_LEDGER_RESOLVER_BINDINGS = new WeakMap();
 const isProxy = Object.freeze(utilTypes.isProxy.bind(utilTypes));
 const isDate = Object.freeze(utilTypes.isDate.bind(utilTypes));
@@ -1512,25 +1517,34 @@ function parseTrustedIndexBytes(bytes) {
     }
     entries.push(entry);
   }
-  return Object.freeze({
-    entries: Object.freeze(entries),
-    entriesFingerprint: indexEntriesFingerprint(
-      entries,
-      "trusted ArtifactStore index entries",
-    ),
-  });
+  const entriesFingerprint = indexEntriesFingerprint(
+    entries,
+    "trusted ArtifactStore index entries",
+  );
+  // Validate depth/node/byte budgets before recursively freezing JSON data.
+  // Captured store hooks may retain an entry; they must never mutate a parsed
+  // view that a later chunk reuses after attesting identical on-disk bytes.
+  return Object.freeze({ entries: deepFreeze(entries), entriesFingerprint });
 }
 
-function readTrustedIndexSnapshot(layout) {
+function readTrustedIndexSnapshot(layout, expectedSnapshot = null) {
   return withEvolutionFileIdentity(
     INDEX_DIRECTORY_FS,
     layout.indexPath,
     (samePathHandle) =>
-      readTrustedIndexSnapshotWithIdentity(layout, samePathHandle),
+      readTrustedIndexSnapshotWithIdentity(
+        layout,
+        samePathHandle,
+        expectedSnapshot,
+      ),
   );
 }
 
-function readTrustedIndexSnapshotWithIdentity(layout, samePathHandle) {
+function readTrustedIndexSnapshotWithIdentity(
+  layout,
+  samePathHandle,
+  expectedSnapshot = null,
+) {
   attestStoreDirectories(layout);
   let beforePathStat;
   let beforeDescriptorStat;
@@ -1625,9 +1639,20 @@ function readTrustedIndexSnapshotWithIdentity(layout, samePathHandle) {
     );
   }
   attestStoreDirectories(layout);
+  const bytesDigest = sha256(bytes);
+  if (expectedSnapshot !== null) {
+    // Repeat every directory, handle, identity, mutation, size and byte-read
+    // check above. Only identical freshly read bytes reuse their derived parse.
+    if (bytesDigest !== expectedSnapshot.bytesDigest)
+      throw artifactError(
+        EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
+        "ArtifactStore index changed during ledger batch readback",
+      );
+    return expectedSnapshot;
+  }
   const parsed = parseTrustedIndexBytes(bytes);
   return Object.freeze({
-    bytesDigest: sha256(bytes),
+    bytesDigest,
     entries: parsed.entries,
     entriesFingerprint: parsed.entriesFingerprint,
   });
@@ -2241,6 +2266,8 @@ export class EvolutionArtifactPorts {
   }
 
   #entriesByDataField(entries, field, expected) {
+    const lookup = LEDGER_BATCH_INDEX_LOOKUPS.get(entries)?.get(field);
+    if (lookup) return lookup.get(expected) || [];
     const matches = [];
     for (let index = 0; index < entries.length; index += 1) {
       const entry = ownData(
@@ -2266,6 +2293,46 @@ export class EvolutionArtifactPorts {
       if (descriptor.value === expected) matches.push(entry);
     }
     return matches;
+  }
+
+  #indexLedgerBatchEntries(entries) {
+    if (LEDGER_BATCH_INDEX_LOOKUPS.has(entries)) return;
+    const lookups = new Map([
+      ["id", new Map()],
+      ["recordDigest", new Map()],
+    ]);
+    // Retain every match, including duplicates. A last-wins table would hide
+    // ambiguous ids or digests that the descriptor resolver must reject.
+    for (let index = 0; index < entries.length; index += 1) {
+      const entry = ownData(
+        entries,
+        String(index),
+        "ArtifactStore index entries",
+      );
+      if (!entry || typeof entry !== "object") continue;
+      rejectProxy(
+        entry,
+        `ArtifactStore index entry ${index}`,
+        EVOLUTION_ARTIFACT_STORE_FAILED_CODE,
+      );
+      if (Array.isArray(entry)) continue;
+      for (const [field, lookup] of lookups) {
+        const descriptor = Object.getOwnPropertyDescriptor(entry, field);
+        if (!descriptor) continue;
+        if (!("value" in descriptor) || descriptor.enumerable !== true) {
+          throw artifactError(
+            EVOLUTION_ARTIFACT_STORE_FAILED_CODE,
+            `ArtifactStore index ${field} must be an enumerable data property`,
+          );
+        }
+        const matches = lookup.get(descriptor.value) || [];
+        matches.push(entry);
+        lookup.set(descriptor.value, matches);
+      }
+    }
+    for (const lookup of lookups.values())
+      for (const matches of lookup.values()) Object.freeze(matches);
+    LEDGER_BATCH_INDEX_LOOKUPS.set(entries, lookups);
   }
 
   #loadCurrentEntryById(artifactId) {
@@ -2386,8 +2453,9 @@ export class EvolutionArtifactPorts {
   #loadLedgerEntry(artifactId, recordDigest = null, snapshot = null) {
     // Ledger resolution is read-only. Read the already attested physical index
     // directly instead of invoking ArtifactStore.list/get (both acquire writer
-    // locks). Each read/batch obtains a fresh bounded descriptor snapshot;
-    // nothing caches index contents, signatures or current authority.
+    // locks). Each read/batch obtains fresh bounded descriptor bytes. Only an
+    // identical parse may be shared within one synchronous read window;
+    // signatures, current authority and payloads are always reauthenticated.
     const { entries } =
       snapshot ?? readTrustedIndexSnapshot(this.#store.layout);
     const matches = this.#entriesByDataField(entries, "id", artifactId);
@@ -3574,10 +3642,14 @@ export class EvolutionArtifactPorts {
     });
   }
 
-  #resolveLedgerBatch(input, purpose) {
+  #resolveLedgerBatch(input, purpose, windowSnapshot = null) {
     assertDenseDataArray(input, "ledger artifact batch", 128);
     const requests = frozenCanonicalClone(input);
-    const snapshot = readTrustedIndexSnapshot(this.#store.layout);
+    const snapshot = readTrustedIndexSnapshot(
+      this.#store.layout,
+      windowSnapshot,
+    );
+    this.#indexLedgerBatchEntries(snapshot.entries);
     const window = [];
     const results = requests.map((request) =>
       this.#resolveLedgerRequest(request, purpose, snapshot, window),
@@ -3585,7 +3657,7 @@ export class EvolutionArtifactPorts {
     // One bounded synchronous read, not a cache: every envelope/current
     // authority and payload is authenticated individually. Re-attest the full
     // index after ALL reads, and all decision leases before releasing bytes.
-    const after = readTrustedIndexSnapshot(this.#store.layout);
+    const after = readTrustedIndexSnapshot(this.#store.layout, snapshot);
     if (after.bytesDigest !== snapshot.bytesDigest)
       throw artifactError(
         EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
@@ -3602,6 +3674,51 @@ export class EvolutionArtifactPorts {
         "artifact authority expired before ledger batch release",
       );
     return Object.freeze(results);
+  }
+
+  #withLedgerBatchRead(callback, purpose) {
+    rejectProxy(
+      callback,
+      "ledger batch read callback",
+      EVOLUTION_ARTIFACT_INVALID_CODE,
+    );
+    if (typeof callback !== "function")
+      throw artifactError(
+        EVOLUTION_ARTIFACT_INVALID_CODE,
+        "ledger batch read callback is required",
+      );
+    const snapshot = readTrustedIndexSnapshot(this.#store.layout);
+    let active = true;
+    let requests = 0;
+    const resolve = Object.freeze((input) => {
+      if (!active)
+        throw artifactError(
+          EVOLUTION_ARTIFACT_INVALID_CODE,
+          "ledger batch read window is closed",
+        );
+      assertDenseDataArray(input, "ledger artifact batch", 128);
+      requests += input.length;
+      if (requests > EVOLUTION_ARTIFACT_MAX_INDEX_ENTRIES)
+        throw artifactError(
+          EVOLUTION_ARTIFACT_INVALID_CODE,
+          "ledger batch read window exceeds the index entry limit",
+        );
+      // Each chunk reopens and authenticates current index bytes before/after
+      // resolving fresh payloads, envelopes and current authority. Parsed rows
+      // alone survive within this synchronous window; decision leases do not.
+      return this.#resolveLedgerBatch(input, purpose, snapshot);
+    });
+    try {
+      const result = rejectPromise(
+        callback(resolve),
+        "ledger batch read callback",
+        EVOLUTION_ARTIFACT_INVALID_CODE,
+      );
+      readTrustedIndexSnapshot(this.#store.layout, snapshot);
+      return result;
+    } finally {
+      active = false;
+    }
   }
 
   /** Return a frozen read-only function; it exposes no put/signing authority. */
@@ -3626,6 +3743,9 @@ export class EvolutionArtifactPorts {
     EVOLUTION_LEDGER_ARTIFACT_RESOLVERS.add(resolveReadOnly);
     EVOLUTION_LEDGER_BATCH_RESOLVERS.set(resolveReadOnly, (requests) =>
       this.#resolveLedgerBatch(requests, normalizedPurpose),
+    );
+    EVOLUTION_LEDGER_BATCH_READ_WINDOWS.set(resolveReadOnly, (callback) =>
+      this.#withLedgerBatchRead(callback, normalizedPurpose),
     );
     EVOLUTION_LEDGER_RESOLVER_BINDINGS.set(
       resolveReadOnly,
@@ -3668,6 +3788,13 @@ export function captureEvolutionLedgerBatchResolver(value) {
   if (!resolve)
     throw new TypeError("a branded ledger artifact resolver is required");
   return resolve;
+}
+
+export function captureEvolutionLedgerBatchReadWindow(value) {
+  const read = EVOLUTION_LEDGER_BATCH_READ_WINDOWS.get(value);
+  if (!read)
+    throw new TypeError("a branded ledger artifact resolver is required");
+  return read;
 }
 
 /** Private construction identity, independent of matching resolver descriptors. */

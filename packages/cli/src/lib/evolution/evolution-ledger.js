@@ -2081,13 +2081,48 @@ export class EvolutionLedger {
       if (this.#secure && this.#localUiWindowsDurability) {
         const roots = [requestedPaths.rootDir, requestedPaths.authorityRootDir];
         const children = [requestedPaths.segmentDir, requestedPaths.anchorDir];
-        // Secure each parent before creating children so inherited Windows
-        // ACLs are private throughout setup. Batch only the child repair.
+        // Prepare the independent roots without creating descendants or ledger
+        // objects. Secure both roots in one native ACL operation before any
+        // children can inherit their permissions.
         for (const directory of roots) {
           ensurePrivateDirectory(directory, {
-            applyWindowsAcl: true,
+            applyWindowsAcl: false,
             failIfUnavailable: true,
           });
+        }
+        const rootIdentities = roots.map((directory) => {
+          const stat = this.#fs.lstatSync(directory, { bigint: true });
+          const identity = physicalDirectoryIdentity(stat);
+          if (typeof stat.birthtimeNs !== "bigint") {
+            throw new Error(
+              "Private ledger root requires full-precision creation time",
+            );
+          }
+          return { identity, birthtimeNs: stat.birthtimeNs };
+        });
+        const repairedRoots = repairPrivatePaths(roots);
+        if (
+          repairedRoots.length !== roots.length ||
+          repairedRoots.some(
+            (entry, index) =>
+              entry.target !== roots[index] ||
+              entry.ok !== true ||
+              entry.exists === false,
+          )
+        ) {
+          throw new Error("Could not verify private ledger roots");
+        }
+        for (const [index, directory] of roots.entries()) {
+          const stat = this.#fs.lstatSync(directory, { bigint: true });
+          const identity = physicalDirectoryIdentity(stat);
+          const expected = rootIdentities[index];
+          if (
+            identity.dev !== expected.identity.dev ||
+            identity.ino !== expected.identity.ino ||
+            stat.birthtimeNs !== expected.birthtimeNs
+          ) {
+            throw new Error("Private ledger root changed during ACL setup");
+          }
         }
         for (const directory of children) {
           ensurePrivateDirectory(directory, {

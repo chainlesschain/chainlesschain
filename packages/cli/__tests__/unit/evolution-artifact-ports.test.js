@@ -22,6 +22,7 @@ import {
   EvolutionArtifactPorts,
   createEvolutionLedgerArtifactResolver,
   captureEvolutionLedgerBatchResolver,
+  captureEvolutionLedgerBatchReadWindow,
   isEvolutionLedgerArtifactResolver,
 } from "../../src/lib/evolution/evolution-artifact-ports.js";
 import {
@@ -1125,6 +1126,184 @@ describe("EvolutionArtifactPorts", () => {
     });
     expect(() => batch(accessor)).toThrow();
     expect(accessed).toBe(false);
+  });
+
+  it.each(["duplicate-id", "duplicate-digest", "payload", "revocation"])(
+    "reauthenticates %s after a successful batch through the same resolver",
+    (fault) => {
+      const values = [1, 2, 3].map((id) =>
+        publish({ type: "wiki-revision", retention: "ledger", value: { id } }),
+      );
+      const batch = captureEvolutionLedgerBatchResolver(
+        ports.createEvolutionLedgerArtifactResolver({ purpose: PURPOSE }),
+      );
+      expect(batch(values.map(ledgerRequest))).toHaveLength(values.length);
+      const rows = readIndex();
+      if (fault === "duplicate-id") writeIndex([...rows, { ...rows[1] }]);
+      if (fault === "duplicate-digest")
+        writeIndex([...rows, { ...rows[1], id: "art_duplicate_digest" }]);
+      if (fault === "payload") {
+        const stored = store.storedPath(rows[1]);
+        fs.chmodSync(stored, 0o600);
+        fs.writeFileSync(stored, "replaced between read windows", "utf8");
+      }
+      if (fault === "revocation") authorityState.revoked = true;
+      expect(() => batch(values.map(ledgerRequest))).toThrow();
+    },
+  );
+
+  it("closes synchronous read-window capabilities on return, throw and thenable rejection", () => {
+    const value = publish({ type: "wiki-revision", retention: "ledger" });
+    const resolver = ports.createEvolutionLedgerArtifactResolver({
+      purpose: PURPOSE,
+    });
+    const read = captureEvolutionLedgerBatchReadWindow(resolver);
+    let saved;
+    const result = read((batch) => {
+      saved = batch;
+      return batch([ledgerRequest(value)]);
+    });
+    expect(result[0]).toEqual(resolver(ledgerRequest(value)));
+    expect(() => saved([ledgerRequest(value)])).toThrow(/window is closed/u);
+    expect(() =>
+      read((batch) => {
+        saved = batch;
+        throw new Error("callback failed");
+      }),
+    ).toThrow("callback failed");
+    expect(() => saved([])).toThrow(/window is closed/u);
+    let thenCalled = false;
+    expect(() =>
+      read((batch) => {
+        saved = batch;
+        return {
+          then() {
+            thenCalled = true;
+          },
+        };
+      }),
+    ).toThrow(/must be synchronous/u);
+    expect(thenCalled).toBe(false);
+    expect(() => saved([])).toThrow(/window is closed/u);
+    expect(() => read(async () => {})).toThrow(/must be synchronous/u);
+    expect(() =>
+      captureEvolutionLedgerBatchReadWindow((request) => resolver(request)),
+    ).toThrow(/branded/u);
+  });
+
+  it("keeps parsed rows and lineage immutable when captured store hooks retain them", () => {
+    let retain = false;
+    const retained = [];
+    class RetainingStore extends ArtifactStore {
+      storedPath(entry) {
+        if (retain) retained.push(entry);
+        return super.storedPath(entry);
+      }
+      verifyIntegrity(entry, bounds) {
+        if (retain) retained.push(entry);
+        return super.verifyIntegrity(entry, bounds);
+      }
+    }
+    const retainingPorts = new EvolutionArtifactPorts({
+      artifactStore: new RetainingStore({
+        dir: path.join(tempRoot, "retaining-store"),
+        now: () => nowMs,
+      }),
+      audience: AUDIENCE,
+      currentAuthorityResolver,
+      envelopeSigner,
+      envelopeVerifier,
+      now: () => nowMs,
+      tenantId: TENANT_ID,
+    });
+    const value = retainingPorts.putCanonical(
+      "wiki-revision",
+      { revision: 1 },
+      { purpose: PURPOSE, retention: "ledger" },
+    );
+    const read = captureEvolutionLedgerBatchReadWindow(
+      retainingPorts.createEvolutionLedgerArtifactResolver({
+        purpose: PURPOSE,
+      }),
+    );
+    retain = true;
+    read((batch) => {
+      const first = batch([ledgerRequest(value)]);
+      expect(retained.length).toBeGreaterThan(0);
+      for (const entry of retained) {
+        expect(Object.isFrozen(entry)).toBe(true);
+        expect(Object.isFrozen(entry.lineage)).toBe(true);
+        expect(Reflect.set(entry, "id", "art_substituted")).toBe(false);
+        expect(
+          Reflect.set(
+            entry.lineage,
+            "envelopeDigest",
+            digestBytes("substituted"),
+          ),
+        ).toBe(false);
+      }
+      const second = batch([ledgerRequest(value)]);
+      expect(second).toEqual(first);
+    });
+  });
+
+  it("retains both the 128-item chunk limit and the cumulative read-window bound", () => {
+    const value = publish({ type: "wiki-revision", retention: "ledger" });
+    const request = ledgerRequest(value);
+    const read = captureEvolutionLedgerBatchReadWindow(
+      ports.createEvolutionLedgerArtifactResolver({ purpose: PURPOSE }),
+    );
+    read((batch) => {
+      expect(() => batch(Array(129).fill(request))).toThrow();
+      // Denied attempts still consume the bounded request allowance. They do
+      // not need to resolve ten thousand payloads to exercise the boundary.
+      authorityState.revoked = true;
+      for (let i = 0; i < 78; i++)
+        expect(() => batch(Array(128).fill(request))).toThrow();
+      expect(capturedError(() => batch(Array(16).fill(request))).code).toBe(
+        EVOLUTION_ARTIFACT_AUTHORITY_DENIED_CODE,
+      );
+      expect(() => batch([request])).toThrow(
+        /window exceeds the index entry limit/u,
+      );
+    });
+  });
+
+  it.each([
+    "index-between-chunks",
+    "index-after-last-chunk",
+    "payload",
+    "revocation",
+  ])("rejects %s while a synchronous read window is open", (fault) => {
+    let escaped;
+    const values = [1, 2].map((id) =>
+      publish({ type: "wiki-revision", retention: "ledger", value: { id } }),
+    );
+    const read = captureEvolutionLedgerBatchReadWindow(
+      ports.createEvolutionLedgerArtifactResolver({ purpose: PURPOSE }),
+    );
+    expect(() =>
+      read((batch) => {
+        escaped = batch;
+        const first = batch([ledgerRequest(values[0])]);
+        const rows = readIndex();
+        if (fault.startsWith("index-"))
+          writeIndex(
+            rows.map((row, index) =>
+              index === 1 ? { ...row, title: "changed inside window" } : row,
+            ),
+          );
+        if (fault === "index-after-last-chunk") return first;
+        if (fault === "payload") {
+          const stored = store.storedPath(rows[1]);
+          fs.chmodSync(stored, 0o600);
+          fs.writeFileSync(stored, "changed during read window", "utf8");
+        }
+        if (fault === "revocation") authorityState.revoked = true;
+        return batch([ledgerRequest(values[1])]);
+      }),
+    ).toThrow();
+    expect(() => escaped([])).toThrow(/window is closed/u);
   });
 
   it("rechecks every decision lease at the end of a ledger batch", () => {

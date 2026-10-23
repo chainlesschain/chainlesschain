@@ -1,7 +1,8 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import * as secureFs from "../../src/lib/secure-fs.js";
 import { evolutionDurableStoreConfiguration } from "../fixtures/evolution-durable-store.js";
 import { createEvolutionLedgerFileBackend } from "../../src/lib/evolution/evolution-ledger-file-backend.js";
 import { createLocalUiEvolutionFileSystem } from "../../src/lib/evolution/evolution-windows-directory-durability.js";
@@ -9,6 +10,7 @@ import { createLocalUiEvolutionFileSystem } from "../../src/lib/evolution/evolut
 const roots = [];
 const originalUv = Object.getOwnPropertyDescriptor(process.versions, "uv");
 afterEach(() => {
+  vi.restoreAllMocks();
   Object.defineProperty(process.versions, "uv", originalUv);
   for (const root of roots.splice(0)) {
     const resolved = path.resolve(root);
@@ -25,6 +27,7 @@ afterEach(() => {
 function ledger({
   uvVersion = "1.49.1",
   mutateOpened = null,
+  mutateRoot = null,
   highInode = null,
   observed = {},
 } = {}) {
@@ -36,6 +39,7 @@ function ledger({
     path.join(fs.realpathSync.native(os.tmpdir()), "cc-ledger-acl-"),
   );
   roots.push(root);
+  observed.root = root;
   const config = evolutionDurableStoreConfiguration(root);
   const fsImpl = createLocalUiEvolutionFileSystem();
   const descriptors = new Map();
@@ -64,6 +68,16 @@ function ledger({
   };
   fsImpl.lstatSync = (...args) => {
     const stat = fs.lstatSync(...args);
+    if (
+      mutateRoot &&
+      args[1]?.bigint &&
+      stat.isDirectory() &&
+      [path.join(root, "events"), path.join(root, "authority")].includes(
+        args[0],
+      )
+    ) {
+      mutateRoot(stat, args[0]);
+    }
     // Project the affected libuv regular-file path device without requiring
     // host ByName support; all descriptors and native ACLs remain real.
     if (stat.isFile()) stat.dev = typeof stat.dev === "bigint" ? 0n : 0;
@@ -94,12 +108,105 @@ describe.skipIf(process.platform !== "win32")(
   () => {
     it("bootstraps through genuine ACL verification with affected path-device projection", () => {
       const observed = {};
+      const repair = secureFs.repairPrivatePaths;
+      const batches = [];
+      vi.spyOn(secureFs, "repairPrivatePaths").mockImplementation(
+        (targets, options) => {
+          const rootPaths = [
+            path.join(observed.root, "events"),
+            path.join(observed.root, "authority"),
+          ];
+          if (batches.length === 0) {
+            expect(targets).toEqual(rootPaths);
+            for (const directory of rootPaths) {
+              expect(fs.readdirSync(directory)).toEqual([]);
+            }
+          } else if (batches.length === 1) {
+            expect(targets).toEqual([
+              path.join(rootPaths[0], "segments-v1"),
+              path.join(rootPaths[1], "head-anchors-v1"),
+            ]);
+          }
+          batches.push([...targets]);
+          return repair(targets, options);
+        },
+      );
       expect(ledger({ observed }).verify()).toMatchObject({
         status: "verified",
         sequence: 0,
       });
+      expect(batches.length).toBeGreaterThanOrEqual(2);
       expect(observed.descriptors.size).toBe(0);
     }, 60_000);
+    it.each(["throw", "missing-result", "reordered", "not-ok", "absent"])(
+      "does not create children or ledger objects after %s root ACL evidence",
+      (fault) => {
+        const observed = {};
+        const repair = vi
+          .spyOn(secureFs, "repairPrivatePaths")
+          .mockImplementation((targets) => {
+            if (fault === "throw") throw new Error("root ACL unavailable");
+            const results = targets.map((target) => ({
+              target,
+              ok: true,
+              exists: true,
+            }));
+            if (fault === "missing-result") results.pop();
+            if (fault === "reordered") results.reverse();
+            if (fault === "not-ok") results[0].ok = false;
+            if (fault === "absent") results[0].exists = false;
+            return results;
+          });
+        expect(() => ledger({ observed })).toThrow();
+        expect(repair).toHaveBeenCalledTimes(1);
+        for (const directory of ["events", "authority"]) {
+          expect(fs.readdirSync(path.join(observed.root, directory))).toEqual(
+            [],
+          );
+        }
+        expect(observed.descriptors.size).toBe(0);
+      },
+      60_000,
+    );
+    it.each(["dev", "ino", "birthtimeNs"])(
+      "rejects root %s replacement before creating descendants",
+      (field) => {
+        const observed = {};
+        let repaired = false;
+        vi.spyOn(secureFs, "repairPrivatePaths").mockImplementation(
+          (targets) => {
+            repaired = true;
+            return targets.map((target) => ({
+              target,
+              ok: true,
+              exists: true,
+            }));
+          },
+        );
+        expect(() =>
+          ledger({
+            observed,
+            mutateRoot: (stat) => {
+              if (repaired) stat[field] += 1n;
+            },
+          }),
+        ).toThrow(
+          expect.objectContaining({
+            code: "CC_EVOLUTION_LEDGER_STORE_UNSAFE",
+            cause: expect.objectContaining({
+              message: "Private ledger root changed during ACL setup",
+            }),
+          }),
+        );
+        for (const directory of ["events", "authority"]) {
+          expect(fs.readdirSync(path.join(observed.root, directory))).toEqual(
+            [],
+          );
+        }
+        expect(observed.descriptors.size).toBe(0);
+      },
+      60_000,
+    );
     it("rejects a path-device discrepancy on fixed libuv", () => {
       const observed = {};
       expect(() => ledger({ uvVersion: "1.51.0", observed })).toThrow(

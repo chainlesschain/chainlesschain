@@ -1,0 +1,81 @@
+{
+  "schema": "chainlesschain.windows-roots-acl-batch-validation/v1",
+  "validationDateLocal": "2026-10-24",
+  "timeZone": "Asia/Shanghai",
+  "worktree": "C:/code/chainlesschain/.work/cc118-final",
+  "platform": "win32",
+  "node": {
+    "version": "v22.12.0",
+    "executable": "C:/code/chainlesschain/.work/cli-ide-recovery-20261023/node-22.12.0/node-verified.exe",
+    "sha256": "B3B117A08EE61EFEE09E6FD523AB33C0C018DA1B570BDE08E4FD914DC1170ED6"
+  },
+  "runner": {
+    "name": "vitest",
+    "version": "4.1.11",
+    "entryPoint": "C:/code/chainlesschain/node_modules/vitest/vitest.mjs",
+    "arguments": [
+      "run",
+      "--root",
+      "packages/cli",
+      "__tests__/unit/evolution-windows-ledger-acl.test.js",
+      "__tests__/unit/evolution-ledger-directory-boundary.test.js"
+    ]
+  },
+  "scope": {
+    "source": "packages/cli/src/lib/evolution/evolution-ledger.js",
+    "sourceSha256": "D4CF5168F6939EB022B6B659A2A53DF8BC8A134A0CD1444DB922E669751A0A68",
+    "modifiedTest": "packages/cli/__tests__/unit/evolution-windows-ledger-acl.test.js",
+    "modifiedTestSha256": "B057905082F12604FC9168A8507FE7310539DE3616F1F02C7124D9F19DAEBF0A",
+    "testFiles": [
+      "packages/cli/__tests__/unit/evolution-windows-ledger-acl.test.js",
+      "packages/cli/__tests__/unit/evolution-ledger-directory-boundary.test.js"
+    ],
+    "change": "Create and validate independent Windows ledger roots without descendants, repair both roots in one ACL batch, verify ordered successful existing results and unchanged bigint dev/ino/birthtimeNs, then perform the existing children batch.",
+    "savedAclHelperLaunchesPerConstructor": 1,
+    "failedRootEvidenceCreatesChildrenOrLedgerObjects": false
+  },
+  "finalRun": {
+    "sessionId": 24934,
+    "exitCode": 0,
+    "startTimeLocal": "2026-10-24T04:34:21+08:00",
+    "durationSeconds": 160.73,
+    "testFilesPassed": 2,
+    "testFilesTotal": 2,
+    "testsPassed": 43,
+    "testsFailed": 0,
+    "testsTotal": 43,
+    "consoleOutput": "final-test-console.txt"
+  },
+  "initialRun": {
+    "sessionId": 20195,
+    "exitCode": 1,
+    "startTimeLocal": "2026-10-24T04:31:23+08:00",
+    "durationSeconds": 145.13,
+    "testsPassed": 40,
+    "testsFailed": 3,
+    "testsTotal": 43,
+    "testSha256BeforeAssertionCorrection": "93BEFE5F2D12876BB2E80405A0FEC3F98884F87CF778AE0DC4783A596525E783",
+    "failureExplanation": "The three newly added root-identity mutation tests expected the inner Error message at the top level. The constructor correctly wraps it in CC_EVOLUTION_LEDGER_STORE_UNSAFE with cause. Only these assertions were corrected to require the public code and exact cause.message; runtime source and identity rules were unchanged.",
+    "consoleOutput": "initial-test-console.txt"
+  },
+  "otherValidation": {
+    "prettierCheck": "passed for the two modified files",
+    "gitDiffCheck": "passed for the two modified files",
+    "sourceAndModifiedTestHashesRecheckedWhenSavingReceipt": true
+  },
+  "provenance": {
+    "consoleFiles": "Console text recovered from the original exec/write_stdin tool output chunks, retaining the emitted output. No tests were rerun to create this receipt.",
+    "vitestJsonReporterArtifactAvailable": false,
+    "receiptKind": "Manually assembled validation receipt, not a Vitest JSON reporter result."
+  },
+  "limits": {
+    "formalQualification": false,
+    "authoritativeReleaseGate": false,
+    "formalThroughputEvidence": false,
+    "paidReady": false,
+    "nativeAdmission": "NOT_ADMITTED",
+    "promotion": "HOLD",
+    "commitOrPushPerformedByThisAgent": false,
+    "statement": "These are local Windows component and boundary test results only. They do not establish exact-commit GitHub Actions release eligibility, formal 20-child startup acceptance, or 1000-turn throughput qualification."
+  }
+}

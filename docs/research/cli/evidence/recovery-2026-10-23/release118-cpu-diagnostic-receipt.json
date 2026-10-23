@@ -1,0 +1,231 @@
+{
+  "schema": "chainlesschain.cpu-diagnostic-final-evidence/v1",
+  "runId": 40018153592,
+  "runAttempt": 1,
+  "driverSha": "3086cdff4791c49662018857065d5d95898357af",
+  "sourceSha": "0e59f8a304996e2597fe1af61b36e4da0551ec2f",
+  "workflowStatus": "completed",
+  "workflowConclusion": "failure",
+  "workflowUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/40018153592",
+  "metadata": [
+    {
+      "file": "run-1792787587138.json",
+      "sha256": "506dc8cdf1061e4b927b8147442cd5c8d235007fdfbedabd1460bd41c6d8f522"
+    },
+    {
+      "file": "jobs-1792787587138.json",
+      "sha256": "4d034d83c947e0618088762250cd3cd25580d1cf3c545a49692f759f4d41c65b"
+    },
+    {
+      "file": "artifacts-1792787587138.json",
+      "sha256": "bd1d2d20229a814603124d40bc2ca524ea49fc9d606ddc1238ff50518d4a6fad"
+    },
+    {
+      "file": "cpu-attribution-3os.json",
+      "sha256": "6b2121ad6292f050820706be05979d24f7a1f00844420b8f1176aceba30d9713"
+    }
+  ],
+  "platforms": [
+    {
+      "platform": "linux",
+      "jobId": 120635480764,
+      "artifactId": 12529273184,
+      "archiveSha256": "6c8f3e9b339916e133641825da9b7930a6b41e1638ee24c3e4f79cf52304d7f8",
+      "logSha256": "c66908f6749f35477ffe1e4c083309229b0928f86326e50ffdeebcd0f2782218",
+      "files": [
+        {
+          "name": "duplex-turn-diagnostic.json",
+          "sha256": "a349f38cf9ad57eb401228d7cde0f144fd8108a24d58f4a868caa19d230b5583",
+          "bytes": 27411
+        },
+        {
+          "name": "cpu-profile-summary.json",
+          "sha256": "2bc62b9845c47810cc1ec5e8a76f62e1ecd652ed5e05466f8228a6e1c2bac149",
+          "bytes": 30912
+        },
+        {
+          "name": "child-diagnostics.jsonl",
+          "sha256": "3502a6ebc03e0b74272eb446fbca936d5baa420ce091ed20babc36a72d284350",
+          "bytes": 28299
+        },
+        {
+          "name": "fetch-diagnostics.jsonl",
+          "sha256": "7fad6f7748204d922bd061560416467ab58298795864c8b99bca2ab1ed235019",
+          "bytes": 161
+        }
+      ],
+      "artifactDigestVerified": true,
+      "extractedBytesVerified": true,
+      "diagnosticStatus": "diagnostic-failed",
+      "cpuSummaryStatus": "completed",
+      "resultCount": 18,
+      "measuredTurns": 0,
+      "measuredDurationSeconds": 0,
+      "finalTurn": {
+        "sequence": 19,
+        "phase": "warmup",
+        "resultReceived": false,
+        "preHttpMs": 31785.813502999954,
+        "serverMs": 0.5135680000530556,
+        "remainingAfterHttpAtDeadlineMs": 28213.672928999993
+      },
+      "transportErrors": 0,
+      "finalTrailersObserved": true,
+      "finalHttpStatus": 200,
+      "sourceCleanBefore": true,
+      "sourceCleanAfter": true,
+      "cleanup": {
+        "deadlineMs": 10000,
+        "elapsedMs": 24.734281000040937,
+        "closed": true,
+        "treeTerminated": true,
+        "confirmed": true,
+        "deadlineExceeded": false,
+        "diagnostics": {
+          "method": "posix-process-group",
+          "initialExitObserved": false,
+          "signalAttempted": true,
+          "probeCount": 2,
+          "permissionProbeCount": 0,
+          "failureStage": null,
+          "errorCode": null
+        }
+      }
+    },
+    {
+      "platform": "macos",
+      "jobId": 120635480403,
+      "artifactId": 12528999215,
+      "archiveSha256": "403a3beaec371f18a0a56c65370a45c7d34e3f3aa91fca0a58eeef4121a501d3",
+      "logSha256": "6918d3bdb6346c16a264a8b8f9a578635994434320c4f69e48664463202c3fd7",
+      "files": [
+        {
+          "name": "duplex-turn-diagnostic.json",
+          "sha256": "45f49bbcab4272ffe18fb0045d990e6d54e46685dbe2f549222ccbfd4613d61e",
+          "bytes": 25113
+        },
+        {
+          "name": "cpu-profile-summary.json",
+          "sha256": "93edbfd4d6ac71f9962dc627e99b81df56e0b3514ce8146db7a2a8d4bf66c48a",
+          "bytes": 30042
+        },
+        {
+          "name": "child-diagnostics.jsonl",
+          "sha256": "922498da4fdf05f0a2fd606d16be61381ab4f1ae8aed77a479908c66dea36c5f",
+          "bytes": 25319
+        },
+        {
+          "name": "fetch-diagnostics.jsonl",
+          "sha256": "4f6915f85f332aab9e1943d5c2a10a18465966cef7bb0c5a247fb748b3b43a79",
+          "bytes": 161
+        }
+      ],
+      "artifactDigestVerified": true,
+      "extractedBytesVerified": true,
+      "diagnosticStatus": "diagnostic-failed",
+      "cpuSummaryStatus": "completed",
+      "resultCount": 16,
+      "measuredTurns": 0,
+      "measuredDurationSeconds": 0,
+      "finalTurn": {
+        "sequence": 17,
+        "phase": "warmup",
+        "resultReceived": false,
+        "preHttpMs": 28497.40383299999,
+        "serverMs": 2.1442089999909513,
+        "remainingAfterHttpAtDeadlineMs": 31500.45195800002
+      },
+      "transportErrors": 0,
+      "finalTrailersObserved": true,
+      "finalHttpStatus": 200,
+      "sourceCleanBefore": true,
+      "sourceCleanAfter": true,
+      "cleanup": {
+        "deadlineMs": 10000,
+        "elapsedMs": 25.83079199999338,
+        "closed": true,
+        "treeTerminated": true,
+        "confirmed": true,
+        "deadlineExceeded": false,
+        "diagnostics": {
+          "method": "posix-process-group",
+          "initialExitObserved": false,
+          "signalAttempted": true,
+          "probeCount": 2,
+          "permissionProbeCount": 0,
+          "failureStage": null,
+          "errorCode": null
+        }
+      }
+    },
+    {
+      "platform": "windows",
+      "jobId": 120635480530,
+      "artifactId": 12530191970,
+      "archiveSha256": "99854aa218b22b06861586fbaf12c8f64f565cf34a686aea0f3eb169b15f3661",
+      "logSha256": "034a97611a466ed74b29ad3a1b6cc79003956c7f1c5a783c5a3fad2483e5ee23",
+      "files": [
+        {
+          "name": "duplex-turn-diagnostic.json",
+          "sha256": "08e79182fe2ec07a924fe89d5e25ebf12bbd8829121ba20e334a24ef169f5ab9",
+          "bytes": 29333
+        },
+        {
+          "name": "cpu-profile-summary.json",
+          "sha256": "747f12b1cd6bce165b220cba73cf580d69b2ed51edaa24ec63ddb43a9ae95083",
+          "bytes": 25162
+        },
+        {
+          "name": "child-diagnostics.jsonl",
+          "sha256": "35903a62377cc8b6de0076252d20035d7e56dc7e44d17b6be4da7921f02d04a2",
+          "bytes": 32586
+        },
+        {
+          "name": "fetch-diagnostics.jsonl",
+          "sha256": "9a2f4a2aef3a6d9bac1404a0573c0ea39b0881e22c27539b6f2f3833b46320fc",
+          "bytes": 161
+        }
+      ],
+      "artifactDigestVerified": true,
+      "extractedBytesVerified": true,
+      "diagnosticStatus": "diagnostic-failed",
+      "cpuSummaryStatus": "completed",
+      "resultCount": 20,
+      "measuredTurns": 0,
+      "measuredDurationSeconds": 60.22299780000001,
+      "finalTurn": {
+        "sequence": 21,
+        "phase": "measured",
+        "resultReceived": false,
+        "preHttpMs": 33659.823399999994,
+        "serverMs": 0.565000000060536,
+        "remainingAfterHttpAtDeadlineMs": 26339.611599999946
+      },
+      "transportErrors": 0,
+      "finalTrailersObserved": true,
+      "finalHttpStatus": 200,
+      "sourceCleanBefore": true,
+      "sourceCleanAfter": true,
+      "cleanup": {
+        "deadlineMs": 10000,
+        "elapsedMs": 118.06449999997858,
+        "closed": true,
+        "treeTerminated": true,
+        "confirmed": true,
+        "deadlineExceeded": false,
+        "diagnostics": {
+          "method": "windows-taskkill-tree",
+          "initialExitObserved": false,
+          "signalAttempted": true,
+          "probeCount": 0,
+          "permissionProbeCount": 0,
+          "failureStage": null,
+          "errorCode": null
+        }
+      }
+    }
+  ],
+  "formalQualification": false,
+  "paidReady": false,
+  "nativeAdmission": false
+}

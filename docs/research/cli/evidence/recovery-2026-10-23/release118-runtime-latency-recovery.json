@@ -1,0 +1,156 @@
+{
+  "schema": "chainlesschain.cli-runtime-latency-recovery/v1",
+  "recordedAt": "2026-10-23T20:43:42.232Z",
+  "disposition": "LOCAL_CANDIDATE_VERIFIED_EXACT_COMMIT_ACTIONS_REQUIRED",
+  "candidate": {
+    "branch": "feature/cli-runtime-recovery-final-20261024",
+    "baseSha": "305dc9f2c94f38db8a21ca71f43602f7dd7c83a3",
+    "commitNotYetCreated": true,
+    "cliVersion": "0.166.118"
+  },
+  "originalSource": "0e59f8a304996e2597fe1af61b36e4da0551ec2f",
+  "formalFailure": {
+    "runId": 40011061994,
+    "mainHosts": "Linux/macOS warmup timed out; Windows twenty-child startup timed out. Remaining long jobs canceled after preserving all three failures; a full new matrix is required."
+  },
+  "diagnostics": {
+    "turnRunId": 40014821322,
+    "cpuRunId": 40018153592,
+    "concurrentStartupRunId": 40017667511,
+    "cpuAttribution": "release118-cpu-attribution-before.json",
+    "cpuReceipt": "release118-cpu-diagnostic-receipt.json",
+    "limits": "Early sampled windows identify hot paths, not precise full-timeout function CPU. Inclusive samples overlap. Linux stack depth was truncated. Windows synchronous spawn wait does not measure helper CPU."
+  },
+  "correction": {
+    "history": "Resolve Run artifacts in 128-item chunks inside one branded synchronous read window. Reuse only the private deeply frozen parsed rows and duplicate-preserving id/digest maps after current descriptor bytes hash to the same initial snapshot.",
+    "freshChecks": "All directory/handle/physical identity/mutation/size/byte checks run before and after every chunk and at window return. Every payload, signature and current authority is freshly authenticated. Existing per-chunk lease barriers remain; no whole-window lease guarantee is added.",
+    "lifetime": "Read capability closes in finally, rejects async/thenable callbacks, and retains both the 128-item chunk cap and cumulative 10000-item index cap. No cross-load authority or payload cache.",
+    "frontier": "Preserve before/after Run verification and sequence/lineage checks. On artifact failure, classify conflict only if a fresh successful ledger verification proves the frontier changed; otherwise retain the original failure.",
+    "mutableParseReview": "Independent review found store hooks could retain parsed rows. Validate canonical structure budgets, then deeply freeze rows and lineage; regression confirms mutation fails and a second chunk retains exact bytes.",
+    "windowsRoots": "Create and inspect two independent empty roots, secure them in one ACL batch, recheck full-precision dev/ino/birthtimeNs, then create and secure children. One fewer helper launch; no startup-success claim.",
+    "concurrentFailure": "Reviewed cleanup-only producer 305 records all twenty children and preserves the original 120000ms timeout plus one shared 10000ms failure cleanup. Unknown trees retain temporary storage."
+  },
+  "validation": {
+    "node": "official 22.12.0",
+    "runtimeFull": {
+      "passed": 78,
+      "failed": 0,
+      "pending": 1,
+      "files": 2,
+      "scope": "Runtime code final; two later test-only boundary assertions separately checked."
+    },
+    "boundaryFollowup": {
+      "passed": 7,
+      "failed": 0,
+      "filteredOrSkipped": 47,
+      "scope": "Exact 10000-item boundary and escaped capability after final failure."
+    },
+    "windowsAcl": {
+      "passed": 43,
+      "failed": 0,
+      "files": 2,
+      "receipt": "release118-windows-roots-batch-validation.json"
+    },
+    "changelogParity": {
+      "passed": 1,
+      "failed": 0
+    },
+    "egress": {
+      "candidateFiles": 78,
+      "sourceReviewPassed": true,
+      "issues": 0,
+      "parseErrors": 0,
+      "paidReady": false
+    },
+    "sandboxAttempt": {
+      "passed": 0,
+      "failed": 77,
+      "pending": 1,
+      "reason": "All beforeEach fixtures denied while inspecting C:/Users/longfa metadata in the sandbox. Preserved separately; host rerun passed 77/77 before the final freeze correction. No identity assertion relaxed."
+    }
+  },
+  "rawLocalReports": [
+    {
+      "path": "final-runtime-window-frozen-host-tests.json",
+      "sha256": "f522264d3acc8496e87ac8721d64ce763835d88d7912b0118676eea368dac457"
+    },
+    {
+      "path": "final-runtime-window-boundary-host-tests.json",
+      "sha256": "3beebac56adca0c663284b933de7c68a8784cc92add5202d022f80aa58c7e842"
+    },
+    {
+      "path": "final-runtime-changelog-parity.json",
+      "sha256": "1852a9e9ebbffd23370f57940e9fb1c512137306d0ee5ff3bb1e6f7321301224"
+    },
+    {
+      "path": "final-runtime-egress-complete-audit.json",
+      "sha256": "a98190c0b35640e33129a0cf73ccb2e1ef21cb76321058709090992332bb32c0"
+    },
+    {
+      "path": "final-runtime-window-tests.json",
+      "sha256": "d63713b13f5bf1701af862b06aac0964f8711d1fc9ee1fb349c7edb5ca1355de"
+    },
+    {
+      "path": "final-runtime-window-host-tests.json",
+      "sha256": "9eae73eb83d35eb0cc03bd8307cc530745eca518e72ad58ac4f43e4688978d2b"
+    }
+  ],
+  "sourceSnapshot": [
+    {
+      "path": "packages/cli/src/lib/evolution/evolution-artifact-ports.js",
+      "sha256": "e1370307938dc0d9ff131a11b329609419f35d2ceebde77d1a9b818173335e61"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js",
+      "sha256": "3ca0a9756f6ca1799b0bb2993941ee3c2ca0b46c32c7ab738b006c2643336593"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/evolution-ledger.js",
+      "sha256": "d4cf5168f6939eb022b6b659a2a53df8bc8a134a0cd1444db922e669751a0a68"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/evolution-artifact-ports.test.js",
+      "sha256": "7d609ed0230e4308f78a9c716ad9008c4a1ca12bb2f74f7f710418f3f2b7e087"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/evolution-run-ledger-adapter.test.js",
+      "sha256": "167702e541117909af5d3c7817bdf54c9aa2ad0bc5bb9c2df3c75c5a90c76b71"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/evolution-windows-ledger-acl.test.js",
+      "sha256": "b057905082f12604fc9168a8507fe7310539de3616f1f02c7124d9f19daebf0a"
+    },
+    {
+      "path": "packages/cli/scripts/cli-reliability-soak.mjs",
+      "sha256": "dcff37dfdb9ba7b96b67cc94d6c82668a0520dc9a63fde69a1fc76e8070b08e6"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/cli-reliability-concurrent-diagnostics.test.js",
+      "sha256": "5654c1be6f5071ebe372816753c7edd542041ad2519c228131249bf6de263c27"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "sha256": "ebab52d4b8b7fbdd2e288003c5020af3a2884fc8193598e3f6b09a62a34729af"
+    },
+    {
+      "path": "packages/cli/src/data/changelog.json",
+      "sha256": "d731270de7c14b2c6534db715faa71c77ebbc5baa95fcc58efd1721e309d50b3"
+    }
+  ],
+  "publication": {
+    "status": "NOT_PUBLISHED",
+    "tagsCreated": [],
+    "requires": "Fresh exact-commit complete CLI CI, CLI Strict Sandbox and full formal reliability, then child npm packages, CLI, IDEs, mobile/PC with public archive/readback verification."
+  },
+  "acceptance": {
+    "ordinary": 26,
+    "firstRun": 6,
+    "accepted": 32,
+    "total": 45,
+    "remaining": 13,
+    "newPaidTasks": 0,
+    "paidReady": false,
+    "nativeAdmission": "NOT_ADMITTED",
+    "promotion": "HOLD"
+  }
+}
