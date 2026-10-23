@@ -1,0 +1,830 @@
+diff --git a/packages/vscode-extension/src/chat/agent-session.js b/packages/vscode-extension/src/chat/agent-session.js
+index 7d9d34a46c..6b4b8e30ca 100644
+--- a/packages/vscode-extension/src/chat/agent-session.js
++++ b/packages/vscode-extension/src/chat/agent-session.js
+@@ -20,6 +20,7 @@ const { spawn } = require("child_process");
+ const { randomUUID } = require("node:crypto");
+ const { hardenedEnv } = require("../hardened-env");
+ const { stopAgentProcess } = require("./stop-agent-process");
++const { boundedErrorCode } = require("./agent-diagnostics");
+ // Vendored @chainlesschain/agent-sdk (scripts/sync-agent-sdk.mjs): the
+ // protocol argv + NDJSON framing are SDK contracts now, not hand-rolled.
+ const { buildAgentArgs } = require("../vendor/agent-sdk/agent-session.js");
+@@ -140,7 +141,12 @@ class AgentChatSession {
+     });
+     this.child.on("error", (err) => {
+       // spawn failure (cc not installed / not on PATH) — surface as an event
+-      this._emit({ type: "session_error", error: err.message });
++      const code = boundedErrorCode(err.code);
++      this._emit({
++        type: "session_error",
++        error: err.message,
++        ...(code ? { code } : {}),
++      });
+     });
+     // stdin can emit an ASYNC 'error' (EPIPE) when we write just as the child
+     // dies (crash mid-turn, or cc closing stdin) — with no listener it throws
+@@ -149,9 +155,11 @@ class AgentChatSession {
+     if (this.child.stdin)
+       this.child.stdin.on("error", (error) => {
+         this._inputFailed = true;
++        const code = boundedErrorCode(error.code);
+         this._emit({
+           type: "session_error",
+           error: `Input delivery failed: ${error.message}`,
++          ...(code ? { code } : {}),
+         });
+       });
+     return this;
+diff --git a/packages/vscode-extension/src/chat/chat-events.js b/packages/vscode-extension/src/chat/chat-events.js
+index 261bc79596..a02263654b 100644
+--- a/packages/vscode-extension/src/chat/chat-events.js
++++ b/packages/vscode-extension/src/chat/chat-events.js
+@@ -19,6 +19,7 @@
+ const {
+   CC_AGENT_STREAM_EVENT_TYPES,
+ } = require("../vendor/agent-sdk/generated/app-protocol.js");
++const { errorDiagnostic } = require("./agent-diagnostics");
+ 
+ const KNOWN_AGENT_STREAM_EVENT_TYPES = new Set(CC_AGENT_STREAM_EVENT_TYPES);
+ const GOAL_STATUS = {
+@@ -294,11 +295,9 @@ function mapAgentEvent(evt, state) {
+         kind: "turn_end",
+         isError: evt.is_error === true,
+         // If text streamed via deltas, the final result repeats it — drop it.
+-        text: evt.is_error
+-          ? evt.error || evt.result || "turn failed"
+-          : sawDelta
+-            ? null
+-            : evt.result || null,
++        ...(evt.is_error === true
++          ? errorDiagnostic(evt)
++          : { text: sawDelta ? null : evt.result || null }),
+         usage: evt.usage || null,
+       };
+     }
+@@ -390,7 +389,13 @@ function mapAgentEvent(evt, state) {
+         note: evt.note || null,
+       };
+     case "session_error":
+-      return { kind: "error", text: evt.error || "agent session error" };
++      return {
++        kind: "error",
++        ...errorDiagnostic({
++          ...evt,
++          error: evt.error || "agent session error",
++        }),
++      };
+     case "token_usage":
+       // Per-LLM-call usage mid-turn — the webview accumulates these into a live
+       // token counter on the status line (turn_end still carries the
+diff --git a/packages/vscode-extension/src/chat/chat-view.js b/packages/vscode-extension/src/chat/chat-view.js
+index 7296ba01d8..30330817f2 100644
+--- a/packages/vscode-extension/src/chat/chat-view.js
++++ b/packages/vscode-extension/src/chat/chat-view.js
+@@ -26,6 +26,11 @@ const {
+   resultTranscriptReferences,
+ } = require("./transcript-sync");
+ const { AgentChatSession } = require("./agent-session");
++const {
++  boundedErrorCode,
++  isPersistenceResult,
++  errorDiagnostic,
++} = require("./agent-diagnostics");
+ const {
+   mapAgentEvent,
+   createTurnState,
+@@ -485,6 +490,12 @@ class ChatViewProvider {
+       : crypto.randomUUID();
+     let inputCancelRevision = conv.inputCancelRevision || 0;
+     const assertInputNotCancelled = () => {
++      if (
++        message.loopToken &&
++        this._loopTimers.get(conv.id) !== message.loopToken
++      ) {
++        throw new Error("Recurring input was paused; input was not dispatched");
++      }
+       if ((conv.inputCancelRevision || 0) !== inputCancelRevision) {
+         throw new Error(
+           "Input preparation was stopped; input was not dispatched",
+@@ -562,6 +573,7 @@ class ChatViewProvider {
+       return sent;
+     } catch (error) {
+       if (error === conv.inputInitError) conv.inputInitErrorReported = true;
++      if (dispatched) this._pauseLoopForSessionReview(conv.id);
+       if (prepared && !dispatched)
+         await this._draftStore.settle(key, id, "rejected").catch(() => {});
+       this._post({
+@@ -1206,6 +1218,14 @@ class ChatViewProvider {
+     return !!state;
+   }
+ 
++  _pauseLoopForSessionReview(convId) {
++    if (!this._stopLoop(convId)) return;
++    this._postFrom(convId, {
++      kind: "error",
++      text: "/loop paused: agent state needs review. Inspect the saved session and input acceptance before restarting /loop. Nothing was resent.",
++    });
++  }
++
+   /**
+    * Detach a child before stopping it. The token invalidates late stdout/exit
+    * callbacks from the old process so they cannot alter a newly spawned child
+@@ -1354,6 +1374,13 @@ class ChatViewProvider {
+       )
+         return;
+       acceptTranscriptInputReceipt(conv, evt, sessionToken);
++      if (
++        evt?.type === "session_error" ||
++        isPersistenceResult(evt) ||
++        (evt?.type === "result" && evt.acceptance === "unknown")
++      ) {
++        this._pauseLoopForSessionReview(convId);
++      }
+       if (
+         conv.inputReceiptVersion === undefined &&
+         (evt?.type === "session_error" ||
+@@ -1477,7 +1504,9 @@ class ChatViewProvider {
+       ) {
+         conv.modeStatus = "failed";
+         conv.modeError = String(
+-          evt.error || evt.result || "Agent startup failed",
++          isPersistenceResult(evt)
++            ? errorDiagnostic(evt).text
++            : evt.error || evt.result || "Agent startup failed",
+         ).slice(0, 500);
+         this._updateModeStatus();
+       }
+@@ -1486,7 +1515,7 @@ class ChatViewProvider {
+       // means setup is needed — surface the guided-setup card instead of a bare
+       // error. The auth half mirrors the JetBrains panel's hint so a bare
+       // "Anthropic error: 401" (no "api key" text) still triggers the card.
+-      if (evt?.type === "result" && evt.is_error) {
++      if (evt?.type === "result" && evt.is_error && !isPersistenceResult(evt)) {
+         const reason = String(evt.error || evt.result || "");
+         if (
+           /fetch failed|ECONNREFUSED|ENOTFOUND|ETIMEDOUT/i.test(reason) ||
+@@ -2358,12 +2387,23 @@ class ChatViewProvider {
+             this._postFrom(conv.id, { kind: "stderr", text: line });
+           }
+         },
+-        onExit: ({ code }) => {
++        onExit: ({ code, signal }) => {
+           exited = true;
+           const current = this._convs.get(conv.id);
+           if (!current || current._sessionToken !== sessionToken) {
+             return;
+           }
++          if (code !== 0 || signal || current.turnActive) {
++            this._pauseLoopForSessionReview(conv.id);
++            const safeSignal = boundedErrorCode(signal);
++            const exitCode = Number.isSafeInteger(code) ? code : "unknown";
++            this._postFrom(conv.id, {
++              kind: "error",
++              code: "CC_AGENT_PROCESS_EXITED",
++              ...(safeSignal ? { signal: safeSignal } : {}),
++              text: `Agent exited [CC_AGENT_PROCESS_EXITED] (exit: ${exitCode}${safeSignal ? `, signal: ${safeSignal}` : ""}). Inspect the saved session before continuing.`,
++            });
++          }
+           this._questions.archiveConversation(current, {
+             reason: "Agent exited; saved answer text remains editable",
+           });
+@@ -2734,17 +2774,26 @@ class ChatViewProvider {
+     );
+     const prompt = m[3].trim();
+     if (old) this._stopLoop(conv.id);
+-    const timer = setInterval(() => {
+-      if (!this._convs.has(conv.id)) return;
++    const loop = { timer: null, intervalMs, prompt };
++    const submit = () =>
++      this._handleMessage({
++        type: "send",
++        convId: conv.id,
++        text: prompt,
++        loopToken: loop,
++      });
++    loop.timer = setInterval(() => {
++      if (!this._convs.has(conv.id) || this._loopTimers.get(conv.id) !== loop)
++        return;
+       this._handleMessage({ type: "switchTab", id: conv.id });
+-      this._handleMessage({ type: "send", text: prompt });
++      submit();
+     }, intervalMs);
+-    this._loopTimers.set(conv.id, { timer, intervalMs, prompt });
+-    this._handleMessage({ type: "send", text: prompt });
++    this._loopTimers.set(conv.id, loop);
+     this._post({
+       kind: "info",
+       text: `/loop started: every ${m[1] || 300}${m[2] || "s"} · /loop stop to stop`,
+     });
++    submit();
+   }
+ 
+   /**
+@@ -2929,6 +2978,8 @@ class ChatViewProvider {
+   }
+ 
+   _sendMessage(m, images, sendingConv, dispatch = null) {
++    if (m.loopToken && this._loopTimers.get(sendingConv.id) !== m.loopToken)
++      return false;
+     const session = dispatch?.session || this._ensureSession(sendingConv);
+     const auto = deriveTabTitle(m.text);
+     if (auto && isDefaultTitle(sendingConv.title)) {
+@@ -2982,6 +3033,7 @@ class ChatViewProvider {
+       turns.push(dispatch ? [] : images);
+       this._imgTurns.set(id, turns);
+     } else {
++      this._pauseLoopForSessionReview(id);
+       if (dispatch) {
+         this._postFrom(id, {
+           kind: "error",
+diff --git a/packages/vscode-extension/test/agent-initialization.test.cjs b/packages/vscode-extension/test/agent-initialization.test.cjs
+index 20df7ef2af..681c2c44da 100644
+--- a/packages/vscode-extension/test/agent-initialization.test.cjs
++++ b/packages/vscode-extension/test/agent-initialization.test.cjs
+@@ -56,6 +56,284 @@ async function waitForInitWaiter(conv) {
+   assert.equal(conv.inputInitWaiters?.size, 1);
+ }
+ 
++function makeLoopConversation() {
++  const writes = [],
++    posts = [],
++    sessions = [];
++  const provider = new ChatViewProvider(
++    {
++      workspace: {
++        getConfiguration: () => ({ get: () => undefined }),
++        workspaceFolders: [],
++      },
++    },
++    {
++      deps: {
++        resolveChatLlm: () => ({}),
++        createSession: (callbacks) => {
++          const session = {
++            running: true,
++            send: (text) => {
++              writes.push(text);
++              return true;
++            },
++            sendEvent: (event) => {
++              writes.push(event);
++              return true;
++            },
++          };
++          sessions.push({ callbacks, session });
++          return session;
++        },
++      },
++    },
++  );
++  provider._post = (message) => posts.push(message);
++  provider._persistTabs = () => {};
++  provider._restoreTranscript = () => {};
++  provider._restoreDraft = async () => {};
++  provider._refreshContextStatus = () => {};
++  provider._cliCommand = () => "cc";
++  const conv = provider._activeConv();
++  conv.title = "Existing conversation";
++  provider._ensureSession(conv);
++  const onEvent = sessions[0].callbacks.onEvent;
++  onEvent({
++    type: "system",
++    subtype: "init",
++    session_id: conv.sessionId,
++    input_receipts: { version: 1 },
++  });
++  return { conv, provider, onEvent, posts, writes, sessions };
++}
++
++test("ChatView pauses recurring input on persistence or unknown acceptance and retains completed tool views", (t) => {
++  t.mock.timers.enable({ apis: ["setInterval"] });
++  for (const event of [
++    {
++      type: "result",
++      subtype: "error_persistence",
++      is_error: true,
++      code: "CC_SESSION_PERSISTENCE_FAILED",
++      persistence: { phase: "after-model" },
++    },
++    {
++      type: "result",
++      subtype: "error_session_persistence",
++      is_error: true,
++      code: "SESSION_REVISION_STALE",
++    },
++    {
++      type: "result",
++      is_error: true,
++      code: "CC_SESSION_TOOL_ROUND_PERSISTENCE_FAILED",
++    },
++    {
++      type: "result",
++      subtype: "error_input_receipt",
++      is_error: true,
++      acceptance: "unknown",
++      error: "Cannot verify input acceptance",
++    },
++    { type: "session_error", code: "EPIPE", error: "Input delivery failed" },
++  ]) {
++    const { conv, provider, onEvent, posts, writes, sessions } =
++      makeLoopConversation();
++    t.after(() => provider._stopLoop(conv.id));
++    provider._setLoop("1s inspect progress");
++    assert.equal(writes.length, 1);
++    onEvent({
++      type: "tool_use",
++      tool: "read_file",
++      args: { path: "completed.txt" },
++    });
++    onEvent({
++      type: "tool_result",
++      tool: "read_file",
++      is_error: false,
++      result: { content: "saved output" },
++    });
++    const completedView = conv.transcript.find((row) => row.role === "tool");
++    assert.ok(completedView);
++    onEvent(event);
++    t.mock.timers.tick(5000);
++    assert.equal(writes.length, 1, JSON.stringify(event));
++    assert.equal(sessions.length, 1);
++    assert.ok(conv.transcript.includes(completedView));
++    assert.ok(
++      posts.some(
++        (message) =>
++          /\/loop paused/.test(message?.text) &&
++          /Inspect.*session/.test(message.text),
++      ),
++    );
++    if (event.type === "session_error")
++      assert.ok(
++        posts.some(
++          (message) =>
++            message?.code === "EPIPE" && message.text.includes("EPIPE"),
++        ),
++      );
++    assert.equal(provider._loopTimers.has(conv.id), false);
++  }
++});
++
++test("ChatView successful and ordinary-error turns keep the explicit loop active", (t) => {
++  t.mock.timers.enable({ apis: ["setInterval"] });
++  const { conv, provider, onEvent, posts, writes } = makeLoopConversation();
++  t.after(() => provider._stopLoop(conv.id));
++  provider._setLoop("1s inspect progress");
++  onEvent({ type: "result", is_error: false, result: "Completed" });
++  t.mock.timers.tick(1000);
++  assert.equal(writes.length, 2);
++  onEvent({
++    type: "result",
++    is_error: true,
++    error: "Rate limit exceeded; retry later",
++    code: "RATE_LIMIT",
++  });
++  assert.ok(
++    posts.some(
++      (message) =>
++        message?.kind === "turn_end" &&
++        message.text.includes("Rate limit exceeded; retry later"),
++    ),
++  );
++  t.mock.timers.tick(1000);
++  assert.equal(writes.length, 3);
++  assert.equal(provider._loopTimers.has(conv.id), true);
++});
++
++test("ChatView pauses recurring input on abnormal close and exposes exit diagnostics", (t) => {
++  t.mock.timers.enable({ apis: ["setInterval"] });
++  for (const { code, signal, completed } of [
++    { code: 1, signal: null, completed: true },
++    { code: null, signal: "SIGTERM", completed: false },
++    { code: 0, signal: null, completed: false },
++  ]) {
++    const { conv, provider, onEvent, posts, writes, sessions } =
++      makeLoopConversation();
++    t.after(() => provider._stopLoop(conv.id));
++    provider._setLoop("1s inspect progress");
++    if (completed)
++      onEvent({ type: "result", is_error: false, result: "Completed" });
++    sessions[0].session.running = false;
++    sessions[0].callbacks.onExit({ code, signal });
++    t.mock.timers.tick(5000);
++    assert.equal(writes.length, 1);
++    assert.equal(sessions.length, 1);
++    const diagnostic = posts.find(
++      (message) =>
++        message?.kind === "error" && message.code === "CC_AGENT_PROCESS_EXITED",
++    );
++    assert.ok(diagnostic);
++    assert.ok(diagnostic.text.includes(signal || String(code)));
++    assert.ok(posts.some((message) => /\/loop paused/.test(message?.text)));
++  }
++});
++
++test("ChatView a clean close after a result permits the next scheduled turn", (t) => {
++  t.mock.timers.enable({ apis: ["setInterval"] });
++  const { conv, provider, onEvent, writes, sessions } = makeLoopConversation();
++  t.after(() => provider._stopLoop(conv.id));
++  provider._setLoop("1s inspect progress");
++  onEvent({ type: "result", is_error: false, result: "Completed" });
++  sessions[0].session.running = false;
++  sessions[0].callbacks.onExit({ code: 0, signal: null });
++  t.mock.timers.tick(1000);
++  assert.equal(writes.length, 2);
++  assert.equal(sessions.length, 2);
++  assert.equal(provider._loopTimers.has(conv.id), true);
++});
++
++test("ChatView a paused loop cannot dispatch an already-preparing durable input", async (t) => {
++  t.mock.timers.enable({ apis: ["setInterval", "setTimeout"] });
++  const { conv, provider, onEvent, writes } = makeSubmission();
++  provider._refreshContextStatus = () => {};
++  t.after(() => provider._stopLoop(conv.id));
++  onEvent({ type: "system", subtype: "init", input_receipts: { version: 1 } });
++  let finishPreparation;
++  provider._draftStore.prepare = () =>
++    new Promise((resolve) => {
++      finishPreparation = resolve;
++    });
++  provider._setLoop("1s inspect progress");
++  for (let i = 0; i < 30 && !finishPreparation; i++) await Promise.resolve();
++  assert.equal(typeof finishPreparation, "function");
++  onEvent({
++    type: "result",
++    subtype: "error_persistence",
++    is_error: true,
++    code: "CC_SESSION_PERSISTENCE_FAILED",
++  });
++  finishPreparation({ sessionId: conv.sessionId, paths: [] });
++  for (let i = 0; i < 30; i++) await Promise.resolve();
++  t.mock.timers.tick(5000);
++  for (let i = 0; i < 30; i++) await Promise.resolve();
++  assert.deepEqual(writes, []);
++  assert.equal(provider._loopTimers.has(conv.id), false);
++});
++
++test("ChatView persistence diagnostics do not leak through setup or mode failure channels", () => {
++  const { conv, onEvent, posts } = makeLoopConversation();
++  conv.modeStatus = "pending";
++  onEvent({
++    type: "result",
++    subtype: "error_persistence",
++    is_error: true,
++    code: "CC_SESSION_PERSISTENCE_FAILED",
++    persistence: { phase: "after-model" },
++    error: "HTTP 401 Bearer secret-request-body",
++    result: "secret-request-body",
++  });
++  assert.equal(JSON.stringify(posts).includes("secret-request-body"), false);
++  assert.equal(conv.modeError.includes("secret-request-body"), false);
++  assert.ok(conv.modeError.includes("CC_SESSION_PERSISTENCE_FAILED"));
++  assert.equal(
++    posts.some((message) => message?.kind === "setup"),
++    false,
++  );
++});
++
++test("ChatView stale or other-session failures cannot pause the current loop", (t) => {
++  t.mock.timers.enable({ apis: ["setInterval"] });
++  const { conv, provider, onEvent, posts, writes } = makeLoopConversation();
++  t.after(() => provider._stopLoop(conv.id));
++  provider._setLoop("1s inspect progress");
++  const failure = {
++    type: "result",
++    subtype: "error_persistence",
++    is_error: true,
++  };
++  onEvent({ ...failure, session_id: "another-session" });
++  conv._sessionToken = {};
++  onEvent(failure);
++  assert.equal(provider._loopTimers.has(conv.id), true);
++  t.mock.timers.tick(1000);
++  assert.equal(writes.length, 2);
++  assert.equal(
++    posts.some((message) => /\/loop paused/.test(message?.text)),
++    false,
++  );
++});
++
++test("ChatView unknown durable write pauses a loop without resending", async (t) => {
++  t.mock.timers.enable({ apis: ["setInterval", "setTimeout"] });
++  const { conv, provider, onEvent, writes } = makeSubmission();
++  t.after(() => provider._stopLoop(conv.id));
++  conv.session.sendEvent = (event) => {
++    writes.push(event);
++    return false;
++  };
++  onEvent({ type: "system", subtype: "init", input_receipts: { version: 1 } });
++  provider._setLoop("1s inspect progress");
++  for (let i = 0; i < 30; i++) await Promise.resolve();
++  t.mock.timers.tick(5000);
++  for (let i = 0; i < 30; i++) await Promise.resolve();
++  assert.equal(writes.length, 1);
++  assert.equal(provider._loopTimers.has(conv.id), false);
++});
++
+ test("doctor observes the active child and discards stale generation capabilities", () => {
+   const { conv, onEvent, provider, writes } = makeSubmission();
+   assert.equal(provider.runtimeDiagnostics().state, "initializing");
+diff --git a/packages/vscode-extension/test/agent-sdk-vendor.test.cjs b/packages/vscode-extension/test/agent-sdk-vendor.test.cjs
+index b71a45c49e..f614ee7be0 100644
+--- a/packages/vscode-extension/test/agent-sdk-vendor.test.cjs
++++ b/packages/vscode-extension/test/agent-sdk-vendor.test.cjs
+@@ -145,6 +145,108 @@ test("VS Code preserves causal-equivalent projections across interleavings", ()
+   }
+ });
+ 
++test("VS Code persistence errors retain only bounded protocol codes and fixed phases", () => {
++  const secret =
++    "Bearer private-provider-token request-body=<script>private</script>";
++  for (const [subtype, code, phase] of [
++    [undefined, "CC_SESSION_TOOL_ROUND_PERSISTENCE_FAILED", "unspecified"],
++    ["error_session_persistence", "SESSION_REVISION_STALE", "unspecified"],
++    ["error_persistence", "CC_SESSION_PERSISTENCE_FAILED", "after-model"],
++  ]) {
++    const state = { sawDelta: true };
++    const result = mapAgentEvent(
++      {
++        type: "result",
++        subtype,
++        is_error: true,
++        code,
++        error: secret,
++        result: secret,
++        phase: secret,
++        persistence: { phase, message: secret, cause: secret, request: secret },
++      },
++      state,
++    );
++    assert.equal(result.kind, "turn_end");
++    assert.equal(result.isError, true);
++    assert.equal(result.code, code);
++    assert.equal(result.phase, phase);
++    assert.ok(result.text.includes(code));
++    assert.ok(result.text.includes(phase));
++    assert.equal(JSON.stringify(result).includes(secret), false);
++    assert.equal(state.sawDelta, false);
++  }
++});
++
++test("VS Code rejects unbounded error codes and arbitrary phase prose without coercion", () => {
++  for (const code of [
++    undefined,
++    null,
++    123,
++    {},
++    "X".repeat(121),
++    "CC_BAD\nsecret",
++    "CC_BAD\n",
++    "<img src=x>",
++    "Bearer private-token",
++    "https://private.example",
++  ]) {
++    const result = mapAgentEvent(
++      {
++        type: "result",
++        subtype: "error_persistence",
++        is_error: true,
++        code,
++        error: "provider-private-error",
++        result: "request-private-body",
++        phase: "before-model",
++        persistence: { phase: "secret-phase" },
++      },
++      createTurnState(),
++    );
++    assert.equal(result.code, undefined);
++    assert.equal(result.phase, "unspecified");
++    assert.equal(result.text.includes("private"), false);
++    assert.equal(result.text.includes("secret"), false);
++    assert.equal(result.text.includes("before-model"), false);
++  }
++  const success = mapAgentEvent(
++    {
++      type: "result",
++      is_error: false,
++      result: "answer",
++      code: "CC_ERROR",
++      persistence: { phase: "after-model" },
++    },
++    createTurnState(),
++  );
++  assert.equal(success.text, "answer");
++  assert.equal(success.code, undefined);
++  assert.equal(success.phase, undefined);
++});
++
++test("VS Code ordinary errors keep actionable reasons and optional bounded codes", () => {
++  for (const event of [
++    {
++      error: "HTTP 401: check the configured API key",
++      code: "HTTP_AUTH_FAILED",
++    },
++    { result: "The configured model was not found" },
++    { error: "Rate limit exceeded; wait before retrying", code: "bad\ncode" },
++  ]) {
++    const mapped = mapAgentEvent(
++      { type: "result", is_error: true, ...event },
++      createTurnState(),
++    );
++    assert.ok(mapped.text.includes(event.error || event.result));
++    assert.equal(mapped.phase, undefined);
++    assert.equal(
++      mapped.code,
++      event.code === "HTTP_AUTH_FAILED" ? event.code : undefined,
++    );
++  }
++});
++
+ test("VS Code replays the canonical ApprovalDecision conformance fixture", () => {
+   const fixturePath = path.join(
+     repoRoot,
+diff --git a/packages/vscode-extension/test/agent-session-utf8.test.cjs b/packages/vscode-extension/test/agent-session-utf8.test.cjs
+index d863985645..491e1c9f78 100644
+--- a/packages/vscode-extension/test/agent-session-utf8.test.cjs
++++ b/packages/vscode-extension/test/agent-session-utf8.test.cjs
+@@ -95,9 +95,37 @@ test("agent session blocks input after a pipe failure and still drains the final
+   child.emit("close", 1, null);
+   assert.deepEqual(writes, [input]);
+   assert.match(events[0].error, /Input delivery failed/);
++  assert.equal(events[0].code, "EPIPE");
+   assert.deepEqual(events[1], receipt);
+ });
+ 
++test("agent spawn errors preserve only bounded machine codes", () => {
++  for (const code of [
++    "ENOENT",
++    "EACCES",
++    "ENOENT\n",
++    "private-request-body",
++    "X".repeat(121),
++  ]) {
++    const child = fakeChild();
++    const events = [];
++    new AgentChatSession({
++      deps: { spawn: () => child },
++      onEvent: (event) => events.push(event),
++    }).start();
++    child.emit(
++      "error",
++      Object.assign(new Error("could not start cc"), { code }),
++    );
++    assert.equal(
++      events[0].code,
++      ["ENOENT", "EACCES"].includes(code) ? code : undefined,
++    );
++    assert.equal(events[0].error, "could not start cc");
++    child.emit("close", 1, null);
++  }
++});
++
+ test("agent session refuses input after stdin.end before the process closes", () => {
+   const child = fakeChild();
+   const writes = [];
+diff --git a/packages/vscode-extension/test/host-dom-relay.test.cjs b/packages/vscode-extension/test/host-dom-relay.test.cjs
+index 018afb1211..810c694ee3 100644
+--- a/packages/vscode-extension/test/host-dom-relay.test.cjs
++++ b/packages/vscode-extension/test/host-dom-relay.test.cjs
+@@ -33,6 +33,79 @@ const {
+ const TOKEN = "ab".repeat(32);
+ const temporaryRoots = [];
+ 
++test("generated turn-end UI displays safe error codes and phases as plain text", () => {
++  const { mapAgentEvent, createTurnState } = require("../src/chat/chat-events");
++  const html = buildChatHtml({
++    cspSource: "vscode-webview:",
++    nonce: "nonce",
++    l10n: {},
++  });
++  const addStart = html.indexOf("  function add(cls, text) {");
++  const addEnd = html.indexOf("  function ensureStream()", addStart);
++  const turnStart = html.indexOf('      case "turn_end": {');
++  const turnEnd = html.indexOf('      case "usage": {', turnStart);
++  assert.ok(
++    addStart >= 0 && addEnd > addStart && turnStart >= 0 && turnEnd > turnStart,
++  );
++  const displayed = [],
++    announcements = [],
++    retained = [];
++  const message = mapAgentEvent(
++    {
++      type: "result",
++      subtype: "error_persistence",
++      is_error: true,
++      code: "CC_SESSION_PERSISTENCE_FAILED",
++      error: "Bearer secret-request-body",
++      persistence: { phase: "before-model", cause: "secret-cause" },
++    },
++    createTurnState(),
++  );
++  vm.runInNewContext(
++    html.slice(addStart, addEnd) +
++      "switch(m.kind) {" +
++      html.slice(turnStart, turnEnd) +
++      "}",
++    {
++      m: message,
++      streamRaw: "",
++      streamEl: null,
++      turnTokens: null,
++      document: {
++        createElement: () => ({
++          dataset: {},
++          setAttribute() {},
++          set innerHTML(_value) {
++            throw new Error("error must remain plain text");
++          },
++        }),
++      },
++      log: {
++        appendChild: (element) => displayed.push(element),
++        setAttribute() {},
++      },
++      currentTurnState: () => ({ number: 1 }),
++      appendBoundedTranscriptText,
++      MAX_ENTRY_CHARS: TRANSCRIPT_ENTRY_MAX_CHARS,
++      trimLog() {},
++      followTranscript() {},
++      ensureAssistantHeading() {},
++      flushStream() {},
++      closeThinking() {},
++      updateStatus() {},
++      rememberTranscriptRow: (_element, row) => retained.push(row),
++      announceTranscript: (_kind, text) => announcements.push(text),
++    },
++  );
++  assert.equal(displayed.length, 1);
++  assert.equal(displayed[0].className, "msg error");
++  assert.match(displayed[0].textContent, /CC_SESSION_PERSISTENCE_FAILED/);
++  assert.match(displayed[0].textContent, /before-model/);
++  assert.equal(displayed[0].textContent.includes("secret"), false);
++  assert.equal(retained[0].text, displayed[0].textContent);
++  assert.equal(announcements[0], displayed[0].textContent);
++});
++
+ test("host mode selection uses a fixed permission-mode allowlist", () => {
+   assert.deepEqual(
+     validateHostDomRequest({ action: "setMode", mode: "acceptEdits" }),
+diff --git a/packages/vscode-extension/src/chat/agent-diagnostics.js b/packages/vscode-extension/src/chat/agent-diagnostics.js
+new file mode 100644
+index 0000000000..9b466bd908
+--- /dev/null
++++ b/packages/vscode-extension/src/chat/agent-diagnostics.js
+@@ -0,0 +1,56 @@
++const PERSISTENCE_SUBTYPES = new Set([
++  "error_persistence",
++  "error_session_persistence",
++]);
++const PERSISTENCE_CODES = new Set([
++  "CC_SESSION_PERSISTENCE_FAILED",
++  "CC_SESSION_TOOL_ROUND_PERSISTENCE_FAILED",
++  "SESSION_REVISION_STALE",
++  "CC_COMPACTION_REVISION_STALE",
++  "CC_COMPACTION_SETTLEMENT_FAILED",
++]);
++const PERSISTENCE_PHASES = new Set([
++  "before-model",
++  "after-model",
++  "unspecified",
++]);
++
++function boundedErrorCode(value) {
++  return typeof value === "string" &&
++    value.length <= 120 &&
++    /^[A-Z]/u.test(value) &&
++    !/[^A-Z0-9_]/u.test(value)
++    ? value
++    : null;
++}
++
++function isPersistenceResult(event) {
++  return (
++    event?.type === "result" &&
++    event.is_error === true &&
++    (PERSISTENCE_SUBTYPES.has(event.subtype) ||
++      PERSISTENCE_CODES.has(event.code))
++  );
++}
++
++function errorDiagnostic(event) {
++  const code = boundedErrorCode(event.code);
++  const identifier = code ? { code } : {};
++  if (!isPersistenceResult(event)) {
++    // Ordinary provider/configuration errors still need their actionable reason.
++    const reason = event.error || event.result || "turn failed";
++    return { ...identifier, text: code ? `${reason} [${code}]` : reason };
++  }
++  // Persistence failures can wrap a provider request. Only project the known
++  // protocol fields; do not infer the failure phase from arbitrary prose.
++  const phase = PERSISTENCE_PHASES.has(event.persistence?.phase)
++    ? event.persistence.phase
++    : "unspecified";
++  return {
++    ...identifier,
++    phase,
++    text: `Session persistence failed${code ? ` [${code}]` : ""} (phase: ${phase}). Inspect the saved session before continuing.`,
++  };
++}
++
++module.exports = { boundedErrorCode, isPersistenceResult, errorDiagnostic };
