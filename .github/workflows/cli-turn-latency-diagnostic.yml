@@ -1,0 +1,61 @@
+name: CLI Turn Scale CPU Diagnostic (non-qualifying)
+
+on:
+  push:
+    branches: [feature/cli-turnscale-cpu-diagnostic-20261024]
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    name: "Duplex late-turn CPU diagnostic (${{ matrix.os }})"
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    env:
+      CC_TURN_DIAGNOSTIC_SOURCE_SHA: 890510d0311805e591302853f7f348a6d9f6fb66
+      CC_TURN_DIAGNOSTIC_DRIVER_SHA: ${{ github.sha }}
+    steps:
+      - name: Checkout exact runtime source
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ env.CC_TURN_DIAGNOSTIC_SOURCE_SHA }}
+
+      - name: Extract separate diagnostic driver without changing runtime checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${CC_TURN_DIAGNOSTIC_SOURCE_SHA}"
+          git fetch --no-tags origin "${CC_TURN_DIAGNOSTIC_DRIVER_SHA}"
+          driver_dir="${RUNNER_TEMP}/duplex-turn-diagnostic-driver"
+          mkdir -p "${driver_dir}"
+          git show "${CC_TURN_DIAGNOSTIC_DRIVER_SHA}:.github/scripts/diagnose-duplex-turns.mjs" > "${driver_dir}/diagnose-duplex-turns.mjs"
+          git show "${CC_TURN_DIAGNOSTIC_DRIVER_SHA}:.github/scripts/duplex-turn-diagnostics-preload.cjs" > "${driver_dir}/duplex-turn-diagnostics-preload.cjs"
+          git show "${CC_TURN_DIAGNOSTIC_DRIVER_SHA}:.github/workflows/cli-turn-latency-diagnostic.yml" > "${driver_dir}/cli-turn-latency-diagnostic.yml"
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - uses: ./.github/actions/setup-node-deps
+
+      - name: Observe 20 warmup and 80 measured turns with bounded late CPU sampling (not a release gate)
+        shell: bash
+        env:
+          CC_TURN_DIAGNOSTIC_OUTPUT_DIR: ${{ runner.temp }}/duplex-turn-diagnostic-evidence
+        run: node "${RUNNER_TEMP}/duplex-turn-diagnostic-driver/diagnose-duplex-turns.mjs"
+
+      - name: Upload diagnostic evidence even when the original timeout reproduces
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: duplex-turn-diagnostic-${{ matrix.os }}-${{ env.CC_TURN_DIAGNOSTIC_SOURCE_SHA }}-${{ github.sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/duplex-turn-diagnostic-evidence/*
+          if-no-files-found: error
+          retention-days: 30
