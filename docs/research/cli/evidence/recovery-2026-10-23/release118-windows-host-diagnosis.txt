@@ -1,0 +1,64 @@
+Windows minimum VS Code host investigation (2026-10-23)
+
+Original failure: GitHub Actions run 39932849555, job 120354209800,
+commit 3ecb06452f56f5518a7bc0d318de907b01b1c48b, VS Code 1.85.2.
+Runner image: win25-vs2026, version 20261021.278.1.
+
+Established observations:
+- Installed VSIX activation, ordered roots, and simultaneous second-window
+  bridge gate passed.
+- Initial real DOM journey and all 100 needs-input visibility samples passed.
+  initial-cdp-result.json has ok=true at 10:03:07.040Z.
+- Extension test runner reported exit 0 at 10:03:07.064Z.
+- Extension host process 8980 exited 0 at 10:03:07.091Z.
+- Main process completed storage/extension-host shutdown, closed its window,
+  and called app.quit at 10:03:07.126Z.
+- Main process then returned 3221225477 (0xC0000005) at 10:03:07.204Z.
+- The hard host exit gate correctly rejected this result; restart was not run.
+
+Conclusion: observed native application shutdown access violation, not an
+activation or DOM assertion failure. Existing artifacts cannot identify a
+faulting module/native stack. GPU/webview teardown is a hypothesis only;
+no evidence supports changing graphics flags, disposing views early, raising
+the minimum supported host, or accepting the nonzero exit.
+
+Runner review:
+DOM relay records its successful receipt after final chat and Workbench
+snapshots. The smoke test returns and VS Code's extension-test runner owns
+shutdown. The explicit macOS multi-window quit path is unrelated here.
+
+Local isolated baseline:
+Original CI VSIX, local VS Code 1.85.2, current unchanged driver, synthetic
+fixture, CC_UI_STREAM_PROFILE=1. Harness overrides only expected manifest
+version to 0.37.159 and writes local diagnostics outside tracked sources.
+Started 11:10:28Z, ended 11:16:20Z. Multi-window passed. Initial journey
+correctly failed Workbench needs-input P95=2447ms against required <2000ms
+on this loaded local machine. Native process exited normally with requested
+test-failure code 1; no access violation reproduced. This is supplementary
+diagnosis, not release validation. No second baseline launched.
+
+Diagnostic-only patch:
+- Windows profiles now pass --crash-reporter-directory to a per-phase
+  directory beside (not inside) the immutable journey evidence directory.
+- Read bundled VS Code 1.85.2, 1.131.0 and 1.132.0 main.js: all start local
+  Crashpad when this argument is provided; their uploadToServer expression
+  is false for a supplied directory and no submit URL is selected.
+  --disable-crash-reporter and --disable-telemetry remain present.
+- Add main.log to normal redacted diagnostics.
+- Upload .dmp files separately for Windows with 3-day artifact retention;
+  ordinary host evidence excludes native crash directories.
+- Host assertions, native error/exit checks, minimum version and release
+  dependency gates unchanged.
+
+Verification: 60/60 extension-host-runner and release-workflow-contract
+Node tests passed; Prettier and git diff --check passed. No native crash
+has been induced to verify actual dump creation; exact-head CI must validate
+the original host journey and capture a dump if the problem recurs.
+
+Artifacts in this directory:
+- windows-host-original.log
+- windows-host-evidence-original/windows-minimum/
+- windows-host-diagnostic.cjs
+- windows-minimum-local-baseline.{out,err}.log
+- windows-minimum-local-baseline/ and matching .progress.jsonl
+- windows-crash-diagnostics-tests.log

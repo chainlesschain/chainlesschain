@@ -1,0 +1,45 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.7/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build
+Calculating task graph as configuration cache cannot be reused because file 'gradle.properties' has changed.
+> Task :checkKotlinGradlePluginConfigurationErrors
+> Task :initializeIntellijPlatformPlugin
+> Task :generatePluginMetadata UP-TO-DATE
+> Task :patchPluginXml UP-TO-DATE
+> Task :generateManifest UP-TO-DATE
+> Task :processResources UP-TO-DATE
+> Task :compileKotlin UP-TO-DATE
+> Task :compileJava UP-TO-DATE
+> Task :classes UP-TO-DATE
+> Task :instrumentCode SKIPPED
+> Task :jar UP-TO-DATE
+> Task :composedJar UP-TO-DATE
+> Task :prepareSandbox
+
+> Task :buildSearchableOptions
+.\gradlew.bat : 2026-10-23 19:20:36,039 [   1131]   WARN - c.i.o.u.r.overrides - Conflicting registry key definition fo
+r key kotlin.mpp.tests.force.gradle: it was defined by plugin org.jetbrains.kotlin but redefined by plugin org.jetbrain
+s.kotlin. Consider adding overrides="true" for one of the plugins, see the documentation for com.intellij.openapi.util.
+registry.RegistryKeyBean.overrides for more details.
+所在位置 行:2 字符: 89
++ ... .0.12.1+1'; .\gradlew.bat buildPlugin --offline --no-daemon *> ../../ ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (2026-10-23 19:2...r more details.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+
+2026-10-23 19:20:36,673 [   1765]   WARN - #c.i.i.s.p.i.BundledSharedIndexProvider - Bundled shared index is not found
+at: C:\Users\longfa\.gradle\caches\transforms-4\dbb682d26f44c694592b06df4c7b2971\transformed\ideaIC-2024.2-win\jdk-shar
+ed-indexes
+2026-10-23 19:20:46,674 [  11766]   WARN - #c.i.i.u.UIThemeBean - Unknown field: CombinedDiff
+2026-10-23 19:20:46,675 [  11767]   WARN - #c.i.i.u.UIThemeBean - Unknown field: BlockBorder
+2026-10-23 19:20:57,020 [  22112]   WARN - #c.i.u.j.JBCefApp - JCEF is manually disabled in headless env via 'ide.brows
+er.jcef.headless.enabled=false'
+Found 220 configurables
+save to C:\code\chainlesschain\packages\jetbrains-plugin\build\tmp\buildSearchableOptions
+
+> Task :prepareJarSearchableOptions
+> Task :jarSearchableOptions UP-TO-DATE
+> Task :buildPlugin
+
+BUILD SUCCESSFUL in 1m 43s
+15 actionable tasks: 6 executed, 9 up-to-date
+Configuration cache entry stored.

@@ -7,7 +7,7 @@ All notable changes to this extension are documented here.
 - Reject writes after input pipe failure, stdin end or process exit while retaining buffered final receipts and results.
 - Preserve unknown durable delivery and return the actual dispatch outcome.
 - Recover Windows draft publication from temporary sharing locks with bounded retries and page identity checks.
-- Vendor Agent SDK 0.2.16; pair with JetBrains 0.4.177 and recommend public CLI 0.166.117. Exact-source release gates and publication are pending.
+- Vendor Agent SDK 0.2.16; pair with JetBrains 0.4.177 and recommend CLI 0.166.118. Exact-source release gates and publication are pending; SDK and CLI publication precede the IDEs.
 
 ## [0.37.159] - CLI 0.166.117 pairing (2026-10-23)
 

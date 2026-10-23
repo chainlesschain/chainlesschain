@@ -294,6 +294,29 @@ test("host phases share installed extensions but isolate user-data profiles", ()
   );
 });
 
+test("native crash diagnostics use a local per-phase directory outside immutable evidence", () => {
+  const root = temporaryRoot();
+  const evidenceDirectory = path.join(root, "evidence");
+  const crashDirectory = `${evidenceDirectory}.native-crashes`;
+  for (const phase of ["install", "initial", "multi-window", "restart"]) {
+    const args = buildProfileArgs({
+      runRoot: root,
+      extensionsDir: path.join(root, "extensions"),
+      phase,
+      crashDirectory,
+    });
+    assert.equal(
+      args[2],
+      `--crash-reporter-directory=${path.join(crashDirectory, phase)}`,
+    );
+    assert.ok(
+      !path
+        .join(crashDirectory, phase)
+        .startsWith(`${evidenceDirectory}${path.sep}`),
+    );
+  }
+});
+
 test("real host fixture opens an ordered two-root workspace with shared settings", () => {
   const root = temporaryRoot();
   const fixtureCliCommand = "node fixture-cli.cjs";
@@ -678,6 +701,7 @@ test("diagnostic discovery is limited to release-relevant host logs", () => {
   const logs = path.join(root, "user-data-restart", "logs", "window1");
   fs.mkdirSync(logs, { recursive: true });
   for (const name of [
+    "main.log",
     "exthost.log",
     "renderer.log",
     "ChainlessChain IDE.log",
@@ -688,7 +712,7 @@ test("diagnostic discovery is limited to release-relevant host logs", () => {
 
   assert.deepEqual(
     findDiagnosticLogs(root).map((file) => path.basename(file)),
-    ["ChainlessChain IDE.log", "exthost.log", "renderer.log"],
+    ["ChainlessChain IDE.log", "exthost.log", "main.log", "renderer.log"],
   );
 });
 

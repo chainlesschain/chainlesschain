@@ -198,13 +198,18 @@ function makeFreshRunRoot(parent) {
   return fs.mkdtempSync(path.join(base, "ccv-"));
 }
 
-function buildProfileArgs({ runRoot, extensionsDir, phase }) {
+function buildProfileArgs({ runRoot, extensionsDir, phase, crashDirectory }) {
   if (!/^(?:install|initial|multi-window|restart)$/.test(phase)) {
     throw new Error(`unknown host profile phase: ${phase}`);
   }
   return [
     `--extensions-dir=${extensionsDir}`,
     `--user-data-dir=${path.join(runRoot, `user-data-${phase}`)}`,
+    // VS Code 1.85.2 and current hosts disable crash uploads when an explicit
+    // local directory is supplied, even with --disable-crash-reporter present.
+    ...(crashDirectory
+      ? [`--crash-reporter-directory=${path.resolve(crashDirectory, phase)}`]
+      : []),
   ];
 }
 
@@ -1440,7 +1445,8 @@ function findDiagnosticLogs(runRoot) {
         walk(target);
       } else if (
         entry.isFile() &&
-        (entry.name === "exthost.log" ||
+        (entry.name === "main.log" ||
+          entry.name === "exthost.log" ||
           entry.name === "renderer.log" ||
           entry.name.endsWith("ChainlessChain IDE.log"))
       ) {
@@ -1571,6 +1577,11 @@ async function main() {
   const artifactDir = path.resolve(
     options.artifactDir || path.join(runRoot, "journey-evidence"),
   );
+  // Retain native Windows shutdown failures without changing the host exit
+  // gate. Dumps go directly to a separate, short-lived CI artifact because a
+  // crash may prevent the normal evidence finalizer from running.
+  const crashDirectory =
+    process.platform === "win32" ? `${artifactDir}.native-crashes` : undefined;
   const progressPath = createHostProgressJournal(artifactDir);
   const hostApiMode = options.hostApiOnly;
   if (hostApiMode && process.env.CC_UI_CONVERSATION_RECOVERY === "1") {
@@ -1607,6 +1618,7 @@ async function main() {
     runRoot,
     extensionsDir,
     phase: "install",
+    crashDirectory,
   });
   let hostVersion = null;
   let journeyResult = "failed";
@@ -1667,6 +1679,7 @@ async function main() {
           runRoot,
           extensionsDir,
           phase: "multi-window",
+          crashDirectory,
         }),
         extensionsDir,
         profileHome,
@@ -1688,6 +1701,7 @@ async function main() {
         runRoot,
         extensionsDir,
         phase: fixture.canonicalRoot && phase === "restart" ? "initial" : phase,
+        crashDirectory,
       });
       recordHostProgress(progressPath, `${phase}_started`);
       const runHostPhase = hostApiMode ? runHostApiPhase : runRealDomPhase;

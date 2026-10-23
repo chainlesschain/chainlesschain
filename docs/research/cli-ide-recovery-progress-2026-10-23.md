@@ -4,9 +4,9 @@
 
 本轮属于未发布工程修复。现有公共版本仍为 CLI **0.166.117**、Open VSX **0.37.159** 和 JetBrains **0.4.176**，公共发布状态继续以 [release117 回读](./cli/evidence/release117-public/publication.json) 为准。
 
-为满足仓库发布一致性门，候选版本递增为 Agent SDK **0.2.16**、VS Code **0.37.160**、JetBrains **0.4.177**；两个 IDE 继续推荐公共 CLI **0.166.117**。这些候选版本没有发布。相关候选清单、锁文件、变更记录和 vendor 标记同步更新。
+为满足仓库发布一致性门，候选版本为 Agent SDK **0.2.16**、CLI **0.166.118**、VS Code **0.37.160**、JetBrains **0.4.177**；两个 IDE 推荐候选 CLI **0.166.118**。这些候选版本尚未发布。相关候选清单、锁文件、变更记录和 vendor 标记同步更新。
 
-用户已要求暂缓发布，优先争取下一版通过 36+9。工程变更保留在[草稿 PR #483](https://github.com/chainlesschain/chainlesschain/pull/483)，不打标签、不发布。只读严格校验累计轮次后确认目前为 **32/45** 个合格交付（普通 **26/36**、首次 **6/9**），剩余 **13** 项；它是跨版本累计文件验收，原生全流程仍分别跟踪。
+用户最新指示为“改好了就可以发布”，并明确要求子 npm 包 → CLI → IDE 插件 → 移动端 / PC 端。此授权取代本轮早先的用户暂缓发布要求；历史验证清单中的 HOLD_PER_USER 保留为当时快照，不再表示当前发布授权。工程变更在 [PR #483](https://github.com/chainlesschain/chainlesschain/pull/483) 接受准确提交的完整 Actions 验证，门禁通过后按顺序发布并逐级核验公共制品。只读严格校验累计轮次后确认目前为 **32/45** 个合格交付（普通 **26/36**、首次 **6/9**），剩余 **13** 项；它是跨版本累计文件验收，原生全流程仍分别跟踪。
 
 ## 已复现并修复
 
@@ -44,6 +44,18 @@ SDK 从 TypeScript 源码重新构建，并通过现有同步脚本更新 VS Cod
 
 草稿 PR 首轮 CI 的三系统 CLI 分片均报告内置 changelog 与主线文档不一致。本地复现后通过现有 `build-changelog.mjs` 重新生成制品，原回归已通过。另保留 Windows 最低版 VS Code 宿主原生退出 `3221225477` 和 Security Audit 失败；未确认根因或宣称门禁已关闭。最终候选仍须取得自己的完整 CI 结果，旧提交的检查不转移。
 
+## 获准发布后的候选准备
+
+候选的逐项结果、源码摘要及未通过的本地检查见 [release118-preparation.json](./cli/evidence/recovery-2026-10-23/release118-preparation.json)；它不替代最终提交的 CI 或公共发布回读。
+
+发布顺序已补入根 `AGENTS.md`。现有 OIDC npm 工作流先发布需要更新的子包，核验后再发布 CLI；两个 IDE 标签随后发布。产品发布工作流新增公共 IDE 前置检查，要求 CLI 配对一致、不可变 IDE 标签存在、Open VSX 与 JetBrains 的指定版本均已公开且可下载，才允许移动端和 PC 端继续。产品候选为 **v5.0.3.141**；桌面、Android、iOS 与锁文件的版本已同步，版本一致性检查通过。
+
+Astra 已将首轮安全失败定位到 DOMPurify critical 漏洞。根覆盖规则、桌面与 Web Panel 清单及所有对应锁节点升级至 **3.4.17**，包括 Monaco 的嵌套副本；原审计门 `audit-check.js --audit-level=critical` 本地通过，DOMPurify 审计项消失。既有 decompress 豁免保持原状，不能把此结果表述为所有依赖 critical 数量为零。新 DOMPurify 官方明确不支持 happy-dom；Web Panel 的两个原清洗测试改用受支持的 jsdom，保留所有断言，**11/11** 通过。桌面原清洗测试在隔离无关全局 setup 后 **11/11** 通过；默认配置因本地缺 pinia 未执行，仍由完整 CI 验证。
+
+Windows 旧版 VS Code 失败已定位到 Electron 主进程退出阶段：此前 DOM 与 100 次采样通过，扩展宿主正常退出，然后 `app.quit()` 发生原生访问违例。缺少原始 dump，尚不能确定原生故障模块。本轮仅增加 `main.log` 和不上传到厂商的本地 crash dump，CI 单独保留 dump 三天；没有忽略非零退出或降低宿主要求。Astra 本地旧宿主没有重现崩溃，但因性能 P95 超限正确失败，不能计作发布通过。
+
+新 CLI 配对的发布约束与 changelog 检查 **26/26**、IDE 元数据检查 **25/25**，以及 JetBrains 新推荐版本的 Gradle 编译与 **14/14** 测试通过。一次额外本地模型定价契约检查因缺少 better-sqlite3 原生绑定失败，原报告保留，未改断言或计作通过。所有候选仍须由自己的准确提交取得完整 Actions 门禁。
+
 ## 36+9 下一版验收收敛
 
 使用现有 `verify01-native-retest-round.mjs --require-complete` 严格验证末轮账本成功；该轮收齐 14 项生成与独立验收，新增 1 项合格，加上 31 项复用文件，累计为 32 项。下一轮只允许对剩余 13 项生成；已合格文件与回执全部复用。
@@ -71,6 +83,6 @@ Astra 独立读取旧轮归档与当前源码，将剩余项分为 **7 项未正
 
 - RUN-03：公开安装包上的跨入口组合故障、重启并发输入、未决副作用和生产 Linux 预算恢复验收。
 - IDE-03：完整九入口公开安装与恢复旅程、真人辅助技术验收，以及 Microsoft Marketplace 的发行回读。
-- 后续发行：本分支准确提交的 GitHub Actions 完整矩阵，随后按子 npm 包、CLI、IDE 的顺序发布并回读制品。
+- 后续发行：本分支准确提交的 GitHub Actions 完整矩阵，随后按子 npm 包、CLI、IDE、移动端 / PC 端的顺序发布并回读制品。
 
 本轮没有新增付费模型任务、官方模型账户验证或正式 36+9 样本；也不把局部恢复回归计作历史任务新增合格。预算 `paidReady:false`、native `NOT_ADMITTED` 和自动晋升 `HOLD` 继续保留各自验收边界。

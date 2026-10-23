@@ -1,0 +1,68 @@
+{
+  "dependency": "dompurify",
+  "version": "3.4.17",
+  "criticalAdvisory": "GHSA-cg2g-xh64-v4q7",
+  "registryIntegrity": "sha512-B/pSlYVHQ58kqISD/yDjuJ1yfzI34m1gF4lAod2bwSRhiN4K5Cl3H8Af7hqB2PmTL911tdEudnnXn5FnhRoz0w==",
+  "audit": {
+    "dompurify": null,
+    "remainingRawCritical": [
+      "decompress"
+    ],
+    "existingAuditCheckExitCode": 0,
+    "exceptionsChanged": false
+  },
+  "tests": {
+    "webPanelOld340HappyDom": {
+      "passed": 11,
+      "failed": 0,
+      "log": "dompurify-3.4.0-happy-dom-baseline.log"
+    },
+    "webPanelNew3417HappyDom": {
+      "passed": 7,
+      "failed": 4,
+      "failures": [
+        "markdown heading stripped",
+        "javascript URL retained",
+        "component heading stripped",
+        "component onerror and script retained"
+      ],
+      "evidence": "tool output retained in conversation"
+    },
+    "webPanelNew3417Jsdom": {
+      "passed": 11,
+      "failed": 0,
+      "environment": "per-file jsdom directives; all original assertions retained"
+    },
+    "desktopDefaultConfig": {
+      "executedTests": 0,
+      "error": "Failed to resolve import pinia from tests/setup.ts"
+    },
+    "desktopFocusedJsdom": {
+      "passed": 11,
+      "failed": 0,
+      "config": "sanitize.vitest.config.mjs"
+    }
+  },
+  "officialRationale": {
+    "readme": "dompurify-3.4.17/package/README.md",
+    "lines": [
+      96,
+      100,
+      562
+    ],
+    "notes": "DOMPurify recommends jsdom; happy-dom explicitly unsupported and not considered safe."
+  },
+  "lockUpdate": {
+    "method": "precise DOMPurify subtrees from verified registry metadata; web-panel npm package-lock-only for jsdom@26.1.0 with existing peer-dependency policy",
+    "jsdomAddedNodes": 38,
+    "existingWebPanelNodesUpgraded": 0,
+    "existingWebPanelNodesRemoved": 0
+  },
+  "webPanelBuild": {
+    "command": "npm run build:no-sync -- --outDir ../../.work/cli-ide-recovery-20261023/web-panel-security-build",
+    "exitCode": 0,
+    "modulesTransformed": 4079,
+    "durationSeconds": 54.17,
+    "syncedToCli": false
+  }
+}

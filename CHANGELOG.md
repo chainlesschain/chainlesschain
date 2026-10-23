@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.118: input delivery, draft recovery and retest diagnostics (candidate, 2026-10-23)
+
+- Treat Agent SDK stdin backpressure as queued input, reject writes after input failure or process exit, and retain final output through process close.
+- Preserve unknown durable input delivery in both IDEs and retry Windows atomic draft replacement under temporary sharing locks without deleting the previous draft.
+- Retain redacted broker transport receipts in new native retest evidence archives; keep frozen acceptance criteria and completed rounds unchanged.
+- Upgrade DOMPurify to 3.4.17 in desktop and Web Panel dependency graphs, including Monaco's nested copy. Run sanitizer regressions with DOMPurify's supported jsdom environment.
+- Prepare Agent SDK 0.2.16, CLI 0.166.118, Open VSX 0.37.160 and JetBrains 0.4.177. Publication requires complete exact-source Actions gates and public readback in that order; mobile and PC clients follow the IDEs.
+- Prepare product v5.0.3.141 with synchronized desktop, Android and iOS versions; require both paired IDE releases to be public before product builds proceed.
+- Historical 36+9 acceptance remains 32/45 across versions, with 13 unfinished. No new live model-task acceptance is claimed for this candidate.
+
 ### Documentation - Runtime budgets, recovery and public release alignment (2026-10-23)
 
 - Update design documentation, user recovery and upgrade guides, both root READMEs and the bilingual official website for CLI 0.166.117, Open VSX 0.37.159 and JetBrains 0.4.176.

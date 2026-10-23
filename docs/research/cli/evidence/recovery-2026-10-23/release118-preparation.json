@@ -1,0 +1,392 @@
+{
+  "schema": "chainlesschain.cli-ide-release-preparation/v1",
+  "recordedAt": "2026-10-23T11:22:08.137Z",
+  "baseline": "79b7d49841341eb4caf135414183c1311db58b75",
+  "pullRequest": "https://github.com/chainlesschain/chainlesschain/pull/483",
+  "authorization": {
+    "instruction": "改好了就可以发布；子 npm → CLI → IDE → 移动端 / PC 端",
+    "supersedesEarlierUserPublicationHold": true,
+    "fixedAndVerifiedRequired": true
+  },
+  "publication": {
+    "status": "UNRELEASED_PENDING_EXACT_COMMIT_CI",
+    "order": [
+      "required child npm packages",
+      "CLI",
+      "VS Code / JetBrains IDE extensions",
+      "mobile / PC clients"
+    ],
+    "method": "GitHub Actions OIDC for npm; existing tagged workflows for IDEs and products",
+    "tagsCreated": []
+  },
+  "candidateVersions": {
+    "agentSdk": "0.2.16",
+    "cli": "0.166.118",
+    "vscode": "0.37.160",
+    "jetbrains": "0.4.177",
+    "product": "v5.0.3.141"
+  },
+  "historicalValidation": "validation.json",
+  "historicalHoldNote": "The earlier validation/readiness snapshots retain the user hold that applied when recorded; current authorization above replaces that publication policy without changing paid/native/acceptance gates.",
+  "localVerification": {
+    "vscodeFullUnit": {
+      "passed": 295,
+      "failed": 0,
+      "skipped": 0
+    },
+    "releaseContractsAndChangelog": {
+      "passed": 26,
+      "failed": 0
+    },
+    "ideMetadata": {
+      "passed": 25,
+      "failed": 0
+    },
+    "jetbrainsUpdatedPairingGradle": {
+      "compiled": true,
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0,
+      "classes": ["CliVersionCheckTest", "IdeDoctorTest"]
+    },
+    "jetbrainsBuildPlugin": {
+      "result": "passed",
+      "sourceRecommendation": "0.166.118",
+      "public": false
+    },
+    "security": {
+      "dependency": "dompurify",
+      "version": "3.4.17",
+      "criticalAdvisory": "GHSA-cg2g-xh64-v4q7",
+      "registryIntegrity": "sha512-B/pSlYVHQ58kqISD/yDjuJ1yfzI34m1gF4lAod2bwSRhiN4K5Cl3H8Af7hqB2PmTL911tdEudnnXn5FnhRoz0w==",
+      "audit": {
+        "dompurify": null,
+        "remainingRawCritical": ["decompress"],
+        "existingAuditCheckExitCode": 0,
+        "exceptionsChanged": false
+      },
+      "tests": {
+        "webPanelOld340HappyDom": {
+          "passed": 11,
+          "failed": 0,
+          "log": "dompurify-3.4.0-happy-dom-baseline.log"
+        },
+        "webPanelNew3417HappyDom": {
+          "passed": 7,
+          "failed": 4,
+          "failures": [
+            "markdown heading stripped",
+            "javascript URL retained",
+            "component heading stripped",
+            "component onerror and script retained"
+          ],
+          "evidence": "tool output retained in conversation"
+        },
+        "webPanelNew3417Jsdom": {
+          "passed": 11,
+          "failed": 0,
+          "environment": "per-file jsdom directives; all original assertions retained"
+        },
+        "desktopDefaultConfig": {
+          "executedTests": 0,
+          "error": "Failed to resolve import pinia from tests/setup.ts"
+        },
+        "desktopFocusedJsdom": {
+          "passed": 11,
+          "failed": 0,
+          "config": "sanitize.vitest.config.mjs"
+        }
+      },
+      "officialRationale": {
+        "readme": "dompurify-3.4.17/package/README.md",
+        "lines": [96, 100, 562],
+        "notes": "DOMPurify recommends jsdom; happy-dom explicitly unsupported and not considered safe."
+      },
+      "lockUpdate": {
+        "method": "precise DOMPurify subtrees from verified registry metadata; web-panel npm package-lock-only for jsdom@26.1.0 with existing peer-dependency policy",
+        "jsdomAddedNodes": 38,
+        "existingWebPanelNodesUpgraded": 0,
+        "existingWebPanelNodesRemoved": 0
+      },
+      "webPanelBuild": {
+        "command": "npm run build:no-sync -- --outDir ../../.work/cli-ide-recovery-20261023/web-panel-security-build",
+        "exitCode": 0,
+        "modulesTransformed": 4079,
+        "durationSeconds": 54.17,
+        "syncedToCli": false
+      }
+    },
+    "generatedCommandAssets": "manifest, help index and completions checks passed",
+    "productVersionSync": "passed for desktop, Android and iOS",
+    "undeclaredDependencies": "passed; 14 workspaces, zero new imports",
+    "extraLocalCheck": {
+      "report": "release118-extra-local-checks.json",
+      "passed": 10,
+      "failed": 1,
+      "reason": "The extra model-release-contract test needs a missing local better-sqlite3 native binding; preserved as failed, no assertion change. Exact-source CI must run with native prerequisites."
+    },
+    "windowsOldHost": {
+      "status": "NOT_PROVEN_FIXED_PENDING_CI",
+      "diagnosis": "original Electron main-process access violation during app.quit after successful DOM journey and extension-host exit",
+      "localReproduction": "No native crash; performance P95 exceeded the existing threshold and correctly failed. Not a host gate pass.",
+      "mitigation": "Only local no-upload dumps and main.log diagnostics added; native exit remains a hard gate."
+    }
+  },
+  "taskAcceptance": {
+    "accepted": 32,
+    "denominator": 45,
+    "remaining": 13,
+    "ordinary": "26/36",
+    "firstRun": "6/9",
+    "scope": "cumulative across versions",
+    "newLiveModelTasks": 0,
+    "paidReady": false,
+    "nativeAdmission": "NOT_ADMITTED",
+    "promotion": "HOLD",
+    "details": "remaining-36-plus-9.json"
+  },
+  "sourceSnapshot": [
+    {
+      "path": ".github/workflows/ide-extensions.yml",
+      "sha256": "ff43eb19b6328ca94aad5ccca6f81e5427c9ad8e9a82513a72ee6ecc48857531"
+    },
+    {
+      "path": ".github/workflows/release.yml",
+      "sha256": "26a1919ed9bf115ba4a205aa2dacd0dc30bd71f5c7fae059a5e1496c5ce8de7d"
+    },
+    {
+      "path": "AGENTS.md",
+      "sha256": "87f9d7f5ac7a81e7e1acfdebea98f0d5f37a361639f907dd8f699469402199c2"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "sha256": "597643901b1a76a1bf03242c81b62e797f254c1e08d90410caefc222987b914d"
+    },
+    {
+      "path": "android-app/app/build.gradle.kts",
+      "sha256": "366c19a48d39e6c6f6c185b5b76d04181da2b3d38fba4bf6f5dec7c876110c8d"
+    },
+    {
+      "path": "desktop-app-vue/package-lock.json",
+      "sha256": "676e6daea29b0cd07a40f859531212344b012b81d1f66a881a2681cd7e1873a2"
+    },
+    {
+      "path": "desktop-app-vue/package.json",
+      "sha256": "0743e6e91e9d45e83b6c88499db5edacf9e2da5c33395ef47a113be8df5b36bb"
+    },
+    {
+      "path": "desktop-app-vue/src/main/vendor/agent-sdk/VENDORED.md",
+      "sha256": "5a9b63b7495d6039de3c2e2349d648b1dcf0c516a5dc80af691df57a757b07f1"
+    },
+    {
+      "path": "desktop-app-vue/src/main/vendor/agent-sdk/agent-session.js",
+      "sha256": "afb4503e758842f1330fd563dfb1b109a212f6a97f18eb0412e1fac9aa0e65b4"
+    },
+    {
+      "path": "ios-app/ChainlessChain/Resources/Info.plist",
+      "sha256": "5c2d8abc8d94c2029ef3bf05f82ee34f6c9b793980e09d01affce06dd824741e"
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "a4e3eac0b3200937105c6372cfbfc7ffaa8336ac2f3db3ee5823a36fdc2f0c3d"
+    },
+    {
+      "path": "package.json",
+      "sha256": "81307a5e372563d395592642d19b04f589f38d955b14c9cc1bef0f91f5ec73b9"
+    },
+    {
+      "path": "packages/agent-sdk/README.md",
+      "sha256": "c29a26fa632f972cd239e4cc99b0bb79124db64dc026c0ac21f8497a1c5d15ff"
+    },
+    {
+      "path": "packages/agent-sdk/__tests__/agent-session.test.ts",
+      "sha256": "ae5eec6622de5ed511c839a59dd8802f04899bcf2645d8c12b4001119e8b8c95"
+    },
+    {
+      "path": "packages/agent-sdk/package-lock.json",
+      "sha256": "718c4652cfff355bb7ae85a0b00897306f748095c023f572043d6023a5648efd"
+    },
+    {
+      "path": "packages/agent-sdk/package.json",
+      "sha256": "39e4f5507d612563dc978d4b465e9b73c4ee45b39dedd6c19fb9a3a9df8b54a9"
+    },
+    {
+      "path": "packages/agent-sdk/src/agent-session.ts",
+      "sha256": "adec689bbe8d23ed2b83740d14fac093ecfe9253923378f758932db16c354912"
+    },
+    {
+      "path": "packages/cli/README.md",
+      "sha256": "38586cacb2e5c2627780923cfbe67d2f6cb10065d2af6995d72c83fb133ca845"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/release-workflow-contract.test.js",
+      "sha256": "4a88e852660968ca465a4262cc61bc2a33962cf9025107ffd4969ee90866a980"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/vscode-ext-draft-store.test.js",
+      "sha256": "d24be6eb2497a4df33657b56a57ce0b01f09d5010ade07778f98d5653dd8ee33"
+    },
+    {
+      "path": "packages/cli/package.json",
+      "sha256": "eb4ebd3705d5e901fe734cba7820306ddd2c45b0e0b2b1749a2ea3977de201ff"
+    },
+    {
+      "path": "packages/cli/scripts/verify01-collect-native-retest.py",
+      "sha256": "0a483f6de98570ba23a1c8a77ba28c135b847ae5c0e596006e79f9a276af1f1d"
+    },
+    {
+      "path": "packages/cli/src/data/changelog.json",
+      "sha256": "34285cc0440280cc9132d44702c7a5f3159a6b4aef12d9167c36685b30c839a2"
+    },
+    {
+      "path": "packages/cli/test-node/verify01-native-retest-round.node-test.mjs",
+      "sha256": "ef7d61f296907ad6eb0bd4d6bccdabb88e13389a2500f3974e3fad0ead036d83"
+    },
+    {
+      "path": "packages/jetbrains-plugin/CHANGELOG.md",
+      "sha256": "4356d7c757c7256828c57f065c166f00b2aad407b7045c5012968306ade0286b"
+    },
+    {
+      "path": "packages/jetbrains-plugin/README.md",
+      "sha256": "f2d5989e763629b8ad0a3dc7047fd0eb5c3f33b0368eb2e96509da18b8272f27"
+    },
+    {
+      "path": "packages/jetbrains-plugin/build.gradle.kts",
+      "sha256": "d7720dd61be780a75af8a7ad69f7c3e848f9f34c75d7b13a552c8c29d652b3e9"
+    },
+    {
+      "path": "packages/jetbrains-plugin/gradle.properties",
+      "sha256": "061df3f66c15da232d25452e83c259341d6581b7973f5e33fbda91e42617f383"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/AgentChatSession.java",
+      "sha256": "3146b03c1967d372d0799cf717dec04d47d6ad1dfeff7e52ddaa9018978e9c01"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/CliVersionCheck.java",
+      "sha256": "fd29a665e241e07a017fda5358c0b17da71a1569f43434b67b6ac850a3c0ed16"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java",
+      "sha256": "81697a5c006561a2cbb66db48d3c14aff2edac5976c5dac00058488f2e7d2ea3"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/resources/META-INF/plugin.xml",
+      "sha256": "ca9b1ad4aeb55939dfb8c92c6db1b36abc5bc6767a7dd61e257aaa1253e87324"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/CliVersionCheckTest.java",
+      "sha256": "d6dcc46fa2c562204549f5568a33f11ff25096b97acd3c53d77258a2f211afb3"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/InputDispatchTest.java",
+      "sha256": "fbebb39cf9aae18e4c81fdd77a2f2c95cc68cfcaf31dddc4bdcde6ce3b9557b2"
+    },
+    {
+      "path": "packages/vscode-extension/CHANGELOG.md",
+      "sha256": "c701260fa8f694279716c56c62f403a93815981adb807874d48bb65ce03e40d5"
+    },
+    {
+      "path": "packages/vscode-extension/README.md",
+      "sha256": "784351ce1e9c5ad6eab5fed54ca0d777a6a73cb18e3f79a45bd35539d917554b"
+    },
+    {
+      "path": "packages/vscode-extension/package.json",
+      "sha256": "e83db518ca292b9f2b74b8ff4d8b47914dd760334450bb58402510a68ffa479f"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/agent-session.js",
+      "sha256": "89604ab713fa6ac806e9961dd7025a381407b81d71401c2540cd5fe97330e24f"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/chat-view.js",
+      "sha256": "76ee39636b2331956c3538bdafed6a59f7106ad9b7f71ac200af5c8801058afd"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/draft-store.js",
+      "sha256": "958cb6c9ee7844b49a92dcc6036a8efab08da31887b0457c4e484c80182b2bf0"
+    },
+    {
+      "path": "packages/vscode-extension/src/vendor/agent-sdk/VENDORED.md",
+      "sha256": "25b958b2a2d72090634bef1597abb75284fd71c85a9c88902c543cd1976d49be"
+    },
+    {
+      "path": "packages/vscode-extension/src/vendor/agent-sdk/agent-session.js",
+      "sha256": "afb4503e758842f1330fd563dfb1b109a212f6a97f18eb0412e1fac9aa0e65b4"
+    },
+    {
+      "path": "packages/vscode-extension/test/agent-initialization.test.cjs",
+      "sha256": "2c0a17d019e86fe5306bd2b6b4e68e5d951cdeddd354eac406cff1724a1b4e56"
+    },
+    {
+      "path": "packages/vscode-extension/test/agent-session-utf8.test.cjs",
+      "sha256": "9f4e02aa701b323658fefa18ef520b3bc5b07c3a1c85a6a545a10db704aae32f"
+    },
+    {
+      "path": "packages/vscode-extension/test/extension-host-runner.test.cjs",
+      "sha256": "08a5316ff89d34948109d6e9cca04477b10a1a89b56a72259e5de0061ddcc851"
+    },
+    {
+      "path": "packages/vscode-extension/test/extension-host/run.cjs",
+      "sha256": "761393469af5d77dea596dffe0fff8e984e93445949796474a281f3f68b635f1"
+    },
+    {
+      "path": "packages/web-panel/__tests__/unit/markdown-renderer.test.js",
+      "sha256": "65f905838ee2c560c33baf73c3ff11858745c9aa7cf6586a7c51f9a158903879"
+    },
+    {
+      "path": "packages/web-panel/__tests__/unit/markdown.test.js",
+      "sha256": "60f50ecb3c1a7ccb9c6f741bebabadacf158b93e873fe970a8b96b395d328316"
+    },
+    {
+      "path": "packages/web-panel/package-lock.json",
+      "sha256": "c2a36de8bb1d8bfd22679e12cb650dbbec868b9da00f1ae3075885d9c2f7c30f"
+    },
+    {
+      "path": "packages/web-panel/package.json",
+      "sha256": "5ea7dc6dbc4cd239e4e1e3ffa6d7d70f52309515c19f12f931b0f2611b40a49f"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "release118-vscode-tests.txt",
+      "sha256": "cfa9773c372be1bd02596a29512c9a6d24a405c6bc003911e1e5545f4f7ee4af",
+      "originalSha256": "5175cdf94a01499eccaa2da08e5786260d8465001485859c1926252ae3989099"
+    },
+    {
+      "path": "release118-contract-tests.json",
+      "sha256": "8f62c2790f8f126d3e0ca065cb9ee8c3a5fefdd215d1795d10d2e903a2873c6e",
+      "originalSha256": "8f62c2790f8f126d3e0ca065cb9ee8c3a5fefdd215d1795d10d2e903a2873c6e"
+    },
+    {
+      "path": "release118-extra-local-checks.json",
+      "sha256": "6d7ba87f9f5c22e1275422e1b0254d1ffb8ccf75d14bc36958e72412f56b653f",
+      "originalSha256": "6d7ba87f9f5c22e1275422e1b0254d1ffb8ccf75d14bc36958e72412f56b653f"
+    },
+    {
+      "path": "release118-security-validation.json",
+      "sha256": "69cfa9318b75c09b1a34c7baa39352aa1c6d404b3f99fdcff17e8a6b7a429651",
+      "originalSha256": "69cfa9318b75c09b1a34c7baa39352aa1c6d404b3f99fdcff17e8a6b7a429651"
+    },
+    {
+      "path": "release118-security-gate.txt",
+      "sha256": "0a1b81a4bd2bafd8531b4d96db7162b5f4715ddd50cd198495b2a249a0d719c7",
+      "originalSha256": "913e3580534f316471eb8d941d6822d5206bedf4a5827982167c05ee3b870eb6"
+    },
+    {
+      "path": "release118-windows-host-diagnosis.txt",
+      "sha256": "f5e9d07f3ae21e3cbe6cf6ecc882bec323e376be9f9436098ce86b82dfe93c6f",
+      "originalSha256": "f5e9d07f3ae21e3cbe6cf6ecc882bec323e376be9f9436098ce86b82dfe93c6f"
+    },
+    {
+      "path": "release118-jetbrains-build.txt",
+      "sha256": "dff542b43685743ca9fc15e7e60df59676f92e60a4f9f34339311f7bdff7d5f3",
+      "originalSha256": "35b2c946811aa4f889ff881a2d3ffe7f2f3e25af69468572c42f8bcb9eb7a26a"
+    }
+  ],
+  "rawSecurityAudit": {
+    "localPath": ".work\\cli-ide-recovery-20261023\\security-audit-after.json",
+    "sha256": "f6cba29582d3b46a329341fcd7048652bb55af886f185a5b5c8861ff4b2adf05",
+    "existingExceptionUnchanged": true
+  }
+}

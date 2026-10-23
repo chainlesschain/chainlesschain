@@ -451,8 +451,19 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: vscode-windows-host-evidence-${{ github.run_attempt }}
-          path: packages/vscode-extension/build/reports/extension-host/
+          path: |
+            packages/vscode-extension/build/reports/extension-host/
+            !packages/vscode-extension/build/reports/extension-host/**/*.native-crashes/**
           if-no-files-found: error
+
+      - name: Upload Windows native crash dumps
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: vscode-windows-native-crashes-${{ github.run_attempt }}
+          path: packages/vscode-extension/build/reports/extension-host/**/*.native-crashes/**/*.dmp
+          if-no-files-found: ignore
+          retention-days: 3
 
   vscode-macos-smoke:
     name: VS Code extension (macOS host gate)

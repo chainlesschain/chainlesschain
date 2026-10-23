@@ -2,6 +2,12 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
+## Next release candidate: CLI 0.166.118
+
+This source candidate follows Agent SDK **0.2.16** and pairs with VS Code **0.37.160** and JetBrains **0.4.177**. It includes input delivery and Windows draft recovery fixes and preserves redacted transport receipts for future native task retests. Publication is authorized after the exact-source Linux, Windows and macOS Actions gates pass. Required order: child npm packages → CLI → IDE extensions → mobile / PC clients, verifying public artifacts at each stage.
+
+These versions are not yet public. The current verified installation and pairing remain below. Cumulative 36+9 acceptance is **32/45** across versions, with **13** unfinished; no new model-task acceptance is claimed for this candidate. Formal paid readiness, native admission and automatic promotion retain their separate gates.
+
 ## CLI 0.166.117
 
 [Upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-23.html) · [Image budgets and session recovery](https://docs.chainlesschain.com/chainlesschain/agent-input-and-recovery.html) · [Runtime design](https://design.chainlesschain.com/release-runtime-update-2026-10-23.html)

@@ -645,6 +645,17 @@ describe("CLI release workflow contracts", () => {
     expect(product).toContain("npm audit signatures --include-attestations");
     expect(product).toContain("verify-npm-release-provenance.mjs");
     expect(product).toContain("cli-npm-provenance.json");
+    const precondition = workflowJob(product, "verify-cli-release");
+    expect(precondition).toContain(
+      "Require public paired IDE releases before mobile and PC builds",
+    );
+    expect(precondition).toContain("scripts/verify-ide-marketplace.mjs");
+    expect(precondition).toContain("['open-vsx', vscode.version");
+    expect(precondition).toContain("['jetbrains', jetbrainsVersion");
+    expect(precondition).not.toContain("--allow-pending");
+    expect(workflowJob(product, "publish-deps")).toContain(
+      "needs: [verify-cli-release]",
+    );
     expect(product).not.toContain("Registry gitHead does not match");
     expect(product).not.toContain(
       'npm view "chainlesschain@${VERSION}" gitHead',

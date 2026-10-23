@@ -1,0 +1,5 @@
+﻿
+Skipped 1 known unfixable vulnerabilities:
+  - decompress (critical): GHSA-mp2f-45pm-3cg9, GHSA-h39j-r5qq-r9mm, GHSA-jwp9-9v96-94mx, GHSA-hrh2-vp3x-79xf
+
+ All vulnerabilities either below threshold or known unfixable

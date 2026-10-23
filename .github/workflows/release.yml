@@ -1591,6 +1591,47 @@ jobs:
           node packages/cli/scripts/verify-release-gates.mjs
           echo "Authorized CLI release verified: chainlesschain@${VERSION} (${TAG_SHA})"
 
+      - name: Require public paired IDE releases before mobile and PC builds
+        shell: bash
+        env:
+          CC_MARKETPLACE_VERIFY_ATTEMPTS: "1"
+          CC_OPEN_VSX_LISTING_VERIFY_ATTEMPTS: "1"
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const assert = require('node:assert/strict');
+          const { execFileSync } = require('node:child_process');
+          const cliVersion = require('./packages/cli/package.json').version;
+          const vscode = require('./packages/vscode-extension/package.json');
+          const pluginXml = fs.readFileSync('packages/jetbrains-plugin/src/main/resources/META-INF/plugin.xml', 'utf8');
+          const jetbrainsVersion = pluginXml.match(/^\s*<version>([^<]+)<\/version>\s*$/m)?.[1];
+          const properties = fs.readFileSync('packages/jetbrains-plugin/gradle.properties', 'utf8');
+          assert.equal(vscode.chainlesschain.recommendedCliVersion, cliVersion);
+          assert.equal(properties.match(/^chainlesschainRecommendedCliVersion=(.+)$/m)?.[1]?.trim(), cliVersion);
+          assert.match(jetbrainsVersion || '', /^\d+\.\d+\.\d+$/);
+          for (const [tag, file, expected] of [
+            [`ide-vscode-v${vscode.version}`, 'packages/vscode-extension/package.json', vscode.version],
+            [`ide-jetbrains-v${jetbrainsVersion}`, 'packages/jetbrains-plugin/gradle.properties', cliVersion],
+          ]) {
+            const tagged = execFileSync('git', ['show', `${tag}:${file}`], { encoding: 'utf8' });
+            if (file.endsWith('.json')) {
+              const manifest = JSON.parse(tagged);
+              assert.equal(manifest.version, expected);
+              assert.equal(manifest.chainlesschain.recommendedCliVersion, cliVersion);
+            } else {
+              assert.equal(tagged.match(/^chainlesschainRecommendedCliVersion=(.+)$/m)?.[1]?.trim(), expected);
+            }
+          }
+          for (const [channel, version, output] of [
+            ['open-vsx', vscode.version, 'product-release-open-vsx.json'],
+            ['jetbrains', jetbrainsVersion, 'product-release-jetbrains.json'],
+          ]) {
+            const receipt = execFileSync(process.execPath, ['scripts/verify-ide-marketplace.mjs', channel, version], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] });
+            fs.writeFileSync(output, receipt);
+          }
+          NODE
+
       - name: Upload consumed CLI gate attestation
         uses: actions/upload-artifact@v6
         with:
@@ -1599,6 +1640,8 @@ jobs:
             cli-release-gate.json
             cli-npm-provenance.json
             product-release-cli-child-install.json
+            product-release-open-vsx.json
+            product-release-jetbrains.json
           if-no-files-found: error
           retention-days: 90
   # Generate the desktop changelog for review. The release workflow must not
