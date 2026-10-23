@@ -214,6 +214,18 @@ function cloneWithoutWireTag(snapshot) {
   return clean;
 }
 
+// Input acceptance belongs to the authenticated event, not the provider's
+// conversation message. Keep encodePersistedMessage unchanged so receipt
+// lookup/deduplication still verifies the original event and digest. Apply this
+// only after the full JSON-safe clone, including for historical checkpoints.
+function conversationMessage(clean) {
+  if (clean?.role === "user") {
+    delete clean.clientMessageId;
+    delete clean.inputDigest;
+  }
+  return clean;
+}
+
 function canonicalTag(kind) {
   if (!DURABLE_KINDS.has(kind)) {
     throw new TypeError(`Unsupported durable system message kind: ${kind}`);
@@ -329,7 +341,7 @@ export function decodeVerifiedPersistedMessage(message) {
       canonicalTag(dataValue(tagSnapshot, "kind")),
     );
   }
-  return clean;
+  return conversationMessage(clean);
 }
 
 /** Strip an untrusted wire field without granting runtime replay authority. */
@@ -338,6 +350,12 @@ export function sanitizePersistedMessage(message) {
   if (!isObjectMessage(message)) return null;
   const snapshot = plainDataSnapshot(message);
   return snapshot ? cloneWithoutWireTag(snapshot) : null;
+}
+
+/** Conversation replay excludes receipt metadata; generic data sanitation and
+ * historical migration digests retain their original representation. */
+export function sanitizeConversationMessage(message) {
+  return conversationMessage(sanitizePersistedMessage(message));
 }
 
 /** Deep-sanitize an untrusted persisted message array without granting replay. */
@@ -442,7 +460,7 @@ export function projectCanonicalResumeMessages(messages, options = {}) {
     }
     if (isRuntimeOnlySessionMessage(raw)) continue;
     if (role !== "system") {
-      projected.push(clean);
+      projected.push(conversationMessage(clean));
     } else if (runtimeTag) {
       projected.push(attachRuntimeTag(clean, canonicalTag(runtimeTag.kind)));
     }

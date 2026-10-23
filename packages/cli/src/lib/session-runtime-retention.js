@@ -1,6 +1,10 @@
 /** Bounded live-state retention for long-running agent conversations. */
 
 import { createHash } from "node:crypto";
+import {
+  isRuntimeOnlySessionMessage,
+  markRuntimeOnlySessionMessage,
+} from "./session-message-provenance.js";
 
 export const SESSION_RUNTIME_RETENTION_LIMITS = Object.freeze({
   recentResults: 32,
@@ -136,7 +140,12 @@ export function releaseOldLiveSessionResults(messages, configured = {}) {
       originalChars: content.length,
       retainedChars: projection.content.length,
     });
-    return { ...message, content: projection.content };
+    const retained = { ...message, content: projection.content };
+    // This is a trusted host clone. Preserve only authority already attached
+    // to its source; matching background-result text grants no authority.
+    return isRuntimeOnlySessionMessage(message)
+      ? markRuntimeOnlySessionMessage(retained)
+      : retained;
   });
   return {
     messages: output,

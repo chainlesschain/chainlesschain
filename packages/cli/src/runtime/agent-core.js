@@ -12623,7 +12623,12 @@ export async function chatWithTools(rawMessages, options) {
     throw new TypeError("Invalid API response: unsupported assistant message");
   }
   // Provider reasoning text is not part of the governed replay protocol.
-  const message = { role: "assistant", content: providerMessage.content };
+  // Tool-only responses may omit content. Keep the live message JSON-safe for
+  // canonical tool-round settlement instead of introducing an undefined field.
+  const message = {
+    role: "assistant",
+    content: providerMessage.content ?? null,
+  };
   if (Object.hasOwn(providerMessage, "tool_calls")) {
     message.tool_calls = providerMessage.tool_calls;
   }
@@ -15283,38 +15288,53 @@ export async function* agentLoop(messages, options) {
         typeof options.runtimeResultRetention === "object"
           ? options.runtimeResultRetention
           : options.runtimeResultRetentionOptions;
-      const retained = releaseOldLiveSessionResults(messages, retentionConfig);
+      const candidate = releaseOldLiveSessionResults(messages, retentionConfig);
       if (
-        retained.stats.released > 0 &&
-        !_sameMessageSnapshot(retained.messages, messages)
+        candidate.stats.released > 0 &&
+        !_sameMessageSnapshot(candidate.messages, messages)
       ) {
-        const authorityExpectedMessages = [...messages];
-        const liveExpectedMessages = [...messages];
-        try {
-          await _settleAutomaticCompaction({
-            messages,
-            liveExpectedMessages,
-            authorityExpectedMessages,
-            compacted: retained.messages,
-            stats: retained.stats,
-            options,
-            trigger: "runtime-retention",
-          });
-          yield {
-            type: "session-runtime-retention",
-            runId,
-            stats: retained.stats,
-          };
-        } catch (error) {
-          yield {
-            type: "session-runtime-retention-degraded",
-            runId,
-            reason:
-              error?.code === "SESSION_REVISION_STALE"
-                ? "session_messages_changed_during_retention"
-                : "canonical_retention_settlement_failed",
-            code: error?.code || "CC_SESSION_RETENTION_SETTLEMENT_FAILED",
-          };
+        // Complete tool effects must be durable before a retention checkpoint
+        // can compare against them. Let a host settlement failure propagate
+        // before another provider call, just as semantic compaction does.
+        options.onBeforeCompaction?.();
+        // The host hook may update live context. Derive both the candidate and
+        // the expected snapshots from the state after that boundary.
+        const retained = releaseOldLiveSessionResults(
+          messages,
+          retentionConfig,
+        );
+        if (
+          retained.stats.released > 0 &&
+          !_sameMessageSnapshot(retained.messages, messages)
+        ) {
+          const authorityExpectedMessages = [...messages];
+          const liveExpectedMessages = [...messages];
+          try {
+            await _settleAutomaticCompaction({
+              messages,
+              liveExpectedMessages,
+              authorityExpectedMessages,
+              compacted: retained.messages,
+              stats: retained.stats,
+              options,
+              trigger: "runtime-retention",
+            });
+            yield {
+              type: "session-runtime-retention",
+              runId,
+              stats: retained.stats,
+            };
+          } catch (error) {
+            yield {
+              type: "session-runtime-retention-degraded",
+              runId,
+              reason:
+                error?.code === "SESSION_REVISION_STALE"
+                  ? "session_messages_changed_during_retention"
+                  : "canonical_retention_settlement_failed",
+              code: error?.code || "CC_SESSION_RETENTION_SETTLEMENT_FAILED",
+            };
+          }
         }
       }
     }

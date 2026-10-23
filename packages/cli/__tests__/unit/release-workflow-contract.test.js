@@ -465,6 +465,9 @@ describe("CLI release workflow contracts", () => {
       "Verify published Agent SDK registry bytes and npm provenance",
     );
     expect(text).toContain(
+      "Verify published Session Core registry bytes and npm provenance",
+    );
+    expect(text).toContain(
       "Verify Agent Protocol registry bytes and npm provenance",
     );
     expect(text).not.toContain(
@@ -482,14 +485,15 @@ describe("CLI release workflow contracts", () => {
       "npm audit signatures --include-attestations --json",
     );
     expect(text).toContain("verify-npm-release-provenance.mjs");
-    expect(text.match(/--trusted-anchor/gu)).toHaveLength(3);
-    expect(text.match(/verify-npm-reused-package-tree\.mjs/gu)).toHaveLength(3);
+    expect(text.match(/--trusted-anchor/gu)).toHaveLength(4);
+    expect(text.match(/verify-npm-reused-package-tree\.mjs/gu)).toHaveLength(4);
     expect(
       text.match(/if \[ "\$PUBLISHED" = "false" \]; then MAX_ATTEMPTS=1; fi/gu),
-    ).toHaveLength(3);
+    ).toHaveLength(4);
     expect(text).toContain("id: agent-protocol-publish");
     for (const packagePath of [
       "packages/agent-protocol",
+      "packages/session-core",
       "packages/context-memory-kernel",
       "packages/agent-sdk",
     ]) {

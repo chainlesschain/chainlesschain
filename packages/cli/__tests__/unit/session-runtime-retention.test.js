@@ -6,6 +6,11 @@ import {
   SESSION_RUNTIME_RELEASE_MARKER,
   SESSION_RUNTIME_RETENTION_LIMITS,
 } from "../../src/lib/session-runtime-retention.js";
+import {
+  isRuntimeOnlySessionMessage,
+  markRuntimeOnlySessionMessage,
+  projectCanonicalResumeMessages,
+} from "../../src/lib/session-message-provenance.js";
 
 const largeResult = (index) => `${index}:`.padEnd(32 * 1024, "x");
 
@@ -78,6 +83,89 @@ describe("session runtime result retention", () => {
     expect(second.stats.released).toBe(0);
     expect(second.messages).toEqual(first.messages);
     expect(first.messages.at(-1).content).toBe(messages.at(-1).content);
+  });
+
+  it("preserves private runtime-only authority across retention without granting it by text", () => {
+    const content = `[Background sub-agent "worker" completed]\n${largeResult(0)}`;
+    const runtime = markRuntimeOnlySessionMessage({ role: "user", content });
+    const user = { role: "user", content };
+    const retained = releaseOldLiveSessionResults([runtime, user], {
+      recentResults: 0,
+    });
+
+    expect(retained.stats.released).toBe(2);
+    expect(retained.messages[0]).not.toBe(runtime);
+    expect(isRuntimeOnlySessionMessage(retained.messages[0])).toBe(true);
+    expect(isRuntimeOnlySessionMessage(retained.messages[1])).toBe(false);
+    expect(
+      projectCanonicalResumeMessages(retained.messages, { strict: true }),
+    ).toEqual([retained.messages[1]]);
+    expect(
+      projectCanonicalResumeMessages([{ ...retained.messages[0] }], {
+        strict: true,
+      }),
+    ).toHaveLength(1);
+  });
+
+  it("takes the retention candidate and compare snapshot after the host settles pending tools", async () => {
+    const messages = Array.from({ length: 34 }, (_, index) => ({
+      role: "tool",
+      tool_call_id: `call-${index}`,
+      content: largeResult(index),
+    }));
+    const concurrentInput = {
+      role: "user",
+      content: "New input admitted by host",
+    };
+    const onBeforeCompaction = vi.fn(() => messages.push(concurrentInput));
+    const onCompaction = vi.fn((_stats, compacted, settlement) => {
+      expect(settlement.expectedMessages.at(-1)).toBe(concurrentInput);
+      expect(compacted.at(-1)).toBe(concurrentInput);
+      expect(onBeforeCompaction).toHaveBeenCalledOnce();
+    });
+    await drain(
+      agentLoop(messages, {
+        autoCompact: false,
+        onBeforeCompaction,
+        onCompaction,
+        chatFn: async () => ({
+          message: { role: "assistant", content: "done" },
+        }),
+      }),
+    );
+    expect(onBeforeCompaction).toHaveBeenCalledOnce();
+    expect(onCompaction).toHaveBeenCalledOnce();
+    expect(messages.at(-1)).toBe(concurrentInput);
+  });
+
+  it("stops before provider admission when pre-retention tool settlement fails", async () => {
+    const messages = Array.from({ length: 34 }, (_, index) => ({
+      role: "tool",
+      tool_call_id: `call-${index}`,
+      content: largeResult(index),
+    }));
+    const original = [...messages];
+    const failure = Object.assign(
+      new Error("pending tool persistence failed"),
+      {
+        runtimeLedgerPersistence: true,
+      },
+    );
+    const chatFn = vi.fn();
+    await expect(
+      drain(
+        agentLoop(messages, {
+          autoCompact: false,
+          onBeforeCompaction: () => {
+            throw failure;
+          },
+          onCompaction: vi.fn(),
+          chatFn,
+        }),
+      ),
+    ).rejects.toBe(failure);
+    expect(chatFn).not.toHaveBeenCalled();
+    expect(messages).toEqual(original);
   });
 
   it("settles retention independently of semantic auto-compaction", async () => {

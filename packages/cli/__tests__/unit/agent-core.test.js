@@ -1918,21 +1918,126 @@ describe("chatWithTools", () => {
     expect(JSON.stringify(requests[1])).not.toContain("reasoning_content");
   });
 
-  it("rejects an unsupported OpenAI assistant response shape", async () => {
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        choices: [{ message: { role: "user", content: "wrong role" } }],
-      }),
-    });
-    await expect(
-      chatWithTools([{ role: "user", content: "test" }], {
-        provider: "openai",
-        model: "gpt-4o",
-        apiKey: "sk-test-key",
-      }),
-    ).rejects.toThrow("unsupported assistant message");
-  });
+  it.each(
+    ["openai", "gemini", "volcengine"].flatMap((provider) =>
+      [
+        { label: "missing", content: {}, expected: null },
+        { label: "null", content: { content: null }, expected: null },
+        { label: "empty", content: { content: "" }, expected: "" },
+      ].map((value) => ({ provider, ...value })),
+    ),
+  )(
+    "normalizes $provider $label tool-call content to replayable data",
+    async ({ provider, content, expected }) => {
+      const toolCall = {
+        id: "call_content",
+        type: "function",
+        function: { name: "read_file", arguments: '{"path":"notes.txt"}' },
+      };
+      vi.spyOn(globalThis, "fetch").mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          choices: [
+            {
+              message: {
+                role: "assistant",
+                ...content,
+                tool_calls: [toolCall],
+              },
+            },
+          ],
+        }),
+      });
+      const result = await chatWithTools(
+        [{ role: "user", content: "Read notes" }],
+        {
+          provider,
+          model: "gpt-4o",
+          apiKey: "test-only-key",
+          contextMemorySkipPlanning: true,
+        },
+      );
+      expect(result.message).toEqual({
+        role: "assistant",
+        content: expected,
+        tool_calls: [toolCall],
+      });
+      assertPlainJsonTree(result.message);
+      expect(() =>
+        snapshotAgentModelRequest({ messages: [result.message], tools: [] }),
+      ).not.toThrow();
+    },
+  );
+
+  it.each(["anthropic", "ollama"])(
+    "keeps %s tool-only responses replayable without text",
+    async (provider) => {
+      const toolCall = {
+        id: "call_content",
+        type: "function",
+        function: { name: "read_file", arguments: '{"path":"notes.txt"}' },
+      };
+      vi.spyOn(globalThis, "fetch").mockResolvedValue({
+        ok: true,
+        json: async () =>
+          provider === "anthropic"
+            ? {
+                content: [
+                  {
+                    type: "tool_use",
+                    id: toolCall.id,
+                    name: "read_file",
+                    input: { path: "notes.txt" },
+                  },
+                ],
+              }
+            : { message: { role: "assistant", tool_calls: [toolCall] } },
+      });
+      const result = await chatWithTools(
+        [{ role: "user", content: "Read notes" }],
+        {
+          provider,
+          model: provider === "anthropic" ? "claude-sonnet-4-6" : "qwen2.5:7b",
+          baseUrl:
+            provider === "anthropic"
+              ? "https://api.anthropic.com/v1"
+              : "http://localhost:11434",
+          apiKey: "test-only-key",
+          contextMemorySkipPlanning: true,
+        },
+      );
+      expect(result.message.tool_calls).toEqual([toolCall]);
+      assertPlainJsonTree(result.message);
+      expect(() =>
+        snapshotAgentModelRequest({ messages: [result.message], tools: [] }),
+      ).not.toThrow();
+    },
+  );
+
+  it.each([
+    { role: "user", content: "wrong role" },
+    { role: "assistant", content: 42 },
+    { role: "assistant", content: false },
+    { role: "assistant", content: {} },
+    { role: "assistant", content: [] },
+  ])(
+    "rejects an unsupported OpenAI assistant response shape %j",
+    async (message) => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          choices: [{ message }],
+        }),
+      });
+      await expect(
+        chatWithTools([{ role: "user", content: "test" }], {
+          provider: "openai",
+          model: "gpt-4o",
+          apiKey: "sk-test-key",
+        }),
+      ).rejects.toThrow("unsupported assistant message");
+    },
+  );
 
   it("OpenAI provider: sends a bounded client request id and captures returned request identifiers", async () => {
     let capturedHeaders;

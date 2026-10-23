@@ -9,6 +9,7 @@ import {
   preserveDurableSystemMessageProvenance,
   projectCanonicalResumeMessages,
   sanitizePersistedMessage,
+  sanitizeConversationMessage,
   sanitizePersistedMessages,
   sanitizePersistedNonSystemMessages,
   SESSION_MESSAGE_PROVENANCE_FIELD,
@@ -16,6 +17,36 @@ import {
 } from "../../src/lib/session-message-provenance.js";
 
 describe("durable session system-message provenance", () => {
+  it("keeps input receipts in persisted evidence and excludes only their fields from user conversation projections", () => {
+    const receiptBacked = {
+      role: "user",
+      content: [{ type: "text", text: "inspect local evidence" }],
+      clientMessageId: "input-1",
+      inputDigest: "a".repeat(64),
+      otherMetadata: "still part of message identity",
+    };
+    const { clientMessageId, inputDigest, ...conversation } = receiptBacked;
+    expect(encodePersistedMessage(receiptBacked)).toEqual(receiptBacked);
+    expect(sanitizePersistedMessage(receiptBacked)).toEqual(receiptBacked);
+    for (const projected of [
+      decodeVerifiedPersistedMessage(receiptBacked),
+      sanitizeConversationMessage(receiptBacked),
+      projectCanonicalResumeMessages([receiptBacked], { strict: true })[0],
+    ]) {
+      expect(projected).toEqual(conversation);
+      expect(
+        projectCanonicalResumeMessages([projected], { strict: true }),
+      ).toEqual([conversation]);
+    }
+    expect(receiptBacked.clientMessageId).toBe(clientMessageId);
+    expect(receiptBacked.inputDigest).toBe(inputDigest);
+    const assistant = { ...receiptBacked, role: "assistant" };
+    expect(decodeVerifiedPersistedMessage(assistant)).toEqual(assistant);
+    expect(
+      projectCanonicalResumeMessages([assistant], { strict: true }),
+    ).toEqual([assistant]);
+  });
+
   it("round-trips an allowlisted wire tag without exposing it to providers", () => {
     const runtime = markDurableSystemMessage(
       { role: "system", content: "canonical compact facts" },

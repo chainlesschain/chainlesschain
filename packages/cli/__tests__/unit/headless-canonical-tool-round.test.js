@@ -220,6 +220,163 @@ it.each([true, false])(
   },
 );
 
+it.each([
+  { label: "missing", content: {}, provider: "openai", streaming: false },
+  {
+    label: "null",
+    content: { content: null },
+    provider: "openai",
+    streaming: false,
+  },
+  {
+    label: "empty",
+    content: { content: "" },
+    provider: "openai",
+    streaming: false,
+  },
+  {
+    label: "volcengine SSE",
+    content: {},
+    provider: "volcengine",
+    streaming: true,
+  },
+  {
+    label: "volcengine SSE null",
+    content: { content: null },
+    provider: "volcengine",
+    streaming: true,
+  },
+  {
+    label: "volcengine SSE empty",
+    content: { content: "" },
+    provider: "volcengine",
+    streaming: true,
+  },
+])(
+  "persists actual adapter tool rounds with $label content and reopens without replay",
+  async ({ content, provider, streaming }) => {
+    const id = "adapter-rounds";
+    writeFileSync(join(workspace, "adapter.txt"), "adapter local evidence");
+    const call = {
+      id: "adapter-read",
+      type: "function",
+      function: { name: "read_file", arguments: '{"path":"adapter.txt"}' },
+    };
+    const requests = [];
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (url, options) => {
+      const request = JSON.parse(options.body);
+      requests.push(request);
+      expect(String(url)).toBe(
+        streaming
+          ? "https://ark.cn-beijing.volces.com/api/v3/chat/completions"
+          : "https://api.openai.com/v1/chat/completions",
+      );
+      expect(request.stream).toBe(streaming ? true : undefined);
+      expect(request.model).toBe(
+        streaming ? "deepseek-v4-1-flash-260910" : "gpt-4o",
+      );
+      const text =
+        requests.length === 2
+          ? "Evidence checked."
+          : "Resumed evidence checked.";
+      const message =
+        requests.length === 1
+          ? { role: "assistant", ...content, tool_calls: [call] }
+          : { role: "assistant", content: text };
+      const usage = { prompt_tokens: 10, completion_tokens: 10 };
+      if (!streaming)
+        return new Response(JSON.stringify({ choices: [{ message }], usage }), {
+          headers: { "content-type": "application/json" },
+        });
+      const delta =
+        requests.length === 1
+          ? {
+              role: "assistant",
+              ...content,
+              tool_calls: [{ index: 0, ...call }],
+            }
+          : { role: "assistant", content: text };
+      return new Response(
+        `data: ${JSON.stringify({ choices: [{ delta }], usage })}\n\ndata: [DONE]\n\n`,
+        { headers: { "content-type": "text/event-stream" } },
+      );
+    });
+    const allEvents = [];
+    const run = async (prompt) => {
+      const lines = [];
+      const outcome = await runAgentHeadlessStream(
+        {
+          sessionId: id,
+          cwd: workspace,
+          provider,
+          model: streaming ? "deepseek-v4-1-flash-260910" : "gpt-4o",
+          baseUrl: streaming
+            ? "https://ark.cn-beijing.volces.com/api/v3"
+            : "https://api.openai.com/v1",
+          apiKey: "test-only-key",
+          includePartialMessages: streaming,
+          expandFileRefs: false,
+          projectMemory: false,
+          useRegisteredMcp: false,
+        },
+        {
+          bootstrap: async () => ({ db: null }),
+          getApprovalGate: async () => null,
+          resolveAgentMcp: async () => null,
+          input: (async function* () {
+            yield JSON.stringify({
+              type: "user",
+              content: prompt,
+              client_message_id: `adapter-input-${requests.length}`,
+            }) + "\n";
+          })(),
+          writeOut: (line) => lines.push(line),
+          writeErr: () => {},
+        },
+      );
+      const events = lines.join("").trim().split("\n").map(JSON.parse);
+      allEvents.push(...events);
+      expect(
+        outcome.exitCode,
+        JSON.stringify(events.filter(({ type }) => type === "result")),
+      ).toBe(0);
+    };
+    await run("Read adapter.txt once.");
+    const durable = readVerifiedMessages(id);
+    expect(durable.map(({ role }) => role)).toEqual([
+      "user",
+      "assistant",
+      "tool",
+      "assistant",
+    ]);
+    expect(durable[1]).toEqual({
+      role: "assistant",
+      content: streaming ? "" : (content.content ?? null),
+      tool_calls: [call],
+    });
+    expect(durable[2]).toMatchObject({ tool_call_id: call.id });
+    expect(durable[2].content).toContain("adapter local evidence");
+    expect(requests).toHaveLength(2);
+    await run("Continue from the recorded evidence.");
+    expect(requests).toHaveLength(3);
+    expect(
+      requests[2].messages
+        .filter(({ role }) => role !== "system")
+        .slice(0, durable.length),
+    ).toEqual(durable);
+    expect(allEvents.filter(({ type }) => type === "tool_use")).toHaveLength(1);
+    expect(allEvents.filter(({ type }) => type === "tool_result")).toHaveLength(
+      1,
+    );
+    expect(
+      readVerifiedMessages(id).filter(({ role }) => role === "tool"),
+    ).toHaveLength(1);
+    expect(
+      readVerifiedEvents(id).filter(({ type }) => type === "tool_round"),
+    ).toHaveLength(1);
+  },
+);
+
 it("preserves complete rounds, durable provenance, display origins and restart replay", async () => {
   const id = "round-store";
   startSession(id, { model: "offline" });
