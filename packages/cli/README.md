@@ -2,9 +2,9 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
-## CLI 0.166.118 (unpublished candidate)
+## CLI 0.166.118
 
-This candidate follows Session Core **0.3.23** and Agent SDK **0.2.16** and pairs with VS Code **0.37.160** and JetBrains **0.4.177**. It includes the Web Panel DOMPurify security patch, input delivery and Windows draft recovery fixes, project-instruction code fence handling, bounded long-session index reuse, typed Evidence storage and native Windows ACL startup. It preserves redacted transport receipts for future native task retests. Releases require the exact-source Linux, Windows and macOS Actions gates. Required order: child npm packages → CLI → IDE extensions → mobile / PC clients, verifying public artifacts at each stage.
+This version follows Session Core **0.3.23** and Agent SDK **0.2.16** and pairs with VS Code **0.37.160** and JetBrains **0.4.177**. It includes the Web Panel DOMPurify security patch, input delivery and Windows draft recovery fixes, project-instruction code fence handling, bounded long-session index reuse, typed Evidence storage and native Windows ACL startup. IDE input receipts remain separate from conversation replay, so completed tools can settle without falsely reporting a concurrent session revision. Long-session retention preserves completed results, runtime message identity and historical recovery lineage. It preserves redacted transport receipts for future native task retests. Releases require the exact-source Linux, Windows and macOS Actions gates. Required order: child npm packages → CLI → IDE extensions → mobile / PC clients, verifying public artifacts at each stage.
 
 Install this version after its npm release is available:
 
@@ -14,7 +14,7 @@ cc --version
 cc doctor
 ```
 
-Cumulative 36+9 acceptance is **32/45** across versions, with **13** unfinished; no new model-task acceptance is claimed for this candidate. Formal paid readiness, native admission and automatic promotion retain their separate gates. The sections below preserve the preceding public-release evidence and limitations.
+Cumulative 36+9 acceptance is **32/45** across versions, with **13** unfinished; no new model-task acceptance is claimed for this version. Formal paid readiness, native admission and automatic promotion retain their separate gates. The sections below preserve the preceding public-release evidence and limitations.
 
 ## Previous CLI 0.166.117
 

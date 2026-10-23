@@ -45,6 +45,10 @@
       "sha256": "d99dc7fbad909e6d7d0f0fb578352ca2f369602cdaf9822197c3a8ff6e0d5a89"
     },
     {
+      "path": "packages/cli/README.md",
+      "sha256": "a128b245d7c9252f3c2adc260d948d56077c1bf3952c3bb273183c083e507429"
+    },
+    {
       "path": "packages/cli/scripts/budget-egress-reviewed-sources.json",
       "sha256": "487fe9de7ef2ff5ddea34bcc540ea6e5a5f00930dcaa2a5794b299079dce78e3"
     },
@@ -215,5 +219,11 @@
     "total": 45,
     "unfinished": 13,
     "newPaidTaskAcceptance": false
+  },
+  "shippingReadmeFollowup": {
+    "baseCommit": "c0e63ee6e0df79d116ef99315215609747e6450c",
+    "change": "Version-neutral shipping README removes unpublished-candidate label, adds receipt/tool recovery behavior, and retains installation/pairing and all32/45 limits.",
+    "productionCodeAndTestsUnchanged": true,
+    "sourceQualification": "Requires new complete final-commit workflows. Intermediatec0e63e runs are superseded and cannot qualify this README source."
   }
 }
