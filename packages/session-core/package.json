@@ -101,6 +101,7 @@
     "directory": "packages/session-core"
   },
   "dependencies": {
+    "koffi": "^2.16.3",
     "@noble/curves": "^1.9.7",
     "@noble/hashes": "^2.0.1",
     "@scure/base": "^1.2.6"

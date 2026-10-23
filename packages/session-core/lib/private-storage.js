@@ -2,6 +2,7 @@
 const fs = require("node:fs");
 const { spawnSync } = require("node:child_process");
 const { homedir } = require("node:os");
+const { join } = require("node:path");
 const {
   isAbsolute: isNativeAbsolute,
   parse,
@@ -726,6 +727,73 @@ const _deps = {
   spawnSync,
   platform: () => process.platform,
 };
+const NATIVE_WINDOWS_DEPS = Symbol("production Windows ACL dependencies");
+function privateStorageDependencies(options) {
+  return {
+    ..._deps,
+    ...(options.deps || {}),
+    [NATIVE_WINDOWS_DEPS]: !options.deps,
+  };
+}
+
+function useNativeWindowsAcl(deps) {
+  // Electron's executable may launch the app rather than a Node script. Keep
+  // its established backend until its packaged/fused worker contract is tested.
+  return (
+    process.platform === "win32" &&
+    !process.versions.electron &&
+    deps[NATIVE_WINDOWS_DEPS] === true &&
+    deps.fs === fs &&
+    deps.spawnSync === spawnSync
+  );
+}
+
+function nativeWorkerEnvironment(environment = process.env) {
+  const allowed = new Set([
+    "systemroot",
+    "windir",
+    "temp",
+    "tmp",
+    "userprofile",
+    "homedrive",
+    "homepath",
+    "localappdata",
+    "appdata",
+    "programfiles",
+    "programfiles(x86)",
+    "programw6432",
+  ]);
+  return Object.fromEntries(
+    Object.entries(environment).filter(([key]) =>
+      allowed.has(key.toLowerCase()),
+    ),
+  );
+}
+
+function runNativeWindowsAcl(
+  deps,
+  targets,
+  operation,
+  expectedKind,
+  timeoutMs,
+) {
+  try {
+    return deps.spawnSync(
+      process.execPath,
+      [join(__dirname, "private-storage-windows-worker.cjs")],
+      {
+        encoding: "utf8",
+        windowsHide: true,
+        timeout: timeoutMs,
+        maxBuffer: 4 * 1024 * 1024,
+        env: nativeWorkerEnvironment(),
+        input: JSON.stringify({ operation, targets, expectedKind, timeoutMs }),
+      },
+    );
+  } catch (error) {
+    return { error, status: null };
+  }
+}
 
 // ACL repair starts a short PowerShell process on Windows. Cache successful
 // production repairs by path and filesystem identity for this process; injected-dependency
@@ -913,6 +981,47 @@ function repairWindowsAclOnce(target, deps, options) {
 
 function windowsAcl(target, operation, deps) {
   const nativeTarget = _windowsExtendedPath(target);
+  if (useNativeWindowsAcl(deps)) {
+    const result = runNativeWindowsAcl(
+      deps,
+      [nativeTarget],
+      operation,
+      null,
+      _resolveWindowsAclTimeout(15_000),
+    );
+    if (result?.error) return windowsAclProcessFailure(result, operation);
+    let row;
+    try {
+      const parsed = JSON.parse(String(result?.stdout || ""));
+      if (
+        Array.isArray(parsed) &&
+        parsed.length === 1 &&
+        parsed[0]?.target === nativeTarget
+      )
+        row = parsed[0];
+    } catch {
+      /* Missing or malformed verification remains a failure. */
+    }
+    if (result?.status !== 0 || row?.ok !== true || row?.exists !== true)
+      return {
+        ok: false,
+        platform: "win32",
+        error: "owner-only native ACL verification failed",
+      };
+    const {
+      target: _target,
+      ok: _ok,
+      exists: _exists,
+      error: _error,
+      errorCode: _errorCode,
+      ...details
+    } = row;
+    return {
+      ok: true,
+      platform: "win32",
+      details: { ...details, ownerOnly: true },
+    };
+  }
   const workingDirectory = _windowsAclWorkingDirectory(process.env, deps.fs);
   const result = runWindowsAclCommand(
     deps,
@@ -983,30 +1092,38 @@ function windowsAclBatch(targets, operation, deps, expectedKind = null) {
   if (targets.length === 0) return [];
   const nativeTargets = targets.map(_windowsExtendedPath);
   const workingDirectory = _windowsAclWorkingDirectory(process.env, deps.fs);
-  const result = runWindowsAclCommand(
-    deps,
-    [
-      "-NoLogo",
-      "-NoProfile",
-      "-NonInteractive",
-      "-ExecutionPolicy",
-      "Bypass",
-      "-Command",
-      `& { ${WINDOWS_ACL_BATCH_SCRIPT} }`,
-    ],
-    {
-      encoding: "utf8",
-      input: JSON.stringify({
+  const result = useNativeWindowsAcl(deps)
+    ? runNativeWindowsAcl(
+        deps,
+        nativeTargets,
         operation,
-        targets: nativeTargets,
-        ...(expectedKind ? { expectedKind } : {}),
-      }),
-      windowsHide: true,
-      timeout: _resolveWindowsAclTimeout(30_000),
-      maxBuffer: 4 * 1024 * 1024,
-      ...(workingDirectory ? { cwd: workingDirectory } : {}),
-    },
-  );
+        expectedKind,
+        _resolveWindowsAclTimeout(30_000),
+      )
+    : runWindowsAclCommand(
+        deps,
+        [
+          "-NoLogo",
+          "-NoProfile",
+          "-NonInteractive",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-Command",
+          `& { ${WINDOWS_ACL_BATCH_SCRIPT} }`,
+        ],
+        {
+          encoding: "utf8",
+          input: JSON.stringify({
+            operation,
+            targets: nativeTargets,
+            ...(expectedKind ? { expectedKind } : {}),
+          }),
+          windowsHide: true,
+          timeout: _resolveWindowsAclTimeout(30_000),
+          maxBuffer: 4 * 1024 * 1024,
+          ...(workingDirectory ? { cwd: workingDirectory } : {}),
+        },
+      );
   let details = [];
   try {
     const parsed = JSON.parse(String(result?.stdout || "").trim());
@@ -1170,7 +1287,7 @@ function assertNoLinkTraversalWithWindowsFallback(
 
 function inspectPrivatePaths(targets, options = {}) {
   const uniqueTargets = [...new Set((targets || []).map(String))];
-  const deps = { ..._deps, ...(options.deps || {}) };
+  const deps = privateStorageDependencies(options);
   if ((options.platform || deps.platform()) === "win32") {
     const results = [];
     for (
@@ -1196,7 +1313,7 @@ function inspectPrivatePaths(targets, options = {}) {
 
 function repairPrivatePaths(targets, options = {}) {
   const uniqueTargets = [...new Set((targets || []).map(String))];
-  const deps = { ..._deps, ...(options.deps || {}) };
+  const deps = privateStorageDependencies(options);
   const platform = options.platform || deps.platform();
   const checkedPaths = new Set();
   let nativeWindowsPreflightRequired = false;
@@ -1265,7 +1382,7 @@ function repairPrivatePaths(targets, options = {}) {
 }
 
 function inspectPrivatePath(target, options = {}) {
-  const deps = { ..._deps, ...(options.deps || {}) };
+  const deps = privateStorageDependencies(options);
   const platform = options.platform || deps.platform();
   if (platform === "win32") {
     return windowsAclBatch([String(target)], "inspect", deps)[0];
@@ -1296,7 +1413,7 @@ function inspectPrivatePath(target, options = {}) {
 }
 
 function repairPrivatePath(target, options = {}) {
-  const deps = { ..._deps, ...(options.deps || {}) };
+  const deps = privateStorageDependencies(options);
   const platform = options.platform || deps.platform();
   assertSafeOwnerOnlyPath(target, platform);
   assertNoLinkTraversalWithWindowsFallback(target, deps, null, platform);
@@ -1328,7 +1445,7 @@ function repairPrivatePathAfterPreflight(target, options, deps) {
 }
 
 function ensurePrivateDirectory(target, options = {}) {
-  const deps = { ..._deps, ...(options.deps || {}) };
+  const deps = privateStorageDependencies(options);
   const platform = options.platform || deps.platform();
   assertSafeOwnerOnlyPath(target, platform);
   const nativeEvidence = assertNoLinkTraversalWithWindowsFallback(
@@ -1390,7 +1507,7 @@ function ensurePrivateDirectory(target, options = {}) {
 }
 
 function ensurePrivateFile(target, options = {}) {
-  const deps = { ..._deps, ...(options.deps || {}) };
+  const deps = privateStorageDependencies(options);
   const platform = options.platform || deps.platform();
   assertSafeOwnerOnlyPath(target, platform);
   const nativeEvidence = assertNoLinkTraversalWithWindowsFallback(
