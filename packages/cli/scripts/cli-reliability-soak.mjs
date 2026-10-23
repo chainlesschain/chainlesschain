@@ -1791,12 +1791,203 @@ export async function duplexSoakScenario(
   }
 }
 
-async function concurrentAgentScenario(baseUrl, home, profile) {
-  const started = performance.now();
-  const children = Array.from(
-    { length: profile.concurrentAgents },
-    (_, index) => {
-      const child = spawnCli(
+/** One shared retirement budget for the entire concurrent cohort. */
+export async function retireConcurrentAgentChildren(
+  records,
+  cleanupDeadlineMs,
+  {
+    now = () => performance.now(),
+    platform = process.platform,
+    retireChild = retireDuplexProcessTree,
+    kill = process.kill.bind(process),
+  } = {},
+) {
+  const started = now();
+  const deadline = started + cleanupDeadlineMs;
+  const remaining = () => Math.max(0, deadline - now());
+  const retired = await Promise.allSettled(
+    records.map(async (record) => {
+      if (!record.child || !record.completion || remaining() <= 0) return null;
+      if (record.completion.exit() !== null) {
+        await record.completion.wait(remaining());
+        return null;
+      }
+      return retireChild(record.child, record.completion, remaining(), {
+        now,
+        platform,
+        kill,
+      });
+    }),
+  );
+  const children = records.map((record, index) => {
+    const result =
+      retired[index].status === "fulfilled" ? retired[index].value : null;
+    let treeTerminated = result?.treeTerminated === true;
+    const pid = record.child?.pid;
+    const validPid =
+      Number.isSafeInteger(pid) && pid > 0 && pid !== process.pid;
+    if (!record.child || (!validPid && record.spawnError && record.closed)) {
+      treeTerminated = true;
+    } else if (
+      !treeTerminated &&
+      validPid &&
+      record.closed &&
+      remaining() > 0 &&
+      platform !== "win32"
+    ) {
+      // A detached POSIX group has a stable owned group ID. Probe only;
+      // inaccessibility is unknown and no exited/reused root is signalled.
+      try {
+        kill(-pid, 0);
+      } catch (error) {
+        treeTerminated = error?.code === "ESRCH";
+      }
+    }
+    // Windows close plus a late empty descendant table cannot prove the
+    // former tree is gone: an exited intermediate can leave orphan children.
+    // Without earlier ownership evidence, retain uncertainty and the root.
+    const closed = !record.child || record.closed;
+    return {
+      index,
+      closed,
+      treeTerminated,
+      confirmed: closed && treeTerminated,
+    };
+  });
+  const confirmed =
+    children.every((child) => child.confirmed) && now() <= deadline;
+  return {
+    deadlineMs: cleanupDeadlineMs,
+    elapsedMs: now() - started,
+    confirmed,
+    deadlineExceeded: !confirmed && remaining() === 0,
+    children,
+  };
+}
+
+export async function concurrentAgentScenario(
+  baseUrl,
+  home,
+  profile,
+  {
+    spawnChild = spawnCli,
+    checkpoint = null,
+    retireChildren = retireConcurrentAgentChildren,
+    now = () => performance.now(),
+  } = {},
+) {
+  const started = now();
+  const elapsed = () => Math.max(0, now() - started);
+  const records = [];
+  let primaryFailure = null;
+  let notifyFailure;
+  const failed = new Promise((resolvePromise) => {
+    notifyFailure = resolvePromise;
+  });
+  const fail = (error) => {
+    if (primaryFailure) return;
+    primaryFailure = error;
+    notifyFailure();
+  };
+  const observations = () =>
+    records.map((record) => {
+      let result = null;
+      try {
+        result = JSON.parse(record.stdout.trim());
+      } catch {
+        /* Invalid output fails the contract. */
+      }
+      const exit = record.completion?.exit();
+      return {
+        index: record.index,
+        pid: Number.isSafeInteger(record.child?.pid) ? record.child.pid : null,
+        spawnedAtMs: record.spawnedAtMs,
+        firstStdoutAtMs: record.firstStdoutAtMs,
+        firstStderrAtMs: record.firstStderrAtMs,
+        exitAtMs: record.exitAtMs,
+        closedAtMs: record.closedAtMs,
+        timedOut: record.timedOut,
+        spawnError: record.spawnError,
+        code: exit?.code ?? null,
+        signal: ["SIGKILL", "SIGTERM", "SIGINT"].includes(exit?.signal)
+          ? exit.signal
+          : null,
+        resultSubtype: ["success", "error"].includes(result?.subtype)
+          ? result.subtype
+          : null,
+        resultIsError:
+          typeof result?.is_error === "boolean" ? result.is_error : null,
+        resultLength:
+          typeof result?.result === "string" ? result.result.length : null,
+        // Child output is untrusted; a code-shaped string is not an allowlist.
+        diagnosticCodes: diagnosticCodes(record.stdout, record.stderr).filter(
+          (code) =>
+            [
+              "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+              "CC_AGENT_EVOLUTION_SESSION_INTERRUPTED",
+              "CC_AGENT_EXECUTION_POLICY_INVALID",
+              "CC_AGENT_TURN_FAILED",
+              "ERR_STREAM_DESTROYED",
+              "ERR_STREAM_PREMATURE_CLOSE",
+              "ERR_MODULE_NOT_FOUND",
+              "ERR_REQUIRE_ESM",
+              "ERR_INVALID_ARG_TYPE",
+            ].includes(code),
+        ),
+        diagnosticClasses: diagnosticClasses(record.stdout, record.stderr),
+        stdoutBytes: record.stdoutBytes,
+        stderrBytes: record.stderrBytes,
+        outputTruncated: record.outputTruncated,
+      };
+    });
+  const preserve = (cleanup = null) => {
+    try {
+      checkpoint?.({
+        status: primaryFailure ? "failed" : "running",
+        agents: profile.concurrentAgents,
+        durationMs: elapsed(),
+        exits: observations(),
+        ...(primaryFailure
+          ? {
+              failure: {
+                kind:
+                  primaryFailure.code === "CC_RELIABILITY_CHILD_TIMEOUT"
+                    ? "child-timeout"
+                    : "child-failed",
+                childIndex: primaryFailure.childIndex,
+                timeoutMs: 120_000,
+              },
+            }
+          : {}),
+        ...(cleanup ? { cleanup } : {}),
+      });
+    } catch {
+      /* Evidence failure must not replace the original failure. */
+    }
+  };
+  // Preserve all twenty spawns before waiting; there is no serialized retry.
+  for (let index = 0; index < profile.concurrentAgents; index += 1) {
+    const record = {
+      index,
+      child: null,
+      completion: null,
+      closed: false,
+      stdout: "",
+      stderr: "",
+      stdoutBytes: 0,
+      stderrBytes: 0,
+      spawnedAtMs: elapsed(),
+      firstStdoutAtMs: null,
+      firstStderrAtMs: null,
+      exitAtMs: null,
+      closedAtMs: null,
+      timedOut: false,
+      spawnError: false,
+      outputTruncated: false,
+    };
+    records.push(record);
+    try {
+      const child = spawnChild(
         [
           ...commonArgs(baseUrl),
           "-p",
@@ -1804,57 +1995,140 @@ async function concurrentAgentScenario(baseUrl, home, profile) {
           "--output-format",
           "json",
         ],
-        { home: join(home, `agent-${index}`) },
+        {
+          home: join(home, `agent-${index}`),
+          detached: process.platform !== "win32",
+        },
       );
-      let stdout = "";
-      let stderr = "";
-      child.stdout.setEncoding("utf8");
-      child.stderr.setEncoding("utf8");
-      child.stdout.on("data", (chunk) => {
-        if (stdout.length < 64 * 1024) stdout += chunk;
-      });
-      child.stderr.on("data", (chunk) => {
-        if (stderr.length < 64 * 1024) stderr += chunk;
-      });
-      return { child, output: () => ({ stdout, stderr }) };
-    },
-  );
-  const exits = await Promise.all(
-    children.map(async ({ child, output }) => {
-      const exit = await waitForExit(child, 120_000);
-      const captured = output();
-      let result = null;
-      try {
-        result = JSON.parse(captured.stdout.trim());
-      } catch {
-        // Invalid output is reflected by the failed result contract below.
-      }
-      return {
-        ...exit,
-        resultSubtype: result?.subtype || null,
-        resultIsError: result?.is_error ?? null,
-        resultLength:
-          typeof result?.result === "string" ? result.result.length : null,
-        diagnosticCodes: diagnosticCodes(captured.stdout, captured.stderr),
-        diagnosticClasses: diagnosticClasses(captured.stdout, captured.stderr),
-        ...(process.env.CC_CLI_RELIABILITY_DEBUG === "1"
-          ? {
-              debugStdout: captured.stdout.slice(-2_000),
-              debugStderr: captured.stderr.slice(-2_000),
-            }
-          : {}),
-        stdoutBytes: Buffer.byteLength(captured.stdout),
-        stderrBytes: Buffer.byteLength(captured.stderr),
+      record.child = child;
+      const completion = observeChildCompletion(child);
+      record.completion = {
+        exit: completion.exit,
+        closed: completion.closed,
+        // Unlike waitForExit, a close deadline does not signal a root PID.
+        wait(timeoutMs) {
+          return new Promise((resolvePromise, rejectPromise) => {
+            const timer = setTimeout(
+              () =>
+                rejectPromise(new Error("concurrent close deadline exceeded")),
+              timeoutMs,
+            );
+            completion.closed.then(() => {
+              clearTimeout(timer);
+              resolvePromise(completion.exit());
+            });
+          });
+        },
       };
-    }),
-  );
+      child.once("exit", () => {
+        record.exitAtMs = elapsed();
+      });
+      child.once("close", () => {
+        record.closed = true;
+        record.closedAtMs = elapsed();
+      });
+      child.once("error", () => {
+        record.spawnError = true;
+        fail(
+          Object.assign(new Error(`child ${index} failed`), {
+            code: "CC_RELIABILITY_CHILD_FAILED",
+            childIndex: index,
+          }),
+        );
+      });
+      for (const channel of ["stdout", "stderr"]) {
+        child[channel].setEncoding("utf8");
+        child[channel].on("data", (chunk) => {
+          record[`${channel}Bytes`] += Buffer.byteLength(chunk);
+          const first =
+            channel === "stdout" ? "firstStdoutAtMs" : "firstStderrAtMs";
+          if (record[first] === null) record[first] = elapsed();
+          const available = Math.max(0, 64 * 1024 - record[channel].length);
+          record[channel] += chunk.slice(0, available);
+          if (chunk.length > available) record.outputTruncated = true;
+        });
+      }
+    } catch {
+      record.spawnError = true;
+      fail(
+        Object.assign(new Error(`child ${index} failed to spawn`), {
+          code: "CC_RELIABILITY_CHILD_FAILED",
+          childIndex: index,
+        }),
+      );
+    }
+  }
+  const waiters = records.map((record) => {
+    if (!record.child || !record.completion)
+      return Promise.reject(primaryFailure);
+    return new Promise((resolvePromise, rejectPromise) => {
+      let settled = false;
+      const settle = (error = null) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        if (error) rejectPromise(error);
+        else resolvePromise(record.completion.exit());
+      };
+      record.stopWaiting = () =>
+        settle(primaryFailure || new Error("cohort retired"));
+      const timer = setTimeout(() => {
+        record.timedOut = true;
+        const error = Object.assign(
+          new Error(`child ${record.child.pid} exceeded 120000ms`),
+          {
+            code: "CC_RELIABILITY_CHILD_TIMEOUT",
+            childIndex: record.index,
+          },
+        );
+        fail(error);
+        settle(error);
+      }, 120_000);
+      record.completion.closed.then(() => settle());
+    });
+  });
+  const settled = Promise.allSettled(waiters);
+  await Promise.race([settled, failed]);
+  preserve();
+  let cleanup;
+  if (!primaryFailure) {
+    // Normal completion preserves the original exit/result success contract.
+    // This is a direct-child close barrier, never a former-tree attestation.
+    cleanup = {
+      scope: "direct-children",
+      allClosed: records.every((record) => record.closed),
+      treeTermination: "unverified",
+    };
+  } else {
+    try {
+      cleanup = await retireChildren(records, profile.cleanupDeadlineMs, {
+        now,
+      });
+    } catch {
+      cleanup = {
+        confirmed: false,
+        deadlineMs: profile.cleanupDeadlineMs,
+        children: [],
+      };
+    }
+  }
+  for (const record of records) record.stopWaiting?.();
+  await settled;
+  preserve(cleanup);
+  if (primaryFailure) {
+    if (!cleanup.confirmed) primaryFailure.reliabilityCleanupIncomplete = true;
+    primaryFailure.reliabilityCleanupScenario = "concurrentAgents";
+    throw primaryFailure;
+  }
+  const exits = observations();
   return {
     pass: exits.every(
       (exit) => exit.code === 0 && exit.resultIsError === false,
     ),
     agents: profile.concurrentAgents,
-    durationMs: performance.now() - started,
+    durationMs: elapsed(),
     exits,
+    cleanup,
   };
 }
 
@@ -2547,7 +2821,12 @@ async function main() {
       }
       if (shouldRun("concurrentAgents")) {
         await runScenario("concurrentAgents", () =>
-          concurrentAgentScenario(llm.baseUrl, join(root, "agents"), profile),
+          concurrentAgentScenario(llm.baseUrl, join(root, "agents"), profile, {
+            checkpoint(partial) {
+              report.partialScenarios.concurrentAgents = partial;
+              checkpoint();
+            },
+          }),
         );
       }
       if (shouldRun("duplexSoak")) {
@@ -2575,7 +2854,10 @@ async function main() {
     if (error?.reliabilityCleanupIncomplete === true) {
       report.cleanup = {
         rootRemoved: false,
-        reason: "duplex-child-cleanup-unconfirmed",
+        reason:
+          error.reliabilityCleanupScenario === "concurrentAgents"
+            ? "concurrent-agent-cleanup-unconfirmed"
+            : "duplex-child-cleanup-unconfirmed",
       };
     }
   } finally {
