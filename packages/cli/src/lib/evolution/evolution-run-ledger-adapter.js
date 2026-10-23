@@ -275,6 +275,10 @@ export class EvolutionRunLedgerAdapter {
   }
 
   _resolveEvent(domainEvent) {
+    return this.#resolveEventWithIdentity(domainEvent, this._verify());
+  }
+
+  #resolveEventWithIdentity(domainEvent, identity) {
     if (
       !domainEvent?.subjectRef ||
       typeof domainEvent.subjectRef.ref !== "string" ||
@@ -285,7 +289,6 @@ export class EvolutionRunLedgerAdapter {
         "EvolutionRun ledger subject reference is invalid",
       );
     }
-    const identity = this._verify();
     const resolution = this._resolve({
       epoch: identity.epoch,
       ledgerId: identity.ledgerId,
@@ -305,9 +308,14 @@ export class EvolutionRunLedgerAdapter {
   }
 
   _entries() {
+    // Authenticate one frontier around the complete synchronous read. Verifying
+    // the full ledger once for every Run event made each load quadratic in its
+    // history. Artifact bytes and current authority are still checked for each
+    // item; the identity is scoped to this read and is never caller supplied.
+    const { verifiedAt: _beforeObservation, ...before } = clone(this._verify());
     const entries = this._domainEvents().map((domainEvent) => ({
       domainEvent,
-      event: this._resolveEvent(domainEvent),
+      event: this.#resolveEventWithIdentity(domainEvent, before),
     }));
     entries.sort((left, right) => left.event.sequence - right.event.sequence);
     for (let index = 0; index < entries.length; index += 1) {
@@ -352,6 +360,13 @@ export class EvolutionRunLedgerAdapter {
         tenantId: this.descriptor.tenantId,
         runId: this.descriptor.runId,
       });
+    }
+    const { verifiedAt: _afterObservation, ...after } = clone(this._verify());
+    if (!same(before, after)) {
+      fail(
+        EVOLUTION_RUN_LEDGER_CONFLICT_CODE,
+        "EvolutionRun ledger frontier changed during recovery",
+      );
     }
     return entries;
   }

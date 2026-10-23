@@ -1,0 +1,140 @@
+{
+  "schema": "chainlesschain.duplex-recovery-validation.v1",
+  "generatedAt": "2026-10-23T15:45:29.215Z",
+  "sourceBaselineHead": "ecd2f376eabbd9321f35b50dedf05d62c9510519",
+  "sources": [
+    {
+      "path": "packages/cli/scripts/cli-reliability-soak.mjs",
+      "bytes": 77967,
+      "sha256": "dddcd52c31f9b4435051e3c72fe0ba9fcbefbf17a9f6c990dfa8d205ab39a884"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/cli-reliability-duplex-diagnostics.test.js",
+      "bytes": 8970,
+      "sha256": "7ee8b783f5cf12486233716f5fa5b663f8e8b4d33edbe98e3bb1f309cb748456"
+    }
+  ],
+  "ciEvidence": {
+    "headSha": "ecd2f376eabbd9321f35b50dedf05d62c9510519",
+    "runId": 39973810219,
+    "jobId": 120483084281,
+    "artifactId": 12512131667,
+    "receipt": {
+      "path": ".work\\cli-ide-recovery-20261023\\soak-windows-ecd2\\artifact\\cli-reliability-result.json",
+      "bytes": 7796,
+      "sha256": "8c00dc38cb49f0e3bfb06edd7fe4c9bbc2e3ba19b23d4af00e589d1426671648"
+    },
+    "archive": {
+      "path": ".work\\cli-ide-recovery-20261023\\soak-windows-ecd2\\artifact.zip",
+      "bytes": 1924,
+      "sha256": "f2d842dfe99773a4d3f1b959f87df45ce25f0e894a5a5517873e73e4ac3184d0"
+    },
+    "jobLog": {
+      "path": ".work\\cli-ide-recovery-20261023\\soak-windows-ecd2\\job.log",
+      "bytes": 49794,
+      "sha256": "865bc15ab6ee732020e57c64a731f901b95320917aa94a4a8ff0dc05def4ee1c",
+      "localOnly": true,
+      "copyIntoPublicEvidence": false
+    },
+    "verified": true,
+    "clean": true,
+    "observed": {
+      "startupPassed": true,
+      "mcpModelRequestCount": 2,
+      "passedExecutedScenarios": [
+        "mcpOutput",
+        "pipe",
+        "tty",
+        "concurrentAgents"
+      ],
+      "unconfigured": [
+        "disk",
+        "ssh",
+        "clipboard"
+      ],
+      "duplexViolation": "turn 12 timed out",
+      "warmupTurns": 2,
+      "completedMeasuredTurns": 9,
+      "resultCount": 11,
+      "partialDurationSeconds": 302.95236620000003,
+      "partialP95Ms": 55628.07990000007,
+      "cleanupError": "EBUSY unlink active duplex SQLite database"
+    },
+    "underlyingTurnLatencyCause": "Not established: original timeout checkpoint omitted result/fetch details."
+  },
+  "changes": {
+    "partialCheckpoints": [
+      "bounded allowlisted results/failures and subtype counts",
+      "diagnostic codes/classes",
+      "safe fetchDiagnostics and shared runtime resolution coordinate",
+      "immediate failed snapshot on result timeout before teardown",
+      "final failed snapshot with cleanup confirmation"
+    ],
+    "cleanup": [
+      "Observe child close immediately after spawn.",
+      "On failure terminate the still-live owned tree and await close under the existing cleanup budget.",
+      "Windows uses native taskkill /T /F and close; POSIX duplex children use an owned process group and wait for group retirement.",
+      "Do not signal already exited root PIDs or infer descendant retirement from direct-child exit.",
+      "Keep the original scenario error; skip root deletion when tree cleanup is unconfirmed."
+    ],
+    "privacy": [
+      "Unknown result subtype maps to fixed unknown label.",
+      "No provider body, raw error, raw stdout/stderr or endpoint coordinates are copied into partial diagnostic fields."
+    ],
+    "scope": "Collector duplex/checkpoints, optional detached spawn setting, and outer root-removal guard only; no production provider/ACL changes."
+  },
+  "limits": {
+    "turnDeadlineMs": 60000,
+    "cleanupDeadlineMs": 10000,
+    "unchanged": true,
+    "noAutomaticRetries": true,
+    "noAdditionalModelCalls": true,
+    "noLocalFullSoakRun": true
+  },
+  "validation": {
+    "officialNode2212": {
+      "platform": "win32",
+      "version": "v22.12.0",
+      "suiteCount": 3,
+      "passed": 32,
+      "failed": 0,
+      "durationSeconds": 4.91,
+      "log": {
+        "path": ".work\\cli-ide-recovery-20261023\\soak-windows-ecd2\\duplex-diagnostics-node22.12.0.log",
+        "bytes": 468,
+        "sha256": "e4b1a1ef84eee147637c63b1c8646c3be0003015f95cf8c4b7ff9c6b0da06b77"
+      }
+    },
+    "currentNode2222": {
+      "platform": "win32",
+      "version": "v22.22.2",
+      "suiteCount": 1,
+      "passed": 5,
+      "failed": 0,
+      "durationSeconds": 2.69,
+      "source": "terminal tool output; supplemental check"
+    },
+    "newFiveCases": {
+      "fakeChildCases": 3,
+      "realChildCases": 2,
+      "details": [
+        "warmup timeout with safe immediate diagnostics",
+        "measured-turn timeout with running and failed diagnostics",
+        "unconfirmed cleanup preserves original error and blocks root removal",
+        "real Windows parent and descendant hold files; tree termination and close precede removal",
+        "already exited real child PID is never signalled and tree confirmation is withheld"
+      ]
+    },
+    "initialAttempt": {
+      "passed": 30,
+      "failed": 1,
+      "reason": "New fake-timer test advanced time before its dynamic import/spawn completed; fixed the test synchronization point. Production deadlines unchanged.",
+      "record": "terminal tool output; not counted as passing"
+    },
+    "formatter": "Prettier completed",
+    "diffCheck": "passed",
+    "posixRuntimeTestedLocally": false,
+    "posixStatus": "Awaiting exact-head Linux/macOS CI",
+    "exactHeadCiStillRequired": true
+  }
+}

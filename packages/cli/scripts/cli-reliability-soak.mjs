@@ -529,13 +529,14 @@ function observeStartupDiagnostics(child) {
 
 function spawnCli(
   args,
-  { home, stdio = ["ignore", "pipe", "pipe"], env = {} } = {},
+  { home, stdio = ["ignore", "pipe", "pipe"], env = {}, detached = false } = {},
 ) {
   return trackProcess(
     spawn(process.execPath, args, {
       cwd: REPOSITORY_ROOT,
       env: { ...childEnvironment(home), ...env },
       stdio,
+      detached,
       windowsHide: true,
     }),
   );
@@ -1219,11 +1220,94 @@ export async function mcpOutputScenario(
   };
 }
 
-async function duplexSoakScenario(
+export async function retireDuplexProcessTree(
+  child,
+  completion,
+  cleanupDeadlineMs,
+) {
+  const started = performance.now();
+  const deadline = started + cleanupDeadlineMs;
+  const remaining = () => Math.max(0, deadline - performance.now());
+  let closed = false;
+  let treeTerminated = false;
+  const close = completion.wait(remaining()).then(
+    () => {
+      closed = true;
+    },
+    () => {},
+  );
+  const validPid =
+    Number.isSafeInteger(child.pid) &&
+    child.pid > 0 &&
+    child.pid !== process.pid;
+  try {
+    if (validPid && completion.exit() === null) {
+      if (process.platform === "win32") {
+        treeTerminated = await new Promise((resolvePromise) => {
+          const killer = spawn(
+            "taskkill.exe",
+            ["/PID", String(child.pid), "/T", "/F"],
+            {
+              windowsHide: true,
+              stdio: "ignore",
+            },
+          );
+          const timer = setTimeout(() => {
+            killer.kill("SIGKILL");
+            resolvePromise(false);
+          }, remaining());
+          killer.once("error", () => {
+            clearTimeout(timer);
+            resolvePromise(false);
+          });
+          killer.once("close", (code) => {
+            clearTimeout(timer);
+            resolvePromise(code === 0);
+          });
+        });
+      } else {
+        try {
+          process.kill(-child.pid, "SIGKILL");
+        } catch (error) {
+          if (error?.code !== "ESRCH") throw error;
+        }
+        while (remaining() > 0) {
+          try {
+            process.kill(-child.pid, 0);
+          } catch (error) {
+            treeTerminated = error?.code === "ESRCH";
+            break;
+          }
+          await new Promise((resolvePromise) =>
+            setTimeout(resolvePromise, Math.min(25, remaining())),
+          );
+        }
+      }
+    }
+  } catch {
+    // Keep cleanup uncertainty separate from the original scenario failure.
+  }
+  await close;
+  return {
+    deadlineMs: cleanupDeadlineMs,
+    elapsedMs: performance.now() - started,
+    closed,
+    treeTerminated,
+    confirmed: closed && treeTerminated,
+    deadlineExceeded: !(closed && treeTerminated) && remaining() === 0,
+  };
+}
+
+export async function duplexSoakScenario(
   baseUrl,
   home,
   profile,
-  { checkpoint = null } = {},
+  {
+    checkpoint = null,
+    spawnChild = spawnCli,
+    retireChild = retireDuplexProcessTree,
+    sampleIo = ioSnapshot,
+  } = {},
 ) {
   const {
     reliabilityResultFailure,
@@ -1232,7 +1316,7 @@ async function duplexSoakScenario(
   } = await import("./cli-reliability-fetch-diagnostics.mjs");
   mkdirSync(home, { recursive: true, mode: 0o700 });
   const fetchDiagnosticsFile = join(home, "fetch-diagnostics.jsonl");
-  const child = spawnCli(
+  const child = spawnChild(
     [
       "--require",
       join(SCRIPT_DIR, "verify01-fetch-diagnostics-preload.cjs"),
@@ -1244,6 +1328,7 @@ async function duplexSoakScenario(
     ],
     {
       home,
+      detached: process.platform !== "win32",
       stdio: ["pipe", "pipe", "pipe"],
       env: {
         CC_VERIFY01_FETCH_DIAGNOSTICS_FILE: fetchDiagnosticsFile,
@@ -1251,6 +1336,7 @@ async function duplexSoakScenario(
       },
     },
   );
+  const completion = observeChildCompletion(child);
   child.stderr.resume();
   let buffer = "";
   let resultCount = 0;
@@ -1262,6 +1348,51 @@ async function duplexSoakScenario(
   const observedDiagnosticCodes = new Set();
   const observedDiagnosticClasses = new Set();
   const waiters = [];
+  const latencies = [];
+  let sentCount = 0;
+  let turns = 0;
+  let scenarioStarted = null;
+  let resourcesBefore = { kind: null, count: null };
+  let rssBefore = null;
+  let resourcesMaximum = null;
+  let rssMaximum = null;
+  const resultSummary = () => ({
+    count: resultCount,
+    measuredCount: Math.max(0, resultCount - profile.warmupTurns),
+    errorCount: resultErrorCount,
+    failures: resultFailures.slice(),
+    subtypeCounts: Object.fromEntries(resultSubtypeCounts),
+    lengthMinimum: resultLengthMinimum,
+    lengthMaximum: resultLengthMaximum,
+  });
+  const partialSnapshot = (status = "running", failure = null) => ({
+    status,
+    warmupTurns: profile.warmupTurns,
+    turns,
+    sentCount,
+    resultCount,
+    continuousDurationSeconds:
+      scenarioStarted === null
+        ? 0
+        : (performance.now() - scenarioStarted) / 1_000,
+    latency: {
+      p95Ms: percentile(latencies, 95),
+      observedCount: turns,
+      retainedCount: latencies.length,
+    },
+    rss: { beforeBytes: rssBefore, maximumBytes: rssMaximum },
+    resources: {
+      kind: resourcesBefore.kind,
+      before: resourcesBefore.count,
+      maximum: resourcesMaximum,
+    },
+    results: resultSummary(),
+    diagnosticCodes: [...observedDiagnosticCodes].slice(0, 20),
+    diagnosticClasses: [...observedDiagnosticClasses].slice(0, 20),
+    fetchDiagnostics: readReliabilityFetchDiagnostics(fetchDiagnosticsFile),
+    fetchRuntime: readReliabilityFetchRuntime(),
+    ...(failure === null ? {} : { failure }),
+  });
   child.stdout.setEncoding("utf8");
   child.stdout.on("data", (chunk) => {
     buffer += chunk;
@@ -1279,7 +1410,9 @@ async function duplexSoakScenario(
             if (resultFailures.length < 20)
               resultFailures.push(reliabilityResultFailure(event, resultCount));
           }
-          const subtype = String(event.subtype || "unknown");
+          const subtype = ["success", "error"].includes(event.subtype)
+            ? event.subtype
+            : "unknown";
           resultSubtypeCounts.set(
             subtype,
             (resultSubtypeCounts.get(subtype) || 0) + 1,
@@ -1326,230 +1459,269 @@ async function duplexSoakScenario(
               (waiter) => waiter.resolve === resolve,
             );
             if (index >= 0) waiters.splice(index, 1);
-            rejectPromise(new Error(`turn ${count} timed out`));
+            rejectPromise(
+              Object.assign(new Error(`turn ${count} timed out`), {
+                code: "CC_RELIABILITY_TURN_TIMEOUT",
+              }),
+            );
           }, 60_000);
           waiters.push({ count, resolve });
         });
 
-  const latencies = [];
-  await new Promise((resolvePromise) => setTimeout(resolvePromise, 250));
-  let sentCount = 0;
-  const sendTurn = async (text) => {
-    const accepted = child.stdin.write(
-      `${JSON.stringify({ type: "user", text })}\n`,
-    );
-    if (!accepted) {
-      await new Promise((resolvePromise, rejectPromise) => {
-        const onDrain = () => {
-          child.stdin.removeListener("error", onError);
-          resolvePromise();
-        };
-        const onError = (error) => {
-          child.stdin.removeListener("drain", onDrain);
-          rejectPromise(error);
-        };
-        child.stdin.once("drain", onDrain);
-        child.stdin.once("error", onError);
-      });
-    }
-    sentCount += 1;
-    await waitForResults(sentCount);
-  };
+  let scenarioFailure = null;
+  try {
+    await new Promise((resolvePromise) => setTimeout(resolvePromise, 250));
+    const sendTurn = async (text) => {
+      const accepted = child.stdin.write(
+        `${JSON.stringify({ type: "user", text })}\n`,
+      );
+      if (!accepted) {
+        await new Promise((resolvePromise, rejectPromise) => {
+          const onDrain = () => {
+            child.stdin.removeListener("error", onError);
+            resolvePromise();
+          };
+          const onError = (error) => {
+            child.stdin.removeListener("drain", onDrain);
+            rejectPromise(error);
+          };
+          child.stdin.once("drain", onDrain);
+          child.stdin.once("error", onError);
+        });
+      }
+      sentCount += 1;
+      try {
+        await waitForResults(sentCount);
+      } catch (error) {
+        // Persist the last protocol/transport observations before outer cleanup
+        // can fail, without retaining provider bodies, paths, or raw errors.
+        try {
+          checkpoint?.(
+            partialSnapshot("failed", {
+              kind:
+                error?.code === "CC_RELIABILITY_TURN_TIMEOUT"
+                  ? "turn-timeout"
+                  : "turn-failed",
+              awaitedResultCount: sentCount,
+              timeoutMs: 60_000,
+            }),
+          );
+        } finally {
+          throw error;
+        }
+      }
+    };
 
-  // Exercise lazy provider, HTTP, and compaction initialization before the
-  // resource baseline. The following formal two-hour window still enforces the
-  // original turn and duration floors, so bounded startup handles are separated
-  // from genuine steady-state growth without weakening the leak thresholds.
-  for (let turn = 0; turn < profile.warmupTurns; turn += 1) {
-    await sendTurn(`warmup-${turn}`);
-  }
-  const resourcesBefore = resourceCount(child.pid);
-  const rssBefore = rssBytes(child.pid);
-  const ioBefore = ioSnapshot(child.pid);
-  let resourcesMaximum = resourcesBefore.count;
-  let rssMaximum = rssBefore;
-  const deadline = performance.now() + profile.durationSeconds * 1_000;
-  const scenarioStarted = performance.now();
-  let lastMetricSampleAt = 0;
-  let lastCheckpointAt = performance.now();
-  let turns = 0;
-  while (turns < profile.turns || performance.now() < deadline) {
-    const beforeTurn = performance.now();
-    if (turns >= profile.turns) {
-      const remainingMs = deadline - beforeTurn;
-      if (remainingMs > 0) {
+    // Exercise lazy provider, HTTP, and compaction initialization before the
+    // resource baseline. The following formal two-hour window still enforces the
+    // original turn and duration floors, so bounded startup handles are separated
+    // from genuine steady-state growth without weakening the leak thresholds.
+    for (let turn = 0; turn < profile.warmupTurns; turn += 1) {
+      await sendTurn(`warmup-${turn}`);
+    }
+    resourcesBefore = resourceCount(child.pid);
+    rssBefore = rssBytes(child.pid);
+    const ioBefore = sampleIo(child.pid);
+    resourcesMaximum = resourcesBefore.count;
+    rssMaximum = rssBefore;
+    const deadline = performance.now() + profile.durationSeconds * 1_000;
+    scenarioStarted = performance.now();
+    let lastMetricSampleAt = 0;
+    let lastCheckpointAt = performance.now();
+    while (turns < profile.turns || performance.now() < deadline) {
+      const beforeTurn = performance.now();
+      if (turns >= profile.turns) {
+        const remainingMs = deadline - beforeTurn;
+        if (remainingMs > 0) {
+          await new Promise((resolvePromise) =>
+            setTimeout(resolvePromise, remainingMs),
+          );
+        }
+        continue;
+      }
+      const scheduledDelayMs = reliabilityTurnDelayMs(
+        turns,
+        profile.turns,
+        profile.durationSeconds * 1_000,
+        beforeTurn - scenarioStarted,
+      );
+      if (scheduledDelayMs > 0) {
         await new Promise((resolvePromise) =>
-          setTimeout(resolvePromise, remainingMs),
+          setTimeout(resolvePromise, scheduledDelayMs),
         );
       }
-      continue;
-    }
-    const scheduledDelayMs = reliabilityTurnDelayMs(
-      turns,
-      profile.turns,
-      profile.durationSeconds * 1_000,
-      beforeTurn - scenarioStarted,
-    );
-    if (scheduledDelayMs > 0) {
-      await new Promise((resolvePromise) =>
-        setTimeout(resolvePromise, scheduledDelayMs),
-      );
-    }
-    const started = performance.now();
-    await sendTurn(`soak-${turns}`);
-    turns += 1;
-    const now = performance.now();
-    recordBoundedSample(latencies, now - started, turns);
-    if (now - lastMetricSampleAt >= 1_000) {
-      lastMetricSampleAt = now;
-      const rss = rssBytes(child.pid);
-      const resources = resourceCount(child.pid);
-      if (rss != null) rssMaximum = Math.max(rssMaximum || 0, rss);
-      if (resources.count != null) {
-        resourcesMaximum = Math.max(resourcesMaximum || 0, resources.count);
+      const started = performance.now();
+      await sendTurn(`soak-${turns}`);
+      turns += 1;
+      const now = performance.now();
+      recordBoundedSample(latencies, now - started, turns);
+      if (now - lastMetricSampleAt >= 1_000) {
+        lastMetricSampleAt = now;
+        const rss = rssBytes(child.pid);
+        const resources = resourceCount(child.pid);
+        if (rss != null) rssMaximum = Math.max(rssMaximum || 0, rss);
+        if (resources.count != null) {
+          resourcesMaximum = Math.max(resourcesMaximum || 0, resources.count);
+        }
+      }
+      if (
+        checkpoint &&
+        now - lastCheckpointAt >= profile.checkpointIntervalSeconds * 1_000
+      ) {
+        lastCheckpointAt = now;
+        checkpoint(partialSnapshot());
       }
     }
-    if (
-      checkpoint &&
-      now - lastCheckpointAt >= profile.checkpointIntervalSeconds * 1_000
-    ) {
-      lastCheckpointAt = now;
-      checkpoint({
-        status: "running",
-        warmupTurns: profile.warmupTurns,
-        turns,
-        resultCount,
-        continuousDurationSeconds: (now - scenarioStarted) / 1_000,
-        latency: {
-          p95Ms: percentile(latencies, 95),
-          observedCount: turns,
-          retainedCount: latencies.length,
-        },
-        rss: { beforeBytes: rssBefore, maximumBytes: rssMaximum },
-        resources: {
-          kind: resourcesBefore.kind,
-          before: resourcesBefore.count,
-          maximum: resourcesMaximum,
-        },
-      });
+    const resourcesAfter = resourceCount(child.pid);
+    const rssAfter = rssBytes(child.pid);
+    const ioAfter = sampleIo(child.pid);
+    const descendantsBeforeExit = descendantProcessSnapshot(child.pid);
+    child.stdin.end();
+    const exit = await completion.wait(profile.cleanupDeadlineMs + 20_000);
+    const descendantRetirements = descendantsBeforeExit.available
+      ? await Promise.all(
+          descendantsBeforeExit.pids.map((processId) =>
+            waitForProcessRetirement(processId, {
+              timeoutMs: profile.cleanupDeadlineMs,
+            }).then((result) => result.retired),
+          ),
+        )
+      : [];
+    const descendantsAfterExit = descendantProcessSnapshot(child.pid);
+    const allDescendantsRetired =
+      descendantsBeforeExit.available &&
+      descendantsAfterExit.available &&
+      descendantRetirements.every(Boolean) &&
+      descendantsAfterExit.pids.length === 0;
+    const resourceGrowth =
+      resourcesBefore.count == null || resourcesAfter.count == null
+        ? null
+        : resourcesAfter.count - resourcesBefore.count;
+    const rssGrowthBytes =
+      rssBefore == null || rssAfter == null ? null : rssAfter - rssBefore;
+    const requiredMeasurementsAvailable =
+      rssGrowthBytes != null &&
+      resourceGrowth != null &&
+      descendantsBeforeExit.available &&
+      descendantsAfterExit.available;
+    return {
+      pass:
+        exit.code === 0 &&
+        resultCount === profile.warmupTurns + turns &&
+        resultErrorCount === 0 &&
+        (resourceGrowth == null ||
+          resourceGrowth <= profile.maxResourceGrowth) &&
+        (rssGrowthBytes == null ||
+          rssGrowthBytes <= profile.maxRssGrowthMb * MIB) &&
+        (!descendantsBeforeExit.available || allDescendantsRetired) &&
+        (profile.mode !== "formal" || requiredMeasurementsAvailable),
+      turns,
+      warmup: {
+        configuredTurns: profile.warmupTurns,
+        completedTurns: Math.min(resultCount, profile.warmupTurns),
+      },
+      configuredDurationSeconds: profile.durationSeconds,
+      continuousDurationSeconds: (performance.now() - scenarioStarted) / 1_000,
+      schedule: {
+        mode: "duration-spread",
+        targetTurns: profile.turns,
+        targetIntervalMs:
+          (profile.durationSeconds * 1_000) / Math.max(1, profile.turns),
+      },
+      latency: {
+        p95Ms: percentile(latencies, 95),
+        observedCount: turns,
+        retainedCount: latencies.length,
+        retention: "rolling-window",
+      },
+      rss: {
+        beforeBytes: rssBefore,
+        afterBytes: rssAfter,
+        growthBytes: rssGrowthBytes,
+        maximumBytes: rssMaximum,
+        peakGrowthBytes:
+          rssBefore == null || rssMaximum == null
+            ? null
+            : rssMaximum - rssBefore,
+        limitGrowthBytes: profile.maxRssGrowthMb * MIB,
+      },
+      resources: {
+        kind: resourcesBefore.kind,
+        before: resourcesBefore.count,
+        after: resourcesAfter.count,
+        delta: resourceGrowth,
+        maximum: resourcesMaximum,
+        peakDelta:
+          resourcesBefore.count == null || resourcesMaximum == null
+            ? null
+            : resourcesMaximum - resourcesBefore.count,
+        limitGrowth: profile.maxResourceGrowth,
+        requiredMeasurementsAvailable,
+      },
+      io: ioDelta(ioBefore, ioAfter),
+      processDescendants: {
+        measurementAvailable:
+          descendantsBeforeExit.available && descendantsAfterExit.available,
+        beforeSource: descendantsBeforeExit.source || null,
+        afterSource: descendantsAfterExit.source || null,
+        unavailableReason:
+          descendantsBeforeExit.reason || descendantsAfterExit.reason || null,
+        beforeExit: descendantsBeforeExit.available
+          ? descendantsBeforeExit.pids.length
+          : null,
+        observed: descendantsBeforeExit.pids.length,
+        retired: descendantRetirements.filter(Boolean).length,
+        afterExit: descendantsAfterExit.available
+          ? descendantsAfterExit.pids.length
+          : null,
+        allRetired: allDescendantsRetired,
+      },
+      exit,
+      results: resultSummary(),
+      diagnosticCodes: [...observedDiagnosticCodes].slice(0, 20),
+      diagnosticClasses: [...observedDiagnosticClasses].slice(0, 20),
+      fetchDiagnostics: readReliabilityFetchDiagnostics(fetchDiagnosticsFile),
+      fetchRuntime: readReliabilityFetchRuntime(),
+    };
+  } catch (error) {
+    scenarioFailure = error;
+    throw error;
+  } finally {
+    if (scenarioFailure) {
+      let cleanup;
+      try {
+        cleanup = await retireChild(
+          child,
+          completion,
+          profile.cleanupDeadlineMs,
+        );
+      } catch {
+        cleanup = {
+          confirmed: false,
+          closed: false,
+          treeTerminated: false,
+          failure: "cleanup-failed",
+        };
+      }
+      if (!cleanup.confirmed)
+        scenarioFailure.reliabilityCleanupIncomplete = true;
+      try {
+        checkpoint?.({
+          ...partialSnapshot("failed", {
+            kind:
+              scenarioFailure.code === "CC_RELIABILITY_TURN_TIMEOUT"
+                ? "turn-timeout"
+                : "scenario-failed",
+            awaitedResultCount: sentCount,
+            timeoutMs: 60_000,
+          }),
+          cleanup,
+        });
+      } catch {
+        // An evidence write failure must not replace the original timeout.
+      }
     }
   }
-  const resourcesAfter = resourceCount(child.pid);
-  const rssAfter = rssBytes(child.pid);
-  const ioAfter = ioSnapshot(child.pid);
-  const descendantsBeforeExit = descendantProcessSnapshot(child.pid);
-  child.stdin.end();
-  const exit = await waitForExit(child, profile.cleanupDeadlineMs + 20_000);
-  const descendantRetirements = descendantsBeforeExit.available
-    ? await Promise.all(
-        descendantsBeforeExit.pids.map((processId) =>
-          waitForProcessRetirement(processId, {
-            timeoutMs: profile.cleanupDeadlineMs,
-          }).then((result) => result.retired),
-        ),
-      )
-    : [];
-  const descendantsAfterExit = descendantProcessSnapshot(child.pid);
-  const allDescendantsRetired =
-    descendantsBeforeExit.available &&
-    descendantsAfterExit.available &&
-    descendantRetirements.every(Boolean) &&
-    descendantsAfterExit.pids.length === 0;
-  const resourceGrowth =
-    resourcesBefore.count == null || resourcesAfter.count == null
-      ? null
-      : resourcesAfter.count - resourcesBefore.count;
-  const rssGrowthBytes =
-    rssBefore == null || rssAfter == null ? null : rssAfter - rssBefore;
-  const requiredMeasurementsAvailable =
-    rssGrowthBytes != null &&
-    resourceGrowth != null &&
-    descendantsBeforeExit.available &&
-    descendantsAfterExit.available;
-  return {
-    pass:
-      exit.code === 0 &&
-      resultCount === profile.warmupTurns + turns &&
-      resultErrorCount === 0 &&
-      (resourceGrowth == null || resourceGrowth <= profile.maxResourceGrowth) &&
-      (rssGrowthBytes == null ||
-        rssGrowthBytes <= profile.maxRssGrowthMb * MIB) &&
-      (!descendantsBeforeExit.available || allDescendantsRetired) &&
-      (profile.mode !== "formal" || requiredMeasurementsAvailable),
-    turns,
-    warmup: {
-      configuredTurns: profile.warmupTurns,
-      completedTurns: Math.min(resultCount, profile.warmupTurns),
-    },
-    configuredDurationSeconds: profile.durationSeconds,
-    continuousDurationSeconds: (performance.now() - scenarioStarted) / 1_000,
-    schedule: {
-      mode: "duration-spread",
-      targetTurns: profile.turns,
-      targetIntervalMs:
-        (profile.durationSeconds * 1_000) / Math.max(1, profile.turns),
-    },
-    latency: {
-      p95Ms: percentile(latencies, 95),
-      observedCount: turns,
-      retainedCount: latencies.length,
-      retention: "rolling-window",
-    },
-    rss: {
-      beforeBytes: rssBefore,
-      afterBytes: rssAfter,
-      growthBytes: rssGrowthBytes,
-      maximumBytes: rssMaximum,
-      peakGrowthBytes:
-        rssBefore == null || rssMaximum == null ? null : rssMaximum - rssBefore,
-      limitGrowthBytes: profile.maxRssGrowthMb * MIB,
-    },
-    resources: {
-      kind: resourcesBefore.kind,
-      before: resourcesBefore.count,
-      after: resourcesAfter.count,
-      delta: resourceGrowth,
-      maximum: resourcesMaximum,
-      peakDelta:
-        resourcesBefore.count == null || resourcesMaximum == null
-          ? null
-          : resourcesMaximum - resourcesBefore.count,
-      limitGrowth: profile.maxResourceGrowth,
-      requiredMeasurementsAvailable,
-    },
-    io: ioDelta(ioBefore, ioAfter),
-    processDescendants: {
-      measurementAvailable:
-        descendantsBeforeExit.available && descendantsAfterExit.available,
-      beforeSource: descendantsBeforeExit.source || null,
-      afterSource: descendantsAfterExit.source || null,
-      unavailableReason:
-        descendantsBeforeExit.reason || descendantsAfterExit.reason || null,
-      beforeExit: descendantsBeforeExit.available
-        ? descendantsBeforeExit.pids.length
-        : null,
-      observed: descendantsBeforeExit.pids.length,
-      retired: descendantRetirements.filter(Boolean).length,
-      afterExit: descendantsAfterExit.available
-        ? descendantsAfterExit.pids.length
-        : null,
-      allRetired: allDescendantsRetired,
-    },
-    exit,
-    results: {
-      count: resultCount,
-      measuredCount: Math.max(0, resultCount - profile.warmupTurns),
-      errorCount: resultErrorCount,
-      failures: resultFailures,
-      subtypeCounts: Object.fromEntries(resultSubtypeCounts),
-      lengthMinimum: resultLengthMinimum,
-      lengthMaximum: resultLengthMaximum,
-    },
-    diagnosticCodes: [...observedDiagnosticCodes].slice(0, 20),
-    diagnosticClasses: [...observedDiagnosticClasses].slice(0, 20),
-    fetchDiagnostics: readReliabilityFetchDiagnostics(fetchDiagnosticsFile),
-    fetchRuntime: readReliabilityFetchRuntime(),
-  };
 }
 
 async function concurrentAgentScenario(baseUrl, home, profile) {
@@ -2333,12 +2505,19 @@ async function main() {
   } catch (error) {
     report.status = "failed";
     report.violations.push(error?.message || String(error));
+    if (error?.reliabilityCleanupIncomplete === true) {
+      report.cleanup = {
+        rootRemoved: false,
+        reason: "duplex-child-cleanup-unconfirmed",
+      };
+    }
   } finally {
     removeInterruptionCheckpoint();
     report.finishedAt = new Date().toISOString();
     report.activeScenario = null;
     checkpoint();
-    rmSync(root, { recursive: true, force: true });
+    if (report.cleanup?.rootRemoved !== false)
+      rmSync(root, { recursive: true, force: true });
   }
   process.stdout.write(
     `${JSON.stringify({ status: report.status, output })}\n`,

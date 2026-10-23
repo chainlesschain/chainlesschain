@@ -1,6 +1,6 @@
 {
   "schema": "chainlesschain.cli-ide-release-preparation/v1",
-  "recordedAt": "2026-10-23T14:50:32.390Z",
+  "recordedAt": "2026-10-23T15:48:19.018Z",
   "baseline": "79b7d49841341eb4caf135414183c1311db58b75",
   "pullRequest": "https://github.com/chainlesschain/chainlesschain/pull/483",
   "authorization": {
@@ -121,7 +121,7 @@
       "originalRun": 39946036842,
       "originalJob": 120389223383,
       "originalFailure": "mcpOutput exit 1 before model requests; stdout 0 / stderr 180 bytes, followed by slow-pipe no-output failure",
-      "rootCause": "The handle-bound Windows directory fix advanced HEAD6170 to a later 176-byte startup failure. A real-file/ACL reproduction with affected path-device projection exposes a ledger ACL check bypassing the shared identity bridge; hosted error classification and complete CI remain pending. Linux/macOS HEAD6170 still fail duplex fetches after the dispatcher change, so the independent stale-socket reproduction is not established as the CI root cause. Bounded passive network telemetry is added to diagnose the actual error without changing transport or gates.",
+      "rootCause": "ECD2 Windows startup, MCP, pipe, TTY and concurrent agents passed after the trusted ledger ACL bridge. Windows duplex timed out at result12 and cleanup hit an active SQLite file; the exact turn cause remains unproven. ECD2 Linux/macOS duplex captures UND_ERR_SOCKET/ECONNRESET at the loopback model with actual undici7.30.1. The next default Ollama transport forbids idle connection reuse; the real worker proves one fresh connection per POST but did not reproduce the exact CI native errors. New complete exact-SHA CI remains required.",
       "originalReceipt": "release118-windows-soak-before.json",
       "regressionTests": {
         "passed": 18,
@@ -1133,6 +1133,698 @@
           "actualCiResolution": "not-recorded-yet",
           "nextCiReadback": "fetchRuntime.ollamaUndici"
         }
+      },
+      "ollamaNoReuse": {
+        "schema": "chainlesschain.ollama-no-reuse-validation.v1",
+        "timestamp": "2026-10-23T15:35:08.358Z",
+        "status": "local-transport-invariants-passed-exact-source-multi-os-ci-required",
+        "sourceFiles": [
+          {
+            "path": "packages/cli/src/lib/ollama-provider-fetch.js",
+            "sha256": "aa79010f74e2d3fcf27d74ba2810134baf4af3942ea14dc1e84d4445e78db1c4"
+          },
+          {
+            "path": "packages/cli/__tests__/unit/ollama-provider-fetch.test.js",
+            "sha256": "6abd95f33e7322c7091f227c86138e832b684e495bf04ac55dc4b45f9c6c7df5"
+          }
+        ],
+        "ciBeforeFix": [
+          {
+            "platform": "linux",
+            "evidence": {
+              "path": ".work/cli-ide-recovery-20261023/soak-linux-ecd2/artifact/cli-reliability-result.json",
+              "sha256": "94145830458279283f1a5240850d229b1e8e372d2abd6e769a3ea76f85daa6a6"
+            },
+            "headSha": "ecd2f376eabbd9321f35b50dedf05d62c9510519",
+            "status": "failed",
+            "violations": ["duplexSoak scenario failed"],
+            "failedScenarios": ["duplexSoak"],
+            "duplex": {
+              "results": {
+                "count": 12,
+                "measuredCount": 10,
+                "errorCount": 2,
+                "failures": [
+                  {
+                    "turn": 5,
+                    "subtype": "error",
+                    "errorDetails": {
+                      "kind": "transport",
+                      "name": "TypeError",
+                      "causeCode": "UND_ERR_SOCKET"
+                    }
+                  },
+                  {
+                    "turn": 7,
+                    "subtype": "error",
+                    "errorDetails": {
+                      "kind": "transport",
+                      "name": "TypeError",
+                      "causeCode": "UND_ERR_SOCKET"
+                    }
+                  }
+                ],
+                "subtypeCounts": {
+                  "success": 10,
+                  "error": 2
+                },
+                "lengthMinimum": 14,
+                "lengthMaximum": 14
+              },
+              "fetchDiagnostics": {
+                "available": true,
+                "enabled": true,
+                "truncated": false,
+                "events": [
+                  {
+                    "event": "undici:request:error",
+                    "endpoint": "loopback-broker",
+                    "error": {
+                      "kind": "transport",
+                      "name": "SocketError",
+                      "code": "UND_ERR_SOCKET"
+                    }
+                  },
+                  {
+                    "event": "undici:request:error",
+                    "endpoint": "loopback-broker",
+                    "error": {
+                      "kind": "transport",
+                      "name": "SocketError",
+                      "code": "UND_ERR_SOCKET"
+                    }
+                  }
+                ]
+              },
+              "fetchRuntime": {
+                "coordinate": "parent-shared-binary-and-cli-module-resolution",
+                "node": "22.12.0",
+                "uv": "1.49.1",
+                "bundledUndici": "6.21.0",
+                "ollamaUndici": "7.30.1"
+              },
+              "resources": {
+                "kind": "fd",
+                "before": 33,
+                "after": 32,
+                "delta": -1,
+                "maximum": 33,
+                "peakDelta": 0,
+                "limitGrowth": 8,
+                "requiredMeasurementsAvailable": true
+              },
+              "rss": {
+                "beforeBytes": 197898240,
+                "afterBytes": 207564800,
+                "growthBytes": 9666560,
+                "maximumBytes": 223367168,
+                "peakGrowthBytes": 25468928,
+                "limitGrowthBytes": 134217728
+              },
+              "processDescendants": {
+                "measurementAvailable": true,
+                "beforeSource": "pgrep",
+                "afterSource": "pgrep",
+                "unavailableReason": null,
+                "beforeExit": 0,
+                "observed": 0,
+                "retired": 0,
+                "afterExit": 0,
+                "allRetired": true
+              }
+            }
+          },
+          {
+            "platform": "macos",
+            "evidence": {
+              "path": ".work/cli-ide-recovery-20261023/soak-macos-ecd2/artifact/cli-reliability-result.json",
+              "sha256": "5ca7bf42094ca09dc15ea3d3b5f1cfbddde5bb2450e617c7be64d021e437aff1"
+            },
+            "headSha": "ecd2f376eabbd9321f35b50dedf05d62c9510519",
+            "status": "failed",
+            "violations": ["duplexSoak scenario failed"],
+            "failedScenarios": ["duplexSoak"],
+            "duplex": {
+              "results": {
+                "count": 12,
+                "measuredCount": 10,
+                "errorCount": 2,
+                "failures": [
+                  {
+                    "turn": 3,
+                    "subtype": "error",
+                    "errorDetails": {
+                      "kind": "transport",
+                      "name": "TypeError",
+                      "causeCode": "ECONNRESET"
+                    }
+                  },
+                  {
+                    "turn": 5,
+                    "subtype": "error",
+                    "errorDetails": {
+                      "kind": "transport",
+                      "name": "TypeError",
+                      "causeCode": "ECONNRESET"
+                    }
+                  }
+                ],
+                "subtypeCounts": {
+                  "success": 10,
+                  "error": 2
+                },
+                "lengthMinimum": 14,
+                "lengthMaximum": 14
+              },
+              "fetchDiagnostics": {
+                "available": true,
+                "enabled": true,
+                "truncated": false,
+                "events": [
+                  {
+                    "event": "undici:request:error",
+                    "endpoint": "loopback-broker",
+                    "error": {
+                      "kind": "transport",
+                      "name": "Error",
+                      "code": "ECONNRESET"
+                    }
+                  },
+                  {
+                    "event": "undici:request:error",
+                    "endpoint": "loopback-broker",
+                    "error": {
+                      "kind": "transport",
+                      "name": "Error",
+                      "code": "ECONNRESET"
+                    }
+                  }
+                ]
+              },
+              "fetchRuntime": {
+                "coordinate": "parent-shared-binary-and-cli-module-resolution",
+                "node": "22.12.0",
+                "uv": "1.49.1",
+                "bundledUndici": "6.21.0",
+                "ollamaUndici": "7.30.1"
+              },
+              "resources": {
+                "kind": "fd",
+                "before": 23,
+                "after": 22,
+                "delta": -1,
+                "maximum": 23,
+                "peakDelta": 0,
+                "limitGrowth": 8,
+                "requiredMeasurementsAvailable": true
+              },
+              "rss": {
+                "beforeBytes": 207486976,
+                "afterBytes": 217907200,
+                "growthBytes": 10420224,
+                "maximumBytes": 298975232,
+                "peakGrowthBytes": 91488256,
+                "limitGrowthBytes": 134217728
+              },
+              "processDescendants": {
+                "measurementAvailable": true,
+                "beforeSource": "pgrep",
+                "afterSource": "pgrep",
+                "unavailableReason": null,
+                "beforeExit": 0,
+                "observed": 0,
+                "retired": 0,
+                "afterExit": 0,
+                "allRetired": true
+              }
+            }
+          }
+        ],
+        "attribution": {
+          "confirmed": "ecd2 Linux has two UND_ERR_SOCKET failures and macOS has two ECONNRESET failures to loopback-broker with installed Ollama undici 7.30.1; maintained Agent alone did not fix CI duplex failures.",
+          "mechanismTargeted": "Default ungoverned Ollama requests no longer reuse idle sockets across synchronous agent turns.",
+          "limits": [
+            "Exact CI socket lifecycle root cause has not been conclusively established.",
+            "This local six-turn before probe did not reproduce a native transport error; all six old-Agent requests succeeded.",
+            "Endpoint classification does not demonstrate a compaction endpoint leak; CI resolution confirms the intended dependency version.",
+            "Local tests and probes do not replace exact release commit Linux, Windows, and macOS CI gates."
+          ]
+        },
+        "implementation": {
+          "defaultDispatcher": "undici Agent({ pipelining: 0 })",
+          "retryAdded": false,
+          "callerExplicitDispatcherPreserved": true,
+          "globalFetchInjectionPreserved": true,
+          "activeFormalBudgetScope": "Original init forwarded without adding or replacing dispatcher; host governed transport remains authoritative.",
+          "tradeoff": "Default Ollama requests establish a fresh TCP connection, and a fresh TLS handshake when HTTPS is used. This adds connection latency and CPU overhead, especially for remote endpoints. Explicit dispatcher and formally governed transport policies remain caller-owned."
+        },
+        "tests": {
+          "node": "22.12.0",
+          "platform": "win32-x64",
+          "passed": 61,
+          "failed": 0,
+          "files": 4,
+          "suites": [
+            "__tests__/unit/ollama-provider-fetch.test.js",
+            "__tests__/unit/agent-core-stream-resilience.test.js",
+            "__tests__/unit/agent-core-streaming.test.js",
+            "src/lib/__tests__/provider-stream.test.js"
+          ],
+          "rawLog": {
+            "path": ".work/cli-ide-recovery-20261023/ollama-no-reuse-vitest.log",
+            "sha256": "43ed1aa77197d7191b055db81cf6fa3a17728ba8f8c4b10f8ae1bed25370f9c6"
+          },
+          "lostResponse": {
+            "attemptedPosts": 1,
+            "serverRequests": 1,
+            "replayObserved": false,
+            "outcome": "fetch failed propagated"
+          },
+          "preAbortedRequest": {
+            "serverRequests": 0,
+            "outcome": "AbortError propagated"
+          },
+          "boundaries": [
+            "global fetch injection",
+            "explicit proxy/TLS dispatcher",
+            "formal budget scope remains authoritative"
+          ],
+          "formatting": "Prettier check passed for both source files"
+        },
+        "independentHttpWorkerProbe": {
+          "evidence": {
+            "path": ".work/cli-ide-recovery-20261023/ollama-no-reuse-probe.json",
+            "sha256": "1a983f4eb1076fcfdd62eb7579f3b63b5e1c7cee032f88d0c754a6fb2437b2e2"
+          },
+          "rawLog": {
+            "path": ".work/cli-ide-recovery-20261023/ollama-no-reuse-probe.log",
+            "sha256": "49c99cda0cb8abe7994807eb80400b21eeff597773725a45e217aa1e69fe0786"
+          },
+          "node": "22.12.0",
+          "undici": "7.30.1",
+          "platform": "win32",
+          "longSyncPauseMs": 6500,
+          "longPauseCountPerMode": 2,
+          "shortSyncPauseMs": 20,
+          "before": {
+            "mode": "maintained-agent-before",
+            "attempts": 6,
+            "dispatches": 6,
+            "results": [
+              {
+                "turn": 1,
+                "ok": true,
+                "socket": 1
+              },
+              {
+                "turn": 2,
+                "ok": true,
+                "socket": 1
+              },
+              {
+                "turn": 3,
+                "ok": true,
+                "socket": 2
+              },
+              {
+                "turn": 4,
+                "ok": true,
+                "socket": 3
+              },
+              {
+                "turn": 5,
+                "ok": true,
+                "socket": 4
+              },
+              {
+                "turn": 6,
+                "ok": true,
+                "socket": 5
+              }
+            ],
+            "server": {
+              "connections": 5,
+              "records": [
+                {
+                  "turn": 1,
+                  "socket": 1
+                },
+                {
+                  "turn": 2,
+                  "socket": 1
+                },
+                {
+                  "turn": 3,
+                  "socket": 2
+                },
+                {
+                  "turn": 4,
+                  "socket": 3
+                },
+                {
+                  "turn": 5,
+                  "socket": 4
+                },
+                {
+                  "turn": 6,
+                  "socket": 5
+                }
+              ]
+            }
+          },
+          "after": {
+            "mode": "no-reuse-after",
+            "attempts": 6,
+            "dispatches": 6,
+            "results": [
+              {
+                "turn": 1,
+                "ok": true,
+                "socket": 1
+              },
+              {
+                "turn": 2,
+                "ok": true,
+                "socket": 2
+              },
+              {
+                "turn": 3,
+                "ok": true,
+                "socket": 3
+              },
+              {
+                "turn": 4,
+                "ok": true,
+                "socket": 4
+              },
+              {
+                "turn": 5,
+                "ok": true,
+                "socket": 5
+              },
+              {
+                "turn": 6,
+                "ok": true,
+                "socket": 6
+              }
+            ],
+            "server": {
+              "connections": 6,
+              "records": [
+                {
+                  "turn": 1,
+                  "socket": 1
+                },
+                {
+                  "turn": 2,
+                  "socket": 2
+                },
+                {
+                  "turn": 3,
+                  "socket": 3
+                },
+                {
+                  "turn": 4,
+                  "socket": 4
+                },
+                {
+                  "turn": 5,
+                  "socket": 5
+                },
+                {
+                  "turn": 6,
+                  "socket": 6
+                }
+              ]
+            }
+          },
+          "beforeInvariantFailure": {
+            "method": "Before-probe socket identities establish the equivalent negative invariant without swapping the shared helper or running a red test.",
+            "standaloneRedTestRun": false,
+            "freshSocketForEveryPost": false,
+            "reusedRequestRecords": [
+              {
+                "turn": 2,
+                "socket": 1
+              }
+            ]
+          },
+          "afterInvariant": {
+            "freshSocketForEveryPost": true,
+            "exactlyOneDispatchAndServerRequestPerPost": true,
+            "allSucceeded": true
+          }
+        },
+        "gates": {
+          "exactSourceMultiOsCiPassed": false,
+          "publicationAuthorizedByThisReport": false
+        }
+      },
+      "duplexRecovery": {
+        "schema": "chainlesschain.duplex-recovery-validation.v1",
+        "generatedAt": "2026-10-23T15:45:29.215Z",
+        "sourceBaselineHead": "ecd2f376eabbd9321f35b50dedf05d62c9510519",
+        "sources": [
+          {
+            "path": "packages/cli/scripts/cli-reliability-soak.mjs",
+            "bytes": 77967,
+            "sha256": "dddcd52c31f9b4435051e3c72fe0ba9fcbefbf17a9f6c990dfa8d205ab39a884"
+          },
+          {
+            "path": "packages/cli/__tests__/unit/cli-reliability-duplex-diagnostics.test.js",
+            "bytes": 8970,
+            "sha256": "7ee8b783f5cf12486233716f5fa5b663f8e8b4d33edbe98e3bb1f309cb748456"
+          }
+        ],
+        "ciEvidence": {
+          "headSha": "ecd2f376eabbd9321f35b50dedf05d62c9510519",
+          "runId": 39973810219,
+          "jobId": 120483084281,
+          "artifactId": 12512131667,
+          "receipt": {
+            "path": ".work\\cli-ide-recovery-20261023\\soak-windows-ecd2\\artifact\\cli-reliability-result.json",
+            "bytes": 7796,
+            "sha256": "8c00dc38cb49f0e3bfb06edd7fe4c9bbc2e3ba19b23d4af00e589d1426671648"
+          },
+          "archive": {
+            "path": ".work\\cli-ide-recovery-20261023\\soak-windows-ecd2\\artifact.zip",
+            "bytes": 1924,
+            "sha256": "f2d842dfe99773a4d3f1b959f87df45ce25f0e894a5a5517873e73e4ac3184d0"
+          },
+          "jobLog": {
+            "path": ".work\\cli-ide-recovery-20261023\\soak-windows-ecd2\\job.log",
+            "bytes": 49794,
+            "sha256": "865bc15ab6ee732020e57c64a731f901b95320917aa94a4a8ff0dc05def4ee1c",
+            "localOnly": true,
+            "copyIntoPublicEvidence": false
+          },
+          "verified": true,
+          "clean": true,
+          "observed": {
+            "startupPassed": true,
+            "mcpModelRequestCount": 2,
+            "passedExecutedScenarios": [
+              "mcpOutput",
+              "pipe",
+              "tty",
+              "concurrentAgents"
+            ],
+            "unconfigured": ["disk", "ssh", "clipboard"],
+            "duplexViolation": "turn 12 timed out",
+            "warmupTurns": 2,
+            "completedMeasuredTurns": 9,
+            "resultCount": 11,
+            "partialDurationSeconds": 302.95236620000003,
+            "partialP95Ms": 55628.07990000007,
+            "cleanupError": "EBUSY unlink active duplex SQLite database"
+          },
+          "underlyingTurnLatencyCause": "Not established: original timeout checkpoint omitted result/fetch details."
+        },
+        "changes": {
+          "partialCheckpoints": [
+            "bounded allowlisted results/failures and subtype counts",
+            "diagnostic codes/classes",
+            "safe fetchDiagnostics and shared runtime resolution coordinate",
+            "immediate failed snapshot on result timeout before teardown",
+            "final failed snapshot with cleanup confirmation"
+          ],
+          "cleanup": [
+            "Observe child close immediately after spawn.",
+            "On failure terminate the still-live owned tree and await close under the existing cleanup budget.",
+            "Windows uses native taskkill /T /F and close; POSIX duplex children use an owned process group and wait for group retirement.",
+            "Do not signal already exited root PIDs or infer descendant retirement from direct-child exit.",
+            "Keep the original scenario error; skip root deletion when tree cleanup is unconfirmed."
+          ],
+          "privacy": [
+            "Unknown result subtype maps to fixed unknown label.",
+            "No provider body, raw error, raw stdout/stderr or endpoint coordinates are copied into partial diagnostic fields."
+          ],
+          "scope": "Collector duplex/checkpoints, optional detached spawn setting, and outer root-removal guard only; no production provider/ACL changes."
+        },
+        "limits": {
+          "turnDeadlineMs": 60000,
+          "cleanupDeadlineMs": 10000,
+          "unchanged": true,
+          "noAutomaticRetries": true,
+          "noAdditionalModelCalls": true,
+          "noLocalFullSoakRun": true
+        },
+        "validation": {
+          "officialNode2212": {
+            "platform": "win32",
+            "version": "v22.12.0",
+            "suiteCount": 3,
+            "passed": 32,
+            "failed": 0,
+            "durationSeconds": 4.91,
+            "log": {
+              "path": ".work\\cli-ide-recovery-20261023\\soak-windows-ecd2\\duplex-diagnostics-node22.12.0.log",
+              "bytes": 468,
+              "sha256": "e4b1a1ef84eee147637c63b1c8646c3be0003015f95cf8c4b7ff9c6b0da06b77"
+            }
+          },
+          "currentNode2222": {
+            "platform": "win32",
+            "version": "v22.22.2",
+            "suiteCount": 1,
+            "passed": 5,
+            "failed": 0,
+            "durationSeconds": 2.69,
+            "source": "terminal tool output; supplemental check"
+          },
+          "newFiveCases": {
+            "fakeChildCases": 3,
+            "realChildCases": 2,
+            "details": [
+              "warmup timeout with safe immediate diagnostics",
+              "measured-turn timeout with running and failed diagnostics",
+              "unconfirmed cleanup preserves original error and blocks root removal",
+              "real Windows parent and descendant hold files; tree termination and close precede removal",
+              "already exited real child PID is never signalled and tree confirmation is withheld"
+            ]
+          },
+          "initialAttempt": {
+            "passed": 30,
+            "failed": 1,
+            "reason": "New fake-timer test advanced time before its dynamic import/spawn completed; fixed the test synchronization point. Production deadlines unchanged.",
+            "record": "terminal tool output; not counted as passing"
+          },
+          "formatter": "Prettier completed",
+          "diffCheck": "passed",
+          "posixRuntimeTestedLocally": false,
+          "posixStatus": "Awaiting exact-head Linux/macOS CI",
+          "exactHeadCiStillRequired": true
+        }
+      },
+      "windowsFrontier": {
+        "schema": "chainlesschain.windows-frontier-validation.v1",
+        "recordedAt": "2026-10-23T15:44:32.175Z",
+        "status": "local-validation-passed-ci-performance-unverified",
+        "sourceFiles": [
+          {
+            "path": "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js",
+            "sha256": "sha256:d62c045aacf1e042e48dd221025cf0042c4acd5da76de35c56ee52d38a776227"
+          },
+          {
+            "path": "packages/cli/__tests__/unit/evolution-run-ledger-adapter.test.js",
+            "sha256": "sha256:61b8ba3476c25f105b910225373b3d8aeeb928745d97a58b389aeea560d04eb6"
+          }
+        ],
+        "validation": {
+          "log": {
+            "path": ".work/cli-ide-recovery-20261023/windows-frontier-tests.log",
+            "sha256": "sha256:42be3b34f431ab60db273dd5a29fe77595f67abfde7f4da81a133db93a7855f7"
+          },
+          "testFiles": 2,
+          "tests": 37,
+          "passed": 37,
+          "failed": 0,
+          "newRegressionCases": 9,
+          "durationSeconds": 147.82,
+          "formatCheck": "passed",
+          "diffCheck": "passed"
+        },
+        "performanceContract": {
+          "fixtureEvents": 5,
+          "repeatedLoads": 2,
+          "fullLedgerVerifyCallsPerLoad": 2,
+          "artifactResolveCallsPerLoadMinimum": 5,
+          "fullLedgerReadPreserved": true,
+          "longLivedIdentityCache": false,
+          "publicResolverRejectsCallerIdentity": true
+        },
+        "regressionCoverage": [
+          "Two repeated loads of five events each have exactly two full frontier verifications and at least five fresh artifact resolutions",
+          "Concurrent append during artifact resolution rejected",
+          "Concurrent head replacement during artifact resolution rejected",
+          "Concurrent rollback during artifact resolution rejected",
+          "Concurrent epoch change during artifact resolution rejected",
+          "Concurrent ledgerId change during artifact resolution rejected",
+          "Concurrent witness binding change during artifact resolution rejected",
+          "Same-length artifact mutation after successful load rejected without ledger-head change",
+          "Caller-supplied identity cannot bypass public individual event verification"
+        ],
+        "securityBoundary": {
+          "batchIdentity": "Private class method receives identity authenticated at the start of this synchronous entries load; no externally supplied identity is accepted",
+          "frontierComparison": "Clone and compare every returned ledger verification field at start and end, excluding only verifiedAt observation time",
+          "retainedChecks": [
+            "Full physical EvolutionLedger verification before and after batch",
+            "Full ledger read through existing captured read port",
+            "Every artifact passes original branded resolver with byte integrity, envelope signature, current policy and tenant checks",
+            "Existing event binding, sequence, lineage and projection validation",
+            "Public _resolveEvent continues to call full verify",
+            "Concurrent mutation fails closed; no retry or acceptance threshold change"
+          ],
+          "unchanged": [
+            "EvolutionLedger core",
+            "ACL repairs and checks",
+            "File and directory identity checks",
+            "Soak per-turn 60000ms threshold",
+            "Production Ollama helper and collector (owned by other agents)"
+          ]
+        },
+        "supplementaryProfile": {
+          "scope": "supplementary Windows real CLI 4-turn attempt, stopped at 240 seconds",
+          "node": "official Node 22.12.0 node-verified.exe",
+          "sourceHeadAtStart": "ecd2f376eabbd9321f35b50dedf05d62c9510519",
+          "limitations": [
+            "Local session-core dependency resolved 0.3.21 while repository source is 0.3.22; not exact CI dependency equivalence",
+            "Local simultaneous test activity and cold PowerShell latency are not CI timing evidence",
+            "Only first turn completed before local diagnostic cap; second reached model request",
+            "Instrumented fs/child_process timings add measurement overhead",
+            "No completed CPU profile survived child termination; only operation counters and timings are authoritative"
+          ],
+          "firstTurn": {
+            "durationMs": 180015,
+            "aclSpawnCalls": 23,
+            "aclSpawnMs": 144472.24899999995,
+            "fsRealpath": {
+              "calls": 13154,
+              "ms": 4926.754499999862,
+              "maxMs": 34.18520000000717
+            },
+            "fsLstat": {
+              "calls": 24501,
+              "ms": 4117.455399999802,
+              "maxMs": 46.33650000000489
+            }
+          },
+          "sourceFinding": "EvolutionRunLedgerAdapter._entries invokes _resolveEvent for every event, which previously reverified the full EvolutionLedger. Each full verify reads and hashes the complete cached physical prefix. New bounded frontier change verifies twice per entries load while keeping full ledger read and per-artifact authority+byte verification.",
+          "validation": {
+            "tests": 37,
+            "passed": 37,
+            "suites": [
+              "evolution-run-ledger-adapter.test.js",
+              "evolution-run-wiki-evidence-resolver.test.js"
+            ],
+            "log": "windows-frontier-tests.log",
+            "newRegressions": 9,
+            "format": "passed",
+            "diffCheck": "passed"
+          },
+          "notEstablished": "Whether the optimized exact commit now finishes the CI twelfth turn below the unchanged 60-second deadline."
+        },
+        "releaseLimitation": "Profile did not finish the full journey: first turn succeeded, second reached model request, local attempt stopped at 240 seconds. No claim that CI turn 12 timeout is fixed; exact new-head Windows soak is required."
       }
     },
     "generatedCommandAssets": "manifest, help index and completions checks passed",
@@ -1167,7 +1859,7 @@
   "sourceSnapshot": [
     {
       "path": ".github/workflows/cli-reliability-soak.yml",
-      "sha256": "ae6c34132f822c622938acc9e23e4c39a06a738b15030017383f997d1b269ff3"
+      "sha256": "2ee14865837499caf3e6d6706a5b49381ef7817815893f9e391c6a06d048eb10"
     },
     {
       "path": ".github/workflows/ide-extensions.yml",
@@ -1183,7 +1875,7 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "c5d907f679df2c1e9e174b62b8307c6da85685b8f20feb84c82152726f506a62"
+      "sha256": "4e1280692d4bead5a8fd8e0e4ff106cec1fd88646a2999c3993e9b3d49925a37"
     },
     {
       "path": "android-app/app/build.gradle.kts",
@@ -1242,6 +1934,10 @@
       "sha256": "e536559fd82d0e302ec508dc5d95206e8cead743c27ec95403ce6eaabfaf2550"
     },
     {
+      "path": "packages/cli/__tests__/unit/cli-reliability-duplex-diagnostics.test.js",
+      "sha256": "7ee8b783f5cf12486233716f5fa5b663f8e8b4d33edbe98e3bb1f309cb748456"
+    },
+    {
       "path": "packages/cli/__tests__/unit/cli-reliability-fetch-diagnostics.test.js",
       "sha256": "f0717114773e724ecc50b4fd41c29c558de86cc291ccc12493adcecb76065995"
     },
@@ -1254,6 +1950,10 @@
       "sha256": "2a13696c85d4fa9665146bd7c2632e9e2028fd73cf7b455758e43ac87a342a38"
     },
     {
+      "path": "packages/cli/__tests__/unit/evolution-run-ledger-adapter.test.js",
+      "sha256": "61b8ba3476c25f105b910225373b3d8aeeb928745d97a58b389aeea560d04eb6"
+    },
+    {
       "path": "packages/cli/__tests__/unit/evolution-windows-directory-durability.test.js",
       "sha256": "c377b2a5b473065c1717012330df638129690eec1489c05d040eee9a269f7098"
     },
@@ -1263,7 +1963,7 @@
     },
     {
       "path": "packages/cli/__tests__/unit/ollama-provider-fetch.test.js",
-      "sha256": "888c8d4215a78696e741fd5aeaa337e3b30a4904f7fb3183e1b070dd154cd373"
+      "sha256": "6abd95f33e7322c7091f227c86138e832b684e495bf04ac55dc4b45f9c6c7df5"
     },
     {
       "path": "packages/cli/__tests__/unit/release-workflow-contract.test.js",
@@ -1283,7 +1983,7 @@
     },
     {
       "path": "packages/cli/scripts/cli-reliability-soak.mjs",
-      "sha256": "addc5b5710ffa09a74b2ea01189aeda637ee35cd8c090a365cd31d09abf9fefa"
+      "sha256": "dddcd52c31f9b4435051e3c72fe0ba9fcbefbf17a9f6c990dfa8d205ab39a884"
     },
     {
       "path": "packages/cli/scripts/verify01-collect-native-retest.py",
@@ -1291,7 +1991,7 @@
     },
     {
       "path": "packages/cli/src/data/changelog.json",
-      "sha256": "a21ddd62e682ea9c5b16fa73575d9b8ff7833823a72cdc9bef9340273ba31988"
+      "sha256": "63a28bf97f4531a31bccb95d5abd1ce9f73bc251431f431427c12661b1632dbf"
     },
     {
       "path": "packages/cli/src/lib/evolution/evidence-json-text.js",
@@ -1306,12 +2006,16 @@
       "sha256": "a4c457a78959ff4cbb46644c952a2ff6b76b8fe066641b050808a02c5023b74e"
     },
     {
+      "path": "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js",
+      "sha256": "d62c045aacf1e042e48dd221025cf0042c4acd5da76de35c56ee52d38a776227"
+    },
+    {
       "path": "packages/cli/src/lib/evolution/evolution-windows-directory-durability.js",
       "sha256": "f5311afa960fe08cafc0d999635a9d1c0c2093dbf1aed6efcebdef7a291d8112"
     },
     {
       "path": "packages/cli/src/lib/ollama-provider-fetch.js",
-      "sha256": "d02fe2a9958d8e955a2511c1158f670834d3ebaa8a276f8e0fedfe7b753fcd60"
+      "sha256": "aa79010f74e2d3fcf27d74ba2810134baf4af3942ea14dc1e84d4445e78db1c4"
     },
     {
       "path": "packages/cli/src/lib/provider-stream.js",
@@ -1655,6 +2359,56 @@
       "path": "release118-fetch-preload-tests.txt",
       "sha256": "c62d1c6cdbae0514e34c58cd0c37f01fafc8340ccad581fa8458daba60742acc",
       "originalSha256": "b4cc6b0c2d4a31714689b9c9b6ceaf80ea411ab60a57d9df8834ba3d028cccfe"
+    },
+    {
+      "path": "release118-windows-soak-ecd2-before.json",
+      "sha256": "8c00dc38cb49f0e3bfb06edd7fe4c9bbc2e3ba19b23d4af00e589d1426671648",
+      "originalSha256": "8c00dc38cb49f0e3bfb06edd7fe4c9bbc2e3ba19b23d4af00e589d1426671648"
+    },
+    {
+      "path": "release118-linux-soak-ecd2-before.json",
+      "sha256": "94145830458279283f1a5240850d229b1e8e372d2abd6e769a3ea76f85daa6a6",
+      "originalSha256": "94145830458279283f1a5240850d229b1e8e372d2abd6e769a3ea76f85daa6a6"
+    },
+    {
+      "path": "release118-macos-soak-ecd2-before.json",
+      "sha256": "5ca7bf42094ca09dc15ea3d3b5f1cfbddde5bb2450e617c7be64d021e437aff1",
+      "originalSha256": "5ca7bf42094ca09dc15ea3d3b5f1cfbddde5bb2450e617c7be64d021e437aff1"
+    },
+    {
+      "path": "release118-ollama-no-reuse-validation.json",
+      "sha256": "2ec4aff6652a7e2e6ebad0d93182b07d8b01a4fcf94f2892c0bc98c70bbbdc53",
+      "originalSha256": "2ec4aff6652a7e2e6ebad0d93182b07d8b01a4fcf94f2892c0bc98c70bbbdc53"
+    },
+    {
+      "path": "release118-ollama-no-reuse-probe.json",
+      "sha256": "1a983f4eb1076fcfdd62eb7579f3b63b5e1c7cee032f88d0c754a6fb2437b2e2",
+      "originalSha256": "1a983f4eb1076fcfdd62eb7579f3b63b5e1c7cee032f88d0c754a6fb2437b2e2"
+    },
+    {
+      "path": "release118-ollama-no-reuse-tests.txt",
+      "sha256": "e2a1d22281cb8c63eb0d2dc98d4a292a9c531e08d657d0e907168349230052a2",
+      "originalSha256": "43ed1aa77197d7191b055db81cf6fa3a17728ba8f8c4b10f8ae1bed25370f9c6"
+    },
+    {
+      "path": "release118-duplex-recovery-validation.json",
+      "sha256": "ea926d40e0878cceea14ead3574802a99e11446b51459c3a1a77a6cf57afdff2",
+      "originalSha256": "ea926d40e0878cceea14ead3574802a99e11446b51459c3a1a77a6cf57afdff2"
+    },
+    {
+      "path": "release118-duplex-recovery-tests.txt",
+      "sha256": "aa67123ac9924d1f947b8e9406952a65a431b42d5bcebae13868d96c178602a8",
+      "originalSha256": "e4b1a1ef84eee147637c63b1c8646c3be0003015f95cf8c4b7ff9c6b0da06b77"
+    },
+    {
+      "path": "release118-windows-frontier-validation.json",
+      "sha256": "50efcd94147e82b5aef9de25e47d51c0e4034654140a51a17066a50145acb36b",
+      "originalSha256": "50efcd94147e82b5aef9de25e47d51c0e4034654140a51a17066a50145acb36b"
+    },
+    {
+      "path": "release118-windows-frontier-tests.txt",
+      "sha256": "54904479a62cae8ed06883a5487f0b972b1780db5e1990d9748c448888cd9855",
+      "originalSha256": "42be3b34f431ab60db273dd5a29fe77595f67abfde7f4da81a133db93a7855f7"
     }
   ],
   "rawSecurityAudit": {

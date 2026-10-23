@@ -14,23 +14,29 @@ async function loopbackServer({ reset = false } = {}) {
     `const { parentPort, workerData } = require('node:worker_threads');
      const { createServer } = require('node:http');
      let requests = 0;
+     let connections = 0;
+     const sockets = new WeakMap();
+     const requestSockets = [];
      const server = createServer((request, response) => {
        request.resume();
        request.on('end', () => {
          requests += 1;
+         const socket = sockets.get(request.socket);
+         requestSockets.push(socket);
          if (workerData.reset) { request.socket.destroy(); return; }
          response.setHeader('Content-Type', 'application/json');
-         response.end(JSON.stringify({ requests }));
+         response.end(JSON.stringify({ requests, socket }));
        });
      });
+     server.on('connection', (socket) => sockets.set(socket, ++connections));
      server.listen(0, '127.0.0.1', () => parentPort.postMessage(server.address().port));
-     parentPort.on('message', () => parentPort.postMessage(requests));`,
+     parentPort.on('message', () => parentPort.postMessage({ requests, requestSockets }));`,
     { eval: true, workerData: { reset } },
   );
   const [port] = await once(worker, "message");
   return {
     url: `http://127.0.0.1:${port}/api/chat`,
-    async requests() {
+    async stats() {
       const message = once(worker, "message");
       worker.postMessage("count");
       return (await message)[0];
@@ -98,13 +104,13 @@ describe("Ollama provider transport", () => {
           signal: controller.signal,
         }),
       ).rejects.toMatchObject({ name: "AbortError" });
-      expect(await server.requests()).toBe(0);
+      expect((await server.stats()).requests).toBe(0);
     } finally {
       await server.close();
     }
   });
 
-  it("validates expired idle sockets before sending each POST exactly once", async () => {
+  it("uses a fresh socket for every POST across short and long synchronous turns", async () => {
     const server = await loopbackServer();
     let dispatches = 0;
     const observer = ({ request }) => {
@@ -113,21 +119,30 @@ describe("Ollama provider transport", () => {
     const requests = channel("undici:request:create");
     requests.subscribe(observer);
     try {
-      for (let turn = 1; turn <= 3; turn += 1) {
+      for (let turn = 1; turn <= 6; turn += 1) {
         const response = await ollamaProviderFetch(server.url, {
           method: "POST",
           body: "{}",
         });
-        expect(await response.json()).toEqual({ requests: turn });
-        if (turn < 3) {
-          // Let the completed request become reusable, then block past the
-          // server's default 5s idle timeout (plus Node's optional 1s buffer).
+        expect(await response.json()).toEqual({ requests: turn, socket: turn });
+        if (turn < 6) {
+          // Give a keep-alive dispatcher a chance to reuse the connection on
+          // short turns; on alternating turns block past the server's default
+          // 5s idle timeout (plus Node's optional 1s buffer).
           await new Promise((resolve) => setTimeout(resolve, 10));
-          Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 6500);
+          Atomics.wait(
+            new Int32Array(new SharedArrayBuffer(4)),
+            0,
+            0,
+            turn % 2 === 0 ? 6500 : 20,
+          );
         }
       }
-      expect(await server.requests()).toBe(3);
-      expect(dispatches).toBe(3);
+      expect(await server.stats()).toEqual({
+        requests: 6,
+        requestSockets: [1, 2, 3, 4, 5, 6],
+      });
+      expect(dispatches).toBe(6);
     } finally {
       requests.unsubscribe(observer);
       await server.close();
@@ -140,7 +155,7 @@ describe("Ollama provider transport", () => {
       await expect(
         ollamaProviderFetch(server.url, { method: "POST", body: "{}" }),
       ).rejects.toThrow("fetch failed");
-      expect(await server.requests()).toBe(1);
+      expect((await server.stats()).requests).toBe(1);
     } finally {
       await server.close();
     }

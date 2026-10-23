@@ -1,0 +1,110 @@
+{
+  "schema": "chainlesschain.windows-frontier-validation.v1",
+  "recordedAt": "2026-10-23T15:44:32.175Z",
+  "status": "local-validation-passed-ci-performance-unverified",
+  "sourceFiles": [
+    {
+      "path": "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js",
+      "sha256": "sha256:d62c045aacf1e042e48dd221025cf0042c4acd5da76de35c56ee52d38a776227"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/evolution-run-ledger-adapter.test.js",
+      "sha256": "sha256:61b8ba3476c25f105b910225373b3d8aeeb928745d97a58b389aeea560d04eb6"
+    }
+  ],
+  "validation": {
+    "log": {
+      "path": ".work/cli-ide-recovery-20261023/windows-frontier-tests.log",
+      "sha256": "sha256:42be3b34f431ab60db273dd5a29fe77595f67abfde7f4da81a133db93a7855f7"
+    },
+    "testFiles": 2,
+    "tests": 37,
+    "passed": 37,
+    "failed": 0,
+    "newRegressionCases": 9,
+    "durationSeconds": 147.82,
+    "formatCheck": "passed",
+    "diffCheck": "passed"
+  },
+  "performanceContract": {
+    "fixtureEvents": 5,
+    "repeatedLoads": 2,
+    "fullLedgerVerifyCallsPerLoad": 2,
+    "artifactResolveCallsPerLoadMinimum": 5,
+    "fullLedgerReadPreserved": true,
+    "longLivedIdentityCache": false,
+    "publicResolverRejectsCallerIdentity": true
+  },
+  "regressionCoverage": [
+    "Two repeated loads of five events each have exactly two full frontier verifications and at least five fresh artifact resolutions",
+    "Concurrent append during artifact resolution rejected",
+    "Concurrent head replacement during artifact resolution rejected",
+    "Concurrent rollback during artifact resolution rejected",
+    "Concurrent epoch change during artifact resolution rejected",
+    "Concurrent ledgerId change during artifact resolution rejected",
+    "Concurrent witness binding change during artifact resolution rejected",
+    "Same-length artifact mutation after successful load rejected without ledger-head change",
+    "Caller-supplied identity cannot bypass public individual event verification"
+  ],
+  "securityBoundary": {
+    "batchIdentity": "Private class method receives identity authenticated at the start of this synchronous entries load; no externally supplied identity is accepted",
+    "frontierComparison": "Clone and compare every returned ledger verification field at start and end, excluding only verifiedAt observation time",
+    "retainedChecks": [
+      "Full physical EvolutionLedger verification before and after batch",
+      "Full ledger read through existing captured read port",
+      "Every artifact passes original branded resolver with byte integrity, envelope signature, current policy and tenant checks",
+      "Existing event binding, sequence, lineage and projection validation",
+      "Public _resolveEvent continues to call full verify",
+      "Concurrent mutation fails closed; no retry or acceptance threshold change"
+    ],
+    "unchanged": [
+      "EvolutionLedger core",
+      "ACL repairs and checks",
+      "File and directory identity checks",
+      "Soak per-turn 60000ms threshold",
+      "Production Ollama helper and collector (owned by other agents)"
+    ]
+  },
+  "supplementaryProfile": {
+    "scope": "supplementary Windows real CLI 4-turn attempt, stopped at 240 seconds",
+    "node": "official Node 22.12.0 node-verified.exe",
+    "sourceHeadAtStart": "ecd2f376eabbd9321f35b50dedf05d62c9510519",
+    "limitations": [
+      "Local session-core dependency resolved 0.3.21 while repository source is 0.3.22; not exact CI dependency equivalence",
+      "Local simultaneous test activity and cold PowerShell latency are not CI timing evidence",
+      "Only first turn completed before local diagnostic cap; second reached model request",
+      "Instrumented fs/child_process timings add measurement overhead",
+      "No completed CPU profile survived child termination; only operation counters and timings are authoritative"
+    ],
+    "firstTurn": {
+      "durationMs": 180015,
+      "aclSpawnCalls": 23,
+      "aclSpawnMs": 144472.24899999995,
+      "fsRealpath": {
+        "calls": 13154,
+        "ms": 4926.754499999862,
+        "maxMs": 34.18520000000717
+      },
+      "fsLstat": {
+        "calls": 24501,
+        "ms": 4117.455399999802,
+        "maxMs": 46.33650000000489
+      }
+    },
+    "sourceFinding": "EvolutionRunLedgerAdapter._entries invokes _resolveEvent for every event, which previously reverified the full EvolutionLedger. Each full verify reads and hashes the complete cached physical prefix. New bounded frontier change verifies twice per entries load while keeping full ledger read and per-artifact authority+byte verification.",
+    "validation": {
+      "tests": 37,
+      "passed": 37,
+      "suites": [
+        "evolution-run-ledger-adapter.test.js",
+        "evolution-run-wiki-evidence-resolver.test.js"
+      ],
+      "log": "windows-frontier-tests.log",
+      "newRegressions": 9,
+      "format": "passed",
+      "diffCheck": "passed"
+    },
+    "notEstablished": "Whether the optimized exact commit now finishes the CI twelfth turn below the unchanged 60-second deadline."
+  },
+  "releaseLimitation": "Profile did not finish the full journey: first turn succeeded, second reached model request, local attempt stopped at 240 seconds. No claim that CI turn 12 timeout is fixed; exact new-head Windows soak is required."
+}

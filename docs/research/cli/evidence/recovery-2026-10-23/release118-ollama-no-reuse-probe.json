@@ -1,0 +1,220 @@
+{
+  "schema": "chainlesschain.ollama-no-reuse-probe.v1",
+  "timestamp": "2026-10-23T15:31:55.575Z",
+  "node": "22.12.0",
+  "undici": "7.30.1",
+  "platform": "win32",
+  "longSyncPauseMs": 6500,
+  "shortSyncPauseMs": 20,
+  "sourceFiles": [
+    {
+      "path": "packages/cli/src/lib/ollama-provider-fetch.js",
+      "sha256": "aa79010f74e2d3fcf27d74ba2810134baf4af3942ea14dc1e84d4445e78db1c4"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/ollama-provider-fetch.test.js",
+      "sha256": "6abd95f33e7322c7091f227c86138e832b684e495bf04ac55dc4b45f9c6c7df5"
+    }
+  ],
+  "modes": [
+    {
+      "mode": "bundled-default",
+      "attempts": 6,
+      "dispatches": 6,
+      "results": [
+        {
+          "turn": 1,
+          "ok": true,
+          "socket": 1
+        },
+        {
+          "turn": 2,
+          "ok": true,
+          "socket": 1
+        },
+        {
+          "turn": 3,
+          "ok": true,
+          "socket": 2
+        },
+        {
+          "turn": 4,
+          "ok": true,
+          "socket": 3
+        },
+        {
+          "turn": 5,
+          "ok": true,
+          "socket": 4
+        },
+        {
+          "turn": 6,
+          "ok": true,
+          "socket": 5
+        }
+      ],
+      "server": {
+        "connections": 5,
+        "records": [
+          {
+            "turn": 1,
+            "socket": 1
+          },
+          {
+            "turn": 2,
+            "socket": 1
+          },
+          {
+            "turn": 3,
+            "socket": 2
+          },
+          {
+            "turn": 4,
+            "socket": 3
+          },
+          {
+            "turn": 5,
+            "socket": 4
+          },
+          {
+            "turn": 6,
+            "socket": 5
+          }
+        ]
+      }
+    },
+    {
+      "mode": "maintained-agent-before",
+      "attempts": 6,
+      "dispatches": 6,
+      "results": [
+        {
+          "turn": 1,
+          "ok": true,
+          "socket": 1
+        },
+        {
+          "turn": 2,
+          "ok": true,
+          "socket": 1
+        },
+        {
+          "turn": 3,
+          "ok": true,
+          "socket": 2
+        },
+        {
+          "turn": 4,
+          "ok": true,
+          "socket": 3
+        },
+        {
+          "turn": 5,
+          "ok": true,
+          "socket": 4
+        },
+        {
+          "turn": 6,
+          "ok": true,
+          "socket": 5
+        }
+      ],
+      "server": {
+        "connections": 5,
+        "records": [
+          {
+            "turn": 1,
+            "socket": 1
+          },
+          {
+            "turn": 2,
+            "socket": 1
+          },
+          {
+            "turn": 3,
+            "socket": 2
+          },
+          {
+            "turn": 4,
+            "socket": 3
+          },
+          {
+            "turn": 5,
+            "socket": 4
+          },
+          {
+            "turn": 6,
+            "socket": 5
+          }
+        ]
+      }
+    },
+    {
+      "mode": "no-reuse-after",
+      "attempts": 6,
+      "dispatches": 6,
+      "results": [
+        {
+          "turn": 1,
+          "ok": true,
+          "socket": 1
+        },
+        {
+          "turn": 2,
+          "ok": true,
+          "socket": 2
+        },
+        {
+          "turn": 3,
+          "ok": true,
+          "socket": 3
+        },
+        {
+          "turn": 4,
+          "ok": true,
+          "socket": 4
+        },
+        {
+          "turn": 5,
+          "ok": true,
+          "socket": 5
+        },
+        {
+          "turn": 6,
+          "ok": true,
+          "socket": 6
+        }
+      ],
+      "server": {
+        "connections": 6,
+        "records": [
+          {
+            "turn": 1,
+            "socket": 1
+          },
+          {
+            "turn": 2,
+            "socket": 2
+          },
+          {
+            "turn": 3,
+            "socket": 3
+          },
+          {
+            "turn": 4,
+            "socket": 4
+          },
+          {
+            "turn": 5,
+            "socket": 5
+          },
+          {
+            "turn": 6,
+            "socket": 6
+          }
+        ]
+      }
+    }
+  ],
+  "limitation": "Local invariants and baseline are supplementary; exact Linux/macOS CI native socket failure is not asserted as locally reproduced. Exact-source multi-OS release gates remain required."
+}

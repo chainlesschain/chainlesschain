@@ -7,10 +7,10 @@ import {
 let dispatcher;
 
 /**
- * Use the maintained HTTP client for idle-socket validation. Node 22.12's
- * bundled dispatcher can write to a retired keep-alive socket after a long
- * synchronous agent turn, before its pending FIN/RST has been processed.
- * The dispatcher validates before sending; it does not replay a model call.
+ * Do not reuse an idle Ollama socket across agent turns. Long synchronous
+ * repository work can delay processing a peer's close until the next call.
+ * pipelining: 0 disables keep-alive in undici, giving each request a fresh
+ * connection without replaying a model call after an ambiguous failure.
  */
 export function ollamaProviderFetch(
   input,
@@ -25,7 +25,8 @@ export function ollamaProviderFetch(
     input,
     {
       ...init,
-      dispatcher: init.dispatcher ?? (dispatcher ??= new Agent()),
+      dispatcher:
+        init.dispatcher ?? (dispatcher ??= new Agent({ pipelining: 0 })),
     },
     fetchImpl,
   );

@@ -1,0 +1,454 @@
+{
+  "schema": "chainlesschain.ollama-no-reuse-validation.v1",
+  "timestamp": "2026-10-23T15:35:08.358Z",
+  "status": "local-transport-invariants-passed-exact-source-multi-os-ci-required",
+  "sourceFiles": [
+    {
+      "path": "packages/cli/src/lib/ollama-provider-fetch.js",
+      "sha256": "aa79010f74e2d3fcf27d74ba2810134baf4af3942ea14dc1e84d4445e78db1c4"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/ollama-provider-fetch.test.js",
+      "sha256": "6abd95f33e7322c7091f227c86138e832b684e495bf04ac55dc4b45f9c6c7df5"
+    }
+  ],
+  "ciBeforeFix": [
+    {
+      "platform": "linux",
+      "evidence": {
+        "path": ".work/cli-ide-recovery-20261023/soak-linux-ecd2/artifact/cli-reliability-result.json",
+        "sha256": "94145830458279283f1a5240850d229b1e8e372d2abd6e769a3ea76f85daa6a6"
+      },
+      "headSha": "ecd2f376eabbd9321f35b50dedf05d62c9510519",
+      "status": "failed",
+      "violations": [
+        "duplexSoak scenario failed"
+      ],
+      "failedScenarios": [
+        "duplexSoak"
+      ],
+      "duplex": {
+        "results": {
+          "count": 12,
+          "measuredCount": 10,
+          "errorCount": 2,
+          "failures": [
+            {
+              "turn": 5,
+              "subtype": "error",
+              "errorDetails": {
+                "kind": "transport",
+                "name": "TypeError",
+                "causeCode": "UND_ERR_SOCKET"
+              }
+            },
+            {
+              "turn": 7,
+              "subtype": "error",
+              "errorDetails": {
+                "kind": "transport",
+                "name": "TypeError",
+                "causeCode": "UND_ERR_SOCKET"
+              }
+            }
+          ],
+          "subtypeCounts": {
+            "success": 10,
+            "error": 2
+          },
+          "lengthMinimum": 14,
+          "lengthMaximum": 14
+        },
+        "fetchDiagnostics": {
+          "available": true,
+          "enabled": true,
+          "truncated": false,
+          "events": [
+            {
+              "event": "undici:request:error",
+              "endpoint": "loopback-broker",
+              "error": {
+                "kind": "transport",
+                "name": "SocketError",
+                "code": "UND_ERR_SOCKET"
+              }
+            },
+            {
+              "event": "undici:request:error",
+              "endpoint": "loopback-broker",
+              "error": {
+                "kind": "transport",
+                "name": "SocketError",
+                "code": "UND_ERR_SOCKET"
+              }
+            }
+          ]
+        },
+        "fetchRuntime": {
+          "coordinate": "parent-shared-binary-and-cli-module-resolution",
+          "node": "22.12.0",
+          "uv": "1.49.1",
+          "bundledUndici": "6.21.0",
+          "ollamaUndici": "7.30.1"
+        },
+        "resources": {
+          "kind": "fd",
+          "before": 33,
+          "after": 32,
+          "delta": -1,
+          "maximum": 33,
+          "peakDelta": 0,
+          "limitGrowth": 8,
+          "requiredMeasurementsAvailable": true
+        },
+        "rss": {
+          "beforeBytes": 197898240,
+          "afterBytes": 207564800,
+          "growthBytes": 9666560,
+          "maximumBytes": 223367168,
+          "peakGrowthBytes": 25468928,
+          "limitGrowthBytes": 134217728
+        },
+        "processDescendants": {
+          "measurementAvailable": true,
+          "beforeSource": "pgrep",
+          "afterSource": "pgrep",
+          "unavailableReason": null,
+          "beforeExit": 0,
+          "observed": 0,
+          "retired": 0,
+          "afterExit": 0,
+          "allRetired": true
+        }
+      }
+    },
+    {
+      "platform": "macos",
+      "evidence": {
+        "path": ".work/cli-ide-recovery-20261023/soak-macos-ecd2/artifact/cli-reliability-result.json",
+        "sha256": "5ca7bf42094ca09dc15ea3d3b5f1cfbddde5bb2450e617c7be64d021e437aff1"
+      },
+      "headSha": "ecd2f376eabbd9321f35b50dedf05d62c9510519",
+      "status": "failed",
+      "violations": [
+        "duplexSoak scenario failed"
+      ],
+      "failedScenarios": [
+        "duplexSoak"
+      ],
+      "duplex": {
+        "results": {
+          "count": 12,
+          "measuredCount": 10,
+          "errorCount": 2,
+          "failures": [
+            {
+              "turn": 3,
+              "subtype": "error",
+              "errorDetails": {
+                "kind": "transport",
+                "name": "TypeError",
+                "causeCode": "ECONNRESET"
+              }
+            },
+            {
+              "turn": 5,
+              "subtype": "error",
+              "errorDetails": {
+                "kind": "transport",
+                "name": "TypeError",
+                "causeCode": "ECONNRESET"
+              }
+            }
+          ],
+          "subtypeCounts": {
+            "success": 10,
+            "error": 2
+          },
+          "lengthMinimum": 14,
+          "lengthMaximum": 14
+        },
+        "fetchDiagnostics": {
+          "available": true,
+          "enabled": true,
+          "truncated": false,
+          "events": [
+            {
+              "event": "undici:request:error",
+              "endpoint": "loopback-broker",
+              "error": {
+                "kind": "transport",
+                "name": "Error",
+                "code": "ECONNRESET"
+              }
+            },
+            {
+              "event": "undici:request:error",
+              "endpoint": "loopback-broker",
+              "error": {
+                "kind": "transport",
+                "name": "Error",
+                "code": "ECONNRESET"
+              }
+            }
+          ]
+        },
+        "fetchRuntime": {
+          "coordinate": "parent-shared-binary-and-cli-module-resolution",
+          "node": "22.12.0",
+          "uv": "1.49.1",
+          "bundledUndici": "6.21.0",
+          "ollamaUndici": "7.30.1"
+        },
+        "resources": {
+          "kind": "fd",
+          "before": 23,
+          "after": 22,
+          "delta": -1,
+          "maximum": 23,
+          "peakDelta": 0,
+          "limitGrowth": 8,
+          "requiredMeasurementsAvailable": true
+        },
+        "rss": {
+          "beforeBytes": 207486976,
+          "afterBytes": 217907200,
+          "growthBytes": 10420224,
+          "maximumBytes": 298975232,
+          "peakGrowthBytes": 91488256,
+          "limitGrowthBytes": 134217728
+        },
+        "processDescendants": {
+          "measurementAvailable": true,
+          "beforeSource": "pgrep",
+          "afterSource": "pgrep",
+          "unavailableReason": null,
+          "beforeExit": 0,
+          "observed": 0,
+          "retired": 0,
+          "afterExit": 0,
+          "allRetired": true
+        }
+      }
+    }
+  ],
+  "attribution": {
+    "confirmed": "ecd2 Linux has two UND_ERR_SOCKET failures and macOS has two ECONNRESET failures to loopback-broker with installed Ollama undici 7.30.1; maintained Agent alone did not fix CI duplex failures.",
+    "mechanismTargeted": "Default ungoverned Ollama requests no longer reuse idle sockets across synchronous agent turns.",
+    "limits": [
+      "Exact CI socket lifecycle root cause has not been conclusively established.",
+      "This local six-turn before probe did not reproduce a native transport error; all six old-Agent requests succeeded.",
+      "Endpoint classification does not demonstrate a compaction endpoint leak; CI resolution confirms the intended dependency version.",
+      "Local tests and probes do not replace exact release commit Linux, Windows, and macOS CI gates."
+    ]
+  },
+  "implementation": {
+    "defaultDispatcher": "undici Agent({ pipelining: 0 })",
+    "retryAdded": false,
+    "callerExplicitDispatcherPreserved": true,
+    "globalFetchInjectionPreserved": true,
+    "activeFormalBudgetScope": "Original init forwarded without adding or replacing dispatcher; host governed transport remains authoritative.",
+    "tradeoff": "Default Ollama requests establish a fresh TCP connection, and a fresh TLS handshake when HTTPS is used. This adds connection latency and CPU overhead, especially for remote endpoints. Explicit dispatcher and formally governed transport policies remain caller-owned."
+  },
+  "tests": {
+    "node": "22.12.0",
+    "platform": "win32-x64",
+    "passed": 61,
+    "failed": 0,
+    "files": 4,
+    "suites": [
+      "__tests__/unit/ollama-provider-fetch.test.js",
+      "__tests__/unit/agent-core-stream-resilience.test.js",
+      "__tests__/unit/agent-core-streaming.test.js",
+      "src/lib/__tests__/provider-stream.test.js"
+    ],
+    "rawLog": {
+      "path": ".work/cli-ide-recovery-20261023/ollama-no-reuse-vitest.log",
+      "sha256": "43ed1aa77197d7191b055db81cf6fa3a17728ba8f8c4b10f8ae1bed25370f9c6"
+    },
+    "lostResponse": {
+      "attemptedPosts": 1,
+      "serverRequests": 1,
+      "replayObserved": false,
+      "outcome": "fetch failed propagated"
+    },
+    "preAbortedRequest": {
+      "serverRequests": 0,
+      "outcome": "AbortError propagated"
+    },
+    "boundaries": [
+      "global fetch injection",
+      "explicit proxy/TLS dispatcher",
+      "formal budget scope remains authoritative"
+    ],
+    "formatting": "Prettier check passed for both source files"
+  },
+  "independentHttpWorkerProbe": {
+    "evidence": {
+      "path": ".work/cli-ide-recovery-20261023/ollama-no-reuse-probe.json",
+      "sha256": "1a983f4eb1076fcfdd62eb7579f3b63b5e1c7cee032f88d0c754a6fb2437b2e2"
+    },
+    "rawLog": {
+      "path": ".work/cli-ide-recovery-20261023/ollama-no-reuse-probe.log",
+      "sha256": "49c99cda0cb8abe7994807eb80400b21eeff597773725a45e217aa1e69fe0786"
+    },
+    "node": "22.12.0",
+    "undici": "7.30.1",
+    "platform": "win32",
+    "longSyncPauseMs": 6500,
+    "longPauseCountPerMode": 2,
+    "shortSyncPauseMs": 20,
+    "before": {
+      "mode": "maintained-agent-before",
+      "attempts": 6,
+      "dispatches": 6,
+      "results": [
+        {
+          "turn": 1,
+          "ok": true,
+          "socket": 1
+        },
+        {
+          "turn": 2,
+          "ok": true,
+          "socket": 1
+        },
+        {
+          "turn": 3,
+          "ok": true,
+          "socket": 2
+        },
+        {
+          "turn": 4,
+          "ok": true,
+          "socket": 3
+        },
+        {
+          "turn": 5,
+          "ok": true,
+          "socket": 4
+        },
+        {
+          "turn": 6,
+          "ok": true,
+          "socket": 5
+        }
+      ],
+      "server": {
+        "connections": 5,
+        "records": [
+          {
+            "turn": 1,
+            "socket": 1
+          },
+          {
+            "turn": 2,
+            "socket": 1
+          },
+          {
+            "turn": 3,
+            "socket": 2
+          },
+          {
+            "turn": 4,
+            "socket": 3
+          },
+          {
+            "turn": 5,
+            "socket": 4
+          },
+          {
+            "turn": 6,
+            "socket": 5
+          }
+        ]
+      }
+    },
+    "after": {
+      "mode": "no-reuse-after",
+      "attempts": 6,
+      "dispatches": 6,
+      "results": [
+        {
+          "turn": 1,
+          "ok": true,
+          "socket": 1
+        },
+        {
+          "turn": 2,
+          "ok": true,
+          "socket": 2
+        },
+        {
+          "turn": 3,
+          "ok": true,
+          "socket": 3
+        },
+        {
+          "turn": 4,
+          "ok": true,
+          "socket": 4
+        },
+        {
+          "turn": 5,
+          "ok": true,
+          "socket": 5
+        },
+        {
+          "turn": 6,
+          "ok": true,
+          "socket": 6
+        }
+      ],
+      "server": {
+        "connections": 6,
+        "records": [
+          {
+            "turn": 1,
+            "socket": 1
+          },
+          {
+            "turn": 2,
+            "socket": 2
+          },
+          {
+            "turn": 3,
+            "socket": 3
+          },
+          {
+            "turn": 4,
+            "socket": 4
+          },
+          {
+            "turn": 5,
+            "socket": 5
+          },
+          {
+            "turn": 6,
+            "socket": 6
+          }
+        ]
+      }
+    },
+    "beforeInvariantFailure": {
+      "method": "Before-probe socket identities establish the equivalent negative invariant without swapping the shared helper or running a red test.",
+      "standaloneRedTestRun": false,
+      "freshSocketForEveryPost": false,
+      "reusedRequestRecords": [
+        {
+          "turn": 2,
+          "socket": 1
+        }
+      ]
+    },
+    "afterInvariant": {
+      "freshSocketForEveryPost": true,
+      "exactlyOneDispatchAndServerRequestPerPost": true,
+      "allSucceeded": true
+    }
+  },
+  "gates": {
+    "exactSourceMultiOsCiPassed": false,
+    "publicationAuthorizedByThisReport": false
+  }
+}

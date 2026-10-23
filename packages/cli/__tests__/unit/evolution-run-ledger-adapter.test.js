@@ -67,11 +67,13 @@ function backend() {
   const policyDigest = hash("evolution-run-policy");
   const sign = (message) =>
     createHmac("sha256", secret).update(message).digest("base64url");
+  const hooks = { onResolve: null, resolveCalls: 0 };
+  const artifactStore = new ArtifactStore({
+    dir: path.join(root, "artifacts"),
+    now: () => Date.parse(NOW),
+  });
   const artifactPorts = new EvolutionArtifactPorts({
-    artifactStore: new ArtifactStore({
-      dir: path.join(root, "artifacts"),
-      now: () => Date.parse(NOW),
-    }),
+    artifactStore,
     audience,
     tenantId: artifactTenantId,
     now: () => Date.parse(NOW),
@@ -86,6 +88,10 @@ function backend() {
     },
     currentAuthorityResolver: {
       resolve(request) {
+        if (request.action === "resolve") {
+          hooks.resolveCalls += 1;
+          hooks.onResolve?.();
+        }
         const core = {
           action: request.action,
           algorithm,
@@ -124,6 +130,7 @@ function backend() {
     loseNextResponse: false,
     verifyCalls: 0,
     onVerifyCall: null,
+    verificationOverrides: {},
   };
   const ledger = {
     read: vi.fn(() => structuredClone(state.events)),
@@ -139,6 +146,8 @@ function backend() {
         ledgerId: "ledger-agent",
         sequence: state.events.length,
         headDigest: state.events.at(-1)?.eventDigest ?? null,
+        verifiedAt: new Date(Date.parse(NOW) + state.verifyCalls).toISOString(),
+        ...state.verificationOverrides,
       };
     }),
     appendDomainEvent: vi.fn((input, options) => {
@@ -189,7 +198,15 @@ function backend() {
       ledgerArtifactResolver: resolver,
       now: () => Date.parse(NOW),
     });
-  return { artifactPorts, descriptor, ledger, makeAdapter, state };
+  return {
+    artifactPorts,
+    artifactStore,
+    descriptor,
+    hooks,
+    ledger,
+    makeAdapter,
+    state,
+  };
 }
 
 function event(sequence, type, suffix = String(sequence)) {
@@ -230,6 +247,84 @@ function fakeEvidenceAdapter() {
 }
 
 describe("EvolutionRunLedgerAdapter", () => {
+  it("authenticates a bounded pair of frontiers while resolving every artifact anew", () => {
+    const fixture = backend();
+    const adapter = fixture.makeAdapter();
+    adapter.appendEvent(event(1, EVENT_TYPES.RUN_STARTED));
+    for (let sequence = 2; sequence <= 5; sequence += 1) {
+      adapter.appendEvent(event(sequence, EVENT_TYPES.RAW_EVENT_REFERENCED));
+    }
+    for (let read = 0; read < 2; read += 1) {
+      fixture.ledger.verify.mockClear();
+      fixture.hooks.resolveCalls = 0;
+      expect(adapter.load().events).toHaveLength(5);
+      expect(fixture.ledger.verify).toHaveBeenCalledTimes(2);
+      expect(fixture.hooks.resolveCalls).toBeGreaterThanOrEqual(5);
+    }
+  });
+
+  it.each(["append", "replace", "rollback", "epoch", "ledgerId", "witness"])(
+    "rejects a concurrent %s during artifact resolution",
+    (mutation) => {
+      const fixture = backend();
+      const adapter = fixture.makeAdapter();
+      adapter.appendEvent(event(1, EVENT_TYPES.RUN_STARTED));
+      adapter.appendEvent(event(2, EVENT_TYPES.RAW_EVENT_REFERENCED));
+      fixture.hooks.onResolve = () => {
+        fixture.hooks.onResolve = null;
+        if (mutation === "append") {
+          fixture
+            .makeAdapter()
+            .appendEvent(event(3, EVENT_TYPES.RAW_EVENT_REFERENCED));
+        } else if (mutation === "replace") {
+          fixture.state.events[1].eventDigest = hash("replacement-head");
+        } else if (mutation === "rollback") {
+          fixture.state.events.pop();
+        } else {
+          const field = mutation === "witness" ? "witnessDigest" : mutation;
+          fixture.state.verificationOverrides[field] =
+            "changed-frontier-binding";
+        }
+      };
+      expect(() => adapter.load()).toThrowError(
+        expect.objectContaining({ code: EVOLUTION_RUN_LEDGER_CONFLICT_CODE }),
+      );
+    },
+  );
+
+  it("rechecks artifact bytes after a successful load without a ledger-head change", () => {
+    const fixture = backend();
+    const adapter = fixture.makeAdapter();
+    adapter.appendEvent(event(1, EVENT_TYPES.RUN_STARTED));
+    expect(adapter.load().events).toHaveLength(1);
+    const entry = fixture.artifactStore.list()[0];
+    const file = fixture.artifactStore.storedPath(entry);
+    const bytes = fs.readFileSync(file);
+    const originalStat = fs.statSync(file);
+    const changed = Buffer.from(bytes);
+    changed[changed.indexOf(Buffer.from("subject-1"))] = "X".charCodeAt(0);
+    expect(changed.equals(bytes)).toBe(false);
+    fs.chmodSync(file, 0o600);
+    fs.writeFileSync(file, changed);
+    fs.utimesSync(file, originalStat.atime, originalStat.mtime);
+    expect(() => adapter.load()).toThrow();
+  });
+
+  it("does not accept a caller-supplied identity through individual event resolution", () => {
+    const fixture = backend();
+    const adapter = fixture.makeAdapter();
+    adapter.appendEvent(event(1, EVENT_TYPES.RUN_STARTED));
+    fixture.ledger.verify.mockImplementation(() => {
+      throw new Error("physical ledger verification rejected");
+    });
+    expect(() =>
+      adapter._resolveEvent(fixture.state.events[0], {
+        epoch: "epoch-agent",
+        ledgerId: "ledger-agent",
+      }),
+    ).toThrow("physical ledger verification rejected");
+  });
+
   it("persists a contiguous canonical run and recovers it through a new adapter", () => {
     const fixture = backend();
     const first = fixture.makeAdapter();
@@ -416,8 +511,9 @@ describe("EvolutionRunLedgerAdapter", () => {
       now: () => new Date(NOW),
       idGenerator: () => `git-result-${++id}`,
     });
-    const { executeTool, _gitProcessDeps } =
-      await import("../../src/runtime/agent-core.js");
+    const { executeTool, _gitProcessDeps } = await import(
+      "../../src/runtime/agent-core.js"
+    );
     const originalRunner = _gitProcessDeps.run;
     _gitProcessDeps.run = vi.fn(() => ({
       status: 0,

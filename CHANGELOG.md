@@ -17,7 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bind Node 22.12's legacy Windows fast-stat device projection to the same native directory handle using the correct path structure, complete volume serial and 128-bit file ID; reject unbound or changed identities before and after flushing.
 - Bind Windows ledger ACL verification to a trusted parent volume when path and descriptor device projections differ; retain full-precision publication identities and reject metadata changes before and after fsync.
 - Classify fixed Windows startup errors without storing their content, and exclude request-context prose from MCP failure-code diagnostics.
-- Use Undici 7.30.1 or newer for Ollama's default dispatcher so idle connections are validated before sending after long processing pauses. Preserve explicitly configured dispatchers and existing request budgets.
+- Give each default Ollama request a fresh connection so long synchronous turns cannot reuse a retired idle socket; preserve explicit dispatchers, governed transport policy and existing request budgets without replaying requests.
+- Verify the Evolution Run ledger once before and after each history read, retaining individual artifact authentication and rejecting a changed frontier instead of re-verifying the entire ledger for every event.
+- Checkpoint duplex timeout diagnostics before retiring the owned process tree; preserve the original failure and retain temporary storage if cleanup cannot be confirmed.
 - Upgrade DOMPurify to 3.4.17 in desktop and Web Panel dependency graphs, including Monaco's nested copy. Run sanitizer regressions with DOMPurify's supported jsdom environment.
 - Prepare Agent SDK 0.2.16, CLI 0.166.118, Open VSX 0.37.160 and JetBrains 0.4.177. Publication requires complete exact-source Actions gates and public readback in that order; mobile and PC clients follow the IDEs.
 - Prepare product v5.0.3.141 with synchronized desktop, Android and iOS versions; require both paired IDE releases to be public before product builds proceed.
