@@ -262,6 +262,31 @@ test("invalid request windows reject before connecting or observing", () => {
   );
 });
 
+test("short late 40/42 window persists a completed summary before later turns", async () => {
+  const { observer, calls, summaries } = mockObserver({
+    startRequest: 40,
+    stopRequest: 42,
+  });
+  observer.observe("undici:request:trailers", 39);
+  assert.deepEqual(calls, []);
+  observer.observe("undici:request:trailers", 40);
+  await observer.settled();
+  observer.observe("undici:request:create", 41);
+  observer.observe("undici:request:trailers", 42);
+  assert.equal(calls.includes("Profiler.stop"), false);
+  observer.observe("undici:request:create", 42);
+  await observer.settled();
+  const completed = summaries.at(-1);
+  assert.equal(completed.status, "completed");
+  assert.equal(completed.startTrigger, "loopback-request-40-trailers");
+  assert.equal(completed.stopTrigger, "loopback-request-42-create");
+  assert.equal(completed.summarizedSamples, 3);
+  observer.observe("undici:request:create", 46);
+  observer.finish();
+  assert.equal(summaries.at(-1), completed);
+  assert.equal(calls.filter((call) => call === "Profiler.stop").length, 1);
+});
+
 test("a missed late start or stop remains incomplete and never fabricates a profile", async () => {
   for (const startObserved of [false, true]) {
     const { observer, calls, summaries } = mockObserver({

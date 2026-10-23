@@ -1,8 +1,8 @@
-name: CLI Turn Scale CPU Diagnostic (non-qualifying)
+name: CLI Late CPU Stop42 Diagnostic (non-qualifying)
 
 on:
   push:
-    branches: [feature/cli-turnscale-cpu-diagnostic-20261024]
+    branches: [feature/cli-late-cpu-stop42-diagnostic-20261024]
 
 permissions:
   contents: read
@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [windows-latest]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     env:
