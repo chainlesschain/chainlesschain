@@ -96,6 +96,7 @@ class AgentSession {
     child = null;
     listeners = new Map();
     exited = false;
+    inputFailed = false;
     _sessionId = null;
     constructor(options = {}) {
         this.options = options;
@@ -157,6 +158,12 @@ class AgentSession {
         };
         const child = spawnImpl(command, fullArgs, spawnOptions);
         this.child = child;
+        child.stdin?.on("error", (error) => {
+            // Pipe errors arrive asynchronously, outside write()'s try/catch.
+            // Keep draining stdout: the final receipt/result may still be buffered.
+            this.inputFailed = true;
+            this.emit("error", error);
+        });
         const decode = (0, ndjson_js_1.createNdjsonDecoder)((message) => this.dispatch(message), { onError: () => { } });
         child.stdout?.on("data", (chunk) => decode(chunk));
         const stderrDecoder = new TextDecoder("utf-8");
@@ -295,15 +302,33 @@ class AgentSession {
             }
         })();
     }
-    /** Write one protocol input event to the child's stdin. */
+    /**
+     * Queue one protocol input event. A true return means the local pipe queued
+     * it, including under backpressure; durable acceptance requires a receipt.
+     */
     write(event) {
         const stdin = this.child?.stdin;
-        if (!stdin || stdin.destroyed)
+        if (!this.running ||
+            this.inputFailed ||
+            !stdin ||
+            stdin.destroyed ||
+            stdin.writableEnded ||
+            stdin.writable === false)
             return false;
+        let frame;
         try {
-            return stdin.write((0, ndjson_js_1.encodeNdjson)(event));
+            frame = (0, ndjson_js_1.encodeNdjson)(event);
         }
         catch {
+            return false;
+        }
+        try {
+            // false from Writable.write means queued but backpressured, not rejected.
+            stdin.write(frame);
+            return true;
+        }
+        catch {
+            this.inputFailed = true;
             return false;
         }
     }
@@ -386,6 +411,7 @@ class AgentSession {
     }
     /** Graceful shutdown: close stdin so the CLI ends after the current turn. */
     end() {
+        this.inputFailed = true;
         try {
             this.child?.stdin?.end();
         }
@@ -398,6 +424,7 @@ class AgentSession {
         const child = this.child;
         if (!child || this.exited)
             return;
+        this.inputFailed = true;
         try {
             if (process.platform === "win32" && child.pid) {
                 // taskkill /T reaps the cmd.exe → node grandchild, which a plain

@@ -4,6 +4,8 @@
 
 按评估日期排列；同名的早期报告以日期区分，原有正文保留。
 
+最新续做：[2026-10-23 CLI / 双 IDE 输入交付与草稿恢复](../cli-ide-recovery-progress-2026-10-23.md)，包含 VS Code、JetBrains 及共享 SDK 的输入失败处理与本地验证。
+
 - [Claude Code IDE 插件对照优化建议](./CLAUDE_CODE_IDE_GAP_ANALYSIS_2026-07-10.md)
 - [ChainlessChain IDE 对照 Claude Code IDE 差距与优化建议](./CLAUDE_CODE_IDE_GAP_ANALYSIS.md)
 - [ChainlessChain 对照 Claude Code IDE 的增量差距与优化建议](./CLAUDE_CODE_IDE_INCREMENTAL_GAP_ANALYSIS_2026-07-13.md)

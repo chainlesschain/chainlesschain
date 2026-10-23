@@ -97,6 +97,9 @@ public final class AgentChatSession {
     // its own status line ("force-stopped …" / "next message applies"), so the
     // extra banner reads like an error after a normal action.
     private volatile boolean stopped;
+    // A failed write can be partial. Preserve that turn's unknown outcome,
+    // and reject later submissions before reserving another delivery.
+    private boolean inputFailed;
     private final java.util.concurrent.atomic.AtomicInteger pendingTurns =
             new java.util.concurrent.atomic.AtomicInteger();
 
@@ -594,7 +597,7 @@ public final class AgentChatSession {
     /** Stop either cancels preparation or follows this write in stdin order. */
     public synchronized boolean sendEvent(Map<String, Object> event, InputDispatch dispatch) {
         BufferedWriter writer = stdin;
-        if (!isRunning() || writer == null || event == null || !opts.canDispatch.getAsBoolean()) return false;
+        if (!isRunning() || inputFailed || writer == null || event == null || !opts.canDispatch.getAsBoolean()) return false;
         if (dispatch != null && !dispatch.reserve()) return false;
         // Account before flushing: a fast child can finish before the send
         // callback reaches the EDT. Partial writes stay conservatively pending
@@ -612,6 +615,7 @@ public final class AgentChatSession {
             writer.flush();
             return true;
         } catch (IOException e) {
+            inputFailed = true;
             return false;
         }
     }

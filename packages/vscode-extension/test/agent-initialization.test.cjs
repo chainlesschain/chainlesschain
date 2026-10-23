@@ -88,6 +88,22 @@ test("a cold agent can initialize after the former 15-second limit and dispatch 
   assert.deepEqual(settlements, ["unknown"]);
 });
 
+test("a failed durable pipe write remains unknown and is not reported as dispatched", async () => {
+  const { conv, onEvent, posts, send, settlements, writes } = makeSubmission();
+  conv.session.sendEvent = () => false;
+  onEvent({ type: "system", subtype: "init", input_receipts: { version: 1 } });
+  assert.equal(await send(), false);
+  assert.deepEqual(writes, []);
+  assert.deepEqual(settlements, ["unknown"]);
+  assert.equal(
+    posts.some((message) => message.kind === "submissionDispatched"),
+    false,
+  );
+  assert.ok(
+    posts.some((message) => /Input delivery is unknown/.test(message.text)),
+  );
+});
+
 test("an initialization failure before waiter registration rejects saved input immediately", async () => {
   const { conv, onEvent, posts, send, settlements, writes } = makeSubmission();
   onEvent({ type: "session_error", error: "spawn failed" });

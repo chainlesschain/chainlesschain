@@ -1,6 +1,7 @@
 const fs = require("fs/promises");
 const path = require("path");
 const crypto = require("crypto");
+const { setTimeout: delay } = require("node:timers/promises");
 const { checkImageEnvelope, writeImageTemps } = require("./image-attachments");
 const { readImageSnapshot } = require("./image-file-snapshot");
 
@@ -279,8 +280,23 @@ class DraftStore {
       } finally {
         await handle.close();
       }
-      assertCurrent();
-      await fs.rename(temporary, path.join(directory, "draft.json"));
+      const attempts = process.platform === "win32" ? 6 : 1;
+      for (let attempt = 0; attempt < attempts; attempt++) {
+        // Windows sharing locks can briefly prevent atomic replacement. Keep
+        // the old manifest intact and recheck page identity after each wait.
+        assertCurrent();
+        try {
+          await fs.rename(temporary, path.join(directory, "draft.json"));
+          break;
+        } catch (error) {
+          if (
+            attempt === attempts - 1 ||
+            !["EPERM", "EACCES", "EBUSY"].includes(error.code)
+          )
+            throw error;
+          await delay(20 * 2 ** attempt);
+        }
+      }
     } finally {
       await fs.unlink(temporary).catch(() => {});
     }

@@ -223,6 +223,13 @@ class InputDispatchTest {
             assertTrue(dispatch.dispatched());
             assertFalse(dispatch.cancel());
             assertTrue(agent.hasPendingTurns(), "partial writes keep conservative accounting");
+            // A failed pipe must stay closed to new submissions even if the
+            // process remains alive. Restoring the writer is a positive control
+            // that would otherwise permit a second, independently reserved turn.
+            field.set(agent, original);
+            InputDispatch later = new InputDispatch();
+            assertFalse(agent.sendEvent(AgentChatSession.userEvent("must not be queued", null), later));
+            assertFalse(later.dispatched(), "a known failed pipe cannot make new input unknown");
         } finally { agent.stopAndWait().get(10, TimeUnit.SECONDS); }
     }
 }

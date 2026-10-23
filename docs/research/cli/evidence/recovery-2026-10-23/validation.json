@@ -1,0 +1,270 @@
+{
+  "schema": "chainlesschain.cli-ide-recovery-validation/v1",
+  "recordedAt": "2026-10-23T09:33:25.013Z",
+  "baselineHead": "79b7d49841341eb4caf135414183c1311db58b75",
+  "branch": "feature/cli-ide-recovery-20261023",
+  "scope": [
+    "RUN-03",
+    "IDE-03"
+  ],
+  "state": "LOCAL_FIXES_VERIFIED_UNRELEASED",
+  "environment": {
+    "platform": "win32",
+    "architecture": "x64",
+    "node": "v22.22.2",
+    "jdk": "openjdk 21.0.12.1 2026-08-18 LTS\r\nOpenJDK Runtime Environment Temurin-21.0.12.1+1 (build 21.0.12.1+1-LTS)\r\nOpenJDK 64-Bit Server VM Temurin-21.0.12.1+1 (build 21.0.12.1+1-LTS, mixed mode, sharing)"
+  },
+  "sources": [
+    {
+      "path": "desktop-app-vue/src/main/vendor/agent-sdk/VENDORED.md",
+      "sha256": "11ffdcc37a3c69bc1d17d47300d4947e09ff6630081da7f51c605aac32cc2e12"
+    },
+    {
+      "path": "desktop-app-vue/src/main/vendor/agent-sdk/agent-session.js",
+      "sha256": "afb4503e758842f1330fd563dfb1b109a212f6a97f18eb0412e1fac9aa0e65b4"
+    },
+    {
+      "path": "packages/agent-sdk/README.md",
+      "sha256": "9744b09a14e9f27ca94ee4bc05154b3cdd04ea2d12d4eeb3ad00050daa06a435"
+    },
+    {
+      "path": "packages/agent-sdk/__tests__/agent-session.test.ts",
+      "sha256": "ae5eec6622de5ed511c839a59dd8802f04899bcf2645d8c12b4001119e8b8c95"
+    },
+    {
+      "path": "packages/agent-sdk/src/agent-session.ts",
+      "sha256": "adec689bbe8d23ed2b83740d14fac093ecfe9253923378f758932db16c354912"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/vscode-ext-draft-store.test.js",
+      "sha256": "d24be6eb2497a4df33657b56a57ce0b01f09d5010ade07778f98d5653dd8ee33"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/AgentChatSession.java",
+      "sha256": "3146b03c1967d372d0799cf717dec04d47d6ad1dfeff7e52ddaa9018978e9c01"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java",
+      "sha256": "81697a5c006561a2cbb66db48d3c14aff2edac5976c5dac00058488f2e7d2ea3"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/InputDispatchTest.java",
+      "sha256": "fbebb39cf9aae18e4c81fdd77a2f2c95cc68cfcaf31dddc4bdcde6ce3b9557b2"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/agent-session.js",
+      "sha256": "89604ab713fa6ac806e9961dd7025a381407b81d71401c2540cd5fe97330e24f"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/chat-view.js",
+      "sha256": "76ee39636b2331956c3538bdafed6a59f7106ad9b7f71ac200af5c8801058afd"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/draft-store.js",
+      "sha256": "958cb6c9ee7844b49a92dcc6036a8efab08da31887b0457c4e484c80182b2bf0"
+    },
+    {
+      "path": "packages/vscode-extension/src/vendor/agent-sdk/VENDORED.md",
+      "sha256": "4bfe5d3b7e8a8395077a260f530c73d2ee32b9b0983888ea6c6c3560ee8f7df6"
+    },
+    {
+      "path": "packages/vscode-extension/src/vendor/agent-sdk/agent-session.js",
+      "sha256": "afb4503e758842f1330fd563dfb1b109a212f6a97f18eb0412e1fac9aa0e65b4"
+    },
+    {
+      "path": "packages/vscode-extension/test/agent-initialization.test.cjs",
+      "sha256": "2c0a17d019e86fe5306bd2b6b4e68e5d951cdeddd354eac406cff1724a1b4e56"
+    },
+    {
+      "path": "packages/vscode-extension/test/agent-session-utf8.test.cjs",
+      "sha256": "9f4e02aa701b323658fefa18ef520b3bc5b07c3a1c85a6a545a10db704aae32f"
+    }
+  ],
+  "tests": {
+    "agentSdk": {
+      "success": true,
+      "fileCount": 9,
+      "tests": 98,
+      "passed": 98,
+      "failed": 0,
+      "pending": 0,
+      "failures": [],
+      "report": "agent-sdk-tests.json",
+      "command": "node ../../node_modules/vitest/vitest.mjs run",
+      "cwd": "packages/agent-sdk",
+      "liveCliProcess": true,
+      "provider": "deterministic localhost fixture"
+    },
+    "cliInitial": {
+      "success": false,
+      "fileCount": 8,
+      "tests": 99,
+      "passed": 98,
+      "failed": 1,
+      "pending": 0,
+      "failures": [
+        {
+          "name": "durable composer storage serializes rapid edits without rewriting attachment snapshots",
+          "failureMessages": [
+            "Error: EPERM: operation not permitted, rename 'C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-draft-dJXHZz\\592a1fff-06dd-45e7-a2e9-a4475b7d3af3\\df79a34c-9c81-4dfd-bc67-8c33087477ba.tmp' -> 'C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-draft-dJXHZz\\592a1fff-06dd-45e7-a2e9-a4475b7d3af3\\draft.json'\n    at Object.rename (node:internal/fs/promises:784:10)\n    at DraftStore._write (C:/code/chainlesschain/packages/vscode-extension/src/chat/draft-store.js:283:7)\n    at C:/code/chainlesschain/packages/vscode-extension/src/chat/draft-store.js:327:11",
+            "Error: ENOTEMPTY: directory not empty, rmdir 'C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-draft-dJXHZz\\592a1fff-06dd-45e7-a2e9-a4475b7d3af3'"
+          ]
+        }
+      ],
+      "report": "cli-before-draft-fix.json",
+      "note": "Preserved actual Windows EPERM rename failure and original afterEach cleanup failure; before the five new Windows fault-injection tests."
+    },
+    "cliFinal": {
+      "success": true,
+      "fileCount": 8,
+      "tests": 104,
+      "passed": 104,
+      "failed": 0,
+      "pending": 0,
+      "failures": [],
+      "report": "cli-tests.json",
+      "cwd": "packages/cli",
+      "files": [
+        "packages/cli/__tests__/unit/headless-stream-interrupt.test.js",
+        "packages/cli/__tests__/unit/headless-stream-resume.test.js",
+        "packages/cli/__tests__/unit/session-input-receipt.test.js",
+        "packages/cli/__tests__/unit/vscode-ext-agent-session-sdk.test.js",
+        "packages/cli/__tests__/unit/vscode-ext-agent-session-treekill.test.js",
+        "packages/cli/__tests__/unit/vscode-ext-chat-tabs.test.js",
+        "packages/cli/__tests__/unit/vscode-ext-draft-store.test.js",
+        "packages/cli/__tests__/unit/vscode-ext-streaming-transcript.test.js"
+      ]
+    },
+    "draftStore": {
+      "success": true,
+      "fileCount": 1,
+      "tests": 43,
+      "passed": 43,
+      "failed": 0,
+      "pending": 0,
+      "failures": [],
+      "report": "draft-store-tests.json",
+      "includedInCliFinal": true
+    },
+    "vscode": {
+      "command": "npm run test:unit",
+      "cwd": "packages/vscode-extension",
+      "passed": 294,
+      "failed": 0,
+      "skipped": 0,
+      "report": "vscode-tests.txt"
+    },
+    "jetbrains": {
+      "passed": 25,
+      "failed": 0,
+      "skipped": 0,
+      "runner": "JUnit Platform 1.10.2 / Jupiter 5.10.2, standalone JDK 21",
+      "testClasses": [
+        "AgentChatSessionTest",
+        "InputDispatchTest"
+      ],
+      "compiledProductionFromSource": true,
+      "generatedKotlinProtocol": "Gradle-generated AgentStreamEventType",
+      "report": "jetbrains-tests.txt",
+      "failedBeforeFix": "jetbrains-before.txt"
+    }
+  },
+  "builds": {
+    "agentSdk": {
+      "result": "success",
+      "command": "node packages/vscode-extension/scripts/sync-agent-sdk.mjs",
+      "formats": [
+        "ESM",
+        "CJS"
+      ],
+      "protocolCheck": true,
+      "vendorSyncCheck": "success"
+    },
+    "jetbrains": {
+      "result": "success",
+      "commands": [
+        "gradlew.bat --offline --no-daemon compileJava",
+        "gradlew.bat --offline --no-daemon buildPlugin"
+      ],
+      "jdkHome": ".work/jdk21-release-validation/jdk-21.0.12.1+1",
+      "report": "jetbrains-build.txt",
+      "localArchive": {
+        "path": "packages/jetbrains-plugin/build/distributions/chainlesschain-ide-bridge-0.4.176.zip",
+        "bytes": 1550166,
+        "sha256": "e0da099b162076fb9b3621d709cbe100d826590b2ad3c6364b0b2f98ce1b6b4c",
+        "publication": false,
+        "note": "Local development build retains existing package version; not the published Marketplace ZIP."
+      }
+    }
+  },
+  "checks": {
+    "prettier": "passed for changed source/test/README files",
+    "diffWhitespace": "passed",
+    "eslint": {
+      "result": "unavailable",
+      "reason": "node_modules/eslint/bin/eslint.js MODULE_NOT_FOUND; not counted as passed"
+    }
+  },
+  "artifacts": [
+    {
+      "path": "agent-sdk-tests.json",
+      "bytes": 30688,
+      "sha256": "94b8a14ea8369eb5024985c3fd78f60594e6407c8326cd367adbab2fe07083f9",
+      "originalLogSha256": "94b8a14ea8369eb5024985c3fd78f60594e6407c8326cd367adbab2fe07083f9"
+    },
+    {
+      "path": "cli-before-draft-fix.json",
+      "bytes": 36652,
+      "sha256": "5087257ead4c57c6cdda65f5a6cc52ca214ea85a014840f3c982c085b3a22492",
+      "originalLogSha256": "5087257ead4c57c6cdda65f5a6cc52ca214ea85a014840f3c982c085b3a22492"
+    },
+    {
+      "path": "cli-tests.json",
+      "bytes": 37666,
+      "sha256": "aba4ee42ba2a2c1ca3ad3590136dc86e52c006843c527ff14f2a6b4dbfc64174",
+      "originalLogSha256": "aba4ee42ba2a2c1ca3ad3590136dc86e52c006843c527ff14f2a6b4dbfc64174"
+    },
+    {
+      "path": "draft-store-tests.json",
+      "bytes": 15688,
+      "sha256": "7d8513d79e26cc4e8d0e1d002b09d3a43449c2a7ac9987f374e1c1098c26fe14",
+      "originalLogSha256": "7d8513d79e26cc4e8d0e1d002b09d3a43449c2a7ac9987f374e1c1098c26fe14"
+    },
+    {
+      "path": "jetbrains-before.txt",
+      "bytes": 1666,
+      "sha256": "362c8bc90d5fec81ac169bc7ab14ba63ebf8d8e85a253365e63617c2d6feb7cf",
+      "originalLogSha256": "8acb9581434c9ac258a366264c7098b42cc8a0bd04f4fac2ccfc2445f69a4a50"
+    },
+    {
+      "path": "jetbrains-tests.txt",
+      "bytes": 466,
+      "sha256": "1bc8d6fd89ed2c77241cbafe0a4ec92a1f3d6e5b862189b67f9b467106d7ed76",
+      "originalLogSha256": "6ef1916081ebe01b4e79414b4a5e1f5b750249a7d2451975050fba24f62a6310"
+    },
+    {
+      "path": "vscode-tests.txt",
+      "bytes": 63161,
+      "sha256": "f91624d60cd0deb87a334e82822ae3c87defef59dbeaeae288e971b16a0c4839",
+      "originalLogSha256": "3d24c59cf4f5ec2a76553110bc380b8211df48875a4ecabacbe66a444d734778"
+    },
+    {
+      "path": "jetbrains-build.txt",
+      "bytes": 13864,
+      "sha256": "0dcace3c4efecf351cb00f778cffe625ff8be1937400f5cfe05edad72ef1d45d",
+      "originalLogSha256": "c3664ec3d15e79c1a7302f15acb27c7693f51505208d2717f11538e07a393ba4"
+    }
+  ],
+  "artifactEncoding": "JSON reports copied byte-for-byte. PowerShell text logs normalized to UTF-8/LF with trailing whitespace and extra EOF blank lines removed; reported outcomes are unchanged and original log digests are retained.",
+  "limits": {
+    "authoritativeBranchMatrices": "NOT_RUN_AT_RECORDING",
+    "publishedVersionsChanged": false,
+    "paidModelCalls": 0,
+    "newFormalSamples": 0,
+    "publicPackageInstallJourneys": "NOT_RUN",
+    "paidReady": false,
+    "nativeAdmission": "NOT_ADMITTED",
+    "automaticPromotion": "HOLD",
+    "physicalEpipeAfterOsProcessCrash": "Not claimed: deterministic pipe-error injection plus real Writable backpressure and existing CLI subprocess E2E."
+  }
+}

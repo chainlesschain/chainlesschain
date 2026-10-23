@@ -553,9 +553,13 @@ class ChatViewProvider {
       )
         throw new Error("Conversation changed; input was not dispatched");
       dispatched = true;
-      this._sendMessage(message, input.paths, conv, { id, version, session });
+      const sent = this._sendMessage(message, input.paths, conv, {
+        id,
+        version,
+        session,
+      });
       await this._restoreDraft(conv, { composer: false });
-      return true;
+      return sent;
     } catch (error) {
       if (error === conv.inputInitError) conv.inputInitErrorReported = true;
       if (prepared && !dispatched)

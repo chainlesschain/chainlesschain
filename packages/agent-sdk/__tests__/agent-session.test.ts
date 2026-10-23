@@ -1,4 +1,5 @@
 import { EventEmitter } from "node:events";
+import { Writable } from "node:stream";
 import { describe, expect, it, vi } from "vitest";
 
 import {
@@ -33,8 +34,9 @@ class FakeChild extends EventEmitter {
   }
 }
 
-function startSession(options: AgentSessionOptions = {}) {
+function startSession(options: AgentSessionOptions = {}, stdin?: Writable) {
   const child = new FakeChild();
+  if (stdin) Object.assign(child, { stdin });
   const spawn = vi.fn(() => child);
   const session = new AgentSession({
     ...options,
@@ -264,6 +266,60 @@ describe("AgentSession", () => {
       { type: "compact" },
       { type: "plan", action: "approve" },
     ]);
+  });
+
+  it("reports a backpressured input as queued without duplicating the turn", async () => {
+    const frames: string[] = [];
+    const stdin = new Writable({
+      highWaterMark: 1,
+      write(chunk, _encoding, callback) {
+        frames.push(String(chunk));
+        setImmediate(callback);
+      },
+    });
+    const { session } = startSession({}, stdin);
+    try {
+      expect(session.send("中文🙂", { clientMessageId: "queued-1" })).toBe(
+        true,
+      );
+      expect(stdin.writableNeedDrain).toBe(true);
+      await flush();
+      expect(frames.map((frame) => JSON.parse(frame))).toEqual([
+        { type: "user", text: "中文🙂", client_message_id: "queued-1" },
+      ]);
+    } finally {
+      stdin.destroy();
+    }
+  });
+
+  it("surfaces a broken input pipe, blocks further sends and drains the final result", async () => {
+    const { session, child, push, writtenEvents } = startSession();
+    const errors = vi.fn();
+    session.on("error", errors);
+    const result = session.nextResult();
+    expect(session.send("first", { clientMessageId: "in-flight" })).toBe(true);
+    const failure = Object.assign(new Error("broken input pipe"), {
+      code: "EPIPE",
+    });
+    expect(() => child.stdin.emit("error", failure)).not.toThrow();
+    expect(errors).toHaveBeenCalledWith(failure);
+    expect(session.send("must not be queued")).toBe(false);
+    child.emit("exit", 1);
+    push({ type: "result", subtype: "success", is_error: false });
+    child.emit("close", 1);
+    await expect(result).resolves.toEqual(
+      expect.objectContaining({ subtype: "success" }),
+    );
+    expect(writtenEvents()).toEqual([
+      { type: "user", text: "first", client_message_id: "in-flight" },
+    ]);
+  });
+
+  it("refuses new input after process exit while stdout is still draining", () => {
+    const { session, child, writtenEvents } = startSession();
+    child.emit("exit", 0);
+    expect(session.send("too late")).toBe(false);
+    expect(writtenEvents()).toEqual([]);
   });
 
   it("keeps direct boolean approval responses on the N-1 wire", () => {

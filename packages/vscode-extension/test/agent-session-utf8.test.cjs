@@ -3,6 +3,7 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 const { EventEmitter } = require("node:events");
+const { Writable } = require("node:stream");
 const { AgentChatSession } = require("../src/chat/agent-session");
 
 function fakeChild() {
@@ -64,4 +65,71 @@ test("agent session discards an oversized stderr line through its newline", () =
     "[stderr line exceeded 1 MiB and was discarded]",
     "next-line",
   ]);
+});
+
+test("agent session blocks input after a pipe failure and still drains the final receipt", () => {
+  const child = fakeChild();
+  const events = [];
+  const writes = [];
+  child.stdin.write = (frame) => {
+    writes.push(JSON.parse(frame));
+    return true;
+  };
+  const session = new AgentChatSession({
+    deps: { spawn: () => child },
+    onEvent: (event) => events.push(event),
+  }).start();
+  const input = { type: "user", text: "hello", client_message_id: "in-flight" };
+  assert.equal(session.sendEvent(input), true);
+  child.stdin.emit(
+    "error",
+    Object.assign(new Error("broken pipe"), { code: "EPIPE" }),
+  );
+  assert.equal(session.send("must not be queued"), false);
+  const receipt = {
+    type: "system",
+    subtype: "input_accepted",
+    client_message_id: "in-flight",
+  };
+  child.stdout.emit("data", Buffer.from(JSON.stringify(receipt)));
+  child.emit("close", 1, null);
+  assert.deepEqual(writes, [input]);
+  assert.match(events[0].error, /Input delivery failed/);
+  assert.deepEqual(events[1], receipt);
+});
+
+test("agent session refuses input after stdin.end before the process closes", () => {
+  const child = fakeChild();
+  const writes = [];
+  child.stdin = new Writable({
+    write(frame, _encoding, callback) {
+      writes.push(String(frame));
+      callback();
+    },
+  });
+  // Keep the pre-fix WRITE_AFTER_END event from escaping the test process.
+  child.stdin.on("error", () => {});
+  const session = new AgentChatSession({
+    deps: { spawn: () => child },
+  }).start();
+  session.end();
+  assert.equal(session.send("too late"), false);
+  assert.deepEqual(writes, []);
+});
+
+test("agent session refuses input after signal exit before stdio closes", () => {
+  const child = fakeChild();
+  const writes = [];
+  child.stdin.write = (frame) => {
+    writes.push(frame);
+    return true;
+  };
+  const session = new AgentChatSession({
+    deps: { spawn: () => child },
+  }).start();
+  child.signalCode = "SIGTERM";
+  child.emit("exit", null, "SIGTERM");
+  assert.equal(session.running, false);
+  assert.equal(session.send("too late"), false);
+  assert.deepEqual(writes, []);
 });

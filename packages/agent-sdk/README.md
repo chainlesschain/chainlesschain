@@ -34,6 +34,12 @@ session.send("run the tests and fix failures");
 const result = await nextResult;
 ```
 
+`send()` and `write()` return whether input was queued in the local pipe. Pipe
+backpressure still returns `true`; durable acceptance requires the CLI's input
+receipt. An asynchronous pipe failure emits `error` and blocks later writes.
+Already queued input can remain unconfirmed, so check its receipt before
+resending. Buffered stdout continues draining for the final receipt or result.
+
 Hosts that need to distinguish the current canonical event inventory from an
 unknown future event can import `isKnownAgentEvent` from
 `@chainlesschain/agent-sdk/protocol`. The existing `isAgentEvent` remains the

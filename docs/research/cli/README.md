@@ -4,6 +4,8 @@
 
 按评估日期排列；同名的早期报告以日期区分，原有正文保留。
 
+最新续做：[2026-10-23 CLI / 双 IDE 输入交付与草稿恢复](../cli-ide-recovery-progress-2026-10-23.md)，承接 RUN-03 与 IDE-03，区分本地工程验证、公开发布和完整产品验收。
+
 CLI / IDE 持续目标扩展的独立在线草稿连接、来源选择与未知结果查询，见 [Dots / Muse / Mods 实施进度](../agents/dots-muse-mods-implementation-progress-2026-10-07.md#cliide-在线待审草稿连接2026-10-18)。该能力仍为本地未发布实现。
 
 - [VERIFY-01：36+9 具体任务清单（火山引擎 v3）](./verify01-36-plus-9-task-list.md)

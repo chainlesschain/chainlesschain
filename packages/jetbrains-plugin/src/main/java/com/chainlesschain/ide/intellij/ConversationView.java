@@ -857,6 +857,8 @@ final class ConversationView {
                         // Preserve the legacy turn FIFO; store snapshots remain
                         // owned by saved submissions until confirmed idle/discard.
                         sentImageBatches.addLast(new java.util.ArrayList<>());
+                    } else if (dispatch.dispatched()) {
+                        append("⚠ Input delivery is unconfirmed. Check Saved inputs and the conversation before resending.\n");
                     } else {
                         append("⚠ agent session is not running — press New to restart\n");
                     }

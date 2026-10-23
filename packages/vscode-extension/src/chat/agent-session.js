@@ -26,8 +26,7 @@ const { buildAgentArgs } = require("../vendor/agent-sdk/agent-session.js");
 const { createNdjsonDecoder } = require("../vendor/agent-sdk/ndjson.js");
 
 const MAX_STDERR_LINE_BYTES = 1024 * 1024;
-const OVERSIZED_STDERR_LINE =
-  "[stderr line exceeded 1 MiB and was discarded]";
+const OVERSIZED_STDERR_LINE = "[stderr line exceeded 1 MiB and was discarded]";
 
 class AgentChatSession {
   /**
@@ -52,6 +51,8 @@ class AgentChatSession {
     this._stderrDecoder = null;
     this._stderrDiscarding = false;
     this._stopPromise = null;
+    this._exited = false;
+    this._inputFailed = false;
     this._protocolGeneration = randomUUID();
     this._protocolSequence = 0;
   }
@@ -59,6 +60,7 @@ class AgentChatSession {
   get running() {
     return (
       !!this.child &&
+      !this._exited &&
       !this._stopPromise &&
       this.child.exitCode == null &&
       !this.child.killed
@@ -68,6 +70,8 @@ class AgentChatSession {
   start() {
     if (this.child) return this;
     this._stopPromise = null;
+    this._exited = false;
+    this._inputFailed = false;
     this._protocolGeneration = randomUUID();
     this._protocolSequence = 0;
     const command = this.opts.command || "cc";
@@ -101,7 +105,11 @@ class AgentChatSession {
           : this._stderrDecoder.decode(chunk, { stream: true }),
       );
     });
+    this.child.on("exit", () => {
+      this._exited = true;
+    });
     this.child.on("close", (code, signal) => {
+      this._exited = true;
       // Flush a final unterminated line — error output often lacks the
       // trailing \n and would otherwise be dropped silently.
       try {
@@ -137,9 +145,10 @@ class AgentChatSession {
     // stdin can emit an ASYNC 'error' (EPIPE) when we write just as the child
     // dies (crash mid-turn, or cc closing stdin) — with no listener it throws
     // uncaught in the extension host. The sync try/catch in sendEvent can't
-    // catch it; swallow it here (the "close" handler drives recovery).
+    // catch it. Block later writes but continue draining stdout for receipts.
     if (this.child.stdin)
       this.child.stdin.on("error", (error) => {
+        this._inputFailed = true;
         this._emit({
           type: "session_error",
           error: `Input delivery failed: ${error.message}`,
@@ -226,12 +235,30 @@ class AgentChatSession {
 
   /** Send one raw NDJSON event (user turn / plan control / …). */
   sendEvent(obj) {
-    if (!this.running || !obj || typeof obj !== "object") return false;
+    const stdin = this.child?.stdin;
+    if (
+      !this.running ||
+      this._inputFailed ||
+      !stdin ||
+      stdin.destroyed ||
+      stdin.writableEnded ||
+      stdin.writable === false ||
+      !obj ||
+      typeof obj !== "object"
+    )
+      return false;
+    let frame;
+    try {
+      frame = JSON.stringify(obj) + "\n";
+    } catch {
+      return false;
+    }
     try {
       this._recordProtocol("input", obj);
-      this.child.stdin.write(JSON.stringify(obj) + "\n");
+      stdin.write(frame);
       return true;
     } catch {
+      this._inputFailed = true;
       return false;
     }
   }
@@ -244,6 +271,7 @@ class AgentChatSession {
 
   /** End the conversation gracefully (close stdin → CLI tears down + exits). */
   end() {
+    this._inputFailed = true;
     try {
       this.child?.stdin?.end();
     } catch {

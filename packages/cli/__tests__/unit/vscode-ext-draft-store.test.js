@@ -20,6 +20,15 @@ async function storage() {
   roots.push(root);
   return root;
 }
+async function onWindows(action) {
+  const descriptor = Object.getOwnPropertyDescriptor(process, "platform");
+  Object.defineProperty(process, "platform", { value: "win32" });
+  try {
+    return await action();
+  } finally {
+    Object.defineProperty(process, "platform", descriptor);
+  }
+}
 const image = {
   data: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
 };
@@ -374,6 +383,102 @@ describe("durable composer storage", () => {
     }
     expect((await store.view(key)).composer.text).toBe("original");
     expect((await fs.readdir(path.join(root, key))).sort()).toEqual(before);
+  });
+  it.each(["EPERM", "EACCES", "EBUSY"])(
+    "preserves the old manifest while recovering from a transient Windows %s rename",
+    async (code) => {
+      const root = await storage();
+      const key = randomUUID();
+      const store = new DraftStore(root);
+      await store.save(key, { text: "original", images: [image] });
+      const file = path.join(root, key, "draft.json");
+      const before = await fs.readFile(file);
+      const rename = fs.rename.bind(fs);
+      let failures = 0;
+      const spy = vi
+        .spyOn(fs, "rename")
+        .mockImplementation(async (source, target) => {
+          if (failures++ < 2) {
+            expect(await fs.readFile(file)).toEqual(before);
+            throw Object.assign(new Error("temporary sharing lock"), { code });
+          }
+          return rename(source, target);
+        });
+      try {
+        await onWindows(() => store.save(key, { text: "latest 中文🙂" }));
+        const restored = await new DraftStore(root).view(key);
+        expect(restored.composer.text).toBe("latest 中文🙂");
+        expect(restored.composer.images[0].data).toBe(image.data);
+        expect(
+          (await fs.readdir(path.dirname(file))).some((name) =>
+            name.endsWith(".tmp"),
+          ),
+        ).toBe(false);
+      } finally {
+        spy.mockRestore();
+      }
+    },
+  );
+
+  it("bounds Windows rename retries and retains the prior draft on permanent refusal", async () => {
+    const root = await storage();
+    const key = randomUUID();
+    const store = new DraftStore(root);
+    await store.save(key, { text: "original", images: [image] });
+    const file = path.join(root, key, "draft.json");
+    const before = await fs.readFile(file);
+    const names = (await fs.readdir(path.dirname(file))).sort();
+    const failure = Object.assign(new Error("permanent refusal"), {
+      code: "EPERM",
+    });
+    const spy = vi.spyOn(fs, "rename").mockRejectedValue(failure);
+    try {
+      await onWindows(() =>
+        expect(store.save(key, { text: "unsaved" })).rejects.toBe(failure),
+      );
+      expect(spy.mock.calls.length).toBeGreaterThan(1);
+      expect(spy.mock.calls.length).toBeLessThanOrEqual(8);
+      expect(await fs.readFile(file)).toEqual(before);
+      expect((await fs.readdir(path.dirname(file))).sort()).toEqual(names);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("rechecks page identity after a Windows rename retry wait", async () => {
+    const root = await storage();
+    const key = randomUUID();
+    const store = new DraftStore(root);
+    await store.save(key, { text: "original" });
+    const file = path.join(root, key, "draft.json");
+    const before = await fs.readFile(file);
+    let current = true;
+    const spy = vi.spyOn(fs, "rename").mockImplementation(async () => {
+      current = false;
+      throw Object.assign(new Error("temporary sharing lock"), {
+        code: "EPERM",
+      });
+    });
+    try {
+      await onWindows(() =>
+        expect(
+          store.save(
+            key,
+            { text: "obsolete" },
+            {
+              assertCurrent: () => {
+                if (!current) throw new Error("inactive page");
+              },
+            },
+          ),
+        ).rejects.toThrow("inactive page"),
+      );
+      expect(spy).toHaveBeenCalledTimes(1);
+      expect(await fs.readFile(file)).toEqual(before);
+      expect(await fs.readdir(path.dirname(file))).toEqual(["draft.json"]);
+    } finally {
+      spy.mockRestore();
+    }
   });
   it("bounds pending records and does not evict unknown inputs", async () => {
     const store = new DraftStore(await storage());

@@ -1,0 +1,192 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.7/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build
+Calculating task graph as configuration cache cannot be reused because JVM has changed.
+> Task :checkKotlinGradlePluginConfigurationErrors
+> Task :initializeIntellijPlatformPlugin
+> Task :generateManifest
+> Task :generatePluginMetadata
+
+> Task :patchPluginXml
+[org.jetbrains.intellij.platform] Patching plugin.xml: value of 'change-notes[
+        <b>0.4.29 / 0.4.30</b> �� fix: <b>"Configure LLM" now pre-fills your config</b>
+        �� no more re-typing model+key. The wizard pre-fills your current model, base
+        URL and vision model, pre-selects your current provider (? ��ǰ), and lets you
+        <b>leave the API key blank to keep the stored one</b> (only required when there's
+        no key yet or you switch providers). The config itself was never lost �� it lives
+        in <code>~/.chainlesschain/config.json</code> and survives CLI updates; the
+        wizard just didn't pre-fill it. (Mirrors the VS Code 0.34.0 fix. 0.4.30 adds
+        this very change-note, which 0.4.29 omitted.)
+        <br/><br/>
+        <b>0.4.28</b> �� docs: the Marketplace "What's New" now lists every release
+        (it had silently stopped at 0.4.19 �� change-notes are no longer missed).
+        <br/><br/>
+        <b>0.4.27</b> �� cleared the 2 deprecated-API usages the Marketplace verifier
+        flagged (now <code>URI.toURL()</code> + a combo-box dialog), so the plugin
+        stays compatible with future IntelliJ releases.
+        <br/><br/>
+        <b>0.4.26</b> �� fix: no more false "δ��⵽ cc CLI" when <code>cc</code> IS
+        installed. The version probe timeout went 5s �� 12s (cold starts), and since
+        <code>cc</code> is also the C compiler's name, the plugin now resolves the
+        binary with fallback (<code>cc �� chainlesschain �� clc �� clchain</code>) and
+        uses it for the chat spawn and every probe.
+        <br/><br/>
+        <b>0.4.25</b> �� the agent can actually ask you a question:
+        <code>ask_user_question</code> now pops a dialog (single-choice / multi-select
+        checkboxes / free-text input) so the agent can clarify instead of guessing.
+        Requires <code>cc</code> �� 0.162.95.
+        <br/><br/>
+        <b>0.4.24</b> �� fix: a graceful "couldn't ask in the panel" degradation no
+        longer renders as a scary <b>? ask_user_question</b> failure.
+        <br/><br/>
+        <b>0.4.23</b> �� new <b>? LLM �� ��� cc ���¡�</b> menu item (check on demand),
+        plus a clear hint when the <code>cc</code> CLI isn't installed.
+        <br/><br/>
+        <b>0.4.22</b> �� you're now told when a newer <code>cc</code> CLI is published
+        on npm, so you don't silently miss new features.
+        <br/><br/>
+        <b>0.4.21</b> �� fix: reconfiguring the LLM now restarts the running chat so it
+        picks up the new provider/model/key (no more "�����껹û�� / �¿��Ի�����").
+        <br/><br/>
+        <b>0.4.20</b> �� new <code>/review</code> command: review your uncommitted git
+        diff right from the chat (matches the VS Code panel).
+        <br/><br/>
+        <b>0.4.19</b> �� fix: the suggested vision model now matches the CLI's
+        actual default (<code>doubao-seed-2-0-lite-260215</code>) instead of an
+        older snapshot, so the prefilled value equals what
+        <code>cc agent --image</code> uses.
+        <br/><br/>
+        <b>0.4.18</b> �� dedicated image-recognition (vision) model entry: the
+        <b>? LLM</b> button is now a small menu (configure full LLM <i>or</i> just
+        the vision model), plus a <b>Tools �� Configure Vision Model</b> action.
+        Set <code>llm.visionModel</code> without re-running the whole wizard or
+        re-typing your API key; blank reverts to the text model.
+        <br/><br/>
+        <b>0.4.17</b> �� first-run nudge: when no LLM provider is configured yet,
+        the chat panel now shows a dim hint pointing at the <b>? LLM</b> button
+        instead of staying blank until the first turn fails with a 401 (VS Code
+        onboarding parity).
+        <br/><br/>
+        <b>0.4.16</b> �� chat panel LLM UX: (1) paste screenshots �� Ctrl/Cmd+V an
+        image to attach it to your next message (vision); (2) a <b>? LLM</b>
+        quick-entry button by Send opens the provider/model wizard, and auth
+        failures (401/403/missing key) now hint at it; (3) the wizard can set a
+        separate <b>image-recognition (vision) model</b> �� text and vision models
+        no longer have to be the same.
+        <br/><br/>
+        <b>0.4.15</b> �� multi-line chat composer: the input now wraps across
+        lines �� <b>Enter</b> sends, <b>Shift+Enter</b> adds a newline (VS Code
+        parity).
+        <br/><br/>
+        <b>0.4.14</b> �� extended-thinking reasoning (with <code>/think</code>) now
+        streams into the transcript dimmed/italic, set apart from the answer
+        (VS Code parity).
+        <br/><br/>
+        <b>0.4.13</b> �� Markdown rendering in the chat transcript: fenced/inline
+        <code>code</code> (monospace) and <b>bold</b> now render instead of raw
+        markers (VS Code parity). Streaming stays plain, then snaps to styled.
+        <br/><br/>
+        <b>0.4.12</b> �� "Fix with ChainlessChain" intention: on an error/warning
+        line, Alt+Enter offers a quick-fix that seeds the chat with a fix request
+        scoped to that file + those problems (VS Code parity).
+        <br/><br/>
+        <b>0.4.11</b> �� slash-command autocomplete: typing <code>/</code> at the
+        start of the chat input pops a chooser of the panel's commands
+        (<code>/new</code>, <code>/compact</code>, <code>/think</code>, ��),
+        filtered as you type (VS Code parity).
+        <br/><br/>
+        <b>0.4.10</b> �� fix: wrap the diff-review document reads
+        (<code>openDiff</code>/<code>openMultiDiff</code>) in a read action.
+        Since 2026.2 the EDT no longer grants implicit read access, so building
+        the diff threw "Read access is allowed from inside read-action only" on
+        2026.2+. No behavior change on 2025.x.
+        <br/><br/>
+        <b>0.4.9</b> �� fix: the chat tool window now deterministically uses the
+        LLM provider you configured (<code>cc config</code> / Configure LLM),
+        reading <code>~/.chainlesschain/config.json</code> and passing it
+        explicitly to <code>cc agent</code> �� no more spurious
+        <code>Anthropic error: 401</code> when another provider is configured.
+        <br/><br/>
+        <b>0.4.8</b> �� <code>/compact</code> in the chat tool window (Claude-Code
+        IDE parity): trims the live conversation history between turns (no extra
+        LLM call) and reports the tokens saved. Mirrors the VS Code 0.31.0
+        feature.
+        <br/><br/>
+        <b>0.4.7</b> �� cleared the remaining API-compatibility flags the Plugin
+        Verifier reported on 2026.x: the @-mention list renderer no longer uses a
+        scheduled-for-removal helper, and the deprecated terminal customizer was
+        removed (a <code>cc</code> you run in a terminal still auto-connects via the
+        bridge's discovery lockfile).
+        <br/><br/>
+        <b>0.4.6</b> �� newer-IDE compatibility: removed the last deprecated-API
+        usages (terminal-process listener + provider-chooser dialog). Plugin Verifier
+        reports no internal / scheduled-for-removal / deprecated API usage on 2025.2.
+        <br/><br/>
+        <b>0.4.5</b> �� reverted the experimental 0.4.4 <code>getTerminalOutput</code>
+        tool: the terminal API it used is not stable across IDE versions and caused
+        errors on some builds. Everything else is unchanged from 0.4.3.
+        <br/><br/>
+        <b>0.4.3</b> �� the <code>@</code>-mention symbol completion now covers
+        <b>methods/functions</b> too (not just classes) �� type a method name to
+        reference the file where it's defined.
+        <br/><br/>
+        <b>0.4.2</b> �� the <code>@</code>-mention popup now includes project class
+        symbols (type a class name to reference the file where it's defined),
+        alongside <code>@selection</code>/<code>@diagnostics</code> and files.
+        <br/><br/>
+        <b>0.4.1</b> �� expanded the plugin description / what's-new (no functional
+        change since 0.4.0).
+        <br/><br/>
+        <b>0.4.0</b> �� VS Code feature parity.
+        <ul>
+          <li>Multi-conversation <b>tabs</b> (one agent per tab, resume across restarts).</li>
+          <li><b>Approval modes</b> (<code>/auto</code>��<code>/bypass</code>��<code>/normal</code>)
+              and <b>extended thinking</b> (<code>/think</code>��<code>/ultrathink</code>��<code>/think-off</code>),
+              plus <code>/new</code> <code>/stop</code> <code>/cost</code> <code>/context</code>
+              <code>/plan</code> <code>/approve</code> <code>/reject</code>.</li>
+          <li><b>Interactive plan &amp; approval cards</b> (Approve/Deny buttons).</li>
+          <li>Editor <b>Explain / Refactor</b> actions, <code>@file#L</code> reference
+              insertion (<code>Ctrl/Cmd+Alt+K</code>), and an <code>@</code>-mention popup.</li>
+          <li>Native diff "<b>Request changes��</b>" with inline notes, and batch
+              <b>openMultiDiff</b> multi-file review.</li>
+          <li><b>In-editor app preview</b> (JCEF) with Start/Stop.</li>
+          <li>Live context-window indicator; new-chat / reopen-closed shortcuts.</li>
+        </ul>
+    ]' tag will be set to '<b>[0.4.176] - CLI 0.166.117 pairing (2026-10-23)</b><br/><ul><li>Pair with public CLI 0.166.117 and VS Code 0.37.159.</li><li>Verify the Doctor recommendation against the configured CLI version, while preserving the separate exact-version checks. The unpublished 0.4.175 candidate was retired after its stale recommendation assertion failed; its immutable tag is retained.</li></ul><br/><b>[0.4.175] - Unpublished candidate (2026-10-23)</b><br/><ul><li>Recommend CLI 0.166.117 for source and command evidence projection, complete bounded JSON tool previews, cumulative evidence budgets, and separate image and provider token accounting.</li><li>Update the package version and CLI pairing. Release verification uses the exact source commit and public artifact readback after the paired CLI and its dependencies are available.</li></ul><br/><b>[0.4.174] - CLI 0.166.115 pairing (candidate, 2026-10-22)</b><br/><ul><li>Recommend CLI 0.166.115 for JSON-compatible Agent tool evidence after Git, shell, code and slash commands.</li><li>Source candidate; exact-source gates and public artifact verification are pending.</li></ul><br/><b>[0.4.173] - CLI 0.166.114 pairing (uploaded, public download unverified, 2026-10-22)</b><br/><ul><li>Recommend CLI 0.166.114 for Quick Ask waiting and terminal error reporting, cancellation, bounded governed chat setup, and local signed Evolution recovery.</li><li>Marketplace upload succeeded before workflow cancellation after the paired CLI's Agent error was reported. Public approval and ZIP download were not verified.</li></ul><br/><b>[0.4.172] - CLI 0.166.112 pairing (2026-10-22)</b><br/><ul><li>Recommend CLI 0.166.112 for native Gemini and Anthropic Quick Ask routing and provider URL normalization.</li><li>Release tag: <code>ide-jetbrains-v0.4.172</code>. Public after the exact-source IDE gates and [publication workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/39676899944) passed; the public archive and paired CLI version were read back.</li></ul>'
+
+> Task :compileKotlin UP-TO-DATE
+> Task :processResources
+> Task :compileJava UP-TO-DATE
+> Task :classes
+> Task :instrumentCode SKIPPED
+> Task :jar
+> Task :composedJar
+> Task :prepareSandbox
+
+> Task :buildSearchableOptions
+.\gradlew.bat : 2026-10-23 17:27:53,159 [   1359]   WARN - c.i.o.u.r.overrides - Conflicting registry key definition fo
+r key kotlin.mpp.tests.force.gradle: it was defined by plugin org.jetbrains.kotlin but redefined by plugin org.jetbrain
+s.kotlin. Consider adding overrides="true" for one of the plugins, see the documentation for com.intellij.openapi.util.
+registry.RegistryKeyBean.overrides for more details.
+所在位置 行:3 字符: 1
++ .\gradlew.bat --offline --no-daemon '-Dorg.gradle.java.home=C:\code\c ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (2026-10-23 17:2...r more details.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+
+2026-10-23 17:27:53,755 [   1955]   WARN - #c.i.i.s.p.i.BundledSharedIndexProvider - Bundled shared index is not found
+at: C:\Users\longfa\.gradle\caches\transforms-4\dbb682d26f44c694592b06df4c7b2971\transformed\ideaIC-2024.2-win\jdk-shar
+ed-indexes
+2026-10-23 17:28:06,574 [  14774]   WARN - #c.i.i.u.UIThemeBean - Unknown field: CombinedDiff
+2026-10-23 17:28:06,574 [  14774]   WARN - #c.i.i.u.UIThemeBean - Unknown field: BlockBorder
+2026-10-23 17:28:18,720 [  26920]   WARN - #c.i.u.j.JBCefApp - JCEF is manually disabled in headless env via 'ide.brows
+er.jcef.headless.enabled=false'
+Found 220 configurables
+save to C:\code\chainlesschain\packages\jetbrains-plugin\build\tmp\buildSearchableOptions
+
+> Task :prepareJarSearchableOptions
+> Task :jarSearchableOptions FROM-CACHE
+> Task :buildPlugin
+
+BUILD SUCCESSFUL in 1m 40s
+15 actionable tasks: 12 executed, 1 from cache, 2 up-to-date
+Configuration cache entry stored.
