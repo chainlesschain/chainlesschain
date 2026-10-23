@@ -19,7 +19,6 @@ jobs:
     env:
       CC_TURN_DIAGNOSTIC_SOURCE_SHA: 0e59f8a304996e2597fe1af61b36e4da0551ec2f
       CC_TURN_DIAGNOSTIC_DRIVER_SHA: ${{ github.sha }}
-      CC_TURN_DIAGNOSTIC_OUTPUT_DIR: ${{ runner.temp }}/duplex-turn-diagnostic-evidence
     steps:
       - name: Checkout exact runtime source
         uses: actions/checkout@v5
@@ -48,6 +47,8 @@ jobs:
 
       - name: Observe exact-source warmup and turn phases (not a release gate)
         shell: bash
+        env:
+          CC_TURN_DIAGNOSTIC_OUTPUT_DIR: ${{ runner.temp }}/duplex-turn-diagnostic-evidence
         run: node "${RUNNER_TEMP}/duplex-turn-diagnostic-driver/diagnose-duplex-turns.mjs"
 
       - name: Upload diagnostic evidence even when the original timeout reproduces
