@@ -1,0 +1,503 @@
+{
+  "schema": "chainlesschain.index-parse-reuse-validation/v1",
+  "observedAt": "2026-10-23T22:37:40.588637+00:00",
+  "candidateRoot": "C:\\code\\chainlesschain\\.work\\cc118-performance-recovery",
+  "baseCommit": "16f573084fbe3897f42b8877a26e60eee57047d6",
+  "source": {
+    "path": "C:\\code\\chainlesschain\\.work\\cc118-performance-recovery\\packages\\cli\\src\\lib\\evolution\\evolution-artifact-ports.js",
+    "bytes": 128736,
+    "sha256": "158d8495c20b646c7169b5ed53ed4f3562275b9a4d887e88b52c693a4bfcea65"
+  },
+  "tests": {
+    "path": "C:\\code\\chainlesschain\\.work\\cc118-performance-recovery\\packages\\cli\\__tests__\\unit\\evolution-artifact-ports.test.js",
+    "bytes": 56268,
+    "sha256": "40ec5098128b2017a9545cc2d32105f388a9b7e91ad5d8e556395a6876f60593"
+  },
+  "runtime": {
+    "path": "C:\\code\\chainlesschain\\.work\\cli-ide-recovery-20261023\\node-22.12.0\\node-verified.exe",
+    "bytes": 82818704,
+    "sha256": "b3b117a08ee61efee09e6fd523ab33c0c018da1b570bde08e4fd914dc1170ed6",
+    "version": "v22.12.0",
+    "koffiVersion": "2.16.3",
+    "dependencyBindingReceipt": "C:/code/chainlesschain/.work/cli-ide-recovery-20261023/performance-test-dependency-links.json"
+  },
+  "testRun": {
+    "status": "full-run-test-harness-failure-focused-correction-passed",
+    "cwd": "C:\\code\\chainlesschain\\.work\\cc118-performance-recovery\\packages\\cli",
+    "command": [
+      "C:\\code\\chainlesschain\\.work\\cli-ide-recovery-20261023\\node-22.12.0\\node-verified.exe",
+      "C:/code/chainlesschain/node_modules/vitest/vitest.mjs",
+      "run",
+      "__tests__/unit/evolution-artifact-ports.test.js",
+      "__tests__/unit/evolution-artifact-index-readback.test.js",
+      "__tests__/unit/evolution-artifact-index-boundary.test.js",
+      "__tests__/unit/evolution-artifact-identity.test.js",
+      "__tests__/unit/evolution-artifact-directory-boundary.test.js",
+      "__tests__/unit/evolution-artifact-byte-boundary.test.js",
+      "__tests__/unit/evolution-file-identity.test.js",
+      "__tests__/unit/evolution-run-ledger-adapter.test.js",
+      "--maxWorkers=1"
+    ],
+    "passed": 183,
+    "skipped": 1,
+    "failed": 1,
+    "filesPassed": 7,
+    "filesFailed": 1,
+    "sourceSha256": "158d8495c20b646c7169b5ed53ed4f3562275b9a4d887e88b52c693a4bfcea65",
+    "testSha256AtFullRun": "576fa179bbb08f1cd8c08bc938f24412ade42443f6a6c15c4787113c59f697f5",
+    "failure": "New hook-retention test implicitly returned a Vitest assertion Proxy; production correctly rejected the callback result. Test now uses a block body with undefined return; production source unchanged.",
+    "focusedCorrection": {
+      "status": "passed",
+      "passed": 1,
+      "filteredOrSkipped": 64,
+      "testSha256": "40ec5098128b2017a9545cc2d32105f388a9b7e91ad5d8e556395a6876f60593",
+      "command": [
+        "C:\\code\\chainlesschain\\.work\\cli-ide-recovery-20261023\\node-22.12.0\\node-verified.exe",
+        "C:/code/chainlesschain/node_modules/vitest/vitest.mjs",
+        "run",
+        "__tests__/unit/evolution-artifact-ports.test.js",
+        "-t",
+        "keeps parsed rows and lineage immutable when captured store hooks retain them",
+        "--maxWorkers=1"
+      ],
+      "log": {
+        "path": "C:\\code\\chainlesschain\\.work\\cli-ide-recovery-20261023\\egress-review-recovery\\index-reuse-implementation\\final-focused-test.log",
+        "bytes": 558,
+        "sha256": "afac50cc5f6eae425b315c0065e827c2bbffda44481c9ef486b6937249f25ee6"
+      }
+    },
+    "fullRerunDisposition": "Parent requested focused correction only after unchanged-source full run; exact candidate CI will run the full suites. This receipt does not claim an all-pass final full local run.",
+    "skip": "Existing it.runIf(process.platform !== \"win32\"): rejects an ArtifactStore index replaced by a symlink",
+    "log": {
+      "path": "C:\\code\\chainlesschain\\.work\\cli-ide-recovery-20261023\\egress-review-recovery\\index-reuse-implementation\\final-boundary-tests-rerun.log",
+      "bytes": 3558,
+      "sha256": "1e8b53586c3c1b0613910d43ff9c2e3c3ede2858e34569b13a28d1c5126e33e6"
+    },
+    "interruptedAttempt": {
+      "log": {
+        "path": "C:\\code\\chainlesschain\\.work\\cli-ide-recovery-20261023\\egress-review-recovery\\index-reuse-implementation\\final-boundary-tests.log",
+        "bytes": 178,
+        "sha256": "60e299e22c6a1cd724796af50b8fa531484bc69b28ecd6675313e362c5730a42"
+      },
+      "reason": "Parent requested no heavy tests during the real 3-turn probe. Exact owned Vitest process tree stopped; not counted as a pass."
+    }
+  },
+  "policy": {
+    "rawAdmissionBytes": 67108864,
+    "rowAdmission": 10000,
+    "rowAndCanonicalRowBytes": 16384,
+    "cacheRawBytesPerLayout": 25165824,
+    "cacheRowsPerLayout": 10000,
+    "cacheEstimatedAggregateBytes": 117440512,
+    "cacheLayoutUpperBound": 8,
+    "residency": "Proven-cold reads discard old cached snapshots and local previous reference before parsing. Current sequential operation therefore retains at most one snapshot; limits remain upper bounds.",
+    "freshChecks": "Every read retains physical directory/path/descriptor/stat/mutation checks, full bounded raw read and full byte hash; active-window changes including append reject before cache logic.",
+    "retainedData": "Only private raw bytes, deeply frozen parsed rows, canonical strings, framed fingerprint and pure duplicate-preserving index lookups; never payload bytes, authentication results, authority, signatures, leases, ledger frontiers or receipts.",
+    "overflow": "Drops cache-only canonical strings during cold parse; original full admission and authentication remain unchanged."
+  },
+  "benchmarkSourceBinding": {
+    "path": "C:\\code\\chainlesschain\\.work\\cli-ide-recovery-20261023\\egress-review-recovery\\index-reuse-implementation\\benchmark\\source-receipt.json",
+    "bytes": 1939,
+    "sha256": "c496dd90087449f0b926a1b5a84fe33d7bb8e3416da8ebc4cd2dec2c19020f01"
+  },
+  "benchmarkTransform": "Private-export copies rewrite only relative imports to exact candidate absolute file URLs and append a cache-statistics export. Baseline ports are the unchanged HEAD source, candidate eagerEvict is source-hash bound. No auth/read/hash behavior instrumentation.",
+  "fixture": {
+    "path": "C:\\code\\chainlesschain\\.work\\cli-ide-recovery-20261023\\egress-review-recovery\\index-reuse-implementation\\benchmark\\seed-large-receipt.json",
+    "bytes": 239,
+    "sha256": "8601720db2909ae81f4c62a300f70220ba09cd4aae56a323143a839c0f06e2f9"
+  },
+  "benchmarks": {
+    "sizeResearch": {
+      "path": "C:\\code\\chainlesschain\\.work\\cli-ide-recovery-20261023\\egress-review-recovery\\index-reuse-implementation\\benchmark\\size-results.json",
+      "bytes": 47166,
+      "sha256": "439938556feaa894319bf81113f216b8b361614b165e41429cbae193770383e9"
+    },
+    "churnBaseline": {
+      "artifact": {
+        "path": "C:\\code\\chainlesschain\\.work\\cli-ide-recovery-20261023\\egress-review-recovery\\index-reuse-implementation\\benchmark\\churn-baseline.json",
+        "bytes": 2845,
+        "sha256": "58f2bda71eb6ee0edd050160b38d31286fc30d68b08cee034dd9a349a5203a51"
+      },
+      "variant": "baseline",
+      "samples": [
+        {
+          "name": "before-index-read",
+          "durationMs": null,
+          "memory": {
+            "rss": 59502592,
+            "heapTotal": 25649152,
+            "heapUsed": 7428976,
+            "external": 2237158,
+            "arrayBuffers": 16619
+          },
+          "rssGrowthBytesFromMicrobenchmarkStart": 0,
+          "lifetimeMaxRssKiB": 66364,
+          "authorityCalls": 0,
+          "cache": null
+        },
+        {
+          "name": "six-store-cycle-0",
+          "durationMs": null,
+          "memory": {
+            "rss": 109363200,
+            "heapTotal": 42426368,
+            "heapUsed": 7911136,
+            "external": 2245350,
+            "arrayBuffers": 24811
+          },
+          "rssGrowthBytesFromMicrobenchmarkStart": 49860608,
+          "lifetimeMaxRssKiB": 181264,
+          "authorityCalls": 48,
+          "cache": null
+        },
+        {
+          "name": "six-store-cycle-1",
+          "durationMs": null,
+          "memory": {
+            "rss": 111218688,
+            "heapTotal": 42426368,
+            "heapUsed": 7985152,
+            "external": 2245350,
+            "arrayBuffers": 24811
+          },
+          "rssGrowthBytesFromMicrobenchmarkStart": 51716096,
+          "lifetimeMaxRssKiB": 182028,
+          "authorityCalls": 96,
+          "cache": null
+        },
+        {
+          "name": "six-store-cycle-2",
+          "durationMs": null,
+          "memory": {
+            "rss": 111218688,
+            "heapTotal": 42426368,
+            "heapUsed": 7068384,
+            "external": 2242051,
+            "arrayBuffers": 24811
+          },
+          "rssGrowthBytesFromMicrobenchmarkStart": 51716096,
+          "lifetimeMaxRssKiB": 182964,
+          "authorityCalls": 144,
+          "cache": null
+        }
+      ],
+      "limitation": "Separate Windows process, six cloned real signed stores with unchanged rows/payloads; two post-cycle forced GCs; lifetime maxRSS includes process setup and all phases, not a formal RSS qualification."
+    },
+    "churnPreEvict": {
+      "artifact": {
+        "path": "C:\\code\\chainlesschain\\.work\\cli-ide-recovery-20261023\\egress-review-recovery\\index-reuse-implementation\\benchmark\\churn-eagerEvict.json",
+        "bytes": 3281,
+        "sha256": "19b16b0ee415a41133d4b58997f72048fc5d1053ee4901d4c25ca0da0f16f595"
+      },
+      "variant": "eagerEvict",
+      "samples": [
+        {
+          "name": "before-index-read",
+          "durationMs": null,
+          "memory": {
+            "rss": 59273216,
+            "heapTotal": 25526272,
+            "heapUsed": 7435472,
+            "external": 2237158,
+            "arrayBuffers": 16619
+          },
+          "rssGrowthBytesFromMicrobenchmarkStart": 0,
+          "lifetimeMaxRssKiB": 66180,
+          "authorityCalls": 0,
+          "cache": {
+            "layouts": 0,
+            "estimatedBytes": 0,
+            "rawBytes": 0,
+            "rows": 0
+          }
+        },
+        {
+          "name": "six-store-cycle-0",
+          "durationMs": null,
+          "memory": {
+            "rss": 138035200,
+            "heapTotal": 60653568,
+            "heapUsed": 25360528,
+            "external": 9806566,
+            "arrayBuffers": 7586027
+          },
+          "rssGrowthBytesFromMicrobenchmarkStart": 78761984,
+          "lifetimeMaxRssKiB": 178988,
+          "authorityCalls": 48,
+          "cache": {
+            "layouts": 1,
+            "estimatedBytes": 51691776,
+            "rawBytes": 7561216,
+            "rows": 4096
+          }
+        },
+        {
+          "name": "six-store-cycle-1",
+          "durationMs": null,
+          "memory": {
+            "rss": 142716928,
+            "heapTotal": 60391424,
+            "heapUsed": 25442392,
+            "external": 9806566,
+            "arrayBuffers": 7586027
+          },
+          "rssGrowthBytesFromMicrobenchmarkStart": 83443712,
+          "lifetimeMaxRssKiB": 197808,
+          "authorityCalls": 96,
+          "cache": {
+            "layouts": 1,
+            "estimatedBytes": 51691776,
+            "rawBytes": 7561216,
+            "rows": 4096
+          }
+        },
+        {
+          "name": "six-store-cycle-2",
+          "durationMs": null,
+          "memory": {
+            "rss": 143167488,
+            "heapTotal": 60129280,
+            "heapUsed": 24558808,
+            "external": 9803267,
+            "arrayBuffers": 7586027
+          },
+          "rssGrowthBytesFromMicrobenchmarkStart": 83894272,
+          "lifetimeMaxRssKiB": 206296,
+          "authorityCalls": 144,
+          "cache": {
+            "layouts": 1,
+            "estimatedBytes": 51691776,
+            "rawBytes": 7561216,
+            "rows": 4096
+          }
+        }
+      ],
+      "limitation": "Separate Windows process, six cloned real signed stores with unchanged rows/payloads; two post-cycle forced GCs; lifetime maxRSS includes process setup and all phases, not a formal RSS qualification."
+    },
+    "orderedBaseline": {
+      "artifact": {
+        "path": "C:\\code\\chainlesschain\\.work\\cli-ide-recovery-20261023\\egress-review-recovery\\index-reuse-implementation\\benchmark\\production-order-baseline.json",
+        "bytes": 2138,
+        "sha256": "696956d1935b6e1cc35c13339bc8ec1643adcc0b39b89f7d0f38b41fca8f5d85"
+      },
+      "variant": "baseline",
+      "samples": [
+        {
+          "name": "baseline-before-workload",
+          "durationMs": null,
+          "memory": {
+            "rss": 63021056,
+            "heapTotal": 25124864,
+            "heapUsed": 7422056,
+            "external": 2237118,
+            "arrayBuffers": 16619
+          },
+          "rssGrowthBytesFromMicrobenchmarkStart": 0,
+          "lifetimeMaxRssKiB": 77092,
+          "authorityCalls": 0,
+          "cache": null
+        },
+        {
+          "name": "five-component-store-puts-then-main-put-read-0",
+          "durationMs": 70656.0125,
+          "memory": {
+            "rss": 172101632,
+            "heapTotal": 83116032,
+            "heapUsed": 54418912,
+            "external": 25047597,
+            "arrayBuffers": 22820518
+          },
+          "rssGrowthBytesFromMicrobenchmarkStart": 109080576,
+          "lifetimeMaxRssKiB": 227132,
+          "authorityCalls": 14,
+          "cache": null
+        },
+        {
+          "name": "five-component-store-puts-then-main-put-read-1",
+          "durationMs": 72150.7005,
+          "memory": {
+            "rss": 172568576,
+            "heapTotal": 85565440,
+            "heapUsed": 54763256,
+            "external": 25053135,
+            "arrayBuffers": 22826056
+          },
+          "rssGrowthBytesFromMicrobenchmarkStart": 109547520,
+          "lifetimeMaxRssKiB": 227676,
+          "authorityCalls": 28,
+          "cache": null
+        },
+        {
+          "name": "endpoint-before-GC",
+          "durationMs": null,
+          "memory": {
+            "rss": 172568576,
+            "heapTotal": 85565440,
+            "heapUsed": 54788008,
+            "external": 25053135,
+            "arrayBuffers": 22826056
+          },
+          "rssGrowthBytesFromMicrobenchmarkStart": 109547520,
+          "lifetimeMaxRssKiB": 227676,
+          "authorityCalls": 28,
+          "cache": null
+        },
+        {
+          "name": "post-GC-retention-only",
+          "durationMs": null,
+          "memory": {
+            "rss": 134287360,
+            "heapTotal": 42688512,
+            "heapUsed": 7189840,
+            "external": 2251890,
+            "arrayBuffers": 24811
+          },
+          "rssGrowthBytesFromMicrobenchmarkStart": 71266304,
+          "lifetimeMaxRssKiB": 227676,
+          "authorityCalls": 28,
+          "cache": null
+        }
+      ],
+      "limitation": "Uses real HMAC-signed wiki-revision publications, fixed fresh authority and physical stores to reproduce five stores then main store access order. It does not invoke the typed EvidenceAdapter or full Run history replay and is not formal qualification; workload endpoint has no forced GC."
+    },
+    "orderedPreEvict": {
+      "artifact": {
+        "path": "C:\\code\\chainlesschain\\.work\\cli-ide-recovery-20261023\\egress-review-recovery\\index-reuse-implementation\\benchmark\\production-order-eagerEvict.json",
+        "bytes": 2692,
+        "sha256": "873dac1ff910a2e4ccd027ca54883c0df57b4cea44a7b2176f0afa2435786017"
+      },
+      "variant": "eagerEvict",
+      "samples": [
+        {
+          "name": "baseline-before-workload",
+          "durationMs": null,
+          "memory": {
+            "rss": 59777024,
+            "heapTotal": 25264128,
+            "heapUsed": 7428184,
+            "external": 2237118,
+            "arrayBuffers": 16619
+          },
+          "rssGrowthBytesFromMicrobenchmarkStart": 0,
+          "lifetimeMaxRssKiB": 74292,
+          "authorityCalls": 0,
+          "cache": {
+            "layouts": 0,
+            "estimatedBytes": 0,
+            "rawBytes": 0,
+            "rows": 0
+          }
+        },
+        {
+          "name": "five-component-store-puts-then-main-put-read-0",
+          "durationMs": 13183.2644,
+          "memory": {
+            "rss": 152199168,
+            "heapTotal": 58769408,
+            "heapUsed": 33724152,
+            "external": 25047599,
+            "arrayBuffers": 22820520
+          },
+          "rssGrowthBytesFromMicrobenchmarkStart": 92422144,
+          "lifetimeMaxRssKiB": 214864,
+          "authorityCalls": 14,
+          "cache": {
+            "layouts": 1,
+            "estimatedBytes": 51704396,
+            "rawBytes": 7563062,
+            "rows": 4097
+          }
+        },
+        {
+          "name": "five-component-store-puts-then-main-put-read-1",
+          "durationMs": 10151.0242,
+          "memory": {
+            "rss": 174870528,
+            "heapTotal": 89145344,
+            "heapUsed": 49557320,
+            "external": 40181107,
+            "arrayBuffers": 37954028
+          },
+          "rssGrowthBytesFromMicrobenchmarkStart": 115093504,
+          "lifetimeMaxRssKiB": 214864,
+          "authorityCalls": 28,
+          "cache": {
+            "layouts": 1,
+            "estimatedBytes": 51717016,
+            "rawBytes": 7564908,
+            "rows": 4098
+          }
+        },
+        {
+          "name": "endpoint-before-GC",
+          "durationMs": null,
+          "memory": {
+            "rss": 174874624,
+            "heapTotal": 89145344,
+            "heapUsed": 49583672,
+            "external": 40181107,
+            "arrayBuffers": 37954028
+          },
+          "rssGrowthBytesFromMicrobenchmarkStart": 115097600,
+          "lifetimeMaxRssKiB": 214864,
+          "authorityCalls": 28,
+          "cache": {
+            "layouts": 1,
+            "estimatedBytes": 51717016,
+            "rawBytes": 7564908,
+            "rows": 4098
+          }
+        },
+        {
+          "name": "post-GC-retention-only",
+          "durationMs": null,
+          "memory": {
+            "rss": 137179136,
+            "heapTotal": 61128704,
+            "heapUsed": 25045560,
+            "external": 9816798,
+            "arrayBuffers": 7589719
+          },
+          "rssGrowthBytesFromMicrobenchmarkStart": 77402112,
+          "lifetimeMaxRssKiB": 214864,
+          "authorityCalls": 28,
+          "cache": {
+            "layouts": 1,
+            "estimatedBytes": 51717016,
+            "rawBytes": 7564908,
+            "rows": 4098
+          }
+        }
+      ],
+      "limitation": "Uses real HMAC-signed wiki-revision publications, fixed fresh authority and physical stores to reproduce five stores then main store access order. It does not invoke the typed EvidenceAdapter or full Run history replay and is not formal qualification; workload endpoint has no forced GC."
+    }
+  },
+  "formalRssGate": {
+    "source": {
+      "path": "C:\\code\\chainlesschain\\.work\\cc118-performance-recovery\\packages\\cli\\scripts\\cli-reliability-soak.mjs",
+      "bytes": 89178,
+      "sha256": "dcff37dfdb9ba7b96b67cc94d6c82668a0520dc9a63fde69a1fc76e8070b08e6"
+    },
+    "thresholdBytes": 134217728,
+    "measurement": "rssBefore after all 20 warmup results. rssAfter after 1000 measured turns and >=7200 seconds, before stdin end and child exit. Gate is rssAfter - rssBefore <= threshold. No forced GC.",
+    "lines": [
+      1586,
+      1590,
+      1643,
+      1667,
+      1681,
+      1704
+    ],
+    "peak": "rssMaximum sampled after turns at >=1-second intervals is reported separately; peakGrowthBytes is not used in pass."
+  },
+  "limitations": [
+    "All local results are supplementary; no exact-source cross-platform Actions qualification or publication is claimed.",
+    "Short Windows microbenchmarks use test HMAC signatures and fixed-clock freshly invoked authority. Host CPU load is uncontrolled.",
+    "The ordered-store benchmark reproduces access order with real wiki-revision puts; it does not run the typed EvidenceAdapter or full historical Run replay.",
+    "Post-GC memory and process lifetime maxRSS are distinct from the formal post-warmup endpoint-growth gate.",
+    "Raw/canonical/object accounting is a conservative retention budget, not an exact VM allocation or absolute peak guarantee; active synchronous windows and retained hook references can outlive cache eviction.",
+    "The separate typed-store implementation and combined runtime tests remain owned by the parent/Windows agent."
+  ],
+  "committed": false,
+  "published": false
+}

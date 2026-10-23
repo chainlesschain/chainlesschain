@@ -9,6 +9,10 @@ import {
   EVOLUTION_PROJECTION_RULESET_DIGEST,
 } from "./evolution-evidence-projector.js";
 import { EvolutionRunLedgerAdapter } from "./evolution-run-ledger-adapter.js";
+import {
+  evidenceStorageLayoutForRun,
+  validateEvidenceStorageLayout,
+} from "./evolution-evidence-storage-layout.js";
 import { captureEvolutionRunWikiMaintenanceProducer } from "./evolution-run-wiki-maintenance-source.js";
 import { WIKI_MAINTENANCE_TRIGGER_KIND } from "./wiki-maintenance-trigger-ledger-adapter.js";
 import { captureEvolutionReleaseTrain } from "./evolution-release-train.js";
@@ -165,6 +169,7 @@ function guardIngress(operation) {
 export function createAgentEvolutionIngress({
   evidenceAdapter,
   runAdapter,
+  evidenceStorageLayout = "legacy",
   sourceEnvelopeAuthority,
   openCacheSourceRun = null,
   wikiMaintenanceProducer = null,
@@ -173,6 +178,7 @@ export function createAgentEvolutionIngress({
   now = () => new Date(),
   idGenerator = () => crypto.randomUUID(),
 } = {}) {
+  validateEvidenceStorageLayout(evidenceStorageLayout);
   if (!(evidenceAdapter instanceof EvolutionEvidenceArtifactAdapter)) {
     throw new TypeError("an EvolutionEvidenceArtifactAdapter is required");
   }
@@ -245,10 +251,24 @@ export function createAgentEvolutionIngress({
     return timestamp(iso, "ingress timestamp");
   };
 
+  const assertLoadedLayout = (loaded) => {
+    if (
+      evidenceStorageLayoutForRun(loaded.events, evidenceStorageLayout) !==
+      evidenceStorageLayout
+    )
+      throw new Error("Authenticated Run Evidence storage layout changed");
+  };
+
   const appendStarted = () => {
     const loaded = runAdapter.load();
+    assertLoadedLayout(loaded);
     if (loaded.events.length > 0) return loaded.projection;
     const occurredAt = currentTimestamp();
+    const data = {
+      occurredAt,
+      runtime: "agent",
+      ...(evidenceStorageLayout === "legacy" ? {} : { evidenceStorageLayout }),
+    };
     return runAdapter.appendEvent({
       schema: EVOLUTION_RUN_EVENT_SCHEMA,
       tenantId: descriptor.tenantId,
@@ -257,10 +277,10 @@ export function createAgentEvolutionIngress({
       sequence: 1,
       type: EVENT_TYPES.RUN_STARTED,
       subjectId: descriptor.runId,
-      payloadDigest: digest({ occurredAt, runtime: "agent" }),
+      payloadDigest: digest(data),
       artifactRef: null,
       keyRef: null,
-      data: { occurredAt, runtime: "agent" },
+      data,
     }).projection;
   };
 
@@ -677,6 +697,7 @@ export function createAgentEvolutionIngress({
         serialize(async () => {
           if (admissionFailure !== null) throw admissionFailure;
           const loaded = runAdapter.load();
+          assertLoadedLayout(loaded);
           let projection;
           if (loaded.projection?.status === "completed") {
             projection = loaded.projection;

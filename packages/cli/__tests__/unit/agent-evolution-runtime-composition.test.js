@@ -6,6 +6,11 @@ import os from "node:os";
 import path from "node:path";
 import { Writable, Readable } from "node:stream";
 import { Command } from "commander";
+import evolutionRun from "@chainlesschain/session-core/evolution-run";
+import { ArtifactStore } from "../../src/lib/artifact-store.js";
+import { EvolutionArtifactPorts } from "../../src/lib/evolution/evolution-artifact-ports.js";
+import { EvolutionRunLedgerAdapter } from "../../src/lib/evolution/evolution-run-ledger-adapter.js";
+import { createEvolutionLedgerFileBackend } from "../../src/lib/evolution/evolution-ledger-file-backend.js";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -14,6 +19,12 @@ import {
 } from "../fixtures/evolution-ledger-v2-store.js";
 
 import { EVOLUTION_ARTIFACT_AUTHORITY_DECISION_SCHEMA } from "../../src/lib/evolution/evolution-artifact-ports.js";
+import {
+  EVOLUTION_TYPED_EVIDENCE_LAYOUT,
+  EVOLUTION_EVIDENCE_STORAGE_TYPES,
+  createTypedEvidenceArtifactPorts,
+  evidenceStorageLayoutForRun,
+} from "../../src/lib/evolution/evolution-evidence-storage-layout.js";
 import { AGENT_MODEL_REQUEST_LIMITS } from "../../src/lib/evolution/agent-model-projection.js";
 import {
   EVOLUTION_KEYED_COMMITMENT_SCHEMA,
@@ -620,6 +631,370 @@ function options(root) {
 }
 
 describe("Agent evolution runtime production composition", () => {
+  const readArtifactRows = (directory) =>
+    fs
+      .readFileSync(path.join(directory, "index.jsonl"), "utf8")
+      .trim()
+      .split("\n")
+      .filter(Boolean)
+      .map(JSON.parse);
+
+  it("keeps every typed port restricted to its fixed type despite extra authority fields", () => {
+    const f = modelFixture();
+    const ports = createTypedEvidenceArtifactPorts({
+      rootDir: f.composition.storage.evidenceArtifactDir,
+      tenantId: f.config.tenantId,
+      audience: "evolution-runtime",
+      artifactAuthority: {
+        ...f.config.authorities.artifact,
+        allowedTypes: [...EVOLUTION_EVIDENCE_STORAGE_TYPES],
+      },
+      now: f.config.clock,
+      existingRun: false,
+    });
+    for (const type of EVOLUTION_EVIDENCE_STORAGE_TYPES) {
+      const other = type === "evidence" ? "receipt" : "evidence";
+      expect(() =>
+        ports[type].putCanonical(
+          other,
+          {},
+          {
+            audience: "evolution-runtime",
+            purpose: "evidence-projection",
+            retention: "ttl",
+            ttlMs: 60_000,
+          },
+        ),
+      ).toThrow();
+      expect(
+        readArtifactRows(
+          path.join(f.composition.storage.evidenceArtifactDir, type),
+        ),
+      ).toHaveLength(0);
+    }
+  });
+
+  it("keeps typed Evidence indexes separate while reopening the authenticated original layout", async () => {
+    const f = modelFixture();
+    const config = {
+      ...f.config,
+      evidenceStorageLayout: EVOLUTION_TYPED_EVIDENCE_LAYOUT,
+    };
+    const composition = createAgentEvolutionRuntimeComposition(config);
+    for (let index = 0; index < 4; index++)
+      await composition.evolutionIngress.ingestUserPrompt({
+        content: `prompt ${index}`,
+      });
+    const run = composition.loadRun();
+    expect(run.events).toHaveLength(5);
+    expect(run.events[0].data.evidenceStorageLayout).toBe(
+      EVOLUTION_TYPED_EVIDENCE_LAYOUT,
+    );
+    expect(run.events[0].payloadDigest).toBe(
+      digest(canonical(run.events[0].data)),
+    );
+    expect(readArtifactRows(composition.storage.artifactDir)).toHaveLength(5);
+    for (const type of EVOLUTION_EVIDENCE_STORAGE_TYPES)
+      expect(
+        readArtifactRows(
+          path.join(composition.storage.evidenceArtifactDir, type),
+        ),
+      ).toHaveLength(4);
+    const reopened = createAgentEvolutionRuntimeComposition(f.config);
+    expect(reopened.loadRun()).toEqual(run);
+    await reopened.evolutionIngress.ingestUserPrompt({ content: "continued" });
+    expect(readArtifactRows(composition.storage.artifactDir)).toHaveLength(6);
+    for (const type of EVOLUTION_EVIDENCE_STORAGE_TYPES)
+      expect(
+        readArtifactRows(
+          path.join(composition.storage.evidenceArtifactDir, type),
+        ),
+      ).toHaveLength(5);
+  });
+
+  it("keeps a legacy Run legacy when a new host requests typed Evidence", async () => {
+    const f = modelFixture();
+    await f.composition.evolutionIngress.ingestUserPrompt({
+      content: "legacy",
+    });
+    const reopened = createAgentEvolutionRuntimeComposition({
+      ...f.config,
+      evidenceStorageLayout: EVOLUTION_TYPED_EVIDENCE_LAYOUT,
+    });
+    await reopened.evolutionIngress.ingestUserPrompt({ content: "continued" });
+    expect(reopened.loadRun().events[0].data).toEqual({
+      occurredAt: NOW,
+      runtime: "agent",
+    });
+    expect(readArtifactRows(reopened.storage.artifactDir)).toHaveLength(13);
+    expect(fs.existsSync(reopened.storage.evidenceArtifactDir)).toBe(false);
+  });
+
+  it.each(["ingest", "complete"])(
+    "fails closed when another composition starts a different layout before %s",
+    async (operation) => {
+      const f = modelFixture();
+      const typed = createAgentEvolutionRuntimeComposition({
+        ...f.config,
+        evidenceStorageLayout: EVOLUTION_TYPED_EVIDENCE_LAYOUT,
+      });
+      await f.composition.evolutionIngress.start();
+      await expect(
+        operation === "ingest"
+          ? typed.evolutionIngress.ingestUserPrompt({ content: "wrong layout" })
+          : typed.evolutionIngress.complete(),
+      ).rejects.toThrow(/storage layout changed/);
+      expect(typed.loadRun().events).toHaveLength(1);
+      for (const type of EVOLUTION_EVIDENCE_STORAGE_TYPES)
+        expect(
+          readArtifactRows(path.join(typed.storage.evidenceArtifactDir, type)),
+        ).toHaveLength(0);
+    },
+  );
+
+  it.each(["root", "files", "index"])(
+    "does not recreate a missing authenticated typed Evidence %s",
+    async (missing) => {
+      const f = modelFixture();
+      const typed = createAgentEvolutionRuntimeComposition({
+        ...f.config,
+        evidenceStorageLayout: EVOLUTION_TYPED_EVIDENCE_LAYOUT,
+      });
+      await typed.evolutionIngress.start();
+      const shard = path.join(
+        typed.storage.evidenceArtifactDir,
+        "trusted-projection",
+      );
+      const target =
+        missing === "root"
+          ? shard
+          : path.join(shard, missing === "files" ? "files" : "index.jsonl");
+      fs.renameSync(target, `${target}.retired`);
+      expect(() => createAgentEvolutionRuntimeComposition(f.config)).toThrow();
+      expect(fs.existsSync(target)).toBe(false);
+    },
+  );
+
+  it("rejects a corrupt typed shard even before a requested Evidence read", async () => {
+    const f = modelFixture();
+    const typed = createAgentEvolutionRuntimeComposition({
+      ...f.config,
+      evidenceStorageLayout: EVOLUTION_TYPED_EVIDENCE_LAYOUT,
+    });
+    await typed.evolutionIngress.start();
+    fs.appendFileSync(
+      path.join(typed.storage.evidenceArtifactDir, "receipt", "index.jsonl"),
+      "{corrupt}\n",
+    );
+    expect(() => createAgentEvolutionRuntimeComposition(f.config)).toThrow();
+  });
+
+  it("rejects a typed shard replaced by a directory link", async () => {
+    const f = modelFixture();
+    const typed = createAgentEvolutionRuntimeComposition({
+      ...f.config,
+      evidenceStorageLayout: EVOLUTION_TYPED_EVIDENCE_LAYOUT,
+    });
+    await typed.evolutionIngress.start();
+    const shard = path.join(typed.storage.evidenceArtifactDir, "receipt");
+    fs.renameSync(shard, `${shard}.retired`);
+    fs.symlinkSync(
+      `${shard}.retired`,
+      shard,
+      process.platform === "win32" ? "junction" : "dir",
+    );
+    expect(() => createAgentEvolutionRuntimeComposition(f.config)).toThrow();
+  });
+
+  it("rejects index recreation between typed preflight and port construction", async () => {
+    const f = modelFixture();
+    const typed = createAgentEvolutionRuntimeComposition({
+      ...f.config,
+      evidenceStorageLayout: EVOLUTION_TYPED_EVIDENCE_LAYOUT,
+    });
+    await typed.evolutionIngress.start();
+    const shard = path.join(
+      typed.storage.evidenceArtifactDir,
+      "source-evidence",
+    );
+    const index = path.join(shard, "index.jsonl");
+    const mkdir = fs.mkdirSync;
+    let replaced = false;
+    const spy = vi
+      .spyOn(fs, "mkdirSync")
+      .mockImplementation((location, ...args) => {
+        if (!replaced && path.resolve(String(location)) === shard) {
+          replaced = true;
+          fs.renameSync(index, `${index}.retired`);
+        }
+        return mkdir(location, ...args);
+      });
+    try {
+      expect(() => createAgentEvolutionRuntimeComposition(f.config)).toThrow(
+        /identity changed/,
+      );
+      expect(replaced).toBe(true);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it.each([null, undefined, "legacy", "typed-evidence-v2"])(
+    "rejects a present unknown authenticated layout marker (%s)",
+    (marker) => {
+      expect(() =>
+        evidenceStorageLayoutForRun([
+          { data: { evidenceStorageLayout: marker } },
+        ]),
+      ).toThrow(/Unsupported authenticated/);
+    },
+  );
+
+  it.each([null, "typed-evidence-v2"])(
+    "rejects layout %s from a genuinely signed first Run event",
+    (marker) => {
+      const f = modelFixture();
+      const storage = f.composition.storage;
+      const artifactPorts = new EvolutionArtifactPorts({
+        tenantId: f.config.tenantId,
+        audience: "evolution-runtime",
+        artifactStore: new ArtifactStore({
+          dir: storage.artifactDir,
+          now: f.config.clock,
+        }),
+        ...f.config.authorities.artifact,
+        now: f.config.clock,
+      });
+      const resolver = artifactPorts.createEvolutionLedgerArtifactResolver({
+        purpose: "evolution-ledger",
+      });
+      const backend = createEvolutionLedgerFileBackend({
+        rootDir: storage.ledgerRootDir,
+        authorityRootDir: storage.ledgerAuthorityRootDir,
+        witnessFilePath: storage.witnessFilePath,
+        witnessId: f.config.witnessId,
+        ledgerAuthority: f.config.authorities.ledger,
+        witnessAuthority: f.config.authorities.witness,
+        artifactResolver: resolver,
+        secure: false,
+        clock: f.config.clock,
+        fsImpl: f.config.fsImpl,
+      });
+      const run = new EvolutionRunLedgerAdapter({
+        descriptor: {
+          tenantId: f.config.tenantId,
+          artifactTenantId: f.config.tenantId,
+          runId: f.config.runId,
+          audience: "evolution-runtime",
+          purpose: "evolution-ledger",
+        },
+        artifactPorts,
+        ledger: backend.ledger,
+        ledgerArtifactResolver: resolver,
+        now: f.config.clock,
+      });
+      const data = {
+        occurredAt: NOW,
+        runtime: "agent",
+        evidenceStorageLayout: marker,
+      };
+      run.appendEvent({
+        schema: evolutionRun.EVOLUTION_RUN_EVENT_SCHEMA,
+        tenantId: f.config.tenantId,
+        runId: f.config.runId,
+        eventId: `${f.config.runId}:started`,
+        sequence: 1,
+        type: evolutionRun.EVENT_TYPES.RUN_STARTED,
+        subjectId: f.config.runId,
+        payloadDigest: digest(canonical(data)),
+        artifactRef: null,
+        keyRef: null,
+        data,
+      });
+      expect(f.composition.loadRun().events[0].data.evidenceStorageLayout).toBe(
+        marker,
+      );
+      expect(() => createAgentEvolutionRuntimeComposition(f.config)).toThrow(
+        /Unsupported authenticated/,
+      );
+      expect(fs.existsSync(storage.evidenceArtifactDir)).toBe(false);
+    },
+  );
+
+  it.each([
+    ["legacy", EVOLUTION_TYPED_EVIDENCE_LAYOUT],
+    [EVOLUTION_TYPED_EVIDENCE_LAYOUT, "legacy"],
+    [EVOLUTION_TYPED_EVIDENCE_LAYOUT, EVOLUTION_TYPED_EVIDENCE_LAYOUT],
+  ])(
+    "opens cache source layout %s independently of destination %s",
+    async (sourceLayout, targetLayout) => {
+      const f = modelFixture();
+      const source = createAgentEvolutionRuntimeComposition({
+        ...f.config,
+        evidenceStorageLayout: sourceLayout,
+      });
+      await source.evolutionIngress.prepareModelRequest({
+        messages: [{ role: "user", content: "Contact" }],
+        tools: [],
+      });
+      await source.evolutionIngress.ingestAgentEvent({
+        type: "response-complete",
+        content: "Contact owner@example.com",
+      });
+      const requestKey = "a".repeat(64);
+      const receipt = await source.evolutionIngress.createResponseCacheReceipt({
+        requestKey,
+      });
+      await source.evolutionIngress.complete();
+      const target = createAgentEvolutionRuntimeComposition({
+        ...f.config,
+        runId: "different-layout-cache",
+        evidenceStorageLayout: targetLayout,
+      });
+      const replay = await target.evolutionIngress.replayResponseCache({
+        receipt,
+        requestKey,
+      });
+      expect(replay.content).toContain("Contact");
+      expect(replay.content).not.toContain("owner@example.com");
+      expect(target.loadRun().events.at(-1).data.evidenceKind).toBe(
+        "model-response-cache-replayed",
+      );
+      if (
+        sourceLayout === EVOLUTION_TYPED_EVIDENCE_LAYOUT &&
+        targetLayout === "legacy"
+      ) {
+        // Even valid copies at the old location cannot rescue corrupt typed bytes.
+        const shard = path.join(source.storage.evidenceArtifactDir, "evidence");
+        const index = path.join(shard, "index.jsonl");
+        fs.appendFileSync(
+          path.join(source.storage.artifactDir, "index.jsonl"),
+          fs.readFileSync(index),
+        );
+        for (const row of readArtifactRows(shard)) {
+          const file = path.join(shard, "files", row.file);
+          fs.copyFileSync(
+            file,
+            path.join(source.storage.artifactDir, "files", row.file),
+          );
+          const bytes = fs.readFileSync(file);
+          bytes[0] ^= 1;
+          fs.chmodSync(file, 0o600);
+          fs.writeFileSync(file, bytes);
+        }
+        expect(source.loadRun().projection.status).toBe("completed");
+        const denied = createAgentEvolutionRuntimeComposition({
+          ...f.config,
+          runId: "typed-no-legacy-fallback",
+        });
+        await expect(
+          denied.evolutionIngress.replayResponseCache({ receipt, requestKey }),
+        ).rejects.toThrow();
+        expect(denied.loadRun().events).toHaveLength(0);
+      }
+    },
+  );
+
   it("publishes Run events through the production v2 manifest journal and refuses a v1-only reopen", async () => {
     const directory = fs.mkdtempSync(
       path.join(fs.realpathSync.native(os.tmpdir()), "cc-agent-v2-journal-"),

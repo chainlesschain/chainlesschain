@@ -21,6 +21,7 @@ import {
   EVOLUTION_SOURCE_VERIFICATION_SCHEMA,
 } from "./evolution-evidence-projector.js";
 import { createAgentEvolutionRuntimeComposition } from "./agent-evolution-runtime-composition.js";
+import { EVOLUTION_TYPED_EVIDENCE_LAYOUT } from "./evolution-evidence-storage-layout.js";
 import { loadLocalUiEvolutionDeployment } from "./local-ui-evolution-deployment.js";
 import { createLocalUiEvolutionFileSystem } from "./evolution-windows-directory-durability.js";
 import {
@@ -608,6 +609,7 @@ export async function createLocalUiEvolutionComposition({
     audience:
       commandName === "ui" ? "local-ui-quick-ask" : `local-${commandName}`,
     stateRootDir,
+    evidenceStorageLayout: EVOLUTION_TYPED_EVIDENCE_LAYOUT,
     witnessId: `local-ui-witness-${identity.tenantId}`,
     authorities: {
       ...identity.authorities,

@@ -1,0 +1,189 @@
+{
+  "schema": "chainlesschain.windows-native-acl-independent-final-review/v1",
+  "createdAt": "2026-10-23T21:59:28.736Z",
+  "scope": "Independent source and archived-receipt review, artifact digest/packed-byte verification only; reviewer did not run tests, workloads, or mutate runtime.",
+  "worktree": "C:\\code\\chainlesschain\\.work\\cc118-storage-recovery",
+  "codeReviewApprovedForCommit": true,
+  "approvedContract": "Parent explicitly accepted directory pinning plus held-file-identity mutation and fresh path admission. Files are not name-pinned. A renamed original may receive ACL mutation after the prewrite check; replacement must remain unchanged and final path check rejects admission.",
+  "runtime": [
+    {
+      "name": "private-storage.js",
+      "sha256": "949fa9de4d5906d100094ff95b3d30efe67d65fb733310c702bca9692f552ef6"
+    },
+    {
+      "name": "private-storage-windows-native.cjs",
+      "sha256": "0b4903a014404048ef945d956751c78adbd52ed89e5b617995779fae3b4b3cb7"
+    },
+    {
+      "name": "private-storage-windows-api.cjs",
+      "sha256": "ea3b122e6d68d2d45436a7e3edd27c936ba15af0355acd3fccbd6bfd54959743"
+    },
+    {
+      "name": "private-storage-windows-worker.cjs",
+      "sha256": "aa81a5a70f9f26da013b48d703b0af0777cd3434e5bc8c41b3400106029f969f"
+    }
+  ],
+  "validation": {
+    "nativePolicyRealWindows": 14,
+    "unit": 39,
+    "cliBoundaries": 109,
+    "allReportedPassed": true,
+    "runtimeHashesMatchRealReceiptAndPackedBytes": true,
+    "koffiDeclaredAndActuallyLoaded": "2.16.3",
+    "koffiArchiveIntegrityVerified": true,
+    "koffiPackedEntryAndNativeBinaryMatchLoadedReceipt": true,
+    "packedSmoke": {
+      "targets": 2,
+      "noRepositoryHoist": true,
+      "pass": true
+    }
+  },
+  "negativeReview": [
+    {
+      "area": "restricted-file-rights",
+      "coverage": "Real no READ_DATA/EXECUTE owner file repair matches legacy PowerShell."
+    },
+    {
+      "area": "directory-pinning",
+      "coverage": "Real FILE_TRAVERSE directory no-LIST handle blocks rename; rename works after handle closes."
+    },
+    {
+      "area": "case-sensitive-traversal",
+      "coverage": "Mock textual aliases and real case-sensitive NTFS directory/junction pair reject before mutation."
+    },
+    {
+      "area": "prewrite-replacement",
+      "coverage": "Real controlled API interposition and mocks reject; complete replacement ACL and original ACL snapshots unchanged."
+    },
+    {
+      "area": "post-prewrite-rename",
+      "coverage": "Real controlled API interposition and mocks show original mutation, exact replacement ACL unchanged, final path identity failure. Residual race is explicit."
+    },
+    {
+      "area": "final-path-and-reparse",
+      "coverage": "Mocks reject swaps after writing, same-identity reparse bit and directory/reparse/foreign-owner replacement; final fresh checks also run on idempotent path."
+    },
+    {
+      "area": "owner-and-readback",
+      "coverage": "Mock unrelated owner and owner-change rejection, token-owner migration only with WRITE_OWNER, ineffective write rejection, cleanup failures; real broad DACL repair and idempotent ctime."
+    },
+    {
+      "area": "mutex-unicode",
+      "coverage": "Real 63488 BMP code units, 4 astral points and 8-code-point extended drive/UNC hash probes agree with Windows PowerShell/.NET."
+    },
+    {
+      "area": "isolation-timeout-Electron",
+      "coverage": "Real bounded worker request failures and 250 ms supervisor termination/recovery; mocked Electron routing retains PowerShell and native environment removes NODE_OPTIONS/NODE_PATH; fixed worker path reviewed."
+    }
+  ],
+  "limitations": [
+    "Unit/CLI reporter JSON does not itself contain runtime source hashes; implementation aggregate receipt binds reports to the seven source/test files, independently hash-verified here. Real differential directly checks four runtime hashes before and after execution.",
+    "CLI supplementary tests use an explicit Vite alias to candidate session-core source and existing installed dependencies; this is not clean-install/full CI evidence.",
+    "Token default owner equals user on this real host; token-owner migration and unrelated-owner negative remain mock coverage.",
+    "Timeout receipt explicitly does not observe lock entry; it proves worker termination and recovery under held mutex, not exact point of termination.",
+    "Electron routing is a VM/source negative, not a packaged Electron runtime validation.",
+    "Race tests interpose real API operations at deterministic boundaries; they are not an exhaustive concurrent adversary proof.",
+    "20-concurrent diagnostic concrete-driver/source binding remains separate pending work. This local review is not an Actions exact-commit matrix or a release gate."
+  ],
+  "bindings": [
+    {
+      "file": "C:\\code\\chainlesschain\\.work\\cli-ide-recovery-20261023\\egress-review-recovery\\windows-concurrent-proposal\\native-review-receipt.json",
+      "sha256": "3844d57825ce773dcff9f775d750b5cfb574ea570617d509786fc4c95e4078fc",
+      "bytes": 2400
+    },
+    {
+      "file": "C:\\code\\chainlesschain\\.work\\cli-ide-recovery-20261023\\egress-review-recovery\\windows-concurrent-proposal\\cli-native-review.vitest.config.mjs",
+      "sha256": "f265f66a7cf50ee154f1e7f6592a096dea23e675c89eba6410d484ad1c4c3fb2",
+      "bytes": 915
+    },
+    {
+      "file": "C:\\code\\chainlesschain\\.work\\cc118-storage-recovery\\packages\\session-core\\lib\\private-storage.js",
+      "sha256": "949fa9de4d5906d100094ff95b3d30efe67d65fb733310c702bca9692f552ef6",
+      "bytes": 54728
+    },
+    {
+      "file": "C:\\code\\chainlesschain\\.work\\cc118-storage-recovery\\packages\\session-core\\lib\\private-storage-windows-native.cjs",
+      "sha256": "0b4903a014404048ef945d956751c78adbd52ed89e5b617995779fae3b4b3cb7",
+      "bytes": 12038
+    },
+    {
+      "file": "C:\\code\\chainlesschain\\.work\\cc118-storage-recovery\\packages\\session-core\\lib\\private-storage-windows-api.cjs",
+      "sha256": "ea3b122e6d68d2d45436a7e3edd27c936ba15af0355acd3fccbd6bfd54959743",
+      "bytes": 11990
+    },
+    {
+      "file": "C:\\code\\chainlesschain\\.work\\cc118-storage-recovery\\packages\\session-core\\lib\\private-storage-windows-worker.cjs",
+      "sha256": "aa81a5a70f9f26da013b48d703b0af0777cd3434e5bc8c41b3400106029f969f",
+      "bytes": 2752
+    },
+    {
+      "file": "C:\\code\\chainlesschain\\.work\\cli-ide-recovery-20261023\\egress-review-recovery\\windows-concurrent-proposal\\native-policy-differential.json",
+      "sha256": "401083114f35cf22c7ff60c5d6f49106f9b9520deec15292ee7cd8f4007bdcdc",
+      "bytes": 4440
+    },
+    {
+      "file": "C:\\code\\chainlesschain\\.work\\cli-ide-recovery-20261023\\egress-review-recovery\\windows-concurrent-proposal\\native-unit-tests.json",
+      "sha256": "56131f06c68130e4d25e936271bb4b5038418ee8ed8844d4d80888cb5761d81c",
+      "bytes": 13094
+    },
+    {
+      "file": "C:\\code\\chainlesschain\\.work\\cli-ide-recovery-20261023\\egress-review-recovery\\windows-concurrent-proposal\\native-cli-boundaries.json",
+      "sha256": "effb8d2ba248edf3cd2f0ee8421a65b3378cf463b47b232ba3e3c8ace3f54117",
+      "bytes": 35765
+    },
+    {
+      "file": "C:\\code\\chainlesschain\\.work\\cli-ide-recovery-20261023\\egress-review-recovery\\windows-concurrent-proposal\\native-pack-receipt.json",
+      "sha256": "69852e73d06bd4de86bf778f403bdbb23a5170d917f05e7aaf942deb945bca8f",
+      "bytes": 1095
+    },
+    {
+      "file": "C:\\code\\chainlesschain\\.work\\cli-ide-recovery-20261023\\egress-review-recovery\\windows-concurrent-proposal\\native-packed-smoke.json",
+      "sha256": "03a017918f6ce174cb2774abbe07228d73c9cc86421f81e867adff166ede5bf9",
+      "bytes": 418
+    },
+    {
+      "file": "C:\\code\\chainlesschain\\.work\\cli-ide-recovery-20261023\\egress-review-recovery\\windows-concurrent-proposal\\verify-packed-native.cjs",
+      "sha256": "a1cd60b388b0f4ce67ed0aa063f30e1e559fafe90d9bbb4a1110fbcfea8a9bce",
+      "bytes": 2678
+    },
+    {
+      "file": "C:\\code\\chainlesschain\\.work\\cli-ide-recovery-20261023\\egress-review-recovery\\windows-concurrent-proposal\\chainlesschain-session-core-0.3.22.tgz",
+      "sha256": "f8d1420add92def2aae9ae0d3a2ebebb37606d29aeadd33c2f45bbaeb82db790",
+      "bytes": 314942
+    },
+    {
+      "file": "C:\\code\\chainlesschain\\.work\\cli-ide-recovery-20261023\\egress-review-recovery\\windows-concurrent-proposal\\koffi-2.16.3.tgz",
+      "sha256": "c36416e8e02e6075d90a3fc607f44dc05993aabbb9d00968cb77b545d88c0959",
+      "bytes": 7291428
+    },
+    {
+      "file": "C:\\code\\chainlesschain\\.work\\cli-ide-recovery-20261023\\egress-review-recovery\\windows-concurrent-proposal\\native-policy-metadata-share-failure.json",
+      "sha256": "1e24a8ce56ba7e61f5f4d1c339518ef5566e065d0de22f11c51d30e6d0c25d7e",
+      "bytes": 1069
+    },
+    {
+      "file": "C:\\code\\chainlesschain\\.work\\cc118-storage-recovery\\packages\\session-core\\package.json",
+      "sha256": "bca98ea5972e5c737aa3f779ce04fecffaa6ef021f677b615b20284009d9fa10",
+      "bytes": 5563
+    },
+    {
+      "file": "C:\\code\\chainlesschain\\.work\\cc118-storage-recovery\\packages\\session-core\\__tests__\\private-storage-windows-native.test.js",
+      "sha256": "80628c3698ab899365c8c1cae5e3e39c894580ff4f101b34c6943d8e02abae7e",
+      "bytes": 16568
+    },
+    {
+      "file": "C:\\code\\chainlesschain\\.work\\cc118-storage-recovery\\packages\\session-core\\scripts\\verify-windows-native-acl.cjs",
+      "sha256": "3a265346178a2eb0cb4cd02bb33a362cb8fcfbaf8faa24dbc77f55a2848e8284",
+      "bytes": 19121
+    },
+    {
+      "file": "C:\\code\\chainlesschain\\.work\\cli-ide-recovery-20261023\\egress-review-recovery\\windows-native-file-identity-design-review.json",
+      "sha256": "99fe2d6cb57c394e4fd2b20e9759a203d3c7133ea033243bd6e26fa0383779f9",
+      "bytes": 4717
+    }
+  ],
+  "formalQualification": false,
+  "paidReady": false,
+  "nativeAdmission": false,
+  "releaseGatePassed": false
+}

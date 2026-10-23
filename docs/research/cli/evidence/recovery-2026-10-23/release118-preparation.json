@@ -1,6 +1,6 @@
 {
   "schema": "chainlesschain.cli-ide-release-preparation/v1",
-  "recordedAt": "2026-10-23T20:43:42.285Z",
+  "recordedAt": "2026-10-23T22:41:12.459Z",
   "baseline": "79b7d49841341eb4caf135414183c1311db58b75",
   "pullRequest": "https://github.com/chainlesschain/chainlesschain/pull/483",
   "authorization": {
@@ -24,7 +24,8 @@
     "cli": "0.166.118",
     "vscode": "0.37.160",
     "jetbrains": "0.4.177",
-    "product": "v5.0.3.141"
+    "product": "v5.0.3.141",
+    "sessionCore": "0.3.23"
   },
   "historicalValidation": "validation.json",
   "historicalHoldNote": "The earlier validation/readiness snapshots retain the user hold that applied when recorded; current authorization above replaces that publication policy without changing paid/native/acceptance gates.",
@@ -1967,6 +1968,12 @@
       "windowsAclPassed": 43,
       "formalQualification": false,
       "fullNewCommitActions": "REQUIRED_PENDING"
+    },
+    "nativeAndTypedRecovery": {
+      "report": "release118-native-typed-preparation.json",
+      "sourceReviewed": true,
+      "formalQualification": false,
+      "finalExactSourceActions": "REQUIRED_PENDING"
     }
   },
   "taskAcceptance": {
@@ -2009,7 +2016,7 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "ebab52d4b8b7fbdd2e288003c5020af3a2884fc8193598e3f6b09a62a34729af"
+      "sha256": "02f6e49546fe2523ad07b45719d2cff9246a41ab7b28dca090e4ba9818153f88"
     },
     {
       "path": "android-app/app/build.gradle.kts",
@@ -2037,7 +2044,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "ae7dbf8003992b2925177186fef13f6effc0f08d478b04df4cb2963b61081829"
+      "sha256": "8e817e3a8721b03ef0298b142ffcd0d132eb937387e3b941f2183365c0304d81"
     },
     {
       "path": "package.json",
@@ -2065,7 +2072,7 @@
     },
     {
       "path": "packages/cli/README.md",
-      "sha256": "e536559fd82d0e302ec508dc5d95206e8cead743c27ec95403ce6eaabfaf2550"
+      "sha256": "d5b62efc9bcf92ff4414d26cf643a8910ea50710b8ee97ebc8dfb262642087e6"
     },
     {
       "path": "packages/cli/__tests__/unit/cli-reliability-duplex-diagnostics.test.js",
@@ -2081,7 +2088,7 @@
     },
     {
       "path": "packages/cli/__tests__/unit/evolution-evidence-projector.test.js",
-      "sha256": "2a13696c85d4fa9665146bd7c2632e9e2028fd73cf7b455758e43ac87a342a38"
+      "sha256": "e78170ee7a5af716175308f17be884fe30f526fc0f4f5474fc0fd1348f6b015e"
     },
     {
       "path": "packages/cli/__tests__/unit/evolution-run-ledger-adapter.test.js",
@@ -2109,7 +2116,7 @@
     },
     {
       "path": "packages/cli/package.json",
-      "sha256": "2ac78e5933d7ecbdfa1519b3061689ad0f241e2d06e0f014ffe340bddfb7d609"
+      "sha256": "39d2b8c28b8842f74a9013affd1f58622ea7c8e183d625aedc69020ff254718e"
     },
     {
       "path": "packages/cli/scripts/cli-reliability-fetch-diagnostics.mjs",
@@ -2125,7 +2132,7 @@
     },
     {
       "path": "packages/cli/src/data/changelog.json",
-      "sha256": "d731270de7c14b2c6534db715faa71c77ebbc5baa95fcc58efd1721e309d50b3"
+      "sha256": "5e260e7a92ba3aae1dfedb50e3bbb957d27831fa7755fb1182ba5c050292b216"
     },
     {
       "path": "packages/cli/src/lib/evolution/evidence-json-text.js",
@@ -2273,15 +2280,75 @@
     },
     {
       "path": "packages/cli/src/lib/evolution/evolution-artifact-ports.js",
-      "sha256": "e1370307938dc0d9ff131a11b329609419f35d2ceebde77d1a9b818173335e61"
+      "sha256": "158d8495c20b646c7169b5ed53ed4f3562275b9a4d887e88b52c693a4bfcea65"
     },
     {
       "path": "packages/cli/__tests__/unit/evolution-artifact-ports.test.js",
-      "sha256": "7d609ed0230e4308f78a9c716ad9008c4a1ca12bb2f74f7f710418f3f2b7e087"
+      "sha256": "40ec5098128b2017a9545cc2d32105f388a9b7e91ad5d8e556395a6876f60593"
     },
     {
       "path": "packages/cli/__tests__/unit/cli-reliability-concurrent-diagnostics.test.js",
       "sha256": "5654c1be6f5071ebe372816753c7edd542041ad2519c228131249bf6de263c27"
+    },
+    {
+      "path": ".github/workflows/npm-publish.yml",
+      "sha256": "fe27ec11f74d869fb41ab98ffc7aa3ac0f422074a6fb9047338165a3f8e023e5"
+    },
+    {
+      "path": "docs/research/cli-ide-recovery-progress-2026-10-23.md",
+      "sha256": "8056acde2375e6e938d821e44a7bb6871b40293403bd33cf4a37e9d4bfb0aed3"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/agent-evolution-runtime-composition.test.js",
+      "sha256": "3e70e7506e8fc545e5f5c2c10c90e46e42ffc305edbf5635e73140989b7eaff8"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/agent-evolution-ingress.js",
+      "sha256": "c9634172c2bdf34f5c5fd019920d0d450bd7af506ceb0f82bf44462917de5477"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/agent-evolution-runtime-composition.js",
+      "sha256": "cbc894f7b8ae2013be5a8fb12caea7f9a0b4c41fdac6dac28f4b3d1f1ce608b5"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/evolution-evidence-artifact-adapter.js",
+      "sha256": "1771c30a1fd7977096b92bfa5593a129a05a8fefae5858e0aaac2fb994d15d55"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/evolution-evidence-storage-layout.js",
+      "sha256": "6cd5f9fe998f31f157269ca09d1acf47ca52481d44a40cf711decc52f9f7cb64"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/local-ui-evolution-runtime.js",
+      "sha256": "64d34dd7f44f991805f1062421cc48957e38ef82cbc1b03fdf436ae623614b59"
+    },
+    {
+      "path": "packages/session-core/__tests__/private-storage-windows-native.test.js",
+      "sha256": "80628c3698ab899365c8c1cae5e3e39c894580ff4f101b34c6943d8e02abae7e"
+    },
+    {
+      "path": "packages/session-core/lib/private-storage-windows-api.cjs",
+      "sha256": "ea3b122e6d68d2d45436a7e3edd27c936ba15af0355acd3fccbd6bfd54959743"
+    },
+    {
+      "path": "packages/session-core/lib/private-storage-windows-native.cjs",
+      "sha256": "0b4903a014404048ef945d956751c78adbd52ed89e5b617995779fae3b4b3cb7"
+    },
+    {
+      "path": "packages/session-core/lib/private-storage-windows-worker.cjs",
+      "sha256": "aa81a5a70f9f26da013b48d703b0af0777cd3434e5bc8c41b3400106029f969f"
+    },
+    {
+      "path": "packages/session-core/lib/private-storage.js",
+      "sha256": "949fa9de4d5906d100094ff95b3d30efe67d65fb733310c702bca9692f552ef6"
+    },
+    {
+      "path": "packages/session-core/package.json",
+      "sha256": "c9e08e7fe3910c2d907a411310e6db41e7a64f0b5e953e8f6134ff90059e5bf6"
+    },
+    {
+      "path": "packages/session-core/scripts/verify-windows-native-acl.cjs",
+      "sha256": "3a265346178a2eb0cb4cd02bb33a362cb8fcfbaf8faa24dbc77f55a2848e8284"
     }
   ],
   "artifacts": [
@@ -2620,6 +2687,42 @@
       "path": "release118-runtime-latency-recovery.json",
       "sha256": "34ed6e98b0e12fd3661e9b011eb50b6bf90638663e43802c8c436ca0ddd5fa40",
       "originalSha256": "34ed6e98b0e12fd3661e9b011eb50b6bf90638663e43802c8c436ca0ddd5fa40"
+    },
+    {
+      "path": "release118-windows-native-independent-review.json",
+      "sha256": "05d16a31ebc24799258dc63e179264723a7d9804818a61d493362eaf3b185254",
+      "originalSha256": "05d16a31ebc24799258dc63e179264723a7d9804818a61d493362eaf3b185254"
+    },
+    {
+      "path": "release118-native-startup-independent-review.json",
+      "sha256": "8d17cb1f663aed1cd0e475f3715e38910c6293fb6288387a862b216782d73f47",
+      "originalSha256": "8d17cb1f663aed1cd0e475f3715e38910c6293fb6288387a862b216782d73f47"
+    },
+    {
+      "path": "release118-typed-evidence-source-review.json",
+      "sha256": "0a9236418d72e770143dae3d945aa7dd69e0611c1c44f567b882255d32236e8b",
+      "originalSha256": "0a9236418d72e770143dae3d945aa7dd69e0611c1c44f567b882255d32236e8b"
+    },
+    {
+      "path": "release118-typed-evidence-focused-validation.json",
+      "sha256": "237e632c01e4538dea494fe3ec16644649cc17facb8aee8d042d4cca21e7f00f",
+      "originalSha256": "237e632c01e4538dea494fe3ec16644649cc17facb8aee8d042d4cca21e7f00f"
+    },
+    {
+      "path": "release118-index-reuse-validation.json",
+      "sha256": "daa7ac884171d2a62512a9ff6f055e546c812b2b2bdf7bfea98037b0f50f997c",
+      "originalSha256": "a9cb76add66518ee66df344579e0cd376bcc6bd42af18ac8a8c68b6b407b2a73",
+      "normalization": "UTF-8 JSON CRLF to LF for repository text normalization; original bytes digest retained"
+    },
+    {
+      "path": "release118-native-typed-egress-audit.json",
+      "sha256": "5f2a472ffb1d77b4207a81ebd9872899cd63f5b5bffbfe96db71331d45cdc4a2",
+      "originalSha256": "5f2a472ffb1d77b4207a81ebd9872899cd63f5b5bffbfe96db71331d45cdc4a2"
+    },
+    {
+      "path": "release118-native-typed-preparation.json",
+      "sha256": "b1cd0a8c3f877702bc39c3bd2379befe620a07bddbb359f8a05b9439cb75a381",
+      "originalSha256": "b1cd0a8c3f877702bc39c3bd2379befe620a07bddbb359f8a05b9439cb75a381"
     }
   ],
   "rawSecurityAudit": {

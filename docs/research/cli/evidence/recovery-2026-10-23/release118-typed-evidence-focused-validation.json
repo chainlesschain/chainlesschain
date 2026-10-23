@@ -1,0 +1,49 @@
+{
+  "schema": "chainlesschain.typed-evidence-focused-independent-validation/v1",
+  "reviewedAt": "2026-10-23T22:35:27.470Z",
+  "sourceReviewSha256": "0a9236418d72e770143dae3d945aa7dd69e0611c1c44f567b882255d32236e8b",
+  "sourceFiles": [
+    {
+      "path": "packages/cli/src/lib/evolution/evolution-evidence-storage-layout.js",
+      "sha256": "6cd5f9fe998f31f157269ca09d1acf47ca52481d44a40cf711decc52f9f7cb64"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/evolution-evidence-artifact-adapter.js",
+      "sha256": "1771c30a1fd7977096b92bfa5593a129a05a8fefae5858e0aaac2fb994d15d55"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/agent-evolution-runtime-composition.js",
+      "sha256": "cbc894f7b8ae2013be5a8fb12caea7f9a0b4c41fdac6dac28f4b3d1f1ce608b5"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/agent-evolution-ingress.js",
+      "sha256": "c9634172c2bdf34f5c5fd019920d0d450bd7af506ceb0f82bf44462917de5477"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/local-ui-evolution-runtime.js",
+      "sha256": "64d34dd7f44f991805f1062421cc48957e38ef82cbc1b03fdf436ae623614b59"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/agent-evolution-runtime-composition.test.js",
+      "sha256": "3e70e7506e8fc545e5f5c2c10c90e46e42ffc305edbf5635e73140989b7eaff8"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/evolution-evidence-projector.test.js",
+      "sha256": "e78170ee7a5af716175308f17be884fe30f526fc0f4f5474fc0fd1348f6b015e"
+    }
+  ],
+  "log": {
+    "path": "C:\\code\\chainlesschain\\.work\\cc118-typed-evidence-review\\final-authority-and-cache.log",
+    "sha256": "4dab0691ac3c73f36c80dab1506ae40085baf609048d3fa8281128138b898569",
+    "encoding": "utf16le"
+  },
+  "result": {
+    "filesPassed": 1,
+    "testsPassed": 4,
+    "testsSkipped": 259,
+    "durationSeconds": 79.37
+  },
+  "scope": "Final explicit authority fields and three source/destination layout combinations, including corrupt typed bytes with valid legacy manifest copies. Skipped tests are not passes.",
+  "fullFourSuiteStatus": "Still running; no result claimed.",
+  "qualifying": false
+}

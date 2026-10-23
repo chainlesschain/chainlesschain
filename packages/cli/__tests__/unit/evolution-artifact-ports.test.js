@@ -1152,6 +1152,140 @@ describe("EvolutionArtifactPorts", () => {
     },
   );
 
+  it("authenticates across unchanged, appended, rewritten, reordered and truncated indexes", () => {
+    const value = publish({ type: "wiki-revision", retention: "ledger" });
+    const batch = captureEvolutionLedgerBatchResolver(
+      ports.createEvolutionLedgerArtifactResolver({ purpose: PURPOSE }),
+    );
+    const request = ledgerRequest(value);
+    const original = readIndex();
+    const expected = batch([request]);
+    expect(batch([request])).toEqual(expected);
+    writeIndex([...original, { id: "unrelated", nested: { note: "追加" } }]);
+    expect(batch([request])).toEqual(expected);
+    writeIndex([
+      { id: "replacement", nested: { note: "rewritten" } },
+      ...original,
+    ]);
+    expect(batch([request])).toEqual(expected);
+    writeIndex([
+      ...original,
+      { id: "replacement", nested: { note: "rewritten" } },
+    ]);
+    expect(batch([request])).toEqual(expected);
+    writeIndex(original);
+    expect(batch([request])).toEqual(expected);
+    writeIndex([]);
+    expect(() => batch([request])).toThrow();
+    writeIndex(original);
+    expect(batch([request])).toEqual(expected);
+  });
+
+  it.each(["incomplete", "utf8", "depth", "row-bytes", "noncanonical"])(
+    "rejects an invalid %s append and recovers without poisoning prior rows",
+    (fault) => {
+      const value = publish({ type: "wiki-revision", retention: "ledger" });
+      const batch = captureEvolutionLedgerBatchResolver(
+        ports.createEvolutionLedgerArtifactResolver({ purpose: PURPOSE }),
+      );
+      const request = ledgerRequest(value);
+      const original = readIndex();
+      const expected = batch([request]);
+      const indexPath = path.join(storeDir, "index.jsonl");
+      let suffix;
+      if (fault === "incomplete") suffix = '{"id":"incomplete"}';
+      if (fault === "utf8") suffix = Buffer.from([0xff, 10]);
+      if (fault === "row-bytes")
+        suffix = `${JSON.stringify({ id: "large", value: "x".repeat(16384) })}\n`;
+      if (fault === "noncanonical") suffix = '{ "id": "spaces" }\n';
+      if (fault === "depth") {
+        let nested = 0;
+        for (let index = 0; index < 40; index++) nested = { nested };
+        suffix = `${JSON.stringify({ id: "deep", nested })}\n`;
+      }
+      fs.appendFileSync(indexPath, suffix);
+      expect(() => batch([request])).toThrow();
+      writeIndex(original);
+      expect(batch([request])).toEqual(expected);
+      writeIndex([...original, { id: "valid-after-error" }]);
+      expect(batch([request])).toEqual(expected);
+    },
+  );
+
+  it.each(["rows", "raw-bytes", "parsed-memory"])(
+    "continues authenticating large admissible indexes (%s)",
+    (budget) => {
+      const value = publish({ type: "wiki-revision", retention: "ledger" });
+      const batch = captureEvolutionLedgerBatchResolver(
+        ports.createEvolutionLedgerArtifactResolver({ purpose: PURPOSE }),
+      );
+      const request = ledgerRequest(value);
+      const original = readIndex();
+      const expected = batch([request]);
+      const count =
+        budget === "rows" ? 9000 : budget === "raw-bytes" ? 2200 : 4000;
+      const data =
+        budget === "raw-bytes"
+          ? "x".repeat(12000)
+          : budget === "parsed-memory"
+            ? Array(1000).fill(0)
+            : null;
+      writeIndex([
+        ...original,
+        ...Array.from({ length: count }, (_, index) => ({
+          id: `unrelated-${index}`,
+          data,
+        })),
+      ]);
+      expect(batch([request])).toEqual(expected);
+      expect(batch([request])).toEqual(expected);
+      authorityState.revoked = true;
+      expect(() => batch([request])).toThrow();
+      authorityState.revoked = false;
+      writeIndex(original);
+      expect(batch([request])).toEqual(expected);
+    },
+  );
+
+  it("isolates captured layouts during repeated store churn and subsequent tamper", () => {
+    const value = publish({ type: "wiki-revision", retention: "ledger" });
+    const batch = captureEvolutionLedgerBatchResolver(
+      ports.createEvolutionLedgerArtifactResolver({ purpose: PURPOSE }),
+    );
+    const expected = batch([ledgerRequest(value)]);
+    for (let index = 0; index < 8; index++) {
+      const otherPorts = new EvolutionArtifactPorts({
+        artifactStore: new ArtifactStore({
+          dir: path.join(tempRoot, `churn-${index}`),
+          now: () => nowMs,
+        }),
+        audience: AUDIENCE,
+        currentAuthorityResolver,
+        envelopeSigner,
+        envelopeVerifier,
+        now: () => nowMs,
+        tenantId: TENANT_ID,
+      });
+      const other = otherPorts.putCanonical(
+        "wiki-revision",
+        { index },
+        {
+          purpose: PURPOSE,
+          retention: "ledger",
+        },
+      );
+      const resolveOther = otherPorts.createEvolutionLedgerArtifactResolver({
+        purpose: PURPOSE,
+      });
+      expect(resolveOther(ledgerRequest(other))).toBeTruthy();
+      expect(() => resolveOther(ledgerRequest(value))).toThrow();
+    }
+    expect(batch([ledgerRequest(value)])).toEqual(expected);
+    const rows = readIndex();
+    writeIndex([...rows, { ...rows[0] }]);
+    expect(() => batch([ledgerRequest(value)])).toThrow();
+  });
+
   it("closes synchronous read-window capabilities on return, throw and thenable rejection", () => {
     const value = publish({ type: "wiki-revision", retention: "ledger" });
     const resolver = ports.createEvolutionLedgerArtifactResolver({
@@ -1245,6 +1379,18 @@ describe("EvolutionArtifactPorts", () => {
       const second = batch([ledgerRequest(value)]);
       expect(second).toEqual(first);
     });
+    const priorRows = retained.map((entry) => JSON.stringify(entry));
+    retainingPorts.putCanonical(
+      "wiki-revision",
+      { revision: 2 },
+      { purpose: PURPOSE, retention: "ledger" },
+    );
+    read((batch) => {
+      expect(batch([ledgerRequest(value)])).toHaveLength(1);
+    });
+    expect(
+      retained.slice(0, priorRows.length).map((entry) => JSON.stringify(entry)),
+    ).toEqual(priorRows);
   });
 
   it("retains both the 128-item chunk limit and the cumulative read-window bound", () => {
@@ -1272,6 +1418,7 @@ describe("EvolutionArtifactPorts", () => {
   it.each([
     "index-between-chunks",
     "index-after-last-chunk",
+    "valid-append",
     "payload",
     "revocation",
   ])("rejects %s while a synchronous read window is open", (fault) => {
@@ -1287,6 +1434,8 @@ describe("EvolutionArtifactPorts", () => {
         escaped = batch;
         const first = batch([ledgerRequest(values[0])]);
         const rows = readIndex();
+        if (fault === "valid-append")
+          writeIndex([...rows, { id: "new-valid-row" }]);
         if (fault.startsWith("index-"))
           writeIndex(
             rows.map((row, index) =>

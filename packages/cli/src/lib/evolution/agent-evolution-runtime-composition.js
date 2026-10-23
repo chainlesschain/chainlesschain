@@ -15,6 +15,11 @@ import {
 } from "./evolution-evidence-projector.js";
 import { EvolutionArtifactPorts } from "./evolution-artifact-ports.js";
 import {
+  createTypedEvidenceArtifactPorts,
+  evidenceStorageLayoutForRun,
+  validateEvidenceStorageLayout,
+} from "./evolution-evidence-storage-layout.js";
+import {
   captureEvolutionLedgerFileBackend,
   createEvolutionLedgerFileBackend,
 } from "./evolution-ledger-file-backend.js";
@@ -172,16 +177,14 @@ function layout(stateRootDir, tenantId, runId, initialize = true, fsImpl = fs) {
   const result = Object.freeze({
     rootDir,
     artifactDir: path.join(scope, "artifacts"),
+    evidenceArtifactDir: path.join(scope, "evidence-artifacts"),
     rawDir: path.join(scope, "raw"),
     ledgerRootDir: path.join(scope, "ledger-events"),
     ledgerAuthorityRootDir: path.join(scope, "ledger-authority"),
     witnessFilePath: path.join(scope, "witness", "checkpoint.json"),
   });
   if (initialize) {
-    ensureDirectoryTreeDurable(
-      fsImpl,
-      path.dirname(result.witnessFilePath),
-    );
+    ensureDirectoryTreeDurable(fsImpl, path.dirname(result.witnessFilePath));
   }
   return result;
 }
@@ -224,6 +227,7 @@ export function createAgentEvolutionRuntimeComposition({
   stateRootDir,
   authorities: authorityInput,
   evidenceTtlMs,
+  evidenceStorageLayout = "legacy",
   witnessId: witnessIdInput,
   clock: clockInput = Date.now,
   evidenceIdGenerator,
@@ -240,6 +244,7 @@ export function createAgentEvolutionRuntimeComposition({
   witnessMaximumBytes,
   ledgerV2: ledgerV2Input = null,
 } = {}) {
+  validateEvidenceStorageLayout(evidenceStorageLayout);
   const ledgerV2 =
     ledgerV2Input === null
       ? null
@@ -445,14 +450,6 @@ export function createAgentEvolutionRuntimeComposition({
     attestationVerifier: ports.attestationVerifier,
     now: () => new Date(clock()),
   });
-  const evidenceAdapter = new EvolutionEvidenceArtifactAdapter({
-    tenantId,
-    audience,
-    projector,
-    bundleVerifier,
-    artifactPorts,
-    ...(evidenceTtlMs === undefined ? {} : { ttlMs: evidenceTtlMs }),
-  });
   const ledgerArtifactResolver =
     artifactPorts.createEvolutionLedgerArtifactResolver({
       purpose: "evolution-ledger",
@@ -516,6 +513,46 @@ export function createAgentEvolutionRuntimeComposition({
     ledgerArtifactResolver,
     now: clock,
   });
+  const createEvidenceAdapter = (run, runStorage, mainPorts, emptyLayout) => {
+    const loaded = run.load();
+    const selectedLayout = evidenceStorageLayoutForRun(
+      loaded.events,
+      emptyLayout,
+    );
+    return {
+      selectedLayout,
+      adapter: new EvolutionEvidenceArtifactAdapter({
+        tenantId,
+        audience,
+        projector,
+        bundleVerifier,
+        ...(selectedLayout === "legacy"
+          ? { artifactPorts: mainPorts }
+          : {
+              typedArtifactPorts: createTypedEvidenceArtifactPorts({
+                rootDir: runStorage.evidenceArtifactDir,
+                tenantId,
+                audience,
+                artifactAuthority: {
+                  envelopeSigner: ports.artifactEnvelopeSigner,
+                  envelopeVerifier: ports.artifactEnvelopeVerifier,
+                  currentAuthorityResolver:
+                    ports.artifactCurrentAuthorityResolver,
+                },
+                now: clock,
+                existingRun: loaded.events.length > 0,
+              }),
+            }),
+        ...(evidenceTtlMs === undefined ? {} : { ttlMs: evidenceTtlMs }),
+      }),
+    };
+  };
+  const { adapter: evidenceAdapter, selectedLayout } = createEvidenceAdapter(
+    runAdapter,
+    storage,
+    artifactPorts,
+    evidenceStorageLayout,
+  );
   let wikiMaintenance = null;
   let wikiMaintainer = null;
   if (wikiConfiguration !== null) {
@@ -707,6 +744,7 @@ export function createAgentEvolutionRuntimeComposition({
   const evolutionIngress = createAgentEvolutionIngress({
     evidenceAdapter,
     runAdapter,
+    evidenceStorageLayout: selectedLayout,
     openCacheSourceRun: (input) => {
       const sourceRunId = identifier(input, "cache source runId");
       const sourceStorage = layout(
@@ -758,22 +796,22 @@ export function createAgentEvolutionRuntimeComposition({
         ...(lockTimeoutMs === undefined ? {} : { lockTimeoutMs }),
         ...(witnessMaximumBytes === undefined ? {} : { witnessMaximumBytes }),
       });
+      const sourceRunAdapter = new EvolutionRunLedgerAdapter({
+        descriptor: { ...runAdapter.descriptor, runId: sourceRunId },
+        artifactPorts: sourcePorts,
+        ledger: sourceBackend.ledger,
+        ledgerArtifactResolver: sourceResolver,
+        now: clock,
+      });
+      const sourceEvidence = createEvidenceAdapter(
+        sourceRunAdapter,
+        sourceStorage,
+        sourcePorts,
+        "legacy",
+      );
       return {
-        runAdapter: new EvolutionRunLedgerAdapter({
-          descriptor: { ...runAdapter.descriptor, runId: sourceRunId },
-          artifactPorts: sourcePorts,
-          ledger: sourceBackend.ledger,
-          ledgerArtifactResolver: sourceResolver,
-          now: clock,
-        }),
-        evidenceAdapter: new EvolutionEvidenceArtifactAdapter({
-          tenantId,
-          audience,
-          projector,
-          bundleVerifier,
-          artifactPorts: sourcePorts,
-          ...(evidenceTtlMs === undefined ? {} : { ttlMs: evidenceTtlMs }),
-        }),
+        runAdapter: sourceRunAdapter,
+        evidenceAdapter: sourceEvidence.adapter,
       };
     },
     sourceEnvelopeAuthority: ports.sourceEnvelope,

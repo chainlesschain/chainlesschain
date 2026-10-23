@@ -27,6 +27,7 @@ import {
   ArtifactStoreEncryptedRawStore,
   EvolutionEvidenceArtifactAdapter,
 } from "../../src/lib/evolution/evolution-evidence-artifact-adapter.js";
+import { EVOLUTION_EVIDENCE_STORAGE_TYPES } from "../../src/lib/evolution/evolution-evidence-storage-layout.js";
 import {
   EVOLUTION_EVIDENCE_STATE_DECISION_SCHEMA,
   EVOLUTION_KEYED_COMMITMENT_SCHEMA,
@@ -604,7 +605,7 @@ function harness(overrides = {}) {
   return { projector, verifier, reader, ...ports };
 }
 
-function durableArtifactPorts(dir) {
+function durableArtifactPorts(dir, options = {}) {
   const secret = "test-only-projection-artifact-secret";
   const algorithm = "hmac-sha256";
   const keyId = "test:key/evidence-projection";
@@ -671,6 +672,7 @@ function durableArtifactPorts(dir) {
     },
     now: () => Date.parse(NOW),
     tenantId: "tenant-alpha",
+    ...options,
   });
 }
 
@@ -729,6 +731,67 @@ function forgeContent(bundle) {
 }
 
 describe("EvolutionEvidenceProjector", () => {
+  it("captures only genuine distinct scoped typed Evidence ports and rejects substituted routing maps", async () => {
+    const root = fs.mkdtempSync(
+      path.join(fs.realpathSync.native(os.tmpdir()), "cc-typed-evidence-"),
+    );
+    try {
+      const h = harness();
+      const ports = Object.fromEntries(
+        EVOLUTION_EVIDENCE_STORAGE_TYPES.map((type) => [
+          type,
+          durableArtifactPorts(path.join(root, type), { allowedTypes: [type] }),
+        ]),
+      );
+      const create = (typedArtifactPorts, extra = {}) =>
+        new EvolutionEvidenceArtifactAdapter({
+          tenantId: "tenant-alpha",
+          audience: "evolution-runtime",
+          projector: h.projector,
+          bundleVerifier: h.verifier,
+          typedArtifactPorts,
+          ...extra,
+        });
+      const accessor = { ...ports };
+      Object.defineProperty(accessor, "evidence", {
+        enumerable: true,
+        get: () => ports.evidence,
+      });
+      for (const invalid of [
+        new Proxy(ports, {}),
+        accessor,
+        { ...ports, extra: ports.evidence },
+        { ...ports, evidence: Object.create(EvolutionArtifactPorts.prototype) },
+        { ...ports, evidence: new Proxy(ports.evidence, {}) },
+        { ...ports, evidence: ports.receipt },
+      ])
+        expect(() => create(invalid)).toThrow();
+      expect(() => create(ports, { tenantId: "tenant-other" })).toThrow(
+        /scope/,
+      );
+      expect(() => create(ports, { audience: "other-audience" })).toThrow(
+        /scope/,
+      );
+      expect(() => create(ports, { artifactPorts: ports.evidence })).toThrow(
+        /exactly one/,
+      );
+      const adapter = create(ports);
+      const publication = await adapter.projectAndPersist(input());
+      ports.evidence = Object.create(EvolutionArtifactPorts.prototype);
+      await expect(adapter.resolve(publication)).resolves.toMatchObject({
+        verification: { verified: true },
+      });
+      const manifestIndex = path.join(root, "evidence", "index.jsonl");
+      fs.writeFileSync(
+        manifestIndex,
+        fs.readFileSync(path.join(root, "receipt", "index.jsonl")),
+      );
+      await expect(adapter.resolve(publication)).rejects.toThrow();
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   const jsonRequest = (content, args = false) => ({
     messages: args
       ? [

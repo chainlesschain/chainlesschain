@@ -1,0 +1,92 @@
+{
+  "schema": "chainlesschain.typed-evidence-independent-source-review/v1",
+  "reviewedAt": "2026-10-23T22:34:24.840Z",
+  "sourceFiles": [
+    {
+      "path": "packages/cli/src/lib/evolution/evolution-evidence-storage-layout.js",
+      "sha256": "6cd5f9fe998f31f157269ca09d1acf47ca52481d44a40cf711decc52f9f7cb64"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/evolution-evidence-artifact-adapter.js",
+      "sha256": "1771c30a1fd7977096b92bfa5593a129a05a8fefae5858e0aaac2fb994d15d55"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/agent-evolution-runtime-composition.js",
+      "sha256": "cbc894f7b8ae2013be5a8fb12caea7f9a0b4c41fdac6dac28f4b3d1f1ce608b5"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/agent-evolution-ingress.js",
+      "sha256": "c9634172c2bdf34f5c5fd019920d0d450bd7af506ceb0f82bf44462917de5477"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/local-ui-evolution-runtime.js",
+      "sha256": "64d34dd7f44f991805f1062421cc48957e38ef82cbc1b03fdf436ae623614b59"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/agent-evolution-runtime-composition.test.js",
+      "sha256": "3e70e7506e8fc545e5f5c2c10c90e46e42ffc305edbf5635e73140989b7eaff8"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/evolution-evidence-projector.test.js",
+      "sha256": "e78170ee7a5af716175308f17be884fe30f526fc0f4f5474fc0fd1348f6b015e"
+    }
+  ],
+  "parsedIndexSource": {
+    "path": "packages/cli/src/lib/evolution/evolution-artifact-ports.js",
+    "sha256": "158d8495c20b646c7169b5ed53ed4f3562275b9a4d887e88b52c693a4bfcea65"
+  },
+  "sourceReview": {
+    "approved": true,
+    "openTrustBoundaryBlockers": [],
+    "scope": "Five fixed typed Evidence stores, authenticated first-Run marker routing, compatibility and source-Run recovery; minimal parsed-index cold pre-eviction independently reviewed."
+  },
+  "invariants": [
+    "Main Run/ledger/manifestV2 consumers retain their original genuine ports and resolver brands.",
+    "Only freshly authenticated first Run event data determines existing layout. Absent marker is legacy; malformed/present unsupported marker rejects. New local UI Runs explicitly select typed-evidence-v1.",
+    "Layout metadata participates in RUN_STARTED payload digest and signed durable event bytes. Fresh ingress/start/complete checks reject concurrent layout selection mismatch before Evidence writes.",
+    "Every type maps to a genuine branded scoped port; exact data-only nonproxy map is privately frozen, root/files identities distinct, fixed expectedType routes only.",
+    "Five typed stores are narrowed individually with allowedTypes:[type]; authority options are three explicit fields and cannot override store/type selection.",
+    "All five existing roots/files/indexes must exist before construction. Physical types, single-link index and bigint identities are checked before/after construction, followed by branded directory recheck and bounded index read window.",
+    "No legacy fallback or cross-store search on typed missing/corrupt bytes. Reopened source Runs choose their own authenticated layout, independently of destination.",
+    "Index limits remain10000rows/64MiB per physicalstore; full fresh index/path/identity/payload/signature/current-authority/expiry checks remain.",
+    "Cold/rewrite parse drops prior cache and local previous reference only after fresh read/hash/active-window validation. Equal and exact-prefix paths retain original checks; no auth/payload cache."
+  ],
+  "testCoverageReviewed": [
+    "Typed growth and reopen under legacy-default API; legacy extension under typed host.",
+    "Concurrent first-event layout mismatch on ingest and complete.",
+    "Missing root/files/index; corrupt index; real directory junction; constructor-time index recreation identity rejection.",
+    "Unsupported layout values through helper and genuinely signed Run events.",
+    "Genuine-brand/scoped/distinct/proxy/accessor/extra-field mapping rejection and post-construction map mutation isolation.",
+    "Three cross-layout cache source/destination combinations and corrupt typed bytes despite valid legacy manifest copies.",
+    "Final explicit-authority-field singleton allowedTypes negative test."
+  ],
+  "validationStatus": {
+    "fullFourSuiteRun": "Still running when this source receipt was written; no pass claimed. It began before the final authority-spread removal.",
+    "finalFocusedRun": "Still running when this source receipt was written; no pass claimed.",
+    "sourceManifestSha256": "c511d04beee89679e937387a4dd231cb45819d7a49a0116b739e1896500d8691"
+  },
+  "structuralProbe": {
+    "path": "typed-index-growth-observation/1792794616081/receipt.json",
+    "sha256": "87929268d50c708289a7d2832d8c3234977b33095d2902f057d618fdc2863af3",
+    "sourceBound": true,
+    "beforeFinalExplicitAuthorityFields": true,
+    "turns": 3,
+    "successfulResults": 3,
+    "exitCode": 0,
+    "descendantsRetired": true,
+    "mainFinalRows": 14,
+    "evidenceRowsPerType": 12,
+    "rawRows": 12,
+    "overallScenarioPass": false,
+    "rssGrowthBytes": 19582976,
+    "interpretation": "Structural inventory matches fixed-type design. Overall scenario false is preserved; missing resource detail in this receipt prevents attributing its cause."
+  },
+  "limits": [
+    "Source approval is not Formal, exact-commit CI, release, paid readiness or 1000-turn qualification.",
+    "Three-turn growth extrapolation does not establish long-run performance/RSS.",
+    "Preflight prevents initial missing-store recreation; a concurrent deletion may trigger constructor creation before changed identity is detected and rejected. No zero-side-effect race claim.",
+    "Ports boundary attests root/files directories only; no tenant-wide index or complete physical graph authority.",
+    "Current 10000-event default Run ledger read limit is not generalized by this change."
+  ],
+  "qualifying": false
+}

@@ -15,7 +15,9 @@ import {
   EVOLUTION_DURABLE_ARTIFACT_RECORD_SCHEMA,
   EVOLUTION_ARTIFACT_DEFAULT_TTL_MS,
   EVOLUTION_ARTIFACT_MAX_TTL_MS,
+  captureEvolutionArtifactStoreDirectoryBoundary,
 } from "./evolution-artifact-ports.js";
+import { EVOLUTION_EVIDENCE_STORAGE_TYPES } from "./evolution-evidence-storage-layout.js";
 import { EVOLUTION_ARTIFACT_REF_SCHEMA } from "./evolution-ledger.js";
 import {
   EVOLUTION_RAW_STORAGE_RECEIPT_SCHEMA,
@@ -353,6 +355,7 @@ export class EvolutionEvidenceArtifactAdapter {
     projector,
     bundleVerifier,
     artifactPorts,
+    typedArtifactPorts,
   } = {}) {
     this.#tenantId = normalizeId(tenantId, "evidence adapter tenantId");
     this.#audience = normalizeId(audience, "evidence adapter audience");
@@ -374,11 +377,50 @@ export class EvolutionEvidenceArtifactAdapter {
       EvolutionEvidenceBundleVerifier.prototype,
       "bundleVerifier",
     );
-    assertInstance(
-      artifactPorts,
-      EvolutionArtifactPorts.prototype,
-      "artifactPorts",
-    );
+    if (typedArtifactPorts !== undefined) {
+      if (artifactPorts !== undefined)
+        throw new TypeError(
+          "Evidence adapter requires exactly one storage layout",
+        );
+      assertPlainExact(
+        typedArtifactPorts,
+        new Set(EVOLUTION_EVIDENCE_STORAGE_TYPES),
+        "typedArtifactPorts",
+      );
+      const captured = {};
+      const identities = new Set();
+      for (const type of EVOLUTION_EVIDENCE_STORAGE_TYPES) {
+        const port = typedArtifactPorts[type];
+        const boundary =
+          captureEvolutionArtifactStoreDirectoryBoundary(port).descriptor;
+        if (
+          boundary.artifactTenantId !== this.#tenantId ||
+          boundary.audience !== this.#audience
+        )
+          throw new TypeError(
+            "Typed Evidence store scope does not match its adapter",
+          );
+        for (const directory of [boundary.root, boundary.files]) {
+          const identity = `${directory.identity.dev}:${directory.identity.ino}`;
+          if (identities.has(identity))
+            throw new TypeError("Typed Evidence stores must be distinct");
+          identities.add(identity);
+        }
+        captured[type] = port;
+      }
+      this.#ports = Object.freeze(captured);
+    } else {
+      assertInstance(
+        artifactPorts,
+        EvolutionArtifactPorts.prototype,
+        "artifactPorts",
+      );
+      this.#ports = Object.freeze(
+        Object.fromEntries(
+          EVOLUTION_EVIDENCE_STORAGE_TYPES.map((type) => [type, artifactPorts]),
+        ),
+      );
+    }
     this.#ttlMs = ttlMs;
     this.#project = captureMethod(projector, "project", "projector");
     this.#projectAgentModel = captureMethod(
@@ -392,16 +434,15 @@ export class EvolutionEvidenceArtifactAdapter {
       "projector",
     );
     this.#verify = captureMethod(bundleVerifier, "verify", "bundleVerifier");
-    this.#ports = artifactPorts;
     this.#resolveManifestRef =
-      artifactPorts.createEvolutionLedgerArtifactResolver({
+      this.#ports.evidence.createEvolutionLedgerArtifactResolver({
         purpose: this.#purpose,
       });
     Object.freeze(this);
   }
 
   #put(type, value) {
-    return this.#ports.putCanonical(type, value, {
+    return this.#ports[type].putCanonical(type, value, {
       audience: this.#audience,
       purpose: this.#purpose,
       retention: "ttl",
@@ -479,12 +520,15 @@ export class EvolutionEvidenceArtifactAdapter {
     if (result.manifest.type !== "evidence") {
       throw new TypeError("evidence manifest descriptor type is invalid");
     }
-    const manifestResolved = this.#ports.resolve(result.manifest.envelope, {
-      expectedDigest: result.manifest.digest,
-      expectedType: "evidence",
-      purpose: this.#purpose,
-      tenantId: this.#tenantId,
-    });
+    const manifestResolved = this.#ports.evidence.resolve(
+      result.manifest.envelope,
+      {
+        expectedDigest: result.manifest.digest,
+        expectedType: "evidence",
+        purpose: this.#purpose,
+        tenantId: this.#tenantId,
+      },
+    );
     return this.#resolveManifest(manifestResolved.value, result.evidenceId);
   }
 
@@ -553,7 +597,7 @@ export class EvolutionEvidenceArtifactAdapter {
       if (!descriptor || descriptor.type !== type) {
         throw new Error("evidence derivation component type is invalid");
       }
-      bundle[field] = this.#ports.resolve(descriptor.envelope, {
+      bundle[field] = this.#ports[type].resolve(descriptor.envelope, {
         expectedDigest: descriptor.digest,
         expectedType: type,
         purpose: this.#purpose,

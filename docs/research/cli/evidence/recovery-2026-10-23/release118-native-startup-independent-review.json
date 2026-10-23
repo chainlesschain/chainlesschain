@@ -1,0 +1,65 @@
+{
+  "schema": "chainlesschain.native-startup-independent-artifact-review/v1",
+  "reviewedAt": "2026-10-23T22:18:54.395Z",
+  "sourceSha": "16f573084fbe3897f42b8877a26e60eee57047d6",
+  "driverSha": "46dcc3cd60b470e0cb940f16336355f372cd1e73",
+  "runId": 40031375390,
+  "attempt": 1,
+  "artifactId": 12535023420,
+  "artifactSha256": "a268b62040374a9a13810fa1dd8dfadf816470e6f9ae90dd58be5e31db894e54",
+  "reportSha256": "f8677b4a3538e0821a3bd54ac5e2f80aae80625e5997b04ae8125795977179d5",
+  "checks": {
+    "archiveApiDigest": true,
+    "archiveManifest": true,
+    "extractedEqualsArchive": true,
+    "driverGitBytes": 4,
+    "nativeGitBytes": 4,
+    "npmTrees": 14,
+    "sourceCleanBeforeAfter": true,
+    "koffiFixedDigests": true,
+    "agentsSuccessful": 20,
+    "httpAgents": 20
+  },
+  "observed": {
+    "cohortMs": 105628.99290000001,
+    "helperCalls": {
+      "node.exe": 480,
+      "OTHER": 80,
+      "git": 20
+    },
+    "helperOutcomes": {
+      "node.exe": {
+        "exitZero": 480,
+        "exitNull": 0,
+        "exitNonzero": 0,
+        "failedReturns": 0
+      },
+      "OTHER": {
+        "exitZero": 60,
+        "exitNull": 20,
+        "exitNonzero": 0,
+        "failedReturns": 20
+      },
+      "git": {
+        "exitZero": 20,
+        "exitNull": 0,
+        "exitNonzero": 0,
+        "failedReturns": 0
+      }
+    },
+    "nativeWallPerAgentMs": {
+      "min": 9632.935999999983,
+      "max": 13678.989200000022
+    },
+    "cleanupDirectChildrenClosed": true,
+    "cleanupWithin10Seconds": true
+  },
+  "limitations": [
+    "Single instrumented startup diagnostic; no Formal soak, exact release matrix, release or paid admission qualification.",
+    "Normal direct-child close leaves descendant-tree termination unverified.",
+    "Native timings include outer observer overhead and full completed scenario; internal worker stages and helper CPU unavailable.",
+    "OTHER helpers: 60 exit0 and 20 null-exit failed returns; no executable or failure-cause inference. All 20 scenario agents nevertheless completed successfully."
+  ],
+  "qualifying": false,
+  "conclusion": "Archived diagnostic bytes independently verified; all 20 original-profile startup agents completed within cohort deadline."
+}
