@@ -1,0 +1,14 @@
+{
+  "node": "v22.22.2",
+  "uv": "1.51.0",
+  "platform": "win32",
+  "actualDev": "38182903",
+  "old": {
+    "error": "Windows local UI durable storage requires a local NTFS directory",
+    "pass": false
+  },
+  "fixed": {
+    "result": "windows-directory-flush",
+    "pass": true
+  }
+}

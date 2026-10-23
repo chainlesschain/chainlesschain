@@ -56,7 +56,11 @@ Windows 旧版 VS Code 失败已定位到 Electron 主进程退出阶段：此�
 
 新 CLI 配对的发布约束与 changelog 检查 **26/26**、IDE 元数据检查 **25/25**，以及 JetBrains 新推荐版本的 Gradle 编译与 **14/14** 测试通过。一次额外本地模型定价契约检查因缺少 better-sqlite3 原生绑定失败，原报告保留，未改断言或计作通过。所有候选仍须由自己的准确提交取得完整 Actions 门禁。
 
-提交 `059bad9c26` 的 Windows CLI Reliability Soak 又发现一个失败：MCP 子进程在模型请求前退出（exit 1、stdout 0、stderr 180 字节），随后慢速管道场景只报“无输出”。原始 [失败收据](./cli/evidence/recovery-2026-10-23/release118-windows-soak-before.json) 保留。现存采证丢弃了启动错误，并可能在注册退出监听前漏掉提前退出，失败时还会丢失此前样本；本轮补充受限启动分类、即时进程生命周期观察和失败场景快照，不修改 CLI 运行时、期限或通过条件。此采证修复不代表已经确定或修复原始启动失败原因，仍须新提交的完整 CI 确认。本地 MCP 诊断因缺少模块而失败，已有输出且 stderr 长度不同，不能等同该 CI 故障，也未记作通过。
+提交 `059bad9c26` 的 Windows CLI Reliability Soak 又发现一个失败：MCP 子进程在模型请求前退出（exit 1、stdout 0、stderr 180 字节），随后慢速管道场景只报“无输出”。原始 [失败收据](./cli/evidence/recovery-2026-10-23/release118-windows-soak-before.json) 保留。现存采证丢弃了启动错误，并可能在注册退出监听前漏掉提前退出，失败时还会丢失此前样本；提交 `304733022a` 补充受限启动分类、即时进程生命周期观察和失败场景快照，不修改期限或通过条件。其新 CI 继续保留 Windows 零输出失败，并显示 macOS 和 Linux 的不同故障。本地诊断中的 `ERR_MODULE_NOT_FOUND` 字面量来自 `CLAUDE.md` 提示词内容，不能用它判断缺少模块；此前的缺模块推断撤回，本地失败仍未计作通过。
+
+Astra 将 macOS 的第一模型请求前失败隔离到 `.claude/rules/encoding.md` 的合法 JavaScript 示例：数组中的字符串拼接被当成损坏 JSON。现在仅对直接消息文本中闭合、明确标注受支持 JavaScript / TypeScript / Python 语言的代码块复用已有代码字面量扫描；未知语言、JSON 或未闭合代码块保持严格校验。敏感字段扫描、重复键拒绝和跨代码块累计预算不变。Agent 投影规则升级至 v5，原 v4 摘要及历史回放逻辑保留。真实项目规则回归与投影相关测试 **195/195** 通过。
+
+Windows 另有版本兼容问题：Node 22.12 的 libuv 1.49.1 将 64 位卷序列号暴露为 `stat.dev`，两个 Win32 目录 API 返回 DWORD。直接比较会误拒合法 NTFS 目录。修复仅在这两处跨接口比较时取低 32 位；路径前后完整 `dev`、文件 ID、固定盘、NTFS、重解析点和 flush 前后身份检查均保留。真实原生 API 配合旧版 64 位表示的对照在修复前拒绝、修复后通过，专项 **6/6** 通过；它使用本地 Node 22.22.2，不冒充 Node 22.12 真实本地运行或远端通过。Astra 独立复核未发现阻断问题。上述两个修复仍须新提交的完整准确 SHA Actions 验证；所有候选继续未发布。
 
 ## 36+9 下一版验收收敛
 

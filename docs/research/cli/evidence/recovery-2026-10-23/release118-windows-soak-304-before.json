@@ -1,0 +1,148 @@
+{
+  "schema": "chainlesschain.cli-reliability-soak.v2",
+  "status": "failed",
+  "startedAt": "2026-10-23T12:31:52.700Z",
+  "seriesStartedAt": "2026-10-23T12:31:52.700Z",
+  "headSha": "304733022a987c3f48bc3d240dd39fec76b0f675",
+  "expectedSha": "304733022a987c3f48bc3d240dd39fec76b0f675",
+  "exactShaVerified": true,
+  "source": {
+    "clean": true,
+    "changeCount": 0
+  },
+  "platform": "win32",
+  "arch": "x64",
+  "node": "v22.12.0",
+  "profile": {
+    "mode": "smoke",
+    "durationSeconds": 5,
+    "turns": 10,
+    "warmupTurns": 2,
+    "concurrentAgents": 3,
+    "pipeCases": 2,
+    "disconnectCases": 1,
+    "slowConsumerMs": 250,
+    "checkpointIntervalSeconds": 1,
+    "cleanupDeadlineMs": 10000,
+    "maxRssGrowthMb": 128,
+    "maxResourceGrowth": 8
+  },
+  "scenarios": {
+    "disk": {
+      "pass": true,
+      "configured": false,
+      "required": false,
+      "reason": "real-disk-fixtures-not-configured"
+    },
+    "mcpOutput": {
+      "pass": false,
+      "durationMs": 3376.3469999999998,
+      "exit": {
+        "code": 1,
+        "signal": null
+      },
+      "resultSubtype": null,
+      "resultIsError": null,
+      "toolCalls": 0,
+      "oversizedResultBytes": null,
+      "budgetCodeObservedByModel": false,
+      "privateCanaryObservedByModel": false,
+      "privateCanaryObservedOnWire": false,
+      "modelRequestCount": 0,
+      "modelToolCallResponses": 0,
+      "modelFinalResponses": 0,
+      "mcpServerPidObserved": false,
+      "mcpServerRetired": false,
+      "startupDiagnostics": {
+        "fsCodes": [],
+        "operations": [],
+        "classes": [
+          "sandbox-configured"
+        ]
+      },
+      "diagnosticCodes": [],
+      "diagnosticClasses": [],
+      "toolResultProjections": [],
+      "stdoutBytes": 0,
+      "stderrBytes": 180
+    }
+  },
+  "partialScenarios": {
+    "pipe": {
+      "pass": false,
+      "cleanupDeadlineMs": 10000,
+      "brokenConsumers": [
+        {
+          "closed": false,
+          "exitCode": 1,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 2621.7654,
+          "descendantsAfterExit": 0,
+          "stderrBytes": 180,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "sandbox-configured"
+            ]
+          }
+        },
+        {
+          "closed": false,
+          "exitCode": 1,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 3112.0955000000004,
+          "descendantsAfterExit": 0,
+          "stderrBytes": 180,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "sandbox-configured"
+            ]
+          }
+        }
+      ],
+      "slowConsumers": [
+        {
+          "exitCode": 1,
+          "signal": null,
+          "failureReason": "slow pipe consumer exited before output",
+          "durationMs": 3036.9822999999997,
+          "configuredStallMs": 250,
+          "actualStallMs": 0,
+          "stallObserved": false,
+          "peakReadableBytes": 0,
+          "outputBytes": 0,
+          "resultSubtype": null,
+          "resultIsError": null,
+          "diagnosticCodes": [],
+          "descendantsAfterExit": 0,
+          "stderrBytes": 180,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "sandbox-configured"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "activeScenario": null,
+  "resume": {
+    "requested": false,
+    "recovered": false,
+    "priorStatus": null,
+    "attempt": 1,
+    "recoveredScenarios": []
+  },
+  "violations": [
+    "slow pipe consumer exited before output"
+  ],
+  "checkpointedAt": "2026-10-23T12:32:06.118Z",
+  "finishedAt": "2026-10-23T12:32:06.118Z"
+}

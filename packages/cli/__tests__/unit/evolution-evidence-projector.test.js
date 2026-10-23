@@ -43,6 +43,7 @@ import {
   EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_DIGEST,
   EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V2_DIGEST,
   EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V3_DIGEST,
+  EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V4_DIGEST,
   EVOLUTION_SKILL_DECISION_PROJECTION_RULESET_DIGEST,
   EVOLUTION_PROJECTION_SOURCE_DENIED_CODE,
   EVOLUTION_PROJECTION_STORAGE_FAILED_CODE,
@@ -803,6 +804,148 @@ describe("EvolutionEvidenceProjector", () => {
       });
     return request;
   };
+
+  const fencedRequest = (content, role = "system") => ({
+    messages: [{ role, content }],
+    tools: [],
+  });
+
+  it("admits the repository encoding instructions before the first model request", async () => {
+    const h = harness();
+    const instructions = fs.readFileSync(
+      new URL("../../../../.claude/rules/encoding.md", import.meta.url),
+      "utf8",
+    );
+    const bundle = await h.projector.projectAgentModelRequest(
+      input(fencedRequest(instructions), "signed-source:free-form-tool"),
+    );
+    expect(bundle.modelProjection.content.messages[0].content).toContain(
+      '["/c", "chcp 65001 >nul && " + script]',
+    );
+    await expect(h.verifier.verify(bundle)).resolves.toMatchObject({
+      verified: true,
+    });
+  });
+
+  it.each(["system", "user", "assistant"])(
+    "scans decoded secrets in explicit fenced code in %s messages",
+    async (role) => {
+      const h = harness();
+      const content = [
+        "Example:",
+        "```javascript",
+        'spawn("cmd.exe", ["/c", "chcp 65001 >nul && " + script], { ... });',
+        String.raw`const settings = {"\u0070assword": "unprefixedSecretValue", "ok": true};`,
+        "```",
+        "~~~python",
+        "rows = [{'active': True, 'missing': None}]",
+        String.raw`contact = 'alice\x40example.com'`,
+        "~~~",
+      ].join("\n");
+      const bundle = await h.projector.projectAgentModelRequest(
+        input(fencedRequest(content, role), "signed-source:free-form-tool"),
+      );
+      const encoded = JSON.stringify(bundle);
+      expect(encoded).not.toContain("unprefixedSecretValue");
+      expect(encoded).not.toContain("alice");
+      expect(encoded).toContain("[REDACTED:credential]");
+      expect(encoded).toContain("[REDACTED:email]");
+      await expect(h.verifier.verify(bundle)).resolves.toMatchObject({
+        verified: true,
+      });
+    },
+  );
+
+  it.each([
+    ['{"ok":true,"ok":false}', "ambiguous"],
+    ['{"password":"one","\\u0070assword":"two"}', "ambiguous"],
+    ['{"ok":true,}', "malformed"],
+    ['{"note":"bad\\q"}', "malformed"],
+    ['["unclosed"', "malformed"],
+    ["[1e999]", "budget"],
+    ["[9007199254740993]", "budget"],
+    ["password = 'firstHalf' + 'unprefixedSecretValue'", "sensitive key"],
+  ])(
+    "retains strict rejection within a code fence (%#)",
+    async (text, reason) => {
+      const h = harness();
+      await expect(
+        h.projector.projectAgentModelRequest(
+          input(
+            fencedRequest(`\`\`\`javascript\n${text}\n\`\`\``),
+            "signed-source:free-form-tool",
+          ),
+        ),
+      ).rejects.toThrow(new RegExp(reason, "u"));
+      expect(h.attestor.sign).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    "{'active': True}",
+    "```json\n{'active': True}\n```",
+    "```unknown\n{'active': True}\n```",
+    "```\n{'active': True}\n```",
+    "```javascript\n{'active': True}",
+    "```javascript\n{'active': True}\n~~~",
+    "````javascript\n{'active': True}\n```",
+    "```text\n```javascript\n{'active': True}\n```\n```",
+    "```javascript\nconst ok = true;\n```\n{'active': True}",
+  ])(
+    "does not grant code semantics outside a closed supported fence (%#)",
+    async (content) => {
+      const h = harness();
+      await expect(
+        h.projector.projectAgentModelRequest(
+          input(fencedRequest(content), "signed-source:free-form-tool"),
+        ),
+      ).rejects.toThrow(/malformed/u);
+    },
+  );
+
+  it("charges all fenced blocks to the same JSON node budget", async () => {
+    const block =
+      "```javascript\n" + JSON.stringify(Array(18000).fill(true)) + "\n```";
+    const h = harness();
+    await expect(
+      h.projector.projectAgentModelRequest(
+        input(
+          fencedRequest(`${block}\n${block}`),
+          "signed-source:free-form-tool",
+        ),
+      ),
+    ).rejects.toThrow(/budget/u);
+    expect(h.attestor.sign).not.toHaveBeenCalled();
+  });
+
+  it("preserves the v4 digest, code scanning, and historical rejection of fenced expressions", async () => {
+    expect(EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V4_DIGEST).toBe(
+      "sha256:685132698fc3ec2fcab6188a7e79d3b808b8d3f55fc614601b6966b7c606dcf9",
+    );
+    const h = harness();
+    const current = await h.projector.projectAgentModelRequest(
+      input(
+        runCodeRequest("rows = [{'active': True}]"),
+        "signed-source:free-form-tool",
+      ),
+    );
+    const historical = await reattest(
+      h,
+      current,
+      current.modelProjection.content,
+      EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V4_DIGEST,
+    );
+    await expect(h.verifier.verify(historical)).resolves.toMatchObject({
+      verified: true,
+    });
+    const oldFence = await reattest(
+      h,
+      current,
+      fencedRequest('```javascript\nconst data = ["a", "b" + value];\n```'),
+      EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V4_DIGEST,
+    );
+    await expect(h.verifier.verify(oldFence)).rejects.toThrow(/malformed/u);
+  });
 
   it.each(["result", "arguments", "serialized-arguments"])(
     "admits run_code language literals while scanning secrets and escaped keys (%s)",

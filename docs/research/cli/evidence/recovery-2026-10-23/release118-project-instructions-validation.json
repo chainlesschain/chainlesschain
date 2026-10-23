@@ -1,0 +1,55 @@
+{
+  "head": "304733022a987c3f48bc3d240dd39fec76b0f675",
+  "run": 39948693519,
+  "job": 120397970298,
+  "artifact": 12500943456,
+  "platform": "darwin-arm64",
+  "ciEvidence": {
+    "exactShaVerified": true,
+    "clean": true,
+    "mcpModelRequests": 0,
+    "mcpExit": 1,
+    "slowPipeExits": [
+      1,
+      1
+    ],
+    "concurrentErrorLengths": [
+      79,
+      79,
+      79
+    ],
+    "terminalViolation": "turn 2 timed out"
+  },
+  "reproduction": {
+    "source": ".claude/rules/encoding.md:25",
+    "text": "spawn(\"cmd.exe\", [\"/c\", \"chcp 65001 >nul && \" + script], { ... });",
+    "cause": "A JavaScript array expression inside a project-instruction fenced block was recognized as JSON. The code-expression parse failure was rejected because direct system message text lacked fenced code handling.",
+    "before": "prompt-boundary-diagnostic.json and prompt-boundary-after.json, strict mode fails",
+    "after": "prompt-boundary-after.json, supported closed fence mode passes",
+    "scope": "Reproduced locally with repository instruction composition and production evidence boundary, independently of model fixtures. CI does not retain raw final error text; matching pre-request failure and 79-character error length support this diagnosis."
+  },
+  "diagnosticCodeCaveat": "CLAUDE.md:127 contains ERR_MODULE_NOT_FOUND as prose. MCP protocol context bundles include prompt text, and diagnosticCodes scans stdout, so this code is not proof of a missing module.",
+  "windows": "Distinct stdout0/stderr180 startup failure under separate root investigation; not attributed to this macOS parser diagnosis.",
+  "fix": {
+    "files": [
+      "packages/cli/src/lib/evolution/evidence-json-text.js",
+      "packages/cli/src/lib/evolution/evolution-evidence-projector.js",
+      "packages/cli/__tests__/unit/evolution-evidence-projector.test.js"
+    ],
+    "rulesetVersion": 5,
+    "rulesetDigest": "sha256:20b3d651084a178f5cd15aedeee3e2623346fd0eab56678b822779e393f88454",
+    "historicalV4Digest": "sha256:685132698fc3ec2fcab6188a7e79d3b808b8d3f55fc614601b6966b7c606dcf9",
+    "limitsChanged": false,
+    "childrenChanged": false,
+    "notes": "Only direct message text in closed explicitly supported JavaScript/TypeScript/Python fences reuses existing literal scanning. Strict JSON rejection, secret scanning and cumulative budgets remain. Historical v4 verification preserved."
+  },
+  "validation": {
+    "projectorTests": 150,
+    "relatedTests": 45,
+    "total": 195,
+    "nodeSyntax": "passed",
+    "prettier": "passed",
+    "gitDiffCheck": "passed"
+  },
+  "logRetrieval": "Job log endpoint unavailable (403/connection timeout); artifact zip successfully fetched using explicit gh api GET with buffered stdout."
+}

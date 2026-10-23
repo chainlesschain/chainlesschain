@@ -1,6 +1,6 @@
 {
   "schema": "chainlesschain.cli-ide-release-preparation/v1",
-  "recordedAt": "2026-10-23T11:48:07.430Z",
+  "recordedAt": "2026-10-23T12:56:26.991Z",
   "baseline": "79b7d49841341eb4caf135414183c1311db58b75",
   "pullRequest": "https://github.com/chainlesschain/chainlesschain/pull/483",
   "authorization": {
@@ -121,7 +121,7 @@
       "originalRun": 39946036842,
       "originalJob": 120389223383,
       "originalFailure": "mcpOutput exit 1 before model requests; stdout 0 / stderr 180 bytes, followed by slow-pipe no-output failure",
-      "rootCause": "UNCONFIRMED",
+      "rootCause": "Windows volume serial width mismatch reproduced with native APIs and simulated old Node stat representation; exact-source CI confirmation still required",
       "originalReceipt": "release118-windows-soak-before.json",
       "regressionTests": {
         "passed": 14,
@@ -129,8 +129,23 @@
         "pending": 0,
         "report": "release118-soak-diagnostics-tests.json"
       },
-      "scope": "Capture bounded startup categories and early child lifecycle/failure snapshots without relaxing failure criteria or deadlines. This does not prove the original startup failure fixed.",
-      "localMcpReproduction": "Failed with ERR_MODULE_NOT_FOUND and existing stdout; local dependencies incomplete, different from the CI no-output failure, not counted as passed."
+      "scope": "Capture bounded startup categories and early child lifecycle/failure snapshots without relaxing failure criteria or deadlines.",
+      "localMcpReproduction": "Earlier malformed JSON error was reproduced in composed repository instructions. ERR_MODULE_NOT_FOUND was prompt prose, not evidence of a module failure. A post-fix local real MCP/pipe attempt timed out before completing MCP and is retained as failed, not counted as passed.",
+      "projectInstructions": {
+        "relatedTestsPassed": 195,
+        "rulesetVersion": 5,
+        "historicalV4Supported": true,
+        "report": "release118-project-instructions-validation.json"
+      },
+      "windowsDirectory": {
+        "testsPassed": 6,
+        "testsFailed": 0,
+        "skipped": 0,
+        "nativeApiBeforeAfter": "release118-windows-directory-before-after.json",
+        "actualLocalNode": "22.22.2",
+        "simulatedLegacyStatDev": true,
+        "realNode2212LocalPass": false
+      }
     },
     "generatedCommandAssets": "manifest, help index and completions checks passed",
     "productVersionSync": "passed for desktop, Android and iOS",
@@ -176,7 +191,7 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "867ec210cfa6c6fc58202ebac54ddbcedb24e02119fdb3919190443ff12e77cb"
+      "sha256": "9cb15f54ee36816e1078f3baa281ec9cbc3e8e6ff67eca0e26c26bdf65c15683"
     },
     {
       "path": "android-app/app/build.gradle.kts",
@@ -239,6 +254,14 @@
       "sha256": "ef5ed6476cb763f9a151a200a4fe0eae43ae39447163f145590af112aa740f6b"
     },
     {
+      "path": "packages/cli/__tests__/unit/evolution-evidence-projector.test.js",
+      "sha256": "2a13696c85d4fa9665146bd7c2632e9e2028fd73cf7b455758e43ac87a342a38"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/evolution-windows-directory-durability.test.js",
+      "sha256": "1a4e71ad650ef87cc00f999a73e2117b25776023883edc6665ac1b0af084db80"
+    },
+    {
       "path": "packages/cli/__tests__/unit/release-workflow-contract.test.js",
       "sha256": "4a88e852660968ca465a4262cc61bc2a33962cf9025107ffd4969ee90866a980"
     },
@@ -260,7 +283,19 @@
     },
     {
       "path": "packages/cli/src/data/changelog.json",
-      "sha256": "fb2125a34bbe777727da3f021cdc4272b7f3e545fb630490bcd0e376456b943c"
+      "sha256": "80e52740071bdd3f3e8bddd7c97ea4430cc5aba06cf69e5e2d321788f3b3ebbd"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/evidence-json-text.js",
+      "sha256": "675079fa34f0a0f822f4dc79f82d11508ad28e1d741edb5e1ab3ec333ddb62d9"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/evolution-evidence-projector.js",
+      "sha256": "9558696ef4e6d648aaf0719b3f6451b909172e80388a546f43d3e0c85f4bf329"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/evolution-windows-directory-durability.js",
+      "sha256": "28175e33be4e2ad49c635d3fd22c53ea897478b9ff4246d94ff3dcd7a8597250"
     },
     {
       "path": "packages/cli/test-node/verify01-native-retest-round.node-test.mjs",
@@ -379,8 +414,8 @@
     },
     {
       "path": "release118-contract-tests.json",
-      "sha256": "8f62c2790f8f126d3e0ca065cb9ee8c3a5fefdd215d1795d10d2e903a2873c6e",
-      "originalSha256": "8f62c2790f8f126d3e0ca065cb9ee8c3a5fefdd215d1795d10d2e903a2873c6e"
+      "sha256": "5eebb919d4d8857e716684071af432d091121f894679484c9cbaecebc1feccd3",
+      "originalSha256": "5eebb919d4d8857e716684071af432d091121f894679484c9cbaecebc1feccd3"
     },
     {
       "path": "release118-extra-local-checks.json",
@@ -416,6 +451,41 @@
       "path": "release118-soak-diagnostics-tests.json",
       "sha256": "2de5a447ce7dc37a23fa09e8efc0628d8ec384d163782b6e68ac09e1376c821a",
       "originalSha256": "2de5a447ce7dc37a23fa09e8efc0628d8ec384d163782b6e68ac09e1376c821a"
+    },
+    {
+      "path": "release118-macos-soak-304-before.json",
+      "sha256": "2c08855a42bb80bd0ceae11029aaff2c37e65f4daed8a3bc8ad185b6ca1a85f4",
+      "originalSha256": "2c08855a42bb80bd0ceae11029aaff2c37e65f4daed8a3bc8ad185b6ca1a85f4"
+    },
+    {
+      "path": "release118-windows-soak-304-before.json",
+      "sha256": "859b04eafa971af54c02275ac332f4593426e737ac417da5c773d5ae0864cd62",
+      "originalSha256": "859b04eafa971af54c02275ac332f4593426e737ac417da5c773d5ae0864cd62"
+    },
+    {
+      "path": "release118-linux-soak-304-before.json",
+      "sha256": "688e85e1d4060fd6903d48ce38eac7a9f50a2d873e41c3f107cf3ecc44edcb0c",
+      "originalSha256": "688e85e1d4060fd6903d48ce38eac7a9f50a2d873e41c3f107cf3ecc44edcb0c"
+    },
+    {
+      "path": "release118-project-instructions-validation.json",
+      "sha256": "1450a19b31beb3c05f663e4c141e21d9ad2191ae4d52eafeca620de2b066b78a",
+      "originalSha256": "1450a19b31beb3c05f663e4c141e21d9ad2191ae4d52eafeca620de2b066b78a"
+    },
+    {
+      "path": "release118-windows-directory-tests.json",
+      "sha256": "84f411b141f03b3da066898b7b4981ae7c252ed2037f7f2668777f8e0ad5063f",
+      "originalSha256": "84f411b141f03b3da066898b7b4981ae7c252ed2037f7f2668777f8e0ad5063f"
+    },
+    {
+      "path": "release118-windows-directory-before-after.json",
+      "sha256": "f233ecc4cb233167448b701d202fc13a46d899ad579294ab017a9d366b8ba8f8",
+      "originalSha256": "f233ecc4cb233167448b701d202fc13a46d899ad579294ab017a9d366b8ba8f8"
+    },
+    {
+      "path": "release118-local-soak-after.json",
+      "sha256": "8e76bc881f0cacea8874541b0a6538db687297b0c472bb85d20d989c4b4df77c",
+      "originalSha256": "8e76bc881f0cacea8874541b0a6538db687297b0c472bb85d20d989c4b4df77c"
     }
   ],
   "rawSecurityAudit": {

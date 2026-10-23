@@ -1,0 +1,370 @@
+{
+  "schema": "chainlesschain.cli-reliability-soak.v2",
+  "status": "failed",
+  "startedAt": "2026-10-23T12:44:56.227Z",
+  "seriesStartedAt": "2026-10-23T12:44:56.227Z",
+  "headSha": "304733022a987c3f48bc3d240dd39fec76b0f675",
+  "expectedSha": "304733022a987c3f48bc3d240dd39fec76b0f675",
+  "exactShaVerified": true,
+  "source": {
+    "clean": true,
+    "changeCount": 0
+  },
+  "platform": "linux",
+  "arch": "x64",
+  "node": "v22.12.0",
+  "profile": {
+    "mode": "smoke",
+    "durationSeconds": 5,
+    "turns": 10,
+    "warmupTurns": 2,
+    "concurrentAgents": 3,
+    "pipeCases": 2,
+    "disconnectCases": 1,
+    "slowConsumerMs": 250,
+    "checkpointIntervalSeconds": 1,
+    "cleanupDeadlineMs": 10000,
+    "maxRssGrowthMb": 128,
+    "maxResourceGrowth": 8
+  },
+  "scenarios": {
+    "disk": {
+      "pass": true,
+      "configured": true,
+      "required": false,
+      "fixtures": {
+        "erofs": {
+          "pass": true,
+          "expectedFsCode": "EROFS",
+          "observedHostCode": "EROFS",
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          },
+          "sessionId": "reliability-disk-erofs-3630-1792759496236",
+          "modelCalls": 0,
+          "durationMs": 858.0079039999999,
+          "exit": {
+            "code": 1,
+            "signal": null
+          },
+          "projection": {
+            "subtype": "error_persistence",
+            "code": "CC_SESSION_PERSISTENCE_FAILED",
+            "fsCode": "EROFS",
+            "phase": "before-model",
+            "commitState": "not-committed",
+            "retryable": false
+          },
+          "diagnosticCodes": [
+            "CC_SESSION_PERSISTENCE_FAILED"
+          ],
+          "diagnosticClasses": [],
+          "stdoutBytes": 434,
+          "stderrBytes": 416
+        },
+        "enospc": {
+          "pass": true,
+          "expectedFsCode": "ENOSPC",
+          "observedHostCode": "ENOSPC",
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          },
+          "sessionId": "reliability-disk-enospc-3630-1792759497098",
+          "modelCalls": 0,
+          "durationMs": 860.7016789999998,
+          "exit": {
+            "code": 1,
+            "signal": null
+          },
+          "projection": {
+            "subtype": "error_persistence",
+            "code": "CC_SESSION_PERSISTENCE_FAILED",
+            "fsCode": "ENOSPC",
+            "phase": "before-model",
+            "commitState": "unknown",
+            "retryable": false
+          },
+          "diagnosticCodes": [
+            "CC_SESSION_PERSISTENCE_FAILED"
+          ],
+          "diagnosticClasses": [],
+          "stdoutBytes": 430,
+          "stderrBytes": 417
+        }
+      }
+    },
+    "mcpOutput": {
+      "pass": false,
+      "durationMs": 2545.0841570000002,
+      "exit": {
+        "code": 1,
+        "signal": null
+      },
+      "resultSubtype": "error",
+      "resultIsError": true,
+      "toolCalls": 0,
+      "oversizedResultBytes": null,
+      "budgetCodeObservedByModel": false,
+      "privateCanaryObservedByModel": false,
+      "privateCanaryObservedOnWire": false,
+      "modelRequestCount": 0,
+      "modelToolCallResponses": 0,
+      "modelFinalResponses": 0,
+      "mcpServerPidObserved": false,
+      "mcpServerRetired": false,
+      "startupDiagnostics": {
+        "fsCodes": [],
+        "operations": [],
+        "classes": [
+          "database-initialized",
+          "sandbox-configured"
+        ]
+      },
+      "diagnosticCodes": [
+        "ERR_MODULE_NOT_FOUND"
+      ],
+      "diagnosticClasses": [],
+      "toolResultProjections": [],
+      "stdoutBytes": 42474,
+      "stderrBytes": 428
+    },
+    "pipe": {
+      "pass": false,
+      "brokenConsumerP95Ms": 1475.1914749999996,
+      "slowConsumerP95Ms": 1691.9285069999996,
+      "cleanupDeadlineMs": 10000,
+      "brokenConsumers": [
+        {
+          "closed": true,
+          "exitCode": 0,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 1475.1914749999996,
+          "descendantsAfterExit": 0,
+          "stderrBytes": 326,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          }
+        },
+        {
+          "closed": true,
+          "exitCode": 0,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 1429.0178409999999,
+          "descendantsAfterExit": 0,
+          "stderrBytes": 284,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          }
+        }
+      ],
+      "slowConsumers": [
+        {
+          "exitCode": 1,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 1691.9285069999996,
+          "configuredStallMs": 250,
+          "actualStallMs": 250.8352959999993,
+          "stallObserved": true,
+          "peakReadableBytes": 95706,
+          "outputBytes": 97299,
+          "resultSubtype": "error",
+          "resultIsError": true,
+          "diagnosticCodes": [],
+          "descendantsAfterExit": 0,
+          "stderrBytes": 284,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          }
+        },
+        {
+          "exitCode": 1,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 1671.9633010000016,
+          "configuredStallMs": 250,
+          "actualStallMs": 250.50595800000156,
+          "stallObserved": true,
+          "peakReadableBytes": 95706,
+          "outputBytes": 97299,
+          "resultSubtype": "error",
+          "resultIsError": true,
+          "diagnosticCodes": [],
+          "descendantsAfterExit": 0,
+          "stderrBytes": 284,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          }
+        }
+      ]
+    },
+    "tty": {
+      "pass": false,
+      "supported": true,
+      "normal": {
+        "pass": false,
+        "durationMs": 1545.0900390000006,
+        "exitCode": 1,
+        "signal": 0,
+        "outputBytes": 670,
+        "diagnosticCodes": [],
+        "processRetired": true
+      },
+      "screenReader": {
+        "pass": false,
+        "durationMs": 71448.441471,
+        "exitCode": null,
+        "signal": "timeout",
+        "readinessObserved": true,
+        "exitRequested": false,
+        "unicodePromptEchoed": true,
+        "responseObserved": false,
+        "ansiColorObserved": false,
+        "repaintObserved": false,
+        "outputBytes": 844,
+        "diagnosticCodes": [],
+        "processRetired": true
+      },
+      "disconnects": [
+        {
+          "pass": true,
+          "outputObserved": true,
+          "killRequested": true,
+          "protocolEventObserved": true,
+          "processRetired": true,
+          "durationMs": 1497.0864309999888,
+          "exitCode": 0,
+          "signal": 1,
+          "outputBytes": 829,
+          "diagnosticCodes": []
+        }
+      ]
+    },
+    "clipboard": {
+      "pass": true,
+      "supported": false,
+      "required": false,
+      "configured": false,
+      "reason": "platform-not-required"
+    },
+    "ssh": {
+      "pass": false,
+      "configured": true,
+      "target": "configured-local-ssh",
+      "normal": {
+        "pass": false,
+        "durationMs": 3447.7713980000117,
+        "exit": {
+          "code": 1,
+          "signal": null
+        },
+        "diagnosticCodes": [],
+        "outputBytes": 670
+      },
+      "disconnects": [
+        {
+          "pass": true,
+          "outputObserved": true,
+          "killRequested": true,
+          "remotePidObserved": true,
+          "remoteRetired": true,
+          "durationMs": 1879.4848559999955,
+          "exit": {
+            "code": null,
+            "signal": "SIGKILL"
+          },
+          "diagnosticCodes": [
+            "CC_RELIABILITY_REMOTE_PID"
+          ],
+          "outputBytes": 861
+        }
+      ]
+    },
+    "concurrentAgents": {
+      "pass": false,
+      "agents": 3,
+      "durationMs": 2534.281781999991,
+      "exits": [
+        {
+          "code": 1,
+          "signal": null,
+          "resultSubtype": "error",
+          "resultIsError": true,
+          "resultLength": 79,
+          "diagnosticCodes": [],
+          "diagnosticClasses": [],
+          "stdoutBytes": 339,
+          "stderrBytes": 336
+        },
+        {
+          "code": 1,
+          "signal": null,
+          "resultSubtype": "error",
+          "resultIsError": true,
+          "resultLength": 79,
+          "diagnosticCodes": [],
+          "diagnosticClasses": [],
+          "stdoutBytes": 339,
+          "stderrBytes": 336
+        },
+        {
+          "code": 1,
+          "signal": null,
+          "resultSubtype": "error",
+          "resultIsError": true,
+          "resultLength": 79,
+          "diagnosticCodes": [],
+          "diagnosticClasses": [],
+          "stdoutBytes": 339,
+          "stderrBytes": 336
+        }
+      ]
+    }
+  },
+  "partialScenarios": {},
+  "activeScenario": null,
+  "resume": {
+    "requested": false,
+    "recovered": false,
+    "priorStatus": null,
+    "attempt": 1,
+    "recoveredScenarios": []
+  },
+  "violations": [
+    "turn 2 timed out"
+  ],
+  "checkpointedAt": "2026-10-23T12:47:30.736Z",
+  "finishedAt": "2026-10-23T12:47:30.736Z"
+}

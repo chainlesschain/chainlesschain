@@ -19,6 +19,7 @@ import {
 import { snapshotSkillDecisionPayload } from "./skill-decision-projection.js";
 import {
   createEvidenceJsonTextBoundary,
+  AGENT_FENCED_CODE_LANGUAGES,
   AGENT_CODE_TEXT_RESULT_TOOLS,
   EVIDENCE_JSON_POLICY,
   isAgentToolArgumentsPath,
@@ -533,7 +534,7 @@ export const EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V3_DIGEST = `sha256:${crea
     "utf8",
   )
   .digest("hex")}`;
-const AGENT_MODEL_RULESET = Object.freeze({
+const AGENT_MODEL_RULESET_V4 = Object.freeze({
   ...AGENT_MODEL_RULESET_V3,
   schema: "chainlesschain.evolution-agent-model-projection-rules/v4",
   version: 4,
@@ -552,6 +553,21 @@ const AGENT_MODEL_RULESET = Object.freeze({
     version: 2,
     maxNodes: AGENT_MODEL_REQUEST_LIMITS.maxNodes,
   }),
+});
+export const EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V4_DIGEST = `sha256:${createHash(
+  "sha256",
+)
+  .update(
+    `${AGENT_MODEL_RULESET_V4.schema}\0${JSON.stringify(AGENT_MODEL_RULESET_V4)}`,
+    "utf8",
+  )
+  .digest("hex")}`;
+const AGENT_MODEL_RULESET = Object.freeze({
+  ...AGENT_MODEL_RULESET_V4,
+  schema: "chainlesschain.evolution-agent-model-projection-rules/v5",
+  version: 5,
+  fencedCodePolicy: "closed-message-code-fence-literal-scan-v1",
+  fencedCodeLanguages: AGENT_FENCED_CODE_LANGUAGES,
 });
 export const EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_DIGEST = `sha256:${createHash(
   "sha256",
@@ -584,6 +600,7 @@ const SUPPORTED_RULESETS = new Map([
   [AGENT_MODEL_RULESET_V1_DIGEST, AGENT_MODEL_RULESET_V1],
   [EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V2_DIGEST, AGENT_MODEL_RULESET_V2],
   [EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V3_DIGEST, AGENT_MODEL_RULESET_V3],
+  [EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V4_DIGEST, AGENT_MODEL_RULESET_V4],
   [EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_DIGEST, AGENT_MODEL_RULESET],
 ]);
 
@@ -659,6 +676,7 @@ const AGENT_VALUE_PATTERNS = Object.freeze([
 function valuePatterns(ruleset) {
   return ruleset === SKILL_DECISION_RULESET ||
     ruleset === AGENT_MODEL_RULESET ||
+    ruleset === AGENT_MODEL_RULESET_V4 ||
     ruleset === AGENT_MODEL_RULESET_V3 ||
     ruleset === AGENT_MODEL_RULESET_V2 ||
     ruleset === AGENT_MODEL_RULESET_V1
@@ -1409,7 +1427,9 @@ function sanitizePayload(
     }
     const toolArguments = jsonText && isAgentToolArgumentsPath(path);
     const opaqueTransportBlock =
-      ruleset === AGENT_MODEL_RULESET || ruleset === AGENT_MODEL_RULESET_V3
+      ruleset === AGENT_MODEL_RULESET ||
+      ruleset === AGENT_MODEL_RULESET_V4 ||
+      ruleset === AGENT_MODEL_RULESET_V3
         ? projectAgentOpaqueTransportBlock(value, path.join("."))
         : null;
     if (opaqueTransportBlock !== null) return opaqueTransportBlock;
@@ -1431,6 +1451,15 @@ function sanitizePayload(
         layer,
         objectOnly: toolArguments,
         codeText,
+        // Only direct message text can contain Markdown code examples. Tool
+        // arguments and recursively decoded strings keep their existing rules.
+        fencedCodeLanguages:
+          path[0] === "messages" &&
+          /^\d+$/u.test(path[1] ?? "") &&
+          path[2] === "content" &&
+          (path.length === 3 || (path.length === 5 && path[4] === "text"))
+            ? ruleset.fencedCodeLanguages
+            : null,
         visit: (decoded, nextLayer) =>
           visit(
             decoded,
@@ -3287,6 +3316,7 @@ function validateBundleIntegrity(bundle) {
     }
     if (
       ruleset === AGENT_MODEL_RULESET ||
+      ruleset === AGENT_MODEL_RULESET_V4 ||
       ruleset === AGENT_MODEL_RULESET_V3 ||
       ruleset === AGENT_MODEL_RULESET_V2 ||
       ruleset === AGENT_MODEL_RULESET_V1
@@ -3294,7 +3324,9 @@ function validateBundleIntegrity(bundle) {
       snapshotAgentModelRequest(model.content, {
         allowStructuredArgumentText: ruleset !== AGENT_MODEL_RULESET_V1,
         allowOpaqueTransportBlocks:
-          ruleset === AGENT_MODEL_RULESET || ruleset === AGENT_MODEL_RULESET_V3,
+          ruleset === AGENT_MODEL_RULESET ||
+          ruleset === AGENT_MODEL_RULESET_V4 ||
+          ruleset === AGENT_MODEL_RULESET_V3,
       });
       if (
         model.truncated ||

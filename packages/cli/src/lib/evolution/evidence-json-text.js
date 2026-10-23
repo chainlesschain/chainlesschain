@@ -21,6 +21,43 @@ export const AGENT_CODE_TEXT_RESULT_TOOLS = Object.freeze([
   "search_files",
 ]);
 
+export const AGENT_FENCED_CODE_LANGUAGES = Object.freeze([
+  "javascript",
+  "js",
+  "typescript",
+  "ts",
+  "jsx",
+  "tsx",
+  "python",
+  "py",
+]);
+
+function fencedCodeRanges(text, languages) {
+  const ranges = [];
+  const fences = /^ {0,3}(`{3,}|~{3,})([^\r\n]*)\r?$/gmu;
+  let opening = null;
+  for (const match of text.matchAll(fences)) {
+    const marker = match[1];
+    const info = match[2].trim().toLowerCase();
+    if (opening === null) {
+      opening = {
+        marker,
+        supported: languages.includes(info),
+        start: match.index + match[0].length,
+      };
+    } else if (
+      marker[0] === opening.marker[0] &&
+      marker.length >= opening.marker.length &&
+      info === ""
+    ) {
+      if (opening.supported) ranges.push([opening.start, match.index]);
+      opening = null;
+    }
+  }
+  // Unclosed/unknown fences never acquire code semantics.
+  return ranges;
+}
+
 /* eslint-disable no-control-regex -- Quoted literals exclude unescaped control bytes. */
 const JSON_STRING_PREFIX =
   /^"(?:[^"\\\x00-\x1f]|\\(?:["\\/bfnrt]|u[0-9a-fA-F]{4}))*"/u;
@@ -271,10 +308,35 @@ export function createEvidenceJsonTextBoundary(
     };
   };
 
-  return (
+  return function scanText(
     text,
-    { layer = 0, objectOnly = false, codeText = false, visit, plain, equal },
-  ) => {
+    {
+      layer = 0,
+      objectOnly = false,
+      codeText = false,
+      fencedCodeLanguages = null,
+      visit,
+      plain,
+      equal,
+    },
+  ) {
+    if (!objectOnly && !codeText && fencedCodeLanguages) {
+      const ranges = fencedCodeRanges(text, fencedCodeLanguages);
+      if (ranges.length > 0) {
+        let output = "";
+        let offset = 0;
+        const options = { layer, visit, plain, equal };
+        for (const [start, end] of ranges) {
+          output += scanText(text.slice(offset, start), options);
+          output += scanText(text.slice(start, end), {
+            ...options,
+            codeText: true,
+          });
+          offset = end;
+        }
+        return output + scanText(text.slice(offset), options);
+      }
+    }
     bytes += Buffer.byteLength(text, "utf8");
     if (bytes > policy.maxDecodedBytes)
       reject("Agent model JSON text exceeds its budget");

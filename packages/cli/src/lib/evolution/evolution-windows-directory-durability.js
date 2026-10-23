@@ -137,7 +137,20 @@ function fileId(information) {
   );
 }
 
-function assertDirectoryHandleIdentity(api, handle, fsImpl, directory, expected) {
+// These Win32 APIs expose a DWORD serial. libuv 1.49 (Node 22.12) exposes
+// the full 64-bit serial in stat.dev; newer libuv exposes its low DWORD.
+// Normalize only across those APIs, retaining full stat.dev for path checks.
+function windowsVolumeSerial(device) {
+  return BigInt.asUintN(32, BigInt(device));
+}
+
+function assertDirectoryHandleIdentity(
+  api,
+  handle,
+  fsImpl,
+  directory,
+  expected,
+) {
   const information = {};
   requireWindowsSuccess(
     api,
@@ -147,7 +160,8 @@ function assertDirectoryHandleIdentity(api, handle, fsImpl, directory, expected)
   if (
     (attributes & DIRECTORY_ATTRIBUTE) === 0 ||
     (attributes & REPARSE_POINT_ATTRIBUTE) !== 0 ||
-    BigInt(information.volumeSerialNumber) !== BigInt(expected.stat.dev) ||
+    BigInt(information.volumeSerialNumber) !==
+      windowsVolumeSerial(expected.stat.dev) ||
     fileId(information) !== BigInt(expected.stat.ino)
   ) {
     throw new Error(
@@ -204,17 +218,14 @@ export function flushWindowsLocalNtfsDirectory(
   if (
     driveType !== DRIVE_FIXED ||
     readWideString(fileSystemName).toLowerCase() !== "ntfs" ||
-    BigInt(volumeSerialNumber[0]) !== BigInt(before.stat.dev)
+    BigInt(volumeSerialNumber[0]) !== windowsVolumeSerial(before.stat.dev)
   ) {
     throw new Error(
       "Windows local UI durable storage requires a local NTFS directory",
     );
   }
 
-  const invalidHandle = BigInt.asUintN(
-    api.koffi.sizeof("intptr_t") * 8,
-    -1n,
-  );
+  const invalidHandle = BigInt.asUintN(api.koffi.sizeof("intptr_t") * 8, -1n);
   const handle = api.CreateFileW(
     win32Path(before.resolvedPath),
     GENERIC_READ_WRITE,
@@ -231,25 +242,13 @@ export function flushWindowsLocalNtfsDirectory(
 
   let operationError = null;
   try {
-    assertDirectoryHandleIdentity(
-      api,
-      handle,
-      fsImpl,
-      directory,
-      before,
-    );
+    assertDirectoryHandleIdentity(api, handle, fsImpl, directory, before);
     const flushed = api.FlushFileBuffers(handle);
     if (!flushed) {
       const errorCode = api.GetLastError();
       throw windowsError("FlushFileBuffers", errorCode);
     }
-    assertDirectoryHandleIdentity(
-      api,
-      handle,
-      fsImpl,
-      directory,
-      before,
-    );
+    assertDirectoryHandleIdentity(api, handle, fsImpl, directory, before);
   } catch (error) {
     operationError = error;
     throw error;

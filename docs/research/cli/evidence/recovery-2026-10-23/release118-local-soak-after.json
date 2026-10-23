@@ -1,0 +1,14 @@
+{
+  "sourceHead": null,
+  "dirtySource": true,
+  "platform": "win32",
+  "node": "v22.22.2",
+  "testRoot": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-release118-probe-Y4KmDL",
+  "startedAt": "2026-10-23T12:44:58.961Z",
+  "scenarios": {},
+  "error": {
+    "name": "Error",
+    "message": "child completion deadline exceeded"
+  },
+  "finishedAt": "2026-10-23T12:46:39.026Z"
+}
