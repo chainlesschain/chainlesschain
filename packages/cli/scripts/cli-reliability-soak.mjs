@@ -476,6 +476,57 @@ function waitForExit(child, timeoutMs) {
   });
 }
 
+// Observe immediately after spawn. Waiting may begin after exit (for example,
+// after a deliberate stdout stall); close also ensures stderr has drained.
+export function observeChildCompletion(child) {
+  let exit = null;
+  let failed = false;
+  child.once("error", () => {
+    failed = true;
+  });
+  child.once("exit", (code, signal) => {
+    exit = { code, signal };
+  });
+  const closed = new Promise((resolvePromise) => {
+    child.once("close", (code, signal) => {
+      exit = { code, signal };
+      resolvePromise();
+    });
+  });
+  return {
+    closed,
+    exit: () => exit,
+    wait(timeoutMs) {
+      return new Promise((resolvePromise, rejectPromise) => {
+        const timer = setTimeout(() => {
+          child.kill("SIGKILL");
+          rejectPromise(new Error("child completion deadline exceeded"));
+        }, timeoutMs);
+        timer.unref?.();
+        closed.then(() => {
+          clearTimeout(timer);
+          if (failed) rejectPromise(new Error("child process error"));
+          else resolvePromise(exit);
+        });
+      });
+    },
+  };
+}
+
+function observeStartupDiagnostics(child) {
+  let stderr = "";
+  let stderrBytes = 0;
+  child.stderr.setEncoding("utf8");
+  child.stderr.on("data", (chunk) => {
+    stderrBytes += Buffer.byteLength(chunk);
+    stderr = (stderr + chunk).slice(0, 64 * 1024);
+  });
+  return () => ({
+    stderrBytes,
+    startupDiagnostics: diskFailureDiagnostics(stderr),
+  });
+}
+
 function spawnCli(
   args,
   { home, stdio = ["ignore", "pipe", "pipe"], env = {} } = {},
@@ -665,11 +716,27 @@ export function diskFailureDiagnostics(stderr) {
   };
 }
 
-async function pipeScenario(baseUrl, home, profile) {
+export async function pipeScenario(
+  baseUrl,
+  home,
+  profile,
+  {
+    checkpoint = null,
+    spawnChild = spawnCli,
+    countDescendants = descendantCount,
+  } = {},
+) {
   const brokenConsumers = [];
+  const slowConsumers = [];
+  const snapshot = () => ({
+    pass: false,
+    cleanupDeadlineMs: profile.cleanupDeadlineMs,
+    brokenConsumers,
+    slowConsumers,
+  });
   for (let index = 0; index < profile.pipeCases; index += 1) {
     const started = performance.now();
-    const child = spawnCli(
+    const child = spawnChild(
       [
         ...commonArgs(baseUrl),
         "-p",
@@ -680,25 +747,35 @@ async function pipeScenario(baseUrl, home, profile) {
       ],
       { home },
     );
-    child.stderr.resume();
+    const completion = observeChildCompletion(child);
+    const startup = observeStartupDiagnostics(child);
     let closed = false;
     child.stdout.once("data", () => {
       closed = true;
       child.stdout.destroy();
     });
-    const exit = await waitForExit(child, profile.cleanupDeadlineMs + 20_000);
-    brokenConsumers.push({
-      closed,
-      exitCode: exit.code,
-      signal: exit.signal,
-      durationMs: performance.now() - started,
-      descendantsAfterExit: descendantCount(child.pid),
-    });
+    let failureReason = null;
+    try {
+      await completion.wait(profile.cleanupDeadlineMs + 20_000);
+    } catch (error) {
+      failureReason = error.message;
+      throw error;
+    } finally {
+      brokenConsumers.push({
+        closed,
+        exitCode: completion.exit()?.code ?? null,
+        signal: completion.exit()?.signal ?? null,
+        failureReason,
+        durationMs: performance.now() - started,
+        descendantsAfterExit: countDescendants(child.pid),
+        ...startup(),
+      });
+      checkpoint?.(snapshot());
+    }
   }
-  const slowConsumers = [];
   for (let index = 0; index < profile.pipeCases; index += 1) {
     const started = performance.now();
-    const child = spawnCli(
+    const child = spawnChild(
       [
         ...commonArgs(baseUrl),
         "-p",
@@ -709,7 +786,8 @@ async function pipeScenario(baseUrl, home, profile) {
       ],
       { home },
     );
-    child.stderr.resume();
+    const completion = observeChildCompletion(child);
+    const startup = observeStartupDiagnostics(child);
     child.stdout.setEncoding("utf8");
     let buffer = "";
     let result = null;
@@ -726,6 +804,12 @@ async function pipeScenario(baseUrl, home, profile) {
     const arrivalDeadline = setTimeout(() => {
       rejectStall(new Error("slow pipe consumer observed no output"));
     }, profile.cleanupDeadlineMs + 60_000);
+    completion.closed.then(() => {
+      if (stalledAt === null) {
+        rejectStall(new Error("slow pipe consumer exited before output"));
+      }
+    });
+    let stallTimer;
     child.stdout.on("data", (chunk) => {
       bytes += Buffer.byteLength(chunk);
       if (stalledAt === null) {
@@ -735,7 +819,7 @@ async function pipeScenario(baseUrl, home, profile) {
         const releaseAtDeadline = () => {
           const remainingMs = stallDeadline - performance.now();
           if (remainingMs > 0) {
-            setTimeout(releaseAtDeadline, Math.ceil(remainingMs));
+            stallTimer = setTimeout(releaseAtDeadline, Math.ceil(remainingMs));
             return;
           }
           actualStallMs = performance.now() - stalledAt;
@@ -743,7 +827,7 @@ async function pipeScenario(baseUrl, home, profile) {
           child.stdout.resume();
           resolveStall();
         };
-        setTimeout(releaseAtDeadline, profile.slowConsumerMs);
+        stallTimer = setTimeout(releaseAtDeadline, profile.slowConsumerMs);
       }
       buffer += chunk;
       for (;;) {
@@ -766,29 +850,38 @@ async function pipeScenario(baseUrl, home, profile) {
       );
     }, 10);
     sampler.unref?.();
-    await stallCompleted.catch((error) => {
-      clearTimeout(arrivalDeadline);
-      child.kill("SIGKILL");
+    let failureReason = null;
+    try {
+      await stallCompleted;
+      await completion.wait(profile.cleanupDeadlineMs + 60_000);
+    } catch (error) {
+      failureReason = error.message;
+      if (!completion.exit()) child.kill("SIGKILL");
       throw error;
-    });
-    const exit = await waitForExit(child, profile.cleanupDeadlineMs + 60_000);
-    clearInterval(sampler);
-    slowConsumers.push({
-      exitCode: exit.code,
-      signal: exit.signal,
-      durationMs: performance.now() - started,
-      configuredStallMs: profile.slowConsumerMs,
-      actualStallMs,
-      stallObserved: stalledAt !== null,
-      peakReadableBytes,
-      outputBytes: bytes,
-      resultSubtype: result?.subtype || null,
-      resultIsError: result?.is_error ?? null,
-      diagnosticCodes: diagnosticCodes(
-        `${result?.code || ""} ${result?.error || ""}`,
-      ),
-      descendantsAfterExit: descendantCount(child.pid),
-    });
+    } finally {
+      clearTimeout(arrivalDeadline);
+      clearTimeout(stallTimer);
+      clearInterval(sampler);
+      slowConsumers.push({
+        exitCode: completion.exit()?.code ?? null,
+        signal: completion.exit()?.signal ?? null,
+        failureReason,
+        durationMs: performance.now() - started,
+        configuredStallMs: profile.slowConsumerMs,
+        actualStallMs,
+        stallObserved: stalledAt !== null,
+        peakReadableBytes,
+        outputBytes: bytes,
+        resultSubtype: result?.subtype || null,
+        resultIsError: result?.is_error ?? null,
+        diagnosticCodes: diagnosticCodes(
+          `${result?.code || ""} ${result?.error || ""}`,
+        ),
+        descendantsAfterExit: countDescendants(child.pid),
+        ...startup(),
+      });
+      checkpoint?.(snapshot());
+    }
   }
   return {
     pass:
@@ -941,7 +1034,13 @@ async function diskScenario(baseUrl, profile, modelCalls) {
   };
 }
 
-async function mcpOutputScenario(baseUrl, home, profile, llm) {
+export async function mcpOutputScenario(
+  baseUrl,
+  home,
+  profile,
+  llm,
+  { spawnChild = spawnCli } = {},
+) {
   mkdirSync(home, { recursive: true });
   const configPath = join(home, "managed-settings.json");
   const callLogPath = join(home, "mcp-output-calls.jsonl");
@@ -956,7 +1055,7 @@ async function mcpOutputScenario(baseUrl, home, profile, llm) {
     },
   });
 
-  const child = spawnCli(
+  const child = spawnChild(
     [
       ...commonArgs(baseUrl),
       "-p",
@@ -981,6 +1080,7 @@ async function mcpOutputScenario(baseUrl, home, profile, llm) {
       },
     },
   );
+  const completion = observeChildCompletion(child);
   let stdout = "";
   let stderr = "";
   let stdoutBytes = 0;
@@ -1006,7 +1106,7 @@ async function mcpOutputScenario(baseUrl, home, profile, llm) {
   child.stdout.on("data", (chunk) => observe(chunk, "stdout"));
   child.stderr.on("data", (chunk) => observe(chunk, "stderr"));
   const started = performance.now();
-  const exit = await waitForExit(child, profile.cleanupDeadlineMs + 90_000);
+  const exit = await completion.wait(profile.cleanupDeadlineMs + 90_000);
 
   const callEntries = existsSync(callLogPath)
     ? readFileSync(callLogPath, "utf8")
@@ -1073,6 +1173,7 @@ async function mcpOutputScenario(baseUrl, home, profile, llm) {
     modelFinalResponses: observations.finalResponses,
     mcpServerPidObserved: Number.isSafeInteger(serverPid),
     mcpServerRetired: serverRetired,
+    startupDiagnostics: diskFailureDiagnostics(stderr),
     diagnosticCodes: diagnosticCodes(stdout, stderr),
     diagnosticClasses: diagnosticClasses(stdout, stderr),
     toolResultProjections: toolResults.map((event) => ({
@@ -2135,7 +2236,12 @@ async function main() {
       }
       if (shouldRun("pipe")) {
         await runScenario("pipe", () =>
-          pipeScenario(llm.baseUrl, join(root, "pipe"), profile),
+          pipeScenario(llm.baseUrl, join(root, "pipe"), profile, {
+            checkpoint(partial) {
+              report.partialScenarios.pipe = partial;
+              checkpoint();
+            },
+          }),
         );
       }
       if (shouldRun("tty")) {

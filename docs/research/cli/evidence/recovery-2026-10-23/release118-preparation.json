@@ -1,6 +1,6 @@
 {
   "schema": "chainlesschain.cli-ide-release-preparation/v1",
-  "recordedAt": "2026-10-23T11:25:51.741Z",
+  "recordedAt": "2026-10-23T11:48:07.430Z",
   "baseline": "79b7d49841341eb4caf135414183c1311db58b75",
   "pullRequest": "https://github.com/chainlesschain/chainlesschain/pull/483",
   "authorization": {
@@ -116,6 +116,22 @@
         "syncedToCli": false
       }
     },
+    "reliabilityStartupDiagnostics": {
+      "originalSha": "059bad9c26311a3205b7a37a3de7a3e333e1172c",
+      "originalRun": 39946036842,
+      "originalJob": 120389223383,
+      "originalFailure": "mcpOutput exit 1 before model requests; stdout 0 / stderr 180 bytes, followed by slow-pipe no-output failure",
+      "rootCause": "UNCONFIRMED",
+      "originalReceipt": "release118-windows-soak-before.json",
+      "regressionTests": {
+        "passed": 14,
+        "failed": 0,
+        "pending": 0,
+        "report": "release118-soak-diagnostics-tests.json"
+      },
+      "scope": "Capture bounded startup categories and early child lifecycle/failure snapshots without relaxing failure criteria or deadlines. This does not prove the original startup failure fixed.",
+      "localMcpReproduction": "Failed with ERR_MODULE_NOT_FOUND and existing stdout; local dependencies incomplete, different from the CI no-output failure, not counted as passed."
+    },
     "generatedCommandAssets": "manifest, help index and completions checks passed",
     "productVersionSync": "passed for desktop, Android and iOS",
     "undeclaredDependencies": "passed; 14 workspaces, zero new imports",
@@ -160,7 +176,7 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "597643901b1a76a1bf03242c81b62e797f254c1e08d90410caefc222987b914d"
+      "sha256": "867ec210cfa6c6fc58202ebac54ddbcedb24e02119fdb3919190443ff12e77cb"
     },
     {
       "path": "android-app/app/build.gradle.kts",
@@ -219,6 +235,10 @@
       "sha256": "09a66cbf9aa24fe11ed1ec0fd438192f3372581ec06b521e6a37c6b7a5c056ff"
     },
     {
+      "path": "packages/cli/__tests__/unit/cli-reliability-soak.test.js",
+      "sha256": "ef5ed6476cb763f9a151a200a4fe0eae43ae39447163f145590af112aa740f6b"
+    },
+    {
       "path": "packages/cli/__tests__/unit/release-workflow-contract.test.js",
       "sha256": "4a88e852660968ca465a4262cc61bc2a33962cf9025107ffd4969ee90866a980"
     },
@@ -231,12 +251,16 @@
       "sha256": "eb4ebd3705d5e901fe734cba7820306ddd2c45b0e0b2b1749a2ea3977de201ff"
     },
     {
+      "path": "packages/cli/scripts/cli-reliability-soak.mjs",
+      "sha256": "e0622ecea5e151ac83d5d86f9a247da4f5a51e358a5f799640920684eb686514"
+    },
+    {
       "path": "packages/cli/scripts/verify01-collect-native-retest.py",
       "sha256": "0a483f6de98570ba23a1c8a77ba28c135b847ae5c0e596006e79f9a276af1f1d"
     },
     {
       "path": "packages/cli/src/data/changelog.json",
-      "sha256": "34285cc0440280cc9132d44702c7a5f3159a6b4aef12d9167c36685b30c839a2"
+      "sha256": "fb2125a34bbe777727da3f021cdc4272b7f3e545fb630490bcd0e376456b943c"
     },
     {
       "path": "packages/cli/test-node/verify01-native-retest-round.node-test.mjs",
@@ -382,6 +406,16 @@
       "path": "release118-jetbrains-build.txt",
       "sha256": "dff542b43685743ca9fc15e7e60df59676f92e60a4f9f34339311f7bdff7d5f3",
       "originalSha256": "35b2c946811aa4f889ff881a2d3ffe7f2f3e25af69468572c42f8bcb9eb7a26a"
+    },
+    {
+      "path": "release118-windows-soak-before.json",
+      "sha256": "636034f4efb58c93040783c7cc4ccb26da3002a226b050b3ab51004ef117b971",
+      "originalSha256": "636034f4efb58c93040783c7cc4ccb26da3002a226b050b3ab51004ef117b971"
+    },
+    {
+      "path": "release118-soak-diagnostics-tests.json",
+      "sha256": "2de5a447ce7dc37a23fa09e8efc0628d8ec384d163782b6e68ac09e1376c821a",
+      "originalSha256": "2de5a447ce7dc37a23fa09e8efc0628d8ec384d163782b6e68ac09e1376c821a"
     }
   ],
   "rawSecurityAudit": {

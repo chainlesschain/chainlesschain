@@ -1,11 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { EventEmitter } from "node:events";
+import { spawn } from "node:child_process";
+import { tmpdir } from "node:os";
+import { PassThrough } from "node:stream";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   descendantPidsFromProcessRows,
   diskFailureDiagnostics,
+  mcpOutputScenario,
+  observeChildCompletion,
   percentile,
+  pipeScenario,
   recordBoundedSample,
   reliabilityTurnDelayMs,
   resolveReliabilityProfile,
@@ -15,7 +22,223 @@ const REPOSITORY_ROOT = resolve(
   fileURLToPath(new URL("../../../../", import.meta.url)),
 );
 
+function fakeChild() {
+  const child = new EventEmitter();
+  child.stdout = new PassThrough();
+  child.stderr = new PassThrough();
+  child.kill = () => {};
+  child.pid = 123;
+  return child;
+}
+
+const pipeProfile = {
+  pipeCases: 1,
+  cleanupDeadlineMs: 10_000,
+  slowConsumerMs: 10,
+};
+const privateStderr = "Error: ENOENT open /private/SECRET_CANARY\n";
+
+function finishChild(child, code, output = "") {
+  if (output) child.stdout.write(output);
+  child.emit("exit", code, null);
+  // stderr can arrive after exit, before close.
+  child.stderr.end(privateStderr);
+  child.stdout.end();
+  child.emit("close", code, null);
+}
+
 describe("CLI reliability soak gate", () => {
+  it("retains stderr and the failed exit from a real no-output child", async () => {
+    let spawned = 0;
+    let report;
+    await expect(
+      pipeScenario("http://localhost", "unused", pipeProfile, {
+        spawnChild() {
+          const first = spawned++ === 0;
+          return spawn(
+            process.execPath,
+            [
+              "-e",
+              first
+                ? "process.stdout.write('output\\n')"
+                : "process.stderr.write('Error: EACCES open /private/SECRET_CANARY\\n'); process.exitCode = 1",
+            ],
+            { stdio: ["ignore", "pipe", "pipe"], windowsHide: true },
+          );
+        },
+        countDescendants: () => 0,
+        checkpoint: (value) => {
+          report = structuredClone(value);
+        },
+      }),
+    ).rejects.toThrow("slow pipe consumer exited before output");
+    expect(spawned).toBe(2);
+    expect(report.slowConsumers[0]).toMatchObject({
+      exitCode: 1,
+      outputBytes: 0,
+      startupDiagnostics: { fsCodes: ["EACCES"], operations: ["open"] },
+    });
+    expect(report.slowConsumers[0].stderrBytes).toBeGreaterThan(0);
+    expect(JSON.stringify(report)).not.toMatch(/private|SECRET_CANARY/u);
+  });
+
+  it("observes completion before a late waiter and drains stderr after exit", async () => {
+    const child = fakeChild();
+    const completion = observeChildCompletion(child);
+    let closed = false;
+    completion.closed.then(() => {
+      closed = true;
+    });
+    child.emit("exit", 1, null);
+    await Promise.resolve();
+    expect(closed).toBe(false);
+    child.emit("close", 1, null);
+    await expect(completion.wait(100)).resolves.toEqual({
+      code: 1,
+      signal: null,
+    });
+  });
+
+  it.each([0, 1])(
+    "hard fails a no-output exit %i and retains every executed child",
+    async (code) => {
+      let spawned = 0;
+      const snapshots = [];
+      const run = pipeScenario(
+        "http://localhost",
+        "unused",
+        { ...pipeProfile, pipeCases: 2 },
+        {
+          spawnChild() {
+            const child = fakeChild();
+            const index = spawned++;
+            setImmediate(() =>
+              finishChild(
+                child,
+                index < 2 ? 0 : code,
+                index < 2 ? "output\n" : "",
+              ),
+            );
+            return child;
+          },
+          countDescendants: () => 0,
+          checkpoint: (value) => snapshots.push(structuredClone(value)),
+        },
+      );
+      await expect(run).rejects.toThrow(
+        "slow pipe consumer exited before output",
+      );
+      expect(spawned).toBe(3);
+      const report = snapshots.at(-1);
+      expect(report.pass).toBe(false);
+      expect(report.brokenConsumers).toHaveLength(2);
+      expect(report.slowConsumers).toHaveLength(1);
+      expect(report.slowConsumers[0]).toMatchObject({
+        exitCode: code,
+        outputBytes: 0,
+        stallObserved: false,
+        failureReason: "slow pipe consumer exited before output",
+        startupDiagnostics: {
+          fsCodes: ["ENOENT"],
+          operations: ["open"],
+          classes: ["command-error"],
+        },
+      });
+      for (const sample of [
+        ...report.brokenConsumers,
+        ...report.slowConsumers,
+      ]) {
+        expect(sample.stderrBytes).toBe(Buffer.byteLength(privateStderr));
+      }
+      expect(JSON.stringify(snapshots)).not.toMatch(
+        /private|SECRET_CANARY|Error:/u,
+      );
+    },
+  );
+
+  it("accepts valid pipe output when exit precedes the end of the intentional stall", async () => {
+    const report = await pipeScenario(
+      "http://localhost",
+      "unused",
+      pipeProfile,
+      {
+        spawnChild() {
+          const child = fakeChild();
+          setImmediate(() =>
+            finishChild(child, 0, '{"type":"result","is_error":false}\n'),
+          );
+          return child;
+        },
+        countDescendants: () => 0,
+      },
+    );
+    expect(report.pass).toBe(true);
+    expect(report.slowConsumers[0].actualStallMs).toBeGreaterThanOrEqual(
+      pipeProfile.slowConsumerMs,
+    );
+  });
+
+  it("retains failed spawn evidence without serializing the arbitrary error", async () => {
+    let report;
+    await expect(
+      pipeScenario("http://localhost", "unused", pipeProfile, {
+        spawnChild() {
+          const child = fakeChild();
+          setImmediate(() => {
+            child.emit("error", new Error("/private/SECRET_CANARY"));
+            finishChild(child, -2);
+          });
+          return child;
+        },
+        countDescendants: () => 0,
+        checkpoint: (value) => {
+          report = structuredClone(value);
+        },
+      }),
+    ).rejects.toThrow("child process error");
+    expect(report.brokenConsumers[0].failureReason).toBe("child process error");
+    expect(JSON.stringify(report)).not.toMatch(/private|SECRET_CANARY/u);
+  });
+
+  it("retains allowlisted MCP startup diagnostics after an early failure", async () => {
+    const home = mkdtempSync(resolve(tmpdir(), "soak-mcp-evidence-"));
+    try {
+      const report = await mcpOutputScenario(
+        "http://localhost",
+        home,
+        pipeProfile,
+        {
+          mcpObservations: () => ({
+            requestCount: 0,
+            toolCallResponses: 0,
+            finalResponses: 0,
+          }),
+        },
+        {
+          spawnChild() {
+            const child = fakeChild();
+            setImmediate(() => finishChild(child, 1));
+            return child;
+          },
+        },
+      );
+      expect(report.pass).toBe(false);
+      expect(report.exit.code).toBe(1);
+      expect(report.stdoutBytes).toBe(0);
+      expect(report.stderrBytes).toBe(Buffer.byteLength(privateStderr));
+      expect(report.startupDiagnostics).toEqual({
+        fsCodes: ["ENOENT"],
+        operations: ["open"],
+        classes: ["command-error"],
+      });
+      expect(JSON.stringify(report)).not.toMatch(
+        /\/private\/|SECRET_CANARY|Error:/u,
+      );
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+    }
+  });
+
   it("keeps disk startup diagnostics bounded and content-free", () => {
     const diagnostics = diskFailureDiagnostics(
       "[DatabaseManager] Database initialized: /private/canary.db\n" +
@@ -27,7 +250,9 @@ describe("CLI reliability soak gate", () => {
       operations: ["mkdir", "open"],
       classes: ["database-initialized", "fatal-json", "command-error"],
     });
-    expect(JSON.stringify(diagnostics)).not.toMatch(/private|canary|secret|key/iu);
+    expect(JSON.stringify(diagnostics)).not.toMatch(
+      /private|canary|secret|key/iu,
+    );
     expect(
       diskFailureDiagnostics("x".repeat(64 * 1024) + " ENOSPC").fsCodes,
     ).toEqual([]);
