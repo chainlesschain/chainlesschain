@@ -1,0 +1,214 @@
+TAP version 13
+# Subtest: explicit chain rejects duplicates, traversal and omitted current rounds
+ok 1 - explicit chain rejects duplicates, traversal and omitted current rounds
+  ---
+  duration_ms: 8.4099
+  type: 'test'
+  ...
+# Subtest: paid retests reject the original release even if its manifest bytes change
+ok 2 - paid retests reject the original release even if its manifest bytes change
+  ---
+  duration_ms: 9.8212
+  type: 'test'
+  ...
+# Subtest: a separate pinned manifest selects new versions without changing the original
+ok 3 - a separate pinned manifest selects new versions without changing the original
+  ---
+  duration_ms: 18.571
+  type: 'test'
+  ...
+# Subtest: manifest selection rejects arbitrary paths, traversal, and linked directories
+ok 4 - manifest selection rejects arbitrary paths, traversal, and linked directories
+  ---
+  duration_ms: 14.8176
+  type: 'test'
+  ...
+# Subtest: strict existing validators bind accepted files before selecting unfinished groups
+ok 5 - strict existing validators bind accepted files before selecting unfinished groups
+  ---
+  duration_ms: 1634.6834
+  type: 'test'
+  ...
+# Subtest: JetBrains execution shards isolate each unfinished sample without losing other groups
+ok 6 - JetBrains execution shards isolate each unfinished sample without losing other groups
+  ---
+  duration_ms: 1.017
+  type: 'test'
+  ...
+# Subtest: an acceptance boolean without its bound checker evidence cannot suppress a task
+ok 7 - an acceptance boolean without its bound checker evidence cannot suppress a task
+  ---
+  duration_ms: 358.5813
+  type: 'test'
+  ...
+# Subtest: changed historical source binding cannot be reused as an accepted delivery
+ok 8 - changed historical source binding cannot be reused as an accepted delivery
+  ---
+  duration_ms: 121.9736
+  type: 'test'
+  ...
+# Subtest: generation rejects omitted IDs and every previously accepted candidate
+ok 9 - generation rejects omitted IDs and every previously accepted candidate
+  ---
+  duration_ms: 1118.4961
+  type: 'test'
+  ...
+# Subtest: next-round preparation cannot overwrite an old round name or reuse the original packages
+ok 10 - next-round preparation cannot overwrite an old round name or reuse the original packages
+  ---
+  duration_ms: 1360.1334
+  type: 'test'
+  ...
+# Subtest: new per-run verifier accepts real baseline, candidate, mutant and document receipts
+ok 11 - new per-run verifier accepts real baseline, candidate, mutant and document receipts
+  ---
+  duration_ms: 98.194
+  type: 'test'
+  ...
+# Subtest: archive bytes, raw digests, lengths and same-run path constraints are enforced
+ok 12 - archive bytes, raw digests, lengths and same-run path constraints are enforced
+  ---
+  duration_ms: 85.5479
+  type: 'test'
+  ...
+# Subtest: remote run ID/SHA, artifact metadata and exact manifest binding reject substitution
+ok 13 - remote run ID/SHA, artifact metadata and exact manifest binding reject substitution
+  ---
+  duration_ms: 224.7602
+  type: 'test'
+  ...
+# Subtest: modified candidate bytes and mismatched acceptance projections cannot become passes
+ok 14 - modified candidate bytes and mismatched acceptance projections cannot become passes
+  ---
+  duration_ms: 84.9775
+  type: 'test'
+  ...
+# Subtest: a rewritten passing receipt still must reject its behavioral mutants
+ok 15 - a rewritten passing receipt still must reject its behavioral mutants
+  ---
+  duration_ms: 80.6728
+  type: 'test'
+  ...
+# Subtest: missing acceptance cannot be relabeled as a completed or accepted run
+ok 16 - missing acceptance cannot be relabeled as a completed or accepted run
+  ---
+  duration_ms: 51.3291
+  type: 'test'
+  ...
+# Subtest: complete archive-backed prior round adds accepted deliveries and advances the version floor
+ok 17 - complete archive-backed prior round adds accepted deliveries and advances the version floor
+  ---
+  duration_ms: 91.7677
+  type: 'test'
+  ...
+# Subtest: prior ledger chain rejects incomplete evidence, changed digests, cycles and forged acceptance
+ok 18 - prior ledger chain rejects incomplete evidence, changed digests, cycles and forged acceptance
+  ---
+  duration_ms: 421.5604
+  type: 'test'
+  ...
+# Subtest: new plan binds the verified accepted set and cannot overlap old ledger/archive paths
+ok 19 - new plan binds the verified accepted set and cannot overlap old ledger/archive paths
+  ---
+  duration_ms: 3.519
+  type: 'test'
+  ...
+# Subtest: single-sample shards permit multiple runs per group with exact disjoint coverage
+ok 20 - single-sample shards permit multiple runs per group with exact disjoint coverage
+  ---
+  duration_ms: 2.5929
+  type: 'test'
+  ...
+# Subtest: local collector does not clobber existing ledger/archive bytes or checkpoint failed evidence
+ok 21 - local collector does not clobber existing ledger/archive bytes or checkpoint failed evidence
+  ---
+  duration_ms: 193.1061
+  type: 'test'
+  ...
+# Subtest: collector keeps sample-bound broker receipts and excludes raw requests and responses
+ok 22 - collector keeps sample-bound broker receipts and excludes raw requests and responses
+  ---
+  duration_ms: 169.2808
+  type: 'test'
+  ...
+# Subtest: an unconfirmed host cleanup prevents subsequent sample work without retry
+ok 23 - an unconfirmed host cleanup prevents subsequent sample work without retry
+  ---
+  duration_ms: 3.3988
+  type: 'test'
+  ...
+# Subtest: package set selects exact complete versions and binds original manifest bytes
+ok 24 - package set selects exact complete versions and binds original manifest bytes
+  ---
+  duration_ms: 21.6931
+  type: 'test'
+  ...
+# Subtest: native archive extraction accepts absolute drive paths even under Git Bash PATH
+ok 25 - native archive extraction accepts absolute drive paths even under Git Bash PATH
+  ---
+  duration_ms: 96.9672
+  type: 'test'
+  ...
+# Subtest: native extraction preserves git archive UTF-8 paths and frozen bytes
+ok 26 - native extraction preserves git archive UTF-8 paths and frozen bytes
+  ---
+  duration_ms: 364.3809
+  type: 'test'
+  ...
+# Subtest: nine native strata select exactly 36 ordinary and nine independent first samples
+ok 27 - nine native strata select exactly 36 ordinary and nine independent first samples
+  ---
+  duration_ms: 21.1053
+  type: 'test'
+  ...
+# Subtest: full tree diff isolates IDE metadata but rejects unrelated source and linked candidates
+ok 28 - full tree diff isolates IDE metadata but rejects unrelated source and linked candidates
+  ---
+  duration_ms: 19.611
+  type: 'test'
+  ...
+# Subtest: adapter preserves protocol identity and forces six-file tools/worklog off
+ok 29 - adapter preserves protocol identity and forces six-file tools/worklog off
+  ---
+  duration_ms: 338.8743
+  type: 'test'
+  ...
+# Subtest: VSCode prompt preserves full UTF8 content up to 1 MiB and first-run deadline up to 30 minutes
+ok 30 - VSCode prompt preserves full UTF8 content up to 1 MiB and first-run deadline up to 30 minutes
+  ---
+  duration_ms: 11.0433
+  type: 'test'
+  ...
+# Subtest: failed JetBrains capture reads one raw JSONL stream and rejects ambiguous generations
+ok 31 - failed JetBrains capture reads one raw JSONL stream and rejects ambiguous generations
+  ---
+  duration_ms: 15.8052
+  type: 'test'
+  ...
+# Subtest: protocol conversion uses output only and Windows comparison leaves raw evidence unchanged
+ok 32 - protocol conversion uses output only and Windows comparison leaves raw evidence unchanged
+  ---
+  duration_ms: 10.1298
+  type: 'test'
+  ...
+# Subtest: native child storage recognizes its isolated profile and keeps ACL verification enabled
+ok 33 - native child storage recognizes its isolated profile and keeps ACL verification enabled
+  ---
+  duration_ms: 462.6364
+  type: 'test'
+  ...
+# Subtest: Windows PowerShell KnownFolders and module cache remain outside the task workspace
+ok 34 - Windows PowerShell KnownFolders and module cache remain outside the task workspace
+  ---
+  duration_ms: 4786.3613
+  type: 'test'
+  ...
+1..34
+# tests 34
+# suites 0
+# pass 34
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6537.149

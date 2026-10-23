@@ -2,6 +2,13 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.160] - Input delivery and draft recovery (unreleased candidate, 2026-10-23)
+
+- Reject writes after input pipe failure, stdin end or process exit while retaining buffered final receipts and results.
+- Preserve unknown durable delivery and return the actual dispatch outcome.
+- Recover Windows draft publication from temporary sharing locks with bounded retries and page identity checks.
+- Vendor Agent SDK 0.2.16; pair with JetBrains 0.4.177 and recommend public CLI 0.166.117. Exact-source release gates and publication are pending.
+
 ## [0.37.159] - CLI 0.166.117 pairing (2026-10-23)
 
 - Pair with public CLI 0.166.117 and JetBrains 0.4.176.

@@ -539,7 +539,7 @@ test("new plan binds the verified accepted set and cannot overlap old ledger/arc
 
 const collector = path.resolve(
   repository,
-  "../../.work/collect-next-package-round.py",
+  "packages/cli/scripts/verify01-collect-native-retest.py",
 );
 
 test("single-sample shards permit multiple runs per group with exact disjoint coverage", () => {
@@ -599,11 +599,8 @@ test("single-sample shards permit multiple runs per group with exact disjoint co
   assert.throws(() => validateNativeRetestRunBindings(legacy, runs));
 });
 
-test(
-  "local collector does not clobber existing ledger/archive bytes or checkpoint failed evidence",
-  { skip: !fs.existsSync(collector) },
-  () => {
-    const script = String.raw`
+test("local collector does not clobber existing ledger/archive bytes or checkpoint failed evidence", () => {
+  const script = String.raw`
 import importlib.util, pathlib, sys, tempfile
 spec = importlib.util.spec_from_file_location('next_collector', sys.argv[1])
 m = importlib.util.module_from_spec(spec)
@@ -668,12 +665,74 @@ with tempfile.TemporaryDirectory() as directory:
     assert not list(root.glob('*.pending-*'))
 print('collector safety controls passed')
 `;
-    const result = spawnSync(
-      process.platform === "win32" ? "python" : "python3",
-      ["-B", "-c", script, collector],
-      { encoding: "utf8", timeout: 30000 },
-    );
-    assert.equal(result.status, 0, result.stderr);
-    assert.match(result.stdout, /collector safety controls passed/);
-  },
-);
+  const result = spawnSync(
+    process.platform === "win32" ? "python" : "python3",
+    ["-B", "-c", script, collector],
+    { encoding: "utf8", timeout: 30000 },
+  );
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /collector safety controls passed/);
+});
+
+test("collector keeps sample-bound broker receipts and excludes raw requests and responses", () => {
+  const script = String.raw`
+import importlib.util, sys
+spec = importlib.util.spec_from_file_location('next_collector', sys.argv[1])
+m = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(m)
+sample = 'first-run-linux-cli'
+keep = [
+    sample + '/broker/request-1.receipt.json',
+    sample + '/broker/request-24.receipt.json',
+    sample + '/cli-stderr-diagnostics/agent.stderr-redacted.txt',
+    sample + '/capture/driver-failure-initial.json',
+    sample + '/capture/ui-initial.json',
+    sample + '/capture/restart-state.json',
+    sample + '/capture/terminal.json',
+    sample + '/capture/vscode-initial.json',
+    sample + '/capture/vscode-restart.json',
+]
+drop = [
+    sample + '/broker/request-0.receipt.json',
+    sample + '/broker/request-01.receipt.json',
+    sample + '/broker/request-1.receipt.json.bak',
+    sample + '/broker/request-1.receipt.json/body',
+    sample + '/broker/nested/request-1.receipt.json',
+    sample + '/broker/request-1.original.json',
+    sample + '/broker/request-1.effective.json',
+    sample + '/broker/response-1.json',
+    sample + '/broker/response-1.sse',
+    sample + '/broker/policy.json',
+    sample + '/capture/raw-request.json',
+    sample + '/cli-stderr-diagnostics/agent.stderr.txt',
+    sample + '-other/broker/request-1.receipt.json',
+    'verify-01/broker/request-1.receipt.json',
+    sample + '/broker/../broker/request-1.receipt.json',
+    sample + '/broker/./request-1.receipt.json',
+    sample + '//broker/request-1.receipt.json',
+    '/' + sample + '/broker/request-1.receipt.json',
+    sample + '/broker/request-1.receipt.json\x00',
+    sample + '\\broker\\request-1.receipt.json',
+    'C:/' + sample + '/broker/request-1.receipt.json',
+    None,
+]
+assert m.generation_diagnostic_members(sample, keep + drop + keep[:1]) == sorted(keep)
+assert m.generation_diagnostic_members('verify-01', [
+    'verify-01/broker/request-2.receipt.json', *keep,
+]) == ['verify-01/broker/request-2.receipt.json']
+for bad in ['../verify-01', 'verify-01/capture', '', '/verify-01', 'verify-01\\broker']:
+    try:
+        m.generation_diagnostic_members(bad, [])
+        raise RuntimeError('invalid sample identity accepted')
+    except AssertionError:
+        pass
+print('sample-bound broker receipt collection passed')
+`;
+  const result = spawnSync(
+    process.platform === "win32" ? "python" : "python3",
+    ["-B", "-c", script, collector],
+    { encoding: "utf8", timeout: 30000 },
+  );
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /sample-bound broker receipt collection passed/);
+});

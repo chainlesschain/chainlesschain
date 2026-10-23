@@ -89,6 +89,28 @@ def gh(*args):
     return json.loads(subprocess.check_output(['gh', *args], cwd=TREE, timeout=90))
 
 
+def generation_diagnostic_members(sample_id, listing):
+    """Keep bounded diagnostics and broker receipts, excluding request/response bodies."""
+    assert isinstance(sample_id, str) and re.fullmatch(r'[a-zA-Z0-9][a-zA-Z0-9_-]{0,127}', sample_id)
+    assert isinstance(listing, list)
+    selected = set()
+    for member in listing:
+        if not isinstance(member, str) or re.search(r'[\\:\x00-\x1f]', member):
+            continue
+        parts = member.split('/')
+        if len(parts) < 3 or parts[0] != sample_id or any(part in ('', '.', '..') for part in parts):
+            continue
+        receipt = (len(parts) == 3 and parts[1] == 'broker' and
+                   re.fullmatch(r'request-[1-9][0-9]*\.receipt\.json', parts[2]))
+        stderr = parts[1] == 'cli-stderr-diagnostics' and '.stderr-redacted.' in member
+        capture = parts[1] == 'capture' and (parts[-1].startswith('driver-failure-') or
+            parts[-1] in ('ui-initial.json', 'restart-state.json', 'terminal.json',
+                          'vscode-initial.json', 'vscode-restart.json'))
+        if receipt or stderr or capture:
+            selected.add(member)
+    return sorted(selected)
+
+
 def validate_bindings(bindings, plan):
     assert isinstance(bindings, list)
     shards = plan.get('executionShards', [dict(group, shardId=group['group']) for group in plan['groups']])
@@ -269,12 +291,7 @@ class Collector:
                         assert sample['versions'] == self.plan['versions']
                         assert sample['packageSetDigest'] == self.plan['packageSetDigest']
                         members += [item['path'] for item in sample.get('candidates', [])]
-                        prefix = sample['sampleId'] + '/'
-                        members += [member for member in listing if
-                            (member.startswith(prefix + 'cli-stderr-diagnostics/') and '.stderr-redacted.' in member) or
-                            (member.startswith(prefix + 'capture/') and
-                             (pathlib.PurePosixPath(member).name.startswith('driver-failure-') or
-                              pathlib.PurePosixPath(member).name in ['ui-initial.json', 'restart-state.json', 'terminal.json', 'vscode-initial.json', 'vscode-restart.json']))]
+                        members += generation_diagnostic_members(sample['sampleId'], listing)
                 else:
                     assert 'generation' in run, 'acceptance arrived without bound generation'
                     assert summary['sourceSummaryDigest'] == run['generation']['rawSummary']['originalDigest']

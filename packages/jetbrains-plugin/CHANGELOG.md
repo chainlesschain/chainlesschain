@@ -1,5 +1,11 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.177] - Input delivery recovery (unreleased candidate, 2026-10-23)
+
+- Reject later submissions before reserving delivery after an input pipe failure, preserving the first attempt's unknown outcome.
+- Guide users to Saved inputs when a write may have been partial.
+- Pair with VS Code 0.37.160 and continue recommending public CLI 0.166.117. Exact-source release gates and publication are pending.
+
 ## [0.4.176] - CLI 0.166.117 pairing (2026-10-23)
 
 - Pair with public CLI 0.166.117 and VS Code 0.37.159.

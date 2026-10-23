@@ -1,0 +1,46 @@
+TAP version 13
+# Subtest: checked-in release documentation matches the package pairing
+ok 1 - checked-in release documentation matches the package pairing
+  ---
+  duration_ms: 12.704
+  type: 'test'
+  ...
+# Subtest: public release documentation matches the checked-in package pairing
+ok 2 - public release documentation matches the checked-in package pairing
+  ---
+  duration_ms: 5.7415
+  type: 'test'
+  ...
+# Subtest: candidate wording remains valid before the next Marketplace publication
+ok 3 - candidate wording remains valid before the next Marketplace publication
+  ---
+  duration_ms: 6.8722
+  type: 'test'
+  ...
+# Subtest: neutral source pairing preserves exact versions without claiming public availability
+ok 4 - neutral source pairing preserves exact versions without claiming public availability
+  ---
+  duration_ms: 8.0076
+  type: 'test'
+  ...
+# Subtest: neutral source wording cannot change the recommended CLI
+ok 5 - neutral source wording cannot change the recommended CLI
+  ---
+  duration_ms: 7.3
+  type: 'test'
+  ...
+# Subtest: public wording cannot declare a different plugin version
+ok 6 - public wording cannot declare a different plugin version
+  ---
+  duration_ms: 7.08
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 281.959

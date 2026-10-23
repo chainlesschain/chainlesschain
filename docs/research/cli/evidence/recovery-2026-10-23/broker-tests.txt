@@ -1,0 +1,137 @@
+TAP version 13
+# Subtest: explicit text-only policy allows internal summarization without adding tool authority
+ok 1 - explicit text-only policy allows internal summarization without adding tool authority
+  ---
+  duration_ms: 5.8757
+  type: 'test'
+  ...
+# Subtest: effective diagnostic request fixes model, thinking, service tier and token ceiling
+ok 2 - effective diagnostic request fixes model, thinking, service tier and token ceiling
+  ---
+  duration_ms: 10.698
+  type: 'test'
+  ...
+# Subtest: pre-dispatch request size rejection fails only its own task
+ok 3 - pre-dispatch request size rejection fails only its own task
+  ---
+  duration_ms: 212.5567
+  type: 'test'
+  ...
+# Subtest: Ark transport gates HTTP dispatch on TLS and records the failure phase
+ok 4 - Ark transport gates HTTP dispatch on TLS and records the failure phase
+  ---
+  duration_ms: 15.4304
+  type: 'test'
+  ...
+# Subtest: proven pre-HTTP network failure fails one task without retrying it
+ok 5 - proven pre-HTTP network failure fails one task without retrying it
+  ---
+  duration_ms: 120.9233
+  type: 'test'
+  ...
+# Subtest: claimed pre-dispatch failure after HTTP submission still poisons the broker
+ok 6 - claimed pre-dispatch failure after HTTP submission still poisons the broker
+  ---
+  duration_ms: 62.5884
+  type: 'test'
+  ...
+# Subtest: unknown usage, model, tier, incomplete protocol and reasoning cannot settle
+ok 7 - unknown usage, model, tier, incomplete protocol and reasoning cannot settle
+  ---
+  duration_ms: 3.384
+  type: 'test'
+  ...
+# Subtest: duplicate decoded members, overflow and incomplete JSON never become usage
+ok 8 - duplicate decoded members, overflow and incomplete JSON never become usage
+  ---
+  duration_ms: 0.7906
+  type: 'test'
+  ...
+# Subtest: public CLI nonstreaming JSON request preserves all diagnostic bounds
+ok 9 - public CLI nonstreaming JSON request preserves all diagnostic bounds
+  ---
+  duration_ms: 4.4428
+  type: 'test'
+  ...
+# Subtest: JSON response is persisted before forwarding and unknown JSON usage poisons the next call
+ok 10 - JSON response is persisted before forwarding and unknown JSON usage poisons the next call
+  ---
+  duration_ms: 107.7466
+  type: 'test'
+  ...
+# Subtest: campaign policy binds selected task IDs, request allowance and transport timeout
+ok 11 - campaign policy binds selected task IDs, request allowance and transport timeout
+  ---
+  duration_ms: 977.228
+  type: 'test'
+  ...
+# Subtest: physical slots persist before dispatch; secret is absent; restart and 15th request reject
+ok 12 - physical slots persist before dispatch; secret is absent; restart and 15th request reject
+  ---
+  duration_ms: 558.9404
+  type: 'test'
+  ...
+# Subtest: validated truncated output settles usage, fails its task and never forwards tool arguments
+    # Subtest: sse
+    ok 1 - sse
+      ---
+      duration_ms: 98.6592
+      type: 'test'
+      ...
+    # Subtest: json
+    ok 2 - json
+      ---
+      duration_ms: 99.1994
+      type: 'test'
+      ...
+    1..2
+ok 13 - validated truncated output settles usage, fails its task and never forwards tool arguments
+  ---
+  duration_ms: 199.2673
+  type: 'test'
+  ...
+# Subtest: usage unknown poisons allowance, stays null, and never silently retries
+ok 14 - usage unknown poisons allowance, stays null, and never silently retries
+  ---
+  duration_ms: 59.8671
+  type: 'test'
+  ...
+# Subtest: last-call receipt failure prevents HTTP 200 and poisons task status
+ok 15 - last-call receipt failure prevents HTTP 200 and poisons task status
+  ---
+  duration_ms: 49.3667
+  type: 'test'
+  ...
+# Subtest: literal and JSON-escaped credentials are redacted from saved requests and responses
+ok 16 - literal and JSON-escaped credentials are redacted from saved requests and responses
+  ---
+  duration_ms: 56.6861
+  type: 'test'
+  ...
+# Subtest: real IncomingMessage abort on limit teardown preserves the limit failure
+ok 17 - real IncomingMessage abort on limit teardown preserves the limit failure
+  ---
+  duration_ms: 2.2507
+  type: 'test'
+  ...
+# Subtest: explicit bounded transport capacity accepts over 1 MiB without changing token limits
+ok 18 - explicit bounded transport capacity accepts over 1 MiB without changing token limits
+  ---
+  duration_ms: 51.7335
+  type: 'test'
+  ...
+# Subtest: response limit remains unknown usage and poisons further dispatch
+ok 19 - response limit remains unknown usage and poisons further dispatch
+  ---
+  duration_ms: 76.0019
+  type: 'test'
+  ...
+1..19
+# tests 21
+# suites 0
+# pass 21
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3002.2253

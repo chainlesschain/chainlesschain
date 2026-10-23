@@ -1,0 +1,502 @@
+{
+  "schema": "chainlesschain.next-version-task-readiness/v1",
+  "recordedAt": "2026-10-23T10:55:38.887Z",
+  "status": "DIAGNOSED_NOT_RETESTED",
+  "publicationPolicy": "HOLD_PER_USER_DO_NOT_RUSH_RELEASE",
+  "sourcePlan": {
+    "path": "docs/research/cli/verify01-plan-2026-10-13-volcengine/plan.json",
+    "digest": "sha256:aa55909d4cb3d83ac94127168ae6114ee7ceb7b6584b64fcb985904add297f35",
+    "totalSamples": 45
+  },
+  "chain": {
+    "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-round-chain.json",
+    "digest": "sha256:761d4dd2b580aac0adcdb6ce79f564372c9501b5d642036a0e60ff0ae2a45825"
+  },
+  "latestLedger": {
+    "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2.json",
+    "digest": "sha256:4ad3a6bba5b4da41a2374854c6dc833edf694b8637734df7724b2d459e649607",
+    "strictVerification": {
+      "status": "COMPLETED",
+      "planDigest": "sha256:ce3852ed914c903fa3de6dc6255354e33ab2c53f803c126fe990272904d12718",
+      "counts": {
+        "generationRecordsCollected": 14,
+        "acceptanceRecordsCollected": 14,
+        "candidateAcceptancePassed": 1,
+        "endToEndPassed": 1,
+        "reusedAcceptedDeliverables": 31,
+        "cumulativeAcceptedDeliverables": 32
+      }
+    },
+    "versions": {
+      "cli": "0.166.106",
+      "vscode": "0.37.151",
+      "jetbrains": "0.4.168",
+      "vscodeHost": "1.132.0",
+      "jetbrainsHost": "2025.2"
+    }
+  },
+  "accepted": {
+    "total": 32,
+    "ordinary": 26,
+    "firstRun": 6,
+    "sampleIds": [
+      "first-run-darwin-vscode",
+      "first-run-linux-jetbrains",
+      "first-run-linux-vscode",
+      "first-run-win32-cli",
+      "first-run-win32-jetbrains",
+      "first-run-win32-vscode",
+      "verify-01",
+      "verify-02",
+      "verify-03",
+      "verify-05",
+      "verify-12",
+      "verify-14",
+      "verify-15",
+      "verify-16",
+      "verify-17",
+      "verify-18",
+      "verify-20",
+      "verify-21",
+      "verify-22",
+      "verify-23",
+      "verify-24",
+      "verify-25",
+      "verify-26",
+      "verify-27",
+      "verify-28",
+      "verify-29",
+      "verify-31",
+      "verify-32",
+      "verify-33",
+      "verify-34",
+      "verify-35",
+      "verify-36"
+    ],
+    "interpretation": "Cumulative accepted files across releases; not a single-version pass rate or full native acceptance."
+  },
+  "remaining": [
+    {
+      "sampleId": "verify-04",
+      "group": "linux-cli",
+      "latestRunId": "39137546829",
+      "generationPassed": false,
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false,
+      "category": "NO_COMPLETED_DELIVERY",
+      "reason": "BROKER_NOT_DISPATCHED",
+      "nextCheck": "Preserve transport receipts and diagnose dispatch failure before another model attempt.",
+      "currentRuntimeRetested": false,
+      "sourceSummaryDigest": "sha256:140f38f97dab7aad9aaae12e89829dc6c5b8c5694d24af93e9e6a42916ed715e",
+      "brokerStatus": {
+        "physicalRequestsStarted": 1,
+        "usageCompleteRequests": 0,
+        "passed": false,
+        "poisoned": null,
+        "errorCode": "DIAGNOSTIC_REQUEST_NOT_DISPATCHED"
+      },
+      "host": {
+        "passed": false,
+        "failure": null,
+        "restartRequired": false
+      }
+    },
+    {
+      "sampleId": "verify-13",
+      "group": "linux-cli",
+      "latestRunId": "39137546829",
+      "generationPassed": false,
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false,
+      "category": "NO_COMPLETED_DELIVERY",
+      "reason": "BROKER_NOT_DISPATCHED",
+      "nextCheck": "Preserve transport receipts and diagnose dispatch failure before another model attempt.",
+      "currentRuntimeRetested": false,
+      "sourceSummaryDigest": "sha256:140f38f97dab7aad9aaae12e89829dc6c5b8c5694d24af93e9e6a42916ed715e",
+      "brokerStatus": {
+        "physicalRequestsStarted": 1,
+        "usageCompleteRequests": 0,
+        "passed": false,
+        "poisoned": null,
+        "errorCode": "DIAGNOSTIC_REQUEST_NOT_DISPATCHED"
+      },
+      "host": {
+        "passed": false,
+        "failure": null,
+        "restartRequired": false
+      }
+    },
+    {
+      "sampleId": "first-run-linux-cli",
+      "group": "linux-cli",
+      "latestRunId": "39137546829",
+      "generationPassed": false,
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false,
+      "category": "NO_COMPLETED_DELIVERY",
+      "reason": "BROKER_NOT_DISPATCHED",
+      "nextCheck": "Validate native startup and preserve transport receipts before another model attempt.",
+      "currentRuntimeRetested": false,
+      "sourceSummaryDigest": "sha256:140f38f97dab7aad9aaae12e89829dc6c5b8c5694d24af93e9e6a42916ed715e",
+      "brokerStatus": {
+        "physicalRequestsStarted": 1,
+        "usageCompleteRequests": 0,
+        "passed": false,
+        "poisoned": null,
+        "errorCode": "DIAGNOSTIC_REQUEST_NOT_DISPATCHED"
+      },
+      "host": {
+        "passed": false,
+        "failure": null,
+        "restartRequired": false
+      }
+    },
+    {
+      "sampleId": "verify-06",
+      "group": "linux-jetbrains",
+      "latestRunId": "39137575667",
+      "generationPassed": true,
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false,
+      "category": "CANDIDATE_FAILED_ACCEPTANCE",
+      "reason": "INCORRECT_API_ASSERTION",
+      "nextCheck": "Derive expected state from the production entry and verify coherent positive/negative controls.",
+      "currentRuntimeRetested": false,
+      "sourceSummaryDigest": "sha256:1710752a6b20bf3c53646c969f37bc90cf7fd4a337fab6b67eb85dc867d6f4e3",
+      "brokerStatus": {
+        "physicalRequestsStarted": 12,
+        "usageCompleteRequests": 12,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": true
+      }
+    },
+    {
+      "sampleId": "verify-07",
+      "group": "darwin-cli",
+      "latestRunId": "39138467160",
+      "generationPassed": false,
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false,
+      "category": "NO_COMPLETED_DELIVERY",
+      "reason": "OUTPUT_TRUNCATED",
+      "nextCheck": "Check complete tool arguments and bounded output handling on the current runtime without silently changing frozen limits.",
+      "currentRuntimeRetested": false,
+      "sourceSummaryDigest": "sha256:d23bf48cb0dcd83d0bc1f4bb7ea95ef872b68814865e85a1469ed9fc10b850f4",
+      "brokerStatus": {
+        "physicalRequestsStarted": 4,
+        "usageCompleteRequests": 4,
+        "passed": false,
+        "poisoned": null,
+        "errorCode": "DIAGNOSTIC_OUTPUT_TRUNCATED"
+      },
+      "host": {
+        "passed": false,
+        "failure": null,
+        "restartRequired": false
+      }
+    },
+    {
+      "sampleId": "first-run-darwin-cli",
+      "group": "darwin-cli",
+      "latestRunId": "39138467160",
+      "generationPassed": false,
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false,
+      "category": "NO_COMPLETED_DELIVERY",
+      "reason": "INCOMPLETE_STREAM",
+      "nextCheck": "Determine the actual stream failure; do not equate it to the separate output-truncated task.",
+      "currentRuntimeRetested": false,
+      "sourceSummaryDigest": "sha256:d23bf48cb0dcd83d0bc1f4bb7ea95ef872b68814865e85a1469ed9fc10b850f4"
+    },
+    {
+      "sampleId": "verify-08",
+      "group": "darwin-vscode",
+      "latestRunId": "39138997105",
+      "generationPassed": true,
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false,
+      "category": "CANDIDATE_FAILED_ACCEPTANCE",
+      "reason": "BEHAVIORAL_MUTANT_SURVIVED",
+      "nextCheck": "Cover production behavior and rejected inputs, not only valid setup.",
+      "currentRuntimeRetested": false,
+      "sourceSummaryDigest": "sha256:55efb4ca4283ea607ddbd2c7cea06796811a3b669a573a317e7fcba33408ce93",
+      "brokerStatus": {
+        "physicalRequestsStarted": 11,
+        "usageCompleteRequests": 11,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": true
+      }
+    },
+    {
+      "sampleId": "verify-09",
+      "group": "darwin-jetbrains",
+      "latestRunId": "39139263000",
+      "generationPassed": false,
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false,
+      "category": "NO_COMPLETED_DELIVERY",
+      "reason": "TIMEOUT_USAGE_UNKNOWN",
+      "nextCheck": "Reconcile the unknown request outcome and transport receipt before any retry.",
+      "currentRuntimeRetested": false,
+      "sourceSummaryDigest": "sha256:50bafde13c3a84a4ee20a8cc00d3675d08fd0cc0b53eccac65e60d2a498a87e7",
+      "brokerStatus": {
+        "physicalRequestsStarted": 3,
+        "usageCompleteRequests": 2,
+        "passed": false,
+        "poisoned": "DIAGNOSTIC_TIMEOUT_USAGE_UNKNOWN",
+        "errorCode": null
+      },
+      "host": {
+        "passed": false,
+        "failure": "model task failed before a restartable result; see real protocol",
+        "restartRequired": true
+      }
+    },
+    {
+      "sampleId": "first-run-darwin-jetbrains",
+      "group": "darwin-jetbrains",
+      "latestRunId": "39139470168",
+      "generationPassed": true,
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false,
+      "category": "CANDIDATE_FAILED_ACCEPTANCE",
+      "reason": "BEHAVIORAL_MUTANT_SURVIVED",
+      "nextCheck": "Check actual production validation and negative controls across the required lifecycle.",
+      "currentRuntimeRetested": false,
+      "sourceSummaryDigest": "sha256:6d9eee9ba00a32e20ccce723546dd7293099195a1bc17c915cb38ebb8fdd2788",
+      "brokerStatus": {
+        "physicalRequestsStarted": 7,
+        "usageCompleteRequests": 7,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": true
+      }
+    },
+    {
+      "sampleId": "verify-10",
+      "group": "win32-cli",
+      "latestRunId": "39140903708",
+      "generationPassed": true,
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false,
+      "category": "CANDIDATE_FAILED_ACCEPTANCE",
+      "reason": "BEHAVIORAL_MUTANT_SURVIVED",
+      "nextCheck": "Exercise production state updates and avoid testing a helper reimplemented by the candidate.",
+      "currentRuntimeRetested": false,
+      "sourceSummaryDigest": "sha256:6b5d3ad78678dabf5378ee32b6ec1f54cc27edf9108983d9cb4ce5ab527da2d5",
+      "brokerStatus": {
+        "physicalRequestsStarted": 6,
+        "usageCompleteRequests": 6,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": false
+      }
+    },
+    {
+      "sampleId": "verify-19",
+      "group": "win32-cli",
+      "latestRunId": "39140903708",
+      "generationPassed": true,
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false,
+      "category": "CANDIDATE_FAILED_ACCEPTANCE",
+      "reason": "ASYNC_LIFECYCLE_ORDER",
+      "nextCheck": "Check actual asynchronous startup/observation order with independent acceptance.",
+      "currentRuntimeRetested": false,
+      "sourceSummaryDigest": "sha256:6b5d3ad78678dabf5378ee32b6ec1f54cc27edf9108983d9cb4ce5ab527da2d5",
+      "brokerStatus": {
+        "physicalRequestsStarted": 20,
+        "usageCompleteRequests": 20,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": false
+      }
+    },
+    {
+      "sampleId": "verify-11",
+      "group": "win32-vscode",
+      "latestRunId": "39140937123",
+      "generationPassed": true,
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false,
+      "category": "CANDIDATE_FAILED_ACCEPTANCE",
+      "reason": "BEHAVIORAL_MUTANT_SURVIVED",
+      "nextCheck": "Exercise restoration/deserialization behavior, not only in-memory operations.",
+      "currentRuntimeRetested": false,
+      "sourceSummaryDigest": "sha256:81d08049572aa8ffe60c618fdea98e67262007f13d65c2637057c95cf3b0125d",
+      "brokerStatus": {
+        "physicalRequestsStarted": 7,
+        "usageCompleteRequests": 7,
+        "passed": true,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "host": {
+        "passed": true,
+        "failure": null,
+        "restartRequired": true
+      }
+    },
+    {
+      "sampleId": "verify-30",
+      "group": "win32-jetbrains",
+      "latestRunId": "39141849503",
+      "generationPassed": false,
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false,
+      "category": "NO_COMPLETED_DELIVERY",
+      "reason": "WINDOWS_ACL_STARTUP_TIMEOUT",
+      "nextCheck": "Validate current native initialization and ACL repair stage; do not infer current failure from the older CLI package.",
+      "currentRuntimeRetested": false,
+      "sourceSummaryDigest": "sha256:2d4c42f78128ca6aee4e502937c918236666a0e1c2f941d0444b086f17b4c07a",
+      "brokerStatus": {
+        "physicalRequestsStarted": 0,
+        "usageCompleteRequests": 0,
+        "passed": false,
+        "poisoned": null,
+        "errorCode": null
+      },
+      "host": {
+        "passed": false,
+        "failure": "initial native UI task exited 1/null",
+        "restartRequired": true
+      }
+    }
+  ],
+  "groups": [
+    {
+      "group": "linux-cli",
+      "sampleIds": [
+        "verify-04",
+        "verify-13",
+        "first-run-linux-cli"
+      ]
+    },
+    {
+      "group": "linux-jetbrains",
+      "sampleIds": [
+        "verify-06"
+      ]
+    },
+    {
+      "group": "darwin-cli",
+      "sampleIds": [
+        "verify-07",
+        "first-run-darwin-cli"
+      ]
+    },
+    {
+      "group": "darwin-vscode",
+      "sampleIds": [
+        "verify-08"
+      ]
+    },
+    {
+      "group": "darwin-jetbrains",
+      "sampleIds": [
+        "verify-09",
+        "first-run-darwin-jetbrains"
+      ]
+    },
+    {
+      "group": "win32-cli",
+      "sampleIds": [
+        "verify-10",
+        "verify-19"
+      ]
+    },
+    {
+      "group": "win32-vscode",
+      "sampleIds": [
+        "verify-11"
+      ]
+    },
+    {
+      "group": "win32-jetbrains",
+      "sampleIds": [
+        "verify-30"
+      ]
+    }
+  ],
+  "counts": {
+    "noCompletedDelivery": 7,
+    "candidateFailedAcceptance": 6,
+    "remainingTotal": 13
+  },
+  "nativeAcceptanceStillOpen": [
+    {
+      "sampleId": "verify-33",
+      "acceptedCandidateFile": true,
+      "issue": "Previously accepted file still had failed native JetBrains reply restoration; reuse the artifact and independently validate host recovery without new model generation."
+    }
+  ],
+  "implementation": {
+    "brokerReceipts": "Collector now retains existing sample-bound redacted request-N.receipt.json files; request/response bodies remain excluded.",
+    "collectorSafety": "Safety test now imports the repository collector instead of a missing .work script; conditional skip removed.",
+    "regression": {
+      "command": "node --test packages/cli/test-node/verify01-native-retest-round.node-test.mjs packages/cli/test-node/verify01-native-retest-plan.node-test.mjs packages/cli/test-node/verify01-native-task-campaign.node-test.mjs",
+      "passed": 34,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "independentReview": {
+    "model": "gpt-6-astra",
+    "mode": "read-only local evidence and source review",
+    "conclusion": "Receipt collection gap confirmed and patch reviewed; historical quality failures are not evidence of a new context-truncation defect in CLI .117."
+  },
+  "retestPolicy": {
+    "reuseAllAcceptedFiles": true,
+    "allowedNewModelSampleIds": [
+      "verify-04",
+      "verify-13",
+      "first-run-linux-cli",
+      "verify-06",
+      "verify-07",
+      "first-run-darwin-cli",
+      "verify-08",
+      "verify-09",
+      "first-run-darwin-jetbrains",
+      "verify-10",
+      "verify-19",
+      "verify-11",
+      "verify-30"
+    ],
+    "noAcceptedSampleRegeneration": true,
+    "noFrozenLimitChanges": true,
+    "noTaskSpecificMutationHintsInModelPrompts": true,
+    "noAutomaticReplayOfUnknownRequests": true,
+    "oldLedgersUnchanged": true,
+    "dispatchPerformed": false,
+    "newPaidModelCalls": 0,
+    "newFormalSamples": 0,
+    "nextStep": "Validate startup/transport and current candidate failure paths before bounded generation and independent acceptance of only the remaining samples. Public installation acceptance and release remain separate."
+  }
+}

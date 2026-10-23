@@ -6,7 +6,9 @@ MCP bridge.
 
 ## Release pairing
 
-Version **0.37.159** recommends CLI **`0.166.117`** and pairs with JetBrains **0.4.176**. The paired CLI repairs source and command evidence projection, complete bounded JSON tool previews, cumulative evidence budgets, and separate image and provider token accounting. IDE publication follows the paired CLI and dependency graph verification, exact-source release gates, and public artifact readback.
+Version **0.37.160** recommends CLI **`0.166.117`** and pairs with JetBrains **0.4.177**. This unpublished source candidate includes input delivery and Windows draft recovery fixes and vendors SDK **0.2.16**; the public release below remains **0.37.159**.
+
+Public Open VSX **0.37.159** recommends CLI **`0.166.117`** and pairs with JetBrains **0.4.176**. The paired CLI repairs source and command evidence projection, complete bounded JSON tool previews, cumulative evidence budgets, and separate image and provider token accounting. IDE publication follows the paired CLI and dependency graph verification, exact-source release gates, and public artifact readback.
 
 Open VSX **0.37.156** and CLI **0.166.114** were publicly downloaded and verified on 2026-10-22, but that CLI still has the Agent tool-evidence error. Microsoft Marketplace remains unpublished. The historical three-channel pairing is retained below.
 
@@ -63,7 +65,7 @@ Checked on 2026-10-20: npm CLI **0.166.107**, Session Core **0.3.20**, Open VSX 
 
 ## Release compatibility
 
-This source release pairs VS Code **0.37.159** and JetBrains **0.4.176** with CLI **`0.166.117`**. Publish the paired CLI and verify its public dependency graph before publishing either IDE package. This metadata update inherits the CLI fixes; native task quality and restart acceptance require separate published-package evidence.
+This source candidate pairs VS Code **0.37.160** and JetBrains **0.4.177** with CLI **`0.166.117`**. It fixes failed input delivery and Windows draft recovery. Verify the public CLI dependency graph and exact-source IDE gates before publishing either IDE package.
 The table records the current verified Open VSX / CLI pairing. Formal evaluation and full native review retain their separate acceptance status.
 
 | Component                 | Current status                                                                                             |

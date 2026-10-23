@@ -1,10 +1,14 @@
 To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.7/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
 Daemon will be stopped at the end of the build
-Calculating task graph as configuration cache cannot be reused because JVM has changed.
+Calculating task graph as configuration cache cannot be reused because file 'build.gradle.kts' has changed.
+
+> Configure project :
+w: file:///C:/code/chainlesschain/packages/jetbrains-plugin/build.gradle.kts:215:13: 'ide(IntelliJPlatformType, String, Boolean = ..., ProductMode = ...): Unit' is deprecated. Please use the create(type, version, configure) method with a configuration lambda instead.
+
 > Task :checkKotlinGradlePluginConfigurationErrors
 > Task :initializeIntellijPlatformPlugin
-> Task :generateManifest
 > Task :generatePluginMetadata
+> Task :generateManifest
 
 > Task :patchPluginXml
 [org.jetbrains.intellij.platform] Patching plugin.xml: value of 'change-notes[
@@ -151,7 +155,7 @@ Calculating task graph as configuration cache cannot be reused because JVM has c
           <li><b>In-editor app preview</b> (JCEF) with Start/Stop.</li>
           <li>Live context-window indicator; new-chat / reopen-closed shortcuts.</li>
         </ul>
-    ]' tag will be set to '<b>[0.4.176] - CLI 0.166.117 pairing (2026-10-23)</b><br/><ul><li>Pair with public CLI 0.166.117 and VS Code 0.37.159.</li><li>Verify the Doctor recommendation against the configured CLI version, while preserving the separate exact-version checks. The unpublished 0.4.175 candidate was retired after its stale recommendation assertion failed; its immutable tag is retained.</li></ul><br/><b>[0.4.175] - Unpublished candidate (2026-10-23)</b><br/><ul><li>Recommend CLI 0.166.117 for source and command evidence projection, complete bounded JSON tool previews, cumulative evidence budgets, and separate image and provider token accounting.</li><li>Update the package version and CLI pairing. Release verification uses the exact source commit and public artifact readback after the paired CLI and its dependencies are available.</li></ul><br/><b>[0.4.174] - CLI 0.166.115 pairing (candidate, 2026-10-22)</b><br/><ul><li>Recommend CLI 0.166.115 for JSON-compatible Agent tool evidence after Git, shell, code and slash commands.</li><li>Source candidate; exact-source gates and public artifact verification are pending.</li></ul><br/><b>[0.4.173] - CLI 0.166.114 pairing (uploaded, public download unverified, 2026-10-22)</b><br/><ul><li>Recommend CLI 0.166.114 for Quick Ask waiting and terminal error reporting, cancellation, bounded governed chat setup, and local signed Evolution recovery.</li><li>Marketplace upload succeeded before workflow cancellation after the paired CLI's Agent error was reported. Public approval and ZIP download were not verified.</li></ul><br/><b>[0.4.172] - CLI 0.166.112 pairing (2026-10-22)</b><br/><ul><li>Recommend CLI 0.166.112 for native Gemini and Anthropic Quick Ask routing and provider URL normalization.</li><li>Release tag: <code>ide-jetbrains-v0.4.172</code>. Public after the exact-source IDE gates and [publication workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/39676899944) passed; the public archive and paired CLI version were read back.</li></ul>'
+    ]' tag will be set to '<b>[0.4.177] - Input delivery recovery (unreleased candidate, 2026-10-23)</b><br/><ul><li>Reject later submissions before reserving delivery after an input pipe failure, preserving the first attempt's unknown outcome.</li><li>Guide users to Saved inputs when a write may have been partial.</li><li>Pair with VS Code 0.37.160 and continue recommending public CLI 0.166.117. Exact-source release gates and publication are pending.</li></ul><br/><b>[0.4.176] - CLI 0.166.117 pairing (2026-10-23)</b><br/><ul><li>Pair with public CLI 0.166.117 and VS Code 0.37.159.</li><li>Verify the Doctor recommendation against the configured CLI version, while preserving the separate exact-version checks. The unpublished 0.4.175 candidate was retired after its stale recommendation assertion failed; its immutable tag is retained.</li></ul><br/><b>[0.4.175] - Unpublished candidate (2026-10-23)</b><br/><ul><li>Recommend CLI 0.166.117 for source and command evidence projection, complete bounded JSON tool previews, cumulative evidence budgets, and separate image and provider token accounting.</li><li>Update the package version and CLI pairing. Release verification uses the exact source commit and public artifact readback after the paired CLI and its dependencies are available.</li></ul><br/><b>[0.4.174] - CLI 0.166.115 pairing (candidate, 2026-10-22)</b><br/><ul><li>Recommend CLI 0.166.115 for JSON-compatible Agent tool evidence after Git, shell, code and slash commands.</li><li>Source candidate; exact-source gates and public artifact verification are pending.</li></ul><br/><b>[0.4.173] - CLI 0.166.114 pairing (uploaded, public download unverified, 2026-10-22)</b><br/><ul><li>Recommend CLI 0.166.114 for Quick Ask waiting and terminal error reporting, cancellation, bounded governed chat setup, and local signed Evolution recovery.</li><li>Marketplace upload succeeded before workflow cancellation after the paired CLI's Agent error was reported. Public approval and ZIP download were not verified.</li></ul>'
 
 > Task :compileKotlin UP-TO-DATE
 > Task :processResources
@@ -163,22 +167,22 @@ Calculating task graph as configuration cache cannot be reused because JVM has c
 > Task :prepareSandbox
 
 > Task :buildSearchableOptions
-.\gradlew.bat : 2026-10-23 17:27:53,159 [   1359]   WARN - c.i.o.u.r.overrides - Conflicting registry key definition fo
+.\gradlew.bat : 2026-10-23 17:43:04,850 [    868]   WARN - c.i.o.u.r.overrides - Conflicting registry key definition fo
 r key kotlin.mpp.tests.force.gradle: it was defined by plugin org.jetbrains.kotlin but redefined by plugin org.jetbrain
 s.kotlin. Consider adding overrides="true" for one of the plugins, see the documentation for com.intellij.openapi.util.
 registry.RegistryKeyBean.overrides for more details.
 所在位置 行:3 字符: 1
 + .\gradlew.bat --offline --no-daemon '-Dorg.gradle.java.home=C:\code\c ...
 + ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    + CategoryInfo          : NotSpecified: (2026-10-23 17:2...r more details.:String) [], RemoteException
+    + CategoryInfo          : NotSpecified: (2026-10-23 17:4...r more details.:String) [], RemoteException
     + FullyQualifiedErrorId : NativeCommandError
 
-2026-10-23 17:27:53,755 [   1955]   WARN - #c.i.i.s.p.i.BundledSharedIndexProvider - Bundled shared index is not found
+2026-10-23 17:43:05,759 [   1777]   WARN - #c.i.i.s.p.i.BundledSharedIndexProvider - Bundled shared index is not found
 at: C:\Users\longfa\.gradle\caches\transforms-4\dbb682d26f44c694592b06df4c7b2971\transformed\ideaIC-2024.2-win\jdk-shar
 ed-indexes
-2026-10-23 17:28:06,574 [  14774]   WARN - #c.i.i.u.UIThemeBean - Unknown field: CombinedDiff
-2026-10-23 17:28:06,574 [  14774]   WARN - #c.i.i.u.UIThemeBean - Unknown field: BlockBorder
-2026-10-23 17:28:18,720 [  26920]   WARN - #c.i.u.j.JBCefApp - JCEF is manually disabled in headless env via 'ide.brows
+2026-10-23 17:43:13,986 [  10004]   WARN - #c.i.i.u.UIThemeBean - Unknown field: CombinedDiff
+2026-10-23 17:43:13,986 [  10004]   WARN - #c.i.i.u.UIThemeBean - Unknown field: BlockBorder
+2026-10-23 17:43:26,672 [  22690]   WARN - #c.i.u.j.JBCefApp - JCEF is manually disabled in headless env via 'ide.brows
 er.jcef.headless.enabled=false'
 Found 220 configurables
 save to C:\code\chainlesschain\packages\jetbrains-plugin\build\tmp\buildSearchableOptions
@@ -187,6 +191,6 @@ save to C:\code\chainlesschain\packages\jetbrains-plugin\build\tmp\buildSearchab
 > Task :jarSearchableOptions FROM-CACHE
 > Task :buildPlugin
 
-BUILD SUCCESSFUL in 1m 40s
+BUILD SUCCESSFUL in 1m 33s
 15 actionable tasks: 12 executed, 1 from cache, 2 up-to-date
 Configuration cache entry stored.

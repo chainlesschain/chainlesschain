@@ -1,0 +1,81 @@
+TAP version 13
+# Subtest: checked-in release documentation matches the package pairing
+ok 1 - checked-in release documentation matches the package pairing
+  ---
+  duration_ms: 40.2136
+  type: 'test'
+  ...
+# Subtest: public release documentation matches the checked-in package pairing
+ok 2 - public release documentation matches the checked-in package pairing
+  ---
+  duration_ms: 8.9288
+  type: 'test'
+  ...
+# Subtest: candidate wording remains valid before the next Marketplace publication
+ok 3 - candidate wording remains valid before the next Marketplace publication
+  ---
+  duration_ms: 9.5166
+  type: 'test'
+  ...
+# Subtest: neutral source pairing preserves exact versions without claiming public availability
+not ok 4 - neutral source pairing preserves exact versions without claiming public availability
+  ---
+  duration_ms: 10.0973
+  type: 'test'
+  location: 'C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\scripts\\verify-release-metadata.test.mjs:64:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input was expected to not match the regular expression /is the current public release|not been published/. Input:
+
+    'Plugin **0.4.177** is the current public release and recommends `chainlesschain@0.166.117`. It preserves unknown delivery after a partial pipe write and rejects later submissions before reserving another delivery. Verify the public CLI dependency graph and exact-source IDE gates before publishing. Native task quality and restart acceptance still require separate published-package evidence.'
+
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: 'Plugin **0.4.177** is the current public release and recommends `chainlesschain@0.166.117`. It preserves unknown delivery after a partial pipe write and rejects later submissions before reserving another delivery. Verify the public CLI dependency graph and exact-source IDE gates before publishing. Native task quality and restart acceptance still require separate published-package evidence.'
+  operator: 'doesNotMatch'
+  stack: |-
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/jetbrains-plugin/scripts/verify-release-metadata.test.mjs:75:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: neutral source wording cannot change the recommended CLI
+not ok 5 - neutral source wording cannot change the recommended CLI
+  ---
+  duration_ms: 8.4912
+  type: 'test'
+  location: 'C:\\code\\chainlesschain\\packages\\jetbrains-plugin\\scripts\\verify-release-metadata.test.mjs:89:1'
+  failureType: 'testCodeFailure'
+  error: 'Missing expected exception.'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  operator: 'throws'
+  stack: |-
+    TestContext.<anonymous> (file:///C:/code/chainlesschain/packages/jetbrains-plugin/scripts/verify-release-metadata.test.mjs:96:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: public wording cannot declare a different plugin version
+ok 6 - public wording cannot declare a different plugin version
+  ---
+  duration_ms: 4.7487
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 4
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 543.7274
