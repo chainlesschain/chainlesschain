@@ -1,6 +1,6 @@
 {
   "schema": "chainlesschain.cli-ide-release-preparation/v1",
-  "recordedAt": "2026-10-23T11:22:08.137Z",
+  "recordedAt": "2026-10-23T11:25:51.741Z",
   "baseline": "79b7d49841341eb4caf135414183c1311db58b75",
   "pullRequest": "https://github.com/chainlesschain/chainlesschain/pull/483",
   "authorization": {
@@ -196,7 +196,7 @@
     },
     {
       "path": "packages/agent-sdk/README.md",
-      "sha256": "c29a26fa632f972cd239e4cc99b0bb79124db64dc026c0ac21f8497a1c5d15ff"
+      "sha256": "09df2c2cab177987187b85d8c504c39fddee8fd72c3e223a33bf5cc7c8469552"
     },
     {
       "path": "packages/agent-sdk/__tests__/agent-session.test.ts",
@@ -216,7 +216,7 @@
     },
     {
       "path": "packages/cli/README.md",
-      "sha256": "38586cacb2e5c2627780923cfbe67d2f6cb10065d2af6995d72c83fb133ca845"
+      "sha256": "09a66cbf9aa24fe11ed1ec0fd438192f3372581ec06b521e6a37c6b7a5c056ff"
     },
     {
       "path": "packages/cli/__tests__/unit/release-workflow-contract.test.js",
