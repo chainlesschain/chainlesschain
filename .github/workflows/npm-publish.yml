@@ -542,6 +542,7 @@ jobs:
           fi
 
       - name: "Publish @chainlesschain/session-core"
+        id: session-core-publish
         working-directory: packages/session-core
         run: |
           set -euo pipefail
@@ -553,8 +554,92 @@ jobs:
           echo "target: @chainlesschain/session-core@$PKG_VER"
           if npm view "@chainlesschain/session-core@$PKG_VER" version >/dev/null 2>&1; then
             echo "Exact version already published, skipping"
+            echo "published=false" >> "$GITHUB_OUTPUT"
           else
             npm publish "$CHILD_TARBALL" ${{ steps.publish-cmd.outputs.FLAGS }}
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Verify published Session Core registry bytes and npm provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          PACKAGE_NAME="@chainlesschain/session-core"
+          PACKAGE_VERSION=$(node -p "require('./packages/session-core/package.json').version")
+          CLI_VERSION="${{ steps.version.outputs.VERSION }}"
+          EXPECTED_REF="refs/tags/v-npm-${CLI_VERSION//./-}"
+          PUBLISHED="${{ steps.session-core-publish.outputs.published }}"
+          PROVENANCE_OUTPUT="release-artifacts/session-core-npm-provenance.json"
+          READBACK_ROOT=$(mktemp -d)
+          trap 'rm -rf "$READBACK_ROOT"' EXIT
+
+          REGISTRY_TARBALL=""
+          for ATTEMPT in {1..30}; do
+            if npm pack "$PACKAGE_NAME@$PACKAGE_VERSION" --pack-destination "$READBACK_ROOT" \
+              >/dev/null 2>"$READBACK_ROOT/npm-pack.err"; then
+              REGISTRY_TARBALL=$(find "$READBACK_ROOT" -maxdepth 1 -name 'chainlesschain-session-core-*.tgz' -type f -print -quit)
+              break
+            fi
+            if [ "$ATTEMPT" -eq 30 ]; then
+              echo "Registry did not expose $PACKAGE_NAME@$PACKAGE_VERSION after 30 attempts" >&2
+              cat "$READBACK_ROOT/npm-pack.err" >&2
+              exit 1
+            fi
+            echo "::notice::Registry has not exposed $PACKAGE_NAME@$PACKAGE_VERSION yet (attempt $ATTEMPT/30); retrying in 10 seconds"
+            sleep 10
+          done
+          test -n "$REGISTRY_TARBALL"
+          PACKAGE_SHA512=$(node -e 'const c=require("node:crypto"),f=require("node:fs");process.stdout.write(c.createHash("sha512").update(f.readFileSync(process.argv[1])).digest("hex"))' "$REGISTRY_TARBALL")
+
+          AUDIT_ROOT="$READBACK_ROOT/audit"
+          mkdir -p "$AUDIT_ROOT"
+          (
+            cd "$AUDIT_ROOT"
+            npm init --yes >/dev/null
+            npm install --ignore-scripts --no-audit --no-fund "$PACKAGE_NAME@$PACKAGE_VERSION"
+          )
+          MAX_ATTEMPTS=30
+          if [ "$PUBLISHED" = "false" ]; then MAX_ATTEMPTS=1; fi
+          VERIFIED=false
+          for ATTEMPT in $(seq 1 "$MAX_ATTEMPTS"); do
+            AUDIT_JSON="$AUDIT_ROOT/npm-signatures.json"
+            AUDIT_ERROR="$AUDIT_ROOT/npm-signatures.err"
+            if (
+              cd "$AUDIT_ROOT"
+              npm audit signatures --include-attestations --json \
+                > "$AUDIT_JSON" 2> "$AUDIT_ERROR"
+            ); then
+              if [ "$PUBLISHED" = "true" ]; then
+                if CC_NPM_PROVENANCE_OUTPUT="$PROVENANCE_OUTPUT" \
+                  node packages/cli/scripts/verify-npm-release-provenance.mjs \
+                    "$AUDIT_JSON" "$PACKAGE_VERSION" "$GITHUB_SHA" "$EXPECTED_REF" "$PACKAGE_SHA512" "$PACKAGE_NAME"; then
+                  VERIFIED=true
+                  break
+                fi
+              elif [ "$PUBLISHED" = "false" ]; then
+                if CC_NPM_PROVENANCE_OUTPUT="$PROVENANCE_OUTPUT" \
+                  node packages/cli/scripts/verify-npm-release-provenance.mjs \
+                    --trusted-anchor "$AUDIT_JSON" "$PACKAGE_VERSION" "$PACKAGE_SHA512" "$PACKAGE_NAME"; then
+                  VERIFIED=true
+                  break
+                fi
+              else
+                echo "Unexpected session-core publish state: $PUBLISHED" >&2
+                exit 1
+              fi
+            fi
+            if [ "$ATTEMPT" -eq "$MAX_ATTEMPTS" ]; then
+              echo "npm did not expose valid signed provenance for $PACKAGE_NAME@$PACKAGE_VERSION after $MAX_ATTEMPTS attempt(s)" >&2
+              cat "$AUDIT_ERROR" >&2 || true
+              exit 1
+            fi
+            echo "::notice::Signed npm provenance is not ready for $PACKAGE_NAME@$PACKAGE_VERSION (attempt $ATTEMPT/$MAX_ATTEMPTS); retrying in 10 seconds"
+            sleep 10
+          done
+          test "$VERIFIED" = true
+          if [ "$PUBLISHED" = "false" ]; then
+            node packages/cli/scripts/verify-npm-reused-package-tree.mjs \
+              "$PROVENANCE_OUTPUT" "$GITHUB_SHA" packages/session-core
           fi
 
       # The CLI imports this package at runtime and pins its exact version.
@@ -977,6 +1062,7 @@ jobs:
             release-artifacts/agent-protocol-npm-provenance.json
             release-artifacts/agent-sdk-npm-provenance.json
             release-artifacts/context-memory-kernel-npm-provenance.json
+            release-artifacts/session-core-npm-provenance.json
             release-artifacts/cli-public-child-install.json
             release-artifacts/children/
           if-no-files-found: error
