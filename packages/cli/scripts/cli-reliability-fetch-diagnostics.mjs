@@ -4,6 +4,7 @@ import { createRequire } from "node:module";
 import { transportErrorDetails } from "../src/lib/transport-error-details.js";
 import {
   storageFailureCodesFromMessage,
+  storageFailureReasonFromMessage,
   storageFailureStageFromMessage,
 } from "../src/lib/storage-failure-cause-codes.js";
 
@@ -68,6 +69,9 @@ export function reliabilityResultFailure(event, turn) {
   const storageStage = isStorageFailure
     ? storageFailureStageFromMessage(data(event, "error"))
     : null;
+  const storageReason = isStorageFailure
+    ? storageFailureReasonFromMessage(data(event, "error"))
+    : null;
   return {
     turn: Number.isSafeInteger(turn) && turn > 0 ? turn : null,
     subtype: data(event, "subtype") === "error" ? "error" : "unknown",
@@ -75,6 +79,7 @@ export function reliabilityResultFailure(event, turn) {
       data(details, "kind") === "transport" ? transportDetails(details) : null,
     ...(storageCauseCodes.length ? { storageCauseCodes } : {}),
     ...(storageStage ? { storageStage } : {}),
+    ...(storageReason ? { storageReason } : {}),
   };
 }
 
