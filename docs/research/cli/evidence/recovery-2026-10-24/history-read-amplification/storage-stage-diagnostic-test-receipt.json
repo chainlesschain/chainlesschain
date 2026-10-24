@@ -1,0 +1,47 @@
+{
+  "schema": "cc.local-storage-stage-diagnostic-validation/v1",
+  "recordedAt": "2026-10-24T18:42:24.510Z",
+  "sourceRoot": "C:\\code\\chainlesschain\\.work\\cc118-native-ports",
+  "runner": "C:/code/chainlesschain/.work/cli-ide-recovery-20261023/node-22.12.0/node-verified.exe",
+  "nodeVersion": "22.12.0",
+  "vitestVersion": "4.1.11",
+  "command": "../../node_modules/vitest/vitest.mjs run __tests__/unit/storage-failure-cause-codes.test.js __tests__/unit/cli-reliability-fetch-diagnostics.test.js __tests__/unit/evolution-artifact-ports.test.js",
+  "result": {
+    "exitCode": 0,
+    "testFilesPassed": 3,
+    "testsPassed": 102,
+    "testsSkipped": 1,
+    "testsFailed": 0,
+    "durationSeconds": 34.48
+  },
+  "evidenceKind": "execution-receipt-from-observed-run-output-not-native-vitest-json",
+  "gitDiffCheckPassed": true,
+  "formalQualification": false,
+  "published": false,
+  "sourceHashes": [
+    {
+      "file": "packages/cli/src/lib/storage-failure-cause-codes.js",
+      "sha256": "f76e56e40bd3ce7d1d2b389dc5da1dab218f7ce5218ed91456f1817c18ddbfd1"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/evolution-artifact-ports.js",
+      "sha256": "d19d9636db66c523dbef9eae13d957c2a3c393cd6c85125b1b120b41b35f4a72"
+    },
+    {
+      "file": "packages/cli/scripts/cli-reliability-fetch-diagnostics.mjs",
+      "sha256": "67a14d8d620017f26b778c2acbe4da3091cbb16f9f5a3fba6099bf36cf3f002a"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/storage-failure-cause-codes.test.js",
+      "sha256": "700749a4b874cd5dd89f572c0542c083d6d92d4598e491f1590411e2e03e87cc"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/cli-reliability-fetch-diagnostics.test.js",
+      "sha256": "d016fe3760b7feaebf69c76e382ec33dfebe1b5433c25e208e1d377c66c097eb"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/evolution-artifact-ports.test.js",
+      "sha256": "8230c0952c55d826ac201c86594e148c1696ade8d25a1c7a548609fc8b644c90"
+    }
+  ]
+}
