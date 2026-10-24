@@ -1,0 +1,4 @@
+# Preserve the exact reviewed receipts, patch and diagnostic log bytes.
+* -text
+*.patch -diff
+*.log -diff

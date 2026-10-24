@@ -1,0 +1,232 @@
+{
+  "schema": "chainlesschain.ide-error-diagnostic-review/v2",
+  "supersedes": "ide-error-diagnostic-receipt.json (initial three-file mapping proposal; historical only)",
+  "baseCommit": "ef1186813a2d42a7285aa739fa33e40e9e10b7f2",
+  "branch": "feature/ide-tool-round-error-20261024",
+  "worktree": "C:/code/chainlesschain/.work/cc118-ide-error-code",
+  "scope": "VS Code diagnostic projection and explicit recurring-input recovery boundaries. Eight files. No SDK/Core/CLI/version changes, commits, pushes, workflow dispatch, dependency installation or publication.",
+  "changes": [
+    "Restore actionable error/result prose for ordinary errors; append only a valid optional machine code. Do not attach a fabricated persistence phase to ordinary errors.",
+    "Known persistence result subtypes/codes use fixed Session persistence failed text, bounded code and persistence.phase allowlist plus inspect-session guidance. Same classification prevents persistence error prose appearing through mode status or LLM setup-card fan-out.",
+    "Pause existing user-enabled /loop on known persistence results, acceptance unknown, session_error, ambiguous write failure, and process close with nonzero code/signal or an unfinished active turn. Show manual session/acceptance review guidance; never auto-restart the loop.",
+    "Bind each scheduled submission to its loop object; reject a paused/replaced loop's asynchronous prepared input before dispatch.",
+    "Keep ordinary successful and generic-error loops unchanged. Clean zero exit after a completed result allows the next scheduled turn. Old process tokens and other-session result callbacks cannot pause the current loop.",
+    "Preserve tool trace rows and existing transcript state on pause. No code clears or mutates canonical CLI tool results; no tool replay added.",
+    "Spawn/EPIPE events retain bounded machine codes. Abnormal close displays CC_AGENT_PROCESS_EXITED plus safe numeric exit code and bounded signal; no phase inferred."
+  ],
+  "classification": {
+    "subtypes": [
+      "error_persistence",
+      "error_session_persistence"
+    ],
+    "codes": [
+      "CC_SESSION_PERSISTENCE_FAILED",
+      "CC_SESSION_TOOL_ROUND_PERSISTENCE_FAILED",
+      "SESSION_REVISION_STALE",
+      "CC_COMPACTION_REVISION_STALE",
+      "CC_COMPACTION_SETTLEMENT_FAILED"
+    ],
+    "precondition": "type result and is_error strictly true for persistence classification",
+    "machineCode": "String length <=120, starts A-Z, remaining characters only A-Z/0-9/underscore. No coercion/truncation; trailing newline rejected.",
+    "phases": [
+      "before-model",
+      "after-model",
+      "unspecified"
+    ],
+    "unknownAcceptance": "result.acceptance === unknown independently stops recurring input",
+    "processExit": "code !== 0 OR signal truthy OR current.turnActive"
+  },
+  "tests": [
+    {
+      "name": "expanded red-first regressions",
+      "log": "expanded-red.log",
+      "exitCode": 1,
+      "passed": 1,
+      "failed": 8,
+      "details": "Before implementation: loop continued sending 5 additional prompts in 5 simulated seconds; ordinary reason was hidden; EPIPE/spawn code absent. Clean close success control already passed."
+    },
+    {
+      "name": "initial expanded targeted green",
+      "log": "expanded-green-initial.log",
+      "exitCode": 0,
+      "passed": 12,
+      "failed": 0,
+      "details": "Intermediate focused result; strengthened preparation race and additional fan-out/stale-event tests subsequently included in final full suite."
+    },
+    {
+      "name": "final full package test:unit",
+      "log": "expanded-unit.log",
+      "exitCode": 0,
+      "passed": 308,
+      "failed": 0,
+      "skipped": 0,
+      "cancelled": 0,
+      "durationMs": 21269.7205,
+      "details": "Includes actual ChatView event dispatch, production _setLoop/_handleMessage/_sendMessage/_sendDurableMessage with mock interval clocks and fake child session seam; generated terminal renderer runs in vm; not a real Extension Host."
+    },
+    {
+      "name": "Prettier final eight files",
+      "log": "expanded-format.log",
+      "exitCode": 0
+    },
+    {
+      "name": "SDK/protocol freshness",
+      "log": "expanded-sdk.log",
+      "exitCode": 0
+    },
+    {
+      "name": "elicitation freshness",
+      "log": "expanded-elicitation.log",
+      "exitCode": 0
+    },
+    {
+      "name": "Marketplace overview coherence",
+      "log": "expanded-overview.log",
+      "exitCode": 0
+    },
+    {
+      "name": "VSIX verifier selftest",
+      "log": "expanded-vsix-selftest.log",
+      "exitCode": 0,
+      "passed": 17
+    },
+    {
+      "name": "Marketplace verifier selftest",
+      "log": "expanded-marketplace-selftest.log",
+      "exitCode": 0
+    },
+    {
+      "name": "public capability manifest freshness",
+      "log": "expanded-capability.log",
+      "exitCode": 0
+    }
+  ],
+  "auditDisposition": [
+    {
+      "id": "A1",
+      "status": "Fixed for persistence errors only; ordinary provider/configuration prose deliberately remains actionable."
+    },
+    {
+      "id": "A2",
+      "status": "Bounded codes now retained on spawn/EPIPE and abnormal close signal/exit diagnostic added. No invented phase."
+    },
+    {
+      "id": "A3",
+      "status": "Fixed explicit /loop continuation on known session-consistency/unknown-delivery/process failures, including already-preparing input. Normal recurring work retained."
+    },
+    {
+      "id": "A4",
+      "status": "Out of scope: malformed error subtype lacking true is_error still depends on protocol correctness. Valid CLI result shape is covered."
+    },
+    {
+      "id": "A5",
+      "status": "No canonical tool loss found; pause preserves existing tool trace rows. Existing tool_done detail retention on view rebuild is unchanged and remains separate UI work."
+    },
+    {
+      "id": "A6",
+      "status": "Unchanged: canonical assistant finalText may be retained from evt.result with valid transcript_refs shape; budget/success/interruption handling unchanged. No global all-content sanitization claim."
+    }
+  ],
+  "requiredGatePlan": [
+    "Review and integrate this three-file patch onto intended final release commit; any integration changes invalidate exact-source local test equivalence.",
+    "Run GitHub Actions IDE Extensions on exact final commit: capability-manifest prerequisites (release metadata, roadmap fixtures, manifest drift, publication prerequisite contract).",
+    "Complete all three OS browser evidence producers and required aggregate: browser contracts, actual image codecs, Workbench browser with real CLI persistence, local two-origin journey.",
+    "vscode-package: full unit suite, Marketplace overview, SDK/protocol and elicitation freshness, marketplace self-test, pinned vsce 3.9.2 package --no-dependencies, VSIX verifier self-test and actual VSIX verification, immutable candidate manifest bound to final commit/hash.",
+    "Run same immutable VSIX through Windows stable and minimum 1.85.2; macOS stable and minimum 1.85.2; Linux stable and minimum 1.85.2 multi-root/multi-window real Extension Host journeys.",
+    "Run same candidate through genuine Remote-SSH container host and required trusted scoped roadmap aggregate.",
+    "If combined IDE release is intended, preserve applicable JetBrains complete three-OS supported IDE matrix/build/compatibility gates. No bypass because this patch is VS Code only.",
+    "Before IDE publication verify required CLI release is fetchable and version pairing aligned. CLI release itself requires exact-commit CLI CI and CLI Strict Sandbox complete OS matrices, child packages before CLI, OIDC trusted npm publishing. Publication is outside this task authorization."
+  ],
+  "notRun": [
+    "Actual VSIX packaging (new src/chat/agent-diagnostics.js must be included and verified in immutable candidate)",
+    "Installed Extension Host on Linux/Windows/macOS stable and minimum versions",
+    "Browser and Remote-SSH journeys/aggregates",
+    "GitHub Actions on integrated final commit",
+    "Live provider reproduction or CLI persistence-root-cause verification"
+  ],
+  "claims": "Local VS Code regression validation only. This prevents known repeated IDE loop submissions and improves diagnostics; it is not the CLI root-cause fix or release qualification.",
+  "createdAt": "2026-10-23T23:18:56.888Z",
+  "files": [
+    {
+      "path": "packages/vscode-extension/src/chat/agent-diagnostics.js",
+      "sha256": "fa0c7485ffc51ea21df80328fbcfe2d60c103b680fad503793598834f78f3f58"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/agent-session.js",
+      "sha256": "8ac967d52efe8b4ddbce09ff1fd3c6fcb637b590fd87f4f7938283eac324f3ba"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/chat-events.js",
+      "sha256": "89877d869368620b277fb0dd6789e838f733ef0f0d601af81065cb22a19daddc"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/chat-view.js",
+      "sha256": "06b61b7932c82741097131bb2ba746b064ef72c7cb9d345d5899550f71741b4c"
+    },
+    {
+      "path": "packages/vscode-extension/test/agent-initialization.test.cjs",
+      "sha256": "a8fe9b38f8b47c28acfb92cc8dcdb896537f9758d231a3947546a43d9f76ad9a"
+    },
+    {
+      "path": "packages/vscode-extension/test/agent-sdk-vendor.test.cjs",
+      "sha256": "bc70aa3ab530d1d7de4753ff73065de4aabcce7c345cc754c0e072ba1d14d032"
+    },
+    {
+      "path": "packages/vscode-extension/test/agent-session-utf8.test.cjs",
+      "sha256": "99a7b5c3cad56a875fa0551e39d4fb45bfa28060c1d129ce962fbb514f72238c"
+    },
+    {
+      "path": "packages/vscode-extension/test/host-dom-relay.test.cjs",
+      "sha256": "3050e62e3a6f1c0b87d73bef726e19d3e0ffd5ad5641158663e2266b4c8e6f7b"
+    }
+  ],
+  "patch": {
+    "path": "ide-error-recovery-expanded.patch",
+    "sha256": "35facc121e1f937daaa50ec26d42552b938e93f2af4084730548cf10ee8ff982",
+    "reverseApplyCheckExitCode": 0
+  },
+  "gitDiffCheckExitCode": 0,
+  "logs": [
+    {
+      "path": "expanded-red.log",
+      "sha256": "18f4090e00900ccaef789f29d48ba2f82d98d66a1238bb206e44c7e3e9dccec2"
+    },
+    {
+      "path": "expanded-green-initial.log",
+      "sha256": "614a97a738073a825d7e42534cdf2aaa2ecc16f7fb29d270d727bcdf913ee3cb"
+    },
+    {
+      "path": "expanded-unit.log",
+      "sha256": "bff5a5f3959df32818c1318fbeea71978bab215c27251d0396a3f9914a00ea4d"
+    },
+    {
+      "path": "expanded-format.log",
+      "sha256": "fbdd37869c73ce85afb11ffefa058e0181874c073fdfee7d7a4b5086b7ea3b1b"
+    },
+    {
+      "path": "expanded-sdk.log",
+      "sha256": "83d4202b22ed259888391c6ca74ffc3fb40d866ac04c6360d67bef5e18aa9cf2"
+    },
+    {
+      "path": "expanded-elicitation.log",
+      "sha256": "29c6392e3be82b1b795517befc114b460afd02233a183f34552abb5d00954337"
+    },
+    {
+      "path": "expanded-overview.log",
+      "sha256": "c0eafd3a62dad62d5fca41b306668718f179f7a087b51c4c3f94e9a65bec09f0"
+    },
+    {
+      "path": "expanded-vsix-selftest.log",
+      "sha256": "c6fa8435ad653d96e3d962a850de3f334bbac3196e1044402e9e6052292f0db0"
+    },
+    {
+      "path": "expanded-marketplace-selftest.log",
+      "sha256": "2bea969bca0b26daf7cdf17fbd977b1dbda7fe669518ba433857016b8c3ab029"
+    },
+    {
+      "path": "expanded-capability.log",
+      "sha256": "f15523239ea361ffba3c3309ecac863d1ac6d08147a070bd12c3d546c8d76c33"
+    }
+  ],
+  "gitStatus": " M packages/vscode-extension/src/chat/agent-session.js\n M packages/vscode-extension/src/chat/chat-events.js\n M packages/vscode-extension/src/chat/chat-view.js\n M packages/vscode-extension/test/agent-initialization.test.cjs\n M packages/vscode-extension/test/agent-sdk-vendor.test.cjs\n M packages/vscode-extension/test/agent-session-utf8.test.cjs\n M packages/vscode-extension/test/host-dom-relay.test.cjs\n?? packages/vscode-extension/src/chat/agent-diagnostics.js\n"
+}
