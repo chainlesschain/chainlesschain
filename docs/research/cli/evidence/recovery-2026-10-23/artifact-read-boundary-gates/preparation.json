@@ -1,6 +1,6 @@
 ﻿{
   "schema": "chainlesschain.artifact-read-boundary-gate-repair/v1",
-  "recordedAt": "2026-10-24T02:42:09.2114514Z",
+  "recordedAt": "2026-10-24T02:57:56.1444224Z",
   "baseCommit": "1f9aed62a8c88b2c79967e6c6bc24d10e90a8994",
   "branch": "feature/cli118-boundary-gates-20261024",
   "runtimeChanged": false,
@@ -40,5 +40,32 @@
     "required": "New exact final release commit CLI CI, CLI Strict Sandbox, full original formal reliability and IDE gates; required child npm packages before CLI, then IDE extensions. Previous SHA checks do not qualify the new release commit.",
     "published": false,
     "tagCreated": false
+  },
+  "additionalGateRepair": {
+    "intermediateCommit": "8590beae29726f1643e3767e512120855d8b474c",
+    "originalActions": {
+      "run": 40055384892,
+      "windowsJob": 120757781657,
+      "linuxJob": 120757781644
+    },
+    "cause": "The root npm release contract still expected three trusted-anchor and source-tree verifications after Session Core became the fourth provenance-verified child.",
+    "repair": [
+      "Include Session Core publish and unconditional readback in the required child-before-CLI ordering.",
+      "Require every one of the four readback steps to authenticate its trusted anchor and verify the exact reused package source tree."
+    ],
+    "rootContracts": {
+      "beforePassed": 56,
+      "beforeFailed": 1,
+      "afterPassed": 57,
+      "afterFailed": 0,
+      "report": "root-gate-after.tap"
+    },
+    "cliReleaseContracts": {
+      "files": 3,
+      "failed": 0,
+      "passed": 44
+    },
+    "testFile": "scripts/__tests__/ci-gate-integrity.test.mjs",
+    "testFileSha256": "2272abab7d9557ecfe8f7523e24594fc47c9a60f330ade5fc65fed0793b07d59"
   }
 }
