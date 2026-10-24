@@ -55,7 +55,8 @@ later 40-result diagnostic and two shorter storage stress runs did not reproduce
 the error and do not resolve it. Copied storage cannot establish the original
 physical incarnation. Diagnostic homes and signing keys remain local.
 
-The frozen diagnostic adds allowlisted storage cause codes to the existing
+The frozen diagnostic adds allowlisted storage cause codes and fixed artifact
+type/phase markers to the existing
 error path. It never retains arbitrary error text, paths, getter values or
 unknown codes, and it does not change error classification or retry behavior.
 This is observability, not a root-cause repair. Publication remains blocked by
