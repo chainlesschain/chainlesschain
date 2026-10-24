@@ -67,6 +67,7 @@ export const EVOLUTION_LEDGER_V2_CUTOVER_COMPLETED =
 const MIGRATION_SOURCES = new WeakMap();
 const DIRECTORY_BOUNDARIES = new WeakMap();
 const VERIFIED_HISTORY_READERS = new WeakMap();
+const DEFAULT_APPEND_PORTS = new WeakSet();
 
 const IDENTITY_DOMAIN = "chainlesschain.evolution-ledger-identity/v1\0";
 const EVENT_DOMAIN = "chainlesschain.evolution-event/v2\0";
@@ -2343,6 +2344,14 @@ export class EvolutionLedger {
           });
         }),
       );
+    if (
+      new.target === EvolutionLedger &&
+      this.#productionFs &&
+      lock === withFileLock &&
+      crashHook == null
+    ) {
+      DEFAULT_APPEND_PORTS.add(this);
+    }
     Object.freeze(this);
   }
 
@@ -5797,6 +5806,11 @@ export function getEvolutionLedgerVerifiedHistoryReader(ledger) {
   if (arguments.length !== 1)
     throw new TypeError("verified history capture takes one original ledger");
   return VERIFIED_HISTORY_READERS.get(ledger) ?? null;
+}
+
+/** Construction identity only: custom filesystem/lock/crash ports keep phases. */
+export function hasEvolutionLedgerDefaultAppendPorts(ledger) {
+  return DEFAULT_APPEND_PORTS.has(ledger);
 }
 
 // Trusted composition port; consumers receive the journal wrapper, never this

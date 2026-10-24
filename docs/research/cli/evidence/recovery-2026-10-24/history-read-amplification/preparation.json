@@ -1,0 +1,138 @@
+{
+  "schema": "chainlesschain.history-read-diagnostic-preparation/v1",
+  "recordedAt": "2026-10-24T18:33:00.360Z",
+  "baseSource": "927ddab4493021c61947c1eb344d44d88a3b398a",
+  "repair": {
+    "productionRuntimeChanged": true,
+    "sealedWholeHistoryRead": true,
+    "authenticatedDirectoryScope": true,
+    "privateFreshAppendNext": true,
+    "boundedCauseCodesObservability": true,
+    "parallelWorkerImplementation": false
+  },
+  "runtime": [
+    {
+      "file": "packages/cli/src/lib/artifact-store.js",
+      "sha256": "dbcaa1b26d959efc82cf8e696db5d0e41e495df2735120fdc395980a1387254f"
+    },
+    {
+      "file": "packages/cli/src/lib/bounded-artifact-file-read.js",
+      "sha256": "31e6033b40e46c47c31b37541b019c28f6703d361a6911175777dd0a14c511e0"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/evolution-artifact-ports.js",
+      "sha256": "21f6f2a99dc4ccd90e924d31323cae64bf11486e13161c3f5352eb82e675796e"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/evolution-ledger.js",
+      "sha256": "6e58248923216ac830e5da48f2c4f3c0766232fc666c9e6868c65729b744b930"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js",
+      "sha256": "f3b3a6d30e4fd08cc6fee34fe7827072bf985b88912b508a8cec5ca64e4dcae4"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/agent-evolution-ingress.js",
+      "sha256": "cd8835dd398750b9feb05695a2096417295341c02d131992fb0c76bf29b94787"
+    },
+    {
+      "file": "packages/cli/src/lib/storage-failure-cause-codes.js",
+      "sha256": "fe0b791c5bbe50ea00cbe4ffe1ba844d143ff5603aea9aa057a71638cabeff0a"
+    },
+    {
+      "file": "packages/cli/scripts/cli-reliability-fetch-diagnostics.mjs",
+      "sha256": "54784a0f6ef62ad7ac785e01de95d83dc23a326ba9f1783328f311be95467050"
+    }
+  ],
+  "originalFailure": {
+    "runId": 40099321919,
+    "jobId": 120888023499,
+    "successfulResults": 197,
+    "timedOutInput": 198,
+    "turnDeadlineMs": 60000,
+    "evidence": "original-evidence-manifest.json"
+  },
+  "unresolvedIngress": {
+    "status": "UNRESOLVED",
+    "resultNumber": 17,
+    "subtype": "error_evolution_ingress",
+    "code": "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+    "subsequentHarnessTimeoutInput": 18,
+    "resultSha256": "49357cfc97f2c91c4d8d07de1c4a770999171ef587125da0fedc1e015cc49996",
+    "sourceAndStoragePreservedLocally": true,
+    "nestedCauseCaptured": false,
+    "physicalIncarnationReopenNotRootCauseEvidence": true,
+    "shortSuccessfulRunsDoNotResolve": true
+  },
+  "formalLimits": {
+    "durationSeconds": 7200,
+    "warmupTurns": 20,
+    "minimumMeasuredTurns": 1000,
+    "turnDeadlineMs": 60000,
+    "cleanupDeadlineMs": 10000,
+    "maxRssGrowthMb": 128,
+    "maxResourceGrowth": 8,
+    "unchanged": true
+  },
+  "validation": [
+    {
+      "file": ".work/release118-publish-first-927dda/perf-diagnostic/bounded-directory-tests.json",
+      "sha256": "7d799e82a1efd72b02ae7ced70e89045dd34ad8cbf9f2d91b1755d0229778fb2",
+      "passed": 50,
+      "failed": 0,
+      "skipped": 0,
+      "overlapsOtherReports": true,
+      "authoritativeReleaseGate": false
+    },
+    {
+      "file": ".work/release118-publish-first-927dda/perf-diagnostic/sealed-history-final-tests.json",
+      "sha256": "2a85bcf627142ba6e50f5a955e7808c9616c4f7242c6e9145ab03cab37f78cac",
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0,
+      "overlapsOtherReports": true,
+      "authoritativeReleaseGate": false
+    },
+    {
+      "file": ".work/release118-publish-first-927dda/perf-diagnostic/append-next-final-verified-tests.json",
+      "sha256": "f2a7ccd35d2fb525ca01de78f99d2e1626addc95a891d3eb6f45a51771b85236",
+      "passed": 151,
+      "failed": 0,
+      "skipped": 1,
+      "overlapsOtherReports": true,
+      "authoritativeReleaseGate": false
+    },
+    {
+      "file": ".work/release118-publish-first-927dda/perf-diagnostic/ingress-storage-cause-tests.json",
+      "sha256": "13eede51047b7cb1d62c26566a63cc59360043b8b448cafdc6830fe2eb160379",
+      "passed": 32,
+      "failed": 0,
+      "skipped": 0,
+      "overlapsOtherReports": true,
+      "authoritativeReleaseGate": false
+    },
+    {
+      "file": ".work/release118-publish-first-927dda/perf-diagnostic/storage-cause-artifact-tests.json",
+      "sha256": "181f9d15d9dae4ea50c0fb7854bb3756009da6a5a2b0e5d0dcb2ac9238ebdb24",
+      "passed": 11,
+      "failed": 0,
+      "skipped": 0,
+      "overlapsOtherReports": true,
+      "authoritativeReleaseGate": false
+    }
+  ],
+  "qualificationStatus": "DIAGNOSTIC_ONLY_UNRESOLVED_INGRESS",
+  "publicationBlockedByKnownSourceFailure": true,
+  "limitations": [
+    "Overlapping local test counts are not summed.",
+    "Cancelled supplementary Desktop regression is not a passing check.",
+    "Previous custom-FS fixture timeout is retained locally; original test budget remains unchanged.",
+    "Later 40-result, 967-operation and 60-operation successful diagnostics did not reproduce or explain the ingress failure.",
+    "Original signing homes and private keys are not copied into public evidence.",
+    "Worker prototype is not a production implementation or Formal qualification.",
+    "Final source requires complete new exact-SHA Actions matrices and ordered public package verification."
+  ],
+  "qualified": false,
+  "published": false,
+  "merged": false
+}

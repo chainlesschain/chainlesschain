@@ -655,3 +655,6 @@ export const ARTIFACT_STORE_DEFAULT_READ_METHODS = Object.freeze({
   verifyIntegrity: ArtifactStore.prototype.verifyIntegrity,
   filesDir: ArtifactStore.prototype._filesDir,
 });
+
+export const ARTIFACT_STORE_DEFAULT_PUBLISH_DATA_ONCE =
+  ArtifactStore.prototype.publishDataOnce;

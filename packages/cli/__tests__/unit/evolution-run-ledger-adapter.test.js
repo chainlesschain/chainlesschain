@@ -7,6 +7,7 @@ import evolutionRun from "@chainlesschain/session-core/evolution-run";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ArtifactStore } from "../../src/lib/artifact-store.js";
+import { storageFailureCodesFromMessage } from "../../src/lib/storage-failure-cause-codes.js";
 import {
   EVOLUTION_ARTIFACT_AUTHORITY_DECISION_SCHEMA,
   EVOLUTION_ARTIFACT_AUTHORITY_DENIED_CODE,
@@ -337,7 +338,33 @@ describe("EvolutionRunLedgerAdapter", () => {
       ledgerArtifactResolver: store.resolver,
       now: store.clock,
     });
-    expect(observed.load().events).toEqual([started]);
+    const indexPath = path.join(root, "artifacts", "index.jsonl");
+    const opened = vi.spyOn(fs, "openSync");
+    try {
+      expect(observed.load().events).toEqual([started]);
+      expect(
+        opened.mock.calls.filter(([target]) => target === indexPath),
+      ).toHaveLength(2);
+      class CustomRunAdapter extends EvolutionRunLedgerAdapter {
+        _domainEvents() {
+          return super._domainEvents();
+        }
+      }
+      const customAdapter = new CustomRunAdapter({
+        descriptor,
+        artifactPorts: store.artifactPorts,
+        ledger: store.backend.ledger,
+        ledgerArtifactResolver: store.resolver,
+        now: store.clock,
+      });
+      opened.mockClear();
+      expect(customAdapter.load().events).toEqual([started]);
+      expect(
+        opened.mock.calls.filter(([target]) => target === indexPath),
+      ).toHaveLength(4);
+    } finally {
+      opened.mockRestore();
+    }
     const customRead = vi.fn(() => store.backend.ledger.read());
     const custom = new EvolutionRunLedgerAdapter({
       descriptor,
@@ -846,6 +873,73 @@ describe("EvolutionRunLedgerAdapter", () => {
     expect(coreLoop).not.toHaveBeenCalled();
     expect(fixture.makeAdapter().load().events).toHaveLength(1);
   });
+
+  it.each([true, false])(
+    "retains storage failure diagnostics while rejecting the same model call (known codes: %s)",
+    async (knownCodes) => {
+      const fixture = backend();
+      const evidenceAdapter = fakeEvidenceAdapter();
+      const privatePayload = "private-path-and-payload-must-not-enter-marker";
+      const filesystemError = Object.assign(new Error(privatePayload), {
+        code: knownCodes ? "EPERM" : `UNKNOWN_${privatePayload}`,
+        path: privatePayload,
+      });
+      const unknownWrapper = Object.assign(
+        new Error(privatePayload, { cause: filesystemError }),
+        { code: `CC_PRIVATE_${privatePayload}`, payload: privatePayload },
+      );
+      const persistenceError = Object.assign(
+        new Error("evidence persistence rejected", { cause: unknownWrapper }),
+        {
+          code: knownCodes
+            ? "CC_EVOLUTION_ARTIFACT_STORE_FAILED"
+            : `UNKNOWN_${privatePayload}`,
+        },
+      );
+      evidenceAdapter.projectAndPersist.mockRejectedValueOnce(persistenceError);
+      const ingress = createAgentEvolutionIngress({
+        evidenceAdapter,
+        runAdapter: fixture.makeAdapter(),
+        sourceEnvelopeAuthority: {
+          issue: vi.fn(async () => "signed-source:user-prompt"),
+        },
+        now: () => new Date(NOW),
+      });
+      const coreLoop = vi.fn(async function* () {
+        yield { type: "response-complete", content: "must not run" };
+      });
+      let rejected;
+      try {
+        await agentLoop([{ role: "user", content: "inspect" }], {
+          evolutionIngress: ingress,
+          _coreLoop: coreLoop,
+          writeOut: vi.fn(),
+        });
+      } catch (error) {
+        rejected = error;
+      }
+      expect(rejected).toBeInstanceOf(Error);
+      expect(rejected.code).toBe("CC_AGENT_EVOLUTION_INGRESS_FAILED");
+      expect(rejected.cause).toBe(persistenceError);
+      expect(rejected.cause.cause).toBe(unknownWrapper);
+      expect(rejected.cause.cause.cause).toBe(filesystemError);
+      const expectedSuffix = knownCodes
+        ? " [storage_cause_codes: CC_EVOLUTION_ARTIFACT_STORE_FAILED -> EPERM]"
+        : "";
+      expect(rejected.message).toBe(
+        `Agent evolution ingress failed: evidence persistence rejected${expectedSuffix}`,
+      );
+      expect(storageFailureCodesFromMessage(rejected.message)).toEqual(
+        knownCodes ? ["CC_EVOLUTION_ARTIFACT_STORE_FAILED", "EPERM"] : [],
+      );
+      expect(rejected.message).not.toContain(privatePayload);
+      expect(persistenceError.message).toBe("evidence persistence rejected");
+      expect(filesystemError.message).toBe(privatePayload);
+      expect(coreLoop).not.toHaveBeenCalled();
+      expect(evidenceAdapter.projectAndPersist).toHaveBeenCalledOnce();
+      expect(fixture.makeAdapter().load().events).toHaveLength(1);
+    },
+  );
 
   it("routes every long-lived stream turn into the same run before closing it", async () => {
     const fixture = backend();

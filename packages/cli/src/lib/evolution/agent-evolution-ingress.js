@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { types } from "node:util";
 import evolutionRun from "@chainlesschain/session-core/evolution-run";
+import { storageFailureCauseSuffix } from "../storage-failure-cause-codes.js";
 
 import { EvolutionEvidenceArtifactAdapter } from "./evolution-evidence-artifact-adapter.js";
 import {
@@ -8,7 +9,10 @@ import {
   EVOLUTION_SKILL_DECISION_PROJECTION_RULESET_DIGEST,
   EVOLUTION_PROJECTION_RULESET_DIGEST,
 } from "./evolution-evidence-projector.js";
-import { EvolutionRunLedgerAdapter } from "./evolution-run-ledger-adapter.js";
+import {
+  EvolutionRunLedgerAdapter,
+  captureEvolutionRunAppendNext,
+} from "./evolution-run-ledger-adapter.js";
 import {
   evidenceStorageLayoutForRun,
   validateEvidenceStorageLayout,
@@ -156,6 +160,7 @@ function ingressFailure(cause) {
     `Agent evolution ingress failed: ${cause?.message || String(cause)}`,
     { cause },
   );
+  error.message += storageFailureCauseSuffix(cause);
   error.code = AGENT_EVOLUTION_INGRESS_FAILED_CODE;
   return error;
 }
@@ -367,13 +372,14 @@ export function createAgentEvolutionIngress({
             "Agent evidence persistence returned an unbound result",
           );
         }
-        const current = runAdapter.load();
-        const appended = runAdapter.appendEvent({
+        const appendNext = captureEvolutionRunAppendNext(runAdapter);
+        // Custom ports keep their established load-before-append phase.
+        const current = appendNext === null ? runAdapter.load() : null;
+        const event = {
           schema: EVOLUTION_RUN_EVENT_SCHEMA,
           tenantId: descriptor.tenantId,
           runId: descriptor.runId,
           eventId,
-          sequence: current.events.length + 1,
           type: EVENT_TYPES.RAW_EVENT_REFERENCED,
           subjectId: persisted.evidenceId,
           payloadDigest: persisted.manifest.digest,
@@ -391,7 +397,14 @@ export function createAgentEvolutionIngress({
                   candidateSetDigest: skillDecisionRequest.candidateSetDigest,
                 }),
           },
-        });
+        };
+        const appended =
+          appendNext !== null
+            ? appendNext(event)
+            : runAdapter.appendEvent({
+                ...event,
+                sequence: current.events.length + 1,
+              });
         if (kind === "model-input") {
           lastModelResponse = null;
           modelAdmissionPending = true;

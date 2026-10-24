@@ -15,11 +15,16 @@ import { types as utilTypes } from "node:util";
 import {
   ArtifactStore,
   ARTIFACT_STORE_DEFAULT_READ_METHODS,
+  ARTIFACT_STORE_DEFAULT_PUBLISH_DATA_ONCE,
 } from "../artifact-store.js";
+import { withFileLock } from "../with-file-lock.js";
 import { artifactPhysicalIdentity as physicalIdentity } from "./evolution-artifact-identity.js";
 import { withEvolutionFileIdentity } from "./evolution-file-identity.js";
 import { readBoundedDescriptor } from "./bounded-descriptor-read.js";
-import { readBoundedArtifactFile } from "../bounded-artifact-file-read.js";
+import {
+  readBoundedArtifactFile,
+  withBoundedArtifactDirectoryRead,
+} from "../bounded-artifact-file-read.js";
 import {
   EVOLUTION_ARTIFACT_REF_SCHEMA,
   EVOLUTION_ARTIFACT_RESOLUTION_SCHEMA,
@@ -425,6 +430,8 @@ const LEDGER_RESOLVER_OPTION_KEYS = new Set(["purpose"]);
 const EVOLUTION_LEDGER_ARTIFACT_RESOLVERS = new WeakSet();
 const EVOLUTION_LEDGER_BATCH_RESOLVERS = new WeakMap();
 const EVOLUTION_LEDGER_BATCH_READ_WINDOWS = new WeakMap();
+const EVOLUTION_LEDGER_WHOLE_HISTORY_READERS = new WeakMap();
+const EVOLUTION_LEDGER_DEFAULT_PUBLICATIONS = new WeakMap();
 const EVOLUTION_LEDGER_RESOLVER_BINDINGS = new WeakMap();
 const isProxy = Object.freeze(utilTypes.isProxy.bind(utilTypes));
 const isDate = Object.freeze(utilTypes.isDate.bind(utilTypes));
@@ -1097,6 +1104,16 @@ function captureArtifactStore(store) {
     "verifyIntegrity",
     "artifactStore",
   );
+  const publishDataOnce = captureDataMethod(
+    store,
+    "publishDataOnce",
+    "artifactStore",
+  );
+  const defaultPublication =
+    Object.getPrototypeOf(store) === ArtifactStore.prototype &&
+    publishDataOnce === ARTIFACT_STORE_DEFAULT_PUBLISH_DATA_ONCE &&
+    Object.getOwnPropertyDescriptor(store, "_indexLock")?.value ===
+      withFileLock;
   const defaults = ARTIFACT_STORE_DEFAULT_READ_METHODS;
   const initiallyDefaultRead =
     storedPath === defaults.storedPath &&
@@ -1104,10 +1121,21 @@ function captureArtifactStore(store) {
     hasRepositoryDataMethod(store, "_filesDir", defaults.filesDir);
   const captured = Object.freeze({
     dir: resolvedDir,
+    repositoryInstance:
+      Object.getPrototypeOf(store) === ArtifactStore.prototype,
     get: get === DEFAULT_STORE_GET ? null : Object.freeze(get.bind(store)),
     layout,
     list: list === DEFAULT_STORE_LIST ? null : Object.freeze(list.bind(store)),
-    publishDataOnce: captureMethod(store, "publishDataOnce", "artifactStore"),
+    publishDataOnce: Object.freeze(publishDataOnce.bind(store)),
+    canUseDefaultPublication: Object.freeze(
+      () =>
+        defaultPublication &&
+        hasRepositoryDataMethod(
+          store,
+          "publishDataOnce",
+          ARTIFACT_STORE_DEFAULT_PUBLISH_DATA_ONCE,
+        ),
+    ),
     storedPath: Object.freeze(storedPath.bind(store)),
     verifyIntegrity: Object.freeze(verifyIntegrity.bind(store)),
     // Default verifyIntegrity repeats the same bounded physical read and hash
@@ -2835,7 +2863,7 @@ export class EvolutionArtifactPorts {
     return Object.freeze({ createdAt, expiresAt, file, id, lineage, size });
   }
 
-  #readStoredBytes(entry, normalizedEntry, expectedDigest) {
+  #readStoredBytes(entry, normalizedEntry, expectedDigest, boundedRead = null) {
     attestStoreDirectories(this.#store.layout);
     const expectedHex = expectedDigest.slice("sha256:".length);
     let storedPath;
@@ -2888,7 +2916,13 @@ export class EvolutionArtifactPorts {
 
     let bytes;
     try {
-      bytes = readBoundedArtifactFile(
+      const read =
+        boundedRead !== null &&
+        !preserveIntegrityHooks &&
+        this.#store.canUseSingleBoundedRead()
+          ? boundedRead
+          : readBoundedArtifactFile;
+      bytes = read(
         resolvedStoredPath,
         readBounds.expectedSize,
         readBounds.maximumBytes,
@@ -3366,6 +3400,7 @@ export class EvolutionArtifactPorts {
     ledgerRead = false,
     capturedLedgerEntry = null,
     batchWindow = null,
+    boundedRead = null,
   ) {
     const authentication =
       preauthenticated || this.#authenticateEnvelope(envelope, options);
@@ -3394,6 +3429,7 @@ export class EvolutionArtifactPorts {
       entry,
       normalizedEntry,
       authentication.core.recordDigest,
+      boundedRead,
     );
     const record = this.#parseRecordBytes(bytes, authentication.core);
     if (ledgerRead && batchWindow === null) {
@@ -3814,7 +3850,13 @@ export class EvolutionArtifactPorts {
     });
   }
 
-  #resolveLedgerRequest(request, purpose, snapshot = null, batchWindow = null) {
+  #resolveLedgerRequest(
+    request,
+    purpose,
+    snapshot = null,
+    batchWindow = null,
+    boundedRead = null,
+  ) {
     assertExactRecord(
       request,
       LEDGER_REQUEST_KEYS,
@@ -3883,6 +3925,7 @@ export class EvolutionArtifactPorts {
       true,
       entry,
       batchWindow,
+      boundedRead,
     );
     const ledgerReceiptCore = {
       artifactReceiptDigest: resolved.receipt.receiptDigest,
@@ -3938,6 +3981,90 @@ export class EvolutionArtifactPorts {
         EVOLUTION_ARTIFACT_EXPIRED_CODE,
         "artifact authority expired before ledger batch release",
       );
+    return Object.freeze(results);
+  }
+
+  #resolveLedgerWholeHistory(input, purpose) {
+    assertDenseDataArray(
+      input,
+      "ledger artifact history",
+      EVOLUTION_ARTIFACT_MAX_INDEX_ENTRIES,
+    );
+    // Capture every request before invoking any authority port. Retain the
+    // established per-chunk canonical budget rather than imposing a smaller
+    // whole-history byte limit on an otherwise admitted read window.
+    const chunks = [];
+    for (let offset = 0; offset < input.length; offset += 128) {
+      const chunk = [];
+      for (
+        let index = offset;
+        index < Math.min(offset + 128, input.length);
+        index += 1
+      ) {
+        chunk.push(ownData(input, String(index), "ledger artifact history"));
+      }
+      chunks.push(frozenCanonicalClone(chunk));
+    }
+    const snapshot = readTrustedIndexSnapshot(this.#store.layout);
+    this.#indexLedgerBatchEntries(snapshot.entries);
+    const window = [];
+    const results = [];
+    const resolveItems = (read) => {
+      for (const requests of chunks) {
+        for (const request of requests) {
+          results.push(
+            this.#resolveLedgerRequest(
+              request,
+              purpose,
+              snapshot,
+              window,
+              read,
+            ),
+          );
+        }
+      }
+    };
+    if (this.#store.canUseSingleBoundedRead()) {
+      try {
+        withBoundedArtifactDirectoryRead(
+          this.#store.layout.filesDir,
+          resolveItems,
+        );
+      } catch (cause) {
+        if (isEvolutionArtifactPortError(cause)) throw cause;
+        throw artifactError(
+          EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
+          "stored artifact history could not be opened safely",
+          { cause },
+        );
+      }
+    } else {
+      // A retained reader may outlive a prototype change. Preserve the
+      // original per-file reads and integrity hooks when defaults changed.
+      resolveItems(null);
+    }
+    // Unlike the public chunk callback API, this operation exposes no partial
+    // results between chunks. Every item's payload, signature and current
+    // authority are still read/verified above. Reattest the complete index and
+    // ALL decision leases before releasing any result from the sealed read.
+    const after = readTrustedIndexSnapshot(this.#store.layout, snapshot);
+    if (after.bytesDigest !== snapshot.bytesDigest) {
+      throw artifactError(
+        EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
+        "ArtifactStore index changed during ledger history readback",
+      );
+    }
+    const completed = this.#clock().milliseconds;
+    if (
+      window.some(
+        (entry) => completed < entry.checkedAt || completed >= entry.expiresAt,
+      )
+    ) {
+      throw artifactError(
+        EVOLUTION_ARTIFACT_EXPIRED_CODE,
+        "artifact authority expired before ledger history release",
+      );
+    }
     return Object.freeze(results);
   }
 
@@ -4012,6 +4139,25 @@ export class EvolutionArtifactPorts {
     EVOLUTION_LEDGER_BATCH_READ_WINDOWS.set(resolveReadOnly, (callback) =>
       this.#withLedgerBatchRead(callback, normalizedPurpose),
     );
+    if (Object.getPrototypeOf(this) === EvolutionArtifactPorts.prototype) {
+      EVOLUTION_LEDGER_DEFAULT_PUBLICATIONS.set(
+        resolveReadOnly,
+        this.#store.canUseDefaultPublication,
+      );
+      EVOLUTION_LEDGER_WHOLE_HISTORY_READERS.set(
+        resolveReadOnly,
+        Object.freeze({
+          eligible: () =>
+            this.#store.repositoryInstance &&
+            this.#store.list === null &&
+            this.#store.get === null &&
+            this.#store.canUseSingleBoundedRead(),
+          read: Object.freeze((requests) =>
+            this.#resolveLedgerWholeHistory(requests, normalizedPurpose),
+          ),
+        }),
+      );
+    }
     EVOLUTION_LEDGER_RESOLVER_BINDINGS.set(
       resolveReadOnly,
       Object.freeze({
@@ -4060,6 +4206,21 @@ export function captureEvolutionLedgerBatchReadWindow(value) {
   if (!read)
     throw new TypeError("a branded ledger artifact resolver is required");
   return read;
+}
+
+// Optional original-implementation capability. Overrides retain the existing
+// callback/chunk protocol, including its observable integrity-hook phases.
+export function captureEvolutionLedgerWholeHistoryReader(value) {
+  if (!isEvolutionLedgerArtifactResolver(value)) {
+    throw new TypeError("a branded ledger artifact resolver is required");
+  }
+  const reader = EVOLUTION_LEDGER_WHOLE_HISTORY_READERS.get(value);
+  return reader?.eligible() ? reader.read : null;
+}
+
+/** Optional append composition check; grants no publication or read authority. */
+export function hasEvolutionLedgerDefaultPublication(value) {
+  return EVOLUTION_LEDGER_DEFAULT_PUBLICATIONS.get(value)?.() === true;
 }
 
 /** Private construction identity, independent of matching resolver descriptors. */

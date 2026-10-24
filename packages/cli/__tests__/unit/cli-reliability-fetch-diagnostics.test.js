@@ -143,6 +143,66 @@ describe("reliability fetch diagnostics", () => {
     ).toEqual({ turn: null, subtype: "unknown", errorDetails: null });
   });
 
+  it("retains bounded storage cause codes while keeping the original failure classification", () => {
+    const failure = reliabilityResultFailure(
+      {
+        is_error: true,
+        subtype: "error_evolution_ingress",
+        code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+        error:
+          "private error text/path [storage_cause_codes: CC_EVOLUTION_ARTIFACT_STORE_FAILED -> EPERM]",
+      },
+      17,
+    );
+    expect(failure).toEqual({
+      turn: 17,
+      subtype: "unknown",
+      errorDetails: null,
+      storageCauseCodes: ["CC_EVOLUTION_ARTIFACT_STORE_FAILED", "EPERM"],
+    });
+    expect(JSON.stringify(failure)).not.toContain("private");
+    expect(
+      reliabilityResultFailure(
+        { is_error: false, error: " [storage_cause_codes: EPERM]" },
+        18,
+      ),
+    ).toBeNull();
+  });
+
+  it("does not accept arbitrary storage markers or execute an error accessor", () => {
+    const base = {
+      is_error: true,
+      subtype: "error_evolution_ingress",
+      code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+    };
+    for (const error of [
+      "private [storage_cause_codes: UNKNOWN_PRIVATE_KEY]",
+      {
+        toString() {
+          throw new Error("private");
+        },
+      },
+    ])
+      expect(
+        reliabilityResultFailure({ ...base, error }, 1),
+      ).not.toHaveProperty("storageCauseCodes");
+    const hostile = { ...base };
+    Object.defineProperty(hostile, "error", {
+      get() {
+        throw new Error("must not access error getter");
+      },
+    });
+    expect(reliabilityResultFailure(hostile, 1)).not.toHaveProperty(
+      "storageCauseCodes",
+    );
+    expect(
+      reliabilityResultFailure(
+        { ...base, code: "unknown", error: " [storage_cause_codes: EPERM]" },
+        1,
+      ),
+    ).not.toHaveProperty("storageCauseCodes");
+  });
+
   it("reprojects preload records without messages, endpoints, or private data", () => {
     const path = file([
       { event: "enabled", passive: true },

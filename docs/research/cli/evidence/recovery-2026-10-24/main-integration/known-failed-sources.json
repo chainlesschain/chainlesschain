@@ -2,6 +2,16 @@
   "schema": "chainlesschain.actual-failed-release-sources/v1",
   "sources": [
     {
+      "sha": "927ddab4493021c61947c1eb344d44d88a3b398a",
+      "reason": "Exact Windows Formal duplex soak input198 exceeded the unchanged60000ms result deadline after197 successful results. Measured p95 was about53171ms; memory/handle growth and cleanup remained within their original limits. An unchanged local40-turn diagnostic independently reproduces increasing local processing time with a roughly2ms fake-model HTTP response, repeated immutable-ledger byte reads, and repeated whole-index reads across history chunks. Linux/macOS runs were cancelled after this genuine failure and retain only partial diagnostic evidence, never complete qualification. A new source and fresh full matrices are required.",
+      "runId": 40099321919,
+      "jobId": 120888023499,
+      "artifactId": 12564799900,
+      "jobLogSha256": "b7a54b26042977fd1d63c51b67962a2cd5499977bba39d4941531401ae41a90c",
+      "archiveSha256": "330272cec2d4d8dc6f83b1c0e8b0f3cde0c166afba4c63bc51ef7d2ea0df44e9",
+      "evidence": "docs/research/cli/evidence/recovery-2026-10-24/history-read-amplification/preparation.json"
+    },
+    {
       "sha": "35cb1a379ddf80003c46efe315de5dac88b19731",
       "reason": "Exact Linux CLI CI unit shard3/4 rejects bundled changelog parity: the canonical CHANGELOG native-module repair note was not regenerated into packages/cli/src/data/changelog.json. Original job records10007 passed,1 failed,29 skipped; preserve this actual failure. Standard generator repairs the committed offline package data without changing executable runtime, tests, budgets or workflow criteria. Windows unit shards3/16 and4/16 passed on this source, but those component results cannot qualify the replacement commit.",
       "runId": 40094125260,

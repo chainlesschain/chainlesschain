@@ -1,0 +1,4567 @@
+{
+  "schema": "cc.local-short-baseline-summary/v1",
+  "directory": "C:\\code\\chainlesschain\\.work\\release118-publish-first-927dda\\perf-diagnostic\\baseline-2026-10-24T16-02-18-566Z",
+  "sourceSha": "927ddab4493021c61947c1eb344d44d88a3b398a",
+  "node": "v22.12.0",
+  "resolvedCore": "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\session-core\\lib\\index.js",
+  "scope": "Instrumented local smoke diagnostic, not formal qualification or live-model acceptance",
+  "profile": {
+    "mode": "smoke",
+    "durationSeconds": 1,
+    "turns": 20,
+    "warmupTurns": 20,
+    "concurrentAgents": 3,
+    "pipeCases": 2,
+    "disconnectCases": 1,
+    "slowConsumerMs": 250,
+    "checkpointIntervalSeconds": 1,
+    "cleanupDeadlineMs": 10000,
+    "maxRssGrowthMb": 128,
+    "maxResourceGrowth": 8
+  },
+  "turnTimeoutMs": 60000,
+  "cleanupDeadlineMs": 10000,
+  "elapsedMs": 891881.5961,
+  "completedTurns": 40,
+  "scenarioPass": true,
+  "failure": null,
+  "sourceStillClean": true,
+  "builtinBindings": {
+    "fsDefaultObjectUnchanged": true,
+    "fsReadFileSyncSame": true,
+    "fsStatSyncSame": true,
+    "spawnSyncSame": true,
+    "cjsSpawnSyncSame": true,
+    "privateStorageLoadedBeforePreload": false
+  },
+  "telemetryFailures": 0,
+  "modelRequestCount": 40,
+  "powerShellCalls": 0,
+  "resourceEvidence": {
+    "rss": {
+      "beforeBytes": 169369600,
+      "afterBytes": 173645824,
+      "growthBytes": 4276224,
+      "maximumBytes": 205389824,
+      "peakGrowthBytes": 36020224,
+      "limitGrowthBytes": 134217728
+    },
+    "resources": {
+      "kind": "handle",
+      "before": 242,
+      "after": 240,
+      "delta": -2,
+      "maximum": 242,
+      "peakDelta": 0,
+      "limitGrowth": 8,
+      "requiredMeasurementsAvailable": true
+    },
+    "processDescendants": {
+      "measurementAvailable": true,
+      "beforeSource": "wmic",
+      "afterSource": "wmic",
+      "unavailableReason": null,
+      "beforeExit": 1,
+      "observed": 1,
+      "retired": 1,
+      "afterExit": 0,
+      "allRetired": true
+    },
+    "exit": {
+      "code": 0,
+      "signal": null
+    }
+  },
+  "turns": [
+    {
+      "number": 1,
+      "warmup": true,
+      "durationMs": 19916.3385,
+      "inputToHttpMs": 16718.1902,
+      "httpMs": 9.308700000001409,
+      "httpToResultMs": 3188.8395999999993,
+      "groups": {
+        "fs.writeFileSync": {
+          "calls": 219,
+          "durationMs": 142.86799999998965,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.realpathSync": {
+          "calls": 2639,
+          "durationMs": 552.7319999999817,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readFileSync": {
+          "calls": 939,
+          "durationMs": 195.7942999999632,
+          "transferredBytes": 6857498,
+          "errors": 5
+        },
+        "fs.openSync": {
+          "calls": 4506,
+          "durationMs": 296.72630000006495,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.writeSync": {
+          "calls": 61,
+          "durationMs": 8.749100000002294,
+          "transferredBytes": 434938,
+          "errors": 0
+        },
+        "fs.readSync": {
+          "calls": 3308,
+          "durationMs": 124.48909999987924,
+          "transferredBytes": 9233459,
+          "errors": 0
+        },
+        "fs.closeSync": {
+          "calls": 4505,
+          "durationMs": 135.5726999999653,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.lstatSync": {
+          "calls": 18639,
+          "durationMs": 1691.7910000000957,
+          "transferredBytes": 0,
+          "errors": 65
+        },
+        "spawnSync.native-acl-worker": {
+          "calls": 28,
+          "durationMs": 4353.273300000003,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readdirSync": {
+          "calls": 627,
+          "durationMs": 86.93780000002243,
+          "transferredBytes": 0,
+          "errors": 3
+        },
+        "fs.statSync": {
+          "calls": 333,
+          "durationMs": 35.884100000019316,
+          "transferredBytes": 0,
+          "errors": 115
+        },
+        "fs.fsyncSync": {
+          "calls": 149,
+          "durationMs": 66.28469999999925,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.fstatSync": {
+          "calls": 6531,
+          "durationMs": 99.93149999982597,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "spawnSync.other": {
+          "calls": 5,
+          "durationMs": 3690.9263,
+          "transferredBytes": 0,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "number": 2,
+      "warmup": true,
+      "durationMs": 7831.7896999999975,
+      "inputToHttpMs": 4463.177799999998,
+      "httpMs": 2.5680000000029395,
+      "httpToResultMs": 3366.043899999997,
+      "groups": {
+        "fs.writeFileSync": {
+          "calls": 159,
+          "durationMs": 106.98929999999382,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.realpathSync": {
+          "calls": 48,
+          "durationMs": 50.84840000000622,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readFileSync": {
+          "calls": 119,
+          "durationMs": 16.459399999999732,
+          "transferredBytes": 382231,
+          "errors": 0
+        },
+        "fs.openSync": {
+          "calls": 4182,
+          "durationMs": 240.56350000008388,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.writeSync": {
+          "calls": 44,
+          "durationMs": 6.000700000004144,
+          "transferredBytes": 291510,
+          "errors": 0
+        },
+        "fs.readSync": {
+          "calls": 3596,
+          "durationMs": 58.168500000057975,
+          "transferredBytes": 11144881,
+          "errors": 0
+        },
+        "fs.closeSync": {
+          "calls": 4182,
+          "durationMs": 101.83040000010078,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.lstatSync": {
+          "calls": 14465,
+          "durationMs": 1157.881099999955,
+          "transferredBytes": 0,
+          "errors": 6
+        },
+        "spawnSync.native-acl-worker": {
+          "calls": 12,
+          "durationMs": 1616.7503999999972,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readdirSync": {
+          "calls": 463,
+          "durationMs": 62.791500000024826,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.statSync": {
+          "calls": 86,
+          "durationMs": 11.715500000020256,
+          "transferredBytes": 0,
+          "errors": 85
+        },
+        "fs.fsyncSync": {
+          "calls": 101,
+          "durationMs": 47.017900000020745,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.fstatSync": {
+          "calls": 7077,
+          "durationMs": 87.49169999987134,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "spawnSync.other": {
+          "calls": 0,
+          "durationMs": 0,
+          "transferredBytes": 0,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "number": 3,
+      "warmup": true,
+      "durationMs": 9158.547400000003,
+      "inputToHttpMs": 5003.188000000002,
+      "httpMs": 2.7813999999998487,
+      "httpToResultMs": 4152.578000000001,
+      "groups": {
+        "fs.writeFileSync": {
+          "calls": 159,
+          "durationMs": 107.38549999997122,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.realpathSync": {
+          "calls": 60,
+          "durationMs": 53.257400000020425,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readFileSync": {
+          "calls": 119,
+          "durationMs": 17.57720000005429,
+          "transferredBytes": 590816,
+          "errors": 0
+        },
+        "fs.openSync": {
+          "calls": 4866,
+          "durationMs": 295.8117999998394,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.writeSync": {
+          "calls": 44,
+          "durationMs": 5.901100000002771,
+          "transferredBytes": 320386,
+          "errors": 0
+        },
+        "fs.readSync": {
+          "calls": 4628,
+          "durationMs": 82.35420000019442,
+          "transferredBytes": 17371044,
+          "errors": 0
+        },
+        "fs.closeSync": {
+          "calls": 4866,
+          "durationMs": 127.17840000007706,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.lstatSync": {
+          "calls": 16001,
+          "durationMs": 1397.2239000005284,
+          "transferredBytes": 0,
+          "errors": 6
+        },
+        "spawnSync.native-acl-worker": {
+          "calls": 12,
+          "durationMs": 1766.1581999999944,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readdirSync": {
+          "calls": 463,
+          "durationMs": 66.93189999990864,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.statSync": {
+          "calls": 86,
+          "durationMs": 12.7877999999655,
+          "transferredBytes": 0,
+          "errors": 85
+        },
+        "fs.fsyncSync": {
+          "calls": 101,
+          "durationMs": 44.60769999999684,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.fstatSync": {
+          "calls": 8361,
+          "durationMs": 114.71649999998408,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "spawnSync.other": {
+          "calls": 0,
+          "durationMs": 0,
+          "transferredBytes": 0,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "number": 4,
+      "warmup": true,
+      "durationMs": 9763.048300000002,
+      "inputToHttpMs": 5778.5167,
+      "httpMs": 3.11529999999766,
+      "httpToResultMs": 3981.4163000000044,
+      "groups": {
+        "fs.writeFileSync": {
+          "calls": 159,
+          "durationMs": 113.2397000000492,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.realpathSync": {
+          "calls": 48,
+          "durationMs": 51.220600000007835,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readFileSync": {
+          "calls": 119,
+          "durationMs": 18.683699999972305,
+          "transferredBytes": 799401,
+          "errors": 0
+        },
+        "fs.openSync": {
+          "calls": 5550,
+          "durationMs": 352.78080000017496,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.writeSync": {
+          "calls": 44,
+          "durationMs": 6.206899999990128,
+          "transferredBytes": 349244,
+          "errors": 0
+        },
+        "fs.readSync": {
+          "calls": 5660,
+          "durationMs": 99.31619999984105,
+          "transferredBytes": 23597699,
+          "errors": 0
+        },
+        "fs.closeSync": {
+          "calls": 5550,
+          "durationMs": 146.63460000007763,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.lstatSync": {
+          "calls": 17537,
+          "durationMs": 1559.3055999993667,
+          "transferredBytes": 0,
+          "errors": 6
+        },
+        "spawnSync.native-acl-worker": {
+          "calls": 12,
+          "durationMs": 1700.9491999999955,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readdirSync": {
+          "calls": 463,
+          "durationMs": 70.10340000003634,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.statSync": {
+          "calls": 86,
+          "durationMs": 12.297700000010082,
+          "transferredBytes": 0,
+          "errors": 85
+        },
+        "fs.fsyncSync": {
+          "calls": 101,
+          "durationMs": 52.29799999998795,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.fstatSync": {
+          "calls": 9645,
+          "durationMs": 133.75769999995828,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "spawnSync.other": {
+          "calls": 0,
+          "durationMs": 0,
+          "transferredBytes": 0,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "number": 5,
+      "warmup": true,
+      "durationMs": 9764.043399999995,
+      "inputToHttpMs": 5638.015800000001,
+      "httpMs": 14.162599999996019,
+      "httpToResultMs": 4111.864999999998,
+      "groups": {
+        "fs.writeFileSync": {
+          "calls": 159,
+          "durationMs": 108.69890000002493,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.realpathSync": {
+          "calls": 48,
+          "durationMs": 48.20149999997375,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readFileSync": {
+          "calls": 119,
+          "durationMs": 18.226400000006834,
+          "transferredBytes": 1007986,
+          "errors": 0
+        },
+        "fs.openSync": {
+          "calls": 6234,
+          "durationMs": 358.77729999994335,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.writeSync": {
+          "calls": 44,
+          "durationMs": 5.873500000001513,
+          "transferredBytes": 378102,
+          "errors": 0
+        },
+        "fs.readSync": {
+          "calls": 6692,
+          "durationMs": 110.62930000025517,
+          "transferredBytes": 29824332,
+          "errors": 0
+        },
+        "fs.closeSync": {
+          "calls": 6234,
+          "durationMs": 157.1279000000868,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.lstatSync": {
+          "calls": 19073,
+          "durationMs": 1606.9968000004083,
+          "transferredBytes": 0,
+          "errors": 6
+        },
+        "spawnSync.native-acl-worker": {
+          "calls": 12,
+          "durationMs": 1654.8702999999878,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readdirSync": {
+          "calls": 463,
+          "durationMs": 67.35739999985526,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.statSync": {
+          "calls": 86,
+          "durationMs": 12.477400000025227,
+          "transferredBytes": 0,
+          "errors": 85
+        },
+        "fs.fsyncSync": {
+          "calls": 101,
+          "durationMs": 44.2138000000341,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.fstatSync": {
+          "calls": 10929,
+          "durationMs": 138.65380000035657,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "spawnSync.other": {
+          "calls": 0,
+          "durationMs": 0,
+          "transferredBytes": 0,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "number": 6,
+      "warmup": true,
+      "durationMs": 10754.988900000004,
+      "inputToHttpMs": 5512.826499999996,
+      "httpMs": 2.106000000007043,
+      "httpToResultMs": 5240.056400000001,
+      "groups": {
+        "fs.writeFileSync": {
+          "calls": 159,
+          "durationMs": 111.02860000001237,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.realpathSync": {
+          "calls": 48,
+          "durationMs": 50.67280000002938,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readFileSync": {
+          "calls": 119,
+          "durationMs": 18.56580000003305,
+          "transferredBytes": 1216571,
+          "errors": 0
+        },
+        "fs.openSync": {
+          "calls": 6918,
+          "durationMs": 406.37340000038967,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.writeSync": {
+          "calls": 44,
+          "durationMs": 6.268500000012864,
+          "transferredBytes": 406960,
+          "errors": 0
+        },
+        "fs.readSync": {
+          "calls": 7724,
+          "durationMs": 135.38259999992442,
+          "transferredBytes": 36050965,
+          "errors": 0
+        },
+        "fs.closeSync": {
+          "calls": 6918,
+          "durationMs": 182.36959999997634,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.lstatSync": {
+          "calls": 20609,
+          "durationMs": 1841.1251999994274,
+          "transferredBytes": 0,
+          "errors": 6
+        },
+        "spawnSync.native-acl-worker": {
+          "calls": 12,
+          "durationMs": 1724.9204000000173,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readdirSync": {
+          "calls": 463,
+          "durationMs": 73.60399999999936,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.statSync": {
+          "calls": 86,
+          "durationMs": 12.577800000006391,
+          "transferredBytes": 0,
+          "errors": 85
+        },
+        "fs.fsyncSync": {
+          "calls": 101,
+          "durationMs": 51.83759999999165,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.fstatSync": {
+          "calls": 12213,
+          "durationMs": 167.2107999998625,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "spawnSync.other": {
+          "calls": 0,
+          "durationMs": 0,
+          "transferredBytes": 0,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "number": 7,
+      "warmup": true,
+      "durationMs": 11125.3165,
+      "inputToHttpMs": 6066.763900000005,
+      "httpMs": 3.024199999999837,
+      "httpToResultMs": 5055.528399999996,
+      "groups": {
+        "fs.writeFileSync": {
+          "calls": 159,
+          "durationMs": 111.5406000000803,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.realpathSync": {
+          "calls": 48,
+          "durationMs": 51.69160000003467,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readFileSync": {
+          "calls": 119,
+          "durationMs": 19.27800000004936,
+          "transferredBytes": 1425156,
+          "errors": 0
+        },
+        "fs.openSync": {
+          "calls": 7602,
+          "durationMs": 455.6021999998193,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.writeSync": {
+          "calls": 44,
+          "durationMs": 6.040099999983795,
+          "transferredBytes": 435818,
+          "errors": 0
+        },
+        "fs.readSync": {
+          "calls": 8756,
+          "durationMs": 153.30720000062138,
+          "transferredBytes": 42277598,
+          "errors": 0
+        },
+        "fs.closeSync": {
+          "calls": 7602,
+          "durationMs": 196.79409999903862,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.lstatSync": {
+          "calls": 22204,
+          "durationMs": 2023.7939999988885,
+          "transferredBytes": 0,
+          "errors": 6
+        },
+        "spawnSync.native-acl-worker": {
+          "calls": 12,
+          "durationMs": 1658.286700000026,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readdirSync": {
+          "calls": 463,
+          "durationMs": 76.35229999986768,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.statSync": {
+          "calls": 86,
+          "durationMs": 12.99690000002738,
+          "transferredBytes": 0,
+          "errors": 85
+        },
+        "fs.fsyncSync": {
+          "calls": 101,
+          "durationMs": 52.170899999982794,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.fstatSync": {
+          "calls": 13497,
+          "durationMs": 179.44529999938095,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "spawnSync.other": {
+          "calls": 0,
+          "durationMs": 0,
+          "transferredBytes": 0,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "number": 8,
+      "warmup": true,
+      "durationMs": 11705.576499999996,
+      "inputToHttpMs": 6895.571199999991,
+      "httpMs": 2.157500000001164,
+      "httpToResultMs": 4807.847800000003,
+      "groups": {
+        "fs.writeFileSync": {
+          "calls": 159,
+          "durationMs": 111.25320000010834,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.realpathSync": {
+          "calls": 48,
+          "durationMs": 51.53360000002431,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readFileSync": {
+          "calls": 119,
+          "durationMs": 19.967600000003586,
+          "transferredBytes": 1633741,
+          "errors": 0
+        },
+        "fs.openSync": {
+          "calls": 8286,
+          "durationMs": 475.6123999997071,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.writeSync": {
+          "calls": 44,
+          "durationMs": 6.360999999931664,
+          "transferredBytes": 464676,
+          "errors": 0
+        },
+        "fs.readSync": {
+          "calls": 9816,
+          "durationMs": 167.61140000040177,
+          "transferredBytes": 48504231,
+          "errors": 0
+        },
+        "fs.closeSync": {
+          "calls": 8286,
+          "durationMs": 212.8106000005355,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.lstatSync": {
+          "calls": 23681,
+          "durationMs": 2090.8330999999744,
+          "transferredBytes": 0,
+          "errors": 6
+        },
+        "spawnSync.native-acl-worker": {
+          "calls": 12,
+          "durationMs": 1727.1604999999981,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readdirSync": {
+          "calls": 463,
+          "durationMs": 78.31790000016917,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.statSync": {
+          "calls": 86,
+          "durationMs": 12.430600000006962,
+          "transferredBytes": 0,
+          "errors": 85
+        },
+        "fs.fsyncSync": {
+          "calls": 101,
+          "durationMs": 47.8689999999624,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.fstatSync": {
+          "calls": 14781,
+          "durationMs": 195.63730000008945,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "spawnSync.other": {
+          "calls": 0,
+          "durationMs": 0,
+          "transferredBytes": 0,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "number": 9,
+      "warmup": true,
+      "durationMs": 12995.108500000002,
+      "inputToHttpMs": 6554.860100000005,
+      "httpMs": 2.815099999992526,
+      "httpToResultMs": 6437.433300000004,
+      "groups": {
+        "fs.writeFileSync": {
+          "calls": 159,
+          "durationMs": 122.81720000003406,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.realpathSync": {
+          "calls": 48,
+          "durationMs": 52.51190000001225,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readFileSync": {
+          "calls": 119,
+          "durationMs": 20.989599999971688,
+          "transferredBytes": 1842326,
+          "errors": 0
+        },
+        "fs.openSync": {
+          "calls": 8970,
+          "durationMs": 538.8625000007742,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.writeSync": {
+          "calls": 44,
+          "durationMs": 7.072100000019418,
+          "transferredBytes": 493534,
+          "errors": 0
+        },
+        "fs.readSync": {
+          "calls": 11472,
+          "durationMs": 199.06620000081602,
+          "transferredBytes": 54730864,
+          "errors": 0
+        },
+        "fs.closeSync": {
+          "calls": 8970,
+          "durationMs": 235.69070000028296,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.lstatSync": {
+          "calls": 25217,
+          "durationMs": 2366.5597000018315,
+          "transferredBytes": 0,
+          "errors": 6
+        },
+        "spawnSync.native-acl-worker": {
+          "calls": 12,
+          "durationMs": 1846.2116999999726,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readdirSync": {
+          "calls": 463,
+          "durationMs": 85.29060000003665,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.statSync": {
+          "calls": 86,
+          "durationMs": 13.588000000017928,
+          "transferredBytes": 0,
+          "errors": 85
+        },
+        "fs.fsyncSync": {
+          "calls": 101,
+          "durationMs": 67.38269999992917,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.fstatSync": {
+          "calls": 16065,
+          "durationMs": 224.29219999941415,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "spawnSync.other": {
+          "calls": 0,
+          "durationMs": 0,
+          "transferredBytes": 0,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "number": 10,
+      "warmup": true,
+      "durationMs": 12383.411399999997,
+      "inputToHttpMs": 6765.818999999989,
+      "httpMs": 2.1929999999993015,
+      "httpToResultMs": 5615.399400000009,
+      "groups": {
+        "fs.writeFileSync": {
+          "calls": 159,
+          "durationMs": 114.52160000008007,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.realpathSync": {
+          "calls": 48,
+          "durationMs": 51.68560000001162,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readFileSync": {
+          "calls": 119,
+          "durationMs": 20.141599999959,
+          "transferredBytes": 2050912,
+          "errors": 0
+        },
+        "fs.openSync": {
+          "calls": 9654,
+          "durationMs": 533.9070000000211,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.writeSync": {
+          "calls": 44,
+          "durationMs": 6.045699999987853,
+          "transferredBytes": 522394,
+          "errors": 0
+        },
+        "fs.readSync": {
+          "calls": 12525,
+          "durationMs": 200.24110000029032,
+          "transferredBytes": 60957499,
+          "errors": 0
+        },
+        "fs.closeSync": {
+          "calls": 9654,
+          "durationMs": 235.87950000078126,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.lstatSync": {
+          "calls": 26753,
+          "durationMs": 2306.0809999985067,
+          "transferredBytes": 0,
+          "errors": 6
+        },
+        "spawnSync.native-acl-worker": {
+          "calls": 12,
+          "durationMs": 1725.493300000002,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readdirSync": {
+          "calls": 463,
+          "durationMs": 82.96829999989131,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.statSync": {
+          "calls": 86,
+          "durationMs": 13.036699999836856,
+          "transferredBytes": 0,
+          "errors": 85
+        },
+        "fs.fsyncSync": {
+          "calls": 101,
+          "durationMs": 50.371600000042235,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.fstatSync": {
+          "calls": 17349,
+          "durationMs": 217.75519999940298,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "spawnSync.other": {
+          "calls": 0,
+          "durationMs": 0,
+          "transferredBytes": 0,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "number": 11,
+      "warmup": true,
+      "durationMs": 13963.488299999997,
+      "inputToHttpMs": 8429.543099999995,
+      "httpMs": 2.05800000000454,
+      "httpToResultMs": 5531.887199999997,
+      "groups": {
+        "fs.writeFileSync": {
+          "calls": 159,
+          "durationMs": 119.7496999999421,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.realpathSync": {
+          "calls": 48,
+          "durationMs": 54.235300000014945,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readFileSync": {
+          "calls": 119,
+          "durationMs": 21.292100000064238,
+          "transferredBytes": 2259500,
+          "errors": 0
+        },
+        "fs.openSync": {
+          "calls": 10338,
+          "durationMs": 604.9712999995099,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.writeSync": {
+          "calls": 44,
+          "durationMs": 6.378000000040629,
+          "transferredBytes": 551256,
+          "errors": 0
+        },
+        "fs.readSync": {
+          "calls": 13557,
+          "durationMs": 228.39550000087183,
+          "transferredBytes": 67184137,
+          "errors": 0
+        },
+        "fs.closeSync": {
+          "calls": 10338,
+          "durationMs": 260.3264000000927,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.lstatSync": {
+          "calls": 28289,
+          "durationMs": 2559.4124999988126,
+          "transferredBytes": 0,
+          "errors": 6
+        },
+        "spawnSync.native-acl-worker": {
+          "calls": 12,
+          "durationMs": 1792.4429999999993,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readdirSync": {
+          "calls": 463,
+          "durationMs": 85.6829000000871,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.statSync": {
+          "calls": 86,
+          "durationMs": 13.773300000088057,
+          "transferredBytes": 0,
+          "errors": 85
+        },
+        "fs.fsyncSync": {
+          "calls": 101,
+          "durationMs": 52.00769999998738,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.fstatSync": {
+          "calls": 18633,
+          "durationMs": 246.69819999931497,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "spawnSync.other": {
+          "calls": 0,
+          "durationMs": 0,
+          "transferredBytes": 0,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "number": 12,
+      "warmup": true,
+      "durationMs": 14012.005199999985,
+      "inputToHttpMs": 8204.199300000007,
+      "httpMs": 2.574499999987893,
+      "httpToResultMs": 5805.23139999999,
+      "groups": {
+        "fs.writeFileSync": {
+          "calls": 159,
+          "durationMs": 120.99900000006892,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.realpathSync": {
+          "calls": 48,
+          "durationMs": 54.688399999955436,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readFileSync": {
+          "calls": 119,
+          "durationMs": 20.612999999895692,
+          "transferredBytes": 2468086,
+          "errors": 0
+        },
+        "fs.openSync": {
+          "calls": 11022,
+          "durationMs": 611.6294999981183,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.writeSync": {
+          "calls": 44,
+          "durationMs": 6.591499999980442,
+          "transferredBytes": 580116,
+          "errors": 0
+        },
+        "fs.readSync": {
+          "calls": 14589,
+          "durationMs": 240.00990000240563,
+          "transferredBytes": 73410773,
+          "errors": 0
+        },
+        "fs.closeSync": {
+          "calls": 11022,
+          "durationMs": 268.397599997028,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.lstatSync": {
+          "calls": 29825,
+          "durationMs": 2601.715299998672,
+          "transferredBytes": 0,
+          "errors": 6
+        },
+        "spawnSync.native-acl-worker": {
+          "calls": 12,
+          "durationMs": 1830.271599999949,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readdirSync": {
+          "calls": 463,
+          "durationMs": 84.97539999980654,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.statSync": {
+          "calls": 86,
+          "durationMs": 13.00619999995979,
+          "transferredBytes": 0,
+          "errors": 85
+        },
+        "fs.fsyncSync": {
+          "calls": 101,
+          "durationMs": 59.22980000007374,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.fstatSync": {
+          "calls": 19917,
+          "durationMs": 254.76619999705872,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "spawnSync.other": {
+          "calls": 0,
+          "durationMs": 0,
+          "transferredBytes": 0,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "number": 13,
+      "warmup": true,
+      "durationMs": 16257.243900000001,
+      "inputToHttpMs": 9330.755600000004,
+      "httpMs": 12.73410000000149,
+      "httpToResultMs": 6913.754199999996,
+      "groups": {
+        "fs.writeFileSync": {
+          "calls": 159,
+          "durationMs": 161.84249999985332,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.realpathSync": {
+          "calls": 48,
+          "durationMs": 54.02300000010291,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readFileSync": {
+          "calls": 119,
+          "durationMs": 23.338900000031572,
+          "transferredBytes": 2676672,
+          "errors": 0
+        },
+        "fs.openSync": {
+          "calls": 11706,
+          "durationMs": 757.010699999606,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.writeSync": {
+          "calls": 44,
+          "durationMs": 7.080800000141608,
+          "transferredBytes": 608976,
+          "errors": 0
+        },
+        "fs.readSync": {
+          "calls": 15621,
+          "durationMs": 309.08709999982966,
+          "transferredBytes": 79637409,
+          "errors": 0
+        },
+        "fs.closeSync": {
+          "calls": 11706,
+          "durationMs": 313.3282999987423,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.lstatSync": {
+          "calls": 31361,
+          "durationMs": 3068.728299998562,
+          "transferredBytes": 0,
+          "errors": 6
+        },
+        "spawnSync.native-acl-worker": {
+          "calls": 12,
+          "durationMs": 1843.9893999999622,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readdirSync": {
+          "calls": 463,
+          "durationMs": 93.28479999993579,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.statSync": {
+          "calls": 86,
+          "durationMs": 14.75149999995483,
+          "transferredBytes": 0,
+          "errors": 85
+        },
+        "fs.fsyncSync": {
+          "calls": 101,
+          "durationMs": 91.35510000004433,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.fstatSync": {
+          "calls": 21201,
+          "durationMs": 312.4637000017101,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "spawnSync.other": {
+          "calls": 0,
+          "durationMs": 0,
+          "transferredBytes": 0,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "number": 14,
+      "warmup": true,
+      "durationMs": 14298.902399999992,
+      "inputToHttpMs": 7939.494999999995,
+      "httpMs": 2.643500000005588,
+      "httpToResultMs": 6356.763899999991,
+      "groups": {
+        "fs.writeFileSync": {
+          "calls": 159,
+          "durationMs": 228.9552000001422,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.realpathSync": {
+          "calls": 48,
+          "durationMs": 48.63080000010086,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readFileSync": {
+          "calls": 119,
+          "durationMs": 20.943200000096112,
+          "transferredBytes": 2885258,
+          "errors": 0
+        },
+        "fs.openSync": {
+          "calls": 12390,
+          "durationMs": 716.9182000003348,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.writeSync": {
+          "calls": 44,
+          "durationMs": 6.082699999969918,
+          "transferredBytes": 637836,
+          "errors": 0
+        },
+        "fs.readSync": {
+          "calls": 16653,
+          "durationMs": 259.7288999976008,
+          "transferredBytes": 85864045,
+          "errors": 0
+        },
+        "fs.closeSync": {
+          "calls": 12390,
+          "durationMs": 286.2564999994356,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.lstatSync": {
+          "calls": 32897,
+          "durationMs": 2753.8467999986315,
+          "transferredBytes": 0,
+          "errors": 6
+        },
+        "spawnSync.native-acl-worker": {
+          "calls": 12,
+          "durationMs": 1645.337899999955,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readdirSync": {
+          "calls": 463,
+          "durationMs": 86.10739999936777,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.statSync": {
+          "calls": 86,
+          "durationMs": 12.901799999846844,
+          "transferredBytes": 0,
+          "errors": 85
+        },
+        "fs.fsyncSync": {
+          "calls": 101,
+          "durationMs": 167.84889999998268,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.fstatSync": {
+          "calls": 22485,
+          "durationMs": 271.3153000016173,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "spawnSync.other": {
+          "calls": 0,
+          "durationMs": 0,
+          "transferredBytes": 0,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "number": 15,
+      "warmup": true,
+      "durationMs": 14615.246299999999,
+      "inputToHttpMs": 8166.813099999999,
+      "httpMs": 2.6626999999862164,
+      "httpToResultMs": 6445.770500000013,
+      "groups": {
+        "fs.writeFileSync": {
+          "calls": 159,
+          "durationMs": 184.56749999988824,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.realpathSync": {
+          "calls": 48,
+          "durationMs": 50.95019999996293,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readFileSync": {
+          "calls": 119,
+          "durationMs": 20.01519999996526,
+          "transferredBytes": 3093844,
+          "errors": 0
+        },
+        "fs.openSync": {
+          "calls": 13074,
+          "durationMs": 769.4004000001878,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.writeSync": {
+          "calls": 44,
+          "durationMs": 6.393400000146357,
+          "transferredBytes": 666696,
+          "errors": 0
+        },
+        "fs.readSync": {
+          "calls": 17685,
+          "durationMs": 273.8394000029366,
+          "transferredBytes": 92090681,
+          "errors": 0
+        },
+        "fs.closeSync": {
+          "calls": 13074,
+          "durationMs": 295.4504999985802,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.lstatSync": {
+          "calls": 34433,
+          "durationMs": 2831.5745999982755,
+          "transferredBytes": 0,
+          "errors": 6
+        },
+        "spawnSync.native-acl-worker": {
+          "calls": 12,
+          "durationMs": 1688.0569000000542,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readdirSync": {
+          "calls": 463,
+          "durationMs": 86.36080000034417,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.statSync": {
+          "calls": 86,
+          "durationMs": 13.127399999968475,
+          "transferredBytes": 0,
+          "errors": 85
+        },
+        "fs.fsyncSync": {
+          "calls": 101,
+          "durationMs": 182.02089999991586,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.fstatSync": {
+          "calls": 23769,
+          "durationMs": 281.3596000025573,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "spawnSync.other": {
+          "calls": 0,
+          "durationMs": 0,
+          "transferredBytes": 0,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "number": 16,
+      "warmup": true,
+      "durationMs": 16642.326100000006,
+      "inputToHttpMs": 8612.087200000009,
+      "httpMs": 2.793600000004517,
+      "httpToResultMs": 8027.445299999992,
+      "groups": {
+        "fs.writeFileSync": {
+          "calls": 159,
+          "durationMs": 172.36899999991851,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.realpathSync": {
+          "calls": 48,
+          "durationMs": 52.09249999996973,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readFileSync": {
+          "calls": 119,
+          "durationMs": 22.39779999991879,
+          "transferredBytes": 3302430,
+          "errors": 0
+        },
+        "fs.openSync": {
+          "calls": 13758,
+          "durationMs": 869.0227999998306,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.writeSync": {
+          "calls": 44,
+          "durationMs": 6.579500000108965,
+          "transferredBytes": 695556,
+          "errors": 0
+        },
+        "fs.readSync": {
+          "calls": 18717,
+          "durationMs": 330.7266000005184,
+          "transferredBytes": 98317317,
+          "errors": 0
+        },
+        "fs.closeSync": {
+          "calls": 13758,
+          "durationMs": 339.1300000003539,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.lstatSync": {
+          "calls": 35969,
+          "durationMs": 3282.3645000011056,
+          "transferredBytes": 0,
+          "errors": 6
+        },
+        "spawnSync.native-acl-worker": {
+          "calls": 12,
+          "durationMs": 1866.675499999954,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readdirSync": {
+          "calls": 463,
+          "durationMs": 98.39680000033695,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.statSync": {
+          "calls": 86,
+          "durationMs": 13.941099999967264,
+          "transferredBytes": 0,
+          "errors": 85
+        },
+        "fs.fsyncSync": {
+          "calls": 101,
+          "durationMs": 57.18050000004587,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.fstatSync": {
+          "calls": 25053,
+          "durationMs": 333.55980000048294,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "spawnSync.other": {
+          "calls": 0,
+          "durationMs": 0,
+          "transferredBytes": 0,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "number": 17,
+      "warmup": true,
+      "durationMs": 15842.847600000008,
+      "inputToHttpMs": 8710.083299999998,
+      "httpMs": 2.5965000000142027,
+      "httpToResultMs": 7130.167799999996,
+      "groups": {
+        "fs.writeFileSync": {
+          "calls": 159,
+          "durationMs": 221.08310000004712,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.realpathSync": {
+          "calls": 48,
+          "durationMs": 49.1805999999342,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readFileSync": {
+          "calls": 119,
+          "durationMs": 23.860499999893364,
+          "transferredBytes": 3511016,
+          "errors": 0
+        },
+        "fs.openSync": {
+          "calls": 14442,
+          "durationMs": 855.8094000000274,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.writeSync": {
+          "calls": 44,
+          "durationMs": 7.1752999999444,
+          "transferredBytes": 724416,
+          "errors": 0
+        },
+        "fs.readSync": {
+          "calls": 20296,
+          "durationMs": 316.8156000021263,
+          "transferredBytes": 104543953,
+          "errors": 0
+        },
+        "fs.closeSync": {
+          "calls": 14442,
+          "durationMs": 330.31150000091293,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.lstatSync": {
+          "calls": 37505,
+          "durationMs": 3132.7205000005197,
+          "transferredBytes": 0,
+          "errors": 6
+        },
+        "spawnSync.native-acl-worker": {
+          "calls": 12,
+          "durationMs": 1633.881400000013,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readdirSync": {
+          "calls": 463,
+          "durationMs": 98.98849999989034,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.statSync": {
+          "calls": 86,
+          "durationMs": 13.666499999992084,
+          "transferredBytes": 0,
+          "errors": 85
+        },
+        "fs.fsyncSync": {
+          "calls": 101,
+          "durationMs": 171.61760000008508,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.fstatSync": {
+          "calls": 26337,
+          "durationMs": 313.56349999897066,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "spawnSync.other": {
+          "calls": 0,
+          "durationMs": 0,
+          "transferredBytes": 0,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "number": 18,
+      "warmup": true,
+      "durationMs": 17166.602700000018,
+      "inputToHttpMs": 9308.39870000002,
+      "httpMs": 2.10999999998603,
+      "httpToResultMs": 7856.094000000012,
+      "groups": {
+        "fs.writeFileSync": {
+          "calls": 163,
+          "durationMs": 285.9250999998767,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.realpathSync": {
+          "calls": 48,
+          "durationMs": 47.43440000002738,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readFileSync": {
+          "calls": 123,
+          "durationMs": 25.2363999998488,
+          "transferredBytes": 3685973,
+          "errors": 0
+        },
+        "fs.openSync": {
+          "calls": 15127,
+          "durationMs": 922.9299999979849,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.writeSync": {
+          "calls": 44,
+          "durationMs": 6.536699999967823,
+          "transferredBytes": 681360,
+          "errors": 0
+        },
+        "fs.readSync": {
+          "calls": 21425,
+          "durationMs": 354.26510000173585,
+          "transferredBytes": 110662715,
+          "errors": 0
+        },
+        "fs.closeSync": {
+          "calls": 15127,
+          "durationMs": 364.31880000041565,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.lstatSync": {
+          "calls": 39145,
+          "durationMs": 3484.8672999991977,
+          "transferredBytes": 0,
+          "errors": 14
+        },
+        "spawnSync.native-acl-worker": {
+          "calls": 13,
+          "durationMs": 1773.1287000000011,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readdirSync": {
+          "calls": 467,
+          "durationMs": 100.03140000023996,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.statSync": {
+          "calls": 90,
+          "durationMs": 13.99420000007376,
+          "transferredBytes": 0,
+          "errors": 88
+        },
+        "fs.fsyncSync": {
+          "calls": 102,
+          "durationMs": 190.13759999984177,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.fstatSync": {
+          "calls": 27621,
+          "durationMs": 360.59919999865815,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "spawnSync.other": {
+          "calls": 0,
+          "durationMs": 0,
+          "transferredBytes": 0,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "number": 19,
+      "warmup": true,
+      "durationMs": 20348.30369999999,
+      "inputToHttpMs": 11974.717799999984,
+      "httpMs": 3.016700000007404,
+      "httpToResultMs": 8370.569199999998,
+      "groups": {
+        "fs.writeFileSync": {
+          "calls": 161,
+          "durationMs": 230.45089999999618,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.realpathSync": {
+          "calls": 48,
+          "durationMs": 65.12659999990137,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readFileSync": {
+          "calls": 121,
+          "durationMs": 27.566100000112783,
+          "transferredBytes": 3893375,
+          "errors": 0
+        },
+        "fs.openSync": {
+          "calls": 15810,
+          "durationMs": 1037.5988999988185,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.writeSync": {
+          "calls": 44,
+          "durationMs": 6.630100000009406,
+          "transferredBytes": 710220,
+          "errors": 0
+        },
+        "fs.readSync": {
+          "calls": 22484,
+          "durationMs": 425.24190000008093,
+          "transferredBytes": 116889351,
+          "errors": 0
+        },
+        "fs.closeSync": {
+          "calls": 15810,
+          "durationMs": 414.7202999999572,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.lstatSync": {
+          "calls": 40668,
+          "durationMs": 4058.4418000010774,
+          "transferredBytes": 0,
+          "errors": 12
+        },
+        "spawnSync.native-acl-worker": {
+          "calls": 12,
+          "durationMs": 2240.647399999958,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readdirSync": {
+          "calls": 465,
+          "durationMs": 113.60739999965881,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.statSync": {
+          "calls": 88,
+          "durationMs": 14.990299999975832,
+          "transferredBytes": 0,
+          "errors": 87
+        },
+        "fs.fsyncSync": {
+          "calls": 101,
+          "durationMs": 196.12690000020666,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.fstatSync": {
+          "calls": 28905,
+          "durationMs": 422.3865000025835,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "spawnSync.other": {
+          "calls": 0,
+          "durationMs": 0,
+          "transferredBytes": 0,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "number": 20,
+      "warmup": true,
+      "durationMs": 18618.94550000003,
+      "inputToHttpMs": 10066.791900000011,
+      "httpMs": 2.23599999997532,
+      "httpToResultMs": 8549.917600000044,
+      "groups": {
+        "fs.writeFileSync": {
+          "calls": 161,
+          "durationMs": 167.85930000056396,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.realpathSync": {
+          "calls": 48,
+          "durationMs": 50.996399999945424,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readFileSync": {
+          "calls": 121,
+          "durationMs": 26.90609999978915,
+          "transferredBytes": 4102942,
+          "errors": 0
+        },
+        "fs.openSync": {
+          "calls": 16494,
+          "durationMs": 1019.1497000021336,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.writeSync": {
+          "calls": 44,
+          "durationMs": 6.119000000093365,
+          "transferredBytes": 739080,
+          "errors": 0
+        },
+        "fs.readSync": {
+          "calls": 23516,
+          "durationMs": 409.00920000154247,
+          "transferredBytes": 123115987,
+          "errors": 0
+        },
+        "fs.closeSync": {
+          "calls": 16494,
+          "durationMs": 402.9836000020441,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.lstatSync": {
+          "calls": 42204,
+          "durationMs": 3860.0082000007096,
+          "transferredBytes": 0,
+          "errors": 12
+        },
+        "spawnSync.native-acl-worker": {
+          "calls": 12,
+          "durationMs": 1685.3841000002576,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readdirSync": {
+          "calls": 465,
+          "durationMs": 112.52870000083931,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.statSync": {
+          "calls": 88,
+          "durationMs": 14.573699999891687,
+          "transferredBytes": 0,
+          "errors": 87
+        },
+        "fs.fsyncSync": {
+          "calls": 101,
+          "durationMs": 133.68150000000605,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.fstatSync": {
+          "calls": 30189,
+          "durationMs": 401.5052000032738,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "spawnSync.other": {
+          "calls": 0,
+          "durationMs": 0,
+          "transferredBytes": 0,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "number": 21,
+      "warmup": false,
+      "durationMs": 19001.396000000008,
+      "inputToHttpMs": 10085.29759999999,
+      "httpMs": 2.76500000001397,
+      "httpToResultMs": 8913.333400000003,
+      "groups": {
+        "fs.writeFileSync": {
+          "calls": 161,
+          "durationMs": 375.3880999996909,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.realpathSync": {
+          "calls": 48,
+          "durationMs": 51.30119999998715,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readFileSync": {
+          "calls": 121,
+          "durationMs": 28.41139999992447,
+          "transferredBytes": 4311522,
+          "errors": 0
+        },
+        "fs.openSync": {
+          "calls": 17178,
+          "durationMs": 1049.6799000059254,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.writeSync": {
+          "calls": 44,
+          "durationMs": 6.446099999709986,
+          "transferredBytes": 767928,
+          "errors": 0
+        },
+        "fs.readSync": {
+          "calls": 24548,
+          "durationMs": 426.0234000047203,
+          "transferredBytes": 129342608,
+          "errors": 0
+        },
+        "fs.closeSync": {
+          "calls": 17178,
+          "durationMs": 410.64299999555806,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.lstatSync": {
+          "calls": 43740,
+          "durationMs": 3962.6956999916,
+          "transferredBytes": 0,
+          "errors": 12
+        },
+        "spawnSync.native-acl-worker": {
+          "calls": 12,
+          "durationMs": 1649.6714000002248,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readdirSync": {
+          "calls": 465,
+          "durationMs": 108.15190000046277,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.statSync": {
+          "calls": 88,
+          "durationMs": 13.702800000144634,
+          "transferredBytes": 0,
+          "errors": 87
+        },
+        "fs.fsyncSync": {
+          "calls": 101,
+          "durationMs": 280.4946999998647,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.fstatSync": {
+          "calls": 31473,
+          "durationMs": 411.56449999980396,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "spawnSync.other": {
+          "calls": 0,
+          "durationMs": 0,
+          "transferredBytes": 0,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "number": 22,
+      "warmup": false,
+      "durationMs": 19359.959899999958,
+      "inputToHttpMs": 9657.871599999955,
+      "httpMs": 2.2117000000434928,
+      "httpToResultMs": 9699.87659999996,
+      "groups": {
+        "fs.writeFileSync": {
+          "calls": 161,
+          "durationMs": 297.67750000033993,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.realpathSync": {
+          "calls": 48,
+          "durationMs": 55.17010000004666,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readFileSync": {
+          "calls": 121,
+          "durationMs": 26.33179999998538,
+          "transferredBytes": 4520105,
+          "errors": 0
+        },
+        "fs.openSync": {
+          "calls": 17862,
+          "durationMs": 1072.6133000020054,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.writeSync": {
+          "calls": 44,
+          "durationMs": 6.433400000212714,
+          "transferredBytes": 796782,
+          "errors": 0
+        },
+        "fs.readSync": {
+          "calls": 25580,
+          "durationMs": 424.2802000019001,
+          "transferredBytes": 135569235,
+          "errors": 0
+        },
+        "fs.closeSync": {
+          "calls": 17862,
+          "durationMs": 420.7353999968036,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.lstatSync": {
+          "calls": 45276,
+          "durationMs": 3988.5085999951116,
+          "transferredBytes": 0,
+          "errors": 12
+        },
+        "spawnSync.native-acl-worker": {
+          "calls": 12,
+          "durationMs": 1974.3793999999762,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readdirSync": {
+          "calls": 465,
+          "durationMs": 111.37200000003213,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.statSync": {
+          "calls": 88,
+          "durationMs": 13.610700000426732,
+          "transferredBytes": 0,
+          "errors": 87
+        },
+        "fs.fsyncSync": {
+          "calls": 101,
+          "durationMs": 273.76360000041313,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.fstatSync": {
+          "calls": 32757,
+          "durationMs": 411.64289999147877,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "spawnSync.other": {
+          "calls": 0,
+          "durationMs": 0,
+          "transferredBytes": 0,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "number": 23,
+      "warmup": false,
+      "durationMs": 25133.425999999978,
+      "inputToHttpMs": 12310.933699999994,
+      "httpMs": 1.6750999999931082,
+      "httpToResultMs": 12820.81719999999,
+      "groups": {
+        "fs.writeFileSync": {
+          "calls": 161,
+          "durationMs": 354.83829999988666,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.realpathSync": {
+          "calls": 48,
+          "durationMs": 62.52639999979874,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readFileSync": {
+          "calls": 121,
+          "durationMs": 33.02570000034757,
+          "transferredBytes": 4728688,
+          "errors": 0
+        },
+        "fs.openSync": {
+          "calls": 18546,
+          "durationMs": 1397.4443000047468,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.writeSync": {
+          "calls": 44,
+          "durationMs": 7.180399999779183,
+          "transferredBytes": 825636,
+          "errors": 0
+        },
+        "fs.readSync": {
+          "calls": 26612,
+          "durationMs": 576.1246000046958,
+          "transferredBytes": 141795862,
+          "errors": 0
+        },
+        "fs.closeSync": {
+          "calls": 18546,
+          "durationMs": 534.6121000024723,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.lstatSync": {
+          "calls": 46812,
+          "durationMs": 5204.8183000033605,
+          "transferredBytes": 0,
+          "errors": 12
+        },
+        "spawnSync.native-acl-worker": {
+          "calls": 12,
+          "durationMs": 2343.204800000007,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readdirSync": {
+          "calls": 465,
+          "durationMs": 133.29670000023907,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.statSync": {
+          "calls": 88,
+          "durationMs": 17.585699999763165,
+          "transferredBytes": 0,
+          "errors": 87
+        },
+        "fs.fsyncSync": {
+          "calls": 101,
+          "durationMs": 224.3025000000489,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.fstatSync": {
+          "calls": 34041,
+          "durationMs": 561.1858000038192,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "spawnSync.other": {
+          "calls": 0,
+          "durationMs": 0,
+          "transferredBytes": 0,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "number": 24,
+      "warmup": false,
+      "durationMs": 20817.949300000037,
+      "inputToHttpMs": 11468.575300000026,
+      "httpMs": 2.367599999997765,
+      "httpToResultMs": 9347.006400000013,
+      "groups": {
+        "fs.writeFileSync": {
+          "calls": 161,
+          "durationMs": 236.12320000003092,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.realpathSync": {
+          "calls": 48,
+          "durationMs": 54.80219999986002,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readFileSync": {
+          "calls": 121,
+          "durationMs": 30.125499999907333,
+          "transferredBytes": 4937271,
+          "errors": 0
+        },
+        "fs.openSync": {
+          "calls": 19230,
+          "durationMs": 1148.9358000003267,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.writeSync": {
+          "calls": 44,
+          "durationMs": 6.981199999630917,
+          "transferredBytes": 854490,
+          "errors": 0
+        },
+        "fs.readSync": {
+          "calls": 27644,
+          "durationMs": 485.7981000003638,
+          "transferredBytes": 148022489,
+          "errors": 0
+        },
+        "fs.closeSync": {
+          "calls": 19230,
+          "durationMs": 461.34360000432935,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.lstatSync": {
+          "calls": 48348,
+          "durationMs": 4447.437300005287,
+          "transferredBytes": 0,
+          "errors": 12
+        },
+        "spawnSync.native-acl-worker": {
+          "calls": 12,
+          "durationMs": 1812.482699999935,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readdirSync": {
+          "calls": 465,
+          "durationMs": 118.85570000082953,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.statSync": {
+          "calls": 88,
+          "durationMs": 14.528400000126567,
+          "transferredBytes": 0,
+          "errors": 87
+        },
+        "fs.fsyncSync": {
+          "calls": 101,
+          "durationMs": 118.46560000017053,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.fstatSync": {
+          "calls": 35325,
+          "durationMs": 462.3251999980421,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "spawnSync.other": {
+          "calls": 0,
+          "durationMs": 0,
+          "transferredBytes": 0,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "number": 25,
+      "warmup": false,
+      "durationMs": 21329.79920000001,
+      "inputToHttpMs": 11804.227300000028,
+      "httpMs": 2.039099999994505,
+      "httpToResultMs": 9523.532799999986,
+      "groups": {
+        "fs.writeFileSync": {
+          "calls": 161,
+          "durationMs": 218.03339999960735,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.realpathSync": {
+          "calls": 48,
+          "durationMs": 57.62619999999879,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readFileSync": {
+          "calls": 121,
+          "durationMs": 27.464099999982864,
+          "transferredBytes": 5145854,
+          "errors": 0
+        },
+        "fs.openSync": {
+          "calls": 19914,
+          "durationMs": 1185.065200005367,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.writeSync": {
+          "calls": 44,
+          "durationMs": 7.006399999954738,
+          "transferredBytes": 883368,
+          "errors": 0
+        },
+        "fs.readSync": {
+          "calls": 29139,
+          "durationMs": 489.6705000019865,
+          "transferredBytes": 154249352,
+          "errors": 0
+        },
+        "fs.closeSync": {
+          "calls": 19914,
+          "durationMs": 474.5057000047527,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.lstatSync": {
+          "calls": 49884,
+          "durationMs": 4534.411799997848,
+          "transferredBytes": 0,
+          "errors": 12
+        },
+        "spawnSync.native-acl-worker": {
+          "calls": 12,
+          "durationMs": 2046.0677000000142,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readdirSync": {
+          "calls": 465,
+          "durationMs": 119.31719999975758,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.statSync": {
+          "calls": 88,
+          "durationMs": 14.242799999483395,
+          "transferredBytes": 0,
+          "errors": 87
+        },
+        "fs.fsyncSync": {
+          "calls": 101,
+          "durationMs": 114.5617999996175,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.fstatSync": {
+          "calls": 36609,
+          "durationMs": 472.52079999429407,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "spawnSync.other": {
+          "calls": 0,
+          "durationMs": 0,
+          "transferredBytes": 0,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "number": 26,
+      "warmup": false,
+      "durationMs": 22922.68650000001,
+      "inputToHttpMs": 13358.127300000051,
+      "httpMs": 1.8772999999928288,
+      "httpToResultMs": 9562.681899999967,
+      "groups": {
+        "fs.writeFileSync": {
+          "calls": 161,
+          "durationMs": 266.3405999998213,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.realpathSync": {
+          "calls": 48,
+          "durationMs": 49.60499999986496,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readFileSync": {
+          "calls": 121,
+          "durationMs": 30.6779000001261,
+          "transferredBytes": 5354437,
+          "errors": 0
+        },
+        "fs.openSync": {
+          "calls": 20598,
+          "durationMs": 1262.7584999984247,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.writeSync": {
+          "calls": 44,
+          "durationMs": 7.377800000074785,
+          "transferredBytes": 912266,
+          "errors": 0
+        },
+        "fs.readSync": {
+          "calls": 30315,
+          "durationMs": 530.9156000052462,
+          "transferredBytes": 160477195,
+          "errors": 0
+        },
+        "fs.closeSync": {
+          "calls": 20598,
+          "durationMs": 509.768300005293,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.lstatSync": {
+          "calls": 51420,
+          "durationMs": 4835.723099992785,
+          "transferredBytes": 0,
+          "errors": 12
+        },
+        "spawnSync.native-acl-worker": {
+          "calls": 12,
+          "durationMs": 1613.4281999999657,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readdirSync": {
+          "calls": 465,
+          "durationMs": 120.1235999998753,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.statSync": {
+          "calls": 88,
+          "durationMs": 15.91030000016326,
+          "transferredBytes": 0,
+          "errors": 87
+        },
+        "fs.fsyncSync": {
+          "calls": 101,
+          "durationMs": 229.88410000002477,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.fstatSync": {
+          "calls": 37893,
+          "durationMs": 510.2252000030712,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "spawnSync.other": {
+          "calls": 0,
+          "durationMs": 0,
+          "transferredBytes": 0,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "number": 27,
+      "warmup": false,
+      "durationMs": 24423.07289999997,
+      "inputToHttpMs": 11693.2218,
+      "httpMs": 2.435300000011921,
+      "httpToResultMs": 12727.415799999959,
+      "groups": {
+        "fs.writeFileSync": {
+          "calls": 161,
+          "durationMs": 203.54949999979,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.realpathSync": {
+          "calls": 48,
+          "durationMs": 53.515600000100676,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readFileSync": {
+          "calls": 121,
+          "durationMs": 34.85899999958929,
+          "transferredBytes": 5563020,
+          "errors": 0
+        },
+        "fs.openSync": {
+          "calls": 21282,
+          "durationMs": 1293.8782999920077,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.writeSync": {
+          "calls": 44,
+          "durationMs": 7.543500000145286,
+          "transferredBytes": 941152,
+          "errors": 0
+        },
+        "fs.readSync": {
+          "calls": 31368,
+          "durationMs": 596.2759999996051,
+          "transferredBytes": 166705082,
+          "errors": 0
+        },
+        "fs.closeSync": {
+          "calls": 21282,
+          "durationMs": 557.1617000040706,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.lstatSync": {
+          "calls": 52956,
+          "durationMs": 5291.391100005596,
+          "transferredBytes": 0,
+          "errors": 12
+        },
+        "spawnSync.native-acl-worker": {
+          "calls": 12,
+          "durationMs": 1789.9763999999268,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readdirSync": {
+          "calls": 465,
+          "durationMs": 134.86279999883845,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.statSync": {
+          "calls": 88,
+          "durationMs": 15.589700000127777,
+          "transferredBytes": 0,
+          "errors": 87
+        },
+        "fs.fsyncSync": {
+          "calls": 101,
+          "durationMs": 202.44510000006994,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.fstatSync": {
+          "calls": 39177,
+          "durationMs": 563.3159999912605,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "spawnSync.other": {
+          "calls": 0,
+          "durationMs": 0,
+          "transferredBytes": 0,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "number": 28,
+      "warmup": false,
+      "durationMs": 25861.557900000014,
+      "inputToHttpMs": 12302.902200000011,
+      "httpMs": 2.1701999999932013,
+      "httpToResultMs": 13556.48550000001,
+      "groups": {
+        "fs.writeFileSync": {
+          "calls": 161,
+          "durationMs": 206.961900000053,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.realpathSync": {
+          "calls": 48,
+          "durationMs": 60.74740000010934,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readFileSync": {
+          "calls": 121,
+          "durationMs": 33.942900000314694,
+          "transferredBytes": 5771603,
+          "errors": 0
+        },
+        "fs.openSync": {
+          "calls": 21966,
+          "durationMs": 1472.5519000035129,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.writeSync": {
+          "calls": 44,
+          "durationMs": 7.209600000060163,
+          "transferredBytes": 970038,
+          "errors": 0
+        },
+        "fs.readSync": {
+          "calls": 32445,
+          "durationMs": 650.739599997527,
+          "transferredBytes": 172932969,
+          "errors": 0
+        },
+        "fs.closeSync": {
+          "calls": 21966,
+          "durationMs": 606.731800002628,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.lstatSync": {
+          "calls": 54492,
+          "durationMs": 5710.713699998218,
+          "transferredBytes": 0,
+          "errors": 12
+        },
+        "spawnSync.native-acl-worker": {
+          "calls": 12,
+          "durationMs": 1907.766300000134,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readdirSync": {
+          "calls": 465,
+          "durationMs": 141.5924000000814,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.statSync": {
+          "calls": 88,
+          "durationMs": 17.040700000536162,
+          "transferredBytes": 0,
+          "errors": 87
+        },
+        "fs.fsyncSync": {
+          "calls": 101,
+          "durationMs": 105.92679999984102,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.fstatSync": {
+          "calls": 40461,
+          "durationMs": 617.6452999992762,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "spawnSync.other": {
+          "calls": 0,
+          "durationMs": 0,
+          "transferredBytes": 0,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "number": 29,
+      "warmup": false,
+      "durationMs": 23924.282699999923,
+      "inputToHttpMs": 12990.83839999995,
+      "httpMs": 1.4703000000445172,
+      "httpToResultMs": 10931.97399999993,
+      "groups": {
+        "fs.writeFileSync": {
+          "calls": 161,
+          "durationMs": 247.9810000003199,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.realpathSync": {
+          "calls": 48,
+          "durationMs": 51.892400000127964,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readFileSync": {
+          "calls": 121,
+          "durationMs": 32.36210000014398,
+          "transferredBytes": 5980187,
+          "errors": 0
+        },
+        "fs.openSync": {
+          "calls": 22650,
+          "durationMs": 1410.2126000088174,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.writeSync": {
+          "calls": 44,
+          "durationMs": 6.5442000001785345,
+          "transferredBytes": 998924,
+          "errors": 0
+        },
+        "fs.readSync": {
+          "calls": 33477,
+          "durationMs": 604.8026999981957,
+          "transferredBytes": 179160856,
+          "errors": 0
+        },
+        "fs.closeSync": {
+          "calls": 22650,
+          "durationMs": 547.922499999404,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.lstatSync": {
+          "calls": 56028,
+          "durationMs": 5227.096500007843,
+          "transferredBytes": 0,
+          "errors": 12
+        },
+        "spawnSync.native-acl-worker": {
+          "calls": 12,
+          "durationMs": 1733.2744999999995,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readdirSync": {
+          "calls": 465,
+          "durationMs": 126.18379999930039,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.statSync": {
+          "calls": 88,
+          "durationMs": 15.672599999816157,
+          "transferredBytes": 0,
+          "errors": 87
+        },
+        "fs.fsyncSync": {
+          "calls": 101,
+          "durationMs": 173.9961000001058,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.fstatSync": {
+          "calls": 41745,
+          "durationMs": 571.2378999957,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "spawnSync.other": {
+          "calls": 0,
+          "durationMs": 0,
+          "transferredBytes": 0,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "number": 30,
+      "warmup": false,
+      "durationMs": 25851.70969999989,
+      "inputToHttpMs": 15099.14559999993,
+      "httpMs": 1.6595000000670552,
+      "httpToResultMs": 10750.904599999893,
+      "groups": {
+        "fs.writeFileSync": {
+          "calls": 161,
+          "durationMs": 256.36510000069393,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.realpathSync": {
+          "calls": 48,
+          "durationMs": 54.723100000293925,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readFileSync": {
+          "calls": 121,
+          "durationMs": 29.260899999877438,
+          "transferredBytes": 6188770,
+          "errors": 0
+        },
+        "fs.openSync": {
+          "calls": 23334,
+          "durationMs": 1477.5058999939356,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.writeSync": {
+          "calls": 44,
+          "durationMs": 6.601600000052713,
+          "transferredBytes": 1027810,
+          "errors": 0
+        },
+        "fs.readSync": {
+          "calls": 34509,
+          "durationMs": 644.6297999938251,
+          "transferredBytes": 185388743,
+          "errors": 0
+        },
+        "fs.closeSync": {
+          "calls": 23334,
+          "durationMs": 596.3011000020197,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.lstatSync": {
+          "calls": 57564,
+          "durationMs": 5782.463399979635,
+          "transferredBytes": 0,
+          "errors": 12
+        },
+        "spawnSync.native-acl-worker": {
+          "calls": 12,
+          "durationMs": 1935.2429000000702,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readdirSync": {
+          "calls": 465,
+          "durationMs": 136.97000000078697,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.statSync": {
+          "calls": 88,
+          "durationMs": 15.473999999579974,
+          "transferredBytes": 0,
+          "errors": 87
+        },
+        "fs.fsyncSync": {
+          "calls": 101,
+          "durationMs": 204.43509999965318,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.fstatSync": {
+          "calls": 43029,
+          "durationMs": 606.0609999996377,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "spawnSync.other": {
+          "calls": 0,
+          "durationMs": 0,
+          "transferredBytes": 0,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "number": 31,
+      "warmup": false,
+      "durationMs": 29949.69570000004,
+      "inputToHttpMs": 13183.919800000032,
+      "httpMs": 2.3846999999368563,
+      "httpToResultMs": 16763.39120000007,
+      "groups": {
+        "fs.writeFileSync": {
+          "calls": 161,
+          "durationMs": 179.05840000114404,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.realpathSync": {
+          "calls": 48,
+          "durationMs": 68.93869999947492,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readFileSync": {
+          "calls": 121,
+          "durationMs": 35.57570000051055,
+          "transferredBytes": 6397355,
+          "errors": 0
+        },
+        "fs.openSync": {
+          "calls": 24018,
+          "durationMs": 1657.1124999969034,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.writeSync": {
+          "calls": 44,
+          "durationMs": 7.4280000001890585,
+          "transferredBytes": 1056700,
+          "errors": 0
+        },
+        "fs.readSync": {
+          "calls": 35541,
+          "durationMs": 770.0025999968639,
+          "transferredBytes": 191616635,
+          "errors": 0
+        },
+        "fs.closeSync": {
+          "calls": 24018,
+          "durationMs": 673.5287000020035,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.lstatSync": {
+          "calls": 59100,
+          "durationMs": 6496.253399994574,
+          "transferredBytes": 0,
+          "errors": 12
+        },
+        "spawnSync.native-acl-worker": {
+          "calls": 12,
+          "durationMs": 2178.8141000001924,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readdirSync": {
+          "calls": 465,
+          "durationMs": 155.685899999924,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.statSync": {
+          "calls": 88,
+          "durationMs": 18.45529999944847,
+          "transferredBytes": 0,
+          "errors": 87
+        },
+        "fs.fsyncSync": {
+          "calls": 101,
+          "durationMs": 159.86920000007376,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.fstatSync": {
+          "calls": 44313,
+          "durationMs": 711.4888999916147,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "spawnSync.other": {
+          "calls": 0,
+          "durationMs": 0,
+          "transferredBytes": 0,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "number": 32,
+      "warmup": false,
+      "durationMs": 27048.922599999933,
+      "inputToHttpMs": 14253.673999999999,
+      "httpMs": 2.3851999999023974,
+      "httpToResultMs": 12792.863400000031,
+      "groups": {
+        "fs.writeFileSync": {
+          "calls": 161,
+          "durationMs": 302.25429999944754,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.realpathSync": {
+          "calls": 48,
+          "durationMs": 59.271700000273995,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readFileSync": {
+          "calls": 121,
+          "durationMs": 30.401200000895187,
+          "transferredBytes": 6605939,
+          "errors": 0
+        },
+        "fs.openSync": {
+          "calls": 24708,
+          "durationMs": 1468.1735999895027,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.writeSync": {
+          "calls": 44,
+          "durationMs": 6.64069999975618,
+          "transferredBytes": 1085588,
+          "errors": 0
+        },
+        "fs.readSync": {
+          "calls": 36583,
+          "durationMs": 690.0536999996984,
+          "transferredBytes": 198363363,
+          "errors": 0
+        },
+        "fs.closeSync": {
+          "calls": 24708,
+          "durationMs": 616.4761999958428,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.lstatSync": {
+          "calls": 60652,
+          "durationMs": 5880.286299999105,
+          "transferredBytes": 0,
+          "errors": 12
+        },
+        "spawnSync.native-acl-worker": {
+          "calls": 12,
+          "durationMs": 2318.937900000019,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readdirSync": {
+          "calls": 465,
+          "durationMs": 143.34270000061952,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.statSync": {
+          "calls": 88,
+          "durationMs": 14.78380000020843,
+          "transferredBytes": 0,
+          "errors": 87
+        },
+        "fs.fsyncSync": {
+          "calls": 101,
+          "durationMs": 363.1347999999998,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.fstatSync": {
+          "calls": 45607,
+          "durationMs": 649.1674999849638,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "spawnSync.other": {
+          "calls": 0,
+          "durationMs": 0,
+          "transferredBytes": 0,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "number": 33,
+      "warmup": false,
+      "durationMs": 31006.60200000007,
+      "inputToHttpMs": 16581.90830000001,
+      "httpMs": 3.6546000000089407,
+      "httpToResultMs": 14421.039100000053,
+      "groups": {
+        "fs.writeFileSync": {
+          "calls": 161,
+          "durationMs": 180.6520000002347,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.realpathSync": {
+          "calls": 48,
+          "durationMs": 56.996000000159256,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readFileSync": {
+          "calls": 121,
+          "durationMs": 33.988300000783056,
+          "transferredBytes": 6814523,
+          "errors": 0
+        },
+        "fs.openSync": {
+          "calls": 25512,
+          "durationMs": 1768.9206000143895,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.writeSync": {
+          "calls": 44,
+          "durationMs": 7.080099999671802,
+          "transferredBytes": 1114476,
+          "errors": 0
+        },
+        "fs.readSync": {
+          "calls": 38226,
+          "durationMs": 839.2180999973789,
+          "transferredBytes": 215128893,
+          "errors": 0
+        },
+        "fs.closeSync": {
+          "calls": 25512,
+          "durationMs": 706.4851000052877,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.lstatSync": {
+          "calls": 62508,
+          "durationMs": 6921.326100006467,
+          "transferredBytes": 0,
+          "errors": 12
+        },
+        "spawnSync.native-acl-worker": {
+          "calls": 12,
+          "durationMs": 2031.0919000003487,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readdirSync": {
+          "calls": 465,
+          "durationMs": 165.39840000018012,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.statSync": {
+          "calls": 88,
+          "durationMs": 16.58069999946747,
+          "transferredBytes": 0,
+          "errors": 87
+        },
+        "fs.fsyncSync": {
+          "calls": 101,
+          "durationMs": 159.92699999944307,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.fstatSync": {
+          "calls": 47091,
+          "durationMs": 778.9113000199432,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "spawnSync.other": {
+          "calls": 0,
+          "durationMs": 0,
+          "transferredBytes": 0,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "number": 34,
+      "warmup": false,
+      "durationMs": 23949.345299999928,
+      "inputToHttpMs": 12950.33779999998,
+      "httpMs": 2.356900000013411,
+      "httpToResultMs": 10996.650599999935,
+      "groups": {
+        "fs.writeFileSync": {
+          "calls": 161,
+          "durationMs": 175.81109999970067,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.realpathSync": {
+          "calls": 48,
+          "durationMs": 49.10319999989588,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readFileSync": {
+          "calls": 121,
+          "durationMs": 29.487700000056066,
+          "transferredBytes": 7023107,
+          "errors": 0
+        },
+        "fs.openSync": {
+          "calls": 26196,
+          "durationMs": 1392.1442000016104,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.writeSync": {
+          "calls": 44,
+          "durationMs": 6.299699999857694,
+          "transferredBytes": 1143364,
+          "errors": 0
+        },
+        "fs.readSync": {
+          "calls": 39496,
+          "durationMs": 624.1702000049409,
+          "transferredBytes": 221694631,
+          "errors": 0
+        },
+        "fs.closeSync": {
+          "calls": 26196,
+          "durationMs": 564.755600011209,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.lstatSync": {
+          "calls": 64044,
+          "durationMs": 5290.316600007587,
+          "transferredBytes": 0,
+          "errors": 12
+        },
+        "spawnSync.native-acl-worker": {
+          "calls": 12,
+          "durationMs": 1702.6848000001628,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readdirSync": {
+          "calls": 465,
+          "durationMs": 123.14010000112467,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.statSync": {
+          "calls": 88,
+          "durationMs": 13.742499999469146,
+          "transferredBytes": 0,
+          "errors": 87
+        },
+        "fs.fsyncSync": {
+          "calls": 101,
+          "durationMs": 134.58740000030957,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.fstatSync": {
+          "calls": 48375,
+          "durationMs": 571.8569999979809,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "spawnSync.other": {
+          "calls": 0,
+          "durationMs": 0,
+          "transferredBytes": 0,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "number": 35,
+      "warmup": false,
+      "durationMs": 26961.77560000005,
+      "inputToHttpMs": 15572.270600000047,
+      "httpMs": 1.7217999999411404,
+      "httpToResultMs": 11387.783200000064,
+      "groups": {
+        "fs.writeFileSync": {
+          "calls": 161,
+          "durationMs": 280.31960000039544,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.realpathSync": {
+          "calls": 48,
+          "durationMs": 47.48219999985304,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readFileSync": {
+          "calls": 121,
+          "durationMs": 33.0625,
+          "transferredBytes": 7231691,
+          "errors": 0
+        },
+        "fs.openSync": {
+          "calls": 26880,
+          "durationMs": 1526.862900005537,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.writeSync": {
+          "calls": 44,
+          "durationMs": 7.04590000025928,
+          "transferredBytes": 1172252,
+          "errors": 0
+        },
+        "fs.readSync": {
+          "calls": 40528,
+          "durationMs": 705.380699994741,
+          "transferredBytes": 228260369,
+          "errors": 0
+        },
+        "fs.closeSync": {
+          "calls": 26880,
+          "durationMs": 627.9006000139052,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.lstatSync": {
+          "calls": 65580,
+          "durationMs": 5980.701100001577,
+          "transferredBytes": 0,
+          "errors": 12
+        },
+        "spawnSync.native-acl-worker": {
+          "calls": 12,
+          "durationMs": 1715.7867999998853,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readdirSync": {
+          "calls": 465,
+          "durationMs": 137.4011999979848,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.statSync": {
+          "calls": 88,
+          "durationMs": 15.180599999031983,
+          "transferredBytes": 0,
+          "errors": 87
+        },
+        "fs.fsyncSync": {
+          "calls": 101,
+          "durationMs": 244.57509999966715,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.fstatSync": {
+          "calls": 49659,
+          "durationMs": 650.6139999949373,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "spawnSync.other": {
+          "calls": 0,
+          "durationMs": 0,
+          "transferredBytes": 0,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "number": 36,
+      "warmup": false,
+      "durationMs": 27803.365100000054,
+      "inputToHttpMs": 14113.039600000018,
+      "httpMs": 2.2561999999452382,
+      "httpToResultMs": 13688.06930000009,
+      "groups": {
+        "fs.writeFileSync": {
+          "calls": 161,
+          "durationMs": 261.35399999958463,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.realpathSync": {
+          "calls": 48,
+          "durationMs": 56.02620000031311,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readFileSync": {
+          "calls": 121,
+          "durationMs": 34.45050000073388,
+          "transferredBytes": 7440275,
+          "errors": 0
+        },
+        "fs.openSync": {
+          "calls": 27564,
+          "durationMs": 1612.2204999979585,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.writeSync": {
+          "calls": 44,
+          "durationMs": 7.893999999621883,
+          "transferredBytes": 1201140,
+          "errors": 0
+        },
+        "fs.readSync": {
+          "calls": 41581,
+          "durationMs": 726.0844999956898,
+          "transferredBytes": 234826107,
+          "errors": 0
+        },
+        "fs.closeSync": {
+          "calls": 27564,
+          "durationMs": 640.8693000051426,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.lstatSync": {
+          "calls": 67116,
+          "durationMs": 6142.334800022887,
+          "transferredBytes": 0,
+          "errors": 12
+        },
+        "spawnSync.native-acl-worker": {
+          "calls": 12,
+          "durationMs": 2179.0505000001285,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readdirSync": {
+          "calls": 465,
+          "durationMs": 147.95209999976214,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.statSync": {
+          "calls": 88,
+          "durationMs": 17.18980000074953,
+          "transferredBytes": 0,
+          "errors": 87
+        },
+        "fs.fsyncSync": {
+          "calls": 101,
+          "durationMs": 227.71380000037607,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.fstatSync": {
+          "calls": 50943,
+          "durationMs": 666.9963999952888,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "spawnSync.other": {
+          "calls": 0,
+          "durationMs": 0,
+          "transferredBytes": 0,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "number": 37,
+      "warmup": false,
+      "durationMs": 26746.61440000008,
+      "inputToHttpMs": 14111.567600000068,
+      "httpMs": 2.296199999982491,
+      "httpToResultMs": 12632.750600000028,
+      "groups": {
+        "fs.writeFileSync": {
+          "calls": 161,
+          "durationMs": 249.8987999984529,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.realpathSync": {
+          "calls": 48,
+          "durationMs": 51.670799999381416,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readFileSync": {
+          "calls": 121,
+          "durationMs": 32.100099999806844,
+          "transferredBytes": 7648859,
+          "errors": 0
+        },
+        "fs.openSync": {
+          "calls": 28248,
+          "durationMs": 1547.035800003563,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.writeSync": {
+          "calls": 44,
+          "durationMs": 6.870799999800511,
+          "transferredBytes": 1230028,
+          "errors": 0
+        },
+        "fs.readSync": {
+          "calls": 42658,
+          "durationMs": 709.8934000007575,
+          "transferredBytes": 241391845,
+          "errors": 0
+        },
+        "fs.closeSync": {
+          "calls": 28248,
+          "durationMs": 628.5978000077885,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.lstatSync": {
+          "calls": 68652,
+          "durationMs": 5941.909800007823,
+          "transferredBytes": 0,
+          "errors": 12
+        },
+        "spawnSync.native-acl-worker": {
+          "calls": 12,
+          "durationMs": 1756.2103000000352,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readdirSync": {
+          "calls": 465,
+          "durationMs": 141.77669999864884,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.statSync": {
+          "calls": 88,
+          "durationMs": 15.679700000677258,
+          "transferredBytes": 0,
+          "errors": 87
+        },
+        "fs.fsyncSync": {
+          "calls": 101,
+          "durationMs": 171.2759999993723,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.fstatSync": {
+          "calls": 52227,
+          "durationMs": 645.6948000043631,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "spawnSync.other": {
+          "calls": 0,
+          "durationMs": 0,
+          "transferredBytes": 0,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "number": 38,
+      "warmup": false,
+      "durationMs": 26587.580199999968,
+      "inputToHttpMs": 14791.481200000038,
+      "httpMs": 1.8954999999841675,
+      "httpToResultMs": 11794.203499999945,
+      "groups": {
+        "fs.writeFileSync": {
+          "calls": 161,
+          "durationMs": 133.26710000028834,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.realpathSync": {
+          "calls": 48,
+          "durationMs": 48.02179999963846,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readFileSync": {
+          "calls": 121,
+          "durationMs": 34.379200000781566,
+          "transferredBytes": 7857443,
+          "errors": 0
+        },
+        "fs.openSync": {
+          "calls": 28932,
+          "durationMs": 1487.831700000912,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.writeSync": {
+          "calls": 44,
+          "durationMs": 6.9388000004692,
+          "transferredBytes": 1258916,
+          "errors": 0
+        },
+        "fs.readSync": {
+          "calls": 43690,
+          "durationMs": 707.6979000048013,
+          "transferredBytes": 247957583,
+          "errors": 0
+        },
+        "fs.closeSync": {
+          "calls": 28932,
+          "durationMs": 636.0532999845454,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.lstatSync": {
+          "calls": 70188,
+          "durationMs": 5979.501499999431,
+          "transferredBytes": 0,
+          "errors": 12
+        },
+        "spawnSync.native-acl-worker": {
+          "calls": 12,
+          "durationMs": 1610.451900000102,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readdirSync": {
+          "calls": 465,
+          "durationMs": 131.09649999986868,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.statSync": {
+          "calls": 88,
+          "durationMs": 15.864699999801815,
+          "transferredBytes": 0,
+          "errors": 87
+        },
+        "fs.fsyncSync": {
+          "calls": 101,
+          "durationMs": 51.008999999961816,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.fstatSync": {
+          "calls": 53511,
+          "durationMs": 648.1591999998782,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "spawnSync.other": {
+          "calls": 0,
+          "durationMs": 0,
+          "transferredBytes": 0,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "number": 39,
+      "warmup": false,
+      "durationMs": 28891.14930000005,
+      "inputToHttpMs": 16922.356400000048,
+      "httpMs": 1.7813000000314787,
+      "httpToResultMs": 11967.011599999969,
+      "groups": {
+        "fs.writeFileSync": {
+          "calls": 161,
+          "durationMs": 120.3801000007661,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.realpathSync": {
+          "calls": 48,
+          "durationMs": 47.296199999866076,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readFileSync": {
+          "calls": 121,
+          "durationMs": 34.04239999956917,
+          "transferredBytes": 8066027,
+          "errors": 0
+        },
+        "fs.openSync": {
+          "calls": 29616,
+          "durationMs": 1603.8343999960925,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.writeSync": {
+          "calls": 44,
+          "durationMs": 7.048599999863626,
+          "transferredBytes": 1287804,
+          "errors": 0
+        },
+        "fs.readSync": {
+          "calls": 44722,
+          "durationMs": 799.0661000137916,
+          "transferredBytes": 254523321,
+          "errors": 0
+        },
+        "fs.closeSync": {
+          "calls": 29616,
+          "durationMs": 667.233300000662,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.lstatSync": {
+          "calls": 71724,
+          "durationMs": 6369.261299996055,
+          "transferredBytes": 0,
+          "errors": 12
+        },
+        "spawnSync.native-acl-worker": {
+          "calls": 12,
+          "durationMs": 1670.5137999998406,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readdirSync": {
+          "calls": 465,
+          "durationMs": 152.34010000003036,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.statSync": {
+          "calls": 88,
+          "durationMs": 16.997099999454804,
+          "transferredBytes": 0,
+          "errors": 87
+        },
+        "fs.fsyncSync": {
+          "calls": 101,
+          "durationMs": 47.17649999994319,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.fstatSync": {
+          "calls": 54795,
+          "durationMs": 706.7587000078056,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "spawnSync.other": {
+          "calls": 0,
+          "durationMs": 0,
+          "transferredBytes": 0,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "number": 40,
+      "warmup": false,
+      "durationMs": 29452.73809999996,
+      "inputToHttpMs": 17325.355699999956,
+      "httpMs": 2.2031000000424683,
+      "httpToResultMs": 12125.17929999996,
+      "groups": {
+        "fs.writeFileSync": {
+          "calls": 161,
+          "durationMs": 123.63709999911953,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.realpathSync": {
+          "calls": 48,
+          "durationMs": 48.743299999507144,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readFileSync": {
+          "calls": 121,
+          "durationMs": 36.866300001274794,
+          "transferredBytes": 8274611,
+          "errors": 0
+        },
+        "fs.openSync": {
+          "calls": 30300,
+          "durationMs": 1674.2178999948082,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.writeSync": {
+          "calls": 44,
+          "durationMs": 6.733900000224821,
+          "transferredBytes": 1316692,
+          "errors": 0
+        },
+        "fs.readSync": {
+          "calls": 45754,
+          "durationMs": 817.3714999890653,
+          "transferredBytes": 261089059,
+          "errors": 0
+        },
+        "fs.closeSync": {
+          "calls": 30300,
+          "durationMs": 705.5821999851614,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.lstatSync": {
+          "calls": 73260,
+          "durationMs": 6668.169499994372,
+          "transferredBytes": 0,
+          "errors": 12
+        },
+        "spawnSync.native-acl-worker": {
+          "calls": 12,
+          "durationMs": 1624.8284999998286,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.readdirSync": {
+          "calls": 465,
+          "durationMs": 152.0759000001708,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.statSync": {
+          "calls": 88,
+          "durationMs": 17.166800000006333,
+          "transferredBytes": 0,
+          "errors": 87
+        },
+        "fs.fsyncSync": {
+          "calls": 101,
+          "durationMs": 48.93630000052508,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "fs.fstatSync": {
+          "calls": 56079,
+          "durationMs": 738.8403999934653,
+          "transferredBytes": 0,
+          "errors": 0
+        },
+        "spawnSync.other": {
+          "calls": 0,
+          "durationMs": 0,
+          "transferredBytes": 0,
+          "errors": 0
+        }
+      }
+    }
+  ],
+  "slopes": {
+    "interval": [
+      5,
+      40
+    ],
+    "durationMsPerAdditionalTurn": 562.5341342857132,
+    "lstatCallsPerAdditionalTurn": 1548.2,
+    "openCallsPerAdditionalTurn": 687.6,
+    "readBytesPerAdditionalTurn": 6607563.628571428
+  },
+  "sampledCallsiteTotals": {
+    "fs.writeFileSync": {
+      "calls": 6468,
+      "durationMs": 7714.035000000009,
+      "maxMs": 84.26480000000447,
+      "errors": 0,
+      "transferredBytes": 0,
+      "samples": [
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-ledger.js:1834:15 <- packages/cli/src/lib/with-file-lock.js:455:9 <- packages/cli/src/lib/with-file-lock.js:111:7",
+          "calls": 14,
+          "durationMs": 11.839600000079372
+        },
+        {
+          "stack": "packages/cli/src/lib/artifact-store.js:404:8 <- packages/cli/src/lib/artifact-store.js:340:26 <- packages/cli/src/lib/with-file-lock.js:232:14",
+          "calls": 11,
+          "durationMs": 32.60030000009647
+        },
+        {
+          "stack": "packages/cli/src/lib/with-file-lock.js:388:38 <- packages/cli/src/lib/with-file-lock.js:455:9 <- packages/cli/src/lib/with-file-lock.js:111:7",
+          "calls": 11,
+          "durationMs": 7.811600000073668
+        },
+        {
+          "stack": "packages/cli/src/lib/artifact-store.js:431:10 <- packages/cli/src/lib/artifact-store.js:340:26 <- packages/cli/src/lib/with-file-lock.js:232:14",
+          "calls": 7,
+          "durationMs": 0.7566999999107793
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-ledger.js:1834:15 <- packages/cli/src/lib/evolution/evolution-ledger.js:3341:16 <- packages/cli/src/lib/evolution/evolution-ledger.js:5256:31",
+          "calls": 2,
+          "durationMs": 0.264599999965867
+        },
+        {
+          "stack": "runtime",
+          "calls": 1,
+          "durationMs": 0.7899000000000029
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-file-witness.js:725:14 <- packages/cli/src/lib/evolution/evolution-file-witness.js:794:5 <- packages/cli/src/lib/evolution/evolution-file-witness.js:853:16",
+          "calls": 1,
+          "durationMs": 0.14570000000094296
+        },
+        {
+          "stack": "packages/cli/src/lib/with-file-lock.js:455:9 <- packages/cli/src/lib/with-file-lock.js:111:7 <- packages/cli/src/lib/with-file-lock.js:34:24",
+          "calls": 1,
+          "durationMs": 0.6692999999941094
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-ledger.js:1834:15 <- packages/cli/src/lib/evolution/evolution-ledger.js:3424:16 <- packages/cli/src/lib/evolution/evolution-ledger.js:5290:28",
+          "calls": 1,
+          "durationMs": 0.12459999998100102
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-ledger.js:1834:15 <- packages/cli/src/lib/evolution/evolution-ledger.js:3341:16 <- packages/cli/src/lib/evolution/evolution-ledger.js:5237:31",
+          "calls": 1,
+          "durationMs": 0.19039999996311963
+        }
+      ]
+    },
+    "fs.realpathSync": {
+      "calls": 4523,
+      "durationMs": 2627.173299998569,
+      "maxMs": 5.222300000023097,
+      "errors": 0,
+      "transferredBytes": 0,
+      "samples": [
+        {
+          "stack": "runtime",
+          "calls": 17,
+          "durationMs": 2.0733000000001454
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-windows-directory-durability.js:189:42 <- packages/cli/src/lib/evolution/evolution-windows-directory-durability.js:338:19 <- packages/cli/src/lib/evolution/evolution-windows-directory-durability.js:424:5",
+          "calls": 7,
+          "durationMs": 7.639499999982945
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-windows-directory-durability.js:189:42 <- packages/cli/src/lib/evolution/evolution-windows-directory-durability.js:338:19 <- packages/cli/src/lib/evolution/evolution-windows-directory-durability.js:418:5",
+          "calls": 5,
+          "durationMs": 5.0887999999540625
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-windows-directory-durability.js:189:42 <- packages/cli/src/lib/evolution/evolution-windows-directory-durability.js:362:18 <- packages/cli/src/lib/evolution/evolution-windows-directory-durability.js:443:27",
+          "calls": 5,
+          "durationMs": 5.125400000062655
+        },
+        {
+          "stack": "packages/cli/src/lib/skill-execution-identity.js:27:19 <- packages/cli/src/lib/skill-execution-identity.js:103:24 <- packages/cli/src/lib/skill-loader.js:863:28",
+          "calls": 2,
+          "durationMs": 1.4014999999999418
+        }
+      ]
+    },
+    "fs.readFileSync": {
+      "calls": 5628,
+      "durationMs": 1238.668100004239,
+      "maxMs": 1.8362999999662861,
+      "errors": 5,
+      "transferredBytes": 175547021,
+      "samples": [
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-ledger.js:1834:15 <- packages/cli/src/lib/with-file-lock.js:552:28 <- packages/cli/src/lib/with-file-lock.js:546:10",
+          "calls": 13,
+          "durationMs": 1.993000000162283
+        },
+        {
+          "stack": "packages/cli/src/lib/with-file-lock.js:387:30 <- packages/cli/src/lib/with-file-lock.js:552:28 <- packages/cli/src/lib/with-file-lock.js:546:10",
+          "calls": 13,
+          "durationMs": 2.072699999982433
+        },
+        {
+          "stack": "packages/cli/src/lib/artifact-store.js:450:16 <- packages/cli/src/lib/artifact-store.js:329:28 <- packages/cli/src/lib/with-file-lock.js:232:14",
+          "calls": 8,
+          "durationMs": 3.1679000000003725
+        },
+        {
+          "stack": "runtime",
+          "calls": 3,
+          "durationMs": 1.045399999999809
+        },
+        {
+          "stack": "packages/cli/src/lib/skill-execution-identity.js:70:20 <- packages/cli/src/lib/skill-execution-identity.js:111:19 <- packages/cli/src/lib/skill-loader.js:863:28",
+          "calls": 2,
+          "durationMs": 0.6672999999991589
+        },
+        {
+          "stack": "packages/cli/src/lib/artifact-store.js:516:14 <- packages/cli/src/lib/evolution/evolution-evidence-artifact-adapter.js:175:31 <- packages/cli/src/lib/evolution/evolution-evidence-artifact-adapter.js:290:28",
+          "calls": 2,
+          "durationMs": 0.29219999990891665
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/local-ui-evolution-deployment.js:169:13 <- packages/cli/src/lib/evolution/local-ui-evolution-deployment.js:224:24 <- packages/cli/src/lib/evolution/local-ui-evolution-deployment.js:491:22",
+          "calls": 1,
+          "durationMs": 0.08770000000004075
+        },
+        {
+          "stack": "packages/cli/src/lib/skill-execution-identity.js:70:20 <- packages/cli/src/lib/skill-execution-identity.js:107:19 <- packages/cli/src/lib/skill-loader.js:863:28",
+          "calls": 1,
+          "durationMs": 0.09900000000016007
+        },
+        {
+          "stack": "packages/cli/src/lib/with-file-lock.js:552:28 <- packages/cli/src/lib/with-file-lock.js:546:10 <- packages/cli/src/lib/with-file-lock.js:839:18",
+          "calls": 1,
+          "durationMs": 0.11410000000614673
+        }
+      ]
+    },
+    "fs.openSync": {
+      "calls": 675463,
+      "durationMs": 40628.45790001372,
+      "maxMs": 77.47070000000531,
+      "errors": 0,
+      "transferredBytes": 0,
+      "samples": [
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-ledger.js:1834:15 <- packages/cli/src/lib/evolution/evolution-ledger.js:3180:29 <- packages/cli/src/lib/evolution/evolution-ledger.js:3973:52",
+          "calls": 2710,
+          "durationMs": 154.36830000193004
+        },
+        {
+          "stack": "packages/cli/src/lib/bounded-artifact-file-read.js:92:21 <- packages/cli/src/lib/evolution/evolution-file-identity.js:34:7 <- packages/cli/src/lib/secure-file-identity.js:406:16",
+          "calls": 550,
+          "durationMs": 31.369500000109838
+        },
+        {
+          "stack": "packages/cli/src/lib/bounded-artifact-file-read.js:31:8 <- packages/cli/src/lib/secure-file-identity.js:338:41 <- packages/cli/src/lib/evolution/evolution-file-identity.js:30:10",
+          "calls": 537,
+          "durationMs": 25.14640000017789
+        },
+        {
+          "stack": "packages/cli/src/lib/bounded-artifact-file-read.js:31:8 <- packages/cli/src/lib/secure-file-identity.js:391:28 <- packages/cli/src/lib/evolution/evolution-file-identity.js:30:10",
+          "calls": 528,
+          "durationMs": 25.576100000245788
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-artifact-ports.js:58:8 <- packages/cli/src/lib/secure-file-identity.js:391:28 <- packages/cli/src/lib/evolution/evolution-file-identity.js:30:10",
+          "calls": 205,
+          "durationMs": 11.829700000236699
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1836:21 <- packages/cli/src/lib/evolution/evolution-artifact-ports.js:1796:7 <- packages/cli/src/lib/evolution/evolution-file-identity.js:34:7",
+          "calls": 204,
+          "durationMs": 12.327600000524399
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-artifact-ports.js:58:8 <- packages/cli/src/lib/secure-file-identity.js:338:41 <- packages/cli/src/lib/evolution/evolution-file-identity.js:30:10",
+          "calls": 191,
+          "durationMs": 8.644500000193148
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-ledger.js:1834:15 <- packages/cli/src/lib/evolution/evolution-ledger.js:2038:18 <- packages/cli/src/lib/secure-file-identity.js:338:41",
+          "calls": 103,
+          "durationMs": 4.784700000222074
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-ledger.js:1834:15 <- packages/cli/src/lib/evolution/evolution-ledger.js:2038:18 <- packages/cli/src/lib/secure-file-identity.js:391:28",
+          "calls": 101,
+          "durationMs": 5.080300000037823
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-ledger.js:1834:15 <- packages/cli/src/lib/evolution/evolution-ledger.js:3180:29 <- packages/cli/src/lib/evolution/evolution-ledger.js:3268:52",
+          "calls": 61,
+          "durationMs": 3.934800000182804
+        }
+      ]
+    },
+    "fs.writeSync": {
+      "calls": 1777,
+      "durationMs": 269.39039999985243,
+      "maxMs": 0.6356999999843538,
+      "errors": 0,
+      "transferredBytes": 31538428,
+      "samples": [
+        {
+          "stack": "packages/cli/src/lib/artifact-store.js:404:8 <- packages/cli/src/lib/artifact-store.js:340:26 <- packages/cli/src/lib/with-file-lock.js:232:14",
+          "calls": 8,
+          "durationMs": 1.6497000000235857
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-ledger.js:1834:15 <- packages/cli/src/lib/evolution/evolution-ledger.js:3341:16 <- packages/cli/src/lib/evolution/evolution-ledger.js:5256:31",
+          "calls": 2,
+          "durationMs": 0.2730000000738073
+        },
+        {
+          "stack": "packages/cli/scripts/verify01-fetch-diagnostics-preload.cjs:101:22 <- packages/cli/scripts/verify01-fetch-diagnostics-preload.cjs:115:3",
+          "calls": 1,
+          "durationMs": 0.14320000000000022
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-ledger.js:1834:15 <- packages/cli/src/lib/evolution/evolution-ledger.js:3341:16 <- packages/cli/src/lib/evolution/evolution-ledger.js:5237:31",
+          "calls": 1,
+          "durationMs": 0.20350000000325963
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-ledger.js:1834:15 <- packages/cli/src/lib/evolution/evolution-ledger.js:3424:16 <- packages/cli/src/lib/evolution/evolution-ledger.js:5290:28",
+          "calls": 1,
+          "durationMs": 0.13360000000102445
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-file-witness.js:725:14 <- packages/cli/src/lib/evolution/evolution-file-witness.js:794:5 <- packages/cli/src/lib/evolution/evolution-file-witness.js:853:16",
+          "calls": 1,
+          "durationMs": 0.21859999996377155
+        }
+      ]
+    },
+    "fs.readSync": {
+      "calls": 963136,
+      "durationMs": 17295.884200017725,
+      "maxMs": 35.3691000000108,
+      "errors": 0,
+      "transferredBytes": 5153905137,
+      "samples": [
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-ledger.js:1834:15 <- packages/cli/src/lib/evolution/bounded-descriptor-read.js:19:26 <- packages/cli/src/lib/evolution/evolution-ledger.js:3199:17",
+          "calls": 2817,
+          "durationMs": 50.05279999941922
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-ledger.js:1834:15 <- packages/cli/src/lib/evolution/bounded-descriptor-read.js:25:14 <- packages/cli/src/lib/evolution/evolution-ledger.js:3199:17",
+          "calls": 2776,
+          "durationMs": 38.4391000009673
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/bounded-descriptor-read.js:19:26 <- packages/cli/src/lib/evolution/evolution-artifact-ports.js:1853:13 <- packages/cli/src/lib/evolution/evolution-artifact-ports.js:1796:7",
+          "calls": 578,
+          "durationMs": 15.647500000184664
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/bounded-descriptor-read.js:19:26 <- packages/cli/src/lib/bounded-artifact-file-read.js:103:23 <- packages/cli/src/lib/evolution/evolution-file-identity.js:34:7",
+          "calls": 542,
+          "durationMs": 15.137500000048021
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/bounded-descriptor-read.js:25:14 <- packages/cli/src/lib/bounded-artifact-file-read.js:103:23 <- packages/cli/src/lib/evolution/evolution-file-identity.js:34:7",
+          "calls": 529,
+          "durationMs": 10.155099999748927
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/bounded-descriptor-read.js:25:14 <- packages/cli/src/lib/evolution/evolution-artifact-ports.js:1853:13 <- packages/cli/src/lib/evolution/evolution-artifact-ports.js:1796:7",
+          "calls": 202,
+          "durationMs": 3.221700000596684
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/bounded-descriptor-read.js:19:26 <- packages/cli/src/lib/evolution/evolution-physical-state-reader.js:215:23 <- packages/cli/src/lib/evolution/evolution-file-identity.js:34:7",
+          "calls": 56,
+          "durationMs": 1.525600000310078
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/bounded-descriptor-read.js:25:14 <- packages/cli/src/lib/evolution/evolution-physical-state-reader.js:215:23 <- packages/cli/src/lib/evolution/evolution-file-identity.js:34:7",
+          "calls": 19,
+          "durationMs": 0.33469999997032573
+        },
+        {
+          "stack": "packages/cli/src/lib/skill-loader.js:282:23 <- packages/cli/src/lib/skill-loader.js:855:24 <- packages/cli/src/lib/skill-loader.js:815:10",
+          "calls": 2,
+          "durationMs": 0.40900000000146974
+        },
+        {
+          "stack": "packages/cli/src/lib/process-execution-broker/macos-mcp-launcher-contract.js:34:26 <- packages/cli/src/lib/process-execution-broker/macos-mcp-launcher-contract.js:105:42 <- packages/cli/src/lazy-dispatch.js:832:3",
+          "calls": 1,
+          "durationMs": 0.08619999999999095
+        }
+      ]
+    },
+    "fs.closeSync": {
+      "calls": 675462,
+      "durationMs": 16594.319300027364,
+      "maxMs": 26.995300000009593,
+      "errors": 0,
+      "transferredBytes": 0,
+      "samples": [
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-ledger.js:1834:15 <- packages/cli/src/lib/evolution/evolution-ledger.js:3255:41 <- packages/cli/src/lib/evolution/evolution-ledger.js:3973:52",
+          "calls": 2720,
+          "durationMs": 65.29880000053527
+        },
+        {
+          "stack": "packages/cli/src/lib/bounded-artifact-file-read.js:124:12 <- packages/cli/src/lib/evolution/evolution-file-identity.js:34:7 <- packages/cli/src/lib/secure-file-identity.js:406:16",
+          "calls": 547,
+          "durationMs": 11.33009999877686
+        },
+        {
+          "stack": "packages/cli/src/lib/bounded-artifact-file-read.js:29:30 <- packages/cli/src/lib/secure-file-identity.js:472:19 <- packages/cli/src/lib/evolution/evolution-file-identity.js:30:10",
+          "calls": 537,
+          "durationMs": 13.24839999986034
+        },
+        {
+          "stack": "packages/cli/src/lib/bounded-artifact-file-read.js:29:30 <- packages/cli/src/lib/secure-file-identity.js:476:19 <- packages/cli/src/lib/evolution/evolution-file-identity.js:30:10",
+          "calls": 528,
+          "durationMs": 12.164300000076764
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-artifact-ports.js:56:30 <- packages/cli/src/lib/secure-file-identity.js:476:19 <- packages/cli/src/lib/evolution/evolution-file-identity.js:30:10",
+          "calls": 205,
+          "durationMs": 4.970599999847764
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1878:33 <- packages/cli/src/lib/evolution/evolution-artifact-ports.js:1796:7 <- packages/cli/src/lib/evolution/evolution-file-identity.js:34:7",
+          "calls": 196,
+          "durationMs": 5.7103999993887555
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-artifact-ports.js:56:30 <- packages/cli/src/lib/secure-file-identity.js:472:19 <- packages/cli/src/lib/evolution/evolution-file-identity.js:30:10",
+          "calls": 191,
+          "durationMs": 5.07420000007005
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-ledger.js:1834:15 <- packages/cli/src/lib/secure-file-identity.js:476:19 <- packages/cli/src/lib/evolution/evolution-file-identity.js:30:10",
+          "calls": 65,
+          "durationMs": 1.4741000001995417
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-ledger.js:1834:15 <- packages/cli/src/lib/secure-file-identity.js:472:19 <- packages/cli/src/lib/evolution/evolution-file-identity.js:30:10",
+          "calls": 57,
+          "durationMs": 1.436499999861553
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-ledger.js:1834:15 <- packages/cli/src/lib/evolution/evolution-ledger.js:3255:41 <- packages/cli/src/lib/evolution/evolution-ledger.js:3268:52",
+          "calls": 49,
+          "durationMs": 1.257500000341679
+        }
+      ]
+    },
+    "fs.lstatSync": {
+      "calls": 1725819,
+      "durationMs": 160330.5911000017,
+      "maxMs": 38.55249999999069,
+      "errors": 439,
+      "transferredBytes": 0,
+      "samples": [
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1227:15 <- packages/cli/src/lib/evolution/evolution-artifact-ports.js:1397:21 <- packages/cli/src/lib/evolution/evolution-artifact-ports.js:1462:3",
+          "calls": 1714,
+          "durationMs": 151.2531000001036
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1227:15 <- packages/cli/src/lib/evolution/evolution-artifact-ports.js:1397:21 <- packages/cli/src/lib/evolution/evolution-artifact-ports.js:1456:3",
+          "calls": 1351,
+          "durationMs": 155.3101999992914
+        },
+        {
+          "stack": "packages/session-core/lib/private-storage.js:202:20 <- packages/session-core/lib/private-storage.js:1280:5 <- packages/session-core/lib/private-storage.js:1513:26",
+          "calls": 347,
+          "durationMs": 27.23709999976836
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-ledger.js:1834:15 <- packages/cli/src/lib/evolution/evolution-ledger.js:2382:25 <- packages/cli/src/lib/evolution/evolution-ledger.js:3256:46",
+          "calls": 221,
+          "durationMs": 19.626999999837608
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-ledger.js:1834:15 <- packages/cli/src/lib/evolution/evolution-ledger.js:2382:25 <- packages/cli/src/lib/evolution/evolution-ledger.js:3139:44",
+          "calls": 208,
+          "durationMs": 19.37610000047789
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-ledger.js:1834:15 <- packages/cli/src/lib/evolution/evolution-ledger.js:2382:25 <- packages/cli/src/lib/evolution/evolution-ledger.js:4405:27",
+          "calls": 71,
+          "durationMs": 7.026100000051883
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-ledger.js:1834:15 <- packages/cli/src/lib/evolution/evolution-ledger.js:2382:25 <- packages/cli/src/lib/evolution/evolution-ledger.js:4424:27",
+          "calls": 69,
+          "durationMs": 6.225099999801387
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-ledger.js:1834:15 <- packages/cli/src/lib/secure-file-identity.js:446:25 <- packages/cli/src/lib/evolution/evolution-file-identity.js:30:10",
+          "calls": 67,
+          "durationMs": 6.265300000321076
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-ledger.js:1834:15 <- packages/cli/src/lib/evolution/evolution-ledger.js:3164:39 <- packages/cli/src/lib/evolution/evolution-ledger.js:3268:52",
+          "calls": 64,
+          "durationMs": 5.5150999996030805
+        },
+        {
+          "stack": "packages/session-core/lib/private-storage.js:1248:43 <- packages/session-core/lib/private-storage.js:1519:21 <- packages/cli/src/lib/evolution/evolution-file-witness.js:658:30",
+          "calls": 26,
+          "durationMs": 2.2145000000664368
+        }
+      ]
+    },
+    "spawnSync.native-acl-worker": {
+      "calls": 497,
+      "durationMs": 75367.75470000089,
+      "maxMs": 366.1971000000485,
+      "errors": 0,
+      "transferredBytes": 0,
+      "samples": [
+        {
+          "stack": "packages/session-core/lib/private-storage.js:781:17 <- packages/session-core/lib/private-storage.js:1096:7 <- packages/session-core/lib/private-storage.js:1345:12",
+          "calls": 328,
+          "durationMs": 50222.90140000095
+        },
+        {
+          "stack": "packages/session-core/lib/private-storage.js:781:17 <- packages/session-core/lib/private-storage.js:1096:7 <- packages/session-core/lib/private-storage.js:1549:22",
+          "calls": 163,
+          "durationMs": 24178.76059999996
+        },
+        {
+          "stack": "packages/session-core/lib/private-storage.js:781:17 <- packages/session-core/lib/private-storage.js:985:20 <- packages/session-core/lib/private-storage.js:977:18",
+          "calls": 6,
+          "durationMs": 966.092699999981
+        }
+      ]
+    },
+    "fs.readdirSync": {
+      "calls": 18732,
+      "durationMs": 4411.554899998836,
+      "maxMs": 15.020600000047125,
+      "errors": 3,
+      "transferredBytes": 0,
+      "samples": [
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-ledger.js:1834:15 <- packages/cli/src/lib/evolution/evolution-ledger.js:3693:30 <- packages/cli/src/lib/evolution/evolution-ledger.js:3753:33",
+          "calls": 25,
+          "durationMs": 6.842599999828963
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-ledger.js:1834:15 <- packages/cli/src/lib/evolution/evolution-ledger.js:3792:34 <- packages/cli/src/lib/evolution/evolution-ledger.js:4445:39",
+          "calls": 23,
+          "durationMs": 8.036700000210658
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-ledger.js:1834:15 <- packages/cli/src/lib/evolution/evolution-ledger.js:3766:34 <- packages/cli/src/lib/evolution/evolution-ledger.js:4425:24",
+          "calls": 21,
+          "durationMs": 2.3197999996536964
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-ledger.js:1834:15 <- packages/cli/src/lib/with-file-lock.js:853:13 <- packages/cli/src/lib/with-file-lock.js:326:15",
+          "calls": 17,
+          "durationMs": 3.4729999999326537
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-ledger.js:1834:15 <- packages/cli/src/lib/evolution/evolution-ledger.js:3693:30 <- packages/cli/src/lib/evolution/evolution-ledger.js:3754:33",
+          "calls": 17,
+          "durationMs": 2.298699999882956
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-ledger.js:1834:15 <- packages/cli/src/lib/evolution/evolution-ledger.js:3693:30 <- packages/cli/src/lib/evolution/evolution-ledger.js:3761:33",
+          "calls": 14,
+          "durationMs": 1.5457000000806147
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-ledger.js:1834:15 <- packages/cli/src/lib/evolution/evolution-ledger.js:3792:34 <- packages/cli/src/lib/evolution/evolution-ledger.js:4440:38",
+          "calls": 10,
+          "durationMs": 2.9614000000328815
+        },
+        {
+          "stack": "packages/cli/src/lib/with-file-lock.js:390:24 <- packages/cli/src/lib/with-file-lock.js:853:13 <- packages/cli/src/lib/with-file-lock.js:326:15",
+          "calls": 10,
+          "durationMs": 1.8862999999109888
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-ledger.js:1834:15 <- packages/cli/src/lib/evolution/evolution-ledger.js:3693:30 <- packages/cli/src/lib/evolution/evolution-ledger.js:3752:33",
+          "calls": 7,
+          "durationMs": 2.2459000000017113
+        },
+        {
+          "stack": "packages/cli/src/lib/with-file-lock.js:853:13 <- packages/cli/src/lib/with-file-lock.js:326:15 <- packages/cli/src/lib/with-file-lock.js:34:24",
+          "calls": 2,
+          "durationMs": 0.48309999995399266
+        }
+      ]
+    },
+    "fs.statSync": {
+      "calls": 3735,
+      "durationMs": 603.5171999981376,
+      "maxMs": 0.7431999999971595,
+      "errors": 3477,
+      "transferredBytes": 0,
+      "samples": [
+        {
+          "stack": "packages/cli/src/lib/with-file-lock.js:386:23 <- packages/cli/src/lib/with-file-lock.js:480:9 <- packages/cli/src/lib/with-file-lock.js:428:7",
+          "calls": 13,
+          "durationMs": 1.9577000000858789
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-ledger.js:1834:15 <- packages/cli/src/lib/with-file-lock.js:480:9 <- packages/cli/src/lib/with-file-lock.js:428:7",
+          "calls": 11,
+          "durationMs": 2.2726000000402564
+        },
+        {
+          "stack": "packages/cli/src/lib/with-file-lock.js:480:9 <- packages/cli/src/lib/with-file-lock.js:428:7 <- packages/cli/src/lib/with-file-lock.js:111:7",
+          "calls": 3,
+          "durationMs": 0.5138999999326188
+        },
+        {
+          "stack": "packages/cli/src/lib/durable-security-store.js:54:11 <- packages/cli/src/lib/durable-security-store.js:127:9 <- packages/cli/src/lib/with-file-lock.js:232:14",
+          "calls": 2,
+          "durationMs": 0.16120000000228174
+        },
+        {
+          "stack": "packages/cli/src/lib/skill-loader.js:860:27 <- packages/cli/src/lib/skill-loader.js:815:10 <- packages/cli/src/lib/skill-loader.js:1292:27",
+          "calls": 1,
+          "durationMs": 0.07990000000063446
+        }
+      ]
+    },
+    "fs.fsyncSync": {
+      "calls": 4089,
+      "durationMs": 5361.740899999618,
+      "maxMs": 92.9662000000244,
+      "errors": 0,
+      "transferredBytes": 0,
+      "samples": [
+        {
+          "stack": "packages/cli/src/lib/artifact-store.js:432:10 <- packages/cli/src/lib/artifact-store.js:340:26 <- packages/cli/src/lib/with-file-lock.js:232:14",
+          "calls": 11,
+          "durationMs": 6.883499999981723
+        },
+        {
+          "stack": "packages/cli/src/lib/artifact-store.js:404:8 <- packages/cli/src/lib/artifact-store.js:340:26 <- packages/cli/src/lib/with-file-lock.js:232:14",
+          "calls": 6,
+          "durationMs": 28.79770000010103
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-ledger.js:1834:15 <- packages/cli/src/lib/evolution/evolution-ledger.js:3615:24 <- packages/cli/src/lib/evolution/evolution-file-identity.js:34:7",
+          "calls": 4,
+          "durationMs": 0.8012000001035631
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-ledger.js:1834:15 <- packages/cli/src/lib/evolution/evolution-ledger.js:3342:16 <- packages/cli/src/lib/evolution/evolution-ledger.js:5237:31",
+          "calls": 2,
+          "durationMs": 1.119200000044657
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-ledger.js:1834:15 <- packages/cli/src/lib/evolution/evolution-ledger.js:3342:16 <- packages/cli/src/lib/evolution/evolution-ledger.js:5256:31",
+          "calls": 2,
+          "durationMs": 0.7961999999679392
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-file-witness.js:732:14 <- packages/cli/src/lib/evolution/evolution-file-witness.js:794:5 <- packages/cli/src/lib/evolution/evolution-file-witness.js:853:16",
+          "calls": 2,
+          "durationMs": 0.697600000014063
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-ledger.js:1834:15 <- packages/cli/src/lib/evolution/evolution-ledger.js:3464:16 <- packages/cli/src/lib/evolution/evolution-ledger.js:5290:28",
+          "calls": 2,
+          "durationMs": 0.5702999999339227
+        },
+        {
+          "stack": "packages/cli/src/lib/durable-security-store.js:67:8 <- packages/cli/src/lib/durable-security-store.js:127:9 <- packages/cli/src/lib/with-file-lock.js:232:14",
+          "calls": 2,
+          "durationMs": 26.931900000025053
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/local-ui-evolution-deployment.js:136:8 <- packages/cli/src/lib/evolution/local-ui-evolution-deployment.js:210:5 <- packages/cli/src/lib/evolution/local-ui-evolution-deployment.js:351:32",
+          "calls": 1,
+          "durationMs": 0.5976999999998043
+        }
+      ]
+    },
+    "fs.fstatSync": {
+      "calls": 1235668,
+      "durationMs": 16713.321999970998,
+      "maxMs": 12.112700000056066,
+      "errors": 0,
+      "transferredBytes": 0,
+      "samples": [
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-ledger.js:1834:15 <- packages/cli/src/lib/evolution/evolution-ledger.js:3186:31 <- packages/cli/src/lib/evolution/evolution-ledger.js:3973:52",
+          "calls": 2775,
+          "durationMs": 37.31149999811896
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-ledger.js:1834:15 <- packages/cli/src/lib/evolution/evolution-ledger.js:3212:30 <- packages/cli/src/lib/evolution/evolution-ledger.js:3973:52",
+          "calls": 2738,
+          "durationMs": 32.74329999608017
+        },
+        {
+          "stack": "packages/cli/src/lib/bounded-artifact-file-read.js:28:30 <- packages/cli/src/lib/secure-file-identity.js:339:37 <- packages/cli/src/lib/evolution/evolution-file-identity.js:30:10",
+          "calls": 560,
+          "durationMs": 9.085499999757303
+        },
+        {
+          "stack": "packages/cli/src/lib/bounded-artifact-file-read.js:109:27 <- packages/cli/src/lib/evolution/evolution-file-identity.js:34:7 <- packages/cli/src/lib/secure-file-identity.js:406:16",
+          "calls": 533,
+          "durationMs": 6.982899999486108
+        },
+        {
+          "stack": "packages/cli/src/lib/bounded-artifact-file-read.js:28:30 <- packages/cli/src/lib/secure-file-identity.js:423:29 <- packages/cli/src/lib/evolution/evolution-file-identity.js:30:10",
+          "calls": 532,
+          "durationMs": 7.175400001346134
+        },
+        {
+          "stack": "packages/cli/src/lib/bounded-artifact-file-read.js:28:30 <- packages/cli/src/lib/secure-file-identity.js:392:30 <- packages/cli/src/lib/evolution/evolution-file-identity.js:30:10",
+          "calls": 526,
+          "durationMs": 6.714499999590771
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-artifact-ports.js:55:30 <- packages/cli/src/lib/secure-file-identity.js:423:29 <- packages/cli/src/lib/evolution/evolution-file-identity.js:30:10",
+          "calls": 201,
+          "durationMs": 3.714200000008532
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-artifact-ports.js:55:30 <- packages/cli/src/lib/secure-file-identity.js:392:30 <- packages/cli/src/lib/evolution/evolution-file-identity.js:30:10",
+          "calls": 200,
+          "durationMs": 2.63590000005388
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-artifact-ports.js:1859:30 <- packages/cli/src/lib/evolution/evolution-artifact-ports.js:1796:7 <- packages/cli/src/lib/evolution/evolution-file-identity.js:34:7",
+          "calls": 194,
+          "durationMs": 2.5808000001852633
+        },
+        {
+          "stack": "packages/cli/src/lib/evolution/evolution-artifact-ports.js:55:30 <- packages/cli/src/lib/secure-file-identity.js:339:37 <- packages/cli/src/lib/evolution/evolution-file-identity.js:30:10",
+          "calls": 185,
+          "durationMs": 2.9895000003079986
+        }
+      ]
+    },
+    "spawnSync.other": {
+      "calls": 5,
+      "durationMs": 3690.9263,
+      "maxMs": 1405.3091999999997,
+      "errors": 0,
+      "transferredBytes": 0,
+      "samples": [
+        {
+          "stack": "packages/cli/src/lib/process-execution-broker/index.js:5364:22 <- packages/cli/src/lib/process-execution-broker/index.js:5911:25 <- packages/cli/src/runtime/agent-core.js:1093:34",
+          "calls": 3,
+          "durationMs": 2080.4148000000005
+        },
+        {
+          "stack": "packages/cli/src/lib/process-execution-broker/platform-sandbox.js:3387:29 <- packages/cli/src/lib/process-execution-broker/platform-sandbox.js:3458:20 <- packages/cli/src/lib/process-execution-broker/platform-sandbox.js:3476:20",
+          "calls": 1,
+          "durationMs": 811.607
+        },
+        {
+          "stack": "packages/cli/src/lib/process-execution-broker/index.js:5364:22 <- packages/cli/src/lib/process-execution-broker/index.js:5911:25 <- packages/cli/src/lib/cli-anything-bridge.js:24:16",
+          "calls": 1,
+          "durationMs": 798.9044999999996
+        }
+      ]
+    }
+  },
+  "inputs": [
+    {
+      "name": "preflight.json",
+      "bytes": 2814,
+      "sha256": "d54b64c01a536098f4440340affd5222948f946e927647c49d1fa488ced93638"
+    },
+    {
+      "name": "result.json",
+      "bytes": 11827,
+      "sha256": "623dce1622fe846ec71a07b342356663e677b6b06d6c9cbea4bf5c7467b19326"
+    },
+    {
+      "name": "partial.json",
+      "bytes": 976,
+      "sha256": "cd965e4e340e74d9183e3cdebefa930ead142fb2dbe00279dcb35cdc90c103ab"
+    },
+    {
+      "name": "timeline.jsonl",
+      "bytes": 15181,
+      "sha256": "205d6f5b9666193c3033d83eb3ba995ba13b9f3ddc98a913ac752bc2fbd47426"
+    },
+    {
+      "name": "cli-counters.jsonl",
+      "bytes": 1554387,
+      "sha256": "e7dfbd77486bc563e78869bb5164bed774ef370755ff05f36b7b1b4093beb0d6"
+    }
+  ],
+  "findings": [
+    "Root CLI stayed on native ACL worker backend; no PowerShell fallback is inferred from native/PowerShell counters and builtin binding readback.",
+    "Compare per-turn native-worker counts with growing lstat/open/read counts and input/HTTP/result phase timings before assigning cause.",
+    "Sampled cached-ledger-file reads resolve to EvolutionLedger.#matchesCachedFileWithIdentity -> #readPhysicalFileWithIdentity -> readBoundedDescriptor.",
+    "Directory attestation samples resolve to evolution-artifact-ports attestStoreDirectories and ledger #assertBoundaries."
+  ],
+  "limitations": [
+    "Instrumentation adds overhead; timings are diagnostic and are not formal performance acceptance.",
+    "FS methods can call one another; duration totals overlap and must not be summed as exclusive CPU time.",
+    "FS callsite stacks are sampled once per 128 calls, with 24 retained distinct stacks per operation; counts are not exact caller distributions.",
+    "Captured native append logging can use wrapped Node fs internals; bounded per-result diagnostic IO is included in raw counters.",
+    "No payloads, tools, messages, or model bodies are recorded. The model endpoint is deterministic loopback fake Ollama."
+  ],
+  "formalQualification": false,
+  "published": false
+}

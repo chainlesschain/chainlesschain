@@ -1,0 +1,654 @@
+{
+  "schema": "cc.local-cpu-profile-summary/v1",
+  "directory": "C:\\code\\chainlesschain\\.work\\release118-publish-first-927dda\\perf-diagnostic\\cpu-root-2026-10-24T16-21-30-917Z",
+  "profileName": "CPU.20261025.002131.40180.0.001.cpuprofile",
+  "profileSha256": "04e4273b815c124815a364c349c3053bccaaaa05fd8630734dee79c75c553ee0",
+  "profileBytes": 5154441,
+  "nodeCount": 21295,
+  "samples": 38590,
+  "sampledMs": 67243.473,
+  "elapsedMs": 67243.633,
+  "selfTime": [
+    {
+      "function": "(idle)",
+      "file": "(native/runtime)",
+      "line": 0,
+      "ms": 20554.337,
+      "percent": 30.567036595507194,
+      "hitCount": 11708
+    },
+    {
+      "function": "spawnSync",
+      "file": "node:internal/child_process",
+      "line": 1105,
+      "ms": 3848.878,
+      "percent": 5.723794188917042,
+      "hitCount": 2194
+    },
+    {
+      "function": "spawnSync",
+      "file": "node:internal/child_process",
+      "line": 1105,
+      "ms": 1935.37,
+      "percent": 2.878152947275641,
+      "hitCount": 1118
+    },
+    {
+      "function": "spawnSync",
+      "file": "node:internal/child_process",
+      "line": 1105,
+      "ms": 1749.904,
+      "percent": 2.6023403044634534,
+      "hitCount": 1036
+    },
+    {
+      "function": "spawnSync",
+      "file": "node:internal/child_process",
+      "line": 1105,
+      "ms": 1727.769,
+      "percent": 2.5694226114704097,
+      "hitCount": 982
+    },
+    {
+      "function": "spawnSync",
+      "file": "node:internal/child_process",
+      "line": 1105,
+      "ms": 728.025,
+      "percent": 1.0826701351371306,
+      "hitCount": 406
+    },
+    {
+      "function": "spawnSync",
+      "file": "node:internal/child_process",
+      "line": 1105,
+      "ms": 550.882,
+      "percent": 0.8192349018022909,
+      "hitCount": 311
+    },
+    {
+      "function": "(program)",
+      "file": "(native/runtime)",
+      "line": 0,
+      "ms": 494.868,
+      "percent": 0.73593462372177,
+      "hitCount": 356
+    },
+    {
+      "function": "(garbage collector)",
+      "file": "(native/runtime)",
+      "line": 0,
+      "ms": 353.225,
+      "percent": 0.5252926183631235,
+      "hitCount": 196
+    },
+    {
+      "function": "compileSourceTextModule",
+      "file": "node:internal/modules/esm/utils",
+      "line": 336,
+      "ms": 339.811,
+      "percent": 0.5053442138540346,
+      "hitCount": 196
+    },
+    {
+      "function": "spawnSync",
+      "file": "node:internal/child_process",
+      "line": 1105,
+      "ms": 295.169,
+      "percent": 0.43895561432408464,
+      "hitCount": 168
+    },
+    {
+      "function": "spawnSync",
+      "file": "node:internal/child_process",
+      "line": 1105,
+      "ms": 286.187,
+      "percent": 0.42559818407951655,
+      "hitCount": 160
+    },
+    {
+      "function": "spawnSync",
+      "file": "node:internal/child_process",
+      "line": 1105,
+      "ms": 281.243,
+      "percent": 0.4182457976255926,
+      "hitCount": 158
+    },
+    {
+      "function": "spawnSync",
+      "file": "node:internal/child_process",
+      "line": 1105,
+      "ms": 272.25,
+      "percent": 0.40487200891601777,
+      "hitCount": 153
+    },
+    {
+      "function": "spawnSync",
+      "file": "node:internal/child_process",
+      "line": 1105,
+      "ms": 259.811,
+      "percent": 0.3863735592597961,
+      "hitCount": 138
+    },
+    {
+      "function": "realpath",
+      "file": "(native/runtime)",
+      "line": 0,
+      "ms": 254.642,
+      "percent": 0.3786865678398259,
+      "hitCount": 147
+    },
+    {
+      "function": "realpath",
+      "file": "(native/runtime)",
+      "line": 0,
+      "ms": 235.26,
+      "percent": 0.34986295249800675,
+      "hitCount": 133
+    },
+    {
+      "function": "realpath",
+      "file": "(native/runtime)",
+      "line": 0,
+      "ms": 227.444,
+      "percent": 0.33823951954414966,
+      "hitCount": 129
+    },
+    {
+      "function": "realpath",
+      "file": "(native/runtime)",
+      "line": 0,
+      "ms": 225.651,
+      "percent": 0.3355730897480563,
+      "hitCount": 133
+    },
+    {
+      "function": "rename",
+      "file": "(native/runtime)",
+      "line": 0,
+      "ms": 223.124,
+      "percent": 0.3318151041960608,
+      "hitCount": 128
+    },
+    {
+      "function": "rename",
+      "file": "(native/runtime)",
+      "line": 0,
+      "ms": 220.668,
+      "percent": 0.32816270510001766,
+      "hitCount": 124
+    },
+    {
+      "function": "getPackageScopeConfig",
+      "file": "(native/runtime)",
+      "line": 0,
+      "ms": 212.57,
+      "percent": 0.31611990058871586,
+      "hitCount": 119
+    },
+    {
+      "function": "realpath",
+      "file": "(native/runtime)",
+      "line": 0,
+      "ms": 197.857,
+      "percent": 0.29423971007565297,
+      "hitCount": 112
+    },
+    {
+      "function": "realpath",
+      "file": "(native/runtime)",
+      "line": 0,
+      "ms": 191.527,
+      "percent": 0.2848261570308839,
+      "hitCount": 112
+    },
+    {
+      "function": "spawnSync",
+      "file": "node:internal/child_process",
+      "line": 1105,
+      "ms": 163.923,
+      "percent": 0.24377533266314189,
+      "hitCount": 92
+    },
+    {
+      "function": "spawnSync",
+      "file": "node:internal/child_process",
+      "line": 1105,
+      "ms": 160.424,
+      "percent": 0.23857185365782638,
+      "hitCount": 96
+    },
+    {
+      "function": "realpath",
+      "file": "(native/runtime)",
+      "line": 0,
+      "ms": 159.698,
+      "percent": 0.23749219496738366,
+      "hitCount": 91
+    },
+    {
+      "function": "spawnSync",
+      "file": "node:internal/child_process",
+      "line": 1105,
+      "ms": 146.204,
+      "percent": 0.21742481980370051,
+      "hitCount": 91
+    },
+    {
+      "function": "realpath",
+      "file": "(native/runtime)",
+      "line": 0,
+      "ms": 142.198,
+      "percent": 0.21146736427489402,
+      "hitCount": 82
+    },
+    {
+      "function": "spawnSync",
+      "file": "node:internal/child_process",
+      "line": 1105,
+      "ms": 142.073,
+      "percent": 0.21128147262709052,
+      "hitCount": 78
+    }
+  ],
+  "productionInclusiveTime": [
+    {
+      "function": "(anonymous)",
+      "file": "packages/cli/src/lib/evolution/agent-evolution-ingress.js",
+      "line": 296,
+      "ms": 18894.161,
+      "percent": 28.09813377723664,
+      "hitCount": 1
+    },
+    {
+      "function": "appendEvent",
+      "file": "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js",
+      "line": 481,
+      "ms": 15766.017,
+      "percent": 23.446167035423645,
+      "hitCount": 1
+    },
+    {
+      "function": "(anonymous)",
+      "file": "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js",
+      "line": 57,
+      "ms": 10055.651,
+      "percent": 14.954092273015107,
+      "hitCount": 0
+    },
+    {
+      "function": "withFileLock",
+      "file": "packages/cli/src/lib/with-file-lock.js",
+      "line": 31,
+      "ms": 8519.88,
+      "percent": 12.670196258304506,
+      "hitCount": 1
+    },
+    {
+      "function": "(anonymous)",
+      "file": "packages/cli/src/lib/evolution/evolution-ledger.js",
+      "line": 2061,
+      "ms": 8519.88,
+      "percent": 12.670196258304506,
+      "hitCount": 0
+    },
+    {
+      "function": "#withLock",
+      "file": "packages/cli/src/lib/evolution/evolution-ledger.js",
+      "line": 2408,
+      "ms": 8519.88,
+      "percent": 12.670196258304506,
+      "hitCount": 0
+    },
+    {
+      "function": "#appendEvents",
+      "file": "packages/cli/src/lib/evolution/evolution-ledger.js",
+      "line": 5040,
+      "ms": 8519.88,
+      "percent": 12.670196258304506,
+      "hitCount": 0
+    },
+    {
+      "function": "#appendEvent",
+      "file": "packages/cli/src/lib/evolution/evolution-ledger.js",
+      "line": 5036,
+      "ms": 8519.88,
+      "percent": 12.670196258304506,
+      "hitCount": 0
+    },
+    {
+      "function": "appendDomainEvent",
+      "file": "packages/cli/src/lib/evolution/evolution-ledger.js",
+      "line": 5024,
+      "ms": 8519.88,
+      "percent": 12.670196258304506,
+      "hitCount": 0
+    },
+    {
+      "function": "runLocked",
+      "file": "packages/cli/src/lib/with-file-lock.js",
+      "line": 72,
+      "ms": 8518.817,
+      "percent": 12.668615435731583,
+      "hitCount": 0
+    },
+    {
+      "function": "(anonymous)",
+      "file": "packages/cli/src/lib/evolution/evolution-ledger.js",
+      "line": 5062,
+      "ms": 8388.411,
+      "percent": 12.474684345943881,
+      "hitCount": 0
+    },
+    {
+      "function": "#lock._fs",
+      "file": "packages/cli/src/lib/evolution/evolution-ledger.js",
+      "line": 2414,
+      "ms": 8388.411,
+      "percent": 12.474684345943881,
+      "hitCount": 0
+    },
+    {
+      "function": "#persist",
+      "file": "packages/cli/src/lib/evolution/evolution-evidence-artifact-adapter.js",
+      "line": 465,
+      "ms": 5091.18,
+      "percent": 7.571262715713687,
+      "hitCount": 0
+    },
+    {
+      "function": "#put",
+      "file": "packages/cli/src/lib/evolution/evolution-evidence-artifact-adapter.js",
+      "line": 444,
+      "ms": 5085.103,
+      "percent": 7.562225407364072,
+      "hitCount": 2
+    },
+    {
+      "function": "putCanonical",
+      "file": "packages/cli/src/lib/evolution/evolution-artifact-ports.js",
+      "line": 3507,
+      "ms": 5081.606,
+      "percent": 7.5570249026251215,
+      "hitCount": 2
+    },
+    {
+      "function": "runAgentHeadlessStreamInWorkspace",
+      "file": "packages/cli/src/runtime/headless-stream.js",
+      "line": 1725,
+      "ms": 4789.229,
+      "percent": 7.122221364146376,
+      "hitCount": 2
+    },
+    {
+      "function": "buildSystemPrompt",
+      "file": "packages/cli/src/runtime/agent-core.js",
+      "line": 1333,
+      "ms": 4747.921,
+      "percent": 7.060790866646641,
+      "hitCount": 1
+    },
+    {
+      "function": "getEnvironmentInfo",
+      "file": "packages/cli/src/runtime/agent-core.js",
+      "line": 1120,
+      "ms": 4372.302,
+      "percent": 6.502195387796225,
+      "hitCount": 0
+    },
+    {
+      "function": "getBaseSystemPrompt",
+      "file": "packages/cli/src/runtime/agent-core.js",
+      "line": 1174,
+      "ms": 4372.302,
+      "percent": 6.502195387796225,
+      "hitCount": 0
+    },
+    {
+      "function": "#requireDirectoryDurability",
+      "file": "packages/cli/src/lib/evolution/evolution-ledger.js",
+      "line": 3658,
+      "ms": 4229.128,
+      "percent": 6.289276581535281,
+      "hitCount": 1
+    },
+    {
+      "function": "#flushPendingWindowsAclFiles",
+      "file": "packages/cli/src/lib/evolution/evolution-ledger.js",
+      "line": 3550,
+      "ms": 4074.997,
+      "percent": 6.060063256994474,
+      "hitCount": 0
+    },
+    {
+      "function": "repairPrivatePaths",
+      "file": "packages/session-core/lib/private-storage.js",
+      "line": 1314,
+      "ms": 3929.464,
+      "percent": 5.843636303556183,
+      "hitCount": 0
+    },
+    {
+      "function": "windowsAclBatch",
+      "file": "packages/session-core/lib/private-storage.js",
+      "line": 1091,
+      "ms": 3883.998,
+      "percent": 5.776022306283912,
+      "hitCount": 1
+    },
+    {
+      "function": "runNativeWindowsAcl",
+      "file": "packages/session-core/lib/private-storage.js",
+      "line": 773,
+      "ms": 3882.46,
+      "percent": 5.7737350954493385,
+      "hitCount": 0
+    },
+    {
+      "function": "_entries",
+      "file": "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js",
+      "line": 339,
+      "ms": 3765.308,
+      "percent": 5.5995144688615355,
+      "hitCount": 1
+    },
+    {
+      "function": "(anonymous)",
+      "file": "packages/cli/src/lib/evolution/agent-evolution-ingress.js",
+      "line": 296,
+      "ms": 3618.207,
+      "percent": 5.3807556905931975,
+      "hitCount": 0
+    },
+    {
+      "function": "invoke",
+      "file": "packages/cli/src/lib/evolution/agent-evolution-ingress.js",
+      "line": 222,
+      "ms": 3568.66,
+      "percent": 5.3070727028034375,
+      "hitCount": 0
+    },
+    {
+      "function": "#resolveAuthenticatedEntry",
+      "file": "packages/cli/src/lib/evolution/evolution-artifact-ports.js",
+      "line": 3361,
+      "ms": 2786.671,
+      "percent": 4.1441509126097635,
+      "hitCount": 0
+    },
+    {
+      "function": "execFileSync",
+      "file": "packages/cli/src/lib/process-execution-broker/index.js",
+      "line": 5905,
+      "ms": 2546.249,
+      "percent": 3.786611378624064,
+      "hitCount": 1
+    },
+    {
+      "function": "execCliAnything",
+      "file": "packages/cli/src/lib/cli-anything-bridge.js",
+      "line": 23,
+      "ms": 2546.249,
+      "percent": 3.786611378624064,
+      "hitCount": 0
+    }
+  ],
+  "selfTimeByFile": [
+    {
+      "file": "(native/runtime)",
+      "ms": 44495.224,
+      "percent": 66.17032406996587
+    },
+    {
+      "file": "node:internal/child_process",
+      "ms": 13510.043,
+      "percent": 20.091233241328865
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/evolution-evidence-projector.js",
+      "ms": 2336.841,
+      "percent": 3.475193793158185
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/evolution-artifact-ports.js",
+      "ms": 1071.078,
+      "percent": 1.5928356347685968
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/evolution-ledger.js",
+      "ms": 791.88,
+      "percent": 1.1776310245010695
+    },
+    {
+      "file": "node:path",
+      "ms": 617.494,
+      "percent": 0.9182958173501836
+    },
+    {
+      "file": "node:internal/crypto/sig",
+      "ms": 477.224,
+      "percent": 0.7096956458510107
+    },
+    {
+      "file": "node:internal/crypto/hash",
+      "ms": 472.551,
+      "percent": 0.7027462724895247
+    },
+    {
+      "file": "node:internal/modules/esm/utils",
+      "ms": 339.811,
+      "percent": 0.5053442138540346
+    },
+    {
+      "file": "packages/cli/src/lib/secure-file-identity.js",
+      "ms": 327.076,
+      "percent": 0.48640557277581425
+    },
+    {
+      "file": "node:fs",
+      "ms": 247.819,
+      "percent": 0.3685398581361198
+    },
+    {
+      "file": "node:internal/modules/cjs/loader",
+      "ms": 227.778,
+      "percent": 0.3387362220270806
+    },
+    {
+      "file": "packages/session-core/lib/private-storage.js",
+      "ms": 139.639,
+      "percent": 0.2076617904610608
+    },
+    {
+      "file": "packages/session-core/lib/evolution-run.js",
+      "ms": 134.717,
+      "percent": 0.2003421209371503
+    },
+    {
+      "file": "node:internal/fs/utils",
+      "ms": 122.77,
+      "percent": 0.1825753408066832
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/evolution-artifact-identity.js",
+      "ms": 106.075,
+      "percent": 0.15774765232604807
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/agent-model-projection.js",
+      "ms": 90.663,
+      "percent": 0.13482795571846803
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/evidence-json-text.js",
+      "ms": 71.82,
+      "percent": 0.10680590516197758
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/evolution-file-witness.js",
+      "ms": 67.216,
+      "percent": 0.09995914399007916
+    },
+    {
+      "file": "node:internal/buffer",
+      "ms": 66.576,
+      "percent": 0.09900737875332524
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/evolution-file-identity.js",
+      "ms": 59.761,
+      "percent": 0.08887256611507856
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/evolution-physical-state-reader.js",
+      "ms": 57.987,
+      "percent": 0.08623439184945132
+    },
+    {
+      "file": "node:buffer",
+      "ms": 56.07,
+      "percent": 0.08338355753873689
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/local-ui-evolution-runtime.js",
+      "ms": 55.937,
+      "percent": 0.08318576882547396
+    },
+    {
+      "file": "packages/context-memory-kernel/lib/canonical.js",
+      "ms": 53.429,
+      "percent": 0.07945603880394458
+    },
+    {
+      "file": "node:internal/modules/esm/resolve",
+      "ms": 49.085,
+      "percent": 0.07299593225947744
+    },
+    {
+      "file": "node:internal/url",
+      "ms": 48.457,
+      "percent": 0.07206201262091266
+    },
+    {
+      "file": "node:internal/crypto/keys",
+      "ms": 46.787,
+      "percent": 0.06957850020625794
+    },
+    {
+      "file": "node:internal/modules/esm/loader",
+      "ms": 40.69,
+      "percent": 0.06051144919299454
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/evolution-run-ledger-adapter.js",
+      "ms": 40.113,
+      "percent": 0.059653373346733596
+    }
+  ],
+  "limitations": [
+    "CPU profile samples identify functions/stacks, not formal latency qualification.",
+    "Native wait time and synchronous IO may be attributed to their JS caller; inclusive percentages overlap.",
+    "No message, tool, or model payload was recorded."
+  ],
+  "formalQualification": false,
+  "newModelTaskAcceptance": false
+}
