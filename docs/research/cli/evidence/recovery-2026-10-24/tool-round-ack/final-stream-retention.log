@@ -1,0 +1,10 @@
+Command: node-verified.exe ../../node_modules/vitest/vitest.mjs run __tests__/unit/headless-canonical-tool-round.test.js __tests__/unit/headless-receipt-retention.test.js --maxWorkers=1
+Cwd: C:/code/chainlesschain/.work/cc118-native-ports/packages/cli
+Source includes final production acknowledgement guard and initial six invalid acknowledgement regressions. Seventh committed-append/lost-ack test added afterwards, validated separately in final-ack-regressions.json.
+Captured tool stdout:
+ RUN  v4.1.11 C:/code/chainlesschain/.work/cc118-native-ports/packages/cli
+ Test Files  2 passed (2)
+      Tests  37 passed (37)
+   Start at  17:01:03
+   Duration  126.62s (transform 8.41s, setup 817ms, import 13.16s, tests 111.48s, environment 1ms)
+Exit code: 0

@@ -1,4 +1,5 @@
 "use strict";
+/* global document, window, innerWidth */
 // Browser-level smoke of real Webview HTML, scripts and host message handlers.
 // The host services are explicit fixtures; this never changes user settings,
 // executes skills, sends LLM traffic or treats test identity as governance.
