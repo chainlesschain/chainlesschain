@@ -1,0 +1,153 @@
+{
+  "schema": "chainlesschain.completed-tool-settlement-release-preparation/v1",
+  "recordedAt": "2026-10-24T09:05:20.707Z",
+  "baseSource": "35f7c7231e552280a0f565818b1986115fb3915d",
+  "qualified": false,
+  "published": false,
+  "merged": false,
+  "repair": {
+    "productionRuntimeChanged": true,
+    "scope": "Streaming completed-tool durable acknowledgement guard plus the separately evidenced Workbench native filesystem repair",
+    "unknownAcknowledgementStopsHost": true,
+    "committedAppendEvidenceRetained": true,
+    "noAutomaticToolReplay": true,
+    "nextInputNotAdmitted": true
+  },
+  "independentReview": {
+    "model": "Astra",
+    "authorizedByUser": true,
+    "originalRootsRechecked": [
+      "Completed tools must settle before retention checkpoint; recompute candidate and CAS snapshots afterwards.",
+      "Omitted non-stream OpenAI-compatible content normalizes to null for strict JSON-safe projection.",
+      "Trusted retention clones inherit only existing private runtime-only marks."
+    ],
+    "allToolRoundAppendCallers": 2,
+    "otherCaller": "headless-runner already requires a durable hash",
+    "trueStorageOrAuthorityFailuresRemainFailClosed": true
+  },
+  "validation": {
+    "browser": {
+      "node": "22.12.0",
+      "ok": true,
+      "liveEvolution": true,
+      "panels": 3,
+      "totalDurationMs": 151511.2054,
+      "approvalBudgetMs": 120000,
+      "rollbackBudgetMs": 120000,
+      "restartPersistenceChecked": true
+    },
+    "sameLedgerControl": {
+      "node": "22.12.0",
+      "passed": 1,
+      "failed": 0,
+      "selectedCase": "uses genuine same-Ledger authorization",
+      "otherCasesNotSelected": 8
+    },
+    "fileResources": {
+      "node": "22.12.0",
+      "passed": 15,
+      "failed": 0,
+      "files": 1,
+      "skipped": 0
+    },
+    "postGuardStreamAndRetention": {
+      "node": "22.12.0",
+      "files": 2,
+      "passed": 37,
+      "failed": 0,
+      "sourceTiming": "Final production guard and initial six new cases; seventh case added later and independently verified.",
+      "evidenceKind": "captured tool stdout excerpt"
+    },
+    "finalAcknowledgementCases": {
+      "node": "22.12.0",
+      "passed": 7,
+      "failed": 0,
+      "includesCommittedAppendWithLostAck": true,
+      "evidenceKind": "native Vitest JSON"
+    },
+    "sdkAgentSession": {
+      "node": "22.12.0",
+      "passed": 25,
+      "failed": 0,
+      "evidenceKind": "captured tool stdout summary"
+    },
+    "preEditBaseline": {
+      "passed": 59,
+      "files": 6,
+      "finalSourceQualification": false
+    },
+    "countsOverlapDoNotSum": true
+  },
+  "relatedPreparation": {
+    "path": "docs/research/cli/evidence/recovery-2026-10-24/native-fixture-filesystems/preparation.json",
+    "sha256": "1102242894170c96d5092b49db4cc9883a409ae6687ce29d077fbddc4ddfb9a0"
+  },
+  "sourceSnapshot": [
+    {
+      "file": "packages/cli/src/runtime/headless-stream.js",
+      "sha256": "cda14256d22a65aaca1f403032b46de17cdd5958985e37b39f0cbabdb9b6bf03",
+      "baseSha256": "f30999155affaebe58cc06b2a08575a917f788334cd035a8b2382d5ed2984abd"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/headless-canonical-tool-round.test.js",
+      "sha256": "12106c83509b036038c483536a837f4e69e50821306bbcf0e24d84e76e4de621",
+      "baseSha256": "fbe854e2fbc619949bac54fadb24e8c7133c763cde155d5369fff4d5696010be"
+    }
+  ],
+  "formalLimitsUnchanged": {
+    "durationSeconds": 7200,
+    "warmupTurns": 20,
+    "measuredTurns": 1000,
+    "turnDeadlineMs": 60000,
+    "cleanupDeadlineMs": 10000,
+    "maxRssGrowthMb": 128,
+    "maxResourceGrowth": 8
+  },
+  "acceptanceLimits": {
+    "historicalCompleted": 32,
+    "historicalTotal": 45,
+    "unfinished": 13,
+    "paidReady": false,
+    "nativeAdmission": "NOT_ADMITTED",
+    "promotion": "HOLD",
+    "newLiveModelTasksRun": false
+  },
+  "files": [
+    {
+      "path": "review-summary.json",
+      "bytes": 1751,
+      "sha256": "eab93c9fefdb537af3ce62f63f528b4bb69783b75ea1760d5be560f9a7c9c86c",
+      "kind": "review source and evidence summary"
+    },
+    {
+      "path": "final-ack-regressions.json",
+      "bytes": 9676,
+      "sha256": "a68ef4dd5bb3bb56a0557cb53e81ea4223ccad4ef18d2c2d17fb8b43547fec25",
+      "kind": "native Vitest JSON"
+    },
+    {
+      "path": "final-stream-retention.log",
+      "bytes": 754,
+      "sha256": "670438773e5a22682acf8904e8e39f295fe3766abc14cee60b5703feb8613685",
+      "kind": "explicitly labelled captured tool stdout excerpt"
+    },
+    {
+      "path": "baseline-six-suites.log",
+      "bytes": 832,
+      "sha256": "c01727ee230e8aa9fe40240a6a7cd3f7da09f1a52d602aeca0dbb9ae2e218fae",
+      "kind": "explicitly labelled captured tool stdout excerpt"
+    },
+    {
+      "path": "new-ack-regressions.log",
+      "bytes": 950,
+      "sha256": "bbc9e3e466ee429a7bb9e197f141ff95bee0f1e0caaca24a6d66e4284e799c52",
+      "kind": "explicitly labelled captured tool stdout excerpt"
+    },
+    {
+      "path": "sdk-session.log",
+      "bytes": 471,
+      "sha256": "8f440d8dfcb40b9f93b9e04f34a66ae78a984ca734402cb7ee45dbc4c685a801",
+      "kind": "explicitly labelled captured tool stdout excerpt"
+    }
+  ]
+}

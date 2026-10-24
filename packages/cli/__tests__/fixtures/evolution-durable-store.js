@@ -91,6 +91,7 @@ export function evolutionDurableStoreConfiguration(
     artifactTenantId = "pruning-artifacts",
     streamId = "pruning",
     audience = "evolution-runtime",
+    fsImpl = null,
   } = {},
 ) {
   const descriptor = Object.freeze({
@@ -157,7 +158,7 @@ export function evolutionDurableStoreConfiguration(
     artifactAuthority,
     ledgerAuthority: authority("pruning-ledger"),
     witnessAuthority: authority("pruning-witness"),
-    fsImpl: durableFilesystem(),
+    fsImpl: fsImpl ?? durableFilesystem(),
     clock: () => NOW,
     root,
   };

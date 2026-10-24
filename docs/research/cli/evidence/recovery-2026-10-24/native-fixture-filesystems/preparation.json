@@ -1,0 +1,255 @@
+{
+  "schema": "chainlesschain.workbench-native-filesystem-preparation/v1",
+  "recordedAt": "2026-10-24T08:57:05.762Z",
+  "baseSource": "35f7c7231e552280a0f565818b1986115fb3915d",
+  "qualified": false,
+  "published": false,
+  "merged": false,
+  "cloudFailure": {
+    "runId": 40076514139,
+    "jobId": 120821002934,
+    "artifactId": 12554130711,
+    "step": "Run Workbench browser and real CLI persistence journey",
+    "failedWait": "approval saved notice",
+    "deadlineMs": 120000,
+    "artifactSha256": "fd16e8093f6a7da8d9c9845794c73af5a55b9f43dcbaaaede116f532c84f239c",
+    "actualFailureScreenshotAvailable": false,
+    "expectedTimeoutScreenshotIsNotFailureEvidence": true
+  },
+  "localDiagnostic": {
+    "complete": false,
+    "manuallyStopped": true,
+    "phase": "fixture initialization",
+    "powerShellAclCalls": 135,
+    "powerShellTotalMs": 529908,
+    "temporaryHomeRetained": true,
+    "naturalBrowserTimeoutReproducedLocally": false
+  },
+  "repair": {
+    "scope": "Workbench test resources, seed readers, identity directory flush and bounded browser failure capture only",
+    "productionRuntimeChanged": false,
+    "productionFilesystemAdapter": true,
+    "actualDirectoryFlush": true,
+    "genuineFileOwnerOnlyRepair": true,
+    "explicitCustomFilesystemDependenciesRetained": true,
+    "testAuthoritiesUnchanged": true
+  },
+  "intermediateExperiments": {
+    "nativeIdentityDirectoryFsyncError": "EPERM exposed by removing synthetic directory fsync; resolved by the native syncDirectorySync path.",
+    "broadFixtureMigrationAdopted": false,
+    "broadTestsCompleted": false,
+    "broadFailuresQualifyNothing": true,
+    "unrelatedFixturesRestored": true
+  },
+  "validation": {
+    "browser": {
+      "node": "22.12.0",
+      "ok": true,
+      "liveEvolution": true,
+      "panels": 3,
+      "totalDurationMs": 151511.2054,
+      "approvalBudgetMs": 120000,
+      "rollbackBudgetMs": 120000,
+      "restartPersistenceChecked": true
+    },
+    "sameLedgerControl": {
+      "node": "22.12.0",
+      "passed": 1,
+      "failed": 0,
+      "selectedCase": "uses genuine same-Ledger authorization",
+      "otherCasesNotSelected": 8
+    },
+    "fileResources": {
+      "node": "22.12.0",
+      "passed": 15,
+      "failed": 0,
+      "files": 1,
+      "skipped": 0
+    }
+  },
+  "formalLimitsUnchanged": {
+    "durationSeconds": 7200,
+    "warmupTurns": 20,
+    "measuredTurns": 1000,
+    "turnDeadlineMs": 60000,
+    "cleanupDeadlineMs": 10000,
+    "maxRssGrowthMb": 128,
+    "maxResourceGrowth": 8
+  },
+  "sourceSnapshot": [
+    {
+      "file": "packages/cli/__tests__/fixtures/evolution-durable-store.js",
+      "sha256": "2e4842ef403c2570fb9d583660905e081ec0f0dea9354f0409a67c830ea8c484",
+      "baseSha256": "15f2c1eb8177c564b2d79357d6bbff0e7543c36e9a276f2f4840c0aefbfc01e8"
+    },
+    {
+      "file": "packages/cli/__tests__/fixtures/evolution-workbench-file-resources.js",
+      "sha256": "f40673aefd8f2eb4f3ca95ec17de89733897e56a4b5b2cddb50f3f3acf5cc178",
+      "baseSha256": "cd3f6cdcd25bfb7d66fc21efc2a42523f02af206303f33d3d3f173edc48a5928"
+    },
+    {
+      "file": "packages/cli/__tests__/fixtures/evolution-workbench-rollback.js",
+      "sha256": "72ae01785b43e693ecfc84c4291d8e3a4ca3a7b0f1d56440287d6942ccefb661",
+      "baseSha256": "9c595688fc5d49dd209aea5764c700f27b1bd930436977ddb72a1a40d1dfbc99"
+    },
+    {
+      "file": "packages/cli/__tests__/fixtures/evolution-workbench-runtime.js",
+      "sha256": "2061b8dd1d42ca06c62dcb6100f7b940d566e1e01f819817b12125163bcfe79f",
+      "baseSha256": "c391306e09bd02c0af1562af9d7f07c98ce62436fa11837e3d84b1d9195ed682"
+    },
+    {
+      "file": "packages/cli/scripts/evolution-workbench-local-test.mjs",
+      "sha256": "a21841f3c120182880782af9eda9f205eb1b307041d4f322988690308ecbe94c",
+      "baseSha256": "2c315bb5fc05e2a09f2a41d7448c0cd3e65398a0dc4e7967d532e4ca4bee3198"
+    },
+    {
+      "file": "packages/vscode-extension/test/settings-ui-smoke.cjs",
+      "sha256": "5588a591aa12db8a1c47dbc8c239f0e3e3111d5bbc3dc963c8d953979c119fc3",
+      "baseSha256": "fa0555b3e39d74071fc7f7cf9947c9f89cd4be7d54c83800ad3d5788d3f0a874"
+    }
+  ],
+  "frozenSource": [
+    {
+      "file": "packages/cli/src/lib/evolution/evolution-private-storage.js",
+      "sha256": "f7ee1fdd6f52607d176e3b1dad3138c777d7ed759da8f33278f5442ed4330422",
+      "baseSha256": "f7ee1fdd6f52607d176e3b1dad3138c777d7ed759da8f33278f5442ed4330422"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/evolution-windows-directory-durability.js",
+      "sha256": "fce9da65ca616c047aebdb2ae08637da48ded7e0647137c9c72045cab66f5937",
+      "baseSha256": "fce9da65ca616c047aebdb2ae08637da48ded7e0647137c9c72045cab66f5937"
+    },
+    {
+      "file": "packages/session-core/lib/private-storage.js",
+      "sha256": "949fa9de4d5906d100094ff95b3d30efe67d65fb733310c702bca9692f552ef6",
+      "baseSha256": "949fa9de4d5906d100094ff95b3d30efe67d65fb733310c702bca9692f552ef6"
+    },
+    {
+      "file": ".github/workflows/ide-extensions.yml",
+      "sha256": "ff43eb19b6328ca94aad5ccca6f81e5427c9ad8e9a82513a72ee6ecc48857531",
+      "baseSha256": "ff43eb19b6328ca94aad5ccca6f81e5427c9ad8e9a82513a72ee6ecc48857531"
+    },
+    {
+      "file": ".github/workflows/cli-reliability-soak.yml",
+      "sha256": "2ee14865837499caf3e6d6706a5b49381ef7817815893f9e391c6a06d048eb10",
+      "baseSha256": "2ee14865837499caf3e6d6706a5b49381ef7817815893f9e391c6a06d048eb10"
+    }
+  ],
+  "files": [
+    {
+      "path": "cloud-job.raw.json",
+      "bytes": 4179,
+      "sha256": "d2f52582db8bc104f881f5ff51ae2be67af7f6349a25217f35e21523b448c855"
+    },
+    {
+      "path": "cloud-job.raw.log",
+      "bytes": 154560,
+      "sha256": "2cffbb7665327a85f6656010a03a830109e619335316fd7713d7bc0cb027773b"
+    },
+    {
+      "path": "cloud-browser.raw.zip",
+      "bytes": 269116,
+      "sha256": "fd16e8093f6a7da8d9c9845794c73af5a55b9f43dcbaaaede116f532c84f239c"
+    },
+    {
+      "path": "cloud-artifacts.raw.json",
+      "bytes": 4725,
+      "sha256": "fe6c676673cfe7ea9e99b20374e3f20177d6ea0dbb94995a76bf8c0a07aa91af"
+    },
+    {
+      "path": "cloud-entries.raw.json",
+      "bytes": 1270,
+      "sha256": "63bd99e6ae2f16943da1850d6dab69ccc8a039afe32fc45b90f95d73d70b0d5b"
+    },
+    {
+      "path": "cloud-result.raw.json",
+      "bytes": 90,
+      "sha256": "144aaeaf66e94671678993ed2d1f85cfee76760bc01f82b0848cd5b30fe0bd2b"
+    },
+    {
+      "path": "child-process-diagnostic.raw.cjs",
+      "bytes": 965,
+      "sha256": "e891700289f75e7a94dd902144e2491a003d79897c721d75c24abb367b3c17f6"
+    },
+    {
+      "path": "before-children.raw.jsonl",
+      "bytes": 66825,
+      "sha256": "3284d4e7f795e3c161d2cc8f5f1cfd69e8d8daad3126a5561f5b9ae16845c989"
+    },
+    {
+      "path": "before-process.raw.json",
+      "bytes": 175,
+      "sha256": "24cf8f0e0bbb1df706a09a623c2b40fe46bdf4c49a1e06818ec48eecebc52070"
+    },
+    {
+      "path": "before-external-stop.raw.json",
+      "bytes": 404,
+      "sha256": "43d9409f266be9654fffc22fac909b70e3e7c55cf555130e1a0610c42b0267b3"
+    },
+    {
+      "path": "intermediate-identity-flush.raw.log",
+      "bytes": 1904,
+      "sha256": "b0f97e9c593a040fc3224b5f6225a79e9c0d7fc8c2269c42272354901d3df65c"
+    },
+    {
+      "path": "intermediate-identity-flush-exit.raw.json",
+      "bytes": 222,
+      "sha256": "557baf8505738f38aff128e5ba403fd41b01ed98fbecb4181920180e327a7b62"
+    },
+    {
+      "path": "broad-experiment-external-stop.raw.json",
+      "bytes": 314,
+      "sha256": "5b2305ee2d35da5c6960c9ba65b44b6ba633a649042f163dc4295c46938df656"
+    },
+    {
+      "path": "broad-experiment.raw.log",
+      "bytes": 9534,
+      "sha256": "bd6559fd2411b3ae5a18a85527409d5e9305e3587c8e913abdbdc7153004e4f1"
+    },
+    {
+      "path": "broad-boundary-failure.raw.json",
+      "bytes": 49939,
+      "sha256": "7ddf5d0860373ea61546b58fab23bd6686986cc679d66f259aeaf73c9b6050d3"
+    },
+    {
+      "path": "browser-final.raw.log",
+      "bytes": 372,
+      "sha256": "d2eacba5307fab76c32829f6aba8bb1b7216805fe62cdb2c0cc06c5a91693a9e"
+    },
+    {
+      "path": "browser-final-exit.raw.json",
+      "bytes": 257,
+      "sha256": "099c0430d6a43c4b2610b623f25e3dba8b73be6824c25af64382ab8e9084761d"
+    },
+    {
+      "path": "browser-final-result.raw.json",
+      "bytes": 209,
+      "sha256": "7d73abd7e3105b97b1052d5d8716291ce8b8452daaa1eccc616b09d9a75c4f36"
+    },
+    {
+      "path": "browser-final-rollback.png",
+      "bytes": 83594,
+      "sha256": "7d5aff0d9835c3d9e1edd2f3b5514f075c9fb2fb6855c278264e7bab52b1a1af"
+    },
+    {
+      "path": "resources-final.raw.json",
+      "bytes": 4612,
+      "sha256": "bd915703466249dfd877f4115222ff30b4aaa542c9126ea18b0d5c0056c243e0"
+    },
+    {
+      "path": "resources-final.raw.log",
+      "bytes": 1352,
+      "sha256": "887462794ed73bf8639a2c655169b8662363b5857ac92533b0b287bfe6ada231"
+    },
+    {
+      "path": "control-final.raw.json",
+      "bytes": 3031,
+      "sha256": "1f1d0c2275011fc14577a100d9883b9979345a9bfb4f4cfc1a74401b8c35e2ae"
+    },
+    {
+      "path": "control-final.raw.log",
+      "bytes": 1168,
+      "sha256": "ad3babd97aaaddc4b7aff4ef64882e29126b78513ace8fe55c3a9b41baaf2d18"
+    }
+  ]
+}

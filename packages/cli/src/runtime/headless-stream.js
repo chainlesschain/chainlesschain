@@ -3787,10 +3787,17 @@ async function runAgentHeadlessStreamInWorkspace(
       })),
       "readVerifiedProjection",
     );
-    return requireSynchronousRecoveryResult(
+    const appended = requireSynchronousRecoveryResult(
       store.appendToolRoundsIfMessagesMatch(sessionId, messages, expected),
       "appendToolRoundsIfMessagesMatch",
     );
+    if (typeof appended?.hash !== "string" || !appended.hash) {
+      throw Object.assign(
+        new Error("Tool round settlement did not return its durable head"),
+        { code: "CC_SESSION_TOOL_ROUND_SETTLEMENT_HEAD_UNKNOWN" },
+      );
+    }
+    return appended;
   };
   const settleToolRoundsForHost = (phase, clientMessageId = null) => {
     try {

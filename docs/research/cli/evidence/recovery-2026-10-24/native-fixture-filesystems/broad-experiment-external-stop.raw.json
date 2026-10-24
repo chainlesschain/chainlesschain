@@ -1,0 +1,6 @@
+﻿{
+    "at":  "2026-10-24T08:52:03.2907819Z",
+    "pid":  24564,
+    "reason":  "Broad fixture migration validation stopped before completion; revert unrelated fixture changes and validate a Workbench-scoped repair. Intermediate failures are retained and do not qualify release.",
+    "complete":  false
+}

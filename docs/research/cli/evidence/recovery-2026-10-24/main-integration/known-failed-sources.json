@@ -2,6 +2,15 @@
   "schema": "chainlesschain.actual-failed-release-sources/v1",
   "sources": [
     {
+      "sha": "35f7c7231e552280a0f565818b1986115fb3915d",
+      "reason": "Exact Windows Workbench browser approval saved notice exceeded its unchanged 120000ms wait. A local partial startup diagnostic confirms repeated PowerShell ACL operations through the synthetic filesystem. Preserve the cloud failure; the local diagnostic was manually stopped during initialization, not a natural browser timeout.",
+      "runId": 40076514139,
+      "jobId": 120821002934,
+      "artifactId": 12554130711,
+      "archiveSha256": "fd16e8093f6a7da8d9c9845794c73af5a55b9f43dcbaaaede116f532c84f239c",
+      "evidence": "docs/research/cli/evidence/recovery-2026-10-24/native-fixture-filesystems/preparation.json"
+    },
+    {
       "sha": "9b198f348a5c38466e0afc57562fee3b935815fe",
       "reason": "Exact Context/Memory Windows CI times out its real Agent SDK E2E after the original 180000ms. The unchanged local source reproduces the timeout. A separate content-free trace records init only about 113s after diagnostic startup, then one user input but no model request or result, with repeated slow file ACL repairs; a live child query confirms PowerShell. The signed test-deployment fixture supplies a custom filesystem with synthetic directory descriptors. Replacing it with the unchanged production adapter passes the same E2E in about 57s without changing its deadline or assertions. Other green gates do not qualify this source.",
       "runId": 40074676993,
