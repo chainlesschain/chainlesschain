@@ -2,7 +2,10 @@ import { openSync, readSync, closeSync } from "node:fs";
 import { types } from "node:util";
 import { createRequire } from "node:module";
 import { transportErrorDetails } from "../src/lib/transport-error-details.js";
-import { storageFailureCodesFromMessage } from "../src/lib/storage-failure-cause-codes.js";
+import {
+  storageFailureCodesFromMessage,
+  storageFailureStageFromMessage,
+} from "../src/lib/storage-failure-cause-codes.js";
 
 const MAX_BYTES = 65_536;
 const MAX_EVENTS = 128;
@@ -56,17 +59,22 @@ function transportDetails(value) {
 export function reliabilityResultFailure(event, turn) {
   if (data(event, "is_error") === false) return null;
   const details = data(event, "error_details");
-  const storageCauseCodes =
+  const isStorageFailure =
     data(event, "code") === "CC_AGENT_EVOLUTION_INGRESS_FAILED" &&
-    data(event, "subtype") === "error_evolution_ingress"
-      ? storageFailureCodesFromMessage(data(event, "error"))
-      : [];
+    data(event, "subtype") === "error_evolution_ingress";
+  const storageCauseCodes = isStorageFailure
+    ? storageFailureCodesFromMessage(data(event, "error"))
+    : [];
+  const storageStage = isStorageFailure
+    ? storageFailureStageFromMessage(data(event, "error"))
+    : null;
   return {
     turn: Number.isSafeInteger(turn) && turn > 0 ? turn : null,
     subtype: data(event, "subtype") === "error" ? "error" : "unknown",
     errorDetails:
       data(details, "kind") === "transport" ? transportDetails(details) : null,
     ...(storageCauseCodes.length ? { storageCauseCodes } : {}),
+    ...(storageStage ? { storageStage } : {}),
   };
 }
 

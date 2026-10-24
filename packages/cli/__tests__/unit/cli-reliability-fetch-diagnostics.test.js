@@ -203,6 +203,60 @@ describe("reliability fetch diagnostics", () => {
     ).not.toHaveProperty("storageCauseCodes");
   });
 
+  it("projects fixed artifact stages without changing ingress classification", () => {
+    const base = {
+      is_error: true,
+      subtype: "error_evolution_ingress",
+      code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+    };
+    expect(
+      reliabilityResultFailure(
+        {
+          ...base,
+          error:
+            "private path [storage_stage: model-projection/read-bytes] [storage_cause_codes: CC_ARTIFACT_BOUNDED_READ_FAILED -> SECURE_FILE_IDENTITY_PARENT_RACE]",
+        },
+        17,
+      ),
+    ).toEqual({
+      turn: 17,
+      subtype: "unknown",
+      errorDetails: null,
+      storageCauseCodes: [
+        "CC_ARTIFACT_BOUNDED_READ_FAILED",
+        "SECURE_FILE_IDENTITY_PARENT_RACE",
+      ],
+      storageStage: { artifactType: "model-projection", phase: "read-bytes" },
+    });
+    expect(
+      reliabilityResultFailure(
+        {
+          ...base,
+          error: "private [storage_stage: trusted-projection/pre-index]",
+        },
+        17,
+      ).storageStage,
+    ).toEqual({ artifactType: "trusted-projection", phase: "pre-index" });
+    for (const event of [
+      { ...base, error: " [storage_stage: secret/read-bytes]" },
+      { ...base, error: " [storage_stage: model-projection/secret]" },
+      {
+        ...base,
+        code: "unknown",
+        error: " [storage_stage: model-projection/read-bytes]",
+      },
+      {
+        ...base,
+        get error() {
+          throw new Error("private");
+        },
+      },
+    ])
+      expect(reliabilityResultFailure(event, 17)).not.toHaveProperty(
+        "storageStage",
+      );
+  });
+
   it("reprojects preload records without messages, endpoints, or private data", () => {
     const path = file([
       { event: "enabled", passive: true },

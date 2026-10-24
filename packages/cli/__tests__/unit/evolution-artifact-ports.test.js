@@ -32,6 +32,7 @@ import {
   EVOLUTION_ARTIFACT_REF_SCHEMA,
   EVOLUTION_ARTIFACT_RESOLUTION_SCHEMA,
 } from "../../src/lib/evolution/evolution-ledger.js";
+import { storageFailureStage } from "../../src/lib/storage-failure-cause-codes.js";
 
 const SECRET = "test-only-evolution-artifact-envelope-secret";
 const ALGORITHM = "hmac-sha256";
@@ -228,6 +229,79 @@ describe("EvolutionArtifactPorts", () => {
       "utf8",
     );
   }
+
+  it.each([
+    ["pre-index", EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE],
+    ["publish", EVOLUTION_ARTIFACT_STORE_FAILED_CODE],
+    ["post-index", EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE],
+    ["authentication", EVOLUTION_ARTIFACT_SIGNATURE_INVALID_CODE],
+    ["read-bytes", EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE],
+    ["final-lease", EVOLUTION_ARTIFACT_EXPIRED_CODE],
+  ])(
+    "retains the original %s failure while identifying its publication boundary",
+    (phase, code) => {
+      const original = Object.assign(
+        new Error("private injected storage failure"),
+        { code: "EIO" },
+      );
+      let published = false;
+      let integrityReads = 0;
+      class DiagnosticStore extends ArtifactStore {
+        publishDataOnce(options) {
+          if (phase === "publish") throw original;
+          const publication = super.publishDataOnce(options);
+          published = true;
+          if (phase === "post-index")
+            fs.writeFileSync(this._indexFile(), "{broken\n");
+          return publication;
+        }
+        storedPath(entry) {
+          if (published && phase === "read-bytes") throw original;
+          return super.storedPath(entry);
+        }
+        verifyIntegrity(entry, bounds) {
+          const result = super.verifyIntegrity(entry, bounds);
+          if (phase === "final-lease" && ++integrityReads === 2)
+            nowMs += 31_000;
+          return result;
+        }
+      }
+      store = new DiagnosticStore({ dir: storeDir, now: () => nowMs });
+      ports = new EvolutionArtifactPorts({
+        artifactStore: store,
+        audience: AUDIENCE,
+        currentAuthorityResolver,
+        envelopeSigner,
+        envelopeVerifier,
+        now: () => nowMs,
+        tenantId: TENANT_ID,
+      });
+      if (phase === "pre-index")
+        fs.writeFileSync(path.join(storeDir, "index.jsonl"), "{broken\n");
+      if (phase === "authentication")
+        envelopeVerifier.verify.mockReturnValue(false);
+      const error = capturedError(() => publish({ type: "model-projection" }));
+      expect(error.code).toBe(code);
+      expect(storageFailureStage(error)).toEqual({
+        artifactType: "model-projection",
+        phase,
+      });
+      expect(error).not.toHaveProperty("storageStage");
+      if (phase === "publish" || phase === "read-bytes")
+        expect(error.cause).toBe(original);
+      if (["authentication", "read-bytes", "final-lease"].includes(phase))
+        expect(readIndex()).toHaveLength(1);
+    },
+  );
+
+  it("distinguishes trusted-component entry failures from model postpublication failures", () => {
+    fs.writeFileSync(path.join(storeDir, "index.jsonl"), "{broken\n");
+    const error = capturedError(() => publish({ type: "trusted-projection" }));
+    expect(storageFailureStage(error)).toEqual({
+      artifactType: "trusted-projection",
+      phase: "pre-index",
+    });
+  });
 
   it("persists canonical bytes with an exact signed-lineage envelope and resolves a frozen value", () => {
     const result = publish();
