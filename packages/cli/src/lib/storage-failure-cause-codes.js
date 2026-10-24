@@ -27,6 +27,7 @@ const CODES = new Map(
     "CC_EVOLUTION_LEDGER_EVENT_CONFLICT",
     "CC_EVOLUTION_LEDGER_HEAD_CONFLICT",
     "CC_EVOLUTION_LEDGER_LOCK_UNAVAILABLE",
+    "CC_EVOLUTION_LEDGER_PREFIX_READER_FAILED",
     "CC_EVOLUTION_LEDGER_RANDOM_FAILED",
     "CC_EVOLUTION_LEDGER_RECEIPT_INVALID",
     "CC_EVOLUTION_LEDGER_SCHEMA_INVALID",
@@ -61,6 +62,145 @@ const CODES = new Map(
   ].map((code) => [code, code]),
 );
 const MAX_CAUSES = 6;
+// Match only fixed source literals paired with their own error code. These
+// tokens identify guard blocks; composite guards do not identify a field or
+// prove clock rollback. Observed messages are never retained by diagnostics.
+const REASONS = new Map([
+  [
+    "CC_ARTIFACT_BOUNDED_READ_FAILED",
+    new Map([
+      ["artifact path and descriptor identities differ", "bounded-path-handle"],
+      [
+        "artifact descriptor changed during bounded read",
+        "bounded-descriptor-changed",
+      ],
+      [
+        "artifact pathname changed during bounded read",
+        "bounded-pathname-changed",
+      ],
+      ["artifact path is not physically canonical", "bounded-path-canonical"],
+    ]),
+  ],
+  [
+    "CC_EVOLUTION_ARTIFACT_INTEGRITY_FAILED",
+    new Map([
+      ["ArtifactStore root physical identity changed", "store-root-identity"],
+      [
+        "ArtifactStore files root physical identity changed",
+        "store-files-identity",
+      ],
+      [
+        "ArtifactStore sealed directory identity or reader changed",
+        "sealed-directory-or-reader",
+      ],
+      [
+        "stored artifact history directory identity changed",
+        "history-directory-identity",
+      ],
+      [
+        "ArtifactStore index physical identity changed",
+        "index-physical-changed",
+      ],
+      [
+        "ArtifactStore index realpath changed or escaped its root",
+        "index-realpath-changed",
+      ],
+      [
+        "ArtifactStore index descriptor is replaced or oversized",
+        "index-path-handle",
+      ],
+      [
+        "ArtifactStore index changed while its descriptor was read",
+        "index-descriptor-changed",
+      ],
+      [
+        "ArtifactStore index pathname changed during descriptor read",
+        "index-pathname-changed",
+      ],
+      [
+        "ArtifactStore index generation changed during readback",
+        "index-generation-changed",
+      ],
+      [
+        "ArtifactStore.get is not bound to the trusted index snapshot",
+        "index-get-unbound",
+      ],
+      [
+        "ArtifactStore index entry was replaced during readback",
+        "index-entry-changed",
+      ],
+      [
+        "ArtifactStore index entry was replaced during ledger readback",
+        "index-ledger-entry-changed",
+      ],
+      [
+        "ArtifactStore index changed during ledger batch readback",
+        "index-batch-changed",
+      ],
+      [
+        "ArtifactStore index changed during ledger history readback",
+        "index-history-changed",
+      ],
+      [
+        "ArtifactStore post-read integrity verification threw",
+        "artifact-post-read-hook",
+      ],
+      [
+        "stored artifact bytes do not match the signed recordDigest",
+        "artifact-record-digest",
+      ],
+    ]),
+  ],
+  [
+    "CC_EVOLUTION_ARTIFACT_EXPIRED",
+    new Map([
+      [
+        "evolution artifact envelope is not currently valid",
+        "envelope-validity-window",
+      ],
+      [
+        "artifact authority expired before envelope authentication completed",
+        "authentication-clock-window",
+      ],
+      [
+        "artifact authority expired before canonical bytes could be released",
+        "release-clock-window",
+      ],
+      [
+        "artifact publish authority expired before envelope signing completed",
+        "signing-clock-window",
+      ],
+      [
+        "artifact authority expired before ledger batch release",
+        "batch-clock-window",
+      ],
+      [
+        "artifact authority expired before ledger history release",
+        "history-clock-window",
+      ],
+    ]),
+  ],
+  [
+    "CC_EVOLUTION_ARTIFACT_AUTHORITY_DENIED",
+    new Map([
+      ["artifact authority clock moved backwards", "authority-clock-backward"],
+      [
+        "current artifact authority denied or returned an unbound decision",
+        "authority-decision-unbound",
+      ],
+      [
+        "artifact envelope is stale under current policy or revocation authority",
+        "authority-policy-stale",
+      ],
+    ]),
+  ],
+]);
+const REASON_CODES = new Map(
+  [...REASONS].flatMap(([code, messages]) =>
+    [...messages.values()].map((reason) => [reason, code]),
+  ),
+);
+const REASON_MARKER = " [storage_reason: ";
 const MARKER = " [storage_cause_codes: ";
 const STAGE_MARKER = " [storage_stage: ";
 const FAILURE_STAGES = new WeakMap();
@@ -160,10 +300,78 @@ export function storageFailureCauseCodes(error) {
 export function storageFailureCauseSuffix(error) {
   const codes = storageFailureCauseCodes(error);
   const stage = storageFailureStage(error);
+  const reason = storageFailureReason(error);
   return (
+    (reason && codes.includes(REASON_CODES.get(reason))
+      ? `${REASON_MARKER}${reason}]`
+      : "") +
     (stage ? `${STAGE_MARKER}${stage.artifactType}/${stage.phase}]` : "") +
     (codes.length ? `${MARKER}${codes.join(" -> ")}]` : "")
   );
+}
+
+// Unlike legacy cause-code projection, reasons require own data properties.
+// Callers reject proxies before this helper; no prototype traversal or getters.
+function ownData(value, key) {
+  const descriptor = Object.getOwnPropertyDescriptor(value, key);
+  return descriptor && "value" in descriptor ? descriptor.value : undefined;
+}
+
+/** Return only a fixed token from the deepest recognized bounded cause. */
+export function storageFailureReason(error) {
+  let reason = null;
+  try {
+    const seen = new Set();
+    let current = error;
+    for (let depth = 0; depth < MAX_CAUSES; depth++) {
+      if (
+        current === null ||
+        typeof current !== "object" ||
+        types.isProxy(current) ||
+        seen.has(current)
+      )
+        break;
+      seen.add(current);
+      const code = ownData(current, "code");
+      const messages = typeof code === "string" ? REASONS.get(code) : undefined;
+      if (messages) {
+        const message = ownData(current, "message");
+        const matched =
+          typeof message === "string" ? messages.get(message) : undefined;
+        if (matched) reason = matched;
+      }
+      current = ownData(current, "cause");
+    }
+  } catch {
+    // Observation must never change the original error or exit outcome.
+  }
+  return reason;
+}
+
+/** Accept only a fixed reason followed by the complete legacy suffix. */
+export function storageFailureReasonFromMessage(message) {
+  if (typeof message !== "string") return null;
+  const tail = message.slice(-1024);
+  const offset = tail.lastIndexOf(REASON_MARKER);
+  if (offset < 0) return null;
+  const end = tail.indexOf("]", offset + REASON_MARKER.length);
+  if (end < 0) return null;
+  const candidate = tail.slice(offset + REASON_MARKER.length, end);
+  const code = REASON_CODES.get(candidate);
+  if (!code) return null;
+  const remainder = tail.slice(end + 1);
+  const codes = storageFailureCodesFromMessage(remainder);
+  if (!codes.includes(code)) return null;
+  const stage = storageFailureStageFromMessage(remainder);
+  const expected =
+    (stage ? `${STAGE_MARKER}${stage.artifactType}/${stage.phase}]` : "") +
+    `${MARKER}${codes.join(" -> ")}]`;
+  if (remainder !== expected) return null;
+  // Return the table-owned token rather than retaining untrusted message text.
+  for (const reason of REASONS.get(code).values()) {
+    if (reason === candidate) return reason;
+  }
+  return null;
 }
 
 /** Fixed stage identifiers only; accept a complete marker at the suffix. */
