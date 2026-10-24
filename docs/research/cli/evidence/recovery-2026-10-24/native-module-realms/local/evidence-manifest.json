@@ -1,0 +1,337 @@
+{
+  "baseCommit": "8775e738c870ac54ef392f8e3d1974d3c30dfd86",
+  "capturedAt": "2026-10-24T12:10:33.1214601Z",
+  "nodeVersion": "v22.12.0",
+  "nodeSha256": "b3b117a08ee61efee09e6fd523ab33c0c018da1b570bde08e4fd914dc1170ed6",
+  "sourceHashes": [
+    {
+      "sha256": "cd4425e4d30d2df6d5e1af7d7a33c7430866a45be5e6ebe99591234b4d3a9794",
+      "path": "packages/cli/__tests__/helpers/native-evolution-composition.cjs"
+    },
+    {
+      "sha256": "c05f9f8ff6a17a019837f1ec2fcc756833fc9d4609192a12fa0b7d9ab01c6de7",
+      "path": "packages/cli/__tests__/unit/governed-hub-sdk-copy.test.js"
+    },
+    {
+      "sha256": "82d502cb37be26462ba262de0cf91627f8c0c73fe04b7bf8178f3759411bc416",
+      "path": "packages/cli/__tests__/unit/agent-evolution-runtime-composition.test.js"
+    },
+    {
+      "sha256": "25ab81b85340d7fd814c182699fcd34bde07fc536e43f956aa8e42ff77cddf96",
+      "path": "packages/cli/src/lib/evolution/evolution-windows-directory-durability.js"
+    }
+  ],
+  "runs": [
+    {
+      "name": "baseline-resolver-success",
+      "stage": "unmodified 8775e738c870ac54ef392f8e3d1974d3c30dfd86",
+      "executable": "C:/code/chainlesschain/.work/cli-ide-recovery-20261023/node-22.12.0/node-verified.exe",
+      "arguments": [
+        "../../node_modules/vitest/vitest.mjs",
+        "run",
+        "__tests__/unit/governed-hub-sdk-copy.test.js",
+        "-t",
+        "uses app-copy embedding and LLM brands for resolver drain \\(success\\)",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--reporter=verbose",
+        "--reporter=json",
+        "--outputFile.json=C:/Users/longfa/AppData/Local/Temp/cc118-sdk-realm-fix-20261024/baseline-resolver-success.json"
+      ],
+      "workingDirectory": "C:/code/chainlesschain/.work/cc118-native-ports/packages/cli",
+      "passed": 0,
+      "failed": 1,
+      "success": false,
+      "json": {
+        "sha256": "3548fd352a16824054838953b1ed8458936ccf1a5e961b835c23a6d16108d0d4",
+        "path": "C:/Users/longfa/AppData/Local/Temp/cc118-sdk-realm-fix-20261024/baseline-resolver-success.json"
+      },
+      "stdout": {
+        "sha256": "370f32ee7875e3bff77557908bd2bf63d1beee73ab44688966448a6c107de6cc",
+        "path": "C:/Users/longfa/AppData/Local/Temp/cc118-sdk-realm-fix-20261024/baseline-resolver-success.stdout.log"
+      }
+    },
+    {
+      "name": "fixed-resolver-success",
+      "stage": "native fixture bridge only",
+      "executable": "C:/code/chainlesschain/.work/cli-ide-recovery-20261023/node-22.12.0/node-verified.exe",
+      "arguments": [
+        "../../node_modules/vitest/vitest.mjs",
+        "run",
+        "__tests__/unit/governed-hub-sdk-copy.test.js",
+        "-t",
+        "uses app-copy embedding and LLM brands for resolver drain \\(success\\)",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--reporter=verbose",
+        "--reporter=json",
+        "--outputFile.json=C:/Users/longfa/AppData/Local/Temp/cc118-sdk-realm-fix-20261024/fixed-resolver-success.json"
+      ],
+      "workingDirectory": "C:/code/chainlesschain/.work/cc118-native-ports/packages/cli",
+      "passed": 1,
+      "failed": 0,
+      "success": true,
+      "json": {
+        "sha256": "f1de5937a2a457940c14b3ee358b7ea6aea99d24b71c9612601318c0aac57cac",
+        "path": "C:/Users/longfa/AppData/Local/Temp/cc118-sdk-realm-fix-20261024/fixed-resolver-success.json"
+      },
+      "stdout": {
+        "sha256": "9b1b26e2b2f9a5949a5466cc9d7de38501f692990a7360de21c5ed23139f4f95",
+        "path": "C:/Users/longfa/AppData/Local/Temp/cc118-sdk-realm-fix-20261024/fixed-resolver-success.stdout.log"
+      }
+    },
+    {
+      "name": "sdk-copy-full",
+      "stage": "native fixture bridge plus two regression controls",
+      "executable": "C:/code/chainlesschain/.work/cli-ide-recovery-20261023/node-22.12.0/node-verified.exe",
+      "arguments": [
+        "../../node_modules/vitest/vitest.mjs",
+        "run",
+        "__tests__/unit/governed-hub-sdk-copy.test.js",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--reporter=verbose",
+        "--reporter=json",
+        "--outputFile.json=C:/Users/longfa/AppData/Local/Temp/cc118-sdk-realm-fix-20261024/sdk-copy-full.json"
+      ],
+      "workingDirectory": "C:/code/chainlesschain/.work/cc118-native-ports/packages/cli",
+      "passed": 11,
+      "failed": 0,
+      "success": true,
+      "json": {
+        "sha256": "1f45423badb3f7a56f7ca4b24b64efba3f0724558c7b4bbf65bf47021bbfe897",
+        "path": "C:/Users/longfa/AppData/Local/Temp/cc118-sdk-realm-fix-20261024/sdk-copy-full.json"
+      },
+      "stdout": {
+        "sha256": "79f0487924af0afe0791cfec7f40ce242aec955119804334fc425be0c5aa33ad",
+        "path": "C:/Users/longfa/AppData/Local/Temp/cc118-sdk-realm-fix-20261024/sdk-copy-full.stdout.log"
+      }
+    },
+    {
+      "name": "native-composition-controls",
+      "stage": "native fixture bridge only; exposes duplicate Koffi type and missing local dependencies",
+      "executable": "C:/code/chainlesschain/.work/cli-ide-recovery-20261023/node-22.12.0/node-verified.exe",
+      "arguments": [
+        "../../node_modules/vitest/vitest.mjs",
+        "run",
+        "__tests__/unit/agent-evolution-runtime-composition.test.js",
+        "-t",
+        "Desktop|IPC MCP",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--reporter=verbose",
+        "--reporter=json",
+        "--outputFile.json=C:/Users/longfa/AppData/Local/Temp/cc118-sdk-realm-fix-20261024/native-composition-controls.json"
+      ],
+      "workingDirectory": "C:/code/chainlesschain/.work/cc118-native-ports/packages/cli",
+      "passed": 0,
+      "failed": 29,
+      "success": false,
+      "json": {
+        "sha256": "d3f46140bba7322d07af73e875ff2aeb813183335deb6c6ce7cbf83d496e7760",
+        "path": "C:/Users/longfa/AppData/Local/Temp/cc118-sdk-realm-fix-20261024/native-composition-controls.json"
+      },
+      "stdout": {
+        "sha256": "acee52f7642ebb126392bef16820c0d7cd51d6ad6ca6578d75d79809f7b04b2e",
+        "path": "C:/Users/longfa/AppData/Local/Temp/cc118-sdk-realm-fix-20261024/native-composition-controls.stdout.log"
+      }
+    },
+    {
+      "name": "baseline-dual-realm-flush",
+      "stage": "new regression before FFI fix",
+      "executable": "C:/code/chainlesschain/.work/cli-ide-recovery-20261023/node-22.12.0/node-verified.exe",
+      "arguments": [
+        "../../node_modules/vitest/vitest.mjs",
+        "run",
+        "__tests__/unit/governed-hub-sdk-copy.test.js",
+        "-t",
+        "flushes a real directory through both module realms",
+        "--maxWorkers=1",
+        "--reporter=verbose",
+        "--reporter=json",
+        "--outputFile.json=C:/Users/longfa/AppData/Local/Temp/cc118-sdk-realm-fix-20261024/baseline-dual-realm-flush.json"
+      ],
+      "workingDirectory": "C:/code/chainlesschain/.work/cc118-native-ports/packages/cli",
+      "passed": 0,
+      "failed": 1,
+      "success": false,
+      "json": {
+        "sha256": "ac05ba43d2d320b4be452e25cd745de1ca80c4655b2e37ad2a3a952f0cb476b3",
+        "path": "C:/Users/longfa/AppData/Local/Temp/cc118-sdk-realm-fix-20261024/baseline-dual-realm-flush.json"
+      },
+      "stdout": {
+        "sha256": "2af464b7d662acc1080c776dcca02185dac0081dcfa5e4da9f122053da8303ec",
+        "path": "C:/Users/longfa/AppData/Local/Temp/cc118-sdk-realm-fix-20261024/baseline-dual-realm-flush.stdout.log"
+      }
+    },
+    {
+      "name": "fixed-sdk-and-durability",
+      "stage": "final bridge and FFI private-type-scope fix",
+      "executable": "C:/code/chainlesschain/.work/cli-ide-recovery-20261023/node-22.12.0/node-verified.exe",
+      "arguments": [
+        "../../node_modules/vitest/vitest.mjs",
+        "run",
+        "__tests__/unit/governed-hub-sdk-copy.test.js",
+        "__tests__/unit/evolution-windows-directory-durability.test.js",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--reporter=verbose",
+        "--reporter=json",
+        "--outputFile.json=C:/Users/longfa/AppData/Local/Temp/cc118-sdk-realm-fix-20261024/fixed-sdk-and-durability.json"
+      ],
+      "workingDirectory": "C:/code/chainlesschain/.work/cc118-native-ports/packages/cli",
+      "passed": 35,
+      "failed": 0,
+      "success": true,
+      "json": {
+        "sha256": "ff0ff1a7a735550223d5b4935f0455e8cd8f2911d1655daafa252e6283cb6aae",
+        "path": "C:/Users/longfa/AppData/Local/Temp/cc118-sdk-realm-fix-20261024/fixed-sdk-and-durability.json"
+      },
+      "stdout": {
+        "sha256": "539fe8bed7c27e4942a86dcafbd0559a220bec22c0531b3d817a07ac1eb40be8",
+        "path": "C:/Users/longfa/AppData/Local/Temp/cc118-sdk-realm-fix-20261024/fixed-sdk-and-durability.stdout.log"
+      }
+    },
+    {
+      "name": "fixed-native-host",
+      "stage": "final bridge and FFI private-type-scope fix",
+      "executable": "C:/code/chainlesschain/.work/cli-ide-recovery-20261023/node-22.12.0/node-verified.exe",
+      "arguments": [
+        "../../node_modules/vitest/vitest.mjs",
+        "run",
+        "__tests__/unit/agent-evolution-runtime-composition.test.js",
+        "-t",
+        "opens Desktop host against real durable composition",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--reporter=verbose",
+        "--reporter=json",
+        "--outputFile.json=C:/Users/longfa/AppData/Local/Temp/cc118-sdk-realm-fix-20261024/fixed-native-host.json"
+      ],
+      "workingDirectory": "C:/code/chainlesschain/.work/cc118-native-ports/packages/cli",
+      "passed": 3,
+      "failed": 0,
+      "success": true,
+      "json": {
+        "sha256": "dcdaccb7c421b1a70c21f32a249db0d1ce1aad0a12718087b2ca8a2c7d8a319a",
+        "path": "C:/Users/longfa/AppData/Local/Temp/cc118-sdk-realm-fix-20261024/fixed-native-host.json"
+      },
+      "stdout": {
+        "sha256": "506728a5b16b0ffc017d91de08f191c9a978d6db9f409c427f1aa830e0d436ce",
+        "path": "C:/Users/longfa/AppData/Local/Temp/cc118-sdk-realm-fix-20261024/fixed-native-host.stdout.log"
+      }
+    },
+    {
+      "name": "fixed-native-composition-controls",
+      "stage": "final source; initial isolated deps; 24 passed, 5 missing-dependency failures retained",
+      "executable": "C:/code/chainlesschain/.work/cli-ide-recovery-20261023/node-22.12.0/node-verified.exe",
+      "arguments": [
+        "../../node_modules/vitest/vitest.mjs",
+        "run",
+        "__tests__/unit/agent-evolution-runtime-composition.test.js",
+        "-t",
+        "Desktop|IPC MCP",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--reporter=verbose",
+        "--reporter=json",
+        "--outputFile.json=C:/Users/longfa/AppData/Local/Temp/cc118-sdk-realm-fix-20261024/fixed-native-composition-controls.json"
+      ],
+      "workingDirectory": "C:/code/chainlesschain/.work/cc118-native-ports/packages/cli",
+      "environment": {
+        "NODE_PATH": "C:/Users/longfa/AppData/Local/Temp/cc118-runtime-deps-20261024/node_modules"
+      },
+      "passed": 24,
+      "failed": 5,
+      "success": false,
+      "json": {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc118-sdk-realm-fix-20261024\\fixed-native-composition-controls.json",
+        "sha256": "077d024acec61bfc78c07db836947b447bee789488c30b32bd0a135c622ef2df"
+      },
+      "stdout": {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc118-sdk-realm-fix-20261024\\fixed-native-composition-controls.stdout.log",
+        "sha256": "752ffa03232a06c19b9f622d23895b42d096e6e4b00e41530c5a4ccdc34c7bb0"
+      }
+    },
+    {
+      "name": "fixed-manager-stream",
+      "stage": "final source; fs-extra added only to isolated dependency prefix",
+      "executable": "C:/code/chainlesschain/.work/cli-ide-recovery-20261023/node-22.12.0/node-verified.exe",
+      "arguments": [
+        "../../node_modules/vitest/vitest.mjs",
+        "run",
+        "__tests__/unit/agent-evolution-runtime-composition.test.js",
+        "-t",
+        "keeps a governed Desktop manager stream in one durable Run",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--reporter=verbose",
+        "--reporter=json",
+        "--outputFile.json=C:/Users/longfa/AppData/Local/Temp/cc118-sdk-realm-fix-20261024/fixed-manager-stream.json"
+      ],
+      "workingDirectory": "C:/code/chainlesschain/.work/cc118-native-ports/packages/cli",
+      "environment": {
+        "NODE_PATH": "C:/Users/longfa/AppData/Local/Temp/cc118-runtime-deps-20261024/node_modules"
+      },
+      "passed": 1,
+      "failed": 0,
+      "success": true,
+      "json": {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc118-sdk-realm-fix-20261024\\fixed-manager-stream.json",
+        "sha256": "c7783b44087182584800a8e16adec83897e8e17eebf62ed8470690b1f6ab7c01"
+      },
+      "stdout": {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc118-sdk-realm-fix-20261024\\fixed-manager-stream.stdout.log",
+        "sha256": "551f8324f5697d2d047e57a14280e441daff97d74fc45d164f975e6adcb20d91"
+      }
+    },
+    {
+      "name": "fixed-sqlite-controls",
+      "stage": "final source; worktree-only dependency overlay resolves locked SQLite native binding",
+      "executable": "C:/code/chainlesschain/.work/cli-ide-recovery-20261023/node-22.12.0/node-verified.exe",
+      "arguments": [
+        "../../node_modules/vitest/vitest.mjs",
+        "run",
+        "__tests__/unit/agent-evolution-runtime-composition.test.js",
+        "-t",
+        "governs actual Desktop manager cache storage|isolates concurrent Desktop cache Runs|keeps Desktop prompt summarization",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--reporter=verbose",
+        "--reporter=json",
+        "--outputFile.json=C:/Users/longfa/AppData/Local/Temp/cc118-sdk-realm-fix-20261024/fixed-sqlite-controls.json"
+      ],
+      "workingDirectory": "C:/code/chainlesschain/.work/cc118-native-ports/packages/cli",
+      "environment": {
+        "NODE_PATH": "C:/Users/longfa/AppData/Local/Temp/cc118-runtime-deps-20261024/node_modules"
+      },
+      "passed": 4,
+      "failed": 0,
+      "success": true,
+      "json": {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc118-sdk-realm-fix-20261024\\fixed-sqlite-controls.json",
+        "sha256": "e8a623f2c29d0acd11e5069f4559a3a1a09041768e2394496f3355b497596c49"
+      },
+      "stdout": {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc118-sdk-realm-fix-20261024\\fixed-sqlite-controls.stdout.log",
+        "sha256": "ef7b4b93bf72d2f9b4ef6c8318ab4c4a8451498badc22441b08850703e24fbfa"
+      }
+    }
+  ],
+  "remaining": [],
+  "runtimeAggregate": {
+    "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc118-sdk-realm-fix-20261024\\final-native-composition-summary.json",
+    "sha256": "05135b6c8314f5f2e03eea91e827a5a3344f03a008f144cd7788bbefaacf31a4"
+  },
+  "finalDependencyResolution": {
+    "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc118-sdk-realm-fix-20261024\\resolved-final-runtime-dependencies.json",
+    "sha256": "4207cd18e5ae720322d14d07dbd4344b9e253c8693d9f3a9e62d2cf718206c49"
+  },
+  "dependencyOverlay": {
+    "path": "C:/code/chainlesschain/.work/cc118-runtime-dependency-overlay/receipt.json",
+    "sha256": "65154dbb87b1cf21e0e6ed03ccde4638b02e2b0921b5cfde5d496147a31c5d6a"
+  },
+  "localValidationLimit": "Supplementary local verification under Node 22.12.0; exact release-commit GitHub Actions matrices remain mandatory.",
+  "finalUniqueActiveCases": 64,
+  "updatedAt": "2026-10-24T12:22:23.467Z"
+}

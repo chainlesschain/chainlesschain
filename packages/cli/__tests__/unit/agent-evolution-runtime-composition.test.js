@@ -2255,6 +2255,7 @@ describe("Agent evolution runtime production composition", () => {
       const factory = vi.fn(async ({ runId }) => {
         composition = nativeComposition.createAgentEvolutionRuntimeComposition({
           ...f.config,
+          fsImpl: nativeComposition.createLocalUiEvolutionFileSystem(),
           runId: mode === "wrong-run" ? "borrowed" : runId,
         });
         return composition;
@@ -2326,6 +2327,7 @@ describe("Agent evolution runtime production composition", () => {
         const factory = vi.fn(async ({ runId }) => {
           composition = native.createAgentEvolutionRuntimeComposition({
             ...f.config,
+            fsImpl: native.createLocalUiEvolutionFileSystem(),
             runId,
           });
           return composition;
@@ -2428,6 +2430,7 @@ describe("Agent evolution runtime production composition", () => {
     const host = createDesktopModelIngressHost(async ({ runId }) => {
       const composition = native.createAgentEvolutionRuntimeComposition({
         ...f.config,
+        fsImpl: native.createLocalUiEvolutionFileSystem(),
         runId,
       });
       compositions.push(composition);
@@ -2513,6 +2516,7 @@ describe("Agent evolution runtime production composition", () => {
         const factory = vi.fn(async ({ runId }) => {
           composition = native.createAgentEvolutionRuntimeComposition({
             ...f.config,
+            fsImpl: native.createLocalUiEvolutionFileSystem(),
             runId,
           });
           return composition;
@@ -2607,6 +2611,7 @@ describe("Agent evolution runtime production composition", () => {
         const factory = vi.fn(async ({ runId }) => {
           composition = native.createAgentEvolutionRuntimeComposition({
             ...f.config,
+            fsImpl: native.createLocalUiEvolutionFileSystem(),
             runId,
           });
           return composition;
@@ -2705,6 +2710,7 @@ describe("Agent evolution runtime production composition", () => {
         const factory = vi.fn(async ({ runId }) => {
           composition = native.createAgentEvolutionRuntimeComposition({
             ...f.config,
+            fsImpl: native.createLocalUiEvolutionFileSystem(),
             runId,
           });
           return composition;
@@ -2818,6 +2824,7 @@ describe("Agent evolution runtime production composition", () => {
         const factory = vi.fn(async ({ runId }) => {
           composition = native.createAgentEvolutionRuntimeComposition({
             ...f.config,
+            fsImpl: native.createLocalUiEvolutionFileSystem(),
             runId,
           });
           return composition;
@@ -3062,6 +3069,7 @@ describe("Agent evolution runtime production composition", () => {
     const host = createDesktopModelIngressHost(async ({ runId }) => {
       const composition = native.createAgentEvolutionRuntimeComposition({
         ...f.config,
+        fsImpl: native.createLocalUiEvolutionFileSystem(),
         runId,
       });
       compositions.push(composition);
@@ -3244,6 +3252,7 @@ describe("Agent evolution runtime production composition", () => {
     const host = createDesktopModelIngressHost(async ({ runId }) => {
       const composition = native.createAgentEvolutionRuntimeComposition({
         ...f.config,
+        fsImpl: native.createLocalUiEvolutionFileSystem(),
         runId,
       });
       compositions.push(composition);
@@ -3583,6 +3592,7 @@ describe("Agent evolution runtime production composition", () => {
       const host = createDesktopModelIngressHost(async ({ runId }) => {
         const composition = native.createAgentEvolutionRuntimeComposition({
           ...f.config,
+          fsImpl: native.createLocalUiEvolutionFileSystem(),
           runId,
         });
         compositions.push(composition);

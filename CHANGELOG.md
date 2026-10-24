@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Retain bounded startup diagnostics and completed pipe samples when a reliability-soak child exits before producing output; preserve the original failure criteria and deadlines.
 - Recognize supported closed JavaScript, TypeScript and Python code fences in project instructions without rejecting ordinary code as malformed JSON. Version the new projection policy while preserving historical verification, secret scanning and cumulative budgets.
 - Bind Node 22.12's legacy Windows fast-stat device projection to the same native directory handle using the correct path structure, complete volume serial and 128-bit file ID; reject unbound or changed identities before and after flushing.
+- Give each Windows directory durability module its own native type names so multiple module instances can flush directories in the same process; preserve filesystem authority boundaries and real durability checks.
 - Bind Windows ledger ACL verification to a trusted parent volume when path and descriptor device projections differ; retain full-precision publication identities and reject metadata changes before and after fsync.
 - Classify fixed Windows startup errors without storing their content, and exclude request-context prose from MCP failure-code diagnostics.
 - Give each default Ollama request a fresh connection so long synchronous turns cannot reuse a retired idle socket; preserve explicit dispatchers, governed transport policy and existing request budgets without replaying requests.

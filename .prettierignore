@@ -46,3 +46,7 @@ docs/research/cli/evidence/gap-2026-10-05/completion-checks-20261006/**
 # Keep exact-SHA release readback and host artifacts byte-for-byte.
 docs/research/cli/evidence/gap-2026-10-05/release-0.166.94/**
 !docs/research/cli/evidence/gap-2026-10-05/release-0.166.94/README.md
+
+# Preserve digest-bound native module realm failure and regression reports.
+docs/research/cli/evidence/recovery-2026-10-24/native-module-realms/**
+!docs/research/cli/evidence/recovery-2026-10-24/native-module-realms/README.md

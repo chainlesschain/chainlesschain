@@ -2,6 +2,16 @@
   "schema": "chainlesschain.actual-failed-release-sources/v1",
   "sources": [
     {
+      "sha": "8775e738c870ac54ef392f8e3d1974d3c30dfd86",
+      "reason": "Exact Windows CLI CI unit shard4/16 times out resolver drain at its original90000ms budget. The native ESM composition cannot recognize the Vitest module filesystem brand and correctly retains the custom PowerShell ACL backend. Explicit same-realm fixture factories restore the native path without converting custom ports. This exposes a real Koffi process-global named-type collision, reproduced by a new dual-module real-flush regression and repaired with private initialization-scoped type names. Preserve the actual failed job even though the remaining workflow was cancelled; other green components do not qualify this source.",
+      "runId": 40089805127,
+      "jobId": 120860203572,
+      "artifactId": 12557914977,
+      "jobLogSha256": "0a5e57334847116c6f0105b749827f7459e2cf7132eeb63a2648f4048f268e2d",
+      "archiveSha256": "4ab8c3ad8d6365de17ae1a2fcd9e7c591c5c9ee541bd1ba5d61d90a5fe005102",
+      "evidence": "docs/research/cli/evidence/recovery-2026-10-24/native-module-realms/preparation.json"
+    },
+    {
       "sha": "76491cc313d6057e4babee5223dc48033886e532",
       "reason": "Natural Windows single-worker unit timeout at the original 60000ms budget through synthetic test directory fs forcing repeated PowerShell ACL repair. The original 80040ms failed case passes in about6734ms after the physical fixture repair. Old in-progress matrices were cancelled; no cloud assertion failure is claimed.",
       "localFailure": true,

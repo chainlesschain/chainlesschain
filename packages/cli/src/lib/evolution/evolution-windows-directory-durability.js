@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
+import { randomUUID } from "node:crypto";
 
 const require = createRequire(import.meta.url);
 const DIRECTORY_ATTRIBUTE = 0x10;
@@ -18,16 +19,21 @@ function loadWindowsApi() {
   if (windowsApi !== null) return windowsApi;
   const koffi = require("koffi");
   const kernel32 = koffi.load("kernel32.dll");
+  // Koffi's named types share a process-wide registry even when this module
+  // is loaded in separate realms. Keep each API's ABI declarations private;
+  // filesystem brands and the API cache remain local to this module instance.
+  const typeScope = randomUUID().replaceAll("-", "");
+  const typeName = (name) => `${name}_${typeScope}`;
   const HANDLE = koffi.pointer(
-    "ChainlessChainEvolutionDirectoryHandle",
+    typeName("ChainlessChainEvolutionDirectoryHandle"),
     koffi.opaque(),
   );
-  const FILETIME = koffi.struct("ChainlessChainEvolutionFileTime", {
+  const FILETIME = koffi.struct(typeName("ChainlessChainEvolutionFileTime"), {
     lowDateTime: "uint32_t",
     highDateTime: "uint32_t",
   });
   const BY_HANDLE_FILE_INFORMATION = koffi.struct(
-    "ChainlessChainEvolutionDirectoryInformation",
+    typeName("ChainlessChainEvolutionDirectoryInformation"),
     {
       fileAttributes: "uint32_t",
       creationTime: FILETIME,
@@ -41,14 +47,20 @@ function loadWindowsApi() {
       fileIndexLow: "uint32_t",
     },
   );
-  const FILE_ID_128 = koffi.struct("ChainlessChainEvolutionFileId128", {
-    low: "uint64_t",
-    high: "uint64_t",
-  });
-  const FILE_ID_INFO = koffi.struct("ChainlessChainEvolutionFileIdInfo", {
-    volumeSerialNumber: "uint64_t",
-    fileId: FILE_ID_128,
-  });
+  const FILE_ID_128 = koffi.struct(
+    typeName("ChainlessChainEvolutionFileId128"),
+    {
+      low: "uint64_t",
+      high: "uint64_t",
+    },
+  );
+  const FILE_ID_INFO = koffi.struct(
+    typeName("ChainlessChainEvolutionFileIdInfo"),
+    {
+      volumeSerialNumber: "uint64_t",
+      fileId: FILE_ID_128,
+    },
+  );
   const statFields = {
     fileId: "int64_t",
     creationTime: "int64_t",
@@ -62,11 +74,11 @@ function loadWindowsApi() {
     numberOfLinks: "uint32_t",
   };
   const FILE_STAT_INFORMATION = koffi.struct(
-    "ChainlessChainEvolutionFileStatInformation",
+    typeName("ChainlessChainEvolutionFileStatInformation"),
     { ...statFields, effectiveAccess: "uint32_t" },
   );
   const FILE_STAT_BASIC_INFORMATION = koffi.struct(
-    "ChainlessChainEvolutionFileStatBasicInformation",
+    typeName("ChainlessChainEvolutionFileStatBasicInformation"),
     {
       ...statFields,
       deviceType: "uint32_t",
@@ -77,15 +89,18 @@ function loadWindowsApi() {
       fileId128: FILE_ID_128,
     },
   );
-  const IO_STATUS_BLOCK = koffi.struct("ChainlessChainEvolutionIoStatus", {
-    status: "intptr_t",
-    information: "uintptr_t",
-  });
+  const IO_STATUS_BLOCK = koffi.struct(
+    typeName("ChainlessChainEvolutionIoStatus"),
+    {
+      status: "intptr_t",
+      information: "uintptr_t",
+    },
+  );
   let GetFileInformationByName = null;
   try {
     const fileApi = koffi.load("api-ms-win-core-file-l2-1-4.dll");
     GetFileInformationByName = fileApi.func(
-      "bool __stdcall GetFileInformationByName(str16 fileName, int informationClass, _Out_ ChainlessChainEvolutionFileStatBasicInformation *information, uint32_t size)",
+      `bool __stdcall GetFileInformationByName(str16 fileName, int informationClass, _Out_ ${typeName("ChainlessChainEvolutionFileStatBasicInformation")} *information, uint32_t size)`,
     );
   } catch {
     // Older Windows versions use libuv's handle-based stat path instead.
@@ -95,23 +110,23 @@ function loadWindowsApi() {
     koffi,
     HANDLE,
     CreateFileW: kernel32.func(
-      "ChainlessChainEvolutionDirectoryHandle __stdcall CreateFileW(str16 fileName, uint32_t desiredAccess, uint32_t shareMode, void *securityAttributes, uint32_t creationDisposition, uint32_t flagsAndAttributes, void *templateFile)",
+      `${typeName("ChainlessChainEvolutionDirectoryHandle")} __stdcall CreateFileW(str16 fileName, uint32_t desiredAccess, uint32_t shareMode, void *securityAttributes, uint32_t creationDisposition, uint32_t flagsAndAttributes, void *templateFile)`,
     ),
     FlushFileBuffers: kernel32.func(
-      "bool __stdcall FlushFileBuffers(ChainlessChainEvolutionDirectoryHandle handle)",
+      `bool __stdcall FlushFileBuffers(${typeName("ChainlessChainEvolutionDirectoryHandle")} handle)`,
     ),
     GetDriveTypeW: kernel32.func(
       "uint32_t __stdcall GetDriveTypeW(str16 rootPathName)",
     ),
     GetFileInformationByHandle: kernel32.func(
-      "bool __stdcall GetFileInformationByHandle(ChainlessChainEvolutionDirectoryHandle handle, _Out_ ChainlessChainEvolutionDirectoryInformation *information)",
+      `bool __stdcall GetFileInformationByHandle(${typeName("ChainlessChainEvolutionDirectoryHandle")} handle, _Out_ ${typeName("ChainlessChainEvolutionDirectoryInformation")} *information)`,
     ),
     GetFileInformationByHandleEx: kernel32.func(
-      "bool __stdcall GetFileInformationByHandleEx(ChainlessChainEvolutionDirectoryHandle handle, int informationClass, _Out_ ChainlessChainEvolutionFileIdInfo *information, uint32_t size)",
+      `bool __stdcall GetFileInformationByHandleEx(${typeName("ChainlessChainEvolutionDirectoryHandle")} handle, int informationClass, _Out_ ${typeName("ChainlessChainEvolutionFileIdInfo")} *information, uint32_t size)`,
     ),
     GetFileInformationByName,
     NtQueryInformationFile: ntdll.func(
-      "int32_t __stdcall NtQueryInformationFile(ChainlessChainEvolutionDirectoryHandle handle, _Out_ ChainlessChainEvolutionIoStatus *ioStatus, _Out_ ChainlessChainEvolutionFileStatInformation *information, uint32_t size, int informationClass)",
+      `int32_t __stdcall NtQueryInformationFile(${typeName("ChainlessChainEvolutionDirectoryHandle")} handle, _Out_ ${typeName("ChainlessChainEvolutionIoStatus")} *ioStatus, _Out_ ${typeName("ChainlessChainEvolutionFileStatInformation")} *information, uint32_t size, int informationClass)`,
     ),
     GetLastError: kernel32.func("uint32_t __stdcall GetLastError()"),
     GetVolumeInformationW: kernel32.func(
@@ -121,7 +136,7 @@ function loadWindowsApi() {
       "bool __stdcall GetVolumePathNameW(str16 fileName, _Out_ uint16_t *volumePathName, uint32_t bufferLength)",
     ),
     CloseHandle: kernel32.func(
-      "bool __stdcall CloseHandle(ChainlessChainEvolutionDirectoryHandle handle)",
+      `bool __stdcall CloseHandle(${typeName("ChainlessChainEvolutionDirectoryHandle")} handle)`,
     ),
     BY_HANDLE_FILE_INFORMATION,
     FILE_ID_INFO,

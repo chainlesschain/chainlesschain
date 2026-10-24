@@ -187,3 +187,8 @@ docs/research/cli/evidence/recovery-2026-10-24/tool-round-ack/README.md -linguis
 docs/research/cli/evidence/recovery-2026-10-24/physical-fixture-filesystems/** -text !eol -whitespace linguist-generated
 docs/research/cli/evidence/recovery-2026-10-24/physical-fixture-filesystems/preparation.json -linguist-generated
 docs/research/cli/evidence/recovery-2026-10-24/physical-fixture-filesystems/README.md -linguist-generated
+
+# Native module realm recovery keeps original CI and local regression bytes.
+docs/research/cli/evidence/recovery-2026-10-24/native-module-realms/** -text !eol -whitespace linguist-generated
+docs/research/cli/evidence/recovery-2026-10-24/native-module-realms/preparation.json -linguist-generated
+docs/research/cli/evidence/recovery-2026-10-24/native-module-realms/README.md -linguist-generated
