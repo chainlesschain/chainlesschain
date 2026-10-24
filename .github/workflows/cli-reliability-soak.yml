@@ -136,7 +136,7 @@ on:
         required: true
         default: "all"
         type: choice
-        options: ["all", "session-message", "cli-diagnostic"]
+        options: ["all", "session-message", "cli-diagnostic", "cli-windows-diagnostic"]
       commit_sha:
         description: "Exact full commit SHA to test (blank uses selected ref)"
         required: false
@@ -158,12 +158,12 @@ concurrency:
 
 jobs:
   reliability:
-    if: github.event_name != 'workflow_dispatch' || inputs.component == 'all' || inputs.component == 'cli-diagnostic'
+    if: github.event_name != 'workflow_dispatch' || inputs.component == 'all' || inputs.component == 'cli-diagnostic' || inputs.component == 'cli-windows-diagnostic'
     name: "disk/pipe/TTY/SSH/MCP/resource soak (${{ matrix.os }})"
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: ${{ inputs.component == 'cli-windows-diagnostic' && fromJSON('["windows-latest"]') || fromJSON('["ubuntu-latest", "windows-latest", "macos-latest"]') }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 300
     env:
