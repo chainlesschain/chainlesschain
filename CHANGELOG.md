@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Store new local Agent Evidence in five fixed type partitions selected by an authenticated Run layout marker. Retain permanent Run history, existing TTLs and legacy Run reopening; reject missing or replaced partitions without searching another store.
 - Secure independent Windows ledger roots in one ACL batch before creating child directories, preserving physical identity checks and private parent permissions.
 - Use an isolated native Windows ACL worker for Node hosts, retaining the existing helper deadlines and fresh object identity checks. Electron retains its existing backend; native failures do not fall back to PowerShell.
+- Preserve the native ACL backend for Evolution witness, manifest catalog and head storage using default Node fs or the unchanged repository runtime adapter. Modified and custom filesystem ports retain their explicit dependencies and owner-only ACL verification.
 - Retain observations for all twenty concurrent reliability children on failure and await bounded cleanup without replacing the original timeout or deleting storage still in use.
 - Checkpoint duplex timeout diagnostics before retiring the owned process tree; preserve the original failure and retain temporary storage if cleanup cannot be confirmed.
 - Observe transient Darwin process-group permission probes within the original cleanup deadline after a successful group kill; confirm retirement only after explicit process-group absence and root close, without resending termination signals.

@@ -439,6 +439,17 @@ export function isLocalUiEvolutionFileSystem(fsImpl) {
   );
 }
 
+// Only the original adapter inherits every filesystem operation unchanged.
+// A branded object with injected operations must keep its dependency boundary.
+export function isUnmodifiedLocalUiEvolutionFileSystem(fsImpl) {
+  return (
+    isLocalUiEvolutionFileSystem(fsImpl) &&
+    Object.getPrototypeOf(fsImpl) === fs &&
+    Reflect.ownKeys(fsImpl).length === 1 &&
+    Object.hasOwn(fsImpl, "syncDirectorySync")
+  );
+}
+
 export function ensureDirectoryTreeDurable(fsImpl, directory) {
   if (typeof fsImpl?.syncDirectorySync !== "function") {
     fsImpl.mkdirSync(directory, { recursive: true, mode: 0o700 });

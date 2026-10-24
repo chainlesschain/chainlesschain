@@ -5,6 +5,7 @@ import { types as utilTypes } from "node:util";
 
 import { ensurePrivateDirectory, ensurePrivateFile } from "../secure-fs.js";
 import { withFileLock } from "../with-file-lock.js";
+import { evolutionPrivateStorageOptions } from "./evolution-private-storage.js";
 import {
   createEvolutionManifestStateReader,
   captureEvolutionManifestStateReaderDirectoryBoundary,
@@ -96,7 +97,7 @@ export function createEvolutionLedgerFileManifestHeadBackend({
     throw new TypeError("manifest head maximumBytes must be at least 4096");
   }
   const file = path.join(directory, "manifest-head.json");
-  const secureOptions = { deps: { fs: fsImpl }, failIfUnavailable: true };
+  const secureOptions = evolutionPrivateStorageOptions(fsImpl);
   ensurePrivateDirectory(directory, secureOptions);
 
   const invokeCrashHook = (phase, details) => {

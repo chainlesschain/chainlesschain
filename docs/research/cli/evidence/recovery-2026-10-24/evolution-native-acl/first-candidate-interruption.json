@@ -1,0 +1,23 @@
+{
+  "at": "2026-10-24T05:17:02.452Z",
+  "diagnosticOnly": true,
+  "reason": "First candidate misses branded production filesystem adapter; stop before revising source.",
+  "cliPid": 2012,
+  "cleanup": {
+    "deadlineMs": 10000,
+    "elapsedMs": 305.6706,
+    "closed": true,
+    "treeTerminated": true,
+    "confirmed": true,
+    "deadlineExceeded": false,
+    "diagnostics": {
+      "method": "windows-taskkill-tree",
+      "initialExitObserved": false,
+      "signalAttempted": true,
+      "probeCount": 0,
+      "permissionProbeCount": 0,
+      "failureStage": null,
+      "errorCode": null
+    }
+  }
+}

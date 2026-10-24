@@ -4,6 +4,7 @@ import path from "node:path";
 import { types } from "node:util";
 import { ensurePrivateDirectory, ensurePrivateFile } from "../secure-fs.js";
 import { withFileLock } from "../with-file-lock.js";
+import { evolutionPrivateStorageOptions } from "./evolution-private-storage.js";
 import { createEvolutionPhysicalStateReader } from "./evolution-physical-state-reader.js";
 import {
   createEvolutionWitnessSegments,
@@ -246,7 +247,7 @@ export function createEvolutionFileWitness({
       "maximumHistoryBytes must be a safe integer of at least 4096",
     );
   }
-  const secureOptions = { deps: { fs: fsImpl }, failIfUnavailable: true };
+  const secureOptions = evolutionPrivateStorageOptions(fsImpl);
   ensurePrivateDirectory(directory, secureOptions);
   const readerOptions = {
     fsImpl,

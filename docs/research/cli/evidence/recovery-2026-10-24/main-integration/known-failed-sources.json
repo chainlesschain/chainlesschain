@@ -2,6 +2,16 @@
   "schema": "chainlesschain.actual-failed-release-sources/v1",
   "sources": [
     {
+      "sha": "835dbd309c99d0a4b012273b212154e6d31ce286",
+      "reason": "Exact Windows Formal produced one Evolution ingress error at total result 36 and timed out awaiting result 37. A separate unchanged local diagnostic timed out at turn 45. The local diagnostic did not reproduce the cloud ingress error; no root-cause equivalence is claimed. Other green gates do not qualify this source.",
+      "runId": 40062364182,
+      "jobId": 120778420318,
+      "artifactId": 12548253478,
+      "archiveSha256": "2afbbd2a71a9cfd6a1fa3983901f4417ec827ac1a2c3ddbc5609107beeae4e12",
+      "resultSha256": "4abb2de8bfc653a3fdbd0fb0b3cad802cbb7a03046589501cda419916cb837d5",
+      "evidence": "docs/research/cli/evidence/recovery-2026-10-24/evolution-native-acl/windows-formal-result.json"
+    },
+    {
       "sha": "71f08ba5feef0b3b802eb1f9fd0ceb1707124ed0",
       "reason": "Exact CLI CI rejects five stale RRSI artifact-byte integration expectations. Default stores now use one bounded read; custom hooks still require all original phases. Strict/Context successes and in-progress Formal results do not qualify this failing source for publication.",
       "runId": 40058195903,

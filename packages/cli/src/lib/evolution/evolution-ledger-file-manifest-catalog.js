@@ -5,6 +5,7 @@ import { types as utilTypes } from "node:util";
 
 import { ensurePrivateDirectory, ensurePrivateFile } from "../secure-fs.js";
 import { withFileLock } from "../with-file-lock.js";
+import { evolutionPrivateStorageOptions } from "./evolution-private-storage.js";
 import {
   createEvolutionManifestStateReader,
   captureEvolutionManifestStateReaderDirectoryBoundary,
@@ -76,7 +77,7 @@ export function createEvolutionLedgerFileManifestCatalogBackend({
   }
   const directory = path.resolve(directoryPath);
   const file = path.join(directory, "manifest-catalog.json");
-  const secureOptions = { deps: { fs: fsImpl }, failIfUnavailable: true };
+  const secureOptions = evolutionPrivateStorageOptions(fsImpl);
   ensurePrivateDirectory(directory, secureOptions);
 
   const stateReader = createEvolutionManifestStateReader({
