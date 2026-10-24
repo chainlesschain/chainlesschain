@@ -98,6 +98,9 @@ export function createEvolutionLedgerFileManifestHeadBackend({
   }
   const file = path.join(directory, "manifest-head.json");
   const secureOptions = evolutionPrivateStorageOptions(fsImpl);
+  const secureFileOptions = evolutionPrivateStorageOptions(fsImpl, {
+    file: true,
+  });
   ensurePrivateDirectory(directory, secureOptions);
 
   const invokeCrashHook = (phase, details) => {
@@ -159,7 +162,7 @@ export function createEvolutionLedgerFileManifestHeadBackend({
       descriptor = undefined;
       invokeCrashHook("after-stage", { file, temporary });
       fsImpl.renameSync(temporary, file);
-      ensurePrivateFile(file, secureOptions);
+      ensurePrivateFile(file, secureFileOptions);
       descriptor = fsImpl.openSync(file, "r+");
       fsImpl.fsyncSync(descriptor);
       fsImpl.closeSync(descriptor);

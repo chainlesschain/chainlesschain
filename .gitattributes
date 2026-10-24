@@ -164,3 +164,7 @@ docs/research/cli/evidence/documentation-review-2026-10-13/assessment.md -lingui
 docs/research/cli/evidence/documentation-deployment-2026-10-13/** -text !eol -whitespace linguist-generated
 docs/research/cli/evidence/documentation-deployment-2026-10-13/README.md -linguist-generated
 docs/research/cli/evidence/documentation-deployment-2026-10-13/astra-review/assessment.md -linguist-generated
+
+# Original Windows ACL failure and local regression reports retain exact bytes.
+docs/research/cli/evidence/recovery-2026-10-24/evolution-file-owner-acl/** -text !eol -whitespace linguist-generated
+docs/research/cli/evidence/recovery-2026-10-24/evolution-file-owner-acl/preparation.json -linguist-generated

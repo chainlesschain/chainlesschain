@@ -11,11 +11,19 @@ const cp = createRequire(import.meta.url)("node:child_process");
 const originalSpawn = cp.spawnSync;
 const calls = [];
 cp.spawnSync = function (executable, args, options) {
+  let request;
+  try {
+    request = JSON.parse(options?.input);
+  } catch {
+    request = null;
+  }
   calls.push({
     shell: /^(?:powershell|pwsh)\.exe$/iu.test(path.basename(executable)),
     native: args?.some((arg) =>
       String(arg).endsWith("private-storage-windows-worker.cjs"),
     ),
+    fileRepair:
+      request?.operation === "repair" && request?.expectedKind === "file",
   });
   return Reflect.apply(originalSpawn, this, [executable, args, options]);
 };
@@ -146,11 +154,33 @@ try {
       publishedFile = witnessOptions.filePath;
     }
     const operations = calls.slice(start);
+    const fileAclRepairs = operations.filter((row) => row.fileRepair).length;
+    assert.ok(fileAclRepairs > 0, `${kind} must explicitly secure its files`);
     // Check independently after measuring backend calls; do not expose SIDs.
-    assert.equal(inspectPrivatePath(directoryPath).ok, true);
-    assert.equal(inspectPrivatePath(publishedFile).ok, true);
+    for (const [label, target] of [
+      ["directory", directoryPath],
+      ["file", publishedFile],
+    ]) {
+      const inspection = inspectPrivatePath(target);
+      assert.equal(
+        inspection.ok,
+        true,
+        JSON.stringify({
+          kind,
+          label,
+          exists: inspection.exists,
+          errorCode: inspection.errorCode,
+          ownerMatchesCurrent:
+            typeof inspection.details?.currentSid === "string" &&
+            inspection.details?.ownerSid === inspection.details?.currentSid,
+          protected: inspection.details?.protected,
+          aceCount: inspection.details?.aceCount,
+        }),
+      );
+    }
     observations.push({
       kind,
+      fileAclRepairs,
       shellCalls: operations.filter((row) => row.shell).length,
       nativeCalls: operations.filter((row) => row.native).length,
       ownerOnly: true,

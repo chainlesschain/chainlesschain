@@ -2,6 +2,16 @@
   "schema": "chainlesschain.actual-failed-release-sources/v1",
   "sources": [
     {
+      "sha": "09cf06d03929a7c880f22e096a16b5e9950b3157",
+      "reason": "Exact CLI CI Windows unit shard 3/16 rejects all five Evolution storage ACL configurations: writes and reopen succeed, but independent published-file owner-only inspection fails. The call sites did not request explicit Windows file ACL repair. The original cloud fixture did not record owner SID equality, so the elevated-token owner mechanism is a code-supported explanation, not an independently captured cloud identity observation. Other green and in-progress gates cannot qualify this source.",
+      "runId": 40068241563,
+      "jobId": 120796658657,
+      "artifactId": 12551424567,
+      "archiveSha256": "a9a15ac19d24946c2c0ce1fe4561c11af66d4507e7c3739c57e3033b6765e7f2",
+      "jobLogSha256": "e9801441503e8738758ce63efda9682fb2d9b997654549aa7d7b358ad811fc8e",
+      "evidence": "docs/research/cli/evidence/recovery-2026-10-24/evolution-file-owner-acl/preparation.json"
+    },
+    {
       "sha": "835dbd309c99d0a4b012273b212154e6d31ce286",
       "reason": "Exact Windows Formal produced one Evolution ingress error at total result 36 and timed out awaiting result 37. A separate unchanged local diagnostic timed out at turn 45. The local diagnostic did not reproduce the cloud ingress error; no root-cause equivalence is claimed. Other green gates do not qualify this source.",
       "runId": 40062364182,
