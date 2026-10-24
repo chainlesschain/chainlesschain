@@ -65,6 +65,7 @@ export const EVOLUTION_LEDGER_V2_CUTOVER_COMPLETED =
   "evolution.ledger-v2.cutover-completed";
 const MIGRATION_SOURCES = new WeakMap();
 const DIRECTORY_BOUNDARIES = new WeakMap();
+const VERIFIED_HISTORY_READERS = new WeakMap();
 
 const IDENTITY_DOMAIN = "chainlesschain.evolution-ledger-identity/v1\0";
 const EVENT_DOMAIN = "chainlesschain.evolution-event/v2\0";
@@ -2312,6 +2313,26 @@ export class EvolutionLedger {
         Object.freeze({
           descriptor: directoryBoundary,
           recheck: Object.freeze(recheck),
+        }),
+      );
+    if (new.target === EvolutionLedger)
+      VERIFIED_HISTORY_READERS.set(
+        this,
+        Object.freeze((...args) => {
+          if (args.length)
+            throw new TypeError(
+              "verified history takes no replacement context",
+            );
+          return this.#withLock(() => {
+            const state = this.#loadState({
+              allowInitialize: false,
+              incremental: true,
+            });
+            return deepFreeze({
+              authority: this.#authorityProjection(state),
+              events: state.events.slice(0, 10_000),
+            });
+          });
         }),
       );
     Object.freeze(this);
@@ -5742,6 +5763,13 @@ export class EvolutionLedger {
   getAuthority() {
     return this.verify();
   }
+}
+
+/** One authenticated state supplies both history and its exact frontier. */
+export function getEvolutionLedgerVerifiedHistoryReader(ledger) {
+  if (arguments.length !== 1)
+    throw new TypeError("verified history capture takes one original ledger");
+  return VERIFIED_HISTORY_READERS.get(ledger) ?? null;
 }
 
 // Trusted composition port; consumers receive the journal wrapper, never this

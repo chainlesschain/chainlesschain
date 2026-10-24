@@ -24,6 +24,7 @@ import { createAgentEvolutionRuntimeComposition } from "./agent-evolution-runtim
 import { EVOLUTION_TYPED_EVIDENCE_LAYOUT } from "./evolution-evidence-storage-layout.js";
 import { loadLocalUiEvolutionDeployment } from "./local-ui-evolution-deployment.js";
 import { createLocalUiEvolutionFileSystem } from "./evolution-windows-directory-durability.js";
+import { createLocalUiSigningAuthority as ed25519Authority } from "./local-ui-signing-authority.js";
 import {
   formatLocalUiTenantReferenceId,
   encodeOpaqueHexId,
@@ -103,44 +104,6 @@ function encodedMessage(message) {
   if (typeof message === "string") return Buffer.from(message, "utf8");
   if (Buffer.isBuffer(message)) return message;
   return Buffer.from(canonical(message), "utf8");
-}
-
-function ed25519Authority(label, tenantId, privateKeyPem) {
-  const privateKey = createPrivateKey(privateKeyPem);
-  const publicKey = createPublicKey(privateKey);
-  const trust = Object.freeze({
-    algorithm: "ed25519",
-    keyId: `local://${tenantId}/${label}`,
-    trustPolicyDigest: sha256(`chainlesschain.local-ui.${label}.policy/v1`),
-  });
-  return Object.freeze({
-    trust,
-    signer: Object.freeze({
-      sign({ message }) {
-        return {
-          ...trust,
-          value: sign(null, encodedMessage(message), privateKey).toString(
-            "base64url",
-          ),
-        };
-      },
-    }),
-    verifier: Object.freeze({
-      verify({ message, signature }) {
-        return (
-          signature?.algorithm === trust.algorithm &&
-          signature?.keyId === trust.keyId &&
-          signature?.trustPolicyDigest === trust.trustPolicyDigest &&
-          verify(
-            null,
-            encodedMessage(message),
-            publicKey,
-            Buffer.from(signature.value || "", "base64url"),
-          )
-        );
-      },
-    }),
-  });
 }
 
 function ed25519ArtifactAuthority(tenantId, privateKeyPem) {

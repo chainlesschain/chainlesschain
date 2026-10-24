@@ -20,6 +20,7 @@ import {
   captureAgentEvolutionIngress,
 } from "../../src/lib/evolution/agent-evolution-ingress.js";
 import { EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA } from "../../src/lib/evolution/evolution-ledger.js";
+import { openEvolutionDurableStore } from "../fixtures/evolution-durable-store.js";
 import {
   EVOLUTION_RUN_LEDGER_CORRUPT_CODE,
   EVOLUTION_RUN_LEDGER_CONFLICT_CODE,
@@ -309,6 +310,58 @@ function seedEvents(fixture, count) {
 }
 
 describe("EvolutionRunLedgerAdapter", () => {
+  it("loads real atomic history, preserves custom reads, and detects changed artifact bytes", () => {
+    const root = fs.mkdtempSync(
+      path.join(fs.realpathSync.native(os.tmpdir()), "cc-run-atomic-history-"),
+    );
+    roots.push(root);
+    const store = openEvolutionDurableStore(root);
+    const descriptor = { ...store.descriptor, runId: "run-atomic-history" };
+    const adapter = new EvolutionRunLedgerAdapter({
+      descriptor,
+      artifactPorts: store.artifactPorts,
+      ledger: store.backend.ledger,
+      ledgerArtifactResolver: store.resolver,
+      now: store.clock,
+    });
+    const started = {
+      ...event(1, EVENT_TYPES.RUN_STARTED),
+      tenantId: descriptor.tenantId,
+      runId: descriptor.runId,
+    };
+    expect(adapter.appendEvent(started).committed).toBe(true);
+    const observed = new EvolutionRunLedgerAdapter({
+      descriptor,
+      artifactPorts: store.artifactPorts,
+      ledger: store.backend.ledger,
+      ledgerArtifactResolver: store.resolver,
+      now: store.clock,
+    });
+    expect(observed.load().events).toEqual([started]);
+    const customRead = vi.fn(() => store.backend.ledger.read());
+    const custom = new EvolutionRunLedgerAdapter({
+      descriptor,
+      artifactPorts: store.artifactPorts,
+      ledger: {
+        read: customRead,
+        verify: () => store.backend.ledger.verify(),
+        appendDomainEvent: (...args) =>
+          store.backend.ledger.appendDomainEvent(...args),
+      },
+      ledgerArtifactResolver: store.resolver,
+      now: store.clock,
+    });
+    expect(custom.load().events).toEqual([started]);
+    expect(customRead).toHaveBeenCalledTimes(1);
+    const directory = path.join(root, "artifacts", "files");
+    const files = fs.readdirSync(directory);
+    expect(files).toHaveLength(1);
+    const payload = path.join(directory, files[0]);
+    fs.chmodSync(payload, 0o600);
+    fs.appendFileSync(payload, "tampered");
+    expect(() => observed.load()).toThrow();
+  });
+
   it("resolves 128 and 129 authentic artifacts across the batch boundary with bounded index reads", () => {
     const fixture = backend();
     const adapter = fixture.makeAdapter();
