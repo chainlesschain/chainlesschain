@@ -248,6 +248,9 @@ export function createEvolutionFileWitness({
     );
   }
   const secureOptions = evolutionPrivateStorageOptions(fsImpl);
+  const secureFileOptions = evolutionPrivateStorageOptions(fsImpl, {
+    file: true,
+  });
   ensurePrivateDirectory(directory, secureOptions);
   const readerOptions = {
     fsImpl,
@@ -652,7 +655,7 @@ export function createEvolutionFileWitness({
     const bytes = reader.read(file, {
       maximumBytes: byteLimit,
       allowAbsent,
-      prepareFile: (name) => ensurePrivateFile(name, secureOptions),
+      prepareFile: (name) => ensurePrivateFile(name, secureFileOptions),
     });
     recheckStorage();
     return bytes;
@@ -724,7 +727,7 @@ export function createEvolutionFileWitness({
       fsImpl.closeSync(descriptor);
       descriptor = undefined;
       fsImpl.renameSync(temporary, file);
-      ensurePrivateFile(file, secureOptions);
+      ensurePrivateFile(file, secureFileOptions);
       descriptor = fsImpl.openSync(file, "r+");
       fsImpl.fsyncSync(descriptor);
       fsImpl.closeSync(descriptor);

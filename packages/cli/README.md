@@ -8,6 +8,8 @@ This version follows Session Core **0.3.23** and Agent SDK **0.2.16** and pairs 
 
 Long-session recovery shares one authenticated history and ledger-frontier read. Fixed local signing keys use bounded verification reuse; stored bytes, current artifact authority and the final frontier remain freshly checked.
 
+Evolution witness, manifest catalog and head files receive explicit Windows owner and ACL repair before durable readback, including files created by elevated tokens. Directory checks retain their existing behavior.
+
 Install this version after its npm release is available:
 
 ```bash

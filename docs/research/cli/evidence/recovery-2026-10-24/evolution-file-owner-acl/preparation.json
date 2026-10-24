@@ -1,0 +1,184 @@
+{
+  "schema": "chainlesschain.evolution-file-owner-acl-preparation/v1",
+  "recordedAt": "2026-10-24T07:28:29.529Z",
+  "baseSource": "09cf06d03929a7c880f22e096a16b5e9950b3157",
+  "qualified": false,
+  "published": false,
+  "merged": false,
+  "actualCloudFailure": {
+    "runId": 40068241563,
+    "jobId": 120796658657,
+    "artifactId": 12551424567,
+    "failed": 5,
+    "passed": 2391,
+    "skipped": 2,
+    "assertion": "Independent published-file owner-only ACL inspection returned false in all five filesystem configurations.",
+    "cloudOwnerSidRelationRecorded": false
+  },
+  "redControl": {
+    "command": "official Node 22.12.0 with updated evolution-storage-acl-process.mjs default against the unchanged helper",
+    "exitCode": 1,
+    "error": "catalog must explicitly secure its files",
+    "rawProcessOutput": "Observed in the tool invocation; no independent raw log was captured for this single control."
+  },
+  "repair": {
+    "explicitFileAcl": true,
+    "filesystemConfigurations": 5,
+    "originalNativeBackendPreserved": true,
+    "customDependencyBoundaryPreserved": true,
+    "directoryBehaviorUnchanged": true,
+    "cloudElevatedOwnerMechanism": "Code-supported explanation: newly created Windows files may use the elevated token owner group. The original cloud fixture omitted identity diagnostics; the new fixture records only redacted ownership equality and status on failure."
+  },
+  "validation": {
+    "nativeWindows": {
+      "node": "22.12.0",
+      "files": 4,
+      "passed": 168,
+      "failed": 0,
+      "skipped": 2,
+      "skipReason": "Existing non-Windows dangling-symlink cases, one for each store; no other skip accepted."
+    },
+    "cloudNodeVersionAcl": {
+      "node": "22.22.2",
+      "files": 1,
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "preservedFailedCandidates": [
+    {
+      "file": "first-all-path-acl-regression.raw.json",
+      "passed": 81,
+      "failed": 1,
+      "reason": "Applying the file policy to directory calls also repeated custom ACL work; original 90s witness boundary case timed out."
+    },
+    {
+      "file": "file-only-original-unit-budget-failure.raw.json",
+      "passed": 0,
+      "failed": 1,
+      "skipped": 72,
+      "reason": "With file-only enforcement and no competing local diagnostic, the complete 516-generation control took approximately 114s and exceeded the original unit default."
+    }
+  ],
+  "scopedUnitBudget": {
+    "case": "preserves discard fences on both sides of segment boundaries",
+    "platform": "win32",
+    "previousDefaultMs": 90000,
+    "caseBudgetMs": 240000,
+    "generations": 516,
+    "allOriginalAssertionsAndWritesRetained": true,
+    "linuxAndMacosDefaultUnchanged": true
+  },
+  "formalLimits": {
+    "unchanged": true,
+    "durationSeconds": 7200,
+    "warmupTurns": 20,
+    "measuredTurns": 1000,
+    "turnDeadlineMs": 60000,
+    "cleanupDeadlineMs": 10000,
+    "maxRssGrowthMb": 128,
+    "maxResourceGrowth": 8
+  },
+  "isolatedArtifactWindowExperimentAdopted": false,
+  "sourceSnapshot": [
+    {
+      "file": "packages/cli/src/lib/evolution/evolution-private-storage.js",
+      "sha256": "f7ee1fdd6f52607d176e3b1dad3138c777d7ed759da8f33278f5442ed4330422"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/evolution-file-witness.js",
+      "sha256": "30d18aeef94dbbf4a4b6dc4f1f2920cf4b5a42df6d09e914d25df25c70fe2878"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/evolution-ledger-file-manifest-catalog.js",
+      "sha256": "31dcd902b093ca5aa5413373d47c02583c4902f70a775da4387497e56e9f461f"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/evolution-ledger-file-manifest-head-store.js",
+      "sha256": "2d319121db6b617c9524c9d4f19ee45185cac9fba331223851e54242b47da9d2"
+    },
+    {
+      "file": "packages/cli/__tests__/fixtures/evolution-storage-acl-process.mjs",
+      "sha256": "ea61cc218abdab298728ebaf3fef9d3aa579b5beb162e357f9e9b35e31c6cc8a"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/evolution-storage-acl-backend.test.js",
+      "sha256": "81c7d271f541e87c6b18b9803593737689a7680e3c20637a85764d6e42ed38fb"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/evolution-file-witness.test.js",
+      "sha256": "6fb781773e8694722d351bf748e4c8ec12ab6f8ef832622d720a85d458211a64"
+    }
+  ],
+  "frozenSource": [
+    {
+      "file": ".github/workflows/cli-reliability-soak.yml",
+      "sha256": "2ee14865837499caf3e6d6706a5b49381ef7817815893f9e391c6a06d048eb10"
+    },
+    {
+      "file": "packages/cli/scripts/cli-reliability-soak.mjs",
+      "sha256": "dcff37dfdb9ba7b96b67cc94d6c82668a0520dc9a63fde69a1fc76e8070b08e6"
+    },
+    {
+      "file": "packages/session-core/lib/private-storage.js",
+      "sha256": "949fa9de4d5906d100094ff95b3d30efe67d65fb733310c702bca9692f552ef6"
+    },
+    {
+      "file": "packages/session-core/lib/private-storage-windows-native.cjs",
+      "sha256": "0b4903a014404048ef945d956751c78adbd52ed89e5b617995779fae3b4b3cb7"
+    },
+    {
+      "file": "packages/session-core/lib/private-storage-windows-worker.cjs",
+      "sha256": "aa81a5a70f9f26da013b48d703b0af0777cd3434e5bc8c41b3400106029f969f"
+    }
+  ],
+  "evidence": [
+    {
+      "file": "windows-unit-shard3.zip",
+      "bytes": 69155,
+      "sha256": "a9a15ac19d24946c2c0ce1fe4561c11af66d4507e7c3739c57e3033b6765e7f2"
+    },
+    {
+      "file": "windows-unit-shard3.log",
+      "bytes": 102520,
+      "sha256": "e9801441503e8738758ce63efda9682fb2d9b997654549aa7d7b358ad811fc8e"
+    },
+    {
+      "file": "windows-unit-shard3.xml",
+      "bytes": 538338,
+      "sha256": "fd274928eee25f10f0b8d43625d16f0e3c4212c5b097899471a79f622cb165e7"
+    },
+    {
+      "file": "windows-unit-shard3-artifacts.raw.json",
+      "bytes": 6290,
+      "sha256": "1403cc7a70df63609fb998f8363b8ec2f02c859cb1447ab4218266d456b70d4f"
+    },
+    {
+      "file": "first-all-path-acl-regression.raw.json",
+      "bytes": 28108,
+      "sha256": "6c913b741d63d31dcaf31dc484c2f3d9be41ca7d3f730625a28ab7825bd2a3d7"
+    },
+    {
+      "file": "first-all-path-node22.22-acl-regression.raw.json",
+      "bytes": 2564,
+      "sha256": "1e95438a3b34538d9d27724212fb4ff00e18b619c441b6236aa2a1765ae75dd5"
+    },
+    {
+      "file": "file-only-original-unit-budget-failure.raw.json",
+      "bytes": 22464,
+      "sha256": "c0fe03ac31acc6defbb714691b7e81efa2a9c2d19e43dd0d0402b1910c1dc848"
+    },
+    {
+      "file": "native-windows-regression.raw.json",
+      "bytes": 63146,
+      "sha256": "ecc88150b23df162b00184bb22ab69a1bdbcb37ebac24ebf9a7a2289bf5f8b98"
+    },
+    {
+      "file": "node22.22-acl-regression.raw.json",
+      "bytes": 2538,
+      "sha256": "35b610dfeb4acb43a625cdec7262ac0b6e6bbd4f4f73d2d16fa7f774edf322fd"
+    }
+  ],
+  "release": "All exact-source Actions gates must be rerun. No tag, npm publication, IDE publication or PR merge is authorized by these local results alone."
+}

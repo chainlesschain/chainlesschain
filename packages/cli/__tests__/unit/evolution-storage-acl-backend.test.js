@@ -33,6 +33,7 @@ describe.skipIf(process.platform !== "win32")(
           "witness",
         ]);
         for (const store of report.observations) {
+          expect(store.fileAclRepairs).toBeGreaterThan(0);
           expect(store.ownerOnly).toBe(true);
           expect(store.durableReadback).toBe(true);
           if (mode.startsWith("custom")) {
