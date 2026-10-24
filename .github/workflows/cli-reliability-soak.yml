@@ -136,7 +136,7 @@ on:
         required: true
         default: "all"
         type: choice
-        options: ["all", "session-message"]
+        options: ["all", "session-message", "cli-diagnostic"]
       commit_sha:
         description: "Exact full commit SHA to test (blank uses selected ref)"
         required: false
@@ -158,7 +158,7 @@ concurrency:
 
 jobs:
   reliability:
-    if: github.event_name != 'workflow_dispatch' || inputs.component == 'all'
+    if: github.event_name != 'workflow_dispatch' || inputs.component == 'all' || inputs.component == 'cli-diagnostic'
     name: "disk/pipe/TTY/SSH/MCP/resource soak (${{ matrix.os }})"
     strategy:
       fail-fast: false
