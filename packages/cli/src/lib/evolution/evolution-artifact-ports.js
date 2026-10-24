@@ -18,6 +18,7 @@ import {
   ARTIFACT_STORE_DEFAULT_PUBLISH_DATA_ONCE,
 } from "../artifact-store.js";
 import { withFileLock } from "../with-file-lock.js";
+import { recordStorageFailureStage } from "../storage-failure-cause-codes.js";
 import { artifactPhysicalIdentity as physicalIdentity } from "./evolution-artifact-identity.js";
 import { withEvolutionFileIdentity } from "./evolution-file-identity.js";
 import { readBoundedDescriptor } from "./bounded-descriptor-read.js";
@@ -3401,9 +3402,12 @@ export class EvolutionArtifactPorts {
     capturedLedgerEntry = null,
     batchWindow = null,
     boundedRead = null,
+    observePhase = null,
   ) {
+    observePhase?.("authentication");
     const authentication =
       preauthenticated || this.#authenticateEnvelope(envelope, options);
+    observePhase?.("post-index");
     if (!ledgerRead)
       this.#assertUniqueRecordDigest(
         authentication.core.recordDigest,
@@ -3425,6 +3429,7 @@ export class EvolutionArtifactPorts {
         "ArtifactStore entry id does not match the requested locator",
       );
     }
+    observePhase?.("read-bytes");
     const bytes = this.#readStoredBytes(
       entry,
       normalizedEntry,
@@ -3432,6 +3437,7 @@ export class EvolutionArtifactPorts {
       boundedRead,
     );
     const record = this.#parseRecordBytes(bytes, authentication.core);
+    observePhase?.("post-index");
     if (ledgerRead && batchWindow === null) {
       const after = this.#loadLedgerEntry(
         artifactId,
@@ -3451,6 +3457,7 @@ export class EvolutionArtifactPorts {
         artifactId,
       );
     }
+    observePhase?.("final-lease");
     const releaseClock = this.#clock();
     if (
       releaseClock.milliseconds <
@@ -3541,6 +3548,18 @@ export class EvolutionArtifactPorts {
   }
 
   putCanonical(type, value, context) {
+    let phase = "validate";
+    try {
+      return this.#putCanonical(type, value, context, (next) => {
+        phase = next;
+      });
+    } catch (error) {
+      recordStorageFailureStage(error, type, phase);
+      throw error;
+    }
+  }
+
+  #putCanonical(type, value, context, observePhase) {
     const normalizedType = normalizeType(type, this.#allowedTypes);
     const normalizedContext = normalizePutContext(
       context,
@@ -3560,6 +3579,7 @@ export class EvolutionArtifactPorts {
     const recordJson = canonicalJson(record);
     const recordBytes = Buffer.from(recordJson, "utf8");
     const recordDigest = sha256(recordBytes);
+    observePhase("pre-index");
     readTrustedIndexSnapshot(this.#store.layout);
     const issuanceClock = this.#clock();
     const expiresAt =
@@ -3577,6 +3597,7 @@ export class EvolutionArtifactPorts {
             1,
             Math.ceil(normalizedContext.ttlMs / MILLISECONDS_PER_DAY),
           );
+    observePhase("authority");
     const authority = this.#currentAuthority({
       action: "publish",
       digest: recordDigest,
@@ -3602,6 +3623,7 @@ export class EvolutionArtifactPorts {
       tenantId: this.#tenantId,
       type: normalizedType,
     });
+    observePhase("sign");
     const signature = this.#sign(core, authority);
     const signingClock = this.#clock();
     if (
@@ -3647,7 +3669,9 @@ export class EvolutionArtifactPorts {
     // Validate the captured physical store/index generation immediately before
     // granting ArtifactStore the append. Post-publication readback re-attests
     // it and cross-checks the repository API against a descriptor snapshot.
+    observePhase("pre-index");
     readTrustedIndexSnapshot(this.#store.layout);
+    observePhase("publish");
     let publication;
     try {
       publication = rejectPromise(
@@ -3717,6 +3741,7 @@ export class EvolutionArtifactPorts {
     // A response-loss retry may find the prior immutable row. In that case its
     // exact signed envelope is authoritative and must be returned, rather than
     // replacing lineage with a newly issued envelope.
+    observePhase("post-index");
     const currentEntry = this.#loadCurrentEntryById(artifactId);
     assertExactRecord(
       currentEntry,
@@ -3756,7 +3781,14 @@ export class EvolutionArtifactPorts {
         tenantId: this.#tenantId,
       }),
       artifactId,
+      null,
+      false,
+      null,
+      null,
+      null,
+      observePhase,
     );
+    observePhase("read-bytes");
     if (
       canonicalJson(resolved.record) !== recordJson ||
       resolved.authentication.envelopeDigest !==
@@ -3767,6 +3799,7 @@ export class EvolutionArtifactPorts {
         "canonical artifact readback does not match the requested value and lineage",
       );
     }
+    observePhase("receipt");
     const receiptCore = {
       audience: this.#audience,
       createdAt: ownData(

@@ -3,9 +3,98 @@ import {
   storageFailureCauseCodes as codes,
   storageFailureCauseSuffix as suffix,
   storageFailureCodesFromMessage as parse,
+  recordStorageFailureStage as recordStage,
+  storageFailureStage as stage,
+  storageFailureStageFromMessage as parseStage,
 } from "../../src/lib/storage-failure-cause-codes.js";
 
 describe("bounded storage failure diagnostics", () => {
+  it("retains the bounded-file and held-parent failure codes", () => {
+    expect(
+      codes({
+        code: "CC_ARTIFACT_BOUNDED_READ_FAILED",
+        cause: {
+          code: "SECURE_FILE_IDENTITY_PARENT_RACE",
+          cause: {
+            code: "SECURE_FILE_IDENTITY_INVALID_PARENT",
+          },
+        },
+      }),
+    ).toEqual([
+      "CC_ARTIFACT_BOUNDED_READ_FAILED",
+      "SECURE_FILE_IDENTITY_PARENT_RACE",
+      "SECURE_FILE_IDENTITY_INVALID_PARENT",
+    ]);
+  });
+  it("keeps fixed stages private and preserves frozen original errors and causes", () => {
+    const cause = Object.freeze({ code: "CC_ARTIFACT_BOUNDED_READ_FAILED" });
+    const error = Object.freeze(new Error("private path", { cause }));
+    expect(recordStage(error, "model-projection", "read-bytes")).toBe(error);
+    const outer = new Error("outer", { cause: error });
+    expect(stage(outer)).toEqual({
+      artifactType: "model-projection",
+      phase: "read-bytes",
+    });
+    expect(Object.isFrozen(stage(outer))).toBe(true);
+    expect(Reflect.ownKeys(error)).toEqual(["stack", "message", "cause"]);
+    const marker = suffix(outer);
+    expect(marker).toBe(
+      " [storage_stage: model-projection/read-bytes] [storage_cause_codes: CC_ARTIFACT_BOUNDED_READ_FAILED]",
+    );
+    expect(parse(marker)).toEqual(codes(outer));
+    expect(parseStage(marker)).toEqual(stage(outer));
+    expect(error.cause).toBe(cause);
+  });
+  it("rejects forged stage properties and never executes metadata accessors", () => {
+    const touched = vi.fn(() => {
+      throw new Error("private");
+    });
+    const proxy = new Proxy(
+      {},
+      {
+        get: touched,
+        getOwnPropertyDescriptor: touched,
+        getPrototypeOf: touched,
+      },
+    );
+    const object = {
+      get cause() {
+        return touched();
+      },
+      storageStage: { artifactType: "model-projection", phase: "read-bytes" },
+    };
+    expect(stage(object)).toBeNull();
+    expect(recordStage(proxy, "model-projection", "read-bytes")).toBe(proxy);
+    expect(stage(proxy)).toBeNull();
+    expect(recordStage(object, proxy, "read-bytes")).toBe(object);
+    expect(recordStage(object, "model-projection", proxy)).toBe(object);
+    expect(stage(object)).toBeNull();
+    expect(touched).not.toHaveBeenCalled();
+    recordStage(object, "private-arbitrary-type", "publish");
+    expect(stage(object)).toEqual({ artifactType: "other", phase: "publish" });
+    expect(suffix(object)).not.toContain("private");
+  });
+  it("accepts only complete fixed stage suffixes, with or without cause codes", () => {
+    expect(
+      parseStage("private [storage_stage: trusted-projection/pre-index]"),
+    ).toEqual({ artifactType: "trusted-projection", phase: "pre-index" });
+    for (const input of [
+      " [storage_stage: private/pre-index]",
+      " [storage_stage: model-projection/private]",
+      " [storage_stage: model-projection/read-bytes/extra]",
+      " [storage_stage: model-projection/read-bytes",
+      "[storage_stage: model-projection/read-bytes]",
+      " [storage_stage: model-projection/read-bytes] trailing",
+      " [storage_stage: model-projection/read-bytes] [storage_cause_codes: PRIVATE]",
+      " [storage_stage: model-projection/read-bytes] private [storage_cause_codes: EPERM]",
+      {
+        toString() {
+          throw new Error("private");
+        },
+      },
+    ])
+      expect(parseStage(input)).toBeNull();
+  });
   it("preserves known nested failure codes without copying error text or paths", () => {
     const original = Object.assign(new Error("private path and payload"), {
       code: "EPERM",
