@@ -162,6 +162,15 @@ export const VERIFY01_REVIEW_SPECS = [
         name: "trust-tampered-source-digest",
         find: "source?.sourceRef.digest === item.sourceRef.digest &&",
         replace: "Boolean(source) &&",
+        // Receipt-compatible history checks each independently derived raw or
+        // conversation source. Bypass only the same digest guard, retaining
+        // the candidate's sequence lookup and content comparison.
+        alternatives: [
+          {
+            find: "candidate?.sourceRef.digest === item.sourceRef.digest &&",
+            replace: "Boolean(candidate) &&",
+          },
+        ],
       },
     ],
   },

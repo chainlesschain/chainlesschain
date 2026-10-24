@@ -1,0 +1,51 @@
+{
+  "schema": "chainlesschain.actual-failed-release-sources/v1",
+  "sources": [
+    {
+      "sha": "e4c66df637d8ace1d8426513e0b14f0f22e2e913",
+      "reason": "Exact Formal Windows main completed 20 warmup and 97 timely measured turns, then total turn 118 exceeded the original 60000ms deadline. A late result counted during timeout cleanup does not reverse the timeout. Exact CLI CI also rejects a stale verify09 mutation anchor after receipt compatibility changes. New cache/I/O runtime and review-control repairs require a new source and complete fresh gates.",
+      "runId": 40041474292,
+      "jobId": 120713306928,
+      "artifactId": 12541778467,
+      "archiveSha256": "da2acf9dcfb75c74ae88c4d5ef6a3f45b063849c30daddf157360612e0d88040",
+      "resultSha256": "39499f18942c889593dd622d6f683684162e9bfe6e44a932ff581cc62148a588",
+      "evidence": ".work/cli-ide-recovery-20261023/egress-review-recovery/formal-evidence/formal-e4c66d/artifacts/12541778467/entry-0000.json",
+      "cliFailureJobId": 120714721581,
+      "cliFailureLogSha256": "3d2eb61c340148c6fd9c8210ab63b7f91e19dde0eea8830251d0edbfc3bddaf5"
+    },
+    {
+      "sha": "0459a2bb4ad6e1e3dc4475a46aa2bd2fa2264b4b",
+      "reason": "Exact Formal Windows main completed 20 warmup and 90 measured turns, then total turn 111 exceeded the original 60000ms timeout. Partial results do not qualify timing or complete resource admission. This is separate from the three stale child-provenance unit-contract failures.",
+      "runId": 40035461160,
+      "jobId": 120693706534,
+      "artifactId": 12539283250,
+      "archiveSha256": "2fef31c5c0d2bd38a03451a2bd8b3bc2977baeb1804594cf92af9f50e976e595",
+      "resultSha256": "6aa5046044898d17f35ccdfc654985279136f64aac39488e0d09e1775e933bd4",
+      "evidence": ".work/cli-ide-recovery-20261023/egress-review-recovery/formal-evidence/formal-0459/analysis/analysis-1792799740915.json"
+    },
+    {
+      "sha": "f680a92e2c8d82f188138959be6d4985835dca63",
+      "reason": "Exact CLI CI fails source-review catalogue verification.",
+      "runId": 39995806250
+    },
+    {
+      "sha": "0e59f8a304996e2597fe1af61b36e4da0551ec2f",
+      "reason": "Actual Linux/macOS warmup turn19 timeout and Windows20-child timeout/cleanup race. Complete CLI/Strict success cannot override known unresolved reliability failures.",
+      "runId": 40011061994
+    },
+    {
+      "sha": "890510d0311805e591302853f7f348a6d9f6fb66",
+      "reason": "Exact Formal Windows main: all20 concurrent children exceed120000ms before a complete JSON result, duplex/warmup not reached; cleanup completes2297ms but one former tree remains unconfirmed. HTTP boundary and causal helper attribution are absent. macOS20warmup+26measured success then27th measured/47th total turn exceeds60s, cleanup confirmed. Root causes remain under investigation. Other green gates cannot override actual failures.",
+      "runId": 40021789444,
+      "jobId": 120647895014,
+      "artifactId": 12530884625,
+      "archiveSha256": "eca936aa15ae2111bd7f51e32a72c5b69062eadbbac4de749a77cb6b13c2e07e",
+      "resultSha256": "cf5abacb8ace3d69c15b14f49adcf0c922bd3760ee46a1b9a8912af1bdee9f51",
+      "evidence": ".work/cli-ide-recovery-20261023/egress-review-recovery/formal-evidence/formal-8905/windows-first-failure-analysis.json",
+      "macosEvidence": ".work/cli-ide-recovery-20261023/egress-review-recovery/formal-evidence/formal-8905/macos-first-failure-analysis.json",
+      "macosArtifactId": 12531143797,
+      "macosArchiveSha256": "d9ba220eb95fa9a18def57d9130452fbe71042cd2310e71aecac97042e5b453c",
+      "macosResultSha256": "774648f696510d59255f5a9b32fba77658a85624c62da467f60a2704605dbd45"
+    }
+  ]
+}

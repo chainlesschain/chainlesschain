@@ -1,0 +1,17 @@
+[PDH-ASK] ask effMaxFacts=80 effMaxQueryLimit=200 gathered=1 (events=1 persons=0 items=0) adapter=* intent=list
+[PDH-ASK] prompt factCount=1 truncated=0 messages=2 promptChars=2628
+[PDH-ASK] ask effMaxFacts=80 effMaxQueryLimit=200 gathered=1 (events=1 persons=0 items=0) adapter=* intent=list
+[PDH-ASK] prompt factCount=1 truncated=0 messages=2 promptChars=2628
+[PDH-ASK] ask effMaxFacts=80 effMaxQueryLimit=200 gathered=1 (events=1 persons=0 items=0) adapter=* intent=list
+[PDH-ASK] prompt factCount=1 truncated=0 messages=2 promptChars=2628
+[PDH-ASK] ask effMaxFacts=80 effMaxQueryLimit=200 gathered=1 (events=1 persons=0 items=0) adapter=* intent=list
+[PDH-ASK] prompt factCount=1 truncated=0 messages=2 promptChars=2628
+[PDH-ASK] ask effMaxFacts=80 effMaxQueryLimit=200 gathered=1 (events=1 persons=0 items=0) adapter=* intent=list
+[PDH-ASK] prompt factCount=1 truncated=0 messages=2 promptChars=2628
+- Thinking...
+- Thinking...
+× Failed: Agent evolution ingress failed: ask evidence denied
+- Thinking...
+× Failed: Agent evolution ingress failed: ask evidence denied
+- Thinking...
+× Failed: Ask evolution composition is not bound to the requested Run

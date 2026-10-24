@@ -645,3 +645,13 @@ export class ArtifactStore {
     }
   }
 }
+
+// Capture repository method identities before any importer can replace the
+// prototype. These references grant no storage or read authority by themselves.
+export const ARTIFACT_STORE_DEFAULT_READ_METHODS = Object.freeze({
+  list: ArtifactStore.prototype.list,
+  get: ArtifactStore.prototype.get,
+  storedPath: ArtifactStore.prototype.storedPath,
+  verifyIntegrity: ArtifactStore.prototype.verifyIntegrity,
+  filesDir: ArtifactStore.prototype._filesDir,
+});

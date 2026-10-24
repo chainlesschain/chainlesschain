@@ -1,0 +1,408 @@
+{
+  "capturedAt": "2026-10-24T01:02:23.244Z",
+  "sourceSha256": "a3e8696e467a2644f7095a1d7bfbdb619a4de427072c5328747a2f6c1696eafe",
+  "qualification": "Actual source-function budget instrumentation plus real descriptor-backed read windows. Six genuine signed index row shapes expanded with synthetic unique IDs/digests; only the original seed artifacts were published/authenticated. This is cache validation, not Formal soak/release qualification or a hard VM heap limit.",
+  "budgetBytes": 117440512,
+  "shape": [
+    {
+      "type": "evolution-run-event",
+      "rows": 4096,
+      "rawBytes": 7655424
+    },
+    {
+      "type": "source-evidence",
+      "rows": 4096,
+      "rawBytes": 7704576
+    },
+    {
+      "type": "model-projection",
+      "rows": 4096,
+      "rawBytes": 7716864
+    },
+    {
+      "type": "trusted-projection",
+      "rows": 4096,
+      "rawBytes": 7741440
+    },
+    {
+      "type": "receipt",
+      "rows": 4096,
+      "rawBytes": 7606272
+    },
+    {
+      "type": "evidence",
+      "rows": 4096,
+      "rawBytes": 7618560
+    }
+  ],
+  "phases": [
+    {
+      "name": "six-cold-4096",
+      "counts": {
+        "parse": 24576,
+        "canonical": 24576
+      },
+      "layouts": 6,
+      "retainedIndexMemory": 92113018,
+      "reservedIndexMemory": 0,
+      "peakAccounted": 106158108,
+      "reservations": [
+        {
+          "candidateMemory": 15315316,
+          "pinnedCompactMemory": 0,
+          "pinnedHotMemory": 0,
+          "retainedIndexMemory": 0,
+          "reservedIndexMemory": 15315316,
+          "total": 15315316
+        },
+        {
+          "candidateMemory": 15413612,
+          "pinnedCompactMemory": 0,
+          "pinnedHotMemory": 0,
+          "retainedIndexMemory": 44520052,
+          "reservedIndexMemory": 15413612,
+          "total": 59933664
+        },
+        {
+          "candidateMemory": 15438190,
+          "pinnedCompactMemory": 0,
+          "pinnedHotMemory": 0,
+          "retainedIndexMemory": 89220320,
+          "reservedIndexMemory": 15438190,
+          "total": 104658510
+        },
+        {
+          "candidateMemory": 15487346,
+          "pinnedCompactMemory": 0,
+          "pinnedHotMemory": 0,
+          "retainedIndexMemory": 75453774,
+          "reservedIndexMemory": 15487346,
+          "total": 90941120
+        },
+        {
+          "candidateMemory": 15216988,
+          "pinnedCompactMemory": 0,
+          "pinnedHotMemory": 0,
+          "retainedIndexMemory": 90941120,
+          "reservedIndexMemory": 15216988,
+          "total": 106158108
+        },
+        {
+          "candidateMemory": 15241566,
+          "pinnedCompactMemory": 0,
+          "pinnedHotMemory": 0,
+          "retainedIndexMemory": 76871452,
+          "reservedIndexMemory": 15241566,
+          "total": 92113018
+        }
+      ],
+      "sum": 92113018,
+      "compact": 92113018,
+      "hot": 0
+    },
+    {
+      "name": "six-compact-revisits",
+      "counts": {
+        "parse": 49152,
+        "canonical": 24576
+      },
+      "layouts": 6,
+      "retainedIndexMemory": 92113018,
+      "reservedIndexMemory": 0,
+      "peakAccounted": 106158108,
+      "reservations": [
+        {
+          "candidateMemory": 15315316,
+          "pinnedCompactMemory": 0,
+          "pinnedHotMemory": 0,
+          "retainedIndexMemory": 0,
+          "reservedIndexMemory": 15315316,
+          "total": 15315316
+        },
+        {
+          "candidateMemory": 15413612,
+          "pinnedCompactMemory": 0,
+          "pinnedHotMemory": 0,
+          "retainedIndexMemory": 44520052,
+          "reservedIndexMemory": 15413612,
+          "total": 59933664
+        },
+        {
+          "candidateMemory": 15438190,
+          "pinnedCompactMemory": 0,
+          "pinnedHotMemory": 0,
+          "retainedIndexMemory": 89220320,
+          "reservedIndexMemory": 15438190,
+          "total": 104658510
+        },
+        {
+          "candidateMemory": 15487346,
+          "pinnedCompactMemory": 0,
+          "pinnedHotMemory": 0,
+          "retainedIndexMemory": 75453774,
+          "reservedIndexMemory": 15487346,
+          "total": 90941120
+        },
+        {
+          "candidateMemory": 15216988,
+          "pinnedCompactMemory": 0,
+          "pinnedHotMemory": 0,
+          "retainedIndexMemory": 90941120,
+          "reservedIndexMemory": 15216988,
+          "total": 106158108
+        },
+        {
+          "candidateMemory": 15241566,
+          "pinnedCompactMemory": 0,
+          "pinnedHotMemory": 0,
+          "retainedIndexMemory": 76871452,
+          "reservedIndexMemory": 15241566,
+          "total": 92113018
+        }
+      ],
+      "sum": 92113018,
+      "compact": 92113018,
+      "hot": 0
+    },
+    {
+      "name": "pinned-prefix-append-4097",
+      "counts": {
+        "parse": 53249,
+        "canonical": 24577
+      },
+      "layouts": 6,
+      "retainedIndexMemory": 92116722,
+      "reservedIndexMemory": 0,
+      "peakAccounted": 107432038,
+      "reservations": [
+        {
+          "candidateMemory": 15315316,
+          "pinnedCompactMemory": 0,
+          "pinnedHotMemory": 0,
+          "retainedIndexMemory": 0,
+          "reservedIndexMemory": 15315316,
+          "total": 15315316
+        },
+        {
+          "candidateMemory": 15413612,
+          "pinnedCompactMemory": 0,
+          "pinnedHotMemory": 0,
+          "retainedIndexMemory": 44520052,
+          "reservedIndexMemory": 15413612,
+          "total": 59933664
+        },
+        {
+          "candidateMemory": 15438190,
+          "pinnedCompactMemory": 0,
+          "pinnedHotMemory": 0,
+          "retainedIndexMemory": 89220320,
+          "reservedIndexMemory": 15438190,
+          "total": 104658510
+        },
+        {
+          "candidateMemory": 15487346,
+          "pinnedCompactMemory": 0,
+          "pinnedHotMemory": 0,
+          "retainedIndexMemory": 75453774,
+          "reservedIndexMemory": 15487346,
+          "total": 90941120
+        },
+        {
+          "candidateMemory": 15216988,
+          "pinnedCompactMemory": 0,
+          "pinnedHotMemory": 0,
+          "retainedIndexMemory": 90941120,
+          "reservedIndexMemory": 15216988,
+          "total": 106158108
+        },
+        {
+          "candidateMemory": 15241566,
+          "pinnedCompactMemory": 0,
+          "pinnedHotMemory": 0,
+          "retainedIndexMemory": 76871452,
+          "reservedIndexMemory": 15241566,
+          "total": 92113018
+        },
+        {
+          "candidateMemory": 15319020,
+          "pinnedCompactMemory": 15315316,
+          "pinnedHotMemory": 0,
+          "retainedIndexMemory": 92113018,
+          "reservedIndexMemory": 15319020,
+          "total": 107432038
+        }
+      ],
+      "sum": 92116722,
+      "compact": 92116722,
+      "hot": 0
+    },
+    {
+      "name": "failed-suffix-recovered",
+      "counts": {
+        "parse": 61445,
+        "canonical": 24577
+      },
+      "layouts": 6,
+      "retainedIndexMemory": 92116722,
+      "reservedIndexMemory": 0,
+      "peakAccounted": 107435774,
+      "reservations": [
+        {
+          "candidateMemory": 15315316,
+          "pinnedCompactMemory": 0,
+          "pinnedHotMemory": 0,
+          "retainedIndexMemory": 0,
+          "reservedIndexMemory": 15315316,
+          "total": 15315316
+        },
+        {
+          "candidateMemory": 15413612,
+          "pinnedCompactMemory": 0,
+          "pinnedHotMemory": 0,
+          "retainedIndexMemory": 44520052,
+          "reservedIndexMemory": 15413612,
+          "total": 59933664
+        },
+        {
+          "candidateMemory": 15438190,
+          "pinnedCompactMemory": 0,
+          "pinnedHotMemory": 0,
+          "retainedIndexMemory": 89220320,
+          "reservedIndexMemory": 15438190,
+          "total": 104658510
+        },
+        {
+          "candidateMemory": 15487346,
+          "pinnedCompactMemory": 0,
+          "pinnedHotMemory": 0,
+          "retainedIndexMemory": 75453774,
+          "reservedIndexMemory": 15487346,
+          "total": 90941120
+        },
+        {
+          "candidateMemory": 15216988,
+          "pinnedCompactMemory": 0,
+          "pinnedHotMemory": 0,
+          "retainedIndexMemory": 90941120,
+          "reservedIndexMemory": 15216988,
+          "total": 106158108
+        },
+        {
+          "candidateMemory": 15241566,
+          "pinnedCompactMemory": 0,
+          "pinnedHotMemory": 0,
+          "retainedIndexMemory": 76871452,
+          "reservedIndexMemory": 15241566,
+          "total": 92113018
+        },
+        {
+          "candidateMemory": 15319020,
+          "pinnedCompactMemory": 15315316,
+          "pinnedHotMemory": 0,
+          "retainedIndexMemory": 92113018,
+          "reservedIndexMemory": 15319020,
+          "total": 107432038
+        },
+        {
+          "candidateMemory": 15319052,
+          "pinnedCompactMemory": 15319020,
+          "pinnedHotMemory": 0,
+          "retainedIndexMemory": 92116722,
+          "reservedIndexMemory": 15319052,
+          "total": 107435774
+        }
+      ],
+      "sum": 92116722,
+      "compact": 92116722,
+      "hot": 0
+    },
+    {
+      "name": "same-layout-rewrite-other-compact-preserved",
+      "counts": {
+        "parse": 69637,
+        "canonical": 28673
+      },
+      "layouts": 6,
+      "retainedIndexMemory": 92113018,
+      "reservedIndexMemory": 0,
+      "peakAccounted": 107435774,
+      "reservations": [
+        {
+          "candidateMemory": 15315316,
+          "pinnedCompactMemory": 0,
+          "pinnedHotMemory": 0,
+          "retainedIndexMemory": 0,
+          "reservedIndexMemory": 15315316,
+          "total": 15315316
+        },
+        {
+          "candidateMemory": 15413612,
+          "pinnedCompactMemory": 0,
+          "pinnedHotMemory": 0,
+          "retainedIndexMemory": 44520052,
+          "reservedIndexMemory": 15413612,
+          "total": 59933664
+        },
+        {
+          "candidateMemory": 15438190,
+          "pinnedCompactMemory": 0,
+          "pinnedHotMemory": 0,
+          "retainedIndexMemory": 89220320,
+          "reservedIndexMemory": 15438190,
+          "total": 104658510
+        },
+        {
+          "candidateMemory": 15487346,
+          "pinnedCompactMemory": 0,
+          "pinnedHotMemory": 0,
+          "retainedIndexMemory": 75453774,
+          "reservedIndexMemory": 15487346,
+          "total": 90941120
+        },
+        {
+          "candidateMemory": 15216988,
+          "pinnedCompactMemory": 0,
+          "pinnedHotMemory": 0,
+          "retainedIndexMemory": 90941120,
+          "reservedIndexMemory": 15216988,
+          "total": 106158108
+        },
+        {
+          "candidateMemory": 15241566,
+          "pinnedCompactMemory": 0,
+          "pinnedHotMemory": 0,
+          "retainedIndexMemory": 76871452,
+          "reservedIndexMemory": 15241566,
+          "total": 92113018
+        },
+        {
+          "candidateMemory": 15319020,
+          "pinnedCompactMemory": 15315316,
+          "pinnedHotMemory": 0,
+          "retainedIndexMemory": 92113018,
+          "reservedIndexMemory": 15319020,
+          "total": 107432038
+        },
+        {
+          "candidateMemory": 15319052,
+          "pinnedCompactMemory": 15319020,
+          "pinnedHotMemory": 0,
+          "retainedIndexMemory": 92116722,
+          "reservedIndexMemory": 15319052,
+          "total": 107435774
+        },
+        {
+          "candidateMemory": 15315316,
+          "pinnedCompactMemory": 0,
+          "pinnedHotMemory": 0,
+          "retainedIndexMemory": 76797702,
+          "reservedIndexMemory": 15315316,
+          "total": 92113018
+        }
+      ],
+      "sum": 92113018,
+      "compact": 92113018,
+      "hot": 0
+    }
+  ]
+}

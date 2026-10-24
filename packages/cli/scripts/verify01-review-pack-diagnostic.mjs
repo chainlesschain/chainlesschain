@@ -140,8 +140,15 @@ diagnosticIt("binds a branch capability to its parent even when context is ident
 import { createSessionHistoryOrigins } from ${source("packages/cli/src/lib/session-history-origins.js")};
 import { messagesToContextItems, contextItemsToMessages } from ${source("packages/cli/src/lib/context-memory-kernel/message-adapter.js")};
 import { normalizeContextItem } from "@chainlesschain/context-memory-kernel";
-diagnosticIt("requires the source digest even when sequence and message content match", () => {
-  const messages = [{ role: "user", content: "first" }, { role: "assistant", content: "answer" }, { role: "user", content: "selected" }];
+const plainMessages = [{ role: "user", content: "first" }, { role: "assistant", content: "answer" }, { role: "user", content: "selected" }];
+const rawMessages = plainMessages.map((message, index) => message.role === "user" ? { ...message, clientMessageId: "diagnostic-input-" + index, inputDigest: String(index + 1).repeat(64) } : { ...message });
+const projectedMessages = rawMessages.map((message) => {
+  const copy = { ...message };
+  if (copy.role === "user") { delete copy.clientMessageId; delete copy.inputDigest; }
+  return copy;
+});
+for (const [representation, messages] of [["plain", plainMessages], ["raw-receipt", rawMessages], ["projected", projectedMessages]]) {
+diagnosticIt("requires the " + representation + " source digest even when sequence and message content match", () => {
   for (const tampered of [false, true]) {
     const origins = createSessionHistoryOrigins();
     origins.snapshot(messages);
@@ -155,6 +162,7 @@ diagnosticIt("requires the source digest even when sequence and message content 
     else diagnosticExpect(prefix.cutoff).toBe(2);
   }
 });
+}
 `;
     case "verify-12":
       return `

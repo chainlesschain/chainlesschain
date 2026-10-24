@@ -139,6 +139,53 @@ describe("real Docker review diagnostic admission", () => {
     },
   );
 
+  it("verify-09 requires a real digest assertion for every receipt representation", async () => {
+    const task = catalog.tasks.find((entry) => entry.id === "verify-09");
+    const spec = VERIFY01_REVIEW_SPECS.find(
+      (entry) => entry.taskId === task.id,
+    );
+    const source = fs.readFileSync(
+      path.join(repository, spec.sourcePath),
+      "utf8",
+    );
+    expect(await controlFailures(task, spec, source)).toEqual([]);
+    const failures = await controlFailures(
+      task,
+      spec,
+      applyReviewMutation(source, spec.mutants[0]),
+    );
+    expect(failures).toHaveLength(3);
+    expect(failures.map((error) => error.name)).toEqual([
+      "AssertionError",
+      "AssertionError",
+      "AssertionError",
+    ]);
+  });
+
+  it("verify-09 accepts one reviewed digest anchor and rejects absent or ambiguous anchors", () => {
+    const mutant = VERIFY01_REVIEW_SPECS.find(
+      (entry) => entry.taskId === "verify-09",
+    ).mutants[0];
+    const variants = [mutant, ...mutant.alternatives];
+    expect(variants).toHaveLength(2);
+    for (const variant of variants) {
+      expect(applyReviewMutation(`before ${variant.find} after`, mutant)).toBe(
+        `before ${variant.replace} after`,
+      );
+      expect(() =>
+        applyReviewMutation(`${variant.find} ${variant.find}`, mutant),
+      ).toThrow(/one exact match/u);
+    }
+    for (const source of [
+      "missing",
+      variants.map((variant) => variant.find).join("\n"),
+    ]) {
+      expect(() => applyReviewMutation(source, mutant)).toThrow(
+        /one exact match/u,
+      );
+    }
+  });
+
   it("uses bounded cursor controls without repeating baseline pagination walks in the candidate", () => {
     const spec = VERIFY01_REVIEW_SPECS.find(
       (entry) => entry.taskId === "verify-07",

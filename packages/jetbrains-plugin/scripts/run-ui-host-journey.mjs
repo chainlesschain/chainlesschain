@@ -684,6 +684,86 @@ export function findPluginArchive(distributions, version) {
   return existsSync(archive) ? archive : null;
 }
 
+/** Resolve only this journey's prepared Robot plugin, never a prior sandbox. */
+export function findPopupRegressionRhino(sandboxRoot) {
+  const jars = [];
+  for (const platform of readdirSync(sandboxRoot, { withFileTypes: true })) {
+    if (!platform.isDirectory()) continue;
+    const lib = path.join(
+      sandboxRoot,
+      platform.name,
+      "plugins_runIdeForUiTests",
+      "robot-server-plugin",
+      "lib",
+    );
+    if (!existsSync(lib)) continue;
+    for (const file of readdirSync(lib, { withFileTypes: true })) {
+      if (file.isFile() && /^rhino-[0-9][0-9.]*\.jar$/u.test(file.name)) {
+        jars.push(path.join(lib, file.name));
+      }
+    }
+  }
+  if (jars.length !== 1)
+    throw new Error(
+      `Expected one prepared Robot Rhino JAR; found ${jars.length}`,
+    );
+  return jars[0];
+}
+
+/** Fail before launching the IDE if the generated popup scripts regress. */
+export function runPopupEnterRegression(sandboxRoot, logRoot, run = spawnSync) {
+  const rhino = findPopupRegressionRhino(sandboxRoot);
+  const args = [
+    path.join(SCRIPT_DIR, "run-popup-enter-regression.mjs"),
+    "--rhino-jar",
+    rhino,
+    "--output",
+    path.join(sandboxRoot, "popup-enter-regression-classes"),
+  ];
+  const result = run(process.execPath, args, {
+    cwd: PACKAGE_ROOT,
+    env: process.env,
+    windowsHide: true,
+    encoding: "utf8",
+    timeout: 120_000,
+    maxBuffer: 4 * 1024 * 1024,
+  });
+  mkdirSync(logRoot, { recursive: true });
+  writeFileSync(
+    path.join(logRoot, "popup-enter-regression.stdout.log"),
+    result.stdout || "",
+    { flag: "wx" },
+  );
+  writeFileSync(
+    path.join(logRoot, "popup-enter-regression.stderr.log"),
+    result.stderr || "",
+    { flag: "wx" },
+  );
+  writeFileSync(
+    path.join(logRoot, "popup-enter-regression.json"),
+    JSON.stringify(
+      {
+        schema: "chainlesschain.popup-enter-regression/v1",
+        rhinoSha256: createHash("sha256")
+          .update(readFileSync(rhino))
+          .digest("hex"),
+        exitCode: result.status,
+        signal: result.signal,
+        error: result.error?.message,
+        passed: !result.error && result.status === 0 && !result.signal,
+      },
+      null,
+      2,
+    ),
+    { flag: "wx" },
+  );
+  if (result.error || result.status !== 0 || result.signal) {
+    throw new Error(
+      `Popup Enter regression failed: ${result.error?.message || result.signal || `exit ${result.status}`}`,
+    );
+  }
+}
+
 /** Preserve unmodified IDE logs separately from the collector's redacted text copies. */
 export function captureHostDiagnostics(sandboxRoot, captureRoot, stderr = "") {
   if (
@@ -1010,9 +1090,31 @@ export async function runJourney(options) {
 
   try {
     await runGradle(
-      ["compileUiTestJava", "buildPlugin", ...gradleOptions],
+      [
+        "compileUiTestJava",
+        "buildPlugin",
+        "installUiJourneyPlugin",
+        ...gradleOptions,
+        // This combined prepare graph also stages Robot before the IDE starts.
+        // IntelliJ's sandbox/install tasks access Task.project at execution;
+        // Gradle 8.7 cannot store this graph in the configuration cache.
+        ...(gradleOptions.includes("--no-configuration-cache")
+          ? []
+          : ["--no-configuration-cache"]),
+      ],
       logRoot,
       "prepare",
+    );
+    // The surrounding host gate already supplies a desktop/Xvfb. Run the
+    // off-screen Swing fixture before any IDE process can share that desktop.
+    runPopupEnterRegression(
+      path.join(
+        PACKAGE_ROOT,
+        "build",
+        "idea-sandbox",
+        path.basename(logRoot).replaceAll(".", "-"),
+      ),
+      logRoot,
     );
     const fixtureEnvironment = createFakeCliEnvironment(logRoot);
     const pluginArchive = findPluginArchive(

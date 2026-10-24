@@ -1,0 +1,1872 @@
+diff --git a/packages/jetbrains-plugin/scripts/fixtures/popup-enter/com/chainlesschain/ide/uitest/PopupEnterRegression.java b/packages/jetbrains-plugin/scripts/fixtures/popup-enter/com/chainlesschain/ide/uitest/PopupEnterRegression.java
+new file mode 100644
+index 0000000000..449ef1d5ea
+--- /dev/null
++++ b/packages/jetbrains-plugin/scripts/fixtures/popup-enter/com/chainlesschain/ide/uitest/PopupEnterRegression.java
+@@ -0,0 +1,297 @@
++package com.chainlesschain.ide.uitest;
++
++import com.intellij.openapi.application.ApplicationManager;
++import com.intellij.ui.components.JBList;
++import java.awt.Window;
++import java.awt.event.ActionEvent;
++import java.awt.event.KeyEvent;
++import java.util.Properties;
++import javax.swing.AbstractAction;
++import javax.swing.JFrame;
++import javax.swing.JLayeredPane;
++import javax.swing.JList;
++import javax.swing.JPanel;
++import javax.swing.JWindow;
++import javax.swing.KeyStroke;
++import javax.swing.SwingUtilities;
++import org.mozilla.javascript.Context;
++import org.mozilla.javascript.ImporterTopLevel;
++import org.mozilla.javascript.ScriptableObject;
++
++/** Executes the production-generated scripts in Rhino against real owned Swing windows. */
++public final class PopupEnterRegression {
++    private static int passed;
++
++    public static void main(String[] args) throws Exception {
++        run("Remote Robot raw binding differs from wrapped hierarchy identity", f -> {
++            equal("false|true", f.eval("""
++                    (function() {
++                      var windows = java.awt.Window.getWindows();
++                      for (var i = 0; i < windows.length; i++) {
++                        if (windows[i].equals(component)) {
++                          return String(windows[i] === component)+'|'+String(windows[i].equals(component));
++                        }
++                      }
++                      throw new Error('Frame missing from actual Swing hierarchy');
++                    })();
++                    """));
++        });
++        run("fresh lookup selects replacement that appeared before discovery", f -> {
++            Popup old = f.popup("other", "partial  turn-2  checkpoint");
++            old.window.dispose();
++            Popup current = f.popup("other", "partial  turn-2  checkpoint");
++            current.next = () -> f.popup("Summarize from here");
++            String target = f.activate("partial  turn-2  ", true, "timeline");
++            equal(id(current.list), target);
++            equal(1, current.list.getSelectedIndex());
++            equal(1, ApplicationManager.getApplication().pendingCount());
++            ApplicationManager.getApplication().runNext();
++            equal(0, old.actions);
++            equal(1, current.actions);
++            equal("dispatch-returned|hidden", f.receipt("partial  turn-2  ", true, "timeline", target));
++            String next = f.activate("Summarize from here", false, "actions");
++            check(!next.isEmpty(), "the actual Enter action must show the next UI stage");
++            ApplicationManager.getApplication().runNext();
++            equal("dispatch-returned|hidden", f.receipt("Summarize from here", false, "actions", next));
++            f.eval(PopupEnterScripts.cleanup("timeline", f.owner));
++            equal(null, f.frame.getRootPane().getClientProperty("cc.uiTest.popupEnter.timeline"));
++        });
++        run("cancellation after scheduling fails without an action", f -> {
++            Popup popup = f.popup("Restore code");
++            String target = f.activate("Restore code", false, "cancel");
++            popup.window.dispose();
++            ApplicationManager.getApplication().runNext();
++            check(f.receipt("Restore code", false, "cancel", target).startsWith("failed:Error: Popup cancelled"), "cancellation must fail");
++            equal(0, popup.actions);
++        });
++        run("anonymous JBList subclass remains a selectable popup list", f -> {
++            JBList subclass = new JBList(new String[]{"Restore code"}) {};
++            equal("", subclass.getClass().getSimpleName());
++            Popup popup = new Popup(f.frame, subclass);
++            String target = f.activate("Restore code", false, "subclass");
++            equal(id(subclass), target);
++            ApplicationManager.getApplication().runNext();
++            equal(1, popup.actions);
++            equal("dispatch-returned|hidden", f.receipt("Restore code", false, "subclass", target));
++        });
++        run("lightweight popup layer is selected without matching a normal tool-window list", f -> {
++            JBList normal = new JBList(new String[]{"Restore code"});
++            f.frame.getContentPane().add(normal);
++            f.frame.validate();
++            equal("", f.activate("Restore code", false, "normal-list"));
++            LightPopup popup = new LightPopup(f.frame, "Restore code");
++            String target = f.activate("Restore code", false, "lightweight");
++            equal(id(popup.list), target);
++            ApplicationManager.getApplication().runNext();
++            equal(1, popup.actions);
++            equal("dispatch-returned|hidden", f.receipt("Restore code", false, "lightweight", target));
++        });
++        run("cancelled lightweight popup fails before Enter", f -> {
++            LightPopup popup = new LightPopup(f.frame, "Restore code");
++            String target = f.activate("Restore code", false, "light-cancel");
++            f.frame.getLayeredPane().remove(popup.surface);
++            ApplicationManager.getApplication().runNext();
++            check(f.receipt("Restore code", false, "light-cancel", target).contains("failed:Error: Popup cancelled"), "lightweight cancellation must fail");
++            equal(0, popup.actions);
++        });
++        run("replacement after scheduling cannot inherit the old activation", f -> {
++            Popup old = f.popup("Restore code");
++            String target = f.activate("Restore code", false, "replace");
++            old.window.dispose();
++            Popup replacement = f.popup("Restore code");
++            ApplicationManager.getApplication().runNext();
++            check(f.receipt("Restore code", false, "replace", target).startsWith("failed:"), "replacement must not recover cancellation");
++            equal(0, old.actions);
++            equal(0, replacement.actions);
++        });
++        run("wrong frame identity and foreign popup cannot dispatch", f -> {
++            JFrame other = frame();
++            Popup foreign = new Popup(other, "Restore code");
++            expectFailure(() -> f.eval(PopupEnterScripts.activate("Restore code", false, "bad-owner", "wrong")), "owner mismatch");
++            equal("", f.activate("Restore code", false, "foreign"));
++            equal(0, foreign.actions);
++            equal(0, ApplicationManager.getApplication().pendingCount());
++        });
++        run("moving the scheduled list to another owner fails", f -> {
++            Popup popup = f.popup("Restore code");
++            String target = f.activate("Restore code", false, "moved-owner");
++            JWindow foreign = new JWindow(frame());
++            foreign.add(popup.list);
++            foreign.setBounds(-20000, -20000, 240, 120);
++            foreign.setFocusableWindowState(false);
++            foreign.setVisible(true);
++            ApplicationManager.getApplication().runNext();
++            check(f.receipt("Restore code", false, "moved-owner", target).contains("failed:Error: Popup owner changed"), "must retain the original owner");
++            equal(0, popup.actions);
++        });
++        run("missing Enter action fails without invoking a fallback", f -> {
++            Popup popup = f.popup("Restore code");
++            popup.list.getInputMap(JList.WHEN_FOCUSED).put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "missing-enter-action");
++            String target = f.activate("Restore code", false, "no-enter");
++            ApplicationManager.getApplication().runNext();
++            check(f.receipt("Restore code", false, "no-enter", target).contains("failed:Error: Popup Enter action unavailable"), "must require the chooser Enter action");
++            equal(0, popup.actions);
++        });
++        run("duplicate labels within one popup fail before scheduling", f -> {
++            Popup popup = f.popup("Restore code", "Restore code");
++            expectFailure(() -> f.activate("Restore code", false, "duplicate"), "Ambiguous popup item");
++            equal(0, popup.actions);
++            equal(0, ApplicationManager.getApplication().pendingCount());
++        });
++        run("two owned matching popups fail before scheduling", f -> {
++            Popup first = f.popup("Restore code");
++            Popup second = f.popup("Restore code");
++            expectFailure(() -> f.activate("Restore code", false, "ambiguous"), "Ambiguous popup item");
++            equal(0, first.actions + second.actions);
++        });
++        run("new ambiguity before deferred dispatch fails", f -> {
++            Popup first = f.popup("Restore code");
++            String target = f.activate("Restore code", false, "later-ambiguity");
++            Popup second = f.popup("Restore code");
++            ApplicationManager.getApplication().runNext();
++            check(f.receipt("Restore code", false, "later-ambiguity", target).contains("failed:Error: Ambiguous"), "must revalidate uniqueness");
++            equal(0, first.actions + second.actions);
++        });
++        run("receipt completion does not synthesize the next UI stage", f -> {
++            Popup popup = f.popup("partial  turn-2  checkpoint");
++            String target = f.activate("partial  turn-2  ", true, "no-next");
++            ApplicationManager.getApplication().runNext();
++            equal(1, popup.actions);
++            equal("dispatch-returned|hidden", f.receipt("partial  turn-2  ", true, "no-next", target));
++            equal("", f.activate("Summarize from here", false, "missing-actions"));
++            equal(0, ApplicationManager.getApplication().pendingCount());
++        });
++        run("wrong label and receipt bindings cannot report success", f -> {
++            f.popup("Restore code");
++            equal("", f.activate("Restore conversation", false, "wrong-label"));
++            String target = f.activate("Restore code", false, "binding");
++            expectFailure(() -> f.receipt("Restore code", false, "binding", "different-target"), "binding mismatch");
++            expectFailure(() -> f.receipt("Restore conversation", false, "binding", target), "binding mismatch");
++            expectFailure(() -> f.eval(PopupEnterScripts.receipt("Restore code", false, "binding", "wrong-owner", target)), "owner mismatch");
++            Properties receipt = (Properties) f.frame.getRootPane().getClientProperty("cc.uiTest.popupEnter.binding");
++            receipt.setProperty("token", "other-token");
++            expectFailure(() -> f.receipt("Restore code", false, "binding", target), "binding mismatch");
++            expectFailure(() -> f.eval(PopupEnterScripts.cleanup("binding", f.owner)), "binding mismatch");
++        });
++        run("script quoting preserves exact labels and tokens", f -> {
++            String label = "Restore \"quoted\" \\ path\nline";
++            Popup popup = f.popup(label);
++            String target = f.activate(label, false, "token\"\\\n");
++            ApplicationManager.getApplication().runNext();
++            equal(1, popup.actions);
++            equal("dispatch-returned|hidden", f.receipt(label, false, "token\"\\\n", target));
++        });
++        System.out.println("Popup Enter Rhino/Swing regression: " + passed + " passed");
++    }
++
++    private static void run(String name, Scenario test) throws Exception {
++        Throwable[] failure = new Throwable[1];
++        SwingUtilities.invokeAndWait(() -> {
++            try { test.run(new Fixture()); }
++            catch (Throwable error) { failure[0] = error; }
++            finally {
++                ApplicationManager.getApplication().clear();
++                for (Window window : Window.getWindows()) window.dispose();
++            }
++        });
++        if (failure[0] != null) throw new AssertionError(name, failure[0]);
++        passed++;
++        System.out.println("PASS " + name);
++    }
++
++    private static JFrame frame() {
++        JFrame frame = new JFrame("Popup script regression");
++        frame.setBounds(-20000, -20000, 300, 200);
++        frame.setFocusableWindowState(false);
++        frame.setVisible(true);
++        return frame;
++    }
++
++    private static String id(Object value) { return String.valueOf(System.identityHashCode(value)); }
++    private static void equal(Object expected, Object actual) {
++        if (!java.util.Objects.equals(expected, actual)) throw new AssertionError("Expected " + expected + "; actual " + actual);
++    }
++    private static void check(boolean condition, String message) { if (!condition) throw new AssertionError(message); }
++    private static void expectFailure(Runnable action, String expected) {
++        try { action.run(); }
++        catch (RuntimeException error) {
++            check(error.getMessage().contains(expected), "Wrong failure: " + error);
++            return;
++        }
++        throw new AssertionError("Expected failure: " + expected);
++    }
++    private interface Scenario { void run(Fixture fixture); }
++
++    private static final class Fixture {
++        final JFrame frame = frame();
++        final String owner = id(frame.getRootPane());
++        Popup popup(String... labels) { return new Popup(frame, labels); }
++        String activate(String label, boolean prefix, String token) {
++            return eval(PopupEnterScripts.activate(label, prefix, token, owner));
++        }
++        String receipt(String label, boolean prefix, String token, String target) {
++            return eval(PopupEnterScripts.receipt(label, prefix, token, owner, target));
++        }
++        String eval(String script) {
++            Context context = Context.enter();
++            try {
++                // Match Remote Robot's RhinoJavaScriptExecutor: component is
++                // defined as a raw Java object, not prewrapped with javaToJS.
++                context.setOptimizationLevel(9);
++                context.setLanguageVersion(Context.VERSION_ES6);
++                ImporterTopLevel scope = new ImporterTopLevel(context);
++                scope.defineProperty("component", frame, ScriptableObject.EMPTY);
++                return Context.toString(context.evaluateString(scope, script, "generated-popup-script", 1, null));
++            } finally { Context.exit(); }
++        }
++    }
++
++    /** Real lightweight Swing hierarchy, as used by PopupFactory in POPUP_LAYER. */
++    private static final class LightPopup {
++        final JPanel surface = new JPanel(new java.awt.BorderLayout());
++        final JBList list;
++        int actions;
++        LightPopup(JFrame owner, String... labels) {
++            list = new JBList(labels);
++            list.registerKeyboardAction(new AbstractAction() {
++                @Override public void actionPerformed(ActionEvent event) {
++                    check(event.getSource() == list, "Enter source must be the lightweight list");
++                    actions++;
++                    owner.getLayeredPane().remove(surface);
++                }
++            }, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), JList.WHEN_FOCUSED);
++            surface.add(list);
++            surface.setBounds(0, 0, 240, 120);
++            owner.getLayeredPane().add(surface, JLayeredPane.POPUP_LAYER);
++            surface.doLayout();
++            check(list.isShowing(), "lightweight list must be showing in its frame");
++        }
++    }
++
++    private static final class Popup {
++        final JWindow window;
++        final JBList list;
++        int actions;
++        Runnable next;
++        Popup(JFrame owner, String... labels) {
++            this(owner, new JBList(labels));
++        }
++        Popup(JFrame owner, JBList popupList) {
++            window = new JWindow(owner);
++            list = popupList;
++            list.registerKeyboardAction(new AbstractAction() {
++                @Override public void actionPerformed(ActionEvent event) {
++                    check(event.getSource() == list, "Enter source must be the selected list");
++                    equal("Enter", event.getActionCommand());
++                    actions++;
++                    window.dispose();
++                    if (next != null) next.run();
++                }
++            }, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), JList.WHEN_FOCUSED);
++            window.add(list);
++            window.setBounds(-20000, -20000, 240, 120);
++            window.setFocusableWindowState(false);
++            window.setVisible(true);
++        }
++    }
++}
+diff --git a/packages/jetbrains-plugin/scripts/fixtures/popup-enter/com/intellij/openapi/application/ApplicationManager.java b/packages/jetbrains-plugin/scripts/fixtures/popup-enter/com/intellij/openapi/application/ApplicationManager.java
+new file mode 100644
+index 0000000000..60e4d66789
+--- /dev/null
++++ b/packages/jetbrains-plugin/scripts/fixtures/popup-enter/com/intellij/openapi/application/ApplicationManager.java
+@@ -0,0 +1,17 @@
++package com.intellij.openapi.application;
++
++import java.util.ArrayDeque;
++
++/** Controllable IDE invokeLater boundary; popup hierarchy and actions use real Swing. */
++public final class ApplicationManager {
++    private static final Application APPLICATION = new Application();
++    public static Application getApplication() { return APPLICATION; }
++
++    public static final class Application {
++        private final ArrayDeque<Runnable> pending = new ArrayDeque<>();
++        public void invokeLater(Runnable action) { pending.add(action); }
++        public int pendingCount() { return pending.size(); }
++        public void runNext() { pending.remove().run(); }
++        public void clear() { pending.clear(); }
++    }
++}
+diff --git a/packages/jetbrains-plugin/scripts/fixtures/popup-enter/com/intellij/ui/components/JBList.java b/packages/jetbrains-plugin/scripts/fixtures/popup-enter/com/intellij/ui/components/JBList.java
+new file mode 100644
+index 0000000000..26fa033ffd
+--- /dev/null
++++ b/packages/jetbrains-plugin/scripts/fixtures/popup-enter/com/intellij/ui/components/JBList.java
+@@ -0,0 +1,6 @@
++package com.intellij.ui.components;
++
++/** Minimal platform list type; hierarchy, model and Enter behavior are real Swing. */
++public class JBList extends javax.swing.JList<String> {
++    public JBList(String[] labels) { super(labels); }
++}
+diff --git a/packages/jetbrains-plugin/scripts/run-popup-enter-regression.mjs b/packages/jetbrains-plugin/scripts/run-popup-enter-regression.mjs
+new file mode 100644
+index 0000000000..c097b553f8
+--- /dev/null
++++ b/packages/jetbrains-plugin/scripts/run-popup-enter-regression.mjs
+@@ -0,0 +1,73 @@
++// Uses the host's existing robot-server Rhino JAR; no new build dependency.
++// Example: node scripts/run-popup-enter-regression.mjs --rhino-jar <robot-server/lib/rhino-1.7.15.jar>
++// Requires a GUI desktop (or xvfb-run on Linux). Test windows remain off screen.
++import { spawnSync } from "node:child_process";
++import { mkdtempSync, mkdirSync } from "node:fs";
++import { tmpdir } from "node:os";
++import { delimiter, join, resolve } from "node:path";
++import { fileURLToPath } from "node:url";
++import { parseArgs } from "node:util";
++
++const { values } = parseArgs({
++  options: {
++    "rhino-jar": { type: "string" },
++    "java-home": { type: "string", default: process.env.JAVA_HOME },
++    output: { type: "string" },
++  },
++});
++if (!values["rhino-jar"])
++  throw new Error("--rhino-jar must name the robot-server Rhino JAR");
++const base = fileURLToPath(new URL("../", import.meta.url));
++const output = values.output
++  ? resolve(values.output)
++  : mkdtempSync(join(tmpdir(), "cc-popup-enter-"));
++mkdirSync(output, { recursive: true });
++const rhino = resolve(values["rhino-jar"]);
++const executable = (name) =>
++  values["java-home"]
++    ? join(
++        values["java-home"],
++        "bin",
++        `${name}${process.platform === "win32" ? ".exe" : ""}`,
++      )
++    : name;
++function run(name, args) {
++  const result = spawnSync(executable(name), args, {
++    stdio: "inherit",
++    windowsHide: true,
++  });
++  if (result.error) throw result.error;
++  if (result.status !== 0)
++    throw new Error(
++      `${name} failed: status=${result.status}, signal=${result.signal}`,
++    );
++}
++run("javac", [
++  "-encoding",
++  "UTF-8",
++  "-cp",
++  rhino,
++  "-d",
++  output,
++  join(
++    base,
++    "src/uiTest/java/com/chainlesschain/ide/uitest/PopupEnterScripts.java",
++  ),
++  join(
++    base,
++    "scripts/fixtures/popup-enter/com/intellij/openapi/application/ApplicationManager.java",
++  ),
++  join(
++    base,
++    "scripts/fixtures/popup-enter/com/intellij/ui/components/JBList.java",
++  ),
++  join(
++    base,
++    "scripts/fixtures/popup-enter/com/chainlesschain/ide/uitest/PopupEnterRegression.java",
++  ),
++]);
++run("java", [
++  "-cp",
++  [output, rhino].join(delimiter),
++  "com.chainlesschain.ide.uitest.PopupEnterRegression",
++]);
+diff --git a/packages/jetbrains-plugin/scripts/run-ui-host-journey.mjs b/packages/jetbrains-plugin/scripts/run-ui-host-journey.mjs
+index 701f9c71b7..8f4a35bb6e 100644
+--- a/packages/jetbrains-plugin/scripts/run-ui-host-journey.mjs
++++ b/packages/jetbrains-plugin/scripts/run-ui-host-journey.mjs
+@@ -684,6 +684,86 @@ export function findPluginArchive(distributions, version) {
+   return existsSync(archive) ? archive : null;
+ }
+ 
++/** Resolve only this journey's prepared Robot plugin, never a prior sandbox. */
++export function findPopupRegressionRhino(sandboxRoot) {
++  const jars = [];
++  for (const platform of readdirSync(sandboxRoot, { withFileTypes: true })) {
++    if (!platform.isDirectory()) continue;
++    const lib = path.join(
++      sandboxRoot,
++      platform.name,
++      "plugins_runIdeForUiTests",
++      "robot-server-plugin",
++      "lib",
++    );
++    if (!existsSync(lib)) continue;
++    for (const file of readdirSync(lib, { withFileTypes: true })) {
++      if (file.isFile() && /^rhino-[0-9][0-9.]*\.jar$/u.test(file.name)) {
++        jars.push(path.join(lib, file.name));
++      }
++    }
++  }
++  if (jars.length !== 1)
++    throw new Error(
++      `Expected one prepared Robot Rhino JAR; found ${jars.length}`,
++    );
++  return jars[0];
++}
++
++/** Fail before launching the IDE if the generated popup scripts regress. */
++export function runPopupEnterRegression(sandboxRoot, logRoot, run = spawnSync) {
++  const rhino = findPopupRegressionRhino(sandboxRoot);
++  const args = [
++    path.join(SCRIPT_DIR, "run-popup-enter-regression.mjs"),
++    "--rhino-jar",
++    rhino,
++    "--output",
++    path.join(sandboxRoot, "popup-enter-regression-classes"),
++  ];
++  const result = run(process.execPath, args, {
++    cwd: PACKAGE_ROOT,
++    env: process.env,
++    windowsHide: true,
++    encoding: "utf8",
++    timeout: 120_000,
++    maxBuffer: 4 * 1024 * 1024,
++  });
++  mkdirSync(logRoot, { recursive: true });
++  writeFileSync(
++    path.join(logRoot, "popup-enter-regression.stdout.log"),
++    result.stdout || "",
++    { flag: "wx" },
++  );
++  writeFileSync(
++    path.join(logRoot, "popup-enter-regression.stderr.log"),
++    result.stderr || "",
++    { flag: "wx" },
++  );
++  writeFileSync(
++    path.join(logRoot, "popup-enter-regression.json"),
++    JSON.stringify(
++      {
++        schema: "chainlesschain.popup-enter-regression/v1",
++        rhinoSha256: createHash("sha256")
++          .update(readFileSync(rhino))
++          .digest("hex"),
++        exitCode: result.status,
++        signal: result.signal,
++        error: result.error?.message,
++        passed: !result.error && result.status === 0 && !result.signal,
++      },
++      null,
++      2,
++    ),
++    { flag: "wx" },
++  );
++  if (result.error || result.status !== 0 || result.signal) {
++    throw new Error(
++      `Popup Enter regression failed: ${result.error?.message || result.signal || `exit ${result.status}`}`,
++    );
++  }
++}
++
+ /** Preserve unmodified IDE logs separately from the collector's redacted text copies. */
+ export function captureHostDiagnostics(sandboxRoot, captureRoot, stderr = "") {
+   if (
+@@ -1010,10 +1090,32 @@ export async function runJourney(options) {
+ 
+   try {
+     await runGradle(
+-      ["compileUiTestJava", "buildPlugin", ...gradleOptions],
++      [
++        "compileUiTestJava",
++        "buildPlugin",
++        "installUiJourneyPlugin",
++        ...gradleOptions,
++        // This combined prepare graph also stages Robot before the IDE starts.
++        // IntelliJ's sandbox/install tasks access Task.project at execution;
++        // Gradle 8.7 cannot store this graph in the configuration cache.
++        ...(gradleOptions.includes("--no-configuration-cache")
++          ? []
++          : ["--no-configuration-cache"]),
++      ],
+       logRoot,
+       "prepare",
+     );
++    // The surrounding host gate already supplies a desktop/Xvfb. Run the
++    // off-screen Swing fixture before any IDE process can share that desktop.
++    runPopupEnterRegression(
++      path.join(
++        PACKAGE_ROOT,
++        "build",
++        "idea-sandbox",
++        path.basename(logRoot).replaceAll(".", "-"),
++      ),
++      logRoot,
++    );
+     const fixtureEnvironment = createFakeCliEnvironment(logRoot);
+     const pluginArchive = findPluginArchive(
+       path.join(PACKAGE_ROOT, "build", "distributions"),
+diff --git a/packages/jetbrains-plugin/scripts/run-ui-host-journey.test.mjs b/packages/jetbrains-plugin/scripts/run-ui-host-journey.test.mjs
+index d1250dea3e..75e6fcfa17 100644
+--- a/packages/jetbrains-plugin/scripts/run-ui-host-journey.test.mjs
++++ b/packages/jetbrains-plugin/scripts/run-ui-host-journey.test.mjs
+@@ -16,6 +16,8 @@ import {
+   captureHostDiagnostics,
+   createFakeCliEnvironment,
+   findPluginArchive,
++  findPopupRegressionRhino,
++  runPopupEnterRegression,
+   verifyModelConfigurationFixtureLedger,
+   verifyWorkbenchVisibilityMetrics,
+   WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT,
+@@ -54,6 +56,129 @@ function diagnosticFixture(t) {
+   };
+ }
+ 
++function popupRegressionFixture(t) {
++  const fixture = diagnosticFixture(t);
++  const lib = path.join(
++    fixture.sandbox,
++    "IC-2024.2",
++    "plugins_runIdeForUiTests",
++    "robot-server-plugin",
++    "lib",
++  );
++  mkdirSync(lib, { recursive: true });
++  const rhino = path.join(lib, "rhino-1.7.15.jar");
++  writeFileSync(rhino, "prepared-rhino-fixture");
++  return { ...fixture, lib, rhino };
++}
++
++test("popup regression uses only the exact prepared sandbox Rhino", (t) => {
++  const fixture = popupRegressionFixture(t);
++  const other = path.join(
++    fixture.root,
++    "prior-sandbox",
++    "IC-2024.2",
++    "plugins_runIdeForUiTests",
++    "robot-server-plugin",
++    "lib",
++  );
++  mkdirSync(other, { recursive: true });
++  writeFileSync(path.join(other, "rhino-9.9.jar"), "stale");
++  assert.equal(findPopupRegressionRhino(fixture.sandbox), fixture.rhino);
++  let invocations = 0;
++  runPopupEnterRegression(
++    fixture.sandbox,
++    fixture.capture,
++    (command, args, options) => {
++      invocations++;
++      assert.equal(command, process.execPath);
++      assert.equal(args[1], "--rhino-jar");
++      assert.equal(args[2], fixture.rhino);
++      assert.equal(
++        args[4],
++        path.join(fixture.sandbox, "popup-enter-regression-classes"),
++      );
++      assert.equal(options.env, process.env);
++      assert.equal(options.windowsHide, true);
++      return {
++        status: 0,
++        signal: null,
++        stdout: "PASS real script\n",
++        stderr: "expected negative case\n",
++      };
++    },
++  );
++  assert.equal(invocations, 1);
++  const receipt = JSON.parse(
++    readFileSync(path.join(fixture.capture, "popup-enter-regression.json")),
++  );
++  assert.equal(receipt.passed, true);
++  assert.match(receipt.rhinoSha256, /^[0-9a-f]{64}$/u);
++  assert.equal(
++    readFileSync(
++      path.join(fixture.capture, "popup-enter-regression.stderr.log"),
++      "utf8",
++    ),
++    "expected negative case\n",
++  );
++});
++
++test("popup regression fails closed for missing or ambiguous Rhino", (t) => {
++  const fixture = diagnosticFixture(t);
++  assert.throws(
++    () =>
++      runPopupEnterRegression(fixture.sandbox, fixture.capture, () => {
++        assert.fail("must not launch without a unique current Rhino");
++      }),
++    /found 0/,
++  );
++  const populated = popupRegressionFixture(t);
++  writeFileSync(
++    path.join(populated.lib, "rhino-1.7.14.jar"),
++    "unexpected-second",
++  );
++  assert.throws(() => findPopupRegressionRhino(populated.sandbox), /found 2/);
++});
++
++for (const result of [
++  { status: 1, signal: null },
++  { status: null, signal: "SIGTERM" },
++  { status: null, signal: null, error: new Error("spawn failed") },
++]) {
++  test(`popup regression stops host admission and preserves failure (${result.error?.message || result.signal || result.status})`, (t) => {
++    const fixture = popupRegressionFixture(t);
++    let hostStarted = false;
++    assert.throws(() => {
++      runPopupEnterRegression(fixture.sandbox, fixture.capture, () => ({
++        ...result,
++        stdout: "partial regression output\n",
++        stderr: "regression detail\n",
++      }));
++      hostStarted = true;
++    }, /Popup Enter regression failed/);
++    assert.equal(hostStarted, false);
++    assert.equal(
++      JSON.parse(
++        readFileSync(path.join(fixture.capture, "popup-enter-regression.json")),
++      ).passed,
++      false,
++    );
++    assert.equal(
++      readFileSync(
++        path.join(fixture.capture, "popup-enter-regression.stdout.log"),
++        "utf8",
++      ),
++      "partial regression output\n",
++    );
++    assert.equal(
++      readFileSync(
++        path.join(fixture.capture, "popup-enter-regression.stderr.log"),
++        "utf8",
++      ),
++      "regression detail\n",
++    );
++  });
++}
++
+ test("host capture preserves complete original IDE log bytes and rotations", (t) => {
+   const fixture = diagnosticFixture(t);
+   // Exceeds the generic diagnostic text tail limit and includes non-UTF8 bytes.
+diff --git a/packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java b/packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java
+index 7bfc4f20d4..753a3d9455 100644
+--- a/packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java
++++ b/packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java
+@@ -963,23 +963,16 @@ final class IdeUiSmokeTest {
+             ComponentFixture transcript,
+             String actionLabel) throws InterruptedException {
+         System.out.println("[ui-smoke] opening timeline for " + actionLabel);
++        // Resolve the durable owner before opening any short-lived popup.
++        ComponentFixture frame = robot.find(ComponentFixture.class,
++                Locators.byXpath("//div[@class='IdeFrameImpl']"), FIND_BUDGET);
++        String owner = frame.callJs(
++                "String(java.lang.System.identityHashCode(component.getRootPane()));", true);
+         send(input, send, "/rewind");
+-        ComponentFixture timeline;
+-        try {
+-            timeline = findPopupItem(robot, "partial  turn-2  ", true, FIRST_POPUP_BUDGET);
+-        } catch (RuntimeException firstPopupMissed) {
+-            // IDEA 2025.2 on a loaded Linux EDT has occasionally completed the
+-            // CLI timeline read without presenting its queued first chooser.
+-            // Re-enter through the same real /rewind UI path once; the second
+-            // attempt still has to render and complete under the full budget.
+-            send(input, send, "/rewind");
+-            timeline = findPopupItem(robot, "partial  turn-2  ", true, FIND_BUDGET);
+-        }
+-        clickPopupItem(robot, timeline, "partial  turn-2  ", true);
++        clickPopupItem(frame, owner, "partial  turn-2  ", true, FIRST_POPUP_BUDGET);
+         // A hidden list can also mean cancellation. The expected next-stage
+         // item, then the matching preview, are the actual transition checks.
+-        ComponentFixture actions = findPopupItem(robot, actionLabel, false, FIND_BUDGET);
+-        clickPopupItem(robot, actions, actionLabel, false);
++        clickPopupItem(frame, owner, actionLabel, false, FIND_BUDGET);
+         ComponentFixture confirm = robot.find(ComponentFixture.class,
+                 Locators.byXpath("//div[@text='Confirm action' and @visible='true']"), FIND_BUDGET);
+         Boolean expectedPreview = confirm.callJs(
+@@ -1004,57 +997,32 @@ final class IdeUiSmokeTest {
+                 FIND_BUDGET);
+     }
+ 
+-    private static ComponentFixture findPopupItem(
+-            RemoteRobot robot, String label, boolean prefix, Duration budget)
+-            throws InterruptedException {
+-        long deadline = System.nanoTime() + budget.toNanos();
+-        String last = "";
+-        while (System.nanoTime() < deadline) {
+-            StringBuilder visibleItems = new StringBuilder();
+-            ComponentFixture match = null;
+-            for (ComponentFixture list : robot.findAll(ComponentFixture.class,
+-                    Locators.byXpath("//div[@class='JBList' and @visible='true']"))) {
+-                String items = list.callJs(
+-                        "var items = []; if (component.isShowing()) {"
+-                                + "var model = component.getModel();"
+-                                + "for (var i = 0; i < model.getSize(); i++) {"
+-                                + "items.push(String(model.getElementAt(i)));}} items.join('\\n');", true);
+-                visibleItems.append('[').append(items).append("] ");
+-                for (String item : items.split("\n")) {
+-                    if (prefix ? item.startsWith(label) : item.equals(label)) {
+-                        if (match != null) throw new AssertionError("Ambiguous popup item: " + label);
+-                        match = list;
+-                    }
+-                }
+-            }
+-            if (match != null) return match;
+-            last = visibleItems.toString();
+-            Thread.sleep(100);
+-        }
+-        throw new IllegalStateException("Popup item '" + label + "' did not appear within "
+-                + budget.toSeconds() + "s; visible lists=" + last);
+-    }
+-
+     private static void clickPopupItem(
+-            RemoteRobot robot, ComponentFixture list, String label, boolean prefix)
++            ComponentFixture frame, String owner, String label, boolean prefix, Duration appearanceBudget)
+             throws InterruptedException {
+-        // Use the chooser's own Enter action. A physical click can dismiss a
+-        // native popup without invoking its chosen-item callback on ARM64.
++        // All discovery and activation requests use the durable frame. The EDT
++        // script locates and validates the owned popup before scheduling Enter;
++        // no detached Remote Robot list fixture crosses a request boundary.
+         System.out.println("[ui-smoke] activating popup item " + label);
+-        ComponentFixture frame = robot.find(ComponentFixture.class,
+-                Locators.byXpath("//div[@class='IdeFrameImpl']"), FIND_BUDGET);
+-        String owner = frame.callJs(
+-                "String(java.lang.System.identityHashCode(component.getRootPane()));", true);
+         String token = java.util.UUID.randomUUID().toString();
+         Throwable pendingFailure = null;
+         try {
+-            String target = list.callJs(popupActivationScript(label, prefix, token, owner), true);
++            long appearanceDeadline = System.nanoTime() + appearanceBudget.toNanos();
++            String target = "";
++            while (System.nanoTime() < appearanceDeadline) {
++                target = frame.callJs(PopupEnterScripts.activate(label, prefix, token, owner), true);
++                if (target == null) throw new IllegalStateException("Missing popup activation result for " + label);
++                if (!target.isEmpty()) break;
++                Thread.sleep(100);
++            }
++            if (target.isEmpty()) {
++                throw new IllegalStateException("Popup item '" + label + "' did not appear within "
++                        + appearanceBudget.toSeconds() + "s");
++            }
+             long deadline = System.nanoTime() + FIND_BUDGET.toNanos();
+             String last = "";
+             while (System.nanoTime() < deadline) {
+-                // Enter disposes the popup. Never resolve that short-lived Robot
+-                // fixture again; the frame holds only this call's scalar receipt.
+-                last = frame.callJs(popupReceiptScript(label, prefix, token, owner, target), true);
++                last = frame.callJs(PopupEnterScripts.receipt(label, prefix, token, owner, target), true);
+                 if (last.startsWith("failed:")) {
+                     throw new IllegalStateException("Popup Enter failed for " + label + ": " + last);
+                 }
+@@ -1070,7 +1038,7 @@ final class IdeUiSmokeTest {
+             throw failure;
+         } finally {
+             try {
+-                frame.runJs(popupReceiptCleanupScript(token, owner), true);
++                frame.runJs(PopupEnterScripts.cleanup(token, owner), true);
+             } catch (RuntimeException cleanupFailure) {
+                 if (pendingFailure != null) pendingFailure.addSuppressed(cleanupFailure);
+                 else throw cleanupFailure;
+@@ -1078,86 +1046,6 @@ final class IdeUiSmokeTest {
+         }
+     }
+ 
+-    static String popupActivationScript(String label, boolean prefix, String token, String owner) {
+-        // Keep validation, selection and the real Enter action in one deferred
+-        // EDT operation. A popup can be cancelled between Robot requests.
+-        // IIFE parameters retain this target across later script evaluations.
+-        return "(function(target, expected, prefix, token, owner) {"
+-                        + "var window = javax.swing.SwingUtilities.getWindowAncestor(target);"
+-                        + "while (window != null && !(window instanceof java.awt.Frame)) window = window.getOwner();"
+-                        + "if (window == null) throw new Error('Popup frame unavailable');"
+-                        + "var root = window.getRootPane();"
+-                        + "if (String(java.lang.System.identityHashCode(root)) !== owner) throw new Error('Popup owner mismatch');"
+-                        + "var key = 'cc.uiTest.popupEnter.'+token;"
+-                        + "if (root.getClientProperty(key) != null) throw new Error('Duplicate popup receipt');"
+-                        + "var targetId = String(java.lang.System.identityHashCode(target));"
+-                        + "var receipt = new java.util.Properties();"
+-                        + "receipt.setProperty('token',token); receipt.setProperty('owner',owner);"
+-                        + "receipt.setProperty('target',targetId); receipt.setProperty('label',expected);"
+-                        + "receipt.setProperty('prefix',String(prefix)); root.putClientProperty(key,receipt);"
+-                        + "function state(value) {"
+-                        + "receipt.setProperty('stage',value);"
+-                        + "receipt.setProperty('visibility',target.isShowing() ? 'visible' : 'hidden');"
+-                        + "var focus = java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();"
+-                        + "var focusedWindow = java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusedWindow();"
+-                        + "java.lang.System.out.println('[ui-popup-enter] '+expected+' '+value"
+-                        + "+' showing='+target.isShowing()+' focusOwner='+target.isFocusOwner()"
+-                        + "+' selectedIndex='+target.getSelectedIndex()"
+-                        + "+' selectedValue='+String(target.getSelectedValue()).substring(0,180)"
+-                        + "+' focus='+(focus == null ? '<none>' : focus.getClass().getName())"
+-                        + "+' focusedWindow='+(focusedWindow == null ? '<none>' : focusedWindow.getClass().getName())"
+-                        + "+' focusedWindowShowing='+(focusedWindow != null && focusedWindow.isShowing()));}"
+-                        + "state('scheduled');"
+-                        + "Packages.com.intellij.openapi.application.ApplicationManager.getApplication()"
+-                        + ".invokeLater(new java.lang.Runnable({run:function(){"
+-                        + "try {state('entered');"
+-                        + "if (!target.isShowing()) throw new Error('Popup cancelled before Enter dispatch');"
+-                        + "var model = target.getModel(), index = -1, matches = 0;"
+-                        + "for (var i = 0; i < model.getSize(); i++) {"
+-                        + "var item = String(model.getElementAt(i));"
+-                        + "if (prefix ? item.indexOf(expected) === 0 : item === expected) {index=i; matches++;}}"
+-                        + "if (matches !== 1) throw new Error('Popup target missing or ambiguous at dispatch');"
+-                        + "target.setSelectedIndex(index); target.ensureIndexIsVisible(index);"
+-                        + "var enter = javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_ENTER, 0);"
+-                        + "var action = target.getActionForKeyStroke(enter);"
+-                        + "if (action == null) throw new Error('Popup Enter action unavailable');"
+-                        + "state('validated');"
+-                        + "action.actionPerformed(new java.awt.event.ActionEvent(target,"
+-                        + "java.awt.event.ActionEvent.ACTION_PERFORMED, 'Enter'));"
+-                        + "state('dispatch-returned');"
+-                        + "} catch (failure) {state('failed:'+String(failure));"
+-                        + "java.lang.System.err.println('[ui-popup-enter] '+expected+' '+String(failure));}"
+-                        + "}}));return targetId;})(component," + jsString(label) + "," + prefix
+-                        + "," + jsString(token) + "," + jsString(owner) + ");";
+-    }
+-
+-    static String popupReceiptScript(
+-            String label, boolean prefix, String token, String owner, String target) {
+-        return "(function(root, expected, prefix, token, owner, target) {"
+-                + "if (String(java.lang.System.identityHashCode(root)) !== owner) throw new Error('Popup receipt owner mismatch');"
+-                + "var receipt = root.getClientProperty('cc.uiTest.popupEnter.'+token);"
+-                + "if (receipt == null) throw new Error('Popup receipt missing');"
+-                + "if (String(receipt.getProperty('token')) !== token"
+-                + " || String(receipt.getProperty('owner')) !== owner"
+-                + " || String(receipt.getProperty('target')) !== target"
+-                + " || String(receipt.getProperty('label')) !== expected"
+-                + " || String(receipt.getProperty('prefix')) !== String(prefix))"
+-                + " throw new Error('Popup receipt binding mismatch');"
+-                + "return String(receipt.getProperty('stage'))+'|'+String(receipt.getProperty('visibility'));"
+-                + "})(component.getRootPane()," + jsString(label) + "," + prefix + ","
+-                + jsString(token) + "," + jsString(owner) + "," + jsString(target) + ");";
+-    }
+-
+-    static String popupReceiptCleanupScript(String token, String owner) {
+-        return "(function(root, token, owner) {"
+-                + "if (String(java.lang.System.identityHashCode(root)) !== owner) throw new Error('Popup cleanup owner mismatch');"
+-                + "var key = 'cc.uiTest.popupEnter.'+token, receipt = root.getClientProperty(key);"
+-                + "if (receipt != null && String(receipt.getProperty('token')) !== token)"
+-                + " throw new Error('Popup cleanup binding mismatch');"
+-                + "root.putClientProperty(key,null);"
+-                + "})(component.getRootPane()," + jsString(token) + "," + jsString(owner) + ");";
+-    }
+-
+     private static void send(
+             ComponentFixture input, ComponentFixture send, String text) {
+         input.runJs("component.setText(" + jsString(text) + ")", true);
+diff --git a/packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/PopupEnterScripts.java b/packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/PopupEnterScripts.java
+new file mode 100644
+index 0000000000..16421a6cea
+--- /dev/null
++++ b/packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/PopupEnterScripts.java
+@@ -0,0 +1,145 @@
++package com.chainlesschain.ide.uitest;
++
++/** Scripts run on the IDE EDT, rooted in the stable frame rather than a popup fixture. */
++final class PopupEnterScripts {
++    private PopupEnterScripts() {}
++
++    static String activate(String label, boolean prefix, String token, String owner) {
++        return """
++                (function(frame, expected, prefix, token, owner) {
++                  if (!javax.swing.SwingUtilities.isEventDispatchThread()) throw new Error('Popup lookup requires EDT');
++                  var root = frame.getRootPane();
++                  if (String(java.lang.System.identityHashCode(root)) !== owner) throw new Error('Popup owner mismatch');
++                  var key = 'cc.uiTest.popupEnter.'+token;
++                  if (root.getClientProperty(key) != null) throw new Error('Duplicate popup receipt');
++                  function ownerFrame(window) {
++                    while (window != null && !(window instanceof java.awt.Frame)) window = window.getOwner();
++                    return window;
++                  }
++                  // Remote Robot binds component as a raw Java object, whereas
++                  // hierarchy calls return Rhino wrappers. Compare Java references.
++                  function sameComponent(left, right) {
++                    return left != null && right != null && left.equals(right);
++                  }
++                  function isPopupList(c) {
++                    if (!(c instanceof javax.swing.JList)) return false;
++                    for (var type = c.getClass(); type != null; type = type.getSuperclass()) {
++                      if (String(type.getName()) === 'com.intellij.ui.components.JBList') return true;
++                    }
++                    return false;
++                  }
++                  function locate() {
++                    var found = null, index = -1, matches = 0;
++                    function visit(c) {
++                      if (!c.isShowing()) return;
++                      if (isPopupList(c)) {
++                        var model = c.getModel();
++                        for (var i = 0; i < model.getSize(); i++) {
++                          var item = String(model.getElementAt(i));
++                          if (prefix ? item.indexOf(expected) === 0 : item === expected) {
++                            found = c; index = i; matches++;
++                          }
++                        }
++                      }
++                      if (c instanceof java.awt.Container) {
++                        var children = c.getComponents();
++                        for (var j = 0; j < children.length; j++) visit(children[j]);
++                      }
++                    }
++                    // Swing lightweight popups live in the frame's popup layer.
++                    // Do not search normal editor/tool-window lists in its content pane.
++                    var layers = frame.getLayeredPane();
++                    var lightweight = layers.getComponentsInLayer(javax.swing.JLayeredPane.POPUP_LAYER);
++                    for (var p = 0; p < lightweight.length; p++) visit(lightweight[p]);
++                    var windows = java.awt.Window.getWindows();
++                    for (var w = 0; w < windows.length; w++) {
++                      if (!sameComponent(windows[w], frame) && windows[w].isShowing() && sameComponent(ownerFrame(windows[w]), frame)) visit(windows[w]);
++                    }
++                    if (matches > 1) throw new Error('Ambiguous popup item: '+expected);
++                    return {target:found, index:index};
++                  }
++                  var match = locate(), target = match.target;
++                  if (target == null) return '';
++                  var targetId = String(java.lang.System.identityHashCode(target));
++                  var receipt = new java.util.Properties();
++                  receipt.setProperty('token',token); receipt.setProperty('owner',owner);
++                  receipt.setProperty('target',targetId); receipt.setProperty('label',expected);
++                  receipt.setProperty('prefix',String(prefix)); root.putClientProperty(key,receipt);
++                  function state(value) {
++                    receipt.setProperty('stage',value);
++                    receipt.setProperty('visibility',target.isShowing() ? 'visible' : 'hidden');
++                    var focus = java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
++                    var focusedWindow = java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusedWindow();
++                    java.lang.System.out.println('[ui-popup-enter] '+expected+' '+value
++                      +' showing='+target.isShowing()+' focusOwner='+target.isFocusOwner()
++                      +' selectedIndex='+target.getSelectedIndex()
++                      +' selectedValue='+String(target.getSelectedValue()).substring(0,180)
++                      +' focus='+(focus == null ? '<none>' : focus.getClass().getName())
++                      +' focusedWindow='+(focusedWindow == null ? '<none>' : focusedWindow.getClass().getName())
++                      +' focusedWindowShowing='+(focusedWindow != null && focusedWindow.isShowing()));
++                  }
++                  target.setSelectedIndex(match.index); target.ensureIndexIsVisible(match.index);
++                  state('scheduled');
++                  Packages.com.intellij.openapi.application.ApplicationManager.getApplication()
++                    .invokeLater(new java.lang.Runnable({run:function() {
++                      try {
++                        state('entered');
++                        if (!target.isShowing()) throw new Error('Popup cancelled before Enter dispatch');
++                        if (!sameComponent(ownerFrame(javax.swing.SwingUtilities.getWindowAncestor(target)), frame)) throw new Error('Popup owner changed');
++                        var current = locate();
++                        if (!sameComponent(current.target, target)) throw new Error('Popup target changed before Enter dispatch');
++                        target.setSelectedIndex(current.index); target.ensureIndexIsVisible(current.index);
++                        var enter = javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_ENTER, 0);
++                        var action = target.getActionForKeyStroke(enter);
++                        if (action == null) throw new Error('Popup Enter action unavailable');
++                        state('validated');
++                        action.actionPerformed(new java.awt.event.ActionEvent(target,
++                          java.awt.event.ActionEvent.ACTION_PERFORMED, 'Enter'));
++                        state('dispatch-returned');
++                      } catch (failure) {
++                        state('failed:'+String(failure));
++                        java.lang.System.err.println('[ui-popup-enter] '+expected+' '+String(failure));
++                      }
++                    }}));
++                  return targetId;
++                })(component,%s,%s,%s,%s);
++                """.formatted(quote(label), prefix, quote(token), quote(owner));
++    }
++
++    static String receipt(String label, boolean prefix, String token, String owner, String target) {
++        return """
++                (function(root, expected, prefix, token, owner, target) {
++                  if (String(java.lang.System.identityHashCode(root)) !== owner) throw new Error('Popup receipt owner mismatch');
++                  var receipt = root.getClientProperty('cc.uiTest.popupEnter.'+token);
++                  if (receipt == null) throw new Error('Popup receipt missing');
++                  if (String(receipt.getProperty('token')) !== token
++                    || String(receipt.getProperty('owner')) !== owner
++                    || String(receipt.getProperty('target')) !== target
++                    || String(receipt.getProperty('label')) !== expected
++                    || String(receipt.getProperty('prefix')) !== String(prefix)) throw new Error('Popup receipt binding mismatch');
++                  return String(receipt.getProperty('stage'))+'|'+String(receipt.getProperty('visibility'));
++                })(component.getRootPane(),%s,%s,%s,%s,%s);
++                """.formatted(quote(label), prefix, quote(token), quote(owner), quote(target));
++    }
++
++    static String cleanup(String token, String owner) {
++        return """
++                (function(root, token, owner) {
++                  if (String(java.lang.System.identityHashCode(root)) !== owner) throw new Error('Popup cleanup owner mismatch');
++                  var key = 'cc.uiTest.popupEnter.'+token, receipt = root.getClientProperty(key);
++                  if (receipt != null && String(receipt.getProperty('token')) !== token) throw new Error('Popup cleanup binding mismatch');
++                  root.putClientProperty(key,null);
++                })(component.getRootPane(),%s,%s);
++                """.formatted(quote(token), quote(owner));
++    }
++
++    private static String quote(String value) {
++        StringBuilder result = new StringBuilder("\"");
++        for (char ch : value.toCharArray()) {
++            if (ch == '"' || ch == '\\') result.append('\\').append(ch);
++            else if (ch < 32 || ch == '\u2028' || ch == '\u2029') result.append(String.format("\\u%04x", (int) ch));
++            else result.append(ch);
++        }
++        return result.append('"').toString();
++    }
++}
+diff --git a/packages/vscode-extension/src/chat/agent-diagnostics.js b/packages/vscode-extension/src/chat/agent-diagnostics.js
+new file mode 100644
+index 0000000000..9b466bd908
+--- /dev/null
++++ b/packages/vscode-extension/src/chat/agent-diagnostics.js
+@@ -0,0 +1,56 @@
++const PERSISTENCE_SUBTYPES = new Set([
++  "error_persistence",
++  "error_session_persistence",
++]);
++const PERSISTENCE_CODES = new Set([
++  "CC_SESSION_PERSISTENCE_FAILED",
++  "CC_SESSION_TOOL_ROUND_PERSISTENCE_FAILED",
++  "SESSION_REVISION_STALE",
++  "CC_COMPACTION_REVISION_STALE",
++  "CC_COMPACTION_SETTLEMENT_FAILED",
++]);
++const PERSISTENCE_PHASES = new Set([
++  "before-model",
++  "after-model",
++  "unspecified",
++]);
++
++function boundedErrorCode(value) {
++  return typeof value === "string" &&
++    value.length <= 120 &&
++    /^[A-Z]/u.test(value) &&
++    !/[^A-Z0-9_]/u.test(value)
++    ? value
++    : null;
++}
++
++function isPersistenceResult(event) {
++  return (
++    event?.type === "result" &&
++    event.is_error === true &&
++    (PERSISTENCE_SUBTYPES.has(event.subtype) ||
++      PERSISTENCE_CODES.has(event.code))
++  );
++}
++
++function errorDiagnostic(event) {
++  const code = boundedErrorCode(event.code);
++  const identifier = code ? { code } : {};
++  if (!isPersistenceResult(event)) {
++    // Ordinary provider/configuration errors still need their actionable reason.
++    const reason = event.error || event.result || "turn failed";
++    return { ...identifier, text: code ? `${reason} [${code}]` : reason };
++  }
++  // Persistence failures can wrap a provider request. Only project the known
++  // protocol fields; do not infer the failure phase from arbitrary prose.
++  const phase = PERSISTENCE_PHASES.has(event.persistence?.phase)
++    ? event.persistence.phase
++    : "unspecified";
++  return {
++    ...identifier,
++    phase,
++    text: `Session persistence failed${code ? ` [${code}]` : ""} (phase: ${phase}). Inspect the saved session before continuing.`,
++  };
++}
++
++module.exports = { boundedErrorCode, isPersistenceResult, errorDiagnostic };
+diff --git a/packages/vscode-extension/src/chat/agent-session.js b/packages/vscode-extension/src/chat/agent-session.js
+index 7d9d34a46c..6b4b8e30ca 100644
+--- a/packages/vscode-extension/src/chat/agent-session.js
++++ b/packages/vscode-extension/src/chat/agent-session.js
+@@ -20,6 +20,7 @@ const { spawn } = require("child_process");
+ const { randomUUID } = require("node:crypto");
+ const { hardenedEnv } = require("../hardened-env");
+ const { stopAgentProcess } = require("./stop-agent-process");
++const { boundedErrorCode } = require("./agent-diagnostics");
+ // Vendored @chainlesschain/agent-sdk (scripts/sync-agent-sdk.mjs): the
+ // protocol argv + NDJSON framing are SDK contracts now, not hand-rolled.
+ const { buildAgentArgs } = require("../vendor/agent-sdk/agent-session.js");
+@@ -140,7 +141,12 @@ class AgentChatSession {
+     });
+     this.child.on("error", (err) => {
+       // spawn failure (cc not installed / not on PATH) — surface as an event
+-      this._emit({ type: "session_error", error: err.message });
++      const code = boundedErrorCode(err.code);
++      this._emit({
++        type: "session_error",
++        error: err.message,
++        ...(code ? { code } : {}),
++      });
+     });
+     // stdin can emit an ASYNC 'error' (EPIPE) when we write just as the child
+     // dies (crash mid-turn, or cc closing stdin) — with no listener it throws
+@@ -149,9 +155,11 @@ class AgentChatSession {
+     if (this.child.stdin)
+       this.child.stdin.on("error", (error) => {
+         this._inputFailed = true;
++        const code = boundedErrorCode(error.code);
+         this._emit({
+           type: "session_error",
+           error: `Input delivery failed: ${error.message}`,
++          ...(code ? { code } : {}),
+         });
+       });
+     return this;
+diff --git a/packages/vscode-extension/src/chat/chat-events.js b/packages/vscode-extension/src/chat/chat-events.js
+index 261bc79596..a02263654b 100644
+--- a/packages/vscode-extension/src/chat/chat-events.js
++++ b/packages/vscode-extension/src/chat/chat-events.js
+@@ -19,6 +19,7 @@
+ const {
+   CC_AGENT_STREAM_EVENT_TYPES,
+ } = require("../vendor/agent-sdk/generated/app-protocol.js");
++const { errorDiagnostic } = require("./agent-diagnostics");
+ 
+ const KNOWN_AGENT_STREAM_EVENT_TYPES = new Set(CC_AGENT_STREAM_EVENT_TYPES);
+ const GOAL_STATUS = {
+@@ -294,11 +295,9 @@ function mapAgentEvent(evt, state) {
+         kind: "turn_end",
+         isError: evt.is_error === true,
+         // If text streamed via deltas, the final result repeats it — drop it.
+-        text: evt.is_error
+-          ? evt.error || evt.result || "turn failed"
+-          : sawDelta
+-            ? null
+-            : evt.result || null,
++        ...(evt.is_error === true
++          ? errorDiagnostic(evt)
++          : { text: sawDelta ? null : evt.result || null }),
+         usage: evt.usage || null,
+       };
+     }
+@@ -390,7 +389,13 @@ function mapAgentEvent(evt, state) {
+         note: evt.note || null,
+       };
+     case "session_error":
+-      return { kind: "error", text: evt.error || "agent session error" };
++      return {
++        kind: "error",
++        ...errorDiagnostic({
++          ...evt,
++          error: evt.error || "agent session error",
++        }),
++      };
+     case "token_usage":
+       // Per-LLM-call usage mid-turn — the webview accumulates these into a live
+       // token counter on the status line (turn_end still carries the
+diff --git a/packages/vscode-extension/src/chat/chat-view.js b/packages/vscode-extension/src/chat/chat-view.js
+index 7296ba01d8..30330817f2 100644
+--- a/packages/vscode-extension/src/chat/chat-view.js
++++ b/packages/vscode-extension/src/chat/chat-view.js
+@@ -26,6 +26,11 @@ const {
+   resultTranscriptReferences,
+ } = require("./transcript-sync");
+ const { AgentChatSession } = require("./agent-session");
++const {
++  boundedErrorCode,
++  isPersistenceResult,
++  errorDiagnostic,
++} = require("./agent-diagnostics");
+ const {
+   mapAgentEvent,
+   createTurnState,
+@@ -485,6 +490,12 @@ class ChatViewProvider {
+       : crypto.randomUUID();
+     let inputCancelRevision = conv.inputCancelRevision || 0;
+     const assertInputNotCancelled = () => {
++      if (
++        message.loopToken &&
++        this._loopTimers.get(conv.id) !== message.loopToken
++      ) {
++        throw new Error("Recurring input was paused; input was not dispatched");
++      }
+       if ((conv.inputCancelRevision || 0) !== inputCancelRevision) {
+         throw new Error(
+           "Input preparation was stopped; input was not dispatched",
+@@ -562,6 +573,7 @@ class ChatViewProvider {
+       return sent;
+     } catch (error) {
+       if (error === conv.inputInitError) conv.inputInitErrorReported = true;
++      if (dispatched) this._pauseLoopForSessionReview(conv.id);
+       if (prepared && !dispatched)
+         await this._draftStore.settle(key, id, "rejected").catch(() => {});
+       this._post({
+@@ -1206,6 +1218,14 @@ class ChatViewProvider {
+     return !!state;
+   }
+ 
++  _pauseLoopForSessionReview(convId) {
++    if (!this._stopLoop(convId)) return;
++    this._postFrom(convId, {
++      kind: "error",
++      text: "/loop paused: agent state needs review. Inspect the saved session and input acceptance before restarting /loop. Nothing was resent.",
++    });
++  }
++
+   /**
+    * Detach a child before stopping it. The token invalidates late stdout/exit
+    * callbacks from the old process so they cannot alter a newly spawned child
+@@ -1354,6 +1374,13 @@ class ChatViewProvider {
+       )
+         return;
+       acceptTranscriptInputReceipt(conv, evt, sessionToken);
++      if (
++        evt?.type === "session_error" ||
++        isPersistenceResult(evt) ||
++        (evt?.type === "result" && evt.acceptance === "unknown")
++      ) {
++        this._pauseLoopForSessionReview(convId);
++      }
+       if (
+         conv.inputReceiptVersion === undefined &&
+         (evt?.type === "session_error" ||
+@@ -1477,7 +1504,9 @@ class ChatViewProvider {
+       ) {
+         conv.modeStatus = "failed";
+         conv.modeError = String(
+-          evt.error || evt.result || "Agent startup failed",
++          isPersistenceResult(evt)
++            ? errorDiagnostic(evt).text
++            : evt.error || evt.result || "Agent startup failed",
+         ).slice(0, 500);
+         this._updateModeStatus();
+       }
+@@ -1486,7 +1515,7 @@ class ChatViewProvider {
+       // means setup is needed — surface the guided-setup card instead of a bare
+       // error. The auth half mirrors the JetBrains panel's hint so a bare
+       // "Anthropic error: 401" (no "api key" text) still triggers the card.
+-      if (evt?.type === "result" && evt.is_error) {
++      if (evt?.type === "result" && evt.is_error && !isPersistenceResult(evt)) {
+         const reason = String(evt.error || evt.result || "");
+         if (
+           /fetch failed|ECONNREFUSED|ENOTFOUND|ETIMEDOUT/i.test(reason) ||
+@@ -2358,12 +2387,23 @@ class ChatViewProvider {
+             this._postFrom(conv.id, { kind: "stderr", text: line });
+           }
+         },
+-        onExit: ({ code }) => {
++        onExit: ({ code, signal }) => {
+           exited = true;
+           const current = this._convs.get(conv.id);
+           if (!current || current._sessionToken !== sessionToken) {
+             return;
+           }
++          if (code !== 0 || signal || current.turnActive) {
++            this._pauseLoopForSessionReview(conv.id);
++            const safeSignal = boundedErrorCode(signal);
++            const exitCode = Number.isSafeInteger(code) ? code : "unknown";
++            this._postFrom(conv.id, {
++              kind: "error",
++              code: "CC_AGENT_PROCESS_EXITED",
++              ...(safeSignal ? { signal: safeSignal } : {}),
++              text: `Agent exited [CC_AGENT_PROCESS_EXITED] (exit: ${exitCode}${safeSignal ? `, signal: ${safeSignal}` : ""}). Inspect the saved session before continuing.`,
++            });
++          }
+           this._questions.archiveConversation(current, {
+             reason: "Agent exited; saved answer text remains editable",
+           });
+@@ -2734,17 +2774,26 @@ class ChatViewProvider {
+     );
+     const prompt = m[3].trim();
+     if (old) this._stopLoop(conv.id);
+-    const timer = setInterval(() => {
+-      if (!this._convs.has(conv.id)) return;
++    const loop = { timer: null, intervalMs, prompt };
++    const submit = () =>
++      this._handleMessage({
++        type: "send",
++        convId: conv.id,
++        text: prompt,
++        loopToken: loop,
++      });
++    loop.timer = setInterval(() => {
++      if (!this._convs.has(conv.id) || this._loopTimers.get(conv.id) !== loop)
++        return;
+       this._handleMessage({ type: "switchTab", id: conv.id });
+-      this._handleMessage({ type: "send", text: prompt });
++      submit();
+     }, intervalMs);
+-    this._loopTimers.set(conv.id, { timer, intervalMs, prompt });
+-    this._handleMessage({ type: "send", text: prompt });
++    this._loopTimers.set(conv.id, loop);
+     this._post({
+       kind: "info",
+       text: `/loop started: every ${m[1] || 300}${m[2] || "s"} · /loop stop to stop`,
+     });
++    submit();
+   }
+ 
+   /**
+@@ -2929,6 +2978,8 @@ class ChatViewProvider {
+   }
+ 
+   _sendMessage(m, images, sendingConv, dispatch = null) {
++    if (m.loopToken && this._loopTimers.get(sendingConv.id) !== m.loopToken)
++      return false;
+     const session = dispatch?.session || this._ensureSession(sendingConv);
+     const auto = deriveTabTitle(m.text);
+     if (auto && isDefaultTitle(sendingConv.title)) {
+@@ -2982,6 +3033,7 @@ class ChatViewProvider {
+       turns.push(dispatch ? [] : images);
+       this._imgTurns.set(id, turns);
+     } else {
++      this._pauseLoopForSessionReview(id);
+       if (dispatch) {
+         this._postFrom(id, {
+           kind: "error",
+diff --git a/packages/vscode-extension/test/agent-initialization.test.cjs b/packages/vscode-extension/test/agent-initialization.test.cjs
+index 20df7ef2af..681c2c44da 100644
+--- a/packages/vscode-extension/test/agent-initialization.test.cjs
++++ b/packages/vscode-extension/test/agent-initialization.test.cjs
+@@ -56,6 +56,284 @@ async function waitForInitWaiter(conv) {
+   assert.equal(conv.inputInitWaiters?.size, 1);
+ }
+ 
++function makeLoopConversation() {
++  const writes = [],
++    posts = [],
++    sessions = [];
++  const provider = new ChatViewProvider(
++    {
++      workspace: {
++        getConfiguration: () => ({ get: () => undefined }),
++        workspaceFolders: [],
++      },
++    },
++    {
++      deps: {
++        resolveChatLlm: () => ({}),
++        createSession: (callbacks) => {
++          const session = {
++            running: true,
++            send: (text) => {
++              writes.push(text);
++              return true;
++            },
++            sendEvent: (event) => {
++              writes.push(event);
++              return true;
++            },
++          };
++          sessions.push({ callbacks, session });
++          return session;
++        },
++      },
++    },
++  );
++  provider._post = (message) => posts.push(message);
++  provider._persistTabs = () => {};
++  provider._restoreTranscript = () => {};
++  provider._restoreDraft = async () => {};
++  provider._refreshContextStatus = () => {};
++  provider._cliCommand = () => "cc";
++  const conv = provider._activeConv();
++  conv.title = "Existing conversation";
++  provider._ensureSession(conv);
++  const onEvent = sessions[0].callbacks.onEvent;
++  onEvent({
++    type: "system",
++    subtype: "init",
++    session_id: conv.sessionId,
++    input_receipts: { version: 1 },
++  });
++  return { conv, provider, onEvent, posts, writes, sessions };
++}
++
++test("ChatView pauses recurring input on persistence or unknown acceptance and retains completed tool views", (t) => {
++  t.mock.timers.enable({ apis: ["setInterval"] });
++  for (const event of [
++    {
++      type: "result",
++      subtype: "error_persistence",
++      is_error: true,
++      code: "CC_SESSION_PERSISTENCE_FAILED",
++      persistence: { phase: "after-model" },
++    },
++    {
++      type: "result",
++      subtype: "error_session_persistence",
++      is_error: true,
++      code: "SESSION_REVISION_STALE",
++    },
++    {
++      type: "result",
++      is_error: true,
++      code: "CC_SESSION_TOOL_ROUND_PERSISTENCE_FAILED",
++    },
++    {
++      type: "result",
++      subtype: "error_input_receipt",
++      is_error: true,
++      acceptance: "unknown",
++      error: "Cannot verify input acceptance",
++    },
++    { type: "session_error", code: "EPIPE", error: "Input delivery failed" },
++  ]) {
++    const { conv, provider, onEvent, posts, writes, sessions } =
++      makeLoopConversation();
++    t.after(() => provider._stopLoop(conv.id));
++    provider._setLoop("1s inspect progress");
++    assert.equal(writes.length, 1);
++    onEvent({
++      type: "tool_use",
++      tool: "read_file",
++      args: { path: "completed.txt" },
++    });
++    onEvent({
++      type: "tool_result",
++      tool: "read_file",
++      is_error: false,
++      result: { content: "saved output" },
++    });
++    const completedView = conv.transcript.find((row) => row.role === "tool");
++    assert.ok(completedView);
++    onEvent(event);
++    t.mock.timers.tick(5000);
++    assert.equal(writes.length, 1, JSON.stringify(event));
++    assert.equal(sessions.length, 1);
++    assert.ok(conv.transcript.includes(completedView));
++    assert.ok(
++      posts.some(
++        (message) =>
++          /\/loop paused/.test(message?.text) &&
++          /Inspect.*session/.test(message.text),
++      ),
++    );
++    if (event.type === "session_error")
++      assert.ok(
++        posts.some(
++          (message) =>
++            message?.code === "EPIPE" && message.text.includes("EPIPE"),
++        ),
++      );
++    assert.equal(provider._loopTimers.has(conv.id), false);
++  }
++});
++
++test("ChatView successful and ordinary-error turns keep the explicit loop active", (t) => {
++  t.mock.timers.enable({ apis: ["setInterval"] });
++  const { conv, provider, onEvent, posts, writes } = makeLoopConversation();
++  t.after(() => provider._stopLoop(conv.id));
++  provider._setLoop("1s inspect progress");
++  onEvent({ type: "result", is_error: false, result: "Completed" });
++  t.mock.timers.tick(1000);
++  assert.equal(writes.length, 2);
++  onEvent({
++    type: "result",
++    is_error: true,
++    error: "Rate limit exceeded; retry later",
++    code: "RATE_LIMIT",
++  });
++  assert.ok(
++    posts.some(
++      (message) =>
++        message?.kind === "turn_end" &&
++        message.text.includes("Rate limit exceeded; retry later"),
++    ),
++  );
++  t.mock.timers.tick(1000);
++  assert.equal(writes.length, 3);
++  assert.equal(provider._loopTimers.has(conv.id), true);
++});
++
++test("ChatView pauses recurring input on abnormal close and exposes exit diagnostics", (t) => {
++  t.mock.timers.enable({ apis: ["setInterval"] });
++  for (const { code, signal, completed } of [
++    { code: 1, signal: null, completed: true },
++    { code: null, signal: "SIGTERM", completed: false },
++    { code: 0, signal: null, completed: false },
++  ]) {
++    const { conv, provider, onEvent, posts, writes, sessions } =
++      makeLoopConversation();
++    t.after(() => provider._stopLoop(conv.id));
++    provider._setLoop("1s inspect progress");
++    if (completed)
++      onEvent({ type: "result", is_error: false, result: "Completed" });
++    sessions[0].session.running = false;
++    sessions[0].callbacks.onExit({ code, signal });
++    t.mock.timers.tick(5000);
++    assert.equal(writes.length, 1);
++    assert.equal(sessions.length, 1);
++    const diagnostic = posts.find(
++      (message) =>
++        message?.kind === "error" && message.code === "CC_AGENT_PROCESS_EXITED",
++    );
++    assert.ok(diagnostic);
++    assert.ok(diagnostic.text.includes(signal || String(code)));
++    assert.ok(posts.some((message) => /\/loop paused/.test(message?.text)));
++  }
++});
++
++test("ChatView a clean close after a result permits the next scheduled turn", (t) => {
++  t.mock.timers.enable({ apis: ["setInterval"] });
++  const { conv, provider, onEvent, writes, sessions } = makeLoopConversation();
++  t.after(() => provider._stopLoop(conv.id));
++  provider._setLoop("1s inspect progress");
++  onEvent({ type: "result", is_error: false, result: "Completed" });
++  sessions[0].session.running = false;
++  sessions[0].callbacks.onExit({ code: 0, signal: null });
++  t.mock.timers.tick(1000);
++  assert.equal(writes.length, 2);
++  assert.equal(sessions.length, 2);
++  assert.equal(provider._loopTimers.has(conv.id), true);
++});
++
++test("ChatView a paused loop cannot dispatch an already-preparing durable input", async (t) => {
++  t.mock.timers.enable({ apis: ["setInterval", "setTimeout"] });
++  const { conv, provider, onEvent, writes } = makeSubmission();
++  provider._refreshContextStatus = () => {};
++  t.after(() => provider._stopLoop(conv.id));
++  onEvent({ type: "system", subtype: "init", input_receipts: { version: 1 } });
++  let finishPreparation;
++  provider._draftStore.prepare = () =>
++    new Promise((resolve) => {
++      finishPreparation = resolve;
++    });
++  provider._setLoop("1s inspect progress");
++  for (let i = 0; i < 30 && !finishPreparation; i++) await Promise.resolve();
++  assert.equal(typeof finishPreparation, "function");
++  onEvent({
++    type: "result",
++    subtype: "error_persistence",
++    is_error: true,
++    code: "CC_SESSION_PERSISTENCE_FAILED",
++  });
++  finishPreparation({ sessionId: conv.sessionId, paths: [] });
++  for (let i = 0; i < 30; i++) await Promise.resolve();
++  t.mock.timers.tick(5000);
++  for (let i = 0; i < 30; i++) await Promise.resolve();
++  assert.deepEqual(writes, []);
++  assert.equal(provider._loopTimers.has(conv.id), false);
++});
++
++test("ChatView persistence diagnostics do not leak through setup or mode failure channels", () => {
++  const { conv, onEvent, posts } = makeLoopConversation();
++  conv.modeStatus = "pending";
++  onEvent({
++    type: "result",
++    subtype: "error_persistence",
++    is_error: true,
++    code: "CC_SESSION_PERSISTENCE_FAILED",
++    persistence: { phase: "after-model" },
++    error: "HTTP 401 Bearer secret-request-body",
++    result: "secret-request-body",
++  });
++  assert.equal(JSON.stringify(posts).includes("secret-request-body"), false);
++  assert.equal(conv.modeError.includes("secret-request-body"), false);
++  assert.ok(conv.modeError.includes("CC_SESSION_PERSISTENCE_FAILED"));
++  assert.equal(
++    posts.some((message) => message?.kind === "setup"),
++    false,
++  );
++});
++
++test("ChatView stale or other-session failures cannot pause the current loop", (t) => {
++  t.mock.timers.enable({ apis: ["setInterval"] });
++  const { conv, provider, onEvent, posts, writes } = makeLoopConversation();
++  t.after(() => provider._stopLoop(conv.id));
++  provider._setLoop("1s inspect progress");
++  const failure = {
++    type: "result",
++    subtype: "error_persistence",
++    is_error: true,
++  };
++  onEvent({ ...failure, session_id: "another-session" });
++  conv._sessionToken = {};
++  onEvent(failure);
++  assert.equal(provider._loopTimers.has(conv.id), true);
++  t.mock.timers.tick(1000);
++  assert.equal(writes.length, 2);
++  assert.equal(
++    posts.some((message) => /\/loop paused/.test(message?.text)),
++    false,
++  );
++});
++
++test("ChatView unknown durable write pauses a loop without resending", async (t) => {
++  t.mock.timers.enable({ apis: ["setInterval", "setTimeout"] });
++  const { conv, provider, onEvent, writes } = makeSubmission();
++  t.after(() => provider._stopLoop(conv.id));
++  conv.session.sendEvent = (event) => {
++    writes.push(event);
++    return false;
++  };
++  onEvent({ type: "system", subtype: "init", input_receipts: { version: 1 } });
++  provider._setLoop("1s inspect progress");
++  for (let i = 0; i < 30; i++) await Promise.resolve();
++  t.mock.timers.tick(5000);
++  for (let i = 0; i < 30; i++) await Promise.resolve();
++  assert.equal(writes.length, 1);
++  assert.equal(provider._loopTimers.has(conv.id), false);
++});
++
+ test("doctor observes the active child and discards stale generation capabilities", () => {
+   const { conv, onEvent, provider, writes } = makeSubmission();
+   assert.equal(provider.runtimeDiagnostics().state, "initializing");
+diff --git a/packages/vscode-extension/test/agent-sdk-vendor.test.cjs b/packages/vscode-extension/test/agent-sdk-vendor.test.cjs
+index b71a45c49e..f614ee7be0 100644
+--- a/packages/vscode-extension/test/agent-sdk-vendor.test.cjs
++++ b/packages/vscode-extension/test/agent-sdk-vendor.test.cjs
+@@ -145,6 +145,108 @@ test("VS Code preserves causal-equivalent projections across interleavings", ()
+   }
+ });
+ 
++test("VS Code persistence errors retain only bounded protocol codes and fixed phases", () => {
++  const secret =
++    "Bearer private-provider-token request-body=<script>private</script>";
++  for (const [subtype, code, phase] of [
++    [undefined, "CC_SESSION_TOOL_ROUND_PERSISTENCE_FAILED", "unspecified"],
++    ["error_session_persistence", "SESSION_REVISION_STALE", "unspecified"],
++    ["error_persistence", "CC_SESSION_PERSISTENCE_FAILED", "after-model"],
++  ]) {
++    const state = { sawDelta: true };
++    const result = mapAgentEvent(
++      {
++        type: "result",
++        subtype,
++        is_error: true,
++        code,
++        error: secret,
++        result: secret,
++        phase: secret,
++        persistence: { phase, message: secret, cause: secret, request: secret },
++      },
++      state,
++    );
++    assert.equal(result.kind, "turn_end");
++    assert.equal(result.isError, true);
++    assert.equal(result.code, code);
++    assert.equal(result.phase, phase);
++    assert.ok(result.text.includes(code));
++    assert.ok(result.text.includes(phase));
++    assert.equal(JSON.stringify(result).includes(secret), false);
++    assert.equal(state.sawDelta, false);
++  }
++});
++
++test("VS Code rejects unbounded error codes and arbitrary phase prose without coercion", () => {
++  for (const code of [
++    undefined,
++    null,
++    123,
++    {},
++    "X".repeat(121),
++    "CC_BAD\nsecret",
++    "CC_BAD\n",
++    "<img src=x>",
++    "Bearer private-token",
++    "https://private.example",
++  ]) {
++    const result = mapAgentEvent(
++      {
++        type: "result",
++        subtype: "error_persistence",
++        is_error: true,
++        code,
++        error: "provider-private-error",
++        result: "request-private-body",
++        phase: "before-model",
++        persistence: { phase: "secret-phase" },
++      },
++      createTurnState(),
++    );
++    assert.equal(result.code, undefined);
++    assert.equal(result.phase, "unspecified");
++    assert.equal(result.text.includes("private"), false);
++    assert.equal(result.text.includes("secret"), false);
++    assert.equal(result.text.includes("before-model"), false);
++  }
++  const success = mapAgentEvent(
++    {
++      type: "result",
++      is_error: false,
++      result: "answer",
++      code: "CC_ERROR",
++      persistence: { phase: "after-model" },
++    },
++    createTurnState(),
++  );
++  assert.equal(success.text, "answer");
++  assert.equal(success.code, undefined);
++  assert.equal(success.phase, undefined);
++});
++
++test("VS Code ordinary errors keep actionable reasons and optional bounded codes", () => {
++  for (const event of [
++    {
++      error: "HTTP 401: check the configured API key",
++      code: "HTTP_AUTH_FAILED",
++    },
++    { result: "The configured model was not found" },
++    { error: "Rate limit exceeded; wait before retrying", code: "bad\ncode" },
++  ]) {
++    const mapped = mapAgentEvent(
++      { type: "result", is_error: true, ...event },
++      createTurnState(),
++    );
++    assert.ok(mapped.text.includes(event.error || event.result));
++    assert.equal(mapped.phase, undefined);
++    assert.equal(
++      mapped.code,
++      event.code === "HTTP_AUTH_FAILED" ? event.code : undefined,
++    );
++  }
++});
++
+ test("VS Code replays the canonical ApprovalDecision conformance fixture", () => {
+   const fixturePath = path.join(
+     repoRoot,
+diff --git a/packages/vscode-extension/test/agent-session-utf8.test.cjs b/packages/vscode-extension/test/agent-session-utf8.test.cjs
+index d863985645..491e1c9f78 100644
+--- a/packages/vscode-extension/test/agent-session-utf8.test.cjs
++++ b/packages/vscode-extension/test/agent-session-utf8.test.cjs
+@@ -95,9 +95,37 @@ test("agent session blocks input after a pipe failure and still drains the final
+   child.emit("close", 1, null);
+   assert.deepEqual(writes, [input]);
+   assert.match(events[0].error, /Input delivery failed/);
++  assert.equal(events[0].code, "EPIPE");
+   assert.deepEqual(events[1], receipt);
+ });
+ 
++test("agent spawn errors preserve only bounded machine codes", () => {
++  for (const code of [
++    "ENOENT",
++    "EACCES",
++    "ENOENT\n",
++    "private-request-body",
++    "X".repeat(121),
++  ]) {
++    const child = fakeChild();
++    const events = [];
++    new AgentChatSession({
++      deps: { spawn: () => child },
++      onEvent: (event) => events.push(event),
++    }).start();
++    child.emit(
++      "error",
++      Object.assign(new Error("could not start cc"), { code }),
++    );
++    assert.equal(
++      events[0].code,
++      ["ENOENT", "EACCES"].includes(code) ? code : undefined,
++    );
++    assert.equal(events[0].error, "could not start cc");
++    child.emit("close", 1, null);
++  }
++});
++
+ test("agent session refuses input after stdin.end before the process closes", () => {
+   const child = fakeChild();
+   const writes = [];
+diff --git a/packages/vscode-extension/test/host-dom-relay.test.cjs b/packages/vscode-extension/test/host-dom-relay.test.cjs
+index 018afb1211..810c694ee3 100644
+--- a/packages/vscode-extension/test/host-dom-relay.test.cjs
++++ b/packages/vscode-extension/test/host-dom-relay.test.cjs
+@@ -33,6 +33,79 @@ const {
+ const TOKEN = "ab".repeat(32);
+ const temporaryRoots = [];
+ 
++test("generated turn-end UI displays safe error codes and phases as plain text", () => {
++  const { mapAgentEvent, createTurnState } = require("../src/chat/chat-events");
++  const html = buildChatHtml({
++    cspSource: "vscode-webview:",
++    nonce: "nonce",
++    l10n: {},
++  });
++  const addStart = html.indexOf("  function add(cls, text) {");
++  const addEnd = html.indexOf("  function ensureStream()", addStart);
++  const turnStart = html.indexOf('      case "turn_end": {');
++  const turnEnd = html.indexOf('      case "usage": {', turnStart);
++  assert.ok(
++    addStart >= 0 && addEnd > addStart && turnStart >= 0 && turnEnd > turnStart,
++  );
++  const displayed = [],
++    announcements = [],
++    retained = [];
++  const message = mapAgentEvent(
++    {
++      type: "result",
++      subtype: "error_persistence",
++      is_error: true,
++      code: "CC_SESSION_PERSISTENCE_FAILED",
++      error: "Bearer secret-request-body",
++      persistence: { phase: "before-model", cause: "secret-cause" },
++    },
++    createTurnState(),
++  );
++  vm.runInNewContext(
++    html.slice(addStart, addEnd) +
++      "switch(m.kind) {" +
++      html.slice(turnStart, turnEnd) +
++      "}",
++    {
++      m: message,
++      streamRaw: "",
++      streamEl: null,
++      turnTokens: null,
++      document: {
++        createElement: () => ({
++          dataset: {},
++          setAttribute() {},
++          set innerHTML(_value) {
++            throw new Error("error must remain plain text");
++          },
++        }),
++      },
++      log: {
++        appendChild: (element) => displayed.push(element),
++        setAttribute() {},
++      },
++      currentTurnState: () => ({ number: 1 }),
++      appendBoundedTranscriptText,
++      MAX_ENTRY_CHARS: TRANSCRIPT_ENTRY_MAX_CHARS,
++      trimLog() {},
++      followTranscript() {},
++      ensureAssistantHeading() {},
++      flushStream() {},
++      closeThinking() {},
++      updateStatus() {},
++      rememberTranscriptRow: (_element, row) => retained.push(row),
++      announceTranscript: (_kind, text) => announcements.push(text),
++    },
++  );
++  assert.equal(displayed.length, 1);
++  assert.equal(displayed[0].className, "msg error");
++  assert.match(displayed[0].textContent, /CC_SESSION_PERSISTENCE_FAILED/);
++  assert.match(displayed[0].textContent, /before-model/);
++  assert.equal(displayed[0].textContent.includes("secret"), false);
++  assert.equal(retained[0].text, displayed[0].textContent);
++  assert.equal(announcements[0], displayed[0].textContent);
++});
++
+ test("host mode selection uses a fixed permission-mode allowlist", () => {
+   assert.deepEqual(
+     validateHostDomRequest({ action: "setMode", mode: "acceptEdits" }),

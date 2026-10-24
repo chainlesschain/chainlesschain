@@ -963,23 +963,16 @@ final class IdeUiSmokeTest {
             ComponentFixture transcript,
             String actionLabel) throws InterruptedException {
         System.out.println("[ui-smoke] opening timeline for " + actionLabel);
+        // Resolve the durable owner before opening any short-lived popup.
+        ComponentFixture frame = robot.find(ComponentFixture.class,
+                Locators.byXpath("//div[@class='IdeFrameImpl']"), FIND_BUDGET);
+        String owner = frame.callJs(
+                "String(java.lang.System.identityHashCode(component.getRootPane()));", true);
         send(input, send, "/rewind");
-        ComponentFixture timeline;
-        try {
-            timeline = findPopupItem(robot, "partial  turn-2  ", true, FIRST_POPUP_BUDGET);
-        } catch (RuntimeException firstPopupMissed) {
-            // IDEA 2025.2 on a loaded Linux EDT has occasionally completed the
-            // CLI timeline read without presenting its queued first chooser.
-            // Re-enter through the same real /rewind UI path once; the second
-            // attempt still has to render and complete under the full budget.
-            send(input, send, "/rewind");
-            timeline = findPopupItem(robot, "partial  turn-2  ", true, FIND_BUDGET);
-        }
-        clickPopupItem(robot, timeline, "partial  turn-2  ", true);
+        clickPopupItem(frame, owner, "partial  turn-2  ", true, FIRST_POPUP_BUDGET);
         // A hidden list can also mean cancellation. The expected next-stage
         // item, then the matching preview, are the actual transition checks.
-        ComponentFixture actions = findPopupItem(robot, actionLabel, false, FIND_BUDGET);
-        clickPopupItem(robot, actions, actionLabel, false);
+        clickPopupItem(frame, owner, actionLabel, false, FIND_BUDGET);
         ComponentFixture confirm = robot.find(ComponentFixture.class,
                 Locators.byXpath("//div[@text='Confirm action' and @visible='true']"), FIND_BUDGET);
         Boolean expectedPreview = confirm.callJs(
@@ -1004,57 +997,32 @@ final class IdeUiSmokeTest {
                 FIND_BUDGET);
     }
 
-    private static ComponentFixture findPopupItem(
-            RemoteRobot robot, String label, boolean prefix, Duration budget)
-            throws InterruptedException {
-        long deadline = System.nanoTime() + budget.toNanos();
-        String last = "";
-        while (System.nanoTime() < deadline) {
-            StringBuilder visibleItems = new StringBuilder();
-            ComponentFixture match = null;
-            for (ComponentFixture list : robot.findAll(ComponentFixture.class,
-                    Locators.byXpath("//div[@class='JBList' and @visible='true']"))) {
-                String items = list.callJs(
-                        "var items = []; if (component.isShowing()) {"
-                                + "var model = component.getModel();"
-                                + "for (var i = 0; i < model.getSize(); i++) {"
-                                + "items.push(String(model.getElementAt(i)));}} items.join('\\n');", true);
-                visibleItems.append('[').append(items).append("] ");
-                for (String item : items.split("\n")) {
-                    if (prefix ? item.startsWith(label) : item.equals(label)) {
-                        if (match != null) throw new AssertionError("Ambiguous popup item: " + label);
-                        match = list;
-                    }
-                }
-            }
-            if (match != null) return match;
-            last = visibleItems.toString();
-            Thread.sleep(100);
-        }
-        throw new IllegalStateException("Popup item '" + label + "' did not appear within "
-                + budget.toSeconds() + "s; visible lists=" + last);
-    }
-
     private static void clickPopupItem(
-            RemoteRobot robot, ComponentFixture list, String label, boolean prefix)
+            ComponentFixture frame, String owner, String label, boolean prefix, Duration appearanceBudget)
             throws InterruptedException {
-        // Use the chooser's own Enter action. A physical click can dismiss a
-        // native popup without invoking its chosen-item callback on ARM64.
+        // All discovery and activation requests use the durable frame. The EDT
+        // script locates and validates the owned popup before scheduling Enter;
+        // no detached Remote Robot list fixture crosses a request boundary.
         System.out.println("[ui-smoke] activating popup item " + label);
-        ComponentFixture frame = robot.find(ComponentFixture.class,
-                Locators.byXpath("//div[@class='IdeFrameImpl']"), FIND_BUDGET);
-        String owner = frame.callJs(
-                "String(java.lang.System.identityHashCode(component.getRootPane()));", true);
         String token = java.util.UUID.randomUUID().toString();
         Throwable pendingFailure = null;
         try {
-            String target = list.callJs(popupActivationScript(label, prefix, token, owner), true);
+            long appearanceDeadline = System.nanoTime() + appearanceBudget.toNanos();
+            String target = "";
+            while (System.nanoTime() < appearanceDeadline) {
+                target = frame.callJs(PopupEnterScripts.activate(label, prefix, token, owner), true);
+                if (target == null) throw new IllegalStateException("Missing popup activation result for " + label);
+                if (!target.isEmpty()) break;
+                Thread.sleep(100);
+            }
+            if (target.isEmpty()) {
+                throw new IllegalStateException("Popup item '" + label + "' did not appear within "
+                        + appearanceBudget.toSeconds() + "s");
+            }
             long deadline = System.nanoTime() + FIND_BUDGET.toNanos();
             String last = "";
             while (System.nanoTime() < deadline) {
-                // Enter disposes the popup. Never resolve that short-lived Robot
-                // fixture again; the frame holds only this call's scalar receipt.
-                last = frame.callJs(popupReceiptScript(label, prefix, token, owner, target), true);
+                last = frame.callJs(PopupEnterScripts.receipt(label, prefix, token, owner, target), true);
                 if (last.startsWith("failed:")) {
                     throw new IllegalStateException("Popup Enter failed for " + label + ": " + last);
                 }
@@ -1070,92 +1038,12 @@ final class IdeUiSmokeTest {
             throw failure;
         } finally {
             try {
-                frame.runJs(popupReceiptCleanupScript(token, owner), true);
+                frame.runJs(PopupEnterScripts.cleanup(token, owner), true);
             } catch (RuntimeException cleanupFailure) {
                 if (pendingFailure != null) pendingFailure.addSuppressed(cleanupFailure);
                 else throw cleanupFailure;
             }
         }
-    }
-
-    static String popupActivationScript(String label, boolean prefix, String token, String owner) {
-        // Keep validation, selection and the real Enter action in one deferred
-        // EDT operation. A popup can be cancelled between Robot requests.
-        // IIFE parameters retain this target across later script evaluations.
-        return "(function(target, expected, prefix, token, owner) {"
-                        + "var window = javax.swing.SwingUtilities.getWindowAncestor(target);"
-                        + "while (window != null && !(window instanceof java.awt.Frame)) window = window.getOwner();"
-                        + "if (window == null) throw new Error('Popup frame unavailable');"
-                        + "var root = window.getRootPane();"
-                        + "if (String(java.lang.System.identityHashCode(root)) !== owner) throw new Error('Popup owner mismatch');"
-                        + "var key = 'cc.uiTest.popupEnter.'+token;"
-                        + "if (root.getClientProperty(key) != null) throw new Error('Duplicate popup receipt');"
-                        + "var targetId = String(java.lang.System.identityHashCode(target));"
-                        + "var receipt = new java.util.Properties();"
-                        + "receipt.setProperty('token',token); receipt.setProperty('owner',owner);"
-                        + "receipt.setProperty('target',targetId); receipt.setProperty('label',expected);"
-                        + "receipt.setProperty('prefix',String(prefix)); root.putClientProperty(key,receipt);"
-                        + "function state(value) {"
-                        + "receipt.setProperty('stage',value);"
-                        + "receipt.setProperty('visibility',target.isShowing() ? 'visible' : 'hidden');"
-                        + "var focus = java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();"
-                        + "var focusedWindow = java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusedWindow();"
-                        + "java.lang.System.out.println('[ui-popup-enter] '+expected+' '+value"
-                        + "+' showing='+target.isShowing()+' focusOwner='+target.isFocusOwner()"
-                        + "+' selectedIndex='+target.getSelectedIndex()"
-                        + "+' selectedValue='+String(target.getSelectedValue()).substring(0,180)"
-                        + "+' focus='+(focus == null ? '<none>' : focus.getClass().getName())"
-                        + "+' focusedWindow='+(focusedWindow == null ? '<none>' : focusedWindow.getClass().getName())"
-                        + "+' focusedWindowShowing='+(focusedWindow != null && focusedWindow.isShowing()));}"
-                        + "state('scheduled');"
-                        + "Packages.com.intellij.openapi.application.ApplicationManager.getApplication()"
-                        + ".invokeLater(new java.lang.Runnable({run:function(){"
-                        + "try {state('entered');"
-                        + "if (!target.isShowing()) throw new Error('Popup cancelled before Enter dispatch');"
-                        + "var model = target.getModel(), index = -1, matches = 0;"
-                        + "for (var i = 0; i < model.getSize(); i++) {"
-                        + "var item = String(model.getElementAt(i));"
-                        + "if (prefix ? item.indexOf(expected) === 0 : item === expected) {index=i; matches++;}}"
-                        + "if (matches !== 1) throw new Error('Popup target missing or ambiguous at dispatch');"
-                        + "target.setSelectedIndex(index); target.ensureIndexIsVisible(index);"
-                        + "var enter = javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_ENTER, 0);"
-                        + "var action = target.getActionForKeyStroke(enter);"
-                        + "if (action == null) throw new Error('Popup Enter action unavailable');"
-                        + "state('validated');"
-                        + "action.actionPerformed(new java.awt.event.ActionEvent(target,"
-                        + "java.awt.event.ActionEvent.ACTION_PERFORMED, 'Enter'));"
-                        + "state('dispatch-returned');"
-                        + "} catch (failure) {state('failed:'+String(failure));"
-                        + "java.lang.System.err.println('[ui-popup-enter] '+expected+' '+String(failure));}"
-                        + "}}));return targetId;})(component," + jsString(label) + "," + prefix
-                        + "," + jsString(token) + "," + jsString(owner) + ");";
-    }
-
-    static String popupReceiptScript(
-            String label, boolean prefix, String token, String owner, String target) {
-        return "(function(root, expected, prefix, token, owner, target) {"
-                + "if (String(java.lang.System.identityHashCode(root)) !== owner) throw new Error('Popup receipt owner mismatch');"
-                + "var receipt = root.getClientProperty('cc.uiTest.popupEnter.'+token);"
-                + "if (receipt == null) throw new Error('Popup receipt missing');"
-                + "if (String(receipt.getProperty('token')) !== token"
-                + " || String(receipt.getProperty('owner')) !== owner"
-                + " || String(receipt.getProperty('target')) !== target"
-                + " || String(receipt.getProperty('label')) !== expected"
-                + " || String(receipt.getProperty('prefix')) !== String(prefix))"
-                + " throw new Error('Popup receipt binding mismatch');"
-                + "return String(receipt.getProperty('stage'))+'|'+String(receipt.getProperty('visibility'));"
-                + "})(component.getRootPane()," + jsString(label) + "," + prefix + ","
-                + jsString(token) + "," + jsString(owner) + "," + jsString(target) + ");";
-    }
-
-    static String popupReceiptCleanupScript(String token, String owner) {
-        return "(function(root, token, owner) {"
-                + "if (String(java.lang.System.identityHashCode(root)) !== owner) throw new Error('Popup cleanup owner mismatch');"
-                + "var key = 'cc.uiTest.popupEnter.'+token, receipt = root.getClientProperty(key);"
-                + "if (receipt != null && String(receipt.getProperty('token')) !== token)"
-                + " throw new Error('Popup cleanup binding mismatch');"
-                + "root.putClientProperty(key,null);"
-                + "})(component.getRootPane()," + jsString(token) + "," + jsString(owner) + ");";
     }
 
     private static void send(

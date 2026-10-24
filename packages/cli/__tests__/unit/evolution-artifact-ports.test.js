@@ -3,7 +3,10 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ArtifactStore } from "../../src/lib/artifact-store.js";
+import {
+  ArtifactStore,
+  ARTIFACT_STORE_DEFAULT_READ_METHODS,
+} from "../../src/lib/artifact-store.js";
 import {
   EVOLUTION_ARTIFACT_AUTHORITY_DECISION_SCHEMA,
   EVOLUTION_ARTIFACT_AUTHORITY_DENIED_CODE,
@@ -1092,6 +1095,231 @@ describe("EvolutionArtifactPorts", () => {
       /replaced during ledger readback/u,
     );
     expect(changeDuringRead).toBe(false);
+  });
+
+  function portsForStore(artifactStore, Ports = EvolutionArtifactPorts) {
+    return new Ports({
+      artifactStore,
+      audience: AUDIENCE,
+      currentAuthorityResolver,
+      envelopeSigner,
+      envelopeVerifier,
+      now: () => nowMs,
+      tenantId: TENANT_ID,
+    });
+  }
+
+  function publishLedgerValue(targetPorts) {
+    return targetPorts.putCanonical(
+      "wiki-revision",
+      { revision: 1 },
+      { purpose: PURPOSE, retention: "ledger" },
+    );
+  }
+
+  it("reads default artifact payloads once and rejects same-size byte tampering on the next read", () => {
+    const value = publishLedgerValue(ports);
+    const target = store.storedPath(artifactId(value));
+    const resolver = ports.createEvolutionLedgerArtifactResolver({
+      purpose: PURPOSE,
+    });
+    const opened = vi.spyOn(fs, "openSync");
+    try {
+      expect(resolver(ledgerRequest(value)).authenticated).toBe(true);
+      expect(
+        opened.mock.calls.filter(
+          ([file]) => typeof file === "string" && path.resolve(file) === target,
+        ),
+      ).toHaveLength(1);
+    } finally {
+      opened.mockRestore();
+    }
+    const bytes = fs.readFileSync(target);
+    bytes[bytes.length - 1] ^= 1;
+    fs.chmodSync(target, 0o600);
+    fs.writeFileSync(target, bytes);
+    expect(capturedError(() => resolver(ledgerRequest(value))).code).toBe(
+      EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
+    );
+  });
+
+  it.each(
+    ["storedPath", "_filesDir"].flatMap((method) =>
+      [2, 3].map((call) => [method, call]),
+    ),
+  )(
+    "keeps custom %s hook failure at call %i in its original read order",
+    (method, failingCall) => {
+      let reading = false;
+      let calls = 0;
+      class HookStore extends ArtifactStore {}
+      Object.defineProperty(HookStore.prototype, method, {
+        value(...args) {
+          if (reading && ++calls === failingCall)
+            throw new Error("custom read path rejected");
+          return Reflect.apply(
+            ARTIFACT_STORE_DEFAULT_READ_METHODS[
+              method === "_filesDir" ? "filesDir" : method
+            ],
+            this,
+            args,
+          );
+        },
+      });
+      const targetPorts = portsForStore(
+        new HookStore({
+          dir: path.join(tempRoot, "custom-read"),
+          now: () => nowMs,
+        }),
+      );
+      const value = publishLedgerValue(targetPorts);
+      const resolver = targetPorts.createEvolutionLedgerArtifactResolver({
+        purpose: PURPOSE,
+      });
+      reading = true;
+      expect(capturedError(() => resolver(ledgerRequest(value))).code).toBe(
+        EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
+      );
+      expect(calls).toBe(failingCall);
+    },
+  );
+
+  it.each(
+    ["storedPath", "_filesDir"].flatMap((method) =>
+      ["before", "during"].map((stage) => [method, stage]),
+    ),
+  )(
+    "rechecks prototype %s changes %s the bounded payload read",
+    (method, stage) => {
+      class MutablePrototypeStore extends ArtifactStore {}
+      const targetStore = new MutablePrototypeStore({
+        dir: path.join(tempRoot, "mutable-read"),
+        now: () => nowMs,
+      });
+      const targetPorts = portsForStore(targetStore);
+      const value = publishLedgerValue(targetPorts);
+      const target = targetStore.storedPath(artifactId(value));
+      const resolver = targetPorts.createEvolutionLedgerArtifactResolver({
+        purpose: PURPOSE,
+      });
+      let installed = false;
+      let hookCalls = 0;
+      const install = () => {
+        installed = true;
+        Object.defineProperty(MutablePrototypeStore.prototype, method, {
+          configurable: true,
+          value() {
+            hookCalls++;
+            throw new Error("late prototype read hook rejected");
+          },
+        });
+      };
+      const originalOpen = fs.openSync;
+      const originalRead = fs.readSync;
+      let payloadFd = null;
+      const openSpy = vi
+        .spyOn(fs, "openSync")
+        .mockImplementation((file, ...args) => {
+          const fd = Reflect.apply(originalOpen, fs, [file, ...args]);
+          if (typeof file === "string" && path.resolve(file) === target)
+            payloadFd = fd;
+          return fd;
+        });
+      const readSpy = vi
+        .spyOn(fs, "readSync")
+        .mockImplementation((fd, ...args) => {
+          const count = Reflect.apply(originalRead, fs, [fd, ...args]);
+          if (stage === "during" && fd === payloadFd && !installed) install();
+          return count;
+        });
+      try {
+        if (stage === "before") install();
+        expect(capturedError(() => resolver(ledgerRequest(value))).code).toBe(
+          EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
+        );
+        expect(installed).toBe(true);
+        expect(hookCalls).toBe(1);
+      } finally {
+        readSpy.mockRestore();
+        openSpy.mockRestore();
+        delete MutablePrototypeStore.prototype[method];
+      }
+    },
+  );
+
+  it("keeps both integrity reads when a temporary path override restores itself", () => {
+    class TemporaryPathStore extends ArtifactStore {}
+    const targetStore = new TemporaryPathStore({
+      dir: path.join(tempRoot, "temporary-path"),
+      now: () => nowMs,
+    });
+    const targetPorts = portsForStore(targetStore);
+    const value = publishLedgerValue(targetPorts);
+    const target = targetStore.storedPath(artifactId(value));
+    const resolver = targetPorts.createEvolutionLedgerArtifactResolver({
+      purpose: PURPOSE,
+    });
+    let hookCalls = 0;
+    Object.defineProperty(TemporaryPathStore.prototype, "storedPath", {
+      configurable: true,
+      value(...args) {
+        hookCalls++;
+        delete TemporaryPathStore.prototype.storedPath;
+        return Reflect.apply(
+          ARTIFACT_STORE_DEFAULT_READ_METHODS.storedPath,
+          this,
+          args,
+        );
+      },
+    });
+    const opened = vi.spyOn(fs, "openSync");
+    try {
+      expect(resolver(ledgerRequest(value)).authenticated).toBe(true);
+      expect(hookCalls).toBe(1);
+      expect(
+        opened.mock.calls.filter(
+          ([file]) => typeof file === "string" && path.resolve(file) === target,
+        ),
+      ).toHaveLength(3);
+    } finally {
+      opened.mockRestore();
+      delete TemporaryPathStore.prototype.storedPath;
+    }
+  });
+
+  it("preserves an integrity override installed before the ports module is imported", async () => {
+    const original = ARTIFACT_STORE_DEFAULT_READ_METHODS.verifyIntegrity;
+    let calls = 0;
+    const override = vi
+      .spyOn(ArtifactStore.prototype, "verifyIntegrity")
+      .mockImplementation(function (...args) {
+        calls++;
+        return Reflect.apply(original, this, args);
+      });
+    try {
+      const { EvolutionArtifactPorts: LatePorts } = await import(
+        "../../src/lib/evolution/evolution-artifact-ports.js?late-default-read-test"
+      );
+      const targetPorts = portsForStore(
+        new ArtifactStore({
+          dir: path.join(tempRoot, "late-import"),
+          now: () => nowMs,
+        }),
+        LatePorts,
+      );
+      const value = publishLedgerValue(targetPorts);
+      calls = 0;
+      const resolver = targetPorts.createEvolutionLedgerArtifactResolver({
+        purpose: PURPOSE,
+      });
+      expect(resolver(ledgerRequest(value)).authenticated).toBe(true);
+      expect(calls).toBe(2);
+      expect(ARTIFACT_STORE_DEFAULT_READ_METHODS.verifyIntegrity).toBe(
+        original,
+      );
+    } finally {
+      override.mockRestore();
+    }
   });
 
   it("resolves a bounded ledger batch with fresh authority for every item", () => {

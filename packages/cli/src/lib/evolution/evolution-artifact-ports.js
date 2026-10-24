@@ -12,7 +12,10 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { types as utilTypes } from "node:util";
-import { ArtifactStore } from "../artifact-store.js";
+import {
+  ArtifactStore,
+  ARTIFACT_STORE_DEFAULT_READ_METHODS,
+} from "../artifact-store.js";
 import { artifactPhysicalIdentity as physicalIdentity } from "./evolution-artifact-identity.js";
 import { withEvolutionFileIdentity } from "./evolution-file-identity.js";
 import { readBoundedDescriptor } from "./bounded-descriptor-read.js";
@@ -28,7 +31,8 @@ const ARTIFACT_STORE_DIRECTORY_BOUNDARIES = new WeakMap();
 // never cached. All duplicate matches remain in these derived lookup tables.
 const LEDGER_BATCH_INDEX_LOOKUPS = new WeakMap();
 // Captured layout object identity, never a caller pathname or digest, owns a
-// single latest parse. Bound aggregate retention as well as each snapshot;
+// latest compact bytes and optional hot parse. Bound aggregate retention plus
+// in-flight compact reservations, as well as each snapshot;
 // an overflow only disables reuse, never changes index admission limits.
 const TRUSTED_INDEX_PARSES = new Map();
 const MAX_RETAINED_INDEX_LAYOUTS = 8;
@@ -36,11 +40,12 @@ const MAX_RETAINED_INDEX_ROWS = 10_000;
 const MAX_RETAINED_INDEX_BYTES = 24 * 1024 * 1024;
 const MAX_RETAINED_INDEX_MEMORY = 112 * 1024 * 1024;
 let retainedIndexMemory = 0;
+let reservedIndexMemory = 0;
 // Capture repository function identity before binding instance methods. Only
 // these exact defaults may skip legacy list/get I/O; overrides still execute
 // and must match the independently authenticated descriptor snapshots.
-const DEFAULT_STORE_LIST = ArtifactStore.prototype.list;
-const DEFAULT_STORE_GET = ArtifactStore.prototype.get;
+const DEFAULT_STORE_LIST = ARTIFACT_STORE_DEFAULT_READ_METHODS.list;
+const DEFAULT_STORE_GET = ARTIFACT_STORE_DEFAULT_READ_METHODS.get;
 // Only the shared identity helper's directory opens use this adapter. A POSIX
 // directory/FIFO swap must fail before reaching a potentially blocking open.
 const INDEX_DIRECTORY_FS = Object.freeze({
@@ -1059,6 +1064,18 @@ function captureMethod(port, method, label) {
   return Object.freeze(captureDataMethod(port, method, label).bind(port));
 }
 
+function hasRepositoryDataMethod(store, method, expected) {
+  let cursor = store;
+  while (cursor) {
+    rejectProxy(cursor, "artifactStore read method prototype");
+    const descriptor = Object.getOwnPropertyDescriptor(cursor, method);
+    if (descriptor)
+      return "value" in descriptor && descriptor.value === expected;
+    cursor = Object.getPrototypeOf(cursor);
+  }
+  return false;
+}
+
 function captureArtifactStore(store) {
   rejectProxy(store, "artifactStore");
   if (!hasStablePrototype(store, ArtifactStore.prototype, "artifactStore")) {
@@ -1074,14 +1091,35 @@ function captureArtifactStore(store) {
   const layout = establishStoreLayout(resolvedDir);
   const list = captureDataMethod(store, "list", "artifactStore");
   const get = captureDataMethod(store, "get", "artifactStore");
+  const storedPath = captureDataMethod(store, "storedPath", "artifactStore");
+  const verifyIntegrity = captureDataMethod(
+    store,
+    "verifyIntegrity",
+    "artifactStore",
+  );
+  const defaults = ARTIFACT_STORE_DEFAULT_READ_METHODS;
+  const initiallyDefaultRead =
+    storedPath === defaults.storedPath &&
+    verifyIntegrity === defaults.verifyIntegrity &&
+    hasRepositoryDataMethod(store, "_filesDir", defaults.filesDir);
   const captured = Object.freeze({
     dir: resolvedDir,
     get: get === DEFAULT_STORE_GET ? null : Object.freeze(get.bind(store)),
     layout,
     list: list === DEFAULT_STORE_LIST ? null : Object.freeze(list.bind(store)),
     publishDataOnce: captureMethod(store, "publishDataOnce", "artifactStore"),
-    storedPath: captureMethod(store, "storedPath", "artifactStore"),
-    verifyIntegrity: captureMethod(store, "verifyIntegrity", "artifactStore"),
+    storedPath: Object.freeze(storedPath.bind(store)),
+    verifyIntegrity: Object.freeze(verifyIntegrity.bind(store)),
+    // Default verifyIntegrity repeats the same bounded physical read and hash
+    // performed below. Its dynamic path dependencies must still be repository
+    // defaults at EACH skipped hook point; freezing the instance does not freeze
+    // its prototype. Custom implementations retain both original hook calls.
+    canUseSingleBoundedRead: Object.freeze(
+      () =>
+        initiallyDefaultRead &&
+        hasRepositoryDataMethod(store, "storedPath", defaults.storedPath) &&
+        hasRepositoryDataMethod(store, "_filesDir", defaults.filesDir),
+    ),
   });
   // ArtifactStore methods consult public instance fields such as `dir` on
   // every call. Freeze the trusted instance after capturing its methods so a
@@ -1449,9 +1487,8 @@ function indexEntriesFingerprint(entries, label) {
   return `sha256:${hash.digest("hex")}`;
 }
 
-// Conservative accounting, not an exact VM heap size: include UTF-16 strings,
-// parsed nodes/property storage and (below) per-row allowance for both lookup
-// maps, duplicate arrays and snapshot metadata. Only validated JSON gets here.
+// Conservative accounting, not an exact VM heap size. Include UTF-16 strings,
+// parsed nodes/property storage and the per-row allowance for lookup maps.
 function parsedIndexMemory(value) {
   if (typeof value === "string") return 64 + value.length * 2;
   if (!value || typeof value !== "object") return 16;
@@ -1468,34 +1505,140 @@ function parsedIndexMemory(value) {
 function forgetTrustedIndexParse(layout) {
   const previous = TRUSTED_INDEX_PARSES.get(layout);
   if (!previous) return;
-  retainedIndexMemory -= previous.memory;
+  retainedIndexMemory -= previous.memory + (previous.hot?.memory || 0);
   TRUSTED_INDEX_PARSES.delete(layout);
 }
 
-function retainTrustedIndexParse(layout, bytes, parsed) {
-  forgetTrustedIndexParse(layout);
-  if (parsed.canonicalRows === null) return;
-  const memory = bytes.length + parsed.memory;
-  while (
-    TRUSTED_INDEX_PARSES.size >= MAX_RETAINED_INDEX_LAYOUTS ||
-    retainedIndexMemory + memory > MAX_RETAINED_INDEX_MEMORY
-  )
-    forgetTrustedIndexParse(TRUSTED_INDEX_PARSES.keys().next().value);
-  // The descriptor reader owns this Buffer; no hook or returned snapshot can
-  // access it. No decoded text, split lines or prior snapshots are retained.
-  TRUSTED_INDEX_PARSES.set(layout, { bytes, parsed, memory });
-  retainedIndexMemory += memory;
+function downgradeTrustedIndexParse(entry) {
+  if (!entry.hot) return;
+  retainedIndexMemory -= entry.hot.memory;
+  entry.hot = null;
 }
 
-function parseTrustedIndexBytes(bytes, prefix = null) {
+function countTrustedIndexRows(bytes) {
+  let count = 0;
+  for (
+    let offset = bytes.indexOf(10);
+    offset !== -1;
+    offset = bytes.indexOf(10, offset + 1)
+  )
+    count += 1;
+  return count;
+}
+
+function reserveTrustedIndexParse(layout, bytes, prefix) {
+  if (
+    bytes.length > MAX_RETAINED_INDEX_BYTES ||
+    countTrustedIndexRows(bytes) > MAX_RETAINED_INDEX_ROWS
+  )
+    return null;
+  // Small descriptor Buffers may keep an entire shared slab alive. Charge its
+  // full backing store even if another entry happens to share the same slab.
+  // Canonical JSON only reorders keys of exact JSON.stringify rows, so its
+  // newline-framed UTF-8 length equals the raw length. The writer checks this.
+  const memory =
+    bytes.buffer.byteLength + bytes.length + 4096 + parsedIndexMemory(layout);
+  if (memory > MAX_RETAINED_INDEX_MEMORY) return null;
+  const needsRoom = () =>
+    retainedIndexMemory + reservedIndexMemory + memory >
+    MAX_RETAINED_INDEX_MEMORY;
+  // No prefix entries have been captured yet. Dropping its optional hot tier
+  // here is safe; the subsequent parser then reconstructs from compact bytes.
+  for (const entry of TRUSTED_INDEX_PARSES.values()) {
+    if (!needsRoom()) break;
+    downgradeTrustedIndexParse(entry);
+  }
+  while (
+    needsRoom() ||
+    (!TRUSTED_INDEX_PARSES.has(layout) &&
+      TRUSTED_INDEX_PARSES.size >= MAX_RETAINED_INDEX_LAYOUTS)
+  ) {
+    const victim = [...TRUSTED_INDEX_PARSES].find(
+      ([, entry]) => entry !== prefix,
+    );
+    if (!victim) return null;
+    forgetTrustedIndexParse(victim[0]);
+  }
+  reservedIndexMemory += memory;
+  return { memory, active: true, canonicalBytes: null };
+}
+
+function releaseTrustedIndexReservation(reservation) {
+  if (!reservation?.active) return;
+  reservedIndexMemory -= reservation.memory;
+  reservation.active = false;
+}
+
+function promoteTrustedIndexParse(entry, parsed) {
+  if (
+    entry.hot ||
+    parsed.memory + retainedIndexMemory + reservedIndexMemory >
+      MAX_RETAINED_INDEX_MEMORY
+  )
+    return;
+  entry.hot = parsed;
+  retainedIndexMemory += parsed.memory;
+}
+
+function retainTrustedIndexParse(layout, bytes, parsed, reservation) {
+  forgetTrustedIndexParse(layout);
+  releaseTrustedIndexReservation(reservation);
+  const entry = {
+    bytes,
+    canonicalBytes: reservation.canonicalBytes,
+    rowCount: parsed.entries.length,
+    entriesFingerprint: parsed.entriesFingerprint,
+    hotMemoryEstimate: parsed.memory,
+    memory: reservation.memory,
+    hot: null,
+  };
+  TRUSTED_INDEX_PARSES.set(layout, entry);
+  retainedIndexMemory += entry.memory;
+  promoteTrustedIndexParse(entry, parsed);
+}
+
+function decodeTrustedIndexParse(entry) {
+  // Only exact freshly read private-buffer matches reach this path. Decode the
+  // original bytes, preserving property enumeration order for custom hooks.
+  const entries = [];
+  let start = 0;
+  for (
+    let end = entry.bytes.indexOf(10);
+    end !== -1;
+    end = entry.bytes.indexOf(10, start)
+  ) {
+    const value = JSON.parse(entry.bytes.toString("utf8", start, end));
+    deepFreeze(value);
+    entries.push(value);
+    start = end + 1;
+  }
+  return Object.freeze({
+    entries: Object.freeze(entries),
+    entriesFingerprint: entry.entriesFingerprint,
+    memory: entry.hotMemoryEstimate,
+  });
+}
+
+function hashTrustedCanonicalRows(hash, bytes) {
+  let start = 0;
+  for (
+    let end = bytes.indexOf(10);
+    end !== -1;
+    end = bytes.indexOf(10, start)
+  ) {
+    hash.update(`${end - start}:`, "utf8");
+    hash.update(bytes.subarray(start, end));
+    start = end + 1;
+  }
+}
+
+function parseTrustedIndexBytes(bytes, prefix = null, reservation = null) {
   if (!Buffer.isBuffer(bytes)) {
     throw artifactError(
       EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
       "ArtifactStore index snapshot is not a Buffer",
     );
   }
-  // A prefix is supplied only after exact private-buffer comparison. Its rows
-  // passed every structural/canonical check and are already deeply frozen.
   const suffix = prefix ? bytes.subarray(prefix.bytes.length) : bytes;
   const text = suffix.toString("utf8");
   if (!Buffer.from(text, "utf8").equals(suffix)) {
@@ -1511,7 +1654,9 @@ function parseTrustedIndexBytes(bytes, prefix = null) {
     );
   }
   const lines = text === "" ? [] : text.slice(0, -1).split("\n");
-  const entries = prefix ? [...prefix.parsed.entries] : [];
+  const entries = prefix
+    ? [...(prefix.hot || decodeTrustedIndexParse(prefix)).entries]
+    : [];
   const rowCount = entries.length + lines.length;
   if (
     rowCount > EVOLUTION_ARTIFACT_MAX_INDEX_ENTRIES ||
@@ -1526,24 +1671,16 @@ function parseTrustedIndexBytes(bytes, prefix = null) {
       "ArtifactStore index exceeds its trusted snapshot limits",
     );
   }
-  let memory = prefix ? prefix.parsed.memory : 256;
-  let canonicalRows =
-    rowCount <= MAX_RETAINED_INDEX_ROWS &&
-    bytes.length <= MAX_RETAINED_INDEX_BYTES &&
-    bytes.length + memory <= MAX_RETAINED_INDEX_MEMORY
-      ? prefix
-        ? [...prefix.parsed.canonicalRows]
-        : []
-      : null;
-  // The NEW count is part of the original framing; never extend an old hash.
+  let memory = prefix ? prefix.hotMemoryEstimate : 256;
+  let canonicalOffset = prefix ? prefix.canonicalBytes.length : 0;
+  if (reservation) {
+    reservation.canonicalBytes = Buffer.allocUnsafeSlow(bytes.length);
+    if (prefix) prefix.canonicalBytes.copy(reservation.canonicalBytes);
+  }
+  // The new count is part of the original framing; never extend an old hash.
   const hash = crypto.createHash("sha256");
   hash.update(`${rowCount}\0`, "utf8");
-  const hashRow = (canonical) => {
-    hash.update(`${Buffer.byteLength(canonical, "utf8")}:`, "utf8");
-    hash.update(canonical, "utf8");
-  };
-  if (prefix)
-    for (const canonical of prefix.parsed.canonicalRows) hashRow(canonical);
+  if (prefix) hashTrustedCanonicalRows(hash, prefix.canonicalBytes);
   for (const line of lines) {
     const index = entries.length;
     let entry;
@@ -1578,25 +1715,44 @@ function parseTrustedIndexBytes(bytes, prefix = null) {
     }
     entries.push(entry);
   }
-  // Keep the original JSON/row validation before canonical validation, including
-  // error precedence when multiple different malformed rows are present.
+  // Preserve the original JSON/row-before-canonical validation error precedence.
   for (let index = rowCount - lines.length; index < rowCount; index += 1) {
     const entry = entries[index];
     const canonical = canonicalJson(entry, MAX_INDEX_ENTRY_BYTES);
-    hashRow(canonical);
-    if (canonicalRows !== null) {
-      memory += 1024 + canonical.length * 2 + parsedIndexMemory(entry);
-      if (bytes.length + memory > MAX_RETAINED_INDEX_MEMORY)
-        canonicalRows = null;
-      else canonicalRows.push(canonical);
+    const length = Buffer.byteLength(canonical, "utf8");
+    hash.update(`${length}:`, "utf8");
+    hash.update(canonical, "utf8");
+    if (reservation) {
+      const line = lines[index - (rowCount - lines.length)];
+      if (
+        length !== Buffer.byteLength(line, "utf8") ||
+        canonicalOffset + length >= reservation.canonicalBytes.length ||
+        reservation.canonicalBytes.write(
+          canonical,
+          canonicalOffset,
+          length,
+          "utf8",
+        ) !== length
+      )
+        throw artifactError(
+          EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
+          "ArtifactStore canonical index length changed",
+        );
+      canonicalOffset += length;
+      reservation.canonicalBytes[canonicalOffset++] = 10;
+      memory += 1024 + parsedIndexMemory(entry);
     }
-    // Validate depth/node/byte budgets before recursively freezing JSON data.
     deepFreeze(entry);
+  }
+  if (reservation && canonicalOffset !== reservation.canonicalBytes.length) {
+    throw artifactError(
+      EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
+      "ArtifactStore canonical index framing changed",
+    );
   }
   return Object.freeze({
     entries: Object.freeze(entries),
     entriesFingerprint: `sha256:${hash.digest("hex")}`,
-    canonicalRows: canonicalRows === null ? null : Object.freeze(canonicalRows),
     memory,
   });
 }
@@ -1606,7 +1762,10 @@ function reuseTrustedIndexParse(layout, bytes) {
   if (previous && bytes.equals(previous.bytes)) {
     TRUSTED_INDEX_PARSES.delete(layout);
     TRUSTED_INDEX_PARSES.set(layout, previous);
-    return previous.parsed;
+    if (previous.hot) return previous.hot;
+    const parsed = decodeTrustedIndexParse(previous);
+    promoteTrustedIndexParse(previous, parsed);
+    return parsed;
   }
   const prefix =
     previous &&
@@ -1616,18 +1775,17 @@ function reuseTrustedIndexParse(layout, bytes) {
     bytes.subarray(0, previous.bytes.length).equals(previous.bytes)
       ? previous
       : null;
-  if (prefix === null) {
-    // Cold parsing must not keep unrelated large parsed snapshots live while
-    // allocating their replacement. Cache residency grants no authority.
-    for (const retainedLayout of TRUSTED_INDEX_PARSES.keys())
-      forgetTrustedIndexParse(retainedLayout);
-  }
+  if (!prefix) forgetTrustedIndexParse(layout);
   previous = null;
-  // Prefix rows remain immutable, even if suffix validation fails. Any later
-  // reuse still requires a full physical read/hash and exact byte comparison.
-  const parsed = parseTrustedIndexBytes(bytes, prefix);
-  retainTrustedIndexParse(layout, bytes, parsed);
-  return parsed;
+  const reservation = reserveTrustedIndexParse(layout, bytes, prefix);
+  try {
+    const parsed = parseTrustedIndexBytes(bytes, prefix, reservation);
+    if (reservation)
+      retainTrustedIndexParse(layout, bytes, parsed, reservation);
+    return parsed;
+  } finally {
+    releaseTrustedIndexReservation(reservation);
+  }
 }
 
 function readTrustedIndexSnapshot(layout, expectedSnapshot = null) {
@@ -2713,17 +2871,20 @@ export class EvolutionArtifactPorts {
       expectedSize: normalizedEntry.size,
       maximumBytes: EVOLUTION_ARTIFACT_MAX_CANONICAL_BYTES,
     });
-    let integrityBefore;
-    try {
-      integrityBefore = this.#store.verifyIntegrity(entry, readBounds);
-    } catch (cause) {
-      throw artifactError(
-        EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
-        "ArtifactStore integrity verification threw",
-        { cause },
-      );
+    const preserveIntegrityHooks = !this.#store.canUseSingleBoundedRead();
+    if (preserveIntegrityHooks) {
+      let integrityBefore;
+      try {
+        integrityBefore = this.#store.verifyIntegrity(entry, readBounds);
+      } catch (cause) {
+        throw artifactError(
+          EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
+          "ArtifactStore integrity verification threw",
+          { cause },
+        );
+      }
+      validateIntegrityResult(integrityBefore, expectedHex);
     }
-    validateIntegrityResult(integrityBefore, expectedHex);
 
     let bytes;
     try {
@@ -2749,17 +2910,19 @@ export class EvolutionArtifactPorts {
         "stored artifact bytes do not match the signed recordDigest",
       );
     }
-    let integrityAfter;
-    try {
-      integrityAfter = this.#store.verifyIntegrity(entry, readBounds);
-    } catch (cause) {
-      throw artifactError(
-        EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
-        "ArtifactStore post-read integrity verification threw",
-        { cause },
-      );
+    if (preserveIntegrityHooks || !this.#store.canUseSingleBoundedRead()) {
+      let integrityAfter;
+      try {
+        integrityAfter = this.#store.verifyIntegrity(entry, readBounds);
+      } catch (cause) {
+        throw artifactError(
+          EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
+          "ArtifactStore post-read integrity verification threw",
+          { cause },
+        );
+      }
+      validateIntegrityResult(integrityAfter, expectedHex);
     }
-    validateIntegrityResult(integrityAfter, expectedHex);
     attestStoreDirectories(this.#store.layout);
     return bytes;
   }

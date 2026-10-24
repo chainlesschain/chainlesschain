@@ -1,0 +1,152 @@
+{
+  "schema": "chainlesschain.ide-path-scoped-integration/v1",
+  "createdAt": "2026-10-24T01:17:45.117906+00:00",
+  "main": "79b7d49841341eb4caf135414183c1311db58b75",
+  "requiredCliBase": "e4c66df637d8ace1d8426513e0b14f0f22e2e913",
+  "ideSource": "376740e3f4bd5d46a741eb92e2c6618beb3c080f",
+  "patch": "ide-only-e4-to-376.patch",
+  "patchSha256": "48bae38fafedccf76dd4e7cdea30a0694f11034532a71fa3d259c536f0a7fe8e",
+  "files": [
+    {
+      "path": "packages/jetbrains-plugin/scripts/fixtures/popup-enter/com/chainlesschain/ide/uitest/PopupEnterRegression.java",
+      "baseBlob": null,
+      "ideBlob": "449ef1d5ea981f45b31adc95f708d057d6079279",
+      "ideSha256": "ab5faa4e791d6720d411abda9fc197d1e2b0fc21cea2339c27a10d142166213d"
+    },
+    {
+      "path": "packages/jetbrains-plugin/scripts/fixtures/popup-enter/com/intellij/openapi/application/ApplicationManager.java",
+      "baseBlob": null,
+      "ideBlob": "60e4d667898fa6edd1545a3859e02c25a405f744",
+      "ideSha256": "39d25eafe2a8192d87b91fe4ac38f3ada76b583b54d33fec87954e8437b36d7c"
+    },
+    {
+      "path": "packages/jetbrains-plugin/scripts/fixtures/popup-enter/com/intellij/ui/components/JBList.java",
+      "baseBlob": null,
+      "ideBlob": "26fa033ffda9d1fc700b3767c1d28f3821648b50",
+      "ideSha256": "d7b76398246b1382cc3f66d3e9293d594f2e63a8a582cf8e9ba27310ea49209d"
+    },
+    {
+      "path": "packages/jetbrains-plugin/scripts/run-popup-enter-regression.mjs",
+      "baseBlob": null,
+      "ideBlob": "c097b553f8dec490cadf907ae2cf53a4305b6675",
+      "ideSha256": "a1c3b62e83f6a767014ff2fcdca3c07d1410c69a0ebde3b40371170c2e4d1a7b"
+    },
+    {
+      "path": "packages/jetbrains-plugin/scripts/run-ui-host-journey.mjs",
+      "baseBlob": "701f9c71b7654255ac01e7986d30e08164c44394",
+      "ideBlob": "8f4a35bb6e5f4b7556d209c2cc4e9e22e5e967ff",
+      "ideSha256": "bd2e7431d93b25281e6927838dc8cdb952ad55b1e3aafc321f3f3233ee3aa560"
+    },
+    {
+      "path": "packages/jetbrains-plugin/scripts/run-ui-host-journey.test.mjs",
+      "baseBlob": "d1250dea3e65f2ace09141e0250fe0aded999667",
+      "ideBlob": "75e6fcfa178918b7e85d5fb9d6af3be15b10e3cb",
+      "ideSha256": "683e17783c1d8278934476cdaac244de413efac8b772d9a7fa716a629e71a7fd"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java",
+      "baseBlob": "7bfc4f20d43569bc78c7ad87054f81d0abf23ae1",
+      "ideBlob": "753a3d9455c96b60e8fdb32a24bdaf8a73fc8acb",
+      "ideSha256": "29655e9a949948528018ad85baf368e5240445216caa747719c95d6c83903e0b"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/PopupEnterScripts.java",
+      "baseBlob": null,
+      "ideBlob": "16421a6ceab1836e7d2d3bfa17a73779457382d9",
+      "ideSha256": "e52cf89953dd841fca8f0510a7c0828da95b0ba803cd08dea3e084c4aae6016e"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/agent-diagnostics.js",
+      "baseBlob": null,
+      "ideBlob": "9b466bd9089e785b157a66a67958b24ab2344a19",
+      "ideSha256": "fa0c7485ffc51ea21df80328fbcfe2d60c103b680fad503793598834f78f3f58"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/agent-session.js",
+      "baseBlob": "7d9d34a46c857ca1f68a2ddd68b6309d32174c8a",
+      "ideBlob": "6b4b8e30caea8bfa6a73791937d4c01e807f2bb3",
+      "ideSha256": "8ac967d52efe8b4ddbce09ff1fd3c6fcb637b590fd87f4f7938283eac324f3ba"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/chat-events.js",
+      "baseBlob": "261bc79596ba05716af5c0cc9c9394169bfa6ba6",
+      "ideBlob": "a02263654b8a47003d3a9bcc0e68a68334bc7917",
+      "ideSha256": "89877d869368620b277fb0dd6789e838f733ef0f0d601af81065cb22a19daddc"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/chat-view.js",
+      "baseBlob": "7296ba01d85f62b4e4807cbbba880907e3eadd38",
+      "ideBlob": "30330817f28990c3a2ad8f1582481b3ca90e103a",
+      "ideSha256": "06b61b7932c82741097131bb2ba746b064ef72c7cb9d345d5899550f71741b4c"
+    },
+    {
+      "path": "packages/vscode-extension/test/agent-initialization.test.cjs",
+      "baseBlob": "20df7ef2af9785e5eb7c4623452f921941931aa6",
+      "ideBlob": "681c2c44daab131d0cae7cda609a7c568431cbc8",
+      "ideSha256": "a8fe9b38f8b47c28acfb92cc8dcdb896537f9758d231a3947546a43d9f76ad9a"
+    },
+    {
+      "path": "packages/vscode-extension/test/agent-sdk-vendor.test.cjs",
+      "baseBlob": "b71a45c49eb208b2d11e4782f575c790c60460b2",
+      "ideBlob": "f614ee7be05d3e32164daec3780dd2d24d67c66c",
+      "ideSha256": "bc70aa3ab530d1d7de4753ff73065de4aabcce7c345cc754c0e072ba1d14d032"
+    },
+    {
+      "path": "packages/vscode-extension/test/agent-session-utf8.test.cjs",
+      "baseBlob": "d8639856451d4ee02a8fc6f3c6d43b2b90de61ae",
+      "ideBlob": "491e1c9f78ff9ab36010004e402937c2d891192f",
+      "ideSha256": "99a7b5c3cad56a875fa0551e39d4fb45bfa28060c1d129ce962fbb514f72238c"
+    },
+    {
+      "path": "packages/vscode-extension/test/host-dom-relay.test.cjs",
+      "baseBlob": "018afb1211023d6af166c6e9f0ba3323dfeac525",
+      "ideBlob": "810c694ee38a2a963f0d8a8582865e6a5219e4a5",
+      "ideSha256": "3050e62e3a6f1c0b87d73bef726e19d3e0ffd5ad5641158663e2266b4c8e6f7b"
+    }
+  ],
+  "mainToIdeScopedChanges": [
+    "M\t.github/workflows/ide-extensions.yml",
+    "M\tpackages/cli/__tests__/unit/vscode-ext-draft-store.test.js",
+    "M\tpackages/jetbrains-plugin/CHANGELOG.md",
+    "M\tpackages/jetbrains-plugin/README.md",
+    "M\tpackages/jetbrains-plugin/build.gradle.kts",
+    "M\tpackages/jetbrains-plugin/gradle.properties",
+    "A\tpackages/jetbrains-plugin/scripts/fixtures/popup-enter/com/chainlesschain/ide/uitest/PopupEnterRegression.java",
+    "A\tpackages/jetbrains-plugin/scripts/fixtures/popup-enter/com/intellij/openapi/application/ApplicationManager.java",
+    "A\tpackages/jetbrains-plugin/scripts/fixtures/popup-enter/com/intellij/ui/components/JBList.java",
+    "A\tpackages/jetbrains-plugin/scripts/run-popup-enter-regression.mjs",
+    "M\tpackages/jetbrains-plugin/scripts/run-ui-host-journey.mjs",
+    "M\tpackages/jetbrains-plugin/scripts/run-ui-host-journey.test.mjs",
+    "M\tpackages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/AgentChatSession.java",
+    "M\tpackages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/CliVersionCheck.java",
+    "M\tpackages/jetbrains-plugin/src/main/java/com/chainlesschain/ide/intellij/ConversationView.java",
+    "M\tpackages/jetbrains-plugin/src/main/resources/META-INF/plugin.xml",
+    "M\tpackages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/CliVersionCheckTest.java",
+    "M\tpackages/jetbrains-plugin/src/test/java/com/chainlesschain/ide/InputDispatchTest.java",
+    "M\tpackages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java",
+    "A\tpackages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/PopupEnterScripts.java",
+    "M\tpackages/vscode-extension/CHANGELOG.md",
+    "M\tpackages/vscode-extension/README.md",
+    "M\tpackages/vscode-extension/package.json",
+    "A\tpackages/vscode-extension/src/chat/agent-diagnostics.js",
+    "M\tpackages/vscode-extension/src/chat/agent-session.js",
+    "M\tpackages/vscode-extension/src/chat/chat-events.js",
+    "M\tpackages/vscode-extension/src/chat/chat-view.js",
+    "M\tpackages/vscode-extension/src/chat/draft-store.js",
+    "M\tpackages/vscode-extension/src/vendor/agent-sdk/VENDORED.md",
+    "M\tpackages/vscode-extension/src/vendor/agent-sdk/agent-session.js",
+    "M\tpackages/vscode-extension/test/agent-initialization.test.cjs",
+    "M\tpackages/vscode-extension/test/agent-sdk-vendor.test.cjs",
+    "M\tpackages/vscode-extension/test/agent-session-utf8.test.cjs",
+    "M\tpackages/vscode-extension/test/extension-host-runner.test.cjs",
+    "M\tpackages/vscode-extension/test/extension-host/run.cjs",
+    "M\tpackages/vscode-extension/test/host-dom-relay.test.cjs"
+  ],
+  "strategy": "Apply this 16-file patch atop the new CLI e4-derived integration tree, preserving all CLI/cacheIO/fixture changes. Do not merge or wholesale restore the historical IDE branch. IDE versions, vendor and workflow are already identical at e4 and 376. Documentation evidence may be added separately; source-376 workflow results do not qualify the resulting commit.",
+  "npmTreeProtection": {
+    "changedPackageOrLockManifests": 0,
+    "changedCliSdkCoreContextOrOtherPackageFiles": 0,
+    "patchRestrictedToIdeDirectories": true
+  },
+  "sourceEditsPerformed": false
+}

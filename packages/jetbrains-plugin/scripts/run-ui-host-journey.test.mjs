@@ -16,6 +16,8 @@ import {
   captureHostDiagnostics,
   createFakeCliEnvironment,
   findPluginArchive,
+  findPopupRegressionRhino,
+  runPopupEnterRegression,
   verifyModelConfigurationFixtureLedger,
   verifyWorkbenchVisibilityMetrics,
   WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT,
@@ -52,6 +54,129 @@ function diagnosticFixture(t) {
     capture,
     logs: path.join(sandbox, "IC-2024.2", "log_runIdeForUiTests"),
   };
+}
+
+function popupRegressionFixture(t) {
+  const fixture = diagnosticFixture(t);
+  const lib = path.join(
+    fixture.sandbox,
+    "IC-2024.2",
+    "plugins_runIdeForUiTests",
+    "robot-server-plugin",
+    "lib",
+  );
+  mkdirSync(lib, { recursive: true });
+  const rhino = path.join(lib, "rhino-1.7.15.jar");
+  writeFileSync(rhino, "prepared-rhino-fixture");
+  return { ...fixture, lib, rhino };
+}
+
+test("popup regression uses only the exact prepared sandbox Rhino", (t) => {
+  const fixture = popupRegressionFixture(t);
+  const other = path.join(
+    fixture.root,
+    "prior-sandbox",
+    "IC-2024.2",
+    "plugins_runIdeForUiTests",
+    "robot-server-plugin",
+    "lib",
+  );
+  mkdirSync(other, { recursive: true });
+  writeFileSync(path.join(other, "rhino-9.9.jar"), "stale");
+  assert.equal(findPopupRegressionRhino(fixture.sandbox), fixture.rhino);
+  let invocations = 0;
+  runPopupEnterRegression(
+    fixture.sandbox,
+    fixture.capture,
+    (command, args, options) => {
+      invocations++;
+      assert.equal(command, process.execPath);
+      assert.equal(args[1], "--rhino-jar");
+      assert.equal(args[2], fixture.rhino);
+      assert.equal(
+        args[4],
+        path.join(fixture.sandbox, "popup-enter-regression-classes"),
+      );
+      assert.equal(options.env, process.env);
+      assert.equal(options.windowsHide, true);
+      return {
+        status: 0,
+        signal: null,
+        stdout: "PASS real script\n",
+        stderr: "expected negative case\n",
+      };
+    },
+  );
+  assert.equal(invocations, 1);
+  const receipt = JSON.parse(
+    readFileSync(path.join(fixture.capture, "popup-enter-regression.json")),
+  );
+  assert.equal(receipt.passed, true);
+  assert.match(receipt.rhinoSha256, /^[0-9a-f]{64}$/u);
+  assert.equal(
+    readFileSync(
+      path.join(fixture.capture, "popup-enter-regression.stderr.log"),
+      "utf8",
+    ),
+    "expected negative case\n",
+  );
+});
+
+test("popup regression fails closed for missing or ambiguous Rhino", (t) => {
+  const fixture = diagnosticFixture(t);
+  assert.throws(
+    () =>
+      runPopupEnterRegression(fixture.sandbox, fixture.capture, () => {
+        assert.fail("must not launch without a unique current Rhino");
+      }),
+    /found 0/,
+  );
+  const populated = popupRegressionFixture(t);
+  writeFileSync(
+    path.join(populated.lib, "rhino-1.7.14.jar"),
+    "unexpected-second",
+  );
+  assert.throws(() => findPopupRegressionRhino(populated.sandbox), /found 2/);
+});
+
+for (const result of [
+  { status: 1, signal: null },
+  { status: null, signal: "SIGTERM" },
+  { status: null, signal: null, error: new Error("spawn failed") },
+]) {
+  test(`popup regression stops host admission and preserves failure (${result.error?.message || result.signal || result.status})`, (t) => {
+    const fixture = popupRegressionFixture(t);
+    let hostStarted = false;
+    assert.throws(() => {
+      runPopupEnterRegression(fixture.sandbox, fixture.capture, () => ({
+        ...result,
+        stdout: "partial regression output\n",
+        stderr: "regression detail\n",
+      }));
+      hostStarted = true;
+    }, /Popup Enter regression failed/);
+    assert.equal(hostStarted, false);
+    assert.equal(
+      JSON.parse(
+        readFileSync(path.join(fixture.capture, "popup-enter-regression.json")),
+      ).passed,
+      false,
+    );
+    assert.equal(
+      readFileSync(
+        path.join(fixture.capture, "popup-enter-regression.stdout.log"),
+        "utf8",
+      ),
+      "partial regression output\n",
+    );
+    assert.equal(
+      readFileSync(
+        path.join(fixture.capture, "popup-enter-regression.stderr.log"),
+        "utf8",
+      ),
+      "regression detail\n",
+    );
+  });
 }
 
 test("host capture preserves complete original IDE log bytes and rotations", (t) => {

@@ -1,0 +1,95 @@
+{
+  "capturedAt": "2026-10-24T01:19:52.172Z",
+  "source": [
+    {
+      "file": "packages/cli/scripts/verify01-review-specs.mjs",
+      "sha256": "202eec83bb24f5b271d19ae9114d7ef5c9ec024a7592895a04bbdd164cc91f1d"
+    },
+    {
+      "file": "packages/cli/scripts/verify01-review-pack-diagnostic.mjs",
+      "sha256": "04ba6871a45fe22bd7eccc8dfc67c60298f586ba33e5d19b8f0946e6b5953259"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/verify01-review-pack-diagnostic.test.js",
+      "sha256": "19f136032a37a38d93ec46c06f3f3e3d8c1c771e395cd4318da36e38cbe726ee"
+    }
+  ],
+  "originalEightFrozenFilesUnchanged": true,
+  "originalEightManifest": "C:\\code\\chainlesschain\\.work\\cli-ide-recovery-20261023\\cache-io-local-validation\\2026-10-24T01-02-30-791Z\\source-before.json",
+  "result": "All 56 unique relevant tests passed across six suites after repairing the worktree nested Vitest dependency path.",
+  "qualification": "Local official Node 22.12 validation only. Initial six-suite invocation exited 1 due two environment failures; only the affected complete pack suite was rerun and exited 0. This aggregate does not rewrite the initial RED result or claim GitHub Actions qualification.",
+  "environmentRepair": "Created .work/cc118-io/node_modules/vitest junction to C:/code/chainlesschain/node_modules/vitest. No source or assertion changes for the MODULE_NOT_FOUND failures.",
+  "runs": [
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\cli-ide-recovery-20261023\\egress-review-recovery\\cache-budget-audit-e4\\verify09-related-tests-initial-missing-vitest.json",
+      "sha256": "5b1681ed513a7b0e68ad63d9c669e36ce679c0c29e579e10075e7fd4931b961e",
+      "exitCode": 1,
+      "tests": 56,
+      "passed": 54,
+      "failed": 2
+    },
+    {
+      "path": "C:\\code\\chainlesschain\\.work\\cli-ide-recovery-20261023\\egress-review-recovery\\cache-budget-audit-e4\\verify09-pack-after-link.json",
+      "sha256": "1949b89bffacb488ffdc04377aa5ffe10249fe15a77f196bfb81c22fd82bdcff",
+      "exitCode": 0,
+      "tests": 9,
+      "passed": 9,
+      "failed": 0
+    }
+  ],
+  "suites": [
+    {
+      "file": "C:/code/chainlesschain/.work/cc118-io/packages/cli/__tests__/unit/session-history-origins.test.js",
+      "passed": 12
+    },
+    {
+      "file": "C:/code/chainlesschain/.work/cc118-io/packages/cli/__tests__/unit/session-history-receipt-compatibility.test.js",
+      "passed": 16
+    },
+    {
+      "file": "C:/code/chainlesschain/.work/cc118-io/packages/cli/__tests__/unit/verify01-review-document.test.js",
+      "passed": 2
+    },
+    {
+      "file": "C:/code/chainlesschain/.work/cc118-io/packages/cli/__tests__/unit/verify01-review-extra-controls.test.js",
+      "passed": 1
+    },
+    {
+      "file": "C:/code/chainlesschain/.work/cc118-io/packages/cli/__tests__/unit/verify01-review-pack-diagnostic.test.js",
+      "passed": 16
+    },
+    {
+      "file": "C:/code/chainlesschain/.work/cc118-io/packages/cli/__tests__/unit/verify01-review-pack.test.js",
+      "passed": 9
+    }
+  ],
+  "actualHistoricalAndCurrentControls": {
+    "path": "C:\\code\\chainlesschain\\.work\\cli-ide-recovery-20261023\\egress-review-recovery\\cache-budget-audit-e4\\verify09-old-new-controls-receipt.json",
+    "sha256": "9d1d82034f51d5887de34fbae7930e230bce2d38663a50b52801a9a3bc81b753",
+    "results": [
+      {
+        "label": "old-0459",
+        "sourceSha256": "1c94741a5d69141c28ba832fef8730c3ba834a3a4ee8c9aee54c37c3b01b11a8",
+        "baselinePassed": 3,
+        "mutantAssertionFailures": 3
+      },
+      {
+        "label": "current-cache-io",
+        "sourceSha256": "0d29c8373dfd984b36a1fe164ee5472a603edd65cd27ee4e63fda6f79ca10757",
+        "baselinePassed": 3,
+        "mutantAssertionFailures": 3
+      }
+    ]
+  },
+  "independentSourceReview": {
+    "path": "C:/code/chainlesschain/.work/ide-tool-gates-376740e3-20261024/integration/verify09-independent-source-review.json",
+    "reportedSha256": "49604f61b6fc9d1e1beb5c3c8597a53ae3b0466e164d30d89abe021184a24a23"
+  },
+  "originalCiFailure": {
+    "runId": 40041440061,
+    "jobId": 120714721581,
+    "sourceSha": "e4c66df637d8ace1d8426513e0b14f0f22e2e913",
+    "log": "C:\\code\\chainlesschain\\.work\\cli-ide-recovery-20261023\\egress-review-recovery\\final-ci-e4c66d\\cli\\job-120714721581.log",
+    "logSha256": "3d2eb61c340148c6fd9c8210ab63b7f91e19dde0eea8830251d0edbfc3bddaf5"
+  }
+}

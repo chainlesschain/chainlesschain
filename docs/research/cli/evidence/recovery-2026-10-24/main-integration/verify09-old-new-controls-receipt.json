@@ -1,0 +1,62 @@
+{
+  "capturedAt": "2026-10-24T01:18:54.284Z",
+  "qualification": "Actual generated controls and actual historical/current subject modules with corresponding tree-relative dependencies; node:assert assertions, no simulated pass flags.",
+  "rows": [
+    {
+      "label": "old-0459",
+      "sourceSha256": "1c94741a5d69141c28ba832fef8730c3ba834a3a4ee8c9aee54c37c3b01b11a8",
+      "baseline": {
+        "cases": 3,
+        "errors": []
+      },
+      "mutated": {
+        "cases": 3,
+        "errors": [
+          {
+            "title": "requires the plain source digest even when sequence and message content match",
+            "name": "AssertionError",
+            "message": "Expected values to be strictly equal:\n+ actual - expected\n\n+ {\n+   cutoff: 2,\n+   entries: [\n+     {\n+       message: {\n+         content: 'first',\n+         role: 'user'\n+       },\n+       origin: {\n+         first: 0,\n+         last: 0\n+       }\n+     },\n+     {\n+       message: {\n+         content: 'answer',\n+         role: 'assistant'\n+       },\n+       origin: {\n+         first: 1,\n+         last: 1\n+       }\n+     }\n+   ]\n+ }\n- null\n"
+          },
+          {
+            "title": "requires the raw-receipt source digest even when sequence and message content match",
+            "name": "AssertionError",
+            "message": "Expected values to be strictly equal:\n+ actual - expected\n\n+ {\n+   cutoff: 2,\n+   entries: [\n+     {\n+       message: {\n+         clientMessageId: 'diagnostic-input-0',\n+         content: 'first',\n+         inputDigest: '1111111111111111111111111111111111111111111111111111111111111111',\n+         role: 'user'\n+       },\n+       origin: {\n+         first: 0,\n+         last: 0\n+       }\n+     },\n+     {\n+       message: {\n+         content: 'answer',\n+         role: 'assistant'\n+       },\n+       origin: {\n+         first: 1,\n+         last: 1\n+       }\n+     }\n+   ]\n+ }\n- null\n"
+          },
+          {
+            "title": "requires the projected source digest even when sequence and message content match",
+            "name": "AssertionError",
+            "message": "Expected values to be strictly equal:\n+ actual - expected\n\n+ {\n+   cutoff: 2,\n+   entries: [\n+     {\n+       message: {\n+         content: 'first',\n+         role: 'user'\n+       },\n+       origin: {\n+         first: 0,\n+         last: 0\n+       }\n+     },\n+     {\n+       message: {\n+         content: 'answer',\n+         role: 'assistant'\n+       },\n+       origin: {\n+         first: 1,\n+         last: 1\n+       }\n+     }\n+   ]\n+ }\n- null\n"
+          }
+        ]
+      }
+    },
+    {
+      "label": "current-cache-io",
+      "sourceSha256": "0d29c8373dfd984b36a1fe164ee5472a603edd65cd27ee4e63fda6f79ca10757",
+      "baseline": {
+        "cases": 3,
+        "errors": []
+      },
+      "mutated": {
+        "cases": 3,
+        "errors": [
+          {
+            "title": "requires the plain source digest even when sequence and message content match",
+            "name": "AssertionError",
+            "message": "Expected values to be strictly equal:\n+ actual - expected\n\n+ {\n+   cutoff: 2,\n+   entries: [\n+     {\n+       message: {\n+         content: 'first',\n+         role: 'user'\n+       },\n+       origin: {\n+         first: 0,\n+         last: 0\n+       }\n+     },\n+     {\n+       message: {\n+         content: 'answer',\n+         role: 'assistant'\n+       },\n+       origin: {\n+         first: 1,\n+         last: 1\n+       }\n+     }\n+   ]\n+ }\n- null\n"
+          },
+          {
+            "title": "requires the raw-receipt source digest even when sequence and message content match",
+            "name": "AssertionError",
+            "message": "Expected values to be strictly equal:\n+ actual - expected\n\n+ {\n+   cutoff: 2,\n+   entries: [\n+     {\n+       message: {\n+         clientMessageId: 'diagnostic-input-0',\n+         content: 'first',\n+         inputDigest: '1111111111111111111111111111111111111111111111111111111111111111',\n+         role: 'user'\n+       },\n+       origin: {\n+         first: 0,\n+         last: 0\n+       }\n+     },\n+     {\n+       message: {\n+         content: 'answer',\n+         role: 'assistant'\n+       },\n+       origin: {\n+         first: 1,\n+         last: 1\n+       }\n+     }\n+   ]\n+ }\n- null\n"
+          },
+          {
+            "title": "requires the projected source digest even when sequence and message content match",
+            "name": "AssertionError",
+            "message": "Expected values to be strictly equal:\n+ actual - expected\n\n+ {\n+   cutoff: 2,\n+   entries: [\n+     {\n+       message: {\n+         content: 'first',\n+         role: 'user'\n+       },\n+       origin: {\n+         first: 0,\n+         last: 0\n+       }\n+     },\n+     {\n+       message: {\n+         content: 'answer',\n+         role: 'assistant'\n+       },\n+       origin: {\n+         first: 1,\n+         last: 1\n+       }\n+     }\n+   ]\n+ }\n- null\n"
+          }
+        ]
+      }
+    }
+  ]
+}

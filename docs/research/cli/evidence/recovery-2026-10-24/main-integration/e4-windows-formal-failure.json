@@ -1,0 +1,184 @@
+{
+  "schema": "chainlesschain.formal-windows-timeout-analysis/v1",
+  "at": "2026-10-24T01:14:30.371Z",
+  "runId": 40041474292,
+  "jobId": 120713306928,
+  "artifactId": 12541778467,
+  "sourceSha": "e4c66df637d8ace1d8426513e0b14f0f22e2e913",
+  "attempt": 1,
+  "formalQualification": false,
+  "inputs": [
+    {
+      "file": "artifacts/12541778467/artifact.zip",
+      "bytes": 4533,
+      "sha256": "da2acf9dcfb75c74ae88c4d5ef6a3f45b063849c30daddf157360612e0d88040"
+    },
+    {
+      "file": "artifacts/12541778467/entry-0000.json",
+      "bytes": 44290,
+      "sha256": "39499f18942c889593dd622d6f683684162e9bfe6e44a932ff581cc62148a588"
+    },
+    {
+      "file": "jobs/120713306928/job.log",
+      "bytes": 49732,
+      "sha256": "b6da1e43d25cac8c8013b1825cda5dcbf9abf885c382f3a9c909eab279e2b5be"
+    }
+  ],
+  "producer": {
+    "file": "packages/cli/scripts/cli-reliability-soak.mjs",
+    "sha256": "dcff37dfdb9ba7b96b67cc94d6c82668a0520dc9a63fde69a1fc76e8070b08e6"
+  },
+  "source": {
+    "clean": true,
+    "changeCount": 0
+  },
+  "node": "v22.12.0",
+  "profile": {
+    "mode": "formal",
+    "durationSeconds": 7200,
+    "turns": 1000,
+    "warmupTurns": 20,
+    "concurrentAgents": 20,
+    "pipeCases": 20,
+    "disconnectCases": 5,
+    "slowConsumerMs": 2000,
+    "checkpointIntervalSeconds": 30,
+    "cleanupDeadlineMs": 10000,
+    "maxRssGrowthMb": 128,
+    "maxResourceGrowth": 8
+  },
+  "startedAt": "2026-10-23T23:56:15.072Z",
+  "finishedAt": "2026-10-24T01:10:08.748Z",
+  "violations": [
+    "turn 118 timed out"
+  ],
+  "duplex": {
+    "status": "failed",
+    "warmupTurns": 20,
+    "turns": 97,
+    "sentCount": 118,
+    "resultCount": 118,
+    "continuousDurationSeconds": 3695.7492423000003,
+    "latency": {
+      "p95Ms": 57792.123399999924,
+      "observedCount": 97,
+      "retainedCount": 97
+    },
+    "rss": {
+      "beforeBytes": 163282944,
+      "maximumBytes": 195137536
+    },
+    "resources": {
+      "kind": "handle",
+      "before": 223,
+      "maximum": 223
+    },
+    "results": {
+      "count": 118,
+      "measuredCount": 98,
+      "errorCount": 0,
+      "failures": [],
+      "subtypeCounts": {
+        "success": 118
+      },
+      "lengthMinimum": 14,
+      "lengthMaximum": 14
+    },
+    "diagnosticCodes": [],
+    "diagnosticClasses": [],
+    "fetchDiagnostics": {
+      "available": true,
+      "enabled": true,
+      "truncated": false,
+      "events": []
+    },
+    "fetchRuntime": {
+      "coordinate": "parent-shared-binary-and-cli-module-resolution",
+      "node": "22.12.0",
+      "uv": "1.49.1",
+      "bundledUndici": "6.21.0",
+      "ollamaUndici": "7.30.1"
+    },
+    "failure": {
+      "kind": "turn-timeout",
+      "awaitedResultCount": 118,
+      "timeoutMs": 60000
+    },
+    "cleanup": {
+      "deadlineMs": 10000,
+      "elapsedMs": 173.97259999997914,
+      "closed": true,
+      "treeTerminated": true,
+      "confirmed": true,
+      "deadlineExceeded": false,
+      "diagnostics": {
+        "method": "windows-taskkill-tree",
+        "initialExitObserved": false,
+        "signalAttempted": true,
+        "probeCount": 0,
+        "permissionProbeCount": 0,
+        "failureStage": null,
+        "errorCode": null
+      }
+    }
+  },
+  "timelyCompletedMeasuredTurns": 97,
+  "nextMeasuredTurn": 98,
+  "rawTerminalResultCount": 118,
+  "rawTerminalSuccessCount": 118,
+  "resultCountInterpretation": {
+    "statements": [
+      "The stdout data handler independently increments resultCount whenever a complete result event arrives.",
+      "The measured turns counter and latency sample advance only after await sendTurn returns successfully.",
+      "On failure, retirement is awaited before the final partialSnapshot is written, so later stdout may increase raw resultCount while the failed turn never contributes a completed turn or latency sample.",
+      "This artifact has97measured samples and118raw results: it does not establish98timely measured completions or a last-turn latency. Exact arrival timing of the final result is not retained."
+    ],
+    "producerCoordinates": {
+      "resultHandler": 1474,
+      "awaitThenTurnsIncrement": 1621,
+      "finalSnapshotAfterCleanup": 1776
+    }
+  },
+  "scenarioLimits": {
+    "executed": [
+      {
+        "name": "mcpOutput",
+        "pass": true
+      },
+      {
+        "name": "pipe",
+        "pass": true
+      },
+      {
+        "name": "tty",
+        "pass": true
+      },
+      {
+        "name": "clipboard",
+        "pass": true
+      },
+      {
+        "name": "concurrentAgents",
+        "pass": true
+      }
+    ],
+    "windowsDisk": {
+      "pass": true,
+      "configured": false,
+      "required": false,
+      "reason": "real-disk-fixtures-not-configured"
+    },
+    "windowsSsh": {
+      "pass": true,
+      "configured": false,
+      "reason": "target-not-configured"
+    },
+    "retentionResultPresent": false,
+    "missingQualification": [
+      "No1000measured completion or7200smeasured floor",
+      "No full normal-exit/after-RSS/after-handle/I/O/descendant qualification",
+      "Concurrent-agent cleanup confirms direct children only; tree termination unverified",
+      "No per-turn latency vector or last successful turn latency retained"
+    ]
+  }
+}

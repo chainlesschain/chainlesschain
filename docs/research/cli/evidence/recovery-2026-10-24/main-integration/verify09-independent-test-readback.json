@@ -1,0 +1,30 @@
+{
+  "schema": "chainlesschain.independent-verify09-test-readback/v1",
+  "verifiedAt": "2026-10-24T01:20:02.778611+00:00",
+  "disposition": "PASS_LOCAL_ONLY",
+  "sourceReviewSha256": "49604f61b6fc9d1e1beb5c3c8597a53ae3b0466e164d30d89abe021184a24a23",
+  "sourceStillMatches": true,
+  "finalUniqueFiles": 6,
+  "finalUniqueTests": 56,
+  "initialFailures": {
+    "count": 2,
+    "cause": "Missing worktree vitest entry, MODULE_NOT_FOUND",
+    "resolvedBy": "Full affected 9-test pack rerun after local dependency junction repair; all passed"
+  },
+  "archivedFiles": [
+    {
+      "path": ".work\\cli-ide-recovery-20261023\\egress-review-recovery\\cache-budget-audit-e4\\verify09-related-tests-initial-missing-vitest.json",
+      "sha256": "5b1681ed513a7b0e68ad63d9c669e36ce679c0c29e579e10075e7fd4931b961e"
+    },
+    {
+      "path": ".work\\cli-ide-recovery-20261023\\egress-review-recovery\\cache-budget-audit-e4\\verify09-pack-after-link.json",
+      "sha256": "1949b89bffacb488ffdc04377aa5ffe10249fe15a77f196bfb81c22fd82bdcff"
+    },
+    {
+      "path": ".work\\cli-ide-recovery-20261023\\egress-review-recovery\\cache-budget-audit-e4\\verify09-old-new-controls-receipt.json",
+      "sha256": "9d1d82034f51d5887de34fbae7930e230bce2d38663a50b52801a9a3bc81b753"
+    }
+  ],
+  "oldAndCurrentControls": "Each 3 valid and 3 actual AssertionError mutant cases",
+  "limit": "Local producer logs independently read and hashed; does not replace exact-commit Actions or Formal gates."
+}

@@ -1,0 +1,231 @@
+{
+  "schema": "chainlesschain.main-integration-preparation/v1",
+  "recordedAt": "2026-10-24T01:21:18.060Z",
+  "baseMain": "79b7d49841341eb4caf135414183c1311db58b75",
+  "cliBaseline": "e4c66df637d8ace1d8426513e0b14f0f22e2e913",
+  "ideSource": "376740e3f4bd5d46a741eb92e2c6618beb3c080f",
+  "branch": "feature/cli-cache-io-recovery-20261024",
+  "authorization": "User requested merge into main before switching accounts; publication remains separately gated in the previously authorized order.",
+  "sourceSnapshot": [
+    {
+      "path": "CHANGELOG.md",
+      "sha256": "92dcdb8f07766d4a295c52f3fbc48e172602a8c8dbfbd31cfb651d9a05c1fe4c"
+    },
+    {
+      "path": "packages/cli/README.md",
+      "sha256": "8b9eba5be5c075c864609e6262398c4f0340695bc54b16d13b2421978f4060fc"
+    },
+    {
+      "path": "packages/cli/src/data/changelog.json",
+      "sha256": "db6bc41603db8020b442b1e30b7be7b3a429d0aa46f09f9869fff1ee56d575a8"
+    },
+    {
+      "path": "packages/cli/src/lib/artifact-store.js",
+      "sha256": "df0985d59dd607a80e570d61ea19955408209e4964a0504d5d968ec1c60eb7e5"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/evolution-artifact-ports.js",
+      "sha256": "a3e8696e467a2644f7095a1d7bfbdb619a4de427072c5328747a2f6c1696eafe"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/evolution-artifact-ports.test.js",
+      "sha256": "891864c6343f27b7ffb51a3b51b4750850790e473abd560a7557f2eb7e017b2e"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/evolution-artifact-index-cache.test.js",
+      "sha256": "5ed0db8100d0056e2e45858fd32fb37c2bd70bb31bfcbbd25a39600811dca3a9"
+    },
+    {
+      "path": "packages/cli/__tests__/helpers/evolution-index-cache-isolate.js",
+      "sha256": "034d52d1e50a193b1e2f7b5bb3eada923642ef9c763b8dca6585c95f75338e73"
+    },
+    {
+      "path": "packages/cli/scripts/verify01-review-specs.mjs",
+      "sha256": "202eec83bb24f5b271d19ae9114d7ef5c9ec024a7592895a04bbdd164cc91f1d"
+    },
+    {
+      "path": "packages/cli/scripts/verify01-review-pack-diagnostic.mjs",
+      "sha256": "04ba6871a45fe22bd7eccc8dfc67c60298f586ba33e5d19b8f0946e6b5953259"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/verify01-review-pack-diagnostic.test.js",
+      "sha256": "19f136032a37a38d93ec46c06f3f3e3d8c1c771e395cd4318da36e38cbe726ee"
+    },
+    {
+      "path": "packages/jetbrains-plugin/scripts/fixtures/popup-enter/com/chainlesschain/ide/uitest/PopupEnterRegression.java",
+      "sha256": "ab5faa4e791d6720d411abda9fc197d1e2b0fc21cea2339c27a10d142166213d"
+    },
+    {
+      "path": "packages/jetbrains-plugin/scripts/fixtures/popup-enter/com/intellij/openapi/application/ApplicationManager.java",
+      "sha256": "39d25eafe2a8192d87b91fe4ac38f3ada76b583b54d33fec87954e8437b36d7c"
+    },
+    {
+      "path": "packages/jetbrains-plugin/scripts/fixtures/popup-enter/com/intellij/ui/components/JBList.java",
+      "sha256": "d7b76398246b1382cc3f66d3e9293d594f2e63a8a582cf8e9ba27310ea49209d"
+    },
+    {
+      "path": "packages/jetbrains-plugin/scripts/run-popup-enter-regression.mjs",
+      "sha256": "a1c3b62e83f6a767014ff2fcdca3c07d1410c69a0ebde3b40371170c2e4d1a7b"
+    },
+    {
+      "path": "packages/jetbrains-plugin/scripts/run-ui-host-journey.mjs",
+      "sha256": "bd2e7431d93b25281e6927838dc8cdb952ad55b1e3aafc321f3f3233ee3aa560"
+    },
+    {
+      "path": "packages/jetbrains-plugin/scripts/run-ui-host-journey.test.mjs",
+      "sha256": "683e17783c1d8278934476cdaac244de413efac8b772d9a7fa716a629e71a7fd"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java",
+      "sha256": "29655e9a949948528018ad85baf368e5240445216caa747719c95d6c83903e0b"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/PopupEnterScripts.java",
+      "sha256": "e52cf89953dd841fca8f0510a7c0828da95b0ba803cd08dea3e084c4aae6016e"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/agent-diagnostics.js",
+      "sha256": "fa0c7485ffc51ea21df80328fbcfe2d60c103b680fad503793598834f78f3f58"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/agent-session.js",
+      "sha256": "8ac967d52efe8b4ddbce09ff1fd3c6fcb637b590fd87f4f7938283eac324f3ba"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/chat-events.js",
+      "sha256": "89877d869368620b277fb0dd6789e838f733ef0f0d601af81065cb22a19daddc"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/chat-view.js",
+      "sha256": "06b61b7932c82741097131bb2ba746b064ef72c7cb9d345d5899550f71741b4c"
+    },
+    {
+      "path": "packages/vscode-extension/test/agent-initialization.test.cjs",
+      "sha256": "a8fe9b38f8b47c28acfb92cc8dcdb896537f9758d231a3947546a43d9f76ad9a"
+    },
+    {
+      "path": "packages/vscode-extension/test/agent-sdk-vendor.test.cjs",
+      "sha256": "bc70aa3ab530d1d7de4753ff73065de4aabcce7c345cc754c0e072ba1d14d032"
+    },
+    {
+      "path": "packages/vscode-extension/test/agent-session-utf8.test.cjs",
+      "sha256": "99a7b5c3cad56a875fa0551e39d4fb45bfa28060c1d129ce962fbb514f72238c"
+    },
+    {
+      "path": "packages/vscode-extension/test/host-dom-relay.test.cjs",
+      "sha256": "3050e62e3a6f1c0b87d73bef726e19d3e0ffd5ad5641158663e2266b4c8e6f7b"
+    },
+    {
+      "path": "docs/research/cli/ACCOUNT_SWITCH_HANDOFF_2026-10-24.md",
+      "sha256": "31912d31f66a297c5b027313e2af95c12e9e9a1bb5c5263bcce70c0a5c152527"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "docs/research/cli/evidence/recovery-2026-10-24/main-integration/local-regression-timeout.json",
+      "sha256": "88df3e74350cf97e7fd8d49b6812edf94746381dde0d48bcde399d35b4b16eae",
+      "bytes": 2815
+    },
+    {
+      "path": "docs/research/cli/evidence/recovery-2026-10-24/main-integration/local-regression-timeout.log",
+      "sha256": "94cd5572bc2b59319b648ba228d482c08567f533e8c6fc295bb9d3aafd55cfcd",
+      "bytes": 1158
+    },
+    {
+      "path": "docs/research/cli/evidence/recovery-2026-10-24/main-integration/cache-io-source-before.json",
+      "sha256": "ba8199fab4af837d587f044fe9a1b16538d6ec3d9844a4f2195e51053d556fb3",
+      "bytes": 1206
+    },
+    {
+      "path": "docs/research/cli/evidence/recovery-2026-10-24/main-integration/cache-io-source-after.json",
+      "sha256": "ba8199fab4af837d587f044fe9a1b16538d6ec3d9844a4f2195e51053d556fb3",
+      "bytes": 1206
+    },
+    {
+      "path": "docs/research/cli/evidence/recovery-2026-10-24/main-integration/cache-io-independent-source-review.json",
+      "sha256": "ca91fa9efbb297f66039a0b6e6ad92c3a32b545c38eb3488ff3715d6584ccd39",
+      "bytes": 6294
+    },
+    {
+      "path": "docs/research/cli/evidence/recovery-2026-10-24/main-integration/typed-compact-budget-receipt.json",
+      "sha256": "ace7d868dc4c86c5a090bbaa54c971604e353c180766b16537509bf06640b0d8",
+      "bytes": 11589
+    },
+    {
+      "path": "docs/research/cli/evidence/recovery-2026-10-24/main-integration/verify09-validation-receipt.json",
+      "sha256": "922750fec4f4ff939bcdaa03731ea9184fc42b5e89099a0014a7b0e817aa5b8d",
+      "bytes": 4360
+    },
+    {
+      "path": "docs/research/cli/evidence/recovery-2026-10-24/main-integration/verify09-old-new-controls-receipt.json",
+      "sha256": "9d1d82034f51d5887de34fbae7930e230bce2d38663a50b52801a9a3bc81b753",
+      "bytes": 5095
+    },
+    {
+      "path": "docs/research/cli/evidence/recovery-2026-10-24/main-integration/verify09-independent-source-review.json",
+      "sha256": "49604f61b6fc9d1e1beb5c3c8597a53ae3b0466e164d30d89abe021184a24a23",
+      "bytes": 2964
+    },
+    {
+      "path": "docs/research/cli/evidence/recovery-2026-10-24/main-integration/verify09-independent-test-readback.json",
+      "sha256": "6d4d32917349736d3019a278a79ff1c19e69b467a9f879d104285dbdc0bc995b",
+      "bytes": 1504
+    },
+    {
+      "path": "docs/research/cli/evidence/recovery-2026-10-24/main-integration/ide-integration-plan.json",
+      "sha256": "da17d3f0a02f9305a3d172a13ad0c9b20503f00109309887281f22ce00cb8165",
+      "bytes": 8573
+    },
+    {
+      "path": "docs/research/cli/evidence/recovery-2026-10-24/main-integration/ide-only-e4-to-376.patch",
+      "sha256": "48bae38fafedccf76dd4e7cdea30a0694f11034532a71fa3d259c536f0a7fe8e",
+      "bytes": 84835
+    },
+    {
+      "path": "docs/research/cli/evidence/recovery-2026-10-24/main-integration/e4-windows-formal-failure.json",
+      "sha256": "4092ad56d853fa779e9d565fc49f6176aed9550d45f859831c5b3306bfa7d0f7",
+      "bytes": 5183
+    },
+    {
+      "path": "docs/research/cli/evidence/recovery-2026-10-24/main-integration/known-failed-sources.json",
+      "sha256": "91030c275228961583e98bc24ef9478b38c6ab5691e359c340ee7305c8bf318b",
+      "bytes": 3666
+    }
+  ],
+  "localResults": {
+    "cacheFocusedPassed": 7,
+    "verify09RelatedUniquePassed": 56,
+    "combined17Suite": {
+      "exitCode": null,
+      "errorCode": "ETIMEDOUT",
+      "outerDeadlineSeconds": 900,
+      "completeReport": false,
+      "passed": false
+    },
+    "independentSourceReview": "no blocking findings at recorded file hashes"
+  },
+  "remoteMainRequiredContexts": [
+    "PDH Data Hub Tests (ubuntu-latest)",
+    "PDH Data Hub Tests (windows-latest)",
+    "Quality Gate",
+    "Run All Tests (ubuntu-latest)",
+    "Run All Tests (windows-latest)",
+    "Lint & Format Check"
+  ],
+  "releaseOrder": [
+    "required child npm packages",
+    "CLI",
+    "VS Code / JetBrains",
+    "mobile / PC"
+  ],
+  "publication": false,
+  "qualified": false,
+  "acceptance": {
+    "accepted": 32,
+    "total": 45,
+    "remaining": 13,
+    "paidReady": false,
+    "native": "NOT_ADMITTED",
+    "promotion": "HOLD"
+  }
+}

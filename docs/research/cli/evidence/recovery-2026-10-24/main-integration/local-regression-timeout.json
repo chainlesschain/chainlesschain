@@ -1,0 +1,69 @@
+{
+  "schema": "chainlesschain.cache-io-local-validation/v1",
+  "recordedAt": "2026-10-24T01:17:31.153Z",
+  "baseline": "e4c66df637d8ace1d8426513e0b14f0f22e2e913",
+  "branch": "feature/cli-cache-io-recovery-20261024",
+  "node": "v22.12.0",
+  "exitCode": null,
+  "errorCode": "ETIMEDOUT",
+  "suites": [
+    "__tests__/unit/artifact-store.test.js",
+    "__tests__/unit/bounded-artifact-file-read.test.js",
+    "__tests__/unit/secure-file-identity.test.js",
+    "__tests__/unit/evolution-file-identity.test.js",
+    "__tests__/unit/evolution-artifact-ports.test.js",
+    "__tests__/unit/evolution-artifact-index-cache.test.js",
+    "__tests__/unit/evolution-artifact-byte-boundary.test.js",
+    "__tests__/unit/evolution-artifact-index-boundary.test.js",
+    "__tests__/unit/evolution-artifact-index-readback.test.js",
+    "__tests__/unit/evolution-artifact-directory-boundary.test.js",
+    "__tests__/unit/evolution-artifact-identity.test.js",
+    "__tests__/unit/evolution-run-ledger-adapter.test.js",
+    "__tests__/unit/agent-evolution-runtime-composition.test.js",
+    "__tests__/unit/evolution-evidence-projector.test.js",
+    "__tests__/unit/evolution-ledger.test.js",
+    "__tests__/unit/release-workflow-contract.test.js",
+    "__tests__/unit/changelog-artifact-parity.test.js"
+  ],
+  "sourceSnapshot": [
+    {
+      "path": "CHANGELOG.md",
+      "sha256": "92dcdb8f07766d4a295c52f3fbc48e172602a8c8dbfbd31cfb651d9a05c1fe4c"
+    },
+    {
+      "path": "packages/cli/README.md",
+      "sha256": "8b9eba5be5c075c864609e6262398c4f0340695bc54b16d13b2421978f4060fc"
+    },
+    {
+      "path": "packages/cli/src/data/changelog.json",
+      "sha256": "db6bc41603db8020b442b1e30b7be7b3a429d0aa46f09f9869fff1ee56d575a8"
+    },
+    {
+      "path": "packages/cli/src/lib/artifact-store.js",
+      "sha256": "df0985d59dd607a80e570d61ea19955408209e4964a0504d5d968ec1c60eb7e5"
+    },
+    {
+      "path": "packages/cli/src/lib/evolution/evolution-artifact-ports.js",
+      "sha256": "a3e8696e467a2644f7095a1d7bfbdb619a4de427072c5328747a2f6c1696eafe"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/evolution-artifact-ports.test.js",
+      "sha256": "891864c6343f27b7ffb51a3b51b4750850790e473abd560a7557f2eb7e017b2e"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/evolution-artifact-index-cache.test.js",
+      "sha256": "5ed0db8100d0056e2e45858fd32fb37c2bd70bb31bfcbbd25a39600811dca3a9"
+    },
+    {
+      "path": "packages/cli/__tests__/helpers/evolution-index-cache-isolate.js",
+      "sha256": "034d52d1e50a193b1e2f7b5bb3eada923642ef9c763b8dca6585c95f75338e73"
+    }
+  ],
+  "sourceUnchangedDuringTests": true,
+  "counts": null,
+  "logSha256": "94cd5572bc2b59319b648ba228d482c08567f533e8c6fc295bb9d3aafd55cfcd",
+  "reportSha256": null,
+  "qualification": false,
+  "paidReady": false,
+  "published": false
+}

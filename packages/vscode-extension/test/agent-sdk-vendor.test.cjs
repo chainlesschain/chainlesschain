@@ -145,6 +145,108 @@ test("VS Code preserves causal-equivalent projections across interleavings", () 
   }
 });
 
+test("VS Code persistence errors retain only bounded protocol codes and fixed phases", () => {
+  const secret =
+    "Bearer private-provider-token request-body=<script>private</script>";
+  for (const [subtype, code, phase] of [
+    [undefined, "CC_SESSION_TOOL_ROUND_PERSISTENCE_FAILED", "unspecified"],
+    ["error_session_persistence", "SESSION_REVISION_STALE", "unspecified"],
+    ["error_persistence", "CC_SESSION_PERSISTENCE_FAILED", "after-model"],
+  ]) {
+    const state = { sawDelta: true };
+    const result = mapAgentEvent(
+      {
+        type: "result",
+        subtype,
+        is_error: true,
+        code,
+        error: secret,
+        result: secret,
+        phase: secret,
+        persistence: { phase, message: secret, cause: secret, request: secret },
+      },
+      state,
+    );
+    assert.equal(result.kind, "turn_end");
+    assert.equal(result.isError, true);
+    assert.equal(result.code, code);
+    assert.equal(result.phase, phase);
+    assert.ok(result.text.includes(code));
+    assert.ok(result.text.includes(phase));
+    assert.equal(JSON.stringify(result).includes(secret), false);
+    assert.equal(state.sawDelta, false);
+  }
+});
+
+test("VS Code rejects unbounded error codes and arbitrary phase prose without coercion", () => {
+  for (const code of [
+    undefined,
+    null,
+    123,
+    {},
+    "X".repeat(121),
+    "CC_BAD\nsecret",
+    "CC_BAD\n",
+    "<img src=x>",
+    "Bearer private-token",
+    "https://private.example",
+  ]) {
+    const result = mapAgentEvent(
+      {
+        type: "result",
+        subtype: "error_persistence",
+        is_error: true,
+        code,
+        error: "provider-private-error",
+        result: "request-private-body",
+        phase: "before-model",
+        persistence: { phase: "secret-phase" },
+      },
+      createTurnState(),
+    );
+    assert.equal(result.code, undefined);
+    assert.equal(result.phase, "unspecified");
+    assert.equal(result.text.includes("private"), false);
+    assert.equal(result.text.includes("secret"), false);
+    assert.equal(result.text.includes("before-model"), false);
+  }
+  const success = mapAgentEvent(
+    {
+      type: "result",
+      is_error: false,
+      result: "answer",
+      code: "CC_ERROR",
+      persistence: { phase: "after-model" },
+    },
+    createTurnState(),
+  );
+  assert.equal(success.text, "answer");
+  assert.equal(success.code, undefined);
+  assert.equal(success.phase, undefined);
+});
+
+test("VS Code ordinary errors keep actionable reasons and optional bounded codes", () => {
+  for (const event of [
+    {
+      error: "HTTP 401: check the configured API key",
+      code: "HTTP_AUTH_FAILED",
+    },
+    { result: "The configured model was not found" },
+    { error: "Rate limit exceeded; wait before retrying", code: "bad\ncode" },
+  ]) {
+    const mapped = mapAgentEvent(
+      { type: "result", is_error: true, ...event },
+      createTurnState(),
+    );
+    assert.ok(mapped.text.includes(event.error || event.result));
+    assert.equal(mapped.phase, undefined);
+    assert.equal(
+      mapped.code,
+      event.code === "HTTP_AUTH_FAILED" ? event.code : undefined,
+    );
+  }
+});
+
 test("VS Code replays the canonical ApprovalDecision conformance fixture", () => {
   const fixturePath = path.join(
     repoRoot,
