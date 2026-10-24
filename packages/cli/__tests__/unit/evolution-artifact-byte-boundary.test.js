@@ -26,7 +26,10 @@ afterEach(() => {
     throw new Error("unsafe artifact bytes cleanup");
   fs.rmSync(target, { recursive: true, force: true });
 });
-function held(operation, phase) {
+function held(
+  operation,
+  message = "ArtifactStore integrity verification failed",
+) {
   let error;
   try {
     operation();
@@ -35,17 +38,14 @@ function held(operation, phase) {
   }
   expect(error).toMatchObject({
     code: INTEGRITY,
-    message:
-      phase === 2
-        ? "stored artifact could not be opened safely"
-        : "ArtifactStore integrity verification failed",
+    message,
   });
-  if (phase === 2)
+  if (message === "stored artifact could not be opened safely")
     expect(error.cause).toMatchObject({
       code: "CC_ARTIFACT_BOUNDED_READ_FAILED",
     });
 }
-function instrument(target, fault = () => {}) {
+function instrument(target, fault = () => {}, readFault = () => {}) {
   const originalOpen = fs.openSync,
     originalRead = fs.readSync,
     originalClose = fs.closeSync;
@@ -71,6 +71,7 @@ function instrument(target, fault = () => {}) {
   });
   vi.spyOn(fs, "readSync").mockImplementation(
     (fd, buffer, offset, length, position) => {
+      if (live.has(fd)) readFault(live.get(fd), position);
       const count = originalRead(fd, buffer, offset, length, position);
       if (live.has(fd))
         reads.push({ phase: live.get(fd), length, position, count });
@@ -86,7 +87,112 @@ function instrument(target, fault = () => {}) {
   });
   return { live, phases, closed, reads };
 }
-describe("genuine three-phase artifact reads", () => {
+// A real override retains both integrity hooks and their bounded reads. The
+// repository defaults instead authenticate one bounded descriptor read.
+class IntegrityHookStore extends ArtifactStore {
+  verifyIntegrity(entry, bounds) {
+    return super.verifyIntegrity(entry, bounds);
+  }
+}
+
+describe("bounded artifact reads", () => {
+  it("authenticates default payloads with one chunked read and a bounded EOF probe", () => {
+    const fixture = openArtifactByteFixture(directory, {
+      value: { text: "x".repeat(150000) },
+    });
+    const state = instrument(fixture.target),
+      whole = vi.spyOn(fs, "readFileSync");
+    expect(fixture.read()).toMatchObject({
+      authenticated: true,
+      found: true,
+      digest: fixture.publication.digest,
+    });
+    expect(state.phases).toEqual([1]);
+    expect(state.closed).toEqual([1]);
+    expect(state.live.size).toBe(0);
+    expect(state.reads.reduce((sum, entry) => sum + entry.count, 0)).toBe(
+      fixture.entry.size,
+    );
+    expect(state.reads.every((entry) => entry.length <= 65536)).toBe(true);
+    expect(
+      state.reads.filter((entry) => entry.position === fixture.entry.size),
+    ).toEqual([
+      { phase: 1, position: fixture.entry.size, length: 1, count: 0 },
+    ]);
+    expect(whole).not.toHaveBeenCalled();
+  });
+  it.each(["expected-size", "maximum-size"])(
+    "rejects default %s growth at open before reading content",
+    (kind) => {
+      const fixture = openArtifactByteFixture(directory);
+      fs.chmodSync(fixture.target, 0o600);
+      let fired = false;
+      const state = instrument(fixture.target, () => {
+        fired = true;
+        const fd = fs.openSync(fixture.target, "r+");
+        try {
+          fs.ftruncateSync(
+            fd,
+            kind === "expected-size" ? fixture.entry.size + 1 : MAXIMUM + 1,
+          );
+        } finally {
+          fs.closeSync(fd);
+        }
+      });
+      held(fixture.read, "stored artifact could not be opened safely");
+      expect(fired).toBe(true);
+      expect(state.phases).toEqual([1]);
+      expect(state.reads).toEqual([]);
+      expect(state.closed).toEqual([1]);
+      expect(state.live.size).toBe(0);
+    },
+  );
+  it("rejects default growth after descriptor admission using the bounded EOF probe", () => {
+    const fixture = openArtifactByteFixture(directory);
+    fs.chmodSync(fixture.target, 0o600);
+    let fired = false;
+    const state = instrument(
+      fixture.target,
+      () => {},
+      () => {
+        if (fired) return;
+        fired = true;
+        const fd = fs.openSync(fixture.target, "r+");
+        try {
+          fs.ftruncateSync(fd, MAXIMUM + 1);
+        } finally {
+          fs.closeSync(fd);
+        }
+      },
+    );
+    const whole = vi.spyOn(fs, "readFileSync");
+    held(fixture.read, "stored artifact could not be opened safely");
+    expect(fired).toBe(true);
+    expect(state.phases).toEqual([1]);
+    expect(state.reads.reduce((sum, entry) => sum + entry.count, 0)).toBe(
+      fixture.entry.size + 1,
+    );
+    expect(state.reads.at(-1)).toEqual({
+      phase: 1,
+      position: fixture.entry.size,
+      length: 1,
+      count: 1,
+    });
+    expect(state.closed).toEqual([1]);
+    expect(state.live.size).toBe(0);
+    expect(whole).not.toHaveBeenCalled();
+  });
+  it("rejects default same-size payload tampering through the signed record digest", () => {
+    const fixture = openArtifactByteFixture(directory),
+      bytes = fs.readFileSync(fixture.target);
+    fs.chmodSync(fixture.target, 0o600);
+    bytes[bytes.length - 2] ^= 1;
+    fs.writeFileSync(fixture.target, bytes);
+    held(
+      fixture.read,
+      "stored artifact bytes do not match the signed recordDigest",
+    );
+  });
   it("bounds all three artifact reads, forwards the same frozen limits and authenticates exact signed bytes", () => {
     let armed = false;
     const limits = [];
@@ -139,9 +245,11 @@ describe("genuine three-phase artifact reads", () => {
       ["expected-size", "maximum-size"].map((kind) => [phase, kind]),
     ),
   )(
-    "rejects real phase %s %s growth before content reads in that phase",
+    "rejects custom integrity phase %s %s growth before content reads in that phase",
     (phase, kind) => {
-      const fixture = openArtifactByteFixture(directory);
+      const fixture = openArtifactByteFixture(directory, {
+        Store: IntegrityHookStore,
+      });
       fs.chmodSync(fixture.target, 0o600);
       let fired = false;
       const state = instrument(fixture.target, (current) => {
@@ -158,7 +266,10 @@ describe("genuine three-phase artifact reads", () => {
           }
         }
       });
-      held(fixture.read, phase);
+      held(
+        fixture.read,
+        phase === 2 ? "stored artifact could not be opened safely" : undefined,
+      );
       expect(fired).toBe(true);
       expect(state.phases).toEqual(
         Array.from({ length: phase }, (_, i) => i + 1),
@@ -187,13 +298,15 @@ describe("genuine three-phase artifact reads", () => {
       grantsMutationOrPromotionAuthority: false,
     });
   });
-  it("rejects same-size changed content through the original signed digest", () => {
-    const fixture = openArtifactByteFixture(directory),
+  it("rejects custom integrity payload tampering through the original signed digest", () => {
+    const fixture = openArtifactByteFixture(directory, {
+        Store: IntegrityHookStore,
+      }),
       bytes = fs.readFileSync(fixture.target);
     fs.chmodSync(fixture.target, 0o600);
     bytes[bytes.length - 2] ^= 1;
     fs.writeFileSync(fixture.target, bytes);
-    held(fixture.read, 1);
+    held(fixture.read);
   });
   it("retains the subclass integrity callback's real index mutation while forwarding bounds", () => {
     let armed = false,

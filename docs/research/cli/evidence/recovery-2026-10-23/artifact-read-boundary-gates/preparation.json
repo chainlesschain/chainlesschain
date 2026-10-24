@@ -1,0 +1,44 @@
+﻿{
+  "schema": "chainlesschain.artifact-read-boundary-gate-repair/v1",
+  "recordedAt": "2026-10-24T02:42:09.2114514Z",
+  "baseCommit": "1f9aed62a8c88b2c79967e6c6bc24d10e90a8994",
+  "branch": "feature/cli118-boundary-gates-20261024",
+  "runtimeChanged": false,
+  "cause": "Default ArtifactStore payload reads now use one bounded descriptor read. Six growth fault cases and one signed-digest case still used the former default three-read contract. Genuine custom integrity hooks retain their original three reads.",
+  "originalActions": {
+    "macosJob": 120753389938,
+    "run": 40051293251,
+    "linuxJob": 120753389991,
+    "failedCases": 7,
+    "failedFile": "packages/cli/__tests__/unit/evolution-artifact-byte-boundary.test.js"
+  },
+  "repair": [
+    "Exercise all six original phase/size growth faults through a genuine delegating integrity override.",
+    "Preserve exact hook order, frozen shared limits, bounded chunks, EOF probes, signed digests, descriptor close and index-mutation checks.",
+    "Add default single-read success, expected/max growth before content reads, growth after descriptor admission, and same-size signed-byte tampering cases."
+  ],
+  "localValidation": {
+    "prettier": "passed",
+    "node": "22.22.2",
+    "after": {
+      "report": "after.json",
+      "skipped": 1,
+      "files": 7,
+      "failed": 0,
+      "passed": 211
+    },
+    "before": {
+      "report": "before.json",
+      "failed": 7,
+      "passed": 3
+    },
+    "platform": "win32",
+    "diffCheck": "passed"
+  },
+  "testFileSha256": "08255d8975cac0e10df4c585a5d63626a7d4e1fb8d1cdaa2ca64c3615fc5562a",
+  "publication": {
+    "required": "New exact final release commit CLI CI, CLI Strict Sandbox, full original formal reliability and IDE gates; required child npm packages before CLI, then IDE extensions. Previous SHA checks do not qualify the new release commit.",
+    "published": false,
+    "tagCreated": false
+  }
+}

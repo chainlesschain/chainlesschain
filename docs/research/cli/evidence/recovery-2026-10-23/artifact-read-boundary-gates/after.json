@@ -1,0 +1,2375 @@
+{
+  "numTotalTestSuites": 16,
+  "numPassedTestSuites": 16,
+  "numFailedTestSuites": 0,
+  "numPendingTestSuites": 0,
+  "numTotalTests": 212,
+  "numPassedTests": 211,
+  "numFailedTests": 0,
+  "numPendingTests": 1,
+  "numTodoTests": 0,
+  "snapshot": {
+    "added": 0,
+    "failure": false,
+    "filesAdded": 0,
+    "filesRemoved": 0,
+    "filesRemovedList": [],
+    "filesUnmatched": 0,
+    "filesUpdated": 0,
+    "matched": 0,
+    "total": 0,
+    "unchecked": 0,
+    "uncheckedKeysByFile": [],
+    "unmatched": 0,
+    "updated": 0,
+    "didUpdate": false
+  },
+  "startTime": 1792809636373,
+  "success": true,
+  "testResults": [
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": ["bounded artifact file windows"],
+          "fullName": "bounded artifact file windows returns exact bytes including an empty file and accepts a coherent same-byte new inode on a later independent read",
+          "status": "passed",
+          "title": "returns exact bytes including an empty file and accepts a coherent same-byte new inode on a later independent read",
+          "duration": 21.365800000000036,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact file windows"],
+          "fullName": "bounded artifact file windows rejects Number fallback in path dev before content reads",
+          "status": "passed",
+          "title": "rejects Number fallback in path dev before content reads",
+          "duration": 9.484500000000025,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact file windows"],
+          "fullName": "bounded artifact file windows rejects Number fallback in path ino before content reads",
+          "status": "passed",
+          "title": "rejects Number fallback in path ino before content reads",
+          "duration": 5.706099999999992,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact file windows"],
+          "fullName": "bounded artifact file windows rejects Number fallback in path mode before content reads",
+          "status": "passed",
+          "title": "rejects Number fallback in path mode before content reads",
+          "duration": 4.688499999999976,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact file windows"],
+          "fullName": "bounded artifact file windows rejects Number fallback in path uid before content reads",
+          "status": "passed",
+          "title": "rejects Number fallback in path uid before content reads",
+          "duration": 4.793000000000006,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact file windows"],
+          "fullName": "bounded artifact file windows rejects Number fallback in path gid before content reads",
+          "status": "passed",
+          "title": "rejects Number fallback in path gid before content reads",
+          "duration": 4.434700000000021,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact file windows"],
+          "fullName": "bounded artifact file windows rejects Number fallback in path nlink before content reads",
+          "status": "passed",
+          "title": "rejects Number fallback in path nlink before content reads",
+          "duration": 4.650300000000016,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact file windows"],
+          "fullName": "bounded artifact file windows rejects Number fallback in path size before content reads",
+          "status": "passed",
+          "title": "rejects Number fallback in path size before content reads",
+          "duration": 4.549199999999928,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact file windows"],
+          "fullName": "bounded artifact file windows rejects Number fallback in path mtimeNs before content reads",
+          "status": "passed",
+          "title": "rejects Number fallback in path mtimeNs before content reads",
+          "duration": 5.83910000000003,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact file windows"],
+          "fullName": "bounded artifact file windows rejects Number fallback in path ctimeNs before content reads",
+          "status": "passed",
+          "title": "rejects Number fallback in path ctimeNs before content reads",
+          "duration": 4.922700000000077,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact file windows"],
+          "fullName": "bounded artifact file windows rejects Number fallback in fd dev before content reads",
+          "status": "passed",
+          "title": "rejects Number fallback in fd dev before content reads",
+          "duration": 5.4225999999999885,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact file windows"],
+          "fullName": "bounded artifact file windows rejects Number fallback in fd ino before content reads",
+          "status": "passed",
+          "title": "rejects Number fallback in fd ino before content reads",
+          "duration": 5.900899999999979,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact file windows"],
+          "fullName": "bounded artifact file windows rejects Number fallback in fd mode before content reads",
+          "status": "passed",
+          "title": "rejects Number fallback in fd mode before content reads",
+          "duration": 3.06899999999996,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact file windows"],
+          "fullName": "bounded artifact file windows rejects Number fallback in fd uid before content reads",
+          "status": "passed",
+          "title": "rejects Number fallback in fd uid before content reads",
+          "duration": 3.0896999999999935,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact file windows"],
+          "fullName": "bounded artifact file windows rejects Number fallback in fd gid before content reads",
+          "status": "passed",
+          "title": "rejects Number fallback in fd gid before content reads",
+          "duration": 4.158500000000004,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact file windows"],
+          "fullName": "bounded artifact file windows rejects Number fallback in fd nlink before content reads",
+          "status": "passed",
+          "title": "rejects Number fallback in fd nlink before content reads",
+          "duration": 3.7175999999999476,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact file windows"],
+          "fullName": "bounded artifact file windows rejects Number fallback in fd size before content reads",
+          "status": "passed",
+          "title": "rejects Number fallback in fd size before content reads",
+          "duration": 3.355799999999931,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact file windows"],
+          "fullName": "bounded artifact file windows rejects Number fallback in fd mtimeNs before content reads",
+          "status": "passed",
+          "title": "rejects Number fallback in fd mtimeNs before content reads",
+          "duration": 3.263500000000022,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact file windows"],
+          "fullName": "bounded artifact file windows rejects Number fallback in fd ctimeNs before content reads",
+          "status": "passed",
+          "title": "rejects Number fallback in fd ctimeNs before content reads",
+          "duration": 3.1581999999999653,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact file windows"],
+          "fullName": "bounded artifact file windows rejects different full path/fd inode IDs whose Number projections collide",
+          "status": "passed",
+          "title": "rejects different full path/fd inode IDs whose Number projections collide",
+          "duration": 4.50019999999995,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact file windows"],
+          "fullName": "bounded artifact file windows holds mtimeNs drift after reading and closes the real descriptor",
+          "status": "passed",
+          "title": "holds mtimeNs drift after reading and closes the real descriptor",
+          "duration": 5.226400000000012,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact file windows"],
+          "fullName": "bounded artifact file windows holds ctimeNs drift after reading and closes the real descriptor",
+          "status": "passed",
+          "title": "holds ctimeNs drift after reading and closes the real descriptor",
+          "duration": 3.4279999999999973,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact file windows"],
+          "fullName": "bounded artifact file windows holds uid drift after reading and closes the real descriptor",
+          "status": "passed",
+          "title": "holds uid drift after reading and closes the real descriptor",
+          "duration": 3.9669999999999845,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact file windows"],
+          "fullName": "bounded artifact file windows holds gid drift after reading and closes the real descriptor",
+          "status": "passed",
+          "title": "holds gid drift after reading and closes the real descriptor",
+          "duration": 4.578199999999924,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact file windows"],
+          "fullName": "bounded artifact file windows holds mode drift after reading and closes the real descriptor",
+          "status": "passed",
+          "title": "holds mode drift after reading and closes the real descriptor",
+          "duration": 3.7174999999999727,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact file windows"],
+          "fullName": "bounded artifact file windows rejects only uid differing between path and opened fd",
+          "status": "passed",
+          "title": "rejects only uid differing between path and opened fd",
+          "duration": 3.578700000000026,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact file windows"],
+          "fullName": "bounded artifact file windows rejects only gid differing between path and opened fd",
+          "status": "passed",
+          "title": "rejects only gid differing between path and opened fd",
+          "duration": 3.488900000000058,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact file windows"],
+          "fullName": "bounded artifact file windows rejects a real open-window file replacement before returning any bytes",
+          "status": "passed",
+          "title": "rejects a real open-window file replacement before returning any bytes",
+          "duration": 7.838800000000106,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact file windows"],
+          "fullName": "bounded artifact file windows rejects a real final-path replacement after sampled final fd stat and closes it",
+          "status": "passed",
+          "title": "rejects a real final-path replacement after sampled final fd stat and closes it",
+          "duration": 6.683899999999994,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact file windows"],
+          "fullName": "bounded artifact file windows rejects a real hard link before opening the artifact",
+          "status": "passed",
+          "title": "rejects a real hard link before opening the artifact",
+          "duration": 5.411600000000021,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact file windows"],
+          "fullName": "bounded artifact file windows rejects a real directory junction/symlink alias before opening the file",
+          "status": "passed",
+          "title": "rejects a real directory junction/symlink alias before opening the file",
+          "duration": 5.101299999999924,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact file windows"],
+          "fullName": "bounded artifact file windows rejects mismatched expected size before allocating",
+          "status": "passed",
+          "title": "rejects mismatched expected size before allocating",
+          "duration": 2.9966000000000577,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact file windows"],
+          "fullName": "bounded artifact file windows rejects mismatched expected size before allocating",
+          "status": "passed",
+          "title": "rejects mismatched expected size before allocating",
+          "duration": 3.0230000000000246,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact file windows"],
+          "fullName": "bounded artifact file windows handles partial reads and caps every read at 64 KiB with exactly one EOF probe",
+          "status": "passed",
+          "title": "handles partial reads and caps every read at 64 KiB with exactly one EOF probe",
+          "duration": 791.0921999999999,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact file windows"],
+          "fullName": "bounded artifact file windows rejects actual growth at EOF after probing just one additional byte",
+          "status": "passed",
+          "title": "rejects actual growth at EOF after probing just one additional byte",
+          "duration": 6.554499999999962,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact file windows"],
+          "fullName": "bounded artifact file windows rejects actual truncation while reading and closes the descriptor",
+          "status": "passed",
+          "title": "rejects actual truncation while reading and closes the descriptor",
+          "duration": 4.02189999999996,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact file windows"],
+          "fullName": "bounded artifact file windows closes the descriptor when the actual read API throws",
+          "status": "passed",
+          "title": "closes the descriptor when the actual read API throws",
+          "duration": 3.8004000000000815,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["ArtifactStore explicit bounded integrity mode"],
+          "fullName": "ArtifactStore explicit bounded integrity mode keeps legacy verification for deliverables larger than the evolution 1 MiB bound",
+          "status": "passed",
+          "title": "keeps legacy verification for deliverables larger than the evolution 1 MiB bound",
+          "duration": 37.69719999999984,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["ArtifactStore explicit bounded integrity mode"],
+          "fullName": "ArtifactStore explicit bounded integrity mode verifies exact bytes with valid explicit bounds and holds a changed size",
+          "status": "passed",
+          "title": "verifies exact bytes with valid explicit bounds and holds a changed size",
+          "duration": 19.117500000000064,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["ArtifactStore explicit bounded integrity mode"],
+          "fullName": "ArtifactStore explicit bounded integrity mode rejects malformed or callable bounds before id lookup without raw-read fallback or getter invocation",
+          "status": "passed",
+          "title": "rejects malformed or callable bounds before id lookup without raw-read fallback or getter invocation",
+          "duration": 3.74149999999986,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "startTime": 1792809637762,
+      "endTime": 1792809638798.7415,
+      "status": "passed",
+      "message": "",
+      "name": "C:/code/chainlesschain/packages/cli/__tests__/unit/bounded-artifact-file-read.test.js"
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": ["bounded artifact reads"],
+          "fullName": "bounded artifact reads authenticates default payloads with one chunked read and a bounded EOF probe",
+          "status": "passed",
+          "title": "authenticates default payloads with one chunked read and a bounded EOF probe",
+          "duration": 122.48470000000009,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact reads"],
+          "fullName": "bounded artifact reads rejects default expected-size growth at open before reading content",
+          "status": "passed",
+          "title": "rejects default expected-size growth at open before reading content",
+          "duration": 69.78009999999995,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact reads"],
+          "fullName": "bounded artifact reads rejects default maximum-size growth at open before reading content",
+          "status": "passed",
+          "title": "rejects default maximum-size growth at open before reading content",
+          "duration": 75.06090000000006,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact reads"],
+          "fullName": "bounded artifact reads rejects default growth after descriptor admission using the bounded EOF probe",
+          "status": "passed",
+          "title": "rejects default growth after descriptor admission using the bounded EOF probe",
+          "duration": 74.48270000000002,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact reads"],
+          "fullName": "bounded artifact reads rejects default same-size payload tampering through the signed record digest",
+          "status": "passed",
+          "title": "rejects default same-size payload tampering through the signed record digest",
+          "duration": 80.5204,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact reads"],
+          "fullName": "bounded artifact reads bounds all three artifact reads, forwards the same frozen limits and authenticates exact signed bytes",
+          "status": "passed",
+          "title": "bounds all three artifact reads, forwards the same frozen limits and authenticates exact signed bytes",
+          "duration": 82.54559999999992,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact reads"],
+          "fullName": "bounded artifact reads rejects custom integrity phase 1 expected-size growth before content reads in that phase",
+          "status": "passed",
+          "title": "rejects custom integrity phase 1 expected-size growth before content reads in that phase",
+          "duration": 67.28160000000003,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact reads"],
+          "fullName": "bounded artifact reads rejects custom integrity phase 1 maximum-size growth before content reads in that phase",
+          "status": "passed",
+          "title": "rejects custom integrity phase 1 maximum-size growth before content reads in that phase",
+          "duration": 66.44500000000016,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact reads"],
+          "fullName": "bounded artifact reads rejects custom integrity phase 2 expected-size growth before content reads in that phase",
+          "status": "passed",
+          "title": "rejects custom integrity phase 2 expected-size growth before content reads in that phase",
+          "duration": 68.08660000000009,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact reads"],
+          "fullName": "bounded artifact reads rejects custom integrity phase 2 maximum-size growth before content reads in that phase",
+          "status": "passed",
+          "title": "rejects custom integrity phase 2 maximum-size growth before content reads in that phase",
+          "duration": 64.3153000000002,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact reads"],
+          "fullName": "bounded artifact reads rejects custom integrity phase 3 expected-size growth before content reads in that phase",
+          "status": "passed",
+          "title": "rejects custom integrity phase 3 expected-size growth before content reads in that phase",
+          "duration": 64.97679999999991,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact reads"],
+          "fullName": "bounded artifact reads rejects custom integrity phase 3 maximum-size growth before content reads in that phase",
+          "status": "passed",
+          "title": "rejects custom integrity phase 3 maximum-size growth before content reads in that phase",
+          "duration": 64.50770000000011,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact reads"],
+          "fullName": "bounded artifact reads keeps same-byte artifact inode replacement between independent reads outside a lifetime pin",
+          "status": "passed",
+          "title": "keeps same-byte artifact inode replacement between independent reads outside a lifetime pin",
+          "duration": 66.06870000000004,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact reads"],
+          "fullName": "bounded artifact reads rejects custom integrity payload tampering through the original signed digest",
+          "status": "passed",
+          "title": "rejects custom integrity payload tampering through the original signed digest",
+          "duration": 61.40070000000014,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["bounded artifact reads"],
+          "fullName": "bounded artifact reads retains the subclass integrity callback's real index mutation while forwarding bounds",
+          "status": "passed",
+          "title": "retains the subclass integrity callback's real index mutation while forwarding bounds",
+          "duration": 108.30549999999994,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "startTime": 1792809639779,
+      "endTime": 1792809640915.3054,
+      "status": "passed",
+      "message": "",
+      "name": "C:/code/chainlesschain/packages/cli/__tests__/unit/evolution-artifact-byte-boundary.test.js"
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts root/files directory boundary"
+          ],
+          "fullName": "original ArtifactPorts root/files directory boundary exports constructor-captured exact BigInt IDs and only the declared directory scope",
+          "status": "passed",
+          "title": "exports constructor-captured exact BigInt IDs and only the declared directory scope",
+          "duration": 26.623499999999922,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts root/files directory boundary"
+          ],
+          "fullName": "original ArtifactPorts root/files directory boundary keeps the same boundary after normal artifact publication and new ports reopening the original directories",
+          "status": "passed",
+          "title": "keeps the same boundary after normal artifact publication and new ports reopening the original directories",
+          "duration": 81.40710000000001,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts root/files directory boundary"
+          ],
+          "fullName": "original ArtifactPorts root/files directory boundary rejects a real same-byte replacement of root without adopting new IDs",
+          "status": "passed",
+          "title": "rejects a real same-byte replacement of root without adopting new IDs",
+          "duration": 85.66820000000007,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts root/files directory boundary"
+          ],
+          "fullName": "original ArtifactPorts root/files directory boundary rejects a real same-byte replacement of files without adopting new IDs",
+          "status": "passed",
+          "title": "rejects a real same-byte replacement of files without adopting new IDs",
+          "duration": 77.42679999999996,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts root/files directory boundary"
+          ],
+          "fullName": "original ArtifactPorts root/files directory boundary holds missing root and never calls the layout initializer",
+          "status": "passed",
+          "title": "holds missing root and never calls the layout initializer",
+          "duration": 13.905899999999974,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts root/files directory boundary"
+          ],
+          "fullName": "original ArtifactPorts root/files directory boundary holds missing files and never calls the layout initializer",
+          "status": "passed",
+          "title": "holds missing files and never calls the layout initializer",
+          "duration": 13.578800000000001,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts root/files directory boundary"
+          ],
+          "fullName": "original ArtifactPorts root/files directory boundary explicitly leaves index file identity and bytes outside directory-only verification",
+          "status": "passed",
+          "title": "explicitly leaves index file identity and bytes outside directory-only verification",
+          "duration": 12.730000000000018,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts root/files directory boundary"
+          ],
+          "fullName": "original ArtifactPorts root/files directory boundary rejects copied, prototype-forged, subclass and proxy handles without reading caller getters",
+          "status": "passed",
+          "title": "rejects copied, prototype-forged, subclass and proxy handles without reading caller getters",
+          "duration": 20.799499999999853,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts root/files directory boundary"
+          ],
+          "fullName": "original ArtifactPorts root/files directory boundary refuses caller paths/callbacks and retains the immutable original ArtifactStore path",
+          "status": "passed",
+          "title": "refuses caller paths/callbacks and retains the immutable original ArtifactStore path",
+          "duration": 12.924199999999928,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts root/files directory boundary"
+          ],
+          "fullName": "original ArtifactPorts root/files directory boundary does not silently recapture a changed root before the first exported boundary query",
+          "status": "passed",
+          "title": "does not silently recapture a changed root before the first exported boundary query",
+          "duration": 18.61949999999979,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts root/files directory boundary"
+          ],
+          "fullName": "original ArtifactPorts root/files directory boundary refuses a real directory junction/symlink replacing the files root",
+          "status": "passed",
+          "title": "refuses a real directory junction/symlink replacing the files root",
+          "duration": 17.492899999999963,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts root/files directory boundary"
+          ],
+          "fullName": "original ArtifactPorts root/files directory boundary detects a real files directory replacement during the root recheck",
+          "status": "passed",
+          "title": "detects a real files directory replacement during the root recheck",
+          "duration": 14.466899999999896,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "synthetic full-precision directory IDs on real local files"
+          ],
+          "fullName": "synthetic full-precision directory IDs on real local files keeps different full IDs whose Number projections collide",
+          "status": "passed",
+          "title": "keeps different full IDs whose Number projections collide",
+          "duration": 10.177800000000161,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "synthetic full-precision directory IDs on real local files"
+          ],
+          "fullName": "synthetic full-precision directory IDs on real local files holds a different full ID even when its Number projection remains the same",
+          "status": "passed",
+          "title": "holds a different full ID even when its Number projection remains the same",
+          "duration": 11.31529999999998,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "synthetic full-precision directory IDs on real local files"
+          ],
+          "fullName": "synthetic full-precision directory IDs on real local files rejects a provider returning Number for the requested BigInt directory stat",
+          "status": "passed",
+          "title": "rejects a provider returning Number for the requested BigInt directory stat",
+          "duration": 9.771199999999908,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "startTime": 1792809639565,
+      "endTime": 1792809639992.7712,
+      "status": "passed",
+      "message": "",
+      "name": "C:/code/chainlesschain/packages/cli/__tests__/unit/evolution-artifact-directory-boundary.test.js"
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts index snapshot precision and read bounds"
+          ],
+          "fullName": "original ArtifactPorts index snapshot precision and read bounds reads an empty index and genuine appended artifacts without freezing mutable index bytes",
+          "status": "passed",
+          "title": "reads an empty index and genuine appended artifacts without freezing mutable index bytes",
+          "duration": 107.00070000000005,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts index snapshot precision and read bounds"
+          ],
+          "fullName": "original ArtifactPorts index snapshot precision and read bounds holds an actual same-byte index inode replacement while the directory-only boundary stays in scope",
+          "status": "passed",
+          "title": "holds an actual same-byte index inode replacement while the directory-only boundary stays in scope",
+          "duration": 25.19100000000003,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts index snapshot precision and read bounds"
+          ],
+          "fullName": "original ArtifactPorts index snapshot precision and read bounds rejects Number fields during constructor path capture and closes every opened index fd",
+          "status": "passed",
+          "title": "rejects Number fields during constructor path capture and closes every opened index fd",
+          "duration": 14.41859999999997,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts index snapshot precision and read bounds"
+          ],
+          "fullName": "original ArtifactPorts index snapshot precision and read bounds rejects Number fields during constructor fd capture and closes every opened index fd",
+          "status": "passed",
+          "title": "rejects Number fields during constructor fd capture and closes every opened index fd",
+          "duration": 7.574100000000044,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts index snapshot precision and read bounds"
+          ],
+          "fullName": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot path dev before reading",
+          "status": "passed",
+          "title": "rejects a Number fallback in snapshot path dev before reading",
+          "duration": 10.655199999999923,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts index snapshot precision and read bounds"
+          ],
+          "fullName": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot path ino before reading",
+          "status": "passed",
+          "title": "rejects a Number fallback in snapshot path ino before reading",
+          "duration": 8.83380000000011,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts index snapshot precision and read bounds"
+          ],
+          "fullName": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot path mode before reading",
+          "status": "passed",
+          "title": "rejects a Number fallback in snapshot path mode before reading",
+          "duration": 10.129599999999982,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts index snapshot precision and read bounds"
+          ],
+          "fullName": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot path uid before reading",
+          "status": "passed",
+          "title": "rejects a Number fallback in snapshot path uid before reading",
+          "duration": 9.75019999999995,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts index snapshot precision and read bounds"
+          ],
+          "fullName": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot path gid before reading",
+          "status": "passed",
+          "title": "rejects a Number fallback in snapshot path gid before reading",
+          "duration": 9.875,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts index snapshot precision and read bounds"
+          ],
+          "fullName": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot path nlink before reading",
+          "status": "passed",
+          "title": "rejects a Number fallback in snapshot path nlink before reading",
+          "duration": 10.212099999999964,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts index snapshot precision and read bounds"
+          ],
+          "fullName": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot path size before reading",
+          "status": "passed",
+          "title": "rejects a Number fallback in snapshot path size before reading",
+          "duration": 9.330200000000104,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts index snapshot precision and read bounds"
+          ],
+          "fullName": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot path mtimeNs before reading",
+          "status": "passed",
+          "title": "rejects a Number fallback in snapshot path mtimeNs before reading",
+          "duration": 10.221599999999853,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts index snapshot precision and read bounds"
+          ],
+          "fullName": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot path ctimeNs before reading",
+          "status": "passed",
+          "title": "rejects a Number fallback in snapshot path ctimeNs before reading",
+          "duration": 9.135499999999865,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts index snapshot precision and read bounds"
+          ],
+          "fullName": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot fd dev before reading",
+          "status": "passed",
+          "title": "rejects a Number fallback in snapshot fd dev before reading",
+          "duration": 9.005799999999908,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts index snapshot precision and read bounds"
+          ],
+          "fullName": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot fd ino before reading",
+          "status": "passed",
+          "title": "rejects a Number fallback in snapshot fd ino before reading",
+          "duration": 9.86200000000008,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts index snapshot precision and read bounds"
+          ],
+          "fullName": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot fd mode before reading",
+          "status": "passed",
+          "title": "rejects a Number fallback in snapshot fd mode before reading",
+          "duration": 9.321899999999914,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts index snapshot precision and read bounds"
+          ],
+          "fullName": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot fd uid before reading",
+          "status": "passed",
+          "title": "rejects a Number fallback in snapshot fd uid before reading",
+          "duration": 8.7958000000001,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts index snapshot precision and read bounds"
+          ],
+          "fullName": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot fd gid before reading",
+          "status": "passed",
+          "title": "rejects a Number fallback in snapshot fd gid before reading",
+          "duration": 9.930100000000039,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts index snapshot precision and read bounds"
+          ],
+          "fullName": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot fd nlink before reading",
+          "status": "passed",
+          "title": "rejects a Number fallback in snapshot fd nlink before reading",
+          "duration": 9.130100000000084,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts index snapshot precision and read bounds"
+          ],
+          "fullName": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot fd size before reading",
+          "status": "passed",
+          "title": "rejects a Number fallback in snapshot fd size before reading",
+          "duration": 10.472699999999804,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts index snapshot precision and read bounds"
+          ],
+          "fullName": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot fd mtimeNs before reading",
+          "status": "passed",
+          "title": "rejects a Number fallback in snapshot fd mtimeNs before reading",
+          "duration": 10.04729999999995,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts index snapshot precision and read bounds"
+          ],
+          "fullName": "original ArtifactPorts index snapshot precision and read bounds rejects a Number fallback in snapshot fd ctimeNs before reading",
+          "status": "passed",
+          "title": "rejects a Number fallback in snapshot fd ctimeNs before reading",
+          "duration": 9.111799999999903,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts index snapshot precision and read bounds"
+          ],
+          "fullName": "original ArtifactPorts index snapshot precision and read bounds retains a full index inode and rejects a different ID with the same Number projection",
+          "status": "passed",
+          "title": "retains a full index inode and rejects a different ID with the same Number projection",
+          "duration": 16.079200000000128,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts index snapshot precision and read bounds"
+          ],
+          "fullName": "original ArtifactPorts index snapshot precision and read bounds rejects different path and fd full inodes even when their Number projections agree",
+          "status": "passed",
+          "title": "rejects different path and fd full inodes even when their Number projections agree",
+          "duration": 22.083500000000186,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts index snapshot precision and read bounds"
+          ],
+          "fullName": "original ArtifactPorts index snapshot precision and read bounds holds mtimeNs drift on the opened descriptor and closes it",
+          "status": "passed",
+          "title": "holds mtimeNs drift on the opened descriptor and closes it",
+          "duration": 15.6099999999999,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts index snapshot precision and read bounds"
+          ],
+          "fullName": "original ArtifactPorts index snapshot precision and read bounds holds ctimeNs drift on the opened descriptor and closes it",
+          "status": "passed",
+          "title": "holds ctimeNs drift on the opened descriptor and closes it",
+          "duration": 9.841499999999996,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts index snapshot precision and read bounds"
+          ],
+          "fullName": "original ArtifactPorts index snapshot precision and read bounds holds uid drift on the opened descriptor and closes it",
+          "status": "passed",
+          "title": "holds uid drift on the opened descriptor and closes it",
+          "duration": 11.22140000000013,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts index snapshot precision and read bounds"
+          ],
+          "fullName": "original ArtifactPorts index snapshot precision and read bounds holds gid drift on the opened descriptor and closes it",
+          "status": "passed",
+          "title": "holds gid drift on the opened descriptor and closes it",
+          "duration": 11.66840000000002,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts index snapshot precision and read bounds"
+          ],
+          "fullName": "original ArtifactPorts index snapshot precision and read bounds holds mode drift on the opened descriptor and closes it",
+          "status": "passed",
+          "title": "holds mode drift on the opened descriptor and closes it",
+          "duration": 9.535200000000032,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts index snapshot precision and read bounds"
+          ],
+          "fullName": "original ArtifactPorts index snapshot precision and read bounds rejects actual same-inode growth between path stat and fd stat before reading",
+          "status": "passed",
+          "title": "rejects actual same-inode growth between path stat and fd stat before reading",
+          "duration": 10.85069999999996,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts index snapshot precision and read bounds"
+          ],
+          "fullName": "original ArtifactPorts index snapshot precision and read bounds holds a real pathname copy replacement after final descriptor stat and closes the original descriptor",
+          "status": "passed",
+          "title": "holds a real pathname copy replacement after final descriptor stat and closes the original descriptor",
+          "duration": 15.924199999999928,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts index snapshot precision and read bounds"
+          ],
+          "fullName": "original ArtifactPorts index snapshot precision and read bounds rejects declared size -1n before buffer allocation or read",
+          "status": "passed",
+          "title": "rejects declared size -1n before buffer allocation or read",
+          "duration": 11.820999999999913,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts index snapshot precision and read bounds"
+          ],
+          "fullName": "original ArtifactPorts index snapshot precision and read bounds rejects declared size 67108865n before buffer allocation or read",
+          "status": "passed",
+          "title": "rejects declared size 67108865n before buffer allocation or read",
+          "duration": 13.170899999999847,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts index snapshot precision and read bounds"
+          ],
+          "fullName": "original ArtifactPorts index snapshot precision and read bounds rejects a real oversized index before opening it or allocating its contents",
+          "status": "passed",
+          "title": "rejects a real oversized index before opening it or allocating its contents",
+          "duration": 11.836900000000014,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts index snapshot precision and read bounds"
+          ],
+          "fullName": "original ArtifactPorts index snapshot precision and read bounds reads partial chunks to the checked length using descriptor reads and one EOF probe",
+          "status": "passed",
+          "title": "reads partial chunks to the checked length using descriptor reads and one EOF probe",
+          "duration": 16.528099999999995,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts index snapshot precision and read bounds"
+          ],
+          "fullName": "original ArtifactPorts index snapshot precision and read bounds caps each descriptor read at 64 KiB even for a larger admitted JSONL snapshot",
+          "status": "passed",
+          "title": "caps each descriptor read at 64 KiB even for a larger admitted JSONL snapshot",
+          "duration": 20.647100000000137,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts index snapshot precision and read bounds"
+          ],
+          "fullName": "original ArtifactPorts index snapshot precision and read bounds detects actual growth with exactly one extra byte instead of reading the enlarged file",
+          "status": "passed",
+          "title": "detects actual growth with exactly one extra byte instead of reading the enlarged file",
+          "duration": 13.168099999999868,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts index snapshot precision and read bounds"
+          ],
+          "fullName": "original ArtifactPorts index snapshot precision and read bounds holds actual truncation during a bounded read and closes the fd",
+          "status": "passed",
+          "title": "holds actual truncation during a bounded read and closes the fd",
+          "duration": 10.634700000000066,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts index snapshot precision and read bounds"
+          ],
+          "fullName": "original ArtifactPorts index snapshot precision and read bounds closes the actual index fd when readSync throws",
+          "status": "passed",
+          "title": "closes the actual index fd when readSync throws",
+          "duration": 9.014999999999873,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts index snapshot precision and read bounds"
+          ],
+          "fullName": "original ArtifactPorts index snapshot precision and read bounds rejects only uid changing between path and opened fd before any bytes are read",
+          "status": "passed",
+          "title": "rejects only uid changing between path and opened fd before any bytes are read",
+          "duration": 11.20049999999992,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts index snapshot precision and read bounds"
+          ],
+          "fullName": "original ArtifactPorts index snapshot precision and read bounds rejects only gid changing between path and opened fd before any bytes are read",
+          "status": "passed",
+          "title": "rejects only gid changing between path and opened fd before any bytes are read",
+          "duration": 9.568699999999808,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts index snapshot precision and read bounds"
+          ],
+          "fullName": "original ArtifactPorts index snapshot precision and read bounds holds an actual constructor pathname replacement after its first fd stat and closes all index fds",
+          "status": "passed",
+          "title": "holds an actual constructor pathname replacement after its first fd stat and closes all index fds",
+          "duration": 9.390699999999924,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts index snapshot precision and read bounds"
+          ],
+          "fullName": "original ArtifactPorts index snapshot precision and read bounds rejects opened descriptor size -1n before allocation/read and closes it",
+          "status": "passed",
+          "title": "rejects opened descriptor size -1n before allocation/read and closes it",
+          "duration": 10.920999999999822,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "original ArtifactPorts index snapshot precision and read bounds"
+          ],
+          "fullName": "original ArtifactPorts index snapshot precision and read bounds rejects opened descriptor size 67108865n before allocation/read and closes it",
+          "status": "passed",
+          "title": "rejects opened descriptor size 67108865n before allocation/read and closes it",
+          "duration": 15.561400000000049,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "startTime": 1792809638444,
+      "endTime": 1792809639058.5613,
+      "status": "passed",
+      "message": "",
+      "name": "C:/code/chainlesschain/packages/cli/__tests__/unit/evolution-artifact-index-boundary.test.js"
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [
+            "compact trusted artifact index cache through real ports"
+          ],
+          "fullName": "compact trusted artifact index cache through real ports retains both cold A/B layouts and preserves B across an A rewrite",
+          "status": "passed",
+          "title": "retains both cold A/B layouts and preserves B across an A rewrite",
+          "duration": 214.03930000000003,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "compact trusted artifact index cache through real ports"
+          ],
+          "fullName": "compact trusted artifact index cache through real ports validates only new appended rows and recovers after a malformed suffix",
+          "status": "passed",
+          "title": "validates only new appended rows and recovers after a malformed suffix",
+          "duration": 100.45770000000005,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "compact trusted artifact index cache through real ports"
+          ],
+          "fullName": "compact trusted artifact index cache through real ports touches hits in the eight-layout LRU",
+          "status": "passed",
+          "title": "touches hits in the eight-layout LRU",
+          "duration": 565.9542,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "compact trusted artifact index cache through real ports"
+          ],
+          "fullName": "compact trusted artifact index cache through real ports reuses compact canonical bytes across six genuine-shaped 4096-row stores",
+          "status": "passed",
+          "title": "reuses compact canonical bytes across six genuine-shaped 4096-row stores",
+          "duration": 5934.3609,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "compact trusted artifact index cache through real ports"
+          ],
+          "fullName": "compact trusted artifact index cache through real ports preserves raw key order and exact fingerprints when the hot tier is absent",
+          "status": "passed",
+          "title": "preserves raw key order and exact fingerprints when the hot tier is absent",
+          "duration": 14.316899999999805,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "compact trusted artifact index cache through real ports"
+          ],
+          "fullName": "compact trusted artifact index cache through real ports accounts six 4096-row genuine shapes, pinned append overlap and failed reservations within 112 MiB",
+          "status": "passed",
+          "title": "accounts six 4096-row genuine shapes, pinned append overlap and failed reservations within 112 MiB",
+          "duration": 3321.172699999999,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "compact trusted artifact index cache through real ports"
+          ],
+          "fullName": "compact trusted artifact index cache through real ports bypasses an admissible oversized snapshot without clearing an unrelated hot layout",
+          "status": "passed",
+          "title": "bypasses an admissible oversized snapshot without clearing an unrelated hot layout",
+          "duration": 1095.9404999999988,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "startTime": 1792809643888,
+      "endTime": 1792809655134.9404,
+      "status": "passed",
+      "message": "",
+      "name": "C:/code/chainlesschain/packages/cli/__tests__/unit/evolution-artifact-index-cache.test.js"
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [
+            "default ArtifactPorts index readback uses bounded snapshots"
+          ],
+          "fullName": "default ArtifactPorts index readback uses bounded snapshots authenticates resolve with multi-block index snapshots and no whole-index read",
+          "status": "passed",
+          "title": "authenticates resolve with multi-block index snapshots and no whole-index read",
+          "duration": 193.94010000000003,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "default ArtifactPorts index readback uses bounded snapshots"
+          ],
+          "fullName": "default ArtifactPorts index readback uses bounded snapshots authenticates read with multi-block index snapshots and no whole-index read",
+          "status": "passed",
+          "title": "authenticates read with multi-block index snapshots and no whole-index read",
+          "duration": 136.93600000000004,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "default ArtifactPorts index readback uses bounded snapshots"
+          ],
+          "fullName": "default ArtifactPorts index readback uses bounded snapshots authenticates batch with multi-block index snapshots and no whole-index read",
+          "status": "passed",
+          "title": "authenticates batch with multi-block index snapshots and no whole-index read",
+          "duration": 126.0865,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "default ArtifactPorts index readback uses bounded snapshots"
+          ],
+          "fullName": "default ArtifactPorts index readback uses bounded snapshots recognizes inherited and own references to the original repository methods by function identity",
+          "status": "passed",
+          "title": "recognizes inherited and own references to the original repository methods by function identity",
+          "duration": 93.14139999999998,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "default ArtifactPorts index readback uses bounded snapshots"
+          ],
+          "fullName": "default ArtifactPorts index readback uses bounded snapshots preserves a custom list wrapper and explicitly leaves its legacy I/O outside the default bounds",
+          "status": "passed",
+          "title": "preserves a custom list wrapper and explicitly leaves its legacy I/O outside the default bounds",
+          "duration": 202.83390000000009,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "default ArtifactPorts index readback uses bounded snapshots"
+          ],
+          "fullName": "default ArtifactPorts index readback uses bounded snapshots preserves a custom get wrapper and explicitly leaves its legacy I/O outside the default bounds",
+          "status": "passed",
+          "title": "preserves a custom get wrapper and explicitly leaves its legacy I/O outside the default bounds",
+          "duration": 130.50019999999995,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "default ArtifactPorts index readback uses bounded snapshots"
+          ],
+          "fullName": "default ArtifactPorts index readback uses bounded snapshots detects a real same-inode append between management snapshots and later accepts the stable append",
+          "status": "passed",
+          "title": "detects a real same-inode append between management snapshots and later accepts the stable append",
+          "duration": 102.99189999999999,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "default ArtifactPorts index readback uses bounded snapshots"
+          ],
+          "fullName": "default ArtifactPorts index readback uses bounded snapshots rejects actual missing index bytes without consulting legacy index readers",
+          "status": "passed",
+          "title": "rejects actual missing index bytes without consulting legacy index readers",
+          "duration": 60.21730000000002,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "default ArtifactPorts index readback uses bounded snapshots"
+          ],
+          "fullName": "default ArtifactPorts index readback uses bounded snapshots rejects actual duplicate-digest index bytes without consulting legacy index readers",
+          "status": "passed",
+          "title": "rejects actual duplicate-digest index bytes without consulting legacy index readers",
+          "duration": 62.00299999999993,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "default ArtifactPorts index readback uses bounded snapshots"
+          ],
+          "fullName": "default ArtifactPorts index readback uses bounded snapshots rejects actual duplicate-id index bytes without consulting legacy index readers",
+          "status": "passed",
+          "title": "rejects actual duplicate-id index bytes without consulting legacy index readers",
+          "duration": 72.26170000000002,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "default ArtifactPorts index readback uses bounded snapshots"
+          ],
+          "fullName": "default ArtifactPorts index readback uses bounded snapshots rejects actual partial-jsonl index bytes without consulting legacy index readers",
+          "status": "passed",
+          "title": "rejects actual partial-jsonl index bytes without consulting legacy index readers",
+          "duration": 59.16750000000002,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "default ArtifactPorts index readback uses bounded snapshots"
+          ],
+          "fullName": "default ArtifactPorts index readback uses bounded snapshots rejects actual corrupt-json index bytes without consulting legacy index readers",
+          "status": "passed",
+          "title": "rejects actual corrupt-json index bytes without consulting legacy index readers",
+          "duration": 62.245600000000195,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "default ArtifactPorts index readback uses bounded snapshots"
+          ],
+          "fullName": "default ArtifactPorts index readback uses bounded snapshots rejects actual too-many-rows index bytes without consulting legacy index readers",
+          "status": "passed",
+          "title": "rejects actual too-many-rows index bytes without consulting legacy index readers",
+          "duration": 60.91640000000007,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "default ArtifactPorts index readback uses bounded snapshots"
+          ],
+          "fullName": "default ArtifactPorts index readback uses bounded snapshots rejects actual inode-swap index bytes without consulting legacy index readers",
+          "status": "passed",
+          "title": "rejects actual inode-swap index bytes without consulting legacy index readers",
+          "duration": 55.24059999999986,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [
+            "default ArtifactPorts index readback uses bounded snapshots"
+          ],
+          "fullName": "default ArtifactPorts index readback uses bounded snapshots rejects an actual oversized management index before reading its contents",
+          "status": "passed",
+          "title": "rejects an actual oversized management index before reading its contents",
+          "duration": 54.178699999999935,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "startTime": 1792809641662,
+      "endTime": 1792809643135.1787,
+      "status": "passed",
+      "message": "",
+      "name": "C:/code/chainlesschain/packages/cli/__tests__/unit/evolution-artifact-index-readback.test.js"
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts persists canonical bytes with an exact signed-lineage envelope and resolves a frozen value",
+          "status": "passed",
+          "title": "persists canonical bytes with an exact signed-lineage envelope and resolves a frozen value",
+          "duration": 145.69219999999996,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts returns the existing exact envelope and locator after a response-loss retry",
+          "status": "passed",
+          "title": "returns the existing exact envelope and locator after a response-loss retry",
+          "duration": 191.9248,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts provides a short read-only EvolutionLedger resolver without write authority",
+          "status": "passed",
+          "title": "provides a short read-only EvolutionLedger resolver without write authority",
+          "duration": 76.98050000000012,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts rejects accessors, sparse arrays, cycles, unsupported values, oversized values, and non-whitelisted types",
+          "status": "passed",
+          "title": "rejects accessors, sparse arrays, cycles, unsupported values, oversized values, and non-whitelisted types",
+          "duration": 10.403999999999996,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts rejects every Proxy before reflective traps or persistence can run",
+          "status": "passed",
+          "title": "rejects every Proxy before reflective traps or persistence can run",
+          "duration": 10.740399999999909,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts rejects cross-tenant, cross-audience, wrong-type, wrong-digest, and purpose replay",
+          "status": "passed",
+          "title": "rejects cross-tenant, cross-audience, wrong-type, wrong-digest, and purpose replay",
+          "duration": 73.0761,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts rejects expired envelopes and fails closed after ArtifactStore removal",
+          "status": "passed",
+          "title": "rejects expired envelopes and fails closed after ArtifactStore removal",
+          "duration": 77.28179999999998,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts fails closed after ArtifactStore TTL cleanup removes otherwise-valid bytes",
+          "status": "passed",
+          "title": "fails closed after ArtifactStore TTL cleanup removes otherwise-valid bytes",
+          "duration": 76.65049999999997,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts rechecks current revocation and exact policy on every resolution",
+          "status": "passed",
+          "title": "rechecks current revocation and exact policy on every resolution",
+          "duration": 68.53399999999988,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts supports only the approved ledger-retention types without an envelope TTL",
+          "status": "passed",
+          "title": "supports only the approved ledger-retention types without an envelope TTL",
+          "duration": 5911.5416,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts lets current authority trust an issued ledger policy after key/policy rotation and still applies revocation",
+          "status": "passed",
+          "title": "lets current authority trust an issued ledger policy after key/policy rotation and still applies revocation",
+          "duration": 114.94599999999991,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts rejects ledger housekeeping metadata before portable Date arithmetic could overflow",
+          "status": "passed",
+          "title": "rejects ledger housekeeping metadata before portable Date arithmetic could overflow",
+          "duration": 24.168900000000576,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts denies caller-selected infinite retention without an approved type, purpose, and authority",
+          "status": "passed",
+          "title": "denies caller-selected infinite retention without an approved type, purpose, and authority",
+          "duration": 24.86999999999989,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts rejects a signed envelope replayed with a mutated core",
+          "status": "passed",
+          "title": "rejects a signed envelope replayed with a mutated core",
+          "duration": 70.80150000000049,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts rejects stored-byte replacement even when the index still advertises the original hash",
+          "status": "passed",
+          "title": "rejects stored-byte replacement even when the index still advertises the original hash",
+          "duration": 107.15089999999964,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts rejects index recordDigest and exact-lineage replacement",
+          "status": "passed",
+          "title": "rejects index recordDigest and exact-lineage replacement",
+          "duration": 78.61299999999937,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts rejects traversal in a tampered index before following the stored path",
+          "status": "passed",
+          "title": "rejects traversal in a tampered index before following the stored path",
+          "duration": 63.1859000000004,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts rejects a hard-linked ArtifactStore index before trusting repository API output",
+          "status": "passed",
+          "title": "rejects a hard-linked ArtifactStore index before trusting repository API output",
+          "duration": 63.44750000000022,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts rejects an ArtifactStore index replaced by a symlink",
+          "status": "skipped",
+          "title": "rejects an ArtifactStore index replaced by a symlink",
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts rejects an ArtifactStore files directory replaced by a symlink or junction",
+          "status": "passed",
+          "title": "rejects an ArtifactStore files directory replaced by a symlink or junction",
+          "duration": 72.23889999999938,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts rejects replacement of the captured ArtifactStore root identity",
+          "status": "passed",
+          "title": "rejects replacement of the captured ArtifactStore root identity",
+          "duration": 69.2493999999997,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts rejects a replaced lineage envelope before releasing bytes",
+          "status": "passed",
+          "title": "rejects a replaced lineage envelope before releasing bytes",
+          "duration": 71.77840000000015,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts requires a unique recordDigest and rejects an index above the adapter admission ceiling",
+          "status": "passed",
+          "title": "requires a unique recordDigest and rejects an index above the adapter admission ceiling",
+          "duration": 87.68449999999939,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts resolves ledger bytes without list/get locks while rejecting an index change during readback",
+          "status": "passed",
+          "title": "resolves ledger bytes without list/get locks while rejecting an index change during readback",
+          "duration": 193.35270000000037,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts reads default artifact payloads once and rejects same-size byte tampering on the next read",
+          "status": "passed",
+          "title": "reads default artifact payloads once and rejects same-size byte tampering on the next read",
+          "duration": 94.78210000000036,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts keeps custom storedPath hook failure at call 2 in its original read order",
+          "status": "passed",
+          "title": "keeps custom storedPath hook failure at call 2 in its original read order",
+          "duration": 99.07610000000022,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts keeps custom storedPath hook failure at call 3 in its original read order",
+          "status": "passed",
+          "title": "keeps custom storedPath hook failure at call 3 in its original read order",
+          "duration": 144.75530000000072,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts keeps custom _filesDir hook failure at call 2 in its original read order",
+          "status": "passed",
+          "title": "keeps custom _filesDir hook failure at call 2 in its original read order",
+          "duration": 122.26950000000033,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts keeps custom _filesDir hook failure at call 3 in its original read order",
+          "status": "passed",
+          "title": "keeps custom _filesDir hook failure at call 3 in its original read order",
+          "duration": 132.98260000000118,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts rechecks prototype storedPath changes before the bounded payload read",
+          "status": "passed",
+          "title": "rechecks prototype storedPath changes before the bounded payload read",
+          "duration": 99.04199999999946,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts rechecks prototype storedPath changes during the bounded payload read",
+          "status": "passed",
+          "title": "rechecks prototype storedPath changes during the bounded payload read",
+          "duration": 103.6895999999997,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts rechecks prototype _filesDir changes before the bounded payload read",
+          "status": "passed",
+          "title": "rechecks prototype _filesDir changes before the bounded payload read",
+          "duration": 115.23149999999987,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts rechecks prototype _filesDir changes during the bounded payload read",
+          "status": "passed",
+          "title": "rechecks prototype _filesDir changes during the bounded payload read",
+          "duration": 101.8132999999998,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts keeps both integrity reads when a temporary path override restores itself",
+          "status": "passed",
+          "title": "keeps both integrity reads when a temporary path override restores itself",
+          "duration": 114.34660000000076,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts preserves an integrity override installed before the ports module is imported",
+          "status": "passed",
+          "title": "preserves an integrity override installed before the ports module is imported",
+          "duration": 240.88819999999942,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts resolves a bounded ledger batch with fresh authority for every item",
+          "status": "passed",
+          "title": "resolves a bounded ledger batch with fresh authority for every item",
+          "duration": 229.9336000000003,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts reauthenticates duplicate-id after a successful batch through the same resolver",
+          "status": "passed",
+          "title": "reauthenticates duplicate-id after a successful batch through the same resolver",
+          "duration": 254.4375,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts reauthenticates duplicate-digest after a successful batch through the same resolver",
+          "status": "passed",
+          "title": "reauthenticates duplicate-digest after a successful batch through the same resolver",
+          "duration": 209.64830000000075,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts reauthenticates payload after a successful batch through the same resolver",
+          "status": "passed",
+          "title": "reauthenticates payload after a successful batch through the same resolver",
+          "duration": 190.04329999999936,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts reauthenticates revocation after a successful batch through the same resolver",
+          "status": "passed",
+          "title": "reauthenticates revocation after a successful batch through the same resolver",
+          "duration": 178.89339999999902,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts authenticates across unchanged, appended, rewritten, reordered and truncated indexes",
+          "status": "passed",
+          "title": "authenticates across unchanged, appended, rewritten, reordered and truncated indexes",
+          "duration": 153.64249999999993,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts rejects an invalid incomplete append and recovers without poisoning prior rows",
+          "status": "passed",
+          "title": "rejects an invalid incomplete append and recovers without poisoning prior rows",
+          "duration": 109.27330000000075,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts rejects an invalid utf8 append and recovers without poisoning prior rows",
+          "status": "passed",
+          "title": "rejects an invalid utf8 append and recovers without poisoning prior rows",
+          "duration": 97.09709999999905,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts rejects an invalid depth append and recovers without poisoning prior rows",
+          "status": "passed",
+          "title": "rejects an invalid depth append and recovers without poisoning prior rows",
+          "duration": 82.2583999999988,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts rejects an invalid row-bytes append and recovers without poisoning prior rows",
+          "status": "passed",
+          "title": "rejects an invalid row-bytes append and recovers without poisoning prior rows",
+          "duration": 93.70690000000104,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts rejects an invalid noncanonical append and recovers without poisoning prior rows",
+          "status": "passed",
+          "title": "rejects an invalid noncanonical append and recovers without poisoning prior rows",
+          "duration": 93.07459999999992,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts continues authenticating large admissible indexes (rows)",
+          "status": "passed",
+          "title": "continues authenticating large admissible indexes (rows)",
+          "duration": 287.8063000000002,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts continues authenticating large admissible indexes (raw-bytes)",
+          "status": "passed",
+          "title": "continues authenticating large admissible indexes (raw-bytes)",
+          "duration": 2030.3269999999993,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts continues authenticating large admissible indexes (parsed-memory)",
+          "status": "passed",
+          "title": "continues authenticating large admissible indexes (parsed-memory)",
+          "duration": 5700.6173,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts isolates captured layouts during repeated store churn and subsequent tamper",
+          "status": "passed",
+          "title": "isolates captured layouts during repeated store churn and subsequent tamper",
+          "duration": 635.518,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts closes synchronous read-window capabilities on return, throw and thenable rejection",
+          "status": "passed",
+          "title": "closes synchronous read-window capabilities on return, throw and thenable rejection",
+          "duration": 77.92469999999958,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts keeps parsed rows and lineage immutable when captured store hooks retain them",
+          "status": "passed",
+          "title": "keeps parsed rows and lineage immutable when captured store hooks retain them",
+          "duration": 157.3882999999987,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts retains both the 128-item chunk limit and the cumulative read-window bound",
+          "status": "passed",
+          "title": "retains both the 128-item chunk limit and the cumulative read-window bound",
+          "duration": 397.2872000000025,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts rejects index-between-chunks while a synchronous read window is open",
+          "status": "passed",
+          "title": "rejects index-between-chunks while a synchronous read window is open",
+          "duration": 106.29179999999906,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts rejects index-after-last-chunk while a synchronous read window is open",
+          "status": "passed",
+          "title": "rejects index-after-last-chunk while a synchronous read window is open",
+          "duration": 154.89459999999963,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts rejects valid-append while a synchronous read window is open",
+          "status": "passed",
+          "title": "rejects valid-append while a synchronous read window is open",
+          "duration": 174.0395000000026,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts rejects payload while a synchronous read window is open",
+          "status": "passed",
+          "title": "rejects payload while a synchronous read window is open",
+          "duration": 116.59130000000005,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts rejects revocation while a synchronous read window is open",
+          "status": "passed",
+          "title": "rejects revocation while a synchronous read window is open",
+          "duration": 104.39519999999902,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts rechecks every decision lease at the end of a ledger batch",
+          "status": "passed",
+          "title": "rechecks every decision lease at the end of a ledger batch",
+          "duration": 101.37289999999848,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts rejects index replacement during authority lookup in a single descriptor read",
+          "status": "passed",
+          "title": "rejects index replacement during authority lookup in a single descriptor read",
+          "duration": 60.47979999999734,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts rejects index replacement during authority lookup in a batch descriptor read",
+          "status": "passed",
+          "title": "rejects index replacement during authority lookup in a batch descriptor read",
+          "duration": 56.39300000000003,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts rejects missing through the single descriptor-only ledger resolver",
+          "status": "passed",
+          "title": "rejects missing through the single descriptor-only ledger resolver",
+          "duration": 51.390299999999115,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts rejects missing through the batch descriptor-only ledger resolver",
+          "status": "passed",
+          "title": "rejects missing through the batch descriptor-only ledger resolver",
+          "duration": 53.22259999999733,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts rejects duplicate-id through the single descriptor-only ledger resolver",
+          "status": "passed",
+          "title": "rejects duplicate-id through the single descriptor-only ledger resolver",
+          "duration": 51.85559999999896,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts rejects duplicate-id through the batch descriptor-only ledger resolver",
+          "status": "passed",
+          "title": "rejects duplicate-id through the batch descriptor-only ledger resolver",
+          "duration": 60.84039999999732,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts rejects duplicate-digest through the single descriptor-only ledger resolver",
+          "status": "passed",
+          "title": "rejects duplicate-digest through the single descriptor-only ledger resolver",
+          "duration": 63.44659999999931,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts rejects duplicate-digest through the batch descriptor-only ledger resolver",
+          "status": "passed",
+          "title": "rejects duplicate-digest through the batch descriptor-only ledger resolver",
+          "duration": 66.46599999999671,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts rejects lineage through the single descriptor-only ledger resolver",
+          "status": "passed",
+          "title": "rejects lineage through the single descriptor-only ledger resolver",
+          "duration": 55.31430000000182,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts rejects lineage through the batch descriptor-only ledger resolver",
+          "status": "passed",
+          "title": "rejects lineage through the batch descriptor-only ledger resolver",
+          "duration": 55.36149999999907,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts rejects payload through the single descriptor-only ledger resolver",
+          "status": "passed",
+          "title": "rejects payload through the single descriptor-only ledger resolver",
+          "duration": 64.55500000000029,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts rejects payload through the batch descriptor-only ledger resolver",
+          "status": "passed",
+          "title": "rejects payload through the batch descriptor-only ledger resolver",
+          "duration": 71.28859999999986,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts rejects revocation through the single descriptor-only ledger resolver",
+          "status": "passed",
+          "title": "rejects revocation through the single descriptor-only ledger resolver",
+          "duration": 91.0589,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts rejects revocation through the batch descriptor-only ledger resolver",
+          "status": "passed",
+          "title": "rejects revocation through the batch descriptor-only ledger resolver",
+          "duration": 60.8099000000002,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts cross-checks captured ArtifactStore list/get results against the trusted descriptor snapshot",
+          "status": "passed",
+          "title": "cross-checks captured ArtifactStore list/get results against the trusted descriptor snapshot",
+          "duration": 159.87059999999838,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts captures and freezes trusted ports so later monkeypatching cannot redirect authority",
+          "status": "passed",
+          "title": "captures and freezes trusted ports so later monkeypatching cannot redirect authority",
+          "duration": 79.32110000000102,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionArtifactPorts"],
+          "fullName": "EvolutionArtifactPorts fails putCanonical when a store mutates bytes before immediate readback",
+          "status": "passed",
+          "title": "fails putCanonical when a store mutates bytes before immediate readback",
+          "duration": 49.226299999998446,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "startTime": 1792809640717,
+      "endTime": 1792809662659.2263,
+      "status": "passed",
+      "message": "",
+      "name": "C:/code/chainlesschain/packages/cli/__tests__/unit/evolution-artifact-ports.test.js"
+    }
+  ]
+}
