@@ -1,0 +1,294 @@
+{
+  "diagnosticOnly": true,
+  "durationMs": 293086.004,
+  "topNative": [
+    {
+      "label": "(idle)",
+      "ms": 74305
+    },
+    {
+      "label": "lstat",
+      "ms": 50677
+    },
+    {
+      "label": "realpath",
+      "ms": 37603
+    },
+    {
+      "label": "spawn",
+      "ms": 26723
+    },
+    {
+      "label": "rename",
+      "ms": 11934
+    },
+    {
+      "label": "verifyOneShot",
+      "ms": 11056
+    },
+    {
+      "label": "open",
+      "ms": 7399
+    },
+    {
+      "label": "",
+      "ms": 4812
+    },
+    {
+      "label": "fsync",
+      "ms": 4388
+    },
+    {
+      "label": "close",
+      "ms": 3507
+    },
+    {
+      "label": "fstat",
+      "ms": 3253
+    },
+    {
+      "label": "read",
+      "ms": 3090
+    },
+    {
+      "label": "update",
+      "ms": 2990
+    },
+    {
+      "label": "resolve",
+      "ms": 1941
+    },
+    {
+      "label": "normalizedInjectionText",
+      "ms": 1938
+    },
+    {
+      "label": "canonicalWalk",
+      "ms": 1680
+    },
+    {
+      "label": "confusableSkeleton",
+      "ms": 1508
+    },
+    {
+      "label": "canonicalJson",
+      "ms": 1488
+    }
+  ],
+  "topNearestProjectCaller": [
+    {
+      "label": "lstat <- evolution-ledger.js:1826 ",
+      "ms": 33266
+    },
+    {
+      "label": "spawn <- private-storage.js:773 runNativeWindowsAcl",
+      "ms": 20179
+    },
+    {
+      "label": "realpath <- evolution-artifact-ports.js:1223 inspectPhysicalDirectory",
+      "ms": 13408
+    },
+    {
+      "label": "realpath <- evolution-ledger.js:1826 ",
+      "ms": 10587
+    },
+    {
+      "label": "verifyOneShot <- local-ui-evolution-runtime.js:129 verify",
+      "ms": 8889
+    },
+    {
+      "label": "rename <- evolution-ledger.js:1826 ",
+      "ms": 8263
+    },
+    {
+      "label": "lstat <- evolution-artifact-ports.js:1223 inspectPhysicalDirectory",
+      "ms": 6235
+    },
+    {
+      "label": "spawn <- index.js:5160 spawnSync",
+      "ms": 5188
+    },
+    {
+      "label": "open <- evolution-ledger.js:1826 ",
+      "ms": 4150
+    },
+    {
+      "label": "realpath <- bounded-artifact-file-read.js:87 ",
+      "ms": 3696
+    },
+    {
+      "label": "realpath <- secure-file-identity.js:274 canonicalRealpath",
+      "ms": 3358
+    },
+    {
+      "label": "realpath <- evolution-artifact-ports.js:1804 readTrustedIndexSnapshotWithIdentity",
+      "ms": 3261
+    },
+    {
+      "label": "rename <- with-file-lock.js:389 renameSync",
+      "ms": 3140
+    },
+    {
+      "label": "realpath <- evolution-physical-state-reader.js:69 physicalPath",
+      "ms": 2802
+    },
+    {
+      "label": "fsync <- artifact-store.js:356 _publishDataUnlocked",
+      "ms": 2726
+    },
+    {
+      "label": "read <- evolution-ledger.js:1826 ",
+      "ms": 2145
+    },
+    {
+      "label": "verifyOneShot <- local-ui-evolution-runtime.js:168 verify",
+      "ms": 2120
+    },
+    {
+      "label": "close <- evolution-ledger.js:1826 ",
+      "ms": 2042
+    },
+    {
+      "label": "fstat <- evolution-ledger.js:1826 ",
+      "ms": 1941
+    },
+    {
+      "label": "normalizedInjectionText <- evolution-evidence-projector.js:1182 normalizedInjectionText",
+      "ms": 1938
+    },
+    {
+      "label": "update <- evolution-artifact-ports.js:856 sha256",
+      "ms": 1814
+    },
+    {
+      "label": "lstat <- bounded-artifact-file-read.js:87 ",
+      "ms": 1710
+    },
+    {
+      "label": "canonicalWalk <- evolution-artifact-ports.js:725 canonicalWalk",
+      "ms": 1680
+    },
+    {
+      "label": "lstat <- private-storage.js:174 assertNoLinkTraversal",
+      "ms": 1653
+    },
+    {
+      "label": "lstat <- bounded-artifact-file-read.js:27 lstatSync",
+      "ms": 1547
+    },
+    {
+      "label": "confusableSkeleton <- evolution-evidence-projector.js:1176 confusableSkeleton",
+      "ms": 1508
+    },
+    {
+      "label": "lstat <- evolution-artifact-ports.js:1804 readTrustedIndexSnapshotWithIdentity",
+      "ms": 1502
+    },
+    {
+      "label": "fsync <- evolution-ledger.js:1826 ",
+      "ms": 1498
+    }
+  ],
+  "topInclusive": [
+    {
+      "label": "agent-evolution-ingress.js:296 ",
+      "ms": 169324
+    },
+    {
+      "label": "with-file-lock.js:31 withFileLock",
+      "ms": 129603
+    },
+    {
+      "label": "with-file-lock.js:72 runLocked",
+      "ms": 129598
+    },
+    {
+      "label": "evolution-run-ledger-adapter.js:56 ",
+      "ms": 125559
+    },
+    {
+      "label": "evolution-ledger.js:2379 #withLock",
+      "ms": 120830
+    },
+    {
+      "label": "evolution-ledger.js:2052 ",
+      "ms": 120761
+    },
+    {
+      "label": "evolution-run-ledger-adapter.js:326 _entries",
+      "ms": 116549
+    },
+    {
+      "label": "evolution-run-ledger-adapter.js:454 appendEvent",
+      "ms": 113844
+    },
+    {
+      "label": "evolution-ledger.js:2385 #lock._fs",
+      "ms": 108553
+    },
+    {
+      "label": "secure-file-identity.js:295 withTrustedFileParentSync",
+      "ms": 98553
+    },
+    {
+      "label": "evolution-ledger.js:4377 #loadState",
+      "ms": 81816
+    },
+    {
+      "label": "evolution-run-ledger-adapter.js:439 load",
+      "ms": 72698
+    },
+    {
+      "label": "evolution-ledger.js:1826 ",
+      "ms": 71104
+    },
+    {
+      "label": "evolution-ledger.js:5734 verify",
+      "ms": 57747
+    },
+    {
+      "label": "evolution-file-identity.js:14 withEvolutionFileIdentity",
+      "ms": 54670
+    },
+    {
+      "label": "evolution-ledger.js:3099 #readPhysicalFileWithIdentity",
+      "ms": 52494
+    },
+    {
+      "label": "evolution-ledger.js:5735 ",
+      "ms": 49581
+    },
+    {
+      "label": "evolution-ledger.js:4292 #cachedPrefix",
+      "ms": 46960
+    },
+    {
+      "label": "evolution-ledger.js:4304 matchesDirectory",
+      "ms": 44202
+    },
+    {
+      "label": "evolution-file-identity.js:57 withEvolutionDirectoryFileIdentity",
+      "ms": 44195
+    },
+    {
+      "label": "evolution-artifact-ports.js:3361 #resolveAuthenticatedEntry",
+      "ms": 43003
+    },
+    {
+      "label": "evolution-file-identity.js:70 withTrustedFileParentSync.runtime.runtime",
+      "ms": 42838
+    },
+    {
+      "label": "evolution-ledger.js:4309 ",
+      "ms": 42787
+    },
+    {
+      "label": "evolution-ledger.js:3925 #matchesCachedFileWithIdentity",
+      "ms": 42175
+    },
+    {
+      "label": "evolution-file-identity.js:33 withTrustedFileParentSync.runtime.runtime",
+      "ms": 40425
+    }
+  ]
+}

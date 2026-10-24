@@ -1,0 +1,987 @@
+{
+  "numTotalTestSuites": 8,
+  "numPassedTestSuites": 8,
+  "numFailedTestSuites": 0,
+  "numPendingTestSuites": 0,
+  "numTotalTests": 92,
+  "numPassedTests": 92,
+  "numFailedTests": 0,
+  "numPendingTests": 0,
+  "numTodoTests": 0,
+  "snapshot": {
+    "added": 0,
+    "failure": false,
+    "filesAdded": 0,
+    "filesRemoved": 0,
+    "filesRemovedList": [],
+    "filesUnmatched": 0,
+    "filesUpdated": 0,
+    "matched": 0,
+    "total": 0,
+    "unchecked": 0,
+    "uncheckedKeysByFile": [],
+    "unmatched": 0,
+    "updated": 0,
+    "didUpdate": false
+  },
+  "startTime": 1792821039147,
+  "success": true,
+  "testResults": [
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 freshly reads cached production files with full-precision identities without legacy projection samples",
+          "status": "passed",
+          "title": "freshly reads cached production files with full-precision identities without legacy projection samples",
+          "duration": 829.1476,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 reads history and its authority from one authenticated state without reusing later observations",
+          "status": "passed",
+          "title": "reads history and its authority from one authenticated state without reusing later observations",
+          "duration": 654.6383000000001,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 initializes an independent signed identity, epoch, genesis anchor, and HEAD",
+          "status": "passed",
+          "title": "initializes an independent signed identity, epoch, genesis anchor, and HEAD",
+          "duration": 186.7854000000002,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 recovers an identity-only bootstrap before the witness ever becomes active",
+          "status": "passed",
+          "title": "recovers an identity-only bootstrap before the witness ever becomes active",
+          "duration": 313.43949999999995,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 rejects replacing an initialized empty event-store incarnation",
+          "status": "passed",
+          "title": "rejects replacing an initialized empty event-store incarnation",
+          "duration": 294.7353000000003,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 rejects deletion or substitution of the random signed store marker",
+          "status": "passed",
+          "title": "rejects deletion or substitution of the random signed store marker",
+          "duration": 294.32970000000023,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 detects event-root reincarnation even when filesystem dev/ino are replayed",
+          "status": "passed",
+          "title": "detects event-root reincarnation even when filesystem dev/ino are replayed",
+          "duration": 352.72460000000046,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 commits an immutable segment and signed head anchor before issuing a bound receipt",
+          "status": "passed",
+          "title": "commits an immutable segment and signed head anchor before issuing a bound receipt",
+          "duration": 369.3799999999992,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 commits a validated batch and withholds every event receipt until final readback",
+          "status": "passed",
+          "title": "commits a validated batch and withholds every event receipt until final readback",
+          "duration": 441.97429999999986,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 rejects an invalid later batch item before persisting the first",
+          "status": "passed",
+          "title": "rejects an invalid later batch item before persisting the first",
+          "duration": 230.53790000000026,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 recovers only the witnessed prefix when a batch crashes on a later item",
+          "status": "passed",
+          "title": "recovers only the witnessed prefix when a batch crashes on a later item",
+          "duration": 271.90130000000045,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 chains strict domain events with legacy v2 events and routes artifacts through the real artifact tenant",
+          "status": "passed",
+          "title": "chains strict domain events with legacy v2 events and routes artifacts through the real artifact tenant",
+          "duration": 691.9175999999998,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 exports a self-contained ledger audit that verifies after both stores are offline",
+          "status": "passed",
+          "title": "exports a self-contained ledger audit that verifies after both stores are offline",
+          "duration": 430.7682999999997,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 verifies the signed genesis witness for an empty offline audit",
+          "status": "passed",
+          "title": "verifies the signed genesis witness for an empty offline audit",
+          "duration": 133.82499999999982,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 fails offline audit closed after truncation or re-digested signed-record and artifact tampering",
+          "status": "passed",
+          "title": "fails offline audit closed after truncation or re-digested signed-record and artifact tampering",
+          "duration": 463.20890000000054,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 requires a distinct subject ref while allowing nullable context and empty domain sources",
+          "status": "passed",
+          "title": "requires a distinct subject ref while allowing nullable context and empty domain sources",
+          "duration": 420.4332000000004,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 rejects proxy and accessor schema inputs without invoking external traps",
+          "status": "passed",
+          "title": "rejects proxy and accessor schema inputs without invoking external traps",
+          "duration": 803.0862999999999,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 detects canonical tamper in the independently signed domain-event variant",
+          "status": "passed",
+          "title": "detects canonical tamper in the independently signed domain-event variant",
+          "duration": 323.5794999999998,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 fails closed when an authenticated segment is rewritten to an unknown future event schema",
+          "status": "passed",
+          "title": "fails closed when an authenticated segment is rewritten to an unknown future event schema",
+          "duration": 336.2439000000013,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 rejects replaying legacy and domain signatures across their independent signing domains",
+          "status": "passed",
+          "title": "rejects replaying legacy and domain signatures across their independent signing domains",
+          "duration": 775.2219000000005,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 derives committedAt from the trusted clock instead of caller event time",
+          "status": "passed",
+          "title": "derives committedAt from the trusted clock instead of caller event time",
+          "duration": 214.9966999999997,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 provides authenticated query, receipt recovery, and receipt verification ports",
+          "status": "passed",
+          "title": "provides authenticated query, receipt recovery, and receipt verification ports",
+          "duration": 433.01940000000104,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 bounds a cold read when a checked file grows before IO",
+          "status": "passed",
+          "title": "bounds a cold read when a checked file grows before IO",
+          "duration": 246.46019999999953,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 bounds a cached read when a checked file grows before IO",
+          "status": "passed",
+          "title": "bounds a cached read when a checked file grows before IO",
+          "duration": 339.0033999999996,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 bounds a snapshot read when a checked file grows before IO",
+          "status": "passed",
+          "title": "bounds a snapshot read when a checked file grows before IO",
+          "duration": 372.53629999999976,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 accepts partial descriptor reads without using unbounded file reads",
+          "status": "passed",
+          "title": "accepts partial descriptor reads without using unbounded file reads",
+          "duration": 376.3207000000002,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 serves bounded batch queries from a revalidated incremental prefix index",
+          "status": "passed",
+          "title": "serves bounded batch queries from a revalidated incremental prefix index",
+          "duration": 660.786900000001,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 reopens from a witness-bound persistent snapshot without trusting tampered cache state",
+          "status": "passed",
+          "title": "reopens from a witness-bound persistent snapshot without trusting tampered cache state",
+          "duration": 884.4645999999993,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 recovers and verifies receipts for domain events after reopen",
+          "status": "passed",
+          "title": "recovers and verifies receipts for domain events after reopen",
+          "duration": 355.41040000000066,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 rejects stale-current, cross-ledger, and signature-header receipt replay",
+          "status": "passed",
+          "title": "rejects stale-current, cross-ledger, and signature-header receipt replay",
+          "duration": 448.8793999999998,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 fails closed when an older receipt lacks authenticated witness ancestry",
+          "status": "passed",
+          "title": "fails closed when an older receipt lacks authenticated witness ancestry",
+          "duration": 414.45809999999983,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 binds algorithm, keyId, and trustPolicyDigest into identity, event, anchor, digest, and signature",
+          "status": "passed",
+          "title": "binds algorithm, keyId, and trustPolicyDigest into identity, event, anchor, digest, and signature",
+          "duration": 239.64019999999982,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 requires an authenticated artifact resolver and validates resolved bytes",
+          "status": "passed",
+          "title": "requires an authenticated artifact resolver and validates resolved bytes",
+          "duration": 714.1402999999991,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 captures and freezes trusted ports and paths against post-construction mutation",
+          "status": "passed",
+          "title": "captures and freezes trusted ports and paths against post-construction mutation",
+          "duration": 464.28960000000006,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 rejects deleting the complete event log after an authority was initialized",
+          "status": "passed",
+          "title": "rejects deleting the complete event log after an authority was initialized",
+          "duration": 211.34859999999753,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 rejects deleting every local ledger file while the monotonic witness remains active",
+          "status": "passed",
+          "title": "rejects deleting every local ledger file while the monotonic witness remains active",
+          "duration": 279.6245999999992,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 rejects a coordinated rollback of segments, anchors, and HEAD to an older signed snapshot",
+          "status": "passed",
+          "title": "rejects a coordinated rollback of segments, anchors, and HEAD to an older signed snapshot",
+          "duration": 347.0553,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 rejects substituting a different fully signed ledger under the same trust key",
+          "status": "passed",
+          "title": "rejects substituting a different fully signed ledger under the same trust key",
+          "duration": 490.40270000000237,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 rejects deleting HEAD or rolling the immutable log prefix behind HEAD",
+          "status": "passed",
+          "title": "rejects deleting HEAD or rolling the immutable log prefix behind HEAD",
+          "duration": 599.3714,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 rejects signature-header substitution in identity and event segments",
+          "status": "passed",
+          "title": "rejects signature-header substitution in identity and event segments",
+          "duration": 492.4311000000016,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 rejects hard-link aliases and permanently fences marker alias replay",
+          "status": "passed",
+          "title": "rejects hard-link aliases and permanently fences marker alias replay",
+          "duration": 515.5481999999975,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 recovers a torn unanchored segment and hard-link staging debris without moving HEAD",
+          "status": "passed",
+          "title": "recovers a torn unanchored segment and hard-link staging debris without moving HEAD",
+          "duration": 450.8445999999967,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 fails closed on malformed immutable and HEAD staging debris",
+          "status": "passed",
+          "title": "fails closed on malformed immutable and HEAD staging debris",
+          "duration": 123.35729999999967,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 removes a fully written but unwitnessed anchor tail on reopen",
+          "status": "passed",
+          "title": "removes a fully written but unwitnessed anchor tail on reopen",
+          "duration": 400.7659999999996,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 rejects a witness that echoes the old state instead of persisting a discard fence",
+          "status": "passed",
+          "title": "rejects a witness that echoes the old state instead of persisting a discard fence",
+          "duration": 201.10210000000006,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 durably persists a file-witness discard and rejects stale orphan revival",
+          "status": "passed",
+          "title": "durably persists a file-witness discard and rejects stale orphan revival",
+          "duration": 572.9579000000012,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 does not delete an orphan tail when the witness advances during its discard fence",
+          "status": "passed",
+          "title": "does not delete an orphan tail when the witness advances during its discard fence",
+          "duration": 405.09249999999884,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 reports commit unknown after witness CAS and completes HEAD forward on reopen",
+          "status": "passed",
+          "title": "reports commit unknown after witness CAS and completes HEAD forward on reopen",
+          "duration": 268.4367999999995,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 resolves a witness CAS response-loss ambiguity by authenticated query on reopen",
+          "status": "passed",
+          "title": "resolves a witness CAS response-loss ambiguity by authenticated query on reopen",
+          "duration": 380.7538999999997,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 recovers a domain event after witness CAS commits but its response is lost",
+          "status": "passed",
+          "title": "recovers a domain event after witness CAS commits but its response is lost",
+          "duration": 316.7633999999998,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 reports commit unknown when local HEAD publication fails after witness commit",
+          "status": "passed",
+          "title": "reports commit unknown when local HEAD publication fails after witness commit",
+          "duration": 318.1358,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 recovers a domain event after local HEAD publication fails post-witness",
+          "status": "passed",
+          "title": "recovers a domain event after local HEAD publication fails post-witness",
+          "duration": 310.5725999999995,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 fails before witness CAS when native Windows directory fsync is unavailable",
+          "status": "passed",
+          "title": "fails before witness CAS when native Windows directory fsync is unavailable",
+          "duration": 182.68699999999808,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 fails before publication on disk error and preserves the anchored head",
+          "status": "passed",
+          "title": "fails before publication on disk error and preserves the anchored head",
+          "duration": 409.64010000000053,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 detects canonical-byte tamper, truncation, and missing anchored segments",
+          "status": "passed",
+          "title": "detects canonical-byte tamper, truncation, and missing anchored segments",
+          "duration": 767.4121999999988,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 rejects reordered canonical event records",
+          "status": "passed",
+          "title": "rejects reordered canonical event records",
+          "duration": 349.52579999999944,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 rehashes a warm incremental prefix and rejects same-length in-place tamper",
+          "status": "passed",
+          "title": "rehashes a warm incremental prefix and rejects same-length in-place tamper",
+          "duration": 267.66129999999976,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 admits exactly one of two concurrent domain appends with the same eventId",
+          "status": "passed",
+          "title": "admits exactly one of two concurrent domain appends with the same eventId",
+          "duration": 803.7392,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionLedger v2"],
+          "fullName": "EvolutionLedger v2 serializes one hundred concurrent fenced appends without loss, duplication, or head drift",
+          "status": "passed",
+          "title": "serializes one hundred concurrent fenced appends without loss, duplication, or head drift",
+          "duration": 35063.918999999994,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "startTime": 1792821132273,
+      "endTime": 1792821191586.919,
+      "status": "passed",
+      "message": "",
+      "name": "C:/code/chainlesschain/packages/cli/__tests__/unit/evolution-ledger.test.js"
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": ["EvolutionRunLedgerAdapter"],
+          "fullName": "EvolutionRunLedgerAdapter loads real atomic history, preserves custom reads, and detects changed artifact bytes",
+          "status": "passed",
+          "title": "loads real atomic history, preserves custom reads, and detects changed artifact bytes",
+          "duration": 1185.5094000000008,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionRunLedgerAdapter"],
+          "fullName": "EvolutionRunLedgerAdapter resolves 128 and 129 authentic artifacts across the batch boundary with bounded index reads",
+          "status": "passed",
+          "title": "resolves 128 and 129 authentic artifacts across the batch boundary with bounded index reads",
+          "duration": 12997.3966,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionRunLedgerAdapter"],
+          "fullName": "EvolutionRunLedgerAdapter retains index integrity failures when the ledger frontier did not change (verification fails: false)",
+          "status": "passed",
+          "title": "retains index integrity failures when the ledger frontier did not change (verification fails: false)",
+          "duration": 177.40899999999965,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionRunLedgerAdapter"],
+          "fullName": "EvolutionRunLedgerAdapter retains index integrity failures when the ledger frontier did not change (verification fails: true)",
+          "status": "passed",
+          "title": "retains index integrity failures when the ledger frontier did not change (verification fails: true)",
+          "duration": 218.66890000000058,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionRunLedgerAdapter"],
+          "fullName": "EvolutionRunLedgerAdapter does not release a batch whose first authority lease expired during later reads",
+          "status": "passed",
+          "title": "does not release a batch whose first authority lease expired during later reads",
+          "duration": 151.07790000000023,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionRunLedgerAdapter"],
+          "fullName": "EvolutionRunLedgerAdapter checks current revocation again after a successful load",
+          "status": "passed",
+          "title": "checks current revocation again after a successful load",
+          "duration": 172.42459999999846,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionRunLedgerAdapter"],
+          "fullName": "EvolutionRunLedgerAdapter authenticates a bounded pair of frontiers while resolving every artifact anew",
+          "status": "passed",
+          "title": "authenticates a bounded pair of frontiers while resolving every artifact anew",
+          "duration": 1000.4655999999995,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionRunLedgerAdapter"],
+          "fullName": "EvolutionRunLedgerAdapter rejects a concurrent append during artifact resolution",
+          "status": "passed",
+          "title": "rejects a concurrent append during artifact resolution",
+          "duration": 353.248599999999,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionRunLedgerAdapter"],
+          "fullName": "EvolutionRunLedgerAdapter rejects a concurrent replace during artifact resolution",
+          "status": "passed",
+          "title": "rejects a concurrent replace during artifact resolution",
+          "duration": 274.28199999999924,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionRunLedgerAdapter"],
+          "fullName": "EvolutionRunLedgerAdapter rejects a concurrent rollback during artifact resolution",
+          "status": "passed",
+          "title": "rejects a concurrent rollback during artifact resolution",
+          "duration": 190.28410000000076,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionRunLedgerAdapter"],
+          "fullName": "EvolutionRunLedgerAdapter rejects a concurrent epoch during artifact resolution",
+          "status": "passed",
+          "title": "rejects a concurrent epoch during artifact resolution",
+          "duration": 256.5061999999998,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionRunLedgerAdapter"],
+          "fullName": "EvolutionRunLedgerAdapter rejects a concurrent ledgerId during artifact resolution",
+          "status": "passed",
+          "title": "rejects a concurrent ledgerId during artifact resolution",
+          "duration": 238.23170000000027,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionRunLedgerAdapter"],
+          "fullName": "EvolutionRunLedgerAdapter rejects a concurrent witness during artifact resolution",
+          "status": "passed",
+          "title": "rejects a concurrent witness during artifact resolution",
+          "duration": 201.56229999999778,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionRunLedgerAdapter"],
+          "fullName": "EvolutionRunLedgerAdapter rechecks artifact bytes after a successful load without a ledger-head change",
+          "status": "passed",
+          "title": "rechecks artifact bytes after a successful load without a ledger-head change",
+          "duration": 157.9303,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionRunLedgerAdapter"],
+          "fullName": "EvolutionRunLedgerAdapter does not accept a caller-supplied identity through individual event resolution",
+          "status": "passed",
+          "title": "does not accept a caller-supplied identity through individual event resolution",
+          "duration": 122.16330000000016,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionRunLedgerAdapter"],
+          "fullName": "EvolutionRunLedgerAdapter persists a contiguous canonical run and recovers it through a new adapter",
+          "status": "passed",
+          "title": "persists a contiguous canonical run and recovers it through a new adapter",
+          "duration": 348.9786000000022,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionRunLedgerAdapter"],
+          "fullName": "EvolutionRunLedgerAdapter recovers an exact append after the ledger response is lost",
+          "status": "passed",
+          "title": "recovers an exact append after the ledger response is lost",
+          "duration": 312.82740000000194,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionRunLedgerAdapter"],
+          "fullName": "EvolutionRunLedgerAdapter rejects substituted artifact lineage during restart recovery",
+          "status": "passed",
+          "title": "rejects substituted artifact lineage during restart recovery",
+          "duration": 315.8063000000002,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionRunLedgerAdapter"],
+          "fullName": "EvolutionRunLedgerAdapter fails closed on sequence races, conflicting duplicates, and post-completion writes",
+          "status": "passed",
+          "title": "fails closed on sequence races, conflicting duplicates, and post-completion writes",
+          "duration": 351.4442999999992,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionRunLedgerAdapter"],
+          "fullName": "EvolutionRunLedgerAdapter does not append a stale lineage when a competing writer wins before CAS",
+          "status": "passed",
+          "title": "does not append a stale lineage when a competing writer wins before CAS",
+          "duration": 250.1094000000012,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionRunLedgerAdapter"],
+          "fullName": "EvolutionRunLedgerAdapter routes real REPL boundaries through one branded durable ingress",
+          "status": "passed",
+          "title": "routes real REPL boundaries through one branded durable ingress",
+          "duration": 835.4239999999991,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionRunLedgerAdapter"],
+          "fullName": "EvolutionRunLedgerAdapter accepts the real agent-core git descriptor result at strict Evolution ingress",
+          "status": "passed",
+          "title": "accepts the real agent-core git descriptor result at strict Evolution ingress",
+          "duration": 762.2584000000024,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionRunLedgerAdapter"],
+          "fullName": "EvolutionRunLedgerAdapter routes headless event boundaries and forwards the same ingress to the core",
+          "status": "passed",
+          "title": "routes headless event boundaries and forwards the same ingress to the core",
+          "duration": 14163.739099999999,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionRunLedgerAdapter"],
+          "fullName": "EvolutionRunLedgerAdapter fails before model execution when evidence persistence is cross-tenant",
+          "status": "passed",
+          "title": "fails before model execution when evidence persistence is cross-tenant",
+          "duration": 126.29900000000634,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionRunLedgerAdapter"],
+          "fullName": "EvolutionRunLedgerAdapter routes every long-lived stream turn into the same run before closing it",
+          "status": "passed",
+          "title": "routes every long-lived stream turn into the same run before closing it",
+          "duration": 3264.1959999999963,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["EvolutionRunLedgerAdapter"],
+          "fullName": "EvolutionRunLedgerAdapter admits only a branded tenant-bound ingress through AgentRuntime",
+          "status": "passed",
+          "title": "admits only a branded tenant-bound ingress through AgentRuntime",
+          "duration": 460.1287999999986,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "startTime": 1792821091696,
+      "endTime": 1792821130586.129,
+      "status": "passed",
+      "message": "",
+      "name": "C:/code/chainlesschain/packages/cli/__tests__/unit/evolution-run-ledger-adapter.test.js"
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": ["Evolution production Windows ACL backend"],
+          "fullName": "Evolution production Windows ACL backend publishes and reopens private durable stores with default filesystem ports",
+          "status": "passed",
+          "title": "publishes and reopens private durable stores with default filesystem ports",
+          "duration": 1907.0348,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["Evolution production Windows ACL backend"],
+          "fullName": "Evolution production Windows ACL backend publishes and reopens private durable stores with explicit-default filesystem ports",
+          "status": "passed",
+          "title": "publishes and reopens private durable stores with explicit-default filesystem ports",
+          "duration": 2271.3983,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["Evolution production Windows ACL backend"],
+          "fullName": "Evolution production Windows ACL backend publishes and reopens private durable stores with local-ui filesystem ports",
+          "status": "passed",
+          "title": "publishes and reopens private durable stores with local-ui filesystem ports",
+          "duration": 3942.1089,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["Evolution production Windows ACL backend"],
+          "fullName": "Evolution production Windows ACL backend publishes and reopens private durable stores with custom filesystem ports",
+          "status": "passed",
+          "title": "publishes and reopens private durable stores with custom filesystem ports",
+          "duration": 16193.5449,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["Evolution production Windows ACL backend"],
+          "fullName": "Evolution production Windows ACL backend publishes and reopens private durable stores with custom-local-ui filesystem ports",
+          "status": "passed",
+          "title": "publishes and reopens private durable stores with custom-local-ui filesystem ports",
+          "duration": 14687.240700000002,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "startTime": 1792821040300,
+      "endTime": 1792821079301.2407,
+      "status": "passed",
+      "message": "",
+      "name": "C:/code/chainlesschain/packages/cli/__tests__/unit/evolution-storage-acl-backend.test.js"
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": ["immutable local UI signing authority"],
+          "fullName": "immutable local UI signing authority authenticates original messages and rejects content, key, and trust substitution",
+          "status": "passed",
+          "title": "authenticates original messages and rejects content, key, and trust substitution",
+          "duration": 10.472399999999993,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["immutable local UI signing authority"],
+          "fullName": "immutable local UI signing authority binds the verifier epoch to the complete fixed public key and trust policy",
+          "status": "passed",
+          "title": "binds the verifier epoch to the complete fixed public key and trust policy",
+          "duration": 10.831600000000094,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "startTime": 1792821192243,
+      "endTime": 1792821192264.8315,
+      "status": "passed",
+      "message": "",
+      "name": "C:/code/chainlesschain/packages/cli/__tests__/unit/local-ui-signing-authority.test.js"
+    }
+  ]
+}
