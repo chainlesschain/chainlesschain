@@ -1,0 +1,74 @@
+{
+  "sourceSha": "76491cc313d6057e4babee5223dc48033886e532",
+  "at": "2026-10-24T09:45:55.228Z",
+  "reason": "A natural original-budget Windows fixture regression was reproduced on this source; preserve current partial/green API evidence but do not publish, and cancel remaining obsolete gates before new-source validation.",
+  "runs": {
+    "cli": {
+      "id": 40080982916,
+      "initialStatus": "queued",
+      "initialConclusion": null,
+      "requestedAt": "2026-10-24T09:45:59.158Z",
+      "response": "✓ Request to cancel workflow 40080982916 submitted.",
+      "status": "completed",
+      "conclusion": "cancelled"
+    },
+    "strict": {
+      "id": 40080991449,
+      "initialStatus": "queued",
+      "initialConclusion": null,
+      "requestedAt": "2026-10-24T09:46:06.116Z",
+      "response": "✓ Request to cancel workflow 40080991449 submitted.",
+      "status": "completed",
+      "conclusion": "cancelled"
+    },
+    "formal": {
+      "id": 40081023959,
+      "initialStatus": "in_progress",
+      "initialConclusion": null,
+      "requestedAt": "2026-10-24T09:46:17.248Z",
+      "response": "✓ Request to cancel workflow 40081023959 submitted.",
+      "status": "completed",
+      "conclusion": "cancelled"
+    },
+    "context": {
+      "id": 40081032949,
+      "initialStatus": "completed",
+      "initialConclusion": "success",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    "ide": {
+      "id": 40081041695,
+      "initialStatus": "queued",
+      "initialConclusion": null,
+      "requestedAt": "2026-10-24T09:46:29.145Z",
+      "response": "✓ Request to cancel workflow 40081041695 submitted.",
+      "status": "completed",
+      "conclusion": "cancelled"
+    },
+    "arm64": {
+      "id": 40081049752,
+      "initialStatus": "queued",
+      "initialConclusion": null,
+      "requestedAt": "2026-10-24T09:46:36.043Z",
+      "response": "✓ Request to cancel workflow 40081049752 submitted.",
+      "status": "completed",
+      "conclusion": "cancelled"
+    },
+    "ledger": {
+      "id": 40080900897,
+      "initialStatus": "completed",
+      "initialConclusion": "success",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    "hostConsistency": {
+      "id": 40081115724,
+      "initialStatus": "completed",
+      "initialConclusion": "success",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  },
+  "lastReadbackAt": "2026-10-24T10:50:15.007Z"
+}

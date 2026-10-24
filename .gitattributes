@@ -182,3 +182,8 @@ docs/research/cli/evidence/recovery-2026-10-24/native-fixture-filesystems/README
 docs/research/cli/evidence/recovery-2026-10-24/tool-round-ack/** -text !eol -whitespace linguist-generated
 docs/research/cli/evidence/recovery-2026-10-24/tool-round-ack/preparation.json -linguist-generated
 docs/research/cli/evidence/recovery-2026-10-24/tool-round-ack/README.md -linguist-generated
+
+# Natural Windows fixture timeout and physical-IO recovery reports retain bytes.
+docs/research/cli/evidence/recovery-2026-10-24/physical-fixture-filesystems/** -text !eol -whitespace linguist-generated
+docs/research/cli/evidence/recovery-2026-10-24/physical-fixture-filesystems/preparation.json -linguist-generated
+docs/research/cli/evidence/recovery-2026-10-24/physical-fixture-filesystems/README.md -linguist-generated

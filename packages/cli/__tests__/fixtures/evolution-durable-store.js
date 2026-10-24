@@ -1,5 +1,6 @@
 import { createHash, createHmac } from "node:crypto";
 import fs from "node:fs";
+import { createLocalUiEvolutionFileSystem } from "../../src/lib/evolution/evolution-windows-directory-durability.js";
 import path from "node:path";
 import { ArtifactStore } from "../../src/lib/artifact-store.js";
 import {
@@ -43,43 +44,7 @@ function authority(label) {
 }
 
 function durableFilesystem() {
-  const directories = new Set();
-  let nextDescriptor = -90_000;
-  return {
-    ...fs,
-    closeSync(fd) {
-      if (!directories.delete(fd)) return fs.closeSync(fd);
-    },
-    fsyncSync(fd) {
-      if (directories.has(fd)) return;
-      try {
-        return fs.fsyncSync(fd);
-      } catch (error) {
-        if (
-          process.platform !== "win32" ||
-          !["EACCES", "EINVAL", "EISDIR", "EPERM"].includes(error.code) ||
-          !fs.fstatSync(fd).isDirectory()
-        )
-          throw error;
-      }
-    },
-    openSync(target, flags, mode) {
-      try {
-        return fs.openSync(target, flags, mode);
-      } catch (error) {
-        if (
-          process.platform !== "win32" ||
-          flags !== "r" ||
-          !["EACCES", "EINVAL", "EISDIR", "EPERM"].includes(error.code) ||
-          !fs.statSync(target).isDirectory()
-        )
-          throw error;
-        const fd = nextDescriptor--;
-        directories.add(fd);
-        return fd;
-      }
-    },
-  };
+  return createLocalUiEvolutionFileSystem();
 }
 
 // Test authorities only. Actual ArtifactStore, Ledger, signatures and witness

@@ -2,6 +2,16 @@
   "schema": "chainlesschain.actual-failed-release-sources/v1",
   "sources": [
     {
+      "sha": "76491cc313d6057e4babee5223dc48033886e532",
+      "reason": "Natural Windows single-worker unit timeout at the original 60000ms budget through synthetic test directory fs forcing repeated PowerShell ACL repair. The original 80040ms failed case passes in about6734ms after the physical fixture repair. Old in-progress matrices were cancelled; no cloud assertion failure is claimed.",
+      "localFailure": true,
+      "cloudFailureAsserted": false,
+      "originalBudgetMs": 60000,
+      "reportSha256": "c09818e8c0c39c8828ce330d4a2b603635e7af6bd9074a45bd38de31977a39e5",
+      "stdoutSha256": "23bf3a053400178cab47cdafef77c4412d2bf37212afcfe29a8dd0f941755da8",
+      "evidence": "docs/research/cli/evidence/recovery-2026-10-24/physical-fixture-filesystems/preparation.json"
+    },
+    {
       "sha": "35f7c7231e552280a0f565818b1986115fb3915d",
       "reason": "Exact Windows Workbench browser approval saved notice exceeded its unchanged 120000ms wait. A local partial startup diagnostic confirms repeated PowerShell ACL operations through the synthetic filesystem. Preserve the cloud failure; the local diagnostic was manually stopped during initialization, not a natural browser timeout.",
       "runId": 40076514139,
