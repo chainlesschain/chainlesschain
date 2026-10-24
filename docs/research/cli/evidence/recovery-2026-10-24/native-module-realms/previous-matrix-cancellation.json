@@ -1,0 +1,73 @@
+{
+  "sourceSha": "8775e738c870ac54ef392f8e3d1974d3c30dfd86",
+  "at": "2026-10-24T11:58:47.339Z",
+  "reason": "Actual Windows CLI CI failure disqualifies this source; preserve snapshots and cancel remaining obsolete gates before replacing it.",
+  "runs": {
+    "cli": {
+      "id": 40089805127,
+      "initialStatus": "queued",
+      "initialConclusion": null,
+      "requestedAt": "2026-10-24T11:58:53.946Z",
+      "response": "✓ Request to cancel workflow 40089805127 submitted.",
+      "status": "completed",
+      "conclusion": "cancelled"
+    },
+    "strict": {
+      "id": 40089821974,
+      "initialStatus": "completed",
+      "initialConclusion": "success",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    "formal": {
+      "id": 40090199291,
+      "initialStatus": "in_progress",
+      "initialConclusion": null,
+      "requestedAt": "2026-10-24T11:59:20.814Z",
+      "response": "✓ Request to cancel workflow 40090199291 submitted.",
+      "status": "completed",
+      "conclusion": "cancelled"
+    },
+    "context": {
+      "id": 40090218339,
+      "initialStatus": "queued",
+      "initialConclusion": null,
+      "requestedAt": "2026-10-24T11:59:38.837Z",
+      "response": "✓ Request to cancel workflow 40090218339 submitted.",
+      "status": "completed",
+      "conclusion": "cancelled"
+    },
+    "ide": {
+      "id": 40090234439,
+      "initialStatus": "queued",
+      "initialConclusion": null,
+      "requestedAt": "2026-10-24T11:59:56.544Z",
+      "response": "✓ Request to cancel workflow 40090234439 submitted.",
+      "status": "completed",
+      "conclusion": "cancelled"
+    },
+    "arm64": {
+      "id": 40090250323,
+      "initialStatus": "in_progress",
+      "initialConclusion": null,
+      "requestedAt": "2026-10-24T12:00:11.394Z",
+      "response": "✓ Request to cancel workflow 40090250323 submitted.",
+      "status": "completed",
+      "conclusion": "cancelled"
+    },
+    "hostConsistency": {
+      "id": 40090276161,
+      "initialStatus": "completed",
+      "initialConclusion": "success",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    "ledger": {
+      "id": 40089629312,
+      "initialStatus": "completed",
+      "initialConclusion": "success",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  }
+}

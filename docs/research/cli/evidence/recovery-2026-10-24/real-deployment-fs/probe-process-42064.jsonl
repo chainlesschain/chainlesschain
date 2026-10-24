@@ -1,0 +1,2 @@
+{"at":"2026-10-24T07:47:58.089Z","pid":42064,"ppid":41672,"kind":"start","node":"v22.12.0","cli":false}
+{"at":"2026-10-24T07:47:58.234Z","pid":42064,"ppid":41672,"kind":"exit","code":0,"lastEvent":null,"aclCalls":0,"aclMs":0,"aclMaxMs":0}

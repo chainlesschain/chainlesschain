@@ -104,11 +104,15 @@ export function workbenchTestIdentity(h, root, seed = false) {
     } finally {
       fs.closeSync(fd);
     }
-    const directory = h.fsImpl.openSync(root, "r");
-    try {
-      h.fsImpl.fsyncSync(directory);
-    } finally {
-      h.fsImpl.closeSync(directory);
+    if (typeof h.fsImpl.syncDirectorySync === "function") {
+      h.fsImpl.syncDirectorySync(root);
+    } else {
+      const directory = h.fsImpl.openSync(root, "r");
+      try {
+        h.fsImpl.fsyncSync(directory);
+      } finally {
+        h.fsImpl.closeSync(directory);
+      }
     }
   }
   return {

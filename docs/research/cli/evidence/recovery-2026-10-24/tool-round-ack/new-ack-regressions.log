@@ -1,0 +1,14 @@
+Command: node-verified.exe ../../node_modules/vitest/vitest.mjs run __tests__/unit/headless-canonical-tool-round.test.js -t 'stops without replay' --maxWorkers=1 --reporter=verbose
+Cwd: C:/code/chainlesschain/.work/cc118-native-ports/packages/cli
+Captured tool stdout (passing cases and summary; skipped cases omitted):
+ ✓ stops without replay when tool settlement returns false 7926ms
+ ✓ stops without replay when tool settlement returns undefined 2032ms
+ ✓ stops without replay when tool settlement returns null 1593ms
+ ✓ stops without replay when tool settlement returns missing hash 1463ms
+ ✓ stops without replay when tool settlement returns empty hash 1566ms
+ ✓ stops without replay when tool settlement returns non-string hash 1445ms
+ Test Files  1 passed (1)
+      Tests  6 passed | 29 skipped (35)
+   Start at  16:59:53
+   Duration  26.12s (transform 6.64s, setup 394ms, import 9.28s, tests 16.03s, environment 0ms)
+Exit code: 0

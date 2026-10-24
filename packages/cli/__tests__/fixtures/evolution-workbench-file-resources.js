@@ -1,11 +1,15 @@
 import path from "node:path";
+import { createLocalUiEvolutionFileSystem } from "../../src/lib/evolution/evolution-windows-directory-durability.js";
 import { evolutionDurableStoreConfiguration } from "./evolution-durable-store.js";
 import { replicaAuthority } from "./skill-revocation-release-registry.js";
 
 // Explicit TEST authorities only. This builds configuration, not a Ledger,
 // ArtifactStore, Registry or host; production file resources open those.
 export function workbenchFileResourceOptions(root, descriptor) {
-  const config = evolutionDurableStoreConfiguration(root, descriptor);
+  const config = evolutionDurableStoreConfiguration(root, {
+    ...descriptor,
+    fsImpl: createLocalUiEvolutionFileSystem(),
+  });
   return {
     descriptor: { ...config.descriptor, ...descriptor },
     storage: {

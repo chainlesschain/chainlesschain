@@ -1,0 +1,62 @@
+{
+  "schema": "chainlesschain.evolution-native-acl-repair-preparation/v1",
+  "recordedAt": "2026-10-24T05:22:45.365Z",
+  "baseSource": "835dbd309c99d0a4b012273b212154e6d31ce286",
+  "diagnosticOnly": true,
+  "qualified": false,
+  "published": false,
+  "merged": false,
+  "scope": "Default fs and unchanged repository runtime adapter keep the established native ACL backend. Custom and modified adapters retain explicit filesystem dependencies.",
+  "originalLimitsUnchanged": true,
+  "originalFailure": {
+    "runId": 40062364182,
+    "jobId": 120778420318,
+    "artifactId": 12548253478
+  },
+  "nativeWindowsTests": {
+    "files": 2,
+    "passed": 28,
+    "failed": 0
+  },
+  "earlierCandidateTests": {
+    "files": 5,
+    "passed": 206,
+    "skipped": 2,
+    "appliesTo": "Initial exact-fs candidate before runtime-adapter recognition was added; not a qualifying result for final source."
+  },
+  "cloudIngressCause": "Not yet established; startup backend repair alone is not claimed to resolve long-session performance.",
+  "files": [
+    {
+      "file": "windows-formal-original.zip",
+      "sha256": "2afbbd2a71a9cfd6a1fa3983901f4417ec827ac1a2c3ddbc5609107beeae4e12"
+    },
+    {
+      "file": "windows-formal-result.json",
+      "sha256": "4abb2de8bfc653a3fdbd0fb0b3cad802cbb7a03046589501cda419916cb837d5"
+    },
+    {
+      "file": "windows-before-diagnostic.json",
+      "sha256": "8fdec7d355afc12e8c8af0d2aa3ad9353057d473de602a7859e7a122a4146f13"
+    },
+    {
+      "file": "windows-native-adapter-regression.json",
+      "sha256": "e947738e27de284cec6f6d820cfb69ff8fddc44ec325e6c32f07e8c6a56b5368"
+    },
+    {
+      "file": "windows-before-acl-backends.json",
+      "sha256": "54a8fb659ffad4a928e9eaeeeaef71716996804e4cbdc38dd088278f3abe670b"
+    },
+    {
+      "file": "obsolete-run-cancellations.json",
+      "sha256": "c017b30140898b49d18d4f56b3a6d021f6e04d52235bafba026b6dd8312c3af9"
+    },
+    {
+      "file": "first-candidate-interruption.json",
+      "sha256": "d9297fa9cf516ffa542a33cf459575deb150d862b0631894ff8f275be6b17205"
+    },
+    {
+      "file": "windows-formal-job.log.gz",
+      "sha256": "b1e35a5f64ce37bc9a367f66725bce768ef6d52b94eab9fdff9e1b6818653875"
+    }
+  ]
+}

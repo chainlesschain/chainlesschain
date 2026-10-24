@@ -1,0 +1,9 @@
+﻿{
+    "startedAt":  "2026-10-24T08:53:09.1480550Z",
+    "finishedAt":  "2026-10-24T08:55:40.6532639Z",
+    "elapsedMs":  151511.2054,
+    "exitCode":  0,
+    "node":  "22.12.0",
+    "approvalBudgetMs":  120000,
+    "rollbackBudgetMs":  120000
+}

@@ -1,0 +1,29 @@
+﻿{
+  "NODE_PATH": "C:/Users/longfa/AppData/Local/Temp/cc118-runtime-deps-20261024/node_modules",
+  "records": [
+    {
+      "importer": "desktop-app-vue/src/main/llm/openai-client.js",
+      "name": "axios",
+      "entryPath": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc118-runtime-deps-20261024\\node_modules\\axios\\dist\\node\\axios.cjs",
+      "packagePath": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc118-runtime-deps-20261024\\node_modules\\axios\\package.json",
+      "version": "1.15.0",
+      "packageJsonSha256": "c697baca1c479e062096482306d9988414a06b760e4c3c6d8a9dda573a1256c4"
+    },
+    {
+      "importer": "desktop-app-vue/src/main/llm/volcengine-tools.js",
+      "name": "node-fetch",
+      "entryPath": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc118-runtime-deps-20261024\\node_modules\\node-fetch\\lib\\index.js",
+      "packagePath": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc118-runtime-deps-20261024\\node_modules\\node-fetch\\package.json",
+      "version": "2.7.0",
+      "packageJsonSha256": "000a0b3b037d4e3e211e7b7ca559a5a62a39b96ca2c6bcdaed3aba0a545eedba"
+    },
+    {
+      "importer": "packages/cli/__tests__/unit/agent-evolution-runtime-composition.test.js",
+      "name": "better-sqlite3",
+      "entryPath": "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\better-sqlite3\\lib\\index.js",
+      "packagePath": "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\better-sqlite3\\package.json",
+      "version": "11.10.0",
+      "packageJsonSha256": "58e81504576abccfacbfd08dc9432dc3a00d0fc0454685cb7a76aaf976cf25a9"
+    }
+  ]
+}

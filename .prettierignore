@@ -9,6 +9,17 @@ packages/cli/__tests__/fixtures/external-agent/codex-app-server-0.157.1-approval
 
 # Preserve downloaded CI report bytes for the evidence receipt's SHA-256.
 docs/research/cli/evidence/*.raw.json
+docs/research/cli/evidence/recovery-2026-10-24/evolution-file-owner-acl/*.raw.json
+docs/research/cli/evidence/recovery-2026-10-24/real-deployment-fs/*.raw.json
+docs/research/cli/evidence/recovery-2026-10-24/native-fixture-filesystems/**
+!docs/research/cli/evidence/recovery-2026-10-24/native-fixture-filesystems/preparation.json
+!docs/research/cli/evidence/recovery-2026-10-24/native-fixture-filesystems/README.md
+docs/research/cli/evidence/recovery-2026-10-24/tool-round-ack/**
+!docs/research/cli/evidence/recovery-2026-10-24/tool-round-ack/preparation.json
+!docs/research/cli/evidence/recovery-2026-10-24/tool-round-ack/README.md
+docs/research/cli/evidence/recovery-2026-10-24/physical-fixture-filesystems/**
+!docs/research/cli/evidence/recovery-2026-10-24/physical-fixture-filesystems/preparation.json
+!docs/research/cli/evidence/recovery-2026-10-24/physical-fixture-filesystems/README.md
 
 # Local diagnostic receipts bind exact original bytes, including JSON/XML.
 docs/research/ide/evidence/gap-2026-10-05/cold-boundaries-windows-first/**
@@ -35,3 +46,11 @@ docs/research/cli/evidence/gap-2026-10-05/completion-checks-20261006/**
 # Keep exact-SHA release readback and host artifacts byte-for-byte.
 docs/research/cli/evidence/gap-2026-10-05/release-0.166.94/**
 !docs/research/cli/evidence/gap-2026-10-05/release-0.166.94/README.md
+
+# Preserve digest-bound native module realm failure and regression reports.
+docs/research/cli/evidence/recovery-2026-10-24/native-module-realms/**
+!docs/research/cli/evidence/recovery-2026-10-24/native-module-realms/README.md
+
+# Keep original changelog parity CI and local failure bytes.
+docs/research/cli/evidence/recovery-2026-10-24/changelog-artifact-parity/**
+!docs/research/cli/evidence/recovery-2026-10-24/changelog-artifact-parity/README.md

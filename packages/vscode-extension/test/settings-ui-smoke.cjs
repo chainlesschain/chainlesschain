@@ -1,4 +1,5 @@
 "use strict";
+/* global document, window, innerWidth */
 // Browser-level smoke of real Webview HTML, scripts and host message handlers.
 // The host services are explicit fixtures; this never changes user settings,
 // executes skills, sends LLM traffic or treats test identity as governance.
@@ -420,6 +421,27 @@ async function main() {
         liveEvolution = true;
       } catch (error) {
         if (cliStderr) console.error("Local test CLI stderr:", cliStderr);
+        if (live) {
+          try {
+            await shot(live.page, "evolution-live-cli-failure");
+            fs.writeFileSync(
+              path.join(output, "evolution-live-cli-failure.json"),
+              JSON.stringify(
+                {
+                  mode: "local-test",
+                  sourceCommit,
+                  error: error.stack,
+                  notice: await live.page.locator("#notice").innerText(),
+                  cliStderr,
+                },
+                null,
+                2,
+              ) + "\n",
+            );
+          } catch (diagnosticError) {
+            console.error("Local test failure capture:", diagnosticError);
+          }
+        }
         throw error;
       } finally {
         await live?.close();

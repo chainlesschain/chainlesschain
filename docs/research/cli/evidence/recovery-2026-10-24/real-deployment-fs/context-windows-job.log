@@ -1,0 +1,1917 @@
+﻿2026-10-24T07:35:11.9506086Z Current runner version: '2.338.0'
+2026-10-24T07:35:11.9531075Z ##[group]Runner Image Provisioner
+2026-10-24T07:35:11.9531838Z Hosted Compute Agent
+2026-10-24T07:35:11.9532415Z Version: 20261021.618
+2026-10-24T07:35:11.9532973Z Commit: 21505ad2541d5be6135ed84fc33697146cf75b8e
+2026-10-24T07:35:11.9533623Z Build Date: 2026-10-21T00:45:21Z
+2026-10-24T07:35:11.9534243Z Worker ID: {ab516080-12a8-44c6-be03-83e9f7dd65b5}
+2026-10-24T07:35:11.9534914Z Region: westcentralus
+2026-10-24T07:35:11.9535434Z Cloud: Azure
+2026-10-24T07:35:11.9535904Z ##[endgroup]
+2026-10-24T07:35:11.9537020Z ##[group]Operating System
+2026-10-24T07:35:11.9537606Z Microsoft Windows Server 2025
+2026-10-24T07:35:11.9538153Z 10.0.26100
+2026-10-24T07:35:11.9538623Z Datacenter
+2026-10-24T07:35:11.9539081Z ##[endgroup]
+2026-10-24T07:35:11.9539553Z ##[group]Runner Image
+2026-10-24T07:35:11.9540190Z Image: windows-2025-vs2026
+2026-10-24T07:35:11.9540734Z Version: 20261021.278.1
+2026-10-24T07:35:11.9542269Z Included Software: https://github.com/actions/runner-images/blob/win25-vs2026/20261021.278/images/windows/Windows2025-VS2026-Readme.md
+2026-10-24T07:35:11.9543808Z Image Release: https://github.com/actions/runner-images/releases/tag/win25-vs2026%2F20261021.278
+2026-10-24T07:35:11.9545151Z ##[endgroup]
+2026-10-24T07:35:11.9546159Z ##[group]GITHUB_TOKEN Permissions
+2026-10-24T07:35:11.9548333Z Contents: read
+2026-10-24T07:35:11.9548878Z Metadata: read
+2026-10-24T07:35:11.9549378Z ##[endgroup]
+2026-10-24T07:35:11.9551277Z Secret source: Actions
+2026-10-24T07:35:11.9552544Z Cache mode: write
+2026-10-24T07:35:11.9553267Z Prepare workflow directory
+2026-10-24T07:35:12.0082292Z Prepare all required actions
+2026-10-24T07:35:12.0132549Z Getting action download info
+2026-10-24T07:35:12.2875415Z Download action repository 'actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09' (SHA:fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09)
+2026-10-24T07:35:12.4096236Z Download action repository 'actions/setup-node@v5' (SHA:a0853c24544627f65ddf259abe73b1d18a591444)
+2026-10-24T07:35:12.6658811Z Download action repository 'actions/setup-python@v6' (SHA:ece7cb06caefa5fff74198d8649806c4678c61a1)
+2026-10-24T07:35:12.7857943Z Download action repository 'actions/setup-java@v5' (SHA:b6effb05e454b25005698d916606bdc6ffcbf961)
+2026-10-24T07:35:13.4155022Z Download action repository 'actions/upload-artifact@v6' (SHA:b7c566a772e6b6bfb58ed0dc250532a479d7789f)
+2026-10-24T07:35:13.7421867Z Complete job name: Context/Memory (windows)
+2026-10-24T07:35:13.9104146Z ##[group]Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+2026-10-24T07:35:13.9107278Z with:
+2026-10-24T07:35:13.9108759Z   ref: 9b198f348a5c38466e0afc57562fee3b935815fe
+2026-10-24T07:35:13.9110620Z   repository: chainlesschain/chainlesschain
+2026-10-24T07:35:13.9122180Z   token: ***
+2026-10-24T07:35:13.9123415Z   ssh-strict: true
+2026-10-24T07:35:13.9124472Z   ssh-user: git
+2026-10-24T07:35:13.9125557Z   persist-credentials: true
+2026-10-24T07:35:13.9126855Z   clean: true
+2026-10-24T07:35:13.9128000Z   sparse-checkout-cone-mode: true
+2026-10-24T07:35:13.9129243Z   fetch-depth: 1
+2026-10-24T07:35:13.9130334Z   fetch-tags: false
+2026-10-24T07:35:13.9131479Z   show-progress: true
+2026-10-24T07:35:13.9132546Z   lfs: false
+2026-10-24T07:35:13.9133539Z   submodules: false
+2026-10-24T07:35:13.9134594Z   set-safe-directory: true
+2026-10-24T07:35:13.9135785Z   allow-unsafe-pr-checkout: false
+2026-10-24T07:35:13.9137554Z env:
+2026-10-24T07:35:13.9138973Z   CONTEXT_MEMORY_CANDIDATE_SHA: 9b198f348a5c38466e0afc57562fee3b935815fe
+2026-10-24T07:35:13.9140709Z ##[endgroup]
+2026-10-24T07:35:14.1264656Z Syncing repository: chainlesschain/chainlesschain
+2026-10-24T07:35:14.1267309Z ##[group]Getting Git version info
+2026-10-24T07:35:14.1268605Z Working directory is 'D:\a\chainlesschain\chainlesschain'
+2026-10-24T07:35:14.2028178Z [command]"C:\Program Files\Git\bin\git.exe" version
+2026-10-24T07:35:14.5418817Z git version 2.56.0.windows.2
+2026-10-24T07:35:14.5475048Z ##[endgroup]
+2026-10-24T07:35:14.5495579Z Temporarily overriding HOME='D:\a\_temp\f8a1dc84-35ef-498c-892b-aed274e57974' before making global git config changes
+2026-10-24T07:35:14.5497696Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-24T07:35:14.5505838Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\chainlesschain\chainlesschain
+2026-10-24T07:35:14.6183204Z Deleting the contents of 'D:\a\chainlesschain\chainlesschain'
+2026-10-24T07:35:14.6189136Z ##[group]Initializing the repository
+2026-10-24T07:35:14.6197974Z [command]"C:\Program Files\Git\bin\git.exe" init D:\a\chainlesschain\chainlesschain
+2026-10-24T07:35:14.7203737Z Initialized empty Git repository in D:/a/chainlesschain/chainlesschain/.git/
+2026-10-24T07:35:14.7267356Z [command]"C:\Program Files\Git\bin\git.exe" remote add origin https://github.com/chainlesschain/chainlesschain
+2026-10-24T07:35:14.8153926Z ##[endgroup]
+2026-10-24T07:35:14.8155369Z ##[group]Disabling automatic garbage collection
+2026-10-24T07:35:14.8163464Z [command]"C:\Program Files\Git\bin\git.exe" config --local gc.auto 0
+2026-10-24T07:35:14.8533754Z ##[endgroup]
+2026-10-24T07:35:14.8534989Z ##[group]Setting up auth
+2026-10-24T07:35:14.8545507Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2026-10-24T07:35:14.8916287Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2026-10-24T07:35:16.5689345Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-24T07:35:16.6066083Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2026-10-24T07:35:17.1389521Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-24T07:35:17.1778900Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+2026-10-24T07:35:17.7297288Z [command]"C:\Program Files\Git\bin\git.exe" config --local http.https://github.com/.extraheader "AUTHORIZATION: basic ***"
+2026-10-24T07:35:17.7721960Z ##[endgroup]
+2026-10-24T07:35:17.7723295Z ##[group]Fetching the repository
+2026-10-24T07:35:17.7740645Z [command]"C:\Program Files\Git\bin\git.exe" -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin 9b198f348a5c38466e0afc57562fee3b935815fe
+2026-10-24T07:35:25.4685509Z From https://github.com/chainlesschain/chainlesschain
+2026-10-24T07:35:25.4686598Z  * branch              9b198f348a5c38466e0afc57562fee3b935815fe -> FETCH_HEAD
+2026-10-24T07:35:25.4736844Z ##[endgroup]
+2026-10-24T07:35:25.4738026Z ##[group]Determining the checkout info
+2026-10-24T07:35:25.4739028Z ##[endgroup]
+2026-10-24T07:35:25.4753028Z [command]"C:\Program Files\Git\bin\git.exe" sparse-checkout disable
+2026-10-24T07:35:25.5340151Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all extensions.worktreeConfig
+2026-10-24T07:35:25.5734683Z ##[group]Checking out the ref
+2026-10-24T07:35:25.5745099Z [command]"C:\Program Files\Git\bin\git.exe" checkout --progress --force 9b198f348a5c38466e0afc57562fee3b935815fe
+2026-10-24T07:35:26.7104187Z Updating files:   8% (3042/34890)
+2026-10-24T07:35:26.7828711Z Updating files:   9% (3141/34890)
+2026-10-24T07:35:26.8459127Z Updating files:  10% (3489/34890)
+2026-10-24T07:35:26.8980555Z Updating files:  11% (3838/34890)
+2026-10-24T07:35:26.9631338Z Updating files:  12% (4187/34890)
+2026-10-24T07:35:27.0406777Z Updating files:  13% (4536/34890)
+2026-10-24T07:35:27.1152456Z Updating files:  14% (4885/34890)
+2026-10-24T07:35:27.1896312Z Updating files:  15% (5234/34890)
+2026-10-24T07:35:27.2640624Z Updating files:  16% (5583/34890)
+2026-10-24T07:35:27.3370313Z Updating files:  17% (5932/34890)
+2026-10-24T07:35:27.4100941Z Updating files:  18% (6281/34890)
+2026-10-24T07:35:27.4821148Z Updating files:  19% (6630/34890)
+2026-10-24T07:35:27.5774001Z Updating files:  20% (6978/34890)
+2026-10-24T07:35:27.6667507Z Updating files:  21% (7327/34890)
+2026-10-24T07:35:27.6878205Z Updating files:  22% (7676/34890)
+2026-10-24T07:35:27.7505022Z Updating files:  22% (7753/34890)
+2026-10-24T07:35:28.1959599Z Updating files:  23% (8025/34890)
+2026-10-24T07:35:28.2689227Z Updating files:  24% (8374/34890)
+2026-10-24T07:35:28.3285731Z Updating files:  25% (8723/34890)
+2026-10-24T07:35:28.3929693Z Updating files:  26% (9072/34890)
+2026-10-24T07:35:28.4672228Z Updating files:  27% (9421/34890)
+2026-10-24T07:35:28.5334563Z Updating files:  28% (9770/34890)
+2026-10-24T07:35:28.5963457Z Updating files:  29% (10119/34890)
+2026-10-24T07:35:28.6736242Z Updating files:  30% (10467/34890)
+2026-10-24T07:35:28.6886383Z Updating files:  31% (10816/34890)
+2026-10-24T07:35:28.7847932Z Updating files:  31% (10868/34890)
+2026-10-24T07:35:28.9868598Z Updating files:  32% (11165/34890)
+2026-10-24T07:35:29.0783060Z Updating files:  33% (11514/34890)
+2026-10-24T07:35:29.1492082Z Updating files:  34% (11863/34890)
+2026-10-24T07:35:29.5468846Z Updating files:  35% (12212/34890)
+2026-10-24T07:35:29.6083273Z Updating files:  36% (12561/34890)
+2026-10-24T07:35:29.6788971Z Updating files:  37% (12910/34890)
+2026-10-24T07:35:29.6961053Z Updating files:  38% (13259/34890)
+2026-10-24T07:35:29.7230880Z Updating files:  38% (13388/34890)
+2026-10-24T07:35:29.7722224Z Updating files:  39% (13608/34890)
+2026-10-24T07:35:29.9649330Z Updating files:  40% (13956/34890)
+2026-10-24T07:35:30.5138840Z Updating files:  41% (14305/34890)
+2026-10-24T07:35:30.7170200Z Updating files:  42% (14654/34890)
+2026-10-24T07:35:31.3945460Z Updating files:  42% (14707/34890)
+2026-10-24T07:35:31.5762496Z Updating files:  43% (15003/34890)
+2026-10-24T07:35:31.6482645Z Updating files:  44% (15352/34890)
+2026-10-24T07:35:31.6989567Z Updating files:  45% (15701/34890)
+2026-10-24T07:35:31.7108407Z Updating files:  45% (15981/34890)
+2026-10-24T07:35:31.7798511Z Updating files:  46% (16050/34890)
+2026-10-24T07:35:32.3658800Z Updating files:  47% (16399/34890)
+2026-10-24T07:35:32.4501789Z Updating files:  48% (16748/34890)
+2026-10-24T07:35:32.5347647Z Updating files:  49% (17097/34890)
+2026-10-24T07:35:32.5827490Z Updating files:  50% (17445/34890)
+2026-10-24T07:35:32.6406478Z Updating files:  51% (17794/34890)
+2026-10-24T07:35:32.7112370Z Updating files:  52% (18143/34890)
+2026-10-24T07:35:32.7124493Z Updating files:  52% (18482/34890)
+2026-10-24T07:35:32.7765593Z Updating files:  53% (18492/34890)
+2026-10-24T07:35:32.8987104Z Updating files:  54% (18841/34890)
+2026-10-24T07:35:33.0813280Z Updating files:  55% (19190/34890)
+2026-10-24T07:35:33.1874506Z Updating files:  56% (19539/34890)
+2026-10-24T07:35:33.6661291Z Updating files:  57% (19888/34890)
+2026-10-24T07:35:33.7123299Z Updating files:  58% (20237/34890)
+2026-10-24T07:35:33.7390294Z Updating files:  58% (20442/34890)
+2026-10-24T07:35:33.8512337Z Updating files:  59% (20586/34890)
+2026-10-24T07:35:33.9493197Z Updating files:  60% (20934/34890)
+2026-10-24T07:35:34.0639744Z Updating files:  61% (21283/34890)
+2026-10-24T07:35:34.1497053Z Updating files:  62% (21632/34890)
+2026-10-24T07:35:34.2185255Z Updating files:  63% (21981/34890)
+2026-10-24T07:35:34.2687159Z Updating files:  64% (22330/34890)
+2026-10-24T07:35:34.3170405Z Updating files:  65% (22679/34890)
+2026-10-24T07:35:34.3674725Z Updating files:  66% (23028/34890)
+2026-10-24T07:35:34.4143359Z Updating files:  67% (23377/34890)
+2026-10-24T07:35:34.5624146Z Updating files:  68% (23726/34890)
+2026-10-24T07:35:34.6852044Z Updating files:  69% (24075/34890)
+2026-10-24T07:35:34.7177885Z Updating files:  70% (24423/34890)
+2026-10-24T07:35:35.7290897Z Updating files:  70% (24530/34890)
+2026-10-24T07:35:35.7985337Z Updating files:  70% (24614/34890)
+2026-10-24T07:35:35.8600095Z Updating files:  71% (24772/34890)
+2026-10-24T07:35:35.9589015Z Updating files:  72% (25121/34890)
+2026-10-24T07:35:36.1149312Z Updating files:  73% (25470/34890)
+2026-10-24T07:35:36.4392862Z Updating files:  74% (25819/34890)
+2026-10-24T07:35:36.5186553Z Updating files:  75% (26168/34890)
+2026-10-24T07:35:36.5974180Z Updating files:  76% (26517/34890)
+2026-10-24T07:35:36.6688485Z Updating files:  77% (26866/34890)
+2026-10-24T07:35:36.7405995Z Updating files:  78% (27215/34890)
+2026-10-24T07:35:36.7474533Z Updating files:  78% (27525/34890)
+2026-10-24T07:35:36.8190394Z Updating files:  79% (27564/34890)
+2026-10-24T07:35:36.8999274Z Updating files:  80% (27912/34890)
+2026-10-24T07:35:36.9688130Z Updating files:  81% (28261/34890)
+2026-10-24T07:35:37.0437897Z Updating files:  82% (28610/34890)
+2026-10-24T07:35:37.1148968Z Updating files:  83% (28959/34890)
+2026-10-24T07:35:37.1787239Z Updating files:  84% (29308/34890)
+2026-10-24T07:35:37.2466270Z Updating files:  85% (29657/34890)
+2026-10-24T07:35:37.3137062Z Updating files:  86% (30006/34890)
+2026-10-24T07:35:37.3832015Z Updating files:  87% (30355/34890)
+2026-10-24T07:35:37.4651969Z Updating files:  88% (30704/34890)
+2026-10-24T07:35:37.7850245Z Updating files:  89% (31053/34890)
+2026-10-24T07:35:37.8058241Z Updating files:  89% (31319/34890)
+2026-10-24T07:35:37.8909563Z Updating files:  90% (31401/34890)
+2026-10-24T07:35:37.9675041Z Updating files:  91% (31750/34890)
+2026-10-24T07:35:38.0461805Z Updating files:  92% (32099/34890)
+2026-10-24T07:35:38.1176363Z Updating files:  93% (32448/34890)
+2026-10-24T07:35:38.1923611Z Updating files:  94% (32797/34890)
+2026-10-24T07:35:38.2574517Z Updating files:  95% (33146/34890)
+2026-10-24T07:35:38.3319592Z Updating files:  96% (33495/34890)
+2026-10-24T07:35:38.4032710Z Updating files:  97% (33844/34890)
+2026-10-24T07:35:38.4737201Z Updating files:  98% (34193/34890)
+2026-10-24T07:35:38.5423006Z Updating files:  99% (34542/34890)
+2026-10-24T07:35:38.5423762Z Updating files: 100% (34890/34890)
+2026-10-24T07:35:38.5424251Z Updating files: 100% (34890/34890), done.
+2026-10-24T07:35:38.6007821Z Note: switching to '9b198f348a5c38466e0afc57562fee3b935815fe'.
+2026-10-24T07:35:38.6008617Z 
+2026-10-24T07:35:38.6008995Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-10-24T07:35:38.6010175Z changes and commit them, and you can discard any commits you make in this
+2026-10-24T07:35:38.6010961Z state without impacting any branches by switching back to a branch.
+2026-10-24T07:35:38.6011417Z 
+2026-10-24T07:35:38.6011703Z If you want to create a new branch to retain commits you create, you may
+2026-10-24T07:35:38.6012291Z do so (now or later) by using -c with the switch command. Example:
+2026-10-24T07:35:38.6012702Z 
+2026-10-24T07:35:38.6012972Z   git switch -c <new-branch-name>
+2026-10-24T07:35:38.6013183Z 
+2026-10-24T07:35:38.6013320Z Or undo this operation with:
+2026-10-24T07:35:38.6013491Z 
+2026-10-24T07:35:38.6013645Z   git switch -
+2026-10-24T07:35:38.6013779Z 
+2026-10-24T07:35:38.6014025Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-10-24T07:35:38.6014328Z 
+2026-10-24T07:35:38.6014558Z HEAD is now at 9b198f34 fix(cli): enforce Windows file ownership for Evolution stores
+2026-10-24T07:35:38.6541639Z ##[endgroup]
+2026-10-24T07:35:38.6969238Z [command]"C:\Program Files\Git\bin\git.exe" log -1 --format=%H
+2026-10-24T07:35:38.7313908Z 9b198f348a5c38466e0afc57562fee3b935815fe
+2026-10-24T07:35:38.7755906Z ##[group]Run test "$(git rev-parse HEAD)" = "$CONTEXT_MEMORY_CANDIDATE_SHA"
+2026-10-24T07:35:38.7756885Z [36;1mtest "$(git rev-parse HEAD)" = "$CONTEXT_MEMORY_CANDIDATE_SHA"[0m
+2026-10-24T07:35:38.7775397Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+2026-10-24T07:35:38.7775926Z env:
+2026-10-24T07:35:38.7776329Z   CONTEXT_MEMORY_CANDIDATE_SHA: 9b198f348a5c38466e0afc57562fee3b935815fe
+2026-10-24T07:35:38.7776955Z ##[endgroup]
+2026-10-24T07:35:39.3450090Z ##[group]Run actions/setup-node@v5
+2026-10-24T07:35:39.3450539Z with:
+2026-10-24T07:35:39.3450915Z   node-version: 22.12.0
+2026-10-24T07:35:39.3451226Z   cache: npm
+2026-10-24T07:35:39.3451543Z   cache-dependency-path: package-lock.json
+2026-10-24T07:35:39.3451907Z   always-auth: false
+2026-10-24T07:35:39.3452198Z   check-latest: false
+2026-10-24T07:35:39.3454712Z   token: ***
+2026-10-24T07:35:39.3455432Z   package-manager-cache: true
+2026-10-24T07:35:39.3455801Z env:
+2026-10-24T07:35:39.3456190Z   CONTEXT_MEMORY_CANDIDATE_SHA: 9b198f348a5c38466e0afc57562fee3b935815fe
+2026-10-24T07:35:39.3456617Z ##[endgroup]
+2026-10-24T07:35:39.5106228Z Attempting to download 22.12.0...
+2026-10-24T07:35:39.5289042Z (node:1388) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-24T07:35:39.5290518Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-24T07:35:40.4400556Z Acquiring 22.12.0 - x64 from https://github.com/actions/node-versions/releases/download/22.12.0-12152383658/node-22.12.0-win32-x64.7z
+2026-10-24T07:35:41.0233206Z Extracting ...
+2026-10-24T07:35:43.4624604Z Adding to the cache ...
+2026-10-24T07:35:48.6342351Z ##[group]Environment details
+2026-10-24T07:35:49.8017370Z node: v22.12.0
+2026-10-24T07:35:49.8017776Z npm: 10.9.0
+2026-10-24T07:35:49.8018164Z yarn: 1.22.22
+2026-10-24T07:35:49.8018901Z ##[endgroup]
+2026-10-24T07:35:49.8568187Z [command]C:\Windows\system32\cmd.exe /D /S /C "C:\hostedtoolcache\windows\node\22.12.0\x64\npm.cmd config get cache"
+2026-10-24T07:35:50.1862968Z C:\npm\cache
+2026-10-24T07:35:50.4865360Z Cache hit for: node-cache-Windows-x64-npm-ca0b72792310c06de25c2ed3c2ce6a7355d36f14c0ff70505028abfd62305c76
+2026-10-24T07:35:50.4975696Z (node:1388) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-10-24T07:35:51.7433397Z Received 79691776 of 638825328 (12.5%), 74.5 MBs/sec
+2026-10-24T07:35:52.7523331Z Received 192937984 of 638825328 (30.2%), 90.7 MBs/sec
+2026-10-24T07:35:53.7527494Z Received 268435456 of 638825328 (42.0%), 84.5 MBs/sec
+2026-10-24T07:35:55.0331528Z Received 402653184 of 638825328 (63.0%), 89.1 MBs/sec
+2026-10-24T07:35:56.3615225Z Received 536870912 of 638825328 (84.0%), 90.8 MBs/sec
+2026-10-24T07:35:57.2474583Z Received 638825328 of 638825328 (100.0%), 93.4 MBs/sec
+2026-10-24T07:35:57.2478782Z Cache Size: ~609 MB (638825328 B)
+2026-10-24T07:35:57.2617018Z [command]"C:\Program Files\Git\usr\bin\tar.exe" -xf D:/a/_temp/0f3e79e9-6160-4572-8607-3148b76a1717/cache.tzst -P -C D:/a/chainlesschain/chainlesschain --force-local --use-compress-program "zstd -d"
+2026-10-24T07:36:13.8743945Z Cache restored successfully
+2026-10-24T07:36:13.9369075Z Cache restored from key: node-cache-Windows-x64-npm-ca0b72792310c06de25c2ed3c2ce6a7355d36f14c0ff70505028abfd62305c76
+2026-10-24T07:36:13.9762753Z ##[group]Run actions/setup-python@v6
+2026-10-24T07:36:13.9763185Z with:
+2026-10-24T07:36:13.9763509Z   python-version: 3.12
+2026-10-24T07:36:13.9763842Z   check-latest: false
+2026-10-24T07:36:13.9766716Z   token: ***
+2026-10-24T07:36:13.9767055Z   update-environment: true
+2026-10-24T07:36:13.9767384Z   allow-prereleases: false
+2026-10-24T07:36:13.9767716Z   freethreaded: false
+2026-10-24T07:36:13.9768245Z env:
+2026-10-24T07:36:13.9768667Z   CONTEXT_MEMORY_CANDIDATE_SHA: 9b198f348a5c38466e0afc57562fee3b935815fe
+2026-10-24T07:36:13.9769084Z ##[endgroup]
+2026-10-24T07:36:14.1767630Z ##[group]Installed versions
+2026-10-24T07:36:14.1901640Z Successfully set up CPython (3.12.10)
+2026-10-24T07:36:14.1902836Z ##[endgroup]
+2026-10-24T07:36:14.2269037Z ##[group]Run actions/setup-java@v5
+2026-10-24T07:36:14.2269553Z with:
+2026-10-24T07:36:14.2269919Z   distribution: temurin
+2026-10-24T07:36:14.2270237Z   java-version: 21
+2026-10-24T07:36:14.2270578Z   java-package: jdk
+2026-10-24T07:36:14.2271541Z   check-latest: false
+2026-10-24T07:36:14.2271922Z   set-default: true
+2026-10-24T07:36:14.2272241Z   verify-signature: false
+2026-10-24T07:36:14.2272568Z   server-id: github
+2026-10-24T07:36:14.2272914Z   server-username: GITHUB_ACTOR
+2026-10-24T07:36:14.2273258Z   server-password: GITHUB_TOKEN
+2026-10-24T07:36:14.2273663Z   overwrite-settings: true
+2026-10-24T07:36:14.2273985Z   job-status: success
+2026-10-24T07:36:14.2276541Z   token: ***
+2026-10-24T07:36:14.2276874Z   show-download-progress: false
+2026-10-24T07:36:14.2277199Z env:
+2026-10-24T07:36:14.2277601Z   CONTEXT_MEMORY_CANDIDATE_SHA: 9b198f348a5c38466e0afc57562fee3b935815fe
+2026-10-24T07:36:14.2278256Z   pythonLocation: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:36:14.2278888Z   PKG_CONFIG_PATH: C:\hostedtoolcache\windows\Python\3.12.10\x64/lib/pkgconfig
+2026-10-24T07:36:14.2279426Z   Python_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:36:14.2279927Z   Python2_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:36:14.2280472Z   Python3_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:36:14.2280864Z ##[endgroup]
+2026-10-24T07:36:14.4214341Z ##[group]Installed distributions
+2026-10-24T07:36:14.4589186Z Resolved Java 21.0.12+101.0 from tool-cache
+2026-10-24T07:36:14.4590048Z Setting Java 21.0.12+101.0 as the default
+2026-10-24T07:36:14.4608895Z Creating toolchains.xml for JDK version 21 from temurin
+2026-10-24T07:36:14.4694840Z Writing to C:\Users\runneradmin\.m2\toolchains.xml
+2026-10-24T07:36:14.4698531Z 
+2026-10-24T07:36:14.4699359Z Java configuration:
+2026-10-24T07:36:14.4699985Z   Distribution: temurin
+2026-10-24T07:36:14.4700681Z   Version: 21.0.12+101.0
+2026-10-24T07:36:14.4701881Z   Path: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-24T07:36:14.4702497Z 
+2026-10-24T07:36:14.4703237Z ##[endgroup]
+2026-10-24T07:36:14.4710669Z Creating settings.xml with server-id: github
+2026-10-24T07:36:14.4721016Z Writing to C:\Users\runneradmin\.m2\settings.xml
+2026-10-24T07:36:14.4728968Z Configured MAVEN_ARGS to include -ntp to suppress Maven transfer progress logs. Set 'show-download-progress: true' to keep the download progress output.
+2026-10-24T07:36:14.5149356Z Prepare all required actions
+2026-10-24T07:36:14.5247520Z ##[group]Run ./.github/actions/setup-node-deps
+2026-10-24T07:36:14.5247942Z with:
+2026-10-24T07:36:14.5248260Z   working-directory: .
+2026-10-24T07:36:14.5248672Z   install-command: npm ci --legacy-peer-deps
+2026-10-24T07:36:14.5249075Z   install-desktop-app-vue: false
+2026-10-24T07:36:14.5249394Z env:
+2026-10-24T07:36:14.5249804Z   CONTEXT_MEMORY_CANDIDATE_SHA: 9b198f348a5c38466e0afc57562fee3b935815fe
+2026-10-24T07:36:14.5250393Z   pythonLocation: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:36:14.5250922Z   PKG_CONFIG_PATH: C:\hostedtoolcache\windows\Python\3.12.10\x64/lib/pkgconfig
+2026-10-24T07:36:14.5251441Z   Python_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:36:14.5251979Z   Python2_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:36:14.5252492Z   Python3_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:36:14.5253154Z   JAVA_HOME: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-24T07:36:14.5253768Z   JAVA_HOME_21_X64: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-24T07:36:14.5254257Z   MAVEN_ARGS: -ntp
+2026-10-24T07:36:14.5254617Z ##[endgroup]
+2026-10-24T07:36:14.5318752Z ##[start-action display=Canonicalize Windows system temporary directory;id=__self.__run]
+2026-10-24T07:36:14.5475881Z ##[group]Run node --input-type=module -e 'import { appendFileSync, realpathSync } from "node:fs"; import { tmpdir } from "node:os"; const root = realpathSync.native(tmpdir()); if (/[\r\n]/u.test(root)) throw new Error("Invalid system temporary directory"); appendFileSync(process.env.GITHUB_ENV, `TEMP=${root}\nTMP=${root}\n`);'
+2026-10-24T07:36:14.5478093Z [36;1mnode --input-type=module -e 'import { appendFileSync, realpathSync } from "node:fs"; import { tmpdir } from "node:os"; const root = realpathSync.native(tmpdir()); if (/[\r\n]/u.test(root)) throw new Error("Invalid system temporary directory"); appendFileSync(process.env.GITHUB_ENV, `TEMP=${root}\nTMP=${root}\n`);'[0m
+2026-10-24T07:36:14.6691376Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-10-24T07:36:14.6691832Z env:
+2026-10-24T07:36:14.6692247Z   CONTEXT_MEMORY_CANDIDATE_SHA: 9b198f348a5c38466e0afc57562fee3b935815fe
+2026-10-24T07:36:14.6692846Z   pythonLocation: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:36:14.6693356Z   PKG_CONFIG_PATH: C:\hostedtoolcache\windows\Python\3.12.10\x64/lib/pkgconfig
+2026-10-24T07:36:14.6693903Z   Python_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:36:14.6694446Z   Python2_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:36:14.6694961Z   Python3_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:36:14.6696054Z   JAVA_HOME: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-24T07:36:14.6696709Z   JAVA_HOME_21_X64: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-24T07:36:14.6697213Z   MAVEN_ARGS: -ntp
+2026-10-24T07:36:14.6697529Z ##[endgroup]
+2026-10-24T07:36:15.1993024Z ##[end-action id=__self.__run;outcome=success;conclusion=success;duration_ms=667]
+2026-10-24T07:36:15.1996724Z ##[start-action display=Install npm dependencies (3-attempt retry, transient ECONNRESET hardening);id=__self.__run_2]
+2026-10-24T07:36:15.2154704Z ##[group]Run INSTALL_CMD="npm ci --legacy-peer-deps"
+2026-10-24T07:36:15.2155253Z [36;1mINSTALL_CMD="npm ci --legacy-peer-deps"[0m
+2026-10-24T07:36:15.2155634Z [36;1mattempt_install() {[0m
+2026-10-24T07:36:15.2155997Z [36;1m  eval "$INSTALL_CMD"[0m
+2026-10-24T07:36:15.2156355Z [36;1m}[0m
+2026-10-24T07:36:15.2156690Z [36;1mcleanup_partial_install() {[0m
+2026-10-24T07:36:15.2157183Z [36;1m  # A failed npm ci can leave partially-extracted packages behind.[0m
+2026-10-24T07:36:15.2157721Z [36;1m  # Retrying in-place then fails with ENOTEMPTY (notably electron on[0m
+2026-10-24T07:36:15.2160142Z [36;1m  # hosted runners), so restore npm ci's clean-install precondition.[0m
+2026-10-24T07:36:15.2160687Z [36;1m  # Use async rm: Node 22's synchronous rimraf can throw an initial[0m
+2026-10-24T07:36:15.2161248Z [36;1m  # directory EBUSY without applying maxRetries (e.g. pkcs11js).[0m
+2026-10-24T07:36:15.2161842Z [36;1m  # The absolute target is always this install directory's direct child.[0m
+2026-10-24T07:36:15.2162851Z [36;1m  node -e "const target=require('node:path').join(process.cwd(),'node_modules'); require('node:fs/promises').rm(target,{recursive:true,force:true,maxRetries:5,retryDelay:250}).catch(error=>{console.error(error);process.exitCode=1})"[0m
+2026-10-24T07:36:15.2163756Z [36;1m}[0m
+2026-10-24T07:36:15.2164089Z [36;1mfor i in 1 2 3; do[0m
+2026-10-24T07:36:15.2164451Z [36;1m  if attempt_install; then[0m
+2026-10-24T07:36:15.2164796Z [36;1m    exit 0[0m
+2026-10-24T07:36:15.2165104Z [36;1m  fi[0m
+2026-10-24T07:36:15.2165466Z [36;1m  if [ "$i" -lt 3 ]; then[0m
+2026-10-24T07:36:15.2165790Z [36;1m    delay=$((i * 15))[0m
+2026-10-24T07:36:15.2166245Z [36;1m    echo "::warning::npm install attempt $i failed, retrying in ${delay}s..."[0m
+2026-10-24T07:36:15.2166747Z [36;1m    sleep "$delay"[0m
+2026-10-24T07:36:15.2167295Z [36;1m    if ! cleanup_partial_install; then[0m
+2026-10-24T07:36:15.2167822Z [36;1m      echo "::error::Cannot clean partial node_modules after npm install attempt $i"[0m
+2026-10-24T07:36:15.2168292Z [36;1m      exit 1[0m
+2026-10-24T07:36:15.2168865Z [36;1m    fi[0m
+2026-10-24T07:36:15.2169145Z [36;1m  fi[0m
+2026-10-24T07:36:15.2169453Z [36;1mdone[0m
+2026-10-24T07:36:15.2169805Z [36;1mecho "::error::npm install failed after 3 attempts"[0m
+2026-10-24T07:36:15.2170439Z [36;1mexit 1[0m
+2026-10-24T07:36:15.2185030Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+2026-10-24T07:36:15.2185500Z env:
+2026-10-24T07:36:15.2185971Z   CONTEXT_MEMORY_CANDIDATE_SHA: 9b198f348a5c38466e0afc57562fee3b935815fe
+2026-10-24T07:36:15.2186479Z   pythonLocation: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:36:15.2187025Z   PKG_CONFIG_PATH: C:\hostedtoolcache\windows\Python\3.12.10\x64/lib/pkgconfig
+2026-10-24T07:36:15.2187778Z   Python_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:36:15.2188338Z   Python2_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:36:15.2189076Z   Python3_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:36:15.2189598Z   JAVA_HOME: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-24T07:36:15.2190277Z   JAVA_HOME_21_X64: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-24T07:36:15.2190757Z   MAVEN_ARGS: -ntp
+2026-10-24T07:36:15.2191110Z   TEMP: C:\Users\runneradmin\AppData\Local\Temp
+2026-10-24T07:36:15.2191505Z   TMP: C:\Users\runneradmin\AppData\Local\Temp
+2026-10-24T07:36:15.2191904Z ##[endgroup]
+2026-10-24T07:36:17.8551329Z npm warn EBADENGINE Unsupported engine {
+2026-10-24T07:36:17.8552358Z npm warn EBADENGINE   package: 'eslint-visitor-keys@5.0.1',
+2026-10-24T07:36:17.8553504Z npm warn EBADENGINE   required: { node: '^20.19.0 || ^22.13.0 || >=24' },
+2026-10-24T07:36:17.8556607Z npm warn EBADENGINE   current: { node: 'v22.12.0', npm: '10.9.0' }
+2026-10-24T07:36:17.8557400Z npm warn EBADENGINE }
+2026-10-24T07:36:17.8651016Z npm warn EBADENGINE Unsupported engine {
+2026-10-24T07:36:17.8652069Z npm warn EBADENGINE   package: 'pdfjs-dist@5.7.284',
+2026-10-24T07:36:17.8658963Z npm warn EBADENGINE   required: { node: '>=22.13.0 || >=24' },
+2026-10-24T07:36:17.8660308Z npm warn EBADENGINE   current: { node: 'v22.12.0', npm: '10.9.0' }
+2026-10-24T07:36:17.8661466Z npm warn EBADENGINE }
+2026-10-24T07:36:19.9767193Z npm warn skipping integrity check for git dependency ssh://git@github.com/electron/node-gyp.git
+2026-10-24T07:36:35.6405333Z npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+2026-10-24T07:36:35.6420234Z npm warn deprecated gar@1.0.4: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+2026-10-24T07:36:35.7557686Z npm warn deprecated lodash.get@4.4.2: This package is deprecated. Use the optional chaining (?.) operator instead.
+2026-10-24T07:36:35.7676931Z npm warn deprecated @npmcli/move-file@2.0.1: This functionality has been moved to @npmcli/fs
+2026-10-24T07:36:35.9544884Z npm warn deprecated npmlog@6.0.2: This package is no longer supported.
+2026-10-24T07:36:36.0279862Z npm warn deprecated lodash.isequal@4.5.0: This package is deprecated. Use require('node:util').isDeepStrictEqual instead.
+2026-10-24T07:36:36.0920717Z npm warn deprecated @humanwhocodes/config-array@0.13.0: Use @eslint/config-array instead
+2026-10-24T07:36:36.4563239Z npm warn deprecated rimraf@2.6.3: Rimraf versions prior to v4 are no longer supported
+2026-10-24T07:36:36.4587792Z npm warn deprecated npmlog@4.1.2: This package is no longer supported.
+2026-10-24T07:36:36.4714631Z npm warn deprecated rimraf@2.7.1: Rimraf versions prior to v4 are no longer supported
+2026-10-24T07:36:36.8496704Z npm warn deprecated whatwg-encoding@3.1.1: Use @exodus/bytes instead for a more spec-conformant and faster implementation
+2026-10-24T07:36:36.8892240Z npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+2026-10-24T07:36:37.5548292Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-24T07:36:37.5581765Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-24T07:36:37.5689622Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-24T07:36:37.6315689Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-24T07:36:37.6318496Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-24T07:36:37.6358663Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-24T07:36:37.6386272Z npm warn deprecated glob@8.1.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-24T07:36:37.6670708Z npm warn deprecated glob@8.1.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-24T07:36:37.6696880Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-24T07:36:38.4112220Z npm warn deprecated are-we-there-yet@3.0.1: This package is no longer supported.
+2026-10-24T07:36:38.4178744Z npm warn deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead
+2026-10-24T07:36:38.7540015Z npm warn deprecated are-we-there-yet@1.1.7: This package is no longer supported.
+2026-10-24T07:36:41.1296548Z npm warn deprecated prebuild-install@7.1.3: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
+2026-10-24T07:36:41.9155753Z npm warn deprecated prebuild-install@5.3.6: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
+2026-10-24T07:36:42.1923937Z npm warn deprecated gauge@4.0.4: This package is no longer supported.
+2026-10-24T07:36:42.1932937Z npm warn deprecated boolean@3.2.0: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+2026-10-24T07:36:42.5136348Z npm warn deprecated gauge@2.7.4: This package is no longer supported.
+2026-10-24T07:36:43.5973070Z npm warn deprecated fstream@1.0.12: This package is no longer supported.
+2026-10-24T07:36:45.5064982Z npm warn deprecated multiaddr@10.0.1: This module is deprecated, please upgrade to @multiformats/multiaddr
+2026-10-24T07:36:47.3985342Z npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+2026-10-24T07:36:48.7846068Z npm warn deprecated vue-i18n@9.14.5: v9 and v10 no longer supported. please migrate to v11. about maintenance status, see https://vue-i18n.intlify.dev/guide/maintenance.html
+2026-10-24T07:36:51.3658529Z npm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+2026-10-24T07:36:51.3664260Z npm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+2026-10-24T07:36:51.6246116Z npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-24T07:36:51.6260356Z npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-24T07:36:51.6292702Z npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-24T07:36:52.1873163Z npm warn deprecated uuid@9.0.1: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+2026-10-24T07:37:03.9509809Z npm warn deprecated fluent-ffmpeg@2.1.3: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+2026-10-24T07:37:06.9062746Z npm warn deprecated eslint@8.57.1: This version is no longer supported. Please see https://eslint.org/version-support for other options.
+2026-10-24T07:39:04.2377789Z 
+2026-10-24T07:39:04.2378641Z added 2514 packages, and audited 2530 packages in 3m
+2026-10-24T07:39:04.2380432Z 
+2026-10-24T07:39:04.2381299Z 471 packages are looking for funding
+2026-10-24T07:39:04.2382915Z   run `npm fund` for details
+2026-10-24T07:39:04.5528934Z 
+2026-10-24T07:39:04.5529949Z 109 vulnerabilities (8 low, 14 moderate, 86 high, 1 critical)
+2026-10-24T07:39:04.5530364Z 
+2026-10-24T07:39:04.5530665Z To address issues that do not require attention, run:
+2026-10-24T07:39:04.5531209Z   npm audit fix
+2026-10-24T07:39:04.5531433Z 
+2026-10-24T07:39:04.5531802Z To address all issues possible (including breaking changes), run:
+2026-10-24T07:39:04.5532639Z   npm audit fix --force
+2026-10-24T07:39:04.5535256Z 
+2026-10-24T07:39:04.5535712Z Some issues need review, and may require choosing
+2026-10-24T07:39:04.5536342Z a different dependency.
+2026-10-24T07:39:04.5536560Z 
+2026-10-24T07:39:04.5536808Z Run `npm audit` for details.
+2026-10-24T07:39:04.6148776Z ##[end-action id=__self.__run_2;outcome=success;conclusion=success;duration_ms=169417]
+2026-10-24T07:39:04.6155216Z ##[start-action display=Install desktop-app-vue dependencies (post-workspace-refactor);id=__self.__run_3]
+2026-10-24T07:39:04.6164973Z ##[end-action id=__self.__run_3;outcome=skipped;conclusion=skipped;duration_ms=0]
+2026-10-24T07:39:04.6169326Z ##[start-action display=Install platform rollup binary + extras;id=__self.__run_4]
+2026-10-24T07:39:04.6317170Z ##[group]Run # Pick the rollup native binary for this runner.
+2026-10-24T07:39:04.6317833Z [36;1m# Pick the rollup native binary for this runner.[0m
+2026-10-24T07:39:04.6318438Z [36;1m# Workaround for https://github.com/npm/cli/issues/4828 — npm sometimes[0m
+2026-10-24T07:39:04.6319028Z [36;1m# skips optional platform deps, leaving vite/vitest unable to resolve rollup.[0m
+2026-10-24T07:39:04.6319505Z [36;1mcase "${RUNNER_OS}-${RUNNER_ARCH}" in[0m
+2026-10-24T07:39:04.6319944Z [36;1m  Linux-X64)     pkg="@rollup/rollup-linux-x64-gnu" ;;[0m
+2026-10-24T07:39:04.6320619Z [36;1m  Linux-ARM64)   pkg="@rollup/rollup-linux-arm64-gnu" ;;[0m
+2026-10-24T07:39:04.6321116Z [36;1m  Windows-X64)   pkg="@rollup/rollup-win32-x64-msvc" ;;[0m
+2026-10-24T07:39:04.6321903Z [36;1m  Windows-ARM64) pkg="@rollup/rollup-win32-arm64-msvc" ;;[0m
+2026-10-24T07:39:04.6322435Z [36;1m  macOS-ARM64)   pkg="@rollup/rollup-darwin-arm64" ;;[0m
+2026-10-24T07:39:04.6322882Z [36;1m  macOS-X64)     pkg="@rollup/rollup-darwin-x64" ;;[0m
+2026-10-24T07:39:04.6323249Z [36;1m  *)             pkg="" ;;[0m
+2026-10-24T07:39:04.6323593Z [36;1mesac[0m
+2026-10-24T07:39:04.6323944Z [36;1mpackages="$pkg $EXTRA_PACKAGES"[0m
+2026-10-24T07:39:04.6324330Z [36;1mpackages=$(echo "$packages" | xargs) # trim[0m
+2026-10-24T07:39:04.6324712Z [36;1mif [ -n "$packages" ]; then[0m
+2026-10-24T07:39:04.6325041Z [36;1m  echo "Installing: $packages"[0m
+2026-10-24T07:39:04.6325478Z [36;1m  if [ -n "$INSTALL_WORKSPACE" ]; then[0m
+2026-10-24T07:39:04.6325892Z [36;1m    npm install $packages --no-save --legacy-peer-deps \[0m
+2026-10-24T07:39:04.6326326Z [36;1m      --workspace "$INSTALL_WORKSPACE" \[0m
+2026-10-24T07:39:04.6326872Z [36;1m      --include-workspace-root=false || true[0m
+2026-10-24T07:39:04.6327212Z [36;1m  else[0m
+2026-10-24T07:39:04.6327595Z [36;1m    npm install $packages --no-save --legacy-peer-deps || true[0m
+2026-10-24T07:39:04.6327996Z [36;1m  fi[0m
+2026-10-24T07:39:04.6328317Z [36;1mfi[0m
+2026-10-24T07:39:04.6343515Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+2026-10-24T07:39:04.6344029Z env:
+2026-10-24T07:39:04.6344615Z   CONTEXT_MEMORY_CANDIDATE_SHA: 9b198f348a5c38466e0afc57562fee3b935815fe
+2026-10-24T07:39:04.6345356Z   pythonLocation: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:39:04.6346057Z   PKG_CONFIG_PATH: C:\hostedtoolcache\windows\Python\3.12.10\x64/lib/pkgconfig
+2026-10-24T07:39:04.6346561Z   Python_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:39:04.6347105Z   Python2_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:39:04.6347575Z   Python3_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:39:04.6349506Z   JAVA_HOME: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-24T07:39:04.6350220Z   JAVA_HOME_21_X64: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-24T07:39:04.6350710Z   MAVEN_ARGS: -ntp
+2026-10-24T07:39:04.6351081Z   TEMP: C:\Users\runneradmin\AppData\Local\Temp
+2026-10-24T07:39:04.6351599Z   TMP: C:\Users\runneradmin\AppData\Local\Temp
+2026-10-24T07:39:04.6352348Z   EXTRA_PACKAGES: 
+2026-10-24T07:39:04.6352660Z   INSTALL_WORKSPACE: 
+2026-10-24T07:39:04.6352940Z ##[endgroup]
+2026-10-24T07:39:04.7969652Z Installing: @rollup/rollup-win32-x64-msvc
+2026-10-24T07:39:07.9411996Z npm warn EBADENGINE Unsupported engine {
+2026-10-24T07:39:07.9412973Z npm warn EBADENGINE   package: 'eslint-visitor-keys@5.0.1',
+2026-10-24T07:39:07.9413607Z npm warn EBADENGINE   required: { node: '^20.19.0 || ^22.13.0 || >=24' },
+2026-10-24T07:39:07.9414325Z npm warn EBADENGINE   current: { node: 'v22.12.0', npm: '10.9.0' }
+2026-10-24T07:39:07.9414775Z npm warn EBADENGINE }
+2026-10-24T07:39:07.9476218Z npm warn EBADENGINE Unsupported engine {
+2026-10-24T07:39:07.9477366Z npm warn EBADENGINE   package: 'pdfjs-dist@5.7.284',
+2026-10-24T07:39:07.9478319Z npm warn EBADENGINE   required: { node: '>=22.13.0 || >=24' },
+2026-10-24T07:39:07.9479392Z npm warn EBADENGINE   current: { node: 'v22.12.0', npm: '10.9.0' }
+2026-10-24T07:39:07.9480089Z npm warn EBADENGINE }
+2026-10-24T07:39:08.4178002Z npm warn deprecated gar@1.0.4: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+2026-10-24T07:39:08.4716774Z npm warn deprecated npmlog@4.1.2: This package is no longer supported.
+2026-10-24T07:39:08.9530315Z npm warn deprecated are-we-there-yet@1.1.7: This package is no longer supported.
+2026-10-24T07:39:09.0134210Z npm warn deprecated prebuild-install@5.3.6: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
+2026-10-24T07:39:09.0295672Z npm warn deprecated gauge@2.7.4: This package is no longer supported.
+2026-10-24T07:39:12.5568359Z 
+2026-10-24T07:39:12.5569534Z added 1 package, changed 1 package, and audited 2531 packages in 7s
+2026-10-24T07:39:12.5570201Z 
+2026-10-24T07:39:12.5570610Z 471 packages are looking for funding
+2026-10-24T07:39:12.5571204Z   run `npm fund` for details
+2026-10-24T07:39:12.8560447Z 
+2026-10-24T07:39:12.8561587Z 109 vulnerabilities (8 low, 14 moderate, 86 high, 1 critical)
+2026-10-24T07:39:12.8562125Z 
+2026-10-24T07:39:12.8562566Z To address issues that do not require attention, run:
+2026-10-24T07:39:12.8563279Z   npm audit fix
+2026-10-24T07:39:12.8563590Z 
+2026-10-24T07:39:12.8564053Z To address all issues possible (including breaking changes), run:
+2026-10-24T07:39:12.8564775Z   npm audit fix --force
+2026-10-24T07:39:12.8565492Z 
+2026-10-24T07:39:12.8565933Z Some issues need review, and may require choosing
+2026-10-24T07:39:12.8566496Z a different dependency.
+2026-10-24T07:39:12.8566832Z 
+2026-10-24T07:39:12.8567044Z Run `npm audit` for details.
+2026-10-24T07:39:12.8948551Z ##[end-action id=__self.__run_4;outcome=success;conclusion=success;duration_ms=8277]
+2026-10-24T07:39:12.9128792Z ##[group]Run npm --prefix packages/context-memory-kernel test
+2026-10-24T07:39:12.9129492Z [36;1mnpm --prefix packages/context-memory-kernel test[0m
+2026-10-24T07:39:12.9215292Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-10-24T07:39:12.9215875Z env:
+2026-10-24T07:39:12.9216331Z   CONTEXT_MEMORY_CANDIDATE_SHA: 9b198f348a5c38466e0afc57562fee3b935815fe
+2026-10-24T07:39:12.9216969Z   pythonLocation: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:39:12.9217542Z   PKG_CONFIG_PATH: C:\hostedtoolcache\windows\Python\3.12.10\x64/lib/pkgconfig
+2026-10-24T07:39:12.9218199Z   Python_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:39:12.9218761Z   Python2_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:39:12.9219274Z   Python3_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:39:12.9220637Z   JAVA_HOME: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-24T07:39:12.9221381Z   JAVA_HOME_21_X64: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-24T07:39:12.9221855Z   MAVEN_ARGS: -ntp
+2026-10-24T07:39:12.9222180Z   TEMP: C:\Users\runneradmin\AppData\Local\Temp
+2026-10-24T07:39:12.9222692Z   TMP: C:\Users\runneradmin\AppData\Local\Temp
+2026-10-24T07:39:12.9223052Z ##[endgroup]
+2026-10-24T07:39:13.5597177Z 
+2026-10-24T07:39:13.5597940Z > @chainlesschain/context-memory-kernel@0.1.10 test
+2026-10-24T07:39:13.5598514Z > node --test test/*.test.js
+2026-10-24T07:39:13.5598801Z 
+2026-10-24T07:39:13.6570089Z TAP version 13
+2026-10-24T07:39:13.8007513Z # Subtest: compaction commits with CAS and is idempotent by operation ID
+2026-10-24T07:39:13.8089225Z ok 1 - compaction commits with CAS and is idempotent by operation ID
+2026-10-24T07:39:13.8090451Z   ---
+2026-10-24T07:39:13.8091249Z   duration_ms: 10.1241
+2026-10-24T07:39:13.8091892Z   ...
+2026-10-24T07:39:13.8093163Z # Subtest: summary derivation cannot raise trust, lower sensitivity, expand sinks, or invent control
+2026-10-24T07:39:13.8095315Z ok 2 - summary derivation cannot raise trust, lower sensitivity, expand sinks, or invent control
+2026-10-24T07:39:13.8096294Z   ---
+2026-10-24T07:39:13.8097027Z   duration_ms: 2.3864
+2026-10-24T07:39:13.8097605Z   ...
+2026-10-24T07:39:13.8104346Z # Subtest: provider usage unknown is durably recorded for reconciliation
+2026-10-24T07:39:13.8125975Z ok 3 - provider usage unknown is durably recorded for reconciliation
+2026-10-24T07:39:13.8127111Z   ---
+2026-10-24T07:39:13.8127676Z   duration_ms: 1.5608
+2026-10-24T07:39:13.8128220Z   ...
+2026-10-24T07:39:13.8128964Z # Subtest: compaction invariant rejects split tool pairs
+2026-10-24T07:39:13.8130071Z ok 4 - compaction invariant rejects split tool pairs
+2026-10-24T07:39:13.8130792Z   ---
+2026-10-24T07:39:13.8131316Z   duration_ms: 0.5445
+2026-10-24T07:39:13.8131860Z   ...
+2026-10-24T07:39:13.8132846Z # Subtest: compaction preserves nonempty context when 200 tokens select nothing (summarizer=false)
+2026-10-24T07:39:13.8134083Z ok 5 - compaction preserves nonempty context when 200 tokens select nothing (summarizer=false)
+2026-10-24T07:39:13.8134998Z   ---
+2026-10-24T07:39:13.8135540Z   duration_ms: 1.3829
+2026-10-24T07:39:13.8136096Z   ...
+2026-10-24T07:39:13.8136980Z # Subtest: compaction preserves nonempty context when 200 tokens select nothing (summarizer=true)
+2026-10-24T07:39:13.8138245Z ok 6 - compaction preserves nonempty context when 200 tokens select nothing (summarizer=true)
+2026-10-24T07:39:13.8139089Z   ---
+2026-10-24T07:39:13.8139686Z   duration_ms: 2.1519
+2026-10-24T07:39:13.8140271Z   ...
+2026-10-24T07:39:13.8141253Z # Subtest: compaction preserves nonempty context when 1600 tokens select nothing (summarizer=false)
+2026-10-24T07:39:13.8142684Z ok 7 - compaction preserves nonempty context when 1600 tokens select nothing (summarizer=false)
+2026-10-24T07:39:13.8143559Z   ---
+2026-10-24T07:39:13.8144149Z   duration_ms: 2.2881
+2026-10-24T07:39:13.8145096Z   ...
+2026-10-24T07:39:13.8148758Z # Subtest: compaction preserves nonempty context when 1600 tokens select nothing (summarizer=true)
+2026-10-24T07:39:13.8153524Z ok 8 - compaction preserves nonempty context when 1600 tokens select nothing (summarizer=true)
+2026-10-24T07:39:13.8154474Z   ---
+2026-10-24T07:39:13.8154964Z   duration_ms: 1.8485
+2026-10-24T07:39:13.8155352Z   ...
+2026-10-24T07:39:13.8156138Z # Subtest: compaction rejects a dropped summary even with nonempty output (partial summary=false)
+2026-10-24T07:39:13.8157358Z ok 9 - compaction rejects a dropped summary even with nonempty output (partial summary=false)
+2026-10-24T07:39:13.8158086Z   ---
+2026-10-24T07:39:13.8159613Z   duration_ms: 2.551
+2026-10-24T07:39:13.8161815Z   ...
+2026-10-24T07:39:13.8162615Z # Subtest: compaction rejects a dropped summary even with nonempty output (partial summary=true)
+2026-10-24T07:39:13.8163710Z ok 10 - compaction rejects a dropped summary even with nonempty output (partial summary=true)
+2026-10-24T07:39:13.8164550Z   ---
+2026-10-24T07:39:13.8165260Z   duration_ms: 2.9975
+2026-10-24T07:39:13.8165659Z   ...
+2026-10-24T07:39:13.8166376Z # Subtest: compaction commits retained summaries with their settled usage
+2026-10-24T07:39:13.8167233Z ok 11 - compaction commits retained summaries with their settled usage
+2026-10-24T07:39:13.8167881Z   ---
+2026-10-24T07:39:13.8168340Z   duration_ms: 4.6866
+2026-10-24T07:39:13.8168760Z   ...
+2026-10-24T07:39:13.8169318Z # Subtest: compaction still accepts an already empty context
+2026-10-24T07:39:13.8170084Z ok 12 - compaction still accepts an already empty context
+2026-10-24T07:39:13.8170664Z   ---
+2026-10-24T07:39:13.8171045Z   duration_ms: 0.7723
+2026-10-24T07:39:13.8171539Z   ...
+2026-10-24T07:39:13.8172159Z # Subtest: commit callbacks cannot forge a branded precommit rejection
+2026-10-24T07:39:13.8172976Z ok 13 - commit callbacks cannot forge a branded precommit rejection
+2026-10-24T07:39:13.8173583Z   ---
+2026-10-24T07:39:13.8173925Z   duration_ms: 2.212
+2026-10-24T07:39:13.8174362Z   ...
+2026-10-24T07:39:13.8921483Z # Subtest: single cross-surface fixture executes every Context/Memory conformance scenario
+2026-10-24T07:39:13.8963705Z     # Subtest: multilingual-window-512
+2026-10-24T07:39:13.8964659Z     ok 1 - multilingual-window-512
+2026-10-24T07:39:13.8965357Z       ---
+2026-10-24T07:39:13.8965956Z       duration_ms: 48.07
+2026-10-24T07:39:13.8966553Z       ...
+2026-10-24T07:39:13.8967214Z     # Subtest: multilingual-window-4096
+2026-10-24T07:39:13.8967918Z     ok 2 - multilingual-window-4096
+2026-10-24T07:39:13.8968532Z       ---
+2026-10-24T07:39:13.8969169Z       duration_ms: 16.1332
+2026-10-24T07:39:13.8969792Z       ...
+2026-10-24T07:39:13.8970898Z     # Subtest: parallel-tools-pending
+2026-10-24T07:39:13.8971551Z     ok 3 - parallel-tools-pending
+2026-10-24T07:39:13.8972180Z       ---
+2026-10-24T07:39:13.8972667Z       duration_ms: 1.8716
+2026-10-24T07:39:13.8977460Z       ...
+2026-10-24T07:39:13.8978954Z     # Subtest: orphan-late-tool-result
+2026-10-24T07:39:13.8979781Z     ok 4 - orphan-late-tool-result
+2026-10-24T07:39:13.8980503Z       ---
+2026-10-24T07:39:13.8981227Z       duration_ms: 1.1083
+2026-10-24T07:39:13.8981828Z       ...
+2026-10-24T07:39:13.8982888Z     # Subtest: overlapping-scopes
+2026-10-24T07:39:13.8985966Z     ok 5 - overlapping-scopes
+2026-10-24T07:39:13.8986822Z       ---
+2026-10-24T07:39:13.8987351Z       duration_ms: 10.4262
+2026-10-24T07:39:13.8987878Z       ...
+2026-10-24T07:39:13.8988380Z     # Subtest: provider-normal
+2026-10-24T07:39:13.8988993Z     ok 6 - provider-normal
+2026-10-24T07:39:13.8989503Z       ---
+2026-10-24T07:39:13.8989943Z       duration_ms: 6.2532
+2026-10-24T07:39:13.8990559Z       ...
+2026-10-24T07:39:13.8991072Z     # Subtest: provider-failure
+2026-10-24T07:39:13.8991692Z     ok 7 - provider-failure
+2026-10-24T07:39:13.8992196Z       ---
+2026-10-24T07:39:13.8992623Z       duration_ms: 1.3465
+2026-10-24T07:39:13.8993185Z       ...
+2026-10-24T07:39:13.9004856Z     # Subtest: provider-usage-unknown
+2026-10-24T07:39:13.9009465Z     ok 8 - provider-usage-unknown
+2026-10-24T07:39:13.9010186Z       ---
+2026-10-24T07:39:13.9010681Z       duration_ms: 1.8198
+2026-10-24T07:39:13.9011195Z       ...
+2026-10-24T07:39:13.9011955Z     # Subtest: provider-cancelled
+2026-10-24T07:39:13.9012796Z     ok 9 - provider-cancelled
+2026-10-24T07:39:13.9013385Z       ---
+2026-10-24T07:39:13.9014537Z       duration_ms: 2.0258
+2026-10-24T07:39:13.9026420Z       ...
+2026-10-24T07:39:13.9027112Z     # Subtest: crash-restart
+2026-10-24T07:39:13.9027674Z     ok 10 - crash-restart
+2026-10-24T07:39:13.9028156Z       ---
+2026-10-24T07:39:13.9028744Z       duration_ms: 5.1916
+2026-10-24T07:39:13.9029265Z       ...
+2026-10-24T07:39:13.9029715Z     # Subtest: cas-race
+2026-10-24T07:39:13.9030289Z     ok 11 - cas-race
+2026-10-24T07:39:13.9030749Z       ---
+2026-10-24T07:39:13.9031268Z       duration_ms: 2.0647
+2026-10-24T07:39:13.9031734Z       ...
+2026-10-24T07:39:13.9032285Z     # Subtest: index-rebuild
+2026-10-24T07:39:13.9032855Z     ok 12 - index-rebuild
+2026-10-24T07:39:13.9033355Z       ---
+2026-10-24T07:39:13.9033803Z       duration_ms: 1.3373
+2026-10-24T07:39:13.9034329Z       ...
+2026-10-24T07:39:13.9035153Z     # Subtest: offline-replica-reinjection
+2026-10-24T07:39:13.9035778Z     ok 13 - offline-replica-reinjection
+2026-10-24T07:39:13.9036415Z       ---
+2026-10-24T07:39:13.9036863Z       duration_ms: 1.3344
+2026-10-24T07:39:13.9037392Z       ...
+2026-10-24T07:39:13.9037893Z     # Subtest: partial-delete-reconcile
+2026-10-24T07:39:13.9038474Z     ok 14 - partial-delete-reconcile
+2026-10-24T07:39:13.9039092Z       ---
+2026-10-24T07:39:13.9039538Z       duration_ms: 6.4107
+2026-10-24T07:39:13.9040036Z       ...
+2026-10-24T07:39:13.9040533Z     1..14
+2026-10-24T07:39:13.9041297Z ok 14 - single cross-surface fixture executes every Context/Memory conformance scenario
+2026-10-24T07:39:13.9042063Z   ---
+2026-10-24T07:39:13.9042565Z   duration_ms: 110.9399
+2026-10-24T07:39:13.9043076Z   ...
+2026-10-24T07:39:13.9043865Z # Subtest: conformance parser fails closed when a case or product surface is missing
+2026-10-24T07:39:13.9044867Z ok 15 - conformance parser fails closed when a case or product surface is missing
+2026-10-24T07:39:13.9045626Z   ---
+2026-10-24T07:39:13.9046108Z   duration_ms: 0.983
+2026-10-24T07:39:13.9054074Z   ...
+2026-10-24T07:39:13.9153792Z # Subtest: canonical JSON and digests ignore object insertion order
+2026-10-24T07:39:13.9155467Z ok 16 - canonical JSON and digests ignore object insertion order
+2026-10-24T07:39:13.9156256Z   ---
+2026-10-24T07:39:13.9156863Z   duration_ms: 2.0667
+2026-10-24T07:39:13.9157422Z   ...
+2026-10-24T07:39:13.9158682Z # Subtest: ContextItem validates exact content representation, booleans, and digests
+2026-10-24T07:39:13.9160561Z ok 17 - ContextItem validates exact content representation, booleans, and digests
+2026-10-24T07:39:13.9161560Z   ---
+2026-10-24T07:39:13.9162158Z   duration_ms: 4.2042
+2026-10-24T07:39:13.9162937Z   ...
+2026-10-24T07:39:13.9164169Z # Subtest: MemoryRecord rejects credential-like plaintext
+2026-10-24T07:39:13.9165206Z ok 18 - MemoryRecord rejects credential-like plaintext
+2026-10-24T07:39:13.9166026Z   ---
+2026-10-24T07:39:13.9166567Z   duration_ms: 3.08
+2026-10-24T07:39:13.9167099Z   ...
+2026-10-24T07:39:13.9167931Z # Subtest: planning is deterministic across input order and protects recovery state
+2026-10-24T07:39:13.9169017Z ok 19 - planning is deterministic across input order and protects recovery state
+2026-10-24T07:39:13.9169894Z   ---
+2026-10-24T07:39:13.9170391Z   duration_ms: 6.7073
+2026-10-24T07:39:13.9170952Z   ...
+2026-10-24T07:39:13.9171683Z # Subtest: tool call and result are atomic and settled orphans fail closed
+2026-10-24T07:39:13.9172648Z ok 20 - tool call and result are atomic and settled orphans fail closed
+2026-10-24T07:39:13.9173470Z   ---
+2026-10-24T07:39:13.9174486Z   duration_ms: 2.0665
+2026-10-24T07:39:13.9209106Z   ...
+2026-10-24T07:39:13.9211138Z # Subtest: protected content fails explicitly when the budget cannot fit
+2026-10-24T07:39:13.9212426Z ok 21 - protected content fails explicitly when the budget cannot fit
+2026-10-24T07:39:13.9214836Z   ---
+2026-10-24T07:39:13.9215659Z   duration_ms: 0.6707
+2026-10-24T07:39:13.9216340Z   ...
+2026-10-24T07:39:13.9880103Z # (node:4136) ExperimentalWarning: CommonJS module D:\\a\\chainlesschain\\chainlesschain\\desktop-app-vue\\src\\main\\permission\\current-user-context.js is loading ES Module D:\\a\\chainlesschain\\chainlesschain\\desktop-app-vue\\src\\main\\utils\\logger.js using require().
+2026-10-24T07:39:13.9882701Z # Support for loading ES Module in require() is an experimental feature and might change at any time
+2026-10-24T07:39:13.9884048Z # (Use `node --trace-warnings ...` to show where the warning was created)
+2026-10-24T07:39:13.9967406Z # [2026-10-24T07:39:13.995Z] [INFO] [main] [CodingAgentIPCV3] Registering coding agent IPC handlers...
+2026-10-24T07:39:13.9974563Z # [logger] 写入日志文件失败: ENOENT: no such file or directory, open 'C:\\Users\\runneradmin\\AppData\\Local\\Temp\\chainlesschain-test\\logs\\chainlesschain-2026-10-24.log'
+2026-10-24T07:39:14.0086635Z # Subtest: Desktop exposes only fixed Context/Memory capabilities and bounded projection
+2026-10-24T07:39:14.0088268Z ok 22 - Desktop exposes only fixed Context/Memory capabilities and bounded projection
+2026-10-24T07:39:14.0089439Z   ---
+2026-10-24T07:39:14.0090503Z   duration_ms: 3.8226
+2026-10-24T07:39:14.0091180Z   ...
+2026-10-24T07:39:14.0092118Z # Subtest: Desktop fixed IPC routes Context/Memory without a generic RPC escape hatch
+2026-10-24T07:39:14.0093426Z ok 23 - Desktop fixed IPC routes Context/Memory without a generic RPC escape hatch
+2026-10-24T07:39:14.0094288Z   ---
+2026-10-24T07:39:14.0101882Z   duration_ms: 3.3357
+2026-10-24T07:39:14.0102794Z   ...
+2026-10-24T07:39:14.0107841Z # Subtest: Desktop legacy writers fail closed after canonical cutover
+2026-10-24T07:39:14.0109068Z ok 24 - Desktop legacy writers fail closed after canonical cutover
+2026-10-24T07:39:14.0143022Z   ---
+2026-10-24T07:39:14.0143716Z   duration_ms: 1.3796
+2026-10-24T07:39:14.0144328Z   ...
+2026-10-24T07:39:14.0145807Z # Subtest: Desktop and VS Code consume the same canonical projection fixture
+2026-10-24T07:39:14.0147092Z ok 25 - Desktop and VS Code consume the same canonical projection fixture
+2026-10-24T07:39:14.0147905Z   ---
+2026-10-24T07:39:14.0148571Z   duration_ms: 3.192
+2026-10-24T07:39:14.0152102Z   ...
+2026-10-24T07:39:17.8083551Z # Subtest: machine-readable inventory covers every product surface and discovered writer
+2026-10-24T07:39:17.8085270Z ok 26 - machine-readable inventory covers every product surface and discovered writer
+2026-10-24T07:39:17.8086704Z   ---
+2026-10-24T07:39:17.8087209Z   duration_ms: 3857.7422
+2026-10-24T07:39:17.8087751Z   ...
+2026-10-24T07:39:17.8088568Z # Subtest: production inventory has one canonical writer and no writable legacy cohort
+2026-10-24T07:39:17.8089645Z ok 27 - production inventory has one canonical writer and no writable legacy cohort
+2026-10-24T07:39:17.8090352Z   ---
+2026-10-24T07:39:17.8090842Z   duration_ms: 0.6624
+2026-10-24T07:39:17.8091280Z   ...
+2026-10-24T07:39:17.8093312Z # Subtest: inventory gate fails for an unclassified candidate and duplicate authority
+2026-10-24T07:39:17.8095199Z ok 28 - inventory gate fails for an unclassified candidate and duplicate authority
+2026-10-24T07:39:17.8095877Z   ---
+2026-10-24T07:39:17.8096379Z   duration_ms: 0.8588
+2026-10-24T07:39:17.8096819Z   ...
+2026-10-24T07:39:17.8312127Z # Subtest: synthetic multilingual fixture matches every positive and negative expectation
+2026-10-24T07:39:17.8314172Z ok 29 - synthetic multilingual fixture matches every positive and negative expectation
+2026-10-24T07:39:17.8315216Z   ---
+2026-10-24T07:39:17.8315767Z   duration_ms: 145.9379
+2026-10-24T07:39:17.8316417Z   ...
+2026-10-24T07:39:17.8317492Z # Subtest: old token-exact comparator preserves English behavior but reproduces the Han counterexample
+2026-10-24T07:39:17.8319434Z ok 30 - old token-exact comparator preserves English behavior but reproduces the Han counterexample
+2026-10-24T07:39:17.8320497Z   ---
+2026-10-24T07:39:17.8320982Z   duration_ms: 74.36
+2026-10-24T07:39:17.8321473Z   ...
+2026-10-24T07:39:17.8322530Z # Subtest: baseline re-normalizes digests and shares all lifecycle and admission filters
+2026-10-24T07:39:17.8323782Z ok 31 - baseline re-normalizes digests and shares all lifecycle and admission filters
+2026-10-24T07:39:17.8324735Z   ---
+2026-10-24T07:39:17.8325197Z   duration_ms: 98.0624
+2026-10-24T07:39:17.8325720Z   ...
+2026-10-24T07:39:17.8326778Z # Subtest: opaque baseline encoding reproduces old token-exact scores for every fixture pair
+2026-10-24T07:39:17.8328100Z ok 32 - opaque baseline encoding reproduces old token-exact scores for every fixture pair
+2026-10-24T07:39:17.8328990Z   ---
+2026-10-24T07:39:17.8329446Z   duration_ms: 13.6806
+2026-10-24T07:39:17.8329974Z   ...
+2026-10-24T07:39:17.8331405Z # Subtest: fixed seed and clock produce stable scores and metrics apart from observed elapsed time
+2026-10-24T07:39:17.8333471Z ok 33 - fixed seed and clock produce stable scores and metrics apart from observed elapsed time
+2026-10-24T07:39:17.8334544Z   ---
+2026-10-24T07:39:17.8334987Z   duration_ms: 115.8294
+2026-10-24T07:39:17.8335537Z   ...
+2026-10-24T07:39:17.8336338Z # Subtest: standalone evaluation emits JSON and explicitly disclaims production and semantic evidence
+2026-10-24T07:39:17.8337657Z ok 34 - standalone evaluation emits JSON and explicitly disclaims production and semantic evidence
+2026-10-24T07:39:17.8338518Z   ---
+2026-10-24T07:39:17.8338967Z   duration_ms: 255.3136
+2026-10-24T07:39:17.8339435Z   ...
+2026-10-24T07:39:17.8340213Z # Subtest: memory proposal, recall, tombstone, purge, and idempotent receipt use revisions
+2026-10-24T07:39:17.8341369Z ok 35 - memory proposal, recall, tombstone, purge, and idempotent receipt use revisions
+2026-10-24T07:39:17.8342167Z   ---
+2026-10-24T07:39:17.8342761Z   duration_ms: 14.7274
+2026-10-24T07:39:17.8343213Z   ...
+2026-10-24T07:39:17.8343899Z # Subtest: purge targets receive bounded source bindings and must return explicit receipts
+2026-10-24T07:39:17.8345148Z ok 36 - purge targets receive bounded source bindings and must return explicit receipts
+2026-10-24T07:39:17.8345881Z   ---
+2026-10-24T07:39:17.8346405Z   duration_ms: 2.7681
+2026-10-24T07:39:17.8346866Z   ...
+2026-10-24T07:39:17.8347602Z # Subtest: wildcard recall lists active records without weakening scope admission
+2026-10-24T07:39:17.8349587Z ok 37 - wildcard recall lists active records without weakening scope admission
+2026-10-24T07:39:17.8350654Z   ---
+2026-10-24T07:39:17.8351896Z   duration_ms: 0.9767
+2026-10-24T07:39:17.8352549Z   ...
+2026-10-24T07:39:17.8353931Z # Subtest: partial deletion remains tombstoned across Kernel restart until reconciliation
+2026-10-24T07:39:17.8356326Z ok 38 - partial deletion remains tombstoned across Kernel restart until reconciliation
+2026-10-24T07:39:17.8357209Z   ---
+2026-10-24T07:39:17.8357640Z   duration_ms: 2.5788
+2026-10-24T07:39:17.8358057Z   ...
+2026-10-24T07:39:17.8358821Z # Subtest: legal hold, wrong scope, stale revision, and illegal transition fail closed
+2026-10-24T07:39:17.8359631Z ok 39 - legal hold, wrong scope, stale revision, and illegal transition fail closed
+2026-10-24T07:39:17.8360320Z   ---
+2026-10-24T07:39:17.8360775Z   duration_ms: 3.7772
+2026-10-24T07:39:17.8361200Z   ...
+2026-10-24T07:39:17.8361791Z # Subtest: tombstone fencing rejects offline replica resurrection
+2026-10-24T07:39:17.8362604Z ok 40 - tombstone fencing rejects offline replica resurrection
+2026-10-24T07:39:17.8363211Z   ---
+2026-10-24T07:39:17.8363596Z   duration_ms: 1.223
+2026-10-24T07:39:17.8364006Z   ...
+2026-10-24T07:39:17.8364491Z # Subtest: authority registry fences shadow, stale, expired, and retired writers
+2026-10-24T07:39:17.8365308Z ok 41 - authority registry fences shadow, stale, expired, and retired writers
+2026-10-24T07:39:17.8367579Z   ---
+2026-10-24T07:39:17.8368004Z   duration_ms: 1.103
+2026-10-24T07:39:17.8368572Z   ...
+2026-10-24T07:39:17.8369797Z # Subtest: lexical "偏好使用确定性测试" against "偏好使用确定性测试" = 1
+2026-10-24T07:39:17.8370666Z ok 42 - lexical "偏好使用确定性测试" against "偏好使用确定性测试" = 1
+2026-10-24T07:39:17.8371279Z   ---
+2026-10-24T07:39:17.8371578Z   duration_ms: 5.1543
+2026-10-24T07:39:17.8371906Z   ...
+2026-10-24T07:39:17.8372347Z # Subtest: lexical "确定性测试" against "偏好使用确定性测试" = 1
+2026-10-24T07:39:17.8372950Z ok 43 - lexical "确定性测试" against "偏好使用确定性测试" = 1
+2026-10-24T07:39:17.8373308Z   ---
+2026-10-24T07:39:17.8373735Z   duration_ms: 0.7503
+2026-10-24T07:39:17.8374188Z   ...
+2026-10-24T07:39:17.8374756Z # Subtest: lexical "确定性测试" against "偏好使用确定性方法验证结果" = 0
+2026-10-24T07:39:17.8375853Z ok 44 - lexical "确定性测试" against "偏好使用确定性方法验证结果" = 0
+2026-10-24T07:39:17.8376321Z   ---
+2026-10-24T07:39:17.8376747Z   duration_ms: 0.3873
+2026-10-24T07:39:17.8377183Z   ...
+2026-10-24T07:39:17.8378081Z # Subtest: lexical "数据库" against "数据处理" = 0
+2026-10-24T07:39:17.8378733Z ok 45 - lexical "数据库" against "数据处理" = 0
+2026-10-24T07:39:17.8379344Z   ---
+2026-10-24T07:39:17.8379928Z   duration_ms: 0.3522
+2026-10-24T07:39:17.8380271Z   ...
+2026-10-24T07:39:17.8380843Z # Subtest: lexical "测试" against "偏好使用确定性测试" = 1
+2026-10-24T07:39:17.8381438Z ok 46 - lexical "测试" against "偏好使用确定性测试" = 1
+2026-10-24T07:39:17.8381901Z   ---
+2026-10-24T07:39:17.8382396Z   duration_ms: 0.4135
+2026-10-24T07:39:17.8382838Z   ...
+2026-10-24T07:39:17.8383408Z # Subtest: lexical "测" against "偏好使用确定性测试" = 0
+2026-10-24T07:39:17.8384024Z ok 47 - lexical "测" against "偏好使用确定性测试" = 0
+2026-10-24T07:39:17.8384695Z   ---
+2026-10-24T07:39:17.8385147Z   duration_ms: 0.2169
+2026-10-24T07:39:17.8385531Z   ...
+2026-10-24T07:39:17.8386073Z # Subtest: lexical "测" against "测" = 1
+2026-10-24T07:39:17.8386541Z ok 48 - lexical "测" against "测" = 1
+2026-10-24T07:39:17.8386965Z   ---
+2026-10-24T07:39:17.8387370Z   duration_ms: 0.2568
+2026-10-24T07:39:17.8387749Z   ...
+2026-10-24T07:39:17.8388514Z # Subtest: lexical "𠀀𠀁" against "采用𠀀𠀁作为名称" = 1
+2026-10-24T07:39:17.8389551Z ok 49 - lexical "𠀀𠀁" against "采用𠀀𠀁作为名称" = 1
+2026-10-24T07:39:17.8390473Z   ---
+2026-10-24T07:39:17.8390982Z   duration_ms: 0.2398
+2026-10-24T07:39:17.8391584Z   ...
+2026-10-24T07:39:17.8392430Z # Subtest: lexical "𠀀" against "采用𠀀𠀁作为名称" = 0
+2026-10-24T07:39:17.8393264Z ok 50 - lexical "𠀀" against "采用𠀀𠀁作为名称" = 0
+2026-10-24T07:39:17.8393910Z   ---
+2026-10-24T07:39:17.8394634Z   duration_ms: 0.6515
+2026-10-24T07:39:17.8395160Z   ...
+2026-10-24T07:39:17.8395763Z # Subtest: lexical "𠀀" against "𠀀" = 1
+2026-10-24T07:39:17.8396639Z ok 51 - lexical "𠀀" against "𠀀" = 1
+2026-10-24T07:39:17.8398509Z   ---
+2026-10-24T07:39:17.8398975Z   duration_ms: 0.6788
+2026-10-24T07:39:17.8399469Z   ...
+2026-10-24T07:39:17.8401154Z # Subtest: lexical "𠀀" against "a𠀀b" = 1
+2026-10-24T07:39:17.8401955Z ok 52 - lexical "𠀀" against "a𠀀b" = 1
+2026-10-24T07:39:17.8402486Z   ---
+2026-10-24T07:39:17.8402993Z   duration_ms: 0.4942
+2026-10-24T07:39:17.8403438Z   ...
+2026-10-24T07:39:17.8404122Z # Subtest: lexical "Vue" against "偏好Vue组件测试" = 1
+2026-10-24T07:39:17.8404952Z ok 53 - lexical "Vue" against "偏好Vue组件测试" = 1
+2026-10-24T07:39:17.8405503Z   ---
+2026-10-24T07:39:17.8405927Z   duration_ms: 1.481
+2026-10-24T07:39:17.8406434Z   ...
+2026-10-24T07:39:17.8407095Z # Subtest: lexical "vue开发" against "使用Vue开发工具" = 1
+2026-10-24T07:39:17.8408021Z ok 54 - lexical "vue开发" against "使用Vue开发工具" = 1
+2026-10-24T07:39:17.8408599Z   ---
+2026-10-24T07:39:17.8409059Z   duration_ms: 0.176
+2026-10-24T07:39:17.8409486Z   ...
+2026-10-24T07:39:17.8410178Z # Subtest: lexical "Vue开发" against "Vue部署" = 0
+2026-10-24T07:39:17.8410936Z ok 55 - lexical "Vue开发" against "Vue部署" = 0
+2026-10-24T07:39:17.8411408Z   ---
+2026-10-24T07:39:17.8411901Z   duration_ms: 0.0781
+2026-10-24T07:39:17.8412316Z   ...
+2026-10-24T07:39:17.8413098Z # Subtest: lexical "Vue开发" against "Python开发" = 0
+2026-10-24T07:39:17.8414180Z ok 56 - lexical "Vue开发" against "Python开发" = 0
+2026-10-24T07:39:17.8415038Z   ---
+2026-10-24T07:39:17.8415518Z   duration_ms: 0.1343
+2026-10-24T07:39:17.8415941Z   ...
+2026-10-24T07:39:17.8416595Z # Subtest: lexical "Vue开发" against "Vue3开发" = 0
+2026-10-24T07:39:17.8417368Z ok 57 - lexical "Vue开发" against "Vue3开发" = 0
+2026-10-24T07:39:17.8417941Z   ---
+2026-10-24T07:39:17.8418359Z   duration_ms: 0.0787
+2026-10-24T07:39:17.8418856Z   ...
+2026-10-24T07:39:17.8419591Z # Subtest: lexical "Vue开发" against "使用Vue开发工具和Vue组件" = 1
+2026-10-24T07:39:17.8420420Z ok 58 - lexical "Vue开发" against "使用Vue开发工具和Vue组件" = 1
+2026-10-24T07:39:17.8421061Z   ---
+2026-10-24T07:39:17.8421482Z   duration_ms: 0.0872
+2026-10-24T07:39:17.8421943Z   ...
+2026-10-24T07:39:17.8422542Z # Subtest: lexical "Vue 开发" against "Vue部署" = 0.5
+2026-10-24T07:39:17.8423374Z ok 59 - lexical "Vue 开发" against "Vue部署" = 0.5
+2026-10-24T07:39:17.8423947Z   ---
+2026-10-24T07:39:17.8424354Z   duration_ms: 0.0669
+2026-10-24T07:39:17.8424911Z   ...
+2026-10-24T07:39:17.8425693Z # Subtest: lexical "get_user_id" against "使用get_user_id读取用户" = 1
+2026-10-24T07:39:17.8426612Z ok 60 - lexical "get_user_id" against "使用get_user_id读取用户" = 1
+2026-10-24T07:39:17.8427287Z   ---
+2026-10-24T07:39:17.8427686Z   duration_ms: 0.0773
+2026-10-24T07:39:17.8428096Z   ...
+2026-10-24T07:39:17.8455692Z # Subtest: lexical "get_user" against "使用get_user_id读取用户" = 0
+2026-10-24T07:39:17.8484509Z ok 61 - lexical "get_user" against "使用get_user_id读取用户" = 0
+2026-10-24T07:39:17.8485305Z   ---
+2026-10-24T07:39:17.8485908Z   duration_ms: 0.0593
+2026-10-24T07:39:17.8486406Z   ...
+2026-10-24T07:39:17.8487179Z # Subtest: lexical "foo-bar" against "中文foobar说明" = 0
+2026-10-24T07:39:17.8488057Z ok 62 - lexical "foo-bar" against "中文foobar说明" = 0
+2026-10-24T07:39:17.8488574Z   ---
+2026-10-24T07:39:17.8489331Z   duration_ms: 0.0929
+2026-10-24T07:39:17.8489922Z   ...
+2026-10-24T07:39:17.8490551Z # Subtest: lexical "foo_bar" against "foo_bar_extra" = 0
+2026-10-24T07:39:17.8491344Z ok 63 - lexical "foo_bar" against "foo_bar_extra" = 0
+2026-10-24T07:39:17.8491966Z   ---
+2026-10-24T07:39:17.8492387Z   duration_ms: 0.0769
+2026-10-24T07:39:17.8492821Z   ...
+2026-10-24T07:39:17.8493740Z # Subtest: lexical "gpt-5" against "gpt-50" = 0
+2026-10-24T07:39:17.8494411Z ok 64 - lexical "gpt-5" against "gpt-50" = 0
+2026-10-24T07:39:17.8494945Z   ---
+2026-10-24T07:39:17.8495403Z   duration_ms: 0.0586
+2026-10-24T07:39:17.8495813Z   ...
+2026-10-24T07:39:17.8496367Z # Subtest: lexical "gpt-5" against "gpt-5.4" = 1
+2026-10-24T07:39:17.8497072Z ok 65 - lexical "gpt-5" against "gpt-5.4" = 1
+2026-10-24T07:39:17.8497628Z   ---
+2026-10-24T07:39:17.8498014Z   duration_ms: 0.0549
+2026-10-24T07:39:17.8500229Z   ...
+2026-10-24T07:39:17.8500729Z # Subtest: lexical "v1" against "v10" = 0
+2026-10-24T07:39:17.8501297Z ok 66 - lexical "v1" against "v10" = 0
+2026-10-24T07:39:17.8501923Z   ---
+2026-10-24T07:39:17.8502327Z   duration_ms: 0.0652
+2026-10-24T07:39:17.8502763Z   ...
+2026-10-24T07:39:17.8503329Z # Subtest: lexical "art" against "partial" = 0
+2026-10-24T07:39:17.8503977Z ok 67 - lexical "art" against "partial" = 0
+2026-10-24T07:39:17.8504516Z   ---
+2026-10-24T07:39:17.8504950Z   duration_ms: 0.0632
+2026-10-24T07:39:17.8505400Z   ...
+2026-10-24T07:39:17.8506171Z # Subtest: lexical "CAFÉ" against "café开发" = 1
+2026-10-24T07:39:17.8506922Z ok 68 - lexical "CAFÉ" against "café开发" = 1
+2026-10-24T07:39:17.8507528Z   ---
+2026-10-24T07:39:17.8507954Z   duration_ms: 0.0704
+2026-10-24T07:39:17.8508476Z   ...
+2026-10-24T07:39:17.8509023Z # Subtest: lexical "cafe" against "café开发" = 0
+2026-10-24T07:39:17.8509728Z ok 69 - lexical "cafe" against "café开发" = 0
+2026-10-24T07:39:17.8510299Z   ---
+2026-10-24T07:39:17.8510723Z   duration_ms: 0.0713
+2026-10-24T07:39:17.8511185Z   ...
+2026-10-24T07:39:17.8511848Z # Subtest: lexical "确定性测试" against "偏好可复现的检查" = 0
+2026-10-24T07:39:17.8512671Z ok 70 - lexical "确定性测试" against "偏好可复现的检查" = 0
+2026-10-24T07:39:17.8513604Z   ---
+2026-10-24T07:39:17.8514121Z   duration_ms: 0.0816
+2026-10-24T07:39:17.8514869Z   ...
+2026-10-24T07:39:17.8515520Z # Subtest: lexical "请说明确定性测试的方法" against "偏好使用确定性测试" = 0
+2026-10-24T07:39:17.8516329Z ok 71 - lexical "请说明确定性测试的方法" against "偏好使用确定性测试" = 0
+2026-10-24T07:39:17.8516950Z   ---
+2026-10-24T07:39:17.8517360Z   duration_ms: 0.1473
+2026-10-24T07:39:17.8517767Z   ...
+2026-10-24T07:39:17.8518350Z # Subtest: lexical "***" against "测试" = 0
+2026-10-24T07:39:17.8519049Z ok 72 - lexical "***" against "测试" = 0
+2026-10-24T07:39:17.8519520Z   ---
+2026-10-24T07:39:17.8520004Z   duration_ms: 0.0681
+2026-10-24T07:39:17.8520411Z   ...
+2026-10-24T07:39:17.8520859Z # Subtest: lexical " * " against "测试" = 0
+2026-10-24T07:39:17.8521455Z ok 73 - lexical " * " against "测试" = 0
+2026-10-24T07:39:17.8521787Z   ---
+2026-10-24T07:39:17.8522100Z   duration_ms: 0.0678
+2026-10-24T07:39:17.8522472Z   ...
+2026-10-24T07:39:17.8522848Z # Subtest: lexical "" against "测试" = 0
+2026-10-24T07:39:17.8523294Z ok 74 - lexical "" against "测试" = 0
+2026-10-24T07:39:17.8523702Z   ---
+2026-10-24T07:39:17.8524012Z   duration_ms: 0.0567
+2026-10-24T07:39:17.8524308Z   ...
+2026-10-24T07:39:17.8524746Z # Subtest: lexical "*" against "测试" = 1
+2026-10-24T07:39:17.8525187Z ok 75 - lexical "*" against "测试" = 1
+2026-10-24T07:39:17.8525510Z   ---
+2026-10-24T07:39:17.8525858Z   duration_ms: 0.0539
+2026-10-24T07:39:17.8526135Z   ...
+2026-10-24T07:39:17.8526630Z # Subtest: mixed-token parts may match searchable fields but contribute only one point
+2026-10-24T07:39:17.8527353Z ok 76 - mixed-token parts may match searchable fields but contribute only one point
+2026-10-24T07:39:17.8527812Z   ---
+2026-10-24T07:39:17.8528117Z   duration_ms: 0.3156
+2026-10-24T07:39:17.8528464Z   ...
+2026-10-24T07:39:17.8528885Z # Subtest: non-Han lexical scores retain the former exact-token behavior
+2026-10-24T07:39:17.8529439Z ok 77 - non-Han lexical scores retain the former exact-token behavior
+2026-10-24T07:39:17.8529913Z   ---
+2026-10-24T07:39:17.8530185Z   duration_ms: 3.1037
+2026-10-24T07:39:17.8530469Z   ...
+2026-10-24T07:39:17.8530978Z # Subtest: the existing first-2048-token boundary counts repeated occurrences
+2026-10-24T07:39:17.8531561Z ok 78 - the existing first-2048-token boundary counts repeated occurrences
+2026-10-24T07:39:17.8532009Z   ---
+2026-10-24T07:39:17.8532343Z   duration_ms: 14.3453
+2026-10-24T07:39:17.8532636Z   ...
+2026-10-24T07:39:17.8533107Z # Subtest: a long single Han run is searchable at its end without character ngram expansion
+2026-10-24T07:39:17.8534230Z ok 79 - a long single Han run is searchable at its end without character ngram expansion
+2026-10-24T07:39:17.8534731Z   ---
+2026-10-24T07:39:17.8535014Z   duration_ms: 1955.769
+2026-10-24T07:39:17.8536164Z   ...
+2026-10-24T07:39:17.8536662Z # Subtest: long alternating scripts reuse segment comparisons without hiding later matches
+2026-10-24T07:39:17.8537348Z ok 80 - long alternating scripts reuse segment comparisons without hiding later matches
+2026-10-24T07:39:17.8537909Z   ---
+2026-10-24T07:39:17.8538190Z   duration_ms: 1133.7902
+2026-10-24T07:39:17.8538517Z   ...
+2026-10-24T07:39:17.8539053Z # Subtest: a full segment comparison cache never becomes a recall cutoff
+2026-10-24T07:39:17.8539662Z ok 81 - a full segment comparison cache never becomes a recall cutoff
+2026-10-24T07:39:17.8540061Z   ---
+2026-10-24T07:39:17.8540491Z   duration_ms: 54.1589
+2026-10-24T07:39:17.8944278Z   ...
+2026-10-24T07:39:17.8945075Z # Subtest: Chinese matching does not weaken scope, sink, lifecycle, expiry or deletion fences
+2026-10-24T07:39:17.8947335Z ok 82 - Chinese matching does not weaken scope, sink, lifecycle, expiry or deletion fences
+2026-10-24T07:39:17.8949241Z   ---
+2026-10-24T07:39:17.8949559Z   duration_ms: 9.7105
+2026-10-24T07:39:17.8949858Z   ...
+2026-10-24T07:39:17.8950784Z # Subtest: ranking, recall digests and memory digests are deterministic without record mutation
+2026-10-24T07:39:17.8951685Z ok 83 - ranking, recall digests and memory digests are deterministic without record mutation
+2026-10-24T07:39:17.8952431Z   ---
+2026-10-24T07:39:17.8952688Z   duration_ms: 2.3764
+2026-10-24T07:39:17.8952926Z   ...
+2026-10-24T07:39:17.8953357Z # Subtest: token budgets skip whole records and preserve category diversity
+2026-10-24T07:39:17.8954146Z ok 84 - token budgets skip whole records and preserve category diversity
+2026-10-24T07:39:17.8954661Z   ---
+2026-10-24T07:39:17.8954964Z   duration_ms: 2.2042
+2026-10-24T07:39:17.8955332Z   ...
+2026-10-24T07:39:17.8955979Z # Subtest: digest-bound semantic candidates recover lexical misses after governance
+2026-10-24T07:39:17.8956890Z ok 85 - digest-bound semantic candidates recover lexical misses after governance
+2026-10-24T07:39:17.8957459Z   ---
+2026-10-24T07:39:17.8957824Z   duration_ms: 2.8566
+2026-10-24T07:39:17.8958151Z   ...
+2026-10-24T07:39:17.8958698Z # Subtest: semantic evidence fails closed when its revision or digest is stale
+2026-10-24T07:39:17.8959517Z ok 86 - semantic evidence fails closed when its revision or digest is stale
+2026-10-24T07:39:17.8960054Z   ---
+2026-10-24T07:39:17.8960314Z   duration_ms: 1.3755
+2026-10-24T07:39:17.8960603Z   ...
+2026-10-24T07:39:17.8961138Z # Subtest: semantic candidate validation is bounded and rejects ambiguous IDs
+2026-10-24T07:39:17.8961917Z ok 87 - semantic candidate validation is bounded and rejects ambiguous IDs
+2026-10-24T07:39:17.8962433Z   ---
+2026-10-24T07:39:17.8962668Z   duration_ms: 0.7553
+2026-10-24T07:39:17.8962943Z   ...
+2026-10-24T07:39:17.8963490Z # Subtest: native records, scoped revisions and precise events survive reopen
+2026-10-24T07:39:17.8964327Z ok 88 - native records, scoped revisions and precise events survive reopen
+2026-10-24T07:39:17.8964820Z   ---
+2026-10-24T07:39:17.8965137Z   duration_ms: 114.1959
+2026-10-24T07:39:17.8965420Z   ...
+2026-10-24T07:39:17.8965935Z # Subtest: scope binding rejects expansion and isolates identical memory IDs
+2026-10-24T07:39:17.8966749Z ok 89 - scope binding rejects expansion and isolates identical memory IDs
+2026-10-24T07:39:17.8967263Z   ---
+2026-10-24T07:39:17.8967540Z   duration_ms: 4.1261
+2026-10-24T07:39:17.8967896Z   ...
+2026-10-24T07:39:17.8968495Z # Subtest: every public operation requires explicit synchronous authorization
+2026-10-24T07:39:17.8969372Z ok 90 - every public operation requires explicit synchronous authorization
+2026-10-24T07:39:17.8969967Z   ---
+2026-10-24T07:39:17.8970650Z   duration_ms: 5.1144
+2026-10-24T07:39:17.8971019Z   ...
+2026-10-24T07:39:17.8971527Z # Subtest: CAS, duplicate events and reducer lineage roll back atomically
+2026-10-24T07:39:17.8972276Z ok 91 - CAS, duplicate events and reducer lineage roll back atomically
+2026-10-24T07:39:17.8972739Z   ---
+2026-10-24T07:39:17.8973023Z   duration_ms: 6.8507
+2026-10-24T07:39:17.8974297Z   ...
+2026-10-24T07:39:17.8974838Z # Subtest: host native transaction can synchronously read and atomically roll back nested writes
+2026-10-24T07:39:17.8975503Z ok 92 - host native transaction can synchronously read and atomically roll back nested writes
+2026-10-24T07:39:17.8975964Z   ---
+2026-10-24T07:39:17.8976190Z   duration_ms: 2.9997
+2026-10-24T07:39:17.8976423Z   ...
+2026-10-24T07:39:17.8976797Z # Subtest: query bound fails closed while exact read stays available
+2026-10-24T07:39:17.8977281Z ok 93 - query bound fails closed while exact read stays available
+2026-10-24T07:39:17.8977610Z   ---
+2026-10-24T07:39:17.8977854Z   duration_ms: 2.7055
+2026-10-24T07:39:17.8978095Z   ...
+2026-10-24T07:39:17.8978524Z # Subtest: deletion erases canonical content, retains fencing and seals exact replay receipt
+2026-10-24T07:39:17.8979199Z ok 94 - deletion erases canonical content, retains fencing and seals exact replay receipt
+2026-10-24T07:39:17.8979584Z   ---
+2026-10-24T07:39:17.8979755Z   duration_ms: 15.9019
+2026-10-24T07:39:17.8979976Z   ...
+2026-10-24T07:39:17.8980375Z # Subtest: failed purge recovery persists its tombstone and rejects forged completion or rebinding
+2026-10-24T07:39:17.8981646Z ok 95 - failed purge recovery persists its tombstone and rejects forged completion or rebinding
+2026-10-24T07:39:17.8982054Z   ---
+2026-10-24T07:39:17.8982234Z   duration_ms: 10.7606
+2026-10-24T07:39:17.8982418Z   ...
+2026-10-24T07:39:17.8982807Z # Subtest: tampered canonical record, event and reconciliation JSON fail digest validation
+2026-10-24T07:39:17.8983378Z ok 96 - tampered canonical record, event and reconciliation JSON fail digest validation
+2026-10-24T07:39:17.8983745Z   ---
+2026-10-24T07:39:17.8983925Z   duration_ms: 8.0425
+2026-10-24T07:39:17.8984109Z   ...
+2026-10-24T07:39:17.8984433Z # Subtest: invalid reconciliation makes the entire tombstone commit roll back
+2026-10-24T07:39:17.8984936Z ok 97 - invalid reconciliation makes the entire tombstone commit roll back
+2026-10-24T07:39:17.8985259Z   ---
+2026-10-24T07:39:17.8985437Z   duration_ms: 3.9453
+2026-10-24T07:39:17.8985640Z   ...
+2026-10-24T07:39:17.8985990Z # Subtest: content purge retries keep real acknowledgments and erase sealed references
+2026-10-24T07:39:17.8986533Z ok 98 - content purge retries keep real acknowledgments and erase sealed references
+2026-10-24T07:39:17.8986881Z   ---
+2026-10-24T07:39:17.8987054Z   duration_ms: 11.925
+2026-10-24T07:39:17.8987242Z   ...
+2026-10-24T07:39:17.8987566Z # Subtest: native driver enforces legal hold even for direct reducer commits
+2026-10-24T07:39:17.8988041Z ok 99 - native driver enforces legal hold even for direct reducer commits
+2026-10-24T07:39:17.8988373Z   ---
+2026-10-24T07:39:17.8988539Z   duration_ms: 2.426
+2026-10-24T07:39:17.8988730Z   ...
+2026-10-24T07:39:17.8989090Z # Subtest: independent SQLite connections fence stale writes and reopen pending deletion
+2026-10-24T07:39:17.8989644Z ok 100 - independent SQLite connections fence stale writes and reopen pending deletion
+2026-10-24T07:39:17.8990004Z   ---
+2026-10-24T07:39:17.8990180Z   duration_ms: 193.7727
+2026-10-24T07:39:17.8990363Z   ...
+2026-10-24T07:39:17.8991169Z # Subtest: release evidence accepts one exact-SHA complete platform matrix
+2026-10-24T07:39:17.8991655Z ok 101 - release evidence accepts one exact-SHA complete platform matrix
+2026-10-24T07:39:17.8991981Z   ---
+2026-10-24T07:39:17.8992166Z   duration_ms: 4.7617
+2026-10-24T07:39:17.8992348Z   ...
+2026-10-24T07:39:17.8992689Z # Subtest: release evidence assembler binds the four authoritative workflow runs
+2026-10-24T07:39:17.8993219Z ok 102 - release evidence assembler binds the four authoritative workflow runs
+2026-10-24T07:39:17.8993544Z   ---
+2026-10-24T07:39:17.8993710Z   duration_ms: 1.861
+2026-10-24T07:39:17.8993899Z   ...
+2026-10-24T07:39:17.8994248Z # Subtest: release evidence rejects mixed SHA, missing evidence, and non-passing checks
+2026-10-24T07:39:17.8994809Z ok 103 - release evidence rejects mixed SHA, missing evidence, and non-passing checks
+2026-10-24T07:39:17.8995677Z   ---
+2026-10-24T07:39:17.8995902Z   duration_ms: 2.7461
+2026-10-24T07:39:17.8996133Z   ...
+2026-10-24T07:39:17.8996577Z # Subtest: published schema has executable contract entry points and immutable definitions
+2026-10-24T07:39:17.8997177Z ok 104 - published schema has executable contract entry points and immutable definitions
+2026-10-24T07:39:17.8997566Z   ---
+2026-10-24T07:39:17.8997748Z   duration_ms: 9.4216
+2026-10-24T07:39:17.8997928Z   ...
+2026-10-24T07:39:17.8998274Z # Subtest: definition validator and runtime invariants reject drift and invalid digests
+2026-10-24T07:39:17.8998825Z ok 105 - definition validator and runtime invariants reject drift and invalid digests
+2026-10-24T07:39:17.8999167Z   ---
+2026-10-24T07:39:17.8999333Z   duration_ms: 2.1596
+2026-10-24T07:39:17.8999530Z   ...
+2026-10-24T07:39:17.8999872Z # Subtest: task checkpoints preserve session scope, untrusted evidence and digest
+2026-10-24T07:39:17.9000424Z ok 106 - task checkpoints preserve session scope, untrusted evidence and digest
+2026-10-24T07:39:17.9000790Z   ---
+2026-10-24T07:39:17.9000957Z   duration_ms: 2.8275
+2026-10-24T07:39:17.9001136Z   ...
+2026-10-24T07:39:17.9001649Z # Subtest: shadow mode never mutates a task checkpoint, canonical settlement checks revisions
+2026-10-24T07:39:17.9002247Z ok 107 - shadow mode never mutates a task checkpoint, canonical settlement checks revisions
+2026-10-24T07:39:17.9002622Z   ---
+2026-10-24T07:39:17.9002813Z   duration_ms: 0.672
+2026-10-24T07:39:17.9003001Z   ...
+2026-10-24T07:39:17.9003179Z 1..107
+2026-10-24T07:39:17.9003362Z # tests 121
+2026-10-24T07:39:17.9003550Z # suites 0
+2026-10-24T07:39:17.9003720Z # pass 121
+2026-10-24T07:39:17.9003890Z # fail 0
+2026-10-24T07:39:17.9004073Z # cancelled 0
+2026-10-24T07:39:17.9004252Z # skipped 0
+2026-10-24T07:39:17.9004429Z # todo 0
+2026-10-24T07:39:17.9004635Z # duration_ms 4205.4886
+2026-10-24T07:39:17.9441527Z ##[group]Run node packages/context-memory-kernel/scripts/context-memory-writer-probe.mjs --candidate-sha "9b198f348a5c38466e0afc57562fee3b935815fe" --output "D:\a\_temp/context-memory-writer-probe-windows.json"
+2026-10-24T07:39:17.9442963Z [36;1mnode packages/context-memory-kernel/scripts/context-memory-writer-probe.mjs --candidate-sha "9b198f348a5c38466e0afc57562fee3b935815fe" --output "D:\a\_temp/context-memory-writer-probe-windows.json"[0m
+2026-10-24T07:39:17.9515502Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-10-24T07:39:17.9515880Z env:
+2026-10-24T07:39:17.9516202Z   CONTEXT_MEMORY_CANDIDATE_SHA: 9b198f348a5c38466e0afc57562fee3b935815fe
+2026-10-24T07:39:17.9516667Z   pythonLocation: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:39:17.9517143Z   PKG_CONFIG_PATH: C:\hostedtoolcache\windows\Python\3.12.10\x64/lib/pkgconfig
+2026-10-24T07:39:17.9517582Z   Python_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:39:17.9518060Z   Python2_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:39:17.9518479Z   Python3_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:39:17.9518992Z   JAVA_HOME: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-24T07:39:17.9519511Z   JAVA_HOME_21_X64: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-24T07:39:17.9519896Z   MAVEN_ARGS: -ntp
+2026-10-24T07:39:17.9520148Z   TEMP: C:\Users\runneradmin\AppData\Local\Temp
+2026-10-24T07:39:17.9520512Z   TMP: C:\Users\runneradmin\AppData\Local\Temp
+2026-10-24T07:39:17.9520782Z ##[endgroup]
+2026-10-24T07:39:19.3314179Z ◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+2026-10-24T07:39:19.3322786Z ◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+2026-10-24T07:39:19.6168451Z ◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+2026-10-24T07:39:19.8678968Z ◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+2026-10-24T07:39:19.8743285Z ◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+2026-10-24T07:39:21.6188133Z (node:7832) ExperimentalWarning: CommonJS module D:\a\chainlesschain\chainlesschain\desktop-app-vue\src\main\llm\llm-ipc-privacy.js is loading ES Module D:\a\chainlesschain\chainlesschain\desktop-app-vue\src\main\utils\logger.js using require().
+2026-10-24T07:39:21.6189463Z Support for loading ES Module in require() is an experimental feature and might change at any time
+2026-10-24T07:39:21.6190045Z (Use `node --trace-warnings ...` to show where the warning was created)
+2026-10-24T07:39:21.7554599Z ##[group]Run npm --prefix packages/cli run test:context-memory-kernel
+2026-10-24T07:39:21.7555216Z [36;1mnpm --prefix packages/cli run test:context-memory-kernel[0m
+2026-10-24T07:39:21.7627945Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-10-24T07:39:21.7628398Z env:
+2026-10-24T07:39:21.7628814Z   CONTEXT_MEMORY_CANDIDATE_SHA: 9b198f348a5c38466e0afc57562fee3b935815fe
+2026-10-24T07:39:21.7629423Z   pythonLocation: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:39:21.7629977Z   PKG_CONFIG_PATH: C:\hostedtoolcache\windows\Python\3.12.10\x64/lib/pkgconfig
+2026-10-24T07:39:21.7630510Z   Python_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:39:21.7631021Z   Python2_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:39:21.7631549Z   Python3_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:39:21.7632371Z   JAVA_HOME: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-24T07:39:21.7633014Z   JAVA_HOME_21_X64: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-24T07:39:21.7633427Z   MAVEN_ARGS: -ntp
+2026-10-24T07:39:21.7633703Z   TEMP: C:\Users\runneradmin\AppData\Local\Temp
+2026-10-24T07:39:21.7634064Z   TMP: C:\Users\runneradmin\AppData\Local\Temp
+2026-10-24T07:39:21.7634355Z ##[endgroup]
+2026-10-24T07:39:22.4000127Z 
+2026-10-24T07:39:22.4000846Z > chainlesschain@0.166.118 test:context-memory-kernel
+2026-10-24T07:39:22.4001676Z > node --test test-node/context-memory-kernel.node-test.mjs
+2026-10-24T07:39:22.4002074Z 
+2026-10-24T07:39:22.4886832Z TAP version 13
+2026-10-24T07:39:26.3302572Z # Subtest: complete memory ID deletes without scanning and retains scope and audit
+2026-10-24T07:39:26.3308447Z ok 1 - complete memory ID deletes without scanning and retains scope and audit
+2026-10-24T07:39:26.3309203Z   ---
+2026-10-24T07:39:26.3309521Z   duration_ms: 348.394
+2026-10-24T07:39:26.3309828Z   ...
+2026-10-24T07:39:26.3310351Z # Subtest: memory prefix retains ambiguity and unique selection
+2026-10-24T07:39:26.3311315Z ok 2 - memory prefix retains ambiguity and unique selection
+2026-10-24T07:39:26.3311789Z   ---
+2026-10-24T07:39:26.3312071Z   duration_ms: 313.792
+2026-10-24T07:39:26.3312414Z   ...
+2026-10-24T07:39:26.3313593Z # Subtest: tombstones are excluded while longer prefix matches remain eligible
+2026-10-24T07:39:26.3325584Z ok 3 - tombstones are excluded while longer prefix matches remain eligible
+2026-10-24T07:39:26.3325954Z   ---
+2026-10-24T07:39:26.3326161Z   duration_ms: 476.8857
+2026-10-24T07:39:26.3326365Z   ...
+2026-10-24T07:39:26.3326881Z # Subtest: an exact ID appearing before the prefix scan still takes precedence
+2026-10-24T07:39:26.3327384Z ok 4 - an exact ID appearing before the prefix scan still takes precedence
+2026-10-24T07:39:26.3327695Z   ---
+2026-10-24T07:39:26.3327872Z   duration_ms: 292.1083
+2026-10-24T07:39:26.3328076Z   ...
+2026-10-24T07:39:26.3328452Z # Subtest: point-read deletion preserves CAS conflict without retrying a mutation
+2026-10-24T07:39:26.3328973Z ok 5 - point-read deletion preserves CAS conflict without retrying a mutation
+2026-10-24T07:39:26.3329551Z   ---
+2026-10-24T07:39:26.3329726Z   duration_ms: 105.1471
+2026-10-24T07:39:26.3329907Z   ...
+2026-10-24T07:39:26.3330264Z # Subtest: CLI message projection preserves durable provenance and atomic tool bundles
+2026-10-24T07:39:26.3332077Z ok 6 - CLI message projection preserves durable provenance and atomic tool bundles
+2026-10-24T07:39:26.3332624Z   ---
+2026-10-24T07:39:26.3332858Z   duration_ms: 3.3896
+2026-10-24T07:39:26.3333129Z   ...
+2026-10-24T07:39:26.3333567Z # Subtest: ordinary persisted system text cannot become a trusted policy
+2026-10-24T07:39:26.3334243Z ok 7 - ordinary persisted system text cannot become a trusted policy
+2026-10-24T07:39:26.3334672Z   ---
+2026-10-24T07:39:26.3334898Z   duration_ms: 1.3864
+2026-10-24T07:39:26.3335129Z   ...
+2026-10-24T07:39:26.3337688Z # Subtest: durable CLI memory survives restart, deletion, and idempotent reconciliation
+2026-10-24T07:39:26.3338582Z ok 8 - durable CLI memory survives restart, deletion, and idempotent reconciliation
+2026-10-24T07:39:26.3339101Z   ---
+2026-10-24T07:39:26.3339360Z   duration_ms: 68.6537
+2026-10-24T07:39:26.3339636Z   ...
+2026-10-24T07:39:26.3340023Z # Subtest: durable CLI memory rejects digest tampering
+2026-10-24T07:39:26.3340599Z ok 9 - durable CLI memory rejects digest tampering
+2026-10-24T07:39:26.3340995Z   ---
+2026-10-24T07:39:26.3341244Z   duration_ms: 16.2059
+2026-10-24T07:39:26.3341509Z   ...
+2026-10-24T07:39:26.3342027Z # Subtest: CLI cutover decisions keep shadow write-free and fence legacy after cutover
+2026-10-24T07:39:26.3342852Z ok 10 - CLI cutover decisions keep shadow write-free and fence legacy after cutover
+2026-10-24T07:39:26.3343341Z   ---
+2026-10-24T07:39:26.3343557Z   duration_ms: 0.5992
+2026-10-24T07:39:26.3343742Z   ...
+2026-10-24T07:39:26.3344115Z # Subtest: shadow Kernel produces the canonical plan but cannot create authority state
+2026-10-24T07:39:26.3344633Z ok 11 - shadow Kernel produces the canonical plan but cannot create authority state
+2026-10-24T07:39:26.3344975Z   ---
+2026-10-24T07:39:26.3345149Z   duration_ms: 2.4446
+2026-10-24T07:39:26.3345328Z   ...
+2026-10-24T07:39:26.3345722Z # Subtest: canonical production fences direct legacy CLI memory APIs
+2026-10-24T07:39:26.3346379Z ok 12 - canonical production fences direct legacy CLI memory APIs
+2026-10-24T07:39:26.3346787Z   ---
+2026-10-24T07:39:26.3346992Z   duration_ms: 0.8106
+2026-10-24T07:39:26.3347186Z   ...
+2026-10-24T07:39:26.3347582Z # Subtest: canonical CLI Chinese lexical recall survives durable restart and preserves admission fences
+2026-10-24T07:39:26.3348208Z ok 13 - canonical CLI Chinese lexical recall survives durable restart and preserves admission fences
+2026-10-24T07:39:26.3348811Z   ---
+2026-10-24T07:39:26.3349049Z   duration_ms: 750.7307
+2026-10-24T07:39:26.3349656Z   ...
+2026-10-24T07:39:26.3350274Z # Subtest: canonical provider context recalls Chinese substrings as data within scope and sink fences
+2026-10-24T07:39:26.3351209Z ok 14 - canonical provider context recalls Chinese substrings as data within scope and sink fences
+2026-10-24T07:39:26.3351750Z   ---
+2026-10-24T07:39:26.3351996Z   duration_ms: 610.9651
+2026-10-24T07:39:26.3352247Z   ...
+2026-10-24T07:39:26.3352735Z # Subtest: every canonical provider request binds recalled memory to a ContextPlan
+2026-10-24T07:39:26.3353554Z ok 15 - every canonical provider request binds recalled memory to a ContextPlan
+2026-10-24T07:39:26.3354065Z   ---
+2026-10-24T07:39:26.3354330Z   duration_ms: 253.2247
+2026-10-24T07:39:26.3354617Z   ...
+2026-10-24T07:39:26.3355211Z # Subtest: canonical provider planning lets protected current-turn state consume recovery reserve
+2026-10-24T07:39:26.3356021Z ok 16 - canonical provider planning lets protected current-turn state consume recovery reserve
+2026-10-24T07:39:26.3356552Z   ---
+2026-10-24T07:39:26.3356771Z   duration_ms: 9.6946
+2026-10-24T07:39:26.3357028Z   ...
+2026-10-24T07:39:26.3357520Z # Subtest: canonical CLI memory migrates legacy rows once and becomes the only writer
+2026-10-24T07:39:26.3358208Z ok 17 - canonical CLI memory migrates legacy rows once and becomes the only writer
+2026-10-24T07:39:26.3358653Z   ---
+2026-10-24T07:39:26.3358870Z   duration_ms: 351.2691
+2026-10-24T07:39:26.3359159Z   ...
+2026-10-24T07:39:29.4190506Z # Subtest: tombstone survives a killed process and restart reconciliation purges legacy SQLite
+2026-10-24T07:39:29.4192483Z ok 18 - tombstone survives a killed process and restart reconciliation purges legacy SQLite
+2026-10-24T07:39:29.4193278Z   ---
+2026-10-24T07:39:29.4193582Z   duration_ms: 555.419
+2026-10-24T07:39:29.4193890Z   ...
+2026-10-24T07:39:29.4194521Z # Subtest: canonical scoped memory migrates session-core rows and preserves scope fences
+2026-10-24T07:39:29.4195474Z ok 19 - canonical scoped memory migrates session-core rows and preserves scope fences
+2026-10-24T07:39:29.4197310Z   ---
+2026-10-24T07:39:29.4197605Z   duration_ms: 359.8591
+2026-10-24T07:39:29.4197910Z   ...
+2026-10-24T07:39:29.4199027Z # Subtest: legacy privacy purge fails closed for corrupt, oversized, and symlink projections
+2026-10-24T07:39:29.4199999Z ok 20 - legacy privacy purge fails closed for corrupt, oversized, and symlink projections
+2026-10-24T07:39:29.4200589Z   ---
+2026-10-24T07:39:29.4200879Z   duration_ms: 10.1194
+2026-10-24T07:39:29.4201167Z   ...
+2026-10-24T07:39:29.4224469Z # Subtest: canonical live compaction owns selection and commits through its compatibility port
+2026-10-24T07:39:29.4226184Z ok 21 - canonical live compaction owns selection and commits through its compatibility port
+2026-10-24T07:39:29.4226962Z   ---
+2026-10-24T07:39:29.4227391Z   duration_ms: 109.3797
+2026-10-24T07:39:29.4227834Z   ...
+2026-10-24T07:39:29.4228568Z # Subtest: canonical live callback receipts bind the verified physical JSONL heads
+2026-10-24T07:39:29.4229643Z ok 22 - canonical live callback receipts bind the verified physical JSONL heads
+2026-10-24T07:39:29.4230355Z   ---
+2026-10-24T07:39:29.4230816Z   duration_ms: 748.2654
+2026-10-24T07:39:29.4231327Z   ...
+2026-10-24T07:39:29.4232653Z # Subtest: JSONL SessionContextPort commits one canonical compact event with restart idempotency
+2026-10-24T07:39:29.4233753Z ok 23 - JSONL SessionContextPort commits one canonical compact event with restart idempotency
+2026-10-24T07:39:29.4234423Z   ---
+2026-10-24T07:39:29.4234770Z   duration_ms: 807.2328
+2026-10-24T07:39:29.4235074Z   ...
+2026-10-24T07:39:29.4235638Z # Subtest: JSONL SessionContextPort reconciles a semantic compaction crash by operation id
+2026-10-24T07:39:29.4236271Z ok 24 - JSONL SessionContextPort reconciles a semantic compaction crash by operation id
+2026-10-24T07:39:29.4236669Z   ---
+2026-10-24T07:39:29.4236859Z   duration_ms: 522.6051
+2026-10-24T07:39:29.4237051Z   ...
+2026-10-24T07:39:29.4237412Z # Subtest: CLI App Server mapping emits the shared canonical projection fixture
+2026-10-24T07:39:29.4237955Z ok 25 - CLI App Server mapping emits the shared canonical projection fixture
+2026-10-24T07:39:29.4238286Z   ---
+2026-10-24T07:39:29.4238466Z   duration_ms: 1.9512
+2026-10-24T07:39:29.4238676Z   ...
+2026-10-24T07:39:29.4424813Z 1..25
+2026-10-24T07:39:29.4425160Z # tests 25
+2026-10-24T07:39:29.4425453Z # suites 0
+2026-10-24T07:39:29.4425714Z # pass 25
+2026-10-24T07:39:29.4425997Z # fail 0
+2026-10-24T07:39:29.4426298Z # cancelled 0
+2026-10-24T07:39:29.4427780Z # skipped 0
+2026-10-24T07:39:29.4428422Z # todo 0
+2026-10-24T07:39:29.4428759Z # duration_ms 6971.9823
+2026-10-24T07:39:29.5284932Z ##[group]Run npm --prefix packages/agent-protocol run check
+2026-10-24T07:39:29.5285522Z [36;1mnpm --prefix packages/agent-protocol run check[0m
+2026-10-24T07:39:29.5357790Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-10-24T07:39:29.5358182Z env:
+2026-10-24T07:39:29.5358527Z   CONTEXT_MEMORY_CANDIDATE_SHA: 9b198f348a5c38466e0afc57562fee3b935815fe
+2026-10-24T07:39:29.5359019Z   pythonLocation: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:39:29.5359534Z   PKG_CONFIG_PATH: C:\hostedtoolcache\windows\Python\3.12.10\x64/lib/pkgconfig
+2026-10-24T07:39:29.5359980Z   Python_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:39:29.5360388Z   Python2_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:39:29.5361021Z   Python3_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:39:29.5361655Z   JAVA_HOME: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-24T07:39:29.5362226Z   JAVA_HOME_21_X64: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-24T07:39:29.5362626Z   MAVEN_ARGS: -ntp
+2026-10-24T07:39:29.5362851Z   TEMP: C:\Users\runneradmin\AppData\Local\Temp
+2026-10-24T07:39:29.5363156Z   TMP: C:\Users\runneradmin\AppData\Local\Temp
+2026-10-24T07:39:29.5363563Z ##[endgroup]
+2026-10-24T07:39:30.1562178Z 
+2026-10-24T07:39:30.1562980Z > @chainlesschain/agent-protocol@0.1.12 check
+2026-10-24T07:39:30.1563634Z > node scripts/generate.mjs --check
+2026-10-24T07:39:30.1563984Z 
+2026-10-24T07:39:30.3443926Z ##[group]Run npm --prefix packages/agent-protocol test
+2026-10-24T07:39:30.3444421Z [36;1mnpm --prefix packages/agent-protocol test[0m
+2026-10-24T07:39:30.3518124Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-10-24T07:39:30.3518496Z env:
+2026-10-24T07:39:30.3518932Z   CONTEXT_MEMORY_CANDIDATE_SHA: 9b198f348a5c38466e0afc57562fee3b935815fe
+2026-10-24T07:39:30.3519406Z   pythonLocation: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:39:30.3519870Z   PKG_CONFIG_PATH: C:\hostedtoolcache\windows\Python\3.12.10\x64/lib/pkgconfig
+2026-10-24T07:39:30.3520306Z   Python_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:39:30.3520692Z   Python2_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:39:30.3521094Z   Python3_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:39:30.3521536Z   JAVA_HOME: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-24T07:39:30.3522102Z   JAVA_HOME_21_X64: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-24T07:39:30.3522495Z   MAVEN_ARGS: -ntp
+2026-10-24T07:39:30.3522726Z   TEMP: C:\Users\runneradmin\AppData\Local\Temp
+2026-10-24T07:39:30.3523024Z   TMP: C:\Users\runneradmin\AppData\Local\Temp
+2026-10-24T07:39:30.3523286Z ##[endgroup]
+2026-10-24T07:39:30.9882009Z 
+2026-10-24T07:39:30.9882618Z > @chainlesschain/agent-protocol@0.1.12 test
+2026-10-24T07:39:30.9883013Z > node --test test/*.test.mjs
+2026-10-24T07:39:30.9883209Z 
+2026-10-24T07:39:31.0843940Z TAP version 13
+2026-10-24T07:39:31.1464198Z # Subtest: optional fields and definitions are additive
+2026-10-24T07:39:31.1465401Z ok 1 - optional fields and definitions are additive
+2026-10-24T07:39:31.1466111Z   ---
+2026-10-24T07:39:31.1466581Z   duration_ms: 2.2635
+2026-10-24T07:39:31.1467048Z   ...
+2026-10-24T07:39:31.1467723Z # Subtest: required fields, removed fields and tightened bounds are breaking
+2026-10-24T07:39:31.1468746Z ok 2 - required fields, removed fields and tightened bounds are breaking
+2026-10-24T07:39:31.1472741Z   ---
+2026-10-24T07:39:31.1473224Z   duration_ms: 1.9491
+2026-10-24T07:39:31.1473681Z   ...
+2026-10-24T07:39:31.2722777Z # Subtest: Agent Protocol embeds the canonical Context/Memory schema without a second hand-written contract
+2026-10-24T07:39:31.2745113Z ok 3 - Agent Protocol embeds the canonical Context/Memory schema without a second hand-written contract
+2026-10-24T07:39:31.2752896Z   ---
+2026-10-24T07:39:31.2780035Z   duration_ms: 5.894
+2026-10-24T07:39:31.2821262Z   ...
+2026-10-24T07:39:31.2863508Z # Subtest: fixed Context/Memory methods validate typed params and reject missing params
+2026-10-24T07:39:31.2864856Z ok 4 - fixed Context/Memory methods validate typed params and reject missing params
+2026-10-24T07:39:31.2869753Z   ---
+2026-10-24T07:39:31.2879383Z   duration_ms: 8.0843
+2026-10-24T07:39:31.2882467Z   ...
+2026-10-24T07:39:31.2883376Z # Subtest: generated public validators accept canonical Kernel values
+2026-10-24T07:39:31.2884313Z ok 5 - generated public validators accept canonical Kernel values
+2026-10-24T07:39:31.2884949Z   ---
+2026-10-24T07:39:31.2885394Z   duration_ms: 4.7236
+2026-10-24T07:39:31.2885825Z   ...
+2026-10-24T07:39:31.2887030Z # Subtest: Agent stream inventory includes every canonical Context/Memory lifecycle event
+2026-10-24T07:39:31.2888381Z ok 6 - Agent stream inventory includes every canonical Context/Memory lifecycle event
+2026-10-24T07:39:31.2889623Z   ---
+2026-10-24T07:39:31.2890293Z   duration_ms: 0.2946
+2026-10-24T07:39:31.2890942Z   ...
+2026-10-24T07:39:31.2892360Z # Subtest: shared cross-surface projection fixture only uses canonical protocol events
+2026-10-24T07:39:31.2901117Z ok 7 - shared cross-surface projection fixture only uses canonical protocol events
+2026-10-24T07:39:31.2902933Z   ---
+2026-10-24T07:39:31.2903465Z   duration_ms: 2.0995
+2026-10-24T07:39:31.2903997Z   ...
+2026-10-24T07:39:31.2908704Z # Subtest: generated clients preserve protocol field names across language keywords
+2026-10-24T07:39:31.2909782Z ok 8 - generated clients preserve protocol field names across language keywords
+2026-10-24T07:39:31.2910362Z   ---
+2026-10-24T07:39:31.2910639Z   duration_ms: 6.5463
+2026-10-24T07:39:31.2910956Z   ...
+2026-10-24T07:39:31.2934365Z # Subtest: HumanTask settlement fixture is bounded and surface-complete
+2026-10-24T07:39:31.2935715Z ok 9 - HumanTask settlement fixture is bounded and surface-complete
+2026-10-24T07:39:31.2936417Z   ---
+2026-10-24T07:39:31.2936779Z   duration_ms: 2.522
+2026-10-24T07:39:31.2937158Z   ...
+2026-10-24T07:39:31.3837420Z # Subtest: public root export matches the canonical schema
+2026-10-24T07:39:31.3838255Z ok 10 - public root export matches the canonical schema
+2026-10-24T07:39:31.3838780Z   ---
+2026-10-24T07:39:31.3839178Z   duration_ms: 2.2192
+2026-10-24T07:39:31.3839531Z   ...
+2026-10-24T07:39:31.3840194Z # Subtest: public validator derives the known Agent stream event inventory
+2026-10-24T07:39:31.3841282Z ok 11 - public validator derives the known Agent stream event inventory
+2026-10-24T07:39:31.3841872Z   ---
+2026-10-24T07:39:31.3842208Z   duration_ms: 3.4265
+2026-10-24T07:39:31.3842563Z   ...
+2026-10-24T07:39:31.3843529Z # Subtest: public validator matches the shared Agent stream event fixture
+2026-10-24T07:39:31.3844389Z ok 12 - public validator matches the shared Agent stream event fixture
+2026-10-24T07:39:31.3844946Z   ---
+2026-10-24T07:39:31.3845235Z   duration_ms: 1.0646
+2026-10-24T07:39:31.3845546Z   ...
+2026-10-24T07:39:31.3849482Z # Subtest: canonical payload validator matches shared positive and negative fixtures
+2026-10-24T07:39:31.3850721Z ok 13 - canonical payload validator matches shared positive and negative fixtures
+2026-10-24T07:39:31.3851342Z   ---
+2026-10-24T07:39:31.3851644Z   duration_ms: 23.4614
+2026-10-24T07:39:31.3851979Z   ...
+2026-10-24T07:39:31.3854045Z # Subtest: canonical payload union covers every discriminator in the shared corpus
+2026-10-24T07:39:31.3855244Z ok 14 - canonical payload union covers every discriminator in the shared corpus
+2026-10-24T07:39:31.3855988Z   ---
+2026-10-24T07:39:31.3856401Z   duration_ms: 30.5743
+2026-10-24T07:39:31.3856842Z   ...
+2026-10-24T07:39:31.3857614Z # Subtest: causal Agent stream fixture preserves partial order across interleavings
+2026-10-24T07:39:31.3858616Z ok 15 - causal Agent stream fixture preserves partial order across interleavings
+2026-10-24T07:39:31.3859301Z   ---
+2026-10-24T07:39:31.3859720Z   duration_ms: 21.8697
+2026-10-24T07:39:31.3860384Z   ...
+2026-10-24T07:39:31.3861121Z # Subtest: public validators derive ApprovalDecision from the canonical schema
+2026-10-24T07:39:31.3861896Z ok 16 - public validators derive ApprovalDecision from the canonical schema
+2026-10-24T07:39:31.3862377Z   ---
+2026-10-24T07:39:31.3862669Z   duration_ms: 0.3959
+2026-10-24T07:39:31.3862965Z   ...
+2026-10-24T07:39:31.3863561Z # Subtest: public validator matches the shared ApprovalDecision conformance fixture
+2026-10-24T07:39:31.3864466Z ok 17 - public validator matches the shared ApprovalDecision conformance fixture
+2026-10-24T07:39:31.3864963Z   ---
+2026-10-24T07:39:31.3865231Z   duration_ms: 0.6482
+2026-10-24T07:39:31.3865518Z   ...
+2026-10-24T07:39:31.3867715Z # Subtest: package metadata exposes only supported public entry points
+2026-10-24T07:39:31.3868995Z ok 18 - package metadata exposes only supported public entry points
+2026-10-24T07:39:31.3869511Z   ---
+2026-10-24T07:39:31.3869779Z   duration_ms: 0.6662
+2026-10-24T07:39:31.3870077Z   ...
+2026-10-24T07:39:31.3870551Z # Subtest: SDK wire event aliases do not mirror the generated union
+2026-10-24T07:39:31.3871260Z ok 19 - SDK wire event aliases do not mirror the generated union
+2026-10-24T07:39:31.3871728Z   ---
+2026-10-24T07:39:31.3871983Z   duration_ms: 1.183
+2026-10-24T07:39:31.3872284Z   ...
+2026-10-24T07:39:31.3996629Z 1..19
+2026-10-24T07:39:31.3996933Z # tests 19
+2026-10-24T07:39:31.3997169Z # suites 0
+2026-10-24T07:39:31.3997483Z # pass 19
+2026-10-24T07:39:31.3999293Z # fail 0
+2026-10-24T07:39:31.3999662Z # cancelled 0
+2026-10-24T07:39:31.3999962Z # skipped 0
+2026-10-24T07:39:31.4000179Z # todo 0
+2026-10-24T07:39:31.4000430Z # duration_ms 346.5413
+2026-10-24T07:39:31.4867576Z ##[group]Run node --test packages/context-memory-kernel/test/desktop-surface-conformance.test.js packages/vscode-extension/test/app-server-pilot.test.cjs packages/vscode-extension/test/context-memory-authority.test.cjs
+2026-10-24T07:39:31.4869457Z [36;1mnode --test packages/context-memory-kernel/test/desktop-surface-conformance.test.js packages/vscode-extension/test/app-server-pilot.test.cjs packages/vscode-extension/test/context-memory-authority.test.cjs[0m
+2026-10-24T07:39:31.4943286Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-10-24T07:39:31.4943619Z env:
+2026-10-24T07:39:31.4943913Z   CONTEXT_MEMORY_CANDIDATE_SHA: 9b198f348a5c38466e0afc57562fee3b935815fe
+2026-10-24T07:39:31.4944325Z   pythonLocation: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:39:31.4944738Z   PKG_CONFIG_PATH: C:\hostedtoolcache\windows\Python\3.12.10\x64/lib/pkgconfig
+2026-10-24T07:39:31.4945200Z   Python_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:39:31.4945569Z   Python2_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:39:31.4945949Z   Python3_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:39:31.4946370Z   JAVA_HOME: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-24T07:39:31.4946845Z   JAVA_HOME_21_X64: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-24T07:39:31.4947202Z   MAVEN_ARGS: -ntp
+2026-10-24T07:39:31.4947423Z   TEMP: C:\Users\runneradmin\AppData\Local\Temp
+2026-10-24T07:39:31.4947724Z   TMP: C:\Users\runneradmin\AppData\Local\Temp
+2026-10-24T07:39:31.4947969Z ##[endgroup]
+2026-10-24T07:39:31.8397773Z TAP version 13
+2026-10-24T07:39:31.9611255Z # (node:7948) ExperimentalWarning: CommonJS module D:\\a\\chainlesschain\\chainlesschain\\desktop-app-vue\\src\\main\\permission\\current-user-context.js is loading ES Module D:\\a\\chainlesschain\\chainlesschain\\desktop-app-vue\\src\\main\\utils\\logger.js using require().
+2026-10-24T07:39:31.9613413Z # Support for loading ES Module in require() is an experimental feature and might change at any time
+2026-10-24T07:39:31.9614391Z # (Use `node --trace-warnings ...` to show where the warning was created)
+2026-10-24T07:39:31.9696940Z # [2026-10-24T07:39:31.967Z] [INFO] [main] [CodingAgentIPCV3] Registering coding agent IPC handlers...
+2026-10-24T07:39:31.9770347Z # Subtest: Desktop exposes only fixed Context/Memory capabilities and bounded projection
+2026-10-24T07:39:31.9776381Z ok 1 - Desktop exposes only fixed Context/Memory capabilities and bounded projection
+2026-10-24T07:39:31.9777091Z   ---
+2026-10-24T07:39:31.9777424Z   duration_ms: 2.6643
+2026-10-24T07:39:31.9777764Z   ...
+2026-10-24T07:39:31.9781750Z # Subtest: Desktop fixed IPC routes Context/Memory without a generic RPC escape hatch
+2026-10-24T07:39:31.9782633Z ok 2 - Desktop fixed IPC routes Context/Memory without a generic RPC escape hatch
+2026-10-24T07:39:31.9783794Z   ---
+2026-10-24T07:39:31.9784197Z   duration_ms: 3.8306
+2026-10-24T07:39:31.9785173Z   ...
+2026-10-24T07:39:31.9785697Z # Subtest: Desktop legacy writers fail closed after canonical cutover
+2026-10-24T07:39:31.9786455Z ok 3 - Desktop legacy writers fail closed after canonical cutover
+2026-10-24T07:39:31.9786996Z   ---
+2026-10-24T07:39:31.9787243Z   duration_ms: 1.2026
+2026-10-24T07:39:31.9787529Z   ...
+2026-10-24T07:39:31.9790434Z # Subtest: Desktop and VS Code consume the same canonical projection fixture
+2026-10-24T07:39:31.9791325Z ok 4 - Desktop and VS Code consume the same canonical projection fixture
+2026-10-24T07:39:31.9791867Z   ---
+2026-10-24T07:39:31.9792142Z   duration_ms: 2.2946
+2026-10-24T07:39:31.9792456Z   ...
+2026-10-24T07:39:31.9919345Z # Subtest: pilot stops old native callbacks and ignores old-client confirmation after replacement
+2026-10-24T07:39:31.9920144Z ok 5 - pilot stops old native callbacks and ignores old-client confirmation after replacement
+2026-10-24T07:39:31.9920820Z   ---
+2026-10-24T07:39:31.9924685Z   duration_ms: 5.3827
+2026-10-24T07:39:31.9925132Z   ...
+2026-10-24T07:39:31.9925850Z # Subtest: ready after transport restart grants a fresh native request generation
+2026-10-24T07:39:31.9926920Z ok 6 - ready after transport restart grants a fresh native request generation
+2026-10-24T07:39:31.9927443Z   ---
+2026-10-24T07:39:31.9927725Z   duration_ms: 0.9226
+2026-10-24T07:39:31.9927997Z   ...
+2026-10-24T07:39:31.9928769Z # Subtest: VS Code pilot uses the shared fixed-capability client lazily
+2026-10-24T07:39:31.9929503Z ok 7 - VS Code pilot uses the shared fixed-capability client lazily
+2026-10-24T07:39:31.9929970Z   ---
+2026-10-24T07:39:31.9930224Z   duration_ms: 1.7436
+2026-10-24T07:39:31.9930501Z   ...
+2026-10-24T07:39:31.9930995Z # Subtest: VS Code pilot fails closed when no reviewed request handler exists
+2026-10-24T07:39:31.9931730Z ok 8 - VS Code pilot fails closed when no reviewed request handler exists
+2026-10-24T07:39:31.9932236Z   ---
+2026-10-24T07:39:31.9932508Z   duration_ms: 0.3474
+2026-10-24T07:39:31.9932800Z   ...
+2026-10-24T07:39:31.9933454Z # Subtest: VS Code pilot forwards canonical events and contains host errors
+2026-10-24T07:39:31.9934162Z ok 9 - VS Code pilot forwards canonical events and contains host errors
+2026-10-24T07:39:31.9934599Z   ---
+2026-10-24T07:39:31.9934834Z   duration_ms: 0.6816
+2026-10-24T07:39:31.9935041Z   ...
+2026-10-24T07:39:31.9935384Z # Subtest: VS Code defaults to the canonical CLI authority and stays projection-only
+2026-10-24T07:39:31.9936042Z ok 10 - VS Code defaults to the canonical CLI authority and stays projection-only
+2026-10-24T07:39:31.9936531Z   ---
+2026-10-24T07:39:31.9936786Z   duration_ms: 2.2762
+2026-10-24T07:39:31.9937141Z   ...
+2026-10-24T07:39:31.9937525Z # Subtest: VS Code validates explicit rollout stages
+2026-10-24T07:39:31.9937870Z ok 11 - VS Code validates explicit rollout stages
+2026-10-24T07:39:31.9938180Z   ---
+2026-10-24T07:39:31.9938558Z   duration_ms: 0.7607
+2026-10-24T07:39:31.9938818Z   ...
+2026-10-24T07:39:31.9939056Z 1..11
+2026-10-24T07:39:31.9939272Z # tests 11
+2026-10-24T07:39:31.9939446Z # suites 0
+2026-10-24T07:39:31.9939622Z # pass 11
+2026-10-24T07:39:31.9939801Z # fail 0
+2026-10-24T07:39:31.9939973Z # cancelled 0
+2026-10-24T07:39:31.9940150Z # skipped 0
+2026-10-24T07:39:31.9940334Z # todo 0
+2026-10-24T07:39:31.9940517Z # duration_ms 185.2365
+2026-10-24T07:39:32.1191996Z ##[group]Run npm --prefix desktop-app-vue run test:context-memory
+2026-10-24T07:39:32.1192589Z [36;1mnpm --prefix desktop-app-vue run test:context-memory[0m
+2026-10-24T07:39:32.1266668Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-10-24T07:39:32.1267036Z env:
+2026-10-24T07:39:32.1267353Z   CONTEXT_MEMORY_CANDIDATE_SHA: 9b198f348a5c38466e0afc57562fee3b935815fe
+2026-10-24T07:39:32.1267842Z   pythonLocation: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:39:32.1268315Z   PKG_CONFIG_PATH: C:\hostedtoolcache\windows\Python\3.12.10\x64/lib/pkgconfig
+2026-10-24T07:39:32.1268759Z   Python_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:39:32.1269354Z   Python2_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:39:32.1269750Z   Python3_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:39:32.1270222Z   JAVA_HOME: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-24T07:39:32.1270728Z   JAVA_HOME_21_X64: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-24T07:39:32.1271093Z   MAVEN_ARGS: -ntp
+2026-10-24T07:39:32.1271453Z   TEMP: C:\Users\runneradmin\AppData\Local\Temp
+2026-10-24T07:39:32.1271828Z   TMP: C:\Users\runneradmin\AppData\Local\Temp
+2026-10-24T07:39:32.1272076Z ##[endgroup]
+2026-10-24T07:39:32.7500002Z 
+2026-10-24T07:39:32.7500920Z > chainlesschain-desktop-vue@5.0.3-alpha.141 test:context-memory
+2026-10-24T07:39:32.7501499Z > vitest run --config vitest.context-memory.config.mjs
+2026-10-24T07:39:32.7501755Z 
+2026-10-24T07:39:33.3402239Z 
+2026-10-24T07:39:33.3406541Z [1m[30m[46m RUN [49m[39m[22m [36mv4.1.10 [39m[90mD:/a/chainlesschain/chainlesschain/desktop-app-vue[39m
+2026-10-24T07:39:33.3406978Z 
+2026-10-24T07:39:33.7422497Z (node:1468) ExperimentalWarning: CommonJS module D:\a\chainlesschain\chainlesschain\desktop-app-vue\src\main\ai-engine\code-agent\coding-agent-ipc-v3.js is loading ES Module D:\a\chainlesschain\chainlesschain\desktop-app-vue\src\main\utils\logger.js using require().
+2026-10-24T07:39:33.7424499Z Support for loading ES Module in require() is an experimental feature and might change at any time
+2026-10-24T07:39:33.7425310Z (Use `node --trace-warnings ...` to show where the warning was created)
+2026-10-24T07:39:33.7560706Z [90mstdout[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2mregisters the full coding agent IPC surface and clears stale handlers
+2026-10-24T07:39:33.7562745Z [22m[39m[2026-10-24T07:39:33.750Z] [INFO] [main] [CodingAgentIPCV3] Registering coding agent IPC handlers...
+2026-10-24T07:39:33.7563394Z 
+2026-10-24T07:39:33.7594074Z [90mstdout[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2mdelegates show-plan to the service
+2026-10-24T07:39:33.7595572Z [22m[39m[2026-10-24T07:39:33.755Z] [INFO] [main] [CodingAgentIPCV3] Registering coding agent IPC handlers...
+2026-10-24T07:39:33.7595920Z 
+2026-10-24T07:39:33.7634584Z [90mstdout[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2mregisters start-session as an alias of create-session
+2026-10-24T07:39:33.7635660Z [22m[39m[2026-10-24T07:39:33.760Z] [INFO] [main] [CodingAgentIPCV3] Registering coding agent IPC handlers...
+2026-10-24T07:39:33.7635998Z 
+2026-10-24T07:39:33.7669305Z [90mstdout[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2mdelegates high-risk confirmation to the service
+2026-10-24T07:39:33.7670456Z [22m[39m[2026-10-24T07:39:33.764Z] [INFO] [main] [CodingAgentIPCV3] Registering coding agent IPC handlers...
+2026-10-24T07:39:33.7670828Z 
+2026-10-24T07:39:33.7719440Z [90mstdout[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2mdelegates generic approval responses to the service
+2026-10-24T07:39:33.7721583Z [22m[39m[2026-10-24T07:39:33.767Z] [INFO] [main] [CodingAgentIPCV3] Registering coding agent IPC handlers...
+2026-10-24T07:39:33.7722215Z 
+2026-10-24T07:39:33.7769170Z [90mstdout[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2mkeeps approval grant review and revocation on fixed IPC channels
+2026-10-24T07:39:33.7771065Z [22m[39m[2026-10-24T07:39:33.774Z] [INFO] [main] [CodingAgentIPCV3] Registering coding agent IPC handlers...
+2026-10-24T07:39:33.7771781Z 
+2026-10-24T07:39:33.7798480Z [90mstdout[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2mdelegates worktree diff requests to the service
+2026-10-24T07:39:33.7800767Z [22m[39m[2026-10-24T07:39:33.777Z] [INFO] [main] [CodingAgentIPCV3] Registering coding agent IPC handlers...
+2026-10-24T07:39:33.7801409Z 
+2026-10-24T07:39:33.7827982Z [90mstdout[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2mroutes interrupt to the dedicated interruptSession service call
+2026-10-24T07:39:33.7829208Z [22m[39m[2026-10-24T07:39:33.780Z] [INFO] [main] [CodingAgentIPCV3] Registering coding agent IPC handlers...
+2026-10-24T07:39:33.7829593Z 
+2026-10-24T07:39:33.7857149Z [90mstdout[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2mdelegates worktree merge preview requests to the service
+2026-10-24T07:39:33.7858315Z [22m[39m[2026-10-24T07:39:33.783Z] [INFO] [main] [CodingAgentIPCV3] Registering coding agent IPC handlers...
+2026-10-24T07:39:33.7858685Z 
+2026-10-24T07:39:33.7885700Z [90mstdout[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2mdelegates harness background-task requests to the service
+2026-10-24T07:39:33.7887524Z [22m[39m[2026-10-24T07:39:33.786Z] [INFO] [main] [CodingAgentIPCV3] Registering coding agent IPC handlers...
+2026-10-24T07:39:33.7888137Z 
+2026-10-24T07:39:33.7916765Z [90mstdout[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2mdelegates worktree automation requests to the service
+2026-10-24T07:39:33.7918497Z [22m[39m[2026-10-24T07:39:33.789Z] [INFO] [main] [CodingAgentIPCV3] Registering coding agent IPC handlers...
+2026-10-24T07:39:33.7919038Z 
+2026-10-24T07:39:33.7940773Z [90mstdout[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2mdelegates list-sub-agents to the service with a scoped session id
+2026-10-24T07:39:33.7942009Z [22m[39m[2026-10-24T07:39:33.791Z] [INFO] [main] [CodingAgentIPCV3] Registering coding agent IPC handlers...
+2026-10-24T07:39:33.7942389Z 
+2026-10-24T07:39:33.8001543Z [90mstdout[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2msupports a string payload for list-sub-agents
+2026-10-24T07:39:33.8003459Z [22m[39m[2026-10-24T07:39:33.797Z] [INFO] [main] [CodingAgentIPCV3] Registering coding agent IPC handlers...
+2026-10-24T07:39:33.8004097Z 
+2026-10-24T07:39:33.8016271Z [90mstdout[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2mpasses null sessionId to listSubAgents when omitted
+2026-10-24T07:39:33.8018116Z [22m[39m[2026-10-24T07:39:33.799Z] [INFO] [main] [CodingAgentIPCV3] Registering coding agent IPC handlers...
+2026-10-24T07:39:33.8018743Z 
+2026-10-24T07:39:33.8035252Z [90mstdout[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2mdelegates get-sub-agent to the service
+2026-10-24T07:39:33.8038226Z [22m[39m[2026-10-24T07:39:33.801Z] [INFO] [main] [CodingAgentIPCV3] Registering coding agent IPC handlers...
+2026-10-24T07:39:33.8038868Z 
+2026-10-24T07:39:33.8052903Z [90mstdout[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2msupports a string payload for get-sub-agent
+2026-10-24T07:39:33.8054646Z [22m[39m[2026-10-24T07:39:33.803Z] [INFO] [main] [CodingAgentIPCV3] Registering coding agent IPC handlers...
+2026-10-24T07:39:33.8055216Z 
+2026-10-24T07:39:33.8087345Z [90mstdout[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2mrejects get-sub-agent without a subAgentId
+2026-10-24T07:39:33.8096012Z [22m[39m[2026-10-24T07:39:33.804Z] [INFO] [main] [CodingAgentIPCV3] Registering coding agent IPC handlers...
+2026-10-24T07:39:33.8096632Z 
+2026-10-24T07:39:33.8100855Z [90mstdout[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2mdelegates enter-review to the service with normalized options
+2026-10-24T07:39:33.8102576Z [22m[39m[2026-10-24T07:39:33.806Z] [INFO] [main] [CodingAgentIPCV3] Registering coding agent IPC handlers...
+2026-10-24T07:39:33.8103114Z 
+2026-10-24T07:39:33.8117977Z [90mstdout[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2mrejects enter-review without a sessionId
+2026-10-24T07:39:33.8119683Z [22m[39m[2026-10-24T07:39:33.809Z] [INFO] [main] [CodingAgentIPCV3] Registering coding agent IPC handlers...
+2026-10-24T07:39:33.8120271Z 
+2026-10-24T07:39:33.8136953Z [90mstdout[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2mdelegates submit-review-comment with the update shape
+2026-10-24T07:39:33.8138789Z [22m[39m[2026-10-24T07:39:33.811Z] [INFO] [main] [CodingAgentIPCV3] Registering coding agent IPC handlers...
+2026-10-24T07:39:33.8139348Z 
+2026-10-24T07:39:33.8156789Z [90mstdout[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2mdelegates resolve-review and returns the unblocked state
+2026-10-24T07:39:33.8158266Z [22m[39m[2026-10-24T07:39:33.813Z] [INFO] [main] [CodingAgentIPCV3] Registering coding agent IPC handlers...
+2026-10-24T07:39:33.8158611Z 
+2026-10-24T07:39:33.8175401Z [90mstdout[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2mdelegates get-review-state and supports a string sessionId
+2026-10-24T07:39:33.8176474Z [22m[39m[2026-10-24T07:39:33.815Z] [INFO] [main] [CodingAgentIPCV3] Registering coding agent IPC handlers...
+2026-10-24T07:39:33.8176832Z 
+2026-10-24T07:39:33.8191283Z [90mstdout[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2mrejects review handlers without a sessionId
+2026-10-24T07:39:33.8193026Z [22m[39m[2026-10-24T07:39:33.817Z] [INFO] [main] [CodingAgentIPCV3] Registering coding agent IPC handlers...
+2026-10-24T07:39:33.8193625Z 
+2026-10-24T07:39:33.8209550Z [90mstdout[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2mdelegates propose-patch to the service with normalized payload
+2026-10-24T07:39:33.8211295Z [22m[39m[2026-10-24T07:39:33.818Z] [INFO] [main] [CodingAgentIPCV3] Registering coding agent IPC handlers...
+2026-10-24T07:39:33.8211893Z 
+2026-10-24T07:39:33.8226827Z [90mstdout[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2mdelegates apply-patch to the service with patchId
+2026-10-24T07:39:33.8228586Z [22m[39m[2026-10-24T07:39:33.820Z] [INFO] [main] [CodingAgentIPCV3] Registering coding agent IPC handlers...
+2026-10-24T07:39:33.8229159Z 
+2026-10-24T07:39:33.8243634Z [90mstdout[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2mdelegates reject-patch to the service with reason
+2026-10-24T07:39:33.8245448Z [22m[39m[2026-10-24T07:39:33.822Z] [INFO] [main] [CodingAgentIPCV3] Registering coding agent IPC handlers...
+2026-10-24T07:39:33.8246029Z 
+2026-10-24T07:39:33.8259402Z [90mstdout[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2mdelegates get-patch-summary and supports a string sessionId
+2026-10-24T07:39:33.8261271Z [22m[39m[2026-10-24T07:39:33.823Z] [INFO] [main] [CodingAgentIPCV3] Registering coding agent IPC handlers...
+2026-10-24T07:39:33.8262246Z 
+2026-10-24T07:39:33.8276126Z [90mstdout[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2mrejects patch handlers without a sessionId
+2026-10-24T07:39:33.8277886Z [22m[39m[2026-10-24T07:39:33.825Z] [INFO] [main] [CodingAgentIPCV3] Registering coding agent IPC handlers...
+2026-10-24T07:39:33.8278462Z 
+2026-10-24T07:39:33.8293651Z [90mstdout[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2mrejects apply-patch / reject-patch without a patchId
+2026-10-24T07:39:33.8295389Z [22m[39m[2026-10-24T07:39:33.827Z] [INFO] [main] [CodingAgentIPCV3] Registering coding agent IPC handlers...
+2026-10-24T07:39:33.8295944Z 
+2026-10-24T07:39:33.8316246Z [90mstdout[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2mdelegates create-task-graph to the service with normalized payload
+2026-10-24T07:39:33.8318150Z [22m[39m[2026-10-24T07:39:33.829Z] [INFO] [main] [CodingAgentIPCV3] Registering coding agent IPC handlers...
+2026-10-24T07:39:33.8318780Z 
+2026-10-24T07:39:33.8361724Z [90mstdout[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2mdelegates add-task-node to the service
+2026-10-24T07:39:33.8363058Z [22m[39m[2026-10-24T07:39:33.831Z] [INFO] [main] [CodingAgentIPCV3] Registering coding agent IPC handlers...
+2026-10-24T07:39:33.8363446Z 
+2026-10-24T07:39:33.8377859Z [90mstdout[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2mdelegates update-task-node to the service
+2026-10-24T07:39:33.8379732Z [22m[39m[2026-10-24T07:39:33.835Z] [INFO] [main] [CodingAgentIPCV3] Registering coding agent IPC handlers...
+2026-10-24T07:39:33.8380365Z 
+2026-10-24T07:39:33.8394391Z [90mstdout[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2mdelegates advance-task-graph and supports a string sessionId
+2026-10-24T07:39:33.8396222Z [22m[39m[2026-10-24T07:39:33.837Z] [INFO] [main] [CodingAgentIPCV3] Registering coding agent IPC handlers...
+2026-10-24T07:39:33.8396828Z 
+2026-10-24T07:39:33.8415052Z [90mstdout[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2mdelegates get-task-graph and supports a string sessionId
+2026-10-24T07:39:33.8416759Z [22m[39m[2026-10-24T07:39:33.838Z] [INFO] [main] [CodingAgentIPCV3] Registering coding agent IPC handlers...
+2026-10-24T07:39:33.8417339Z 
+2026-10-24T07:39:33.8432517Z [90mstdout[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2mrejects task graph handlers without a sessionId
+2026-10-24T07:39:33.8434363Z [22m[39m[2026-10-24T07:39:33.841Z] [INFO] [main] [CodingAgentIPCV3] Registering coding agent IPC handlers...
+2026-10-24T07:39:33.8434970Z 
+2026-10-24T07:39:33.8448974Z [90mstdout[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2mrejects add-task-node without node.id
+2026-10-24T07:39:33.8450527Z [22m[39m[2026-10-24T07:39:33.842Z] [INFO] [main] [CodingAgentIPCV3] Registering coding agent IPC handlers...
+2026-10-24T07:39:33.8450916Z 
+2026-10-24T07:39:33.8473541Z [90mstdout[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2mrejects update-task-node without nodeId
+2026-10-24T07:39:33.8475155Z [22m[39m[2026-10-24T07:39:33.844Z] [INFO] [main] [CodingAgentIPCV3] Registering coding agent IPC handlers...
+2026-10-24T07:39:33.8475737Z 
+2026-10-24T07:39:33.8486451Z [90mstdout[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2mreturns a normalized failure payload when a handler throws
+2026-10-24T07:39:33.8488869Z [22m[39m[2026-10-24T07:39:33.846Z] [INFO] [main] [CodingAgentIPCV3] Registering coding agent IPC handlers...
+2026-10-24T07:39:33.8489431Z 
+2026-10-24T07:39:33.8634646Z [90mstderr[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2mreturns a normalized failure payload when a handler throws
+2026-10-24T07:39:33.8636367Z [22m[39m[2026-10-24T07:39:33.860Z] [ERROR] [main] [CodingAgentIPCV3] send-message failed: {
+2026-10-24T07:39:33.8637067Z   "name": "Error",
+2026-10-24T07:39:33.8637474Z   "message": "send failed",
+2026-10-24T07:39:33.8643081Z   "stack": "Error: send failed\n    at D:/a/chainlesschain/chainlesschain/desktop-app-vue/src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js:959:43\n    at file:///D:/a/chainlesschain/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///D:/a/chainlesschain/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///D:/a/chainlesschain/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///D:/a/chainlesschain/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///D:/a/chainlesschain/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///D:/a/chainlesschain/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\n    at file:///D:/a/chainlesschain/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64"
+2026-10-24T07:39:33.8648866Z }
+2026-10-24T07:39:33.8649023Z 
+2026-10-24T07:39:33.8652134Z [90mstdout[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2mserves the artifact workbench and keeps managed paths in the main process
+2026-10-24T07:39:33.8653910Z [22m[39m[2026-10-24T07:39:33.863Z] [INFO] [main] [CodingAgentIPCV3] Registering coding agent IPC handlers...
+2026-10-24T07:39:33.8654490Z 
+2026-10-24T07:39:33.8701681Z [90mstdout[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2mreturns content-free artifact errors when authorization fails
+2026-10-24T07:39:33.8702920Z [22m[39m[2026-10-24T07:39:33.868Z] [INFO] [main] [CodingAgentIPCV3] Registering coding agent IPC handlers...
+2026-10-24T07:39:33.8703312Z 
+2026-10-24T07:39:33.8711153Z [90mstderr[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2mreturns content-free artifact errors when authorization fails
+2026-10-24T07:39:33.8712977Z [22m[39m[2026-10-24T07:39:33.868Z] [ERROR] [main] [CodingAgentIPCV3] artifact workbench failed: {
+2026-10-24T07:39:33.8713726Z   "name": "Error",
+2026-10-24T07:39:33.8714130Z   "message": "C:/secret/index",
+2026-10-24T07:39:33.8720495Z   "stack": "Error: C:/secret/index\n    at D:/a/chainlesschain/chainlesschain/desktop-app-vue/src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js:1101:44\n    at file:///D:/a/chainlesschain/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///D:/a/chainlesschain/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///D:/a/chainlesschain/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///D:/a/chainlesschain/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///D:/a/chainlesschain/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///D:/a/chainlesschain/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\n    at file:///D:/a/chainlesschain/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64"
+2026-10-24T07:39:33.8725814Z }
+2026-10-24T07:39:33.8725983Z 
+2026-10-24T07:39:33.8727330Z [90mstderr[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2mreturns content-free artifact errors when authorization fails
+2026-10-24T07:39:33.8728834Z [22m[39m[2026-10-24T07:39:33.869Z] [ERROR] [main] [CodingAgentIPCV3] artifact open failed: {
+2026-10-24T07:39:33.8729416Z   "name": "Error",
+2026-10-24T07:39:33.8729767Z   "message": "C:/secret/file",
+2026-10-24T07:39:33.8734811Z   "stack": "Error: C:/secret/file\n    at D:/a/chainlesschain/chainlesschain/desktop-app-vue/src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js:1102:41\n    at file:///D:/a/chainlesschain/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///D:/a/chainlesschain/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///D:/a/chainlesschain/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///D:/a/chainlesschain/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///D:/a/chainlesschain/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///D:/a/chainlesschain/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\n    at file:///D:/a/chainlesschain/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64"
+2026-10-24T07:39:33.8740593Z }
+2026-10-24T07:39:33.8740757Z 
+2026-10-24T07:39:33.8742050Z [90mstderr[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2mreturns content-free artifact errors when authorization fails
+2026-10-24T07:39:33.8743521Z [22m[39m[2026-10-24T07:39:33.871Z] [ERROR] [main] [CodingAgentIPCV3] artifact removal failed: {
+2026-10-24T07:39:33.8744146Z   "name": "Error",
+2026-10-24T07:39:33.8744472Z   "message": "C:/secret/file",
+2026-10-24T07:39:33.8749611Z   "stack": "Error: C:/secret/file\n    at D:/a/chainlesschain/chainlesschain/desktop-app-vue/src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js:1103:41\n    at file:///D:/a/chainlesschain/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///D:/a/chainlesschain/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///D:/a/chainlesschain/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///D:/a/chainlesschain/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///D:/a/chainlesschain/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///D:/a/chainlesschain/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\n    at file:///D:/a/chainlesschain/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64"
+2026-10-24T07:39:33.8754860Z }
+2026-10-24T07:39:33.8755019Z 
+2026-10-24T07:39:33.8757537Z [90mstdout[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2mregisters workflow command channels
+2026-10-24T07:39:33.8759224Z [22m[39m[2026-10-24T07:39:33.873Z] [INFO] [main] [CodingAgentIPCV3] Registering coding agent IPC handlers...
+2026-10-24T07:39:33.8760071Z 
+2026-10-24T07:39:33.8777744Z [90mstdout[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2mcheck-workflow-command matches $deep-interview and rejects plain text
+2026-10-24T07:39:33.8779001Z [22m[39m[2026-10-24T07:39:33.875Z] [INFO] [main] [CodingAgentIPCV3] Registering coding agent IPC handlers...
+2026-10-24T07:39:33.8779618Z 
+2026-10-24T07:39:33.8797721Z [90mstdout[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2mrun-workflow-command validates text payload
+2026-10-24T07:39:33.8798721Z [22m[39m[2026-10-24T07:39:33.877Z] [INFO] [main] [CodingAgentIPCV3] Registering coding agent IPC handlers...
+2026-10-24T07:39:33.8799078Z 
+2026-10-24T07:39:33.8811574Z [90mstdout[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2mfails closed on fixed App Server channels when the pilot is disabled
+2026-10-24T07:39:33.8812580Z [22m[39m[2026-10-24T07:39:33.879Z] [INFO] [main] [CodingAgentIPCV3] Registering coding agent IPC handlers...
+2026-10-24T07:39:33.8812929Z 
+2026-10-24T07:39:33.8839935Z [90mstdout[2m | src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js[2m > [22m[2mregisterCodingAgentIPCV3[2m > [22m[2mroutes only fixed Thread/Turn/HumanTask operations to an enabled App Server pilot
+2026-10-24T07:39:33.8841589Z [22m[39m[2026-10-24T07:39:33.881Z] [INFO] [main] [CodingAgentIPCV3] Registering coding agent IPC handlers...
+2026-10-24T07:39:33.8842141Z 
+2026-10-24T07:39:33.8914014Z  [32m✓[39m src/main/ai-engine/code-agent/__tests__/coding-agent-ipc-v3.test.js [2m([22m[2m45 tests[22m[2m)[22m[32m 143[2mms[22m[39m
+2026-10-24T07:39:34.1576714Z  [32m✓[39m src/main/context-memory/__tests__/permanent-memory-adapter.test.js [2m([22m[2m4 tests[22m[2m)[22m[32m 32[2mms[22m[39m
+2026-10-24T07:39:34.3665291Z (node:6824) ExperimentalWarning: CommonJS module D:\a\chainlesschain\chainlesschain\desktop-app-vue\src\main\llm\permanent-memory-ipc.js is loading ES Module D:\a\chainlesschain\chainlesschain\desktop-app-vue\src\main\utils\logger.js using require().
+2026-10-24T07:39:34.3666639Z Support for loading ES Module in require() is an experimental feature and might change at any time
+2026-10-24T07:39:34.3667332Z (Use `node --trace-warnings ...` to show where the warning was created)
+2026-10-24T07:39:34.3786549Z [90mstdout[2m | src/main/context-memory/__tests__/permanent-memory-ipc-cutover.test.js[2m > [22m[2mPermanentMemory IPC canonical cutover[2m > [22m[2mregisters only the renderer-consumed permanent memory routes
+2026-10-24T07:39:34.3789185Z [90mstderr[2m | src/main/context-memory/__tests__/permanent-memory-ipc-cutover.test.js[2m > [22m[2mPermanentMemory IPC canonical cutover[2m > [22m[2mregisters only the renderer-consumed permanent memory routes
+2026-10-24T07:39:34.3791212Z [22m[39m[2026-10-24T07:39:34.374Z] [WARN] [main] [PermanentMemoryIPC] canonical routes remain available without the legacy manager
+2026-10-24T07:39:34.3791881Z 
+2026-10-24T07:39:34.3792589Z [22m[39m[2026-10-24T07:39:34.374Z] [INFO] [main] [PermanentMemoryIPC] 注册 IPC 通道
+2026-10-24T07:39:34.3793731Z [2026-10-24T07:39:34.375Z] [INFO] [main] [PermanentMemoryIPC] IPC 通道注册完成 (含混合搜索、索引管理、会话记忆提取)
+2026-10-24T07:39:34.3794249Z 
+2026-10-24T07:39:34.3805701Z [90mstdout[2m | src/main/context-memory/__tests__/permanent-memory-ipc-cutover.test.js[2m > [22m[2mPermanentMemory IPC canonical cutover[2m > [22m[2mregisters only the renderer-consumed permanent memory routes
+2026-10-24T07:39:34.3807483Z [22m[39m[2026-10-24T07:39:34.378Z] [INFO] [main] [PermanentMemoryIPC] 注销 IPC 通道
+2026-10-24T07:39:34.3808383Z [2026-10-24T07:39:34.379Z] [INFO] [main] [PermanentMemoryIPC] IPC 通道注销完成
+2026-10-24T07:39:34.3808793Z 
+2026-10-24T07:39:34.3835529Z [90mstdout[2m | src/main/context-memory/__tests__/permanent-memory-ipc-cutover.test.js[2m > [22m[2mPermanentMemory IPC canonical cutover[2m > [22m[2mroutes production reads and writes to the canonical adapter
+2026-10-24T07:39:34.3837102Z [22m[39m[2026-10-24T07:39:34.381Z] [INFO] [main] [PermanentMemoryIPC] 注册 IPC 通道
+2026-10-24T07:39:34.3837757Z [2026-10-24T07:39:34.381Z] [INFO] [main] [PermanentMemoryIPC] IPC 通道注册完成 (含混合搜索、索引管理、会话记忆提取)
+2026-10-24T07:39:34.3838365Z 
+2026-10-24T07:39:34.3875873Z [90mstdout[2m | src/main/context-memory/__tests__/permanent-memory-ipc-cutover.test.js[2m > [22m[2mPermanentMemory IPC canonical cutover[2m > [22m[2mroutes production reads and writes to the canonical adapter
+2026-10-24T07:39:34.3876903Z [22m[39m[2026-10-24T07:39:34.385Z] [INFO] [main] [PermanentMemoryIPC] 注销 IPC 通道
+2026-10-24T07:39:34.3877466Z [2026-10-24T07:39:34.386Z] [INFO] [main] [PermanentMemoryIPC] IPC 通道注销完成
+2026-10-24T07:39:34.3877719Z 
+2026-10-24T07:39:34.3901799Z [90mstdout[2m | src/main/context-memory/__tests__/permanent-memory-ipc-cutover.test.js[2m > [22m[2mPermanentMemory IPC canonical cutover[2m > [22m[2mkeeps canonical routes available without a legacy manager
+2026-10-24T07:39:34.3903285Z [90mstderr[2m | src/main/context-memory/__tests__/permanent-memory-ipc-cutover.test.js[2m > [22m[2mPermanentMemory IPC canonical cutover[2m > [22m[2mkeeps canonical routes available without a legacy manager
+2026-10-24T07:39:34.3904435Z [22m[39m[2026-10-24T07:39:34.388Z] [WARN] [main] [PermanentMemoryIPC] canonical routes remain available without the legacy manager
+2026-10-24T07:39:34.3904841Z 
+2026-10-24T07:39:34.3905161Z [22m[39m[2026-10-24T07:39:34.388Z] [INFO] [main] [PermanentMemoryIPC] 注册 IPC 通道
+2026-10-24T07:39:34.3905784Z [2026-10-24T07:39:34.389Z] [INFO] [main] [PermanentMemoryIPC] IPC 通道注册完成 (含混合搜索、索引管理、会话记忆提取)
+2026-10-24T07:39:34.3906080Z 
+2026-10-24T07:39:34.3915416Z [90mstdout[2m | src/main/context-memory/__tests__/permanent-memory-ipc-cutover.test.js[2m > [22m[2mPermanentMemory IPC canonical cutover[2m > [22m[2mkeeps canonical routes available without a legacy manager
+2026-10-24T07:39:34.3917040Z [22m[39m[2026-10-24T07:39:34.390Z] [INFO] [main] [PermanentMemoryIPC] 注销 IPC 通道
+2026-10-24T07:39:34.3917941Z [2026-10-24T07:39:34.390Z] [INFO] [main] [PermanentMemoryIPC] IPC 通道注销完成
+2026-10-24T07:39:34.3918323Z 
+2026-10-24T07:39:34.3969234Z  [32m✓[39m src/main/context-memory/__tests__/permanent-memory-ipc-cutover.test.js [2m([22m[2m3 tests[22m[2m)[22m[32m 23[2mms[22m[39m
+2026-10-24T07:39:34.5977672Z (node:5544) ExperimentalWarning: CommonJS module D:\a\chainlesschain\chainlesschain\desktop-app-vue\src\main\ai-engine\code-agent\coding-agent-ipc-v3.js is loading ES Module D:\a\chainlesschain\chainlesschain\desktop-app-vue\src\main\utils\logger.js using require().
+2026-10-24T07:39:34.5979679Z Support for loading ES Module in require() is an experimental feature and might change at any time
+2026-10-24T07:39:34.5981040Z (Use `node --trace-warnings ...` to show where the warning was created)
+2026-10-24T07:39:34.6115264Z  [32m✓[39m src/main/ai-engine/code-agent/__tests__/coding-agent-production-surface.test.js [2m([22m[2m2 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+2026-10-24T07:39:34.8160386Z (node:7032) ExperimentalWarning: CommonJS module D:\a\chainlesschain\chainlesschain\desktop-app-vue\src\main\llm\llm-ipc-privacy.js is loading ES Module D:\a\chainlesschain\chainlesschain\desktop-app-vue\src\main\utils\logger.js using require().
+2026-10-24T07:39:34.8162749Z Support for loading ES Module in require() is an experimental feature and might change at any time
+2026-10-24T07:39:34.8163896Z (Use `node --trace-warnings ...` to show where the warning was created)
+2026-10-24T07:39:34.8288415Z [90mstdout[2m | src/main/context-memory/__tests__/authority.test.js[2m > [22m[2mDesktop Context/Memory authority[2m > [22m[2mfences direct compressor and hierarchical-memory calls after cutover
+2026-10-24T07:39:34.8289982Z [22m[39m[2026-10-24T07:39:34.824Z] [INFO] [main] [LLM IPC] internal event {
+2026-10-24T07:39:34.8290607Z   "component": "compressor",
+2026-10-24T07:39:34.8291105Z   "event": "compressor-initialized"
+2026-10-24T07:39:34.8291543Z }
+2026-10-24T07:39:34.8291723Z 
+2026-10-24T07:39:34.8346798Z  [32m✓[39m src/main/context-memory/__tests__/authority.test.js [2m([22m[2m3 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+2026-10-24T07:39:34.8391565Z 
+2026-10-24T07:39:34.8397640Z [2m Test Files [22m [1m[32m5 passed[39m[22m[90m (5)[39m
+2026-10-24T07:39:34.8398538Z [2m      Tests [22m [1m[32m57 passed[39m[22m[90m (57)[39m
+2026-10-24T07:39:34.8399237Z [2m   Start at [22m 07:39:33
+2026-10-24T07:39:34.8401378Z [2m   Duration [22m 1.49s[2m (transform 193ms, setup 0ms, import 356ms, tests 219ms, environment 1ms)[22m
+2026-10-24T07:39:34.8403273Z 
+2026-10-24T07:39:34.9417200Z ##[group]Run npm --prefix packages/agent-sdk test
+2026-10-24T07:39:34.9417859Z [36;1mnpm --prefix packages/agent-sdk test[0m
+2026-10-24T07:39:34.9491738Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-10-24T07:39:34.9492113Z env:
+2026-10-24T07:39:34.9492478Z   CONTEXT_MEMORY_CANDIDATE_SHA: 9b198f348a5c38466e0afc57562fee3b935815fe
+2026-10-24T07:39:34.9492958Z   pythonLocation: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:39:34.9493420Z   PKG_CONFIG_PATH: C:\hostedtoolcache\windows\Python\3.12.10\x64/lib/pkgconfig
+2026-10-24T07:39:34.9493894Z   Python_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:39:34.9494286Z   Python2_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:39:34.9494693Z   Python3_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+2026-10-24T07:39:34.9495135Z   JAVA_HOME: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-24T07:39:34.9495694Z   JAVA_HOME_21_X64: C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64
+2026-10-24T07:39:34.9496090Z   MAVEN_ARGS: -ntp
+2026-10-24T07:39:34.9496320Z   TEMP: C:\Users\runneradmin\AppData\Local\Temp
+2026-10-24T07:39:34.9496623Z   TMP: C:\Users\runneradmin\AppData\Local\Temp
+2026-10-24T07:39:34.9496864Z ##[endgroup]
+2026-10-24T07:39:35.5741684Z 
+2026-10-24T07:39:35.5742432Z > @chainlesschain/agent-sdk@0.2.16 test
+2026-10-24T07:39:35.5742977Z > vitest run
+2026-10-24T07:39:35.5743208Z 
+2026-10-24T07:39:36.0951766Z 
+2026-10-24T07:39:36.0955408Z [1m[30m[46m RUN [49m[39m[22m [36mv4.1.11 [39m[90mD:/a/chainlesschain/chainlesschain/packages/agent-sdk[39m
+2026-10-24T07:39:36.0955886Z 
+2026-10-24T07:39:36.8450447Z  [32m✓[39m __tests__/agent-session.test.ts [2m([22m[2m25 tests[22m[2m)[22m[32m 66[2mms[22m[39m
+2026-10-24T07:39:36.8512561Z  [32m✓[39m __tests__/app-server-client.test.ts [2m([22m[2m16 tests[22m[2m)[22m[32m 73[2mms[22m[39m
+2026-10-24T07:39:37.2068631Z  [32m✓[39m __tests__/protocol-fixtures.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+2026-10-24T07:39:37.5379956Z  [32m✓[39m __tests__/protocol.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 75[2mms[22m[39m
+2026-10-24T07:39:37.6906249Z  [32m✓[39m __tests__/background.test.ts [2m([22m[2m10 tests[22m[2m)[22m[33m 513[2mms[22m[39m
+2026-10-24T07:39:37.6950580Z      [33m[2m✓[22m[39m times out when the server never answers hello [33m 303[2mms[22m[39m
+2026-10-24T07:39:37.8750026Z  [32m✓[39m __tests__/app-server-pilot-client.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+2026-10-24T07:39:38.0817126Z  [32m✓[39m __tests__/ndjson.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+2026-10-24T07:39:38.2173600Z  [32m✓[39m __tests__/cli-json.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+2026-10-24T07:42:38.5664150Z  [31m❯[39m __tests__/e2e-agent-session.test.ts [2m([22m[2m1 test[22m[2m | [22m[31m1 failed[39m[2m)[22m[33m 181125[2mms[22m[39m
+2026-10-24T07:42:38.5666809Z [31m     [31m×[31m streams init/text/result, answers approvals via callback (file really written), resumes[39m[33m 180010[2mms[22m[39m
+2026-10-24T07:42:38.5719702Z 
+2026-10-24T07:42:38.5721221Z [31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 1 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+2026-10-24T07:42:38.5721731Z 
+2026-10-24T07:42:38.5727131Z [41m[1m FAIL [22m[49m __tests__/e2e-agent-session.test.ts[2m > [22mAgentSession ↔ real cc agent (e2e)[2m > [22mstreams init/text/result, answers approvals via callback (file really written), resumes
+2026-10-24T07:42:38.5732825Z [31m[1mError[22m: Test timed out in 180000ms.
+2026-10-24T07:42:38.5733963Z If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".[39m
+2026-10-24T07:42:38.5735140Z [36m [2m❯[22m __tests__/e2e-agent-session.test.ts:[2m225:3[22m[39m
+2026-10-24T07:42:38.5810967Z     [90m223|[39m
+2026-10-24T07:42:38.5817505Z     [90m224|[39m [34mdescribe[39m([32m"AgentSession ↔ real cc agent (e2e)"[39m[33m,[39m () [33m=>[39m {
+2026-10-24T07:42:38.5819760Z     [90m225|[39m   it("streams init/text/result, answers approvals via callback (file r…
+2026-10-24T07:42:38.5820669Z     [90m   |[39m   [31m^[39m
+2026-10-24T07:42:38.5821522Z     [90m226|[39m     // ── Turn 1: plain text turn — stream-event + result contracts ──…
+2026-10-24T07:42:38.5822637Z     [90m227|[39m     // Explicit sessionId: anonymous stream sessions are persistence-f…
+2026-10-24T07:42:38.5823136Z 
+2026-10-24T07:42:38.5823510Z [31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯[22m[39m
+2026-10-24T07:42:38.5823846Z 
+2026-10-24T07:42:38.5823953Z 
+2026-10-24T07:42:38.5826216Z [2m Test Files [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m8 passed[39m[22m[90m (9)[39m
+2026-10-24T07:42:38.5827625Z [2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m97 passed[39m[22m[90m (98)[39m
+2026-10-24T07:42:38.5828376Z [2m   Start at [22m 07:39:36
+2026-10-24T07:42:38.5830058Z [2m   Duration [22m 182.47s[2m (transform 1.60s, setup 0ms, import 2.26s, tests 181.93s, environment 2ms)[22m
+2026-10-24T07:42:38.5832816Z 
+2026-10-24T07:42:38.5853394Z 
+2026-10-24T07:42:38.5877495Z ##[error]Error: Test timed out in 180000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ __tests__/e2e-agent-session.test.ts:225:3
+
+
+2026-10-24T07:42:38.6814113Z ##[error]Process completed with exit code 1.
+2026-10-24T07:42:38.7101805Z Post job cleanup.
+2026-10-24T07:42:38.9029264Z Post job cleanup.
+2026-10-24T07:42:39.0889397Z [command]"C:\Program Files\Git\bin\git.exe" version
+2026-10-24T07:42:39.1265787Z git version 2.56.0.windows.2
+2026-10-24T07:42:39.1334000Z Temporarily overriding HOME='D:\a\_temp\d5e68699-69f4-414e-a337-db9c243626fd' before making global git config changes
+2026-10-24T07:42:39.1334802Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-24T07:42:39.1345627Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\chainlesschain\chainlesschain
+2026-10-24T07:42:39.1768876Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2026-10-24T07:42:39.2170383Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2026-10-24T07:42:39.7872140Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-24T07:42:39.8226250Z http.https://github.com/.extraheader
+2026-10-24T07:42:39.8279678Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all http.https://github.com/.extraheader
+2026-10-24T07:42:39.8675885Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2026-10-24T07:42:40.4243455Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-24T07:42:40.4626279Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+2026-10-24T07:42:41.0410830Z Cleaning up orphan processes

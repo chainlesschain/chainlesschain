@@ -1,0 +1,281 @@
+{
+  "schema": "chainlesschain.local-duplex-ingress-diagnostic/v1",
+  "sourceSha": "835dbd309c99d0a4b012273b212154e6d31ce286",
+  "platform": "win32",
+  "node": "v22.12.0",
+  "diagnosticOnly": true,
+  "formalQualification": false,
+  "paidProviderCalls": false,
+  "runtimeModified": true,
+  "sourceDirty": "M packages/cli/src/lib/evolution/evolution-file-witness.js\n M packages/cli/src/lib/evolution/evolution-ledger-file-manifest-catalog.js\n M packages/cli/src/lib/evolution/evolution-ledger-file-manifest-head-store.js\n M packages/cli/src/lib/evolution/evolution-windows-directory-durability.js\n?? packages/cli/__tests__/fixtures/evolution-storage-acl-process.mjs\n?? packages/cli/__tests__/unit/evolution-storage-acl-backend.test.js\n?? packages/cli/src/lib/evolution/evolution-private-storage.js",
+  "runtimeHashes": {
+    "evolution-file-witness.js": "8f8460bde2e01ef8b1347181687f17617c2d76c5294f7bcd66c2b56c0c7422e7",
+    "evolution-ledger-file-manifest-catalog.js": "aa88d9c1e08295f2d524eeeecd530c274d77af850f991a744863d5858121a949",
+    "evolution-ledger-file-manifest-head-store.js": "6c6835aa5df125528fb859db82e5be5706cfe8821356c43f3d205fa534d0d906",
+    "evolution-private-storage.js": "19e48244c6d6ee7d3e75448eb0ef11f70cf646fc5d7cd190170c1af0dceff3e0",
+    "evolution-windows-directory-durability.js": "fce9da65ca616c047aebdb2ae08637da48ded7e0647137c9c72045cab66f5937"
+  },
+  "profile": {
+    "mode": "smoke",
+    "warmupTurns": 2,
+    "turns": 13,
+    "durationSeconds": 1,
+    "checkpointIntervalSeconds": 30,
+    "cleanupDeadlineMs": 10000,
+    "maxRssGrowthMb": 128,
+    "maxResourceGrowth": 8
+  },
+  "startedAt": "2026-10-24T05:21:09.111Z",
+  "status": "diagnostic-completed",
+  "requestCount": 15,
+  "sent": 15,
+  "results": [
+    {
+      "sequence": 1,
+      "at": "2026-10-24T05:21:31.037Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 2,
+      "at": "2026-10-24T05:21:40.429Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 3,
+      "at": "2026-10-24T05:21:59.887Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 4,
+      "at": "2026-10-24T05:22:16.354Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 5,
+      "at": "2026-10-24T05:22:32.237Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 6,
+      "at": "2026-10-24T05:22:49.604Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 7,
+      "at": "2026-10-24T05:23:07.297Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 8,
+      "at": "2026-10-24T05:23:26.038Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 9,
+      "at": "2026-10-24T05:23:45.342Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 10,
+      "at": "2026-10-24T05:24:05.643Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 11,
+      "at": "2026-10-24T05:24:27.226Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 12,
+      "at": "2026-10-24T05:24:49.197Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 13,
+      "at": "2026-10-24T05:25:12.816Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 14,
+      "at": "2026-10-24T05:25:36.311Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 15,
+      "at": "2026-10-24T05:26:02.369Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    }
+  ],
+  "failures": [],
+  "stderr": "Warning: sandbox mode is explicitly off; shell commands use policy checks without OS isolation.\n[AppConfig] No config file, using defaults\n[AppConfig] Configuration saved\n[DatabaseManager] better-sqlite3-multiple-ciphers unusable: Could not locate the bindings file. Tried:\n[DatabaseManager] better-sqlite3 unusable: Could not locate the bindings file. Tried:\n[DatabaseManager] Using sql.js (WASM fallback)\n[DatabaseManager] Database initialized: <local-path>\\data\\chainlesschain.db\n",
+  "partial": {
+    "status": "running",
+    "warmupTurns": 2,
+    "turns": 13,
+    "sentCount": 15,
+    "resultCount": 15,
+    "continuousDurationSeconds": 257.97630460000005,
+    "latency": {
+      "p95Ms": 21018.391999999993,
+      "observedCount": 13,
+      "retainedCount": 13
+    },
+    "rss": {
+      "beforeBytes": 185708544,
+      "maximumBytes": 228372480
+    },
+    "resources": {
+      "kind": "handle",
+      "before": 245,
+      "maximum": 245
+    },
+    "results": {
+      "count": 15,
+      "measuredCount": 13,
+      "errorCount": 0,
+      "failures": [],
+      "subtypeCounts": {
+        "success": 15
+      },
+      "lengthMinimum": 14,
+      "lengthMaximum": 14
+    },
+    "diagnosticCodes": [],
+    "diagnosticClasses": [],
+    "fetchDiagnostics": {
+      "available": true,
+      "enabled": true,
+      "truncated": false,
+      "events": []
+    },
+    "fetchRuntime": {
+      "coordinate": "parent-shared-binary-and-cli-module-resolution",
+      "node": "22.12.0",
+      "uv": "1.49.1",
+      "bundledUndici": "6.21.0",
+      "ollamaUndici": "7.30.1"
+    }
+  },
+  "result": {
+    "pass": true,
+    "turns": 13,
+    "warmup": {
+      "configuredTurns": 2,
+      "completedTurns": 2
+    },
+    "configuredDurationSeconds": 1,
+    "continuousDurationSeconds": 273.78294800000003,
+    "schedule": {
+      "mode": "duration-spread",
+      "targetTurns": 13,
+      "targetIntervalMs": 76.92307692307692
+    },
+    "latency": {
+      "p95Ms": 21018.391999999993,
+      "observedCount": 13,
+      "retainedCount": 13,
+      "retention": "rolling-window"
+    },
+    "rss": {
+      "beforeBytes": 185708544,
+      "afterBytes": 191356928,
+      "growthBytes": 5648384,
+      "maximumBytes": 228372480,
+      "peakGrowthBytes": 42663936,
+      "limitGrowthBytes": 134217728
+    },
+    "resources": {
+      "kind": "handle",
+      "before": 245,
+      "after": 242,
+      "delta": -3,
+      "maximum": 245,
+      "peakDelta": 0,
+      "limitGrowth": 8,
+      "requiredMeasurementsAvailable": true
+    },
+    "io": {
+      "available": true,
+      "readBytes": 788661941,
+      "writeBytes": 17123281,
+      "source": "cim",
+      "readOperations": 192942,
+      "writeOperations": 2497
+    },
+    "processDescendants": {
+      "measurementAvailable": true,
+      "beforeSource": "wmic",
+      "afterSource": "wmic",
+      "unavailableReason": null,
+      "beforeExit": 1,
+      "observed": 1,
+      "retired": 1,
+      "afterExit": 0,
+      "allRetired": true
+    },
+    "exit": {
+      "code": 0,
+      "signal": null
+    },
+    "results": {
+      "count": 15,
+      "measuredCount": 13,
+      "errorCount": 0,
+      "failures": [],
+      "subtypeCounts": {
+        "success": 15
+      },
+      "lengthMinimum": 14,
+      "lengthMaximum": 14
+    },
+    "diagnosticCodes": [],
+    "diagnosticClasses": [],
+    "fetchDiagnostics": {
+      "available": true,
+      "enabled": true,
+      "truncated": false,
+      "events": []
+    },
+    "fetchRuntime": {
+      "coordinate": "parent-shared-binary-and-cli-module-resolution",
+      "node": "22.12.0",
+      "uv": "1.49.1",
+      "bundledUndici": "6.21.0",
+      "ollamaUndici": "7.30.1"
+    }
+  },
+  "cleanupConfirmed": false,
+  "temporaryHomeRetained": true,
+  "sourceCleanAfter": false,
+  "finishedAt": "2026-10-24T05:26:24.487Z"
+}

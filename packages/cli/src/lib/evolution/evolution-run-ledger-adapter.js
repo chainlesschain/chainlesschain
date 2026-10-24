@@ -8,6 +8,7 @@ import {
 import {
   EVOLUTION_ARTIFACT_RESOLUTION_SCHEMA,
   EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA,
+  getEvolutionLedgerVerifiedHistoryReader,
 } from "./evolution-ledger.js";
 
 const { EVENT_TYPES, projectEvolutionRun } = evolutionRun;
@@ -159,6 +160,9 @@ function parseRecord(resolution, descriptor) {
 
 export class EvolutionRunLedgerAdapter {
   #readBatches;
+  #verifiedHistory;
+  #originalRead;
+  #originalVerify;
 
   constructor({
     descriptor: input,
@@ -172,6 +176,12 @@ export class EvolutionRunLedgerAdapter {
     this._read = capture(ledger, "read", "ledger");
     this._verify = capture(ledger, "verify", "ledger");
     this._append = capture(ledger, "appendDomainEvent", "ledger");
+    this.#originalRead = this._read;
+    this.#originalVerify = this._verify;
+    this.#verifiedHistory =
+      new.target === EvolutionRunLedgerAdapter
+        ? getEvolutionLedgerVerifiedHistoryReader(ledger)
+        : null;
     if (!isEvolutionLedgerArtifactResolver(ledgerArtifactResolver)) {
       throw new TypeError(
         "a branded EvolutionArtifactPorts ledger resolver is required",
@@ -264,7 +274,10 @@ export class EvolutionRunLedgerAdapter {
   }
 
   _domainEvents() {
-    const events = this._read();
+    return this.#filterDomainEvents(this._read());
+  }
+
+  #filterDomainEvents(events) {
     if (!Array.isArray(events)) {
       fail(
         EVOLUTION_RUN_LEDGER_CORRUPT_CODE,
@@ -328,8 +341,22 @@ export class EvolutionRunLedgerAdapter {
     // the full ledger once for every Run event made each load quadratic in its
     // history. Artifact bytes and current authority are still checked for each
     // item; the identity is scoped to this read and is never caller supplied.
-    const { verifiedAt: _beforeObservation, ...before } = clone(this._verify());
-    const domainEvents = this._domainEvents();
+    // Original ledgers can supply authority and events from one locked load.
+    // Custom/subclass ports keep their established calls and override behavior.
+    const history =
+      this.#verifiedHistory &&
+      this._read === this.#originalRead &&
+      this._verify === this.#originalVerify &&
+      this._domainEvents === ORIGINAL_DOMAIN_EVENTS
+        ? this.#verifiedHistory()
+        : null;
+    const { verifiedAt: _beforeObservation, ...before } = clone(
+      history === null ? this._verify() : history.authority,
+    );
+    const domainEvents =
+      history === null
+        ? this._domainEvents()
+        : this.#filterDomainEvents(history.events);
     const entries = [];
     try {
       // The synchronous read window reattests full index bytes around every
@@ -572,6 +599,9 @@ export class EvolutionRunLedgerAdapter {
     });
   }
 }
+
+const ORIGINAL_DOMAIN_EVENTS =
+  EvolutionRunLedgerAdapter.prototype._domainEvents;
 
 /** Read-only capability registered only by the real Run adapter constructor. */
 export function captureEvolutionRunEvidenceReader(adapter) {

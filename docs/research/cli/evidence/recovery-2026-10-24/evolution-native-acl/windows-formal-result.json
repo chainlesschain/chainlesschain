@@ -1,0 +1,1539 @@
+{
+  "schema": "chainlesschain.cli-reliability-soak.v2",
+  "status": "failed",
+  "startedAt": "2026-10-24T04:32:26.392Z",
+  "seriesStartedAt": "2026-10-24T04:32:26.392Z",
+  "headSha": "835dbd309c99d0a4b012273b212154e6d31ce286",
+  "expectedSha": "835dbd309c99d0a4b012273b212154e6d31ce286",
+  "exactShaVerified": true,
+  "source": {
+    "clean": true,
+    "changeCount": 0
+  },
+  "platform": "win32",
+  "arch": "x64",
+  "node": "v22.12.0",
+  "profile": {
+    "mode": "formal",
+    "durationSeconds": 7200,
+    "turns": 1000,
+    "warmupTurns": 20,
+    "concurrentAgents": 20,
+    "pipeCases": 20,
+    "disconnectCases": 5,
+    "slowConsumerMs": 2000,
+    "checkpointIntervalSeconds": 30,
+    "cleanupDeadlineMs": 10000,
+    "maxRssGrowthMb": 128,
+    "maxResourceGrowth": 8
+  },
+  "scenarios": {
+    "disk": {
+      "pass": true,
+      "configured": false,
+      "required": false,
+      "reason": "real-disk-fixtures-not-configured"
+    },
+    "mcpOutput": {
+      "pass": true,
+      "durationMs": 21166.2263,
+      "exit": {
+        "code": 0,
+        "signal": null
+      },
+      "resultSubtype": "success",
+      "resultIsError": false,
+      "toolCalls": 1,
+      "oversizedResultBytes": 1572864,
+      "budgetCodeObservedByModel": true,
+      "privateCanaryObservedByModel": false,
+      "privateCanaryObservedOnWire": false,
+      "modelRequestCount": 2,
+      "modelToolCallResponses": 1,
+      "modelFinalResponses": 1,
+      "mcpServerPidObserved": true,
+      "mcpServerRetired": true,
+      "startupDiagnostics": {
+        "fsCodes": [],
+        "operations": [],
+        "classes": [
+          "database-initialized",
+          "sandbox-configured"
+        ]
+      },
+      "diagnosticCodes": [],
+      "diagnosticClasses": [],
+      "toolResultProjections": [
+        {
+          "isError": true,
+          "code": "CC_MCP_LEDGER_OUTCOME_UNKNOWN",
+          "incidentCode": "CC_MCP_TOOL_RESULT_TOO_LARGE",
+          "outcomeUnknown": true,
+          "retryable": false
+        }
+      ],
+      "stdoutBytes": 88396,
+      "stderrBytes": 498
+    },
+    "pipe": {
+      "pass": true,
+      "brokenConsumerP95Ms": 4449.030099999996,
+      "slowConsumerP95Ms": 17837.661300000007,
+      "cleanupDeadlineMs": 10000,
+      "brokenConsumers": [
+        {
+          "closed": true,
+          "exitCode": 0,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 4514.390200000002,
+          "descendantsAfterExit": 0,
+          "stderrBytes": 361,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          }
+        },
+        {
+          "closed": true,
+          "exitCode": 0,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 3925.9490000000005,
+          "descendantsAfterExit": 0,
+          "stderrBytes": 319,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          }
+        },
+        {
+          "closed": true,
+          "exitCode": 0,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 3904.4946999999993,
+          "descendantsAfterExit": 0,
+          "stderrBytes": 319,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          }
+        },
+        {
+          "closed": true,
+          "exitCode": 0,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 3915.7917000000016,
+          "descendantsAfterExit": 0,
+          "stderrBytes": 319,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          }
+        },
+        {
+          "closed": true,
+          "exitCode": 0,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 4449.030099999996,
+          "descendantsAfterExit": 0,
+          "stderrBytes": 319,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          }
+        },
+        {
+          "closed": true,
+          "exitCode": 0,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 3925.687299999998,
+          "descendantsAfterExit": 0,
+          "stderrBytes": 319,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          }
+        },
+        {
+          "closed": true,
+          "exitCode": 0,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 3865.1443,
+          "descendantsAfterExit": 0,
+          "stderrBytes": 319,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          }
+        },
+        {
+          "closed": true,
+          "exitCode": 0,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 3976.0880999999936,
+          "descendantsAfterExit": 0,
+          "stderrBytes": 319,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          }
+        },
+        {
+          "closed": true,
+          "exitCode": 0,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 3909.537400000001,
+          "descendantsAfterExit": 0,
+          "stderrBytes": 319,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          }
+        },
+        {
+          "closed": true,
+          "exitCode": 0,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 3939.4028999999937,
+          "descendantsAfterExit": 0,
+          "stderrBytes": 319,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          }
+        },
+        {
+          "closed": true,
+          "exitCode": 0,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 3939.4077000000034,
+          "descendantsAfterExit": 0,
+          "stderrBytes": 319,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          }
+        },
+        {
+          "closed": true,
+          "exitCode": 0,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 3901.661300000007,
+          "descendantsAfterExit": 0,
+          "stderrBytes": 319,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          }
+        },
+        {
+          "closed": true,
+          "exitCode": 0,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 3974.861100000009,
+          "descendantsAfterExit": 0,
+          "stderrBytes": 319,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          }
+        },
+        {
+          "closed": true,
+          "exitCode": 0,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 4107.93680000001,
+          "descendantsAfterExit": 0,
+          "stderrBytes": 319,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          }
+        },
+        {
+          "closed": true,
+          "exitCode": 0,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 4009.193399999989,
+          "descendantsAfterExit": 0,
+          "stderrBytes": 319,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          }
+        },
+        {
+          "closed": true,
+          "exitCode": 0,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 4089.705900000001,
+          "descendantsAfterExit": 0,
+          "stderrBytes": 319,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          }
+        },
+        {
+          "closed": true,
+          "exitCode": 0,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 4063.665500000003,
+          "descendantsAfterExit": 0,
+          "stderrBytes": 319,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          }
+        },
+        {
+          "closed": true,
+          "exitCode": 0,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 4022.4342999999935,
+          "descendantsAfterExit": 0,
+          "stderrBytes": 319,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          }
+        },
+        {
+          "closed": true,
+          "exitCode": 0,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 4089.9444000000076,
+          "descendantsAfterExit": 0,
+          "stderrBytes": 319,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          }
+        },
+        {
+          "closed": true,
+          "exitCode": 0,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 4027.265499999994,
+          "descendantsAfterExit": 0,
+          "stderrBytes": 319,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          }
+        }
+      ],
+      "slowConsumers": [
+        {
+          "exitCode": 0,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 9273.551300000006,
+          "configuredStallMs": 2000,
+          "actualStallMs": 2001.3986000000004,
+          "stallObserved": true,
+          "peakReadableBytes": 64692,
+          "outputBytes": 2616633,
+          "resultSubtype": "success",
+          "resultIsError": false,
+          "diagnosticCodes": [],
+          "descendantsAfterExit": 0,
+          "stderrBytes": 319,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          }
+        },
+        {
+          "exitCode": 0,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 9295.979200000002,
+          "configuredStallMs": 2000,
+          "actualStallMs": 2009.3909999999887,
+          "stallObserved": true,
+          "peakReadableBytes": 64692,
+          "outputBytes": 2616633,
+          "resultSubtype": "success",
+          "resultIsError": false,
+          "diagnosticCodes": [],
+          "descendantsAfterExit": 0,
+          "stderrBytes": 319,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          }
+        },
+        {
+          "exitCode": 0,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 9490.565399999992,
+          "configuredStallMs": 2000,
+          "actualStallMs": 2002.2877000000153,
+          "stallObserved": true,
+          "peakReadableBytes": 64692,
+          "outputBytes": 2616633,
+          "resultSubtype": "success",
+          "resultIsError": false,
+          "diagnosticCodes": [],
+          "descendantsAfterExit": 0,
+          "stderrBytes": 319,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          }
+        },
+        {
+          "exitCode": 0,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 9488.721500000014,
+          "configuredStallMs": 2000,
+          "actualStallMs": 2000.849900000001,
+          "stallObserved": true,
+          "peakReadableBytes": 64692,
+          "outputBytes": 2616633,
+          "resultSubtype": "success",
+          "resultIsError": false,
+          "diagnosticCodes": [],
+          "descendantsAfterExit": 0,
+          "stderrBytes": 319,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          }
+        },
+        {
+          "exitCode": 0,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 9553.803899999999,
+          "configuredStallMs": 2000,
+          "actualStallMs": 2001.0480000000098,
+          "stallObserved": true,
+          "peakReadableBytes": 64692,
+          "outputBytes": 2616633,
+          "resultSubtype": "success",
+          "resultIsError": false,
+          "diagnosticCodes": [],
+          "descendantsAfterExit": 0,
+          "stderrBytes": 319,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          }
+        },
+        {
+          "exitCode": 0,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 10032.619099999982,
+          "configuredStallMs": 2000,
+          "actualStallMs": 2000.1071999999986,
+          "stallObserved": true,
+          "peakReadableBytes": 64692,
+          "outputBytes": 2616633,
+          "resultSubtype": "success",
+          "resultIsError": false,
+          "diagnosticCodes": [],
+          "descendantsAfterExit": 0,
+          "stderrBytes": 319,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          }
+        },
+        {
+          "exitCode": 0,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 10503.441900000005,
+          "configuredStallMs": 2000,
+          "actualStallMs": 2004.9996999999858,
+          "stallObserved": true,
+          "peakReadableBytes": 64692,
+          "outputBytes": 2616633,
+          "resultSubtype": "success",
+          "resultIsError": false,
+          "diagnosticCodes": [],
+          "descendantsAfterExit": 0,
+          "stderrBytes": 319,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          }
+        },
+        {
+          "exitCode": 0,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 9349.005900000018,
+          "configuredStallMs": 2000,
+          "actualStallMs": 2000.9327999999805,
+          "stallObserved": true,
+          "peakReadableBytes": 64692,
+          "outputBytes": 2616633,
+          "resultSubtype": "success",
+          "resultIsError": false,
+          "diagnosticCodes": [],
+          "descendantsAfterExit": 0,
+          "stderrBytes": 319,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          }
+        },
+        {
+          "exitCode": 0,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 11004.71100000001,
+          "configuredStallMs": 2000,
+          "actualStallMs": 2001.7141999999876,
+          "stallObserved": true,
+          "peakReadableBytes": 64692,
+          "outputBytes": 2616633,
+          "resultSubtype": "success",
+          "resultIsError": false,
+          "diagnosticCodes": [],
+          "descendantsAfterExit": 0,
+          "stderrBytes": 319,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          }
+        },
+        {
+          "exitCode": 0,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 19123.97570000001,
+          "configuredStallMs": 2000,
+          "actualStallMs": 2015.328600000008,
+          "stallObserved": true,
+          "peakReadableBytes": 64692,
+          "outputBytes": 2616633,
+          "resultSubtype": "success",
+          "resultIsError": false,
+          "diagnosticCodes": [],
+          "descendantsAfterExit": 0,
+          "stderrBytes": 319,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          }
+        },
+        {
+          "exitCode": 0,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 17837.661300000007,
+          "configuredStallMs": 2000,
+          "actualStallMs": 2002.646700000012,
+          "stallObserved": true,
+          "peakReadableBytes": 64692,
+          "outputBytes": 2616635,
+          "resultSubtype": "success",
+          "resultIsError": false,
+          "diagnosticCodes": [],
+          "descendantsAfterExit": 0,
+          "stderrBytes": 319,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          }
+        },
+        {
+          "exitCode": 0,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 11481.873800000001,
+          "configuredStallMs": 2000,
+          "actualStallMs": 2010.114200000011,
+          "stallObserved": true,
+          "peakReadableBytes": 64692,
+          "outputBytes": 2616634,
+          "resultSubtype": "success",
+          "resultIsError": false,
+          "diagnosticCodes": [],
+          "descendantsAfterExit": 0,
+          "stderrBytes": 319,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          }
+        },
+        {
+          "exitCode": 0,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 9088.109499999991,
+          "configuredStallMs": 2000,
+          "actualStallMs": 2004.2893999999797,
+          "stallObserved": true,
+          "peakReadableBytes": 64692,
+          "outputBytes": 2616634,
+          "resultSubtype": "success",
+          "resultIsError": false,
+          "diagnosticCodes": [],
+          "descendantsAfterExit": 0,
+          "stderrBytes": 319,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          }
+        },
+        {
+          "exitCode": 0,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 9576.499499999976,
+          "configuredStallMs": 2000,
+          "actualStallMs": 2004.9075000000012,
+          "stallObserved": true,
+          "peakReadableBytes": 64692,
+          "outputBytes": 2616634,
+          "resultSubtype": "success",
+          "resultIsError": false,
+          "diagnosticCodes": [],
+          "descendantsAfterExit": 0,
+          "stderrBytes": 319,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          }
+        },
+        {
+          "exitCode": 0,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 9843.364299999957,
+          "configuredStallMs": 2000,
+          "actualStallMs": 2000.4744000000064,
+          "stallObserved": true,
+          "peakReadableBytes": 64692,
+          "outputBytes": 2616634,
+          "resultSubtype": "success",
+          "resultIsError": false,
+          "diagnosticCodes": [],
+          "descendantsAfterExit": 0,
+          "stderrBytes": 319,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          }
+        },
+        {
+          "exitCode": 0,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 9516.35950000002,
+          "configuredStallMs": 2000,
+          "actualStallMs": 2004.6232999999775,
+          "stallObserved": true,
+          "peakReadableBytes": 64692,
+          "outputBytes": 2616634,
+          "resultSubtype": "success",
+          "resultIsError": false,
+          "diagnosticCodes": [],
+          "descendantsAfterExit": 0,
+          "stderrBytes": 319,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          }
+        },
+        {
+          "exitCode": 0,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 9330.081200000015,
+          "configuredStallMs": 2000,
+          "actualStallMs": 2001.4686999999685,
+          "stallObserved": true,
+          "peakReadableBytes": 64692,
+          "outputBytes": 2616634,
+          "resultSubtype": "success",
+          "resultIsError": false,
+          "diagnosticCodes": [],
+          "descendantsAfterExit": 0,
+          "stderrBytes": 319,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          }
+        },
+        {
+          "exitCode": 0,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 9401.913,
+          "configuredStallMs": 2000,
+          "actualStallMs": 2005.2865999999922,
+          "stallObserved": true,
+          "peakReadableBytes": 64692,
+          "outputBytes": 2616634,
+          "resultSubtype": "success",
+          "resultIsError": false,
+          "diagnosticCodes": [],
+          "descendantsAfterExit": 0,
+          "stderrBytes": 319,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          }
+        },
+        {
+          "exitCode": 0,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 9342.309100000013,
+          "configuredStallMs": 2000,
+          "actualStallMs": 2011.8143999999738,
+          "stallObserved": true,
+          "peakReadableBytes": 64692,
+          "outputBytes": 2616634,
+          "resultSubtype": "success",
+          "resultIsError": false,
+          "diagnosticCodes": [],
+          "descendantsAfterExit": 0,
+          "stderrBytes": 319,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          }
+        },
+        {
+          "exitCode": 0,
+          "signal": null,
+          "failureReason": null,
+          "durationMs": 9357.093200000003,
+          "configuredStallMs": 2000,
+          "actualStallMs": 2001.0703000000212,
+          "stallObserved": true,
+          "peakReadableBytes": 64692,
+          "outputBytes": 2616634,
+          "resultSubtype": "success",
+          "resultIsError": false,
+          "diagnosticCodes": [],
+          "descendantsAfterExit": 0,
+          "stderrBytes": 319,
+          "startupDiagnostics": {
+            "fsCodes": [],
+            "operations": [],
+            "classes": [
+              "database-initialized",
+              "sandbox-configured"
+            ]
+          }
+        }
+      ]
+    },
+    "tty": {
+      "pass": true,
+      "supported": true,
+      "normal": {
+        "pass": true,
+        "durationMs": 11658.334700000007,
+        "exitCode": 0,
+        "outputBytes": 686,
+        "diagnosticCodes": [],
+        "processRetired": true
+      },
+      "screenReader": {
+        "pass": true,
+        "durationMs": 12446.665199999989,
+        "exitCode": 0,
+        "readinessObserved": true,
+        "exitRequested": true,
+        "unicodePromptEchoed": true,
+        "responseObserved": true,
+        "ansiColorObserved": false,
+        "repaintObserved": false,
+        "outputBytes": 1042,
+        "diagnosticCodes": [],
+        "processRetired": true
+      },
+      "disconnects": [
+        {
+          "pass": true,
+          "outputObserved": true,
+          "killRequested": true,
+          "protocolEventObserved": true,
+          "processRetired": true,
+          "durationMs": 8103.214900000021,
+          "exitCode": 1,
+          "outputBytes": 887,
+          "diagnosticCodes": []
+        },
+        {
+          "pass": true,
+          "outputObserved": true,
+          "killRequested": true,
+          "protocolEventObserved": true,
+          "processRetired": true,
+          "durationMs": 8053.19789999997,
+          "exitCode": 1,
+          "outputBytes": 887,
+          "diagnosticCodes": []
+        },
+        {
+          "pass": true,
+          "outputObserved": true,
+          "killRequested": true,
+          "protocolEventObserved": true,
+          "processRetired": true,
+          "durationMs": 8050.618300000031,
+          "exitCode": 1,
+          "outputBytes": 887,
+          "diagnosticCodes": []
+        },
+        {
+          "pass": true,
+          "outputObserved": true,
+          "killRequested": true,
+          "protocolEventObserved": true,
+          "processRetired": true,
+          "durationMs": 8057.646399999969,
+          "exitCode": 1,
+          "outputBytes": 887,
+          "diagnosticCodes": []
+        },
+        {
+          "pass": true,
+          "outputObserved": true,
+          "killRequested": true,
+          "protocolEventObserved": true,
+          "processRetired": true,
+          "durationMs": 9115.733799999987,
+          "exitCode": 1,
+          "outputBytes": 887,
+          "diagnosticCodes": []
+        }
+      ]
+    },
+    "clipboard": {
+      "pass": true,
+      "supported": true,
+      "required": true,
+      "configured": true,
+      "durationMs": 1813.1808999999776,
+      "writeTool": "powershell",
+      "writeSucceeded": true,
+      "readExitCode": 0,
+      "unicodeRoundTripMatched": true,
+      "cleanupSucceeded": true
+    },
+    "ssh": {
+      "pass": true,
+      "configured": false,
+      "reason": "target-not-configured"
+    },
+    "concurrentAgents": {
+      "pass": true,
+      "agents": 20,
+      "durationMs": 75806.48959999997,
+      "exits": [
+        {
+          "index": 0,
+          "pid": 8664,
+          "spawnedAtMs": 0.05169999995268881,
+          "firstStdoutAtMs": 75356.96579999995,
+          "firstStderrAtMs": 12456.123199999973,
+          "exitAtMs": 75434.61109999998,
+          "closedAtMs": 75434.62919999997,
+          "timedOut": false,
+          "spawnError": false,
+          "code": 0,
+          "signal": null,
+          "resultSubtype": "success",
+          "resultIsError": false,
+          "resultLength": 14,
+          "diagnosticCodes": [],
+          "diagnosticClasses": [],
+          "stdoutBytes": 298,
+          "stderrBytes": 371,
+          "outputTruncated": false
+        },
+        {
+          "index": 1,
+          "pid": 1276,
+          "spawnedAtMs": 3.826599999971222,
+          "firstStdoutAtMs": 75768.16849999997,
+          "firstStderrAtMs": 12850.190399999963,
+          "exitAtMs": 75801.17059999995,
+          "closedAtMs": 75801.18669999996,
+          "timedOut": false,
+          "spawnError": false,
+          "code": 0,
+          "signal": null,
+          "resultSubtype": "success",
+          "resultIsError": false,
+          "resultLength": 14,
+          "diagnosticCodes": [],
+          "diagnosticClasses": [],
+          "stdoutBytes": 298,
+          "stderrBytes": 371,
+          "outputTruncated": false
+        },
+        {
+          "index": 2,
+          "pid": 2620,
+          "spawnedAtMs": 7.244599999976344,
+          "firstStdoutAtMs": 71744.11689999996,
+          "firstStderrAtMs": 11792.7169,
+          "exitAtMs": 71894.13079999998,
+          "closedAtMs": 71894.16209999996,
+          "timedOut": false,
+          "spawnError": false,
+          "code": 0,
+          "signal": null,
+          "resultSubtype": "success",
+          "resultIsError": false,
+          "resultLength": 14,
+          "diagnosticCodes": [],
+          "diagnosticClasses": [],
+          "stdoutBytes": 298,
+          "stderrBytes": 371,
+          "outputTruncated": false
+        },
+        {
+          "index": 3,
+          "pid": 4476,
+          "spawnedAtMs": 11.445999999996275,
+          "firstStdoutAtMs": 74408.55939999997,
+          "firstStderrAtMs": 11444.316799999971,
+          "exitAtMs": 74595.16379999998,
+          "closedAtMs": 74595.19509999995,
+          "timedOut": false,
+          "spawnError": false,
+          "code": 0,
+          "signal": null,
+          "resultSubtype": "success",
+          "resultIsError": false,
+          "resultLength": 14,
+          "diagnosticCodes": [],
+          "diagnosticClasses": [],
+          "stdoutBytes": 298,
+          "stderrBytes": 371,
+          "outputTruncated": false
+        },
+        {
+          "index": 4,
+          "pid": 3168,
+          "spawnedAtMs": 15.48379999998724,
+          "firstStdoutAtMs": 75689.88139999995,
+          "firstStderrAtMs": 12749.681999999972,
+          "exitAtMs": 75725.1557,
+          "closedAtMs": 75725.17419999995,
+          "timedOut": false,
+          "spawnError": false,
+          "code": 0,
+          "signal": null,
+          "resultSubtype": "success",
+          "resultIsError": false,
+          "resultLength": 14,
+          "diagnosticCodes": [],
+          "diagnosticClasses": [],
+          "stdoutBytes": 298,
+          "stderrBytes": 371,
+          "outputTruncated": false
+        },
+        {
+          "index": 5,
+          "pid": 8544,
+          "spawnedAtMs": 19.621899999969173,
+          "firstStdoutAtMs": 73378.12269999995,
+          "firstStderrAtMs": 11831.005199999956,
+          "exitAtMs": 73631.99569999997,
+          "closedAtMs": 73632.0269,
+          "timedOut": false,
+          "spawnError": false,
+          "code": 0,
+          "signal": null,
+          "resultSubtype": "success",
+          "resultIsError": false,
+          "resultLength": 14,
+          "diagnosticCodes": [],
+          "diagnosticClasses": [],
+          "stdoutBytes": 298,
+          "stderrBytes": 371,
+          "outputTruncated": false
+        },
+        {
+          "index": 6,
+          "pid": 5468,
+          "spawnedAtMs": 23.95429999998305,
+          "firstStdoutAtMs": 74357.15699999995,
+          "firstStderrAtMs": 13208.020699999994,
+          "exitAtMs": 74663.66829999996,
+          "closedAtMs": 74663.69759999996,
+          "timedOut": false,
+          "spawnError": false,
+          "code": 0,
+          "signal": null,
+          "resultSubtype": "success",
+          "resultIsError": false,
+          "resultLength": 14,
+          "diagnosticCodes": [],
+          "diagnosticClasses": [],
+          "stdoutBytes": 298,
+          "stderrBytes": 371,
+          "outputTruncated": false
+        },
+        {
+          "index": 7,
+          "pid": 8536,
+          "spawnedAtMs": 28.261399999959394,
+          "firstStdoutAtMs": 74562.70379999996,
+          "firstStderrAtMs": 12641.468799999973,
+          "exitAtMs": 74861.21649999998,
+          "closedAtMs": 74861.24449999997,
+          "timedOut": false,
+          "spawnError": false,
+          "code": 0,
+          "signal": null,
+          "resultSubtype": "success",
+          "resultIsError": false,
+          "resultLength": 14,
+          "diagnosticCodes": [],
+          "diagnosticClasses": [],
+          "stdoutBytes": 298,
+          "stderrBytes": 371,
+          "outputTruncated": false
+        },
+        {
+          "index": 8,
+          "pid": 1340,
+          "spawnedAtMs": 32.74849999998696,
+          "firstStdoutAtMs": 75673.59399999998,
+          "firstStderrAtMs": 12306.013899999962,
+          "exitAtMs": 75714.8884,
+          "closedAtMs": 75714.90589999995,
+          "timedOut": false,
+          "spawnError": false,
+          "code": 0,
+          "signal": null,
+          "resultSubtype": "success",
+          "resultIsError": false,
+          "resultLength": 14,
+          "diagnosticCodes": [],
+          "diagnosticClasses": [],
+          "stdoutBytes": 298,
+          "stderrBytes": 371,
+          "outputTruncated": false
+        },
+        {
+          "index": 9,
+          "pid": 9104,
+          "spawnedAtMs": 37.21709999995073,
+          "firstStdoutAtMs": 70990.10429999995,
+          "firstStderrAtMs": 11489.27609999996,
+          "exitAtMs": 71412.23049999995,
+          "closedAtMs": 71412.26189999998,
+          "timedOut": false,
+          "spawnError": false,
+          "code": 0,
+          "signal": null,
+          "resultSubtype": "success",
+          "resultIsError": false,
+          "resultLength": 14,
+          "diagnosticCodes": [],
+          "diagnosticClasses": [],
+          "stdoutBytes": 298,
+          "stderrBytes": 371,
+          "outputTruncated": false
+        },
+        {
+          "index": 10,
+          "pid": 7360,
+          "spawnedAtMs": 41.772999999986496,
+          "firstStdoutAtMs": 75103.88269999996,
+          "firstStderrAtMs": 11915.214099999983,
+          "exitAtMs": 75176.90869999997,
+          "closedAtMs": 75176.94209999999,
+          "timedOut": false,
+          "spawnError": false,
+          "code": 0,
+          "signal": null,
+          "resultSubtype": "success",
+          "resultIsError": false,
+          "resultLength": 14,
+          "diagnosticCodes": [],
+          "diagnosticClasses": [],
+          "stdoutBytes": 298,
+          "stderrBytes": 372,
+          "outputTruncated": false
+        },
+        {
+          "index": 11,
+          "pid": 3680,
+          "spawnedAtMs": 46.1072999999742,
+          "firstStdoutAtMs": 75754.97859999997,
+          "firstStderrAtMs": 12196.492700000003,
+          "exitAtMs": 75783.77789999999,
+          "closedAtMs": 75783.79609999998,
+          "timedOut": false,
+          "spawnError": false,
+          "code": 0,
+          "signal": null,
+          "resultSubtype": "success",
+          "resultIsError": false,
+          "resultLength": 14,
+          "diagnosticCodes": [],
+          "diagnosticClasses": [],
+          "stdoutBytes": 298,
+          "stderrBytes": 372,
+          "outputTruncated": false
+        },
+        {
+          "index": 12,
+          "pid": 6404,
+          "spawnedAtMs": 50.55949999997392,
+          "firstStdoutAtMs": 70824.55699999997,
+          "firstStderrAtMs": 10890.796099999978,
+          "exitAtMs": 71124.9203,
+          "closedAtMs": 71124.94999999995,
+          "timedOut": false,
+          "spawnError": false,
+          "code": 0,
+          "signal": null,
+          "resultSubtype": "success",
+          "resultIsError": false,
+          "resultLength": 14,
+          "diagnosticCodes": [],
+          "diagnosticClasses": [],
+          "stdoutBytes": 298,
+          "stderrBytes": 372,
+          "outputTruncated": false
+        },
+        {
+          "index": 13,
+          "pid": 5940,
+          "spawnedAtMs": 57.459899999958,
+          "firstStdoutAtMs": 75573.76059999998,
+          "firstStderrAtMs": 11761.720399999991,
+          "exitAtMs": 75632.52749999997,
+          "closedAtMs": 75632.549,
+          "timedOut": false,
+          "spawnError": false,
+          "code": 0,
+          "signal": null,
+          "resultSubtype": "success",
+          "resultIsError": false,
+          "resultLength": 14,
+          "diagnosticCodes": [],
+          "diagnosticClasses": [],
+          "stdoutBytes": 298,
+          "stderrBytes": 372,
+          "outputTruncated": false
+        },
+        {
+          "index": 14,
+          "pid": 1652,
+          "spawnedAtMs": 61.54660000000149,
+          "firstStdoutAtMs": 74449.39429999999,
+          "firstStderrAtMs": 12232.613699999987,
+          "exitAtMs": 74620.5968,
+          "closedAtMs": 74620.62929999997,
+          "timedOut": false,
+          "spawnError": false,
+          "code": 0,
+          "signal": null,
+          "resultSubtype": "success",
+          "resultIsError": false,
+          "resultLength": 14,
+          "diagnosticCodes": [],
+          "diagnosticClasses": [],
+          "stdoutBytes": 298,
+          "stderrBytes": 372,
+          "outputTruncated": false
+        },
+        {
+          "index": 15,
+          "pid": 8416,
+          "spawnedAtMs": 65.70869999995921,
+          "firstStdoutAtMs": 73963.39289999998,
+          "firstStderrAtMs": 11626.239799999981,
+          "exitAtMs": 74289.22589999996,
+          "closedAtMs": 74289.25989999995,
+          "timedOut": false,
+          "spawnError": false,
+          "code": 0,
+          "signal": null,
+          "resultSubtype": "success",
+          "resultIsError": false,
+          "resultLength": 14,
+          "diagnosticCodes": [],
+          "diagnosticClasses": [],
+          "stdoutBytes": 298,
+          "stderrBytes": 372,
+          "outputTruncated": false
+        },
+        {
+          "index": 16,
+          "pid": 5748,
+          "spawnedAtMs": 69.93849999998929,
+          "firstStdoutAtMs": 74241.41649999999,
+          "firstStderrAtMs": 12296.508899999957,
+          "exitAtMs": 74321.2205,
+          "closedAtMs": 74321.25699999998,
+          "timedOut": false,
+          "spawnError": false,
+          "code": 0,
+          "signal": null,
+          "resultSubtype": "success",
+          "resultIsError": false,
+          "resultLength": 14,
+          "diagnosticCodes": [],
+          "diagnosticClasses": [],
+          "stdoutBytes": 298,
+          "stderrBytes": 372,
+          "outputTruncated": false
+        },
+        {
+          "index": 17,
+          "pid": 7380,
+          "spawnedAtMs": 74.17269999999553,
+          "firstStdoutAtMs": 74371.24159999995,
+          "firstStderrAtMs": 13266.809799999988,
+          "exitAtMs": 74621.02769999998,
+          "closedAtMs": 74621.04629999999,
+          "timedOut": false,
+          "spawnError": false,
+          "code": 0,
+          "signal": null,
+          "resultSubtype": "success",
+          "resultIsError": false,
+          "resultLength": 14,
+          "diagnosticCodes": [],
+          "diagnosticClasses": [],
+          "stdoutBytes": 298,
+          "stderrBytes": 372,
+          "outputTruncated": false
+        },
+        {
+          "index": 18,
+          "pid": 4148,
+          "spawnedAtMs": 78.2219000000041,
+          "firstStdoutAtMs": 69240.33189999999,
+          "firstStderrAtMs": 11728.57289999997,
+          "exitAtMs": 69642.13189999998,
+          "closedAtMs": 69642.16269999999,
+          "timedOut": false,
+          "spawnError": false,
+          "code": 0,
+          "signal": null,
+          "resultSubtype": "success",
+          "resultIsError": false,
+          "resultLength": 14,
+          "diagnosticCodes": [],
+          "diagnosticClasses": [],
+          "stdoutBytes": 298,
+          "stderrBytes": 372,
+          "outputTruncated": false
+        },
+        {
+          "index": 19,
+          "pid": 7252,
+          "spawnedAtMs": 82.37309999996796,
+          "firstStdoutAtMs": 66958.5049,
+          "firstStderrAtMs": 11143.161099999968,
+          "exitAtMs": 67280.424,
+          "closedAtMs": 67280.49159999995,
+          "timedOut": false,
+          "spawnError": false,
+          "code": 0,
+          "signal": null,
+          "resultSubtype": "success",
+          "resultIsError": false,
+          "resultLength": 14,
+          "diagnosticCodes": [],
+          "diagnosticClasses": [],
+          "stdoutBytes": 298,
+          "stderrBytes": 372,
+          "outputTruncated": false
+        }
+      ],
+      "cleanup": {
+        "scope": "direct-children",
+        "allClosed": true,
+        "treeTermination": "unverified"
+      }
+    }
+  },
+  "partialScenarios": {
+    "duplexSoak": {
+      "status": "failed",
+      "warmupTurns": 20,
+      "turns": 16,
+      "sentCount": 37,
+      "resultCount": 36,
+      "continuousDurationSeconds": 229.35589840000006,
+      "latency": {
+        "p95Ms": 11186.239499999909,
+        "observedCount": 16,
+        "retainedCount": 16
+      },
+      "rss": {
+        "beforeBytes": 158330880,
+        "maximumBytes": 169193472
+      },
+      "resources": {
+        "kind": "handle",
+        "before": 223,
+        "maximum": 223
+      },
+      "results": {
+        "count": 36,
+        "measuredCount": 16,
+        "errorCount": 1,
+        "failures": [
+          {
+            "turn": 36,
+            "subtype": "unknown",
+            "errorDetails": null
+          }
+        ],
+        "subtypeCounts": {
+          "success": 35,
+          "unknown": 1
+        },
+        "lengthMinimum": 14,
+        "lengthMaximum": 14
+      },
+      "diagnosticCodes": [
+        "CC_AGENT_EVOLUTION_INGRESS_FAILED"
+      ],
+      "diagnosticClasses": [],
+      "fetchDiagnostics": {
+        "available": true,
+        "enabled": true,
+        "truncated": false,
+        "events": []
+      },
+      "fetchRuntime": {
+        "coordinate": "parent-shared-binary-and-cli-module-resolution",
+        "node": "22.12.0",
+        "uv": "1.49.1",
+        "bundledUndici": "6.21.0",
+        "ollamaUndici": "7.30.1"
+      },
+      "failure": {
+        "kind": "turn-timeout",
+        "awaitedResultCount": 37,
+        "timeoutMs": 60000
+      },
+      "cleanup": {
+        "deadlineMs": 10000,
+        "elapsedMs": 0.12590000010095537,
+        "closed": true,
+        "treeTerminated": false,
+        "confirmed": false,
+        "deadlineExceeded": false,
+        "diagnostics": {
+          "method": "windows-taskkill-tree",
+          "initialExitObserved": true,
+          "signalAttempted": false,
+          "probeCount": 0,
+          "permissionProbeCount": 0,
+          "failureStage": null,
+          "errorCode": null
+        }
+      }
+    }
+  },
+  "activeScenario": null,
+  "resume": {
+    "requested": false,
+    "recovered": false,
+    "priorStatus": null,
+    "attempt": 1,
+    "recoveredScenarios": []
+  },
+  "violations": [
+    "turn 37 timed out"
+  ],
+  "checkpointedAt": "2026-10-24T04:46:16.161Z",
+  "cleanup": {
+    "rootRemoved": false,
+    "reason": "duplex-child-cleanup-unconfirmed"
+  },
+  "finishedAt": "2026-10-24T04:46:16.161Z"
+}

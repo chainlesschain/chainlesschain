@@ -1,0 +1,180 @@
+{
+  "configSha256": "3512741cdcea1f88563845f84ab74e8da2e96332d12d1dcca7afea7f1cd9afab",
+  "eslint": "9.39.5",
+  "newFindings": 0,
+  "existingFindingsPreserved": true,
+  "files": [
+    {
+      "file": "packages/cli/__tests__/helpers/native-evolution-composition.cjs",
+      "baseline": {
+        "status": 0,
+        "messages": []
+      },
+      "current": {
+        "status": 0,
+        "messages": []
+      },
+      "newFindings": 0
+    },
+    {
+      "file": "packages/cli/__tests__/unit/governed-hub-sdk-copy.test.js",
+      "baseline": {
+        "status": 0,
+        "messages": []
+      },
+      "current": {
+        "status": 0,
+        "messages": []
+      },
+      "newFindings": 0
+    },
+    {
+      "file": "packages/cli/__tests__/unit/agent-evolution-runtime-composition.test.js",
+      "baseline": {
+        "status": 0,
+        "messages": [
+          {
+            "ruleId": "no-unused-vars",
+            "severity": 1,
+            "message": "'calculateCacheKey' is assigned a value but never used.",
+            "line": 3044,
+            "column": 7,
+            "nodeType": "Identifier",
+            "messageId": "unusedVar",
+            "endLine": 3044,
+            "endColumn": 24,
+            "suggestions": [
+              {
+                "messageId": "removeVar",
+                "data": {
+                  "varName": "calculateCacheKey"
+                },
+                "fix": {
+                  "range": [
+                    109487,
+                    109512
+                  ],
+                  "text": ""
+                },
+                "desc": "Remove unused variable 'calculateCacheKey'."
+              }
+            ]
+          },
+          {
+            "ruleId": "no-unused-vars",
+            "severity": 1,
+            "message": "'_event' is assigned a value but never used.",
+            "line": 5698,
+            "column": 22,
+            "nodeType": "Identifier",
+            "messageId": "unusedVar",
+            "endLine": 5698,
+            "endColumn": 28
+          }
+        ]
+      },
+      "current": {
+        "status": 0,
+        "messages": [
+          {
+            "ruleId": "no-unused-vars",
+            "severity": 1,
+            "message": "'calculateCacheKey' is assigned a value but never used.",
+            "line": 3051,
+            "column": 7,
+            "nodeType": "Identifier",
+            "messageId": "unusedVar",
+            "endLine": 3051,
+            "endColumn": 24,
+            "suggestions": [
+              {
+                "messageId": "removeVar",
+                "data": {
+                  "varName": "calculateCacheKey"
+                },
+                "fix": {
+                  "range": [
+                    109933,
+                    109958
+                  ],
+                  "text": ""
+                },
+                "desc": "Remove unused variable 'calculateCacheKey'."
+              }
+            ]
+          },
+          {
+            "ruleId": "no-unused-vars",
+            "severity": 1,
+            "message": "'_event' is assigned a value but never used.",
+            "line": 5708,
+            "column": 22,
+            "nodeType": "Identifier",
+            "messageId": "unusedVar",
+            "endLine": 5708,
+            "endColumn": 28
+          }
+        ]
+      },
+      "newFindings": 0
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/evolution-windows-directory-durability.js",
+      "baseline": {
+        "status": 1,
+        "messages": [
+          {
+            "ruleId": "no-control-regex",
+            "severity": 2,
+            "message": "Unexpected control character(s) in regular expression: \\x00.",
+            "line": 154,
+            "column": 45,
+            "nodeType": "Literal",
+            "messageId": "unexpected",
+            "endLine": 154,
+            "endColumn": 58
+          },
+          {
+            "ruleId": "no-unsafe-finally",
+            "severity": 2,
+            "message": "Unsafe usage of ThrowStatement.",
+            "line": 417,
+            "column": 7,
+            "nodeType": "ThrowStatement",
+            "messageId": "unsafeUsage",
+            "endLine": 417,
+            "endColumn": 52
+          }
+        ]
+      },
+      "current": {
+        "status": 1,
+        "messages": [
+          {
+            "ruleId": "no-control-regex",
+            "severity": 2,
+            "message": "Unexpected control character(s) in regular expression: \\x00.",
+            "line": 169,
+            "column": 45,
+            "nodeType": "Literal",
+            "messageId": "unexpected",
+            "endLine": 169,
+            "endColumn": 58
+          },
+          {
+            "ruleId": "no-unsafe-finally",
+            "severity": 2,
+            "message": "Unsafe usage of ThrowStatement.",
+            "line": 432,
+            "column": 7,
+            "nodeType": "ThrowStatement",
+            "messageId": "unsafeUsage",
+            "endLine": 432,
+            "endColumn": 52
+          }
+        ]
+      },
+      "newFindings": 0
+    }
+  ]
+}

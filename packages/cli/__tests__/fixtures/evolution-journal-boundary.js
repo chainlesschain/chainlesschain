@@ -16,6 +16,9 @@ export const journalDigest = (value) =>
 export function createJournalBoundaryIo(base) {
   const io = { live: new Map(), armed: false };
   const fsImpl = {
+    // The production directory adapter inherits Node fs and owns its flush
+    // method. Preserve both when adding this explicitly untrusted IO monitor.
+    ...fs,
     ...base,
     lstatSync(target, options) {
       const stat = base.lstatSync(target, options);
@@ -69,6 +72,16 @@ export function createJournalBoundaryIo(base) {
       return base.readFileSync(target, ...args);
     },
   };
+  if (typeof base.syncDirectorySync === "function") {
+    fsImpl.syncDirectorySync = (target) => {
+      // Keep directory IO visible to the same admission/fault monitor even
+      // when Windows flushes a native directory handle instead of a Node fd.
+      if (io.armed) io.beforeAnyOpen?.(target, "r");
+      const result = base.syncDirectorySync(target);
+      if (io.armed) io.allOpens.push({ target, flags: "r" });
+      return result;
+    };
+  }
   return {
     io,
     fsImpl,

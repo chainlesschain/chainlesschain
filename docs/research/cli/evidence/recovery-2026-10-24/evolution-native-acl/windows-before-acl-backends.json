@@ -1,0 +1,1 @@
+{"mode":"local-ui","customReads":0,"observations":[{"kind":"catalog","shellCalls":1,"nativeCalls":0,"ownerOnly":true,"durableReadback":true},{"kind":"head","shellCalls":1,"nativeCalls":0,"ownerOnly":true,"durableReadback":true},{"kind":"witness","shellCalls":1,"nativeCalls":0,"ownerOnly":true,"durableReadback":true}]}

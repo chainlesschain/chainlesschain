@@ -1,0 +1,9 @@
+{
+  "sourceSha": "8775e738c870ac54ef392f8e3d1974d3c30dfd86",
+  "runId": 40089805127,
+  "jobId": 120860203572,
+  "name": "test-windows / unit (windows-latest, shard 4/16)",
+  "conclusion": "failure",
+  "logSha256": "0a5e57334847116c6f0105b749827f7459e2cf7132eeb63a2648f4048f268e2d",
+  "capturedAt": "2026-10-24T11:42:49.766Z"
+}

@@ -2,6 +2,83 @@
   "schema": "chainlesschain.actual-failed-release-sources/v1",
   "sources": [
     {
+      "sha": "35cb1a379ddf80003c46efe315de5dac88b19731",
+      "reason": "Exact Linux CLI CI unit shard3/4 rejects bundled changelog parity: the canonical CHANGELOG native-module repair note was not regenerated into packages/cli/src/data/changelog.json. Original job records10007 passed,1 failed,29 skipped; preserve this actual failure. Standard generator repairs the committed offline package data without changing executable runtime, tests, budgets or workflow criteria. Windows unit shards3/16 and4/16 passed on this source, but those component results cannot qualify the replacement commit.",
+      "runId": 40094125260,
+      "jobId": 120872913752,
+      "jobLogSha256": "861e28b6cd870fc91d8ae3071311b9465e2a5410dcd0e3401079950a8551cb8c",
+      "artifactId": 12561228521,
+      "archiveSha256": "3ca8f7a1bb1af7496e6396f9cca15162c0a29964bd2ad676cba961c0e81b1bdd",
+      "evidence": "docs/research/cli/evidence/recovery-2026-10-24/changelog-artifact-parity/preparation.json"
+    },
+    {
+      "sha": "8775e738c870ac54ef392f8e3d1974d3c30dfd86",
+      "reason": "Exact Windows CLI CI unit shard4/16 times out resolver drain at its original90000ms budget. The native ESM composition cannot recognize the Vitest module filesystem brand and correctly retains the custom PowerShell ACL backend. Explicit same-realm fixture factories restore the native path without converting custom ports. This exposes a real Koffi process-global named-type collision, reproduced by a new dual-module real-flush regression and repaired with private initialization-scoped type names. Preserve the actual failed job even though the remaining workflow was cancelled; other green components do not qualify this source.",
+      "runId": 40089805127,
+      "jobId": 120860203572,
+      "artifactId": 12557914977,
+      "jobLogSha256": "0a5e57334847116c6f0105b749827f7459e2cf7132eeb63a2648f4048f268e2d",
+      "archiveSha256": "4ab8c3ad8d6365de17ae1a2fcd9e7c591c5c9ee541bd1ba5d61d90a5fe005102",
+      "evidence": "docs/research/cli/evidence/recovery-2026-10-24/native-module-realms/preparation.json"
+    },
+    {
+      "sha": "76491cc313d6057e4babee5223dc48033886e532",
+      "reason": "Natural Windows single-worker unit timeout at the original 60000ms budget through synthetic test directory fs forcing repeated PowerShell ACL repair. The original 80040ms failed case passes in about6734ms after the physical fixture repair. Old in-progress matrices were cancelled; no cloud assertion failure is claimed.",
+      "localFailure": true,
+      "cloudFailureAsserted": false,
+      "originalBudgetMs": 60000,
+      "reportSha256": "c09818e8c0c39c8828ce330d4a2b603635e7af6bd9074a45bd38de31977a39e5",
+      "stdoutSha256": "23bf3a053400178cab47cdafef77c4412d2bf37212afcfe29a8dd0f941755da8",
+      "evidence": "docs/research/cli/evidence/recovery-2026-10-24/physical-fixture-filesystems/preparation.json"
+    },
+    {
+      "sha": "35f7c7231e552280a0f565818b1986115fb3915d",
+      "reason": "Exact Windows Workbench browser approval saved notice exceeded its unchanged 120000ms wait. A local partial startup diagnostic confirms repeated PowerShell ACL operations through the synthetic filesystem. Preserve the cloud failure; the local diagnostic was manually stopped during initialization, not a natural browser timeout.",
+      "runId": 40076514139,
+      "jobId": 120821002934,
+      "artifactId": 12554130711,
+      "archiveSha256": "fd16e8093f6a7da8d9c9845794c73af5a55b9f43dcbaaaede116f532c84f239c",
+      "evidence": "docs/research/cli/evidence/recovery-2026-10-24/native-fixture-filesystems/preparation.json"
+    },
+    {
+      "sha": "9b198f348a5c38466e0afc57562fee3b935815fe",
+      "reason": "Exact Context/Memory Windows CI times out its real Agent SDK E2E after the original 180000ms. The unchanged local source reproduces the timeout. A separate content-free trace records init only about 113s after diagnostic startup, then one user input but no model request or result, with repeated slow file ACL repairs; a live child query confirms PowerShell. The signed test-deployment fixture supplies a custom filesystem with synthetic directory descriptors. Replacing it with the unchanged production adapter passes the same E2E in about 57s without changing its deadline or assertions. Other green gates do not qualify this source.",
+      "runId": 40074676993,
+      "jobId": 120815396733,
+      "jobLogSha256": "dbdac7da0baaa4c13d6a6e3857c2d028bed70f6a59ccfde209c2a08aeac36b5e",
+      "windowsArtifactAvailable": false,
+      "evidence": "docs/research/cli/evidence/recovery-2026-10-24/real-deployment-fs/preparation.json"
+    },
+    {
+      "sha": "09cf06d03929a7c880f22e096a16b5e9950b3157",
+      "reason": "Exact CLI CI Windows unit shard 3/16 rejects all five Evolution storage ACL configurations: writes and reopen succeed, but independent published-file owner-only inspection fails. The call sites did not request explicit Windows file ACL repair. The original cloud fixture did not record owner SID equality, so the elevated-token owner mechanism is a code-supported explanation, not an independently captured cloud identity observation. Other green and in-progress gates cannot qualify this source.",
+      "runId": 40068241563,
+      "jobId": 120796658657,
+      "artifactId": 12551424567,
+      "archiveSha256": "a9a15ac19d24946c2c0ce1fe4561c11af66d4507e7c3739c57e3033b6765e7f2",
+      "jobLogSha256": "e9801441503e8738758ce63efda9682fb2d9b997654549aa7d7b358ad811fc8e",
+      "evidence": "docs/research/cli/evidence/recovery-2026-10-24/evolution-file-owner-acl/preparation.json"
+    },
+    {
+      "sha": "835dbd309c99d0a4b012273b212154e6d31ce286",
+      "reason": "Exact Windows Formal produced one Evolution ingress error at total result 36 and timed out awaiting result 37. A separate unchanged local diagnostic timed out at turn 45. The local diagnostic did not reproduce the cloud ingress error; no root-cause equivalence is claimed. Other green gates do not qualify this source.",
+      "runId": 40062364182,
+      "jobId": 120778420318,
+      "artifactId": 12548253478,
+      "archiveSha256": "2afbbd2a71a9cfd6a1fa3983901f4417ec827ac1a2c3ddbc5609107beeae4e12",
+      "resultSha256": "4abb2de8bfc653a3fdbd0fb0b3cad802cbb7a03046589501cda419916cb837d5",
+      "evidence": "docs/research/cli/evidence/recovery-2026-10-24/evolution-native-acl/windows-formal-result.json"
+    },
+    {
+      "sha": "71f08ba5feef0b3b802eb1f9fd0ceb1707124ed0",
+      "reason": "Exact CLI CI rejects five stale RRSI artifact-byte integration expectations. Default stores now use one bounded read; custom hooks still require all original phases. Strict/Context successes and in-progress Formal results do not qualify this failing source for publication.",
+      "runId": 40058195903,
+      "jobId": 120765921998,
+      "artifactId": 12547467243,
+      "archiveSha256": "8aaecd8aca3bb899d4ee8e195b2c5fa90887fe5e31f69e53338e13f97615e485",
+      "evidence": "docs/research/cli/evidence/recovery-2026-10-24/rrsi-artifact-byte-gates/preparation.json"
+    },
+    {
       "sha": "e4c66df637d8ace1d8426513e0b14f0f22e2e913",
       "reason": "Exact Formal Windows main completed 20 warmup and 97 timely measured turns, then total turn 118 exceeded the original 60000ms deadline. A late result counted during timeout cleanup does not reverse the timeout. Exact CLI CI also rejects a stale verify09 mutation anchor after receipt compatibility changes. New cache/I/O runtime and review-control repairs require a new source and complete fresh gates.",
       "runId": 40041474292,

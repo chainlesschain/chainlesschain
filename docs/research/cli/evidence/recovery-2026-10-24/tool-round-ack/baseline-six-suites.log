@@ -1,0 +1,10 @@
+Command: node-verified.exe ../../node_modules/vitest/vitest.mjs run __tests__/unit/headless-receipt-retention.test.js __tests__/unit/session-runtime-retention.test.js __tests__/unit/headless-canonical-tool-round.test.js __tests__/unit/headless-runner-canonical-tool-round.test.js __tests__/unit/session-receipt-cas.test.js __tests__/unit/agent-core-compact-persist.test.js --maxWorkers=1
+Cwd: C:/code/chainlesschain/.work/cc118-native-ports/packages/cli
+Note: Baseline process began before acknowledgement guard edit; not final-source validation.
+Captured tool stdout:
+ RUN  v4.1.11 C:/code/chainlesschain/.work/cc118-native-ports/packages/cli
+ Test Files  6 passed (6)
+      Tests  59 passed (59)
+   Start at  16:57:14
+   Duration  200.10s (transform 9.30s, setup 1.28s, import 21.79s, tests 174.45s, environment 1ms)
+Exit code: 0

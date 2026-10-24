@@ -1,0 +1,1497 @@
+﻿2026-10-24T13:05:54.2053488Z Current runner version: '2.338.0'
+2026-10-24T13:05:54.2074471Z ##[group]Runner Image Provisioner
+2026-10-24T13:05:54.2075254Z Hosted Compute Agent
+2026-10-24T13:05:54.2075811Z Version: 20261012.601
+2026-10-24T13:05:54.2076330Z Commit: f3dc54e1fb89da6852db922499a0233137369e1d
+2026-10-24T13:05:54.2076952Z Build Date: 2026-10-12T17:48:21Z
+2026-10-24T13:05:54.2077520Z Worker ID: {931094fd-2f6a-4936-9992-60189ccff3d6}
+2026-10-24T13:05:54.2078117Z Region: eastus
+2026-10-24T13:05:54.2078603Z Cloud: Azure
+2026-10-24T13:05:54.2079044Z ##[endgroup]
+2026-10-24T13:05:54.2080404Z ##[group]Operating System
+2026-10-24T13:05:54.2080993Z Ubuntu
+2026-10-24T13:05:54.2081536Z 24.04.5
+2026-10-24T13:05:54.2081996Z LTS
+2026-10-24T13:05:54.2082417Z ##[endgroup]
+2026-10-24T13:05:54.2083044Z ##[group]Runner Image
+2026-10-24T13:05:54.2083547Z Image: ubuntu-24.04
+2026-10-24T13:05:54.2084047Z Version: 20261012.334.1
+2026-10-24T13:05:54.2085142Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261012.334/images/ubuntu/Ubuntu2404-Readme.md
+2026-10-24T13:05:54.2086382Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261012.334
+2026-10-24T13:05:54.2087174Z ##[endgroup]
+2026-10-24T13:05:54.2089939Z ##[group]GITHUB_TOKEN Permissions
+2026-10-24T13:05:54.2092022Z Actions: write
+2026-10-24T13:05:54.2092505Z ArtifactMetadata: write
+2026-10-24T13:05:54.2093373Z Attestations: write
+2026-10-24T13:05:54.2093844Z Checks: write
+2026-10-24T13:05:54.2094331Z CodeQuality: write
+2026-10-24T13:05:54.2094808Z Contents: write
+2026-10-24T13:05:54.2095285Z CopilotRequests: write
+2026-10-24T13:05:54.2095820Z Deployments: write
+2026-10-24T13:05:54.2096309Z Discussions: write
+2026-10-24T13:05:54.2096822Z Drives: write
+2026-10-24T13:05:54.2097279Z Issues: write
+2026-10-24T13:05:54.2097822Z Metadata: read
+2026-10-24T13:05:54.2098367Z Models: read
+2026-10-24T13:05:54.2098813Z Packages: write
+2026-10-24T13:05:54.2099280Z Pages: write
+2026-10-24T13:05:54.2099753Z PullRequests: write
+2026-10-24T13:05:54.2100236Z RepositoryProjects: write
+2026-10-24T13:05:54.2100801Z SecurityEvents: write
+2026-10-24T13:05:54.2101272Z Statuses: write
+2026-10-24T13:05:54.2101784Z VulnerabilityAlerts: read
+2026-10-24T13:05:54.2102292Z ##[endgroup]
+2026-10-24T13:05:54.2104088Z Secret source: Actions
+2026-10-24T13:05:54.2104928Z Cache mode: write
+2026-10-24T13:05:54.2105762Z Prepare workflow directory
+2026-10-24T13:05:54.2528573Z Prepare all required actions
+2026-10-24T13:05:54.2569065Z Getting action download info
+2026-10-24T13:05:54.4096271Z Download action repository 'actions/checkout@v5' (SHA:fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09)
+2026-10-24T13:05:54.5049541Z Download action repository 'actions/setup-node@v5' (SHA:a0853c24544627f65ddf259abe73b1d18a591444)
+2026-10-24T13:05:54.7163325Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-10-24T13:05:54.9368958Z Uses: chainlesschain/chainlesschain/.github/workflows/_cli-test.yml@refs/heads/feature/cli118-boundary-gates-20261024 (35cb1a379ddf80003c46efe315de5dac88b19731)
+2026-10-24T13:05:54.9373800Z ##[group] Inputs
+2026-10-24T13:05:54.9374294Z   commit_sha: 35cb1a379ddf80003c46efe315de5dac88b19731
+2026-10-24T13:05:54.9374797Z   runs-on: ubuntu-latest
+2026-10-24T13:05:54.9375832Z   shards: 4
+2026-10-24T13:05:54.9376247Z   unit-shards: 4
+2026-10-24T13:05:54.9377238Z   include-e2e: true
+2026-10-24T13:05:54.9377617Z ##[endgroup]
+2026-10-24T13:05:54.9378081Z Complete job name: test-ubuntu / unit (ubuntu-latest, shard 3/4)
+2026-10-24T13:05:54.9915629Z ##[group]Run actions/checkout@v5
+2026-10-24T13:05:54.9916257Z with:
+2026-10-24T13:05:54.9916631Z   ref: 35cb1a379ddf80003c46efe315de5dac88b19731
+2026-10-24T13:05:54.9917141Z   repository: chainlesschain/chainlesschain
+2026-10-24T13:05:54.9920108Z   token: ***
+2026-10-24T13:05:54.9920448Z   ssh-strict: true
+2026-10-24T13:05:54.9920788Z   ssh-user: git
+2026-10-24T13:05:54.9921134Z   persist-credentials: true
+2026-10-24T13:05:54.9921513Z   clean: true
+2026-10-24T13:05:54.9921867Z   sparse-checkout-cone-mode: true
+2026-10-24T13:05:54.9922478Z   fetch-depth: 1
+2026-10-24T13:05:54.9922951Z   fetch-tags: false
+2026-10-24T13:05:54.9923299Z   show-progress: true
+2026-10-24T13:05:54.9923642Z   lfs: false
+2026-10-24T13:05:54.9923969Z   submodules: false
+2026-10-24T13:05:54.9924313Z   set-safe-directory: true
+2026-10-24T13:05:54.9924704Z   allow-unsafe-pr-checkout: false
+2026-10-24T13:05:54.9925271Z env:
+2026-10-24T13:05:54.9925609Z   CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS: 
+2026-10-24T13:05:54.9926064Z ##[endgroup]
+2026-10-24T13:05:55.0733200Z Syncing repository: chainlesschain/chainlesschain
+2026-10-24T13:05:55.0734752Z ##[group]Getting Git version info
+2026-10-24T13:05:55.0735357Z Working directory is '/home/runner/work/chainlesschain/chainlesschain'
+2026-10-24T13:05:55.0736494Z [command]/usr/bin/git version
+2026-10-24T13:05:55.0793725Z git version 2.55.0
+2026-10-24T13:05:55.0811204Z ##[endgroup]
+2026-10-24T13:05:55.0823601Z Temporarily overriding HOME='/home/runner/work/_temp/33e3c127-3198-4ca6-81ac-807dc646e895' before making global git config changes
+2026-10-24T13:05:55.0830929Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-24T13:05:55.0831896Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/chainlesschain/chainlesschain
+2026-10-24T13:05:55.0875366Z Deleting the contents of '/home/runner/work/chainlesschain/chainlesschain'
+2026-10-24T13:05:55.0879419Z ##[group]Initializing the repository
+2026-10-24T13:05:55.0883533Z [command]/usr/bin/git init /home/runner/work/chainlesschain/chainlesschain
+2026-10-24T13:05:55.1000726Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-24T13:05:55.1001932Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-24T13:05:55.1003219Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-24T13:05:55.1004519Z hint: call:
+2026-10-24T13:05:55.1005023Z hint:
+2026-10-24T13:05:55.1005627Z hint: 	git config --global init.defaultBranch <name>
+2026-10-24T13:05:55.1006360Z hint:
+2026-10-24T13:05:55.1007127Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-24T13:05:55.1008273Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-24T13:05:55.1009119Z hint:
+2026-10-24T13:05:55.1009463Z hint: 	git branch -m <name>
+2026-10-24T13:05:55.1009844Z hint:
+2026-10-24T13:05:55.1010361Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-24T13:05:55.1011212Z Initialized empty Git repository in /home/runner/work/chainlesschain/chainlesschain/.git/
+2026-10-24T13:05:55.1014118Z [command]/usr/bin/git remote add origin https://github.com/chainlesschain/chainlesschain
+2026-10-24T13:05:55.1055856Z ##[endgroup]
+2026-10-24T13:05:55.1056470Z ##[group]Disabling automatic garbage collection
+2026-10-24T13:05:55.1059039Z [command]/usr/bin/git config --local gc.auto 0
+2026-10-24T13:05:55.1085569Z ##[endgroup]
+2026-10-24T13:05:55.1086149Z ##[group]Setting up auth
+2026-10-24T13:05:55.1091911Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-24T13:05:55.1118239Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-24T13:05:55.1472905Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-24T13:05:55.1505229Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-24T13:05:55.1694666Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-24T13:05:55.1724544Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-24T13:05:55.1924993Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-10-24T13:05:55.1960587Z ##[endgroup]
+2026-10-24T13:05:55.1961598Z ##[group]Fetching the repository
+2026-10-24T13:05:55.1969282Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin 35cb1a379ddf80003c46efe315de5dac88b19731
+2026-10-24T13:06:08.1089415Z From https://github.com/chainlesschain/chainlesschain
+2026-10-24T13:06:08.1090897Z  * branch              35cb1a379ddf80003c46efe315de5dac88b19731 -> FETCH_HEAD
+2026-10-24T13:06:08.1094003Z ##[endgroup]
+2026-10-24T13:06:08.1095196Z ##[group]Determining the checkout info
+2026-10-24T13:06:08.1096415Z ##[endgroup]
+2026-10-24T13:06:08.1100273Z [command]/usr/bin/git sparse-checkout disable
+2026-10-24T13:06:08.1173665Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-10-24T13:06:08.1204326Z ##[group]Checking out the ref
+2026-10-24T13:06:08.1205553Z [command]/usr/bin/git checkout --progress --force 35cb1a379ddf80003c46efe315de5dac88b19731
+2026-10-24T13:06:09.2031451Z Updating files:  40% (14181/34992)
+2026-10-24T13:06:09.5261350Z Updating files:  41% (14347/34992)
+2026-10-24T13:06:09.9287796Z Updating files:  42% (14697/34992)
+2026-10-24T13:06:09.9911764Z Updating files:  43% (15047/34992)
+2026-10-24T13:06:10.0123849Z Updating files:  44% (15397/34992)
+2026-10-24T13:06:10.0344444Z Updating files:  45% (15747/34992)
+2026-10-24T13:06:10.0647583Z Updating files:  46% (16097/34992)
+2026-10-24T13:06:10.1184351Z Updating files:  47% (16447/34992)
+2026-10-24T13:06:10.1509783Z Updating files:  48% (16797/34992)
+2026-10-24T13:06:10.1516086Z Updating files:  49% (17147/34992)
+2026-10-24T13:06:10.1713522Z Updating files:  49% (17166/34992)
+2026-10-24T13:06:10.1834953Z Updating files:  50% (17496/34992)
+2026-10-24T13:06:10.1981641Z Updating files:  51% (17846/34992)
+2026-10-24T13:06:10.2204735Z Updating files:  52% (18196/34992)
+2026-10-24T13:06:10.2384576Z Updating files:  53% (18546/34992)
+2026-10-24T13:06:10.2570285Z Updating files:  54% (18896/34992)
+2026-10-24T13:06:10.3448173Z Updating files:  55% (19246/34992)
+2026-10-24T13:06:10.3699420Z Updating files:  56% (19596/34992)
+2026-10-24T13:06:10.4302322Z Updating files:  57% (19946/34992)
+2026-10-24T13:06:10.4465864Z Updating files:  58% (20296/34992)
+2026-10-24T13:06:10.4863172Z Updating files:  59% (20646/34992)
+2026-10-24T13:06:10.5165461Z Updating files:  60% (20996/34992)
+2026-10-24T13:06:10.5548556Z Updating files:  61% (21346/34992)
+2026-10-24T13:06:10.5848405Z Updating files:  62% (21696/34992)
+2026-10-24T13:06:10.6008097Z Updating files:  63% (22045/34992)
+2026-10-24T13:06:10.6126187Z Updating files:  64% (22395/34992)
+2026-10-24T13:06:10.6301760Z Updating files:  65% (22745/34992)
+2026-10-24T13:06:10.6421789Z Updating files:  66% (23095/34992)
+2026-10-24T13:06:10.6531799Z Updating files:  67% (23445/34992)
+2026-10-24T13:06:10.7129247Z Updating files:  68% (23795/34992)
+2026-10-24T13:06:10.7370525Z Updating files:  69% (24145/34992)
+2026-10-24T13:06:10.8264834Z Updating files:  70% (24495/34992)
+2026-10-24T13:06:10.8475949Z Updating files:  71% (24845/34992)
+2026-10-24T13:06:10.8734781Z Updating files:  72% (25195/34992)
+2026-10-24T13:06:10.9058839Z Updating files:  73% (25545/34992)
+2026-10-24T13:06:10.9291219Z Updating files:  74% (25895/34992)
+2026-10-24T13:06:10.9592594Z Updating files:  75% (26244/34992)
+2026-10-24T13:06:10.9841926Z Updating files:  76% (26594/34992)
+2026-10-24T13:06:11.0048790Z Updating files:  77% (26944/34992)
+2026-10-24T13:06:11.0306690Z Updating files:  78% (27294/34992)
+2026-10-24T13:06:11.0511723Z Updating files:  79% (27644/34992)
+2026-10-24T13:06:11.0791044Z Updating files:  80% (27994/34992)
+2026-10-24T13:06:11.1011508Z Updating files:  81% (28344/34992)
+2026-10-24T13:06:11.1245255Z Updating files:  82% (28694/34992)
+2026-10-24T13:06:11.1495507Z Updating files:  83% (29044/34992)
+2026-10-24T13:06:11.1515289Z Updating files:  84% (29394/34992)
+2026-10-24T13:06:11.1702903Z Updating files:  84% (29426/34992)
+2026-10-24T13:06:11.1915545Z Updating files:  85% (29744/34992)
+2026-10-24T13:06:11.2151963Z Updating files:  86% (30094/34992)
+2026-10-24T13:06:11.2388894Z Updating files:  87% (30444/34992)
+2026-10-24T13:06:11.2687989Z Updating files:  88% (30793/34992)
+2026-10-24T13:06:11.3026858Z Updating files:  89% (31143/34992)
+2026-10-24T13:06:11.3332841Z Updating files:  90% (31493/34992)
+2026-10-24T13:06:11.3605802Z Updating files:  91% (31843/34992)
+2026-10-24T13:06:11.4137481Z Updating files:  92% (32193/34992)
+2026-10-24T13:06:11.4353040Z Updating files:  93% (32543/34992)
+2026-10-24T13:06:11.4600218Z Updating files:  94% (32893/34992)
+2026-10-24T13:06:11.4801097Z Updating files:  95% (33243/34992)
+2026-10-24T13:06:11.5028309Z Updating files:  96% (33593/34992)
+2026-10-24T13:06:11.5263696Z Updating files:  97% (33943/34992)
+2026-10-24T13:06:11.5482105Z Updating files:  98% (34293/34992)
+2026-10-24T13:06:11.5682223Z Updating files:  99% (34643/34992)
+2026-10-24T13:06:11.5682573Z Updating files: 100% (34992/34992)
+2026-10-24T13:06:11.5683138Z Updating files: 100% (34992/34992), done.
+2026-10-24T13:06:11.6013048Z Note: switching to '35cb1a379ddf80003c46efe315de5dac88b19731'.
+2026-10-24T13:06:11.6013582Z 
+2026-10-24T13:06:11.6014032Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-10-24T13:06:11.6014735Z changes and commit them, and you can discard any commits you make in this
+2026-10-24T13:06:11.6015423Z state without impacting any branches by switching back to a branch.
+2026-10-24T13:06:11.6015943Z 
+2026-10-24T13:06:11.6016291Z If you want to create a new branch to retain commits you create, you may
+2026-10-24T13:06:11.6016949Z do so (now or later) by using -c with the switch command. Example:
+2026-10-24T13:06:11.6017407Z 
+2026-10-24T13:06:11.6017554Z   git switch -c <new-branch-name>
+2026-10-24T13:06:11.6017776Z 
+2026-10-24T13:06:11.6017892Z Or undo this operation with:
+2026-10-24T13:06:11.6018087Z 
+2026-10-24T13:06:11.6018187Z   git switch -
+2026-10-24T13:06:11.6018339Z 
+2026-10-24T13:06:11.6018593Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-10-24T13:06:11.6019079Z 
+2026-10-24T13:06:11.6019346Z HEAD is now at 35cb1a37 fix(cli): isolate native directory types across module realms
+2026-10-24T13:06:11.6083741Z ##[endgroup]
+2026-10-24T13:06:11.6125996Z [command]/usr/bin/git log -1 --format=%H
+2026-10-24T13:06:11.6203576Z 35cb1a379ddf80003c46efe315de5dac88b19731
+2026-10-24T13:06:11.6426215Z ##[group]Run test "$(git rev-parse HEAD)" = "35cb1a379ddf80003c46efe315de5dac88b19731"
+2026-10-24T13:06:11.6426738Z [36;1mtest "$(git rev-parse HEAD)" = "35cb1a379ddf80003c46efe315de5dac88b19731"[0m
+2026-10-24T13:06:11.6729498Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-24T13:06:11.6729794Z env:
+2026-10-24T13:06:11.6729987Z   CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS: 
+2026-10-24T13:06:11.6730214Z ##[endgroup]
+2026-10-24T13:06:11.6937282Z ##[group]Run actions/setup-node@v5
+2026-10-24T13:06:11.6937499Z with:
+2026-10-24T13:06:11.6937662Z   node-version: 22.22.2
+2026-10-24T13:06:11.6937854Z   cache: npm
+2026-10-24T13:06:11.6938037Z   cache-dependency-path: package-lock.json
+2026-10-24T13:06:11.6938258Z   always-auth: false
+2026-10-24T13:06:11.6938437Z   check-latest: false
+2026-10-24T13:06:11.6940271Z   token: ***
+2026-10-24T13:06:11.6940451Z   package-manager-cache: true
+2026-10-24T13:06:11.6940646Z env:
+2026-10-24T13:06:11.6940814Z   CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS: 
+2026-10-24T13:06:11.6941025Z ##[endgroup]
+2026-10-24T13:06:11.8087693Z Attempting to download 22.22.2...
+2026-10-24T13:06:11.8169894Z (node:2094) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-24T13:06:11.8170764Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-24T13:06:12.3097442Z Acquiring 22.22.2 - x64 from https://github.com/actions/node-versions/releases/download/22.22.2-23521889093/node-22.22.2-linux-x64.tar.gz
+2026-10-24T13:06:12.6220497Z Extracting ...
+2026-10-24T13:06:12.6321053Z [command]/usr/bin/tar xz --strip 1 --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/2d4bc156-fe5c-43f1-9172-b41c4d9283e8 -f /home/runner/work/_temp/edaa3dc1-cf33-41ad-b9e0-bc7db9df20fe
+2026-10-24T13:06:13.6725574Z Adding to the cache ...
+2026-10-24T13:06:21.7916370Z ##[group]Environment details
+2026-10-24T13:06:21.9913764Z node: v22.22.2
+2026-10-24T13:06:21.9914094Z npm: 10.9.7
+2026-10-24T13:06:21.9914319Z yarn: 1.22.22
+2026-10-24T13:06:21.9914952Z ##[endgroup]
+2026-10-24T13:06:21.9932277Z [command]/opt/hostedtoolcache/node/22.22.2/x64/bin/npm config get cache
+2026-10-24T13:06:22.0670951Z /home/runner/.npm
+2026-10-24T13:06:22.1333676Z Cache hit for: node-cache-Linux-x64-npm-ca0b72792310c06de25c2ed3c2ce6a7355d36f14c0ff70505028abfd62305c76
+2026-10-24T13:06:22.1423599Z (node:2094) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-10-24T13:06:23.1879581Z Received 301989888 of 660340807 (45.7%), 288.0 MBs/sec
+2026-10-24T13:06:24.1859208Z Received 650117120 of 660340807 (98.5%), 310.0 MBs/sec
+2026-10-24T13:06:24.2418169Z Received 660340807 of 660340807 (100.0%), 306.3 MBs/sec
+2026-10-24T13:06:24.2418604Z Cache Size: ~630 MB (660340807 B)
+2026-10-24T13:06:24.2442562Z [command]/usr/bin/tar -xf /home/runner/work/_temp/8740695e-b3a1-4bb0-8d84-c13af622308e/cache.tzst -P -C /home/runner/work/chainlesschain/chainlesschain --use-compress-program unzstd
+2026-10-24T13:06:25.3145118Z Cache restored successfully
+2026-10-24T13:06:25.3403200Z Cache restored from key: node-cache-Linux-x64-npm-ca0b72792310c06de25c2ed3c2ce6a7355d36f14c0ff70505028abfd62305c76
+2026-10-24T13:06:25.3717646Z Prepare all required actions
+2026-10-24T13:06:25.4788524Z ##[group]Run ./.github/actions/setup-node-deps
+2026-10-24T13:06:25.4788783Z with:
+2026-10-24T13:06:25.4788960Z   working-directory: .
+2026-10-24T13:06:25.4789183Z   install-command: npm ci --legacy-peer-deps
+2026-10-24T13:06:25.4789460Z   install-desktop-app-vue: false
+2026-10-24T13:06:25.4789667Z env:
+2026-10-24T13:06:25.4789836Z   CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS: 
+2026-10-24T13:06:25.4790063Z ##[endgroup]
+2026-10-24T13:06:25.4837400Z ##[start-action display=Canonicalize Windows system temporary directory;id=__self.__run]
+2026-10-24T13:06:25.4843374Z ##[end-action id=__self.__run;outcome=skipped;conclusion=skipped;duration_ms=0]
+2026-10-24T13:06:25.4845314Z ##[start-action display=Install npm dependencies (3-attempt retry, transient ECONNRESET hardening);id=__self.__run_2]
+2026-10-24T13:06:25.4973552Z ##[group]Run INSTALL_CMD="npm ci --legacy-peer-deps"
+2026-10-24T13:06:25.4974112Z [36;1mINSTALL_CMD="npm ci --legacy-peer-deps"[0m
+2026-10-24T13:06:25.4974503Z [36;1mattempt_install() {[0m
+2026-10-24T13:06:25.4974813Z [36;1m  eval "$INSTALL_CMD"[0m
+2026-10-24T13:06:25.4975113Z [36;1m}[0m
+2026-10-24T13:06:25.4975383Z [36;1mcleanup_partial_install() {[0m
+2026-10-24T13:06:25.4975849Z [36;1m  # A failed npm ci can leave partially-extracted packages behind.[0m
+2026-10-24T13:06:25.4976448Z [36;1m  # Retrying in-place then fails with ENOTEMPTY (notably electron on[0m
+2026-10-24T13:06:25.4977038Z [36;1m  # hosted runners), so restore npm ci's clean-install precondition.[0m
+2026-10-24T13:06:25.4977592Z [36;1m  # Use async rm: Node 22's synchronous rimraf can throw an initial[0m
+2026-10-24T13:06:25.4978138Z [36;1m  # directory EBUSY without applying maxRetries (e.g. pkcs11js).[0m
+2026-10-24T13:06:25.4978519Z [36;1m  # The absolute target is always this install directory's direct child.[0m
+2026-10-24T13:06:25.4979325Z [36;1m  node -e "const target=require('node:path').join(process.cwd(),'node_modules'); require('node:fs/promises').rm(target,{recursive:true,force:true,maxRetries:5,retryDelay:250}).catch(error=>{console.error(error);process.exitCode=1})"[0m
+2026-10-24T13:06:25.4980031Z [36;1m}[0m
+2026-10-24T13:06:25.4980205Z [36;1mfor i in 1 2 3; do[0m
+2026-10-24T13:06:25.4980420Z [36;1m  if attempt_install; then[0m
+2026-10-24T13:06:25.4980797Z [36;1m    exit 0[0m
+2026-10-24T13:06:25.4980967Z [36;1m  fi[0m
+2026-10-24T13:06:25.4981135Z [36;1m  if [ "$i" -lt 3 ]; then[0m
+2026-10-24T13:06:25.4981348Z [36;1m    delay=$((i * 15))[0m
+2026-10-24T13:06:25.4981647Z [36;1m    echo "::warning::npm install attempt $i failed, retrying in ${delay}s..."[0m
+2026-10-24T13:06:25.4981962Z [36;1m    sleep "$delay"[0m
+2026-10-24T13:06:25.4982181Z [36;1m    if ! cleanup_partial_install; then[0m
+2026-10-24T13:06:25.4982530Z [36;1m      echo "::error::Cannot clean partial node_modules after npm install attempt $i"[0m
+2026-10-24T13:06:25.4983103Z [36;1m      exit 1[0m
+2026-10-24T13:06:25.4983283Z [36;1m    fi[0m
+2026-10-24T13:06:25.4983449Z [36;1m  fi[0m
+2026-10-24T13:06:25.4983619Z [36;1mdone[0m
+2026-10-24T13:06:25.4983833Z [36;1mecho "::error::npm install failed after 3 attempts"[0m
+2026-10-24T13:06:25.4984093Z [36;1mexit 1[0m
+2026-10-24T13:06:25.5045990Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-24T13:06:25.5046302Z env:
+2026-10-24T13:06:25.5046483Z   CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS: 
+2026-10-24T13:06:25.5046702Z ##[endgroup]
+2026-10-24T13:06:27.5031151Z npm warn skipping integrity check for git dependency ssh://git@github.com/electron/node-gyp.git
+2026-10-24T13:06:37.7909217Z npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+2026-10-24T13:06:37.7923536Z npm warn deprecated gar@1.0.4: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+2026-10-24T13:06:37.8522183Z npm warn deprecated lodash.get@4.4.2: This package is deprecated. Use the optional chaining (?.) operator instead.
+2026-10-24T13:06:37.8713983Z npm warn deprecated @npmcli/move-file@2.0.1: This functionality has been moved to @npmcli/fs
+2026-10-24T13:06:37.9140271Z npm warn deprecated npmlog@6.0.2: This package is no longer supported.
+2026-10-24T13:06:37.9501987Z npm warn deprecated rimraf@2.6.3: Rimraf versions prior to v4 are no longer supported
+2026-10-24T13:06:37.9621819Z npm warn deprecated rimraf@2.7.1: Rimraf versions prior to v4 are no longer supported
+2026-10-24T13:06:37.9849487Z npm warn deprecated lodash.isequal@4.5.0: This package is deprecated. Use require('node:util').isDeepStrictEqual instead.
+2026-10-24T13:06:38.0116038Z npm warn deprecated @humanwhocodes/config-array@0.13.0: Use @eslint/config-array instead
+2026-10-24T13:06:38.0182153Z npm warn deprecated npmlog@4.1.2: This package is no longer supported.
+2026-10-24T13:06:38.0399486Z npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+2026-10-24T13:06:38.1908826Z npm warn deprecated are-we-there-yet@1.1.7: This package is no longer supported.
+2026-10-24T13:06:38.2048731Z npm warn deprecated whatwg-encoding@3.1.1: Use @exodus/bytes instead for a more spec-conformant and faster implementation
+2026-10-24T13:06:38.2364091Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-24T13:06:38.2375721Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-24T13:06:38.2386033Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-24T13:06:38.2418851Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-24T13:06:38.2426625Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-24T13:06:38.2435009Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-24T13:06:38.2444458Z npm warn deprecated glob@8.1.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-24T13:06:38.2511233Z npm warn deprecated glob@8.1.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-24T13:06:38.2515945Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-24T13:06:38.6540138Z npm warn deprecated prebuild-install@7.1.3: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
+2026-10-24T13:06:38.6733933Z npm warn deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead
+2026-10-24T13:06:38.7092950Z npm warn deprecated are-we-there-yet@3.0.1: This package is no longer supported.
+2026-10-24T13:06:38.8618400Z npm warn deprecated prebuild-install@5.3.6: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
+2026-10-24T13:06:39.0450154Z npm warn deprecated gauge@2.7.4: This package is no longer supported.
+2026-10-24T13:06:40.0840088Z npm warn deprecated boolean@3.2.0: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+2026-10-24T13:06:40.2052620Z npm warn deprecated gauge@4.0.4: This package is no longer supported.
+2026-10-24T13:06:40.4283726Z npm warn deprecated fstream@1.0.12: This package is no longer supported.
+2026-10-24T13:06:41.4621097Z npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+2026-10-24T13:06:41.7298100Z npm warn deprecated multiaddr@10.0.1: This module is deprecated, please upgrade to @multiformats/multiaddr
+2026-10-24T13:06:42.2155689Z npm warn deprecated vue-i18n@9.14.5: v9 and v10 no longer supported. please migrate to v11. about maintenance status, see https://vue-i18n.intlify.dev/guide/maintenance.html
+2026-10-24T13:06:43.4181385Z npm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+2026-10-24T13:06:43.4188627Z npm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+2026-10-24T13:06:44.0140030Z npm warn deprecated uuid@9.0.1: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+2026-10-24T13:06:44.4039429Z npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-24T13:06:44.4042199Z npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-24T13:06:44.4045028Z npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-24T13:06:49.1355024Z npm warn deprecated fluent-ffmpeg@2.1.3: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+2026-10-24T13:06:50.8112207Z npm warn deprecated eslint@8.57.1: This version is no longer supported. Please see https://eslint.org/version-support for other options.
+2026-10-24T13:07:08.9812146Z 
+2026-10-24T13:07:08.9814615Z added 2540 packages, and audited 2556 packages in 43s
+2026-10-24T13:07:08.9814970Z 
+2026-10-24T13:07:08.9815177Z 482 packages are looking for funding
+2026-10-24T13:07:08.9815507Z   run `npm fund` for details
+2026-10-24T13:07:09.1713711Z 
+2026-10-24T13:07:09.1714499Z 109 vulnerabilities (8 low, 14 moderate, 86 high, 1 critical)
+2026-10-24T13:07:09.1714876Z 
+2026-10-24T13:07:09.1715137Z To address issues that do not require attention, run:
+2026-10-24T13:07:09.1715554Z   npm audit fix
+2026-10-24T13:07:09.1715707Z 
+2026-10-24T13:07:09.1716457Z To address all issues possible (including breaking changes), run:
+2026-10-24T13:07:09.1716919Z   npm audit fix --force
+2026-10-24T13:07:09.1717057Z 
+2026-10-24T13:07:09.1717214Z Some issues need review, and may require choosing
+2026-10-24T13:07:09.1717488Z a different dependency.
+2026-10-24T13:07:09.1717606Z 
+2026-10-24T13:07:09.1717706Z Run `npm audit` for details.
+2026-10-24T13:07:09.3876278Z ##[end-action id=__self.__run_2;outcome=success;conclusion=success;duration_ms=43902]
+2026-10-24T13:07:09.3879623Z ##[start-action display=Install desktop-app-vue dependencies (post-workspace-refactor);id=__self.__run_3]
+2026-10-24T13:07:09.3885827Z ##[end-action id=__self.__run_3;outcome=skipped;conclusion=skipped;duration_ms=0]
+2026-10-24T13:07:09.3888617Z ##[start-action display=Install platform rollup binary + extras;id=__self.__run_4]
+2026-10-24T13:07:09.3923330Z ##[group]Run # Pick the rollup native binary for this runner.
+2026-10-24T13:07:09.3923705Z [36;1m# Pick the rollup native binary for this runner.[0m
+2026-10-24T13:07:09.3924095Z [36;1m# Workaround for https://github.com/npm/cli/issues/4828 — npm sometimes[0m
+2026-10-24T13:07:09.3924539Z [36;1m# skips optional platform deps, leaving vite/vitest unable to resolve rollup.[0m
+2026-10-24T13:07:09.3924893Z [36;1mcase "${RUNNER_OS}-${RUNNER_ARCH}" in[0m
+2026-10-24T13:07:09.3925183Z [36;1m  Linux-X64)     pkg="@rollup/rollup-linux-x64-gnu" ;;[0m
+2026-10-24T13:07:09.3925523Z [36;1m  Linux-ARM64)   pkg="@rollup/rollup-linux-arm64-gnu" ;;[0m
+2026-10-24T13:07:09.3925839Z [36;1m  Windows-X64)   pkg="@rollup/rollup-win32-x64-msvc" ;;[0m
+2026-10-24T13:07:09.3926165Z [36;1m  Windows-ARM64) pkg="@rollup/rollup-win32-arm64-msvc" ;;[0m
+2026-10-24T13:07:09.3926489Z [36;1m  macOS-ARM64)   pkg="@rollup/rollup-darwin-arm64" ;;[0m
+2026-10-24T13:07:09.3926788Z [36;1m  macOS-X64)     pkg="@rollup/rollup-darwin-x64" ;;[0m
+2026-10-24T13:07:09.3927053Z [36;1m  *)             pkg="" ;;[0m
+2026-10-24T13:07:09.3927265Z [36;1mesac[0m
+2026-10-24T13:07:09.3927457Z [36;1mpackages="$pkg $EXTRA_PACKAGES"[0m
+2026-10-24T13:07:09.3927716Z [36;1mpackages=$(echo "$packages" | xargs) # trim[0m
+2026-10-24T13:07:09.3927963Z [36;1mif [ -n "$packages" ]; then[0m
+2026-10-24T13:07:09.3928199Z [36;1m  echo "Installing: $packages"[0m
+2026-10-24T13:07:09.3928439Z [36;1m  if [ -n "$INSTALL_WORKSPACE" ]; then[0m
+2026-10-24T13:07:09.3928898Z [36;1m    npm install $packages --no-save --legacy-peer-deps \[0m
+2026-10-24T13:07:09.3929188Z [36;1m      --workspace "$INSTALL_WORKSPACE" \[0m
+2026-10-24T13:07:09.3929462Z [36;1m      --include-workspace-root=false || true[0m
+2026-10-24T13:07:09.3929695Z [36;1m  else[0m
+2026-10-24T13:07:09.3929925Z [36;1m    npm install $packages --no-save --legacy-peer-deps || true[0m
+2026-10-24T13:07:09.3930201Z [36;1m  fi[0m
+2026-10-24T13:07:09.3930365Z [36;1mfi[0m
+2026-10-24T13:07:09.3986292Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-24T13:07:09.3986568Z env:
+2026-10-24T13:07:09.3986759Z   CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS: 
+2026-10-24T13:07:09.3986993Z   EXTRA_PACKAGES: 
+2026-10-24T13:07:09.3987172Z   INSTALL_WORKSPACE: 
+2026-10-24T13:07:09.3987347Z ##[endgroup]
+2026-10-24T13:07:09.4094563Z Installing: @rollup/rollup-linux-x64-gnu
+2026-10-24T13:07:11.0593251Z npm warn deprecated npmlog@4.1.2: This package is no longer supported.
+2026-10-24T13:07:11.0642480Z npm warn deprecated are-we-there-yet@1.1.7: This package is no longer supported.
+2026-10-24T13:07:11.0747296Z npm warn deprecated prebuild-install@5.3.6: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
+2026-10-24T13:07:11.0781039Z npm warn deprecated gauge@2.7.4: This package is no longer supported.
+2026-10-24T13:07:12.4259037Z 
+2026-10-24T13:07:12.4259836Z added 1 package, changed 1 package, and audited 2557 packages in 3s
+2026-10-24T13:07:12.4260242Z 
+2026-10-24T13:07:12.4260447Z 482 packages are looking for funding
+2026-10-24T13:07:12.4260976Z   run `npm fund` for details
+2026-10-24T13:07:12.6140309Z 
+2026-10-24T13:07:12.6141524Z 109 vulnerabilities (8 low, 14 moderate, 86 high, 1 critical)
+2026-10-24T13:07:12.6141918Z 
+2026-10-24T13:07:12.6142185Z To address issues that do not require attention, run:
+2026-10-24T13:07:12.6142589Z   npm audit fix
+2026-10-24T13:07:12.6142875Z 
+2026-10-24T13:07:12.6143187Z To address all issues possible (including breaking changes), run:
+2026-10-24T13:07:12.6143660Z   npm audit fix --force
+2026-10-24T13:07:12.6143782Z 
+2026-10-24T13:07:12.6143943Z Some issues need review, and may require choosing
+2026-10-24T13:07:12.6144214Z a different dependency.
+2026-10-24T13:07:12.6144331Z 
+2026-10-24T13:07:12.6144436Z Run `npm audit` for details.
+2026-10-24T13:07:12.6325762Z ##[end-action id=__self.__run_4;outcome=success;conclusion=success;duration_ms=3243]
+2026-10-24T13:07:12.6359780Z ##[group]Run node scripts/run-vitest-with-worker-retry.mjs -- run --shard=3/4 --reporter=default --reporter=junit --outputFile.junit=test-results/unit-3.xml --silent=passed-only  __tests__/unit/
+2026-10-24T13:07:12.6360779Z [36;1mnode scripts/run-vitest-with-worker-retry.mjs -- run --shard=3/4 --reporter=default --reporter=junit --outputFile.junit=test-results/unit-3.xml --silent=passed-only  __tests__/unit/[0m
+2026-10-24T13:07:12.6428246Z shell: /usr/bin/bash -e {0}
+2026-10-24T13:07:12.6428462Z env:
+2026-10-24T13:07:12.6428639Z   CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS: 
+2026-10-24T13:07:12.6428874Z ##[endgroup]
+2026-10-24T13:07:12.9003453Z 
+2026-10-24T13:07:12.9004964Z [1m[30m[46m RUN [49m[39m[22m [36mv4.1.10 [39m[90m/home/runner/work/chainlesschain/chainlesschain/packages/cli[39m
+2026-10-24T13:07:12.9005556Z 
+2026-10-24T13:07:25.5635103Z  [32m✓[39m __tests__/unit/evolution-ledger.test.js [2m([22m[2m59 tests[22m[2m | [22m[33m1 skipped[39m[2m)[22m[33m 11640[2mms[22m[39m
+2026-10-24T13:07:25.5636848Z      [33m[2m✓[22m[39m commits a validated batch and withholds every event receipt until final readback [33m 397[2mms[22m[39m
+2026-10-24T13:07:25.5638533Z      [33m[2m✓[22m[39m recovers only the witnessed prefix when a batch crashes on a later item [33m 668[2mms[22m[39m
+2026-10-24T13:07:25.5640169Z      [33m[2m✓[22m[39m chains strict domain events with legacy v2 events and routes artifacts through the real artifact tenant [33m 338[2mms[22m[39m
+2026-10-24T13:07:25.5641804Z      [33m[2m✓[22m[39m exports a self-contained ledger audit that verifies after both stores are offline [33m 339[2mms[22m[39m
+2026-10-24T13:07:25.5643794Z      [33m[2m✓[22m[39m verifies the signed genesis witness for an empty offline audit [33m 537[2mms[22m[39m
+2026-10-24T13:07:25.5645289Z      [33m[2m✓[22m[39m fails offline audit closed after truncation or re-digested signed-record and artifact tampering [33m 614[2mms[22m[39m
+2026-10-24T13:07:25.5646901Z      [33m[2m✓[22m[39m serializes one hundred concurrent fenced appends without loss, duplication, or head drift [33m 5011[2mms[22m[39m
+2026-10-24T13:07:26.7004843Z  [32m✓[39m __tests__/unit/jsonl-session-store.test.js [2m([22m[2m155 tests[22m[2m)[22m[33m 12676[2mms[22m[39m
+2026-10-24T13:07:26.7005936Z        [33m[2m✓[22m[39m rejects a byte-identical pathname replacement after commit [33m 305[2mms[22m[39m
+2026-10-24T13:07:26.7006703Z        [33m[2m✓[22m[39m appends assistant message [33m 329[2mms[22m[39m
+2026-10-24T13:07:26.7007445Z        [33m[2m✓[22m[39m appends tool call and result [33m 962[2mms[22m[39m
+2026-10-24T13:07:26.7008427Z        [33m[2m✓[22m[39m fingerprints long replay histories without the scheduler payload limit [33m 631[2mms[22m[39m
+2026-10-24T13:07:26.7009599Z        [33m[2m✓[22m[39m preserves summary provenance through REPL apply, persist, and a second resume [33m 3814[2mms[22m[39m
+2026-10-24T13:07:26.7010714Z        [33m[2m✓[22m[39m recovers the same successor across every fork publication crash window [33m 382[2mms[22m[39m
+2026-10-24T13:07:31.0236702Z  [32m✓[39m __tests__/unit/governed-knowledge-sync-ledger-adapter.test.js [2m([22m[2m40 tests[22m[2m)[22m[33m 3392[2mms[22m[39m
+2026-10-24T13:07:36.8025224Z  [32m✓[39m __tests__/unit/evolution-artifact-ports.test.js [2m([22m[2m76 tests[22m[2m)[22m[33m 5564[2mms[22m[39m
+2026-10-24T13:07:36.8026756Z      [33m[2m✓[22m[39m supports only the approved ledger-retention types without an envelope TTL [33m 779[2mms[22m[39m
+2026-10-24T13:07:36.8034821Z      [33m[2m✓[22m[39m continues authenticating large admissible indexes (raw-bytes) [33m 1042[2mms[22m[39m
+2026-10-24T13:07:36.8035877Z      [33m[2m✓[22m[39m continues authenticating large admissible indexes (parsed-memory) [33m 2043[2mms[22m[39m
+2026-10-24T13:07:39.4474067Z  [32m✓[39m __tests__/unit/evolution-evidence-projector.test.js [2m([22m[2m151 tests[22m[2m)[22m[33m 13641[2mms[22m[39m
+2026-10-24T13:07:39.4475460Z      [33m[2m✓[22m[39m handles a long unbroken prefix before quoted JSON fragments within the bounded scan [33m 395[2mms[22m[39m
+2026-10-24T13:07:39.4476807Z      [33m[2m✓[22m[39m refuses the whole-field Agent budget without publishing a truncated attestation [33m 552[2mms[22m[39m
+2026-10-24T13:07:39.4478202Z      [33m[2m✓[22m[39m refuses the aggregate Agent budget without publishing a truncated attestation [33m 608[2mms[22m[39m
+2026-10-24T13:07:39.4479500Z      [33m[2m✓[22m[39m admits bounded long history and schema structure while preserving historical v3 ceilings [33m 1183[2mms[22m[39m
+2026-10-24T13:07:39.4480783Z      [33m[2m✓[22m[39m round-trips large text and real PNG transport through encrypted Raw and bounded durable artifacts [33m 7568[2mms[22m[39m
+2026-10-24T13:07:39.4481599Z      [33m[2m✓[22m[39m redacts and quarantines 1,000 varied adversarial traces without plaintext leakage [33m 1609[2mms[22m[39m
+2026-10-24T13:07:41.6973951Z  [32m✓[39m __tests__/unit/agent-mcp-config.test.js [2m([22m[2m71 tests[22m[2m)[22m[33m 926[2mms[22m[39m
+2026-10-24T13:07:41.6974997Z      [33m[2m✓[22m[39m threads mcp wiring into the loop options and disconnects at the end [33m 611[2mms[22m[39m
+2026-10-24T13:07:42.0661474Z  [32m✓[39m __tests__/unit/config-security.test.js [2m([22m[2m69 tests[22m[2m | [22m[33m5 skipped[39m[2m)[22m[32m 37[2mms[22m[39m
+2026-10-24T13:07:42.5409844Z  [32m✓[39m __tests__/unit/checkpoint-timeline-command.test.js [2m([22m[2m27 tests[22m[2m)[22m[32m 91[2mms[22m[39m
+2026-10-24T13:07:43.0696121Z  [32m✓[39m __tests__/unit/cowork-workflow-ws.test.js [2m([22m[2m40 tests[22m[2m)[22m[32m 199[2mms[22m[39m
+2026-10-24T13:07:43.2882812Z  [32m✓[39m __tests__/unit/knowledge-graph.test.js [2m([22m[2m118 tests[22m[2m)[22m[32m 57[2mms[22m[39m
+2026-10-24T13:07:43.4585341Z  [32m✓[39m __tests__/unit/with-file-lock.test.js [2m([22m[2m42 tests[22m[2m)[22m[32m 36[2mms[22m[39m
+2026-10-24T13:07:43.6893391Z  [32m✓[39m __tests__/unit/plugin-ecosystem.test.js [2m([22m[2m110 tests[22m[2m)[22m[32m 66[2mms[22m[39m
+2026-10-24T13:07:52.3914689Z  [32m✓[39m __tests__/unit/checkpoint-store.test.js [2m([22m[2m66 tests[22m[2m)[22m[33m 15208[2mms[22m[39m
+2026-10-24T13:07:52.3944124Z      [33m[2m✓[22m[39m bounds repeated checkpoint ref transaction conflicts [33m 335[2mms[22m[39m
+2026-10-24T13:07:52.3954194Z      [33m[2m✓[22m[39m rewind restores modified files and takes a safety checkpoint [33m 1275[2mms[22m[39m
+2026-10-24T13:07:52.3955258Z      [33m[2m✓[22m[39m emits durable restore evidence at the three synchronous boundaries [33m 539[2mms[22m[39m
+2026-10-24T13:07:52.3956219Z      [33m[2m✓[22m[39m returns a stable full-tree workspace binding from repo subdirectories [33m 327[2mms[22m[39m
+2026-10-24T13:07:52.3957178Z        [33m[2m✓[22m[39m keeps only the newest N checkpoints, pruning the oldest [33m 350[2mms[22m[39m
+2026-10-24T13:07:52.3958102Z        [33m[2m✓[22m[39m does not prune when maxPerSession is omitted (manual = unbounded) [33m 307[2mms[22m[39m
+2026-10-24T13:07:52.3959010Z      [33m[2m✓[22m[39m proves and executes an exact modified/added/deleted rollback [33m 541[2mms[22m[39m
+2026-10-24T13:07:52.3959981Z      [33m[2m✓[22m[39m accepts partial exact target residue and only counts live rollback paths [33m 508[2mms[22m[39m
+2026-10-24T13:07:52.3960954Z      [33m[2m✓[22m[39m verifies a zero-target rollback without invoking checkout-index [33m 369[2mms[22m[39m
+2026-10-24T13:07:52.3962011Z      [33m[2m✓[22m[39m rejects arbitrary third-party content on an original mutation path [33m 410[2mms[22m[39m
+2026-10-24T13:07:52.3963147Z      [33m[2m✓[22m[39m rejects stale identities, safety plans, counts, and missing safety refs [33m 435[2mms[22m[39m
+2026-10-24T13:07:52.3964902Z      [33m[2m✓[22m[39m revalidates the whole plan and workspace under the lease before writing [33m 1413[2mms[22m[39m
+2026-10-24T13:07:52.3966079Z      [33m[2m✓[22m[39m rejects tampered bindings and a lease for another workspace before writing [33m 846[2mms[22m[39m
+2026-10-24T13:07:52.3967166Z      [33m[2m✓[22m[39m never reports success when the Git write primitive fails [33m 506[2mms[22m[39m
+2026-10-24T13:07:53.0553686Z  [32m✓[39m __tests__/unit/project-goal-monitoring.test.js [2m([22m[2m69 tests[22m[2m)[22m[33m 9213[2mms[22m[39m
+2026-10-24T13:07:53.0554536Z      [33m[2m✓[22m[39m retains complete risk checks when proposal generation or lifetime capacity is truncated [33m 2052[2mms[22m[39m
+2026-10-24T13:07:53.0555355Z      [33m[2m✓[22m[39m does not claim termination while an earlier occurrence remains claimed [33m 1990[2mms[22m[39m
+2026-10-24T13:07:53.0556005Z      [33m[2m✓[22m[39m filters activity by goal before the global enumeration limit [33m 332[2mms[22m[39m
+2026-10-24T13:07:53.0556635Z      [33m[2m✓[22m[39m does not let fifty revoked monitors starve a later owned project [33m 319[2mms[22m[39m
+2026-10-24T13:07:53.1547734Z  [32m✓[39m __tests__/unit/mcp-oauth.test.js [2m([22m[2m68 tests[22m[2m)[22m[33m 339[2mms[22m[39m
+2026-10-24T13:07:53.1548936Z      [33m[2m✓[22m[39m fails every waiter closed when a shared refresh cannot recover [33m 301[2mms[22m[39m
+2026-10-24T13:07:53.3617626Z  [32m✓[39m __tests__/unit/aiops.test.js [2m([22m[2m107 tests[22m[2m)[22m[32m 50[2mms[22m[39m
+2026-10-24T13:07:54.2442326Z  [32m✓[39m __tests__/unit/mcp-ledger-recovery-admission.test.js [2m([22m[2m62 tests[22m[2m)[22m[32m 52[2mms[22m[39m
+2026-10-24T13:07:54.5978306Z  [32m✓[39m __tests__/unit/linux-generic-bwrap.test.js [2m([22m[2m17 tests[22m[2m)[22m[32m 79[2mms[22m[39m
+2026-10-24T13:07:55.5343271Z  [32m✓[39m __tests__/unit/agent-core-read-file-range.test.js [2m([22m[2m28 tests[22m[2m)[22m[33m 976[2mms[22m[39m
+2026-10-24T13:07:57.1245507Z  [32m✓[39m __tests__/unit/scheduler-kernel-routine-adapter.test.js [2m([22m[2m23 tests[22m[2m)[22m[33m 2109[2mms[22m[39m
+2026-10-24T13:07:57.1246998Z      [33m[2m✓[22m[39m keeps a migrated recurring Routine disabled for legacy drivers after run [33m 311[2mms[22m[39m
+2026-10-24T13:07:57.1248193Z      [33m[2m✓[22m[39m recovers the same GitHub occurrence when cursor persistence failed [33m 357[2mms[22m[39m
+2026-10-24T13:07:59.1526170Z  [32m✓[39m __tests__/unit/organization-project-approval-service.test.js [2m([22m[2m47 tests[22m[2m)[22m[33m 3496[2mms[22m[39m
+2026-10-24T13:07:59.1527776Z      [33m[2m✓[22m[39m requires every parallel approver in each level [33m 418[2mms[22m[39m
+2026-10-24T13:07:59.1528869Z      [33m[2m✓[22m[39m ends approval on rejection and never consumes it [33m 365[2mms[22m[39m
+2026-10-24T13:07:59.1530002Z      [33m[2m✓[22m[39m rejects revoked-then-restored membership and permission ABA across restart [33m 330[2mms[22m[39m
+2026-10-24T13:08:00.5787850Z  [32m✓[39m __tests__/unit/organization-project-transfer-service.test.js [2m([22m[2m57 tests[22m[2m)[22m[33m 3256[2mms[22m[39m
+2026-10-24T13:08:00.5794087Z      [33m[2m✓[22m[39m does not allow a former recipient to accept or reject after losing active owner authority [33m 333[2mms[22m[39m
+2026-10-24T13:08:01.6831528Z  [32m✓[39m __tests__/unit/app-server.test.js [2m([22m[2m16 tests[22m[2m)[22m[33m 371[2mms[22m[39m
+2026-10-24T13:08:02.1276868Z  [32m✓[39m __tests__/unit/scheduler-kernel-soak.test.js [2m([22m[2m49 tests[22m[2m)[22m[32m 200[2mms[22m[39m
+2026-10-24T13:08:02.3448980Z  [32m✓[39m __tests__/unit/multimodal.test.js [2m([22m[2m101 tests[22m[2m)[22m[32m 49[2mms[22m[39m
+2026-10-24T13:08:03.2041015Z  [32m✓[39m __tests__/unit/browser-filesystem-quarantine-custody.test.js [2m([22m[2m18 tests[22m[2m | [22m[33m1 skipped[39m[2m)[22m[33m 693[2mms[22m[39m
+2026-10-24T13:08:03.4154572Z  [32m✓[39m __tests__/unit/collaboration-governance.test.js [2m([22m[2m100 tests[22m[2m)[22m[32m 52[2mms[22m[39m
+2026-10-24T13:08:03.6894955Z  [32m✓[39m __tests__/unit/dbevo.test.js [2m([22m[2m82 tests[22m[2m)[22m[32m 81[2mms[22m[39m
+2026-10-24T13:08:03.9479241Z [plugins] refused bin dir(s) from plugin(s) that declared a permissions block but did not declare the 'process' capability: p (ships bin/hooks/lsp that spawn processes but did not declare the 'process' capability)
+2026-10-24T13:08:03.9481413Z           add 'process' to the plugin's permissions block to enable them.
+2026-10-24T13:08:03.9618290Z [plugins] skipped bin from untrusted project plugin(s): toolkit
+2026-10-24T13:08:03.9618886Z           run `cc plugin trust <name>` to enable them.
+2026-10-24T13:08:03.9977512Z [plugins] skipped bin from untrusted project plugin(s): toolkit
+2026-10-24T13:08:03.9978056Z           run `cc plugin trust <name>` to enable them.
+2026-10-24T13:08:04.1689426Z [plugins] skipped bin from untrusted project plugin(s): toolkit
+2026-10-24T13:08:04.1690507Z           run `cc plugin trust <name>` to enable them.
+2026-10-24T13:08:04.2575431Z [plugins] skipped bin from untrusted project plugin(s): toolkit
+2026-10-24T13:08:04.2576370Z           run `cc plugin trust <name>` to enable them.
+2026-10-24T13:08:04.3758426Z  [32m✓[39m __tests__/unit/plugin-runtime-bin.test.js [2m([22m[2m40 tests[22m[2m | [22m[33m2 skipped[39m[2m)[22m[33m 431[2mms[22m[39m
+2026-10-24T13:08:04.9030954Z  [32m✓[39m __tests__/unit/hub-command.test.js [2m([22m[2m30 tests[22m[2m)[22m[32m 39[2mms[22m[39m
+2026-10-24T13:08:05.9231368Z  [32m✓[39m __tests__/unit/evolution-file-witness.test.js [2m([22m[2m73 tests[22m[2m | [22m[33m1 skipped[39m[2m)[22m[33m 6553[2mms[22m[39m
+2026-10-24T13:08:05.9233360Z      [33m[2m✓[22m[39m converts a complete legacy history to bounded immutable segments and preserves ancestry [33m 1195[2mms[22m[39m
+2026-10-24T13:08:05.9234588Z      [33m[2m✓[22m[39m preserves discard fences on both sides of segment boundaries [33m 3390[2mms[22m[39m
+2026-10-24T13:08:06.1339221Z  [32m✓[39m __tests__/unit/nl-programming.test.js [2m([22m[2m102 tests[22m[2m)[22m[32m 45[2mms[22m[39m
+2026-10-24T13:08:07.0143182Z  [32m✓[39m __tests__/unit/web-ui-server.test.js [2m([22m[2m78 tests[22m[2m)[22m[32m 265[2mms[22m[39m
+2026-10-24T13:08:07.1915885Z  [32m✓[39m __tests__/unit/sub-agent-usage-forwarding.test.js [2m([22m[2m26 tests[22m[2m)[22m[33m 1234[2mms[22m[39m
+2026-10-24T13:08:07.1917671Z      [33m[2m✓[22m[39m forwards real provider-reported usage and its real callId [33m 372[2mms[22m[39m
+2026-10-24T13:08:07.3735352Z  [32m✓[39m __tests__/unit/vscode-ext-sessions-workbench.test.js [2m([22m[2m36 tests[22m[2m)[22m[32m 29[2mms[22m[39m
+2026-10-24T13:08:07.6435111Z  [32m✓[39m __tests__/unit/controlled-skill-production-pilot.test.js [2m([22m[2m17 tests[22m[2m)[22m[32m 70[2mms[22m[39m
+2026-10-24T13:08:07.8765988Z  [32m✓[39m __tests__/unit/skill-mutation-authority.test.js [2m([22m[2m41 tests[22m[2m)[22m[32m 59[2mms[22m[39m
+2026-10-24T13:08:08.4559340Z  [32m✓[39m __tests__/unit/cli-mcp-security-soak.test.js [2m([22m[2m12 tests[22m[2m)[22m[32m 58[2mms[22m[39m
+2026-10-24T13:08:08.7934611Z  [32m✓[39m __tests__/unit/mcp-tool-search.test.js [2m([22m[2m39 tests[22m[2m)[22m[32m 29[2mms[22m[39m
+2026-10-24T13:08:08.9968547Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-24T13:08:08.9993651Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-24T13:08:09.0014093Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-24T13:08:09.0033653Z hint: call:
+2026-10-24T13:08:09.0034074Z hint:
+2026-10-24T13:08:09.0034698Z hint: 	git config --global init.defaultBranch <name>
+2026-10-24T13:08:09.0035401Z hint:
+2026-10-24T13:08:09.0036096Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-24T13:08:09.0037035Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-24T13:08:09.0038008Z hint:
+2026-10-24T13:08:09.0038490Z hint: 	git branch -m <name>
+2026-10-24T13:08:09.0038966Z hint:
+2026-10-24T13:08:09.0040116Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-24T13:08:09.0762973Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-24T13:08:09.0764022Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-24T13:08:09.0765048Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-24T13:08:09.0765810Z hint: call:
+2026-10-24T13:08:09.0766203Z hint:
+2026-10-24T13:08:09.0766756Z hint: 	git config --global init.defaultBranch <name>
+2026-10-24T13:08:09.0767302Z hint:
+2026-10-24T13:08:09.0767942Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-24T13:08:09.0768852Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-24T13:08:09.0769502Z hint:
+2026-10-24T13:08:09.0769938Z hint: 	git branch -m <name>
+2026-10-24T13:08:09.0770381Z hint:
+2026-10-24T13:08:09.0771067Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-24T13:08:09.1484371Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-24T13:08:09.1485277Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-24T13:08:09.1486028Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-24T13:08:09.1486506Z hint: call:
+2026-10-24T13:08:09.1486725Z hint:
+2026-10-24T13:08:09.1487426Z hint: 	git config --global init.defaultBranch <name>
+2026-10-24T13:08:09.1487803Z hint:
+2026-10-24T13:08:09.1488263Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-24T13:08:09.1488968Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-24T13:08:09.1489423Z hint:
+2026-10-24T13:08:09.1489684Z hint: 	git branch -m <name>
+2026-10-24T13:08:09.1489960Z hint:
+2026-10-24T13:08:09.1490462Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-24T13:08:09.2069565Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-24T13:08:09.2080911Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-24T13:08:09.2082021Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-24T13:08:09.2082832Z hint: call:
+2026-10-24T13:08:09.2083271Z hint:
+2026-10-24T13:08:09.2083732Z hint: 	git config --global init.defaultBranch <name>
+2026-10-24T13:08:09.2084306Z hint:
+2026-10-24T13:08:09.2084912Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-24T13:08:09.2085831Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-24T13:08:09.2086493Z hint:
+2026-10-24T13:08:09.2086887Z hint: 	git branch -m <name>
+2026-10-24T13:08:09.2087291Z hint:
+2026-10-24T13:08:09.2087944Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-24T13:08:09.2894200Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-24T13:08:09.2895246Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-24T13:08:09.2896254Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-24T13:08:09.2896815Z hint: call:
+2026-10-24T13:08:09.2897061Z hint:
+2026-10-24T13:08:09.2897470Z hint: 	git config --global init.defaultBranch <name>
+2026-10-24T13:08:09.2897865Z hint:
+2026-10-24T13:08:09.2898417Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-24T13:08:09.2899185Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-24T13:08:09.2899674Z hint:
+2026-10-24T13:08:09.2899949Z hint: 	git branch -m <name>
+2026-10-24T13:08:09.2900249Z hint:
+2026-10-24T13:08:09.2900789Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-24T13:08:09.4154137Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-24T13:08:09.4154982Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-24T13:08:09.4155757Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-24T13:08:09.4156204Z hint: call:
+2026-10-24T13:08:09.4156421Z hint:
+2026-10-24T13:08:09.4156799Z hint: 	git config --global init.defaultBranch <name>
+2026-10-24T13:08:09.4157177Z hint:
+2026-10-24T13:08:09.4157638Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-24T13:08:09.4158352Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-24T13:08:09.4158813Z hint:
+2026-10-24T13:08:09.4159068Z hint: 	git branch -m <name>
+2026-10-24T13:08:09.4159338Z hint:
+2026-10-24T13:08:09.4159829Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-24T13:08:09.5028416Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-24T13:08:09.5028972Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-24T13:08:09.5029439Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-24T13:08:09.5029743Z hint: call:
+2026-10-24T13:08:09.5029902Z hint:
+2026-10-24T13:08:09.5030157Z hint: 	git config --global init.defaultBranch <name>
+2026-10-24T13:08:09.5030407Z hint:
+2026-10-24T13:08:09.5030699Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-24T13:08:09.5031138Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-24T13:08:09.5031684Z hint:
+2026-10-24T13:08:09.5031863Z hint: 	git branch -m <name>
+2026-10-24T13:08:09.5032058Z hint:
+2026-10-24T13:08:09.5032374Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-24T13:08:09.6985546Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-24T13:08:09.6986669Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-24T13:08:09.6993474Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-24T13:08:09.6994013Z hint: call:
+2026-10-24T13:08:09.6994260Z hint:
+2026-10-24T13:08:09.6994686Z hint: 	git config --global init.defaultBranch <name>
+2026-10-24T13:08:09.6995095Z hint:
+2026-10-24T13:08:09.6995569Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-24T13:08:09.6996290Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-24T13:08:09.6996787Z hint:
+2026-10-24T13:08:09.6997051Z hint: 	git branch -m <name>
+2026-10-24T13:08:09.6997345Z hint:
+2026-10-24T13:08:09.6997855Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-24T13:08:09.8246163Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-24T13:08:09.8247039Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-24T13:08:09.8247779Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-24T13:08:09.8248271Z hint: call:
+2026-10-24T13:08:09.8248509Z hint:
+2026-10-24T13:08:09.8248874Z hint: 	git config --global init.defaultBranch <name>
+2026-10-24T13:08:09.8249245Z hint:
+2026-10-24T13:08:09.8249730Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-24T13:08:09.8250450Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-24T13:08:09.8250916Z hint:
+2026-10-24T13:08:09.8251189Z hint: 	git branch -m <name>
+2026-10-24T13:08:09.8251472Z hint:
+2026-10-24T13:08:09.8252013Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-24T13:08:09.9040218Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-24T13:08:09.9041378Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-24T13:08:09.9042993Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-24T13:08:09.9043775Z hint: call:
+2026-10-24T13:08:09.9044231Z hint:
+2026-10-24T13:08:09.9044879Z hint: 	git config --global init.defaultBranch <name>
+2026-10-24T13:08:09.9045276Z hint:
+2026-10-24T13:08:09.9045753Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-24T13:08:09.9046473Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-24T13:08:09.9046937Z hint:
+2026-10-24T13:08:09.9047205Z hint: 	git branch -m <name>
+2026-10-24T13:08:09.9047501Z hint:
+2026-10-24T13:08:09.9047996Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-24T13:08:10.0866701Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-24T13:08:10.0867767Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-24T13:08:10.0868860Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-24T13:08:10.0869580Z hint: call:
+2026-10-24T13:08:10.0870035Z hint:
+2026-10-24T13:08:10.0870468Z hint: 	git config --global init.defaultBranch <name>
+2026-10-24T13:08:10.0870862Z hint:
+2026-10-24T13:08:10.0871338Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-24T13:08:10.0872057Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-24T13:08:10.0872525Z hint:
+2026-10-24T13:08:10.0872923Z hint: 	git branch -m <name>
+2026-10-24T13:08:10.0873209Z hint:
+2026-10-24T13:08:10.0873713Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-24T13:08:10.1830725Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-24T13:08:10.1831836Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-24T13:08:10.1832926Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-24T13:08:10.1833625Z hint: call:
+2026-10-24T13:08:10.1834110Z hint:
+2026-10-24T13:08:10.1834540Z hint: 	git config --global init.defaultBranch <name>
+2026-10-24T13:08:10.1834939Z hint:
+2026-10-24T13:08:10.1835407Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-24T13:08:10.1836140Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-24T13:08:10.1836615Z hint:
+2026-10-24T13:08:10.1836877Z hint: 	git branch -m <name>
+2026-10-24T13:08:10.1837164Z hint:
+2026-10-24T13:08:10.1837663Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-24T13:08:10.3028166Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-24T13:08:10.3029170Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-24T13:08:10.3030132Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-24T13:08:10.3030770Z hint: call:
+2026-10-24T13:08:10.3031139Z hint:
+2026-10-24T13:08:10.3031654Z hint: 	git config --global init.defaultBranch <name>
+2026-10-24T13:08:10.3032143Z hint:
+2026-10-24T13:08:10.3032858Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-24T13:08:10.3033684Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-24T13:08:10.3034265Z hint:
+2026-10-24T13:08:10.3034652Z hint: 	git branch -m <name>
+2026-10-24T13:08:10.3035052Z hint:
+2026-10-24T13:08:10.3035662Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-24T13:08:10.4316048Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-24T13:08:10.4317945Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-24T13:08:10.4318831Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-24T13:08:10.4319513Z hint: call:
+2026-10-24T13:08:10.4319778Z hint:
+2026-10-24T13:08:10.4320185Z hint: 	git config --global init.defaultBranch <name>
+2026-10-24T13:08:10.4320863Z hint:
+2026-10-24T13:08:10.4321332Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-24T13:08:10.4322057Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-24T13:08:10.4322513Z hint:
+2026-10-24T13:08:10.4322953Z hint: 	git branch -m <name>
+2026-10-24T13:08:10.4323249Z hint:
+2026-10-24T13:08:10.4323771Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-24T13:08:10.5017122Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-24T13:08:10.5018364Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-24T13:08:10.5019378Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-24T13:08:10.5019851Z hint: call:
+2026-10-24T13:08:10.5020089Z hint:
+2026-10-24T13:08:10.5020481Z hint: 	git config --global init.defaultBranch <name>
+2026-10-24T13:08:10.5020864Z hint:
+2026-10-24T13:08:10.5021342Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-24T13:08:10.5022049Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-24T13:08:10.5022502Z hint:
+2026-10-24T13:08:10.5022907Z hint: 	git branch -m <name>
+2026-10-24T13:08:10.5023184Z hint:
+2026-10-24T13:08:10.5023670Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-24T13:08:10.5703311Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-24T13:08:10.5704343Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-24T13:08:10.5705728Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-24T13:08:10.5706391Z hint: call:
+2026-10-24T13:08:10.5706773Z hint:
+2026-10-24T13:08:10.5707317Z hint: 	git config --global init.defaultBranch <name>
+2026-10-24T13:08:10.5707891Z hint:
+2026-10-24T13:08:10.5708496Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-24T13:08:10.5713602Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-24T13:08:10.5714291Z hint:
+2026-10-24T13:08:10.5714689Z hint: 	git branch -m <name>
+2026-10-24T13:08:10.5715110Z hint:
+2026-10-24T13:08:10.5715731Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-24T13:08:10.6554047Z  [32m✓[39m __tests__/unit/ide-context.test.js [2m([22m[2m49 tests[22m[2m)[22m[33m 802[2mms[22m[39m
+2026-10-24T13:08:10.6555635Z      [33m[2m✓[22m[39m appends <ide-context> to the in-flight user turn but not persistence [33m 393[2mms[22m[39m
+2026-10-24T13:08:10.6617163Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-24T13:08:10.6618127Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-24T13:08:10.6619059Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-24T13:08:10.6619695Z hint: call:
+2026-10-24T13:08:10.6620106Z hint:
+2026-10-24T13:08:10.6620746Z hint: 	git config --global init.defaultBranch <name>
+2026-10-24T13:08:10.6621475Z hint:
+2026-10-24T13:08:10.6622238Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-24T13:08:10.6623397Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-24T13:08:10.6624173Z hint:
+2026-10-24T13:08:10.6624737Z hint: 	git branch -m <name>
+2026-10-24T13:08:10.6625311Z hint:
+2026-10-24T13:08:10.6626095Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-24T13:08:10.7756693Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-24T13:08:10.7757745Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-24T13:08:10.7758601Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-24T13:08:10.7759281Z hint: call:
+2026-10-24T13:08:10.7772538Z hint:
+2026-10-24T13:08:10.7773279Z hint: 	git config --global init.defaultBranch <name>
+2026-10-24T13:08:10.7773643Z hint:
+2026-10-24T13:08:10.7774067Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-24T13:08:10.7774673Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-24T13:08:10.7775084Z hint:
+2026-10-24T13:08:10.7775315Z hint: 	git branch -m <name>
+2026-10-24T13:08:10.7775582Z hint:
+2026-10-24T13:08:10.7776003Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-24T13:08:10.8668384Z  [32m✓[39m __tests__/unit/verify01-execution.test.js [2m([22m[2m21 tests[22m[2m)[22m[33m 1878[2mms[22m[39m
+2026-10-24T13:08:11.0871181Z  [32m✓[39m __tests__/unit/team-adjudication.test.js [2m([22m[2m18 tests[22m[2m)[22m[32m 275[2mms[22m[39m
+2026-10-24T13:08:11.2394723Z  [32m✓[39m __tests__/unit/background-task-manager.test.js [2m([22m[2m39 tests[22m[2m)[22m[32m 48[2mms[22m[39m
+2026-10-24T13:08:11.2762190Z  [32m✓[39m __tests__/unit/dao-governance.test.js [2m([22m[2m81 tests[22m[2m)[22m[32m 35[2mms[22m[39m
+2026-10-24T13:08:11.4460168Z  [32m✓[39m __tests__/unit/pqc-manager.test.js [2m([22m[2m85 tests[22m[2m)[22m[32m 42[2mms[22m[39m
+2026-10-24T13:08:12.0615429Z  [32m✓[39m __tests__/unit/mcp-config-scopes.test.js [2m([22m[2m37 tests[22m[2m)[22m[32m 52[2mms[22m[39m
+2026-10-24T13:08:12.2885185Z  [32m✓[39m __tests__/unit/threat-intel.test.js [2m([22m[2m69 tests[22m[2m)[22m[32m 34[2mms[22m[39m
+2026-10-24T13:08:12.3518953Z  [32m✓[39m __tests__/unit/team-command-broker.test.js [2m([22m[2m29 tests[22m[2m)[22m[32m 93[2mms[22m[39m
+2026-10-24T13:08:12.4585416Z  [32m✓[39m __tests__/unit/plan-mode.test.js [2m([22m[2m77 tests[22m[2m)[22m[32m 24[2mms[22m[39m
+2026-10-24T13:08:12.9604813Z  [32m✓[39m __tests__/unit/app-server-graph-runtime.test.js [2m([22m[2m18 tests[22m[2m)[22m[32m 260[2mms[22m[39m
+2026-10-24T13:08:13.1640974Z  [32m✓[39m __tests__/unit/vscode-ext-managed-cli.test.js [2m([22m[2m72 tests[22m[2m)[22m[32m 59[2mms[22m[39m
+2026-10-24T13:08:14.2933856Z  [32m✓[39m __tests__/unit/ide-diff-approval.test.js [2m([22m[2m39 tests[22m[2m)[22m[32m 197[2mms[22m[39m
+2026-10-24T13:08:14.4609830Z  [32m✓[39m __tests__/unit/note-versioning.test.js [2m([22m[2m71 tests[22m[2m)[22m[32m 28[2mms[22m[39m
+2026-10-24T13:08:14.7222430Z  [32m✓[39m __tests__/unit/audit-logger.test.js [2m([22m[2m75 tests[22m[2m)[22m[32m 55[2mms[22m[39m
+2026-10-24T13:08:14.8999582Z  [32m✓[39m __tests__/unit/ueba.test.js [2m([22m[2m59 tests[22m[2m)[22m[32m 30[2mms[22m[39m
+2026-10-24T13:08:15.0890797Z  [32m✓[39m __tests__/unit/sla-manager.test.js [2m([22m[2m86 tests[22m[2m)[22m[32m 44[2mms[22m[39m
+2026-10-24T13:08:21.3181110Z  [32m✓[39m __tests__/unit/checkpoint-managed-command.test.js [2m([22m[2m20 tests[22m[2m)[22m[33m 6078[2mms[22m[39m
+2026-10-24T13:08:21.3182927Z      [33m[2m✓[22m[39m is registered by the real checkpoint manifest and preserves literal run tokens after `--` [33m 5741[2mms[22m[39m
+2026-10-24T13:08:21.5196133Z  [32m✓[39m __tests__/unit/permanent-memory.test.js [2m([22m[2m72 tests[22m[2m)[22m[32m 32[2mms[22m[39m
+2026-10-24T13:08:23.5496679Z  [32m✓[39m __tests__/unit/headless-stream-side-effects.test.js [2m([22m[2m17 tests[22m[2m)[22m[33m 932[2mms[22m[39m
+2026-10-24T13:08:23.5498318Z      [33m[2m✓[22m[39m keeps foreground shell execution non-blocking for the host lease [33m 322[2mms[22m[39m
+2026-10-24T13:08:23.9781538Z  [32m✓[39m __tests__/unit/graph-kernel-structured-control.test.js [2m([22m[2m8 tests[22m[2m)[22m[32m 217[2mms[22m[39m
+2026-10-24T13:08:24.4429604Z  [32m✓[39m __tests__/unit/wallet-manager.test.js [2m([22m[2m71 tests[22m[2m)[22m[33m 328[2mms[22m[39m
+2026-10-24T13:08:25.4823409Z  [32m✓[39m __tests__/unit/pm-exploration-process-runner.test.js [2m([22m[2m8 tests[22m[2m)[22m[33m 461[2mms[22m[39m
+2026-10-24T13:08:26.9194741Z  [32m✓[39m __tests__/unit/evolvable-artifact-ledger-adapter.test.js [2m([22m[2m3 tests[22m[2m)[22m[33m 955[2mms[22m[39m
+2026-10-24T13:08:26.9196208Z      [33m[2m✓[22m[39m reopens a typed candidate and release transition from real ArtifactStore and Ledger files [33m 306[2mms[22m[39m
+2026-10-24T13:08:26.9197722Z      [33m[2m✓[22m[39m recovers exact active content through a branded release reader [33m 407[2mms[22m[39m
+2026-10-24T13:08:27.5025933Z  [32m✓[39m __tests__/unit/evolution-manifest-state-reader.test.js [2m([22m[2m88 tests[22m[2m | [22m[33m2 skipped[39m[2m)[22m[33m 424[2mms[22m[39m
+2026-10-24T13:08:29.4351809Z  [32m✓[39m __tests__/unit/agent-core-hooks.test.js [2m([22m[2m31 tests[22m[2m)[22m[33m 921[2mms[22m[39m
+2026-10-24T13:08:29.9854660Z  [32m✓[39m __tests__/unit/workspace-transaction-adversarial.test.js [2m([22m[2m20 tests[22m[2m)[22m[33m 420[2mms[22m[39m
+2026-10-24T13:08:30.2112120Z  [32m✓[39m __tests__/unit/team-merge-review.test.js [2m([22m[2m18 tests[22m[2m)[22m[32m 91[2mms[22m[39m
+2026-10-24T13:08:30.3740553Z  [32m✓[39m __tests__/unit/trajectory-store.test.js [2m([22m[2m50 tests[22m[2m)[22m[32m 26[2mms[22m[39m
+2026-10-24T13:08:30.9150007Z  [32m✓[39m __tests__/unit/skill-wiki-reconciliation.test.js [2m([22m[2m8 tests[22m[2m)[22m[32m 53[2mms[22m[39m
+2026-10-24T13:08:31.0853972Z  [32m✓[39m __tests__/unit/auto-mode-config.test.js [2m([22m[2m26 tests[22m[2m)[22m[32m 17[2mms[22m[39m
+2026-10-24T13:08:33.0500076Z  [32m✓[39m __tests__/unit/agent-core-run-shell-background.test.js [2m([22m[2m25 tests[22m[2m)[22m[33m 971[2mms[22m[39m
+2026-10-24T13:08:33.5104447Z  [32m✓[39m __tests__/unit/web-fetch.test.js [2m([22m[2m57 tests[22m[2m)[22m[32m 297[2mms[22m[39m
+2026-10-24T13:09:03.6982592Z  [32m✓[39m __tests__/unit/rrsi-registry-history-binding.test.js [2m([22m[2m14 tests[22m[2m)[22m[33m 29635[2mms[22m[39m
+2026-10-24T13:09:03.6983981Z      [33m[2m✓[22m[39m binds exact v2=false backend, registry, journal and artifact resolver without certifying cutover [33m 337[2mms[22m[39m
+2026-10-24T13:09:03.7008996Z      [33m[2m✓[22m[39m binds exact v2=true backend, registry, journal and artifact resolver without certifying cutover [33m 697[2mms[22m[39m
+2026-10-24T13:09:03.7010429Z      [33m[2m✓[22m[39m preserves the original journal identity as valid unrelated events advance its head [33m 1283[2mms[22m[39m
+2026-10-24T13:09:03.7011506Z      [33m[2m✓[22m[39m rejects another real backend with identical tenant, descriptors and campaign [33m 1179[2mms[22m[39m
+2026-10-24T13:09:03.7012566Z      [33m[2m✓[22m[39m rejects a newly opened real artifact port object on the same physical store [33m 662[2mms[22m[39m
+2026-10-24T13:09:03.7013815Z      [33m[2m✓[22m[39m rejects a different genuine resolver from the same port instance rather than comparing descriptors [33m 659[2mms[22m[39m
+2026-10-24T13:09:03.7015046Z      [33m[2m✓[22m[39m rejects copied objects, callbacks, proxies and option accessors without invoking them [33m 624[2mms[22m[39m
+2026-10-24T13:09:03.7016214Z      [33m[2m✓[22m[39m rechecks actual Registry marker bytes instead of relying on construction identity [33m 638[2mms[22m[39m
+2026-10-24T13:09:03.7017497Z      [33m[2m✓[22m[39m refuses a damaged v2 retained payload even while the source WAL remains present [33m 429[2mms[22m[39m
+2026-10-24T13:09:03.7018626Z      [33m[2m✓[22m[39m binds a real promoted parent and refuses stale parent state after genuine rollback [33m 5067[2mms[22m[39m
+2026-10-24T13:09:03.7019395Z      [33m[2m✓[22m[39m rejects a real PM bridge on another backend before attaching the v2 parent runtime [33m 4280[2mms[22m[39m
+2026-10-24T13:09:03.7020207Z      [33m[2m✓[22m[39m keeps subclass readers rejected and original recovery/read paths independent of subclass overrides [33m 4771[2mms[22m[39m
+2026-10-24T13:09:03.7021325Z      [33m[2m✓[22m[39m binds the same genuine v2 History to a PM runtime, dispatches once and preserves charged unknown cost [33m 8830[2mms[22m[39m
+2026-10-24T13:09:03.9471266Z  [32m✓[39m __tests__/unit/skill-execution-manifest.test.js [2m([22m[2m16 tests[22m[2m)[22m[32m 75[2mms[22m[39m
+2026-10-24T13:09:04.1031398Z  [32m✓[39m __tests__/unit/permission-rules.test.js [2m([22m[2m64 tests[22m[2m)[22m[32m 17[2mms[22m[39m
+2026-10-24T13:09:04.3450848Z  [32m✓[39m __tests__/unit/graph-kernel-cutover-ledger.test.js [2m([22m[2m8 tests[22m[2m)[22m[32m 34[2mms[22m[39m
+2026-10-24T13:09:04.4929627Z  [32m✓[39m __tests__/unit/vitest-worker-retry.test.js [2m([22m[2m17 tests[22m[2m)[22m[32m 18[2mms[22m[39m
+2026-10-24T13:09:04.7784905Z  [2m[90m↓[39m[22m __tests__/unit/windows-native-evaluator.test.js [2m([22m[2m7 tests[22m[2m | [22m[33m7 skipped[39m[2m)[22m
+2026-10-24T13:09:06.0696291Z  [32m✓[39m __tests__/unit/fallback-model.test.js [2m([22m[2m46 tests[22m[2m)[22m[32m 22[2mms[22m[39m
+2026-10-24T13:09:07.2518731Z  [32m✓[39m __tests__/unit/wikiskill-benchmark-ledger-adapter.test.js [2m([22m[2m6 tests[22m[2m)[22m[33m 959[2mms[22m[39m
+2026-10-24T13:09:07.2543855Z      [33m[2m✓[22m[39m chunks a report larger than one ArtifactStore canonical record [33m 590[2mms[22m[39m
+2026-10-24T13:09:07.4366853Z  [32m✓[39m __tests__/unit/stress-tester.test.js [2m([22m[2m68 tests[22m[2m)[22m[32m 36[2mms[22m[39m
+2026-10-24T13:09:08.5132841Z  [32m✓[39m __tests__/unit/json-schema-validate.test.js [2m([22m[2m45 tests[22m[2m)[22m[33m 880[2mms[22m[39m
+2026-10-24T13:09:11.7118981Z  [32m✓[39m __tests__/unit/evolution-witness-state-boundary.test.js [2m([22m[2m92 tests[22m[2m)[22m[33m 2988[2mms[22m[39m
+2026-10-24T13:09:11.7120726Z      [33m[2m✓[22m[39m rejects a same-byte original directory copy before reading or creating a writer lock [33m 960[2mms[22m[39m
+2026-10-24T13:09:11.7122379Z      [33m[2m✓[22m[39m rejects an actual inode replacement inside private-file preparation [33m 889[2mms[22m[39m
+2026-10-24T13:09:11.8933306Z  [32m✓[39m __tests__/unit/session-projection.test.js [2m([22m[2m12 tests[22m[2m)[22m[32m 35[2mms[22m[39m
+2026-10-24T13:09:14.5006144Z  [32m✓[39m __tests__/unit/segmented-memory-port.test.js [2m([22m[2m23 tests[22m[2m | [22m[33m4 skipped[39m[2m)[22m[33m 2190[2mms[22m[39m
+2026-10-24T13:09:14.5007443Z      [33m[2m✓[22m[39m exports concentrated legacy audit without an argument-count limit [33m 1269[2mms[22m[39m
+2026-10-24T13:09:27.4142552Z  [32m✓[39m __tests__/unit/evolution-eval-readonly-audit.test.js [2m([22m[2m7 tests[22m[2m)[22m[33m 12431[2mms[22m[39m
+2026-10-24T13:09:27.4144177Z      [33m[2m✓[22m[39m captures the actual v2 journal and rejects copied, Proxy and foreign-journal tokens [33m 372[2mms[22m[39m
+2026-10-24T13:09:27.4145747Z      [33m[2m✓[22m[39m retains and freezes the entire verified event collection above aggregate document limits [33m 10361[2mms[22m[39m
+2026-10-24T13:09:27.4147133Z      [33m[2m✓[22m[39m permanently invalidates an audit after a separate v2 writer changes its head [33m 375[2mms[22m[39m
+2026-10-24T13:09:27.4148740Z      [33m[2m✓[22m[39m preserves genuine enrolled admission bindings on v2 and requires final head closure [33m 1135[2mms[22m[39m
+2026-10-24T13:09:29.7161697Z  [32m✓[39m __tests__/unit/canonical-compaction-usage.test.js [2m([22m[2m23 tests[22m[2m)[22m[33m 1212[2mms[22m[39m
+2026-10-24T13:09:29.7169758Z      [33m[2m✓[22m[39m commits a fitting summary and accounts once (persistent=false) [33m 330[2mms[22m[39m
+2026-10-24T13:09:29.8875596Z  [32m✓[39m __tests__/unit/vscode-ext-policy-viewer.test.js [2m([22m[2m24 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+2026-10-24T13:09:30.7394272Z  [32m✓[39m __tests__/unit/vscode-ext-question-drafts.test.js [2m([22m[2m14 tests[22m[2m)[22m[33m 336[2mms[22m[39m
+2026-10-24T13:09:31.1779647Z  [32m✓[39m __tests__/unit/wiki-maintainer-ledger-adapter.test.js [2m([22m[2m6 tests[22m[2m)[22m[32m 230[2mms[22m[39m
+2026-10-24T13:09:34.2221242Z  [32m✓[39m __tests__/unit/mcp-stdio-executable-identity.test.js [2m([22m[2m16 tests[22m[2m)[22m[33m 2778[2mms[22m[39m
+2026-10-24T13:09:34.2222903Z      [33m[2m✓[22m[39m requires explicit semantics for a renamed runtime and binds its script [33m 683[2mms[22m[39m
+2026-10-24T13:09:34.2226733Z      [33m[2m✓[22m[39m deterministically recovers both sides of an interrupted trust mutation [33m 410[2mms[22m[39m
+2026-10-24T13:09:34.2227904Z      [33m[2m✓[22m[39m lets the Broker consume the private token and strips it from native spawn [33m 323[2mms[22m[39m
+2026-10-24T13:09:34.5604652Z  [32m✓[39m __tests__/unit/evolution-artifact-index-boundary.test.js [2m([22m[2m44 tests[22m[2m)[22m[32m 105[2mms[22m[39m
+2026-10-24T13:09:34.8738696Z  [32m✓[39m __tests__/unit/evolution-ledger-v2-manifest-backend.test.js [2m([22m[2m6 tests[22m[2m)[22m[32m 84[2mms[22m[39m
+2026-10-24T13:09:35.9437342Z  [32m✓[39m __tests__/unit/browser-act-tool.test.js [2m([22m[2m16 tests[22m[2m)[22m[32m 60[2mms[22m[39m
+2026-10-24T13:09:39.5471795Z  [32m✓[39m __tests__/unit/wiki-revision-history.test.js [2m([22m[2m27 tests[22m[2m)[22m[33m 3394[2mms[22m[39m
+2026-10-24T13:09:39.5473455Z      [33m[2m✓[22m[39m reopens the exact baseline and ordered own successors with real signatures and durable request idempotency [33m 323[2mms[22m[39m
+2026-10-24T13:10:01.6130601Z  [32m✓[39m __tests__/unit/rrsi-native-batch-history.test.js [2m([22m[2m24 tests[22m[2m)[22m[33m 101300[2mms[22m[39m
+2026-10-24T13:10:01.6132273Z      [33m[2m✓[22m[39m freezes all triangle attempts, units and distinct native identities without private task copies [33m 2422[2mms[22m[39m
+2026-10-24T13:10:01.6133573Z      [33m[2m✓[22m[39m refuses omission from the actorInvocations denominator [33m 2267[2mms[22m[39m
+2026-10-24T13:10:01.6134487Z      [33m[2m✓[22m[39m refuses omission from the gradeInvocations denominator [33m 2258[2mms[22m[39m
+2026-10-24T13:10:01.6135419Z      [33m[2m✓[22m[39m refuses omission from the safetyInvocations denominator [33m 2294[2mms[22m[39m
+2026-10-24T13:10:01.6136473Z      [33m[2m✓[22m[39m requires explicit provider/reset categories and their charged unit ceiling [33m 4560[2mms[22m[39m
+2026-10-24T13:10:01.6137474Z      [33m[2m✓[22m[39m refuses missing, duplicate or foreign child allocations [33m 6540[2mms[22m[39m
+2026-10-24T13:10:01.6138519Z      [33m[2m✓[22m[39m readback rejects rehashed request substitution and denominator removal [33m 2264[2mms[22m[39m
+2026-10-24T13:10:01.6139628Z      [33m[2m✓[22m[39m atomically holds the whole batch, charges each arm, and consumes one query [33m 2674[2mms[22m[39m
+2026-10-24T13:10:01.6140758Z      [33m[2m✓[22m[39m gives each fresh child exactly one atomic dispatch and no recovered/copy capability [33m 5226[2mms[22m[39m
+2026-10-24T13:10:01.6141879Z      [33m[2m✓[22m[39m retains both ceilings on uncertainty and prevents candidate freeze [33m 3221[2mms[22m[39m
+2026-10-24T13:10:01.6143173Z      [33m[2m✓[22m[39m settles both arms under one independent signature but retains false execution/billing claims [33m 3128[2mms[22m[39m
+2026-10-24T13:10:01.6144263Z      [33m[2m✓[22m[39m cannot replace missing actors with extra provider calls [33m 2680[2mms[22m[39m
+2026-10-24T13:10:01.6145327Z      [33m[2m✓[22m[39m blocks forged signatures, attribution changes, and receipt reuse across children [33m 3153[2mms[22m[39m
+2026-10-24T13:10:01.6146460Z      [33m[2m✓[22m[39m holds incomplete signed unit vectors without replacing unknown values with zero [33m 3594[2mms[22m[39m
+2026-10-24T13:10:01.6147481Z      [33m[2m✓[22m[39m keeps signed overruns and consumes remaining fresh capabilities when dispatch is denied [33m 3088[2mms[22m[39m
+2026-10-24T13:10:01.6148612Z      [33m[2m✓[22m[39m retains a signed partial unit lower bound and blocks new work after a category overrun [33m 2981[2mms[22m[39m
+2026-10-24T13:10:01.6149630Z      [33m[2m✓[22m[39m refuses not-started claims for a durably dispatched paired attempt [33m 2783[2mms[22m[39m
+2026-10-24T13:10:01.6150410Z      [33m[2m✓[22m[39m does not return exposure or quotas after every child is independently cancelled before start [33m 7178[2mms[22m[39m
+2026-10-24T13:10:01.6151188Z      [33m[2m✓[22m[39m requires all triangle replicas before freeze and prevents a legacy final fallback [33m 11697[2mms[22m[39m
+2026-10-24T13:10:01.6151923Z      [33m[2m✓[22m[39m charges settled unlabelled legacy costs conservatively to every native arm [33m 3187[2mms[22m[39m
+2026-10-24T13:10:01.6152629Z      [33m[2m✓[22m[39m does not issue capabilities for uncertain commits or idempotent readback [33m 5027[2mms[22m[39m
+2026-10-24T13:10:01.6154111Z      [33m[2m✓[22m[39m rejects unsafe unit totals and different data under a frozen query identity [33m 4694[2mms[22m[39m
+2026-10-24T13:10:01.6154891Z      [33m[2m✓[22m[39m keeps campaign renames from resetting native control arms or exposed selection sources [33m 14382[2mms[22m[39m
+2026-10-24T13:10:01.8259163Z  [32m✓[39m __tests__/unit/skill-packs/generator.test.js [2m([22m[2m39 tests[22m[2m)[22m[32m 70[2mms[22m[39m
+2026-10-24T13:10:03.0196162Z  [32m✓[39m __tests__/unit/gateways/ws/llm-chat-protocol.test.js [2m([22m[2m33 tests[22m[2m)[22m[32m 128[2mms[22m[39m
+2026-10-24T13:10:25.5986864Z  [32m✓[39m __tests__/unit/rrsi-native-statistics-protocol.test.js [2m([22m[2m12 tests[22m[2m)[22m[33m 22087[2mms[22m[39m
+2026-10-24T13:10:25.5989092Z      [33m[2m✓[22m[39m rejects recomputed protocol envelopes with changed methods, caps or scientific design [33m 616[2mms[22m[39m
+2026-10-24T13:10:25.5990048Z      [33m[2m✓[22m[39m allows a new candidate and native plan per query while retaining the scope [33m 4500[2mms[22m[39m
+2026-10-24T13:10:25.5991044Z      [33m[2m✓[22m[39m retains v1/v2 selection plan/report golden bytes [33m 5553[2mms[22m[39m
+2026-10-24T13:10:25.5991971Z      [33m[2m✓[22m[39m retains v1/v2 generalization plan/report golden bytes [33m 5542[2mms[22m[39m
+2026-10-24T13:10:26.6213116Z  [32m✓[39m __tests__/unit/plugin-marketplace-archive-source.test.js [2m([22m[2m11 tests[22m[2m)[22m[33m 472[2mms[22m[39m
+2026-10-24T13:10:29.0922854Z  [32m✓[39m __tests__/unit/headless-stream-questions.test.js [2m([22m[2m12 tests[22m[2m)[22m[33m 1435[2mms[22m[39m
+2026-10-24T13:10:29.0924383Z      [33m[2m✓[22m[39m registers MCP elicitation after resolving the MCP client [33m 396[2mms[22m[39m
+2026-10-24T13:10:31.7954714Z  [32m✓[39m __tests__/unit/sub-agent-context.test.js [2m([22m[2m48 tests[22m[2m)[22m[33m 1677[2mms[22m[39m
+2026-10-24T13:10:32.6074275Z  [32m✓[39m __tests__/unit/vscode-ext-ide-bridge.test.js [2m([22m[2m20 tests[22m[2m)[22m[33m 409[2mms[22m[39m
+2026-10-24T13:10:33.7733865Z  [32m✓[39m __tests__/unit/ide-hot-reconnect.test.js [2m([22m[2m14 tests[22m[2m)[22m[33m 769[2mms[22m[39m
+2026-10-24T13:10:33.7734991Z      [33m[2m✓[22m[39m survives an IDE restart: new port + new token via lockfile re-scan [33m 653[2mms[22m[39m
+2026-10-24T13:10:34.0935889Z  [32m✓[39m __tests__/unit/prompt-compressor-structured-handoff.test.js [2m([22m[2m17 tests[22m[2m)[22m[32m 21[2mms[22m[39m
+2026-10-24T13:10:35.3028848Z  [32m✓[39m __tests__/unit/agent-repl-loop-wrapper.test.js [2m([22m[2m16 tests[22m[2m)[22m[32m 98[2mms[22m[39m
+2026-10-24T13:10:35.5680482Z  [32m✓[39m __tests__/unit/persona-command.test.js [2m([22m[2m21 tests[22m[2m)[22m[32m 40[2mms[22m[39m
+2026-10-24T13:10:36.9855323Z  [32m✓[39m __tests__/unit/ws-session-core-protocol.test.js [2m([22m[2m25 tests[22m[2m)[22m[33m 395[2mms[22m[39m
+2026-10-24T13:10:37.5553211Z  [32m✓[39m __tests__/unit/compact-command.test.js [2m([22m[2m17 tests[22m[2m)[22m[32m 155[2mms[22m[39m
+2026-10-24T13:10:37.7882285Z  [32m✓[39m __tests__/unit/session-usage-attribution.test.js [2m([22m[2m23 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+2026-10-24T13:10:37.9467846Z  [32m✓[39m __tests__/unit/vscode-ext-completion.test.js [2m([22m[2m28 tests[22m[2m | [22m[33m1 skipped[39m[2m)[22m[32m 21[2mms[22m[39m
+2026-10-24T13:10:38.2714021Z  [32m✓[39m __tests__/unit/cli-reliability-duplex-diagnostics.test.js [2m([22m[2m14 tests[22m[2m)[22m[32m 146[2mms[22m[39m
+2026-10-24T13:10:38.4446387Z  [32m✓[39m __tests__/unit/skill-mcp.test.js [2m([22m[2m34 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+2026-10-24T13:10:38.6299230Z  [32m✓[39m __tests__/unit/read-file-loop-guard.test.js [2m([22m[2m26 tests[22m[2m)[22m[32m 27[2mms[22m[39m
+2026-10-24T13:10:38.7958360Z  [32m✓[39m __tests__/unit/codex-app-server-adapter.test.js [2m([22m[2m20 tests[22m[2m)[22m[32m 40[2mms[22m[39m
+2026-10-24T13:10:45.5747166Z  [32m✓[39m __tests__/unit/governed-knowledge-sync.test.js [2m([22m[2m68 tests[22m[2m)[22m[33m 6280[2mms[22m[39m
+2026-10-24T13:10:45.5748907Z      [33m[2m✓[22m[39m receives an authenticated newer record and rejects tenant/signature substitution [33m 547[2mms[22m[39m
+2026-10-24T13:10:45.5750283Z      [33m[2m✓[22m[39m recovers an authenticated reception idempotently without another sync commit [33m 551[2mms[22m[39m
+2026-10-24T13:10:45.5751714Z      [33m[2m✓[22m[39m rejects empty or oversized ciphertext before commit and transport [33m 548[2mms[22m[39m
+2026-10-24T13:10:45.5753460Z      [33m[2m✓[22m[39m preserves concurrent offline edits as an explicit human merge conflict [33m 533[2mms[22m[39m
+2026-10-24T13:10:45.8399924Z  [32m✓[39m __tests__/unit/settings-source-observation.test.js [2m([22m[2m25 tests[22m[2m)[22m[32m 133[2mms[22m[39m
+2026-10-24T13:10:46.0879880Z  [32m✓[39m __tests__/unit/nostr-bridge.test.js [2m([22m[2m43 tests[22m[2m)[22m[32m 104[2mms[22m[39m
+2026-10-24T13:10:48.1295589Z  [32m✓[39m __tests__/unit/mcp-client-http-body-limit.test.js [2m([22m[2m13 tests[22m[2m)[22m[33m 1611[2mms[22m[39m
+2026-10-24T13:10:48.1297174Z      [33m[2m✓[22m[39m suppresses and cancels a chunked HTTP 503 error body before its canary [33m 759[2mms[22m[39m
+2026-10-24T13:10:48.1298692Z      [33m[2m✓[22m[39m cancels an unsurfaced headersHelper error body without reading it [33m 762[2mms[22m[39m
+2026-10-24T13:10:51.5815852Z  [32m✓[39m __tests__/unit/rrsi-native-statistics-history.test.js [2m([22m[2m13 tests[22m[2m)[22m[33m 68205[2mms[22m[39m
+2026-10-24T13:10:51.5817332Z      [33m[2m✓[22m[39m recovers scope committed before a lost response without granting fresh execution [33m 761[2mms[22m[39m
+2026-10-24T13:10:51.5818655Z      [33m[2m✓[22m[39m recovers plan committed before a lost response without granting fresh execution [33m 5993[2mms[22m[39m
+2026-10-24T13:10:51.5820046Z      [33m[2m✓[22m[39m recovers reservation committed before a lost response without granting fresh execution [33m 8966[2mms[22m[39m
+2026-10-24T13:10:51.5821789Z      [33m[2m✓[22m[39m binds root, scope, plan and v2 reservation in strict order on a real v2 journal [33m 8953[2mms[22m[39m
+2026-10-24T13:10:51.5823899Z      [33m[2m✓[22m[39m keeps registration idempotent and never regenerates dispatch capabilities after retry or reopening [33m 14671[2mms[22m[39m
+2026-10-24T13:10:51.5825343Z      [33m[2m✓[22m[39m requires the scope and exact query plan before reservation and prevents legacy downgrade [33m 7280[2mms[22m[39m
+2026-10-24T13:10:51.5826711Z      [33m[2m✓[22m[39m rejects first scope registration after an undispatched or unknown legacy native reservation [33m 3028[2mms[22m[39m
+2026-10-24T13:10:51.5828113Z      [33m[2m✓[22m[39m rejects first scope registration even after a cancelled preparation releases its resource budget [33m 1265[2mms[22m[39m
+2026-10-24T13:10:51.5829345Z      [33m[2m✓[22m[39m freezes the method, data population and randomness across new campaign IDs [33m 1033[2mms[22m[39m
+2026-10-24T13:10:51.5830861Z      [33m[2m✓[22m[39m rejects replacement of an already registered query even before any model execution [33m 6449[2mms[22m[39m
+2026-10-24T13:10:51.5832221Z      [33m[2m✓[22m[39m rejects a correctly authenticated old reservation record appended after a statistics scope [33m 3279[2mms[22m[39m
+2026-10-24T13:10:51.5833658Z      [33m[2m✓[22m[39m rejects a signed plan artifact that replaces the scope registration digest [33m 3091[2mms[22m[39m
+2026-10-24T13:10:51.5834898Z      [33m[2m✓[22m[39m keeps full v2 statistical plan bytes in the actual retained preregistration artifact [33m 3435[2mms[22m[39m
+2026-10-24T13:10:52.2325537Z  [32m✓[39m __tests__/unit/memory-query-index.test.js [2m([22m[2m14 tests[22m[2m)[22m[33m 3708[2mms[22m[39m
+2026-10-24T13:10:52.2328313Z      [33m[2m✓[22m[39m serves a verified generation and invalidates it on an authority commit without trusting damaged derived bytes [33m 487[2mms[22m[39m
+2026-10-24T13:10:52.2330082Z      [33m[2m✓[22m[39m pushes service filters and limit down, preserving full-scan order with fewer authority reads [33m 565[2mms[22m[39m
+2026-10-24T13:10:52.2331781Z      [33m[2m✓[22m[39m pages stable ties across reopened readers without duplicates, filtering scope/sink/tags before limits [33m 351[2mms[22m[39m
+2026-10-24T13:10:52.2333545Z      [33m[2m✓[22m[39m rebuilds missing indexes from authority even with a warm decoded cache [33m 303[2mms[22m[39m
+2026-10-24T13:10:52.2334934Z      [33m[2m✓[22m[39m rebuilds stale indexes from authority even with a warm decoded cache [33m 309[2mms[22m[39m
+2026-10-24T13:10:52.2336789Z      [33m[2m✓[22m[39m retains one captured generation during a competing CAS commit and shard collection [33m 310[2mms[22m[39m
+2026-10-24T13:10:52.2338339Z      [33m[2m✓[22m[39m pushes recall permission gates without truncating lexical candidates before kernel ranking [33m 309[2mms[22m[39m
+2026-10-24T13:10:52.6922494Z  [32m✓[39m __tests__/unit/scheduler-kernel-soak-campaign.test.js [2m([22m[2m7 tests[22m[2m)[22m[32m 240[2mms[22m[39m
+2026-10-24T13:10:52.9241018Z  [32m✓[39m __tests__/unit/governed-wiki-pruning.test.js [2m([22m[2m20 tests[22m[2m)[22m[32m 35[2mms[22m[39m
+2026-10-24T13:10:53.1230477Z  [32m✓[39m __tests__/unit/otlp-collector-exporter.test.js [2m([22m[2m11 tests[22m[2m)[22m[32m 48[2mms[22m[39m
+2026-10-24T13:10:53.2693528Z  [32m✓[39m __tests__/unit/permission-engine.test.js [2m([22m[2m42 tests[22m[2m)[22m[32m 25[2mms[22m[39m
+2026-10-24T13:10:53.4204363Z  [32m✓[39m __tests__/unit/iteration-budget.test.js [2m([22m[2m40 tests[22m[2m)[22m[32m 33[2mms[22m[39m
+2026-10-24T13:10:53.7973880Z  [32m✓[39m __tests__/unit/mcp-client-json-graph-budget.test.js [2m([22m[2m14 tests[22m[2m)[22m[32m 45[2mms[22m[39m
+2026-10-24T13:10:54.1784676Z  [32m✓[39m __tests__/unit/plugin-remote-source-security.test.js [2m([22m[2m18 tests[22m[2m)[22m[32m 35[2mms[22m[39m
+2026-10-24T13:10:54.5536261Z  [32m✓[39m __tests__/unit/ws-session-state-gateway.test.js [2m([22m[2m13 tests[22m[2m)[22m[32m 37[2mms[22m[39m
+2026-10-24T13:10:54.6961285Z  [32m✓[39m __tests__/unit/capability-manifest.test.js [2m([22m[2m27 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+2026-10-24T13:10:55.4839221Z  [32m✓[39m __tests__/unit/background-stability-matrix.test.js [2m([22m[2m17 tests[22m[2m)[22m[33m 417[2mms[22m[39m
+2026-10-24T13:10:55.8795953Z  [32m✓[39m __tests__/unit/lib/chat-intent-service.test.js [2m([22m[2m35 tests[22m[2m)[22m[32m 115[2mms[22m[39m
+2026-10-24T13:10:56.7249427Z  [32m✓[39m __tests__/unit/session-tail.test.js [2m([22m[2m16 tests[22m[2m)[22m[33m 727[2mms[22m[39m
+2026-10-24T13:10:57.1358197Z  [32m✓[39m __tests__/unit/chat-core-usage.test.js [2m([22m[2m13 tests[22m[2m)[22m[32m 290[2mms[22m[39m
+2026-10-24T13:10:57.4637219Z  [32m✓[39m __tests__/unit/background-turn-bootstrap.test.js [2m([22m[2m8 tests[22m[2m)[22m[32m 215[2mms[22m[39m
+2026-10-24T13:10:57.6414944Z  [32m✓[39m __tests__/unit/evolution-manifest-directory-boundary.test.js [2m([22m[2m40 tests[22m[2m)[22m[32m 37[2mms[22m[39m
+2026-10-24T13:11:02.6627916Z  [32m✓[39m __tests__/unit/evolution-journal-state-boundary.test.js [2m([22m[2m132 tests[22m[2m)[22m[33m 10844[2mms[22m[39m
+2026-10-24T13:11:02.6629620Z      [33m[2m✓[22m[39m does not recreate a missing bound authorityRootDir during a read [33m 10004[2mms[22m[39m
+2026-10-24T13:11:03.1590090Z  [32m✓[39m __tests__/unit/team-merge-review-store.test.js [2m([22m[2m8 tests[22m[2m)[22m[33m 350[2mms[22m[39m
+2026-10-24T13:11:03.9848892Z  [32m✓[39m __tests__/unit/rrsi-installation-route-contracts.test.js [2m([22m[2m44 tests[22m[2m)[22m[33m 691[2mms[22m[39m
+2026-10-24T13:11:03.9849790Z      [33m[2m✓[22m[39m checks the full 64-anchor bound without granting installer or history authority [33m 371[2mms[22m[39m
+2026-10-24T13:11:04.1392049Z  [32m✓[39m __tests__/unit/lib/topic-classifier-v2.test.js [2m([22m[2m45 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+2026-10-24T13:11:15.4316989Z  [32m✓[39m __tests__/unit/governed-wiki-pruning-retrieval.test.js [2m([22m[2m8 tests[22m[2m)[22m[33m 10664[2mms[22m[39m
+2026-10-24T13:11:15.4334416Z      [33m[2m✓[22m[39m keeps non-pruned index entries and selective pattern reads without exposing a writer [33m 1487[2mms[22m[39m
+2026-10-24T13:11:15.4336067Z      [33m[2m✓[22m[39m rejects an independently signed substituted index even with exact request and event lineage [33m 539[2mms[22m[39m
+2026-10-24T13:11:15.4337610Z      [33m[2m✓[22m[39m publishes a durable empty index, removes access to pruned patterns and feeds the real proposer [33m 1540[2mms[22m[39m
+2026-10-24T13:11:15.4339286Z      [33m[2m✓[22m[39m recovers projection-response without duplicate index publication [33m 1340[2mms[22m[39m
+2026-10-24T13:11:15.4340563Z      [33m[2m✓[22m[39m recovers journal-checkpoint without duplicate index publication [33m 1283[2mms[22m[39m
+2026-10-24T13:11:15.4341984Z      [33m[2m✓[22m[39m rejects stale current reads but preserves historical receipts across a second completed plan [33m 3698[2mms[22m[39m
+2026-10-24T13:11:15.4343653Z      [33m[2m✓[22m[39m rejects redigested receipt substitutions and a checkpoint preceding publication [33m 577[2mms[22m[39m
+2026-10-24T13:11:15.8645917Z  [32m✓[39m __tests__/unit/session-host-streaming-resume.test.js [2m([22m[2m10 tests[22m[2m)[22m[32m 194[2mms[22m[39m
+2026-10-24T13:11:16.2059575Z  [32m✓[39m __tests__/unit/lib/audit-mtc.test.js [2m([22m[2m22 tests[22m[2m)[22m[32m 184[2mms[22m[39m
+2026-10-24T13:11:17.3612438Z  [32m✓[39m __tests__/unit/skill-host-budget.test.js [2m([22m[2m19 tests[22m[2m)[22m[32m 269[2mms[22m[39m
+2026-10-24T13:11:19.1902284Z  [32m✓[39m __tests__/unit/rrsi-group-statistics.test.js [2m([22m[2m21 tests[22m[2m)[22m[33m 1700[2mms[22m[39m
+2026-10-24T13:11:19.3393556Z  [32m✓[39m __tests__/unit/settings-loader.test.js [2m([22m[2m29 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+2026-10-24T13:11:19.6084326Z  [32m✓[39m __tests__/unit/lib/autonomous-agent-v2.test.js [2m([22m[2m45 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+2026-10-24T13:11:45.6063364Z  [32m✓[39m __tests__/unit/rrsi-native-statistics-provenance.test.js [2m([22m[2m14 tests[22m[2m)[22m[33m 47519[2mms[22m[39m
+2026-10-24T13:11:45.6064349Z      [33m[2m✓[22m[39m accepts a correctly retained direct-append chain without manufacturing fresh execution capability [33m 5367[2mms[22m[39m
+2026-10-24T13:11:45.6065363Z      [33m[2m✓[22m[39m rejects a noncanonical scope operation ID despite valid authentication [33m 1135[2mms[22m[39m
+2026-10-24T13:11:45.6066518Z      [33m[2m✓[22m[39m rejects a noncanonical plan operation ID despite valid authentication [33m 1692[2mms[22m[39m
+2026-10-24T13:11:45.6067450Z      [33m[2m✓[22m[39m rejects a noncanonical reserve operation ID despite valid authentication [33m 2636[2mms[22m[39m
+2026-10-24T13:11:45.6069043Z      [33m[2m✓[22m[39m does not promote an unrelated record occupying the canonical scope operation ID [33m 3600[2mms[22m[39m
+2026-10-24T13:11:45.6070361Z      [33m[2m✓[22m[39m does not promote an unrelated record occupying the canonical plan operation ID [33m 7505[2mms[22m[39m
+2026-10-24T13:11:45.6071622Z      [33m[2m✓[22m[39m rejects an unrelated statistics-plan payload at the canonical plan operation ID [33m 1887[2mms[22m[39m
+2026-10-24T13:11:45.6072987Z      [33m[2m✓[22m[39m rejects scope registration with missing source references [33m 1754[2mms[22m[39m
+2026-10-24T13:11:45.6073694Z      [33m[2m✓[22m[39m rejects scope registration with substituted source references [33m 1230[2mms[22m[39m
+2026-10-24T13:11:45.6074340Z      [33m[2m✓[22m[39m rejects plan registration with missing source references [33m 2424[2mms[22m[39m
+2026-10-24T13:11:45.6074965Z      [33m[2m✓[22m[39m rejects plan registration with substituted source references [33m 1883[2mms[22m[39m
+2026-10-24T13:11:45.6075593Z      [33m[2m✓[22m[39m rejects reserve registration with missing source references [33m 2740[2mms[22m[39m
+2026-10-24T13:11:45.6076234Z      [33m[2m✓[22m[39m rejects a scope binding copied from another authenticated journal [33m 4393[2mms[22m[39m
+2026-10-24T13:11:45.6076908Z      [33m[2m✓[22m[39m rejects a foreign scope record substituted into an otherwise valid plan [33m 4010[2mms[22m[39m
+2026-10-24T13:11:48.8234718Z  [32m✓[39m __tests__/unit/governed-knowledge-candidate-rejection.test.js [2m([22m[2m11 tests[22m[2m)[22m[33m 28674[2mms[22m[39m
+2026-10-24T13:11:48.8237113Z      [33m[2m✓[22m[39m rolls back then independently settles candidate rejection (Wiki=false), and reopens without duplicate effects [33m 2966[2mms[22m[39m
+2026-10-24T13:11:48.8238300Z      [33m[2m✓[22m[39m rolls back then independently settles candidate rejection (Wiki=true), and reopens without duplicate effects [33m 4216[2mms[22m[39m
+2026-10-24T13:11:48.8239683Z      [33m[2m✓[22m[39m rejects a never-promoted immutable draft without modifying its bytes or the unrelated active pointer [33m 3220[2mms[22m[39m
+2026-10-24T13:11:48.8240644Z      [33m[2m✓[22m[39m will not certify rejection while the same candidate remains active [33m 1847[2mms[22m[39m
+2026-10-24T13:11:48.8241766Z      [33m[2m✓[22m[39m requires exact Knowledge provenance before certifying a candidate effect [33m 2164[2mms[22m[39m
+2026-10-24T13:11:48.8242952Z      [33m[2m✓[22m[39m does not settle rejection if an inactive candidate remains eligible for rollback [33m 1816[2mms[22m[39m
+2026-10-24T13:11:48.8244359Z      [33m[2m✓[22m[39m requires an in-flight promotion to finish or recover before certifying rejection [33m 5259[2mms[22m[39m
+2026-10-24T13:11:48.8245312Z      [33m[2m✓[22m[39m does not use a Wiki revision committed after the candidate's original promotion [33m 2878[2mms[22m[39m
+2026-10-24T13:11:48.8246263Z      [33m[2m✓[22m[39m will not reinterpret quarantine as candidate rejection [33m 2572[2mms[22m[39m
+2026-10-24T13:11:48.8247255Z      [33m[2m✓[22m[39m has no generic-success fallback for missing or incorrectly configured routes [33m 805[2mms[22m[39m
+2026-10-24T13:11:48.8248363Z      [33m[2m✓[22m[39m requires genuine independent readers and cannot route a caller-built request [33m 928[2mms[22m[39m
+2026-10-24T13:11:50.4512094Z  [32m✓[39m __tests__/unit/team-distributed-finalization.test.js [2m([22m[2m4 tests[22m[2m)[22m[33m 1469[2mms[22m[39m
+2026-10-24T13:11:50.4513385Z      [33m[2m✓[22m[39m persists every merge and cleanup intent before completing [33m 532[2mms[22m[39m
+2026-10-24T13:11:50.4514565Z      [33m[2m✓[22m[39m fences concurrent owners and requires explicit takeover after death [33m 511[2mms[22m[39m
+2026-10-24T13:11:50.7979292Z  [32m✓[39m __tests__/unit/process-execution-broker-linux-generic-pty.test.js [2m([22m[2m4 tests[22m[2m)[22m[32m 82[2mms[22m[39m
+2026-10-24T13:11:50.9332942Z  [32m✓[39m __tests__/unit/task-model-selector.test.js [2m([22m[2m32 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+2026-10-24T13:11:51.2142939Z  [32m✓[39m __tests__/unit/lib/git-integration-v2.test.js [2m([22m[2m45 tests[22m[2m)[22m[32m 21[2mms[22m[39m
+2026-10-24T13:11:51.3494918Z  [32m✓[39m __tests__/unit/lib/service-container-v2.test.js [2m([22m[2m37 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+2026-10-24T13:11:51.4958509Z  [32m✓[39m __tests__/unit/lib/app-builder-v2.test.js [2m([22m[2m45 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+2026-10-24T13:11:51.8069488Z  [32m✓[39m __tests__/unit/lib/session-hooks-v2.test.js [2m([22m[2m37 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+2026-10-24T13:11:52.1306148Z  [32m✓[39m __tests__/unit/session-hooks.test.js [2m([22m[2m26 tests[22m[2m)[22m[32m 46[2mms[22m[39m
+2026-10-24T13:11:52.4205036Z  [32m✓[39m __tests__/unit/claude-code-increment-source-runs.test.js [2m([22m[2m10 tests[22m[2m)[22m[32m 145[2mms[22m[39m
+2026-10-24T13:11:52.5589533Z  [32m✓[39m __tests__/unit/plugin-runtime-capabilities.test.js [2m([22m[2m28 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+2026-10-24T13:11:52.7006124Z  [32m✓[39m __tests__/unit/compliance-framework-reporter.test.js [2m([22m[2m32 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+2026-10-24T13:11:55.9076825Z  [32m✓[39m __tests__/unit/headless-stream-evolution-recovery.test.js [2m([22m[2m8 tests[22m[2m)[22m[33m 2145[2mms[22m[39m
+2026-10-24T13:11:55.9078166Z      [33m[2m✓[22m[39m persists completed calls and resumes without replaying them (complete) [33m 529[2mms[22m[39m
+2026-10-24T13:11:55.9104067Z      [33m[2m✓[22m[39m persists completed calls and resumes without replaying them (pending-commentary) [33m 459[2mms[22m[39m
+2026-10-24T13:11:56.1166119Z  [32m✓[39m __tests__/unit/team-runner-session-budget.test.js [2m([22m[2m9 tests[22m[2m)[22m[32m 26[2mms[22m[39m
+2026-10-24T13:11:56.4377747Z  [32m✓[39m __tests__/unit/vscode-ext-goal-drafts.test.js [2m([22m[2m10 tests[22m[2m)[22m[32m 197[2mms[22m[39m
+2026-10-24T13:11:56.6292871Z  [32m✓[39m __tests__/unit/vscode-ext-context-center.test.js [2m([22m[2m11 tests[22m[2m)[22m[32m 21[2mms[22m[39m
+2026-10-24T13:11:58.2655499Z  [32m✓[39m __tests__/unit/eval-timeout-kill.test.js [2m([22m[2m19 tests[22m[2m)[22m[33m 1360[2mms[22m[39m
+2026-10-24T13:11:58.2656905Z      [33m[2m✓[22m[39m kills the child AND its grandchild before resolving (no post-timeout writes) [33m 1317[2mms[22m[39m
+2026-10-24T13:11:58.4210512Z  [32m✓[39m __tests__/unit/repl-completer.test.js [2m([22m[2m29 tests[22m[2m)[22m[32m 25[2mms[22m[39m
+2026-10-24T13:11:58.5808455Z  [32m✓[39m __tests__/unit/goal-condition-engine.test.js [2m([22m[2m22 tests[22m[2m)[22m[32m 35[2mms[22m[39m
+2026-10-24T13:11:59.1964013Z  [32m✓[39m __tests__/unit/background-agent-worker-termination.test.js [2m([22m[2m21 tests[22m[2m)[22m[32m 217[2mms[22m[39m
+2026-10-24T13:11:59.3401040Z  [32m✓[39m __tests__/unit/lib/permission-engine-v2.test.js [2m([22m[2m38 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+2026-10-24T13:11:59.5044303Z  [32m✓[39m __tests__/unit/lib/web-fetch-v2.test.js [2m([22m[2m37 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+2026-10-24T13:12:01.0758005Z  [32m✓[39m __tests__/unit/headless-runner-usage-attribution.test.js [2m([22m[2m5 tests[22m[2m)[22m[33m 545[2mms[22m[39m
+2026-10-24T13:12:01.0759703Z      [33m[2m✓[22m[39m envelope usage excludes attributed child spend; attributed events + tool calls persist [33m 352[2mms[22m[39m
+2026-10-24T13:12:01.4487361Z  [32m✓[39m __tests__/unit/batch-command.test.js [2m([22m[2m10 tests[22m[2m)[22m[32m 18[2mms[22m[39m
+2026-10-24T13:12:01.7320806Z  [32m✓[39m __tests__/unit/plugin-runtime-plugin-options.test.js [2m([22m[2m18 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+2026-10-24T13:12:02.0779809Z  [32m✓[39m __tests__/unit/eval-command.test.js [2m([22m[2m9 tests[22m[2m)[22m[32m 49[2mms[22m[39m
+2026-10-24T13:12:02.2275110Z  [32m✓[39m __tests__/unit/team-agent-stream.test.js [2m([22m[2m12 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+2026-10-24T13:12:02.9658001Z  [32m✓[39m __tests__/unit/skill-controlled-run.test.js [2m([22m[2m10 tests[22m[2m)[22m[32m 131[2mms[22m[39m
+2026-10-24T13:12:03.1179464Z  [32m✓[39m __tests__/unit/llm-connection-probe.test.js [2m([22m[2m28 tests[22m[2m)[22m[32m 26[2mms[22m[39m
+2026-10-24T13:12:04.5344707Z  [32m✓[39m __tests__/unit/checkpoint-timeline-store.test.js [2m([22m[2m5 tests[22m[2m)[22m[33m 1010[2mms[22m[39m
+2026-10-24T13:12:04.5354116Z      [33m[2m✓[22m[39m persists and consumes ancestry through real timeline preview and confirmation [33m 454[2mms[22m[39m
+2026-10-24T13:12:04.6765887Z  [32m✓[39m __tests__/unit/lib/social-graph-v2.test.js [2m([22m[2m37 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+2026-10-24T13:12:04.8129272Z  [32m✓[39m __tests__/unit/vscode-ext-version-check.test.js [2m([22m[2m27 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+2026-10-24T13:12:05.2440578Z  [32m✓[39m __tests__/unit/artifact-cleanup-ledger.test.js [2m([22m[2m9 tests[22m[2m)[22m[32m 283[2mms[22m[39m
+2026-10-24T13:12:06.3415157Z  [32m✓[39m __tests__/unit/message-bundle-store-recovery.test.js [2m([22m[2m7 tests[22m[2m)[22m[33m 848[2mms[22m[39m
+2026-10-24T13:12:15.1922829Z  [32m✓[39m __tests__/unit/governed-knowledge-source-migration.test.js [2m([22m[2m7 tests[22m[2m)[22m[33m 8368[2mms[22m[39m
+2026-10-24T13:12:15.1933944Z    [33m[2m✓[22m[39m blocks revoked provenance in migration active (0 Wiki hops) without appending a migration [33m 1715[2mms[22m[39m
+2026-10-24T13:12:15.1935549Z    [33m[2m✓[22m[39m blocks revoked provenance in migration lastKnownGood (0 Wiki hops) without appending a migration [33m 920[2mms[22m[39m
+2026-10-24T13:12:15.1936799Z    [33m[2m✓[22m[39m blocks revoked provenance in migration active (2 Wiki hops) without appending a migration [33m 1430[2mms[22m[39m
+2026-10-24T13:12:15.1938209Z    [33m[2m✓[22m[39m blocks revoked provenance in migration lastKnownGood (2 Wiki hops) without appending a migration [33m 1766[2mms[22m[39m
+2026-10-24T13:12:15.1939573Z    [33m[2m✓[22m[39m requires exact migration release evidence after revocation but admits unrelated state [33m 1062[2mms[22m[39m
+2026-10-24T13:12:15.1940688Z    [33m[2m✓[22m[39m rechecks a migration after revocation wins the append CAS [33m 753[2mms[22m[39m
+2026-10-24T13:12:15.1941890Z    [33m[2m✓[22m[39m recovers an already committed migration after revocation without authorizing another migration [33m 720[2mms[22m[39m
+2026-10-24T13:12:28.5223577Z  [32m✓[39m __tests__/unit/governed-knowledge-quarantine-release.test.js [2m([22m[2m4 tests[22m[2m)[22m[33m 12829[2mms[22m[39m
+2026-10-24T13:12:28.5225064Z    [33m[2m✓[22m[39m restores one exact quarantine set only after independent durable approval and safety evaluation [33m 5989[2mms[22m[39m
+2026-10-24T13:12:28.5226485Z    [33m[2m✓[22m[39m does not reinterpret terminal rollback or a failed human decision as releasable quarantine [33m 4757[2mms[22m[39m
+2026-10-24T13:12:28.5227686Z    [33m[2m✓[22m[39m recovers an exact committed release when the Ledger acknowledgement is lost [33m 2080[2mms[22m[39m
+2026-10-24T13:12:29.4056199Z  [32m✓[39m __tests__/unit/app-server-websocket.test.js [2m([22m[2m8 tests[22m[2m)[22m[32m 174[2mms[22m[39m
+2026-10-24T13:12:29.5701554Z  [32m✓[39m __tests__/unit/team-message-bridge.test.js [2m([22m[2m7 tests[22m[2m)[22m[32m 35[2mms[22m[39m
+2026-10-24T13:12:29.7093448Z  [32m✓[39m __tests__/unit/permission-side-effect-center.test.js [2m([22m[2m9 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+2026-10-24T13:12:29.8553749Z  [32m✓[39m __tests__/unit/protocol-replay.test.js [2m([22m[2m17 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+2026-10-24T13:12:30.0001226Z  [32m✓[39m __tests__/unit/session-cost.test.js [2m([22m[2m18 tests[22m[2m)[22m[32m 22[2mms[22m[39m
+2026-10-24T13:12:30.5509255Z  [32m✓[39m __tests__/unit/skill-promotion-review.test.js [2m([22m[2m7 tests[22m[2m)[22m[32m 55[2mms[22m[39m
+2026-10-24T13:12:31.3063082Z  [32m✓[39m __tests__/unit/remote-session-mirroring.test.js [2m([22m[2m8 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+2026-10-24T13:12:31.5166874Z  [32m✓[39m __tests__/unit/telemetry-recorder.test.js [2m([22m[2m16 tests[22m[2m)[22m[32m 75[2mms[22m[39m
+2026-10-24T13:12:31.6749982Z  [32m✓[39m __tests__/unit/pm-exploration-recovery-evidence.test.js [2m([22m[2m5 tests[22m[2m)[22m[32m 18[2mms[22m[39m
+2026-10-24T13:12:31.9600515Z  [32m✓[39m __tests__/unit/gateway-client-resilience.test.js [2m([22m[2m8 tests[22m[2m)[22m[32m 147[2mms[22m[39m
+2026-10-24T13:12:33.0869749Z  [32m✓[39m __tests__/unit/plugin-marketplace-network.test.js [2m([22m[2m5 tests[22m[2m)[22m[33m 758[2mms[22m[39m
+2026-10-24T13:12:33.0871203Z      [33m[2m✓[22m[39m uses a custom CA for a real authenticated HTTPS registry [33m 343[2mms[22m[39m
+2026-10-24T13:12:33.7856956Z  [32m✓[39m __tests__/unit/rrsi-contracts.test.js [2m([22m[2m51 tests[22m[2m)[22m[33m 575[2mms[22m[39m
+2026-10-24T13:12:33.9856978Z  [32m✓[39m __tests__/unit/lib/cli-context-engineering-v2-iter26.test.js [2m([22m[2m44 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+2026-10-24T13:12:34.1416242Z  [32m✓[39m __tests__/unit/lib/dbevo-v2-iter23.test.js [2m([22m[2m44 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+2026-10-24T13:12:34.4608474Z  [32m✓[39m __tests__/unit/video-audio-precision.test.js [2m([22m[2m31 tests[22m[2m)[22m[32m 51[2mms[22m[39m
+2026-10-24T13:12:34.6276177Z  [32m✓[39m __tests__/unit/lib/aiops-v2.test.js [2m([22m[2m44 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+2026-10-24T13:12:34.9171659Z  [32m✓[39m __tests__/unit/cli-goal-catalog.test.js [2m([22m[2m14 tests[22m[2m)[22m[32m 106[2mms[22m[39m
+2026-10-24T13:12:35.1023867Z  [32m✓[39m __tests__/unit/vscode-ext-at-mention.test.js [2m([22m[2m24 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+2026-10-24T13:12:36.5859622Z  [32m✓[39m __tests__/unit/output-backpressure.test.js [2m([22m[2m11 tests[22m[2m)[22m[33m 425[2mms[22m[39m
+2026-10-24T13:12:36.5861171Z      [33m[2m✓[22m[39m pauses the single-turn agent loop at a real stdout drain boundary [33m 342[2mms[22m[39m
+2026-10-24T13:12:36.8725342Z  [32m✓[39m __tests__/unit/lib/claude-code-bridge-v2.test.js [2m([22m[2m44 tests[22m[2m)[22m[32m 21[2mms[22m[39m
+2026-10-24T13:12:37.0192024Z  [32m✓[39m __tests__/unit/lib/did-v2-manager-v2.test.js [2m([22m[2m44 tests[22m[2m)[22m[32m 18[2mms[22m[39m
+2026-10-24T13:12:37.1553635Z  [32m✓[39m __tests__/unit/lib/instinct-manager-v2.test.js [2m([22m[2m44 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+2026-10-24T13:12:37.2959412Z  [32m✓[39m __tests__/unit/lib/cowork-observe-html-v2-iter27.test.js [2m([22m[2m44 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+2026-10-24T13:12:37.4444294Z  [32m✓[39m __tests__/unit/lib/community-governance-v2.test.js [2m([22m[2m44 tests[22m[2m)[22m[32m 18[2mms[22m[39m
+2026-10-24T13:12:37.5921566Z  [32m✓[39m __tests__/unit/content-recommender.test.js [2m([22m[2m23 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+2026-10-24T13:12:37.7339409Z  [32m✓[39m __tests__/unit/lib/evomap-federation-v2-iter25.test.js [2m([22m[2m44 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+2026-10-24T13:12:38.2370179Z  [32m✓[39m __tests__/unit/plugin-marketplace-selection-command.test.js [2m([22m[2m5 tests[22m[2m)[22m[32m 128[2mms[22m[39m
+2026-10-24T13:12:38.5336531Z  [32m✓[39m __tests__/unit/ask-command.test.js [2m([22m[2m20 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+2026-10-24T13:12:38.6761588Z  [32m✓[39m __tests__/unit/lib/sub-agent-registry-v2-iter25.test.js [2m([22m[2m44 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+2026-10-24T13:12:46.8090343Z  [32m✓[39m __tests__/unit/rrsi-evaluation-variants.test.js [2m([22m[2m13 tests[22m[2m)[22m[33m 7642[2mms[22m[39m
+2026-10-24T13:12:46.8092610Z      [33m[2m✓[22m[39m preserves every original source, task and hidden objective while binding changed native digests [33m 826[2mms[22m[39m
+2026-10-24T13:12:46.8094464Z      [33m[2m✓[22m[39m retains native task digests for clean without certifying recipe execution [33m 520[2mms[22m[39m
+2026-10-24T13:12:46.8096059Z      [33m[2m✓[22m[39m retains native task digests for tool-order without certifying recipe execution [33m 527[2mms[22m[39m
+2026-10-24T13:12:46.8097523Z      [33m[2m✓[22m[39m retains native task digests for tool-delay without certifying recipe execution [33m 489[2mms[22m[39m
+2026-10-24T13:12:46.8098942Z      [33m[2m✓[22m[39m returns only original training references and rejects serialized capabilities [33m 567[2mms[22m[39m
+2026-10-24T13:12:46.8099855Z      [33m[2m✓[22m[39m rejects changed privateExpected without reassigning the frozen denominator [33m 424[2mms[22m[39m
+2026-10-24T13:12:46.8100592Z      [33m[2m✓[22m[39m rejects changed graderId without reassigning the frozen denominator [33m 389[2mms[22m[39m
+2026-10-24T13:12:46.8101272Z      [33m[2m✓[22m[39m rejects changed groupKeys without reassigning the frozen denominator [33m 374[2mms[22m[39m
+2026-10-24T13:12:46.8101978Z      [33m[2m✓[22m[39m rejects changed training-input without reassigning the frozen denominator [33m 389[2mms[22m[39m
+2026-10-24T13:12:46.8102669Z      [33m[2m✓[22m[39m rejects changed task-id without reassigning the frozen denominator [33m 406[2mms[22m[39m
+2026-10-24T13:12:46.8103709Z      [33m[2m✓[22m[39m rejects an incomplete pool, no-op paraphrase, identity-tagged perturbation and tampered result [33m 1320[2mms[22m[39m
+2026-10-24T13:12:46.8104764Z      [33m[2m✓[22m[39m rejects exact prompt exposure across different native suites and frozen pools [33m 412[2mms[22m[39m
+2026-10-24T13:12:46.8105493Z      [33m[2m✓[22m[39m checks exact collisions across multiple recipes before launch aggregation [33m 996[2mms[22m[39m
+2026-10-24T13:12:46.9649174Z  [32m✓[39m __tests__/unit/lib/token-tracker-v2-iter24.test.js [2m([22m[2m44 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+2026-10-24T13:12:48.1916757Z  [32m✓[39m __tests__/unit/session-message-reliability-soak.test.js [2m([22m[2m6 tests[22m[2m)[22m[33m 1079[2mms[22m[39m
+2026-10-24T13:12:48.1918331Z      [33m[2m✓[22m[39m runs real offline, reorder, poison, restart and custody recovery cycles [33m 1069[2mms[22m[39m
+2026-10-24T13:12:48.3309153Z  [32m✓[39m __tests__/unit/lib/hardening-manager-v2.test.js [2m([22m[2m44 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+2026-10-24T13:12:48.4818710Z  [32m✓[39m __tests__/unit/lib/activitypub-bridge-v2.test.js [2m([22m[2m44 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+2026-10-24T13:12:48.6261071Z  [32m✓[39m __tests__/unit/lib/p2p-manager-v2.test.js [2m([22m[2m44 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+2026-10-24T13:12:48.7698594Z  [32m✓[39m __tests__/unit/lib/reputation-optimizer-v2.test.js [2m([22m[2m44 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+2026-10-24T13:12:48.9065261Z  [32m✓[39m __tests__/unit/lib/scim-manager-v2.test.js [2m([22m[2m44 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+2026-10-24T13:12:49.0491394Z  [32m✓[39m __tests__/unit/lib/sso-manager-v2.test.js [2m([22m[2m44 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+2026-10-24T13:12:49.2176894Z  [32m✓[39m __tests__/unit/lib/skill-mcp-v2-iter27.test.js [2m([22m[2m44 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+2026-10-24T13:12:49.3609077Z  [32m✓[39m __tests__/unit/lib/federation-hardening-v2.test.js [2m([22m[2m44 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+2026-10-24T13:12:49.6543165Z  [32m✓[39m __tests__/unit/lib/downloader-v2-iter27.test.js [2m([22m[2m44 tests[22m[2m)[22m[32m 17[2mms[22m[39m
+2026-10-24T13:12:49.7943508Z  [32m✓[39m __tests__/unit/lib/response-cache-v2-iter23.test.js [2m([22m[2m44 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+2026-10-24T13:12:49.9343980Z  [32m✓[39m __tests__/unit/lib/session-manager-v2.test.js [2m([22m[2m44 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+2026-10-24T13:12:50.0855642Z  [32m✓[39m __tests__/unit/lib/terraform-manager-v2.test.js [2m([22m[2m44 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+2026-10-24T13:12:50.2334972Z  [32m✓[39m __tests__/unit/lib/quantization-v2.test.js [2m([22m[2m44 tests[22m[2m)[22m[32m 22[2mms[22m[39m
+2026-10-24T13:12:50.3758785Z  [32m✓[39m __tests__/unit/lib/protocol-fusion-v2-iter23.test.js [2m([22m[2m44 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+2026-10-24T13:12:50.5742550Z  [32m✓[39m __tests__/unit/lib/interaction-adapter-v2-iter26.test.js [2m([22m[2m44 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+2026-10-24T13:12:50.7152181Z  [32m✓[39m __tests__/unit/lib/decentral-infra-v2-iter23.test.js [2m([22m[2m44 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+2026-10-24T13:12:50.8655563Z  [32m✓[39m __tests__/unit/lib/bi-engine-v2.test.js [2m([22m[2m44 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+2026-10-24T13:12:51.0072076Z  [32m✓[39m __tests__/unit/lib/compliance-manager-v2.test.js [2m([22m[2m44 tests[22m[2m)[22m[32m 18[2mms[22m[39m
+2026-10-24T13:12:51.3018424Z  [32m✓[39m __tests__/unit/lib/session-consolidator-v2.test.js [2m([22m[2m38 tests[22m[2m)[22m[32m 23[2mms[22m[39m
+2026-10-24T13:12:51.4483039Z  [32m✓[39m __tests__/unit/lib/compliance-manager-v2-iter28.test.js [2m([22m[2m44 tests[22m[2m)[22m[32m 18[2mms[22m[39m
+2026-10-24T13:12:51.5902179Z  [32m✓[39m __tests__/unit/lib/pipeline-orchestrator-v2.test.js [2m([22m[2m41 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+2026-10-24T13:12:52.6422250Z  [32m✓[39m __tests__/unit/headless-stream-coalesce.test.js [2m([22m[2m21 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+2026-10-24T13:12:52.8152211Z  [32m✓[39m __tests__/unit/vscode-ext-fix-with-cc.test.js [2m([22m[2m16 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+2026-10-24T13:12:56.7295342Z  [32m✓[39m __tests__/unit/headless-receipt-retention.test.js [2m([22m[2m2 tests[22m[2m)[22m[33m 2846[2mms[22m[39m
+2026-10-24T13:12:56.7296607Z    [33m[2m✓[22m[39m settles a newly executed tool before long-session retention and resumes its bounded checkpoint [33m 1045[2mms[22m[39m
+2026-10-24T13:12:56.7297600Z    [33m[2m✓[22m[39m persists nine Git tools from real Volcengine SSE with IDE receipts and checkpoints without replay [33m 1799[2mms[22m[39m
+2026-10-24T13:12:56.8704788Z  [32m✓[39m __tests__/unit/lib/zkp-engine-v2.test.js [2m([22m[2m41 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+2026-10-24T13:12:58.5635811Z  [32m✓[39m __tests__/unit/headless-stream-pdh.test.js [2m([22m[2m13 tests[22m[2m)[22m[33m 618[2mms[22m[39m
+2026-10-24T13:12:58.5638858Z      [33m[2m✓[22m[39m persists every feedback to the cross-session ledger [33m 316[2mms[22m[39m
+2026-10-24T13:12:58.7291135Z  [32m✓[39m __tests__/unit/lib/sandbox-v2-v2.test.js [2m([22m[2m44 tests[22m[2m)[22m[32m 23[2mms[22m[39m
+2026-10-24T13:12:59.0024921Z  [32m✓[39m __tests__/unit/dynamic-workflow-draft.test.js [2m([22m[2m7 tests[22m[2m)[22m[32m 26[2mms[22m[39m
+2026-10-24T13:12:59.2950111Z  [32m✓[39m __tests__/unit/slash-commands.test.js [2m([22m[2m19 tests[22m[2m)[22m[32m 36[2mms[22m[39m
+2026-10-24T13:12:59.4834823Z  [32m✓[39m __tests__/unit/with-file-lock-async.test.js [2m([22m[2m10 tests[22m[2m)[22m[32m 65[2mms[22m[39m
+2026-10-24T13:12:59.6677750Z  [32m✓[39m __tests__/unit/sync-credentials.test.js [2m([22m[2m31 tests[22m[2m)[22m[32m 42[2mms[22m[39m
+2026-10-24T13:13:01.0937832Z Preparing worktree (new branch 'cc-agent-external')
+2026-10-24T13:13:01.3775487Z  [32m✓[39m __tests__/unit/agent-worktree.test.js [2m([22m[2m12 tests[22m[2m)[22m[33m 1445[2mms[22m[39m
+2026-10-24T13:13:01.3776965Z      [33m[2m✓[22m[39m removes the worktree when the session changed nothing [33m 446[2mms[22m[39m
+2026-10-24T13:13:01.5189314Z  [32m✓[39m __tests__/unit/lib/evolution-system-v2.test.js [2m([22m[2m41 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+2026-10-24T13:13:01.6631257Z  [32m✓[39m __tests__/unit/service-container.test.js [2m([22m[2m26 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+2026-10-24T13:13:01.9409497Z  [32m✓[39m __tests__/unit/plugin-monitor-supervisor.test.js [2m([22m[2m11 tests[22m[2m)[22m[32m 17[2mms[22m[39m
+2026-10-24T13:13:02.2891811Z  [32m✓[39m __tests__/unit/artifact-ws-protocol.test.js [2m([22m[2m7 tests[22m[2m)[22m[32m 206[2mms[22m[39m
+2026-10-24T13:13:02.5789820Z  [32m✓[39m __tests__/unit/workspace-trust-integration.test.js [2m([22m[2m5 tests[22m[2m)[22m[32m 154[2mms[22m[39m
+2026-10-24T13:13:02.7683571Z [plugins] skipped settings from untrusted project plugin(s): toolkit
+2026-10-24T13:13:02.7684483Z           run `cc plugin trust <name>` to enable them.
+2026-10-24T13:13:02.8746381Z  [32m✓[39m __tests__/unit/plugin-runtime-settings.test.js [2m([22m[2m7 tests[22m[2m)[22m[32m 117[2mms[22m[39m
+2026-10-24T13:13:04.8119748Z  [32m✓[39m __tests__/unit/rrsi-selector.test.js [2m([22m[2m28 tests[22m[2m)[22m[33m 1802[2mms[22m[39m
+2026-10-24T13:13:05.1774595Z  [32m✓[39m __tests__/unit/artifact-deletion-ledger.test.js [2m([22m[2m10 tests[22m[2m)[22m[32m 232[2mms[22m[39m
+2026-10-24T13:13:06.0946260Z  [32m✓[39m __tests__/unit/agent-core-anthropic-thinking.test.js [2m([22m[2m16 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+2026-10-24T13:13:06.2991267Z  [32m✓[39m __tests__/unit/vscode-ext-introspect-commands.test.js [2m([22m[2m14 tests[22m[2m)[22m[32m 17[2mms[22m[39m
+2026-10-24T13:13:06.6086559Z  [32m✓[39m __tests__/unit/lib/prompt-compressor-v2.test.js [2m([22m[2m38 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+2026-10-24T13:13:07.6851940Z  [32m✓[39m __tests__/unit/agent-core-schedule-notify.test.js [2m([22m[2m14 tests[22m[2m)[22m[32m 144[2mms[22m[39m
+2026-10-24T13:13:07.9210771Z  [32m✓[39m __tests__/unit/skill-outcome-transcript-authority.test.js [2m([22m[2m8 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+2026-10-24T13:13:25.0106609Z  [32m✓[39m __tests__/unit/governed-knowledge-candidate-quarantine.test.js [2m([22m[2m8 tests[22m[2m)[22m[33m 16593[2mms[22m[39m
+2026-10-24T13:13:25.0108259Z    [33m[2m✓[22m[39m settles actual quarantine after rollback and reopens without relabelling it as rejection (Wiki=false) [33m 3126[2mms[22m[39m
+2026-10-24T13:13:25.0109555Z    [33m[2m✓[22m[39m settles actual quarantine after rollback and reopens without relabelling it as rejection (Wiki=true) [33m 3825[2mms[22m[39m
+2026-10-24T13:13:25.0110689Z    [33m[2m✓[22m[39m quarantines a never-promoted draft without rewriting its bytes or an unrelated active pointer [33m 2288[2mms[22m[39m
+2026-10-24T13:13:25.0111434Z    [33m[2m✓[22m[39m refuses to certify isolation while the candidate remains active [33m 1183[2mms[22m[39m
+2026-10-24T13:13:25.0112104Z    [33m[2m✓[22m[39m refuses to certify isolation while the candidate remains last-known-good [33m 1767[2mms[22m[39m
+2026-10-24T13:13:25.0113036Z    [33m[2m✓[22m[39m rejects unrelated provenance without claiming a completed quarantine [33m 1536[2mms[22m[39m
+2026-10-24T13:13:25.0113751Z    [33m[2m✓[22m[39m never treats rejection as quarantine and rejects borrowed or fabricated authority [33m 1548[2mms[22m[39m
+2026-10-24T13:13:25.0114505Z    [33m[2m✓[22m[39m does not settle quarantine while a pre-existing release transaction is still in flight [33m 1318[2mms[22m[39m
+2026-10-24T13:13:25.1811435Z  [32m✓[39m __tests__/unit/cowork-evomap-adapter.test.js [2m([22m[2m14 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+2026-10-24T13:13:26.9723339Z  [32m✓[39m __tests__/unit/headless-stream-session-budget-root.test.js [2m([22m[2m6 tests[22m[2m)[22m[33m 725[2mms[22m[39m
+2026-10-24T13:13:26.9724863Z      [33m[2m✓[22m[39m persists the root in verified JSONL and inherits it when resume omits flags [33m 582[2mms[22m[39m
+2026-10-24T13:13:27.6265324Z  [32m✓[39m __tests__/unit/session-workbench-host-fixture.test.js [2m([22m[2m3 tests[22m[2m)[22m[33m 529[2mms[22m[39m
+2026-10-24T13:13:27.7690492Z  [32m✓[39m __tests__/unit/vscode-ext-automation-center.test.js [2m([22m[2m4 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+2026-10-24T13:13:27.9442404Z  [32m✓[39m __tests__/unit/vscode-ext-agent-session-sdk.test.js [2m([22m[2m9 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+2026-10-24T13:13:28.2943281Z  [32m✓[39m __tests__/unit/session-core-singletons.test.js [2m([22m[2m11 tests[22m[2m)[22m[32m 228[2mms[22m[39m
+2026-10-24T13:13:28.4370531Z  [32m✓[39m __tests__/unit/evolution-release-train.test.js [2m([22m[2m6 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+2026-10-24T13:13:28.6043515Z  [32m✓[39m __tests__/unit/model-catalog-review.test.js [2m([22m[2m34 tests[22m[2m)[22m[32m 21[2mms[22m[39m
+2026-10-24T13:13:28.7658500Z  [32m✓[39m __tests__/unit/native-release-sbom.test.js [2m([22m[2m19 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+2026-10-24T13:13:30.8751334Z  [32m✓[39m __tests__/unit/message-bundle-store.test.js [2m([22m[2m5 tests[22m[2m)[22m[33m 1869[2mms[22m[39m
+2026-10-24T13:13:30.8753138Z      [33m[2m✓[22m[39m reads the published bundle after a separate Node process starts [33m 336[2mms[22m[39m
+2026-10-24T13:13:30.8754273Z      [33m[2m✓[22m[39m settles and restores a large image through real persistent compaction [33m 1169[2mms[22m[39m
+2026-10-24T13:13:31.0091758Z  [32m✓[39m __tests__/unit/pdh-bridge.test.js [2m([22m[2m25 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+2026-10-24T13:13:31.2246555Z  [32m✓[39m __tests__/unit/vscode-ext-slash-commands.test.js [2m([22m[2m17 tests[22m[2m)[22m[32m 21[2mms[22m[39m
+2026-10-24T13:13:31.7271748Z  [32m✓[39m __tests__/unit/evolution-workbench-version-control.test.js [2m([22m[2m9 tests[22m[2m)[22m[32m 18[2mms[22m[39m
+2026-10-24T13:13:32.2423833Z  [32m✓[39m __tests__/unit/pdh-derivation-protocol.test.js [2m([22m[2m10 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+2026-10-24T13:13:32.5238969Z  [32m✓[39m __tests__/unit/update-notice.test.js [2m([22m[2m11 tests[22m[2m)[22m[32m 18[2mms[22m[39m
+2026-10-24T13:13:32.6572038Z  [32m✓[39m __tests__/unit/transcript-integrity.test.js [2m([22m[2m18 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+2026-10-24T13:13:32.7793108Z  [32m✓[39m __tests__/unit/ws-session-state.test.js [2m([22m[2m6 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+2026-10-24T13:13:32.9505707Z [plugins] refused monitor(s) from plugin(s) that declared a permissions block but did not declare the 'monitor' capability: p (ships monitors but did not declare the 'monitor' capability)
+2026-10-24T13:13:32.9506911Z           add 'monitor' to the plugin's permissions block to enable them.
+2026-10-24T13:13:32.9705317Z [plugins] skipped monitors from untrusted project plugin(s): toolkit
+2026-10-24T13:13:32.9705978Z           run `cc plugin trust <name>` to enable them.
+2026-10-24T13:13:32.9880548Z  [32m✓[39m __tests__/unit/plugin-runtime-monitors.test.js [2m([22m[2m11 tests[22m[2m)[22m[32m 42[2mms[22m[39m
+2026-10-24T13:13:42.0449950Z  [32m✓[39m __tests__/unit/rrsi-native-group-statistics.test.js [2m([22m[2m16 tests[22m[2m)[22m[33m 115958[2mms[22m[39m
+2026-10-24T13:13:42.0451158Z      [33m[2m✓[22m[39m retains every target stratum in the full family and resampling budget [33m 11220[2mms[22m[39m
+2026-10-24T13:13:42.0452213Z      [33m[2m✓[22m[39m holds the default final protocol with insufficient tail resolution [33m 6106[2mms[22m[39m
+2026-10-24T13:13:42.0453469Z      [33m[2m✓[22m[39m computes the fixed pair-replica mean before seeds and task weights [33m 5981[2mms[22m[39m
+2026-10-24T13:13:42.0454641Z      [33m[2m✓[22m[39m includes B-A observations in both arm means without inventing an unregistered contrast [33m 11835[2mms[22m[39m
+2026-10-24T13:13:42.0455630Z      [33m[2m✓[22m[39m keeps different target effects separate [33m 5780[2mms[22m[39m
+2026-10-24T13:13:42.0456522Z      [33m[2m✓[22m[39m never narrows uncertainty by repeating identical seeds [33m 12104[2mms[22m[39m
+2026-10-24T13:13:42.0457795Z      [33m[2m✓[22m[39m retains missing rows and the entire unobserved batch denominator [33m 5842[2mms[22m[39m
+2026-10-24T13:13:42.0458978Z      [33m[2m✓[22m[39m defines strict pass from the signed pass and violation fields and leaves remediation unmeasured [33m 5580[2mms[22m[39m
+2026-10-24T13:13:42.0460163Z      [33m[2m✓[22m[39m is deterministic under child and row reordering and omits private task data [33m 6086[2mms[22m[39m
+2026-10-24T13:13:42.0461236Z      [33m[2m✓[22m[39m rejects altered plans, copied census tokens and repeated result claims [33m 5833[2mms[22m[39m
+2026-10-24T13:13:42.0462308Z      [33m[2m✓[22m[39m rejects a substituted taskId scope [33m 5948[2mms[22m[39m
+2026-10-24T13:13:42.0463229Z      [33m[2m✓[22m[39m rejects a substituted partition scope [33m 5640[2mms[22m[39m
+2026-10-24T13:13:42.0463964Z      [33m[2m✓[22m[39m rejects a substituted seed scope [33m 5494[2mms[22m[39m
+2026-10-24T13:13:42.0464679Z      [33m[2m✓[22m[39m rejects a substituted arm scope [33m 5547[2mms[22m[39m
+2026-10-24T13:13:42.0465580Z      [33m[2m✓[22m[39m rejects accessor and sparse chunk graphs without invoking user code [33m 5782[2mms[22m[39m
+2026-10-24T13:13:42.0466670Z      [33m[2m✓[22m[39m preflights the complete target operation budget and the shared kernel maximum [33m 11179[2mms[22m[39m
+2026-10-24T13:13:43.4760209Z  [32m✓[39m __tests__/unit/team-fairness-soak.test.js [2m([22m[2m5 tests[22m[2m)[22m[33m 1241[2mms[22m[39m
+2026-10-24T13:13:43.4761774Z      [33m[2m✓[22m[39m runs the real dependency, scope-conflict, and sustained-priority smoke workload [33m 1232[2mms[22m[39m
+2026-10-24T13:13:43.6059452Z  [32m✓[39m __tests__/unit/shell-selector.test.js [2m([22m[2m15 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+2026-10-24T13:13:45.8294718Z  [32m✓[39m __tests__/unit/rrsi-registry-runtime-identity.test.js [2m([22m[2m4 tests[22m[2m)[22m[33m 12355[2mms[22m[39m
+2026-10-24T13:13:45.8324215Z      [33m[2m✓[22m[39m holds a distinct replacement whose Number projection matches without rewriting history or paths [33m 434[2mms[22m[39m
+2026-10-24T13:13:45.8351155Z      [33m[2m✓[22m[39m keeps authenticated old rounded records on HOLD instead of adopting exact current IDs [33m 441[2mms[22m[39m
+2026-10-24T13:13:46.2471118Z  [32m✓[39m __tests__/unit/credential-transport.test.js [2m([22m[2m5 tests[22m[2m)[22m[32m 169[2mms[22m[39m
+2026-10-24T13:13:46.3784269Z  [32m✓[39m __tests__/unit/hook-event-bus.test.js [2m([22m[2m16 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+2026-10-24T13:13:46.5046963Z  [32m✓[39m __tests__/unit/team-budget.test.js [2m([22m[2m13 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+2026-10-24T13:13:46.7436961Z  [32m✓[39m __tests__/unit/graph-kernel-cutover-authority-resolver.test.js [2m([22m[2m7 tests[22m[2m)[22m[32m 38[2mms[22m[39m
+2026-10-24T13:13:51.2137284Z  [32m✓[39m __tests__/unit/evolution-ledger-reliability-soak.test.js [2m([22m[2m11 tests[22m[2m)[22m[33m 4341[2mms[22m[39m
+2026-10-24T13:13:51.2138679Z      [33m[2m✓[22m[39m recovers an actual process exit at each persistence boundary [33m 3561[2mms[22m[39m
+2026-10-24T13:13:51.2139985Z      [33m[2m✓[22m[39m exercises the real subprocess/reopen/corruption path at smoke scale [33m 771[2mms[22m[39m
+2026-10-24T13:13:52.3392219Z  [32m✓[39m __tests__/unit/agent-core-permission-request.test.js [2m([22m[2m8 tests[22m[2m)[22m[32m 241[2mms[22m[39m
+2026-10-24T13:13:52.4666480Z  [32m✓[39m __tests__/unit/verify-release-gates.test.js [2m([22m[2m8 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+2026-10-24T13:13:52.6668236Z  [32m✓[39m __tests__/unit/evolution-test-deployment.test.js [2m([22m[2m4 tests[22m[2m)[22m[32m 62[2mms[22m[39m
+2026-10-24T13:13:53.2110840Z  [32m✓[39m __tests__/unit/mcp-headers-helper.test.js [2m([22m[2m8 tests[22m[2m)[22m[32m 74[2mms[22m[39m
+2026-10-24T13:13:53.4089721Z  [32m✓[39m __tests__/unit/event-runtime-worker.test.js [2m([22m[2m6 tests[22m[2m)[22m[32m 72[2mms[22m[39m
+2026-10-24T13:13:53.8150992Z  [32m✓[39m __tests__/unit/governed-model-stream.test.js [2m([22m[2m35 tests[22m[2m)[22m[32m 41[2mms[22m[39m
+2026-10-24T13:13:54.0736957Z  [2m[90m↓[39m[22m __tests__/unit/windows-sandbox-wall-time.test.js [2m([22m[2m3 tests[22m[2m | [22m[33m3 skipped[39m[2m)[22m
+2026-10-24T13:14:12.7668407Z  [32m✓[39m __tests__/unit/wiki-pruning-full-chain.test.js [2m([22m[2m3 tests[22m[2m)[22m[33m 18188[2mms[22m[39m
+2026-10-24T13:14:12.7670009Z      [33m[2m✓[22m[39m finalizes real rollback, Wiki effects, key destruction, retained tombstone and retrieval and restores without repeating effects [33m 6787[2mms[22m[39m
+2026-10-24T13:14:12.7671987Z      [33m[2m✓[22m[39m rejects a substituted independent KMS proof and resumes the same actual deletion after reopening [33m 9604[2mms[22m[39m
+2026-10-24T13:14:12.7673305Z      [33m[2m✓[22m[39m never destroys a key before dependency and Wiki acknowledgements [33m 1795[2mms[22m[39m
+2026-10-24T13:14:15.7471305Z  [32m✓[39m __tests__/unit/persistent-capacity-benchmark.test.js [2m([22m[2m7 tests[22m[2m)[22m[33m 2585[2mms[22m[39m
+2026-10-24T13:14:15.7484151Z      [33m[2m✓[22m[39m measures production segmented import, restart, concurrent mutations and retained audit [33m 1132[2mms[22m[39m
+2026-10-24T13:14:15.7485156Z      [33m[2m✓[22m[39m measures the actual durable port and compares full scans with indexed pages [33m 1442[2mms[22m[39m
+2026-10-24T13:14:16.0108608Z  [32m✓[39m __tests__/unit/pr-comments.test.js [2m([22m[2m12 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+2026-10-24T13:14:16.8880320Z  [32m✓[39m __tests__/unit/notebook-edit.test.js [2m([22m[2m15 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+2026-10-24T13:14:17.1682017Z  [32m✓[39m __tests__/unit/governed-skill-synthesis-process-attestor.test.js [2m([22m[2m3 tests[22m[2m)[22m[32m 21[2mms[22m[39m
+2026-10-24T13:14:17.3417492Z  [32m✓[39m __tests__/unit/sql-like.test.js [2m([22m[2m6 tests[22m[2m)[22m[32m 59[2mms[22m[39m
+2026-10-24T13:14:17.5618231Z  [32m✓[39m __tests__/unit/agents-loader.test.js [2m([22m[2m14 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+2026-10-24T13:14:17.7364247Z  [32m✓[39m __tests__/unit/vscode-ext-chat-timeline.test.js [2m([22m[2m4 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+2026-10-24T13:14:17.9671395Z  [32m✓[39m __tests__/unit/automation-execution-history.test.js [2m([22m[2m9 tests[22m[2m)[22m[32m 75[2mms[22m[39m
+2026-10-24T13:14:20.3846591Z  [32m✓[39m __tests__/unit/evolution-wiki-maintenance-current-evidence.test.js [2m([22m[2m6 tests[22m[2m)[22m[33m 2190[2mms[22m[39m
+2026-10-24T13:14:20.3848073Z    [33m[2m✓[22m[39m does not persist Wiki work when real evidence becomes revoked during derive [33m 422[2mms[22m[39m
+2026-10-24T13:14:20.3849189Z    [33m[2m✓[22m[39m does not persist Wiki work when real evidence becomes deleted during derive [33m 301[2mms[22m[39m
+2026-10-24T13:14:20.3850968Z    [33m[2m✓[22m[39m does not corroborate duplicated real signed content under two principals [33m 489[2mms[22m[39m
+2026-10-24T13:14:20.3853333Z    [33m[2m✓[22m[39m rejects a derived secret before any real Wiki artifact or ledger write [33m 425[2mms[22m[39m
+2026-10-24T13:14:20.6483483Z  [32m✓[39m __tests__/unit/lib/ensure-utf8.test.js [2m([22m[2m12 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+2026-10-24T13:14:20.7768359Z  [32m✓[39m __tests__/unit/coding-agent-contract.test.js [2m([22m[2m9 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+2026-10-24T13:14:20.9454696Z  [32m✓[39m __tests__/unit/goal-assess.test.js [2m([22m[2m11 tests[22m[2m)[22m[32m 29[2mms[22m[39m
+2026-10-24T13:14:22.0801013Z  [32m✓[39m __tests__/unit/agent-core-mcp-scheduler.test.js [2m([22m[2m5 tests[22m[2m)[22m[32m 260[2mms[22m[39m
+2026-10-24T13:14:22.5350331Z  [32m✓[39m __tests__/unit/model-egress-inventory.test.js [2m([22m[2m5 tests[22m[2m)[22m[33m 329[2mms[22m[39m
+2026-10-24T13:14:22.6572871Z  [32m✓[39m __tests__/unit/mcp-sandbox-policy.test.js [2m([22m[2m12 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+2026-10-24T13:14:23.4402571Z  [32m✓[39m __tests__/unit/otlp-cli-entrypoint.test.js [2m([22m[2m2 tests[22m[2m)[22m[33m 655[2mms[22m[39m
+2026-10-24T13:14:23.4405437Z      [33m[2m✓[22m[39m sends a real eval run through --otlp-endpoint before process exit [33m 303[2mms[22m[39m
+2026-10-24T13:14:23.4406782Z      [33m[2m✓[22m[39m exports content-free legacy and replacement command usage [33m 350[2mms[22m[39m
+2026-10-24T13:14:24.3144702Z  [32m✓[39m __tests__/unit/sub-agent-session-budget.test.js [2m([22m[2m5 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+2026-10-24T13:14:24.6309391Z  [32m✓[39m __tests__/unit/llm-test-target-resolution.test.js [2m([22m[2m10 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+2026-10-24T13:14:24.7803337Z  [32m✓[39m __tests__/unit/version-checker.test.js [2m([22m[2m9 tests[22m[2m)[22m[32m 28[2mms[22m[39m
+2026-10-24T13:14:25.2165300Z  [32m✓[39m __tests__/unit/hook-replay-command.test.js [2m([22m[2m9 tests[22m[2m)[22m[32m 158[2mms[22m[39m
+2026-10-24T13:14:26.9638820Z  [32m✓[39m __tests__/unit/headless-stream-json-schema.test.js [2m([22m[2m7 tests[22m[2m)[22m[33m 666[2mms[22m[39m
+2026-10-24T13:14:26.9639803Z      [33m[2m✓[22m[39m emits a per-turn structured_result for a conforming reply [33m 374[2mms[22m[39m
+2026-10-24T13:14:27.1619257Z  [32m✓[39m __tests__/unit/graph-kernel-adapters.test.js [2m([22m[2m9 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+2026-10-24T13:14:27.2855934Z  [32m✓[39m __tests__/unit/cost-budget.test.js [2m([22m[2m14 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+2026-10-24T13:14:27.4113714Z  [32m✓[39m __tests__/unit/code-knowledge-graph-cli.test.js [2m([22m[2m9 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+2026-10-24T13:14:27.6786018Z  [32m✓[39m __tests__/unit/cli-goal-evidence-host.test.js [2m([22m[2m5 tests[22m[2m)[22m[32m 77[2mms[22m[39m
+2026-10-24T13:14:27.8194297Z  [32m✓[39m __tests__/unit/vscode-ext-open-editors-facade.test.js [2m([22m[2m6 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+2026-10-24T13:14:28.0073721Z  [32m✓[39m __tests__/unit/plugin-runtime-transaction-journal.test.js [2m([22m[2m6 tests[22m[2m)[22m[32m 64[2mms[22m[39m
+2026-10-24T13:14:35.9032861Z  [32m✓[39m __tests__/unit/rrsi-native-quality-recovery.test.js [2m([22m[2m2 tests[22m[2m)[22m[33m 48399[2mms[22m[39m
+2026-10-24T13:14:35.9034614Z      [33m[2m✓[22m[39m recovers an actual append response lost after head commit without replaying its stale census [33m 11911[2mms[22m[39m
+2026-10-24T13:14:35.9036094Z      [33m[2m✓[22m[39m keeps an authenticated older freeze readable but never upgrades settlement success into v2 final authority [33m 36486[2mms[22m[39m
+2026-10-24T13:14:36.3426783Z  [32m✓[39m __tests__/unit/process-manager.test.js [2m([22m[2m10 tests[22m[2m)[22m[33m 312[2mms[22m[39m
+2026-10-24T13:14:41.4945228Z  [32m✓[39m __tests__/unit/ollama-provider-fetch.test.js [2m([22m[2m5 tests[22m[2m)[22m[33m 13301[2mms[22m[39m
+2026-10-24T13:14:41.4946755Z      [33m[2m✓[22m[39m uses a fresh socket for every POST across short and long synchronous turns [33m 13195[2mms[22m[39m
+2026-10-24T13:14:41.8141885Z  [32m✓[39m __tests__/unit/vscode-ext-goal-draft-request-view.test.js [2m([22m[2m3 tests[22m[2m)[22m[32m 206[2mms[22m[39m
+2026-10-24T13:14:41.9483547Z  [32m✓[39m __tests__/unit/video-protocol.test.js [2m([22m[2m15 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+2026-10-24T13:14:42.2788816Z  [32m✓[39m __tests__/unit/evolution-release-train-eval-stage.test.js [2m([22m[2m3 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+2026-10-24T13:14:42.4074591Z  [32m✓[39m __tests__/unit/remote-session-push.test.js [2m([22m[2m9 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+2026-10-24T13:14:43.0177870Z  [32m✓[39m __tests__/unit/evolution-file-identity.test.js [2m([22m[2m5 tests[22m[2m | [22m[33m1 skipped[39m[2m)[22m[32m 10[2mms[22m[39m
+2026-10-24T13:14:43.4120822Z  [32m✓[39m __tests__/unit/marketplace-command-source.test.js [2m([22m[2m4 tests[22m[2m)[22m[32m 98[2mms[22m[39m
+2026-10-24T13:14:43.7019125Z  [32m✓[39m __tests__/unit/pdh-wiring-account-stores.test.js [2m([22m[2m16 tests[22m[2m)[22m[32m 18[2mms[22m[39m
+2026-10-24T13:14:43.8258662Z  [32m✓[39m __tests__/unit/workflow-expr.test.js [2m([22m[2m26 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+2026-10-24T13:14:44.4325161Z  [32m✓[39m __tests__/unit/skill-vector-authority.test.js [2m([22m[2m4 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+2026-10-24T13:14:44.6388777Z  [32m✓[39m __tests__/unit/execution-location-result-artifact.test.js [2m([22m[2m6 tests[22m[2m)[22m[32m 80[2mms[22m[39m
+2026-10-24T13:14:45.0790160Z  [32m✓[39m __tests__/unit/session-pr-status.test.js [2m([22m[2m8 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+2026-10-24T13:14:45.2132092Z  [32m✓[39m __tests__/unit/team-run-state-lock.test.js [2m([22m[2m7 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+2026-10-24T13:14:45.3366354Z  [32m✓[39m __tests__/unit/vscode-ext-whats-new.test.js [2m([22m[2m10 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+2026-10-24T13:14:45.4574185Z  [32m✓[39m __tests__/unit/permission-tier.test.js [2m([22m[2m16 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+2026-10-24T13:14:45.5848535Z  [32m✓[39m __tests__/unit/secret-scan.test.js [2m([22m[2m9 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+2026-10-24T13:14:45.7246604Z  [32m✓[39m __tests__/unit/abort-utils.test.js [2m([22m[2m18 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+2026-10-24T13:14:45.8759175Z  [32m✓[39m __tests__/unit/llm-connection-config.test.js [2m([22m[2m10 tests[22m[2m)[22m[32m 17[2mms[22m[39m
+2026-10-24T13:14:46.0058158Z  [32m✓[39m __tests__/unit/worktree-cleanup-safety.test.js [2m([22m[2m14 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+2026-10-24T13:14:46.3209861Z  [32m✓[39m __tests__/unit/chrome-connector.test.js [2m([22m[2m8 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+2026-10-24T13:14:46.5024129Z  [32m✓[39m __tests__/unit/execution-location-result-store.test.js [2m([22m[2m3 tests[22m[2m)[22m[32m 38[2mms[22m[39m
+2026-10-24T13:14:46.6229063Z  [32m✓[39m __tests__/unit/jetbrains-bridge.test.js [2m([22m[2m12 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+2026-10-24T13:14:46.7436021Z  [32m✓[39m __tests__/unit/runtime-usage-ledger.test.js [2m([22m[2m7 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+2026-10-24T13:14:47.2255353Z  [32m✓[39m __tests__/unit/evolution-release-train-domain-stages.test.js [2m([22m[2m5 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+2026-10-24T13:14:47.5859574Z  [32m✓[39m __tests__/unit/session-input-receipt.test.js [2m([22m[2m5 tests[22m[2m)[22m[32m 135[2mms[22m[39m
+2026-10-24T13:14:47.7144405Z  [32m✓[39m __tests__/unit/vscode-ext-l10n.test.js [2m([22m[2m8 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+2026-10-24T13:14:47.8498052Z  [32m✓[39m __tests__/unit/workflow-state-reader.test.js [2m([22m[2m9 tests[22m[2m)[22m[32m 21[2mms[22m[39m
+2026-10-24T13:14:47.9831895Z  [32m✓[39m __tests__/unit/status-line.test.js [2m([22m[2m12 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+2026-10-24T13:14:48.2490923Z  [32m✓[39m __tests__/unit/record-replay-playwright-driver.test.js [2m([22m[2m2 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+2026-10-24T13:14:48.3829018Z  [32m✓[39m __tests__/unit/process-recovery-cgroup.test.js [2m([22m[2m8 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+2026-10-24T13:14:48.7238469Z  [32m✓[39m __tests__/unit/rc-default-audit.test.js [2m([22m[2m6 tests[22m[2m)[22m[32m 210[2mms[22m[39m
+2026-10-24T13:14:55.1294976Z  [32m✓[39m __tests__/unit/governed-knowledge-wiki-rollback.test.js [2m([22m[2m4 tests[22m[2m)[22m[33m 5924[2mms[22m[39m
+2026-10-24T13:14:55.1296743Z      [33m[2m✓[22m[39m uses the original Wiki revision despite later removal and restores the actual safe LKG [33m 3171[2mms[22m[39m
+2026-10-24T13:14:55.1298365Z      [33m[2m✓[22m[39m rejects an LKG indirectly dependent on the revoked Knowledge [33m 973[2mms[22m[39m
+2026-10-24T13:14:55.1299722Z      [33m[2m✓[22m[39m rejects retroactive Wiki provenance committed after the original promotion [33m 895[2mms[22m[39m
+2026-10-24T13:14:55.1314415Z      [33m[2m✓[22m[39m rejects forged or shared Wiki readers and unknown historical revisions [33m 883[2mms[22m[39m
+2026-10-24T13:14:55.7091341Z  [32m✓[39m __tests__/unit/hook-test-command.test.js [2m([22m[2m5 tests[22m[2m)[22m[32m 297[2mms[22m[39m
+2026-10-24T13:14:57.2089584Z  [32m✓[39m __tests__/unit/headless-stream-llm-override.test.js [2m([22m[2m9 tests[22m[2m)[22m[33m 409[2mms[22m[39m
+2026-10-24T13:14:57.2091075Z      [33m[2m✓[22m[39m preserves an explicit service tier in the stream loop options [33m 314[2mms[22m[39m
+2026-10-24T13:14:57.3544353Z  [32m✓[39m __tests__/unit/skill-decision-projection.test.js [2m([22m[2m13 tests[22m[2m)[22m[32m 17[2mms[22m[39m
+2026-10-24T13:14:57.4856759Z  [32m✓[39m __tests__/unit/remote-session-audit-sink.test.js [2m([22m[2m8 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+2026-10-24T13:14:57.8303502Z  [32m✓[39m __tests__/unit/cli-registry-install.test.js [2m([22m[2m10 tests[22m[2m)[22m[32m 230[2mms[22m[39m
+2026-10-24T13:14:58.0254546Z  [32m✓[39m __tests__/unit/vscode-ext-qr-code.test.js [2m([22m[2m8 tests[22m[2m)[22m[32m 65[2mms[22m[39m
+2026-10-24T13:14:58.1669334Z  [32m✓[39m __tests__/unit/vscode-ext-agent-session-treekill.test.js [2m([22m[2m6 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+2026-10-24T13:14:58.4829684Z  [32m✓[39m __tests__/unit/doctor-diagnostic-bundle.test.js [2m([22m[2m7 tests[22m[2m)[22m[32m 24[2mms[22m[39m
+2026-10-24T13:14:59.0683627Z  [32m✓[39m __tests__/unit/runtime-entry-cutover-wiring.test.js [2m([22m[2m3 tests[22m[2m)[22m[32m 47[2mms[22m[39m
+2026-10-24T13:14:59.2632528Z  [32m✓[39m __tests__/unit/plugin-runtime-agents.test.js [2m([22m[2m7 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+2026-10-24T13:15:00.5191181Z  [32m✓[39m __tests__/unit/slash-command-tool.test.js [2m([22m[2m10 tests[22m[2m)[22m[33m 353[2mms[22m[39m
+2026-10-24T13:15:01.9299255Z  [32m✓[39m __tests__/unit/headless-runner-otlp.test.js [2m([22m[2m3 tests[22m[2m)[22m[33m 438[2mms[22m[39m
+2026-10-24T13:15:01.9300657Z      [33m[2m✓[22m[39m writes captured spans as OTLP/JSON to the requested file [33m 346[2mms[22m[39m
+2026-10-24T13:15:02.3110037Z  [32m✓[39m __tests__/unit/mcp-config-pdh.test.js [2m([22m[2m8 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+2026-10-24T13:15:02.4830727Z  [32m✓[39m __tests__/unit/cli-goal-drafts-command.test.js [2m([22m[2m5 tests[22m[2m)[22m[32m 21[2mms[22m[39m
+2026-10-24T13:15:02.8882661Z  [32m✓[39m __tests__/unit/mcp-config-jetbrains.test.js [2m([22m[2m8 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+2026-10-24T13:15:04.4983482Z  [32m✓[39m __tests__/unit/headless-stream-egress.test.js [2m([22m[2m5 tests[22m[2m)[22m[33m 504[2mms[22m[39m
+2026-10-24T13:15:04.4985224Z      [33m[2m✓[22m[39m a cloud-LLM PDH turn emits a cloud_llm egress event [33m 327[2mms[22m[39m
+2026-10-24T13:15:04.7681766Z  [32m✓[39m __tests__/unit/prompt-editor.test.js [2m([22m[2m7 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+2026-10-24T13:15:04.9066692Z  [32m✓[39m __tests__/unit/vscode-ext-diff-concurrent-reviews.test.js [2m([22m[2m2 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+2026-10-24T13:15:05.0698062Z  [32m✓[39m __tests__/unit/vscode-ext-chat-keybindings.test.js [2m([22m[2m5 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+2026-10-24T13:15:05.1985804Z  [32m✓[39m __tests__/unit/packer-manifest-writer.test.js [2m([22m[2m9 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+2026-10-24T13:15:05.3314549Z  [32m✓[39m __tests__/unit/host-tool-policy-authority.test.js [2m([22m[2m14 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+2026-10-24T13:15:06.3386572Z  [32m✓[39m __tests__/unit/agent-core-prepare-call.test.js [2m([22m[2m5 tests[22m[2m)[22m[32m 39[2mms[22m[39m
+2026-10-24T13:15:07.4232558Z  [32m✓[39m __tests__/unit/cowork-session-extension.test.js [2m([22m[2m7 tests[22m[2m)[22m[33m 831[2mms[22m[39m
+2026-10-24T13:15:07.4234227Z      [33m[2m✓[22m[39m passes systemPromptExtension to createSession [33m 824[2mms[22m[39m
+2026-10-24T13:15:07.5476880Z  [32m✓[39m __tests__/unit/scheduler-kernel-soak-auto-dispatch-workflow.test.js [2m([22m[2m3 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+2026-10-24T13:15:08.0288062Z  [32m✓[39m __tests__/unit/evolution-release-train-wiki-impact-stage.test.js [2m([22m[2m3 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+2026-10-24T13:15:08.1534559Z  [32m✓[39m __tests__/unit/background-agent-launch-barrier.test.js [2m([22m[2m5 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+2026-10-24T13:15:08.3049594Z  [32m✓[39m __tests__/unit/hooks-v2-producers-events.test.js [2m([22m[2m4 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+2026-10-24T13:15:08.4383297Z  [32m✓[39m __tests__/unit/agents-status.test.js [2m([22m[2m11 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+2026-10-24T13:15:08.5670154Z  [32m✓[39m __tests__/unit/vscode-ext-auto-exec-guard.test.js [2m([22m[2m7 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+2026-10-24T13:15:08.8305086Z  [32m✓[39m __tests__/unit/clipboard-copy.test.js [2m([22m[2m14 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+2026-10-24T13:15:09.3266306Z  [32m✓[39m __tests__/unit/skill-loader-arguments.test.js [2m([22m[2m19 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+2026-10-24T13:15:09.4825572Z  [32m✓[39m __tests__/unit/independent-skill-revocation-source.test.js [2m([22m[2m3 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+2026-10-24T13:15:09.6073615Z  [32m✓[39m __tests__/unit/coding-agent-managed-tool-policy.test.js [2m([22m[2m3 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+2026-10-24T13:15:09.8625348Z  [32m✓[39m __tests__/unit/process-ownership-quarantine.test.js [2m([22m[2m2 tests[22m[2m)[22m[32m 144[2mms[22m[39m
+2026-10-24T13:15:10.7830421Z  [32m✓[39m __tests__/unit/agent-core-session-store-guard.test.js [2m([22m[2m5 tests[22m[2m)[22m[32m 28[2mms[22m[39m
+2026-10-24T13:15:11.2131735Z  [32m✓[39m __tests__/unit/process-spawn-inventory.test.js [2m([22m[2m5 tests[22m[2m)[22m[33m 314[2mms[22m[39m
+2026-10-24T13:15:11.2134167Z      [33m[2m✓[22m[39m fails the current runtime inventory closed at zero unreviewed [33m 308[2mms[22m[39m
+2026-10-24T13:15:11.5439203Z  [32m✓[39m __tests__/unit/api-key-helper.test.js [2m([22m[2m8 tests[22m[2m)[22m[32m 67[2mms[22m[39m
+2026-10-24T13:15:12.4856805Z  [32m✓[39m __tests__/unit/repl-tool-executor.test.js [2m([22m[2m5 tests[22m[2m)[22m[32m 36[2mms[22m[39m
+2026-10-24T13:15:13.7478546Z  [32m✓[39m __tests__/unit/rollout-store-command.test.js [2m([22m[2m2 tests[22m[2m)[22m[32m 17[2mms[22m[39m
+2026-10-24T13:15:15.2135133Z  [32m✓[39m __tests__/unit/headless-stream-notices.test.js [2m([22m[2m3 tests[22m[2m)[22m[33m 390[2mms[22m[39m
+2026-10-24T13:15:15.2137178Z      [33m[2m✓[22m[39m emits a visible raw provider_fallback line when the loop reports a fallback [33m 303[2mms[22m[39m
+2026-10-24T13:15:15.6944898Z  [32m✓[39m __tests__/unit/legacy-runtime-authority.test.js [2m([22m[2m2 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+2026-10-24T13:15:16.9009326Z  [32m✓[39m __tests__/unit/reload-skills.test.js [2m([22m[2m3 tests[22m[2m)[22m[33m 714[2mms[22m[39m
+2026-10-24T13:15:17.0562894Z  [32m✓[39m __tests__/unit/agent-session-export.test.js [2m([22m[2m5 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+2026-10-24T13:15:17.1786006Z  [32m✓[39m __tests__/unit/external-agent-adapters.test.js [2m([22m[2m7 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+2026-10-24T13:15:17.3069342Z  [32m✓[39m __tests__/unit/vscode-ext-apply-text-fallback.test.js [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+2026-10-24T13:15:17.9378197Z  [32m✓[39m __tests__/unit/chat-core-retry.test.js [2m([22m[2m3 tests[22m[2m)[22m[33m 412[2mms[22m[39m
+2026-10-24T13:15:17.9379377Z      [33m[2m✓[22m[39m retries a zero-token connection drop, then streams once (no duplication) [33m 406[2mms[22m[39m
+2026-10-24T13:15:18.1077340Z  [32m✓[39m __tests__/unit/plugin-runtime-skills.test.js [2m([22m[2m6 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+2026-10-24T13:15:18.4824821Z  [32m✓[39m __tests__/unit/ide-host-input-receipt-fixture.test.js [2m([22m[2m1 test[22m[2m)[22m[32m 264[2mms[22m[39m
+2026-10-24T13:15:18.6093583Z  [32m✓[39m __tests__/unit/vscode-ext-md-lite-gfm.test.js [2m([22m[2m8 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+2026-10-24T13:15:19.0574835Z  [32m✓[39m __tests__/unit/action-protocol.test.js [2m([22m[2m4 tests[22m[2m)[22m[33m 332[2mms[22m[39m
+2026-10-24T13:15:19.0594265Z      [33m[2m✓[22m[39m uses host evolution authority and rejects admission before provider or process execution [33m 328[2mms[22m[39m
+2026-10-24T13:15:19.2002529Z  [32m✓[39m __tests__/unit/fast-mode.test.js [2m([22m[2m9 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+2026-10-24T13:15:19.3193850Z  [32m✓[39m __tests__/unit/vscode-ext-cli-binary.test.js [2m([22m[2m7 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+2026-10-24T13:15:19.4373047Z  [32m✓[39m __tests__/unit/tasks-status.test.js [2m([22m[2m5 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+2026-10-24T13:15:19.5655002Z  [32m✓[39m __tests__/unit/review-args.test.js [2m([22m[2m13 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+2026-10-24T13:15:19.6948807Z  [32m✓[39m __tests__/unit/ide-command.test.js [2m([22m[2m3 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+2026-10-24T13:15:19.8495039Z  [32m✓[39m __tests__/unit/vscode-ext-agent-stop-confirmation.test.js [2m([22m[2m4 tests[22m[2m)[22m[32m 35[2mms[22m[39m
+2026-10-24T13:15:20.0577412Z  [32m✓[39m __tests__/unit/evolution-fixture-filesystem.test.js [2m([22m[2m4 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+2026-10-24T13:15:20.2647299Z  [32m✓[39m __tests__/unit/evolution-eval-ledger-capture.test.js [2m([22m[2m4 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+2026-10-24T13:15:20.3794625Z stream error: boom
+2026-10-24T13:15:20.3837998Z  [32m✓[39m __tests__/unit/pipe-safety.test.js [2m([22m[2m6 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+2026-10-24T13:15:20.4980407Z  [32m✓[39m __tests__/unit/windows-sandbox-identity-publication.test.js [2m([22m[2m2 tests[22m[2m | [22m[33m1 skipped[39m[2m)[22m[32m 3[2mms[22m[39m
+2026-10-24T13:15:20.7032503Z  [32m✓[39m __tests__/unit/rrsi-native-quality-provenance.test.js [2m([22m[2m3 tests[22m[2m)[22m[33m 40795[2mms[22m[39m
+2026-10-24T13:15:20.7034353Z      [33m[2m✓[22m[39m rejects a retained correctly hashed assessment with a noncanonical operation ID [33m 13848[2mms[22m[39m
+2026-10-24T13:15:20.7036077Z      [33m[2m✓[22m[39m rejects a retained canonical assessment that deletes the actual source references [33m 13484[2mms[22m[39m
+2026-10-24T13:15:20.7037858Z      [33m[2m✓[22m[39m rejects a correctly signed and rehashed PASS claim instead of upgrading its historical assertion [33m 13461[2mms[22m[39m
+2026-10-24T13:15:20.8734606Z  [32m✓[39m __tests__/unit/complete-command.test.js [2m([22m[2m12 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+2026-10-24T13:15:20.9775742Z  [32m✓[39m __tests__/unit/packer-web-panel-builder-process.test.js [2m([22m[2m3 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+2026-10-24T13:15:21.0165209Z  [32m✓[39m __tests__/unit/evolution-workbench-rollback-authorization.test.js [2m([22m[2m11 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+2026-10-24T13:15:21.1073750Z  [32m✓[39m __tests__/unit/permission-denial-store.test.js [2m([22m[2m4 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+2026-10-24T13:15:21.1370459Z  [32m✓[39m __tests__/unit/vscode-ext-project-memory.test.js [2m([22m[2m4 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+2026-10-24T13:15:21.5458633Z  [32m✓[39m __tests__/unit/mcp-client-tool-progress-idle.test.js [2m([22m[2m2 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+2026-10-24T13:15:21.5716498Z  [32m✓[39m __tests__/unit/mcp-login-no-browser.test.js [2m([22m[2m9 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+2026-10-24T13:15:21.6860159Z  [32m✓[39m __tests__/unit/local-ui-signing-authority.test.js [2m([22m[2m2 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+2026-10-24T13:15:22.0783345Z  [32m✓[39m __tests__/unit/session-receipt-cas.test.js [2m([22m[2m2 tests[22m[2m)[22m[32m 147[2mms[22m[39m
+2026-10-24T13:15:22.4772356Z  [32m✓[39m __tests__/unit/hub-export-import-events.test.js [2m([22m[2m6 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+2026-10-24T13:15:22.4930130Z  [32m✓[39m __tests__/unit/agent-core-python-cache.test.js [2m([22m[2m3 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+2026-10-24T13:15:22.6130182Z  [32m✓[39m __tests__/unit/checksum.test.js [2m([22m[2m6 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+2026-10-24T13:15:22.6267318Z  [32m✓[39m __tests__/unit/init-ai-refine.test.js [2m([22m[2m4 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+2026-10-24T13:15:22.7316232Z  [32m✓[39m __tests__/unit/vscode-ext-selection-actions.test.js [2m([22m[2m6 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+2026-10-24T13:15:22.8624695Z  [32m✓[39m __tests__/unit/context-source-ledger.test.js [2m([22m[2m3 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+2026-10-24T13:15:23.0384413Z  [32m✓[39m __tests__/unit/hub-collect-qq.test.js [2m([22m[2m3 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+2026-10-24T13:15:23.1745788Z  [32m✓[39m __tests__/unit/vscode-ext-diff-keybindings.test.js [2m([22m[2m4 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+2026-10-24T13:15:23.3097675Z  [32m✓[39m __tests__/unit/pdf-parser.test.js [2m([22m[2m6 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+2026-10-24T13:15:23.4236485Z  [32m✓[39m __tests__/unit/memory-status.test.js [2m([22m[2m4 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+2026-10-24T13:15:23.8759353Z  [32m✓[39m __tests__/unit/agent-core-tool-admission.test.js [2m([22m[2m3 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+2026-10-24T13:15:24.1443250Z  [32m✓[39m __tests__/unit/process-execution-broker-context.test.js [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+2026-10-24T13:15:24.4356874Z  [32m✓[39m __tests__/unit/statusline-command.test.js [2m([22m[2m3 tests[22m[2m)[22m[32m 167[2mms[22m[39m
+2026-10-24T13:15:24.5625391Z  [32m✓[39m __tests__/unit/accessibility.test.js [2m([22m[2m4 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+2026-10-24T13:15:24.6888947Z  [32m✓[39m __tests__/unit/decision-layer-typesafe-provider.test.js [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+2026-10-24T13:15:24.9798007Z  [32m✓[39m __tests__/unit/config-editor-broker.test.js [2m([22m[2m4 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+2026-10-24T13:15:25.0037086Z  [32m✓[39m __tests__/unit/headless-deferred-mutation.test.js [2m([22m[2m2 tests[22m[2m)[22m[33m 428[2mms[22m[39m
+2026-10-24T13:15:25.0039371Z      [33m[2m✓[22m[39m reports an error and nonzero exit in single prompt mode [33m 348[2mms[22m[39m
+2026-10-24T13:15:25.1145333Z  [32m✓[39m __tests__/unit/empty-turn-notice.test.js [2m([22m[2m4 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+2026-10-24T13:15:25.1514534Z  [32m✓[39m __tests__/unit/terminal-layout.test.js [2m([22m[2m4 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+2026-10-24T13:15:25.4304104Z  [32m✓[39m __tests__/unit/execution-support.test.js [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+2026-10-24T13:15:25.7402668Z  [32m✓[39m __tests__/unit/downloader.test.js [2m([22m[2m3 tests[22m[2m)[22m[32m 172[2mms[22m[39m
+2026-10-24T13:15:26.0024881Z  [32m✓[39m __tests__/unit/version-checker-timeout.test.js [2m([22m[2m1 test[22m[2m)[22m[32m 144[2mms[22m[39m
+2026-10-24T13:15:26.2228429Z  [32m✓[39m __tests__/unit/agent-core-search-validation.test.js [2m([22m[2m5 tests[22m[2m)[22m[32m 22[2mms[22m[39m
+2026-10-24T13:15:26.3508127Z  [32m✓[39m __tests__/unit/pr-investigation-policy.test.js [2m([22m[2m11 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+2026-10-24T13:15:26.4654836Z  [32m✓[39m __tests__/unit/opaque-hex-id.test.js [2m([22m[2m2 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+2026-10-24T13:15:26.5836955Z  [32m✓[39m __tests__/unit/installability-contract.test.js [2m([22m[2m1 test[22m[2m)[22m[32m 10[2mms[22m[39m
+2026-10-24T13:15:26.7146070Z  [32m✓[39m __tests__/unit/release-notes.test.js [2m([22m[2m4 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+2026-10-24T13:15:26.8877458Z  [31m❯[39m __tests__/unit/changelog-artifact-parity.test.js [2m([22m[2m1 test[22m[2m | [22m[31m1 failed[39m[2m)[22m[32m 55[2mms[22m[39m
+2026-10-24T13:15:26.8878848Z [31m     [31m×[31m matches the canonical source and current CLI package version[39m[32m 53[2mms[22m[39m
+2026-10-24T13:15:27.1396813Z  [32m✓[39m __tests__/unit/governed-hub-llm.test.js [2m([22m[2m3 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+2026-10-24T13:15:27.3205633Z  [32m✓[39m __tests__/unit/test-process-exit-code-cleanup.test.js [2m([22m[2m2 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+2026-10-24T13:15:30.6002241Z  [32m✓[39m __tests__/unit/settings-authority-domain.test.js [2m([22m[2m1 test[22m[2m)[22m[33m 4457[2mms[22m[39m
+2026-10-24T13:15:30.6003843Z      [33m[2m✓[22m[39m validates real child/worker transactions and crash recovery on Linux, or refuses unsupported platforms [33m 4455[2mms[22m[39m
+2026-10-24T13:15:30.6173815Z 
+2026-10-24T13:15:30.6174410Z [31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 1 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+2026-10-24T13:15:30.6174654Z 
+2026-10-24T13:15:30.6176846Z [41m[1m FAIL [22m[49m __tests__/unit/changelog-artifact-parity.test.js[2m > [22mbundled changelog artifact parity[2m > [22mmatches the canonical source and current CLI package version
+2026-10-24T13:15:30.6181731Z [31m[1mAssertionError[22m: expected [ …(83) ] to deeply equal [ …(83) ][39m
+2026-10-24T13:15:30.6182073Z 
+2026-10-24T13:15:30.6182361Z [32m- Expected[39m
+2026-10-24T13:15:30.6182631Z [31m+ Received[39m
+2026-10-24T13:15:30.6182977Z 
+2026-10-24T13:15:30.6183256Z [33m@@ -17,11 +17,10 @@[39m
+2026-10-24T13:15:30.6184803Z [2m  - Show bounded persistence error codes and known failure phases in VS Code; pause recurring prompts after unknown input delivery or persistence failure and retain process exit diagnostics without automatically replaying tools.[22m
+2026-10-24T13:15:30.6186362Z [2m  - Retain redacted broker transport receipts in new native retest evidence archives; keep frozen acceptance criteria and completed rounds unchanged.[22m
+2026-10-24T13:15:30.6188221Z [2m  - Retain bounded startup diagnostics and completed pipe samples when a reliability-soak child exits before producing output; preserve the original failure criteria and deadlines.[22m
+2026-10-24T13:15:30.6190789Z [2m  - Recognize supported closed JavaScript, TypeScript and Python code fences in project instructions without rejecting ordinary code as malformed JSON. Version the new projection policy while preserving historical verification, secret scanning and cumulative budgets.[22m
+2026-10-24T13:15:30.6193036Z [2m  - Bind Node 22.12's legacy Windows fast-stat device projection to the same native directory handle using the correct path structure, complete volume serial and 128-bit file ID; reject unbound or changed identities before and after flushing.[22m
+2026-10-24T13:15:30.6194892Z [32m- - Give each Windows directory durability module its own native type names so multiple module instances can flush directories in the same process; preserve filesystem authority boundaries and real durability checks.[39m
+2026-10-24T13:15:30.6198269Z [2m  - Bind Windows ledger ACL verification to a trusted parent volume when path and descriptor device projections differ; retain full-precision publication identities and reject metadata changes before and after fsync.[22m
+2026-10-24T13:15:30.6200082Z [2m  - Classify fixed Windows startup errors without storing their content, and exclude request-context prose from MCP failure-code diagnostics.[22m
+2026-10-24T13:15:30.6202117Z [2m  - Give each default Ollama request a fresh connection so long synchronous turns cannot reuse a retired idle socket; preserve explicit dispatchers, governed transport policy and existing request budgets without replaying requests.[22m
+2026-10-24T13:15:30.6204557Z [2m  - Verify the Evolution Run ledger once before and after each history read, retaining individual artifact authentication and rejecting a changed frontier instead of re-verifying the entire ledger for every event.[22m
+2026-10-24T13:15:30.6206835Z [2m  - Reduce repeated Evolution artifact index parsing during long Agent sessions through bounded synchronous reads; retain fresh file identity, byte, payload, signature and current authority checks, and freeze parsed rows before reuse.[22m
+2026-10-24T13:15:30.6208139Z 
+2026-10-24T13:15:30.6208677Z [36m [2m❯[22m __tests__/unit/changelog-artifact-parity.test.js:[2m26:30[22m[39m
+2026-10-24T13:15:30.6209307Z     [90m 24|[39m     )[33m;[39m
+2026-10-24T13:15:30.6209649Z     [90m 25|[39m
+2026-10-24T13:15:30.6210350Z     [90m 26|[39m     [34mexpect[39m(bundled[33m.[39mreleases)[33m.[39m[34mtoEqual[39m(parsed)[33m;[39m
+2026-10-24T13:15:30.6211101Z     [90m   |[39m                              [31m^[39m
+2026-10-24T13:15:30.6211804Z     [90m 27|[39m     expect(latestCliVersion(bundled.releases)).toBe(packageJson.versio…
+2026-10-24T13:15:30.6213141Z     [90m 28|[39m     [34mexpect[39m(bundled[33m.[39mreleases[[34m0[39m][33m.[39mcliVersion)[33m.[39m[34mtoBe[39m(packageJson[33m.[39mversion)[33m;[39m
+2026-10-24T13:15:30.6213784Z 
+2026-10-24T13:15:30.6214086Z [31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯[22m[39m
+2026-10-24T13:15:30.6214355Z 
+2026-10-24T13:15:30.6214382Z 
+2026-10-24T13:15:30.6236574Z [2m Test Files [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m456 passed[39m[22m[2m | [22m[33m2 skipped[39m[90m (459)[39m
+2026-10-24T13:15:30.6296989Z [2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m10007 passed[39m[22m[2m | [22m[33m29 skipped[39m[90m (10037)[39m
+2026-10-24T13:15:30.6297844Z [2m   Start at [22m 13:07:13
+2026-10-24T13:15:30.6302575Z [2m   Duration [22m 497.53s[2m (transform 14.43s, setup 5.03s, import 107.86s, tests 832.06s, environment 36ms)[22m
+2026-10-24T13:15:30.6304163Z 
+2026-10-24T13:15:31.7694805Z JUNIT report written to /home/runner/work/chainlesschain/chainlesschain/packages/cli/test-results/unit-3.xml
+2026-10-24T13:15:31.9889325Z ##[error]Process completed with exit code 1.
+2026-10-24T13:15:31.9952670Z ##[group]Run actions/upload-artifact@v4
+2026-10-24T13:15:31.9953152Z with:
+2026-10-24T13:15:31.9953346Z   name: cli-ubuntu-latest-unit-3-results
+2026-10-24T13:15:31.9953617Z   path: packages/cli/test-results/unit-3.xml
+2026-10-24T13:15:31.9953856Z   if-no-files-found: error
+2026-10-24T13:15:31.9954053Z   retention-days: 7
+2026-10-24T13:15:31.9954235Z   compression-level: 6
+2026-10-24T13:15:31.9954410Z   overwrite: false
+2026-10-24T13:15:31.9954587Z   include-hidden-files: false
+2026-10-24T13:15:31.9954786Z env:
+2026-10-24T13:15:31.9954957Z   CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS: 
+2026-10-24T13:15:31.9955168Z ##[endgroup]
+2026-10-24T13:15:32.1325480Z (node:11921) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-24T13:15:32.1332601Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-24T13:15:32.1357094Z With the provided path, there will be 1 file uploaded
+2026-10-24T13:15:32.1362240Z Artifact name is valid!
+2026-10-24T13:15:32.1362670Z Root directory input is valid!
+2026-10-24T13:15:32.3346911Z Beginning upload of artifact content to blob storage
+2026-10-24T13:15:32.3762322Z (node:11921) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-10-24T13:15:32.4561076Z Uploaded bytes 288868
+2026-10-24T13:15:32.4708144Z Finished uploading artifact content to blob storage!
+2026-10-24T13:15:32.4708916Z SHA256 digest of uploaded artifact zip is 3ca8f7a1bb1af7496e6396f9cca15162c0a29964bd2ad676cba961c0e81b1bdd
+2026-10-24T13:15:32.4710984Z Finalizing artifact upload
+2026-10-24T13:15:32.8845328Z Artifact cli-ubuntu-latest-unit-3-results.zip successfully finalized. Artifact ID 12561228521
+2026-10-24T13:15:32.8846561Z Artifact cli-ubuntu-latest-unit-3-results has been successfully uploaded! Final size is 288868 bytes. Artifact ID is 12561228521
+2026-10-24T13:15:32.8851868Z Artifact download URL: https://github.com/chainlesschain/chainlesschain/actions/runs/40094125260/artifacts/12561228521
+2026-10-24T13:15:32.9369390Z Post job cleanup.
+2026-10-24T13:15:33.0031681Z [command]/usr/bin/git version
+2026-10-24T13:15:33.0067304Z git version 2.55.0
+2026-10-24T13:15:33.0099088Z Temporarily overriding HOME='/home/runner/work/_temp/e60de1c5-cee6-40c4-8264-bf4ff96099aa' before making global git config changes
+2026-10-24T13:15:33.0099941Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-24T13:15:33.0103628Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/chainlesschain/chainlesschain
+2026-10-24T13:15:33.0135523Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-24T13:15:33.0164814Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-24T13:15:33.0404991Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-24T13:15:33.0426545Z http.https://github.com/.extraheader
+2026-10-24T13:15:33.0435706Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-10-24T13:15:33.0465623Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-24T13:15:33.0732118Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-24T13:15:33.0765313Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-24T13:15:33.1137273Z Cleaning up orphan processes
+2026-10-24T13:15:33.1418599Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
