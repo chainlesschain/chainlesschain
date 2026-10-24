@@ -2,6 +2,15 @@
   "schema": "chainlesschain.actual-failed-release-sources/v1",
   "sources": [
     {
+      "sha": "9b198f348a5c38466e0afc57562fee3b935815fe",
+      "reason": "Exact Context/Memory Windows CI times out its real Agent SDK E2E after the original 180000ms. The unchanged local source reproduces the timeout. A separate content-free trace records init only about 113s after diagnostic startup, then one user input but no model request or result, with repeated slow file ACL repairs; a live child query confirms PowerShell. The signed test-deployment fixture supplies a custom filesystem with synthetic directory descriptors. Replacing it with the unchanged production adapter passes the same E2E in about 57s without changing its deadline or assertions. Other green gates do not qualify this source.",
+      "runId": 40074676993,
+      "jobId": 120815396733,
+      "jobLogSha256": "dbdac7da0baaa4c13d6a6e3857c2d028bed70f6a59ccfde209c2a08aeac36b5e",
+      "windowsArtifactAvailable": false,
+      "evidence": "docs/research/cli/evidence/recovery-2026-10-24/real-deployment-fs/preparation.json"
+    },
+    {
       "sha": "09cf06d03929a7c880f22e096a16b5e9950b3157",
       "reason": "Exact CLI CI Windows unit shard 3/16 rejects all five Evolution storage ACL configurations: writes and reopen succeed, but independent published-file owner-only inspection fails. The call sites did not request explicit Windows file ACL repair. The original cloud fixture did not record owner SID equality, so the elevated-token owner mechanism is a code-supported explanation, not an independently captured cloud identity observation. Other green and in-progress gates cannot qualify this source.",
       "runId": 40068241563,

@@ -1,0 +1,196 @@
+{
+  "schema": "chainlesschain.real-signed-deployment-filesystem-preparation/v1",
+  "recordedAt": "2026-10-24T07:57:55.243Z",
+  "baseSource": "9b198f348a5c38466e0afc57562fee3b935815fe",
+  "qualified": false,
+  "published": false,
+  "merged": false,
+  "cloudFailure": {
+    "runId": 40074676993,
+    "jobId": 120815396733,
+    "step": "Verify TypeScript SDK",
+    "passed": 97,
+    "failed": 1,
+    "testBudgetMs": 180000,
+    "windowsArtifactAvailable": false,
+    "reason": "Workflow skipped its artifact upload after SDK failure; retain original job log and job metadata instead."
+  },
+  "localBefore": {
+    "node": "22.12.0",
+    "passed": 0,
+    "failed": 1,
+    "testBudgetMs": 180000,
+    "sourceUnchanged": true
+  },
+  "contentFreeProbe": {
+    "diagnosticOnly": true,
+    "sourceUnchanged": true,
+    "protocolEvents": 2,
+    "initAfterDiagnosticStartMs": 112592,
+    "inputMessages": 1,
+    "resultEvents": 0,
+    "modelRequests": 0,
+    "aclCalls": 39,
+    "aclMedianMs": 4504.848100000003,
+    "aclMaximumMs": 8302.925899999987,
+    "aclTotalMs": 169020.1113,
+    "liveChildObservation": {
+      "cliPid": 34548,
+      "childPid": 41368,
+      "processName": "powershell.exe",
+      "capturedIn": "Tool invocation output during the unchanged-source diagnostic; no separate raw CIM file was saved."
+    },
+    "workerThreadNote": "ESM loader thread and CLI share a PID. Heartbeat counters belong to their own context; use the individual ACL rows, not loader-thread zero counters."
+  },
+  "repair": {
+    "changedFixtureOnly": true,
+    "productionFilesystemAdapter": true,
+    "syntheticDirectoryDescriptorsRemoved": true,
+    "noOpDirectoryFlushRemoved": true,
+    "realDirectoryFlush": true,
+    "genuineOwnerOnlyAcl": true,
+    "customPortDependencyBoundaryUnchanged": true,
+    "ephemeralSignedAuthorityUnchanged": true
+  },
+  "validation": {
+    "sdkE2e": {
+      "node": "22.12.0",
+      "files": 1,
+      "passed": 1,
+      "failed": 0,
+      "budgetMs": 180000,
+      "durationMs": 56524.3835
+    },
+    "sdkFull": {
+      "node": "22.22.2",
+      "files": 9,
+      "passed": 98,
+      "failed": 0,
+      "skipped": 0
+    },
+    "directoryAndDeployment": {
+      "node": "22.12.0",
+      "files": 3,
+      "passed": 96,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "deadlines": {
+    "sdkE2eMs": 180000,
+    "sdkAssertionsAndDeadlineUnchanged": true,
+    "formalUnchanged": true,
+    "formalDurationSeconds": 7200,
+    "warmupTurns": 20,
+    "measuredTurns": 1000,
+    "turnDeadlineMs": 60000,
+    "cleanupDeadlineMs": 10000,
+    "maxRssGrowthMb": 128,
+    "maxResourceGrowth": 8
+  },
+  "sourceSnapshot": [
+    {
+      "file": "packages/cli/__tests__/fixtures/agent-evolution-test-deployment.js",
+      "sha256": "d5e423cd08832f2a09a08677d7ca020a7825dcce0ebf005dd6bca2e45ff63e6d",
+      "baseSha256": "e213f29594876a3810577161363d2fcbf26a54f57854159f531952d162064256"
+    }
+  ],
+  "frozenSource": [
+    {
+      "file": "packages/agent-sdk/__tests__/e2e-agent-session.test.ts",
+      "sha256": "5efb522d5dcc6e187f678d058972d2bebe7e122e2ab23dd2fbf41b3067ee06e3"
+    },
+    {
+      "file": "packages/agent-sdk/src/agent-session.ts",
+      "sha256": "adec689bbe8d23ed2b83740d14fac093ecfe9253923378f758932db16c354912"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/evolution-private-storage.js",
+      "sha256": "f7ee1fdd6f52607d176e3b1dad3138c777d7ed759da8f33278f5442ed4330422"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/evolution-windows-directory-durability.js",
+      "sha256": "fce9da65ca616c047aebdb2ae08637da48ded7e0647137c9c72045cab66f5937"
+    },
+    {
+      "file": "packages/session-core/lib/private-storage.js",
+      "sha256": "949fa9de4d5906d100094ff95b3d30efe67d65fb733310c702bca9692f552ef6"
+    },
+    {
+      "file": ".github/workflows/cli-reliability-soak.yml",
+      "sha256": "2ee14865837499caf3e6d6706a5b49381ef7817815893f9e391c6a06d048eb10"
+    },
+    {
+      "file": "packages/cli/scripts/cli-reliability-soak.mjs",
+      "sha256": "dcff37dfdb9ba7b96b67cc94d6c82668a0520dc9a63fde69a1fc76e8070b08e6"
+    }
+  ],
+  "evidence": [
+    {
+      "file": "context-windows-job.log",
+      "bytes": 160972,
+      "sha256": "dbdac7da0baaa4c13d6a6e3857c2d028bed70f6a59ccfde209c2a08aeac36b5e"
+    },
+    {
+      "file": "context-windows-job.raw.json",
+      "bytes": 5966,
+      "sha256": "c9b41492aadffbc798981ed9c0c9f8f238b7c044b6aed625fa35d7389196f8d1"
+    },
+    {
+      "file": "context-artifacts.raw.json",
+      "bytes": 1595,
+      "sha256": "8c3f59b290793e90908b55568970be7bb2c0f08ab976a160c10f19d737034715"
+    },
+    {
+      "file": "sdk-unmodified-reproduction.raw.json",
+      "bytes": 2136,
+      "sha256": "d5a7b01f4aa18e0ae579030d4aea13282c591d904e73d1a20c38dd9ccbf9c6e4"
+    },
+    {
+      "file": "probe-execution.raw.json",
+      "bytes": 1069,
+      "sha256": "8b4ce8107e5af3a3b6fd1d9c86550ba13d6d439eed1350e12c737333983dc64d"
+    },
+    {
+      "file": "probe-vitest.log",
+      "bytes": 1419,
+      "sha256": "8fa54e5b68903c382a8f67f28703bf3c4fe6361b4745c5c325d1e374c5257bcb"
+    },
+    {
+      "file": "sdk-e2e-production-fs.raw.json",
+      "bytes": 1079,
+      "sha256": "4700d77d19e0ea9266cd49eae0fc4c39fb8168020450ca6e5a83a5422ac52eb4"
+    },
+    {
+      "file": "sdk-full-production-fs-node22.22.raw.json",
+      "bytes": 30916,
+      "sha256": "836e32c0d0c71d4a364726593eb784df785acec18ec4b9481f6118aba6fea1ea"
+    },
+    {
+      "file": "directory-deployment-regression.raw.json",
+      "bytes": 36123,
+      "sha256": "bcf9031ec3d35881e9b400ef1ff7fb747347f079846823f3146c664da9cfd4ff"
+    },
+    {
+      "file": "probe-process-17444.jsonl",
+      "bytes": 6765,
+      "sha256": "5567a13b443287698c633e9f4bc2b2faac757c055db86d137a6b9e395c2d8902"
+    },
+    {
+      "file": "probe-process-34548.jsonl",
+      "bytes": 12436,
+      "sha256": "85f0adbffd3d3a017de48f9a65e0d8513237ec6ef07d3de700ddb6a245ac55b6"
+    },
+    {
+      "file": "probe-process-41672.jsonl",
+      "bytes": 5086,
+      "sha256": "0d25b1c4201b91bcadc21dbaf27634fe8cd8a3a1a9a4781b863529f052d21a83"
+    },
+    {
+      "file": "probe-process-42064.jsonl",
+      "bytes": 239,
+      "sha256": "dabed21b050642af7a02e354df0bc884ccbe8227ade806abcb5be0846d7c1e61"
+    }
+  ],
+  "release": "Require new exact-source complete Actions qualification before the existing OIDC publication workflow. No local result or old matrix qualifies this candidate."
+}
