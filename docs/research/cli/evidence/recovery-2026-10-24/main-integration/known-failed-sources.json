@@ -2,6 +2,16 @@
   "schema": "chainlesschain.actual-failed-release-sources/v1",
   "sources": [
     {
+      "sha": "35cb1a379ddf80003c46efe315de5dac88b19731",
+      "reason": "Exact Linux CLI CI unit shard3/4 rejects bundled changelog parity: the canonical CHANGELOG native-module repair note was not regenerated into packages/cli/src/data/changelog.json. Original job records10007 passed,1 failed,29 skipped; preserve this actual failure. Standard generator repairs the committed offline package data without changing executable runtime, tests, budgets or workflow criteria. Windows unit shards3/16 and4/16 passed on this source, but those component results cannot qualify the replacement commit.",
+      "runId": 40094125260,
+      "jobId": 120872913752,
+      "jobLogSha256": "861e28b6cd870fc91d8ae3071311b9465e2a5410dcd0e3401079950a8551cb8c",
+      "artifactId": 12561228521,
+      "archiveSha256": "3ca8f7a1bb1af7496e6396f9cca15162c0a29964bd2ad676cba961c0e81b1bdd",
+      "evidence": "docs/research/cli/evidence/recovery-2026-10-24/changelog-artifact-parity/preparation.json"
+    },
+    {
       "sha": "8775e738c870ac54ef392f8e3d1974d3c30dfd86",
       "reason": "Exact Windows CLI CI unit shard4/16 times out resolver drain at its original90000ms budget. The native ESM composition cannot recognize the Vitest module filesystem brand and correctly retains the custom PowerShell ACL backend. Explicit same-realm fixture factories restore the native path without converting custom ports. This exposes a real Koffi process-global named-type collision, reproduced by a new dual-module real-flush regression and repaired with private initialization-scoped type names. Preserve the actual failed job even though the remaining workflow was cancelled; other green components do not qualify this source.",
       "runId": 40089805127,

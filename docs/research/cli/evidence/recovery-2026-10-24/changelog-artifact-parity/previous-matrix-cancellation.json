@@ -1,0 +1,75 @@
+{
+  "sourceSha": "35cb1a379ddf80003c46efe315de5dac88b19731",
+  "at": "2026-10-24T13:25:53.470Z",
+  "reason": "A real Linux CLI unit parity failure disqualifies this source; stop all remaining obsolete release gates and preserve completed component results.",
+  "runs": {
+    "cli": {
+      "id": 40094125260,
+      "initialStatus": "queued",
+      "initialConclusion": null,
+      "requestedAt": "2026-10-24T13:26:02.218Z",
+      "response": "{}",
+      "status": "completed",
+      "conclusion": "cancelled"
+    },
+    "strict": {
+      "id": 40094142869,
+      "initialStatus": "completed",
+      "initialConclusion": "success",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    "formal": {
+      "id": 40094153961,
+      "initialStatus": "in_progress",
+      "initialConclusion": null,
+      "requestedAt": "2026-10-24T13:26:27.338Z",
+      "response": "{}",
+      "status": "completed",
+      "conclusion": "cancelled"
+    },
+    "context": {
+      "id": 40094179905,
+      "initialStatus": "queued",
+      "initialConclusion": null,
+      "requestedAt": "2026-10-24T13:26:42.144Z",
+      "response": "{}",
+      "status": "completed",
+      "conclusion": "cancelled"
+    },
+    "ide": {
+      "id": 40094205143,
+      "initialStatus": "queued",
+      "initialConclusion": null,
+      "requestedAt": "2026-10-24T13:26:57.628Z",
+      "response": "{}",
+      "status": "completed",
+      "conclusion": "cancelled"
+    },
+    "arm64": {
+      "id": 40094218876,
+      "initialStatus": "queued",
+      "initialConclusion": null,
+      "requestedAt": "2026-10-24T13:27:13.735Z",
+      "response": "{}",
+      "status": "completed",
+      "conclusion": "cancelled"
+    },
+    "hostConsistency": {
+      "id": 40094258040,
+      "initialStatus": "queued",
+      "initialConclusion": null,
+      "requestedAt": "2026-10-24T13:27:30.409Z",
+      "response": "{}",
+      "status": "completed",
+      "conclusion": "cancelled"
+    },
+    "ledger": {
+      "id": 40093878699,
+      "initialStatus": "completed",
+      "initialConclusion": "success",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  }
+}

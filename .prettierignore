@@ -50,3 +50,7 @@ docs/research/cli/evidence/gap-2026-10-05/release-0.166.94/**
 # Preserve digest-bound native module realm failure and regression reports.
 docs/research/cli/evidence/recovery-2026-10-24/native-module-realms/**
 !docs/research/cli/evidence/recovery-2026-10-24/native-module-realms/README.md
+
+# Keep original changelog parity CI and local failure bytes.
+docs/research/cli/evidence/recovery-2026-10-24/changelog-artifact-parity/**
+!docs/research/cli/evidence/recovery-2026-10-24/changelog-artifact-parity/README.md

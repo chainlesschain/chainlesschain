@@ -1,0 +1,34 @@
+{
+  "node": "v22.12.0",
+  "generator": "packages/cli/scripts/build-changelog.mjs",
+  "generatorIdempotent": true,
+  "generatorLog": "[build-changelog] wrote 83 CLI releases → packages\\cli\\src\\data\\changelog.json\n",
+  "checks": [
+    {
+      "script": "packages/cli/scripts/gen-command-manifest.mjs",
+      "arguments": [
+        "--check"
+      ],
+      "exitCode": 0,
+      "stdout": ""
+    },
+    {
+      "script": "packages/cli/scripts/gen-command-help-index.mjs",
+      "arguments": [
+        "--check"
+      ],
+      "exitCode": 0,
+      "stdout": ""
+    },
+    {
+      "script": "packages/cli/scripts/gen-shell-completions.mjs",
+      "arguments": [
+        "--check"
+      ],
+      "exitCode": 0,
+      "stdout": ""
+    }
+  ],
+  "canonicalReleaseCount": 83,
+  "latestCliVersion": "0.166.118"
+}

@@ -1,0 +1,18 @@
+{
+  "sourceSha": "35cb1a379ddf80003c46efe315de5dac88b19731",
+  "runId": 40094125260,
+  "jobId": 120872913752,
+  "jobName": "test-ubuntu / unit (ubuntu-latest, shard 3/4)",
+  "jobConclusion": "failure",
+  "logSha256": "861e28b6cd870fc91d8ae3071311b9465e2a5410dcd0e3401079950a8551cb8c",
+  "artifacts": [
+    {
+      "id": 12561228521,
+      "name": "cli-ubuntu-latest-unit-3-results",
+      "digest": "sha256:3ca8f7a1bb1af7496e6396f9cca15162c0a29964bd2ad676cba961c0e81b1bdd"
+    }
+  ],
+  "capturedAt": "2026-10-24T13:21:20.325Z",
+  "qualified": false,
+  "published": false
+}
