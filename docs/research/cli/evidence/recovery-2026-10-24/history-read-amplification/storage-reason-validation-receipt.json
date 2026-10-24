@@ -1,0 +1,36 @@
+{
+  "schema": "cc.storage-reason-validation/v1",
+  "observedAt": "2026-10-24T19:15:55.379Z",
+  "node": "v22.12.0",
+  "uv": "1.49.1",
+  "fixedPairs": 30,
+  "testReport": "storage-reason-with-directory-tests.json",
+  "testReportSha256": "46871f1d506e3430063aef63f242192536d698ccba2742194d276b64443e7e21",
+  "passed": 57,
+  "failed": 0,
+  "pending": 0,
+  "legacyStageAndCodeParsersUnchanged": true,
+  "sourceHashes": [
+    {
+      "file": "packages/cli/src/lib/storage-failure-cause-codes.js",
+      "sha256": "67b298203b81a11254d1d3b1725af7c9dbad3cf8e1dfdb5af01c1445712adf31"
+    },
+    {
+      "file": "packages/cli/scripts/cli-reliability-fetch-diagnostics.mjs",
+      "sha256": "6763e69581cf4406bdbf5b6eeb611fabb4987e51cd5c4c8e430917c8d79feb16"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/storage-failure-cause-codes.test.js",
+      "sha256": "a0ea5e1201c6e75a75a3b7a0810c3e29003b1c9d90ea356cef24f7d323fd2355"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/cli-reliability-fetch-diagnostics.test.js",
+      "sha256": "1e3ce3c000bc6ccdef58bd8dd44ed7a594933285dc51a84b0fddd848bd4d03d6"
+    }
+  ],
+  "scope": "26 base finite pairs plus four fixed directory guards; diagnostic helper/fetch and own unit tests only",
+  "productionGuardsChanged": false,
+  "formalQualification": false,
+  "priorBaseReport": "storage-reason-tests.json",
+  "priorBaseReportRetained": true
+}
