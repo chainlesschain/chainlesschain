@@ -1,10 +1,17 @@
-// TEST ONLY: three actual FIFO leaf-open phases of genuine signed artifact reads.
+// TEST ONLY: default bounded reads and genuine custom-hook FIFO open phases.
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { spawnSync } from "node:child_process";
+import { ArtifactStore } from "../../src/lib/artifact-store.js";
 import { captureEvolutionArtifactStoreDirectoryBoundary } from "../../src/lib/evolution/evolution-artifact-ports.js";
 import { openArtifactByteFixture } from "./evolution-artifact-bytes.js";
+
+class IntegrityHookStore extends ArtifactStore {
+  verifyIntegrity(entry, bounds) {
+    return super.verifyIntegrity(entry, bounds);
+  }
+}
 
 let fired = false,
   opens = 0,
@@ -13,16 +20,20 @@ let fired = false,
 let injectedPhase = null;
 try {
   const directory = path.resolve(process.argv[2]),
-    phase = Number(process.argv[3] || 0);
+    phase = Number(process.argv[3] || 0),
+    mode = process.argv[4] || "default";
   const root = path.dirname(directory);
   if (
     path.dirname(root) !== fs.realpathSync.native(os.tmpdir()) ||
     !path.basename(root).startsWith("cc-rrsi-artifact-bytes-process-") ||
     path.basename(directory) !== "artifacts" ||
-    ![0, 1, 2, 3].includes(phase)
+    !["default", "hooks"].includes(mode) ||
+    !(mode === "hooks" ? [0, 1, 2, 3] : [0, 1]).includes(phase)
   )
     throw new Error("unsafe artifact bytes process fixture");
-  const fixture = openArtifactByteFixture(directory);
+  const fixture = openArtifactByteFixture(directory, {
+    Store: mode === "hooks" ? IntegrityHookStore : ArtifactStore,
+  });
   const target = fixture.target;
   if (!target.startsWith(path.join(directory, "files") + path.sep))
     throw new Error("unsafe artifact FIFO target");

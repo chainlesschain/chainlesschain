@@ -35,44 +35,59 @@ function cleanup(root, prefix) {
     throw new Error("unsafe artifact bytes integration cleanup");
   fs.rmSync(target, { recursive: true, force: true });
 }
-describe("fresh-process three-phase artifact bytes and actual FIFO replacement", () => {
+describe("fresh-process default and custom-hook artifact bytes and actual FIFO replacement", () => {
   let root, directory;
   beforeEach(() => {
     root = fs.mkdtempSync(path.join(temp, "cc-rrsi-artifact-bytes-process-"));
     directory = path.join(root, "artifacts");
   });
   afterEach(() => cleanup(root, "cc-rrsi-artifact-bytes-process-"));
-  function child(phase = 0) {
-    return spawnSync(process.execPath, [helper, directory, String(phase)], {
-      encoding: "utf8",
-      windowsHide: true,
-      timeout: 15_000,
-    });
-  }
-  it("authenticates real signed bytes through three bounded reads in a new process without a graph grant", () => {
-    const response = child();
-    expect(response.error).toBeUndefined();
-    expect(response.status, response.stderr).toBe(0);
-    const result = JSON.parse(response.stdout);
-    expect(result).toMatchObject({
-      authenticated: true,
-      found: true,
-      opens: 3,
-      rawReads: 0,
-      liveArtifactDescriptors: 0,
-      descriptor: {
-        scope: "root-and-files-directories",
-        artifactInventoryVerified: false,
-        fullPhysicalStorageGraphVerified: false,
-        grantsMutationOrPromotionAuthority: false,
+  function child(phase = 0, mode = "default") {
+    return spawnSync(
+      process.execPath,
+      [helper, directory, String(phase), mode],
+      {
+        encoding: "utf8",
+        windowsHide: true,
+        timeout: 15_000,
       },
-    });
-    expect(result.actualReadBytes).toBe(3 * result.expectedSize);
-  });
-  it.runIf(process.platform !== "win32").each([1, 2, 3])(
-    "rejects an actual phase %s FIFO leaf swap without waiting for a writer",
-    (phase) => {
-      const response = child(phase);
+    );
+  }
+  it.each([
+    ["default", 1],
+    ["hooks", 3],
+  ])(
+    "authenticates real signed bytes in a new process with %s using %s bounded reads and no graph grant",
+    (mode, opens) => {
+      const response = child(0, mode);
+      expect(response.error).toBeUndefined();
+      expect(response.status, response.stderr).toBe(0);
+      const result = JSON.parse(response.stdout);
+      expect(result).toMatchObject({
+        authenticated: true,
+        found: true,
+        opens,
+        rawReads: 0,
+        liveArtifactDescriptors: 0,
+        descriptor: {
+          scope: "root-and-files-directories",
+          artifactInventoryVerified: false,
+          fullPhysicalStorageGraphVerified: false,
+          grantsMutationOrPromotionAuthority: false,
+        },
+      });
+      expect(result.actualReadBytes).toBe(opens * result.expectedSize);
+    },
+  );
+  it.runIf(process.platform !== "win32").each([
+    ["default", 1],
+    ["hooks", 1],
+    ["hooks", 2],
+    ["hooks", 3],
+  ])(
+    "rejects a %s store's actual phase %s FIFO leaf swap without waiting for a writer",
+    (mode, phase) => {
+      const response = child(phase, mode);
       expect(response.error).toBeUndefined();
       expect(response.status, response.stderr).toBe(2);
       const result = JSON.parse(response.stderr);
@@ -85,11 +100,11 @@ describe("fresh-process three-phase artifact bytes and actual FIFO replacement",
         actualFifoVerified: true,
         liveArtifactDescriptors: 0,
         message:
-          phase === 2
+          mode === "default" || phase === 2
             ? "stored artifact could not be opened safely"
             : "ArtifactStore integrity verification failed",
       });
-      if (phase === 2)
+      if (mode === "default" || phase === 2)
         expect(result.causeCode).toBe("CC_ARTIFACT_BOUNDED_READ_FAILED");
       expect(result.actualReadBytes).toBe((phase - 1) * result.expectedSize);
       expect(fs.lstatSync(path.join(root, "saved-artifact")).isFile()).toBe(
@@ -156,7 +171,10 @@ describe("real retained RRSI text respects the bounded artifact byte reader", ()
             code: RRSI_OBSERVED_TEXT_HOLD_CODE,
             cause: expect.objectContaining({
               code: "CC_EVOLUTION_ARTIFACT_INTEGRITY_FAILED",
-              message: "ArtifactStore integrity verification failed",
+              message: "stored artifact could not be opened safely",
+              cause: expect.objectContaining({
+                code: "CC_ARTIFACT_BOUNDED_READ_FAILED",
+              }),
             }),
           }),
         }),

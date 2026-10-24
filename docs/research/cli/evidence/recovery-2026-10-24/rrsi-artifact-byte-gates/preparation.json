@@ -1,0 +1,124 @@
+{
+  "schema": "chainlesschain.rrsi-artifact-byte-gate-repair/v1",
+  "recordedAt": "2026-10-24T04:22:21.887Z",
+  "failedSource": "71f08ba5feef0b3b802eb1f9fd0ceb1707124ed0",
+  "branch": "feature/cli118-boundary-gates-20261024",
+  "runtimeChanged": false,
+  "workflowPolicyChanged": false,
+  "originalActions": {
+    "runId": 40058195903,
+    "jobId": 120765921998,
+    "artifactId": 12547467243,
+    "archiveSha256": "8aaecd8aca3bb899d4ee8e195b2c5fa90887fe5e31f69e53338e13f97615e485",
+    "failedCases": 5,
+    "reportEntry": {
+      "archive": "linux-original-report.zip",
+      "file": "integration-3.xml",
+      "sha256": "b69436828f71a2df6e8a50c7ec632251e9b166c2dbc7cf5995cf8ec2643e26ca",
+      "bytes": 81805
+    }
+  },
+  "cause": "RRSI integration fixtures still assumed three reads for default stores after the default reader moved to one bounded descriptor read. Later FIFO faults were never injected; the oversized retained-chunk rejection correctly originated at the bounded reader.",
+  "repair": [
+    "Exercise real signed default bytes with exactly one bounded read and genuine delegating integrity hooks with all three reads.",
+    "Retain each custom-hook FIFO phase and add the real default FIFO swap; require nonblocking rejection, exact bytes read, no whole-file reads and zero live descriptors.",
+    "Authenticate the oversized retained-chunk hold through its bounded-reader cause while retaining index and original journal byte/identity checks."
+  ],
+  "validation": {
+    "node": "22.12.0",
+    "platform": "win32",
+    "isolatedByte": {
+      "report": "windows-byte-after.json",
+      "exitCode": 0,
+      "passed": 3,
+      "posixOnlySkipped": 4
+    },
+    "isolatedIndex": {
+      "report": "windows-index-isolated.json",
+      "exitCode": 0,
+      "passed": 2,
+      "posixOnlySkipped": 2
+    },
+    "defaultProfileCombined": {
+      "exitCode": 1,
+      "passed": 11,
+      "skipped": 7,
+      "assertionFailures": 0,
+      "suiteInitializationFailure": "Owner-only Windows ACL repair startup timed out before the retained-history assertion; no combined pass is claimed."
+    },
+    "existingCiProfileCombined": {
+      "report": "windows-combined-ci-profile.json",
+      "exitCode": 0,
+      "files": 4,
+      "passed": 12,
+      "posixOnlySkipped": 6,
+      "environment": {
+        "CC_SECURE_FS_WINDOWS_ACL_TIMEOUT_MS": "120000"
+      },
+      "settingSource": ".github/workflows/_cli-test.yml",
+      "settingSourceBlob": "c2dc1cb29c20ddd1892d4408ab1e3d4183f6fc63"
+    },
+    "prettier": "passed",
+    "diffCheck": "passed"
+  },
+  "files": [
+    {
+      "path": "packages/cli/__tests__/fixtures/rrsi-artifact-bytes-process.mjs",
+      "sha256": "4111c187bd830e2b95948db716480902639aa35595fde017f8c1e63ba550dcbe"
+    },
+    {
+      "path": "packages/cli/__tests__/integration/rrsi-artifact-byte-boundary.test.js",
+      "sha256": "5e13a7ec28c556aa666fee67fd7cdafc84b8e0dcf24c2fd089faa04e3e68532a"
+    }
+  ],
+  "evidence": [
+    {
+      "file": "linux-job.log.gz",
+      "bytes": 17412,
+      "sha256": "01fd457d192a750ded5b1fb634145154a71973345d1d397a95a94afffb471f62",
+      "uncompressedSha256": "17aa31326ef36d1bd440f97da9cee1b1cd325c72b6a630e395f239ee40c83a24",
+      "uncompressedBytes": 72247
+    },
+    {
+      "file": "linux-job.json",
+      "bytes": 2663,
+      "sha256": "4fa6f4014373ed66595d8459b8a0cdff6c861dcd27465e22b5fab38fe32fd00c"
+    },
+    {
+      "file": "linux-original-report.zip",
+      "bytes": 10884,
+      "sha256": "8aaecd8aca3bb899d4ee8e195b2c5fa90887fe5e31f69e53338e13f97615e485"
+    },
+    {
+      "file": "windows-byte-after.json",
+      "bytes": 3877,
+      "sha256": "219a5e1f10d032473d149a0c1fa55c4d11d93e1f92551179d38368726edcf7d1"
+    },
+    {
+      "file": "windows-index-isolated.json",
+      "bytes": 2365,
+      "sha256": "bb3ddd0cc636efda41c6c1fb6e5c10d11409f0e4a38fe4a5e73c989cc367f093"
+    },
+    {
+      "file": "windows-combined-default-first.json",
+      "bytes": 9428,
+      "sha256": "3573b45470d9c3f66b06a77c75ca291a94ade49ed82cc4ca6c7b87b9643309f5"
+    },
+    {
+      "file": "windows-combined-default-confirmation.json",
+      "bytes": 9419,
+      "sha256": "afb7bdbba1510ee5a8c1966dff3a7b6e4217cd21e3c87915e76c09aa71589647"
+    },
+    {
+      "file": "windows-combined-ci-profile.json",
+      "bytes": 9468,
+      "sha256": "eaefe4c8cfc358e104929b619f8116448f9c63844330d82489966b4bd4cee0b3"
+    }
+  ],
+  "publication": {
+    "published": false,
+    "tagCreatedByRepair": false,
+    "qualified": false,
+    "required": "New final SHA must pass complete CLI CI, Strict Sandbox, Context/SDK/Core, original Formal and IDE matrices. Windows local results do not qualify POSIX FIFO behavior; Linux/macOS Actions must exercise it."
+  }
+}

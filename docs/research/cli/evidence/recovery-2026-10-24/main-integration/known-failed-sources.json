@@ -2,6 +2,15 @@
   "schema": "chainlesschain.actual-failed-release-sources/v1",
   "sources": [
     {
+      "sha": "71f08ba5feef0b3b802eb1f9fd0ceb1707124ed0",
+      "reason": "Exact CLI CI rejects five stale RRSI artifact-byte integration expectations. Default stores now use one bounded read; custom hooks still require all original phases. Strict/Context successes and in-progress Formal results do not qualify this failing source for publication.",
+      "runId": 40058195903,
+      "jobId": 120765921998,
+      "artifactId": 12547467243,
+      "archiveSha256": "8aaecd8aca3bb899d4ee8e195b2c5fa90887fe5e31f69e53338e13f97615e485",
+      "evidence": "docs/research/cli/evidence/recovery-2026-10-24/rrsi-artifact-byte-gates/preparation.json"
+    },
+    {
       "sha": "e4c66df637d8ace1d8426513e0b14f0f22e2e913",
       "reason": "Exact Formal Windows main completed 20 warmup and 97 timely measured turns, then total turn 118 exceeded the original 60000ms deadline. A late result counted during timeout cleanup does not reverse the timeout. Exact CLI CI also rejects a stale verify09 mutation anchor after receipt compatibility changes. New cache/I/O runtime and review-control repairs require a new source and complete fresh gates.",
       "runId": 40041474292,
