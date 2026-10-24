@@ -32,7 +32,13 @@ import {
   EVOLUTION_ARTIFACT_REF_SCHEMA,
   EVOLUTION_ARTIFACT_RESOLUTION_SCHEMA,
 } from "../../src/lib/evolution/evolution-ledger.js";
-import { storageFailureStage } from "../../src/lib/storage-failure-cause-codes.js";
+import {
+  storageFailureStage,
+  storageFailureReason,
+  storageFailureCauseCodes,
+  storageFailureCauseSuffix,
+  storageFailureReasonFromMessage,
+} from "../../src/lib/storage-failure-cause-codes.js";
 
 const SECRET = "test-only-evolution-artifact-envelope-secret";
 const ALGORITHM = "hmac-sha256";
@@ -302,6 +308,89 @@ describe("EvolutionArtifactPorts", () => {
       phase: "pre-index",
     });
   });
+
+  it.each([
+    [
+      "release-clock-backward",
+      -1,
+      60_000,
+      "model-projection",
+      "model-projection",
+    ],
+    [
+      "release-envelope-expired",
+      1_000,
+      1_000,
+      "model-projection",
+      "model-projection",
+    ],
+    [
+      "release-authority-lease-expired",
+      30_000,
+      60_000,
+      "model-projection",
+      "model-projection",
+    ],
+    // At both expirations the original envelope condition wins.
+    [
+      "release-envelope-expired",
+      30_000,
+      30_000,
+      "model-projection",
+      "model-projection",
+    ],
+    ["release-clock-backward", -1, 60_000, "candidate", "other"],
+  ])(
+    "identifies %s on a real direct resolve without extra clock calls",
+    (reason, advance, ttlMs, type, artifactType) => {
+      let armed = false;
+      let integrityReads = 0;
+      class ReleaseClockStore extends ArtifactStore {
+        verifyIntegrity(entry, bounds) {
+          const result = super.verifyIntegrity(entry, bounds);
+          if (armed && ++integrityReads === 2) nowMs += advance;
+          return result;
+        }
+      }
+      store = new ReleaseClockStore({ dir: storeDir, now: () => nowMs });
+      const clock = vi.fn(() => nowMs);
+      ports = new EvolutionArtifactPorts({
+        artifactStore: store,
+        audience: AUDIENCE,
+        currentAuthorityResolver,
+        envelopeSigner,
+        envelopeVerifier,
+        now: clock,
+        tenantId: TENANT_ID,
+      });
+      const published = publish({ type, ttlMs });
+      clock.mockClear();
+      armed = true;
+      const error = capturedError(() =>
+        resolveResult(published, { expectedType: type }),
+      );
+      expect(integrityReads).toBe(2);
+      expect(clock).toHaveBeenCalledTimes(5);
+      expect(error.code).toBe(EVOLUTION_ARTIFACT_EXPIRED_CODE);
+      expect(error.message).toBe(
+        "artifact authority expired before canonical bytes could be released",
+      );
+      expect(error).not.toHaveProperty("cause");
+      expect(error).not.toHaveProperty("storageReason");
+      expect(error).not.toHaveProperty("storageStage");
+      expect(storageFailureReason(error)).toBe(reason);
+      expect(storageFailureStage(error)).toEqual({
+        artifactType,
+        phase: "final-lease",
+      });
+      expect(storageFailureCauseCodes(error)).toEqual([
+        EVOLUTION_ARTIFACT_EXPIRED_CODE,
+      ]);
+      expect(
+        storageFailureReasonFromMessage(storageFailureCauseSuffix(error)),
+      ).toBe(reason);
+    },
+  );
 
   it("persists canonical bytes with an exact signed-lineage envelope and resolves a frozen value", () => {
     const result = publish();

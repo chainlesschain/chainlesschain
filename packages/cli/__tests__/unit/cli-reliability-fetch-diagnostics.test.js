@@ -9,6 +9,7 @@ import { createRequire } from "node:module";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   recordStorageFailureStage,
+  recordStorageFailureReason,
   storageFailureCauseSuffix,
 } from "../../src/lib/storage-failure-cause-codes.js";
 import {
@@ -39,6 +40,42 @@ afterEach(() => {
 });
 
 describe("reliability fetch diagnostics", () => {
+  it.each([
+    "release-clock-backward",
+    "release-envelope-expired",
+    "release-authority-lease-expired",
+  ])(
+    "projects %s only for the original ingress classification",
+    (storageReason) => {
+      const error = Object.assign(new Error("private"), {
+        code: "CC_EVOLUTION_ARTIFACT_EXPIRED",
+      });
+      recordStorageFailureReason(error, storageReason);
+      recordStorageFailureStage(error, "model-projection", "final-lease");
+      const event = {
+        is_error: true,
+        code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+        subtype: "error_evolution_ingress",
+        error: "private" + storageFailureCauseSuffix(error),
+      };
+      expect(reliabilityResultFailure(event, 141)).toEqual({
+        turn: 141,
+        subtype: "unknown",
+        errorDetails: null,
+        storageCauseCodes: ["CC_EVOLUTION_ARTIFACT_EXPIRED"],
+        storageStage: {
+          artifactType: "model-projection",
+          phase: "final-lease",
+        },
+        storageReason,
+      });
+      for (const changed of [{ code: "other" }, { subtype: "error" }])
+        expect(
+          reliabilityResultFailure({ ...event, ...changed }, 141),
+        ).not.toHaveProperty("storageReason");
+    },
+  );
+
   it("projects only finite reasons from a real ingress-shaped diagnostic suffix", () => {
     const cause = Object.assign(
       new Error("artifact pathname changed during bounded read"),

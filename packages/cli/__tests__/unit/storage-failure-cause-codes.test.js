@@ -8,9 +8,95 @@ import {
   storageFailureStageFromMessage as parseStage,
   storageFailureReason as reason,
   storageFailureReasonFromMessage as parseReason,
+  recordStorageFailureReason as recordReason,
 } from "../../src/lib/storage-failure-cause-codes.js";
 
 describe("bounded storage failure diagnostics", () => {
+  it.each([
+    "release-clock-backward",
+    "release-envelope-expired",
+    "release-authority-lease-expired",
+  ])("retains the private %s tag on the original frozen error", (token) => {
+    const cause = Object.freeze({ code: "EIO" });
+    const error = Object.freeze(
+      Object.assign(
+        new Error(
+          "artifact authority expired before canonical bytes could be released",
+          {
+            cause,
+          },
+        ),
+        { code: "CC_EVOLUTION_ARTIFACT_EXPIRED" },
+      ),
+    );
+    const original = Object.getOwnPropertyDescriptors(error);
+    expect(recordReason(error, token)).toBe(error);
+    expect(reason(error)).toBe(token);
+    expect(parseReason(suffix(error))).toBe(token);
+    expect(codes(error)).toEqual(["CC_EVOLUTION_ARTIFACT_EXPIRED", "EIO"]);
+    expect(parse(suffix(error))).toEqual(codes(error));
+    expect(Object.getOwnPropertyDescriptors(error)).toEqual(original);
+    expect(error.cause).toBe(cause);
+    expect(error).not.toHaveProperty("storageReason");
+    expect(suffix(error)).not.toContain(error.message);
+    expect(
+      parseReason(` [storage_reason: ${token}] [storage_cause_codes: EIO]`),
+    ).toBeNull();
+  });
+
+  it("rejects unrecognized branch tags and non-owned or mismatched codes without executing user code", () => {
+    const touched = vi.fn(() => {
+      throw new Error("must not execute");
+    });
+    const proxy = new Proxy(
+      {},
+      { getOwnPropertyDescriptor: touched, get: touched },
+    );
+    const revoked = Proxy.revocable({}, {});
+    revoked.revoke();
+    const getter = Object.defineProperty({}, "code", { get: touched });
+    for (const error of [
+      proxy,
+      revoked.proxy,
+      getter,
+      Object.create({ code: "CC_EVOLUTION_ARTIFACT_EXPIRED" }),
+      { code: "EIO" },
+      null,
+      undefined,
+      1,
+    ]) {
+      expect(recordReason(error, "release-clock-backward")).toBe(error);
+      expect(reason(error)).toBeNull();
+    }
+    const error = { code: "CC_EVOLUTION_ARTIFACT_EXPIRED" };
+    for (const invalid of ["private-path", "release-clock-window", {}, null]) {
+      expect(recordReason(error, invalid)).toBe(error);
+      expect(reason(error)).toBeNull();
+    }
+    recordReason(error, "release-clock-backward");
+    error.code = "EIO";
+    expect(reason(error)).toBeNull();
+    expect(touched).not.toHaveBeenCalled();
+  });
+
+  it("prefers branch tags while retaining bounded own-cause traversal", () => {
+    const inner = Object.assign(
+      new Error("artifact pathname changed during bounded read"),
+      {
+        code: "CC_ARTIFACT_BOUNDED_READ_FAILED",
+      },
+    );
+    const tagged = Object.assign(new Error("private", { cause: inner }), {
+      code: "CC_EVOLUTION_ARTIFACT_EXPIRED",
+    });
+    recordReason(tagged, "release-authority-lease-expired");
+    expect(reason(tagged)).toBe("release-authority-lease-expired");
+    let outer = tagged;
+    for (let index = 0; index < 5; index++) outer = { cause: outer };
+    expect(reason(outer)).toBe("release-authority-lease-expired");
+    expect(reason({ cause: outer })).toBeNull();
+  });
+
   it("retains a prefix reader infrastructure failure without exposing its text", () => {
     const error = Object.assign(new Error("private worker detail"), {
       code: "CC_EVOLUTION_LEDGER_PREFIX_READER_FAILED",

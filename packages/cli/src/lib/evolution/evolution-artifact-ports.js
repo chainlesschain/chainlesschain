@@ -18,7 +18,10 @@ import {
   ARTIFACT_STORE_DEFAULT_PUBLISH_DATA_ONCE,
 } from "../artifact-store.js";
 import { withFileLock } from "../with-file-lock.js";
-import { recordStorageFailureStage } from "../storage-failure-cause-codes.js";
+import {
+  recordStorageFailureReason,
+  recordStorageFailureStage,
+} from "../storage-failure-cause-codes.js";
 import { artifactPhysicalIdentity as physicalIdentity } from "./evolution-artifact-identity.js";
 import { withEvolutionFileIdentity } from "./evolution-file-identity.js";
 import { readBoundedDescriptor } from "./bounded-descriptor-read.js";
@@ -3459,17 +3462,24 @@ export class EvolutionArtifactPorts {
     }
     observePhase?.("final-lease");
     const releaseClock = this.#clock();
-    if (
-      releaseClock.milliseconds <
-        new Date(authentication.resolvedAt).getTime() ||
-      (authentication.core.expiresAtMs !== null &&
-        releaseClock.milliseconds >= authentication.core.expiresAtMs) ||
-      releaseClock.milliseconds >= authentication.authority.decisionExpiresAtMs
-    ) {
-      throw artifactError(
+    const releaseFailureReason =
+      releaseClock.milliseconds < new Date(authentication.resolvedAt).getTime()
+        ? "release-clock-backward"
+        : authentication.core.expiresAtMs !== null &&
+            releaseClock.milliseconds >= authentication.core.expiresAtMs
+          ? "release-envelope-expired"
+          : releaseClock.milliseconds >=
+              authentication.authority.decisionExpiresAtMs
+            ? "release-authority-lease-expired"
+            : null;
+    if (releaseFailureReason !== null) {
+      const error = artifactError(
         EVOLUTION_ARTIFACT_EXPIRED_CODE,
         "artifact authority expired before canonical bytes could be released",
       );
+      recordStorageFailureReason(error, releaseFailureReason);
+      recordStorageFailureStage(error, authentication.core.type, "final-lease");
+      throw error;
     }
     const artifactRef = buildArtifactRef(
       artifactId,

@@ -195,11 +195,20 @@ const REASONS = new Map([
     ]),
   ],
 ]);
-const REASON_CODES = new Map(
-  [...REASONS].flatMap(([code, messages]) =>
+const TAGGED_REASON_CODES = new Map(
+  [
+    "release-clock-backward",
+    "release-envelope-expired",
+    "release-authority-lease-expired",
+  ].map((reason) => [reason, "CC_EVOLUTION_ARTIFACT_EXPIRED"]),
+);
+const FAILURE_REASONS = new WeakMap();
+const REASON_CODES = new Map([
+  ...[...REASONS].flatMap(([code, messages]) =>
     [...messages.values()].map((reason) => [reason, code]),
   ),
-);
+  ...TAGGED_REASON_CODES,
+]);
 const REASON_MARKER = " [storage_reason: ";
 const MARKER = " [storage_cause_codes: ";
 const STAGE_MARKER = " [storage_stage: ";
@@ -317,9 +326,27 @@ function ownData(value, key) {
   return descriptor && "value" in descriptor ? descriptor.value : undefined;
 }
 
-/** Return only a fixed token from the deepest recognized bounded cause. */
+/** Preserve the original error; retain only an allow-listed branch token. */
+export function recordStorageFailureReason(error, reason) {
+  try {
+    if (
+      error !== null &&
+      typeof error === "object" &&
+      !types.isProxy(error) &&
+      TAGGED_REASON_CODES.has(reason) &&
+      ownData(error, "code") === TAGGED_REASON_CODES.get(reason)
+    )
+      FAILURE_REASONS.set(error, reason);
+  } catch {
+    // Diagnostics cannot replace the original exception.
+  }
+  return error;
+}
+
+/** Prefer a fixed branch tag; otherwise keep the deepest exact-message match. */
 export function storageFailureReason(error) {
   let reason = null;
+  let taggedReason = null;
   try {
     const seen = new Set();
     let current = error;
@@ -333,6 +360,9 @@ export function storageFailureReason(error) {
         break;
       seen.add(current);
       const code = ownData(current, "code");
+      const tagged = FAILURE_REASONS.get(current);
+      if (tagged && TAGGED_REASON_CODES.get(tagged) === code)
+        taggedReason = tagged;
       const messages = typeof code === "string" ? REASONS.get(code) : undefined;
       if (messages) {
         const message = ownData(current, "message");
@@ -345,7 +375,7 @@ export function storageFailureReason(error) {
   } catch {
     // Observation must never change the original error or exit outcome.
   }
-  return reason;
+  return taggedReason ?? reason;
 }
 
 /** Accept only a fixed reason followed by the complete legacy suffix. */
@@ -368,7 +398,7 @@ export function storageFailureReasonFromMessage(message) {
     `${MARKER}${codes.join(" -> ")}]`;
   if (remainder !== expected) return null;
   // Return the table-owned token rather than retaining untrusted message text.
-  for (const reason of REASONS.get(code).values()) {
+  for (const reason of REASON_CODES.keys()) {
     if (reason === candidate) return reason;
   }
   return null;
