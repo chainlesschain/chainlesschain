@@ -1,6 +1,16 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
-## Latest release (2026-10-23)
+## Current release status (2026-10-25)
+
+CLI **0.166.118** is public on npm through GitHub Actions OIDC, and its [independent public installation readback](https://github.com/chainlesschain/chainlesschain/actions/runs/40187398724) passed. Release tag `v-npm-0-166-118` points to source `fcb26822d6b4559e4904f984daa8e6bb7cc012b7`. After installation, run `cc --version` and `cc doctor` to confirm the version and executable path in use.
+
+`npm i -g chainlesschain@0.166.118 --registry https://registry.npmjs.org`
+
+Paired [Open VSX **0.37.160**](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) and [JetBrains **0.4.177**](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge) are public, their downloaded package contents have been verified, and both recommend CLI **0.166.118**. Native desktop and mobile product **v5.0.3.141** is in preparation and is not public; **v5.0.3.140** remains the published product. Microsoft VS Code Marketplace remains unpublished. Public verification proceeds in order: child npm packages → CLI → IDE extensions → mobile and PC clients.
+
+Publication and installation readback do not establish new model-task acceptance or native admission. **NOT_PAID_READY**, **NOT_ADMITTED** and automatic promotion **HOLD** remain. Historical cross-version accepted deliveries remain **31/45** (**26/36** ordinary, **5/9** first-run), with **14** unaccepted; these are not CLI .118 single-round results. Dated records below retain their historical scope.
+
+## Historical release (2026-10-23)
 
 CLI **0.166.117** is public on npm through [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/39845469661), with public archive integrity, signed provenance and an independent registry-only install verified. It fixes Evolution ingress rejecting Python/JavaScript code literals as malformed JSON, settles completed tool rounds on error exits, separates image and text budgets, and preserves valid JSON when bounding long tool results. Session Core **0.3.22** and Personal Data Hub **0.4.66** were published before the CLI. Install with `npm i -g chainlesschain@0.166.117 --registry https://registry.npmjs.org`. Open VSX **0.37.159** is public and its download verified; JetBrains **0.4.176** is approved and its public download verified. Both recommend CLI **0.166.117**. [Publication evidence](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release117-public/publication.json). No new live model-task acceptance was run; historical release records and limits below remain.
 

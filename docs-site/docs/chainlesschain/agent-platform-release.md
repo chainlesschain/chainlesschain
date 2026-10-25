@@ -1,6 +1,16 @@
 # Agent Platform 发布与升级指南
 
-## 最新发布（2026-10-23）
+## 当前发布状态（2026-10-25）
+
+CLI **0.166.118** 已通过 GitHub Actions OIDC 发布到 npm；[独立公开安装回读](https://github.com/chainlesschain/chainlesschain/actions/runs/40187398724)成功。发行标签 `v-npm-0-166-118` 绑定源码 `fcb26822d6b4559e4904f984daa8e6bb7cc012b7`。安装后运行 `cc --version` 和 `cc doctor`，核对实际使用的版本与路径。
+
+`npm i -g chainlesschain@0.166.118 --registry https://registry.npmjs.org`
+
+配套 [Open VSX **0.37.160**](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) 与 [JetBrains **0.4.177**](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge) 已公开并完成实际下载包内容核验，两者均推荐 CLI **0.166.118**。原生桌面与移动产品 **v5.0.3.141** 正在准备，尚未公开；当前已发布产品仍为 **v5.0.3.140**。Microsoft VS Code Marketplace 仍未发行。按子 npm 包 → CLI → IDE → 移动与 PC 顺序完成公开核验后，再更新对应安装入口。
+
+发布与安装回读不构成新的模型任务验收或原生准入。**NOT_PAID_READY**、**NOT_ADMITTED** 与自动晋升 **HOLD** 保留；历史累计合格交付 **31/45**（普通 **26/36**、首次 **5/9**），剩余 **14** 项，不代表 CLI .118 的单轮成功率。下方带日期的记录保留各自历史范围。
+
+## 历史发布（2026-10-23）
 
 CLI **0.166.117** 已通过 [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/39845469661) 发布到 npm，并完成公共制品、签名来源和独立安装回读。修复 Python/JavaScript 代码字面量被 Evolution ingress 误判为损坏 JSON、异常退出时遗漏已完成工具轮次结算，以及图片与文本预算混算和长工具输出截断的问题。Session Core **0.3.22** 与 Personal Data Hub **0.4.66** 已先于 CLI 发布。安装命令：`npm i -g chainlesschain@0.166.117 --registry https://registry.npmjs.org`。Open VSX **0.37.159** 已公开并验证下载；JetBrains **0.4.176** 已批准并验证公开下载。两者推荐 CLI **0.166.117**。[发布证据](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release117-public/publication.json)。本次未新增真实模型任务验收；下方历史发行记录与限制继续保留。
 
