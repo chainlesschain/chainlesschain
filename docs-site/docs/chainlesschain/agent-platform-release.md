@@ -1,12 +1,12 @@
 # Agent Platform 发布与升级指南
 
-## 当前发布状态（2026-10-25）
+## 当前发布状态（2026-10-26）
 
 CLI **0.166.118** 已通过 GitHub Actions OIDC 发布到 npm；[独立公开安装回读](https://github.com/chainlesschain/chainlesschain/actions/runs/40187398724)成功。发行标签 `v-npm-0-166-118` 绑定源码 `fcb26822d6b4559e4904f984daa8e6bb7cc012b7`。安装后运行 `cc --version` 和 `cc doctor`，核对实际使用的版本与路径。
 
 `npm i -g chainlesschain@0.166.118 --registry https://registry.npmjs.org`
 
-配套 [Open VSX **0.37.160**](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) 与 [JetBrains **0.4.177**](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge) 已公开并完成实际下载包内容核验，两者均推荐 CLI **0.166.118**。原生桌面与移动产品 **v5.0.3.141** 正在准备，尚未公开；当前已发布产品仍为 **v5.0.3.140**。Microsoft VS Code Marketplace 仍未发行。按子 npm 包 → CLI → IDE → 移动与 PC 顺序完成公开核验后，再更新对应安装入口。
+配套 [Open VSX **0.37.160**](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) 与 [JetBrains **0.4.177**](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge) 已公开并完成实际下载包内容核验，两者均推荐 CLI **0.166.118**。原生桌面与移动产品 [**v5.0.3.141**](https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.141) 已公开，提供 Windows、macOS、Linux、Android 与 iOS 共 22 个发布资产。[完整五平台 Release](https://github.com/chainlesschain/chainlesschain/actions/runs/40213914325) 已通过，发行标签绑定源码 `a024f3c6723375bbf76d17f701917243c118b1d1`。公开资产的名称、大小和 GitHub SHA256 元数据与该次 Actions 回执一致，全部匿名 Range 下载可用；未另行下载所有完整文件重算哈希。桌面包按默认未签名方式发行，iOS 为 ad-hoc IPA；未发布至 App Store、Google Play 或 Microsoft VS Code Marketplace。
 
 发布与安装回读不构成新的模型任务验收或原生准入。**NOT_PAID_READY**、**NOT_ADMITTED** 与自动晋升 **HOLD** 保留；历史累计合格交付 **31/45**（普通 **26/36**、首次 **5/9**），剩余 **14** 项，不代表 CLI .118 的单轮成功率。下方带日期的记录保留各自历史范围。
 

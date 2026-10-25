@@ -1,12 +1,12 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
-## Current release status (2026-10-25)
+## Current release status (2026-10-26)
 
 CLI **0.166.118** is public on npm through GitHub Actions OIDC, and its [independent public installation readback](https://github.com/chainlesschain/chainlesschain/actions/runs/40187398724) passed. Release tag `v-npm-0-166-118` points to source `fcb26822d6b4559e4904f984daa8e6bb7cc012b7`. After installation, run `cc --version` and `cc doctor` to confirm the version and executable path in use.
 
 `npm i -g chainlesschain@0.166.118 --registry https://registry.npmjs.org`
 
-Paired [Open VSX **0.37.160**](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) and [JetBrains **0.4.177**](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge) are public, their downloaded package contents have been verified, and both recommend CLI **0.166.118**. Native desktop and mobile product **v5.0.3.141** is in preparation and is not public; **v5.0.3.140** remains the published product. Microsoft VS Code Marketplace remains unpublished. Public verification proceeds in order: child npm packages → CLI → IDE extensions → mobile and PC clients.
+Paired [Open VSX **0.37.160**](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) and [JetBrains **0.4.177**](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge) are public, their downloaded package contents have been verified, and both recommend CLI **0.166.118**. Native desktop and mobile product [**v5.0.3.141**](https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.141) is public with 22 release assets for Windows, macOS, Linux, Android and iOS. The [complete five-platform Release](https://github.com/chainlesschain/chainlesschain/actions/runs/40213914325) passed, and the release tag points to source `a024f3c6723375bbf76d17f701917243c118b1d1`. Public asset names, sizes and GitHub SHA256 metadata match that Actions receipt, and anonymous Range downloads are available for all assets; independent whole-file hashes were not recomputed. Desktop packages use the default unsigned distribution and iOS is an ad-hoc IPA; this does not include App Store, Google Play or Microsoft VS Code Marketplace publication.
 
 Publication and installation readback do not establish new model-task acceptance or native admission. **NOT_PAID_READY**, **NOT_ADMITTED** and automatic promotion **HOLD** remain. Historical cross-version accepted deliveries remain **31/45** (**26/36** ordinary, **5/9** first-run), with **14** unaccepted; these are not CLI .118 single-round results. Dated records below retain their historical scope.
 
