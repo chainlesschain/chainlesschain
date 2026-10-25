@@ -4,7 +4,7 @@ Command-line interface for installing, configuring, and managing [ChainlessChain
 
 ## CLI 0.166.119 (release candidate)
 
-Fixes Evolution ingress rejecting ordinary bracketed numeric status, progress, date and time text such as `[0 26]`, `[1/3]` and `[12:30:00]` as malformed JSON. JSON validation, credential/PII redaction and projection budgets remain enforced. Versioned projection rules preserve historical evidence verification.
+Fixes Evolution ingress rejecting ordinary display text as malformed JSON: numeric status, progress and percentages, dates and timestamps, Git hashes and ranges, version links, simple wiki links, numeric regex ranges and unquoted Shell tests. Standalone non-sensitive quoted prose labels are also supported. ANSI terminal controls no longer cause JSON parsing errors; existing injection quarantine still applies. JSON validation, credential/PII redaction and projection budgets remain enforced. Versioned projection rules preserve historical evidence verification.
 
 This candidate retains Session Core **0.3.23** and Agent SDK **0.2.16**. The preceding IDE pairing is VS Code **0.37.160** and JetBrains **0.4.177**; this CLI release does not publish new IDE packages. Publication requires CLI CI and CLI Strict Sandbox on Linux, Windows and macOS for the exact release commit, followed by GitHub Actions OIDC publishing and public npm readback. No new live model-task acceptance is claimed; existing release limits remain.
 

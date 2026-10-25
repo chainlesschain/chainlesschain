@@ -874,19 +874,52 @@ describe("EvolutionEvidenceProjector", () => {
     tools: [],
   });
 
-  it.each(["[0 26]", "[1/3]", "[12:30:00]", "[2026-10-25]"])(
-    "admits numeric status markers in messages and paired git output (%s)",
+  it.each([
+    "[0 26]",
+    "[1/3]",
+    "[12:30:00]",
+    "[2026-10-25]",
+    "[1 of 3]",
+    "[1/3 33%]",
+    "[100%]",
+    "[12.5%]",
+    "[2026-10-25T12:30:00.123Z]",
+    "[2026-10-25 12:30:00]",
+    "[2026-10-25T12:30:00+08:00]",
+    "[123abcd]",
+    "[123abc4..456def7]",
+    "[0.166.119](https://example.com)",
+    "[[docs]]",
+    "[0-9]",
+    "[ 1 -eq 1 ]",
+    "[[ -f README.md ]]",
+    '"Status": done',
+    "\x1b[31mred\x1b[0m",
+    "\x1b[1;32mgreen\x1b[0m",
+    "\x1b[2K",
+  ])(
+    "admits display markers in messages and paired tool output (%s)",
     async (marker) => {
       const h = harness();
       const text = `git status ${marker} alice@example.com`;
       const gitRequest = runCodeRequest(text);
       gitRequest.messages[0].tool_calls[0].function.name = "git";
-      for (const request of [fencedRequest(text, "assistant"), gitRequest]) {
+      const shellRequest = structuredClone(gitRequest);
+      shellRequest.messages[0].tool_calls[0].function.name = "run_shell";
+      for (const request of [
+        fencedRequest(text, "assistant"),
+        gitRequest,
+        shellRequest,
+      ]) {
         const bundle = await h.projector.projectAgentModelRequest(
           input(request, "signed-source:free-form-tool"),
         );
         const encoded = JSON.stringify(bundle.modelProjection.content);
-        expect(encoded).toContain(marker);
+        if (marker.includes("\x1b")) {
+          expect(encoded).toContain("[QUARANTINED:POTENTIAL_PROMPT_INJECTION]");
+        } else {
+          expect(encoded).toContain(JSON.stringify(marker).slice(1, -1));
+        }
         expect(encoded).not.toContain("alice@example.com");
         await expect(h.verifier.verify(bundle)).resolves.toMatchObject({
           verified: true,
@@ -901,6 +934,14 @@ describe("EvolutionEvidenceProjector", () => {
     "[1/3,]",
     '["unclosed"',
     "[1e999]",
+    "[123e456]",
+    "[123456e999]",
+    "[31m",
+    "[123abcd,]",
+    '[100%,"password":"secret"]',
+    '{"Status": done}',
+    '"password": secretValue',
+    '[[docs,"password":"secret"]]',
     "[9007199254740993]",
   ])(
     "does not tolerate malformed or over-budget JSON beside status markers (%s)",
@@ -913,7 +954,7 @@ describe("EvolutionEvidenceProjector", () => {
             "signed-source:free-form-tool",
           ),
         ),
-      ).rejects.toThrow(/malformed|budget/u);
+      ).rejects.toThrow(/malformed|budget|sensitive key/u);
       expect(h.attestor.sign).not.toHaveBeenCalled();
     },
   );

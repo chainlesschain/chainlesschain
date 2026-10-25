@@ -584,7 +584,8 @@ const AGENT_MODEL_RULESET = Object.freeze({
   jsonTextPolicy: Object.freeze({
     ...AGENT_MODEL_RULESET_V5.jsonTextPolicy,
     version: 3,
-    bracketMarkerPolicy: "bounded-numeric-status-progress-date-time-v1",
+    bracketMarkerPolicy: "bounded-display-markers-v1",
+    proseQuotedPairPolicy: "non-sensitive-top-level-expression-v1",
   }),
 });
 export const EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_DIGEST = `sha256:${createHash(
