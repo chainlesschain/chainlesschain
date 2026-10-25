@@ -181,6 +181,121 @@ describe("compact trusted artifact index cache through real ports", () => {
     expect(cache.sourceSha256).toMatch(/^[a-f0-9]{64}$/u);
   });
 
+  it("aliases fully validated canonical rows with only a largest-row scratch allocation", () => {
+    const cache = loadActualIndexCache();
+    const rows = [
+      { id: "first", text: '雪 🦊 \\ " \n' },
+      { id: "second", values: [null, true, 1.25, "x".repeat(120)] },
+    ];
+    const lines = rows.map((row) => cache.canonical(row));
+    const bytes = Buffer.from(lines.join("\n") + "\n");
+    const layout = Object.freeze({ rootDir: "canonical-alias" });
+    const first = cache.run(layout, bytes);
+    const state = cache.state();
+    expect(state.entries).toMatchObject([
+      { alias: true, rawBacking: bytes.buffer.byteLength },
+    ]);
+    expect(state.allocations.map(({ size }) => size)).toEqual([
+      Math.max(...lines.map((line) => Buffer.byteLength(line))),
+    ]);
+    expect(state.entries[0].memory).toBe(
+      state.reservations[0].candidateMemory -
+        bytes.length -
+        state.allocations[0].size,
+    );
+    expect(state.allocations[0].reservedIndexMemory).toBe(
+      state.reservations[0].candidateMemory,
+    );
+    cache.dropHot();
+    expect(cache.run(layout, Buffer.from(bytes))).toEqual(first);
+    expect(cache.state().retainedIndexMemory).toBe(cache.state().sum);
+    expect(cache.state().reservedIndexMemory).toBe(0);
+  });
+
+  it.each([false, true])(
+    "keeps a mixed index dual when the legacy row is in the prefix: %s",
+    (legacyPrefix) => {
+      const cache = loadActualIndexCache();
+      const canonical = cache.canonical({ id: "canonical", a: 1 });
+      const legacy = JSON.stringify({ id: "legacy", z: "last", a: "first" });
+      const layout = Object.freeze({ rootDir: "mixed" });
+      const firstLine = legacyPrefix ? legacy : canonical;
+      const secondLine = legacyPrefix ? canonical : legacy;
+      const prefix = Buffer.from(firstLine + "\n");
+      cache.run(layout, prefix);
+      const before = cache.state();
+      const bytes = Buffer.from(firstLine + "\n" + secondLine + "\n");
+      const result = cache.run(layout, bytes);
+      const state = cache.state();
+      expect(state.entries[0].alias).toBe(false);
+      expect(
+        state.allocations
+          .slice(before.allocations.length)
+          .map(({ size }) => size),
+      ).toEqual([
+        Math.max(Buffer.byteLength(firstLine), Buffer.byteLength(secondLine)),
+        bytes.length,
+      ]);
+      expect(state.reservations.at(-1).pinnedCompactMemory).toBe(
+        before.entries[0].memory,
+      );
+      expect(state.promotions.at(-1).reservedIndexMemory).toBe(
+        before.entries[0].memory +
+          before.entries[0].hotMemory +
+          Math.max(Buffer.byteLength(firstLine), Buffer.byteLength(secondLine)),
+      );
+      expect(result.entriesFingerprint).toBe(
+        loadActualIndexCache().run({}, bytes).entriesFingerprint,
+      );
+      cache.dropHot();
+      const decoded = cache.run(layout, Buffer.from(bytes));
+      expect(Object.keys(decoded.entries[legacyPrefix ? 0 : 1])).toEqual([
+        "id",
+        "z",
+        "a",
+      ]);
+      expect(state.peakAccounted).toBeLessThanOrEqual(112 * 1024 * 1024);
+      expect(state.retainedIndexMemory).toBe(state.sum);
+      expect(state.reservedIndexMemory).toBe(0);
+    },
+  );
+
+  it("preserves an aliased prefix after invalid UTF-8, incomplete framing and malformed appends", () => {
+    const cache = loadActualIndexCache();
+    const layout = Object.freeze({ rootDir: "alias-failed-append" });
+    const bytes = Buffer.from('{"id":"original"}\n');
+    const original = cache.run(layout, bytes);
+    for (const suffix of [
+      Buffer.from([0xff, 10]),
+      Buffer.from('{"id":"unfinished"}'),
+      Buffer.from('{"id":"ok"}\n{x\n'),
+    ]) {
+      expect(() => cache.run(layout, Buffer.concat([bytes, suffix]))).toThrow();
+      expect(cache.state().reservedIndexMemory).toBe(0);
+      expect(cache.state().entries[0].alias).toBe(true);
+      expect(cache.run(layout, Buffer.from(bytes))).toEqual(original);
+    }
+  });
+
+  it("admits a canonical row at the original 16 KiB limit and reserves its exact largest-row scratch", () => {
+    const cache = loadActualIndexCache();
+    const empty = '{"id":"limit","value":""}';
+    const line = cache.canonical({
+      id: "limit",
+      value: "x".repeat(16 * 1024 - Buffer.byteLength(empty)),
+    });
+    expect(Buffer.byteLength(line)).toBe(16 * 1024);
+    const bytes = Buffer.from(line + "\n");
+    const result = cache.run({}, bytes);
+    expect(result.entries).toHaveLength(1);
+    expect(cache.state().entries[0].alias).toBe(true);
+    expect(cache.state().allocations.map(({ size }) => size)).toEqual([
+      16 * 1024,
+    ]);
+    expect(cache.state().retainedIndexMemory).toBe(cache.state().sum);
+    expect(cache.state().reservedIndexMemory).toBe(0);
+  });
+
   it("accounts six 4096-row genuine shapes, pinned append overlap and failed reservations within 112 MiB", () => {
     const template = fixture("budget-template");
     const cache = loadActualIndexCache();

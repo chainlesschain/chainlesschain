@@ -28,6 +28,11 @@ import { types as utilTypes } from "node:util";
 import { withFileLock } from "./with-file-lock.js";
 import { readBoundedArtifactFile } from "./bounded-artifact-file-read.js";
 
+// Per-call, internal formatting opt-in. Public options/schema strings cannot
+// select it, and it grants no read, signature or storage authority.
+const TYPED_INDEX_ENCODERS = new WeakMap();
+const DEFAULT_FUNCTION_BIND = Function.prototype.bind;
+
 export const ARTIFACT_KINDS = Object.freeze([
   "report",
   "patch",
@@ -305,18 +310,19 @@ export class ArtifactStore {
    * caller still owns the semantic validation of the persisted lineage and
    * must verifyIntegrity() before treating the returned entry as readable.
    */
-  publishDataOnce({
-    data,
-    fileName = "artifact.bin",
-    title,
-    kind,
-    mime,
-    sessionId = null,
-    ttlDays,
-    immutable = false,
-    recordDigest,
-    lineage,
-  } = {}) {
+  publishDataOnce(options = {}) {
+    const {
+      data,
+      fileName = "artifact.bin",
+      title,
+      kind,
+      mime,
+      sessionId = null,
+      ttlDays,
+      immutable = false,
+      recordDigest,
+      lineage,
+    } = options;
     if (typeof data !== "string" && !Buffer.isBuffer(data)) {
       throw new Error("publishDataOnce requires string or Buffer data");
     }
@@ -337,7 +343,7 @@ export class ArtifactStore {
       if (matches.length === 1) {
         return Object.freeze({ entry: matches[0], published: false });
       }
-      const entry = this._publishDataUnlocked(Buffer.from(data), {
+      const metadata = {
         fileName,
         title,
         kind,
@@ -348,14 +354,22 @@ export class ArtifactStore {
         recordDigest: stableDigest,
         lineage: normalizedLineage,
         sourcePath: null,
-      });
+      };
+      const encoder = TYPED_INDEX_ENCODERS.get(options);
+      if (encoder && hasDefaultTypedIndexWriter(this))
+        TYPED_INDEX_ENCODERS.set(metadata, encoder);
+      let entry;
+      try {
+        entry = this._publishDataUnlocked(Buffer.from(data), metadata);
+      } finally {
+        TYPED_INDEX_ENCODERS.delete(metadata);
+      }
       return Object.freeze({ entry, published: true });
     });
   }
 
-  _publishDataUnlocked(
-    body,
-    {
+  _publishDataUnlocked(body, metadata) {
+    const {
       fileName,
       title,
       kind,
@@ -366,8 +380,7 @@ export class ArtifactStore {
       recordDigest = null,
       lineage = null,
       sourcePath = null,
-    },
-  ) {
+    } = metadata;
     if (body.length > MAX_ARTIFACT_BYTES) {
       throw new Error(
         `artifact too large (${body.length} bytes > ${MAX_ARTIFACT_BYTES}); artifacts are deliverables, not build output`,
@@ -428,7 +441,14 @@ export class ArtifactStore {
       if (!indexStat.isFile() || Number(indexStat.nlink) !== 1) {
         throw new Error("artifact index identity is invalid");
       }
-      fs.writeFileSync(descriptor, `${JSON.stringify(entry)}\n`, "utf-8");
+      const encoder = TYPED_INDEX_ENCODERS.get(metadata);
+      const encoded =
+        encoder && hasDefaultTypedIndexWriter(this) ? encoder(entry) : null;
+      fs.writeFileSync(
+        descriptor,
+        `${encoded ?? JSON.stringify(entry)}\n`,
+        "utf-8",
+      );
       fs.fsyncSync(descriptor);
     } catch (error) {
       try {
@@ -658,3 +678,79 @@ export const ARTIFACT_STORE_DEFAULT_READ_METHODS = Object.freeze({
 
 export const ARTIFACT_STORE_DEFAULT_PUBLISH_DATA_ONCE =
   ArtifactStore.prototype.publishDataOnce;
+
+const TYPED_INDEX_DEFAULT_METHODS = Object.freeze(
+  Object.fromEntries(
+    [
+      "publishDataOnce",
+      "_publishDataUnlocked",
+      "_readEntries",
+      "_withIndexLock",
+      "_ensureDirs",
+      "_indexFile",
+      "_filesDir",
+      "_deleteStoredFile",
+      "list",
+      "get",
+      "storedPath",
+      "verifyIntegrity",
+    ].map((name) => [name, ArtifactStore.prototype[name]]),
+  ),
+);
+
+function hasDefaultTypedIndexWriter(store) {
+  if (
+    utilTypes.isProxy(store) ||
+    Object.getPrototypeOf(store) !== ArtifactStore.prototype ||
+    Object.getOwnPropertyDescriptor(store, "_indexLock")?.value !==
+      withFileLock ||
+    Object.getOwnPropertyDescriptor(Object.prototype, "toJSON") !== undefined
+  )
+    return false;
+  for (const [name, expected] of Object.entries(TYPED_INDEX_DEFAULT_METHODS)) {
+    const descriptor =
+      Object.getOwnPropertyDescriptor(store, name) ||
+      Object.getOwnPropertyDescriptor(ArtifactStore.prototype, name);
+    if (
+      !descriptor ||
+      !("value" in descriptor) ||
+      descriptor.value !== expected
+    )
+      return false;
+  }
+  return true;
+}
+
+/** Internal ports adapter; callers still invoke their captured publication hook. */
+export function captureArtifactStoreTypedIndexPublisher(
+  store,
+  publish,
+  encoder,
+) {
+  // A custom bind is itself a publication hook, even on the default method.
+  // Inspect descriptors without invoking getters; the legacy bind call below
+  // still runs exactly once at the original capture point.
+  const defaultBind =
+    publish === ARTIFACT_STORE_DEFAULT_PUBLISH_DATA_ONCE &&
+    Object.getPrototypeOf(publish) === Function.prototype &&
+    Object.getOwnPropertyDescriptor(publish, "bind") === undefined &&
+    Object.getOwnPropertyDescriptor(Function.prototype, "bind")?.value ===
+      DEFAULT_FUNCTION_BIND;
+  // Preserve the original capture timing and custom bind semantics. A valid
+  // function can shadow its public .call property; invocation must not use it.
+  const boundPublish = Object.freeze(publish.bind(store));
+  return Object.freeze((options) => {
+    if (
+      defaultBind &&
+      publish === ARTIFACT_STORE_DEFAULT_PUBLISH_DATA_ONCE &&
+      hasDefaultTypedIndexWriter(store)
+    ) {
+      TYPED_INDEX_ENCODERS.set(options, encoder);
+    }
+    try {
+      return boundPublish(options);
+    } finally {
+      TYPED_INDEX_ENCODERS.delete(options);
+    }
+  });
+}
