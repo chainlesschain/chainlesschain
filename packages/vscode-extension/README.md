@@ -6,7 +6,7 @@ MCP bridge.
 
 ## Release pairing
 
-Version **0.37.161** recommends CLI **`0.166.121`** and is public on Open VSX. Its downloaded VSIX matches the immutable CI candidate. The paired JetBrains **0.4.178** upload succeeded and awaits Marketplace review. This release pairs with the CLI ingress display-text recovery and preserves input delivery and Windows draft recovery fixes with SDK **0.2.16**.
+Version **0.37.161** recommends CLI **`0.166.121`** and is public on Open VSX. Its downloaded VSIX matches the immutable CI candidate. The paired JetBrains **0.4.178** is approved, publicly listed and its public ZIP identity and CLI recommendation are verified. This release pairs with the CLI ingress display-text recovery and preserves input delivery and Windows draft recovery fixes with SDK **0.2.16**.
 
 The preceding Open VSX **0.37.160** pairing recommended CLI **`0.166.118`** with JetBrains **0.4.177**; its input delivery and Windows draft recovery fixes are retained.
 
@@ -22,7 +22,7 @@ Open VSX version **0.37.161** pairs with public CLI `0.166.121`.
 
 The immutable `ide-vscode-v0.37.161` tag selects source `4a7e5adc5e6a241434ecfa906a272e34b5ea6d2a`. Its [release workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/40227329131) passed the Linux, Windows and macOS host gates. The public [versioned VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.161/file/chainlesschain.chainlesschain-ide-0.37.161.vsix) matches the immutable CI candidate by raw archive SHA-256 and canonical ZIP content digest, and recommends CLI `0.166.121`. Install with `npm i -g chainlesschain@0.166.121 --registry https://registry.npmjs.org`. Using `@0.166.121` selects this verified CLI release.
 
-JetBrains **0.4.178** was uploaded successfully and awaits Marketplace review; public listing and download are not yet verified. [Publication evidence](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release121-public/publication.json). Microsoft Marketplace remains unpublished; stock VS Code can install the versioned VSIX.
+JetBrains **0.4.178** is approved, publicly listed and its downloaded ZIP identity and CLI recommendation are verified. All candidate inner JAR entries match, with no added entries; raw ZIP bytes differ. [Publication evidence](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release121-public/publication.json). Microsoft Marketplace remains unpublished; stock VS Code can install the versioned VSIX.
 
 No new live model-task acceptance was run. Cumulative acceptance remains **32/45**, with **13** unfinished; **NOT_PAID_READY**, **NOT_ADMITTED** and automatic promotion **HOLD** remain.
 
@@ -79,7 +79,7 @@ Checked on 2026-10-20: npm CLI **0.166.107**, Session Core **0.3.20**, Open VSX 
 
 ## Release compatibility
 
-Public Open VSX **0.37.161** recommends public CLI **`0.166.121`**. The paired JetBrains **0.4.178** upload succeeded and awaits Marketplace review. This release preserves input delivery and Windows draft recovery fixes; CLI and Open VSX exact-source gates and public artifact verification passed.
+Public Open VSX **0.37.161** recommends public CLI **`0.166.121`**. The paired JetBrains **0.4.178** is approved, publicly listed and its public ZIP identity and CLI recommendation are verified. This release preserves input delivery and Windows draft recovery fixes; CLI and Open VSX exact-source gates and public artifact verification passed.
 The table records the current verified Open VSX / CLI pairing. Formal evaluation and full native review retain their separate acceptance status.
 
 | Component                 | Current status                                                                                             |

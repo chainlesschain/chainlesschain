@@ -7,7 +7,7 @@ diffs inside IntelliJ-platform IDEs (IDEA, PyCharm, WebStorm, …).
 
 ## Release pairing
 
-Plugin **0.4.178** preserves unknown input delivery after pipe failures and pairs with public Open VSX **0.37.161** and CLI **`0.166.121`**. Its Marketplace upload succeeded and awaits review; public listing and download are not yet verified. This release pairs with the CLI ingress display-text recovery. Previously verified public releases are retained below.
+Plugin **0.4.178** preserves unknown input delivery after pipe failures and pairs with public Open VSX **0.37.161** and CLI **`0.166.121`**. It is approved, publicly listed and its downloaded ZIP identity and CLI recommendation are verified. This release pairs with the CLI ingress display-text recovery. Previously verified public releases are retained below.
 
 Plugin **0.4.176** recommends CLI **`0.166.117`** and pairs with VS Code **0.37.159**. The paired CLI repairs source and command evidence projection, complete bounded JSON tool previews, cumulative evidence budgets, and separate image and provider token accounting. IDE publication follows the paired CLI and dependency graph verification, exact-source release gates, and public artifact readback.
 
@@ -19,7 +19,7 @@ The .173 Marketplace upload succeeded before its workflow was cancelled after di
 
 JetBrains **0.4.178** was uploaded successfully through its [release workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/40227329241). The immutable `ide-jetbrains-v0.4.178` tag selects source `4a7e5adc5e6a241434ecfa906a272e34b5ea6d2a`. The real IDE host gates, build and compatibility checks passed. The downloaded CI ZIP contains plugin version **0.4.178** and compiled CLI recommendation **0.166.121**.
 
-Marketplace status is **uploaded, pending review**. Public approval, listing and public ZIP download are not yet verified. The release workflow accepts this review state after successful upload; it does not establish public availability. [Publication evidence](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release121-public/publication.json).
+Marketplace status is **approved, listed and publicly downloadable**. The public [plugin ZIP](https://plugins.jetbrains.com/files/32208/1202806/chainlesschain-ide-bridge-0.4.178.zip) contains version **0.4.178** and compiled CLI recommendation **0.166.121**. Every candidate inner JAR entry matches the public package, with no added entries. The public ZIP is 1,555,713 bytes with SHA-256 `70490fb98dca0db1b8ddc7c6f3e166911ec4f6b07be6f2b46f7e2c4b5ccbe43b`; raw ZIP bytes differ from the CI candidate. [Publication evidence](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release121-public/publication.json).
 
 CLI **0.166.121** and Open VSX **0.37.161** are public and independently verified. Install the CLI with `npm i -g chainlesschain@0.166.121 --registry https://registry.npmjs.org`. No new live model-task acceptance was run: cumulative acceptance remains **32/45**, with **13** unfinished; **NOT_PAID_READY**, **NOT_ADMITTED** and automatic promotion **HOLD** remain. Microsoft Marketplace remains unpublished.
 
@@ -94,7 +94,7 @@ See the [upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-u
 
 ## Release compatibility
 
-Plugin **0.4.178** recommends `chainlesschain@0.166.121`. Its Marketplace upload succeeded after exact-source release gates and public CLI verification, and now awaits review; public listing and download remain unverified. It preserves unknown delivery after a partial pipe write and rejects later submissions before reserving another delivery. Native task quality and restart acceptance still require separate published-package evidence.
+Plugin **0.4.178** recommends `chainlesschain@0.166.121`. It is approved and publicly listed after exact-source release gates and public CLI verification; the public ZIP identity, CLI recommendation and all candidate inner JAR entries are verified. It preserves unknown delivery after a partial pipe write and rejects later submissions before reserving another delivery. Native task quality and restart acceptance still require separate published-package evidence.
 
 ## Previous candidates and development notes
 

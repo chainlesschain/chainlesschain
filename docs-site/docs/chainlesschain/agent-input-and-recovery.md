@@ -16,7 +16,7 @@ CLI 0.166.121 已通过同一提交的三平台 CLI CI 和 CLI Strict Sandbox，
 
 另在独立目录从公共 npm 使用 `--ignore-scripts` 安装，验证了 CLI 包和十个直接子依赖的地址、完整性与版本，以及 `cc --version` 和静态 `cc agent --capabilities` 清单。这不是模型任务或原生产品验收。
 
-新配对 Open VSX **0.37.161** 已公开，独立下载的 VSIX 与不可变 CI 构建的原始 SHA-256 及完整 ZIP 内容摘要均一致，包内推荐 CLI **0.166.121**。JetBrains **0.4.178** 已成功上传 Marketplace，正在等待审核；公开上市和下载尚未验证。上一版配对是 **0.37.160** / **0.4.177**。本次未新增真实模型任务验收，累计仍为 **32/45**、**13** 项未完成，**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留；Microsoft Marketplace 仍未发布。
+新配对 Open VSX **0.37.161** 已公开，独立下载的 VSIX 与不可变 CI 构建的原始 SHA-256 及完整 ZIP 内容摘要均一致，包内推荐 CLI **0.166.121**。JetBrains **0.4.178** 已通过审核、公开上市并完成 ZIP 下载验证，包内版本和 CLI 推荐版本正确；全部候选 JAR 内部条目与公开包一致且无新增条目，原始 ZIP 字节不同。上一版配对是 **0.37.160** / **0.4.177**。本次未新增真实模型任务验收，累计仍为 **32/45**、**13** 项未完成，**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留；Microsoft Marketplace 仍未发布。
 
 ## 核心特性
 

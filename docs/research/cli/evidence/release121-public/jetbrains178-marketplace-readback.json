@@ -1,16 +1,29 @@
 {
   "channel": "jetbrains",
   "endpoint": "https://plugins.jetbrains.com/api/plugins/32208/updates",
-  "status": "pending",
+  "status": "ready",
   "version": "0.4.178",
-  "approve": null,
-  "listed": null,
-  "hidden": null,
-  "reason": "version-not-visible",
-  "attempts": 12,
-  "observedAt": "2026-10-25T20:21:08.051Z",
+  "approve": true,
+  "listed": true,
+  "hidden": false,
+  "observedAt": "2026-10-25T20:33:08.221Z",
   "publishRunId": 40227329241,
   "publishWorkflow": "success",
   "sourceCommit": "4a7e5adc5e6a241434ecfa906a272e34b5ea6d2a",
-  "scope": "Marketplace upload accepted by successful release workflow; public approval, listing and public ZIP download remain unverified. Release workflow intentionally reports pending review without treating upload as failure."
+  "scope": "Marketplace approval/listing and public ZIP download verified by the release coordinator. Plugin metadata and compiled CLI recommendation verified; Python compared every candidate inner JAR entry to the public package, with identical entries and no additions. Raw ZIP bytes differ from the CI candidate.",
+  "previousObservation": {
+    "status": "pending",
+    "observedAt": "2026-10-25T20:21:08.051Z",
+    "reason": "version-not-visible",
+    "attempts": 12
+  },
+  "updateId": 1202806,
+  "downloadUrl": "https://plugins.jetbrains.com/files/32208/1202806/chainlesschain-ide-bridge-0.4.178.zip",
+  "archiveBytes": 1555713,
+  "sha256": "70490fb98dca0db1b8ddc7c6f3e166911ec4f6b07be6f2b46f7e2c4b5ccbe43b",
+  "recommendedCliVersion": "0.166.121",
+  "publicArchiveVerified": true,
+  "rawArchiveMatchesCandidate": false,
+  "innerJarEntriesMatchCandidate": true,
+  "addedInnerJarEntries": 0
 }

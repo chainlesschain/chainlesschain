@@ -2,8 +2,7 @@
 
 ## CLI 0.166.121 (2026-10-26)
 
-CLI **0.166.121** 已经 GitHub Actions OIDC 公开发布，精确源提交通过 Linux、Windows、macOS CLI CI 与 Strict Sandbox，公共 npm 包完整性、provenance 和子包依赖已验证。修复 Evolution ingress 将状态、进度、日期、Git 与 Shell 等普通文本误判为损坏 JSON 的问题，保留严格 JSON 校验、敏感信息脱敏及历史证据兼容。安装：`npm i -g chainlesschain@0.166.121 --registry https://registry.npmjs.org`。配套 Open VSX **0.37.161** 已公开，下载包与不可变 CI 构建一致并推荐 CLI **0.166.121**；JetBrains **0.4.178** 已成功上传 Marketplace，正在等待审核；公开上市和下载尚未验证。上一版配对为 **0.37.160** / **0.4.177**。[发布证据](docs/research/cli/evidence/release121-public/publication.json)。未新增真实模型任务验收，累计仍为 **32/45**、**13** 项未完成；**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。
-
+CLI **0.166.121** 已经 GitHub Actions OIDC 公开发布，精确源提交通过 Linux、Windows、macOS CLI CI 与 Strict Sandbox，公共 npm 包完整性、provenance 和子包依赖已验证。修复 Evolution ingress 将状态、进度、日期、Git 与 Shell 等普通文本误判为损坏 JSON 的问题，保留严格 JSON 校验、敏感信息脱敏及历史证据兼容。安装：`npm i -g chainlesschain@0.166.121 --registry https://registry.npmjs.org`。配套 Open VSX **0.37.161** 已公开，下载包与不可变 CI 构建一致并推荐 CLI **0.166.121**；JetBrains **0.4.178** 已通过审核、公开上市并完成 ZIP 下载验证，包内版本和 CLI 推荐版本正确；全部候选 JAR 内部条目与公开包一致，原始 ZIP 字节不同。上一版配对为 **0.37.160** / **0.4.177**。[发布证据](docs/research/cli/evidence/release121-public/publication.json)。未新增真实模型任务验收，累计仍为 **32/45**、**13** 项未完成；**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。
 
 独立公共 npm 安装使用 `--ignore-scripts`，已验证 CLI 包、十个直接子依赖及版本与静态 capability 清单；不代表新增模型或原生产品验收。
 
@@ -2144,14 +2143,14 @@ KG 4 个 tab：force-directed graph (ECharts) / 实体表 / 关系表 / 类型�
 
 收口跨链桥设计 §11 + 联邦治理 v0.2 §11 列出的全部可做项（链上锚定阻塞 Q-COMP-3、真实 RPC 适配器需 desktop 大工程，此两项继续保留）：
 
-| Wave | 模块 | 内容 |
+| Wave                                            | 模块                                    | 内容                                                                                                                                                                                                                                        |
 | ----------------------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| **A1** Cross-federation 互信（v0.3 #1） | `core-mtc/lib/federation-governance.js` | `SCHEMA_CROSS_FED_TRUST_ANCHOR` schema + `createCrossFederationTrustAnchor` + `validateCrossFederationTrustAnchor`（含 EXPIRED 检查）。CLI: `cc mtc federation cross-trust-create/validate` |
-| **A2** 离线审计第三方接口（v0.3 #3） | 同上 lib | `auditGovernanceLog(events, fedId)` 纯函数：检测 UNKNOWN_ACTOR / ACTOR_KEY_MISMATCH / BOOTSTRAP_KEY_MISMATCH / OUT_OF_ORDER 四类问题，返回 `{ok, findings[], final_state}`。CLI: `cc mtc federation audit <fed> [--summary                  | --json]` |
-| **B1** 多跳桥（bridge §11 #3） | `cross-chain-mtc.js` | `buildMultiHopBridgeEnvelope` 链 ≥2 个单跳 envelope，强制 `leg[i].dst_chain == leg[i+1].src_chain` 连续性；新 schema `mtc-bridge-multihop/v1`。`verifyMultiHopBridgeEnvelope` per-leg 验证。CLI: `cc crosschain mtc-multihop-build/-verify` |
-| **B2** Gas-aware batch（bridge §11 #4） | 同上 | `shouldCloseBatchGasAware` 启发式：staged ≥ 50 硬关；current_gas > baseline×1.5 延迟；否则关。CLI: `cc crosschain mtc-gas-check <chain> --staged-count <n> [--current-gas-usd]` |
-| **B3** SLA Manager 集成（bridge §11 #6） | 同上 | `getBridgeMtcSlaMetrics` 输出 `cc sla` 兼容形状：`sla_status` (ok/degraded/down) + staging/批次/最近批次时间。CLI: `cc crosschain mtc-sla` |
-| **C** Web-panel 监控 dashboard（bridge §11 #5） | `Mtc.vue` 跨链桥 tab | 新增"SLA / Monitoring" 卡片：4 个统计 (status / staged / batches/h / last batch) + 30s 自动 poll `cc crosschain mtc-sla --json`，可纳入外部 Prometheus / Grafana |
+| **A1** Cross-federation 互信（v0.3 #1）         | `core-mtc/lib/federation-governance.js` | `SCHEMA_CROSS_FED_TRUST_ANCHOR` schema + `createCrossFederationTrustAnchor` + `validateCrossFederationTrustAnchor`（含 EXPIRED 检查）。CLI: `cc mtc federation cross-trust-create/validate`                                                 |
+| **A2** 离线审计第三方接口（v0.3 #3）            | 同上 lib                                | `auditGovernanceLog(events, fedId)` 纯函数：检测 UNKNOWN_ACTOR / ACTOR_KEY_MISMATCH / BOOTSTRAP_KEY_MISMATCH / OUT_OF_ORDER 四类问题，返回 `{ok, findings[], final_state}`。CLI: `cc mtc federation audit <fed> [--summary                  | --json]` |
+| **B1** 多跳桥（bridge §11 #3）                  | `cross-chain-mtc.js`                    | `buildMultiHopBridgeEnvelope` 链 ≥2 个单跳 envelope，强制 `leg[i].dst_chain == leg[i+1].src_chain` 连续性；新 schema `mtc-bridge-multihop/v1`。`verifyMultiHopBridgeEnvelope` per-leg 验证。CLI: `cc crosschain mtc-multihop-build/-verify` |
+| **B2** Gas-aware batch（bridge §11 #4）         | 同上                                    | `shouldCloseBatchGasAware` 启发式：staged ≥ 50 硬关；current_gas > baseline×1.5 延迟；否则关。CLI: `cc crosschain mtc-gas-check <chain> --staged-count <n> [--current-gas-usd]`                                                             |
+| **B3** SLA Manager 集成（bridge §11 #6）        | 同上                                    | `getBridgeMtcSlaMetrics` 输出 `cc sla` 兼容形状：`sla_status` (ok/degraded/down) + staging/批次/最近批次时间。CLI: `cc crosschain mtc-sla`                                                                                                  |
+| **C** Web-panel 监控 dashboard（bridge §11 #5） | `Mtc.vue` 跨链桥 tab                    | 新增"SLA / Monitoring" 卡片：4 个统计 (status / staged / batches/h / last batch) + 30s 自动 poll `cc crosschain mtc-sla --json`，可纳入外部 Prometheus / Grafana                                                                            |
 
 **累计测试**：core-mtc 232 (+12 v0.3 lib) + CLI integration 66 (+6 governance + 4 crosschain) + lib unit 70 (+14 v0.2 lib) = **358 全绿**。
 
@@ -2255,15 +2254,15 @@ KG 4 个 tab：force-directed graph (ECharts) / 实体表 / 关系表 / 类型�
 
 落地两份治理 / 跨链设计文档（关闭 §12 已知限制 #2/#6）+ `cc crosschain mtc-*` 一组新子命令，让现有桥流程能 opt-in 写 MTC envelope：
 
-| 模块 | 内容 |
+| 模块                        | 内容                                                                                                                                                                                                              |
 | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 设计文档 — 联邦治理 v1 | `docs/design/MTC_联邦治理_v1.md`：5 阶段联邦生命周期 (Bootstrap/Steady/Dispute/Wind-down/Closed) + 准入审批流（候选期权重 0.5）+ M-of-N 阈值业务场景分级 + 三种退出路径 + Fork/Merge 语义 + governance.log schema |
-| 设计文档 — 跨链桥 MTC 化 v1 | `docs/design/MTC_跨链桥_v1.md`：`mtc/v1/bridge/<chain-pair>/...` 字典序 namespace + 桥两侧 MTCA 三种互信模式（Independent/Federated/Light Client）+ 跨链特有威胁分析 (T1 oracle 共谋 / T5 censorship) |
-| CLI lib | `packages/cli/src/lib/cross-chain-mtc.js` 新增：`bridgeNamespace` 强制字典序 + 信任锚 store (Independent 模式) + `assembleBridgeBatch` / `verifyBridgeEnvelope` + `stageBridgeOp` / `closeBatch` staging 生命周期 |
-| 4 个新子命令 | `cc crosschain mtc-status` / `mtc-envelope` / `mtc-verify` / `mtc-trust-anchor {add,list,remove}` / `mtc-batch` |
-| `--mtc` opt-in flag | `cc crosschain bridge                                                                                                                                                                                             | swap | send --mtc` 在原命令成功后写一条 staging op；`cc crosschain mtc-batch` 关 staging 为按 chain-pair 分组的批次（landmark + envelopes 持久化到 batches/<pair>-<seq>/） |
-| Bug fix | `_dbFromCtx` 修向上多层查找 `_db`（之前只看 root program → 永远 null，导致桥命令 spawnSync 全挂）+ crosschain `preAction` 自动 bootstrap DB |
-| core-mtc 改动 | `NAMESPACE_RE` 加 `bridge` kind（additive，不破坏现有 did/skill/audit） |
+| 设计文档 — 联邦治理 v1      | `docs/design/MTC_联邦治理_v1.md`：5 阶段联邦生命周期 (Bootstrap/Steady/Dispute/Wind-down/Closed) + 准入审批流（候选期权重 0.5）+ M-of-N 阈值业务场景分级 + 三种退出路径 + Fork/Merge 语义 + governance.log schema |
+| 设计文档 — 跨链桥 MTC 化 v1 | `docs/design/MTC_跨链桥_v1.md`：`mtc/v1/bridge/<chain-pair>/...` 字典序 namespace + 桥两侧 MTCA 三种互信模式（Independent/Federated/Light Client）+ 跨链特有威胁分析 (T1 oracle 共谋 / T5 censorship)             |
+| CLI lib                     | `packages/cli/src/lib/cross-chain-mtc.js` 新增：`bridgeNamespace` 强制字典序 + 信任锚 store (Independent 模式) + `assembleBridgeBatch` / `verifyBridgeEnvelope` + `stageBridgeOp` / `closeBatch` staging 生命周期 |
+| 4 个新子命令                | `cc crosschain mtc-status` / `mtc-envelope` / `mtc-verify` / `mtc-trust-anchor {add,list,remove}` / `mtc-batch`                                                                                                   |
+| `--mtc` opt-in flag         | `cc crosschain bridge                                                                                                                                                                                             | swap | send --mtc` 在原命令成功后写一条 staging op；`cc crosschain mtc-batch` 关 staging 为按 chain-pair 分组的批次（landmark + envelopes 持久化到 batches/<pair>-<seq>/） |
+| Bug fix                     | `_dbFromCtx` 修向上多层查找 `_db`（之前只看 root program → 永远 null，导致桥命令 spawnSync 全挂）+ crosschain `preAction` 自动 bootstrap DB                                                                       |
+| core-mtc 改动               | `NAMESPACE_RE` 加 `bridge` kind（additive，不破坏现有 did/skill/audit）                                                                                                                                           |
 
 **累计测试**：lib 56 unit + CLI 14 integration + 7 e2e + core-mtc 182 + 既有 cross-chain 83 = **342 测试全绿**，覆盖 unit / integration / e2e 三层 + 跨进程独立验证。
 
@@ -2857,12 +2856,12 @@ Electron 桌面端 `/v2` 路由上线**对话优先 + 插件化平台**新壳，
 
 新命令树：`cowork {debate|compare|analyze|template|cron|workflow|share|learning|status}`。全部 headless，`_deps` 注入模式保证可测，统一持久化到 `.chainlesschain/cowork/*.jsonl`。
 
-| 层       | 范围                                                                                                                                   | 通过        |
-| -------- | -------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
-| 单元     | `cowork-learning.test.js` / `cowork-workflow.test.js` / `cowork-share.test.js`                                                         | `57/57`     |
+| 层       | 范围                                                                                                                                    | 通过        |
+| -------- | --------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| 单元     | `cowork-learning.test.js` / `cowork-workflow.test.js` / `cowork-share.test.js`                                                          | `57/57`     |
 | 集成     | `cowork-evolution-workflow.test.js`（mkdtemp 真 fs，覆盖 marketplace↔registry / share 往返 / learning 真 JSONL / workflow e2e / cron） | `12/12`     |
-| E2E      | `cowork-evolution-commands.test.js`（spawn CLI 真二进制，learning/workflow/share 全子命令 + 错误路径）                                 | `14/14`     |
-| **小计** | **3 个新模块 + 2 个测试文件**                                                                                                          | **`83/83`** |
+| E2E      | `cowork-evolution-commands.test.js`（spawn CLI 真二进制，learning/workflow/share 全子命令 + 错误路径）                                  | `14/14`     |
+| **小计** | **3 个新模块 + 2 个测试文件**                                                                                                           | **`83/83`** |
 
 累计 cowork 测试 168（既有 template-marketplace 17 + cron 31 + task-runner 63 + 本次新增 57）。版本号 `packages/cli/package.json` 升到 `0.46.0`。
 
