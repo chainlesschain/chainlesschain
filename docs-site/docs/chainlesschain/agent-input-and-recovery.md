@@ -4,7 +4,7 @@
 
 CLI **0.166.117** 修复了代码被 Evolution ingress 误判为损坏 JSON、图片与文本预算混算、长工具输出截断，以及异常退出前遗漏已完成工具轮次结算的问题。Open VSX **0.37.159** 和 JetBrains **0.4.176** 均已公开，推荐同一 CLI 版本。
 
-## CLI 0.166.120 发布候选
+## CLI 0.166.121 发布候选
 
 修复数字状态 `[0 26]`、进度 `[1/3]`、日期 `[2026-10-25]` 和时间 `[12:30:00]` 触发 `Agent model JSON text is malformed or ambiguous` 的误判。这些完整且有界的普通文本标记继续接受敏感信息清洗；真正损坏的 JSON、重复键及超预算输入仍会拒绝。历史投影规则保持可验证。
 
@@ -12,7 +12,7 @@ CLI **0.166.117** 修复了代码被 Evolution ingress 误判为损坏 JSON、�
 
 同时修复敏感赋值的词法边界：例如 `"password": trueSecretValue` 或拼接字符串，不再只脱敏第一个 token 而留下后缀，而是拒绝无法安全投影的表达式。
 
-发布须通过同一提交的三平台 CLI CI 和 CLI Strict Sandbox，再经 GitHub Actions OIDC 发布与 npm 回读。发布后运行 `npm i -g chainlesschain@0.166.120 --registry https://registry.npmjs.org`，重启 IDE 聊天宿主，用 `cc --version` 和 `cc doctor` 确认实际路径。本次沿用上一版 IDE 配对 VS Code 0.37.160 / JetBrains 0.4.177，不新增真实模型任务验收结论。
+发布须通过同一提交的三平台 CLI CI 和 CLI Strict Sandbox，再经 GitHub Actions OIDC 发布与 npm 回读。发布后运行 `npm i -g chainlesschain@0.166.121 --registry https://registry.npmjs.org`，重启 IDE 聊天宿主，用 `cc --version` 和 `cc doctor` 确认实际路径。本次沿用上一版 IDE 配对 VS Code 0.37.160 / JetBrains 0.4.177，不新增真实模型任务验收结论。
 
 ## 核心特性
 

@@ -26,12 +26,15 @@ function overrideFs(overrides) {
   });
 }
 
-function windowsZeroDevicePathStatsFs() {
+function windowsZeroDevicePathStatsFs(volumeDirectory) {
   return overrideFs({
     openSync(filePath, ...args) {
+      // A POSIX /tmp fixture can live on a different device from /. Anchor
+      // the simulated Windows volume to the fixture, retaining real fstat
+      // identities and the production cross-device rejection.
       const resolvedPath =
         process.platform !== "win32" && filePath === "\\"
-          ? path.parse(process.cwd()).root
+          ? volumeDirectory
           : filePath;
       return fs.openSync(resolvedPath, ...args);
     },
@@ -285,7 +288,7 @@ describe("artifact TTL cleanup settlement ledger", () => {
   });
 
   it("binds path stats to trusted handles on affected Windows libuv runtimes", () => {
-    const runtimeFs = windowsZeroDevicePathStatsFs();
+    const runtimeFs = windowsZeroDevicePathStatsFs(root);
     const runtime = { platform: "win32", uvVersion: "1.49.1" };
     const access = authorizeArtifactContentAccess(
       store,

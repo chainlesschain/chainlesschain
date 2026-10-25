@@ -1,8 +1,8 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
-## CLI 0.166.120 (2026-10-25)
+## CLI 0.166.121 (2026-10-25)
 
-CLI **0.166.120** 发布候选修复 Evolution ingress 将 `[0 26]`、`[1/3]`、日期和时间标记误判为损坏 JSON 的问题，保留严格 JSON 校验、敏感信息脱敏及历史证据兼容。须通过精确发布提交的 Linux、Windows、macOS CLI CI 与 Strict Sandbox 后，由 GitHub Actions OIDC 发布并完成 npm 回读。发布后安装：`npm i -g chainlesschain@0.166.120 --registry https://registry.npmjs.org`。本次沿用上一版 IDE 配对 VS Code **0.37.160** / JetBrains **0.4.177**，既有验收限制保留。
+CLI **0.166.121** 发布候选修复 Evolution ingress 将 `[0 26]`、`[1/3]`、日期和时间标记误判为损坏 JSON 的问题，保留严格 JSON 校验、敏感信息脱敏及历史证据兼容。须通过精确发布提交的 Linux、Windows、macOS CLI CI 与 Strict Sandbox 后，由 GitHub Actions OIDC 发布并完成 npm 回读。发布后安装：`npm i -g chainlesschain@0.166.121 --registry https://registry.npmjs.org`。本次沿用上一版 IDE 配对 VS Code **0.37.160** / JetBrains **0.4.177**，既有验收限制保留。
 
 
 ## 最新发布（2026-10-23）

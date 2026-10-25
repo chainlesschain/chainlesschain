@@ -7,13 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed - cc CLI 0.166.120: display text at Evolution ingress (candidate, 2026-10-25)
+### Fixed - cc CLI 0.166.121: display text at Evolution ingress (candidate, 2026-10-25)
 
 - Recognize bounded status/progress/percentage markers, timestamps, Git hashes/ranges, version/wiki links, numeric regex ranges and simple unquoted Shell tests without mistaking them for damaged JSON.
 - Admit non-sensitive standalone quoted prose labels; preserve strict container parsing, duplicate-key rejection, decoded sensitive-key scanning and cumulative budgets. ANSI controls retain the existing injection quarantine.
 - Reject primitive-prefix and concatenated sensitive assignments that cannot be safely projected, preventing suffix exposure after partial redaction.
 - Version new Agent model projections as v6 while preserving all historical ruleset digests and verification semantics.
-- Retain unchanged published child dependencies and preceding IDE pairing (VS Code 0.37.160 / JetBrains 0.4.177). CLI candidate 0.166.119 was withdrawn before npm publication after packaging preflight found an outdated offline changelog; its immutable source tag is retained.
+- Retain unchanged published child dependencies and preceding IDE pairing (VS Code 0.37.160 / JetBrains 0.4.177). CLI candidate 0.166.119 was withdrawn after changelog packaging preflight; 0.166.120 was blocked by an existing cross-filesystem Windows test fixture assumption on Linux. Neither candidate was published; both immutable source tags are retained.
+- Bind simulated Windows volume authority to the fixture filesystem so independent temporary mounts do not produce false identity-race failures. Preserve production handle and path identity checks.
 - Require exact-commit Linux, Windows and macOS CLI CI and CLI Strict Sandbox, GitHub Actions OIDC publication and public npm readback before merging the release PR. No new live model-task acceptance is claimed; historical limits remain.
 
 ### Fixed - cc CLI 0.166.118: input delivery, long-session storage and Windows startup (candidate, 2026-10-25)

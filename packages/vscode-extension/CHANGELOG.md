@@ -4,7 +4,7 @@ All notable changes to this extension are documented here.
 
 ## [0.37.161] - CLI ingress display text recovery (candidate, 2026-10-25)
 
-- Recommend CLI 0.166.120 and pair with JetBrains 0.4.178.
+- Recommend CLI 0.166.121 and pair with JetBrains 0.4.178.
 - The paired CLI accepts bounded Git, shell, Markdown and log display markers without mistaking them for malformed JSON; sensitive keys and malformed structured evidence still fail closed.
 - Preserve the prior input delivery and Windows draft recovery fixes. Publication requires the paired public CLI, exact-source IDE gates and marketplace readback.
 
