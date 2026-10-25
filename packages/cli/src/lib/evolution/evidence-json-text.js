@@ -344,6 +344,7 @@ export function createEvidenceJsonTextBoundary(
       layer = 0,
       objectOnly = false,
       codeText = false,
+      pythonFString = false,
       fencedCodeLanguages = null,
       visit,
       plain,
@@ -370,10 +371,10 @@ export function createEvidenceJsonTextBoundary(
     bytes += Buffer.byteLength(text, "utf8");
     if (bytes > policy.maxDecodedBytes)
       reject("Agent model JSON text exceeds its budget");
-    const transform = (parsed) => {
+    const transform = (parsed, textContext) => {
       if (layer >= policy.maxLayers)
         reject("Agent model JSON text exceeds its budget");
-      return visit(parsed, layer + 1);
+      return visit(parsed, layer + 1, textContext);
     };
     if (objectOnly) {
       const reader = parser(text, 0);
@@ -406,6 +407,56 @@ export function createEvidenceJsonTextBoundary(
         char === "{" || char === "["
           ? text.slice(index + 1).match(/^\s*(.)/u)?.[1]
           : undefined;
+      // Python's f"{'branch':<52}" formats a literal label; the colon is not
+      // a JSON key/value separator. Grant this meaning only while scanning an
+      // explicitly prefixed source string, with a complete bounded format.
+      // Escaped braces, arbitrary expressions and malformed JSON retain the
+      // strict scanner. Sensitive decoded labels still fail closed.
+      if (
+        codeText &&
+        pythonFString &&
+        policy.pythonFStringPolicy === "bounded-static-label-alignment-v1" &&
+        char === "{" &&
+        text[index - 1] !== "{"
+      ) {
+        const literalStart = index + 1;
+        const literal =
+          CODE_SINGLE_QUOTED_PREFIX.exec(text.slice(literalStart))?.[0] ??
+          CODE_DOUBLE_QUOTED_PREFIX.exec(text.slice(literalStart))?.[0];
+        const suffix = literal
+          ? /^:[<>^]\d{1,4}s?\}/u.exec(
+              text.slice(literalStart + literal.length),
+            )?.[0]
+          : undefined;
+        if (suffix) {
+          const reader = parser(text, literalStart, {
+            allowSingleQuotedStrings: true,
+          });
+          let label;
+          try {
+            label = reader.value();
+          } catch (error) {
+            rejectParseFailure(error);
+          }
+          const probe = Object.defineProperty(Object.create(null), label, {
+            value: "source-expression",
+            enumerable: true,
+          });
+          if (!equal(probe, transform(probe)))
+            reject(
+              "Agent model code expression under a sensitive key cannot be safely projected",
+            );
+          const safe = transform(label);
+          const end = reader.end() + suffix.length;
+          const replacement = equal(label, safe)
+            ? text.slice(index, end)
+            : `{${JSON.stringify(safe)}${suffix}`;
+          output += plain(text.slice(plainStart, index)) + replacement;
+          index = end;
+          plainStart = index;
+          continue;
+        }
+      }
       // Human-readable status markers are not JSON arrays. Only complete,
       // bounded numeric formats qualify; quotes, escapes, commas and nested
       // containers must still go through strict parsing. Leave these spans in
@@ -544,11 +595,24 @@ export function createEvidenceJsonTextBoundary(
           }
         }
       }
+      const pythonFStringPrefix =
+        codeText &&
+        quoted &&
+        !pair &&
+        policy.pythonFStringPolicy === "bounded-static-label-alignment-v1"
+          ? /(?:^|[^\p{ID_Continue}$])(f|fr|rf)$/iu.exec(
+              text.slice(Math.max(0, index - 3), index),
+            )?.[1]
+          : undefined;
       const assignmentKey =
         quoted && !pair
           ? // Scan backward once; an unanchored greedy key regex would retry at
             // every offset of a long ordinary prefix before a quoted fragment.
-            assignmentKeyBefore(text, plainStart, index)
+            assignmentKeyBefore(
+              text,
+              plainStart,
+              index - (pythonFStringPrefix?.length ?? 0),
+            )
           : undefined;
       let end = valueEnd;
       if (pair) {
@@ -561,7 +625,10 @@ export function createEvidenceJsonTextBoundary(
           enumerable: true,
         });
       }
-      const safe = transform(parsed);
+      const safe = transform(
+        parsed,
+        pythonFStringPrefix ? { pythonFString: true } : undefined,
+      );
       if (
         (codeText || policy.proseQuotedPairPolicy) &&
         assignmentKey &&

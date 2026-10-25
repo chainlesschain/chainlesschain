@@ -86,7 +86,7 @@ function defaultModelFor(provider) {
 // Conservative on purpose — only well-known prefixes — so a custom/unknown
 // model name never misfires into a swap.
 const FOREIGN_MODEL_FAMILY = {
-  anthropic: /\b(claude|haiku|sonnet|opus)\b/i,
+  anthropic: /\b(claude|haiku|sonnet|opus|fable)\b/i,
   openai: /\b(gpt-?\d|o[134]-|chatgpt)\b/i,
   gemini: /\bgemini\b/i,
 };

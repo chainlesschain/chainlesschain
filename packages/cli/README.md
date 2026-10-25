@@ -2,6 +2,12 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
+## CLI 0.166.122 release candidate
+
+This candidate addresses inherited `fable[1m]` model settings overriding a configured non-Anthropic provider, Windows model-turn preparation latency, and Python formatted-string tool evidence being rejected as ambiguous JSON. Session Core **0.3.24** must be published and fetched before this CLI is released. Exact-source Linux, Windows and macOS CLI CI and CLI Strict Sandbox remain required; this candidate is not yet public.
+
+The current public install remains `npm i -g chainlesschain@0.166.121 --registry https://registry.npmjs.org`. Existing IDE pairing remains VS Code **0.37.161** / JetBrains **0.4.178**; no IDE or native-client release is included in this candidate. Acceptance remains **32/45**, with **13** unfinished; **NOT_PAID_READY**, **NOT_ADMITTED** and **HOLD** remain.
+
 ## CLI 0.166.121 (public, 2026-10-26)
 
 Fixes Evolution ingress rejecting ordinary display text as malformed JSON: numeric status, progress and percentages, dates and timestamps, Git hashes and ranges, version links, simple wiki links, numeric regex ranges and unquoted Shell tests. Standalone non-sensitive quoted prose labels are also supported. ANSI terminal controls no longer cause JSON parsing errors; existing injection quarantine still applies. JSON validation, credential/PII redaction and projection budgets remain enforced. Versioned projection rules preserve historical evidence verification.

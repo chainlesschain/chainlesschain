@@ -116,20 +116,26 @@ describe("applyAgentModelDefaults", () => {
     expect(applyAgentModelDefaults({}, CFG).model).toBe(CFG.model);
   });
 
-  it("does not pair an inherited Claude model with Volcengine", () => {
-    const fromSettings = applyAgentModelDefaults(
-      { model: "claude-fable-5[1m]" },
-      { ...CFG, model: "deepseek-v4-flash-ga-260731" },
-      { settingsModel: "claude-fable-5[1m]" },
-    );
-    expect(fromSettings).toMatchObject({
-      provider: "volcengine",
-      model: "deepseek-v4-flash-ga-260731",
-    });
-    expect(inheritedModelCompatible("volcengine", "claude-fable-5[1m]")).toBe(
-      false,
-    );
-  });
+  it.each(["claude-fable-5[1m]", "fable[1m]", "fable"])(
+    "does not pair inherited %s with Volcengine",
+    (model) => {
+      const fromSettings = applyAgentModelDefaults(
+        { model },
+        { ...CFG, model: "deepseek-v4-flash-ga-260731" },
+        { settingsModel: model },
+      );
+      expect(fromSettings).toMatchObject({
+        provider: "volcengine",
+        model: "deepseek-v4-flash-ga-260731",
+      });
+      expect(inheritedModelCompatible("volcengine", model)).toBe(false);
+      expect(
+        applyAgentModelDefaults({ model }, CFG, { anthropicModel: model })
+          .model,
+      ).toBe(CFG.model);
+      expect(inheritedModelCompatible("anthropic", model)).toBe(true);
+    },
+  );
 
   it("keeps an explicit settings-file model even when its family looks foreign", () => {
     expect(

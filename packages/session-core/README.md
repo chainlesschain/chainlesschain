@@ -4,6 +4,16 @@ Shared session lifecycle, trace, agent definition, memory, approval, sandbox,
 evolution receipt, and recovery primitives used by ChainlessChain Desktop and
 the CLI.
 
+## Release 0.3.24 candidate
+
+Reuses an isolated Windows native ACL worker instead of starting a process for
+each operation. Every operation still reads the current token and live ACLs,
+checks path identity, and closes its handles. Requests retain bounded input and
+output, independent kill deadlines, and request-specific response binding.
+Failed workers are discarded; permission failures never reuse cached authority.
+CLI `0.166.122` pins this candidate. Publication requires exact-source validation
+on Linux, Windows and macOS before GitHub Actions OIDC publishing.
+
 ## Release 0.3.22
 
 Restricts Windows PowerShell ACL script module discovery to the built-in
