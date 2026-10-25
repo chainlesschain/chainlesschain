@@ -13,6 +13,9 @@ import {
 
 describe("bounded storage failure diagnostics", () => {
   it.each([
+    "auth-clock-backward",
+    "auth-envelope-expired",
+    "auth-authority-lease-expired",
     "release-clock-backward",
     "release-envelope-expired",
     "release-authority-lease-expired",
@@ -21,7 +24,9 @@ describe("bounded storage failure diagnostics", () => {
     const error = Object.freeze(
       Object.assign(
         new Error(
-          "artifact authority expired before canonical bytes could be released",
+          token.startsWith("auth-")
+            ? "artifact authority expired before envelope authentication completed"
+            : "artifact authority expired before canonical bytes could be released",
           {
             cause,
           },

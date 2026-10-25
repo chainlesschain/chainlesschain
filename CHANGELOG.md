@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Return a structured failure when a held session host lease is lost or incoming user evidence cannot be persisted. Stop without admitting the next input or reporting successful completion; retain normal caller cancellation and turn interruption behavior.
 - Fail reliability diagnostics immediately on an error result, premature child exit or failed input stream. Retain bounded exit codes and startup diagnostics while preserving the original turn, cleanup and resource limits.
 - Reuse canonical index aliases only after complete fresh byte comparison, and share authenticated directory scopes across original history reads. Preserve per-file identity, digest, signature and final authority checks, custom-port fallback and the existing memory budget.
+- Combine default artifact index lookups within each synchronous readback phase. Read a fresh physical snapshot before and after payload access, retain duplicate and replacement rejection, and preserve custom storage hooks and their original order.
+- Distinguish authentication clock rollback, envelope expiry and authority lease expiry with fixed failure reasons, preserving the original rejection, clock calls and deadlines. The earlier intermittent authentication failure remains unresolved.
 
 - Treat Agent SDK stdin backpressure as queued input, reject writes after input failure or process exit, and retain final output through process close.
 - Preserve unknown durable input delivery in both IDEs and retry Windows atomic draft replacement under temporary sharing locks without deleting the previous draft.

@@ -2892,9 +2892,22 @@ export class EvolutionArtifactPorts {
     LEDGER_BATCH_INDEX_LOOKUPS.set(entries, lookups);
   }
 
-  #loadCurrentEntryById(artifactId) {
+  #defaultReadbackSnapshot() {
+    // One immutable descriptor snapshot may serve the pure default lookups
+    // within this phase. Recheck dynamic methods independently before each
+    // phase; never reuse this snapshot across payload I/O or authority calls.
+    if (
+      this.#store.list !== null ||
+      this.#store.get !== null ||
+      !this.#store.canUseSealedDirectoryRead()
+    )
+      return null;
+    return readTrustedIndexSnapshot(this.#store.layout);
+  }
+
+  #loadCurrentEntryById(artifactId, snapshot = null) {
     const listed = this.#entriesByDataField(
-      this.#boundedIndexEntries(),
+      snapshot?.entries ?? this.#boundedIndexEntries(),
       "id",
       artifactId,
     );
@@ -2912,6 +2925,7 @@ export class EvolutionArtifactPorts {
         { artifactId },
       );
     }
+    if (snapshot !== null) return listed[0];
     let current;
     try {
       current = rejectPromise(
@@ -2961,8 +2975,8 @@ export class EvolutionArtifactPorts {
     return current;
   }
 
-  #assertEntryStable(artifactId, original) {
-    const current = this.#loadCurrentEntryById(artifactId);
+  #assertEntryStable(artifactId, original, snapshot = null) {
+    const current = this.#loadCurrentEntryById(artifactId, snapshot);
     if (canonicalJson(current) !== canonicalJson(original)) {
       throw artifactError(
         EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
@@ -3658,10 +3672,20 @@ export class EvolutionArtifactPorts {
         completionClock.milliseconds >= core.expiresAtMs) ||
       completionClock.milliseconds >= authority.decisionExpiresAtMs
     ) {
-      throw artifactError(
+      const authenticationFailureReason =
+        completionClock.milliseconds < verificationClock.milliseconds
+          ? "auth-clock-backward"
+          : core.expiresAtMs !== null &&
+              completionClock.milliseconds >= core.expiresAtMs
+            ? "auth-envelope-expired"
+            : "auth-authority-lease-expired";
+      const error = artifactError(
         EVOLUTION_ARTIFACT_EXPIRED_CODE,
         "artifact authority expired before envelope authentication completed",
       );
+      recordStorageFailureReason(error, authenticationFailureReason);
+      recordStorageFailureStage(error, core.type, "authentication");
+      throw error;
     }
     return Object.freeze({
       authority,
@@ -3688,15 +3712,17 @@ export class EvolutionArtifactPorts {
     const authentication =
       preauthenticated || this.#authenticateEnvelope(envelope, options);
     observePhase?.("post-index");
+    const beforeSnapshot = ledgerRead ? null : this.#defaultReadbackSnapshot();
     if (!ledgerRead)
       this.#assertUniqueRecordDigest(
         authentication.core.recordDigest,
         artifactId,
+        beforeSnapshot?.entries,
       );
     const entry = ledgerRead
       ? (capturedLedgerEntry ??
         this.#loadLedgerEntry(artifactId, authentication.core.recordDigest))
-      : this.#loadCurrentEntryById(artifactId);
+      : this.#loadCurrentEntryById(artifactId, beforeSnapshot);
     const normalizedEntry = this.#validateIndexEntry(
       entry,
       envelope,
@@ -3732,10 +3758,12 @@ export class EvolutionArtifactPorts {
         );
       }
     } else if (!ledgerRead) {
-      this.#assertEntryStable(artifactId, entry);
+      const afterSnapshot = this.#defaultReadbackSnapshot();
+      this.#assertEntryStable(artifactId, entry, afterSnapshot);
       this.#assertUniqueRecordDigest(
         authentication.core.recordDigest,
         artifactId,
+        afterSnapshot?.entries,
       );
     }
     observePhase?.("final-lease");

@@ -197,6 +197,9 @@ const REASONS = new Map([
 ]);
 const TAGGED_REASON_CODES = new Map(
   [
+    "auth-clock-backward",
+    "auth-envelope-expired",
+    "auth-authority-lease-expired",
     "release-clock-backward",
     "release-envelope-expired",
     "release-authority-lease-expired",

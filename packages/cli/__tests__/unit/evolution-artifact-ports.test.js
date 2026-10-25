@@ -311,6 +311,107 @@ describe("EvolutionArtifactPorts", () => {
 
   it.each([
     [
+      "auth-clock-backward",
+      -1,
+      60_000,
+      "model-projection",
+      "ttl",
+      "model-projection",
+    ],
+    [
+      "auth-envelope-expired",
+      1_000,
+      1_000,
+      "model-projection",
+      "ttl",
+      "model-projection",
+    ],
+    [
+      "auth-authority-lease-expired",
+      30_000,
+      60_000,
+      "model-projection",
+      "ttl",
+      "model-projection",
+    ],
+    // Preserve the original envelope-before-decision order when both expire.
+    [
+      "auth-envelope-expired",
+      30_000,
+      30_000,
+      "model-projection",
+      "ttl",
+      "model-projection",
+    ],
+    [
+      "auth-authority-lease-expired",
+      30_000,
+      null,
+      "evolution-run-event",
+      "ledger",
+      "other",
+    ],
+  ])(
+    "identifies %s at authentication with unchanged error and clock calls (%s ms, %s ms, %s)",
+    (reason, advance, ttlMs, type, retention, artifactType) => {
+      const clock = vi.fn(() => nowMs);
+      ports = new EvolutionArtifactPorts({
+        artifactStore: store,
+        audience: AUDIENCE,
+        currentAuthorityResolver,
+        envelopeSigner,
+        envelopeVerifier,
+        now: clock,
+        tenantId: TENANT_ID,
+      });
+      const published = publish({ type, retention, ttlMs });
+      clock.mockClear();
+      let reads = 0;
+      clock.mockImplementation(() => (++reads === 4 ? nowMs + advance : nowMs));
+      const error = capturedError(() =>
+        resolveResult(published, { expectedType: type }),
+      );
+      expect(clock).toHaveBeenCalledTimes(4);
+      expect(error.code).toBe(EVOLUTION_ARTIFACT_EXPIRED_CODE);
+      expect(error.message).toBe(
+        "artifact authority expired before envelope authentication completed",
+      );
+      expect(error).not.toHaveProperty("cause");
+      expect(error).not.toHaveProperty("storageReason");
+      expect(error).not.toHaveProperty("storageStage");
+      expect(storageFailureReason(error)).toBe(reason);
+      expect(storageFailureStage(error)).toEqual({
+        artifactType,
+        phase: "authentication",
+      });
+      expect(storageFailureCauseCodes(error)).toEqual([
+        EVOLUTION_ARTIFACT_EXPIRED_CODE,
+      ]);
+      expect(
+        storageFailureReasonFromMessage(storageFailureCauseSuffix(error)),
+      ).toBe(reason);
+    },
+  );
+
+  it("does not add clock reads to successful authentication and release", () => {
+    const clock = vi.fn(() => nowMs);
+    ports = new EvolutionArtifactPorts({
+      artifactStore: store,
+      audience: AUDIENCE,
+      currentAuthorityResolver,
+      envelopeSigner,
+      envelopeVerifier,
+      now: clock,
+      tenantId: TENANT_ID,
+    });
+    const published = publish();
+    clock.mockClear();
+    expect(resolveResult(published).digest).toBe(published.digest);
+    expect(clock).toHaveBeenCalledTimes(5);
+  });
+
+  it.each([
+    [
       "release-clock-backward",
       -1,
       60_000,
