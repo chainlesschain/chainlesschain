@@ -1744,7 +1744,9 @@ jobs:
         run: |
           VERSION="${{ steps.version.outputs.VERSION }}"
           set -euo pipefail
-          gh api "repos/$GITHUB_REPOSITORY/releases/tags/$VERSION" > product-release-public-readback.json
+          # Resolve drafts by database ID; the tag REST endpoint only finds published releases.
+          RELEASE_ID=$(gh release view "$VERSION" --json databaseId -q .databaseId --repo "$GITHUB_REPOSITORY")
+          gh api "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" > product-release-public-readback.json
           if TAG_SHA=$(git rev-parse "${VERSION}^{commit}" 2>/dev/null); then
             test "$TAG_SHA" = "$GITHUB_SHA"
           else
