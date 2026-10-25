@@ -598,7 +598,8 @@ jobs:
   # Build for Linux
   build-linux:
     needs: [publish-deps]
-    runs-on: ubuntu-latest
+    # Keep the Ubuntu 24 / RPM 4 toolchain validated with bundled FPM 1.9.3.
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
