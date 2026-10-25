@@ -33,6 +33,7 @@ for site in docs design www; do
     grep -Fq '0.166.121' "$dist/index.html"
     grep -Fq '0.37.161' "$dist/index.html"
     grep -Fq '0.4.178' "$dist/index.html"
+    grep -Fq 'v5.0.3.141' "$dist/index.html"
     grep -Fq '6 万+' "$dist/index.html"
   fi
   if find "$dist" ! -type f ! -type d -print -quit | grep -q .; then
@@ -129,7 +130,7 @@ while IFS=$'\t' read -r site sha html files; do
   case "$site" in
     docs) test -f "$stage/chainlesschain/cli-ide-update-2026-10-26.html"; grep -Fq '0.166.121' "$stage/chainlesschain/cli-ide-update-2026-10-26.html"; test -f "$stage/chainlesschain/agent-input-and-recovery.html" ;;
     design) test -f "$stage/release-runtime-update-2026-10-26.html"; grep -Fq '0.166.121' "$stage/release-runtime-update-2026-10-26.html" ;;
-    www) grep -Fq '0.166.121' "$stage/index.html"; grep -Fq '0.37.161' "$stage/index.html"; grep -Fq '0.4.178' "$stage/index.html"; grep -Fq '6 万+' "$stage/index.html" ;;
+    www) grep -Fq '0.166.121' "$stage/index.html"; grep -Fq '0.37.161' "$stage/index.html"; grep -Fq '0.4.178' "$stage/index.html"; grep -Fq 'v5.0.3.141' "$stage/index.html"; grep -Fq '6 万+' "$stage/index.html" ;;
   esac
   # Keep operational files, old pages, and hashed assets still used by cached HTML.
   # New build files win where the paths are identical.
@@ -164,6 +165,7 @@ grep -Fq '0.166.121' "$prefix-origin-design.html"
 grep -Fq '0.166.121' "$prefix-origin-www.html"
 grep -Fq '0.37.161' "$prefix-origin-www.html"
 grep -Fq '0.4.178' "$prefix-origin-www.html"
+grep -Fq 'v5.0.3.141' "$prefix-origin-www.html"
 grep -Fq '6 万+' "$prefix-origin-www.html"
 trap - EXIT
 echo "DEPLOYED_ALL $stamp"
