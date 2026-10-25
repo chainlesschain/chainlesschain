@@ -131,7 +131,7 @@ Explicit Linux durable permissions require administrator provisioning. Cross-pro
 Install the CLI version published by this release:
 
 ```bash
-npm install -g chainlesschain@0.166.112 --registry https://registry.npmjs.org
+npm install -g chainlesschain@0.166.118 --registry https://registry.npmjs.org
 chainlesschain setup
 ```
 
