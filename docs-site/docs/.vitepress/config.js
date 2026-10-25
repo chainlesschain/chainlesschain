@@ -197,7 +197,11 @@ export default defineConfig({
               link: "/chainlesschain/rrsi-current",
             },
             {
-              text: "CLI .117 / IDE .159 与 .176 升级",
+              text: "CLI .121 / IDE .161 与 .178 升级",
+              link: "/chainlesschain/cli-ide-update-2026-10-26",
+            },
+            {
+              text: "CLI .117 / IDE .159 与 .176（历史）",
               link: "/chainlesschain/cli-ide-update-2026-10-23",
             },
             {
@@ -205,7 +209,11 @@ export default defineConfig({
               link: "/chainlesschain/agent-input-and-recovery",
             },
             {
-              text: "2026-10-23 Evolution 输入与图片预算设计",
+              text: "2026-10-26 v6 文本投影与公开核验设计",
+              link: "/design/release-runtime-update-2026-10-26",
+            },
+            {
+              text: "2026-10-23 Evolution 输入与图片预算设计（历史）",
               link: "/design/release-runtime-update-2026-10-23",
             },
             {

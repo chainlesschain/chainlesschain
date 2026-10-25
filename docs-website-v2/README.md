@@ -1,6 +1,6 @@
 # ChainlessChain 官方网站
 
-`www.chainlesschain.com` 的 Astro 源码。2026-10-23 已核验公开版本：CLI **0.166.117**、Open VSX **0.37.159**、JetBrains **0.4.176**；两个 IDE 均推荐 CLI `.117`。原生产品继续独立发行 **v5.0.3.140**。
+`www.chainlesschain.com` 的 Astro 源码。2026-10-26 已核验公开版本：CLI **0.166.121**、Open VSX **0.37.161**、JetBrains **0.4.178**；两个 IDE 均推荐 CLI `.121`。原生产品继续独立发行 **v5.0.3.141**。
 
 ## 内容来源
 
@@ -10,7 +10,7 @@
 - `src/pages/`：官网中英文页面。
 - `../docs/design/`：设计文档权威源；两个 VitePress 站点通过同步脚本复制。
 
-更新公开版本前，核对 `../docs/research/cli/evidence/release117-public/publication.json` 等对应发行回执。保留 CLI、IDE、原生产品的独立源码与版本，历史真实模型验收统计继续注明所属轮次。
+更新公开版本前，核对 `../docs/research/cli/evidence/release121-public/publication.json` 等对应发行回执。保留 CLI、IDE、原生产品的独立源码与版本，历史真实模型验收统计继续注明所属轮次。
 
 ## 本地构建
 
@@ -37,8 +37,8 @@ powershell -NoProfile -File scripts/deploy-docs-snapshot.ps1
 
 ## 当前文档与验收范围
 
-- [CLI / IDE 升级指南](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-23.html)
+- [CLI / IDE 升级指南](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-26.html)
 - [图片预算与会话恢复](https://docs.chainlesschain.com/chainlesschain/agent-input-and-recovery.html)
-- [最新运行时设计](https://design.chainlesschain.com/release-runtime-update-2026-10-23.html)
+- [最新运行时设计](https://design.chainlesschain.com/release-runtime-update-2026-10-26.html)
 
-本轮没有新增真实模型任务验收；历史跨版本 **31/45**、**NOT_PAID_READY**、**NOT_ADMITTED** 和自动晋升 **HOLD** 继续分别记录。文档站部署不改变 npm、IDE 或原生产品制品。
+本轮没有新增真实模型任务验收；历史跨版本 **32/45**、**NOT_PAID_READY**、**NOT_ADMITTED** 和自动晋升 **HOLD** 继续分别记录。文档站部署不改变 npm、IDE 或原生产品制品。

@@ -152,7 +152,11 @@ export default defineConfig({
             link: "/modules/110-agent-platform-release-boundaries",
           },
           {
-            text: "2026-10-23 Evolution 输入、图片预算与恢复",
+            text: "2026-10-26 v6 文本投影与公开核验",
+            link: "/release-runtime-update-2026-10-26",
+          },
+          {
+            text: "2026-10-23 Evolution 输入、图片预算与恢复（历史）",
             link: "/release-runtime-update-2026-10-23",
           },
           {

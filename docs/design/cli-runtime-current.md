@@ -1,10 +1,14 @@
 # CLI Runtime 当前架构与实现
 
-> 2026-10-23 当前核对：CLI **0.166.117**、Open VSX **0.37.159** 和 JetBrains **0.4.176** 均已公开，两个 IDE 均推荐 CLI `.117`。Session Core **0.3.22**、Personal Data Hub **0.4.66** 已先行发布。新增代码输入兼容、独立图片预算、完整 JSON 预览和异常退出工具轮次结算；本轮未新增真实模型任务验收，自动晋升继续 **HOLD**。
+> 2026-10-26 当前核对：CLI **0.166.121**、Open VSX **0.37.161**、JetBrains **0.4.178** 均已公开，两个 IDE 推荐 CLI `.121`。发行源为 `4a7e5adc5e`，文档核对主线 `190cd133d9`。Session Core **0.3.23**、Agent SDK **0.2.16**、Kernel **0.1.10**、PDH **0.4.66** 保持各自公开版本。跨版本累计 **32/45**、**13** 项未完成；本轮没有新增模型任务验收，**NOT_PAID_READY / NOT_ADMITTED / HOLD** 不变。
 
-详见[本轮运行时设计](./release-runtime-update-2026-10-23.md)。文本输入快照 1 MiB、模型可见投影 896 KiB，图片单消息 20 MiB、单请求 40 MiB，视觉 token 预留与实际 usage 分别处理。持久图片消息包须与 JSONL 一起备份。
+详见[本轮运行时设计](./release-runtime-update-2026-10-26.md)。Agent 投影规则 **v6** 识别完整、有界的状态、进度、日期、Git、Markdown 和 Shell 显示文本，并约束敏感表达式的词法边界；历史 v1–v5 按原规则摘要验证。真正损坏的 JSON、凭据泄漏和超预算输入继续拒绝。文本输入快照 1 MiB、模型可见投影 896 KiB，图片单消息 20 MiB、单请求 40 MiB，JSONL 单事件 16 MiB 的边界未放宽。
+
+原生产品 **v5.0.3.141** 已独立正式公开，源码为 `a024f3c672`，Release 工作流 `40213914325` 成功；其源码与制品不属于 CLI `.121` 发行树，本轮未新增原生验收。
 
 ## 历史架构与发行记录
+
+> 2026-10-23 历史核对：CLI **0.166.117**、Open VSX **0.37.159**、JetBrains **0.4.176** 已公开，配套 Session Core **0.3.22**、PDH **0.4.66**。代码输入、独立图片预算、完整 JSON 预览和工具轮次结算见[当时设计](./release-runtime-update-2026-10-23.md)。图片消息包与 JSONL 仍须共同备份。
 
 > 2026-10-16：公开 CLI **0.166.103**、Open VSX **0.37.148** 与 JetBrains **0.4.165**，两个 IDE 均推荐 CLI `.103`。CLI 发行提交 `b235ac8068`，VS Code `c8a64caa92`，JetBrains `fa64840216`；主线核对至 `920f263e3f`。Session Core **0.3.19**、Kernel **0.1.10**、PDH **0.4.65**；原生产品 **v5.0.3.140** 独立发行。正式预算保持 **NOT_PAID_READY**，36+9 **NOT_RUN（0/36、0/9）**、native **NOT_ADMITTED**、自动晋升 **HOLD**。 详见[本轮设计](release-runtime-update-2026-10-16.md)。下方日期段落为历史快照。
 

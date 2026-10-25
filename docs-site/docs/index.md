@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: "CLI 0.166.117 已发布：修复 Evolution 代码输入、工具轮次恢复和图片预算"
+  tagline: "CLI 0.166.121 / Open VSX 0.37.161 / JetBrains 0.4.178 已公开；修复普通文本的 JSON 误判"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -21,36 +21,36 @@ hero:
 
 features:
   - icon: ⚠️
-    title: Agent 输入、工具恢复与图片预算修复
-    details: "CLI 0.166.117 已通过 OIDC 发布并完成公共回读；Session Core 0.3.22 与 Personal Data Hub 0.4.66 已先行发布。修复代码字面量误判、工具轮次结算与图片预算。Open VSX 0.37.159 已公开并验证下载；JetBrains 0.4.176 已批准并验证公开下载。两者推荐 CLI 0.166.117。本次未新增真实模型任务验收，历史限制保留。"
-    link: /chainlesschain/agent-platform-release
+    title: CLI .121 与 IDE 公开升级
+    details: "CLI 0.166.121 已通过三平台门禁和 OIDC 发布；Open VSX 0.37.161、JetBrains 0.4.178 均已公开并验证下载，推荐同一 CLI。修复状态、Git、Shell、日志文本的 JSON 误判，保留敏感信息保护。Microsoft Marketplace 仍未发布。"
+    link: /chainlesschain/cli-ide-update-2026-10-26
   - icon: 🔗
     title: CLI / IDE 与桌面目标草稿
-    details: "npm CLI 0.166.112 已公开，精确提交发行门与 npm registry 回读通过；Open VSX 0.37.155 已公开，精确提交发行门与公开制品回读通过；JetBrains Marketplace 0.4.172 已批准并公开，制品下载与配套版本回读通过。公开配对为 CLI .112 / IDE .155 与 .172；Microsoft Marketplace 未发行。桌面互通仍需匹配构建、授权及原生确认。"
+    details: "当前公开 CLI .121 / IDE .161 与 .178 可用于各自工作台。桌面目标草稿互通仍需匹配客户端构建、显式授权及原生确认；CLI 或插件发布不能替代产品验收。"
     link: /chainlesschain/goal-drafts-current
   - icon: 🛡️
-    title: CLI .112 与 IDE .155 / .172 发行状态
-    details: "npm CLI 0.166.112 已公开，精确提交发行门与 npm registry 回读通过；Open VSX 0.37.155 已公开，精确提交发行门与公开制品回读通过；JetBrains Marketplace 0.4.172 已批准并公开，制品下载与配套版本回读通过。公开配对为 CLI .112 / IDE .155 与 .172；Microsoft Marketplace 未发行。桌面互通仍需匹配构建、授权及原生确认。"
-    link: /chainlesschain/cli-ide-update-2026-10-20
+    title: 输入、图片预算与恢复边界
+    details: "普通显示文本与真正 JSON 分别处理；重复键、损坏 JSON、敏感表达式及超预算输入仍会拒绝。图片消息包与 JSONL 需一起备份，错误后先检查真实工具结果再恢复。"
+    link: /chainlesschain/agent-input-and-recovery
   - icon: 🏢
     title: 组织目标、授权记忆与站内通知（主线）
-    details: 产品 .140 已包含显式巡检、多级审批、独立验收、共享记忆与授权通知；记忆不自动注入模型。
+    details: 历史产品 .140 已包含显式巡检、多级审批、独立验收、共享记忆与授权通知；当前 .141 独立发行，记忆不自动注入模型。
     link: /chainlesschain/organization-project-current
   - icon: 🎯
     title: 持久项目目标与独立验收（主线）
-    details: 产品 .140 包含个人目标、巡检、动作、独立验收、记忆面板和站内通知。
+    details: 历史产品 .140 包含个人目标、巡检、动作、独立验收、记忆面板和站内通知；当前 .141 按独立发行证据核验。
     link: /chainlesschain/project-goals-current
   - icon: 🧪
     title: RRSI 五池与质量回执（主线）
     details: 统计 v2、耐久预注册及真实后端关联已实现；必需回执固定 HOLD，真实效果实验未运行，生产来源门仍在实施。
     link: /chainlesschain/rrsi-current
   - icon: 🧩
-    title: Agent Platform 0.166.112
-    details: Web Panel Quick Ask 使用已保存的 LLM 提供方设置；IDE .155 / .172 推荐 CLI .112；累计合格交付31/45，剩余14项；新配对模型补测未运行。
-    link: /chainlesschain/agent-platform-release
+    title: Agent Platform 0.166.121 验收范围
+    details: 跨版本累计合格交付32/45，13项未完成；本轮未新增真实模型验收。NOT_PAID_READY、NOT_ADMITTED 与自动晋升 HOLD 不变。
+    link: /chainlesschain/cli-runtime-current
   - icon: 📝
     title: IDE 任务记录与新会话接力
-    details: "npm CLI 0.166.112 已公开，精确提交发行门与 npm registry 回读通过；Open VSX 0.37.155 已公开，精确提交发行门与公开制品回读通过；JetBrains Marketplace 0.4.172 已批准并公开，制品下载与配套版本回读通过。公开配对为 CLI .112 / IDE .155 与 .172；Microsoft Marketplace 未发行。桌面互通仍需匹配构建、授权及原生确认。"
+    details: "任务检查点和 Markdown 投影具有不同权威范围。新会话不自动继承旧聊天的临时权限或执行中的工具；恢复前先核对已持久化结果。"
     link: /chainlesschain/ide-task-worklog
   - icon: 🎯
     title: Skill 决策模型试点
@@ -73,25 +73,29 @@ features:
     details: 模型、Volcengine 与 Secure Storage IPC 绑定主进程身份和固定用途；密钥文件原子提交、认证恢复并执行有界备份保留。
     link: /chainlesschain/desktop-model-governance
   - icon: 🧑‍💻
-    title: IDE Bridge 突破 6 万下载
-    details: "npm CLI 0.166.112 已公开，精确提交发行门与 npm registry 回读通过；Open VSX 0.37.155 已公开，精确提交发行门与公开制品回读通过；JetBrains Marketplace 0.4.172 已批准并公开，制品下载与配套版本回读通过。公开配对为 CLI .112 / IDE .155 与 .172；Microsoft Marketplace 未发行。桌面互通仍需匹配构建、授权及原生确认。"
+    title: IDE Bridge 当前公开配对
+    details: "Open VSX .161 与 JetBrains .178 均已公开并推荐 CLI .121。真实宿主发行门与公共下载验证通过；Microsoft Marketplace 仍未发布。"
     link: /chainlesschain/ide-plugin
   - icon: 🔐
     title: 安全优先
     details: 本地优先、权限控制、会话恢复、Process Broker、跨平台沙箱与加密配置清单共同保护 Agent 执行边界。
   - icon: 🧠
-    title: Personal Data Hub 0.4.65
+    title: Personal Data Hub 0.4.66
     details: 公开版支持规范化实体与投影意图同事务保存、KG/BM25 独立确认、分批恢复与退休临时 consumer 回执维护；未知运行投递仍受保护，当前宿主没有连接向量目的地。
   - icon: 🧪
     title: 发布证据分层
-    details: "npm CLI 0.166.112 已公开，精确提交发行门与 npm registry 回读通过；Open VSX 0.37.155 已公开，精确提交发行门与公开制品回读通过；JetBrains Marketplace 0.4.172 已批准并公开，制品下载与配套版本回读通过。公开配对为 CLI .112 / IDE .155 与 .172；Microsoft Marketplace 未发行。桌面互通仍需匹配构建、授权及原生确认。"
+    details: "CLI 与 IDE 的精确提交门禁、公共制品回读、模型任务验收具有不同证据范围。原生产品 .141 已独立发行，不能由 CLI .121 或 IDE 发布推断客户端能力验收。"
 ---
+
+## 当前公开版本（2026-10-26）
+
+CLI **0.166.121** / Open VSX **0.37.161** / JetBrains **0.4.178** 均已公开并完成下载核验；原生产品 **v5.0.3.141** 具有独立发行源与验收范围。当前安装与渠道说明见[升级指南](/chainlesschain/cli-ide-update-2026-10-26)。本轮没有新增模型验收，累计 **32/45**、**13** 项未完成，**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。
 
 <!-- release112-status -->
 
-## ???????2026-10-22?
+## 历史公开配对（2026-10-22）
 
-CLI **0.166.112**?Open VSX **0.37.155** ? JetBrains Marketplace **0.4.172** ?????????? CLI ?????????
+当时公开配对为 CLI **0.166.112**、Open VSX **0.37.155**、JetBrains Marketplace **0.4.172**；以下安装命令保留历史范围。
 
 ```bash
 npm i -g chainlesschain@0.166.112 --registry https://registry.npmjs.org
@@ -99,7 +103,7 @@ cc --version
 cc doctor
 ```
 
-??[????](/chainlesschain/cli-ide-update-2026-10-20)?[??????](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release112-public/publication.json)?
+参见[历史指南](/chainlesschain/cli-ide-update-2026-10-20)与[当时发行证据](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release112-public/publication.json)。
 
 <!-- release108-status -->
 

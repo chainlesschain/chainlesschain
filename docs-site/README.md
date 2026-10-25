@@ -1,15 +1,15 @@
 # ChainlessChain 文档网站
 
-## 当前文档（2026-10-23）
+## 当前文档（2026-10-26）
 
-公开版本为 CLI **0.166.117**、Open VSX **0.37.159**、JetBrains **0.4.176**，两个 IDE 均推荐 CLI `.117`。本轮更新 Evolution 代码输入、独立图片预算、完整 JSON 工具预览和异常退出时的工具轮次结算。
+公开版本为 CLI **0.166.121**、Open VSX **0.37.161**、JetBrains **0.4.178**，两个 IDE 均推荐 CLI `.121`，公共包与下载已核验。本轮更新 v6 普通文本投影、敏感表达式边界、历史证据兼容与升级恢复说明。原生产品 **v5.0.3.141** 已独立正式公开，源码为 `a024f3c672`，不属于 CLI `.121` 的发行树，也不增加本轮验收。
 
-- [当前升级指南](docs/chainlesschain/cli-ide-update-2026-10-23.md)
+- [当前升级指南](docs/chainlesschain/cli-ide-update-2026-10-26.md)
 - [输入、图片预算和会话恢复](docs/chainlesschain/agent-input-and-recovery.md)
-- [权威设计源](../docs/design/release-runtime-update-2026-10-23.md)
+- [权威设计源](../docs/design/release-runtime-update-2026-10-26.md)
 - [官网与三站部署说明](../docs-website-v2/README.md)
 
-设计文件只编辑仓库根 `docs/design/`；本项目 `docs/design/` 是构建时生成的副本。本轮未新增真实模型任务验收，历史跨版本统计与生产准入限制继续保留。
+设计文件只编辑仓库根 `docs/design/`；本项目 `docs/design/` 是构建时生成的副本。本轮未新增真实模型任务验收，跨版本累计 **32/45**、**13** 项未完成，**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。下方日期记录为历史快照。
 
 ## 历史文档快照
 
@@ -19,7 +19,7 @@
 
 这是ChainlessChain项目的官方文档网站，使用VitePress构建。
 
-> 当前文档快照（2026-10-15）：公开 CLI `0.166.101@6752b49e1e`、Context/Memory Kernel `0.1.10`、Open VSX `0.37.145`；JetBrains Marketplace API 列出 `0.4.162`，源码候选 `.163` 待公开核验。产品仍为独立 `v5.0.3.140`。详见[最新升级指南](docs/chainlesschain/cli-ide-update-2026-10-15.md)。
+> 历史文档快照（2026-10-15）：公开 CLI `0.166.101@6752b49e1e`、Context/Memory Kernel `0.1.10`、Open VSX `0.37.145`；JetBrains Marketplace API 列出 `0.4.162`，源码候选 `.163` 待公开核验。产品当时为独立 `v5.0.3.140`。详见[当时升级指南](docs/chainlesschain/cli-ide-update-2026-10-15.md)。
 
 > 历史文档快照（2026-09-09）：产品版本 `v5.0.3.135`，当时生产推荐 CLI 与 npm `latest` 均为 `0.166.38@de8ec4e5c8`；该 SHA 的三平台 CLI CI、Strict Sandbox、IDE 与 npm 发布/公共回读均已完成。TypeScript Agent SDK 为 `0.2.9`、Python Agent SDK 为 `0.2.8`、Agent Protocol 为 `0.1.9`、Context Memory Kernel 为 `0.1.1`、Session Core 为 `0.3.12`、PDH 为 `0.4.60`；Open VSX 为 `0.37.92`，JetBrains Marketplace 为 `0.4.119`。
 

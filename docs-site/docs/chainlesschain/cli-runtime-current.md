@@ -1,10 +1,12 @@
-# CLI Runtime 当前实现与源码候选
+# CLI Runtime 当前公开实现与历史记录
 
-> 2026-10-23 当前核对：CLI **0.166.117**、Open VSX **0.37.159** 和 JetBrains **0.4.176** 均已公开，两个 IDE 均推荐 CLI `.117`。Session Core **0.3.22**、Personal Data Hub **0.4.66** 已先行发布。新增代码输入兼容、独立图片预算、完整 JSON 预览和异常退出工具轮次结算；本轮未新增真实模型任务验收，自动晋升继续 **HOLD**。
+> 2026-10-26 当前核对：CLI **0.166.121**、Open VSX **0.37.161**、JetBrains **0.4.178** 均已公开并验证下载，两个 IDE 推荐 CLI `.121`。本轮修复普通状态、Git、Shell、日志与说明文字的 JSON 误判，保留敏感信息保护和历史证据校验。跨版本累计 **32/45**、**13** 项未完成；没有新增真实模型任务验收，**NOT_PAID_READY / NOT_ADMITTED / HOLD** 不变。
 
-当前安装：`npm i -g chainlesschain@0.166.117 --registry https://registry.npmjs.org`。升级后重启聊天宿主并运行 Doctor。详见[本轮升级指南](./cli-ide-update-2026-10-23)和[图片预算与恢复](./agent-input-and-recovery)。
+当前安装：`npm i -g chainlesschain@0.166.121 --registry https://registry.npmjs.org`。升级后重启聊天宿主并运行 Doctor。详见[本轮升级指南](./cli-ide-update-2026-10-26)和[图片预算与恢复](./agent-input-and-recovery)。Microsoft Marketplace 仍未发布；原版 VS Code 可以安装已验证的 Open VSX 版本化 VSIX。
 
 ## 历史版本与架构记录
+
+> 2026-10-23 历史配对：CLI **0.166.117**、Open VSX **0.37.159**、JetBrains **0.4.176**，两个 IDE 推荐 `.117`。配套 Session Core **0.3.22**、PDH **0.4.66**。输入、图片预算与恢复说明见[当时指南](./cli-ide-update-2026-10-23)。
 
 > 2026-10-18 实时核对：npm CLI **0.166.106**、Open VSX **0.37.151** 已公开，Open VSX 推荐 CLI `.106`，发行提交 `dca47fd91a`。JetBrains 当前已核验公开 **0.4.167**，仍推荐 CLI `.105`；`.168` 的公开上架与下载待核验。公开 `.105/.150/.167` 任务补测已收齐生成与独立验收各 **20/20**，新增 **6** 项候选及全流程通过；跨版本累计候选合格交付 **31/45**（普通 **26/36**、首次 **5/9**），剩余 **14** 项。`.106/.151/.168` 新轮模型补测尚未运行，累计覆盖不等于新版单轮成功率。Microsoft Marketplace 未发布。
 
@@ -78,20 +80,20 @@ git merge-base --is-ancestor 退出码 1 是合法的 predicateResult:false，�
 
 ## 安装版本怎么选
 
-| 用途                               | 版本                                                    | 来源与范围                                                       |
-| ---------------------------------- | ------------------------------------------------------- | ---------------------------------------------------------------- |
-| 日常使用 / npm latest              | CLI 0.166.106                                           | dca47fd91a，准确提交完整 CLI CI / Strict、OIDC 与公开回读已通过  |
-| IDE 工作台                         | Open VSX 0.37.151 / JetBrains 0.4.167                   | Open VSX .151 推荐 .106；JetBrains .167 仍推荐 .105，.168 待核验 |
-| 共享服务                           | Session Core 0.3.19 / Memory Kernel 0.1.10 / PDH 0.4.65 | 独立公开子包，CLI 保持精确依赖                                   |
-| Desktop / Android / iOS            | v5.0.3.140                                              | f733f92cb9，独立公开产品；iOS 仅授权 ad hoc 设备                 |
-| Windows 工具链 / Node runtime 胶囊 | 1e5477aebe 源码实验                                     | admissionEligible=false，正式目标宿主验收未完成                  |
+| 用途                               | 版本                                                                       | 来源与范围                                                      |
+| ---------------------------------- | -------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| 日常使用 / 当前公开 CLI            | CLI 0.166.121                                                              | 4a7e5adc5e，完整 CLI CI / Strict、OIDC 与公开回读已通过         |
+| IDE 工作台                         | Open VSX 0.37.161 / JetBrains 0.4.178                                      | 两者推荐 .121；公开下载及包内推荐值已核验                       |
+| 共享服务                           | Session Core 0.3.23 / Memory Kernel 0.1.10 / PDH 0.4.66 / Agent SDK 0.2.16 | 独立公开子包，CLI 保持精确依赖                                  |
+| Desktop / Android / iOS            | v5.0.3.141 独立发行                                                        | 源 a024f3c672；按产品发行与授权证据核验，不属于 CLI .121 发行树 |
+| Windows 工具链 / Node runtime 胶囊 | 1e5477aebe 源码实验                                                        | admissionEligible=false，正式目标宿主验收未完成                 |
 
 ```bash
-npm i -g chainlesschain@0.166.106 --registry https://registry.npmjs.org
+npm i -g chainlesschain@0.166.121 --registry https://registry.npmjs.org
 cc --version
 ```
 
-升级后重启 IDE 聊天宿主并通过 Doctor 核对实际路径与能力。实验胶囊不用于解除生产严格模式阻塞；详细准入与限制见[最新设计](/design/release-runtime-update-2026-10-18)。
+升级后重启 IDE 聊天宿主并通过 Doctor 核对实际路径与能力。实验胶囊不用于解除生产严格模式阻塞；详细准入与限制见[最新设计](/design/release-runtime-update-2026-10-26)。
 
 ## 核心特性
 

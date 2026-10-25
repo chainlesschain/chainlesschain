@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 系统设计文档
-  tagline: "CLI 0.166.117 / Open VSX 0.37.159 / JetBrains 0.4.176 已公开；输入、图片预算与工具轮次恢复"
+  tagline: "CLI 0.166.121 / Open VSX 0.37.161 / JetBrains 0.4.178 已公开；v6 文本投影与历史证据兼容"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -21,16 +21,16 @@ hero:
 
 features:
   - icon: 🛡️
-    title: Evolution 输入、图片预算与会话恢复
-    details: "CLI .117 修复代码字面量误判、图片与文本预算混算、工具 JSON 截断和异常退出结算。Session Core .22、PDH .66 已先行发布，配对 IDE 均推荐 .117。真实模型任务未新增验收；自动晋升保持 HOLD。"
-    link: /release-runtime-update-2026-10-23
+    title: Evolution v6 普通文本与敏感表达式边界
+    details: "CLI .121 使用有限显示格式识别修复 Git、Shell、日志和 Markdown 误判；敏感表达式、真实 JSON 和预算仍严格校验，历史 v1–v5 规则继续验证。IDE .161/.178 均已公开并推荐 .121。"
+    link: /release-runtime-update-2026-10-26
   - icon: 🏢
     title: 组织目标、授权记忆与站内通知（主线）
-    details: 产品 .140 已包含显式巡检、多级审批、独立验收、共享记忆与授权通知；记忆不自动注入模型。
+    details: 历史产品 .140 已包含显式巡检、多级审批、独立验收、共享记忆与授权通知；当前 .141 独立发行，记忆不自动注入模型。
     link: /governance-runtime-update-2026-10-08
   - icon: 🎯
     title: 持久项目目标与独立验收（主线）
-    details: 产品 .140 包含个人与组织目标、原生动作、独立验收、记忆面板和站内通知。
+    details: 历史产品 .140 包含个人与组织目标、原生动作、独立验收、记忆面板和站内通知；当前 .141 按独立发行证据核验。
     link: /project-goals-rrsi-update-2026-10-07
   - icon: 🧪
     title: RRSI 五池与质量回执（主线）
@@ -41,9 +41,9 @@ features:
     details: 覆盖知识库、社交、交易、AI引擎、安全、企业、去中心化基础设施、Web3、低代码平台、自进化AI、CLI分发系统、CLI高级功能、AI媒体创作、AI文档创作、Web管理界面、Personal Data Hub、iOS Phase 1-6、远程操控 Plan A/B/C、MTC v0.11 联邦等全部子系统的详细设计
 
   - icon: 🏗️
-    title: Agent Platform 0.166.108
-    details: 公开 CLI 包含投影恢复、回执维护、离线任务预览与风险检查；本轮桌面源码提供个人项目受控修改，产品安装包单独验收。
-    link: /modules/112-governed-skill-evolution-design
+    title: Agent Platform 0.166.121 与验收边界
+    details: 精确发行提交通过三平台门禁并验证公共制品；跨版本累计32/45，13项未完成，本轮未新增模型验收。NOT_PAID_READY、NOT_ADMITTED、HOLD 保留，原生产品独立验收。
+    link: /cli-runtime-current
   - icon: 📝
     title: IDE 任务记录与新会话交接
     details: Context/Memory Kernel 持有权威检查点；Markdown 仅是有界投影。新会话不继承旧聊天、临时权限或执行中的工具。
@@ -81,13 +81,15 @@ features:
     details: RBAC权限、SOC2合规、SCIM用户配置、DLP数据防泄漏、SIEM安全信息管理
 ---
 
-## 2026-10-23 当前代码与公开发行
+## 2026-10-26 当前代码与公开发行
 
-> 2026-10-23 当前核对：CLI **0.166.117**、Open VSX **0.37.159** 和 JetBrains **0.4.176** 均已公开，两个 IDE 均推荐 CLI `.117`。Session Core **0.3.22**、Personal Data Hub **0.4.66** 已先行发布。新增代码输入兼容、独立图片预算、完整 JSON 预览和异常退出工具轮次结算；本轮未新增真实模型任务验收，自动晋升继续 **HOLD**。
+> CLI **0.166.121**、Open VSX **0.37.161**、JetBrains **0.4.178** 均已公开，两个 IDE 推荐 `.121`。v6 修复普通文本误判并保留敏感表达式与历史证据检查。原生产品 **v5.0.3.141** 从独立源 `a024f3c672` 发行，不属于 CLI `.121` 的发行树。本轮没有新增模型或原生任务验收，累计 **32/45**、**13** 项未完成，**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。
 
-[最新设计](/release-runtime-update-2026-10-23) · [升级指南](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-23.html) · [发布证据](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release117-public/publication.json)
+[最新设计](/release-runtime-update-2026-10-26) · [升级指南](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-26.html) · [发布证据](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release121-public/publication.json)
 
 ## 历史版本与验收记录
+
+2026-10-23 的 `.117/.159/.176` 配对和预算恢复设计保留在[历史设计](/release-runtime-update-2026-10-23)。
 
 <!-- release108-status -->
 
