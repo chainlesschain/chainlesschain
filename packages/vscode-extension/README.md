@@ -6,7 +6,7 @@ MCP bridge.
 
 ## Release pairing
 
-Version **0.37.160** recommends CLI **`0.166.118`** and pairs with JetBrains **0.4.177**. This unpublished source candidate includes input delivery and Windows draft recovery fixes and vendors SDK **0.2.16**; the public release below remains **0.37.159**.
+Version **0.37.161** recommends CLI **`0.166.120`** and pairs with JetBrains **0.4.178**. This unpublished source candidate pairs with the CLI ingress display-text recovery and preserves input delivery and Windows draft recovery fixes with SDK **0.2.16**. The previously verified release evidence is retained below.
 
 Public Open VSX **0.37.159** recommends CLI **`0.166.117`** and pairs with JetBrains **0.4.176**. The paired CLI repairs source and command evidence projection, complete bounded JSON tool previews, cumulative evidence budgets, and separate image and provider token accounting. IDE publication follows the paired CLI and dependency graph verification, exact-source release gates, and public artifact readback.
 
@@ -65,7 +65,7 @@ Checked on 2026-10-20: npm CLI **0.166.107**, Session Core **0.3.20**, Open VSX 
 
 ## Release compatibility
 
-This source candidate pairs VS Code **0.37.160** and JetBrains **0.4.177** with CLI **`0.166.118`**. It fixes failed input delivery and Windows draft recovery. Verify the public CLI dependency graph and exact-source IDE gates before publishing either IDE package.
+This source candidate pairs VS Code **0.37.161** and JetBrains **0.4.178** with CLI **`0.166.120`**. It fixes failed input delivery and Windows draft recovery. Verify the public CLI dependency graph and exact-source IDE gates before publishing either IDE package.
 The table records the current verified Open VSX / CLI pairing. Formal evaluation and full native review retain their separate acceptance status.
 
 | Component                 | Current status                                                                                             |

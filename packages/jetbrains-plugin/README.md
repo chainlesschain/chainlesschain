@@ -7,7 +7,7 @@ diffs inside IntelliJ-platform IDEs (IDEA, PyCharm, WebStorm, …).
 
 ## Release pairing
 
-Source candidate **0.4.177** preserves unknown input delivery after pipe failures and pairs with VS Code **0.37.160** and CLI **`0.166.118`**. It is unpublished; the public release below remains **0.4.176**.
+Source candidate **0.4.178** preserves unknown input delivery after pipe failures and pairs with VS Code **0.37.161** and CLI **`0.166.120`**. This unpublished candidate pairs with the CLI ingress display-text recovery. The previously verified release evidence is retained below.
 
 Plugin **0.4.176** recommends CLI **`0.166.117`** and pairs with VS Code **0.37.159**. The paired CLI repairs source and command evidence projection, complete bounded JSON tool previews, cumulative evidence budgets, and separate image and provider token accounting. IDE publication follows the paired CLI and dependency graph verification, exact-source release gates, and public artifact readback.
 
@@ -84,7 +84,7 @@ See the [upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-u
 
 ## Release compatibility
 
-Plugin **0.4.177** is the current release candidate. It recommends `chainlesschain@0.166.118`. It preserves unknown delivery after a partial pipe write and rejects later submissions before reserving another delivery. Verify the public CLI dependency graph and exact-source IDE gates before publishing. Native task quality and restart acceptance still require separate published-package evidence.
+Plugin **0.4.178** is the current release candidate. It recommends `chainlesschain@0.166.120`. It preserves unknown delivery after a partial pipe write and rejects later submissions before reserving another delivery. Verify the public CLI dependency graph and exact-source IDE gates before publishing. Native task quality and restart acceptance still require separate published-package evidence.
 
 ## Previous candidates and development notes
 
