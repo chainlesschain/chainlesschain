@@ -61,7 +61,7 @@
   "jetBrainsCandidateRecommendedCliVersion": "0.166.121",
   "jetBrainsCandidateCommit": "4a7e5adc5e6a241434ecfa906a272e34b5ea6d2a",
   "jetBrainsPublicationStatus": "verified",
-  "taskRetestStatus": "COMPLETED",
+  "taskRetestStatus": "HISTORICAL_COMPLETED_NOT_RUN_THIS_RELEASE",
   "taskRetestRecords": 20,
   "taskRetestNewAccepted": 6,
   "cumulativeAcceptedDeliveries": 32,
@@ -120,7 +120,7 @@
     }
   },
   "jetBrainsUpdateId": 1202806,
-  "historicalTaskRetestRelease": "0.166.106; inventory reconciled 2026-10-23 without new model calls",
+  "historicalTaskRetestRelease": "0.166.105",
   "upgradeGuide": "https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-26.html",
   "recoveryGuide": "https://docs.chainlesschain.com/chainlesschain/agent-input-and-recovery.html",
   "runtimeDesign": "https://design.chainlesschain.com/release-runtime-update-2026-10-26.html",
@@ -194,5 +194,8 @@
       "receiptUrl": "https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release121-public/publication.json"
     }
   },
-  "nativeReleaseEvidence": "https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/documentation-native141-readback-2026-10-26.json"
+  "nativeReleaseEvidence": "https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/documentation-native141-readback-2026-10-26.json",
+  "historicalTaskRetestEvidence": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-105-20261018.json",
+  "taskInventoryRelease": "0.166.106",
+  "taskInventoryReconciledAt": "2026-10-23"
 }
