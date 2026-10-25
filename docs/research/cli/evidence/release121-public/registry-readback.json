@@ -1,0 +1,21 @@
+{
+  "schema": "chainlesschain.release-public-archive-readback/v1",
+  "observedAt": "2026-10-25T19:45:40.440Z",
+  "package": "chainlesschain",
+  "version": "0.166.121",
+  "registry": "https://registry.npmjs.org",
+  "tarball": "https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.166.121.tgz",
+  "archiveBytes": 9542566,
+  "sha256": "b7c4450a4df7af12e94236eb0cd69207afe5ebc222782df2d481c5b486913404",
+  "sha512": "09211ec6e8cd3786a43cb484bc233fbe6bf6fdf9c897b161539f0472af66987e3d87c6d9fcaa0bb0d105bdb363919c8307a3ff6301203528191a72cf56551683",
+  "integrity": "sha512-CSEexujNN4akPLSEvCM/vmv2/fnIl7FhU58Ecq9mmH49h8bZ/KoLsNEFvbNjkZyDB6P/YwEgNSgZGnLPVlUWgw==",
+  "matchesReleaseReceipt": true,
+  "releaseReceipt": "chainlesschain-release.json",
+  "provenanceReceipt": "chainlesschain-npm-provenance.json",
+  "sourceSha": "4a7e5adc5e6a241434ecfa906a272e34b5ea6d2a",
+  "packagedSourcesMatch": [
+    "package/src/lib/evolution/evidence-json-text.js",
+    "package/src/lib/evolution/evolution-evidence-projector.js"
+  ],
+  "scope": "Independent public tarball fetch and official release-artifact verification reported by the release coordinator; public package dependencies and both JSON projection fix sources match the validated release source."
+}

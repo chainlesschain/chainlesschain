@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "sha": "4a7e5adc5e6a241434ecfa906a272e34b5ea6d2a",
+  "verifiedAt": "2026-10-25T19:20:02.846Z",
+  "gates": [
+    {
+      "workflow": "cli-ci.yml",
+      "runId": 40214024645,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40214024645",
+      "platforms": ["linux", "macos", "windows"],
+      "jobs": 72
+    },
+    {
+      "workflow": "cli-strict-sandbox.yml",
+      "runId": 40214031253,
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40214031253",
+      "platforms": ["linux", "macos", "windows"],
+      "jobs": 6
+    }
+  ]
+}

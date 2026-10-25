@@ -1,0 +1,129 @@
+{
+  "schema": "chainlesschain.release121-publication/v1",
+  "observedAt": "2026-10-25T20:21:08.051Z",
+  "status": "CLI_PUBLIC_OPENVSX_PUBLIC_JETBRAINS_UPLOADED_PENDING_REVIEW",
+  "repository": "chainlesschain/chainlesschain",
+  "channels": {
+    "cli": {
+      "version": "0.166.121",
+      "status": "public",
+      "sourceSha": "4a7e5adc5e6a241434ecfa906a272e34b5ea6d2a",
+      "runId": 40225573887,
+      "attempt": 1,
+      "tag": "v-npm-0-166-121",
+      "receipt": "chainlesschain-npm-provenance.json",
+      "releaseReceipt": "chainlesschain-release.json",
+      "archiveBytes": 9542566,
+      "sha512": "09211ec6e8cd3786a43cb484bc233fbe6bf6fdf9c897b161539f0472af66987e3d87c6d9fcaa0bb0d105bdb363919c8307a3ff6301203528191a72cf56551683",
+      "sha256": "b7c4450a4df7af12e94236eb0cd69207afe5ebc222782df2d481c5b486913404",
+      "publicArchivesVerified": true,
+      "candidateInstallWithPublicChildDependenciesVerified": true,
+      "independentRegistryInstallVerified": true
+    },
+    "openVsx": {
+      "version": "0.37.161",
+      "status": "public",
+      "recommendedCliVersion": "0.166.121",
+      "sourceSha": "4a7e5adc5e6a241434ecfa906a272e34b5ea6d2a",
+      "runId": 40227329131,
+      "tag": "ide-vscode-v0.37.161",
+      "publicArchivesVerified": true,
+      "receipt": "openvsx-readback.json",
+      "candidateManifest": "vscode-release-artifact.json",
+      "immutableCandidateMatch": true,
+      "sha256": "b4c9f2a2f0e8ef2fe11f4dfdcbe213f71207f37a98c40cfa4bd890a2c8d6f497",
+      "contentSha256": "34f1492e0c94614ec0c169f66739740e319a34aa7d8dd6d3821c551828ad9bb6",
+      "archiveBytes": 736456,
+      "gateJobs": {
+        "success": 11,
+        "expectedJetBrainsComponentSkips": 3
+      }
+    },
+    "jetbrains": {
+      "version": "0.4.178",
+      "status": "uploaded-pending-review",
+      "recommendedCliVersion": "0.166.121",
+      "sourceSha": "4a7e5adc5e6a241434ecfa906a272e34b5ea6d2a",
+      "runId": 40227329241,
+      "tag": "ide-jetbrains-v0.4.178",
+      "publicArchivesVerified": false,
+      "receipt": "jetbrains178-marketplace-readback.json",
+      "candidateVerification": "jetbrains178-candidate-verified.json",
+      "uploadVerified": true,
+      "independentCandidateIdentityVerified": true,
+      "candidateSha256": "82c4bd78ec6dbba50309fc89433186ff77f9eeafc180221d126ff6f7cb9eed3a",
+      "candidateArchiveBytes": 1550053,
+      "gateJobs": {
+        "success": 13,
+        "expectedVsCodeComponentSkips": 6
+      }
+    }
+  },
+  "childPackages": {
+    "sessionCore": {
+      "version": "0.3.23",
+      "status": "public",
+      "receipt": "session-core-npm-provenance.json"
+    },
+    "agentSdk": {
+      "version": "0.2.16",
+      "status": "public",
+      "receipt": "agent-sdk-npm-provenance.json"
+    },
+    "agentProtocol": {
+      "version": "0.1.12",
+      "status": "public",
+      "receipt": "agent-protocol-npm-provenance.json"
+    },
+    "contextMemoryKernel": {
+      "version": "0.1.10",
+      "status": "public",
+      "receipt": "context-memory-kernel-npm-provenance.json"
+    },
+    "directCliRegistryLockPins": 10
+  },
+  "gates": "gates.json",
+  "cliGateJobs": {
+    "success": 71,
+    "skippedOptional": ["dry-run-publish"],
+    "strictSandboxSuccess": 6
+  },
+  "idePreflight": {
+    "runId": 40214035883,
+    "sourceSha": "4a7e5adc5e6a241434ecfa906a272e34b5ea6d2a",
+    "status": "success",
+    "success": 18,
+    "skippedOptional": ["JetBrains Marketplace (post-publish verification)"]
+  },
+  "publicArchiveReadback": "registry-readback.json",
+  "publicDependencyInstall": "cli-public-child-install.json",
+  "publicDependencyInstallScope": {
+    "cliSource": "immutable-candidate-tarball",
+    "childrenSource": "https://registry.npmjs.org"
+  },
+  "limits": {
+    "modelTaskRetest": "NOT_RUN_THIS_RELEASE",
+    "cumulativeAccepted": 32,
+    "cumulativeTotal": 45,
+    "unfinished": 13,
+    "paidReadiness": "NOT_PAID_READY",
+    "nativeAdmission": "NOT_ADMITTED",
+    "automaticPromotion": "HOLD",
+    "microsoftMarketplace": "unpublished",
+    "historicalNativeProductEvidence": "v5.0.3.140",
+    "nativeProductScope": "Historical evidence version only; the independent native product release is outside this CLI/IDE publication record."
+  },
+  "evidenceScope": "Exact-source GitHub Actions CLI CI and Strict Sandbox matrices; OIDC CLI publication after existing public child-package verification; independent public CLI archive integrity, provenance and fix-source readback; candidate CLI installation with public registry child dependencies; independent isolated public npm CLI installation with --ignore-scripts, exact archive and ten direct child pins, --version and static agent --capabilities smoke. Exact-source IDE preflight passed, and immutable IDE publication tags were pushed only after CLI public verification. Open VSX publication passed, and its listed public VSIX matches the immutable CI artifact by raw archive and canonical content digests. JetBrains release gates and Marketplace upload passed; the downloaded CI ZIP plugin identity and compiled CLI recommendation are verified. Marketplace review is pending and public listing/download are not yet verified. Pending review is an accepted upload state under the release workflow, not evidence of public availability. No new live model-task acceptance was run.",
+  "independentRegistryInstall": "public-registry-install.json",
+  "independentRegistryInstallScope": {
+    "ignoreScripts": true,
+    "verified": [
+      "public-cli-archive-url-and-integrity",
+      "ten-direct-public-child-pins",
+      "cli-version",
+      "static-agent-capability-manifest"
+    ],
+    "liveModelTaskAcceptance": false,
+    "nativeProductAcceptance": false
+  }
+}

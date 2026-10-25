@@ -1,0 +1,19 @@
+{
+  "channel": "open-vsx",
+  "endpoint": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide",
+  "status": "ready",
+  "version": "0.37.161",
+  "latest": "0.37.161",
+  "downloadable": true,
+  "listed": true,
+  "registryArchiveSha256": "b4c9f2a2f0e8ef2fe11f4dfdcbe213f71207f37a98c40cfa4bd890a2c8d6f497",
+  "localArchiveSha256": "b4c9f2a2f0e8ef2fe11f4dfdcbe213f71207f37a98c40cfa4bd890a2c8d6f497",
+  "contentSha256": "34f1492e0c94614ec0c169f66739740e319a34aa7d8dd6d3821c551828ad9bb6",
+  "observedAt": "2026-10-25T20:03:02.430Z",
+  "sourceCommit": "4a7e5adc5e6a241434ecfa906a272e34b5ea6d2a",
+  "runId": 40227329131,
+  "tag": "ide-vscode-v0.37.161",
+  "recommendedCliVersion": "0.166.121",
+  "ciCandidateReceipt": "vscode-release-artifact.json",
+  "scope": "Public VSIX downloaded; registry SHA-256 and full canonical ZIP content match the immutable candidate verified by release host gates."
+}

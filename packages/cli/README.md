@@ -2,15 +2,17 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
-## CLI 0.166.121 (release candidate)
+## CLI 0.166.121 (public, 2026-10-26)
 
 Fixes Evolution ingress rejecting ordinary display text as malformed JSON: numeric status, progress and percentages, dates and timestamps, Git hashes and ranges, version links, simple wiki links, numeric regex ranges and unquoted Shell tests. Standalone non-sensitive quoted prose labels are also supported. ANSI terminal controls no longer cause JSON parsing errors; existing injection quarantine still applies. JSON validation, credential/PII redaction and projection budgets remain enforced. Versioned projection rules preserve historical evidence verification.
 
 Sensitive assignments with primitive-looking prefixes or concatenated strings fail closed instead of redacting only the first token and exposing a suffix.
 
-This candidate retains Session Core **0.3.23** and Agent SDK **0.2.16**. The preceding IDE pairing is VS Code **0.37.160** and JetBrains **0.4.177**; this CLI release does not publish new IDE packages. Publication requires CLI CI and CLI Strict Sandbox on Linux, Windows and macOS for the exact release commit, followed by GitHub Actions OIDC publishing and public npm readback. No new live model-task acceptance is claimed; existing release limits remain.
+CLI **0.166.121** is public through [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/40225573887). Source `4a7e5adc5e6a241434ecfa906a272e34b5ea6d2a` passed CLI CI and CLI Strict Sandbox on Linux, Windows and macOS. Public npm archive integrity, signed provenance, packaged fix sources and public child dependency pins have been verified. A separate public registry install with `--ignore-scripts` verified the CLI archive, ten direct child pins, `cc --version` and the static `cc agent --capabilities` manifest. [Publication evidence](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release121-public/publication.json).
 
-After publication: `npm i -g chainlesschain@0.166.121 --registry https://registry.npmjs.org`, restart the IDE chat host, then run `cc --version` and `cc doctor`.
+This release retains Session Core **0.3.23** and Agent SDK **0.2.16**. The new pairing is VS Code **0.37.161** / JetBrains **0.4.178**, both recommending CLI **0.166.121**. [Open VSX 0.37.161](https://github.com/chainlesschain/chainlesschain/actions/runs/40227329131) is public and its downloaded VSIX matches the immutable CI candidate, including CLI recommendation 0.166.121. [JetBrains 0.4.178 upload](https://github.com/chainlesschain/chainlesschain/actions/runs/40227329241) succeeded and awaits Marketplace review; public listing and download are not yet verified. The preceding pairing is VS Code **0.37.160** / JetBrains **0.4.177**. No new live model-task acceptance was run: cumulative acceptance remains **32/45**, with **13** unfinished; **NOT_PAID_READY**, **NOT_ADMITTED** and automatic promotion **HOLD** remain. Microsoft Marketplace remains unpublished.
+
+Install: `npm i -g chainlesschain@0.166.121 --registry https://registry.npmjs.org`, restart the IDE chat host, then run `cc --version` and `cc doctor`.
 
 ## Previous CLI 0.166.118
 

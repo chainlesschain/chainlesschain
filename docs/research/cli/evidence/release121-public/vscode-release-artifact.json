@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "artifact": "chainlesschain-ide.vsix",
+  "bytes": 736456,
+  "sha256": "b4c9f2a2f0e8ef2fe11f4dfdcbe213f71207f37a98c40cfa4bd890a2c8d6f497",
+  "sha512": "2467949afd43c86825ca43e8d813b067242a834bcc6ddacf78895e156ab0e7218acbe312fd47b59c5891ced3296984979bdd922e242e6e7a6ab01e365a4a0ca7",
+  "package": "chainlesschain-ide",
+  "publisher": "chainlesschain",
+  "version": "0.37.161",
+  "vsixmanifestIdentity": {
+    "id": "chainlesschain-ide",
+    "publisher": "chainlesschain",
+    "version": "0.37.161"
+  },
+  "commit": "4a7e5adc5e6a241434ecfa906a272e34b5ea6d2a",
+  "workflowRun": "https://github.com/chainlesschain/chainlesschain/actions/runs/40227329131",
+  "createdAt": "2026-10-25T19:44:16.593Z"
+}

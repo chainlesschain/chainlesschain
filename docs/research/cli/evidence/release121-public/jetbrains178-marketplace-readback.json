@@ -1,0 +1,16 @@
+{
+  "channel": "jetbrains",
+  "endpoint": "https://plugins.jetbrains.com/api/plugins/32208/updates",
+  "status": "pending",
+  "version": "0.4.178",
+  "approve": null,
+  "listed": null,
+  "hidden": null,
+  "reason": "version-not-visible",
+  "attempts": 12,
+  "observedAt": "2026-10-25T20:21:08.051Z",
+  "publishRunId": 40227329241,
+  "publishWorkflow": "success",
+  "sourceCommit": "4a7e5adc5e6a241434ecfa906a272e34b5ea6d2a",
+  "scope": "Marketplace upload accepted by successful release workflow; public approval, listing and public ZIP download remain unverified. Release workflow intentionally reports pending review without treating upload as failure."
+}
