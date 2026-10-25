@@ -363,7 +363,7 @@ assert.throws(()=>loader.addRule({cwd:root,kind:'allow',rule:'Bash'}),/unavailab
     expect(getSettingsPermissionRevision().state).toBe("ready");
   });
 
-  it("preserves every concurrent process update using the existing strict lock", async () => {
+  it("preserves every concurrent process update within the fixture strict-lock budget", async () => {
     seed({ retained: "yes" });
     const fixture = fileURLToPath(
       new URL("../fixtures/settings-rule-writer.cjs", import.meta.url),
