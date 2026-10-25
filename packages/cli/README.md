@@ -2,7 +2,7 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
-## CLI 0.166.119 (release candidate)
+## CLI 0.166.120 (release candidate)
 
 Fixes Evolution ingress rejecting ordinary display text as malformed JSON: numeric status, progress and percentages, dates and timestamps, Git hashes and ranges, version links, simple wiki links, numeric regex ranges and unquoted Shell tests. Standalone non-sensitive quoted prose labels are also supported. ANSI terminal controls no longer cause JSON parsing errors; existing injection quarantine still applies. JSON validation, credential/PII redaction and projection budgets remain enforced. Versioned projection rules preserve historical evidence verification.
 
@@ -10,7 +10,7 @@ Sensitive assignments with primitive-looking prefixes or concatenated strings fa
 
 This candidate retains Session Core **0.3.23** and Agent SDK **0.2.16**. The preceding IDE pairing is VS Code **0.37.160** and JetBrains **0.4.177**; this CLI release does not publish new IDE packages. Publication requires CLI CI and CLI Strict Sandbox on Linux, Windows and macOS for the exact release commit, followed by GitHub Actions OIDC publishing and public npm readback. No new live model-task acceptance is claimed; existing release limits remain.
 
-After publication: `npm i -g chainlesschain@0.166.119 --registry https://registry.npmjs.org`, restart the IDE chat host, then run `cc --version` and `cc doctor`.
+After publication: `npm i -g chainlesschain@0.166.120 --registry https://registry.npmjs.org`, restart the IDE chat host, then run `cc --version` and `cc doctor`.
 
 ## Previous CLI 0.166.118
 
@@ -141,7 +141,7 @@ Explicit Linux durable permissions require administrator provisioning. Cross-pro
 Install the CLI version published by this release:
 
 ```bash
-npm install -g chainlesschain@0.166.118 --registry https://registry.npmjs.org
+npm install -g chainlesschain@0.166.120 --registry https://registry.npmjs.org
 chainlesschain setup
 ```
 

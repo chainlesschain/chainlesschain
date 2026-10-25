@@ -1,8 +1,8 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
-## CLI 0.166.119 (2026-10-25)
+## CLI 0.166.120 (2026-10-25)
 
-CLI **0.166.119** is a release candidate fixing Evolution ingress treating numeric status, progress, date and time markers as malformed JSON. Strict JSON checks, redaction and historical evidence verification remain enforced. Release requires exact-commit Linux, Windows and macOS CLI CI and Strict Sandbox, GitHub Actions OIDC publication and public npm readback. After publication: `npm i -g chainlesschain@0.166.119 --registry https://registry.npmjs.org`. No IDE extension is published here; the preceding pairing is VS Code **0.37.160** / JetBrains **0.4.177**. Existing acceptance limits remain.
+CLI **0.166.120** is a release candidate fixing Evolution ingress treating numeric status, progress, date and time markers as malformed JSON. Strict JSON checks, redaction and historical evidence verification remain enforced. Release requires exact-commit Linux, Windows and macOS CLI CI and Strict Sandbox, GitHub Actions OIDC publication and public npm readback. After publication: `npm i -g chainlesschain@0.166.120 --registry https://registry.npmjs.org`. No IDE extension is published here; the preceding pairing is VS Code **0.37.160** / JetBrains **0.4.177**. Existing acceptance limits remain.
 
 
 ## Latest release (2026-10-23)
