@@ -562,12 +562,30 @@ export const EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V4_DIGEST = `sha256:${crea
     "utf8",
   )
   .digest("hex")}`;
-const AGENT_MODEL_RULESET = Object.freeze({
+const AGENT_MODEL_RULESET_V5 = Object.freeze({
   ...AGENT_MODEL_RULESET_V4,
   schema: "chainlesschain.evolution-agent-model-projection-rules/v5",
   version: 5,
   fencedCodePolicy: "closed-message-code-fence-literal-scan-v1",
   fencedCodeLanguages: AGENT_FENCED_CODE_LANGUAGES,
+});
+export const EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V5_DIGEST = `sha256:${createHash(
+  "sha256",
+)
+  .update(
+    `${AGENT_MODEL_RULESET_V5.schema}\0${JSON.stringify(AGENT_MODEL_RULESET_V5)}`,
+    "utf8",
+  )
+  .digest("hex")}`;
+const AGENT_MODEL_RULESET = Object.freeze({
+  ...AGENT_MODEL_RULESET_V5,
+  schema: "chainlesschain.evolution-agent-model-projection-rules/v6",
+  version: 6,
+  jsonTextPolicy: Object.freeze({
+    ...AGENT_MODEL_RULESET_V5.jsonTextPolicy,
+    version: 3,
+    bracketMarkerPolicy: "bounded-numeric-status-progress-date-time-v1",
+  }),
 });
 export const EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_DIGEST = `sha256:${createHash(
   "sha256",
@@ -601,6 +619,7 @@ const SUPPORTED_RULESETS = new Map([
   [EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V2_DIGEST, AGENT_MODEL_RULESET_V2],
   [EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V3_DIGEST, AGENT_MODEL_RULESET_V3],
   [EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V4_DIGEST, AGENT_MODEL_RULESET_V4],
+  [EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V5_DIGEST, AGENT_MODEL_RULESET_V5],
   [EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_DIGEST, AGENT_MODEL_RULESET],
 ]);
 
@@ -676,6 +695,7 @@ const AGENT_VALUE_PATTERNS = Object.freeze([
 function valuePatterns(ruleset) {
   return ruleset === SKILL_DECISION_RULESET ||
     ruleset === AGENT_MODEL_RULESET ||
+    ruleset === AGENT_MODEL_RULESET_V5 ||
     ruleset === AGENT_MODEL_RULESET_V4 ||
     ruleset === AGENT_MODEL_RULESET_V3 ||
     ruleset === AGENT_MODEL_RULESET_V2 ||
@@ -1428,6 +1448,7 @@ function sanitizePayload(
     const toolArguments = jsonText && isAgentToolArgumentsPath(path);
     const opaqueTransportBlock =
       ruleset === AGENT_MODEL_RULESET ||
+      ruleset === AGENT_MODEL_RULESET_V5 ||
       ruleset === AGENT_MODEL_RULESET_V4 ||
       ruleset === AGENT_MODEL_RULESET_V3
         ? projectAgentOpaqueTransportBlock(value, path.join("."))
@@ -3316,6 +3337,7 @@ function validateBundleIntegrity(bundle) {
     }
     if (
       ruleset === AGENT_MODEL_RULESET ||
+      ruleset === AGENT_MODEL_RULESET_V5 ||
       ruleset === AGENT_MODEL_RULESET_V4 ||
       ruleset === AGENT_MODEL_RULESET_V3 ||
       ruleset === AGENT_MODEL_RULESET_V2 ||
@@ -3325,6 +3347,7 @@ function validateBundleIntegrity(bundle) {
         allowStructuredArgumentText: ruleset !== AGENT_MODEL_RULESET_V1,
         allowOpaqueTransportBlocks:
           ruleset === AGENT_MODEL_RULESET ||
+          ruleset === AGENT_MODEL_RULESET_V5 ||
           ruleset === AGENT_MODEL_RULESET_V4 ||
           ruleset === AGENT_MODEL_RULESET_V3,
       });

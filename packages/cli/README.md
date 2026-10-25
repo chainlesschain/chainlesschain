@@ -2,7 +2,15 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
-## CLI 0.166.118
+## CLI 0.166.119 (release candidate)
+
+Fixes Evolution ingress rejecting ordinary bracketed numeric status, progress, date and time text such as `[0 26]`, `[1/3]` and `[12:30:00]` as malformed JSON. JSON validation, credential/PII redaction and projection budgets remain enforced. Versioned projection rules preserve historical evidence verification.
+
+This candidate retains Session Core **0.3.23** and Agent SDK **0.2.16**. The preceding IDE pairing is VS Code **0.37.160** and JetBrains **0.4.177**; this CLI release does not publish new IDE packages. Publication requires CLI CI and CLI Strict Sandbox on Linux, Windows and macOS for the exact release commit, followed by GitHub Actions OIDC publishing and public npm readback. No new live model-task acceptance is claimed; existing release limits remain.
+
+After publication: `npm i -g chainlesschain@0.166.119 --registry https://registry.npmjs.org`, restart the IDE chat host, then run `cc --version` and `cc doctor`.
+
+## Previous CLI 0.166.118
 
 This version follows Session Core **0.3.23** and Agent SDK **0.2.16** and pairs with VS Code **0.37.160** and JetBrains **0.4.177**. It includes the Web Panel DOMPurify security patch, input delivery and Windows draft recovery fixes, project-instruction code fence handling, bounded long-session index reuse, typed Evidence storage and native Windows ACL startup. Native ACL startup covers the original runtime filesystem adapter as well as default Node storage; custom filesystem operations keep their explicit dependency boundary. Compact index reuse spans typed stores within the existing memory budget, and default artifact reads avoid duplicate physical reads while retaining full identity and digest checks. IDE input receipts remain separate from conversation replay, so completed tools can settle without falsely reporting a concurrent session revision. Long-session retention preserves completed results, runtime message identity and historical recovery lineage. It preserves redacted transport receipts for future native task retests. Releases require the exact-source Linux, Windows and macOS Actions gates. Required order: child npm packages → CLI → IDE extensions → mobile / PC clients, verifying public artifacts at each stage.
 

@@ -376,6 +376,24 @@ export function createEvidenceJsonTextBoundary(
         char === "{" || char === "["
           ? text.slice(index + 1).match(/^\s*(.)/u)?.[1]
           : undefined;
+      // Human-readable status markers are not JSON arrays. Only complete,
+      // bounded numeric formats qualify; quotes, escapes, commas and nested
+      // containers must still go through strict parsing. Leave these spans in
+      // plain text so the ordinary credential/PII sanitizer still sees them.
+      if (
+        char === "[" &&
+        policy.bracketMarkerPolicy ===
+          "bounded-numeric-status-progress-date-time-v1"
+      ) {
+        const marker =
+          /^\[(?:\d+[ \t]+\d+(?:[ \t]+\d+)*|\d+[ \t]*\/[ \t]*\d+|\d{4}-\d{2}-\d{2}|\d{1,2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?)\]/u.exec(
+            text.slice(index, index + 128),
+          );
+        if (marker) {
+          index += marker[0].length;
+          continue;
+        }
+      }
       const container =
         (char === "{" &&
           (next === '"' || next === "}" || next === "'" || next === "\\")) ||
