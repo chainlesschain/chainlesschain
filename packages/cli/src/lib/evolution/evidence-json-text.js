@@ -65,6 +65,28 @@ const CODE_DOUBLE_QUOTED_PREFIX = /^"(?:[^"\\\x00-\x1f]|\\[\s\S])*"/u;
 const CODE_SINGLE_QUOTED_PREFIX = /^'(?:[^'\\\x00-\x1f]|\\[\s\S])*'/u;
 /* eslint-enable no-control-regex */
 
+// Only closed, bounded display formats qualify. Never accept quotes, escapes,
+// commas or nested containers here. Exponent-shaped hashes remain JSON numbers
+// so non-finite/unsafe numeric values cannot evade the existing budget checks.
+const DISPLAY_BRACKET_MARKER = new RegExp(
+  "^\\[(?:" +
+    "\\d+[ \\t]+\\d+(?:[ \\t]+\\d+)*|" +
+    "\\d+[ \\t]*\\/[ \\t]*\\d+(?:[ \\t]+\\d{1,3}%)?|" +
+    "\\d+[ \\t]+of[ \\t]+\\d+|" +
+    "\\d{1,3}(?:\\.\\d+)?%|" +
+    "\\d{4}-\\d{2}-\\d{2}(?:[ T]\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,9})?(?:Z|[+-]\\d{2}:\\d{2})?)?|" +
+    "\\d{1,2}:\\d{2}(?::\\d{2}(?:\\.\\d{1,9})?)?|" +
+    "v?\\d+\\.\\d+\\.\\d+|" +
+    "[0-9]-[0-9]|" +
+    "\\[[A-Za-z][A-Za-z0-9_./ #+-]*\\]|" +
+    "[ \\t]+\\d+[ \\t]+-(?:eq|ne|lt|le|gt|ge)[ \\t]+\\d+[ \\t]+|" +
+    "\\[[ \\t]+-[defrswx][ \\t]+[A-Za-z0-9_./-]+[ \\t]+\\]|" +
+    "(?!\\d+[eE]\\d+\\])(?=[0-9a-f]{7,64}\\])(?=[0-9a-f]*[a-f])[0-9][0-9a-f]+|" +
+    "[0-9a-f]{7,64}\\.\\.[0-9a-f]{7,64}" +
+    ")\\]",
+  "u",
+);
+
 export function isAgentToolArgumentsPath(path) {
   return (
     path.length === 6 &&
@@ -292,6 +314,14 @@ export function createEvidenceJsonTextBoundary(
         );
       }
       index += token.length;
+      // A primitive prefix is not a complete source expression. In particular,
+      // redacting only `true` from trueSecretValue would expose the suffix of
+      // a sensitive quoted assignment. Historical policies retain their parser.
+      if (
+        policy.proseQuotedPairPolicy &&
+        /[\p{ID_Continue}$\\]/u.test(text[index] ?? "")
+      )
+        return parserReject("code-expression");
       const parsed = JSON.parse(token);
       if (
         typeof parsed === "number" &&
@@ -376,6 +406,26 @@ export function createEvidenceJsonTextBoundary(
         char === "{" || char === "["
           ? text.slice(index + 1).match(/^\s*(.)/u)?.[1]
           : undefined;
+      // Human-readable status markers are not JSON arrays. Only complete,
+      // bounded numeric formats qualify; quotes, escapes, commas and nested
+      // containers must still go through strict parsing. Leave these spans in
+      // plain text so the ordinary credential/PII sanitizer still sees them.
+      if (
+        char === "[" &&
+        policy.bracketMarkerPolicy === "bounded-display-markers-v1"
+      ) {
+        // ANSI CSI controls in terminal output start with ESC followed by [.
+        // Limit recognition to numeric parameters and a final control letter.
+        const marker =
+          (text[index - 1] === "\x1b"
+            ? /^\[[0-9;:?]{0,64}[A-Za-z]/u.exec(text.slice(index, index + 128))
+            : null) ??
+          DISPLAY_BRACKET_MARKER.exec(text.slice(index, index + 128));
+        if (marker) {
+          index += marker[0].length;
+          continue;
+        }
+      }
       const container =
         (char === "{" &&
           (next === '"' || next === "}" || next === "'" || next === "\\")) ||
@@ -467,7 +517,7 @@ export function createEvidenceJsonTextBoundary(
             const entryEnd = rhs.end();
             rhs.whitespace();
             if (
-              codeText &&
+              (codeText || policy.proseQuotedPairPolicy) &&
               /^[+\-*/%?.([<>&|^=!"']/u.test(text[rhs.end()] ?? "")
             )
               requireSafeExpressionKey();
@@ -479,10 +529,14 @@ export function createEvidenceJsonTextBoundary(
           } catch (error) {
             const kind = error?.[PARSE_FAILURE];
             if (kind === undefined) throw error;
-            if (!codeText || kind !== "code-expression")
+            if (
+              (!codeText && !policy.proseQuotedPairPolicy) ||
+              kind !== "code-expression"
+            )
               rejectParseFailure(error);
-            // In a run_code source/result string, a quoted key followed by a
-            // Python/JavaScript expression is code, not a broken JSON pair.
+            // A standalone prose label or a source key followed by an
+            // expression is not a broken JSON container. Sensitive decoded
+            // keys still fail closed before scanning resumes.
             // Resume the scan at the next literal so any string value still
             // receives key-aware or ordinary secret scanning.
             requireSafeExpressionKey();
@@ -509,7 +563,7 @@ export function createEvidenceJsonTextBoundary(
       }
       const safe = transform(parsed);
       if (
-        codeText &&
+        (codeText || policy.proseQuotedPairPolicy) &&
         assignmentKey &&
         !equal(parsed, safe) &&
         /^\s*[+\-*/%?.([<>&|^=!"']/u.test(text.slice(end))

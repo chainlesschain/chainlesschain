@@ -2,6 +2,12 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.161] - CLI ingress display text recovery (candidate, 2026-10-25)
+
+- Recommend CLI 0.166.121 and pair with JetBrains 0.4.178.
+- The paired CLI accepts bounded Git, shell, Markdown and log display markers without mistaking them for malformed JSON; sensitive keys and malformed structured evidence still fail closed.
+- Preserve the prior input delivery and Windows draft recovery fixes. Publication requires the paired public CLI, exact-source IDE gates and marketplace readback.
+
 ## [0.37.160] - Input delivery and draft recovery (unreleased candidate, 2026-10-24)
 
 - Reject writes after input pipe failure, stdin end or process exit while retaining buffered final receipts and results.

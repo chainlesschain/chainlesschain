@@ -1,5 +1,11 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.178] - CLI ingress display text recovery (candidate, 2026-10-25)
+
+- Recommend CLI 0.166.121 and pair with VS Code 0.37.161.
+- The paired CLI accepts bounded Git, shell, Markdown and log display markers without mistaking them for malformed JSON; sensitive keys and malformed structured evidence still fail closed.
+- Preserve unknown input delivery after pipe failures. Publication requires the paired public CLI, exact-source IDE gates and marketplace readback.
+
 ## [0.4.177] - Input delivery recovery (unreleased candidate, 2026-10-24)
 
 - Reject later submissions before reserving delivery after an input pipe failure, preserving the first attempt's unknown outcome.

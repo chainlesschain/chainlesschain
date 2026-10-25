@@ -6,6 +6,7 @@ import {
   withEvolutionDirectoryFileIdentity,
   withEvolutionFileIdentity,
 } from "../../src/lib/evolution/evolution-file-identity.js";
+import { flushWindowsLocalNtfsDirectory } from "../../src/lib/evolution/evolution-windows-directory-durability.js";
 import { openWorkbenchRollbackStore } from "../fixtures/evolution-workbench-rollback.js";
 
 const AFFECTED = { platform: "win32", uvVersion: "1.49.1" };
@@ -138,9 +139,21 @@ describe("evolution path/handle identity", () => {
   });
 
   it.skipIf(process.platform !== "win32")(
-    "reopens a real Workbench ledger under the affected Windows projection",
+    "binds the real Workbench projection to the available Windows native identity APIs",
     async () => {
       const { root } = fixture();
+      let supportsPathIdentity = false;
+      // Exercise an actual flush before projecting stat.dev. Older Windows
+      // lacks ByName and must reject zero-device identity rather than bypass
+      // the native handle binding; its ordinary identity still works.
+      expect(
+        flushWindowsLocalNtfsDirectory(root, {
+          nativeApi(api) {
+            supportsPathIdentity = Boolean(api.GetFileInformationByName);
+            return api;
+          },
+        }),
+      ).toBe("windows-directory-flush");
       const original = fs.lstatSync;
       const uvDescriptor = Object.getOwnPropertyDescriptor(
         process.versions,
@@ -157,6 +170,15 @@ describe("evolution path/handle identity", () => {
           : observed;
       });
       try {
+        if (!supportsPathIdentity) {
+          expect(() => flushWindowsLocalNtfsDirectory(root)).toThrow(
+            "Windows local UI durability handle does not match the requested directory",
+          );
+          await expect(
+            openWorkbenchRollbackStore(root, { seed: true }),
+          ).rejects.toMatchObject({ code: "CC_EVOLUTION_LEDGER_STORE_UNSAFE" });
+          return;
+        }
         const first = await openWorkbenchRollbackStore(root, { seed: true });
         const expected = first.backend.ledger.verify();
         expect(expected.eventCount).toBeGreaterThan(0);

@@ -1,5 +1,10 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## CLI 0.166.121 (2026-10-25)
+
+CLI **0.166.121** is a release candidate fixing Evolution ingress treating numeric status, progress, date and time markers as malformed JSON. Strict JSON checks, redaction and historical evidence verification remain enforced. Release requires exact-commit Linux, Windows and macOS CLI CI and Strict Sandbox, GitHub Actions OIDC publication and public npm readback. After publication: `npm i -g chainlesschain@0.166.121 --registry https://registry.npmjs.org`. No IDE extension is published here; the preceding pairing is VS Code **0.37.160** / JetBrains **0.4.177**. Existing acceptance limits remain.
+
+
 ## Latest release (2026-10-23)
 
 CLI **0.166.117** is public on npm through [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/39845469661), with public archive integrity, signed provenance and an independent registry-only install verified. It fixes Evolution ingress rejecting Python/JavaScript code literals as malformed JSON, settles completed tool rounds on error exits, separates image and text budgets, and preserves valid JSON when bounding long tool results. Session Core **0.3.22** and Personal Data Hub **0.4.66** were published before the CLI. Install with `npm i -g chainlesschain@0.166.117 --registry https://registry.npmjs.org`. Open VSX **0.37.159** is public and its download verified; JetBrains **0.4.176** is approved and its public download verified. Both recommend CLI **0.166.117**. [Publication evidence](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release117-public/publication.json). No new live model-task acceptance was run; historical release records and limits below remain.

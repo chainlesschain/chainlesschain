@@ -45,6 +45,7 @@ import {
   EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V2_DIGEST,
   EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V3_DIGEST,
   EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V4_DIGEST,
+  EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V5_DIGEST,
   EVOLUTION_SKILL_DECISION_PROJECTION_RULESET_DIGEST,
   EVOLUTION_PROJECTION_SOURCE_DENIED_CODE,
   EVOLUTION_PROJECTION_STORAGE_FAILED_CODE,
@@ -871,6 +872,143 @@ describe("EvolutionEvidenceProjector", () => {
   const fencedRequest = (content, role = "system") => ({
     messages: [{ role, content }],
     tools: [],
+  });
+
+  it.each([
+    "[0 26]",
+    "[1/3]",
+    "[12:30:00]",
+    "[2026-10-25]",
+    "[1 of 3]",
+    "[1/3 33%]",
+    "[100%]",
+    "[12.5%]",
+    "[2026-10-25T12:30:00.123Z]",
+    "[2026-10-25T12:30:00.123456Z]",
+    "[2026-10-25 12:30:00]",
+    "[2026-10-25T12:30:00+08:00]",
+    "[123abcd]",
+    "[123abc4..456def7]",
+    "[0.166.119](https://example.com)",
+    "[[docs]]",
+    "[0-9]",
+    "[ 1 -eq 1 ]",
+    "[[ -f README.md ]]",
+    '"Status": done',
+    "\x1b[31mred\x1b[0m",
+    "\x1b[1;32mgreen\x1b[0m",
+    "\x1b[2K",
+    "\x1b[38:2:1:2:3m",
+  ])(
+    "admits display markers in messages and paired tool output (%s)",
+    async (marker) => {
+      const h = harness();
+      const text = `git status ${marker} alice@example.com`;
+      const gitRequest = runCodeRequest(text);
+      gitRequest.messages[0].tool_calls[0].function.name = "git";
+      const shellRequest = structuredClone(gitRequest);
+      shellRequest.messages[0].tool_calls[0].function.name = "run_shell";
+      for (const request of [
+        fencedRequest(text, "assistant"),
+        gitRequest,
+        shellRequest,
+      ]) {
+        const bundle = await h.projector.projectAgentModelRequest(
+          input(request, "signed-source:free-form-tool"),
+        );
+        const encoded = JSON.stringify(bundle.modelProjection.content);
+        if (marker.includes("\x1b")) {
+          expect(encoded).toContain("[QUARANTINED:POTENTIAL_PROMPT_INJECTION]");
+        } else {
+          expect(encoded).toContain(JSON.stringify(marker).slice(1, -1));
+        }
+        expect(encoded).not.toContain("alice@example.com");
+        await expect(h.verifier.verify(bundle)).resolves.toMatchObject({
+          verified: true,
+        });
+      }
+    },
+  );
+
+  it.each([
+    "[1,]",
+    "[0 26,]",
+    "[1/3,]",
+    '["unclosed"',
+    "[1e999]",
+    "[123e456]",
+    "[123456e999]",
+    "[31m",
+    "[123abcd,]",
+    '[100%,"password":"secret"]',
+    '{"Status": done}',
+    '"password": secretValue',
+    '"password": trueSecretValue',
+    '"password": falseSecretValue',
+    '"password": nullSecretValue',
+    '"password": 123SecretValue',
+    '"password": "firstHalf" + "secretSuffix"',
+    '"password": "firstHalf" "secretSuffix"',
+    'password = "firstHalf" + "secretSuffix"',
+    '[[docs,"password":"secret"]]',
+    "[9007199254740993]",
+  ])(
+    "does not tolerate malformed or over-budget JSON beside status markers (%s)",
+    async (text) => {
+      const h = harness();
+      await expect(
+        h.projector.projectAgentModelRequest(
+          input(
+            fencedRequest(`[0 26] ${text}`),
+            "signed-source:free-form-tool",
+          ),
+        ),
+      ).rejects.toThrow(/malformed|budget|sensitive key/u);
+      expect(h.attestor.sign).not.toHaveBeenCalled();
+    },
+  );
+
+  it("continues decoding sensitive JSON after a plain status marker", async () => {
+    const h = harness();
+    const bundle = await h.projector.projectAgentModelRequest(
+      input(
+        fencedRequest('[0 26] {"password":"unprefixedSecretValue"}'),
+        "signed-source:free-form-tool",
+      ),
+    );
+    expect(JSON.stringify(bundle)).not.toContain("unprefixedSecretValue");
+    expect(bundle.modelProjection.content.messages[0].content).toContain(
+      "[REDACTED:credential]",
+    );
+    await expect(h.verifier.verify(bundle)).resolves.toMatchObject({
+      verified: true,
+    });
+  });
+
+  it("preserves v5 verification and rejection semantics for numeric markers", async () => {
+    expect(EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V5_DIGEST).toBe(
+      "sha256:20b3d651084a178f5cd15aedeee3e2623346fd0eab56678b822779e393f88454",
+    );
+    const h = harness();
+    const bundle = await h.projector.projectAgentModelRequest(
+      input(fencedRequest("git status clean"), "signed-source:free-form-tool"),
+    );
+    const historical = await reattest(
+      h,
+      bundle,
+      bundle.modelProjection.content,
+      EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V5_DIGEST,
+    );
+    await expect(h.verifier.verify(historical)).resolves.toMatchObject({
+      verified: true,
+    });
+    const invalid = await reattest(
+      h,
+      bundle,
+      fencedRequest("git status [0 26]"),
+      EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V5_DIGEST,
+    );
+    await expect(h.verifier.verify(invalid)).rejects.toThrow(/malformed/u);
   });
 
   it("admits the repository encoding instructions before the first model request", async () => {
