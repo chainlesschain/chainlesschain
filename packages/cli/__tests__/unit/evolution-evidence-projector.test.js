@@ -884,6 +884,7 @@ describe("EvolutionEvidenceProjector", () => {
     "[100%]",
     "[12.5%]",
     "[2026-10-25T12:30:00.123Z]",
+    "[2026-10-25T12:30:00.123456Z]",
     "[2026-10-25 12:30:00]",
     "[2026-10-25T12:30:00+08:00]",
     "[123abcd]",
@@ -897,6 +898,7 @@ describe("EvolutionEvidenceProjector", () => {
     "\x1b[31mred\x1b[0m",
     "\x1b[1;32mgreen\x1b[0m",
     "\x1b[2K",
+    "\x1b[38:2:1:2:3m",
   ])(
     "admits display markers in messages and paired tool output (%s)",
     async (marker) => {
@@ -941,6 +943,13 @@ describe("EvolutionEvidenceProjector", () => {
     '[100%,"password":"secret"]',
     '{"Status": done}',
     '"password": secretValue',
+    '"password": trueSecretValue',
+    '"password": falseSecretValue',
+    '"password": nullSecretValue',
+    '"password": 123SecretValue',
+    '"password": "firstHalf" + "secretSuffix"',
+    '"password": "firstHalf" "secretSuffix"',
+    'password = "firstHalf" + "secretSuffix"',
     '[[docs,"password":"secret"]]',
     "[9007199254740993]",
   ])(

@@ -74,8 +74,8 @@ const DISPLAY_BRACKET_MARKER = new RegExp(
     "\\d+[ \\t]*\\/[ \\t]*\\d+(?:[ \\t]+\\d{1,3}%)?|" +
     "\\d+[ \\t]+of[ \\t]+\\d+|" +
     "\\d{1,3}(?:\\.\\d+)?%|" +
-    "\\d{4}-\\d{2}-\\d{2}(?:[ T]\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,3})?(?:Z|[+-]\\d{2}:\\d{2})?)?|" +
-    "\\d{1,2}:\\d{2}(?::\\d{2}(?:\\.\\d{1,3})?)?|" +
+    "\\d{4}-\\d{2}-\\d{2}(?:[ T]\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,9})?(?:Z|[+-]\\d{2}:\\d{2})?)?|" +
+    "\\d{1,2}:\\d{2}(?::\\d{2}(?:\\.\\d{1,9})?)?|" +
     "v?\\d+\\.\\d+\\.\\d+|" +
     "[0-9]-[0-9]|" +
     "\\[[A-Za-z][A-Za-z0-9_./ #+-]*\\]|" +
@@ -314,6 +314,14 @@ export function createEvidenceJsonTextBoundary(
         );
       }
       index += token.length;
+      // A primitive prefix is not a complete source expression. In particular,
+      // redacting only `true` from trueSecretValue would expose the suffix of
+      // a sensitive quoted assignment. Historical policies retain their parser.
+      if (
+        policy.proseQuotedPairPolicy &&
+        /[\p{ID_Continue}$\\]/u.test(text[index] ?? "")
+      )
+        return parserReject("code-expression");
       const parsed = JSON.parse(token);
       if (
         typeof parsed === "number" &&
@@ -410,7 +418,7 @@ export function createEvidenceJsonTextBoundary(
         // Limit recognition to numeric parameters and a final control letter.
         const marker =
           (text[index - 1] === "\x1b"
-            ? /^\[[0-9;?]{0,64}[A-Za-z]/u.exec(text.slice(index, index + 128))
+            ? /^\[[0-9;:?]{0,64}[A-Za-z]/u.exec(text.slice(index, index + 128))
             : null) ??
           DISPLAY_BRACKET_MARKER.exec(text.slice(index, index + 128));
         if (marker) {
@@ -509,7 +517,7 @@ export function createEvidenceJsonTextBoundary(
             const entryEnd = rhs.end();
             rhs.whitespace();
             if (
-              codeText &&
+              (codeText || policy.proseQuotedPairPolicy) &&
               /^[+\-*/%?.([<>&|^=!"']/u.test(text[rhs.end()] ?? "")
             )
               requireSafeExpressionKey();
@@ -555,7 +563,7 @@ export function createEvidenceJsonTextBoundary(
       }
       const safe = transform(parsed);
       if (
-        codeText &&
+        (codeText || policy.proseQuotedPairPolicy) &&
         assignmentKey &&
         !equal(parsed, safe) &&
         /^\s*[+\-*/%?.([<>&|^=!"']/u.test(text.slice(end))

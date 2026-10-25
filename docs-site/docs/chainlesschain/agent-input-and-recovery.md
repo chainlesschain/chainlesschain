@@ -10,6 +10,8 @@ CLI **0.166.117** 修复了代码被 Evolution ingress 误判为损坏 JSON、�
 
 同类修复覆盖百分比、ISO 时间戳、Git 哈希及范围、版本链接、简单 wiki 链接、数字正则范围、有限的无引号 Shell 判断和非敏感的独立引号说明。ANSI 终端控制码不再触发 JSON 解析错误，现有注入隔离规则继续执行；敏感键下无法安全投影的表达式仍会拒绝。
 
+同时修复敏感赋值的词法边界：例如 `"password": trueSecretValue` 或拼接字符串，不再只脱敏第一个 token 而留下后缀，而是拒绝无法安全投影的表达式。
+
 发布须通过同一提交的三平台 CLI CI 和 CLI Strict Sandbox，再经 GitHub Actions OIDC 发布与 npm 回读。发布后运行 `npm i -g chainlesschain@0.166.119 --registry https://registry.npmjs.org`，重启 IDE 聊天宿主，用 `cc --version` 和 `cc doctor` 确认实际路径。本次沿用上一版 IDE 配对 VS Code 0.37.160 / JetBrains 0.4.177，不新增真实模型任务验收结论。
 
 ## 核心特性
