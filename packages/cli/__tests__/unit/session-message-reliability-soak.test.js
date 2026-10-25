@@ -3,6 +3,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import yaml from "js-yaml";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   FORMAL_MINIMUM_DURATION_SECONDS,
@@ -274,6 +275,9 @@ describe("session-message temporal workflow contract", () => {
       join(REPOSITORY_ROOT, ".github/workflows/cli-reliability-soak.yml"),
       "utf8",
     );
+    const definition = yaml.load(workflow, { schema: yaml.JSON_SCHEMA });
+    const component = definition.on.workflow_dispatch.inputs.component;
+    const messageJob = definition.jobs["session-message-fabric"];
     expect(
       rootPackage.scripts["test:cli-session-message-reliability-soak"],
     ).toBe("node packages/cli/scripts/session-message-reliability-soak.mjs");
@@ -282,8 +286,17 @@ describe("session-message temporal workflow contract", () => {
     );
     expect(workflow).toContain("CC_SESSION_MESSAGE_SOAK_MODE:");
     expect(workflow).toContain("CC_SESSION_MESSAGE_SOAK_DURATION_SECONDS:");
-    expect(workflow).toContain('options: ["all", "session-message"]');
-    expect(workflow).toContain("inputs.component == 'session-message'");
+    expect(component.default).toBe("all");
+    expect(component.options).toEqual(
+      expect.arrayContaining(["all", "session-message"]),
+    );
+    expect(messageJob.strategy.matrix.os).toEqual([
+      "ubuntu-latest",
+      "windows-latest",
+      "macos-latest",
+    ]);
+    expect(messageJob.if).toContain("inputs.component == 'all'");
+    expect(messageJob.if).toContain("inputs.component == 'session-message'");
     expect(workflow).toContain("test:cli-session-message-reliability-soak");
     expect(workflow).toContain("--verify-evidence-dir");
     expect(workflow).toContain("--allow-smoke");

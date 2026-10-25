@@ -279,7 +279,7 @@ function evidenceAuthorities(tenantId) {
 
 export function createTestAgentEvolutionComposition(
   createComposition,
-  { runId },
+  { runId, fsImpl = createLocalUiEvolutionFileSystem() },
   stateRootDir,
 ) {
   // Kept URI-safe because the evidence source reference carries this as a
@@ -304,7 +304,7 @@ export function createTestAgentEvolutionComposition(
     secure: false,
     // Real process tests use the same directory flushing and ACL backend as
     // production. Synthetic directory descriptors cannot prove durability.
-    fsImpl: createLocalUiEvolutionFileSystem(),
+    fsImpl,
     evidenceIdGenerator: async () => `evidence-e2e-${++sequence}`,
     ingressIdGenerator: () => `ingress-e2e-${++sequence}`,
     authorities: {
