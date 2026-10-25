@@ -1,0 +1,39 @@
+{
+  "at": "2026-10-24T05:12:24.285Z",
+  "sha": "835dbd309c99d0a4b012273b212154e6d31ce286",
+  "reason": "Exact source failed Windows Formal; remaining runs cannot qualify a release. Failure artifact retained; cancel obsolete runner consumption before repaired source validation.",
+  "runs": [
+    {
+      "kind": "cli",
+      "id": 40062258898,
+      "before": "queued",
+      "conclusionBefore": null,
+      "response": "✓ Request to cancel workflow 40062258898 submitted.",
+      "requested": true
+    },
+    {
+      "kind": "formal",
+      "id": 40062364182,
+      "before": "queued",
+      "conclusionBefore": null,
+      "response": "✓ Request to cancel workflow 40062364182 submitted.",
+      "requested": true
+    },
+    {
+      "kind": "ide",
+      "id": 40062359405,
+      "before": "queued",
+      "conclusionBefore": null,
+      "response": "✓ Request to cancel workflow 40062359405 submitted.",
+      "requested": true
+    },
+    {
+      "kind": "arm64",
+      "id": 40062361879,
+      "before": "in_progress",
+      "conclusionBefore": null,
+      "response": "✓ Request to cancel workflow 40062361879 submitted.",
+      "requested": true
+    }
+  ]
+}

@@ -1,0 +1,362 @@
+{
+  "schema": "chainlesschain.physical-fixture-filesystem-preparation/v1",
+  "recordedAt": "2026-10-24T11:05:11.071Z",
+  "baseSource": "76491cc313d6057e4babee5223dc48033886e532",
+  "qualified": false,
+  "published": false,
+  "merged": false,
+  "localBefore": {
+    "node": "22.12.0",
+    "singleWorker": true,
+    "naturalFailure": true,
+    "cancelled": false,
+    "case": "rejects a substituted enrolled matrix request before entering either Gate",
+    "originalBudgetMs": 60000,
+    "durationMs": 80040.0823,
+    "passed": 0,
+    "failed": 1,
+    "stdoutContainsTimeout": true,
+    "vitestJsonFailureMessageNote": "Native JSON retained STACK_TRACE_ERROR; original encoded stdout explicitly reports the 60000ms timeout.",
+    "powerShellChildObservation": {
+      "workerPid": 6468,
+      "childPid": 19908,
+      "capturedIn": "Astra tool output, not a separate raw CIM file"
+    }
+  },
+  "repair": {
+    "productionRuntimeChanged": false,
+    "physicalFixtureCount": 32,
+    "syntheticDirectoryCompatibilityRemoved": true,
+    "actualOriginalFilesystemAdapter": true,
+    "genuineDirectoryFlush": true,
+    "explicitFaultFilesystemDependenciesPreserved": true,
+    "ownDirectorySyncPreserved": true,
+    "inheritedNodeMethodsPreserved": true,
+    "originalFaultAdmissionHooksPreserved": true,
+    "existingTimeoutsAndAssertionsUnchanged": true
+  },
+  "validation": {
+    "fixedOriginalCase": {
+      "node": "22.12.0",
+      "budgetMs": 60000,
+      "durationMs": 6733.65,
+      "passed": 1,
+      "failed": 0
+    },
+    "matrixAndBoundaries": {
+      "node": "22.12.0",
+      "files": 4,
+      "passed": 169,
+      "failed": 0,
+      "preexistingSkipped": 2,
+      "originalDirectoryJournalControls": 157,
+      "newFixtureBoundaryControls": 4
+    },
+    "recoveryRepresentatives": {
+      "node": "22.12.0",
+      "files": 4,
+      "passed": 13,
+      "failed": 0
+    },
+    "preservedFaultControls": {
+      "node": "22.12.0",
+      "passed": 3,
+      "failed": 0,
+      "existingFixtureCodeUnchanged": true
+    },
+    "countsOverlapFixedCaseAlreadyInFullMatrix": true
+  },
+  "previousCloud": {
+    "sourceSha": "76491cc313d6057e4babee5223dc48033886e532",
+    "cloudFailureAsserted": false,
+    "partialAndPassedResultsDoNotQualifyReplacement": true,
+    "remainingRunsCancelled": true
+  },
+  "formalLimitsUnchanged": {
+    "durationSeconds": 7200,
+    "warmupTurns": 20,
+    "measuredTurns": 1000,
+    "turnDeadlineMs": 60000,
+    "cleanupDeadlineMs": 10000,
+    "maxRssGrowthMb": 128,
+    "maxResourceGrowth": 8
+  },
+  "sourceSnapshot": [
+    {
+      "file": "packages/cli/__tests__/fixtures/agent-evolution-tty-child.mjs",
+      "sha256": "ce4f5b2b8593013cf63ab56d28e3beca8d34b2a57360f0c1cc46ce23541281a2",
+      "baseSha256": "8ddf6b4725fc43b2c5e67f89a0f9bd66715004cff1bb93a2baccb24c7b1195c7"
+    },
+    {
+      "file": "packages/cli/__tests__/fixtures/evolution-durable-store.js",
+      "sha256": "870b0dc641665f78dd6f0b50176deebe8aa1d2904586fda3f3601a3b14a2347d",
+      "baseSha256": "2e4842ef403c2570fb9d583660905e081ec0f0dea9354f0409a67c830ea8c484"
+    },
+    {
+      "file": "packages/cli/__tests__/fixtures/evolution-journal-boundary.js",
+      "sha256": "02a0671bb2d79b75087219804b547db30a3aba7afb85d8ae82a0b2d3482235ba",
+      "baseSha256": "3894e9417d44b9deac4684b9b587b8fd08565034c3aae7785cb26199711b5eba"
+    },
+    {
+      "file": "packages/cli/__tests__/fixtures/evolution-ledger-file-backend-process.mjs",
+      "sha256": "2f1f96789ae92b38be2b7adbde71bd4994c0295187387bbc534b3e363fae5e6e",
+      "baseSha256": "ded237f45bbd334e823aeaf476516717bd60c49018f20c648fe3ca36635081b7"
+    },
+    {
+      "file": "packages/cli/__tests__/fixtures/pm-exploration-recovery-process.mjs",
+      "sha256": "8a137a29e4871bec999238a6e1e9e436cdb4cdae14431c4c6c1434361d023429",
+      "baseSha256": "a26e5563a36039e3f031ec6283f43f7e405d60de1d8455b535d305f17ec32e4c"
+    },
+    {
+      "file": "packages/cli/__tests__/fixtures/structured-memory-agent-control-plane.js",
+      "sha256": "a117188fb237e4ff9fce854f6ce92bea1cf72b54915a0cbdeedee57d25c8f306",
+      "baseSha256": "c678e5b2d78ca8edea3df819407ce2098acbbc4e3965f23ede0a4d52219f489f"
+    },
+    {
+      "file": "packages/cli/__tests__/helpers/evolution-wiki-journey-fixture.js",
+      "sha256": "fadfb26904c99692c43c2796a40a2d5a11834e6624907921171f8c10aa34dd89",
+      "baseSha256": "a2bebfd40555d3901571e790402dedd905e071aa2a89f495b901f60bc11dd60e"
+    },
+    {
+      "file": "packages/cli/__tests__/helpers/governed-knowledge-artifact-lifecycle.js",
+      "sha256": "7c6d53aa1ae7dfd485ea865a76227fe514aa63698a39653dc074784fe80a7173",
+      "baseSha256": "a021103ca663f197ac65dc1bccf239cb6e5f3c4b643f9587f6f42e1bf00d5055"
+    },
+    {
+      "file": "packages/cli/__tests__/integration/helpers/evolution-raw-deletion-cross-process-worker.mjs",
+      "sha256": "66a9e9132c472322770e4741a525e2be2968431872aad6435e7cf0360d936a47",
+      "baseSha256": "f728c2b43a591e06f60cba95abfbe607dcd4f4b88efdbda736863ff2feefc13b"
+    },
+    {
+      "file": "packages/cli/__tests__/integration/helpers/evolution-release-train-process-worker.mjs",
+      "sha256": "6af8157ecb17bfcecace6fcd7853c8ad5c7527f0d0babf870088effc9c077bde",
+      "baseSha256": "345983b0a99d414881c23927745f53140f718f79a7b3a98ce98765d05224c6b7"
+    },
+    {
+      "file": "packages/cli/__tests__/integration/helpers/skill-revocation-cross-process-worker.mjs",
+      "sha256": "33c84d5d0037b2ec47ebb45742e9ed4a6a7f3592121ebd58aaea2815833a8894",
+      "baseSha256": "6ac790300e4eaae16e1b455ac4af785da3d48ca4dad4ace314f43dbb7f3836b8"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/agent-evolution-runtime-composition.test.js",
+      "sha256": "e3368d306d9dbd8eb2ec90a5026aff6345f3b8e585a650937b117c17ed54d5ce",
+      "baseSha256": "3e70e7506e8fc545e5f5c2c10c90e46e42ffc305edbf5635e73140989b7eaff8"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/controlled-skill-pilot-ledger-adapter.test.js",
+      "sha256": "23f9d43034b7861d6fd5a769c542ae91b59ec6dc5233f10473fa1de03af5c2c6",
+      "baseSha256": "0a386dd8566c7e27adad377ddcb868523fd178516971a6cd15f95900b76a2093"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/evolution-eval-child-evidence-ledger-adapter.test.js",
+      "sha256": "b3bf94a9b27dc46f56f1a635db88c695ba6560acf53de61fab569677eb501968",
+      "baseSha256": "8ffc80ac906f7baaa68b7ae97cd2c08e8e06caaa5e774b0a499bfd37ad23f78f"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/evolution-eval-launch-admission-fixture.js",
+      "sha256": "da485b15a913b40a9a5bdc85239d3ac825d450fd2d3d97ead8ca3b828ff65e2e",
+      "baseSha256": "0a143c008a7a281e22f128d6ae73acdf65562b47c92bb64e7e43e7932bb8b2cb"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/evolution-fixture-filesystem.test.js",
+      "sha256": "717e7cadb1d20e0acadb84c695a3ca045d089640d2488bb8ff3ea726b18d8a32",
+      "baseSha256": null
+    },
+    {
+      "file": "packages/cli/__tests__/unit/evolution-ledger-file-backend.test.js",
+      "sha256": "f25ae3e765c07f8e78e03c4f8069537d41830ed13f5177909af06227c61ea928",
+      "baseSha256": "2d5d7b0ae2e7ffab79e0e7fed7791d12f595f17466af7e023b824cb64715439c"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/evolution-raw-deletion-ledger-adapter.test.js",
+      "sha256": "0a0ec4b4ab91e406419507f1974a5af04741dff09904a8720c7465b8cae92454",
+      "baseSha256": "5cf6c0695bd94952a1572b92fe19ee23853f320d7bd2d8b1a04f40b6c05fee9a"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/evolution-workbench-metrics-ledger-adapter.test.js",
+      "sha256": "81d32b1dd8c2739d4aff7e58ada33464209327bddf69b71be60a2cb967d34db2",
+      "baseSha256": "697b4a208c953ced4738a93a29f83891e738c3f57e12f70e2512ceb5a0d8a86b"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/evolvable-artifact-ledger-adapter.test.js",
+      "sha256": "5b9a66c9f840b3d6cfb28d76050e3776f61d9bec018bc5e4123081aec1f3c4e2",
+      "baseSha256": "0ba4ab0b62ce6e265e3b810a9f93054ac60ee0673ab8c9832c7e24f43cbe4fea"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/governed-knowledge-sync-ledger-adapter.test.js",
+      "sha256": "7b142e58dd43c14c667171487d768a0389a744e3b88a85bec3331206d1402c5d",
+      "baseSha256": "f031316e34c68d603d111b5db2635d5c14ffb82c97c00bb71f87b245b41cbf98"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/governed-knowledge-trust-ledger.test.js",
+      "sha256": "58d16be9ef89bdf118686e17836ccff1a9cf8f5ad6ddd096ba53b4ef02bb5c52",
+      "baseSha256": "10638f377185c7967d696fc100b5a820a806b015a02d47890831ffdb130d91e0"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/governed-skill-marketplace-ledger-adapter.test.js",
+      "sha256": "b3113d8317badb7806c2d2190b4bed1a808783670dfc4078c71de660d2ffd47d",
+      "baseSha256": "931cb751279a7e37c8e0e37669ee181a6d18bab22a10b1eb2d0ee0f1945c0953"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/governed-skill-synthesis-attestor-trust-ledger.test.js",
+      "sha256": "b93a225f8b3336aa8e781bfa6deea5cbb122da944bf29be0d6ee677110d9e8ff",
+      "baseSha256": "07fd83c55ffa3211ba08d087d68473112d7e346859fb73021045e6c828772410"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/governed-skill-synthesis-evaluation-ledger-adapter.test.js",
+      "sha256": "3dc2dcd3ff44937d5cf08831822544a698ce573278b7401b4331b969fb22556a",
+      "baseSha256": "3110bfe1b269a9f6b41b0a3f539632ee4479b9977836a99d41aac299107bd281"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/pm-exploration-ledger-adapter.test.js",
+      "sha256": "0f63a4d1aca058d3941fc06b4dce0544008a542e4e30cc5015bc780fdf6c3158",
+      "baseSha256": "67100d9a7b47afa9a3af028af58e0f6b75c895f1e03aba7cb906e156bb6e5488"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/skill-promotion-review-ledger-adapter.test.js",
+      "sha256": "cea0045c179c328264b802bff5388ffcc5e1f4f2c166e86f65e0381e11839ad2",
+      "baseSha256": "8ea64fd6d969569f230145dcd9e5aded3bddd642cff1134ba6351db50b5d724b"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/skill-retrieval-revocation-ledger-adapter.test.js",
+      "sha256": "3491e917666099a22f8b73bee0396fdd8bcd28fe1727087551230beab36385b5",
+      "baseSha256": "86bb268620c6926becf5066ba45db94dff8554fbc9dfe1a1bdaed38e069e3977"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/structured-memory-ledger-adapter.test.js",
+      "sha256": "adbd3ef04a7e96c90e9aac8314c3bd543f8341db49693f6e6affb13fbb1aec03",
+      "baseSha256": "e8fa3642a7f8c63e26e8aa29e4c4185e34ffee73813ba53d949869de7f6f5bc6"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/wiki-maintainer-ledger-adapter.test.js",
+      "sha256": "089aec96b59989eec57896f3bccf48e48151e7d30218670fbf13a0e58f8dd365",
+      "baseSha256": "d3cd2d6b0d110445fed38150c230051d20b6eb759862dcd225714c461a6105dd"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/wiki-maintenance-trigger-ledger-adapter.test.js",
+      "sha256": "2723bf2857e1c869ddb8c1db7e43fe6c9da6dc86c0b95ecb666c5e68f28363c2",
+      "baseSha256": "30ad49bf1d19cfee2e2732a7d48da80e405bbefc5465915e403bdf835ed213b1"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/wikiskill-benchmark-ledger-adapter.test.js",
+      "sha256": "dda61fa071069d0125ee4bc412690e9efd1d891f8982ba6c2a1b0dfefa5e97f4",
+      "baseSha256": "48c6d83e93c334994457d9ff0ddf91d34b25535992e8222820c7a6716daa3411"
+    }
+  ],
+  "frozenSource": [
+    {
+      "file": "packages/cli/src/runtime/headless-stream.js",
+      "sha256": "cda14256d22a65aaca1f403032b46de17cdd5958985e37b39f0cbabdb9b6bf03"
+    },
+    {
+      "file": "packages/cli/src/runtime/agent-core.js",
+      "sha256": "8a95306c26d098f49eeb36973bc167e5d9923e76024c98417431a7a32b41a9d7"
+    },
+    {
+      "file": "packages/cli/src/lib/session-runtime-retention.js",
+      "sha256": "d7a4507e9782e323268a8e28397d1504122349191532ec0ad4797c2126e92d1c"
+    },
+    {
+      "file": "packages/cli/src/lib/session-message-provenance.js",
+      "sha256": "9d5c8a9853d22709f0ae85e19308f325461e5bc701ca314fcd6652cc28d49fd6"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/evolution-windows-directory-durability.js",
+      "sha256": "fce9da65ca616c047aebdb2ae08637da48ded7e0647137c9c72045cab66f5937"
+    },
+    {
+      "file": "packages/session-core/lib/private-storage.js",
+      "sha256": "949fa9de4d5906d100094ff95b3d30efe67d65fb733310c702bca9692f552ef6"
+    },
+    {
+      "file": ".github/workflows/cli-ci.yml",
+      "sha256": "a7cc0482ba9de7bef31f76f564bbd7e6b433da6c16d4c62e9ae50e17d80ae756"
+    },
+    {
+      "file": ".github/workflows/cli-strict-sandbox.yml",
+      "sha256": "81ff3c38967892933746f09b3b6d4829b7250099cfbf66eeca7dcd17fcc5d786"
+    },
+    {
+      "file": ".github/workflows/cli-reliability-soak.yml",
+      "sha256": "2ee14865837499caf3e6d6706a5b49381ef7817815893f9e391c6a06d048eb10"
+    },
+    {
+      "file": ".github/workflows/cli-session-host-consistency.yml",
+      "sha256": "0f548cdca3d2526a2b1497c6b8f5a37622da7c8a96006deaed8767b1fc340f01"
+    }
+  ],
+  "files": [
+    {
+      "path": "audit-summary.json",
+      "bytes": 5381,
+      "sha256": "dc7ef33c2a66b589b613fcf1439700bf411272d421b9fd2d86f2d5779f6ff29a",
+      "encoding": "utf8"
+    },
+    {
+      "path": "substituted-matrix.json",
+      "bytes": 5247,
+      "sha256": "c09818e8c0c39c8828ce330d4a2b603635e7af6bd9074a45bd38de31977a39e5",
+      "encoding": "utf8"
+    },
+    {
+      "path": "substituted-matrix.stdout.log",
+      "bytes": 6694,
+      "sha256": "23bf3a053400178cab47cdafef77c4412d2bf37212afcfe29a8dd0f941755da8",
+      "encoding": "utf16le"
+    },
+    {
+      "path": "substituted-matrix-fixed.json",
+      "bytes": 4127,
+      "sha256": "c25df5a18cee14f6f4af618d81de93998fa46135124a929114996e59ea343176",
+      "encoding": "utf8"
+    },
+    {
+      "path": "substituted-matrix-fixed.stdout.log",
+      "bytes": 4256,
+      "sha256": "59a6a0076b179afe495e5bdbf7f3a9540106498640889543865d9e50758753a9",
+      "encoding": "utf16le"
+    },
+    {
+      "path": "fixed-matrix-boundaries.json",
+      "bytes": 59965,
+      "sha256": "26c87eac40d5f13e6ff58ea1000f642318c28edc83fdcf6a1e1c9d728d239b50",
+      "encoding": "utf8"
+    },
+    {
+      "path": "fixed-matrix-boundaries.stdout.log",
+      "bytes": 60500,
+      "sha256": "403d3b962dd5cecce68122328dce3bdf8073490ba890447ed085e30083b83265",
+      "encoding": "utf16le"
+    },
+    {
+      "path": "fixed-recovery-representatives.json",
+      "bytes": 6019,
+      "sha256": "912d678d376689c172a01ba17cd5525c4c8b932a4e3d5148112db944462aa363",
+      "encoding": "utf8"
+    },
+    {
+      "path": "fixed-recovery-representatives.stdout.log",
+      "bytes": 5462,
+      "sha256": "7f4ee2cf4d6a4219cbd01239c79d856888663a231caa0837ad1d8bfc1b0f6e9a",
+      "encoding": "utf16le"
+    },
+    {
+      "path": "preserved-ledger-fault-controls.json",
+      "bytes": 18251,
+      "sha256": "8e72dc77699302cd1471dcd49994fc021e1fa2689f3a149c9278d5a3a4f3d338",
+      "encoding": "utf8"
+    },
+    {
+      "path": "preserved-ledger-fault-controls.stdout.log",
+      "bytes": 17702,
+      "sha256": "7200d4af3e16c1ed32e66ca21d4ffa0dcfc37bfa1480651c158349ae7f913a39",
+      "encoding": "utf16le"
+    },
+    {
+      "path": "previous-matrix-cancellation.json",
+      "bytes": 2437,
+      "sha256": "f5a91b909cd65b1c15eb982e24fefe4ca0b75d5b96e5fe678294b6c13a75ce7f",
+      "encoding": "utf8"
+    }
+  ]
+}

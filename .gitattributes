@@ -164,3 +164,36 @@ docs/research/cli/evidence/documentation-review-2026-10-13/assessment.md -lingui
 docs/research/cli/evidence/documentation-deployment-2026-10-13/** -text !eol -whitespace linguist-generated
 docs/research/cli/evidence/documentation-deployment-2026-10-13/README.md -linguist-generated
 docs/research/cli/evidence/documentation-deployment-2026-10-13/astra-review/assessment.md -linguist-generated
+
+# Original Windows ACL failure and local regression reports retain exact bytes.
+docs/research/cli/evidence/recovery-2026-10-24/evolution-file-owner-acl/** -text !eol -whitespace linguist-generated
+docs/research/cli/evidence/recovery-2026-10-24/evolution-file-owner-acl/preparation.json -linguist-generated
+
+# Signed-deployment timeout and real-filesystem controls preserve captured bytes.
+docs/research/cli/evidence/recovery-2026-10-24/real-deployment-fs/** -text !eol -whitespace linguist-generated
+docs/research/cli/evidence/recovery-2026-10-24/real-deployment-fs/preparation.json -linguist-generated
+
+# Native fixture recovery keeps original CI and local diagnostic bytes.
+docs/research/cli/evidence/recovery-2026-10-24/native-fixture-filesystems/** -text !eol -whitespace linguist-generated
+docs/research/cli/evidence/recovery-2026-10-24/native-fixture-filesystems/preparation.json -linguist-generated
+docs/research/cli/evidence/recovery-2026-10-24/native-fixture-filesystems/README.md -linguist-generated
+
+# Independent settlement review and final acknowledgement regressions retain bytes.
+docs/research/cli/evidence/recovery-2026-10-24/tool-round-ack/** -text !eol -whitespace linguist-generated
+docs/research/cli/evidence/recovery-2026-10-24/tool-round-ack/preparation.json -linguist-generated
+docs/research/cli/evidence/recovery-2026-10-24/tool-round-ack/README.md -linguist-generated
+
+# Natural Windows fixture timeout and physical-IO recovery reports retain bytes.
+docs/research/cli/evidence/recovery-2026-10-24/physical-fixture-filesystems/** -text !eol -whitespace linguist-generated
+docs/research/cli/evidence/recovery-2026-10-24/physical-fixture-filesystems/preparation.json -linguist-generated
+docs/research/cli/evidence/recovery-2026-10-24/physical-fixture-filesystems/README.md -linguist-generated
+
+# Native module realm recovery keeps original CI and local regression bytes.
+docs/research/cli/evidence/recovery-2026-10-24/native-module-realms/** -text !eol -whitespace linguist-generated
+docs/research/cli/evidence/recovery-2026-10-24/native-module-realms/preparation.json -linguist-generated
+docs/research/cli/evidence/recovery-2026-10-24/native-module-realms/README.md -linguist-generated
+
+# Canonical/bundled changelog parity failure and regeneration preserve raw bytes.
+docs/research/cli/evidence/recovery-2026-10-24/changelog-artifact-parity/** -text !eol -whitespace linguist-generated
+docs/research/cli/evidence/recovery-2026-10-24/changelog-artifact-parity/preparation.json -linguist-generated
+docs/research/cli/evidence/recovery-2026-10-24/changelog-artifact-parity/README.md -linguist-generated

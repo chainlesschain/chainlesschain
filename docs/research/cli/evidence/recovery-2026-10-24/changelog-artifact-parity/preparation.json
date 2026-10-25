@@ -1,0 +1,209 @@
+{
+  "schema": "chainlesschain.changelog-artifact-parity-recovery/v1",
+  "preparedAt": "2026-10-24T13:31:54.733Z",
+  "baseSource": "35cb1a379ddf80003c46efe315de5dac88b19731",
+  "qualified": false,
+  "published": false,
+  "merged": false,
+  "ciFailure": {
+    "sourceSha": "35cb1a379ddf80003c46efe315de5dac88b19731",
+    "runId": 40094125260,
+    "jobId": 120872913752,
+    "jobName": "test-ubuntu / unit (ubuntu-latest, shard 3/4)",
+    "jobConclusion": "failure",
+    "logSha256": "861e28b6cd870fc91d8ae3071311b9465e2a5410dcd0e3401079950a8551cb8c",
+    "artifacts": [
+      {
+        "id": 12561228521,
+        "name": "cli-ubuntu-latest-unit-3-results",
+        "digest": "sha256:3ca8f7a1bb1af7496e6396f9cca15162c0a29964bd2ad676cba961c0e81b1bdd"
+      }
+    ],
+    "capturedAt": "2026-10-24T13:21:20.325Z",
+    "qualified": false,
+    "published": false
+  },
+  "repair": {
+    "productionRuntimeChanged": false,
+    "generatedPackageDataChanged": true,
+    "onlyPackageFile": "packages/cli/src/data/changelog.json",
+    "generator": "packages/cli/scripts/build-changelog.mjs",
+    "canonicalChangelogUnchanged": true,
+    "parserTestsAndGateDefinitionsUnchanged": true
+  },
+  "validation": {
+    "node": "v22.12.0",
+    "originalParity": {
+      "passed": 0,
+      "failed": 1
+    },
+    "fixedParity": {
+      "passed": 1,
+      "failed": 0
+    },
+    "generatorIdempotent": true,
+    "generatedCommandContractsPassed": 3,
+    "previousSourceWindowsShard4": {
+      "jobId": 120872914039,
+      "conclusion": "success",
+      "resultArtifactAvailable": false,
+      "reason": "Frozen _cli-test.yml uploads the JUnit artifact only on failure; no individual passing-case timings are claimed."
+    },
+    "priorRuntimeControls": {
+      "sourceSha": "35cb1a379ddf80003c46efe315de5dac88b19731",
+      "uniquePassed": 64,
+      "sourceFilesUnchanged": true,
+      "notAReplacementForNewCommitGates": true
+    }
+  },
+  "formalLimitsUnchanged": {
+    "durationSeconds": 7200,
+    "warmupTurns": 20,
+    "measuredTurns": 1000,
+    "turnDeadlineMs": 60000,
+    "cleanupDeadlineMs": 10000,
+    "maxRssGrowthMb": 128,
+    "maxResourceGrowth": 8
+  },
+  "sourceSnapshot": [
+    {
+      "file": "packages/cli/src/data/changelog.json",
+      "sha256": "a354de833c0477514c5632977037e3b9fe7a559a3e66c93fab509510309da2af",
+      "baseSha256": "22bce1cb0b533dc7ec0fd23cec96844457eaf6bab241c6f41f5e036e46fcfedd"
+    }
+  ],
+  "frozenSource": [
+    {
+      "file": "packages/cli/src/runtime/agent-core.js",
+      "sha256": "8a95306c26d098f49eeb36973bc167e5d9923e76024c98417431a7a32b41a9d7"
+    },
+    {
+      "file": "packages/cli/src/runtime/headless-stream.js",
+      "sha256": "cda14256d22a65aaca1f403032b46de17cdd5958985e37b39f0cbabdb9b6bf03"
+    },
+    {
+      "file": "packages/cli/src/lib/session-runtime-retention.js",
+      "sha256": "d7a4507e9782e323268a8e28397d1504122349191532ec0ad4797c2126e92d1c"
+    },
+    {
+      "file": "packages/cli/src/lib/evolution/evolution-windows-directory-durability.js",
+      "sha256": "25ab81b85340d7fd814c182699fcd34bde07fc536e43f956aa8e42ff77cddf96"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/governed-hub-sdk-copy.test.js",
+      "sha256": "c05f9f8ff6a17a019837f1ec2fcc756833fc9d4609192a12fa0b7d9ab01c6de7"
+    },
+    {
+      "file": "packages/cli/__tests__/unit/agent-evolution-runtime-composition.test.js",
+      "sha256": "82d502cb37be26462ba262de0cf91627f8c0c73fe04b7bf8178f3759411bc416"
+    },
+    {
+      "file": ".github/workflows/cli-ci.yml",
+      "sha256": "a7cc0482ba9de7bef31f76f564bbd7e6b433da6c16d4c62e9ae50e17d80ae756"
+    },
+    {
+      "file": ".github/workflows/cli-strict-sandbox.yml",
+      "sha256": "81ff3c38967892933746f09b3b6d4829b7250099cfbf66eeca7dcd17fcc5d786"
+    },
+    {
+      "file": ".github/workflows/cli-reliability-soak.yml",
+      "sha256": "2ee14865837499caf3e6d6706a5b49381ef7817815893f9e391c6a06d048eb10"
+    },
+    {
+      "file": ".github/workflows/cli-session-host-consistency.yml",
+      "sha256": "0f548cdca3d2526a2b1497c6b8f5a37622da7c8a96006deaed8767b1fc340f01"
+    }
+  ],
+  "files": [
+    {
+      "path": "ci/12561228521.zip",
+      "bytes": 288868,
+      "sha256": "3ca8f7a1bb1af7496e6396f9cca15162c0a29964bd2ad676cba961c0e81b1bdd",
+      "encoding": "binary"
+    },
+    {
+      "path": "ci/artifacts.json",
+      "bytes": 5503,
+      "sha256": "6d1d9bf366359e80b29c87c73c2b23825782eddc69e2c17557c2e0ae4aecc458",
+      "encoding": "utf8"
+    },
+    {
+      "path": "ci/job.json",
+      "bytes": 2642,
+      "sha256": "5dcfc243d958849cbf81f5f667e2755aac1e2bc03ab58397c6786592df40753d",
+      "encoding": "utf8"
+    },
+    {
+      "path": "ci/job.log",
+      "bytes": 178729,
+      "sha256": "861e28b6cd870fc91d8ae3071311b9465e2a5410dcd0e3401079950a8551cb8c",
+      "encoding": "utf8"
+    },
+    {
+      "path": "ci/receipt.json",
+      "bytes": 573,
+      "sha256": "65e27defb0c21b537d4fbe1be61742aa8824f62afcfdb13956b86f5e930bb51e",
+      "encoding": "utf8"
+    },
+    {
+      "path": "ci/run.json",
+      "bytes": 14348,
+      "sha256": "a987165a8df33b07fe064e66d5c7584a8d97fb6554c04cf3823623987e3bb41c",
+      "encoding": "utf8"
+    },
+    {
+      "path": "generated-consistency-checks.json",
+      "bytes": 808,
+      "sha256": "5dd71bb7856362635cdcc82559047b9dfc6bd61a4c1c6c7d96b0d3e238fea948",
+      "encoding": "utf8"
+    },
+    {
+      "path": "local/baseline.json",
+      "bytes": 2010,
+      "sha256": "5f6c0ed1818dbf118d9d598851b59a41d3368275956475b2e3a08072bbd18a0a",
+      "encoding": "utf8"
+    },
+    {
+      "path": "local/baseline.stdout.log",
+      "bytes": 7872,
+      "sha256": "a909b6c675ba409b298e755a32456408510a18f6cc827ad9fc5a98ea209e2b93",
+      "encoding": "utf16le"
+    },
+    {
+      "path": "local/fixed.json",
+      "bytes": 1033,
+      "sha256": "509296a4a60090764e374fbd48b184a6044759c7f34db47356b245fbccb1fb11",
+      "encoding": "utf8"
+    },
+    {
+      "path": "local/fixed.stdout.log",
+      "bytes": 1028,
+      "sha256": "334a2c5ab35b45010684bbf5ed956164e5646f3ed1c35ced84afcdfaa5cf650f",
+      "encoding": "utf16le"
+    },
+    {
+      "path": "preceding-windows-shard4/artifacts.json",
+      "bytes": 32,
+      "sha256": "244563f989470892c537c9a4622920af0d228ee4528f7d00c64a06d6cd95856c",
+      "encoding": "utf8"
+    },
+    {
+      "path": "preceding-windows-shard4/job.json",
+      "bytes": 2647,
+      "sha256": "24bdba8307fee7b4cc7b9f7c663e71b35690d8c9c67dec4f98a65aef4cdc6b9d",
+      "encoding": "utf8"
+    },
+    {
+      "path": "preceding-windows-shard4/run.json",
+      "bytes": 14348,
+      "sha256": "a987165a8df33b07fe064e66d5c7584a8d97fb6554c04cf3823623987e3bb41c",
+      "encoding": "utf8"
+    },
+    {
+      "path": "previous-matrix-cancellation.json",
+      "bytes": 2134,
+      "sha256": "2d92895b872bb46ecae9908a05e0b92f0fa4c0a0b6698c6a9ca2f29091100eb3",
+      "encoding": "utf8"
+    }
+  ]
+}

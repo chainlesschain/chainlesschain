@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import http from "node:http";
 import { createRequire } from "node:module";
 import fs from "node:fs";
+import { createLocalUiEvolutionFileSystem } from "../../src/lib/evolution/evolution-windows-directory-durability.js";
 import os from "node:os";
 import path from "node:path";
 import { Writable, Readable } from "node:stream";
@@ -63,6 +64,7 @@ import {
 import { createAgentRuntimeFactory } from "../../src/runtime/runtime-factory.js";
 import { runAgentHeadless } from "../../src/runtime/headless-runner.js";
 import { runAgentHeadlessStream } from "../../src/runtime/headless-stream.js";
+import { recordStorageFailureStage } from "../../src/lib/storage-failure-cause-codes.js";
 import {
   agentLoop as coreAgentLoop,
   chatWithTools,
@@ -284,50 +286,7 @@ function signingAuthority(label) {
 }
 
 function durableFilesystem() {
-  const directories = new Set();
-  let nextDescriptor = -40_000;
-  return {
-    ...fs,
-    constants: fs.constants,
-    realpathSync: fs.realpathSync,
-    closeSync(descriptor) {
-      if (directories.delete(descriptor)) return;
-      return fs.closeSync(descriptor);
-    },
-    fsyncSync(descriptor) {
-      if (directories.has(descriptor)) return;
-      try {
-        return fs.fsyncSync(descriptor);
-      } catch (error) {
-        if (
-          process.platform === "win32" &&
-          ["EACCES", "EINVAL", "EISDIR", "EPERM"].includes(error?.code) &&
-          fs.fstatSync(descriptor).isDirectory()
-        ) {
-          return;
-        }
-        throw error;
-      }
-    },
-    openSync(target, flags, mode) {
-      try {
-        return fs.openSync(target, flags, mode);
-      } catch (error) {
-        if (
-          process.platform === "win32" &&
-          flags === "r" &&
-          ["EACCES", "EINVAL", "EISDIR", "EPERM"].includes(error?.code) &&
-          fs.statSync(target).isDirectory()
-        ) {
-          const descriptor = nextDescriptor;
-          nextDescriptor -= 1;
-          directories.add(descriptor);
-          return descriptor;
-        }
-        throw error;
-      }
-    },
-  };
+  return createLocalUiEvolutionFileSystem();
 }
 
 function evidenceAuthorities(sensitivity = "internal") {
@@ -2297,6 +2256,7 @@ describe("Agent evolution runtime production composition", () => {
       const factory = vi.fn(async ({ runId }) => {
         composition = nativeComposition.createAgentEvolutionRuntimeComposition({
           ...f.config,
+          fsImpl: nativeComposition.createLocalUiEvolutionFileSystem(),
           runId: mode === "wrong-run" ? "borrowed" : runId,
         });
         return composition;
@@ -2368,6 +2328,7 @@ describe("Agent evolution runtime production composition", () => {
         const factory = vi.fn(async ({ runId }) => {
           composition = native.createAgentEvolutionRuntimeComposition({
             ...f.config,
+            fsImpl: native.createLocalUiEvolutionFileSystem(),
             runId,
           });
           return composition;
@@ -2470,6 +2431,7 @@ describe("Agent evolution runtime production composition", () => {
     const host = createDesktopModelIngressHost(async ({ runId }) => {
       const composition = native.createAgentEvolutionRuntimeComposition({
         ...f.config,
+        fsImpl: native.createLocalUiEvolutionFileSystem(),
         runId,
       });
       compositions.push(composition);
@@ -2555,6 +2517,7 @@ describe("Agent evolution runtime production composition", () => {
         const factory = vi.fn(async ({ runId }) => {
           composition = native.createAgentEvolutionRuntimeComposition({
             ...f.config,
+            fsImpl: native.createLocalUiEvolutionFileSystem(),
             runId,
           });
           return composition;
@@ -2649,6 +2612,7 @@ describe("Agent evolution runtime production composition", () => {
         const factory = vi.fn(async ({ runId }) => {
           composition = native.createAgentEvolutionRuntimeComposition({
             ...f.config,
+            fsImpl: native.createLocalUiEvolutionFileSystem(),
             runId,
           });
           return composition;
@@ -2747,6 +2711,7 @@ describe("Agent evolution runtime production composition", () => {
         const factory = vi.fn(async ({ runId }) => {
           composition = native.createAgentEvolutionRuntimeComposition({
             ...f.config,
+            fsImpl: native.createLocalUiEvolutionFileSystem(),
             runId,
           });
           return composition;
@@ -2860,6 +2825,7 @@ describe("Agent evolution runtime production composition", () => {
         const factory = vi.fn(async ({ runId }) => {
           composition = native.createAgentEvolutionRuntimeComposition({
             ...f.config,
+            fsImpl: native.createLocalUiEvolutionFileSystem(),
             runId,
           });
           return composition;
@@ -3104,6 +3070,7 @@ describe("Agent evolution runtime production composition", () => {
     const host = createDesktopModelIngressHost(async ({ runId }) => {
       const composition = native.createAgentEvolutionRuntimeComposition({
         ...f.config,
+        fsImpl: native.createLocalUiEvolutionFileSystem(),
         runId,
       });
       compositions.push(composition);
@@ -3286,6 +3253,7 @@ describe("Agent evolution runtime production composition", () => {
     const host = createDesktopModelIngressHost(async ({ runId }) => {
       const composition = native.createAgentEvolutionRuntimeComposition({
         ...f.config,
+        fsImpl: native.createLocalUiEvolutionFileSystem(),
         runId,
       });
       compositions.push(composition);
@@ -3625,6 +3593,7 @@ describe("Agent evolution runtime production composition", () => {
       const host = createDesktopModelIngressHost(async ({ runId }) => {
         const composition = native.createAgentEvolutionRuntimeComposition({
           ...f.config,
+          fsImpl: native.createLocalUiEvolutionFileSystem(),
           runId,
         });
         compositions.push(composition);
@@ -3817,6 +3786,79 @@ describe("Agent evolution runtime production composition", () => {
       },
     };
   }
+
+  it.each([0, 1])(
+    "reports user ingress failure after %s completed turns without admitting or replaying the input",
+    async (completedTurns) => {
+      const f = modelFixture();
+      const secret = "private authority path and prompt must not escape";
+      const failure = Object.assign(new Error(secret), {
+        code: "CC_EVOLUTION_ARTIFACT_EXPIRED",
+      });
+      recordStorageFailureStage(failure, "source-evidence", "final-lease");
+      const issue =
+        f.config.authorities.sourceEnvelope.issue.getMockImplementation();
+      let prompts = 0;
+      f.config.authorities.sourceEnvelope.issue.mockImplementation(
+        async (request) => {
+          if (request.kind === "user-prompt" && prompts++ === completedTurns)
+            throw failure;
+          return issue(request);
+        },
+      );
+      async function* input() {
+        for (const text of ["first", "second", "must not replay"])
+          yield `${JSON.stringify({ type: "user", text })}\n`;
+      }
+      const lines = [];
+      const agentLoop = vi.fn(async function* () {
+        yield { type: "response-complete", content: "completed answer" };
+        yield { type: "run-ended", reason: "complete" };
+      });
+      const outcome = await runAgentHeadlessStream(
+        {
+          ...f.callOptions,
+          expandFileRefs: false,
+          projectMemory: false,
+          useRegisteredMcp: false,
+          ephemeral: true,
+          cwd: f.root,
+        },
+        {
+          input: input(),
+          bootstrap: async () => ({ db: null }),
+          getApprovalGate: async () => null,
+          agentLoop,
+          writeOut: (value) => lines.push(value),
+          writeErr: vi.fn(),
+        },
+      );
+      expect(outcome).toMatchObject({ exitCode: 1, turns: completedTurns });
+      expect(agentLoop).toHaveBeenCalledTimes(completedTurns);
+      expect(f.transport).not.toHaveBeenCalled();
+      expect(prompts).toBe(completedTurns + 1);
+      const events = lines.join("").trim().split("\n").map(JSON.parse);
+      const failures = events.filter(
+        (event) => event.type === "result" && event.is_error,
+      );
+      expect(failures).toHaveLength(1);
+      expect(failures[0]).toMatchObject({
+        subtype: "error_evolution_ingress",
+        code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+        turn: completedTurns + 1,
+      });
+      expect(failures[0].error).toContain(
+        "[storage_stage: source-evidence/final-lease]",
+      );
+      expect(failures[0].error).toContain(
+        "[storage_cause_codes: CC_EVOLUTION_ARTIFACT_EXPIRED]",
+      );
+      expect(lines.join("")).not.toContain(secret);
+      expect(events.at(-1)).toMatchObject({ type: "system", subtype: "end" });
+      expect(f.composition.loadRun().projection.status).not.toBe("completed");
+    },
+    30_000,
+  );
 
   it.each(["messages", "content"])(
     "binds large images in user-prompt evidence and encrypts originals at model admission (%s)",

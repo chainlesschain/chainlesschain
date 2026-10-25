@@ -93,6 +93,14 @@ try {
       resolve(root, "src/lib/evolution/agent-evolution-runtime-composition.js"),
     )
   );
+  const { createLocalUiEvolutionFileSystem } = await import(
+    pathToFileURL(
+      resolve(
+        root,
+        "src/lib/evolution/evolution-windows-directory-durability.js",
+      ),
+    )
+  );
   const { PromptCompressor, estimateMessagesTokens } = await import(
     pathToFileURL(resolve(root, "src/harness/prompt-compressor.js"))
   );
@@ -222,7 +230,9 @@ try {
     const runId = `pr-recovery-smoke-${++runSequence}`;
     const composition = createTestAgentEvolutionComposition(
       createAgentEvolutionRuntimeComposition,
-      { runId },
+      // Filesystem identity and native dependencies belong to the same target
+      // installation as the runtime, even when authorities come from checkout.
+      { runId, fsImpl: createLocalUiEvolutionFileSystem() },
       join(cwd, "evolution-state", runId),
     );
     respond = nextResponse;

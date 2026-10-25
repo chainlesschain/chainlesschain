@@ -2,6 +2,7 @@
 // ledger, witness, Reader and Wiki implementations below are production code.
 import crypto from "node:crypto";
 import fs from "node:fs";
+import { createLocalUiEvolutionFileSystem } from "../../src/lib/evolution/evolution-windows-directory-durability.js";
 import path from "node:path";
 import evolutionRun from "@chainlesschain/session-core/evolution-run";
 import { ArtifactStore } from "../../src/lib/artifact-store.js";
@@ -57,42 +58,7 @@ export const schemaPolicies = {
 };
 
 export function durableFilesystem() {
-  const directories = new Set();
-  let next = -50_000;
-  return {
-    ...fs,
-    closeSync(fd) {
-      if (!directories.delete(fd)) fs.closeSync(fd);
-    },
-    fsyncSync(fd) {
-      if (directories.has(fd)) return;
-      try {
-        fs.fsyncSync(fd);
-      } catch (error) {
-        if (
-          process.platform !== "win32" ||
-          !["EACCES", "EINVAL", "EISDIR", "EPERM"].includes(error.code) ||
-          !fs.fstatSync(fd).isDirectory()
-        )
-          throw error;
-      }
-    },
-    openSync(target, flags, mode) {
-      try {
-        return fs.openSync(target, flags, mode);
-      } catch (error) {
-        if (
-          process.platform !== "win32" ||
-          flags !== "r" ||
-          !["EACCES", "EINVAL", "EISDIR", "EPERM"].includes(error.code) ||
-          !fs.statSync(target).isDirectory()
-        )
-          throw error;
-        directories.add(--next);
-        return next;
-      }
-    },
-  };
+  return createLocalUiEvolutionFileSystem();
 }
 function signingAuthority(label) {
   const key = crypto.randomBytes(32);

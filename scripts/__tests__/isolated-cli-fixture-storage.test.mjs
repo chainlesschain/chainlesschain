@@ -100,3 +100,115 @@ test("isolated CLI test consumers load with the exact shared storage package", (
     assert.match(incomplete.stderr, /private-storage/);
   }
 });
+
+test("installed composition uses its own native filesystem with source-only test authorities", (t) => {
+  const temporary = fs.realpathSync.native(os.tmpdir());
+  const scratch = fs.mkdtempSync(path.join(temporary, "cc-fixture-native-"));
+  t.after(() => {
+    if (
+      path.dirname(scratch) !== temporary ||
+      !path.basename(scratch).startsWith("cc-fixture-native-")
+    )
+      throw new Error("unsafe native fixture cleanup");
+    fs.rmSync(scratch, { recursive: true, force: true });
+  });
+  const source = path.join(scratch, "source/packages/cli");
+  const installed = path.join(scratch, "global/node_modules/chainlesschain");
+  const dependencyRequire = createRequire(
+    path.join(
+      process.env.CC_FIXTURE_DEPENDENCY_ROOT || path.join(repo, "packages/cli"),
+      "package.json",
+    ),
+  );
+  for (const directory of [source, installed]) {
+    for (const relative of ["package.json", "src"])
+      fs.cpSync(
+        path.join(repo, "packages/cli", relative),
+        path.join(directory, relative),
+        {
+          recursive: true,
+        },
+      );
+    const storage = path.join(
+      directory,
+      "node_modules/@chainlesschain/session-core",
+    );
+    for (const relative of ["package.json", "lib"])
+      fs.cpSync(
+        path.join(repo, "packages/session-core", relative),
+        path.join(storage, relative),
+        {
+          recursive: true,
+        },
+      );
+    fs.cpSync(
+      path.dirname(dependencyRequire.resolve("semver/package.json")),
+      path.join(directory, "node_modules/semver"),
+      { recursive: true },
+    );
+  }
+  const fixtureRelative =
+    "__tests__/fixtures/agent-evolution-test-deployment.js";
+  fs.cpSync(
+    path.join(repo, "packages/cli", fixtureRelative),
+    path.join(source, fixtureRelative),
+  );
+  // Only the installed runtime gets the genuine native package. The checkout
+  // fixture cannot borrow it through cwd, NODE_PATH, or a workspace junction.
+  fs.cpSync(
+    path.dirname(dependencyRequire.resolve("koffi/package.json")),
+    path.join(installed, "node_modules/koffi"),
+    { recursive: true },
+  );
+  const probe = spawnSync(
+    process.execPath,
+    [
+      "--input-type=module",
+      "-e",
+      `
+      import assert from 'node:assert/strict';
+      import { createRequire } from 'node:module';
+      const fixture = await import(${JSON.stringify(pathToFileURL(path.join(source, fixtureRelative)).href)});
+      const { createAgentEvolutionRuntimeComposition } = await import(${JSON.stringify(pathToFileURL(path.join(installed, "src/lib/evolution/agent-evolution-runtime-composition.js")).href)});
+      const native = await import(${JSON.stringify(pathToFileURL(path.join(installed, "src/lib/evolution/evolution-windows-directory-durability.js")).href)});
+      const sourceRequire = createRequire(${JSON.stringify(path.join(source, "package.json"))});
+      assert.throws(() => sourceRequire.resolve('koffi'), { code: 'MODULE_NOT_FOUND' });
+      if (process.platform === 'win32') {
+        assert.throws(() => fixture.createTestAgentEvolutionComposition(
+          createAgentEvolutionRuntimeComposition,
+          { runId: 'source-native-negative' },
+          ${JSON.stringify(path.join(scratch, "negative-state"))}
+        ), error => error.code === 'MODULE_NOT_FOUND' && error.message.includes('koffi'));
+      }
+      const fsImpl = native.createLocalUiEvolutionFileSystem();
+      if (process.platform === 'win32') assert.equal(native.isLocalUiEvolutionFileSystem(fsImpl), true);
+      const composition = fixture.createTestAgentEvolutionComposition(
+        createAgentEvolutionRuntimeComposition,
+        { runId: 'installed-native-positive', fsImpl },
+        ${JSON.stringify(path.join(scratch, "positive-state"))}
+      );
+      await composition.evolutionIngress.start();
+      const run = composition.loadRun();
+      assert.equal(run.events.length, 1);
+      assert.equal(run.projection.status, 'running');
+      console.log(JSON.stringify({ nativeFilesystem: true, events: run.events.length }));
+    `,
+    ],
+    {
+      cwd: installed,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        NODE_PATH: "",
+        CHAINLESSCHAIN_HOME: path.join(scratch, "home"),
+        CHAINLESSCHAIN_SECURITY_ANCHOR_HOME: path.join(scratch, "anchors"),
+      },
+      timeout: 30_000,
+    },
+  );
+  assert.equal(probe.status, 0, probe.stderr);
+  assert.deepEqual(JSON.parse(probe.stdout.trim()), {
+    nativeFilesystem: true,
+    events: 1,
+  });
+});

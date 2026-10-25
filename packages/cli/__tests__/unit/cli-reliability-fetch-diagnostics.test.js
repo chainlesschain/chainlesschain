@@ -6,7 +6,12 @@ import { createServer } from "node:net";
 import { once } from "node:events";
 import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  recordStorageFailureStage,
+  recordStorageFailureReason,
+  storageFailureCauseSuffix,
+} from "../../src/lib/storage-failure-cause-codes.js";
 import {
   reliabilityResultFailure,
   readReliabilityFetchDiagnostics,
@@ -35,6 +40,133 @@ afterEach(() => {
 });
 
 describe("reliability fetch diagnostics", () => {
+  it.each([
+    "release-clock-backward",
+    "release-envelope-expired",
+    "release-authority-lease-expired",
+  ])(
+    "projects %s only for the original ingress classification",
+    (storageReason) => {
+      const error = Object.assign(new Error("private"), {
+        code: "CC_EVOLUTION_ARTIFACT_EXPIRED",
+      });
+      recordStorageFailureReason(error, storageReason);
+      recordStorageFailureStage(error, "model-projection", "final-lease");
+      const event = {
+        is_error: true,
+        code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+        subtype: "error_evolution_ingress",
+        error: "private" + storageFailureCauseSuffix(error),
+      };
+      expect(reliabilityResultFailure(event, 141)).toEqual({
+        turn: 141,
+        subtype: "unknown",
+        errorDetails: null,
+        storageCauseCodes: ["CC_EVOLUTION_ARTIFACT_EXPIRED"],
+        storageStage: {
+          artifactType: "model-projection",
+          phase: "final-lease",
+        },
+        storageReason,
+      });
+      for (const changed of [{ code: "other" }, { subtype: "error" }])
+        expect(
+          reliabilityResultFailure({ ...event, ...changed }, 141),
+        ).not.toHaveProperty("storageReason");
+    },
+  );
+
+  it("projects only finite reasons from a real ingress-shaped diagnostic suffix", () => {
+    const cause = Object.assign(
+      new Error("artifact pathname changed during bounded read"),
+      { code: "CC_ARTIFACT_BOUNDED_READ_FAILED" },
+    );
+    const original = Object.assign(
+      new Error("stored artifact could not be opened safely", { cause }),
+      { code: "CC_EVOLUTION_ARTIFACT_INTEGRITY_FAILED" },
+    );
+    recordStorageFailureStage(original, "model-projection", "read-bytes");
+    const event = {
+      is_error: true,
+      code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+      subtype: "error_evolution_ingress",
+      error: "private path" + storageFailureCauseSuffix(original),
+    };
+    const projected = reliabilityResultFailure(event, 17);
+    expect(projected).toEqual({
+      turn: 17,
+      subtype: "unknown",
+      errorDetails: null,
+      storageCauseCodes: [
+        "CC_EVOLUTION_ARTIFACT_INTEGRITY_FAILED",
+        "CC_ARTIFACT_BOUNDED_READ_FAILED",
+      ],
+      storageStage: { artifactType: "model-projection", phase: "read-bytes" },
+      storageReason: "bounded-pathname-changed",
+    });
+    expect(JSON.stringify(projected)).not.toContain("private");
+    expect(JSON.stringify(projected)).not.toContain(cause.message);
+    expect(original.cause).toBe(cause);
+    for (const changed of [
+      { code: "unknown" },
+      { subtype: "error" },
+      { subtype: "unknown" },
+      {
+        error: event.error.replace(
+          "bounded-pathname-changed",
+          "private-reason",
+        ),
+      },
+      { error: event.error + " extra" },
+    ])
+      expect(
+        reliabilityResultFailure({ ...event, ...changed }, 17),
+      ).not.toHaveProperty("storageReason");
+    expect(
+      reliabilityResultFailure({ ...event, is_error: false }, 17),
+    ).toBeNull();
+  });
+
+  it("requires owned ingress fields and never executes reason-bearing accessors or proxies", () => {
+    const touched = vi.fn(() => {
+      throw new Error("private");
+    });
+    const base = {
+      is_error: true,
+      code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+      subtype: "error_evolution_ingress",
+      error:
+        " [storage_reason: bounded-pathname-changed] [storage_cause_codes: CC_ARTIFACT_BOUNDED_READ_FAILED]",
+    };
+    for (const key of ["code", "subtype", "error"]) {
+      const accessor = { ...base };
+      Object.defineProperty(accessor, key, { get: touched });
+      expect(reliabilityResultFailure(accessor, 1)).not.toHaveProperty(
+        "storageReason",
+      );
+      const inherited = { ...base };
+      delete inherited[key];
+      Object.setPrototypeOf(inherited, { [key]: base[key] });
+      expect(reliabilityResultFailure(inherited, 1)).not.toHaveProperty(
+        "storageReason",
+      );
+    }
+    const proxy = new Proxy(base, {
+      get: touched,
+      getOwnPropertyDescriptor: touched,
+    });
+    const revoked = Proxy.revocable(base, {});
+    revoked.revoke();
+    for (const event of [proxy, revoked.proxy])
+      expect(reliabilityResultFailure(event, 1)).not.toHaveProperty(
+        "storageReason",
+      );
+    expect(
+      reliabilityResultFailure({ ...base, error: proxy }, 1),
+    ).not.toHaveProperty("storageReason");
+    expect(touched).not.toHaveBeenCalled();
+  });
+
   it("reads versions from the shared binary and CLI resolution coordinate without paths", () => {
     const runtime = readReliabilityFetchRuntime();
     expect(runtime).toEqual({
@@ -141,6 +273,120 @@ describe("reliability fetch diagnostics", () => {
         -1,
       ),
     ).toEqual({ turn: null, subtype: "unknown", errorDetails: null });
+  });
+
+  it("retains bounded storage cause codes while keeping the original failure classification", () => {
+    const failure = reliabilityResultFailure(
+      {
+        is_error: true,
+        subtype: "error_evolution_ingress",
+        code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+        error:
+          "private error text/path [storage_cause_codes: CC_EVOLUTION_ARTIFACT_STORE_FAILED -> EPERM]",
+      },
+      17,
+    );
+    expect(failure).toEqual({
+      turn: 17,
+      subtype: "unknown",
+      errorDetails: null,
+      storageCauseCodes: ["CC_EVOLUTION_ARTIFACT_STORE_FAILED", "EPERM"],
+    });
+    expect(JSON.stringify(failure)).not.toContain("private");
+    expect(
+      reliabilityResultFailure(
+        { is_error: false, error: " [storage_cause_codes: EPERM]" },
+        18,
+      ),
+    ).toBeNull();
+  });
+
+  it("does not accept arbitrary storage markers or execute an error accessor", () => {
+    const base = {
+      is_error: true,
+      subtype: "error_evolution_ingress",
+      code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+    };
+    for (const error of [
+      "private [storage_cause_codes: UNKNOWN_PRIVATE_KEY]",
+      {
+        toString() {
+          throw new Error("private");
+        },
+      },
+    ])
+      expect(
+        reliabilityResultFailure({ ...base, error }, 1),
+      ).not.toHaveProperty("storageCauseCodes");
+    const hostile = { ...base };
+    Object.defineProperty(hostile, "error", {
+      get() {
+        throw new Error("must not access error getter");
+      },
+    });
+    expect(reliabilityResultFailure(hostile, 1)).not.toHaveProperty(
+      "storageCauseCodes",
+    );
+    expect(
+      reliabilityResultFailure(
+        { ...base, code: "unknown", error: " [storage_cause_codes: EPERM]" },
+        1,
+      ),
+    ).not.toHaveProperty("storageCauseCodes");
+  });
+
+  it("projects fixed artifact stages without changing ingress classification", () => {
+    const base = {
+      is_error: true,
+      subtype: "error_evolution_ingress",
+      code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
+    };
+    expect(
+      reliabilityResultFailure(
+        {
+          ...base,
+          error:
+            "private path [storage_stage: model-projection/read-bytes] [storage_cause_codes: CC_ARTIFACT_BOUNDED_READ_FAILED -> SECURE_FILE_IDENTITY_PARENT_RACE]",
+        },
+        17,
+      ),
+    ).toEqual({
+      turn: 17,
+      subtype: "unknown",
+      errorDetails: null,
+      storageCauseCodes: [
+        "CC_ARTIFACT_BOUNDED_READ_FAILED",
+        "SECURE_FILE_IDENTITY_PARENT_RACE",
+      ],
+      storageStage: { artifactType: "model-projection", phase: "read-bytes" },
+    });
+    expect(
+      reliabilityResultFailure(
+        {
+          ...base,
+          error: "private [storage_stage: trusted-projection/pre-index]",
+        },
+        17,
+      ).storageStage,
+    ).toEqual({ artifactType: "trusted-projection", phase: "pre-index" });
+    for (const event of [
+      { ...base, error: " [storage_stage: secret/read-bytes]" },
+      { ...base, error: " [storage_stage: model-projection/secret]" },
+      {
+        ...base,
+        code: "unknown",
+        error: " [storage_stage: model-projection/read-bytes]",
+      },
+      {
+        ...base,
+        get error() {
+          throw new Error("private");
+        },
+      },
+    ])
+      expect(reliabilityResultFailure(event, 17)).not.toHaveProperty(
+        "storageStage",
+      );
   });
 
   it("reprojects preload records without messages, endpoints, or private data", () => {

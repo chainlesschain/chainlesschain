@@ -1,0 +1,57 @@
+{
+  "schema": "chainlesschain.history-read-original-evidence/v1",
+  "baseSource": "927ddab4493021c61947c1eb344d44d88a3b398a",
+  "records": [
+    {
+      "file": "windows-formal-receipt.json",
+      "sha256": "757818f2f47618b64f2646557add163a6da40c75c6b18ce7abe22af08733222a",
+      "bytes": 714,
+      "original": ".work/release118-publish-first-927dda/failures/formal-windows/receipt.json"
+    },
+    {
+      "file": "windows-formal-original.zip",
+      "sha256": "330272cec2d4d8dc6f83b1c0e8b0f3cde0c166afba4c63bc51ef7d2ea0df44e9",
+      "bytes": 4504,
+      "original": ".work/release118-publish-first-927dda/failures/formal-windows/12564799900.zip"
+    },
+    {
+      "file": "windows-formal-original.log",
+      "sha256": "b7a54b26042977fd1d63c51b67962a2cd5499977bba39d4941531401ae41a90c",
+      "bytes": 47413,
+      "original": ".work/release118-publish-first-927dda/failures/formal-windows/job.log"
+    },
+    {
+      "file": "cancelled-other-os-receipt.json",
+      "sha256": "84f2e7e06056f37c9a3b26c59fac51ef1c43b4e1b1a1f679afecb02c1a9d0596",
+      "bytes": 842,
+      "original": ".work/release118-publish-first-927dda/failures/formal-other-os-comparison/receipt.json"
+    },
+    {
+      "file": "linux-cancelled-original.zip",
+      "sha256": "fa30598ef17178234320c264048f24e7f602ce2a4219ae9ed55a45df24071f01",
+      "bytes": 4914,
+      "original": ".work/release118-publish-first-927dda/failures/formal-other-os-comparison/12566227767.zip"
+    },
+    {
+      "file": "macos-cancelled-original.zip",
+      "sha256": "c2b450b1c40368560326bb44b636eefe2c4ba6f2d7b51b15eb578e6e3e41536c",
+      "bytes": 4440,
+      "original": ".work/release118-publish-first-927dda/failures/formal-other-os-comparison/12566466816.zip"
+    },
+    {
+      "file": "local-unchanged-baseline-summary.json",
+      "sha256": "417ba318dceb9dda961f39bfa3081040ccf7063d440b18e9cf24a902c093dfe6",
+      "bytes": 138629,
+      "original": ".work/release118-publish-first-927dda/perf-diagnostic/baseline-2026-10-24T16-02-18-566Z/summary.json"
+    },
+    {
+      "file": "local-unchanged-cpu-summary.json",
+      "sha256": "f4bffc5a9b2f47fccd4dfe1d64a22f640b1386d35db44edb87856052fc0eba79",
+      "bytes": 16659,
+      "original": ".work/release118-publish-first-927dda/perf-diagnostic/cpu-root-2026-10-24T16-21-30-917Z/cpu-summary.json"
+    }
+  ],
+  "qualified": false,
+  "published": false,
+  "merged": false
+}

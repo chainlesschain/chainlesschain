@@ -2,7 +2,10 @@
 import fs from "node:fs";
 import path from "node:path";
 import { readBoundedDescriptor } from "./evolution/bounded-descriptor-read.js";
-import { withEvolutionFileIdentity } from "./evolution/evolution-file-identity.js";
+import {
+  withEvolutionDirectoryFileIdentity,
+  withEvolutionFileIdentity,
+} from "./evolution/evolution-file-identity.js";
 import { artifactPhysicalIdentity } from "./evolution/evolution-artifact-identity.js";
 
 export const ARTIFACT_BOUNDED_READ_FAILED_CODE =
@@ -67,10 +70,10 @@ function sameStat(left, right) {
   );
 }
 
-/** Read one stable window only. Callers retain hash/signature and root checks. */
-export function readBoundedArtifactFile(target, expectedSize, maximumBytes) {
+function assertReadArguments(args) {
+  const [target, expectedSize, maximumBytes] = args;
   if (
-    arguments.length !== 3 ||
+    args.length !== 3 ||
     typeof target !== "string" ||
     !path.isAbsolute(target) ||
     path.resolve(target) !== target ||
@@ -83,49 +86,128 @@ export function readBoundedArtifactFile(target, expectedSize, maximumBytes) {
     throw new TypeError(
       "bounded artifact read requires a canonical path and finite size bounds",
     );
+}
+
+function readWithIdentity(target, expectedSize, maximumBytes, samePathHandle) {
+  const before = fs.lstatSync(target, { bigint: true });
+  safeStat(before, expectedSize, maximumBytes, "artifact path");
+  if (canonical(fs.realpathSync.native(target)) !== canonical(target))
+    fail("artifact path is not physically canonical");
+  const fd = fs.openSync(
+    target,
+    fs.constants.O_RDONLY |
+      (fs.constants.O_NOFOLLOW || 0) |
+      (fs.constants.O_NONBLOCK || 0),
+  );
   try {
-    return withEvolutionFileIdentity(DIRECTORY_FS, target, (samePathHandle) => {
-      const before = fs.lstatSync(target, { bigint: true });
-      safeStat(before, expectedSize, maximumBytes, "artifact path");
-      if (canonical(fs.realpathSync.native(target)) !== canonical(target))
-        fail("artifact path is not physically canonical");
-      const fd = fs.openSync(
-        target,
-        fs.constants.O_RDONLY |
-          (fs.constants.O_NOFOLLOW || 0) |
-          (fs.constants.O_NONBLOCK || 0),
-      );
-      try {
-        const opened = fs.fstatSync(fd, { bigint: true });
-        safeStat(opened, expectedSize, maximumBytes, "artifact descriptor");
-        if (!samePathHandle(before, opened) || !sameMetadata(before, opened))
-          fail("artifact path and descriptor identities differ");
-        const bytes = readBoundedDescriptor(
-          fs,
-          fd,
-          Number(opened.size),
-          maximumBytes,
-        );
-        const closed = fs.fstatSync(fd, { bigint: true });
-        const after = fs.lstatSync(target, { bigint: true });
-        safeStat(closed, expectedSize, maximumBytes, "artifact descriptor");
-        safeStat(after, expectedSize, maximumBytes, "artifact path");
-        if (!sameStat(opened, closed))
-          fail("artifact descriptor changed during bounded read");
-        if (
-          !sameStat(before, after) ||
-          !samePathHandle(after, closed) ||
-          !sameMetadata(after, closed) ||
-          canonical(fs.realpathSync.native(target)) !== canonical(target)
-        )
-          fail("artifact pathname changed during bounded read");
-        return bytes;
-      } finally {
-        fs.closeSync(fd);
-      }
-    });
+    const opened = fs.fstatSync(fd, { bigint: true });
+    safeStat(opened, expectedSize, maximumBytes, "artifact descriptor");
+    if (!samePathHandle(before, opened) || !sameMetadata(before, opened))
+      fail("artifact path and descriptor identities differ");
+    const bytes = readBoundedDescriptor(
+      fs,
+      fd,
+      Number(opened.size),
+      maximumBytes,
+    );
+    const closed = fs.fstatSync(fd, { bigint: true });
+    const after = fs.lstatSync(target, { bigint: true });
+    safeStat(closed, expectedSize, maximumBytes, "artifact descriptor");
+    safeStat(after, expectedSize, maximumBytes, "artifact path");
+    if (!sameStat(opened, closed))
+      fail("artifact descriptor changed during bounded read");
+    if (
+      !sameStat(before, after) ||
+      !samePathHandle(after, closed) ||
+      !sameMetadata(after, closed) ||
+      canonical(fs.realpathSync.native(target)) !== canonical(target)
+    )
+      fail("artifact pathname changed during bounded read");
+    return bytes;
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
+function wrapReadFailure(cause) {
+  if (cause?.code === ARTIFACT_BOUNDED_READ_FAILED_CODE) throw cause;
+  fail("artifact bounded descriptor read failed", cause);
+}
+
+/** Read one stable window only. Callers retain hash/signature and root checks. */
+export function readBoundedArtifactFile(target, expectedSize, maximumBytes) {
+  assertReadArguments(arguments);
+  try {
+    return withEvolutionFileIdentity(DIRECTORY_FS, target, (samePathHandle) =>
+      readWithIdentity(target, expectedSize, maximumBytes, samePathHandle),
+    );
   } catch (cause) {
-    if (cause?.code === ARTIFACT_BOUNDED_READ_FAILED_CODE) throw cause;
-    fail("artifact bounded descriptor read failed", cause);
+    wrapReadFailure(cause);
+  }
+}
+
+/**
+ * A synchronous batch shares one authenticated parent handle, never file
+ * contents or authority. Each child keeps the complete independent read
+ * window above. The parent is reattested before the batch can return.
+ */
+export function withBoundedArtifactDirectoryRead(directory, callback) {
+  if (
+    arguments.length !== 2 ||
+    typeof directory !== "string" ||
+    !path.isAbsolute(directory) ||
+    path.resolve(directory) !== directory ||
+    typeof callback !== "function" ||
+    callback.constructor?.name === "AsyncFunction"
+  )
+    throw new TypeError(
+      "bounded artifact directory read requires a canonical directory and synchronous callback",
+    );
+  let callbackFailure = null;
+  try {
+    return withEvolutionDirectoryFileIdentity(
+      DIRECTORY_FS,
+      directory,
+      (samePathHandle, _sameStableHandle, { parentPath }) => {
+        if (canonical(parentPath) !== canonical(directory))
+          fail("artifact batch parent is not physically canonical");
+        let active = true;
+        const read = Object.freeze((...args) => {
+          if (!active) fail("artifact batch read window is closed");
+          assertReadArguments(args);
+          const [target, expectedSize, maximumBytes] = args;
+          if (canonical(path.dirname(target)) !== canonical(parentPath))
+            fail(
+              "artifact batch read must name a direct child of its captured parent",
+            );
+          try {
+            return readWithIdentity(
+              target,
+              expectedSize,
+              maximumBytes,
+              samePathHandle,
+            );
+          } catch (cause) {
+            wrapReadFailure(cause);
+          }
+        });
+        try {
+          const result = callback(read);
+          if (result && typeof result.then === "function")
+            throw new TypeError(
+              "artifact batch callback must not return a promise",
+            );
+          return result;
+        } catch (cause) {
+          callbackFailure = cause;
+          throw cause;
+        } finally {
+          active = false;
+        }
+      },
+    );
+  } catch (cause) {
+    if (cause === callbackFailure) throw cause;
+    wrapReadFailure(cause);
   }
 }

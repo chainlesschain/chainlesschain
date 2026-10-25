@@ -1,0 +1,372 @@
+{
+  "schema": "chainlesschain.local-duplex-ingress-diagnostic/v1",
+  "sourceSha": "835dbd309c99d0a4b012273b212154e6d31ce286",
+  "platform": "win32",
+  "node": "v22.12.0",
+  "diagnosticOnly": true,
+  "formalQualification": false,
+  "paidProviderCalls": false,
+  "runtimeModified": true,
+  "sourceDirty": "M packages/cli/src/lib/evolution/evolution-file-witness.js\n M packages/cli/src/lib/evolution/evolution-ledger-file-manifest-catalog.js\n M packages/cli/src/lib/evolution/evolution-ledger-file-manifest-head-store.js\n M packages/cli/src/lib/evolution/evolution-windows-directory-durability.js\n?? packages/cli/__tests__/fixtures/evolution-storage-acl-process.mjs\n?? packages/cli/__tests__/unit/evolution-storage-acl-backend.test.js\n?? packages/cli/src/lib/evolution/evolution-private-storage.js",
+  "runtimeHashes": {
+    "evolution-file-witness.js": "8f8460bde2e01ef8b1347181687f17617c2d76c5294f7bcd66c2b56c0c7422e7",
+    "evolution-ledger-file-manifest-catalog.js": "aa88d9c1e08295f2d524eeeecd530c274d77af850f991a744863d5858121a949",
+    "evolution-ledger-file-manifest-head-store.js": "6c6835aa5df125528fb859db82e5be5706cfe8821356c43f3d205fa534d0d906",
+    "evolution-private-storage.js": "19e48244c6d6ee7d3e75448eb0ef11f70cf646fc5d7cd190170c1af0dceff3e0",
+    "evolution-windows-directory-durability.js": "fce9da65ca616c047aebdb2ae08637da48ded7e0647137c9c72045cab66f5937"
+  },
+  "profile": {
+    "mode": "smoke",
+    "warmupTurns": 20,
+    "turns": 100,
+    "durationSeconds": 720,
+    "checkpointIntervalSeconds": 30,
+    "cleanupDeadlineMs": 10000,
+    "maxRssGrowthMb": 128,
+    "maxResourceGrowth": 8
+  },
+  "startedAt": "2026-10-24T05:18:48.282Z",
+  "status": "diagnostic-failed",
+  "requestCount": 38,
+  "sent": 38,
+  "results": [
+    {
+      "sequence": 1,
+      "at": "2026-10-24T05:19:08.743Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 2,
+      "at": "2026-10-24T05:19:17.880Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 3,
+      "at": "2026-10-24T05:19:27.583Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 4,
+      "at": "2026-10-24T05:19:38.523Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 5,
+      "at": "2026-10-24T05:19:49.364Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 6,
+      "at": "2026-10-24T05:20:00.628Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 7,
+      "at": "2026-10-24T05:20:12.816Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 8,
+      "at": "2026-10-24T05:20:25.052Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 9,
+      "at": "2026-10-24T05:20:39.065Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 10,
+      "at": "2026-10-24T05:20:52.686Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 11,
+      "at": "2026-10-24T05:21:07.603Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 12,
+      "at": "2026-10-24T05:21:23.553Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 13,
+      "at": "2026-10-24T05:21:40.526Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 14,
+      "at": "2026-10-24T05:21:59.003Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 15,
+      "at": "2026-10-24T05:22:18.856Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 16,
+      "at": "2026-10-24T05:22:38.071Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 17,
+      "at": "2026-10-24T05:22:59.007Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 18,
+      "at": "2026-10-24T05:23:19.786Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 19,
+      "at": "2026-10-24T05:23:41.445Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 20,
+      "at": "2026-10-24T05:24:03.718Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 21,
+      "at": "2026-10-24T05:24:43.902Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 22,
+      "at": "2026-10-24T05:25:14.280Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 23,
+      "at": "2026-10-24T05:25:43.606Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 24,
+      "at": "2026-10-24T05:26:18.949Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 25,
+      "at": "2026-10-24T05:26:49.270Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 26,
+      "at": "2026-10-24T05:27:18.573Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 27,
+      "at": "2026-10-24T05:27:48.331Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 28,
+      "at": "2026-10-24T05:28:19.635Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 29,
+      "at": "2026-10-24T05:28:52.222Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 30,
+      "at": "2026-10-24T05:29:28.956Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 31,
+      "at": "2026-10-24T05:30:12.906Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 32,
+      "at": "2026-10-24T05:30:58.789Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 33,
+      "at": "2026-10-24T05:31:53.906Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 34,
+      "at": "2026-10-24T05:32:32.754Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 35,
+      "at": "2026-10-24T05:33:14.097Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 36,
+      "at": "2026-10-24T05:34:00.495Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    },
+    {
+      "sequence": 37,
+      "at": "2026-10-24T05:34:52.900Z",
+      "isError": false,
+      "code": null,
+      "subtype": "success"
+    }
+  ],
+  "failures": [],
+  "stderr": "Warning: sandbox mode is explicitly off; shell commands use policy checks without OS isolation.\n[AppConfig] No config file, using defaults\n[AppConfig] Configuration saved\n[DatabaseManager] better-sqlite3-multiple-ciphers unusable: Could not locate the bindings file. Tried:\n[DatabaseManager] better-sqlite3 unusable: Could not locate the bindings file. Tried:\n[DatabaseManager] Using sql.js (WASM fallback)\n[DatabaseManager] Database initialized: <local-path>\\data\\chainlesschain.db\n",
+  "partial": {
+    "status": "failed",
+    "warmupTurns": 20,
+    "turns": 17,
+    "sentCount": 38,
+    "resultCount": 37,
+    "continuousDurationSeconds": 707.538412,
+    "latency": {
+      "p95Ms": 46226.09049999993,
+      "observedCount": 17,
+      "retainedCount": 17
+    },
+    "rss": {
+      "beforeBytes": 164122624,
+      "maximumBytes": 199024640
+    },
+    "resources": {
+      "kind": "handle",
+      "before": 239,
+      "maximum": 239
+    },
+    "results": {
+      "count": 37,
+      "measuredCount": 17,
+      "errorCount": 0,
+      "failures": [],
+      "subtypeCounts": {
+        "success": 37
+      },
+      "lengthMinimum": 14,
+      "lengthMaximum": 14
+    },
+    "diagnosticCodes": [],
+    "diagnosticClasses": [],
+    "fetchDiagnostics": {
+      "available": true,
+      "enabled": true,
+      "truncated": false,
+      "events": []
+    },
+    "fetchRuntime": {
+      "coordinate": "parent-shared-binary-and-cli-module-resolution",
+      "node": "22.12.0",
+      "uv": "1.49.1",
+      "bundledUndici": "6.21.0",
+      "ollamaUndici": "7.30.1"
+    },
+    "failure": {
+      "kind": "turn-timeout",
+      "awaitedResultCount": 38,
+      "timeoutMs": 60000
+    },
+    "cleanup": {
+      "deadlineMs": 10000,
+      "elapsedMs": 627.5350999999791,
+      "closed": true,
+      "treeTerminated": true,
+      "confirmed": true,
+      "deadlineExceeded": false,
+      "diagnostics": {
+        "method": "windows-taskkill-tree",
+        "initialExitObserved": false,
+        "signalAttempted": true,
+        "probeCount": 0,
+        "permissionProbeCount": 0,
+        "failureStage": null,
+        "errorCode": null
+      }
+    }
+  },
+  "failure": {
+    "code": "CC_RELIABILITY_TURN_TIMEOUT",
+    "message": "turn 38 timed out"
+  },
+  "cleanupConfirmed": true,
+  "sourceCleanAfter": true,
+  "finishedAt": "2026-10-24T05:36:02.378Z"
+}

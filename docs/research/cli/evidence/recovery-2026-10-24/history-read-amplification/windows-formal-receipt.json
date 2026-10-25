@@ -1,0 +1,24 @@
+{
+  "sourceSha": "927ddab4493021c61947c1eb344d44d88a3b398a",
+  "runId": 40099321919,
+  "jobId": 120888023499,
+  "jobName": "disk/pipe/TTY/SSH/MCP/resource soak (windows-latest)",
+  "jobConclusion": "failure",
+  "failedSteps": [
+    {
+      "name": "Run real CLI reliability gate",
+      "number": 8
+    }
+  ],
+  "logSha256": "b7a54b26042977fd1d63c51b67962a2cd5499977bba39d4941531401ae41a90c",
+  "artifacts": [
+    {
+      "id": 12564799900,
+      "name": "cli-reliability-windows-latest-927ddab4493021c61947c1eb344d44d88a3b398a-1",
+      "digest": "sha256:330272cec2d4d8dc6f83b1c0e8b0f3cde0c166afba4c63bc51ef7d2ea0df44e9"
+    }
+  ],
+  "at": "2026-10-24T15:43:15.681Z",
+  "qualified": false,
+  "published": false
+}

@@ -1242,6 +1242,7 @@ export async function retireDuplexProcessTree(
     method:
       platform === "win32" ? "windows-taskkill-tree" : "posix-process-group",
     initialExitObserved: initialExit !== null,
+    reason: initialExit !== null ? "root-exited-before-tree-retirement" : null,
     signalAttempted: false,
     probeCount: 0,
     permissionProbeCount: 0,
@@ -1404,7 +1405,7 @@ export async function duplexSoakScenario(
     },
   );
   const completion = observeChildCompletion(child);
-  child.stderr.resume();
+  const startupDiagnostics = observeStartupDiagnostics(child);
   let buffer = "";
   let resultCount = 0;
   let resultErrorCount = 0;
@@ -1415,6 +1416,9 @@ export async function duplexSoakScenario(
   const observedDiagnosticCodes = new Set();
   const observedDiagnosticClasses = new Set();
   const waiters = [];
+  const pendingWaits = new Set();
+  let firstFailure = null;
+  let normalInputEnd = false;
   const latencies = [];
   let sentCount = 0;
   let turns = 0;
@@ -1423,6 +1427,76 @@ export async function duplexSoakScenario(
   let rssBefore = null;
   let resourcesMaximum = null;
   let rssMaximum = null;
+  const fail = (code, message, details) => {
+    if (firstFailure) return firstFailure.error;
+    firstFailure = {
+      error: Object.assign(new Error(message), { code }),
+      details,
+    };
+    for (const reject of [...pendingWaits]) reject(firstFailure.error);
+    return firstFailure.error;
+  };
+  // Every blocking phase subscribes to the same failure, including pacing and
+  // stdin backpressure. Settling either way releases its timer/listeners.
+  const waitUnlessFailed = (subscribe) =>
+    new Promise((resolvePromise, rejectPromise) => {
+      if (firstFailure) {
+        rejectPromise(firstFailure.error);
+        return;
+      }
+      let settled = false;
+      let dispose = () => {};
+      const finish = (error) => {
+        if (settled) return;
+        settled = true;
+        pendingWaits.delete(reject);
+        dispose();
+        if (error) rejectPromise(error);
+        else resolvePromise();
+      };
+      const reject = (error) => finish(error);
+      pendingWaits.add(reject);
+      try {
+        dispose = subscribe(() => finish(), reject) || (() => {});
+        // A fake transport, or an already available observation, can settle
+        // synchronously before subscribe returns its disposer.
+        if (settled) dispose();
+      } catch (error) {
+        finish(error);
+      }
+    });
+  const delayUnlessFailed = (milliseconds) =>
+    waitUnlessFailed((resolve) => {
+      const timer = setTimeout(resolve, milliseconds);
+      return () => clearTimeout(timer);
+    });
+  const onClose = () => {
+    if (!normalInputEnd) {
+      fail(
+        "CC_RELIABILITY_CHILD_CLOSED",
+        "duplex child closed before input ended",
+        {
+          kind: "child-closed",
+          awaitedResultCount: sentCount,
+        },
+      );
+    }
+  };
+  const onChildError = () => {
+    fail("CC_RELIABILITY_CHILD_ERROR", "duplex child process failed", {
+      kind: "child-error",
+      awaitedResultCount: sentCount,
+    });
+  };
+  const onStdinError = () => {
+    fail("CC_RELIABILITY_STDIN_ERROR", "duplex input stream failed", {
+      kind: "input-error",
+      awaitedResultCount: sentCount,
+    });
+  };
+  child.on("close", onClose);
+  child.on("error", onChildError);
+  child.stdin.on("error", onStdinError);
   const resultSummary = () => ({
     count: resultCount,
     measuredCount: Math.max(0, resultCount - profile.warmupTurns),
@@ -1432,6 +1506,28 @@ export async function duplexSoakScenario(
     lengthMinimum: resultLengthMinimum,
     lengthMaximum: resultLengthMaximum,
   });
+  const childExit = () => {
+    const exit = completion.exit();
+    if (exit === null) return null;
+    return {
+      code: Number.isSafeInteger(exit.code) ? exit.code : null,
+      signal:
+        exit.signal === null
+          ? null
+          : [
+                "SIGABRT",
+                "SIGBUS",
+                "SIGFPE",
+                "SIGILL",
+                "SIGINT",
+                "SIGKILL",
+                "SIGSEGV",
+                "SIGTERM",
+              ].includes(exit.signal)
+            ? exit.signal
+            : "unknown",
+    };
+  };
   const partialSnapshot = (status = "running", failure = null) => ({
     status,
     warmupTurns: profile.warmupTurns,
@@ -1454,6 +1550,8 @@ export async function duplexSoakScenario(
       maximum: resourcesMaximum,
     },
     results: resultSummary(),
+    childExit: childExit(),
+    ...startupDiagnostics(),
     diagnosticCodes: [...observedDiagnosticCodes].slice(0, 20),
     diagnosticClasses: [...observedDiagnosticClasses].slice(0, 20),
     fetchDiagnostics: readReliabilityFetchDiagnostics(fetchDiagnosticsFile),
@@ -1461,121 +1559,129 @@ export async function duplexSoakScenario(
     ...(failure === null ? {} : { failure }),
   });
   child.stdout.setEncoding("utf8");
-  child.stdout.on("data", (chunk) => {
+  const onData = (chunk) => {
     buffer += chunk;
     for (;;) {
       const newline = buffer.indexOf("\n");
       if (newline < 0) break;
       const line = buffer.slice(0, newline);
       buffer = buffer.slice(newline + 1);
+      let event;
       try {
-        const event = JSON.parse(line);
-        if (event.type === "result") {
-          resultCount += 1;
-          if (event.is_error !== false) {
-            resultErrorCount += 1;
-            if (resultFailures.length < 20)
-              resultFailures.push(reliabilityResultFailure(event, resultCount));
-          }
-          const subtype = ["success", "error"].includes(event.subtype)
-            ? event.subtype
-            : "unknown";
-          resultSubtypeCounts.set(
-            subtype,
-            (resultSubtypeCounts.get(subtype) || 0) + 1,
+        event = JSON.parse(line);
+      } catch {
+        // Only complete, valid NDJSON lines are considered protocol evidence.
+        continue;
+      }
+      if (event?.type !== "result") continue;
+      try {
+        resultCount += 1;
+        if (event.is_error !== false) {
+          const failure = reliabilityResultFailure(event, resultCount);
+          resultErrorCount += 1;
+          if (resultFailures.length < 20) resultFailures.push(failure);
+          // Lock the safe original failure before optional diagnostics. JSON
+          // field values are untrusted and must never be implicitly coerced.
+          fail(
+            "CC_RELIABILITY_RESULT_ERROR",
+            `turn ${resultCount} returned an error result`,
+            {
+              kind: "result-error",
+              awaitedResultCount: resultCount,
+              result: failure,
+            },
           );
-          if (typeof event.result === "string") {
-            const length = event.result.length;
-            resultLengthMinimum =
-              resultLengthMinimum === null
-                ? length
-                : Math.min(resultLengthMinimum, length);
-            resultLengthMaximum =
-              resultLengthMaximum === null
-                ? length
-                : Math.max(resultLengthMaximum, length);
-          }
-          diagnosticCodes(`${event.code || ""} ${event.error || ""}`).forEach(
-            (code) => observedDiagnosticCodes.add(code),
-          );
-          diagnosticClasses(
-            `${event.code || ""} ${event.error || ""} ${event.result || ""}`,
-          ).forEach((value) => observedDiagnosticClasses.add(value));
-          for (let index = waiters.length - 1; index >= 0; index -= 1) {
-            if (resultCount >= waiters[index].count) {
-              const [waiter] = waiters.splice(index, 1);
-              waiter.resolve();
-            }
+        }
+        const subtype = ["success", "error"].includes(event.subtype)
+          ? event.subtype
+          : "unknown";
+        resultSubtypeCounts.set(
+          subtype,
+          (resultSubtypeCounts.get(subtype) || 0) + 1,
+        );
+        if (typeof event.result === "string") {
+          const length = event.result.length;
+          resultLengthMinimum =
+            resultLengthMinimum === null
+              ? length
+              : Math.min(resultLengthMinimum, length);
+          resultLengthMaximum =
+            resultLengthMaximum === null
+              ? length
+              : Math.max(resultLengthMaximum, length);
+        }
+        const code = typeof event.code === "string" ? event.code : "";
+        const error = typeof event.error === "string" ? event.error : "";
+        const result = typeof event.result === "string" ? event.result : "";
+        diagnosticCodes(`${code} ${error}`).forEach((code) =>
+          observedDiagnosticCodes.add(code),
+        );
+        diagnosticClasses(`${code} ${error} ${result}`).forEach((value) =>
+          observedDiagnosticClasses.add(value),
+        );
+        for (let index = waiters.length - 1; index >= 0; index -= 1) {
+          if (resultCount >= waiters[index].count) {
+            const [waiter] = waiters.splice(index, 1);
+            waiter.resolve();
           }
         }
       } catch {
-        // Only complete NDJSON lines are considered protocol evidence.
+        // Processing failures cannot disappear as if the JSON were malformed,
+        // nor replace an already latched result error or timeout.
+        fail("CC_RELIABILITY_SCENARIO_FAILED", "duplex scenario failed", {
+          kind: "scenario-failed",
+          awaitedResultCount: sentCount,
+        });
       }
     }
-  });
+  };
+  child.stdout.on("data", onData);
   const waitForResults = (count) =>
-    resultCount >= count
-      ? Promise.resolve()
-      : new Promise((resolvePromise, rejectPromise) => {
-          const resolve = () => {
-            clearTimeout(timer);
-            resolvePromise();
-          };
-          const timer = setTimeout(() => {
-            const index = waiters.findIndex(
-              (waiter) => waiter.resolve === resolve,
-            );
-            if (index >= 0) waiters.splice(index, 1);
-            rejectPromise(
-              Object.assign(new Error(`turn ${count} timed out`), {
-                code: "CC_RELIABILITY_TURN_TIMEOUT",
-              }),
-            );
-          }, 60_000);
-          waiters.push({ count, resolve });
-        });
+    waitUnlessFailed((resolve) => {
+      if (resultCount >= count) {
+        resolve();
+        return;
+      }
+      const waiter = { count, resolve };
+      waiters.push(waiter);
+      return () => {
+        const index = waiters.indexOf(waiter);
+        if (index >= 0) waiters.splice(index, 1);
+      };
+    });
 
   let scenarioFailure = null;
   try {
-    await new Promise((resolvePromise) => setTimeout(resolvePromise, 250));
+    await delayUnlessFailed(250);
     const sendTurn = async (text) => {
-      const accepted = child.stdin.write(
-        `${JSON.stringify({ type: "user", text })}\n`,
-      );
-      if (!accepted) {
-        await new Promise((resolvePromise, rejectPromise) => {
-          const onDrain = () => {
-            child.stdin.removeListener("error", onError);
-            resolvePromise();
-          };
-          const onError = (error) => {
-            child.stdin.removeListener("drain", onDrain);
-            rejectPromise(error);
-          };
-          child.stdin.once("drain", onDrain);
-          child.stdin.once("error", onError);
+      if (firstFailure) throw firstFailure.error;
+      const count = sentCount + 1;
+      const timer = setTimeout(() => {
+        fail("CC_RELIABILITY_TURN_TIMEOUT", `turn ${count} timed out`, {
+          kind: "turn-timeout",
+          awaitedResultCount: count,
+          timeoutMs: 60_000,
         });
-      }
-      sentCount += 1;
+      }, 60_000);
       try {
-        await waitForResults(sentCount);
-      } catch (error) {
-        // Persist the last protocol/transport observations before outer cleanup
-        // can fail, without retaining provider bodies, paths, or raw errors.
-        try {
-          checkpoint?.(
-            partialSnapshot("failed", {
-              kind:
-                error?.code === "CC_RELIABILITY_TURN_TIMEOUT"
-                  ? "turn-timeout"
-                  : "turn-failed",
-              awaitedResultCount: sentCount,
-              timeoutMs: 60_000,
-            }),
-          );
-        } finally {
-          throw error;
+        if (completion.exit() !== null) {
+          // Never write after exit. Keep draining stdout until close so a final
+          // result delivered after exit can remain the primary failure.
+          await waitUnlessFailed(() => {});
         }
+        sentCount = count;
+        const accepted = child.stdin.write(
+          `${JSON.stringify({ type: "user", text })}\n`,
+        );
+        if (!accepted) {
+          await waitUnlessFailed((resolve) => {
+            child.stdin.once("drain", resolve);
+            return () => child.stdin.removeListener("drain", resolve);
+          });
+        }
+        await waitForResults(count);
+      } finally {
+        clearTimeout(timer);
       }
     };
 
@@ -1600,9 +1706,7 @@ export async function duplexSoakScenario(
       if (turns >= profile.turns) {
         const remainingMs = deadline - beforeTurn;
         if (remainingMs > 0) {
-          await new Promise((resolvePromise) =>
-            setTimeout(resolvePromise, remainingMs),
-          );
+          await delayUnlessFailed(remainingMs);
         }
         continue;
       }
@@ -1613,9 +1717,7 @@ export async function duplexSoakScenario(
         beforeTurn - scenarioStarted,
       );
       if (scheduledDelayMs > 0) {
-        await new Promise((resolvePromise) =>
-          setTimeout(resolvePromise, scheduledDelayMs),
-        );
+        await delayUnlessFailed(scheduledDelayMs);
       }
       const started = performance.now();
       await sendTurn(`soak-${turns}`);
@@ -1643,8 +1745,24 @@ export async function duplexSoakScenario(
     const rssAfter = rssBytes(child.pid);
     const ioAfter = sampleIo(child.pid);
     const descendantsBeforeExit = descendantProcessSnapshot(child.pid);
+    if (firstFailure) throw firstFailure.error;
+    normalInputEnd = true;
     child.stdin.end();
-    const exit = await completion.wait(profile.cleanupDeadlineMs + 20_000);
+    await waitUnlessFailed((resolve) => {
+      const timer = setTimeout(() => {
+        fail(
+          "CC_RELIABILITY_CHILD_COMPLETION_TIMEOUT",
+          "child completion deadline exceeded",
+          {
+            kind: "child-completion-timeout",
+            awaitedResultCount: sentCount,
+          },
+        );
+      }, profile.cleanupDeadlineMs + 20_000);
+      completion.closed.then(resolve);
+      return () => clearTimeout(timer);
+    });
+    const exit = completion.exit();
     const descendantRetirements = descendantsBeforeExit.available
       ? await Promise.all(
           descendantsBeforeExit.pids.map((processId) =>
@@ -1750,9 +1868,18 @@ export async function duplexSoakScenario(
       fetchDiagnostics: readReliabilityFetchDiagnostics(fetchDiagnosticsFile),
       fetchRuntime: readReliabilityFetchRuntime(),
     };
-  } catch (error) {
-    scenarioFailure = error;
-    throw error;
+  } catch {
+    scenarioFailure =
+      firstFailure?.error ||
+      fail("CC_RELIABILITY_SCENARIO_FAILED", "duplex scenario failed", {
+        kind: "scenario-failed",
+        awaitedResultCount: sentCount,
+      });
+    // Evidence writes and cleanup must never replace the first observed failure.
+    try {
+      checkpoint?.(partialSnapshot("failed", firstFailure.details));
+    } catch {}
+    throw scenarioFailure;
   } finally {
     if (scenarioFailure) {
       let cleanup;
@@ -1774,20 +1901,17 @@ export async function duplexSoakScenario(
         scenarioFailure.reliabilityCleanupIncomplete = true;
       try {
         checkpoint?.({
-          ...partialSnapshot("failed", {
-            kind:
-              scenarioFailure.code === "CC_RELIABILITY_TURN_TIMEOUT"
-                ? "turn-timeout"
-                : "scenario-failed",
-            awaitedResultCount: sentCount,
-            timeoutMs: 60_000,
-          }),
+          ...partialSnapshot("failed", firstFailure.details),
           cleanup,
         });
       } catch {
-        // An evidence write failure must not replace the original timeout.
+        // An evidence write failure must not replace the original failure.
       }
     }
+    child.stdout.removeListener("data", onData);
+    child.removeListener("close", onClose);
+    child.removeListener("error", onChildError);
+    child.stdin.removeListener("error", onStdinError);
   }
 }
 

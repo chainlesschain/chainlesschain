@@ -18,6 +18,7 @@
 
 import { randomUUID } from "node:crypto";
 import { transportErrorDetails } from "../lib/transport-error-details.js";
+import { storageFailureCauseSuffix } from "../lib/storage-failure-cause-codes.js";
 import { captureAgentExecutionPolicy } from "../lib/agent-execution-policy.js";
 import { resolveLlmConnection } from "../lib/llm-connection-resolution.js";
 import { TaskWorklog } from "../lib/context-memory-kernel/task-worklog-port.js";
@@ -155,7 +156,11 @@ import {
   isVerifiedSessionHostSnapshot,
   readSessionHostResumeState,
 } from "../lib/session-host-snapshot.js";
-import { acquireSessionHostLease } from "../lib/session-host-lease.js";
+import {
+  acquireSessionHostLease,
+  SESSION_HOST_LEASE_FENCED_CODE,
+  SESSION_HOST_LEASE_UNAVAILABLE_CODE,
+} from "../lib/session-host-lease.js";
 import {
   normalizeSessionBudgetRootConfig,
   openProductionSessionBudgetRoot,
@@ -1842,7 +1847,14 @@ async function runAgentHeadlessStreamInWorkspace(
       worklogError = message;
     }
   };
+  let hostLeaseFailureReported = false;
   const emit = (event) => {
+    if (
+      event.type === "result" &&
+      event.is_error === true &&
+      sessionHostLease?.signal?.aborted
+    )
+      hostLeaseFailureReported = true;
     updateWorklog((log) => log.record(event));
     streamCoalescer.emit(event);
   };
@@ -3787,10 +3799,17 @@ async function runAgentHeadlessStreamInWorkspace(
       })),
       "readVerifiedProjection",
     );
-    return requireSynchronousRecoveryResult(
+    const appended = requireSynchronousRecoveryResult(
       store.appendToolRoundsIfMessagesMatch(sessionId, messages, expected),
       "appendToolRoundsIfMessagesMatch",
     );
+    if (typeof appended?.hash !== "string" || !appended.hash) {
+      throw Object.assign(
+        new Error("Tool round settlement did not return its durable head"),
+        { code: "CC_SESSION_TOOL_ROUND_SETTLEMENT_HEAD_UNKNOWN" },
+      );
+    }
+    return appended;
   };
   const settleToolRoundsForHost = (phase, clientMessageId = null) => {
     try {
@@ -4004,6 +4023,26 @@ async function runAgentHeadlessStreamInWorkspace(
     : null;
 
   let sawError = false;
+  const reportHostLeaseFailure = () => {
+    if (!sessionHostLease?.signal?.aborted) return false;
+    sawError = true;
+    if (!hostLeaseFailureReported) {
+      emit({
+        type: "result",
+        subtype: "error",
+        is_error: true,
+        code:
+          sessionHostLease.signal.reason?.code ===
+          SESSION_HOST_LEASE_FENCED_CODE
+            ? SESSION_HOST_LEASE_FENCED_CODE
+            : SESSION_HOST_LEASE_UNAVAILABLE_CODE,
+        error:
+          "Session host authority was lost; refresh the session before continuing",
+        session_id: sessionId,
+      });
+    }
+    return true;
+  };
   let evolutionIngressFailed = false;
   let terminalPersistenceFailure = null;
   const persistUsageEvent = persist
@@ -4319,7 +4358,12 @@ async function runAgentHeadlessStreamInWorkspace(
       break;
     }
     if (parsed == null) break; // stdin closed
-    sessionHostLease?.assert?.();
+    try {
+      sessionHostLease?.assert?.();
+    } catch (error) {
+      if (!reportHostLeaseFailure()) throw error;
+      break;
+    }
     if (turnBindingPersistenceError) {
       emitTurnBindingFailure();
       sawError = true;
@@ -5436,13 +5480,31 @@ async function runAgentHeadlessStreamInWorkspace(
     }
 
     if (evolutionIngress !== null) {
-      await evolutionIngress.ingestUserPrompt({
-        content: parsed.text,
-        imageCount: parsed.images?.length || 0,
-        sessionId,
-        source: "headless-stream",
-        turn: turns + 1,
-      });
+      try {
+        await evolutionIngress.ingestUserPrompt({
+          content: parsed.text,
+          imageCount: parsed.images?.length || 0,
+          sessionId,
+          source: "headless-stream",
+          turn: turns + 1,
+        });
+      } catch (error) {
+        if (error?.code !== AGENT_EVOLUTION_INGRESS_FAILED_CODE) throw error;
+        evolutionIngressFailed = true;
+        sawError = true;
+        emit({
+          type: "result",
+          subtype: "error_evolution_ingress",
+          is_error: true,
+          code: AGENT_EVOLUTION_INGRESS_FAILED_CODE,
+          error:
+            "Agent evolution ingress failed before the user turn was admitted" +
+            storageFailureCauseSuffix(error),
+          session_id: sessionId,
+          turn: turns + 1,
+        });
+        break;
+      }
     }
     if (worklogHistory) {
       const historyPart =
@@ -5651,6 +5713,13 @@ async function runAgentHeadlessStreamInWorkspace(
     } catch (err) {
       const turnWasAborted = currentAbort?.signal.aborted === true;
       currentAbort = null;
+      if (sessionHostLease?.signal?.aborted) {
+        // Keep the established interrupted-tool repair. A fenced persistence
+        // failure may already emit the terminal result; never emit it twice.
+        if (repairAndSettleToolRoundsForHost("after-model"))
+          reportHostLeaseFailure();
+        break;
+      }
       if (err?.code === AGENT_EVOLUTION_INGRESS_FAILED_CODE) {
         evolutionIngressFailed = true;
         // Ingress can reject the next model request after a tool round has
@@ -5790,6 +5859,13 @@ async function runAgentHeadlessStreamInWorkspace(
       break;
     }
     currentAbort = null;
+    if (sessionHostLease?.signal?.aborted) {
+      // A provider may finish successfully after observing cancellation late.
+      // Lost host authority still forbids reporting that turn as successful.
+      if (repairAndSettleToolRoundsForHost("after-model"))
+        reportHostLeaseFailure();
+      break;
+    }
 
     if (outcome.endReason === "user-input-pending") {
       if (!settleToolRoundsForHost("after-model")) break;
@@ -5967,6 +6043,7 @@ async function runAgentHeadlessStreamInWorkspace(
     }
   }
 
+  reportHostLeaseFailure();
   streamCleanup.setReason(
     pipeState.closed
       ? "pipe_closed"
@@ -5982,6 +6059,8 @@ async function runAgentHeadlessStreamInWorkspace(
   if (evolutionIngress !== null && !evolutionIngressFailed) {
     await evolutionIngress.complete();
   }
+
+  reportHostLeaseFailure();
 
   if (!pipeState.closed) {
     emit({ type: "system", subtype: "end", session_id: sessionId, turns });

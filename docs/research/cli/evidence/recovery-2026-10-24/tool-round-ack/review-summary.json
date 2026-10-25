@@ -1,0 +1,41 @@
+{
+  "worktree": "C:/code/chainlesschain/.work/cc118-native-ports",
+  "node": "C:/code/chainlesschain/.work/cli-ide-recovery-20261023/node-22.12.0/node-verified.exe",
+  "productionFile": "packages/cli/src/runtime/headless-stream.js",
+  "productionSha256": "CDA14256D22A65AACA1F403032B46DE17CDD5958985E37B39F0CBABDB9B6BF03",
+  "testFile": "packages/cli/__tests__/unit/headless-canonical-tool-round.test.js",
+  "testSha256": "12106C83509B036038C483536A837F4E69E50821306BBCF0E24D84E76E4DE621",
+  "checks": [
+    {
+      "file": "baseline-six-suites.log",
+      "passed": 59,
+      "kind": "pre-edit baseline; captured stdout summary"
+    },
+    {
+      "file": "sdk-session.log",
+      "passed": 25,
+      "kind": "SDK targeted tests; captured stdout summary"
+    },
+    {
+      "file": "new-ack-regressions.log",
+      "passed": 6,
+      "kind": "initial six new guard cases; captured stdout excerpt"
+    },
+    {
+      "file": "final-stream-retention.log",
+      "passed": 37,
+      "kind": "full two suites with final production guard; seventh test added later"
+    },
+    {
+      "file": "final-ack-regressions.json",
+      "passed": 7,
+      "kind": "native Vitest JSON; final seven guard cases including committed append with lost ack"
+    }
+  ],
+  "validationLimits": [
+    "Test counts overlap; do not sum as unique tests",
+    "Offline mocked provider transports exercise real adapter/JSONL/tool paths; no live model task executed",
+    "Local Windows Node 22.12.0 checks do not replace release CI Linux/Windows/macOS matrices"
+  ],
+  "remainingFindings": "No further reproduced defect within reviewed settlement/retention/normalization paths; real stale authority, storage failure or unverifiable transcript intentionally remains fail-closed"
+}

@@ -15,11 +15,26 @@ import { types as utilTypes } from "node:util";
 import {
   ArtifactStore,
   ARTIFACT_STORE_DEFAULT_READ_METHODS,
+  ARTIFACT_STORE_DEFAULT_PUBLISH_DATA_ONCE,
+  captureArtifactStoreTypedIndexPublisher,
 } from "../artifact-store.js";
+import { withFileLock } from "../with-file-lock.js";
+import {
+  sameDirectoryStatIdentity,
+  samePathHandleDirectoryIdentity,
+  withTrustedFileParentSync,
+} from "../secure-file-identity.js";
+import {
+  recordStorageFailureReason,
+  recordStorageFailureStage,
+} from "../storage-failure-cause-codes.js";
 import { artifactPhysicalIdentity as physicalIdentity } from "./evolution-artifact-identity.js";
 import { withEvolutionFileIdentity } from "./evolution-file-identity.js";
 import { readBoundedDescriptor } from "./bounded-descriptor-read.js";
-import { readBoundedArtifactFile } from "../bounded-artifact-file-read.js";
+import {
+  readBoundedArtifactFile,
+  withBoundedArtifactDirectoryRead,
+} from "../bounded-artifact-file-read.js";
 import {
   EVOLUTION_ARTIFACT_REF_SCHEMA,
   EVOLUTION_ARTIFACT_RESOLUTION_SCHEMA,
@@ -425,6 +440,8 @@ const LEDGER_RESOLVER_OPTION_KEYS = new Set(["purpose"]);
 const EVOLUTION_LEDGER_ARTIFACT_RESOLVERS = new WeakSet();
 const EVOLUTION_LEDGER_BATCH_RESOLVERS = new WeakMap();
 const EVOLUTION_LEDGER_BATCH_READ_WINDOWS = new WeakMap();
+const EVOLUTION_LEDGER_WHOLE_HISTORY_READERS = new WeakMap();
+const EVOLUTION_LEDGER_DEFAULT_PUBLICATIONS = new WeakMap();
 const EVOLUTION_LEDGER_RESOLVER_BINDINGS = new WeakMap();
 const isProxy = Object.freeze(utilTypes.isProxy.bind(utilTypes));
 const isDate = Object.freeze(utilTypes.isDate.bind(utilTypes));
@@ -841,6 +858,68 @@ function canonicalJson(
   return state.fragments.join("");
 }
 
+// Only explicitly opted-in repository publications reach this formatter. Keep
+// the envelope opaque and reuse the exact encoder used by index fingerprints.
+function encodeTypedEvolutionIndexRow(entry) {
+  const exactData = (value, keys) => {
+    if (
+      !value ||
+      typeof value !== "object" ||
+      isProxy(value) ||
+      Object.getPrototypeOf(value) !== Object.prototype
+    )
+      return false;
+    const ownKeys = Reflect.ownKeys(value);
+    return (
+      ownKeys.length === keys.size &&
+      ownKeys.every((key) => {
+        const descriptor = Object.getOwnPropertyDescriptor(value, key);
+        return (
+          keys.has(key) &&
+          descriptor?.enumerable === true &&
+          "value" in descriptor
+        );
+      })
+    );
+  };
+  if (
+    !exactData(entry, INDEX_ENTRY_KEYS) ||
+    !exactData(entry.lineage, LINEAGE_KEYS)
+  )
+    return null;
+  if (
+    [...LINEAGE_KEYS].some((key) => typeof entry.lineage[key] !== "string") ||
+    entry.lineage.schema !== EVOLUTION_ARTIFACT_LINEAGE_SCHEMA ||
+    entry.immutable !== true ||
+    entry.kind !== "data" ||
+    entry.mime !== "application/json" ||
+    entry.sessionId !== null ||
+    entry.sourcePath !== null ||
+    !Number.isSafeInteger(entry.size) ||
+    entry.size < 1 ||
+    entry.size > EVOLUTION_ARTIFACT_MAX_CANONICAL_BYTES ||
+    [...INDEX_ENTRY_KEYS].some(
+      (key) =>
+        !["lineage", "immutable", "sessionId", "sourcePath", "size"].includes(
+          key,
+        ) && typeof entry[key] !== "string",
+    )
+  )
+    return null;
+  try {
+    const canonical = canonicalJson(entry, MAX_INDEX_ENTRY_BYTES);
+    // Fixed keys contain no integer indices; all scalars use JSON.stringify in
+    // canonicalWalk. Preserve the original path if these bounds ever diverge.
+    return JSON.stringify(JSON.parse(canonical)) === canonical
+      ? canonical
+      : null;
+  } catch {
+    // Formatting is optional, not a new publication admission gate. Original
+    // serialization/readback still determines the outcome for an ineligible row.
+    return null;
+  }
+}
+
 function deepFreeze(value, seen = new WeakSet()) {
   if (!value || typeof value !== "object" || seen.has(value)) return value;
   rejectProxy(value, "value being frozen");
@@ -1097,6 +1176,16 @@ function captureArtifactStore(store) {
     "verifyIntegrity",
     "artifactStore",
   );
+  const publishDataOnce = captureDataMethod(
+    store,
+    "publishDataOnce",
+    "artifactStore",
+  );
+  const defaultPublication =
+    Object.getPrototypeOf(store) === ArtifactStore.prototype &&
+    publishDataOnce === ARTIFACT_STORE_DEFAULT_PUBLISH_DATA_ONCE &&
+    Object.getOwnPropertyDescriptor(store, "_indexLock")?.value ===
+      withFileLock;
   const defaults = ARTIFACT_STORE_DEFAULT_READ_METHODS;
   const initiallyDefaultRead =
     storedPath === defaults.storedPath &&
@@ -1104,10 +1193,25 @@ function captureArtifactStore(store) {
     hasRepositoryDataMethod(store, "_filesDir", defaults.filesDir);
   const captured = Object.freeze({
     dir: resolvedDir,
+    repositoryInstance:
+      Object.getPrototypeOf(store) === ArtifactStore.prototype,
     get: get === DEFAULT_STORE_GET ? null : Object.freeze(get.bind(store)),
     layout,
     list: list === DEFAULT_STORE_LIST ? null : Object.freeze(list.bind(store)),
-    publishDataOnce: captureMethod(store, "publishDataOnce", "artifactStore"),
+    publishDataOnce: captureArtifactStoreTypedIndexPublisher(
+      store,
+      publishDataOnce,
+      encodeTypedEvolutionIndexRow,
+    ),
+    canUseDefaultPublication: Object.freeze(
+      () =>
+        defaultPublication &&
+        hasRepositoryDataMethod(
+          store,
+          "publishDataOnce",
+          ARTIFACT_STORE_DEFAULT_PUBLISH_DATA_ONCE,
+        ),
+    ),
     storedPath: Object.freeze(storedPath.bind(store)),
     verifyIntegrity: Object.freeze(verifyIntegrity.bind(store)),
     // Default verifyIntegrity repeats the same bounded physical read and hash
@@ -1119,6 +1223,20 @@ function captureArtifactStore(store) {
         initiallyDefaultRead &&
         hasRepositoryDataMethod(store, "storedPath", defaults.storedPath) &&
         hasRepositoryDataMethod(store, "_filesDir", defaults.filesDir),
+    ),
+    canUseSealedDirectoryRead: Object.freeze(
+      () =>
+        initiallyDefaultRead &&
+        Object.getPrototypeOf(store) === ArtifactStore.prototype &&
+        hasRepositoryDataMethod(store, "list", defaults.list) &&
+        hasRepositoryDataMethod(store, "get", defaults.get) &&
+        hasRepositoryDataMethod(store, "storedPath", defaults.storedPath) &&
+        hasRepositoryDataMethod(store, "_filesDir", defaults.filesDir) &&
+        hasRepositoryDataMethod(
+          store,
+          "verifyIntegrity",
+          defaults.verifyIntegrity,
+        ),
     ),
   });
   // ArtifactStore methods consult public instance fields such as `dir` on
@@ -1473,6 +1591,111 @@ function attestStoreDirectories(layout) {
   }
 }
 
+// Only the sealed whole-history reader owns this synchronous capability. A
+// held descriptor does not anchor absolute-path opens like openat: each item
+// must still bind BOTH current directory paths to their captured, held FDs.
+// Only repeated directory realpath calls move to the complete read boundary.
+function withSealedStoreDirectoryRead(store, operation) {
+  const layout = store.layout;
+  const fail = () => {
+    throw artifactError(
+      EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
+      "ArtifactStore sealed directory identity or reader changed",
+    );
+  };
+  attestStoreDirectories(layout);
+  return withTrustedFileParentSync(
+    INDEX_DIRECTORY_FS,
+    path.join(layout.rootDir, ".sealed-directory-scope"),
+    (root) =>
+      withTrustedFileParentSync(
+        INDEX_DIRECTORY_FS,
+        path.join(layout.filesDir, ".sealed-directory-scope"),
+        (files) => {
+          const held = [
+            {
+              ...root,
+              path: layout.rootDir,
+              identity: layout.rootIdentity,
+            },
+            {
+              ...files,
+              path: layout.filesDir,
+              identity: layout.filesIdentity,
+            },
+          ].map((entry) => ({
+            ...entry,
+            initial: fs.fstatSync(entry.parentDescriptor, { bigint: true }),
+          }));
+          let active = true;
+          const assertReader = () => {
+            if (!active || !store.canUseSealedDirectoryRead()) fail();
+          };
+          const check = (leaf = null) => {
+            assertReader();
+            for (const entry of held) {
+              if (!samePath(entry.parentPath, entry.path)) fail();
+              const current = fs.lstatSync(entry.path, { bigint: true });
+              const descriptor = fs.fstatSync(entry.parentDescriptor, {
+                bigint: true,
+              });
+              assertDirectory(current, "ArtifactStore held directory path");
+              assertDirectory(descriptor, "ArtifactStore held directory FD");
+              const identity = physicalIdentity(current);
+              const stableFields = ["ino", "mode", "uid", "gid", "birthtimeNs"];
+              if (
+                typeof current.dev !== "bigint" ||
+                typeof descriptor.dev !== "bigint" ||
+                stableFields.some(
+                  (field) =>
+                    typeof current[field] !== "bigint" ||
+                    typeof descriptor[field] !== "bigint" ||
+                    current[field] !== descriptor[field] ||
+                    descriptor[field] !== entry.initial[field],
+                ) ||
+                identity.dev !== entry.identity.dev ||
+                identity.ino !== entry.identity.ino ||
+                identity.birthtimeMs !== entry.identity.birthtimeMs ||
+                !sameDirectoryStatIdentity(descriptor, entry.initial) ||
+                !samePathHandleDirectoryIdentity(
+                  current,
+                  descriptor,
+                  entry.parentDevice,
+                )
+              )
+                fail();
+            }
+            // This runs at the original post-attest point, AFTER hashing and
+            // any required hook, not merely at the earlier file read/close.
+            if (
+              leaf !== null &&
+              (!samePath(path.dirname(leaf), layout.filesDir) ||
+                !samePath(physicalRealpath(leaf), leaf))
+            )
+              fail();
+          };
+          const scope = Object.freeze({
+            check: Object.freeze(check),
+            assertReader: Object.freeze(assertReader),
+          });
+          try {
+            check();
+            return operation(scope);
+          } finally {
+            try {
+              check();
+              // Includes the last caller-supplied clock/authority operation;
+              // no result escapes before these checks and both FD closes.
+              attestStoreDirectories(layout);
+            } finally {
+              active = false;
+            }
+          }
+        },
+      ),
+  );
+}
+
 function indexEntriesFingerprint(entries, label) {
   assertDenseDataArray(entries, label, EVOLUTION_ARTIFACT_MAX_INDEX_ENTRIES);
   const hash = crypto.createHash("sha256");
@@ -1532,12 +1755,25 @@ function reserveTrustedIndexParse(layout, bytes, prefix) {
     countTrustedIndexRows(bytes) > MAX_RETAINED_INDEX_ROWS
   )
     return null;
-  // Small descriptor Buffers may keep an entire shared slab alive. Charge its
-  // full backing store even if another entry happens to share the same slab.
-  // Canonical JSON only reorders keys of exact JSON.stringify rows, so its
-  // newline-framed UTF-8 length equals the raw length. The writer checks this.
-  const memory =
+  let scratchBytes = 0;
+  let start = 0;
+  for (
+    let end = bytes.indexOf(10);
+    end !== -1;
+    end = bytes.indexOf(10, start)
+  ) {
+    scratchBytes = Math.max(scratchBytes, end - start);
+    start = end + 1;
+  }
+  // An oversized row is still rejected by the original parser, in its original
+  // order. Cache admission must not allocate an oversized comparison buffer.
+  if (scratchBytes > MAX_INDEX_ENTRY_BYTES) return null;
+  // Charge the full raw backing store (including any shared slab), a potential
+  // standalone canonical buffer, and the largest-row comparison scratch. The
+  // canonical reservation is NOT allocated unless a byte difference is found.
+  const compactMemory =
     bytes.buffer.byteLength + bytes.length + 4096 + parsedIndexMemory(layout);
+  const memory = compactMemory + scratchBytes;
   if (memory > MAX_RETAINED_INDEX_MEMORY) return null;
   const needsRoom = () =>
     retainedIndexMemory + reservedIndexMemory + memory >
@@ -1560,13 +1796,24 @@ function reserveTrustedIndexParse(layout, bytes, prefix) {
     forgetTrustedIndexParse(victim[0]);
   }
   reservedIndexMemory += memory;
-  return { memory, active: true, canonicalBytes: null };
+  return {
+    memory,
+    compactMemory,
+    scratchBytes,
+    active: true,
+    retain: true,
+    canonicalBytes: null,
+    scratch: null,
+    retiring: null,
+  };
 }
 
 function releaseTrustedIndexReservation(reservation) {
   if (!reservation?.active) return;
   reservedIndexMemory -= reservation.memory;
   reservation.active = false;
+  reservation.scratch = null;
+  reservation.retiring = null;
 }
 
 function promoteTrustedIndexParse(entry, parsed) {
@@ -1581,15 +1828,28 @@ function promoteTrustedIndexParse(entry, parsed) {
 }
 
 function retainTrustedIndexParse(layout, bytes, parsed, reservation) {
-  forgetTrustedIndexParse(layout);
-  releaseTrustedIndexReservation(reservation);
+  const previous = TRUSTED_INDEX_PARSES.get(layout);
+  if (previous) {
+    // The parser may still hold the old prefix. Transfer its entire charge to
+    // this transaction, rather than using replacement as free promotion room.
+    const memory = previous.memory + (previous.hot?.memory || 0);
+    retainedIndexMemory -= memory;
+    reservedIndexMemory += memory;
+    reservation.memory += memory;
+    reservation.retiring = previous;
+    TRUSTED_INDEX_PARSES.delete(layout);
+  }
+  // Transfer only compact ownership. Scratch and the retiring generation stay
+  // reserved through promotion and are released at the outer finally boundary.
+  reservedIndexMemory -= reservation.compactMemory;
+  reservation.memory -= reservation.compactMemory;
   const entry = {
     bytes,
     canonicalBytes: reservation.canonicalBytes,
     rowCount: parsed.entries.length,
     entriesFingerprint: parsed.entriesFingerprint,
     hotMemoryEstimate: parsed.memory,
-    memory: reservation.memory,
+    memory: reservation.compactMemory,
     hot: null,
   };
   TRUSTED_INDEX_PARSES.set(layout, entry);
@@ -1673,9 +1933,17 @@ function parseTrustedIndexBytes(bytes, prefix = null, reservation = null) {
   }
   let memory = prefix ? prefix.hotMemoryEstimate : 256;
   let canonicalOffset = prefix ? prefix.canonicalBytes.length : 0;
-  if (reservation) {
+  let rawOffset = prefix ? prefix.bytes.length : 0;
+  const allocateCanonical = () => {
     reservation.canonicalBytes = Buffer.allocUnsafeSlow(bytes.length);
-    if (prefix) prefix.canonicalBytes.copy(reservation.canonicalBytes);
+    if (prefix && prefix.canonicalBytes !== prefix.bytes)
+      prefix.canonicalBytes.copy(reservation.canonicalBytes);
+    else bytes.copy(reservation.canonicalBytes, 0, 0, canonicalOffset);
+  };
+  if (reservation) {
+    reservation.scratch = Buffer.allocUnsafeSlow(reservation.scratchBytes);
+    // A dual prefix already proves a noncanonical row in this generation.
+    if (prefix && prefix.canonicalBytes !== prefix.bytes) allocateCanonical();
   }
   // The new count is part of the original framing; never extend an old hash.
   const hash = crypto.createHash("sha256");
@@ -1724,31 +1992,60 @@ function parseTrustedIndexBytes(bytes, prefix = null, reservation = null) {
     hash.update(canonical, "utf8");
     if (reservation) {
       const line = lines[index - (rowCount - lines.length)];
-      if (
-        length !== Buffer.byteLength(line, "utf8") ||
-        canonicalOffset + length >= reservation.canonicalBytes.length ||
-        reservation.canonicalBytes.write(
-          canonical,
-          canonicalOffset,
-          length,
-          "utf8",
-        ) !== length
-      )
-        throw artifactError(
-          EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
-          "ArtifactStore canonical index length changed",
-        );
-      canonicalOffset += length;
-      reservation.canonicalBytes[canonicalOffset++] = 10;
+      const rawLength = Buffer.byteLength(line, "utf8");
+      if (reservation.retain) {
+        if (
+          length !== rawLength ||
+          length > reservation.scratchBytes ||
+          canonicalOffset + length >= bytes.length
+        ) {
+          // The budget relies on scalar encoding and key reordering preserving
+          // row lengths. If that ever stops holding, only bypass this cache;
+          // keep the original canonical validation and fingerprint semantics.
+          reservation.retain = false;
+        } else {
+          const written = reservation.scratch.write(
+            canonical,
+            0,
+            length,
+            "utf8",
+          );
+          if (written !== length) reservation.retain = false;
+          else {
+            const same = reservation.scratch
+              .subarray(0, length)
+              .equals(bytes.subarray(rawOffset, rawOffset + length));
+            if (!same && reservation.canonicalBytes === null)
+              allocateCanonical();
+            if (reservation.canonicalBytes !== null) {
+              reservation.scratch.copy(
+                reservation.canonicalBytes,
+                canonicalOffset,
+                0,
+                length,
+              );
+              reservation.canonicalBytes[canonicalOffset + length] = 10;
+            }
+          }
+        }
+      }
+      canonicalOffset += length + 1;
+      rawOffset += rawLength + 1;
       memory += 1024 + parsedIndexMemory(entry);
     }
     deepFreeze(entry);
   }
-  if (reservation && canonicalOffset !== reservation.canonicalBytes.length) {
-    throw artifactError(
-      EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
-      "ArtifactStore canonical index framing changed",
-    );
+  if (reservation?.retain) {
+    if (canonicalOffset !== bytes.length || rawOffset !== bytes.length) {
+      reservation.retain = false;
+    } else if (reservation.canonicalBytes === null) {
+      // Every row and LF has passed all original validation and exact byte
+      // comparison. Release only the canonical backing that was NEVER allocated.
+      reservation.canonicalBytes = bytes;
+      reservation.memory -= bytes.length;
+      reservation.compactMemory -= bytes.length;
+      reservedIndexMemory -= bytes.length;
+    }
   }
   return Object.freeze({
     entries: Object.freeze(entries),
@@ -1780,7 +2077,7 @@ function reuseTrustedIndexParse(layout, bytes) {
   const reservation = reserveTrustedIndexParse(layout, bytes, prefix);
   try {
     const parsed = parseTrustedIndexBytes(bytes, prefix, reservation);
-    if (reservation)
+    if (reservation?.retain)
       retainTrustedIndexParse(layout, bytes, parsed, reservation);
     return parsed;
   } finally {
@@ -2595,9 +2892,22 @@ export class EvolutionArtifactPorts {
     LEDGER_BATCH_INDEX_LOOKUPS.set(entries, lookups);
   }
 
-  #loadCurrentEntryById(artifactId) {
+  #defaultReadbackSnapshot() {
+    // One immutable descriptor snapshot may serve the pure default lookups
+    // within this phase. Recheck dynamic methods independently before each
+    // phase; never reuse this snapshot across payload I/O or authority calls.
+    if (
+      this.#store.list !== null ||
+      this.#store.get !== null ||
+      !this.#store.canUseSealedDirectoryRead()
+    )
+      return null;
+    return readTrustedIndexSnapshot(this.#store.layout);
+  }
+
+  #loadCurrentEntryById(artifactId, snapshot = null) {
     const listed = this.#entriesByDataField(
-      this.#boundedIndexEntries(),
+      snapshot?.entries ?? this.#boundedIndexEntries(),
       "id",
       artifactId,
     );
@@ -2615,6 +2925,7 @@ export class EvolutionArtifactPorts {
         { artifactId },
       );
     }
+    if (snapshot !== null) return listed[0];
     let current;
     try {
       current = rejectPromise(
@@ -2664,8 +2975,8 @@ export class EvolutionArtifactPorts {
     return current;
   }
 
-  #assertEntryStable(artifactId, original) {
-    const current = this.#loadCurrentEntryById(artifactId);
+  #assertEntryStable(artifactId, original, snapshot = null) {
+    const current = this.#loadCurrentEntryById(artifactId, snapshot);
     if (canonicalJson(current) !== canonicalJson(original)) {
       throw artifactError(
         EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
@@ -2835,8 +3146,15 @@ export class EvolutionArtifactPorts {
     return Object.freeze({ createdAt, expiresAt, file, id, lineage, size });
   }
 
-  #readStoredBytes(entry, normalizedEntry, expectedDigest) {
-    attestStoreDirectories(this.#store.layout);
+  #readStoredBytes(
+    entry,
+    normalizedEntry,
+    expectedDigest,
+    boundedRead = null,
+    directoryScope = null,
+  ) {
+    if (directoryScope) directoryScope.check();
+    else attestStoreDirectories(this.#store.layout);
     const expectedHex = expectedDigest.slice("sha256:".length);
     let storedPath;
     try {
@@ -2872,6 +3190,7 @@ export class EvolutionArtifactPorts {
       maximumBytes: EVOLUTION_ARTIFACT_MAX_CANONICAL_BYTES,
     });
     const preserveIntegrityHooks = !this.#store.canUseSingleBoundedRead();
+    directoryScope?.assertReader();
     if (preserveIntegrityHooks) {
       let integrityBefore;
       try {
@@ -2888,7 +3207,14 @@ export class EvolutionArtifactPorts {
 
     let bytes;
     try {
-      bytes = readBoundedArtifactFile(
+      directoryScope?.assertReader();
+      const read =
+        boundedRead !== null &&
+        !preserveIntegrityHooks &&
+        this.#store.canUseSingleBoundedRead()
+          ? boundedRead
+          : readBoundedArtifactFile;
+      bytes = read(
         resolvedStoredPath,
         readBounds.expectedSize,
         readBounds.maximumBytes,
@@ -2910,6 +3236,7 @@ export class EvolutionArtifactPorts {
         "stored artifact bytes do not match the signed recordDigest",
       );
     }
+    directoryScope?.assertReader();
     if (preserveIntegrityHooks || !this.#store.canUseSingleBoundedRead()) {
       let integrityAfter;
       try {
@@ -2923,7 +3250,8 @@ export class EvolutionArtifactPorts {
       }
       validateIntegrityResult(integrityAfter, expectedHex);
     }
-    attestStoreDirectories(this.#store.layout);
+    if (directoryScope) directoryScope.check(resolvedStoredPath);
+    else attestStoreDirectories(this.#store.layout);
     return bytes;
   }
 
@@ -3344,10 +3672,20 @@ export class EvolutionArtifactPorts {
         completionClock.milliseconds >= core.expiresAtMs) ||
       completionClock.milliseconds >= authority.decisionExpiresAtMs
     ) {
-      throw artifactError(
+      const authenticationFailureReason =
+        completionClock.milliseconds < verificationClock.milliseconds
+          ? "auth-clock-backward"
+          : core.expiresAtMs !== null &&
+              completionClock.milliseconds >= core.expiresAtMs
+            ? "auth-envelope-expired"
+            : "auth-authority-lease-expired";
+      const error = artifactError(
         EVOLUTION_ARTIFACT_EXPIRED_CODE,
         "artifact authority expired before envelope authentication completed",
       );
+      recordStorageFailureReason(error, authenticationFailureReason);
+      recordStorageFailureStage(error, core.type, "authentication");
+      throw error;
     }
     return Object.freeze({
       authority,
@@ -3366,18 +3704,25 @@ export class EvolutionArtifactPorts {
     ledgerRead = false,
     capturedLedgerEntry = null,
     batchWindow = null,
+    boundedRead = null,
+    observePhase = null,
+    directoryScope = null,
   ) {
+    observePhase?.("authentication");
     const authentication =
       preauthenticated || this.#authenticateEnvelope(envelope, options);
+    observePhase?.("post-index");
+    const beforeSnapshot = ledgerRead ? null : this.#defaultReadbackSnapshot();
     if (!ledgerRead)
       this.#assertUniqueRecordDigest(
         authentication.core.recordDigest,
         artifactId,
+        beforeSnapshot?.entries,
       );
     const entry = ledgerRead
       ? (capturedLedgerEntry ??
         this.#loadLedgerEntry(artifactId, authentication.core.recordDigest))
-      : this.#loadCurrentEntryById(artifactId);
+      : this.#loadCurrentEntryById(artifactId, beforeSnapshot);
     const normalizedEntry = this.#validateIndexEntry(
       entry,
       envelope,
@@ -3390,12 +3735,16 @@ export class EvolutionArtifactPorts {
         "ArtifactStore entry id does not match the requested locator",
       );
     }
+    observePhase?.("read-bytes");
     const bytes = this.#readStoredBytes(
       entry,
       normalizedEntry,
       authentication.core.recordDigest,
+      boundedRead,
+      directoryScope,
     );
     const record = this.#parseRecordBytes(bytes, authentication.core);
+    observePhase?.("post-index");
     if (ledgerRead && batchWindow === null) {
       const after = this.#loadLedgerEntry(
         artifactId,
@@ -3409,24 +3758,34 @@ export class EvolutionArtifactPorts {
         );
       }
     } else if (!ledgerRead) {
-      this.#assertEntryStable(artifactId, entry);
+      const afterSnapshot = this.#defaultReadbackSnapshot();
+      this.#assertEntryStable(artifactId, entry, afterSnapshot);
       this.#assertUniqueRecordDigest(
         authentication.core.recordDigest,
         artifactId,
+        afterSnapshot?.entries,
       );
     }
+    observePhase?.("final-lease");
     const releaseClock = this.#clock();
-    if (
-      releaseClock.milliseconds <
-        new Date(authentication.resolvedAt).getTime() ||
-      (authentication.core.expiresAtMs !== null &&
-        releaseClock.milliseconds >= authentication.core.expiresAtMs) ||
-      releaseClock.milliseconds >= authentication.authority.decisionExpiresAtMs
-    ) {
-      throw artifactError(
+    const releaseFailureReason =
+      releaseClock.milliseconds < new Date(authentication.resolvedAt).getTime()
+        ? "release-clock-backward"
+        : authentication.core.expiresAtMs !== null &&
+            releaseClock.milliseconds >= authentication.core.expiresAtMs
+          ? "release-envelope-expired"
+          : releaseClock.milliseconds >=
+              authentication.authority.decisionExpiresAtMs
+            ? "release-authority-lease-expired"
+            : null;
+    if (releaseFailureReason !== null) {
+      const error = artifactError(
         EVOLUTION_ARTIFACT_EXPIRED_CODE,
         "artifact authority expired before canonical bytes could be released",
       );
+      recordStorageFailureReason(error, releaseFailureReason);
+      recordStorageFailureStage(error, authentication.core.type, "final-lease");
+      throw error;
     }
     const artifactRef = buildArtifactRef(
       artifactId,
@@ -3505,6 +3864,18 @@ export class EvolutionArtifactPorts {
   }
 
   putCanonical(type, value, context) {
+    let phase = "validate";
+    try {
+      return this.#putCanonical(type, value, context, (next) => {
+        phase = next;
+      });
+    } catch (error) {
+      recordStorageFailureStage(error, type, phase);
+      throw error;
+    }
+  }
+
+  #putCanonical(type, value, context, observePhase) {
     const normalizedType = normalizeType(type, this.#allowedTypes);
     const normalizedContext = normalizePutContext(
       context,
@@ -3524,6 +3895,7 @@ export class EvolutionArtifactPorts {
     const recordJson = canonicalJson(record);
     const recordBytes = Buffer.from(recordJson, "utf8");
     const recordDigest = sha256(recordBytes);
+    observePhase("pre-index");
     readTrustedIndexSnapshot(this.#store.layout);
     const issuanceClock = this.#clock();
     const expiresAt =
@@ -3541,6 +3913,7 @@ export class EvolutionArtifactPorts {
             1,
             Math.ceil(normalizedContext.ttlMs / MILLISECONDS_PER_DAY),
           );
+    observePhase("authority");
     const authority = this.#currentAuthority({
       action: "publish",
       digest: recordDigest,
@@ -3566,6 +3939,7 @@ export class EvolutionArtifactPorts {
       tenantId: this.#tenantId,
       type: normalizedType,
     });
+    observePhase("sign");
     const signature = this.#sign(core, authority);
     const signingClock = this.#clock();
     if (
@@ -3611,7 +3985,9 @@ export class EvolutionArtifactPorts {
     // Validate the captured physical store/index generation immediately before
     // granting ArtifactStore the append. Post-publication readback re-attests
     // it and cross-checks the repository API against a descriptor snapshot.
+    observePhase("pre-index");
     readTrustedIndexSnapshot(this.#store.layout);
+    observePhase("publish");
     let publication;
     try {
       publication = rejectPromise(
@@ -3681,6 +4057,7 @@ export class EvolutionArtifactPorts {
     // A response-loss retry may find the prior immutable row. In that case its
     // exact signed envelope is authoritative and must be returned, rather than
     // replacing lineage with a newly issued envelope.
+    observePhase("post-index");
     const currentEntry = this.#loadCurrentEntryById(artifactId);
     assertExactRecord(
       currentEntry,
@@ -3720,7 +4097,14 @@ export class EvolutionArtifactPorts {
         tenantId: this.#tenantId,
       }),
       artifactId,
+      null,
+      false,
+      null,
+      null,
+      null,
+      observePhase,
     );
+    observePhase("read-bytes");
     if (
       canonicalJson(resolved.record) !== recordJson ||
       resolved.authentication.envelopeDigest !==
@@ -3731,6 +4115,7 @@ export class EvolutionArtifactPorts {
         "canonical artifact readback does not match the requested value and lineage",
       );
     }
+    observePhase("receipt");
     const receiptCore = {
       audience: this.#audience,
       createdAt: ownData(
@@ -3814,7 +4199,14 @@ export class EvolutionArtifactPorts {
     });
   }
 
-  #resolveLedgerRequest(request, purpose, snapshot = null, batchWindow = null) {
+  #resolveLedgerRequest(
+    request,
+    purpose,
+    snapshot = null,
+    batchWindow = null,
+    boundedRead = null,
+    directoryScope = null,
+  ) {
     assertExactRecord(
       request,
       LEDGER_REQUEST_KEYS,
@@ -3883,6 +4275,9 @@ export class EvolutionArtifactPorts {
       true,
       entry,
       batchWindow,
+      boundedRead,
+      null,
+      directoryScope,
     );
     const ledgerReceiptCore = {
       artifactReceiptDigest: resolved.receipt.receiptDigest,
@@ -3939,6 +4334,107 @@ export class EvolutionArtifactPorts {
         "artifact authority expired before ledger batch release",
       );
     return Object.freeze(results);
+  }
+
+  #resolveLedgerWholeHistory(input, purpose) {
+    assertDenseDataArray(
+      input,
+      "ledger artifact history",
+      EVOLUTION_ARTIFACT_MAX_INDEX_ENTRIES,
+    );
+    // Capture every request before invoking any authority port. Retain the
+    // established per-chunk canonical budget rather than imposing a smaller
+    // whole-history byte limit on an otherwise admitted read window.
+    const chunks = [];
+    for (let offset = 0; offset < input.length; offset += 128) {
+      const chunk = [];
+      for (
+        let index = offset;
+        index < Math.min(offset + 128, input.length);
+        index += 1
+      ) {
+        chunk.push(ownData(input, String(index), "ledger artifact history"));
+      }
+      chunks.push(frozenCanonicalClone(chunk));
+    }
+    const readHistory = (directoryScope) => {
+      const snapshot = readTrustedIndexSnapshot(this.#store.layout);
+      this.#indexLedgerBatchEntries(snapshot.entries);
+      const window = [];
+      const results = [];
+      const resolveItems = (read) => {
+        for (const requests of chunks) {
+          for (const request of requests) {
+            results.push(
+              this.#resolveLedgerRequest(
+                request,
+                purpose,
+                snapshot,
+                window,
+                read,
+                directoryScope,
+              ),
+            );
+          }
+        }
+      };
+      if (this.#store.canUseSingleBoundedRead()) {
+        try {
+          withBoundedArtifactDirectoryRead(
+            this.#store.layout.filesDir,
+            resolveItems,
+          );
+        } catch (cause) {
+          if (isEvolutionArtifactPortError(cause)) throw cause;
+          throw artifactError(
+            EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
+            "stored artifact history could not be opened safely",
+            { cause },
+          );
+        }
+      } else {
+        // A retained reader may outlive a prototype change. Preserve the
+        // original per-file reads and integrity hooks when defaults changed.
+        resolveItems(null);
+      }
+      // Unlike the public chunk callback API, this operation exposes no partial
+      // results between chunks. Every item's payload, signature and current
+      // authority are still read/verified above. Reattest the complete index and
+      // ALL decision leases before releasing any result from the sealed read.
+      const after = readTrustedIndexSnapshot(this.#store.layout, snapshot);
+      if (after.bytesDigest !== snapshot.bytesDigest) {
+        throw artifactError(
+          EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
+          "ArtifactStore index changed during ledger history readback",
+        );
+      }
+      const completed = this.#clock().milliseconds;
+      if (
+        window.some(
+          (entry) =>
+            completed < entry.checkedAt || completed >= entry.expiresAt,
+        )
+      ) {
+        throw artifactError(
+          EVOLUTION_ARTIFACT_EXPIRED_CODE,
+          "artifact authority expired before ledger history release",
+        );
+      }
+      return Object.freeze(results);
+    };
+    if (this.#store.canUseSealedDirectoryRead()) {
+      try {
+        return withSealedStoreDirectoryRead(this.#store, readHistory);
+      } catch (cause) {
+        if (isEvolutionArtifactPortError(cause)) throw cause;
+        throw artifactError(
+          EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE,
+          "stored artifact history directory identity changed",
+          { cause },
+        );
+      }
+    }
+    return readHistory(null);
   }
 
   #withLedgerBatchRead(callback, purpose) {
@@ -4012,6 +4508,25 @@ export class EvolutionArtifactPorts {
     EVOLUTION_LEDGER_BATCH_READ_WINDOWS.set(resolveReadOnly, (callback) =>
       this.#withLedgerBatchRead(callback, normalizedPurpose),
     );
+    if (Object.getPrototypeOf(this) === EvolutionArtifactPorts.prototype) {
+      EVOLUTION_LEDGER_DEFAULT_PUBLICATIONS.set(
+        resolveReadOnly,
+        this.#store.canUseDefaultPublication,
+      );
+      EVOLUTION_LEDGER_WHOLE_HISTORY_READERS.set(
+        resolveReadOnly,
+        Object.freeze({
+          eligible: () =>
+            this.#store.repositoryInstance &&
+            this.#store.list === null &&
+            this.#store.get === null &&
+            this.#store.canUseSingleBoundedRead(),
+          read: Object.freeze((requests) =>
+            this.#resolveLedgerWholeHistory(requests, normalizedPurpose),
+          ),
+        }),
+      );
+    }
     EVOLUTION_LEDGER_RESOLVER_BINDINGS.set(
       resolveReadOnly,
       Object.freeze({
@@ -4060,6 +4575,21 @@ export function captureEvolutionLedgerBatchReadWindow(value) {
   if (!read)
     throw new TypeError("a branded ledger artifact resolver is required");
   return read;
+}
+
+// Optional original-implementation capability. Overrides retain the existing
+// callback/chunk protocol, including its observable integrity-hook phases.
+export function captureEvolutionLedgerWholeHistoryReader(value) {
+  if (!isEvolutionLedgerArtifactResolver(value)) {
+    throw new TypeError("a branded ledger artifact resolver is required");
+  }
+  const reader = EVOLUTION_LEDGER_WHOLE_HISTORY_READERS.get(value);
+  return reader?.eligible() ? reader.read : null;
+}
+
+/** Optional append composition check; grants no publication or read authority. */
+export function hasEvolutionLedgerDefaultPublication(value) {
+  return EVOLUTION_LEDGER_DEFAULT_PUBLICATIONS.get(value)?.() === true;
 }
 
 /** Private construction identity, independent of matching resolver descriptors. */

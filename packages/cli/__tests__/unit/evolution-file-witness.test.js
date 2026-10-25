@@ -581,43 +581,50 @@ describe("createEvolutionFileWitness", () => {
     },
   );
 
-  it("preserves discard fences on both sides of segment boundaries", () => {
-    const { witness, head } = legacyHistory(254, {
-      verifier: {
-        ...ports.verifier,
-        getTrustEpoch: () => "discard-segments-1",
-      },
-    });
-    const discardedGenerations = new Set([255, 256, 511, 512]);
-    const discarded = [];
-    let current = head;
-    for (let generation = 255; generation <= 770; generation++) {
-      let discard = null;
-      if (discardedGenerations.has(generation)) {
-        const rejected = snapshot(witnessId, 10_000 + generation);
-        discard = {
-          anchorDigest: rejected.anchorDigest,
-          headDigest: rejected.headDigest,
-          segmentDigest: rejected.segmentDigest,
-          sequence: rejected.sequence,
-        };
-        discarded.push(rejected);
-      }
-      current = witness.compareAndSwap({
-        expected: current,
-        next: snapshot(witnessId, generation - 1),
-        discard,
+  // This control publishes 516 atomic generations with real Windows file-owner
+  // verification. Keep every boundary and assertion; budget the native workers
+  // separately from the ordinary unit-test default on Windows.
+  it(
+    "preserves discard fences on both sides of segment boundaries",
+    () => {
+      const { witness, head } = legacyHistory(254, {
+        verifier: {
+          ...ports.verifier,
+          getTrustEpoch: () => "discard-segments-1",
+        },
       });
-    }
-    for (const instance of [witness, create()]) {
-      expect(instance.read()).toEqual(current);
-      for (const next of discarded) {
-        expect(instance.compareAndSwap({ expected: current, next })).toEqual(
-          current,
-        );
+      const discardedGenerations = new Set([255, 256, 511, 512]);
+      const discarded = [];
+      let current = head;
+      for (let generation = 255; generation <= 770; generation++) {
+        let discard = null;
+        if (discardedGenerations.has(generation)) {
+          const rejected = snapshot(witnessId, 10_000 + generation);
+          discard = {
+            anchorDigest: rejected.anchorDigest,
+            headDigest: rejected.headDigest,
+            segmentDigest: rejected.segmentDigest,
+            sequence: rejected.sequence,
+          };
+          discarded.push(rejected);
+        }
+        current = witness.compareAndSwap({
+          expected: current,
+          next: snapshot(witnessId, generation - 1),
+          discard,
+        });
       }
-    }
-  });
+      for (const instance of [witness, create()]) {
+        expect(instance.read()).toEqual(current);
+        for (const next of discarded) {
+          expect(instance.compareAndSwap({ expected: current, next })).toEqual(
+            current,
+          );
+        }
+      }
+    },
+    process.platform === "win32" ? 240_000 : undefined,
+  );
 
   it("captures authority methods once and rejects accessors without invoking them", () => {
     const witness = create();

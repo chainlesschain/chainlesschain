@@ -1007,6 +1007,79 @@ it("preserves adjacent resumed user authority through provider normalization and
   ).toBeGreaterThan(0);
 });
 
+it.each([
+  ["false", false],
+  ["undefined", undefined],
+  ["null", null],
+  ["missing hash", {}],
+  ["empty hash", { hash: "" }],
+  ["non-string hash", { hash: 1 }],
+  ["missing hash after committed append", undefined, true],
+])(
+  "stops without replay when tool settlement returns %s",
+  async (_label, acknowledgement, committed = false) => {
+    let turns = 0;
+    const events = [];
+    const append = vi.fn((id, live, expected) => {
+      if (committed) appendToolRoundsIfMessagesMatch(id, live, expected);
+      return acknowledgement;
+    });
+    const result = await runAgentHeadlessStream(
+      {
+        sessionId: "unknown-tool-head",
+        cwd: workspace,
+        expandFileRefs: false,
+        projectMemory: false,
+        useRegisteredMcp: false,
+      },
+      {
+        bootstrap: async () => ({ db: null }),
+        getApprovalGate: async () => null,
+        resolveAgentMcp: async () => null,
+        appendToolRoundsIfMessagesMatch: append,
+        input: (async function* () {
+          for (const [id, content] of [
+            ["first", "First request"],
+            ["next", "Next request"],
+          ])
+            yield JSON.stringify({
+              type: "user",
+              content,
+              client_message_id: id,
+            }) + "\n";
+        })(),
+        agentLoop: async function* (messages) {
+          turns += 1;
+          messages.push(...round());
+          yield { type: "response-complete", content: "Not durably settled" };
+          yield { type: "run-ended", reason: "complete" };
+        },
+        writeOut: (line) => events.push(JSON.parse(line)),
+        writeErr: () => {},
+      },
+    );
+    expect(result.exitCode).toBe(1);
+    expect(turns).toBe(1);
+    expect(append).toHaveBeenCalledOnce();
+    expect(
+      events.filter((event) => event.type === "result").at(-1),
+    ).toMatchObject({
+      is_error: true,
+      subtype: "error_session_persistence",
+      code: "CC_SESSION_TOOL_ROUND_SETTLEMENT_HEAD_UNKNOWN",
+    });
+    expect(readVerifiedMessages("unknown-tool-head")).toEqual([
+      { role: "user", content: "First request" },
+      ...(committed ? round() : []),
+    ]);
+    expect(
+      readVerifiedEvents("unknown-tool-head").some(
+        (event) => event.type === "tool_round",
+      ),
+    ).toBe(committed);
+  },
+);
+
 it("persists explicit feedback notes before the next user turn", async () => {
   let turns = 0;
   const result = await runAgentHeadlessStream(

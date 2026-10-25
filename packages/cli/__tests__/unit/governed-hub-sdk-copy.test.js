@@ -9,6 +9,8 @@ import {
   captureGovernedHubSdkPorts,
 } from "../../src/lib/evolution/governed-hub-llm.js";
 import { createTestAgentEvolutionComposition } from "../fixtures/agent-evolution-test-deployment.js";
+import { createLocalUiEvolutionFileSystem } from "../../src/lib/evolution/evolution-windows-directory-durability.js";
+import { evolutionPrivateStorageOptions } from "../../src/lib/evolution/evolution-private-storage.js";
 
 const require = createRequire(import.meta.url);
 const repositoryRoot = path.resolve(import.meta.dirname, "../../../..");
@@ -111,7 +113,10 @@ async function copiedDesktop(mode) {
             throw new Error("test source authority denied");
           return issue(request);
         };
-        return native.createAgentEvolutionRuntimeComposition(config);
+        return native.createAgentEvolutionRuntimeComposition({
+          ...config,
+          fsImpl: native.createLocalUiEvolutionFileSystem(),
+        });
       },
       context,
       path.join(root, "state"),
@@ -190,6 +195,72 @@ function rendererOptions() {
 }
 
 describe("Desktop Hub with physically distinct SDK copies", () => {
+  it.runIf(process.platform === "win32")(
+    "flushes a real directory through both module realms in one process",
+    async () => {
+      const native =
+        await require("../helpers/native-evolution-composition.cjs")();
+      const root = fs.mkdtempSync(
+        path.join(fs.realpathSync.native(os.tmpdir()), "cc-hub-realm-flush-"),
+      );
+      roots.push(root);
+      const foreignFs = createLocalUiEvolutionFileSystem();
+      const nativeFs = native.createLocalUiEvolutionFileSystem();
+      expect(foreignFs.syncDirectorySync(root)).toBe("windows-directory-flush");
+      expect(nativeFs.syncDirectorySync(root)).toBe("windows-directory-flush");
+      expect(foreignFs.syncDirectorySync(root)).toBe("windows-directory-flush");
+      expect(native.evolutionPrivateStorageOptions(foreignFs).deps.fs).toBe(
+        foreignFs,
+      );
+      expect(
+        native.evolutionPrivateStorageOptions(nativeFs),
+      ).not.toHaveProperty("deps");
+    },
+  );
+
+  it("keeps native ACL filesystem authority in its originating module realm", async () => {
+    const native =
+      await require("../helpers/native-evolution-composition.cjs")();
+    const nativeFs = native.createLocalUiEvolutionFileSystem();
+    expect(native.evolutionPrivateStorageOptions(nativeFs)).not.toHaveProperty(
+      "deps",
+    );
+    const foreignFs = createLocalUiEvolutionFileSystem();
+    expect(evolutionPrivateStorageOptions(foreignFs)).not.toHaveProperty(
+      "deps",
+    );
+    if (process.platform === "win32") {
+      expect(native.evolutionPrivateStorageOptions(foreignFs).deps.fs).toBe(
+        foreignFs,
+      );
+      expect(evolutionPrivateStorageOptions(nativeFs).deps.fs).toBe(nativeFs);
+    } else {
+      // POSIX uses the shared Node fs singleton, without an adapter brand.
+      expect(nativeFs).toBe(fs);
+      expect(foreignFs).toBe(fs);
+    }
+  });
+
+  it("keeps fault-injected native filesystem adapters on the custom-port path", async () => {
+    const native =
+      await require("../helpers/native-evolution-composition.cjs")();
+    const originalOpen = fs.openSync;
+    const faultFs =
+      process.platform === "win32"
+        ? native.createLocalUiEvolutionFileSystem()
+        : Object.create(fs);
+    faultFs.openSync = vi.fn(() => {
+      throw new Error("test-only open fault");
+    });
+    const options = native.evolutionPrivateStorageOptions(faultFs);
+    expect(options.deps.fs).toBe(faultFs);
+    expect(() => options.deps.fs.openSync("unused")).toThrow(
+      "test-only open fault",
+    );
+    expect(faultFs.openSync).toHaveBeenCalledOnce();
+    expect(fs.openSync).toBe(originalOpen);
+  });
+
   it.each(["success", "source-denied", "response-denied", "foreign-host"])(
     "runs the app-copy skill with main-owned SDK ports (%s)",
     async (mode) => {

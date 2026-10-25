@@ -1,0 +1,433 @@
+{
+  "kind": "aggregate-of-unmodified-native-vitest-reports",
+  "generatedAt": "2026-10-24T12:22:23.340Z",
+  "uniqueCases": 29,
+  "passed": 29,
+  "behaviorFailures": 0,
+  "initialEnvironmentLoadFailures": 5,
+  "note": "The original run remains failed with 24 passed and 5 dependency-load failures. Separate follow-ups exercise only those 5 cases after isolated dependencies are available. This summary does not replace or alter native Vitest reports.",
+  "environment": {
+    "NODE_PATH": "C:/Users/longfa/AppData/Local/Temp/cc118-runtime-deps-20261024/node_modules"
+  },
+  "sources": [
+    {
+      "name": "fixed-native-composition-controls",
+      "json": {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc118-sdk-realm-fix-20261024\\fixed-native-composition-controls.json",
+        "sha256": "077d024acec61bfc78c07db836947b447bee789488c30b32bd0a135c622ef2df"
+      },
+      "stdout": {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc118-sdk-realm-fix-20261024\\fixed-native-composition-controls.stdout.log",
+        "sha256": "752ffa03232a06c19b9f622d23895b42d096e6e4b00e41530c5a4ccdc34c7bb0"
+      },
+      "passed": 24,
+      "failed": 5
+    },
+    {
+      "name": "fixed-manager-stream",
+      "json": {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc118-sdk-realm-fix-20261024\\fixed-manager-stream.json",
+        "sha256": "c7783b44087182584800a8e16adec83897e8e17eebf62ed8470690b1f6ab7c01"
+      },
+      "stdout": {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc118-sdk-realm-fix-20261024\\fixed-manager-stream.stdout.log",
+        "sha256": "551f8324f5697d2d047e57a14280e441daff97d74fc45d164f975e6adcb20d91"
+      },
+      "passed": 1,
+      "failed": 0
+    },
+    {
+      "name": "fixed-sqlite-controls",
+      "json": {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc118-sdk-realm-fix-20261024\\fixed-sqlite-controls.json",
+        "sha256": "e8a623f2c29d0acd11e5069f4559a3a1a09041768e2394496f3355b497596c49"
+      },
+      "stdout": {
+        "path": "C:\\Users\\longfa\\AppData\\Local\\Temp\\cc118-sdk-realm-fix-20261024\\fixed-sqlite-controls.stdout.log",
+        "sha256": "ef7b4b93bf72d2f9b4ef6c8318ab4c4a8451498badc22441b08850703e24fbfa"
+      },
+      "passed": 4,
+      "failed": 0
+    }
+  ],
+  "cases": [
+    {
+      "fullName": "Agent evolution runtime production composition opens Desktop host against real durable composition (success)",
+      "attempts": [
+        {
+          "source": "fixed-native-composition-controls",
+          "status": "passed",
+          "classification": "passed",
+          "durationMs": 6762.340200000001
+        }
+      ],
+      "finalStatus": "passed"
+    },
+    {
+      "fullName": "Agent evolution runtime production composition opens Desktop host against real durable composition (source-denied)",
+      "attempts": [
+        {
+          "source": "fixed-native-composition-controls",
+          "status": "passed",
+          "classification": "passed",
+          "durationMs": 1665.3941999999988
+        }
+      ],
+      "finalStatus": "passed"
+    },
+    {
+      "fullName": "Agent evolution runtime production composition opens Desktop host against real durable composition (wrong-run)",
+      "attempts": [
+        {
+          "source": "fixed-native-composition-controls",
+          "status": "passed",
+          "classification": "passed",
+          "durationMs": 880.8840000000018
+        }
+      ],
+      "finalStatus": "passed"
+    },
+    {
+      "fullName": "Agent evolution runtime production composition governs Desktop OpenAI chat final payload and response denial",
+      "attempts": [
+        {
+          "source": "fixed-native-composition-controls",
+          "status": "passed",
+          "classification": "passed",
+          "durationMs": 12184.505999999998
+        }
+      ],
+      "finalStatus": "passed"
+    },
+    {
+      "fullName": "Agent evolution runtime production composition governs Desktop OpenAI stream final payload and response denial",
+      "attempts": [
+        {
+          "source": "fixed-native-composition-controls",
+          "status": "passed",
+          "classification": "passed",
+          "durationMs": 19832.3988
+        }
+      ],
+      "finalStatus": "passed"
+    },
+    {
+      "fullName": "Agent evolution runtime production composition governs Desktop OpenAI complete final payload and response denial",
+      "attempts": [
+        {
+          "source": "fixed-native-composition-controls",
+          "status": "passed",
+          "classification": "passed",
+          "durationMs": 12668.891800000005
+        }
+      ],
+      "finalStatus": "passed"
+    },
+    {
+      "fullName": "Agent evolution runtime production composition keeps a governed Desktop manager stream in one durable Run",
+      "attempts": [
+        {
+          "source": "fixed-native-composition-controls",
+          "status": "failed",
+          "classification": "environment dependency load: fs-extra",
+          "durationMs": 53.975100000003295
+        },
+        {
+          "source": "fixed-manager-stream",
+          "status": "passed",
+          "classification": "passed",
+          "durationMs": 7759.236299999999
+        }
+      ],
+      "finalStatus": "passed"
+    },
+    {
+      "fullName": "Agent evolution runtime production composition governs Desktop Ollama generate final payload and failures",
+      "attempts": [
+        {
+          "source": "fixed-native-composition-controls",
+          "status": "passed",
+          "classification": "passed",
+          "durationMs": 11665.903000000006
+        }
+      ],
+      "finalStatus": "passed"
+    },
+    {
+      "fullName": "Agent evolution runtime production composition governs Desktop Ollama chat final payload and failures",
+      "attempts": [
+        {
+          "source": "fixed-native-composition-controls",
+          "status": "passed",
+          "classification": "passed",
+          "durationMs": 11371.977400000003
+        }
+      ],
+      "finalStatus": "passed"
+    },
+    {
+      "fullName": "Agent evolution runtime production composition governs Desktop Ollama generateStream final payload and failures",
+      "attempts": [
+        {
+          "source": "fixed-native-composition-controls",
+          "status": "passed",
+          "classification": "passed",
+          "durationMs": 15877.09670000001
+        }
+      ],
+      "finalStatus": "passed"
+    },
+    {
+      "fullName": "Agent evolution runtime production composition governs Desktop Ollama chatStream final payload and failures",
+      "attempts": [
+        {
+          "source": "fixed-native-composition-controls",
+          "status": "passed",
+          "classification": "passed",
+          "durationMs": 17150.706699999995
+        }
+      ],
+      "finalStatus": "passed"
+    },
+    {
+      "fullName": "Agent evolution runtime production composition governs Desktop Anthropic payload and lifecycle (stream=false)",
+      "attempts": [
+        {
+          "source": "fixed-native-composition-controls",
+          "status": "passed",
+          "classification": "passed",
+          "durationMs": 11382.6391
+        }
+      ],
+      "finalStatus": "passed"
+    },
+    {
+      "fullName": "Agent evolution runtime production composition governs Desktop Anthropic payload and lifecycle (stream=true)",
+      "attempts": [
+        {
+          "source": "fixed-native-composition-controls",
+          "status": "passed",
+          "classification": "passed",
+          "durationMs": 15921.290099999984
+        }
+      ],
+      "finalStatus": "passed"
+    },
+    {
+      "fullName": "Agent evolution runtime production composition governs Desktop Gemini payload and lifecycle (stream=false)",
+      "attempts": [
+        {
+          "source": "fixed-native-composition-controls",
+          "status": "passed",
+          "classification": "passed",
+          "durationMs": 11653.407299999992
+        }
+      ],
+      "finalStatus": "passed"
+    },
+    {
+      "fullName": "Agent evolution runtime production composition governs Desktop Gemini payload and lifecycle (stream=true)",
+      "attempts": [
+        {
+          "source": "fixed-native-composition-controls",
+          "status": "passed",
+          "classification": "passed",
+          "durationMs": 15541.403099999996
+        }
+      ],
+      "finalStatus": "passed"
+    },
+    {
+      "fullName": "Agent evolution runtime production composition governs Desktop tool workflow in one Run (stream=false)",
+      "attempts": [
+        {
+          "source": "fixed-native-composition-controls",
+          "status": "passed",
+          "classification": "passed",
+          "durationMs": 28118.37520000001
+        }
+      ],
+      "finalStatus": "passed"
+    },
+    {
+      "fullName": "Agent evolution runtime production composition governs Desktop tool workflow in one Run (stream=true)",
+      "attempts": [
+        {
+          "source": "fixed-native-composition-controls",
+          "status": "passed",
+          "classification": "passed",
+          "durationMs": 27502.942100000015
+        }
+      ],
+      "finalStatus": "passed"
+    },
+    {
+      "fullName": "Agent evolution runtime production composition governs actual Desktop manager cache storage and replay without plaintext",
+      "attempts": [
+        {
+          "source": "fixed-native-composition-controls",
+          "status": "failed",
+          "classification": "environment dependency load: better-sqlite3 native binding",
+          "durationMs": 579.1468999999925
+        },
+        {
+          "source": "fixed-sqlite-controls",
+          "status": "passed",
+          "classification": "passed",
+          "durationMs": 34203.2313
+        }
+      ],
+      "finalStatus": "passed"
+    },
+    {
+      "fullName": "Agent evolution runtime production composition isolates concurrent Desktop cache Runs and pins the selected client",
+      "attempts": [
+        {
+          "source": "fixed-native-composition-controls",
+          "status": "failed",
+          "classification": "environment dependency load: better-sqlite3 native binding",
+          "durationMs": 411.1815999999817
+        },
+        {
+          "source": "fixed-sqlite-controls",
+          "status": "passed",
+          "classification": "passed",
+          "durationMs": 26977.750700000004
+        }
+      ],
+      "finalStatus": "passed"
+    },
+    {
+      "fullName": "Agent evolution runtime production composition keeps Desktop prompt summarization and its chat in the same Run",
+      "attempts": [
+        {
+          "source": "fixed-native-composition-controls",
+          "status": "failed",
+          "classification": "environment dependency load: better-sqlite3 native binding",
+          "durationMs": 426.5255000000179
+        },
+        {
+          "source": "fixed-sqlite-controls",
+          "status": "passed",
+          "classification": "passed",
+          "durationMs": 10838.085900000005
+        }
+      ],
+      "finalStatus": "passed"
+    },
+    {
+      "fullName": "Agent evolution runtime production composition keeps Desktop prompt summarization and its streamed chat in the same Run",
+      "attempts": [
+        {
+          "source": "fixed-native-composition-controls",
+          "status": "failed",
+          "classification": "environment dependency load: better-sqlite3 native binding",
+          "durationMs": 406.469299999997
+        },
+        {
+          "source": "fixed-sqlite-controls",
+          "status": "passed",
+          "classification": "passed",
+          "durationMs": 9016.846600000004
+        }
+      ],
+      "finalStatus": "passed"
+    },
+    {
+      "fullName": "Agent evolution runtime production composition governs actual IPC MCP workflow in one Run (success)",
+      "attempts": [
+        {
+          "source": "fixed-native-composition-controls",
+          "status": "passed",
+          "classification": "passed",
+          "durationMs": 12049.835900000005
+        }
+      ],
+      "finalStatus": "passed"
+    },
+    {
+      "fullName": "Agent evolution runtime production composition governs actual IPC MCP workflow in one Run (tool-requested)",
+      "attempts": [
+        {
+          "source": "fixed-native-composition-controls",
+          "status": "passed",
+          "classification": "passed",
+          "durationMs": 5418.1413000000175
+        }
+      ],
+      "finalStatus": "passed"
+    },
+    {
+      "fullName": "Agent evolution runtime production composition governs actual IPC MCP workflow in one Run (tool-completed)",
+      "attempts": [
+        {
+          "source": "fixed-native-composition-controls",
+          "status": "passed",
+          "classification": "passed",
+          "durationMs": 6458.9087
+        }
+      ],
+      "finalStatus": "passed"
+    },
+    {
+      "fullName": "Agent evolution runtime production composition governs actual IPC MCP workflow in one Run (unknown-tool)",
+      "attempts": [
+        {
+          "source": "fixed-native-composition-controls",
+          "status": "passed",
+          "classification": "passed",
+          "durationMs": 5812.603900000016
+        }
+      ],
+      "finalStatus": "passed"
+    },
+    {
+      "fullName": "Agent evolution runtime production composition governs actual IPC MCP workflow in one Run (duplicate-id)",
+      "attempts": [
+        {
+          "source": "fixed-native-composition-controls",
+          "status": "passed",
+          "classification": "passed",
+          "durationMs": 5251.957400000014
+        }
+      ],
+      "finalStatus": "passed"
+    },
+    {
+      "fullName": "Agent evolution runtime production composition governs actual IPC MCP workflow in one Run (bad-arguments)",
+      "attempts": [
+        {
+          "source": "fixed-native-composition-controls",
+          "status": "passed",
+          "classification": "passed",
+          "durationMs": 5169.866900000023
+        }
+      ],
+      "finalStatus": "passed"
+    },
+    {
+      "fullName": "Agent evolution runtime production composition governs actual IPC MCP workflow in one Run (budget)",
+      "attempts": [
+        {
+          "source": "fixed-native-composition-controls",
+          "status": "passed",
+          "classification": "passed",
+          "durationMs": 5091.436099999992
+        }
+      ],
+      "finalStatus": "passed"
+    },
+    {
+      "fullName": "Agent evolution runtime production composition governs actual IPC MCP workflow in one Run (limit)",
+      "attempts": [
+        {
+          "source": "fixed-native-composition-controls",
+          "status": "passed",
+          "classification": "passed",
+          "durationMs": 10290.880099999951
+        }
+      ],
+      "finalStatus": "passed"
+    }
+  ]
+}

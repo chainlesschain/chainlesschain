@@ -7,6 +7,7 @@ import {
 } from "node:crypto";
 import { spawn } from "node:child_process";
 import fs from "node:fs";
+import { createLocalUiEvolutionFileSystem } from "../../src/lib/evolution/evolution-windows-directory-durability.js";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -99,50 +100,7 @@ function authority(label) {
 }
 
 function durableFilesystem() {
-  const directories = new Set();
-  let nextDescriptor = -60_000;
-  return {
-    ...fs,
-    constants: fs.constants,
-    realpathSync: fs.realpathSync,
-    closeSync(descriptor) {
-      if (directories.delete(descriptor)) return;
-      return fs.closeSync(descriptor);
-    },
-    fsyncSync(descriptor) {
-      if (directories.has(descriptor)) return;
-      try {
-        return fs.fsyncSync(descriptor);
-      } catch (error) {
-        if (
-          process.platform === "win32" &&
-          ["EACCES", "EINVAL", "EISDIR", "EPERM"].includes(error?.code) &&
-          fs.fstatSync(descriptor).isDirectory()
-        ) {
-          return;
-        }
-        throw error;
-      }
-    },
-    openSync(target, flags, mode) {
-      try {
-        return fs.openSync(target, flags, mode);
-      } catch (error) {
-        if (
-          process.platform === "win32" &&
-          flags === "r" &&
-          ["EACCES", "EINVAL", "EISDIR", "EPERM"].includes(error?.code) &&
-          fs.statSync(target).isDirectory()
-        ) {
-          const descriptor = nextDescriptor;
-          nextDescriptor -= 1;
-          directories.add(descriptor);
-          return descriptor;
-        }
-        throw error;
-      }
-    },
-  };
+  return createLocalUiEvolutionFileSystem();
 }
 
 function resources(root) {

@@ -4,7 +4,13 @@ Command-line interface for installing, configuring, and managing [ChainlessChain
 
 ## CLI 0.166.118
 
-This version follows Session Core **0.3.23** and Agent SDK **0.2.16** and pairs with VS Code **0.37.160** and JetBrains **0.4.177**. It includes the Web Panel DOMPurify security patch, input delivery and Windows draft recovery fixes, project-instruction code fence handling, bounded long-session index reuse, typed Evidence storage and native Windows ACL startup. Compact index reuse spans typed stores within the existing memory budget, and default artifact reads avoid duplicate physical reads while retaining full identity and digest checks. IDE input receipts remain separate from conversation replay, so completed tools can settle without falsely reporting a concurrent session revision. Long-session retention preserves completed results, runtime message identity and historical recovery lineage. It preserves redacted transport receipts for future native task retests. Releases require the exact-source Linux, Windows and macOS Actions gates. Required order: child npm packages → CLI → IDE extensions → mobile / PC clients, verifying public artifacts at each stage.
+This version follows Session Core **0.3.23** and Agent SDK **0.2.16** and pairs with VS Code **0.37.160** and JetBrains **0.4.177**. It includes the Web Panel DOMPurify security patch, input delivery and Windows draft recovery fixes, project-instruction code fence handling, bounded long-session index reuse, typed Evidence storage and native Windows ACL startup. Native ACL startup covers the original runtime filesystem adapter as well as default Node storage; custom filesystem operations keep their explicit dependency boundary. Compact index reuse spans typed stores within the existing memory budget, and default artifact reads avoid duplicate physical reads while retaining full identity and digest checks. IDE input receipts remain separate from conversation replay, so completed tools can settle without falsely reporting a concurrent session revision. Long-session retention preserves completed results, runtime message identity and historical recovery lineage. It preserves redacted transport receipts for future native task retests. Releases require the exact-source Linux, Windows and macOS Actions gates. Required order: child npm packages → CLI → IDE extensions → mobile / PC clients, verifying public artifacts at each stage.
+
+Long-session recovery shares one authenticated history and ledger-frontier read. Fixed local signing keys use bounded verification reuse; stored bytes, current artifact authority and the final frontier remain freshly checked.
+
+Unexpected session ownership loss and failed incoming evidence storage return explicit terminal errors. Normal cancellation remains supported. Index aliases and authenticated directory scopes reduce repeated history work while retaining fresh bytes, complete identity checks and the existing authority and memory limits.
+
+Evolution witness, manifest catalog and head files receive explicit Windows owner and ACL repair before durable readback, including files created by elevated tokens. Directory checks retain their existing behavior.
 
 Install this version after its npm release is available:
 
@@ -125,7 +131,7 @@ Explicit Linux durable permissions require administrator provisioning. Cross-pro
 Install the CLI version published by this release:
 
 ```bash
-npm install -g chainlesschain@0.166.112 --registry https://registry.npmjs.org
+npm install -g chainlesschain@0.166.118 --registry https://registry.npmjs.org
 chainlesschain setup
 ```
 

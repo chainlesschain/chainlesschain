@@ -136,7 +136,7 @@ on:
         required: true
         default: "all"
         type: choice
-        options: ["all", "session-message"]
+        options: ["all", "session-message", "cli-diagnostic", "cli-windows-diagnostic"]
       commit_sha:
         description: "Exact full commit SHA to test (blank uses selected ref)"
         required: false
@@ -158,12 +158,12 @@ concurrency:
 
 jobs:
   reliability:
-    if: github.event_name != 'workflow_dispatch' || inputs.component == 'all'
+    if: github.event_name != 'workflow_dispatch' || inputs.component == 'all' || inputs.component == 'cli-diagnostic' || inputs.component == 'cli-windows-diagnostic'
     name: "disk/pipe/TTY/SSH/MCP/resource soak (${{ matrix.os }})"
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: ${{ inputs.component == 'cli-windows-diagnostic' && fromJSON('["windows-latest"]') || fromJSON('["ubuntu-latest", "windows-latest", "macos-latest"]') }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 300
     env:
@@ -242,6 +242,11 @@ jobs:
           printf 'CC_CLI_RELIABILITY_DISK_EROFS_HOME=%s\n' "${erofs_home}" >> "${GITHUB_ENV}"
           printf 'CC_CLI_RELIABILITY_DISK_ENOSPC_HOME=%s\n' "${enospc_home}" >> "${GITHUB_ENV}"
 
+      - name: Verify focused release-clock diagnostics
+        if: github.event_name == 'workflow_dispatch' && inputs.component == 'cli-windows-diagnostic'
+        working-directory: packages/cli
+        run: node ../../node_modules/vitest/vitest.mjs run __tests__/unit/storage-failure-cause-codes.test.js __tests__/unit/cli-reliability-fetch-diagnostics.test.js __tests__/unit/evolution-artifact-ports.test.js --maxWorkers=1 --no-file-parallelism --reporter=json --outputFile.json=${{ runner.temp }}/release-clock-focused-tests.json
+
       - name: Run real CLI reliability gate
         env:
           CC_CLI_RELIABILITY_OUTPUT: ${{ runner.temp }}/cli-reliability-result.json
@@ -268,6 +273,7 @@ jobs:
           name: cli-reliability-${{ matrix.os }}-${{ env.CC_CLI_RELIABILITY_EXPECTED_SHA }}-${{ github.run_attempt }}
           path: |
             ${{ runner.temp }}/cli-reliability-result.json
+            ${{ runner.temp }}/release-clock-focused-tests.json
             ${{ runner.temp }}/session-runtime-retention.json
           if-no-files-found: error
           retention-days: 30

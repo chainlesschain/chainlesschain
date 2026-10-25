@@ -1,0 +1,154 @@
+{
+  "numTotalTestSuites": 2,
+  "numPassedTestSuites": 0,
+  "numFailedTestSuites": 2,
+  "numPendingTestSuites": 0,
+  "numTotalTests": 10,
+  "numPassedTests": 3,
+  "numFailedTests": 7,
+  "numPendingTests": 0,
+  "numTodoTests": 0,
+  "snapshot": {
+    "added": 0,
+    "failure": false,
+    "filesAdded": 0,
+    "filesRemoved": 0,
+    "filesRemovedList": [],
+    "filesUnmatched": 0,
+    "filesUpdated": 0,
+    "matched": 0,
+    "total": 0,
+    "unchecked": 0,
+    "uncheckedKeysByFile": [],
+    "unmatched": 0,
+    "updated": 0,
+    "didUpdate": false
+  },
+  "startTime": 1792809510178,
+  "success": false,
+  "testResults": [
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": ["genuine three-phase artifact reads"],
+          "fullName": "genuine three-phase artifact reads bounds all three artifact reads, forwards the same frozen limits and authenticates exact signed bytes",
+          "status": "passed",
+          "title": "bounds all three artifact reads, forwards the same frozen limits and authenticates exact signed bytes",
+          "duration": 113.20029999999997,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["genuine three-phase artifact reads"],
+          "fullName": "genuine three-phase artifact reads rejects real phase 1 expected-size growth before content reads in that phase",
+          "status": "failed",
+          "title": "rejects real phase 1 expected-size growth before content reads in that phase",
+          "duration": 83.5027,
+          "failureMessages": [
+            "AssertionError: expected EvolutionArtifactPortError: stored artifa… { code: '…' } to match object { …(2) }\n(1 matching property omitted from actual)\n    at Proxy.<anonymous> (file:///C:/code/chainlesschain/node_modules/@vitest/expect/dist/index.js:1283:10)\n    at Proxy.<anonymous> (file:///C:/code/chainlesschain/node_modules/@vitest/expect/dist/index.js:1156:15)\n    at Proxy.methodWrapper (file:///C:/code/chainlesschain/node_modules/chai/index.js:1700:25)\n    at held (C:/code/chainlesschain/packages/cli/__tests__/unit/evolution-artifact-byte-boundary.test.js:36:17)\n    at C:/code/chainlesschain/packages/cli/__tests__/unit/evolution-artifact-byte-boundary.test.js:161:7\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2025:60\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)"
+          ],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["genuine three-phase artifact reads"],
+          "fullName": "genuine three-phase artifact reads rejects real phase 1 maximum-size growth before content reads in that phase",
+          "status": "failed",
+          "title": "rejects real phase 1 maximum-size growth before content reads in that phase",
+          "duration": 67.3443000000002,
+          "failureMessages": [
+            "AssertionError: expected EvolutionArtifactPortError: stored artifa… { code: '…' } to match object { …(2) }\n(1 matching property omitted from actual)\n    at Proxy.<anonymous> (file:///C:/code/chainlesschain/node_modules/@vitest/expect/dist/index.js:1283:10)\n    at Proxy.<anonymous> (file:///C:/code/chainlesschain/node_modules/@vitest/expect/dist/index.js:1156:15)\n    at Proxy.methodWrapper (file:///C:/code/chainlesschain/node_modules/chai/index.js:1700:25)\n    at held (C:/code/chainlesschain/packages/cli/__tests__/unit/evolution-artifact-byte-boundary.test.js:36:17)\n    at C:/code/chainlesschain/packages/cli/__tests__/unit/evolution-artifact-byte-boundary.test.js:161:7\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2025:60\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)"
+          ],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["genuine three-phase artifact reads"],
+          "fullName": "genuine three-phase artifact reads rejects real phase 2 expected-size growth before content reads in that phase",
+          "status": "failed",
+          "title": "rejects real phase 2 expected-size growth before content reads in that phase",
+          "duration": 65.7686000000001,
+          "failureMessages": [
+            "AssertionError: expected undefined to match object { …(2) }\n    at Proxy.<anonymous> (file:///C:/code/chainlesschain/node_modules/@vitest/expect/dist/index.js:1283:10)\n    at Proxy.<anonymous> (file:///C:/code/chainlesschain/node_modules/@vitest/expect/dist/index.js:1156:15)\n    at Proxy.methodWrapper (file:///C:/code/chainlesschain/node_modules/chai/index.js:1700:25)\n    at held (C:/code/chainlesschain/packages/cli/__tests__/unit/evolution-artifact-byte-boundary.test.js:36:17)\n    at C:/code/chainlesschain/packages/cli/__tests__/unit/evolution-artifact-byte-boundary.test.js:161:7\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2025:60\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)"
+          ],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["genuine three-phase artifact reads"],
+          "fullName": "genuine three-phase artifact reads rejects real phase 2 maximum-size growth before content reads in that phase",
+          "status": "failed",
+          "title": "rejects real phase 2 maximum-size growth before content reads in that phase",
+          "duration": 68.04880000000003,
+          "failureMessages": [
+            "AssertionError: expected undefined to match object { …(2) }\n    at Proxy.<anonymous> (file:///C:/code/chainlesschain/node_modules/@vitest/expect/dist/index.js:1283:10)\n    at Proxy.<anonymous> (file:///C:/code/chainlesschain/node_modules/@vitest/expect/dist/index.js:1156:15)\n    at Proxy.methodWrapper (file:///C:/code/chainlesschain/node_modules/chai/index.js:1700:25)\n    at held (C:/code/chainlesschain/packages/cli/__tests__/unit/evolution-artifact-byte-boundary.test.js:36:17)\n    at C:/code/chainlesschain/packages/cli/__tests__/unit/evolution-artifact-byte-boundary.test.js:161:7\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2025:60\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)"
+          ],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["genuine three-phase artifact reads"],
+          "fullName": "genuine three-phase artifact reads rejects real phase 3 expected-size growth before content reads in that phase",
+          "status": "failed",
+          "title": "rejects real phase 3 expected-size growth before content reads in that phase",
+          "duration": 66.69079999999985,
+          "failureMessages": [
+            "AssertionError: expected undefined to match object { …(2) }\n    at Proxy.<anonymous> (file:///C:/code/chainlesschain/node_modules/@vitest/expect/dist/index.js:1283:10)\n    at Proxy.<anonymous> (file:///C:/code/chainlesschain/node_modules/@vitest/expect/dist/index.js:1156:15)\n    at Proxy.methodWrapper (file:///C:/code/chainlesschain/node_modules/chai/index.js:1700:25)\n    at held (C:/code/chainlesschain/packages/cli/__tests__/unit/evolution-artifact-byte-boundary.test.js:36:17)\n    at C:/code/chainlesschain/packages/cli/__tests__/unit/evolution-artifact-byte-boundary.test.js:161:7\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2025:60\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)"
+          ],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["genuine three-phase artifact reads"],
+          "fullName": "genuine three-phase artifact reads rejects real phase 3 maximum-size growth before content reads in that phase",
+          "status": "failed",
+          "title": "rejects real phase 3 maximum-size growth before content reads in that phase",
+          "duration": 66.77210000000014,
+          "failureMessages": [
+            "AssertionError: expected undefined to match object { …(2) }\n    at Proxy.<anonymous> (file:///C:/code/chainlesschain/node_modules/@vitest/expect/dist/index.js:1283:10)\n    at Proxy.<anonymous> (file:///C:/code/chainlesschain/node_modules/@vitest/expect/dist/index.js:1156:15)\n    at Proxy.methodWrapper (file:///C:/code/chainlesschain/node_modules/chai/index.js:1700:25)\n    at held (C:/code/chainlesschain/packages/cli/__tests__/unit/evolution-artifact-byte-boundary.test.js:36:17)\n    at C:/code/chainlesschain/packages/cli/__tests__/unit/evolution-artifact-byte-boundary.test.js:161:7\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2025:60\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)"
+          ],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["genuine three-phase artifact reads"],
+          "fullName": "genuine three-phase artifact reads keeps same-byte artifact inode replacement between independent reads outside a lifetime pin",
+          "status": "passed",
+          "title": "keeps same-byte artifact inode replacement between independent reads outside a lifetime pin",
+          "duration": 67.16560000000004,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["genuine three-phase artifact reads"],
+          "fullName": "genuine three-phase artifact reads rejects same-size changed content through the original signed digest",
+          "status": "failed",
+          "title": "rejects same-size changed content through the original signed digest",
+          "duration": 63.58050000000003,
+          "failureMessages": [
+            "AssertionError: expected EvolutionArtifactPortError: stored artifa… { code: '…' } to match object { …(2) }\n(1 matching property omitted from actual)\n    at Proxy.<anonymous> (file:///C:/code/chainlesschain/node_modules/@vitest/expect/dist/index.js:1283:10)\n    at Proxy.<anonymous> (file:///C:/code/chainlesschain/node_modules/@vitest/expect/dist/index.js:1156:15)\n    at Proxy.methodWrapper (file:///C:/code/chainlesschain/node_modules/chai/index.js:1700:25)\n    at held (C:/code/chainlesschain/packages/cli/__tests__/unit/evolution-artifact-byte-boundary.test.js:36:17)\n    at C:/code/chainlesschain/packages/cli/__tests__/unit/evolution-artifact-byte-boundary.test.js:196:5\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)"
+          ],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["genuine three-phase artifact reads"],
+          "fullName": "genuine three-phase artifact reads retains the subclass integrity callback's real index mutation while forwarding bounds",
+          "status": "passed",
+          "title": "retains the subclass integrity callback's real index mutation while forwarding bounds",
+          "duration": 66.3107,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "startTime": 1792809511898,
+      "endTime": 1792809512627.3108,
+      "status": "failed",
+      "message": "",
+      "name": "C:/code/chainlesschain/packages/cli/__tests__/unit/evolution-artifact-byte-boundary.test.js"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "sourceSha": "927ddab4493021c61947c1eb344d44d88a3b398a",
+  "runId": 40099321919,
+  "runConclusion": "cancelled",
+  "reason": "Cancelled obsolete source after genuine Windows Formal failure; these partial other-OS observations are diagnostic comparison only.",
+  "at": "2026-10-24T16:16:34.904Z",
+  "archives": [
+    {
+      "id": 12566466816,
+      "name": "cli-reliability-macos-latest-927ddab4493021c61947c1eb344d44d88a3b398a-1",
+      "bytes": 4440,
+      "digest": "sha256:c2b450b1c40368560326bb44b636eefe2c4ba6f2d7b51b15eb578e6e3e41536c"
+    },
+    {
+      "id": 12566227767,
+      "name": "cli-reliability-ubuntu-latest-927ddab4493021c61947c1eb344d44d88a3b398a-1",
+      "bytes": 4914,
+      "digest": "sha256:fa30598ef17178234320c264048f24e7f602ce2a4219ae9ed55a45df24071f01"
+    }
+  ],
+  "qualified": false,
+  "published": false
+}

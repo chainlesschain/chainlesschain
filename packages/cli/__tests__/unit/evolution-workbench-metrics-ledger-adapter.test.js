@@ -1,5 +1,6 @@
 import { createHash, createHmac, randomBytes } from "node:crypto";
 import fs from "node:fs";
+import { createLocalUiEvolutionFileSystem } from "../../src/lib/evolution/evolution-windows-directory-durability.js";
 import os from "node:os";
 import path from "node:path";
 
@@ -133,50 +134,7 @@ function durableWitness(witnessId) {
 }
 
 function durableFilesystem() {
-  const directories = new Set();
-  let nextDescriptor = -20_000;
-  return {
-    ...fs,
-    constants: fs.constants,
-    realpathSync: fs.realpathSync,
-    closeSync(fileDescriptor) {
-      if (directories.delete(fileDescriptor)) return;
-      return fs.closeSync(fileDescriptor);
-    },
-    fsyncSync(fileDescriptor) {
-      if (directories.has(fileDescriptor)) return;
-      try {
-        return fs.fsyncSync(fileDescriptor);
-      } catch (error) {
-        if (
-          process.platform === "win32" &&
-          ["EACCES", "EINVAL", "EISDIR", "EPERM"].includes(error?.code) &&
-          fs.fstatSync(fileDescriptor).isDirectory()
-        ) {
-          return;
-        }
-        throw error;
-      }
-    },
-    openSync(target, flags, mode) {
-      try {
-        return fs.openSync(target, flags, mode);
-      } catch (error) {
-        if (
-          process.platform === "win32" &&
-          flags === "r" &&
-          ["EACCES", "EINVAL", "EISDIR", "EPERM"].includes(error?.code) &&
-          fs.statSync(target).isDirectory()
-        ) {
-          const fileDescriptor = nextDescriptor;
-          nextDescriptor -= 1;
-          directories.add(fileDescriptor);
-          return fileDescriptor;
-        }
-        throw error;
-      }
-    },
-  };
+  return createLocalUiEvolutionFileSystem();
 }
 
 function invocation(id, contentDigest, outcome = {}) {

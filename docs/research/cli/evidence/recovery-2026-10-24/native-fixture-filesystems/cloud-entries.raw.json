@@ -1,0 +1,42 @@
+{
+  "artifactId": 12554130711,
+  "digest": "sha256:fd16e8093f6a7da8d9c9845794c73af5a55b9f43dcbaaaede116f532c84f239c",
+  "files": [
+    {
+      "name": "evolution-connection-timeout.png",
+      "file": "entry-0000.png",
+      "bytes": 47215,
+      "sha256": "e8cd3eea5fd48c6c5e8a9b67ddb7ce35c9143a1d6969652c6e7aa71e86c39df6"
+    },
+    {
+      "name": "evolution-detail.png",
+      "file": "entry-0001.png",
+      "bytes": 67213,
+      "sha256": "4b3951a082a2f757ff9bd4cc7eff12af24f5f4b64498298fbb2fa759db8d467c"
+    },
+    {
+      "name": "evolution-home.png",
+      "file": "entry-0002.png",
+      "bytes": 65362,
+      "sha256": "3efa17ec37799f7039fd16cbad150ad4c64004dddcdad78e381b1458f8e528e5"
+    },
+    {
+      "name": "evolution-large-catalog.png",
+      "file": "entry-0003.png",
+      "bytes": 54089,
+      "sha256": "fbab54c0c4901a2a8b3c6674291e538c4ae012cfce6b019681860721163166ed"
+    },
+    {
+      "name": "evolution-narrow.png",
+      "file": "entry-0004.png",
+      "bytes": 58784,
+      "sha256": "342dd3049a80c39feafc66d3838727193172c7d22869caade3f2335da7680a6b"
+    },
+    {
+      "name": "result.json",
+      "file": "entry-0005.json",
+      "bytes": 90,
+      "sha256": "144aaeaf66e94671678993ed2d1f85cfee76760bc01f82b0848cd5b30fe0bd2b"
+    }
+  ]
+}

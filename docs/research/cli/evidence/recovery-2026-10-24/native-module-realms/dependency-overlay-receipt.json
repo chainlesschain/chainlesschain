@@ -1,0 +1,1249 @@
+﻿{
+    "sourceRoot":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports",
+    "originalPath":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules",
+    "sharedTarget":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules",
+    "backupPath":  "C:\\code\\chainlesschain\\.work\\cc118-runtime-dependency-overlay\\original-cli-node-modules-junction",
+    "sqliteTarget":  "C:\\code\\chainlesschain\\node_modules\\better-sqlite3",
+    "sqliteVersion":  "12.11.1",
+    "sharedTargetsModified":  false,
+    "movedOriginalJunction":  true,
+    "overlayCreated":  true,
+    "links":  [
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\.bin",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\.bin",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\.cache",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\.cache",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\.vite",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\.vite",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\.vite-temp",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\.vite-temp",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\@aws",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\@aws",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\@aws-sdk",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\@aws-sdk",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\@buttercup",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\@buttercup",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\@chainlesschain",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\@chainlesschain",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\@chainsafe",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\@chainsafe",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\@dnsquery",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\@dnsquery",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\@inquirer",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\@inquirer",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\@leichtgewicht",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\@leichtgewicht",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\@libp2p",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\@libp2p",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\@multiformats",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\@multiformats",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\@noble",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\@noble",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\@nodable",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\@nodable",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\@pinojs",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\@pinojs",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\@scure",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\@scure",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\@selderee",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\@selderee",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\@sindresorhus",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\@sindresorhus",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\@smithy",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\@smithy",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\@tootallnate",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\@tootallnate",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\@zone-eu",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\@zone-eu",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\abort-error",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\abort-error",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\acorn",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\acorn",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\adm-zip",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\adm-zip",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\ajv",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\ajv",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\ajv-formats",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\ajv-formats",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\ansi-regex",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\ansi-regex",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\ansi-styles",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\ansi-styles",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\any-signal",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\any-signal",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\anynum",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\anynum",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\argparse",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\argparse",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\ast-types",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\ast-types",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\atomic-sleep",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\atomic-sleep",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\balanced-match",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\balanced-match",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\base-64",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\base-64",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\base64-js",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\base64-js",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\better-sqlite3",
+                      "target":  "C:\\code\\chainlesschain\\node_modules\\better-sqlite3",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\better-sqlite3-multiple-ciphers",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\better-sqlite3-multiple-ciphers",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\bindings",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\bindings",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\bl",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\bl",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\bowser",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\bowser",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\brace-expansion",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\brace-expansion",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\buffer",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\buffer",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\byte-length",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\byte-length",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\canonicalize",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\canonicalize",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\cborg",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\cborg",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\chalk",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\chalk",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\chardet",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\chardet",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\charenc",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\charenc",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\chownr",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\chownr",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\cli-cursor",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\cli-cursor",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\cli-spinners",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\cli-spinners",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\cli-width",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\cli-width",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\color-convert",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\color-convert",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\color-name",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\color-name",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\commander",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\commander",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\crypt",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\crypt",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\data-uri-to-buffer",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\data-uri-to-buffer",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\datastore-core",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\datastore-core",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\decompress-response",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\decompress-response",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\deep-extend",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\deep-extend",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\deepmerge-ts",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\deepmerge-ts",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\degenerator",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\degenerator",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\delay",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\delay",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\denque",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\denque",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\detect-libc",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\detect-libc",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\dom-serializer",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\dom-serializer",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\domelementtype",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\domelementtype",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\domhandler",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\domhandler",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\domutils",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\domutils",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\emoji-regex",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\emoji-regex",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\encoding-japanese",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\encoding-japanese",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\end-of-stream",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\end-of-stream",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\entities",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\entities",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\esbuild-wasm",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\esbuild-wasm",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\escodegen",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\escodegen",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\esprima",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\esprima",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\estraverse",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\estraverse",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\esutils",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\esutils",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\eventemitter3",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\eventemitter3",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\expand-template",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\expand-template",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\fast-deep-equal",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\fast-deep-equal",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\fast-uri",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\fast-uri",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\fast-xml-builder",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\fast-xml-builder",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\fast-xml-parser",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\fast-xml-parser",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\fetch-blob",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\fetch-blob",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\file-uri-to-path",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\file-uri-to-path",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\formdata-polyfill",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\formdata-polyfill",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\fs-constants",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\fs-constants",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\get-east-asian-width",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\get-east-asian-width",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\get-iterator",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\get-iterator",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\github-from-package",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\github-from-package",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\hashlru",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\hashlru",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\he",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\he",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\hot-patcher",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\hot-patcher",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\html-to-text",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\html-to-text",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\htmlparser2",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\htmlparser2",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\iconv-lite",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\iconv-lite",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\ieee754",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\ieee754",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\imapflow",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\imapflow",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\inherits",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\inherits",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\ini",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\ini",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\interface-datastore",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\interface-datastore",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\interface-store",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\interface-store",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\ip-address",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\ip-address",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\is-buffer",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\is-buffer",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\is-electron",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\is-electron",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\is-fullwidth-code-point",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\is-fullwidth-code-point",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\is-interactive",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\is-interactive",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\is-loopback-addr",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\is-loopback-addr",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\is-network-error",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\is-network-error",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\is-plain-obj",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\is-plain-obj",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\is-unicode-supported",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\is-unicode-supported",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\is-unsafe",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\is-unsafe",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\it-all",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\it-all",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\it-byte-stream",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\it-byte-stream",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\it-drain",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\it-drain",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\it-filter",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\it-filter",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\it-foreach",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\it-foreach",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\it-length-prefixed",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\it-length-prefixed",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\it-map",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\it-map",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\it-merge",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\it-merge",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\it-parallel",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\it-parallel",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\it-peekable",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\it-peekable",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\it-pipe",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\it-pipe",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\it-pushable",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\it-pushable",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\it-queue",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\it-queue",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\it-queueless-pushable",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\it-queueless-pushable",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\it-reader",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\it-reader",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\it-sort",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\it-sort",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\it-stream-types",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\it-stream-types",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\it-take",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\it-take",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\js-yaml",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\js-yaml",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\json-schema-traverse",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\json-schema-traverse",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\koffi",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\koffi",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\layerr",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\layerr",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\leac",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\leac",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\libbase64",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\libbase64",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\libmime",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\libmime",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\libp2p",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\libp2p",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\libqp",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\libqp",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\linkify-it",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\linkify-it",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\log-symbols",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\log-symbols",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\mailparser",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\mailparser",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\main-event",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\main-event",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\md5",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\md5",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\mimic-function",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\mimic-function",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\mimic-response",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\mimic-response",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\minimatch",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\minimatch",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\minimist",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\minimist",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\mkdirp-classic",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\mkdirp-classic",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\mortice",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\mortice",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\ms",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\ms",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\multiformats",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\multiformats",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\mute-stream",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\mute-stream",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\napi-build-utils",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\napi-build-utils",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\nested-property",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\nested-property",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\netmask",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\netmask",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\node-abi",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\node-abi",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\node-domexception",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\node-domexception",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\node-ensure",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\node-ensure",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\node-fetch",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\node-fetch",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\nodemailer",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\nodemailer",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\on-exit-leak-free",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\on-exit-leak-free",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\once",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\once",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\onetime",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\onetime",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\ora",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\ora",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\p-defer",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\p-defer",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\p-event",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\p-event",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\p-queue",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\p-queue",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\p-retry",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\p-retry",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\p-timeout",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\p-timeout",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\pac-resolver",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\pac-resolver",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\parseley",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\parseley",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\path-expression-matcher",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\path-expression-matcher",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\path-posix",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\path-posix",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\pdf-parse",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\pdf-parse",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\peberminta",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\peberminta",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\pino",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\pino",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\pino-abstract-transport",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\pino-abstract-transport",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\pino-std-serializers",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\pino-std-serializers",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\prebuild-install",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\prebuild-install",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\process-warning",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\process-warning",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\progress-events",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\progress-events",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\protons-runtime",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\protons-runtime",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\pump",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\pump",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\punycode.js",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\punycode.js",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\querystringify",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\querystringify",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\quick-format-unescaped",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\quick-format-unescaped",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\race-event",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\race-event",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\race-signal",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\race-signal",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\random-int",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\random-int",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\rc",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\rc",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\readable-stream",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\readable-stream",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\real-require",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\real-require",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\require-from-string",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\require-from-string",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\requires-port",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\requires-port",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\restore-cursor",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\restore-cursor",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\safe-buffer",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\safe-buffer",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\safe-stable-stringify",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\safe-stable-stringify",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\safer-buffer",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\safer-buffer",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\selderee",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\selderee",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\semver",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\semver",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\signal-exit",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\signal-exit",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\simple-concat",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\simple-concat",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\simple-get",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\simple-get",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\smart-buffer",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\smart-buffer",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\socks",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\socks",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\sonic-boom",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\sonic-boom",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\source-map",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\source-map",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\split2",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\split2",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\sprintf-js",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\sprintf-js",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\sql.js",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\sql.js",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\stdin-discarder",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\stdin-discarder",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\string-width",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\string-width",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\string_decoder",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\string_decoder",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\strip-ansi",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\strip-ansi",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\strip-json-comments",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\strip-json-comments",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\strnum",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\strnum",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\supports-color",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\supports-color",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\tar-fs",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\tar-fs",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\tar-stream",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\tar-stream",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\thread-stream",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\thread-stream",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\tlds",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\tlds",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\tslib",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\tslib",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\tunnel-agent",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\tunnel-agent",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\uc.micro",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\uc.micro",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\uint8-varint",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\uint8-varint",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\uint8arraylist",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\uint8arraylist",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\uint8arrays",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\uint8arrays",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\undici",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\undici",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\unlimited-timeout",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\unlimited-timeout",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\url-join",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\url-join",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\url-parse",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\url-parse",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\utf8-codec",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\utf8-codec",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\util-deprecate",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\util-deprecate",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\weald",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\weald",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\web-streams-polyfill",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\web-streams-polyfill",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\webdav",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\webdav",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\wherearewe",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\wherearewe",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\wrap-ansi",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\wrap-ansi",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\wrappy",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\wrappy",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\ws",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\ws",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\xml-naming",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\xml-naming",
+                      "kind":  "junction"
+                  },
+                  {
+                      "path":  "C:\\code\\chainlesschain\\.work\\cc118-native-ports\\packages\\cli\\node_modules\\yoctocolors-cjs",
+                      "target":  "C:\\code\\chainlesschain\\packages\\cli\\node_modules\\yoctocolors-cjs",
+                      "kind":  "junction"
+                  }
+              ],
+    "at":  "2026-10-24T12:19:39.5241844Z"
+}

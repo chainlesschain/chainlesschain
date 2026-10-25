@@ -19,9 +19,11 @@ import {
   EVOLUTION_LEDGER_STATE_SNAPSHOT_SCHEMA,
   EVOLUTION_LEDGER_WITNESS_SCHEMA,
   EvolutionLedger,
+  getEvolutionLedgerVerifiedHistoryReader,
   verifyEvolutionLedgerAuditBundle,
 } from "../../src/lib/evolution/evolution-ledger.js";
 import { createEvolutionFileWitness } from "../../src/lib/evolution/evolution-file-witness.js";
+import { createLocalUiEvolutionFileSystem } from "../../src/lib/evolution/evolution-windows-directory-durability.js";
 
 const SECRET = "test-only-evolution-ledger-v2-key";
 const WITNESS_SECRET = "test-only-independent-witness-v1-key";
@@ -1036,29 +1038,48 @@ function filesystemWith(overrides = {}) {
 
 function incarnationBlindFilesystem() {
   const base = filesystemWith();
+  const directories = new Map();
+  const replayIdentity = (target, stat, options) => {
+    if (!stat.isDirectory()) return stat;
+    const stableInode = Number.parseInt(
+      crypto
+        .createHash("sha256")
+        .update(path.resolve(target))
+        .digest("hex")
+        .slice(0, 12),
+      16,
+    );
+    return new Proxy(stat, {
+      get(object, property, receiver) {
+        if (property === "ino")
+          return options?.bigint ? BigInt(stableInode) : stableInode;
+        return Reflect.get(object, property, receiver);
+      },
+    });
+  };
   return filesystemWith({
     lstatSync(target, options) {
-      const stat = fs.lstatSync(target, options);
-      if (!stat.isDirectory()) return stat;
-      const stableInode = Number.parseInt(
-        crypto
-          .createHash("sha256")
-          .update(path.resolve(target))
-          .digest("hex")
-          .slice(0, 12),
-        16,
-      );
-      return new Proxy(stat, {
-        get(object, property, receiver) {
-          if (property === "dev") return options?.bigint ? 4242n : 4242;
-          if (property === "ino")
-            return options?.bigint ? BigInt(stableInode) : stableInode;
-          return Reflect.get(object, property, receiver);
-        },
-      });
+      return replayIdentity(target, fs.lstatSync(target, options), options);
     },
-    openSync: base.openSync,
-    closeSync: base.closeSync,
+    openSync(target, ...args) {
+      const descriptor = base.openSync(target, ...args);
+      directories.set(descriptor, target);
+      return descriptor;
+    },
+    fstatSync(descriptor, options) {
+      const target = directories.get(descriptor);
+      const stat =
+        descriptor < 0
+          ? fs.statSync(target, options)
+          : fs.fstatSync(descriptor, options);
+      // Replay coherent directory path/handle inodes. Keep the actual volume
+      // device so the Windows file path/handle bridge remains physically bound.
+      return replayIdentity(target, stat, options);
+    },
+    closeSync(descriptor) {
+      directories.delete(descriptor);
+      return base.closeSync(descriptor);
+    },
     fsyncSync: base.fsyncSync,
   });
 }
@@ -1134,6 +1155,71 @@ describe("EvolutionLedger v2", () => {
       ...overrides,
     });
   }
+
+  it("freshly reads cached production files with full-precision identities without legacy projection samples", () => {
+    const lstat = vi.spyOn(fs, "lstatSync");
+    try {
+      const ledger = createLedger({
+        fsImpl: createLocalUiEvolutionFileSystem(),
+      });
+      ledger.append(eventInput(1, artifacts));
+      ledger.verify();
+      const file = path.join(
+        ledger.segmentDir,
+        regularFiles(ledger.segmentDir)[0],
+      );
+      lstat.mockClear();
+      expect(ledger.verify().sequence).toBe(1);
+      const samples = lstat.mock.calls.filter(([target]) => target === file);
+      expect(samples).toHaveLength(2);
+      expect(samples.every(([, options]) => options?.bigint === true)).toBe(
+        true,
+      );
+      // Equal-sized changed content still invalidates the authenticated prefix.
+      const bytes = fs.readFileSync(file);
+      bytes[Math.floor(bytes.length / 2)] ^= 1;
+      fs.chmodSync(file, 0o600);
+      fs.writeFileSync(file, bytes);
+      expect(() => ledger.verify()).toThrow();
+    } finally {
+      lstat.mockRestore();
+    }
+  });
+
+  it("reads history and its authority from one authenticated state without reusing later observations", () => {
+    const reads = vi.fn((...args) => fs.readdirSync(...args));
+    const ledger = createLedger({
+      fsImpl: filesystemWith({ readdirSync: reads }),
+    });
+    ledger.append(eventInput(1, artifacts));
+    const read = getEvolutionLedgerVerifiedHistoryReader(ledger);
+    expect(typeof read).toBe("function");
+    const expectedAuthority = ledger.verify();
+    const expectedEvents = ledger.read();
+    reads.mockClear();
+    const actual = read();
+    const atomicReads = reads.mock.calls.length;
+    expect(actual).toEqual({
+      authority: expectedAuthority,
+      events: expectedEvents,
+    });
+    expect(Object.isFrozen(actual)).toBe(true);
+    expect(Object.isFrozen(actual.events)).toBe(true);
+    reads.mockClear();
+    ledger.verify();
+    ledger.read();
+    expect(reads.mock.calls.length).toBe(2 * atomicReads);
+    expect(() => read({ events: [] })).toThrow(/no replacement context/u);
+    expect(getEvolutionLedgerVerifiedHistoryReader({ ...ledger })).toBe(null);
+    expect(getEvolutionLedgerVerifiedHistoryReader(Object.create(ledger))).toBe(
+      null,
+    );
+    expect(getEvolutionLedgerVerifiedHistoryReader(new Proxy(ledger, {}))).toBe(
+      null,
+    );
+    fs.writeFileSync(ledger.headPath, "{}\n");
+    expect(() => read()).toThrow();
+  });
 
   it("initializes an independent signed identity, epoch, genesis anchor, and HEAD", () => {
     const ledger = createLedger();

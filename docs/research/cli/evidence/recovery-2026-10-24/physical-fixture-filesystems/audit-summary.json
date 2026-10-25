@@ -1,0 +1,48 @@
+{
+    "sourceSha":  "76491cc313d6057e4babee5223dc48033886e532",
+    "node":  "v22.12.0",
+    "changedSource":  false,
+    "artificialTimeout":  false,
+    "testTimeoutMs":  60000,
+    "workers":  1,
+    "passed":  0,
+    "failed":  1,
+    "skipped":  9,
+    "test":  "rejects a substituted enrolled matrix request before entering either Gate",
+    "durationMs":  80040.0823,
+    "failureMessages":  [
+                            "Error: STACK_TRACE_ERROR\n    at task (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1784:27)\n    at Object.\u003canonymous\u003e (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1817:16)\n    at Object.\u003canonymous\u003e (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1563:28)\n    at chain (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:599:14)\n    at C:/code/chainlesschain/.work/cc118-native-ports/packages/cli/__tests__/unit/skill-target-matrix-eval.test.js:3640:5\n    at file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1889:40\n    at runWithSuite (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:2258:8)\n    at Object.collect (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1889:10)\n    at Object.collect (file:///C:/code/chainlesschain/node_modules/@vitest/runner/dist/chunk-artifact.js:1893:54)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)"
+                        ],
+    "startTime":  1792834859294,
+    "syntheticHelperCandidates":  [
+                                      "packages/cli/__tests__/fixtures\\evolution-durable-store.js:45:function durableFilesystem() {",
+                                      "packages/cli/__tests__/fixtures\\structured-memory-agent-control-plane.js:41:function durableFilesystem() {",
+                                      "packages/cli/__tests__/unit\\agent-evolution-runtime-composition.test.js:286:function durableFilesystem() {",
+                                      "packages/cli/__tests__/unit\\controlled-skill-pilot-ledger-adapter.test.js:75:function durableFilesystem() {",
+                                      "packages/cli/__tests__/unit\\evolution-eval-child-evidence-ledger-adapter.test.js:75:function durableFilesystem() {",
+                                      "packages/cli/__tests__/unit\\evolution-eval-launch-admission-fixture.js:65:function durableFilesystem() {",
+                                      "packages/cli/__tests__/unit\\evolution-ledger-file-backend.test.js:15:function durableFilesystem() {",
+                                      "packages/cli/__tests__/unit\\evolution-raw-deletion-ledger-adapter.test.js:74:function durableFilesystem() {",
+                                      "packages/cli/__tests__/unit\\evolution-workbench-metrics-ledger-adapter.test.js:135:function durableFilesystem() {",
+                                      "packages/cli/__tests__/unit\\evolvable-artifact-ledger-adapter.test.js:131:function durableFilesystem() {",
+                                      "packages/cli/__tests__/unit\\governed-knowledge-sync-ledger-adapter.test.js:165:function durableFilesystem() {",
+                                      "packages/cli/__tests__/unit\\governed-knowledge-trust-ledger.test.js:117:function durableFilesystem() {",
+                                      "packages/cli/__tests__/unit\\governed-skill-marketplace-ledger-adapter.test.js:118:function durableFilesystem() {",
+                                      "packages/cli/__tests__/unit\\governed-skill-synthesis-attestor-trust-ledger.test.js:101:function durableFilesystem() {",
+                                      "packages/cli/__tests__/unit\\governed-skill-synthesis-evaluation-ledger-adapter.test.js:72:function durableFilesystem() {",
+                                      "packages/cli/__tests__/unit\\pm-exploration-ledger-adapter.test.js:119:function durableFilesystem() {",
+                                      "packages/cli/__tests__/unit\\skill-promotion-review-ledger-adapter.test.js:57:function durableFilesystem() {",
+                                      "packages/cli/__tests__/unit\\skill-retrieval-revocation-ledger-adapter.test.js:80:function durableFilesystem() {",
+                                      "packages/cli/__tests__/unit\\structured-memory-ledger-adapter.test.js:131:function durableFilesystem() {",
+                                      "packages/cli/__tests__/unit\\wiki-maintainer-ledger-adapter.test.js:124:function durableFilesystem() {",
+                                      "packages/cli/__tests__/unit\\wiki-maintenance-trigger-ledger-adapter.test.js:127:function durableFilesystem() {",
+                                      "packages/cli/__tests__/unit\\wikiskill-benchmark-ledger-adapter.test.js:274:function durableFilesystem() {"
+                                  ],
+    "observedPowerShell":  {
+                               "childPid":  19908,
+                               "workerPid":  6468
+                           },
+    "inventoryScope":  "Read-only source candidates, not all reproduced failures",
+    "stdout":  "substituted-matrix.stdout.log",
+    "nativeVitestJson":  "substituted-matrix.json"
+}

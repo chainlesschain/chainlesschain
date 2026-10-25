@@ -9,6 +9,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { createLocalUiEvolutionFileSystem } from "../../src/lib/evolution/evolution-windows-directory-durability.js";
 
 import { EVOLUTION_ARTIFACT_AUTHORITY_DECISION_SCHEMA } from "../../src/lib/evolution/evolution-artifact-ports.js";
 import {
@@ -59,52 +60,6 @@ function signingAuthority(label) {
         signature.keyId === trust.keyId &&
         signature.trustPolicyDigest === trust.trustPolicyDigest &&
         signature.value === sign(message),
-    },
-  };
-}
-
-function durableFilesystem() {
-  const directories = new Set();
-  let nextDescriptor = -40_000;
-  return {
-    ...fs,
-    constants: fs.constants,
-    realpathSync: fs.realpathSync,
-    closeSync(descriptor) {
-      if (directories.delete(descriptor)) return;
-      return fs.closeSync(descriptor);
-    },
-    fsyncSync(descriptor) {
-      if (directories.has(descriptor)) return;
-      try {
-        return fs.fsyncSync(descriptor);
-      } catch (error) {
-        if (
-          process.platform === "win32" &&
-          ["EACCES", "EINVAL", "EISDIR", "EPERM"].includes(error?.code) &&
-          fs.fstatSync(descriptor).isDirectory()
-        ) {
-          return;
-        }
-        throw error;
-      }
-    },
-    openSync(target, flags, mode) {
-      try {
-        return fs.openSync(target, flags, mode);
-      } catch (error) {
-        if (
-          process.platform === "win32" &&
-          flags === "r" &&
-          ["EACCES", "EINVAL", "EISDIR", "EPERM"].includes(error?.code) &&
-          fs.statSync(target).isDirectory()
-        ) {
-          const descriptor = nextDescriptor--;
-          directories.add(descriptor);
-          return descriptor;
-        }
-        throw error;
-      }
     },
   };
 }
@@ -324,7 +279,7 @@ function evidenceAuthorities(tenantId) {
 
 export function createTestAgentEvolutionComposition(
   createComposition,
-  { runId },
+  { runId, fsImpl = createLocalUiEvolutionFileSystem() },
   stateRootDir,
 ) {
   // Kept URI-safe because the evidence source reference carries this as a
@@ -347,7 +302,9 @@ export function createTestAgentEvolutionComposition(
     stateRootDir,
     witnessId: "agent-e2e-witness",
     secure: false,
-    fsImpl: durableFilesystem(),
+    // Real process tests use the same directory flushing and ACL backend as
+    // production. Synthetic directory descriptors cannot prove durability.
+    fsImpl,
     evidenceIdGenerator: async () => `evidence-e2e-${++sequence}`,
     ingressIdGenerator: () => `ingress-e2e-${++sequence}`,
     authorities: {

@@ -1,0 +1,21 @@
+{
+  "sourceSha": "9b198f348a5c38466e0afc57562fee3b935815fe",
+  "diagnosticOnly": true,
+  "formalQualification": false,
+  "testBudgetMs": 180000,
+  "startedAt": "2026-10-24T07:47:57.444Z",
+  "output": "C:\\code\\chainlesschain\\.work\\release118-publish-first-9b198f\\sdk-timeout-diagnostic-2026-10-24T07-47-57-232Z",
+  "sourceBefore": {
+    "packages/agent-sdk/src/agent-session.ts": "5eae4306716429db411b27e13ffd8b0c23365128",
+    "packages/agent-sdk/__tests__/e2e-agent-session.test.ts": "30c5e27a3d6db6c4c8929d4a9693ae4320884511",
+    "packages/cli/src/lib/evolution/evolution-private-storage.js": "31d14ccd42ebbcabc6c9eea2d76a4b140127d8df"
+  },
+  "exitCode": 1,
+  "finishedAt": "2026-10-24T07:51:03.239Z",
+  "sourceAfter": {
+    "packages/agent-sdk/src/agent-session.ts": "5eae4306716429db411b27e13ffd8b0c23365128",
+    "packages/agent-sdk/__tests__/e2e-agent-session.test.ts": "30c5e27a3d6db6c4c8929d4a9693ae4320884511",
+    "packages/cli/src/lib/evolution/evolution-private-storage.js": "31d14ccd42ebbcabc6c9eea2d76a4b140127d8df"
+  },
+  "sourceUnchanged": true
+}

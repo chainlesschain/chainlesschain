@@ -145,6 +145,8 @@ test("npm release publishes and re-verifies changed child packages before CLI", 
   const markers = [
     '- name: "Publish @chainlesschain/agent-protocol"',
     "- name: Verify Agent Protocol registry bytes and npm provenance",
+    '- name: "Publish @chainlesschain/session-core"',
+    "- name: Verify published Session Core registry bytes and npm provenance",
     '- name: "Publish @chainlesschain/context-memory-kernel"',
     "- name: Verify published Context Memory Kernel registry bytes and npm provenance",
     '- name: "Publish @chainlesschain/agent-sdk"',
@@ -163,7 +165,7 @@ test("npm release publishes and re-verifies changed child packages before CLI", 
     "child publish/readback steps must precede CLI publication",
   );
 
-  for (const marker of [markers[1], markers[3], markers[5]]) {
+  for (const marker of [markers[1], markers[3], markers[5], markers[7]]) {
     const start = workflow.indexOf(marker);
     const next = workflow.indexOf("      - name:", start + marker.length);
     const step = workflow.slice(start, next === -1 ? undefined : next);
@@ -172,19 +174,33 @@ test("npm release publishes and re-verifies changed child packages before CLI", 
       /^\s*if:/mu,
       `${marker} must also run when an idempotent publish is retried`,
     );
+    assert.match(
+      step,
+      /--trusted-anchor/u,
+      `${marker} must authenticate the original signed publish anchor`,
+    );
+    assert.match(
+      step,
+      /verify-npm-reused-package-tree\.mjs/u,
+      `${marker} must bind reused bytes to the exact package source tree`,
+    );
   }
   assert.match(
     workflow,
     /release-artifacts\/agent-protocol-npm-provenance\.json/u,
   );
+  assert.match(
+    workflow,
+    /release-artifacts\/session-core-npm-provenance\.json/u,
+  );
   assert.equal(
     workflow.match(/--trusted-anchor/gu)?.length,
-    3,
+    4,
     "all idempotently reused attested children must resolve their signed release anchor",
   );
   assert.equal(
     workflow.match(/verify-npm-reused-package-tree\.mjs/gu)?.length,
-    3,
+    4,
     "all reused attested children must prove exact source-tree identity",
   );
 });

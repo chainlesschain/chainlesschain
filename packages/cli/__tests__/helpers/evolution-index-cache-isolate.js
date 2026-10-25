@@ -70,6 +70,10 @@ export function loadActualIndexCache() {
     .replace(
       "reservedIndexMemory += memory;",
       "reservedIndexMemory += memory; observeReservation(prefix, memory);",
+    )
+    .replace(
+      "function promoteTrustedIndexParse(entry, parsed) {",
+      "function promoteTrustedIndexParse(entry, parsed) { promotions.push({ retainedIndexMemory, reservedIndexMemory, hotMemory: parsed.memory });",
     );
   const result = new Function(
     "crypto",
@@ -87,6 +91,15 @@ export function loadActualIndexCache() {
     let reservedIndexMemory = 0;
     let peakAccounted = 0;
     const reservations = [];
+    const allocations = [];
+    const promotions = [];
+    const actualBuffer = Buffer;
+    Buffer = Object.create(actualBuffer);
+    Buffer.allocUnsafeSlow = (size) => {
+      allocations.push({ size, retainedIndexMemory, reservedIndexMemory });
+      observeBudget();
+      return actualBuffer.allocUnsafeSlow(size);
+    };
     function observeReservation(prefix, candidateMemory) {
       reservations.push({
         candidateMemory,
@@ -105,11 +118,21 @@ export function loadActualIndexCache() {
     ${cache}
     return {
       run: reuseTrustedIndexParse,
+      canonical: originalCanonicalJson,
       counts,
       dropHot: () => { for (const entry of TRUSTED_INDEX_PARSES.values()) downgradeTrustedIndexParse(entry); },
       state: () => ({
         layouts: TRUSTED_INDEX_PARSES.size, retainedIndexMemory, reservedIndexMemory, peakAccounted,
         reservations: reservations.map(entry => ({ ...entry })),
+        allocations: allocations.map(entry => ({ ...entry })),
+        promotions: promotions.map(entry => ({ ...entry })),
+        entries: [...TRUSTED_INDEX_PARSES.values()].map(entry => ({
+          alias: entry.bytes === entry.canonicalBytes,
+          rawBacking: entry.bytes.buffer.byteLength,
+          canonicalBacking: entry.canonicalBytes.buffer.byteLength,
+          rawLength: entry.bytes.length, memory: entry.memory,
+          hotMemory: entry.hot?.memory || 0,
+        })),
         sum: [...TRUSTED_INDEX_PARSES.values()].reduce((sum, entry) => sum + entry.memory + (entry.hot?.memory || 0), 0),
         compact: [...TRUSTED_INDEX_PARSES.values()].reduce((sum, entry) => sum + entry.memory, 0),
         hot: [...TRUSTED_INDEX_PARSES.values()].reduce((sum, entry) => sum + (entry.hot?.memory || 0), 0),

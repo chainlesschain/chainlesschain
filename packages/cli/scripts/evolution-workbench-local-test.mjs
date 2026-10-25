@@ -137,7 +137,7 @@ export async function createChainlessChainCommandDependencies({ commandName, des
 可查看证据、对比版本、批准/拒绝候选、回滚到历史版本。
 操作写入本目录的真实测试账本，重启后保留。
 测试使用固定时钟、公开 fixture 密钥、模拟真人和 Eval；无需模型/API Key。
-Windows 使用测试目录 fsync 适配器；不证明生产文件系统耐久性。
+Windows 使用仓库原装目录刷盘与 ACL 适配器；不证明断电耐久性。
 这不是生产自动演化环境，不能用于真实审核或发布。
 不要把此配置的环境变量加入系统或普通聊天进程。
 重新运行 init 会创建全新的环境；已有环境不会被覆盖。

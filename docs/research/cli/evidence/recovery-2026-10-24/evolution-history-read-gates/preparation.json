@@ -1,0 +1,146 @@
+{
+  "schema": "chainlesschain.evolution-history-read-repair-preparation/v1",
+  "recordedAt": "2026-10-24T05:54:56.061Z",
+  "baseSource": "98b33f3934724cda15f0110d1205742231cccbd1",
+  "qualified": false,
+  "published": false,
+  "merged": false,
+  "sourceSnapshot": [
+    {
+      "file": "evolution-ledger.js",
+      "sha256": "1af5b5a6950b8900fbcf60ff9add9c41d3b694b6b546aec5fce632471269b648"
+    },
+    {
+      "file": "evolution-run-ledger-adapter.js",
+      "sha256": "9de338a51f126e4e9bf1400f245e81adcd74de667ac13a2d3e1670607f517d41"
+    },
+    {
+      "file": "evolution-private-storage.js",
+      "sha256": "355b23de536b1a7b42557c27092a47e8a544888895ea27e440d737180a03e8f8"
+    },
+    {
+      "file": "local-ui-evolution-runtime.js",
+      "sha256": "49e07c32fe0b532a9a46ab4fb7c2c0a89e61c922dcac4f940e6ac6afe389ac25"
+    },
+    {
+      "file": "local-ui-signing-authority.js",
+      "sha256": "60255d034dae6e25e90748a525878afcae9ac30214e00716ed39b79efe2785d6"
+    }
+  ],
+  "validation": {
+    "nativeWindows": {
+      "files": 4,
+      "passed": 92,
+      "failed": 0
+    },
+    "localAuthorityAndWitness": {
+      "files": 4,
+      "passed": 95,
+      "failed": 0
+    },
+    "reincarnationControl": {
+      "beforeFailed": 1,
+      "afterPassed": 1,
+      "productionIdentityChecksUnchanged": true
+    }
+  },
+  "preservedFailedAttempts": [
+    {
+      "file": ".work/release118-publish-first-835dbd/atomic-history-regression.json",
+      "passed": 82,
+      "failed": 1,
+      "reason": "Existing incoherent directory path/handle fixture; baseline matched control also fails."
+    },
+    {
+      "file": ".work/release118-publish-first-835dbd/atomic-history-regression-corrected.json",
+      "passed": 83,
+      "failed": 1,
+      "reason": "New test attempted spying on a frozen prototype; production frozen interface preserved."
+    },
+    {
+      "file": ".work/release118-publish-first-835dbd/atomic-real-backend-corrected.json",
+      "reason": "New test attempted assigning to a frozen instance; replaced with constructor-injected custom ports."
+    },
+    {
+      "file": ".work/release118-publish-first-835dbd/atomic-real-backend-final.json",
+      "reason": "Owned artifact was correctly read-only; test now explicitly makes its owned fixture writable before tampering."
+    },
+    {
+      "file": ".work/release118-publish-first-835dbd/reincarnation-baseline-control.json",
+      "reason": "Zero tests matched, so this invocation is not validation."
+    }
+  ],
+  "security": {
+    "freshBoundedBytes": true,
+    "freshPathAndDescriptorIdentity": true,
+    "currentArtifactAuthority": true,
+    "finalRunFrontierCheck": true,
+    "persistedLegacyFingerprintsUnchanged": true,
+    "customFilesystemBehaviorRetained": true,
+    "immutableEpoch": "Fixed process-local public key plus complete trust policy; no change to external revocable authorities."
+  },
+  "formalLimits": {
+    "durationSeconds": 7200,
+    "warmupTurns": 20,
+    "measuredTurns": 1000,
+    "turnDeadlineMs": 60000,
+    "cleanupDeadlineMs": 10000,
+    "maxRssGrowthMb": 128,
+    "maxResourceGrowth": 8
+  },
+  "localLongDiagnostics": "Still running when prepared; not qualifying. Exact-source complete Actions matrices remain required.",
+  "files": [
+    {
+      "file": "windows-regression.json",
+      "originalSha256": "01a65a49232fb87b6eb3eb64a0debc52e7d013b207a2d3615b10227c748a7b36",
+      "sha256": "deb36ba7efc3361d52b51024ba6733e492355f237377f7814dfd869e4ce414e9",
+      "projection": "Only local account home prefix redacted, if present."
+    },
+    {
+      "file": "windows-local-authority-regression.json",
+      "originalSha256": "6f8fb4f5c0f0b1600ddf10a6e58ef4d446e764c0ecac5463dcdeb0469625a411",
+      "sha256": "8e9fa4ef7d5696ad321568ca9cff630c1e716011e4932811e11cc9cffd5aed59",
+      "projection": "Only local account home prefix redacted, if present."
+    },
+    {
+      "file": "before-runtime-counters.json",
+      "originalSha256": "663c60daab148356ecfdf0ce2bb8f54971e941172ba994221fa9129d766d953b",
+      "sha256": "663c60daab148356ecfdf0ce2bb8f54971e941172ba994221fa9129d766d953b",
+      "projection": "Only local account home prefix redacted, if present."
+    },
+    {
+      "file": "before-runtime-profile-summary.json",
+      "originalSha256": "ca1b920fc0f2e50130405943fdf503e753af9ffa3860e87cc2effea36500588c",
+      "sha256": "ca1b920fc0f2e50130405943fdf503e753af9ffa3860e87cc2effea36500588c",
+      "projection": "Only local account home prefix redacted, if present."
+    },
+    {
+      "file": "before-profiled-diagnostic.json",
+      "originalSha256": "519da6a5c646a8bf5afdebc60f4e057f0de4af631efc1bff4e6e75ed2a11ab9f",
+      "sha256": "519da6a5c646a8bf5afdebc60f4e057f0de4af631efc1bff4e6e75ed2a11ab9f",
+      "projection": "Only local account home prefix redacted, if present."
+    },
+    {
+      "file": "before-native-adapter-timeout.json",
+      "originalSha256": "229eb4bc80687730ec192118b3ed23c8f7f21c4c936107803513ceb55a19298b",
+      "sha256": "229eb4bc80687730ec192118b3ed23c8f7f21c4c936107803513ceb55a19298b",
+      "projection": "Only local account home prefix redacted, if present."
+    },
+    {
+      "file": "reincarnation-before.json",
+      "originalSha256": "328d9df011ce9abea6ea0687852d3b4047dc3ebac96aa0fee812ca92e930ebe8",
+      "sha256": "a3186e75fff67534dd91c8197cf61acfd27684591c0ad283adda037dc5c7cb88",
+      "projection": "Only local account home prefix redacted, if present."
+    },
+    {
+      "file": "reincarnation-after.json",
+      "originalSha256": "bd7148c9c2650526ca4c110fe57ba5714b82af979afe6729a806797a7a313575",
+      "sha256": "edbe77619e6b680b23dc9f39e76bea0aad6c4f58e5fd3f3f3e262bd881201f3a",
+      "projection": "Only local account home prefix redacted, if present."
+    },
+    {
+      "file": "before-runtime.cpuprofile.gz",
+      "sha256": "52baca2fd6c0fac280da2cbf7b1e58364516b11b89e2c146b4d341178151edf7"
+    }
+  ]
+}

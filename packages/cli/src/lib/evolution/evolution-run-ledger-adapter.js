@@ -1,13 +1,20 @@
 import evolutionRun from "@chainlesschain/session-core/evolution-run";
+import { types } from "node:util";
 
 import {
   EVOLUTION_DURABLE_ARTIFACT_RECORD_SCHEMA,
+  EvolutionArtifactPorts,
+  captureEvolutionLedgerArtifactResolverBinding,
   captureEvolutionLedgerBatchReadWindow,
+  captureEvolutionLedgerWholeHistoryReader,
+  hasEvolutionLedgerDefaultPublication,
   isEvolutionLedgerArtifactResolver,
 } from "./evolution-artifact-ports.js";
 import {
   EVOLUTION_ARTIFACT_RESOLUTION_SCHEMA,
   EVOLUTION_LEDGER_DOMAIN_EVENT_SCHEMA,
+  hasEvolutionLedgerDefaultAppendPorts,
+  getEvolutionLedgerVerifiedHistoryReader,
 } from "./evolution-ledger.js";
 
 const { EVENT_TYPES, projectEvolutionRun } = evolutionRun;
@@ -21,6 +28,7 @@ export const EVOLUTION_RUN_LEDGER_CORRUPT_CODE =
 const ARTIFACT_TYPE = "evolution-run-event";
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 const EVIDENCE_READERS = new WeakMap();
+const APPEND_NEXT = new WeakMap();
 const EVENT_KEYS = new Set([
   "schema",
   "tenantId",
@@ -118,6 +126,80 @@ function normalizeEvent(input, descriptor) {
   return Object.freeze(event);
 }
 
+// The new composition port accepts data only, never a sequence or a callback.
+// Capture all nested values before any current-authority port can run.
+function captureNextEventData(value, seen = new Set()) {
+  if (value === null || typeof value === "string" || typeof value === "boolean")
+    return value;
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (
+    !value ||
+    typeof value !== "object" ||
+    types.isProxy(value) ||
+    seen.has(value)
+  )
+    throw new TypeError("append-next event must contain acyclic plain data");
+  const array = Array.isArray(value);
+  const prototype = Object.getPrototypeOf(value);
+  if (!array && prototype !== Object.prototype && prototype !== null)
+    throw new TypeError("append-next event must contain plain objects");
+  const keys = Reflect.ownKeys(value).filter(
+    (key) => !(array && key === "length"),
+  );
+  if (
+    array &&
+    (keys.length !== value.length ||
+      keys.some((key, index) => key !== String(index)))
+  )
+    throw new TypeError("append-next event arrays must contain dense data");
+  const captured = array ? [] : Object.create(null);
+  seen.add(value);
+  try {
+    for (const key of keys) {
+      const property = Object.getOwnPropertyDescriptor(value, key);
+      if (
+        typeof key !== "string" ||
+        !property?.enumerable ||
+        !("value" in property)
+      )
+        throw new TypeError(
+          "append-next event cannot contain accessors or symbols",
+        );
+      captured[key] = captureNextEventData(property.value, seen);
+    }
+  } finally {
+    seen.delete(value);
+  }
+  return captured;
+}
+
+function normalizeNextEvent(input, descriptor) {
+  const captured = captureNextEventData(input);
+  if (
+    !captured ||
+    Array.isArray(captured) ||
+    Reflect.ownKeys(captured).length !== EVENT_KEYS.size - 1 ||
+    Reflect.ownKeys(captured).some(
+      (key) => key === "sequence" || !EVENT_KEYS.has(key),
+    )
+  )
+    throw new TypeError(
+      "append-next event requires event fields without sequence",
+    );
+  const { sequence: _temporary, ...event } = normalizeEvent(
+    { ...captured, sequence: 1 },
+    descriptor,
+  );
+  return freeze(event);
+}
+
+function hasOriginalMethods(prototype, methods) {
+  return Object.entries(methods).every(
+    ([name, method]) =>
+      Object.getOwnPropertyDescriptor(prototype, name)?.value === method,
+  );
+}
+
 function parseRecord(resolution, descriptor) {
   if (
     resolution?.schema !== EVOLUTION_ARTIFACT_RESOLUTION_SCHEMA ||
@@ -159,6 +241,10 @@ function parseRecord(resolution, descriptor) {
 
 export class EvolutionRunLedgerAdapter {
   #readBatches;
+  #verifiedHistory;
+  #originalRead;
+  #originalVerify;
+  #appendNextEligible;
 
   constructor({
     descriptor: input,
@@ -172,6 +258,12 @@ export class EvolutionRunLedgerAdapter {
     this._read = capture(ledger, "read", "ledger");
     this._verify = capture(ledger, "verify", "ledger");
     this._append = capture(ledger, "appendDomainEvent", "ledger");
+    this.#originalRead = this._read;
+    this.#originalVerify = this._verify;
+    this.#verifiedHistory =
+      new.target === EvolutionRunLedgerAdapter
+        ? getEvolutionLedgerVerifiedHistoryReader(ledger)
+        : null;
     if (!isEvolutionLedgerArtifactResolver(ledgerArtifactResolver)) {
       throw new TypeError(
         "a branded EvolutionArtifactPorts ledger resolver is required",
@@ -184,6 +276,34 @@ export class EvolutionRunLedgerAdapter {
       ledgerArtifactResolver,
     );
     this._now = now;
+    const binding = captureEvolutionLedgerArtifactResolverBinding(
+      ledgerArtifactResolver,
+    );
+    this.#appendNextEligible = () =>
+      this.#verifiedHistory !== null &&
+      hasEvolutionLedgerDefaultAppendPorts(ledger) &&
+      Object.getPrototypeOf(this) === EvolutionRunLedgerAdapter.prototype &&
+      binding.matchesArtifactPorts(artifactPorts) &&
+      hasEvolutionLedgerDefaultPublication(this._resolve) &&
+      Object.getPrototypeOf(artifactPorts) ===
+        EvolutionArtifactPorts.prototype &&
+      hasOriginalMethods(
+        EvolutionRunLedgerAdapter.prototype,
+        ORIGINAL_RUN_METHODS,
+      ) &&
+      captureEvolutionLedgerWholeHistoryReader(this._resolve) !== null;
+    if (
+      new.target === EvolutionRunLedgerAdapter &&
+      this.#appendNextEligible()
+    ) {
+      APPEND_NEXT.set(
+        this,
+        Object.freeze({
+          eligible: this.#appendNextEligible,
+          append: Object.freeze((input) => this.#appendNext(input)),
+        }),
+      );
+    }
     const load = this.load.bind(this);
     const verify = this._verify;
     const checkpoints = new WeakSet();
@@ -264,7 +384,10 @@ export class EvolutionRunLedgerAdapter {
   }
 
   _domainEvents() {
-    const events = this._read();
+    return this.#filterDomainEvents(this._read());
+  }
+
+  #filterDomainEvents(events) {
     if (!Array.isArray(events)) {
       fail(
         EVOLUTION_RUN_LEDGER_CORRUPT_CODE,
@@ -324,18 +447,60 @@ export class EvolutionRunLedgerAdapter {
   }
 
   _entries() {
+    return this.#readEntriesWithAuthority().entries;
+  }
+
+  #readEntriesWithAuthority() {
     // Authenticate one frontier around the complete synchronous read. Verifying
     // the full ledger once for every Run event made each load quadratic in its
     // history. Artifact bytes and current authority are still checked for each
     // item; the identity is scoped to this read and is never caller supplied.
-    const { verifiedAt: _beforeObservation, ...before } = clone(this._verify());
-    const domainEvents = this._domainEvents();
+    // Original ledgers can supply authority and events from one locked load.
+    // Custom/subclass ports keep their established calls and override behavior.
+    const history =
+      this.#verifiedHistory &&
+      this._read === this.#originalRead &&
+      this._verify === this.#originalVerify &&
+      this._domainEvents === ORIGINAL_DOMAIN_EVENTS
+        ? this.#verifiedHistory()
+        : null;
+    const { verifiedAt: _beforeObservation, ...before } = clone(
+      history === null ? this._verify() : history.authority,
+    );
+    const domainEvents =
+      history === null
+        ? this._domainEvents()
+        : this.#filterDomainEvents(history.events);
     const entries = [];
     try {
-      // The synchronous read window reattests full index bytes around every
-      // bounded chunk and shares only their identical derived parse. Payloads
-      // and current authority are freshly authenticated for every item.
-      if (domainEvents.length > 0)
+      // Original ports can seal the complete history between two index reads.
+      // Custom ports retain their established chunk callback window. Both
+      // paths freshly authenticate each payload and its current authority.
+      const readWholeHistory =
+        history !== null
+          ? captureEvolutionLedgerWholeHistoryReader(this._resolve)
+          : null;
+      if (domainEvents.length > 0 && readWholeHistory !== null) {
+        const resolutions = readWholeHistory(
+          domainEvents.map((event) => this.#eventRequest(event, before)),
+        );
+        if (
+          !Array.isArray(resolutions) ||
+          resolutions.length !== domainEvents.length
+        ) {
+          fail(
+            EVOLUTION_RUN_LEDGER_CORRUPT_CODE,
+            "EvolutionRun artifact history is incomplete",
+          );
+        }
+        for (let index = 0; index < domainEvents.length; index += 1) {
+          const domainEvent = domainEvents[index];
+          entries.push({
+            domainEvent,
+            event: this.#parseResolvedEvent(domainEvent, resolutions[index]),
+          });
+        }
+      } else if (domainEvents.length > 0)
         this.#readBatches((resolveBatch) => {
           for (let offset = 0; offset < domainEvents.length; offset += 128) {
             const batch = domainEvents.slice(offset, offset + 128);
@@ -433,7 +598,7 @@ export class EvolutionRunLedgerAdapter {
         "EvolutionRun ledger frontier changed during recovery",
       );
     }
-    return entries;
+    return { entries, authority: after };
   }
 
   load() {
@@ -454,6 +619,24 @@ export class EvolutionRunLedgerAdapter {
   appendEvent(input) {
     const event = normalizeEvent(input, this.descriptor);
     const before = this._entries();
+    return this.#appendPrepared(event, before, false);
+  }
+
+  #appendNext(input) {
+    const captured = normalizeNextEvent(input, this.descriptor);
+    if (!this.#appendNextEligible()) {
+      const current = this.load();
+      return this.appendEvent({
+        ...captured,
+        sequence: current.events.length + 1,
+      });
+    }
+    const before = this._entries();
+    const event = Object.freeze({ ...captured, sequence: before.length + 1 });
+    return this.#appendPrepared(event, before, true);
+  }
+
+  #appendPrepared(event, before, allowPrivateHeadProof) {
     const duplicate = before.find(
       ({ event: stored }) => stored.eventId === event.eventId,
     );
@@ -499,8 +682,17 @@ export class EvolutionRunLedgerAdapter {
         "EvolutionRun event persistence was not durably confirmed",
       );
     }
-    const head = this._verify();
-    const currentBeforeAppend = this._entries();
+    let head, currentBeforeAppend;
+    if (allowPrivateHeadProof && this.#appendNextEligible()) {
+      // This authority comes from the same complete post-publication read,
+      // including its final frontier comparison. It never survives this call.
+      const current = this.#readEntriesWithAuthority();
+      head = current.authority;
+      currentBeforeAppend = current.entries;
+    } else {
+      head = this._verify();
+      currentBeforeAppend = this._entries();
+    }
     if (
       currentBeforeAppend.length !== before.length ||
       currentBeforeAppend.some(
@@ -571,6 +763,21 @@ export class EvolutionRunLedgerAdapter {
       projection: after.projection,
     });
   }
+}
+
+const ORIGINAL_DOMAIN_EVENTS =
+  EvolutionRunLedgerAdapter.prototype._domainEvents;
+const ORIGINAL_RUN_METHODS = Object.freeze({
+  load: EvolutionRunLedgerAdapter.prototype.load,
+  appendEvent: EvolutionRunLedgerAdapter.prototype.appendEvent,
+  _entries: EvolutionRunLedgerAdapter.prototype._entries,
+  _domainEvents: ORIGINAL_DOMAIN_EVENTS,
+});
+
+/** Optional original-port composition; no caller sequence or authority input. */
+export function captureEvolutionRunAppendNext(adapter) {
+  const capability = APPEND_NEXT.get(adapter);
+  return capability?.eligible() ? capability.append : null;
 }
 
 /** Read-only capability registered only by the real Run adapter constructor. */

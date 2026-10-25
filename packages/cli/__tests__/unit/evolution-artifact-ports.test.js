@@ -32,6 +32,13 @@ import {
   EVOLUTION_ARTIFACT_REF_SCHEMA,
   EVOLUTION_ARTIFACT_RESOLUTION_SCHEMA,
 } from "../../src/lib/evolution/evolution-ledger.js";
+import {
+  storageFailureStage,
+  storageFailureReason,
+  storageFailureCauseCodes,
+  storageFailureCauseSuffix,
+  storageFailureReasonFromMessage,
+} from "../../src/lib/storage-failure-cause-codes.js";
 
 const SECRET = "test-only-evolution-artifact-envelope-secret";
 const ALGORITHM = "hmac-sha256";
@@ -228,6 +235,263 @@ describe("EvolutionArtifactPorts", () => {
       "utf8",
     );
   }
+
+  it.each([
+    ["pre-index", EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE],
+    ["publish", EVOLUTION_ARTIFACT_STORE_FAILED_CODE],
+    ["post-index", EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE],
+    ["authentication", EVOLUTION_ARTIFACT_SIGNATURE_INVALID_CODE],
+    ["read-bytes", EVOLUTION_ARTIFACT_INTEGRITY_FAILED_CODE],
+    ["final-lease", EVOLUTION_ARTIFACT_EXPIRED_CODE],
+  ])(
+    "retains the original %s failure while identifying its publication boundary",
+    (phase, code) => {
+      const original = Object.assign(
+        new Error("private injected storage failure"),
+        { code: "EIO" },
+      );
+      let published = false;
+      let integrityReads = 0;
+      class DiagnosticStore extends ArtifactStore {
+        publishDataOnce(options) {
+          if (phase === "publish") throw original;
+          const publication = super.publishDataOnce(options);
+          published = true;
+          if (phase === "post-index")
+            fs.writeFileSync(this._indexFile(), "{broken\n");
+          return publication;
+        }
+        storedPath(entry) {
+          if (published && phase === "read-bytes") throw original;
+          return super.storedPath(entry);
+        }
+        verifyIntegrity(entry, bounds) {
+          const result = super.verifyIntegrity(entry, bounds);
+          if (phase === "final-lease" && ++integrityReads === 2)
+            nowMs += 31_000;
+          return result;
+        }
+      }
+      store = new DiagnosticStore({ dir: storeDir, now: () => nowMs });
+      ports = new EvolutionArtifactPorts({
+        artifactStore: store,
+        audience: AUDIENCE,
+        currentAuthorityResolver,
+        envelopeSigner,
+        envelopeVerifier,
+        now: () => nowMs,
+        tenantId: TENANT_ID,
+      });
+      if (phase === "pre-index")
+        fs.writeFileSync(path.join(storeDir, "index.jsonl"), "{broken\n");
+      if (phase === "authentication")
+        envelopeVerifier.verify.mockReturnValue(false);
+      const error = capturedError(() => publish({ type: "model-projection" }));
+      expect(error.code).toBe(code);
+      expect(storageFailureStage(error)).toEqual({
+        artifactType: "model-projection",
+        phase,
+      });
+      expect(error).not.toHaveProperty("storageStage");
+      if (phase === "publish" || phase === "read-bytes")
+        expect(error.cause).toBe(original);
+      if (["authentication", "read-bytes", "final-lease"].includes(phase))
+        expect(readIndex()).toHaveLength(1);
+    },
+  );
+
+  it("distinguishes trusted-component entry failures from model postpublication failures", () => {
+    fs.writeFileSync(path.join(storeDir, "index.jsonl"), "{broken\n");
+    const error = capturedError(() => publish({ type: "trusted-projection" }));
+    expect(storageFailureStage(error)).toEqual({
+      artifactType: "trusted-projection",
+      phase: "pre-index",
+    });
+  });
+
+  it.each([
+    [
+      "auth-clock-backward",
+      -1,
+      60_000,
+      "model-projection",
+      "ttl",
+      "model-projection",
+    ],
+    [
+      "auth-envelope-expired",
+      1_000,
+      1_000,
+      "model-projection",
+      "ttl",
+      "model-projection",
+    ],
+    [
+      "auth-authority-lease-expired",
+      30_000,
+      60_000,
+      "model-projection",
+      "ttl",
+      "model-projection",
+    ],
+    // Preserve the original envelope-before-decision order when both expire.
+    [
+      "auth-envelope-expired",
+      30_000,
+      30_000,
+      "model-projection",
+      "ttl",
+      "model-projection",
+    ],
+    [
+      "auth-authority-lease-expired",
+      30_000,
+      null,
+      "evolution-run-event",
+      "ledger",
+      "other",
+    ],
+  ])(
+    "identifies %s at authentication with unchanged error and clock calls (%s ms, %s ms, %s)",
+    (reason, advance, ttlMs, type, retention, artifactType) => {
+      const clock = vi.fn(() => nowMs);
+      ports = new EvolutionArtifactPorts({
+        artifactStore: store,
+        audience: AUDIENCE,
+        currentAuthorityResolver,
+        envelopeSigner,
+        envelopeVerifier,
+        now: clock,
+        tenantId: TENANT_ID,
+      });
+      const published = publish({ type, retention, ttlMs });
+      clock.mockClear();
+      let reads = 0;
+      clock.mockImplementation(() => (++reads === 4 ? nowMs + advance : nowMs));
+      const error = capturedError(() =>
+        resolveResult(published, { expectedType: type }),
+      );
+      expect(clock).toHaveBeenCalledTimes(4);
+      expect(error.code).toBe(EVOLUTION_ARTIFACT_EXPIRED_CODE);
+      expect(error.message).toBe(
+        "artifact authority expired before envelope authentication completed",
+      );
+      expect(error).not.toHaveProperty("cause");
+      expect(error).not.toHaveProperty("storageReason");
+      expect(error).not.toHaveProperty("storageStage");
+      expect(storageFailureReason(error)).toBe(reason);
+      expect(storageFailureStage(error)).toEqual({
+        artifactType,
+        phase: "authentication",
+      });
+      expect(storageFailureCauseCodes(error)).toEqual([
+        EVOLUTION_ARTIFACT_EXPIRED_CODE,
+      ]);
+      expect(
+        storageFailureReasonFromMessage(storageFailureCauseSuffix(error)),
+      ).toBe(reason);
+    },
+  );
+
+  it("does not add clock reads to successful authentication and release", () => {
+    const clock = vi.fn(() => nowMs);
+    ports = new EvolutionArtifactPorts({
+      artifactStore: store,
+      audience: AUDIENCE,
+      currentAuthorityResolver,
+      envelopeSigner,
+      envelopeVerifier,
+      now: clock,
+      tenantId: TENANT_ID,
+    });
+    const published = publish();
+    clock.mockClear();
+    expect(resolveResult(published).digest).toBe(published.digest);
+    expect(clock).toHaveBeenCalledTimes(5);
+  });
+
+  it.each([
+    [
+      "release-clock-backward",
+      -1,
+      60_000,
+      "model-projection",
+      "model-projection",
+    ],
+    [
+      "release-envelope-expired",
+      1_000,
+      1_000,
+      "model-projection",
+      "model-projection",
+    ],
+    [
+      "release-authority-lease-expired",
+      30_000,
+      60_000,
+      "model-projection",
+      "model-projection",
+    ],
+    // At both expirations the original envelope condition wins.
+    [
+      "release-envelope-expired",
+      30_000,
+      30_000,
+      "model-projection",
+      "model-projection",
+    ],
+    ["release-clock-backward", -1, 60_000, "candidate", "other"],
+  ])(
+    "identifies %s on a real direct resolve without extra clock calls",
+    (reason, advance, ttlMs, type, artifactType) => {
+      let armed = false;
+      let integrityReads = 0;
+      class ReleaseClockStore extends ArtifactStore {
+        verifyIntegrity(entry, bounds) {
+          const result = super.verifyIntegrity(entry, bounds);
+          if (armed && ++integrityReads === 2) nowMs += advance;
+          return result;
+        }
+      }
+      store = new ReleaseClockStore({ dir: storeDir, now: () => nowMs });
+      const clock = vi.fn(() => nowMs);
+      ports = new EvolutionArtifactPorts({
+        artifactStore: store,
+        audience: AUDIENCE,
+        currentAuthorityResolver,
+        envelopeSigner,
+        envelopeVerifier,
+        now: clock,
+        tenantId: TENANT_ID,
+      });
+      const published = publish({ type, ttlMs });
+      clock.mockClear();
+      armed = true;
+      const error = capturedError(() =>
+        resolveResult(published, { expectedType: type }),
+      );
+      expect(integrityReads).toBe(2);
+      expect(clock).toHaveBeenCalledTimes(5);
+      expect(error.code).toBe(EVOLUTION_ARTIFACT_EXPIRED_CODE);
+      expect(error.message).toBe(
+        "artifact authority expired before canonical bytes could be released",
+      );
+      expect(error).not.toHaveProperty("cause");
+      expect(error).not.toHaveProperty("storageReason");
+      expect(error).not.toHaveProperty("storageStage");
+      expect(storageFailureReason(error)).toBe(reason);
+      expect(storageFailureStage(error)).toEqual({
+        artifactType,
+        phase: "final-lease",
+      });
+      expect(storageFailureCauseCodes(error)).toEqual([
+        EVOLUTION_ARTIFACT_EXPIRED_CODE,
+      ]);
+      expect(
+        storageFailureReasonFromMessage(storageFailureCauseSuffix(error)),
+      ).toBe(reason);
+    },
+  );
 
   it("persists canonical bytes with an exact signed-lineage envelope and resolves a frozen value", () => {
     const result = publish();

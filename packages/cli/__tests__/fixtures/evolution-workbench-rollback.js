@@ -6,6 +6,7 @@ import {
   verify,
 } from "node:crypto";
 import evolutionRun from "@chainlesschain/session-core/evolution-run";
+import { createLocalUiEvolutionFileSystem } from "../../src/lib/evolution/evolution-windows-directory-durability.js";
 import { openEvolutionDurableStore } from "./evolution-durable-store.js";
 import { openRevocationReleaseRegistry } from "./skill-revocation-release-registry.js";
 import {
@@ -120,6 +121,7 @@ export async function openWorkbenchRollbackStore(root, options = {}) {
     : openEvolutionDurableStore(root, {
         tenantId: TENANT,
         streamId: "workbench-rollback",
+        fsImpl: options.fsImpl ?? createLocalUiEvolutionFileSystem(),
       });
   const now = options.now ?? (() => NOW);
   const release = await openRevocationReleaseRegistry({
@@ -148,6 +150,7 @@ export async function openWorkbenchRollbackStore(root, options = {}) {
     : openEvolutionDurableStore(root, {
         tenantId: TENANT,
         streamId: "workbench-rollback",
+        fsImpl: options.fsImpl ?? createLocalUiEvolutionFileSystem(),
       });
   const independent = await openRevocationReleaseRegistry({
     root,

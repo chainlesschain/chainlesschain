@@ -1,0 +1,9 @@
+Command: node-verified.exe ../../node_modules/vitest/vitest.mjs run __tests__/agent-session.test.ts --maxWorkers=1
+Cwd: C:/code/chainlesschain/.work/cc118-native-ports/packages/agent-sdk
+Captured tool stdout:
+ RUN  v4.1.11 C:/code/chainlesschain/.work/cc118-native-ports/packages/agent-sdk
+ Test Files  1 passed (1)
+      Tests  25 passed (25)
+   Start at  16:58:50
+   Duration  1.76s (transform 740ms, setup 0ms, import 868ms, tests 144ms, environment 0ms)
+Exit code: 0

@@ -1,0 +1,8 @@
+﻿{
+    "at":  "2026-10-24T08:40:26.0735442Z",
+    "pid":  36508,
+    "reason":  "Diagnostic manually stopped after more than eight minutes of fixture initialization with repeated PowerShell ACL calls; no claim of a natural local browser timeout.",
+    "originalBrowserBudgetMs":  120000,
+    "sourceCommit":  "35f7c7231e552280a0f565818b1986115fb3915d",
+    "temporaryTestHomeRetained":  true
+}

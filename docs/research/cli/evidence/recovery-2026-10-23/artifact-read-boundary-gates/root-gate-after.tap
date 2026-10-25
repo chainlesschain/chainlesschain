@@ -1,0 +1,394 @@
+TAP version 13
+# Subtest: dependency fixture selects the named Bash install after unrelated run blocks
+ok 1 - dependency fixture selects the named Bash install after unrelated run blocks
+  ---
+  duration_ms: 4.0482
+  type: 'test'
+  ...
+# Subtest: dependency fixture rejects missing, duplicate, or non-Bash install steps
+ok 2 - dependency fixture rejects missing, duplicate, or non-Bash install steps
+  ---
+  duration_ms: 5.5637
+  type: 'test'
+  ...
+# Subtest: dependency fixture cannot borrow the script from a following Bash step
+ok 3 - dependency fixture cannot borrow the script from a following Bash step
+  ---
+  duration_ms: 1.0668
+  type: 'test'
+  ...
+# Subtest: dependency install retries after a transient native-directory EBUSY and cleans the partial tree
+ok 4 - dependency install retries after a transient native-directory EBUSY and cleans the partial tree
+  ---
+  duration_ms: 735.426
+  type: 'test'
+  ...
+# Subtest: dependency install fails closed when the native directory remains locked
+ok 5 - dependency install fails closed when the native directory remains locked
+  ---
+  duration_ms: 1348.1638
+  type: 'test'
+  ...
+# Subtest: dependency install preserves the three-attempt failure limit
+ok 6 - dependency install preserves the three-attempt failure limit
+  ---
+  duration_ms: 1377.8054
+  type: 'test'
+  ...
+# Subtest: CLI CI cancels superseded branch and PR matrices without rerunning release tags
+ok 7 - CLI CI cancels superseded branch and PR matrices without rerunning release tags
+  ---
+  duration_ms: 3.4547
+  type: 'test'
+  ...
+# Subtest: npm release publishes and re-verifies changed child packages before CLI
+ok 8 - npm release publishes and re-verifies changed child packages before CLI
+  ---
+  duration_ms: 2.4901
+  type: 'test'
+  ...
+# Subtest: Desktop and UniApp CI test the exact PR source without changing the matrix
+ok 9 - Desktop and UniApp CI test the exact PR source without changing the matrix
+  ---
+  duration_ms: 1.8965
+  type: 'test'
+  ...
+# Subtest: Android exact-commit dispatch binds every checkout and retains native model tests
+ok 10 - Android exact-commit dispatch binds every checkout and retains native model tests
+  ---
+  duration_ms: 4.386
+  type: 'test'
+  ...
+# Subtest: Android JUnit gate rejects missing, skipped, failed and incomplete real suites
+ok 11 - Android JUnit gate rejects missing, skipped, failed and incomplete real suites
+  ---
+  duration_ms: 1569.8854
+  type: 'test'
+  ...
+# Subtest: model-egress CI executes both UniApp guards without allowing failure
+ok 12 - model-egress CI executes both UniApp guards without allowing failure
+  ---
+  duration_ms: 1.1573
+  type: 'test'
+  ...
+# Subtest: model-egress CI runs real backend startup and guards as a required job
+ok 13 - model-egress CI runs real backend startup and guards as a required job
+  ---
+  duration_ms: 1.3878
+  type: 'test'
+  ...
+# Subtest: aggregate quality gate preserves workflow cancellation
+ok 14 - aggregate quality gate preserves workflow cancellation
+  ---
+  duration_ms: 0.864
+  type: 'test'
+  ...
+# Subtest: required lint context runs checksum-pinned actionlint
+ok 15 - required lint context runs checksum-pinned actionlint
+  ---
+  duration_ms: 0.6583
+  type: 'test'
+  ...
+# Subtest: actionlint ShellCheck baseline is limited to exact legacy paths and rules
+ok 16 - actionlint ShellCheck baseline is limited to exact legacy paths and rules
+  ---
+  duration_ms: 2.5024
+  type: 'test'
+  ...
+# Subtest: external evidence filesystem stages pin the Windows identity-safe Node runtime
+ok 17 - external evidence filesystem stages pin the Windows identity-safe Node runtime
+  ---
+  duration_ms: 5.6169
+  type: 'test'
+  ...
+# Subtest: root compatibility entry points fail loudly instead of passing
+ok 18 - root compatibility entry points fail loudly instead of passing
+  ---
+  duration_ms: 265.5492
+  type: 'test'
+  ...
+# Subtest: selector invokes git diff with validated argument arrays
+ok 19 - selector invokes git diff with validated argument arrays
+  ---
+  duration_ms: 1.9912
+  type: 'test'
+  ...
+# Subtest: selector maps repository-root paths to executable desktop unit tests
+ok 20 - selector maps repository-root paths to executable desktop unit tests
+  ---
+  duration_ms: 535.553
+  type: 'test'
+  ...
+# Subtest: selector maps P1-10 conformance inventory to its repository node gate
+ok 21 - selector maps P1-10 conformance inventory to its repository node gate
+  ---
+  duration_ms: 12.9614
+  type: 'test'
+  ...
+# Subtest: selector maps exact Windows sandbox support paths to CLI contracts
+ok 22 - selector maps exact Windows sandbox support paths to CLI contracts
+  ---
+  duration_ms: 1.5697
+  type: 'test'
+  ...
+# Subtest: selector maps graph compiler changes to the CLI compiler contract
+ok 23 - selector maps graph compiler changes to the CLI compiler contract
+  ---
+  duration_ms: 0.5497
+  type: 'test'
+  ...
+# Subtest: selector maps integrated CLI authority and changelog changes to exact contracts
+ok 24 - selector maps integrated CLI authority and changelog changes to exact contracts
+  ---
+  duration_ms: 1.047
+  type: 'test'
+  ...
+# Subtest: selector maps team authority contract updates to exact CLI tests
+ok 25 - selector maps team authority contract updates to exact CLI tests
+  ---
+  duration_ms: 0.5593
+  type: 'test'
+  ...
+# Subtest: selector changes run integrity and CLI contracts without desktop fallback
+ok 26 - selector changes run integrity and CLI contracts without desktop fallback
+  ---
+  duration_ms: 4.8891
+  type: 'test'
+  ...
+# Subtest: open-source gap audit evidence stays on the integrity gate
+ok 27 - open-source gap audit evidence stays on the integrity gate
+  ---
+  duration_ms: 1.6202
+  type: 'test'
+  ...
+# Subtest: selector fails closed for an unmapped change or failed detection
+ok 28 - selector fails closed for an unmapped change or failed detection
+  ---
+  duration_ms: 1.0912
+  type: 'test'
+  ...
+# Subtest: IDE selector delegation stays bound to both dedicated PR workflows
+ok 29 - IDE selector delegation stays bound to both dedicated PR workflows
+  ---
+  duration_ms: 2.1867
+  type: 'test'
+  ...
+# Subtest: selector CLI emits machine-readable output and non-zero fail-closed status
+ok 30 - selector CLI emits machine-readable output and non-zero fail-closed status
+  ---
+  duration_ms: 196.0281
+  type: 'test'
+  ...
+# Subtest: CLI suite spawn failures cannot downgrade to desktop fallback
+ok 31 - CLI suite spawn failures cannot downgrade to desktop fallback
+  ---
+  duration_ms: 39.9102
+  type: 'test'
+  ...
+# ============================================================
+# Running Unit tests...
+# ============================================================
+# Failed to run Unit tests: Error: spawn denied
+#     at file:///C:/code/chainlesschain/scripts/__tests__/ci-gate-integrity.test.mjs:1833:48
+#     at node:internal/process/task_queues:149:7
+#     at AsyncResource.runInAsyncScope (node:async_hooks:214:14)
+#     at AsyncResource.runMicrotask (node:internal/process/task_queues:146:8)
+# ============================================================
+# 测试报告摘要
+# ============================================================
+# 总计: 1 个测试套件
+# 通过: 0 ✓
+# 失败: 1 ✗
+# 总耗时: 0.00秒
+# 详细结果:
+#   ✗ FAIL Unit 
+# 报告已保存到: C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-ci-test-runner-1eyCRk\\test-results\\test-report.json
+# HTML报告已保存到: C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-ci-test-runner-1eyCRk\\test-results\\test-report.html
+# ============================================================
+# ████████████████████████████████████████████████████████████
+# ChainlessChain 自动化测试套件
+# ████████████████████████████████████████████████████████████
+# ⊘ E2E tests SKIPPED (set RUN_E2E_TESTS=true to run)
+# Subtest: test runner records spawn failures and returns a failing aggregate code
+ok 32 - test runner records spawn failures and returns a failing aggregate code
+  ---
+  duration_ms: 110.825
+  type: 'test'
+  ...
+# Subtest: test runner is wired to real suite commands
+ok 33 - test runner is wired to real suite commands
+  ---
+  duration_ms: 1.7572
+  type: 'test'
+  ...
+# Subtest: UKey smoke skips unsupported hosts and propagates real failures
+ok 34 - UKey smoke skips unsupported hosts and propagates real failures
+  ---
+  duration_ms: 1.3191
+  type: 'test'
+  ...
+# Subtest: sharp-loading main-process tests stay out of the jsdom canvas process
+ok 35 - sharp-loading main-process tests stay out of the jsdom canvas process
+  ---
+  duration_ms: 6.6103
+  type: 'test'
+  ...
+# ============================================================
+# Test failure diagnostics (non-mutating)
+# ============================================================
+# [Diagnostics] Report saved to: C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-ci-auto-fix-dFArq6\\test-results\\auto-fix-report.json
+# [Diagnostics] Unit: DEPENDENCY_ERROR; no safe automatic fix is registered.
+# [Diagnostics] No checkout or host mutations were attempted. A retry may detect transient failures, but this diagnostic step is not a successful fix.
+# ============================================================
+# 测试报告摘要
+# ============================================================
+# 总计: 1 个测试套件
+# 通过: 1 ✓
+# 失败: 0 ✗
+# 总耗时: 0.00秒
+# 详细结果:
+#   ✓ PASS Unit (0.00s)
+# 报告已保存到: C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-ci-auto-fix-dFArq6\\test-results\\test-report-retry.json
+# HTML报告已保存到: C:\\Users\\longfa\\AppData\\Local\\Temp\\cc-ci-auto-fix-dFArq6\\test-results\\test-report-retry.html
+# ============================================================
+# Subtest: auto-fix command is diagnostic-only and fails when no safe fix exists
+ok 36 - auto-fix command is diagnostic-only and fails when no safe fix exists
+  ---
+  duration_ms: 33.7716
+  type: 'test'
+  ...
+# Subtest: standalone CLI dependency install vendors exact checkout packages
+ok 37 - standalone CLI dependency install vendors exact checkout packages
+  ---
+  duration_ms: 2.6826
+  type: 'test'
+  ...
+# Subtest: global CLI install smoke verifies the exact three-OS installed runtime
+ok 38 - global CLI install smoke verifies the exact three-OS installed runtime
+  ---
+  duration_ms: 0.9226
+  type: 'test'
+  ...
+# Subtest: required documentation decisions reject missing, failed and wrong-source checks
+ok 39 - required documentation decisions reject missing, failed and wrong-source checks
+  ---
+  duration_ms: 7.7046
+  type: 'test'
+  ...
+# Subtest: workflow uses step outcomes and a final non-zero verdict
+ok 40 - workflow uses step outcomes and a final non-zero verdict
+  ---
+  duration_ms: 528.6986
+  type: 'test'
+  ...
+# Subtest: strict sandbox runs the live background supervisor on a quiet matrix runner
+ok 41 - strict sandbox runs the live background supervisor on a quiet matrix runner
+  ---
+  duration_ms: 0.7782
+  type: 'test'
+  ...
+# Subtest: failure issue reporter updates an existing scope instead of duplicating it
+ok 42 - failure issue reporter updates an existing scope instead of duplicating it
+  ---
+  duration_ms: 1.4012
+  type: 'test'
+  ...
+# Subtest: unit workflow distinguishes selected-test failures from fail-closed fallback
+ok 43 - unit workflow distinguishes selected-test failures from fail-closed fallback
+  ---
+  duration_ms: 747.9918
+  type: 'test'
+  ...
+# Subtest: PDH workflow bounds native test concurrency on Windows
+ok 44 - PDH workflow bounds native test concurrency on Windows
+  ---
+  duration_ms: 1.2348
+  type: 'test'
+  ...
+# Subtest: legacy Linux release builds the embedded web panel before packaging
+ok 45 - legacy Linux release builds the embedded web panel before packaging
+  ---
+  duration_ms: 1.3157
+  type: 'test'
+  ...
+# Subtest: Android MobSF gate uses an immutable image and the supported REST API
+ok 46 - Android MobSF gate uses an immutable image and the supported REST API
+  ---
+  duration_ms: 1.3673
+  type: 'test'
+  ...
+# Subtest: Android remaining-module unit tests are a blocking non-duplicating gate
+ok 47 - Android remaining-module unit tests are a blocking non-duplicating gate
+  ---
+  duration_ms: 2.4207
+  type: 'test'
+  ...
+# Subtest: Android lint is a blocking gate
+ok 48 - Android lint is a blocking gate
+  ---
+  duration_ms: 0.9179
+  type: 'test'
+  ...
+# Subtest: Android file scan foreground worker declares its WorkManager service type
+ok 49 - Android file scan foreground worker declares its WorkManager service type
+  ---
+  duration_ms: 1.6894
+  type: 'test'
+  ...
+# Subtest: Android local terminal owns the permission needed for DNS discovery
+ok 50 - Android local terminal owns the permission needed for DNS discovery
+  ---
+  duration_ms: 1.1994
+  type: 'test'
+  ...
+# Subtest: Android lint regressions keep P2P, performance, and project fixes
+ok 51 - Android lint regressions keep P2P, performance, and project fixes
+  ---
+  duration_ms: 2.233
+  type: 'test'
+  ...
+# Subtest: Android local terminal unit fake cannot block the test scheduler
+ok 52 - Android local terminal unit fake cannot block the test scheduler
+  ---
+  duration_ms: 0.9785
+  type: 'test'
+  ...
+# Subtest: Android coverage produces real reports without masking test failures
+ok 53 - Android coverage produces real reports without masking test failures
+  ---
+  duration_ms: 0.5372
+  type: 'test'
+  ...
+# Subtest: Android aggregate gates reject failed, cancelled, or skipped dependencies
+ok 54 - Android aggregate gates reject failed, cancelled, or skipped dependencies
+  ---
+  duration_ms: 1.2873
+  type: 'test'
+  ...
+# Subtest: Android emulator matrix runs real instrumented tests from the project directory
+ok 55 - Android emulator matrix runs real instrumented tests from the project directory
+  ---
+  duration_ms: 1.0267
+  type: 'test'
+  ...
+# Subtest: generic package tag cannot select CLI, SDK, kernel or IDE
+ok 56 - generic package tag cannot select CLI, SDK, kernel or IDE
+  ---
+  duration_ms: 199.3126
+  type: 'test'
+  ...
+# Subtest: manual generic publication rejects the IDE extension
+ok 57 - manual generic publication rejects the IDE extension
+  ---
+  duration_ms: 210.6601
+  type: 'test'
+  ...
+1..57
+# tests 57
+# suites 0
+# pass 57
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 7915.8427

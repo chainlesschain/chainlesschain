@@ -1,0 +1,1017 @@
+{
+  "numTotalTestSuites": 8,
+  "numPassedTestSuites": 8,
+  "numFailedTestSuites": 0,
+  "numPendingTestSuites": 0,
+  "numTotalTests": 95,
+  "numPassedTests": 95,
+  "numFailedTests": 0,
+  "numPendingTests": 0,
+  "numTodoTests": 0,
+  "snapshot": {
+    "added": 0,
+    "failure": false,
+    "filesAdded": 0,
+    "filesRemoved": 0,
+    "filesRemovedList": [],
+    "filesUnmatched": 0,
+    "filesUpdated": 0,
+    "matched": 0,
+    "total": 0,
+    "unchecked": 0,
+    "uncheckedKeysByFile": [],
+    "unmatched": 0,
+    "updated": 0,
+    "didUpdate": false
+  },
+  "startTime": 1792820095188,
+  "success": true,
+  "testResults": [
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness persists monotonic CAS history and authenticated ancestry across reopen",
+          "status": "passed",
+          "title": "persists monotonic CAS history and authenticated ancestry across reopen",
+          "duration": 280.37519999999995,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness durably fences a discarded anchor against stale revival",
+          "status": "passed",
+          "title": "durably fences a discarded anchor against stale revival",
+          "duration": 242.08820000000014,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness allows exactly one contender to advance a stale expected checkpoint",
+          "status": "passed",
+          "title": "allows exactly one contender to advance a stale expected checkpoint",
+          "duration": 126.98379999999997,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness fails closed for tampered durable history",
+          "status": "passed",
+          "title": "fails closed for tampered durable history",
+          "duration": 42.97739999999976,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness does not trust a substituted current pointer with a copied digest",
+          "status": "passed",
+          "title": "does not trust a substituted current pointer with a copied digest",
+          "duration": 43.57380000000012,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness converts a complete legacy history to bounded immutable segments and preserves ancestry",
+          "status": "passed",
+          "title": "converts a complete legacy history to bounded immutable segments and preserves ancestry",
+          "duration": 11719.9987,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness reopens segmented history with the affected Windows path-device projection",
+          "status": "passed",
+          "title": "reopens segmented history with the affected Windows path-device projection",
+          "duration": 1626.7451999999994,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness charges the whole committed history to the byte budget after segmentation",
+          "status": "passed",
+          "title": "charges the whole committed history to the byte budget after segmentation",
+          "duration": 2871.431700000001,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness keeps the aggregate byte budget on legacy reads and writes",
+          "status": "passed",
+          "title": "keeps the aggregate byte budget on legacy reads and writes",
+          "duration": 141.57020000000193,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness rejects an invalid aggregate history byte budget: 0",
+          "status": "passed",
+          "title": "rejects an invalid aggregate history byte budget: 0",
+          "duration": 7.126800000001822,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness rejects an invalid aggregate history byte budget: 4095",
+          "status": "passed",
+          "title": "rejects an invalid aggregate history byte budget: 4095",
+          "duration": 10.433499999999185,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness rejects an invalid aggregate history byte budget: 1.5",
+          "status": "passed",
+          "title": "rejects an invalid aggregate history byte budget: 1.5",
+          "duration": 6.5799000000006345,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness rejects an invalid aggregate history byte budget: NaN",
+          "status": "passed",
+          "title": "rejects an invalid aggregate history byte budget: NaN",
+          "duration": 5.019799999998213,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness rejects an invalid aggregate history byte budget: Infinity",
+          "status": "passed",
+          "title": "rejects an invalid aggregate history byte budget: Infinity",
+          "duration": 4.880000000001019,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness rejects an invalid aggregate history byte budget: 9007199254740992",
+          "status": "passed",
+          "title": "rejects an invalid aggregate history byte budget: 9007199254740992",
+          "duration": 5.25630000000092,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness rejects old segment tampering even with a warm trust-epoch cache and applies revocation",
+          "status": "passed",
+          "title": "rejects old segment tampering even with a warm trust-epoch cache and applies revocation",
+          "duration": 1278.7943999999989,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness rejects missing, repeated, reordered and truncated segment projections",
+          "status": "passed",
+          "title": "rejects missing, repeated, reordered and truncated segment projections",
+          "duration": 2866.174799999997,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness recovers segmented conversion without duplicate effects after before-segment-rename",
+          "status": "passed",
+          "title": "recovers segmented conversion without duplicate effects after before-segment-rename",
+          "duration": 5489.445600000003,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness recovers segmented conversion without duplicate effects after after-segment-rename",
+          "status": "passed",
+          "title": "recovers segmented conversion without duplicate effects after after-segment-rename",
+          "duration": 4179.2135999999955,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness recovers segmented conversion without duplicate effects after before-head-rename",
+          "status": "passed",
+          "title": "recovers segmented conversion without duplicate effects after before-head-rename",
+          "duration": 3838.5783999999985,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness recovers segmented conversion without duplicate effects after after-head-rename",
+          "status": "passed",
+          "title": "recovers segmented conversion without duplicate effects after after-head-rename",
+          "duration": 3417.3264999999956,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness preserves discard fences on both sides of segment boundaries",
+          "status": "passed",
+          "title": "preserves discard fences on both sides of segment boundaries",
+          "duration": 18059.792699999998,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness captures authority methods once and rejects accessors without invoking them",
+          "status": "passed",
+          "title": "captures authority methods once and rejects accessors without invoking them",
+          "duration": 28.36930000000575,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness owns the next snapshot before authority calls can change the caller's input",
+          "status": "passed",
+          "title": "owns the next snapshot before authority calls can change the caller's input",
+          "duration": 283.29349999999977,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness does not advance HEAD when a segment write silently loses bytes",
+          "status": "passed",
+          "title": "does not advance HEAD when a segment write silently loses bytes",
+          "duration": 3266.249799999998,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness reuses canonical encodings but reverifies every historical and current signature",
+          "status": "passed",
+          "title": "reuses canonical encodings but reverifies every historical and current signature",
+          "duration": 57.84389999999985,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness reuses verified records only inside one authenticated trust epoch",
+          "status": "passed",
+          "title": "reuses verified records only inside one authenticated trust epoch",
+          "duration": 65.70390000000043,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness fails closed when the optional trust epoch is malformed or unstable",
+          "status": "passed",
+          "title": "fails closed when the optional trust epoch is malformed or unstable",
+          "duration": 36.2809999999954,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness rejects a revoked historical signature even when the current signature remains valid",
+          "status": "passed",
+          "title": "rejects a revoked historical signature even when the current signature remains valid",
+          "duration": 74.3752999999997,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness isolates cached data from returned records and verifier input mutation",
+          "status": "passed",
+          "title": "isolates cached data from returned records and verifier input mutation",
+          "duration": 73.19779999999446,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness rejects warm-cache history tampering: algorithm",
+          "status": "passed",
+          "title": "rejects warm-cache history tampering: algorithm",
+          "duration": 60.20709999999963,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness rejects warm-cache history tampering: anchorDigest",
+          "status": "passed",
+          "title": "rejects warm-cache history tampering: anchorDigest",
+          "duration": 56.64100000000326,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness rejects warm-cache history tampering: authenticated",
+          "status": "passed",
+          "title": "rejects warm-cache history tampering: authenticated",
+          "duration": 63.36230000000069,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness rejects warm-cache history tampering: discardAccumulatorDigest",
+          "status": "passed",
+          "title": "rejects warm-cache history tampering: discardAccumulatorDigest",
+          "duration": 55.78989999999612,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness rejects warm-cache history tampering: durable",
+          "status": "passed",
+          "title": "rejects warm-cache history tampering: durable",
+          "duration": 60.413800000002084,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness rejects warm-cache history tampering: epoch",
+          "status": "passed",
+          "title": "rejects warm-cache history tampering: epoch",
+          "duration": 61.12969999999768,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness rejects warm-cache history tampering: generation",
+          "status": "passed",
+          "title": "rejects warm-cache history tampering: generation",
+          "duration": 60.93319999999949,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness rejects warm-cache history tampering: headDigest",
+          "status": "passed",
+          "title": "rejects warm-cache history tampering: headDigest",
+          "duration": 59.175499999997555,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness rejects warm-cache history tampering: identityDigest",
+          "status": "passed",
+          "title": "rejects warm-cache history tampering: identityDigest",
+          "duration": 62.263499999993655,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness rejects warm-cache history tampering: keyId",
+          "status": "passed",
+          "title": "rejects warm-cache history tampering: keyId",
+          "duration": 56.636599999998,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness rejects warm-cache history tampering: ledgerId",
+          "status": "passed",
+          "title": "rejects warm-cache history tampering: ledgerId",
+          "duration": 60.917600000000675,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness rejects warm-cache history tampering: payloadDigest",
+          "status": "passed",
+          "title": "rejects warm-cache history tampering: payloadDigest",
+          "duration": 59.18420000000333,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness rejects warm-cache history tampering: previousWitnessDigest",
+          "status": "passed",
+          "title": "rejects warm-cache history tampering: previousWitnessDigest",
+          "duration": 64.0937000000049,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness rejects warm-cache history tampering: schema",
+          "status": "passed",
+          "title": "rejects warm-cache history tampering: schema",
+          "duration": 63.7100999999966,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness rejects warm-cache history tampering: segmentDigest",
+          "status": "passed",
+          "title": "rejects warm-cache history tampering: segmentDigest",
+          "duration": 63.2416000000012,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness rejects warm-cache history tampering: sequence",
+          "status": "passed",
+          "title": "rejects warm-cache history tampering: sequence",
+          "duration": 55.98830000000453,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness rejects warm-cache history tampering: status",
+          "status": "passed",
+          "title": "rejects warm-cache history tampering: status",
+          "duration": 63.18619999999646,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness rejects warm-cache history tampering: storeMarkerDigest",
+          "status": "passed",
+          "title": "rejects warm-cache history tampering: storeMarkerDigest",
+          "duration": 58.114699999998265,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness rejects warm-cache history tampering: storeMarkerEntryDigest",
+          "status": "passed",
+          "title": "rejects warm-cache history tampering: storeMarkerEntryDigest",
+          "duration": 59.503899999996065,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness rejects warm-cache history tampering: storeMarkerId",
+          "status": "passed",
+          "title": "rejects warm-cache history tampering: storeMarkerId",
+          "duration": 61.081700000002456,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness rejects warm-cache history tampering: trustPolicyDigest",
+          "status": "passed",
+          "title": "rejects warm-cache history tampering: trustPolicyDigest",
+          "duration": 63.50149999999849,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness rejects warm-cache history tampering: witnessDigest",
+          "status": "passed",
+          "title": "rejects warm-cache history tampering: witnessDigest",
+          "duration": 61.46510000000126,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness rejects warm-cache history tampering: witnessId",
+          "status": "passed",
+          "title": "rejects warm-cache history tampering: witnessId",
+          "duration": 67.93239999999787,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness rejects warm-cache history tampering: signature.algorithm",
+          "status": "passed",
+          "title": "rejects warm-cache history tampering: signature.algorithm",
+          "duration": 76.63450000000012,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness rejects warm-cache history tampering: signature.keyId",
+          "status": "passed",
+          "title": "rejects warm-cache history tampering: signature.keyId",
+          "duration": 72.69650000000547,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness rejects warm-cache history tampering: signature.trustPolicyDigest",
+          "status": "passed",
+          "title": "rejects warm-cache history tampering: signature.trustPolicyDigest",
+          "duration": 67.57220000000234,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness rejects warm-cache history tampering: signature.value",
+          "status": "passed",
+          "title": "rejects warm-cache history tampering: signature.value",
+          "duration": 56.9117999999944,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness rejects warm-cache history tampering: extra-field",
+          "status": "passed",
+          "title": "rejects warm-cache history tampering: extra-field",
+          "duration": 68.06240000000253,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness rejects warm-cache history tampering: missing-field",
+          "status": "passed",
+          "title": "rejects warm-cache history tampering: missing-field",
+          "duration": 65.67789999999513,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness rejects warm-cache history tampering: extra-signature-field",
+          "status": "passed",
+          "title": "rejects warm-cache history tampering: extra-signature-field",
+          "duration": 69.83630000000267,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness rejects warm-cache history tampering: missing-signature-field",
+          "status": "passed",
+          "title": "rejects warm-cache history tampering: missing-signature-field",
+          "duration": 64.79639999999927,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness rejects warm-cache history tampering: object-field",
+          "status": "passed",
+          "title": "rejects warm-cache history tampering: object-field",
+          "duration": 69.30580000000191,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness rejects warm-cache history tampering: array-signature",
+          "status": "passed",
+          "title": "rejects warm-cache history tampering: array-signature",
+          "duration": 80.29759999999806,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness rejects warm-cache history tampering: null-signature",
+          "status": "passed",
+          "title": "rejects warm-cache history tampering: null-signature",
+          "duration": 68.52010000000155,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness checks same-size tampering with restored mtime on a warm cache",
+          "status": "passed",
+          "title": "checks same-size tampering with restored mtime on a warm cache",
+          "duration": 57.66070000000036,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness does not reuse a cached current record based only on its digest or key count",
+          "status": "passed",
+          "title": "does not reuse a cached current record based only on its digest or key count",
+          "duration": 89.75430000000051,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness bounds the encoding cache by 'entry count' and validates uncached records",
+          "status": "passed",
+          "title": "bounds the encoding cache by 'entry count' and validates uncached records",
+          "duration": 507.5977000000057,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness bounds the encoding cache by 'retained text' and validates uncached records",
+          "status": "passed",
+          "title": "bounds the encoding cache by 'retained text' and validates uncached records",
+          "duration": 368.56739999999263,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness rejects a witness that changes during descriptor IO: grow",
+          "status": "passed",
+          "title": "rejects a witness that changes during descriptor IO: grow",
+          "duration": 44.863300000011805,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness rejects a witness that changes during descriptor IO: truncate",
+          "status": "passed",
+          "title": "rejects a witness that changes during descriptor IO: truncate",
+          "duration": 46.545899999997346,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness rejects a witness that changes during descriptor IO: replace",
+          "status": "passed",
+          "title": "rejects a witness that changes during descriptor IO: replace",
+          "duration": 51.53519999999844,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness accepts short reads and checks the size bound before reading a witness",
+          "status": "passed",
+          "title": "accepts short reads and checks the size bound before reading a witness",
+          "duration": 58.70119999999588,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["createEvolutionFileWitness"],
+          "fullName": "createEvolutionFileWitness requires external synchronous signing and verification authorities",
+          "status": "passed",
+          "title": "requires external synchronous signing and verification authorities",
+          "duration": 17.93949999999313,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "startTime": 1792820129378,
+      "endTime": 1792820192931.9395,
+      "status": "passed",
+      "message": "",
+      "name": "C:/code/chainlesschain/.work/cc118-long-session/packages/cli/__tests__/unit/evolution-file-witness.test.js"
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": ["default local UI Evolution deployment"],
+          "fullName": "default local UI Evolution deployment retains signed legacy tenant local-ui-12345678-12344567-81231234-56789012 through real agent ingress",
+          "status": "passed",
+          "title": "retains signed legacy tenant local-ui-12345678-12344567-81231234-56789012 through real agent ingress",
+          "duration": 8115.948899999999,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["default local UI Evolution deployment"],
+          "fullName": "default local UI Evolution deployment retains signed legacy tenant local-ui-12345678123445678123123456789012 through real agent ingress",
+          "status": "passed",
+          "title": "retains signed legacy tenant local-ui-12345678123445678123123456789012 through real agent ingress",
+          "duration": 9240.710299999999,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["default local UI Evolution deployment"],
+          "fullName": "default local UI Evolution deployment lazily signs a first agent start and authenticates ask, chat and UI session modes",
+          "status": "passed",
+          "title": "lazily signs a first agent start and authenticates ask, chat and UI session modes",
+          "duration": 23068.7549,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["default local UI Evolution deployment"],
+          "fullName": "default local UI Evolution deployment migrates the signed UI-only host without replacing its keys, old files or data",
+          "status": "passed",
+          "title": "migrates the signed UI-only host without replacing its keys, old files or data",
+          "duration": 2621.675900000002,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["default local UI Evolution deployment"],
+          "fullName": "default local UI Evolution deployment does not expand an explicit managed UI-only policy",
+          "status": "passed",
+          "title": "does not expand an explicit managed UI-only policy",
+          "duration": 1018.9003000000012,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["default local UI Evolution deployment"],
+          "fullName": "default local UI Evolution deployment does not expand an explicit test UI-only policy",
+          "status": "passed",
+          "title": "does not expand an explicit test UI-only policy",
+          "duration": 1031.091800000002,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["default local UI Evolution deployment"],
+          "fullName": "default local UI Evolution deployment does not expand an explicit environment UI-only policy",
+          "status": "passed",
+          "title": "does not expand an explicit environment UI-only policy",
+          "duration": 982.1182000000044,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["default local UI Evolution deployment"],
+          "fullName": "default local UI Evolution deployment does not overwrite a profile changed after a local migration snapshot",
+          "status": "passed",
+          "title": "does not overwrite a profile changed after a local migration snapshot",
+          "duration": 1083.2069000000047,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["default local UI Evolution deployment"],
+          "fullName": "default local UI Evolution deployment creates one authenticated host under concurrent first UI starts",
+          "status": "passed",
+          "title": "creates one authenticated host under concurrent first UI starts",
+          "duration": 1255.9637999999977,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["default local UI Evolution deployment"],
+          "fullName": "default local UI Evolution deployment loads a local factory that completes a governed Quick Ask turn using 'ollama'",
+          "status": "passed",
+          "title": "loads a local factory that completes a governed Quick Ask turn using 'ollama'",
+          "duration": 8839.613599999997,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["default local UI Evolution deployment"],
+          "fullName": "default local UI Evolution deployment loads a local factory that completes a governed Quick Ask turn using 'volcengine'",
+          "status": "passed",
+          "title": "loads a local factory that completes a governed Quick Ask turn using 'volcengine'",
+          "duration": 10710.1319,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["default local UI Evolution deployment"],
+          "fullName": "default local UI Evolution deployment loads a local factory that completes a governed Quick Ask turn using 'anthropic'",
+          "status": "passed",
+          "title": "loads a local factory that completes a governed Quick Ask turn using 'anthropic'",
+          "duration": 16484.942500000005,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["default local UI Evolution deployment"],
+          "fullName": "default local UI Evolution deployment loads a local factory that completes a governed Quick Ask turn using 'gemini'",
+          "status": "passed",
+          "title": "loads a local factory that completes a governed Quick Ask turn using 'gemini'",
+          "duration": 13029.689399999988,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["default local UI Evolution deployment"],
+          "fullName": "default local UI Evolution deployment binds local source envelopes to one Quick Ask run",
+          "status": "passed",
+          "title": "binds local source envelopes to one Quick Ask run",
+          "duration": 992.454899999997,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["default local UI Evolution deployment"],
+          "fullName": "default local UI Evolution deployment does not replace an existing disabled managed profile",
+          "status": "passed",
+          "title": "does not replace an existing disabled managed profile",
+          "duration": 991.0345000000088,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["default local UI Evolution deployment"],
+          "fullName": "default local UI Evolution deployment does not re-enable a local host after its profile file is removed",
+          "status": "passed",
+          "title": "does not re-enable a local host after its profile file is removed",
+          "duration": 1291.3324999999895,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["default local UI Evolution deployment"],
+          "fullName": "default local UI Evolution deployment does not initialize when deployment environment overrides are present",
+          "status": "passed",
+          "title": "does not initialize when deployment environment overrides are present",
+          "duration": 1.7727999999915482,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["default local UI Evolution deployment"],
+          "fullName": "default local UI Evolution deployment rejects a modified local host manifest instead of regenerating it",
+          "status": "passed",
+          "title": "rejects a modified local host manifest instead of regenerating it",
+          "duration": 1293.023199999996,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["default local UI Evolution deployment"],
+          "fullName": "default local UI Evolution deployment rejects replacement of a persisted authority key",
+          "status": "passed",
+          "title": "rejects replacement of a persisted authority key",
+          "duration": 1377.3603000000003,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "startTime": 1792820194681,
+      "endTime": 1792820298113.3604,
+      "status": "passed",
+      "message": "",
+      "name": "C:/code/chainlesschain/.work/cc118-long-session/packages/cli/__tests__/unit/local-ui-evolution-deployment.test.js"
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": ["signed local UI Evolution IDs"],
+          "fullName": "signed local UI Evolution IDs ingests and completes a first agent turn with a fixed digit-heavy UUID",
+          "status": "passed",
+          "title": "ingests and completes a first agent turn with a fixed digit-heavy UUID",
+          "duration": 29096.953800000003,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "startTime": 1792820097749,
+      "endTime": 1792820126845.9539,
+      "status": "passed",
+      "message": "",
+      "name": "C:/code/chainlesschain/.work/cc118-long-session/packages/cli/__tests__/unit/local-ui-evolution-fixed-uuid.test.js"
+    },
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": ["immutable local UI signing authority"],
+          "fullName": "immutable local UI signing authority authenticates original messages and rejects content, key, and trust substitution",
+          "status": "passed",
+          "title": "authenticates original messages and rejects content, key, and trust substitution",
+          "duration": 21.572199999999953,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": ["immutable local UI signing authority"],
+          "fullName": "immutable local UI signing authority binds the verifier epoch to the complete fixed public key and trust policy",
+          "status": "passed",
+          "title": "binds the verifier epoch to the complete fixed public key and trust policy",
+          "duration": 17.1866,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "startTime": 1792820298817,
+      "endTime": 1792820298856.1865,
+      "status": "passed",
+      "message": "",
+      "name": "C:/code/chainlesschain/.work/cc118-long-session/packages/cli/__tests__/unit/local-ui-signing-authority.test.js"
+    }
+  ]
+}
