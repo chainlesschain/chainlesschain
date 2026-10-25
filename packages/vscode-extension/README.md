@@ -6,13 +6,27 @@ MCP bridge.
 
 ## Release pairing
 
-Version **0.37.161** recommends CLI **`0.166.121`** and pairs with JetBrains **0.4.178**. This unpublished source candidate pairs with the CLI ingress display-text recovery and preserves input delivery and Windows draft recovery fixes with SDK **0.2.16**. The previously verified release evidence is retained below.
+Version **0.37.161** recommends CLI **`0.166.121`** and is public on Open VSX. Its downloaded VSIX matches the immutable CI candidate. The paired JetBrains **0.4.178** is approved, publicly listed and its public ZIP identity and CLI recommendation are verified. This release pairs with the CLI ingress display-text recovery and preserves input delivery and Windows draft recovery fixes with SDK **0.2.16**.
+
+The preceding Open VSX **0.37.160** pairing recommended CLI **`0.166.118`** with JetBrains **0.4.177**; its input delivery and Windows draft recovery fixes are retained.
 
 Public Open VSX **0.37.159** recommends CLI **`0.166.117`** and pairs with JetBrains **0.4.176**. The paired CLI repairs source and command evidence projection, complete bounded JSON tool previews, cumulative evidence budgets, and separate image and provider token accounting. IDE publication follows the paired CLI and dependency graph verification, exact-source release gates, and public artifact readback.
 
 Open VSX **0.37.156** and CLI **0.166.114** were publicly downloaded and verified on 2026-10-22, but that CLI still has the Agent tool-evidence error. Microsoft Marketplace remains unpublished. The historical three-channel pairing is retained below.
 
 ## Current release
+
+<!-- release161-status -->
+
+Open VSX version **0.37.161** pairs with public CLI `0.166.121`.
+
+The immutable `ide-vscode-v0.37.161` tag selects source `4a7e5adc5e6a241434ecfa906a272e34b5ea6d2a`. Its [release workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/40227329131) passed the Linux, Windows and macOS host gates. The public [versioned VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.161/file/chainlesschain.chainlesschain-ide-0.37.161.vsix) matches the immutable CI candidate by raw archive SHA-256 and canonical ZIP content digest, and recommends CLI `0.166.121`. Install with `npm i -g chainlesschain@0.166.121 --registry https://registry.npmjs.org`. Using `@0.166.121` selects this verified CLI release.
+
+JetBrains **0.4.178** is approved, publicly listed and its downloaded ZIP identity and CLI recommendation are verified. All candidate inner JAR entries match, with no added entries; raw ZIP bytes differ. [Publication evidence](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release121-public/publication.json). Microsoft Marketplace remains unpublished; stock VS Code can install the versioned VSIX.
+
+No new live model-task acceptance was run. Cumulative acceptance remains **32/45**, with **13** unfinished; **NOT_PAID_READY**, **NOT_ADMITTED** and automatic promotion **HOLD** remain.
+
+### Previous verified release (.159 / .176 / .117)
 
 <!-- release159-status -->
 
@@ -65,13 +79,13 @@ Checked on 2026-10-20: npm CLI **0.166.107**, Session Core **0.3.20**, Open VSX 
 
 ## Release compatibility
 
-This source candidate pairs VS Code **0.37.161** and JetBrains **0.4.178** with CLI **`0.166.121`**. It fixes failed input delivery and Windows draft recovery. Verify the public CLI dependency graph and exact-source IDE gates before publishing either IDE package.
+Public Open VSX **0.37.161** recommends public CLI **`0.166.121`**. The paired JetBrains **0.4.178** is approved, publicly listed and its public ZIP identity and CLI recommendation are verified. This release preserves input delivery and Windows draft recovery fixes; CLI and Open VSX exact-source gates and public artifact verification passed.
 The table records the current verified Open VSX / CLI pairing. Formal evaluation and full native review retain their separate acceptance status.
 
 | Component                 | Current status                                                                                             |
 | ------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| VS Code extension         | **0.37.159**; immutable tag selects the source; tagged workflow publishes and verifies its public artifact |
-| Recommended CLI           | **`chainlesschain@0.166.117`**; public; exact-source gates and public artifact readback verified           |
+| VS Code extension         | **0.37.161**; immutable tag selects the source; tagged workflow published and verified its public artifact |
+| Recommended CLI           | **`chainlesschain@0.166.121`**; public; exact-source gates and public artifact readback verified           |
 | Base bridge compatibility | `cc >= 0.162.190`; newer features can require a newer CLI                                                  |
 | Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors                                                        |
 | Distribution              | Open VSX; versioned VSIX for stock Microsoft VS Code                                                       |

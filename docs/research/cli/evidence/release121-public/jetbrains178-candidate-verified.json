@@ -1,0 +1,20 @@
+{
+  "schema": "chainlesschain.jetbrains-release-candidate/v1",
+  "version": "0.4.178",
+  "recommendedCliVersion": "0.166.121",
+  "sourceSha": "4a7e5adc5e6a241434ecfa906a272e34b5ea6d2a",
+  "runId": 40227329241,
+  "attempt": 1,
+  "artifact": "chainlesschain-ide-bridge-0.4.178.zip",
+  "bytes": 1550053,
+  "sha256": "82c4bd78ec6dbba50309fc89433186ff77f9eeafc180221d126ff6f7cb9eed3a",
+  "verifiedCompiledMetadata": [
+    {
+      "jar": "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.178.jar",
+      "pluginVersion": "0.4.178",
+      "recommendedCliVersion": "0.166.121"
+    }
+  ],
+  "publicArchiveVerified": false,
+  "scope": "Downloaded successful release workflow candidate; compiled version and CLI recommendation checked. Marketplace public approval/download is separate."
+}
