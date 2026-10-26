@@ -112,5 +112,13 @@
     "paidReadiness": "NOT_PAID_READY",
     "nativeAdmission": "NOT_ADMITTED",
     "automaticPromotion": "HOLD"
+  },
+  "releaseAutomationFix": {
+    "legacyWorkflow": "release-linux-packages.yml",
+    "status": "disabled",
+    "cancelledRunId": 40417967896,
+    "reason": "Legacy release.published handler matched the internal Android binary release; canonical release.yml already builds and verifies Linux packages",
+    "androidAssetCountAfterCancellation": 27,
+    "androidAssetsStillMatchManifest": true
   }
 }

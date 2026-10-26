@@ -7,6 +7,11 @@ on:
 
 jobs:
   publish-linux-builds:
+    # Superseded by release.yml, which verifies the public CLI and IDEs and
+    # publishes Linux alongside the other product platforms. This legacy
+    # release event also matches internal Android binary releases and must
+    # never build or upload a second set of packages to those releases.
+    if: ${{ false }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
