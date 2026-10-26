@@ -1,6 +1,6 @@
 # CLI .125 与 IDE 升级指南（2026-10-26）
 
-## 当前公开 CLI .125
+## 概述
 
 CLI **0.166.125** 已通过 [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/40274009347) 公开发布，精确源提交为 `4285a55c2f4dfb0c0eddb7cb8f63fc73f2ff1a2b`。Linux、Windows、macOS 的 CLI CI 和 Strict Sandbox 全部通过；公开归档与 CI 制品逐字节一致，签名来源、十个子包依赖及离线变更日志版本已核验。[发布证据](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release125-public/publication.json)。
 
