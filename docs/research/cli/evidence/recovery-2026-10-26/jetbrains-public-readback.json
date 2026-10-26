@@ -1,0 +1,22 @@
+{
+  "schema": "chainlesschain.archived-reply-public-plugin-readback/v1",
+  "observedAt": "2026-10-26T10:14:03.473Z",
+  "version": "0.4.179",
+  "ideVersion": "2025.2",
+  "digest": "sha256:673ab724812ab5b0bbc52c085ff4f128a7b89a68ff7af89bea86f4fbca6d44b3",
+  "bytes": 1555693,
+  "packageSetPath": "docs/research/cli/verify01-package-sets/2026-10-26-archived-reply-179.json",
+  "packageSetDigest": "sha256:3a74997e6ad84a50538e69982a60a37bc7e79f271b49abd609ed065d324cd3c0",
+  "publicOrigin": {
+    "url": "https://plugins.jetbrains.com/api/plugins/32208/updates?size=100",
+    "updateId": 1203035,
+    "file": "32208/1203035/chainlesschain-ide-bridge-0.4.179.zip",
+    "approved": true,
+    "listed": true,
+    "hidden": false
+  },
+  "url": "https://plugins.jetbrains.com/files/32208/1203035/chainlesschain-ide-bridge-0.4.179.zip",
+  "descriptorVerified": true,
+  "exactTaggedActionsArtifactComparison": "NOT_PERFORMED",
+  "modelRequestsStarted": 0
+}

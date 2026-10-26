@@ -1,0 +1,143 @@
+{
+  "schema": "chainlesschain.saved-input-discard-recovery-validation/v1",
+  "recordedAt": "2026-10-26T10:15:49.919Z",
+  "status": "ENGINEERING_VALIDATED_REPLAY_PREPARED",
+  "baseCommit": "082bdf7a244d0f45d6d83c8741b3958837c93715",
+  "branch": "feature/research-input-recovery-20261026",
+  "environment": {
+    "platform": "win32",
+    "architecture": "x64",
+    "node": "v22.22.2"
+  },
+  "sources": [
+    {
+      "path": "packages/vscode-extension/src/chat/chat-view.js",
+      "digest": "sha256:d83ea09a798bd644bafc4c2343e20a1b5ee9b396735b07c744627a045e93b4ee"
+    },
+    {
+      "path": "packages/vscode-extension/src/chat/draft-store.js",
+      "digest": "sha256:5a9d0e918e38f87388d5af71002b0515c601386b0f46b7d499a7f5b3b8f9bb2e"
+    },
+    {
+      "path": "packages/cli/__tests__/unit/vscode-ext-draft-store.test.js",
+      "digest": "sha256:d9f660a0411b7ccfb31df491a236f78c053599e94906f637f8315f33cd17be80"
+    }
+  ],
+  "reproducedBeforeRepair": {
+    "path": "docs/research/cli/evidence/recovery-2026-10-26/discard-before.json",
+    "digest": "sha256:6de1522376644cbbead26e0a0c8ea828129ed12364e02e61ceaa44afd117b0ff",
+    "passed": 1,
+    "failed": 5,
+    "skipped": 42,
+    "files": [
+      {
+        "path": "packages/cli/__tests__/unit/vscode-ext-draft-store.test.js",
+        "passed": 1,
+        "failed": 5,
+        "skipped": 0
+      }
+    ],
+    "newRegressionsFailed": 5,
+    "note": "The selected filter also matched one existing passing regression; other cases were deliberately filtered out. Two publication-boundary cases were added afterwards."
+  },
+  "focusedAfterRepair": {
+    "path": "docs/research/cli/evidence/recovery-2026-10-26/discard-after.json",
+    "digest": "sha256:adbfb521d1207e6f21df3ba86f8816cadeb4b015e22d53cc407bd6962db9b16d",
+    "passed": 6,
+    "failed": 0,
+    "skipped": 42,
+    "files": [
+      {
+        "path": "packages/cli/__tests__/unit/vscode-ext-draft-store.test.js",
+        "passed": 6,
+        "failed": 0,
+        "skipped": 0
+      }
+    ],
+    "newRegressionsPassed": 5,
+    "note": "Same filter as the before-repair command. This focused run preceded the two additional publication-boundary tests."
+  },
+  "combinedRegression": {
+    "path": "docs/research/cli/evidence/recovery-2026-10-26/recovery-regression.json",
+    "digest": "sha256:d5771007d8bd7b6a1569b90daf81606875fea211d867222b9b380bd43536a2aa",
+    "passed": 84,
+    "failed": 0,
+    "skipped": 0,
+    "files": [
+      {
+        "path": "packages/cli/__tests__/unit/session-input-receipt.test.js",
+        "passed": 5,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "path": "packages/cli/__tests__/unit/vscode-ext-draft-store.test.js",
+        "passed": 50,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "path": "packages/cli/__tests__/unit/vscode-ext-question-drafts.test.js",
+        "passed": 14,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "path": "packages/cli/__tests__/unit/vscode-ext-transcript-recovery.test.js",
+        "passed": 5,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "path": "packages/cli/__tests__/unit/vscode-ext-transcript-sync.test.js",
+        "passed": 10,
+        "failed": 0,
+        "skipped": 0
+      }
+    ],
+    "command": "node ../../node_modules/vitest/vitest.mjs run __tests__/unit/vscode-ext-draft-store.test.js __tests__/unit/vscode-ext-question-drafts.test.js __tests__/unit/vscode-ext-transcript-recovery.test.js __tests__/unit/vscode-ext-transcript-sync.test.js __tests__/unit/session-input-receipt.test.js --reporter=json --outputFile=../../docs/research/cli/evidence/recovery-2026-10-26/recovery-regression.json",
+    "cwd": "packages/cli",
+    "addedCases": 7
+  },
+  "vscodeUnits": {
+    "command": "npm run test:unit --prefix packages/vscode-extension",
+    "passed": 308,
+    "failed": 0,
+    "skipped": 0,
+    "output": {
+      "path": "docs/research/cli/evidence/recovery-2026-10-26/vscode-unit.log",
+      "digest": "sha256:410b79cb778d9ca949253c6835962586604ef903e927bb915d7e78b8cb5cd01e",
+      "encoding": "UTF-8, transcoded from PowerShell UTF-16LE capture without changing text"
+    }
+  },
+  "archivedReplyLocalCheck": {
+    "command": "node --test packages/jetbrains-plugin/scripts/archived-reply-evidence.test.mjs",
+    "passed": 8,
+    "failed": 0,
+    "skipped": 1,
+    "observedFrom": "tool execution output",
+    "skippedScope": "Linux-only canonical persistence; no real IDE restart claim"
+  },
+  "publicPluginReadback": {
+    "path": "docs/research/cli/evidence/recovery-2026-10-26/jetbrains-public-readback.json",
+    "digest": "sha256:f92a55ef9ac7d2fdef28c86086fe4a3016902460972827f86f124cced2a11e59"
+  },
+  "archivedReplyPreflight": {
+    "status": "PREPARED_NOT_EXECUTED",
+    "packageSet": "docs/research/cli/verify01-package-sets/2026-10-26-archived-reply-179.json",
+    "phase": "prepare-only",
+    "publicPluginVersion": "0.4.179",
+    "candidateOrModelRegeneration": false
+  },
+  "boundaries": {
+    "liveModelRequests": 0,
+    "newlyAcceptedTasks": 0,
+    "cumulativeAcceptedDeliverables": 32,
+    "unfinishedTasks": 13,
+    "paidReady": false,
+    "nativeAdmission": "NOT_ADMITTED",
+    "automaticPromotion": "HOLD",
+    "newProductRelease": false,
+    "exactCommitActionsValidation": "NOT_YET_RUN"
+  }
+}

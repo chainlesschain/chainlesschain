@@ -8,7 +8,7 @@
 
 后续进度：[CLI / IDE 共享实施状态](./cli-ide-gap-implementation-2026-09-27.md)，逐项区分局部实现、本地验证与真实环境验收。
 
-当前实施：[10 月 15 日计划](./cli-ide-codex-claude-implementation-plan-2026-10-15.md) · [10 月 23 日 CLI / 双 IDE 输入交付与草稿恢复](./cli-ide-recovery-progress-2026-10-23.md)。
+当前实施：[10 月 15 日计划](./cli-ide-codex-claude-implementation-plan-2026-10-15.md) · [10 月 26 日保存输入删除与恢复续做](./cli-ide-recovery-progress-2026-10-26.md) · [10 月 23 日 CLI / 双 IDE 输入交付与草稿恢复](./cli-ide-recovery-progress-2026-10-23.md)。
 
 | 分类                                                  | 内容                                               |
 | ----------------------------------------------------- | -------------------------------------------------- |

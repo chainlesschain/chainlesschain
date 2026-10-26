@@ -345,6 +345,66 @@ describe("durable composer storage", () => {
       code: "ENOENT",
     });
   });
+  it.each([false, true])(
+    "preserves saved input when a discard becomes stale before manifest publication (composer: %s)",
+    async (withComposer) => {
+      const root = await storage();
+      const key = randomUUID();
+      const store = new DraftStore(root);
+      await store.prepare(key, "session-1", "input-1", {
+        text: "keep this input",
+        images: [image],
+      });
+      await store.settle(key, "input-1", "unknown");
+      if (withComposer)
+        await store.save(key, { text: "next draft", images: [image] });
+      const directory = path.join(root, key);
+      const before = await fs.readFile(path.join(directory, "draft.json"));
+      const files = (await fs.readdir(directory)).sort();
+      const readdir = fs.readdir.bind(fs);
+      let current = true;
+      let paused = false;
+      let release;
+      const gate = new Promise((resolve) => {
+        release = resolve;
+      });
+      const spy = vi
+        .spyOn(fs, "readdir")
+        .mockImplementation(async (...args) => {
+          const entries = await readdir(...args);
+          if (args[0] === directory && !paused) {
+            paused = true;
+            await gate;
+          }
+          return entries;
+        });
+      const discarding = store.discard(key, "input-1", {
+        assertCurrent: () => {
+          if (!current) throw new Error("Inactive editor page");
+        },
+      });
+      const rejection = expect(discarding).rejects.toThrow(
+        "Inactive editor page",
+      );
+      try {
+        await until(() => paused);
+        current = false;
+        release();
+        await rejection;
+        expect(await fs.readFile(path.join(directory, "draft.json"))).toEqual(
+          before,
+        );
+        expect((await fs.readdir(directory)).sort()).toEqual(files);
+        expect(
+          (await new DraftStore(root).recover(key, "input-1")).images,
+        ).toEqual([expect.objectContaining(image)]);
+      } finally {
+        release();
+        spy.mockRestore();
+        await discarding.catch(() => {});
+      }
+    },
+  );
   it("does not silently omit missing attachments or accept a tampered snapshot", async () => {
     const root = await storage();
     const key = randomUUID();
@@ -594,6 +654,121 @@ function init(h, version = 1) {
 }
 
 describe("host durable input lifecycle", () => {
+  it.each([true, false])(
+    "retains saved attachments while a live agent may consume a pipe write (%s)",
+    async (written) => {
+      const h = host(await storage());
+      const conv = h.provider._activeConv();
+      const sending = h.provider._handleMessage({
+        type: "send",
+        text: "inspect this image",
+        images: [image],
+        clientMessageId: "pending-image",
+      });
+      await until(() => h.sessions.length === 1);
+      h.sessions[0].sendEvent.mockReturnValue(written);
+      init(h);
+      await sending;
+      const store = h.provider._draftStore;
+      const request = {
+        type: "draftDiscard",
+        convId: conv.id,
+        draftKey: conv.draftKey,
+        clientMessageId: "pending-image",
+        webviewInstance: randomUUID(),
+      };
+      h.provider._draftWebviewInstance = request.webviewInstance;
+      await h.provider._handleMessage(request);
+      expect((await store.view(conv.draftKey)).pending).toMatchObject([
+        { id: "pending-image", status: "unknown", imageCount: 1 },
+      ]);
+      expect(
+        (await store.recover(conv.draftKey, "pending-image")).images,
+      ).toEqual([expect.objectContaining(image)]);
+      expect(h.messages.at(-1)).toMatchObject({
+        kind: "draftSaveError",
+        text: expect.stringContaining("Stop the agent"),
+      });
+      expect(h.sessions[0].sendEvent).toHaveBeenCalledTimes(1);
+
+      let finishStop;
+      let failStop;
+      h.sessions[0].stopAndWait = () => {
+        h.sessions[0].running = false;
+        return new Promise((resolve, reject) => {
+          finishStop = resolve;
+          failStop = reject;
+        });
+      };
+      h.provider._stopSession(conv, { requireConfirmation: true });
+      await h.provider._handleMessage(request);
+      expect((await store.view(conv.draftKey)).pending).toHaveLength(1);
+      expect(conv.stoppingSession).toBeTruthy();
+      failStop(new Error("Child termination is unconfirmed"));
+      await until(() => conv.stoppingSession?.status === "failed");
+      await h.provider._handleMessage(request);
+      expect((await store.view(conv.draftKey)).pending).toHaveLength(1);
+      h.provider._stopSession(conv, { requireConfirmation: true });
+      finishStop();
+      await until(() => !conv.stoppingSession);
+      await h.provider._handleMessage(request);
+      expect((await store.view(conv.draftKey)).pending).toEqual([]);
+      expect(await fs.readdir(store.root)).toEqual([]);
+      expect(h.sessions[0].sendEvent).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it.each(["page", "conversation", "agent"])(
+    "rechecks %s identity when a queued saved-input discard reaches storage",
+    async (changed) => {
+      const h = host(await storage());
+      const conv = h.provider._activeConv();
+      const key = conv.draftKey;
+      const store = h.provider._draftStore;
+      await store.prepare(key, "session-1", "pending-image", {
+        text: "keep this input",
+        images: [image],
+      });
+      await store.settle(key, "pending-image", "unknown");
+      const page = randomUUID();
+      h.provider._draftWebviewInstance = page;
+      let release;
+      const gate = store._serial(
+        () =>
+          new Promise((resolve) => {
+            release = resolve;
+          }),
+      );
+      await until(() => release);
+      const discarding = h.provider._handleMessage({
+        type: "draftDiscard",
+        convId: conv.id,
+        draftKey: key,
+        clientMessageId: "pending-image",
+        webviewInstance: page,
+      });
+      try {
+        await until(() => store.queued >= 2);
+        if (changed === "page") h.provider._draftWebviewInstance = randomUUID();
+        if (changed === "conversation") conv.draftKey = randomUUID();
+        if (changed === "agent") conv.preparingSubmission = true;
+        release();
+        await discarding;
+        expect((await store.view(key)).pending).toMatchObject([
+          { id: "pending-image", status: "unknown", imageCount: 1 },
+        ]);
+        expect((await store.recover(key, "pending-image")).images).toEqual([
+          expect.objectContaining(image),
+        ]);
+        expect(h.sessions).toEqual([]);
+        expect(h.messages.at(-1).kind).toBe("draftSaveError");
+      } finally {
+        release();
+        await Promise.all([gate, discarding]);
+      }
+    },
+  );
+
   it("rejects a replaced page's saves and drops delayed image writes before publication", async () => {
     const h = host(await storage());
     h.provider.vscode.l10n = { t: (value) => value };

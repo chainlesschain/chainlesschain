@@ -1,5 +1,7 @@
 # CLI 与 IDE 输入交付、草稿恢复续做（2026-10-23）
 
+后续进度见 [2026-10-26 保存输入删除与恢复](./cli-ide-recovery-progress-2026-10-26.md)，其中汇总 CLI .125 的既有公开发行证据、本轮新增修复及仍开放的验收。本页候选与门禁描述保留为当时快照。
+
 本轮继续 [10 月 15 日实施计划](./cli-ide-codex-claude-implementation-plan-2026-10-15.md) 的 RUN-03 与 IDE-03，优先修复共享 SDK、VS Code 和 JetBrains 在输入交付失败时的行为。基线为 `79b7d49841`（完整 SHA 见验证清单）；工作分支为 `feature/cli-ide-recovery-20261023`。
 
 本轮属于未发布工程修复。现有公共版本仍为 CLI **0.166.117**、Open VSX **0.37.159** 和 JetBrains **0.4.176**，公共发布状态继续以 [release117 回读](./cli/evidence/release117-public/publication.json) 为准。
