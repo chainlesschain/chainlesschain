@@ -19,9 +19,9 @@ describe("CLI model egress closure", () => {
     await expect(
       prepareGovernedModelTurn(null, { mode: "test", messages }),
     ).rejects.toMatchObject({ code: "CC_AGENT_EVOLUTION_INGRESS_FAILED" });
-    await expect(queryLLM("canary prompt")).rejects.toMatchObject({
-      code: "CC_AGENT_EVOLUTION_INGRESS_FAILED",
-    });
+    await expect(queryLLM("canary prompt", {}, {})).rejects.toThrow(
+      /branded Agent evolution ingress/,
+    );
     expect(() => createChatFn({ provider: "ollama" })).toThrow(
       /authenticated evolution ingress/,
     );
@@ -39,7 +39,7 @@ describe("CLI model egress closure", () => {
     expect(complete).not.toHaveBeenCalled();
   });
 
-  it("keeps the legacy agent transport available before deployment configuration", async () => {
+  it("keeps ordinary ask and agent transport available before deployment configuration", async () => {
     const fetch = vi.fn(async () => ({
       ok: true,
       json: async () => ({
@@ -47,6 +47,8 @@ describe("CLI model egress closure", () => {
       }),
     }));
     vi.stubGlobal("fetch", fetch);
+
+    await expect(queryLLM("hello")).resolves.toBe("online");
 
     await expect(
       chatWithTools([{ role: "user", content: "hello" }], {
@@ -58,7 +60,7 @@ describe("CLI model egress closure", () => {
     ).resolves.toMatchObject({
       message: { role: "assistant", content: "online" },
     });
-    expect(fetch).toHaveBeenCalledOnce();
+    expect(fetch).toHaveBeenCalledTimes(2);
   });
 
   it("keeps learning synthesis provider egress unavailable without a branded ingress", () => {
