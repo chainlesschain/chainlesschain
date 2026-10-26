@@ -2,11 +2,11 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
-## CLI 0.166.122
+## CLI 0.166.123
 
 This release addresses inherited `fable[1m]` model settings overriding a configured non-Anthropic provider, Windows model-turn preparation latency, and Python formatted-string tool evidence being rejected as ambiguous JSON. It pins Session Core **0.3.24**. The GitHub Actions OIDC release workflow requires exact-source Linux, Windows and macOS CLI CI and CLI Strict Sandbox, publishes and verifies Session Core first, and verifies the public CLI archive before reporting publication success.
 
-Install this version after publication: `npm i -g chainlesschain@0.166.122 --registry https://registry.npmjs.org`. Existing IDE pairing remains VS Code **0.37.161** / JetBrains **0.4.178**; no IDE or native-client release is included. Acceptance remains **32/45**, with **13** unfinished; **NOT_PAID_READY**, **NOT_ADMITTED** and **HOLD** remain. The preceding verified public release and its evidence are recorded below.
+Install this version after publication: `npm i -g chainlesschain@0.166.123 --registry https://registry.npmjs.org`. Existing IDE pairing remains VS Code **0.37.161** / JetBrains **0.4.178**; no IDE or native-client release is included. Acceptance remains **32/45**, with **13** unfinished; **NOT_PAID_READY**, **NOT_ADMITTED** and **HOLD** remain. Candidate **0.166.122** was stopped by CI before publication; its immutable source tag is retained. The preceding verified public release and its evidence are recorded below.
 
 ## CLI 0.166.121 (public, 2026-10-26)
 

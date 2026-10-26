@@ -1,6 +1,9 @@
 // Pipe/deadline controller. Native code runs only in the isolated child.
 const { parentPort, workerData } = require("node:worker_threads");
 const { spawn } = require("node:child_process");
+const { dirname } = require("node:path");
+const monotonicMilliseconds = () =>
+  Number(process.hrtime.bigint() / 1_000_000n);
 const MAX_FRAME = 8 * 1024 * 1024 + 65536;
 let child = null,
   active = null,
@@ -41,6 +44,9 @@ function launch() {
     [workerData.workerPath, "--persistent"],
     {
       env: workerData.environment,
+      // A persistent child must not pin the caller's disposable project cwd
+      // on Windows. Its script and all ACL targets already use absolute paths.
+      cwd: dirname(process.execPath),
       windowsHide: true,
       stdio: ["pipe", "pipe", "pipe"],
     },
@@ -106,14 +112,20 @@ parentPort.on("message", (request) => {
   if (active) return fail("ACL_PROTOCOL_ERROR");
   active = request;
   const state = new Int32Array(request.shared, 0, 4);
-  if (Atomics.load(state, 0) !== 0 || Date.now() >= request.deadline)
+  if (
+    Atomics.load(state, 0) !== 0 ||
+    monotonicMilliseconds() >= request.deadline
+  )
     return fail("ETIMEDOUT");
   const current = child || launch();
-  if (Atomics.load(state, 0) !== 0 || Date.now() >= request.deadline)
+  if (
+    Atomics.load(state, 0) !== 0 ||
+    monotonicMilliseconds() >= request.deadline
+  )
     return fail("ETIMEDOUT");
   timer = setTimeout(
     () => fail("ETIMEDOUT"),
-    Math.max(1, request.deadline - Date.now()),
+    Math.max(1, request.deadline - monotonicMilliseconds()),
   );
   current.stdin.write(
     `{"id":${JSON.stringify(request.id)},"request":${request.input}}\n`,

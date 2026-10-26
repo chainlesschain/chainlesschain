@@ -4,6 +4,8 @@
 const { Worker } = require("node:worker_threads");
 const { join } = require("node:path");
 const { randomUUID } = require("node:crypto");
+const monotonicMilliseconds = () =>
+  Number(process.hrtime.bigint() / 1_000_000n);
 const MAX_RESPONSE = 8 * 1024 * 1024 + 65536;
 const PENDING = 0,
   CANCELLED = 2;
@@ -21,7 +23,9 @@ function createClient({
   return {
     run(request, timeoutMs) {
       if (closed) return { status: null, error: { code: "ACL_CLIENT_CLOSED" } };
-      const deadline = Date.now() + timeoutMs;
+      // Both threads share the same monotonic clock. Wall-clock adjustments
+      // (or application clock injection) must not expire or extend ACL work.
+      const deadline = monotonicMilliseconds() + timeoutMs;
       const input = JSON.stringify(request);
       if (Buffer.byteLength(input) > 4 * 1024 * 1024) {
         return { status: null, error: { code: "E2BIG" } };
@@ -43,7 +47,12 @@ function createClient({
       const shared = new SharedArrayBuffer(16 + MAX_RESPONSE);
       const state = new Int32Array(shared, 0, 4);
       worker.postMessage({ id: randomUUID(), input, deadline, shared });
-      Atomics.wait(state, 0, PENDING, Math.max(0, deadline - Date.now()));
+      Atomics.wait(
+        state,
+        0,
+        PENDING,
+        Math.max(0, deadline - monotonicMilliseconds()),
+      );
       if (Atomics.compareExchange(state, 0, PENDING, CANCELLED) === PENDING) {
         // The independent bridge enforces the deadline through its live child
         // process handle, even while the host is blocked here. Never kill by a

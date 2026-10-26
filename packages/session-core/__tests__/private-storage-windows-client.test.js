@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
@@ -30,6 +30,50 @@ afterEach(() => {
   for (const client of clients.splice(0)) client.close();
 });
 describe("bounded persistent Windows ACL transport", () => {
+  it.each([4242, 8_640_000_000_000_000])(
+    "uses monotonic deadlines when the application wall clock is %s",
+    (now) => {
+      const wallClock = vi.spyOn(Date, "now").mockReturnValue(now);
+      try {
+        const client = fixture();
+        expect(JSON.parse(run(client, "fresh").stdout).target).toBe("fresh");
+        const start = process.hrtime.bigint();
+        expect(run(client, "hang", 150)).toMatchObject({
+          error: { code: "ETIMEDOUT" },
+        });
+        expect(Number(process.hrtime.bigint() - start) / 1e6).toBeLessThan(
+          1500,
+        );
+      } finally {
+        wallClock.mockRestore();
+      }
+    },
+  );
+
+  it("does not retain the host's disposable project working directory", () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), "cc-acl-cwd-"));
+    const clientPath = require.resolve(
+      "../lib/private-storage-windows-client.cjs",
+    );
+    const workerPath = fileURLToPath(
+      new URL("./fixtures/private-storage-worker.cjs", import.meta.url),
+    );
+    const script = `const {createClient}=require(${JSON.stringify(clientPath)}); const fs=require("node:fs"); const directory=process.cwd(); const client=createClient({workerPath:${JSON.stringify(workerPath)}}); const request={operation:"inspect",targets:["cwd"],timeoutMs:5000}; const first=JSON.parse(client.run(request,5000).stdout); process.chdir(require("node:os").tmpdir()); fs.rmdirSync(directory); const second=JSON.parse(client.run(request,5000).stdout); if(first.pid!==second.pid) throw Error("child was not reused"); client.close();`;
+    try {
+      const host = spawnSync(process.execPath, ["-e", script], {
+        cwd: directory,
+        encoding: "utf8",
+        timeout: 10000,
+        windowsHide: true,
+      });
+      expect(host.stderr).toBe("");
+      expect(host.status).toBe(0);
+      expect(fs.existsSync(directory)).toBe(false);
+    } finally {
+      if (fs.existsSync(directory)) fs.rmdirSync(directory);
+    }
+  });
+
   it("reuses the isolated process while returning fresh request-specific results", () => {
     const client = fixture();
     const first = JSON.parse(run(client, "first").stdout);

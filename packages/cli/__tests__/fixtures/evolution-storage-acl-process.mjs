@@ -5,9 +5,10 @@ import os from "node:os";
 import path from "node:path";
 import { createRequire } from "node:module";
 
-// Observe genuine ACL workers before private-storage captures child_process.
+// Observe genuine ACL operations before private-storage captures its ports.
 // Never replace their results or permissions with test evidence.
-const cp = createRequire(import.meta.url)("node:child_process");
+const require = createRequire(import.meta.url);
+const cp = require("node:child_process");
 const originalSpawn = cp.spawnSync;
 const calls = [];
 cp.spawnSync = function (executable, args, options) {
@@ -17,6 +18,11 @@ cp.spawnSync = function (executable, args, options) {
   } catch {
     request = null;
   }
+  const result = Reflect.apply(originalSpawn, this, [
+    executable,
+    args,
+    options,
+  ]);
   calls.push({
     shell: /^(?:powershell|pwsh)\.exe$/iu.test(path.basename(executable)),
     native: args?.some((arg) =>
@@ -24,8 +30,32 @@ cp.spawnSync = function (executable, args, options) {
     ),
     fileRepair:
       request?.operation === "repair" && request?.expectedKind === "file",
+    succeeded: result.status === 0,
   });
-  return Reflect.apply(originalSpawn, this, [executable, args, options]);
+  return result;
+};
+// Production ACL requests now reuse an isolated child through a bridge rather
+// than starting one spawnSync per operation. Delegate through its real client
+// and count completed requests, retaining independent live ACL checks below.
+const nativeClient = require(
+  path.join(
+    path.dirname(
+      require.resolve("@chainlesschain/session-core/private-storage"),
+    ),
+    "private-storage-windows-client.cjs",
+  ),
+);
+const originalNativeRun = nativeClient.run;
+nativeClient.run = function (request, ...args) {
+  const result = Reflect.apply(originalNativeRun, this, [request, ...args]);
+  calls.push({
+    shell: false,
+    native: true,
+    fileRepair:
+      request.operation === "repair" && request.expectedKind === "file",
+    succeeded: result.status === 0,
+  });
+  return result;
 };
 
 const { createEvolutionLedgerFileManifestCatalogBackend: catalog } =
@@ -154,7 +184,9 @@ try {
       publishedFile = witnessOptions.filePath;
     }
     const operations = calls.slice(start);
-    const fileAclRepairs = operations.filter((row) => row.fileRepair).length;
+    const fileAclRepairs = operations.filter(
+      (row) => row.fileRepair && row.succeeded,
+    ).length;
     assert.ok(fileAclRepairs > 0, `${kind} must explicitly secure its files`);
     // Check independently after measuring backend calls; do not expose SIDs.
     for (const [label, target] of [
@@ -190,6 +222,7 @@ try {
   console.log(JSON.stringify({ mode, customReads, observations }));
 } finally {
   cp.spawnSync = originalSpawn;
+  nativeClient.run = originalNativeRun;
   const actual = fs.realpathSync.native(root);
   assert.equal(path.dirname(actual), temporaryRoot);
   assert.ok(path.basename(actual).startsWith("cc-evolution-acl-"));
