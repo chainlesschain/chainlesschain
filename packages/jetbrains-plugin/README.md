@@ -13,7 +13,7 @@ diffs inside IntelliJ-platform IDEs (IDEA, PyCharm, WebStorm, …).
 
 ## Release pairing
 
-Candidate **0.4.180** recommends CLI **`0.166.127`** and pairs with VS Code **0.37.164**. It adds the shared self-evolution switch. Release requires the recommended CLI to be publicly available, exact-source IDE checks, and public artifact readback.
+Candidate **0.4.180** recommends CLI **`0.166.127`** and pairs with VS Code **0.37.165**. It adds the shared self-evolution switch. Release requires the recommended CLI to be publicly available, exact-source IDE checks, and public artifact readback.
 
 Plugin **0.4.179** recommends public CLI **`0.166.123`** and pairs with VS Code **0.37.162**. These IDE source candidates have not been published. The paired CLI repairs Python f-string evidence projection and Ollama endpoint aliases while reducing repeated Windows ACL startup work. Exact-source IDE gates and public artifact readback remain pending. Previously verified public releases are retained below.
 

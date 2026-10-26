@@ -2,17 +2,22 @@
 
 All notable changes to this extension are documented here.
 
-## [0.37.164] - Optional self-evolution (candidate, 2026-10-27)
+## [0.37.165] - Optional self-evolution (2026-10-27)
 
 - Add a self-evolution enable/disable control that works before a deployment exists and shares the CLI `evolution.enabled` setting with cc ui and JetBrains.
 - Default fresh and automatically created local deployments to off; preserve explicit deployment opt-ins. Restart running Agent sessions after switching.
 - Recommend CLI 0.166.127 and pair with JetBrains 0.4.180. Publication follows the CLI's verified public release and exact-source IDE checks.
+- Repair the Marketplace overview's source pairing and historical public metadata contract. Version 0.37.164 stopped before publication; its immutable tag is retained.
 
-## [0.37.163] - Saved input attachment protection (unreleased candidate, 2026-10-26)
+## [0.37.164] - Stopped before publication (2026-10-27)
+
+- The Marketplace overview metadata check rejected the candidate before VSIX packaging. No public extension was released from this tag.
+
+## [0.37.163] - Saved input attachment protection (public, 2026-10-26)
 
 - Preserve saved inputs and attachments while their Agent is running, preparing input, or awaiting confirmed termination, including partial pipe failures and failed stops.
 - Recheck page and conversation identity when a queued discard reaches storage and before publishing its manifest change.
-- Recommend public CLI 0.166.125. This candidate is newer than public Open VSX 0.37.162; exact-source checks and publication remain pending.
+- Recommend public CLI 0.166.125. Exact-source checks and public archive readback passed; the verified publication is recorded in the CLI 0.166.126 follow-up evidence.
 
 ## [0.37.161] - CLI ingress display text recovery (candidate, 2026-10-25)
 

@@ -21,10 +21,16 @@
       "candidateInstallWithPublicChildDependenciesVerified": true
     },
     "openVsx": {
-      "version": "0.37.164",
-      "status": "publishing",
-      "runId": 40401099379,
-      "recommendedCliVersion": "0.166.127"
+      "version": "0.37.165",
+      "status": "pending",
+      "runId": null,
+      "recommendedCliVersion": "0.166.127",
+      "previousAttempt": {
+        "version": "0.37.164",
+        "runId": 40401099379,
+        "status": "failed-before-publication",
+        "reason": "Marketplace overview metadata contract"
+      }
     },
     "jetbrains": {
       "version": "0.4.180",

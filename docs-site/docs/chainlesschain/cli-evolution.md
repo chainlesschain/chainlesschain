@@ -1,6 +1,6 @@
 # 自进化系统 (evolution)
 
-> 2026-10-27：CLI **0.166.127** 已公开发布，准确源码 `0377050191b6` 已通过三平台 CLI CI 与 Strict Sandbox，公开归档及签名来源已核验。配套 VS Code **0.37.164** / JetBrains **0.4.180** 正在发布。安装：`npm i -g chainlesschain@0.166.127 --registry https://registry.npmjs.org`；下方带日期内容保留历史范围。
+> 2026-10-27：CLI **0.166.127** 已公开发布，准确源码 `0377050191b6` 已通过三平台 CLI CI 与 Strict Sandbox，公开归档及签名来源已核验。配套 VS Code **0.37.165** / JetBrains **0.4.180** 正在发布。安装：`npm i -g chainlesschain@0.166.127 --registry https://registry.npmjs.org`；下方带日期内容保留历史范围。
 
 ## 自进化运行时开关（CLI 0.166.127）
 

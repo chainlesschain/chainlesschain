@@ -4,15 +4,15 @@ ChainlessChain agent workspace for VS Code-compatible editors with streaming
 chat, inline assistance, governed review, sessions, automation, and a localhost
 MCP bridge.
 
-## Self-evolution switch (unreleased)
+## Self-evolution switch
 
 完整中文配置与排查步骤见[CLI 与 IDE 自进化开关配置](../../docs/cli/SELF_EVOLUTION_CONFIGURATION.md)。
 
-Open **Skill 自进化配置** from the command palette to enable or disable self-evolution. It defaults to off and shares `evolution.enabled` in the CLI user `config.json` with `cc ui` and JetBrains. Enabling can initialize the local signed runtime; disabling keeps ordinary Agent use available and preserves deployment data. Stop and restart a running Agent session after switching. These changes require the corresponding updated CLI and extension; they are not yet a public release.
+Open **Skill 自进化配置** from the command palette to enable or disable self-evolution. It defaults to off and shares `evolution.enabled` in the CLI user `config.json` with `cc ui` and JetBrains. Enabling can initialize the local signed runtime; disabling keeps ordinary Agent use available and preserves deployment data. Stop and restart a running Agent session after switching. These controls require CLI 0.166.127 and the paired extension version below.
 
-## Next release candidate
+## Release pairing
 
-Source candidate **0.37.164** recommends CLI **`0.166.127`** and pairs with JetBrains **0.4.180**. It adds the shared self-evolution switch and retains saved input attachment protection. These versions are pending publication; release requires the recommended CLI to be publicly available, exact-source IDE checks, and public artifact readback.
+Version **0.37.165** recommends CLI **`0.166.127`** and pairs with JetBrains **0.4.180**. It adds the shared self-evolution switch and retains saved input attachment protection. CLI 0.166.127 is public: `npm i -g chainlesschain@0.166.127 --registry https://registry.npmjs.org`. This source pairing does not claim an IDE publication; exact-source IDE checks and public artifact readback are required. Version 0.37.164 stopped before publication because the Marketplace overview failed its metadata contract; its tag is retained.
 
 The preceding public pairing recorded in the [CLI .125 publication receipt](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release125-public/publication.json) is Open VSX **0.37.162**, JetBrains **0.4.179**, and recommended CLI **0.166.123**. The CLI .125 follow-up did not compare IDE archive bytes or publish new IDE versions.
 
@@ -26,13 +26,21 @@ Open VSX **0.37.156** and CLI **0.166.114** were publicly downloaded and verifie
 
 <!-- release163-status -->
 
-Open VSX **0.37.163** is public and listed. It preserves saved input attachments while an Agent may still read them and rejects discard operations queued by an obsolete page or conversation. Exact source `ed07dc8673769f6caab78bca55737f30137f1c6a` passed the Linux, Windows and macOS browser and host gates plus genuine Remote SSH verification in the [release workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/40351653016). The public VSIX matches the immutable candidate by raw archive and canonical ZIP content hashes. [Publication evidence](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release126-public/open-vsx.json).
+Open VSX version **0.37.163** pairs with public CLI `0.166.125`. It is public and listed, preserves saved input attachments while an Agent may still read them, and rejects discard operations queued by an obsolete page or conversation. Exact source `ed07dc8673769f6caab78bca55737f30137f1c6a` passed the Linux, Windows and macOS browser and host gates plus genuine Remote SSH verification in the [release workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/40351653016). The public VSIX matches the immutable candidate by raw archive and canonical ZIP content hashes. [Publication evidence](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release126-public/open-vsx.json).
 
-Download the [versioned VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.163/file/chainlesschain.chainlesschain-ide-0.37.163.vsix). It recommends CLI **0.166.125**; install public repair **0.166.126** with `npm i -g chainlesschain@0.166.126 --registry https://registry.npmjs.org`, restart the IDE chat host and run Doctor. JetBrains **0.4.179** remains the existing public version. Microsoft Marketplace remains unpublished.
+Release identity: `ide-vscode-v0.37.163`. Download the [versioned VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.163/file/chainlesschain.chainlesschain-ide-0.37.163.vsix), artifact `chainlesschain-ide-0.37.163.vsix`. Install its recommended CLI with `npm i -g chainlesschain@0.166.125 --registry https://registry.npmjs.org`. Using `@0.166.125` selects that public release. JetBrains **0.4.179** remains the existing public version. Microsoft Marketplace remains unpublished.
 
-No new live model-task acceptance is claimed: cumulative acceptance is **32/45**, with **13** unfinished; **NOT_PAID_READY / NOT_ADMITTED / HOLD** remain. The self-evolution controls above belong to the unpublished .164 / .127 candidates.
+| Component                 | Current status                                                        |
+| ------------------------- | --------------------------------------------------------------------- |
+| VS Code extension         | **0.37.163**; public and listed, with a verified immutable VSIX       |
+| Recommended CLI           | **`chainlesschain@0.166.125`**; public recommendation of this release |
+| Base bridge compatibility | `cc >= 0.162.190`; newer features can require a newer CLI             |
+| Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors                   |
+| Distribution              | Open VSX; versioned VSIX for stock Microsoft VS Code                  |
 
-### Previous public release (.162 / .179 / .123)
+No new live model-task acceptance is claimed: cumulative acceptance is **32/45**, with **13** unfinished; **NOT_PAID_READY / NOT_ADMITTED / HOLD** remain. The self-evolution controls above belong to the .165 source pairing with CLI .127.
+
+### Previous verified release (.162 / .179 / .123)
 
 <!-- release162-status -->
 
