@@ -10,6 +10,8 @@ CLI 状态沿用已有发行证据。本轮另从 JetBrains 公共 API 重新确
 
 本轮没有发行。本分支的新增修复仍须取得自己的准确提交检查；旧发布的通过记录不能转移给新源码。
 
+PR 首轮 `Workspace Publish Staleness Check` 要求源码改动配套提升版本。为满足现有门禁，VS Code 准备未发布候选 **0.37.163**，推荐已公开 CLI **0.166.125**；包清单、changelog 与 Marketplace README 同步区分候选及既有公开版本，未放宽检查。JetBrains .179 继续仅用作归档恢复的公开测试对象。
+
 36+9 的跨版本累计合格交付仍为 **32/45**（普通 **26/36**、首次 **6/9**），剩余 **13** 项，逐项沿用[剩余清单](./cli/evidence/recovery-2026-10-23/remaining-36-plus-9.json)。本地恢复回归不增加正式模型任务数；`paidReady:false`、native `NOT_ADMITTED`、自动晋升 `HOLD` 保持各自边界。
 
 ## 本轮完成的工程修复

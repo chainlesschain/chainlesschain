@@ -1,0 +1,51 @@
+{
+  "schema": "chainlesschain.recovery-candidate-preparation/v1",
+  "recordedAt": "2026-10-26T10:30:59.568Z",
+  "status": "UNPUBLISHED_CANDIDATE",
+  "baseCommit": "0e9252755d3afa36dc9721151dd936c6f102c3ce",
+  "candidate": {
+    "vscode": "0.37.163",
+    "recommendedCli": "0.166.125"
+  },
+  "trigger": {
+    "workflow": "Workspace Publish Staleness Check (PR mandatory)",
+    "runId": 40306731779,
+    "sourceSha": "0e9252755d3afa36dc9721151dd936c6f102c3ce",
+    "result": "failure",
+    "reason": "Extension source changed without a package version bump"
+  },
+  "productCodeAndSevenRegressionTestsUnchanged": true,
+  "metadataCheck": {
+    "command": "node --test packages/vscode-extension/test/marketplace-overview.test.cjs packages/vscode-extension/test/release-workflow-contract.test.cjs",
+    "passed": 26,
+    "failed": 0,
+    "skipped": 0,
+    "output": {
+      "path": "docs/research/cli/evidence/recovery-2026-10-26/candidate-metadata.log",
+      "digest": "sha256:58133e8280588f7f46e8d88a744f618d1baec5e037e09aa0f3bcdef8897694f4"
+    }
+  },
+  "marketplaceOverview": {
+    "status": "PASSED",
+    "publicExtensionVersion": "0.37.162",
+    "publicRecommendedCliVersion": "0.166.123",
+    "sourceCandidateVersion": "0.37.163",
+    "sourceRecommendedCliVersion": "0.166.125"
+  },
+  "sources": [
+    {
+      "path": "packages/vscode-extension/package.json",
+      "digest": "sha256:b92670a1842dadda943a03737d203d41205e05bca84e0b732cb80bfa19f52e32"
+    },
+    {
+      "path": "packages/vscode-extension/README.md",
+      "digest": "sha256:9727544b7a204c62977aac9327893f5be7d14f4bf9e26720d87bbe1fe4da445f"
+    },
+    {
+      "path": "packages/vscode-extension/CHANGELOG.md",
+      "digest": "sha256:4e4287a65b6ef4aab96d8c602343788597a6293481199ef8198ec8db1596bbab"
+    }
+  ],
+  "liveModelRequestsStarted": 0,
+  "productPublication": "NOT_PERFORMED"
+}
