@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.126: retained recovery context JSON boundaries (2026-10-26)
+
+- Prevent host-created file excerpts, task checkpoints, remote-read summaries and worklog context from injecting truncated JSON into the next model request. Reduce complete JSON structurally and explicitly omit excerpts that cannot be safely represented within the existing decoding budgets.
+- Project legacy checkpoints and regenerated WORKLOG.md views without rewriting canonical session history. Omitted file excerpts retain their location and version but do not count as visible source for subsequent reads.
+- Preserve strict validation of original tool evidence, credential/PII redaction and historical projection rules. Add continuation, restart, handoff, Unicode, budget and real projection verification regressions.
+- Keep all child dependency pins and the public Open VSX 0.37.162 / JetBrains 0.4.179 pairing unchanged. Require exact-source Linux, Windows and macOS CLI CI and CLI Strict Sandbox, publish through GitHub Actions OIDC, verify public archive bytes and provenance, then merge the release PR.
+
 ### Fixed - cc CLI 0.166.125: source expressions in completed tool history (candidate, 2026-10-26)
 
 - Recognize Python list/object unpacking, JavaScript spread and bounded unary/binary expressions in code fields so completed tool history can reach the next model turn.

@@ -5278,7 +5278,9 @@ async function runAgentHeadlessStreamInWorkspace(
         if (turns !== 0 || canonicalResumeMessages?.length)
           throw new Error("Historical handoff requires a fresh session");
         if (!taskWorklog) throw new Error("Task worklog is not enabled");
-        worklogHistory = taskWorklog.inherit(parsed.worklogSessionId).markdown;
+        worklogHistory = taskWorklog.inherit(
+          parsed.worklogSessionId,
+        ).modelContext;
         emit({
           type: "worklog_loaded",
           source_session_id: parsed.worklogSessionId,
@@ -5297,7 +5299,7 @@ async function runAgentHeadlessStreamInWorkspace(
       }
     } else if (turns === 0 && taskWorklog?.state.objective) {
       try {
-        worklogHistory = taskWorklog.readHistory(sessionId).markdown;
+        worklogHistory = taskWorklog.readHistory(sessionId).modelContext;
       } catch (error) {
         emit({
           type: "result",

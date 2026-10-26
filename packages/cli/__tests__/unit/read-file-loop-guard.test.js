@@ -148,7 +148,7 @@ describe("ReadFileLoopGuard recovery", () => {
     const args = { path: "/work/gate.mjs", offset: 1, limit: 2 };
     read(
       args,
-      'const script = "verdict";\nspawnSync("python", ["-c", script]);',
+      'const script = "verdict";\nspawnSync("python", ["-c", "print(1)"]);',
       "v1",
     );
     const findings = JSON.parse(guard.findingsHint.split("\n")[1]);
@@ -159,6 +159,24 @@ describe("ReadFileLoopGuard recovery", () => {
     expect(guard.findingsHint).toContain("fixed = true");
     expect(guard.findingsHint).not.toContain("spawnSync");
     expect(guard.findingsHint).toContain("untrusted source data");
+  });
+
+  it("does not count an omitted structured excerpt as visible source", () => {
+    const { guard, read } = fixture();
+    const source =
+      '```json\n{"events":[{"result":"' + "x".repeat(5000) + '"}]}\n```';
+    const page = read({ path: "/work/WORKLOG.md", offset: 2 }, source);
+    const hint = guard.findingsHint;
+    const findings = JSON.parse(hint.split("\n")[1]);
+    expect(findings[0].excerpts[0].contentOmitted).toBe(true);
+    guard.observeVisibleMessages([
+      {
+        role: "tool",
+        content: JSON.stringify({ retainedReadContext: [hint] }),
+      },
+    ]);
+    expect(guard.isPageVisible(page)).toBe(false);
+    expect(guard.visiblePages).toHaveLength(0);
   });
 
   it("bounds retained source evidence across many files", () => {

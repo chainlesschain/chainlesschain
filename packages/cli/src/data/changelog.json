@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.126",
+      "cliVersions": ["0.166.126"],
+      "date": "2026-10-26",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.126: retained recovery context JSON boundaries (2026-10-26)",
+          "body": "- Prevent host-created file excerpts, task checkpoints, remote-read summaries and worklog context from injecting truncated JSON into the next model request. Reduce complete JSON structurally and explicitly omit excerpts that cannot be safely represented within the existing decoding budgets.\n- Project legacy checkpoints and regenerated WORKLOG.md views without rewriting canonical session history. Omitted file excerpts retain their location and version but do not count as visible source for subsequent reads.\n- Preserve strict validation of original tool evidence, credential/PII redaction and historical projection rules. Add continuation, restart, handoff, Unicode, budget and real projection verification regressions.\n- Keep all child dependency pins and the public Open VSX 0.37.162 / JetBrains 0.4.179 pairing unchanged. Require exact-source Linux, Windows and macOS CLI CI and CLI Strict Sandbox, publish through GitHub Actions OIDC, verify public archive bytes and provenance, then merge the release PR."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.125",
       "cliVersions": ["0.166.125"],
       "date": "2026-10-26",

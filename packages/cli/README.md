@@ -2,6 +2,14 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
+## CLI 0.166.126 (2026-10-26)
+
+Fixes `Agent model JSON text is malformed or ambiguous` after reading a worklog or retaining a long tool result. Host-created recovery excerpts now preserve complete JSON values or explicitly omit an unsafe excerpt instead of passing a character-cut fragment to the next model turn. The fix covers file and remote-read summaries, task checkpoints, worklog context, legacy-session restart and handoff. Canonical session history remains unchanged; omitted source excerpts do not count as visible file content.
+
+Install: `npm i -g chainlesschain@0.166.126 --registry https://registry.npmjs.org`. Restart the IDE chat host, then check `cc --version` and `cc doctor`. The public IDE pairing remains Open VSX **0.37.162** / JetBrains **0.4.179**, whose recommendation is CLI **0.166.123**. Child versions are unchanged, including Session Core **0.3.24**.
+
+Publication requires the release commit's complete Linux, Windows and macOS **CLI CI** and **CLI Strict Sandbox**, followed by GitHub Actions OIDC and public package readback. Original malformed/duplicate JSON still fails closed; credential/PII redaction and decoding budgets remain enforced. This is a CLI repair, with no new IDE/native release or live model-task acceptance. Cumulative acceptance remains **32/45**, with **13** unfinished; **NOT_PAID_READY / NOT_ADMITTED / HOLD** remain.
+
 ## CLI 0.166.125 (public, 2026-10-26)
 
 Fixes Agent Run termination after successful Python `run_code` calls containing list unpacking such as `["git", *args]`. The next model request can project the completed tool history. Versioned v8 projection also recognizes bounded JavaScript spread, object unpacking and unary/binary expressions in known code fields and supported code fences. Strict tool argument JSON, nested malformed/duplicate JSON checks, redaction and shared budgets remain enforced; v7 evidence remains verifiable.
