@@ -25,7 +25,7 @@ VS Code 的“Discard saved input”此前会在 Agent 存活时直接删除保�
 - 删除在进入存储队列、处理清单及发布前复查页面、会话与草稿身份。旧页面排队的请求、会话重置后的请求及排队期间重新开始输入的请求均被拒绝。
 - 空清单删除与保留下一份草稿的清单替换都沿用已有原子写入边界；失效操作保留原清单字节和附件，清理临时文件。
 
-改动位于 `packages/vscode-extension/src/chat/chat-view.js` 和 `draft-store.js`，没有修改 CLI 回执协议、共享 SDK、JetBrains 插件或历史评测产物。恢复和删除均不会自动重发输入。
+产品源码改动位于 `packages/vscode-extension/src/chat/chat-view.js` 和 `draft-store.js`。另有下述 JetBrains 采证测试修复；CLI 回执协议、共享 SDK、公开 JetBrains 包及历史评测产物保持原样。恢复和删除均不会自动重发输入。
 
 ## 验证结果
 
@@ -42,6 +42,16 @@ Windows x64，Node **22.22.2**。可机读结果、命令、源码摘要及验�
 现有 runner 的 `--prepare-only` 已成功绑定原 verify-33 回复、验收链及上述公开 ZIP；准备成功不代表 Linux IDE 的实际执行。
 
 删除回归使用真实磁盘清单和图片快照，Agent 管道与停止确认通过测试注入控制。它们证明本地宿主处理行为；未执行公开 VSIX 的真实窗口旅程或跨系统矩阵。
+
+## verify-33 真实宿主复查
+
+[首次复查](https://github.com/chainlesschain/chainlesschain/actions/runs/40306765448)在源码 `0e9252755d3afa36dc9721151dd936c6f102c3ce` 上完成 Linux 2025.2 宿主启动、公开 .179 ZIP 的安装字节核验、原回复的持久化与唯一显示，但在初始阶段的精确正文断言失败，未执行重启阶段。原始快照、日志、peer 收据及其摘要保存在[失败回执](./cli/evidence/recovery-2026-10-26/archived-reply-first-attempt/receipt.json)，没有改写为通过。
+
+失败快照中的 canonical source 完整一致，`bodyText` 多包含了新版辅助技术标题 `Turn 1, Assistant response`。原采证代码假定从 live 提升的 span 没有标题，因此把标题也交给固定正文摘要校验。
+
+采证修复只提取明确格式的外层标题；保留旧版 live 正文与两种既有 saved 标题格式，完整保留正文空白、原始 Markdown、重复正文及截断标记。原回复内容、渲染摘要、唯一性、行身份、公开 ZIP 身份和禁止恢复时启动 Agent 的断言均未放宽。四项新增回归包含本次真实失败快照以及错误标题、原始 Markdown和重复正文的负对照。
+
+修复后本地归档检查 **12 项通过、1 项 Linux 专项跳过**，JDK **21.0.12.1** 的离线 `compileUiTestJava` 成功，保留既有 IntelliJ API 弃用警告。这些结果尚不能关闭真实重启验收，仍须从新源码再次执行 Linux 工作流。
 
 ## 仍需完成
 

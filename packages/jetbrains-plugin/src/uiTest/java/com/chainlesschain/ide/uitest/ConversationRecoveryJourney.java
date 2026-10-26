@@ -27,7 +27,16 @@ final class ConversationRecoveryJourney {
         this.taskDeadline = taskDeadline;
     }
 
-    private static final String SNAPSHOT = """
+    private static String rowBodyProbe() {
+        try (var input = ConversationRecoveryJourney.class.getResourceAsStream("/transcript-row-body.js")) {
+            if (input == null) throw new IllegalStateException("Missing transcript body probe");
+            return new String(input.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+        } catch (java.io.IOException error) {
+            throw new IllegalStateException("Could not read transcript body probe", error);
+        }
+    }
+
+    private static final String SNAPSHOT = rowBodyProbe() + "\n" + """
         var loader = Packages.com.intellij.ide.plugins.PluginManagerCore.getPlugin(
             Packages.com.intellij.openapi.extensions.PluginId.getId('com.chainlesschain.ide')).getPluginClassLoader();
         function field(object, name) {
@@ -58,16 +67,9 @@ final class ConversationRecoveryJourney {
             var span = spans.get(i), saved = field(span, 'saved');
             if (saved != null) {
                 var start = Number(field(span, 'start')), end = Number(field(span, 'end'));
-                var rendered = String(pane.getDocument().getText(start, end-start)), body = rendered;
-                // History insertion has a precise heading/suffix; promoted live spans have no wrapper.
-                // Keep the full visible span too, and reject malformed wrappers instead of trimming text.
-                if (field(span, 'owner') == null) {
-                    var heading = '\\nMessage ' + (Number(saved.ordinal()) + 1) + ', ' + String(saved.role()) + ' (saved)\\n';
-                    var suffix = saved.truncated() ? '\\n[Message shortened for display; the saved session retains its original content.]\\n' : '\\n';
-                    if (rendered.indexOf(heading) !== 0 || rendered.slice(-suffix.length) !== suffix
-                            || rendered.length < heading.length + suffix.length) throw 'Malformed saved row wrapper';
-                    body = rendered.slice(heading.length, rendered.length - suffix.length);
-                }
+                var rendered = String(pane.getDocument().getText(start, end-start));
+                var body = transcriptRowBody(rendered, String(saved.role()), Number(saved.ordinal()),
+                    saved.truncated(), field(span, 'owner') != null);
                 rows.push({id:String(saved.id()), text:rendered, bodyText:body, start:start,
                     sourceText:String(saved.text()), role:String(saved.role()), truncated:saved.truncated()});
             }
