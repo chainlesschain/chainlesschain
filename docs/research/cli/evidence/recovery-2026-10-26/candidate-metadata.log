@@ -1,0 +1,166 @@
+TAP version 13
+# Subtest: keeps the checked-in Marketplace overview coherent with the release manifests
+ok 1 - keeps the checked-in Marketplace overview coherent with the release manifests
+  ---
+  duration_ms: 33.6581
+  type: 'test'
+  ...
+# Subtest: checks neutral source pairing without declaring a new public release
+ok 2 - checks neutral source pairing without declaring a new public release
+  ---
+  duration_ms: 1.7418
+  type: 'test'
+  ...
+# Subtest: neutral pairing still checks exact source versions and public history
+ok 3 - neutral pairing still checks exact source versions and public history
+  ---
+  duration_ms: 6.6027
+  type: 'test'
+  ...
+# Subtest: neutral pairing cannot mix candidate declarations, duplicate headings or hidden declarations
+ok 4 - neutral pairing cannot mix candidate declarations, duplicate headings or hidden declarations
+  ---
+  duration_ms: 2.3548
+  type: 'test'
+  ...
+# Subtest: neutral pairing rejects duplicate declarations and downgrades from public versions
+ok 5 - neutral pairing rejects duplicate declarations and downgrades from public versions
+  ---
+  duration_ms: 2.8026
+  type: 'test'
+  ...
+# Subtest: keeps the public recommendation independent from a newer source candidate
+ok 6 - keeps the public recommendation independent from a newer source candidate
+  ---
+  duration_ms: 1.0333
+  type: 'test'
+  ...
+# Subtest: checks an unpublished IDE candidate separately from the current public pairing
+ok 7 - checks an unpublished IDE candidate separately from the current public pairing
+  ---
+  duration_ms: 1.2816
+  type: 'test'
+  ...
+# Subtest: accepts an already published CLI for an unpublished IDE candidate
+ok 8 - accepts an already published CLI for an unpublished IDE candidate
+  ---
+  duration_ms: 0.7789
+  type: 'test'
+  ...
+# Subtest: rejects a candidate whose versions differ from the extension manifest
+ok 9 - rejects a candidate whose versions differ from the extension manifest
+  ---
+  duration_ms: 3.0864
+  type: 'test'
+  ...
+# Subtest: rejects a candidate recommendation that differs from the extension manifest
+ok 10 - rejects a candidate recommendation that differs from the extension manifest
+  ---
+  duration_ms: 4.4288
+  type: 'test'
+  ...
+# Subtest: rejects a candidate section that claims the IDE is already published
+ok 11 - rejects a candidate section that claims the IDE is already published
+  ---
+  duration_ms: 1.7406
+  type: 'test'
+  ...
+# Subtest: rejects a candidate heading duplicated, moved after Current release, or hidden in a fence
+ok 12 - rejects a candidate heading duplicated, moved after Current release, or hidden in a fence
+  ---
+  duration_ms: 3.0989
+  type: 'test'
+  ...
+# Subtest: requires the current public pair to agree with its release metadata
+ok 13 - requires the current public pair to agree with its release metadata
+  ---
+  duration_ms: 1.2828
+  type: 'test'
+  ...
+# Subtest: does not infer the current public pair from a historical release
+ok 14 - does not infer the current public pair from a historical release
+  ---
+  duration_ms: 1.0501
+  type: 'test'
+  ...
+# Subtest: rejects a recommendation newer than the checked-out source candidate
+ok 15 - rejects a recommendation newer than the checked-out source candidate
+  ---
+  duration_ms: 1.0985
+  type: 'test'
+  ...
+# Subtest: rejects README metadata that drifts from the declared recommendation
+ok 16 - rejects README metadata that drifts from the declared recommendation
+  ---
+  duration_ms: 2.2172
+  type: 'test'
+  ...
+# Subtest: allows historical release references outside the current overview
+ok 17 - allows historical release references outside the current overview
+  ---
+  duration_ms: 1.2174
+  type: 'test'
+  ...
+# Subtest: rejects historical tags inside the current status block
+ok 18 - rejects historical tags inside the current status block
+  ---
+  duration_ms: 1.0799
+  type: 'test'
+  ...
+# Subtest: requires a nonempty current release status marker
+ok 19 - requires a nonempty current release status marker
+  ---
+  duration_ms: 1.0995
+  type: 'test'
+  ...
+# Subtest: JetBrains release hosts use the platform-required Java 21 toolchain
+ok 20 - JetBrains release hosts use the platform-required Java 21 toolchain
+  ---
+  duration_ms: 8.7066
+  type: 'test'
+  ...
+# Subtest: every IDE gate checks out and records the exact source commit
+ok 21 - every IDE gate checks out and records the exact source commit
+  ---
+  duration_ms: 2.4695
+  type: 'test'
+  ...
+# Subtest: JetBrains host matrix gates both original controls and canonical Stop recovery
+ok 22 - JetBrains host matrix gates both original controls and canonical Stop recovery
+  ---
+  duration_ms: 1.1368
+  type: 'test'
+  ...
+# Subtest: VS Code channel credentials are checked before their immutable publishes
+ok 23 - VS Code channel credentials are checked before their immutable publishes
+  ---
+  duration_ms: 0.8798
+  type: 'test'
+  ...
+# Subtest: one immutable VSIX candidate gates every release host and publisher
+ok 24 - one immutable VSIX candidate gates every release host and publisher
+  ---
+  duration_ms: 4.0467
+  type: 'test'
+  ...
+# Subtest: IDE release tags are isolated and manual Marketplace backfill is tag-bound
+ok 25 - IDE release tags are isolated and manual Marketplace backfill is tag-bound
+  ---
+  duration_ms: 2.7523
+  type: 'test'
+  ...
+# Subtest: VS Code host gates pin macOS Intel and share the main-world relay
+ok 26 - VS Code host gates pin macOS Intel and share the main-world relay
+  ---
+  duration_ms: 13.7283
+  type: 'test'
+  ...
+1..26
+# tests 26
+# suites 0
+# pass 26
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 329.5304

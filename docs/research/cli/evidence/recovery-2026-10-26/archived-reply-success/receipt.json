@@ -1,0 +1,139 @@
+{
+  "schema": "chainlesschain.archived-reply-recovery-verified/v1",
+  "observedAt": "2026-10-26T11:02:58.904Z",
+  "status": "PASSED_ARCHIVED_REPLY_RECOVERY_ONLY",
+  "runId": 40309760152,
+  "runUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/40309760152",
+  "executionSourceCommit": "c02d27e7e525c4361dafd584a990fe2f5ed2d49d",
+  "publicPlugin": {
+    "version": "0.4.179",
+    "ideVersion": "2025.2",
+    "digest": "sha256:673ab724812ab5b0bbc52c085ff4f128a7b89a68ff7af89bea86f4fbca6d44b3",
+    "bytes": 1555693,
+    "packageSetPath": "docs/research/cli/verify01-package-sets/2026-10-26-archived-reply-179.json",
+    "packageSetDigest": "sha256:3a74997e6ad84a50538e69982a60a37bc7e79f271b49abd609ed065d324cd3c0",
+    "publicOrigin": {
+      "url": "https://plugins.jetbrains.com/api/plugins/32208/updates?size=100",
+      "updateId": 1203035,
+      "file": "32208/1203035/chainlesschain-ide-bridge-0.4.179.zip",
+      "approved": true,
+      "listed": true,
+      "hidden": false
+    }
+  },
+  "independentLocalVerification": {
+    "command": "node packages/jetbrains-plugin/scripts/verify01-archived-reply-recovery.mjs --verify <extracted-artifact-output>",
+    "status": "PASSED",
+    "equalsOriginalResult": true,
+    "result": {
+      "path": "docs/research/cli/evidence/recovery-2026-10-26/archived-reply-success/result.json",
+      "digest": "sha256:0d5d01857831f8a018fe65379d8f43e5fc153e2eef4c8bb267efbde2af2850d8"
+    }
+  },
+  "restoredIdentity": {
+    "initialProcessId": "3400",
+    "restartProcessId": "4320",
+    "sameProfile": true,
+    "sameTabId": true,
+    "sameSessionId": true,
+    "sameAssistantRowId": true,
+    "originalSourceDigest": "sha256:8f1a927835bb8bbfe0d3f3904294eb622c99c843678cb9b36103282d0545503c",
+    "originalRenderedDigest": "sha256:3ba50b15d06ed9bb259b33383ea416c11bb11fbb97c34664379d8ed4027e9655",
+    "agentStartedByRestoration": false
+  },
+  "originalVerdict": {
+    "candidateAcceptancePassed": true,
+    "endToEndPassed": false
+  },
+  "boundaries": {
+    "modelRequests": 0,
+    "newTaskExecution": false,
+    "publicCliVerified": false,
+    "cumulativeAcceptedDeliverables": 32,
+    "unfinishedTasks": 13,
+    "paidReady": false,
+    "nativeAdmission": "NOT_ADMITTED",
+    "automaticPromotion": "HOLD",
+    "productPublication": false
+  },
+  "archivePolicy": "Original proof and logs retained as gzip without byte changes. Public plugin ZIP is bound by exact digest and public origin and retained in the local downloaded artifact; reconstruct it from that public URL before invoking the standalone verifier.",
+  "evidence": [
+    {
+      "originalArtifactPath": "_temp/verify-33-archived-recovery/fixture.json",
+      "originalBytes": 9817,
+      "originalDigest": "sha256:e4f19a4752428c2f3b1a2f4443257d5918dcc0e2714ee7b554838abd9947cd1d",
+      "path": "docs/research/cli/evidence/recovery-2026-10-26/archived-reply-success/fixture.json.gz",
+      "storedDigest": "sha256:1951773503f7eb416cca10d005448dae7f99128347b2d50f870109482ac66a82"
+    },
+    {
+      "originalArtifactPath": "_temp/verify-33-archived-recovery/binding.json",
+      "originalBytes": 2777,
+      "originalDigest": "sha256:ab37e25dcee77adaf95ff5226e87918f40d498630e80ea6d33afbfb1ada626ac",
+      "path": "docs/research/cli/evidence/recovery-2026-10-26/archived-reply-success/binding.json.gz",
+      "storedDigest": "sha256:b15544ea9278fba589b75a2ddf5ea14b86e0a832c8470f59b049a9d24d4d0fa2"
+    },
+    {
+      "originalArtifactPath": "_temp/verify-33-archived-recovery/recovery-live-initial.json",
+      "originalBytes": 4220,
+      "originalDigest": "sha256:b9c3a2883f4c6e20270f7f5fe81c746459ecea89f1cbb86537737ce8799a2368",
+      "path": "docs/research/cli/evidence/recovery-2026-10-26/archived-reply-success/recovery-live-initial.json.gz",
+      "storedDigest": "sha256:410ea9ab10678cd7d5a25c475f3e1cd95579a80a4e1f8666d8686aaa939b91b1"
+    },
+    {
+      "originalArtifactPath": "_temp/verify-33-archived-recovery/recovery-initial.json",
+      "originalBytes": 19624,
+      "originalDigest": "sha256:d219f366a3d0217020a9ecac18d88a4659081af64355005a5875d6f22c81c58c",
+      "path": "docs/research/cli/evidence/recovery-2026-10-26/archived-reply-success/recovery-initial.json.gz",
+      "storedDigest": "sha256:c9c877bb576acb6401474c4b65ddb004c1dcc285ac1f0a6a64b6b60cb14bece2"
+    },
+    {
+      "originalArtifactPath": "_temp/verify-33-archived-recovery/recovery-restart.json",
+      "originalBytes": 15229,
+      "originalDigest": "sha256:201f12864064503c2461e0f171c73ea970689abced58471f19b10efbac65263e",
+      "path": "docs/research/cli/evidence/recovery-2026-10-26/archived-reply-success/recovery-restart.json.gz",
+      "storedDigest": "sha256:d726239b54c780c95415ac9e10b521199cf045b5f41b3a9c1ed1a3bc9ab6ec4d"
+    },
+    {
+      "originalArtifactPath": "_temp/verify-33-archived-recovery/peer.jsonl",
+      "originalBytes": 4298,
+      "originalDigest": "sha256:9c2fcf9f362a74fe431bdba59523b45a014286f15d3605e4e380f1b828c269bb",
+      "path": "docs/research/cli/evidence/recovery-2026-10-26/archived-reply-success/peer.jsonl.gz",
+      "storedDigest": "sha256:f39a9b5efdfa6d97b98e463c710b0ee3f4e63c76e1acae92b356d1d6f0ffe22c"
+    },
+    {
+      "originalArtifactPath": "_temp/verify-33-archived-recovery/prepare.log",
+      "originalBytes": 769,
+      "originalDigest": "sha256:9f41d25c0e0b5f0e5a6bb225dc917cbfe0a500d781747a0a9cfc713be24290fc",
+      "path": "docs/research/cli/evidence/recovery-2026-10-26/archived-reply-success/prepare.log.gz",
+      "storedDigest": "sha256:cb3430591440b1afce1b7dde11fa2eb986794971588902da43ab54f43ce29264"
+    },
+    {
+      "originalArtifactPath": "_temp/verify-33-archived-recovery/ide-initial.log",
+      "originalBytes": 40896,
+      "originalDigest": "sha256:9b5d83e98995c975e50c6950202e4876b90434c2d4ae2c4d4d61091a0a5bd052",
+      "path": "docs/research/cli/evidence/recovery-2026-10-26/archived-reply-success/ide-initial.log.gz",
+      "storedDigest": "sha256:c7e9ef922a96942324aae1c6f7b39c9005697daa9b7fd7352ccfbf32623007dd"
+    },
+    {
+      "originalArtifactPath": "_temp/verify-33-archived-recovery/test-initial.log",
+      "originalBytes": 2013,
+      "originalDigest": "sha256:bccb384226074ad9a7cc0f4ca77d79bb3c87090125be9b5fc393a6c72ff390a8",
+      "path": "docs/research/cli/evidence/recovery-2026-10-26/archived-reply-success/test-initial.log.gz",
+      "storedDigest": "sha256:d95bbca3d6a4cd612b14d4f74dae1a330264d74269f22d7d51a4991fbbf476a7"
+    },
+    {
+      "originalArtifactPath": "_temp/verify-33-archived-recovery/ide-restart.log",
+      "originalBytes": 3529,
+      "originalDigest": "sha256:6f95c2786ea693359188c12687761fa32f0ab7c4d61920d3dd45f7b7d0915e60",
+      "path": "docs/research/cli/evidence/recovery-2026-10-26/archived-reply-success/ide-restart.log.gz",
+      "storedDigest": "sha256:ed27440f0cdf767cc0aa8a073895412ec04f6922e03c798dff5f62c108b8597f"
+    },
+    {
+      "originalArtifactPath": "_temp/verify-33-archived-recovery/test-restart.log",
+      "originalBytes": 2035,
+      "originalDigest": "sha256:8da7f2ded64d52792021eabc6cd09d5282c72cc9c67f2678edde3362fb69dc87",
+      "path": "docs/research/cli/evidence/recovery-2026-10-26/archived-reply-success/test-restart.log.gz",
+      "storedDigest": "sha256:11c6cef3e94d6718e094d244f355ded5a38d2e65801bbe2f46a632cfca5f3f51"
+    }
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "schema": "chainlesschain.archived-reply-probe-repair/v1",
+  "recordedAt": "2026-10-26T10:43:32.741Z",
+  "baseCommit": "38a88403590be55c63c0c94b1c2960153d8ef8ec",
+  "status": "LOCALLY_VALIDATED_NATIVE_REPLAY_PENDING",
+  "failedRun": "docs/research/cli/evidence/recovery-2026-10-26/archived-reply-first-attempt/receipt.json",
+  "unchangedOracles": {
+    "sourceDigest": "sha256:8f1a927835bb8bbfe0d3f3904294eb622c99c843678cb9b36103282d0545503c",
+    "renderedDigest": "sha256:3ba50b15d06ed9bb259b33383ea416c11bb11fbb97c34664379d8ed4027e9655",
+    "requireUniqueReply": true,
+    "requireExactSavedRowIdentity": true,
+    "requireExactInstalledPublicZip": true,
+    "forbidAgentOnRestart": true
+  },
+  "sources": [
+    {
+      "path": "packages/jetbrains-plugin/scripts/archived-reply-evidence.test.mjs",
+      "digest": "sha256:9f33c60057a2277eb65fae277a732f0e2dfcfe77c957d719900f2bcf837e5226"
+    },
+    {
+      "path": "packages/jetbrains-plugin/scripts/verify01-archived-reply-recovery.mjs",
+      "digest": "sha256:c6a0c6663c85ff1f381d33f917066c82ccae09add69ac97d204bdde18b5e2d48"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/ConversationRecoveryJourney.java",
+      "digest": "sha256:44cb87d4c64437b64204a4bca9d7faaec68a6cbbff8b7303c491e17e7597337b"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/uiTest/resources/transcript-row-body.js",
+      "digest": "sha256:8bb9c51d4b1cd17b35e1b3a99af115184558ea38800dc2e0ead8e272ed108b21"
+    }
+  ],
+  "tests": {
+    "command": "node --test packages/jetbrains-plugin/scripts/archived-reply-evidence.test.mjs",
+    "passed": 12,
+    "failed": 0,
+    "skipped": 1,
+    "newTests": 4,
+    "output": {
+      "path": "docs/research/cli/evidence/recovery-2026-10-26/archived-reply-probe.log",
+      "digest": "sha256:79bf908c461b920d7ac88a1639d3bae343381ce72f1921a590abd97a0e116b3e"
+    }
+  },
+  "compile": {
+    "command": "gradlew.bat --offline --no-daemon --console=plain compileUiTestJava",
+    "cwd": "packages/jetbrains-plugin",
+    "java": "21.0.12.1",
+    "result": "PASSED",
+    "warnings": "Existing deprecated IntelliJ platform dependency helper",
+    "output": {
+      "path": "docs/research/cli/evidence/recovery-2026-10-26/jetbrains-ui-compile.log",
+      "digest": "sha256:6b3026812896de2e83d7368de7a952c3df246f57af949e8d7004cc9ac2850e2b",
+      "normalization": "UTF-8, LF newlines, trailing horizontal whitespace removed"
+    }
+  },
+  "modelsRequested": 0,
+  "newTaskAcceptance": false,
+  "productPublication": false
+}

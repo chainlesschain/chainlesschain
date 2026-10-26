@@ -4,6 +4,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
+import vm from "node:vm";
+import { gunzipSync } from "node:zlib";
 import {
   loadVerify33Reply,
   validateReplyFixture,
@@ -18,6 +20,121 @@ import { replyEnvironment } from "./verify01-archived-reply-recovery.mjs";
 import { loadVerifiedNativeAcceptedSamples } from "../../cli/scripts/verify01-native-retest-plan.mjs";
 
 const fixture = loadVerify33Reply();
+const rowBody = vm.runInNewContext(
+  fs.readFileSync(
+    new URL("../src/uiTest/resources/transcript-row-body.js", import.meta.url),
+    "utf8",
+  ) + "\ntranscriptRowBody;",
+);
+
+test("body probe reads the exact original reply from the failed .179 live span", () => {
+  const original = JSON.parse(
+    gunzipSync(
+      fs.readFileSync(
+        path.join(
+          repository,
+          "docs/research/cli/evidence/recovery-2026-10-26/archived-reply-first-attempt/recovery-failure-initial.json.gz",
+        ),
+      ),
+      { maxOutputLength: 128 * 1024 },
+    ),
+  );
+  const row = original.snapshot.savedRows.find(
+    (value) => value.role === "assistant",
+  );
+  assert.equal(row.sourceText, fixture.source);
+  assert.notEqual(row.bodyText, fixture.rendered);
+  assert.equal(
+    rowBody(row.text, row.role, 1, row.truncated, true),
+    fixture.rendered,
+  );
+});
+
+test("body probe preserves legacy live text and removes exactly one accessible heading", () => {
+  assert.equal(
+    rowBody(fixture.rendered, "assistant", 1, false, true),
+    fixture.rendered,
+  );
+  const body = "Turn 2, Assistant response\n  real content\n\n";
+  assert.equal(
+    rowBody("Turn 1, Assistant response\n" + body, "assistant", 1, false, true),
+    body,
+  );
+  assert.equal(
+    rowBody(
+      "Turn 1, Assistant response\n" + fixture.source,
+      "assistant",
+      1,
+      false,
+      true,
+    ),
+    fixture.source,
+  );
+  assert.notEqual(
+    rowBody(
+      "Turn 1, Assistant response\n" + fixture.source,
+      "assistant",
+      1,
+      false,
+      true,
+    ),
+    fixture.rendered,
+  );
+});
+
+test("body probe accepts both exact saved wrappers and preserves whitespace and shortening metadata", () => {
+  const body = "\n  original body\n";
+  for (const [role, label] of [
+    ["user", "User message"],
+    ["assistant", "Assistant response"],
+    ["tool", "Tool result"],
+  ]) {
+    for (const heading of [
+      "\nMessage 2, " + role + " (saved)\n",
+      "\nMessage 2, " + label + "\n",
+    ]) {
+      assert.equal(rowBody(heading + body + "\n", role, 1, false, false), body);
+      const suffix =
+        "\n[Message shortened for display; the saved session retains its original content.]\n";
+      assert.equal(
+        rowBody(heading + body + suffix, role, 1, true, false),
+        body,
+      );
+    }
+  }
+});
+
+test("body probe rejects wrong row wrappers and does not hide duplicate replies", () => {
+  for (const text of [
+    "\nMessage 3, assistant (saved)\nbody\n",
+    "\nMessage 2, user (saved)\nbody\n",
+    "\nMessage 2, Assistant response\nbody",
+    "\nMessage 2, Assistant response\nbody\nextra",
+  ]) {
+    assert.throws(
+      () => rowBody(text, "assistant", 1, false, false),
+      /Malformed saved row wrapper/,
+    );
+  }
+  assert.throws(
+    () =>
+      rowBody("Turn 0, Assistant response\nbody", "assistant", 1, false, true),
+    /Malformed live row wrapper/,
+  );
+  const duplicate = fixture.rendered + fixture.rendered;
+  assert.equal(
+    rowBody(
+      "Turn 1, Assistant response\n" + duplicate,
+      "assistant",
+      1,
+      false,
+      true,
+    ),
+    duplicate,
+  );
+  assert.notEqual(duplicate, fixture.rendered);
+});
+
 function evidence() {
   const installation = {
     exactZipContents: true,

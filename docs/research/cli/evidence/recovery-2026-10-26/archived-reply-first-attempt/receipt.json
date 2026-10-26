@@ -1,0 +1,79 @@
+{
+  "schema": "chainlesschain.archived-reply-attempt/v1",
+  "observedAt": "2026-10-26T10:40:14.674Z",
+  "runId": 40306765448,
+  "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40306765448",
+  "sourceSha": "0e9252755d3afa36dc9721151dd936c6f102c3ce",
+  "status": "FAILED_INITIAL_PHASE",
+  "artifact": {
+    "id": 12643537374,
+    "bytes": 1596560,
+    "digest": "sha256:8d1a172d2b6ea79b70b7c0db6db2de5eb8e8a98fba5d5c716b7efadc0671ffcb"
+  },
+  "publicPluginVersion": "0.4.179",
+  "actualIdeVersionChecked": "2025.2",
+  "liveReplyUnique": true,
+  "originalSourceAndRenderedDigestsUnchanged": true,
+  "failure": "Promoted live span included the new accessible turn heading in bodyText; the immutable rendered-body oracle rejected the mismatch.",
+  "restartPhase": "NOT_RUN",
+  "modelRequestsStarted": 0,
+  "taskAcceptanceChanged": false,
+  "evidence": [
+    {
+      "originalArtifactPath": "_temp/verify-33-archived-recovery/binding.json",
+      "originalBytes": 2587,
+      "originalDigest": "sha256:7db2791ceb727d2531654a721eaece322f98809a0f23fe73aec3102dbf37aeb7",
+      "path": "docs/research/cli/evidence/recovery-2026-10-26/archived-reply-first-attempt/binding.json.gz",
+      "storedDigest": "sha256:fb8a6256086f5e28f3372a8ba7f05256fcc8809226dc83fd9fde388d11be334c"
+    },
+    {
+      "originalArtifactPath": "_temp/verify-33-archived-recovery/failure.json",
+      "originalBytes": 358,
+      "originalDigest": "sha256:5efcdd1bdbf276a711bc07cb02ccb38238ad3d10263e619c79aa0c1b82905f71",
+      "path": "docs/research/cli/evidence/recovery-2026-10-26/archived-reply-first-attempt/failure.json.gz",
+      "storedDigest": "sha256:df20346d55b7b230a66412552f4bc3461fa17d6d6e71c2048b25eb942c1c284e"
+    },
+    {
+      "originalArtifactPath": "_temp/verify-33-archived-recovery/ide-initial.log",
+      "originalBytes": 40719,
+      "originalDigest": "sha256:b91215b3870dffe27d453e7af565c2b867ef0835787daed89971769f440df093",
+      "path": "docs/research/cli/evidence/recovery-2026-10-26/archived-reply-first-attempt/ide-initial.log.gz",
+      "storedDigest": "sha256:da382dacad2e1f5042ad9463f7437884f74170e6778d1fb1806c7837c0b35bda"
+    },
+    {
+      "originalArtifactPath": "_temp/verify-33-archived-recovery/peer.jsonl",
+      "originalBytes": 2277,
+      "originalDigest": "sha256:7dc6490c71d7c79a1515523cbb5d24b1cc959101ff731e975723b4538e40abe3",
+      "path": "docs/research/cli/evidence/recovery-2026-10-26/archived-reply-first-attempt/peer.jsonl.gz",
+      "storedDigest": "sha256:1355c2fbec5d26b4ba16b14e83ab346d37831e0cff90a85969c2c62ae499a98d"
+    },
+    {
+      "originalArtifactPath": "_temp/verify-33-archived-recovery/prepare.log",
+      "originalBytes": 768,
+      "originalDigest": "sha256:a3b608591ba3820e634444d8faf778e57b9a23cc5a8564f32c8bdd6da3ac8c2e",
+      "path": "docs/research/cli/evidence/recovery-2026-10-26/archived-reply-first-attempt/prepare.log.gz",
+      "storedDigest": "sha256:4c6227d9b8b8a25e61688d3ed21468cd187153b5880faefc8d17e0f19183f3e9"
+    },
+    {
+      "originalArtifactPath": "_temp/verify-33-archived-recovery/recovery-failure-initial.json",
+      "originalBytes": 28545,
+      "originalDigest": "sha256:68cbdd9aa9906d470ba72e926459cffb2073bbabfc2052b32ccbcdff2016be1f",
+      "path": "docs/research/cli/evidence/recovery-2026-10-26/archived-reply-first-attempt/recovery-failure-initial.json.gz",
+      "storedDigest": "sha256:6f15abd4af8c820bf4a2b24535fa31123568ef06f584cf5d6ac7f6b892fc7259"
+    },
+    {
+      "originalArtifactPath": "_temp/verify-33-archived-recovery/recovery-live-initial.json",
+      "originalBytes": 4306,
+      "originalDigest": "sha256:82519ec323fe7568bf7714afd787cbd43a61a578ab0c5cdc806297b765b3224e",
+      "path": "docs/research/cli/evidence/recovery-2026-10-26/archived-reply-first-attempt/recovery-live-initial.json.gz",
+      "storedDigest": "sha256:823afbd260242751f4a73268c44d29879b59975caf634d82c508b41bd7a1db44"
+    },
+    {
+      "originalArtifactPath": "_temp/verify-33-archived-recovery/test-initial.log",
+      "originalBytes": 16514,
+      "originalDigest": "sha256:bd9c43f5793b250767bbe1de615d1325d7c2c1f2cccd97445e40d88175388e4d",
+      "path": "docs/research/cli/evidence/recovery-2026-10-26/archived-reply-first-attempt/test-initial.log.gz",
+      "storedDigest": "sha256:9b0fb89f21faad78efe668768f8069550c3f7409ffae1c782d9127c0e75bd554"
+    }
+  ]
+}

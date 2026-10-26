@@ -455,11 +455,12 @@ class DraftStore {
       return this._payload(key, input); // explicit editable copy; never sends it
     });
   }
-  discard(key, id) {
+  discard(key, id, { assertCurrent = () => {} } = {}) {
     return this._serial(async () => {
+      assertCurrent();
       const record = await this._read(key);
       record.pending = record.pending.filter((p) => p.id !== id);
-      await this._write(record);
+      await this._write(record, assertCurrent);
     });
   }
   saveQuestion(key, question) {

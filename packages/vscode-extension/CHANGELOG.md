@@ -2,6 +2,12 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.163] - Saved input attachment protection (unreleased candidate, 2026-10-26)
+
+- Preserve saved inputs and attachments while their Agent is running, preparing input, or awaiting confirmed termination, including partial pipe failures and failed stops.
+- Recheck page and conversation identity when a queued discard reaches storage and before publishing its manifest change.
+- Recommend public CLI 0.166.125. This candidate is newer than public Open VSX 0.37.162; exact-source checks and publication remain pending.
+
 ## [0.37.161] - CLI ingress display text recovery (candidate, 2026-10-25)
 
 - Recommend CLI 0.166.121 and pair with JetBrains 0.4.178.

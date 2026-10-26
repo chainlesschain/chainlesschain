@@ -1,0 +1,88 @@
+TAP version 13
+# Subtest: body probe reads the exact original reply from the failed .179 live span
+ok 1 - body probe reads the exact original reply from the failed .179 live span
+  ---
+  duration_ms: 2.9813
+  type: 'test'
+  ...
+# Subtest: body probe preserves legacy live text and removes exactly one accessible heading
+ok 2 - body probe preserves legacy live text and removes exactly one accessible heading
+  ---
+  duration_ms: 0.5638
+  type: 'test'
+  ...
+# Subtest: body probe accepts both exact saved wrappers and preserves whitespace and shortening metadata
+ok 3 - body probe accepts both exact saved wrappers and preserves whitespace and shortening metadata
+  ---
+  duration_ms: 0.493
+  type: 'test'
+  ...
+# Subtest: body probe rejects wrong row wrappers and does not hide duplicate replies
+ok 4 - body probe rejects wrong row wrappers and does not hide duplicate replies
+  ---
+  duration_ms: 1.2234
+  type: 'test'
+  ...
+# Subtest: fixture is bound to accepted verify-33 bytes and original rendered Markdown
+ok 5 - fixture is bound to accepted verify-33 bytes and original rendered Markdown
+  ---
+  duration_ms: 2.6743
+  type: 'test'
+  ...
+# Subtest: historical verify-33 remains recoverable after registered retests replace the latest ledger
+ok 6 - historical verify-33 remains recoverable after registered retests replace the latest ledger
+  ---
+  duration_ms: 2469.2634
+  type: 'test'
+  ...
+# Subtest: public plugin manifest without independently verified artifact bytes is rejected
+ok 7 - public plugin manifest without independently verified artifact bytes is rejected
+  ---
+  duration_ms: 1.3649
+  type: 'test'
+  ...
+# Subtest: the selected manifest binds version, public origin, ZIP bytes and both IDE phases
+ok 8 - the selected manifest binds version, public origin, ZIP bytes and both IDE phases
+  ---
+  duration_ms: 56.5022
+  type: 'test'
+  ...
+# Subtest: separate result preserves old verdict and makes no task/public-CLI claim
+ok 9 - separate result preserves old verdict and makes no task/public-CLI claim
+  ---
+  duration_ms: 0.9142
+  type: 'test'
+  ...
+# Subtest: raw Markdown on both sides, identity loss, wrong host and restart agent are rejected
+ok 10 - raw Markdown on both sides, identity loss, wrong host and restart agent are rejected
+  ---
+  duration_ms: 7.959
+  type: 'test'
+  ...
+# Subtest: fixture child environment separates OS home from data and excludes secrets and preloads
+ok 11 - fixture child environment separates OS home from data and excludes secrets and preloads
+  ---
+  duration_ms: 13.6746
+  type: 'test'
+  ...
+# Subtest: peer rejects unsupported commands and changed archive before persistence
+ok 12 - peer rejects unsupported commands and changed archive before persistence
+  ---
+  duration_ms: 1696.7447
+  type: 'test'
+  ...
+# Subtest: one deterministic reply persists exact bytes and the real history command reads them
+ok 13 - one deterministic reply persists exact bytes and the real history command reads them # SKIP
+  ---
+  duration_ms: 0.5142
+  type: 'test'
+  ...
+1..13
+# tests 13
+# suites 0
+# pass 12
+# fail 0
+# cancelled 0
+# skipped 1
+# todo 0
+# duration_ms 6401.275

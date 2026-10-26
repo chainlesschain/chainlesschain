@@ -1,0 +1,14 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.7/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build
+Calculating task graph as configuration cache cannot be reused because file 'gradle.properties' has changed.
+
+> Configure project :
+w: file:///C:/code/chainlesschain/packages/jetbrains-plugin/build.gradle.kts:215:13: 'ide(IntelliJPlatformType, String, Boolean = ..., ProductMode = ...): Unit' is deprecated. Please use the create(type, version, configure) method with a configuration lambda instead.
+
+> Task :checkKotlinGradlePluginConfigurationErrors
+> Task :compileUiTestKotlin NO-SOURCE
+> Task :compileUiTestJava
+
+BUILD SUCCESSFUL in 52s
+2 actionable tasks: 2 executed
+Configuration cache entry stored.

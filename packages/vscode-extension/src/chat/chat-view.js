@@ -4615,8 +4615,28 @@ class ChatViewProvider {
               composer: draft,
             });
         } else {
-          if (m.type === "draftDiscard")
-            await this._draftStore.discard(key, m.clientMessageId);
+          if (m.type === "draftDiscard") {
+            const assertDiscardable = () => {
+              assertCurrent();
+              if (this._convs.get(conv.id) !== conv || conv.draftKey !== key)
+                throw new Error(
+                  "Saved input belongs to an inactive conversation",
+                );
+              // A failed pipe write may still have delivered the image paths.
+              // Only confirmed termination proves no live child can read them.
+              if (
+                conv.preparingSubmission ||
+                conv.session?.running ||
+                conv.stoppingSession
+              )
+                throw new Error(
+                  "Stop the agent and wait for it to finish stopping before discarding saved input; it may still be reading attachments",
+                );
+            };
+            await this._draftStore.discard(key, m.clientMessageId, {
+              assertCurrent: assertDiscardable,
+            });
+          }
           await this._restoreDraft(conv, {
             composer: m.type === "draftReload",
             reconcile: m.type === "draftReconcile",

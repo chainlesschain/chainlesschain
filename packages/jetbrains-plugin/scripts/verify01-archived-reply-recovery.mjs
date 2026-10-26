@@ -195,6 +195,7 @@ export async function runArchivedReplyRecovery({
     "packages/jetbrains-plugin/scripts/verify01-archived-reply-recovery.mjs",
     "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/ArchivedReplyRecoveryJourney.java",
     "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/ConversationRecoveryJourney.java",
+    "packages/jetbrains-plugin/src/uiTest/resources/transcript-row-body.js",
     "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java",
     "packages/jetbrains-plugin/build.gradle.kts",
   ].map((name) => ({

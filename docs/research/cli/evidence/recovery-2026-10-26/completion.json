@@ -1,0 +1,71 @@
+{
+  "schema": "chainlesschain.research-recovery-batch-completion/v1",
+  "recordedAt": "2026-10-26T11:06:07.630Z",
+  "status": "ENGINEERING_FIX_AND_ARCHIVED_REPLY_RECOVERY_COMPLETED",
+  "sourceCommit": "c02d27e7e525c4361dafd584a990fe2f5ed2d49d",
+  "pullRequest": "https://github.com/chainlesschain/chainlesschain/pull/498",
+  "candidate": {
+    "vscode": "0.37.163",
+    "recommendedCli": "0.166.125",
+    "publication": "NOT_PERFORMED"
+  },
+  "completed": [
+    "Guard saved-input deletion while a consumer or stop barrier remains active",
+    "Revalidate page and conversation at storage commit",
+    "Fix read-only body probe for known accessible headings",
+    "Verify public JetBrains .179 archived reply through Linux 2025.2 process restart"
+  ],
+  "finalCandidateUnits": {
+    "command": "npm run test:unit --prefix packages/vscode-extension",
+    "passed": 308,
+    "failed": 0,
+    "skipped": 0,
+    "output": {
+      "path": "docs/research/cli/evidence/recovery-2026-10-26/vscode-candidate-unit.log",
+      "digest": "sha256:4a27c575583e2e541447fbec8a3432b7402984a4e9c5073fa8d9d5c73bb37fde",
+      "normalization": "UTF-8, LF, trailing horizontal whitespace removed"
+    }
+  },
+  "originalCombinedRegression": {
+    "passed": 84,
+    "failed": 0,
+    "skipped": 0,
+    "files": 5,
+    "report": "docs/research/cli/evidence/recovery-2026-10-26/recovery-regression.json"
+  },
+  "candidateMetadata": {
+    "passed": 26,
+    "failed": 0,
+    "skipped": 0,
+    "receipt": "docs/research/cli/evidence/recovery-2026-10-26/candidate-preparation.json"
+  },
+  "archivedProbeLocal": {
+    "passed": 12,
+    "failed": 0,
+    "skipped": 1,
+    "receipt": "docs/research/cli/evidence/recovery-2026-10-26/archived-reply-probe-repair.json"
+  },
+  "nativeRecovery": {
+    "runId": 40309760152,
+    "sourceCommit": "c02d27e7e525c4361dafd584a990fe2f5ed2d49d",
+    "publicPluginVersion": "0.4.179",
+    "ideVersion": "2025.2",
+    "status": "PASSED_ARCHIVED_REPLY_RECOVERY_ONLY",
+    "independentLocalVerification": "PASSED",
+    "receipt": "docs/research/cli/evidence/recovery-2026-10-26/archived-reply-success/receipt.json"
+  },
+  "remaining": {
+    "researchPlan": "IN_PROGRESS",
+    "cumulativeAcceptedDeliverables": 32,
+    "unfinishedTasks": 13,
+    "liveModelRequestsStarted": 0,
+    "nativeAdmission": "NOT_ADMITTED",
+    "paidReady": false,
+    "automaticPromotion": "HOLD",
+    "fullCandidateReleaseMatrix": "IN_PROGRESS_NOT_A_RELEASE_QUALIFICATION",
+    "nineEntryInstallationJourney": "OPEN",
+    "productionLinuxBudgetRecovery": "OPEN",
+    "humanAccessibilityAcceptance": "OPEN",
+    "microsoftMarketplacePublication": "OPEN"
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "schema": "chainlesschain.native-package-set/v1",
+  "resolvedAt": "2026-10-26T10:14:03.473Z",
+  "scope": "Archived verify-33 reply recovery only. This run does not execute the public CLI or VS Code package and does not generate model tasks.",
+  "versions": {
+    "cli": "0.166.125",
+    "vscode": "0.37.162",
+    "jetbrains": "0.4.179",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "origin": {
+    "jetbrains": {
+      "url": "https://plugins.jetbrains.com/api/plugins/32208/updates?size=100",
+      "updateId": 1203035,
+      "file": "32208/1203035/chainlesschain-ide-bridge-0.4.179.zip",
+      "approved": true,
+      "listed": true,
+      "hidden": false
+    }
+  },
+  "publicArtifacts": {
+    "jetbrains": {
+      "digest": "sha256:673ab724812ab5b0bbc52c085ff4f128a7b89a68ff7af89bea86f4fbca6d44b3",
+      "bytes": 1555693
+    }
+  },
+  "cliAndVscodeVersionSource": "docs/research/cli/evidence/release125-public/publication.json"
+}
