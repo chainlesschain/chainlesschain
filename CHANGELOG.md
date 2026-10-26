@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - cc CLI 0.166.127: optional self-evolution controls (candidate, 2026-10-27)
+
+- Default fresh installations and older automatically generated local deployments to self-evolution off. Share the boolean `evolution.enabled` setting across CLI, cc ui, VS Code and JetBrains; explicit false overrides inherited deployment environment variables, while absent settings preserve manually selected deployments.
+- Enable and disable through configuration or deployment commands, initialize the local signed runtime on explicit enable, and retain deployment and trust history when disabled. Require a restart for running Agent sessions and reread the setting for new UI model requests.
+- Keep ordinary Agent, ask, chat, session resume and UI intent confirmation available while off. Retain strict signature and evidence checks for enabled deployments and prevent unrelated configuration writes from changing an absent Evolution choice.
+- Add shared configuration documentation and regression coverage. Pair IDE candidates VS Code 0.37.164 and JetBrains 0.4.180 with CLI 0.166.127; publish them only after verified public CLI availability. Child dependency pins are unchanged.
+- Require exact-source Linux, Windows and macOS CLI CI and Strict Sandbox before GitHub Actions OIDC publication and public package readback. Automatic candidate promotion remains HOLD; this switch does not start a full RRSI campaign or claim new live model-task acceptance.
+
 ### Fixed - cc CLI 0.166.126: retained recovery context JSON boundaries (2026-10-26)
 
 - Prevent host-created file excerpts, task checkpoints, remote-read summaries and worklog context from injecting truncated JSON into the next model request. Reduce complete JSON structurally and explicitly omit excerpts that cannot be safely represented within the existing decoding budgets.
