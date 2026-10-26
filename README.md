@@ -1,8 +1,8 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
-## CLI 0.166.124 候选修复（2026-10-26）
+## CLI 0.166.125 候选修复（2026-10-26）
 
-修复 Python `["git", *args]` 执行成功后，下一轮模型历史投影误报损坏 JSON 并退出的问题；同时覆盖已知代码字段中的 JS 展开、对象解包及部分一元/二元表达式。保留严格 JSON 校验、脱敏、预算限制和历史证据验证。`.124` 尚待精确提交的三系统 CLI CI、Strict Sandbox 和 GitHub Actions OIDC 发布；当前公开版本为 `.123`。验证发布后使用 `npm i -g chainlesschain@0.166.124 --registry https://registry.npmjs.org`，并重启 IDE 聊天宿主。现有公开 IDE 配对仍为 Open VSX `.161` / JetBrains `.178`；子包版本与既有发行限制不变。详见 [CLI README](packages/cli/README.md)。
+修复 Python `["git", *args]` 执行成功后，下一轮模型历史投影误报损坏 JSON 并退出的问题；同时覆盖已知代码字段中的 JS 展开、对象解包及部分一元/二元表达式。保留严格 JSON 校验、脱敏、预算限制和历史证据验证。`.124` 尚待精确提交的三系统 CLI CI、Strict Sandbox 和 GitHub Actions OIDC 发布；当前公开版本为 `.123`。验证发布后使用 `npm i -g chainlesschain@0.166.125 --registry https://registry.npmjs.org`，并重启 IDE 聊天宿主。现有公开 IDE 配对仍为 Open VSX `.161` / JetBrains `.178`；子包版本与既有发行限制不变。详见 [CLI README](packages/cli/README.md)。
 
 ## CLI 0.166.123 (2026-10-26)
 

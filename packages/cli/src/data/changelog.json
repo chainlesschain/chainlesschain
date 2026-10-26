@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.166.125",
+      "cliVersions": ["0.166.125"],
+      "date": "2026-10-26",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed - cc CLI 0.166.125: source expressions in completed tool history (candidate, 2026-10-26)",
+          "body": "- Recognize Python list/object unpacking, JavaScript spread and bounded unary/binary expressions in code fields so completed tool history can reach the next model turn.\n- Keep malformed/duplicate JSON and projection budgets enforced, retain conservative sensitive-source guards, and preserve v7 evidence verification with versioned v8 rules.\n- Add regressions for object/serialized arguments, paired results, fenced code, sensitive assignment wrappers and real Agent continuation without tool replay. Child dependency pins are unchanged. Publication requires exact-source three-OS CLI CI and Strict Sandbox followed by Actions OIDC."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.166.123",
       "cliVersions": ["0.166.123"],
       "date": "2026-10-26",

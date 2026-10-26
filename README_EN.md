@@ -1,8 +1,8 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
-## CLI 0.166.124 candidate fix (2026-10-26)
+## CLI 0.166.125 candidate fix (2026-10-26)
 
-Fixes Agent Run termination when the next model request projects completed Python `["git", *args]` tool history. It also recognizes bounded JS spread, object unpacking and unary/binary expressions in known code fields, preserving strict JSON checks, redaction, budgets and historical evidence verification. `.124` awaits exact-commit three-OS CLI CI, Strict Sandbox and GitHub Actions OIDC publication; `.123` remains public. After publication is verified, install with `npm i -g chainlesschain@0.166.124 --registry https://registry.npmjs.org` and restart the IDE chat host. Existing public IDE pairing remains Open VSX `.161` / JetBrains `.178`; child pins and release limits are unchanged. See the [CLI README](packages/cli/README.md).
+Fixes Agent Run termination when the next model request projects completed Python `["git", *args]` tool history. It also recognizes bounded JS spread, object unpacking and unary/binary expressions in known code fields, preserving strict JSON checks, redaction, budgets and historical evidence verification. `.124` awaits exact-commit three-OS CLI CI, Strict Sandbox and GitHub Actions OIDC publication; `.123` remains public. After publication is verified, install with `npm i -g chainlesschain@0.166.125 --registry https://registry.npmjs.org` and restart the IDE chat host. Existing public IDE pairing remains Open VSX `.161` / JetBrains `.178`; child pins and release limits are unchanged. See the [CLI README](packages/cli/README.md).
 
 ## CLI 0.166.123 (2026-10-26)
 

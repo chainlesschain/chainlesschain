@@ -4,7 +4,7 @@
 
 `.124` 修复 Python `subprocess.run(["git", *args])` 已成功执行后，下一轮历史投影误把列表解包识别为 JSON 错误的问题，并覆盖已知代码路径中的 JS 展开、对象解包和部分运算表达式。严格工具参数 JSON、嵌套重复键与非法 JSON 校验、脱敏和预算限制继续生效。新语法前出现敏感名称或无法解码的模板上下文时仍保守拒绝；这不是通用源码解析器。
 
-该候选尚待精确提交的 Linux、Windows、macOS CLI CI、Strict Sandbox 与 GitHub Actions OIDC 发布。当前公开 CLI 为 **0.166.123**。`.124` 验证公开后执行 `npm i -g chainlesschain@0.166.124 --registry https://registry.npmjs.org`，然后重启 IDE 聊天宿主，并运行 `cc --version` 和 `cc doctor`。现有公开 IDE 为 Open VSX **0.37.161** / JetBrains **0.4.178**，推荐标记仍为 CLI `.121`；本次只发布 CLI，子依赖版本保持不变。本轮未新增真实模型任务验收，既有发行限制保持。以下保留 `.121` 公开发行记录。
+该候选尚待精确提交的 Linux、Windows、macOS CLI CI、Strict Sandbox 与 GitHub Actions OIDC 发布。当前公开 CLI 为 **0.166.123**。`.124` 验证公开后执行 `npm i -g chainlesschain@0.166.125 --registry https://registry.npmjs.org`，然后重启 IDE 聊天宿主，并运行 `cc --version` 和 `cc doctor`。现有公开 IDE 为 Open VSX **0.37.161** / JetBrains **0.4.178**，推荐标记仍为 CLI `.121`；本次只发布 CLI，子依赖版本保持不变。本轮未新增真实模型任务验收，既有发行限制保持。以下保留 `.121` 公开发行记录。
 
 ## 概述
 

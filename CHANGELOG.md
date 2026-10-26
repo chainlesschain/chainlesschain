@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed - cc CLI 0.166.124: source expressions in completed tool history (candidate, 2026-10-26)
+### Fixed - cc CLI 0.166.125: source expressions in completed tool history (candidate, 2026-10-26)
 
 - Recognize Python list/object unpacking, JavaScript spread and bounded unary/binary expressions in code fields so completed tool history can reach the next model turn.
 - Keep malformed/duplicate JSON and projection budgets enforced, retain conservative sensitive-source guards, and preserve v7 evidence verification with versioned v8 rules.

@@ -2,13 +2,15 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
-## CLI 0.166.124 (candidate, 2026-10-26)
+## CLI 0.166.125 (candidate, 2026-10-26)
 
 Fixes Agent Run termination after successful Python `run_code` calls containing list unpacking such as `["git", *args]`. The next model request can now project that completed tool history. The versioned v8 projection also recognizes bounded JavaScript spread, object unpacking and unary/binary expressions in known code fields and supported code fences. Strict tool argument JSON, nested duplicate/malformed JSON checks, redaction and shared projection budgets remain enforced; v7 evidence remains verifiable.
 
 New source expressions with preceding sensitive names or opaque template context remain rejected conservatively. This is a targeted compatibility fix, not a general Python/JavaScript parser. No new live model-task acceptance is claimed. Release limits remain **32/45**, **NOT_PAID_READY / NOT_ADMITTED / HOLD**.
 
-Publication is pending the exact-commit Linux, Windows and macOS **CLI CI** and **CLI Strict Sandbox** gates and GitHub Actions OIDC. Current public CLI is **0.166.123**. After `.124` is verified public, install with `npm i -g chainlesschain@0.166.124 --registry https://registry.npmjs.org` and restart the IDE chat host. Existing public IDE pairing remains Open VSX **0.37.161** / JetBrains **0.4.178**, recommending CLI `.121`; this candidate only updates the CLI. Child dependency pins remain unchanged, including Session Core **0.3.24**.
+Candidate `.124` was stopped before publication because the committed offline changelog did not match the canonical release notes. Its immutable source tag is retained. `.125` includes the regenerated changelog and must pass fresh exact-source release gates.
+
+Publication is pending the exact-commit Linux, Windows and macOS **CLI CI** and **CLI Strict Sandbox** gates and GitHub Actions OIDC. Current public CLI is **0.166.123**. After `.124` is verified public, install with `npm i -g chainlesschain@0.166.125 --registry https://registry.npmjs.org` and restart the IDE chat host. Existing public IDE pairing remains Open VSX **0.37.161** / JetBrains **0.4.178**, recommending CLI `.121`; this candidate only updates the CLI. Child dependency pins remain unchanged, including Session Core **0.3.24**.
 
 ## CLI 0.166.123 (public, 2026-10-26)
 
