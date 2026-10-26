@@ -14,6 +14,7 @@ vi.mock("node:crypto", async (importOriginal) => ({
 import { loadEvolutionDeploymentCommandDependencies } from "../../src/lib/evolution/evolution-deployment-loader.js";
 import { captureAgentEvolutionRuntimeComposition } from "../../src/lib/evolution/agent-evolution-runtime-composition-brand.js";
 import { prepareGovernedModelTurn } from "../../src/lib/evolution/governed-model-turn.js";
+import { setConfigValue } from "../../src/lib/config-manager.js";
 
 const temporaryRoots = [];
 beforeEach(() => {
@@ -36,6 +37,7 @@ describe("signed local UI Evolution IDs", () => {
       cwd: process.cwd(),
       root,
     };
+    setConfigValue("evolution.enabled", true, config);
     const dependencies = await loadEvolutionDeploymentCommandDependencies(
       "agent",
       config,

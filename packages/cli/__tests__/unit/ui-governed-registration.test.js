@@ -17,6 +17,10 @@ vi.mock("../../src/lib/logger.js", () => ({
   logger: { error: vi.fn(), warn: vi.fn() },
 }));
 import { registerUiCommand } from "../../src/commands/ui.js";
+import {
+  prepareConfiguredUiModelTurn,
+  loadConfiguredUiEvolutionFactory,
+} from "../../src/lib/evolution/optional-ui-model-turn.js";
 
 afterEach(() => vi.resetAllMocks());
 
@@ -36,12 +40,16 @@ describe("governed UI registration", () => {
       );
       await program.parseAsync(["node", "cc", "ui", "--no-open"]);
       expect(runtime.create).toHaveBeenCalledWith({
-        deps: { evolutionCompositionFactory: factory },
+        deps: {
+          evolutionCompositionFactory: factory,
+          prepareUiModelTurn: prepareConfiguredUiModelTurn,
+          resolveEvolutionCompositionFactory: loadConfiguredUiEvolutionFactory,
+        },
       });
       expect(runtime.load).toHaveBeenCalledTimes(configured ? 0 : 1);
       if (!configured) {
         expect(runtime.load).toHaveBeenCalledWith("ui", {
-          initializeDefaultLocalUi: true,
+          initializeDefaultLocalUi: false,
         });
       }
       expect(runtime.ui).toHaveBeenCalledWith(
