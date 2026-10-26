@@ -1,10 +1,10 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
-## CLI 0.166.127 自进化开关发布准备（2026-10-27）
+## CLI 0.166.127 自进化开关（已公开，2026-10-27）
 
 本次将新安装与旧自动生成本地部署的自进化默认关闭，支持通过 `config.json` 中的 `evolution.enabled`、CLI、cc ui、VS Code 和 JetBrains 重新开启或关闭。普通 Agent 与聊天可在关闭后继续使用；已有手动部署的主动选择保留。见[完整配置说明](docs/cli/SELF_EVOLUTION_CONFIGURATION.md)。
 
-发布目标为 `chainlesschain@0.166.127`，须准确提交通过 Linux、Windows、macOS CLI CI 和 Strict Sandbox 后，经 GitHub Actions OIDC 发布并核验公开包。当前公开 CLI 为 **0.166.126**：`npm i -g chainlesschain@0.166.126 --registry https://registry.npmjs.org`。子包版本不变；新 IDE 候选为 Open VSX **0.37.164** / JetBrains **0.4.180**，均推荐 `.127`，须在 CLI 公开核验后发布。未新增模型任务验收，累计 **32/45**、**13** 项未完成及 **NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。
+CLI **0.166.127** 已通过 [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/40399252204) 发布，准确源码为 `0377050191b61894ccfa9566394560c3d1425fbe`。Linux、Windows、macOS CLI CI 与 Strict Sandbox 均已通过，公开 npm 归档与固定 CI 制品逐字节一致，签名来源和十个直接子依赖已核验。[发布证据](docs/research/cli/evidence/release127-public/publication.json)。安装：`npm i -g chainlesschain@0.166.127 --registry https://registry.npmjs.org`。子包版本不变。配套 Open VSX **0.37.164** / JetBrains **0.4.180** 正在发布，均推荐 `.127`；移动端与 PC 安装包随后更新。未新增模型任务验收，累计 **32/45**、**13** 项未完成及 **NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。
 
 ## CLI 0.166.126（已公开，2026-10-26）
 

@@ -1,0 +1,63 @@
+{
+  "schema": "chainlesschain.release127-publication/v1",
+  "observedAt": "2026-10-26T21:07:01.027Z",
+  "status": "CLI_PUBLIC_IDE_PENDING",
+  "repository": "chainlesschain/chainlesschain",
+  "channels": {
+    "cli": {
+      "version": "0.166.127",
+      "status": "public",
+      "sourceSha": "0377050191b61894ccfa9566394560c3d1425fbe",
+      "runId": 40399252204,
+      "attempt": 1,
+      "tag": "v-npm-0-166-127",
+      "receipt": "chainlesschain-release.json",
+      "provenance": "chainlesschain-npm-provenance.json",
+      "archiveBytes": 9550973,
+      "sha256": "1b71532d108ff199dc62e372fd574ab7e9f503606c14bdb63f72746d7f7bacf5",
+      "sha512": "4f535a9e0d81629965ba674c1d20573bbe10c240ecd7be4a9411da8c79030e6c77e78c93edf869b35b7a823fa62c370fae0dfd8e2a2eb6ca11cdb0024c8c25d8",
+      "publicArchivesVerified": true,
+      "localArchiveMatchesImmutableCiArtifact": true,
+      "candidateInstallWithPublicChildDependenciesVerified": true
+    },
+    "openVsx": {
+      "version": "0.37.164",
+      "status": "publishing",
+      "runId": 40401099379,
+      "recommendedCliVersion": "0.166.127"
+    },
+    "jetbrains": {
+      "version": "0.4.180",
+      "status": "publishing",
+      "runId": 40401100043,
+      "recommendedCliVersion": "0.166.127"
+    }
+  },
+  "childPackages": {
+    "versionsChanged": false,
+    "directCliRegistryLockPins": 10,
+    "sessionCore": "0.3.24",
+    "receipt": "cli-public-child-install.json"
+  },
+  "gates": {
+    "receipt": "gates.json",
+    "cliCiRunId": 40385426230,
+    "strictSandboxRunId": 40385426186,
+    "platforms": ["linux", "windows", "macos"]
+  },
+  "clients": {
+    "productVersion": "v5.0.3.142",
+    "status": "pending",
+    "cliVersion": "0.166.127",
+    "androidBundleRunId": 40401180829
+  },
+  "acceptance": {
+    "accepted": 32,
+    "total": 45,
+    "unfinished": 13,
+    "newLiveModelTaskAcceptance": false,
+    "paidReadiness": "NOT_PAID_READY",
+    "nativeAdmission": "NOT_ADMITTED",
+    "automaticPromotion": "HOLD"
+  }
+}
