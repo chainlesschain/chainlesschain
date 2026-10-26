@@ -1257,8 +1257,11 @@ jobs:
           NODE
           npm ci --prefix "$RUNNER_TEMP/product-release-verifier" --ignore-scripts --no-audit --no-fund
 
-      - name: Validate product asset failure gates
-        run: NODE_PATH="$RUNNER_TEMP/product-release-verifier/node_modules" node --test scripts/__tests__/verify-product-release-assets.test.cjs
+      - name: Validate product source and asset failure gates
+        run: >-
+          NODE_PATH="$RUNNER_TEMP/product-release-verifier/node_modules" node --test
+          scripts/__tests__/product-release-checkout.test.mjs
+          scripts/__tests__/verify-product-release-assets.test.cjs
 
       - name: Get version
         id: version
@@ -1590,6 +1593,18 @@ jobs:
           CC_RELEASE_GATE_OUTPUT=cli-release-gate.json \
           node packages/cli/scripts/verify-release-gates.mjs
           echo "Authorized CLI release verified: chainlesschain@${VERSION} (${TAG_SHA})"
+
+      - name: Restore exact product source before IDE verification
+        shell: bash
+        run: |
+          node <<'NODE'
+          const assert = require('node:assert/strict');
+          const { execFileSync } = require('node:child_process');
+          const sourceSha = process.env.GITHUB_SHA;
+          assert.match(sourceSha || '', /^[a-f0-9]{40}$/);
+          execFileSync('git', ['checkout', '--detach', sourceSha], { stdio: 'inherit' });
+          assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), sourceSha);
+          NODE
 
       - name: Require public paired IDE releases before mobile and PC builds
         shell: bash
