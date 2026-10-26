@@ -16,6 +16,7 @@
 
 ## 运行时、专题与参考
 
+- [CLI 与 IDE 自进化开关配置（尚未发布）](./SELF_EVOLUTION_CONFIGURATION.md)
 - [Auto mode Safety Classifier Evaluation](./AUTO_MODE_SAFETY_EVAL.md)
 - [CLI — Phase 8: Blockchain & Enterprise](./blockchain-enterprise.md)
 - [CLI 因果可观测性](./CAUSAL_OBSERVABILITY.md)

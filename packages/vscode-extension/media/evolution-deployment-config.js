@@ -9,7 +9,7 @@
     for (const button of document.querySelectorAll("button"))
       button.disabled = value;
     if (!value) {
-      el("toggle").disabled = !current?.descriptorPath;
+      el("toggle").disabled = !current;
       el("replace-test").disabled = current?.deploymentMode !== "test";
     }
   }
@@ -69,8 +69,14 @@
       el("verified").textContent = current.verified ? "已通过" : "未通过";
       el("profile").textContent = current.profilePath || "—";
       el("commands").textContent = (current.commands || []).join(", ") || "—";
-      el("toggle").textContent = current.profileEnabled ? "停用" : "启用";
-      el("toggle").disabled = !current.descriptorPath;
+      el("toggle").textContent = current.profileEnabled
+        ? "关闭自进化"
+        : "开启自进化";
+      el("toggle").setAttribute(
+        "aria-pressed",
+        String(current.profileEnabled === true),
+      );
+      el("toggle").disabled = false;
       el("replace-test").disabled = current.deploymentMode !== "test";
       for (const command of ["ask", "agent"]) {
         const row = data.readinessRows?.find(

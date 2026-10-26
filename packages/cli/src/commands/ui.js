@@ -1,6 +1,10 @@
 import { logger } from "../lib/logger.js";
 import { createAgentRuntimeFactory } from "../runtime/runtime-factory.js";
 import { readEvolutionCompositionFactory } from "../lib/evolution/governed-model-turn.js";
+import {
+  prepareConfiguredUiModelTurn,
+  loadConfiguredUiEvolutionFactory,
+} from "../lib/evolution/optional-ui-model-turn.js";
 import { loadEvolutionDeploymentCommandDependencies } from "../lib/evolution/evolution-deployment-loader.js";
 import { getEvolutionDeploymentStatus } from "../lib/evolution/evolution-deployment-config.js";
 
@@ -36,7 +40,7 @@ export function registerUiCommand(program, dependencies = {}) {
           try {
             deploymentDependencies =
               await loadEvolutionDeploymentCommandDependencies("ui", {
-                initializeDefaultLocalUi: true,
+                initializeDefaultLocalUi: false,
               });
           } catch (error) {
             localTrustSetupError = error;
@@ -44,7 +48,10 @@ export function registerUiCommand(program, dependencies = {}) {
           activeEvolutionCompositionFactory = readEvolutionCompositionFactory(
             deploymentDependencies || {},
           );
-          if (activeEvolutionCompositionFactory === null) {
+          if (
+            activeEvolutionCompositionFactory === null &&
+            localTrustSetupError
+          ) {
             const status = await getEvolutionDeploymentStatus();
             const readiness = status.readiness.ui;
             logger.warn(
@@ -71,13 +78,19 @@ export function registerUiCommand(program, dependencies = {}) {
           10,
         );
         const runtime = createAgentRuntimeFactory({
-          deps:
-            activeEvolutionCompositionFactory === null
+          deps: {
+            ...(activeEvolutionCompositionFactory === null
               ? {}
               : {
                   evolutionCompositionFactory:
                     activeEvolutionCompositionFactory,
-                },
+                }),
+            // Re-read the shared setting at each new Quick Ask request so the
+            // GUI and config-file switches also work in an already running UI.
+            prepareUiModelTurn: prepareConfiguredUiModelTurn,
+            resolveEvolutionCompositionFactory:
+              loadConfiguredUiEvolutionFactory,
+          },
         }).createUiRuntime({
           port,
           wsPort: parseInt(opts.wsPort, 10),

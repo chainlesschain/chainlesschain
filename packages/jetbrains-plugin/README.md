@@ -1,5 +1,11 @@
 # ChainlessChain IDE Bridge (JetBrains)
 
+## Self-evolution switch (unreleased)
+
+完整中文配置与排查步骤见[CLI 与 IDE 自进化开关配置](../../docs/cli/SELF_EVOLUTION_CONFIGURATION.md)。
+
+Open **Skill 自进化配置** through ChainlessChain settings/actions to enable or disable self-evolution. The switch shares the CLI user `config.json` field `evolution.enabled`, defaults to off, and can initialize the local signed runtime on explicit enable. Disabling preserves deployment data and ordinary Agent functionality. Stop and restart a running Agent session after changing it. These controls require the corresponding updated CLI and plugin; publication is pending.
+
 Phase 3 of the IDE bridge (`docs/design/modules/98_IDE桥接对标方案.md`). The
 JetBrains counterpart of the [VS Code extension](../vscode-extension/): it lets
 the ChainlessChain **`cc` agent CLI** read editor context and propose native

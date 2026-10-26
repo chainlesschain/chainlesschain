@@ -278,8 +278,8 @@ export function getBinDir() {
   return join(getHomeDir(), "bin");
 }
 
-export function getConfigPath() {
-  return join(getHomeDir(), "config.json");
+export function getConfigPath(options = {}) {
+  return join(resolveConfigDataRoot(options).path, "config.json");
 }
 
 export function getStatePath() {

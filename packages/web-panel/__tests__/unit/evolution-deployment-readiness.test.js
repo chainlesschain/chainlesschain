@@ -79,6 +79,7 @@ describe("deployment admission display", () => {
       .mockResolvedValueOnce({ result: { verified: true } });
     const tags = [
       "a-button",
+      "a-switch",
       "a-alert",
       "a-row",
       "a-col",
@@ -121,6 +122,68 @@ describe("deployment admission display", () => {
         "evolution.deployment.status",
         "evolution.deployment.status",
       ]);
+    } finally {
+      wrapper.unmount();
+    }
+  });
+
+  it("can enable a fresh installation and turn it back off through the shared setting", async () => {
+    sendRaw.mockReset();
+    sendRaw
+      .mockResolvedValueOnce({ result: { profileEnabled: false } })
+      .mockResolvedValueOnce({
+        result: { profileEnabled: true, effectiveEnabled: true },
+      })
+      .mockResolvedValueOnce({
+        result: { profileEnabled: false, effectiveEnabled: false },
+      });
+    const wrapper = mount(EvolutionSettings, {
+      shallow: true,
+      global: {
+        renderStubDefaultSlot: true,
+        stubs: {
+          ...Object.fromEntries(
+            [
+              "a-button",
+              "a-alert",
+              "a-row",
+              "a-col",
+              "a-form",
+              "a-form-item",
+              "a-input",
+              "a-space",
+              "a-divider",
+              "a-descriptions",
+              "a-descriptions-item",
+              "a-tag",
+            ].map((tag) => [tag, true]),
+          ),
+          "a-card": { template: "<div><slot /></div>" },
+          "a-switch": {
+            props: ["checked", "disabled"],
+            emits: ["change"],
+            template:
+              '<button data-test="evolution-toggle" :disabled="disabled" @click="$emit(\'change\', !checked)">{{ checked }}</button>',
+          },
+        },
+      },
+    });
+    try {
+      await flushPromises();
+      const toggle = wrapper.get('[data-test="evolution-toggle"]');
+      expect(toggle.attributes("disabled")).toBeUndefined();
+      await toggle.trigger("click");
+      await flushPromises();
+      expect(sendRaw.mock.calls[1][0]).toEqual({
+        type: "evolution.deployment.set-enabled",
+        enabled: true,
+      });
+      await toggle.trigger("click");
+      await flushPromises();
+      expect(sendRaw.mock.calls[2][0]).toEqual({
+        type: "evolution.deployment.set-enabled",
+        enabled: false,
+      });
     } finally {
       wrapper.unmount();
     }

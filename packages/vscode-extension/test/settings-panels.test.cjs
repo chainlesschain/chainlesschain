@@ -73,6 +73,9 @@ test("deployment webview renders literal diagnostics and clears readiness on an 
         textContent: "",
         value: "",
         disabled: false,
+        setAttribute(name, value) {
+          this[name] = value;
+        },
         set innerHTML(_value) {
           throw new Error("diagnostics must render as text");
         },
@@ -124,6 +127,16 @@ test("deployment webview renders literal diagnostics and clears readiness on an 
     messages.map((message) => message.type),
     ["ready"],
   );
+  // A fresh installation has no descriptor yet, but the explicit opt-in must
+  // remain available. The host owns the current enabled state.
+  receive({ data: { type: "status", status: { profileEnabled: false } } });
+  assert.equal(element("toggle").disabled, false);
+  assert.equal(element("toggle").textContent, "开启自进化");
+  element("toggle").onclick();
+  assert.equal(messages.at(-1).type, "toggle");
+  receive({ data: { type: "status", status: { profileEnabled: true } } });
+  assert.equal(element("toggle").textContent, "关闭自进化");
+  assert.equal(element("toggle")["aria-pressed"], "true");
 });
 
 function host(t) {

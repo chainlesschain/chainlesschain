@@ -143,23 +143,21 @@ export async function queryLLM(
   options = {},
   evolutionIngress = null,
 ) {
-  if (evolutionIngress === null) {
-    const error = new Error(
-      "Model egress requires an authenticated evolution ingress",
-    );
-    error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
-    throw error;
-  }
   const provider = options.provider || "ollama";
   const model =
     options.model || BUILT_IN_PROVIDERS[provider]?.models?.[0] || "qwen2:7b";
   const messages = [{ role: "user", content: question }];
-  const providerMessages = (
-    await captureAgentEvolutionIngress(evolutionIngress).prepareModelRequest({
-      messages,
-      tools: [],
-    })
-  ).messages;
+  const providerMessages =
+    evolutionIngress === null
+      ? messages
+      : (
+          await captureAgentEvolutionIngress(
+            evolutionIngress,
+          ).prepareModelRequest({
+            messages,
+            tools: [],
+          })
+        ).messages;
 
   // Claude-Code 2.1.183 parity: warn (stderr only, so --json/stdout stays
   // clean) if the requested model is a provider-retired snapshot. Suppressed
@@ -265,7 +263,9 @@ export async function queryLLM(
       },
     );
     if (!response.ok) {
-      throw new Error(`gemini error: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `gemini error: ${response.status} ${response.statusText}`,
+      );
     }
     const data = await response.json();
     return geminiResponseText(data);
@@ -274,15 +274,15 @@ export async function queryLLM(
   const response = await providerFetch(
     `${openAICompatibleBaseUrl(provider, apiBase)}/chat/completions`,
     {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: model || providerDef.models[0],
-      messages: providerMessages,
-    }),
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: model || providerDef.models[0],
+        messages: providerMessages,
+      }),
     },
   );
 

@@ -17,6 +17,7 @@ import {
   classifyFollowupIntent,
 } from "../../lib/chat-intent-service.js";
 import { resolveLlmCreds } from "./llm-creds.js";
+import { resolveServerEvolutionFactory } from "../../lib/evolution/optional-ui-model-turn.js";
 
 /**
  * Look up LLM creds for the intent flow.
@@ -60,7 +61,8 @@ export async function handleChatIntentUnderstand(server, id, ws, message) {
       contextMode: message.contextMode || "global",
       history,
       llmOptions,
-      evolutionCompositionFactory: server.evolutionCompositionFactory ?? null,
+      evolutionCompositionFactory: await resolveServerEvolutionFactory(server),
+      prepareModelTurn: server.prepareUiModelTurn,
     });
     server._send(ws, {
       id,
@@ -118,7 +120,8 @@ export async function handleChatIntentUnderstandStream(
       contextMode: message.contextMode || "global",
       history,
       llmOptions,
-      evolutionCompositionFactory: server.evolutionCompositionFactory ?? null,
+      evolutionCompositionFactory: await resolveServerEvolutionFactory(server),
+      prepareModelTurn: server.prepareUiModelTurn,
     })) {
       if (event.type === "token") {
         server._send(ws, {
@@ -171,7 +174,8 @@ export async function handleChatIntentClassifyFollowup(
       input,
       context: message.context || {},
       llmOptions,
-      evolutionCompositionFactory: server.evolutionCompositionFactory ?? null,
+      evolutionCompositionFactory: await resolveServerEvolutionFactory(server),
+      prepareModelTurn: server.prepareUiModelTurn,
     });
     server._send(ws, {
       id,

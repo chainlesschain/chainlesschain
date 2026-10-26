@@ -42,11 +42,7 @@ export async function resolveChatCommandEvolutionComposition(
   { agent = false } = {},
 ) {
   if (evolutionCompositionFactory === null) {
-    const error = new Error(
-      "Chat model egress requires an authenticated evolution composition factory",
-    );
-    error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
-    throw error;
+    return null;
   }
   const mode = agent ? "chat-agent" : "chat";
   const runId = `${mode}-${randomUUID()}`;

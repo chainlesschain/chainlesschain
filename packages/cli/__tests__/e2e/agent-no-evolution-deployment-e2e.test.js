@@ -210,7 +210,12 @@ describe("real Agent duplex startup without an Evolution deployment", () => {
         90_000,
       );
 
-      child.stdin.write(JSON.stringify({ type: "user", text: "hello" }) + "\n");
+      child.stdin.write(
+        JSON.stringify({
+          type: "user",
+          text: 'hello, explain this unfinished example: {"partial":',
+        }) + "\n",
+      );
       const result = await waitForEvent(
         { events, childState, stderr: () => stderr },
         (event) => event.type === "result",
@@ -223,6 +228,11 @@ describe("real Agent duplex startup without an Evolution deployment", () => {
         result: "hello from loopback",
       });
       expect(providerCalls).toBe(1);
+      expect(
+        fs.existsSync(
+          path.join(configHome, "evolution", "deployment-profile.json"),
+        ),
+      ).toBe(false);
 
       child.stdin.end();
       const close = await new Promise((resolve) => {

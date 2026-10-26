@@ -180,7 +180,14 @@ export async function handleLlmChat(server, id, ws, message) {
   ws?.once?.("close", disconnect);
   try {
     const turn = await waitForChatPhase(
-      prepareGovernedModelTurn(server.evolutionCompositionFactory ?? null, {
+      (
+        server.prepareUiModelTurn ||
+        ((context) =>
+          prepareGovernedModelTurn(
+            server.evolutionCompositionFactory ?? null,
+            context,
+          ))
+      )({
         mode: "ws-llm-chat",
         messages: message.messages,
         signal: controller.signal,
@@ -189,7 +196,7 @@ export async function handleLlmChat(server, id, ws, message) {
       "initialization",
     );
     const streamOptions = {
-      requireCompletion: turn.governed,
+      requireCompletion: true,
       signal: controller.signal,
     };
     // Tell the browser the configured deadline even when waiting hints are

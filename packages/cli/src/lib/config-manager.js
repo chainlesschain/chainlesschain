@@ -30,6 +30,16 @@ import {
 // `_deps.warn` to assert it fired.
 const _warnedConfigPaths = new Set();
 const _loadedSecretRefs = new Map();
+const _implicitEvolutionDefaults = new WeakSet();
+
+function trackImplicitEvolutionDefault(config, raw = {}) {
+  if (
+    raw.evolution?.enabled === undefined &&
+    config.evolution?.enabled === false
+  )
+    _implicitEvolutionDefaults.add(config.evolution);
+  return config;
+}
 export const _deps = {
   createSecretStore: () => createSecretStore(),
   warn: (msg) => {
@@ -72,8 +82,11 @@ function assertNotSymbolicLink(target, label = "configuration path") {
   return stat;
 }
 
-function readConfigDocument({ failIfUnavailable = false } = {}) {
-  const configPath = getConfigPath();
+function readConfigDocument({
+  failIfUnavailable = false,
+  ...pathOptions
+} = {}) {
+  const configPath = getConfigPath(pathOptions);
   if (!existsSync(configPath)) return {};
   try {
     assertNotSymbolicLink(configPath, "config.json");
@@ -182,9 +195,9 @@ function resolveSecretReferences(value, prefix = "", state = {}) {
   return value;
 }
 
-function restoreSecretReferences(config) {
+function restoreSecretReferences(config, configPath = getConfigPath()) {
   const out = structuredClone(config);
-  const prefix = `${getConfigPath()}\0`;
+  const prefix = `${configPath}\0`;
   for (const [cacheKey, saved] of _loadedSecretRefs) {
     if (!cacheKey.startsWith(prefix)) continue;
     const key = cacheKey.slice(prefix.length);
@@ -199,17 +212,21 @@ function restoreSecretReferences(config) {
 export function loadConfig({
   failIfUnavailable = false,
   resolveSecrets = true,
+  ...pathOptions
 } = {}) {
-  const configPath = getConfigPath();
+  const configPath = getConfigPath(pathOptions);
   if (!existsSync(configPath)) {
-    return { ...structuredClone(DEFAULT_CONFIG) };
+    return trackImplicitEvolutionDefault(structuredClone(DEFAULT_CONFIG));
   }
   try {
-    const parsed = readConfigDocument({ failIfUnavailable });
+    const parsed = readConfigDocument({ ...pathOptions, failIfUnavailable });
     const effective = deepMerge(structuredClone(DEFAULT_CONFIG), parsed);
-    return resolveSecrets
-      ? resolveSecretReferences(effective, "", { configPath })
-      : effective;
+    return trackImplicitEvolutionDefault(
+      resolveSecrets
+        ? resolveSecretReferences(effective, "", { configPath })
+        : effective,
+      parsed,
+    );
   } catch (err) {
     if (failIfUnavailable) {
       const error = new Error(
@@ -255,12 +272,12 @@ export function loadConfig({
           `Fix the JSON to restore them.${backupNote}\n`,
       );
     }
-    return { ...structuredClone(DEFAULT_CONFIG) };
+    return trackImplicitEvolutionDefault(structuredClone(DEFAULT_CONFIG));
   }
 }
 
 export function saveConfig(config, options = {}) {
-  const configPath = getConfigPath();
+  const configPath = getConfigPath(options);
   ensurePrivateDirectory(dirname(configPath), {
     applyWindowsAcl: true,
     failIfUnavailable: true,
@@ -276,7 +293,18 @@ export function saveConfig(config, options = {}) {
     const persisted =
       options.preserveSecretRefs === false
         ? structuredClone(config)
-        : restoreSecretReferences(config);
+        : restoreSecretReferences(config, configPath);
+    // An inherited default must not become an explicit opt-out when unrelated
+    // settings are saved. Track the child object so top-level spreads preserve
+    // this distinction too; explicit writes via setConfigValue clear it.
+    if (
+      _implicitEvolutionDefaults.has(config.evolution) &&
+      persisted.evolution?.enabled === false
+    ) {
+      delete persisted.evolution.enabled;
+      if (Object.keys(persisted.evolution).length === 0)
+        delete persisted.evolution;
+    }
     assertSafeConfigObject(persisted);
     writeFileSync(tmp, JSON.stringify(persisted, null, 2) + "\n", {
       encoding: "utf-8",
@@ -390,7 +418,7 @@ export function setConfigValue(key, value, options = {}) {
   // `cc config set` invocations would otherwise each load, mutate, and write
   // back, silently losing one update. Configuration can carry credentials and
   // permission policy, so bounded lock failure must never write unlocked.
-  const configPath = getConfigPath();
+  const configPath = getConfigPath(options);
   ensurePrivateDirectory(dirname(configPath), {
     applyWindowsAcl: true,
     failIfUnavailable: true,
@@ -398,9 +426,14 @@ export function setConfigValue(key, value, options = {}) {
   return withFileLock(
     configPath,
     () => {
-      const config = loadConfig({ failIfUnavailable: true });
+      const config = loadConfig({
+        ...options,
+        failIfUnavailable: true,
+      });
       setNestedValue(config, key, parsedValue);
-      saveConfig(config);
+      if (key === "evolution.enabled")
+        _implicitEvolutionDefaults.delete(config.evolution);
+      saveConfig(config, options);
       return config;
     },
     { failIfUnavailable: true },

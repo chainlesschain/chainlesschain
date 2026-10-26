@@ -40,7 +40,13 @@ async function waitForIntentOperation(operation, signal) {
   }
 }
 
-async function* intentModelStream(messages, options, factory, mode) {
+async function* intentModelStream(
+  messages,
+  options,
+  factory,
+  mode,
+  prepareModelTurn,
+) {
   const controller = new AbortController();
   const timeoutMs = resolveIntentTimeout(options);
   const timer =
@@ -57,7 +63,10 @@ async function* intentModelStream(messages, options, factory, mode) {
   let completed = false;
   try {
     const turn = await waitForIntentOperation(
-      prepareGovernedModelTurn(factory, {
+      (
+        prepareModelTurn ||
+        ((context) => prepareGovernedModelTurn(factory, context))
+      )({
         mode,
         messages,
         signal: controller.signal,
@@ -87,13 +96,20 @@ async function* intentModelStream(messages, options, factory, mode) {
   }
 }
 
-async function intentModelText(messages, options, factory, mode) {
+async function intentModelText(
+  messages,
+  options,
+  factory,
+  mode,
+  prepareModelTurn,
+) {
   let content = "";
   for await (const event of intentModelStream(
     messages,
     options,
     factory,
     mode,
+    prepareModelTurn,
   )) {
     if (event.type === "response-complete") content = event.content;
   }
@@ -213,6 +229,7 @@ export async function understandIntent({
   history,
   llmOptions,
   evolutionCompositionFactory = null,
+  prepareModelTurn,
 }) {
   if (!userInput || !userInput.trim()) {
     throw new Error("userInput required");
@@ -249,6 +266,7 @@ export async function understandIntent({
       },
       evolutionCompositionFactory,
       "intent-understand",
+      prepareModelTurn,
     );
 
     const jsonText = extractJson(fullContent);
@@ -297,6 +315,7 @@ export async function* understandIntentStream({
   history,
   llmOptions,
   evolutionCompositionFactory = null,
+  prepareModelTurn,
 }) {
   if (!userInput || !userInput.trim()) {
     throw new Error("userInput required");
@@ -321,7 +340,7 @@ export async function* understandIntentStream({
   let buffer = "";
   try {
     // Every model-backed intent stream uses an abortable per-call deadline and
-    // authenticated composition; the rule-only path above stays local.
+    // host-selected Evolution policy; the rule-only path above stays local.
     for await (const event of intentModelStream(
       [
         { role: "system", content: systemPrompt },
@@ -330,6 +349,7 @@ export async function* understandIntentStream({
       { ...llmOptions, temperature: 0.3, maxTokens: 500 },
       evolutionCompositionFactory,
       "intent-understand-stream",
+      prepareModelTurn,
     )) {
       if (event.type === "response-token") {
         buffer += event.token;
@@ -575,6 +595,7 @@ async function llmBasedClassify(
   context,
   llmOptions,
   evolutionCompositionFactory,
+  prepareModelTurn,
 ) {
   const { systemPrompt, userPrompt } = buildFollowupPrompts(userInput, context);
   const fullContent = await intentModelText(
@@ -589,6 +610,7 @@ async function llmBasedClassify(
     },
     evolutionCompositionFactory,
     "intent-classify",
+    prepareModelTurn,
   );
   const jsonText = extractJson(fullContent);
   if (!jsonText) throw new Error("LLM response missing JSON");
@@ -618,6 +640,7 @@ export async function classifyFollowupIntent({
   context = {},
   llmOptions,
   evolutionCompositionFactory = null,
+  prepareModelTurn,
 }) {
   const startTime = Date.now();
   const ruleResult = ruleBasedClassify(input);
@@ -644,6 +667,7 @@ export async function classifyFollowupIntent({
       context,
       llmOptions,
       evolutionCompositionFactory,
+      prepareModelTurn,
     );
     return {
       ...llmResult,

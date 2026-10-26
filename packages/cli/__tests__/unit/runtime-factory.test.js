@@ -11,8 +11,9 @@ describe("runtime-factory", () => {
   });
 
   it("creates agent runtime with config-backed defaults", async () => {
-    const { createAgentRuntimeFactory } =
-      await import("../../src/runtime/runtime-factory.js");
+    const { createAgentRuntimeFactory } = await import(
+      "../../src/runtime/runtime-factory.js"
+    );
 
     const factory = createAgentRuntimeFactory({
       config: {
@@ -37,8 +38,9 @@ describe("runtime-factory", () => {
   });
 
   it("prefers explicit overrides over config values", async () => {
-    const { createAgentRuntimeFactory } =
-      await import("../../src/runtime/runtime-factory.js");
+    const { createAgentRuntimeFactory } = await import(
+      "../../src/runtime/runtime-factory.js"
+    );
 
     const factory = createAgentRuntimeFactory({
       config: {
@@ -68,8 +70,9 @@ describe("runtime-factory", () => {
   });
 
   it("creates server runtime with normalized server policy", async () => {
-    const { createAgentRuntimeFactory } =
-      await import("../../src/runtime/runtime-factory.js");
+    const { createAgentRuntimeFactory } = await import(
+      "../../src/runtime/runtime-factory.js"
+    );
 
     const runtime = createAgentRuntimeFactory({
       config: {},
@@ -96,8 +99,9 @@ describe("runtime-factory", () => {
   });
 
   it("creates ui runtime with normalized ui policy", async () => {
-    const { createAgentRuntimeFactory } =
-      await import("../../src/runtime/runtime-factory.js");
+    const { createAgentRuntimeFactory } = await import(
+      "../../src/runtime/runtime-factory.js"
+    );
 
     const runtime = createAgentRuntimeFactory({ config: {} }).createUiRuntime({
       port: 18810,
@@ -150,6 +154,26 @@ describe("runtime-factory", () => {
       provider: "p2",
       sessionId: "sess-2",
     });
+  });
+
+  it("keeps ordinary chat active until the REPL closes", async () => {
+    const { AgentRuntime } = await import("../../src/runtime/agent-runtime.js");
+    let close;
+    const finished = new Promise((resolve) => {
+      close = resolve;
+    });
+    const runtime = new AgentRuntime({
+      kind: "chat",
+      policy: {},
+      deps: { startChatRepl: async () => ({ finished }) },
+    });
+    const stopped = vi.fn();
+    const running = runtime.startChatSession().then(stopped);
+    await Promise.resolve();
+    expect(stopped).not.toHaveBeenCalled();
+    close();
+    await running;
+    expect(stopped).toHaveBeenCalledOnce();
   });
 
   it("passes only a branded policy memory writer into the agent REPL", async () => {

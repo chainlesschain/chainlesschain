@@ -99,20 +99,17 @@ afterEach(() => {
 });
 
 describe("Agent deployment legacy boundary", () => {
-  it("lazily provisions authenticated Agent when no deployment profile exists", async () => {
+  it("leaves ordinary Agent use off Evolution when no deployment profile exists", async () => {
     const fixture = temporaryHome();
     await expect(
       loadEvolutionDeploymentCommandDependencies("agent", {
         env: fixture.env,
       }),
-    ).resolves.toEqual({
-      evolutionCompositionFactory: expect.any(Function),
-      skillRuntimeAdmissionRequired: true,
-    });
+    ).resolves.toBeNull();
     expect(fs.existsSync(fixture.profilePath)).toBe(false);
   });
 
-  it("denies Agent for an invalid or disabled saved profile without blocking recovery commands", async () => {
+  it("rejects invalid enabled deployments but allows ordinary Agent use when disabled", async () => {
     const invalid = temporaryHome();
     writeProfile(invalid.profilePath, { schema: "invalid" });
     await expectDenied(
@@ -129,12 +126,11 @@ describe("Agent deployment legacy boundary", () => {
 
     const disabled = temporaryHome();
     writeProfile(disabled.profilePath, legacyProfile(disabled.root, false));
-    await expectDenied(
-      await loadEvolutionDeploymentCommandDependencies("agent", {
+    await expect(
+      loadEvolutionDeploymentCommandDependencies("agent", {
         env: disabled.env,
       }),
-      "EVOLUTION_DEPLOYMENT_DISABLED",
-    );
+    ).resolves.toBeNull();
     await expect(
       loadEvolutionDeploymentCommandDependencies("evolution", {
         env: disabled.env,
