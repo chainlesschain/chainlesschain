@@ -88,7 +88,7 @@
   },
   "clients": {
     "productVersion": "v5.0.3.142",
-    "status": "pending",
+    "status": "building",
     "cliVersion": "0.166.127",
     "androidBundleRunId": 40401180829,
     "androidRuntimeAssets": {
@@ -99,7 +99,10 @@
       "totalBytes": 304291502,
       "receipt": "android-runtime-assets.json",
       "cliArchiveSha256": "a3568a943faa810a521c15f081f0f691f245b012b7ce38c049b9bf2a820e0781"
-    }
+    },
+    "runId": 40418182439,
+    "sourceSha": "c9881a2b710cf49f0ad3d63673e0998ecc608514",
+    "tag": "v5.0.3.142"
   },
   "acceptance": {
     "accepted": 32,
