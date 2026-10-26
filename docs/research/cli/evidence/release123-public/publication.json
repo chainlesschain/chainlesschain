@@ -1,0 +1,63 @@
+{
+  "schema": "chainlesschain.release123-publication/v1",
+  "observedAt": "2026-10-26T02:22:18.174Z",
+  "status": "CLI_PUBLIC",
+  "repository": "chainlesschain/chainlesschain",
+  "channels": {
+    "cli": {
+      "version": "0.166.123",
+      "status": "public",
+      "sourceSha": "8096acf1ec0bc5e7b25810f5cc08128ba90aca3b",
+      "runId": 40251206428,
+      "attempt": 1,
+      "tag": "v-npm-0-166-123",
+      "receipt": "chainlesschain-npm-provenance.json",
+      "releaseReceipt": "chainlesschain-release.json",
+      "archiveBytes": 9543597,
+      "sha512": "d9d5e6e0ca727b2c4bdb1dc56f28c7296de11aecb178410b0817fcbc0d3b6f164a8eeace98b7324775e60411a6c86da24d0b8a71babf5c35c31b22ab77b6bd10",
+      "sha256": "eab5da76bb002f6f7397da21a7cc2dc013e24b28c7af29da9b1fc3487e2dc9f3",
+      "publicArchivesVerified": true,
+      "localArchiveMatchesImmutableCiArtifact": true,
+      "candidateInstallWithPublicChildDependenciesVerified": true
+    }
+  },
+  "childPackages": {
+    "sessionCore": {
+      "version": "0.3.24",
+      "status": "public",
+      "receipt": "session-core-npm-provenance.json",
+      "archiveBytes": 317808,
+      "sha512": "f622aa75f97916a955fcf9e98b1c32800218455421266b7154718435283d3bd7a89d123f809d384954b9bc2d0a57b9d541c03570ccc66972d8af2ddc8185f92d"
+    },
+    "directCliRegistryLockPins": 10
+  },
+  "gates": {
+    "receipt": "cli-release-gate.json",
+    "cliCiRunId": 40251188276,
+    "strictSandboxRunId": 40251188186,
+    "platforms": ["linux", "windows", "macos"]
+  },
+  "existingIdePairing": {
+    "openVsx": "0.37.161",
+    "jetbrains": "0.4.178",
+    "recommendedCliVersion": "0.166.121",
+    "publishedByThisRelease": false
+  },
+  "retiredCandidates": [
+    {
+      "version": "0.166.122",
+      "tag": "v-npm-0-166-122",
+      "status": "NOT_PUBLISHED",
+      "reason": "Exact-source CI rejected the candidate before npm publishing"
+    }
+  ],
+  "acceptance": {
+    "accepted": 32,
+    "total": 45,
+    "unfinished": 13,
+    "newLiveModelTaskAcceptance": false,
+    "paidReadiness": "NOT_PAID_READY",
+    "nativeAdmission": "NOT_ADMITTED",
+    "automaticPromotion": "HOLD"
+  }
+}

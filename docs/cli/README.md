@@ -1,5 +1,7 @@
 # CLI 文档
 
+> 2026-10-26：公开 CLI **0.166.123**，安装 `npm i -g chainlesschain@0.166.123 --registry https://registry.npmjs.org`。修复模型设置串用、Windows 首字延迟和 Python 格式化字符串投影误判；Session Core **0.3.24** 已先行发布。现有 IDE 仍为 **0.37.161 / 0.4.178**，推荐标记仍为 `.121`。三平台发布门禁、公共包字节、签名来源和子依赖已核验，见[发布证据](../research/cli/evidence/release123-public/publication.json)。验收 **32/45**、**13** 项未完成及 **NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。
+
 > 2026-10-16：公开 CLI **0.166.103**、Open VSX **0.37.148** 与 JetBrains **0.4.165**，两个 IDE 均推荐 CLI `.103`。CLI 发行提交 `b235ac8068`，VS Code `c8a64caa92`，JetBrains `fa64840216`；主线核对至 `920f263e3f`。Session Core **0.3.19**、Kernel **0.1.10**、PDH **0.4.65**；原生产品 **v5.0.3.140** 独立发行。正式预算保持 **NOT_PAID_READY**，36+9 **NOT_RUN（0/36、0/9）**、native **NOT_ADMITTED**、自动晋升 **HOLD**。 参见[本轮升级指南](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-16.html)。较早日期的记录保留历史范围。
 
 > 2026-10-10 公开回读：CLI **0.166.96**、Agent SDK **0.2.14**、Open VSX **0.37.140**、JetBrains **0.4.158** 已公开，两个 IDE 均推荐 CLI `0.166.96`，准确发行提交 `da91e730d8`。Session Core **0.3.18**、Context/Memory Kernel **0.1.8**、PDH **0.4.64** 保持独立版本；产品 **v5.0.3.140** 仍来自 `f733f92cb9`。源码核对至 `main@2650447476`。本轮改善并发权限设置、JetBrains 审批卡片布局与失败诊断，补齐 Windows 私有工具链和清理取证；正式 36+9 评测保持 NOT_RUN，完整 native review 保持 NOT_ADMITTED，自动晋升 HOLD。 详见[本轮升级与诊断](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-10.html)。
