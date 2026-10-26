@@ -1,8 +1,10 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
-## CLI 0.166.125 候选修复（2026-10-26）
+## CLI 0.166.125（已公开，2026-10-26）
 
-修复 Python `["git", *args]` 执行成功后，下一轮模型历史投影误报损坏 JSON 并退出的问题；同时覆盖已知代码字段中的 JS 展开、对象解包及部分一元/二元表达式。保留严格 JSON 校验、脱敏、预算限制和历史证据验证。`.124` 尚待精确提交的三系统 CLI CI、Strict Sandbox 和 GitHub Actions OIDC 发布；当前公开版本为 `.123`。验证发布后使用 `npm i -g chainlesschain@0.166.125 --registry https://registry.npmjs.org`，并重启 IDE 聊天宿主。现有公开 IDE 配对仍为 Open VSX `.161` / JetBrains `.178`；子包版本与既有发行限制不变。详见 [CLI README](packages/cli/README.md)。
+CLI **0.166.125** 已通过 [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/40274009347) 发布。修复 Python `["git", *args]` 执行成功后，下一轮历史投影误报损坏 JSON 并退出的问题，同时覆盖已知代码字段中的 JS 展开、对象解包及部分一元/二元表达式。精确提交 `4285a55c2f4dfb0c0eddb7cb8f63fc73f2ff1a2b` 的 Linux、Windows、macOS CLI CI 和 Strict Sandbox 均已通过；公开 npm 归档与不可变 CI 制品逐字节一致，签名来源、十个直接子依赖及离线变更日志版本已核验。[发布证据](docs/research/cli/evidence/release125-public/publication.json)。
+
+安装：`npm i -g chainlesschain@0.166.125 --registry https://registry.npmjs.org`，然后重启 IDE 聊天宿主，运行 `cc --version` 和 `cc doctor`。当前公开 IDE 为 Open VSX **0.37.162** / JetBrains **0.4.179**，推荐标记仍为 CLI **0.166.123**；本次只发布 CLI，子包版本不变。候选 `.124` 被 CI 拦截，未发布，标签保留。未新增真实模型任务验收，累计仍为 **32/45**、**13** 项未完成；**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。
 
 ## CLI 0.166.123 (2026-10-26)
 

@@ -1,0 +1,58 @@
+{
+  "schema": "chainlesschain.release125-publication/v1",
+  "observedAt": "2026-10-26T09:30:55.281Z",
+  "status": "CLI_PUBLIC",
+  "repository": "chainlesschain/chainlesschain",
+  "channels": {
+    "cli": {
+      "version": "0.166.125",
+      "status": "public",
+      "sourceSha": "4285a55c2f4dfb0c0eddb7cb8f63fc73f2ff1a2b",
+      "runId": 40274009347,
+      "attempt": 1,
+      "tag": "v-npm-0-166-125",
+      "receipt": "cli.json",
+      "archiveBytes": 9547537,
+      "sha256": "ca227563cb598e4529ac30a8caf62529e4bbbbc37bd15ad54ecad9af228d0445",
+      "sha512": "c4a711bba863de96159baa505b9bc488b3e4d146b5225c3da2545203019ed33c21b1180a322b49234e51a4a558b13d4a7c2afbface5edf64f8b9f207ec109d40",
+      "publicArchivesVerified": true,
+      "localArchiveMatchesImmutableCiArtifact": true,
+      "candidateInstallWithPublicChildDependenciesVerified": true
+    }
+  },
+  "childPackages": {
+    "versionsChanged": false,
+    "directCliRegistryLockPins": 10,
+    "sessionCore": "0.3.24"
+  },
+  "gates": {
+    "receipt": "gates.json",
+    "cliCiRunId": 40273942976,
+    "strictSandboxRunId": 40273949208,
+    "platforms": ["linux", "windows", "macos"]
+  },
+  "existingIdePairing": {
+    "openVsx": "0.37.162",
+    "jetbrains": "0.4.179",
+    "recommendedCliVersion": "0.166.123",
+    "publishedByThisRelease": false,
+    "observation": "Open VSX public manifest recommendation and JetBrains approved/listed update notes read back; no IDE archive byte comparison claimed by this CLI follow-up."
+  },
+  "retiredCandidates": [
+    {
+      "version": "0.166.124",
+      "tag": "v-npm-0-166-124",
+      "status": "NOT_PUBLISHED",
+      "reason": "Exact-source CI rejected an unsynchronized offline changelog; immutable tag retained."
+    }
+  ],
+  "acceptance": {
+    "accepted": 32,
+    "total": 45,
+    "unfinished": 13,
+    "newLiveModelTaskAcceptance": false,
+    "paidReadiness": "NOT_PAID_READY",
+    "nativeAdmission": "NOT_ADMITTED",
+    "automaticPromotion": "HOLD"
+  }
+}

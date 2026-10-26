@@ -1,8 +1,10 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
-## CLI 0.166.125 candidate fix (2026-10-26)
+## CLI 0.166.125 (public, 2026-10-26)
 
-Fixes Agent Run termination when the next model request projects completed Python `["git", *args]` tool history. It also recognizes bounded JS spread, object unpacking and unary/binary expressions in known code fields, preserving strict JSON checks, redaction, budgets and historical evidence verification. `.124` awaits exact-commit three-OS CLI CI, Strict Sandbox and GitHub Actions OIDC publication; `.123` remains public. After publication is verified, install with `npm i -g chainlesschain@0.166.125 --registry https://registry.npmjs.org` and restart the IDE chat host. Existing public IDE pairing remains Open VSX `.161` / JetBrains `.178`; child pins and release limits are unchanged. See the [CLI README](packages/cli/README.md).
+CLI **0.166.125** is public through [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/40274009347). It fixes Agent termination while projecting completed Python `["git", *args]` tool history and recognizes bounded JS spread, object unpacking and unary/binary expressions in known code fields. Exact source `4285a55c2f4dfb0c0eddb7cb8f63fc73f2ff1a2b` passed Linux, Windows and macOS CLI CI and Strict Sandbox. The public npm archive matches the immutable CI artifact byte for byte; signed provenance, ten direct child pins and offline changelog identity were verified. [Publication evidence](docs/research/cli/evidence/release125-public/publication.json).
+
+Install: `npm i -g chainlesschain@0.166.125 --registry https://registry.npmjs.org`, restart the IDE chat host, then run `cc --version` and `cc doctor`. Current public IDEs are Open VSX **0.37.162** / JetBrains **0.4.179**, whose recommendation remains CLI **0.166.123**. This release updates the CLI only; child pins are unchanged. Candidate `.124` was blocked by CI before publication and its tag is retained. No new live model-task acceptance is claimed: cumulative acceptance remains **32/45**, with **13** unfinished; **NOT_PAID_READY / NOT_ADMITTED / HOLD** remain.
 
 ## CLI 0.166.123 (2026-10-26)
 
