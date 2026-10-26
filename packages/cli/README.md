@@ -2,6 +2,14 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
+## CLI 0.166.124 (candidate, 2026-10-26)
+
+Fixes Agent Run termination after successful Python `run_code` calls containing list unpacking such as `["git", *args]`. The next model request can now project that completed tool history. The versioned v8 projection also recognizes bounded JavaScript spread, object unpacking and unary/binary expressions in known code fields and supported code fences. Strict tool argument JSON, nested duplicate/malformed JSON checks, redaction and shared projection budgets remain enforced; v7 evidence remains verifiable.
+
+New source expressions with preceding sensitive names or opaque template context remain rejected conservatively. This is a targeted compatibility fix, not a general Python/JavaScript parser. No new live model-task acceptance is claimed. Release limits remain **32/45**, **NOT_PAID_READY / NOT_ADMITTED / HOLD**.
+
+Publication is pending the exact-commit Linux, Windows and macOS **CLI CI** and **CLI Strict Sandbox** gates and GitHub Actions OIDC. Current public CLI is **0.166.123**. After `.124` is verified public, install with `npm i -g chainlesschain@0.166.124 --registry https://registry.npmjs.org` and restart the IDE chat host. Existing public IDE pairing remains Open VSX **0.37.161** / JetBrains **0.4.178**, recommending CLI `.121`; this candidate only updates the CLI. Child dependency pins remain unchanged, including Session Core **0.3.24**.
+
 ## CLI 0.166.123 (public, 2026-10-26)
 
 This release addresses inherited `fable[1m]` model settings overriding a configured non-Anthropic provider, Windows model-turn preparation latency, and Python formatted-string tool evidence being rejected as ambiguous JSON. It pins Session Core **0.3.24**. The GitHub Actions OIDC release workflow requires exact-source Linux, Windows and macOS CLI CI and CLI Strict Sandbox, publishes and verifies Session Core first, and verifies the public CLI archive before reporting publication success.

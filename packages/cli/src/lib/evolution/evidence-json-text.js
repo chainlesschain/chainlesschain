@@ -110,6 +110,68 @@ function assignmentKeyBefore(text, start, end) {
   return keyEnd > index + 1 ? text.slice(index + 1, keyEnd) : undefined;
 }
 
+// New expression syntax retains all preceding decoded names, including targets
+// across calls, destructuring and nested statements. Without a language parser,
+// newline/semicolon cannot prove an enclosing sensitive assignment has ended.
+// This check applies only to newly admitted syntax; historical code keeps its
+// existing scanner. The cursor and shared budgets bound the additional work.
+function createSourcePrefixTracker(text, requireSafeKey, rejectOpaque) {
+  let cursor = 0;
+  let candidates = [];
+  return (until) => {
+    while (cursor < until) {
+      const char = text[cursor];
+      if (char === "`") {
+        let end = cursor + 1;
+        for (; end < text.length; end++) {
+          if (text[end] === "\\") end++;
+          else if (text[end] === "`") break;
+        }
+        // Template interpolation has its own grammar. Do not grant new source
+        // semantics inside it without a decoder for its escapes and bindings.
+        if (end >= until) rejectOpaque();
+        cursor = end + 1;
+        continue;
+      }
+      if (char === '"' || char === "'") {
+        const literal = (
+          char === '"' ? CODE_DOUBLE_QUOTED_PREFIX : CODE_SINGLE_QUOTED_PREFIX
+        ).exec(text.slice(cursor))?.[0];
+        if (!literal) {
+          cursor++;
+          continue;
+        }
+        candidates.push({ literal });
+        cursor += literal.length;
+        continue;
+      }
+      const name =
+        /^(?:[$_\p{ID_Start}]|\\u(?:[0-9a-fA-F]{4}|\{[0-9a-fA-F]{1,6}\}))(?:[$\p{ID_Continue}]|\\u(?:[0-9a-fA-F]{4}|\{[0-9a-fA-F]{1,6}\}))*/u.exec(
+          text.slice(cursor),
+        )?.[0];
+      if (name) {
+        candidates.push({ key: name });
+        cursor += name.length;
+        continue;
+      }
+      if (text.slice(cursor, cursor + 2) === "/*") {
+        const end = text.indexOf("*/", cursor + 2);
+        if (end < 0 || end >= until) rejectOpaque();
+        cursor = end + 2;
+        continue;
+      }
+      if (char === "#" && /\s/u.test(text[cursor + 1] ?? "")) {
+        const newline = text.indexOf("\n", cursor);
+        cursor = newline < 0 ? text.length : newline;
+        continue;
+      }
+      cursor++;
+    }
+    for (const entry of candidates) requireSafeKey(entry);
+    candidates = [];
+  };
+}
+
 export function createEvidenceJsonTextBoundary(
   fail,
   policy = EVIDENCE_JSON_POLICY,
@@ -133,6 +195,38 @@ export function createEvidenceJsonTextBoundary(
     const error = new Error(kind);
     Object.defineProperty(error, PARSE_FAILURE, { value: kind });
     throw error;
+  };
+  // Source syntax is admitted only at a known code field. Require an operand:
+  // a bare spread/operator must never turn malformed JSON into plain text.
+  // Do not admit templates or regex literals: their escapes are not decoded by
+  // this boundary. Numeric operands retain the strict JSON number budget.
+  const sourceOperand = (text) => {
+    const rest = text.trimStart();
+    if (/^[$_\p{ID_Start}('"[{]/u.test(rest)) return true;
+    const token = /^(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/u.exec(rest)?.[0];
+    if (!token || /[\w$.]/u.test(rest[token.length] ?? "")) return false;
+    const number = Number(token);
+    if (
+      !Number.isFinite(number) ||
+      (Number.isInteger(number) && !Number.isSafeInteger(number))
+    )
+      parserReject("budget");
+    return true;
+  };
+  const sourcePrefix = (text, objectSpread = false) => {
+    const token = (
+      objectSpread ? /^(?:\*\*|\.\.\.)/u : /^(?:\.\.\.|\*{1,2}|[+!~]|-(?!\d))/u
+    ).exec(text)?.[0];
+    return token !== undefined && sourceOperand(text.slice(token.length));
+  };
+  const sourceContinuation = (text) => {
+    // Existing call/member/conditional syntax keeps its historical handling.
+    if (/^[.(?]/u.test(text)) return true;
+    const token =
+      /^(?:\*\*|\/\/|>>>?|<<|===?|!==?|<=?|>=?|&&?|\|\|?|[-+*/%&|^]|(?:and|or|if|in|is|not)\b)/u.exec(
+        text,
+      )?.[0];
+    return token !== undefined && sourceOperand(text.slice(token.length));
   };
   const decodeSourceString = (literal, quote) => {
     let output = "";
@@ -206,7 +300,11 @@ export function createEvidenceJsonTextBoundary(
     }
     return output;
   };
-  const parser = (text, start, { allowSingleQuotedStrings = false } = {}) => {
+  const parser = (
+    text,
+    start,
+    { allowSingleQuotedStrings = false, allowSourceExpressions = false } = {},
+  ) => {
     let index = start;
     const whitespace = () => {
       while (/[ \t\r\n]/u.test(text[index] ?? "x")) index++;
@@ -259,6 +357,8 @@ export function createEvidenceJsonTextBoundary(
         while (index < text.length) {
           let key;
           if (!array) {
+            if (allowSourceExpressions && sourcePrefix(text.slice(index), true))
+              parserReject("source-expression");
             if (
               text[index] !== '"' &&
               !(allowSingleQuotedStrings && text[index] === "'")
@@ -286,6 +386,12 @@ export function createEvidenceJsonTextBoundary(
             return output;
           }
           if (text[index] !== ",") {
+            if (
+              allowSourceExpressions &&
+              !/^[.(+*/?]/u.test(text[index] ?? "") &&
+              sourceContinuation(text.slice(index))
+            )
+              parserReject("source-expression");
             // Slices, comprehensions and member/call/arithmetic expressions
             // are source syntax. Missing delimiters and trailing commas stay
             // malformed JSON, including in run_code output.
@@ -307,6 +413,8 @@ export function createEvidenceJsonTextBoundary(
           text.slice(index),
         )?.[0];
       if (!token) {
+        if (allowSourceExpressions && sourcePrefix(text.slice(index)))
+          parserReject("source-expression");
         return parserReject(
           /^[A-Za-z_$][A-Za-z0-9_$]*|^\(/u.test(text.slice(index))
             ? "code-expression"
@@ -314,6 +422,14 @@ export function createEvidenceJsonTextBoundary(
         );
       }
       index += token.length;
+      if (
+        allowSourceExpressions &&
+        /^-?\d/u.test(token) &&
+        (/[\p{ID_Continue}$]/u.test(text[index] ?? "") ||
+          (text[index] === "." &&
+            !/^\.{1,2}[$_\p{ID_Start}]/u.test(text.slice(index))))
+      )
+        parserReject("syntax");
       // A primitive prefix is not a complete source expression. In particular,
       // redacting only `true` from trueSecretValue would expose the suffix of
       // a sensitive quoted assignment. Historical policies retain their parser.
@@ -376,6 +492,30 @@ export function createEvidenceJsonTextBoundary(
         reject("Agent model JSON text exceeds its budget");
       return visit(parsed, layer + 1, textContext);
     };
+    const requireSafeSourceKey = (key) => {
+      const probe = Object.defineProperty(Object.create(null), key, {
+        value: "source-expression",
+        enumerable: true,
+      });
+      if (!equal(probe, transform(probe)))
+        reject(
+          "Agent model code expression under a sensitive key cannot be safely projected",
+        );
+    };
+    const requireSafeSourceAssignments = createSourcePrefixTracker(
+      text,
+      ({ key, literal }) => {
+        if (literal) {
+          const reader = parser(literal, 0, { allowSingleQuotedStrings: true });
+          key = reader.value();
+        } else key = decodeSourceString(`"${key}"`, '"');
+        requireSafeSourceKey(key);
+      },
+      () =>
+        reject(
+          "Agent model code expression under an opaque source context cannot be safely projected",
+        ),
+    );
     if (objectOnly) {
       const reader = parser(text, 0);
       let parsed;
@@ -516,6 +656,9 @@ export function createEvidenceJsonTextBoundary(
         // A recognized container is always tried as strict JSON first, even
         // inside code. Only an explicit non-JSON token allows literal scanning.
         allowSingleQuotedStrings: codeText && !container,
+        allowSourceExpressions:
+          codeText &&
+          policy.sourceExpressionPolicy === "bounded-source-tokens-v1",
       });
       let parsed;
       let valueEnd;
@@ -524,7 +667,16 @@ export function createEvidenceJsonTextBoundary(
         valueEnd = reader.end();
       } catch (error) {
         const kind = error?.[PARSE_FAILURE];
-        if (!codeText || kind !== "code-expression") rejectParseFailure(error);
+        if (
+          !codeText ||
+          !["code-expression", "source-expression"].includes(kind)
+        )
+          rejectParseFailure(error);
+        if (kind === "source-expression") {
+          requireSafeSourceAssignments(index);
+          const key = assignmentKeyBefore(text, plainStart, index);
+          if (key) requireSafeSourceKey(key);
+        }
         // Python/JavaScript containers may contain single quotes or expressions.
         // Scan their literals individually, preserving nested strict JSON scans.
         // Keep consumed nodes charged so repeated fallback cannot reset budgets.
@@ -538,14 +690,7 @@ export function createEvidenceJsonTextBoundary(
         // An expression cannot be visited as a decoded JSON value. Preserve
         // the decoded key boundary: otherwise a password list/call expression
         // could expose its string literals when scanning resumes inside it.
-        const probe = Object.defineProperty(Object.create(null), parsed, {
-          value: "source-expression",
-          enumerable: true,
-        });
-        if (!equal(probe, transform(probe)))
-          reject(
-            "Agent model code expression under a sensitive key cannot be safely projected",
-          );
+        requireSafeSourceKey(parsed);
       };
       if (pair) {
         const rhsStart = reader.end() + 1;
@@ -560,16 +705,23 @@ export function createEvidenceJsonTextBoundary(
           pair = false;
         } else {
           try {
-            const rhsContainer = /^[ \t\r\n]*[\[{]/u.test(text.slice(rhsStart));
+            const rhsContainer = /^[ \t\r\n]*[[{]/u.test(text.slice(rhsStart));
             const rhs = parser(text, rhsStart, {
               allowSingleQuotedStrings: codeText && !rhsContainer,
+              allowSourceExpressions:
+                codeText &&
+                policy.sourceExpressionPolicy === "bounded-source-tokens-v1",
             });
             const entry = rhs.value();
             const entryEnd = rhs.end();
             rhs.whitespace();
             if (
               (codeText || policy.proseQuotedPairPolicy) &&
-              /^[+\-*/%?.([<>&|^=!"']/u.test(text[rhs.end()] ?? "")
+              (/^[+\-*/%?.([<>&|^=!"']/u.test(text[rhs.end()] ?? "") ||
+                (codeText &&
+                  policy.sourceExpressionPolicy ===
+                    "bounded-source-tokens-v1" &&
+                  sourceContinuation(text.slice(rhs.end()))))
             )
               requireSafeExpressionKey();
             parsed = Object.defineProperty(Object.create(null), parsed, {
@@ -582,7 +734,8 @@ export function createEvidenceJsonTextBoundary(
             if (kind === undefined) throw error;
             if (
               (!codeText && !policy.proseQuotedPairPolicy) ||
-              kind !== "code-expression"
+              (kind !== "code-expression" &&
+                !(codeText && kind === "source-expression"))
             )
               rejectParseFailure(error);
             // A standalone prose label or a source key followed by an
@@ -633,7 +786,10 @@ export function createEvidenceJsonTextBoundary(
         (codeText || policy.proseQuotedPairPolicy) &&
         assignmentKey &&
         !equal(parsed, safe) &&
-        /^\s*[+\-*/%?.([<>&|^=!"']/u.test(text.slice(end))
+        (/^\s*[+\-*/%?.([<>&|^=!"']/u.test(text.slice(end)) ||
+          (codeText &&
+            policy.sourceExpressionPolicy === "bounded-source-tokens-v1" &&
+            sourceContinuation(text.slice(end).trimStart())))
       )
         reject(
           "Agent model code expression under a sensitive key cannot be safely projected",

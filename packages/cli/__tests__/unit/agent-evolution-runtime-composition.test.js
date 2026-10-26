@@ -6875,6 +6875,56 @@ describe("Agent evolution runtime production composition", () => {
     60_000,
   );
 
+  it.each([false, true])(
+    "continues the real agent from completed Python unpacking history without replay (object arguments=%s)",
+    async (objectArgs) => {
+      const f = modelFixture();
+      const args = {
+        language: "python",
+        code: 'subprocess.run(["git", *a], capture_output=True, text=True)',
+      };
+      const messages = [
+        { role: "user", content: "Continue branch analysis" },
+        {
+          role: "assistant",
+          content: "Inspecting branches",
+          tool_calls: [
+            {
+              id: "completed-python",
+              type: "function",
+              function: {
+                name: "run_code",
+                arguments: objectArgs ? args : JSON.stringify(args),
+              },
+            },
+          ],
+        },
+        {
+          role: "tool",
+          tool_call_id: "completed-python",
+          content: "main ahead=0 behind=0; analysis completed",
+        },
+      ];
+      const original = structuredClone(messages);
+      const events = await collectFallbackCore(f, {}, messages);
+      expect(f.seen).toHaveLength(1);
+      expect(f.seen[0].messages).toEqual(expect.arrayContaining(original));
+      expect(events.some((event) => event.type === "response-complete")).toBe(
+        true,
+      );
+      expect(events.some((event) => event.type === "tool-result")).toBe(false);
+      expect(original[1].tool_calls[0].function.arguments).toEqual(
+        objectArgs ? args : JSON.stringify(args),
+      );
+      expect(
+        f.composition
+          .loadRun()
+          .events.filter((event) => event.data.evidenceKind === "model-input"),
+      ).toHaveLength(1);
+    },
+    60_000,
+  );
+
   it.each(["malformed", "duplicates", "nested-budget"])(
     "refuses JSON %s before provider dispatch and latches run failure",
     async (mode) => {

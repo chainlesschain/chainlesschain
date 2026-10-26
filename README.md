@@ -1,5 +1,9 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## CLI 0.166.124 候选修复（2026-10-26）
+
+修复 Python `["git", *args]` 执行成功后，下一轮模型历史投影误报损坏 JSON 并退出的问题；同时覆盖已知代码字段中的 JS 展开、对象解包及部分一元/二元表达式。保留严格 JSON 校验、脱敏、预算限制和历史证据验证。`.124` 尚待精确提交的三系统 CLI CI、Strict Sandbox 和 GitHub Actions OIDC 发布；当前公开版本为 `.123`。验证发布后使用 `npm i -g chainlesschain@0.166.124 --registry https://registry.npmjs.org`，并重启 IDE 聊天宿主。现有公开 IDE 配对仍为 Open VSX `.161` / JetBrains `.178`；子包版本与既有发行限制不变。详见 [CLI README](packages/cli/README.md)。
+
 ## CLI 0.166.123 (2026-10-26)
 
 CLI **0.166.123** 已通过 [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/40251206428) 公开发布。修复命令行继承 `fable[1m]` 导致火山引擎 404、Windows 请求前权限检查拖慢首字，以及 Python f-string 表格标签触发 JSON 误判退出。Session Core **0.3.24** 已先于 CLI 发布并验证。准确源提交 `8096acf1ec0bc5e7b25810f5cc08128ba90aca3b` 通过 Linux、Windows、macOS 的 CLI CI 和 Strict Sandbox；公共 CLI 包与不可变 CI 制品逐字节一致，签名来源和十个直接子依赖版本已核验。[发布证据](docs/research/cli/evidence/release123-public/publication.json)。

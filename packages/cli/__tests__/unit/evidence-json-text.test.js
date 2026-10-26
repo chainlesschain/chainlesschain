@@ -63,6 +63,16 @@ describe("code text evidence budgets", () => {
     expect(() => scan(text)).toThrow(/budget/u);
   });
 
+  it("keeps the node budget across spread fallbacks and independent fields", () => {
+    const scan = boundary(true, {
+      ...EVIDENCE_JSON_POLICY,
+      sourceExpressionPolicy: "bounded-source-tokens-v1",
+    });
+    const text = `[${Array(2100).fill("true").join(",")}, *args]`;
+    expect(scan(text)).toBe(text);
+    expect(() => scan(text)).toThrow(/budget/u);
+  });
+
   it("charges formatted literal labels to the shared node budget", () => {
     const scan = boundary(true, {
       ...EVIDENCE_JSON_POLICY,

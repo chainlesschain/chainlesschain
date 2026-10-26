@@ -1,5 +1,9 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## CLI 0.166.124 candidate fix (2026-10-26)
+
+Fixes Agent Run termination when the next model request projects completed Python `["git", *args]` tool history. It also recognizes bounded JS spread, object unpacking and unary/binary expressions in known code fields, preserving strict JSON checks, redaction, budgets and historical evidence verification. `.124` awaits exact-commit three-OS CLI CI, Strict Sandbox and GitHub Actions OIDC publication; `.123` remains public. After publication is verified, install with `npm i -g chainlesschain@0.166.124 --registry https://registry.npmjs.org` and restart the IDE chat host. Existing public IDE pairing remains Open VSX `.161` / JetBrains `.178`; child pins and release limits are unchanged. See the [CLI README](packages/cli/README.md).
+
 ## CLI 0.166.123 (2026-10-26)
 
 CLI **0.166.123** is public through [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/40251206428). It fixes inherited `fable[1m]` settings causing Volcengine HTTP 404, Windows ACL startup overhead delaying the first response, and Python f-string table labels terminating Agent turns as malformed JSON. Session Core **0.3.24** was published and verified first. Exact source `8096acf1ec0bc5e7b25810f5cc08128ba90aca3b` passed Linux, Windows and macOS CLI CI and Strict Sandbox. The public CLI archive matches the immutable CI artifact byte for byte; signed provenance and ten direct public child pins are verified. [Publication evidence](docs/research/cli/evidence/release123-public/publication.json).
