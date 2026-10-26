@@ -14,7 +14,7 @@ Open **Skill 自进化配置** from the command palette to enable or disable sel
 
 Source candidate **0.37.164** recommends CLI **`0.166.127`** and pairs with JetBrains **0.4.180**. It adds the shared self-evolution switch and retains saved input attachment protection. These versions are pending publication; release requires the recommended CLI to be publicly available, exact-source IDE checks, and public artifact readback.
 
-The existing public pairing recorded in the [CLI .125 publication receipt](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release125-public/publication.json) is Open VSX **0.37.162**, JetBrains **0.4.179**, and recommended CLI **0.166.123**. The CLI .125 follow-up did not compare IDE archive bytes or publish new IDE versions.
+The preceding public pairing recorded in the [CLI .125 publication receipt](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release125-public/publication.json) is Open VSX **0.37.162**, JetBrains **0.4.179**, and recommended CLI **0.166.123**. The CLI .125 follow-up did not compare IDE archive bytes or publish new IDE versions.
 
 The preceding Open VSX **0.37.160** pairing recommended CLI **`0.166.118`** with JetBrains **0.4.177**; its input delivery and Windows draft recovery fixes are retained.
 
@@ -23,6 +23,16 @@ Public Open VSX **0.37.159** recommends CLI **`0.166.117`** and pairs with JetBr
 Open VSX **0.37.156** and CLI **0.166.114** were publicly downloaded and verified on 2026-10-22, but that CLI still has the Agent tool-evidence error. Microsoft Marketplace remains unpublished. The historical three-channel pairing is retained below.
 
 ## Current release
+
+<!-- release163-status -->
+
+Open VSX **0.37.163** is public and listed. It preserves saved input attachments while an Agent may still read them and rejects discard operations queued by an obsolete page or conversation. Exact source `ed07dc8673769f6caab78bca55737f30137f1c6a` passed the Linux, Windows and macOS browser and host gates plus genuine Remote SSH verification in the [release workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/40351653016). The public VSIX matches the immutable candidate by raw archive and canonical ZIP content hashes. [Publication evidence](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release126-public/open-vsx.json).
+
+Download the [versioned VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.163/file/chainlesschain.chainlesschain-ide-0.37.163.vsix). It recommends CLI **0.166.125**; install public repair **0.166.126** with `npm i -g chainlesschain@0.166.126 --registry https://registry.npmjs.org`, restart the IDE chat host and run Doctor. JetBrains **0.4.179** remains the existing public version. Microsoft Marketplace remains unpublished.
+
+No new live model-task acceptance is claimed: cumulative acceptance is **32/45**, with **13** unfinished; **NOT_PAID_READY / NOT_ADMITTED / HOLD** remain. The self-evolution controls above belong to the unpublished .164 / .127 candidates.
+
+### Previous public release (.162 / .179 / .123)
 
 <!-- release162-status -->
 

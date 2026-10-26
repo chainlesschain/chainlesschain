@@ -6,6 +6,14 @@
 
 发布目标为 `chainlesschain@0.166.127`，须准确提交通过 Linux、Windows、macOS CLI CI 和 Strict Sandbox 后，经 GitHub Actions OIDC 发布并核验公开包。当前公开 CLI 为 **0.166.126**：`npm i -g chainlesschain@0.166.126 --registry https://registry.npmjs.org`。子包版本不变；新 IDE 候选为 Open VSX **0.37.164** / JetBrains **0.4.180**，均推荐 `.127`，须在 CLI 公开核验后发布。未新增模型任务验收，累计 **32/45**、**13** 项未完成及 **NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。
 
+## CLI 0.166.126（已公开，2026-10-26）
+
+本次修复恢复摘要按字符截断 JSON，导致 Agent 下一轮请求反复报 `CC_AGENT_EVOLUTION_INGRESS_FAILED` 并退出的问题。文件摘要、任务检查点、远端查询摘要、旧会话恢复和 `WORKLOG.md` 派生视图统一使用有界、完整的表示；原始会话记录与严格校验保持不变。
+
+CLI **0.166.126** 已通过 [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/40332695884) 公开发布。精确源码 `1b848f7e265737b73e6f8ac99f0aeaf9ea5dadbe` 的 Linux、Windows、macOS CLI CI 与 Strict Sandbox 均已通过，公开 npm 包与不可变 CI 制品、签名来源和十个直接子依赖已核验。[发布证据](docs/research/cli/evidence/release126-public/publication.json)。
+
+安装：`npm i -g chainlesschain@0.166.126 --registry https://registry.npmjs.org`，重启 IDE 聊天宿主后运行 `cc --version` 和 `cc doctor`。子包版本不变。Open VSX **0.37.163** 已公开上市，下载 VSIX 与不可变 CI 制品逐字节一致，包内推荐 CLI **0.166.125**；JetBrains **0.4.179** 保持现有公开版本，推荐 CLI **0.166.123**。[IDE 发布证据](docs/research/cli/evidence/release126-public/open-vsx.json)。未新增模型任务验收，累计 **32/45**、**13** 项未完成及 **NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。
+
 ## CLI 0.166.125（已公开，2026-10-26）
 
 CLI **0.166.125** 已通过 [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/40274009347) 发布。修复 Python `["git", *args]` 执行成功后，下一轮历史投影误报损坏 JSON 并退出的问题，同时覆盖已知代码字段中的 JS 展开、对象解包及部分一元/二元表达式。精确提交 `4285a55c2f4dfb0c0eddb7cb8f63fc73f2ff1a2b` 的 Linux、Windows、macOS CLI CI 和 Strict Sandbox 均已通过；公开 npm 归档与不可变 CI 制品逐字节一致，签名来源、十个直接子依赖及离线变更日志版本已核验。[发布证据](docs/research/cli/evidence/release125-public/publication.json)。

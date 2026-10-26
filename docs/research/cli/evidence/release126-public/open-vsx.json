@@ -1,0 +1,119 @@
+{
+  "schema": "chainlesschain.release126-open-vsx-readback/v1",
+  "observedAt": "2026-10-26T17:18:20.572965+00:00",
+  "version": "0.37.163",
+  "status": "PUBLIC",
+  "sourceSha": "ed07dc8673769f6caab78bca55737f30137f1c6a",
+  "tag": "ide-vscode-v0.37.163",
+  "runId": 40351653016,
+  "attempt": 3,
+  "recommendedCliVersion": "0.166.125",
+  "availableCliRepairVersion": "0.166.126",
+  "candidateManifest": {
+    "schema": 1,
+    "artifact": "chainlesschain-ide.vsix",
+    "bytes": 737385,
+    "sha256": "9f867757e0db70713ae8d5aad7735e711caf7cf16b9d706944234efd4de751d1",
+    "sha512": "7430ca232198a4106197584971a66c2b8a66daf0715decb7820e34054313fe00d7b58c35ef184af48b52099833a247312ac39e71cf52b30c8cc6053fabf777ef",
+    "package": "chainlesschain-ide",
+    "publisher": "chainlesschain",
+    "version": "0.37.163",
+    "vsixmanifestIdentity": {
+      "id": "chainlesschain-ide",
+      "publisher": "chainlesschain",
+      "version": "0.37.163"
+    },
+    "commit": "ed07dc8673769f6caab78bca55737f30137f1c6a",
+    "workflowRun": "https://github.com/chainlesschain/chainlesschain/actions/runs/40351653016",
+    "createdAt": "2026-10-26T16:47:11.499Z"
+  },
+  "marketplace": {
+    "channel": "open-vsx",
+    "endpoint": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide",
+    "status": "ready",
+    "version": "0.37.163",
+    "latest": "0.37.163",
+    "downloadable": true,
+    "listed": true,
+    "registryArchiveSha256": "9f867757e0db70713ae8d5aad7735e711caf7cf16b9d706944234efd4de751d1",
+    "localArchiveSha256": "9f867757e0db70713ae8d5aad7735e711caf7cf16b9d706944234efd4de751d1",
+    "contentSha256": "89588148bc9f607f9de4efd66680b920dfa140b1c971080c423baf539d09be15"
+  },
+  "gates": [
+    {
+      "name": "Public IDE capability manifest (drift gate)",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40351653016/job/121698010454"
+    },
+    {
+      "name": "Browser evidence (windows)",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40351653016/job/121702245154"
+    },
+    {
+      "name": "Browser evidence (linux)",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40351653016/job/121702245419"
+    },
+    {
+      "name": "Browser evidence (macos)",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40351653016/job/121702245443"
+    },
+    {
+      "name": "VS Code extension (immutable candidate)",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40351653016/job/121702245594"
+    },
+    {
+      "name": "VS Code extension (Windows host gate)",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40351653016/job/121711198177"
+    },
+    {
+      "name": "VS Code extension (macOS host gate)",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40351653016/job/121711198196"
+    },
+    {
+      "name": "VS Code Remote-SSH container (scoped trusted cell)",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40351653016/job/121711198207"
+    },
+    {
+      "name": "IDE roadmap evidence (trusted scoped aggregate)",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40351653016/job/121714145095"
+    },
+    {
+      "name": "Browser evidence (three-OS required aggregate)",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40351653016/job/121719104916"
+    },
+    {
+      "name": "VS Code extension (Linux host gate + publish)",
+      "conclusion": "success",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40351653016/job/121720234154"
+    }
+  ],
+  "publicArchiveMatchesImmutableCiArtifact": true,
+  "existingJetBrains": {
+    "version": "0.4.179",
+    "publishedByThisRelease": false
+  },
+  "microsoftMarketplace": "NOT_PUBLISHED",
+  "acceptance": {
+    "accepted": 32,
+    "total": 45,
+    "unfinished": 13,
+    "newLiveModelTaskAcceptance": false,
+    "paidReadiness": "NOT_PAID_READY",
+    "nativeAdmission": "NOT_ADMITTED",
+    "automaticPromotion": "HOLD"
+  },
+  "infrastructureRetries": {
+    "attempt1": "macOS browser runner was not acquired",
+    "attempt2": "single producer rerun could not satisfy same-attempt three-OS aggregation",
+    "attempt3": "complete exact-source run passed"
+  }
+}
