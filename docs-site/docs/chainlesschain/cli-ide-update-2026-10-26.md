@@ -2,6 +2,10 @@
 
 ## 概述
 
+CLI **0.166.126** 正在准备发布，修复自动恢复摘要将 JSON 截断后反复污染下一轮请求的问题。完整提交须通过三平台 CLI CI 和 Strict Sandbox，并经 GitHub Actions OIDC 发布及公开包回读，之后才合并。当前可安装的公开版本仍为下方 **0.166.125**。
+
+`.126` 覆盖文件摘要、任务进度、远端查询、旧检查点恢复和重新读取 `WORKLOG.md` 的路径。无法安全表示的派生摘要会明确省略，并保留定位信息；原始 JSONL 和权威检查点不会因此改写。真正损坏的原始工具结果仍会被拒绝。此修复不需要删除会话、关闭 Evolution 或改换模型。
+
 CLI **0.166.125** 已通过 [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/40274009347) 公开发布，精确源提交为 `4285a55c2f4dfb0c0eddb7cb8f63fc73f2ff1a2b`。Linux、Windows、macOS 的 CLI CI 和 Strict Sandbox 全部通过；公开归档与 CI 制品逐字节一致，签名来源、十个子包依赖及离线变更日志版本已核验。[发布证据](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release125-public/publication.json)。
 
 本次修复 Python `subprocess.run(["git", *args])` 成功后，下一轮历史投影误报 JSON 错误并退出的问题，并覆盖已知代码路径中的 JS 展开、对象解包及部分运算表达式。严格 JSON 校验、敏感信息脱敏、预算和历史证据验证继续生效；敏感名称或无法解码的模板上下文仍保守拒绝。

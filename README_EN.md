@@ -1,5 +1,11 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## CLI 0.166.126 release preparation (2026-10-26)
+
+Repairs repeated Agent ingress failures caused by character-cut JSON in retained recovery summaries. File and remote-read summaries, task checkpoints, legacy-session recovery and derived WORKLOG.md views now preserve complete bounded representations. Canonical session history and strict validation remain unchanged.
+
+The release target is `chainlesschain@0.166.126`. Publication requires the exact commit's full three-platform CLI CI and Strict Sandbox through GitHub Actions OIDC; merge follows public archive and provenance verification. The current public version and install command remain `.125` below. Child pins and the Open VSX **0.37.162** / JetBrains **0.4.179** pairing are unchanged. No new live model-task acceptance is claimed: **32/45** accepted, **13** unfinished, **NOT_PAID_READY / NOT_ADMITTED / HOLD** remain.
+
 ## CLI 0.166.125 (public, 2026-10-26)
 
 CLI **0.166.125** is public through [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/40274009347). It fixes Agent termination while projecting completed Python `["git", *args]` tool history and recognizes bounded JS spread, object unpacking and unary/binary expressions in known code fields. Exact source `4285a55c2f4dfb0c0eddb7cb8f63fc73f2ff1a2b` passed Linux, Windows and macOS CLI CI and Strict Sandbox. The public npm archive matches the immutable CI artifact byte for byte; signed provenance, ten direct child pins and offline changelog identity were verified. [Publication evidence](docs/research/cli/evidence/release125-public/publication.json).

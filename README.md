@@ -1,5 +1,11 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## CLI 0.166.126 发布准备（2026-10-26）
+
+本次修复恢复摘要按字符截断 JSON，导致 Agent 下一轮请求反复报 `CC_AGENT_EVOLUTION_INGRESS_FAILED` 并退出的问题。文件摘要、任务检查点、远端查询摘要、旧会话恢复和 `WORKLOG.md` 派生视图统一使用有界、完整的表示；原始会话记录与严格校验保持不变。
+
+发布目标为 `chainlesschain@0.166.126`，待该提交完整通过三平台 CLI CI 和 Strict Sandbox 后通过 GitHub Actions OIDC 发布，公开包回读验证完成后再合并。当前已公开版本及安装命令仍为下方 `.125`。子包版本及 Open VSX **0.37.162** / JetBrains **0.4.179** 配对不变；未新增模型任务验收，累计 **32/45**、**13** 项未完成及 **NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。
+
 ## CLI 0.166.125（已公开，2026-10-26）
 
 CLI **0.166.125** 已通过 [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/40274009347) 发布。修复 Python `["git", *args]` 执行成功后，下一轮历史投影误报损坏 JSON 并退出的问题，同时覆盖已知代码字段中的 JS 展开、对象解包及部分一元/二元表达式。精确提交 `4285a55c2f4dfb0c0eddb7cb8f63fc73f2ff1a2b` 的 Linux、Windows、macOS CLI CI 和 Strict Sandbox 均已通过；公开 npm 归档与不可变 CI 制品逐字节一致，签名来源、十个直接子依赖及离线变更日志版本已核验。[发布证据](docs/research/cli/evidence/release125-public/publication.json)。
