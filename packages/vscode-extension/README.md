@@ -12,7 +12,7 @@ Open **Skill 自进化配置** from the command palette to enable or disable sel
 
 ## Release pairing
 
-Version **0.37.165** recommends CLI **`0.166.127`** and pairs with JetBrains **0.4.182**. It adds the shared self-evolution switch and retains saved input attachment protection. CLI 0.166.127 is public: `npm i -g chainlesschain@0.166.127 --registry https://registry.npmjs.org`. This source pairing does not claim an IDE publication; exact-source IDE checks and public artifact readback are required. Version 0.37.164 stopped before publication because the Marketplace overview failed its metadata contract; its tag is retained.
+Version **0.37.165** recommends CLI **`0.166.127`** and pairs with JetBrains **0.4.182**. It adds the shared self-evolution switch and retains saved input attachment protection. CLI 0.166.127 is public: `npm i -g chainlesschain@0.166.127 --registry https://registry.npmjs.org`. Open VSX publication and public artifact readback succeeded; JetBrains publication and public artifact readback also passed. Version 0.37.164 stopped before publication because the Marketplace overview failed its metadata contract; its tag is retained.
 
 The preceding public pairing recorded in the [CLI .125 publication receipt](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release125-public/publication.json) is Open VSX **0.37.162**, JetBrains **0.4.179**, and recommended CLI **0.166.123**. The CLI .125 follow-up did not compare IDE archive bytes or publish new IDE versions.
 
@@ -23,6 +23,24 @@ Public Open VSX **0.37.159** recommends CLI **`0.166.117`** and pairs with JetBr
 Open VSX **0.37.156** and CLI **0.166.114** were publicly downloaded and verified on 2026-10-22, but that CLI still has the Agent tool-evidence error. Microsoft Marketplace remains unpublished. The historical three-channel pairing is retained below.
 
 ## Current release
+
+<!-- release165-status -->
+
+Open VSX version **0.37.165** pairs with public CLI `0.166.127`. It is public and listed, preserves saved input attachments while an Agent may still read them, and rejects discard operations queued by an obsolete page or conversation. Exact source `43eff58a75c0702b17d7b99b2da5a199cef45a20` passed the Linux, Windows and macOS browser and host gates plus genuine Remote SSH verification in the [release workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/40403003998). The public VSIX matches the immutable candidate by raw archive and canonical ZIP content hashes. [Publication evidence](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release127-public/open-vsx.json).
+
+Release identity: `ide-vscode-v0.37.165`. Download the [versioned VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.165/file/chainlesschain.chainlesschain-ide-0.37.165.vsix), artifact `chainlesschain-ide-0.37.165.vsix`. Install its recommended CLI with `npm i -g chainlesschain@0.166.127 --registry https://registry.npmjs.org`. Using `@0.166.127` selects that public release. JetBrains **0.4.182** is public; its exact-source release gates and public ZIP payload comparison passed. Microsoft Marketplace remains unpublished.
+
+| Component                 | Current status                                                        |
+| ------------------------- | --------------------------------------------------------------------- |
+| VS Code extension         | **0.37.165**; public and listed, with a verified immutable VSIX       |
+| Recommended CLI           | **`chainlesschain@0.166.127`**; public recommendation of this release |
+| Base bridge compatibility | `cc >= 0.162.190`; newer features can require a newer CLI             |
+| Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors                   |
+| Distribution              | Open VSX; versioned VSIX for stock Microsoft VS Code                  |
+
+No new live model-task acceptance is claimed: cumulative acceptance is **32/45**, with **13** unfinished; **NOT_PAID_READY / NOT_ADMITTED / HOLD** remain. The self-evolution controls above are available in this public release.
+
+### Previous verified release (.163 / .179 / .125)
 
 <!-- release163-status -->
 
@@ -115,13 +133,13 @@ Checked on 2026-10-20: npm CLI **0.166.107**, Session Core **0.3.20**, Open VSX 
 
 ## Release compatibility
 
-Public Open VSX **0.37.162** recommends public CLI **`0.166.123`**, paired with JetBrains **0.4.179**, according to the saved publication receipt. Source candidate **0.37.163** is unpublished and recommends public CLI **`0.166.125`**.
+Public Open VSX **0.37.165** recommends public CLI **`0.166.127`**. Its exact-source release gates and public archive comparison passed. JetBrains **0.4.182** is public and independently verified.
 The table records the current verified Open VSX / CLI pairing. Formal evaluation and full native review retain their separate acceptance status.
 
 | Component                 | Current status                                                                    |
 | ------------------------- | --------------------------------------------------------------------------------- |
-| VS Code extension         | **0.37.162**; public version recorded in the saved publication receipt            |
-| Recommended CLI           | **`chainlesschain@0.166.123`**; public recommendation of the existing IDE release |
+| VS Code extension         | **0.37.165**; public version recorded in the saved publication receipt            |
+| Recommended CLI           | **`chainlesschain@0.166.127`**; public recommendation of the existing IDE release |
 | Base bridge compatibility | `cc >= 0.162.190`; newer features can require a newer CLI                         |
 | Editor compatibility      | VS Code `>= 1.85.0` and compatible Open VSX editors                               |
 | Distribution              | Open VSX; versioned VSIX for stock Microsoft VS Code                              |

@@ -1,7 +1,7 @@
 {
   "schema": "chainlesschain.release127-publication/v1",
-  "observedAt": "2026-10-26T21:07:01.027Z",
-  "status": "CLI_PUBLIC_IDE_PENDING",
+  "observedAt": "2026-10-26T23:11:52.190Z",
+  "status": "CLI_AND_IDES_PUBLIC_CLIENTS_PENDING",
   "repository": "chainlesschain/chainlesschain",
   "channels": {
     "cli": {
@@ -22,7 +22,7 @@
     },
     "openVsx": {
       "version": "0.37.165",
-      "status": "publishing",
+      "status": "public",
       "runId": 40403003998,
       "recommendedCliVersion": "0.166.127",
       "previousAttempt": {
@@ -31,19 +31,43 @@
         "status": "failed-before-publication",
         "reason": "Marketplace overview metadata contract"
       },
-      "sourceSha": "43eff58a75c0702b17d7b99b2da5a199cef45a20"
+      "sourceSha": "43eff58a75c0702b17d7b99b2da5a199cef45a20",
+      "receipt": "open-vsx.json",
+      "publicArchiveMatchesCiArtifact": true
     },
     "jetbrains": {
       "version": "0.4.182",
-      "status": "pending",
-      "runId": null,
+      "status": "public",
+      "runId": 40409875752,
       "recommendedCliVersion": "0.166.127",
-      "previousAttempt": {
-        "version": "0.4.180",
-        "runId": 40401100043,
-        "status": "failed-before-publication",
-        "reason": "Offline upgrade-floor test still expected CLI 0.166.123"
-      }
+      "sourceSha": "abc3450c13a7f5b2ba8111973bfea6e9d8090dde",
+      "previousAttempts": [
+        {
+          "version": "0.4.180",
+          "runId": 40401100043,
+          "status": "failed-before-publication",
+          "reason": "Offline upgrade-floor test still expected CLI 0.166.123"
+        },
+        {
+          "version": "0.4.181",
+          "runId": 40408644746,
+          "status": "failed-before-publication",
+          "reason": "README release compatibility section identified an older candidate"
+        }
+      ],
+      "uploadVerified": true,
+      "workflowConclusion": "success",
+      "candidateIdentity": "jetbrains-candidate-identity.json",
+      "candidateSha256": "ac1d835eab12ff52da0011884e1f9a33a3dda05ae90be58d54a8958ff31ad2da",
+      "tag": "ide-jetbrains-v0.4.182",
+      "publicArchivesVerified": true,
+      "immutableCandidatePayloadMatch": true,
+      "receipt": "jetbrains-public-readback.json",
+      "publicSha256": "62798d61a8ff2efd3ac3f783b12b8bd2ef5996d1ad8f85a408bcb034a83b3323"
+    },
+    "microsoftMarketplace": {
+      "status": "unpublished",
+      "reason": "VSCE_PAT is not configured"
     }
   },
   "childPackages": {
@@ -56,13 +80,26 @@
     "receipt": "gates.json",
     "cliCiRunId": 40385426230,
     "strictSandboxRunId": 40385426186,
-    "platforms": ["linux", "windows", "macos"]
+    "platforms": [
+      "linux",
+      "windows",
+      "macos"
+    ]
   },
   "clients": {
     "productVersion": "v5.0.3.142",
     "status": "pending",
     "cliVersion": "0.166.127",
-    "androidBundleRunId": 40401180829
+    "androidBundleRunId": 40401180829,
+    "androidRuntimeAssets": {
+      "releaseId": 424782490,
+      "tag": "internal-binaries-android-v20261027-1",
+      "status": "public-verified",
+      "assetCount": 27,
+      "totalBytes": 304291502,
+      "receipt": "android-runtime-assets.json",
+      "cliArchiveSha256": "a3568a943faa810a521c15f081f0f691f245b012b7ce38c049b9bf2a820e0781"
+    }
   },
   "acceptance": {
     "accepted": 32,

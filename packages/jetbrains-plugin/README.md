@@ -13,7 +13,7 @@ diffs inside IntelliJ-platform IDEs (IDEA, PyCharm, WebStorm, …).
 
 ## Release pairing
 
-Plugin **0.4.182** recommends CLI **`0.166.127`** and pairs with VS Code **0.37.165**. It adds the shared self-evolution switch. CLI 0.166.127 is public; IDE publication requires exact-source checks and public artifact readback. Version 0.4.180 stopped before publication because an offline upgrade-floor test still expected CLI 0.166.123; its tag is retained.
+Plugin **0.4.182** recommends CLI **`0.166.127`** and pairs with VS Code **0.37.165**. It adds the shared self-evolution switch. CLI 0.166.127 and both paired IDEs are public; exact-source checks and public artifact readback passed. Version 0.4.180 stopped before publication because an offline upgrade-floor test still expected CLI 0.166.123; its tag is retained.
 
 Plugin **0.4.179** recommends public CLI **`0.166.123`** and pairs with VS Code **0.37.162**. These IDE source candidates have not been published. The paired CLI repairs Python f-string evidence projection and Ollama endpoint aliases while reducing repeated Windows ACL startup work. Exact-source IDE gates and public artifact readback remain pending. Previously verified public releases are retained below.
 
@@ -22,6 +22,16 @@ Plugin **0.4.176** recommends CLI **`0.166.117`** and pairs with VS Code **0.37.
 The .173 Marketplace upload succeeded before its workflow was cancelled after discovering the paired CLI .114 Agent error. Public approval and ZIP download have not been verified; the historical .172 / CLI .112 pairing is retained below.
 
 ## Current release
+
+<!-- release182-status -->
+
+JetBrains **0.4.182** is approved, listed and publicly downloadable. The immutable `ide-jetbrains-v0.4.182` tag selects source `abc3450c13a7f5b2ba8111973bfea6e9d8090dde`. All six real IDE host tests, three-system browser checks, full JUnit, build and compatibility checks passed in the [release workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/40409875752).
+
+The public [plugin ZIP](https://plugins.jetbrains.com/files/32208/1203654/chainlesschain-ide-bridge-0.4.182.zip) contains plugin **0.4.182** and compiled CLI recommendation **0.166.127**. All original candidate payload entries match. The public archive is 1,555,711 bytes with SHA256 `62798d61a8ff2efd3ac3f783b12b8bd2ef5996d1ad8f85a408bcb034a83b3323`. [Publication evidence](../../docs/research/cli/evidence/release127-public/publication.json). Install CLI with `npm i -g chainlesschain@0.166.127 --registry https://registry.npmjs.org`.
+
+No new live model-task acceptance is claimed: **32/45**, **13** unfinished, **NOT_PAID_READY / NOT_ADMITTED / HOLD** remain.
+
+### Previous verified release (.178 / .121)
 
 <!-- release178-status -->
 
@@ -102,7 +112,7 @@ See the [upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-u
 
 ## Release compatibility
 
-Plugin **0.4.182** recommends `chainlesschain@0.166.127`. The CLI is public; plugin publication remains pending exact-source release gates and public artifact readback. This release adds the shared self-evolution switch and preserves unknown delivery handling. Native task quality and restart acceptance still require separate published-package evidence.
+Plugin **0.4.182** is the current public release. It recommends `chainlesschain@0.166.127`. Exact-source release gates and public artifact readback passed. This release adds the shared self-evolution switch and preserves unknown delivery handling. Native task quality and restart acceptance still require separate published-package evidence.
 
 ## Previous candidates and development notes
 

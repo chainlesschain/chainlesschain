@@ -1,0 +1,10 @@
+{
+  "schema": "chainlesschain.release127-ide-artifact-identity/v1",
+  "observedAt": "2026-10-26T23:03:18.225Z",
+  "channel": "jetbrains",
+  "bytes": 1550051,
+  "sha256": "ac1d835eab12ff52da0011884e1f9a33a3dda05ae90be58d54a8958ff31ad2da",
+  "jar": "chainlesschain-ide-bridge/lib/chainlesschain-ide-bridge-0.4.182.jar",
+  "version": "0.4.182",
+  "recommendedCliVersion": "0.166.127"
+}
