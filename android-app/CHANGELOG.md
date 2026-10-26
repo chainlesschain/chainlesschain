@@ -1,5 +1,14 @@
 # Changelog
 
+## [5.0.3.142] - 2026-10-26（候选版本）
+
+**versionCode**: 503142 / **versionName**: 5.0.3.142
+
+- 本地终端更新到公开 CLI `0.166.123`，使用经来源验证的独立运行包。
+- 解压版本递增到 `86`，高于已公开产品 `.141` 的 `85`，确保升级后重新提取运行包。
+- 对齐桌面 `5.0.3-alpha.142` 与 iOS `5.0.3` / build `142`；正式发布仍需
+  配套 IDE 公开验证、签名 APK/AAB 构建和内嵌运行包校验。本条目不宣称设备验收完成。
+
 本文档记录 ChainlessChain Android 应用的所有重要变更。
 
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
