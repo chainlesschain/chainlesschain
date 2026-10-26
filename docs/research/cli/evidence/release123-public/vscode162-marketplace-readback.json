@@ -1,0 +1,23 @@
+{
+  "status": "verified",
+  "channel": "vscode",
+  "version": "0.37.162",
+  "recommendedCliVersion": "0.166.123",
+  "commit": "497dd14701e3d2561d1badac5625bbb71ee78e10",
+  "runId": "40262141109",
+  "runStatus": "completed",
+  "runConclusion": "success",
+  "candidateArtifactId": 12625840810,
+  "verifiedAt": "2026-10-26T03:34:01.691Z",
+  "publicUrl": "https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.162/file/chainlesschain.chainlesschain-ide-0.37.162.vsix",
+  "publicSize": 736943,
+  "publicSha256": "fd6e9559a840da98b73112c5e5134a68255bba4b2ed06e70a965ebb4edeef70d",
+  "candidateSha256": "fd6e9559a840da98b73112c5e5134a68255bba4b2ed06e70a965ebb4edeef70d",
+  "rawBytesMatch": true,
+  "comparedEntries": 180,
+  "publicMetadata": {
+    "downloadable": true,
+    "namespace": "chainlesschain",
+    "name": "chainlesschain-ide"
+  }
+}
