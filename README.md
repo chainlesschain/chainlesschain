@@ -12,7 +12,7 @@
 
 CLI **0.166.126** 已通过 [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/40332695884) 公开发布。精确源码 `1b848f7e265737b73e6f8ac99f0aeaf9ea5dadbe` 的 Linux、Windows、macOS CLI CI 与 Strict Sandbox 均已通过，公开 npm 包与不可变 CI 制品、签名来源和十个直接子依赖已核验。[发布证据](docs/research/cli/evidence/release126-public/publication.json)。
 
-安装：`npm i -g chainlesschain@0.166.126 --registry https://registry.npmjs.org`，重启 IDE 聊天宿主后运行 `cc --version` 和 `cc doctor`。子包版本及 Open VSX **0.37.162** / JetBrains **0.4.179** 公开配对不变；VS Code **0.37.163** 正在独立发布，尚未完成公开核验。未新增模型任务验收，累计 **32/45**、**13** 项未完成及 **NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。
+安装：`npm i -g chainlesschain@0.166.126 --registry https://registry.npmjs.org`，重启 IDE 聊天宿主后运行 `cc --version` 和 `cc doctor`。子包版本不变。Open VSX **0.37.163** 已公开上市，下载 VSIX 与不可变 CI 制品逐字节一致，包内推荐 CLI **0.166.125**；JetBrains **0.4.179** 保持现有公开版本，推荐 CLI **0.166.123**。[IDE 发布证据](docs/research/cli/evidence/release126-public/open-vsx.json)。未新增模型任务验收，累计 **32/45**、**13** 项未完成及 **NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。
 
 ## CLI 0.166.125（已公开，2026-10-26）
 

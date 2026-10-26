@@ -12,7 +12,7 @@ cc --version
 cc doctor
 ```
 
-升级后重启 IDE 聊天宿主，并确认实际 CLI 路径和版本。当前公开 IDE 配对仍为 Open VSX **0.37.162** / JetBrains **0.4.179**，推荐标记仍为 CLI **0.166.123**；VS Code **0.37.163** 正在单独发布，公开核验尚未完成。子包版本不变；未新增真实模型任务验收，累计 **32/45**、**13** 项未完成及 **NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。
+升级后重启 IDE 聊天宿主，并确认实际 CLI 路径和版本。Open VSX **0.37.163** 已公开上市，[版本 VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.163/file/chainlesschain.chainlesschain-ide-0.37.163.vsix) 与不可变 CI 制品逐字节一致；包内推荐 CLI **0.166.125**。JetBrains **0.4.179** 保持现有公开版本，推荐 CLI **0.166.123**。[IDE 发布证据](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release126-public/open-vsx.json)。Microsoft Marketplace 尚未发布，原版 VS Code 可使用上述 VSIX 安装。子包版本不变；未新增真实模型任务验收，累计 **32/45**、**13** 项未完成及 **NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。
 
 ## CLI .125 历史发行记录
 

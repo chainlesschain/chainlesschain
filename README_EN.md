@@ -12,7 +12,7 @@ Repairs repeated Agent ingress failures caused by character-cut JSON in retained
 
 CLI **0.166.126** is public through [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/40332695884). Exact source `1b848f7e265737b73e6f8ac99f0aeaf9ea5dadbe` passed Linux, Windows and macOS CLI CI and Strict Sandbox. The public npm archive, immutable CI artifact, signed provenance and ten direct child dependencies are verified. [Publication evidence](docs/research/cli/evidence/release126-public/publication.json).
 
-Install: `npm i -g chainlesschain@0.166.126 --registry https://registry.npmjs.org`, restart the IDE chat host, then run `cc --version` and `cc doctor`. Child pins and the public Open VSX **0.37.162** / JetBrains **0.4.179** pairing are unchanged. VS Code **0.37.163** has a separate publication in progress; public verification is pending. No new live model-task acceptance is claimed: **32/45** accepted, **13** unfinished, **NOT_PAID_READY / NOT_ADMITTED / HOLD** remain.
+Install: `npm i -g chainlesschain@0.166.126 --registry https://registry.npmjs.org`, restart the IDE chat host, then run `cc --version` and `cc doctor`. Child pins are unchanged. Open VSX **0.37.163** is publicly listed, and its downloaded VSIX matches the immutable CI artifact byte for byte; it recommends CLI **0.166.125**. Existing public JetBrains **0.4.179** still recommends CLI **0.166.123**. [IDE publication evidence](docs/research/cli/evidence/release126-public/open-vsx.json). No new live model-task acceptance is claimed: **32/45** accepted, **13** unfinished, **NOT_PAID_READY / NOT_ADMITTED / HOLD** remain.
 
 ## CLI 0.166.125 (public, 2026-10-26)
 
