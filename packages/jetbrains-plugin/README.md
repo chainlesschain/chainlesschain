@@ -7,7 +7,7 @@ diffs inside IntelliJ-platform IDEs (IDEA, PyCharm, WebStorm, …).
 
 ## Release pairing
 
-Plugin **0.4.178** preserves unknown input delivery after pipe failures and pairs with public Open VSX **0.37.161** and CLI **`0.166.121`**. It is approved, publicly listed and its downloaded ZIP identity and CLI recommendation are verified. This release pairs with the CLI ingress display-text recovery. Previously verified public releases are retained below.
+Plugin **0.4.179** recommends public CLI **`0.166.123`** and pairs with VS Code **0.37.162**. These IDE source candidates have not been published. The paired CLI repairs Python f-string evidence projection and Ollama endpoint aliases while reducing repeated Windows ACL startup work. Exact-source IDE gates and public artifact readback remain pending. Previously verified public releases are retained below.
 
 Plugin **0.4.176** recommends CLI **`0.166.117`** and pairs with VS Code **0.37.159**. The paired CLI repairs source and command evidence projection, complete bounded JSON tool previews, cumulative evidence budgets, and separate image and provider token accounting. IDE publication follows the paired CLI and dependency graph verification, exact-source release gates, and public artifact readback.
 
@@ -89,12 +89,12 @@ the _same_ lockfile and speaks the _same_ MCP protocol as the VS Code
 extension; only `ide` differs (`"jetbrains"`). Feature controls still require
 the corresponding exact-gated CLI command, as documented below.
 
-Install the paired CLI with `npm i -g chainlesschain@0.166.117 --registry https://registry.npmjs.org`.
+Install the paired CLI with `npm i -g chainlesschain@0.166.123 --registry https://registry.npmjs.org`.
 See the [upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-20.html).
 
 ## Release compatibility
 
-Plugin **0.4.178** recommends `chainlesschain@0.166.121`. It is approved and publicly listed after exact-source release gates and public CLI verification; the public ZIP identity, CLI recommendation and all candidate inner JAR entries are verified. It preserves unknown delivery after a partial pipe write and rejects later submissions before reserving another delivery. Native task quality and restart acceptance still require separate published-package evidence.
+Plugin **0.4.179** is the current release candidate. It recommends `chainlesschain@0.166.123`. The CLI is public; plugin publication and public ZIP readback remain pending the exact-source IDE gates. It preserves unknown delivery after a partial pipe write and rejects later submissions before reserving another delivery. Native task quality and restart acceptance still require separate published-package evidence.
 
 ## Previous candidates and development notes
 

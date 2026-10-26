@@ -1,5 +1,11 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.179] - CLI 0.166.123 pairing (candidate, 2026-10-26)
+
+- Recommend public CLI 0.166.123 and pair with VS Code 0.37.162.
+- The paired CLI accepts Python f-string table labels in Agent evidence, normalizes Ollama endpoint aliases, and reduces repeated Windows ACL startup work while preserving strict evidence and storage checks.
+- Align the runtime upgrade recommendation and plugin metadata. Publication and public artifact readback remain pending the exact-source IDE release gates.
+
 ## [0.4.178] - CLI ingress display text recovery (candidate, 2026-10-25)
 
 - Recommend CLI 0.166.121 and pair with VS Code 0.37.161.

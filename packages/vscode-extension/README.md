@@ -6,7 +6,9 @@ MCP bridge.
 
 ## Release pairing
 
-Version **0.37.161** recommends CLI **`0.166.121`** and is public on Open VSX. Its downloaded VSIX matches the immutable CI candidate. The paired JetBrains **0.4.178** is approved, publicly listed and its public ZIP identity and CLI recommendation are verified. This release pairs with the CLI ingress display-text recovery and preserves input delivery and Windows draft recovery fixes with SDK **0.2.16**.
+Version **0.37.162** recommends CLI **`0.166.123`** and pairs with JetBrains **0.4.179**. These IDE source candidates have not been published. CLI **0.166.123** is public and repairs Python f-string evidence projection and Ollama endpoint aliases while reducing repeated Windows ACL startup work. Exact-source IDE gates and public artifact readback are still required before publication is complete.
+
+The verified public pairing remains Open VSX **0.37.161**, JetBrains **0.4.178** and CLI **`0.166.121`**, recorded below. Input delivery and Windows draft recovery fixes with SDK **0.2.16** are retained.
 
 The preceding Open VSX **0.37.160** pairing recommended CLI **`0.166.118`** with JetBrains **0.4.177**; its input delivery and Windows draft recovery fixes are retained.
 

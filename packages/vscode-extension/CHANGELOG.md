@@ -2,6 +2,12 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.162] - CLI 0.166.123 pairing (candidate, 2026-10-26)
+
+- Recommend public CLI 0.166.123 and pair with JetBrains 0.4.179.
+- The paired CLI accepts Python f-string table labels in Agent evidence, normalizes Ollama endpoint aliases, and reduces repeated Windows ACL startup work while preserving strict evidence and storage checks.
+- This source candidate updates the recommended CLI version. Publication and public artifact readback remain pending the exact-source IDE release gates.
+
 ## [0.37.161] - CLI ingress display text recovery (candidate, 2026-10-25)
 
 - Recommend CLI 0.166.121 and pair with JetBrains 0.4.178.
