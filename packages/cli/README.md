@@ -2,6 +2,18 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
+## CLI 0.166.125 (public, 2026-10-26)
+
+Fixes Agent Run termination after successful Python `run_code` calls containing list unpacking such as `["git", *args]`. The next model request can project the completed tool history. Versioned v8 projection also recognizes bounded JavaScript spread, object unpacking and unary/binary expressions in known code fields and supported code fences. Strict tool argument JSON, nested malformed/duplicate JSON checks, redaction and shared budgets remain enforced; v7 evidence remains verifiable.
+
+CLI **0.166.125** is public through [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/40274009347) at source `4285a55c2f4dfb0c0eddb7cb8f63fc73f2ff1a2b`. Exact-source Linux, Windows and macOS CLI CI and CLI Strict Sandbox passed. The public npm archive matches the immutable CI artifact byte for byte; registry integrity, signed provenance, ten direct child pins and the offline changelog identity were verified. [Publication evidence](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release125-public/publication.json).
+
+Install: `npm i -g chainlesschain@0.166.125 --registry https://registry.npmjs.org`. Restart the IDE chat host, then check `cc --version` and `cc doctor`. Current public IDEs are Open VSX **0.37.162** / JetBrains **0.4.179**, whose recommendation remains CLI **0.166.123**. This release updates the CLI only; child pins remain unchanged, including Session Core **0.3.24**.
+
+New source expressions with preceding sensitive names or opaque template context remain rejected conservatively. This is a targeted compatibility fix, not a general Python/JavaScript parser. No new live model-task acceptance is claimed: cumulative acceptance remains **32/45**, with **13** unfinished; **NOT_PAID_READY / NOT_ADMITTED / HOLD** remain.
+
+Candidate `.124` was stopped before publication because its committed offline changelog did not match the canonical release notes. Its immutable tag is retained; `.125` includes the regenerated changelog and passed fresh exact-source release gates.
+
 ## CLI 0.166.123 (public, 2026-10-26)
 
 This release addresses inherited `fable[1m]` model settings overriding a configured non-Anthropic provider, Windows model-turn preparation latency, and Python formatted-string tool evidence being rejected as ambiguous JSON. It pins Session Core **0.3.24**. The GitHub Actions OIDC release workflow requires exact-source Linux, Windows and macOS CLI CI and CLI Strict Sandbox, publishes and verifies Session Core first, and verifies the public CLI archive before reporting publication success.

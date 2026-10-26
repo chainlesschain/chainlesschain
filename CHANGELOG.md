@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.125: source expressions in completed tool history (candidate, 2026-10-26)
+
+- Recognize Python list/object unpacking, JavaScript spread and bounded unary/binary expressions in code fields so completed tool history can reach the next model turn.
+- Keep malformed/duplicate JSON and projection budgets enforced, retain conservative sensitive-source guards, and preserve v7 evidence verification with versioned v8 rules.
+- Add regressions for object/serialized arguments, paired results, fenced code, sensitive assignment wrappers and real Agent continuation without tool replay. Child dependency pins are unchanged. Publication requires exact-source three-OS CLI CI and Strict Sandbox followed by Actions OIDC.
+
 ### Fixed - cc CLI 0.166.123: model selection, Windows first-token latency and Python evidence (candidate, 2026-10-26)
 
 - Keep inherited `fable[1m]` Anthropic settings from overriding a configured Volcengine model; preserve explicit model choices and compatible provider settings.

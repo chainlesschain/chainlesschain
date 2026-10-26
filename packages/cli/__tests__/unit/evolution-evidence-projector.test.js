@@ -47,6 +47,7 @@ import {
   EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V4_DIGEST,
   EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V5_DIGEST,
   EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V6_DIGEST,
+  EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V7_DIGEST,
   EVOLUTION_SKILL_DECISION_PROJECTION_RULESET_DIGEST,
   EVOLUTION_PROJECTION_SOURCE_DENIED_CODE,
   EVOLUTION_PROJECTION_STORAGE_FAILED_CODE,
@@ -873,6 +874,161 @@ describe("EvolutionEvidenceProjector", () => {
   const fencedRequest = (content, role = "system") => ({
     messages: [{ role, content }],
     tools: [],
+  });
+
+  it.each([
+    'subprocess.run(["git", *a], capture_output=True, text=True)',
+    'spawn("git", ["status", ...args])',
+    '["git", *["status"]]',
+    '["git", ...["status"]]',
+    '["git", *分支参数]',
+    "[1.0.toString()]",
+    "[1.0.real]",
+    "[1, -offset, +offset, !flag, ~mask]",
+    "[1-2, 1%2, 1<<2, 1>>2, 1|2, 1&2, 1^2, 1==2, 1!=2]",
+    "[1 and 2, 1 or 2, 1 in rows, 1 is None]",
+    '["x" if condition else "y"]',
+    '{"ok":true, **kwargs}',
+    '{"ok":true, ...rest}',
+    '["git", {**kwargs}]',
+  ])(
+    "admits bounded source expressions across code paths (%s)",
+    async (code) => {
+      const h = harness();
+      for (const request of [
+        ...["result", "arguments", "serialized-arguments"].map((location) =>
+          runCodeRequest(code, location),
+        ),
+        fencedRequest(`\`\`\`python\n${code}\n\`\`\``),
+        fencedRequest(`\`\`\`javascript\n${code}\n\`\`\``),
+      ]) {
+        const bundle = await h.projector.projectAgentModelRequest(
+          input(request, "signed-source:free-form-tool"),
+        );
+        expect(bundle.modelProjection.content).toEqual(request);
+        await expect(h.verifier.verify(bundle)).resolves.toMatchObject({
+          verified: true,
+        });
+        expect(
+          buildAgentModelRequest(
+            request,
+            bundle.modelProjection,
+          ).messages.slice(1),
+        ).toEqual(request.messages);
+      }
+    },
+  );
+
+  it.each([
+    '["git", *]',
+    '["git", ...]',
+    '{"x":1, **}',
+    "[1,-]",
+    "[1, +, 2]",
+    "[1,-01]",
+    "[1,-1e]",
+    "[1, +1e999]",
+    "[1, +9007199254740993]",
+    '["git", *a, {"ok":true,}]',
+    '["git", ...args, {"ok":1,"ok":2}]',
+    '["git", *a, [1e999]]',
+    '["git", *a, [9007199254740993]]',
+    '{"password": -secretName}',
+    '{"password":["prefix",*args]}',
+    '{"password": 1 and "secretSuffix"}',
+    'password = "firstHalf" or "secretSuffix"',
+    'password = ["unprefixedSecretValue", *args]',
+    'password = {"part":"unprefixedSecretValue", **kwargs}',
+    'password = (["unprefixedSecretValue", *args])',
+    'password = decrypt("salt", ["unprefixedSecretValue", *args])',
+    'config.password = (["unprefixedSecretValue", *args])',
+    'config["password"] = ["unprefixedSecretValue", *args]',
+    String.raw`config["\u0070assword"] = ["unprefixedSecretValue", *args]`,
+    'password = decrypt(\n"salt",\n["unprefixedSecretValue", *args])',
+    'config = {password: ["unprefixedSecretValue", ...args]}',
+    'value = 1 // 2; password = (["unprefixedSecretValue", *args])',
+    'password += ["unprefixedSecretValue", *args]',
+    'config.password ||= ["unprefixedSecretValue", ...args]',
+    '(password := ["unprefixedSecretValue", *args])',
+    '[password] = [["unprefixedSecretValue", ...args]]',
+    'password /* comment */ = ["unprefixedSecretValue", ...args]',
+    'config["password"] /* comment */ = ["unprefixedSecretValue", ...args]',
+    String.raw`p\u0061ssword = ["unprefixedSecretValue", ...args]`,
+    'password = `prefix;${["unprefixedSecretValue", ...args]}`',
+    'password = `prefix\n${["unprefixedSecretValue", ...args]}`',
+    'password =\ndecrypt("salt", ["unprefixedSecretValue", ...args])',
+    'password = (() => { const salt = "salt"; return ["unprefixedSecretValue", ...args]; })()',
+  ])("retains strict failures around source expressions (%s)", async (code) => {
+    const h = harness();
+    await expect(
+      h.projector.projectAgentModelRequest(
+        input(
+          runCodeRequest(code, "serialized-arguments"),
+          "signed-source:free-form-tool",
+        ),
+      ),
+    ).rejects.toThrow(
+      /malformed|ambiguous|budget|sensitive key|opaque source/u,
+    );
+    expect(h.attestor.sign).not.toHaveBeenCalled();
+  });
+
+  it("decodes and redacts secrets after source spread without changing live arguments", async () => {
+    const h = harness();
+    const code = String.raw`rows = ["git", *args, {"\u0070assword":"unprefixedSecretValue"}, 'alice\x40example.com']`;
+    const request = runCodeRequest(code, "serialized-arguments");
+    const bundle = await h.projector.projectAgentModelRequest(
+      input(request, "signed-source:free-form-tool"),
+    );
+    expect(request.messages[0].tool_calls[0].function.arguments).toContain(
+      "unprefixedSecretValue",
+    );
+    expect(JSON.stringify(bundle)).not.toContain("unprefixedSecretValue");
+    expect(JSON.stringify(bundle)).not.toContain("alice");
+    await expect(h.verifier.verify(bundle)).resolves.toMatchObject({
+      verified: true,
+    });
+  });
+
+  it("keeps source expression admission out of prose and strict tool argument objects", async () => {
+    const h = harness();
+    for (const request of [
+      fencedRequest('["git", *a]'),
+      jsonRequest('{"code":"pass", ...args}', true),
+      fencedRequest('"status": -ready'),
+    ]) {
+      await expect(
+        h.projector.projectAgentModelRequest(
+          input(request, "signed-source:free-form-tool"),
+        ),
+      ).rejects.toThrow(/malformed/u);
+    }
+  });
+
+  it("preserves v7 receipts and historical source-expression rejection", async () => {
+    expect(EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V7_DIGEST).toBe(
+      "sha256:8ee39a4605f118166959564c100d82e7dc48c3025ed44cbd5954d4614e4c08e1",
+    );
+    const h = harness();
+    const bundle = await h.projector.projectAgentModelRequest(
+      input(runCodeRequest("print('ready')"), "signed-source:free-form-tool"),
+    );
+    const historical = await reattest(
+      h,
+      bundle,
+      bundle.modelProjection.content,
+      EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V7_DIGEST,
+    );
+    await expect(h.verifier.verify(historical)).resolves.toMatchObject({
+      verified: true,
+    });
+    const oldSpread = await reattest(
+      h,
+      bundle,
+      runCodeRequest('["git", *a]'),
+      EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V7_DIGEST,
+    );
+    await expect(h.verifier.verify(oldSpread)).rejects.toThrow(/malformed/u);
   });
 
   it.each([

@@ -1,6 +1,22 @@
-# CLI .121 与 IDE 升级指南（2026-10-26）
+# CLI .125 与 IDE 升级指南（2026-10-26）
 
 ## 概述
+
+CLI **0.166.125** 已通过 [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/40274009347) 公开发布，精确源提交为 `4285a55c2f4dfb0c0eddb7cb8f63fc73f2ff1a2b`。Linux、Windows、macOS 的 CLI CI 和 Strict Sandbox 全部通过；公开归档与 CI 制品逐字节一致，签名来源、十个子包依赖及离线变更日志版本已核验。[发布证据](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release125-public/publication.json)。
+
+本次修复 Python `subprocess.run(["git", *args])` 成功后，下一轮历史投影误报 JSON 错误并退出的问题，并覆盖已知代码路径中的 JS 展开、对象解包及部分运算表达式。严格 JSON 校验、敏感信息脱敏、预算和历史证据验证继续生效；敏感名称或无法解码的模板上下文仍保守拒绝。
+
+```bash
+npm i -g chainlesschain@0.166.125 --registry https://registry.npmjs.org
+cc --version
+cc doctor
+```
+
+升级后重启 IDE 聊天宿主。`cc --version` 应为 `0.166.125`；Doctor 中的路径必须对应实际升级的 CLI。当前公开插件为 Open VSX **0.37.162** / JetBrains **0.4.179**，其推荐值仍为 CLI **0.166.123**。本次只更新 CLI，子包版本不变。
+
+候选 `.124` 因未同步离线变更日志被 CI 拦截，未发布，标签保留。未新增真实模型任务验收，累计仍为 **32/45**、**13** 项未完成；**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。以下为 `.121` 的历史发行记录。
+
+## CLI .121 历史发行记录
 
 CLI **0.166.121**、Open VSX **0.37.161**、JetBrains **0.4.178** 均已公开并完成下载核验。两个 IDE 均推荐 CLI **0.166.121**。这次修复主要针对 Agent 在读到 Git、Shell、日志或普通说明文本后，错误报告 `Agent model JSON text is malformed or ambiguous` 的情况。
 

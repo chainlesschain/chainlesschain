@@ -596,7 +596,7 @@ export const EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V6_DIGEST = `sha256:${crea
     "utf8",
   )
   .digest("hex")}`;
-const AGENT_MODEL_RULESET = Object.freeze({
+const AGENT_MODEL_RULESET_V7 = Object.freeze({
   ...AGENT_MODEL_RULESET_V6,
   schema: "chainlesschain.evolution-agent-model-projection-rules/v7",
   version: 7,
@@ -604,6 +604,24 @@ const AGENT_MODEL_RULESET = Object.freeze({
     ...AGENT_MODEL_RULESET_V6.jsonTextPolicy,
     version: 4,
     pythonFStringPolicy: "bounded-static-label-alignment-v1",
+  }),
+});
+export const EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V7_DIGEST = `sha256:${createHash(
+  "sha256",
+)
+  .update(
+    `${AGENT_MODEL_RULESET_V7.schema}\0${JSON.stringify(AGENT_MODEL_RULESET_V7)}`,
+    "utf8",
+  )
+  .digest("hex")}`;
+const AGENT_MODEL_RULESET = Object.freeze({
+  ...AGENT_MODEL_RULESET_V7,
+  schema: "chainlesschain.evolution-agent-model-projection-rules/v8",
+  version: 8,
+  jsonTextPolicy: Object.freeze({
+    ...AGENT_MODEL_RULESET_V7.jsonTextPolicy,
+    version: 5,
+    sourceExpressionPolicy: "bounded-source-tokens-v1",
   }),
 });
 export const EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_DIGEST = `sha256:${createHash(
@@ -640,6 +658,7 @@ const SUPPORTED_RULESETS = new Map([
   [EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V4_DIGEST, AGENT_MODEL_RULESET_V4],
   [EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V5_DIGEST, AGENT_MODEL_RULESET_V5],
   [EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V6_DIGEST, AGENT_MODEL_RULESET_V6],
+  [EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V7_DIGEST, AGENT_MODEL_RULESET_V7],
   [EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_DIGEST, AGENT_MODEL_RULESET],
 ]);
 
@@ -715,6 +734,7 @@ const AGENT_VALUE_PATTERNS = Object.freeze([
 function valuePatterns(ruleset) {
   return ruleset === SKILL_DECISION_RULESET ||
     ruleset === AGENT_MODEL_RULESET ||
+    ruleset === AGENT_MODEL_RULESET_V7 ||
     ruleset === AGENT_MODEL_RULESET_V6 ||
     ruleset === AGENT_MODEL_RULESET_V5 ||
     ruleset === AGENT_MODEL_RULESET_V4 ||
@@ -1469,6 +1489,7 @@ function sanitizePayload(
     const toolArguments = jsonText && isAgentToolArgumentsPath(path);
     const opaqueTransportBlock =
       ruleset === AGENT_MODEL_RULESET ||
+      ruleset === AGENT_MODEL_RULESET_V7 ||
       ruleset === AGENT_MODEL_RULESET_V6 ||
       ruleset === AGENT_MODEL_RULESET_V5 ||
       ruleset === AGENT_MODEL_RULESET_V4 ||
@@ -3364,6 +3385,7 @@ function validateBundleIntegrity(bundle) {
     }
     if (
       ruleset === AGENT_MODEL_RULESET ||
+      ruleset === AGENT_MODEL_RULESET_V7 ||
       ruleset === AGENT_MODEL_RULESET_V6 ||
       ruleset === AGENT_MODEL_RULESET_V5 ||
       ruleset === AGENT_MODEL_RULESET_V4 ||
@@ -3375,6 +3397,7 @@ function validateBundleIntegrity(bundle) {
         allowStructuredArgumentText: ruleset !== AGENT_MODEL_RULESET_V1,
         allowOpaqueTransportBlocks:
           ruleset === AGENT_MODEL_RULESET ||
+          ruleset === AGENT_MODEL_RULESET_V7 ||
           ruleset === AGENT_MODEL_RULESET_V6 ||
           ruleset === AGENT_MODEL_RULESET_V5 ||
           ruleset === AGENT_MODEL_RULESET_V4 ||
