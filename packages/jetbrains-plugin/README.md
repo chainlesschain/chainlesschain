@@ -1,10 +1,10 @@
 # ChainlessChain IDE Bridge (JetBrains)
 
-## Self-evolution switch (unreleased)
+## Self-evolution switch
 
 完整中文配置与排查步骤见[CLI 与 IDE 自进化开关配置](../../docs/cli/SELF_EVOLUTION_CONFIGURATION.md)。
 
-Open **Skill 自进化配置** through ChainlessChain settings/actions to enable or disable self-evolution. The switch shares the CLI user `config.json` field `evolution.enabled`, defaults to off, and can initialize the local signed runtime on explicit enable. Disabling preserves deployment data and ordinary Agent functionality. Stop and restart a running Agent session after changing it. These controls require the corresponding updated CLI and plugin; publication is pending.
+Open **Skill 自进化配置** through ChainlessChain settings/actions to enable or disable self-evolution. The switch shares the CLI user `config.json` field `evolution.enabled`, defaults to off, and can initialize the local signed runtime on explicit enable. Disabling preserves deployment data and ordinary Agent functionality. Stop and restart a running Agent session after changing it. These controls require CLI 0.166.127 and the paired plugin version below.
 
 Phase 3 of the IDE bridge (`docs/design/modules/98_IDE桥接对标方案.md`). The
 JetBrains counterpart of the [VS Code extension](../vscode-extension/): it lets
@@ -13,7 +13,7 @@ diffs inside IntelliJ-platform IDEs (IDEA, PyCharm, WebStorm, …).
 
 ## Release pairing
 
-Candidate **0.4.180** recommends CLI **`0.166.127`** and pairs with VS Code **0.37.165**. It adds the shared self-evolution switch. Release requires the recommended CLI to be publicly available, exact-source IDE checks, and public artifact readback.
+Plugin **0.4.181** recommends CLI **`0.166.127`** and pairs with VS Code **0.37.165**. It adds the shared self-evolution switch. CLI 0.166.127 is public; IDE publication requires exact-source checks and public artifact readback. Version 0.4.180 stopped before publication because an offline upgrade-floor test still expected CLI 0.166.123; its tag is retained.
 
 Plugin **0.4.179** recommends public CLI **`0.166.123`** and pairs with VS Code **0.37.162**. These IDE source candidates have not been published. The paired CLI repairs Python f-string evidence projection and Ollama endpoint aliases while reducing repeated Windows ACL startup work. Exact-source IDE gates and public artifact readback remain pending. Previously verified public releases are retained below.
 

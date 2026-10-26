@@ -12,7 +12,7 @@ Open **Skill 自进化配置** from the command palette to enable or disable sel
 
 ## Release pairing
 
-Version **0.37.165** recommends CLI **`0.166.127`** and pairs with JetBrains **0.4.180**. It adds the shared self-evolution switch and retains saved input attachment protection. CLI 0.166.127 is public: `npm i -g chainlesschain@0.166.127 --registry https://registry.npmjs.org`. This source pairing does not claim an IDE publication; exact-source IDE checks and public artifact readback are required. Version 0.37.164 stopped before publication because the Marketplace overview failed its metadata contract; its tag is retained.
+Version **0.37.165** recommends CLI **`0.166.127`** and pairs with JetBrains **0.4.181**. It adds the shared self-evolution switch and retains saved input attachment protection. CLI 0.166.127 is public: `npm i -g chainlesschain@0.166.127 --registry https://registry.npmjs.org`. This source pairing does not claim an IDE publication; exact-source IDE checks and public artifact readback are required. Version 0.37.164 stopped before publication because the Marketplace overview failed its metadata contract; its tag is retained.
 
 The preceding public pairing recorded in the [CLI .125 publication receipt](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release125-public/publication.json) is Open VSX **0.37.162**, JetBrains **0.4.179**, and recommended CLI **0.166.123**. The CLI .125 follow-up did not compare IDE archive bytes or publish new IDE versions.
 

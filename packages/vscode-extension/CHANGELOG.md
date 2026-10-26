@@ -6,7 +6,7 @@ All notable changes to this extension are documented here.
 
 - Add a self-evolution enable/disable control that works before a deployment exists and shares the CLI `evolution.enabled` setting with cc ui and JetBrains.
 - Default fresh and automatically created local deployments to off; preserve explicit deployment opt-ins. Restart running Agent sessions after switching.
-- Recommend CLI 0.166.127 and pair with JetBrains 0.4.180. Publication follows the CLI's verified public release and exact-source IDE checks.
+- Recommend CLI 0.166.127 and pair with JetBrains 0.4.181. Publication follows the CLI's verified public release and exact-source IDE checks.
 - Repair the Marketplace overview's source pairing and historical public metadata contract. Version 0.37.164 stopped before publication; its immutable tag is retained.
 
 ## [0.37.164] - Stopped before publication (2026-10-27)

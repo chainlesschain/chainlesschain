@@ -22,21 +22,28 @@
     },
     "openVsx": {
       "version": "0.37.165",
-      "status": "pending",
-      "runId": null,
+      "status": "publishing",
+      "runId": 40403003998,
       "recommendedCliVersion": "0.166.127",
       "previousAttempt": {
         "version": "0.37.164",
         "runId": 40401099379,
         "status": "failed-before-publication",
         "reason": "Marketplace overview metadata contract"
-      }
+      },
+      "sourceSha": "43eff58a75c0702b17d7b99b2da5a199cef45a20"
     },
     "jetbrains": {
-      "version": "0.4.180",
-      "status": "publishing",
-      "runId": 40401100043,
-      "recommendedCliVersion": "0.166.127"
+      "version": "0.4.181",
+      "status": "pending",
+      "runId": null,
+      "recommendedCliVersion": "0.166.127",
+      "previousAttempt": {
+        "version": "0.4.180",
+        "runId": 40401100043,
+        "status": "failed-before-publication",
+        "reason": "Offline upgrade-floor test still expected CLI 0.166.123"
+      }
     }
   },
   "childPackages": {
