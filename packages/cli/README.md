@@ -2,6 +2,14 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
+## CLI 0.166.123 (public, 2026-10-26)
+
+This release addresses inherited `fable[1m]` model settings overriding a configured non-Anthropic provider, Windows model-turn preparation latency, and Python formatted-string tool evidence being rejected as ambiguous JSON. It pins Session Core **0.3.24**. The GitHub Actions OIDC release workflow requires exact-source Linux, Windows and macOS CLI CI and CLI Strict Sandbox, publishes and verifies Session Core first, and verifies the public CLI archive before reporting publication success.
+
+CLI **0.166.123** is public through [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/40251206428), at source `8096acf1ec0bc5e7b25810f5cc08128ba90aca3b`. Exact-source three-OS gates, public archive bytes, signed provenance and ten direct child dependency pins are verified. [Publication evidence](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release123-public/publication.json).
+
+Install: `npm i -g chainlesschain@0.166.123 --registry https://registry.npmjs.org`. Existing IDE pairing remains VS Code **0.37.161** / JetBrains **0.4.178**, which still recommend CLI **0.166.121**; no IDE or native-client release is included. Acceptance remains **32/45**, with **13** unfinished; **NOT_PAID_READY**, **NOT_ADMITTED** and **HOLD** remain. Candidate **0.166.122** was stopped by CI before publication; its immutable source tag is retained. The preceding verified public release and its evidence are recorded below.
+
 ## CLI 0.166.121 (public, 2026-10-26)
 
 Fixes Evolution ingress rejecting ordinary display text as malformed JSON: numeric status, progress and percentages, dates and timestamps, Git hashes and ranges, version links, simple wiki links, numeric regex ranges and unquoted Shell tests. Standalone non-sensitive quoted prose labels are also supported. ANSI terminal controls no longer cause JSON parsing errors; existing injection quarantine still applies. JSON validation, credential/PII redaction and projection budgets remain enforced. Versioned projection rules preserve historical evidence verification.

@@ -2,7 +2,6 @@
 const fs = require("node:fs");
 const { spawnSync } = require("node:child_process");
 const { homedir } = require("node:os");
-const { join } = require("node:path");
 const {
   isAbsolute: isNativeAbsolute,
   parse,
@@ -770,25 +769,12 @@ function nativeWorkerEnvironment(environment = process.env) {
   );
 }
 
-function runNativeWindowsAcl(
-  deps,
-  targets,
-  operation,
-  expectedKind,
-  timeoutMs,
-) {
+function runNativeWindowsAcl(targets, operation, expectedKind, timeoutMs) {
   try {
-    return deps.spawnSync(
-      process.execPath,
-      [join(__dirname, "private-storage-windows-worker.cjs")],
-      {
-        encoding: "utf8",
-        windowsHide: true,
-        timeout: timeoutMs,
-        maxBuffer: 4 * 1024 * 1024,
-        env: nativeWorkerEnvironment(),
-        input: JSON.stringify({ operation, targets, expectedKind, timeoutMs }),
-      },
+    return require("./private-storage-windows-client.cjs").run(
+      { operation, targets, expectedKind, timeoutMs },
+      timeoutMs,
+      nativeWorkerEnvironment(),
     );
   } catch (error) {
     return { error, status: null };
@@ -983,7 +969,6 @@ function windowsAcl(target, operation, deps) {
   const nativeTarget = _windowsExtendedPath(target);
   if (useNativeWindowsAcl(deps)) {
     const result = runNativeWindowsAcl(
-      deps,
       [nativeTarget],
       operation,
       null,
@@ -1094,7 +1079,6 @@ function windowsAclBatch(targets, operation, deps, expectedKind = null) {
   const workingDirectory = _windowsAclWorkingDirectory(process.env, deps.fs);
   const result = useNativeWindowsAcl(deps)
     ? runNativeWindowsAcl(
-        deps,
         nativeTargets,
         operation,
         expectedKind,

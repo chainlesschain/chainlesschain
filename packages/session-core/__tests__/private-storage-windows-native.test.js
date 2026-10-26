@@ -420,6 +420,14 @@ describe("native Windows ACL policy", () => {
             },
           },
           require(name) {
+            if (name === "./private-storage-windows-client.cjs") {
+              return {
+                run(request, timeoutMs, environment) {
+                  calls.push({ request, timeoutMs, environment });
+                  return { status: 4, stdout: "[]" };
+                },
+              };
+            }
             return name === "node:child_process"
               ? {
                   spawnSync(program, args, options) {
@@ -435,19 +443,13 @@ describe("native Windows ACL policy", () => {
       const result = module.exports.inspectPrivatePaths(["C:\\fixture\\one"]);
       expect(result[0].ok).toBe(false);
       expect(calls).toHaveLength(1);
-      expect(calls[0].program).toBe(
-        electron ? "powershell.exe" : process.execPath,
-      );
-      expect(calls[0].options.timeout).toBe(30000);
-      if (!electron) {
-        expect(calls[0].args).toEqual([
-          path.join(
-            path.dirname(filename),
-            "private-storage-windows-worker.cjs",
-          ),
-        ]);
-        expect(calls[0].options.env).toEqual({ SystemRoot: "C:\\Windows" });
-        expect(JSON.parse(calls[0].options.input).operation).toBe("inspect");
+      if (electron) {
+        expect(calls[0].program).toBe("powershell.exe");
+        expect(calls[0].options.timeout).toBe(30000);
+      } else {
+        expect(calls[0].timeoutMs).toBe(30000);
+        expect(calls[0].environment).toEqual({ SystemRoot: "C:\\Windows" });
+        expect(calls[0].request.operation).toBe("inspect");
       }
     },
   );

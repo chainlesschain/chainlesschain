@@ -4,20 +4,27 @@ import {
   EVIDENCE_JSON_POLICY,
 } from "../../src/lib/evolution/evidence-json-text.js";
 
-function boundary(codeText = true) {
-  const scan = createEvidenceJsonTextBoundary((message) => new Error(message));
-  const visit = (value, layer) => {
-    if (typeof value === "string") return project(value, layer);
+function boundary(codeText = true, policy = EVIDENCE_JSON_POLICY) {
+  const scan = createEvidenceJsonTextBoundary(
+    (message) => new Error(message),
+    policy,
+  );
+  const visit = (value, layer, textContext) => {
+    if (typeof value === "string") return project(value, layer, textContext);
     if (Array.isArray(value)) return value.map((child) => visit(child, layer));
     if (value && typeof value === "object")
       return Object.fromEntries(
-        Object.entries(value).map(([key, child]) => [key, visit(child, layer)]),
+        Object.entries(value).map(([key, child]) => [
+          key,
+          visit(child, layer, textContext),
+        ]),
       );
     return value;
   };
-  const project = (text, layer = 0) =>
+  const project = (text, layer = 0, textContext) =>
     scan(text, {
       codeText,
+      pythonFString: textContext?.pythonFString === true,
       layer,
       visit,
       plain: (value) => value,
@@ -54,5 +61,25 @@ describe("code text evidence budgets", () => {
     const text = `[${Array(2100).fill("true").join(",")}, sourceValue]`;
     expect(scan(text)).toBe(text);
     expect(() => scan(text)).toThrow(/budget/u);
+  });
+
+  it("charges formatted literal labels to the shared node budget", () => {
+    const scan = boundary(true, {
+      ...EVIDENCE_JSON_POLICY,
+      maxNodes: 3,
+      pythonFStringPolicy: "bounded-static-label-alignment-v1",
+    });
+    const text = `print(f"{'branch':<52}")`;
+    expect(scan(text)).toBe(text);
+    expect(() => scan(text)).toThrow(/budget/u);
+  });
+
+  it("keeps the layer budget when decoding a formatted literal label", () => {
+    const scan = boundary(true, {
+      ...EVIDENCE_JSON_POLICY,
+      maxLayers: 1,
+      pythonFStringPolicy: "bounded-static-label-alignment-v1",
+    });
+    expect(() => scan(`print(f"{'branch':<52}")`)).toThrow(/budget/u);
   });
 });

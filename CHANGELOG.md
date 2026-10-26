@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - cc CLI 0.166.123: model selection, Windows first-token latency and Python evidence (candidate, 2026-10-26)
+
+- Keep inherited `fable[1m]` Anthropic settings from overriding a configured Volcengine model; preserve explicit model choices and compatible provider settings.
+- Reuse an isolated Windows ACL worker without caching authority results. Recheck current tokens, paths and ACLs on every operation; retain bounded response binding, process-kill deadlines and failure cleanup. Use monotonic request deadlines and a stable child working directory.
+- Admit bounded Python f-string table-label alignment in Agent tool evidence instead of rejecting it as malformed JSON. Preserve sensitive-key handling, strict JSON parsing, cumulative budgets and historical v6 verification through the new v7 projection rules.
+- Pin Session Core 0.3.24, publish and verify the child before the CLI through GitHub Actions OIDC, and require exact-source Linux, Windows and macOS CLI CI and CLI Strict Sandbox before publication. Publish and verify before merging the release PR.
+- Retire unpublished candidate 0.166.122 after CI found stale bundled changelog data and Windows transport test and lifecycle issues. Retain its immutable source tag. Existing IDE pairing remains VS Code 0.37.161 / JetBrains 0.4.178; acceptance remains 32/45 with 13 unfinished, NOT_PAID_READY / NOT_ADMITTED / HOLD.
+
 ### Fixed - cc CLI 0.166.121: display text at Evolution ingress (candidate, 2026-10-25)
 
 - Recognize bounded status/progress/percentage markers, timestamps, Git hashes/ranges, version/wiki links, numeric regex ranges and simple unquoted Shell tests without mistaking them for damaged JSON.

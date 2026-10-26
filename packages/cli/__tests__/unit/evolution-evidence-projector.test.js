@@ -46,6 +46,7 @@ import {
   EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V3_DIGEST,
   EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V4_DIGEST,
   EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V5_DIGEST,
+  EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V6_DIGEST,
   EVOLUTION_SKILL_DECISION_PROJECTION_RULESET_DIGEST,
   EVOLUTION_PROJECTION_SOURCE_DENIED_CODE,
   EVOLUTION_PROJECTION_STORAGE_FAILED_CODE,
@@ -1147,6 +1148,144 @@ describe("EvolutionEvidenceProjector", () => {
     );
     await expect(h.verifier.verify(oldFence)).rejects.toThrow(/malformed/u);
   });
+
+  it.each(["result", "arguments", "serialized-arguments"])(
+    "admits the Python git branch table with formatted literal labels (%s)",
+    async (location) => {
+      const h = harness();
+      const code = [
+        "import subprocess",
+        "def git(*args):",
+        '    p = subprocess.run(["git"] + list(args), capture_output=True, text=True)',
+        "    return p.returncode, p.stdout.strip(), p.stderr.strip()",
+        "print(f\"{'branch':<52} {'ahead':>5} {'behind':>6} {'merged':>6}  last-commit\")",
+        "print(f\"{'':<52} {'':>5} {'':>6} {'':>6}  [worktree: {wt}]\")",
+        String.raw`contact = 'alice\x40example.com'`,
+      ].join("\n");
+      const request = runCodeRequest(code, location);
+      const bundle = await h.projector.projectAgentModelRequest(
+        input(request, "signed-source:free-form-tool"),
+      );
+      const encoded = JSON.stringify(bundle.modelProjection.content);
+      expect(encoded).toContain("{'branch':<52}");
+      expect(encoded).toContain("{'':>6}");
+      expect(encoded).not.toContain("alice");
+      expect(encoded).toContain("[REDACTED:email]");
+      await expect(h.verifier.verify(bundle)).resolves.toMatchObject({
+        verified: true,
+      });
+    },
+  );
+
+  it.each([
+    `print(f"{'branch':<52}")`,
+    `print(F"{'branch':>5s}")`,
+    `print(fr"{'branch':^10}")`,
+    `print(rf"{'':>6}")`,
+    `print(f'{"branch":<52}')`,
+    `heading = f"{'branch':<52}"`,
+  ])(
+    "admits formatted literal labels inside closed Python fences (%s)",
+    async (code) => {
+      const h = harness();
+      const request = fencedRequest(`\`\`\`python\n${code}\n\`\`\``);
+      const bundle = await h.projector.projectAgentModelRequest(
+        input(request, "signed-source:free-form-tool"),
+      );
+      expect(bundle.modelProjection.content.messages[0].content).toBe(
+        request.messages[0].content,
+      );
+      await expect(h.verifier.verify(bundle)).resolves.toMatchObject({
+        verified: true,
+      });
+    },
+  );
+
+  it.each([
+    `print("{'branch':<52}")`,
+    `print(notf"{'branch':<52}")`,
+    `print(f"{{'branch':<52}}")`,
+    `print(f"{'branch':<52,}")`,
+    `print(f"{'branch':<10000}")`,
+    `print(f"{'branch':<{width}}")`,
+    `print(f"{'password':<52}")`,
+    String.raw`print(f"{'pa\163sword':<52}")`,
+    String.raw`print(f"{'\u0070assword':<52}")`,
+    `print(f'{"ok":true,"ok":false}')`,
+    `print(f'{"ok":true,}')`,
+    `print(f'[1e999]')`,
+    `print(f'[9007199254740993]')`,
+    `print(f"{'branch':<52}")\nresult = {"ok":true,}`,
+    `password = f"{'branch':<52}firstHalf" + "secretSuffix"`,
+  ])(
+    "retains strict rejection around formatted literal labels (%s)",
+    async (code) => {
+      const h = harness();
+      for (const request of [
+        runCodeRequest(code, "serialized-arguments"),
+        fencedRequest(`\`\`\`python\n${code}\n\`\`\``),
+      ]) {
+        await expect(
+          h.projector.projectAgentModelRequest(
+            input(request, "signed-source:free-form-tool"),
+          ),
+        ).rejects.toThrow(/malformed|ambiguous|budget|sensitive key/u);
+      }
+      expect(h.attestor.sign).not.toHaveBeenCalled();
+    },
+  );
+
+  it("preserves v6 verification and rejection of formatted Python labels", async () => {
+    expect(EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V6_DIGEST).toBe(
+      "sha256:f1d71fc0794b2231c2c1fa147e00c5d2e7cc7208bf8ed76bbbe8573d6eecb9ed",
+    );
+    const h = harness();
+    const bundle = await h.projector.projectAgentModelRequest(
+      input(runCodeRequest("print('ready')"), "signed-source:free-form-tool"),
+    );
+    const historical = await reattest(
+      h,
+      bundle,
+      bundle.modelProjection.content,
+      EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V6_DIGEST,
+    );
+    await expect(h.verifier.verify(historical)).resolves.toMatchObject({
+      verified: true,
+    });
+    const oldFormat = await reattest(
+      h,
+      bundle,
+      runCodeRequest(`print(f"{'branch':<52}")`),
+      EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V6_DIGEST,
+    );
+    await expect(h.verifier.verify(oldFormat)).rejects.toThrow(/malformed/u);
+    const forged = await reattest(
+      h,
+      bundle,
+      runCodeRequest(`print(f"{'password':<52}")`),
+    );
+    await expect(h.verifier.verify(forged)).rejects.toThrow(/sensitive key/u);
+  });
+
+  it.each(["f", "F", "fr", "rf"])(
+    "redacts the complete sensitive assignment before a %s-string prefix",
+    async (prefix) => {
+      const h = harness();
+      const code = `password = ${prefix}"{'branch':<52}unprefixedSecretValue"`;
+      const bundle = await h.projector.projectAgentModelRequest(
+        input(
+          runCodeRequest(code, "arguments"),
+          "signed-source:free-form-tool",
+        ),
+      );
+      const encoded = JSON.stringify(bundle);
+      expect(encoded).not.toContain("unprefixedSecretValue");
+      expect(encoded).toContain("[REDACTED:credential]");
+      await expect(h.verifier.verify(bundle)).resolves.toMatchObject({
+        verified: true,
+      });
+    },
+  );
 
   it.each(["result", "arguments", "serialized-arguments"])(
     "admits run_code language literals while scanning secrets and escaped keys (%s)",

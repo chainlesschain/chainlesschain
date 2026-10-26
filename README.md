@@ -1,5 +1,11 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
+## CLI 0.166.123 (2026-10-26)
+
+CLI **0.166.123** 已通过 [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/40251206428) 公开发布。修复命令行继承 `fable[1m]` 导致火山引擎 404、Windows 请求前权限检查拖慢首字，以及 Python f-string 表格标签触发 JSON 误判退出。Session Core **0.3.24** 已先于 CLI 发布并验证。准确源提交 `8096acf1ec0bc5e7b25810f5cc08128ba90aca3b` 通过 Linux、Windows、macOS 的 CLI CI 和 Strict Sandbox；公共 CLI 包与不可变 CI 制品逐字节一致，签名来源和十个直接子依赖版本已核验。[发布证据](docs/research/cli/evidence/release123-public/publication.json)。
+
+安装：`npm i -g chainlesschain@0.166.123 --registry https://registry.npmjs.org`。现有 IDE 版本仍为 Open VSX **0.37.161** / JetBrains **0.4.178**，其推荐版本标记仍为 CLI **0.166.121**；本次未发布 IDE 或原生客户端。未新增真实模型任务验收，累计仍为 **32/45**、**13** 项未完成；**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。候选 `.122` 在 CI 阶段被拦截，未发布。
+
 ## CLI 0.166.121 (2026-10-26)
 
 CLI **0.166.121** 已经 GitHub Actions OIDC 公开发布，精确源提交通过 Linux、Windows、macOS CLI CI 与 Strict Sandbox，公共 npm 包完整性、provenance 和子包依赖已验证。修复 Evolution ingress 将状态、进度、日期、Git 与 Shell 等普通文本误判为损坏 JSON 的问题，保留严格 JSON 校验、敏感信息脱敏及历史证据兼容。安装：`npm i -g chainlesschain@0.166.121 --registry https://registry.npmjs.org`。配套 Open VSX **0.37.161** 已公开，下载包与不可变 CI 构建一致并推荐 CLI **0.166.121**；JetBrains **0.4.178** 已通过审核、公开上市并完成 ZIP 下载验证，包内版本和 CLI 推荐版本正确；全部候选 JAR 内部条目与公开包一致，原始 ZIP 字节不同。上一版配对为 **0.37.160** / **0.4.177**。[发布证据](docs/research/cli/evidence/release121-public/publication.json)。未新增真实模型任务验收，累计仍为 **32/45**、**13** 项未完成；**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。

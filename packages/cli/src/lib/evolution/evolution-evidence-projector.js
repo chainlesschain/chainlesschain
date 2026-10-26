@@ -577,7 +577,7 @@ export const EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V5_DIGEST = `sha256:${crea
     "utf8",
   )
   .digest("hex")}`;
-const AGENT_MODEL_RULESET = Object.freeze({
+const AGENT_MODEL_RULESET_V6 = Object.freeze({
   ...AGENT_MODEL_RULESET_V5,
   schema: "chainlesschain.evolution-agent-model-projection-rules/v6",
   version: 6,
@@ -586,6 +586,24 @@ const AGENT_MODEL_RULESET = Object.freeze({
     version: 3,
     bracketMarkerPolicy: "bounded-display-markers-v1",
     proseQuotedPairPolicy: "non-sensitive-top-level-expression-v1",
+  }),
+});
+export const EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V6_DIGEST = `sha256:${createHash(
+  "sha256",
+)
+  .update(
+    `${AGENT_MODEL_RULESET_V6.schema}\0${JSON.stringify(AGENT_MODEL_RULESET_V6)}`,
+    "utf8",
+  )
+  .digest("hex")}`;
+const AGENT_MODEL_RULESET = Object.freeze({
+  ...AGENT_MODEL_RULESET_V6,
+  schema: "chainlesschain.evolution-agent-model-projection-rules/v7",
+  version: 7,
+  jsonTextPolicy: Object.freeze({
+    ...AGENT_MODEL_RULESET_V6.jsonTextPolicy,
+    version: 4,
+    pythonFStringPolicy: "bounded-static-label-alignment-v1",
   }),
 });
 export const EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_DIGEST = `sha256:${createHash(
@@ -621,6 +639,7 @@ const SUPPORTED_RULESETS = new Map([
   [EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V3_DIGEST, AGENT_MODEL_RULESET_V3],
   [EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V4_DIGEST, AGENT_MODEL_RULESET_V4],
   [EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V5_DIGEST, AGENT_MODEL_RULESET_V5],
+  [EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_V6_DIGEST, AGENT_MODEL_RULESET_V6],
   [EVOLUTION_AGENT_MODEL_PROJECTION_RULESET_DIGEST, AGENT_MODEL_RULESET],
 ]);
 
@@ -696,6 +715,7 @@ const AGENT_VALUE_PATTERNS = Object.freeze([
 function valuePatterns(ruleset) {
   return ruleset === SKILL_DECISION_RULESET ||
     ruleset === AGENT_MODEL_RULESET ||
+    ruleset === AGENT_MODEL_RULESET_V6 ||
     ruleset === AGENT_MODEL_RULESET_V5 ||
     ruleset === AGENT_MODEL_RULESET_V4 ||
     ruleset === AGENT_MODEL_RULESET_V3 ||
@@ -1435,7 +1455,7 @@ function sanitizePayload(
         ruleset.jsonTextPolicy,
       )
     : null;
-  const visit = (value, path, depth, layer = 0) => {
+  const visit = (value, path, depth, layer = 0, textContext = null) => {
     nodes += 1;
     if (nodes > ruleset.maxNodes || depth > ruleset.maxDepth) {
       truncated = true;
@@ -1449,6 +1469,7 @@ function sanitizePayload(
     const toolArguments = jsonText && isAgentToolArgumentsPath(path);
     const opaqueTransportBlock =
       ruleset === AGENT_MODEL_RULESET ||
+      ruleset === AGENT_MODEL_RULESET_V6 ||
       ruleset === AGENT_MODEL_RULESET_V5 ||
       ruleset === AGENT_MODEL_RULESET_V4 ||
       ruleset === AGENT_MODEL_RULESET_V3
@@ -1472,7 +1493,8 @@ function sanitizePayload(
       const output = jsonText(value, {
         layer,
         objectOnly: toolArguments,
-        codeText,
+        codeText: codeText || textContext?.pythonFString === true,
+        pythonFString: textContext?.pythonFString === true,
         // Only direct message text can contain Markdown code examples. Tool
         // arguments and recursively decoded strings keep their existing rules.
         fencedCodeLanguages:
@@ -1482,7 +1504,7 @@ function sanitizePayload(
           (path.length === 3 || (path.length === 5 && path[4] === "text"))
             ? ruleset.fencedCodeLanguages
             : null,
-        visit: (decoded, nextLayer) =>
+        visit: (decoded, nextLayer, nextTextContext) =>
           visit(
             decoded,
             [...path, "$json"],
@@ -1492,6 +1514,7 @@ function sanitizePayload(
               ? 0
               : depth + 1,
             nextLayer,
+            nextTextContext,
           ),
         plain,
         equal: (left, right) => canonicalJson(left) === canonicalJson(right),
@@ -1610,6 +1633,9 @@ function sanitizePayload(
           [...path, safeKey],
           depth + 1,
           layer,
+          // The text scanner may wrap an f-string in its bare assignment key.
+          // Carry its lexical context through that wrapper after key redaction.
+          textContext,
         );
       }
       Object.defineProperty(output, safeKey, {
@@ -3338,6 +3364,7 @@ function validateBundleIntegrity(bundle) {
     }
     if (
       ruleset === AGENT_MODEL_RULESET ||
+      ruleset === AGENT_MODEL_RULESET_V6 ||
       ruleset === AGENT_MODEL_RULESET_V5 ||
       ruleset === AGENT_MODEL_RULESET_V4 ||
       ruleset === AGENT_MODEL_RULESET_V3 ||
@@ -3348,6 +3375,7 @@ function validateBundleIntegrity(bundle) {
         allowStructuredArgumentText: ruleset !== AGENT_MODEL_RULESET_V1,
         allowOpaqueTransportBlocks:
           ruleset === AGENT_MODEL_RULESET ||
+          ruleset === AGENT_MODEL_RULESET_V6 ||
           ruleset === AGENT_MODEL_RULESET_V5 ||
           ruleset === AGENT_MODEL_RULESET_V4 ||
           ruleset === AGENT_MODEL_RULESET_V3,
