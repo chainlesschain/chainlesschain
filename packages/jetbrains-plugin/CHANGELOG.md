@@ -1,5 +1,11 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.180] - Optional self-evolution (candidate, 2026-10-27)
+
+- Add a prominent self-evolution switch usable before a deployment exists, backed by the shared CLI `evolution.enabled` setting.
+- Explain default-off behavior and restarting running Agent sessions after a change.
+- Recommend CLI 0.166.127 and pair with VS Code 0.37.164. Publication follows the CLI's verified public release and exact-source IDE checks.
+
 ## [0.4.179] - CLI 0.166.123 pairing (candidate, 2026-10-26)
 
 - Recommend public CLI 0.166.123 and pair with VS Code 0.37.162.
