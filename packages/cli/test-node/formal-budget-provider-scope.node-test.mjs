@@ -731,6 +731,19 @@ test("ask and Cowork use the host budget after real evolution admission", async 
   assert.equal(f.a.status().pending.length, 0);
 });
 
+test("ask keeps the host budget boundary when self-evolution is off", async (t) => {
+  const f = fixture(t);
+  await f.run(async () => {
+    assert.equal(await queryLLM("synthetic task", target), "fixture");
+    await assert.rejects(
+      queryLLM("synthetic task", { ...target, provider: "ollama" }),
+      { code: "CC_BUDGET_ENDPOINT_MISMATCH" },
+    );
+  });
+  assert.deepEqual(f.counts(), { physical: 1, credentials: 1 });
+  assert.equal(f.a.status().pending.length, 0);
+});
+
 test("ask and Cowork reject unsupported protocols before an ordinary fetch can run", async (t) => {
   const f = fixture(t);
   const ingress = await evolution(f);

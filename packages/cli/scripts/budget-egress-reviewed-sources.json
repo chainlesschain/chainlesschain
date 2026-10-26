@@ -1,10 +1,7 @@
 {
   "schema": "chainlesschain.budget-egress-source-review/v1",
-  "reviewedAt": "2026-10-24",
-  "scope": [
-    "packages/cli/src",
-    "packages/cli/scripts"
-  ],
+  "reviewedAt": "2026-10-27",
+  "scope": ["packages/cli/src", "packages/cli/scripts"],
   "basis": "Implementation source inspection; byte-bound classifications only. Not an independent financial/OS admission decision.",
   "entries": [
     {
@@ -111,9 +108,9 @@
     },
     {
       "path": "packages/cli/src/commands/ask.js",
-      "digest": "sha256:9caba52ec41206d4989d5d2ed373bebaf5696a9d321af42071b7eae8e64335ed",
+      "digest": "sha256:734f560c7a877b9c77ef85eb13fdceca893e4bf22889b214e359e74c5766da73",
       "category": "MODEL_REQUEST",
-      "rationale": "Single-shot inference through providerFetch after evolution admission."
+      "rationale": "Single-shot inference always uses providerFetch, including when optional self-evolution is off. A supplied Evolution ingress must be branded before request preparation. An active formal budget scope still owns physical provider calls, credentials and settlement; disabling Evolution does not bypass that scope."
     },
     {
       "path": "packages/cli/src/commands/llm.js",
