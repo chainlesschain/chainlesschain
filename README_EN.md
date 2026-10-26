@@ -1,5 +1,11 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
+## CLI 0.166.127 optional self-evolution release preparation (2026-10-27)
+
+Defaults self-evolution to off for fresh installations and older automatically generated local deployments, with a shared `evolution.enabled` setting in config.json, CLI, cc ui, VS Code and JetBrains. Ordinary Agent and chat remain available while off; existing manually selected deployments retain their opt-in. See the [configuration guide](docs/cli/SELF_EVOLUTION_CONFIGURATION.md).
+
+The target is `chainlesschain@0.166.127`. Publication requires the exact commit's Linux, Windows and macOS CLI CI and Strict Sandbox, GitHub Actions OIDC and public package readback. Current public CLI is **0.166.126**: `npm i -g chainlesschain@0.166.126 --registry https://registry.npmjs.org`. Child pins are unchanged. IDE candidates Open VSX **0.37.164** and JetBrains **0.4.180** recommend `.127` and follow its verified public release. No new live model-task acceptance is claimed: **32/45** accepted, **13** unfinished, **NOT_PAID_READY / NOT_ADMITTED / HOLD** remain.
+
 ## CLI 0.166.126 (public, 2026-10-26)
 
 Repairs repeated Agent ingress failures caused by character-cut JSON in retained recovery summaries. File and remote-read summaries, task checkpoints, legacy-session recovery and derived WORKLOG.md views now preserve complete bounded representations. Canonical session history and strict validation remain unchanged.

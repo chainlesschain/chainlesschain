@@ -1,3 +1,5 @@
+import { resolveServerEvolutionFactory } from "../../lib/evolution/optional-ui-model-turn.js";
+
 // Track running cowork tasks for cancellation
 const _runningTasks = new Map();
 
@@ -54,7 +56,7 @@ export async function handleCoworkTask(server, id, ws, message) {
       files,
       cwd: server.projectRoot || process.cwd(),
       llmOptions: {},
-      evolutionCompositionFactory: server.evolutionCompositionFactory ?? null,
+      evolutionCompositionFactory: await resolveServerEvolutionFactory(server),
       signal: ac.signal,
       ...(message.mcpSessionId ? { mcpSessionId: message.mcpSessionId } : {}),
       ...(useParallel
@@ -205,8 +207,9 @@ export async function handleCoworkHistory(server, id, ws, message) {
 
 export async function handleCoworkTemplates(server, id, ws) {
   try {
-    const { getTemplatesForUI } =
-      await import("../../lib/cowork-task-templates.js");
+    const { getTemplatesForUI } = await import(
+      "../../lib/cowork-task-templates.js"
+    );
     const templates = getTemplatesForUI();
     server._send(ws, { id, type: "cowork:templates", templates });
   } catch (err) {
@@ -240,15 +243,16 @@ export async function handleOrchestrate(server, id, ws, message) {
   }
 
   try {
-    const { Orchestrator, TASK_SOURCE } =
-      await import("../../lib/orchestrator.js");
+    const { Orchestrator, TASK_SOURCE } = await import(
+      "../../lib/orchestrator.js"
+    );
 
     const orch = new Orchestrator({
       cwd: cwd || server.projectRoot || process.cwd(),
       maxParallel: Math.min(parseInt(agents, 10) || 3, 10),
       ciCommand: ci,
       agents: strategy ? { strategy } : undefined,
-      evolutionCompositionFactory: server.evolutionCompositionFactory ?? null,
+      evolutionCompositionFactory: await resolveServerEvolutionFactory(server),
       verbose: false,
     });
 
@@ -389,8 +393,9 @@ async function _resolveWorkflowExecutionAuthority(server, sessionId) {
     }
     provider = descriptor.value;
   } else {
-    ({ getVerifiedSessionExecutionLocationAuthority: provider } =
-      await import("../../harness/jsonl-session-store.js"));
+    ({ getVerifiedSessionExecutionLocationAuthority: provider } = await import(
+      "../../harness/jsonl-session-store.js"
+    ));
   }
   if (typeof provider !== "function") {
     const error = new Error(
@@ -507,8 +512,9 @@ export async function handleWorkflowSave(server, id, ws, message) {
     );
   }
   try {
-    const { getWorkflowRecord, validateWorkflow, saveWorkflow } =
-      await import("../../lib/cowork-workflow.js");
+    const { getWorkflowRecord, validateWorkflow, saveWorkflow } = await import(
+      "../../lib/cowork-workflow.js"
+    );
     const result = validateWorkflow(workflow);
     if (!result.valid) {
       return _sendError(
@@ -595,8 +601,9 @@ export async function handleWorkflowRun(server, id, ws, message) {
   try {
     const { getWorkflowRecord, getWorkflowVersion, executeWorkflow } =
       await import("../../lib/cowork-workflow.js");
-    const { executeDynamicWorkflowWithAdmission } =
-      await import("../../lib/dynamic-workflow-facade.js");
+    const { executeDynamicWorkflowWithAdmission } = await import(
+      "../../lib/dynamic-workflow-facade.js"
+    );
     let workflowRunTask;
     if (Object.hasOwn(server, "workflowRunTask")) {
       const descriptor = Object.getOwnPropertyDescriptor(
@@ -608,8 +615,9 @@ export async function handleWorkflowRun(server, id, ws, message) {
       }
       workflowRunTask = descriptor.value;
     } else {
-      ({ runCoworkTask: workflowRunTask } =
-        await import("../../lib/cowork-task-runner.js"));
+      ({ runCoworkTask: workflowRunTask } = await import(
+        "../../lib/cowork-task-runner.js"
+      ));
     }
     if (typeof workflowRunTask !== "function") {
       throw new Error("Workflow task runner is unavailable");

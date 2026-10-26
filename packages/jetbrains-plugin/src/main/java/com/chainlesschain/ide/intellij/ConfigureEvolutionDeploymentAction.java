@@ -79,9 +79,10 @@ public final class ConfigureEvolutionDeploymentAction extends AnAction implement
             trustBrowse.addActionListener(e -> choose(trustRoot));
             moduleBrowse.addActionListener(e -> choose(modulePath));
             JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
-            buttons.add(reload); buttons.add(toggle); buttons.add(replaceTest); buttons.add(save);
+            buttons.add(reload); buttons.add(replaceTest); buttons.add(save);
             JPanel panel = FormBuilder.createFormBuilder()
                     .addComponent(new JBLabel(CcBundle.message("evolution.config.intro")))
+                    .addComponent(toggle)
                     .addLabeledComponent(CcBundle.message("evolution.config.module"), row(modulePath, moduleBrowse))
                     .addComponent(initTest)
                     .addLabeledComponent(CcBundle.message("evolution.config.descriptor"), row(descriptor, descriptorBrowse))
@@ -112,7 +113,7 @@ public final class ConfigureEvolutionDeploymentAction extends AnAction implement
 
         private void busy(boolean value) {
             reload.setEnabled(!value); save.setEnabled(!value);
-            toggle.setEnabled(!value && current != null && current.descriptorPath() != null);
+            toggle.setEnabled(!value && current != null);
             initTest.setEnabled(!value);
             replaceTest.setEnabled(!value && current != null && "test".equals(current.deploymentMode()));
         }

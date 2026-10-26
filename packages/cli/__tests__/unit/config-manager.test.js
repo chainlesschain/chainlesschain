@@ -240,8 +240,9 @@ describe("config-manager", () => {
   });
 
   it("loadConfig merges saved values with defaults", async () => {
-    const { saveConfig, loadConfig } =
-      await import("../../src/lib/config-manager.js");
+    const { saveConfig, loadConfig } = await import(
+      "../../src/lib/config-manager.js"
+    );
     saveConfig({ edition: "enterprise" });
     const config = loadConfig();
     expect(config.edition).toBe("enterprise");
@@ -251,8 +252,9 @@ describe("config-manager", () => {
   });
 
   it("getConfigValue reads nested keys", async () => {
-    const { saveConfig, getConfigValue } =
-      await import("../../src/lib/config-manager.js");
+    const { saveConfig, getConfigValue } = await import(
+      "../../src/lib/config-manager.js"
+    );
     saveConfig({ llm: { provider: "deepseek", model: "deepseek-chat" } });
     expect(getConfigValue("llm.provider")).toBe("deepseek");
     expect(getConfigValue("llm.model")).toBe("deepseek-chat");
@@ -264,22 +266,49 @@ describe("config-manager", () => {
   });
 
   it("setConfigValue writes nested keys", async () => {
-    const { setConfigValue, getConfigValue } =
-      await import("../../src/lib/config-manager.js");
+    const { setConfigValue, getConfigValue } = await import(
+      "../../src/lib/config-manager.js"
+    );
     setConfigValue("llm.provider", "openai");
     expect(getConfigValue("llm.provider")).toBe("openai");
   });
 
   it("setConfigValue parses boolean strings", async () => {
-    const { setConfigValue, getConfigValue } =
-      await import("../../src/lib/config-manager.js");
+    const { setConfigValue, getConfigValue } = await import(
+      "../../src/lib/config-manager.js"
+    );
     setConfigValue("setupCompleted", "true");
     expect(getConfigValue("setupCompleted")).toBe(true);
   });
 
+  it.each(["set", "atomic", "spread", "secret"])(
+    "does not turn an absent Evolution choice into explicit false (%s)",
+    async (writeMode) => {
+      const mod = await import("../../src/lib/config-manager.js");
+      if (writeMode === "set") mod.setConfigValue("llm.model", "example-model");
+      if (writeMode === "atomic")
+        mod.updateConfigAtomically((config) => {
+          config.llm.model = "example-model";
+        });
+      if (writeMode === "spread")
+        mod.saveConfig({ ...mod.loadConfig(), setupCompleted: true });
+      if (writeMode === "secret")
+        mod.setSecretConfigValue("llm.apiKey", "test-secret", {
+          storage: "file",
+        });
+      expect(mod.getConfigValue("evolution.enabled")).toBe(false);
+      expect(mod.loadUserConfig().evolution?.enabled).toBeUndefined();
+      mod.setConfigValue("evolution.enabled", false);
+      expect(mod.loadUserConfig().evolution.enabled).toBe(false);
+      mod.setConfigValue("evolution.enabled", true);
+      expect(mod.loadUserConfig().evolution.enabled).toBe(true);
+    },
+  );
+
   it("rejects unknown keys unless extension development opts in", async () => {
-    const { setConfigValue, getConfigValue } =
-      await import("../../src/lib/config-manager.js");
+    const { setConfigValue, getConfigValue } = await import(
+      "../../src/lib/config-manager.js"
+    );
     expect(() => setConfigValue("services.port", "8080")).toThrow(
       /Unknown configuration key/,
     );
@@ -295,8 +324,9 @@ describe("config-manager", () => {
   });
 
   it("resetConfig restores defaults", async () => {
-    const { setConfigValue, resetConfig, loadConfig } =
-      await import("../../src/lib/config-manager.js");
+    const { setConfigValue, resetConfig, loadConfig } = await import(
+      "../../src/lib/config-manager.js"
+    );
     setConfigValue("edition", "enterprise");
     resetConfig();
     const config = loadConfig();
@@ -402,8 +432,9 @@ describe("config-manager", () => {
   });
 
   it("keeps the first owner-only pre-migration backup", async () => {
-    const { backupConfigForMigration } =
-      await import("../../src/lib/config-manager.js");
+    const { backupConfigForMigration } = await import(
+      "../../src/lib/config-manager.js"
+    );
     writeFileSync(configPath, '{ "llm": { "fallbackModel": "old" } }');
     const backupPath = backupConfigForMigration(".before-schema-v1", {
       applyWindowsAcl: false,
@@ -421,8 +452,9 @@ describe("config-manager", () => {
 
   describe("renameWithRetry (Windows EPERM hardening)", () => {
     it("retries transient rename errors then succeeds", async () => {
-      const { renameWithRetry } =
-        await import("../../src/lib/config-manager.js");
+      const { renameWithRetry } = await import(
+        "../../src/lib/config-manager.js"
+      );
       let calls = 0;
       const sleeps = [];
       const _rename = () => {
@@ -439,8 +471,9 @@ describe("config-manager", () => {
     });
 
     it("rethrows immediately for non-transient errors", async () => {
-      const { renameWithRetry } =
-        await import("../../src/lib/config-manager.js");
+      const { renameWithRetry } = await import(
+        "../../src/lib/config-manager.js"
+      );
       let calls = 0;
       const _rename = () => {
         calls++;
@@ -455,8 +488,9 @@ describe("config-manager", () => {
     });
 
     it("gives up after the attempt budget and rethrows", async () => {
-      const { renameWithRetry } =
-        await import("../../src/lib/config-manager.js");
+      const { renameWithRetry } = await import(
+        "../../src/lib/config-manager.js"
+      );
       let calls = 0;
       const _rename = () => {
         calls++;

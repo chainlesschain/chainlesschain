@@ -1,11 +1,19 @@
 # ChainlessChain IDE Bridge (JetBrains)
 
+## Self-evolution switch (unreleased)
+
+完整中文配置与排查步骤见[CLI 与 IDE 自进化开关配置](../../docs/cli/SELF_EVOLUTION_CONFIGURATION.md)。
+
+Open **Skill 自进化配置** through ChainlessChain settings/actions to enable or disable self-evolution. The switch shares the CLI user `config.json` field `evolution.enabled`, defaults to off, and can initialize the local signed runtime on explicit enable. Disabling preserves deployment data and ordinary Agent functionality. Stop and restart a running Agent session after changing it. These controls require the corresponding updated CLI and plugin; publication is pending.
+
 Phase 3 of the IDE bridge (`docs/design/modules/98_IDE桥接对标方案.md`). The
 JetBrains counterpart of the [VS Code extension](../vscode-extension/): it lets
 the ChainlessChain **`cc` agent CLI** read editor context and propose native
 diffs inside IntelliJ-platform IDEs (IDEA, PyCharm, WebStorm, …).
 
 ## Release pairing
+
+Candidate **0.4.180** recommends CLI **`0.166.127`** and pairs with VS Code **0.37.164**. It adds the shared self-evolution switch. Release requires the recommended CLI to be publicly available, exact-source IDE checks, and public artifact readback.
 
 Plugin **0.4.179** recommends public CLI **`0.166.123`** and pairs with VS Code **0.37.162**. These IDE source candidates have not been published. The paired CLI repairs Python f-string evidence projection and Ollama endpoint aliases while reducing repeated Windows ACL startup work. Exact-source IDE gates and public artifact readback remain pending. Previously verified public releases are retained below.
 
@@ -94,7 +102,7 @@ See the [upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-u
 
 ## Release compatibility
 
-Plugin **0.4.179** is the current release candidate. It recommends `chainlesschain@0.166.123`. The CLI is public; plugin publication and public ZIP readback remain pending the exact-source IDE gates. It preserves unknown delivery after a partial pipe write and rejects later submissions before reserving another delivery. Native task quality and restart acceptance still require separate published-package evidence.
+Plugin **0.4.180** is the current release candidate. It recommends `chainlesschain@0.166.127`. CLI and plugin publication remain pending exact-source release gates and public artifact readback. This release adds the shared self-evolution switch and preserves unknown delivery handling. Native task quality and restart acceptance still require separate published-package evidence.
 
 ## Previous candidates and development notes
 

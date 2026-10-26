@@ -3,17 +3,39 @@
     <div class="page-head">
       <div>
         <h2 class="page-title">Skill 自进化配置</h2>
-        <p class="page-sub">统一配置受治理部署；CLI、IDE 插件与 cc ui 共享。</p>
+        <p class="page-sub">
+          默认关闭；CLI、IDE 插件与 cc ui 共用 evolution.enabled 配置。
+        </p>
       </div>
       <a-button :loading="loading" @click="loadStatus">
         <template #icon><ReloadOutlined /></template>刷新
       </a-button>
     </div>
 
+    <a-card title="自进化开关" class="notice">
+      <a-switch
+        :checked="status.profileEnabled"
+        :loading="toggling"
+        :disabled="busy || loading"
+        checked-children="已开启"
+        un-checked-children="已关闭"
+        @change="toggle"
+      />
+      <p>
+        关闭后仍可正常聊天和使用
+        Agent。首次开启会初始化本地运行时，也可使用下方配置的部署。
+      </p>
+      <p>
+        Quick Ask 的下一次请求生效；正在运行的 Agent
+        会话请停止后重新启动。候选项发布仍需人工审核。
+      </p>
+      <p class="mono">config.json："evolution": { "enabled": false }</p>
+    </a-card>
+
     <a-alert
-      message="不会开启自动发布"
-      description="此开关只启用经过签名的 Skill 自进化运行时。候选项进入 active 前仍需人工审核，自动发布始终保持 HOLD。"
-      type="warning"
+      message="自进化与自动发布分别控制"
+      description="开启后使用经过签名的 Skill 自进化运行时；自动发布始终保持 HOLD。"
+      type="info"
       show-icon
       class="notice"
     />
@@ -72,14 +94,6 @@
                 >校验、保存并启用</a-button
               >
               <a-button
-                :danger="status.profileEnabled"
-                :disabled="!status.descriptorPath"
-                :loading="toggling"
-                @click="toggle"
-              >
-                {{ status.profileEnabled ? "停用" : "启用" }}
-              </a-button>
-              <a-button
                 v-if="status.deploymentMode === 'test'"
                 :loading="replacingTest"
                 @click="replaceTest"
@@ -130,7 +144,7 @@
             >
           </a-descriptions>
           <section class="admission-status" aria-live="polite">
-            <h3>模型命令部署准入</h3>
+            <h3>自进化部署准入</h3>
             <p>这里只检查部署准入，实际任务运行尚未验证。</p>
             <div
               v-for="row in readinessRows"

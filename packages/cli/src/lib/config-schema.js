@@ -22,6 +22,11 @@ const descriptor = (key, type, options = {}) => ({
 });
 
 const DESCRIPTORS = [
+  descriptor("evolution.enabled", "boolean", {
+    default: DEFAULT_CONFIG.evolution.enabled,
+    description:
+      "Enable optional self-evolution for new Agent sessions (off by default)",
+  }),
   descriptor("setupCompleted", "boolean", {
     default: DEFAULT_CONFIG.setupCompleted,
     description: "Whether initial CLI setup has completed",

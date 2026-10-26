@@ -9,6 +9,11 @@ import {
 import { verifyEvolutionDeployment } from "./evolution-deployment-loader.js";
 import { verifyEvolutionDeploymentRootRotationSync } from "./evolution-deployment-root-rotation.js";
 import { verifyEvolutionDeploymentDescriptorRevocationsSync } from "./evolution-deployment-descriptor-revocations.js";
+import {
+  readEvolutionEnabled,
+  resolveEvolutionEnabled,
+  writeEvolutionEnabled,
+} from "./evolution-enabled.js";
 
 function environmentSelection(env) {
   const descriptorPath = env.CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_DESCRIPTOR;
@@ -119,14 +124,18 @@ function withDeploymentReadiness(status) {
 export async function getEvolutionDeploymentStatus(options = {}) {
   const env = options.env || process.env;
   const saved = await readEvolutionDeploymentProfile(options);
-  const fromEnvironment = environmentSelection(env);
+  const enabled = resolveEvolutionEnabled(
+    readEvolutionEnabled(options),
+    saved.profile,
+    env,
+  );
+  const fromEnvironment = enabled ? environmentSelection(env) : null;
   const source = fromEnvironment
     ? "environment"
-    : saved.profile?.enabled
+    : enabled && saved.profile
       ? "profile"
       : "none";
-  const selected =
-    fromEnvironment || (saved.profile?.enabled ? saved.profile : null);
+  const selected = fromEnvironment || (enabled ? saved.profile : null);
   const base = {
     source,
     deploymentMode:
@@ -134,7 +143,9 @@ export async function getEvolutionDeploymentStatus(options = {}) {
         ? "external"
         : saved.profile?.deploymentMode || "none",
     effectiveEnabled: source !== "none",
-    profileEnabled: saved.profile?.enabled === true,
+    profileEnabled: enabled,
+    evolutionEnabled: enabled,
+    configKey: "evolution.enabled",
     profilePath: saved.filePath,
     activeTrustRootDigest: saved.profile?.activeTrustRootDigest || null,
     descriptorPath:
@@ -295,11 +306,42 @@ export async function configureEvolutionDeployment(
             : null,
     };
   }, options);
+  writeEvolutionEnabled(enabled === true, options);
   return getEvolutionDeploymentStatus(options);
 }
 
 export async function setEvolutionDeploymentEnabled(enabled, options = {}) {
+  if (typeof enabled !== "boolean")
+    throw new TypeError("enabled must be a boolean");
+  const saved = await readEvolutionDeploymentProfile(options);
+  if (!enabled) {
+    writeEvolutionEnabled(false, options);
+    if (saved.profile && !saved.error)
+      await setEvolutionDeploymentProfileEnabled(false, options);
+    return getEvolutionDeploymentStatus(options);
+  }
+  if (saved.error) throw new Error(saved.error);
+  if (!saved.profile) {
+    const selected = environmentSelection(options.env || process.env);
+    if (selected) {
+      return configureEvolutionDeployment({ ...selected, enabled }, options);
+    }
+    const { initializeDefaultLocalUiEvolutionDeployment } = await import(
+      "./local-ui-evolution-deployment.js"
+    );
+    await initializeDefaultLocalUiEvolutionDeployment(options);
+    writeEvolutionEnabled(true, options);
+    return getEvolutionDeploymentStatus(options);
+  }
   await setEvolutionDeploymentProfileEnabled(enabled, options);
+  // A local profile can predate Agent support. Upgrade only on explicit enable.
+  if (enabled && saved.profile.deploymentMode === "local") {
+    const { initializeDefaultLocalUiEvolutionDeployment } = await import(
+      "./local-ui-evolution-deployment.js"
+    );
+    await initializeDefaultLocalUiEvolutionDeployment(options);
+  }
+  writeEvolutionEnabled(enabled, options);
   return getEvolutionDeploymentStatus(options);
 }
 
@@ -331,5 +373,6 @@ export function revokeEvolutionDeploymentDescriptorRevisions(
       },
     };
   }, options);
+  writeEvolutionEnabled(false, options);
   return getEvolutionDeploymentStatus(options);
 }

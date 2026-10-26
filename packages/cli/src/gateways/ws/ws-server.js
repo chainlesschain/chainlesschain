@@ -124,10 +124,7 @@ import {
 } from "./artifact-protocol.js";
 import { executionBroker } from "../../lib/process-execution-broker/index.js";
 import { collectWorkspacePluginBinSandboxPolicy } from "../../lib/plugin-runtime/bin.js";
-import {
-  loadConfig,
-  loadUserConfig,
-} from "../../lib/config-manager.js";
+import { loadConfig, loadUserConfig } from "../../lib/config-manager.js";
 
 export const _deps = {
   spawn: (...args) => executionBroker.spawn(...args),
@@ -200,11 +197,9 @@ function boundedInteger(value, fallback, maximum = Number.MAX_SAFE_INTEGER) {
 }
 
 function loadCurrentLlmConfig() {
-  const savedLlm =
-    loadUserConfig({ failIfUnavailable: true }).llm || {};
+  const savedLlm = loadUserConfig({ failIfUnavailable: true }).llm || {};
   const resolvedLlm = loadConfig({ failIfUnavailable: true }).llm || {};
-  const confirmedLlm =
-    loadUserConfig({ failIfUnavailable: true }).llm || {};
+  const confirmedLlm = loadUserConfig({ failIfUnavailable: true }).llm || {};
   const provider =
     typeof savedLlm.provider === "string" && savedLlm.provider.trim()
       ? savedLlm.provider.trim()
@@ -378,6 +373,21 @@ export class ChainlessChainWSServer extends EventEmitter {
     }
     this.evolutionCompositionFactory =
       options.evolutionCompositionFactory || null;
+    if (
+      options.prepareUiModelTurn != null &&
+      typeof options.prepareUiModelTurn !== "function"
+    )
+      throw new TypeError("prepareUiModelTurn must be a function");
+    this.prepareUiModelTurn = options.prepareUiModelTurn || null;
+    if (
+      options.resolveEvolutionCompositionFactory != null &&
+      typeof options.resolveEvolutionCompositionFactory !== "function"
+    )
+      throw new TypeError(
+        "resolveEvolutionCompositionFactory must be a function",
+      );
+    this.resolveEvolutionCompositionFactory =
+      options.resolveEvolutionCompositionFactory || null;
     this.runtimeAdmissionDependencies =
       captureSkillRuntimeDependencies(options);
     this.skillOutcomeIndex =
@@ -827,8 +837,9 @@ export class ChainlessChainWSServer extends EventEmitter {
   /** Read the same static + scoped authority used by the Agent Core. */
   async _handlePermissionRulesGet(id, ws) {
     try {
-      const { loadPermissionAuthority } =
-        await import("../../lib/permission-authority.js");
+      const { loadPermissionAuthority } = await import(
+        "../../lib/permission-authority.js"
+      );
       const loaded = loadPermissionAuthority({ cwd: this.projectRoot });
       this._send(ws, {
         id,
@@ -1588,8 +1599,9 @@ export class ChainlessChainWSServer extends EventEmitter {
   /** @private — ping/pong heartbeat to detect dead connections */
   async _ensureTaskManager() {
     if (this._taskManager) return this._taskManager;
-    const { BackgroundTaskManager } =
-      await import("../../harness/background-task-manager.js");
+    const { BackgroundTaskManager } = await import(
+      "../../harness/background-task-manager.js"
+    );
     this._taskManager = new BackgroundTaskManager({
       recoverOnStart: true,
       policyCwd: this.projectRoot,

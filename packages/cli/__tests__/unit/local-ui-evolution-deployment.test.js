@@ -36,6 +36,7 @@ import { readEvolutionDeploymentProfile } from "../../src/lib/evolution/evolutio
 import { initializeDefaultLocalUiEvolutionDeployment } from "../../src/lib/evolution/local-ui-evolution-deployment.js";
 import { createLocalUiEvolutionAuthorities } from "../../src/lib/evolution/local-ui-evolution-runtime.js";
 import { configureEvolutionDeployment } from "../../src/lib/evolution/evolution-deployment-config.js";
+import { setConfigValue } from "../../src/lib/config-manager.js";
 
 const temporaryRoots = [];
 function canonical(value) {
@@ -235,8 +236,9 @@ describe("default local UI Evolution deployment", () => {
     180_000,
   );
 
-  it("lazily signs a first agent start and authenticates ask, chat and UI session modes", async () => {
+  it("lazily signs an opted-in first agent start and authenticates ask, chat and UI session modes", async () => {
     const config = createConfig();
+    setConfigValue("evolution.enabled", true, config);
     const dependencies = await loadEvolutionDeploymentCommandDependencies(
       "agent",
       config,
@@ -430,6 +432,7 @@ describe("default local UI Evolution deployment", () => {
     "loads a local factory that completes a governed Quick Ask turn using $provider",
     async ({ provider, options, stream, expectedUrl }) => {
       const config = createConfig();
+      setConfigValue("evolution.enabled", true, config);
       const dependencies = await loadEvolutionDeploymentCommandDependencies(
         "ui",
         { env: config.env, initializeDefaultLocalUi: true },

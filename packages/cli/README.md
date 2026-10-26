@@ -2,6 +2,22 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
+## CLI 0.166.127 — optional self-evolution (release candidate, 2026-10-27)
+
+完整中文说明见[CLI 与 IDE 自进化开关配置](../../docs/cli/SELF_EVOLUTION_CONFIGURATION.md)，包括默认行为、配置优先级、界面入口与生效时机。
+
+Ordinary Agent, `ask`, `chat` and `cc ui` use self-evolution only when enabled. Fresh installations and older automatically created local profiles default to off. In the user `config.json` (`~/.chainlesschain/config.json`, or the selected `CHAINLESSCHAIN_HOME`), use:
+
+```json
+{ "evolution": { "enabled": false } }
+```
+
+Run `cc config set evolution.enabled true` to opt in, or `cc config set evolution.enabled false` to switch off. `cc evolution deployment enable` initializes the local signed runtime when needed; `cc evolution deployment disable` turns it off and retains deployment data. `cc evolution deployment status --json` reports the effective state. An explicit `false` also overrides inherited deployment environment variables; explicitly supplied external/managed deployments remain opt-ins when this setting is absent.
+
+The **Skill 自进化配置** page in `cc ui`, VS Code and JetBrains shares this setting. Quick Ask reads it for each new request; stop and restart an already running Agent session to apply changes. Switching off leaves ordinary chat, tool permissions and sandbox policy available. Enabled deployments still enforce their signatures and evidence validation; automatic candidate promotion remains `HOLD`. RRSI evaluation modules are part of the CLI evolution code, but this switch does not itself start a full RRSI campaign or publish learned candidates.
+
+These controls are pending release as CLI **0.166.127**, paired with VS Code **0.37.164** and JetBrains **0.4.180** candidates. After publication and readback, install with `npm i -g chainlesschain@0.166.127 --registry https://registry.npmjs.org`. Until then, public CLI **0.166.126** remains available. Its JSON recovery-summary repair addresses host-truncated retained context; the same error code can also report other invalid original evidence. Child package pins are unchanged. Exact-source Linux, Windows and macOS CLI CI and Strict Sandbox, GitHub Actions OIDC, and public package readback are required before release; automatic promotion remains `HOLD`.
+
 ## CLI 0.166.126 (public, 2026-10-26)
 
 Fixes `Agent model JSON text is malformed or ambiguous` after reading a worklog or retaining a long tool result. Host-created recovery excerpts now preserve complete JSON values or explicitly omit an unsafe excerpt instead of passing a character-cut fragment to the next model turn. The fix covers file and remote-read summaries, task checkpoints, worklog context, legacy-session restart and handoff. Canonical session history remains unchanged; omitted source excerpts do not count as visible file content.

@@ -63,24 +63,19 @@ it.each(["none", "agent", "chat"])(
       expect(resumed.stdout).toContain("ChainlessChain AI Chat");
       expect(resumed.stdout).toContain("Goodbye!");
       if (mode === "none") {
-        const profile = JSON.parse(
-          fs.readFileSync(
+        expect(
+          fs.existsSync(
             path.join(
               env.CHAINLESSCHAIN_HOME,
               "evolution",
               "deployment-profile.json",
             ),
-            "utf8",
           ),
-        );
-        expect(profile.deploymentMode).toBe("local");
-        expect(profile.enabled).toBe(true);
+        ).toBe(false);
       }
     } else {
       expect(resumed.status).toBe(1);
-      expect(resumed.stderr).toContain(
-        "requires an authenticated evolution composition factory",
-      );
+      expect(resumed.stderr).toContain("does not admit command: chat");
       expect(resumed.stdout).not.toContain("ChainlessChain AI Chat");
     }
   },

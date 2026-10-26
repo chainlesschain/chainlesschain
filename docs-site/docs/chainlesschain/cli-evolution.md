@@ -1,5 +1,28 @@
 # 自进化系统 (evolution)
 
+> 2026-10-27 发布候选：CLI **0.166.127** 与 VS Code **0.37.164** / JetBrains **0.4.180** 新增共享的自进化运行时开关，尚待三平台门禁、CLI 发布及 IDE 公开回读。当前公开 CLI 为 **0.166.126**；下方带日期内容保留历史范围。
+
+## 自进化运行时开关（发布候选）
+
+新安装和旧自动生成的本地部署默认关闭，关闭后仍可使用普通 Agent、聊天、Quick Ask 和意图确认。CLI、cc ui 及两个 IDE 插件通过同一份用户 `config.json` 中的布尔字段控制：
+
+```json
+{ "evolution": { "enabled": false } }
+```
+
+```bash
+cc config list
+cc config set evolution.enabled true
+cc config set evolution.enabled false
+cc evolution deployment status --json
+```
+
+`cc config list` 显示实际配置路径。也可在 cc ui、VS Code 命令面板或 JetBrains 的 **Skill 自进化配置** 页面使用开关；首次通过 `cc evolution deployment enable` 或界面开启时可初始化本地签名运行时。
+
+显式 `false` 优先于部署环境变量；配置项缺省时，已有手动启用的 managed/test 部署和显式外部部署仍保留主动开启的选择。CLI 与 IDE 必须使用同一配置目录才能共享开关。Quick Ask 和意图理解的新请求重新读取设置，运行中的 Agent 会话需停止后重启。
+
+这个开关控制 Evolution 运行时接入。RRSI 完整评估活动需要单独发起，候选自动晋升仍保持 **HOLD**。启用后无效部署继续拒绝执行。完整说明见[CLI 与 IDE 自进化开关配置](https://github.com/chainlesschain/chainlesschain/blob/main/docs/cli/SELF_EVOLUTION_CONFIGURATION.md)。
+
 > 2026-10-23 当前核对：CLI **0.166.117**、Open VSX **0.37.159** 和 JetBrains **0.4.176** 均已公开，两个 IDE 均推荐 CLI `.117`。Session Core **0.3.22**、Personal Data Hub **0.4.66** 已先行发布。新增代码输入兼容、独立图片预算、完整 JSON 预览和异常退出工具轮次结算；本轮未新增真实模型任务验收，自动晋升继续 **HOLD**。
 
 [输入、图片预算与会话恢复](./agent-input-and-recovery) · [当前升级步骤](./cli-ide-update-2026-10-23)

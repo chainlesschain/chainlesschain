@@ -2,6 +2,12 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.164] - Optional self-evolution (candidate, 2026-10-27)
+
+- Add a self-evolution enable/disable control that works before a deployment exists and shares the CLI `evolution.enabled` setting with cc ui and JetBrains.
+- Default fresh and automatically created local deployments to off; preserve explicit deployment opt-ins. Restart running Agent sessions after switching.
+- Recommend CLI 0.166.127 and pair with JetBrains 0.4.180. Publication follows the CLI's verified public release and exact-source IDE checks.
+
 ## [0.37.163] - Saved input attachment protection (unreleased candidate, 2026-10-26)
 
 - Preserve saved inputs and attachments while their Agent is running, preparing input, or awaiting confirmed termination, including partial pipe failures and failed stops.

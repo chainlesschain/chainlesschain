@@ -83,8 +83,9 @@ function outputSink() {
 
 describe("chat-repl — session autorecord", () => {
   it("refuses a scoped session before readline or provider startup", async () => {
-    const { startSession } =
-      await import("../../src/harness/jsonl-session-store.js");
+    const { startSession } = await import(
+      "../../src/harness/jsonl-session-store.js"
+    );
     const { startChatRepl } = await import("../../src/repl/chat-repl.js");
     const sessionId = startSession("chat-scoped-resume", {
       title: "scoped",
@@ -104,112 +105,127 @@ describe("chat-repl — session autorecord", () => {
     expect(globalThis.fetch).toBe(originalFetch);
   });
 
-  it("startChatRepl creates a JSONL session and records user + assistant + token_usage", async () => {
-    // Mock readline to drive one prompt then close.
-    vi.doMock("readline", () => ({
-      default: {
-        createInterface: () => {
-          const handlers = {};
-          return {
-            on(event, fn) {
-              handlers[event] = fn;
-              return this;
-            },
-            prompt() {},
-            emit(event, arg) {
-              handlers[event]?.(arg);
-            },
-            // expose for test
-            _handlers: handlers,
-          };
+  it.each([true, false])(
+    "records chat usage and waits for close (Evolution enabled: %s)",
+    async (enabled) => {
+      // Mock readline to drive one prompt then close.
+      vi.doMock("readline", () => ({
+        default: {
+          createInterface: () => {
+            const handlers = {};
+            return {
+              on(event, fn) {
+                handlers[event] = fn;
+                return this;
+              },
+              prompt() {},
+              emit(event, arg) {
+                handlers[event]?.(arg);
+              },
+              // expose for test
+              _handlers: handlers,
+            };
+          },
         },
-      },
-    }));
+      }));
 
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      body: stream([
-        '{"message":{"content":"Hello"}}\n',
-        '{"done":true,"prompt_eval_count":20,"eval_count":10}\n',
-      ]),
-    });
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        body: stream([
+          '{"message":{"content":"Hello"}}\n',
+          '{"done":true,"prompt_eval_count":20,"eval_count":10}\n',
+        ]),
+      });
 
-    const rlMod = await import("readline");
-    const { startChatRepl } = await import("../../src/repl/chat-repl.js");
-    const { sessionPath } =
-      await import("../../src/harness/jsonl-session-store.js");
+      const rlMod = await import("readline");
+      const { startChatRepl } = await import("../../src/repl/chat-repl.js");
+      const { sessionPath } = await import(
+        "../../src/harness/jsonl-session-store.js"
+      );
 
-    // Capture rl via patching createInterface
-    let capturedRl = null;
-    const orig = rlMod.default.createInterface;
-    rlMod.default.createInterface = (opts) => {
-      capturedRl = orig(opts);
-      return capturedRl;
-    };
-
-    const stdout = outputSink();
-    const stderr = outputSink();
-    const originalStdoutWrite = stdout.write;
-    const originalStderrWrite = stderr.write;
-    await startChatRepl({
-      provider: "ollama",
-      model: "qwen2:7b",
-      baseUrl: "http://localhost:11434",
-      evolutionIngress,
-      stdout,
-      stderr,
-    });
-
-    // Trigger line handler synchronously, wait for async handler
-    await new Promise((resolve) => {
-      // After async line handler finishes it will call rl.prompt(); we just
-      // wait a tick by monkey-patching prompt to signal.
-      const origPrompt = capturedRl.prompt.bind(capturedRl);
-      capturedRl.prompt = () => {
-        origPrompt();
-        resolve();
+      // Capture rl via patching createInterface
+      let capturedRl = null;
+      const orig = rlMod.default.createInterface;
+      rlMod.default.createInterface = (opts) => {
+        capturedRl = orig(opts);
+        return capturedRl;
       };
-      capturedRl._handlers.line("hi");
-    });
 
-    // Find the session file written under tmpHome/sessions
-    const sessionsDir = path.join(tmpHome, "sessions");
-    expect(fs.existsSync(sessionsDir)).toBe(true);
-    const files = fs
-      .readdirSync(sessionsDir)
-      .filter((f) => f.endsWith(".jsonl"));
-    expect(files.length).toBe(1);
+      const stdout = outputSink();
+      const stderr = outputSink();
+      const originalStdoutWrite = stdout.write;
+      const originalStderrWrite = stderr.write;
+      const lifecycle = await startChatRepl({
+        provider: "ollama",
+        model: "qwen2:7b",
+        baseUrl: "http://localhost:11434",
+        evolutionIngress: enabled ? evolutionIngress : null,
+        stdout,
+        stderr,
+      });
+      const finished = vi.fn();
+      if (!enabled) lifecycle.finished.then(finished);
 
-    const sid = files[0].replace(/\.jsonl$/, "");
-    const lines = fs
-      .readFileSync(sessionPath(sid), "utf-8")
-      .split("\n")
-      .filter(Boolean)
-      .map((l) => JSON.parse(l));
+      // Trigger line handler synchronously, wait for async handler
+      await new Promise((resolve) => {
+        // After async line handler finishes it will call rl.prompt(); we just
+        // wait a tick by monkey-patching prompt to signal.
+        const origPrompt = capturedRl.prompt.bind(capturedRl);
+        capturedRl.prompt = () => {
+          origPrompt();
+          resolve();
+        };
+        capturedRl._handlers.line("hi");
+      });
 
-    const types = lines.map((l) => l.type);
-    expect(types).toContain("session_start");
-    expect(types).toContain("user_message");
-    expect(types).toContain("assistant_message");
-    expect(types).toContain("token_usage");
+      // Find the session file written under tmpHome/sessions
+      const sessionsDir = path.join(tmpHome, "sessions");
+      expect(fs.existsSync(sessionsDir)).toBe(true);
+      const files = fs
+        .readdirSync(sessionsDir)
+        .filter((f) => f.endsWith(".jsonl"));
+      expect(files.length).toBe(1);
 
-    const tokenUsage = lines.find((l) => l.type === "token_usage");
-    expect(tokenUsage.data).toMatchObject({
-      provider: "ollama",
-      model: "qwen2:7b",
-      usage: { input_tokens: 20, output_tokens: 10 },
-    });
+      const sid = files[0].replace(/\.jsonl$/, "");
+      const lines = fs
+        .readFileSync(sessionPath(sid), "utf-8")
+        .split("\n")
+        .filter(Boolean)
+        .map((l) => JSON.parse(l));
 
-    const exit = vi.spyOn(process, "exit").mockImplementation(() => undefined);
-    try {
-      await capturedRl._handlers.close();
-      expect(exit).toHaveBeenCalledWith(0);
-      expect(stdout.write).toBe(originalStdoutWrite);
-      expect(stderr.write).toBe(originalStderrWrite);
-    } finally {
-      exit.mockRestore();
-    }
+      const types = lines.map((l) => l.type);
+      expect(types).toContain("session_start");
+      expect(types).toContain("user_message");
+      expect(types).toContain("assistant_message");
+      expect(types).toContain("token_usage");
 
-    vi.doUnmock("readline");
-  });
+      const tokenUsage = lines.find((l) => l.type === "token_usage");
+      expect(tokenUsage.data).toMatchObject({
+        provider: "ollama",
+        model: "qwen2:7b",
+        usage: { input_tokens: 20, output_tokens: 10 },
+      });
+
+      const exit = vi
+        .spyOn(process, "exit")
+        .mockImplementation(() => undefined);
+      try {
+        expect(finished).not.toHaveBeenCalled();
+        await capturedRl._handlers.close();
+        if (!enabled) {
+          await lifecycle.finished;
+          expect(finished).toHaveBeenCalledOnce();
+          expect(evolutionIngress.complete).not.toHaveBeenCalled();
+          expect(evolutionIngress.prepareModelRequest).not.toHaveBeenCalled();
+        }
+        expect(exit).toHaveBeenCalledWith(0);
+        expect(stdout.write).toBe(originalStdoutWrite);
+        expect(stderr.write).toBe(originalStderrWrite);
+      } finally {
+        exit.mockRestore();
+      }
+
+      vi.doUnmock("readline");
+    },
+  );
 });

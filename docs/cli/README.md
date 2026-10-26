@@ -1,5 +1,7 @@
 # CLI 文档
 
+> 2026-10-27 发布准备：CLI **0.166.127** 新增默认关闭、可重新开启的共享自进化开关；配套 IDE 候选为 **0.37.164 / 0.4.180**。尚待准确提交的三平台门禁、OIDC 发布与公开回读。当前公开 CLI 为 **0.166.126**。见[配置说明](./SELF_EVOLUTION_CONFIGURATION.md)。以下带日期的发布记录保留其历史范围。
+
 > 2026-10-26：公开 CLI **0.166.123**，安装 `npm i -g chainlesschain@0.166.123 --registry https://registry.npmjs.org`。修复模型设置串用、Windows 首字延迟和 Python 格式化字符串投影误判；Session Core **0.3.24** 已先行发布。现有 IDE 仍为 **0.37.161 / 0.4.178**，推荐标记仍为 `.121`。三平台发布门禁、公共包字节、签名来源和子依赖已核验，见[发布证据](../research/cli/evidence/release123-public/publication.json)。验收 **32/45**、**13** 项未完成及 **NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。
 
 > 2026-10-16：公开 CLI **0.166.103**、Open VSX **0.37.148** 与 JetBrains **0.4.165**，两个 IDE 均推荐 CLI `.103`。CLI 发行提交 `b235ac8068`，VS Code `c8a64caa92`，JetBrains `fa64840216`；主线核对至 `920f263e3f`。Session Core **0.3.19**、Kernel **0.1.10**、PDH **0.4.65**；原生产品 **v5.0.3.140** 独立发行。正式预算保持 **NOT_PAID_READY**，36+9 **NOT_RUN（0/36、0/9）**、native **NOT_ADMITTED**、自动晋升 **HOLD**。 参见[本轮升级指南](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-16.html)。较早日期的记录保留历史范围。
@@ -16,6 +18,7 @@
 
 ## 运行时、专题与参考
 
+- [CLI 与 IDE 自进化开关配置（尚未发布）](./SELF_EVOLUTION_CONFIGURATION.md)
 - [Auto mode Safety Classifier Evaluation](./AUTO_MODE_SAFETY_EVAL.md)
 - [CLI — Phase 8: Blockchain & Enterprise](./blockchain-enterprise.md)
 - [CLI 因果可观测性](./CAUSAL_OBSERVABILITY.md)

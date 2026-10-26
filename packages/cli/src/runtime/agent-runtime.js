@@ -189,6 +189,9 @@ export class AgentRuntime {
       resolveAgentBundle: deps.resolveAgentBundle || null,
       openBrowser: deps.openBrowser || openBrowser,
       runTurn: deps.runTurn || null,
+      prepareUiModelTurn: deps.prepareUiModelTurn || null,
+      resolveEvolutionCompositionFactory:
+        deps.resolveEvolutionCompositionFactory || null,
       evolutionCompositionFactory:
         deps.evolutionCompositionFactory == null
           ? null
@@ -415,6 +418,9 @@ export class AgentRuntime {
         ? {}
         : { evolutionIngress: this.evolutionIngress }),
     });
+    if (this.evolutionIngress === null && result?.finished) {
+      await result.finished;
+    }
     if (this.evolutionIngress !== null) {
       if (result?.schema === AGENT_EVOLUTION_SESSION_SCHEMA) {
         return await waitForAgentEvolutionSession(
@@ -489,10 +495,12 @@ export class AgentRuntime {
           typeof loadBundle !== "function" ||
           typeof resolveBundle !== "function"
         ) {
-          ({ loadBundle } =
-            await import("@chainlesschain/session-core/agent-bundle-loader"));
-          ({ resolveBundle } =
-            await import("@chainlesschain/session-core/agent-bundle-resolver"));
+          ({ loadBundle } = await import(
+            "@chainlesschain/session-core/agent-bundle-loader"
+          ));
+          ({ resolveBundle } = await import(
+            "@chainlesschain/session-core/agent-bundle-resolver"
+          ));
         }
         const bundle = loadBundle(this.policy.bundlePath);
         bundleResolved = resolveBundle(bundle);
@@ -557,8 +565,9 @@ export class AgentRuntime {
       if (Number.isNaN(httpPort) || httpPort < 1 || httpPort > 65535) {
         throw new Error("Invalid --http-port. Must be between 1 and 65535.");
       }
-      const { createEnvelopeBus, createEnvelopeHttpServer } =
-        await import("../gateways/http/envelope-http-server.js");
+      const { createEnvelopeBus, createEnvelopeHttpServer } = await import(
+        "../gateways/http/envelope-http-server.js"
+      );
       envelopeBus = createEnvelopeBus();
       httpServer = createEnvelopeHttpServer({
         bus: envelopeBus,
@@ -766,6 +775,9 @@ export class AgentRuntime {
           sessionManager,
           projectRoot: workspacePolicyCwd,
           evolutionCompositionFactory: this.deps.evolutionCompositionFactory,
+          prepareUiModelTurn: this.deps.prepareUiModelTurn,
+          resolveEvolutionCompositionFactory:
+            this.deps.resolveEvolutionCompositionFactory,
         });
         // ChainlessChainWSServer extends EventEmitter and emits "error"
         // synchronously on bind failure (in addition to rejecting start()).

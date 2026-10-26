@@ -103,17 +103,20 @@ export async function startChatRepl(options = {}) {
     options.evolutionIngress == null
       ? null
       : captureAgentEvolutionIngress(options.evolutionIngress);
-  if (evolutionIngress === null) {
-    const error = new Error(
-      "Chat REPL model egress requires an authenticated evolution ingress",
-    );
-    error.code = "CC_AGENT_EVOLUTION_INGRESS_FAILED";
-    throw error;
-  }
   const admittedSessionId = options.sessionId
     ? assertChatSessionUsageAdmission(options.sessionId)
     : null;
-  const evolutionSession = createAgentEvolutionSessionLifecycle(evolutionIngress);
+  const evolutionSession =
+    evolutionIngress === null
+      ? null
+      : createAgentEvolutionSessionLifecycle(evolutionIngress);
+  let resolveFinished;
+  let rejectFinished;
+  const finished = new Promise((resolve, reject) => {
+    resolveFinished = resolve;
+    rejectFinished = reject;
+  });
+  void finished.catch(() => {});
   const llmConfig = loadConfig().llm || {};
   const connection = resolveLlmConnection(options, [llmConfig], {
     defaultModel:
@@ -510,7 +513,10 @@ export async function startChatRepl(options = {}) {
         ? 0
         : 1
       : exitCode;
+    if (finalExitCode === 0) resolveFinished();
+    else rejectFinished(outputFailure);
     process.exit(finalExitCode);
   });
-  return evolutionSession?.handle;
+  // Keep owners alive until readline closes even when Evolution is off.
+  return evolutionSession?.handle ?? Object.freeze({ finished });
 }

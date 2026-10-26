@@ -32,9 +32,12 @@ export function readEvolutionCompositionFactory(dependencies = {}) {
 // never a run identifier or composition to borrow from another request.
 export async function prepareGovernedModelTurn(
   factory,
-  { mode, messages, signal },
+  { mode, messages, signal, evolutionDisabled = false },
 ) {
   signal?.throwIfAborted();
+  if (factory === null && evolutionDisabled === true) {
+    return Object.freeze({ governed: false, messages, async complete() {} });
+  }
   if (factory === null) {
     const error = new Error(
       "Model egress requires an authenticated evolution composition factory",

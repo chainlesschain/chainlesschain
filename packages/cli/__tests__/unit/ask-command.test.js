@@ -1,12 +1,16 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-vi.mock("ora", () => ({ default: () => ({ start() {}, fail() {}, succeed() {} }) }));
+vi.mock("ora", () => ({
+  default: () => ({ start() {}, fail() {}, succeed() {} }),
+}));
 vi.mock("../../src/lib/logger.js", () => ({ logger: {} }));
 vi.mock("../../src/lib/evolution/agent-evolution-ingress.js", () => ({
   captureAgentEvolutionIngress: (ingress) => ingress,
 }));
 vi.mock(
   "../../src/lib/evolution/agent-evolution-runtime-composition-brand.js",
-  () => ({ captureAgentEvolutionRuntimeComposition: (composition) => composition }),
+  () => ({
+    captureAgentEvolutionRuntimeComposition: (composition) => composition,
+  }),
 );
 import {
   resolveOllamaBaseUrl,
@@ -203,31 +207,35 @@ describe("ask command — queryLLM hits /api/chat for ollama", () => {
       ok: true,
       json: async () => ({ message: { role: "assistant", content: "hi" } }),
     }));
-    globalThis.fetch = fetchSpy;
+    vi.stubGlobal("fetch", fetchSpy);
   });
 
   afterEach(() => {
-    delete globalThis.fetch;
+    vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
 
   it("posts to /api/chat (not /api/generate) with messages payload", async () => {
-    // Import lazily so any prior vi.doMock can still apply.
-    const askMod = await import("../../src/commands/ask.js");
-    // queryLLM is not exported; test the contract through resolveOllamaBaseUrl
-    // + manual fetch invocation that mirrors what queryLLM does.
-    const baseUrl = askMod.resolveOllamaBaseUrl({
+    const baseUrl = resolveOllamaBaseUrl({
       options: {},
       env: {},
       config: { llm: { preferAndroidLocal: true } },
     });
     expect(baseUrl).toBe("http://127.0.0.1:18484");
 
-    // Sanity: the implementation contract for the ollama branch is
-    // documented at the top of ask.js. We assert the URL pattern here so a
-    // regression to /api/generate would fail this test if queryLLM ever
-    // gets exported.
-    expect(`${baseUrl}/api/chat`).toBe("http://127.0.0.1:18484/api/chat");
+    const question = 'explain this unfinished example: {"partial":';
+    await expect(
+      queryLLM(question, { provider: "ollama", model: "qwen2:7b", baseUrl }),
+    ).resolves.toBe("hi");
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const [url, request] = fetchSpy.mock.calls[0];
+    expect(url).toBe("http://127.0.0.1:18484/api/chat");
+    expect(request.method).toBe("POST");
+    expect(JSON.parse(request.body)).toEqual({
+      model: "qwen2:7b",
+      messages: [{ role: "user", content: question }],
+      stream: false,
+    });
   });
 });
 
@@ -285,10 +293,7 @@ describe("ask command provider protocols", () => {
         candidates: [
           {
             content: {
-              parts: [
-                { thought: true, text: "private" },
-                { text: "hello" },
-              ],
+              parts: [{ thought: true, text: "private" }, { text: "hello" }],
             },
           },
         ],

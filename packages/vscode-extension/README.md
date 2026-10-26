@@ -4,9 +4,15 @@ ChainlessChain agent workspace for VS Code-compatible editors with streaming
 chat, inline assistance, governed review, sessions, automation, and a localhost
 MCP bridge.
 
+## Self-evolution switch (unreleased)
+
+完整中文配置与排查步骤见[CLI 与 IDE 自进化开关配置](../../docs/cli/SELF_EVOLUTION_CONFIGURATION.md)。
+
+Open **Skill 自进化配置** from the command palette to enable or disable self-evolution. It defaults to off and shares `evolution.enabled` in the CLI user `config.json` with `cc ui` and JetBrains. Enabling can initialize the local signed runtime; disabling keeps ordinary Agent use available and preserves deployment data. Stop and restart a running Agent session after switching. These changes require the corresponding updated CLI and extension; they are not yet a public release.
+
 ## Next release candidate
 
-Source candidate **0.37.163** recommends CLI **`0.166.125`**. The extension has not been published. It protects saved input attachments while the Agent may still read them and rejects queued discard requests after the page or conversation changes. Publication requires the candidate's own exact-source checks and public artifact readback.
+Source candidate **0.37.164** recommends CLI **`0.166.127`** and pairs with JetBrains **0.4.180**. It adds the shared self-evolution switch and retains saved input attachment protection. These versions are pending publication; release requires the recommended CLI to be publicly available, exact-source IDE checks, and public artifact readback.
 
 The existing public pairing recorded in the [CLI .125 publication receipt](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release125-public/publication.json) is Open VSX **0.37.162**, JetBrains **0.4.179**, and recommended CLI **0.166.123**. The CLI .125 follow-up did not compare IDE archive bytes or publish new IDE versions.
 

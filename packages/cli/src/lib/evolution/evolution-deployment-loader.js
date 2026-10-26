@@ -8,6 +8,10 @@ import {
   assertEvolutionDeploymentRevisionFloor,
   readEvolutionDeploymentProfile,
 } from "./evolution-deployment-profile.js";
+import {
+  readEvolutionEnabled,
+  resolveEvolutionEnabled,
+} from "./evolution-enabled.js";
 
 export const EVOLUTION_DEPLOYMENT_DESCRIPTOR_SCHEMA =
   "chainlesschain.evolution-deployment-descriptor/v1";
@@ -138,7 +142,7 @@ function dependencies(value, commandName) {
 }
 
 function deniedAgentDependencies(commandName, code, message, source = null) {
-  if (commandName !== "agent") return null;
+  if (!["agent", "ask", "chat", "ui"].includes(commandName)) return null;
   const evolutionCompositionFactory = Object.freeze(async () => {
     const error = new Error(message);
     error.code = code;
@@ -175,7 +179,8 @@ function deniedAgentDependencies(commandName, code, message, source = null) {
 }
 
 function authenticatedDependencies(value, commandName) {
-  if (commandName !== "agent") return dependencies(value, commandName);
+  if (!["agent", "ask", "chat", "ui"].includes(commandName))
+    return dependencies(value, commandName);
   if (
     value === null ||
     typeof value !== "object" ||
@@ -1029,7 +1034,7 @@ export async function loadEvolutionDeploymentCommandDependencies(
     importModule = (url) => import(url),
     additionalFactories = {},
     initializeDefaultLocalUi = false,
-    initializeDefaultLocalModels = true,
+    initializeDefaultLocalModels = false,
   } = {},
 ) {
   if (!SUPPORTED_COMMANDS.has(commandName)) return null;
@@ -1064,6 +1069,20 @@ export async function loadEvolutionDeploymentCommandDependencies(
     );
   let descriptorPath = env.CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_DESCRIPTOR;
   let trustRootPath = env.CHAINLESSCHAIN_EVOLUTION_DEPLOYMENT_TRUST_ROOT;
+  const currentProfile = await readEvolutionDeploymentProfile({ env, cwd });
+  const choice = readEvolutionEnabled({ env, cwd });
+  if (choice === false) return null;
+  if (
+    !currentProfile.error &&
+    !resolveEvolutionEnabled(choice, currentProfile.profile, env)
+  )
+    return null;
+  if (choice === true && currentProfile.profile?.enabled === false) {
+    const { setEvolutionDeploymentProfileEnabled } = await import(
+      "./evolution-deployment-profile.js"
+    );
+    await setEvolutionDeploymentProfileEnabled(true, { env, cwd });
+  }
   if (
     initializeDefaultLocalUi === true &&
     commandName === "ui" &&
@@ -1087,15 +1106,11 @@ export async function loadEvolutionDeploymentCommandDependencies(
       );
     }
     if (saved.profile && !saved.profile.enabled) {
-      return deniedAgentDependencies(
-        commandName,
-        "EVOLUTION_DEPLOYMENT_DISABLED",
-        "Saved evolution deployment profile is disabled",
-      );
+      return null;
     }
     if (
-      initializeDefaultLocalModels &&
-      ["agent", "ask", "chat"].includes(commandName) &&
+      (initializeDefaultLocalModels || choice === true) &&
+      ["agent", "ask", "chat", "ui"].includes(commandName) &&
       !saved.profile
     ) {
       // Registration/help is read-only. Bootstrap only when a real command
@@ -1175,7 +1190,7 @@ export async function loadEvolutionDeploymentCommandDependencies(
       );
     }
     if (
-      initializeDefaultLocalModels &&
+      (initializeDefaultLocalModels || choice === true) &&
       ["agent", "ask", "chat", "ui"].includes(commandName) &&
       descriptor.commands.length === 1 &&
       descriptor.commands[0] === "ui"
