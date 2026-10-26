@@ -1,10 +1,20 @@
-# CLI .125 与 IDE 升级指南（2026-10-26）
+# CLI .126 与 IDE 升级指南（2026-10-26）
 
 ## 概述
 
-CLI **0.166.126** 正在准备发布，修复自动恢复摘要将 JSON 截断后反复污染下一轮请求的问题。完整提交须通过三平台 CLI CI 和 Strict Sandbox，并经 GitHub Actions OIDC 发布及公开包回读，之后才合并。当前可安装的公开版本仍为下方 **0.166.125**。
+CLI **0.166.126** 已通过 [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/40332695884) 公开发布，修复自动恢复摘要将 JSON 截断后反复污染下一轮请求的问题。精确源码 `1b848f7e265737b73e6f8ac99f0aeaf9ea5dadbe` 的 Linux、Windows、macOS CLI CI 和 Strict Sandbox 全部通过；公开归档、不可变 CI 制品、签名来源及十个直接子依赖已核验。[发布证据](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release126-public/publication.json)。
 
 `.126` 覆盖文件摘要、任务进度、远端查询、旧检查点恢复和重新读取 `WORKLOG.md` 的路径。无法安全表示的派生摘要会明确省略，并保留定位信息；原始 JSONL 和权威检查点不会因此改写。真正损坏的原始工具结果仍会被拒绝。此修复不需要删除会话、关闭 Evolution 或改换模型。
+
+```bash
+npm i -g chainlesschain@0.166.126 --registry https://registry.npmjs.org
+cc --version
+cc doctor
+```
+
+升级后重启 IDE 聊天宿主，并确认实际 CLI 路径和版本。Open VSX **0.37.163** 已公开上市，[版本 VSIX](https://open-vsx.org/api/chainlesschain/chainlesschain-ide/0.37.163/file/chainlesschain.chainlesschain-ide-0.37.163.vsix) 与不可变 CI 制品逐字节一致；包内推荐 CLI **0.166.125**。JetBrains **0.4.179** 保持现有公开版本，推荐 CLI **0.166.123**。[IDE 发布证据](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release126-public/open-vsx.json)。Microsoft Marketplace 尚未发布，原版 VS Code 可使用上述 VSIX 安装。子包版本不变；未新增真实模型任务验收，累计 **32/45**、**13** 项未完成及 **NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。
+
+## CLI .125 历史发行记录
 
 CLI **0.166.125** 已通过 [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/40274009347) 公开发布，精确源提交为 `4285a55c2f4dfb0c0eddb7cb8f63fc73f2ff1a2b`。Linux、Windows、macOS 的 CLI CI 和 Strict Sandbox 全部通过；公开归档与 CI 制品逐字节一致，签名来源、十个子包依赖及离线变更日志版本已核验。[发布证据](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release125-public/publication.json)。
 
