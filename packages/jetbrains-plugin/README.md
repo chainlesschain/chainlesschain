@@ -13,7 +13,7 @@ diffs inside IntelliJ-platform IDEs (IDEA, PyCharm, WebStorm, …).
 
 ## Release pairing
 
-Plugin **0.4.181** recommends CLI **`0.166.127`** and pairs with VS Code **0.37.165**. It adds the shared self-evolution switch. CLI 0.166.127 is public; IDE publication requires exact-source checks and public artifact readback. Version 0.4.180 stopped before publication because an offline upgrade-floor test still expected CLI 0.166.123; its tag is retained.
+Plugin **0.4.182** recommends CLI **`0.166.127`** and pairs with VS Code **0.37.165**. It adds the shared self-evolution switch. CLI 0.166.127 is public; IDE publication requires exact-source checks and public artifact readback. Version 0.4.180 stopped before publication because an offline upgrade-floor test still expected CLI 0.166.123; its tag is retained.
 
 Plugin **0.4.179** recommends public CLI **`0.166.123`** and pairs with VS Code **0.37.162**. These IDE source candidates have not been published. The paired CLI repairs Python f-string evidence projection and Ollama endpoint aliases while reducing repeated Windows ACL startup work. Exact-source IDE gates and public artifact readback remain pending. Previously verified public releases are retained below.
 
@@ -102,7 +102,7 @@ See the [upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-u
 
 ## Release compatibility
 
-Plugin **0.4.180** is the current release candidate. It recommends `chainlesschain@0.166.127`. CLI and plugin publication remain pending exact-source release gates and public artifact readback. This release adds the shared self-evolution switch and preserves unknown delivery handling. Native task quality and restart acceptance still require separate published-package evidence.
+Plugin **0.4.182** recommends `chainlesschain@0.166.127`. The CLI is public; plugin publication remains pending exact-source release gates and public artifact readback. This release adds the shared self-evolution switch and preserves unknown delivery handling. Native task quality and restart acceptance still require separate published-package evidence.
 
 ## Previous candidates and development notes
 
