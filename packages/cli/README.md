@@ -2,7 +2,7 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
-## CLI 0.166.127 — optional self-evolution (release candidate, 2026-10-27)
+## CLI 0.166.127 — optional self-evolution (2026-10-27)
 
 完整中文说明见[CLI 与 IDE 自进化开关配置](../../docs/cli/SELF_EVOLUTION_CONFIGURATION.md)，包括默认行为、配置优先级、界面入口与生效时机。
 
@@ -16,7 +16,7 @@ Run `cc config set evolution.enabled true` to opt in, or `cc config set evolutio
 
 The **Skill 自进化配置** page in `cc ui`, VS Code and JetBrains shares this setting. Quick Ask reads it for each new request; stop and restart an already running Agent session to apply changes. Switching off leaves ordinary chat, tool permissions and sandbox policy available. Enabled deployments still enforce their signatures and evidence validation; automatic candidate promotion remains `HOLD`. RRSI evaluation modules are part of the CLI evolution code, but this switch does not itself start a full RRSI campaign or publish learned candidates.
 
-These controls are pending release as CLI **0.166.127**, paired with VS Code **0.37.164** and JetBrains **0.4.180** candidates. After publication and readback, install with `npm i -g chainlesschain@0.166.127 --registry https://registry.npmjs.org`. Until then, public CLI **0.166.126** remains available. Its JSON recovery-summary repair addresses host-truncated retained context; the same error code can also report other invalid original evidence. Child package pins are unchanged. Exact-source Linux, Windows and macOS CLI CI and Strict Sandbox, GitHub Actions OIDC, and public package readback are required before release; automatic promotion remains `HOLD`.
+Install this release with `npm i -g chainlesschain@0.166.127 --registry https://registry.npmjs.org`. Paired IDE versions are VS Code **0.37.164** and JetBrains **0.4.180**; publish the IDE versions only after CLI publication and public package readback. Child package pins are unchanged. The preceding **0.166.126** JSON recovery-summary repair addresses host-truncated retained context; the same error code can also report other invalid original evidence. Exact-source Linux, Windows and macOS CLI CI and Strict Sandbox, GitHub Actions OIDC, and public package readback are required before release; automatic promotion remains `HOLD`.
 
 ## CLI 0.166.126 (public, 2026-10-26)
 

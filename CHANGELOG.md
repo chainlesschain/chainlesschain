@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added - cc CLI 0.166.127: optional self-evolution controls (candidate, 2026-10-27)
+### Added - cc CLI 0.166.127: optional self-evolution controls (2026-10-27)
 
 - Default fresh installations and older automatically generated local deployments to self-evolution off. Share the boolean `evolution.enabled` setting across CLI, cc ui, VS Code and JetBrains; explicit false overrides inherited deployment environment variables, while absent settings preserve manually selected deployments.
 - Enable and disable through configuration or deployment commands, initialize the local signed runtime on explicit enable, and retain deployment and trust history when disabled. Require a restart for running Agent sessions and reread the setting for new UI model requests.
