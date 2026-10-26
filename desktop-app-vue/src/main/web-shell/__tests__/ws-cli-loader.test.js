@@ -9,6 +9,10 @@
 
 import { describe, it, expect, afterEach } from "vitest";
 import WebSocket from "ws";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { setConfigValue } from "../../../../../packages/cli/src/lib/config-manager.js";
 import { startWsCliBackend } from "../ws-cli-loader.js";
 
 function rpc(ws, frame) {
@@ -112,6 +116,41 @@ describe("ws-cli-loader (Phase 1.1)", () => {
     expect(handle.server.evolutionCompositionFactory).toBe(
       evolutionCompositionFactory,
     );
+  });
+
+  it("honors changes to the shared evolution switch without restarting", async () => {
+    const root = mkdtempSync(join(tmpdir(), "cc-desktop-evolution-"));
+    const previous = process.env.CHAINLESSCHAIN_HOME;
+    process.env.CHAINLESSCHAIN_HOME = root;
+    try {
+      const factory = async () => null;
+      handle = await startWsCliBackend({
+        evolutionCompositionFactory: factory,
+      });
+      setConfigValue("evolution.enabled", true);
+      expect(await handle.server.resolveEvolutionCompositionFactory()).toBe(
+        factory,
+      );
+      setConfigValue("evolution.enabled", false);
+      expect(
+        await handle.server.resolveEvolutionCompositionFactory(),
+      ).toBeNull();
+      const messages = [{ role: "user", content: "hello" }];
+      const turn = await handle.server.prepareUiModelTurn({
+        mode: "ws-llm-chat",
+        messages,
+      });
+      expect(turn.governed).toBe(false);
+      expect(turn.messages).toEqual(messages);
+      setConfigValue("evolution.enabled", true);
+      expect(await handle.server.resolveEvolutionCompositionFactory()).toBe(
+        factory,
+      );
+    } finally {
+      if (previous === undefined) delete process.env.CHAINLESSCHAIN_HOME;
+      else process.env.CHAINLESSCHAIN_HOME = previous;
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 
   it("answers the CLI-native `ping` with a pong (no token, no handlers)", async () => {

@@ -72,6 +72,39 @@ const CONFIG_MANAGER_REL = "../../../../packages/cli/src/lib/config-manager.js";
 async function startWsCliBackend(options = {}) {
   const moduleUrl = pathToFileURL(path.resolve(__dirname, WS_SERVER_REL)).href;
   const mod = await import(moduleUrl);
+  const evolutionSettings = await import(
+    pathToFileURL(
+      path.resolve(
+        __dirname,
+        "../../../../packages/cli/src/lib/evolution/evolution-enabled.js",
+      ),
+    ).href
+  );
+  const optionalEvolution = await import(
+    pathToFileURL(
+      path.resolve(
+        __dirname,
+        "../../../../packages/cli/src/lib/evolution/optional-ui-model-turn.js",
+      ),
+    ).href
+  );
+  const modelTurns = await import(
+    pathToFileURL(
+      path.resolve(
+        __dirname,
+        "../../../../packages/cli/src/lib/evolution/governed-model-turn.js",
+      ),
+    ).href
+  );
+  // Read the shared CLI setting for each new request, including after the
+  // settings page switches evolution off in an already running desktop app.
+  const resolveEvolutionCompositionFactory = async () => {
+    if (evolutionSettings.readEvolutionEnabled() === false) return null;
+    return (
+      options.evolutionCompositionFactory ??
+      optionalEvolution.loadConfiguredUiEvolutionFactory()
+    );
+  };
 
   // The CLI ws-server's session-protocol expects a WSSessionManager (long
   // method names: createSession/listSessions/getSession/...). Desktop's
@@ -135,6 +168,14 @@ async function startWsCliBackend(options = {}) {
     maxConnections: options.maxConnections,
     sessionManager,
     evolutionCompositionFactory: options.evolutionCompositionFactory ?? null,
+    resolveEvolutionCompositionFactory,
+    prepareUiModelTurn: async (context) => {
+      const factory = await resolveEvolutionCompositionFactory();
+      return modelTurns.prepareGovernedModelTurn(factory, {
+        ...context,
+        evolutionDisabled: factory === null,
+      });
+    },
   });
 
   // ChainlessChainWSServer extends EventEmitter and emits "error" on bind

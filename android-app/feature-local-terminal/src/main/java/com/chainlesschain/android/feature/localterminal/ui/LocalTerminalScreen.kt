@@ -57,6 +57,8 @@ fun LocalTerminalScreen(
     LaunchedEffect(viewModel) { viewModel.boot() }
 
     val state by viewModel.state.collectAsState()
+    val evolutionMessage by viewModel.evolutionMessage.collectAsState()
+    val updatingEvolution by viewModel.updatingEvolution.collectAsState()
 
     // Holder for the WebView instance the AndroidView factory creates.
     // Captured here so the stdout-subscription LaunchedEffect can route
@@ -87,6 +89,17 @@ fun LocalTerminalScreen(
             .padding(WindowInsets.systemBars.asPaddingValues())
     ) {
         StatusBanner(state)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilledTonalButton(onClick = { viewModel.setEvolutionEnabled(false) }, enabled = !updatingEvolution) {
+                Text("关闭自进化")
+            }
+            FilledTonalButton(onClick = { viewModel.setEvolutionEnabled(true) }, enabled = !updatingEvolution) {
+                Text("开启自进化")
+            }
+        }
+        if (evolutionMessage.isNotEmpty()) {
+            Text(evolutionMessage, color = Color.White, modifier = Modifier.padding(8.dp))
+        }
         // Crucial: AndroidView with weight(1f).fillMaxWidth() so the WebView
         // receives a finite non-zero size at first layout pass. Wrapping in
         // a Box(fillMaxSize) inside a non-weighted Column gives the WebView

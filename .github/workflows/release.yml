@@ -1157,6 +1157,12 @@ jobs:
           ./gradlew downloadInternalBinaries --no-daemon
           echo "--- staged bundle asset ---"
           ls -lh feature-local-terminal/src/main/assets/local-terminal/cc-cli.tgz
+          EXPECTED_CLI_VERSION=$(node -p "require('../packages/cli/package.json').version")
+          BUNDLED_CLI_VERSION=$(tar -xOf feature-local-terminal/src/main/assets/local-terminal/cc-cli.tgz package/package.json | node -e 'let input=""; process.stdin.on("data", chunk => input += chunk); process.stdin.on("end", () => process.stdout.write(JSON.parse(input).version));')
+          if [ "$BUNDLED_CLI_VERSION" != "$EXPECTED_CLI_VERSION" ]; then
+            echo "::error::Android bundles CLI $BUNDLED_CLI_VERSION; release requires $EXPECTED_CLI_VERSION. Refresh the public CLI bundle before building clients."
+            exit 1
+          fi
 
       - name: Build release APK
         working-directory: android-app

@@ -7,6 +7,9 @@ import com.chainlesschain.android.feature.localterminal.LocalPtyClient
 import com.chainlesschain.android.feature.localterminal.PtyEnvironment
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,6 +17,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
+import java.io.File
+import java.util.concurrent.TimeUnit
 
 /**
  * ViewModel for one local-terminal session — owns one [LocalPtyClient],
@@ -52,6 +57,54 @@ class LocalSessionViewModel @Inject constructor(
 
     private val _state = MutableStateFlow(SessionState())
     val state: StateFlow<SessionState> = _state.asStateFlow()
+    private val _evolutionMessage = MutableStateFlow("")
+    val evolutionMessage: StateFlow<String> = _evolutionMessage.asStateFlow()
+    private val _updatingEvolution = MutableStateFlow(false)
+    val updatingEvolution: StateFlow<Boolean> = _updatingEvolution.asStateFlow()
+
+    fun setEvolutionEnabled(enabled: Boolean) {
+        if (_updatingEvolution.value) return
+        _updatingEvolution.value = true
+        viewModelScope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    bootstrapper.bootstrap().getOrThrow()
+                    val output = File.createTempFile("evolution-setting-", ".log", bootstrapper.tmpDir)
+                    try {
+                        val process = ProcessBuilder(
+                            env.mkshExecutable,
+                            File(bootstrapper.prefixDir, "bin/cc").absolutePath,
+                            "config", "set", "evolution.enabled", enabled.toString(),
+                        ).apply {
+                            directory(bootstrapper.homeDir)
+                            environment().clear()
+                            env.envp().forEach { entry ->
+                                val separator = entry.indexOf('=')
+                                if (separator > 0) environment()[entry.substring(0, separator)] = entry.substring(separator + 1)
+                            }
+                            redirectErrorStream(true)
+                            redirectOutput(output)
+                        }.start()
+                        try {
+                            check(process.waitFor(60, TimeUnit.SECONDS)) { "设置超时，请重试" }
+                            check(process.exitValue() == 0) { "设置失败，请检查 CLI 版本与配置" }
+                        } finally {
+                            if (process.isAlive) process.destroyForcibly()
+                        }
+                    } finally {
+                        output.delete()
+                    }
+                }
+                _evolutionMessage.value = if (enabled) "自进化已开启；请重启 Agent 会话" else "自进化已关闭；请重启 Agent 会话，普通聊天仍可使用"
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                _evolutionMessage.value = error.message ?: "设置失败"
+            } finally {
+                _updatingEvolution.value = false
+            }
+        }
+    }
 
     val stdoutFlow get() = client.stdoutFlow
     val exitFlow get() = client.exitFlow
