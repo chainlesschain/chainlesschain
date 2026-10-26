@@ -2,6 +2,8 @@
 
 承接 [10 月 15 日实施计划](./cli-ide-codex-claude-implementation-plan-2026-10-15.md)的 RUN-03 / IDE-03，以及 [10 月 23 日续做](./cli-ide-recovery-progress-2026-10-23.md)。本轮基线为 `082bdf7a24`，工作分支为 `feature/research-input-recovery-20261026`；新增工程修复尚未发布。
 
+代码与证据已提交至 [PR #498](https://github.com/chainlesschain/chainlesschain/pull/498)。本批工程修复与独立归档回复恢复已完成，汇总见 [completion.json](./cli/evidence/recovery-2026-10-26/completion.json)；完整计划与候选发行矩阵仍分别跟踪。
+
 ## 当前发布与验收基线
 
 仓库已保存的 [CLI .125 发布回读](./cli/evidence/release125-public/publication.json)绑定源码 `4285a55c2f4dfb0c0eddb7cb8f63fc73f2ff1a2b`，包含该提交三系统 CLI CI、CLI Strict Sandbox 与 npm 公开制品的核验。公共 CLI 为 **0.166.125**，Session Core 为 **0.3.24**。同一回读记录的既有 IDE 配对为 Open VSX **0.37.162**、JetBrains **0.4.179**，推荐 CLI **0.166.123**；这次 CLI 发布没有重新发行 IDE，也没有声称重新比对 IDE 压缩包字节。
@@ -31,6 +33,8 @@ VS Code 的“Discard saved input”此前会在 Agent 存活时直接删除保�
 
 Windows x64，Node **22.22.2**。可机读结果、命令、源码摘要及验证范围见 [validation.json](./cli/evidence/recovery-2026-10-26/validation.json)。
 
+配套候选元数据的 **26 项**测试通过，版本一致性 lint 为 **0 违规**；候选清单更新后再次执行完整 VS Code 单元套件，仍为 **308 项通过、0 跳过**，新日志摘要记录在 [completion.json](./cli/evidence/recovery-2026-10-26/completion.json)。两次完整套件验证同一组用例，不相加计数。
+
 | 检查                        | 结果与范围                                                                                                                            |
 | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | 修复前行为复现              | 新增 5 个场景均失败：成功排队和失败管道各一项，页面、草稿身份、输入准备状态在排队期间改变各一项；原始结果保留在 `discard-before.json` |
@@ -51,16 +55,20 @@ Windows x64，Node **22.22.2**。可机读结果、命令、源码摘要及验�
 
 采证修复只提取明确格式的外层标题；保留旧版 live 正文与两种既有 saved 标题格式，完整保留正文空白、原始 Markdown、重复正文及截断标记。原回复内容、渲染摘要、唯一性、行身份、公开 ZIP 身份和禁止恢复时启动 Agent 的断言均未放宽。四项新增回归包含本次真实失败快照以及错误标题、原始 Markdown和重复正文的负对照。
 
-修复后本地归档检查 **12 项通过、1 项 Linux 专项跳过**，JDK **21.0.12.1** 的离线 `compileUiTestJava` 成功，保留既有 IntelliJ API 弃用警告。这些结果尚不能关闭真实重启验收，仍须从新源码再次执行 Linux 工作流。
+修复后本地归档检查 **12 项通过、1 项 Linux 专项跳过**，JDK **21.0.12.1** 的离线 `compileUiTestJava` 成功，保留既有 IntelliJ API 弃用警告。
+
+源码 `c02d27e7e525c4361dafd584a990fe2f5ed2d49d` 的[第二次真实宿主复查](https://github.com/chainlesschain/chainlesschain/actions/runs/40309760152)已成功结束。下载制品后，再用原独立 verifier 在本地完整复核，结果与工作流保存的 `result.json` 完全一致：**`PASSED_ARCHIVED_REPLY_RECOVERY_ONLY`**。初始进程为 `3400`，重启进程为 `4320`；profile、tab、session、assistant row ID 以及原 source / rendered 摘要均保持一致，恢复阶段没有启动 Agent。完整证明与原始日志的逐文件摘要见[成功回执](./cli/evidence/recovery-2026-10-26/archived-reply-success/receipt.json)及[验证结果](./cli/evidence/recovery-2026-10-26/archived-reply-success/result.json)。
+
+至此，公开 JetBrains .179 在 Linux 2025.2 的这一归档回复恢复检查已关闭。它复用既有回复与候选文件，模型请求为 **0**，没有执行公共 CLI 或新任务；原历史样本的 `endToEndPassed:false` 保留，累计 **32/45** 和其余 **13** 项均不因此改变。
 
 ## 仍需完成
 
-| 工作                  | 当前边界与下一步                                                                                                                                        |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| RUN-03 跨入口恢复     | 继续公开安装包上的跨入口组合故障、重启并发输入、未决副作用，以及生产 Linux 预算恢复验收                                                                 |
-| IDE-03 原生恢复       | 在已绑定公开 ZIP 的 Linux 2025.2 宿主执行既有 `verify01-archived-reply-recovery.yml`，复用 verify-33 产物，不调用模型；随后完成九入口公开安装与恢复旅程 |
-| IDE-03 人工与发行渠道 | 真人辅助技术验收及 Microsoft Marketplace 的发行回读仍开放                                                                                               |
-| 36+9 剩余 13 项       | 新一轮只生成未合格项，保留 32 项已合格文件和回执；超时且用量未知项先核对原请求结果，继续沿用冻结验收条件                                                |
-| 新修复发行            | 从本分支最终准确提交完成相关门禁；按必要子 npm 包 → CLI → IDE → 移动端 / PC 顺序核验与发行，不以本地通过替代 Actions                                    |
+| 工作                  | 当前边界与下一步                                                                                                     |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| RUN-03 跨入口恢复     | 继续公开安装包上的跨入口组合故障、重启并发输入、未决副作用，以及生产 Linux 预算恢复验收                              |
+| IDE-03 原生恢复       | verify-33 的 .179 / Linux 2025.2 归档回复恢复已通过；完整九入口公开安装、真实模型任务及其他恢复旅程仍须分别验收      |
+| IDE-03 人工与发行渠道 | 真人辅助技术验收及 Microsoft Marketplace 的发行回读仍开放                                                            |
+| 36+9 剩余 13 项       | 新一轮只生成未合格项，保留 32 项已合格文件和回执；超时且用量未知项先核对原请求结果，继续沿用冻结验收条件             |
+| 新修复发行            | 从本分支最终准确提交完成相关门禁；按必要子 npm 包 → CLI → IDE → 移动端 / PC 顺序核验与发行，不以本地通过替代 Actions |
 
 本轮完成保存输入删除的工程修复和本地回归，整份研究实施计划仍在进行。

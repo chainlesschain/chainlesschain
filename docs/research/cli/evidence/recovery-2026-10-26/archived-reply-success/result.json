@@ -1,0 +1,156 @@
+{
+  "schema": "chainlesschain.archived-reply-recovery/v1",
+  "status": "PASSED_ARCHIVED_REPLY_RECOVERY_ONLY",
+  "sampleId": "verify-33",
+  "plugin": {
+    "version": "0.4.179",
+    "ideVersion": "2025.2",
+    "digest": "sha256:673ab724812ab5b0bbc52c085ff4f128a7b89a68ff7af89bea86f4fbca6d44b3",
+    "bytes": 1555693,
+    "packageSetPath": "docs/research/cli/verify01-package-sets/2026-10-26-archived-reply-179.json",
+    "packageSetDigest": "sha256:3a74997e6ad84a50538e69982a60a37bc7e79f271b49abd609ed065d324cd3c0",
+    "publicOrigin": {
+      "url": "https://plugins.jetbrains.com/api/plugins/32208/updates?size=100",
+      "updateId": 1203035,
+      "file": "32208/1203035/chainlesschain-ide-bridge-0.4.179.zip",
+      "approved": true,
+      "listed": true,
+      "hidden": false
+    }
+  },
+  "sourceDigest": "sha256:8f1a927835bb8bbfe0d3f3904294eb622c99c843678cb9b36103282d0545503c",
+  "renderedDigest": "sha256:3ba50b15d06ed9bb259b33383ea416c11bb11fbb97c34664379d8ed4027e9655",
+  "originalVerdict": {
+    "candidateAcceptancePassed": true,
+    "endToEndPassed": false
+  },
+  "modelRequests": 0,
+  "newTaskExecution": false,
+  "publicCliVerified": false,
+  "scope": "Deterministic archived reply, repository canonical storage/history, real public JetBrains plugin. No public CLI or new task execution claim.",
+  "originalEvidence": {
+    "baselineEvidence": [
+      {
+        "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/latest-package-round.json",
+        "digest": "sha256:a04a442d8b9353bda1954d93d342efccf7e1a748d457bb73f761d2fcfdde2c41"
+      },
+      {
+        "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/fetch-diagnostics-followup.json",
+        "digest": "sha256:d5c4b0bf20c1814d072fdc6d0d0c1537f0cd46767167ca03511a0fae0f4c5602"
+      },
+      {
+        "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/native-verified-deliveries.json",
+        "digest": "sha256:f5fcbcbb8ad32238a7a4f846c9061746dd9218ce6f8488bb1b55f3bce73d97f1"
+      },
+      {
+        "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-105-20261018-plan.json",
+        "digest": "sha256:2296d637b34f63aff931b5e580da5023df5a47a7e7db3f0f2b314311a3e5579f"
+      },
+      {
+        "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-105-20261018.json",
+        "digest": "sha256:c18c59578e28d0f6faca1edd34d4ffeea5f302bf21678b69ae0dcf10ca3eab4a"
+      },
+      {
+        "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2-plan.json",
+        "digest": "sha256:ce3852ed914c903fa3de6dc6255354e33ab2c53f803c126fe990272904d12718"
+      },
+      {
+        "path": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-106-20261018-r2.json",
+        "digest": "sha256:4ad3a6bba5b4da41a2374854c6dc833edf694b8637734df7724b2d459e649607"
+      }
+    ],
+    "originalState": {
+      "path": "latest-package-round/39087930713/generation/verify-33/capture/restart-state.json.gz",
+      "originalDigest": "sha256:df23531f9b5ec38492a3a8c5db15c2b2736626c49e9624372c4fda8ad7a07c3c",
+      "storedDigest": "sha256:4bb5f0a55ae884ffea944eb98dfe61842db77044362f94dc741eb1c6c6255223",
+      "originalBytes": 43747
+    },
+    "originalSummary": {
+      "path": "latest-package-round/39087930713/generation/summary.json.gz",
+      "originalDigest": "sha256:a334cd3571e0d66b0cc8b9ece5881cf8ce38fa8ec4e3d9ca8e05599e7d3d33ee",
+      "storedDigest": "sha256:52c165930881f7c6a500f9e27e03ad6bb4e44c2dc821ce12af8486bd10f042c4",
+      "originalBytes": 498459
+    },
+    "originalAcceptance": {
+      "path": "latest-package-round/39087930713/acceptance/summary.json.gz",
+      "originalDigest": "sha256:664973c917c217104e7ba6ff54b65eeb65c5f0567b3e176480469ad3c700952a",
+      "storedDigest": "sha256:ac56569c77bd47bda9630d3553436f0001337c626dc9234154f495cf81703cfc",
+      "originalBytes": 490757
+    },
+    "reusedCandidates": [
+      {
+        "originalArtifactPath": "verify-33/candidate/packages/vscode-extension/__tests__/verify-33.test.js",
+        "archived": {
+          "path": "latest-package-round/39087930713/generation/verify-33/candidate/packages/vscode-extension/__tests__/verify-33.test.js.gz",
+          "originalDigest": "sha256:ca01ddbd6496255273a4ccd7d2f478fcf1939c7778ebbf9d975043738490cea5",
+          "storedDigest": "sha256:9facdb88ef557427101b5505ac0b486b53dbd3f2c8d23d9622af83280043322f",
+          "originalBytes": 3322
+        }
+      }
+    ]
+  },
+  "sources": [
+    {
+      "path": "tests/fixtures/ide-roadmap/archived-reply-peer.mjs",
+      "digest": "sha256:ba204a0c03b659b46b4368294806c8f341c5812570dd92fbf849911e941a5154"
+    },
+    {
+      "path": "tests/fixtures/ide-roadmap/canonical-transcript-peer.mjs",
+      "digest": "sha256:6d049b54483a2b8b56a33626ac6bd6202fdd00701416baafd5f623ef2a969929"
+    },
+    {
+      "path": "packages/jetbrains-plugin/scripts/archived-reply-evidence.mjs",
+      "digest": "sha256:9b22723a65e2954926d668ed588cfdd9d0eebd32a61e94df8defbde03208304a"
+    },
+    {
+      "path": "packages/jetbrains-plugin/scripts/verify01-archived-reply-recovery.mjs",
+      "digest": "sha256:c6a0c6663c85ff1f381d33f917066c82ccae09add69ac97d204bdde18b5e2d48"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/ArchivedReplyRecoveryJourney.java",
+      "digest": "sha256:bc5441749c5eebf427c35ae69038581f5d5237ab845cb4b4ab03d1b5adb678ef"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/ConversationRecoveryJourney.java",
+      "digest": "sha256:44cb87d4c64437b64204a4bca9d7faaec68a6cbbff8b7303c491e17e7597337b"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/uiTest/resources/transcript-row-body.js",
+      "digest": "sha256:8bb9c51d4b1cd17b35e1b3a99af115184558ea38800dc2e0ead8e272ed108b21"
+    },
+    {
+      "path": "packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java",
+      "digest": "sha256:29655e9a949948528018ad85baf368e5240445216caa747719c95d6c83903e0b"
+    },
+    {
+      "path": "packages/jetbrains-plugin/build.gradle.kts",
+      "digest": "sha256:9c2d3b1a71923a1be837b595a9aa6ff217726bda239134ef4ed3530a555c44a9"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "fixture.json",
+      "digest": "sha256:e4f19a4752428c2f3b1a2f4443257d5918dcc0e2714ee7b554838abd9947cd1d"
+    },
+    {
+      "path": "binding.json",
+      "digest": "sha256:ab37e25dcee77adaf95ff5226e87918f40d498630e80ea6d33afbfb1ada626ac"
+    },
+    {
+      "path": "recovery-live-initial.json",
+      "digest": "sha256:b9c3a2883f4c6e20270f7f5fe81c746459ecea89f1cbb86537737ce8799a2368"
+    },
+    {
+      "path": "recovery-initial.json",
+      "digest": "sha256:d219f366a3d0217020a9ecac18d88a4659081af64355005a5875d6f22c81c58c"
+    },
+    {
+      "path": "recovery-restart.json",
+      "digest": "sha256:201f12864064503c2461e0f171c73ea970689abced58471f19b10efbac65263e"
+    },
+    {
+      "path": "peer.jsonl",
+      "digest": "sha256:9c2fcf9f362a74fe431bdba59523b45a014286f15d3605e4e380f1b828c269bb"
+    }
+  ]
+}

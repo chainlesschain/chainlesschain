@@ -1,0 +1,1879 @@
+
+> chainlesschain-ide@0.37.163 test:unit
+> node --test src/ide-capabilities.test.js test/agent-sdk-vendor.test.cjs test/agent-initialization.test.cjs test/agent-session-utf8.test.cjs test/app-server-approval-review.test.cjs test/app-server-pilot.test.cjs test/app-server-question-review.test.cjs test/app-server-elicitation-review.test.cjs test/app-server-question-lifecycle.test.cjs test/automation-center.test.cjs test/cli-binary.test.cjs test/cli-version-check.test.cjs test/delivery-workflow.test.cjs test/evolution-workbench-view.test.cjs test/evolution-workbench-profile.test.cjs test/settings-panels.test.cjs test/extension-host-runner.test.cjs test/host-dom-relay.test.cjs test/protocol-capture.test.cjs test/ide-arm64-validation.test.cjs test/ide-doctor.test.cjs test/ide-session-index.test.cjs test/llm-config.test.cjs test/lockfile-acl.test.cjs test/marketplace-overview.test.cjs test/image-decode-budget.test.cjs test/permission-mode-state.test.cjs test/preview.test.cjs test/pr-status-view.test.cjs test/release-workflow-contract.test.cjs test/remote-control-host.test.cjs test/runtime-compatibility.test.cjs test/sessions-view-delivery.test.cjs test/sessions-view-refresh.test.cjs test/skill-retrieval-view.test.cjs test/team-monitor-collaboration.test.cjs test/verify01-diagnostic.test.cjs test/verify01-config.test.cjs
+
+TAP version 13
+# Subtest: capability manifest is derived from registered tools
+ok 1 - capability manifest is derived from registered tools
+  ---
+  duration_ms: 5.4147
+  type: 'test'
+  ...
+# Subtest: missing optional tools do not imply unsupported capabilities
+ok 2 - missing optional tools do not imply unsupported capabilities
+  ---
+  duration_ms: 0.3538
+  type: 'test'
+  ...
+# (node:13068) ExperimentalWarning: The MockTimers API is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: ChatView pauses recurring input on persistence or unknown acceptance and retains completed tool views
+ok 3 - ChatView pauses recurring input on persistence or unknown acceptance and retains completed tool views
+  ---
+  duration_ms: 47.3224
+  type: 'test'
+  ...
+# Subtest: ChatView successful and ordinary-error turns keep the explicit loop active
+ok 4 - ChatView successful and ordinary-error turns keep the explicit loop active
+  ---
+  duration_ms: 5.2529
+  type: 'test'
+  ...
+# Subtest: ChatView pauses recurring input on abnormal close and exposes exit diagnostics
+ok 5 - ChatView pauses recurring input on abnormal close and exposes exit diagnostics
+  ---
+  duration_ms: 15.9855
+  type: 'test'
+  ...
+# Subtest: ChatView a clean close after a result permits the next scheduled turn
+ok 6 - ChatView a clean close after a result permits the next scheduled turn
+  ---
+  duration_ms: 10.1452
+  type: 'test'
+  ...
+# Subtest: ChatView a paused loop cannot dispatch an already-preparing durable input
+ok 7 - ChatView a paused loop cannot dispatch an already-preparing durable input
+  ---
+  duration_ms: 4.3105
+  type: 'test'
+  ...
+# Subtest: ChatView persistence diagnostics do not leak through setup or mode failure channels
+ok 8 - ChatView persistence diagnostics do not leak through setup or mode failure channels
+  ---
+  duration_ms: 4.7919
+  type: 'test'
+  ...
+# Subtest: ChatView stale or other-session failures cannot pause the current loop
+ok 9 - ChatView stale or other-session failures cannot pause the current loop
+  ---
+  duration_ms: 3.9529
+  type: 'test'
+  ...
+# Subtest: ChatView unknown durable write pauses a loop without resending
+ok 10 - ChatView unknown durable write pauses a loop without resending
+  ---
+  duration_ms: 2.534
+  type: 'test'
+  ...
+# Subtest: doctor observes the active child and discards stale generation capabilities
+ok 11 - doctor observes the active child and discards stale generation capabilities
+  ---
+  duration_ms: 0.8774
+  type: 'test'
+  ...
+# Subtest: a cold agent can initialize after the former 15-second limit and dispatch once
+ok 12 - a cold agent can initialize after the former 15-second limit and dispatch once
+  ---
+  duration_ms: 2.3755
+  type: 'test'
+  ...
+# Subtest: a failed durable pipe write remains unknown and is not reported as dispatched
+ok 13 - a failed durable pipe write remains unknown and is not reported as dispatched
+  ---
+  duration_ms: 0.8588
+  type: 'test'
+  ...
+# Subtest: an initialization failure before waiter registration rejects saved input immediately
+ok 14 - an initialization failure before waiter registration rejects saved input immediately
+  ---
+  duration_ms: 1.2077
+  type: 'test'
+  ...
+# Subtest: a failed live child is stopped before a retry starts a new child
+ok 15 - a failed live child is stopped before a retry starts a new child
+  ---
+  duration_ms: 4.6008
+  type: 'test'
+  ...
+# Subtest: one explicit resend waits for failed child exit and replacement init
+ok 16 - one explicit resend waits for failed child exit and replacement init
+  ---
+  duration_ms: 3.0872
+  type: 'test'
+  ...
+# Subtest: a retry keeps its draft when failed child termination is unconfirmed
+ok 17 - a retry keeps its draft when failed child termination is unconfirmed
+  ---
+  duration_ms: 1.3145
+  type: 'test'
+  ...
+# Subtest: startup reports missing CLI process without dispatching the saved input
+ok 18 - startup reports missing CLI process without dispatching the saved input
+  ---
+  duration_ms: 0.9105
+  type: 'test'
+  ...
+# Subtest: startup reports rejected provider credentials without dispatching the saved input
+ok 19 - startup reports rejected provider credentials without dispatching the saved input
+  ---
+  duration_ms: 0.661
+  type: 'test'
+  ...
+# Subtest: startup reports unsupported provider endpoint without dispatching the saved input
+ok 20 - startup reports unsupported provider endpoint without dispatching the saved input
+  ---
+  duration_ms: 0.9096
+  type: 'test'
+  ...
+# Subtest: init timeout keeps the draft and a late init never dispatches it
+ok 21 - init timeout keeps the draft and a late init never dispatches it
+  ---
+  duration_ms: 1.2411
+  type: 'test'
+  ...
+# Subtest: a resend after init timeout starts a new child and only sends after its init
+ok 22 - a resend after init timeout starts a new child and only sends after its init
+  ---
+  duration_ms: 1.4334
+  type: 'test'
+  ...
+# Subtest: vendored Agent SDK matches the current source and generated output
+ok 23 - vendored Agent SDK matches the current source and generated output
+  ---
+  duration_ms: 2301.5664
+  type: 'test'
+  ...
+# Subtest: Desktop and VS Code ship byte-identical shared Agent SDK clients
+ok 24 - Desktop and VS Code ship byte-identical shared Agent SDK clients
+  ---
+  duration_ms: 12.084
+  type: 'test'
+  ...
+# Subtest: IDE CI reruns when the SDK or canonical protocol changes
+ok 25 - IDE CI reruns when the SDK or canonical protocol changes
+  ---
+  duration_ms: 0.8679
+  type: 'test'
+  ...
+# Subtest: VS Code production mapper admits only generated Agent event types
+ok 26 - VS Code production mapper admits only generated Agent event types
+  ---
+  duration_ms: 1.4556
+  type: 'test'
+  ...
+# Subtest: VS Code preserves causal-equivalent projections across interleavings
+ok 27 - VS Code preserves causal-equivalent projections across interleavings
+  ---
+  duration_ms: 2.6502
+  type: 'test'
+  ...
+# Subtest: VS Code persistence errors retain only bounded protocol codes and fixed phases
+ok 28 - VS Code persistence errors retain only bounded protocol codes and fixed phases
+  ---
+  duration_ms: 0.7008
+  type: 'test'
+  ...
+# Subtest: VS Code rejects unbounded error codes and arbitrary phase prose without coercion
+ok 29 - VS Code rejects unbounded error codes and arbitrary phase prose without coercion
+  ---
+  duration_ms: 1.1628
+  type: 'test'
+  ...
+# Subtest: VS Code ordinary errors keep actionable reasons and optional bounded codes
+ok 30 - VS Code ordinary errors keep actionable reasons and optional bounded codes
+  ---
+  duration_ms: 0.4166
+  type: 'test'
+  ...
+# Subtest: VS Code replays the canonical ApprovalDecision conformance fixture
+ok 31 - VS Code replays the canonical ApprovalDecision conformance fixture
+  ---
+  duration_ms: 3.6915
+  type: 'test'
+  ...
+# Subtest: VS Code emits schema-valid, least-privilege approval responses
+ok 32 - VS Code emits schema-valid, least-privilege approval responses
+  ---
+  duration_ms: 2.7395
+  type: 'test'
+  ...
+# Subtest: VS Code retains bounded CLI approval grants and resolution scope
+ok 33 - VS Code retains bounded CLI approval grants and resolution scope
+  ---
+  duration_ms: 0.9082
+  type: 'test'
+  ...
+# Subtest: agent session preserves UTF-8 split across stdout and stderr chunks
+ok 34 - agent session preserves UTF-8 split across stdout and stderr chunks
+  ---
+  duration_ms: 13.4937
+  type: 'test'
+  ...
+# Subtest: agent session discards an oversized stderr line through its newline
+ok 35 - agent session discards an oversized stderr line through its newline
+  ---
+  duration_ms: 11.2058
+  type: 'test'
+  ...
+# Subtest: agent session blocks input after a pipe failure and still drains the final receipt
+ok 36 - agent session blocks input after a pipe failure and still drains the final receipt
+  ---
+  duration_ms: 4.2214
+  type: 'test'
+  ...
+# Subtest: agent spawn errors preserve only bounded machine codes
+ok 37 - agent spawn errors preserve only bounded machine codes
+  ---
+  duration_ms: 21.8323
+  type: 'test'
+  ...
+# Subtest: agent session refuses input after stdin.end before the process closes
+ok 38 - agent session refuses input after stdin.end before the process closes
+  ---
+  duration_ms: 4.8468
+  type: 'test'
+  ...
+# Subtest: agent session refuses input after signal exit before stdio closes
+ok 39 - agent session refuses input after signal exit before stdio closes
+  ---
+  duration_ms: 7.6218
+  type: 'test'
+  ...
+# Subtest: VS Code displays the exact binding and returns only requested turn permissions
+ok 40 - VS Code displays the exact binding and returns only requested turn permissions
+  ---
+  duration_ms: 4.4105
+  type: 'test'
+  ...
+# Subtest: VS Code dismissal, expiry, and oversized reviews fail closed
+ok 41 - VS Code dismissal, expiry, and oversized reviews fail closed
+  ---
+  duration_ms: 2.7208
+  type: 'test'
+  ...
+# Subtest: VS Code rechecks expiry after the modal decision
+ok 42 - VS Code rechecks expiry after the modal decision
+  ---
+  duration_ms: 0.5219
+  type: 'test'
+  ...
+# Subtest: native structured review preserves order, validates fields and submits typed values without storing secrets
+ok 43 - native structured review preserves order, validates fields and submits typed values without storing secrets
+  ---
+  duration_ms: 127.8315
+  type: 'test'
+  ...
+# Subtest: native choices and Back preserve exact values and multi-select edits
+ok 44 - native choices and Back preserve exact values and multi-select edits
+  ---
+  duration_ms: 100.4953
+  type: 'test'
+  ...
+# Subtest: partially typed schema fields recover only on an exact bound reissue
+ok 45 - partially typed schema fields recover only on an exact bound reissue
+  ---
+  duration_ms: 415.8238
+  type: 'test'
+  ...
+# Subtest: storage failure prevents submit and explicit retry does not double-submit
+ok 46 - storage failure prevents submit and explicit retry does not double-submit
+  ---
+  duration_ms: 43.9821
+  type: 'test'
+  ...
+# Subtest: abort while reading or saving cannot reopen a dialog or return an answer
+ok 47 - abort while reading or saving cannot reopen a dialog or return an answer
+  ---
+  duration_ms: 26.6629
+  type: 'test'
+  ...
+# Subtest: unknown schemas return a parsed object explicitly and never persist raw JSON
+ok 48 - unknown schemas return a parsed object explicitly and never persist raw JSON
+  ---
+  duration_ms: 24.0526
+  type: 'test'
+  ...
+# Subtest: URL review uses an immutable HTTPS target and aborts before opening a stale request
+ok 49 - URL review uses an immutable HTTPS target and aborts before opening a stale request
+  ---
+  duration_ms: 3.8356
+  type: 'test'
+  ...
+# Subtest: native requests queue whole reviews and canceled waiting requests never create controls
+ok 50 - native requests queue whole reviews and canceled waiting requests never create controls
+  ---
+  duration_ms: 37.6786
+  type: 'test'
+  ...
+# Subtest: pilot stops old native callbacks and ignores old-client confirmation after replacement
+ok 51 - pilot stops old native callbacks and ignores old-client confirmation after replacement
+  ---
+  duration_ms: 7.9396
+  type: 'test'
+  ...
+# Subtest: ready after transport restart grants a fresh native request generation
+ok 52 - ready after transport restart grants a fresh native request generation
+  ---
+  duration_ms: 3.5697
+  type: 'test'
+  ...
+# Subtest: VS Code pilot uses the shared fixed-capability client lazily
+ok 53 - VS Code pilot uses the shared fixed-capability client lazily
+  ---
+  duration_ms: 3.8847
+  type: 'test'
+  ...
+# Subtest: VS Code pilot fails closed when no reviewed request handler exists
+ok 54 - VS Code pilot fails closed when no reviewed request handler exists
+  ---
+  duration_ms: 0.5405
+  type: 'test'
+  ...
+# Subtest: VS Code pilot forwards canonical events and contains host errors
+ok 55 - VS Code pilot forwards canonical events and contains host errors
+  ---
+  duration_ms: 1.5264
+  type: 'test'
+  ...
+# Subtest: native callback values await matching server resolution and duplicate requests cannot reopen authority
+ok 56 - native callback values await matching server resolution and duplicate requests cannot reopen authority
+  ---
+  duration_ms: 6.2564
+  type: 'test'
+  ...
+# Subtest: owner exit revokes an open callback even when its handler ignores cancellation
+ok 57 - owner exit revokes an open callback even when its handler ignores cancellation
+  ---
+  duration_ms: 0.8929
+  type: 'test'
+  ...
+# Subtest: turn completion archives blocking reviews, retains deferred reviews, and interrupt revokes both
+ok 58 - turn completion archives blocking reviews, retains deferred reviews, and interrupt revokes both
+  ---
+  duration_ms: 2.4287
+  type: 'test'
+  ...
+# Subtest: expired and reused question identities cannot be reported as confirmed
+ok 59 - expired and reused question identities cannot be reported as confirmed
+  ---
+  duration_ms: 1.9247
+  type: 'test'
+  ...
+# Subtest: duplicate live requests share one review and request objects are detached before the callback
+ok 60 - duplicate live requests share one review and request objects are detached before the callback
+  ---
+  duration_ms: 1.1579
+  type: 'test'
+  ...
+# Subtest: MCP presentation and password changes invalidate an already open native review
+ok 61 - MCP presentation and password changes invalidate an already open native review
+  ---
+  duration_ms: 2.1593
+  type: 'test'
+  ...
+# Subtest: VS Code returns the exact selected value for a blocking question
+ok 62 - VS Code returns the exact selected value for a blocking question
+  ---
+  duration_ms: 4.6676
+  type: 'test'
+  ...
+# Subtest: native partially entered text survives host replacement, but requires explicit accept
+ok 63 - native partially entered text survives host replacement, but requires explicit accept
+  ---
+  duration_ms: 63.1463
+  type: 'test'
+  ...
+# Subtest: native cancellation archives selected values and filter without automatically restoring authority
+ok 64 - native cancellation archives selected values and filter without automatically restoring authority
+  ---
+  duration_ms: 85.02
+  type: 'test'
+  ...
+# Subtest: native save failures block acceptance and password answers are never persisted
+ok 65 - native save failures block acceptance and password answers are never persisted
+  ---
+  duration_ms: 36.1372
+  type: 'test'
+  ...
+# Subtest: VS Code cancellation is null and deferred free text does not trap focus
+ok 66 - VS Code cancellation is null and deferred free text does not trap focus
+  ---
+  duration_ms: 0.9208
+  type: 'test'
+  ...
+# Subtest: native questions without workspace storage still close immediately on owner cancellation
+ok 67 - native questions without workspace storage still close immediately on owner cancellation
+  ---
+  duration_ms: 19.3803
+  type: 'test'
+  ...
+# Subtest: accepts strict v3 incident and runtime controls
+ok 68 - accepts strict v3 incident and runtime controls
+  ---
+  duration_ms: 10.9998
+  type: 'test'
+  ...
+# Subtest: accepts the released v2 pair without v3 controls
+ok 69 - accepts the released v2 pair without v3 controls
+  ---
+  duration_ms: 3.096
+  type: 'test'
+  ...
+# Subtest: fails closed on mismatched schemas and malformed incident envelopes
+ok 70 - fails closed on mismatched schemas and malformed incident envelopes
+  ---
+  duration_ms: 2.0315
+  type: 'test'
+  ...
+# Subtest: requires canonical flow incidents and controls
+ok 71 - requires canonical flow incidents and controls
+  ---
+  duration_ms: 1.1253
+  type: 'test'
+  ...
+# Subtest: rechecks exact incident and runtime revisions before execution
+ok 72 - rechecks exact incident and runtime revisions before execution
+  ---
+  duration_ms: 3.16
+  type: 'test'
+  ...
+# Subtest: rejects duplicate, unknown, malformed, and boundary-crossing controls
+ok 73 - rejects duplicate, unknown, malformed, and boundary-crossing controls
+  ---
+  duration_ms: 1.0411
+  type: 'test'
+  ...
+# Subtest: uses the unambiguous CLI name before asynchronous resolution completes
+ok 74 - uses the unambiguous CLI name before asynchronous resolution completes
+  ---
+  duration_ms: 7.3459
+  type: 'test'
+  ...
+# Subtest: prefers the long npm bin over a shadowing cc executable
+ok 75 - prefers the long npm bin over a shadowing cc executable
+  ---
+  duration_ms: 3.6924
+  type: 'test'
+  ...
+# Subtest: still falls back to a valid cc alias when the long name is unavailable
+ok 76 - still falls back to a valid cc alias when the long name is unavailable
+  ---
+  duration_ms: 1.2644
+  type: 'test'
+  ...
+# Subtest: uses the extension release recommendation for the startup CLI nudge
+ok 77 - uses the extension release recommendation for the startup CLI nudge
+  ---
+  duration_ms: 2.5933
+  type: 'test'
+  ...
+# Subtest: does not nudge when the installed CLI matches the recommendation
+ok 78 - does not nudge when the installed CLI matches the recommendation
+  ---
+  duration_ms: 0.7375
+  type: 'test'
+  ...
+# Subtest: consumes the shared projection/action/result fixture fail closed
+ok 79 - consumes the shared projection/action/result fixture fail closed
+  ---
+  duration_ms: 3.2582
+  type: 'test'
+  ...
+# Subtest: renders the complete delivery path, failure mapping and immutable evidence
+ok 80 - renders the complete delivery path, failure mapping and immutable evidence
+  ---
+  duration_ms: 2.1849
+  type: 'test'
+  ...
+# Subtest: controller requests and settles only through exact delivery-step bindings
+ok 81 - controller requests and settles only through exact delivery-step bindings
+  ---
+  duration_ms: 6.9404
+  type: 'test'
+  ...
+# Subtest: revision and result/effect changes invalidate confirmations before step
+ok 82 - revision and result/effect changes invalidate confirmations before step
+  ---
+  duration_ms: 2.6257
+  type: 'test'
+  ...
+# Subtest: load and confirmation failures clear stale actions but retain the selected path
+ok 83 - load and confirmation failures clear stale actions but retain the selected path
+  ---
+  duration_ms: 2.0938
+  type: 'test'
+  ...
+# Subtest: builds legacy and CAS-bound CLI argv without any provider command
+ok 84 - builds legacy and CAS-bound CLI argv without any provider command
+  ---
+  duration_ms: 0.6114
+  type: 'test'
+  ...
+# Subtest: profile rejects partial deployment, relative paths, arbitrary environment injection and invalid JSON
+ok 85 - profile rejects partial deployment, relative paths, arbitrary environment injection and invalid JSON
+  ---
+  duration_ms: 18.8147
+  type: 'test'
+  ...
+# Subtest: profile uses a separate process, reuses unchanged configuration and closes on switch/disposal
+ok 86 - profile uses a separate process, reuses unchanged configuration and closes on switch/disposal
+  ---
+  duration_ms: 13.6733
+  type: 'test'
+  ...
+# Subtest: Evolution Workbench notices ship with Simplified Chinese localization
+ok 87 - Evolution Workbench notices ship with Simplified Chinese localization
+  ---
+  duration_ms: 8.2012
+  type: 'test'
+  ...
+# Subtest: Evolution Workbench explains an unavailable CLI deployment without issuing RPC
+ok 88 - Evolution Workbench explains an unavailable CLI deployment without issuing RPC
+  ---
+  duration_ms: 2.9361
+  type: 'test'
+  ...
+# Subtest: Evolution Workbench rejects an available deployment without list capability
+ok 89 - Evolution Workbench rejects an available deployment without list capability
+  ---
+  duration_ms: 1.827
+  type: 'test'
+  ...
+# Subtest: unavailable Workbench offers setup without calling Workbench RPC
+ok 90 - unavailable Workbench offers setup without calling Workbench RPC
+  ---
+  duration_ms: 1.0695
+  type: 'test'
+  ...
+# Subtest: Evolution Workbench explains how to enable a disabled App Server pilot
+ok 91 - Evolution Workbench explains how to enable a disabled App Server pilot
+  ---
+  duration_ms: 0.7757
+  type: 'test'
+  ...
+# Subtest: Evolution Workbench honors a read-only method capability
+ok 92 - Evolution Workbench honors a read-only method capability
+  ---
+  duration_ms: 2.5115
+  type: 'test'
+  ...
+# Subtest: Evolution Workbench IDE shows verified details without a writer
+ok 93 - Evolution Workbench IDE shows verified details without a writer
+  ---
+  duration_ms: 1.0938
+  type: 'test'
+  ...
+# Subtest: Evolution Workbench IDE binds a pending review to exact packet and reason
+ok 94 - Evolution Workbench IDE binds a pending review to exact packet and reason
+  ---
+  duration_ms: 1.3896
+  type: 'test'
+  ...
+# Subtest: Evolution Workbench IDE rolls active content back only to an approved target
+ok 95 - Evolution Workbench IDE rolls active content back only to an approved target
+  ---
+  duration_ms: 2.328
+  type: 'test'
+  ...
+# Subtest: Evolution Workbench IDE rejects an unverified projection before UI actions
+ok 96 - Evolution Workbench IDE rejects an unverified projection before UI actions
+  ---
+  duration_ms: 3.0527
+  type: 'test'
+  ...
+# [extension-host-smoke] transient network failure during test download; retrying in 5000ms (1/3)
+# [extension-host-smoke] transient network failure during test download; retrying in 10000ms (2/3)
+# Subtest: host driver preserves the first failure receipt without capturing surrounding state
+ok 97 - host driver preserves the first failure receipt without capturing surrounding state
+  ---
+  duration_ms: 19.3549
+  type: 'test'
+  ...
+# Subtest: transient VS Code download failures retry without broadening the allowlist
+ok 98 - transient VS Code download failures retry without broadening the allowlist
+  ---
+  duration_ms: 1.7327
+  type: 'test'
+  ...
+# Subtest: non-network VS Code host failures remain fail-closed
+ok 99 - non-network VS Code host failures remain fail-closed
+  ---
+  duration_ms: 1.3631
+  type: 'test'
+  ...
+# Subtest: extension-host runner accepts an explicit evidence directory
+ok 100 - extension-host runner accepts an explicit evidence directory
+  ---
+  duration_ms: 4.3344
+  type: 'test'
+  ...
+# Subtest: extension-host runner resolves the downloaded host's exact version
+ok 101 - extension-host runner resolves the downloaded host's exact version
+  ---
+  duration_ms: 17.4653
+  type: 'test'
+  ...
+# Subtest: host version resolves from the test-electron Windows archive directory
+ok 102 - host version resolves from the test-electron Windows archive directory
+  ---
+  duration_ms: 7.3679
+  type: 'test'
+  ...
+# Subtest: fresh host profile root stays within the macOS Unix-socket budget
+ok 103 - fresh host profile root stays within the macOS Unix-socket budget
+  ---
+  duration_ms: 5.7752
+  type: 'test'
+  ...
+# Subtest: host phases share installed extensions but isolate user-data profiles
+ok 104 - host phases share installed extensions but isolate user-data profiles
+  ---
+  duration_ms: 12.8137
+  type: 'test'
+  ...
+# Subtest: native crash diagnostics use a local per-phase directory outside immutable evidence
+ok 105 - native crash diagnostics use a local per-phase directory outside immutable evidence
+  ---
+  duration_ms: 4.2735
+  type: 'test'
+  ...
+# Subtest: real host fixture opens an ordered two-root workspace with shared settings
+ok 106 - real host fixture opens an ordered two-root workspace with shared settings
+  ---
+  duration_ms: 12.5057
+  type: 'test'
+  ...
+# Subtest: real host fixture creates an isolated companion-window workspace
+ok 107 - real host fixture creates an isolated companion-window workspace
+  ---
+  duration_ms: 10.4001
+  type: 'test'
+  ...
+# Subtest: companion host launch reuses the isolated profile in a new window
+ok 108 - companion host launch reuses the isolated profile in a new window
+  ---
+  duration_ms: 8.4636
+  type: 'test'
+  ...
+# Subtest: multi-window lock selection binds distinct exact workspace identities
+ok 109 - multi-window lock selection binds distinct exact workspace identities
+  ---
+  duration_ms: 29.7845
+  type: 'test'
+  ...
+# Subtest: multi-window evidence requires simultaneous distinct sanitized identities
+ok 110 - multi-window evidence requires simultaneous distinct sanitized identities
+  ---
+  duration_ms: 10.0397
+  type: 'test'
+  ...
+# Subtest: host-ready evidence binds the exact ordered multi-root workspace
+ok 111 - host-ready evidence binds the exact ordered multi-root workspace
+  ---
+  duration_ms: 32.5568
+  type: 'test'
+  ...
+# Subtest: host progress journal survives before immutable evidence exists
+ok 112 - host progress journal survives before immutable evidence exists
+  ---
+  duration_ms: 8.986
+  type: 'test'
+  ...
+# Subtest: completed hosts need no managed shutdown after CDP settles
+ok 113 - completed hosts need no managed shutdown after CDP settles
+  ---
+  duration_ms: 0.759
+  type: 'test'
+  ...
+# [extension-host-smoke] initial: CDP journey settled; requesting host shutdown
+# Subtest: hung hosts are shut down after the CDP deadline
+ok 114 - hung hosts are shut down after the CDP deadline
+  ---
+  duration_ms: 37.8541
+  type: 'test'
+  ...
+# [extension-host-smoke] initial: activation-ready host ignored graceful shutdown; terminating its process tree
+# Subtest: activation-ready failures force a bounded managed-host shutdown
+ok 115 - activation-ready failures force a bounded managed-host shutdown
+  ---
+  duration_ms: 6.6144
+  type: 'test'
+  ...
+# Subtest: diagnostic discovery is limited to release-relevant host logs
+ok 116 - diagnostic discovery is limited to release-relevant host logs
+  ---
+  duration_ms: 20.2084
+  type: 'test'
+  ...
+# Subtest: real-DOM host phase is loopback-only and keeps the fresh profile args
+ok 117 - real-DOM host phase is loopback-only and keeps the fresh profile args
+  ---
+  duration_ms: 2.6701
+  type: 'test'
+  ...
+# Subtest: host-API launch keeps the real extension-test profile without CDP
+ok 118 - host-API launch keeps the real extension-test profile without CDP
+  ---
+  duration_ms: 2.0131
+  type: 'test'
+  ...
+# Subtest: external companion launch uses a distinct real VS Code profile
+ok 119 - external companion launch uses a distinct real VS Code profile
+  ---
+  duration_ms: 2.1777
+  type: 'test'
+  ...
+# Subtest: multi-window gate uses a dedicated host-API profile and explicit contract
+ok 120 - multi-window gate uses a dedicated host-API profile and explicit contract
+  ---
+  duration_ms: 16.2753
+  type: 'test'
+  ...
+# Subtest: non-Windows multi-window gate orchestrates two bounded real hosts
+ok 121 - non-Windows multi-window gate orchestrates two bounded real hosts
+  ---
+  duration_ms: 38.2413
+  type: 'test'
+  ...
+# [extension-host-smoke] initial: activation-ready host ignored graceful shutdown; terminating its process tree
+# Subtest: macOS multi-window gate retries a primary activation timeout once
+ok 122 - macOS multi-window gate retries a primary activation timeout once
+  ---
+  duration_ms: 208.1801
+  type: 'test'
+  ...
+# Subtest: macOS DOM relay launches without a debugger transport
+ok 123 - macOS DOM relay launches without a debugger transport
+  ---
+  duration_ms: 143.6613
+  type: 'test'
+  ...
+# Subtest: release real-host journeys use one main-world DOM relay on every OS
+ok 124 - release real-host journeys use one main-world DOM relay on every OS
+  ---
+  duration_ms: 0.4749
+  type: 'test'
+  ...
+# Subtest: macOS fallback driver exposes one fixed command and deduplicates the journey
+ok 125 - macOS fallback driver exposes one fixed command and deduplicates the journey
+  ---
+  duration_ms: 2.0626
+  type: 'test'
+  ...
+# Subtest: macOS real-DOM host uses the loopback Electron inspector
+ok 126 - macOS real-DOM host uses the loopback Electron inspector
+  ---
+  duration_ms: 2.6774
+  type: 'test'
+  ...
+# Subtest: CDP pipe transport frames browser commands with NUL delimiters
+ok 127 - CDP pipe transport frames browser commands with NUL delimiters
+  ---
+  duration_ms: 4.868
+  type: 'test'
+  ...
+# Subtest: pipe host launch inherits Chromium's FD 3/4 contract
+ok 128 - pipe host launch inherits Chromium's FD 3/4 contract
+  ---
+  duration_ms: 7.2078
+  type: 'test'
+  ...
+# Subtest: managed host launch owns bounded process termination
+ok 129 - managed host launch owns bounded process termination
+  ---
+  duration_ms: 6.0438
+  type: 'test'
+  ...
+# Subtest: host-API evidence proves both fresh host launches in order
+ok 130 - host-API evidence proves both fresh host launches in order
+  ---
+  duration_ms: 47.5995
+  type: 'test'
+  ...
+# Subtest: captures only the expected loopback DevTools browser endpoint
+ok 131 - captures only the expected loopback DevTools browser endpoint
+  ---
+  duration_ms: 4.1134
+  type: 'test'
+  ...
+# Subtest: captures only the expected loopback Electron inspector endpoint
+ok 132 - captures only the expected loopback Electron inspector endpoint
+  ---
+  duration_ms: 5.1888
+  type: 'test'
+  ...
+# Subtest: Electron inspector client evaluates and captures the real WebContents
+ok 133 - Electron inspector client evaluates and captures the real WebContents
+  ---
+  duration_ms: 1.8003
+  type: 'test'
+  ...
+# Subtest: Electron inspector scan bounds stalled WebContents probes
+ok 134 - Electron inspector scan bounds stalled WebContents probes
+  ---
+  duration_ms: 1516.4942
+  type: 'test'
+  ...
+# Subtest: CDP websocket handshake binds its Origin to the loopback endpoint
+ok 135 - CDP websocket handshake binds its Origin to the loopback endpoint
+  ---
+  duration_ms: 1.0736
+  type: 'test'
+  ...
+# Subtest: browser discovery inspects renderable targets and excludes workers
+ok 136 - browser discovery inspects renderable targets and excludes workers
+  ---
+  duration_ms: 0.5059
+  type: 'test'
+  ...
+# Subtest: workbench discovery attaches through the browser Target domain
+ok 137 - workbench discovery attaches through the browser Target domain
+  ---
+  duration_ms: 1.5205
+  type: 'test'
+  ...
+# Subtest: CDP child sessions preserve flattened target identity
+ok 138 - CDP child sessions preserve flattened target identity
+  ---
+  duration_ms: 0.718
+  type: 'test'
+  ...
+# Subtest: CDP workbench actions accept the real main-world prompt before polling
+ok 139 - CDP workbench actions accept the real main-world prompt before polling
+  ---
+  duration_ms: 26.4407
+  type: 'test'
+  ...
+# Subtest: CDP workbench dialog acceptance fails closed on non-transient errors
+ok 140 - CDP workbench dialog acceptance fails closed on non-transient errors
+  ---
+  duration_ms: 0.7883
+  type: 'test'
+  ...
+# Subtest: CDP websocket failures retain the handshake diagnostic
+ok 141 - CDP websocket failures retain the handshake diagnostic
+  ---
+  duration_ms: 1.4781
+  type: 'test'
+  ...
+# Subtest: host phase signals are phase-scoped and reject unknown phases
+ok 142 - host phase signals are phase-scoped and reject unknown phases
+  ---
+  duration_ms: 7.5622
+  type: 'test'
+  ...
+# Subtest: host ready is not blocked by VS Code's pending chat focus promise
+ok 143 - host ready is not blocked by VS Code's pending chat focus promise
+  ---
+  duration_ms: 0.6624
+  type: 'test'
+  ...
+# Subtest: pending activity reveal settlement defers to the downstream host proof
+ok 144 - pending activity reveal settlement defers to the downstream host proof
+  ---
+  duration_ms: 19.6634
+  type: 'test'
+  ...
+# Subtest: macOS host activation targets the outer app bundle without a shell
+ok 145 - macOS host activation targets the outer app bundle without a shell
+  ---
+  duration_ms: 1.1696
+  type: 'test'
+  ...
+# Subtest: macOS DOM relay can require the real chat focus command to settle
+ok 146 - macOS DOM relay can require the real chat focus command to settle
+  ---
+  duration_ms: 0.4665
+  type: 'test'
+  ...
+# Subtest: fixture CLI wrappers are isolated and cannot overwrite an existing shim
+ok 147 - fixture CLI wrappers are isolated and cannot overwrite an existing shim
+  ---
+  duration_ms: 6.4167
+  type: 'test'
+  ...
+# Subtest: journey results are atomic, phase-bound, and fail closed
+ok 148 - journey results are atomic, phase-bound, and fail closed
+  ---
+  duration_ms: 4.2647
+  type: 'test'
+  ...
+# Subtest: raw DOM and protocol evidence must prove every control and restart step
+ok 149 - raw DOM and protocol evidence must prove every control and restart step
+  ---
+  duration_ms: 75.9526
+  type: 'test'
+  ...
+# Subtest: generated turn-end UI displays safe error codes and phases as plain text
+ok 150 - generated turn-end UI displays safe error codes and phases as plain text
+  ---
+  duration_ms: 12.2739
+  type: 'test'
+  ...
+# Subtest: host mode selection uses a fixed permission-mode allowlist
+ok 151 - host mode selection uses a fixed permission-mode allowlist
+  ---
+  duration_ms: 3.2991
+  type: 'test'
+  ...
+# Subtest: recovery evidence rejects missing restart proof, duplicate rows, foreground completion and replayed drafts
+ok 152 - recovery evidence rejects missing restart proof, duplicate rows, foreground completion and replayed drafts
+  ---
+  duration_ms: 74.0444
+  type: 'test'
+  ...
+# Subtest: host DOM relay is token-gated and only accepts fixed semantic actions
+ok 153 - host DOM relay is token-gated and only accepts fixed semantic actions
+  ---
+  duration_ms: 3.8751
+  type: 'test'
+  ...
+# Subtest: streaming evidence rejects forged timing summaries and missing selection/parse proof
+ok 154 - streaming evidence rejects forged timing summaries and missing selection/parse proof
+  ---
+  duration_ms: 18.0153
+  type: 'test'
+  ...
+# Subtest: streaming stage timings exclude stream frames and retain DOM/selection overhead
+ok 155 - streaming stage timings exclude stream frames and retain DOM/selection overhead
+  ---
+  duration_ms: 12.4645
+  type: 'test'
+  ...
+# Subtest: stream profile replaces a Chromium collapsed caret and restores it after cancelling queued frames
+ok 156 - stream profile replaces a Chromium collapsed caret and restores it after cancelling queued frames
+  ---
+  duration_ms: 5.9321
+  type: 'test'
+  ...
+# Subtest: stream profile fails closed when the target prefix was not actually selected
+ok 157 - stream profile fails closed when the target prefix was not actually selected
+  ---
+  duration_ms: 2.655
+  type: 'test'
+  ...
+# Subtest: stream profile fails closed when visibility is lost during sampling
+ok 158 - stream profile fails closed when visibility is lost during sampling
+  ---
+  duration_ms: 4.4418
+  type: 'test'
+  ...
+# Subtest: stream profile bounds a suspended renderer before modifying the transcript
+ok 159 - stream profile bounds a suspended renderer before modifying the transcript
+  ---
+  duration_ms: 11.9217
+  type: 'test'
+  ...
+# Subtest: stream profile frame deadline cleans up after sampling starts
+ok 160 - stream profile frame deadline cleans up after sampling starts
+  ---
+  duration_ms: 2.8325
+  type: 'test'
+  ...
+# Subtest: a late animation callback cannot sample after the deadline ahead of an overdue timer
+ok 161 - a late animation callback cannot sample after the deadline ahead of an overdue timer
+  ---
+  duration_ms: 3.2053
+  type: 'test'
+  ...
+# Subtest: chat HTML keeps the relay inert without a valid launch token
+ok 162 - chat HTML keeps the relay inert without a valid launch token
+  ---
+  duration_ms: 11.3587
+  type: 'test'
+  ...
+# Subtest: image DOM actions require the exact token and request identity before dispatch
+ok 163 - image DOM actions require the exact token and request identity before dispatch
+  ---
+  duration_ms: 6.9662
+  type: 'test'
+  ...
+# Subtest: generated stream relay authenticates cancellation and prevents overlapping measurements
+ok 164 - generated stream relay authenticates cancellation and prevents overlapping measurements
+  ---
+  duration_ms: 8.387
+  type: 'test'
+  ...
+# Subtest: finishing an image read immediately replaces the stale saved indication with saving
+ok 165 - finishing an image read immediately replaces the stale saved indication with saving
+  ---
+  duration_ms: 9.2762
+  type: 'test'
+  ...
+# Subtest: text-only or stale image ACKs cannot authorize unvalidated image previews
+ok 166 - text-only or stale image ACKs cannot authorize unvalidated image previews
+  ---
+  duration_ms: 2.8235
+  type: 'test'
+  ...
+# (node:38408) ExperimentalWarning: The MockTimers API is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: attachment evidence hashes rendered bytes without exporting sources or hiding decode failures
+ok 167 - attachment evidence hashes rendered bytes without exporting sources or hiding decode failures
+  ---
+  duration_ms: 42.5276
+  type: 'test'
+  ...
+# Subtest: chat composer gives the input and controls separate responsive rows
+ok 168 - chat composer gives the input and controls separate responsive rows
+  ---
+  duration_ms: 1.7123
+  type: 'test'
+  ...
+# Subtest: chat HTML accepts agent activity before routing every known event
+ok 169 - chat HTML accepts agent activity before routing every known event
+  ---
+  duration_ms: 0.8718
+  type: 'test'
+  ...
+# Subtest: conversation manager retains and resolves multiple interactive cards
+ok 170 - conversation manager retains and resolves multiple interactive cards
+  ---
+  duration_ms: 2.0997
+  type: 'test'
+  ...
+# Subtest: ChatViewProvider rehydrates questions and preserves approval bindings
+ok 171 - ChatViewProvider rehydrates questions and preserves approval bindings
+  ---
+  duration_ms: 12.6212
+  type: 'test'
+  ...
+# Subtest: VS Code settles approvals against the shared HumanTask conformance fixture
+ok 172 - VS Code settles approvals against the shared HumanTask conformance fixture
+  ---
+  duration_ms: 22.8461
+  type: 'test'
+  ...
+# Subtest: VS Code rolls back a local approval reservation when transport rejects it
+ok 173 - VS Code rolls back a local approval reservation when transport rejects it
+  ---
+  duration_ms: 1.1033
+  type: 'test'
+  ...
+# Subtest: chat HTML exposes keyboard and screen-reader semantics
+ok 174 - chat HTML exposes keyboard and screen-reader semantics
+  ---
+  duration_ms: 3.1939
+  type: 'test'
+  ...
+# Subtest: transcript announcements are classified, whitespace-normalized, and bounded
+ok 175 - transcript announcements are classified, whitespace-normalized, and bounded
+  ---
+  duration_ms: 0.6681
+  type: 'test'
+  ...
+# Subtest: chat transcript retains only the newest 800 of 2,000 message nodes
+ok 176 - chat transcript retains only the newest 800 of 2,000 message nodes
+  ---
+  duration_ms: 2.6205
+  type: 'test'
+  ...
+# Subtest: 64 MiB transcript entries retain bounded head and tail with a visible marker
+ok 177 - 64 MiB transcript entries retain bounded head and tail with a visible marker
+  ---
+  duration_ms: 2.0634
+  type: 'test'
+  ...
+# Subtest: first tab activation preserves a bootstrap prompt for retry
+ok 178 - first tab activation preserves a bootstrap prompt for retry
+  ---
+  duration_ms: 1.0413
+  type: 'test'
+  ...
+# Subtest: ChatViewProvider correlates a token-authenticated DOM response
+ok 179 - ChatViewProvider correlates a token-authenticated DOM response
+  ---
+  duration_ms: 1.61
+  type: 'test'
+  ...
+# Subtest: ChatViewProvider reveals a suspended relay view once and reports readiness state
+ok 180 - ChatViewProvider reveals a suspended relay view once and reports readiness state
+  ---
+  duration_ms: 1.0212
+  type: 'test'
+  ...
+# Subtest: stream profile relay has a fixed bounded deadline, authenticated progress and cancellation
+ok 181 - stream profile relay has a fixed bounded deadline, authenticated progress and cancellation
+  ---
+  duration_ms: 3.3548
+  type: 'test'
+  ...
+# Subtest: disposing a diagnostic relay sends profile cancellation before rejecting
+ok 182 - disposing a diagnostic relay sends profile cancellation before rejecting
+  ---
+  duration_ms: 0.8751
+  type: 'test'
+  ...
+# Subtest: stream profile driver preserves warmup and failed-case diagnostics without starting another case
+ok 183 - stream profile driver preserves warmup and failed-case diagnostics without starting another case
+  ---
+  duration_ms: 8.6039
+  type: 'test'
+  ...
+# Subtest: token-gated fresh Webviews do not self-reload during cold startup
+ok 184 - token-gated fresh Webviews do not self-reload during cold startup
+  ---
+  duration_ms: 0.5914
+  type: 'test'
+  ...
+# Subtest: DOM relay driver produces the same auditable phase ledger and snapshots
+ok 185 - DOM relay driver produces the same auditable phase ledger and snapshots
+  ---
+  duration_ms: 230.5825
+  type: 'test'
+  ...
+# Subtest: ARM64 host reruns download the successful producer's immutable candidate
+ok 186 - ARM64 host reruns download the successful producer's immutable candidate
+  ---
+  duration_ms: 5.8464
+  type: 'test'
+  ...
+# Subtest: a complete 11-cell IDE ARM64 evidence set produces one immutable aggregate
+ok 187 - a complete 11-cell IDE ARM64 evidence set produces one immutable aggregate
+  ---
+  duration_ms: 286.3856
+  type: 'test'
+  ...
+# Subtest: the IDE ARM64 aggregate rejects a missing matrix cell
+ok 188 - the IDE ARM64 aggregate rejects a missing matrix cell
+  ---
+  duration_ms: 142.0937
+  type: 'test'
+  ...
+# Subtest: the IDE ARM64 aggregate uses the newest evidence for a failed-job rerun
+ok 189 - the IDE ARM64 aggregate uses the newest evidence for a failed-job rerun
+  ---
+  duration_ms: 176.2761
+  type: 'test'
+  ...
+# Subtest: the IDE ARM64 aggregate rejects a self-consistent wrong architecture
+ok 190 - the IDE ARM64 aggregate rejects a self-consistent wrong architecture
+  ---
+  duration_ms: 99.8759
+  type: 'test'
+  ...
+# Subtest: the IDE ARM64 aggregate rejects a nonexistent Windows compatibility cell
+ok 191 - the IDE ARM64 aggregate rejects a nonexistent Windows compatibility cell
+  ---
+  duration_ms: 89.5144
+  type: 'test'
+  ...
+# Subtest: the IDE ARM64 aggregate rehashes path-backed host artifacts
+ok 192 - the IDE ARM64 aggregate rehashes path-backed host artifacts
+  ---
+  duration_ms: 107.1868
+  type: 'test'
+  ...
+# Subtest: the JetBrains host runner accepts exact four-component IDE versions
+ok 193 - the JetBrains host runner accepts exact four-component IDE versions
+  ---
+  duration_ms: 16.1321
+  type: 'test'
+  ...
+# Subtest: the ARM64 workflow binds exact hosts, versions, and aggregate evidence
+ok 194 - the ARM64 workflow binds exact hosts, versions, and aggregate evidence
+  ---
+  duration_ms: 10.3401
+  type: 'test'
+  ...
+# ide-doctor: 8 assertions passed
+# Subtest: test\\ide-doctor.test.cjs
+ok 19 - test\\ide-doctor.test.cjs
+  ---
+  duration_ms: 186.8771
+  type: 'test'
+  ...
+# Subtest: cross-process upserts retain every session
+ok 196 - cross-process upserts retain every session
+  ---
+  duration_ms: 722.1422
+  type: 'test'
+  ...
+# Subtest: a busy index lock fails closed without writing
+ok 197 - a busy index lock fails closed without writing
+  ---
+  duration_ms: 6.3548
+  type: 'test'
+  ...
+# Subtest: a corrupt index is preserved instead of replaced
+ok 198 - a corrupt index is preserved instead of replaced
+  ---
+  duration_ms: 6.9724
+  type: 'test'
+  ...
+# Subtest: admits exactly 40 million decoded pixels including the APNG fallback
+ok 199 - admits exactly 40 million decoded pixels including the APNG fallback
+  ---
+  duration_ms: 202.2683
+  type: 'test'
+  ...
+# Subtest: rejects an APNG whose fallback alone pushes total decoded pixels over budget
+ok 200 - rejects an APNG whose fallback alone pushes total decoded pixels over budget
+  ---
+  duration_ms: 174.5409
+  type: 'test'
+  ...
+# Subtest: LLM setup keeps the API key out of argv and uses the resolved CLI
+ok 201 - LLM setup keeps the API key out of argv and uses the resolved CLI
+  ---
+  duration_ms: 20.1128
+  type: 'test'
+  ...
+# Subtest: ordinary config writes never include the API key
+ok 202 - ordinary config writes never include the API key
+  ---
+  duration_ms: 0.3862
+  type: 'test'
+  ...
+# Subtest: overridden config roots never read credentials from the default user profile
+ok 203 - overridden config roots never read credentials from the default user profile
+  ---
+  duration_ms: 0.4301
+  type: 'test'
+  ...
+# [chainlesschain-ide] managed policy permits an insecure IDE bridge lockfile after owner-only permission verification failed: permission enforcement failed
+# lockfile-acl: 4 assertions passed
+# Subtest: test\\lockfile-acl.test.cjs
+ok 23 - test\\lockfile-acl.test.cjs
+  ---
+  duration_ms: 286.9198
+  type: 'test'
+  ...
+# Subtest: keeps the checked-in Marketplace overview coherent with the release manifests
+ok 205 - keeps the checked-in Marketplace overview coherent with the release manifests
+  ---
+  duration_ms: 30.2883
+  type: 'test'
+  ...
+# Subtest: checks neutral source pairing without declaring a new public release
+ok 206 - checks neutral source pairing without declaring a new public release
+  ---
+  duration_ms: 3.0333
+  type: 'test'
+  ...
+# Subtest: neutral pairing still checks exact source versions and public history
+ok 207 - neutral pairing still checks exact source versions and public history
+  ---
+  duration_ms: 5.1666
+  type: 'test'
+  ...
+# Subtest: neutral pairing cannot mix candidate declarations, duplicate headings or hidden declarations
+ok 208 - neutral pairing cannot mix candidate declarations, duplicate headings or hidden declarations
+  ---
+  duration_ms: 1.9748
+  type: 'test'
+  ...
+# Subtest: neutral pairing rejects duplicate declarations and downgrades from public versions
+ok 209 - neutral pairing rejects duplicate declarations and downgrades from public versions
+  ---
+  duration_ms: 3.5503
+  type: 'test'
+  ...
+# Subtest: keeps the public recommendation independent from a newer source candidate
+ok 210 - keeps the public recommendation independent from a newer source candidate
+  ---
+  duration_ms: 0.8273
+  type: 'test'
+  ...
+# Subtest: checks an unpublished IDE candidate separately from the current public pairing
+ok 211 - checks an unpublished IDE candidate separately from the current public pairing
+  ---
+  duration_ms: 1.4381
+  type: 'test'
+  ...
+# Subtest: accepts an already published CLI for an unpublished IDE candidate
+ok 212 - accepts an already published CLI for an unpublished IDE candidate
+  ---
+  duration_ms: 1.2493
+  type: 'test'
+  ...
+# Subtest: rejects a candidate whose versions differ from the extension manifest
+ok 213 - rejects a candidate whose versions differ from the extension manifest
+  ---
+  duration_ms: 2.8753
+  type: 'test'
+  ...
+# Subtest: rejects a candidate recommendation that differs from the extension manifest
+ok 214 - rejects a candidate recommendation that differs from the extension manifest
+  ---
+  duration_ms: 3.0885
+  type: 'test'
+  ...
+# Subtest: rejects a candidate section that claims the IDE is already published
+ok 215 - rejects a candidate section that claims the IDE is already published
+  ---
+  duration_ms: 1.6773
+  type: 'test'
+  ...
+# Subtest: rejects a candidate heading duplicated, moved after Current release, or hidden in a fence
+ok 216 - rejects a candidate heading duplicated, moved after Current release, or hidden in a fence
+  ---
+  duration_ms: 2.5645
+  type: 'test'
+  ...
+# Subtest: requires the current public pair to agree with its release metadata
+ok 217 - requires the current public pair to agree with its release metadata
+  ---
+  duration_ms: 1.6809
+  type: 'test'
+  ...
+# Subtest: does not infer the current public pair from a historical release
+ok 218 - does not infer the current public pair from a historical release
+  ---
+  duration_ms: 0.7902
+  type: 'test'
+  ...
+# Subtest: rejects a recommendation newer than the checked-out source candidate
+ok 219 - rejects a recommendation newer than the checked-out source candidate
+  ---
+  duration_ms: 1.4095
+  type: 'test'
+  ...
+# Subtest: rejects README metadata that drifts from the declared recommendation
+ok 220 - rejects README metadata that drifts from the declared recommendation
+  ---
+  duration_ms: 1.5651
+  type: 'test'
+  ...
+# Subtest: allows historical release references outside the current overview
+ok 221 - allows historical release references outside the current overview
+  ---
+  duration_ms: 0.7731
+  type: 'test'
+  ...
+# Subtest: rejects historical tags inside the current status block
+ok 222 - rejects historical tags inside the current status block
+  ---
+  duration_ms: 0.7595
+  type: 'test'
+  ...
+# Subtest: requires a nonempty current release status marker
+ok 223 - requires a nonempty current release status marker
+  ---
+  duration_ms: 0.7469
+  type: 'test'
+  ...
+# Subtest: rejects a foreign-session ACK even when request and mode match
+ok 224 - rejects a foreign-session ACK even when request and mode match
+  ---
+  duration_ms: 4.7416
+  type: 'test'
+  ...
+# Subtest: accepts the same ACK when it belongs to the current session
+ok 225 - accepts the same ACK when it belongs to the current session
+  ---
+  duration_ms: 0.4202
+  type: 'test'
+  ...
+# pr-status-view: 4 assertions passed
+# Subtest: test\\pr-status-view.test.cjs
+ok 26 - test\\pr-status-view.test.cjs
+  ---
+  duration_ms: 163.342
+  type: 'test'
+  ...
+# preview: 8 assertions passed
+# Subtest: test\\preview.test.cjs
+ok 27 - test\\preview.test.cjs
+  ---
+  duration_ms: 192.9225
+  type: 'test'
+  ...
+# Subtest: UI result binds session, role, raw source and rendered text on one row
+ok 228 - UI result binds session, role, raw source and rendered text on one row
+  ---
+  duration_ms: 1.4884
+  type: 'test'
+  ...
+# Subtest: active protocol reader tolerates only a final incomplete line
+ok 229 - active protocol reader tolerates only a final incomplete line
+  ---
+  duration_ms: 13.6574
+  type: 'test'
+  ...
+# Subtest: captures actual pipe input/output and drained exit with a retained descriptor
+ok 230 - captures actual pipe input/output and drained exit with a retained descriptor
+  ---
+  duration_ms: 162.6143
+  type: 'test'
+  ...
+# Subtest: capture refuses relative directories and directory junctions
+ok 231 - capture refuses relative directories and directory junctions
+  ---
+  duration_ms: 6.9927
+  type: 'test'
+  ...
+# Subtest: terminal reader rejects selecting one success from multiple results
+ok 232 - terminal reader rejects selecting one success from multiple results
+  ---
+  duration_ms: 1.0492
+  type: 'test'
+  ...
+# Subtest: live launcher rejects expired deadlines and profiles inside candidate workspace
+ok 233 - live launcher rejects expired deadlines and profiles inside candidate workspace
+  ---
+  duration_ms: 10.2042
+  type: 'test'
+  ...
+# Subtest: JetBrains release hosts use the platform-required Java 21 toolchain
+ok 234 - JetBrains release hosts use the platform-required Java 21 toolchain
+  ---
+  duration_ms: 6.1442
+  type: 'test'
+  ...
+# Subtest: every IDE gate checks out and records the exact source commit
+ok 235 - every IDE gate checks out and records the exact source commit
+  ---
+  duration_ms: 1.9538
+  type: 'test'
+  ...
+# Subtest: JetBrains host matrix gates both original controls and canonical Stop recovery
+ok 236 - JetBrains host matrix gates both original controls and canonical Stop recovery
+  ---
+  duration_ms: 1.0578
+  type: 'test'
+  ...
+# Subtest: VS Code channel credentials are checked before their immutable publishes
+ok 237 - VS Code channel credentials are checked before their immutable publishes
+  ---
+  duration_ms: 0.791
+  type: 'test'
+  ...
+# Subtest: one immutable VSIX candidate gates every release host and publisher
+ok 238 - one immutable VSIX candidate gates every release host and publisher
+  ---
+  duration_ms: 2.9512
+  type: 'test'
+  ...
+# Subtest: IDE release tags are isolated and manual Marketplace backfill is tag-bound
+ok 239 - IDE release tags are isolated and manual Marketplace backfill is tag-bound
+  ---
+  duration_ms: 1.9874
+  type: 'test'
+  ...
+# Subtest: VS Code host gates pin macOS Intel and share the main-world relay
+ok 240 - VS Code host gates pin macOS Intel and share the main-world relay
+  ---
+  duration_ms: 6.1322
+  type: 'test'
+  ...
+# Subtest: LAN consent can only be configured at machine scope
+ok 241 - LAN consent can only be configured at machine scope
+  ---
+  duration_ms: 2.2358
+  type: 'test'
+  ...
+# Subtest: LAN exposure is emitted only for a strict explicit opt-in
+ok 242 - LAN exposure is emitted only for a strict explicit opt-in
+  ---
+  duration_ms: 2.0298
+  type: 'test'
+  ...
+# Subtest: direct pairing is fail-closed unless CLI explicitly reports LAN exposure
+ok 243 - direct pairing is fail-closed unless CLI explicitly reports LAN exposure
+  ---
+  duration_ms: 1.7343
+  type: 'test'
+  ...
+# Subtest: VS Code defaults to loopback and does not offer a phone QR
+ok 244 - VS Code defaults to loopback and does not offer a phone QR
+  ---
+  duration_ms: 20.5544
+  type: 'test'
+  ...
+# Subtest: VS Code passes --allow-lan only when its setting is true
+ok 245 - VS Code passes --allow-lan only when its setting is true
+  ---
+  duration_ms: 3.6092
+  type: 'test'
+  ...
+# Subtest: shared runtime fixture covers every user-facing outcome
+ok 246 - shared runtime fixture covers every user-facing outcome
+  ---
+  duration_ms: 8.7046
+  type: 'test'
+  ...
+# Subtest: shared runtime fixture: ready above floor
+ok 247 - shared runtime fixture: ready above floor
+  ---
+  duration_ms: 1.3567
+  type: 'test'
+  ...
+# Subtest: shared runtime fixture: ready exactly at floor and trust unknown
+ok 248 - shared runtime fixture: ready exactly at floor and trust unknown
+  ---
+  duration_ms: 0.4733
+  type: 'test'
+  ...
+# Subtest: shared runtime fixture: bridge stopped degrades
+ok 249 - shared runtime fixture: bridge stopped degrades
+  ---
+  duration_ms: 0.3695
+  type: 'test'
+  ...
+# Subtest: shared runtime fixture: restricted workspace degrades
+ok 250 - shared runtime fixture: restricted workspace degrades
+  ---
+  duration_ms: 0.4834
+  type: 'test'
+  ...
+# Subtest: shared runtime fixture: outdated CLI requires repair
+ok 251 - shared runtime fixture: outdated CLI requires repair
+  ---
+  duration_ms: 0.5351
+  type: 'test'
+  ...
+# Subtest: shared runtime fixture: missing CLI requires repair and preserves bridge reason
+ok 252 - shared runtime fixture: missing CLI requires repair and preserves bridge reason
+  ---
+  duration_ms: 0.3038
+  type: 'test'
+  ...
+# Subtest: shared runtime fixture: shadowed compiler is not accepted as cc
+ok 253 - shared runtime fixture: shadowed compiler is not accepted as cc
+  ---
+  duration_ms: 1.9722
+  type: 'test'
+  ...
+# Subtest: shared runtime fixture: version alone does not prove runtime readiness
+ok 254 - shared runtime fixture: version alone does not prove runtime readiness
+  ---
+  duration_ms: 1.1352
+  type: 'test'
+  ...
+# Subtest: shared runtime fixture: initializing session is unconfirmed
+ok 255 - shared runtime fixture: initializing session is unconfirmed
+  ---
+  duration_ms: 1.6768
+  type: 'test'
+  ...
+# Subtest: shared runtime fixture: receipt degradation
+ok 256 - shared runtime fixture: receipt degradation
+  ---
+  duration_ms: 0.547
+  type: 'test'
+  ...
+# Subtest: shared runtime fixture: pending approval acknowledgement
+ok 257 - shared runtime fixture: pending approval acknowledgement
+  ---
+  duration_ms: 0.3051
+  type: 'test'
+  ...
+# Subtest: shared runtime fixture: missing approval acknowledgement
+ok 258 - shared runtime fixture: missing approval acknowledgement
+  ---
+  duration_ms: 0.2318
+  type: 'test'
+  ...
+# Subtest: token-gated Workbench relay exposes only fixed rendered-DOM semantics
+ok 259 - token-gated Workbench relay exposes only fixed rendered-DOM semantics
+  ---
+  duration_ms: 22.3734
+  type: 'test'
+  ...
+# Subtest: Workbench open-state probe tracks panel disposal
+ok 260 - Workbench open-state probe tracks panel disposal
+  ---
+  duration_ms: 1.0092
+  type: 'test'
+  ...
+# Subtest: Workbench page names controls, regions and loading state
+ok 261 - Workbench page names controls, regions and loading state
+  ---
+  duration_ms: 0.9902
+  type: 'test'
+  ...
+# Subtest: ready handshake routes exact revision/effect-bound delivery actions
+ok 262 - ready handshake routes exact revision/effect-bound delivery actions
+  ---
+  duration_ms: 6.5917
+  type: 'test'
+  ...
+# Subtest: stale revision recheck routes no step and removes rendered actions
+ok 263 - stale revision recheck routes no step and removes rendered actions
+  ---
+  duration_ms: 2.4854
+  type: 'test'
+  ...
+# Subtest: refresh failure clears stale actions while preserving a retry path
+ok 264 - refresh failure clears stale actions while preserving a retry path
+  ---
+  duration_ms: 2.7159
+  type: 'test'
+  ...
+# Subtest: a late initial projection cannot overwrite a newer explicit refresh
+ok 265 - a late initial projection cannot overwrite a newer explicit refresh
+  ---
+  duration_ms: 43.1604
+  type: 'test'
+  ...
+# (node:34472) ExperimentalWarning: The MockTimers API is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: disposing a panel prevents its pending read from publishing rows
+ok 266 - disposing a panel prevents its pending read from publishing rows
+  ---
+  duration_ms: 4.243
+  type: 'test'
+  ...
+# Subtest: periodic refresh waits for the action's existing canonical refresh
+ok 267 - periodic refresh waits for the action's existing canonical refresh
+  ---
+  duration_ms: 38.1138
+  type: 'test'
+  ...
+# Subtest: a read started before dispatch cannot overwrite the post-mutation revision
+ok 268 - a read started before dispatch cannot overwrite the post-mutation revision
+  ---
+  duration_ms: 9.7809
+  type: 'test'
+  ...
+# Subtest: a timer during the post-mutation read does not queue a redundant read
+ok 269 - a timer during the post-mutation read does not queue a redundant read
+  ---
+  duration_ms: 9.8485
+  type: 'test'
+  ...
+# Subtest: an old pending action cannot suppress or refresh a reopened panel
+ok 270 - an old pending action cannot suppress or refresh a reopened panel
+  ---
+  duration_ms: 18.5743
+  type: 'test'
+  ...
+# Subtest: deployment admission remains distinct from runtime verification and old CLI output
+ok 271 - deployment admission remains distinct from runtime verification and old CLI output
+  ---
+  duration_ms: 7.307
+  type: 'test'
+  ...
+# Subtest: deployment webview renders literal diagnostics and clears readiness on an older response
+ok 272 - deployment webview renders literal diagnostics and clears readiness on an older response
+  ---
+  duration_ms: 6.1144
+  type: 'test'
+  ...
+# Subtest: deployment panel forwards admission and refreshes older CLI responses without invoking remediation
+ok 273 - deployment panel forwards admission and refreshes older CLI responses without invoking remediation
+  ---
+  duration_ms: 11.2223
+  type: 'test'
+  ...
+# Subtest: Workbench panel negotiates capabilities and rejects stale UI approval
+ok 274 - Workbench panel negotiates capabilities and rejects stale UI approval
+  ---
+  duration_ms: 5.5244
+  type: 'test'
+  ...
+# Subtest: Workbench unavailable panel exposes configuration without Workbench calls
+ok 275 - Workbench unavailable panel exposes configuration without Workbench calls
+  ---
+  duration_ms: 1.8338
+  type: 'test'
+  ...
+# Subtest: Workbench bounds startup, enables retry and ignores a late previous connection
+ok 276 - Workbench bounds startup, enables retry and ignores a late previous connection
+  ---
+  duration_ms: 24.2098
+  type: 'test'
+  ...
+# Subtest: Workbench replays loading state to a reloaded webview and bounds a stalled list
+ok 277 - Workbench replays loading state to a reloaded webview and bounds a stalled list
+  ---
+  duration_ms: 36.3751
+  type: 'test'
+  ...
+# Subtest: Workbench reads and reviews candidates beyond the first CLI page
+ok 278 - Workbench reads and reviews candidates beyond the first CLI page
+  ---
+  duration_ms: 8.5049
+  type: 'test'
+  ...
+# Subtest: Workbench rejects missing, repeated or changing CLI pages before showing candidates
+    # Subtest: missing
+    ok 1 - missing
+      ---
+      duration_ms: 1.6818
+      type: 'test'
+      ...
+    # Subtest: duplicate
+    ok 2 - duplicate
+      ---
+      duration_ms: 2.4838
+      type: 'test'
+      ...
+    # Subtest: digest
+    ok 3 - digest
+      ---
+      duration_ms: 3.5817
+      type: 'test'
+      ...
+    # Subtest: governance
+    ok 4 - governance
+      ---
+      duration_ms: 2.4689
+      type: 'test'
+      ...
+    # Subtest: count
+    ok 5 - count
+      ---
+      duration_ms: 1.9429
+      type: 'test'
+      ...
+    # Subtest: oversized
+    ok 6 - oversized
+      ---
+      duration_ms: 1.2579
+      type: 'test'
+      ...
+    1..6
+ok 279 - Workbench rejects missing, repeated or changing CLI pages before showing candidates
+  ---
+  duration_ms: 16.4755
+  type: 'test'
+  ...
+# Subtest: custom relays require a scoped key, allow arbitrary model aliases, and reject malformed endpoints
+ok 280 - custom relays require a scoped key, allow arbitrary model aliases, and reject malformed endpoints
+  ---
+  duration_ms: 1.5187
+  type: 'test'
+  ...
+# Subtest: LLM panel never returns an existing or newly submitted key to the webview
+ok 281 - LLM panel never returns an existing or newly submitted key to the webview
+  ---
+  duration_ms: 4.5708
+  type: 'test'
+  ...
+# Subtest: LLM panel reports unconfirmed writes when a successful CLI exit reads back old configuration
+ok 282 - LLM panel reports unconfirmed writes when a successful CLI exit reads back old configuration
+  ---
+  duration_ms: 1.0798
+  type: 'test'
+  ...
+# Subtest: atomic LLM configuration travels over stdin, including script entrypoints
+ok 283 - atomic LLM configuration travels over stdin, including script entrypoints
+  ---
+  duration_ms: 4.1327
+  type: 'test'
+  ...
+# Subtest: skill entry loads a read-only catalog before any search or prompt
+ok 284 - skill entry loads a read-only catalog before any search or prompt
+  ---
+  duration_ms: 3.5361
+  type: 'test'
+  ...
+# Subtest: skill catalog rejects malformed or oversized output
+ok 285 - skill catalog rejects malformed or oversized output
+  ---
+  duration_ms: 10.5866
+  type: 'test'
+  ...
+# Subtest: workbench never reports refreshed success after a failed post-review read
+ok 286 - workbench never reports refreshed success after a failed post-review read
+  ---
+  duration_ms: 4.9658
+  type: 'test'
+  ...
+# Subtest: Skill Retrieval IDE builds only the fixed read-only CLI command
+ok 287 - Skill Retrieval IDE builds only the fixed read-only CLI command
+  ---
+  duration_ms: 4.6437
+  type: 'test'
+  ...
+# Subtest: Skill Retrieval IDE command is contributed, registered, and localized
+ok 288 - Skill Retrieval IDE command is contributed, registered, and localized
+  ---
+  duration_ms: 7.1262
+  type: 'test'
+  ...
+# Subtest: Skill Retrieval IDE uses the runner's bounded large-result buffer
+ok 289 - Skill Retrieval IDE uses the runner's bounded large-result buffer
+  ---
+  duration_ms: 5.3041
+  type: 'test'
+  ...
+# Subtest: Skill Retrieval IDE rejects drift and duplicate candidate evidence
+ok 290 - Skill Retrieval IDE rejects drift and duplicate candidate evidence
+  ---
+  duration_ms: 7.5106
+  type: 'test'
+  ...
+# Subtest: Skill Retrieval IDE accepts v2 environment classifications and keeps v1 readable
+ok 291 - Skill Retrieval IDE accepts v2 environment classifications and keeps v1 readable
+  ---
+  duration_ms: 1.437
+  type: 'test'
+  ...
+# Subtest: Skill Retrieval IDE accepts only witnessed bounded outcome indexes
+ok 292 - Skill Retrieval IDE accepts only witnessed bounded outcome indexes
+  ---
+  duration_ms: 3.1873
+  type: 'test'
+  ...
+# Subtest: Skill Retrieval IDE explicitly validates vector authority evidence
+ok 293 - Skill Retrieval IDE explicitly validates vector authority evidence
+  ---
+  duration_ms: 2.1243
+  type: 'test'
+  ...
+# Subtest: Skill Retrieval IDE inspects canonical evidence without executing a Skill
+ok 294 - Skill Retrieval IDE inspects canonical evidence without executing a Skill
+  ---
+  duration_ms: 1.5657
+  type: 'test'
+  ...
+# Subtest: Skill Retrieval IDE visibly abstains on canonical conflicts
+ok 295 - Skill Retrieval IDE visibly abstains on canonical conflicts
+  ---
+  duration_ms: 1.4756
+  type: 'test'
+  ...
+# Subtest: Team Monitor projects CLI 0.166.3 collaboration without private data
+ok 296 - Team Monitor projects CLI 0.166.3 collaboration without private data
+  ---
+  duration_ms: 7.0773
+  type: 'test'
+  ...
+# Subtest: Team Monitor fails an invalid collaboration projection closed
+ok 297 - Team Monitor fails an invalid collaboration projection closed
+  ---
+  duration_ms: 4.0934
+  type: 'test'
+  ...
+# Subtest: live launcher accepts exactly the panel's permission modes without rewriting them
+ok 298 - live launcher accepts exactly the panel's permission modes without rewriting them
+  ---
+  duration_ms: 14.945
+  type: 'test'
+  ...
+# Subtest: invalid CLI permission alias fails before VSIX lookup, host launch, or capture creation
+ok 299 - invalid CLI permission alias fails before VSIX lookup, host launch, or capture creation
+  ---
+  duration_ms: 8.855
+  type: 'test'
+  ...
+# Subtest: diagnostic supervisor preserves real successful exit
+ok 300 - diagnostic supervisor preserves real successful exit
+  ---
+  duration_ms: 125.3174
+  type: 'test'
+  ...
+# Subtest: outer deadline requests bounded orderly IPC cleanup and remains failed
+ok 301 - outer deadline requests bounded orderly IPC cleanup and remains failed
+  ---
+  duration_ms: 538.9012
+  type: 'test'
+  ...
+# Subtest: unresponsive launcher is force-cleaned after bounded cancellation
+ok 302 - unresponsive launcher is force-cleaned after bounded cancellation
+  ---
+  duration_ms: 6734.8896
+  type: 'test'
+  ...
+1..302
+# tests 308
+# suites 0
+# pass 308
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 10181.5238

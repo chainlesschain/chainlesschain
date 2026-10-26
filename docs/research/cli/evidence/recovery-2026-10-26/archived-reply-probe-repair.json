@@ -49,7 +49,8 @@
     "warnings": "Existing deprecated IntelliJ platform dependency helper",
     "output": {
       "path": "docs/research/cli/evidence/recovery-2026-10-26/jetbrains-ui-compile.log",
-      "digest": "sha256:2375df489787c5264b09d49e0bc5966186486771a0da69878c34a9a293f2b5a0"
+      "digest": "sha256:6b3026812896de2e83d7368de7a952c3df246f57af949e8d7004cc9ac2850e2b",
+      "normalization": "UTF-8, LF newlines, trailing horizontal whitespace removed"
     }
   },
   "modelsRequested": 0,
