@@ -2,13 +2,15 @@
 
 Command-line interface for installing, configuring, and managing [ChainlessChain](https://www.chainlesschain.com), including the coding agent, governed tools, sessions, memory, and IDE integrations.
 
-## CLI 0.166.126 (2026-10-26)
+## CLI 0.166.126 (public, 2026-10-26)
 
 Fixes `Agent model JSON text is malformed or ambiguous` after reading a worklog or retaining a long tool result. Host-created recovery excerpts now preserve complete JSON values or explicitly omit an unsafe excerpt instead of passing a character-cut fragment to the next model turn. The fix covers file and remote-read summaries, task checkpoints, worklog context, legacy-session restart and handoff. Canonical session history remains unchanged; omitted source excerpts do not count as visible file content.
 
 Install: `npm i -g chainlesschain@0.166.126 --registry https://registry.npmjs.org`. Restart the IDE chat host, then check `cc --version` and `cc doctor`. The public IDE pairing remains Open VSX **0.37.162** / JetBrains **0.4.179**, whose recommendation is CLI **0.166.123**. Child versions are unchanged, including Session Core **0.3.24**.
 
-Publication requires the release commit's complete Linux, Windows and macOS **CLI CI** and **CLI Strict Sandbox**, followed by GitHub Actions OIDC and public package readback. Original malformed/duplicate JSON still fails closed; credential/PII redaction and decoding budgets remain enforced. This is a CLI repair, with no new IDE/native release or live model-task acceptance. Cumulative acceptance remains **32/45**, with **13** unfinished; **NOT_PAID_READY / NOT_ADMITTED / HOLD** remain.
+Published through [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/40332695884) from exact source `1b848f7e265737b73e6f8ac99f0aeaf9ea5dadbe`. Linux, Windows and macOS **CLI CI** and **CLI Strict Sandbox** passed; the public archive matches the immutable CI artifact, and signed provenance and ten direct child pins are verified. [Publication evidence](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release126-public/publication.json). One macOS E2E shard was rerun after GitHub could not allocate a hosted runner; its tests passed without source changes.
+
+Original malformed/duplicate JSON still fails closed; credential/PII redaction and decoding budgets remain enforced. This is a CLI repair, with no native release or new live model-task acceptance. VS Code **0.37.163** is being published separately; its public verification is pending. Cumulative acceptance remains **32/45**, with **13** unfinished; **NOT_PAID_READY / NOT_ADMITTED / HOLD** remain.
 
 ## CLI 0.166.125 (public, 2026-10-26)
 

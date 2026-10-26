@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "verifiedAt": "2026-10-26T15:03:06.952Z",
+  "repository": "chainlesschain/chainlesschain",
+  "sha": "1b848f7e265737b73e6f8ac99f0aeaf9ea5dadbe",
+  "gates": [
+    {
+      "workflow": "cli-ci.yml",
+      "name": "CLI CI",
+      "sha": "1b848f7e265737b73e6f8ac99f0aeaf9ea5dadbe",
+      "runId": 40310066831,
+      "runUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/40310066831",
+      "conclusion": "success",
+      "platforms": ["linux", "macos", "windows"]
+    },
+    {
+      "workflow": "cli-strict-sandbox.yml",
+      "name": "CLI Strict Sandbox",
+      "sha": "1b848f7e265737b73e6f8ac99f0aeaf9ea5dadbe",
+      "runId": 40310066750,
+      "runUrl": "https://github.com/chainlesschain/chainlesschain/actions/runs/40310066750",
+      "conclusion": "success",
+      "platforms": ["linux", "macos", "windows"]
+    }
+  ]
+}

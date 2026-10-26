@@ -1,10 +1,12 @@
 # ChainlessChain - 基于U盾和SIMKey的个人移动AI管理系统
 
-## CLI 0.166.126 发布准备（2026-10-26）
+## CLI 0.166.126（已公开，2026-10-26）
 
 本次修复恢复摘要按字符截断 JSON，导致 Agent 下一轮请求反复报 `CC_AGENT_EVOLUTION_INGRESS_FAILED` 并退出的问题。文件摘要、任务检查点、远端查询摘要、旧会话恢复和 `WORKLOG.md` 派生视图统一使用有界、完整的表示；原始会话记录与严格校验保持不变。
 
-发布目标为 `chainlesschain@0.166.126`，待该提交完整通过三平台 CLI CI 和 Strict Sandbox 后通过 GitHub Actions OIDC 发布，公开包回读验证完成后再合并。当前已公开版本及安装命令仍为下方 `.125`。子包版本及 Open VSX **0.37.162** / JetBrains **0.4.179** 配对不变；未新增模型任务验收，累计 **32/45**、**13** 项未完成及 **NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。
+CLI **0.166.126** 已通过 [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/40332695884) 公开发布。精确源码 `1b848f7e265737b73e6f8ac99f0aeaf9ea5dadbe` 的 Linux、Windows、macOS CLI CI 与 Strict Sandbox 均已通过，公开 npm 包与不可变 CI 制品、签名来源和十个直接子依赖已核验。[发布证据](docs/research/cli/evidence/release126-public/publication.json)。
+
+安装：`npm i -g chainlesschain@0.166.126 --registry https://registry.npmjs.org`，重启 IDE 聊天宿主后运行 `cc --version` 和 `cc doctor`。子包版本及 Open VSX **0.37.162** / JetBrains **0.4.179** 公开配对不变；VS Code **0.37.163** 正在独立发布，尚未完成公开核验。未新增模型任务验收，累计 **32/45**、**13** 项未完成及 **NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。
 
 ## CLI 0.166.125（已公开，2026-10-26）
 

@@ -1,10 +1,12 @@
 # ChainlessChain - Personal Mobile AI Management System Based on USB Key and SIMKey
 
-## CLI 0.166.126 release preparation (2026-10-26)
+## CLI 0.166.126 (public, 2026-10-26)
 
 Repairs repeated Agent ingress failures caused by character-cut JSON in retained recovery summaries. File and remote-read summaries, task checkpoints, legacy-session recovery and derived WORKLOG.md views now preserve complete bounded representations. Canonical session history and strict validation remain unchanged.
 
-The release target is `chainlesschain@0.166.126`. Publication requires the exact commit's full three-platform CLI CI and Strict Sandbox through GitHub Actions OIDC; merge follows public archive and provenance verification. The current public version and install command remain `.125` below. Child pins and the Open VSX **0.37.162** / JetBrains **0.4.179** pairing are unchanged. No new live model-task acceptance is claimed: **32/45** accepted, **13** unfinished, **NOT_PAID_READY / NOT_ADMITTED / HOLD** remain.
+CLI **0.166.126** is public through [GitHub Actions OIDC](https://github.com/chainlesschain/chainlesschain/actions/runs/40332695884). Exact source `1b848f7e265737b73e6f8ac99f0aeaf9ea5dadbe` passed Linux, Windows and macOS CLI CI and Strict Sandbox. The public npm archive, immutable CI artifact, signed provenance and ten direct child dependencies are verified. [Publication evidence](docs/research/cli/evidence/release126-public/publication.json).
+
+Install: `npm i -g chainlesschain@0.166.126 --registry https://registry.npmjs.org`, restart the IDE chat host, then run `cc --version` and `cc doctor`. Child pins and the public Open VSX **0.37.162** / JetBrains **0.4.179** pairing are unchanged. VS Code **0.37.163** has a separate publication in progress; public verification is pending. No new live model-task acceptance is claimed: **32/45** accepted, **13** unfinished, **NOT_PAID_READY / NOT_ADMITTED / HOLD** remain.
 
 ## CLI 0.166.125 (public, 2026-10-26)
 
