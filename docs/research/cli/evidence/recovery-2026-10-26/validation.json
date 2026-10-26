@@ -106,8 +106,8 @@
     "skipped": 0,
     "output": {
       "path": "docs/research/cli/evidence/recovery-2026-10-26/vscode-unit.log",
-      "digest": "sha256:410b79cb778d9ca949253c6835962586604ef903e927bb915d7e78b8cb5cd01e",
-      "encoding": "UTF-8, transcoded from PowerShell UTF-16LE capture without changing text"
+      "digest": "sha256:903aff7e544c31440ed69b67f9a4faaee0ab49d145f65bfd9f44858577ab2eda",
+      "encoding": "UTF-8 with LF newlines, transcoded from PowerShell UTF-16LE capture"
     }
   },
   "archivedReplyLocalCheck": {
