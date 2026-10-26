@@ -125,6 +125,36 @@ describe("IDE task worklog stream integration", () => {
     expect(loaded.session_id).not.toBe("source");
   });
 
+  it("hands off legacy truncated excerpts through a model-safe copy", async () => {
+    const source = harness.create({ cwd, sessionId: "legacy" });
+    source.user("Continue the original repair");
+    const broken = '```json\n{"events":[{"result":"unfinished … [truncated]';
+    source.state.files = [
+      { tool: "read_file", args: '{"path":"WORKLOG.md"}', result: broken },
+    ];
+    source.state.events.push({ type: "tool_result", result: broken });
+    source.save();
+    const original = fs.readFileSync(source.file, "utf8");
+    let seen;
+    const { events, outcome } = await run(
+      [{ type: "user", text: "Resume", worklog_session_id: "legacy" }],
+      async function* (messages) {
+        seen = messages.find((message) => message.role === "user").content;
+        yield { type: "response-complete", content: "Resumed" };
+        yield { type: "run-ended", reason: "complete" };
+      },
+    );
+    expect(outcome.exitCode).toBe(0);
+    expect(seen).toContain("Continue the original repair");
+    expect(seen).toContain("Excerpt omitted");
+    expect(seen).not.toContain("unfinished");
+    expect(events.some((event) => event.type === "worklog_loaded")).toBe(true);
+    expect(fs.readFileSync(source.file, "utf8")).toBe(original);
+    expect(harness.checkpoints.get("legacy").state.files[0].result).toBe(
+      broken,
+    );
+  });
+
   it("refuses missing handoff data before calling the model", async () => {
     let calls = 0;
     const { events } = await run(
