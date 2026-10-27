@@ -150,10 +150,10 @@ def capture():
         wait_labels(['确认PIN码'], timeout=30)
         for digit in '739142':
             tap_text([digit], timeout=10)
-        wait_labels(['个人助手', 'Personal Assistant'], timeout=150)
-        images = [screenshot('android-home-5.0.3.143', ['个人助手', 'Personal Assistant'])]
-        tap_text(['个人助手', 'Personal Assistant'], bottom=True)
-        images.append(screenshot('android-assistant-5.0.3.143', ['个人助手', 'Personal Assistant']))
+        wait_labels(['个人助手', 'Personal Assistant', 'Assistant'], timeout=150)
+        images = [screenshot('android-home-5.0.3.143', ['个人助手', 'Personal Assistant', 'Assistant'])]
+        tap_text(['个人助手', 'Personal Assistant', 'Assistant'], bottom=True)
+        images.append(screenshot('android-assistant-5.0.3.143', ['个人助手', 'Personal Assistant', 'Assistant']))
         tap_text(['个人中心', 'Profile', 'Me'], bottom=True)
         images.append(screenshot('android-profile-5.0.3.143', ['设置', 'Settings', '关于', 'About']))
         receipt = {
