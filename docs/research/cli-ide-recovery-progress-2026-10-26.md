@@ -100,3 +100,11 @@ Windows x64，Node **22.22.2**。可机读结果、命令、源码摘要及验�
 Windows 解包改用 Python 标准库显式 UTF-8 解码及 Unicode 文件系统调用，先验证完整路径集合，拒绝链接、越界路径、设备名、大小写冲突和重复文件。Linux/macOS 继续原解包路径。中文普通头、PAX 长路径、逐字节一致性和错误路径负对照均已回归。Windows 本地用实际冻结提交归档核对 **22,564 个条目、19,381 个文件、252 个非 ASCII 路径**，文件名和内容摘要全部一致；归档摘要也与上述 GitHub 失败运行一致，见[完整树核对](./cli/evidence/recovery-2026-10-27/windows-frozen-archive-check.json)。工作流增加模型执行前的 Windows 解包回归。
 
 修复后的 verify-10 使用[独立重试计划](./cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-127-funded-20261027-unicode-plan.json)，保持相同 13 个未合格 ID、32 个历史合格项、公开包版本和冻结验收条件；原失败轮次不可被新运行覆盖。当前累计仍为普通 **26/36**、首次 **6/9**，共 **32/45**。verify-09 的旧请求仍待核对；`paidReady:false`、native `NOT_ADMITTED`、晋升 `HOLD` 不变，无新发布。
+
+修复提交 `5696eb87d5` 的 [Windows 重跑](https://github.com/chainlesschain/chainlesschain/actions/runs/40468780496)已完成：原生生成及冻结树精确检查通过，9 笔请求用量完整；独立基线 2/2、候选 5/6 通过，末页断言与实际索引排序不符，仍未合格。[Linux 首次安装](https://github.com/chainlesschain/chainlesschain/actions/runs/40469980382)也完成公开安装和原生生成，20 笔请求用量完整；独立基线 22/22 通过，候选计价测试 0/6 通过，整项未合格。安装成功不单独关闭包含首次任务的验收项。详见[后续实际结果](./cli/evidence/recovery-2026-10-27/remaining-127-followup-results.json)；相应独立回执、候选和请求用量回执保存在新轮次账本中。未将生成成功改写为任务成功。
+
+本次提交自动触发的 `Full Test Automation with Diagnostics` 长测试已取消以释放执行机，未取消 CLI CI 或原生任务验收。上述本地及原生解包回归不代表全仓库 CI 或准确提交的完整发行矩阵通过，本轮未发布。
+
+[verify-19](https://github.com/chainlesschain/chainlesschain/actions/runs/40471191760)原生生成通过，20 笔请求用量完整；独立基线 17/17 通过，候选 0/2 通过，未合格。`main` 随后合入 LLM 配置改动后，[verify-07 的首次派发](https://github.com/chainlesschain/chainlesschain/actions/runs/40472305015)在前置自检阶段失败：新导入的模型能力模块需要 `@chainlesschain/context-memory-kernel`，而干净工作流尚未准备这一工作区依赖。原生生成和验收两个 job 均为 `skipped`，无制品、无模型调用；见[失败依据与原日志摘要](./cli/evidence/recovery-2026-10-27/verify07-preflight-failure.json)。
+
+工作流现为 validate、generate、accept 三个独立检出分别执行仅选取 kernel 工作区的生产依赖安装，禁用安装脚本，使用现有根锁文件。它服务于操作端脚本导入，首次任务的公开 CLI 安装仍由独立临时目录与公开包锁回执验证。干净隔离检出的安装和 `canonicalDigest` 导入通过；工作流列出的全套本地前置自检 **86/86** 通过。失败轮次绑定继续保留在原 unicode 账本，新执行使用[单独计划](./cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-127-funded-20261027-preflight-plan.json)，复用相同 32 个历史合格项和已完成尝试，不增加或省略原 13 个未合格 ID。

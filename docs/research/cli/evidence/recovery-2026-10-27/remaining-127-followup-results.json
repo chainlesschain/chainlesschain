@@ -54,7 +54,168 @@
       "tokenOnlyEstimateCny": 0.18861840000000002,
       "actualBilledCostCny": null,
       "billingAssessed": false,
-      "formalSample": false
+      "formalSample": false,
+      "candidateTestExecutions": [
+        {
+          "total": 6,
+          "passed": 5,
+          "failed": 1,
+          "failures": [
+            {
+              "name": "background agent list index pagination invalidation keeps the final page correct when the page size does not divide the total",
+              "reason": "AssertionError: expected [ …(2) ] to deeply equal [ { id: 'bg-d', …(2) }, …(1) ]"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sampleId": "first-run-linux-cli",
+      "attempt": "initial",
+      "runId": "40469980382",
+      "executionSourceCommit": "5696eb87d5a2420aa7b9da2ab567d0fde9b3189a",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40469980382",
+      "versions": {
+        "cli": "0.166.127",
+        "vscode": "0.37.165",
+        "jetbrains": "0.4.182",
+        "vscodeHost": "1.132.0",
+        "jetbrainsHost": "2025.2"
+      },
+      "generationPassed": true,
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false,
+      "setup": {
+        "pass": true,
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 22,
+            "passed": 22,
+            "failed": 0
+          }
+        ],
+        "receiptDigest": "sha256:7e235dc3bff2fff67634dfb6b1d8e093cbde94ed38226435508d6d2076cfc761"
+      },
+      "check": {
+        "pass": false,
+        "detail": "candidate or baseline regression failed",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 22,
+            "passed": 22,
+            "failed": 0
+          }
+        ],
+        "mutations": [],
+        "receiptDigest": "sha256:573434fabb514739016aaa935f8c75358f5099bd042ee4ee37a1ac6b4e088326"
+      },
+      "physicalRequestsStarted": 20,
+      "usageCompleteRequests": 20,
+      "tokenOnlyEstimateCny": 0.37890779999999996,
+      "actualBilledCostCny": null,
+      "billingAssessed": false,
+      "formalSample": false,
+      "candidateTestExecutions": [
+        {
+          "total": 6,
+          "passed": 0,
+          "failed": 6,
+          "failures": [
+            {
+              "name": "priceRollup: per-request cache vs long-context contracts prices a fully cache-read request at the discounted cacheRead rate",
+              "reason": "AssertionError: expected 0 to be greater than 0"
+            },
+            {
+              "name": "priceRollup: per-request cache vs long-context contracts prices a long-context (full-prompt) request at the full input rate",
+              "reason": "AssertionError: expected +0 to be close to 0.025, received difference is 0.025, but expected 5e-10"
+            },
+            {
+              "name": "priceRollup: per-request cache vs long-context contracts mixed split sums each request contract independently (positive control)",
+              "reason": "AssertionError: expected 0 to be less than 0"
+            },
+            {
+              "name": "priceRollup: per-request cache vs long-context contracts monolithic lump prices all input at the full rate (negative control)",
+              "reason": "AssertionError: expected +0 to be close to 0.05, received difference is 0.05, but expected 5e-10"
+            },
+            {
+              "name": "priceRollup: per-request cache vs long-context contracts split distribution differs from the same-token monolithic lump",
+              "reason": "AssertionError: expected +0 to not be close to +0, received difference is 0, but expected 5e-10"
+            },
+            {
+              "name": "priceRollup: per-request cache vs long-context contracts cache-read-heavy distribution is cheaper than same-token full-prompt lump",
+              "reason": "AssertionError: expected 0 to be less than 0"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-19",
+      "attempt": "initial",
+      "runId": "40471191760",
+      "executionSourceCommit": "5696eb87d5a2420aa7b9da2ab567d0fde9b3189a",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40471191760",
+      "versions": {
+        "cli": "0.166.127",
+        "vscode": "0.37.165",
+        "jetbrains": "0.4.182",
+        "vscodeHost": "1.132.0",
+        "jetbrainsHost": "2025.2"
+      },
+      "generationPassed": true,
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false,
+      "setup": {
+        "pass": true,
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 17,
+            "passed": 17,
+            "failed": 0
+          }
+        ],
+        "receiptDigest": "sha256:ec017f568ee33b28f8f93fafd3549f2cdc5f73a112e7fcfe8920ed262bdaf4a6"
+      },
+      "check": {
+        "pass": false,
+        "detail": "candidate or baseline regression failed",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 17,
+            "passed": 17,
+            "failed": 0
+          }
+        ],
+        "mutations": [],
+        "receiptDigest": "sha256:7d51d3d36683567f7531bca3d0e6b7c329728e4e66f7bf6a44f8ce0aca7cb940"
+      },
+      "physicalRequestsStarted": 20,
+      "usageCompleteRequests": 20,
+      "tokenOnlyEstimateCny": 0.7125832000000001,
+      "actualBilledCostCny": null,
+      "billingAssessed": false,
+      "formalSample": false,
+      "candidateTestExecutions": [
+        {
+          "total": 2,
+          "passed": 0,
+          "failed": 2,
+          "failures": [
+            {
+              "name": "cancelled-approval late callback a late accept for a cancelled id cannot authorize the tool",
+              "reason": "AssertionError: expected { type: 'approval_request', …(11) } to match object { id: 'appr-cancel-1' }"
+            },
+            {
+              "name": "cancelled-approval late callback a normal accept binds only the original request",
+              "reason": "AssertionError: expected { type: 'approval_request', …(11) } to match object { id: 'appr-live-1', …(3) }"
+            }
+          ]
+        }
+      ]
     }
   ]
 }

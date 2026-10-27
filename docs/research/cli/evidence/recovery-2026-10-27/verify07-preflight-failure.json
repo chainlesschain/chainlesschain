@@ -1,0 +1,33 @@
+{
+  "schema": "chainlesschain.native-task-preflight-failure/v1",
+  "sampleId": "verify-07",
+  "runId": "40472305015",
+  "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40472305015",
+  "executionSourceCommit": "1a16b8d257875fd596f2efae6a897cd8fec01735",
+  "status": "PRE_MODEL_VALIDATION_FAILED",
+  "newModelCalls": 0,
+  "tokenOnlyEstimateCny": 0,
+  "actualBilledCostCny": null,
+  "billingAssessed": false,
+  "reason": "Clean source harness import requires the context-memory-kernel workspace dependency after main 1a16b8d257.",
+  "proof": {
+    "validationConclusion": "failure",
+    "nativeJobs": [
+      {
+        "id": 122082321479,
+        "name": "Native ${{ matrix.group }} (${{ (((inputs.sample_ids != '') && 'selected samples') || 'five independent samples') }})",
+        "conclusion": "skipped",
+        "steps": 0
+      }
+    ],
+    "artifactCount": 0,
+    "providerCredentialAvailableInValidationJob": false
+  },
+  "log": {
+    "path": "docs/research/cli/evidence/recovery-2026-10-27/verify07-preflight-failure.log.gz",
+    "rawDigest": "sha256:25af9a2a14e48148d2a25718b2beed00443fe0bcae8713ae086f6eda53bd4307",
+    "storedDigest": "sha256:931766e2c54d9f927c54bd28b5115eb1f9c5fe5d5d9f1200842de975e1c44992",
+    "encoding": "utf-16le"
+  },
+  "retryScope": "one infrastructure retry after the operator dependency bootstrap fix"
+}

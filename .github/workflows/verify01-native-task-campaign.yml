@@ -77,6 +77,12 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: "22.12.0"
+      - name: Prepare operator workspace dependency
+        # Source capability contracts; public CLI installs remain independent.
+        run: >-
+          npm ci --workspace @chainlesschain/context-memory-kernel
+          --include-workspace-root=false --omit=dev --ignore-scripts
+          --legacy-peer-deps --no-audit --no-fund
       - name: Validate exact sample selection, candidate binding and host controls
         run: >-
           node --test
@@ -166,6 +172,11 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: "22.12.0"
+      - name: Prepare operator workspace dependency
+        run: >-
+          npm ci --workspace @chainlesschain/context-memory-kernel
+          --include-workspace-root=false --omit=dev --ignore-scripts
+          --legacy-peer-deps --no-audit --no-fund
       - uses: actions/setup-python@v6
         if: runner.os == 'Windows'
         with:
@@ -260,6 +271,11 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: "22.12.0"
+      - name: Prepare operator workspace dependency
+        run: >-
+          npm ci --workspace @chainlesschain/context-memory-kernel
+          --include-workspace-root=false --omit=dev --ignore-scripts
+          --legacy-peer-deps --no-audit --no-fund
       - uses: actions/download-artifact@v7
         with:
           name: verify01-native-${{ inputs.sample_ids != '' && 'subset-delivery' || 'delivery' }}-${{ matrix.group }}-${{ inputs.accept_existing_commit || github.sha }}
