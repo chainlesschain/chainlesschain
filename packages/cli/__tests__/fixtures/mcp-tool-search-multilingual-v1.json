@@ -1,0 +1,205 @@
+{
+  "schema": "chainlesschain.mcp-tool-search-fixture/v1",
+  "fixtureId": "synthetic-bilingual-tool-discovery-v1",
+  "description": "Synthetic lexical discovery with bilingual metadata; no translation, semantic recall or task execution is measured.",
+  "tools": [
+    {
+      "server": "files",
+      "tool": "readFile",
+      "description": "读取文件内容，可指定路径。Read a file and return its content."
+    },
+    {
+      "server": "files",
+      "tool": "writeFile",
+      "description": "写入文件内容。Write file contents at a path."
+    },
+    {
+      "server": "files",
+      "tool": "deleteFile",
+      "description": "删除指定文件。Delete a file at a path."
+    },
+    {
+      "server": "github",
+      "tool": "create_issue",
+      "description": "创建 GitHub 工单并填写标题。Create an issue in a repository."
+    },
+    {
+      "server": "github",
+      "tool": "list_issues",
+      "description": "列出 GitHub 工单。List repository issues."
+    },
+    {
+      "server": "slack",
+      "tool": "send_message",
+      "description": "向 Slack 频道发送消息。Send a message to a channel."
+    },
+    {
+      "server": "slack",
+      "tool": "search_messages",
+      "description": "搜索 Slack 历史消息。Search channel messages."
+    },
+    {
+      "server": "database",
+      "tool": "backup_database",
+      "description": "备份数据库到指定位置。Back up database to a location."
+    },
+    {
+      "server": "database",
+      "tool": "restore_database",
+      "description": "从备份恢复数据库。Restore a database backup."
+    },
+    {
+      "server": "deploy",
+      "tool": "deployService",
+      "description": "发布服务并执行健康检查。Deploy service and run health checks."
+    },
+    {
+      "server": "deploy",
+      "tool": "restartService",
+      "description": "重启服务进程。Restart a running service."
+    },
+    {
+      "server": "browser",
+      "tool": "capture_screenshot",
+      "description": "截取网页截图。Capture screenshot of a web page."
+    }
+  ],
+  "queries": [
+    {
+      "id": "zh-read",
+      "group": "chinese",
+      "query": "请帮我读取文件内容",
+      "relevant": ["mcp__files__readFile"]
+    },
+    {
+      "id": "zh-write",
+      "group": "chinese",
+      "query": "将文本写入文件",
+      "relevant": ["mcp__files__writeFile"]
+    },
+    {
+      "id": "zh-delete",
+      "group": "chinese",
+      "query": "删除指定文件",
+      "relevant": ["mcp__files__deleteFile"]
+    },
+    {
+      "id": "zh-backup",
+      "group": "chinese",
+      "query": "请备份数据库",
+      "relevant": ["mcp__database__backup_database"]
+    },
+    {
+      "id": "zh-restore",
+      "group": "chinese",
+      "query": "如何恢复数据库",
+      "relevant": ["mcp__database__restore_database"]
+    },
+    {
+      "id": "zh-deploy",
+      "group": "chinese",
+      "query": "请发布服务并执行健康检查",
+      "relevant": ["mcp__deploy__deployService"]
+    },
+    {
+      "id": "zh-restart",
+      "group": "chinese",
+      "query": "帮我重启服务",
+      "relevant": ["mcp__deploy__restartService"]
+    },
+    {
+      "id": "zh-screenshot",
+      "group": "chinese",
+      "query": "请截取网页截图",
+      "relevant": ["mcp__browser__capture_screenshot"]
+    },
+    {
+      "id": "mixed-create",
+      "group": "mixed",
+      "query": "请创建一个GitHub工单",
+      "relevant": ["mcp__github__create_issue"]
+    },
+    {
+      "id": "mixed-list",
+      "group": "mixed",
+      "query": "列出GitHub工单",
+      "relevant": ["mcp__github__list_issues"]
+    },
+    {
+      "id": "mixed-send",
+      "group": "mixed",
+      "query": "向Slack频道发送消息",
+      "relevant": ["mcp__slack__send_message"]
+    },
+    {
+      "id": "mixed-search",
+      "group": "mixed",
+      "query": "帮我搜索Slack的历史消息",
+      "relevant": ["mcp__slack__search_messages"]
+    },
+    {
+      "id": "en-read",
+      "group": "english",
+      "query": "please read file",
+      "relevant": ["mcp__files__readFile"]
+    },
+    {
+      "id": "en-create",
+      "group": "english",
+      "query": "create, issue",
+      "relevant": ["mcp__github__create_issue"]
+    },
+    {
+      "id": "en-send",
+      "group": "english",
+      "query": "send message",
+      "relevant": ["mcp__slack__send_message"]
+    },
+    {
+      "id": "en-screenshot",
+      "group": "english",
+      "query": "capture screenshot",
+      "relevant": ["mcp__browser__capture_screenshot"]
+    },
+    {
+      "id": "fullwidth",
+      "group": "normalization",
+      "query": "ＦＩＬＥ",
+      "relevant": [
+        "mcp__files__readFile",
+        "mcp__files__writeFile",
+        "mcp__files__deleteFile"
+      ]
+    },
+    {
+      "id": "name-filter",
+      "group": "normalization",
+      "query": "+github，issue",
+      "relevant": ["mcp__github__create_issue", "mcp__github__list_issues"]
+    },
+    {
+      "id": "unknown-zh",
+      "group": "negative",
+      "query": "航班票价",
+      "relevant": []
+    },
+    {
+      "id": "unknown-en",
+      "group": "negative",
+      "query": "quantum entanglement",
+      "relevant": []
+    },
+    {
+      "id": "missing-server",
+      "group": "negative",
+      "query": "+missingserver file",
+      "relevant": []
+    },
+    {
+      "id": "punctuation",
+      "group": "negative",
+      "query": "！？",
+      "relevant": []
+    }
+  ]
+}

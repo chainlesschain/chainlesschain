@@ -1,0 +1,2072 @@
+{
+  "schema": "chainlesschain.mcp-tool-search-benchmark/v1",
+  "measuredAt": "2026-10-27T08:59:37.502Z",
+  "fixtureId": "synthetic-bilingual-tool-discovery-v1",
+  "fixtureDigest": "sha256:b92a22ddb479e605e2d32a9976f3e4a935a4adffffde8658a4758cefd36d80c4",
+  "sourceDigests": {
+    "mcp-tool-search.js": "sha256:c09c6d9e08eb79e5ea5db3cab07a24747230202c1cb28c4e626363b9719f2b60",
+    "mcp-tool-search-ranking.js": "sha256:f80e3e8e5da4c34b409a0de7e481fe41154bcebeef96b092ce16a18120ffb597"
+  },
+  "environment": {
+    "node": "v22.22.2",
+    "icu": "78.2",
+    "platform": "win32",
+    "arch": "x64",
+    "cpu": "Intel(R) Core(TM) i7-4770HQ CPU @ 2.20GHz"
+  },
+  "catalogMode": "per-tool-stubs",
+  "providerCalls": 0,
+  "providerUsageMeasured": false,
+  "billingVerified": false,
+  "taskQualityVerified": false,
+  "semanticRecallMeasured": false,
+  "notes": [
+    "Synthetic bilingual metadata; no automatic translation or semantic retrieval.",
+    "Recall@5 is the macro mean fraction of relevant tools retrieved, not a hit rate.",
+    "Negative-query false recall is not a tool miscall rate; no tools are executed.",
+    "Catalog token counts are estimates. Both scorers use the same stub catalog; no additional prompt or fee savings are attributed to ranking.",
+    "Latency samples rotate through the fixed queries after warmup; process RSS is cumulative, not isolated per scorer."
+  ],
+  "tiers": [
+    {
+      "toolCount": 200,
+      "deferralMs": 28.443899999999985,
+      "estimatedCatalogTokens": {
+        "full": 69512,
+        "stubs": 11402
+      },
+      "catalogUnchanged": true,
+      "schemasLoadedBySearchOnly": 0,
+      "current": {
+        "positiveQueryCount": 18,
+        "negativeQueryCount": 4,
+        "recallAt5": 1,
+        "mrr": 1,
+        "precisionAmongReturned": 0.5601851851851851,
+        "negativeQueryFalseRecallCount": 0,
+        "queries": [
+          {
+            "id": "zh-read",
+            "group": "chinese",
+            "query": "请帮我读取文件内容",
+            "relevant": [
+              "mcp__files__readFile"
+            ],
+            "ranked": [
+              "mcp__files__readFile",
+              "mcp__files__writeFile",
+              "mcp__browser__capture_screenshot",
+              "mcp__files__deleteFile"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.25,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "zh-write",
+            "group": "chinese",
+            "query": "将文本写入文件",
+            "relevant": [
+              "mcp__files__writeFile"
+            ],
+            "ranked": [
+              "mcp__files__writeFile",
+              "mcp__files__deleteFile",
+              "mcp__files__readFile",
+              "mcp__github__create_issue"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.25,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "zh-delete",
+            "group": "chinese",
+            "query": "删除指定文件",
+            "relevant": [
+              "mcp__files__deleteFile"
+            ],
+            "ranked": [
+              "mcp__files__deleteFile",
+              "mcp__files__readFile",
+              "mcp__database__backup_database",
+              "mcp__files__writeFile"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.25,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "zh-backup",
+            "group": "chinese",
+            "query": "请备份数据库",
+            "relevant": [
+              "mcp__database__backup_database"
+            ],
+            "ranked": [
+              "mcp__database__backup_database",
+              "mcp__database__restore_database"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.5,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "zh-restore",
+            "group": "chinese",
+            "query": "如何恢复数据库",
+            "relevant": [
+              "mcp__database__restore_database"
+            ],
+            "ranked": [
+              "mcp__database__restore_database",
+              "mcp__database__backup_database"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.5,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "zh-deploy",
+            "group": "chinese",
+            "query": "请发布服务并执行健康检查",
+            "relevant": [
+              "mcp__deploy__deployService"
+            ],
+            "ranked": [
+              "mcp__deploy__deployService",
+              "mcp__deploy__restartService"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.5,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "zh-restart",
+            "group": "chinese",
+            "query": "帮我重启服务",
+            "relevant": [
+              "mcp__deploy__restartService"
+            ],
+            "ranked": [
+              "mcp__deploy__restartService",
+              "mcp__deploy__deployService"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.5,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "zh-screenshot",
+            "group": "chinese",
+            "query": "请截取网页截图",
+            "relevant": [
+              "mcp__browser__capture_screenshot"
+            ],
+            "ranked": [
+              "mcp__browser__capture_screenshot"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 1,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "mixed-create",
+            "group": "mixed",
+            "query": "请创建一个GitHub工单",
+            "relevant": [
+              "mcp__github__create_issue"
+            ],
+            "ranked": [
+              "mcp__github__create_issue",
+              "mcp__github__list_issues"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.5,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "mixed-list",
+            "group": "mixed",
+            "query": "列出GitHub工单",
+            "relevant": [
+              "mcp__github__list_issues"
+            ],
+            "ranked": [
+              "mcp__github__list_issues",
+              "mcp__github__create_issue"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.5,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "mixed-send",
+            "group": "mixed",
+            "query": "向Slack频道发送消息",
+            "relevant": [
+              "mcp__slack__send_message"
+            ],
+            "ranked": [
+              "mcp__slack__send_message",
+              "mcp__slack__search_messages"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.5,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "mixed-search",
+            "group": "mixed",
+            "query": "帮我搜索Slack的历史消息",
+            "relevant": [
+              "mcp__slack__search_messages"
+            ],
+            "ranked": [
+              "mcp__slack__search_messages",
+              "mcp__slack__send_message"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.5,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "en-read",
+            "group": "english",
+            "query": "please read file",
+            "relevant": [
+              "mcp__files__readFile"
+            ],
+            "ranked": [
+              "mcp__files__readFile",
+              "mcp__files__deleteFile",
+              "mcp__files__writeFile"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.3333333333333333,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "en-create",
+            "group": "english",
+            "query": "create, issue",
+            "relevant": [
+              "mcp__github__create_issue"
+            ],
+            "ranked": [
+              "mcp__github__create_issue",
+              "mcp__github__list_issues"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.5,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "en-send",
+            "group": "english",
+            "query": "send message",
+            "relevant": [
+              "mcp__slack__send_message"
+            ],
+            "ranked": [
+              "mcp__slack__send_message",
+              "mcp__slack__search_messages"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.5,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "en-screenshot",
+            "group": "english",
+            "query": "capture screenshot",
+            "relevant": [
+              "mcp__browser__capture_screenshot"
+            ],
+            "ranked": [
+              "mcp__browser__capture_screenshot"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 1,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "fullwidth",
+            "group": "normalization",
+            "query": "ＦＩＬＥ",
+            "relevant": [
+              "mcp__files__readFile",
+              "mcp__files__writeFile",
+              "mcp__files__deleteFile"
+            ],
+            "ranked": [
+              "mcp__files__deleteFile",
+              "mcp__files__readFile",
+              "mcp__files__writeFile"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 1,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "name-filter",
+            "group": "normalization",
+            "query": "+github，issue",
+            "relevant": [
+              "mcp__github__create_issue",
+              "mcp__github__list_issues"
+            ],
+            "ranked": [
+              "mcp__github__create_issue",
+              "mcp__github__list_issues"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 1,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "unknown-zh",
+            "group": "negative",
+            "query": "航班票价",
+            "relevant": [],
+            "ranked": [],
+            "recallAt5": null,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "unknown-en",
+            "group": "negative",
+            "query": "quantum entanglement",
+            "relevant": [],
+            "ranked": [],
+            "recallAt5": null,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "missing-server",
+            "group": "negative",
+            "query": "+missingserver file",
+            "relevant": [],
+            "ranked": [],
+            "recallAt5": null,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "punctuation",
+            "group": "negative",
+            "query": "！？",
+            "relevant": [],
+            "ranked": [],
+            "recallAt5": null,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          }
+        ],
+        "coldQueryMs": 7.4973999999999705,
+        "latency": {
+          "sampleCount": 110,
+          "p50Ms": 0.2235000000000582,
+          "p95Ms": 0.7934000000000196,
+          "maxMs": 3.029700000000048
+        }
+      },
+      "legacySubstring": {
+        "positiveQueryCount": 18,
+        "negativeQueryCount": 4,
+        "recallAt5": 0.2777777777777778,
+        "mrr": 0.2777777777777778,
+        "precisionAmongReturned": 0.18518518518518517,
+        "negativeQueryFalseRecallCount": 0,
+        "queries": [
+          {
+            "id": "zh-read",
+            "group": "chinese",
+            "query": "请帮我读取文件内容",
+            "relevant": [
+              "mcp__files__readFile"
+            ],
+            "ranked": [],
+            "recallAt5": 0,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "zh-write",
+            "group": "chinese",
+            "query": "将文本写入文件",
+            "relevant": [
+              "mcp__files__writeFile"
+            ],
+            "ranked": [],
+            "recallAt5": 0,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "zh-delete",
+            "group": "chinese",
+            "query": "删除指定文件",
+            "relevant": [
+              "mcp__files__deleteFile"
+            ],
+            "ranked": [
+              "mcp__files__deleteFile"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 1,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "zh-backup",
+            "group": "chinese",
+            "query": "请备份数据库",
+            "relevant": [
+              "mcp__database__backup_database"
+            ],
+            "ranked": [],
+            "recallAt5": 0,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "zh-restore",
+            "group": "chinese",
+            "query": "如何恢复数据库",
+            "relevant": [
+              "mcp__database__restore_database"
+            ],
+            "ranked": [],
+            "recallAt5": 0,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "zh-deploy",
+            "group": "chinese",
+            "query": "请发布服务并执行健康检查",
+            "relevant": [
+              "mcp__deploy__deployService"
+            ],
+            "ranked": [],
+            "recallAt5": 0,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "zh-restart",
+            "group": "chinese",
+            "query": "帮我重启服务",
+            "relevant": [
+              "mcp__deploy__restartService"
+            ],
+            "ranked": [],
+            "recallAt5": 0,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "zh-screenshot",
+            "group": "chinese",
+            "query": "请截取网页截图",
+            "relevant": [
+              "mcp__browser__capture_screenshot"
+            ],
+            "ranked": [],
+            "recallAt5": 0,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "mixed-create",
+            "group": "mixed",
+            "query": "请创建一个GitHub工单",
+            "relevant": [
+              "mcp__github__create_issue"
+            ],
+            "ranked": [],
+            "recallAt5": 0,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "mixed-list",
+            "group": "mixed",
+            "query": "列出GitHub工单",
+            "relevant": [
+              "mcp__github__list_issues"
+            ],
+            "ranked": [],
+            "recallAt5": 0,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "mixed-send",
+            "group": "mixed",
+            "query": "向Slack频道发送消息",
+            "relevant": [
+              "mcp__slack__send_message"
+            ],
+            "ranked": [],
+            "recallAt5": 0,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "mixed-search",
+            "group": "mixed",
+            "query": "帮我搜索Slack的历史消息",
+            "relevant": [
+              "mcp__slack__search_messages"
+            ],
+            "ranked": [],
+            "recallAt5": 0,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "en-read",
+            "group": "english",
+            "query": "please read file",
+            "relevant": [
+              "mcp__files__readFile"
+            ],
+            "ranked": [
+              "mcp__files__readFile",
+              "mcp__files__deleteFile",
+              "mcp__files__writeFile"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.3333333333333333,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "en-create",
+            "group": "english",
+            "query": "create, issue",
+            "relevant": [
+              "mcp__github__create_issue"
+            ],
+            "ranked": [
+              "mcp__github__create_issue",
+              "mcp__github__list_issues"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.5,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "en-send",
+            "group": "english",
+            "query": "send message",
+            "relevant": [
+              "mcp__slack__send_message"
+            ],
+            "ranked": [
+              "mcp__slack__send_message",
+              "mcp__slack__search_messages"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.5,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "en-screenshot",
+            "group": "english",
+            "query": "capture screenshot",
+            "relevant": [
+              "mcp__browser__capture_screenshot"
+            ],
+            "ranked": [
+              "mcp__browser__capture_screenshot"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 1,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "fullwidth",
+            "group": "normalization",
+            "query": "ＦＩＬＥ",
+            "relevant": [
+              "mcp__files__readFile",
+              "mcp__files__writeFile",
+              "mcp__files__deleteFile"
+            ],
+            "ranked": [],
+            "recallAt5": 0,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "name-filter",
+            "group": "normalization",
+            "query": "+github，issue",
+            "relevant": [
+              "mcp__github__create_issue",
+              "mcp__github__list_issues"
+            ],
+            "ranked": [],
+            "recallAt5": 0,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "unknown-zh",
+            "group": "negative",
+            "query": "航班票价",
+            "relevant": [],
+            "ranked": [],
+            "recallAt5": null,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "unknown-en",
+            "group": "negative",
+            "query": "quantum entanglement",
+            "relevant": [],
+            "ranked": [],
+            "recallAt5": null,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "missing-server",
+            "group": "negative",
+            "query": "+missingserver file",
+            "relevant": [],
+            "ranked": [],
+            "recallAt5": null,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "punctuation",
+            "group": "negative",
+            "query": "！？",
+            "relevant": [],
+            "ranked": [],
+            "recallAt5": null,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          }
+        ],
+        "latency": {
+          "sampleCount": 110,
+          "p50Ms": 0.509499999999889,
+          "p95Ms": 0.8193999999998596,
+          "maxMs": 2.080400000000054
+        }
+      },
+      "processRssBytesAfterTier": 87601152
+    },
+    {
+      "toolCount": 1000,
+      "deferralMs": 122.83750000000009,
+      "estimatedCatalogTokens": {
+        "full": 347112,
+        "stubs": 56202
+      },
+      "catalogUnchanged": true,
+      "schemasLoadedBySearchOnly": 0,
+      "current": {
+        "positiveQueryCount": 18,
+        "negativeQueryCount": 4,
+        "recallAt5": 1,
+        "mrr": 1,
+        "precisionAmongReturned": 0.5601851851851851,
+        "negativeQueryFalseRecallCount": 0,
+        "queries": [
+          {
+            "id": "zh-read",
+            "group": "chinese",
+            "query": "请帮我读取文件内容",
+            "relevant": [
+              "mcp__files__readFile"
+            ],
+            "ranked": [
+              "mcp__files__readFile",
+              "mcp__files__writeFile",
+              "mcp__browser__capture_screenshot",
+              "mcp__files__deleteFile"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.25,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "zh-write",
+            "group": "chinese",
+            "query": "将文本写入文件",
+            "relevant": [
+              "mcp__files__writeFile"
+            ],
+            "ranked": [
+              "mcp__files__writeFile",
+              "mcp__files__deleteFile",
+              "mcp__files__readFile",
+              "mcp__github__create_issue"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.25,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "zh-delete",
+            "group": "chinese",
+            "query": "删除指定文件",
+            "relevant": [
+              "mcp__files__deleteFile"
+            ],
+            "ranked": [
+              "mcp__files__deleteFile",
+              "mcp__files__readFile",
+              "mcp__database__backup_database",
+              "mcp__files__writeFile"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.25,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "zh-backup",
+            "group": "chinese",
+            "query": "请备份数据库",
+            "relevant": [
+              "mcp__database__backup_database"
+            ],
+            "ranked": [
+              "mcp__database__backup_database",
+              "mcp__database__restore_database"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.5,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "zh-restore",
+            "group": "chinese",
+            "query": "如何恢复数据库",
+            "relevant": [
+              "mcp__database__restore_database"
+            ],
+            "ranked": [
+              "mcp__database__restore_database",
+              "mcp__database__backup_database"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.5,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "zh-deploy",
+            "group": "chinese",
+            "query": "请发布服务并执行健康检查",
+            "relevant": [
+              "mcp__deploy__deployService"
+            ],
+            "ranked": [
+              "mcp__deploy__deployService",
+              "mcp__deploy__restartService"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.5,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "zh-restart",
+            "group": "chinese",
+            "query": "帮我重启服务",
+            "relevant": [
+              "mcp__deploy__restartService"
+            ],
+            "ranked": [
+              "mcp__deploy__restartService",
+              "mcp__deploy__deployService"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.5,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "zh-screenshot",
+            "group": "chinese",
+            "query": "请截取网页截图",
+            "relevant": [
+              "mcp__browser__capture_screenshot"
+            ],
+            "ranked": [
+              "mcp__browser__capture_screenshot"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 1,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "mixed-create",
+            "group": "mixed",
+            "query": "请创建一个GitHub工单",
+            "relevant": [
+              "mcp__github__create_issue"
+            ],
+            "ranked": [
+              "mcp__github__create_issue",
+              "mcp__github__list_issues"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.5,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "mixed-list",
+            "group": "mixed",
+            "query": "列出GitHub工单",
+            "relevant": [
+              "mcp__github__list_issues"
+            ],
+            "ranked": [
+              "mcp__github__list_issues",
+              "mcp__github__create_issue"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.5,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "mixed-send",
+            "group": "mixed",
+            "query": "向Slack频道发送消息",
+            "relevant": [
+              "mcp__slack__send_message"
+            ],
+            "ranked": [
+              "mcp__slack__send_message",
+              "mcp__slack__search_messages"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.5,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "mixed-search",
+            "group": "mixed",
+            "query": "帮我搜索Slack的历史消息",
+            "relevant": [
+              "mcp__slack__search_messages"
+            ],
+            "ranked": [
+              "mcp__slack__search_messages",
+              "mcp__slack__send_message"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.5,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "en-read",
+            "group": "english",
+            "query": "please read file",
+            "relevant": [
+              "mcp__files__readFile"
+            ],
+            "ranked": [
+              "mcp__files__readFile",
+              "mcp__files__deleteFile",
+              "mcp__files__writeFile"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.3333333333333333,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "en-create",
+            "group": "english",
+            "query": "create, issue",
+            "relevant": [
+              "mcp__github__create_issue"
+            ],
+            "ranked": [
+              "mcp__github__create_issue",
+              "mcp__github__list_issues"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.5,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "en-send",
+            "group": "english",
+            "query": "send message",
+            "relevant": [
+              "mcp__slack__send_message"
+            ],
+            "ranked": [
+              "mcp__slack__send_message",
+              "mcp__slack__search_messages"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.5,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "en-screenshot",
+            "group": "english",
+            "query": "capture screenshot",
+            "relevant": [
+              "mcp__browser__capture_screenshot"
+            ],
+            "ranked": [
+              "mcp__browser__capture_screenshot"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 1,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "fullwidth",
+            "group": "normalization",
+            "query": "ＦＩＬＥ",
+            "relevant": [
+              "mcp__files__readFile",
+              "mcp__files__writeFile",
+              "mcp__files__deleteFile"
+            ],
+            "ranked": [
+              "mcp__files__deleteFile",
+              "mcp__files__readFile",
+              "mcp__files__writeFile"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 1,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "name-filter",
+            "group": "normalization",
+            "query": "+github，issue",
+            "relevant": [
+              "mcp__github__create_issue",
+              "mcp__github__list_issues"
+            ],
+            "ranked": [
+              "mcp__github__create_issue",
+              "mcp__github__list_issues"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 1,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "unknown-zh",
+            "group": "negative",
+            "query": "航班票价",
+            "relevant": [],
+            "ranked": [],
+            "recallAt5": null,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "unknown-en",
+            "group": "negative",
+            "query": "quantum entanglement",
+            "relevant": [],
+            "ranked": [],
+            "recallAt5": null,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "missing-server",
+            "group": "negative",
+            "query": "+missingserver file",
+            "relevant": [],
+            "ranked": [],
+            "recallAt5": null,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "punctuation",
+            "group": "negative",
+            "query": "！？",
+            "relevant": [],
+            "ranked": [],
+            "recallAt5": null,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          }
+        ],
+        "coldQueryMs": 6.785799999999881,
+        "latency": {
+          "sampleCount": 110,
+          "p50Ms": 0.9130000000000109,
+          "p95Ms": 3.113900000000058,
+          "maxMs": 7.971299999999928
+        }
+      },
+      "legacySubstring": {
+        "positiveQueryCount": 18,
+        "negativeQueryCount": 4,
+        "recallAt5": 0.2777777777777778,
+        "mrr": 0.2777777777777778,
+        "precisionAmongReturned": 0.18518518518518517,
+        "negativeQueryFalseRecallCount": 0,
+        "queries": [
+          {
+            "id": "zh-read",
+            "group": "chinese",
+            "query": "请帮我读取文件内容",
+            "relevant": [
+              "mcp__files__readFile"
+            ],
+            "ranked": [],
+            "recallAt5": 0,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "zh-write",
+            "group": "chinese",
+            "query": "将文本写入文件",
+            "relevant": [
+              "mcp__files__writeFile"
+            ],
+            "ranked": [],
+            "recallAt5": 0,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "zh-delete",
+            "group": "chinese",
+            "query": "删除指定文件",
+            "relevant": [
+              "mcp__files__deleteFile"
+            ],
+            "ranked": [
+              "mcp__files__deleteFile"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 1,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "zh-backup",
+            "group": "chinese",
+            "query": "请备份数据库",
+            "relevant": [
+              "mcp__database__backup_database"
+            ],
+            "ranked": [],
+            "recallAt5": 0,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "zh-restore",
+            "group": "chinese",
+            "query": "如何恢复数据库",
+            "relevant": [
+              "mcp__database__restore_database"
+            ],
+            "ranked": [],
+            "recallAt5": 0,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "zh-deploy",
+            "group": "chinese",
+            "query": "请发布服务并执行健康检查",
+            "relevant": [
+              "mcp__deploy__deployService"
+            ],
+            "ranked": [],
+            "recallAt5": 0,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "zh-restart",
+            "group": "chinese",
+            "query": "帮我重启服务",
+            "relevant": [
+              "mcp__deploy__restartService"
+            ],
+            "ranked": [],
+            "recallAt5": 0,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "zh-screenshot",
+            "group": "chinese",
+            "query": "请截取网页截图",
+            "relevant": [
+              "mcp__browser__capture_screenshot"
+            ],
+            "ranked": [],
+            "recallAt5": 0,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "mixed-create",
+            "group": "mixed",
+            "query": "请创建一个GitHub工单",
+            "relevant": [
+              "mcp__github__create_issue"
+            ],
+            "ranked": [],
+            "recallAt5": 0,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "mixed-list",
+            "group": "mixed",
+            "query": "列出GitHub工单",
+            "relevant": [
+              "mcp__github__list_issues"
+            ],
+            "ranked": [],
+            "recallAt5": 0,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "mixed-send",
+            "group": "mixed",
+            "query": "向Slack频道发送消息",
+            "relevant": [
+              "mcp__slack__send_message"
+            ],
+            "ranked": [],
+            "recallAt5": 0,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "mixed-search",
+            "group": "mixed",
+            "query": "帮我搜索Slack的历史消息",
+            "relevant": [
+              "mcp__slack__search_messages"
+            ],
+            "ranked": [],
+            "recallAt5": 0,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "en-read",
+            "group": "english",
+            "query": "please read file",
+            "relevant": [
+              "mcp__files__readFile"
+            ],
+            "ranked": [
+              "mcp__files__readFile",
+              "mcp__files__deleteFile",
+              "mcp__files__writeFile"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.3333333333333333,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "en-create",
+            "group": "english",
+            "query": "create, issue",
+            "relevant": [
+              "mcp__github__create_issue"
+            ],
+            "ranked": [
+              "mcp__github__create_issue",
+              "mcp__github__list_issues"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.5,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "en-send",
+            "group": "english",
+            "query": "send message",
+            "relevant": [
+              "mcp__slack__send_message"
+            ],
+            "ranked": [
+              "mcp__slack__send_message",
+              "mcp__slack__search_messages"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.5,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "en-screenshot",
+            "group": "english",
+            "query": "capture screenshot",
+            "relevant": [
+              "mcp__browser__capture_screenshot"
+            ],
+            "ranked": [
+              "mcp__browser__capture_screenshot"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 1,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "fullwidth",
+            "group": "normalization",
+            "query": "ＦＩＬＥ",
+            "relevant": [
+              "mcp__files__readFile",
+              "mcp__files__writeFile",
+              "mcp__files__deleteFile"
+            ],
+            "ranked": [],
+            "recallAt5": 0,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "name-filter",
+            "group": "normalization",
+            "query": "+github，issue",
+            "relevant": [
+              "mcp__github__create_issue",
+              "mcp__github__list_issues"
+            ],
+            "ranked": [],
+            "recallAt5": 0,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "unknown-zh",
+            "group": "negative",
+            "query": "航班票价",
+            "relevant": [],
+            "ranked": [],
+            "recallAt5": null,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "unknown-en",
+            "group": "negative",
+            "query": "quantum entanglement",
+            "relevant": [],
+            "ranked": [],
+            "recallAt5": null,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "missing-server",
+            "group": "negative",
+            "query": "+missingserver file",
+            "relevant": [],
+            "ranked": [],
+            "recallAt5": null,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "punctuation",
+            "group": "negative",
+            "query": "！？",
+            "relevant": [],
+            "ranked": [],
+            "recallAt5": null,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          }
+        ],
+        "latency": {
+          "sampleCount": 110,
+          "p50Ms": 1.2127000000000407,
+          "p95Ms": 4.900499999999965,
+          "maxMs": 12.174999999999955
+        }
+      },
+      "processRssBytesAfterTier": 109486080
+    },
+    {
+      "toolCount": 5000,
+      "deferralMs": 1097.5753,
+      "estimatedCatalogTokens": {
+        "full": 1735112,
+        "stubs": 284202
+      },
+      "catalogUnchanged": true,
+      "schemasLoadedBySearchOnly": 0,
+      "current": {
+        "positiveQueryCount": 18,
+        "negativeQueryCount": 4,
+        "recallAt5": 1,
+        "mrr": 1,
+        "precisionAmongReturned": 0.5601851851851851,
+        "negativeQueryFalseRecallCount": 0,
+        "queries": [
+          {
+            "id": "zh-read",
+            "group": "chinese",
+            "query": "请帮我读取文件内容",
+            "relevant": [
+              "mcp__files__readFile"
+            ],
+            "ranked": [
+              "mcp__files__readFile",
+              "mcp__files__writeFile",
+              "mcp__browser__capture_screenshot",
+              "mcp__files__deleteFile"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.25,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "zh-write",
+            "group": "chinese",
+            "query": "将文本写入文件",
+            "relevant": [
+              "mcp__files__writeFile"
+            ],
+            "ranked": [
+              "mcp__files__writeFile",
+              "mcp__files__deleteFile",
+              "mcp__files__readFile",
+              "mcp__github__create_issue"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.25,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "zh-delete",
+            "group": "chinese",
+            "query": "删除指定文件",
+            "relevant": [
+              "mcp__files__deleteFile"
+            ],
+            "ranked": [
+              "mcp__files__deleteFile",
+              "mcp__files__readFile",
+              "mcp__database__backup_database",
+              "mcp__files__writeFile"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.25,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "zh-backup",
+            "group": "chinese",
+            "query": "请备份数据库",
+            "relevant": [
+              "mcp__database__backup_database"
+            ],
+            "ranked": [
+              "mcp__database__backup_database",
+              "mcp__database__restore_database"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.5,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "zh-restore",
+            "group": "chinese",
+            "query": "如何恢复数据库",
+            "relevant": [
+              "mcp__database__restore_database"
+            ],
+            "ranked": [
+              "mcp__database__restore_database",
+              "mcp__database__backup_database"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.5,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "zh-deploy",
+            "group": "chinese",
+            "query": "请发布服务并执行健康检查",
+            "relevant": [
+              "mcp__deploy__deployService"
+            ],
+            "ranked": [
+              "mcp__deploy__deployService",
+              "mcp__deploy__restartService"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.5,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "zh-restart",
+            "group": "chinese",
+            "query": "帮我重启服务",
+            "relevant": [
+              "mcp__deploy__restartService"
+            ],
+            "ranked": [
+              "mcp__deploy__restartService",
+              "mcp__deploy__deployService"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.5,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "zh-screenshot",
+            "group": "chinese",
+            "query": "请截取网页截图",
+            "relevant": [
+              "mcp__browser__capture_screenshot"
+            ],
+            "ranked": [
+              "mcp__browser__capture_screenshot"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 1,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "mixed-create",
+            "group": "mixed",
+            "query": "请创建一个GitHub工单",
+            "relevant": [
+              "mcp__github__create_issue"
+            ],
+            "ranked": [
+              "mcp__github__create_issue",
+              "mcp__github__list_issues"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.5,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "mixed-list",
+            "group": "mixed",
+            "query": "列出GitHub工单",
+            "relevant": [
+              "mcp__github__list_issues"
+            ],
+            "ranked": [
+              "mcp__github__list_issues",
+              "mcp__github__create_issue"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.5,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "mixed-send",
+            "group": "mixed",
+            "query": "向Slack频道发送消息",
+            "relevant": [
+              "mcp__slack__send_message"
+            ],
+            "ranked": [
+              "mcp__slack__send_message",
+              "mcp__slack__search_messages"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.5,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "mixed-search",
+            "group": "mixed",
+            "query": "帮我搜索Slack的历史消息",
+            "relevant": [
+              "mcp__slack__search_messages"
+            ],
+            "ranked": [
+              "mcp__slack__search_messages",
+              "mcp__slack__send_message"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.5,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "en-read",
+            "group": "english",
+            "query": "please read file",
+            "relevant": [
+              "mcp__files__readFile"
+            ],
+            "ranked": [
+              "mcp__files__readFile",
+              "mcp__files__deleteFile",
+              "mcp__files__writeFile"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.3333333333333333,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "en-create",
+            "group": "english",
+            "query": "create, issue",
+            "relevant": [
+              "mcp__github__create_issue"
+            ],
+            "ranked": [
+              "mcp__github__create_issue",
+              "mcp__github__list_issues"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.5,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "en-send",
+            "group": "english",
+            "query": "send message",
+            "relevant": [
+              "mcp__slack__send_message"
+            ],
+            "ranked": [
+              "mcp__slack__send_message",
+              "mcp__slack__search_messages"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.5,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "en-screenshot",
+            "group": "english",
+            "query": "capture screenshot",
+            "relevant": [
+              "mcp__browser__capture_screenshot"
+            ],
+            "ranked": [
+              "mcp__browser__capture_screenshot"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 1,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "fullwidth",
+            "group": "normalization",
+            "query": "ＦＩＬＥ",
+            "relevant": [
+              "mcp__files__readFile",
+              "mcp__files__writeFile",
+              "mcp__files__deleteFile"
+            ],
+            "ranked": [
+              "mcp__files__deleteFile",
+              "mcp__files__readFile",
+              "mcp__files__writeFile"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 1,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "name-filter",
+            "group": "normalization",
+            "query": "+github，issue",
+            "relevant": [
+              "mcp__github__create_issue",
+              "mcp__github__list_issues"
+            ],
+            "ranked": [
+              "mcp__github__create_issue",
+              "mcp__github__list_issues"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 1,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "unknown-zh",
+            "group": "negative",
+            "query": "航班票价",
+            "relevant": [],
+            "ranked": [],
+            "recallAt5": null,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "unknown-en",
+            "group": "negative",
+            "query": "quantum entanglement",
+            "relevant": [],
+            "ranked": [],
+            "recallAt5": null,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "missing-server",
+            "group": "negative",
+            "query": "+missingserver file",
+            "relevant": [],
+            "ranked": [],
+            "recallAt5": null,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "punctuation",
+            "group": "negative",
+            "query": "！？",
+            "relevant": [],
+            "ranked": [],
+            "recallAt5": null,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          }
+        ],
+        "coldQueryMs": 52.71040000000039,
+        "latency": {
+          "sampleCount": 110,
+          "p50Ms": 5.065900000000056,
+          "p95Ms": 9.72629999999981,
+          "maxMs": 16.352900000000318
+        }
+      },
+      "legacySubstring": {
+        "positiveQueryCount": 18,
+        "negativeQueryCount": 4,
+        "recallAt5": 0.2777777777777778,
+        "mrr": 0.2777777777777778,
+        "precisionAmongReturned": 0.18518518518518517,
+        "negativeQueryFalseRecallCount": 0,
+        "queries": [
+          {
+            "id": "zh-read",
+            "group": "chinese",
+            "query": "请帮我读取文件内容",
+            "relevant": [
+              "mcp__files__readFile"
+            ],
+            "ranked": [],
+            "recallAt5": 0,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "zh-write",
+            "group": "chinese",
+            "query": "将文本写入文件",
+            "relevant": [
+              "mcp__files__writeFile"
+            ],
+            "ranked": [],
+            "recallAt5": 0,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "zh-delete",
+            "group": "chinese",
+            "query": "删除指定文件",
+            "relevant": [
+              "mcp__files__deleteFile"
+            ],
+            "ranked": [
+              "mcp__files__deleteFile"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 1,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "zh-backup",
+            "group": "chinese",
+            "query": "请备份数据库",
+            "relevant": [
+              "mcp__database__backup_database"
+            ],
+            "ranked": [],
+            "recallAt5": 0,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "zh-restore",
+            "group": "chinese",
+            "query": "如何恢复数据库",
+            "relevant": [
+              "mcp__database__restore_database"
+            ],
+            "ranked": [],
+            "recallAt5": 0,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "zh-deploy",
+            "group": "chinese",
+            "query": "请发布服务并执行健康检查",
+            "relevant": [
+              "mcp__deploy__deployService"
+            ],
+            "ranked": [],
+            "recallAt5": 0,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "zh-restart",
+            "group": "chinese",
+            "query": "帮我重启服务",
+            "relevant": [
+              "mcp__deploy__restartService"
+            ],
+            "ranked": [],
+            "recallAt5": 0,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "zh-screenshot",
+            "group": "chinese",
+            "query": "请截取网页截图",
+            "relevant": [
+              "mcp__browser__capture_screenshot"
+            ],
+            "ranked": [],
+            "recallAt5": 0,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "mixed-create",
+            "group": "mixed",
+            "query": "请创建一个GitHub工单",
+            "relevant": [
+              "mcp__github__create_issue"
+            ],
+            "ranked": [],
+            "recallAt5": 0,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "mixed-list",
+            "group": "mixed",
+            "query": "列出GitHub工单",
+            "relevant": [
+              "mcp__github__list_issues"
+            ],
+            "ranked": [],
+            "recallAt5": 0,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "mixed-send",
+            "group": "mixed",
+            "query": "向Slack频道发送消息",
+            "relevant": [
+              "mcp__slack__send_message"
+            ],
+            "ranked": [],
+            "recallAt5": 0,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "mixed-search",
+            "group": "mixed",
+            "query": "帮我搜索Slack的历史消息",
+            "relevant": [
+              "mcp__slack__search_messages"
+            ],
+            "ranked": [],
+            "recallAt5": 0,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "en-read",
+            "group": "english",
+            "query": "please read file",
+            "relevant": [
+              "mcp__files__readFile"
+            ],
+            "ranked": [
+              "mcp__files__readFile",
+              "mcp__files__deleteFile",
+              "mcp__files__writeFile"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.3333333333333333,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "en-create",
+            "group": "english",
+            "query": "create, issue",
+            "relevant": [
+              "mcp__github__create_issue"
+            ],
+            "ranked": [
+              "mcp__github__create_issue",
+              "mcp__github__list_issues"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.5,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "en-send",
+            "group": "english",
+            "query": "send message",
+            "relevant": [
+              "mcp__slack__send_message"
+            ],
+            "ranked": [
+              "mcp__slack__send_message",
+              "mcp__slack__search_messages"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 0.5,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "en-screenshot",
+            "group": "english",
+            "query": "capture screenshot",
+            "relevant": [
+              "mcp__browser__capture_screenshot"
+            ],
+            "ranked": [
+              "mcp__browser__capture_screenshot"
+            ],
+            "recallAt5": 1,
+            "precisionAmongReturned": 1,
+            "reciprocalRank": 1,
+            "falseRecall": false
+          },
+          {
+            "id": "fullwidth",
+            "group": "normalization",
+            "query": "ＦＩＬＥ",
+            "relevant": [
+              "mcp__files__readFile",
+              "mcp__files__writeFile",
+              "mcp__files__deleteFile"
+            ],
+            "ranked": [],
+            "recallAt5": 0,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "name-filter",
+            "group": "normalization",
+            "query": "+github，issue",
+            "relevant": [
+              "mcp__github__create_issue",
+              "mcp__github__list_issues"
+            ],
+            "ranked": [],
+            "recallAt5": 0,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "unknown-zh",
+            "group": "negative",
+            "query": "航班票价",
+            "relevant": [],
+            "ranked": [],
+            "recallAt5": null,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "unknown-en",
+            "group": "negative",
+            "query": "quantum entanglement",
+            "relevant": [],
+            "ranked": [],
+            "recallAt5": null,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "missing-server",
+            "group": "negative",
+            "query": "+missingserver file",
+            "relevant": [],
+            "ranked": [],
+            "recallAt5": null,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          },
+          {
+            "id": "punctuation",
+            "group": "negative",
+            "query": "！？",
+            "relevant": [],
+            "ranked": [],
+            "recallAt5": null,
+            "precisionAmongReturned": 0,
+            "reciprocalRank": 0,
+            "falseRecall": false
+          }
+        ],
+        "latency": {
+          "sampleCount": 110,
+          "p50Ms": 6.091900000000351,
+          "p95Ms": 13.727199999999812,
+          "maxMs": 43.04310000000032
+        }
+      },
+      "processRssBytesAfterTier": 147353600
+    }
+  ]
+}

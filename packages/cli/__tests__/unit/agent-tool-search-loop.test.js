@@ -30,7 +30,8 @@ const fakeMcp = (client) => ({
       type: "function",
       function: {
         name: "mcp__weather__get",
-        description: "Get the weather forecast.\nDetails on units etc.",
+        description:
+          "查询城市天气。Get the weather forecast.\nDetails on units etc.",
         parameters: bigSchema(),
       },
     },
@@ -113,92 +114,99 @@ describe("runAgentHeadless — MCP tool search integration", () => {
     else process.env.CC_TOOL_SEARCH = envBefore;
   });
 
-  it("search-then-call: stubs + tool_search visible, schema in tool result, dispatch works", async () => {
-    const client = fakeClient();
-    const seenTools = [];
-    let turn = 0;
-    const chatFn = vi.fn(async (_messages, options) => {
-      seenTools.push(options.extraToolDefinitions);
-      turn += 1;
-      if (turn === 1) {
-        return {
-          message: {
-            role: "assistant",
-            content: "",
-            tool_calls: [
-              toolCall("c1", "tool_search", {
-                query: "select:mcp__weather__get",
-              }),
-            ],
-          },
-        };
-      }
-      if (turn === 2) {
-        return {
-          message: {
-            role: "assistant",
-            content: "",
-            tool_calls: [toolCall("c2", "mcp__weather__get", { f0: "NYC" })],
-          },
-        };
-      }
-      return { message: { role: "assistant", content: "Sunny." } };
-    });
-    const { deps, out } = baseDeps({
-      loadMcpConfig: async () => fakeMcp(client),
-      chatFn,
-    });
+  it.each([
+    "select:mcp__weather__get",
+    "please find the weather forecast!",
+    "请查询城市天气",
+  ])(
+    "search-then-call: schema delivery and dispatch work for %s",
+    async (query) => {
+      const client = fakeClient();
+      const seenTools = [];
+      let turn = 0;
+      const chatFn = vi.fn(async (_messages, options) => {
+        seenTools.push(options.extraToolDefinitions);
+        turn += 1;
+        if (turn === 1) {
+          return {
+            message: {
+              role: "assistant",
+              content: "",
+              tool_calls: [
+                toolCall("c1", "tool_search", {
+                  query,
+                }),
+              ],
+            },
+          };
+        }
+        if (turn === 2) {
+          return {
+            message: {
+              role: "assistant",
+              content: "",
+              tool_calls: [toolCall("c2", "mcp__weather__get", { f0: "NYC" })],
+            },
+          };
+        }
+        return { message: { role: "assistant", content: "Sunny." } };
+      });
+      const { deps, out } = baseDeps({
+        loadMcpConfig: async () => fakeMcp(client),
+        chatFn,
+      });
 
-    const r = await runAgentHeadless(
-      {
-        prompt: "weather?",
-        mcpConfig: "x.json",
-        outputFormat: "stream-json",
-        sessionId: "s-ts1",
-        permissionMode: "bypassPermissions",
-        expandFileRefs: false,
-      },
-      deps,
-    );
-    expect(r.exitCode).toBe(0);
-    // (the "tool search active" stderr announce is text-format only — this run
-    // is stream-json, so deferral is proven by the stub assertions below)
+      const r = await runAgentHeadless(
+        {
+          prompt: "weather?",
+          mcpConfig: "x.json",
+          outputFormat: "stream-json",
+          sessionId: "s-ts1",
+          permissionMode: "bypassPermissions",
+          expandFileRefs: false,
+        },
+        deps,
+      );
+      expect(r.exitCode).toBe(0);
+      // (the "tool search active" stderr announce is text-format only — this run
+      // is stream-json, so deferral is proven by the stub assertions below)
 
-    // The LLM sees the STUB (no big schema) plus tool_search.
-    const defs1 = seenTools[0];
-    const stub = defs1.find((d) => d.function.name === "mcp__weather__get");
-    expect(stub.function.description).toMatch(/^\[deferred\]/);
-    expect(stub.function.parameters.properties).toEqual({});
-    expect(defs1.some((d) => d.function.name === "tool_search")).toBe(true);
+      // The LLM sees the STUB (no big schema) plus tool_search.
+      const defs1 = seenTools[0];
+      const stub = defs1.find((d) => d.function.name === "mcp__weather__get");
+      expect(stub.function.description).toMatch(/^\[deferred\]/);
+      expect(stub.function.parameters.properties).toEqual({});
+      expect(defs1.some((d) => d.function.name === "tool_search")).toBe(true);
 
-    // Prompt-cache friendliness: the tools array reference (and contents) do
-    // not change across turns — the loaded schema travels in the tool result.
-    expect(seenTools[1]).toBe(seenTools[0]);
-    expect(JSON.stringify(seenTools[1])).toBe(JSON.stringify(defs1));
+      // Prompt-cache friendliness: the tools array reference (and contents) do
+      // not change across turns — the loaded schema travels in the tool result.
+      expect(seenTools[1]).toBe(seenTools[0]);
+      expect(JSON.stringify(seenTools[1])).toBe(JSON.stringify(defs1));
 
-    // tool_search result carried the full schema + server instructions.
-    const events = out
-      .join("")
-      .trim()
-      .split("\n")
-      .filter(Boolean)
-      .map((l) => JSON.parse(l));
-    const searchResult = events.find(
-      (e) => e.type === "tool_result" && e.tool === "tool_search",
-    );
-    expect(searchResult).toBeTruthy();
-    const payload =
-      typeof searchResult.result === "string"
-        ? JSON.parse(searchResult.result)
-        : searchResult.result;
-    expect(payload.tools[0].parameters.required).toEqual(["f0"]);
-    expect(payload.tools[0].serverInstructions).toMatch(/ISO city codes/);
+      // tool_search result carried the full schema + server instructions.
+      const events = out
+        .join("")
+        .trim()
+        .split("\n")
+        .filter(Boolean)
+        .map((l) => JSON.parse(l));
+      const searchResult = events.find(
+        (e) => e.type === "tool_result" && e.tool === "tool_search",
+      );
+      expect(searchResult).toBeTruthy();
+      const payload =
+        typeof searchResult.result === "string"
+          ? JSON.parse(searchResult.result)
+          : searchResult.result;
+      expect(payload.tools[0].parameters.required).toEqual(["f0"]);
+      expect(payload.tools[0].serverInstructions).toMatch(/ISO city codes/);
 
-    // The follow-up mcp call reached the client with the model's args.
-    expect(client.calls.callTool).toEqual([
-      { server: "weather", tool: "get", args: { f0: "NYC" } },
-    ]);
-  });
+      // The follow-up mcp call reached the client with the model's args.
+      expect(client.calls.callTool).toEqual([
+        { server: "weather", tool: "get", args: { f0: "NYC" } },
+      ]);
+    },
+  );
 
   it("direct call before search self-heals: schema error first, retry dispatches", async () => {
     const client = fakeClient();

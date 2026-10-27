@@ -39,6 +39,7 @@
  */
 
 import settingsLoader from "../lib/settings-loader.cjs";
+import { rankMcpToolSearchEntries } from "./mcp-tool-search-ranking.js";
 import {
   estimateTokens as defaultEstimateTokens,
   getContextWindow,
@@ -455,20 +456,12 @@ export function maybeApplyToolSearch(mcp, opts = {}) {
 
 // ─── search ────────────────────────────────────────────────────────────────
 
-function normalizeTerms(query) {
-  return String(query || "")
-    .toLowerCase()
-    .split(/[\s,]+/)
-    .map((t) => t.trim())
-    .filter(Boolean);
-}
-
 /**
  * Search the deferred-tool registry. Two modes:
  *   - `select:name1,name2` — exact names; a bare (un-prefixed) tool name is
  *     accepted when it matches exactly one deferred tool.
- *   - keyword — scores name hits (×3) over description hits (×1); a `+term`
- *     must appear in the tool name.
+ *   - keyword — segments Chinese phrases, ranks intent coverage, then name
+ *     hits (×3) over description hits (×1); a `+term` must appear in the name.
  * Does NOT mutate the loaded set — callers (executeToolSearch) mark results.
  *
  * @returns {{mode:string, results:Array<{name:string,entry:object}>, notFound:string[]}}
@@ -482,11 +475,18 @@ export function searchDeferredTools(registry, query, opts = {}) {
       : Number.isInteger(configuredMaxResults) && configuredMaxResults > 0
         ? Math.min(configuredMaxResults, 50)
         : TOOL_SEARCH_DEFAULTS.maxResults;
-  const entries = new Map(
-    [...(registry?.deferred || [])].filter(([, entry]) => entry.stale !== true),
-  );
+  const selectMode = /^select:/i.test(q);
+  // Keyword ranking already checks liveness while scanning. Avoid cloning the
+  // whole directory on every query; only exact selection needs keyed lookup.
+  const entries = selectMode
+    ? new Map(
+        [...(registry?.deferred || [])].filter(
+          ([, entry]) => entry.stale !== true,
+        ),
+      )
+    : registry?.deferred || [];
 
-  if (/^select:/i.test(q)) {
+  if (selectMode) {
     const wanted = q
       .slice(q.indexOf(":") + 1)
       .split(",")
@@ -521,31 +521,9 @@ export function searchDeferredTools(registry, query, opts = {}) {
     return { mode: "select", results, notFound, omittedCount };
   }
 
-  const terms = normalizeTerms(q);
-  if (terms.length === 0) return { mode: "keyword", results: [], notFound: [] };
-  const required = terms
-    .filter((t) => t.startsWith("+") && t.length > 1)
-    .map((t) => t.slice(1));
-  const scoring = terms.map((t) => (t.startsWith("+") ? t.slice(1) : t));
-
-  const scored = [];
-  for (const [name, entry] of entries) {
-    const lowerName = name.toLowerCase();
-    const lowerDesc = String(
-      entry.definition?.function?.description || "",
-    ).toLowerCase();
-    if (required.some((t) => !lowerName.includes(t))) continue;
-    let score = 0;
-    for (const t of scoring) {
-      if (lowerName.includes(t)) score += 3;
-      if (lowerDesc.includes(t)) score += 1;
-    }
-    if (score > 0) scored.push({ name, entry, score });
-  }
-  scored.sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
   return {
     mode: "keyword",
-    results: scored.slice(0, maxResults),
+    results: rankMcpToolSearchEntries(entries, q, maxResults),
     notFound: [],
   };
 }

@@ -1,7 +1,24 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { runAgentHeadless } from "../helpers/test-model-egress.js";
-import { executeTool } from "../helpers/test-model-egress.js";
+import {
+  executeTool,
+  _environmentProcessDeps,
+} from "../helpers/test-model-egress.js";
 import { MCP_CALL_LEDGER_EVENT } from "../../src/lib/mcp-call-ledger-store.js";
+
+// Environment probing belongs to its own contracts, not the 15-second ledger
+// recovery deadline. Avoid spawning workstation Python/pip/Node/git probes.
+vi.mock("../../src/lib/cli-anything-bridge.js", async (importOriginal) => ({
+  ...(await importOriginal()),
+  detectPython: vi.fn(() => ({ found: false })),
+}));
+let environmentProbe;
+beforeAll(() => {
+  environmentProbe = vi
+    .spyOn(_environmentProcessDeps, "run")
+    .mockReturnValue("");
+});
+afterAll(() => environmentProbe?.mockRestore());
 
 const HEAD_0 = "0".repeat(64);
 const HEAD_1 = "1".repeat(64);
@@ -70,6 +87,10 @@ function harness(events) {
     getApprovalGate: async () => fakeGate(),
     writeOut: () => {},
     writeErr: vi.fn(),
+    // Ledger contracts do not need workstation MCP discovery. Dispatch cases
+    // supply their own wiring below; keep the default fixture independent of
+    // ambient plugins, IDE bridges and their connection deadlines.
+    resolveAgentMcp: vi.fn(async () => null),
     agentLoop: async function* (messages, options) {
       captured.messages = messages;
       captured.options = options;

@@ -80,3 +80,5 @@ gradlew --offline --no-daemon test --tests com.chainlesschain.ide.SessionModelTe
 本批已完成源码及本地回归，未发布、未执行真实付费模型调用。第三批记录的两项 Windows 凭据 ACL 集成阻断仍需在具备原生权限条件的环境验证，本批没有修改该安全校验。
 
 327 项完整 VS Code 单元测试本轮通过；第三批出现过的 Windows 进程查询超时保留在原记录中。本地 ESLint 仍沿用第二批依赖缺失的限制，不记为通过。跨平台准确提交 CI、真实 IDE 操作和独立任务验收仍需各自记录，整份 IDE-03 计划尚未全部验收。
+
+后续进展：MCP 中文检索、候选排序及 200 / 1000 / 5000 工具的离线基线已落地，见[第五批实施记录](./cli-ide-mcp-search-progress-2026-10-27.md)。

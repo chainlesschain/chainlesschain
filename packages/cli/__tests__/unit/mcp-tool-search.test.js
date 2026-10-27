@@ -32,6 +32,7 @@ import {
   gateDeferredMcpCall,
   describeMcpToolContext,
 } from "../../src/runtime/mcp-tool-search.js";
+import { readFileSync } from "node:fs";
 
 // ─── fixtures ───────────────────────────────────────────────────────────────
 
@@ -575,6 +576,133 @@ function deferredMcp() {
 }
 
 describe("searchDeferredTools", () => {
+  it("finds continuous Chinese and mixed-language queries without rewriting tool identities", () => {
+    const fixture = JSON.parse(
+      readFileSync(
+        new URL(
+          "../fixtures/mcp-tool-search-multilingual-v1.json",
+          import.meta.url,
+        ),
+        "utf8",
+      ),
+    );
+    const mcp = fakeMcp(
+      fixture.tools.map((tool) =>
+        mcpDef(tool.server, tool.tool, { desc: tool.description }),
+      ),
+    );
+    const { registry } = applyToolSearchDeferral(mcp);
+    const before = JSON.stringify(mcp.extraToolDefinitions);
+    for (const test of fixture.queries) {
+      const { results } = searchDeferredTools(registry, test.query);
+      if (!test.relevant.length) expect(results, test.id).toEqual([]);
+      else
+        for (const name of test.relevant)
+          expect(
+            results.map((hit) => hit.name),
+            test.id,
+          ).toContain(name);
+    }
+    expect(registry.loaded.size).toBe(0);
+    expect(JSON.stringify(mcp.extraToolDefinitions)).toBe(before);
+  });
+
+  it("prefers coverage of the whole request over one broad name fragment", () => {
+    const mcp = fakeMcp([
+      mcpDef("a", "file", { desc: "File utility." }),
+      mcpDef("b", "operation", { desc: "Read file contents." }),
+    ]);
+    const { registry } = applyToolSearchDeferral(mcp);
+    expect(searchDeferredTools(registry, "read file").results[0].name).toBe(
+      "mcp__b__operation",
+    );
+    expect(searchDeferredTools(registry, "read read file")).toEqual(
+      searchDeferredTools(registry, "read file"),
+    );
+  });
+
+  it("keeps top K deterministic across connection order and clamps result count", () => {
+    const defs = Array.from({ length: 200 }, (_, i) =>
+      mcpDef("catalog", `inspect_${String(i).padStart(3, "0")}`),
+    );
+    const first = applyToolSearchDeferral(fakeMcp(defs)).registry;
+    const second = applyToolSearchDeferral(
+      fakeMcp([...defs].reverse()),
+    ).registry;
+    const names = (registry) =>
+      searchDeferredTools(registry, "inspect", { maxResults: 500 }).results.map(
+        (hit) => hit.name,
+      );
+    expect(names(first)).toEqual(names(second));
+    expect(names(first)).toHaveLength(50);
+    expect(names(first)[0]).toBe("mcp__catalog__inspect_000");
+  });
+
+  it("rechecks mutable description text rather than retaining a cached match", () => {
+    const mcp = fakeMcp([mcpDef("srv", "operation", { desc: "读取文件内容" })]);
+    const { registry } = applyToolSearchDeferral(mcp);
+    expect(searchDeferredTools(registry, "读取").results).toHaveLength(1);
+    registry.deferred.get(
+      "mcp__srv__operation",
+    ).definition.function.description = "备份数据库";
+    expect(searchDeferredTools(registry, "读取").results).toEqual([]);
+    expect(searchDeferredTools(registry, "备份数据库").results).toHaveLength(1);
+  });
+
+  it("preserves a single literal keyword even when it is an English stop word", () => {
+    const { registry } = applyToolSearchDeferral(
+      fakeMcp([mcpDef("srv", "help")]),
+    );
+    expect(searchDeferredTools(registry, "help").results[0].name).toBe(
+      "mcp__srv__help",
+    );
+  });
+
+  it("keeps required fragments literal and select identities exact", () => {
+    const mcp = deferredMcp();
+    expect(
+      searchDeferredTools(
+        mcp.toolSearchRegistry,
+        "+slack，发送消息",
+      ).results.every((hit) => hit.name.includes("slack")),
+    ).toBe(true);
+    expect(
+      searchDeferredTools(
+        mcp.toolSearchRegistry,
+        "select:ＭＣＰ__github__create_issue",
+      ).notFound,
+    ).toEqual(["ＭＣＰ__github__create_issue"]);
+    expect(
+      searchDeferredTools(mcp.toolSearchRegistry, "the please help").results,
+    ).toEqual([]);
+  });
+
+  it("refreshes cached text on schema replacement and excludes stale or revoked entries", () => {
+    const mcp = fakeMcp([mcpDef("srv", "operation", { desc: "读取文件内容" })]);
+    const { registry } = applyToolSearchDeferral(mcp);
+    expect(searchDeferredTools(registry, "读取").results).toHaveLength(1);
+    const oldExecutor = mcp.externalToolExecutors.mcp__srv__operation;
+    mcp.extraToolDefinitions = [
+      mcpDef("srv", "operation", { desc: "备份数据库" }),
+      buildToolSearchDefinition(),
+    ];
+    mcp.externalToolExecutors.mcp__srv__operation = {
+      kind: "mcp",
+      serverName: "srv",
+      toolName: "operation",
+    };
+    applyToolSearchDeferral(mcp);
+    expect(searchDeferredTools(registry, "读取").results).toEqual([]);
+    expect(searchDeferredTools(registry, "备份数据库").results).toHaveLength(1);
+    expect(gateDeferredMcpCall("mcp__srv__operation", oldExecutor).code).toBe(
+      "CC_MCP_TOOL_CATALOG_STALE",
+    );
+    registry.deferred.get("mcp__srv__operation").stale = true;
+    expect(searchDeferredTools(registry, "备份数据库").results).toEqual([]);
+    registry.deferred.delete("mcp__srv__operation");
+    expect(searchDeferredTools(registry, "备份数据库").results).toEqual([]);
+  });
+
   it("select: exact full names, comma separated", () => {
     const mcp = deferredMcp();
     const { mode, results, notFound } = searchDeferredTools(
