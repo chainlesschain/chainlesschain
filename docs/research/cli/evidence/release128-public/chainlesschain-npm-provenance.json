@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "verifiedAt": "2026-10-27T18:05:48.464Z",
+  "verifier": "npm audit signatures --include-attestations",
+  "package": "chainlesschain",
+  "version": "0.166.128",
+  "sha512": "02132259199ebeb33384fd03b1dc1bfddcd32a77eadb5d1bc3ea24454204f834ea8354db9afd3ce2c023e86c37ee98f74ecebec747bff58f82a2388680822f0c",
+  "repository": "https://github.com/chainlesschain/chainlesschain",
+  "workflow": ".github/workflows/npm-publish.yml",
+  "ref": "refs/tags/v-npm-0-166-128",
+  "commit": "dfa158e36171e347a40e23356c2ed7bd04e0c061",
+  "builder": "https://github.com/actions/runner/github-hosted",
+  "invocationId": "https://github.com/chainlesschain/chainlesschain/actions/runs/40552876222/attempts/1",
+  "runId": 40552876222,
+  "attempt": 1,
+  "anchorMode": "exact-release",
+  "audit": {
+    "invalid": 0,
+    "missing": 0
+  }
+}

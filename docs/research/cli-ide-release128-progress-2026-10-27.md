@@ -4,6 +4,14 @@
 
 ## 当前阶段
 
+### CLI 已公开，IDE 发布进行中（2026-10-28）
+
+CLI `0.166.128` 已经 [OIDC 工作流 40552876222](https://github.com/chainlesschain/chainlesschain/actions/runs/40552876222) 成功发布，官方 registry 版本可读取。[独立公开回读 40556529770](https://github.com/chainlesschain/chainlesschain/actions/runs/40556529770) 也已成功，确认公开归档与不可变 CI 制品逐字节相同，签名来源绑定正式标签和准确提交，10 个直接 child pins 保持一致。详见 [公开状态回执](./cli/evidence/release128-public/publication.json)。安装命令：`npm i -g chainlesschain@0.166.128 --registry https://registry.npmjs.org`。
+
+配套 IDE 正式标签已固定到已完整验证的 `6551a06c2f694bb93d0197fa8b82becd25a83173` 并推送：[Open VSX .166 工作流 40557016206](https://github.com/chainlesschain/chainlesschain/actions/runs/40557016206)、[JetBrains .183 工作流 40557015160](https://github.com/chainlesschain/chainlesschain/actions/runs/40557015160)。当前仍在执行发行门禁，尚未把上传或排队计为公开市场版本。客户端继续最后发布。
+
+[Android CLI bundle 40556532158](https://github.com/chainlesschain/chainlesschain/actions/runs/40556532158) 已基于公开 CLI `.128` 与正式源提交构建成功，仅属客户端准备产物；未触发客户端发行或新的内部 binaries 发布。Microsoft Marketplace 仍缺少 `VSCE_PAT`，其未发布状态不由 Open VSX 成功替代。
+
 ### 正式发布流程已启动（2026-10-28）
 
 RC7 准确提交 `dfa158e36171e347a40e23356c2ed7bd04e0c061` 的 CLI CI 与 Strict Sandbox 已完整成功，覆盖 Linux、Windows、macOS。CLI CI 的 71 个必需任务成功，只有既定可选 `dry-run-publish` 跳过；严格沙箱 6 个任务全部成功。核验回执见 [gates.json](./cli/evidence/release128-public/gates.json)。

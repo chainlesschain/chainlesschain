@@ -1,0 +1,77 @@
+{
+  "schema": "chainlesschain.release128-publication/v1",
+  "observedAt": "2026-10-27T18:11:30.046Z",
+  "status": "CLI_PUBLIC_IDES_AND_CLIENTS_PENDING",
+  "repository": "chainlesschain/chainlesschain",
+  "channels": {
+    "cli": {
+      "version": "0.166.128",
+      "status": "public",
+      "sourceSha": "dfa158e36171e347a40e23356c2ed7bd04e0c061",
+      "runId": 40552876222,
+      "attempt": 1,
+      "readbackRunId": 40556529770,
+      "tag": "v-npm-0-166-128",
+      "receipt": "chainlesschain-release.json",
+      "provenance": "chainlesschain-npm-provenance.json",
+      "publicReadback": "chainlesschain-npm-readback.json",
+      "archiveBytes": 9563318,
+      "sha256": "07eef4b2372789c2808d3f9dbd330085793ce8d7bc9931195dd8436f4ac05b7c",
+      "sha512": "02132259199ebeb33384fd03b1dc1bfddcd32a77eadb5d1bc3ea24454204f834ea8354db9afd3ce2c023e86c37ee98f74ecebec747bff58f82a2388680822f0c",
+      "publicArchivesVerified": true,
+      "localArchiveMatchesImmutableCiArtifact": true,
+      "candidateInstallWithPublicChildDependenciesVerified": true
+    },
+    "openVsx": {
+      "version": "0.37.166",
+      "status": "publishing",
+      "sourceSha": "6551a06c2f694bb93d0197fa8b82becd25a83173",
+      "runId": 40557016206,
+      "recommendedCliVersion": "0.166.128"
+    },
+    "jetbrains": {
+      "version": "0.4.183",
+      "status": "publishing",
+      "sourceSha": "6551a06c2f694bb93d0197fa8b82becd25a83173",
+      "runId": 40557015160,
+      "recommendedCliVersion": "0.166.128"
+    },
+    "microsoftMarketplace": {
+      "status": "unpublished",
+      "reason": "VSCE_PAT is not configured"
+    }
+  },
+  "childPackages": {
+    "versionsChanged": false,
+    "directCliRegistryLockPins": 10,
+    "sessionCore": "0.3.24",
+    "receipt": "cli-public-child-install.json"
+  },
+  "gates": {
+    "receipt": "gates.json",
+    "cliCiRunId": 40538904177,
+    "strictSandboxRunId": 40538930581,
+    "platforms": [
+      "linux",
+      "windows",
+      "macos"
+    ]
+  },
+  "clients": {
+    "productVersion": "v5.0.3.143",
+    "status": "preparing",
+    "cliVersion": "0.166.128",
+    "androidBundleRunId": 40556532158,
+    "androidBundleBuildConclusion": "success",
+    "publicRelease": false
+  },
+  "acceptance": {
+    "accepted": 32,
+    "total": 45,
+    "unfinished": 13,
+    "newLiveModelTaskAcceptance": false,
+    "paidReadiness": "NOT_PAID_READY",
+    "nativeAdmission": "NOT_ADMITTED",
+    "automaticPromotion": "HOLD"
+  }
+}
