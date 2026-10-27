@@ -6,6 +6,8 @@
 
 ### RC7：同步已复核连接探测器的源码审计摘要
 
+固定提交 `dfa158e36171e347a40e23356c2ed7bd04e0c061`、引用 `cli-candidate-v0.166.128-rc7` 已推送。完整门禁为 [CLI CI 40538904177](https://github.com/chainlesschain/chainlesschain/actions/runs/40538904177) 和 [Strict Sandbox 40538930581](https://github.com/chainlesschain/chainlesschain/actions/runs/40538930581)。隔离工作树已快进至该准确提交，出口审查通过（78 个候选、0 个未分类、0 个解析错误）；预算出口审查 19 项与连接探针 39 项离线测试通过，没有真实模型请求。见 [RC7 隔离预检](./cli/evidence/release128-public/rc7-isolated-preflight.json)。以上本地结果不能替代完整云端矩阵。
+
 RC6 已执行的单元测试与 Strict Sandbox 均通过，但后置三系统 `verify-cli` 被源码出口审计拒绝：`llm-connection-probe.js` 摘要过期。干净 CI 检出没有本地生成的 Web Panel 文件，此处只有这一项未通过；不能用本地存在另外生成文件的检查结果混淆此阻塞，也不能跳过审计发布。
 
 已定位最后审查版本 `6b3e946f322d6e28cd705fdecfc18832517f4401` 并复核后续完整差异：连接探测复用模型能力及 Responses 编解码，仍通过原 `providerFetch`、输出上限、超时、重定向拒绝和用量/错误回执边界发送一次请求。保留 `MODEL_REQUEST` 分类，仅同步该项实际字节摘要和审查理由，未修改探测行为或财务准入。新的复测 `--review-changes` 驱动修改暂时保留未提交，不纳入这一发布候选；发布源将明确固定并在干净工作树先复核完整出口审计，再重新执行其准确提交的完整跨平台门禁。

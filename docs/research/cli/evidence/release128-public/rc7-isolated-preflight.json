@@ -1,0 +1,48 @@
+{
+  "schema": "chainlesschain.release128-rc7-isolated-preflight/v1",
+  "observedAt": "2026-10-27T16:15:14.283Z",
+  "sourceSha": "dfa158e36171e347a40e23356c2ed7bd04e0c061",
+  "candidateRef": "cli-candidate-v0.166.128-rc7",
+  "published": false,
+  "scope": "Reviewed LLM probe catalogue binding only; pending campaign driver changes excluded.",
+  "sourceReview": {
+    "command": "node packages/cli/scripts/implementation-plan-budget-egress.mjs --check --include-scripts",
+    "before": {
+      "passed": false,
+      "unclassified": 1
+    },
+    "after": {
+      "sourceCommit": "dfa158e36171e347a40e23356c2ed7bd04e0c061",
+      "passed": true,
+      "unclassified": 0,
+      "candidateFiles": 78,
+      "catalogueDigest": "sha256:a7a07ced1940445b79202530027305e5c17b43d277752b3871b4e09d342123a8"
+    },
+    "beforeReportDigest": "sha256:e2a1fe3e13ea7455e9e38285fc0d2f5b7bdbe1313564a5381337d3ade4dd2c43",
+    "afterReportDigest": "sha256:7c5726c1adf634b37c28e678658d08889b1a872249a714a18a2f3e174f59e983",
+    "paidAdmissionChanged": false
+  },
+  "tests": [
+    {
+      "suite": "budget-egress-inventory.node-test.mjs",
+      "passed": 19,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "suite": "llm-connection-probe.test.js",
+      "passed": 39,
+      "failed": 0,
+      "skipped": 0
+    }
+  ],
+  "realModelRequests": false,
+  "limits": [
+    "Local tests do not replace complete exact-source GitHub Actions matrices.",
+    "Source classification does not prove paid readiness or billing."
+  ],
+  "gates": {
+    "cliCiRunId": 40538904177,
+    "strictSandboxRunId": 40538930581
+  }
+}
