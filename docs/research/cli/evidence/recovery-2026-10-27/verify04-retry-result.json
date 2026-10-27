@@ -1,0 +1,74 @@
+{
+  "schema": "chainlesschain.native-task-retry-result/v1",
+  "recordedAt": "2026-10-27T06:53:04.617Z",
+  "sampleId": "verify-04",
+  "status": "CANDIDATE_FAILED_ACCEPTANCE",
+  "runId": "40459874678",
+  "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40459874678",
+  "executionSourceCommit": "67c085115b662988242311ccfdf2d723b66a9242",
+  "versions": {
+    "cli": "0.166.127",
+    "vscode": "0.37.165",
+    "jetbrains": "0.4.182",
+    "vscodeHost": "1.132.0",
+    "jetbrainsHost": "2025.2"
+  },
+  "generationPassed": true,
+  "candidateAcceptancePassed": false,
+  "endToEndPassed": false,
+  "setup": [{ "kind": "baseline", "total": 22, "passed": 22, "failed": 0 }],
+  "candidateTests": {
+    "total": 7,
+    "passed": 0,
+    "failed": 7,
+    "failures": [
+      {
+        "name": "prices a short-base request with many cached tokens at the SHORT contract",
+        "reason": "AssertionError: expected 0.4842 to be close to 0.9784, received difference is 0.49420000000000003, but expected 5e-7"
+      },
+      {
+        "name": "does not classify a short-base + cached request as long-context",
+        "reason": "AssertionError: expected 273000 to be 100000 // Object.is equality"
+      },
+      {
+        "name": "prices a genuinely long (no-cache) request at the long contract",
+        "reason": "AssertionError: expected 1.107 to be close to 4.428, received difference is 3.3209999999999997, but expected 5e-7"
+      },
+      {
+        "name": "prices equal-total distributions with different cache/long splits per request",
+        "reason": "AssertionError: expected 1.5912 to be close to 5.4064, received difference is 3.8152, but expected 5e-7"
+      },
+      {
+        "name": "keeps a short-base cached request out of the long bucket when merged",
+        "reason": "AssertionError: expected 1 to be 2 // Object.is equality"
+      },
+      {
+        "name": "prices a cache-creation request at its own (non-long) contract when base is short",
+        "reason": "AssertionError: expected 1.28 to be close to 2.5700000000000003, received difference is 1.2900000000000003, but expected 5e-7"
+      },
+      {
+        "name": "projectUsagePricingContext keeps only bounded pricing labels",
+        "reason": "AssertionError: expected { service_tier: 'batch', …(1) } to match object { serviceTier: 'batch', …(1) }"
+      }
+    ]
+  },
+  "failureCategory": "CANDIDATE_API_AND_EXPECTATION_MISMATCH",
+  "physicalRequestsStarted": 20,
+  "usageCompleteRequests": 20,
+  "tokenOnlyEstimateCny": 0.5101744,
+  "actualBilledCostCny": null,
+  "billingAssessed": false,
+  "formalSample": false,
+  "proof": {
+    "planPath": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-127-funded-20261027-plan.json",
+    "planDigest": "sha256:d82065a6c1fc99ad42adebfcc40398a63639705681d9b79b303fd642ad47e96f",
+    "ledgerPath": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-127-funded-20261027.json",
+    "validationStatus": "IN_PROGRESS",
+    "setupReceiptDigest": "sha256:ef1ddb89a3f35bc9899d288d0a994f0772f3ce2097041a41d12fbbee253ab72b",
+    "checkReceiptDigest": "sha256:32ecb5fcd7ebf4f0dc68fe600d017432e1976eee0549f4ec4216897a0b5e49c7"
+  },
+  "cumulativeAcceptedDeliverables": 32,
+  "plannedSamples": 45,
+  "priorRecordsUnchanged": true,
+  "furtherVerify04DispatchAuthorized": false
+}
