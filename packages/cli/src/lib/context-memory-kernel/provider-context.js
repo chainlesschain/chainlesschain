@@ -189,7 +189,12 @@ export async function prepareCanonicalProviderContext(
     };
   }
 
-  const candidateProvider = semanticCandidateProvider(options);
+  // Review can exclude recalled author/session data while retaining the exact
+  // canonical context, tool and output-token planning boundary.
+  const recallEnabled = options.contextMemoryRecall !== false;
+  const candidateProvider = recallEnabled
+    ? semanticCandidateProvider(options)
+    : null;
   const sink = String(options.contextMemorySink || `provider.${provider}`);
   const scopeAdmissions = defaultAdmissions(sessionId, options);
   const lastUser = [...messages]
@@ -211,17 +216,22 @@ export async function prepareCanonicalProviderContext(
     scopeAdmissions,
     limit: recallLimit,
   });
-  const recall = await runtime.kernel.recallMemory({
-    query,
-    sink,
-    scopeAdmissions,
-    limit: recallLimit,
-    tokenBudget: Math.max(
-      1,
-      Math.min(32_768, Number(options.contextMemoryRecallTokens) || 4096),
-    ),
-    ...(semanticCandidates === undefined ? {} : { semanticCandidates }),
-  });
+  const recall = recallEnabled
+    ? await runtime.kernel.recallMemory({
+        query,
+        sink,
+        scopeAdmissions,
+        limit: recallLimit,
+        tokenBudget: Math.max(
+          1,
+          Math.min(32_768, Number(options.contextMemoryRecallTokens) || 4096),
+        ),
+        ...(semanticCandidates === undefined ? {} : { semanticCandidates }),
+      })
+    : {
+        results: [],
+        memoryRevision: await runtime.memoryPort.getRevision(),
+      };
   const imageTransport = captureContextImageTransport(messages);
   const messageItems = adjustContextImageTokenEstimates(
     messagesToContextItems(imageTransport.messages, {

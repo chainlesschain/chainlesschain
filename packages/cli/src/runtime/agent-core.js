@@ -69,6 +69,7 @@ import {
   CODING_TASK_QUALITY_GUIDANCE,
   CODING_CHANGE_REVIEW_PROMPT,
 } from "../lib/coding-task-guidance.js";
+import { CodingChangeReviewContext } from "../lib/coding-change-review-context.js";
 import { RemoteReadLoopGuard } from "../lib/remote-read-loop-guard.js";
 import {
   isPrActionRequest,
@@ -14714,8 +14715,9 @@ export async function* agentLoop(messages, options) {
   const { HostResourceBudget } = await import("../lib/host-resource-budget.js");
   const hostResourceBudget =
     options.hostResourceBudget || new HostResourceBudget();
-  const taskProgressTracker =
+  let taskProgressTracker =
     options.taskProgressTracker || new TaskProgressTracker();
+  const hostTaskProgressTracker = taskProgressTracker;
   // A subtree preflight is deliberately not an executed mutation. Keep this
   // obligation outside transcript compaction and never replay it automatically.
   const pendingSubtreeMutations = new Map();
@@ -14723,6 +14725,22 @@ export async function* agentLoop(messages, options) {
   let hasFileContentChanges = false;
   // Headless outer turns share this object; a new user turn gets a fresh one.
   const changeReviewState = options._changeReviewState || { requested: false };
+  let independentReviewContext = null;
+  let independentReviewSetupError = null;
+  const appendMessages = (...entries) => {
+    // Keep complete review tool groups in both the durable conversation and a
+    // separate request journal. Canonical compaction cannot restore author
+    // rationale to this journal or remove its current file observations.
+    independentReviewContext?.record(...entries);
+    messages.push(...entries);
+  };
+  const recordTaskProgress = (...args) => {
+    const advanced = taskProgressTracker.record(...args);
+    if (taskProgressTracker !== hostTaskProgressTracker) {
+      hostTaskProgressTracker.record(...args);
+    }
+    return advanced;
+  };
   const recordSubtreeMutation = (tool, args, result) => {
     if (!GUARDED_FILE_MUTATION_TOOLS.has(tool)) return;
     if (!args || typeof args !== "object" || Array.isArray(args)) return;
@@ -14788,6 +14806,23 @@ export async function* agentLoop(messages, options) {
     { cwd: options.cwd || process.cwd() },
   );
   const hermeticExecution = options.hermeticExecution === true;
+  if (options.reviewChanges === true && hermeticExecution) {
+    if (changeReviewState.independentReviewPending === true) {
+      const error = new Error(
+        "An interrupted independent review cannot resume from author history; the task remains incomplete.",
+      );
+      error.code = "CC_CHANGE_REVIEW_RECONSTRUCTION_REQUIRED";
+      throw error;
+    }
+    try {
+      independentReviewContext = new CodingChangeReviewContext(messages);
+    } catch (error) {
+      // An explanation without writes still keeps its old behavior. If a
+      // mutation later arms review, stop before an extra call rather than
+      // silently falling back to the author's summarized context.
+      independentReviewSetupError = error;
+    }
+  }
   if (
     fileMutationScope &&
     (options.exactToolNames !== true || !hermeticExecution)
@@ -15191,8 +15226,8 @@ export async function* agentLoop(messages, options) {
   // one-shot guard means a model that keeps returning empty turns completes
   // rather than looping forever (the iteration budget is the hard backstop).
   let emptyThinkingReprompted = false;
-  const readFileLoopGuard = new ReadFileLoopGuard();
-  const remoteReadLoopGuard = new RemoteReadLoopGuard();
+  let readFileLoopGuard = new ReadFileLoopGuard();
+  let remoteReadLoopGuard = new RemoteReadLoopGuard();
   const prActionTask = isPrActionRequest(messages);
   // Keep an explicit user-requested PR close action alive even if the
   // conversation is compacted down to tool evidence. It is guidance only;
@@ -15302,7 +15337,11 @@ export async function* agentLoop(messages, options) {
     // threshold. Settlement persists a bounded resume checkpoint before the
     // live array changes; the earlier hash-chained result events remain the
     // durable evidence for audit/recovery.
-    if (options.runtimeResultRetention !== false && messages.length > 32) {
+    if (
+      !independentReviewContext?.active &&
+      options.runtimeResultRetention !== false &&
+      messages.length > 32
+    ) {
       const retentionConfig =
         options.runtimeResultRetention &&
         typeof options.runtimeResultRetention === "object"
@@ -15370,6 +15409,7 @@ export async function* agentLoop(messages, options) {
     // dangling call; `preserveToolPairs` then guarantees compaction never
     // orphans a tool result. Best-effort — a failure never aborts the run.
     if (
+      !independentReviewContext?.active &&
       options.autoCompact !== false &&
       !automaticCompactionSettlementBlocked &&
       messages.length > 4
@@ -15915,7 +15955,7 @@ export async function* agentLoop(messages, options) {
             // SubagentStop hooks are best-effort
           }
         }
-        messages.push(
+        appendMessages(
           markRuntimeOnlySessionMessage({
             role: "user",
             content: _backgroundSubAgentResultText(entry),
@@ -15950,7 +15990,10 @@ export async function* agentLoop(messages, options) {
     // Turn-scoped context injection (open-agents prepareCall parity).
     // prepareCall runs fresh each iteration and returns an ephemeral
     // system-message supplement that is NOT persisted to messages history.
-    let callMessages = messages;
+    const requestMessages = independentReviewContext?.active
+      ? independentReviewContext.project()
+      : messages;
+    let callMessages = requestMessages;
     // Give a looping model a turn focused on search/action rather than another
     // whole-file request. This changes discovery for one request only; runtime
     // permissions are untouched and ordinary reads return on the next turn.
@@ -16021,7 +16064,9 @@ export async function* agentLoop(messages, options) {
         }
       : effectiveToolOptions;
     const readContext = [
-      options.getTaskWorklogContext?.(),
+      independentReviewContext?.active
+        ? null
+        : options.getTaskWorklogContext?.(),
       readFileLoopGuard.findingsHint,
       readFileLoopGuard.progressHint,
       remoteReadLoopGuard.findingsHint,
@@ -16031,11 +16076,11 @@ export async function* agentLoop(messages, options) {
       // Preserve the last conversational turn and never split a tool call
       // from its results. Source data must neither become system authority
       // nor create an assistant prefill / a new generic user request.
-      const resultIndex = messages.findLastIndex(
+      const resultIndex = requestMessages.findLastIndex(
         (message) => message.role === "tool",
       );
       if (resultIndex >= 0) {
-        const result = messages[resultIndex];
+        const result = requestMessages[resultIndex];
         const original =
           typeof result.content === "string"
             ? result.content
@@ -16052,15 +16097,17 @@ export async function* agentLoop(messages, options) {
         }
         // Enrich only the ephemeral copy. This preserves signed assistant
         // thinking blocks, the last tool result, and the persisted transcript.
-        callMessages = messages.map((message, index) =>
+        callMessages = requestMessages.map((message, index) =>
           index === resultIndex ? { ...result, content } : message,
         );
       } else {
         // Full compaction can leave only the pinned request. Reiterate that
         // exact request after the source data, not a replacement objective.
-        const request = messages.findLast((message) => message.role === "user");
+        const request = requestMessages.findLast(
+          (message) => message.role === "user",
+        );
         callMessages = [
-          ...messages,
+          ...requestMessages,
           ...readContext.map((content) => ({ role: "assistant", content })),
           {
             role: "user",
@@ -16228,6 +16275,9 @@ export async function* agentLoop(messages, options) {
         callMessages,
         {
           ...options,
+          ...(independentReviewContext?.active
+            ? { contextMemoryRecall: false }
+            : {}),
           contextMemoryToolDefinitions:
             getProviderToolDefinitions(iterationToolOptions),
           contextMemoryTrustedSystemIndexes,
@@ -16240,6 +16290,15 @@ export async function* agentLoop(messages, options) {
           plan: canonicalProviderContext.plan,
           recallDigest: canonicalProviderContext.recall?.digest || null,
         };
+      }
+    }
+
+    if (independentReviewContext?.active) {
+      try {
+        independentReviewContext.assertRequirementsPreserved(callMessages);
+      } catch (error) {
+        error.code = "CC_CHANGE_REVIEW_CONTEXT_LOST";
+        throw error;
       }
     }
 
@@ -16476,6 +16535,16 @@ export async function* agentLoop(messages, options) {
       };
     }
     throwIfAborted(signal);
+    if (
+      independentReviewContext?.active &&
+      changeReviewState.usageKnown === false
+    ) {
+      const error = new Error(
+        "Change review stopped with unknown provider usage; the task remains incomplete.",
+      );
+      error.code = "CC_CHANGE_REVIEW_USAGE_UNKNOWN";
+      throw error;
+    }
 
     if (!msg) {
       await _awaitBackgroundUsageSettlement(
@@ -16573,7 +16642,7 @@ export async function* agentLoop(messages, options) {
         );
         _throwBackgroundUsageFailureState(backgroundUsageFailureState);
         throwIfAborted(signal);
-        messages.push(
+        appendMessages(
           markRuntimeOnlySessionMessage({
             role: "assistant",
             content: msg.content || "",
@@ -16583,7 +16652,7 @@ export async function* agentLoop(messages, options) {
           backgroundSubAgents,
         )) {
           _throwBackgroundSubAgentUsageFailure(entry);
-          messages.push(
+          appendMessages(
             markRuntimeOnlySessionMessage({
               role: "user",
               content:
@@ -16615,13 +16684,13 @@ export async function* agentLoop(messages, options) {
         const pending = [...pendingSubtreeMutations.values()];
         if (!subtreeMutationReprompted && budget.remaining() > 0) {
           subtreeMutationReprompted = true;
-          messages.push(
+          appendMessages(
             markRuntimeOnlySessionMessage({
               role: "assistant",
               content: msg.content || "",
             }),
           );
-          messages.push(
+          appendMessages(
             markRuntimeOnlySessionMessage({
               role: "user",
               content:
@@ -16665,17 +16734,31 @@ export async function* agentLoop(messages, options) {
         budget.hasRemaining()
       ) {
         throwIfAborted(signal);
+        if (independentReviewSetupError) throw independentReviewSetupError;
         changeReviewState.requested = true;
-        messages.push(
+        const reviewPrompt = markRuntimeOnlySessionMessage({
+          role: "user",
+          content: CODING_CHANGE_REVIEW_PROMPT,
+        });
+        appendMessages(
           markRuntimeOnlySessionMessage({
             role: "assistant",
             content: msg.content || "",
           }),
-          markRuntimeOnlySessionMessage({
-            role: "user",
-            content: CODING_CHANGE_REVIEW_PROMPT,
-          }),
+          reviewPrompt,
         );
+        if (independentReviewContext) {
+          independentReviewContext.activate(reviewPrompt);
+          changeReviewState.independentReviewPending = true;
+          // These are phase-local discovery hints, not permission or spend
+          // authorities. Fresh inspection must not inherit author assertions,
+          // old visible file pages, or a pause caused by author exploration.
+          readFileLoopGuard = new ReadFileLoopGuard();
+          remoteReadLoopGuard = new RemoteReadLoopGuard();
+          taskProgressTracker = new TaskProgressTracker();
+          toolContext.readFileLoopGuard = readFileLoopGuard;
+          lastTaskProgressIntervention = null;
+        }
         yield {
           type: "iteration-warning",
           message: "Reviewing changed files against the task before finishing.",
@@ -16703,10 +16786,10 @@ export async function* agentLoop(messages, options) {
       const _contentEmpty = !String(msg.content || "").trim();
       if (_contentEmpty && _thinking && !emptyThinkingReprompted) {
         emptyThinkingReprompted = true;
-        messages.push(
+        appendMessages(
           markRuntimeOnlySessionMessage({ role: "assistant", content: "" }),
         );
-        messages.push(
+        appendMessages(
           markRuntimeOnlySessionMessage({
             role: "user",
             content:
@@ -16770,13 +16853,13 @@ export async function* agentLoop(messages, options) {
         }
         if (stopOutcome && stopOutcome.decision === "block") {
           stopHookActive = true;
-          messages.push(
+          appendMessages(
             markRuntimeOnlySessionMessage({
               role: "assistant",
               content: msg.content || "",
             }),
           );
-          messages.push(
+          appendMessages(
             markRuntimeOnlySessionMessage({
               role: "user",
               content:
@@ -16791,6 +16874,9 @@ export async function* agentLoop(messages, options) {
           };
           continue;
         }
+      }
+      if (independentReviewContext?.active) {
+        changeReviewState.independentReviewPending = false;
       }
       yield { type: "run-ended", runId, reason: "complete" };
       return;
@@ -16815,7 +16901,7 @@ export async function* agentLoop(messages, options) {
     }
 
     // Add assistant message with tool calls
-    messages.push(msg);
+    appendMessages(msg);
     readFileLoopGuard.startBatch();
 
     // Concurrent READ-ONLY batch (latency optimization). When every call in the
@@ -16935,7 +17021,7 @@ export async function* agentLoop(messages, options) {
         if (fatalError) throw fatalError;
         throwIfAborted(signal);
         recordSubtreeMutation(call.function.name, toolArgs, toolResult);
-        const taskAdvanced = taskProgressTracker.record(
+        const taskAdvanced = recordTaskProgress(
           call.function.name,
           toolResult,
           toolArgs,
@@ -16968,7 +17054,7 @@ export async function* agentLoop(messages, options) {
         const resultStr = toolResultForModel(
           call.function.name,
           toolResult,
-          messages,
+          requestMessages,
         );
         const toolContent = warningMsg
           ? `${resultStr}\n\n${warningMsg}`
@@ -16995,7 +17081,7 @@ export async function* agentLoop(messages, options) {
           toolResult,
         );
         if (nestedOutcomeUnknown) throw nestedOutcomeUnknown;
-        messages.push({
+        appendMessages({
           role: "tool",
           content: toolContent,
           tool_call_id: call.id,
@@ -17052,7 +17138,7 @@ export async function* agentLoop(messages, options) {
           tool_use_id: call?.id || null,
           turn_id: `${runId}:t${budget.consumed}`,
         };
-        messages.push({
+        appendMessages({
           role: "tool",
           content: `Error: ${reason}.`,
           tool_call_id: call?.id,
@@ -17111,12 +17197,7 @@ export async function* agentLoop(messages, options) {
         readFileLoopGuard.record(
           toolName,
           earlyAuthorityDenial,
-          taskProgressTracker.record(
-            toolName,
-            earlyAuthorityDenial,
-            toolArgs,
-            runId,
-          ),
+          recordTaskProgress(toolName, earlyAuthorityDenial, toolArgs, runId),
         );
         const resultStr = capToolResultString(
           safeStringifyToolResult(earlyAuthorityDenial),
@@ -17152,7 +17233,7 @@ export async function* agentLoop(messages, options) {
           permission_decision_id: decision?.id || null,
           permission_decision: decision,
         };
-        messages.push({
+        appendMessages({
           role: "tool",
           content: resultStr,
           tool_call_id: call.id,
@@ -17477,9 +17558,13 @@ export async function* agentLoop(messages, options) {
         // Cap an individual tool result so one giant output can't blow the
         // context — but tell the model when we cut it (no more silent
         // mid-content slice). See MAX_TOOL_RESULT_CHARS / capToolResultString.
-        const resultStr = toolResultForModel(toolName, toolResult, messages);
+        const resultStr = toolResultForModel(
+          toolName,
+          toolResult,
+          requestMessages,
+        );
         recordSubtreeMutation(toolName, toolArgs, toolResult);
-        const taskAdvanced = taskProgressTracker.record(
+        const taskAdvanced = recordTaskProgress(
           toolName,
           toolResult,
           toolArgs,
@@ -17519,7 +17604,7 @@ export async function* agentLoop(messages, options) {
         );
         if (nestedOutcomeUnknown) throw nestedOutcomeUnknown;
 
-        messages.push({
+        appendMessages({
           role: "tool",
           content: toolContent,
           tool_call_id: call.id,

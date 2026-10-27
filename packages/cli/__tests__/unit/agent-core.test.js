@@ -28,7 +28,9 @@ import {
 
 describe("opt-in change review in the real file-tool loop", () => {
   let reviewDirectory;
+  let reviewToolSequence;
   beforeEach(() => {
+    reviewToolSequence = 0;
     // macOS temporary paths can traverse /var -> /private/var. The exact
     // mutation scope deliberately requires the canonical workspace path.
     reviewDirectory = fs.realpathSync(
@@ -48,7 +50,7 @@ describe("opt-in change review in the real file-tool loop", () => {
       content: "",
       tool_calls: [
         {
-          id: `review-${name}`,
+          id: `review-${name}-${++reviewToolSequence}`,
           type: "function",
           function: { name, arguments: JSON.stringify(args) },
         },
@@ -61,6 +63,7 @@ describe("opt-in change review in the real file-tool loop", () => {
       content: "// initial deliverable\n",
     });
   async function runScript(steps, options = {}) {
+    const { initialMessages, onLoopEvent, ...loopOptions } = options;
     const requests = [];
     const chatFn = vi.fn(async (messages, callOptions) => {
       requests.push({
@@ -73,16 +76,17 @@ describe("opt-in change review in the real file-tool loop", () => {
       callOptions.onThinking?.("provisional thinking");
       return {
         usage: { input_tokens: 2, output_tokens: 1 },
-        ...(typeof step === "function" ? step() : step),
+        ...(typeof step === "function" ? step(messages, callOptions) : step),
       };
     });
-    const messages = [
+    const messages = initialMessages || [
       {
         role: "user",
         content: "Add regression coverage for the requested behavior.",
       },
     ];
-    const budget = options.iterationBudget || new IterationBudget({ limit: 8 });
+    const budget =
+      loopOptions.iterationBudget || new IterationBudget({ limit: 8 });
     const events = [];
     for await (const event of agentLoop(messages, {
       provider: "ollama",
@@ -107,9 +111,11 @@ describe("opt-in change review in the real file-tool loop", () => {
       },
       iterationBudget: budget,
       reviewChanges: true,
-      ...options,
-    }))
+      ...loopOptions,
+    })) {
       events.push(event);
+      onLoopEvent?.(event);
+    }
     return { requests, events, messages, budget, chatFn };
   }
 
@@ -143,7 +149,7 @@ describe("opt-in change review in the real file-tool loop", () => {
       ),
     ).toMatchObject({
       role: "user",
-      content: CODING_CHANGE_REVIEW_PROMPT,
+      content: expect.stringContaining(CODING_CHANGE_REVIEW_PROMPT),
     });
     expect(
       result.events.filter((event) => event.type === "response-complete"),
@@ -179,6 +185,212 @@ describe("opt-in change review in the real file-tool loop", () => {
     ).toEqual([
       { type: "response-complete", content: "Unverified deliverable" },
     ]);
+  });
+
+  it("reviews current files without author rationale, retained hints or read omissions", async () => {
+    writeFileSync(
+      join(reviewDirectory, "source.js"),
+      "export const value = 1;\n",
+    );
+    const authorWrite = write();
+    authorWrite.message.content = "AUTHOR_ONLY_REASONING_SENTINEL";
+    const reviewRead = tool("read_file", { path: "source.js" });
+    const deliverableRead = tool("read_file", { path: "review.test.js" });
+    const projection = vi.fn((messages) =>
+      messages.map((message) => ({ ...message })),
+    );
+    const result = await runScript(
+      [
+        tool("read_file", { path: "source.js" }),
+        authorWrite,
+        text("AUTHOR_ONLY_COMPLETION_SENTINEL"),
+        reviewRead,
+        deliverableRead,
+        tool("edit_file", {
+          path: "review.test.js",
+          old_string: "initial",
+          new_string: "checked",
+        }),
+        text("Repaired the deliverable; execution remains unavailable."),
+      ],
+      {
+        initialMessages: [
+          { role: "system", content: "Keep the host authorization boundary." },
+          {
+            role: "user",
+            content: "Cover the requested contract in review.test.js.",
+          },
+        ],
+        getTaskWorklogContext: () => "AUTHOR_WORKLOG_SENTINEL",
+        projectProviderMessages: projection,
+        maxOutputTokens: 8192,
+        think: false,
+      },
+    );
+    expect(
+      readFileSync(join(reviewDirectory, "review.test.js"), "utf8"),
+    ).toContain("checked");
+    expect(result.requests).toHaveLength(7);
+    for (const request of result.requests.slice(3)) {
+      const serialized = JSON.stringify(request.messages);
+      expect(serialized).not.toContain("AUTHOR_ONLY_");
+      expect(serialized).not.toContain("AUTHOR_WORKLOG_SENTINEL");
+      expect(serialized).toContain("Keep the host authorization boundary.");
+      expect(serialized).toContain(
+        "Cover the requested contract in review.test.js.",
+      );
+      expect(request.options.iterationBudget).toBe(result.budget);
+      expect(request.options.maxOutputTokens).toBe(8192);
+      expect(request.options.think).toBe(false);
+      expect(request.options.enabledToolNames).toHaveLength(6);
+    }
+    const currentSource = result.requests[4].messages.find(
+      (message) => message.tool_call_id === reviewRead.message.tool_calls[0].id,
+    );
+    expect(JSON.parse(currentSource.content)).toMatchObject({
+      content: "export const value = 1;\n",
+    });
+    expect(currentSource.content).not.toContain('"alreadyRead":true');
+    const currentFile = result.requests[5].messages.find(
+      (message) =>
+        message.tool_call_id === deliverableRead.message.tool_calls[0].id,
+    );
+    expect(JSON.parse(currentFile.content).content).toContain(
+      "initial deliverable",
+    );
+    // Durable history retains all real operations and their unchanged IDs.
+    const canonical = projectCanonicalResumeMessages(result.messages);
+    expect(
+      canonical.some(
+        (message) =>
+          message.tool_call_id === reviewRead.message.tool_calls[0].id,
+      ),
+    ).toBe(true);
+    expect(
+      result.events.filter((event) => event.type === "run-started"),
+    ).toHaveLength(1);
+    expect(
+      result.events.filter((event) => event.type === "model-usage-started"),
+    ).toHaveLength(7);
+    expect(
+      result.events.filter((event) => event.type === "token-usage"),
+    ).toHaveLength(7);
+  });
+
+  it("keeps the exact mutation boundary during independent review", async () => {
+    const result = await runScript([
+      write(),
+      text("draft"),
+      tool("write_file", { path: "outside.test.js", content: "denied" }),
+      text("The requested repair is blocked."),
+    ]);
+    expect(fs.existsSync(join(reviewDirectory, "outside.test.js"))).toBe(false);
+    expect(result.requests).toHaveLength(4);
+    expect(
+      result.events.some(
+        (event) =>
+          event.type === "tool-result" &&
+          event.result?.policy?.decision === "deny" &&
+          event.result?.policy?.via === "exact-file-mutation-scope",
+      ),
+    ).toBe(true);
+  });
+
+  it("stops before another review call or tool effect after missing usage", async () => {
+    await expect(
+      runScript(
+        [
+          write(),
+          text("draft"),
+          {
+            ...tool("edit_file", {
+              path: "review.test.js",
+              old_string: "initial",
+              new_string: "unknown",
+            }),
+            usage: null,
+          },
+        ],
+        { maxCostUsd: 1 },
+      ),
+    ).rejects.toMatchObject({ code: "CC_CHANGE_REVIEW_USAGE_UNKNOWN" });
+    expect(
+      readFileSync(join(reviewDirectory, "review.test.js"), "utf8"),
+    ).toContain("initial");
+  });
+
+  it("rejects a projected review that drops the original task before spending", async () => {
+    const observed = [];
+    await expect(
+      runScript([write(), text("draft")], {
+        onLoopEvent: (event) => observed.push(event),
+        projectProviderMessages: (messages) =>
+          messages.some(
+            (message) =>
+              typeof message.content === "string" &&
+              message.content.includes(CODING_CHANGE_REVIEW_PROMPT),
+          )
+            ? [{ role: "user", content: "Review a generic file." }]
+            : messages,
+      }),
+    ).rejects.toMatchObject({ code: "CC_CHANGE_REVIEW_CONTEXT_LOST" });
+    expect(
+      observed.filter((event) => event.type === "model-usage-started"),
+    ).toHaveLength(2);
+  });
+
+  it("does not fall back to author history after an interrupted review", async () => {
+    const state = { requested: false };
+    const controller = new AbortController();
+    await expect(
+      runScript(
+        [
+          write(),
+          text("draft"),
+          () => {
+            controller.abort();
+            return text("interrupted review");
+          },
+        ],
+        { _changeReviewState: state, signal: controller.signal },
+      ),
+    ).rejects.toMatchObject({ name: "AbortError" });
+    expect(state.independentReviewPending).toBe(true);
+    await expect(
+      runScript([], { _changeReviewState: state }),
+    ).rejects.toMatchObject({
+      code: "CC_CHANGE_REVIEW_RECONSTRUCTION_REQUIRED",
+    });
+  });
+
+  it("settles review response usage before honoring cancellation", async () => {
+    const controller = new AbortController();
+    const observed = [];
+    await expect(
+      runScript(
+        [
+          write(),
+          text("draft"),
+          () => {
+            controller.abort();
+            return tool("read_file", { path: "review.test.js" });
+          },
+        ],
+        {
+          signal: controller.signal,
+          onLoopEvent: (event) => observed.push(event),
+        },
+      ),
+    ).rejects.toMatchObject({ name: "AbortError" });
+    expect(
+      observed.filter((event) => event.type === "token-usage"),
+    ).toHaveLength(3);
+    expect(
+      observed.filter((event) => event.type === "tool-executing"),
+    ).toHaveLength(1);
+    expect(
+      readFileSync(join(reviewDirectory, "review.test.js"), "utf8"),
+    ).toContain("initial");
   });
 
   it.each([undefined, false, "true"])(

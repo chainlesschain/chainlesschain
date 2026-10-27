@@ -832,6 +832,76 @@ test("every canonical provider request binds recalled memory to a ContextPlan", 
   }
 });
 
+test("review excludes memory recall without skipping canonical context budgets", async () => {
+  const directory = mkdtempSync(
+    join(TEMPORARY_ROOT, "cc-review-context-plan-"),
+  );
+  const memoryFilePath = join(directory, "kernel-v1.json");
+  const env = { CHAINLESSCHAIN_CONTEXT_MEMORY_CLI_STAGE: "canonical_default" };
+  try {
+    const service = new CliCanonicalMemoryService({
+      env,
+      memoryFilePath,
+      clock: CLOCK,
+    });
+    await service.add("The recovery color is AUTHOR_MEMORY_SENTINEL", {
+      category: "preference",
+      importance: 1,
+    });
+    const input = [
+      { role: "system", content: "Keep the host policy." },
+      { role: "user", content: "What is the recovery color?" },
+    ];
+    const common = {
+      contextMemoryEnv: env,
+      contextMemoryFilePath: memoryFilePath,
+      sessionId: "review-context-plan",
+      provider: "local",
+      model: "test-model",
+      contextMemoryModelWindowTokens: 8192,
+      maxOutputTokens: 512,
+      contextMemoryToolDefinitions: [
+        {
+          type: "function",
+          function: {
+            name: "read_file",
+            description: "Read a file",
+            parameters: { type: "object", properties: {} },
+          },
+        },
+      ],
+    };
+    const before = await prepareCanonicalProviderContext(input, common);
+    assert.equal(
+      JSON.stringify(before.messages).includes("AUTHOR_MEMORY_SENTINEL"),
+      true,
+    );
+    let candidateCalls = 0;
+    const review = await prepareCanonicalProviderContext(input, {
+      ...common,
+      contextMemoryRecall: false,
+      contextMemorySemanticCandidateProvider: () => {
+        candidateCalls++;
+        throw new Error("Review must not request semantic candidates");
+      },
+    });
+    assert.equal(candidateCalls, 0);
+    assert.deepEqual(review.recall.results, []);
+    assert.equal(review.plan.memoryRevision, before.plan.memoryRevision);
+    assert.equal(
+      JSON.stringify(review.messages).includes("AUTHOR_MEMORY_SENTINEL"),
+      false,
+    );
+    assert.equal(review.messages[0].content, "Keep the host policy.");
+    assert.equal(review.messages.at(-1).content, input.at(-1).content);
+    assert.deepEqual(review.selectedToolNames, ["read_file"]);
+    assert.equal(review.modelCapabilities.requestMaxOutputTokens, 512);
+    assert.ok(review.plan);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
 test("canonical provider planning lets protected current-turn state consume recovery reserve", async () => {
   const directory = mkdtempSync(
     join(TEMPORARY_ROOT, "cc-provider-protected-budget-"),
