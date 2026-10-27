@@ -1,6 +1,6 @@
 {
   "schema": "chainlesschain.release128-publication/v1",
-  "observedAt": "2026-10-27T20:08:11.891Z",
+  "observedAt": "2026-10-27T20:20:36.825Z",
   "status": "CLI_IDES_AND_CLIENTS_PUBLIC",
   "repository": "chainlesschain/chainlesschain",
   "channels": {
@@ -111,5 +111,19 @@
     "paidReadiness": "NOT_PAID_READY",
     "nativeAdmission": "NOT_ADMITTED",
     "automaticPromotion": "HOLD"
+  },
+  "documentation": {
+    "status": "public-verified",
+    "sourceSha": "afc20f77bd47bc38e7e2a0255b0bafa1fd64cde1",
+    "cloudGateRunId": 40575564840,
+    "deploymentStamp": "20261027-201738-afc20f77bd-docs",
+    "receipt": "docs-deployment.json",
+    "htmlCounts": {
+      "docs": 657,
+      "design": 288,
+      "www": 20
+    },
+    "publicHtmlMatchesFrozenBuild": true,
+    "retainedPreviousSitesForRollback": true
   }
 }

@@ -1,0 +1,100 @@
+{
+  "schema": "chainlesschain.release128-docs-deployment/v1",
+  "observedAt": "2026-10-27T20:20:00.579Z",
+  "status": "public-verified",
+  "sourceCommit": "afc20f77bd47bc38e7e2a0255b0bafa1fd64cde1",
+  "deploymentStamp": "20261027-201738-afc20f77bd-docs",
+  "cloudGate": {
+    "runId": 40575564840,
+    "conclusion": "success",
+    "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40575564840"
+  },
+  "archives": [
+    {
+      "site": "docs",
+      "archiveSha256": "e1f50d020e08722ad74f90cdb15d2f1bd04118553b063fd829ca72a7e9f8bab6",
+      "html": 657,
+      "files": 1998
+    },
+    {
+      "site": "design",
+      "archiveSha256": "6f0cec58aa662674a9a5a1798a4785d202fb2dd5a0450d934f83806a17b93871",
+      "html": 288,
+      "files": 890
+    },
+    {
+      "site": "www",
+      "archiveSha256": "0e7d341d80e0a1d52b5e2924941bc9c67aec881602b5bf904be92500614a0600",
+      "html": 20,
+      "files": 35
+    }
+  ],
+  "publicChecks": [
+    {
+      "site": "docs",
+      "url": "https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-28.html",
+      "status": 200,
+      "bytes": 268065,
+      "sha256": "e5e61c6ed6fb4c6675bbcb07f7932edc5eb775fc2651c6bbec543e9ce174a3fe",
+      "localHtmlMatches": true,
+      "cacheStatus": null,
+      "cacheBust": false
+    },
+    {
+      "site": "docs",
+      "url": "https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-28.html?deployment=20261027-201738-afc20f77bd-docs",
+      "status": 200,
+      "bytes": 268065,
+      "sha256": "e5e61c6ed6fb4c6675bbcb07f7932edc5eb775fc2651c6bbec543e9ce174a3fe",
+      "localHtmlMatches": true,
+      "cacheStatus": null,
+      "cacheBust": true
+    },
+    {
+      "site": "design",
+      "url": "https://design.chainlesschain.com/release-runtime-update-2026-10-28.html",
+      "status": 200,
+      "bytes": 154754,
+      "sha256": "15695d02e362c6bfbb36fa8d9b3ba7be7768f1eea812f0f64de4dbbe6016632e",
+      "localHtmlMatches": true,
+      "cacheStatus": null,
+      "cacheBust": false
+    },
+    {
+      "site": "design",
+      "url": "https://design.chainlesschain.com/release-runtime-update-2026-10-28.html?deployment=20261027-201738-afc20f77bd-docs",
+      "status": 200,
+      "bytes": 154754,
+      "sha256": "15695d02e362c6bfbb36fa8d9b3ba7be7768f1eea812f0f64de4dbbe6016632e",
+      "localHtmlMatches": true,
+      "cacheStatus": null,
+      "cacheBust": true
+    },
+    {
+      "site": "www",
+      "url": "https://www.chainlesschain.com/",
+      "status": 200,
+      "bytes": 62609,
+      "sha256": "17c41f3365c193d3263afe0887fad85a6541b586c4d5465c8372aecb8121dc9e",
+      "localHtmlMatches": true,
+      "cacheStatus": null,
+      "cacheBust": false
+    },
+    {
+      "site": "www",
+      "url": "https://www.chainlesschain.com/?deployment=20261027-201738-afc20f77bd-docs",
+      "status": 200,
+      "bytes": 62609,
+      "sha256": "17c41f3365c193d3263afe0887fad85a6541b586c4d5465c8372aecb8121dc9e",
+      "localHtmlMatches": true,
+      "cacheStatus": null,
+      "cacheBust": true
+    }
+  ],
+  "retainedPreviousSiteForRollback": true,
+  "rollbackDirectories": {
+    "docs": "/www/wwwroot/docs.chainlesschain.com.bak-20261027-201738-afc20f77bd-docs",
+    "design": "/www/wwwroot/design.chainlesschain.com.bak-20261027-201738-afc20f77bd-docs",
+    "www": "/www/wwwroot/www.chainlesschain.com.bak-20261027-201738-afc20f77bd-docs"
+  }
+}

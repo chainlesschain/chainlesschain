@@ -10,7 +10,18 @@ CLI `0.166.128` 已经 [OIDC 工作流 40552876222](https://github.com/chainless
 
 配套 IDE 正式标签固定到已完整验证的 `6551a06c2f694bb93d0197fa8b82becd25a83173`：[Open VSX .166 工作流 40557016206](https://github.com/chainlesschain/chainlesschain/actions/runs/40557016206) 已成功，公开上架、latest 和下载均已独立核验，VSIX 原始字节与正式工作流制品相同，见 [Open VSX 回执](./cli/evidence/release128-public/open-vsx.json)。[JetBrains .183 工作流 40557015160](https://github.com/chainlesschain/chainlesschain/actions/runs/40557015160) 已通过六格真实宿主、三系统浏览器、单元测试、构建及兼容性检查，并已成功上传；`.183` 随后已批准、列出并可公开下载，全部四个原始 ZIP payload 条目与正式 CI 制品一致，无新增条目。公开包与 CI ZIP 的外层摘要不同，见 [JetBrains 回读](./cli/evidence/release128-public/jetbrains-public-readback.json)。客户端发行前置条件已满足。
 
-[Android CLI bundle 40556532158](https://github.com/chainlesschain/chainlesschain/actions/runs/40556532158) 已基于公开 CLI `.128` 与正式源提交构建成功，仅属客户端准备产物；[内部 binaries rollover 40564206069](https://github.com/chainlesschain/chainlesschain/actions/runs/40564206069) 已成功，`20261028-1` 的 27 个资产通过 manifest 与上一版 carry-over 比对，新 CLI bundle 的公开下载 SHA-256 和字节数均已核验。正式产品标签 `v5.0.3.143` 已指向冻结提交 `036d2b8be2048c98e56e917c93380f169e6a9d7b` 并推送，[五平台 Release 40565272034](https://github.com/chainlesschain/chainlesschain/actions/runs/40565272034) 已成功，正式客户端公开且不可变。Windows、macOS、Linux、Android、iOS 构建全部成功，22 个公开资产与 CI 完整性 manifest 的字节数、SHA-256 一致；三套桌面更新元数据均已独立下载核验。见 [产品回执](./cli/evidence/release128-public/product-publication.json)。三站文档部署另行记录。Microsoft Marketplace 仍缺少 `VSCE_PAT`，其未发布状态不由 Open VSX 成功替代。
+[Android CLI bundle 40556532158](https://github.com/chainlesschain/chainlesschain/actions/runs/40556532158) 已基于公开 CLI `.128` 与正式源提交构建成功，用于 Android 内置运行时；[内部 binaries rollover 40564206069](https://github.com/chainlesschain/chainlesschain/actions/runs/40564206069) 已成功，`20261028-1` 的 27 个资产通过 manifest 与上一版 carry-over 比对，新 CLI bundle 的公开下载 SHA-256 和字节数均已核验。正式产品标签 `v5.0.3.143` 已指向冻结提交 `036d2b8be2048c98e56e917c93380f169e6a9d7b` 并推送，[五平台 Release 40565272034](https://github.com/chainlesschain/chainlesschain/actions/runs/40565272034) 已成功，正式客户端公开且不可变。Windows、macOS、Linux、Android、iOS 构建全部成功，22 个公开资产与 CI 完整性 manifest 的字节数、SHA-256 一致；三套桌面更新元数据均已独立下载核验。见 [产品回执](./cli/evidence/release128-public/product-publication.json)。三站文档已从同一冻结文档提交部署并完成公网回读，详见下方部署记录。Microsoft Marketplace 仍缺少 `VSCE_PAT`，其未发布状态不由 Open VSX 成功替代。
+
+### 三站文档已部署并公开核验（2026-10-28）
+
+文档冻结提交为 `afc20f77bd47bc38e7e2a0255b0bafa1fd64cde1`，[准确提交的文档云端门禁 40575564840](https://github.com/chainlesschain/chainlesschain/actions/runs/40575564840) 成功。本地与服务器归档核验确认主文档 **657** 个 HTML、设计文档 **288** 个、官网 **20** 个；三个域名的普通访问和带校验参数访问共六次回读，HTML 均与该提交的构建逐字节一致。旧站点目录保留供回滚。
+
+- [CLI / IDE 升级指南](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-28.html)
+- [运行时与发行设计](https://design.chainlesschain.com/release-runtime-update-2026-10-28.html)
+- [官网](https://www.chainlesschain.com/)
+- [部署回执与归档摘要](./cli/evidence/release128-public/docs-deployment.json)
+
+累计任务验收仍为 **32/45**，另有 **13** 项未完成；本轮未新增真实模型任务验收，**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。Microsoft Marketplace 仍因缺少 `VSCE_PAT` 未发布。
 
 ### 正式发布流程已启动（2026-10-28）
 
