@@ -1,4 +1,5 @@
 import { BM25Search } from "./bm25-search.js";
+import { tokenizeSkillSearchText } from "./skill-search-tokenizer.js";
 import { captureSkillRetrievalRevocationReader } from "./evolution/skill-retrieval-revocation-authority.js";
 
 export const SKILL_RETRIEVAL_RESULT_SCHEMA =
@@ -150,7 +151,7 @@ export function routeSkillDescriptors({
     admitted.push({ skill, digest });
   }
 
-  const bm25 = new BM25Search({ language: "auto" });
+  const bm25 = new BM25Search({ tokenizer: tokenizeSkillSearchText });
   bm25.indexDocuments(
     admitted.map(({ skill, digest }) => ({
       id: digest,

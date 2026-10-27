@@ -1124,6 +1124,40 @@ describe("run_skill controlled execution boundary", () => {
     });
   });
 
+  it("searches omitted multilingual descriptors while preserving the skill allow-list", async () => {
+    for (let i = 0; i < 25; i++)
+      registerSkill({
+        id: `a-fixture-${i}`,
+        description: "Routine housekeeping",
+      });
+    registerSkill({
+      id: "repairTests",
+      description: "修复 Vitest 单元测试失败",
+    });
+    registerSkill({
+      id: "privateRepair",
+      description: "修复 Vitest 单元测试失败",
+    });
+    const context = {
+      cwd: tempDir,
+      skillAllowlist: mocks.skills
+        .filter((s) => s.id !== "privateRepair")
+        .map((s) => s.id),
+    };
+    const page = await executeTool("list_skills", {}, context);
+    expect(page.skills.map((s) => s.id)).not.toContain("repairTests");
+    const result = await executeTool(
+      "list_skills",
+      { query: "请帮我修复Ｖｉｔｅｓｔ测试" },
+      context,
+    );
+    expect(result.skills.map((s) => s.id)).toEqual(["repairTests"]);
+    expect(result.routing.selectedDigest).toBe(
+      mocks.skills.at(-2).executionIdentity.contentDigest,
+    );
+    expect(mocks.childRuns).toHaveLength(0);
+  });
+
   it("list_skills query consumes the host transcript outcome authority", async () => {
     registerSkill({ id: "alpha-repair", description: "repair failing tests" });
     registerSkill({ id: "omega-repair", description: "repair failing tests" });

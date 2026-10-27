@@ -1,0 +1,489 @@
+{
+  "schema": "chainlesschain.skill-search-measurement/v1",
+  "measuredAt": "2026-10-27T11:12:05.160Z",
+  "fixtureId": "skill-search-multilingual-v1",
+  "fixtureDigest": "sha256:16b91a39246bbbb4961dd1b9d5a9e65021f8bf07173e61effc554d0a974f3232",
+  "sourceDigests": {
+    "src/lib/bm25-search.js": "sha256:02eb31b923afda07b8ae39be232ec3314e41ad38260d3eaa76dd7d694b352ff5",
+    "src/lib/skill-search-tokenizer.js": "sha256:7b4bd3296074b1d624b62a887902d9a71c13a6909f8b8f8234fb7a38d8bea4ab",
+    "src/lib/skill-retrieval-router.js": "sha256:62838887a196ff8b90d60f4074297e8aab31b397e0d020ff6043149f4452e31c",
+    "src/lib/skill-loader.js": "sha256:1803d62a615279f1b67d9bd9005c7ebd3197fedd65bd58fd0902dffbec880a82",
+    "src/runtime/agent-core.js": "sha256:9c4a3b5db2193d6bc2ebe383fe29721323db1a416ca245c88a6df8b5ba9ae2f8",
+    "scripts/skill-search-benchmark.mjs": "sha256:849febdd1f5d0405f021966232af51d61d088ce5f04d0d43f516afbd46dcd161"
+  },
+  "environment": {
+    "node": "v22.22.2",
+    "icu": "78.2",
+    "platform": "win32",
+    "arch": "x64"
+  },
+  "costBasis": "estimated-skill-directory-json-utf8-bytes-divided-by-four",
+  "providerCalls": 0,
+  "providerUsageMeasured": false,
+  "billingVerified": false,
+  "taskQualityVerified": false,
+  "notes": [
+    "A fixed synthetic descriptor corpus, not real task or invocation quality.",
+    "Latency samples repeat fixed queries with a fresh lexical index, excluding discovery and tool dispatch.",
+    "Directory token estimates exclude tool wrappers, routing evidence, messages, bodies and provider billing.",
+    "Body-cache residency proves instruction materialization only; discovery still reads files to verify content identity."
+  ],
+  "tiers": [
+    {
+      "skillCount": 50,
+      "caseCount": 17,
+      "positiveCases": 13,
+      "negativeCases": 4,
+      "recallAt5": 1,
+      "wrongSelectionCount": 0,
+      "negativeSelectionCount": 0,
+      "firstPageCount": 20,
+      "fullDirectoryEstimatedTokens": 1857,
+      "firstPageEstimatedTokens": 751,
+      "omittedSkillsSearchPassed": true,
+      "bodiesBeforeSearch": 0,
+      "bodiesAfterSearch": 0,
+      "bodiesAfterSelection": 1,
+      "latency": {
+        "sampleCount": 136,
+        "p50Ms": 4.667300000000068,
+        "p95Ms": 9.05880000000002,
+        "maxMs": 18.360000000000127
+      },
+      "cases": [
+        {
+          "query": "repair tests",
+          "expectedId": "repairTests",
+          "selectedId": "repairTests",
+          "candidateIds": [
+            "repairTests"
+          ]
+        },
+        {
+          "query": "repairtests",
+          "expectedId": "repairTests",
+          "selectedId": "repairTests",
+          "candidateIds": [
+            "repairTests"
+          ]
+        },
+        {
+          "query": "请帮我修复Ｖｉｔｅｓｔ测试",
+          "expectedId": "repairTests",
+          "selectedId": "repairTests",
+          "candidateIds": [
+            "repairTests"
+          ]
+        },
+        {
+          "query": "Vitest",
+          "expectedId": "repairTests",
+          "selectedId": "repairTests",
+          "candidateIds": [
+            "repairTests"
+          ]
+        },
+        {
+          "query": "parse http response",
+          "expectedId": "parseHTTPResponse",
+          "selectedId": "parseHTTPResponse",
+          "candidateIds": [
+            "parseHTTPResponse"
+          ]
+        },
+        {
+          "query": "ＨＴＴＰ",
+          "expectedId": "parseHTTPResponse",
+          "selectedId": "parseHTTPResponse",
+          "candidateIds": [
+            "parseHTTPResponse"
+          ]
+        },
+        {
+          "query": "export records",
+          "expectedId": "export_records",
+          "selectedId": "export_records",
+          "candidateIds": [
+            "export_records"
+          ]
+        },
+        {
+          "query": "数据库导出",
+          "expectedId": "export_records",
+          "selectedId": "export_records",
+          "candidateIds": [
+            "export_records"
+          ]
+        },
+        {
+          "query": "CSV报表",
+          "expectedId": "export_records",
+          "selectedId": "export_records",
+          "candidateIds": [
+            "export_records"
+          ]
+        },
+        {
+          "query": "总结会议纪要",
+          "expectedId": "meeting-notes",
+          "selectedId": "meeting-notes",
+          "candidateIds": [
+            "meeting-notes"
+          ]
+        },
+        {
+          "query": "café résumé",
+          "expectedId": "unicode-documents",
+          "selectedId": "unicode-documents",
+          "candidateIds": [
+            "unicode-documents"
+          ]
+        },
+        {
+          "query": "ＣＡＦÉ",
+          "expectedId": "unicode-documents",
+          "selectedId": "unicode-documents",
+          "candidateIds": [
+            "unicode-documents"
+          ]
+        },
+        {
+          "query": "数字时钟",
+          "expectedId": "digital-clock",
+          "selectedId": "digital-clock",
+          "candidateIds": [
+            "digital-clock"
+          ]
+        },
+        {
+          "query": "数学",
+          "expectedId": null,
+          "selectedId": null,
+          "candidateIds": []
+        },
+        {
+          "query": "请问帮我一下 please help me",
+          "expectedId": null,
+          "selectedId": null,
+          "candidateIds": []
+        },
+        {
+          "query": "BODY_ONLY_ZEPHYR_92",
+          "expectedId": null,
+          "selectedId": null,
+          "candidateIds": []
+        },
+        {
+          "query": "unlisted-quasar-nebula",
+          "expectedId": null,
+          "selectedId": null,
+          "candidateIds": []
+        }
+      ]
+    },
+    {
+      "skillCount": 200,
+      "caseCount": 17,
+      "positiveCases": 13,
+      "negativeCases": 4,
+      "recallAt5": 1,
+      "wrongSelectionCount": 0,
+      "negativeSelectionCount": 0,
+      "firstPageCount": 20,
+      "fullDirectoryEstimatedTokens": 7482,
+      "firstPageEstimatedTokens": 751,
+      "omittedSkillsSearchPassed": true,
+      "bodiesBeforeSearch": 0,
+      "bodiesAfterSearch": 0,
+      "bodiesAfterSelection": 1,
+      "latency": {
+        "sampleCount": 136,
+        "p50Ms": 17.83480000000054,
+        "p95Ms": 29.833599999999933,
+        "maxMs": 43.502700000000004
+      },
+      "cases": [
+        {
+          "query": "repair tests",
+          "expectedId": "repairTests",
+          "selectedId": "repairTests",
+          "candidateIds": [
+            "repairTests"
+          ]
+        },
+        {
+          "query": "repairtests",
+          "expectedId": "repairTests",
+          "selectedId": "repairTests",
+          "candidateIds": [
+            "repairTests"
+          ]
+        },
+        {
+          "query": "请帮我修复Ｖｉｔｅｓｔ测试",
+          "expectedId": "repairTests",
+          "selectedId": "repairTests",
+          "candidateIds": [
+            "repairTests"
+          ]
+        },
+        {
+          "query": "Vitest",
+          "expectedId": "repairTests",
+          "selectedId": "repairTests",
+          "candidateIds": [
+            "repairTests"
+          ]
+        },
+        {
+          "query": "parse http response",
+          "expectedId": "parseHTTPResponse",
+          "selectedId": "parseHTTPResponse",
+          "candidateIds": [
+            "parseHTTPResponse"
+          ]
+        },
+        {
+          "query": "ＨＴＴＰ",
+          "expectedId": "parseHTTPResponse",
+          "selectedId": "parseHTTPResponse",
+          "candidateIds": [
+            "parseHTTPResponse"
+          ]
+        },
+        {
+          "query": "export records",
+          "expectedId": "export_records",
+          "selectedId": "export_records",
+          "candidateIds": [
+            "export_records"
+          ]
+        },
+        {
+          "query": "数据库导出",
+          "expectedId": "export_records",
+          "selectedId": "export_records",
+          "candidateIds": [
+            "export_records"
+          ]
+        },
+        {
+          "query": "CSV报表",
+          "expectedId": "export_records",
+          "selectedId": "export_records",
+          "candidateIds": [
+            "export_records"
+          ]
+        },
+        {
+          "query": "总结会议纪要",
+          "expectedId": "meeting-notes",
+          "selectedId": "meeting-notes",
+          "candidateIds": [
+            "meeting-notes"
+          ]
+        },
+        {
+          "query": "café résumé",
+          "expectedId": "unicode-documents",
+          "selectedId": "unicode-documents",
+          "candidateIds": [
+            "unicode-documents"
+          ]
+        },
+        {
+          "query": "ＣＡＦÉ",
+          "expectedId": "unicode-documents",
+          "selectedId": "unicode-documents",
+          "candidateIds": [
+            "unicode-documents"
+          ]
+        },
+        {
+          "query": "数字时钟",
+          "expectedId": "digital-clock",
+          "selectedId": "digital-clock",
+          "candidateIds": [
+            "digital-clock"
+          ]
+        },
+        {
+          "query": "数学",
+          "expectedId": null,
+          "selectedId": null,
+          "candidateIds": []
+        },
+        {
+          "query": "请问帮我一下 please help me",
+          "expectedId": null,
+          "selectedId": null,
+          "candidateIds": []
+        },
+        {
+          "query": "BODY_ONLY_ZEPHYR_92",
+          "expectedId": null,
+          "selectedId": null,
+          "candidateIds": []
+        },
+        {
+          "query": "unlisted-quasar-nebula",
+          "expectedId": null,
+          "selectedId": null,
+          "candidateIds": []
+        }
+      ]
+    },
+    {
+      "skillCount": 500,
+      "caseCount": 17,
+      "positiveCases": 13,
+      "negativeCases": 4,
+      "recallAt5": 1,
+      "wrongSelectionCount": 0,
+      "negativeSelectionCount": 0,
+      "firstPageCount": 20,
+      "fullDirectoryEstimatedTokens": 18732,
+      "firstPageEstimatedTokens": 751,
+      "omittedSkillsSearchPassed": true,
+      "bodiesBeforeSearch": 0,
+      "bodiesAfterSearch": 0,
+      "bodiesAfterSelection": 1,
+      "latency": {
+        "sampleCount": 136,
+        "p50Ms": 43.53950000000077,
+        "p95Ms": 67.63680000000022,
+        "maxMs": 78.11700000000019
+      },
+      "cases": [
+        {
+          "query": "repair tests",
+          "expectedId": "repairTests",
+          "selectedId": "repairTests",
+          "candidateIds": [
+            "repairTests"
+          ]
+        },
+        {
+          "query": "repairtests",
+          "expectedId": "repairTests",
+          "selectedId": "repairTests",
+          "candidateIds": [
+            "repairTests"
+          ]
+        },
+        {
+          "query": "请帮我修复Ｖｉｔｅｓｔ测试",
+          "expectedId": "repairTests",
+          "selectedId": "repairTests",
+          "candidateIds": [
+            "repairTests"
+          ]
+        },
+        {
+          "query": "Vitest",
+          "expectedId": "repairTests",
+          "selectedId": "repairTests",
+          "candidateIds": [
+            "repairTests"
+          ]
+        },
+        {
+          "query": "parse http response",
+          "expectedId": "parseHTTPResponse",
+          "selectedId": "parseHTTPResponse",
+          "candidateIds": [
+            "parseHTTPResponse"
+          ]
+        },
+        {
+          "query": "ＨＴＴＰ",
+          "expectedId": "parseHTTPResponse",
+          "selectedId": "parseHTTPResponse",
+          "candidateIds": [
+            "parseHTTPResponse"
+          ]
+        },
+        {
+          "query": "export records",
+          "expectedId": "export_records",
+          "selectedId": "export_records",
+          "candidateIds": [
+            "export_records"
+          ]
+        },
+        {
+          "query": "数据库导出",
+          "expectedId": "export_records",
+          "selectedId": "export_records",
+          "candidateIds": [
+            "export_records"
+          ]
+        },
+        {
+          "query": "CSV报表",
+          "expectedId": "export_records",
+          "selectedId": "export_records",
+          "candidateIds": [
+            "export_records"
+          ]
+        },
+        {
+          "query": "总结会议纪要",
+          "expectedId": "meeting-notes",
+          "selectedId": "meeting-notes",
+          "candidateIds": [
+            "meeting-notes"
+          ]
+        },
+        {
+          "query": "café résumé",
+          "expectedId": "unicode-documents",
+          "selectedId": "unicode-documents",
+          "candidateIds": [
+            "unicode-documents"
+          ]
+        },
+        {
+          "query": "ＣＡＦÉ",
+          "expectedId": "unicode-documents",
+          "selectedId": "unicode-documents",
+          "candidateIds": [
+            "unicode-documents"
+          ]
+        },
+        {
+          "query": "数字时钟",
+          "expectedId": "digital-clock",
+          "selectedId": "digital-clock",
+          "candidateIds": [
+            "digital-clock"
+          ]
+        },
+        {
+          "query": "数学",
+          "expectedId": null,
+          "selectedId": null,
+          "candidateIds": []
+        },
+        {
+          "query": "请问帮我一下 please help me",
+          "expectedId": null,
+          "selectedId": null,
+          "candidateIds": []
+        },
+        {
+          "query": "BODY_ONLY_ZEPHYR_92",
+          "expectedId": null,
+          "selectedId": null,
+          "candidateIds": []
+        },
+        {
+          "query": "unlisted-quasar-nebula",
+          "expectedId": null,
+          "selectedId": null,
+          "candidateIds": []
+        }
+      ]
+    }
+  ]
+}

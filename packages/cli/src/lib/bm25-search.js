@@ -129,11 +129,14 @@ export class BM25Search {
    * @param {number} [options.k1=1.5] - Term frequency saturation parameter
    * @param {number} [options.b=0.75] - Length normalization parameter
    * @param {string} [options.language="auto"] - Language for tokenization
+   * @param {function(string): string[]} [options.tokenizer] - Optional domain tokenizer
    */
   constructor(options = {}) {
     this.k1 = options.k1 || 1.5;
     this.b = options.b || 0.75;
     this.language = options.language || "auto";
+    this._tokenize =
+      options.tokenizer || ((text) => tokenize(text, this.language));
 
     // Index state
     this.documents = []; // Array of { id, tokens, originalDoc }
@@ -152,7 +155,7 @@ export class BM25Search {
 
     for (const doc of documents) {
       const text = [doc.title || "", doc.content || ""].join(" ");
-      const tokens = tokenize(text, this.language);
+      const tokens = this._tokenize(text);
 
       this.documents.push({
         id: doc.id,
@@ -183,7 +186,7 @@ export class BM25Search {
    */
   addDocument(doc) {
     const text = [doc.title || "", doc.content || ""].join(" ");
-    const tokens = tokenize(text, this.language);
+    const tokens = this._tokenize(text);
 
     this.documents.push({
       id: doc.id,
@@ -251,7 +254,7 @@ export class BM25Search {
 
     if (this.totalDocs === 0) return [];
 
-    const queryTokens = tokenize(query, this.language);
+    const queryTokens = this._tokenize(query);
     if (queryTokens.length === 0) return [];
 
     const scores = [];

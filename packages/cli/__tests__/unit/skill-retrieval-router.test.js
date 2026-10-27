@@ -32,6 +32,32 @@ function skill(id, description, overrides = {}) {
 }
 
 describe("Skill retrieval router", () => {
+  it.each([
+    ["repair tests", "repairTests", "Inspect assertions and rerun suite"],
+    ["repairtests", "repairTests", "Inspect assertions and rerun suite"],
+    ["Ｖｉｔｅｓｔ", "repair-tests", "Repair Vitest failures"],
+    ["修复Ｖｉｔｅｓｔ测试", "repair-tests", "修复 Vitest 单元测试失败"],
+    ["parse http response", "parseHTTPResponse", "Inspect server headers"],
+    ["café résumé", "unicode-text", "Edit café résumé content"],
+  ])("recalls %s from descriptor words", (query, id, description) => {
+    const result = routeSkillDescriptors({
+      skills: [skill(id, description)],
+      query,
+    });
+    expect(result.selected?.id).toBe(id);
+  });
+
+  it("abstains on Chinese single-character overlap and conversational filler", () => {
+    for (const query of ["数据导出", "请问帮我一下"]) {
+      const result = routeSkillDescriptors({
+        skills: [skill("digital-clock", "数字时钟")],
+        query,
+      });
+      expect(result.candidates).toEqual([]);
+      expect(result.selected).toBeNull();
+    }
+  });
+
   it("excludes durably revoked content before lexical, vector, and outcome scoring", async () => {
     let stored = null;
     const authority = await openSkillRetrievalRevocationAuthority({

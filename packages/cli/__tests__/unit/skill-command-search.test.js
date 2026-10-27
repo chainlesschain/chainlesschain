@@ -23,6 +23,19 @@ function skill(id, description, overrides = {}) {
 }
 
 describe("cc skill search canonical routing", () => {
+  it("uses the same multilingual descriptor retrieval as list_skills", () => {
+    const result = routeSkillSearch(
+      [
+        skill("repairTests", "修复 Vitest 单元测试失败"),
+        skill("clock", "数字时钟"),
+      ],
+      "修复Ｖｉｔｅｓｔ测试",
+    );
+    expect(result.selected?.id).toBe("repairTests");
+    expect(
+      routeSkillSearch([skill("clock", "数字时钟")], "数据导出").selected,
+    ).toBeNull();
+  });
   it("returns ranked digest-bound candidates with stable evidence", () => {
     const result = routeSkillSearch(
       [
