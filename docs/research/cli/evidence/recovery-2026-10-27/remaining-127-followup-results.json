@@ -60,6 +60,8 @@
           "total": 6,
           "passed": 5,
           "failed": 1,
+          "pending": 0,
+          "todo": 0,
           "failures": [
             {
               "name": "background agent list index pagination invalidation keeps the final page correct when the page size does not divide the total",
@@ -67,7 +69,17 @@
             }
           ]
         }
-      ]
+      ],
+      "generationAssessment": {
+        "pass": true,
+        "settled": true,
+        "failureCategory": null,
+        "preExecutionDenials": [],
+        "brokerErrorCode": null,
+        "hostPassed": true,
+        "hostFailure": null,
+        "compactionDegradations": []
+      }
     },
     {
       "sampleId": "first-run-linux-cli",
@@ -122,6 +134,8 @@
           "total": 6,
           "passed": 0,
           "failed": 6,
+          "pending": 0,
+          "todo": 0,
           "failures": [
             {
               "name": "priceRollup: per-request cache vs long-context contracts prices a fully cache-read request at the discounted cacheRead rate",
@@ -149,7 +163,17 @@
             }
           ]
         }
-      ]
+      ],
+      "generationAssessment": {
+        "pass": true,
+        "settled": true,
+        "failureCategory": null,
+        "preExecutionDenials": [],
+        "brokerErrorCode": null,
+        "hostPassed": true,
+        "hostFailure": null,
+        "compactionDegradations": []
+      }
     },
     {
       "sampleId": "verify-19",
@@ -204,6 +228,8 @@
           "total": 2,
           "passed": 0,
           "failed": 2,
+          "pending": 0,
+          "todo": 0,
           "failures": [
             {
               "name": "cancelled-approval late callback a late accept for a cancelled id cannot authorize the tool",
@@ -215,7 +241,704 @@
             }
           ]
         }
+      ],
+      "generationAssessment": {
+        "pass": true,
+        "settled": true,
+        "failureCategory": null,
+        "preExecutionDenials": [],
+        "brokerErrorCode": null,
+        "hostPassed": true,
+        "hostFailure": null,
+        "compactionDegradations": [
+          {
+            "reason": "compaction_failed:compaction budget cannot retain the recovery context and generated summaries",
+            "summary_mode": "none"
+          },
+          {
+            "reason": "compaction_failed:compaction budget cannot retain the recovery context and generated summaries",
+            "summary_mode": "none"
+          },
+          {
+            "reason": "compaction_failed:compaction budget cannot retain the recovery context and generated summaries",
+            "summary_mode": "none"
+          },
+          {
+            "reason": "compaction_failed:compaction budget cannot retain the recovery context and generated summaries",
+            "summary_mode": "none"
+          },
+          {
+            "reason": "compaction_failed:compaction budget cannot retain the recovery context and generated summaries",
+            "summary_mode": "none"
+          },
+          {
+            "reason": "compaction_failed:compaction budget cannot retain the recovery context and generated summaries",
+            "summary_mode": "none"
+          },
+          {
+            "reason": "compaction_failed:compaction budget cannot retain the recovery context and generated summaries",
+            "summary_mode": "none"
+          },
+          {
+            "reason": "compaction_failed:compaction budget cannot retain the recovery context and generated summaries",
+            "summary_mode": "none"
+          }
+        ]
+      }
+    },
+    {
+      "sampleId": "verify-07",
+      "attempt": "validation-fix",
+      "runId": "40474307440",
+      "executionSourceCommit": "9461b1ded573f0649c4e265c8be7d99eec805e16",
+      "planPath": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-127-funded-20261027-preflight-plan.json",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40474307440",
+      "versions": {
+        "cli": "0.166.127",
+        "vscode": "0.37.165",
+        "jetbrains": "0.4.182",
+        "vscodeHost": "1.132.0",
+        "jetbrainsHost": "2025.2"
+      },
+      "generationPassed": true,
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false,
+      "setup": {
+        "pass": true,
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 39,
+            "passed": 39,
+            "failed": 0
+          }
+        ],
+        "receiptDigest": "sha256:9e269a1c6a5b40ef1e269f702a51527cdcbd6b88aba0d502e998a1e58f0dff12"
+      },
+      "check": {
+        "pass": false,
+        "detail": "candidate or baseline regression failed",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 39,
+            "passed": 39,
+            "failed": 0
+          }
+        ],
+        "mutations": [],
+        "receiptDigest": "sha256:dbddd64713a2918ade96f8667149d3678fbb9ab639c0f2ef28a9522b9c8de62f"
+      },
+      "physicalRequestsStarted": 18,
+      "usageCompleteRequests": 18,
+      "tokenOnlyEstimateCny": 0.49840019999999996,
+      "actualBilledCostCny": null,
+      "billingAssessed": false,
+      "formalSample": false,
+      "candidateTestExecutions": [
+        {
+          "total": 6,
+          "passed": 0,
+          "failed": 6,
+          "pending": 0,
+          "todo": 0,
+          "failures": [
+            {
+              "name": "persistent body pagination boundary walks the full transcript across pages without missing or repeating the final body",
+              "reason": "Error: session verify07-walk session_start must be the first event"
+            },
+            {
+              "name": "persistent body pagination boundary reaches the last cursor and does not return a repeated boundary page",
+              "reason": "Error: session verify07-firstlast session_start must be the first event"
+            },
+            {
+              "name": "persistent body pagination boundary does not omit the oversized final page when the body straddles the last cursor",
+              "reason": "Error: session verify07-oversized session_start must be the first event"
+            },
+            {
+              "name": "persistent body pagination boundary the first cursor (head) page and the last cursor page share no message",
+              "reason": "Error: session verify07-disjoint session_start must be the first event"
+            },
+            {
+              "name": "persistent body pagination boundary is stable across an even count so no final body is dropped",
+              "reason": "Error: session verify07-even session_start must be the first event"
+            },
+            {
+              "name": "persistent body pagination boundary a null nextCursor at the head means the whole transcript is one page",
+              "reason": "Error: session verify07-null session_start must be the first event"
+            }
+          ]
+        }
+      ],
+      "generationAssessment": {
+        "pass": true,
+        "settled": true,
+        "failureCategory": null,
+        "preExecutionDenials": [],
+        "brokerErrorCode": null,
+        "hostPassed": true,
+        "hostFailure": null,
+        "compactionDegradations": [
+          {
+            "reason": "compaction_failed:compaction budget cannot retain the recovery context and generated summaries",
+            "summary_mode": "none"
+          },
+          {
+            "reason": "compaction_failed:compaction budget cannot retain the recovery context and generated summaries",
+            "summary_mode": "none"
+          },
+          {
+            "reason": "compaction_failed:compaction budget cannot retain the recovery context and generated summaries",
+            "summary_mode": "none"
+          },
+          {
+            "reason": "compaction_failed:compaction budget cannot retain the recovery context and generated summaries",
+            "summary_mode": "none"
+          },
+          {
+            "reason": "invalid_llm_summary:invalid_fields",
+            "summary_mode": "extractive-fallback"
+          }
+        ]
+      }
+    },
+    {
+      "sampleId": "first-run-darwin-cli",
+      "attempt": "initial",
+      "runId": "40476134137",
+      "executionSourceCommit": "9461b1ded573f0649c4e265c8be7d99eec805e16",
+      "planPath": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-127-funded-20261027-preflight-plan.json",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40476134137",
+      "versions": {
+        "cli": "0.166.127",
+        "vscode": "0.37.165",
+        "jetbrains": "0.4.182",
+        "vscodeHost": "1.132.0",
+        "jetbrainsHost": "2025.2"
+      },
+      "generationPassed": false,
+      "generationAssessment": {
+        "pass": false,
+        "settled": false,
+        "failureCategory": "tool-settlement-unverified",
+        "preExecutionDenials": [
+          {
+            "id": "call_4ymzfrh1oi3qy76cmp3vcty8",
+            "tool": "write_file",
+            "reason": "non-canonical-path",
+            "executionStarted": false
+          }
+        ],
+        "brokerErrorCode": null,
+        "hostPassed": true,
+        "hostFailure": null,
+        "compactionDegradations": [
+          {
+            "reason": "invalid_llm_summary:invalid_fields",
+            "summary_mode": "extractive-fallback"
+          },
+          {
+            "reason": "compaction_failed:compaction budget cannot retain the recovery context and generated summaries",
+            "summary_mode": "none"
+          },
+          {
+            "reason": "compaction_failed:compaction budget cannot retain the recovery context and generated summaries",
+            "summary_mode": "none"
+          }
+        ]
+      },
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false,
+      "setup": {
+        "pass": true,
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 39,
+            "passed": 39,
+            "failed": 0
+          }
+        ],
+        "receiptDigest": "sha256:8af55778a2473308461a39122bd1c117c008aaa7179c018fa0af4ee369fd9079"
+      },
+      "check": {
+        "pass": false,
+        "detail": "skipped, pending, todo or empty tests cannot pass acceptance",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 39,
+            "passed": 39,
+            "failed": 0
+          }
+        ],
+        "mutations": [],
+        "receiptDigest": "sha256:9ba3768a6658d70e02a71f46ecebed20439b0b85589ba54de6939dcbf86be1a7"
+      },
+      "physicalRequestsStarted": 17,
+      "usageCompleteRequests": 17,
+      "tokenOnlyEstimateCny": 0.5877796,
+      "actualBilledCostCny": null,
+      "billingAssessed": false,
+      "formalSample": false,
+      "candidateTestExecutions": [
+        {
+          "total": 6,
+          "passed": 0,
+          "failed": 0,
+          "pending": 6,
+          "todo": 0,
+          "failures": []
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-06",
+      "attempt": "initial",
+      "runId": "40477719399",
+      "executionSourceCommit": "9461b1ded573f0649c4e265c8be7d99eec805e16",
+      "planPath": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-127-funded-20261027-preflight-plan.json",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40477719399",
+      "versions": {
+        "cli": "0.166.127",
+        "vscode": "0.37.165",
+        "jetbrains": "0.4.182",
+        "vscodeHost": "1.132.0",
+        "jetbrainsHost": "2025.2"
+      },
+      "generationPassed": true,
+      "generationAssessment": {
+        "pass": true,
+        "settled": true,
+        "failureCategory": null,
+        "preExecutionDenials": [],
+        "brokerErrorCode": null,
+        "hostPassed": true,
+        "hostFailure": null,
+        "compactionDegradations": []
+      },
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false,
+      "setup": {
+        "pass": true,
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 31,
+            "passed": 31,
+            "failed": 0
+          }
+        ],
+        "receiptDigest": "sha256:51c0aefd2002ef11b71b52fb750001f25e7f0b2d9720c71a0f2851cca5fe82e6"
+      },
+      "check": {
+        "pass": false,
+        "detail": "candidate or baseline regression failed",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 31,
+            "passed": 31,
+            "failed": 0
+          }
+        ],
+        "mutations": [],
+        "receiptDigest": "sha256:2f76bb6888e5f17f84483fc10fe1b46545c63491a858f53db9e8015fd88e489e"
+      },
+      "physicalRequestsStarted": 18,
+      "usageCompleteRequests": 18,
+      "tokenOnlyEstimateCny": 0.33274200000000004,
+      "actualBilledCostCny": null,
+      "billingAssessed": false,
+      "formalSample": false,
+      "candidateTestExecutions": [
+        {
+          "total": 3,
+          "passed": 2,
+          "failed": 1,
+          "pending": 0,
+          "todo": 0,
+          "failures": [
+            {
+              "name": "Orchestrator paid-decomposition preflight (verify-06) positive control: when the preflight gate passes, decomposition and start notification DO run",
+              "reason": "TypeError: Cannot read properties of undefined (reading 'catch')"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-08",
+      "attempt": "initial",
+      "runId": "40480645282",
+      "executionSourceCommit": "9461b1ded573f0649c4e265c8be7d99eec805e16",
+      "planPath": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-127-funded-20261027-preflight-plan.json",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40480645282",
+      "versions": {
+        "cli": "0.166.127",
+        "vscode": "0.37.165",
+        "jetbrains": "0.4.182",
+        "vscodeHost": "1.132.0",
+        "jetbrainsHost": "2025.2"
+      },
+      "generationPassed": false,
+      "generationAssessment": {
+        "pass": false,
+        "settled": true,
+        "failureCategory": "agent-error",
+        "preExecutionDenials": [],
+        "brokerErrorCode": "DIAGNOSTIC_OUTPUT_TRUNCATED",
+        "hostPassed": false,
+        "hostFailure": "VSCode initial/UI/restart validation failed",
+        "compactionDegradations": []
+      },
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false,
+      "setup": {
+        "pass": true,
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 58,
+            "passed": 58,
+            "failed": 0
+          }
+        ],
+        "receiptDigest": "sha256:6a8af9441b27836fe7a5be016861a2a4befecd5c5796497e9d18abbe68f58765"
+      },
+      "check": {
+        "pass": false,
+        "detail": "acceptance requires executed test cases",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 58,
+            "passed": 58,
+            "failed": 0
+          }
+        ],
+        "mutations": [],
+        "receiptDigest": "sha256:e870b71c4c2dacd1c2900ece310da5c8013e3a74eaad1d0b245588942f980881"
+      },
+      "physicalRequestsStarted": 4,
+      "usageCompleteRequests": 4,
+      "tokenOnlyEstimateCny": 0.1713538,
+      "actualBilledCostCny": null,
+      "billingAssessed": false,
+      "formalSample": false,
+      "candidateTestExecutions": [
+        {
+          "total": 0,
+          "passed": 0,
+          "failed": 0,
+          "pending": 0,
+          "todo": 0,
+          "failures": []
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-11",
+      "attempt": "initial",
+      "runId": "40482653681",
+      "executionSourceCommit": "9461b1ded573f0649c4e265c8be7d99eec805e16",
+      "planPath": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-127-funded-20261027-preflight-plan.json",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40482653681",
+      "versions": {
+        "cli": "0.166.127",
+        "vscode": "0.37.165",
+        "jetbrains": "0.4.182",
+        "vscodeHost": "1.132.0",
+        "jetbrainsHost": "2025.2"
+      },
+      "generationPassed": true,
+      "generationAssessment": {
+        "pass": true,
+        "settled": true,
+        "failureCategory": null,
+        "preExecutionDenials": [],
+        "brokerErrorCode": null,
+        "hostPassed": true,
+        "hostFailure": null,
+        "compactionDegradations": []
+      },
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false,
+      "setup": {
+        "pass": true,
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 16,
+            "passed": 16,
+            "failed": 0
+          }
+        ],
+        "receiptDigest": "sha256:26693d15a00f966a698b6d46e254ede8f7bad62f8f316a7f17ade4b6c2be51fd"
+      },
+      "check": {
+        "pass": false,
+        "detail": "candidate or baseline regression failed",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 16,
+            "passed": 16,
+            "failed": 0
+          }
+        ],
+        "mutations": [],
+        "receiptDigest": "sha256:3bf7e6d9dc34453eb4997c235162f6d331d7c3cc0b1bcac5f91ab30bda5c2a2c"
+      },
+      "physicalRequestsStarted": 7,
+      "usageCompleteRequests": 7,
+      "tokenOnlyEstimateCny": 0.2617758,
+      "actualBilledCostCny": null,
+      "billingAssessed": false,
+      "formalSample": false,
+      "candidateTestExecutions": [
+        {
+          "total": 6,
+          "passed": 0,
+          "failed": 6,
+          "pending": 0,
+          "todo": 0,
+          "failures": [
+            {
+              "name": "verify-11 problem persistence attribution keeps a same-named request isolated across two persisted sessions",
+              "reason": "BackgroundInteractionPersistenceError: Background interaction journal read failed for session-alpha: session session-alpha session must contain exactly one session_start event"
+            },
+            {
+              "name": "verify-11 problem persistence attribution does not recreate execution authority after a request is completed",
+              "reason": "BackgroundInteractionPersistenceError: Background interaction journal read failed for session-1: session session-1 session must contain exactly one session_start event"
+            },
+            {
+              "name": "verify-11 problem persistence attribution rejects replayed completed work that carries a different payload",
+              "reason": "BackgroundInteractionPersistenceError: Background interaction journal read failed for session-1: session session-1 session must contain exactly one session_start event"
+            },
+            {
+              "name": "verify-11 problem persistence attribution does not let a completed record be revived as pending by late settlement",
+              "reason": "BackgroundInteractionPersistenceError: Background interaction journal read failed for session-1: session session-1 session must contain exactly one session_start event"
+            },
+            {
+              "name": "verify-11 problem persistence attribution keeps a terminal answer authoritative when the same id is replayed across sessions",
+              "reason": "BackgroundInteractionPersistenceError: Background interaction journal read failed for session-alpha: session session-alpha session must contain exactly one session_start event"
+            },
+            {
+              "name": "verify-11 problem persistence attribution rejects a cross-session record inside a single session-bound journal",
+              "reason": "BackgroundInteractionPersistenceError: Background interaction journal read failed for session-1: session session-1 session must contain exactly one session_start event"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sampleId": "verify-30",
+      "attempt": "initial",
+      "runId": "40484944269",
+      "executionSourceCommit": "9461b1ded573f0649c4e265c8be7d99eec805e16",
+      "planPath": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-127-funded-20261027-preflight-plan.json",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40484944269",
+      "versions": {
+        "cli": "0.166.127",
+        "vscode": "0.37.165",
+        "jetbrains": "0.4.182",
+        "vscodeHost": "1.132.0",
+        "jetbrainsHost": "2025.2"
+      },
+      "generationPassed": true,
+      "generationAssessment": {
+        "pass": true,
+        "settled": true,
+        "failureCategory": null,
+        "preExecutionDenials": [],
+        "brokerErrorCode": null,
+        "hostPassed": true,
+        "hostFailure": null,
+        "compactionDegradations": []
+      },
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false,
+      "setup": {
+        "pass": true,
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 13,
+            "passed": 13,
+            "failed": 0
+          }
+        ],
+        "receiptDigest": "sha256:f399130b05180ae29130c3fb33c63893e0d242ce39f07e86007f4e8375b62616"
+      },
+      "check": {
+        "pass": false,
+        "detail": "candidate tests did not reject the behavioral mutant",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 13,
+            "passed": 13,
+            "failed": 0
+          },
+          {
+            "kind": "candidate",
+            "total": 6,
+            "passed": 6,
+            "failed": 0
+          }
+        ],
+        "mutations": [
+          {
+            "name": "collapse-animation-frame-count-and-cumulative-budget",
+            "sourceSha256": "24ae42225ca67212f70c8ce93ccdbbf5bdd17e29b1775c817e2c03ad015ad2f7",
+            "total": 6,
+            "passed": 1,
+            "failed": 5
+          }
+        ],
+        "receiptDigest": "sha256:346d9cd3e3e9d2443ce1fbea5f0bc23880aa2da6b133efb659041eb265c67f43"
+      },
+      "physicalRequestsStarted": 5,
+      "usageCompleteRequests": 5,
+      "tokenOnlyEstimateCny": 0.17253380000000001,
+      "actualBilledCostCny": null,
+      "billingAssessed": false,
+      "formalSample": false,
+      "candidateTestExecutions": [
+        {
+          "total": 6,
+          "passed": 6,
+          "failed": 0,
+          "pending": 0,
+          "todo": 0,
+          "failures": []
+        },
+        {
+          "total": 6,
+          "passed": 1,
+          "failed": 5,
+          "pending": 0,
+          "todo": 0,
+          "failures": [
+            {
+              "name": "cumulative animation frame budget (verify-30) rejects a multi-frame canvas-pixel total above the 40 MP budget",
+              "reason": "AssertionError: expected [Function] to throw an error"
+            },
+            {
+              "name": "cumulative animation frame budget (verify-30) rejects a frame count above 200",
+              "reason": "AssertionError: expected [Function] to throw an error"
+            },
+            {
+              "name": "cumulative animation frame budget (verify-30) retains the exact pixel-budget boundary (10 x 2000x2000 = 40 MP)",
+              "reason": "AssertionError: expected { format: 'gif', width: 2000, …(4) } to match object { width: 2000, height: 2000, …(2) }"
+            },
+            {
+              "name": "cumulative animation frame budget (verify-30) retains the exact frame-count boundary (200 x 1x1 frames)",
+              "reason": "AssertionError: expected { format: 'gif', width: 1, …(4) } to match object { frames: 200, decodedPixels: 200 }"
+            },
+            {
+              "name": "cumulative animation frame budget (verify-30) rejects cumulative over-limit computed on the canvas, not delta frames",
+              "reason": "AssertionError: expected [Function] to throw an error"
+            }
+          ]
+        },
+        {
+          "total": 6,
+          "passed": 6,
+          "failed": 0,
+          "pending": 0,
+          "todo": 0,
+          "failures": []
+        }
+      ]
+    },
+    {
+      "sampleId": "first-run-darwin-jetbrains",
+      "attempt": "initial",
+      "runId": "40493312511",
+      "executionSourceCommit": "9461b1ded573f0649c4e265c8be7d99eec805e16",
+      "planPath": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-127-funded-20261027-preflight-plan.json",
+      "url": "https://github.com/chainlesschain/chainlesschain/actions/runs/40493312511",
+      "versions": {
+        "cli": "0.166.127",
+        "vscode": "0.37.165",
+        "jetbrains": "0.4.182",
+        "vscodeHost": "1.132.0",
+        "jetbrainsHost": "2025.2"
+      },
+      "generationPassed": true,
+      "generationAssessment": {
+        "pass": true,
+        "settled": true,
+        "failureCategory": null,
+        "preExecutionDenials": [],
+        "brokerErrorCode": null,
+        "hostPassed": true,
+        "hostFailure": null,
+        "compactionDegradations": []
+      },
+      "candidateAcceptancePassed": false,
+      "endToEndPassed": false,
+      "setup": {
+        "pass": true,
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 11,
+            "passed": 11,
+            "failed": 0
+          }
+        ],
+        "receiptDigest": "sha256:db0030b0c3e372c8ce55e1dd24e8cb31881a4dd55500c31557dcb5c1256eb7d9"
+      },
+      "check": {
+        "pass": false,
+        "detail": "candidate or baseline regression failed",
+        "tests": [
+          {
+            "kind": "baseline",
+            "total": 11,
+            "passed": 11,
+            "failed": 0
+          }
+        ],
+        "mutations": [],
+        "receiptDigest": "sha256:be2ab4a1b8dbc1ee1cbe024f697aedbbd852c099a50d44b37ca4a6960c6b0d28"
+      },
+      "physicalRequestsStarted": 5,
+      "usageCompleteRequests": 5,
+      "tokenOnlyEstimateCny": 0.1569758,
+      "actualBilledCostCny": null,
+      "billingAssessed": false,
+      "formalSample": false,
+      "candidateTestExecutions": [
+        {
+          "total": 6,
+          "passed": 3,
+          "failed": 3,
+          "pending": 0,
+          "todo": 0,
+          "failures": [
+            {
+              "name": "verify-09: historical source tampering is rejected carries a verified indexed origin through compact so a correct source is readable",
+              "reason": "AssertionError: expected null to be 2 // Object.is equality"
+            },
+            {
+              "name": "verify-09: historical source tampering is rejected rejects an output item whose source digest was tampered even with matching text",
+              "reason": "ContextMemoryKernelError: sourceRef.digest must be a string between 71 and 71 characters"
+            },
+            {
+              "name": "verify-09: historical source tampering is rejected drops origin when compact output content is forged even though the source id matches",
+              "reason": "ContextMemoryKernelError: ContextItem digest does not match canonical content"
+            }
+          ]
+        }
       ]
     }
+  ],
+  "planPaths": [
+    "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-127-funded-20261027-preflight-plan.json",
+    "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-127-funded-20261027-unicode-plan.json"
   ]
 }

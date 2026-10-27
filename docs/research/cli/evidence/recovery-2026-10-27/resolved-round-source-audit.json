@@ -1,0 +1,40 @@
+{
+  "schema": "chainlesschain.native-round-source-audit/v1",
+  "scope": "Current working tree including generated assets; not a clean release-commit matrix",
+  "auditExitCode": 1,
+  "reviewedCampaignDigest": "sha256:b8bb7c59ba9774fe6d16c9f8349c1a948cea0d93b1eeca39515e91f6e198ffaa",
+  "campaignNetworkAndModelDispatchUnchanged": true,
+  "categories": 8,
+  "candidateFiles": 82,
+  "unclassifiedFiles": 6,
+  "sourceReviewPassed": false,
+  "reviewIssues": [
+    {
+      "path": "packages/cli/src/assets/web-panel/assets/Artifacts-D4DeQQ89.js",
+      "status": "UNREVIEWED"
+    },
+    {
+      "path": "packages/cli/src/assets/web-panel/assets/index-CI07XFwr.js",
+      "status": "UNREVIEWED"
+    },
+    {
+      "path": "packages/cli/src/assets/web-panel/assets/MtcAudit-CwJzv9a9.js",
+      "status": "UNREVIEWED"
+    },
+    {
+      "path": "packages/cli/src/assets/web-panel/assets/RemoteSession-DyCisp2M.js",
+      "status": "UNREVIEWED"
+    },
+    {
+      "path": "packages/cli/src/lib/llm-connection-probe.js",
+      "status": "STALE"
+    },
+    {
+      "path": "packages/cli/src/runtime/agent-core.js",
+      "status": "STALE"
+    }
+  ],
+  "parseErrors": 0,
+  "paidReady": false,
+  "runtimeCoverageVerified": false
+}

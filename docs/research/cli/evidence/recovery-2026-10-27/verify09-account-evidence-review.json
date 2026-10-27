@@ -1,0 +1,17 @@
+{
+  "schema": "chainlesschain.provider-request-account-review/v1",
+  "sampleId": "verify-09",
+  "originalResponseId": "021792336925419cd483641bd2945773645203cda9eaa13b9041f",
+  "accountEvidenceReviewed": true,
+  "sourceLedgerDigest": "sha256:f3acb286366aad1f1ce3e8f5a7cfb78d4008779b6a9dc5cd1473258d712a3be7",
+  "timeCorrelatedModelDebitObserved": true,
+  "providerResponseIdPresentInLedger": false,
+  "correlationAssessment": "The ledger contains a model debit shortly after the original request window. It has transaction and bill identifiers, but no provider response identifiers, so the debit cannot be attributed uniquely to this request.",
+  "originalRequestUsageRecovered": false,
+  "requestLevelBillingReconciled": false,
+  "furtherVerify09DispatchAuthorized": false,
+  "reviewScope": "The deferred ordinary sample verify-09. The separately planned first-run-darwin-jetbrains sample remains independent even though it uses the same frozen task.",
+  "newDeferredOrdinarySampleCalls": 0,
+  "privateEvidencePublished": false,
+  "accountIdentityAndAmounts": "retained only in private local operator evidence"
+}

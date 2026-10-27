@@ -108,3 +108,25 @@ Windows 解包改用 Python 标准库显式 UTF-8 解码及 Unicode 文件系统
 [verify-19](https://github.com/chainlesschain/chainlesschain/actions/runs/40471191760)原生生成通过，20 笔请求用量完整；独立基线 17/17 通过，候选 0/2 通过，未合格。`main` 随后合入 LLM 配置改动后，[verify-07 的首次派发](https://github.com/chainlesschain/chainlesschain/actions/runs/40472305015)在前置自检阶段失败：新导入的模型能力模块需要 `@chainlesschain/context-memory-kernel`，而干净工作流尚未准备这一工作区依赖。原生生成和验收两个 job 均为 `skipped`，无制品、无模型调用；见[失败依据与原日志摘要](./cli/evidence/recovery-2026-10-27/verify07-preflight-failure.json)。
 
 工作流现为 validate、generate、accept 三个独立检出分别执行仅选取 kernel 工作区的生产依赖安装，禁用安装脚本，使用现有根锁文件。它服务于操作端脚本导入，首次任务的公开 CLI 安装仍由独立临时目录与公开包锁回执验证。干净隔离检出的安装和 `canonicalDigest` 导入通过；工作流列出的全套本地前置自检 **86/86** 通过。失败轮次绑定继续保留在原 unicode 账本，新执行使用[单独计划](./cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-127-funded-20261027-preflight-plan.json)，复用相同 32 个历史合格项和已完成尝试，不增加或省略原 13 个未合格 ID。
+
+工作流修复提交 `9461b1ded5` 的后续实际结果如下，完整回执及候选见[结果索引](./cli/evidence/recovery-2026-10-27/remaining-127-followup-results.json)与本轮账本。
+
+| 样本                                                                                                   | 原生生成                                  | 独立基线 | 候选测试 | 结果                                                                     |
+| ------------------------------------------------------------------------------------------------------ | ----------------------------------------- | -------- | -------- | ------------------------------------------------------------------------ |
+| [verify-07 重试](https://github.com/chainlesschain/chainlesschain/actions/runs/40474307440)            | 通过，18 笔用量完整                       | 39/39    | 0/6      | 会话夹具未满足 `session_start` 首事件结构要求，未合格                    |
+| [macOS CLI 首次安装](https://github.com/chainlesschain/chainlesschain/actions/runs/40476134137)        | 安装及宿主通过，生成未通过；17 笔用量完整 | 39/39    | 6 项跳过 | 存在非规范路径写入拒绝、上下文压缩降级及未完成的测试，不关闭首次安装验收 |
+| [Linux JetBrains verify-06](https://github.com/chainlesschain/chainlesschain/actions/runs/40477719399) | 通过，18 笔用量完整                       | 31/31    | 2/3      | 候选回归失败，未合格                                                     |
+
+用户补充的账户截图和交易流水已在本地核对，见不含账户身份或金额的[核对结论](./cli/evidence/recovery-2026-10-27/verify09-account-evidence-review.json)。流水存在与 verify-09 原请求结束时间接近的模型扣费，但没有 provider response ID，不能唯一关联至该请求；原用量仍未恢复，不将时间邻近改写为逐笔结清，也未新增 verify-09 调用。原账务文件仅保留在私有操作证据中。上述执行后累计仍为普通 **26/36**、首次 **6/9**，共 **32/45**；正式准入与自动晋升状态保持不变。
+
+[macOS VS Code verify-08](https://github.com/chainlesschain/chainlesschain/actions/runs/40480645282)因 `DIAGNOSTIC_OUTPUT_TRUNCATED` 中止：4 笔用量完整，候选仍为 27 字节占位文件；独立基线 58/58 通过，没有可执行候选测试。[Windows VS Code verify-11](https://github.com/chainlesschain/chainlesschain/actions/runs/40482653681)原生生成通过，7 笔用量完整；独立基线 16/16 通过，候选回归未通过。两项均不增加合格数。
+
+另核实一项后续工程线索：实测调用使用 32,768 token 上下文窗口，macOS 首次任务出现压缩降级；[火山方舟官方模型列表](https://docs.volcengine.com/docs/ark/model-list?lang=en)对本轮固定 ID `deepseek-v4-flash-ga-260731` 标注的上下文为 `1024k`（2026-10-27 核对官方索引，完整页面抓取超时）。源码的能力投影支持 SDK 参数 `contextMemoryModelWindowTokens`，`llm capabilities --context-window` 也提供诊断覆盖，但 `agent` 命令参数未暴露等价运行覆盖。更大的输入窗口可能降低提前压缩的概率，尚未通过对照实验验证；单次输出截断仍受本轮 8,192 token 上限约束。此处只记录调查结果，未改变本轮模型、思考开关、回合数、输出上限或验收条件。
+
+[Windows JetBrains verify-30](https://github.com/chainlesschain/chainlesschain/actions/runs/40484944269)原生生成通过，5 笔用量完整；独立基线 13/13、候选 6/6 通过，但未能拒绝行为变异体，未合格。[macOS JetBrains 首次安装](https://github.com/chainlesschain/chainlesschain/actions/runs/40493312511)公开安装及原生生成通过，5 笔用量完整；独立基线 11/11 通过，候选回归未通过。
+
+截至本次汇总，已收集剩余 13 个样本中 **12 个样本的新尝试**，新增合格 **0**；尚未新增普通 verify-09 派发。跨版本诊断合格仍为 **32/45**，并非仅剩一项未合格。12 个已解析运行共 **152 笔物理请求**，这些运行的用量回执全部完整；token-only 费用估计合计 **¥4.122235**，不能作为实际账单金额，也不包括旧的未决派发或缺用量请求。见[汇总与运行索引](./cli/evidence/recovery-2026-10-27/remaining-127-resolved-round-summary.json)及[独立证据账本](./cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-127-funded-20261027-preflight.json)。
+
+普通 verify-09 的[单次新尝试方案](./cli/evidence/recovery-2026-10-27/verify09-explicit-retry-proposal.json)已准备并向用户请求明确授权，旧请求记录保持未结清；不会因首次安装样本使用相同冻结任务而改写普通样本的状态。verify-04 此前授权的一次重试已用完。本次无新版本发布，原 **$99** 不重置，`paidReady:false`、native `NOT_ADMITTED`、晋升 `HOLD` 不变。
+
+提交前补跑了包含 scripts 的源码出口审计：本轮 campaign 因本地 Python 解包改动产生的摘要漂移已复核并更新，模型与网络派发分类仍为 `MODEL_REQUEST`。当前工作区仍有另外 **6 个**审计条目未通过：4 个生成的 Web Panel bundle 尚未复核，`llm-connection-probe.js` 与 `runtime/agent-core.js` 的审查摘要已过期。完整结果见[源码审计回执](./cli/evidence/recovery-2026-10-27/resolved-round-source-audit.json)。该检查未宣称全通过，不替代干净发行提交的跨平台门禁。

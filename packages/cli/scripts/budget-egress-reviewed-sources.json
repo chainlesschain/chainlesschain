@@ -78,9 +78,9 @@
     },
     {
       "path": "packages/cli/scripts/verify01-native-task-campaign.mjs",
-      "digest": "sha256:7a499dddb8d044824349d636847022d7a4c5cde10e9d4537189231ff3e923086",
+      "digest": "sha256:b8bb7c59ba9774fe6d16c9f8349c1a948cea0d93b1eeca39515e91f6e198ffaa",
       "category": "MODEL_REQUEST",
-      "rationale": "Downloads public package and artifact data, installs the exact npm CLI, launches native CLI/IDE hosts, and sends paid model requests through the Volcengine diagnostic broker. Live confirmation and a key are required. The entry point rejects formal scope before reading options, credentials, paths, downloads, host processes, or model transport; this campaign remains paid model egress, not a local-only test."
+      "rationale": "Downloads public package and artifact data, installs the exact npm CLI, launches native CLI/IDE hosts, and sends paid model requests through the Volcengine diagnostic broker. Live confirmation and a key are required. The entry point rejects formal scope before reading options, credentials, paths, downloads, host processes, or model transport; this campaign remains paid model egress, not a local-only test. Windows UTF-8 archive extraction now invokes a local Python reader; the reviewed network and model dispatch paths are unchanged."
     },
     {
       "path": "packages/cli/scripts/verify01-native-toolchain-prepare.mjs",
