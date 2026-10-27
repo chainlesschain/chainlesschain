@@ -1,5 +1,13 @@
 # MCP 服务器管理 (mcp)
 
+<!-- docs-code-git-sync-2026-10-28 -->
+
+## 0.166.128：多语言检索与可选紧凑目录
+
+MCP 工具发现现支持名称、拆分后的标识符与描述的多语言查询；精确选择 `select:<name>` 与名称约束 `+词` 保留。检索只返回候选和 schema，不授予工具执行权限。
+
+Tool Search 已启用时，可通过 `mcp.toolSearch.catalogMode: "compact"` 或 `CC_TOOL_SEARCH_CATALOG=compact` 选择紧凑目录。默认仍为 `stubs`；`compact` 在发给模型的投影中省略未发现的 deferred stub，保留检索工具、始终装载项与已发现 schema。宿主的完整工具库存、scope 和审批边界不变。配置、`servers:` 分页目录与恢复默认的方法见 [Tool Search](./cli-tool-search)。
+
 > Model Context Protocol 服务器配置、连接管理与工具调用。通过 MCP 协议扩展 AI 能力，连接外部工具和数据源。
 
 ## 概述

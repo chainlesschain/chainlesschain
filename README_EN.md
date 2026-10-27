@@ -8,6 +8,8 @@ This release includes explicit `--review-changes` to inspect write/edit delivera
 
 [Current upgrade guide](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-28.html) · [Runtime and release design](https://design.chainlesschain.com/release-runtime-update-2026-10-28.html). Microsoft Marketplace remains unpublished.
 
+Current code references: [Agent conditions and review](https://docs.chainlesschain.com/chainlesschain/cli-agent.html), [IDE model configuration](https://docs.chainlesschain.com/chainlesschain/ide-plugin.html), [MCP catalogs](https://docs.chainlesschain.com/chainlesschain/cli-tool-search.html), [Skills](https://docs.chainlesschain.com/chainlesschain/cli-skill.html), and [Memory](https://docs.chainlesschain.com/chainlesschain/cli-memory.html). The [documentation review](docs/research/documentation-code-git-sync-2026-10-28.md) records source commits and verification limits.
+
 ## CLI 0.166.127 optional self-evolution (public, 2026-10-27)
 
 Defaults self-evolution to off for fresh installations and older automatically generated local deployments, with a shared `evolution.enabled` setting in config.json, CLI, cc ui, VS Code and JetBrains. Ordinary Agent and chat remain available while off; existing manually selected deployments retain their opt-in. See the [configuration guide](docs/cli/SELF_EVOLUTION_CONFIGURATION.md).

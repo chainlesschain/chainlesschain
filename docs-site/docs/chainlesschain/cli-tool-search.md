@@ -1,18 +1,39 @@
 # MCP Tool Search（tool-search）
 
+<!-- docs-code-git-sync-2026-10-28 -->
+
+## 0.166.128 当前目录模式
+
+| 模式                  | 模型可见的工具表示                                          | 发现后                            |
+| --------------------- | ----------------------------------------------------------- | --------------------------------- |
+| `stubs`（默认）       | 每个 deferred 工具保留名称和摘要 stub                       | 完整 schema 经工具结果返回        |
+| `compact`（显式选择） | 省略未发现的 deferred stub，保留 `tool_search` 与始终装载项 | 在后续模型投影中追加已发现 schema |
+
+配置仍在既有 settings 层合并，示例应合入原文件，不覆盖其他设置：
+
+```json
+{ "mcp": { "toolSearch": { "enabled": "auto", "catalogMode": "compact" } } }
+```
+
+`CC_TOOL_SEARCH_CATALOG=compact|stubs` 覆盖目录模式。目录投影仅在 Tool Search 实际启用时生效；未触发 deferral 时仍发送完整定义。恢复默认可设置 `catalogMode: "stubs"` 并清除对应环境覆盖。
+
+检索支持中文、英文、CamelCase、snake_case 等名称表示，优先比较查询词覆盖，再按名称与描述命中排序；同分按名称稳定排序。保留 `select:<exact_name>` 精确选择和 `+词` 名称约束。紧凑模式还提供 `tool_search({"query":"servers:","offset":0,"max_results":5})` 分页目录；选择工具仍需后续精确或关键词检索。
+
+模型投影不会移除宿主的完整能力上限。工具调用仍受原权限、审批、沙箱、库存与来源检查控制，失效条目不会因曾检索成功而获得执行资格。token 估算和合成目录基准不等于服务商账单下降，prompt cache 命中由实际服务商决定。
+
 > 大规模 MCP 工具面的上下文规模化：工具 schema 延迟装载 + `tool_search` 按需检索 + prompt cache 稳定性保障。`cc` v0.162.155 引入，对标 Claude Code ToolSearch。
 
 ## 概述
 
-接入多个 MCP server 后，全部工具的完整 `inputSchema` 会作为 `tools` 参数随**每一次** LLM 请求发送。几个大型 server（GitHub、Slack、数据库类）轻松让工具定义吃掉 10–30% 的上下文窗口——对话还没开始，预算已经烧掉一截；且任何工具列表变化都会打爆 prompt cache 前缀。
+接入多个 MCP server 后，全部工具的完整 `inputSchema` 会作为 `tools` 参数随**每一次** LLM 请求发送。具体开销取决于 schema 内容、上下文窗口与服务商编码；目录估算不能直接作为账单 token 或缓存命中的测量。
 
 MCP Tool Search 在工具 schema 的估算 token 超过阈值（默认 auto = 模型窗口的 10%）时自动启用：把每个 MCP 工具定义就地替换为紧凑 stub（工具名 + `[deferred]` 一行摘要 + 空参数），并追加一个内部检索工具 `tool_search`。模型需要某个工具时先检索、拿到完整 schema（从工具结果返回，不改写 tools 数组），再正常调用。未超阈值或显式关闭时，行为与旧版**字节不变**。
 
 ## 核心特性
 
-- 🔍 **`tool_search` 内部工具**：`select:<name>` 精确取（逗号分隔多个 / 唯一裸名）；关键词检索（工具名命中 ×3 > 描述 ×1）；`+词` 强制命中工具名
+- 🔍 **`tool_search` 内部工具**：`select:<name>` 精确取（逗号分隔多个 / 唯一裸名）；关键词检索（先比较查询词覆盖，再按名称与描述命中排序）；`+词` 强制命中工具名
 - 🪶 **schema 延迟装载**：deferred 工具只留一行摘要 stub，完整 schema 经工具结果按需返回（对话内容，append-only）
-- ⚡ **prompt cache 稳定**：stub 常驻 tools 数组且按字典序排列；晚连接 server 的新工具以 stub 追加末尾、不重排缓存前缀——Anthropic 路径尾部 `cache_control` 断点跨 turn 保持命中
+- ⚡ **兼容模式的稳定前缀**：`stubs` 保留常驻 stub，晚连接项追加；`compact` 会按需追加已发现 schema。实际缓存是否命中由服务商决定
 - 🩹 **直调自愈**：未先检索就直接调 deferred 工具 → 返回内嵌完整 schema 的错误并标记已装载（该次调用不出 CLI），重试即通过，最多浪费一轮
 - 🎛️ **三态开关 + 阈值 + 白名单**：`enabled: auto|true|false`、`thresholdRatio`、`alwaysLoad`（server 名 / 全名 / `*` glob 永远全量装载）
 - 📊 **`/context` 集成**：REPL `/context` 显示 per-server schema token 占用、tool search 状态与优化建议

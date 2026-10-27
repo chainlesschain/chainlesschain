@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: "CLI 0.166.127 / Open VSX 0.37.165 / JetBrains 0.4.182 已公开；自进化可选开启，客户端 v5.0.3.142 已公开"
+  tagline: "CLI 0.166.128 / Open VSX 0.37.166 / JetBrains 0.4.183 已公开；Goal 证据、可选复查与五平台 v5.0.3.143"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -21,12 +21,12 @@ hero:
 
 features:
   - icon: ⚠️
-    title: CLI .127、IDE 与五平台升级
-    details: "CLI 0.166.127 已通过三平台门禁和 OIDC 发布；Open VSX 0.37.165、JetBrains 0.4.182 均已公开并验证下载，推荐同一 CLI。自进化默认关闭，可在 CLI、cc ui 和 IDE 共享配置；产品 v5.0.3.142 已公开。Microsoft Marketplace 仍未发布。"
-    link: /chainlesschain/cli-ide-update-2026-10-27
+    title: CLI .128、IDE 与五平台升级
+    details: "CLI 0.166.128 已通过三平台门禁和 OIDC 发布；Open VSX 0.37.166、JetBrains 0.4.183 均已公开并验证下载，推荐同一 CLI。Goal 增加证据约束和检查点错误处理，交付复查默认关闭，MCP/Skills/Memory 改进按需发现；产品 v5.0.3.143 已公开。Microsoft Marketplace 仍未发布。"
+    link: /chainlesschain/cli-ide-update-2026-10-28
   - icon: 🔗
     title: CLI / IDE 与桌面目标草稿
-    details: "当前公开 CLI .127 / IDE .165 与 .182 可用于各自工作台。桌面目标草稿互通仍需匹配客户端构建、显式授权及原生确认；CLI 或插件发布不能替代产品验收。"
+    details: "当前公开 CLI .128 / IDE .166 与 .183 可用于各自工作台。桌面目标草稿互通仍需匹配客户端构建、显式授权及原生确认；CLI 或插件发布不能替代产品验收。"
     link: /chainlesschain/goal-drafts-current
   - icon: 🛡️
     title: 输入、图片预算与恢复边界
@@ -34,18 +34,18 @@ features:
     link: /chainlesschain/agent-input-and-recovery
   - icon: 🏢
     title: 组织目标、授权记忆与站内通知（主线）
-    details: 历史产品 .140 已包含显式巡检、多级审批、独立验收、共享记忆与授权通知；当前 .142 独立发行，记忆不自动注入模型。
+    details: 历史产品 .140 已包含显式巡检、多级审批、独立验收、共享记忆与授权通知；当前 .143 独立发行，记忆不自动注入模型。
     link: /chainlesschain/organization-project-current
   - icon: 🎯
     title: 持久项目目标与独立验收（主线）
-    details: 历史产品 .140 包含个人目标、巡检、动作、独立验收、记忆面板和站内通知；当前 .142 按独立发行证据核验。
+    details: 历史产品 .140 包含个人目标、巡检、动作、独立验收、记忆面板和站内通知；当前 .143 按独立发行证据核验。
     link: /chainlesschain/project-goals-current
   - icon: 🧪
     title: RRSI 五池与质量回执（主线）
     details: 统计 v2、耐久预注册及真实后端关联已实现；必需回执固定 HOLD，真实效果实验未运行，生产来源门仍在实施。
     link: /chainlesschain/rrsi-current
   - icon: 🧩
-    title: Agent Platform 0.166.127 验收范围
+    title: Agent Platform 0.166.128 验收范围
     details: 跨版本累计合格交付32/45，13项未完成；本轮未新增真实模型验收。NOT_PAID_READY、NOT_ADMITTED 与自动晋升 HOLD 不变。
     link: /chainlesschain/cli-runtime-current
   - icon: 📝
@@ -62,7 +62,7 @@ features:
     link: /chainlesschain/agent-protocol
   - icon: 🧠
     title: 上下文与记忆（模块 108）
-    details: Context/Memory Kernel 已以统一 schema、planner、压缩与记忆状态机贯通 CLI、Desktop、App Server 和 IDE projection；旧 writer 默认失败关闭。
+    details: Context/Memory Kernel 提供共享 schema、planner 与状态机；CLI 优化 Memory 候选选择，各产品 writer 与迁移范围按各自证据核对。
     link: /chainlesschain/context-memory
   - icon: 🤝
     title: GraphRun 观测与评估
@@ -74,7 +74,7 @@ features:
     link: /chainlesschain/desktop-model-governance
   - icon: 🧑‍💻
     title: IDE Bridge 当前公开配对
-    details: "Open VSX .165 与 JetBrains .182 均已公开并推荐 CLI .127。真实宿主发行门与公共下载验证通过；Microsoft Marketplace 仍未发布。"
+    details: "Open VSX .166 与 JetBrains .183 均已公开并推荐 CLI .128。真实宿主发行门与公共下载验证通过；Microsoft Marketplace 仍未发布。"
     link: /chainlesschain/ide-plugin
   - icon: 🔐
     title: 安全优先
@@ -84,12 +84,19 @@ features:
     details: 公开版支持规范化实体与投影意图同事务保存、KG/BM25 独立确认、分批恢复与退休临时 consumer 回执维护；未知运行投递仍受保护，当前宿主没有连接向量目的地。
   - icon: 🧪
     title: 发布证据分层
-    details: "CLI 与 IDE 的精确提交门禁、公共制品回读、模型任务验收具有不同证据范围。原生产品 .142 已独立公开，五平台构建及 22 个资产通过核验；完整 native review 仍保持 NOT_ADMITTED。"
+    details: "CLI 与 IDE 的精确提交门禁、公共制品回读、模型任务验收具有不同证据范围。原生产品 .143 已独立公开，五平台构建及 22 个资产通过核验；完整 native review 仍保持 NOT_ADMITTED。"
 ---
 
-## 当前公开版本（2026-10-27）
+## 当前公开版本（2026-10-28）
 
-CLI **0.166.127** / Open VSX **0.37.165** / JetBrains **0.4.182** 均已公开并完成下载核验；原生产品 **v5.0.3.142** 具有独立发行源与验收范围。当前安装与渠道说明见[升级指南](/chainlesschain/cli-ide-update-2026-10-27)和[自进化开关配置](/chainlesschain/self-evolution-configuration)。本轮没有新增模型验收，累计 **32/45**、**13** 项未完成，**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。
+CLI **0.166.128** / Open VSX **0.37.166** / JetBrains **0.4.183** 均已公开并完成下载核验；原生产品 **v5.0.3.143** 具有独立发行源与验收范围。当前安装与渠道说明见[升级指南](/chainlesschain/cli-ide-update-2026-10-28)和[自进化开关配置](/chainlesschain/self-evolution-configuration)。本轮没有新增模型验收，累计 **32/45**、**13** 项未完成，**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。
+
+### 按任务查阅当前参考
+
+- [Agent 完成条件与可选复查](https://docs.chainlesschain.com/chainlesschain/cli-agent.html)
+- [IDE 模型配置与会话覆盖](https://docs.chainlesschain.com/chainlesschain/ide-plugin.html)
+- [MCP 紧凑目录与多语言发现](https://docs.chainlesschain.com/chainlesschain/cli-tool-search.html)
+- [Skills 描述符检索](https://docs.chainlesschain.com/chainlesschain/cli-skill.html) · [Memory 查询边界](https://docs.chainlesschain.com/chainlesschain/cli-memory.html)
 
 <!-- release112-status -->
 

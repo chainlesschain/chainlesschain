@@ -1,5 +1,13 @@
 # LLM 管理 (llm)
 
+<!-- docs-code-git-sync-2026-10-28 -->
+
+## 当前模型配置边界（0.166.128）
+
+模型预设来自共享入门目录，目录声明的运行环境与账户验证状态均为 `false`。协议选择按 provider 和能力配置处理，OpenAI 连接探测复用对应 Responses 编解码；探测仍是受原预算约束的 `MODEL_REQUEST`，不是免费健康 GET。
+
+配置读取结果应区分已配置、未配置与读取失败。IDE 的 `/model <model-id>` 仅覆盖当前会话，`/model --default` 恢复共享配置，不改写其他会话。详见[IDE 指南](./ide-plugin)和[配置向导](./cli-setup)；不要把静态推荐当作账户连通或真实质量验收。
+
 > Headless 命令 — 不依赖桌面 GUI，直接使用核心包运行。适用于服务器、CI/CD、容器化等无桌面环境。
 >
 > 历史版本 CLI `0.166.30` 新增原子连接配置与 OpenAI-compatible / Anthropic / Gemini / Ollama 原生协议探测。

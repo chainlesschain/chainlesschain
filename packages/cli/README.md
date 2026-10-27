@@ -12,6 +12,10 @@ Install the verified public CLI: `npm i -g chainlesschain@0.166.128 --registry h
 
 Exact source `dfa158e36171e347a40e23356c2ed7bd04e0c061` passed complete Linux, Windows and macOS CLI CI and Strict Sandbox. [GitHub Actions OIDC publication](https://github.com/chainlesschain/chainlesschain/actions/runs/40552876222) and [independent public readback](https://github.com/chainlesschain/chainlesschain/actions/runs/40556529770) passed: registry bytes match the immutable CI artifact, with signed provenance and ten direct child pins verified. [Publication evidence](../../docs/research/cli/evidence/release128-public/publication.json). Mobile and PC [v5.0.3.143](https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.143) is public from frozen source `036d2b8be2048c98e56e917c93380f169e6a9d7b`; five platform builds, all 22 public assets and three desktop updater metadata sets are verified in [Release 40565272034](https://github.com/chainlesschain/chainlesschain/actions/runs/40565272034). Microsoft Marketplace remains unpublished; cumulative task acceptance **32/45**, **13** unfinished, and **NOT_PAID_READY / NOT_ADMITTED / HOLD** remain.
 
+## Current command and configuration references
+
+The current [Agent reference](https://docs.chainlesschain.com/chainlesschain/cli-agent.html) covers optional delivery review and Goal recovery. [IDE configuration](https://docs.chainlesschain.com/chainlesschain/ide-plugin.html) documents conversation model overrides and unreadable configuration. [MCP Tool Search](https://docs.chainlesschain.com/chainlesschain/cli-tool-search.html), [Skills](https://docs.chainlesschain.com/chainlesschain/cli-skill.html), and [Memory](https://docs.chainlesschain.com/chainlesschain/cli-memory.html) describe discovery, defaults and query limits. Published behavior follows its frozen release source. Post-release main d9f2511b95 adds explicit review forwarding to evaluation drivers; its campaign is PREPARED_NOT_DISPATCHED and adds no independent acceptance.
+
 ## CLI 0.166.127 — optional self-evolution (2026-10-27)
 
 完整中文说明见[CLI 与 IDE 自进化开关配置](../../docs/cli/SELF_EVOLUTION_CONFIGURATION.md)，包括默认行为、配置优先级、界面入口与生效时机。

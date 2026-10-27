@@ -8,6 +8,8 @@ CLI **0.166.128** 已通过 [GitHub Actions OIDC](https://github.com/chainlessch
 
 [当前升级指南](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-28.html) · [运行时与发行设计](https://design.chainlesschain.com/release-runtime-update-2026-10-28.html)。Microsoft Marketplace 仍未发布。
 
+文档已按代码与 Git 提交复核：[Agent 完成条件与复查](https://docs.chainlesschain.com/chainlesschain/cli-agent.html) · [IDE 模型配置](https://docs.chainlesschain.com/chainlesschain/ide-plugin.html) · [MCP 紧凑目录](https://docs.chainlesschain.com/chainlesschain/cli-tool-search.html) · [Skills](https://docs.chainlesschain.com/chainlesschain/cli-skill.html) · [Memory](https://docs.chainlesschain.com/chainlesschain/cli-memory.html)。[代码与文档对齐记录](docs/research/documentation-code-git-sync-2026-10-28.md)保留具体提交和验证范围。
+
 ## CLI 0.166.127 自进化开关（已公开，2026-10-27）
 
 本次将新安装与旧自动生成本地部署的自进化默认关闭，支持通过 `config.json` 中的 `evolution.enabled`、CLI、cc ui、VS Code 和 JetBrains 重新开启或关闭。普通 Agent 与聊天可在关闭后继续使用；已有手动部署的主动选择保留。见[完整配置说明](docs/cli/SELF_EVOLUTION_CONFIGURATION.md)。

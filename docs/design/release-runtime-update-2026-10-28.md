@@ -63,3 +63,10 @@ CLI CI 的 71 个必需任务和 Strict Sandbox 全部配置平台通过，发�
 - [发行回执](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release128-public/publication.json)
 
 设计权威源位于 `docs/design/`，两个 VitePress 站点通过同步脚本生成副本；三站部署须绑定同一文档提交，并保留旧站点供回滚。
+
+## 当前命令与模块参考
+
+- [Agent 完成条件与可选复查](https://docs.chainlesschain.com/chainlesschain/cli-agent.html)
+- [IDE 会话模型配置](https://docs.chainlesschain.com/chainlesschain/ide-plugin.html)
+- [MCP Tool Search](https://docs.chainlesschain.com/chainlesschain/cli-tool-search.html)
+- [Skills 检索](https://docs.chainlesschain.com/chainlesschain/cli-skill.html) · [Memory 查询](https://docs.chainlesschain.com/chainlesschain/cli-memory.html)

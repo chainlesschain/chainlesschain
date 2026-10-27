@@ -1,5 +1,13 @@
 # 交互式配置向导 (setup)
 
+<!-- docs-code-git-sync-2026-10-28 -->
+
+## 0.166.128：共享模型推荐目录
+
+CLI setup、VS Code 和 JetBrains 使用同一模型入门目录 `llm-onboarding-catalog.json` 的推荐信息，并保留自定义 provider、base URL 和模型配置。目录限定为新连接推荐，`runtimeVerified: false` / `accountVerified: false` 明确表示未验证当前运行环境与账户，不是所有列出模型都已通过真实任务验收。
+
+IDE 配置读取区分已配置、未配置与读取失败；读取失败时先检查路径和权限，不按缺省值覆盖旧配置。只读取配置状态不会发起推理；显式连接测试会调用模型，并继续受预算、超时、输出上限与已知用量结算约束。会话覆盖与恢复默认的用法见[IDE 插件指南](./ide-plugin)。
+
 > 引导用户完成 ChainlessChain 的首次配置，包括环境检查、版本选择、LLM 配置、二进制下载和 Docker 服务启动。
 
 ## 概述

@@ -1,0 +1,78 @@
+{
+  "schema": "chainlesschain.documentation-code-git-review/v1",
+  "reviewedAt": "2026-10-27T22:10:50.645Z",
+  "reviewedMainCommit": "d9f2511b953ca08a7b5013c177250474b3d6fb4e",
+  "publishedSources": {
+    "cli": "dfa158e36171e347a40e23356c2ed7bd04e0c061",
+    "ide": "6551a06c2f694bb93d0197fa8b82becd25a83173",
+    "clients": "036d2b8be2048c98e56e917c93380f169e6a9d7b"
+  },
+  "changes": [
+    {
+      "commit": "67c085115b662988242311ccfdf2d723b66a9242",
+      "feature": "Goal 证据与检查点",
+      "file": "packages/cli/src/lib/goal-check-evidence.js",
+      "scope": "当前轮成功工具证据、潜在变更 revision、有效证据 ID 和检查点恢复错误"
+    },
+    {
+      "commit": "5def22e364e6c89704ea2436b2fd198263ebf5a2",
+      "feature": "可选交付复查",
+      "file": "packages/cli/src/runtime/agent-core.js",
+      "scope": "显式 --review-changes，默认关闭，共用原权限与剩余预算"
+    },
+    {
+      "commit": "1a16b8d257875fd596f2efae6a897cd8fec01735",
+      "feature": "IDE 会话模型与共享推荐",
+      "file": "packages/vscode-extension/src/chat/session-model.js",
+      "scope": "/model 当前会话覆盖、恢复默认、配置读取三态和静态目录边界"
+    },
+    {
+      "commit": "9f7e71f1943071d42736a926773b17332628a4ec",
+      "feature": "MCP 多语言检索",
+      "file": "packages/cli/src/runtime/mcp-tool-search-ranking.js",
+      "scope": "名称表示、描述匹配、查询覆盖和稳定排序"
+    },
+    {
+      "commit": "b9968d50609540e6d04612a30482aed72bc0a43a",
+      "feature": "MCP 可选紧凑目录",
+      "file": "packages/cli/src/runtime/mcp-tool-search.js",
+      "scope": "默认 stubs，compact 投影、已发现 schema 与 servers: 分页目录"
+    },
+    {
+      "commit": "6b76d4fd5486f44c8cc662512edbb8db45b64266",
+      "feature": "Skills 描述符检索",
+      "file": "packages/cli/src/lib/skill-search-tokenizer.js",
+      "scope": "NFKC、中文分词、停用词、标识符拆分；执行与通用 RAG 边界不变"
+    },
+    {
+      "commit": "f70278cece1137a2456f250c848e9fea1447f516",
+      "feature": "Memory posting 候选选择",
+      "file": "packages/cli/src/lib/context-memory-kernel/memory-query-index.js",
+      "scope": "选择性候选与惰性并集，保留完整过滤与磁盘验证"
+    },
+    {
+      "commit": "dfa158e36171e347a40e23356c2ed7bd04e0c061",
+      "feature": "已审查探针内容绑定",
+      "file": "packages/cli/scripts/budget-egress-reviewed-sources.json",
+      "scope": "维护已复核源码摘要，不将 MODEL_REQUEST 改作免费健康检查"
+    }
+  ],
+  "uncommittedRetestToolsIncluded": false,
+  "newLiveModelRequests": false,
+  "acceptance": {
+    "accepted": 32,
+    "total": 45,
+    "unfinished": 13,
+    "paidReadiness": "NOT_PAID_READY",
+    "nativeAdmission": "NOT_ADMITTED",
+    "automaticPromotion": "HOLD"
+  },
+  "postReleaseEvaluation": {
+    "commit": "d9f2511b953ca08a7b5013c177250474b3d6fb4e",
+    "status": "PREPARED_NOT_DISPATCHED",
+    "billingAssessed": false,
+    "scope": "evaluation-driver-only",
+    "publishedArtifactsChanged": false,
+    "independentAcceptanceAdded": false
+  }
+}

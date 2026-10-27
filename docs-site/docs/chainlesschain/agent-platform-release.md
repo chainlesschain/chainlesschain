@@ -1,6 +1,16 @@
 # Agent Platform 发布与升级指南
 
-## 最新发布（2026-10-27）：CLI 0.166.127
+<!-- docs-code-git-sync-2026-10-28 -->
+
+## 最新发布（2026-10-28）：CLI 0.166.128
+
+CLI **0.166.128**、Open VSX **0.37.166**、JetBrains **0.4.183**；两个 IDE 均推荐 CLI `.128`，移动/PC **v5.0.3.143** 已公开。CLI 发行源为 `dfa158e361`，IDE 发行源为 `6551a06c2f`，客户端冻结源为 `036d2b8be2`；默认分支的文档与未提交复测工具不作为已发布代码。CLI 三系统双门禁、OIDC、制品与签名来源回读，IDE 公开下载，以及客户端 22 个资产与三套桌面更新元数据均已核验。
+
+安装 `npm i -g chainlesschain@0.166.128 --registry https://registry.npmjs.org`，重启宿主后运行 `cc --version` 与 `cc doctor`。本版包含 Goal 证据与检查点可靠性、默认关闭的交付复查、会话模型覆盖、MCP/Skills 多语言发现和 Memory 索引候选优化。
+
+[升级指南](./cli-ide-update-2026-10-28) · [Agent 选项](./cli-agent) · [IDE 模型配置](./ide-plugin) · [发布回执](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release128-public/publication.json)。累计验收仍为 **32/45**、**13** 项未完成，**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留；Microsoft Marketplace 未发布。
+
+## 历史发布（2026-10-27）：CLI 0.166.127
 
 2026-10-27 当前公开：CLI **0.166.127**、Open VSX **0.37.165**、JetBrains **0.4.182**，两个 IDE 推荐 `.127`；移动与 PC 产品 **v5.0.3.142** 已公开，22 个资产通过回读。自进化改为可选开启，新安装与旧自动本地部署默认关闭。跨版本累计 **32/45**、**13** 项未完成，本轮未新增模型任务验收；**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。
 

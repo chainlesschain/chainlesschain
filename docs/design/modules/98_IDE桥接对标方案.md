@@ -1,8 +1,22 @@
 # 98. IDE 桥接对标方案 (Claude-Code IDE Integration Parity v1.1)
 
-> **2026-10-04 当前状态**：公开 Open VSX **0.37.130@84f204db94** 推荐 CLI **0.166.85**；公开 JetBrains **0.4.146@d93c9c9766** 仍推荐 CLI **0.166.84**，`0.4.147` 未发布，源码 **0.4.149** 待完整验收。公开 VS Code 包含长回复与图片草稿页面实例隔离；`48fd92562a` 的图片帧/像素解码预算和两端文件快照为发布后源码。微软 Marketplace 未发行。精确发布门、停止回执和能力范围见 [最新运行时设计](../agent-runtime-update-2026-09-26.md)。下方 10 月 3 日候选和初版实施段落均为历史记录。
+<!-- docs-code-git-sync-2026-10-28 -->
 
-> ## 当前发布状态（2026-10-03）
+## 2026-10-28 当前公开桥接与模型配置
+
+> 当前核对（2026-10-28）：CLI **0.166.128** / Open VSX **0.37.166** / JetBrains **0.4.183**，均已公开并完成制品回读，两个 IDE 推荐 `.128`；产品 **v5.0.3.143** 的五平台构建、22 个资产与三套桌面更新元数据已核验。CLI、IDE 与产品分别冻结在 `dfa158e361`、`6551a06c2f`、`036d2b8be2`，Git 主线核对基线为 `d9f2511b95`。以下早期实施计划与旧日期记录保留其历史范围。[公开回执](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release128-public/publication.json)。
+
+Open VSX **0.37.166** 与 JetBrains **0.4.183** 均推荐 CLI **0.166.128**。实际宿主、三系统浏览器与发行检查通过；公开 VSIX 与正式 CI 制品逐字节相同，JetBrains 公开 ZIP 的全部原始 payload 条目匹配。Microsoft Marketplace 仍未发布。
+
+CLI 的 `llm-onboarding-catalog.json` 为新连接提供共享推荐；IDE 读取结果为 `configured / unconfigured / unavailable`。不可读取不能降格成未配置并覆盖旧设置。目录显式声明 `runtimeVerified: false` 与 `accountVerified: false`，不把预设选择当作账户可用性验证。
+
+两端 `SessionModel` 对当前会话保存覆盖：`/model` 观察，`/model <id>` 切换，`/model --default` 恢复共享默认；其他会话和全局配置保持各自状态。CLI 模型循环、权限、预算、事件和 durable state 继续是执行权威，IDE 提交配置/运行意图。
+
+配置诊断为本地读取；显式连接探测为受预算约束的模型请求，保留超时、输出上限、已知用量与脱敏边界。实现参考 `packages/vscode-extension/src/llm-config.js`、`src/chat/session-model.js`，以及 JetBrains 的 `LlmConfig.java`、`SessionModel.java`。
+
+> **2026-10-04 历史状态**：公开 Open VSX **0.37.130@84f204db94** 推荐 CLI **0.166.85**；公开 JetBrains **0.4.146@d93c9c9766** 仍推荐 CLI **0.166.84**，`0.4.147` 未发布，源码 **0.4.149** 待完整验收。公开 VS Code 包含长回复与图片草稿页面实例隔离；`48fd92562a` 的图片帧/像素解码预算和两端文件快照为发布后源码。微软 Marketplace 未发行。精确发布门、停止回执和能力范围见 [最新运行时设计](../agent-runtime-update-2026-09-26.md)。下方 10 月 3 日候选和初版实施段落均为历史记录。
+
+> ## 当时发布状态（2026-10-03）
 >
 > - **VS Code / VSCodium**：`chainlesschain.chainlesschain-ide` **0.37.126** 已在 [Open VSX](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) 公开并回读可下载；Microsoft VS Code Marketplace 仍未发布。
 > - **JetBrains**：`com.chainlesschain.ide` **0.4.146** 已在 [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge) 公开并回读。
@@ -442,15 +456,15 @@ vscode"的纪律):
 
 ---
 
-## 4. 工作量与风险
+## 4. 交付范围与风险（初版记录）
 
-| 阶段        | 工作量          | 说明                                                             |
-| ----------- | --------------- | ---------------------------------------------------------------- |
-| **Phase 0** | **小(~1–2 天)** | 纯 CLI,复用 MCP client/OAuth,可单测                              |
-| Phase 1     | 中–大(~1–2 周)  | 新 VS Code 扩展:激活 + MCP server + 4 工具 + 打包 + 扩展测试宿主 |
-| Phase 2     | 中              | openDiff 评审交互(VS Code diff API 较重)                         |
-| Phase 3     | 大              | JetBrains 另起一套                                               |
-| Phase 4     | 持续            | marketplace + 维护面                                             |
+| 阶段    | 交付范围                                           |
+| ------- | -------------------------------------------------- |
+| Phase 0 | CLI 复用 MCP client/OAuth 与单元校验               |
+| Phase 1 | VS Code 激活、MCP server、工具、打包与扩展宿主测试 |
+| Phase 2 | 原生 diff 评审交互                                 |
+| Phase 3 | JetBrains 插件与宿主验证                           |
+| Phase 4 | 市场发行和持续维护                                 |
 
 **风险/取舍**:
 

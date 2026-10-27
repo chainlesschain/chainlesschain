@@ -10,7 +10,7 @@
   "npmLatestGateStatus": "Exact-source CLI CI and Strict Sandbox matrices, OIDC publication, public dependency installation and provenance were verified in the linked formal release evidence. Public IDE recommendations are recorded separately. No new model task retest.",
   "cliReleaseGateConclusion": "success",
   "sourceCandidateCommit": "dfa158e36171e347a40e23356c2ed7bd04e0c061",
-  "sourceHeadCommit": "17cbea8a5874fd6af8f5ab52e6e905c6d139303d",
+  "sourceHeadCommit": "d9f2511b953ca08a7b5013c177250474b3d6fb4e",
   "documentedDesktopCommit": "036d2b8be2048c98e56e917c93380f169e6a9d7b",
   "postReleaseDesktopGovernanceCommit": "f733f92cb953fffaafea9f91024bbf1c8846406d",
   "sourceMainStatus": "CLI .128, Open VSX .166, JetBrains .183 and native product .143 are public. Goal evidence/checkpoint reliability, optional completion review, IDE model configuration and MCP/Memory discovery improvements are included. No new live model-task acceptance.",
@@ -71,7 +71,7 @@
   "remainingUnaccepted": 13,
   "releaseEvidence": "https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release128-public/publication.json",
   "taskEvidence": "docs/research/cli/evidence/recovery-2026-10-23/remaining-36-plus-9.json",
-  "sourceSnapshotStatus": "Documentation reviewed main 17cbea8a58; CLI, Open VSX, JetBrains and native product releases have separately recorded source commits. Deployment manifests identify the final documentation commit.",
+  "sourceSnapshotStatus": "Documentation reviewed main d9f2511b95. Published CLI, IDE and product sources remain frozen. The post-release change-review campaign is prepared but not dispatched; no independent acceptance was added. Deployment manifests identify the documentation commit.",
   "currentReleaseModelTaskRetest": "NOT_RUN_THIS_RELEASE",
   "currentReleaseLimits": {
     "paidReadiness": "NOT_PAID_READY",
@@ -282,5 +282,13 @@
       ],
       "receiptUrl": "https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release128-public/product-publication.json"
     }
+  },
+  "documentationReview": {
+    "reviewedSourceCommit": "d9f2511b953ca08a7b5013c177250474b3d6fb4e",
+    "checkedAt": "2026-10-28",
+    "evidenceUrl": "https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/documentation-code-git-sync-2026-10-28.md",
+    "uncommittedRetestsIncluded": false,
+    "postReleaseRetestCommit": "d9f2511b953ca08a7b5013c177250474b3d6fb4e",
+    "postReleaseRetestStatus": "PREPARED_NOT_DISPATCHED"
   }
 }

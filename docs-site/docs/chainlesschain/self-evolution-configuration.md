@@ -2,7 +2,7 @@
 
 ## 概述
 
-CLI **0.166.127** 已公开发布并完成归档与签名来源回读；CLI 和 cc ui 的开关可以立即使用。配套 VS Code 扩展 **0.37.165** 已在 Open VSX 公开上架，JetBrains **0.4.182** 也已公开上架，两者完成制品回读（Microsoft Marketplace 仍未发布），可升级使用 IDE 功能。移动端与 PC 安装包 [v5.0.3.142](https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.142) 已公开发布，五平台构建、22 个资产完整性和三套桌面更新元数据回读均已通过。
+当前公开版本为 CLI **0.166.128**、Open VSX **0.37.166** 与 JetBrains **0.4.183**，两个 IDE 均推荐 `.128`；移动/PC 安装包 [v5.0.3.143](https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.143) 已公开，五平台构建、22 个资产与三套桌面更新元数据已核验。以下开关自 `.127` 提供并在 `.128` 保留，默认行为不变；Microsoft Marketplace 仍未发布。
 
 ## 核心特性
 

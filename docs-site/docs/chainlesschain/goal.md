@@ -1,5 +1,13 @@
 # 目标 / OKR 系统（cc goal）
 
+<!-- docs-code-git-sync-2026-10-28 -->
+
+## 当前 Goal 入口的区别（2026-10-28）
+
+`cc goal` 管理跨会话目标、OKR 和进度；`--goal <id>` 绑定长期目标，`--goal-assess` 为显式开启的运行后模型自评。CLI `0.166.128` 的证据判定改进发生在 headless `--goal-condition` 的自然语言完成条件中，不表示所有项目目标或 OKR 都已获得独立验收。
+
+自然语言判定引用当前轮成功工具证据；未知退出状态、仍在运行的命令、失败结果和已被后续变更淘汰的观察不能支持完成结论。检查点恢复或保存失败会返回 `CC_GOAL_CHECKPOINT_FAILED`。可选 `--review-changes` 与完成条件检查相互独立，复查默认关闭，继续使用原预算和权限。详见[Agent 命令](./cli-agent)与[运行时设计](/design/release-runtime-update-2026-10-28)。
+
 > **版本: Phase 0+1+2 全量落地 | 状态: ✅ 生产可用 | 跨会话持久 | 33 单元测试全绿**
 >
 > `cc goal` 提供**跨会话持久的目标 / OKR（Objectives & Key Results）**能力——一个长期目标可在多个会话之间持续推进，并在每一轮 agent 循环中作为临时系统提示注入。它是对 Claude Code 的**能力扩展**（Claude Code 无对应物），而非补齐项。

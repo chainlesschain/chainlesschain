@@ -69,8 +69,13 @@ const items = english
     </div>
     <p class="mt-6 text-sm text-muted">
       {english
-        ? `No new live model-task acceptance was run for this release. Historical cross-version acceptance remains ${releaseStatus.cumulativeAcceptedDeliveries}/${releaseStatus.totalTaskSamples}, with ${releaseStatus.remainingUnaccepted} unaccepted. NOT_PAID_READY, NOT_ADMITTED and automatic promotion HOLD remain.`
-        : `本轮未新增真实模型任务验收。跨版本历史合格交付仍为 ${releaseStatus.cumulativeAcceptedDeliveries}/${releaseStatus.totalTaskSamples}，剩余 ${releaseStatus.remainingUnaccepted} 项；NOT_PAID_READY、NOT_ADMITTED 与自动晋升 HOLD 保留。`}
+        ? `This documentation update adds no independent task acceptance. Historical cross-version acceptance remains ${releaseStatus.cumulativeAcceptedDeliveries}/${releaseStatus.totalTaskSamples}, with ${releaseStatus.remainingUnaccepted} unaccepted. NOT_PAID_READY, NOT_ADMITTED and automatic promotion HOLD remain.`
+        : `本轮文档更新未新增独立任务验收。跨版本历史合格交付仍为 ${releaseStatus.cumulativeAcceptedDeliveries}/${releaseStatus.totalTaskSamples}，剩余 ${releaseStatus.remainingUnaccepted} 项；NOT_PAID_READY、NOT_ADMITTED 与自动晋升 HOLD 保留。`}
+    </p>
+    <p class="mt-3 text-sm text-muted">
+      {english
+        ? `Documentation reviewed at ${releaseStatus.sourceHeadCommit.slice(0, 10)}; published packages retain their own frozen source commits.`
+        : `文档核对基线 ${releaseStatus.sourceHeadCommit.slice(0, 10)}；各公开制品保留独立冻结源码。`}
     </p>
     <div class="mt-6 flex flex-wrap gap-4">
       <a class="btn-ghost" href={releaseStatus.upgradeGuide}>{english ? "Upgrade guide ↗" : "升级指南 ↗"}</a>
@@ -78,6 +83,9 @@ const items = english
       <a class="btn-ghost" href={releaseStatus.recoveryGuide}>{english ? "Image budgets and recovery ↗" : "图片预算与恢复 ↗"}</a>
       <a class="btn-ghost" href={releaseStatus.runtimeDesign}>{english ? "Runtime design ↗" : "运行时设计 ↗"}</a>
       <a class="btn-ghost" href={releaseStatus.releaseEvidence}>{english ? "Publication evidence ↗" : "发布核验回执 ↗"}</a>
+      <a class="btn-ghost" href="https://docs.chainlesschain.com/chainlesschain/cli-agent.html">{english ? "Agent conditions and review ↗" : "Agent 完成条件与复查 ↗"}</a>
+      <a class="btn-ghost" href="https://docs.chainlesschain.com/chainlesschain/cli-tool-search.html">{english ? "MCP catalog configuration ↗" : "MCP 目录配置 ↗"}</a>
+      <a class="btn-ghost" href={releaseStatus.documentationReview.evidenceUrl}>{english ? "Documentation review ↗" : "代码与文档核对记录 ↗"}</a>
       <a class="btn-ghost" href="https://docs.chainlesschain.com/chainlesschain/goal-drafts-current.html">{english ? "Goal draft guide ↗" : "目标草稿指南 ↗"}</a>
     </div>
   </div>

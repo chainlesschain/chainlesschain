@@ -104,6 +104,13 @@ MCP token 数字和 Memory 局部性能基线属于合成估算，不代表真�
 - `packages/cli/src/lib/context-memory-kernel/segmented-memory-port.js`：Memory 索引归并。
 - [公开发行回执](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release128-public/publication.json)：各渠道状态、准确源码和独立回读。
 
+## 当前命令与模块参考
+
+- [Agent 完成条件与可选复查](https://docs.chainlesschain.com/chainlesschain/cli-agent.html)
+- [IDE 会话模型配置](https://docs.chainlesschain.com/chainlesschain/ide-plugin.html)
+- [MCP Tool Search](https://docs.chainlesschain.com/chainlesschain/cli-tool-search.html)
+- [Skills 检索](https://docs.chainlesschain.com/chainlesschain/cli-skill.html) · [Memory 查询](https://docs.chainlesschain.com/chainlesschain/cli-memory.html)
+
 ## 相关文档
 
 - [自进化开关配置](./self-evolution-configuration)

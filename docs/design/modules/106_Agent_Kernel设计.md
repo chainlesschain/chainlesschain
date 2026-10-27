@@ -1,6 +1,20 @@
 # 106 Agent Kernel 设计
 
-> 状态：Agent Platform `0.166.6@f2a249bf3d` 是完整门禁的生产推荐与 npm `latest`，已公开 Agent IPC 有界化｜范围：CLI Agent 执行内核及跨传输资源边界｜更新：2026-08-27
+<!-- docs-code-git-sync-2026-10-28 -->
+
+## 2026-10-28 当前执行与 Goal 边界
+
+> 当前核对（2026-10-28）：CLI **0.166.128** / Open VSX **0.37.166** / JetBrains **0.4.183**，均已公开并完成制品回读，两个 IDE 推荐 `.128`；产品 **v5.0.3.143** 的五平台构建、22 个资产与三套桌面更新元数据已核验。CLI、IDE 与产品分别冻结在 `dfa158e361`、`6551a06c2f`、`036d2b8be2`，Git 主线核对基线为 `d9f2511b95`。以下早期实施计划与旧日期记录保留其历史范围。[公开回执](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release128-public/publication.json)。
+
+自然语言完成条件的判定轨迹与 Agent 工具执行分离：`GoalCheckEvidence` 为本轮最多保留 24 条有界观察，未知可变工具使此前观察过期，未结算/失败/后台运行或未知命令退出状态不能计作成功。模型返回 `met: true` 时须引用当前可用证据 ID；最终文本只是声明，不替代检查结果或独立验收。
+
+持久化 Goal 在执行前保存 `running`、判定发布前保存 `evaluated`。中断后的 running 状态需要对实际副作用与用量进行核对，显式 `--goal-recovery-reviewed` 仅允许经核对的恢复，不修复损坏状态或自动回滚副作用。错误码为 `CC_GOAL_CHECKPOINT_FAILED`。
+
+`--review-changes` 通过 `commands/agent.js` 传入 headless/stream 入口，在 `agent-core.js` 的原循环内触发；共享 `_changeReviewState` 防止外层 Goal 续跑反复追加。成功内容变更、已知用量、剩余预算与取消检查共同约束是否复查；临时文本/思考增量不向宿主作为最终文本发布。
+
+此增量不迁移 Graph authority，不扩大工具集合或权限，不自动启用 Evolution，也不等价于原生任务和账单验收通过。
+
+> 2026-08-27 历史基线：Agent Platform `0.166.6@f2a249bf3d` 是完整门禁的生产推荐与 npm `latest`，已公开 Agent IPC 有界化｜范围：CLI Agent 执行内核及跨传输资源边界｜更新：2026-08-27
 
 ## 1. 定位
 
@@ -53,14 +67,14 @@ Sandbox     MCP/Hooks/PTY    Budget/Receipt
 
 ## 4. 入口与策略
 
-| 入口                         | Kernel 路径                               | 主要特性                         |
-| ---------------------------- | ----------------------------------------- | -------------------------------- |
-| `cc agent` / `cc chat`       | `AgentRuntime.startAgentSession()`        | TTY、slash command、交互审批     |
-| `cc exec -p` / `cc agent -p` | headless runner                           | 单次、结构化输出、CI 退出码      |
-| Agent SDK `AgentSession`     | headless stream                           | NDJSON 双工、恢复、审批/问题事件 |
-| `cc serve`                   | server runtime + WS gateway               | 既有浏览器/IDE 会话              |
-| `cc serve --app-server`      | `CliAgentKernelAdapter` + headless stream | Thread/Turn/Item 产品协议        |
-| `cc serve --app-server --app-server-websocket` | 同一 adapter + 实验 WS transport | 固定协议、强鉴权、逐连接隔离与慢消费者断路 |
+| 入口                                           | Kernel 路径                               | 主要特性                                   |
+| ---------------------------------------------- | ----------------------------------------- | ------------------------------------------ |
+| `cc agent` / `cc chat`                         | `AgentRuntime.startAgentSession()`        | TTY、slash command、交互审批               |
+| `cc exec -p` / `cc agent -p`                   | headless runner                           | 单次、结构化输出、CI 退出码                |
+| Agent SDK `AgentSession`                       | headless stream                           | NDJSON 双工、恢复、审批/问题事件           |
+| `cc serve`                                     | server runtime + WS gateway               | 既有浏览器/IDE 会话                        |
+| `cc serve --app-server`                        | `CliAgentKernelAdapter` + headless stream | Thread/Turn/Item 产品协议                  |
+| `cc serve --app-server --app-server-websocket` | 同一 adapter + 实验 WS transport          | 固定协议、强鉴权、逐连接隔离与慢消费者断路 |
 
 入口只能收紧策略。Server/UI/App Server 不得用宿主参数绕过 Kernel 的工作区、权限、sandbox 或 SecretStore authority。
 

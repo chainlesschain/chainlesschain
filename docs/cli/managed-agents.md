@@ -1,5 +1,19 @@
 # CLI — Managed Agents & Hosted Session API
 
+<!-- docs-code-git-sync-2026-10-28 -->
+
+## Current CLI 0.166.128: completion review and Goal conditions
+
+Install `chainlesschain@0.166.128`. Paired public IDEs are Open VSX `0.37.166` and JetBrains `0.4.183`; native product `v5.0.3.143` has its own frozen source and verified release.
+
+- `cc agent -p "implement and check the requested changes" --review-changes` enables one review opportunity after successful file content changes. It is off by default and accepts headless prompts or stream-json input. Reads, repairs and model calls consume the existing permission, turn and cost budgets; incomplete usage prevents extra review.
+- Review mode emits final response text only while preserving tool progress events. It does not provide independent acceptance or enable Skill evolution.
+- Natural language `--goal-condition "model:..."` verdicts must cite current, settled, successful tool observation IDs. A final answer or a successful file write does not by itself prove tests passed. Deterministic conditions keep their semantics.
+- Persistent Goal checkpoint failure returns `CC_GOAL_CHECKPOINT_FAILED`. Review actual effects and usage before resuming an interrupted running checkpoint with the original condition and `--goal-recovery-reviewed`; the flag does not repair corrupt storage.
+- `--goal` and opt-in `--goal-assess` manage and assess long-term goals separately from the headless completion-condition loop.
+
+[Current user guide](https://docs.chainlesschain.com/chainlesschain/cli-agent.html) · [Published-source evidence](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release128-public/publication.json).
+
 > Parent: [`../CLI_COMMANDS_REFERENCE.md`](CLI_COMMANDS_REFERENCE.md)
 
 ## Managed Agents Parity (session-core)

@@ -1,4 +1,12 @@
-﻿# 持久记忆 (memory)
+# 持久记忆 (memory)
+
+<!-- docs-code-git-sync-2026-10-28 -->
+
+## 0.166.128：索引候选选择优化
+
+CLI 的 canonical Memory 适配实现先利用较短的 posting 候选，再按需要构建 scope、状态、标签和 sink 的并集；并集不能改善已有选择时提前停止。候选仍经过完整谓词匹配后返回，权限与过滤先于分页/limit。
+
+此改动不新增配置开关，不自动切换 legacy/shadow/canonical 模式，也不修改迁移、删除或游标失效规则。原有磁盘身份、分片与索引校验继续执行；独立发布的 Context/Memory Kernel 仍为 **0.1.10**。局部候选归并基准不代表完整冷磁盘查询 SLO。实现见 `packages/cli/src/lib/context-memory-kernel/memory-query-index.js`；跨端范围见[模块 108 设计](https://design.chainlesschain.com/modules/m108-context-memory-kernel.html)。
 
 > `memory` 当前同时包含两套能力：传统数据库记忆/每日笔记，以及 Managed Agents 对标阶段新增的 scoped memory。
 

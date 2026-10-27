@@ -1,16 +1,30 @@
 # 代理模式 (agent)
 
-> 2026-10-23 当前核对：CLI **0.166.117**、Open VSX **0.37.159** 和 JetBrains **0.4.176** 均已公开，两个 IDE 均推荐 CLI `.117`。Session Core **0.3.22**、Personal Data Hub **0.4.66** 已先行发布。新增代码输入兼容、独立图片预算、完整 JSON 预览和异常退出工具轮次结算；本轮未新增真实模型任务验收，自动晋升继续 **HOLD**。
+<!-- docs-code-git-sync-2026-10-28 -->
 
-[输入、图片预算与会话恢复](./agent-input-and-recovery) · [当前升级步骤](./cli-ide-update-2026-10-23)
+## 0.166.128：交付复查与 Goal 完成条件
+
+`--review-changes` 仅支持 headless 提示词与 stream-json 输入，默认关闭。成功写入或编辑文件内容后，Agent 在同一工具范围、剩余轮次与费用预算内获得至多一次复查机会；失败、拒绝或延迟的写入不会触发。一次复查机会可能包含多次读取、修复和模型请求，不等于固定增加一次请求。
+
+`cc agent -p "实现当前模块并核对交付要求" --review-changes`
+
+开启后保留工具进度事件，抑制临时文本和 thinking delta，仅发布被接受的最终文本。用量不完整、预算耗尽、取消或来源校验失败时继续执行原有终止约束。该选项不授予额外权限，也不代表独立验收通过。
+
+`--goal-condition` 与 `cc goal` 的跨会话目标管理是不同入口：前者在当前 headless 会话中检查完成条件，后者管理长期目标及 OKR。自然语言 `model:` 条件使用本轮已完成、成功且未被后续潜在变更淘汰的工具证据，判定须引用有效证据 ID；最终答复本身不构成测试通过证明。确定性条件保持原语义。
+
+持久化会话保存 Goal 检查点失败会返回 `CC_GOAL_CHECKPOINT_FAILED`。恢复中断的 `running` 检查点前，先核对实际副作用和已发生用量，再按原条件使用 `--resume` / `--continue` 与 `--goal-recovery-reviewed`。该标志不修复损坏状态，也不证明此前操作已回滚。
+
+> 当前核对（2026-10-28）：CLI **0.166.128**、Open VSX **0.37.166**、JetBrains **0.4.183**；两个 IDE 均推荐 CLI `.128`，移动/PC **v5.0.3.143** 已公开。安装、渠道与回执见[升级指南](./cli-ide-update-2026-10-28)。后文带日期段落保留历史范围，Microsoft Marketplace 仍未发布。
+
+[输入、图片预算与会话恢复](./agent-input-and-recovery) · [当前升级步骤](./cli-ide-update-2026-10-28)
 
 > Headless 命令 — 不依赖桌面 GUI，直接使用核心包运行。适用于服务器、CI/CD、容器化等无桌面环境。
 
 ## 核心特性
 
 - 🤖 **Claude Code 风格**: 代理式 AI 会话，自主完成任务
-- 🔧 **25 个内置工具**: 读写/编辑文件、执行命令（含后台）、搜索代码库与会话、代码执行、联网搜索/抓取、Jupyter 编辑、子代理、技能调用、LSP 代码智能、通知/定时意图、交付物发布、浏览器状态观察等
-- 🎯 **146 个技能**: 集成全部内置技能
+- 🔧 **受治理的工具集**: 读写/编辑文件、执行命令（含后台）、搜索代码库与会话、代码执行、联网搜索/抓取、Jupyter 编辑、子代理、技能调用、LSP 代码智能、通知/定时意图、交付物发布、浏览器状态观察等
+- 🎯 **分层技能发现**: 集成全部内置技能
 - 📋 **Plan Mode**: AI 制定计划，用户审批后执行
 - 💾 **会话持久化**: 自动保存，支持 `--session` 断点恢复
 - 🧠 **Context Engineering**: 6 维上下文注入（Instinct / Memory / BM25 Notes / Task / Permanent Memory / Compaction Summary）
@@ -30,7 +44,7 @@ agent 命令 → agent.js (Commander) → agent-repl.js
      ┌──────────┬──────────┬─────────────┼──────────────┬─────────────┬──────────┐
      ▼          ▼          ▼             ▼              ▼             ▼          ▼
   工具系统   Plan Mode  Hook管道   Context Engine    会话管理    Autonomous  Bootstrap
- (19 tools) (plan-mode) (hook-     (cli-context-    (session-    Agent     (bootstrap.js)
+ (按运行模式) (plan-mode) (hook-     (cli-context-    (session-    Agent     (bootstrap.js)
                         manager)    engineering.js)  manager)   (ReAct)        │
      │          │          │             │              │          │      7-stage init
      ▼          ▼          ▼             ▼              ▼          ▼        (DB/Config)
@@ -47,8 +61,8 @@ agent 命令 → agent.js (Commander) → agent-repl.js
 
 ## 概述
 
-启动 Claude Code 风格的代理式 AI 会话。AI 可读写文件、执行命令、搜索代码库、运行代码脚本（Python/Node.js/Bash）、调用 146 个内置技能。
-支持 8 个 LLM 提供商（ollama/anthropic/openai/deepseek/dashscope/mistral/gemini/volcengine）和自主模式（/auto）。Agent 模式下自动根据任务类型智能选择最佳模型。
+启动 Claude Code 风格的代理式 AI 会话。AI 可在已授予的工具范围内读写文件、执行命令、搜索代码库、运行代码脚本和调用已加载技能；实际工具与技能清单随运行模式和配置变化。
+模型入口按 provider 与协议配置调用模型，支持自主模式（/auto）。显式参数、共享配置和会话覆盖应分别核对；推荐目录不代表账户可用性或任务质量已验证。
 通过 6 维 Context Engineering 自动注入用户偏好（Instinct）、相关记忆（Hierarchical Memory）、相关笔记（BM25 搜索）、任务目标提醒、跨会话持久记忆（Permanent Memory）和压缩摘要（Compaction Summary），使 AI 保持上下文聚焦。
 
 **Persona 支持**: 当项目配置了 Persona（通过 `init --template medical-triage` 或 `persona set`），Agent 自动使用自定义角色替代默认编码助手，并按 `toolsDisabled` 过滤可用工具。详见 [Persona 命令](./cli-persona)。
@@ -305,8 +319,8 @@ VS Code / VSCodium 扩展 `0.37.84` 在设置中增加 `chainlesschain.chat.maxT
 | 参数            | 类型   | 必填                | 说明                                   |
 | --------------- | ------ | ------------------- | -------------------------------------- |
 | `notebook_path` | string | 是                  | `.ipynb` 文件路径                      |
-| `cell_id`       | string | 否*                 | 目标单元格 id（**优先**）              |
-| `cell_index`    | number | 否*                 | 0 基单元格下标（无 `cell_id` 时用）    |
+| `cell_id`       | string | 否\*                | 目标单元格 id（**优先**）              |
+| `cell_index`    | number | 否\*                | 0 基单元格下标（无 `cell_id` 时用）    |
 | `edit_mode`     | string | 否                  | `replace`（默认）/ `insert` / `delete` |
 | `new_source`    | string | replace/insert 必填 | 新单元格源码                           |
 

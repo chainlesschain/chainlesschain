@@ -1,5 +1,20 @@
 # 78. CLI Agent Runtime 重构实施计划
 
+<!-- docs-code-git-sync-2026-10-28 -->
+
+## 2026-10-28 已发布实现增量
+
+> 当前核对（2026-10-28）：CLI **0.166.128** / Open VSX **0.37.166** / JetBrains **0.4.183**，均已公开并完成制品回读，两个 IDE 推荐 `.128`；产品 **v5.0.3.143** 的五平台构建、22 个资产与三套桌面更新元数据已核验。CLI、IDE 与产品分别冻结在 `dfa158e361`、`6551a06c2f`、`036d2b8be2`，Git 主线核对基线为 `d9f2511b95`。以下早期实施计划与旧日期记录保留其历史范围。[公开回执](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release128-public/publication.json)。
+
+| 入口                  | 当前实现                                                                                | 边界                                                                             |
+| --------------------- | --------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| headless Goal         | `GoalCheckEvidence` 收集本轮工具观察；后续潜在写入递增 revision，旧观察不再证明当前状态 | 仅 settled、successful、current 且无 pending 的观察可支撑模型判定；须引用有效 ID |
+| 检查点                | 持久化会话在模型/工具效果前记录 `running`，发布判定前记录 `evaluated`                   | 写入或恢复失败抛出 `CC_GOAL_CHECKPOINT_FAILED`；中断恢复需要核对副作用与用量     |
+| 交付复查              | `--review-changes` 显式启用，同一运行循环内追加一次复查机会                             | 默认关闭；仅 headless / stream-json，继续使用原权限、工具、用量结算和剩余预算    |
+| MCP / Skills / Memory | 工具目录投影与多语言描述符检索、选择性 posting 候选                                     | 不改变完整工具能力上限、通用 RAG 分词、磁盘校验或执行准入                        |
+
+实现入口仍包括 `commands/agent.js`、`runtime/headless-runner.js`、`runtime/headless-stream.js` 与 `runtime/agent-core.js`。这些已发布增量不表示 Runtime 重构中所有入口或跨端迁移目标均已完成；原生任务与账单验收继续独立记录。
+
 ## 1. 目标
 
 基于 `learn-coding-agent` 的分层思路，将 `chainlesschain` 当前 CLI Agent 从“入口、协议、状态、增强能力混杂”的结构，收敛为稳定的：
@@ -190,22 +205,28 @@
 ### 已完成项
 
 1. 入口统一
+
 - `agent / chat / serve / ui` 已进入 runtime 边界
 
 2. Gateway 拆分
+
 - `ws` 协议分拆和 dispatcher 已落地
 
 3. Harness 主干迁移
+
 - 核心增强模块已迁到 `src/harness/`
 
 4. 事件标准化
+
 - CLI runtime、WS 协议层、Web Panel store 已开始共享统一 event model
 
 5. Dashboard 收口
+
 - `Dashboard.vue` 已切换为 `dashboardStore` 驱动
 - 运行时事件订阅、压缩观测与会话数量更新已进入统一链路
 
 6. Session Contract 收口
+
 - `session-record.js` 已落地
 - session create / resume / close 已统一带 `record`
 - session list 已统一带 `record`
@@ -221,16 +242,16 @@
 
 下面这张表不是“想法列表”，而是本计划已完成收口前的关键任务清单；当前状态已同步为真实完成情况。
 
-| ID | 任务 | 当前状态 | 前置条件 | 验收口径 | 下一动作 |
-|----|------|----------|----------|----------|----------|
-| P4-1 | Web Panel 剩余页面清查 | 已完成 | 主干 store 已接入 `onRuntimeEvent()` | 已完成页面/Store 清查，未发现页面层散落原始 WS 依赖；`chat.js` 直连 session stream 属合理保留 | 转入常规回归 |
-| P4-2 | Session 链路彻底闭环 | 已完成 | `session-record` 已落地 | create / resume / list / close 四条链路字段一致且已有断言与回归 | 转入常规回归 |
-| P4-3 | Task / Worktree / Compression 联动测试 | 已完成 | task/worktree/compression 协议已可用 | CLI + Web Panel 定向联动验证已完成 | 转入常规回归 |
-| P4-4 | 协议响应与 runtime event 边界文档 | 已完成 | 当前 `ws.js` 已做归一化 | docs/design 和 docs-site 均已明确协议响应 / runtime event / session stream 边界 | 转入文档维护 |
-| P5-1 | `tools/` 基础目录建立 | 已完成 | Phase 4 收尾完成 | `registry / tool-context / tool-permissions / tool-telemetry` 落地 | 建立最小目录和空实现骨架 |
-| P5-2 | Tool Descriptor 定义 | 已完成 | `tools/` 目录建立 | shell / git / mcp 已拥有统一 descriptor，旧工具定义已可映射到 descriptor | 转入常规回归 |
-| P5-3 | shell / git / mcp 首批纳管 | 已完成 | descriptor 可用 | runtime 已能通过统一入口识别并附带三类工具 metadata | 转入常规回归 |
-| P5-4 | Tool Registry 测试闭环 | 已完成 | 首批工具已接入 registry | 单测 + 集成测试已覆盖主路径，metadata 已进入 runtime event envelope | 转入常规回归 |
+| ID   | 任务                                   | 当前状态 | 前置条件                             | 验收口径                                                                                      | 下一动作                 |
+| ---- | -------------------------------------- | -------- | ------------------------------------ | --------------------------------------------------------------------------------------------- | ------------------------ |
+| P4-1 | Web Panel 剩余页面清查                 | 已完成   | 主干 store 已接入 `onRuntimeEvent()` | 已完成页面/Store 清查，未发现页面层散落原始 WS 依赖；`chat.js` 直连 session stream 属合理保留 | 转入常规回归             |
+| P4-2 | Session 链路彻底闭环                   | 已完成   | `session-record` 已落地              | create / resume / list / close 四条链路字段一致且已有断言与回归                               | 转入常规回归             |
+| P4-3 | Task / Worktree / Compression 联动测试 | 已完成   | task/worktree/compression 协议已可用 | CLI + Web Panel 定向联动验证已完成                                                            | 转入常规回归             |
+| P4-4 | 协议响应与 runtime event 边界文档      | 已完成   | 当前 `ws.js` 已做归一化              | docs/design 和 docs-site 均已明确协议响应 / runtime event / session stream 边界               | 转入文档维护             |
+| P5-1 | `tools/` 基础目录建立                  | 已完成   | Phase 4 收尾完成                     | `registry / tool-context / tool-permissions / tool-telemetry` 落地                            | 建立最小目录和空实现骨架 |
+| P5-2 | Tool Descriptor 定义                   | 已完成   | `tools/` 目录建立                    | shell / git / mcp 已拥有统一 descriptor，旧工具定义已可映射到 descriptor                      | 转入常规回归             |
+| P5-3 | shell / git / mcp 首批纳管             | 已完成   | descriptor 可用                      | runtime 已能通过统一入口识别并附带三类工具 metadata                                           | 转入常规回归             |
+| P5-4 | Tool Registry 测试闭环                 | 已完成   | 首批工具已接入 registry              | 单测 + 集成测试已覆盖主路径，metadata 已进入 runtime event envelope                           | 转入常规回归             |
 
 ### 6.1 推进优先级
 
@@ -511,22 +532,27 @@ packages/cli/src/
 待办：
 
 1. 清查剩余前端页面
+
 - 查找是否还有直接依赖原始协议消息的 store / view
 - 能迁则迁到 `onRuntimeEvent()`
 
 2. 增补验证
+
 - 补 `ws + runtime event + panel store` 的联动测试
 - 补 `Dashboard` 相关状态回归测试
 - 继续补齐 session / task / worktree 的 record 消费断言
 
 3. 文档同步
+
 - 更新 `docs-site` 与 `docs/design` 中对 runtime event 的说明
 
 4. 统一事件出口
+
 - 明确哪些事件属于“协议响应”，哪些事件属于“订阅型 runtime event”
 - 保证前端不再因为 `sendRaw()` promise resolve 而吞掉同一条消息的事件广播
 
 5. 对齐 session contract
+
 - 明确 `session-created`、`session-resumed`、`session-list-result` 的最小公共字段
 - 保证主动拉取和被动推送看到的是同一套 session summary 结构
 
@@ -535,6 +561,7 @@ packages/cli/src/
 满足以下条件后，才能认为 Phase 4 收尾完成：
 
 1. Web Panel 主干 store
+
 - `ws.js`
 - `chat.js`
 - `tasks.js`
@@ -543,6 +570,7 @@ packages/cli/src/
 都已能通过统一 event 入口消费核心事件。
 
 2. 会话协议
+
 - `session-created`
 - `session-resumed`
 - `session-list-result`
@@ -550,6 +578,7 @@ packages/cli/src/
 均返回标准 `record`，且前端消费断言完整。
 
 3. 任务与 Worktree
+
 - `task:notification`
 - `worktree-diff`
 - `worktree-merge`
@@ -558,6 +587,7 @@ packages/cli/src/
 至少具备一轮 CLI + Web Panel 的联动测试。
 
 4. 文档
+
 - `docs/design`
 - `docs-site`
 
@@ -579,6 +609,7 @@ packages/cli/src/
 首批任务建议：
 
 1. 先定义 tool descriptor
+
 - 名称
 - 分类
 - 参数 schema
@@ -586,10 +617,12 @@ packages/cli/src/
 - telemetry tags
 
 2. 再做最小迁移
+
 - 先接 shell / git / mcp
 - 保留旧调用路径兼容层
 
 3. 最后接策略
+
 - 将 tool telemetry 和权限策略接到 runtime / policy
 
 ### Phase 5 预计产出
@@ -654,16 +687,19 @@ packages/cli/src/
 ### 9.1 测试分层
 
 1. 单元测试
+
 - 验证 contract 构造
 - 验证事件 envelope
 - 验证 protocol handler
 - 验证前端 store 归一化逻辑
 
 2. 集成测试
+
 - 验证 WS 协议与 runtime 的联动
 - 验证 session / task / worktree / compression 端到端字段一致性
 
 3. 构建验证
+
 - Web Panel 构建
 - docs-site 构建
 
@@ -672,12 +708,15 @@ packages/cli/src/
 Phase 4 验收不以“目录看起来更漂亮”为准，而以下面三件事为准：
 
 1. 三层字段一致
+
 - CLI contract、WS 响应、Web Panel store 不再各自维护不同摘要字段
 
 2. 消费入口收口
+
 - 主干前端状态更新优先通过 `onRuntimeEvent()`
 
 3. 文档与代码一致
+
 - 用户文档和设计文档都能准确描述当前实现，而不是落后一个阶段
 
 ## 11. 风险与应对
@@ -889,6 +928,7 @@ Phase 5 不建议上来就覆盖所有工具，建议只做：
 本轮继续把 `P5-2` 从“只有 descriptor 映射”推进到“`agent-core` 已可暴露兼容 registry 入口”。
 
 新增和更新：
+
 - `packages/cli/src/lib/agent-core.js`
   - 新增 `AGENT_TOOL_REGISTRY`
   - 新增 `getAgentToolDefinitions()`
@@ -900,9 +940,11 @@ Phase 5 不建议上来就覆盖所有工具，建议只做：
   - 新增 descriptor 查询回归
 
 本轮验证结果：
+
 - CLI `agent-core + tools-registry + legacy-agent-tools` 定向单测：`70/70`
 
 当前结论：
+
 - `agent-core` 现在已经不只是“保留旧 `AGENT_TOOLS` 常量”，也能对外提供 registry 和 descriptor 视图
 - `chatWithTools()` 已经接到统一工具过滤函数，但并没有改动现有模型调用载荷格式
 - `P5-2` 目前已完成：执行入口通过 helper 将 registry descriptor payload 附加到每次工具结果，`executeTool` 也暴露 metadata/telemetry，旧行为未改变。
@@ -918,6 +960,7 @@ Phase 5 不建议上来就覆盖所有工具，建议只做：
 - CLI 单测（75/75）覆盖 `git`/`mcp` descriptor 映射、`toolDescriptor` 产生、`toolTelemetryRecord` 附加，说明兼容层已稳定。
 
 当前结论：
+
 - 命令级别的 descriptor/telemetry metadata 已经标准化，`run_shell` 可以识别 git/mcp 并映射到对应 descriptor，返回值和 telemetry 会附着元数据。
 - `P5-3` 已完成：git/mcp 命令可识别 descriptor，所有工具执行附带 metadata/telemetry，CLI 单测 75/75 覆盖。
 - 由此，未来 frontend/telemetry 只需读取 `toolDescriptor`/`toolTelemetryRecord`，不再硬编码多个逻辑分支。
@@ -945,7 +988,7 @@ Phase 5 不建议上来就覆盖所有工具，建议只做：
 
 ### 18.1 桌面 Coding Agent 接线（Minimal Coding Agent v5.0.2.10）
 
-桌面 `desktop-app-vue` 通过 `coding-agent-bridge.js` 把 CLI runtime 当作子进程拉起并经 WebSocket 调用 session-create / session-list / session-close / session-resume / worktree-* 协议，这套桥接现在已经具备完整的单元、集成与真实 CLI E2E 覆盖：
+桌面 `desktop-app-vue` 通过 `coding-agent-bridge.js` 把 CLI runtime 当作子进程拉起并经 WebSocket 调用 session-create / session-list / session-close / session-resume / worktree-\* 协议，这套桥接现在已经具备完整的单元、集成与真实 CLI E2E 覆盖：
 
 - **测试矩阵**（9 个文件 / 85 用例 / 全部通过）：
   - 单元：`coding-agent-bridge.test.js` (12)、`coding-agent-permission-gate.test.js` (8)、`coding-agent-tool-adapter.test.js` (4)、`coding-agent-session-service.test.js` + `coding-agent-ipc-v3.test.js` (24)
@@ -989,52 +1032,69 @@ Phase 5 不建议上来就覆盖所有工具，建议只做：
 > 本文为系统设计子文档。为对齐项目文档标准结构，下列章节以 `见正文` 指引或简述方式补齐若干视角，不重复正文细节。
 
 ### 1. 概述
+
 见正文「模块概述 / 功能描述」。CLI Agent Runtime 重构实施计划：cc agent runtime 重构。
 
 ### 2. 核心特性
+
 Runtime 重构 / seam / 收口路线。
 
 ### 3. 系统架构
+
 见正文「架构设计」。
 
 ### 4. 系统定位
+
 ChainlessChain 的「CLI Agent Runtime 重构」。
 
 ### 5. 核心功能
+
 见正文模块概述与各节。
 
 ### 6. 技术架构
+
 见正文实现章节。
 
 ### 7. 系统特点
+
 见正文（状态 / 版本 / 特性）。
 
 ### 8. 应用场景
+
 见正文应用场景 / 背景。
 
 ### 9. 竞品对比
+
 见正文对比（如有）。
 
 ### 10. 配置参考
+
 见正文配置 / 参数章节。
 
 ### 11. 性能指标
+
 见正文性能 / 指标章节。
 
 ### 12. 测试覆盖
+
 见正文测试章节。
 
 ### 13. 安全考虑
+
 见正文安全 / 权限章节。
 
 ### 14. 故障排除
+
 见正文故障 / 已知限制章节。
 
 ### 15. 关键文件
+
 见正文实现位置 / 关键文件章节。
 
 ### 16. 使用示例
+
 见正文使用 / API 示例。
 
 ### 17. 相关文档
+
 [系统设计主文档](../系统设计_主文档.md)、`docs-site` 对应功能页。

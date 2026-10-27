@@ -1,8 +1,8 @@
 # ChainlessChain 系统概述
 
-> **当前版本（2026-09-14）：v5.0.3.137 | Agent Platform CLI 0.166.47（npm latest / 生产推荐）| Agent SDK TS/Python 0.2.9/0.2.8 | Agent Protocol 0.1.9 | Context Memory Kernel 0.1.1 | Session Core 0.3.12 | PDH 0.4.60（92 个采集契约 / 18 类来源）| Open VSX 0.37.97 | JetBrains Marketplace 0.4.123**
+> **当前核对（2026-10-28）**：产品 **v5.0.3.143**；CLI **0.166.128**；Open VSX **0.37.166**；JetBrains **0.4.183**，两个 IDE 推荐 **.128**。Agent SDK TS/Python **0.2.16/0.2.9**、Agent Protocol **0.1.12**、Context/Memory Kernel **0.1.10**、Session Core **0.3.24** 与 PDH **0.4.66** 保持独立版本。
 >
-> **当前能力与发布边界**：`0.166.47@3138626213` 已公开 Evolution/Wiki 重验、原生 Responses、版本化模型能力、延后问题、插件评测、后台会话分页与非阻塞心跳协调；Open VSX `0.37.97`、JetBrains `0.4.123` 已独立公开回读。Desktop 模型治理仍不等于已公开 Desktop 安装包，Workbench 仍需目标环境可信 authority。详见[CLI Runtime](/chainlesschain/cli-runtime-current)与[发布边界](/chainlesschain/agent-platform-release)。
+> **当前能力与证据范围**：CLI 已公开 Goal 工具证据约束、检查点失败暴露、可选交付复查、共享模型入门与会话覆盖，以及 MCP/Skills/Memory 检索改进。CLI、IDE、产品各自的发行源码与回执分别核验；五平台产品的 22 个资产通过回读。真实任务累计 **32/45**，另有 **13** 项未完成，**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。见[升级指南](./cli-ide-update-2026-10-28)、[CLI Runtime](./cli-runtime-current)和[发行证据](./agent-platform-release)。以下带日期条目保留历史范围。
 >
 > **v5.0.3.127–130 QQ空间一键采集 + 微信朋友圈采集 + §8.3 学习层备份上设备 + 个人助手 UX 收口（2026-06-24）**：QQ空间（Qzone）本地无库走 API——新增 `pdh/lib/forensics/qzone-collect.js`（`g_tk`=bkn hash over qzone 域 `p_skey`；说说/留言板/相册 → EVENT）+ `cc hub collect-qzone` + Android「QQ空间」一键采集卡（内嵌 WebView ptlogin2 登录 → 抓 cookie → in-APK 采集，真机 404 事件）；微信朋友圈 `SnsMicroMsg.db` 明文采集（`parseSnsEvents`，真机 2824 条）；§8.3 学习层备份命令上设备（`cc memory/instinct/learning export/import` → vault + 记忆 + 习惯 + 自进化轨迹全资产端到端备份）；个人助手 UX——卡死静默看门狗（20s 安抚/120s 友好超时+重试/进程退出自动重启）+ 待裁决信任卡固定（sticky）可见不再被消息流滚走。`pdh` 0.4.33→**0.4.36** + `chainlesschain` 0.162.101→**0.162.117** 已发 npm；Android cc bundle `internal-binaries-android-v20260624`（USR_VERSION 58）。
 >
@@ -1856,16 +1856,16 @@ OPENAI_API_KEY=sk-...                # OpenAI API Key
 
 ## 性能指标
 
-| 指标                      | 典型值           | 备注                       |
-| ------------------------- | ---------------- | -------------------------- |
-| Electron 冷启动           | < 3 s            | 主进程 + Vue 首屏          |
-| 渲染进程首屏              | < 1.5 s          | 含 Ant Design Vue 懒加载   |
-| 本地 LLM 回合首 token     | 依赖 Ollama 模型 | `qwen2.5:7b` 约 300–600 ms |
-| Qdrant 向量检索           | < 50 ms          | 10 万条向量，近似 HNSW     |
-| BM25 本地搜索             | < 20 ms          | `natural` 索引，百万级笔记 |
-| SQLCipher 查询            | < 5 ms           | AES-256 加密开销           |
+| 指标                       | 典型值           | 备注                       |
+| -------------------------- | ---------------- | -------------------------- |
+| Electron 冷启动            | < 3 s            | 主进程 + Vue 首屏          |
+| 渲染进程首屏               | < 1.5 s          | 含 Ant Design Vue 懒加载   |
+| 本地 LLM 回合首 token      | 依赖 Ollama 模型 | `qwen2.5:7b` 约 300–600 ms |
+| Qdrant 向量检索            | < 50 ms          | 10 万条向量，近似 HNSW     |
+| BM25 本地搜索              | < 20 ms          | `natural` 索引，百万级笔记 |
+| SQLCipher 查询             | < 5 ms           | AES-256 加密开销           |
 | IPC 往返（renderer↔main） | < 2 ms           | 受 Domain Router 限流影响  |
-| CLI 单命令 startup        | < 200 ms         | 含 Commander + lib 懒加载  |
+| CLI 单命令 startup         | < 200 ms         | 含 Commander + lib 懒加载  |
 
 超 50MB 文档/视频等资源处理为异步任务，依赖 Sub-Runtime Pool 的并发上限。
 

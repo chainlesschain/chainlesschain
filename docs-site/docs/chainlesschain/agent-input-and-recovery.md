@@ -1,6 +1,14 @@
 # Agent 输入、图片预算与会话恢复
 
-> 当前版本（2026-10-27）：CLI **0.166.127** / Open VSX **0.37.165** / JetBrains **0.4.182**；客户端 **v5.0.3.142** 已公开。当前升级操作以[本轮指南](./cli-ide-update-2026-10-27)为准，旧日期段落保留历史。
+<!-- docs-code-git-sync-2026-10-28 -->
+
+## Goal 检查点与复查输出
+
+持久化会话先记录运行中状态，再保存本轮判定；`CC_GOAL_CHECKPOINT_FAILED` 表示状态无法安全保存或恢复，不能据此认定先前工具副作用已撤销。恢复未完成的 `running` 检查点前核对实际文件/远端结果和用量，随后按原条件显式使用 `--goal-recovery-reviewed`。
+
+`--review-changes` 仅在 headless / stream-json 中显式开启，抑制临时文本和 thinking delta，保留工具进度与最终文本。自然语言 Goal 需要当前成功工具观察及有效证据 ID；缺少证据、仍在运行或被后续变更淘汰的结果不能支持完成。详见[Agent 命令](./cli-agent)。
+
+> 当前核对（2026-10-28）：CLI **0.166.128**、Open VSX **0.37.166**、JetBrains **0.4.183**；两个 IDE 均推荐 CLI `.128`，移动/PC **v5.0.3.143** 已公开。安装、渠道与回执见[升级指南](./cli-ide-update-2026-10-28)。后文带日期段落保留历史范围，Microsoft Marketplace 仍未发布。
 
 ## 自进化选择与完整恢复摘要
 
@@ -10,7 +18,7 @@
 
 ## 概述
 
-当前公开 CLI 为 **0.166.121**，修复普通状态与工具显示文本的 Evolution ingress 误判。它保留此前 **0.166.117** 对代码投影、图片与文本预算、长工具输出及异常退出前工具结算的修复。历史 Open VSX **0.37.159** / JetBrains **0.4.176** 配对推荐 CLI **0.166.117**；新的 IDE 发布状态见下文。
+当前公开 CLI 为 **0.166.128**，保留此前完整有界 JSON、代码投影、图片/文本预算和工具结算修复，并增加 Goal 检查点错误暴露与可选交付复查。当前 IDE 为 **0.37.166** / **0.4.183**，均推荐 `.128`；下文带日期发布段落用于历史追溯。
 
 ## CLI 0.166.121 已公开发布（2026-10-26）
 
@@ -43,7 +51,7 @@ CLI 0.166.121 已通过同一提交的三平台 CLI CI 和 CLI Strict Sandbox，
 使用 Node.js **22.12.0 或更新版本**，安装已公开版本：
 
 ```bash
-npm i -g chainlesschain@0.166.127 --registry https://registry.npmjs.org
+npm i -g chainlesschain@0.166.128 --registry https://registry.npmjs.org
 cc --version
 cc doctor
 ```

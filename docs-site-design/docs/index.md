@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 系统设计文档
-  tagline: "CLI 0.166.127 / Open VSX 0.37.165 / JetBrains 0.4.182 已公开；可选自进化、完整恢复摘要与五平台发行"
+  tagline: "CLI 0.166.128 / Open VSX 0.37.166 / JetBrains 0.4.183 已公开；Goal 证据、可选复查与五平台 v5.0.3.143"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -21,16 +21,16 @@ hero:
 
 features:
   - icon: 🛡️
-    title: Evolution 可选开关与完整恢复摘要
-    details: "新安装与旧自动本地部署默认关闭；CLI、cc ui 和 IDE 共享布尔开关，启用后仍验证签名和证据。恢复摘要保留完整有界 JSON。IDE .165/.182 均已公开并推荐 .127。"
-    link: /release-runtime-update-2026-10-27
+    title: Goal 证据与可选交付复查
+    details: "自然语言 Goal 使用本轮成功工具证据，持久化错误明确暴露；交付复查默认关闭，沿用原权限与预算。IDE .166/.183 均已公开并推荐 .128。"
+    link: /release-runtime-update-2026-10-28
   - icon: 🏢
     title: 组织目标、授权记忆与站内通知（主线）
-    details: 历史产品 .140 已包含显式巡检、多级审批、独立验收、共享记忆与授权通知；当前 .142 独立发行，记忆不自动注入模型。
+    details: 历史产品 .140 已包含显式巡检、多级审批、独立验收、共享记忆与授权通知；当前 .143 独立发行，记忆不自动注入模型。
     link: /governance-runtime-update-2026-10-08
   - icon: 🎯
     title: 持久项目目标与独立验收（主线）
-    details: 历史产品 .140 包含个人与组织目标、原生动作、独立验收、记忆面板和站内通知；当前 .142 按独立发行证据核验。
+    details: 历史产品 .140 包含个人与组织目标、原生动作、独立验收、记忆面板和站内通知；当前 .143 按独立发行证据核验。
     link: /project-goals-rrsi-update-2026-10-07
   - icon: 🧪
     title: RRSI 五池与质量回执（主线）
@@ -41,7 +41,7 @@ features:
     details: 覆盖知识库、社交、交易、AI引擎、安全、企业、去中心化基础设施、Web3、低代码平台、自进化AI、CLI分发系统、CLI高级功能、AI媒体创作、AI文档创作、Web管理界面、Personal Data Hub、iOS Phase 1-6、远程操控 Plan A/B/C、MTC v0.11 联邦等全部子系统的详细设计
 
   - icon: 🏗️
-    title: Agent Platform 0.166.127 与验收边界
+    title: Agent Platform 0.166.128 与验收边界
     details: 精确发行提交通过三平台门禁并验证公共制品；跨版本累计32/45，13项未完成，本轮未新增模型验收。NOT_PAID_READY、NOT_ADMITTED、HOLD 保留，原生产品独立验收。
     link: /cli-runtime-current
   - icon: 📝
@@ -81,11 +81,18 @@ features:
     details: RBAC权限、SOC2合规、SCIM用户配置、DLP数据防泄漏、SIEM安全信息管理
 ---
 
-## 2026-10-27 当前代码与公开发行
+## 2026-10-28 当前代码与公开发行
 
-> 2026-10-27：CLI **0.166.127**、Open VSX **0.37.165**、JetBrains **0.4.182** 均已公开，两个 IDE 推荐 `.127`。自进化改为可选开启，恢复摘要保留完整有界 JSON，严格校验与历史证据兼容继续执行。原生产品 **v5.0.3.142** 从独立源 `c9881a2b71` 发行，五平台构建与 22 个公开资产已核验。本轮没有新增模型任务验收，累计 **32/45**、**13** 项未完成，**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。
+> 2026-10-28：CLI **0.166.128**、Open VSX **0.37.166**、JetBrains **0.4.183** 均已公开，两个 IDE 推荐 `.128`。本版加入 Goal 工具证据与检查点约束、可选交付复查、会话模型覆盖和发现优化，并延续 .127 的可选自进化与完整有界恢复摘要。原生产品 **v5.0.3.143** 从独立源 `036d2b8be2` 发行，五平台构建与 22 个公开资产已核验。本轮没有新增模型任务验收，累计 **32/45**、**13** 项未完成，**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。
 
-[最新设计](/release-runtime-update-2026-10-27) · [升级指南](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-27.html) · [发布证据](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release121-public/publication.json)
+[最新设计](/release-runtime-update-2026-10-28) · [升级指南](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-28.html) · [发布证据](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release128-public/publication.json)
+
+### 按任务查阅当前参考
+
+- [Agent 完成条件与可选复查](https://docs.chainlesschain.com/chainlesschain/cli-agent.html)
+- [IDE 模型配置与会话覆盖](https://docs.chainlesschain.com/chainlesschain/ide-plugin.html)
+- [MCP 紧凑目录与多语言发现](https://docs.chainlesschain.com/chainlesschain/cli-tool-search.html)
+- [Skills 描述符检索](https://docs.chainlesschain.com/chainlesschain/cli-skill.html) · [Memory 查询边界](https://docs.chainlesschain.com/chainlesschain/cli-memory.html)
 
 ## 历史版本与验收记录
 

@@ -1,6 +1,18 @@
 # 108 Context/Memory Kernel 设计
 
-> **2026-10-08 增量**：公开 Kernel `0.1.7` 随 CLI `0.166.92` 配对，发行提交 `e812a89952` 已含 `NativeSqliteMemoryPort` 和个人目标授权记忆服务/IPC。主线 `381f8018ef` 另接入个人记忆操作面板与组织共享记忆；目标只保存精确版本引用，修正创建 successor 并切换授权引用；撤权/删除先阻止读取，操作保留原请求恢复身份。尚未自动注入模型回答。原 Kernel 的 production-close 证据保持其原身份，不为新业务面授予验收资格。见[授权记忆设计](../governance-runtime-update-2026-10-08.md)。
+<!-- docs-code-git-sync-2026-10-28 -->
+
+## 2026-10-28 CLI Memory 查询增量
+
+> 当前核对（2026-10-28）：CLI **0.166.128** / Open VSX **0.37.166** / JetBrains **0.4.183**，均已公开并完成制品回读，两个 IDE 推荐 `.128`；产品 **v5.0.3.143** 的五平台构建、22 个资产与三套桌面更新元数据已核验。CLI、IDE 与产品分别冻结在 `dfa158e361`、`6551a06c2f`、`036d2b8be2`，Git 主线核对基线为 `d9f2511b95`。以下早期实施计划与旧日期记录保留其历史范围。[公开回执](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release128-public/publication.json)。
+
+独立 Context/Memory Kernel 包保持 **0.1.10**；本轮优化发生在 CLI 的 `src/lib/context-memory-kernel/memory-query-index.js` 适配实现。`selectQueryRows` 先比较 posting 的选择性，再决定是否展开 scope/state/tag/sink 并集；不能比当前候选更短的并集不再完整构建，已累积到当前长度时提前停止。
+
+最终候选仍经过 `matchesListQuery` 完整过滤后输出，权限、保留状态、sink 等谓词先于分页/limit，游标与写入失效规则保留。磁盘身份、分片验证与索引重建规则继续执行，未通过缓存绕过权威存储。
+
+该优化不自动迁移 legacy/shadow/canonical 模式，不表示所有 Desktop、App Server、IDE 或 SDK writer/cutover 都完成新验收。局部 posting 归并基线只描述该段开销，不推导完整冷磁盘查询 SLO、真实费用节省或任务成功率。
+
+> **2026-10-08 历史增量**：公开 Kernel `0.1.7` 随 CLI `0.166.92` 配对，发行提交 `e812a89952` 已含 `NativeSqliteMemoryPort` 和个人目标授权记忆服务/IPC。主线 `381f8018ef` 另接入个人记忆操作面板与组织共享记忆；目标只保存精确版本引用，修正创建 successor 并切换授权引用；撤权/删除先阻止读取，操作保留原请求恢复身份。尚未自动注入模型回答。原 Kernel 的 production-close 证据保持其原身份，不为新业务面授予验收资格。见[授权记忆设计](../governance-runtime-update-2026-10-08.md)。
 
 > 2026-09-01 历史状态：仓库实现、默认切换与正式生产关闭均已完成；能力随公开 CLI `0.166.15`、Context/Memory Kernel `0.1.0`、Agent Protocol `0.1.7` 与 SDK `0.2.7` 提供｜范围：CLI、Desktop、IDE、Agent SDK 共用的上下文构建、压缩与记忆生命周期｜更新：2026-09-01
 

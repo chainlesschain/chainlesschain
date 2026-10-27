@@ -1,8 +1,16 @@
 # CLI Runtime 当前公开实现与历史记录
 
-> 2026-10-27 当前公开：CLI **0.166.127**、Open VSX **0.37.165**、JetBrains **0.4.182**，两个 IDE 推荐 `.127`；移动与 PC 产品 **v5.0.3.142** 已公开，22 个资产通过回读。自进化改为可选开启，新安装与旧自动本地部署默认关闭。跨版本累计 **32/45**、**13** 项未完成，本轮未新增模型任务验收；**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。
+<!-- docs-code-git-sync-2026-10-28 -->
 
-当前安装：`npm i -g chainlesschain@0.166.127 --registry https://registry.npmjs.org`。升级后重启聊天宿主并运行 Doctor。详见[本轮升级指南](./cli-ide-update-2026-10-27)、[开关配置](./self-evolution-configuration)和[图片预算与恢复](./agent-input-and-recovery)。Microsoft Marketplace 仍未发布；VS Code 可安装 Open VSX 的版本化 VSIX。
+## 2026-10-28 当前增量
+
+公开 `.128` 已包含当前轮工具证据约束的自然语言 Goal 判定、显式检查点错误和默认关闭的 `--review-changes`。MCP 支持默认 `stubs` 与可选 `compact` 目录；MCP/Skills 改进多语言检索；Memory 候选选择避免不必要的 posting 并集，原过滤与磁盘校验继续执行。
+
+这些入口仍由 CLI 的权限、预算、会话和工具执行路径控制；不因新增复查或目录投影而获得新的 authority。具体使用见 [Agent](./cli-agent)、[MCP Tool Search](./cli-tool-search)、[Skills](./cli-skill)、[Memory](./cli-memory) 与 [IDE 模型配置](./ide-plugin)。累计验收仍为 **32/45**，没有新增本轮真实模型任务验收。
+
+> 当前核对（2026-10-28）：CLI **0.166.128**、Open VSX **0.37.166**、JetBrains **0.4.183**；两个 IDE 均推荐 CLI `.128`，移动/PC **v5.0.3.143** 已公开。安装、渠道与回执见[升级指南](./cli-ide-update-2026-10-28)。后文带日期段落保留历史范围，Microsoft Marketplace 仍未发布。
+
+当前安装：`npm i -g chainlesschain@0.166.128 --registry https://registry.npmjs.org`。升级后重启聊天宿主并运行 Doctor。详见[本轮升级指南](./cli-ide-update-2026-10-28)、[开关配置](./self-evolution-configuration)和[图片预算与恢复](./agent-input-and-recovery)。Microsoft Marketplace 仍未发布；VS Code 可安装 Open VSX 的版本化 VSIX。
 
 ## 历史版本与架构记录
 
@@ -80,20 +88,14 @@ git merge-base --is-ancestor 退出码 1 是合法的 predicateResult:false，�
 
 ## 安装版本怎么选
 
-| 用途                               | 版本                                                                       | 来源与范围                                                      |
-| ---------------------------------- | -------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| 日常使用 / 当前公开 CLI            | CLI 0.166.121                                                              | 4a7e5adc5e，完整 CLI CI / Strict、OIDC 与公开回读已通过         |
-| IDE 工作台                         | Open VSX 0.37.161 / JetBrains 0.4.178                                      | 两者推荐 .121；公开下载及包内推荐值已核验                       |
-| 共享服务                           | Session Core 0.3.23 / Memory Kernel 0.1.10 / PDH 0.4.66 / Agent SDK 0.2.16 | 独立公开子包，CLI 保持精确依赖                                  |
-| Desktop / Android / iOS            | v5.0.3.141 独立发行                                                        | 源 a024f3c672；按产品发行与授权证据核验，不属于 CLI .121 发行树 |
-| Windows 工具链 / Node runtime 胶囊 | 1e5477aebe 源码实验                                                        | admissionEligible=false，正式目标宿主验收未完成                 |
+| 用途                                    | 当前公开版本                                                               | 来源与范围                                                                   |
+| --------------------------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| CLI                                     | 0.166.128                                                                  | 正式源 `dfa158e361`；完整三系统 CLI CI / Strict Sandbox、OIDC 与独立回读通过 |
+| IDE                                     | Open VSX 0.37.166 / JetBrains 0.4.183                                      | 两者推荐 .128，发行源 `6551a06c2f`，公共下载已核验                           |
+| 共享服务                                | Session Core 0.3.24 / Memory Kernel 0.1.10 / PDH 0.4.66 / Agent SDK 0.2.16 | 子包版本本轮不变，CLI 使用已公开的精确依赖                                   |
+| Windows / macOS / Linux / Android / iOS | v5.0.3.143                                                                 | 独立冻结源 `036d2b8be2`，22 个公开资产及桌面更新元数据通过回读               |
 
-```bash
-npm i -g chainlesschain@0.166.121 --registry https://registry.npmjs.org
-cc --version
-```
-
-升级后重启 IDE 聊天宿主并通过 Doctor 核对实际路径与能力。实验胶囊不用于解除生产严格模式阻塞；详细准入与限制见[最新设计](/design/release-runtime-update-2026-10-26)。
+安装 `npm i -g chainlesschain@0.166.128 --registry https://registry.npmjs.org`，随后重启宿主，运行 `cc --version` 与 `cc doctor`。实验运行时胶囊与完整 native 任务验收保持独立准入；详见[当前升级指南](./cli-ide-update-2026-10-28)。
 
 ## 核心特性
 
