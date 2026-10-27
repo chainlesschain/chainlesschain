@@ -1,6 +1,6 @@
 # CLI 与 IDE 自进化开关配置
 
-CLI **0.166.127** 已公开发布并完成归档与签名来源回读；CLI 和 cc ui 的开关可以立即使用。配套 VS Code **0.37.165**、JetBrains **0.4.182** 已公开上架并完成制品回读，可升级使用 IDE 功能。移动端与 PC 安装包 [v5.0.3.142](https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.142) 已公开发布，五平台构建、22 个资产完整性和三套桌面更新元数据回读均已通过。
+CLI **0.166.127** 已公开发布并完成归档与签名来源回读；CLI 和 cc ui 的开关可以立即使用。配套 VS Code 扩展 **0.37.165** 已在 Open VSX 公开上架，JetBrains **0.4.182** 也已公开上架，两者完成制品回读（Microsoft Marketplace 仍未发布），可升级使用 IDE 功能。移动端与 PC 安装包 [v5.0.3.142](https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.142) 已公开发布，五平台构建、22 个资产完整性和三套桌面更新元数据回读均已通过。
 
 ## 默认行为
 

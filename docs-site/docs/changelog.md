@@ -5,6 +5,14 @@
 
 ## [Unreleased]
 
+### 已公开 — CLI 0.166.127 / Open VSX 0.37.165 / JetBrains 0.4.182 / 产品 v5.0.3.142（2026-10-27）
+
+- 自进化可选开启：新安装及旧自动本地部署默认关闭，共享布尔配置 `evolution.enabled`；显式 false 覆盖环境变量。正在运行的 Agent 需重启。
+- 继承模型设置与 Windows ACL 启动修复、代码表达式投影和完整有界恢复摘要，IDE 保留活跃任务可能读取的附件。
+- CLI 三平台 CI / Strict Sandbox、OIDC 与公共归档回读通过；两个 IDE 已公开并推荐 .127。产品五平台工作流通过，22 个公开资产及 updater 元数据核验完成。
+- Microsoft Marketplace 未发布；累计 32/45、13 项未完成，未新增模型验收；NOT_PAID_READY / NOT_ADMITTED / HOLD 保留。
+- [升级指南](/chainlesschain/cli-ide-update-2026-10-27) · [开关配置](/chainlesschain/self-evolution-configuration) · [设计](/design/release-runtime-update-2026-10-27)。
+
 #### Released — CLI 0.166.84 / Open VSX 0.37.126 / JetBrains 0.4.146（2026-10-02）
 
 - **作用域权限同步撤销**：同一进程/模块实例内，官方 workspace-scoped 权限添加或撤销在落盘前使旧 Shell 许可失效；恢复原规则不能复活旧许可。审批、启动、运行和回执阶段组合核验 settings/scoped 修订，持久化未知保持拒绝授权。

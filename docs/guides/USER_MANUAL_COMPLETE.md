@@ -1,5 +1,7 @@
 # ChainlessChain 完整用户手册
 
+> 2026-10-27 当前公开：CLI **0.166.127**、Open VSX **0.37.165**、JetBrains **0.4.182**，两个 IDE 推荐 `.127`；移动与 PC 产品 **v5.0.3.142** 已公开，22 个资产通过回读。自进化改为可选开启，新安装与旧自动本地部署默认关闭。跨版本累计 **32/45**、**13** 项未完成，本轮未新增模型任务验收；**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。 详见[本轮升级指南](https://docs.chainlesschain.com/chainlesschain/cli-ide-update-2026-10-27.html)与[开关配置](https://docs.chainlesschain.com/chainlesschain/self-evolution-configuration.html)。下方较早日期内容保留历史范围。
+
 > **2026-10-06 使用入口更新**：2026-10-06 发布后核对：npm CLI **0.166.90** 与 Open VSX **0.37.135** 已公开，发行标签绑定 `28cff6adc8`，Open VSX 推荐 CLI `0.166.90`。Session Core **0.3.15**、Agent SDK **0.2.13**、PDH **0.4.63** 已先于 CLI 经 OIDC 发布并下载核验。JetBrains **0.4.153** 也已批准公开上架（`approve/listed=true`、`hidden=false`），推荐 CLI `0.166.90`，发行标签同样绑定 `28cff6adc8`，标签发布工作流成功。文档核对源码为 `main@2b4de8bcd7`；桌面与移动端产品包保持独立 **v5.0.3.138**，新增桌面任务工作区须运行本轮源码，不能从 npm/IDE 发布推断已进入该安装包。 安装与 IDE 操作见[发布指南](../../docs-site/docs/chainlesschain/agent-platform-release.md)；本轮公开 CLI/PDH 与桌面源码的新增功能见[数据与项目操作指南](../../docs-site/docs/chainlesschain/data-actions-current.md)。下方手册保留历史功能基线。
 
 **历史功能基线**: v0.24.0

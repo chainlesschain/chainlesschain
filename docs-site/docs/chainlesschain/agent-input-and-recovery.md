@@ -1,5 +1,13 @@
 # Agent 输入、图片预算与会话恢复
 
+> 当前版本（2026-10-27）：CLI **0.166.127** / Open VSX **0.37.165** / JetBrains **0.4.182**；客户端 **v5.0.3.142** 已公开。当前升级操作以[本轮指南](./cli-ide-update-2026-10-27)为准，旧日期段落保留历史。
+
+## 自进化选择与完整恢复摘要
+
+新安装与旧自动本地部署默认关闭自进化；明确提供的外部部署或已手动配置并启用的部署在配置缺省时仍启用。`cc config set evolution.enabled false` 明确关闭并覆盖继承的环境变量，随后重启 Agent；需要时用 `cc evolution deployment enable` 开启。详见[配置指南](./self-evolution-configuration)。
+
+.126 起，文件/远端摘要、任务检查点、WORKLOG 和旧会话恢复使用完整、有界表示，避免宿主截断 JSON 导致下一轮失败。原始会话未重写，省略摘录不计为已读源内容。错误码仍可能表示其他证据或部署错误；开启状态下的严格校验继续执行。
+
 ## 概述
 
 当前公开 CLI 为 **0.166.121**，修复普通状态与工具显示文本的 Evolution ingress 误判。它保留此前 **0.166.117** 对代码投影、图片与文本预算、长工具输出及异常退出前工具结算的修复。历史 Open VSX **0.37.159** / JetBrains **0.4.176** 配对推荐 CLI **0.166.117**；新的 IDE 发布状态见下文。
@@ -35,14 +43,14 @@ CLI 0.166.121 已通过同一提交的三平台 CLI CI 和 CLI Strict Sandbox，
 使用 Node.js **22.12.0 或更新版本**，安装已公开版本：
 
 ```bash
-npm i -g chainlesschain@0.166.117 --registry https://registry.npmjs.org
+npm i -g chainlesschain@0.166.127 --registry https://registry.npmjs.org
 cc --version
 cc doctor
 ```
 
 更新 IDE 插件后重启聊天宿主，运行 **Diagnose Bridge / Doctor** 核对实际 CLI 路径和版本。Windows 中若系统 `cc` 是 C 编译器，应在 IDE 设置中配置正确的 CLI 可执行文件。
 
-这次修复不需要关闭 Evolution，也不需要手工修改账本或 JSONL。模型仍须支持当前图片类型及视觉输入。
+是否开启 Evolution 由共享开关决定；不要手工修改账本或 JSONL。模型仍须支持当前图片类型及视觉输入。
 
 ## 性能指标
 
@@ -67,7 +75,7 @@ cc doctor
 
 发行提交通过完整的 Linux、Windows、macOS CLI CI 与 Strict Sandbox 门禁；两个 IDE 也通过配置中的真实宿主矩阵和发布前检查。CLI 的公共安装、依赖和签名来源已核验，两个 IDE 的公开压缩包已下载并核对版本及 CLI 推荐值。
 
-本次未新增真实模型长任务验收。历史跨版本交付统计为 **31/45**，不能作为 `.117` 的单轮成功率。完整回执见[发布证据](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release117-public/publication.json)。
+本次未新增真实模型长任务验收。历史 `.117` 当时的跨版本交付统计为 **31/45**；当前累计为 **32/45**、**13** 项未完成，均不能作为本轮单轮成功率。完整回执见[发布证据](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release117-public/publication.json)。
 
 ## 安全考虑
 
@@ -79,7 +87,7 @@ cc doctor
 
 | 现象                                                                                                  | 处理步骤                                                                                                       |
 | ----------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `Agent evolution ingress failed: Agent model JSON text is malformed, ambiguous or exceeds its budget` | 先升级并重启宿主；确认实际 CLI 为 `.117`。仍出现时缩小输入或工具输出，检查实际 JSON 与图片限制，保存脱敏诊断。 |
+| `Agent evolution ingress failed: Agent model JSON text is malformed, ambiguous or exceeds its budget` | 先升级并重启宿主；确认实际 CLI 为 `.127`。仍出现时缩小输入或工具输出，检查实际 JSON 与图片限制，保存脱敏诊断。 |
 | `Cannot settle completed tool rounds; refresh the session before continuing`                          | 停止其他写入同一会话的窗口，刷新并重新读取会话；核对已完成工具的实际结果，再恢复。真实过期 CAS 不会自动越过。  |
 | 图片过大或达到服务商限制                                                                              | 缩小图片、减少同一消息的图片数，按独立问题分批发送。                                                           |
 | 工具预览显示省略                                                                                      | 按字段、关键词或行游标读取所需部分；省略说明不证明完整输出内容。                                               |
