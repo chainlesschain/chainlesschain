@@ -1,0 +1,161 @@
+{
+  "checkedAt": "2026-10-27T22:48:58.722Z",
+  "checks": [
+    {
+      "route": "/web/",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "h1": "在浏览器里，打开你的 AI 工作台。",
+      "imageCount": 4,
+      "downloadCount": 0,
+      "horizontalOverflow": false,
+      "httpStatus": 200,
+      "screenshot": ".work/docs-sites-20261028/product-web-zh-1440.png"
+    },
+    {
+      "route": "/desktop/",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "h1": "把 AI、文件和工具，放在一个工作台里。",
+      "imageCount": 5,
+      "downloadCount": 7,
+      "horizontalOverflow": false,
+      "httpStatus": 200,
+      "screenshot": ".work/docs-sites-20261028/product-desktop-zh-1440.png"
+    },
+    {
+      "route": "/mobile/",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "h1": "随身的个人助手，也能连接你的桌面。",
+      "imageCount": 2,
+      "downloadCount": 5,
+      "horizontalOverflow": false,
+      "httpStatus": 200,
+      "screenshot": ".work/docs-sites-20261028/product-mobile-zh-1440.png"
+    },
+    {
+      "route": "/en/web/",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "h1": "Your AI workbench, in a browser.",
+      "imageCount": 4,
+      "downloadCount": 0,
+      "horizontalOverflow": false,
+      "httpStatus": 200,
+      "screenshot": ".work/docs-sites-20261028/product-web-en-1440.png"
+    },
+    {
+      "route": "/en/desktop/",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "h1": "AI, files and tools. One place to work.",
+      "imageCount": 5,
+      "downloadCount": 7,
+      "horizontalOverflow": false,
+      "httpStatus": 200,
+      "screenshot": ".work/docs-sites-20261028/product-desktop-en-1440.png"
+    },
+    {
+      "route": "/en/mobile/",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "h1": "A personal assistant that travels with you.",
+      "imageCount": 2,
+      "downloadCount": 5,
+      "horizontalOverflow": false,
+      "httpStatus": 200,
+      "screenshot": ".work/docs-sites-20261028/product-mobile-en-1440.png"
+    },
+    {
+      "route": "/web/",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "h1": "在浏览器里，打开你的 AI 工作台。",
+      "imageCount": 4,
+      "downloadCount": 0,
+      "horizontalOverflow": false,
+      "httpStatus": 200,
+      "screenshot": ".work/docs-sites-20261028/product-web-zh-390.png"
+    },
+    {
+      "route": "/desktop/",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "h1": "把 AI、文件和工具，放在一个工作台里。",
+      "imageCount": 5,
+      "downloadCount": 7,
+      "horizontalOverflow": false,
+      "httpStatus": 200,
+      "screenshot": ".work/docs-sites-20261028/product-desktop-zh-390.png"
+    },
+    {
+      "route": "/mobile/",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "h1": "随身的个人助手，也能连接你的桌面。",
+      "imageCount": 2,
+      "downloadCount": 5,
+      "horizontalOverflow": false,
+      "httpStatus": 200,
+      "screenshot": ".work/docs-sites-20261028/product-mobile-zh-390.png"
+    },
+    {
+      "route": "/en/web/",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "h1": "Your AI workbench, in a browser.",
+      "imageCount": 4,
+      "downloadCount": 0,
+      "horizontalOverflow": false,
+      "httpStatus": 200,
+      "screenshot": ".work/docs-sites-20261028/product-web-en-390.png"
+    },
+    {
+      "route": "/en/desktop/",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "h1": "AI, files and tools. One place to work.",
+      "imageCount": 5,
+      "downloadCount": 7,
+      "horizontalOverflow": false,
+      "httpStatus": 200,
+      "screenshot": ".work/docs-sites-20261028/product-desktop-en-390.png"
+    },
+    {
+      "route": "/en/mobile/",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "h1": "A personal assistant that travels with you.",
+      "imageCount": 2,
+      "downloadCount": 5,
+      "horizontalOverflow": false,
+      "httpStatus": 200,
+      "screenshot": ".work/docs-sites-20261028/product-mobile-en-390.png"
+    }
+  ]
+}

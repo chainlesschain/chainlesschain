@@ -1,0 +1,30 @@
+---
+const { lang = 'zh' } = Astro.props;
+const en = lang === 'en';
+const cards = en ? [
+  ['01', 'Personal assistant', 'Chat · personal data · notes', 'Configured models and permitted data sources'],
+  ['02', 'Family and AI study', 'Study · tasks · rewards · mistake book', 'Navigation depends on the selected family role'],
+  ['03', 'Local and remote work', 'Android local cc / paired desktop terminal', 'Local commands run on the phone; remote commands run on the paired host'],
+] : [
+  ['01', '个人助手', '对话 · 个人数据 · 笔记', '按配置连接模型，按授权读取数据'],
+  ['02', '家庭与 AI 陪学', '陪学 · 任务 · 积分 · 错题本', '根据选择的家庭角色显示入口'],
+  ['03', '本地与远程工作', '手机本地 cc / 配对桌面终端', '本地命令在手机执行，远程命令在配对设备执行'],
+];
+---
+<figure class="rounded-2xl border border-line bg-cream/60 p-6 md:p-10">
+  <div class="flex flex-wrap items-center justify-between gap-3 mb-8">
+    <div class="font-mono text-xs tracking-wider text-ember">ANDROID · 2026-10-28</div>
+    <span class="chip">{en ? 'FEATURE MAP · NOT A SCREENSHOT' : '功能导览 · 非真机截图'}</span>
+  </div>
+  <div class="grid md:grid-cols-3 gap-5">
+    {cards.map(([n, title, features, detail]) => (
+      <div class="rounded-xl bg-paper border border-line p-6 md:p-8">
+        <div class="font-display text-4xl text-ember/60 mb-6">{n}</div>
+        <h3 class="font-display text-2xl mb-3">{title}</h3>
+        <p class="text-sm text-ink/80 mb-4">{features}</p>
+        <p class="text-sm text-muted leading-relaxed">{detail}</p>
+      </div>
+    ))}
+  </div>
+  <figcaption class="mt-7 text-xs text-muted leading-relaxed">{en ? 'Prepared from Android navigation and screen source. Device appearance and availability depend on the installed version, role and permissions.' : '依据 Android 导航与页面源码整理。实际界面及可用功能以安装版本、角色和权限为准。'}</figcaption>
+</figure>
