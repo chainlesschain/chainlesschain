@@ -1,7 +1,7 @@
 {
   "schema": "chainlesschain.release128-publication/v1",
-  "observedAt": "2026-10-27T19:01:48.866Z",
-  "status": "CLI_AND_IDES_PUBLIC_CLIENTS_PENDING",
+  "observedAt": "2026-10-27T20:08:11.891Z",
+  "status": "CLI_IDES_AND_CLIENTS_PUBLIC",
   "repository": "chainlesschain/chainlesschain",
   "channels": {
     "cli": {
@@ -66,15 +66,14 @@
   },
   "clients": {
     "productVersion": "v5.0.3.143",
-    "status": "building",
+    "status": "public",
     "cliVersion": "0.166.128",
     "androidBundleRunId": 40556532158,
     "androidBundleBuildConclusion": "success",
-    "publicRelease": false,
+    "publicRelease": true,
     "candidateSourceSha": "036d2b8be2048c98e56e917c93380f169e6a9d7b",
     "androidBundleReceipt": "android-cli-bundle.json",
     "androidBundleSha256": "65d6d3d7e89e3637ecf784f3d3509253538f64e4fc7684818360039285e389f2",
-    "plannedAndroidBinaries": "20261028-1",
     "androidBinariesRolloverRunId": 40564206069,
     "androidBinariesRolloverStatus": "success",
     "runId": 40565272034,
@@ -88,7 +87,21 @@
       "totalBytes": 304255038,
       "receipt": "android-runtime-assets.json",
       "cliArchiveSha256": "65d6d3d7e89e3637ecf784f3d3509253538f64e4fc7684818360039285e389f2"
-    }
+    },
+    "upstreamReceipt": "product-consumed-upstreams.json",
+    "upstreamsVerified": true,
+    "publicWorkspaceDependencyVerification": {
+      "jobId": 122408634906,
+      "status": "success",
+      "packages": 13
+    },
+    "releaseId": 425923955,
+    "releaseUrl": "https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.143",
+    "receipt": "product-publication.json",
+    "assetCount": 22,
+    "immutable": true,
+    "publicAssetsMatchCiManifest": true,
+    "publicUpdaterMetadataVerified": true
   },
   "acceptance": {
     "accepted": 32,

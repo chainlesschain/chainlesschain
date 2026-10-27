@@ -10,10 +10,10 @@
   "npmLatestGateStatus": "Exact-source CLI CI and Strict Sandbox matrices, OIDC publication, public dependency installation and provenance were verified in the linked formal release evidence. Public IDE recommendations are recorded separately. No new model task retest.",
   "cliReleaseGateConclusion": "success",
   "sourceCandidateCommit": "dfa158e36171e347a40e23356c2ed7bd04e0c061",
-  "sourceHeadCommit": "3357c7c9dd0f2fce6d2ddf2f1f38be7d3de2d381",
-  "documentedDesktopCommit": "c9881a2b710cf49f0ad3d63673e0998ecc608514",
+  "sourceHeadCommit": "17cbea8a5874fd6af8f5ab52e6e905c6d139303d",
+  "documentedDesktopCommit": "036d2b8be2048c98e56e917c93380f169e6a9d7b",
   "postReleaseDesktopGovernanceCommit": "f733f92cb953fffaafea9f91024bbf1c8846406d",
-  "sourceMainStatus": "CLI .128, Open VSX .166 and JetBrains .183 are public and their release artifacts are verified. Product .143 is building from frozen source 036d2b8be2; .142 remains public. No new live model-task acceptance.",
+  "sourceMainStatus": "CLI .128, Open VSX .166, JetBrains .183 and native product .143 are public. Goal evidence/checkpoint reliability, optional completion review, IDE model configuration and MCP/Memory discovery improvements are included. No new live model-task acceptance.",
   "agentSdkVersion": "0.2.16",
   "pythonAgentSdkVersion": "0.2.9",
   "agentProtocolVersion": "0.1.12",
@@ -56,9 +56,9 @@
   "jetBrainsCandidateStatus": "Exact-source host and release gates passed; approved public listing, ZIP download and all original candidate payload entries were verified.",
   "sourceSessionCoreVersion": "0.3.24",
   "sourcePersonalDataHubVersion": "0.4.66",
-  "productVersion": "v5.0.3.142",
+  "productVersion": "v5.0.3.143",
   "sourceContextMemoryKernelVersion": "0.1.10",
-  "productReleaseWorkflowStatus": "Public v5.0.3.142, Release run 40418182439, source c9881a2b710cf49f0ad3d63673e0998ecc608514. All five platform builds passed, 22 public assets match the CI manifest, and three desktop updater metadata sets are verified. No new model-task or native admission claim. Product .143 run 40565272034 is building from frozen source 036d2b8be2048c98e56e917c93380f169e6a9d7b; it is not yet public.",
+  "productReleaseWorkflowStatus": "Public v5.0.3.143, Release run 40565272034, source 036d2b8be2048c98e56e917c93380f169e6a9d7b. All five platform builds passed, 22 public assets match the CI manifest, and three desktop updater metadata sets are verified. No new model-task or native admission claim.",
   "jetBrainsCandidateVersion": "0.4.183",
   "jetBrainsCandidateRecommendedCliVersion": "0.166.128",
   "jetBrainsCandidateCommit": "6551a06c2f694bb93d0197fa8b82becd25a83173",
@@ -71,7 +71,7 @@
   "remainingUnaccepted": 13,
   "releaseEvidence": "https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release128-public/publication.json",
   "taskEvidence": "docs/research/cli/evidence/recovery-2026-10-23/remaining-36-plus-9.json",
-  "sourceSnapshotStatus": "Documentation reviewed main 3357c7c9dd; CLI, Open VSX, JetBrains and product releases have separately recorded source commits and distinct public statuses. Deployment manifests identify the final documentation commit.",
+  "sourceSnapshotStatus": "Documentation reviewed main 17cbea8a58; CLI, Open VSX, JetBrains and native product releases have separately recorded source commits. Deployment manifests identify the final documentation commit.",
   "currentReleaseModelTaskRetest": "NOT_RUN_THIS_RELEASE",
   "currentReleaseLimits": {
     "paidReadiness": "NOT_PAID_READY",
@@ -196,7 +196,7 @@
       "receiptUrl": "https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release121-public/publication.json"
     }
   },
-  "nativeReleaseEvidence": "https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release127-public/product-publication.json",
+  "nativeReleaseEvidence": "https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release128-public/product-publication.json",
   "historicalTaskRetestEvidence": "docs/research/cli/evidence/implementation-plan-2026-10-15/task-campaign-2026-10-18/next-package-105-20261018.json",
   "taskInventoryRelease": "0.166.106",
   "taskInventoryReconciledAt": "2026-10-23",
@@ -270,6 +270,17 @@
         "https://github.com/chainlesschain/chainlesschain/actions/runs/40557015160"
       ],
       "receiptUrl": "https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release128-public/jetbrains-public-readback.json"
+    },
+    "clients": {
+      "version": "v5.0.3.143",
+      "status": "public",
+      "sourceSha": "036d2b8be2048c98e56e917c93380f169e6a9d7b",
+      "gatesPassed": true,
+      "publicReadbackVerified": true,
+      "workflowUrls": [
+        "https://github.com/chainlesschain/chainlesschain/actions/runs/40565272034"
+      ],
+      "receiptUrl": "https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release128-public/product-publication.json"
     }
   }
 }

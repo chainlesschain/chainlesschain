@@ -2,7 +2,7 @@
 
 ## 概述
 
-CLI **0.166.128**、Open VSX **0.37.166** 和 JetBrains **0.4.183** 已公开并完成归档回读；两个 IDE 均推荐 CLI `.128`。客户端 **v5.0.3.143** 的[五平台构建正在进行](https://github.com/chainlesschain/chainlesschain/actions/runs/40565272034)，当前公开客户端仍为 **v5.0.3.142**。各阶段状态以[公开发行回执](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release128-public/publication.json)为准。
+CLI **0.166.128**、Open VSX **0.37.166** 和 JetBrains **0.4.183** 已公开并完成归档回读；两个 IDE 均推荐 CLI `.128`。移动/PC 客户端 [**v5.0.3.143**](https://github.com/chainlesschain/chainlesschain/releases/tag/v5.0.3.143) 已公开，五平台构建、22 个公开资产与桌面更新元数据均已核验。各阶段状态以[公开发行回执](https://github.com/chainlesschain/chainlesschain/blob/main/docs/research/cli/evidence/release128-public/publication.json)为准。
 
 CLI 发行源为 `dfa158e36171e347a40e23356c2ed7bd04e0c061`；公开 npm 包与不可变 CI 制品逐字节一致，签名来源及十个直接子依赖版本已核验。配套 IDE 使用独立的固定发行提交，不把默认分支上的后续改动当作已发布代码。
 
@@ -82,7 +82,7 @@ cc agent -p "完善当前模块的回归测试并检查交付是否覆盖要求"
 
 准确 CLI 提交的 Linux、Windows、macOS `CLI CI` 与 `CLI Strict Sandbox` 均已通过。CLI CI 的 71 个必需任务成功，既定可选 dry-run 发布任务跳过；OIDC 发布和独立公开回读均成功。子包版本本轮不变，Session Core 保持 **0.3.24**。
 
-Open VSX `.166` 的正式工作流和独立公开回读均通过，下载 VSIX 与不可变 CI 制品逐字节相同。JetBrains `.183` 的六格真实宿主、三系统浏览器、单元测试、构建和兼容性检查通过；公开批准、列出和 ZIP 下载已核验，全部原始 CI payload 条目一致。客户端 `.143` 尚未发行；Android CLI bundle 已验证公开 CLI 的来源和依赖版本，不代表已通过 Android 实机测试。
+Open VSX `.166` 的正式工作流和独立公开回读均通过，下载 VSIX 与不可变 CI 制品逐字节相同。JetBrains `.183` 的六格真实宿主、三系统浏览器、单元测试、构建和兼容性检查通过；公开批准、列出和 ZIP 下载已核验，全部原始 CI payload 条目一致。客户端 `.143` 的五平台构建全部成功，22 个公开资产与 CI manifest 的字节数和摘要匹配，三套桌面更新元数据已独立下载核验。Android 使用已公开的 `20261028-1` 内部运行时，CLI bundle 已验证公开 CLI 的来源和依赖版本；这些归档检查不代表已通过 Android 实机测试。
 
 本轮工程发布未增加真实模型任务验收：累计仍为 **32/45**，另有 **13** 项未完成；**NOT_PAID_READY / NOT_ADMITTED / HOLD** 保留。
 

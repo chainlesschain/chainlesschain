@@ -2,36 +2,39 @@
 import releaseStatus from "../data/release-status.json";
 const { lang = "zh" } = Astro.props;
 const english = lang === "en";
-const jetBrainsPending = ["pending-review", "pending-approval", "published-unverified"].includes(
-  releaseStatus.jetBrainsPublicationStatus,
-);
+const jetBrainsPending = [
+  "pending-review",
+  "pending-approval",
+  "published-unverified",
+  "uploaded_public_listing_pending",
+].includes(releaseStatus.jetBrainsPublicationStatus);
 const items = english
   ? [
       [
-        "Optional self-evolution",
-        "Fresh installations and older automatically generated local deployments default to off. CLI, cc ui and IDEs share evolution.enabled; an explicit false overrides deployment environment variables. Restart running Agent sessions after switching.",
+        "Goal evidence and optional review",
+        "Natural language Goal evaluation uses successful tool evidence from the current turn and reports checkpoint write failures. Optional --review-changes is off by default, uses existing permissions and budgets, and publishes final text only.",
       ],
       [
-        "Complete recovery summaries",
-        "File excerpts, remote reads, task checkpoints and worklog views retain complete bounded JSON or explicitly omit unsafe excerpts. Original session history, strict validation and redaction remain enforced.",
+        "IDE models and tool discovery",
+        "IDEs distinguish missing configuration from read failures and keep /model selection within its conversation. MCP and Skills improve multilingual discovery; compact MCP catalogs remain opt-in, and Memory retains full disk validation.",
       ],
       [
         "Mobile and PC release",
-        "Five-platform builds passed for v5.0.3.142. All 22 public assets match the CI manifest, and desktop updater metadata is verified. Android terminal controls share the CLI switch; platform signing and installation requirements still apply.",
+        `All five platform builds passed for ${releaseStatus.productVersion}. The 22 public assets match the CI manifest, and desktop updater metadata is verified. Desktop and mobile users upgrade their product package; IDE users install the paired CLI.`,
       ],
     ]
   : [
       [
-        "自进化可选开启",
-        "新安装与旧自动本地部署默认关闭。CLI、cc ui 和 IDE 共享 evolution.enabled；显式 false 覆盖部署环境变量。切换后需重启运行中的 Agent。",
+        "Goal 证据与可选交付复查",
+        "自然语言 Goal 使用本轮成功工具证据判定完成，检查点保存失败会明确暴露。可选 --review-changes 默认关闭，沿用原有权限与预算，开启后仅发布最终文本。",
       ],
       [
-        "完整、有界的恢复摘要",
-        "文件摘录、远端读取、任务检查点与 WORKLOG 保留完整有界 JSON，无法安全表达时明确省略。原始会话历史、严格校验与脱敏继续保留。",
+        "IDE 模型配置与工具发现",
+        "IDE 区分未配置与读取失败，/model 选择仅覆盖当前会话。MCP 与 Skills 改进多语言检索；紧凑目录默认关闭，Memory 继续执行完整磁盘校验。",
       ],
       [
         "移动与 PC 产品已公开",
-        "v5.0.3.142 五平台构建通过，22 个公开资产匹配 CI 清单，桌面更新元数据已核验。Android 本地终端提供共享开关；签名和安装仍遵循对应平台要求。",
+        `${releaseStatus.productVersion} 五平台构建通过，22 个公开资产匹配 CI 清单，桌面更新元数据已核验。桌面与移动端通过产品包升级，IDE 用户安装配套 CLI。`,
       ],
     ];
 ---
@@ -42,7 +45,7 @@ const items = english
       {releaseStatus.checkedAt} · {english ? "Verified public release" : "已核验公开发行"} · CLI {releaseStatus.recommendedCliVersion}
     </p>
     <h2 id="source-update-title" class="mt-3 text-3xl font-bold">
-      {english ? "Optional self-evolution and complete session recovery" : "可选自进化与完整会话恢复"}
+      {english ? "Goal evidence, optional review and model configuration" : "Goal 证据、可选复查与模型配置"}
     </h2>
     <p class="mt-4 text-muted leading-relaxed max-w-4xl">
       {english

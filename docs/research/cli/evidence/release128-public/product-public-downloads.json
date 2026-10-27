@@ -1,0 +1,27 @@
+{
+  "observedAt": "2026-10-27T20:07:36.325Z",
+  "version": "v5.0.3.143",
+  "receipts": [
+    {
+      "name": "latest.yml",
+      "url": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.143/latest.yml",
+      "bytes": 387,
+      "sha256": "3663c44af125d2bac02c7cba016fe7bd8134c8f98da5e4e767dcc19b095d8f64",
+      "verified": true
+    },
+    {
+      "name": "latest-mac.yml",
+      "url": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.143/latest-mac.yml",
+      "bytes": 894,
+      "sha256": "a764cd7ffb1b64598ba35482bc36c5606643e3018204adb9e460c842e3807ef5",
+      "verified": true
+    },
+    {
+      "name": "latest-linux.yml",
+      "url": "https://github.com/chainlesschain/chainlesschain/releases/download/v5.0.3.143/latest-linux.yml",
+      "bytes": 777,
+      "sha256": "e70b8e45ab708ae6ba2d091e13f18a90f6590c72149006fb3837114130625d1c",
+      "verified": true
+    }
+  ]
+}
